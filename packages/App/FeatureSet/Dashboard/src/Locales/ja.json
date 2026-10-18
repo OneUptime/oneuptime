@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "以下はすべてこのタイムゾーンです。",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "開始と終了を同じ時刻にすることはできません。もっと長い時間帯を選ぶか、24 時間オンコールにするには「制限なし」を選んでください。",
   "Go to Layers": "レイヤーへ移動",
-  "How long after the page to use this method.": "通知からどれくらい後にこの方法を使うか。",
   "How long each turn lasts.": "1 回の担当がどれくらい続くか。",
   "How many more times?": "あと何回？",
   "If nobody acknowledges after the last level": "最後のレベルの後も誰も確認しない場合",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "タイムゾーンがまだ設定されていません。選択してください。",
   "Nobody is paged again.": "再度通知される人はいません。",
   "Nobody takes turns on this schedule yet": "このスケジュールで交代で担当する人はまだいません",
-  "Not set. Callers hear “{{message}}”": "未設定。発信者には「{{message}}」と流れます",
   "Not set: the server's own time is used": "未設定：サーバーの時刻が使われます",
   "Phone numbers people can call to reach whoever is on call.": "オンコール担当者に連絡するためにかける電話番号。",
   "Read out when every rule rang and nobody answered, before the call ends.": "すべてのルールが呼び出しても誰も応答しなかったとき、通話が終了する前に読み上げられます。",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "誰かが電話をかけてきたとき、誰かを呼び出す前に読み上げられます。",
   "Ring again from the first rule": "最初のルールからもう一度呼び出す",
   "Ring again from the first rule, up to {{times}}": "最初のルールからもう一度呼び出す（最大 {{times}}）",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "セットアップ済みですが、通話に応答しません。設定で「通話に応答」をオンにしてください。",
   "Start again from Level 1": "Level 1 からやり直す",
   "Start again from Level 1, up to {{times}}": "Level 1 からやり直す（最大 {{times}}）",
   "Stop answering calls": "通話への応答を停止",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "スケジュールの時刻はこのタイムゾーンです。初期値はあなたのタイムゾーンです。",
   "Three steps, in order, before this policy can take calls.": "このポリシーで通話を受けるまでの 3 つのステップです。順番に進めてください。",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "削除せずに回線をオフにします。番号、ルール、通話ログはそのまま残ります。",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "再びオンにするまで、このポリシーの番号への通話にはすべて回線が利用できないことが伝えられ、誰も呼び出されません。",
   "What callers hear, read out by a text-to-speech voice.": "発信者に流れる内容。音声合成で読み上げられます。",
   "What happens when nobody acknowledges after the last level.": "最後のレベルの後も誰も確認しない場合の動作。",
   "What happens when nobody answers after the last rule.": "最後のルールの後も誰も応答しない場合の動作。",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "インシデントやアラートがこのポリシーを実行したときに、誰にいつ通知するか。",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "電話がかかってきたときに呼び出す相手。リストの上から順に呼び出します。ルールをドラッグすると順番を変えられます。",
   "e.g., Platform on-call": "例: プラットフォームのオンコール",
-  "e.g., Platform primary": "例: プラットフォームのメイン"
+  "e.g., Platform primary": "例: プラットフォームのメイン",
+  "Not answering calls": "通話に応答していません",
+  "Start answering calls": "通話への応答を再開",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "再びオンにするまで、このポリシーの番号に電話をかけた人には回線が利用できないことが伝えられ、誰も呼び出されません。",
+  "How long after being paged to use this method.": "通知からどれくらい後にこの方法を使うか。"
 }

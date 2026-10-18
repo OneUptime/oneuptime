@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "下方所有内容都采用此时区。",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "开始和结束不能是同一时间。请选择更长的时间段，或选择“无限制”以全天候值班。",
   "Go to Layers": "前往层页面",
-  "How long after the page to use this method.": "通知后多久使用此方式。",
   "How long each turn lasts.": "每次值班持续多久。",
   "How many more times?": "再重复几次？",
   "If nobody acknowledges after the last level": "如果最后一级之后仍无人确认",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "尚未设置时区。请选择一个。",
   "Nobody is paged again.": "不会再通知任何人。",
   "Nobody takes turns on this schedule yet": "此排班中还没有人轮流值班",
-  "Not set. Callers hear “{{message}}”": "未设置。来电者会听到“{{message}}”",
   "Not set: the server's own time is used": "未设置：使用服务器时间",
   "Phone numbers people can call to reach whoever is on call.": "用于联系当前值班人员的电话号码。",
   "Read out when every rule rang and nobody answered, before the call ends.": "每条规则都已呼叫但无人接听时，在通话结束前播报。",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "有人来电时，在呼叫任何人之前播报。",
   "Ring again from the first rule": "从第一条规则重新呼叫",
   "Ring again from the first rule, up to {{times}}": "从第一条规则重新呼叫，最多再重复 {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "已设置，但不接听来电。请在“设置”中开启“接听来电”。",
   "Start again from Level 1": "从 Level 1 重新开始",
   "Start again from Level 1, up to {{times}}": "从 Level 1 重新开始，最多再重复 {{times}}",
   "Stop answering calls": "停止接听来电",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "排班的时间采用此时区，默认是您的时区。",
   "Three steps, in order, before this policy can take calls.": "此策略接听来电前，需要按顺序完成三个步骤。",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "关闭线路而不删除它。其号码、规则和通话日志都会保留。",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "在重新开启之前，每个拨打此策略号码的来电都会听到线路不可用，且不会呼叫任何人。",
   "What callers hear, read out by a text-to-speech voice.": "来电者听到的内容，由文字转语音播报。",
   "What happens when nobody acknowledges after the last level.": "最后一级之后仍无人确认时会发生什么。",
   "What happens when nobody answers after the last rule.": "最后一条规则之后仍无人接听时会发生什么。",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "事件或警报运行此策略时，通知谁以及何时通知。",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "有人来电时，从列表顶部往下依次呼叫谁。拖动规则可更改其位置。",
   "e.g., Platform on-call": "例如：平台值班",
-  "e.g., Platform primary": "例如：平台主值班"
+  "e.g., Platform primary": "例如：平台主值班",
+  "Not answering calls": "未接听来电",
+  "Start answering calls": "恢复接听来电",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "在重新开启之前，拨打此策略号码的每个人都会听到线路不可用，且不会呼叫任何人。",
+  "How long after being paged to use this method.": "通知后多久使用此方式。"
 }

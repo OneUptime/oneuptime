@@ -444,11 +444,11 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
 
             return (
               <div
-                className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200"
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 p-4 bg-green-50 rounded-lg border border-green-200"
                 data-testid="incoming-call-policy-phone-number"
                 key={phoneNumber.id?.toString() || phoneNumberText || index}
               >
-                <div className="flex items-center space-x-3 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <Icon
                     icon={IconProp.CheckCircle}
                     className="text-green-500 h-6 w-6 flex-shrink-0"
@@ -472,21 +472,23 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
                     )}
                   </div>
                 </div>
-                <Button
-                  title="Release"
-                  buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                  icon={IconProp.Trash}
-                  disabled={releaseLock.isLocked}
-                  tooltip={releaseLock.tooltip}
-                  onClick={() => {
-                    if (releaseLock.isLocked) {
-                      return;
-                    }
+                <div className="ml-auto shrink-0">
+                  <Button
+                    title="Release"
+                    buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                    icon={IconProp.Trash}
+                    disabled={releaseLock.isLocked}
+                    tooltip={releaseLock.tooltip}
+                    onClick={() => {
+                      if (releaseLock.isLocked) {
+                        return;
+                      }
 
-                    setPhoneNumberToRelease(phoneNumber);
-                    setShowReleaseConfirmModal(true);
-                  }}
-                />
+                      setPhoneNumberToRelease(phoneNumber);
+                      setShowReleaseConfirmModal(true);
+                    }}
+                  />
+                </div>
               </div>
             );
           },
@@ -825,7 +827,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
   // Render the add button inline when hideCard is true.
   const renderButtons: () => ReactElement = (): ReactElement => {
     return (
-      <div className="flex space-x-2">
+      <div className="ml-auto flex shrink-0 space-x-2">
         {/*
          * The primary step only while the policy has no number. After that
          * the next step on the policy page is its escalation rules, whose
@@ -1068,8 +1070,8 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
     return (
       <>
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0">
               <p className="font-medium text-gray-900">
                 {translator.translateText("Phone Numbers")}
               </p>

@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "Alt nedenfor er i denne tidssonen.",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "Fra og Til kan ikke være samme klokkeslett. Velg et lengre tidsvindu, eller Ingen begrensninger for å ha vakt hele døgnet.",
   "Go to Layers": "Gå til Lag",
-  "How long after the page to use this method.": "Hvor lenge etter varselet denne metoden brukes.",
   "How long each turn lasts.": "Hvor lenge hver vakt varer.",
   "How many more times?": "Hvor mange ganger til?",
   "If nobody acknowledges after the last level": "Hvis ingen bekrefter etter det siste nivået",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "Ingen tidssone er angitt ennå. Velg en.",
   "Nobody is paged again.": "Ingen varsles igjen.",
   "Nobody takes turns on this schedule yet": "Ingen bytter på å ha vakt i denne planen ennå",
-  "Not set. Callers hear “{{message}}”": "Ikke angitt. Den som ringer hører «{{message}}»",
   "Not set: the server's own time is used": "Ikke angitt: serverens eget klokkeslett brukes",
   "Phone numbers people can call to reach whoever is on call.": "Telefonnumre man kan ringe for å nå den som har vakt.",
   "Read out when every rule rang and nobody answered, before the call ends.": "Leses opp når hver regel har ringt og ingen har svart, før anropet avsluttes.",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "Leses opp når noen ringer, før noen ringes opp.",
   "Ring again from the first rule": "Ring igjen fra den første regelen",
   "Ring again from the first rule, up to {{times}}": "Ring igjen fra den første regelen, opptil {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "Satt opp, men besvarer ikke anrop. Slå på Besvar anrop under Innstillinger.",
   "Start again from Level 1": "Start på nytt fra Level 1",
   "Start again from Level 1, up to {{times}}": "Start på nytt fra Level 1, opptil {{times}}",
   "Stop answering calls": "Slutt å besvare anrop",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "Planens klokkeslett er i denne tidssonen. Den starter med din.",
   "Three steps, in order, before this policy can take calls.": "Tre trinn i rekkefølge før denne policyen kan ta imot anrop.",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "Slå av linjen uten å slette den. Numrene, reglene og anropsloggene beholdes.",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "Til dette slås på igjen, hører hvert anrop til numrene til denne policyen at linjen ikke er tilgjengelig, og ingen blir ringt opp.",
   "What callers hear, read out by a text-to-speech voice.": "Det den som ringer hører, lest opp av en tekst-til-tale-stemme.",
   "What happens when nobody acknowledges after the last level.": "Hva som skjer når ingen bekrefter etter det siste nivået.",
   "What happens when nobody answers after the last rule.": "Hva som skjer når ingen svarer etter den siste regelen.",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "Hvem som varsles, og når, så snart en hendelse eller et varsel kjører denne policyen.",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "Hvem som ringes opp når noen ringer, fra toppen av listen og ned. Dra en regel for å endre plasseringen.",
   "e.g., Platform on-call": "f.eks. Plattformvakt",
-  "e.g., Platform primary": "f.eks. Plattform primær"
+  "e.g., Platform primary": "f.eks. Plattform primær",
+  "Not answering calls": "Besvarer ikke anrop",
+  "Start answering calls": "Besvar anrop igjen",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "Til dette slås på igjen, hører alle som ringer numrene til denne policyen at linjen ikke er tilgjengelig, og ingen blir ringt opp.",
+  "How long after being paged to use this method.": "Hvor lenge etter varselet denne metoden brukes."
 }

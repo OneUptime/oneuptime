@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "Alles hieronder is in deze tijdzone.",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "Van en Tot kunnen niet dezelfde tijd zijn. Kies een langer tijdvenster, of Geen beperkingen om de klok rond dienst te hebben.",
   "Go to Layers": "Naar Lagen",
-  "How long after the page to use this method.": "Hoe lang na de oproep deze methode wordt gebruikt.",
   "How long each turn lasts.": "Hoe lang elke beurt duurt.",
   "How many more times?": "Hoe vaak nog?",
   "If nobody acknowledges after the last level": "Als niemand bevestigt na het laatste niveau",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "Nog geen tijdzone ingesteld. Kies er een.",
   "Nobody is paged again.": "Niemand wordt opnieuw opgeroepen.",
   "Nobody takes turns on this schedule yet": "Nog niemand wisselt elkaar af in dit schema",
-  "Not set. Callers hear “{{message}}”": "Niet ingesteld. Bellers horen ‘{{message}}’",
   "Not set: the server's own time is used": "Niet ingesteld: de tijd van de server wordt gebruikt",
   "Phone numbers people can call to reach whoever is on call.": "Telefoonnummers waarmee men bereikt wie er dienst heeft.",
   "Read out when every rule rang and nobody answered, before the call ends.": "Voorgelezen wanneer elke regel is overgegaan en niemand heeft opgenomen, voordat het gesprek eindigt.",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "Voorgelezen wanneer iemand belt, voordat iemand wordt gebeld.",
   "Ring again from the first rule": "Opnieuw laten overgaan vanaf de eerste regel",
   "Ring again from the first rule, up to {{times}}": "Opnieuw laten overgaan vanaf de eerste regel, maximaal {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "Ingesteld, maar neemt geen gesprekken aan. Zet Gesprekken aannemen aan onder Instellingen.",
   "Start again from Level 1": "Opnieuw beginnen bij Level 1",
   "Start again from Level 1, up to {{times}}": "Opnieuw beginnen bij Level 1, maximaal {{times}}",
   "Stop answering calls": "Geen gesprekken meer aannemen",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "De tijden van het schema zijn in deze tijdzone. Die begint bij de uwe.",
   "Three steps, in order, before this policy can take calls.": "Drie stappen, op volgorde, voordat dit beleid gesprekken kan aannemen.",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "Zet de lijn uit zonder hem te verwijderen. De nummers, regels en belogboeken blijven bewaard.",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "Totdat dit weer aan staat, hoort elk gesprek naar de nummers van dit beleid dat de lijn niet beschikbaar is, en niemand wordt gebeld.",
   "What callers hear, read out by a text-to-speech voice.": "Wat bellers horen, voorgelezen door een tekst-naar-spraakstem.",
   "What happens when nobody acknowledges after the last level.": "Wat er gebeurt als niemand bevestigt na het laatste niveau.",
   "What happens when nobody answers after the last rule.": "Wat er gebeurt als niemand opneemt na de laatste regel.",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "Wie wordt opgeroepen, en wanneer, zodra een incident of waarschuwing dit beleid uitvoert.",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "Wie wordt gebeld als iemand belt, van boven naar beneden in de lijst. Sleep een regel om de plaats te wijzigen.",
   "e.g., Platform on-call": "bijv. Platform-bereikbaarheid",
-  "e.g., Platform primary": "bijv. Platform primair"
+  "e.g., Platform primary": "bijv. Platform primair",
+  "Not answering calls": "Neemt geen gesprekken aan",
+  "Start answering calls": "Weer gesprekken aannemen",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "Totdat dit weer aan staat, hoort iedereen die de nummers van dit beleid belt dat de lijn niet beschikbaar is, en niemand wordt gebeld.",
+  "How long after being paged to use this method.": "Hoe lang na de oproep deze methode wordt gebruikt."
 }

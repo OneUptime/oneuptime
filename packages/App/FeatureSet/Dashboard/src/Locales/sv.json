@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "Allt nedan är i den här tidszonen.",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "Från och Till kan inte vara samma tid. Välj ett längre tidsfönster, eller Inga begränsningar för att ha jour dygnet runt.",
   "Go to Layers": "Gå till Lager",
-  "How long after the page to use this method.": "Hur länge efter larmet den här metoden används.",
   "How long each turn lasts.": "Hur länge varje pass varar.",
   "How many more times?": "Hur många gånger till?",
   "If nobody acknowledges after the last level": "Om ingen bekräftar efter den sista nivån",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "Ingen tidszon angiven än. Välj en.",
   "Nobody is paged again.": "Ingen larmas igen.",
   "Nobody takes turns on this schedule yet": "Ingen turas om i det här schemat än",
-  "Not set. Callers hear “{{message}}”": "Inte angivet. Den som ringer hör ”{{message}}”",
   "Not set: the server's own time is used": "Inte angiven: serverns egen tid används",
   "Phone numbers people can call to reach whoever is on call.": "Telefonnummer att ringa för att nå den som har jour.",
   "Read out when every rule rang and nobody answered, before the call ends.": "Läses upp när varje regel har ringt och ingen har svarat, innan samtalet avslutas.",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "Läses upp när någon ringer, innan någon rings upp.",
   "Ring again from the first rule": "Ring igen från den första regeln",
   "Ring again from the first rule, up to {{times}}": "Ring igen från den första regeln, upp till {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "Konfigurerad, men besvarar inte samtal. Slå på Besvara samtal under Inställningar.",
   "Start again from Level 1": "Börja om från Level 1",
   "Start again from Level 1, up to {{times}}": "Börja om från Level 1, upp till {{times}}",
   "Stop answering calls": "Sluta besvara samtal",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "Schemats tider är i den här tidszonen. Den börjar med din.",
   "Three steps, in order, before this policy can take calls.": "Tre steg, i tur och ordning, innan den här policyn kan ta emot samtal.",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "Stäng av linjen utan att ta bort den. Dess nummer, regler och samtalsloggar behålls.",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "Tills detta slås på igen hör varje samtal till den här policyns nummer att linjen inte är tillgänglig, och ingen rings upp.",
   "What callers hear, read out by a text-to-speech voice.": "Det den som ringer hör, uppläst av en text-till-tal-röst.",
   "What happens when nobody acknowledges after the last level.": "Vad som händer när ingen bekräftar efter den sista nivån.",
   "What happens when nobody answers after the last rule.": "Vad som händer när ingen svarar efter den sista regeln.",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "Vem som larmas, och när, så snart en incident eller ett larm kör den här policyn.",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "Vem som rings upp när någon ringer, uppifrån och ned i listan. Dra en regel för att ändra dess plats.",
   "e.g., Platform on-call": "t.ex. Plattformsjour",
-  "e.g., Platform primary": "t.ex. Plattform primär"
+  "e.g., Platform primary": "t.ex. Plattform primär",
+  "Not answering calls": "Besvarar inte samtal",
+  "Start answering calls": "Besvara samtal igen",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "Tills detta slås på igen hör alla som ringer den här policyns nummer att linjen inte är tillgänglig, och ingen rings upp.",
+  "How long after being paged to use this method.": "Hur länge efter larmet den här metoden används."
 }

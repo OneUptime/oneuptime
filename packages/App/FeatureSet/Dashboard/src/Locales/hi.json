@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "नीचे सब कुछ इसी टाइमज़ोन में है।",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "से और तक एक ही समय नहीं हो सकते। लंबी अवधि चुनें, या चौबीसों घंटे ऑन-कॉल रहने के लिए कोई प्रतिबंध नहीं चुनें।",
   "Go to Layers": "परतों पर जाएं",
-  "How long after the page to use this method.": "सूचित करने के कितनी देर बाद यह तरीका इस्तेमाल हो।",
   "How long each turn lasts.": "हर बारी कितनी देर चलती है।",
   "How many more times?": "और कितनी बार?",
   "If nobody acknowledges after the last level": "अगर आखिरी स्तर के बाद भी कोई स्वीकार नहीं करता",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "अभी कोई टाइमज़ोन सेट नहीं है। एक चुनें।",
   "Nobody is paged again.": "किसी को फिर से सूचित नहीं किया जाता।",
   "Nobody takes turns on this schedule yet": "इस अनुसूची में अभी कोई बारी-बारी से ऑन-कॉल नहीं है",
-  "Not set. Callers hear “{{message}}”": "सेट नहीं है। कॉल करने वालों को “{{message}}” सुनाई देता है",
   "Not set: the server's own time is used": "सेट नहीं है: सर्वर का अपना समय इस्तेमाल होता है",
   "Phone numbers people can call to reach whoever is on call.": "वे फ़ोन नंबर जिन पर कॉल करके ऑन-कॉल व्यक्ति से संपर्क किया जा सकता है।",
   "Read out when every rule rang and nobody answered, before the call ends.": "जब हर नियम कॉल कर चुका हो और किसी ने कॉल न उठाई हो, तब कॉल खत्म होने से पहले पढ़ा जाता है।",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "जब कोई कॉल करता है, तब किसी को कॉल करने से पहले पढ़ा जाता है।",
   "Ring again from the first rule": "पहले नियम से फिर कॉल करें",
   "Ring again from the first rule, up to {{times}}": "पहले नियम से फिर कॉल करें, अधिकतम {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "सेट अप है, लेकिन कॉल का उत्तर नहीं दे रही। सेटिंग्स में कॉल का उत्तर दें चालू करें।",
   "Start again from Level 1": "Level 1 से फिर शुरू करें",
   "Start again from Level 1, up to {{times}}": "Level 1 से फिर शुरू करें, अधिकतम {{times}}",
   "Stop answering calls": "कॉल का उत्तर देना बंद करें",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "अनुसूची के समय इसी टाइमज़ोन में हैं। शुरुआत में यह आपका टाइमज़ोन होता है।",
   "Three steps, in order, before this policy can take calls.": "यह नीति कॉल ले सके, इससे पहले क्रम से तीन चरण।",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "लाइन को हटाए बिना बंद करें। इसके नंबर, नियम और कॉल लॉग बने रहते हैं।",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "जब तक इसे फिर से चालू नहीं किया जाता, इस नीति के नंबरों पर आने वाली हर कॉल को सुनाई देता है कि लाइन उपलब्ध नहीं है, और किसी को कॉल नहीं किया जाता।",
   "What callers hear, read out by a text-to-speech voice.": "कॉल करने वालों को क्या सुनाई देता है, जिसे टेक्स्ट-टू-स्पीच आवाज़ पढ़ती है।",
   "What happens when nobody acknowledges after the last level.": "आखिरी स्तर के बाद भी कोई स्वीकार न करे तो क्या होता है।",
   "What happens when nobody answers after the last rule.": "आखिरी नियम के बाद भी कोई कॉल न उठाए तो क्या होता है।",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "जब कोई घटना या अलर्ट यह नीति चलाता है, तो किसे और कब सूचित किया जाता है।",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "जब कोई कॉल करता है, तो सूची में ऊपर से नीचे किसे कॉल किया जाता है। किसी नियम की जगह बदलने के लिए उसे खींचें।",
   "e.g., Platform on-call": "उदा., प्लेटफ़ॉर्म ऑन-कॉल",
-  "e.g., Platform primary": "उदा., प्लेटफ़ॉर्म प्राइमरी"
+  "e.g., Platform primary": "उदा., प्लेटफ़ॉर्म प्राइमरी",
+  "Not answering calls": "कॉल का उत्तर नहीं दिया जा रहा",
+  "Start answering calls": "कॉल का उत्तर देना फिर शुरू करें",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "जब तक इसे फिर से चालू नहीं किया जाता, इस नीति के नंबरों पर कॉल करने वाले हर व्यक्ति को सुनाई देता है कि लाइन उपलब्ध नहीं है, और किसी को कॉल नहीं किया जाता।",
+  "How long after being paged to use this method.": "सूचित करने के कितनी देर बाद यह तरीका इस्तेमाल हो।"
 }

@@ -1,6 +1,9 @@
-import { IncomingCallVoiceMessagesCopy } from "./IncomingCallPolicySettingsCopy";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  INCOMING_CALL_DEFAULT_MESSAGE_PILL_TEST_ID,
+  IncomingCallVoiceMessagesCopy,
+} from "./IncomingCallPolicySettingsCopy";
+import { Gray500 } from "Common/Types/BrandColors";
+import Pill from "Common/UI/Components/Pill/Pill";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -12,15 +15,17 @@ export interface ComponentProps {
 }
 
 /*
- * A voice message on an incoming call policy's Settings page: the policy's
- * own words, or - when it was emptied - the words callers hear instead,
- * quoted and quiet. It used to read "No greeting message set", as if callers
- * heard nothing.
+ * A voice message on an incoming call policy's Settings page: the words
+ * callers hear. The policy's own, or - when it was emptied - OneUptime's,
+ * marked Default. It used to read "No greeting message set", as if callers
+ * heard nothing; the words come first now, as they do for a message of the
+ * policy's own, and a quiet pill says whose they are.
+ *
+ * The default words are not translated: Twilio reads them out in English.
  */
 const IncomingCallVoiceMessage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const message: string = props.message?.toString().trim() || "";
 
   if (message) {
@@ -32,13 +37,18 @@ const IncomingCallVoiceMessage: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <span className="text-gray-500" data-testid={props.dataTestId}>
-      {translator.translateTemplate(
-        IncomingCallVoiceMessagesCopy.emptyMessage,
-        {
-          message: props.defaultMessage,
-        },
-      )}
+    <span data-testid={props.dataTestId}>
+      <span className="mr-2">{props.defaultMessage}</span>
+      <span
+        className="inline-flex align-middle"
+        data-testid={INCOMING_CALL_DEFAULT_MESSAGE_PILL_TEST_ID}
+      >
+        <Pill
+          text={IncomingCallVoiceMessagesCopy.defaultPill}
+          color={Gray500}
+          isMinimal={true}
+        />
+      </span>
     </span>
   );
 };

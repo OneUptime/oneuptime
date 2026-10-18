@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "Tout ce qui suit est dans ce fuseau horaire.",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "De et À ne peuvent pas être à la même heure. Choisissez une plage plus longue, ou Aucune restriction pour être d'astreinte 24 h/24.",
   "Go to Layers": "Aller aux couches",
-  "How long after the page to use this method.": "Combien de temps après l'alerte utiliser ce moyen.",
   "How long each turn lasts.": "Combien de temps dure chaque tour.",
   "How many more times?": "Combien de fois de plus ?",
   "If nobody acknowledges after the last level": "Si personne ne prend en compte après le dernier niveau",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "Aucun fuseau horaire défini. Choisissez-en un.",
   "Nobody is paged again.": "Personne n'est de nouveau alerté.",
   "Nobody takes turns on this schedule yet": "Personne n'assure encore l'astreinte sur ce planning",
-  "Not set. Callers hear “{{message}}”": "Non défini. Les appelants entendent « {{message}} »",
   "Not set: the server's own time is used": "Non défini : l'heure du serveur est utilisée",
   "Phone numbers people can call to reach whoever is on call.": "Des numéros de téléphone pour joindre la personne d'astreinte.",
   "Read out when every rule rang and nobody answered, before the call ends.": "Lu quand chaque règle a sonné et que personne n'a répondu, avant la fin de l'appel.",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "Lu quand quelqu'un appelle, avant que quiconque soit appelé.",
   "Ring again from the first rule": "Sonner de nouveau depuis la première règle",
   "Ring again from the first rule, up to {{times}}": "Sonner de nouveau depuis la première règle, jusqu'à {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "Configurée, mais ne répond pas aux appels. Activez Répondre aux appels dans Paramètres.",
   "Start again from Level 1": "Recommencer depuis Level 1",
   "Start again from Level 1, up to {{times}}": "Recommencer depuis Level 1, jusqu'à {{times}}",
   "Stop answering calls": "Ne plus répondre aux appels",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "Les heures du planning sont dans ce fuseau horaire. Il commence par le vôtre.",
   "Three steps, in order, before this policy can take calls.": "Trois étapes, dans l'ordre, avant que cette politique puisse recevoir des appels.",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "Coupez la ligne sans la supprimer. Ses numéros, ses règles et ses journaux d'appels sont conservés.",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "Tant que ce n'est pas réactivé, chaque appel vers les numéros de cette politique entend que la ligne n'est pas disponible, et personne n'est appelé.",
   "What callers hear, read out by a text-to-speech voice.": "Ce que les appelants entendent, lu par une voix de synthèse vocale.",
   "What happens when nobody acknowledges after the last level.": "Ce qui se passe quand personne ne prend en compte après le dernier niveau.",
   "What happens when nobody answers after the last rule.": "Ce qui se passe quand personne ne répond après la dernière règle.",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "Qui est alerté, et quand, dès qu'un incident ou une alerte exécute cette politique.",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "Qui est appelé quand quelqu'un appelle, du haut de la liste vers le bas. Faites glisser une règle pour changer sa place.",
   "e.g., Platform on-call": "ex. : Astreinte plateforme",
-  "e.g., Platform primary": "ex. : Plateforme principale"
+  "e.g., Platform primary": "ex. : Plateforme principale",
+  "Not answering calls": "Ne répond pas aux appels",
+  "Start answering calls": "Répondre à nouveau aux appels",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "Tant que ce n'est pas réactivé, toute personne qui appelle les numéros de cette politique entend que la ligne n'est pas disponible, et personne n'est appelé.",
+  "How long after being paged to use this method.": "Combien de temps après l'alerte utiliser ce moyen."
 }

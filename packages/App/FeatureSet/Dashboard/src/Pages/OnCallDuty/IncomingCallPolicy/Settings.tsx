@@ -95,6 +95,8 @@ const IncomingCallPolicySettings: FunctionComponent<
               description: IncomingCallVoiceMessagesCopy.greeting.description,
               fieldType: FormFieldSchemaType.LongText,
               required: false,
+              // A sentence or two: three lines to start, growing as it is written.
+              autoGrow: true,
             },
             {
               field: {
@@ -104,6 +106,7 @@ const IncomingCallPolicySettings: FunctionComponent<
               description: IncomingCallVoiceMessagesCopy.noAnswer.description,
               fieldType: FormFieldSchemaType.LongText,
               required: false,
+              autoGrow: true,
             },
             {
               field: {
@@ -114,6 +117,7 @@ const IncomingCallPolicySettings: FunctionComponent<
                 IncomingCallVoiceMessagesCopy.noOneAvailable.description,
               fieldType: FormFieldSchemaType.LongText,
               required: false,
+              autoGrow: true,
             },
           ]}
           modelDetailProps={{
@@ -126,6 +130,7 @@ const IncomingCallPolicySettings: FunctionComponent<
                   greetingMessage: true,
                 },
                 title: IncomingCallVoiceMessagesCopy.greeting.title,
+                description: IncomingCallVoiceMessagesCopy.greeting.description,
                 getElement: (item: IncomingCallPolicy): ReactElement => {
                   return (
                     <IncomingCallVoiceMessage
@@ -142,6 +147,7 @@ const IncomingCallPolicySettings: FunctionComponent<
                   noAnswerMessage: true,
                 },
                 title: IncomingCallVoiceMessagesCopy.noAnswer.title,
+                description: IncomingCallVoiceMessagesCopy.noAnswer.description,
                 getElement: (item: IncomingCallPolicy): ReactElement => {
                   return (
                     <IncomingCallVoiceMessage
@@ -158,6 +164,8 @@ const IncomingCallPolicySettings: FunctionComponent<
                   noOneAvailableMessage: true,
                 },
                 title: IncomingCallVoiceMessagesCopy.noOneAvailable.title,
+                description:
+                  IncomingCallVoiceMessagesCopy.noOneAvailable.description,
                 getElement: (item: IncomingCallPolicy): ReactElement => {
                   return (
                     <IncomingCallVoiceMessage

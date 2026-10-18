@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "Alles unten ist in dieser Zeitzone.",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "Von und Bis dürfen nicht dieselbe Uhrzeit sein. Wählen Sie ein längeres Zeitfenster oder Keine Einschränkungen, um rund um die Uhr Bereitschaft zu haben.",
   "Go to Layers": "Zu den Ebenen",
-  "How long after the page to use this method.": "Wie lange nach der Alarmierung diese Methode verwendet wird.",
   "How long each turn lasts.": "Wie lange jede Schicht dauert.",
   "How many more times?": "Wie oft noch?",
   "If nobody acknowledges after the last level": "Wenn nach der letzten Stufe niemand bestätigt",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "Noch keine Zeitzone festgelegt. Wählen Sie eine.",
   "Nobody is paged again.": "Niemand wird erneut alarmiert.",
   "Nobody takes turns on this schedule yet": "In diesem Zeitplan wechselt sich noch niemand ab",
-  "Not set. Callers hear “{{message}}”": "Nicht festgelegt. Anrufer hören „{{message}}“",
   "Not set: the server's own time is used": "Nicht festgelegt: Es gilt die Uhrzeit des Servers",
   "Phone numbers people can call to reach whoever is on call.": "Telefonnummern, unter denen man erreicht, wer gerade Bereitschaft hat.",
   "Read out when every rule rang and nobody answered, before the call ends.": "Wird vorgelesen, wenn jede Regel geklingelt hat und niemand angenommen hat, bevor der Anruf endet.",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "Wird vorgelesen, wenn jemand anruft, bevor jemand angerufen wird.",
   "Ring again from the first rule": "Erneut ab der ersten Regel klingeln",
   "Ring again from the first rule, up to {{times}}": "Erneut ab der ersten Regel klingeln, bis zu {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "Eingerichtet, nimmt aber keine Anrufe an. Schalten Sie Anrufe annehmen unter Einstellungen ein.",
   "Start again from Level 1": "Erneut bei Level 1 beginnen",
   "Start again from Level 1, up to {{times}}": "Erneut bei Level 1 beginnen, bis zu {{times}}",
   "Stop answering calls": "Keine Anrufe mehr annehmen",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "Die Zeiten des Zeitplans sind in dieser Zeitzone. Sie beginnt mit Ihrer.",
   "Three steps, in order, before this policy can take calls.": "Drei Schritte, der Reihe nach, bevor diese Richtlinie Anrufe annehmen kann.",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "Schalten Sie die Leitung ab, ohne sie zu löschen. Ihre Nummern, Regeln und Anrufprotokolle bleiben erhalten.",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "Bis dies wieder eingeschaltet wird, hört jeder Anruf an die Nummern dieser Richtlinie, dass die Leitung nicht verfügbar ist, und niemand wird angerufen.",
   "What callers hear, read out by a text-to-speech voice.": "Was Anrufer hören, vorgelesen von einer Text-to-Speech-Stimme.",
   "What happens when nobody acknowledges after the last level.": "Was passiert, wenn nach der letzten Stufe niemand bestätigt.",
   "What happens when nobody answers after the last rule.": "Was passiert, wenn nach der letzten Regel niemand annimmt.",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "Wer wann alarmiert wird, sobald ein Vorfall oder eine Warnung diese Richtlinie ausführt.",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "Wer angerufen wird, wenn jemand anruft, von oben nach unten. Ziehen Sie eine Regel, um ihre Position zu ändern.",
   "e.g., Platform on-call": "z. B. Plattform-Bereitschaft",
-  "e.g., Platform primary": "z. B. Plattform primär"
+  "e.g., Platform primary": "z. B. Plattform primär",
+  "Not answering calls": "Nimmt keine Anrufe an",
+  "Start answering calls": "Anrufe wieder annehmen",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "Bis dies wieder eingeschaltet wird, hört jeder, der die Nummern dieser Richtlinie anruft, dass die Leitung nicht verfügbar ist, und niemand wird angerufen.",
+  "How long after being paged to use this method.": "Wie lange nach der Alarmierung diese Methode verwendet wird."
 }

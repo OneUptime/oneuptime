@@ -298,7 +298,7 @@ describe("names and descriptions in the area's forms", () => {
       "title: notifyAfterFieldTitle, /* * Its own line: the column's",
     );
     expect(table).toContain(
-      'description: "How long after the page to use this method."',
+      'description: "How long after being paged to use this method."',
     );
   });
 });

@@ -15,6 +15,14 @@ export const SCHEDULE_EDIT_BUTTON_TEXT: string = translationKey(
 );
 
 /*
+ * The Overview's card that says who is on call and when. A schedule with no
+ * layers yet shows its first step in the same card, so the page keeps one
+ * shape before and after the first layer.
+ */
+export const SCHEDULE_FINAL_SCHEDULE_TITLE: string =
+  translationKey("Final Schedule");
+
+/*
  * A schedule with no layers yet, on its Overview: one step - add the people
  * who take turns - where a red "No one is currently on call" banner, two
  * calendar cards and "No Layers in this On Call Schedule. Please go to

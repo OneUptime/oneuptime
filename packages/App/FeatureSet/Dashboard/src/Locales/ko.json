@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "아래의 모든 시간은 이 시간대 기준입니다.",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "시작과 종료를 같은 시간으로 할 수 없습니다. 더 긴 시간대를 고르거나, 하루 종일 온콜이 되려면 제한 없음을 고르세요.",
   "Go to Layers": "레이어로 이동",
-  "How long after the page to use this method.": "알림 후 얼마 뒤에 이 방법을 쓸지 정합니다.",
   "How long each turn lasts.": "1회 담당이 얼마나 이어지는지 정합니다.",
   "How many more times?": "몇 번 더 할까요?",
   "If nobody acknowledges after the last level": "마지막 단계 후에도 아무도 인지하지 않으면",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "아직 시간대가 설정되지 않았습니다. 시간대를 선택하세요.",
   "Nobody is paged again.": "아무에게도 다시 알림이 가지 않습니다.",
   "Nobody takes turns on this schedule yet": "아직 이 일정에서 교대로 담당하는 사람이 없습니다",
-  "Not set. Callers hear “{{message}}”": "설정되지 않음. 발신자는 “{{message}}”를 듣습니다",
   "Not set: the server's own time is used": "설정되지 않음: 서버 시간이 사용됩니다",
   "Phone numbers people can call to reach whoever is on call.": "온콜 담당자에게 연락할 때 거는 전화번호입니다.",
   "Read out when every rule rang and nobody answered, before the call ends.": "모든 규칙이 전화를 걸었지만 아무도 받지 않았을 때, 통화가 끝나기 전에 읽어 줍니다.",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "누군가 전화를 걸면, 누구에게든 전화가 가기 전에 읽어 줍니다.",
   "Ring again from the first rule": "첫 번째 규칙부터 다시 전화",
   "Ring again from the first rule, up to {{times}}": "첫 번째 규칙부터 다시 전화, 최대 {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "설정은 끝났지만 전화를 받지 않습니다. 설정에서 전화 받기를 켜세요.",
   "Start again from Level 1": "Level 1부터 다시 시작",
   "Start again from Level 1, up to {{times}}": "Level 1부터 다시 시작, 최대 {{times}}",
   "Stop answering calls": "전화 받기 중지",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "일정의 시간은 이 시간대 기준입니다. 처음에는 내 시간대로 설정됩니다.",
   "Three steps, in order, before this policy can take calls.": "이 정책이 전화를 받으려면 순서대로 세 단계를 거쳐야 합니다.",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "삭제하지 않고 회선을 끕니다. 번호, 규칙, 통화 로그는 그대로 남습니다.",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "다시 켤 때까지 이 정책의 번호로 오는 모든 전화는 회선을 사용할 수 없다는 안내를 듣고, 아무에게도 전화가 가지 않습니다.",
   "What callers hear, read out by a text-to-speech voice.": "발신자가 듣는 내용으로, 음성 합성으로 읽어 줍니다.",
   "What happens when nobody acknowledges after the last level.": "마지막 단계 후에도 아무도 인지하지 않을 때 일어나는 일입니다.",
   "What happens when nobody answers after the last rule.": "마지막 규칙 후에도 아무도 받지 않을 때 일어나는 일입니다.",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "인시던트나 경고가 이 정책을 실행할 때 누구에게 언제 알림이 가는지입니다.",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "누군가 전화를 걸면 목록 위에서부터 차례로 전화가 갑니다. 규칙을 끌어 순서를 바꾸세요.",
   "e.g., Platform on-call": "예: 플랫폼 온콜",
-  "e.g., Platform primary": "예: 플랫폼 주 담당"
+  "e.g., Platform primary": "예: 플랫폼 주 담당",
+  "Not answering calls": "전화를 받지 않는 중",
+  "Start answering calls": "전화 받기 다시 시작",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "다시 켤 때까지 이 정책의 번호로 전화하는 모든 사람은 회선을 사용할 수 없다는 안내를 듣고, 아무에게도 전화가 가지 않습니다.",
+  "How long after being paged to use this method.": "알림 후 얼마 뒤에 이 방법을 쓸지 정합니다."
 }

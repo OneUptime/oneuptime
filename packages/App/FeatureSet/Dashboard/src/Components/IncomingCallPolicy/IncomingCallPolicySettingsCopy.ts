@@ -21,10 +21,13 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *   - Answer Calls: one switch, "Answer calls to this policy's numbers",
  *     that saves the moment it is flipped (it stores isEnabled) and asks
  *     before it turns calls away, the one press that silences a hotline.
+ *     While it is off, the policy's Overview opens with a banner that says
+ *     so, and Start answering calls turns it back on there.
  *   - Repeat Policy: what happens when nobody answers after the last rule,
  *     one plain choice (RepeatChoice.ts, the on-call policy's own card).
  *   - Voice Messages: what callers hear, each message saying when it is
- *     read out, and an emptied one showing the words read in its place.
+ *     read out, and an emptied one showing the words read in its place,
+ *     marked Default.
  *
  * Nothing stored changed. Kept free of React, so App/Tests can read it.
  */
@@ -35,12 +38,15 @@ export const IncomingCallAnswerCallsCopy: {
   switchTitle: string;
   // Under the switch while the policy answers calls.
   switchOnDescription: string;
-  // Under it while it does not.
+  // Under it while it does not, and in the Overview's banner.
   switchOffDescription: string;
   // The dialog before calls are turned away.
   turnOffConfirmTitle: string;
   turnOffConfirmDescription: string;
   turnOffConfirmButton: string;
+  // The banner on the Overview while calls are off, and its button.
+  offBannerTitle: string;
+  startAnsweringButton: string;
 } = {
   cardTitle: translationKey("Answer Calls"),
   cardDescription: translationKey(
@@ -55,9 +61,11 @@ export const IncomingCallAnswerCallsCopy: {
   ),
   turnOffConfirmTitle: translationKey("Stop answering calls?"),
   turnOffConfirmDescription: translationKey(
-    "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.",
+    "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.",
   ),
   turnOffConfirmButton: translationKey("Stop answering calls"),
+  offBannerTitle: translationKey("Not answering calls"),
+  startAnsweringButton: translationKey("Start answering calls"),
 };
 
 // The column the switch writes.
@@ -69,6 +77,14 @@ export const INCOMING_CALL_ANSWER_CALLS_COLUMN: IncomingCallAnswerCallsColumn =
 // The data-testid of the "Answer calls to this policy's numbers" switch.
 export const INCOMING_CALL_ANSWER_CALLS_TEST_ID: string =
   "incoming-call-answer-calls";
+
+// The data-testids of the Overview's banner while calls are off.
+export const INCOMING_CALL_ANSWER_CALLS_OFF_BANNER_TEST_ID: string =
+  "incoming-call-answer-calls-off";
+export const INCOMING_CALL_START_ANSWERING_BUTTON_TEST_ID: string =
+  "incoming-call-start-answering";
+export const INCOMING_CALL_START_ANSWERING_ERROR_TEST_ID: string =
+  "incoming-call-start-answering-error";
 
 export interface IncomingCallVoiceMessageCopy {
   // The column the message is kept in.
@@ -89,10 +105,10 @@ export const IncomingCallVoiceMessagesCopy: {
   noAnswer: IncomingCallVoiceMessageCopy;
   noOneAvailable: IncomingCallVoiceMessageCopy;
   /*
-   * In place of an emptied message: {{message}} is the message read out
-   * instead.
+   * Beside the words of an emptied message, which OneUptime reads out in its
+   * place.
    */
-  emptyMessage: string;
+  defaultPill: string;
 } = {
   cardTitle: translationKey("Voice Messages"),
   cardDescription: translationKey(
@@ -124,8 +140,12 @@ export const IncomingCallVoiceMessagesCopy: {
     ),
     defaultMessage: DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE,
   },
-  emptyMessage: translationKey("Not set. Callers hear “{{message}}”"),
+  defaultPill: translationKey("Default"),
 };
+
+// The data-testid of the Default pill beside the words of an emptied message.
+export const INCOMING_CALL_DEFAULT_MESSAGE_PILL_TEST_ID: string =
+  "incoming-call-default-message";
 
 // The three messages, in the order the card lists them.
 export const INCOMING_CALL_VOICE_MESSAGES: ReadonlyArray<IncomingCallVoiceMessageCopy> =

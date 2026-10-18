@@ -30698,7 +30698,6 @@
   "Everything below is in this timezone.": "Tudo abaixo está neste fuso horário.",
   "From and To cannot be the same time. Choose a longer window, or No Restrictions to be on call around the clock.": "De e Até não podem ter o mesmo horário. Escolha uma janela maior, ou Sem Restrições para ficar de plantão 24 horas.",
   "Go to Layers": "Ir para Camadas",
-  "How long after the page to use this method.": "Quanto tempo depois do acionamento usar este método.",
   "How long each turn lasts.": "Quanto tempo dura cada turno.",
   "How many more times?": "Quantas vezes mais?",
   "If nobody acknowledges after the last level": "Se ninguém confirmar depois do último nível",
@@ -30707,7 +30706,6 @@
   "No timezone set yet. Choose one.": "Nenhum fuso horário definido ainda. Escolha um.",
   "Nobody is paged again.": "Ninguém é acionado de novo.",
   "Nobody takes turns on this schedule yet": "Ninguém se reveza neste agendamento ainda",
-  "Not set. Callers hear “{{message}}”": "Não definida. Quem liga ouve “{{message}}”",
   "Not set: the server's own time is used": "Não definido: é usado o horário do servidor",
   "Phone numbers people can call to reach whoever is on call.": "Números de telefone para falar com quem estiver de plantão.",
   "Read out when every rule rang and nobody answered, before the call ends.": "Lida quando todas as regras tocaram e ninguém atendeu, antes de a chamada terminar.",
@@ -30715,7 +30713,6 @@
   "Read out when someone calls, before anyone is rung.": "Lida quando alguém liga, antes de chamar qualquer pessoa.",
   "Ring again from the first rule": "Tocar de novo a partir da primeira regra",
   "Ring again from the first rule, up to {{times}}": "Tocar de novo a partir da primeira regra, no máximo {{times}}",
-  "Set up, but not answering calls. Turn on Answer Calls under Settings.": "Configurada, mas não atende chamadas. Ative Atender chamadas em Configurações.",
   "Start again from Level 1": "Recomeçar a partir do Level 1",
   "Start again from Level 1, up to {{times}}": "Recomeçar a partir do Level 1, no máximo {{times}}",
   "Stop answering calls": "Parar de atender chamadas",
@@ -30727,7 +30724,6 @@
   "The schedule's times are in this timezone. It starts at yours.": "Os horários do agendamento estão neste fuso horário. Ele começa no seu.",
   "Three steps, in order, before this policy can take calls.": "Três etapas, em ordem, antes que esta política possa receber chamadas.",
   "Turn the line off without deleting it. Its numbers, rules and call logs are kept.": "Desligue a linha sem excluí-la. Seus números, regras e registros de chamadas são mantidos.",
-  "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.": "Até que isto seja ligado de novo, cada chamada para os números desta política ouve que a linha não está disponível, e ninguém é chamado.",
   "What callers hear, read out by a text-to-speech voice.": "O que quem liga ouve, lido por uma voz de conversão de texto em fala.",
   "What happens when nobody acknowledges after the last level.": "O que acontece quando ninguém confirma depois do último nível.",
   "What happens when nobody answers after the last rule.": "O que acontece quando ninguém atende depois da última regra.",
@@ -30738,5 +30734,9 @@
   "Who is paged, and when, once an incident or alert runs this policy.": "Quem é acionado, e quando, assim que um incidente ou alerta executa esta política.",
   "Who is rung when someone calls, from the top of the list down. Drag a rule to change its place.": "Quem é chamado quando alguém liga, de cima para baixo na lista. Arraste uma regra para mudar sua posição.",
   "e.g., Platform on-call": "ex.: Plantão da plataforma",
-  "e.g., Platform primary": "ex.: Plataforma principal"
+  "e.g., Platform primary": "ex.: Plataforma principal",
+  "Not answering calls": "Não atende chamadas",
+  "Start answering calls": "Voltar a atender chamadas",
+  "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.": "Até que isto seja ligado de novo, quem ligar para os números desta política ouve que a linha não está disponível, e ninguém é chamado.",
+  "How long after being paged to use this method.": "Quanto tempo depois do acionamento usar este método."
 }
