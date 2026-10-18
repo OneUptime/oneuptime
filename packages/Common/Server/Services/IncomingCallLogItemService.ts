@@ -35,12 +35,12 @@ export class Service extends ProjectReferencesService<IncomingCallLogItem> {
   protected override async onBeforeCreate(
     createBy: CreateBy<IncomingCallLogItem>,
   ): Promise<OnCreate<IncomingCallLogItem>> {
-    const onCreate: OnCreate<IncomingCallLogItem> = await super.onBeforeCreate(
-      createBy,
-    );
+    await super.onBeforeCreate(createBy);
 
-    const data: Record<string, unknown> = onCreate.createBy
-      .data as unknown as Record<string, unknown>;
+    const data: Record<string, unknown> = createBy.data as unknown as Record<
+      string,
+      unknown
+    >;
 
     const incomingCallLogId: ObjectID | null = RelationIdUtil.readConsistent(
       data,
@@ -74,7 +74,7 @@ export class Service extends ProjectReferencesService<IncomingCallLogItem> {
       ]);
     }
 
-    return onCreate;
+    return { createBy, carryForward: null };
   }
 }
 
