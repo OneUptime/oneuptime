@@ -100,6 +100,16 @@ published apps and the workspace, tenant and accounts that own them, and say how
 the live apps once it is released, how the Slack Marketplace and Microsoft Partner Center submissions work, and
 what customers must do after a permission change.
 
+### GitHub App releases
+
+OneUptime Cloud's GitHub Apps (OneUptime for oneuptime.com, OneUptime Test for test.oneuptime.com) are configured on
+GitHub, not in this repository: merging code changes none of their settings. Before changing what the code needs
+from an app - a token permission, a webhook event, the install or sign-in callback, the webhook route - read
+[the GitHub App guide](packages/Common/Server/Utils/CodeRepository/GitHub/RELEASING.md). It names the apps and the
+organization that owns them, lists every setting the code depends on and what breaks without it, and says in which
+order to change the app and the code, how to test end to end on test.oneuptime.com, and where publisher verification
+and the GitHub Marketplace stand.
+
 ### Cloud marketplace listings
 
 OneUptime Cloud is sold on AWS Marketplace, Microsoft Marketplace (Azure) and Google Cloud Marketplace through
