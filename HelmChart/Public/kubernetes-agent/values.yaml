@@ -618,7 +618,7 @@ kubeStateMetrics:
   # mode == "external".
   image:
     repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
-    tag: "v2.13.0"
+    tag: "v2.20.0"
     pullPolicy: IfNotPresent
   resources:
     requests:
@@ -691,7 +691,7 @@ cost:
   opencost:
     image:
       repository: ghcr.io/opencost/opencost
-      tag: "1.121.0"
+      tag: "1.121.3"
       pullPolicy: IfNotPresent
     logLevel: info
     resources:
@@ -728,7 +728,10 @@ cost:
   prometheus:
     image:
       repository: quay.io/prometheus/prometheus
-      tag: "v2.55.1"
+      # Prometheus 3. Its scrape config and flags (templates/prometheus-cost.yaml)
+      # read the same as in 2.x, and OpenCost adjusts its queries to 3.x's
+      # left-open range selectors itself.
+      tag: "v3.15.0"
       pullPolicy: IfNotPresent
     # The cost poller only queries recently-closed hourly windows, so a
     # few days is all this TSDB needs for spend alone. It is set to 7d
