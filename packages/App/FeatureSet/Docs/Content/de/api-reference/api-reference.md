@@ -200,7 +200,7 @@ Eine Änderung, die einen solchen Datensatz verschiebt, folgt derselben Regel: J
 
 #### Eigentümer
 
-Die Eigentümer einer Ressource - die Benutzer- und Team-Eigentümer-Datensätze eines Monitors, einer Bereitschaftsrichtlinie, eines Dashboards und jeder anderen Ressource mit Eigentümern - werden auf dieselbe Weise über die Ressource gelesen, der sie gehören: Sie aufzulisten, zu lesen, hinzuzufügen und zu entfernen braucht eine Berechtigung, diese Ressource zu lesen, unter ihren Labels und Eigentümern, und ein Eigentümer-Datensatz einer Ressource, die Sie nicht lesen dürfen, wird beantwortet, als gäbe es ihn nicht.
+Die Eigentümer einer Ressource - die Benutzer- und Team-Eigentümer-Datensätze eines Monitors, einer Bereitschaftsrichtlinie, eines Dashboards und jeder anderen Ressource mit Eigentümern - werden auf dieselbe Weise über die Ressource gelesen, der sie gehören: Sie aufzulisten, zu lesen, hinzuzufügen und zu entfernen braucht eine Berechtigung, diese Ressource zu lesen, unter ihren Labels und Eigentümern, und ein Eigentümer-Datensatz einer Ressource, die Sie nicht lesen dürfen, wird beantwortet, als gäbe es ihn nicht. Auch das Hinzufügen und Entfernen hält sich an den Geltungsbereich der Berechtigung, die es erlaubt: Eine mit Geltungsbereich `Owned` erreicht nur die Eigentümer von Ressourcen, die Ihnen oder einem Ihrer Teams gehören, und das Hinzufügen eines Eigentümers zu jeder anderen Ressource wird mit einem `422` abgelehnt, der das sagt.
 
 #### Datensätze, die ein Schreibzugriff auflistet oder nennt
 

@@ -319,6 +319,7 @@ const PROSE_LEADS: Array<string> = [
   "The one record a write names, and a change of a record's labels, keep to the caller's permissions too.",
   "What a subscription, a rule's Run Now, an LLM provider list and an AI plan's approval reach stays within what they are allowed.",
   "Who owns a resource, and a setting that holds credentials, are named only by someone who may read them.",
+  "Adding and removing owners keeps to the `Owned` scope.",
   "Every grant and scope narrows what it reaches, and a read by ID of a record you may not read answers `404`.",
   "Runbook Member runs runbooks and builds none.",
   "The billing roles do what they say.",

@@ -217,7 +217,7 @@ Eigentümer erfüllen zwei Aufgaben:
 
 Eigentümerschaft allein gewährt nichts. Eigentümer eines Monitors zu sein erlaubt dessen Bearbeitung nur dann, wenn eines Ihrer Teams zusätzlich eine Monitor-Berechtigung hält. Eigentümerschaft grenzt Zugriff ein; sie erweitert ihn nie.
 
-Wer eine Ressource besitzt, wird über die Ressource gelesen. Die Eigentümer eines Monitors oder einer anderen Ressource werden nur von jemandem aufgelistet, gelesen, hinzugefügt und entfernt, der diese Ressource lesen darf, und eine Berechtigung nur für Eigentümer erreicht die Eigentümer keiner Ressource, die Sie nicht lesen dürfen.
+Wer eine Ressource besitzt, wird über die Ressource gelesen. Die Eigentümer eines Monitors oder einer anderen Ressource werden nur von jemandem aufgelistet, gelesen, hinzugefügt und entfernt, der diese Ressource lesen darf, und eine Berechtigung nur für Eigentümer erreicht die Eigentümer keiner Ressource, die Sie nicht lesen dürfen. Auch das Hinzufügen und Entfernen von Eigentümern hält sich an den Geltungsbereich der Berechtigung, die es erlaubt: Mit Geltungsbereich `Owned` erreicht sie nur die Ressourcen, die Ihnen oder einem Ihrer Teams bereits gehören, wie viele weitere Sie auch lesen dürfen — einen Monitor lesen zu dürfen, erlaubt Ihnen also nicht, sich zu seinem Eigentümer zu machen. Ein Eigentümer wird hinzugefügt oder entfernt, aber nie auf eine andere Ressource verschoben.
 
 ## Labels
 

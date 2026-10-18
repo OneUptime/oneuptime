@@ -200,7 +200,7 @@ En ændring, der flytter en sådan post, følger samme regel: hver post, den til
 
 #### Ejere
 
-En ressources ejere - bruger- og teamejerposterne for en monitor, en vagtpolitik, et dashboard og enhver anden ressource med ejere - læses på samme måde via den ressource, de ejer: at vise, læse, tilføje og fjerne dem kræver en tilladelse til at læse den ressource, under dens etiketter og ejere, og en ejerpost for en ressource, du ikke må læse, besvares, som om den ikke fandtes.
+En ressources ejere - bruger- og teamejerposterne for en monitor, en vagtpolitik, et dashboard og enhver anden ressource med ejere - læses på samme måde via den ressource, de ejer: at vise, læse, tilføje og fjerne dem kræver en tilladelse til at læse den ressource, under dens etiketter og ejere, og en ejerpost for en ressource, du ikke må læse, besvares, som om den ikke fandtes. At tilføje og fjerne dem holder sig også til omfanget af den tilladelse, der giver lov til det: en med omfanget `Owned` når kun ejerne af ressourcer, som du eller et af dine teams ejer, og at tilføje en ejer til en hvilken som helst anden ressource afvises med en `422`, der siger det.
 
 #### Poster, en skrivning viser eller nævner
 

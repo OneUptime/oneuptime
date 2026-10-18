@@ -200,7 +200,7 @@ En ändring som flyttar en sådan post följer samma regel: varje post som den l
 
 #### Ägare
 
-Ägarna till en resurs - användar- och teamägarposterna för en monitor, en jourpolicy, en instrumentpanel och varje annan resurs med ägare - läses på samma sätt via resursen som de äger: att lista, läsa, lägga till och ta bort dem kräver en behörighet att läsa den resursen, under dess etiketter och ägare, och en ägarpost för en resurs som du inte får läsa besvaras som om den inte fanns.
+Ägarna till en resurs - användar- och teamägarposterna för en monitor, en jourpolicy, en instrumentpanel och varje annan resurs med ägare - läses på samma sätt via resursen som de äger: att lista, läsa, lägga till och ta bort dem kräver en behörighet att läsa den resursen, under dess etiketter och ägare, och en ägarpost för en resurs som du inte får läsa besvaras som om den inte fanns. Att lägga till och ta bort dem håller sig också till omfattningen av den behörighet som tillåter det: en med omfattningen `Owned` når bara ägarna till resurser som du eller något av dina team äger, och att lägga till en ägare på någon annan resurs nekas med en `422` som säger det.
 
 #### Poster som en skrivning listar eller namnger
 

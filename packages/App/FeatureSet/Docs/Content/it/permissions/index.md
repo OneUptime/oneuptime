@@ -217,7 +217,7 @@ I proprietari svolgono due compiti:
 
 La proprietà da sola non concede nulla. Essere proprietari di un monitor non vi permette di modificarlo a meno che un vostro team non detenga anche un'autorizzazione sui monitor. La proprietà restringe l'accesso; non lo amplia mai.
 
-Chi possiede una risorsa si legge attraverso la risorsa. I proprietari di un monitor o di qualsiasi altra risorsa vengono elencati, letti, aggiunti e rimossi solo da chi può leggere quella risorsa, e un'autorizzazione sui soli proprietari non raggiunge i proprietari di nessuna risorsa che non potete leggere.
+Chi possiede una risorsa si legge attraverso la risorsa. I proprietari di un monitor o di qualsiasi altra risorsa vengono elencati, letti, aggiunti e rimossi solo da chi può leggere quella risorsa, e un'autorizzazione sui soli proprietari non raggiunge i proprietari di nessuna risorsa che non potete leggere. Anche l'aggiunta e la rimozione dei proprietari seguono l'ambito dell'autorizzazione che le consente: con l'ambito `Owned` raggiunge solo le risorse di cui voi o uno dei vostri team siete già proprietari, per quante altre ne possiate leggere, quindi poter leggere un monitor non vi permette di farvene proprietari. Un proprietario si aggiunge o si rimuove, ma non si sposta mai su un'altra risorsa.
 
 ## Etichette
 
