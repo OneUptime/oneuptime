@@ -78,8 +78,8 @@
 | --- | --- | --- |
 | **Runner** | 執行此步驟的 Runner。只有這個 Runner 可以認領該工作。 | — |
 | **Script** | 要執行的 JavaScript。用 `return` 傳回一個值即可記錄它；`console.log` 的每一行也會被記錄。擲回的錯誤會使步驟失敗。 | — |
-| **Execution timeout** | Runner 在拆除沙箱之前允許程式碼執行的時間。 | 30 秒 |
-| **Claim timeout** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
+| **執行逾時** | Runner 在拆除沙箱之前允許程式碼執行的時間。 | 30 秒 |
+| **領取逾時** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
 
 ```javascript
 const start = Date.now();
@@ -117,8 +117,8 @@ return { durationMs: Date.now() - start };
 | --- | --- | --- |
 | **Runner** | 執行此步驟的 Runner。只有這個 Runner 可以認領該工作。 | — |
 | **Bash 指令碼** | 指令碼。輸出（stdout 和 stderr）最多記錄 50 KB，非零的結束代碼會使步驟失敗。 | — |
-| **Execution timeout** | Runner 在以 `SIGKILL` 終止指令碼之前允許它執行的時間。若步驟確實需要幾分鐘，請調高此值。 | 30 秒 |
-| **Claim timeout** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
+| **執行逾時** | Runner 在以 `SIGKILL` 終止指令碼之前允許它執行的時間。若步驟確實需要幾分鐘，請調高此值。 | 30 秒 |
+| **領取逾時** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
 
 指令碼在 Runner 的容器中執行，可使用映像檔內附的工具，例如 `curl`、`wget` 和 `ssh` 用戶端，並擁有其所在主機的網路存取權。例如，檢查只有您的網路才能連到的服務：
 
@@ -147,8 +147,8 @@ fi
 | **Runner** | 開啟連線的 Runner。它必須能透過網路連到該主機。 |
 | **Credential** | 一個 SSH 憑證，包含主機、連接埠、使用者以及金鑰或密碼。它必須已指派給您選擇的 Runner，否則步驟會失敗，而不是以錯誤的存取權執行。 |
 | **Command** | 以憑證中的使用者身分在遠端主機上執行。輸出最多記錄 50 KB，非零的結束代碼會使步驟失敗。 |
-| **Execution timeout** | 涵蓋連線、驗證和執行指令的總時間，因此停滯的指令無法讓步驟一直保持開啟。預設 30 秒。 |
-| **Claim timeout** | Worker 等待 Runner 認領工作的時間。預設 2 分鐘。 |
+| **執行逾時** | 涵蓋連線、驗證和執行指令的總時間，因此停滯的指令無法讓步驟一直保持開啟。預設 30 秒。 |
+| **領取逾時** | Worker 等待 Runner 認領工作的時間。預設 2 分鐘。 |
 
 ### Kubernetes
 
@@ -162,8 +162,8 @@ fi
 | **Workload kind** | **部署** 、 **StatefulSet** 或 **DaemonSet** 。 |
 | **命名空間** 和 **Workload name** | 要操作的工作負載。 |
 | **副本** | 僅在調整規模時使用。允許為零：清空工作負載是合理的修復手段。DaemonSet 在每個節點上執行一個 Pod，無法調整規模；請改為重新啟動它。 |
-| **Execution timeout** | Runner 等待 API 伺服器接受變更的時間。預設 30 秒。 |
-| **Claim timeout** | Worker 等待 Runner 認領工作的時間。預設 2 分鐘。 |
+| **執行逾時** | Runner 等待 API 伺服器接受變更的時間。預設 30 秒。 |
+| **領取逾時** | Worker 等待 Runner 認領工作的時間。預設 2 分鐘。 |
 
 如果 API 伺服器拒絕變更，步驟上會顯示它自己的訊息，因此權限錯誤會告訴您需要擴大哪個角色繫結。
 

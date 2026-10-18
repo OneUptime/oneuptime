@@ -9,12 +9,11 @@ Les règles de runbook lancent automatiquement des runbooks quand un **incident*
 Les trois pages modifient le même type de règle, filtré sur les règles de ce produit.
 
 :::cards
-
-- [Créer une règle de runbook](#créer-une-règle-de-runbook): Quatre étapes : un nom, des conditions et les runbooks à lancer.
+- [Créer une règle de runbook](#créer-une-règle-de-runbook): Trois étapes : des conditions, puis les runbooks à lancer, qui donnent son nom à la règle.
 - [Conditions](#conditions): Chaque critère et chaque opérateur qu'une règle peut utiliser.
 - [Logique de correspondance](#logique-de-correspondance): Plusieurs règles, conditions sur les moniteurs et règles d'étiquettes.
 - [Exemples](#exemples): Trois règles à reprendre.
-  :::
+:::
 
 ## Comment une règle lance un runbook
 
@@ -48,7 +47,6 @@ Vous voyez toutes les exécutions, lancées par une règle ou non, sous **Runboo
 ## Créer une règle de runbook
 
 :::steps
-
 ### Ouvrir les règles de runbook
 
 Dans **Incidents**, **Alertes** ou **Maintenance planifiée**, ouvrez **Règles → Règles de runbook**, puis cliquez sur **Créer : Règle de runbook**.
@@ -64,27 +62,27 @@ Sous **Runbooks**, choisissez un ou plusieurs **Runbooks à démarrer**. Le **No
 
 ## Anatomie d'une règle
 
-| Champ                   | Rôle                                                                                                                                                                          |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nom**                 | Suit les runbooks qu'elle démarre, comme « Démarrer Database failover », jusqu'à ce que vous saisissiez le vôtre.                                                             |
-| **Description**         | Contexte facultatif pour l'équipe, sous **Plus de champs**.                                                                                                                   |
-| **Activé**              | Activé pour une nouvelle règle. Désactivez-le dans le formulaire de modification de la règle pour la suspendre sans la supprimer.                                             |
-| **Conditions**          | Ce que la règle fait correspondre, à l'étape **Correspondance**. Une règle sans condition, par exemple sur **Tous les incidents**, correspond à chaque événement de son type. |
-| **Runbooks à démarrer** | Un ou plusieurs runbooks à lancer quand la règle se déclenche.                                                                                                                |
+| Champ | Rôle |
+| --- | --- |
+| **Nom** | Suit les runbooks qu'elle démarre, comme « Démarrer Database failover », jusqu'à ce que vous saisissiez le vôtre. |
+| **Description** | Contexte facultatif pour l'équipe, sous **Plus de champs**. |
+| **Activé** | Activé pour une nouvelle règle. Désactivez-le dans le formulaire de modification de la règle pour la suspendre sans la supprimer. |
+| **Conditions** | Ce que la règle fait correspondre, à l'étape **Correspondance**. Une règle sans condition, par exemple sur **Tous les incidents**, correspond à chaque événement de son type. |
+| **Runbooks à démarrer** | Un ou plusieurs runbooks à lancer quand la règle se déclenche. |
 
 ## Conditions
 
 Chaque condition compare une caractéristique de l'incident, de l'alerte ou de l'événement de maintenance planifiée à une valeur que vous donnez. Une règle de runbook propose les mêmes critères que les autres règles de son produit : une règle de runbook d'incident fait correspondre ce que fait correspondre une règle de confidentialité ou d'astreinte d'incident.
 
-| Critère                                                                                      | Ce qu'il vérifie                                                                                                                                |
-| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Moniteurs**                                                                                | Les moniteurs que touche l'incident ou l'événement de maintenance planifiée, ou le moniteur qui a levé l'alerte.                                |
-| **Gravités d'incident** / **Gravités d'alerte**                                              | La gravité de l'incident ou de l'alerte. Les événements de maintenance planifiée n'ont pas de gravité, donc leurs règles ne la proposent pas.   |
-| **Étiquettes d'incident** / **Étiquettes d'alerte** / **Étiquettes de l'événement**          | Les étiquettes de l'incident, de l'alerte ou de l'événement lui-même, y compris celles que les règles d'étiquettes ont attachées à sa création. |
-| **Étiquettes du moniteur**                                                                   | Les étiquettes de ses moniteurs. Étiquetez vos moniteurs `production` ou `staging` pour lancer un runbook dans un seul environnement.           |
-| **Titre de l'incident** / **Titre de l'alerte** / **Titre de l'événement**                   | Son titre.                                                                                                                                      |
-| **Description de l'incident** / **Description de l'alerte** / **Description de l'événement** | Sa description.                                                                                                                                 |
-| **Nom du moniteur** / **Description du moniteur**                                            | Le nom ou la description de ses moniteurs.                                                                                                      |
+| Critère | Ce qu'il vérifie |
+| --- | --- |
+| **Moniteurs** | Les moniteurs que touche l'incident ou l'événement de maintenance planifiée, ou le moniteur qui a levé l'alerte. |
+| **Gravités d'incident** / **Gravités d'alerte** | La gravité de l'incident ou de l'alerte. Les événements de maintenance planifiée n'ont pas de gravité, donc leurs règles ne la proposent pas. |
+| **Étiquettes d'incident** / **Étiquettes d'alerte** / **Étiquettes de l'événement** | Les étiquettes de l'incident, de l'alerte ou de l'événement lui-même, y compris celles que les règles d'étiquettes ont attachées à sa création. |
+| **Étiquettes du moniteur** | Les étiquettes de ses moniteurs. Étiquetez vos moniteurs `production` ou `staging` pour lancer un runbook dans un seul environnement. |
+| **Titre de l'incident** / **Titre de l'alerte** / **Titre de l'événement** | Son titre. |
+| **Description de l'incident** / **Description de l'alerte** / **Description de l'événement** | Sa description. |
+| **Nom du moniteur** / **Description du moniteur** | Le nom ou la description de ses moniteurs. |
 
 Choisissez un opérateur pour chaque condition :
 
@@ -160,7 +158,7 @@ Vérifiez, dans l'ordre :
 - Chaque runbook a **Exécuter ce runbook** activé, sur sa page **Paramètres**, et au moins une étape enregistrée.
 - L'incident ou l'alerte n'a pas été créé déjà résolu.
 - L'exécution du runbook n'est pas simplement en attente : ouvrez-la depuis la page **Runbooks** de l'événement. Une étape Manual ou une approbation affiche **En attente de votre part**.
-  :::
+:::
 
 :::details Une règle ne correspond jamais
 Les règles voient l'événement tel qu'il a été créé, avec les étiquettes que les règles d'étiquettes ont ajoutées à ce moment. Une étiquette, une gravité ou un titre modifié après coup n'est pas vu. Avec plusieurs conditions, vérifiez **Toutes requises** par rapport à **Au moins une requise**, et rappelez-vous que les conditions sur les moniteurs doivent toutes être vraies pour un même moniteur.
@@ -173,8 +171,7 @@ Un critère de gravité appartient à un seul produit. **Gravités d'alerte** da
 ## Prochaines étapes
 
 :::cards
-
 - [Exécuter un runbook](/docs/runbooks/running): Ce que voient les personnes qui interviennent une fois qu'une règle lance une exécution.
 - [Rédiger un runbook](/docs/runbooks/authoring): Écrire les runbooks que vos règles lancent.
 - [Déclarer un incident](/docs/incidents/declaring-incidents): Comment les incidents sont créés, et quand les règles les voient.
-  :::
+:::

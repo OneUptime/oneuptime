@@ -9,12 +9,11 @@ Runbook rules start runbooks automatically when an **incident**, **alert**, or *
 All three pages edit the same kind of rule, filtered to the rules for that product.
 
 :::cards
-
-- [Create a runbook rule](#create-a-runbook-rule): Four steps: a name, conditions and the runbooks to start.
+- [Create a runbook rule](#create-a-runbook-rule): Three steps: conditions, then the runbooks to start, which name the rule.
 - [Conditions](#conditions): Every criterion and operator a rule can use.
 - [Matching semantics](#matching-semantics): Several rules, monitor conditions and label rules.
 - [Examples](#examples): Three rules to copy.
-  :::
+:::
 
 ## How a rule starts a runbook
 
@@ -48,7 +47,6 @@ You can see every run, rule-triggered or not, under **Runbooks → Executions**,
 ## Create a runbook rule
 
 :::steps
-
 ### Open Runbook Rules
 
 In **Incidents**, **Alerts** or **Scheduled Maintenance**, open **Rules → Runbook Rules**, then click **Create Runbook Rule**.
@@ -64,27 +62,27 @@ On **Runbooks**, choose one or more **Runbooks to Start**. The rule's **Name** f
 
 ## Anatomy of a rule
 
-| Field                 | Purpose                                                                                                                              |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Name**              | Named after the runbooks it starts, such as "Start Database failover", until you type your own.                                      |
-| **Description**       | Optional context for teammates, under **More fields**.                                                                               |
-| **Enabled**           | On for a new rule. Switch it off on the rule's edit form to suspend it without deleting it.                                          |
-| **Conditions**        | What the rule matches, on the **Match** step. A rule without any, such as one on **All incidents**, matches every event of its type. |
-| **Runbooks to Start** | One or more runbooks to launch when the rule fires.                                                                                  |
+| Field | Purpose |
+| --- | --- |
+| **Name** | Named after the runbooks it starts, such as "Start Database failover", until you type your own. |
+| **Description** | Optional context for teammates, under **More fields**. |
+| **Enabled** | On for a new rule. Switch it off on the rule's edit form to suspend it without deleting it. |
+| **Conditions** | What the rule matches, on the **Match** step. A rule without any, such as one on **All incidents**, matches every event of its type. |
+| **Runbooks to Start** | One or more runbooks to launch when the rule fires. |
 
 ## Conditions
 
 Each condition compares one thing about the incident, alert or scheduled maintenance event with a value you give. A runbook rule offers the same criteria as the other rules of its product: an incident runbook rule matches on what an incident privacy or on-call rule matches on.
 
-| Criterion                                                                | What it checks                                                                                                        |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| **Monitors**                                                             | The monitors the incident or the scheduled maintenance event affects, or the monitor that raised the alert.           |
-| **Incident Severities** / **Alert Severities**                           | The incident's or the alert's severity. Scheduled maintenance events have no severity, so their rules don't offer it. |
-| **Incident Labels** / **Alert Labels** / **Event Labels**                | The labels on the incident, alert or event itself, including the ones label rules attached when it was created.       |
-| **Monitor Labels**                                                       | The labels on its monitors. Label your monitors `production` or `staging` to run a runbook for one environment only.  |
-| **Incident Title** / **Alert Title** / **Event Title**                   | Its title.                                                                                                            |
-| **Incident Description** / **Alert Description** / **Event Description** | Its description.                                                                                                      |
-| **Monitor Name** / **Monitor Description**                               | The name or description of its monitors.                                                                              |
+| Criterion | What it checks |
+| --- | --- |
+| **Monitors** | The monitors the incident or the scheduled maintenance event affects, or the monitor that raised the alert. |
+| **Incident Severities** / **Alert Severities** | The incident's or the alert's severity. Scheduled maintenance events have no severity, so their rules don't offer it. |
+| **Incident Labels** / **Alert Labels** / **Event Labels** | The labels on the incident, alert or event itself, including the ones label rules attached when it was created. |
+| **Monitor Labels** | The labels on its monitors. Label your monitors `production` or `staging` to run a runbook for one environment only. |
+| **Incident Title** / **Alert Title** / **Event Title** | Its title. |
+| **Incident Description** / **Alert Description** / **Event Description** | Its description. |
+| **Monitor Name** / **Monitor Description** | The name or description of its monitors. |
 
 Pick an operator for each condition:
 
@@ -160,7 +158,7 @@ Check, in order:
 - Each runbook has **Run this runbook** on, on its **Settings** page, and has at least one saved step.
 - The incident or alert was not created already resolved.
 - The runbook's execution is not simply waiting: open it from the event's **Runbooks** page. A Manual step or an approval shows **Waiting for you**.
-  :::
+:::
 
 :::details A rule never matches
 Rules see the event as it was created, with the labels label rules added at that moment. A label, severity or title changed afterwards is not seen. With several conditions, check **Match all** against **Match any**, and remember that monitor conditions must all hold for one monitor.
@@ -173,8 +171,7 @@ A severity criterion belongs to one product. **Alert Severities** on an incident
 ## Next steps
 
 :::cards
-
 - [Running a Runbook](/docs/runbooks/running): What responders see once a rule starts a run.
 - [Authoring a Runbook](/docs/runbooks/authoring): Write the runbooks your rules start.
 - [Declaring an Incident](/docs/incidents/declaring-incidents): How incidents are created, and when rules see them.
-  :::
+:::

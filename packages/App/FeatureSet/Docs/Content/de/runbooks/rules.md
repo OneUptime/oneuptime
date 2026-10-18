@@ -9,12 +9,11 @@ Runbook-Regeln starten Runbooks automatisch, wenn ein **Vorfall**, eine **Warnun
 Alle drei Seiten bearbeiten dieselbe Art von Regel, gefiltert auf die Regeln dieses Produkts.
 
 :::cards
-
-- [Eine Runbook-Regel erstellen](#eine-runbook-regel-erstellen): Vier Schritte: ein Name, Bedingungen und die zu startenden Runbooks.
+- [Eine Runbook-Regel erstellen](#eine-runbook-regel-erstellen): Drei Schritte: Bedingungen, dann die zu startenden Runbooks, nach denen die Regel benannt wird.
 - [Bedingungen](#bedingungen): Jedes Kriterium und jeder Operator, den eine Regel nutzen kann.
 - [Abgleichslogik](#abgleichslogik): Mehrere Regeln, Monitor-Bedingungen und Beschriftungsregeln.
 - [Beispiele](#beispiele): Drei Regeln zum Übernehmen.
-  :::
+:::
 
 ## Wie eine Regel ein Runbook startet
 
@@ -48,7 +47,6 @@ Jeden Lauf, ob von einer Regel ausgelöst oder nicht, sehen Sie unter **Runbooks
 ## Eine Runbook-Regel erstellen
 
 :::steps
-
 ### Runbook-Regeln öffnen
 
 Öffnen Sie in **Vorfälle**, **Warnungen** oder **Geplante Wartung** den Punkt **Regeln → Runbook-Regeln** und klicken Sie auf **Runbook-Regel erstellen**.
@@ -64,27 +62,27 @@ Wählen Sie unter **Runbooks** ein oder mehrere **Zu startende Runbooks**. Der *
 
 ## Aufbau einer Regel
 
-| Feld                      | Zweck                                                                                                                                                      |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Name**                  | Nach den Runbooks benannt, die sie startet, etwa „Database failover starten“, bis Sie einen eigenen eingeben.                                              |
-| **Beschreibung**          | Optionaler Kontext für Teammitglieder, unter **Weitere Felder**.                                                                                           |
-| **Aktiviert**             | An für eine neue Regel. Schalten Sie es im Bearbeitungsformular der Regel aus, um sie auszusetzen, ohne sie zu löschen.                                    |
-| **Bedingungen**           | Was die Regel abgleicht, im Schritt **Übereinstimmung**. Eine Regel ohne Bedingungen, etwa auf **Alle Vorfälle**, trifft auf jedes Ereignis ihres Typs zu. |
-| **Zu startende Runbooks** | Ein oder mehrere Runbooks, die starten, wenn die Regel greift.                                                                                             |
+| Feld | Zweck |
+| --- | --- |
+| **Name** | Nach den Runbooks benannt, die sie startet, etwa „Database failover starten“, bis Sie einen eigenen eingeben. |
+| **Beschreibung** | Optionaler Kontext für Teammitglieder, unter **Weitere Felder**. |
+| **Aktiviert** | An für eine neue Regel. Schalten Sie es im Bearbeitungsformular der Regel aus, um sie auszusetzen, ohne sie zu löschen. |
+| **Bedingungen** | Was die Regel abgleicht, im Schritt **Übereinstimmung**. Eine Regel ohne Bedingungen, etwa auf **Alle Vorfälle**, trifft auf jedes Ereignis ihres Typs zu. |
+| **Zu startende Runbooks** | Ein oder mehrere Runbooks, die starten, wenn die Regel greift. |
 
 ## Bedingungen
 
 Jede Bedingung vergleicht eine Eigenschaft des Vorfalls, der Warnung oder des geplanten Wartungsereignisses mit einem Wert, den Sie angeben. Eine Runbook-Regel bietet dieselben Kriterien wie die anderen Regeln ihres Produkts: Eine Runbook-Regel für Vorfälle gleicht ab, worauf eine Datenschutz- oder Bereitschaftsregel für Vorfälle abgleicht.
 
-| Kriterium                                                                             | Was es prüft                                                                                                                                            |
-| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Monitore**                                                                          | Die Monitore, die der Vorfall oder das geplante Wartungsereignis betrifft, oder den Monitor, der die Warnung ausgelöst hat.                             |
-| **Vorfallsschweregrade** / **Warnungsschweregrade**                                   | Den Schweregrad des Vorfalls oder der Warnung. Geplante Wartungsereignisse haben keinen Schweregrad, deshalb bieten ihre Regeln ihn nicht an.           |
+| Kriterium | Was es prüft |
+| --- | --- |
+| **Monitore** | Die Monitore, die der Vorfall oder das geplante Wartungsereignis betrifft, oder den Monitor, der die Warnung ausgelöst hat. |
+| **Vorfallsschweregrade** / **Warnungsschweregrade** | Den Schweregrad des Vorfalls oder der Warnung. Geplante Wartungsereignisse haben keinen Schweregrad, deshalb bieten ihre Regeln ihn nicht an. |
 | **Vorfall-Beschriftungen** / **Warnungsbeschriftungen** / **Ereignis-Beschriftungen** | Die Beschriftungen des Vorfalls, der Warnung oder des Ereignisses selbst, einschließlich derer, die Beschriftungsregeln beim Erstellen angehängt haben. |
-| **Überwachungs-Beschriftungen**                                                       | Die Beschriftungen seiner Monitore. Beschriften Sie Ihre Monitore mit `production` oder `staging`, um ein Runbook nur für eine Umgebung auszuführen.    |
-| **Vorfalltitel** / **Warnungstitel** / **Ereignistitel**                              | Seinen Titel.                                                                                                                                           |
-| **Vorfallbeschreibung** / **Warnungsbeschreibung** / **Ereignisbeschreibung**         | Seine Beschreibung.                                                                                                                                     |
-| **Überwachungsname** / **Überwachungsbeschreibung**                                   | Den Namen oder die Beschreibung seiner Monitore.                                                                                                        |
+| **Überwachungs-Beschriftungen** | Die Beschriftungen seiner Monitore. Beschriften Sie Ihre Monitore mit `production` oder `staging`, um ein Runbook nur für eine Umgebung auszuführen. |
+| **Vorfalltitel** / **Warnungstitel** / **Ereignistitel** | Seinen Titel. |
+| **Vorfallbeschreibung** / **Warnungsbeschreibung** / **Ereignisbeschreibung** | Seine Beschreibung. |
+| **Überwachungsname** / **Überwachungsbeschreibung** | Den Namen oder die Beschreibung seiner Monitore. |
 
 Wählen Sie für jede Bedingung einen Operator:
 
@@ -160,7 +158,7 @@ Prüfen Sie der Reihe nach:
 - Jedes Runbook hat **Dieses Runbook ausführen** eingeschaltet, auf seiner Seite **Einstellungen**, und mindestens einen gespeicherten Schritt.
 - Der Vorfall oder die Warnung wurde nicht bereits gelöst erstellt.
 - Die Ausführung des Runbooks wartet nicht einfach: Öffnen Sie sie von der Seite **Runbooks** des Ereignisses aus. Ein Manual-Schritt oder eine Freigabe zeigt **Wartet auf Sie**.
-  :::
+:::
 
 :::details Eine Regel passt nie
 Regeln sehen das Ereignis so, wie es erstellt wurde, mit den Beschriftungen, die Beschriftungsregeln in diesem Moment hinzugefügt haben. Eine später geänderte Beschriftung, ein geänderter Schweregrad oder Titel wird nicht gesehen. Prüfen Sie bei mehreren Bedingungen **Alle müssen zutreffen** gegenüber **Eine muss zutreffen**, und denken Sie daran, dass Monitor-Bedingungen alle für einen Monitor gelten müssen.
@@ -173,8 +171,7 @@ Ein Schweregrad-Kriterium gehört zu einem Produkt. **Warnungsschweregrade** in 
 ## Nächste Schritte
 
 :::cards
-
 - [Ein Runbook ausführen](/docs/runbooks/running): Was reagierende Personen sehen, sobald eine Regel einen Lauf startet.
 - [Ein Runbook verfassen](/docs/runbooks/authoring): Die Runbooks schreiben, die Ihre Regeln starten.
 - [Einen Vorfall melden](/docs/incidents/declaring-incidents): Wie Vorfälle entstehen und wann Regeln sie sehen.
-  :::
+:::

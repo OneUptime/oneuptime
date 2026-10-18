@@ -78,8 +78,8 @@ Un frammento di JavaScript, eseguito in una sandbox `isolated-vm` su un [agente 
 | --- | --- | --- |
 | **Runner** | Il Runner che esegue il passaggio. Solo quel Runner può prendere in carico il lavoro. | — |
 | **Script** | Il JavaScript da eseguire. Restituisci un valore con `return` per acquisirlo; anche ogni riga di `console.log` viene acquisita. Lanciare un errore fa fallire il passaggio. | — |
-| **Execution timeout** | Quanto tempo il Runner lascia girare il frammento prima di distruggere la sandbox. | 30 secondi |
-| **Claim timeout** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. | 2 minuti |
+| **Timeout di esecuzione** | Quanto tempo il Runner lascia girare il frammento prima di distruggere la sandbox. | 30 secondi |
+| **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. | 2 minuti |
 
 ```javascript
 const start = Date.now();
@@ -117,8 +117,8 @@ Uno script bash, eseguito con `bash -c <script>` su un [agente di runbook](/docs
 | --- | --- | --- |
 | **Runner** | Il Runner che esegue il passaggio. Solo quel Runner può prendere in carico il lavoro. | — |
 | **Script Bash** | Lo script. L'output (stdout e stderr) viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. | — |
-| **Execution timeout** | Quanto tempo il Runner lascia girare lo script prima di terminarlo con `SIGKILL`. Aumentalo per i passaggi che richiedono legittimamente minuti. | 30 secondi |
-| **Claim timeout** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. | 2 minuti |
+| **Timeout di esecuzione** | Quanto tempo il Runner lascia girare lo script prima di terminarlo con `SIGKILL`. Aumentalo per i passaggi che richiedono legittimamente minuti. | 30 secondi |
+| **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. | 2 minuti |
 
 Lo script viene eseguito nel container del Runner, con gli strumenti forniti dalla sua immagine, come `curl`, `wget` e il client `ssh`, e con l'accesso di rete dell'host su cui gira. Ad esempio, per controllare un servizio raggiungibile solo dalla tua rete:
 
@@ -147,8 +147,8 @@ Eseguire un comando su un host che il Runner raggiunge via SSH. A differenza di 
 | **Runner** | Il Runner che apre la connessione. Deve poter raggiungere l'host sulla rete. |
 | **Credential** | Una credenziale SSH con host, porta, utente e chiave o password. Deve essere assegnata al Runner scelto, altrimenti il passaggio fallisce invece di essere eseguito con l'accesso sbagliato. |
 | **Command** | Eseguito sull'host remoto come utente della credenziale. L'output viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. |
-| **Execution timeout** | Copre insieme connessione, autenticazione ed esecuzione del comando, così un comando bloccato non può tenere aperto il passaggio. 30 secondi per impostazione predefinita. |
-| **Claim timeout** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. 2 minuti per impostazione predefinita. |
+| **Timeout di esecuzione** | Copre insieme connessione, autenticazione ed esecuzione del comando, così un comando bloccato non può tenere aperto il passaggio. 30 secondi per impostazione predefinita. |
+| **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. 2 minuti per impostazione predefinita. |
 
 ### Kubernetes
 
@@ -162,8 +162,8 @@ Riavviare o scalare un carico di lavoro in un cluster. Le azioni sono volutament
 | **Workload kind** | **Distribuzione**, **StatefulSet** o **DaemonSet**. |
 | **Namespace** e **Workload name** | Il carico di lavoro su cui agire. |
 | **Repliche** | Solo per lo scaling. Lo zero è consentito: svuotare un carico di lavoro è un rimedio legittimo. Un DaemonSet esegue un pod per nodo e non può essere scalato; riavvialo invece. |
-| **Execution timeout** | Quanto tempo il Runner attende che il server API accetti la modifica. 30 secondi per impostazione predefinita. |
-| **Claim timeout** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. 2 minuti per impostazione predefinita. |
+| **Timeout di esecuzione** | Quanto tempo il Runner attende che il server API accetti la modifica. 30 secondi per impostazione predefinita. |
+| **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. 2 minuti per impostazione predefinita. |
 
 Se il server API rifiuta la modifica, il suo messaggio compare sul passaggio, così un errore di autorizzazione ti dice quale role binding ampliare.
 

@@ -9,12 +9,11 @@ Le regole di runbook avviano automaticamente i runbook quando viene creato un **
 Le tre pagine modificano lo stesso tipo di regola, filtrato sulle regole di quel prodotto.
 
 :::cards
-
-- [Creare una regola di runbook](#creare-una-regola-di-runbook): Quattro passaggi: un nome, le condizioni e i runbook da avviare.
+- [Creare una regola di runbook](#creare-una-regola-di-runbook): Tre passaggi: le condizioni, poi i runbook da avviare, che danno il nome alla regola.
 - [Condizioni](#condizioni): Ogni criterio e operatore che una regola può usare.
 - [Logica di corrispondenza](#logica-di-corrispondenza): Più regole, condizioni sui monitor e regole sulle etichette.
 - [Esempi](#esempi): Tre regole da copiare.
-  :::
+:::
 
 ## Come una regola avvia un runbook
 
@@ -48,7 +47,6 @@ Puoi vedere ogni esecuzione, avviata da una regola o no, in **Runbook → Esecuz
 ## Creare una regola di runbook
 
 :::steps
-
 ### Apri le regole di runbook
 
 In **Incidenti**, **Avvisi** o **Manutenzione programmata**, apri **Regole → Regole di runbook** e fai clic su **Crea: Runbook Rule**.
@@ -64,27 +62,27 @@ In **Runbook**, scegli uno o più **Runbook da avviare**. Il **Nome** della rego
 
 ## Anatomia di una regola
 
-| Campo                  | Scopo                                                                                                                                                                       |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nome**               | Prende il nome dai runbook che avvia, come «Avvia Database failover», finché non ne digiti uno tuo.                                                                         |
-| **Descrizione**        | Contesto facoltativo per il team, sotto **Altri campi**.                                                                                                                    |
-| **Abilitato**          | Attivo per una nuova regola. Disattivalo nel modulo di modifica della regola per sospenderla senza eliminarla.                                                              |
-| **Condizioni**         | Ciò che la regola confronta, nel passaggio **Corrispondenza**. Una regola senza condizioni, per esempio su **Tutti gli incidenti**, corrisponde a ogni evento del suo tipo. |
-| **Runbook da avviare** | Uno o più runbook da lanciare quando la regola scatta.                                                                                                                      |
+| Campo | Scopo |
+| --- | --- |
+| **Nome** | Prende il nome dai runbook che avvia, come «Avvia Database failover», finché non ne digiti uno tuo. |
+| **Descrizione** | Contesto facoltativo per il team, sotto **Altri campi**. |
+| **Abilitato** | Attivo per una nuova regola. Disattivalo nel modulo di modifica della regola per sospenderla senza eliminarla. |
+| **Condizioni** | Ciò che la regola confronta, nel passaggio **Corrispondenza**. Una regola senza condizioni, per esempio su **Tutti gli incidenti**, corrisponde a ogni evento del suo tipo. |
+| **Runbook da avviare** | Uno o più runbook da lanciare quando la regola scatta. |
 
 ## Condizioni
 
 Ogni condizione confronta un aspetto dell'incidente, dell'avviso o dell'evento di manutenzione programmata con un valore che indichi tu. Una regola di runbook offre gli stessi criteri delle altre regole del suo prodotto: una regola di runbook per gli incidenti confronta ciò che confronta una regola di privacy o di reperibilità per gli incidenti.
 
-| Criterio                                                                                   | Cosa controlla                                                                                                                              |
-| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Monitor**                                                                                | I monitor coinvolti dall'incidente o dall'evento di manutenzione programmata, oppure il monitor che ha generato l'avviso.                   |
-| **Incidente Gravità** / **Avviso Gravità**                                                 | La gravità dell'incidente o dell'avviso. Gli eventi di manutenzione programmata non hanno gravità, quindi le loro regole non la offrono.    |
-| **Etichette dell'incidente** / **Etichette dell'avviso** / **Etichette evento**            | Le etichette dell'incidente, dell'avviso o dell'evento stesso, comprese quelle che le regole sulle etichette hanno aggiunto alla creazione. |
-| **Etichette del monitor**                                                                  | Le etichette dei suoi monitor. Etichetta i tuoi monitor `production` o `staging` per eseguire un runbook in un solo ambiente.               |
-| **Titolo dell'incidente** / **Titolo dell'avviso** / **Titolo evento**                     | Il suo titolo.                                                                                                                              |
-| **Descrizione dell'incidente** / **Descrizione dell'avviso** / **Descrizione dell'evento** | La sua descrizione.                                                                                                                         |
-| **Nome del monitor** / **Descrizione del monitor**                                         | Il nome o la descrizione dei suoi monitor.                                                                                                  |
+| Criterio | Cosa controlla |
+| --- | --- |
+| **Monitor** | I monitor coinvolti dall'incidente o dall'evento di manutenzione programmata, oppure il monitor che ha generato l'avviso. |
+| **Incidente Gravità** / **Avviso Gravità** | La gravità dell'incidente o dell'avviso. Gli eventi di manutenzione programmata non hanno gravità, quindi le loro regole non la offrono. |
+| **Etichette dell'incidente** / **Etichette dell'avviso** / **Etichette evento** | Le etichette dell'incidente, dell'avviso o dell'evento stesso, comprese quelle che le regole sulle etichette hanno aggiunto alla creazione. |
+| **Etichette del monitor** | Le etichette dei suoi monitor. Etichetta i tuoi monitor `production` o `staging` per eseguire un runbook in un solo ambiente. |
+| **Titolo dell'incidente** / **Titolo dell'avviso** / **Titolo evento** | Il suo titolo. |
+| **Descrizione dell'incidente** / **Descrizione dell'avviso** / **Descrizione dell'evento** | La sua descrizione. |
+| **Nome del monitor** / **Descrizione del monitor** | Il nome o la descrizione dei suoi monitor. |
 
 Scegli un operatore per ogni condizione:
 
@@ -160,7 +158,7 @@ Controlla, in quest'ordine:
 - Ogni runbook ha **Esegui questo runbook** attivo, nella sua pagina **Impostazioni**, e almeno un passaggio salvato.
 - L'incidente o l'avviso non è stato creato già risolto.
 - L'esecuzione del runbook non sta semplicemente aspettando: aprila dalla pagina **Runbook** dell'evento. Un passaggio Manual o un'approvazione mostra **In attesa di te**.
-  :::
+:::
 
 :::details Una regola non corrisponde mai
 Le regole vedono l'evento così come è stato creato, con le etichette che le regole sulle etichette hanno aggiunto in quel momento. Un'etichetta, una gravità o un titolo cambiati dopo non vengono visti. Con più condizioni, verifica **Soddisfa tutte** rispetto a **Soddisfa almeno una**, e ricorda che le condizioni sui monitor devono essere tutte vere per uno stesso monitor.
@@ -173,8 +171,7 @@ Un criterio di gravità appartiene a un solo prodotto. **Avviso Gravità** in un
 ## Prossimi passi
 
 :::cards
-
 - [Eseguire un runbook](/docs/runbooks/running): Cosa vede chi interviene quando una regola avvia un'esecuzione.
 - [Scrivere un runbook](/docs/runbooks/authoring): Scrivere i runbook che le tue regole avviano.
 - [Dichiarare un incidente](/docs/incidents/declaring-incidents): Come vengono creati gli incidenti e quando le regole li vedono.
-  :::
+:::

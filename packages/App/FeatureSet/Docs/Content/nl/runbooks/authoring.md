@@ -78,8 +78,8 @@ Een stukje JavaScript, uitgevoerd in een `isolated-vm`-sandbox op een [runbook-a
 | --- | --- | --- |
 | **Runner** | De Runner die de stap uitvoert. Alleen die Runner mag de taak oppakken. | — |
 | **Script** | Het JavaScript dat wordt uitgevoerd. Geef met `return` een waarde terug om die vast te leggen; elke regel van `console.log` wordt ook vastgelegd. Een gegooide fout laat de stap mislukken. | — |
-| **Execution timeout** | Hoe lang de Runner het stukje laat lopen voordat hij de sandbox afbreekt. | 30 seconden |
-| **Claim timeout** | Hoe lang de Worker wacht tot de Runner de taak oppakt. | 2 minuten |
+| **Uitvoeringstime-out** | Hoe lang de Runner het stukje laat lopen voordat hij de sandbox afbreekt. | 30 seconden |
+| **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. | 2 minuten |
 
 ```javascript
 const start = Date.now();
@@ -117,8 +117,8 @@ Een bashscript, uitgevoerd met `bash -c <script>` op een [runbook-agent](/docs/r
 | --- | --- | --- |
 | **Runner** | De Runner die de stap uitvoert. Alleen die Runner mag de taak oppakken. | — |
 | **Bash-script** | Het script. De uitvoer (stdout en stderr) wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. | — |
-| **Execution timeout** | Hoe lang de Runner het script laat lopen voordat hij het met `SIGKILL` stopt. Verhoog dit voor stappen die terecht minuten duren. | 30 seconden |
-| **Claim timeout** | Hoe lang de Worker wacht tot de Runner de taak oppakt. | 2 minuten |
+| **Uitvoeringstime-out** | Hoe lang de Runner het script laat lopen voordat hij het met `SIGKILL` stopt. Verhoog dit voor stappen die terecht minuten duren. | 30 seconden |
+| **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. | 2 minuten |
 
 Het script loopt in de container van de Runner, met de tools die de image meebrengt, zoals `curl`, `wget` en de `ssh`-client, en met de netwerktoegang van de host waarop het draait. Bijvoorbeeld om een dienst te controleren die alleen uw netwerk bereikt:
 
@@ -147,8 +147,8 @@ Eén opdracht uitvoeren op een host die de Runner via SSH bereikt. Anders dan `s
 | **Runner** | De Runner die de verbinding opent. Hij moet de host via het netwerk kunnen bereiken. |
 | **Credential** | Een SSH-inloggegeven met de host, poort, gebruiker en sleutel of wachtwoord. Het moet aan de gekozen Runner zijn toegewezen; anders mislukt de stap in plaats van met de verkeerde toegang te lopen. |
 | **Command** | Uitgevoerd op de externe host als de gebruiker van het inloggegeven. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. |
-| **Execution timeout** | Omvat verbinden, authenticeren en de opdracht uitvoeren samen, zodat een opdracht die blijft hangen de stap niet open kan houden. Standaard 30 seconden. |
-| **Claim timeout** | Hoe lang de Worker wacht tot de Runner de taak oppakt. Standaard 2 minuten. |
+| **Uitvoeringstime-out** | Omvat verbinden, authenticeren en de opdracht uitvoeren samen, zodat een opdracht die blijft hangen de stap niet open kan houden. Standaard 30 seconden. |
+| **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. Standaard 2 minuten. |
 
 ### Kubernetes
 
@@ -162,8 +162,8 @@ Een workload in een cluster herstarten of schalen. De acties zijn bewust een ges
 | **Workload kind** | **Implementatie**, **StatefulSet** of **DaemonSet**. |
 | **Naamruimte** en **Workload name** | De workload waarop wordt ingegrepen. |
 | **Replica's** | Alleen bij schalen. Nul is toegestaan: een workload leeglopen is een legitieme herstelactie. Een DaemonSet draait één pod per node en kan niet worden geschaald; herstart hem in plaats daarvan. |
-| **Execution timeout** | Hoe lang de Runner wacht tot de API-server de wijziging accepteert. Standaard 30 seconden. |
-| **Claim timeout** | Hoe lang de Worker wacht tot de Runner de taak oppakt. Standaard 2 minuten. |
+| **Uitvoeringstime-out** | Hoe lang de Runner wacht tot de API-server de wijziging accepteert. Standaard 30 seconden. |
+| **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. Standaard 2 minuten. |
 
 Weigert de API-server de wijziging, dan verschijnt zijn eigen melding bij de stap, zodat een machtigingsfout u vertelt welke rolkoppeling u moet verruimen.
 

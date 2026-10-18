@@ -78,8 +78,8 @@ Et stykke JavaScript som kjører i en `isolated-vm`-sandkasse på en [runbook-ag
 | --- | --- | --- |
 | **Runner** | Runneren som kjører trinnet. Bare den Runneren kan ta jobben. | — |
 | **Script** | JavaScript-koden som skal kjøre. Returner en verdi med `return` for å registrere den; hver linje fra `console.log` registreres også. En kastet feil får trinnet til å feile. | — |
-| **Execution timeout** | Hvor lenge Runneren lar koden kjøre før den river ned sandkassen. | 30 sekunder |
-| **Claim timeout** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
+| **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar koden kjøre før den river ned sandkassen. | 30 sekunder |
+| **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
 
 ```javascript
 const start = Date.now();
@@ -117,8 +117,8 @@ Et bash-skript som kjøres med `bash -c <script>` på en [runbook-agent](/docs/r
 | --- | --- | --- |
 | **Runner** | Runneren som kjører trinnet. Bare den Runneren kan ta jobben. | — |
 | **Bash-skript** | Skriptet. Output (stdout og stderr) registreres opptil 50 KB, og en exitkode som ikke er null, får trinnet til å feile. | — |
-| **Execution timeout** | Hvor lenge Runneren lar skriptet kjøre før den dreper det med `SIGKILL`. Øk den for trinn som med god grunn tar minutter. | 30 sekunder |
-| **Claim timeout** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
+| **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar skriptet kjøre før den dreper det med `SIGKILL`. Øk den for trinn som med god grunn tar minutter. | 30 sekunder |
+| **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
 
 Skriptet kjører i Runnerens container med verktøyene imaget leveres med, som `curl`, `wget` og `ssh`-klienten, og med nettverkstilgangen til verten det kjører på. For eksempel for å sjekke en tjeneste som bare nettverket ditt kan nå:
 
@@ -147,8 +147,8 @@ Kjør én kommando på en vert som Runneren kan nå via SSH. I motsetning til `s
 | **Runner** | Runneren som åpner forbindelsen. Den må kunne nå verten over nettverket. |
 | **Credential** | SSH-påloggingsinformasjon med vert, port, bruker og nøkkel eller passord. Den må være tildelt Runneren du valgte, ellers feiler trinnet i stedet for å kjøre med feil tilgang. |
 | **Command** | Kjøres på den eksterne verten som brukeren i påloggingsinformasjonen. Output registreres opptil 50 KB, og en exitkode som ikke er null, får trinnet til å feile. |
-| **Execution timeout** | Dekker tilkobling, autentisering og kjøring av kommandoen samlet, så en kommando som henger, ikke kan holde trinnet åpent. Standard 30 sekunder. |
-| **Claim timeout** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
+| **Tidsavbrudd for kjøring** | Dekker tilkobling, autentisering og kjøring av kommandoen samlet, så en kommando som henger, ikke kan holde trinnet åpent. Standard 30 sekunder. |
+| **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
 
 ### Kubernetes
 
@@ -162,8 +162,8 @@ Start på nytt eller skaler en arbeidsbelastning i en klynge. Handlingene er bev
 | **Workload kind** | **Utrulling**, **StatefulSet** eller **DaemonSet**. |
 | **Navnerom** og **Workload name** | Arbeidsbelastningen det handles på. |
 | **Replikaer** | Bare ved skalering. Null er tillatt: å tømme en arbeidsbelastning er en legitim utbedring. Et DaemonSet kjører én pod per node og kan ikke skaleres; start det på nytt i stedet. |
-| **Execution timeout** | Hvor lenge Runneren venter på at API-serveren godtar endringen. Standard 30 sekunder. |
-| **Claim timeout** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
+| **Tidsavbrudd for kjøring** | Hvor lenge Runneren venter på at API-serveren godtar endringen. Standard 30 sekunder. |
+| **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
 
 Hvis API-serveren avviser endringen, vises dens egen melding på trinnet, så en tillatelsesfeil forteller deg hvilken rollebinding du må utvide.
 

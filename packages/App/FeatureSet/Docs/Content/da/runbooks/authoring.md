@@ -78,8 +78,8 @@ Et stykke JavaScript, der kører i en `isolated-vm`-sandkasse på en [runbook-ag
 | --- | --- | --- |
 | **Runner** | Den Runner, der kører trinnet. Kun den Runner må overtage jobbet. | — |
 | **Script** | Det JavaScript, der skal køre. Returner en værdi med `return` for at registrere den; hver linje fra `console.log` registreres også. En kastet fejl får trinnet til at fejle. | — |
-| **Execution timeout** | Hvor længe Runneren lader stykket køre, før den river sandkassen ned. | 30 sekunder |
-| **Claim timeout** | Hvor længe Workeren venter på, at Runneren overtager jobbet. | 2 minutter |
+| **Timeout for kørsel** | Hvor længe Runneren lader stykket køre, før den river sandkassen ned. | 30 sekunder |
+| **Timeout for overtagelse** | Hvor længe Workeren venter på, at Runneren overtager jobbet. | 2 minutter |
 
 ```javascript
 const start = Date.now();
@@ -117,8 +117,8 @@ Et bash-script, der køres med `bash -c <script>` på en [runbook-agent](/docs/r
 | --- | --- | --- |
 | **Runner** | Den Runner, der kører trinnet. Kun den Runner må overtage jobbet. | — |
 | **Bash-script** | Scriptet. Output (stdout og stderr) registreres op til 50 KB, og en exitkode forskellig fra nul får trinnet til at fejle. | — |
-| **Execution timeout** | Hvor længe Runneren lader scriptet køre, før den dræber det med `SIGKILL`. Hæv den for trin, der med god grund tager minutter. | 30 sekunder |
-| **Claim timeout** | Hvor længe Workeren venter på, at Runneren overtager jobbet. | 2 minutter |
+| **Timeout for kørsel** | Hvor længe Runneren lader scriptet køre, før den dræber det med `SIGKILL`. Hæv den for trin, der med god grund tager minutter. | 30 sekunder |
+| **Timeout for overtagelse** | Hvor længe Workeren venter på, at Runneren overtager jobbet. | 2 minutter |
 
 Scriptet kører i Runnerens container med de værktøjer, dens image leveres med, f.eks. `curl`, `wget` og `ssh`-klienten, og med netværksadgangen fra den vært, det kører på. For eksempel for at kontrollere en tjeneste, som kun dit netværk kan nå:
 
@@ -147,8 +147,8 @@ Kør én kommando på en vært, som Runneren kan nå via SSH. I modsætning til 
 | **Runner** | Den Runner, der åbner forbindelsen. Den skal kunne nå værten over netværket. |
 | **Credential** | En SSH-loginoplysning med vært, port, bruger og nøgle eller adgangskode. Den skal være tildelt den Runner, du valgte, ellers fejler trinnet i stedet for at køre med den forkerte adgang. |
 | **Command** | Køres på fjernværten som loginoplysningens bruger. Output registreres op til 50 KB, og en exitkode forskellig fra nul får trinnet til at fejle. |
-| **Execution timeout** | Dækker forbindelse, godkendelse og kørsel af kommandoen samlet, så en kommando, der hænger, ikke kan holde trinnet åbent. Standard 30 sekunder. |
-| **Claim timeout** | Hvor længe Workeren venter på, at Runneren overtager jobbet. Standard 2 minutter. |
+| **Timeout for kørsel** | Dækker forbindelse, godkendelse og kørsel af kommandoen samlet, så en kommando, der hænger, ikke kan holde trinnet åbent. Standard 30 sekunder. |
+| **Timeout for overtagelse** | Hvor længe Workeren venter på, at Runneren overtager jobbet. Standard 2 minutter. |
 
 ### Kubernetes
 
@@ -162,8 +162,8 @@ Genstart eller skaler en arbejdsbelastning i en klynge. Handlingerne er bevidst 
 | **Workload kind** | **Udrulning**, **StatefulSet** eller **DaemonSet**. |
 | **Navnerum** og **Workload name** | Den arbejdsbelastning, der handles på. |
 | **Replikaer** | Kun ved skalering. Nul er tilladt: at tømme en arbejdsbelastning er en legitim afhjælpning. Et DaemonSet kører én pod pr. node og kan ikke skaleres; genstart det i stedet. |
-| **Execution timeout** | Hvor længe Runneren venter på, at API-serveren accepterer ændringen. Standard 30 sekunder. |
-| **Claim timeout** | Hvor længe Workeren venter på, at Runneren overtager jobbet. Standard 2 minutter. |
+| **Timeout for kørsel** | Hvor længe Runneren venter på, at API-serveren accepterer ændringen. Standard 30 sekunder. |
+| **Timeout for overtagelse** | Hvor længe Workeren venter på, at Runneren overtager jobbet. Standard 2 minutter. |
 
 Hvis API-serveren afviser ændringen, vises dens egen meddelelse på trinnet, så en tilladelsesfejl fortæller dig, hvilken rollebinding du skal udvide.
 

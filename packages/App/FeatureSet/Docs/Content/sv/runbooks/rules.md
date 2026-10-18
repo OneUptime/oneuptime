@@ -9,12 +9,11 @@ Runbook-regler startar runbooks automatiskt när en **incident**, ett **larm** e
 Alla tre sidorna redigerar samma sorts regel, filtrerad till den produktens regler.
 
 :::cards
-
-- [Skapa en runbook-regel](#skapa-en-runbook-regel): Fyra steg: ett namn, villkor och de runbooks som ska startas.
+- [Skapa en runbook-regel](#skapa-en-runbook-regel): Tre steg: villkor och sedan de runbooks som ska startas, som regeln namnges efter.
 - [Villkor](#villkor): Varje kriterium och operator som en regel kan använda.
 - [Matchningslogik](#matchningslogik): Flera regler, monitorvillkor och etikettregler.
 - [Exempel](#exempel): Tre regler att kopiera.
-  :::
+:::
 
 ## Så startar en regel ett runbook
 
@@ -48,7 +47,6 @@ Du ser alla körningar, startade av en regel eller inte, under **Runbooks → K�
 ## Skapa en runbook-regel
 
 :::steps
-
 ### Öppna Runbook-regler
 
 I **Incidenter**, **Varningar** eller **Schemalagt underhåll** öppnar du **Regler → Runbook-regler** och klickar på **Skapa Runbook Rule**.
@@ -64,27 +62,27 @@ Under **Runbooks** väljer du ett eller flera **Runbooks att starta**. Regelns *
 
 ## Hur en regel är uppbyggd
 
-| Fält                    | Syfte                                                                                                                                    |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Namn**                | Namngiven efter de runbooks den startar, till exempel "Starta Database failover", tills du skriver ett eget.                             |
-| **Beskrivning**         | Valfri kontext för kolleger, under **Fler fält**.                                                                                        |
-| **Aktiverad**           | Påslagen för en ny regel. Stäng av den i regelns redigeringsformulär för att pausa den utan att ta bort den.                             |
-| **Villkor**             | Vad regeln matchar, i steget **Matcha**. En regel utan villkor, till exempel på **Alla incidenter**, matchar varje händelse av dess typ. |
-| **Runbooks att starta** | Ett eller flera runbooks som startas när regeln utlöses.                                                                                 |
+| Fält | Syfte |
+| --- | --- |
+| **Namn** | Namngiven efter de runbooks den startar, till exempel "Starta Database failover", tills du skriver ett eget. |
+| **Beskrivning** | Valfri kontext för kolleger, under **Fler fält**. |
+| **Aktiverad** | Påslagen för en ny regel. Stäng av den i regelns redigeringsformulär för att pausa den utan att ta bort den. |
+| **Villkor** | Vad regeln matchar, i steget **Matcha**. En regel utan villkor, till exempel på **Alla incidenter**, matchar varje händelse av dess typ. |
+| **Runbooks att starta** | Ett eller flera runbooks som startas när regeln utlöses. |
 
 ## Villkor
 
 Varje villkor jämför en sak hos incidenten, larmet eller den schemalagda underhållshändelsen med ett värde som du anger. En runbook-regel erbjuder samma kriterier som produktens andra regler: en runbook-regel för incidenter matchar på samma saker som en sekretess- eller jourregel för incidenter.
 
-| Kriterium                                                         | Vad det kontrollerar                                                                                                                         |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Monitorer**                                                     | De monitorer som incidenten eller den schemalagda underhållshändelsen påverkar, eller den monitor som utlöste larmet.                        |
-| **Incident Allvarligheter** / **Larm Allvarligheter**             | Incidentens eller larmets allvarlighetsgrad. Schemalagda underhållshändelser har ingen allvarlighetsgrad, så deras regler erbjuder det inte. |
-| **Incidentetiketter** / **Larmetiketter** / **Händelseetiketter** | Etiketterna på själva incidenten, larmet eller händelsen, inklusive dem som etikettregler lade till när den skapades.                        |
-| **Övervakningsetiketter**                                         | Etiketterna på dess monitorer. Ge dina monitorer etiketten `production` eller `staging` för att köra ett runbook i bara en miljö.            |
-| **Incidenttitel** / **Larmtitel** / **Händelsetitel**             | Dess titel.                                                                                                                                  |
-| **Incidentbeskrivning** / **Larmbeskrivning**                     | Dess beskrivning (för händelser heter kriteriet **Händelsebeskrivning**).                                                                    |
-| **Övervakningsnamn** / **Övervakningsbeskrivning**                | Namnet eller beskrivningen på dess monitorer.                                                                                                |
+| Kriterium | Vad det kontrollerar |
+| --- | --- |
+| **Monitorer** | De monitorer som incidenten eller den schemalagda underhållshändelsen påverkar, eller den monitor som utlöste larmet. |
+| **Incident Allvarligheter** / **Larm Allvarligheter** | Incidentens eller larmets allvarlighetsgrad. Schemalagda underhållshändelser har ingen allvarlighetsgrad, så deras regler erbjuder det inte. |
+| **Incidentetiketter** / **Larmetiketter** / **Händelseetiketter** | Etiketterna på själva incidenten, larmet eller händelsen, inklusive dem som etikettregler lade till när den skapades. |
+| **Övervakningsetiketter** | Etiketterna på dess monitorer. Ge dina monitorer etiketten `production` eller `staging` för att köra ett runbook i bara en miljö. |
+| **Incidenttitel** / **Larmtitel** / **Händelsetitel** | Dess titel. |
+| **Incidentbeskrivning** / **Larmbeskrivning** | Dess beskrivning (för händelser heter kriteriet **Händelsebeskrivning**). |
+| **Övervakningsnamn** / **Övervakningsbeskrivning** | Namnet eller beskrivningen på dess monitorer. |
 
 Välj en operator för varje villkor:
 
@@ -160,7 +158,7 @@ Kontrollera i den här ordningen:
 - Varje runbook har **Kör det här runbooket** påslaget på sin sida **Inställningar** och minst ett sparat steg.
 - Incidenten eller larmet skapades inte redan löst.
 - Runbookets körning väntar inte bara: öppna den från händelsens sida **Runbooks**. Ett Manual-steg eller ett godkännande visar **Väntar på dig**.
-  :::
+:::
 
 :::details En regel matchar aldrig
 Regler ser händelsen som den skapades, med de etiketter som etikettregler lade till i det ögonblicket. En etikett, allvarlighetsgrad eller titel som ändras efteråt ses inte. Med flera villkor kontrollerar du **Matcha alla** mot **Matcha något** och kommer ihåg att monitorvillkor alla måste gälla en och samma monitor.
@@ -173,8 +171,7 @@ Ett allvarlighetskriterium hör till en produkt. **Larm Allvarligheter** i en in
 ## Nästa steg
 
 :::cards
-
 - [Köra ett runbook](/docs/runbooks/running): Vad de som hanterar incidenten ser när en regel startar en körning.
 - [Skriva ett runbook](/docs/runbooks/authoring): Skriv de runbooks som dina regler startar.
 - [Deklarera en incident](/docs/incidents/declaring-incidents): Hur incidenter skapas och när regler ser dem.
-  :::
+:::
