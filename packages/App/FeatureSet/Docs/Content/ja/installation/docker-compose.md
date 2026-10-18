@@ -335,9 +335,9 @@ Docker Compose は 1 台のサーバーで各サービスを 1 つずつ実行�
 PostgreSQL は作成されたときのパスワードを保ち続けるため、`config.env` の `DATABASE_PASSWORD` だけを変えると、OneUptime は自分のデータベースに接続できなくなります。プレースホルダーのまま起動したインストールに専用のパスワードを設定するには、PostgreSQL と `config.env` の両方で同時に変更してから、OneUptime をもう一度起動します。
 
 ```bash
-NEW_PASSWORD=$(openssl rand -hex 32)
-(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'")
-sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
 

@@ -6,7 +6,7 @@
  *   - It answers on the server's loopback address, where npm run backup and
  *     restore.sh connect the way those scripts run their client, and on no
  *     other address of the server.
- *   - On a new install, npm start's prestart
+ *   - On a new install, npm start's first step
  *     (Scripts/Install/GenerateDatabasePassword.js) asks this Docker whether
  *     the bundled PostgreSQL has created its database, gives a placeholder
  *     DATABASE_PASSWORD a random value while it has not, and PostgreSQL is
@@ -153,6 +153,23 @@ function otherAddresses() {
       return !PRIVATE_IPV4.test(address);
     }),
   ];
+}
+
+/*
+ * Every IPv6 address of this machine, loopback (::1) included: a port
+ * published on 127.0.0.1 answers on none of them. A link-local address
+ * carries its interface, as connecting to one needs.
+ */
+function ipv6Addresses() {
+  return Object.entries(os.networkInterfaces()).flatMap(([name, list]) => {
+    return (list || [])
+      .filter((address) => {
+        return address.family === "IPv6";
+      })
+      .map((address) => {
+        return address.scopeid ? `${address.address}%${name}` : address.address;
+      });
+  });
 }
 
 function answers(host, port) {
@@ -315,6 +332,22 @@ describeRuntime("PostgreSQL as docker-compose.yml publishes it", () => {
     expect(hostIp).toBe(LOOPBACK_ADDRESS);
   });
 
+  test("Docker itself publishes it on 127.0.0.1 and nowhere else, IPv6 included", () => {
+    const container = composeIn(directory, configFile, [
+      "ps",
+      "-q",
+      "postgres",
+    ]).stdout.trim();
+
+    expect(container).not.toBe("");
+
+    const published = mustDocker(["port", container, "5432/tcp"])
+      .stdout.trim()
+      .split("\n");
+
+    expect(published).toEqual([`${LOOPBACK_ADDRESS}:${port}`]);
+  });
+
   test("it answers on the server's loopback address, and signs in with the configured password", async () => {
     expect(await answers(LOOPBACK_ADDRESS, port)).toBe(true);
 
@@ -332,6 +365,18 @@ describeRuntime("PostgreSQL as docker-compose.yml publishes it", () => {
     for (const address of addresses) {
       if (await answers(address, port)) {
         answering.push(`${address}:${port}`);
+      }
+    }
+
+    expect(answering).toEqual([]);
+  });
+
+  test("it does not answer on any IPv6 address of the server, ::1 included", async () => {
+    const answering = [];
+
+    for (const address of ipv6Addresses()) {
+      if (await answers(address, port)) {
+        answering.push(`[${address}]:${port}`);
       }
     }
 
@@ -363,7 +408,7 @@ describeRuntime("PostgreSQL as docker-compose.yml publishes it", () => {
 });
 
 describeRuntime(
-  "npm start's prestart against real Docker and docker-compose.yml",
+  "npm start's first step against real Docker and docker-compose.yml",
   () => {
     const project = projectName("first-start");
     const databaseContainer = `${project}-db`;
@@ -383,7 +428,7 @@ describeRuntime(
       removeProject(directory, configFile, project);
     });
 
-    function prestart() {
+    function firstStep() {
       const logged = [];
       const warned = [];
       const decision = GenerateDatabasePassword.run({
@@ -409,7 +454,7 @@ describeRuntime(
     test("a new install: no database yet, so the placeholder gets a random value", () => {
       expect(currentPassword()).toBe(PLACEHOLDER);
 
-      const first = prestart();
+      const first = firstStep();
 
       expect(first.decision).toBe("generate");
       expect(currentPassword()).toMatch(RANDOM_PASSWORD);
@@ -475,7 +520,7 @@ describeRuntime(
 
     test("the next start leaves the generated password as it is", () => {
       const password = currentPassword();
-      const next = prestart();
+      const next = firstStep();
 
       expect(next.decision).toBe("nothing");
       expect(currentPassword()).toBe(password);
@@ -488,7 +533,7 @@ describeRuntime(
         .replace(GENERATED_PASSWORD_LINE, `DATABASE_PASSWORD=${PLACEHOLDER}`);
       fs.writeFileSync(configFile, withPlaceholder);
 
-      const later = prestart();
+      const later = firstStep();
 
       expect(later.decision).toBe("warn-created");
       expect(fs.readFileSync(configFile, "utf8")).toBe(withPlaceholder);
@@ -543,26 +588,70 @@ describeRuntime("the Docker Compose guide's commands, run as written", () => {
     ).output.trim();
   }
 
-  test("Change the database password changes it in PostgreSQL and in config.env together", () => {
+  /*
+   * The guide's block, pasted into bash as a whole the way an operator runs
+   * it (no -e). Its last line starts OneUptime again; an `npm` on PATH here
+   * only records that it ran, and the test then starts PostgreSQL alone.
+   */
+  function runChangePasswordBlock() {
+    const commands = codeBlockAfter(CHANGE_PASSWORD_HEADING, "bash");
+    const bin = path.join(directory, "bin");
+    const npmCalls = path.join(directory, "npm-calls.log");
+
+    expect(commands[commands.length - 1]).toBe("npm start");
+    fs.mkdirSync(bin, { recursive: true });
+    fs.writeFileSync(
+      path.join(bin, "npm"),
+      `#!/bin/sh\necho "npm $*" >> "${npmCalls}"\n`,
+      { mode: 0o755 },
+    );
+    fs.rmSync(npmCalls, { force: true });
+
+    const run = spawnSync("bash", ["-c", commands.join("\n")], {
+      cwd: directory,
+      env: {
+        ...process.env,
+        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
+      },
+      encoding: "utf8",
+    });
+
+    return {
+      status: run.status,
+      output: `${run.stdout}${run.stderr}`,
+      npm: fs.existsSync(npmCalls)
+        ? fs.readFileSync(npmCalls, "utf8").trim()
+        : "",
+    };
+  }
+
+  test("Change the database password, run while PostgreSQL is not running, changes neither PostgreSQL nor config.env", () => {
     // An installation that kept the placeholder, created before this release.
     up();
     expect(loginOnLoopback(PLACEHOLDER)).toBe("postgres");
+    composeIn(directory, configFile, ["stop", "postgres"]);
+    const before = fs.readFileSync(configFile, "utf8");
 
-    const commands = codeBlockAfter(CHANGE_PASSWORD_HEADING, "bash");
+    const run = runChangePasswordBlock();
 
-    // The block ends by starting OneUptime again; here, PostgreSQL alone.
-    expect(commands[commands.length - 1]).toBe("npm start");
-    const run = spawnSync(
-      "bash",
-      ["-e", "-c", commands.slice(0, -1).join("\n")],
-      {
-        cwd: directory,
-        env: process.env,
-        encoding: "utf8",
-      },
-    );
-    expect(`${run.stdout}${run.stderr}`).toContain("ALTER ROLE");
+    expect(run.output).not.toContain("ALTER ROLE");
+    expect(fs.readFileSync(configFile, "utf8")).toBe(before);
+    // npm start still runs, and starts OneUptime with the password it has.
+    expect(run.npm).toBe("npm start");
+    up();
+    expect(loginOnLoopback(PLACEHOLDER)).toBe("postgres");
+  });
+
+  test("Change the database password changes it in PostgreSQL and in config.env together", () => {
+    // The same installation, now running.
+    up();
+    expect(loginOnLoopback(PLACEHOLDER)).toBe("postgres");
+
+    const run = runChangePasswordBlock();
+
+    expect(run.output).toContain("ALTER ROLE");
     expect(run.status).toBe(0);
+    expect(run.npm).toBe("npm start");
     up();
 
     const password = GenerateDatabasePassword.readSettings(
@@ -586,6 +675,11 @@ describeRuntime("the Docker Compose guide's commands, run as written", () => {
   test("the override that publishes PostgreSQL on a private address, on a port of its own, keeps the loopback port too", async () => {
     const addresses = otherAddresses();
     expect(addresses.length).toBeGreaterThan(0);
+    // As the guide says: a password of its own first. This test never
+    // publishes a database that takes the placeholder beyond loopback.
+    expect(loginOnLoopback(PLACEHOLDER)).toContain(
+      "password authentication failed",
+    );
 
     const example = codeBlockAfter(OVERRIDE_DETAILS, "yaml").join("\n");
     const exampleAddress = PRIVATE_ADDRESS_IN_EXAMPLE.exec(example);

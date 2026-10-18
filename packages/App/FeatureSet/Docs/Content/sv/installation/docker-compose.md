@@ -335,9 +335,9 @@ Docker Compose kör en kopia av varje tjänst på en enda server, vilket passar 
 PostgreSQL behåller lösenordet den skapades med, så om du bara ändrar `DATABASE_PASSWORD` i `config.env` stänger du ute OneUptime från dess databas. För att ge en installation som startade med platshållaren ett eget lösenord ändrar du det i PostgreSQL och i `config.env` samtidigt och startar sedan OneUptime igen:
 
 ```bash
-NEW_PASSWORD=$(openssl rand -hex 32)
-(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'")
-sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
 

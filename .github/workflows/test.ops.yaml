@@ -77,7 +77,7 @@ jobs:
       # RUN_COMPOSE_DATABASE_RUNTIME_TESTS starts PostgreSQL from
       # docker-compose.yml for real (ComposeDatabaseRuntime.test.js): it
       # answers on 127.0.0.1 and on no other address of the runner, the way
-      # backup.sh and restore.sh connect reaches it, npm start's prestart sees
+      # backup.sh and restore.sh connect reaches it, npm start's first step sees
       # whether its database exists, and the Docker Compose guide's commands
       # work as written. It pulls postgres:15, and fails rather than skips
       # when docker is not usable.

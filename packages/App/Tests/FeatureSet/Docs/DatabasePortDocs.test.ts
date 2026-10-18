@@ -39,10 +39,15 @@ const OVERRIDE_DETAILS: string =
 const TUNNEL_SENTENCE: string =
   "Only the server itself reaches PostgreSQL: it answers on port 5400 of `127.0.0.1`. To back it up from another machine, open an SSH tunnel from that machine, then connect to its own port 5400:";
 
+/*
+ * One && chain, so config.env takes the new password only once PostgreSQL
+ * has: a PostgreSQL that is not running, or a failed openssl, leaves both as
+ * they were. npm start then runs either way.
+ */
 const CHANGE_COMMANDS: Array<string> = [
-  "NEW_PASSWORD=$(openssl rand -hex 32)",
-  `(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \\"$DATABASE_USERNAME\\" PASSWORD '$NEW_PASSWORD'")`,
-  `sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env`,
+  "NEW_PASSWORD=$(openssl rand -hex 32) &&",
+  `  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \\"$DATABASE_USERNAME\\" PASSWORD '$NEW_PASSWORD'") &&`,
+  `  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env`,
   "npm start",
 ];
 const SSH_TUNNEL: string =
@@ -79,6 +84,21 @@ const OVERRIDE_PORT: RegExp = /^ {6}- "(\d+)\.\d+\.\d+\.\d+:(\d+):(\d+)"$/;
 const COMPOSE_PORT: RegExp = /^([\d.]+):(\d+):(\d+)$/;
 const CONFIG_KEY: RegExp = /^([A-Z][A-Z0-9_]*)=/;
 const SETTING_IN_COMMAND: RegExp = /\$([A-Z][A-Z0-9_]+)/g;
+function isConfigWrite(command: string): boolean {
+  return command.trim().startsWith("sed -i ");
+}
+
+function isPasswordChange(command: string): boolean {
+  return command.includes("ALTER USER");
+}
+
+function endsTheChainLink(command: string): boolean {
+  return command.endsWith(" &&");
+}
+
+// npm start's script begins with the step that gives a new install its password.
+const GENERATE_STEP_FIRST: RegExp =
+  /^node \.\/Scripts\/Install\/GenerateDatabasePassword\.js && /;
 
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 const jsYaml: { load: (text: string) => unknown } = require(
@@ -299,10 +319,8 @@ describe("the Docker Compose guide on PostgreSQL's port", () => {
 });
 
 describe("the Docker Compose guide on the database password", () => {
-  it("says npm start gives a placeholder DATABASE_PASSWORD a random value on the first start - its prestart does", () => {
-    expect(rootScripts()["prestart"]).toBe(
-      "node ./Scripts/Install/GenerateDatabasePassword.js",
-    );
+  it("says npm start gives a placeholder DATABASE_PASSWORD a random value on the first start - its script does, first", () => {
+    expect(rootScripts()["start"]).toMatch(GENERATE_STEP_FIRST);
     expect(ENGLISH_GUIDE).toContain(
       "If `DATABASE_PASSWORD` is still the placeholder at the first start, `npm start` gives it a random value before PostgreSQL creates its database.",
     );
@@ -345,6 +363,10 @@ describe("the Docker Compose guide on the database password", () => {
       });
 
     expect(commands).toEqual(CHANGE_COMMANDS);
+    // config.env is written last in the chain, after PostgreSQL took the value.
+    expect(commands.findIndex(isConfigWrite)).toBe(commands.length - 2);
+    expect(commands.findIndex(isPasswordChange)).toBe(commands.length - 3);
+    expect(commands.slice(0, -2).every(endsTheChainLink)).toBe(true);
     expect(composeFacts("docker-compose.yml").services).toContain("postgres");
     expect(named).toEqual(
       expect.arrayContaining(["DATABASE_USERNAME", "DATABASE_NAME"]),
@@ -481,14 +503,12 @@ describe("the English upgrade note on PostgreSQL's port and password", () => {
     }
   });
 
-  it("says what npm start does on a new install and on one whose database exists, as the prestart does", () => {
+  it("says what npm start does on a new install and on one whose database exists, as its first step does", () => {
     const script: string = source(
       "Scripts/Install/GenerateDatabasePassword.js",
     );
 
-    expect(rootScripts()["prestart"]).toBe(
-      "node ./Scripts/Install/GenerateDatabasePassword.js",
-    );
+    expect(rootScripts()["start"]).toMatch(GENERATE_STEP_FIRST);
     expect(script).toContain('const PLACEHOLDER_MARK = "please-change-this";');
     expect(script).toContain('"warn-created"');
     expect(ENGLISH_NOTE).toContain(

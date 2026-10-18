@@ -335,9 +335,9 @@ Docker Compose betreibt jeden Dienst einmal auf einem einzigen Server, was zu kl
 PostgreSQL behält das Passwort, mit dem es angelegt wurde: Ändern Sie nur `DATABASE_PASSWORD` in `config.env`, sperren Sie OneUptime aus seiner Datenbank aus. Um einer Installation, die mit dem Platzhalter gestartet ist, ein eigenes Passwort zu geben, ändern Sie es in PostgreSQL und in `config.env` zugleich und starten OneUptime dann neu:
 
 ```bash
-NEW_PASSWORD=$(openssl rand -hex 32)
-(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'")
-sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
 

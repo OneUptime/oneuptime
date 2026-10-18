@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Scripts/Install/GenerateDatabasePassword.js, npm start's prestart.
+ * Scripts/Install/GenerateDatabasePassword.js, the first step of npm start.
  *
  * The rule: a Docker Compose install never has PostgreSQL create its database
  * with the DATABASE_PASSWORD config.example.env ships. While the bundled
@@ -504,10 +504,149 @@ describe("the messages", () => {
 });
 
 describe("wiring", () => {
-  test("npm start runs it first, as its prestart, and npm run update ends with npm run start", () => {
-    expect(ROOT_PACKAGE.scripts.prestart).toBe(`node ${SCRIPT_PATH}`);
+  const STEP = `node ${SCRIPT_PATH} && `;
+
+  test("npm start runs it as the first command of its own script, before Compose starts anything, and npm run update ends with npm run start", () => {
+    const start = ROOT_PACKAGE.scripts.start;
+
+    expect(start.startsWith(STEP)).toBe(true);
+    expect(start.indexOf(STEP)).toBeLessThan(start.indexOf("docker compose"));
+    expect(start.split(SCRIPT_PATH)).toHaveLength(2);
     expect(ROOT_PACKAGE.scripts.update).toMatch(/&& npm run start$/);
     expect(fs.existsSync(path.join(REPO_ROOT, SCRIPT_PATH))).toBe(true);
+  });
+
+  test("no npm hook runs it: npm skips pre- and post-scripts when ignore-scripts is set", () => {
+    for (const [name, command] of Object.entries(ROOT_PACKAGE.scripts)) {
+      if (name === "start") {
+        continue;
+      }
+
+      expect({ name, runsIt: command.includes(SCRIPT_PATH) }).toEqual({
+        name,
+        runsIt: false,
+      });
+    }
+  });
+
+  /*
+   * npm itself runs the root package's start script in a throwaway copy of
+   * the repository's layout: the script and config.example.env as
+   * config.env, and a `docker` on PATH that records what it was asked and
+   * answers the database check with "not created". The environment carries
+   * none of the outer npm's settings, and the copy lives outside the
+   * repository, so this npm can only find the copy's package.json.
+   */
+  function npmStartIn(scripts, ignoreScripts) {
+    const { spawnSync } = require("child_process");
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "oneuptime-npm-start-"),
+    );
+    const calls = path.join(directory, "docker-calls.log");
+
+    try {
+      fs.mkdirSync(path.join(directory, "Scripts", "Install"), {
+        recursive: true,
+      });
+      fs.copyFileSync(
+        path.join(REPO_ROOT, SCRIPT_PATH),
+        path.join(directory, SCRIPT_PATH),
+      );
+      fs.writeFileSync(path.join(directory, "config.env"), TEMPLATE);
+      fs.writeFileSync(
+        path.join(directory, "package.json"),
+        JSON.stringify({
+          name: "npm-start-wiring",
+          version: "1.0.0",
+          private: true,
+          scripts: Object.assign(
+            { "status-check": "echo status-check >> docker-calls.log" },
+            scripts,
+          ),
+        }),
+      );
+      fs.mkdirSync(path.join(directory, "bin"));
+      fs.writeFileSync(
+        path.join(directory, "bin", "docker"),
+        [
+          "#!/bin/sh",
+          `echo "$*" >> "${calls}"`,
+          'case "$*" in',
+          '  "compose run "*) echo oneuptime-database:not-created ;;',
+          "esac",
+          "exit 0",
+          "",
+        ].join("\n"),
+        { mode: 0o755 },
+      );
+
+      const env = {};
+      for (const [key, value] of Object.entries(process.env)) {
+        if (!key.toLowerCase().startsWith("npm_")) {
+          env[key] = value;
+        }
+      }
+      env.PATH = `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}`;
+      env.npm_config_ignore_scripts = ignoreScripts ? "true" : "false";
+
+      const result = spawnSync("npm", ["start"], {
+        cwd: directory,
+        env,
+        encoding: "utf8",
+        timeout: 120 * 1000,
+      });
+
+      return {
+        status: result.status,
+        output: `${result.stdout || ""}${result.stderr || ""}`,
+        calls: fs.existsSync(calls)
+          ? fs.readFileSync(calls, "utf8").trim().split("\n")
+          : [],
+        password: readSettings(
+          fs.readFileSync(path.join(directory, "config.env"), "utf8"),
+        ).get(SETTING),
+      };
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  }
+
+  test.each([false, true])(
+    "npm start (ignore-scripts=%s) gives a new install its own password before docker compose up",
+    (ignoreScripts) => {
+      const result = npmStartIn(
+        { start: ROOT_PACKAGE.scripts.start },
+        ignoreScripts,
+      );
+
+      expect({ status: result.status, output: result.output }).toEqual({
+        status: 0,
+        output: expect.any(String),
+      });
+      expect(result.password).toMatch(RANDOM_PASSWORD);
+      expect(result.calls).toEqual([
+        DATABASE_STATE_COMMAND.join(" "),
+        "compose up --remove-orphans -d",
+        "status-check",
+      ]);
+    },
+  );
+
+  test("a prestart hook would not do: under ignore-scripts npm skips it and Compose creates the database with the placeholder", () => {
+    const result = npmStartIn(
+      {
+        prestart: `node ${SCRIPT_PATH}`,
+        start: ROOT_PACKAGE.scripts.start.slice(STEP.length),
+      },
+      true,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.password).toBe(PLACEHOLDER);
+    expect(result.calls).toEqual([
+      "compose up --remove-orphans -d",
+      "status-check",
+    ]);
   });
 
   test("run as a script, it never stops npm start, even on a config.env it cannot read", () => {

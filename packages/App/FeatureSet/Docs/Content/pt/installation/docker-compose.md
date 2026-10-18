@@ -335,9 +335,9 @@ O Docker Compose executa uma única cópia de cada serviço em um único servido
 O PostgreSQL mantém a senha com que foi criado, então mudar só o `DATABASE_PASSWORD` no `config.env` deixa o OneUptime sem acesso ao banco de dados. Para dar uma senha própria a uma instalação que começou com o segredo de exemplo, troque-a no PostgreSQL e no `config.env` ao mesmo tempo e depois inicie o OneUptime de novo:
 
 ```bash
-NEW_PASSWORD=$(openssl rand -hex 32)
-(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'")
-sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
 

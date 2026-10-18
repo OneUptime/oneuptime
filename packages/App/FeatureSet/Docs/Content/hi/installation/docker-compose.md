@@ -335,9 +335,9 @@ Docker Compose एक सर्वर पर हर सेवा की एक �
 PostgreSQL वही पासवर्ड रखता है जिसके साथ उसे बनाया गया था, इसलिए `config.env` में सिर्फ़ `DATABASE_PASSWORD` बदलने से OneUptime अपने डेटाबेस तक नहीं पहुँच पाता। प्लेसहोल्डर के साथ शुरू हुए इंस्टॉलेशन को उसका अपना पासवर्ड देने के लिए, उसे PostgreSQL में और `config.env` में एक साथ बदलें, फिर OneUptime को दोबारा शुरू करें:
 
 ```bash
-NEW_PASSWORD=$(openssl rand -hex 32)
-(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'")
-sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
 

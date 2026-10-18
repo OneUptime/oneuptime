@@ -15,15 +15,18 @@ const { spawnSync } = require("child_process");
  * creates its database, so whatever DATABASE_PASSWORD holds at the first start
  * stays the password of its superuser.
  *
- * So `npm start` runs this first (it is the prestart in package.json, and
- * `npm run update` ends with `npm run start`). A DATABASE_PASSWORD still at a
- * placeholder gets a random value, but only while the bundled PostgreSQL has
- * not created its database yet. Once it has, the database keeps the password
- * it was created with and changing config.env alone would lock OneUptime out
- * of it, so this then only says how to change both.
+ * So `npm start` runs this first: it is the first command of the start
+ * script in package.json, and `npm run update` ends with `npm run start`. It
+ * is part of that script rather than a prestart hook because npm skips pre-
+ * and post-scripts when ignore-scripts is set, as many hardened servers do.
+ * A DATABASE_PASSWORD still at a placeholder gets a random value, but only
+ * while the bundled PostgreSQL has not created its database yet. Once it has,
+ * the database keeps the password it was created with and changing
+ * config.env alone would lock OneUptime out of it, so this then only says how
+ * to change both.
  *
  * Nothing here stops a start: a check that cannot tell (no Docker, Compose
- * failing) changes nothing.
+ * failing) changes nothing, and the script always exits 0.
  */
 
 const SETTING = "DATABASE_PASSWORD";
@@ -334,8 +337,8 @@ const run = (options = {}) => {
 
 /*
  * Run as a script (`node ./Scripts/Install/GenerateDatabasePassword.js` from
- * the repository root, by `npm start`). Requiring it, as the tests do, only
- * exports the functions.
+ * the repository root, by `npm start` before it starts Compose). Requiring
+ * it, as the tests do, only exports the functions.
  */
 if (require.main === module) {
   try {

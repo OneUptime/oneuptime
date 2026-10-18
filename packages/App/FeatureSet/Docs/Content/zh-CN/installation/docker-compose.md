@@ -335,9 +335,9 @@ Docker Compose 在一台服务器上为每个服务只运行一个副本，适�
 PostgreSQL 会一直使用创建时的密码，所以只更改 `config.env` 中的 `DATABASE_PASSWORD` 会让 OneUptime 无法连接自己的数据库。要为以占位值启动过的安装设置专属密码，请同时在 PostgreSQL 和 `config.env` 中更改它，然后重新启动 OneUptime：
 
 ```bash
-NEW_PASSWORD=$(openssl rand -hex 32)
-(export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'")
-sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
 

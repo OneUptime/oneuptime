@@ -125,13 +125,16 @@ same is checked on what `docker compose config` renders.
 
 The same, for real (`RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`): PostgreSQL started
 from `docker-compose.yml` answers on `127.0.0.1` and on no other address of the
-machine, and the client containers `backup.sh` and `restore.sh` run reach it.
-`npm start`'s prestart (`Scripts/Install/GenerateDatabasePassword.js`) asks
-this Docker whether the bundled database exists, gives a placeholder
-`DATABASE_PASSWORD` a random value while it does not, and PostgreSQL is created
-with that value; once the database exists, `config.env` is left alone. The
-Docker Compose guide's "Change the database password" commands are run as
-written, and its `docker-compose.override.yml` example is applied.
+machine, IPv6 included (Docker's own `docker port` says the same), and the
+client containers `backup.sh` and `restore.sh` run reach it. `npm start`'s
+first step (`Scripts/Install/GenerateDatabasePassword.js`) asks this Docker
+whether the bundled database exists, gives a placeholder `DATABASE_PASSWORD` a
+random value while it does not, and PostgreSQL is created with that value;
+once the database exists, `config.env` is left alone. The Docker Compose
+guide's "Change the database password" block is run as written, pasted whole:
+while PostgreSQL is not running it changes nothing, and while it runs it
+changes the password in PostgreSQL and in `config.env`. Its
+`docker-compose.override.yml` example is applied.
 
 ### `GenerateDatabasePassword.test.js`
 
@@ -139,7 +142,9 @@ Every branch of `Scripts/Install/GenerateDatabasePassword.js` with Docker
 stubbed: what counts as a shipped value, which line of `config.env` changes and
 which never do, what it decides for a new install, an existing database, an
 external database or a check that cannot tell, and that it never stops
-`npm start`.
+`npm start`. npm itself runs the root `start` script in a throwaway copy, with a
+recording `docker` on PATH: the step runs before `docker compose up` with
+`ignore-scripts` on or off, which a `prestart` hook would not.
 
 ### `ReadmeQuickStart.test.js`
 
