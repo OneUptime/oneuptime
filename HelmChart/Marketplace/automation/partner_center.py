@@ -204,9 +204,11 @@ def cnab_reference(
         if not (value or "").strip():
             raise ReleaseError(f"{name} is not set.")
 
+    # As container-plan-technical-configuration/2022-03-01-preview3 names them (the docs' examples
+    # say tenantID and subscriptionID, which Partner Center refuses).
     return {
-        "tenantID": tenant_id,
-        "subscriptionID": subscription_id,
+        "tenantId": tenant_id,
+        "subscriptionId": subscription_id,
         "resourceGroupName": edition["resourceGroup"],
         "registryName": edition["registry"].split(".", 1)[0],
         "repositoryName": edition["bundleRepository"],
