@@ -93,8 +93,12 @@ export interface CreateScope {
  *     the create returns (DatabaseService.autoOwnerOnCreate), so a caller
  *     who is a person may create one - and nobody else, as nobody else can
  *     own it; on a model that takes its owners from a parent (@OwnedThrough),
- *     the parent it names is one the caller or their teams own. On any other
- *     model the Owned scope has nothing to narrow, as on a read;
+ *     the parent it names is one the caller or their teams own - and so is
+ *     the resource an owner row adds an owner to: an owner row is owned
+ *     through its resource (OwnedScopePermission.getOwnedThrough), so
+ *     reading a resource does not let a member make themselves its owner.
+ *     On any other model the Owned scope has nothing to narrow, as on a
+ *     read;
  *   - a block with labels on one of the model's create permissions refuses
  *     a record carrying (or, without labels of its own, naming a record
  *     carrying) one of its labels.
@@ -500,7 +504,9 @@ export default class CreateScopePermission {
       return;
     }
 
-    const ownedThrough: BaseModel["ownedThrough"] = model.ownedThrough;
+    // The parent it takes its owners from, an owner row's resource among them.
+    const ownedThrough: BaseModel["ownedThrough"] =
+      OwnedScopePermission.getOwnedThrough(modelType);
 
     if (!ownedThrough) {
       return;
@@ -541,10 +547,19 @@ export default class CreateScopePermission {
     const parentModelType: { new (): BaseModel } | undefined = ownedThrough
       .parentModels[0] as { new (): BaseModel } | undefined;
 
+    const parentPluralName: string =
+      (parentModelType ? new parentModelType().pluralName : null) ||
+      "records";
+
+    // An owner row: said as adding an owner, as the Owners tab adds one.
+    if (OwnedScopePermission.isOwnerTable(modelType)) {
+      throw new CreateScopeException(
+        `Your access lets you add owners only to the ${parentPluralName} you or your teams own.`,
+      );
+    }
+
     throw new CreateScopeException(
-      `Your access lets you create ${model.pluralName} only for the ${
-        parentModelType ? new parentModelType().pluralName : "records"
-      } you or your teams own.`,
+      `Your access lets you create ${model.pluralName} only for the ${parentPluralName} you or your teams own.`,
     );
   }
 

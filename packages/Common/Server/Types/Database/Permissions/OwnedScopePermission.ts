@@ -19,9 +19,11 @@ import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/Datab
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import { OwnedThroughMetadata } from "../../../../Types/Database/AccessControl/OwnedThrough";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
@@ -46,6 +48,10 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  * narrows a write by its read's scope as well, and so asks the two halves
  * itself (BasePermission.addRecordScopeToQuery: isLimitedToOwnedRecords
  * per operation, then addOwnedRecordsToQuery once).
+ *
+ * The owners of a resource are owned through it (getOwnedThrough): a grant
+ * scoped to Owned adds and removes owners only on the resources the caller
+ * or their teams own, however many more they may read.
  */
 export default class OwnedScopePermission {
   @CaptureSpan()
@@ -95,8 +101,9 @@ export default class OwnedScopePermission {
     /*
      * Owned scope only restricts resources that can carry ownership:
      * operational resources, explicitly registered ownership roots, or
-     * nested resources that inherit ownership via @OwnedThrough. For
-     * everything else (settings / config tables like IncidentState,
+     * nested resources that inherit ownership via @OwnedThrough - or, on a
+     * change or a delete, an owner table of a registered root (getOwnedThrough).
+     * For everything else (settings / config tables like IncidentState,
      * Label, Team, etc.) the table-level permission check is the only
      * gate — Owned has no resources to scope to, so it's a no-op.
      * Registry membership only enables ownership filtering; operational
@@ -105,7 +112,8 @@ export default class OwnedScopePermission {
     if (
       !model.isOperationalResource &&
       !model.ownedThrough &&
-      !this.getOwnerTableRegistry().has(model.constructor.name)
+      !this.getOwnerTableRegistry().has(model.constructor.name) &&
+      !OwnedScopePermission.isOwnerTableWrite(modelType, type)
     ) {
       return false;
     }
@@ -163,27 +171,29 @@ export default class OwnedScopePermission {
 
   /*
    * Narrows `query` to the records the caller or one of their teams owns,
-   * or whose parent they own (@OwnedThrough) - for a caller whose grants
-   * are limited to owned records (isLimitedToOwnedRecords).
+   * or whose parent they own (@OwnedThrough, or the resource an owner row
+   * names: getOwnedThrough) - for a caller whose grants are limited to owned
+   * records (isLimitedToOwnedRecords).
    */
   public static async addOwnedRecordsToQuery<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
-    const model: BaseModel = new modelType();
+    const ownedThrough: OwnedThroughMetadata | null =
+      OwnedScopePermission.getOwnedThrough(modelType);
 
     // Resolve allowed resource IDs.
     const allowedIds: Array<ObjectID> =
       await OwnedScopePermission.getAllowedResourceIds(modelType, props);
 
-    if (model.ownedThrough && model.ownedThrough.includeUnattributed) {
+    if (ownedThrough && ownedThrough.includeUnattributed) {
       /*
        * Nested resource whose rows may name no owning resource: those
        * belong to the project and stay, beside the rows of the parents the
        * user owns - AND-combined with any caller-supplied FK filter.
        */
-      const fkColumn: string = model.ownedThrough.fkColumn;
+      const fkColumn: string = ownedThrough.fkColumn;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (query as any)[fkColumn] = combineWithPrivacyClause(
@@ -191,12 +201,12 @@ export default class OwnedScopePermission {
         (query as any)[fkColumn],
         QueryHelper.inOrNull(allowedIds),
       );
-    } else if (model.ownedThrough) {
+    } else if (ownedThrough) {
       /*
        * Nested resource: ownership inherits via the parent FK. The allowedIds
        * we computed are the parent's IDs, so filter on the FK column.
        */
-      const fkColumn: string = model.ownedThrough.fkColumn;
+      const fkColumn: string = ownedThrough.fkColumn;
       if (allowedIds.length === 0) {
         // No accessible parents -> match nothing.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -264,18 +274,18 @@ export default class OwnedScopePermission {
   }): Promise<Query<TBaseModel>> {
     /*
      * A parent that takes its owners from a record of its own
-     * (@OwnedThrough) has no owner rows to look up here. No model is read
-     * through such a parent (Tests/Models/DatabaseModels
-     * /ParentOwnedScopeCoverage); one that were would reach none of its
-     * rows rather than every one of them.
+     * (@OwnedThrough, or an owner table: getOwnedThrough) has no owner rows
+     * to look up here. No model is read through such a parent
+     * (Tests/Models/DatabaseModels/ParentOwnedScopeCoverage); one that were
+     * would reach none of its rows rather than every one of them.
      */
-    const ownedParentIds: Array<ObjectID> = new data.parentModelType()
-      .ownedThrough
-      ? []
-      : await OwnedScopePermission.getAllowedResourceIds(
-          data.parentModelType,
-          data.props,
-        );
+    const ownedParentIds: Array<ObjectID> =
+      OwnedScopePermission.getOwnedThrough(data.parentModelType)
+        ? []
+        : await OwnedScopePermission.getAllowedResourceIds(
+            data.parentModelType,
+            data.props,
+          );
 
     if (ownedParentIds.length === 0) {
       // No owned parent: no record of theirs is reached.
@@ -359,13 +369,172 @@ export default class OwnedScopePermission {
   /*
    * The records the caller or one of their teams owns, by id: of the model
    * itself, or - for a model that takes its owners from a parent
-   * (@OwnedThrough) - of that parent. In the request's project.
+   * (@OwnedThrough, or an owner table: getOwnedThrough) - of that parent. In
+   * the request's project.
    */
   public static async getOwnedIds(
     modelType: { new (): BaseModel },
     props: DatabaseCommonInteractionProps,
   ): Promise<Array<ObjectID>> {
     return await OwnedScopePermission.getAllowedResourceIds(modelType, props);
+  }
+
+  /*
+   * THE RECORD A MODEL'S ROWS TAKE THEIR OWNERS FROM, for the Owned scope:
+   * the parent its @OwnedThrough names - a monitor's status timeline, an
+   * incident's notes - or, for an owner table of a kind with owners of its
+   * own (OwnerTableRegistry: MonitorOwnerUser and MonitorOwnerTeam, and
+   * every other kind's), the resource its rows name. Null for any other
+   * model.
+   *
+   * AN OWNER ROW IS OWNED THROUGH ITS RESOURCE. Who owns a monitor is what
+   * the Owned scope reads to decide what a member may manage, so adding or
+   * removing an owner is managing the monitor: a grant scoped to Owned adds
+   * and removes owners only on the monitors the caller or one of their teams
+   * own - however many more they may read - or naming themselves an owner of
+   * a monitor they only read would hand them the rest of what their Owned
+   * grant keeps to their own. A create is held to it by CreateScopePermission
+   * (checkOwnedCreate), a change and a delete by the record rule
+   * (isLimitedToOwnedRecords, isOwnerTableWrite). A read of owners is not:
+   * who owns a resource is read through the resource
+   * (BasePermission.addParentAccessToQuery), by its own read rule and scope.
+   *
+   * Read off the registry, not declared on each owner table, so a kind that
+   * is registered there has its owner tables held to the same rule with no
+   * other change; the owner tables of a kind that is not are left as before,
+   * as its own records are (isLimitedToOwnedRecords).
+   */
+  public static getOwnedThrough(modelType: {
+    new (): BaseModel;
+  }): OwnedThroughMetadata | null {
+    const declared: OwnedThroughMetadata | null = new modelType().ownedThrough;
+
+    if (declared) {
+      return declared;
+    }
+
+    return OwnedScopePermission.getOwnerTableOwnership(modelType);
+  }
+
+  /*
+   * Whether `modelType` is an owner table of a kind with owners of its own
+   * (getOwnedThrough): MonitorOwnerUser, MonitorOwnerTeam and the like.
+   */
+  public static isOwnerTable(modelType: { new (): BaseModel }): boolean {
+    return OwnedScopePermission.getOwnerTableOwnership(modelType) !== null;
+  }
+
+  /*
+   * Whether `type` on `modelType` is a change or a delete of an owner table's
+   * rows - one the Owned scope holds to the resource's owners
+   * (getOwnedThrough). A read is not: owners are read through the resource.
+   * A create is held to it on the record it makes (CreateScopePermission).
+   */
+  private static isOwnerTableWrite(
+    modelType: { new (): BaseModel },
+    type: DatabaseRequestType,
+  ): boolean {
+    return (
+      (type === DatabaseRequestType.Update ||
+        type === DatabaseRequestType.Delete) &&
+      OwnedScopePermission.isOwnerTable(modelType)
+    );
+  }
+
+  // The resource each owner table's rows name, worked out once per table.
+  private static ownerTableResources: WeakMap<
+    OwnerTablePair,
+    Map<{ new (): BaseModel }, OwnedThroughMetadata>
+  > = new WeakMap();
+
+  /*
+   * See getOwnedThrough: the resource an owner table of a registered kind
+   * names, as @OwnedThrough would declare it - the key column the registry
+   * reads its owners by, and the model of the relation on that column. Null
+   * for a model that is no registered kind's owner table. The registry is
+   * read on every call, so a kind registered after the first request is held
+   * to it too.
+   */
+  private static getOwnerTableOwnership(modelType: {
+    new (): BaseModel;
+  }): OwnedThroughMetadata | null {
+    for (const [kind, pair] of this.getOwnerTableRegistry().entries()) {
+      if (
+        pair.ownerUserService?.modelType !== modelType &&
+        pair.ownerTeamService?.modelType !== modelType
+      ) {
+        continue;
+      }
+
+      let resources:
+        | Map<{ new (): BaseModel }, OwnedThroughMetadata>
+        | undefined = OwnedScopePermission.ownerTableResources.get(pair);
+
+      if (!resources) {
+        resources = new Map<{ new (): BaseModel }, OwnedThroughMetadata>();
+        OwnedScopePermission.ownerTableResources.set(pair, resources);
+      }
+
+      let ownedThrough: OwnedThroughMetadata | undefined =
+        resources.get(modelType);
+
+      if (!ownedThrough) {
+        ownedThrough = {
+          fkColumn: pair.fkColumn,
+          parentModels: [
+            OwnedScopePermission.getOwnedResourceType({
+              ownerTableType: modelType,
+              fkColumn: pair.fkColumn,
+              kind: kind,
+            }),
+          ],
+          includeProjectScope: false,
+          onlyParentModels: true,
+          includeUnattributed: false,
+        };
+
+        resources.set(modelType, ownedThrough);
+      }
+
+      return ownedThrough;
+    }
+
+    return null;
+  }
+
+  /*
+   * The model of the resource an owner table names by `fkColumn`: the
+   * relation on that column (MonitorOwnerUser.monitor names a Monitor), which
+   * must be the registry's kind (Tests/Models/DatabaseModels
+   * /OwnerTablesReadThroughResource holds every owner table to it). An owner
+   * table that names no such relation is a misconfigured registry entry: it
+   * is refused rather than left unscoped.
+   */
+  private static getOwnedResourceType(data: {
+    ownerTableType: { new (): BaseModel };
+    fkColumn: string;
+    kind: string;
+  }): { new (): BaseModel } {
+    const ownerTable: BaseModel = new data.ownerTableType();
+
+    for (const column of ownerTable.getTableColumns().columns) {
+      const metadata: TableColumnMetadata | undefined =
+        ownerTable.getTableColumnMetadata(column);
+
+      if (
+        metadata &&
+        metadata.type === TableColumnType.Entity &&
+        metadata.manyToOneRelationColumn === data.fkColumn &&
+        metadata.modelType &&
+        (metadata.modelType as unknown as { name: string }).name === data.kind
+      ) {
+        return metadata.modelType as { new (): BaseModel };
+      }
+    }
+
+    throw new BadDataException(
+      `${ownerTable.singularName || data.kind} names no ${data.kind} by ${data.fkColumn}, so the Owned scope cannot tell whose it is.`,
+    );
   }
 
   private static getOwnerTableRegistry(): Map<string, OwnerTablePair> {
@@ -389,7 +558,8 @@ export default class OwnedScopePermission {
     modelType: { new (): TBaseModel },
     props: DatabaseCommonInteractionProps,
   ): Promise<Array<ObjectID>> {
-    const model: BaseModel = new modelType();
+    const ownedThrough: OwnedThroughMetadata | null =
+      OwnedScopePermission.getOwnedThrough(modelType);
 
     /*
      * Which model(s) owner tables to consult. A nested model can inherit
@@ -397,10 +567,10 @@ export default class OwnedScopePermission {
      * polymorphic (e.g. a telemetry serviceId that may point at a Service,
      * Host, DockerHost or KubernetesCluster) — resolve and union the owned
      * ids across all of them. Top-level operational resources consult
-     * their own owner tables.
+     * their own owner tables, and an owner table its resource's.
      */
-    const resolverNames: Array<string> = model.ownedThrough
-      ? model.ownedThrough.parentModels.map(
+    const resolverNames: Array<string> = ownedThrough
+      ? ownedThrough.parentModels.map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (parentModel: any) => {
             return parentModel.name;
@@ -481,7 +651,7 @@ export default class OwnedScopePermission {
      * They belong to the project, not any single owner, so include the
      * tenant id when the model opts in via includeProjectScope.
      */
-    if (model.ownedThrough?.includeProjectScope && props.tenantId) {
+    if (ownedThrough?.includeProjectScope && props.tenantId) {
       seen.add(props.tenantId.toString());
     }
 
