@@ -209,23 +209,19 @@ Una regola dei monitor aggiunge monitor alla pagina per voi: descrivete i monito
 :::steps
 ### Aprire Monitor Rules
 
-Aprite la pagina di stato, scegliete **Monitor Rules** nella sezione **Risorse** del suo menu laterale e fate clic su **Crea: Status Page Monitor Rule**.
-
-### Dare un nome alla regola
-
-In **Informazioni di base**, inserite un **Nome**. **Abilitato** è attivo per impostazione predefinita.
+Aprite la pagina di stato, scegliete **Monitor Rules** nella sezione **Risorse** del suo menu laterale e fate clic su **Crea regola dei monitor**.
 
 ### Indicare a quali monitor corrisponde
 
-In **Criteri di corrispondenza**, compilate almeno uno tra **Etichette del monitor** (corrisponde un monitor che ne porta una qualsiasi), **Nome del monitor** e **Descrizione del monitor**. Un monitor deve soddisfare ogni criterio compilato. I due modelli accettano un'espressione regolare senza distinzione tra maiuscole e minuscole (`^api-.*`) o un carattere jolly `*` (`*checkout*`); `.*` corrisponde a ogni monitor.
+In **Corrispondenza**, aggiungete almeno una condizione su **Etichette del monitor** (corrisponde un monitor che ne porta una qualsiasi), **Nome del monitor** o **Descrizione del monitor**. Con due o più condizioni, scegliete se un monitor deve soddisfarle tutte o una sola. I due modelli accettano un'espressione regolare senza distinzione tra maiuscole e minuscole (`^api-.*`) o un carattere jolly `*` (`*checkout*`); `.*` corrisponde a ogni monitor.
 
 ### Scegliere il gruppo
 
-In **Gruppo**, scegliete **Add Monitors To Group**, oppure lasciatelo vuoto per aggiungere i monitor senza gruppo. Seguono le stesse opzioni di visualizzazione di una risorsa; su una regola, **Mostra % di uptime** parte attivo.
+In **Gruppo**, scegliete **Aggiungi i monitor a**, oppure lasciatelo vuoto per aggiungere i monitor in cima alla pagina. Il **Nome** della regola viene compilato da qui, per esempio "Aggiungi monitor a Sito web", finché non ne digitate uno vostro. **Altri campi** contiene le stesse opzioni di visualizzazione di una risorsa e la **Descrizione** della regola; su una regola, **Mostra % di uptime** parte attivo.
 
 ### Salvare la regola
 
-La regola viene eseguita subito su ogni monitor già esistente, e l'elenco mostra il gruppo a cui aggiunge i monitor sotto **Adds Monitors To**.
+La regola viene eseguita subito su ogni monitor già esistente, e l'elenco mostra il gruppo a cui aggiunge i monitor sotto **Adds Monitors To**. Una nuova regola è attiva: il suo interruttore **Abilitato** si trova nel suo modulo di modifica.
 :::
 
 Dopo di che, una regola viene eseguita di nuovo per un monitor ogni volta che ne viene creato uno o cambiano le sue etichette, il suo nome o la sua descrizione. Una regola rimuove solo le risorse che ha aggiunto: disattivarla o eliminarla le toglie dalla pagina, e un monitor aggiunto a mano non viene mai toccato. Un monitor già presente sulla pagina non viene mai aggiunto due volte.

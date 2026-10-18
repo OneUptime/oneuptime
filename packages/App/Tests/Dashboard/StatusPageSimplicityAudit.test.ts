@@ -175,17 +175,33 @@ const NEW_WORDS: Array<string> = [
   ...STATUS_PAGE_GROUP_VIEW_MODE_OPTIONS.map((option: { title: string }) => {
     return option.title;
   }),
-  // Embedded Status.
+  // Embedded Status: the switch makes the token; the token is folded.
   "A small image of this page's overall status, for your website, a README or your docs.",
-  "Serves the badge at a link that carries the token below.",
+  "Serves the badge at a link with a secret token, made the first time you turn it on.",
   "The secret part of the badge's link. Anyone with the link can show the badge.",
   "Create Token",
   "No token yet.",
   "Embed the Badge",
   "Paste one of these where the badge should show.",
-  "Create a token to see the badge and the code to embed it.",
+  "The badge needs a token before it can be shown.",
+  "Making the badge's token...",
+  "The secret token in the badge's link. Regenerate it if the link was shared too widely.",
   "Turn on Enable Embedded Status Badge to see the badge and the code to embed it.",
   "Markdown, linked to the status page",
+  // Monitor Rules: Match, then Group, with the name filled in.
+  "Monitor Rule",
+  "Create Monitor Rule",
+  "Create New Monitor Rule",
+  "Add Monitors To",
+  "The group the monitors it matches go into. Leave it empty to put them at the top of the page.",
+  "Named after where it adds monitors until you type a name of your own.",
+  "e.g., Add monitors to Website",
+  "Add monitors to {{group}}",
+  "Add monitors to the top of the page",
+  // Private Users: added, as subscribers are.
+  "Private User",
+  "Add Private User",
+  "Add New Private User",
   // MCP.
   "Lets AI assistants such as Claude read this page's status, incidents and announcements.",
   "Connect an AI Assistant",
@@ -420,6 +436,64 @@ describe("the screens", () => {
     );
     expect(masterPage).toContain(
       "{!canRenderCustomHtml || !footerHtml ? ( <Footer",
+    );
+  });
+
+  test("the private users list adds with Add Private User, and says No private users yet when empty", () => {
+    const code: string = readCode("Pages/StatusPages/View/PrivateUser.tsx");
+    const copy: string = readCode(
+      "Components/StatusPage/StatusPageAccessCopy.ts",
+    );
+
+    expect(code).toContain("singularName={PRIVATE_USER_SINGULAR_NAME}");
+    expect(code).toContain("pluralName={PRIVATE_USER_PLURAL_NAME}");
+    expect(code).toContain('createVerb="Add"');
+    // The table's own empty sentence, not one of its own.
+    expect(code).not.toContain("noItemsMessage");
+    expect(copy).toContain(
+      'export const PRIVATE_USER_SINGULAR_NAME: string = translationKey("Private User");',
+    );
+    expect(copy).toContain(
+      'export const PRIVATE_USER_PLURAL_NAME: string = translationKey("Private Users");',
+    );
+  });
+
+  test("a monitor rule asks what it matches, then where the monitors go, its name filled in from that", () => {
+    const code: string = readCode("Pages/StatusPages/View/MonitorRules.tsx");
+
+    expect(code).toContain(
+      'formSteps={[ { title: "Match", id: "match-criteria" }, { title: "Group", id: "group" }, ]}',
+    );
+    expect(code).not.toContain('"Basic Info"');
+    expect(code).not.toContain('"Match Criteria"');
+    expect(code).toContain(
+      "onChange: followGroupWithRuleName<StatusPageMonitorRule>(),",
+    );
+    expect(code).toContain("defaultValue: getStatusPageMonitorRuleName([]),");
+    expect(code).toContain(
+      "singularName={StatusPageMonitorRuleCopy.singularName}",
+    );
+    // The name comes after the group: it is made from it.
+    expect(code.indexOf("field: { statusPageGroup: true }")).toBeLessThan(
+      code.indexOf('field: { name: true }, title: "Name", description'),
+    );
+    // The list's own empty sentence, No monitor rules yet.
+    expect(code).not.toContain("noItemsMessage");
+  });
+
+  test("the embedded badge is its switch: turning it on makes its token, which waits under More settings", () => {
+    const code: string = readCode("Pages/StatusPages/View/EmbeddedStatus.tsx");
+
+    expect(code).toContain(
+      "onSaved={(isOn: boolean): void => { if ( shouldMakeBadgeTokenWhenTurnedOn({ isOn: isOn, token: tokenRef.current, }) ) {",
+    );
+    expect(code).toContain("<AdvancedPageSection");
+    // The token card is inside the fold, after the badge's own card.
+    expect(code.indexOf('title="Embed the Badge"')).toBeLessThan(
+      code.indexOf("<AdvancedPageSection"),
+    );
+    expect(code.indexOf("<AdvancedPageSection")).toBeLessThan(
+      code.indexOf("title={EmbeddedStatusCopy.tokenCardTitle}"),
     );
   });
 

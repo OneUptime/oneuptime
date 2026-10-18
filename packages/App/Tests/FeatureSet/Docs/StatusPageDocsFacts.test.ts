@@ -934,12 +934,17 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
 
     for (const name of [
       'title="Enable Embedded Status Badge"',
-      'title="Security Token"',
+      'tokenCardTitle: translationKey("Security Token")',
+      "title={EmbeddedStatusCopy.tokenCardTitle}",
       "title: getEmbeddedBadgeTokenButtonTitle(Boolean(token)),",
       'title="Embed the Badge"',
       'translator.translateText("Markdown, linked to the status page")',
       // Create Token until the page has a token, then Regenerate Token.
       'hasToken\n    ? translationKey("Regenerate Token")\n    : translationKey("Create Token");',
+      // The token is made when the badge is first turned on.
+      "shouldMakeBadgeTokenWhenTurnedOn({",
+      // The token card waits under More settings.
+      "<AdvancedPageSection",
     ]) {
       expect({ name: name, found: screen.includes(name) }).toEqual({
         name: name,
@@ -949,7 +954,10 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
 
     expect(statusPageDefault("enableEmbeddedOverallStatus")).toBe(false);
     expect(page).toContain(
-      "turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default), then click **Create Token** on the **Security Token** card to give the badge its token (`embeddedOverallStatusToken`); once it has one, the button reads **Regenerate Token**. The badge is served from `/api/status-page/badge/<status-page-id>?token=<token>`, and the **Embed the Badge** card shows it, with its **HTML** and **Markdown, linked to the status page** to copy",
+      "turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default). The first time you turn it on, the badge gets its token (`embeddedOverallStatusToken`), and the **Embed the Badge** card shows the badge, served from `/api/status-page/badge/<status-page-id>?token=<token>`, with its **HTML** and **Markdown, linked to the status page** to copy",
+    );
+    expect(page).toContain(
+      "The token waits on the **Security Token** card under **More settings**, with **Regenerate Token** for when the link was shared too widely.",
     );
   });
 

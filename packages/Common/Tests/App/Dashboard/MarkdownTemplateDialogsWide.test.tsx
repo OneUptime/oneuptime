@@ -192,7 +192,8 @@ const PAGES: Array<TemplatePage> = [
   {
     name: "Status Pages > Settings > Announcement Templates",
     Page: StatusPageAnnouncementTemplates,
-    title: "Create New Status Page Announcement Template",
+    // The rows are announcement templates there: the menu's own name.
+    title: "Create New Announcement Template",
     editorStep: "Announcement",
   },
 ];

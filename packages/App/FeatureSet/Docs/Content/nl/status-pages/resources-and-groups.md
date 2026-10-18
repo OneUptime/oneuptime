@@ -209,23 +209,19 @@ Een monitorregel voegt monitoren voor u aan de pagina toe: beschrijf de monitore
 :::steps
 ### Monitor Rules openen
 
-Open de statuspagina, kies **Monitor Rules** in de sectie **Middelen** van het zijmenu en klik op **Status Page Monitor Rule aanmaken**.
-
-### De regel een naam geven
-
-Vul op **Basisinformatie** een **Naam** in. **Ingeschakeld** staat standaard aan.
+Open de statuspagina, kies **Monitor Rules** in de sectie **Middelen** van het zijmenu en klik op **Monitorregel aanmaken**.
 
 ### Zeggen met welke monitoren hij overeenkomt
 
-Vul op **Overeenkomstcriteria** minstens één van **Monitorlabels** (een monitor met een van die labels komt overeen), **Monitornaam** en **Monitorbeschrijving** in. Een monitor moet aan elk criterium voldoen dat u invult. De twee patronen accepteren een hoofdletterongevoelige reguliere expressie (`^api-.*`) of een jokerteken `*` (`*checkout*`); `.*` komt met elke monitor overeen.
+Voeg op **Overeenkomst** minstens één voorwaarde toe op **Monitorlabels** (een monitor met een van die labels komt overeen), **Monitornaam** of **Monitorbeschrijving**. Bij twee of meer voorwaarden kiest u of een monitor aan alle of aan één ervan moet voldoen. De twee patronen accepteren een hoofdletterongevoelige reguliere expressie (`^api-.*`) of een jokerteken `*` (`*checkout*`); `.*` komt met elke monitor overeen.
 
 ### De groep kiezen
 
-Kies op **Groep** de groep bij **Add Monitors To Group**, of laat het leeg om de monitoren zonder groep toe te voegen. Daarna volgen dezelfde weergaveopties als bij een resource; bij een regel staat **Uptime % weergeven** standaard aan.
+Kies op **Groep** de groep bij **Monitoren toevoegen aan**, of laat het leeg om de monitoren bovenaan de pagina toe te voegen. De **Naam** van de regel wordt daaruit ingevuld, zoals "Monitoren toevoegen aan Website", totdat u zelf een naam typt. **Meer velden** bevat dezelfde weergaveopties als bij een resource en de **Beschrijving** van de regel; bij een regel staat **Uptime % weergeven** standaard aan.
 
 ### De regel opslaan
 
-De regel draait meteen tegen elke monitor die al bestaat, en de lijst toont onder **Adds Monitors To** de groep waaraan hij monitoren toevoegt.
+De regel draait meteen tegen elke monitor die al bestaat, en de lijst toont onder **Adds Monitors To** de groep waaraan hij monitoren toevoegt. Een nieuwe regel staat aan: zijn schakelaar **Ingeschakeld** staat in zijn bewerkformulier.
 :::
 
 Daarna draait een regel opnieuw voor een monitor telkens wanneer er een wordt aangemaakt of wanneer de labels, de naam of de beschrijving ervan veranderen. Een regel verwijdert alleen de resources die hij zelf heeft toegevoegd: hem uitzetten of verwijderen haalt die van de pagina, en een monitor die u met de hand hebt toegevoegd, wordt nooit aangeraakt. Een monitor die al op de pagina staat, wordt nooit twee keer toegevoegd.

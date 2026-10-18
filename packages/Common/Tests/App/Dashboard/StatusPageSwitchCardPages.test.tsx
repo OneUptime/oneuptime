@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -25,7 +26,9 @@ import { getJestSpyOn } from "../../Spy";
  *
  *   - Advanced -> Embedded Status: "Enable Embedded Status Badge". The
  *     badge preview below it follows the switch as it moves, and the token
- *     is read along with it.
+ *     is read along with it - and made, the first time the badge is turned
+ *     on, so the switch is the one step. The token itself waits under More
+ *     settings, with Regenerate Token.
  *   - AI -> MCP: "Enable MCP Server", on by default.
  *
  * The real pages are rendered; only the network, the route's id and the
@@ -68,8 +71,11 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import StatusPageEmbeddedStatus, {
   EMBEDDED_STATUS_BADGE_EMBED_TEST_ID,
+  EMBEDDED_STATUS_BADGE_MORE_TEST_ID,
   EMBEDDED_STATUS_BADGE_SWITCH_TEST_ID,
+  EmbeddedStatusCopy,
   getEmbeddedBadgeTokenButtonTitle,
+  shouldMakeBadgeTokenWhenTurnedOn,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmbeddedStatus";
 import StatusPageMcp, {
   STATUS_PAGE_MCP_DOCS_PATH,
@@ -225,20 +231,151 @@ describe("Embedded Status: the badge is one switch", () => {
     );
   });
 
-  test("on with no token yet, the preview asks for one, and the token card offers Create Token", async () => {
+  test("flipping it on for the first time makes the badge's token too, with no question, and shows the badge", async () => {
+    const control: HTMLElement = await renderPage();
+
+    fireEvent.click(control);
+    await flush();
+
+    // The switch first, then the token: two writes, one column each.
+    expect(updateByIdMock).toHaveBeenCalledTimes(2);
+    expect(updateCall(0).data).toEqual({ enableEmbeddedOverallStatus: true });
+    expect(Object.keys(updateCall(1).data)).toEqual([
+      "embeddedOverallStatusToken",
+    ]);
+
+    const token: string = updateCall(1).data[
+      "embeddedOverallStatusToken"
+    ] as string;
+
+    expect(token.length).toBeGreaterThan(10);
+    expect(screen.queryByText("Regenerate Security Token")).toBeNull();
+
+    // No Create Token to press: the badge and its code are there.
+    expect(screen.getByAltText("Status Badge").getAttribute("src")).toContain(
+      `/status-page/badge/${STATUS_PAGE_ID}?token=${token}`,
+    );
+    expect(
+      within(
+        screen.getByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+      ).queryByRole("button", { name: "Create Token" }),
+    ).toBeNull();
+  });
+
+  test("turning it off and on again keeps the token it has: badges embedded with it keep working", async () => {
     stored.enableEmbeddedOverallStatus = true;
+    stored.embeddedOverallStatusToken = "badge-token";
 
     const control: HTMLElement = await renderPage();
 
-    expect(control).toHaveAttribute("aria-checked", "true");
-    expect(
-      screen.getByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
-    ).toHaveTextContent(
-      "Create a token to see the badge and the code to embed it.",
+    fireEvent.click(control);
+    await flush();
+    fireEvent.click(control);
+    await flush();
+
+    expect(updateByIdMock).toHaveBeenCalledTimes(2);
+    expect(updateCall(0).data).toEqual({ enableEmbeddedOverallStatus: false });
+    expect(updateCall(1).data).toEqual({ enableEmbeddedOverallStatus: true });
+    expect(screen.getByAltText("Status Badge").getAttribute("src")).toContain(
+      `/status-page/badge/${STATUS_PAGE_ID}?token=badge-token`,
     );
-    expect(screen.getByText("No token yet.")).toBeInTheDocument();
+  });
+
+  test("a read that was on its way while the token was made does not take the token away", async () => {
+    const control: HTMLElement = await renderPage();
+
+    // Every read after the first comes back as the page was before.
+    getItemMock.mockImplementation(async (): Promise<unknown> => {
+      const page: StatusPage = new StatusPage();
+      page._id = STATUS_PAGE_ID;
+      page.enableEmbeddedOverallStatus = true;
+      return page;
+    });
+
+    fireEvent.click(control);
+    await flush();
+
+    const token: string = updateCall(1).data[
+      "embeddedOverallStatusToken"
+    ] as string;
+
+    expect(screen.getByAltText("Status Badge").getAttribute("src")).toContain(
+      `?token=${token}`,
+    );
+  });
+
+  test("a token that cannot be made says why, where the badge would be, and Create Token tries again", async () => {
+    updateByIdMock.mockImplementation(
+      async (options: unknown): Promise<unknown> => {
+        const data: Record<string, unknown> = (
+          options as { data: Record<string, unknown> }
+        ).data;
+
+        if (data["embeddedOverallStatusToken"]) {
+          throw new Error("The token could not be saved.");
+        }
+
+        Object.assign(stored, data);
+        return {};
+      },
+    );
+
+    const control: HTMLElement = await renderPage();
+
+    fireEvent.click(control);
+    await flush();
+
+    const embed: HTMLElement = screen.getByTestId(
+      EMBEDDED_STATUS_BADGE_EMBED_TEST_ID,
+    );
+
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(embed).toHaveTextContent(EmbeddedStatusCopy.needsToken);
+    expect(within(embed).getByRole("alert")).toHaveTextContent(
+      "The token could not be saved.",
+    );
+
+    updateByIdMock.mockImplementation(
+      async (options: unknown): Promise<unknown> => {
+        Object.assign(
+          stored,
+          (options as { data: Record<string, unknown> }).data,
+        );
+        return {};
+      },
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(embed).getByRole("button", { name: "Create Token" }),
+      );
+    });
+    await flush();
+
+    expect(screen.getByAltText("Status Badge")).toBeInTheDocument();
+  });
+
+  test("a page switched on before it had a token offers Create Token where the badge would be", async () => {
+    stored.enableEmbeddedOverallStatus = true;
+
+    const control: HTMLElement = await renderPage();
+    const embed: HTMLElement = screen.getByTestId(
+      EMBEDDED_STATUS_BADGE_EMBED_TEST_ID,
+    );
+
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(embed).toHaveTextContent(
+      "The badge needs a token before it can be shown.",
+    );
     expect(
-      screen.getByRole("button", { name: "Create Token" }),
+      within(embed).getByRole("button", { name: "Create Token" }),
+    ).toBeInTheDocument();
+    // Nothing is made by opening the page.
+    expect(updateByIdMock).not.toHaveBeenCalled();
+    expect(
+      within(screen.getByTestId(EMBEDDED_STATUS_BADGE_MORE_TEST_ID)).getByText(
+        "No token yet.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Regenerate Token" }),
@@ -251,7 +388,11 @@ describe("Embedded Status: the badge is one switch", () => {
     await renderPage();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Create Token" }));
+      fireEvent.click(
+        within(
+          screen.getByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+        ).getByRole("button", { name: "Create Token" }),
+      );
     });
     await flush();
 
@@ -279,12 +420,39 @@ describe("Embedded Status: the badge is one switch", () => {
     ).toBeInTheDocument();
   });
 
+  test("the token waits folded under More settings, named by its card", async () => {
+    stored.enableEmbeddedOverallStatus = true;
+    stored.embeddedOverallStatusToken = "badge-token";
+
+    await renderPage();
+
+    const more: HTMLElement = screen.getByTestId(
+      EMBEDDED_STATUS_BADGE_MORE_TEST_ID,
+    );
+    const header: HTMLElement = within(more).getByRole("button", {
+      name: /More settings/,
+    });
+
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(header).toHaveTextContent("Security Token");
+    expect(
+      within(more).getByRole("heading", { name: "Security Token" }),
+    ).toBeInTheDocument();
+  });
+
   test("Regenerate Token asks first: the current token stops working", async () => {
     stored.enableEmbeddedOverallStatus = true;
     stored.embeddedOverallStatusToken = "badge-token";
 
     await renderPage();
 
+    await act(async () => {
+      fireEvent.click(
+        within(
+          screen.getByTestId(EMBEDDED_STATUS_BADGE_MORE_TEST_ID),
+        ).getByRole("button", { name: /More settings/ }),
+      );
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Regenerate Token" }));
     });
@@ -361,6 +529,21 @@ describe("Embedded Status: the badge is one switch", () => {
   test("the token button is Create Token until there is a token", () => {
     expect(getEmbeddedBadgeTokenButtonTitle(false)).toBe("Create Token");
     expect(getEmbeddedBadgeTokenButtonTitle(true)).toBe("Regenerate Token");
+  });
+
+  test("a token is made only when the badge is turned on without one", () => {
+    expect(
+      shouldMakeBadgeTokenWhenTurnedOn({ isOn: true, token: undefined }),
+    ).toBe(true);
+    expect(shouldMakeBadgeTokenWhenTurnedOn({ isOn: true, token: "" })).toBe(
+      true,
+    );
+    expect(
+      shouldMakeBadgeTokenWhenTurnedOn({ isOn: true, token: "badge-token" }),
+    ).toBe(false);
+    expect(
+      shouldMakeBadgeTokenWhenTurnedOn({ isOn: false, token: undefined }),
+    ).toBe(false);
   });
 });
 

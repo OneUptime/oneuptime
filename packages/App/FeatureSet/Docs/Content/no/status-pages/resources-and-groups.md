@@ -209,23 +209,19 @@ En monitorregel legger til monitorer på siden for deg: beskriv monitorene én g
 :::steps
 ### Åpne Monitor Rules
 
-Åpne statussiden, velg **Monitor Rules** i seksjonen **Ressurser** i sidemenyen, og klikk på **Opprett Status Page Monitor Rule**.
-
-### Gi regelen et navn
-
-Skriv inn et **Navn** under **Grunnleggende informasjon**. **Aktivert** er slått på som standard.
+Åpne statussiden, velg **Monitor Rules** i seksjonen **Ressurser** i sidemenyen, og klikk på **Opprett monitorregel**.
 
 ### Angi hvilke monitorer den samsvarer med
 
-Under **Treffkriterier** fyller du ut minst ett av **Overvåkingsetiketter** (en monitor med en hvilken som helst av dem samsvarer), **Overvåkingsnavn** og **Overvåkingsbeskrivelse**. En monitor må oppfylle hvert kriterium du fyller ut. De to mønstrene godtar et regulært uttrykk uten forskjell på store og små bokstaver (`^api-.*`) eller et jokertegn `*` (`*checkout*`); `.*` samsvarer med alle monitorer.
+Under **Treff** legger du til minst én betingelse på **Overvåkingsetiketter** (en monitor med en hvilken som helst av dem samsvarer), **Overvåkingsnavn** eller **Overvåkingsbeskrivelse**. Med to betingelser eller flere velger du om en monitor må oppfylle alle eller bare én. De to mønstrene godtar et regulært uttrykk uten forskjell på store og små bokstaver (`^api-.*`) eller et jokertegn `*` (`*checkout*`); `.*` samsvarer med alle monitorer.
 
 ### Velg gruppen
 
-Under **Gruppe** velger du **Add Monitors To Group**, eller du lar det stå tomt for å legge til monitorene uten gruppe. Deretter følger de samme visningsalternativene som for en ressurs; på en regel starter **Vis oppetid %** slått på.
+Under **Gruppe** velger du **Legg til monitorer i**, eller du lar det stå tomt for å legge til monitorene øverst på siden. Regelens **Navn** fylles ut fra den, for eksempel "Legg til monitorer i Nettsted", til du skriver inn ditt eget navn. **Flere felt** har de samme visningsalternativene som for en ressurs og regelens **Beskrivelse**; på en regel starter **Vis oppetid %** slått på.
 
 ### Lagre regelen
 
-Regelen kjøres med en gang mot alle monitorer som allerede finnes, og listen viser under **Adds Monitors To** gruppen den legger til monitorer i.
+Regelen kjøres med en gang mot alle monitorer som allerede finnes, og listen viser under **Adds Monitors To** gruppen den legger til monitorer i. En ny regel er slått på: bryteren **Aktivert** finnes i redigeringsskjemaet.
 :::
 
 Etter det kjøres en regel på nytt for en monitor hver gang en opprettes, eller når etikettene, navnet eller beskrivelsen endres. En regel fjerner bare ressursene den selv har lagt til: å slå den av eller slette den fjerner dem fra siden, og en monitor du har lagt til for hånd, røres aldri. En monitor som allerede er på siden, legges aldri til to ganger.

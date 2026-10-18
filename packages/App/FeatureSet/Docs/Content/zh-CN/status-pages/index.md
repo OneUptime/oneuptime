@@ -215,7 +215,7 @@ flowchart TB
 
 有三种方式可以在页面本身以外的地方展示状态。
 
-**嵌入式状态徽章。** 在 **状态页面 → 您的页面 → 高级 → 嵌入状态** 上打开 **启用嵌入式状态徽章**（`enableEmbeddedOverallStatus`，默认关闭），然后在 **安全令牌** 卡片上点击 **创建令牌**，为徽章生成令牌（`embeddedOverallStatusToken`）；有了令牌后，按钮会变成 **重新生成令牌**。徽章由 `/api/status-page/badge/<status-page-id>?token=<token>` 提供，**嵌入徽章** 卡片会显示它，以及可复制的 **HTML** 和 **Markdown，链接到状态页**，这样你就可以把当前的整体状态放进你的文档、应用的页脚或营销页面中。
+**嵌入式状态徽章。** 在 **状态页面 → 您的页面 → 高级 → 嵌入状态** 上打开 **启用嵌入式状态徽章**（`enableEmbeddedOverallStatus`，默认关闭）。首次打开时，徽章会获得令牌（`embeddedOverallStatusToken`），**嵌入徽章** 卡片会显示由 `/api/status-page/badge/<status-page-id>?token=<token>` 提供的徽章，以及可复制的 **HTML** 和 **Markdown，链接到状态页**，这样你就可以把当前的整体状态放进你的文档、应用的页脚或营销页面中。令牌在 **更多设置** 下的 **安全令牌** 卡片上，链接分享范围过广时可使用 **重新生成令牌**。
 
 **RSS 订阅源。** 每个状态页都提供 `/rss`：一个标题为“{页面标题} Updates”的订阅源，其中使用 **品牌** 中的页面 **页面标题**，没有时则使用页面名称，条目分别以 `Incident: `、`Announcement: ` 和 `Scheduled Maintenance: ` 为前缀。对于更愿意把你的更新导入阅读器或聊天机器人、而不是通过电子邮件订阅的人来说，这很方便。
 

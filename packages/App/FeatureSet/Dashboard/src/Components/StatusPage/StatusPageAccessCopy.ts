@@ -310,6 +310,28 @@ export const PRIVATE_USERS_PASSWORD_NOTICE_TEST_ID: string =
 export const STATUS_PAGE_IP_ALLOWLIST_ENTRIES_TEST_ID: string =
   "status-page-ip-allowlist-entries";
 
+/*
+ * What the Private Users list calls its rows: a private user, added - "Add
+ * Private User", "No private users yet." - not the model's "Status Page
+ * Private User", which repeats the page it is on.
+ */
+export const PRIVATE_USER_SINGULAR_NAME: string =
+  translationKey("Private User");
+export const PRIVATE_USER_PLURAL_NAME: string = translationKey("Private Users");
+
+/*
+ * The phrases the table builds from that name - its button, its dialog's
+ * title - kept whole, so a language words each as one phrase ("Privaten
+ * Benutzer hinzufügen").
+ */
+export const PRIVATE_USER_ADD_PHRASES: {
+  button: string;
+  dialogTitle: string;
+} = {
+  button: translationKey("Add Private User"),
+  dialogTitle: translationKey("Add New Private User"),
+};
+
 export const getAccessChoiceTestId: (access: StatusPageAccess) => string = (
   access: StatusPageAccess,
 ): string => {

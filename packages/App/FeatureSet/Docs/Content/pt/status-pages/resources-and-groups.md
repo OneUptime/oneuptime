@@ -209,23 +209,19 @@ Uma regra de monitores adiciona monitores à página por você: descreva os moni
 :::steps
 ### Abrir Monitor Rules
 
-Abra a página de status, escolha **Monitor Rules** na seção **Recursos** do menu lateral dela e clique em **Criar: Status Page Monitor Rule**.
-
-### Dar um nome à regra
-
-Em **Informações básicas**, digite um **Nome**. **Habilitado** vem ativado por padrão.
+Abra a página de status, escolha **Monitor Rules** na seção **Recursos** do menu lateral dela e clique em **Criar regra de monitores**.
 
 ### Dizer a quais monitores ela corresponde
 
-Em **Critérios de Correspondência**, preencha pelo menos um entre **Rótulos do Monitor** (corresponde um monitor que tenha qualquer um deles), **Nome do Monitor** e **Descrição do Monitor**. Um monitor precisa passar em cada critério que você preencher. Os dois padrões aceitam uma expressão regular sem diferenciar maiúsculas de minúsculas (`^api-.*`) ou um curinga `*` (`*checkout*`); `.*` corresponde a todos os monitores.
+Em **Corresponder**, adicione pelo menos uma condição sobre **Rótulos do Monitor** (corresponde um monitor que tenha qualquer um deles), **Nome do Monitor** ou **Descrição do Monitor**. Com duas condições ou mais, escolha se um monitor precisa atender a todas ou a apenas uma. Os dois padrões aceitam uma expressão regular sem diferenciar maiúsculas de minúsculas (`^api-.*`) ou um curinga `*` (`*checkout*`); `.*` corresponde a todos os monitores.
 
 ### Escolher o grupo
 
-Em **Grupo**, escolha **Add Monitors To Group**, ou deixe vazio para adicionar os monitores sem grupo. Em seguida vêm as mesmas opções de exibição de um recurso; em uma regra, **Mostrar % de tempo de atividade** começa ativado.
+Em **Grupo**, escolha **Adicionar monitores a**, ou deixe vazio para adicionar os monitores no topo da página. O **Nome** da regra é preenchido a partir dele, por exemplo "Adicionar monitores a Site", até você digitar um nome próprio. **Mais campos** tem as mesmas opções de exibição de um recurso e a **Descrição** da regra; em uma regra, **Mostrar % de tempo de atividade** começa ativado.
 
 ### Salvar a regra
 
-A regra é executada na hora contra cada monitor que já existe, e a lista mostra o grupo a que ela adiciona monitores em **Adds Monitors To**.
+A regra é executada na hora contra cada monitor que já existe, e a lista mostra o grupo a que ela adiciona monitores em **Adds Monitors To**. Uma regra nova vem ativada: a chave **Habilitado** dela fica no formulário de edição.
 :::
 
 Depois disso, uma regra é executada de novo para um monitor sempre que um é criado ou quando seus rótulos, seu nome ou sua descrição mudam. Uma regra remove só os recursos que ela adicionou: desativá-la ou excluí-la tira esses recursos da página, e um monitor que você adicionou à mão nunca é tocado. Um monitor que já está na página nunca é adicionado duas vezes.
