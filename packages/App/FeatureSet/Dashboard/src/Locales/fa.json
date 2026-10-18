@@ -30741,6 +30741,7 @@
   "How long after being paged to use this method.": "چه مدت پس از خبر دادن از این روش استفاده شود.",
   "Always": "همیشه",
   "At least one filter must match.": "دست‌کم یک فیلتر باید منطبق باشد.",
+  "Connect the installation": "نصب را متصل کنید",
   "Discards every matching log for good.": "هر لاگ منطبق را برای همیشه دور می‌اندازد.",
   "Discards every matching span for good.": "هر اسپن منطبق را برای همیشه دور می‌اندازد.",
   "Down whenever any monitor is down. For monitors that must all be up.": "با از کار افتادن هر مانیتوری، از کار افتاده. برای مانیتورهایی که همه باید فعال باشند.",
@@ -30781,6 +30782,7 @@
   "Set up logs": "راه‌اندازی لاگ‌ها",
   "Set up metrics": "راه‌اندازی متریک‌ها",
   "Set up telemetry": "راه‌اندازی تله‌متری",
+  "The GitHub App is installed": "برنامه GitHub نصب شده است",
   "The attribute to act on, such as deployment.environment.": "ویژگی‌ای که روی آن کار می‌شود، مانند deployment.environment.",
   "The current name, exactly as it arrives.": "نام فعلی، دقیقاً همان‌طور که می‌رسد.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "N روز گذشته، همیشه به‌روز. مناسب سرویس‌هایی که باید در هر لحظه قابل اعتماد باشند.",
@@ -30801,5 +30803,6 @@
   "Edit Action": "ویرایش اقدام",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "همان service.name را به کار ببرید که برنامه‌هایتان می‌فرستند، تا تله‌متری آن‌ها زیر این سرویس نمایش داده شود.",
   "No profiles here yet": "هنوز پروفایلی اینجا نیست",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "پروفایل‌ها نشان می‌دهند کد شما زمان و حافظه‌اش را کجا صرف می‌کند. به محض اینکه برنامه‌ها یا میزبان‌هایتان آن‌ها را بفرستند، اینجا نمایش داده می‌شوند."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "پروفایل‌ها نشان می‌دهند کد شما زمان و حافظه‌اش را کجا صرف می‌کند. به محض اینکه برنامه‌ها یا میزبان‌هایتان آن‌ها را بفرستند، اینجا نمایش داده می‌شوند.",
+  "{{connectInstallation}} to import its repositories into this project.": "برای وارد کردن مخزن‌های آن به این پروژه، {{connectInstallation}}."
 }

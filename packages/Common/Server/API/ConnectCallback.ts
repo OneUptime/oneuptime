@@ -14,9 +14,11 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import ConnectCallbackUtil, {
   CONNECT_ERROR_QUERY_PARAM,
+  CONNECT_NOTICE_QUERY_PARAM,
   CONNECT_PROVIDER_QUERY_PARAM,
   CONNECT_RETURN_PATH,
   ConnectCallbackError,
+  ConnectProviderNotice,
   ConnectProvider,
 } from "../../Types/Workspace/ConnectCallback";
 
@@ -112,10 +114,19 @@ export interface ConnectCallbackSpec {
   /*
    * A redirect the provider sends on its own rather than one OneUptime
    * started - GitHub's "Redirect on update" after an installation is changed
-   * on GitHub - which carries no state and asks for nothing: the browser is
+   * on GitHub, or GitHub's redirect after the app was installed from GitHub
+   * itself - which carries no state and asks for nothing: the browser is
    * sent to the provider's page, with nothing to refuse.
    */
   isProviderRedirect?: ((req: ExpressRequest) => boolean) | undefined;
+  /*
+   * What such a redirect tells the page, if anything: a code the page shows
+   * its own sentence for (`?notice=`). Nothing in the redirect is trusted
+   * for it beyond choosing which of the provider's known codes to show.
+   */
+  noticeOfProviderRedirect?:
+    | ((req: ExpressRequest) => ConnectProviderNotice | null)
+    | undefined;
   finish: (data: ConnectCallbackFinish) => Promise<void>;
 }
 
@@ -132,11 +143,20 @@ export default class ConnectCallback {
 
       try {
         if (spec.isProviderRedirect && spec.isProviderRedirect(req)) {
-          return Response.redirect(
-            req,
-            res,
-            ConnectCallback.getConnectReturnUrl(spec.provider),
+          const returnUrl: URL = ConnectCallback.getConnectReturnUrl(
+            spec.provider,
           );
+
+          const notice: ConnectProviderNotice | null =
+            spec.noticeOfProviderRedirect
+              ? spec.noticeOfProviderRedirect(req)
+              : null;
+
+          if (notice) {
+            returnUrl.addQueryParam(CONNECT_NOTICE_QUERY_PARAM, notice, true);
+          }
+
+          return Response.redirect(req, res, returnUrl);
         }
 
         record = await spec.spendState(req);

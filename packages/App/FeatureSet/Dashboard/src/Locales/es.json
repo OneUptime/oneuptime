@@ -30741,6 +30741,7 @@
   "How long after being paged to use this method.": "Cuánto tiempo después del aviso se usa este método.",
   "Always": "Siempre",
   "At least one filter must match.": "Al menos un filtro debe coincidir.",
+  "Connect the installation": "Conectar la instalación",
   "Discards every matching log for good.": "Descarta para siempre cada registro que coincida.",
   "Discards every matching span for good.": "Descarta para siempre cada span que coincida.",
   "Down whenever any monitor is down. For monitors that must all be up.": "Caído en cuanto cae cualquier monitor. Para monitores que deben estar todos activos.",
@@ -30781,6 +30782,7 @@
   "Set up logs": "Configurar los registros",
   "Set up metrics": "Configurar las métricas",
   "Set up telemetry": "Configurar la telemetría",
+  "The GitHub App is installed": "La GitHub App está instalada",
   "The attribute to act on, such as deployment.environment.": "El atributo sobre el que actúa, como deployment.environment.",
   "The current name, exactly as it arrives.": "El nombre actual, tal como llega.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "Los últimos N días, siempre al día. Encaja con servicios que deben ser fiables en todo momento.",
@@ -30801,5 +30803,6 @@
   "Edit Action": "Editar acción",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Usa el service.name que envían tus apps, para que su telemetría aparezca en este servicio.",
   "No profiles here yet": "Aún no hay perfiles",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Los perfiles muestran en qué gasta tu código su tiempo y su memoria. Aparecen aquí en cuanto tus apps o hosts los envían."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Los perfiles muestran en qué gasta tu código su tiempo y su memoria. Aparecen aquí en cuanto tus apps o hosts los envían.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} para importar sus repositorios en este proyecto."
 }

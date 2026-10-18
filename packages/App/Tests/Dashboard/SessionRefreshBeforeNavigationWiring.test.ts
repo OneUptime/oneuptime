@@ -146,8 +146,19 @@ describe("Connect with GitHub App", () => {
       "const connectLock: GitHubConnectLock = getGitHubConnectLock();",
     );
 
-    const button: string = slice(source, "<button\n", ">\n");
+    // The card's own button, by its id: the page has other buttons too.
+    const button: string = slice(
+      source.slice(
+        source.lastIndexOf(
+          "<button\n",
+          source.indexOf('id="connect-github-app"'),
+        ),
+      ),
+      "<button\n",
+      ">\n",
+    );
 
+    expect(button).toContain('id="connect-github-app"');
     expect(button).toContain('type="button"');
     expect(button).toContain("disabled={connectLock.isLocked}");
     expect(source).toMatch(

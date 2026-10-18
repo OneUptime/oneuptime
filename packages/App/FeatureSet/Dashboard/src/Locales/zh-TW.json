@@ -30741,6 +30741,7 @@
   "How long after being paged to use this method.": "通知後多久使用此方式。",
   "Always": "一律",
   "At least one filter must match.": "必須至少符合一個篩選條件。",
+  "Connect the installation": "連接此安裝",
   "Discards every matching log for good.": "永久捨棄每筆相符的日誌。",
   "Discards every matching span for good.": "永久捨棄每個相符的跨度。",
   "Down whenever any monitor is down. For monitors that must all be up.": "任一監測器停機即算停機。適用於必須全部正常的監測器。",
@@ -30781,6 +30782,7 @@
   "Set up logs": "設定日誌",
   "Set up metrics": "設定指標",
   "Set up telemetry": "設定遙測",
+  "The GitHub App is installed": "GitHub App 已安裝",
   "The attribute to act on, such as deployment.environment.": "要處理的屬性，例如 deployment.environment。",
   "The current name, exactly as it arrives.": "目前名稱，與傳入時完全一致。",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "最近 N 天，隨時更新。適合每時每刻都必須可靠的服務。",
@@ -30801,5 +30803,6 @@
   "Edit Action": "編輯操作",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "使用你的應用程式傳送的 service.name，它們的遙測資料就會顯示在此服務下。",
   "No profiles here yet": "這裡還沒有效能剖析資料",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "效能剖析資料顯示你的程式碼把時間和記憶體花在哪裡。你的應用程式或主機一傳送，就會顯示在這裡。"
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "效能剖析資料顯示你的程式碼把時間和記憶體花在哪裡。你的應用程式或主機一傳送，就會顯示在這裡。",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}，將其存放庫匯入此專案。"
 }

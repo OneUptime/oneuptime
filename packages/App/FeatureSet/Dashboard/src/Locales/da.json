@@ -30741,6 +30741,7 @@
   "How long after being paged to use this method.": "Hvor længe efter tilkaldet denne metode bruges.",
   "Always": "Altid",
   "At least one filter must match.": "Mindst ét filter skal matche.",
+  "Connect the installation": "Forbind installationen",
   "Discards every matching log for good.": "Kasserer hver matchende log for altid.",
   "Discards every matching span for good.": "Kasserer hvert matchende span for altid.",
   "Down whenever any monitor is down. For monitors that must all be up.": "Nede, når en hvilken som helst monitor er nede. Til monitorer, der alle skal køre.",
@@ -30781,6 +30782,7 @@
   "Set up logs": "Opsæt logs",
   "Set up metrics": "Opsæt metrikker",
   "Set up telemetry": "Opsæt telemetri",
+  "The GitHub App is installed": "GitHub-appen er installeret",
   "The attribute to act on, such as deployment.environment.": "Attributten, der skal ændres, fx deployment.environment.",
   "The current name, exactly as it arrives.": "Det nuværende navn, præcis som det kommer ind.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "De seneste N dage, altid opdateret. Passer til tjenester, der skal være pålidelige hele tiden.",
@@ -30801,5 +30803,6 @@
   "Edit Action": "Rediger handling",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Brug det service.name, dine apps sender, så deres telemetri vises under denne tjeneste.",
   "No profiles here yet": "Ingen profiler her endnu",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler viser, hvor din kode bruger tid og hukommelse. De vises her, så snart dine apps eller hosts sender dem."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profiler viser, hvor din kode bruger tid og hukommelse. De vises her, så snart dine apps eller hosts sender dem.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} for at importere dens repositories til dette projekt."
 }

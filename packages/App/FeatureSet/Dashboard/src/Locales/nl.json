@@ -30741,6 +30741,7 @@
   "How long after being paged to use this method.": "Hoe lang na de oproep deze methode wordt gebruikt.",
   "Always": "Altijd",
   "At least one filter must match.": "Minstens één filter moet overeenkomen.",
+  "Connect the installation": "Installatie koppelen",
   "Discards every matching log for good.": "Verwijdert elk overeenkomend logboek voorgoed.",
   "Discards every matching span for good.": "Verwijdert elke overeenkomende span voorgoed.",
   "Down whenever any monitor is down. For monitors that must all be up.": "Down zodra een monitor down is. Voor monitors die allemaal moeten werken.",
@@ -30781,6 +30782,7 @@
   "Set up logs": "Logboeken instellen",
   "Set up metrics": "Metrieken instellen",
   "Set up telemetry": "Telemetrie instellen",
+  "The GitHub App is installed": "De GitHub-app is geïnstalleerd",
   "The attribute to act on, such as deployment.environment.": "Het attribuut waarop de regel werkt, zoals deployment.environment.",
   "The current name, exactly as it arrives.": "De huidige naam, precies zoals hij binnenkomt.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "De laatste N dagen, altijd actueel. Past bij services die op elk moment betrouwbaar moeten zijn.",
@@ -30801,5 +30803,6 @@
   "Edit Action": "Actie bewerken",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "Gebruik de service.name die uw apps versturen, zodat hun telemetrie onder deze service verschijnt.",
   "No profiles here yet": "Nog geen profielen",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profielen tonen waar uw code tijd en geheugen aan besteedt. Ze verschijnen hier zodra uw apps of hosts ze versturen."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profielen tonen waar uw code tijd en geheugen aan besteedt. Ze verschijnen hier zodra uw apps of hosts ze versturen.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}} om de repository's ervan in dit project te importeren."
 }

@@ -30741,6 +30741,7 @@
   "How long after being paged to use this method.": "सूचित करने के कितनी देर बाद यह तरीका इस्तेमाल हो।",
   "Always": "हमेशा",
   "At least one filter must match.": "कम से कम एक फ़िल्टर मेल खाना चाहिए।",
+  "Connect the installation": "इंस्टॉलेशन कनेक्ट करें",
   "Discards every matching log for good.": "हर मिलते लॉग को हमेशा के लिए हटा देता है।",
   "Discards every matching span for good.": "हर मिलते स्पैन को हमेशा के लिए हटा देता है।",
   "Down whenever any monitor is down. For monitors that must all be up.": "कोई भी मॉनिटर डाउन होते ही डाउन। उन मॉनिटर के लिए जिन्हें सबको चालू रहना है।",
@@ -30781,6 +30782,7 @@
   "Set up logs": "लॉग सेट अप करें",
   "Set up metrics": "मेट्रिक्स सेट अप करें",
   "Set up telemetry": "टेलीमेट्री सेट अप करें",
+  "The GitHub App is installed": "GitHub App इंस्टॉल हो गया है",
   "The attribute to act on, such as deployment.environment.": "जिस एट्रिब्यूट पर काम करना है, जैसे deployment.environment।",
   "The current name, exactly as it arrives.": "मौजूदा नाम, ठीक वैसा जैसा वह आता है।",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "पिछले N दिन, हमेशा ताज़ा। उन सेवाओं के लिए जो हर पल भरोसेमंद होनी चाहिए।",
@@ -30801,5 +30803,6 @@
   "Edit Action": "कार्रवाई संपादित करें",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "वही service.name इस्तेमाल करें जो आपके ऐप भेजते हैं, ताकि उनकी टेलीमेट्री इस सेवा के अंतर्गत दिखे।",
   "No profiles here yet": "यहाँ अभी कोई प्रोफ़ाइल नहीं है",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "प्रोफ़ाइल दिखाती हैं कि आपका कोड अपना समय और मेमोरी कहाँ खर्च करता है। आपके ऐप या होस्ट जैसे ही उन्हें भेजते हैं, वे यहाँ दिखती हैं।"
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "प्रोफ़ाइल दिखाती हैं कि आपका कोड अपना समय और मेमोरी कहाँ खर्च करता है। आपके ऐप या होस्ट जैसे ही उन्हें भेजते हैं, वे यहाँ दिखती हैं।",
+  "{{connectInstallation}} to import its repositories into this project.": "इसकी रिपॉज़िटरी इस प्रोजेक्ट में इम्पोर्ट करने के लिए {{connectInstallation}}।"
 }

@@ -30741,6 +30741,7 @@
   "How long after being paged to use this method.": "알림 후 얼마 뒤에 이 방법을 쓸지 정합니다.",
   "Always": "항상",
   "At least one filter must match.": "필터가 하나 이상 일치해야 합니다.",
+  "Connect the installation": "설치 연결",
   "Discards every matching log for good.": "일치하는 모든 로그를 영구히 버립니다.",
   "Discards every matching span for good.": "일치하는 모든 스팬을 영구히 버립니다.",
   "Down whenever any monitor is down. For monitors that must all be up.": "모니터 하나라도 다운되면 다운입니다. 모두 정상이어야 하는 모니터에 맞습니다.",
@@ -30781,6 +30782,7 @@
   "Set up logs": "로그 설정",
   "Set up metrics": "메트릭 설정",
   "Set up telemetry": "텔레메트리 설정",
+  "The GitHub App is installed": "GitHub App이 설치되었습니다",
   "The attribute to act on, such as deployment.environment.": "적용할 속성입니다. 예: deployment.environment.",
   "The current name, exactly as it arrives.": "들어오는 그대로의 현재 이름입니다.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "최근 N일로, 항상 최신입니다. 언제나 안정적이어야 하는 서비스에 맞습니다.",
@@ -30801,5 +30803,6 @@
   "Edit Action": "작업 편집",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "앱이 보내는 service.name을 사용하면 해당 텔레메트리가 이 서비스 아래에 표시됩니다.",
   "No profiles here yet": "아직 프로파일이 없습니다",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "프로파일은 코드가 시간과 메모리를 어디에 쓰는지 보여 줍니다. 앱이나 호스트가 보내는 즉시 여기에 표시됩니다."
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "프로파일은 코드가 시간과 메모리를 어디에 쓰는지 보여 줍니다. 앱이나 호스트가 보내는 즉시 여기에 표시됩니다.",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}을 눌러 저장소를 이 프로젝트로 가져오세요."
 }

@@ -30741,6 +30741,7 @@
   "How long after being paged to use this method.": "通知からどれくらい後にこの方法を使うか。",
   "Always": "常に",
   "At least one filter must match.": "少なくとも 1 つのフィルターに一致する必要があります。",
+  "Connect the installation": "インストールを接続",
   "Discards every matching log for good.": "一致するログをすべて完全に破棄します。",
   "Discards every matching span for good.": "一致するスパンをすべて完全に破棄します。",
   "Down whenever any monitor is down. For monitors that must all be up.": "いずれかのモニターがダウンすればダウンです。すべてが稼働している必要があるモニター向けです。",
@@ -30781,6 +30782,7 @@
   "Set up logs": "ログをセットアップ",
   "Set up metrics": "メトリクスをセットアップ",
   "Set up telemetry": "テレメトリをセットアップ",
+  "The GitHub App is installed": "GitHub App がインストールされました",
   "The attribute to act on, such as deployment.environment.": "対象の属性です（例: deployment.environment）。",
   "The current name, exactly as it arrives.": "届いたとおりの現在の名前です。",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "直近 N 日間で、常に最新です。どの瞬間も信頼できる必要があるサービスに向いています。",
@@ -30801,5 +30803,6 @@
   "Edit Action": "アクションを編集",
   "Use the service.name your apps send, so their telemetry shows up under this service.": "アプリが送信する service.name を使うと、そのテレメトリがこのサービスに表示されます。",
   "No profiles here yet": "プロファイルはまだありません",
-  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "プロファイルは、コードが時間とメモリをどこで使っているかを示します。アプリやホストが送信すると、すぐにここに表示されます。"
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "プロファイルは、コードが時間とメモリをどこで使っているかを示します。アプリやホストが送信すると、すぐにここに表示されます。",
+  "{{connectInstallation}} to import its repositories into this project.": "{{connectInstallation}}して、リポジトリをこのプロジェクトにインポートしてください。"
 }
