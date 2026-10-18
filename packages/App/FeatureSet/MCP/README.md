@@ -1,6 +1,6 @@
 # OneUptime MCP Server
 
-A Model Context Protocol (MCP) server that exposes OneUptime to AI agents. It lets MCP-compatible clients (Claude, VS Code with Copilot, Cursor, and others) manage incidents, alerts, monitors, status pages, on-call, and telemetry through ~155 tools.
+A Model Context Protocol (MCP) server that exposes OneUptime to AI agents. It lets MCP-compatible clients (Claude, VS Code with Copilot, Cursor, and others) manage incidents, alerts, monitors, status pages, on-call, and telemetry through ~190 tools.
 
 ## How it works
 
@@ -126,13 +126,13 @@ Two settings: `DISABLE_MCP_OAUTH=true` switches the whole thing off (the routes 
 
 ### Database resources — full CRUD
 
-Each of these 22 models gets six tools: `create_`, `get_`, `list_`, `update_`, `delete_`, `count_` (e.g. `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`):
+Each of these 27 models gets six tools: `create_`, `get_`, `list_`, `update_`, `delete_`, `count_` (e.g. `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`):
 
-Incident, Alert, Monitor, Status Page, Scheduled Maintenance Event, Team, Monitor Status, On-Call Policy, Incident State, Incident Severity, Alert State, Alert Severity, Incident State Timeline, Alert State Timeline, Incident Public Note, Incident Internal Note, Alert Internal Note, Status Page Announcement, Scheduled Maintenance State, Scheduled Maintenance State Timeline, Label, Monitor Status Event.
+Incident, Alert, Incident Alert, Monitor, Status Page, Scheduled Maintenance Event, Team, Monitor Status, On-Call Policy, Incident State, Incident Severity, Alert State, Alert Severity, Incident State Timeline, Alert State Timeline, Incident Public Note, Incident Internal Note, Alert Internal Note, Status Page Announcement, Scheduled Maintenance State, Scheduled Maintenance State Timeline, Label, Monitor Status Event, Security Case, Security Case Note, Security Detection, Security Playbook.
 
 ### Telemetry resources — read-only
 
-Log, Metric, Span, Exception Instance, and Monitor Log get `list_` and `count_` tools only (e.g. `list_logs`, `count_spans`, `list_exception_instances`). There are no create tools for telemetry — ingestion happens via OpenTelemetry.
+Log, Metric, Span, Exception Instance, Monitor Log, Security Event, Change Event, Kubernetes Cost Allocation, and Threat Intel Indicator get `list_` and `count_` tools only (e.g. `list_logs`, `count_spans`, `list_exception_instances`). There are no create tools for telemetry — ingestion happens via OpenTelemetry.
 
 ### Workflow tools
 
@@ -151,7 +151,13 @@ Purpose-built shortcuts for incident/alert response (`packages/App/FeatureSet/MC
 
 ### Annotations and results
 
-All tools carry MCP annotations and titles: `readOnlyHint` on every `get_`/`list_`/`count_` tool and `destructiveHint` on every `delete_` tool, so clients can auto-approve safe calls and confirm destructive ones. MCP directories require them: the Claude Connectors Directory flags any tool without a `title` or a `readOnlyHint`/`destructiveHint`, so `Tests/ToolAnnotationsForDirectories.test.ts` fails on a tool that lacks either, or whose `readOnlyHint` disagrees with what the server lets a read-only sign-in call. Tool results include `structuredContent` alongside the JSON text. Errors come back as in-band tool results (`isError: true`) with `statusCode`, `details`, and a `suggestion` — not as protocol errors.
+Every tool has a title and states all three MCP hints, set in `Tools/ToolAnnotations.ts`, so clients can auto-approve safe calls and confirm the rest:
+
+- `readOnlyHint: true` on the tools that change nothing: `get_`, `list_`, `count_`, `oneuptime_whoami`, the helper tools and the public status page tools.
+- `destructiveHint: true` on every tool that changes something: create, update and delete tools, acknowledging and resolving, and adding notes. Most writes overwrite or delete a record, change an incident's or alert's state, page someone on call or post to a status page, and the directories allow `false` only for a write that adds and sends nothing.
+- `openWorldHint: true` only on the public status page tools, which read any public status page on the instance. Every other tool stays inside the caller's project.
+
+MCP directories require them: the Claude Connectors Directory flags any tool without a `title` or a `readOnlyHint`/`destructiveHint`, and ChatGPT's requires all three hints as booleans. `Tests/ToolAnnotationsForDirectories.test.ts` fails on a tool that lacks one, or that breaks the rules above. On the server itself, `MCP_ALLOW_DESTRUCTIVE=false` removes the delete tools only, and `MCP_READ_ONLY=true` removes every tool that is not read-only (`Tests/WritePolicy.test.ts`). Tool results include `structuredContent` alongside the JSON text. Errors come back as in-band tool results (`isError: true`) with `statusCode`, `details`, and a `suggestion` — not as protocol errors.
 
 ## Query, sort, select, and pagination
 

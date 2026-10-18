@@ -4,14 +4,16 @@
  * Anthropic's Claude Connectors Directory requires every tool to have a
  * `title` and a `readOnlyHint` or `destructiveHint` annotation: its developer
  * portal flags each tool that lacks one, to be fixed on the server before it
- * is submitted, and its reviewers hold tool names to 64 characters. Claude
- * lets a tool marked read-only run without asking each time, so the hint has
- * to be right as well as present.
+ * is submitted, and its reviewers hold tool names to 64 characters. ChatGPT's
+ * app directory requires `readOnlyHint`, `destructiveHint` and
+ * `openWorldHint` on every tool, each true or false. Claude lets a tool
+ * marked read-only run without asking each time, so the hints have to be
+ * right as well as present.
  *
- * MCP reads a missing hint the cautious way - a tool with no readOnlyHint
- * may write, and one that writes with no destructiveHint may destroy - so
- * here every tool says whether it is read-only, and every tool that is not
- * says whether it is destructive. No directory or client is left to guess.
+ * The rule they are held to here is Tools/ToolAnnotations': every tool
+ * states all three, a tool is destructive exactly when it is not read-only,
+ * and only the public status page tools, which read any public status page
+ * on the instance, are open-world. No directory or client is left to guess.
  *
  * The tools are read the way a client reads them: tools/list, answered by
  * the handlers ToolHandler registers, through the MCP SDK's own Client over
@@ -58,13 +60,18 @@ import { ListToolsResult, Tool } from "@modelcontextprotocol/sdk/types.js";
 import { registerToolHandlers } from "../Handlers/ToolHandler";
 import RequestGate, { McpToolAccess } from "../OAuth/RequestGate";
 import { McpServer, createMCPServerInstance } from "../Server/MCPServer";
+import { isPublicStatusPageTool } from "../Tools/PublicStatusPageTools";
 import { generateAllTools } from "../Tools/ToolGenerator";
 import McpCredentialUtil from "../Types/McpCredential";
 import { McpToolInfo } from "../Types/McpTypes";
-import OneUptimeOperation from "../Types/OneUptimeOperation";
 
 // The longest tool name the Claude Connectors Directory accepts.
 const MAX_TOOL_NAME_LENGTH: number = 64;
+
+// The hints ChatGPT's app directory requires on every tool, true or false.
+const REQUIRED_HINTS: Array<
+  "readOnlyHint" | "destructiveHint" | "openWorldHint"
+> = ["readOnlyHint", "destructiveHint", "openWorldHint"];
 
 // What a directory would flag on a tool as it is listed: nothing, if it passes.
 function directoryFlags(tool: Tool): Array<string> {
@@ -74,13 +81,10 @@ function directoryFlags(tool: Tool): Array<string> {
     flags.push("no title");
   }
 
-  const readOnlyHint: unknown = tool.annotations?.readOnlyHint;
-  const destructiveHint: unknown = tool.annotations?.destructiveHint;
-
-  if (typeof readOnlyHint !== "boolean") {
-    flags.push("no readOnlyHint");
-  } else if (!readOnlyHint && typeof destructiveHint !== "boolean") {
-    flags.push("no destructiveHint");
+  for (const hint of REQUIRED_HINTS) {
+    if (typeof tool.annotations?.[hint] !== "boolean") {
+      flags.push(`no ${hint}`);
+    }
   }
 
   if (tool.name.length > MAX_TOOL_NAME_LENGTH) {
@@ -171,7 +175,7 @@ describe("every tool carries the title and the hints MCP directories ask for", (
     expect(names.length).toBeGreaterThan(100);
   });
 
-  test("every tool has a title, says whether it is read-only, and if it is not, whether it is destructive", () => {
+  test("every tool has a title, and says whether it is read-only, destructive and open-world", () => {
     expect(flaggedTools(listed())).toEqual([]);
   });
 
@@ -190,48 +194,73 @@ describe("every tool carries the title and the hints MCP directories ask for", (
     expect(mismarked).toEqual([]);
   });
 
-  test("every tool that deletes is marked destructive", () => {
-    const deleting: Array<string> = tools
-      .filter((tool: McpToolInfo): boolean => {
-        return tool.operation === OneUptimeOperation.Delete;
-      })
-      .map(nameOf);
-
-    expect(deleting).toContain("delete_incident");
-
-    const unmarked: Array<string> = listed()
+  test("a tool is marked destructive exactly when it changes something", () => {
+    const mismarked: Array<[string, unknown, unknown]> = listed()
       .filter((tool: Tool): boolean => {
         return (
-          deleting.includes(tool.name) &&
-          tool.annotations?.destructiveHint !== true
+          tool.annotations?.destructiveHint !==
+          (tool.annotations?.readOnlyHint === false)
         );
+      })
+      .map((tool: Tool): [string, unknown, unknown] => {
+        return [
+          tool.name,
+          tool.annotations?.readOnlyHint,
+          tool.annotations?.destructiveHint,
+        ];
+      });
+
+    expect(mismarked).toEqual([]);
+
+    // Writes of every kind: generated, and written by hand.
+    const destructive: Array<string> = listed()
+      .filter((tool: Tool): boolean => {
+        return tool.annotations?.destructiveHint === true;
       })
       .map(nameOf);
 
-    expect(unmarked).toEqual([]);
+    for (const name of [
+      "create_incident",
+      "update_incident",
+      "delete_incident",
+      "acknowledge_incident",
+      "resolve_incident",
+      "add_incident_note",
+    ]) {
+      expect([name, destructive.includes(name)]).toEqual([name, true]);
+    }
+  });
+
+  test("only the public status page tools reach past the caller's project", () => {
+    const openWorld: Array<string> = listed()
+      .filter((tool: Tool): boolean => {
+        return tool.annotations?.openWorldHint === true;
+      })
+      .map(nameOf);
+
+    expect(openWorld).toEqual(
+      listed().map(nameOf).filter(isPublicStatusPageTool),
+    );
+    expect(openWorld).toContain("get_public_status_page_overview");
   });
 
   test("the check flags a tool that lacks any of them, and only that tool", () => {
     const inputSchema: Tool["inputSchema"] = { type: "object" };
+    const reads: Tool["annotations"] = {
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false,
+    };
 
     expect(
       flaggedTools([
-        {
-          name: "no_title",
-          inputSchema,
-          annotations: { readOnlyHint: true },
-        },
-        {
-          name: "blank_title",
-          title: "  ",
-          inputSchema,
-          annotations: { readOnlyHint: true },
-        },
+        { name: "no_title", inputSchema, annotations: reads },
+        { name: "blank_title", title: "  ", inputSchema, annotations: reads },
         // A title only in annotations is not the tool's title.
         {
           name: "title_in_annotations",
           inputSchema,
-          annotations: { title: "Title In Annotations", readOnlyHint: true },
+          annotations: { ...reads, title: "Title In Annotations" },
         },
         { name: "no_annotations", title: "No Annotations", inputSchema },
         {
@@ -240,43 +269,53 @@ describe("every tool carries the title and the hints MCP directories ask for", (
           inputSchema,
           annotations: { destructiveHint: true },
         },
+        // Enough for MCP, which reads the rest as their defaults, but not for ChatGPT.
+        {
+          name: "read_only_only",
+          title: "Read Only Only",
+          inputSchema,
+          annotations: { readOnlyHint: true },
+        },
         {
           name: "writes_without_saying_how",
           title: "Writes Without Saying How",
           inputSchema,
-          annotations: { readOnlyHint: false },
+          annotations: { readOnlyHint: false, openWorldHint: false },
         },
         {
           name: "n".repeat(MAX_TOOL_NAME_LENGTH + 1),
           title: "Long Name",
           inputSchema,
-          annotations: { readOnlyHint: true },
+          annotations: reads,
         },
         {
           name: "n".repeat(MAX_TOOL_NAME_LENGTH),
           title: "Longest Name",
           inputSchema,
-          annotations: { readOnlyHint: true },
+          annotations: reads,
         },
-        {
-          name: "reads",
-          title: "Reads",
-          inputSchema,
-          annotations: { readOnlyHint: true },
-        },
+        { name: "reads", title: "Reads", inputSchema, annotations: reads },
         {
           name: "writes",
           title: "Writes",
           inputSchema,
-          annotations: { readOnlyHint: false, destructiveHint: false },
+          annotations: {
+            readOnlyHint: false,
+            destructiveHint: true,
+            openWorldHint: false,
+          },
         },
       ]),
     ).toEqual([
       ["no_title", ["no title"]],
       ["blank_title", ["no title"]],
       ["title_in_annotations", ["no title"]],
-      ["no_annotations", ["no readOnlyHint"]],
-      ["destructive_only", ["no readOnlyHint"]],
+      [
+        "no_annotations",
+        ["no readOnlyHint", "no destructiveHint", "no openWorldHint"],
+      ],
+      ["destructive_only", ["no readOnlyHint", "no openWorldHint"]],
+      ["read_only_only", ["no destructiveHint", "no openWorldHint"]],
       ["writes_without_saying_how", ["no destructiveHint"]],
       [
         "n".repeat(MAX_TOOL_NAME_LENGTH + 1),
