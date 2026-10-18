@@ -33,6 +33,11 @@ Test" workflow provides both:
   one against a vulnerable npm installed from the registry, one inside
   `node:26-alpine3.24` through the real `.dockerignore`. The workflow sets it
   on the jest step too.
+- **docker, and postgres:15.** `RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1` turns on
+  `ComposeDatabaseRuntime.test.js`, which starts PostgreSQL from
+  `docker-compose.yml` for real (on a free port, in a project of its own that
+  it removes with its volume). The workflow sets it on the jest step, and the
+  suite checks that it does.
 
 or from the repo root:
 
@@ -102,6 +107,46 @@ refer to — the coherence that was previously missing, when `backup.sh` wrote
 
 Both scripts are also checked with `bash -n`, and with `shellcheck` when it is
 on PATH (skipped, not failed, when it is not).
+
+### `ComposeDataStorePorts.test.js`
+
+Every port a compose file in the repository publishes for a datastore
+(PostgreSQL, ClickHouse, Valkey or Redis, and any other database image, found
+by service name, by the service it extends or by image) is published on
+`127.0.0.1`. Docker publishes a port that names no address on every interface,
+IPv4 and IPv6, and past a host firewall such as `ufw`; a datastore port is for
+tools on the server itself. The production stack publishes nothing beyond the
+server but its ingress, no datastore runs on the host's network, and
+`restore.sh` reaches the loopback-published port (its `host.docker.internal`
+is `127.0.0.1`). With docker's compose plugin on PATH (no daemon needed), the
+same is checked on what `docker compose config` renders.
+
+### `ComposeDatabaseRuntime.test.js`
+
+The same, for real (`RUN_COMPOSE_DATABASE_RUNTIME_TESTS=1`): PostgreSQL started
+from `docker-compose.yml` answers on `127.0.0.1` and on no other address of the
+machine, and the client containers `backup.sh` and `restore.sh` run reach it.
+`npm start`'s prestart (`Scripts/Install/GenerateDatabasePassword.js`) asks
+this Docker whether the bundled database exists, gives a placeholder
+`DATABASE_PASSWORD` a random value while it does not, and PostgreSQL is created
+with that value; once the database exists, `config.env` is left alone. The
+Docker Compose guide's "Change the database password" commands are run as
+written, and its `docker-compose.override.yml` example is applied.
+
+### `GenerateDatabasePassword.test.js`
+
+Every branch of `Scripts/Install/GenerateDatabasePassword.js` with Docker
+stubbed: what counts as a shipped value, which line of `config.env` changes and
+which never do, what it decides for a new install, an existing database, an
+external database or a check that cannot tell, and that it never stops
+`npm start`.
+
+### `ReadmeQuickStart.test.js`
+
+The README's Docker Compose quick start, in English and the 16 translations,
+gives every placeholder secret its own random value before `npm start`, with
+the loop of the Docker Compose guide's "Generate random secrets" step; the
+block is run on `config.example.env` and leaves no placeholder.
 
 ### `ContainerAgentLogSeverity.test.js`
 
