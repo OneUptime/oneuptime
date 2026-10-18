@@ -63,7 +63,7 @@ Du skal have tilladelse til at tilføje SSO-udbydere — **Project Owner**, **Pr
 
 2. **Opret SSO-konfigurationen**
 
-   - Klik på **Opret SSO**
+   - Klik på **Tilføj SAML-udbyder**
    - Indtast et **Navn** til SSO-konfigurationen (f.eks. "Keycloak SAML" eller "Okta SAML")
    - Indtast **Log på-URL** fra din identitetsudbyder
    - Indtast **Udsteder** (Entity ID) fra din identitetsudbyder
@@ -107,7 +107,7 @@ Keycloak er en populær open source-løsning til identitets- og adgangsstyring. 
 
 2. **Opret udbyderen i OneUptime**
 
-   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Opret SSO**, og udfyld:
+   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Tilføj SAML-udbyder**, og udfyld:
    - **Navn**: et beskrivende navn (f.eks. `my-project-oneuptime`)
    - **Log på-URL** og **Udsteder**: værdierne ovenfor
    - **Offentligt certifikat**: certifikatet mellem sine egne linjer `BEGIN CERTIFICATE` og `END CERTIFICATE`
@@ -150,7 +150,7 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudba
 
 3. **Opret udbyderen i OneUptime**
 
-   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Opret SSO**, og udfyld:
+   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Tilføj SAML-udbyder**, og udfyld:
    - **Navn**: et beskrivende navn (f.eks. `Azure AD SAML`)
    - **Log på-URL**: **Login URL**
    - **Udsteder**: **Microsoft Entra Identifier**
@@ -202,7 +202,7 @@ Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organi
 
 3. **Opret udbyderen i OneUptime**
 
-   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Opret SSO**, og udfyld:
+   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Tilføj SAML-udbyder**, og udfyld:
    - **Navn**: et beskrivende navn (f.eks. `Okta SAML`)
    - **Log på-URL** og **Udsteder**: Oktas værdier
    - **Offentligt certifikat**: certifikatet, inklusive linjerne `BEGIN CERTIFICATE` og `END CERTIFICATE`
@@ -244,7 +244,7 @@ Et projekt kan også logge ind via en OpenID Connect-udbyder som Google Workspac
 
 :::steps
 1. Registrer en app (en OIDC-klient) hos din identitetsudbyder, der må bruge authorization code-flowet med PKCE, og kopiér dens **Udsteder-URL**, **Klient-ID** og **Klienthemmelighed**.
-2. Gå til **Projektindstillinger** > **Sikkerhed** > **SSO** i OneUptime. Klik på **Opret OIDC** under SAML-udbyderne.
+2. Gå til **Projektindstillinger** > **Sikkerhed** > **SSO** i OneUptime. Klik på **Tilføj OIDC-udbyder** under SAML-udbyderne.
 3. Indtast et **Navn** (det, personer ser på loginsiden), **Udsteder-URL**, **Klient-ID** og **Klienthemmelighed**. Du kan også indsætte udbyderens discovery-URL i **Udsteder-URL** i stedet.
 4. I trinnet **Login** starter **Teams** med dit projekts medlemsteam: personer, der logger ind for første gang, kommer med i disse teams. Resten er allerede udfyldt under **Flere felter**: **Discovery-URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), claim-navnene `email` og `name` og en beskrivelse ("Sign in with" og navnet). Ændr dem kun, hvis din udbyder kræver det. Kun teams, du selv kunne invitere nogen til, accepteres: et team, der giver mere adgang, end du har, nævnes under **Teams**.
 5. Gem. Dialogen **OIDC Configuration** åbnes med **Redirect URI**: tilføj den til din apps tilladte redirect-URI'er. En ny udbyder starter slået fra, så rediger den bagefter, og slå **Aktiveret** til.

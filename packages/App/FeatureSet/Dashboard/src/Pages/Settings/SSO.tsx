@@ -9,13 +9,14 @@ import {
   ProjectSamlProvidersLeftover,
 } from "../../Components/Billing/IdentityPlanLeftovers";
 import ProjectOidcProviders from "../../Components/Sso/ProjectOidcProviders";
+import ProjectSignInTestCard from "../../Components/Sso/ProjectSignInTestCard";
+import ProjectSsoCopy from "../../Components/Sso/ProjectSsoCopy";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
 import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
@@ -23,12 +24,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
 import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import {
-  DASHBOARD_URL,
-  HOST,
-  HTTP_PROTOCOL,
-  IDENTITY_URL,
-} from "Common/UI/Config";
+import { HOST, HTTP_PROTOCOL, IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
@@ -38,10 +34,8 @@ import React, {
   ReactElement,
   useState,
 } from "react";
-import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 /*
  * The provider the configuration dialog is open for: its id, and whether it
@@ -72,10 +66,17 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const testUrl: string = `${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`;
   const [samlConfigTarget, setSamlConfigTarget] =
     useState<SamlConfigDialogTarget | null>(null);
   const showSingleSignOnUrlId: string = samlConfigTarget?.id || "";
+
+  /*
+   * How many providers of each kind the two lists hold: the test link
+   * waits for one to try, as a status page's Test Sign-In does.
+   */
+  const [samlProviderCount, setSamlProviderCount] = useState<number>(0);
+  const [oidcProviderCount, setOidcProviderCount] = useState<number>(0);
+  const hasProviderToTest: boolean = samlProviderCount + oidcProviderCount > 0;
 
   // Looked up once, for the SAML and the OIDC tables alike.
   const createInitialValues: FormValues<ProjectSSO> | undefined =
@@ -98,6 +99,14 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           isDeleteable={true}
           isEditable={true}
           isCreateable={true}
+          /*
+           * "Add SAML Provider", and "No SAML providers yet" while it has
+           * none: what the card holds, beside the OIDC providers' card
+           * (ProjectSsoCopy).
+           */
+          singularName={ProjectSsoCopy.samlProvider}
+          pluralName={ProjectSsoCopy.samlProviders}
+          createVerb="Add"
           cardProps={{
             title: "SAML",
             description:
@@ -105,7 +114,12 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           }}
           videoLink={URL.fromString("https://youtu.be/tq4WRgxbIwk")}
           formSteps={getSsoProviderFormSteps<ProjectSSO>()}
-          noItemsMessage={"No SSO configuration found."}
+          onFetchSuccess={(
+            _data: Array<ProjectSSO>,
+            totalCount: number,
+          ): void => {
+            setSamlProviderCount(totalCount);
+          }}
           viewPageRoute={Navigation.getCurrentRoute()}
           formFields={getSamlProviderFormFields<ProjectSSO>({
             withTeams: true,
@@ -180,6 +194,7 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
               },
               title: "Description",
               type: FieldType.Text,
+              hideOnMobile: true,
             },
             {
               field: {
@@ -189,7 +204,8 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
                   projectId: true,
                 },
               },
-              title: "Add User to Team",
+              // The teams people who sign in for the first time join.
+              title: ProjectSsoCopy.teamsColumn,
               type: FieldType.Text,
               getElement: (item: ProjectSSO): ReactElement => {
                 return <TeamsElement teams={item["teams"] || []} />;
@@ -221,29 +237,22 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
               | FormValues<ProjectOIDC>
               | undefined
           }
+          onProviderCountChange={setOidcProviderCount}
         />
 
         {/*
          * One test link for both: the project's sign-in page lists its
-         * SAML and OIDC providers (Pages/Onboarding/SSO).
+         * SAML and OIDC providers (Pages/Onboarding/SSO). Drawn once there
+         * is a provider to try; before that the link opens a page with
+         * nothing on it.
          */}
-        <Card
-          title={`Test Single Sign On (SSO)`}
-          description={
-            <span>
-              <TranslatedSentence
-                template="Sign in through one of these providers before you require SSO: {{link}}"
-                slots={{
-                  link: (
-                    <Link openInNewTab={true} to={URL.fromString(testUrl)}>
-                      <span>{testUrl}</span>
-                    </Link>
-                  ),
-                }}
-              />
-            </span>
-          }
-        />
+        {hasProviderToTest ? (
+          <ProjectSignInTestCard
+            projectId={ProjectUtil.getCurrentProjectId()!}
+          />
+        ) : (
+          <></>
+        )}
 
         {/*
          * Whether everyone has to sign in with SSO to open the project: one
@@ -252,6 +261,8 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
          */}
         <RequireSsoForLoginCard
           projectId={ProjectUtil.getCurrentProjectId()!}
+          // Its line points at the test link: only while that is drawn.
+          isTestLinkShown={hasProviderToTest}
         />
 
         {showSingleSignOnUrlId && (

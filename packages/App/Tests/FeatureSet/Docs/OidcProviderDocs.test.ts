@@ -231,7 +231,7 @@ describe("Project SSO: the OpenID Connect section", () => {
       // OIDC providers sit on the SSO page, under the SAML ones.
       "**Project Settings** > **Security** > **SSO**",
       "Under the SAML providers",
-      "**Create OIDC**",
+      "**Add OIDC Provider**",
       "**Name**",
       "**Issuer URL**",
       "**Client ID**",

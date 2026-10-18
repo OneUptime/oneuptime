@@ -63,7 +63,7 @@ U hebt toestemming nodig om SSO-providers toe te voegen — **Project Owner**, *
 
 2. **De SSO-configuratie aanmaken**
 
-   - Klik op **SSO aanmaken**
+   - Klik op **SAML-provider toevoegen**
    - Voer een **Naam** in voor de SSO-configuratie (bijvoorbeeld "Keycloak SAML" of "Okta SAML")
    - Voer de **Aanmeldings-URL** van uw identiteitsprovider in
    - Voer de **Uitgever** (Entity ID) van uw identiteitsprovider in
@@ -107,7 +107,7 @@ Keycloak is een veelgebruikte opensourceoplossing voor identiteits- en toegangsb
 
 2. **De provider aanmaken in OneUptime**
 
-   Ga naar **Projectinstellingen** > **Beveiliging** > **SSO**, klik op **SSO aanmaken** en vul in:
+   Ga naar **Projectinstellingen** > **Beveiliging** > **SSO**, klik op **SAML-provider toevoegen** en vul in:
    - **Naam**: een beschrijvende naam (bijvoorbeeld `my-project-oneuptime`)
    - **Aanmeldings-URL** en **Uitgever**: de waarden hierboven
    - **Openbaar certificaat**: het certificaat, tussen zijn eigen regels `BEGIN CERTIFICATE` en `END CERTIFICATE`
@@ -150,7 +150,7 @@ Microsoft Entra ID (voorheen Azure AD / Active Directory) is de cloudidentiteits
 
 3. **De provider aanmaken in OneUptime**
 
-   Ga naar **Projectinstellingen** > **Beveiliging** > **SSO**, klik op **SSO aanmaken** en vul in:
+   Ga naar **Projectinstellingen** > **Beveiliging** > **SSO**, klik op **SAML-provider toevoegen** en vul in:
    - **Naam**: een beschrijvende naam (bijvoorbeeld `Azure AD SAML`)
    - **Aanmeldings-URL**: de **Login URL**
    - **Uitgever**: de **Microsoft Entra Identifier**
@@ -202,7 +202,7 @@ Okta is een veelgebruikt identiteitsplatform met SAML-SSO. U hebt een Okta-organ
 
 3. **De provider aanmaken in OneUptime**
 
-   Ga naar **Projectinstellingen** > **Beveiliging** > **SSO**, klik op **SSO aanmaken** en vul in:
+   Ga naar **Projectinstellingen** > **Beveiliging** > **SSO**, klik op **SAML-provider toevoegen** en vul in:
    - **Naam**: een beschrijvende naam (bijvoorbeeld `Okta SAML`)
    - **Aanmeldings-URL** en **Uitgever**: de waarden van Okta
    - **Openbaar certificaat**: het certificaat, inclusief de regels `BEGIN CERTIFICATE` en `END CERTIFICATE`
@@ -244,7 +244,7 @@ Een project kan zich ook aanmelden via een OpenID Connect-provider, zoals Google
 
 :::steps
 1. Registreer bij uw identiteitsprovider een app (een OIDC-client) die de authorization code flow met PKCE mag gebruiken, en kopieer de **Uitgever-URL**, de **Client-ID** en het **Client-secret**.
-2. Ga in OneUptime naar **Projectinstellingen** > **Beveiliging** > **SSO**. Klik onder de SAML-providers op **OIDC aanmaken**.
+2. Ga in OneUptime naar **Projectinstellingen** > **Beveiliging** > **SSO**. Klik onder de SAML-providers op **OIDC-provider toevoegen**.
 3. Voer een **Naam** in (wat mensen op de aanmeldpagina zien), de **Uitgever-URL**, de **Client-ID** en het **Client-secret**. U kunt ook de discovery-URL van de provider in **Uitgever-URL** plakken.
 4. In de stap **Aanmelden** begint **Teams** met het ledenteam van uw project: wie zich voor het eerst aanmeldt, komt in deze teams. De rest staat al ingevuld onder **Meer velden**: de **Discovery-URL** (de uitgever gevolgd door `/.well-known/openid-configuration`), de **Bereiken** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving ("Sign in with" en de naam). Wijzig ze alleen als uw provider dat vraagt. Alleen teams waarvoor u zelf iemand zou kunnen uitnodigen worden geaccepteerd: een team dat meer toegang geeft dan u hebt, wordt onder **Teams** genoemd.
 5. Sla op. Het dialoogvenster **OIDC Configuration** opent met de **Redirect URI**: voeg die toe aan de toegestane redirect-URI's van uw app. Een nieuwe provider staat eerst uit, dus bewerk hem daarna en zet **Ingeschakeld** aan.

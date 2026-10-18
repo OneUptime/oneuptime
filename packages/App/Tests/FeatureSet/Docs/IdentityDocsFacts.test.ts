@@ -874,7 +874,7 @@ describe("the SSO guide", () => {
       "Navigate to **Project Settings** > **Security** > **SSO**",
     );
     expect(english(SSO)).toContain(
-      "2. In OneUptime, go to **Project Settings** > **Security** > **SSO**. Under the SAML providers, click **Create OIDC**.",
+      "2. In OneUptime, go to **Project Settings** > **Security** > **SSO**. Under the SAML providers, click **Add OIDC Provider**.",
     );
     expect(english(SCIM)).toContain("Navigate to **Security** > **SCIM**");
   });

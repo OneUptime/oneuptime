@@ -1,5 +1,6 @@
 import TeamsElement from "../Team/TeamsElement";
 import { getSsoTeamsGrantNote } from "./SsoTeamsGrantNote";
+import ProjectSsoCopy from "./ProjectSsoCopy";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -53,6 +54,11 @@ export interface ComponentProps {
    * tables alike (useDefaultSsoTeamsInitialValues).
    */
   createInitialValues?: FormValues<ProjectOIDC> | undefined;
+  /*
+   * How many OIDC providers the project has, after each load of the list:
+   * the page's test link waits for a provider of either kind to try.
+   */
+  onProviderCountChange?: ((count: number) => void) | undefined;
 }
 
 const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
@@ -82,13 +88,25 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
         isDeleteable={true}
         isEditable={true}
         isCreateable={true}
+        /*
+         * "Add OIDC Provider", and "No OIDC providers yet" while it has
+         * none - as a status page's OIDC list reads (ProjectSsoCopy).
+         */
+        singularName={ProjectSsoCopy.oidcProvider}
+        pluralName={ProjectSsoCopy.oidcProviders}
+        createVerb="Add"
         cardProps={{
           title: "OpenID Connect (OIDC)",
           description:
             "Sign in through an OpenID Connect app, such as Google Workspace, Auth0 or Keycloak.",
         }}
         formSteps={getSsoProviderFormSteps<ProjectOIDC>()}
-        noItemsMessage={"No OIDC configuration found."}
+        onFetchSuccess={(
+          _data: Array<ProjectOIDC>,
+          totalCount: number,
+        ): void => {
+          props.onProviderCountChange?.(totalCount);
+        }}
         viewPageRoute={Navigation.getCurrentRoute()}
         formFields={getOidcProviderFormFields<ProjectOIDC>({
           withTeams: true,
@@ -153,6 +171,7 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
             field: { description: true },
             title: "Description",
             type: FieldType.Text,
+            hideOnMobile: true,
           },
           {
             field: {
@@ -162,7 +181,8 @@ const ProjectOidcProviders: FunctionComponent<ComponentProps> = (
                 projectId: true,
               },
             },
-            title: "Add User to Team",
+            // The teams people who sign in for the first time join.
+            title: ProjectSsoCopy.teamsColumn,
             type: FieldType.Text,
             getElement: (item: ProjectOIDC): ReactElement => {
               return <TeamsElement teams={item["teams"] || []} />;

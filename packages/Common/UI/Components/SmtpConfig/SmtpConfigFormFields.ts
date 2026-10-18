@@ -711,7 +711,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       required: true,
       placeholder: "12345678-1234-1234-1234-123456789012",
       description:
-        "Application (Client) ID from your Azure AD app registration (or service account for JWT Bearer).",
+        "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).",
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);

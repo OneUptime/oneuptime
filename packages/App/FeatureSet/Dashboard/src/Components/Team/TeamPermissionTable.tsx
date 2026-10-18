@@ -30,6 +30,11 @@ import {
 } from "../Permission/RoleCardSelectOptions";
 import { getPermissionScopeFields } from "../Permission/PermissionScopeChoice";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
+import {
+  ADD_PERMISSION_DIALOG_WORDS,
+  AddPermissionDialogKind,
+  AddPermissionDialogWords,
+} from "../Permission/AddPermissionDialogWords";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -85,6 +90,14 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
   // The same role cards an API key's Add Role offers (RoleCardSelectOptions).
   const roleCardSelectOptions: Array<CardSelectOption | CardSelectOptionGroup> =
     getRoleCardSelectOptions();
+
+  // What the Add dialog is called: what the button that opened it said.
+  const createDialogWords: AddPermissionDialogWords =
+    ADD_PERMISSION_DIALOG_WORDS[
+      createPermissionType === CreatePermissionType.RoleBased
+        ? AddPermissionDialogKind.Role
+        : AddPermissionDialogKind.SinglePermission
+    ];
 
   type OpenCreateFormFunction = (type: CreatePermissionType) => void;
 
@@ -147,6 +160,12 @@ const TeamPermissionTable: FunctionComponent<ComponentProps> = (
       isEditable={true}
       isCreateable={false}
       showCreateForm={showCreateForm}
+      /*
+       * Named after the button that opened it - "Add a Role" behind Add
+       * Role - not after the table's model ("Create New Team Permission").
+       */
+      createFormTitle={createDialogWords.title}
+      createFormSubmitButtonText={createDialogWords.submitButtonText}
       name={"Settings > Team > Permissions-" + permissionType}
       createEditModalWidth={ModalWidth.Large}
       isViewable={false}

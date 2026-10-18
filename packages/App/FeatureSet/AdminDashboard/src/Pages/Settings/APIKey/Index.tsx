@@ -36,6 +36,11 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
+      {/*
+       * The card says what the key is, once: its rows no longer repeat
+       * the card's line under their names, and the Edit dialog's fields
+       * say it in the same words.
+       */}
       <CardModelDetail
         name="API Key Settings"
         cardProps={{
@@ -44,6 +49,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.apiKey.editButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.apiKey.editButton")}
         formFields={[
           {
             field: {
@@ -73,8 +80,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                 masterApiKey: true,
               },
               title: "Master API Key",
-              description:
-                "This API key has root access to all the resources in all the projects on OneUptime.",
               fieldType: FieldType.HiddenText,
               opts: {
                 isCopyable: true,
@@ -86,8 +91,6 @@ const Settings: FunctionComponent = (): ReactElement => {
                 isMasterApiKeyEnabled: true,
               },
               title: "Enabled",
-              description:
-                "Enable or disable the master API key. If disabled, all requests using this key will fail.",
               fieldType: FieldType.Boolean,
               placeholder: t("common.notEnabled"),
             },

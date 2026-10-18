@@ -203,28 +203,42 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
               <div className="font-semibold">
                 ACS URL (Assertion Consumer Service / Reply URL):
               </div>
-              <div className="break-all">{acsURL}</div>
+              <div className="break-all font-mono">{acsURL}</div>
             </div>
             <div>
               <div className="font-semibold">Issuer (Entity ID):</div>
-              <div className="break-all">{issuerURL}</div>
+              <div className="break-all font-mono">{issuerURL}</div>
             </div>
           </div>
         </Card>
 
-        <Card
-          title={"Test this SSO provider"}
-          description={
-            <span>
+        {/*
+         * The sentence and the link are the card's body, not its
+         * description: a card's description is hidden on a phone, and the
+         * link is what the card is for. Drawn as a link, as the Dashboard's
+         * test links are.
+         */}
+        <Card title={"Test this SSO provider"}>
+          <div
+            className="space-y-2 text-sm text-gray-600"
+            data-testid="global-sso-test-link"
+          >
+            <p>
               Open this link to test the provider. It must be enabled, which
               only adds a &quot;Sign in with SSO&quot; option and locks no one
-              out.{" "}
-              <Link openInNewTab={true} to={testLoginURL}>
-                <span>{testLoginURL.toString()}</span>
+              out.
+            </p>
+            <p>
+              <Link
+                openInNewTab={true}
+                to={testLoginURL}
+                className="break-all text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+              >
+                <span className="font-mono">{testLoginURL.toString()}</span>
               </Link>
-            </span>
-          }
-        />
+            </p>
+          </div>
+        </Card>
 
         <ModelTable<GlobalSSOProject>
           modelType={GlobalSSOProject}

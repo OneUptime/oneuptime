@@ -63,7 +63,7 @@ Sie brauchen die Berechtigung, SSO-Anbieter hinzuzufügen – **Project Owner**,
 
 2. **SSO-Konfiguration erstellen**
 
-   - Klicken Sie auf **SSO erstellen**
+   - Klicken Sie auf **SAML-Anbieter hinzufügen**
    - Geben Sie einen **Name** für die SSO-Konfiguration ein (z. B. "Keycloak SAML" oder "Okta SAML")
    - Geben Sie die **Anmelde-URL** Ihres Identitätsanbieters ein
    - Geben Sie den **Aussteller** (Entity ID) Ihres Identitätsanbieters ein
@@ -107,7 +107,7 @@ Keycloak ist eine verbreitete Open-Source-Lösung für Identitäts- und Zugriffs
 
 2. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `my-project-oneuptime`)
    - **Anmelde-URL** und **Aussteller**: die Werte oben
    - **Öffentliches Zertifikat**: das Zertifikat, zwischen seinen eigenen Zeilen `BEGIN CERTIFICATE` und `END CERTIFICATE`
@@ -150,7 +150,7 @@ Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitä
 
 3. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `Azure AD SAML`)
    - **Anmelde-URL**: die **Login URL**
    - **Aussteller**: den **Microsoft Entra Identifier**
@@ -202,7 +202,7 @@ Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen e
 
 3. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `Okta SAML`)
    - **Anmelde-URL** und **Aussteller**: die Werte von Okta
    - **Öffentliches Zertifikat**: das Zertifikat, einschließlich der Zeilen `BEGIN CERTIFICATE` und `END CERTIFICATE`
@@ -244,7 +244,7 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 
 :::steps
 1. Registrieren Sie bei Ihrem Identitätsanbieter eine App (einen OIDC-Client), die den Authorization Code Flow mit PKCE nutzen darf, und kopieren Sie ihre **Aussteller-URL**, **Client-ID** und **Client-Secret**.
-2. Gehen Sie in OneUptime zu **Projekteinstellungen** > **Sicherheit** > **SSO**. Klicken Sie unter den SAML-Anbietern auf **OIDC erstellen**.
+2. Gehen Sie in OneUptime zu **Projekteinstellungen** > **Sicherheit** > **SSO**. Klicken Sie unter den SAML-Anbietern auf **OIDC-Anbieter hinzufügen**.
 3. Geben Sie einen **Name** (das, was Personen auf der Anmeldeseite sehen), die **Aussteller-URL**, die **Client-ID** und das **Client-Secret** ein. Sie können stattdessen auch die Discovery-URL des Anbieters in **Aussteller-URL** einfügen.
 4. Im Schritt **Anmeldung** beginnt **Teams** mit dem Mitglieder-Team Ihres Projekts: Wer sich zum ersten Mal anmeldet, kommt in diese Teams. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Discovery-URL** (der Aussteller, gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung ("Sign in with" und der Name). Ändern Sie sie nur, wenn Ihr Anbieter es verlangt. Angenommen werden nur Teams, in die Sie selbst jemanden einladen könnten: Ein Team, das mehr Zugriff gibt, als Sie haben, wird unter **Teams** genannt.
 5. Speichern Sie. Der Dialog **OIDC-Konfiguration** öffnet sich mit der **Weiterleitungs-URI**: Fügen Sie sie den erlaubten Weiterleitungs-URIs Ihrer App hinzu. Ein neuer Anbieter ist zunächst ausgeschaltet; bearbeiten Sie ihn deshalb danach und schalten Sie **Aktiviert** ein.

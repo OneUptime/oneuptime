@@ -23,6 +23,11 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Project from "Common/Models/DatabaseModels/Project";
 import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
+import {
+  ADD_PERMISSION_DIALOG_WORDS,
+  AddPermissionDialogKind,
+  AddPermissionDialogWords,
+} from "../Permission/AddPermissionDialogWords";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -78,6 +83,14 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
     useState<CreatePermissionType>(CreatePermissionType.RoleBased);
 
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
+
+  // What the Add dialog is called: what the button that opened it said.
+  const createDialogWords: AddPermissionDialogWords =
+    ADD_PERMISSION_DIALOG_WORDS[
+      createPermissionType === CreatePermissionType.RoleBased
+        ? AddPermissionDialogKind.Role
+        : AddPermissionDialogKind.SinglePermission
+    ];
 
   type OpenCreateFormFunction = (type: CreatePermissionType) => void;
 
@@ -243,6 +256,15 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
        */
       isCreateable={isBlock}
       showCreateForm={isBlock ? undefined : showCreateForm}
+      /*
+       * Named after the button that opened it - "Add a Role" behind Add
+       * Role - where it read "Add New Permission" behind either. A block
+       * keeps the table's own words, from its own Add button.
+       */
+      createFormTitle={isBlock ? undefined : createDialogWords.title}
+      createFormSubmitButtonText={
+        isBlock ? undefined : createDialogWords.submitButtonText
+      }
       isViewable={false}
       createEditModalWidth={ModalWidth.Large}
       createEditFromRef={formRef}

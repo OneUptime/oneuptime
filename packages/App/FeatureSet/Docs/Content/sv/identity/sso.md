@@ -63,7 +63,7 @@ Du behöver behörighet att lägga till SSO-leverantörer — **Project Owner**,
 
 2. **Skapa SSO-konfigurationen**
 
-   - Klicka på **Skapa SSO**
+   - Klicka på **Lägg till SAML-leverantör**
    - Ange ett **Namn** för SSO-konfigurationen (t.ex. "Keycloak SAML" eller "Okta SAML")
    - Ange **Inloggnings-URL** från din identitetsleverantör
    - Ange **Utfärdare** (Entity ID) från din identitetsleverantör
@@ -107,7 +107,7 @@ Keycloak är en populär lösning med öppen källkod för identitets- och åtko
 
 2. **Skapa leverantören i OneUptime**
 
-   Gå till **Projektinställningar** > **Säkerhet** > **SSO**, klicka på **Skapa SSO** och fyll i:
+   Gå till **Projektinställningar** > **Säkerhet** > **SSO**, klicka på **Lägg till SAML-leverantör** och fyll i:
    - **Namn**: ett beskrivande namn (t.ex. `my-project-oneuptime`)
    - **Inloggnings-URL** och **Utfärdare**: värdena ovan
    - **Offentligt certifikat**: certifikatet, mellan sina egna rader `BEGIN CERTIFICATE` och `END CERTIFICATE`
@@ -150,7 +150,7 @@ Microsoft Entra ID (tidigare Azure AD / Active Directory) är Microsofts molnbas
 
 3. **Skapa leverantören i OneUptime**
 
-   Gå till **Projektinställningar** > **Säkerhet** > **SSO**, klicka på **Skapa SSO** och fyll i:
+   Gå till **Projektinställningar** > **Säkerhet** > **SSO**, klicka på **Lägg till SAML-leverantör** och fyll i:
    - **Namn**: ett beskrivande namn (t.ex. `Azure AD SAML`)
    - **Inloggnings-URL**: **Login URL**
    - **Utfärdare**: **Microsoft Entra Identifier**
@@ -202,7 +202,7 @@ Okta är en vanlig identitetsplattform med SAML-SSO. Du behöver en Okta-organis
 
 3. **Skapa leverantören i OneUptime**
 
-   Gå till **Projektinställningar** > **Säkerhet** > **SSO**, klicka på **Skapa SSO** och fyll i:
+   Gå till **Projektinställningar** > **Säkerhet** > **SSO**, klicka på **Lägg till SAML-leverantör** och fyll i:
    - **Namn**: ett beskrivande namn (t.ex. `Okta SAML`)
    - **Inloggnings-URL** och **Utfärdare**: värdena från Okta
    - **Offentligt certifikat**: certifikatet, inklusive raderna `BEGIN CERTIFICATE` och `END CERTIFICATE`
@@ -244,7 +244,7 @@ Ett projekt kan också logga in via en OpenID Connect-leverantör, till exempel 
 
 :::steps
 1. Registrera en app (en OIDC-klient) hos din identitetsleverantör som får använda auktoriseringskodflödet med PKCE, och kopiera dess **Utfärdar-URL**, **Klient-ID** och **Klienthemlighet**.
-2. Gå till **Projektinställningar** > **Säkerhet** > **SSO** i OneUptime. Klicka på **Skapa OIDC** under SAML-leverantörerna.
+2. Gå till **Projektinställningar** > **Säkerhet** > **SSO** i OneUptime. Klicka på **Lägg till OIDC-leverantör** under SAML-leverantörerna.
 3. Ange ett **Namn** (det som personer ser på inloggningssidan), **Utfärdar-URL**, **Klient-ID** och **Klienthemlighet**. Du kan också klistra in leverantörens discovery-URL i **Utfärdar-URL** i stället.
 4. I steget **Inloggning** börjar **Team** med projektets medlemsteam: personer som loggar in för första gången går med i dessa team. Resten är redan ifyllt under **Fler fält**: **Discovery-URL** (utfärdaren följd av `/.well-known/openid-configuration`), **Omfattningar** (`openid email profile`), anspråksnamnen `email` och `name` och en beskrivning ("Sign in with" och namnet). Ändra dem bara om din leverantör kräver det. Endast team som du själv kan bjuda in någon till godtas: ett team som ger mer åtkomst än du har nämns under **Team**.
 5. Spara. Dialogen **OIDC Configuration** öppnas med **Redirect URI**: lägg till den bland appens tillåtna omdirigerings-URI:er. En ny leverantör börjar avstängd, så redigera den sedan och slå på **Aktiverad**.

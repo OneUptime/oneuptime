@@ -63,7 +63,7 @@ Você precisa de permissão para adicionar provedores de SSO — **Project Owner
 
 2. **Criar a configuração de SSO**
 
-   - Clique em **Criar: SSO**
+   - Clique em **Adicionar provedor SAML**
    - Informe um **Nome** para a configuração de SSO (por exemplo, "Keycloak SAML" ou "Okta SAML")
    - Informe a **URL de login** do seu provedor de identidade
    - Informe o **Emissor** (Entity ID) do seu provedor de identidade
@@ -107,7 +107,7 @@ O Keycloak é uma solução de código aberto bastante usada para gestão de ide
 
 2. **Criar o provedor no OneUptime**
 
-   Vá para **Configurações do projeto** > **Segurança** > **SSO**, clique em **Criar: SSO** e preencha:
+   Vá para **Configurações do projeto** > **Segurança** > **SSO**, clique em **Adicionar provedor SAML** e preencha:
    - **Nome**: um nome descritivo (por exemplo, `my-project-oneuptime`)
    - **URL de login** e **Emissor**: os valores acima
    - **Certificado público**: o certificado, entre as próprias linhas `BEGIN CERTIFICATE` e `END CERTIFICATE`
@@ -150,7 +150,7 @@ O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identi
 
 3. **Criar o provedor no OneUptime**
 
-   Vá para **Configurações do projeto** > **Segurança** > **SSO**, clique em **Criar: SSO** e preencha:
+   Vá para **Configurações do projeto** > **Segurança** > **SSO**, clique em **Adicionar provedor SAML** e preencha:
    - **Nome**: um nome descritivo (por exemplo, `Azure AD SAML`)
    - **URL de login**: a **Login URL**
    - **Emissor**: o **Microsoft Entra Identifier**
@@ -202,7 +202,7 @@ O Okta é uma plataforma de identidade muito usada, com SSO SAML. Você precisa 
 
 3. **Criar o provedor no OneUptime**
 
-   Vá para **Configurações do projeto** > **Segurança** > **SSO**, clique em **Criar: SSO** e preencha:
+   Vá para **Configurações do projeto** > **Segurança** > **SSO**, clique em **Adicionar provedor SAML** e preencha:
    - **Nome**: um nome descritivo (por exemplo, `Okta SAML`)
    - **URL de login** e **Emissor**: os valores do Okta
    - **Certificado público**: o certificado, incluindo as linhas `BEGIN CERTIFICATE` e `END CERTIFICATE`
@@ -244,7 +244,7 @@ Um projeto também pode fazer login por meio de um provedor OpenID Connect, como
 
 :::steps
 1. Registre no seu provedor de identidade um app (um cliente OIDC) que possa usar o fluxo authorization code com PKCE, e copie a **URL do Emissor**, o **Client ID** e o **Client Secret** dele.
-2. No OneUptime, vá para **Configurações do projeto** > **Segurança** > **SSO**. Abaixo dos provedores SAML, clique em **Criar: OIDC**.
+2. No OneUptime, vá para **Configurações do projeto** > **Segurança** > **SSO**. Abaixo dos provedores SAML, clique em **Adicionar provedor OIDC**.
 3. Informe um **Nome** (o que as pessoas veem na página de login), a **URL do Emissor**, o **Client ID** e o **Client Secret**. Você também pode colar a URL de descoberta do provedor em **URL do Emissor**.
 4. Na etapa **Login**, **Equipes** começa com a equipe de membros do seu projeto: quem faz login pela primeira vez entra nessas equipes. Todo o resto já vem preenchido em **Mais campos**: a **URL de descoberta** (o emissor seguido de `/.well-known/openid-configuration`), os **Escopos** (`openid email profile`), os nomes das declarações `email` e `name`, e uma descrição ("Sign in with" seguido do nome). Altere-os apenas se o seu provedor exigir. Só são aceitas equipes para as quais você poderia convidar alguém: uma equipe que dá mais acesso do que você tem é indicada em **Equipes**.
 5. Salve. A caixa de diálogo **OIDC Configuration** abre com a **Redirect URI**: adicione-a às URIs de redirecionamento permitidas do seu app. Um provedor novo começa desligado, então depois edite-o e ative **Habilitado**.

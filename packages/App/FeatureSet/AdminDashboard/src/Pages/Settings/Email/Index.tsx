@@ -15,6 +15,7 @@ import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
 import {
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+  SMTP_AUTH_TYPE_CHOICES,
   getGlobalSmtpConfigFormFields,
   getSmtpConfigFormSteps,
   showsSmtpOAuthCredentials,
@@ -70,6 +71,28 @@ export const getEmailServerTypeTitle: (value: unknown) => string = (
   );
 
   return choice ? choice.title : value ? String(value) : "";
+};
+
+/*
+ * The sign-in a stored Authentication Type reads as, in the Edit dialog's
+ * words: the card showed the stored English ("Username and Password") in
+ * every language. Never picked, the mail service signs in with the
+ * username and password.
+ */
+export const getSmtpAuthTypeTitle: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const choice: RadioButton | undefined = SMTP_AUTH_TYPE_CHOICES.find(
+    (candidate: RadioButton): boolean => {
+      return candidate.value === value;
+    },
+  );
+
+  if (choice) {
+    return choice.title;
+  }
+
+  return value ? String(value) : (SMTP_AUTH_TYPE_CHOICES[0] as RadioButton).title;
 };
 
 const Settings: FunctionComponent = (): ReactElement => {
@@ -153,6 +176,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.email.adminNotificationEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.email.adminNotificationEditButton")}
         formFields={[
           {
             field: {
@@ -191,6 +216,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.email.serverEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.email.serverEditButton")}
         onSaveSuccess={() => {
           window.location.reload();
         }}
@@ -251,6 +278,8 @@ const Settings: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={t("pages.settings.email.smtpEditButton")}
+          // Titled like the button that opens it, not "Edit Global Config".
+          editModalTitle={t("pages.settings.email.smtpEditButton")}
           formSteps={SMTP_HOST_FORM_STEPS}
           formFields={SMTP_HOST_FORM_FIELDS}
           modelDetailProps={{
@@ -314,7 +343,10 @@ const Settings: FunctionComponent = (): ReactElement => {
                   smtpAuthType: true,
                 },
                 title: "Authentication Type",
-                placeholder: "Username and Password",
+                fieldType: FieldType.Element,
+                getElement: (item: GlobalConfig): ReactElement => {
+                  return <span>{t(getSmtpAuthTypeTitle(item.smtpAuthType))}</span>;
+                },
                 showIf: (item: GlobalConfig): boolean => {
                   return showsSmtpServerFields(
                     item,
@@ -420,15 +452,17 @@ const Settings: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={t("pages.settings.email.sendgridEditButton")}
+          // Titled like the button that opens it, not "Edit Global Config".
+          editModalTitle={t("pages.settings.email.sendgridEditButton")}
           formFields={[
             {
               field: {
                 sendgridApiKey: true,
               },
-              title: "Sendgrid API Key",
+              title: "SendGrid API Key",
               fieldType: FormFieldSchemaType.Text,
               required: true,
-              placeholder: "Sendgrid API Key",
+              placeholder: "SendGrid API Key",
               // The column's description only said "Sendgrid API Key" again.
               hideColumnDescription: true,
             },

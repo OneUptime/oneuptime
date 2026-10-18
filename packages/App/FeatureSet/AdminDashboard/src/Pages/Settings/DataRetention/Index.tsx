@@ -44,6 +44,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.dataRetention.logEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.dataRetention.logEditButton")}
         formFields={[
           {
             field: {
@@ -88,6 +90,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.dataRetention.metricEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.dataRetention.metricEditButton")}
         formFields={[
           {
             field: {

@@ -28,7 +28,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Labels",
           description:
-            "Group resources with labels. A team's permission can reach only the resources with certain labels.",
+            "Group resources with labels. A team's permission can be limited to the resources with certain labels.",
         }}
         noItemsMessage={"No labels found."}
         viewPageRoute={Navigation.getCurrentRoute()}

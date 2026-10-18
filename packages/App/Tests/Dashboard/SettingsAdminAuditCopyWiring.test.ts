@@ -54,7 +54,7 @@ describe("Project Settings > Labels", () => {
 
   test("says what labels are for, in a line", () => {
     expect(page).toContain(
-      '"Group resources with labels. A team\'s permission can reach only the resources with certain labels."',
+      '"Group resources with labels. A team\'s permission can be limited to the resources with certain labels."',
     );
     expect(page).not.toContain("Labels help you categorize resources");
   });
