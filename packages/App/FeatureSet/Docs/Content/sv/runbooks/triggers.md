@@ -117,7 +117,7 @@ Svaret namnger den körning det startade: `{"runbookExecutionId": "...", "status
 | `404` | Ingen runbook-webhook svarar på den här URL:en: runbookets ID eller nyckeln är fel, eller så har URL:en återställts. |
 | `405` | Förfrågan är en `GET`. En `GET` startar aldrig en körning, så en länkförhandsvisning i en chattapp kan inte köra den av misstag. |
 | `413` | Innehållet är större än 64 KB. |
-| `429` | Webhooken startade 30 körningar den senaste minuten, 10 av dess körningar pågår fortfarande, eller en adress gjorde fler än 120 anrop till runbook-webhooks på en minut. Headern `Retry-After` säger när du kan försöka igen, där det går. |
+| `429` | Webhooken startade 30 körningar den senaste minuten, 10 av dess körningar pågår fortfarande, eller en adress gjorde fler än 120 anrop till runbook-webhooks på en minut, eller adresserna i ett IPv6-/64 fler än 1200 tillsammans. Headern `Retry-After` säger när du kan försöka igen, där det går. |
 | `503` | OneUptime kan inte räkna anrop just nu. Försök igen om en minut. |
 
 Ett avvisat anrop startar ingenting, och dess innehåll säger varför i en mening, som "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

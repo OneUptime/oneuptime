@@ -117,7 +117,7 @@ A resposta indica a execução iniciada: `{"runbookExecutionId": "...", "status"
 | `404` | Nenhum webhook de runbook responde nesta URL: o ID do runbook ou a chave está errado, ou a URL foi redefinida. |
 | `405` | A solicitação é um `GET`. Um `GET` nunca inicia uma execução, então a pré-visualização de um link em um app de chat não consegue executá-lo por acidente. |
 | `413` | O corpo é maior que 64 KB. |
-| `429` | O webhook iniciou 30 execuções no último minuto, 10 das execuções dele ainda estão em andamento, ou um endereço fez mais de 120 chamadas a webhooks de runbook em um minuto. O cabeçalho `Retry-After` diz quando tentar de novo, quando possível. |
+| `429` | O webhook iniciou 30 execuções no último minuto, 10 das execuções dele ainda estão em andamento, ou um endereço fez mais de 120 chamadas a webhooks de runbook em um minuto, ou os endereços de um mesmo /64 IPv6 mais de 1200 juntos. O cabeçalho `Retry-After` diz quando tentar de novo, quando possível. |
 | `503` | O OneUptime não consegue contar as chamadas agora. Tente de novo em um minuto. |
 
 Uma chamada recusada não inicia nada, e o corpo dela diz o motivo em uma frase, como "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

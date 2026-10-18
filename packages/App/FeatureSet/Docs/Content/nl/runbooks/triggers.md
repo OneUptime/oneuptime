@@ -117,7 +117,7 @@ Het antwoord noemt de gestarte uitvoering: `{"runbookExecutionId": "...", "statu
 | `404` | Op deze URL antwoordt geen runbook-webhook: de runbook-ID of de sleutel klopt niet, of de URL is opnieuw ingesteld. |
 | `405` | Het verzoek is een `GET`. Een `GET` start nooit een uitvoering, dus een linkvoorbeeld in een chat-app kan hem niet per ongeluk uitvoeren. |
 | `413` | De body is groter dan 64 KB. |
-| `429` | De webhook startte 30 uitvoeringen in de laatste minuut, 10 van zijn uitvoeringen lopen nog, of één adres deed meer dan 120 aanroepen naar runbook-webhooks in een minuut. De header `Retry-After` zegt wanneer je het opnieuw kunt proberen, waar dat kan. |
+| `429` | De webhook startte 30 uitvoeringen in de laatste minuut, 10 van zijn uitvoeringen lopen nog, of één adres deed meer dan 120 aanroepen naar runbook-webhooks in een minuut, of de adressen van één IPv6-/64 samen meer dan 1200. De header `Retry-After` zegt wanneer je het opnieuw kunt proberen, waar dat kan. |
 | `503` | OneUptime kan aanroepen nu niet tellen. Probeer het over een minuut opnieuw. |
 
 Een geweigerde aanroep start niets, en de body zegt in één zin waarom, zoals "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

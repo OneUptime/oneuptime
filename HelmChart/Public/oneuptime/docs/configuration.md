@@ -461,6 +461,11 @@ Note that the allowlists assume the app is reachable only *through* those
 proxies. Keep the app Service internal; a caller who can open a connection to
 it directly is the peer, and no header setting compensates for that.
 
+IP rate limits count each client address, and for an IPv6 client its whole
+`/64` as well, with room for ten addresses: one host can send from every
+address of its `/64`, and an office or a hosting provider can put many people
+or servers in one. Both are read from the address `trustedProxyHops` picks.
+
 | Parameter          | Description                                                                                          | Default |
 |--------------------|------------------------------------------------------------------------------------------------------|---------|
 | `trustedProxyHops` | Number of appending reverse proxies you run in front of OneUptime. `0` ignores `X-Forwarded-For` entirely and uses the connecting address. | `1` |
