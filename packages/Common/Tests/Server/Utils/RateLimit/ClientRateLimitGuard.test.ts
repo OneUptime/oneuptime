@@ -106,6 +106,10 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "checks a dashboard's IP allowlist",
   "packages/Common/Server/Services/StatusPageService.ts":
     "checks a status page's IP allowlist",
+  "packages/Probe/Services/SyslogReceiver.ts":
+    "records the address a syslog message arrived from",
+  "packages/Probe/Utils/ProbeApiDiagnostics.ts":
+    "reports the address an outbound connection to the API reached",
 };
 
 /*
@@ -143,10 +147,11 @@ const REDIS_INCREMENT: RegExp =
 /*
  * Reading a client address: importing the ClientIp module (from any
  * folder), calling Express's getClientIp, or a limiter's resolveClientIp or
- * getAddressKey.
+ * getAddressKey - or reading one around them: a request's ip or ips, a
+ * socket's remoteAddress, or a header a proxy names the client in.
  */
 const CLIENT_ADDRESS_READ: RegExp =
-  /(?:from\s+["'](?:[^"']*\/)?ClientIp["']|\bgetClientIp\s*\(|\.resolveClientIp\s*\(|\.getAddressKey\s*\()/;
+  /(?:from\s+["'](?:[^"']*\/)?ClientIp["']|\bgetClientIp\s*\(|\.resolveClientIp\s*\(|\.getAddressKey\s*\(|\b(?:req|request)\??\.ips?\b|\.remoteAddress\b|["'`](?:x-forwarded-for|x-real-ip|cf-connecting-ip|true-client-ip|x-client-ip|fastly-client-ip)["'`])/i;
 
 // ClientRateLimitCounter.count(...), with or without its type argument.
 const COUNTS_THROUGH_COUNTER: RegExp =
@@ -381,6 +386,32 @@ describe("the guard's own patterns", () => {
     expect(
       CLIENT_ADDRESS_READ.test('import IP from "../../Types/IP/IP";'),
     ).toBe(false);
+  });
+
+  test("see a client address read around the ClientIp module", () => {
+    for (const code of [
+      "const key: string = `limit:${req.ip}`;",
+      "const chain: Array<string> = req.ips;",
+      "const ip: string | undefined = request?.ip;",
+      "const peer: string | undefined = req.socket.remoteAddress;",
+      "const peer: string | undefined = connection.remoteAddress;",
+      'const header: unknown = req.headers["x-forwarded-for"];',
+      'const header: unknown = req.get("X-Forwarded-For");',
+      'const header: unknown = req.headers["x-real-ip"];',
+      "const header: unknown = req.headers['cf-connecting-ip'];",
+      'const header: unknown = req.header("True-Client-IP");',
+    ]) {
+      expect([code, CLIENT_ADDRESS_READ.test(code)]).toEqual([code, true]);
+    }
+
+    for (const code of [
+      "const ip: string = monitor.ipAddress;",
+      "const ips: Array<string> = section.ips;",
+      'const legend: string = "Forwarded";',
+      "const requestIp: string = data.requestIp;",
+    ]) {
+      expect([code, CLIENT_ADDRESS_READ.test(code)]).toEqual([code, false]);
+    }
   });
 
   test("see a count through the client counter, with or without its type argument", () => {
