@@ -1,4 +1,5 @@
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
 import DeletePermission from "../../../../../Server/Types/Database/Permissions/DeletePermission";
 import OwnedScopePermission from "../../../../../Server/Types/Database/Permissions/OwnedScopePermission";
 import OwnerTableRegistry from "../../../../../Server/Types/Database/Permissions/OwnerTableRegistry";
@@ -19,6 +20,7 @@ import Permission, {
 import { meetsCondition } from "../../../TestingUtils/QueryConditions";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 import { withLabelJoinTables } from "../../../TestingUtils/LabelJoinTables";
+import { isReadByEveryReader } from "../../../TestingUtils/OwnedScopeKinds";
 import {
   afterEach,
   beforeEach,
@@ -61,6 +63,12 @@ import {
  * same permissions over the whole project reaches every record: the scope
  * is what narrows. A kind no permission a scope can limit lets anyone
  * delete is refused to such a member outright.
+ *
+ * A change keeps to the same records, for every kind, and so does a read -
+ * but of the kinds other records are set up with (a probe, a template, an
+ * on-call schedule: TestingUtils/OwnedScopeKinds), which every reader of
+ * them reads, and of the records that take their owners from those or are
+ * read through one of them: a schedule's layers, a probe's owners.
  */
 
 type ModelType = { new (): BaseModel };
@@ -193,6 +201,83 @@ function grantsToDelete(modelType: ModelType): Array<Permission> {
   ];
 }
 
+/*
+ * The permissions a scope limits that let a member change a kind: its own
+ * update and read permissions - a change needs the read - and the read of
+ * the record it is read through.
+ */
+function grantsToUpdate(modelType: ModelType): Array<Permission> {
+  const readThrough: TableColumnMetadata | null =
+    readThroughColumnOf(modelType);
+
+  return [
+    ...scopeablePermissions(modelType, DatabaseRequestType.Update),
+    ...scopeablePermissions(modelType, DatabaseRequestType.Read),
+    ...(readThrough
+      ? scopeablePermissions(
+          readThrough.modelType as ModelType,
+          DatabaseRequestType.Read,
+        )
+      : []),
+  ];
+}
+
+// The permissions a scope limits that let a member read a kind.
+function grantsToRead(modelType: ModelType): Array<Permission> {
+  const readThrough: TableColumnMetadata | null =
+    readThroughColumnOf(modelType);
+
+  return [
+    ...scopeablePermissions(modelType, DatabaseRequestType.Read),
+    ...(readThrough
+      ? scopeablePermissions(
+          readThrough.modelType as ModelType,
+          DatabaseRequestType.Read,
+        )
+      : []),
+  ];
+}
+
+// The query a change of the kind runs with, after the table check.
+async function updateScopeOf(
+  modelType: ModelType,
+  props: DatabaseCommonInteractionProps,
+): Promise<Dictionary<unknown>> {
+  TablePermission.checkTableLevelPermissions(
+    modelType,
+    props,
+    DatabaseRequestType.Update,
+  );
+
+  return (await BasePermission.addRecordScopeToQuery(
+    modelType,
+    {},
+    null,
+    props,
+    DatabaseRequestType.Update,
+  )) as Dictionary<unknown>;
+}
+
+// The query a read of the kind runs with, after the table check.
+async function readScopeOf(
+  modelType: ModelType,
+  props: DatabaseCommonInteractionProps,
+): Promise<Dictionary<unknown>> {
+  TablePermission.checkTableLevelPermissions(
+    modelType,
+    props,
+    DatabaseRequestType.Read,
+  );
+
+  return (await BasePermission.addRecordScopeToQuery(
+    modelType,
+    {},
+    null,
+    props,
+    DatabaseRequestType.Read,
+  )) as Dictionary<unknown>;
+}
+
 // Whether a row whose `column` is `value` is one the query reaches.
 function reaches(
   query: Dictionary<unknown>,
@@ -285,6 +370,57 @@ const NOT_DELETABLE_KINDS: Array<Kind> = EVERY_KIND.filter(
   },
 );
 
+// Kinds a member may change, or read, with a permission a scope limits.
+const UPDATABLE_KINDS: Array<Kind> = EVERY_KIND.filter(
+  (kind: Kind): boolean => {
+    return (
+      scopeablePermissions(kind.modelType, DatabaseRequestType.Update).length >
+      0
+    );
+  },
+);
+
+const READABLE_KINDS: Array<Kind> = EVERY_KIND.filter(
+  (kind: Kind): boolean => {
+    return (
+      scopeablePermissions(kind.modelType, DatabaseRequestType.Read).length > 0
+    );
+  },
+);
+
+/*
+ * Whether every reader of a kind reads all of its records whatever the scope
+ * of their grant: a kind other records are set up with
+ * (TestingUtils/OwnedScopeKinds), a record that takes its owners only from
+ * such kinds, or one read through such a kind.
+ */
+function isReadByEveryReaderOfIt(kind: Kind): boolean {
+  if (OWNING_KINDS.includes(kind)) {
+    return isReadByEveryReader(kind.name);
+  }
+
+  const model: BaseModel = new kind.modelType();
+  const parents: Array<string> = (model.ownedThrough?.parentModels || []).map(
+    (parentModel: unknown): string => {
+      return (parentModel as ModelType).name;
+    },
+  );
+  const readThrough: TableColumnMetadata | null = readThroughColumnOf(
+    kind.modelType,
+  );
+
+  if (readThrough && REGISTERED.includes((readThrough.modelType as ModelType).name)) {
+    parents.push((readThrough.modelType as ModelType).name);
+  }
+
+  return (
+    parents.length > 0 &&
+    parents.every((parent: string): boolean => {
+      return isReadByEveryReader(parent);
+    })
+  );
+}
+
 describe("a delete by a caller limited to owned records, every kind the Owned scope narrows", () => {
   beforeEach(() => {
     withLabelJoinTables();
@@ -369,6 +505,38 @@ describe("a delete by a caller limited to owned records, every kind the Owned sc
     },
   );
 
+  test("the kinds the Owned scope narrows include every kind with owners, and the records that belong to them", () => {
+    expect(OWNING_KINDS.length).toBe(OwnerTableRegistry.size);
+    expect(OWNING_KINDS.length).toBeGreaterThanOrEqual(37);
+
+    for (const name of [
+      "MonitorGroup",
+      "OnCallDutyPolicySchedule",
+      "AlertEpisode",
+      "IncidentEpisode",
+      "IncomingCallPolicy",
+      "IncidentTemplate",
+      "ScheduledMaintenanceTemplate",
+      "Probe",
+      "Runner",
+      "AIAgent",
+      "MonitorGroupOwnerTeam",
+      "ProbeOwnerUser",
+      "OnCallDutyPolicyScheduleLayer",
+      "OnCallDutyPolicyScheduleLayerUser",
+      "OnCallDutyPolicyScheduleCalendarFeed",
+      "IncomingCallPolicyEscalationRule",
+      "IncidentEpisodeRoleMember",
+    ]) {
+      expect([
+        name,
+        DELETABLE_KINDS.some((kind: Kind): boolean => {
+          return kind.name === name;
+        }),
+      ]).toEqual([name, true]);
+    }
+  });
+
   test.each(NOT_DELETABLE_KINDS)(
     "$name: no grant a scope limits deletes it",
     async (kind: Kind) => {
@@ -385,6 +553,156 @@ describe("a delete by a caller limited to owned records, every kind the Owned sc
           ),
         ),
       ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+});
+
+describe("a change by a caller limited to owned records, every kind the Owned scope narrows", () => {
+  beforeEach(() => {
+    withLabelJoinTables();
+
+    // What the caller owns: OWNED_ID, of every kind.
+    jest
+      .spyOn(OwnedScopePermission as never, "getAllowedResourceIds")
+      .mockResolvedValue([new ObjectID(OWNED_ID)] as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the sweep finds the kinds a member may change", () => {
+    expect(UPDATABLE_KINDS.length).toBeGreaterThan(80);
+
+    for (const name of [
+      "Monitor",
+      "MonitorGroup",
+      "OnCallDutyPolicySchedule",
+      "OnCallDutyPolicyScheduleLayer",
+      "IncidentTemplate",
+      "Probe",
+      "Runner",
+      "IncomingCallPolicyEscalationRule",
+    ]) {
+      expect([
+        name,
+        UPDATABLE_KINDS.some((kind: Kind): boolean => {
+          return kind.name === name;
+        }),
+      ]).toEqual([name, true]);
+    }
+  });
+
+  test.each(UPDATABLE_KINDS)(
+    "$name: an owned-only grant changes only the owned records, by $column",
+    async (kind: Kind) => {
+      const query: Dictionary<unknown> = await updateScopeOf(
+        kind.modelType,
+        memberHolding(grantsToUpdate(kind.modelType), PermissionScope.Owned),
+      );
+
+      expect([
+        kind.name,
+        reaches(query, kind.column, OWNED_ID),
+        reaches(query, kind.column, OTHER_ID),
+      ]).toEqual([kind.name, true, false]);
+    },
+  );
+
+  test.each(UPDATABLE_KINDS)(
+    "$name: the same grants over the whole project change every record",
+    async (kind: Kind) => {
+      const query: Dictionary<unknown> = await updateScopeOf(
+        kind.modelType,
+        memberHolding(grantsToUpdate(kind.modelType), PermissionScope.All),
+      );
+
+      expect([kind.name, reaches(query, kind.column, OTHER_ID)]).toEqual([
+        kind.name,
+        true,
+      ]);
+    },
+  );
+});
+
+describe("a read by a caller limited to owned records, every kind the Owned scope narrows", () => {
+  beforeEach(() => {
+    withLabelJoinTables();
+
+    // What the caller owns: OWNED_ID, of every kind.
+    jest
+      .spyOn(OwnedScopePermission as never, "getAllowedResourceIds")
+      .mockResolvedValue([new ObjectID(OWNED_ID)] as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the kinds every reader reads in full are those other records are set up with, and what belongs to them", () => {
+    expect(
+      READABLE_KINDS.filter((kind: Kind): boolean => {
+        return isReadByEveryReaderOfIt(kind);
+      })
+        .map((kind: Kind): string => {
+          return kind.name;
+        })
+        .sort(),
+    ).toEqual(
+      [
+        "AIAgent",
+        "AIAgentOwnerTeam",
+        "AIAgentOwnerUser",
+        "IncidentTemplate",
+        "IncidentTemplateOwnerTeam",
+        "IncidentTemplateOwnerUser",
+        "OnCallDutyPolicySchedule",
+        "OnCallDutyPolicyScheduleCalendarFeed",
+        "OnCallDutyPolicyScheduleLayer",
+        "OnCallDutyPolicyScheduleLayerUser",
+        "OnCallDutyPolicyScheduleOwnerTeam",
+        "OnCallDutyPolicyScheduleOwnerUser",
+        "Probe",
+        "ProbeOwnerTeam",
+        "ProbeOwnerUser",
+        "Runner",
+        "RunnerOwnerTeam",
+        "RunnerOwnerUser",
+        "ScheduledMaintenanceTemplate",
+        "ScheduledMaintenanceTemplateOwnerTeam",
+        "ScheduledMaintenanceTemplateOwnerUser",
+      ].sort(),
+    );
+  });
+
+  test.each(READABLE_KINDS)(
+    "$name: an owned-only grant reads only the owned records, by $column - or every one of a kind other records are set up with",
+    async (kind: Kind) => {
+      const query: Dictionary<unknown> = await readScopeOf(
+        kind.modelType,
+        memberHolding(grantsToRead(kind.modelType), PermissionScope.Owned),
+      );
+
+      expect([
+        kind.name,
+        reaches(query, kind.column, OWNED_ID),
+        reaches(query, kind.column, OTHER_ID),
+      ]).toEqual([kind.name, true, isReadByEveryReaderOfIt(kind)]);
+    },
+  );
+
+  test.each(READABLE_KINDS)(
+    "$name: the same grants over the whole project read every record",
+    async (kind: Kind) => {
+      const query: Dictionary<unknown> = await readScopeOf(
+        kind.modelType,
+        memberHolding(grantsToRead(kind.modelType), PermissionScope.All),
+      );
+
+      expect([kind.name, reaches(query, kind.column, OTHER_ID)]).toEqual([
+        kind.name,
+        true,
+      ]);
     },
   );
 });
