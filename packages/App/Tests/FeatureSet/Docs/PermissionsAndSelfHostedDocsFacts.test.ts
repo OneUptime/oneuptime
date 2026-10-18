@@ -76,6 +76,7 @@ const SOURCES: Record<string, string> = {
   environmentConfig: `${COMMON_SERVER}/EnvironmentConfig.ts`,
   projectService: `${COMMON_SERVER}/Services/ProjectService.ts`,
   pushService: `${COMMON_SERVER}/Services/PushNotificationService.ts`,
+  pushRelay: "packages/App/FeatureSet/Notification/API/PushRelay.ts",
   receiptQueue: `${COMMON_SERVER}/Infrastructure/ExpoPushReceiptQueue.ts`,
   inboundFactory: `${COMMON_SERVER}/Services/InboundEmail/InboundEmailProviderFactory.ts`,
   sendGridProvider: `${COMMON_SERVER}/Services/InboundEmail/Providers/SendGridInboundProvider.ts`,
@@ -858,7 +859,18 @@ describe("Push Notifications, against the server, the chart and the mobile app",
       "Relays mobile pushes for other OneUptime servers, with this server's `EXPO_ACCESS_TOKEN`. Empty means off, unless `BILLING_ENABLED` is `true`.",
     );
     expect(page).toContain(
-      "A self-hosted OneUptime server relays pushes for other servers only with `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` and its own `EXPO_ACCESS_TOKEN`; any other server answers 404 at that address.",
+      "A self-hosted OneUptime server relays pushes for other servers only with `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` and its own `EXPO_ACCESS_TOKEN`; without the setting it answers 404 at that address. Turn it on only on the server your other OneUptime servers send through, and let only those servers reach that address.",
+    );
+  });
+
+  it("answers 404 at the relay's address without the setting, as the page says, before anything else", () => {
+    const relay: string = readSource("pushRelay");
+
+    expect(relay).toContain(
+      "  if (!PushNotificationService.isPushRelayServer()) {\n    res.status(404).json({ message: PUSH_RELAY_NOT_SERVED_MESSAGE });",
+    );
+    expect(relay.indexOf("router.use(")).toBeLessThan(
+      relay.indexOf("router.post("),
     );
   });
 

@@ -83,7 +83,7 @@ expo:
 
 `PUSH_NOTIFICATION_RELAY_URL`을 바꾸면 그 대상 호스트 이름과 구성한 포트를 허용하세요. 사용자 지정 릴레이는 OneUptime의 릴레이 API를 구현해야 합니다. 이 기본값들과 릴레이와 직접 배달 사이의 전환은 [OneUptime 구성](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)과 [푸시 서비스](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts)에 정의되어 있습니다. Expo로 가는 직접 요청은 [Expo의 전송 가이드](https://docs.expo.dev/push-notifications/sending-notifications/)에 문서화된 엔드포인트를 사용합니다. OneUptime은 `/send` 대신 `/receipts`를 붙인 같은 주소에서 릴레이로부터 배달 수신 확인을 읽습니다. 이 라우트가 없는 릴레이도 푸시는 배달하지만, 그러면 앱이 삭제된 기기는 이후 그 기기로 가는 푸시가 거부될 때에야 알아차리게 됩니다.
 
-자체 호스팅 OneUptime 서버는 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true`와 자신의 `EXPO_ACCESS_TOKEN`이 있을 때만 다른 서버의 푸시를 릴레이합니다. 그 밖의 서버는 그 주소에서 404로 응답합니다.
+자체 호스팅 OneUptime 서버는 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true`와 자신의 `EXPO_ACCESS_TOKEN`이 있을 때만 다른 서버의 푸시를 릴레이합니다. 이 설정이 없으면 그 주소에서 404로 응답합니다. 다른 OneUptime 서버들이 푸시를 보낼 때 거치는 서버에서만 이 설정을 켜고, 그 주소에는 그 서버들만 접근할 수 있게 하세요.
 
 Web Push의 경우 팀이 쓰는 브라우저의 실제 구독 엔드포인트 호스트를 허용하세요. OneUptime은 `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com`, `push.apple.com`을 하위 도메인까지 포함해 허용합니다. 대표적인 예는 `updates.push.services.mozilla.com`과 `web.push.apple.com`입니다. 대상은 [브라우저의 푸시 구독](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)이 제공하며, Expo나 OneUptime 릴레이만 허용해서는 Web Push가 동작하지 않습니다.
 

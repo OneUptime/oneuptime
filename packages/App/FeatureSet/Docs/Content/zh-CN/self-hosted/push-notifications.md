@@ -83,7 +83,7 @@ expo:
 
 如果你更改了 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 的中继 API。这些默认值以及中继与直接投递之间的切换，定义在 [OneUptime 的配置](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) 和 [推送服务](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) 中。直接发给 Expo 的请求使用 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/) 中记录的端点。OneUptime 在同一地址把 `/send` 换成 `/receipts`，从中继读取投递回执。没有该路由的中继仍会投递推送；但这时，应用已被删除的设备只有在之后发往它的推送被拒绝时才会被发现。
 
-自托管的 OneUptime 服务器只有设置了 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` 并拥有自己的 `EXPO_ACCESS_TOKEN`，才会为其他服务器中继推送；其他服务器在该地址返回 404。
+自托管的 OneUptime 服务器只有设置了 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` 并拥有自己的 `EXPO_ACCESS_TOKEN`，才会为其他服务器中继推送；没有这项设置时，它在该地址返回 404。只在您其他 OneUptime 服务器发送时经过的那台服务器上开启，并只让那些服务器访问该地址。
 
 对于 Web Push，请允许你的团队所用浏览器的实际订阅端点主机。OneUptime 接受 `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com` 和 `push.apple.com`，包括它们的子域名。典型的例子有 `updates.push.services.mozilla.com` 和 `web.push.apple.com`。目标由 [浏览器的推送订阅](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) 提供；只允许 Expo 或 OneUptime 的中继并不能启用 Web Push。
 
