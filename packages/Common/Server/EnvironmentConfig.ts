@@ -623,7 +623,7 @@ export const IsClusterKeyShipped: boolean = isShippedSecretValue(
  * or a shipped value, or null. The Runner says its own.
  */
 export const ClusterKeyWarning: string | null = IsClusterKeyShipped
-  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, so nothing needs changing for them, but the in-cluster Runner cannot register until ONEUPTIME_SECRET is a long random value, the same on the app and the Runner. npm start and npm run update put one in config.env for Docker Compose, and the Helm chart generates one unless oneuptimeSecret is set.'
+  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, so nothing needs changing for them, but the in-cluster Runner cannot register until ONEUPTIME_SECRET is a long random value, the same on the app and the Runner. npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
   : null;
 
 export const EnableQueueDashboard: boolean =

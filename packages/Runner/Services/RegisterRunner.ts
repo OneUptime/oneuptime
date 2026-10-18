@@ -83,7 +83,7 @@ export class RegistrationRefusedError extends Error {
  * the retry loop says so once and keeps the container up.
  */
 export const SHIPPED_CLUSTER_KEY_RUNNER_MESSAGE: string =
-  'This in-cluster Runner cannot register: its ONEUPTIME_SECRET is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value from any caller, so nothing is sent. Set ONEUPTIME_SECRET to the same long random value on the OneUptime app and this Runner, then restart both: with Docker Compose, npm start and npm run update put one in config.env; with Helm, leave oneuptimeSecret empty and the chart generates one.';
+  'This in-cluster Runner cannot register: its ONEUPTIME_SECRET is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value from any caller, so nothing is sent. Set ONEUPTIME_SECRET to the same long random value on the OneUptime app and this Runner, then restart both: with Docker Compose, npm start and npm run update put one in config.env; with Helm, set oneuptimeSecret to one.';
 
 export class ShippedClusterKeyError extends Error {
   public constructor() {
