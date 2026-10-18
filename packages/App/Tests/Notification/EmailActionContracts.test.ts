@@ -54,6 +54,7 @@ const DESTINATION_KEYS: ReadonlyArray<string> = [
   "acknowledgeAlertEpisodeLink",
   "passOnLink",
   "twoFactorAuthUrl",
+  "forgotPasswordUrl",
   "capacityPageLink",
   "healthPageLink",
 ];
@@ -512,6 +513,12 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "TwoFactorBackupCodesRegenerated",
     "twoFactorAuthUrl",
     "Manage two factor authentication",
+    null,
+  ],
+  [
+    "TwoFactorWrongCodes",
+    "forgotPasswordUrl",
+    "Reset your password",
     null,
   ],
   [

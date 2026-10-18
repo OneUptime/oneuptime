@@ -65,6 +65,7 @@ const TEMPLATES_THAT_NAME_THE_PRODUCT: ReadonlyArray<string> = [
   "TwoFactorBackupCodeUsed",
   "TwoFactorBackupCodesCreated",
   "TwoFactorBackupCodesRegenerated",
+  "TwoFactorWrongCodes",
 ];
 
 /*
