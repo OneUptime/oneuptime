@@ -472,3 +472,97 @@ describe("mobile passkey PKCE exchange redaction", () => {
     },
   );
 });
+
+/*
+ * The key OneUptime's own services present to each other travels in the
+ * clusterkey request header (x-clusterkey as KEDA sends it), and Runners of
+ * earlier releases put it in the clusterKey field of their registration. A
+ * failed internal call logs the request the client was making - its
+ * headers, its body, the raw request it had started writing - so each of
+ * those shapes is redacted, like any other credential.
+ */
+describe("the cluster key OneUptime's services present", () => {
+  const KEY: string = "Q7dVk2LmX9pR4tWz8NcB1sHf6JyG3uAe";
+  const ENCODED_KEY: string = encodeURIComponent("p@ss/w0rd?&=+%#;: spaces");
+
+  it("is a sensitive key in every spelling of its name", () => {
+    for (const key of [
+      "clusterkey",
+      "clusterKey",
+      "ClusterKey",
+      "x-clusterkey",
+      "X-ClusterKey",
+      "cluster_key",
+      "CLUSTER-KEY",
+    ]) {
+      expect({ key, sensitive: isSensitiveLogKey(key, KEY) }).toEqual({
+        key,
+        sensitive: true,
+      });
+    }
+  });
+
+  it("is redacted from a request's headers, its body and an error carrying them, structurally", () => {
+    for (const value of [KEY, ENCODED_KEY]) {
+      const output: string = serialize({
+        config: {
+          url: "http://app:3002/api/notification/email/send",
+          headers: {
+            Accept: "application/json",
+            clusterkey: value,
+            "x-clusterkey": value,
+          },
+          data: { aiAgentKey: "public-agent-name", clusterKey: value },
+        },
+      });
+
+      expect(output).not.toContain(value);
+      expect(output).toContain("/api/notification/email/send");
+      expect(JSON.parse(output).config.headers.Accept).toBe(
+        "application/json",
+      );
+    }
+  });
+
+  it("is redacted from a body that was already stringified", () => {
+    for (const value of [KEY, ENCODED_KEY]) {
+      const message: string = JSON.stringify({
+        aiAgentKey: "the-runner-key",
+        runnerName: "in-cluster",
+        clusterKey: value,
+      });
+
+      expect(redactLogString(message)).not.toContain(value);
+      expect(redactLogString(message)).toContain('"runnerName":"in-cluster"');
+    }
+  });
+
+  it("is redacted from a raw request a client had started writing, and from a URL", () => {
+    for (const value of [KEY, ENCODED_KEY]) {
+      for (const text of [
+        `POST /api/ai-agent/register HTTP/1.1\r\nAccept: application/json\r\nclusterkey: ${value}\r\nHost: oneuptime-app:3002\r\n\r\n`,
+        `POST /api/notification/sms/send HTTP/1.1\r\nX-ClusterKey: ${value}\r\n`,
+        `http://oneuptime-app:3002/api/notification/email/send?clusterKey=${value}&start=0`,
+        `cluster_key=${value}`,
+      ]) {
+        const output: string = redactLogString(text);
+
+        expect({ text, holdsTheKey: output.includes(value) }).toEqual({
+          text,
+          holdsTheKey: false,
+        });
+        expect(output).toContain(REDACTED);
+      }
+    }
+  });
+
+  it("leaves prose about the key, and words that merely contain it, alone", () => {
+    for (const text of [
+      "Cluster key not found.",
+      "Invalid cluster key provided",
+      "Cluster keys rotate with ONEUPTIME_SECRET.",
+    ]) {
+      expect(redactLogString(text)).toBe(text);
+    }
+  });
+});
