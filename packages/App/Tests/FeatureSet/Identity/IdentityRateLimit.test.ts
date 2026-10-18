@@ -372,6 +372,20 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
+/*
+ * The account's own count of wrong codes lets every code through to its
+ * check here: this suite is about the per-client limiter in front of the
+ * routes. The account's count is TwoFactorWrongCodesSignIn.test.ts, with
+ * this limiter in front of it.
+ */
+jest.mock("Common/Server/Utils/TwoFactorWrongCodes", () => {
+  return (
+    jest.requireActual("./TwoFactorWrongCodesStandIn") as {
+      letEveryCodeBeChecked: () => Record<string, unknown>;
+    }
+  ).letEveryCodeBeChecked();
+});
+
 // Importing the router registers every handler, and every middleware, above.
 import "../../../FeatureSet/Identity/API/Authentication";
 

@@ -148,6 +148,10 @@ Logger du inn på nytt, sendes en ny lenke: sjekk også søppelpostmappen. Kan d
 Ved det andre steget av innloggingen velger du **Mistet tilgangen til autentiseringsappen din?** og skriver inn en av reservekodene dine. Åpne deretter **Sikkerhet → Two-factor authentication**, og legg til den nye appen. Uten reservekoder ber du en administrator av OneUptime-installasjonen din om å tilbakestille totrinnsbekreftelsen på kontoen din.
 :::
 
+:::details Innloggingen ber meg vente før jeg prøver en ny kode
+Etter fem feil koder på rad venter hver neste kode før den blir sjekket: ett minutt, så to, så fire og så videre, opptil en time. OneUptime teller feil koder for kontoen din uansett hvor de skrives inn, sender deg en e-post når ventetidene begynner, og begynner å telle på nytt når du skriver inn en riktig kode. Vent og prøv igjen, logg inn med en sikkerhetsnøkkel, eller velg **Mistet tilgangen til autentiseringsappen din?** og skriv inn en reservekode. Hvis det ikke var du som skrev inn de kodene, kjenner noen passordet ditt: tilbakestill det med **Glemt passord?** på innloggingssiden, som også avslutter ventetiden.
+:::
+
 :::details Tidene i dashbordet er en time feil
 Dashbordet viser tider i **Tidssone** fra profilen din, ikke i datamaskinens. Sjekk den under **Brukerprofil → Oversikt**.
 :::

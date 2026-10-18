@@ -115,15 +115,34 @@ const facet: (
     .filter({ has: page.getByText(option, { exact: true }) })
     .click();
 };
+/*
+ * A picture of the page for the reader of the run, not what a test checks.
+ * Headless Chromium now and then answers a capture under load with "Unable to
+ * capture screenshot" (Page.captureScreenshot): on the 14.0.73 gate that
+ * failed the suite with every assertion passing. That one error is tried
+ * once more after a frame; any other error, or the same one twice, fails.
+ */
+const UNABLE_TO_CAPTURE: string = "Unable to capture screenshot";
+
 const screenshot: (page: Page, name: string) => Promise<void> = async (
   page: Page,
   name: string,
 ): Promise<void> => {
   await mkdir(artifacts, { recursive: true });
-  await page.screenshot({
-    path: path.join(artifacts, `${name}.png`),
-    fullPage: true,
-  });
+  for (let attempt: number = 1; ; attempt++) {
+    try {
+      await page.screenshot({
+        path: path.join(artifacts, `${name}.png`),
+        fullPage: true,
+      });
+      return;
+    } catch (error) {
+      if (attempt >= 2 || !String(error).includes(UNABLE_TO_CAPTURE)) {
+        throw error;
+      }
+      await page.waitForTimeout(500);
+    }
+  }
 };
 const clockSeconds: (text: string) => number = (text: string): number => {
   const match: RegExpMatchArray | null = text.match(

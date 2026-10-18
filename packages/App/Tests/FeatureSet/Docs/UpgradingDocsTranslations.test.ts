@@ -346,6 +346,7 @@ const PROSE_LEADS: Array<string> = [
   "OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to the routes that take it.",
   "PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.",
   "The bundled Runner no longer runs a repository's commands, and holds only what it needs.",
+  "Wrong two-factor codes are counted for the account, wherever they come from.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
