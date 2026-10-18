@@ -168,6 +168,59 @@ describe("ContiguousOrder", () => {
       expect(service.writes).toEqual([]);
     });
 
+    /*
+     * Terraform creates a list's rows in no set order, each at its own
+     * place: the row for 1 can come after the row for 2, which must stay
+     * at 2 (OneUptime/terraform-provider-oneuptime#12).
+     */
+    test("moves nothing when no other row holds the new row's place, even with rows after it", async () => {
+      service.rows.push({ id: idOf(2), order: 2 });
+      service.rows.push({ id: idOf(3), order: 3 });
+      service.rows.push({ id: idOf(1), order: 1 });
+
+      await ContiguousOrder.afterCreate({
+        service: service.asService(),
+        list: list() as never,
+        createdItemId: idOf(1),
+        order: 1,
+      });
+
+      expect(service.writes).toEqual([]);
+      expect(service.orderOf(2)).toBe(2);
+      expect(service.orderOf(3)).toBe(3);
+    });
+
+    test("moves nothing when the row fills a gap", async () => {
+      service.rows.push({ id: idOf(1), order: 1 });
+      service.rows.push({ id: idOf(3), order: 3 });
+      service.rows.push({ id: idOf(2), order: 2 });
+
+      await ContiguousOrder.afterCreate({
+        service: service.asService(),
+        list: list() as never,
+        createdItemId: idOf(2),
+        order: 2,
+      });
+
+      expect(service.writes).toEqual([]);
+    });
+
+    test("a place held only by a row that is not a number's, or has no id, counts as free", async () => {
+      service.rows.push({ id: null, order: 1 });
+      service.rows.push({ id: idOf(2), order: "not a number" });
+      service.rows.push({ id: idOf(3), order: 2 });
+      service.rows.push({ id: idOf(9), order: 1 });
+
+      await ContiguousOrder.afterCreate({
+        service: service.asService(),
+        list: list() as never,
+        createdItemId: idOf(9),
+        order: 1,
+      });
+
+      expect(service.writes).toEqual([]);
+    });
+
     test("moves nothing in an otherwise empty list", async () => {
       await ContiguousOrder.afterCreate({
         service: service.asService(),
@@ -429,7 +482,7 @@ describe("ContiguousOrder", () => {
         service: service.asService(),
         list: list() as never,
         createdItemId: idOf(99),
-        order: 1,
+        order: 5,
       });
 
       expect(writesById(service)).toEqual({ 2: 6 });
@@ -442,9 +495,10 @@ describe("ContiguousOrder", () => {
         service: service.asService(),
         list: list() as never,
         createdItemId: idOf(99),
-        order: 2,
+        order: 3,
       });
 
+      // "3" holds place 3, so it moves.
       expect(writesById(service)).toEqual({ 1: 4 });
     });
 
@@ -474,7 +528,7 @@ describe("ContiguousOrder", () => {
         service: service.asService(),
         list: list() as never,
         createdItemId: idOf(99),
-        order: 1,
+        order: 2,
       });
 
       // Number(null) is 0, which is before the range.
