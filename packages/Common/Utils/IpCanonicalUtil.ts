@@ -1,5 +1,11 @@
 import IP from "../Types/IP/IP";
 
+// 6to4, 2002::/16 (RFC 3056).
+const SIX_TO_FOUR_PREFIX_GROUP: number = 0x2002;
+
+// Teredo, 2001::/32 (RFC 4380): the first two groups.
+const TEREDO_PREFIX_GROUPS: [number, number] = [0x2001, 0x0000];
+
 /*
  * Canonical text form for IP literals, so two spellings of the same
  * address compare equal. IPv4 already has a single canonical dotted-quad
@@ -80,20 +86,29 @@ export default class IpCanonicalUtil {
   }
 
   /*
-   * The IPv4 address an IPv6 literal carries in its last 32 bits, dotted, for
-   * the two prefixes that are nothing but an IPv4 address written as IPv6:
+   * The IPv4 host an IPv6 literal stands for, dotted, for the prefixes whose
+   * addresses are an IPv4 host written as IPv6:
    *
    *  - IPv4-mapped, ::ffff:0:0/96 ("::ffff:192.0.2.1" and "::ffff:c000:201"
    *    are both "192.0.2.1"), what a dual-stack socket reports for an IPv4
    *    peer;
    *  - the well-known IPv4/IPv6 translation prefix, 64:ff9b::/96 (RFC 6052),
    *    what a server reached through a stateless translator sees for an
-   *    IPv4 client.
+   *    IPv4 client;
+   *  - 6to4, 2002::/16 (RFC 3056): the IPv4 address of the site's router in
+   *    the 32 bits after the prefix, with a whole /48 behind it;
+   *  - Teredo, 2001::/32 (RFC 4380): the client's public IPv4 address, its
+   *    bits inverted, in the last 32 bits. The 32 bits after the prefix name
+   *    a Teredo server, which the client writes as it likes, so they are
+   *    not read.
    *
    * Null for anything else. A rate limit counts such an address as the IPv4
-   * client it is (Server/Utils/ClientIp getRateLimitClient): every IPv4
+   * host it is (Server/Utils/ClientIp getRateLimitClient). Every IPv4
    * client behind one translator shares the translator's /96, and counting
-   * that as one IPv6 /64 would hold them all to one allowance.
+   * that as one IPv6 /64 would hold them all to one allowance. And one IPv4
+   * host can send from every /64 of its 6to4 /48, or of any Teredo server it
+   * names, so counting those by their /64 would hand it a fresh allowance
+   * from each.
    */
   public static getEmbeddedIpv4(value: string): string | null {
     const trimmed: string = value.trim();
@@ -104,19 +119,36 @@ export default class IpCanonicalUtil {
 
     const groups: Array<number> | null = IpCanonicalUtil.toIpv6Groups(trimmed);
 
-    if (
-      !groups ||
-      !(
-        IpCanonicalUtil.isIpv4Mapped(groups) ||
-        IpCanonicalUtil.isIpv4Translated(groups)
-      )
-    ) {
+    if (!groups) {
       return null;
     }
 
-    const high: number = groups[6]!;
-    const low: number = groups[7]!;
+    if (
+      IpCanonicalUtil.isIpv4Mapped(groups) ||
+      IpCanonicalUtil.isIpv4Translated(groups)
+    ) {
+      return IpCanonicalUtil.toDottedIpv4(groups[6]!, groups[7]!);
+    }
 
+    if (groups[0] === SIX_TO_FOUR_PREFIX_GROUP) {
+      return IpCanonicalUtil.toDottedIpv4(groups[1]!, groups[2]!);
+    }
+
+    if (
+      groups[0] === TEREDO_PREFIX_GROUPS[0] &&
+      groups[1] === TEREDO_PREFIX_GROUPS[1]
+    ) {
+      return IpCanonicalUtil.toDottedIpv4(
+        groups[6]! ^ 0xffff,
+        groups[7]! ^ 0xffff,
+      );
+    }
+
+    return null;
+  }
+
+  // Two 16-bit groups as a dotted IPv4 address.
+  private static toDottedIpv4(high: number, low: number): string {
     return [high >> 8, high & 0xff, low >> 8, low & 0xff].join(".");
   }
 

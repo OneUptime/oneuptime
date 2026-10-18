@@ -177,6 +177,54 @@ describe("an IPv4 client is counted as it always was", () => {
     expect(redis.commandsSent("get")).toEqual([]);
   });
 
+  test("an IPv4 host sending over 6to4 from every /64 of its /48 is held to its one IPv4 allowance", async () => {
+    // 203.0.113.7's 6to4 /48 is 2002:cb00:7107::/48: 65,536 /64s.
+    const allowed: number = await allowedOf(
+      Array.from({ length: 400 }, (_value: unknown, subnet: number) => {
+        return (): Promise<ClientRateLimitRefusal<Scope> | null> => {
+          return count(`2002:cb00:7107:${subnet.toString(16)}::1`);
+        };
+      }),
+    );
+
+    expect(allowed).toBe(PER_ACCOUNT);
+    expect(redis.keysHolding("/64")).toEqual([]);
+    expect(redis.keys()).toEqual([
+      "t:a:bob:203.0.113.7:1",
+      "t:i:203.0.113.7:1",
+    ]);
+    expect(redis.commandsSent("get")).toEqual([]);
+
+    // The host's plain IPv4 requests are the same host's.
+    expect(await count("203.0.113.7")).toEqual({
+      scope: "account",
+      ipv6Network64: undefined,
+      isFirstRefusalInWindow: false,
+    });
+  });
+
+  test("an IPv4 host sending over Teredo, naming server after server, is held to its one IPv4 allowance", async () => {
+    // Client 203.0.113.7 (cb00:7107), its bits inverted (34ff:8ef8), behind any server.
+    const allowed: number = await allowedOf(
+      Array.from({ length: 400 }, (_value: unknown, server: number) => {
+        return (): Promise<ClientRateLimitRefusal<Scope> | null> => {
+          return count(
+            `2001:0:${(server >> 4).toString(16)}:${(server & 0xf).toString(16)}:8000:${(
+              0xffff - server
+            ).toString(16)}:34ff:8ef8`,
+          );
+        };
+      }),
+    );
+
+    expect(allowed).toBe(PER_ACCOUNT);
+    expect(redis.keysHolding("/64")).toEqual([]);
+    expect(redis.keys()).toEqual([
+      "t:a:bob:203.0.113.7:1",
+      "t:i:203.0.113.7:1",
+    ]);
+  });
+
   test("callers that cannot be placed share one count, with no /64", async () => {
     expect(await count("unknown")).toBeNull();
 

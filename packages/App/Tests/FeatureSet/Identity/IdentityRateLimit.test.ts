@@ -1223,6 +1223,43 @@ describe("an IPv6 /64 is counted as well as each of its addresses", () => {
     );
   });
 
+  it("second-factor guesses from the 6to4 and Teredo addresses of one IPv4 host reach the handler only that host's IPv4 budget", async () => {
+    /*
+     * 203.0.113.50 (cb00:7132) can send from every /64 of its 6to4 /48,
+     * 2002:cb00:7132::/48, and from a Teredo address naming any server it
+     * likes, its own address inverted at the end (34ff:8ecd).
+     */
+    let reached: number = 0;
+
+    for (let index: number = 0; index < 400; index++) {
+      const address: string =
+        index % 2 === 0
+          ? `2002:cb00:7132:${index.toString(16)}::1`
+          : `2001:0:${index.toString(16)}:1:8000:${(0xffff - index).toString(16)}:34ff:8ecd`;
+
+      if (
+        (await attempt({ ...from(address), emailShape: "string" }))
+          .reachedHandler
+      ) {
+        reached++;
+      }
+    }
+
+    expect(reached).toBe(PER_ACCOUNT_LIMIT);
+    expect(findOneBy).toHaveBeenCalledTimes(PER_ACCOUNT_LIMIT);
+
+    // Its plain IPv4 requests are the same host's, with nothing left.
+    expect(
+      (await attempt({ ...from("203.0.113.50"), emailShape: "string" }))
+        .reachedHandler,
+    ).toBe(false);
+    expect(
+      Array.from(redisClient.counters.keys()).filter((key: string): boolean => {
+        return key.includes("/64");
+      }),
+    ).toEqual([]);
+  });
+
   it("an IPv4 network is held to exactly the budget it always had", async () => {
     let reached: number = 0;
 

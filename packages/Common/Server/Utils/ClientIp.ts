@@ -246,9 +246,11 @@ export const getRateLimitClient: (clientIp: string) => RateLimitClient = (
   clientIp: string,
 ): RateLimitClient => {
   /*
-   * An IPv4 client written as IPv6 - IPv4-mapped ("::ffff:203.0.113.7"), or
-   * through a translator's 64:ff9b::/96 - is that IPv4 client, with no /64:
-   * the clients behind one translator do not share an allowance.
+   * An IPv4 host written as IPv6 - IPv4-mapped ("::ffff:203.0.113.7"),
+   * through a translator's 64:ff9b::/96, or over 6to4 or Teredo
+   * (IpCanonicalUtil.getEmbeddedIpv4) - is that IPv4 host, with no /64: the
+   * clients behind one translator do not share an allowance, and one IPv4
+   * host does not take a fresh one from each /64 it can send from.
    */
   const embeddedIpv4: string | null = IpCanonicalUtil.getEmbeddedIpv4(clientIp);
 
