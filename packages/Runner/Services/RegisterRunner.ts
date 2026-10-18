@@ -750,13 +750,19 @@ export default class Register {
         runnerName: RUNNER_NAME,
       } as LogAttributes);
 
+      /*
+       * The key in the clusterkey header, never in the URL or the body:
+       * every OneUptime server reads it there, a release behind included.
+       */
       const result: HTTPResponse<JSONObject> = await API.post({
         url: aiAgentRegistrationUrl,
         data: {
           aiAgentKey: RUNNER_KEY,
           runnerName: RUNNER_NAME,
           aiAgentDescription: RUNNER_DESCRIPTION,
-          clusterKey: ClusterKeyAuthorization.getClusterKey(),
+        },
+        headers: {
+          ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
       });
 

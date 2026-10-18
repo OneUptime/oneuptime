@@ -211,10 +211,11 @@ describe("the paging templates", () => {
   });
 
   /*
-   * Besides them, only the Huntress template pages: for the incident it
-   * opens from a Huntress report (HuntressTemplateSimulation.test.ts runs it).
+   * Besides them, only the Huntress template and the two Zabbix sends its
+   * problems to page: for the incident or alert each opens
+   * (HuntressTemplateSimulation and ZabbixTemplateSimulation run them).
    */
-  test("are every template that pages: no other has a Page step but Huntress's", () => {
+  test("are every template that pages: no other has a Page step but Huntress's and Zabbix's", () => {
     expect(
       getWorkflowTemplates()
         .filter((template: WorkflowTemplate): boolean => {
@@ -223,7 +224,12 @@ describe("the paging templates", () => {
         .map((template: WorkflowTemplate): string => {
           return template.id;
         }),
-    ).toEqual([...PAGE_TEMPLATE_IDS, HUNTRESS_INCIDENT_TEMPLATE_ID]);
+    ).toEqual([
+      ...PAGE_TEMPLATE_IDS,
+      HUNTRESS_INCIDENT_TEMPLATE_ID,
+      "zabbix-declare-incident-from-problem",
+      "zabbix-create-alert-from-problem",
+    ]);
   });
 
   test("are named for what they do, starting with Page, so a search for it finds them", () => {

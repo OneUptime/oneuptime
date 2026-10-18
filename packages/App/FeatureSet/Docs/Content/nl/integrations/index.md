@@ -28,7 +28,7 @@ Een tweerichtingsintegratie, zoals Jira of Dynamics 365, gebruikt beide richting
 | Manier | Het beste voor | Voorbeelden |
 | --- | --- | --- |
 | Een ingebouwde koppeling | Tools waarmee OneUptime zelf verbinding maakt. Je vult een formulier in en er valt niets te bouwen. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), de koppelingen van [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) |
-| Een workflowsjabloon | Ticketingtools, in beide richtingen bijgewerkt, beveiligingsincidentrapporten en chatberichten. Je kiest een sjabloon en vult een paar instellingen in. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress) |
+| Een workflowsjabloon | Ticketingtools, in beide richtingen bijgewerkt, monitoringproblemen, beveiligingsincidentrapporten en chatberichten. Je kiest een sjabloon en vult een paar instellingen in. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
 | Een Incoming Request-monitor | Alertingtools die een webhook sturen. Je krijgt één incident per alert, aan de dienst doorgegeven en opgelost wanneer de alert herstelt, zonder workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Een workflow die je zelf bouwt | Elke tool met een webhook of een REST API, en elke eigen logica. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 
 | Tool | Richting | Wat hij doet |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Inkomend | Maakt van Zabbix-problemen incidenten en lost ze op wanneer Zabbix herstelt. |
+| [Zabbix](/docs/integrations/zabbix) | Beide | Maakt van Zabbix-problemen incidenten of waarschuwingen, lost ze op bij herstel, en bevestigt of sluit de problemen vanuit OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkomend | Maakt van Alertmanager-meldingen incidenten. |
 | [Grafana](/docs/integrations/grafana) | Inkomend | Maakt van Grafana-alerts incidenten. |
 | [Datadog](/docs/integrations/datadog) | Inkomend | Maakt van alerts van Datadog-monitors incidenten. |

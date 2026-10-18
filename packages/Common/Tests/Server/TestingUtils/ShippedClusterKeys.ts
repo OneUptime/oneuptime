@@ -126,6 +126,10 @@ export const OPERATOR_CLUSTER_KEYS: Array<ClusterKeyConfiguration> = [
   { label: "a 1,000 character key", value: "k".repeat(1000) },
   { label: "one that starts like the old fallback", value: "secretive-key-99" },
   { label: "one that ends like the old fallback", value: "my-top-secret" },
+  {
+    label: "characters that travel as they are: ' ( ) ! * ~",
+    value: "it's-(my)-key!*~Q7dVk2LmX9pR4tWz8NcB1sHf",
+  },
 ];
 
 const originalClusterKey: string | undefined = process.env["ONEUPTIME_SECRET"];

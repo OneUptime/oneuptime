@@ -84,6 +84,12 @@ const SENSITIVE_KEY_FRAGMENTS: Array<string> = [
   "connectionuri",
   "dsn",
   "sslkey",
+  /*
+   * The key OneUptime's own services present to each other: the clusterkey
+   * and x-clusterkey headers of a request a client was making when it
+   * failed, and the clusterKey field Runners of earlier releases send.
+   */
+  "clusterkey",
 ];
 
 /*
@@ -232,8 +238,17 @@ export const isSensitiveLogKey: IsSensitiveLogKeyFunction = (
  * fragment list because a couple of the structural fragments (`salt`, `otp`)
  * are too short to match safely against free-form prose.
  */
-const TEXT_SECRET_WORDS: string =
+const OTHER_TEXT_SECRET_WORDS: string =
   "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret|code[_-]?verifier";
+
+/*
+ * The name of the key OneUptime's own services present to each other, in
+ * text: clusterkey, clusterKey, cluster_key, x-clusterkey... Its unquoted
+ * values have a rule of their own (cluster-key-value below).
+ */
+const CLUSTER_KEY_WORD: string = "cluster[_-]?key";
+
+const TEXT_SECRET_WORDS: string = `${OTHER_TEXT_SECRET_WORDS}|${CLUSTER_KEY_WORD}`;
 
 // Bounded, so a long non-matching run cannot blow up on backtracking.
 const KEY_PREFIX: string = "[A-Za-z0-9_.-]{0,40}";
@@ -285,6 +300,30 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
   },
   {
     /*
+     * The key OneUptime's own services present to each other, as it travels:
+     * URI-encoded (ClusterKeyAuthorization.getClusterKey), which leaves
+     * ' ( ) ! * ~ as they are. The rule below ends a value at ' and ), so it
+     * would leave the rest of such a key in the clear. Here an unquoted value
+     * runs to whitespace or a delimiter an encoded key never holds (, ; & ]
+     * } " and a backslash), so a header line (`clusterkey: ...`), a field
+     * (`clusterKey=...`), a console's `{ clusterkey: '...' }` and a raw
+     * request stringified again keep none of it. JSON members are the JSON
+     * rules' above.
+     *
+     * Linear in the text's length: the name's prefix and suffix are bounded
+     * (KEY_PREFIX, KEY_SUFFIX), the value stops at whitespace and a quoted
+     * value at its closing quote (LogRedaction.test reads 400,000 characters
+     * of each worst case).
+     */
+    name: "cluster-key-value",
+    regex: new RegExp(
+      `\\b(${KEY_PREFIX}${CLUSTER_KEY_WORD}${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"(?:[^"\\\\]|\\\\.)*"|[^\\s,;&\\]}"\\\\]+)`,
+      "gi",
+    ),
+    replacement: `$1$2${REDACTED}`,
+  },
+  {
+    /*
      * Unquoted key/value text: form bodies (`client_secret=abc&...`), query
      * strings, header dumps (`Authorization: Bearer abc`) and prose
      * (`password: hunter2`).
@@ -295,7 +334,7 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
      */
     name: "key-value-text",
     regex: new RegExp(
-      `\\b(${KEY_PREFIX}(?:${TEXT_SECRET_WORDS})${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"[^"]*"|'[^']*'|(?:Bearer|Basic|Token)\\s+[^\\s,;&)\\]}"']+|[^\\s,;&)\\]}"']+)`,
+      `\\b(${KEY_PREFIX}(?:${OTHER_TEXT_SECRET_WORDS})${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"[^"]*"|'[^']*'|(?:Bearer|Basic|Token)\\s+[^\\s,;&)\\]}"']+|[^\\s,;&)\\]}"']+)`,
       "gi",
     ),
     replacement: `$1$2${REDACTED}`,
@@ -364,9 +403,17 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
     replacement: REDACTED,
   },
   {
-    // Credentials embedded in a URL: postgres://user:password@host/db
+    /*
+     * Credentials embedded in a URL: postgres://user:password@host/db
+     *
+     * The scheme is bounded (64 characters, far more than any scheme that
+     * carries credentials), so the time this takes grows in line with the
+     * text's length: a scheme can start at every word, and each start reads
+     * no further than that (LogRedaction.test reads 400,000 characters of
+     * the worst cases).
+     */
     name: "url-basic-auth",
-    regex: /\b([a-z][a-z0-9+.-]*:\/\/)([^\s/:@]+):[^\s/@]+@/gi,
+    regex: /\b([a-z][a-z0-9+.-]{0,63}:\/\/)([^\s/:@]+):[^\s/@]+@/gi,
     replacement: `$1$2:${REDACTED}@`,
   },
 ];
