@@ -227,10 +227,17 @@ chartDefaultsVersion), not with those of this chart, {{ .Chart.Version }}.
 values, the old chart's defaults included. So does a values file copied from
 an older chart's values.yaml (or from `helm get values --all`). Either way, a
 default this chart added or changed never applies.
-{{- if $defaults.ebpfImageTagStale }}
+{{- if or $defaults.ebpfImageTagStale $defaults.collectorImageTagStale }}
 Stale here:
+{{- if $defaults.collectorImageTagStale }}
+  - image.tag is {{ $defaults.collectorImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultCollectorImageTag" . | quote }}
+    (the OpenTelemetry Collector, with security fixes the older one lacks).
+    Kept if you set it yourself.
+{{- end }}
+{{- if $defaults.ebpfImageTagStale }}
   - ebpf.image.tag is {{ $defaults.ebpfImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultEbpfImageTag" . | quote }}
     (OBI, the eBPF instrumentation). Kept if you set it yourself.
+{{- end }}
 {{- end }}
 After --reuse-values, apply this chart's defaults and keep the values you set
 (Helm 3.14+):
@@ -252,5 +259,5 @@ Helm before 3.14:
   helm repo update
   {{ $helmGetValues }} && {{ $helmUpgrade }} -f values.yaml
 Not --reuse-values: it keeps this chart's defaults too, so a newer chart's
-defaults (its eBPF image among them) would never apply.
+defaults (its collector and eBPF images among them) would never apply.
 {{- end }}

@@ -1,0 +1,80 @@
+# The node collector's config for the collector it runs.
+#
+# Collector 0.157.0 sums system.cpu.time across logical CPUs unless the cpu
+# scraper is asked for the `cpu` attribute (`attributes: [cpu, state]`), and
+# turned on system.cpu.logical.count. 0.96.0, which the chart pinned before
+# and which `helm upgrade --reuse-values` keeps (image.tag comes with the old
+# values), sends `cpu` with no such key and refuses a config that has one. So
+# the key is written only for a collector that knows it
+# (kubernetes-agent.collectorAtLeast), read from image.tag; a tag that names
+# no version counts as this chart's default. The CPU count is switched off for
+# both: 0.96.0 knows it as an optional metric.
+#
+# Tests/Ops/validate-collector-configs.sh runs both configs through `otelcol
+# validate` on 0.161.0 and on 0.96.0.
+suite: node collector config follows the collector version
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-daemonset.yaml
+set:
+  clusterName: prod-us
+  hostMetrics.enabled: true
+tests:
+  - it: asks the pinned collector for per-CPU system.cpu.time and no CPU count
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      cpu:\\n        metrics:\\n(?:          #[^\\n]*\\n)*          system\\.cpu\\.time:\\n            attributes: \\[cpu, state\\]\\n          system\\.cpu\\.logical\\.count:\\n            enabled: false\\n      load:\\n"
+
+  - it: writes no attributes key for 0.96.0, which a --reuse-values upgrade keeps
+    set:
+      image.tag: "0.96.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      cpu:\\n        metrics:\\n(?:          #[^\\n]*\\n)*          system\\.cpu\\.logical\\.count:\\n            enabled: false\\n      load:\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "attributes: \\[cpu, state\\]"
+
+  - it: writes it from 0.157.0, the release that made `cpu` opt-in
+    set:
+      image.tag: "0.157.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "          system\\.cpu\\.time:\\n            attributes: \\[cpu, state\\]\\n"
+
+  - it: not for the release before it
+    set:
+      image.tag: "0.156.0"
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "attributes: \\[cpu, state\\]"
+
+  - it: reads the version at the front of a tag with a v or a digest
+    set:
+      image.tag: "v0.161.0@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "attributes: \\[cpu, state\\]"
+
+  - it: takes a tag that names no version for this chart's default
+    set:
+      image.tag: latest
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "attributes: \\[cpu, state\\]"
+
+  - it: takes an older version in such a tag at its word
+    set:
+      image.tag: "v0.96.0-mirror"
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "attributes: \\[cpu, state\\]"
