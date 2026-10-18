@@ -1433,6 +1433,35 @@ describe("authoring a runbook", () => {
   });
 });
 
+describe("a new runbook's first steps", () => {
+  const list: string = readDashboard("Pages/Runbook/Runbooks.tsx");
+  const overview: string = readDashboard(
+    "Components/Runbook/RunbookOverviewState.ts",
+  );
+
+  it("open a new runbook on its Steps page, as the authoring guide says", () => {
+    expect(list).toContain("modalType === ModalType.Create && item._id");
+    expect(list).toContain("RouteMap[PageMap.RUNBOOK_VIEW_STEPS] as Route");
+    expect(AUTHORING).toContain("The new runbook opens on its **Steps** page.");
+    expect(AUTHORING).not.toContain(
+      "The new runbook appears in the list: open it.",
+    );
+    expect(INDEX).toContain(
+      "It opens on its **Steps**: add these steps, then click **Save Steps**:",
+    );
+  });
+
+  it("say on the Overview why a runbook cannot run, with the button that fixes it", () => {
+    expect(overview).toContain(
+      'turnOnButton: translationKey("Turn on runbook"),',
+    );
+    expect(overview).toContain('addStepsButton: translationKey("Add Steps"),');
+    expect(RUNNING).toContain(
+      "Its **Overview** says which, with **Turn on runbook** or **Add Steps**.",
+    );
+  });
+});
+
 describe("runbook rules", () => {
   it("walk Create Runbook Rule through the form's steps", () => {
     /*

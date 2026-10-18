@@ -129,7 +129,7 @@ Votre rôle lit les runbooks mais ne les exécute pas : le bouton indique « Vou
 :::
 
 :::details Le lancement échoue avec "Runbook is disabled" ou "Runbook has no steps to run"
-L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page **Paramètres**, ou il n'a aucune étape enregistrée. Activez l'interrupteur, ou ajoutez des étapes et cliquez sur **Save Steps**.
+L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page **Paramètres**, ou il n'a aucune étape enregistrée. Activez l'interrupteur, ou ajoutez des étapes et cliquez sur **Save Steps**. Sa **Vue d'ensemble** indique lequel, avec **Activer le runbook** ou **Ajouter des étapes**.
 :::
 
 :::details Une étape a échoué parce qu'il lui manque un agent Runbook ou un identifiant

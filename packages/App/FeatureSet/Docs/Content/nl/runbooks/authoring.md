@@ -25,11 +25,11 @@ Open **Producten → Runbooks**. Runbooks staat in de groep **Dashboards & autom
 
 ### Het runbook maken
 
-Klik op **Runbook aanmaken**, voer een **Naam** in en eventueel een **Beschrijving** van waar het runbook voor dient. Onder **Meer velden** staan de schakelaar **Ingeschakeld**, standaard aan, en **Labels**. Het nieuwe runbook verschijnt in de lijst: open het.
+Klik op **Runbook aanmaken**, voer een **Naam** in en eventueel een **Beschrijving** van waar het runbook voor dient. Onder **Meer velden** staan de schakelaar **Ingeschakeld**, standaard aan, en **Labels**. Het nieuwe runbook opent op zijn pagina **Stappen**.
 
 ### Stappen toevoegen
 
-Ga naar **Stappen**. Kies onder **Start your runbook** het type van de eerste stap; onder de laatste stap biedt **Add another step** dezelfde zeven typen. Elke stap opent met zijn **Titel**, zijn **Beschrijving** (Markdown, zichtbaar voor wie reageert) en de instellingen van zijn type. Zodra het runbook een stap heeft, voegt **Stap toevoegen** bovenaan de kaart een Manual-stap toe.
+Kies onder **Start your runbook** het type van de eerste stap; onder de laatste stap biedt **Add another step** dezelfde zeven typen. Elke stap opent met zijn **Titel**, zijn **Beschrijving** (Markdown, zichtbaar voor wie reageert) en de instellingen van zijn type. Zodra het runbook een stap heeft, voegt **Stap toevoegen** bovenaan de kaart een Manual-stap toe.
 
 ### De stappen ordenen
 

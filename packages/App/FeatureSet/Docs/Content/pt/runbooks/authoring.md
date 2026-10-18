@@ -25,11 +25,11 @@ Abra **Produtos → Runbooks**. Runbooks fica no grupo **Painéis e automação*
 
 ### Criar o runbook
 
-Clique em **Criar: Runbook**, informe um **Nome** e, se quiser, uma **Descrição** do propósito do runbook. Em **Mais campos** ficam o interruptor **Habilitado**, ligado por padrão, e os **Rótulos**. O novo runbook aparece na lista: abra-o.
+Clique em **Criar: Runbook**, informe um **Nome** e, se quiser, uma **Descrição** do propósito do runbook. Em **Mais campos** ficam o interruptor **Habilitado**, ligado por padrão, e os **Rótulos**. O novo runbook abre na página **Etapas** dele.
 
 ### Adicionar etapas
 
-Vá para **Etapas**. Em **Start your runbook**, escolha o tipo da primeira etapa; abaixo da última etapa, **Add another step** oferece os mesmos sete tipos. Cada etapa abre com seu **Título**, sua **Descrição** (em Markdown, mostrada a quem responde) e as configurações do seu tipo. Assim que o runbook tiver uma etapa, **Adicionar etapa**, no topo do cartão, adiciona uma etapa Manual.
+Em **Start your runbook**, escolha o tipo da primeira etapa; abaixo da última etapa, **Add another step** oferece os mesmos sete tipos. Cada etapa abre com seu **Título**, sua **Descrição** (em Markdown, mostrada a quem responde) e as configurações do seu tipo. Assim que o runbook tiver uma etapa, **Adicionar etapa**, no topo do cartão, adiciona uma etapa Manual.
 
 ### Ordenar as etapas
 

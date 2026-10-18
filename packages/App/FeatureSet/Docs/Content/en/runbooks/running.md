@@ -129,7 +129,7 @@ Your role reads runbooks but does not run them: the button says "You do not have
 :::
 
 :::details Starting a run fails with "Runbook is disabled" or "Runbook has no steps to run"
-The runbook's **Run this runbook** switch is off, on its **Settings** page, or it has no saved steps. Turn the switch on, or add steps and click **Save Steps**.
+The runbook's **Run this runbook** switch is off, on its **Settings** page, or it has no saved steps. Turn the switch on, or add steps and click **Save Steps**. Its **Overview** says which, with **Turn on runbook** or **Add Steps**.
 :::
 
 :::details A step failed because it is missing a Runner or a credential

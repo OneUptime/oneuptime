@@ -25,11 +25,11 @@ Du skriver ett runbook som en ordnad lista med steg på dess sida **Steg**. Den 
 
 ### Skapa runbooket
 
-Klicka på **Skapa Runbook**, ange ett **Namn** och eventuellt en **Beskrivning** av vad runbooket är till för. Under **Fler fält** finns brytaren **Aktiverad**, som är påslagen som standard, och **Etiketter**. Det nya runbooket visas i listan: öppna det.
+Klicka på **Skapa Runbook**, ange ett **Namn** och eventuellt en **Beskrivning** av vad runbooket är till för. Under **Fler fält** finns brytaren **Aktiverad**, som är påslagen som standard, och **Etiketter**. Det nya runbooket öppnas på sin sida **Steg**.
 
 ### Lägg till steg
 
-Gå till **Steg**. Under **Start your runbook** väljer du typen för det första steget; under det sista steget erbjuder **Add another step** samma sju typer. Varje steg öppnas med sin **Titel**, sin **Beskrivning** (Markdown, visas för den som hanterar incidenten) och inställningarna för sin typ. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
+Under **Start your runbook** väljer du typen för det första steget; under det sista steget erbjuder **Add another step** samma sju typer. Varje steg öppnas med sin **Titel**, sin **Beskrivning** (Markdown, visas för den som hanterar incidenten) och inställningarna för sin typ. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
 
 ### Ordna stegen
 

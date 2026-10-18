@@ -25,11 +25,11 @@ Apri **Prodotti → Runbook**. Runbook si trova nel gruppo **Dashboard e automaz
 
 ### Crea il runbook
 
-Fai clic su **Crea: Runbook**, inserisci un **Nome** e, se vuoi, una **Descrizione** di cosa fa il runbook. In **Altri campi** trovi l'interruttore **Abilitato**, attivo per impostazione predefinita, e le **Etichette**. Il nuovo runbook compare nell'elenco: aprilo.
+Fai clic su **Crea: Runbook**, inserisci un **Nome** e, se vuoi, una **Descrizione** di cosa fa il runbook. In **Altri campi** trovi l'interruttore **Abilitato**, attivo per impostazione predefinita, e le **Etichette**. Il nuovo runbook si apre sulla sua pagina **Passaggi**.
 
 ### Aggiungi i passaggi
 
-Vai in **Passaggi**. In **Start your runbook**, scegli il tipo del primo passaggio; sotto l'ultimo passaggio, **Add another step** offre gli stessi sette tipi. Ogni passaggio si apre con il suo **Titolo**, la sua **Descrizione** (in Markdown, mostrata a chi interviene) e le impostazioni del suo tipo. Quando il runbook ha almeno un passaggio, **Aggiungi passaggio**, in alto nella scheda, aggiunge un passaggio Manual.
+In **Start your runbook**, scegli il tipo del primo passaggio; sotto l'ultimo passaggio, **Add another step** offre gli stessi sette tipi. Ogni passaggio si apre con il suo **Titolo**, la sua **Descrizione** (in Markdown, mostrata a chi interviene) e le impostazioni del suo tipo. Quando il runbook ha almeno un passaggio, **Aggiungi passaggio**, in alto nella scheda, aggiunge un passaggio Manual.
 
 ### Metti in ordine i passaggi
 

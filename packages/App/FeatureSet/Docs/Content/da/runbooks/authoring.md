@@ -25,11 +25,11 @@ Du skriver et runbook som en ordnet liste af trin på dets side **Trin**. Denne 
 
 ### Opret runbooket
 
-Klik på **Opret Runbook**, angiv et **Navn** og eventuelt en **Beskrivelse** af, hvad runbooket er til. Under **Flere felter** ligger kontakten **Aktiveret**, der er slået til som standard, og **Etiketter**. Det nye runbook vises på listen: åbn det.
+Klik på **Opret Runbook**, angiv et **Navn** og eventuelt en **Beskrivelse** af, hvad runbooket er til. Under **Flere felter** ligger kontakten **Aktiveret**, der er slået til som standard, og **Etiketter**. Det nye runbook åbner på sin side **Trin**.
 
 ### Tilføj trin
 
-Gå til **Trin**. Under **Start your runbook** vælger du typen af det første trin; under det sidste trin tilbyder **Add another step** de samme syv typer. Hvert trin åbner med sin **Titel**, sin **Beskrivelse** (Markdown, vises for den, der reagerer) og indstillingerne for sin type. Når runbooket har et trin, tilføjer **Tilføj trin** øverst på kortet et Manual-trin.
+Under **Start your runbook** vælger du typen af det første trin; under det sidste trin tilbyder **Add another step** de samme syv typer. Hvert trin åbner med sin **Titel**, sin **Beskrivelse** (Markdown, vises for den, der reagerer) og indstillingerne for sin type. Når runbooket har et trin, tilføjer **Tilføj trin** øverst på kortet et Manual-trin.
 
 ### Sæt trinnene i rækkefølge
 

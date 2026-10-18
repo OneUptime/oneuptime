@@ -25,11 +25,11 @@ Du skriver et runbook som en ordnet liste med trinn på siden **Trinn**. Denne s
 
 ### Opprett runbooket
 
-Klikk **Opprett Runbook**, skriv inn et **Navn** og eventuelt en **Beskrivelse** av hva runbooket er til. Under **Flere felt** ligger bryteren **Aktivert**, som er slått på som standard, og **Etiketter**. Det nye runbooket vises i listen: åpne det.
+Klikk **Opprett Runbook**, skriv inn et **Navn** og eventuelt en **Beskrivelse** av hva runbooket er til. Under **Flere felt** ligger bryteren **Aktivert**, som er slått på som standard, og **Etiketter**. Det nye runbooket åpnes på siden **Trinn**.
 
 ### Legg til trinn
 
-Gå til **Trinn**. Under **Start your runbook** velger du typen for det første trinnet; under det siste trinnet tilbyr **Add another step** de samme sju typene. Hvert trinn åpnes med **Tittel**, **Beskrivelse** (Markdown, vises for den som håndterer hendelsen) og innstillingene for typen. Når runbooket har et trinn, legger **Legg til trinn** øverst på kortet til et Manual-trinn.
+Under **Start your runbook** velger du typen for det første trinnet; under det siste trinnet tilbyr **Add another step** de samme sju typene. Hvert trinn åpnes med **Tittel**, **Beskrivelse** (Markdown, vises for den som håndterer hendelsen) og innstillingene for typen. Når runbooket har et trinn, legger **Legg til trinn** øverst på kortet til et Manual-trinn.
 
 ### Sett trinnene i rekkefølge
 
