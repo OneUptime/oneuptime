@@ -693,8 +693,7 @@ router.post(
        * number left at 0 counts as 1.
        */
       if (
-        (callLog.repeatCount || 0) <
-        getIncomingCallPolicyRepeatsAllowed(policy)
+        (callLog.repeatCount || 0) < getIncomingCallPolicyRepeatsAllowed(policy)
       ) {
         const repeatResolved: {
           rule: IncomingCallPolicyEscalationRule;

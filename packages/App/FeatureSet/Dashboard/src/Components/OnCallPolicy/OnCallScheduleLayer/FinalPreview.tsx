@@ -193,7 +193,9 @@ const Layers: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                   Navigation.navigate(
                     RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS] as Route,
+                      RouteMap[
+                        PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS
+                      ] as Route,
                       { modelId: props.onCallDutyPolicyScheduleId },
                     ),
                   );

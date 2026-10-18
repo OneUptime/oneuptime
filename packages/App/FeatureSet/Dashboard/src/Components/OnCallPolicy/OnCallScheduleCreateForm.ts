@@ -367,7 +367,8 @@ export const getOnCallScheduleCreateFormFields: (
         timezone: true,
       },
       title: "Timezone",
-      description: "The schedule's times are in this timezone. It starts at yours.",
+      description:
+        "The schedule's times are in this timezone. It starts at yours.",
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
       defaultValue: OneUptimeDate.getCurrentTimezone(),

@@ -118,12 +118,10 @@ const IncomingCallPoliciesPage: FunctionComponent<
    * The name, with the description and the labels under More fields
    * (IncomingCallPolicyCreateForm.ts). Built once, not on every render.
    */
-  const createFormFields: Array<ModelField<IncomingCallPolicy>> = useMemo(
-    (): Array<ModelField<IncomingCallPolicy>> => {
+  const createFormFields: Array<ModelField<IncomingCallPolicy>> =
+    useMemo((): Array<ModelField<IncomingCallPolicy>> => {
       return getIncomingCallPolicyCreateFormFields();
-    },
-    [],
-  );
+    }, []);
 
   const fetchPhoneNumbersForPolicies: (
     policies: Array<IncomingCallPolicy>,
@@ -250,7 +248,9 @@ const IncomingCallPoliciesPage: FunctionComponent<
           if (item._id) {
             Navigation.navigate(
               RouteUtil.populateRouteParams(
-                RouteMap[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW] as Route,
+                RouteMap[
+                  PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW
+                ] as Route,
                 { modelId: new ObjectID(item._id.toString()) },
               ),
             );

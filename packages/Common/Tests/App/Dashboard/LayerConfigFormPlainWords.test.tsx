@@ -159,9 +159,7 @@ describe("a layer's form", () => {
     });
 
     expect(fold).toHaveAttribute("aria-expanded", "true");
-    expect(
-      screen.getByRole("textbox", { name: /^Description/ }),
-    ).toBeVisible();
+    expect(screen.getByRole("textbox", { name: /^Description/ })).toBeVisible();
   });
 
   test("still has its three sections and its one Save", async () => {
@@ -169,7 +167,11 @@ describe("a layer's form", () => {
 
     await screen.findByText("Layer name");
 
-    for (const section of ["Layer details", "Rotation schedule", "Active hours"]) {
+    for (const section of [
+      "Layer details",
+      "Rotation schedule",
+      "Active hours",
+    ]) {
       expect(screen.getByText(section)).toBeInTheDocument();
     }
 

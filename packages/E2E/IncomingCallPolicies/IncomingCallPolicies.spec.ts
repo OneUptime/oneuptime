@@ -414,9 +414,7 @@ test("the create form validates the name, then opens the new policy", async ({
    * the Twilio account, the number and the rules it still needs - rather
    * than leaving a "Setup Needed" row in the list for somebody to open.
    */
-  await expect(page).toHaveURL(
-    `${ROUTE}/30000000-0000-4000-8000-000000000005`,
-  );
+  await expect(page).toHaveURL(`${ROUTE}/30000000-0000-4000-8000-000000000005`);
 });
 
 test("an empty list says what a policy is for, offers Create and the docs", async ({

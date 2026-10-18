@@ -15,7 +15,7 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SelectFormFields from "Common/UI/Types/SelectEntityField";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -73,9 +73,7 @@ export const getRepeatChoiceFormFields: <TBaseModel extends BaseModel>(
   const isStartingAgain: (values: FormValues<TBaseModel>) => boolean = (
     values: FormValues<TBaseModel>,
   ): boolean => {
-    return (
-      getRepeatChoiceInForm(config, values) === RepeatChoice.StartAgain
-    );
+    return getRepeatChoiceInForm(config, values) === RepeatChoice.StartAgain;
   };
 
   return [
@@ -211,10 +209,16 @@ export const RepeatChoiceSummary: (
   return (
     <span data-testid={`${props.config.dataTestId}-summary`}>
       {translator.translateTemplate(props.config.copy.startAgainSummary, {
-        times: translator.translatePlural(
-          { one: "{{count}} more time", other: "{{count}} more times" },
-          getRepeatTimes(props.config, props.item),
-        ),
+        /*
+         * "2 more times" in the sentence's own language: a reader whose
+         * language has not worded the sentence reads it all in English.
+         */
+        times: composedValue((sentence: Translator): string => {
+          return sentence.translatePlural(
+            { one: "{{count}} more time", other: "{{count}} more times" },
+            getRepeatTimes(props.config, props.item),
+          );
+        }),
       })}
     </span>
   );
@@ -260,9 +264,7 @@ const RepeatChoiceCard: <TBaseModel extends BaseModel>(
             } as Select<TBaseModel>,
             title: props.config.copy.rowTitle,
             getElement: (item: TBaseModel): ReactElement => {
-              return (
-                <RepeatChoiceSummary config={props.config} item={item} />
-              );
+              return <RepeatChoiceSummary config={props.config} item={item} />;
             },
           },
         ],

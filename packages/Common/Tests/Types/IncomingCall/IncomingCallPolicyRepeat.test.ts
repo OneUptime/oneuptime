@@ -95,7 +95,16 @@ describe("the repeats an incoming call policy allows", () => {
       undefined,
     ];
     const numbers: Array<number | null | undefined> = [
-      -3, -1, 0, 1, 2, 3, 5, 10, null, undefined,
+      -3,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      5,
+      10,
+      null,
+      undefined,
     ];
     const mismatches: Array<string> = [];
 

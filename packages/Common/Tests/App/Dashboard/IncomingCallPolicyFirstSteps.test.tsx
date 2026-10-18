@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, configure, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  configure,
+  render,
+  screen,
+} from "@testing-library/react";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { JSONObject } from "../../../Types/JSON";
@@ -64,14 +70,17 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-jest.mock("../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/PhoneNumberPurchase", () => {
-  return {
-    __esModule: true,
-    default: (): React.ReactElement => {
-      return <div data-testid="phone-number-purchase" />;
-    },
-  };
-});
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/PhoneNumberPurchase",
+  () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return <div data-testid="phone-number-purchase" />;
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -383,7 +392,9 @@ describe("a policy's Overview", () => {
 
     expect(await screen.findByText("Setup")).toBeInTheDocument();
     expect(
-      screen.getByText("Three steps, in order, before this policy can take calls."),
+      screen.getByText(
+        "Three steps, in order, before this policy can take calls.",
+      ),
     ).toBeInTheDocument();
     expect(positionOf("Setup")).toBeGreaterThan(-1);
     expect(positionOf("Setup")).toBeLessThan(

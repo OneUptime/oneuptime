@@ -46,7 +46,10 @@ function incoming(repeat: unknown, times: unknown): Values {
 
 describe("the two answers", () => {
   test("are Stop, then Start again - what a new policy does comes first", () => {
-    expect(REPEAT_CHOICES).toEqual([RepeatChoice.Stop, RepeatChoice.StartAgain]);
+    expect(REPEAT_CHOICES).toEqual([
+      RepeatChoice.Stop,
+      RepeatChoice.StartAgain,
+    ]);
     expect(isRepeatChoice("stop")).toBe(true);
     expect(isRepeatChoice("start-again")).toBe(true);
     expect(isRepeatChoice("repeat")).toBe(false);
@@ -225,9 +228,10 @@ describe("picking Start again", () => {
         choice: RepeatChoice.StartAgain,
       });
 
-      expect({ times, stored: values[ON_CALL_POLICY_REPEAT.columns.times] }).toEqual(
-        { times, stored: 1 },
-      );
+      expect({
+        times,
+        stored: values[ON_CALL_POLICY_REPEAT.columns.times],
+      }).toEqual({ times, stored: 1 });
     }
   });
 
@@ -317,9 +321,9 @@ describe("the words", () => {
     expect(ON_CALL_POLICY_REPEAT.copy.fieldTitle).toBe(
       "If nobody acknowledges after the last level",
     );
-    expect(
-      ON_CALL_POLICY_REPEAT.copy.choices[RepeatChoice.Stop].title,
-    ).toBe("Stop paging");
+    expect(ON_CALL_POLICY_REPEAT.copy.choices[RepeatChoice.Stop].title).toBe(
+      "Stop paging",
+    );
     expect(
       ON_CALL_POLICY_REPEAT.copy.choices[RepeatChoice.StartAgain].title,
     ).toBe("Start again from Level 1");

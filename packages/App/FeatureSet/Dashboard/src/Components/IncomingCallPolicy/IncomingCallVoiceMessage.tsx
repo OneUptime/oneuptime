@@ -33,9 +33,12 @@ const IncomingCallVoiceMessage: FunctionComponent<ComponentProps> = (
 
   return (
     <span className="text-gray-500" data-testid={props.dataTestId}>
-      {translator.translateTemplate(IncomingCallVoiceMessagesCopy.emptyMessage, {
-        message: props.defaultMessage,
-      })}
+      {translator.translateTemplate(
+        IncomingCallVoiceMessagesCopy.emptyMessage,
+        {
+          message: props.defaultMessage,
+        },
+      )}
     </span>
   );
 };

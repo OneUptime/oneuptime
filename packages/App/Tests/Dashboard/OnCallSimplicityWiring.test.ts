@@ -230,7 +230,9 @@ describe("an incoming call policy's Settings page", () => {
 
     expect(
       read("Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy.ts"),
-    ).toContain('INCOMING_CALL_ANSWER_CALLS_COLUMN: IncomingCallAnswerCallsColumn =\n  "isEnabled"');
+    ).toContain(
+      'INCOMING_CALL_ANSWER_CALLS_COLUMN: IncomingCallAnswerCallsColumn =\n  "isEnabled"',
+    );
   });
 
   test("has no Policy Settings dialog of three unlike things", () => {
@@ -248,13 +250,34 @@ describe("an incoming call policy's Settings page", () => {
 
 describe("names and descriptions in the area's forms", () => {
   const FORMS: Array<{ file: string; nameAndDescription: number }> = [
-    { file: "Components/OnCallPolicy/OnCallPolicyCreateForm.ts", nameAndDescription: 2 },
-    { file: "Components/OnCallPolicy/OnCallScheduleCreateForm.ts", nameAndDescription: 2 },
-    { file: "Components/IncomingCallPolicy/IncomingCallPolicyCreateForm.ts", nameAndDescription: 2 },
-    { file: "Pages/OnCallDuty/OnCallDutyPolicy/Index.tsx", nameAndDescription: 2 },
-    { file: "Pages/OnCallDuty/OnCallDutySchedule/Index.tsx", nameAndDescription: 2 },
-    { file: "Pages/OnCallDuty/IncomingCallPolicy/Index.tsx", nameAndDescription: 2 },
-    { file: "Components/OnCallPolicy/OnCallScheduleLayer/LayerConfigForm.tsx", nameAndDescription: 2 },
+    {
+      file: "Components/OnCallPolicy/OnCallPolicyCreateForm.ts",
+      nameAndDescription: 2,
+    },
+    {
+      file: "Components/OnCallPolicy/OnCallScheduleCreateForm.ts",
+      nameAndDescription: 2,
+    },
+    {
+      file: "Components/IncomingCallPolicy/IncomingCallPolicyCreateForm.ts",
+      nameAndDescription: 2,
+    },
+    {
+      file: "Pages/OnCallDuty/OnCallDutyPolicy/Index.tsx",
+      nameAndDescription: 2,
+    },
+    {
+      file: "Pages/OnCallDuty/OnCallDutySchedule/Index.tsx",
+      nameAndDescription: 2,
+    },
+    {
+      file: "Pages/OnCallDuty/IncomingCallPolicy/Index.tsx",
+      nameAndDescription: 2,
+    },
+    {
+      file: "Components/OnCallPolicy/OnCallScheduleLayer/LayerConfigForm.tsx",
+      nameAndDescription: 2,
+    },
   ];
 
   test.each(FORMS)(
@@ -272,7 +295,7 @@ describe("names and descriptions in the area's forms", () => {
     );
 
     expect(table).toContain(
-      'title: notifyAfterFieldTitle, /* * Its own line: the column\'s',
+      "title: notifyAfterFieldTitle, /* * Its own line: the column's",
     );
     expect(table).toContain(
       'description: "How long after the page to use this method."',
@@ -302,7 +325,9 @@ describe("a schedule's Overview", () => {
   test("is edited as an On-Call Schedule", () => {
     expect(overview).toContain("editButtonText={SCHEDULE_EDIT_BUTTON_TEXT}");
     expect(
-      read("Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy.ts"),
+      read(
+        "Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy.ts",
+      ),
     ).toContain('translationKey(\n  "Edit On-Call Schedule",\n)');
   });
 });

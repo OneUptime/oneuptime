@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import fs from "fs";
 import path from "path";
@@ -83,7 +90,8 @@ function LocationProbe(): React.ReactElement {
   );
 }
 
-let layoutRenders: number = 0;
+// How often a layout drew, counted by the mocked layouts below.
+const layoutRenders: { count: number } = { count: 0 };
 
 for (const module of pageModules()) {
   jest.doMock(`${DASHBOARD}/Pages/${module}`, () => {
@@ -91,7 +99,7 @@ for (const module of pageModules()) {
       return {
         __esModule: true,
         default: (): React.ReactElement => {
-          layoutRenders++;
+          layoutRenders.count++;
           const { Outlet } = jest.requireActual("react-router-dom") as {
             Outlet: React.ComponentType;
           };
@@ -164,7 +172,7 @@ function landedOn(): string {
 }
 
 beforeEach(() => {
-  layoutRenders = 0;
+  layoutRenders.count = 0;
   goTo(`/dashboard/${PROJECT_ID}`);
 });
 
@@ -257,14 +265,14 @@ describe("the old Documentation address of a policy", () => {
 
   test("draws the policy's layout no more often than a direct visit to the Overview", () => {
     visit(`${BASE}/incoming-call-policies/${POLICY_ID}`);
-    const direct: number = layoutRenders;
+    const direct: number = layoutRenders.count;
     cleanup();
-    layoutRenders = 0;
+    layoutRenders.count = 0;
 
     visit(`${BASE}/incoming-call-policies/${POLICY_ID}/docs`);
 
     expect(direct).toBeGreaterThan(0);
-    expect(layoutRenders).toBe(direct);
+    expect(layoutRenders.count).toBe(direct);
   });
 
   test("every other page of a policy still opens as itself", () => {

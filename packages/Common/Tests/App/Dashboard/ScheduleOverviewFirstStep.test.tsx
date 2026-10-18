@@ -98,15 +98,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: async (data: {
         modelType: { new (): unknown };
       }): Promise<unknown> => {
-        return Object.assign(
-          new data.modelType() as Record<string, unknown>,
-          {
-            _id: SCHEDULE_ID,
-            name: "Platform primary",
-            description: "Weekly rotation of the platform team.",
-            timezone: "Europe/London",
-          },
-        );
+        return Object.assign(new data.modelType() as Record<string, unknown>, {
+          _id: SCHEDULE_ID,
+          name: "Platform primary",
+          description: "Weekly rotation of the platform team.",
+          timezone: "Europe/London",
+        });
       },
       getList: async (data: {
         modelType: { new (): unknown };

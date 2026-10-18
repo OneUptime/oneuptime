@@ -313,9 +313,7 @@ describe("an on-call policy's Repeat Policy card", () => {
     await settle();
 
     expect(within(dialog).getByText("How many more times?")).toBeVisible();
-    expect(
-      within(dialog).getByText("After that, paging stops."),
-    ).toBeVisible();
+    expect(within(dialog).getByText("After that, paging stops.")).toBeVisible();
     expect(timesBox(dialog)!.value).toBe("1");
 
     await save();
@@ -443,9 +441,7 @@ describe("an incoming call policy's Repeat Policy card", () => {
       screen.getByText("What happens when nobody answers after the last rule."),
     ).toBeInTheDocument();
     expect(screen.getByText("After the last rule")).toBeInTheDocument();
-    expect(summary("incoming-call-repeat")).toHaveTextContent(
-      /^End the call$/,
-    );
+    expect(summary("incoming-call-repeat")).toHaveTextContent(/^End the call$/);
     expect(storedModelName).toBe("IncomingCallPolicy");
   });
 

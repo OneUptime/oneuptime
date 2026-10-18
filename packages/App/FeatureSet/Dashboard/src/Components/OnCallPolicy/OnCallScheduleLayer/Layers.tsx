@@ -824,9 +824,7 @@ const Layers: FunctionComponent<ComponentProps> = (
               </span>
             ) : (
               <span className="text-xs text-amber-600">
-                {translator.translateText(
-                  "No timezone set yet. Choose one.",
-                )}
+                {translator.translateText("No timezone set yet. Choose one.")}
               </span>
             )}
           </div>
