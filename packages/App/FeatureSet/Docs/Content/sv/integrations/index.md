@@ -44,7 +44,6 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkommande | Gör aviseringar från Alertmanager till incidenter. |
 | [Grafana](/docs/integrations/grafana) | Inkommande | Gör larm från Grafana till incidenter. |
 | [Datadog](/docs/integrations/datadog) | Inkommande | Gör larm från Datadog-monitorer till incidenter. |
-| [Vercel](/docs/integrations/vercel) | Inkommande | Lägg till OneUptime från Vercel Marketplace: spår, loggar, drifttidsmonitorer och en statussida för dina Vercel-projekt. |
 
 ### Säkerhetsverktyg
 
@@ -90,6 +89,12 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 
 > [!TIP]
 > Slack och Microsoft Teams har också arbetsflödessteg. Använd den inbyggda anslutningen för incidentkanaler och jour, och ett arbetsflödessteg när du bara behöver ett meddelande i en kanal.
+
+### Hostingplattformar
+
+| Verktyg | Riktning | Vad det gör |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Inkommande | Lägg till OneUptime från Vercel Marketplace: spår, loggar, drifttidsmonitorer och en statussida för dina Vercel-projekt. |
 
 ## Byt från ett annat verktyg
 

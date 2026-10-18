@@ -44,7 +44,6 @@ flowchart TB
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Входящее | Превращает уведомления Alertmanager в инциденты. |
 | [Grafana](/docs/integrations/grafana) | Входящее | Превращает оповещения Grafana в инциденты. |
 | [Datadog](/docs/integrations/datadog) | Входящее | Превращает оповещения мониторов Datadog в инциденты. |
-| [Vercel](/docs/integrations/vercel) | Входящее | Добавьте OneUptime из Vercel Marketplace: трассировки, логи, мониторы доступности и страница статуса для ваших проектов Vercel. |
 
 ### Инструменты безопасности
 
@@ -90,6 +89,12 @@ flowchart TB
 
 > [!TIP]
 > У Slack и Microsoft Teams также есть шаги рабочих процессов. Используйте встроенное подключение для каналов инцидентов и дежурств, а шаг рабочего процесса — когда вам нужно только сообщение в канале.
+
+### Хостинг-платформы
+
+| Инструмент | Направление | Что делает |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Входящее | Добавьте OneUptime из Vercel Marketplace: трассировки, логи, мониторы доступности и страница статуса для ваших проектов Vercel. |
 
 ## Переход с другого инструмента
 

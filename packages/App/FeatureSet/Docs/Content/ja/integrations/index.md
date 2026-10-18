@@ -44,7 +44,6 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | インバウンド | Alertmanager の通知をインシデントにします。 |
 | [Grafana](/docs/integrations/grafana) | インバウンド | Grafana のアラートをインシデントにします。 |
 | [Datadog](/docs/integrations/datadog) | インバウンド | Datadog モニターのアラートをインシデントにします。 |
-| [Vercel](/docs/integrations/vercel) | インバウンド | Vercel Marketplace から OneUptime を追加します。Vercel プロジェクトのトレース、ログ、稼働監視モニター、ステータスページが手に入ります。 |
 
 ### セキュリティツール
 
@@ -90,6 +89,12 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 
 > [!TIP]
 > Slack と Microsoft Teams にはワークフローのステップもあります。インシデントチャンネルとオンコールには組み込みの接続を使い、チャンネルにメッセージを送るだけでよい場合はワークフローのステップを使います。
+
+### ホスティングプラットフォーム
+
+| ツール | 方向 | 機能 |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | インバウンド | Vercel Marketplace から OneUptime を追加します。Vercel プロジェクトのトレース、ログ、稼働監視モニター、ステータスページが手に入ります。 |
 
 ## 別のツールから移行する
 

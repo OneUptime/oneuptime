@@ -44,7 +44,6 @@ Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay qu
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | De entrada | Convierte las notificaciones de Alertmanager en incidentes. |
 | [Grafana](/docs/integrations/grafana) | De entrada | Convierte las alertas de Grafana en incidentes. |
 | [Datadog](/docs/integrations/datadog) | De entrada | Convierte las alertas de los monitores de Datadog en incidentes. |
-| [Vercel](/docs/integrations/vercel) | De entrada | Añade OneUptime desde el Vercel Marketplace: trazas, logs, monitores de disponibilidad y una página de estado para tus proyectos de Vercel. |
 
 ### Herramientas de seguridad
 
@@ -90,6 +89,12 @@ Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay qu
 
 > [!TIP]
 > Slack y Microsoft Teams también tienen pasos de flujo de trabajo. Usa la conexión integrada para los canales de incidentes y las guardias, y un paso de flujo de trabajo cuando solo necesites un mensaje en un canal.
+
+### Plataformas de alojamiento
+
+| Herramienta | Sentido | Qué hace |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | De entrada | Añade OneUptime desde el Vercel Marketplace: trazas, logs, monitores de disponibilidad y una página de estado para tus proyectos de Vercel. |
 
 ## Migrar desde otra herramienta
 

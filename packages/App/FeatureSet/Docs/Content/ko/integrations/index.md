@@ -44,7 +44,6 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 인바운드 | Alertmanager 알림을 인시던트로 만듭니다. |
 | [Grafana](/docs/integrations/grafana) | 인바운드 | Grafana 알림을 인시던트로 만듭니다. |
 | [Datadog](/docs/integrations/datadog) | 인바운드 | Datadog 모니터 알림을 인시던트로 만듭니다. |
-| [Vercel](/docs/integrations/vercel) | 인바운드 | Vercel Marketplace에서 OneUptime을 추가합니다. Vercel 프로젝트의 트레이스, 로그, 가동 시간 모니터와 상태 페이지를 제공합니다. |
 
 ### 보안 도구
 
@@ -90,6 +89,12 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 
 > [!TIP]
 > Slack과 Microsoft Teams에도 워크플로 단계가 있습니다. 인시던트 채널과 온콜에는 기본 제공 연결을 사용하고, 채널에 메시지만 필요할 때는 워크플로 단계를 사용하세요.
+
+### 호스팅 플랫폼
+
+| 도구 | 방향 | 하는 일 |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | 인바운드 | Vercel Marketplace에서 OneUptime을 추가합니다. Vercel 프로젝트의 트레이스, 로그, 가동 시간 모니터와 상태 페이지를 제공합니다. |
 
 ## 다른 도구에서 이전하기
 

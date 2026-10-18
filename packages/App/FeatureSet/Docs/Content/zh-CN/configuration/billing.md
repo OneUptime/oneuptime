@@ -66,7 +66,7 @@ flowchart TB
 API 密钥需要 Growth 或更高的套餐，而在 Scale 套餐以下，SCIM 连接只能移除人员。会停止它们的套餐会在你选择前说明涉及多少个，停止期间**账单**页面会显示**此套餐不包含**。不会删除任何内容：在包含它们的套餐上，它们会再次生效。
 
 > [!NOTE]
-> 通过经销商或云市场（AWS Marketplace、Microsoft Marketplace 或 Google Cloud Marketplace）购买了 OneUptime？**账单**页面会注明。经销商会替你更改套餐，而云市场会把项目的套餐和用量计入你的云账单。
+> 通过经销商或云市场（AWS Marketplace、Microsoft Marketplace、Google Cloud Marketplace 或 Vercel Marketplace）购买了 OneUptime？**账单**页面会注明。经销商会替你更改套餐，而云市场会把项目的套餐和用量计入你的云账单。
 
 ## 支付方式
 

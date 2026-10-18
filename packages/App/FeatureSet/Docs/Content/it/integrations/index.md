@@ -44,7 +44,6 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | In entrata | Trasforma le notifiche di Alertmanager in incidenti. |
 | [Grafana](/docs/integrations/grafana) | In entrata | Trasforma gli alert di Grafana in incidenti. |
 | [Datadog](/docs/integrations/datadog) | In entrata | Trasforma gli alert dei monitor di Datadog in incidenti. |
-| [Vercel](/docs/integrations/vercel) | In entrata | Aggiungi OneUptime dal Vercel Marketplace: trace, log, monitor di disponibilità e una pagina di stato per i tuoi progetti Vercel. |
 
 ### Strumenti di sicurezza
 
@@ -90,6 +89,12 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 
 > [!TIP]
 > Anche Slack e Microsoft Teams hanno passaggi di workflow. Usa la connessione integrata per i canali degli incidenti e la reperibilità, e un passaggio di workflow quando ti serve solo un messaggio in un canale.
+
+### Piattaforme di hosting
+
+| Strumento | Direzione | Cosa fa |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | In entrata | Aggiungi OneUptime dal Vercel Marketplace: trace, log, monitor di disponibilità e una pagina di stato per i tuoi progetti Vercel. |
 
 ## Migrare da un altro strumento
 

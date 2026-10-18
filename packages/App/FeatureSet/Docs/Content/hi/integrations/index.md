@@ -44,7 +44,6 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | इनबाउंड | Alertmanager की सूचनाओं को घटनाओं में बदलता है। |
 | [Grafana](/docs/integrations/grafana) | इनबाउंड | Grafana अलर्ट को घटनाओं में बदलता है। |
 | [Datadog](/docs/integrations/datadog) | इनबाउंड | Datadog मॉनिटर अलर्ट को घटनाओं में बदलता है। |
-| [Vercel](/docs/integrations/vercel) | इनबाउंड | Vercel Marketplace से OneUptime जोड़ें: आपके Vercel प्रोजेक्ट के लिए ट्रेस, लॉग, अपटाइम मॉनिटर और एक स्टेटस पेज। |
 
 ### सुरक्षा टूल
 
@@ -90,6 +89,12 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 
 > [!TIP]
 > Slack और Microsoft Teams में वर्कफ़्लो चरण भी हैं। घटना चैनल और ऑन-कॉल के लिए बिल्ट-इन कनेक्शन इस्तेमाल करें, और जब आपको बस किसी चैनल में एक संदेश चाहिए, तब वर्कफ़्लो चरण।
+
+### होस्टिंग प्लेटफ़ॉर्म
+
+| टूल | दिशा | क्या करता है |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | इनबाउंड | Vercel Marketplace से OneUptime जोड़ें: आपके Vercel प्रोजेक्ट के लिए ट्रेस, लॉग, अपटाइम मॉनिटर और एक स्टेटस पेज। |
 
 ## किसी दूसरे टूल से आना
 

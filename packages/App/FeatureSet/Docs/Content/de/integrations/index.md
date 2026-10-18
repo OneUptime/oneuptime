@@ -44,7 +44,6 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend | Macht aus Alertmanager-Benachrichtigungen Vorfälle. |
 | [Grafana](/docs/integrations/grafana) | Eingehend | Macht aus Grafana-Alarmen Vorfälle. |
 | [Datadog](/docs/integrations/datadog) | Eingehend | Macht aus Datadog-Monitoralarmen Vorfälle. |
-| [Vercel](/docs/integrations/vercel) | Eingehend | Fügen Sie OneUptime über den Vercel Marketplace hinzu: Traces, Logs, Uptime-Monitore und eine Statusseite für Ihre Vercel-Projekte. |
 
 ### Sicherheitswerkzeuge
 
@@ -90,6 +89,12 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 
 > [!TIP]
 > Slack und Microsoft Teams haben auch Workflow-Schritte. Nutzen Sie die eingebaute Verbindung für Vorfallkanäle und Bereitschaft, und einen Workflow-Schritt, wenn Sie nur eine Nachricht in einem Kanal brauchen.
+
+### Hosting-Plattformen
+
+| Werkzeug | Richtung | Was es tut |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Eingehend | Fügen Sie OneUptime über den Vercel Marketplace hinzu: Traces, Logs, Uptime-Monitore und eine Statusseite für Ihre Vercel-Projekte. |
 
 ## Wechsel von einem anderen Werkzeug
 

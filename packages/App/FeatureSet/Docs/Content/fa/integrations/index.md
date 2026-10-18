@@ -44,7 +44,6 @@ flowchart TB
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | ورودی | اعلان‌های Alertmanager را به حادثه تبدیل می‌کند. |
 | [Grafana](/docs/integrations/grafana) | ورودی | هشدارهای Grafana را به حادثه تبدیل می‌کند. |
 | [Datadog](/docs/integrations/datadog) | ورودی | هشدارهای مانیتورهای Datadog را به حادثه تبدیل می‌کند. |
-| [Vercel](/docs/integrations/vercel) | ورودی | OneUptime را از Vercel Marketplace اضافه کنید: ردیابی‌ها، لاگ‌ها، مانیتورهای دسترس‌پذیری و یک صفحهٔ وضعیت برای پروژه‌های Vercel شما. |
 
 ### ابزارهای امنیتی
 
@@ -90,6 +89,12 @@ flowchart TB
 
 > [!TIP]
 > Slack و Microsoft Teams گام‌های گردش کاری هم دارند. برای کانال‌های حادثه و آنکال از اتصال داخلی استفاده کنید، و وقتی فقط یک پیام در یک کانال لازم دارید، از یک گام گردش کاری.
+
+### پلتفرم‌های میزبانی
+
+| ابزار | جهت | کاری که می‌کند |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | ورودی | OneUptime را از Vercel Marketplace اضافه کنید: ردیابی‌ها، لاگ‌ها، مانیتورهای دسترس‌پذیری و یک صفحهٔ وضعیت برای پروژه‌های Vercel شما. |
 
 ## آمدن از ابزاری دیگر
 

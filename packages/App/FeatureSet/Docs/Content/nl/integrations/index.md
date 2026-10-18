@@ -44,7 +44,6 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkomend | Maakt van Alertmanager-meldingen incidenten. |
 | [Grafana](/docs/integrations/grafana) | Inkomend | Maakt van Grafana-alerts incidenten. |
 | [Datadog](/docs/integrations/datadog) | Inkomend | Maakt van alerts van Datadog-monitors incidenten. |
-| [Vercel](/docs/integrations/vercel) | Inkomend | Voeg OneUptime toe vanuit de Vercel Marketplace: traces, logs, uptime-monitors en een statuspagina voor uw Vercel-projecten. |
 
 ### Beveiligingstools
 
@@ -90,6 +89,12 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 
 > [!TIP]
 > Slack en Microsoft Teams hebben ook workflowstappen. Gebruik de ingebouwde koppeling voor incidentkanalen en diensten, en een workflowstap wanneer je alleen een bericht in een kanaal nodig hebt.
+
+### Hostingplatforms
+
+| Tool | Richting | Wat hij doet |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Inkomend | Voeg OneUptime toe vanuit de Vercel Marketplace: traces, logs, uptime-monitors en een statuspagina voor uw Vercel-projecten. |
 
 ## Overstappen van een andere tool
 

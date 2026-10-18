@@ -44,7 +44,6 @@ flowchart TB
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 入站 | 把 Alertmanager 通知转为事件。 |
 | [Grafana](/docs/integrations/grafana) | 入站 | 把 Grafana 告警转为事件。 |
 | [Datadog](/docs/integrations/datadog) | 入站 | 把 Datadog 监控告警转为事件。 |
-| [Vercel](/docs/integrations/vercel) | 入站 | 从 Vercel Marketplace 添加 OneUptime：为你的 Vercel 项目提供链路追踪、日志、可用性监控和状态页。 |
 
 ### 安全工具
 
@@ -90,6 +89,12 @@ flowchart TB
 
 > [!TIP]
 > Slack 和 Microsoft Teams 也有工作流步骤。事件频道和值班请使用内置连接；如果只需要在频道里发一条消息，请使用工作流步骤。
+
+### 托管平台
+
+| 工具 | 方向 | 作用 |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | 入站 | 从 Vercel Marketplace 添加 OneUptime：为你的 Vercel 项目提供链路追踪、日志、可用性监控和状态页。 |
 
 ## 从其他工具迁移
 
