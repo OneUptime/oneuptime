@@ -79,7 +79,11 @@ function Get-InstalledAgent {
         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
         'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
     )
-    return @(Get-ItemProperty -Path $keys -ErrorAction SilentlyContinue | Where-Object {
+    # The comma returns the array whole. PowerShell unrolls what a function
+    # returns, so no agent came back as $null and one as a single object, and
+    # StrictMode refuses .Count on either: "The property 'Count' cannot be
+    # found on this object", before the test had installed anything.
+    return , @(Get-ItemProperty -Path $keys -ErrorAction SilentlyContinue | Where-Object {
             $_.PSObject.Properties['DisplayName'] -and $_.DisplayName -like 'OneUptime Infrastructure Agent*'
         })
 }
