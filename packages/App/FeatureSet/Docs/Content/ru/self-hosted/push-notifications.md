@@ -44,6 +44,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Куда идут мобильные push-уведомления, пока `EXPO_ACCESS_TOKEN` не задан. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Пусто | Отправляет мобильные push-уведомления напрямую в Expo с токеном вашего Expo-проекта. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Пусто | Ретранслирует мобильные push-уведомления других серверов OneUptime с `EXPO_ACCESS_TOKEN` этого сервера. Пусто — выключено, если только `BILLING_ENABLED` не равен `true`. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Пусто | Открытая половина пары ключей, с которой подписываются браузеры. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Пусто | Закрытая половина, которая подписывает каждое уведомление Web Push. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | Контактный адрес, по которому push-сервисы браузеров могут связаться с вами. |
@@ -81,6 +82,8 @@ expo:
 | Мобильное приложение или браузер → OneUptime | Ваше имя хоста OneUptime | HTTPS / TCP 443 | Вход, регистрация устройства и открытие ссылок из уведомлений. |
 
 Если вы меняете `PUSH_NOTIFICATION_RELAY_URL`, разрешите его целевое имя хоста и настроенный порт. Собственный ретранслятор должен реализовывать API ретранслятора OneUptime. Эти значения по умолчанию и переключение между ретранслятором и прямой доставкой определены в [конфигурации OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) и в [push-сервисе](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Прямые запросы к Expo используют эндпоинт, описанный в [руководстве Expo по отправке](https://docs.expo.dev/push-notifications/sending-notifications/). OneUptime читает квитанции о доставке у ретранслятора по тому же адресу, с `/receipts` вместо `/send`. Ретранслятор без этого маршрута всё равно доставляет push-уведомления; устройство, с которого удалили приложение, тогда обнаруживается только тогда, когда следующее push-уведомление на него отклоняется.
+
+Самостоятельно размещённый сервер OneUptime ретранслирует push-уведомления других серверов только с `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` и собственным `EXPO_ACCESS_TOKEN`; без этой настройки он отвечает по этому адресу кодом 404. Включайте её только на сервере, через который отправляют ваши другие серверы OneUptime, и открывайте этот адрес только для этих серверов.
 
 Для Web Push разрешите реальные хосты эндпоинтов подписки для браузеров, которыми пользуется ваша команда. OneUptime принимает `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` и `push.apple.com`, включая их поддомены. Типичные примеры — `updates.push.services.mozilla.com` и `web.push.apple.com`. Назначение задаёт [push-подписка браузера](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription); если разрешить только Expo или ретранслятор OneUptime, Web Push работать не будет.
 

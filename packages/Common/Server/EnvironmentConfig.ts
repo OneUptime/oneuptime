@@ -1606,6 +1606,43 @@ export const PushNotificationRelayUrl: string =
   process.env["PUSH_NOTIFICATION_RELAY_URL"] ||
   "https://oneuptime.com/api/notification/push-relay/send";
 
+/*
+ * Whether this server relays mobile pushes for other OneUptime servers: the
+ * push relay (App/FeatureSet/Notification/API/PushRelay.ts), which sends
+ * what another server asks it to with this server's EXPO_ACCESS_TOKEN, and
+ * reads those pushes' receipts.
+ *
+ * OneUptime's cloud is the relay a self-hosted server sends through by
+ * default (PUSH_NOTIFICATION_RELAY_URL), so where BILLING_ENABLED is true it
+ * is on unless PUSH_NOTIFICATION_RELAY_SERVER_ENABLED says otherwise.
+ * Anywhere else it is off unless set to exactly "true": an EXPO_ACCESS_TOKEN
+ * set for a server's own pushes does not make it a relay for others.
+ *
+ * Empty or unset: on only where BILLING_ENABLED is true. "true": on.
+ * Anything else: off - a value that is not "true" never turns a relay on.
+ */
+export const readPushNotificationRelayServerEnabled: (data: {
+  value: string | undefined;
+  isBillingEnabled: boolean;
+}) => boolean = (data: {
+  value: string | undefined;
+  isBillingEnabled: boolean;
+}): boolean => {
+  const value: string = (data.value || "").trim();
+
+  if (!value) {
+    return data.isBillingEnabled;
+  }
+
+  return value === "true";
+};
+
+export const PushNotificationRelayServerEnabled: boolean =
+  readPushNotificationRelayServerEnabled({
+    value: process.env["PUSH_NOTIFICATION_RELAY_SERVER_ENABLED"],
+    isBillingEnabled: IsBillingEnabled,
+  });
+
 export const DEFAULT_ENTERPRISE_LICENSE_SERVER_URL: string =
   "https://oneuptime.com";
 

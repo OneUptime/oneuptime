@@ -44,6 +44,7 @@ Web のプッシュ通知は引き続き VAPID キーと Web Push プロトコ�
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | `EXPO_ACCESS_TOKEN` が未設定の間、モバイルのプッシュを送る先。 |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | 空 | Expo プロジェクトのトークンを使い、モバイルのプッシュを Expo に直接送ります。 |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | 空 | このサーバーの `EXPO_ACCESS_TOKEN` で、ほかの OneUptime サーバーのモバイルのプッシュをリレーします。空の場合は、`BILLING_ENABLED` が `true` のときだけオンです。 |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | 空 | ブラウザーが購読に使うキーペアの公開側。 |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | 空 | すべての Web Push に署名する秘密側。 |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | ブラウザーのプッシュサービスがあなたに連絡できる連絡先アドレス。 |
@@ -81,6 +82,8 @@ expo:
 | モバイルアプリまたはブラウザー → OneUptime | あなたの OneUptime のホスト名 | HTTPS / TCP 443 | サインイン、デバイスの登録、通知リンクを開く操作。 |
 
 `PUSH_NOTIFICATION_RELAY_URL` を変更する場合は、その宛先のホスト名と設定したポートを許可してください。独自のリレーは OneUptime のリレー API を実装する必要があります。これらの既定値と、リレーと直接配信の切り替えは、[OneUptime の設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) と [プッシュサービス](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) で定義されています。Expo への直接のリクエストは、[Expo の送信ガイド](https://docs.expo.dev/push-notifications/sending-notifications/) に記載されたエンドポイントを使います。OneUptime は、`/send` の代わりに `/receipts` を付けた同じアドレスで、リレーから配信の受領確認を読み取ります。このルートを持たないリレーでもプッシュは配信されますが、その場合、アプリが削除されたデバイスに気づくのは、以後そのデバイスへのプッシュが拒否されたときだけです。
+
+セルフホストの OneUptime サーバーがほかのサーバーのプッシュをリレーするのは、`PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` と自身の `EXPO_ACCESS_TOKEN` がある場合だけです。この設定がなければ、そのアドレスに 404 で応答します。ほかの OneUptime サーバーが送信に使うサーバーでだけ有効にし、そのアドレスにはそれらのサーバーだけが届くようにしてください。
 
 Web Push では、チームが使うブラウザーの実際の購読エンドポイントのホストを許可してください。OneUptime は `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com`、`push.apple.com` を、それぞれのサブドメインも含めて受け付けます。典型的な例は `updates.push.services.mozilla.com` と `web.push.apple.com` です。宛先は [ブラウザーのプッシュ購読](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) が提供します。Expo や OneUptime のリレーだけを許可しても Web Push は有効になりません。
 
