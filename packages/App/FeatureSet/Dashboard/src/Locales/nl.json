@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "De huidige naam, precies zoals hij binnenkomt.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "De laatste N dagen, altijd actueel. Past bij services die op elk moment betrouwbaar moeten zijn.",
   "The name to store it under.": "De naam waaronder het wordt opgeslagen.",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "De service.name die uw apps versturen. Hun telemetrie wordt hiermee aan deze service gekoppeld.",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "Het deel van de overeenkomende logboeken dat blijft, van 1 tot 99. 10 bewaart er één op de tien.",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "Het deel van de overeenkomende spans dat blijft, van 1 tot 99. 10 bewaart er één op de tien.",
   "The value to give it.": "De waarde die het krijgt.",
@@ -30798,5 +30797,7 @@
   "When it fires": "Wanneer hij afgaat",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "Uw web- en mobiele apps, zoals hun echte gebruikers ze zien. Elke app verschijnt hier zodra hij telemetrie verstuurt.",
   "e.g., checkout-api": "bijv. checkout-api",
-  "Edit Session Replay Policy": "Session Replay-beleid bewerken"
+  "Edit Session Replay Policy": "Session Replay-beleid bewerken",
+  "Edit Action": "Actie bewerken",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "Gebruik de service.name die uw apps versturen, zodat hun telemetrie onder deze service verschijnt."
 }

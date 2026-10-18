@@ -20,6 +20,7 @@ import React, { FunctionComponent } from "react";
 import { MemoryRouter } from "react-router-dom";
 import LogDropFilterView from "../../../../App/FeatureSet/Dashboard/src/Pages/Logs/Settings/DropFilterView";
 import TraceDropFilterView from "../../../../App/FeatureSet/Dashboard/src/Pages/Traces/Settings/DropFilterView";
+import { DROP_FILTER_EDIT_ACTION_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/DropFilterForm";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import LogDropFilter from "../../../Models/DatabaseModels/LogDropFilter";
 import TraceDropFilter from "../../../Models/DatabaseModels/TraceDropFilter";
@@ -59,6 +60,9 @@ jest.mock("react-i18next", () => {
  */
 
 const WAIT_TIMEOUT: number = 20000;
+
+// The details card's own edit button.
+const DETAILS_EDIT_BUTTON: RegExp = /^Edit (Log|Trace) Drop Filter$/;
 const FILTER_ID: string = "77777777-7777-4777-8777-777777777777";
 
 interface ViewPage {
@@ -181,6 +185,45 @@ afterEach(() => {
 });
 
 describe.each(VIEW_PAGES)("$name", (page: ViewPage) => {
+  test("the Action card's button and dialog say Edit Action, apart from the details card's", async () => {
+    /*
+     * Both cards on the page said "Edit Log Drop Filter" (or Trace), one
+     * opening the name and description, the other the action.
+     */
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockImplementation(async (): Promise<BaseModel> => {
+        return storedFilter(page.modelType, { action: "drop" });
+      });
+
+    renderPage(page);
+
+    const modal: HTMLElement = await openActionEdit();
+
+    expect(DROP_FILTER_EDIT_ACTION_TITLE).toBe("Edit Action");
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      /^Edit Action$/,
+    );
+
+    const editButtons: Array<string> = screen
+      .getAllByRole("button", { name: /^Edit/ })
+      .map((button: HTMLElement): string => {
+        return (button.textContent || "").trim();
+      });
+
+    // One Edit Action, on the Action card; the details card keeps its own.
+    expect(
+      editButtons.filter((text: string): boolean => {
+        return text === "Edit Action";
+      }),
+    ).toHaveLength(1);
+    expect(
+      editButtons.some((text: string): boolean => {
+        return DETAILS_EDIT_BUTTON.test(text);
+      }),
+    ).toBe(true);
+  });
+
   test("edits the action with the create form's two answers, each with its line", async () => {
     jest
       .spyOn(ModelAPI, "getItem")

@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "Le nom actuel, exactement tel qu'il arrive.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "Les N derniers jours, toujours à jour. Convient aux services qui doivent être fiables à tout moment.",
   "The name to store it under.": "Le nom sous lequel l'enregistrer.",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "Le service.name qu'envoient vos applications. Leur télémétrie est rattachée à ce service par lui.",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "La part des journaux correspondants à garder, de 1 à 99. 10 en garde un sur dix.",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "La part des spans correspondants à garder, de 1 à 99. 10 en garde un sur dix.",
   "The value to give it.": "La valeur à lui donner.",
@@ -30798,5 +30797,7 @@
   "When it fires": "Quand elle se déclenche",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "Vos applications web et mobiles, telles que leurs vrais utilisateurs les voient. Chaque application apparaît ici dès qu'elle envoie de la télémétrie.",
   "e.g., checkout-api": "ex. : checkout-api",
-  "Edit Session Replay Policy": "Modifier la politique de relecture de session"
+  "Edit Session Replay Policy": "Modifier la politique de relecture de session",
+  "Edit Action": "Modifier l'action",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "Utilisez le service.name envoyé par vos applications, pour que leur télémétrie apparaisse sous ce service."
 }

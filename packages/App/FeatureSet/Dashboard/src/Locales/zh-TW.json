@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "目前名稱，與傳入時完全一致。",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "最近 N 天，隨時更新。適合每時每刻都必須可靠的服務。",
   "The name to store it under.": "儲存時使用的名稱。",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "你的應用程式傳送的 service.name。遙測據此關聯到此服務。",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "要保留的相符日誌比例，1 到 99。10 表示每十筆保留一筆。",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "要保留的相符跨度比例，1 到 99。10 表示每十個保留一個。",
   "The value to give it.": "要指定的值。",
@@ -30798,5 +30797,7 @@
   "When it fires": "觸發時",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "從真實使用者的角度看你的 Web 和行動應用程式。每個應用程式傳送遙測後就會顯示在這裡。",
   "e.g., checkout-api": "例如：checkout-api",
-  "Edit Session Replay Policy": "編輯 Session Replay 政策"
+  "Edit Session Replay Policy": "編輯 Session Replay 政策",
+  "Edit Action": "編輯操作",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "使用你的應用程式傳送的 service.name，它們的遙測資料就會顯示在此服務下。"
 }

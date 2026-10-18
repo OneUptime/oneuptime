@@ -268,10 +268,6 @@ const severityWeight: Record<string, number> = {
   trace: 1,
 };
 
-/*
- * Exported so the window it reports can be unit-tested directly - rendering the
- * whole viewer to read one sentence is not worth the setup.
- */
 /**
  * Whether the reader narrowed the list: a filter chip of their own (the
  * chips a page pins are passed apart, as baseActiveFilters) or a search in
@@ -286,6 +282,10 @@ export function isNarrowedByReader(data: {
   );
 }
 
+/*
+ * Exported so the window it reports can be unit-tested directly - rendering the
+ * whole viewer to read one sentence is not worth the setup.
+ */
 export function getEmptyMessageWithTimeRange(
   timeRange: RangeStartAndEndDateTime | undefined,
 ): string {

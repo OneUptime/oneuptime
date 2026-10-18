@@ -679,6 +679,21 @@ describe("the period and the downtime as plain choices", () => {
     ).model;
   }
 
+  test.each(["Edit Objective", "Edit Period", "Edit Downtime Calculation"])(
+    "%s opens a dialog titled like its button, not 'Edit Service Level Objective'",
+    async (buttonName: string) => {
+      openSettings();
+      const modal: HTMLElement = await openCardEdit(buttonName);
+
+      expect(
+        (within(modal).getByTestId("modal-title").textContent || "").trim(),
+      ).toBe(buttonName);
+      expect(
+        within(modal).queryByText("Edit Service Level Objective"),
+      ).toBeNull();
+    },
+  );
+
   test("Edit Period asks the window type as two answers, each with its line", async () => {
     openSettings();
     const modal: HTMLElement = await openCardEdit("Edit Period");

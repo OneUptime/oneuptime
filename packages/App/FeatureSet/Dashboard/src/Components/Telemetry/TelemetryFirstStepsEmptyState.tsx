@@ -28,6 +28,9 @@ import {
  * Conversations draws its own. See TelemetryFirstSteps.ts for when.
  */
 
+// Side room below sm, where TableEmptyState has none of its own (sm:px-6).
+export const TELEMETRY_FIRST_STEPS_GUTTER_CLASS_NAME: string = "px-4 sm:px-0";
+
 const SETUP_PAGES: Record<TelemetryFirstStepsSignal, PageMap> = {
   [TelemetryFirstStepsSignal.Logs]: PageMap.LOGS_DOCUMENTATION,
   [TelemetryFirstStepsSignal.Traces]: PageMap.TRACES_DOCUMENTATION,
@@ -84,15 +87,26 @@ const TelemetryFirstStepsEmptyState: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * The explorers draw their list in a bordered box with no padding of its
+   * own, and the empty state pads itself only from sm up: on a phone its
+   * sentence and its full-width button ran from border to border. The
+   * wrapper gives it the side room a card body has.
+   */
   return (
-    <TableEmptyState
-      kind={TableEmptyStateKind.Empty}
-      icon={copy.icon}
-      title={copy.title}
-      description={copy.description}
-      actions={actions}
-      dataTestId={copy.dataTestId}
-    />
+    <div
+      className={TELEMETRY_FIRST_STEPS_GUTTER_CLASS_NAME}
+      data-testid={`${copy.dataTestId}-gutter`}
+    >
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        icon={copy.icon}
+        title={copy.title}
+        description={copy.description}
+        actions={actions}
+        dataTestId={copy.dataTestId}
+      />
+    </div>
   );
 };
 

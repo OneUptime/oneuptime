@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "들어오는 그대로의 현재 이름입니다.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "최근 N일로, 항상 최신입니다. 언제나 안정적이어야 하는 서비스에 맞습니다.",
   "The name to store it under.": "저장할 때 쓸 이름입니다.",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "앱이 보내는 service.name입니다. 텔레메트리는 이 값으로 이 서비스와 연결됩니다.",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "남길 일치 로그의 비율로, 1에서 99까지입니다. 10이면 열 개 중 하나를 남깁니다.",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "남길 일치 스팬의 비율로, 1에서 99까지입니다. 10이면 열 개 중 하나를 남깁니다.",
   "The value to give it.": "지정할 값입니다.",
@@ -30798,5 +30797,7 @@
   "When it fires": "발동 시",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "실제 사용자가 보는 그대로의 웹 앱과 모바일 앱입니다. 각 앱은 텔레메트리를 보내면 여기에 표시됩니다.",
   "e.g., checkout-api": "예: checkout-api",
-  "Edit Session Replay Policy": "Session Replay 정책 편집"
+  "Edit Session Replay Policy": "Session Replay 정책 편집",
+  "Edit Action": "작업 편집",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "앱이 보내는 service.name을 사용하면 해당 텔레메트리가 이 서비스 아래에 표시됩니다."
 }

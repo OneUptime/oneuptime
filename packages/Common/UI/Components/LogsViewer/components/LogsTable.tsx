@@ -4,7 +4,11 @@ import React, {
   ReactElement,
   ReactNode,
 } from "react";
-import { translatableTerm, Translator } from "../../../Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import Log from "../../../../Models/AnalyticsModels/Log";
@@ -111,6 +115,43 @@ export type LogsTableSortField = "time" | "severityText";
 
 // The list's own box: the rows, their loader and their empty state.
 export const LOGS_TABLE_TEST_ID: string = "logs-table";
+
+// What an empty list says, and the line under it when its host says nothing.
+export const LOGS_TABLE_EMPTY_TITLE: string = translationKey("No logs found");
+export const LOGS_TABLE_EMPTY_HINT: string = translationKey(
+  "Adjust filters or check again later.",
+);
+
+// "No logs found." and "no logs found" read as the same sentence.
+const asSentenceKey: (text: string) => string = (text: string): string => {
+  let value: string = text.trim().toLowerCase();
+
+  while (value.endsWith(".")) {
+    value = value.slice(0, -1).trimEnd();
+  }
+
+  return value;
+};
+
+/**
+ * The line under "No logs found". A host's message says why nothing came
+ * or what to try; one that only says "No logs found" again - an incident's
+ * or an alert's logs, a log monitor's preview - would print the title twice
+ * in a row, so it gives way to the list's own hint, as an unset one does.
+ */
+export function getLogsTableEmptyHint(
+  emptyMessage: string | undefined,
+): string {
+  if (
+    !emptyMessage ||
+    asSentenceKey(emptyMessage).length === 0 ||
+    asSentenceKey(emptyMessage) === asSentenceKey(LOGS_TABLE_EMPTY_TITLE)
+  ) {
+    return LOGS_TABLE_EMPTY_HINT;
+  }
+
+  return emptyMessage;
+}
 
 const stringifyLogValue: (value: unknown) => string = (
   value: unknown,
@@ -676,11 +717,11 @@ const LogsTable: FunctionComponent<LogsTableProps> = (
         >
           <Icon icon={IconProp.Search} className="h-8 w-8 text-gray-300" />
           <p className="text-sm font-medium text-gray-500">
-            {translator.translateText("No logs found")}
+            {translator.translateText(LOGS_TABLE_EMPTY_TITLE)}
           </p>
           <p className="max-w-xl text-xs text-gray-400">
             {translator.translateText(
-              props.emptyMessage || "Adjust filters or check again later.",
+              getLogsTableEmptyHint(props.emptyMessage),
             )}
           </p>
         </div>

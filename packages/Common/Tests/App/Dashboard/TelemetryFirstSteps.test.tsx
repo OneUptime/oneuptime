@@ -27,7 +27,9 @@ import TimeRange from "../../../Types/Time/TimeRange";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import { TABLE_EMPTY_STATE_TEST_ID } from "../../../UI/Components/Table/TableEmptyState";
-import TelemetryFirstStepsEmptyState from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetryFirstStepsEmptyState";
+import TelemetryFirstStepsEmptyState, {
+  TELEMETRY_FIRST_STEPS_GUTTER_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/TelemetryFirstStepsEmptyState";
 import {
   offersPastWeek,
   PAST_WEEK_RANGE,
@@ -190,6 +192,33 @@ describe("the first steps of an empty explorer", () => {
         .querySelector(`[data-icon="${IconProp.Logs}"]`),
     ).not.toBeNull();
   });
+
+  test.each(Object.values(TelemetryFirstStepsSignal))(
+    "%s: keeps side room on a phone, where the empty state has none of its own",
+    (signal: TelemetryFirstStepsSignal) => {
+      /*
+       * The explorers' list box has no padding, and TableEmptyState pads
+       * itself from sm up only: on a phone the sentence and the full-width
+       * Set up button ran from border to border.
+       */
+      render(
+        <TelemetryFirstStepsEmptyState
+          signal={signal}
+          timeRange={HOUR}
+          onTimeRangeChange={jest.fn()}
+        />,
+      );
+
+      const testId: string = TELEMETRY_FIRST_STEPS_COPY[signal].dataTestId;
+      const gutter: HTMLElement = screen.getByTestId(`${testId}-gutter`);
+
+      expect(TELEMETRY_FIRST_STEPS_GUTTER_CLASS_NAME).toBe("px-4 sm:px-0");
+      expect(gutter).toHaveClass("px-4", "sm:px-0");
+      expect(within(gutter).getByTestId(testId)).toBeInTheDocument();
+      // From sm up the empty state's own padding is the only one.
+      expect(screen.getByTestId(testId)).toHaveClass("sm:px-6");
+    },
+  );
 
   test("offers the past week while the explorer shows less, and switches to it", () => {
     const onTimeRangeChange: Mock<(range: RangeStartAndEndDateTime) => void> =

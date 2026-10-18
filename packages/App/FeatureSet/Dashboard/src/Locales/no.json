@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "Det nåværende navnet, nøyaktig slik det kommer inn.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "De siste N dagene, alltid oppdatert. Passer for tjenester som må være pålitelige hele tiden.",
   "The name to store it under.": "Navnet det lagres under.",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "service.name som appene dine sender. Telemetrien deres knyttes til denne tjenesten ut fra det.",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "Andelen av samsvarende logger som beholdes, fra 1 til 99. 10 beholder hver tiende.",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "Andelen av samsvarende span som beholdes, fra 1 til 99. 10 beholder hvert tiende.",
   "The value to give it.": "Verdien det skal få.",
@@ -30798,5 +30797,7 @@
   "When it fires": "Når den utløses",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "Web- og mobilappene dine, slik de faktiske brukerne ser dem. Hver app vises her så snart den sender telemetri.",
   "e.g., checkout-api": "f.eks. checkout-api",
-  "Edit Session Replay Policy": "Rediger Session Replay-policy"
+  "Edit Session Replay Policy": "Rediger Session Replay-policy",
+  "Edit Action": "Rediger handling",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "Bruk service.name som appene dine sender, slik at telemetrien deres vises under denne tjenesten."
 }

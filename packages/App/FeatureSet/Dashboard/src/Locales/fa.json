@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "نام فعلی، دقیقاً همان‌طور که می‌رسد.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "N روز گذشته، همیشه به‌روز. مناسب سرویس‌هایی که باید در هر لحظه قابل اعتماد باشند.",
   "The name to store it under.": "نامی که با آن ذخیره می‌شود.",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "service.name‌ای که برنامه‌هایتان می‌فرستند. تله‌متری آن‌ها با همین به این سرویس مرتبط می‌شود.",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "سهم لاگ‌های منطبقی که نگه داشته می‌شوند، از ۱ تا ۹۹. ۱۰ یعنی از هر ده تا یکی.",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "سهم اسپن‌های منطبقی که نگه داشته می‌شوند، از ۱ تا ۹۹. ۱۰ یعنی از هر ده تا یکی.",
   "The value to give it.": "مقداری که به آن داده می‌شود.",
@@ -30798,5 +30797,7 @@
   "When it fires": "هنگام فعال شدن",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "برنامه‌های وب و موبایل شما، همان‌طور که کاربران واقعی آن‌ها را می‌بینند. هر برنامه به محض فرستادن تله‌متری اینجا نمایش داده می‌شود.",
   "e.g., checkout-api": "مثلاً checkout-api",
-  "Edit Session Replay Policy": "ویرایش سیاست Session Replay"
+  "Edit Session Replay Policy": "ویرایش سیاست Session Replay",
+  "Edit Action": "ویرایش اقدام",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "همان service.name را به کار ببرید که برنامه‌هایتان می‌فرستند، تا تله‌متری آن‌ها زیر این سرویس نمایش داده شود."
 }

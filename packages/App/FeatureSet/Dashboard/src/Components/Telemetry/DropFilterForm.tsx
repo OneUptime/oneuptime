@@ -210,6 +210,14 @@ export const getDropFilterActionFields: (
 };
 
 /*
+ * The Action card's button and dialog on a filter's own page. Both cards
+ * there said "Edit Log Drop Filter", one opening the name and the other the
+ * action; this one names what it edits.
+ */
+export const DROP_FILTER_EDIT_ACTION_TITLE: string =
+  translationKey("Edit Action");
+
+/*
  * The same two fields for a filter's own page, whose Action card is a form
  * of its own with no steps: a field naming a step would be shown on none.
  */

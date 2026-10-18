@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "届いたとおりの現在の名前です。",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "直近 N 日間で、常に最新です。どの瞬間も信頼できる必要があるサービスに向いています。",
   "The name to store it under.": "保存するときの名前です。",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "アプリが送る service.name です。テレメトリはこの値でこのサービスに結び付けられます。",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "残す一致ログの割合（1〜99）。10 なら 10 件に 1 件を残します。",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "残す一致スパンの割合（1〜99）。10 なら 10 件に 1 件を残します。",
   "The value to give it.": "設定する値です。",
@@ -30798,5 +30797,7 @@
   "When it fires": "発火したとき",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "実際のユーザーから見た Web アプリとモバイルアプリです。各アプリはテレメトリを送信するとここに表示されます。",
   "e.g., checkout-api": "例: checkout-api",
-  "Edit Session Replay Policy": "セッションリプレイのポリシーを編集"
+  "Edit Session Replay Policy": "セッションリプレイのポリシーを編集",
+  "Edit Action": "アクションを編集",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "アプリが送信する service.name を使うと、そのテレメトリがこのサービスに表示されます。"
 }

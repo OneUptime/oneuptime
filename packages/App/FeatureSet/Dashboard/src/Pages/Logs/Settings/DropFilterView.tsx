@@ -13,7 +13,10 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
-import { getLogDropFilterActionFields } from "../../../Components/Telemetry/DropFilterForm";
+import {
+  DROP_FILTER_EDIT_ACTION_TITLE,
+  getLogDropFilterActionFields,
+} from "../../../Components/Telemetry/DropFilterForm";
 import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
 import {
   isSamplePercentageConfigured,
@@ -118,6 +121,8 @@ const LogDropFilterView: FunctionComponent<PageComponentProps> = (
             "Choose whether to drop all matching logs or keep a sample.",
         }}
         isEditable={true}
+        editButtonText={DROP_FILTER_EDIT_ACTION_TITLE}
+        editModalTitle={DROP_FILTER_EDIT_ACTION_TITLE}
         /*
          * The create form's Action fields (DropFilterForm): Drop or Sample,
          * each with its line, and the percentage only for Sample.

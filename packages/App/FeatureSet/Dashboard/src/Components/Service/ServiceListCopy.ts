@@ -19,5 +19,5 @@ export const SET_UP_TELEMETRY_ACTION: string =
   translationKey("Set up telemetry");
 
 export const SERVICE_NAME_HELP: string = translationKey(
-  "The service.name your apps send. Their telemetry is matched to this service by it.",
+  "Use the service.name your apps send, so their telemetry shows up under this service.",
 );

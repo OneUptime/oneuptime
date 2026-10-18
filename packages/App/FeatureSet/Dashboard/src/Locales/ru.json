@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "Текущее имя — точно в том виде, в каком оно приходит.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "Последние N дней, всегда актуально. Подходит сервисам, которые должны быть надёжны в любой момент.",
   "The name to store it under.": "Имя, под которым его сохранить.",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "service.name, который отправляют ваши приложения. По нему их телеметрия связывается с этим сервисом.",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "Доля подходящих логов, которую нужно сохранить, от 1 до 99. 10 — каждый десятый.",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "Доля подходящих спанов, которую нужно сохранить, от 1 до 99. 10 — каждый десятый.",
   "The value to give it.": "Значение, которое ему задать.",
@@ -30798,5 +30797,7 @@
   "When it fires": "При срабатывании",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "Ваши веб- и мобильные приложения такими, какими их видят реальные пользователи. Каждое приложение появится здесь, как только отправит телеметрию.",
   "e.g., checkout-api": "например, checkout-api",
-  "Edit Session Replay Policy": "Изменить политику Session Replay"
+  "Edit Session Replay Policy": "Изменить политику Session Replay",
+  "Edit Action": "Изменить действие",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "Укажите service.name, которое отправляют ваши приложения, чтобы их телеметрия появлялась в этом сервисе."
 }

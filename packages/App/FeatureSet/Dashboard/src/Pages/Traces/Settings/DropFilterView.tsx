@@ -13,7 +13,10 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
-import { getTraceDropFilterActionFields } from "../../../Components/Telemetry/DropFilterForm";
+import {
+  DROP_FILTER_EDIT_ACTION_TITLE,
+  getTraceDropFilterActionFields,
+} from "../../../Components/Telemetry/DropFilterForm";
 import TraceFilterConfig from "../../../Components/FilterQueryBuilder/TraceFilterConfig";
 import {
   isSamplePercentageConfigured,
@@ -98,6 +101,8 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
             "Choose whether to drop all matching spans or keep a sample.",
         }}
         isEditable={true}
+        editButtonText={DROP_FILTER_EDIT_ACTION_TITLE}
+        editModalTitle={DROP_FILTER_EDIT_ACTION_TITLE}
         /*
          * The create form's Action fields (DropFilterForm): Drop or Sample,
          * each with its line, and the percentage only for Sample.

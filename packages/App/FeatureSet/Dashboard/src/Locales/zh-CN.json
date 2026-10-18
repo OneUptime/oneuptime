@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "当前名称，与传入时完全一致。",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "最近 N 天，始终最新。适合每时每刻都必须可靠的服务。",
   "The name to store it under.": "存储时使用的名称。",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "你的应用发送的 service.name。遥测据此关联到此服务。",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "要保留的匹配日志比例，1 到 99。10 表示每十条保留一条。",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "要保留的匹配跨度比例，1 到 99。10 表示每十个保留一个。",
   "The value to give it.": "要赋予的值。",
@@ -30798,5 +30797,7 @@
   "When it fires": "触发时",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "从真实用户视角看你的 Web 和移动应用。每个应用发送遥测后就会显示在这里。",
   "e.g., checkout-api": "例如：checkout-api",
-  "Edit Session Replay Policy": "编辑 Session Replay 策略"
+  "Edit Session Replay Policy": "编辑 Session Replay 策略",
+  "Edit Action": "编辑操作",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "使用你的应用发送的 service.name，它们的遥测数据就会显示在此服务下。"
 }

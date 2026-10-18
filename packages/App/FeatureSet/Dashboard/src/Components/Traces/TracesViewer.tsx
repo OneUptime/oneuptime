@@ -3172,6 +3172,32 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const scopeHint: string = spanScope.notCarried.join(", ");
 
+  /*
+   * The Traces page's first steps (Telemetry/TelemetryFirstSteps): what an
+   * empty list that no filter or search narrows shows in place of "try
+   * adjusting filters".
+   */
+  const offersFirstSteps: boolean = showsTelemetryFirstSteps({
+    hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+    isEmpty: true,
+    filterCount: activeFilters.length,
+    searchText: submittedSearch,
+  });
+
+  /*
+   * While they show, the chart above has nothing to draw either. It kept
+   * its card for the Count / Response time picker, so a first visit read
+   * "No data for this metric in the selected range" over the first steps
+   * that say the same thing with a way forward. It steps aside until the
+   * list has a span, as the Logs page's empty chart does.
+   */
+  const showsFirstSteps: boolean =
+    offersFirstSteps &&
+    !isLoading &&
+    !listError &&
+    !error &&
+    spans.length === 0;
+
   const viewer: ReactElement = (
     <TelemetryViewer<Span>
       items={spans}
@@ -3298,12 +3324,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
       emptyMessage={props.emptyMessage || "No traces found"}
       emptyContent={
-        showsTelemetryFirstSteps({
-          hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
-          isEmpty: true,
-          filterCount: activeFilters.length,
-          searchText: submittedSearch,
-        }) ? (
+        offersFirstSteps ? (
           <TelemetryFirstStepsEmptyState
             signal={TelemetryFirstStepsSignal.Traces}
             timeRange={timeRange}
@@ -3481,8 +3502,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       lockedFilterSignal="traces"
-      // Histogram
-      showHistogram={true}
+      // Histogram: none while the first steps say there is nothing yet.
+      showHistogram={!showsFirstSteps}
       histogramBuckets={histogramBuckets}
       histogramSeries={histogramSeries}
       /*

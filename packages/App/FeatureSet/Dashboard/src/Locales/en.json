@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "The current name, exactly as it arrives.",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "The last N days, always up to date. Suits services that must be reliable at every moment.",
   "The name to store it under.": "The name to store it under.",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "The service.name your apps send. Their telemetry is matched to this service by it.",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.",
   "The value to give it.": "The value to give it.",
@@ -30798,5 +30797,7 @@
   "When it fires": "When it fires",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.",
   "e.g., checkout-api": "e.g., checkout-api",
-  "Edit Session Replay Policy": "Edit Session Replay Policy"
+  "Edit Session Replay Policy": "Edit Session Replay Policy",
+  "Edit Action": "Edit Action",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "Use the service.name your apps send, so their telemetry shows up under this service."
 }

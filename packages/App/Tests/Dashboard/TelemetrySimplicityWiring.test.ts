@@ -202,6 +202,20 @@ describe("an empty explorer offers first steps on its product page only", () => 
     );
   });
 
+  test("the Traces page draws no empty chart over its first steps", () => {
+    /*
+     * The chart kept its card for the Count / Response time picker and said
+     * "No data for this metric in the selected range" over first steps that
+     * say the same with a way forward. It steps aside while they show
+     * (rendered in Common's TracesFirstStepsChart).
+     */
+    const code: string = readCode("Components/Traces/TracesViewer.tsx");
+
+    expect(code).toContain("showHistogram={!showsFirstSteps}");
+    expect(code).toContain("emptyContent={\n        offersFirstSteps ? (");
+    expect(code).not.toContain("showHistogram={true}");
+  });
+
   test("an empty exceptions list asks once whether the project has any exception", () => {
     const code: string = readCode("Components/Exceptions/ExceptionsViewer.tsx");
 
@@ -217,6 +231,7 @@ describe("an empty explorer offers first steps on its product page only", () => 
 // The audit's lines that live in a page's source, not in a copy module.
 const LINES_IN_PAGES: Record<string, Array<string>> = {
   "Components/Telemetry/DropFilterForm.tsx": [
+    "Edit Action",
     "Discards every matching log for good.",
     "Keeps a share of the matching logs and discards the rest.",
     "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.",
@@ -331,6 +346,41 @@ describe("the audit's lines are drawn in every language", () => {
       expect(english).toEqual([]);
     },
   );
+});
+
+describe("each edit dialog names what it edits", () => {
+  test.each([
+    "Pages/Logs/Settings/DropFilterView.tsx",
+    "Pages/Traces/Settings/DropFilterView.tsx",
+  ])(
+    "%s: the Action card's button and dialog say Edit Action",
+    (file: string) => {
+      /*
+       * The details card and the Action card both said "Edit Log Drop
+       * Filter" (or Trace) while opening different fields.
+       */
+      const code: string = readCode(file);
+
+      expect(code).toContain(
+        "editButtonText={DROP_FILTER_EDIT_ACTION_TITLE}\n        editModalTitle={DROP_FILTER_EDIT_ACTION_TITLE}",
+      );
+    },
+  );
+
+  test("the SLO Settings dialogs are titled like the buttons that open them", () => {
+    const code: string = readCode("Pages/Slo/View/Settings.tsx");
+
+    for (const [key, title] of [
+      ["objective", "Edit Objective"],
+      ["period", "Edit Period"],
+      ["downtime", "Edit Downtime Calculation"],
+    ] as Array<[string, string]>) {
+      expect(code).toContain(`${key}: translationKey("${title}"),`);
+      expect(code).toContain(
+        `editButtonText="${title}"\n        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.${key}}`,
+      );
+    }
+  });
 });
 
 describe("the descriptions that explained two modes are gone", () => {

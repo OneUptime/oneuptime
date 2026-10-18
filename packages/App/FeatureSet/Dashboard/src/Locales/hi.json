@@ -30785,7 +30785,6 @@
   "The current name, exactly as it arrives.": "मौजूदा नाम, ठीक वैसा जैसा वह आता है।",
   "The last N days, always up to date. Suits services that must be reliable at every moment.": "पिछले N दिन, हमेशा ताज़ा। उन सेवाओं के लिए जो हर पल भरोसेमंद होनी चाहिए।",
   "The name to store it under.": "वह नाम जिससे इसे सहेजा जाएगा।",
-  "The service.name your apps send. Their telemetry is matched to this service by it.": "वह service.name जो आपके ऐप भेजते हैं। इसी से उनकी टेलीमेट्री इस सेवा से जुड़ती है।",
   "The share of matching logs to keep, from 1 to 99. 10 keeps one in ten.": "रखे जाने वाले मिलते लॉग का हिस्सा, 1 से 99 तक। 10 हर दस में से एक रखता है।",
   "The share of matching spans to keep, from 1 to 99. 10 keeps one in ten.": "रखे जाने वाले मिलते स्पैन का हिस्सा, 1 से 99 तक। 10 हर दस में से एक रखता है।",
   "The value to give it.": "उसे दिया जाने वाला मान।",
@@ -30798,5 +30797,7 @@
   "When it fires": "ट्रिगर होने पर",
   "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.": "आपके वेब और मोबाइल ऐप, जैसे उनके असली उपयोगकर्ता उन्हें देखते हैं। हर ऐप टेलीमेट्री भेजते ही यहाँ दिखता है।",
   "e.g., checkout-api": "उदा., checkout-api",
-  "Edit Session Replay Policy": "Session Replay नीति संपादित करें"
+  "Edit Session Replay Policy": "Session Replay नीति संपादित करें",
+  "Edit Action": "कार्रवाई संपादित करें",
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "वही service.name इस्तेमाल करें जो आपके ऐप भेजते हैं, ताकि उनकी टेलीमेट्री इस सेवा के अंतर्गत दिखे।"
 }

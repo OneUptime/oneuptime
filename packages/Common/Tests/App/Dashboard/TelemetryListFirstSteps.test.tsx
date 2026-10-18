@@ -276,8 +276,9 @@ describe("the Services list", () => {
 
     expect(name.required).toBe(true);
     expect(name.description).toBe(SERVICE_NAME_HELP);
+    // What to type, and why: the telemetry is filed under that name.
     expect(SERVICE_NAME_HELP).toBe(
-      "The service.name your apps send. Their telemetry is matched to this service by it.",
+      "Use the service.name your apps send, so their telemetry shows up under this service.",
     );
     // An example, not the title said again ("Service Name").
     expect(name.placeholder).toBe("e.g., checkout-api");

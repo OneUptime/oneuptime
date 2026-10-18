@@ -514,8 +514,8 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     stepId: "rule",
   },
   /*
-   * A new rule starts on - the column's default - so the switch is on the
-   * Edit form only, as on every rule form (RuleEnabledField).
+   * A new rule starts enabled (the column's default), so the switch is on
+   * the Edit form only, as on every rule form (RuleEnabledField).
    */
   {
     field: {
@@ -599,7 +599,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
   /*
    * When it fires: one choice of three (BurnRateDeclares) where Create
    * Alert and Declare Incident were two switches that could both be off.
-   * Form-only: it starts on the answer the rule's two columns make (Raise an
+   * Form-only: it starts on the answer the rule's two columns make (Create an
    * alert for a new rule), and a pick writes both columns, which are
    * registered just below, unseen, so the form loads and saves them.
    */
