@@ -588,9 +588,25 @@ export default class PublicMessageRateLimit {
       },
     );
 
+    /*
+     * The caller's text messages first, when the request sends one: when
+     * both counters are over, the tighter, more specific one is what the
+     * caller is told about.
+     */
     const clientCounters: Array<
       ClientRateLimitCounterSpec<PublicMessageRateLimitScope>
     > = [
+      ...(sendsTextMessage
+        ? [
+            {
+              scope: PublicMessageRateLimitScope.ClientTextMessages,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}text:c:${clientKey}:${clientWindowIndex}`;
+              },
+              limit: CONFIG.perClientTextMessageLimit,
+            },
+          ]
+        : []),
       {
         scope: PublicMessageRateLimitScope.Client,
         keyFor: (clientKey: string): string => {
@@ -599,16 +615,6 @@ export default class PublicMessageRateLimit {
         limit: kindConfig.perClientLimit,
       },
     ];
-
-    if (sendsTextMessage) {
-      clientCounters.push({
-        scope: PublicMessageRateLimitScope.ClientTextMessages,
-        keyFor: (clientKey: string): string => {
-          return `${KEY_PREFIX}text:c:${clientKey}:${clientWindowIndex}`;
-        },
-        limit: CONFIG.perClientTextMessageLimit,
-      });
-    }
 
     try {
       const clientRefusal: ClientRateLimitRefusal<PublicMessageRateLimitScope> | null =

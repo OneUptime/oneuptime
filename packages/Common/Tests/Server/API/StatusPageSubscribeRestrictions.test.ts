@@ -13,6 +13,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import PublicMessageRateLimit from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import SSRFProtection from "../../../Server/Utils/SSRFProtection";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
@@ -127,6 +128,15 @@ describe("StatusPageAPI - who may sign up on a status page that takes only its p
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Every request here is within the limits on what a public route may
+     * send its contacts (PublicMessageRateLimit), which
+     * StatusPageSubscriberMessageLimits.test.ts holds.
+     */
+    jest
+      .spyOn(PublicMessageRateLimit, "assertMaySend")
+      .mockResolvedValue(undefined);
 
     created = [];
     signedInEmail = null;

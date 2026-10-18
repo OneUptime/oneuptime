@@ -14,6 +14,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import PublicMessageRateLimit from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import Response from "../../../Server/Utils/Response";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
@@ -302,6 +303,15 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Every request here is within the limits on what a public route may
+     * send its contacts (PublicMessageRateLimit), which
+     * StatusPageSubscriberMessageLimits.test.ts holds.
+     */
+    jest
+      .spyOn(PublicMessageRateLimit, "assertMaySend")
+      .mockResolvedValue(undefined);
 
     statusPageId = ObjectID.generate();
     projectId = ObjectID.generate();

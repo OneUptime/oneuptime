@@ -7,6 +7,7 @@ import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubs
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import { ExpressRequest } from "../../../Server/Utils/Express";
+import PublicMessageRateLimit from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import StatusPageSubscriberWebhookUtil from "../../../Server/Utils/StatusPageSubscriberWebhook";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
@@ -220,6 +221,15 @@ async function saved(
 }
 
 beforeEach(() => {
+  /*
+   * Every request here is within the limits on what a public route may
+   * send its contacts (PublicMessageRateLimit), which
+   * StatusPageSubscriberMessageLimits.test.ts holds.
+   */
+  jest
+    .spyOn(PublicMessageRateLimit, "assertMaySend")
+    .mockResolvedValue(undefined);
+
   jest
     .spyOn(StatusPageService, "getStatusPageURL")
     .mockResolvedValue(STATUS_PAGE_URL);
