@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "Disable to take this rule's links off the map without deleting it.",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "Disabled credentials are rejected at connect and pause silent-death detection for the device.",
   "Disabled feeds are neither polled nor matched.": "Disabled feeds are neither polled nor matched.",
   "Disabled — telemetry refused": "Disabled — telemetry refused",
   "Discard draft": "Discard draft",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "메트릭을 지켜보는 수준입니다. 어떤 필터가 보일지도 이것으로 정해집니다.",
   "Follow the steps below. This list fills in on its own once data arrives.": "아래 단계를 따르세요. 데이터가 들어오면 이 목록이 자동으로 채워집니다.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "이 프로젝트에서 모니터링하는 호스트입니다. OpenTelemetry Collector가 데이터를 보내면 호스트가 여기에 나타납니다.",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "이 프로젝트에서 모니터링하는 서버리스 함수입니다. OpenTelemetry 데이터가 들어오면 함수가 여기에 나타납니다."
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "이 프로젝트에서 모니터링하는 서버리스 함수입니다. OpenTelemetry 데이터가 들어오면 함수가 여기에 나타납니다.",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "끄면 디바이스가 이 자격 증명으로 연결할 수 없으며 오프라인 경고도 발생하지 않습니다."
 }

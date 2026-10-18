@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "Deaktivieren, um die Verbindungen dieser Regel von der Karte zu entfernen, ohne die Regel zu löschen.",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "Deaktivierte SLOs werden nicht ausgewertet, und ihre Burn-Rate-Regeln lösen nicht aus. Das Deaktivieren behebt außerdem die offenen Burn-Rate-Warnungen und -Vorfälle dieses SLO.",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "Deaktivierte Verbindungen werden bei geplanten Abfragen übersprungen. Ausführungen bei Bedarf bleiben verfügbar.",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "Deaktivierte Anmeldedaten werden beim Verbinden abgelehnt und pausieren die Erkennung stillen Ausfalls für das Gerät.",
   "Disabled feeds are neither polled nor matched.": "Deaktivierte Feeds werden weder abgefragt noch abgeglichen.",
   "Disabled — telemetry refused": "Deaktiviert — Telemetrie abgelehnt",
   "Discard draft": "Entwurf verwerfen",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "Die Ebene, auf der die Metrik beobachtet wird. Sie bestimmt, welche Filter du siehst.",
   "Follow the steps below. This list fills in on its own once data arrives.": "Folge den Schritten unten. Diese Liste füllt sich von selbst, sobald Daten eintreffen.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "Hosts, die in diesem Projekt überwacht werden. Ein Host erscheint hier, sobald sein OpenTelemetry Collector Daten sendet.",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Serverless-Funktionen, die in diesem Projekt überwacht werden. Eine Funktion erscheint hier, sobald ihre OpenTelemetry-Daten eintreffen."
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Serverless-Funktionen, die in diesem Projekt überwacht werden. Eine Funktion erscheint hier, sobald ihre OpenTelemetry-Daten eintreffen.",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "Wenn aus, kann sich das Gerät mit diesen Anmeldedaten nicht verbinden und löst keine Offline-Warnungen aus."
 }

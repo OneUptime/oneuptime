@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "Disable to take this rule's links off the map without deleting it.",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "Disabled credentials are rejected at connect and pause silent-death detection for the device.",
   "Disabled feeds are neither polled nor matched.": "Disabled feeds are neither polled nor matched.",
   "Disabled — telemetry refused": "Disabled — telemetry refused",
   "Discard draft": "Discard draft",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "Il livello a cui viene osservata la metrica. Decide quali filtri vedi.",
   "Follow the steps below. This list fills in on its own once data arrives.": "Segui i passaggi qui sotto. Questo elenco si riempie da solo appena arrivano i dati.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "Host monitorati in questo progetto. Un host compare qui appena il suo OpenTelemetry Collector invia dati.",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Funzioni serverless monitorate in questo progetto. Una funzione compare qui appena arrivano i suoi dati OpenTelemetry."
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Funzioni serverless monitorate in questo progetto. Una funzione compare qui appena arrivano i suoi dati OpenTelemetry.",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "Se disattivato, il dispositivo non può connettersi con queste credenziali e non genera avvisi offline."
 }

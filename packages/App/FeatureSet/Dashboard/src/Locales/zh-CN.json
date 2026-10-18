@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "Disable to take this rule's links off the map without deleting it.",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "Disabled credentials are rejected at connect and pause silent-death detection for the device.",
   "Disabled feeds are neither polled nor matched.": "Disabled feeds are neither polled nor matched.",
   "Disabled — telemetry refused": "Disabled — telemetry refused",
   "Discard draft": "Discard draft",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "监视该指标的层级。它决定你能看到哪些筛选条件。",
   "Follow the steps below. This list fills in on its own once data arrives.": "按照下方步骤操作。数据到达后，此列表会自动填充。",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "此项目中受监控的主机。主机的 OpenTelemetry Collector 发送数据后，主机就会显示在这里。",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "此项目中受监控的无服务器函数。函数的 OpenTelemetry 数据到达后，函数就会显示在这里。"
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "此项目中受监控的无服务器函数。函数的 OpenTelemetry 数据到达后，函数就会显示在这里。",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "关闭后，设备无法使用这些凭据连接，也不会产生离线警报。"
 }

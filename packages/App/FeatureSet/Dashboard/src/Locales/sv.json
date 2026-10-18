@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "Disable to take this rule's links off the map without deleting it.",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "Disabled credentials are rejected at connect and pause silent-death detection for the device.",
   "Disabled feeds are neither polled nor matched.": "Disabled feeds are neither polled nor matched.",
   "Disabled — telemetry refused": "Disabled — telemetry refused",
   "Discard draft": "Discard draft",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "Nivån som mätvärdet bevakas på. Den avgör vilka filter du ser.",
   "Follow the steps below. This list fills in on its own once data arrives.": "Följ stegen nedan. Listan fyller sig själv så snart data kommer in.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "Värdar som övervakas i det här projektet. En värd visas här så snart dess OpenTelemetry Collector skickar data.",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Serverlösa funktioner som övervakas i det här projektet. En funktion visas här så snart dess OpenTelemetry-data kommer in."
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Serverlösa funktioner som övervakas i det här projektet. En funktion visas här så snart dess OpenTelemetry-data kommer in.",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "När den är avstängd kan enheten inte ansluta med de här autentiseringsuppgifterna och utlöser inga offlinelarm."
 }

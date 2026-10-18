@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "Disable to take this rule's links off the map without deleting it.",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "Disabled credentials are rejected at connect and pause silent-death detection for the device.",
   "Disabled feeds are neither polled nor matched.": "Disabled feeds are neither polled nor matched.",
   "Disabled — telemetry refused": "Disabled — telemetry refused",
   "Discard draft": "Discard draft",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "Уровень, на котором отслеживается метрика. От него зависит, какие фильтры видны.",
   "Follow the steps below. This list fills in on its own once data arrives.": "Выполните шаги ниже. Список заполнится сам, как только поступят данные.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "Хосты, которые отслеживаются в этом проекте. Хост появится здесь, как только его OpenTelemetry Collector начнёт отправлять данные.",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Serverless-функции, которые отслеживаются в этом проекте. Функция появится здесь, как только поступят её данные OpenTelemetry."
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Serverless-функции, которые отслеживаются в этом проекте. Функция появится здесь, как только поступят её данные OpenTelemetry.",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "Если выключено, устройство не может подключиться с этими учётными данными и не вызывает оповещений об отключении."
 }

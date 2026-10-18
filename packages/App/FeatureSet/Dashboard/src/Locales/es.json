@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "Deshabilítala para quitar los enlaces de esta regla del mapa sin eliminarla.",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "Los SLO deshabilitados no se evalúan y sus reglas de tasa de consumo no se activan. Deshabilitarlo también resuelve las alertas e incidentes de tasa de consumo que este SLO tenga abiertos.",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "El sondeo programado omite las conexiones deshabilitadas. Las ejecuciones bajo demanda siguen disponibles.",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "Las credenciales deshabilitadas se rechazan al conectar y pausan la detección de caídas silenciosas del dispositivo.",
   "Disabled feeds are neither polled nor matched.": "Los feeds deshabilitados no se sondean ni se comparan.",
   "Disabled — telemetry refused": "Deshabilitado: se rechaza la telemetría",
   "Discard draft": "Descartar borrador",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "El nivel en el que se vigila la métrica. Decide qué filtros ves.",
   "Follow the steps below. This list fills in on its own once data arrives.": "Sigue los pasos de abajo. Esta lista se llena sola en cuanto llegan los datos.",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "Hosts supervisados en este proyecto. Un host aparece aquí en cuanto su OpenTelemetry Collector envía datos.",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Funciones serverless supervisadas en este proyecto. Una función aparece aquí en cuanto llegan sus datos de OpenTelemetry."
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "Funciones serverless supervisadas en este proyecto. Una función aparece aquí en cuanto llegan sus datos de OpenTelemetry.",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "Si lo desactivas, el dispositivo no puede conectarse con estas credenciales y no genera alertas sin conexión."
 }

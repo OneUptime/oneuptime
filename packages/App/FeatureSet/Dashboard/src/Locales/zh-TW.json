@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "Disable to take this rule's links off the map without deleting it.",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "Disabled credentials are rejected at connect and pause silent-death detection for the device.",
   "Disabled feeds are neither polled nor matched.": "Disabled feeds are neither polled nor matched.",
   "Disabled — telemetry refused": "Disabled — telemetry refused",
   "Discard draft": "Discard draft",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "監測該指標的層級。它決定你能看到哪些篩選條件。",
   "Follow the steps below. This list fills in on its own once data arrives.": "依照下方步驟操作。資料送達後，此清單會自動填入。",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "此專案中受監測的主機。主機的 OpenTelemetry Collector 傳送資料後，主機就會顯示在這裡。",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "此專案中受監測的無伺服器函式。函式的 OpenTelemetry 資料送達後，函式就會顯示在這裡。"
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "此專案中受監測的無伺服器函式。函式的 OpenTelemetry 資料送達後，函式就會顯示在這裡。",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "關閉後，裝置無法使用這些憑證連線，也不會產生離線警示。"
 }

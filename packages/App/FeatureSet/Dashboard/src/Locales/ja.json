@@ -9948,7 +9948,6 @@
   "Disable to take this rule's links off the map without deleting it.": "無効にすると、ルールを削除せずにそのリンクをマップから外します。",
   "Disabled SLOs are not evaluated and their burn rate rules do not fire. Disabling also resolves the burn-rate alerts and incidents this SLO has open.": "無効な SLO は評価されず、そのバーンレートルールも発火しません。無効にすると、この SLO で未解決のバーンレートのアラートとインシデントも解決されます。",
   "Disabled connections are skipped by scheduled polling. On-demand runs remain available.": "無効な接続は、スケジュールされたポーリングではスキップされます。オンデマンドでの実行は引き続き利用できます。",
-  "Disabled credentials are rejected at connect and pause silent-death detection for the device.": "無効な認証情報は接続時に拒否され、そのデバイスのサイレント停止の検出も一時停止されます。",
   "Disabled feeds are neither polled nor matched.": "無効なフィードは、ポーリングも照合も行われません。",
   "Disabled — telemetry refused": "無効 — テレメトリを拒否",
   "Discard draft": "下書きを破棄",
@@ -30660,5 +30659,6 @@
   "The level the metric is watched at. It decides which filters you see.": "メトリクスを監視する単位です。表示されるフィルターもこれで決まります。",
   "Follow the steps below. This list fills in on its own once data arrives.": "下の手順に従ってください。データが届くと、この一覧に自動で表示されます。",
   "Hosts being monitored in this project. A host shows up here once its OpenTelemetry Collector sends data.": "このプロジェクトで監視しているホストです。OpenTelemetry Collector がデータを送り始めると、ホストがここに表示されます。",
-  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "このプロジェクトで監視しているサーバーレス関数です。OpenTelemetry のデータが届くと、関数がここに表示されます。"
+  "Serverless functions being monitored in this project. A function shows up here once its OpenTelemetry data arrives.": "このプロジェクトで監視しているサーバーレス関数です。OpenTelemetry のデータが届くと、関数がここに表示されます。",
+  "When off, the device cannot connect with these credentials and raises no offline alerts.": "オフにすると、デバイスはこの認証情報で接続できず、オフラインアラートも発生しません。"
 }
