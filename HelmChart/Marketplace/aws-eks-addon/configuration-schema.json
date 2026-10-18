@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OneUptime Kubernetes agent",
+  "description": "Configuration values of the OneUptime Kubernetes agent add-on. Every field is optional: the add-on sends to OneUptime Cloud with the ingestion key in the Secret oneuptime-ingestion-key, and reports the cluster under its Amazon EKS name.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "oneuptime": {
+      "type": "object",
+      "description": "The OneUptime the agent sends to, and the Secret with its ingestion key.",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Your OneUptime's address: https://oneuptime.com for OneUptime Cloud, or the URL of your own OneUptime.",
+          "pattern": "^https?://[^\\s/]+(/[^\\s]*)?$",
+          "default": "https://oneuptime.com"
+        },
+        "existingSecretName": {
+          "type": "string",
+          "description": "Name of the Secret in the oneuptime-agent namespace that holds your OneUptime ingestion key under api-key. Create it with: kubectl create secret generic oneuptime-ingestion-key --namespace oneuptime-agent --from-literal=api-key=<ingestion key>",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+          "maxLength": 253,
+          "default": "oneuptime-ingestion-key"
+        },
+        "labels": {
+          "type": "object",
+          "description": "Labels of your OneUptime project to put on everything this cluster sends, as key and value pairs, such as {\"team\": \"payments\"}.",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          },
+          "default": {}
+        }
+      }
+    },
+    "preset": {
+      "type": "string",
+      "description": "standard for clusters with EC2 nodes. eks-fargate for a cluster that runs only on Fargate: pod logs are read through the Kubernetes API instead, and the eBPF and node pods, which Fargate cannot run, are left out.",
+      "enum": ["standard", "eks-fargate"],
+      "default": "standard"
+    },
+    "logs": {
+      "type": "object",
+      "description": "Pod logs.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Send the stdout and stderr of every pod.",
+          "default": true
+        }
+      }
+    },
+    "ebpf": {
+      "type": "object",
+      "description": "Application traces and request metrics with eBPF, from every pod, with no code changes.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Run the eBPF instrumentation on every EC2 node. It loads eBPF programs into the kernel, so it runs as a privileged pod.",
+          "default": true
+        }
+      }
+    },
+    "aiAgent": {
+      "type": "object",
+      "description": "The Kubernetes AI agent, which runs read-only kubectl for OneUptime AI while it investigates an incident or alert on this cluster.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Run the Kubernetes AI agent. It can read the cluster's resources and pod logs, never Secrets, and changes nothing.",
+          "default": true
+        }
+      }
+    },
+    "kubeStateMetrics": {
+      "type": "object",
+      "description": "kube-state-metrics, for the monitors that need the state of pods: CrashLoopBackOff, image pull errors, pending and stuck pods.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Run kube-state-metrics in the add-on's namespace.",
+          "default": false
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "description": "Spend per namespace, workload and pod, priced with OpenCost.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Run OpenCost and the small Prometheus it needs, and send their cost allocations to OneUptime.",
+          "default": false
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "oneuptime": {
+        "url": "https://oneuptime.example.com",
+        "existingSecretName": "oneuptime-ingestion-key",
+        "labels": {
+          "team": "payments"
+        }
+      },
+      "kubeStateMetrics": {
+        "enabled": true
+      }
+    }
+  ]
+}

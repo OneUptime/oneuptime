@@ -4,6 +4,7 @@ OneUptime Kubernetes एजेंट एक Helm चार्ट है जो �
 
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): Helm के साथ चार चरण।
+- [Amazon EKS ऐड-ऑन के रूप में इंस्टॉल करें](#amazon-eks-ऐड-ऑन-के-रूप-में-इंस्टॉल-करें): EKS कंसोल से, Helm के बिना।
 - [कॉन्फ़िगरेशन विकल्प](#कॉन्फ़िगरेशन-विकल्प): फ़िल्टर, सैंपलिंग, कंट्रोल प्लेन, सर्विस मेश, लागत और लेबल।
 - [Kubernetes AI एजेंट](#kubernetes-ai-एजेंट): OneUptime AI के लिए केवल-पढ़ने वाला `kubectl`, और आपकी अनुमति होने पर सुधार।
 - [कम डेटा भेजें](#इकट्ठा-होने-वाले-डेटा-की-मात्रा-कम-करना): लीवर, असर के क्रम में।
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 **उत्पाद → बुनियादी ढांचा → Kubernetes → सभी क्लस्टर** खोलें। क्लस्टर कुछ मिनट में अपने `clusterName` के अंतर्गत दिखता है, और उसके नोड, पॉड और वर्कलोड भर जाते हैं। Kubernetes AI एजेंट क्लस्टर के **एजेंट** पेज पर, **एआई** के अंतर्गत, कनेक्टेड दिखता है।
 :::
 
+## Amazon EKS ऐड-ऑन के रूप में इंस्टॉल करें
+
+Amazon EKS पर आप एजेंट को EKS कंसोल से भी जोड़ सकते हैं, जहाँ यह AWS Marketplace के ऐड-ऑन में से एक है। यह मुफ़्त है, और EKS इसे आपके लिए इंस्टॉल, अपग्रेड और अनइंस्टॉल करता है। ऐड-ऑन यही चार्ट है, जिसे उस तरह सेट किया गया है जैसा किसी ऐड-ऑन के लिए ज़रूरी है:
+
+- यह डेटा OneUptime Cloud (`https://oneuptime.com`) को भेजता है, जब तक आप इसे अपने खुद के OneUptime का URL न दें।
+- यह इंजेशन कुंजी आपके बनाए Kubernetes Secret से पढ़ता है, ऐड-ऑन के कॉन्फ़िगरेशन से कभी नहीं, जिसे EKS सादे टेक्स्ट में दिखाता है।
+- यह क्लस्टर को OneUptime में उसके EKS नाम से रिपोर्ट करता है।
+- यह `oneuptime-agent` नेमस्पेस में चलता है।
+
+:::steps
+### अपनी इंजेशन कुंजी किसी Secret में रखें
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### ऐड-ऑन जोड़ें
+
+EKS कंसोल में अपना क्लस्टर खोलें, **Add-ons** चुनें, फिर **Get more add-ons**, और AWS Marketplace के ऐड-ऑन में से OneUptime Kubernetes एजेंट चुनें। इसकी सदस्यता लें, जो मुफ़्त है, और इसे बनाएँ। या AWS CLI से:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### जाँचें कि ऐड-ऑन चल रहा है
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+ऐड-ऑन के पॉड चलने लगते ही वह `ACTIVE` हो जाता है, और कुछ मिनट में क्लस्टर OneUptime में अपने EKS नाम से दिखने लगता है। जो पॉड `CreateContainerConfigError` में ही अटका रहता है, उसे Secret नहीं मिल पाता: Secret को पहले चरण की तरह `oneuptime-agent` नेमस्पेस में बनाएँ।
+:::
+
+### ऐड-ऑन के कॉन्फ़िगरेशन मान
+
+इन्हें EKS कंसोल की **Optional configuration settings** में सेट करें, या ऐड-ऑन बनाते या अपडेट करते समय `--configuration-values` से। हर मान वैकल्पिक है:
+
+- `oneuptime.url`: आपके OneUptime का पता। डिफ़ॉल्ट `https://oneuptime.com` है।
+- `oneuptime.existingSecretName`: वह Secret जिसमें इंजेशन कुंजी `api-key` के अंतर्गत रखी है। डिफ़ॉल्ट `oneuptime-ingestion-key` है।
+- `oneuptime.labels`: यह क्लस्टर जो कुछ भी भेजता है, उस सब के लिए प्रोजेक्ट लेबल, जैसे `{"team": "payments"}`।
+- `preset`: सिर्फ़ Fargate पर चलने वाले क्लस्टर के लिए `eks-fargate`, वरना `standard`, जो डिफ़ॉल्ट है।
+- `logs.enabled`, `ebpf.enabled` और `aiAgent.enabled`: पॉड लॉग, eBPF ट्रेस और [Kubernetes AI एजेंट](#kubernetes-ai-एजेंट), तीनों डिफ़ॉल्ट रूप से चालू हैं।
+- `kubeStateMetrics.enabled` और `cost.enabled`: kube-state-metrics और [लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost), दोनों डिफ़ॉल्ट रूप से बंद हैं।
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+अपडेट पूरे कॉन्फ़िगरेशन को बदल देता है: जो मान आप छोड़ देते हैं, वह अपने डिफ़ॉल्ट पर लौट जाता है। चार्ट की बाकी सेटिंग के लिए, जैसे प्रोफ़ाइलर, OneUptime AI के सुधार और नेमस्पेस फ़िल्टर, [Helm इंस्टॉल](#एजेंट-इंस्टॉल-करें) चाहिए। किसी क्लस्टर को Helm इंस्टॉल से ऐड-ऑन पर ले जाने के लिए पहले Helm रिलीज़ अनइंस्टॉल करें।
+
 ## प्रीसेट चुनें
 
 `preset` वे डिफ़ॉल्ट चुनता है जो आपके प्लेटफ़ॉर्म पर काम करते हैं: पॉड लॉग नोड से `hostPath` के ज़रिए पढ़े जाएँ या Kubernetes API के ज़रिए, और कौन-से वर्कलोड विशेषाधिकार के साथ चल सकते हैं।
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## कॉन्फ़िगरेशन विकल्प
 
 नीचे का हर विकल्प एक Helm मान है। इसे इंस्टॉल के समय सेट करें, या इंस्टॉल किए गए एजेंट पर `helm upgrade ... --reset-then-reuse-values --set <value>` से।
+
+### इंजेशन कुंजी को Secret में रखें
+
+`--set oneuptime.apiKey` कुंजी को रिलीज़ के मानों में रखता है, जिन्हें Helm हर रिविज़न के साथ सहेजता है। कुंजी को उनसे बाहर रखने के लिए उसे एजेंट के नेमस्पेस में किसी Secret में, `api-key` के अंतर्गत, रखें, और इसके बजाय उस Secret का नाम दें:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+इसके बाद एजेंट का हर वर्कलोड कुंजी उसी Secret से पढ़ता है, और चार्ट अपना कोई Secret नहीं बनाता। `oneuptime.apiKey` या `oneuptime.existingSecretName` सेट करें, दोनों नहीं: चार्ट दोनों को एक साथ अस्वीकार करता है। Secret किसी भी ऐसी चीज़ से आ सकता है जो Secret लिखती हो, जैसे External Secrets Operator।
 
 ### नेमस्पेस फ़िल्टरिंग
 

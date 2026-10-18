@@ -169,6 +169,25 @@ With `aiAgent.remediation.namespaces` empty, the remediation role is bound with 
 | `resources` | `50m` / `64Mi` → `500m` / `256Mi` | The agent idles between commands. |
 | `extraEnv` | `[]` | Extra `EnvVar` objects for the agent container — e.g. `HTTPS_PROXY` / `NO_PROXY` when the cluster reaches OneUptime through an egress proxy. Names the chart sets itself (`ONEUPTIME_URL`, `ONEUPTIME_API_KEY`, `ONEUPTIME_KUBERNETES_CLUSTER_NAME`, `ONEUPTIME_KUBECTL_ALLOW_WRITES`, `ONEUPTIME_KUBECTL_WRITE_NAMESPACES`, `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS`, `ONEUPTIME_AI_AGENT_POD_NAMESPACE`, `ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`, …) fail the render instead of silently replacing the chart's value. `--set-json 'aiAgent.extraEnv=[]'` clears a list carried over from `aiAccess.extraEnv` (`--set` passes `[]` as a string, which the schema rejects). |
 
+## Keep the ingestion key in a Secret
+
+`--set oneuptime.apiKey` stores the key in the release's values, which Helm keeps with every revision. To keep it out of them, create a Secret in the release's namespace with the key under `api-key`, and name it in `oneuptime.existingSecretName` instead:
+
+```bash
+kubectl create namespace oneuptime-kubernetes-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-kubernetes-agent \
+  --from-literal=api-key=<YOUR_API_KEY>
+
+helm install oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key \
+  --set clusterName=<A_UNIQUE_NAME_FOR_THIS_CLUSTER>
+```
+
+Every agent workload then reads the key from that Secret, and the chart creates no Secret of its own. Set `oneuptime.apiKey` or `oneuptime.existingSecretName`, not both: the chart refuses the two together. The Secret can come from anywhere that writes one, such as the External Secrets Operator or the Secrets Store CSI driver. On Amazon EKS, the agent is also an [EKS add-on](https://oneuptime.com/docs/telemetry/kubernetes-agent#install-as-an-amazon-eks-add-on), which reads its key this way.
+
 ## Tuning resources (CPU & memory)
 
 Every component the agent ships has its own `resources` block in [`values.yaml`](./values.yaml) with conservative defaults — small enough to fit on a modest node, large enough to handle a few hundred pods. Tune them up for larger clusters or heavier workloads.
@@ -436,6 +455,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | --- | --- |
 | `oneuptime.url` | URL of your OneUptime instance (e.g. `https://oneuptime.com`). |
 | `oneuptime.apiKey` | Telemetry ingestion key, sent as the `x-oneuptime-token` header. Create one at **Project Settings → Telemetry & APM → Ingestion Keys** — a project API key does not work here. |
+| `oneuptime.existingSecretName` | Instead of `oneuptime.apiKey`: the name of a Secret in the release's namespace that holds the ingestion key under `api-key`. The chart then creates no Secret of its own. See [Keep the ingestion key in a Secret](#keep-the-ingestion-key-in-a-secret). |
 | `clusterName` | Unique name for this cluster. Stamped as `k8s.cluster.name` on every record. |
 
 ### Common

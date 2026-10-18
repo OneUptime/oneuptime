@@ -182,4 +182,5 @@ OneUptime의 데이터베이스에는 영구 볼륨이 필요합니다. 클러�
 - [업그레이드](/docs/installation/upgrading): 각 릴리스의 업그레이드 노트.
 - [사이징 및 용량 계획](/docs/installation/sizing): 텔레메트리에 맞춰 데이터 저장소를 사이징합니다.
 - [아키텍처](/docs/self-hosted/architecture): 클러스터에서 실행되는 것.
+- [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent#amazon-eks-추가-기능으로-설치): OneUptime으로 데이터를 보내는 클러스터를 위해 AWS Marketplace에서도 Amazon EKS 추가 기능으로 무료로 제공됩니다.
 :::

@@ -182,4 +182,5 @@ De databases van OneUptime hebben persistente volumes nodig. Geef het cluster ee
 - [Upgraden](/docs/installation/upgrading): De upgradenotities van elke release.
 - [Sizing en capaciteitsplanning](/docs/installation/sizing): Dimensioneer de gegevensopslagen voor uw telemetrie.
 - [Architectuur](/docs/self-hosted/architecture): Wat er in uw cluster draait.
+- [Kubernetes-agent](/docs/telemetry/kubernetes-agent#installeren-als-amazon-eks-add-on): Ook gratis op AWS Marketplace, als Amazon EKS-add-on, voor clusters die gegevens naar OneUptime sturen.
 :::

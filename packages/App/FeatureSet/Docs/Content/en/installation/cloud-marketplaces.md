@@ -182,4 +182,5 @@ OneUptime's databases need persistent volumes. Give the cluster a default Storag
 - [Upgrading](/docs/installation/upgrading): The upgrade notes for each release.
 - [Sizing & Capacity Planning](/docs/installation/sizing): Size the datastores for your telemetry.
 - [Architecture](/docs/self-hosted/architecture): What runs in your cluster.
+- [Kubernetes Agent](/docs/telemetry/kubernetes-agent#install-as-an-amazon-eks-add-on): Free on AWS Marketplace too, as an Amazon EKS add-on, for clusters that send to OneUptime.
 :::
