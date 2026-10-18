@@ -174,7 +174,7 @@ versions() {
 mapfile -t VERSIONS < <(versions)
 if ((${#VERSIONS[@]} >= KEEP)); then
 	oldest_kept="${VERSIONS[${#VERSIONS[@]}-KEEP]}"
-	if [[ "$VERSION" != "$oldest_kept" && "$(printf '%s\n%s\n' "$VERSION" "$oldest_kept" | sort --version-sort | head -n 1)" == "$VERSION" ]]; then
+	if [[ "$VERSION" != "$oldest_kept" && "$(printf '%s\n%s\n' "$VERSION" "$oldest_kept" | sort --version-sort | sed -n 1p)" == "$VERSION" ]]; then
 		echo "$PACKAGE $VERSION is older than the $KEEP versions the repository keeps; nothing to do."
 		exit 0
 	fi

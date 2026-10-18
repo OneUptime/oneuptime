@@ -41,7 +41,7 @@ fail() {
 
 # The version line of a cask file, as GoReleaser writes it.
 cask_version() {
-	sed -n 's/^  version "\(.*\)"$/\1/p' "$1" | head -n 1
+	awk -F '"' '/^  version "/ { print $2; exit }' "$1"
 }
 
 [[ -n "$VERSION" ]] || fail "PACKAGE_VERSION is required"

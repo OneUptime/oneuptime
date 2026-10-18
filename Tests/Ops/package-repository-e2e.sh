@@ -256,7 +256,8 @@ installed() { rpm --query --queryformat '%{VERSION}' oneuptime-infrastructure-ag
 [ "$(installed)" = 1.0.1 ] || fail "dnf installed $(installed), not the newest, 1.0.1"
 grep -qx 'gpgcheck=1' /etc/yum.repos.d/oneuptime.repo || fail "oneuptime.repo does not check package signatures"
 grep -qx 'repo_gpgcheck=1' /etc/yum.repos.d/oneuptime.repo || fail "oneuptime.repo does not check its metadata's signature"
-rpm --query gpg-pubkey --queryformat '%{SUMMARY}\n' | grep -q 'key@oneuptime.com' || fail "dnf imported no OneUptime key"
+keys="$(rpm --query gpg-pubkey --queryformat '%{SUMMARY}\n')"
+grep -q 'key@oneuptime.com' <<<"$keys" || fail "dnf imported no OneUptime key"
 dnf downgrade -q oneuptime-infrastructure-agent-1.0.0 >/dev/null
 [ "$(installed)" = 1.0.0 ] || fail "dnf did not go back to 1.0.0"
 dnf upgrade -q oneuptime-infrastructure-agent >/dev/null
@@ -265,7 +266,10 @@ echo "dnf: installed 1.0.1, checked its signatures, went back to 1.0.0 and forwa
 EOF
 
 docker run --rm --network "$RUN_ID" -v "$WORK:/work:ro" "$APT_IMAGE" bash /work/apt-client.sh
-docker logs "$RUN_ID-server" 2>&1 | grep -q '/deb/dists/stable/main/binary-[a-z0-9]*/by-hash/SHA256/' ||
+# Read whole before searching: `docker logs | grep -q` fails under pipefail
+# when grep stops reading first.
+server_log="$(docker logs "$RUN_ID-server" 2>&1)"
+grep -q '/deb/dists/stable/main/binary-[a-z0-9]*/by-hash/SHA256/' <<<"$server_log" ||
 	fail "apt did not fetch the indexes by hash"
 
 docker run --rm --network "$RUN_ID" -v "$WORK:/work:ro" "$DNF_IMAGE" bash /work/dnf-client.sh
