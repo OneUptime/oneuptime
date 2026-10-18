@@ -222,10 +222,30 @@ describe("SelfHostedMarketplaceConfig on AWS", () => {
     ).toBe("ap-southeast-2");
   });
 
-  it("ships with the product codes AWS has issued (none until the product exists)", () => {
+  it("ships with the product code AWS issued for the container product", () => {
+    expect(AWS_SELF_HOSTED_PRODUCT_CODES).toEqual([
+      "c8qvytt92i74r7bhzi6nxunsi",
+    ]);
+
     for (const code of AWS_SELF_HOSTED_PRODUCT_CODES) {
       expect(code).toMatch(/^[-a-zA-Z0-9/=:_.@]{1,255}$/);
     }
+  });
+
+  it("bills the compiled-in product when the installation names none", () => {
+    const result: SelfHostedMarketplaceConfigResult =
+      SelfHostedMarketplaceConfig.read({
+        ENTERPRISE_MARKETPLACE: "aws",
+        ...IRSA,
+      });
+
+    expect(result.kind).toBe("configured");
+    expect(
+      result.kind === "configured" &&
+        result.settings.marketplace === CloudMarketplace.AWS
+        ? result.settings.productCode
+        : null,
+    ).toBe("c8qvytt92i74r7bhzi6nxunsi");
   });
 });
 
