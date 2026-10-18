@@ -4,7 +4,11 @@ import RequireSsoForLoginLeftover from "../../Components/Project/RequireSsoForLo
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import PlanGatedPage from "../../Components/Billing/PlanGatedPage";
-import { ProjectSamlProvidersLeftover } from "../../Components/Billing/IdentityPlanLeftovers";
+import {
+  ProjectOidcProvidersLeftover,
+  ProjectSamlProvidersLeftover,
+} from "../../Components/Billing/IdentityPlanLeftovers";
+import ProjectOidcProviders from "../../Components/Sso/ProjectOidcProviders";
 import { SSO_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { useDefaultSsoTeamsInitialValues } from "../../Components/Sso/UseDefaultSsoTeams";
 import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";
@@ -48,8 +52,11 @@ interface SamlConfigDialogTarget {
 }
 
 /*
- * Settings > SSO: the project's SAML single sign-on providers, the link to
- * test them, and "Require SSO for Login".
+ * Settings > SSO: everything single sign-on, on one page - the project's
+ * SAML providers, its OpenID Connect providers (Components/Sso/
+ * ProjectOidcProviders, which had a page of their own), the link to test
+ * them, and "Require SSO for Login", which a sign-in through either kind
+ * meets.
  *
  * Adding one asks for what the identity provider gives - its sign-on URL,
  * issuer and certificate - and the teams newcomers join (the members team
@@ -90,9 +97,9 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           isEditable={true}
           isCreateable={true}
           cardProps={{
-            title: "Single Sign On (SSO)",
+            title: "SAML",
             description:
-              "Single sign-on is an authentication scheme that allows a user to log in with a single ID to any of several related, yet independent, software systems.",
+              "Sign in through a SAML app, such as Okta, Microsoft Entra ID or OneLogin.",
           }}
           videoLink={URL.fromString("https://youtu.be/tq4WRgxbIwk")}
           formSteps={getSsoProviderFormSteps<ProjectSSO>()}
@@ -196,12 +203,24 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
           ]}
         />
 
+        {/*
+         * The project's OpenID Connect providers, which had a page of their
+         * own (Settings > OIDC): one place for single sign-on, under one
+         * test link and the one Require SSO for Login switch, which counts
+         * an OIDC sign-in exactly as a SAML one.
+         */}
+        <ProjectOidcProviders />
+
+        {/*
+         * One test link for both: the project's sign-in page lists its
+         * SAML and OIDC providers (Pages/Onboarding/SSO).
+         */}
         <Card
           title={`Test Single Sign On (SSO)`}
           description={
             <span>
               <TranslatedSentence
-                template="Here's a link which will help you test SSO integration before you force it on your organization: {{link}}"
+                template="Sign in through one of these providers before you require SSO: {{link}}"
                 slots={{
                   link: (
                     <Link openInNewTab={true} to={URL.fromString(testUrl)}>
@@ -278,9 +297,10 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
  * Scale plan, so there a project below Scale sees the plan upsell instead -
  * with "Require SSO for Login" under it while a Scale trial (or a move down
  * from Scale) left the project requiring SSO, so it can always be turned
- * off (RequireSsoForLoginLeftover), and the SAML providers the project
- * still has, which keep signing people in until they are turned off or
- * deleted (ProjectSamlProvidersLeftover).
+ * off (RequireSsoForLoginLeftover), and the SAML and OIDC providers the
+ * project still has, which keep signing people in until they are turned
+ * off or deleted (ProjectSamlProvidersLeftover,
+ * ProjectOidcProvidersLeftover).
  */
 const SSOPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -290,10 +310,10 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
       requiredPlan={SSO_REQUIRED_PLAN}
       upsell={{
         title: "Single Sign On (SSO)",
-        description: "Configure SAML SSO for your project.",
-        featureName: "SAML Single Sign On",
+        description: "Sign in with SAML or OpenID Connect.",
+        featureName: "Single Sign-On",
         featureDescription:
-          "Let team members authenticate into this project using your SAML identity provider (Okta, Azure AD, OneLogin, JumpCloud and more).",
+          "Let team members sign in to this project with your identity provider, over SAML or OpenID Connect (Okta, Microsoft Entra ID, Google Workspace and more).",
         benefits: [
           {
             icon: IconProp.Lock,
@@ -327,6 +347,7 @@ const SSOPage: FunctionComponent<PageComponentProps> = (
             projectId={ProjectUtil.getCurrentProjectId()!}
           />
           <ProjectSamlProvidersLeftover />
+          <ProjectOidcProvidersLeftover />
         </>
       }
     >

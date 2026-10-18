@@ -301,8 +301,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            description:
-              "Friendly name for this config so you remember what this is about.",
+            // The placeholder shows one; "Friendly name for this config ..." said nothing more.
+            hideColumnDescription: true,
             placeholder: "Company CallSMS Server",
             stepId: "basic-info",
             validation: {
@@ -317,8 +317,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             stepId: "basic-info",
-            description:
-              "Friendly description for this config so you remember what this is about.",
+            hideColumnDescription: true,
             placeholder: "Company CallSMS server hosted on AWS",
           },
           {
@@ -427,7 +426,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
           },
           {
-            title: "Twilio Secondary Primary Phone Numbers",
+            title: "Twilio Secondary Phone Numbers",
             type: FieldType.LongText,
             field: {
               twilioSecondaryPhoneNumbers: true,
@@ -441,6 +440,12 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
           },
         ]}
+        /*
+         * What tells the configs apart at a glance: the name, the Twilio
+         * account, the number it sends from and whether it is the
+         * project's default. Description and the secondary numbers are in
+         * the config's Edit dialog (and in the filters).
+         */
         columns={[
           {
             field: {
@@ -448,14 +453,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              description: true,
-            },
-            noValueMessage: "-",
-            title: "Description",
-            type: FieldType.LongText,
           },
           {
             field: {
@@ -470,13 +467,6 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
             title: "Primary Twilio Phone Number",
             type: FieldType.Phone,
-          },
-          {
-            field: {
-              twilioSecondaryPhoneNumbers: true,
-            },
-            title: "Secondary Twilio Phone Number",
-            type: FieldType.LongText,
           },
           {
             field: {

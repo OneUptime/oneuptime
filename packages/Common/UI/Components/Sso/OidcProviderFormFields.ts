@@ -22,13 +22,11 @@ import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import { translateValidationMessage } from "../Forms/Validation";
 import {
   SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
-  SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION,
-  SSO_GLOBAL_RESTRICT_DESCRIPTION,
   getSsoProviderDescriptionField,
-  getSsoProviderDisableSignUpField,
   getSsoProviderEnabledField,
   getSsoProviderNameField,
-  getSsoProviderRestrictToAttachedProjectsField,
+  getSsoProviderReachChoiceFields,
+  getSsoProviderSignUpChoiceFields,
   getSsoProviderTeamsField,
   isSsoGlobalAccessAtDefaults,
   readSsoFormValue,
@@ -116,12 +114,6 @@ export const OIDC_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
  */
 export const GLOBAL_OIDC_ADVANCED_DEFAULTS_SUMMARY: string =
   SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY;
-
-export const GLOBAL_OIDC_DISABLE_SIGN_UP_DESCRIPTION: string =
-  SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION;
-
-export const GLOBAL_OIDC_RESTRICT_DESCRIPTION: string =
-  SSO_GLOBAL_RESTRICT_DESCRIPTION;
 
 type IsAtDefaultFunction = (value: unknown, defaultValue: string) => boolean;
 
@@ -478,11 +470,11 @@ export const getOidcProviderFormFields: GetOidcProviderFormFieldsFunction = <
     }),
     ...(options?.withGlobalAccessSwitches
       ? [
-          getSsoProviderDisableSignUpField<TEntity>({
+          ...getSsoProviderSignUpChoiceFields<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
           }),
-          getSsoProviderRestrictToAttachedProjectsField<TEntity>({
+          ...getSsoProviderReachChoiceFields<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
           }),

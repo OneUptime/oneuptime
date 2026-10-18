@@ -18,10 +18,10 @@ import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
 import {
   SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
   getSsoProviderDescriptionField,
-  getSsoProviderDisableSignUpField,
   getSsoProviderEnabledField,
   getSsoProviderNameField,
-  getSsoProviderRestrictToAttachedProjectsField,
+  getSsoProviderReachChoiceFields,
+  getSsoProviderSignUpChoiceFields,
   getSsoProviderTeamsField,
   isSsoGlobalAccessAtDefaults,
   readSsoFormValue,
@@ -319,11 +319,11 @@ export const getSamlProviderFormFields: GetSamlProviderFormFieldsFunction = <
     }),
     ...(options?.withGlobalAccessSwitches
       ? [
-          getSsoProviderDisableSignUpField<TEntity>({
+          ...getSsoProviderSignUpChoiceFields<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
           }),
-          getSsoProviderRestrictToAttachedProjectsField<TEntity>({
+          ...getSsoProviderReachChoiceFields<TEntity>({
             stepId: "sign-in",
             collapsibleSection: advancedSection,
           }),

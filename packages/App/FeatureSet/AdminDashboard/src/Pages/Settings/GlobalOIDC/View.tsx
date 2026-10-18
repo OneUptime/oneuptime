@@ -11,7 +11,13 @@ import Link from "Common/UI/Components/Link/Link";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { getOidcProviderFormFields } from "Common/UI/Components/Sso/OidcProviderFormFields";
-import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
+import {
+  getSsoGlobalReachAnswerTitle,
+  getSsoGlobalSignUpAnswerTitle,
+  getSsoProviderFormSteps,
+  SSO_GLOBAL_REACH_TITLE,
+  SSO_GLOBAL_SIGN_UP_TITLE,
+} from "Common/UI/Components/Sso/SsoProviderFormFields";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
@@ -156,21 +162,30 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 title: "Name Claim Name",
                 fieldType: FieldType.Text,
               },
+              /*
+               * The two questions the edit form asks, answered in its
+               * words (SSO_GLOBAL_SIGN_UP_CHOICES, SSO_GLOBAL_REACH_CHOICES)
+               * rather than as two Yes/No switches.
+               */
               {
                 field: {
                   disableSignUpWithSso: true,
                 },
-                title: "Disable Sign Up with SSO",
-                fieldType: FieldType.Boolean,
-                placeholder: t("common.no"),
+                title: SSO_GLOBAL_SIGN_UP_TITLE,
+                fieldType: FieldType.Element,
+                getElement: (item: GlobalOIDC): ReactElement => {
+                  return <span>{t(getSsoGlobalSignUpAnswerTitle(item))}</span>;
+                },
               },
               {
                 field: {
                   restrictToAttachedProjects: true,
                 },
-                title: "Restrict to Attached Projects",
-                fieldType: FieldType.Boolean,
-                placeholder: t("common.no"),
+                title: SSO_GLOBAL_REACH_TITLE,
+                fieldType: FieldType.Element,
+                getElement: (item: GlobalOIDC): ReactElement => {
+                  return <span>{t(getSsoGlobalReachAnswerTitle(item))}</span>;
+                },
               },
               {
                 field: {
@@ -185,21 +200,25 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           }}
         />
 
+        {/*
+         * Spans, not divs: a card's description is drawn inside a <p>,
+         * which may hold no block element (React warned of the divs).
+         */}
         <Card
           title={"Identity Provider URL"}
           description={
-            <div>
-              <div className="mb-3">
+            <span className="block">
+              <span className="mb-3 block">
                 Register this redirect URI (callback URL) with your OIDC
                 identity provider.
-              </div>
-              <div>
-                <div className="font-semibold">
+              </span>
+              <span className="block">
+                <span className="block font-semibold">
                   Redirect URI (Callback URL):
-                </div>
-                <div className="break-all">{redirectURI}</div>
-              </div>
-            </div>
+                </span>
+                <span className="block break-all">{redirectURI}</span>
+              </span>
+            </span>
           }
         />
 
@@ -234,6 +253,15 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           isDeleteable={true}
           isEditable={false}
           isCreateable={true}
+          /*
+           * A project is attached to the provider, not created: the button
+           * read "Create Global OIDC Project", after the join table's name.
+           */
+          createVerb="Attach"
+          singularName="Project"
+          pluralName="Projects"
+          createFormTitle="Attach a Project"
+          createFormSubmitButtonText="Attach Project"
           modelAPI={AdminModelAPI}
           cardProps={{
             title: "Attached Projects",
@@ -256,7 +284,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
               },
               title: "Project",
               description:
-                "The project federated users are provisioned into for this provider.",
+                "People who sign in for the first time join this project.",
               fieldType: FormFieldSchemaType.Dropdown,
               dropdownModal: {
                 type: Project,
@@ -271,8 +299,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                 teams: true,
               },
               title: "Teams",
-              description:
-                "Users are added to these teams (from the project selected above) when they sign in.",
+              description: "The teams of that project they join.",
               fieldType: FormFieldSchemaType.CustomComponent,
               getCustomElement: (
                 values: FormValues<GlobalOIDCProject>,

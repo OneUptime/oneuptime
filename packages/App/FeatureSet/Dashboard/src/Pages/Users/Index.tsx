@@ -472,7 +472,6 @@ const Users: FunctionComponent<PageComponentProps> = (
           modelType={TeamMember}
           name="Invite New User"
           title="Invite New User"
-          description="Invite new user to this project."
           onClose={() => {
             setShowInviteUserModal(false);
           }}
@@ -526,7 +525,7 @@ const Users: FunctionComponent<PageComponentProps> = (
                 },
                 title: "Name",
                 description:
-                  "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+                  "They have no OneUptime account yet. It is set up with this name.",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
                 placeholder: "John Smith",

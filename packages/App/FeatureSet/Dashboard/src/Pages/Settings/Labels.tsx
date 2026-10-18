@@ -28,7 +28,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Labels",
           description:
-            "Labels help you categorize resources in your project and give granular permissions to access those resources to team members.",
+            "Group resources with labels. A team's permission can reach only the resources with certain labels.",
         }}
         noItemsMessage={"No labels found."}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -44,6 +44,8 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             validation: {
               minLength: 2,
             },
+            // Not the column's "Any friendly name of this object", written for the API.
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -53,6 +55,7 @@ const Labels: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "This label is for all the internal services.",
+            hideColumnDescription: true,
           },
           {
             field: {

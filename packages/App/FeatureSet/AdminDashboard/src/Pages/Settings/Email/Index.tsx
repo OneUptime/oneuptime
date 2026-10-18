@@ -23,7 +23,7 @@ import {
   showsSmtpUsername,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import GlobalConfig, {
   EmailServerType,
@@ -44,6 +44,20 @@ const SMTP_HOST_FORM_STEPS: Array<FormStep<GlobalConfig>> =
 
 const SMTP_HOST_FORM_FIELDS: Array<ModelField<GlobalConfig>> =
   getGlobalSmtpConfigFormFields();
+
+// How the instance sends its email: its own mail server first, the default.
+export const EMAIL_SERVER_TYPE_CHOICES: Array<RadioButton> = [
+  {
+    value: EmailServerType.CustomSMTP,
+    title: "Custom SMTP",
+    description: "Send through your own mail server.",
+  },
+  {
+    value: EmailServerType.Sendgrid,
+    title: "SendGrid",
+    description: "Send through your SendGrid account.",
+  },
+];
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -132,6 +146,8 @@ const Settings: FunctionComponent = (): ReactElement => {
               adminNotificationEmail: true,
             },
             title: "Admin Notification Email",
+            description:
+              "Where OneUptime writes about this server, such as when a probe goes offline.",
             fieldType: FormFieldSchemaType.Email,
             required: false,
             disableSpellCheck: true,
@@ -166,15 +182,21 @@ const Settings: FunctionComponent = (): ReactElement => {
           window.location.reload();
         }}
         formFields={[
+          /*
+           * Two plain answers, each with its line, where a dropdown listed
+           * the enum's names (Sendgrid first) under a description that
+           * only said "Email Server Type" again. The stored values are the
+           * enum's, as before.
+           */
           {
             field: {
               emailServerType: true,
             },
             title: "Email Server Type",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(EmailServerType),
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: EMAIL_SERVER_TYPE_CHOICES,
             required: true,
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
@@ -380,6 +402,8 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Sendgrid API Key",
+              // The column's description only said "Sendgrid API Key" again.
+              hideColumnDescription: true,
             },
             {
               field: {
@@ -389,6 +413,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Email,
               required: true,
               placeholder: "email@yourcompany.com",
+              hideColumnDescription: true,
             },
             {
               field: {
@@ -398,6 +423,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Acme, Inc.",
+              hideColumnDescription: true,
             },
           ]}
           modelDetailProps={{
