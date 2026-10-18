@@ -12,7 +12,15 @@ import OwnerTableRegistry, {
 import TablePermission from "../../../../../Server/Types/Database/Permissions/TablePermission";
 import AllModelTypes from "../../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AlertEpisode from "../../../../../Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeFeed from "../../../../../Models/DatabaseModels/AlertEpisodeFeed";
+import AlertEpisodeInternalNote from "../../../../../Models/DatabaseModels/AlertEpisodeInternalNote";
+import AlertEpisodeStateTimeline from "../../../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
 import IncidentEpisode from "../../../../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeFeed from "../../../../../Models/DatabaseModels/IncidentEpisodeFeed";
+import IncidentEpisodeInternalNote from "../../../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
+import IncidentEpisodePublicNote from "../../../../../Models/DatabaseModels/IncidentEpisodePublicNote";
+import IncidentEpisodeStateTimeline from "../../../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentEpisodeRoleMember from "../../../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncomingCallLog from "../../../../../Models/DatabaseModels/IncomingCallLog";
@@ -83,9 +91,10 @@ jest.mock("../../../../../Server/Utils/Logger");
  *     the reads, changes and deletes of every kind);
  *   - the records that are part of one of those kinds - a schedule's layers,
  *     the people in them and its shared calendar link, an incoming call
- *     policy's escalation rules and the calls it took, an episode's role
- *     members - take their owners from it: they are created, changed and
- *     deleted only on the ones the member owns, and read as the kind is.
+ *     policy's escalation rules and the calls it took, an episode's notes,
+ *     state changes, feed and role members - take their owners from it:
+ *     they are created, changed and deleted only on the ones the member
+ *     owns, and read as the kind is.
  *
  * What the member owns is stubbed; OwnedRecordsDeletePostgres runs the rule
  * against Postgres, through the routes.
@@ -159,6 +168,42 @@ const PARTS_OF_A_KIND: Array<PartOfAKind> = [
     modelType: IncidentEpisodeRoleMember,
     kind: IncidentEpisode,
     fkColumn: "incidentEpisodeId",
+  },
+  // An episode's notes, state changes and feed, as an incident's are.
+  {
+    modelType: IncidentEpisodeInternalNote,
+    kind: IncidentEpisode,
+    fkColumn: "incidentEpisodeId",
+  },
+  {
+    modelType: IncidentEpisodePublicNote,
+    kind: IncidentEpisode,
+    fkColumn: "incidentEpisodeId",
+  },
+  {
+    modelType: IncidentEpisodeStateTimeline,
+    kind: IncidentEpisode,
+    fkColumn: "incidentEpisodeId",
+  },
+  {
+    modelType: IncidentEpisodeFeed,
+    kind: IncidentEpisode,
+    fkColumn: "incidentEpisodeId",
+  },
+  {
+    modelType: AlertEpisodeInternalNote,
+    kind: AlertEpisode,
+    fkColumn: "alertEpisodeId",
+  },
+  {
+    modelType: AlertEpisodeStateTimeline,
+    kind: AlertEpisode,
+    fkColumn: "alertEpisodeId",
+  },
+  {
+    modelType: AlertEpisodeFeed,
+    kind: AlertEpisode,
+    fkColumn: "alertEpisodeId",
   },
 ];
 

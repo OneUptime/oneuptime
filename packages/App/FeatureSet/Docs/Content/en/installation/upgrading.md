@@ -993,14 +993,15 @@ API, SSO, or the Slack and Microsoft Teams apps.
   `OnCallMember` or `ProjectMember` - now changes and deletes only the ones
   its people or their teams own, and adds and removes owners only on those.
   What belongs to one goes with it: a schedule's layers, the people in them
-  and its shared calendar link, an incoming call policy's escalation rules,
-  an episode's role members. Monitor groups, episodes and incoming call
-  policies are also read only where owned; probes, Runners, AI agents,
-  on-call schedules and templates are still read in full, so they can be
-  picked. Someone who creates one of them with a permission scoped to
+  and its shared calendar link, an incoming call policy's escalation rules, an
+  episode's notes, state changes and role members. Monitor groups, episodes
+  and incoming call policies are also read only where owned; probes, Runners,
+  AI agents, on-call schedules and templates are still read in full, so they
+  can be picked. Someone who creates one of them with a permission scoped to
   `Owned` is made its owner; one that nobody owns is changed only by a
-  permission over the whole project, so make your teams the owners of the
-  ones they look after. See
+  permission over the whole project, so make your teams the owners of the ones
+  they look after - an episode a grouping rule opens takes the rule's episode
+  owners. See
   [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
   record you may not read answers `404`.** The same rule now holds in the

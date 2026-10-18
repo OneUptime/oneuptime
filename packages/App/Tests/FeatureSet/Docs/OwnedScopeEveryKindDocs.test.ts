@@ -303,9 +303,9 @@ describe("Docs: the Owned scope narrows every resource with owners", () => {
 
     for (const sentence of [
       "Monitor groups, on-call schedules, alert and incident episodes, incoming call policies, incident and maintenance templates, probes, Runners and AI agents have owners too, and a permission scoped to `Owned` - such as `MonitorAdmin`, `OnCallMember` or `ProjectMember` - now changes and deletes only the ones its people or their teams own, and adds and removes owners only on those.",
-      "What belongs to one goes with it: a schedule's layers, the people in them and its shared calendar link, an incoming call policy's escalation rules, an episode's role members.",
+      "What belongs to one goes with it: a schedule's layers, the people in them and its shared calendar link, an incoming call policy's escalation rules, an episode's notes, state changes and role members.",
       "Monitor groups, episodes and incoming call policies are also read only where owned; probes, Runners, AI agents, on-call schedules and templates are still read in full, so they can be picked.",
-      "Someone who creates one of them with a permission scoped to `Owned` is made its owner; one that nobody owns is changed only by a permission over the whole project, so make your teams the owners of the ones they look after.",
+      "Someone who creates one of them with a permission scoped to `Owned` is made its owner; one that nobody owns is changed only by a permission over the whole project, so make your teams the owners of the ones they look after - an episode a grouping rule opens takes the rule's episode owners.",
       "See [Users, Teams & Permissions](/docs/permissions/index).",
     ]) {
       expect([sentence, flat.includes(sentence)]).toEqual([sentence, true]);
@@ -463,11 +463,30 @@ describe("what the docs say holds in the product", () => {
     for (const [part, kind] of [
       ["IncomingCallPolicyEscalationRule", "IncomingCallPolicy"],
       ["IncidentEpisodeRoleMember", "IncidentEpisode"],
+      ["IncidentEpisodeInternalNote", "IncidentEpisode"],
+      ["IncidentEpisodePublicNote", "IncidentEpisode"],
+      ["IncidentEpisodeStateTimeline", "IncidentEpisode"],
+      ["AlertEpisodeInternalNote", "AlertEpisode"],
+      ["AlertEpisodeStateTimeline", "AlertEpisode"],
     ] as Array<[string, string]>) {
       expect([
         part,
         OwnedScopePermission.getOwnedThrough(modelNamed(part))?.parentModels,
       ]).toEqual([part, [modelNamed(kind)]]);
+    }
+  });
+
+  test("an episode a grouping rule opens takes the rule's episode owners: both grouping rules name them", () => {
+    for (const rule of ["IncidentGroupingRule", "AlertGroupingRule"]) {
+      const model: BaseModel = new (modelNamed(rule))();
+
+      for (const column of ["episodeOwnerUsers", "episodeOwnerTeams"]) {
+        expect([
+          rule,
+          column,
+          Boolean(model.getTableColumnMetadata(column)),
+        ]).toEqual([rule, column, true]);
+      }
     }
   });
 });

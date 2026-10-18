@@ -32,6 +32,8 @@ import OwnerRuleAssignment from "../../../Server/Utils/Rules/OwnerRuleAssignment
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
+import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeInternalNote from "../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeRoleMember from "../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncomingCallLog from "../../../Models/DatabaseModels/IncomingCallLog";
 import IncomingCallPolicyEscalationRule from "../../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
@@ -136,8 +138,8 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
  *     owned ones as its monitors do.
  *   - The records that are part of a kind with owners - a schedule's layers,
  *     the people in them and its shared link, an incoming call policy's
- *     escalation rules and calls, an episode's role members - keep to its
- *     owners.
+ *     escalation rules and calls, an episode's notes and role members -
+ *     keep to its owners.
  *
  * Opt in with RUN_POSTGRES_OWNED_RECORDS_DELETE_TESTS=true against a
  * database the registered migrations have been applied to, e.g. from
@@ -263,6 +265,7 @@ const TABLES: Array<string> = [
   "IncomingCallPolicyEscalationRule",
   "IncomingCallLog",
   "IncidentEpisodeRoleMember",
+  "IncidentEpisodeInternalNote",
 ];
 
 interface PermissionRow {
@@ -441,6 +444,7 @@ describePostgres(
       IncomingCallPolicyEscalationRule,
       IncomingCallLog,
       IncidentEpisodeRoleMember,
+      IncidentEpisodeInternalNote,
     ] as Array<{ new (): BaseModel }>) {
       partServices[modelType.name] = new DatabaseService(
         modelType,
@@ -4575,7 +4579,7 @@ describePostgres(
     /*
      * THE PARTS OF A KIND WITH OWNERS: a schedule's layers, the people in
      * them and its shared link; an incoming call policy's escalation rules
-     * and the calls it took; an episode's role members. They take their
+     * and the calls it took; an episode's notes and role members. They take their
      * owners from the record they are part of: a member whose grants are
      * scoped to Owned adds, changes and removes them only on the records
      * they or their teams own, and reads them as that record is read.
@@ -5160,6 +5164,140 @@ describePostgres(
           await deleteItem(pathOf(IncidentEpisodeRoleMember), member, myRole),
         );
       });
+    });
+
+    test("an episode's notes are posted, read and removed only on the episodes the member or their team own - beside a read of every episode too", async () => {
+      const insertEpisode: (owner: Owner) => Promise<ObjectID> = async (
+        owner: Owner,
+      ): Promise<ObjectID> => {
+        return await insertOwned({
+          table: "IncidentEpisode",
+          ownerUserTable: "IncidentEpisodeOwnerUser",
+          ownerTeamTable: "IncidentEpisodeOwnerTeam",
+          ownerColumn: "incidentEpisodeId",
+          owner: owner,
+        });
+      };
+
+      const insertNote: (episodeId: ObjectID) => Promise<ObjectID> = async (
+        episodeId: ObjectID,
+      ): Promise<ObjectID> => {
+        const id: ObjectID = ObjectID.generate();
+
+        await insertAnyRow("IncidentEpisodeInternalNote", {
+          _id: id,
+          projectId: projectId,
+          incidentEpisodeId: episodeId,
+          note: "A note",
+          version: 1,
+        });
+
+        return id;
+      };
+
+      const path: string = new IncidentEpisodeInternalNote()
+        .getCrudApiPath()!
+        .toString();
+      const singular: string = new IncidentEpisodeInternalNote().singularName!;
+
+      const mine: ObjectID = await insertEpisode("memberTeam");
+      const theirs: ObjectID = await insertEpisode("otherTeam");
+      const myNote: ObjectID = await insertNote(mine);
+      const theirNote: ObjectID = await insertNote(theirs);
+
+      /*
+       * Incident Member scoped to Owned, and the same beside a read of every
+       * episode: either way the notes keep to the episodes they own.
+       */
+      for (const grants of [
+        [
+          {
+            permission: Permission.IncidentMember,
+            scope: PermissionScope.Owned,
+          },
+        ],
+        [
+          {
+            permission: Permission.ReadIncidentEpisode,
+            scope: PermissionScope.All,
+          },
+          {
+            permission: Permission.CreateIncidentEpisodeInternalNote,
+            scope: PermissionScope.Owned,
+          },
+          {
+            permission: Permission.ReadIncidentEpisodeInternalNote,
+            scope: PermissionScope.Owned,
+          },
+          {
+            permission: Permission.DeleteIncidentEpisodeInternalNote,
+            scope: PermissionScope.Owned,
+          },
+        ],
+      ] as Array<Array<PermissionRow>>) {
+        await setGrants(grants);
+
+        const scope: string = grants
+          .map((row: PermissionRow): string => {
+            return `${row.permission} ${scopeOf(row)}`;
+          })
+          .join(", ");
+
+        expect([
+          scope,
+          (
+            await listThrough({
+              caller: member,
+              path: path,
+              ids: [myNote, theirNote],
+            })
+          ).ids,
+        ]).toEqual([scope, idsOf([myNote])]);
+
+        const posted: Outcome = await createThrough({
+          caller: member,
+          path: path,
+          row: { incidentEpisodeId: theirs, note: "Ours now" },
+        });
+
+        expect([scope, posted.item]).toEqual([scope, undefined]);
+        expectRefused(posted);
+        expect(
+          await database.query(
+            `SELECT "_id" FROM "${schema}"."IncidentEpisodeInternalNote" WHERE "incidentEpisodeId" = $1`,
+            [theirs.toString()],
+          ),
+        ).toHaveLength(1);
+
+        expectMissing(await deleteItem(path, member, theirNote), singular);
+        expect(await rowExists("IncidentEpisodeInternalNote", theirNote)).toBe(
+          true,
+        );
+
+        expect([
+          scope,
+          (
+            await createThrough({
+              caller: member,
+              path: path,
+              row: { incidentEpisodeId: mine, note: "Our note" },
+            })
+          ).error,
+        ]).toEqual([scope, undefined]);
+      }
+
+      // The refusal says why, for a member who reads every episode.
+      const refused: Outcome = await createThrough({
+        caller: member,
+        path: path,
+        row: { incidentEpisodeId: theirs, note: "Ours now" },
+      });
+
+      expectPartCreateRefused(
+        refused,
+        IncidentEpisodeInternalNote,
+        IncidentEpisode,
+      );
     });
 
     test("the sweep covers every kind with owner tables but the monitor, which the suite runs through its own routes", () => {

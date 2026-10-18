@@ -126,21 +126,6 @@ export default class OwnedScopePermission {
     }
 
     /*
-     * A kind other records are set up with - the probe a monitor runs on,
-     * the template an incident is declared from, the on-call schedule an
-     * escalation rule pages - is read by every reader of it whatever the
-     * scope of their grant, and so are the records that take their owners
-     * from it: picking one is reading it. Its changes and deletes keep to
-     * the scope. See leavesReadsAlone.
-     */
-    if (
-      type === DatabaseRequestType.Read &&
-      OwnedScopePermission.leavesReadsAlone(modelType)
-    ) {
-      return false;
-    }
-
-    /*
      * The permissions whose rows grant this operation, as the table check
      * reads them: the model's own, and its operational-resource wildcard
      * unless a block with no labels takes the wildcard away.
@@ -187,8 +172,27 @@ export default class OwnedScopePermission {
         return p.scope !== PermissionScope.Owned;
       },
     );
-    // All applicable rows are Owned-scoped.
-    return !hasNonOwnedGrant;
+
+    if (hasNonOwnedGrant) {
+      return false;
+    }
+
+    /*
+     * Every applicable row is Owned-scoped. A kind other records are set
+     * up with - the probe a monitor runs on, the template an incident is
+     * declared from, the on-call schedule an escalation rule pages - is
+     * read by every reader of it all the same, and so are the records that
+     * take their owners from it: picking one is reading it. Its changes and
+     * deletes keep to the scope. See leavesReadsAlone.
+     */
+    if (
+      type === DatabaseRequestType.Read &&
+      OwnedScopePermission.leavesReadsAlone(modelType)
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   /*

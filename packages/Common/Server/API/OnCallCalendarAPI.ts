@@ -7,6 +7,7 @@ import OnCallDutyPolicyScheduleCalendarFeedService from "../Services/OnCallDutyP
 import OnCallDutyPolicyScheduleService from "../Services/OnCallDutyPolicyScheduleService";
 import ProjectOnCallCalendarFeedService from "../Services/ProjectOnCallCalendarFeedService";
 import UserOnCallCalendarFeedService from "../Services/UserOnCallCalendarFeedService";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -1704,15 +1705,34 @@ router.get(
  * the schedule but not change its link - a grant limited to labels it does
  * not carry, or scoped to Owned on a schedule another team owns - changes
  * nothing, and is told so before anything else happens: the root rotation
- * that follows would otherwise go ahead whatever the update reached.
+ * that follows would otherwise go ahead whatever the update reached. A link
+ * gone meanwhile (its schedule deleted) is answered as missing, as every
+ * write by id answers it (DatabaseService.getUnwrittenByIdError).
  */
 export const SCHEDULE_FEED_CHANGE_REFUSAL: string =
   "You do not have permission to change the shared link of this on-call schedule.";
 
-function assertScheduleFeedChanged(changed: number): void {
-  if (!changed) {
-    throw new NotAuthorizedException(SCHEDULE_FEED_CHANGE_REFUSAL);
+async function assertScheduleFeedChanged(data: {
+  changed: number;
+  feedId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}): Promise<void> {
+  if (data.changed) {
+    return;
   }
+
+  const refusal: Exception =
+    await OnCallDutyPolicyScheduleCalendarFeedService.getUnwrittenByIdError({
+      id: data.feedId,
+      props: data.props,
+      type: DatabaseRequestType.Update,
+    });
+
+  if (refusal instanceof NotFoundException) {
+    throw new NotFoundException("Calendar feed not found.");
+  }
+
+  throw new NotAuthorizedException(SCHEDULE_FEED_CHANGE_REFUSAL);
 }
 
 /*
@@ -1745,13 +1765,16 @@ router.post(
         await findScheduleFeedAsCaller({ scheduleId, projectId, props });
 
       if (existing && existing.id) {
-        assertScheduleFeedChanged(
-          await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
-            query: { _id: existing.id, projectId },
-            data: { isEnabled: true },
-            props,
-          }),
-        );
+        await assertScheduleFeedChanged({
+          changed:
+            await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
+              query: { _id: existing.id, projectId },
+              data: { isEnabled: true },
+              props,
+            }),
+          feedId: existing.id,
+          props,
+        });
       } else {
         /*
          * The create alone is not enough of a gate. Its permission check
@@ -1845,13 +1868,15 @@ router.post(
         );
       }
 
-      assertScheduleFeedChanged(
-        await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
+      await assertScheduleFeedChanged({
+        changed: await OnCallDutyPolicyScheduleCalendarFeedService.updateOneBy({
           query: { _id: existing.id, projectId },
           data: { isEnabled: existing.isEnabled !== false },
           props,
         }),
-      );
+        feedId: existing.id,
+        props,
+      });
 
       const rotation: CalendarFeedRotation =
         await OnCallDutyPolicyScheduleCalendarFeedService.rotateTokenById({
