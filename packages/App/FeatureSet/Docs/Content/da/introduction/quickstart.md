@@ -85,15 +85,15 @@ Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-
 :::steps
 ### Opret statussiden
 
-Klik på **Udgiv en statusside** i tjeklisten, eller åbn **Statussider** fra menuen **Produkter**. Klik på **Opret statusside**, indtast et **Navn**, for eksempel `Acme Status`, og klik på **Opret statusside**.
+Klik på **Udgiv en statusside** i tjeklisten, eller åbn **Statussider** fra menuen **Produkter**. Klik på **Opret statusside**, indtast et **Navn**, for eksempel `Acme Status`, og klik på **Opret statusside**. Den nye side åbner på sin **Oversigt**.
 
 ### Tilføj din monitor
 
-Åbn den nye statusside. I dens sidemenu, under **Ressourcer**, vælger du **Monitorer**; i projekter med monitorgrupper slået til hedder punktet **Ressourcer**. Klik på **Tilføj monitor**, vælg din webstedsmonitor, og klik på **Tilføj monitor**. Rækken viser monitorens navn for besøgende; ret det under **Visningsnavn**, hvis du vil.
+Klik på **Tilføj monitorer** på **Oversigt**, eller vælg **Monitorer** under **Ressourcer** i sidens sidemenu; i projekter med monitorgrupper slået til hedder punktet **Ressourcer**. Klik på **Tilføj monitor**, vælg din webstedsmonitor, og klik på **Tilføj monitor**. Rækken viser monitorens navn for besøgende; ret det under **Visningsnavn**, hvis du vil.
 
 ### Åbn siden
 
-Vælg **Oversigt** i sidemenuen. Kortet **Status Page Preview URL** linker til din statusside: åbn den, og dit websted vises som i drift.
+Vælg **Oversigt** i sidemenuen. Kortet **Link til statussiden** linker til din statusside: åbn den, og dit websted vises som i drift.
 :::
 
 En ny statusside er offentlig: alle med adressen kan åbne den. Se [Statusside – branding og domæner](/docs/status-pages/branding-and-domains) for at give den dit eget domæne, logo og dine egne farver.

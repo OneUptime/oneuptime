@@ -1,0 +1,43 @@
+# Infrastructure first-run fixture
+
+An offline harness for the real first run of the infrastructure lists: a project with nothing on
+it opens a list, sees the empty table and the setup guide under it, and the list fills in on its
+own when the first record arrives (`Components/Infrastructure/UseFirstRecordWatch`).
+
+| Page            | Route (from `RouteMap`)                                             | Production components                                     |
+| --------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
+| Hosts           | `HOSTS` `/dashboard/:projectId/host`                                | `Pages/Host/Layout` and `Pages/Host/Hosts`                |
+| vCenters        | `VMWARE_VCENTERS` `/dashboard/:projectId/vmware`                    | `Pages/VMware/Layout` and `Pages/VMware/VCenters`         |
+| Cloud resources | `CLOUD_MONITORED_RESOURCES` `/dashboard/:projectId/cloud/resources` | `Pages/Cloud/Layout` and `Pages/Cloud/MonitoredResources` |
+
+Run from `packages/E2E`:
+
+```sh
+npm run test-infrastructure-first-run-ui
+```
+
+`Fixture/server.js` bundles the production layouts and pages with esbuild, serves them with the
+same Tailwind build, `tailwind.config` and `Theme.css` production uses, and listens on
+`127.0.0.1:4352` (`INFRASTRUCTURE_FIRST_RUN_FIXTURE_PORT`). No Docker, no database, no sign-in.
+Only the `ModelAPI` / `API` data boundary and the signed-in user are replaced. The locale files
+are the real `en.json` and `de.json`. Every record is fabricated for an "Acme Infrastructure"
+workspace, and the fixture header says so ("Preview workspace · Synthetic data").
+
+## Scenarios
+
+Picked with query parameters:
+
+- `hosts=1`: the project already has a host ("web-01").
+- `failFirstCount=1`: the page's first count of its list fails once, so the page shows the error
+  with its Refresh; the count after it answers as usual.
+- `lang=de`, `theme=dark`.
+
+`window.__infrastructureFirstRunFixture.arrive(kind)` is an agent reporting (`host`, `vcenter`
+or `cloudResource`): the project has that first record from then on. The spec installs
+Playwright's clock before the page loads and moves it on by the watch's 10 seconds to see the
+page look again.
+
+Every read is recorded on `window.__infrastructureFirstRunFixture` (`countRequests`,
+`listRequests`, `apiRequests`) with `unhandled` for anything the fixture does not model; the
+spec fails on an unhandled request, on an uncaught page error and on any request that leaves the
+fixture server. Screenshots are written to `output/playwright/infrastructure-first-run-ui/`.

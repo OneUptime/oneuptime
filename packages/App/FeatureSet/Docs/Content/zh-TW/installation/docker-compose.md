@@ -178,6 +178,8 @@ npm start
 
 如果你把狀態頁面或儀表板放在自訂網域上，讓 OneUptime 處理 TLS 是比較簡單的做法：ingress 會自行申請並提供這些網域的憑證。
 
+設定 `HTTP_PROTOCOL=https` 後，OneUptime 會產生 HTTPS 連結，把登入 Cookie 留在 HTTPS 上，並告訴瀏覽器只透過 HTTPS 存取你的 `HOST`。瀏覽器會在一年內、在這個名稱的所有連接埠上遵守這一點；所以如果 `HOST` 將來需要重新透過一般的 HTTP 回應，請提前一段時間把 `HSTS_MAX_AGE_SECONDS=0` 寫進 `config.env`：瀏覽器會在下次造訪時忘掉這條規則。
+
 ### 讓 OneUptime 取得憑證
 
 :::steps
@@ -301,6 +303,8 @@ server {
 ```
 憑證路徑是 Certbot 存放 Let's Encrypt 憑證的位置；如果你的憑證來自其他地方，請使用它自己的路徑。使用 `sudo nginx -t && sudo systemctl reload nginx` 檢查檔案並重新載入 Nginx。
 :::
+
+兩者都會傳送 `X-Forwarded-Proto`，它告訴 OneUptime 訪客是透過 HTTPS 來的。其他任何代理也必須傳送它，否則你自訂網域上的狀態頁面與儀表板的登入 Cookie 不會被留在 HTTPS 上。
 
 #### 透過代理開啟你的執行個體
 

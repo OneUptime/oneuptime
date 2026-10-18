@@ -31,10 +31,9 @@ import {
   DockerSwarmAlertTemplate,
   buildDockerSwarmMonitorConfig,
 } from "Common/Types/Monitor/DockerSwarmAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import { DockerSwarmMetricDefinition } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepDockerSwarmMonitor: MonitorStepDockerSwarmMonitor;
@@ -60,7 +59,6 @@ const aggregationOptions: Array<DropdownOption> = [
 const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -148,6 +146,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: DockerSwarmAlertTemplate,
   ) => void = (template: DockerSwarmAlertTemplate): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const clusterIdentifier: string =
       monitorStepDockerSwarmMonitor.clusterIdentifier;
@@ -187,6 +187,8 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: DockerSwarmMetricDefinition,
   ) => void = (metric: DockerSwarmMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const clusterIdentifier: string =
@@ -218,11 +220,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
   const renderClusterDropdown: () => ReactElement = (): ReactElement => {
     return (
       <div className="mb-4">
-        <FieldLabelElement
-          title="Docker Swarm Cluster"
-          description={"Select the Docker Swarm cluster to monitor."}
-          required={true}
-        />
+        <FieldLabelElement title="Docker Swarm Cluster" required={true} />
         <Dropdown
           options={clusterOptions}
           value={clusterOptions.find((option: DropdownOption) => {
@@ -359,39 +357,17 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: DockerSwarmAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              {translator.translateText("Template Configuration")}
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              {translator.translateText(
-                "The following settings have been auto-configured. You can adjust the time range below.",
-              )}
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepDockerSwarmMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepDockerSwarmMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepDockerSwarmMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
-        )}
+        >
+          <AlertTemplateConfiguration
+            rollingTime={monitorStepDockerSwarmMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepDockerSwarmMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
+        </DockerSwarmTemplatePicker>
       </div>
     );
   };
@@ -400,13 +376,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Docker Swarm Metric"
-            description={
-              "Select a Docker Swarm metric to monitor. Metrics are organized by category."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Docker Swarm Metric" required={true} />
           <DockerSwarmMetricPicker
             selectedMetricId={selectedMetricId}
             onMetricSelected={(metric: DockerSwarmMetricDefinition) => {
@@ -423,7 +393,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -477,9 +447,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={
-                  "Select the time range for the Docker Swarm monitor."
-                }
+                description={"How far back each check looks."}
                 required={true}
               />
               <RollingTimePicker
@@ -510,7 +478,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Time Range"
-            description={"Select the time range for the Docker Swarm monitor."}
+            description={"How far back each check looks."}
             required={true}
           />
           <RollingTimePicker
@@ -529,13 +497,7 @@ const DockerSwarmMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "Select the Docker Swarm metrics to monitor. Use the query builder for full control over metric selection and filtering."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

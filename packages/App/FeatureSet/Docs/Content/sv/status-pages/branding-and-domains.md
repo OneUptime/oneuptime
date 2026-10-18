@@ -60,12 +60,12 @@ Din anpassade CSS och HTML gäller i båda temana; [Anpassad HTML, CSS och JavaS
 
 ### Titel, beskrivning och favicon
 
-- **Titel och beskrivning**: kortet påpekar att detta även används för SEO. **Redigera** öppnar **Sidtitel** (platshållare `Please enter page title here.`) och **Sidbeskrivning**. Sökmotorer och länkförhandsvisningar visar dem, så skriv dem för en kund, inte för ditt team.
+- **Titel och beskrivning**: sidans namn i webbläsarfliken och i e-post till prenumeranter, och beskrivningen som sökmotorer visar. **Redigera** öppnar **Sidtitel** (platshållare `e.g., Acme Status`) och **Sidbeskrivning**. Sökmotorer och länkförhandsvisningar visar dem, så skriv dem för en kund, inte för ditt team.
 - **Favicon**: **Edit Favicon** öppnar uppladdningen **Favicon**: den lilla ikonen i webbläsarfliken.
 
 ### Sidhuvudslänkar
 
-Tabellen **Sidhuvudslänkar** innehåller länkarna i statussidans sidhuvud, som din webbplats, din dokumentation eller en supportportal. Varje länk har en **Titel** och en **Länk** (en URL, platshållare `https://link.com`), och du ändrar ordningen genom att dra. Utan länkar säger tabellen **Ingen länk i sidhuvudet för denna statussida**, med **Skapa Statussida Sidhuvud Länk** nedanför.
+Tabellen **Sidhuvudslänkar** innehåller länkarna i statussidans sidhuvud, som din webbplats, din dokumentation eller en supportportal. Varje länk har en **Titel** och en **Länk** (en URL, platshållare `https://link.com`), och du ändrar ordningen genom att dra. Utan länkar säger tabellen vad de är till för, med **Lägg till Sidhuvudslänk** nedanför.
 
 ### Beskrivning av översiktssidan
 
@@ -74,7 +74,7 @@ Tabellen **Sidhuvudslänkar** innehåller länkarna i statussidans sidhuvud, som
 ### Sidfot
 
 - **Upphovsrättsinformation**: **Edit Copyright** öppnar ett fält, **Upphovsrättsinformation**, med platshållaren `Acme, Inc.`.
-- **Sidfotslänkar**: samma par **Titel** och **Länk** som sidhuvudslänkarna, ordnade genom att dra. Utan länkar står det "Ingen länk i sidfoten för denna statussida."
+- **Sidfotslänkar**: samma par **Titel** och **Länk** som sidhuvudslänkarna, ordnade genom att dra och tillagda med **Lägg till Sidfotslänk**.
 
 Sidhuvudslänkar är för navigering; sidfotslänkar är för det finstilta, som juridisk information, integritet och villkor.
 
@@ -130,8 +130,8 @@ De var tidigare två egna kort, **Total upptidsprocent** och **Statusar för dri
 
 | Kort | Kolumn | Vad det innehåller |
 | ---- | ------ | ------------- |
-| **Sidhuvud-HTML** | `headerHTML` | HTML som läggs till i sidans sidhuvud (platshållare `Insert Custom HTML here.`). |
-| **Sidfots-HTML** | `footerHTML` | HTML som läggs till i sidans sidfot. |
+| **Sidhuvud-HTML** | `headerHTML` | HTML som visas i stället för sidans sidhuvud, med logotypen och sidhuvudslänkarna (platshållare `Insert Custom HTML here.`). |
+| **Sidfots-HTML** | `footerHTML` | HTML som visas i stället för sidans sidfot, med dess länkar och reglagen för språk och tema. |
 | **Anpassad CSS** | `customCSS` | Stilar för hela sidan (platshållare `Insert Custom CSS here.`). |
 | **Anpassad JavaScript** | `customJavaScript` | Ett skript som sidan kör (platshållare `Insert Custom JavaScript here.`). |
 

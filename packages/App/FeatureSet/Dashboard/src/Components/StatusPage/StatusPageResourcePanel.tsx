@@ -35,6 +35,7 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import ResourceGrid from "Common/UI/Components/StatusPage/ResourceGrid";
 import ResourceList from "Common/UI/Components/StatusPage/ResourceList";
 import API from "Common/UI/Utils/API/API";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
@@ -152,6 +153,9 @@ const MENU_TRIGGER_CLASS_NAME: string =
 const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // The group chips below are in the reader's language.
+  const { translateString } = useTranslateValue();
+
   const statusPageGroupId: ObjectID | null = props.selection.statusPageGroupId
     ? new ObjectID(props.selection.statusPageGroupId)
     : null;
@@ -813,7 +817,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
           className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600"
           data-testid="status-page-resource-panel-grid-badge"
         >
-          Grid
+          {translateString("Grid")}
         </span>,
       );
     }
@@ -823,10 +827,12 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         <span
           key="collapsed-by-default"
           className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500"
-          title="This group starts collapsed on the public status page."
+          title={translateString(
+            "This group starts collapsed on the public status page.",
+          )}
           data-testid="status-page-resource-panel-collapsed-by-default"
         >
-          Collapsed by default
+          {translateString("Collapsed by default")}
         </span>,
       );
     }
@@ -836,10 +842,12 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         <span
           key="uptime"
           className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500"
-          title="Uptime percent is shown beside this group on the public status page."
+          title={translateString(
+            "Uptime percent is shown beside this group on the public status page.",
+          )}
           data-testid="status-page-resource-panel-uptime"
         >
-          Uptime %
+          {translateString("Uptime %")}
         </span>,
       );
     }

@@ -85,15 +85,15 @@ Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalati
 :::steps
 ### Creare la pagina di stato
 
-Nell'elenco, fai clic su **Pubblica una pagina di stato**, oppure apri **Pagine di stato** dal menu **Prodotti**. Fai clic su **Crea pagina di stato**, inserisci un **Nome**, per esempio `Acme Status`, e fai clic su **Crea pagina di stato**.
+Nell'elenco, fai clic su **Pubblica una pagina di stato**, oppure apri **Pagine di stato** dal menu **Prodotti**. Fai clic su **Crea pagina di stato**, inserisci un **Nome**, per esempio `Acme Status`, e fai clic su **Crea pagina di stato**. La nuova pagina si apre sulla sua **Panoramica**.
 
 ### Aggiungere il tuo monitor
 
-Apri la nuova pagina di stato. Nel suo menu laterale, in **Risorse**, scegli **Monitor**; nei progetti con i gruppi di monitor attivati si chiama **Risorse**. Fai clic su **Aggiungi monitor**, scegli il monitor del tuo sito web e fai clic su **Aggiungi monitor**. La riga mostra ai visitatori il nome del monitor; cambialo in **Nome visualizzato**, se vuoi.
+Fai clic su **Aggiungi monitor** nella **Panoramica** oppure, nel menu laterale della pagina, in **Risorse**, scegli **Monitor**; nei progetti con i gruppi di monitor attivati si chiama **Risorse**. Fai clic su **Aggiungi monitor**, scegli il monitor del tuo sito web e fai clic su **Aggiungi monitor**. La riga mostra ai visitatori il nome del monitor; cambialo in **Nome visualizzato**, se vuoi.
 
 ### Aprire la pagina
 
-Scegli **Panoramica** nel menu laterale. La scheda **Status Page Preview URL** porta alla tua pagina di stato: aprila, e il tuo sito web risulta operativo.
+Scegli **Panoramica** nel menu laterale. La scheda **Link della pagina di stato** porta alla tua pagina di stato: aprila, e il tuo sito web risulta operativo.
 :::
 
 Una nuova pagina di stato è pubblica: chiunque abbia il suo indirizzo può aprirla. Per darle il tuo dominio, il tuo logo e i tuoi colori, vedi [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).

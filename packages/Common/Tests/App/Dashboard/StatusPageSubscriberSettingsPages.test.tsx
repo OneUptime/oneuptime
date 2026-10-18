@@ -348,7 +348,7 @@ describe("Subscriber Settings", () => {
     }
   });
 
-  test("keeps its other cards: Advanced Subscriber Settings, Email Footer, Custom SMTP and Twilio Config", async () => {
+  test("keeps its other cards, under More settings: Subscriber Timezones, Email Footer, Custom SMTP and Twilio Config", async () => {
     await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
 
     const titles: Array<unknown> = recordedDetailCards.map(
@@ -358,8 +358,8 @@ describe("Subscriber Settings", () => {
     );
 
     expect(Array.from(new Set(titles))).toEqual([
-      "Advanced Subscriber Settings",
-      "Email Footer Settings",
+      "Subscriber Timezones",
+      "Email Footer",
       "Custom SMTP",
       "Twilio Config",
     ]);
@@ -372,7 +372,7 @@ describe("Subscriber Settings", () => {
       recordedDetailCards.find((card: Record<string, unknown>): boolean => {
         return (
           (card["cardProps"] as Record<string, unknown>)["title"] ===
-          "Advanced Subscriber Settings"
+          "Subscriber Timezones"
         );
       });
 
@@ -395,8 +395,9 @@ describe("Subscriber Settings", () => {
 
     const { container } = render(timezones!.getElement!(new StatusPage()));
 
+    // The zones the server falls back to (Date.ts), by their cities.
     expect(container.textContent).toBe(
-      "No subscriber timezones selected so far. Subscribers will receive notifications with times shown in GMT, EST, PST, IST, ACT timezones by default.",
+      "None picked: times are shown in UTC, London, New York, Los Angeles, Kolkata and Sydney time.",
     );
     /*
      * The chip every unset value on a detail card has. It used to be

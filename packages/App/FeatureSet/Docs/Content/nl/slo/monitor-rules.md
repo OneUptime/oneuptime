@@ -33,11 +33,11 @@ Open de SLO en ga naar **Monitoren**.
 
 ### De monitoren kiezen
 
-Klik op **Add Monitors** en kies monitoren uit het project. Alleen monitoren die nog niet gekoppeld zijn, staan in de lijst.
+Klik op **Monitoren toevoegen** en kies monitoren uit het project. Alleen monitoren die nog niet gekoppeld zijn, staan in de lijst.
 
 ### De lijst opslaan
 
-Klik op **Add Monitors**. De monitoren verschijnen in de lijst met de bron **Manual** en tellen vanaf de volgende evaluatie mee voor de SLI.
+Klik op **Monitoren toevoegen**. De monitoren verschijnen in de lijst met de bron **Manual** en tellen vanaf de volgende evaluatie mee voor de SLI.
 :::
 
 Om een monitor uit de SLO te halen, klikt u op **Verwijderen** in zijn rij. De monitor zelf verandert niet; hij telt alleen niet meer mee voor de SLI en het foutbudget van de SLO.
@@ -114,7 +114,7 @@ Regels synchroniseren opnieuw bij elke opslag, dus **Run Now** is er om in te ha
 
 Zolang minstens één regel is ingeschakeld, beheren de regels de monitoren van de SLO:
 
-- monitoren kunnen niet met de hand worden toegevoegd: **Add Monitors** is uitgeschakeld, en een banner zegt **This SLO's monitors are managed by its monitor rules**, met een link **Manage Monitor Rules**;
+- monitoren kunnen niet met de hand worden toegevoegd: **Monitoren toevoegen** is uitgeschakeld, en een banner zegt **This SLO's monitors are managed by its monitor rules**, met een link **Manage Monitor Rules**;
 - monitoren die een regel heeft gekoppeld, kunnen niet met de hand worden verwijderd, omdat de regel ze opnieuw zou koppelen: hun knop **Verwijderen** is geblokkeerd en de tooltip legt uit waarom;
 - monitoren die met de hand zijn gekoppeld voordat regels werden aangezet, kunnen nog steeds worden verwijderd.
 
@@ -144,7 +144,7 @@ Elke koppeling en ontkoppeling, en elke regel die wordt aangemaakt, bewerkt of v
 
 ## Problemen oplossen
 
-:::details Add Monitors is uitgeschakeld
+:::details Monitoren toevoegen is uitgeschakeld
 Minstens een van de monitorregels van de SLO is ingeschakeld, dus de regels beheren zijn monitoren. Wijzig de regels, of zet ze allemaal uit om monitoren met de hand te kiezen.
 :::
 

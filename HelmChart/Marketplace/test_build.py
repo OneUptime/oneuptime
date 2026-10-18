@@ -344,7 +344,9 @@ class BuildTest(unittest.TestCase):
         manifest: str = (self.out / "manifest.yaml").read_text()
         self.assertIn("version: 1.2.3\n", manifest)
         self.assertIn('helmChart: "./oneuptime"', manifest)
-        self.assertIn('clusterARMTemplate: "./mainTemplate.json"', manifest)
+        self.assertIn('clusterArmTemplate: "./mainTemplate.json"', manifest)
+        # The docs' spelling, which cpa 1.3.59 rejects ("clusterArmTemplate is required").
+        self.assertNotIn("clusterARMTemplate:", manifest)
         self.assertIn('uiDefinition: "./createUIDefinition.json"', manifest)
         self.assertNotIn("{", manifest.replace("{}", ""))
 
@@ -362,7 +364,7 @@ class BuildTest(unittest.TestCase):
                 "description",
                 "version",
                 "helmChart",
-                "clusterARMTemplate",
+                "clusterArmTemplate",
                 "uiDefinition",
                 "registryServer",
                 "extensionRegistrationParameters",

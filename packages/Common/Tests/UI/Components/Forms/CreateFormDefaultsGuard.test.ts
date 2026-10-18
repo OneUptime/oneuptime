@@ -94,9 +94,14 @@ const ADMIN_ADDED_SUBSCRIBER_MESSAGE_REASON: string =
  * default, and why. A switch that leaves this list, or a new one that joins
  * the product, has to say so here.
  */
+/*
+ * The email subscriber form has no switches for these any more: it asks
+ * When you add them (SubscriberFormChoices), whose first answer, Subscribe
+ * them now, writes what the two switches started as - confirmed, and sent
+ * nothing. Its own tests hold that answer to the columns.
+ */
 export const SWITCHES_OFF_THEIR_COLUMN_DEFAULT: Array<ListedSwitch> = [
   ...[
-    ["EmailSubscribers.tsx", "Email"],
     ["SMSSubscribers.tsx", "SMS"],
     ["SlackSubscribers.tsx", "Slack"],
     ["MicrosoftTeamsSubscribers.tsx", "Microsoft Teams"],
@@ -109,13 +114,6 @@ export const SWITCHES_OFF_THEIR_COLUMN_DEFAULT: Array<ListedSwitch> = [
       reason: ADMIN_ADDED_SUBSCRIBER_MESSAGE_REASON,
     };
   }),
-  {
-    file: `${DASHBOARD}/Pages/StatusPages/View/EmailSubscribers.tsx`,
-    form: "ModelTable: Status Page > Email Subscribers",
-    key: "isSubscriptionConfirmed",
-    reason:
-      'An admin who adds a subscriber vouches for the address, so "Do not send confirmation link" starts on. The column defaults to off for people who subscribe themselves, who confirm by email.',
-  },
   {
     file: `${DASHBOARD}/Pages/NetworkDevice/Discovery.tsx`,
     form: "ModelTable: Network Device Discovery Scans",

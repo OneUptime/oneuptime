@@ -74,7 +74,17 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.AltGlobe,
   tableDescription: "Add monitors to your monitor group",
 })
-@OwnedThrough("monitorId", Monitor)
+/*
+ * Which monitors a group holds is the group's own: they make its status,
+ * the one a status page shows for it, and nothing in a group changes the
+ * monitors it holds. So a membership is the group's, held to the group's
+ * owners: a grant scoped to Owned adds monitors to, and takes them out of,
+ * only the groups its holder or their teams own - any monitor they may read
+ * - and reads every monitor in those groups. A member who may read other
+ * teams' groups cannot put a monitor of theirs in one, and a group's owners
+ * can take out any monitor someone put in it.
+ */
+@OwnedThrough("monitorGroupId", MonitorGroup)
 @Entity({
   name: "MonitorGroupResource",
 })

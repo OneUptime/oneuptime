@@ -47,8 +47,10 @@ const GERMAN: Record<string, string> = {
   "Download for iPhone and iPad": "Für iPhone und iPad herunterladen",
   "Available on iOS & Android": "Für iOS und Android verfügbar",
   // Pages/StatusPages/View/StatusPagePreviewLink.tsx
-  "Here's a link to preview your status page: {{link}}":
-    "Mit diesem Link sehen Sie eine Vorschau Ihrer Statusseite: {{link}}",
+  "Status Page Link": "Link zur Statusseite",
+  "Open it to see your status page as visitors do.":
+    "Öffnen Sie ihn, um Ihre Statusseite so zu sehen, wie Besucher sie sehen.",
+  "Copy link": "Link kopieren",
   // Pages/Settings/McpServer.tsx (Components/Mcp/McpServerCard.tsx)
   "Sign in with": "Anmelden mit",
   "API key": "API-Schlüssel",
@@ -260,19 +262,22 @@ describe("Settings > Mobile Apps in German", () => {
   });
 });
 
-describe("Status page preview link in German", () => {
-  test("the sentence is German and the link inside it stays the page's URL", () => {
+describe("Status page link in German", () => {
+  test("the card's words are German and the link stays the page's URL", () => {
     const modelId: ObjectID = ObjectID.generate();
     const container: HTMLElement = renderInGerman(
       <StatusPagePreviewLink modelId={modelId} />,
     );
 
-    const sentence: string = normalizedText(container);
+    const text: string = normalizedText(container);
 
-    expect(sentence).toContain(
-      "Mit diesem Link sehen Sie eine Vorschau Ihrer Statusseite:",
+    expect(text).toContain("Link zur Statusseite");
+    expect(text).toContain(
+      "Öffnen Sie ihn, um Ihre Statusseite so zu sehen, wie Besucher sie sehen.",
     );
-    expect(sentence).not.toContain("Here's a link");
+    expect(text).toContain("Link kopieren");
+    expect(text).not.toContain("Status Page Link");
+    expect(text).not.toContain("Here's a link");
 
     const link: HTMLAnchorElement | null = container.querySelector("a");
 

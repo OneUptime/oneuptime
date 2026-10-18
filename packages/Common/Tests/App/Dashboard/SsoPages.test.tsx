@@ -206,6 +206,9 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     onBeforeCreate?: ((item: unknown) => Promise<unknown>) | undefined;
     createInitialValues?: Record<string, unknown> | undefined;
     onCreateSuccess?: MockOnCreateSuccess | undefined;
+    onFetchSuccess?:
+      | ((data: Array<unknown>, totalCount: number) => void)
+      | undefined;
   }) => ReactElement = (props: {
     id: string;
     modelType: { new (): unknown };
@@ -219,6 +222,9 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     onBeforeCreate?: ((item: unknown) => Promise<unknown>) | undefined;
     createInitialValues?: Record<string, unknown> | undefined;
     onCreateSuccess?: MockOnCreateSuccess | undefined;
+    onFetchSuccess?:
+      | ((data: Array<unknown>, totalCount: number) => void)
+      | undefined;
   }): ReactElement => {
     const [created, setCreated] = react.useState<string>("");
 
@@ -289,6 +295,30 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           <></>
         )}
         <div data-testid={`created-${props.id}`}>{created}</div>
+        {/*
+         * A load of the list, as the real table reports it: one provider,
+         * or none.
+         */}
+        {props.onFetchSuccess ? (
+          <>
+            <button
+              type="button"
+              data-testid={`fetched-${props.id}-1`}
+              onClick={() => {
+                props.onFetchSuccess!([mockProviderRow], 1);
+              }}
+            />
+            <button
+              type="button"
+              data-testid={`fetched-${props.id}-0`}
+              onClick={() => {
+                props.onFetchSuccess!([], 0);
+              }}
+            />
+          </>
+        ) : (
+          <></>
+        )}
         {props.onCreateSuccess ? (
           <>
             {[true, false].map((isEnabled: boolean) => {
@@ -1062,8 +1092,21 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
   });
 
-  test("links to the page that tests single sign-on, byte for byte", () => {
+  test("links to the page that tests single sign-on, byte for byte", async () => {
     renderPage(pageCase);
+
+    if (pageCase.attachesToStatusPage) {
+      // A status page's Test Sign-In waits for a provider to test.
+      expect(
+        screen.queryByText(pageCase.testLink, { exact: true }),
+      ).not.toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`fetched-${pageCase.table}-1`));
+      });
+
+      expect(screen.getByText("Test Sign-In")).toBeInTheDocument();
+    }
 
     const link: HTMLElement = screen.getByText(pageCase.testLink, {
       exact: true,
@@ -1071,6 +1114,29 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
 
     expect(link.closest("a")).toHaveAttribute("href", pageCase.testLink);
   });
+
+  if (pageCase.attachesToStatusPage) {
+    test("Test Sign-In leaves with the last provider: there is nothing to test", async () => {
+      renderPage(pageCase);
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`fetched-${pageCase.table}-1`));
+      });
+
+      expect(
+        screen.getByText(pageCase.testLink, { exact: true }),
+      ).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`fetched-${pageCase.table}-0`));
+      });
+
+      expect(
+        screen.queryByText(pageCase.testLink, { exact: true }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Test Sign-In")).not.toBeInTheDocument();
+    });
+  }
 
   if (pageCase.attachesToStatusPage) {
     test("a new provider is created on this status page, in its project", async () => {

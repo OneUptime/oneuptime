@@ -60,12 +60,12 @@ Il vostro CSS e il vostro HTML personalizzati si applicano in entrambi i temi; [
 
 ### Titolo, descrizione e favicon
 
-- **Titolo e descrizione**: la scheda indica che viene usato anche per la SEO. **Modifica** apre **Titolo della pagina** (segnaposto `Please enter page title here.`) e **Descrizione della pagina**. Motori di ricerca e anteprime dei link li mostrano, quindi scriveteli per un cliente, non per il vostro team.
+- **Titolo e descrizione**: il nome della pagina nella scheda del browser e nelle email agli iscritti, e la descrizione che mostrano i motori di ricerca. **Modifica** apre **Titolo della pagina** (segnaposto `e.g., Acme Status`) e **Descrizione della pagina**. Motori di ricerca e anteprime dei link li mostrano, quindi scriveteli per un cliente, non per il vostro team.
 - **Favicon**: **Edit Favicon** apre il caricamento **Favicon**: la piccola icona nella scheda del browser.
 
 ### Link dell'intestazione
 
-La tabella **Link intestazione** contiene i link nell'intestazione della pagina di stato, come il vostro sito, la vostra documentazione o un portale di supporto. Ogni link ha un **Titolo** e un **Collegamento** (un URL, segnaposto `https://link.com`), e li riordinate trascinandoli. Senza link, la tabella dice **Nessun link nell'intestazione per questa pagina di stato**, con **Crea: Pagina di stato Intestazione Link** sotto.
+La tabella **Link intestazione** contiene i link nell'intestazione della pagina di stato, come il vostro sito, la vostra documentazione o un portale di supporto. Ogni link ha un **Titolo** e un **Collegamento** (un URL, segnaposto `https://link.com`), e li riordinate trascinandoli. Senza link, la tabella dice a cosa servono, con **Aggiungi: Link intestazione** sotto.
 
 ### Descrizione della pagina panoramica
 
@@ -74,7 +74,7 @@ La tabella **Link intestazione** contiene i link nell'intestazione della pagina 
 ### Footer
 
 - **Informazioni sul copyright**: **Edit Copyright** apre un campo, **Informazioni sul copyright**, con il segnaposto `Acme, Inc.`.
-- **Link del footer**: la stessa coppia **Titolo** e **Collegamento** dei link dell'intestazione, ordinati trascinandoli. Senza link, dice «Nessun link a piè di pagina per questa pagina di stato.»
+- **Link del footer**: la stessa coppia **Titolo** e **Collegamento** dei link dell'intestazione, ordinati trascinandoli e aggiunti con **Aggiungi: Link del footer**.
 
 I link dell'intestazione servono alla navigazione; quelli del footer alle clausole, come note legali, privacy e termini.
 
@@ -130,8 +130,8 @@ Un tempo erano due schede a sé, **Percentuale di uptime complessiva** e **Stati
 
 | Scheda | Colonna | Cosa contiene |
 | ---- | ------ | ------------- |
-| **HTML intestazione** | `headerHTML` | HTML aggiunto all'intestazione della pagina (segnaposto `Insert Custom HTML here.`). |
-| **HTML del footer** | `footerHTML` | HTML aggiunto al footer della pagina. |
+| **HTML intestazione** | `headerHTML` | HTML mostrato al posto dell'intestazione della pagina, con il logo e i link dell'intestazione (segnaposto `Insert Custom HTML here.`). |
+| **HTML del footer** | `footerHTML` | HTML mostrato al posto del footer della pagina, con i suoi link e i selettori di lingua e tema. |
 | **CSS personalizzato** | `customCSS` | Stili per tutta la pagina (segnaposto `Insert Custom CSS here.`). |
 | **JavaScript personalizzato** | `customJavaScript` | Uno script che la pagina esegue (segnaposto `Insert Custom JavaScript here.`). |
 

@@ -802,12 +802,14 @@ describe("the install guide is wired to the shipped agent", () => {
     const list: string = squash(
       readSource("Pages", "StorageArray", "StorageArrays.tsx"),
     );
-    expect(list).toContain("{arrayCount === 0 && (");
+    // Counted by the shared first-record watch (useFirstRecordWatch).
+    expect(list).toContain("{firstRecordWatch.count === 0 && (");
     expect(list.indexOf("<StorageArrayDocumentationCard")).toBeGreaterThan(
-      list.indexOf("{arrayCount === 0 && ("),
+      list.indexOf("{firstRecordWatch.count === 0 && ("),
     );
     expect(list).toContain("isCreateable={true}");
-    expect(list).toContain("return (currentCount || 0) + 1;");
+    // One added by hand puts the guide away at once.
+    expect(list).toContain("firstRecordWatch.onRecordCreated();");
   });
 });
 

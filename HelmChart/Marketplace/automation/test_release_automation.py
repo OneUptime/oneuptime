@@ -529,14 +529,21 @@ class PartnerCenterTest(unittest.TestCase):
         self.assertEqual(
             self.reference(),
             {
-                "tenantID": "tenant",
-                "subscriptionID": "subscription",
+                "tenantId": "tenant",
+                "subscriptionId": "subscription",
                 "resourceGroupName": "oneuptime-marketplace",
                 "registryName": "oneuptimemarketplace",
                 "repositoryName": "com.oneuptime.enterprise",
                 "tag": VERSION,
                 "digest": "sha256:abc",
             },
+        )
+
+        # Exactly the properties Microsoft's schema allows on a bundle reference
+        # (container-plan-technical-configuration/2022-03-01-preview3: all required, no others).
+        self.assertEqual(
+            sorted(self.reference()),
+            sorted(["tenantId", "subscriptionId", "resourceGroupName", "registryName", "repositoryName", "tag", "digest"]),
         )
 
         for bad in ({"digest": "abc"}, {"tag": "latest"}, {"tenant_id": ""}):
@@ -743,6 +750,8 @@ class GoogleCloudReleaseTest(unittest.TestCase):
         self.assertIn(f"`{READY_GOOGLE['registry']}/deployer:{VERSION}` (digest `sha256:abc`)", steps)
         self.assertIn("`14.0` track", steps)
         self.assertIn("Submit it for review", steps)
+        # Google's review tests the version: nothing here asks for a cluster of our own.
+        self.assertNotIn("mpdev", steps)
 
         with self.assertRaises(release_common.ReleaseError):
             google_cloud_release.producer_portal_steps(READY_GOOGLE, VERSION, "abc")

@@ -43,6 +43,20 @@ import SubscriberChannelOffPanel from "../../../Components/StatusPage/Subscriber
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
+import {
+  SUBSCRIBER_ADD_CHOICE,
+  SubscriberAddChoice,
+  SubscriberFormCopy,
+  getSubscriberAddChoiceColumns,
+} from "../../../Components/StatusPage/SubscriberFormChoices";
+import { getColumnChoiceRadioButtons } from "../../../Utils/Form/ColumnChoice";
+import {
+  getEmailSubscriberAddChoiceFields,
+  getSubscriberInternalNoteField,
+  getSubscriberStatusFields,
+} from "../../../Components/StatusPage/SubscriberFormFields";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -192,8 +206,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
   interface BulkAddFormData {
     emails: string;
-    isSubscriptionConfirmed: boolean;
-    sendYouHaveSubscribedMessage: boolean;
+    // "When you add them": written into the two columns for each address.
+    subscriberAddChoice: SubscriberAddChoice;
     isSubscribedToAllResources?: boolean;
     statusPageResources?: Array<string>;
     isSubscribedToAllEventTypes?: boolean;
@@ -228,6 +242,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     });
 
     const projectId: ObjectID = new ObjectID(props.currentProject._id);
+    const addChoiceColumns: {
+      isSubscriptionConfirmed: boolean;
+      sendYouHaveSubscribedMessage: boolean;
+    } = getSubscriberAddChoiceColumns(data.subscriberAddChoice);
     let succeeded: number = 0;
     const failed: Array<{ email: string; error: string }> = [];
 
@@ -239,9 +257,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         subscriber.subscriberEmail = new Email(emailStr);
         subscriber.statusPageId = modelId;
         subscriber.projectId = projectId;
-        subscriber.isSubscriptionConfirmed = data.isSubscriptionConfirmed;
+        subscriber.isSubscriptionConfirmed =
+          addChoiceColumns.isSubscriptionConfirmed;
         subscriber.sendYouHaveSubscribedMessage =
-          data.sendYouHaveSubscribedMessage;
+          addChoiceColumns.sendYouHaveSubscribedMessage;
 
         if (allowSubscribersToChooseResources) {
           subscriber.isSubscribedToAllResources =
@@ -303,6 +322,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       return; // don't do anything if loading
     }
 
+    /*
+     * The address, then one question each way: on Add, "When you add them"
+     * (subscribe them now, and tell them or not, or ask them to confirm
+     * first); on Edit, their Status (SubscriberFormChoices.ts). The internal
+     * note is folded under More fields.
+     */
+    const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
+      getAdvancedFormSection<StatusPageSubscriber>();
+
     const formFields: Array<ModelField<StatusPageSubscriber>> = [
       {
         field: {
@@ -321,47 +349,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         placeholder: "subscriber@company.com",
         disableSpellCheck: true,
       },
-      {
-        field: {
-          isSubscriptionConfirmed: true,
-        },
-        title: "Do not send confirmation link",
-        stepId: "subscriber-info",
-        description:
-          "If this option is checked, then no confirmation link will be sent to the subscriber.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        defaultValue: true,
-      },
-      {
-        field: {
-          sendYouHaveSubscribedMessage: true,
-        },
-        title: "Send Subscription Email",
-        stepId: "subscriber-info",
-        description:
-          "Send Email with the confirmation link to the subscriber. The subscriber needs to click on the link to confirm the subscription.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenEditing: true,
-        /*
-         * Off on purpose, though the column defaults to on: someone an admin
-         * adds is sent a "you have subscribed" message only when the admin
-         * asks for one (CreateFormDefaultsGuard lists why).
-         */
-        defaultValue: false,
-      },
-      {
-        field: {
-          isUnsubscribed: true,
-        },
-        title: "Unsubscribe",
-        stepId: "subscriber-info",
-        description: "Unsubscribe this email from the status page.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenCreating: true,
-      },
+      ...getEmailSubscriberAddChoiceFields(),
+      ...getSubscriberStatusFields({ isEmail: true }),
     ];
 
     if (allowSubscribersToChooseResources) {
@@ -423,18 +412,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       });
     }
 
-    // add internal note field
-    formFields.push({
-      field: {
-        internalNote: true,
-      },
-      title: "Internal Note",
-      stepId: "internal-info",
-      description:
-        "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
-      fieldType: FormFieldSchemaType.Markdown,
-      required: false,
-    });
+    formFields.push(getSubscriberInternalNoteField(moreFields));
 
     setFormFields(formFields);
   }, [isLoading]);
@@ -497,6 +475,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               return Promise.resolve(item);
             }}
             refreshToggle={refreshToggle}
+            singularName="Subscriber"
+            pluralName="Subscribers"
+            createVerb="Add"
             cardProps={{
               title: "Email Subscribers",
               description:
@@ -512,23 +493,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 },
               ],
             }}
-            noItemsMessage={"No subscribers found."}
             /*
              * Who gets the updates, then - when this page lets subscribers
              * choose - what they hear about, as the bulk add form asks it.
+             * Without that choice the form is one page.
              */
             formSteps={
               allowSubscribersToChooseResources ||
               allowSubscribersToChooseEventTypes
                 ? [
+                    /*
+                     * SUBSCRIBER_INFO_STEP_ID, written out: the form
+                     * scanners of the guard tests read literal ids.
+                     */
                     { title: "Subscriber Info", id: "subscriber-info" },
                     { title: "Notifications", id: "notifications" },
-                    { title: "Internal Info", id: "internal-info" },
                   ]
-                : [
-                    { title: "Subscriber Info", id: "subscriber-info" },
-                    { title: "Internal Info", id: "internal-info" },
-                  ]
+                : undefined
             }
             formFields={formFields}
             showRefreshButton={true}
@@ -594,7 +575,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                       <Pill
                         color={Yellow}
                         text={"Awaiting Confirmation"}
-                        tooltip="Confirmation email sent to this user. Please click on the link to confirm subscription"
+                        tooltip={
+                          SubscriberFormCopy.awaitingConfirmationDescription
+                        }
                       />
                     );
                   }
@@ -672,23 +655,21 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                       "user1@example.com\nuser2@example.com\nuser3@example.com",
                   },
                   {
-                    field: { isSubscriptionConfirmed: true },
+                    /*
+                     * The Add form's question, asked once for every
+                     * address: the answer is written into the two columns
+                     * of each subscriber (handleBulkAddSubmit).
+                     */
+                    field: { subscriberAddChoice: true },
                     stepId: "subscriber-info",
-                    title: "Do not send confirmation link",
-                    description:
-                      "If this option is checked, then no confirmation link will be sent to the subscribers.",
-                    fieldType: FormFieldSchemaType.Toggle,
-                    required: false,
-                    defaultValue: true,
-                  },
-                  {
-                    field: { sendYouHaveSubscribedMessage: true },
-                    stepId: "subscriber-info",
-                    title: "Send Subscription Email",
-                    description:
-                      "Send Email with the confirmation link to the subscribers. The subscribers need to click on the link to confirm the subscription.",
-                    fieldType: FormFieldSchemaType.Toggle,
-                    required: false,
+                    title: SUBSCRIBER_ADD_CHOICE.title,
+                    fieldType: FormFieldSchemaType.RadioButton,
+                    radioButtonOptions: getColumnChoiceRadioButtons(
+                      SUBSCRIBER_ADD_CHOICE,
+                    ),
+                    required: true,
+                    defaultValue: SubscriberAddChoice.SubscribeNow,
+                    dataTestId: "subscriber-add-choice-bulk",
                   },
                   ...(allowSubscribersToChooseResources
                     ? [

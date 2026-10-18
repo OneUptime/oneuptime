@@ -130,14 +130,14 @@ dimension right the first time: ID `users`, one per product.
 
 Besides each marketplace's fee, about USD 5 to 7 a month:
 
-| Cost                       | About                                  | Kept down by                                                                                                                          |
-| -------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Marketplace fees           | AWS 20% (public) or 3% (private); 3%   | Selling to any sizeable buyer on AWS through a private offer, even at the list price                                                  |
-| Azure Container Registry   | USD 5 a month (Basic)                  | A daily `acr purge` task keeps each repository's 3 newest releases, by count; Microsoft serves buyers from its own registry           |
-| Google Artifact Registry   | About USD 1 a month                    | The cleanup policy keeps each image's 3 newest releases, by count, and deletes the rest; Google serves buyers from its own registry   |
-| AWS Marketplace's registry | Nothing                                | It is AWS Marketplace's account, not ours                                                                                             |
-| Reporting usage, CI        | Nothing                                | The metering APIs are free; GitHub Actions is free for a public repository                                                            |
-| Test clusters              | About USD 0.10 an hour, plus the nodes | Only for minor and major releases; small, spot nodes; deleted right after. AKS has no cluster fee, GKE's free tier covers one cluster |
+| Cost                       | About                                | Kept down by                                                                                                                        |
+| -------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Marketplace fees           | AWS 20% (public) or 3% (private); 3% | Selling to any sizeable buyer on AWS through a private offer, even at the list price                                                |
+| Azure Container Registry   | USD 5 a month (Basic)                | A daily `acr purge` task keeps each repository's 3 newest releases, by count; Microsoft serves buyers from its own registry         |
+| Google Artifact Registry   | About USD 1 a month                  | The cleanup policy keeps each image's 3 newest releases, by count, and deletes the rest; Google serves buyers from its own registry |
+| AWS Marketplace's registry | Nothing                              | It is AWS Marketplace's account, not ours                                                                                           |
+| Reporting usage, CI        | Nothing                              | The metering APIs are free; GitHub Actions is free for a public repository                                                          |
+| Test installations         | Nothing                              | We run none: each marketplace's own review installs and tests every version we submit                                               |
 
 Buyers' clusters and their downloads are on the buyers' cloud bills, never on
 ours.
@@ -159,7 +159,7 @@ go-ahead in chat for that exact step.
 | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Seller registration, agreements, tax and bank details, identity verification                            | Maintainer, in their own accounts                                                                                         |
 | Signing in: `aws login --profile oneuptime`, `az login`, `gcloud auth login`, the portals               | Maintainer. An agent may then work in that session                                                                        |
-| Anything that costs money: the Azure Container Registry, test clusters, Artifact Registry               | Maintainer approves the cost first                                                                                        |
+| Anything that costs money: the Azure Container Registry, Artifact Registry, any cluster                 | Maintainer approves the cost first                                                                                        |
 | Prices, dimensions, private offer terms                                                                 | Maintainer, a go-ahead for each exact change                                                                              |
 | Building an edition, running the tests, scanning the images                                             | Agent or maintainer                                                                                                       |
 | Copying images and pushing charts and bundles to the marketplace registries                             | The Marketplace Release workflow, every Monday; by hand, an agent or a maintainer, for a release the maintainer has named |
@@ -248,8 +248,8 @@ Seller account `176820170339` already sells OneUptime Cloud (SaaS product
    - Pricing: **usage pricing with custom metering**, one dimension: API name
      `users`, display name "Users", description "OneUptime users, billed per
      user for every hour". AWS starts every paid container product at
-     **USD 0.01** so that the seller and Seller Operations can test cheaply;
-     the maintainer sets **USD 0.10** when requesting public visibility.
+     **USD 0.01** so that Seller Operations can test it cheaply; the
+     maintainer sets **USD 0.10** when requesting public visibility.
    - Offer information: refund policy (draft below), EULA (maintainer),
      availability (every country unless the maintainer says otherwise).
    - Initial repository: `oneuptime` (the chart's repository: `helm push`
@@ -440,10 +440,10 @@ marketplace:
    - **Google**: Google has no API for this step. The run's summary says
      what to add in Producer Portal: the deployer, its digest and its track.
 5. **Microsoft goes live by hand**: once the preview has passed Microsoft's
-   checks and been tried (see [Checking an installation](#checking-an-installation)),
-   run the workflow with **action: azure-go-live**; after its approval it
-   publishes the newest succeeded preview to live, and AKS then upgrades
-   buyers' clusters to it.
+   checks (its certification installs and tests the bundle; we run no test
+   installation of our own, which would cost money), run the workflow with
+   **action: azure-go-live**; after its approval it publishes the newest
+   succeeded preview to live, and AKS then upgrades buyers' clusters to it.
 
 Run it by hand for a release that should not wait for Monday (an urgent
 fix), one marketplace, an older release, or a dry run (**version**,
@@ -516,11 +516,10 @@ version**:
 - **Submit**: AWS scans the images and the new version appears to the
   allowlist. A version that is not public yet can still be edited.
 
-**Test** (Limited, from the seller account or an allowlisted one, on an EKS
-cluster in a commercial Region; the product's USD 0.01 price makes it cheap):
-subscribe, follow the page's instructions, then
-[check the installation](#checking-an-installation). AWS shows metering in the
-seller reports a day or two later.
+**Testing is AWS's**: AWS scans every version, and Seller Operations installs
+and tests the product before it goes public. We run no test installation of
+our own: it would cost money, and the review covers it. Once buyers run it,
+AWS shows metering in the seller reports a day or two later.
 
 **Go public** (first release only): the maintainer sets the price to USD 0.10
 and submits **Request changes > Update visibility**; Seller Operations
@@ -609,7 +608,10 @@ docker buildx build --platform linux/amd64 --provenance=false \
   --push "$OUT"
 ```
 
-**Test** it with Google's `mpdev`, on a GKE test cluster:
+**Testing is Google's**: its review installs and tests each version we
+submit. We keep no GKE test cluster: it would cost money. Only to reproduce a
+failure Google reports, on a cluster the maintainer approves, Google's `mpdev`
+runs the same checks:
 
 ```bash
 kubectl apply -f "https://raw.githubusercontent.com/GoogleCloudPlatform/marketplace-k8s-app-tools/master/crd/app-crd.yaml"
@@ -625,14 +627,13 @@ the first start migrates the database), runs the tester (it opens
 installation logs that it cannot report and stays unlicensed: expected.
 
 In Producer Portal, add the version (the deployer image and its track),
-then **Submit for review** (maintainer). Once pricing is approved, the
-Partner Engineer can give a test billing account a 100% discount: deploy from
-the listing's preview with it and
-[check the installation](#checking-an-installation).
+then **Submit for review** (maintainer).
 
 ## Checking an installation
 
-Do this on every test installation, on every marketplace:
+We run no test installations: each marketplace's review tests every version.
+Use this when an installation needs looking at, such as a buyer's (with them)
+or one the maintainer approved to reproduce a problem:
 
 1. **It runs**: every pod is ready (the first start migrates the database:
    allow up to 30 minutes), and `https://<domain>/status/ready` answers.
@@ -845,12 +846,15 @@ cost a review round.
 - **The automation has met the real listings only in part.** Checked against
   them on 2026-10-18: AWS's product description (a draft lists a placeholder
   version), and what Partner Center answers: it spells `externalId` and
-  `jobId`, and answers 400 ("has no published submission"), not 404, for a
-  target the offer was never published to. Not yet: AWS's version change set,
-  and Microsoft's configure request and `azure.bundleRepository`, until their
-  first real run.
-- `mpdev verify` does not run in the workflow (it needs a GKE cluster); run it
-  by hand before submitting a Google version when it matters.
+  `jobId`, and a bundle reference's `tenantId` and `subscriptionId` (the docs'
+  examples say `tenantID` and `subscriptionID`, which it refuses), and answers
+  400 ("has no published submission"), not 404, for a target the offer was
+  never published to. And `cpa` 1.3.59 reads the ARM template from
+  `clusterArmTemplate`, as Microsoft's samples spell it (the docs' table says
+  `clusterARMTemplate`, which it rejects as missing). Not yet: AWS's version
+  change set and Microsoft's publish to preview, until their first success.
+- `mpdev verify` does not run in the workflow (it needs a GKE cluster, which
+  costs money): Google's review runs the same checks on every version.
 - Microsoft and Google editions install on `linux/amd64` nodes only.
 
 ## History
@@ -871,6 +875,7 @@ rejection, go-live and price change.
 | 2026-10-18 | Microsoft   | Registry `oneuptimemarketplace` (Basic, daily purge); the release app is a Partner Center Manager   | Agent      |
 | 2026-10-18 | Google      | Artifact Registry `oneuptime` (us, keeps 3 releases), the release service account and Workload ID   | Agent      |
 | 2026-10-18 | GitHub      | Release environments (reviewers simlarsen, nawazdhandala) and variables; releases not enabled yet   | Agent      |
+| 2026-10-18 | Microsoft   | First real run: cpa 1.3.59 wants `clusterArmTemplate`, not the docs' `clusterARMTemplate`; fixed    | Agent      |
 
 ## Notes for agents driving the browser
 

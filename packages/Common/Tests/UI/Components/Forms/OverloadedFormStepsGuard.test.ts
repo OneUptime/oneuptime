@@ -506,12 +506,13 @@ describe("the project's stepped forms", () => {
     ].map(([file, name]: Array<string>): [string, string, Array<string>] => {
       /*
        * The scan reads the larger branch of the conditional step list: the
-       * one a page that lets subscribers choose gets.
+       * one a page that lets subscribers choose gets. The internal note is
+       * no step of its own any more: it is folded under More fields.
        */
       return [
         `${DASHBOARD}/Pages/StatusPages/View/${file}`,
         `ModelTable: Status Page > ${name}`,
-        ["subscriber-info", "notifications", "internal-info"],
+        ["subscriber-info", "notifications"],
       ];
     }),
   ])(

@@ -342,15 +342,13 @@ describe("Cloud Environment overview", () => {
     expect(code).toContain("value: r.cloudPlatform }");
   });
 
-  test("links to Instances and Owners", () => {
-    const quickLinks: string = between(
-      code,
-      "const quickLinks: Array<ResourceOverviewQuickLink> = [",
-      "const detailRows",
-    );
+  test("Instances and Owners are in the side menu, not repeated on the overview", () => {
+    const sideMenu: string = readCode("Pages/Cloud/View/SideMenu.tsx");
 
-    expect(quickLinks).toContain("PageMap.CLOUD_RESOURCE_VIEW_INSTANCES");
-    expect(quickLinks).toContain("PageMap.CLOUD_RESOURCE_VIEW_OWNERS");
+    expect(sideMenu).toContain("PageMap.CLOUD_RESOURCE_VIEW_INSTANCES");
+    expect(sideMenu).toContain("PageMap.CLOUD_RESOURCE_VIEW_OWNERS");
+    // The overview's Explore telemetry card only listed the side menu again.
+    expect(code).not.toContain("quickLinks");
   });
 });
 

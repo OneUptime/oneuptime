@@ -913,6 +913,52 @@ export const TrustedProxyHops: number = ((): number => {
 
 export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
 
+// One year: what browsers and security scanners expect of an HTTPS-only site.
+export const DEFAULT_HSTS_MAX_AGE_SECONDS: number = 365 * 24 * 60 * 60;
+
+// A number of seconds as the header writes it: plain digits, nothing else.
+const HSTS_MAX_AGE_DIGITS: RegExp = /^\d+$/;
+
+/*
+ * How long a browser keeps to HTTPS for this installation's own address
+ * (HOST) once it has reached it over HTTPS: the max-age of the
+ * Strict-Transport-Security header that an installation with
+ * HTTP_PROTOCOL=https sends (Server/Utils/RequestTransport.ts).
+ *
+ * One year unless HSTS_MAX_AGE_SECONDS says otherwise. 0 is the way back: it
+ * tells every browser that visits over HTTPS to forget the rule, for when the
+ * address has to answer over plain HTTP again. Anything that is not a whole,
+ * non-negative number of seconds keeps the default, so a typo never turns
+ * the protection off.
+ *
+ * That means plain digits, and a number small enough to be written back as
+ * digits. "1e3" or "+600" is a typo here, and a value past
+ * Number.MAX_SAFE_INTEGER (a few zeros too many) would come out of the
+ * header as "max-age=3.1536e+22", which browsers do not read as a max-age:
+ * they ignore the whole header, and the protection is off.
+ */
+export const parseHstsMaxAgeSeconds: (
+  rawValue: string | undefined,
+) => number = (rawValue: string | undefined): number => {
+  const trimmedValue: string = rawValue?.trim() || "";
+
+  if (!HSTS_MAX_AGE_DIGITS.test(trimmedValue)) {
+    return DEFAULT_HSTS_MAX_AGE_SECONDS;
+  }
+
+  const parsedValue: number = Number(trimmedValue);
+
+  if (!Number.isSafeInteger(parsedValue)) {
+    return DEFAULT_HSTS_MAX_AGE_SECONDS;
+  }
+
+  return parsedValue;
+};
+
+export const HstsMaxAgeSeconds: number = parseHstsMaxAgeSeconds(
+  process.env["HSTS_MAX_AGE_SECONDS"],
+);
+
 export const CaptchaEnabled: boolean =
   process.env["CAPTCHA_ENABLED"] === "true";
 

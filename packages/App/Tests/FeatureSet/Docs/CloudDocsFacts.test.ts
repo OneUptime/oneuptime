@@ -507,11 +507,12 @@ describe("the environments list and its create form", () => {
   });
 
   it("says the guide is in the dashboard until the first environment or resource arrives", () => {
+    // Both lists count with the shared first-record watch.
     expect(readSource(ENVIRONMENTS_PAGE)).toContain(
-      "{count === 0 && (\n        <CloudDocumentationCard",
+      "{firstRecordWatch.count === 0 && (\n        <CloudDocumentationCard",
     );
     expect(readSource(RESOURCES_PAGE)).toContain(
-      "{count === 0 && (\n        <CloudMonitoringDocumentationCard",
+      "{firstRecordWatch.count === 0 && (\n        <CloudMonitoringDocumentationCard",
     );
     expect(pageProse(HUB)).toContain(
       "under **Cloud → All Environments** until your first environment arrives",

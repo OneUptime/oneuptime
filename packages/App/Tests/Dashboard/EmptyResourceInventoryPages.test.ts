@@ -33,6 +33,18 @@ interface ResourceInventoryPageCase {
   readonly countSetter: string;
   readonly documentationCard: string;
   /*
+   * The infrastructure lists count through the shared useFirstRecordWatch:
+   * while the count is zero it watches for the first record, then shows it
+   * (the table's refreshToggle) and puts the guide away.
+   */
+  readonly watchesForFirstRecord?: boolean | undefined;
+  /*
+   * Adding one by hand is a way to connect here (a vCenter through a probe,
+   * a database or queue endpoint), so the empty table keeps its Create
+   * button; on the other lists only the card header has it.
+   */
+  readonly isAddedByHand?: boolean | undefined;
+  /*
    * False for a list whose rows only discovery creates - the Cloud Resources
    * discovered from cloud monitoring, which no form could identify - so it
    * has no create button, and nothing hides its guide but discovery.
@@ -53,120 +65,138 @@ const RESOURCE_INVENTORY_PAGES: ReadonlyArray<ResourceInventoryPageCase> = [
     label: "Kubernetes clusters",
     relativePath: "Kubernetes/Clusters.tsx",
     modelType: "KubernetesCluster",
-    countState: "clusterCount",
-    countSetter: "setClusterCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "KubernetesDocumentationCard",
   },
   {
     label: "Docker hosts",
     relativePath: "Docker/Hosts.tsx",
     modelType: "DockerHost",
-    countState: "hostCount",
-    countSetter: "setHostCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "DockerDocumentationCard",
   },
   {
     label: "Podman hosts",
     relativePath: "Podman/Hosts.tsx",
     modelType: "PodmanHost",
-    countState: "hostCount",
-    countSetter: "setHostCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "PodmanDocumentationCard",
   },
   {
     label: "Docker Swarm clusters",
     relativePath: "DockerSwarm/Clusters.tsx",
     modelType: "DockerSwarmCluster",
-    countState: "clusterCount",
-    countSetter: "setClusterCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "DockerSwarmDocumentationCard",
   },
   {
     label: "Proxmox clusters",
     relativePath: "Proxmox/Clusters.tsx",
     modelType: "ProxmoxCluster",
-    countState: "clusterCount",
-    countSetter: "setClusterCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "ProxmoxDocumentationCard",
   },
   {
     label: "vCenters",
     relativePath: "VMware/VCenters.tsx",
     modelType: "VMwareVCenter",
-    countState: "clusterCount",
-    countSetter: "setClusterCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
+    isAddedByHand: true,
     documentationCard: "VMwareDocumentationCard",
   },
   {
     label: "Ceph clusters",
     relativePath: "Ceph/Clusters.tsx",
     modelType: "CephCluster",
-    countState: "clusterCount",
-    countSetter: "setClusterCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "CephDocumentationCard",
   },
   {
     label: "storage arrays",
     relativePath: "StorageArray/StorageArrays.tsx",
     modelType: "StorageArray",
-    countState: "arrayCount",
-    countSetter: "setArrayCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "StorageArrayDocumentationCard",
   },
   {
     label: "hosts",
     relativePath: "Host/Hosts.tsx",
     modelType: "Host",
-    countState: "hostCount",
-    countSetter: "setHostCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "HostDocumentationCard",
   },
   {
     label: "IoT fleets",
     relativePath: "IoT/Fleets.tsx",
     modelType: "IoTFleet",
-    countState: "fleetCount",
-    countSetter: "setFleetCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "IoTDocumentationCard",
   },
   {
     label: "cloud resources",
     relativePath: "Cloud/CloudResources.tsx",
     modelType: "CloudResource",
-    countState: "count",
-    countSetter: "setCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "CloudDocumentationCard",
   },
   {
     label: "serverless functions",
     relativePath: "Serverless/ServerlessFunctions.tsx",
     modelType: "ServerlessFunction",
-    countState: "count",
-    countSetter: "setCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "ServerlessDocumentationCard",
   },
   {
     label: "databases",
     relativePath: "Database/Databases.tsx",
     modelType: "DatabaseServer",
-    countState: "count",
-    countSetter: "setCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
+    isAddedByHand: true,
     documentationCard: "DatabaseDocumentationCard",
   },
   {
     label: "queues",
     relativePath: "MessageQueue/MessageQueues.tsx",
     modelType: "MessageQueue",
-    countState: "count",
-    countSetter: "setCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
+    isAddedByHand: true,
     documentationCard: "MessageQueueDocumentationCard",
   },
   {
     label: "cloud resources discovered from cloud monitoring",
     relativePath: "Cloud/MonitoredResources.tsx",
     modelType: "CloudResource",
-    countState: "count",
-    countSetter: "setCount",
+    countState: "firstRecordWatch.count",
+    countSetter: "firstRecordWatch.onRecordCreated",
+    watchesForFirstRecord: true,
     documentationCard: "CloudMonitoringDocumentationCard",
     isCreateable: false,
   },
@@ -321,7 +351,11 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
 
       expect(createSuccessStart).toBeGreaterThan(-1);
       expect(createSuccessSource).toContain(`${resourceCase.countSetter}(`);
-      expect(createSuccessSource).toContain("return (currentCount || 0) + 1;");
+      if (!resourceCase.watchesForFirstRecord) {
+        expect(createSuccessSource).toContain(
+          "return (currentCount || 0) + 1;",
+        );
+      }
       expect(createSuccessSource).toContain("return Promise.resolve(item);");
     });
 
@@ -332,6 +366,55 @@ describe.each(RESOURCE_INVENTORY_PAGES)(
       expect(source.indexOf("<PageLoader")).toBeLessThan(tableStart);
       expect(source.indexOf("<ErrorMessage")).toBeGreaterThan(-1);
       expect(source.indexOf("<ErrorMessage")).toBeLessThan(tableStart);
+    });
+
+    test("watches for the first record, and shows it without a reload", () => {
+      if (!resourceCase.watchesForFirstRecord) {
+        return;
+      }
+
+      const tableStart: number = source.indexOf(modelTable);
+      const tableEnd: number = source.indexOf("/>", tableStart);
+      const table: string = source.slice(tableStart, tableEnd);
+
+      expect(code).toContain(`useFirstRecordWatch<${resourceCase.modelType}>(`);
+      expect(table).toContain("refreshToggle={firstRecordWatch.refreshToken}");
+      expect(code).toContain("if (firstRecordWatch.isLoading) {");
+      expect(code).toContain("if (firstRecordWatch.error) {");
+
+      // No page keeps a poll of its own.
+      expect(code).not.toContain("setInterval(");
+      expect(code).not.toContain("FIRST_DATA_POLL_INTERVAL_MS");
+    });
+
+    test("an empty list points to the guide, and repeats Create only where adding by hand connects", () => {
+      if (!resourceCase.watchesForFirstRecord) {
+        return;
+      }
+
+      const tableStart: number = source.indexOf(modelTable);
+      const tableEnd: number = source.indexOf("/>", tableStart);
+      const table: string = source.slice(tableStart, tableEnd);
+
+      if (resourceCase.isCreateable === false) {
+        // No create button anywhere, so nothing for the empty state to hide.
+        expect(table).not.toContain("getFirstRunEmptyState(");
+      } else {
+        expect(table).toContain("emptyState={getFirstRunEmptyState({");
+        expect(table).toContain("count: firstRecordWatch.count,");
+        expect(table.includes("isAddedByHand: true,")).toBe(
+          resourceCase.isAddedByHand === true,
+        );
+      }
+
+      // The guide says what to do, not "No X yet" a second time.
+      const guideStart: number = source.indexOf(
+        `<${resourceCase.documentationCard}`,
+        source.indexOf(`{${resourceCase.countState} === 0 && (`),
+      );
+      expect(source.slice(guideStart, guideStart + 300)).toContain(
+        "description={FIRST_RUN_GUIDE_DESCRIPTION}",
+      );
     });
   },
 );

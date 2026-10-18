@@ -85,15 +85,15 @@ Para más niveles, rotaciones y cuánto espera cada nivel, consulta [Reglas de e
 :::steps
 ### Crear la página de estado
 
-En la lista, haz clic en **Publica una página de estado**, o abre **Páginas de estado** desde el menú **Productos**. Haz clic en **Crear página de estado**, escribe un **Nombre**, por ejemplo `Acme Status`, y haz clic en **Crear página de estado**.
+En la lista, haz clic en **Publica una página de estado**, o abre **Páginas de estado** desde el menú **Productos**. Haz clic en **Crear página de estado**, escribe un **Nombre**, por ejemplo `Acme Status`, y haz clic en **Crear página de estado**. La página nueva se abre en su **Vista general**.
 
 ### Añadir tu monitor
 
-Abre la nueva página de estado. En su menú lateral, en **Recursos**, elige **Monitores**; en los proyectos con los grupos de monitores activados se llama **Recursos**. Haz clic en **Añadir monitor**, elige tu monitor de sitio web y haz clic en **Añadir monitor**. La fila muestra a los visitantes el nombre del monitor; cámbialo en **Nombre para mostrar** si quieres.
+Haz clic en **Añadir monitores** en la **Vista general** o, en el menú lateral de la página, en **Recursos**, elige **Monitores**; en los proyectos con los grupos de monitores activados se llama **Recursos**. Haz clic en **Añadir monitor**, elige tu monitor de sitio web y haz clic en **Añadir monitor**. La fila muestra a los visitantes el nombre del monitor; cámbialo en **Nombre para mostrar** si quieres.
 
 ### Abrir la página
 
-Elige **Vista general** en el menú lateral. La tarjeta **URL de vista previa de la página de estado** enlaza con tu página de estado: ábrela, y tu sitio web aparece como operativo.
+Elige **Vista general** en el menú lateral. La tarjeta **Enlace de la página de estado** enlaza con tu página de estado: ábrela, y tu sitio web aparece como operativo.
 :::
 
 Una página de estado nueva es pública: cualquiera que tenga su dirección puede abrirla. Para darle tu propio dominio, tu logotipo y tus colores, consulta [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains).

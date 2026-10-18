@@ -196,7 +196,7 @@ Every allow permission is granted with a scope, chosen under **Scope** when you 
 | Owned by this team or its members | The permission only applies to resources where this team, or the user acting, is listed as an owner. |
 | Restrict by labels (advanced) | The permission only applies to resources carrying at least one of the selected labels. |
 
-**Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It only narrows resources that can actually have owners — monitors, incidents, dashboards, services and the like. Project configuration (incident states, labels, teams themselves) has no owner, so an Owned-scoped role behaves normally there.
+**Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It narrows every resource that can have owners — monitors, incidents, dashboards, services, monitor groups, on-call schedules and the like — and what belongs to them, such as a schedule's layers. Probes, Runners, AI agents, on-call schedules and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own. A Runner's key, which lets whoever holds it act as the Runner, shows only on the Runners you or your teams own. Project configuration (incident states, labels, teams themselves) has no owner, so an Owned-scoped role behaves normally there.
 
 **Labels** is the more manual version of the same idea: tag resources, then grant permissions restricted to those tags.
 
@@ -323,7 +323,7 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 **A team that only watches.** Create the team with **Viewer** under **Access**. For just some areas, pick **Choose permissions later** and add the per-area `*Viewer` roles they should see.
 
-**On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors it runs.
+**On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors, on-call policies and schedules it runs. Whatever its people create with these permissions, they own already.
 
 **Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** (under **More settings** on the team's Permissions page) for the sensitive capabilities, restricted to the `Production` label.
 

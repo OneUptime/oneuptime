@@ -178,6 +178,8 @@ OneUptime levert gewoon HTTP totdat u een van twee manieren kiest om HTTPS toe t
 
 Als u statuspagina's of dashboards op eigen domeinen zet, is OneUptime TLS laten afhandelen de eenvoudigste opzet: de ingress bestelt de certificaten van die domeinen zelf en levert ze uit.
 
+Met `HTTP_PROTOCOL=https` bouwt OneUptime HTTPS-links, houdt het aanmeldcookies op HTTPS en vraagt het browsers om uw `HOST` alleen via HTTPS te bereiken. Een browser houdt zich daar een jaar aan, op elke poort van die naam. Moet `HOST` ooit weer via gewoon HTTP antwoorden, zet dan een tijd van tevoren `HSTS_MAX_AGE_SECONDS=0` in `config.env`: browsers vergeten de regel bij hun volgende bezoek.
+
 ### OneUptime een certificaat laten halen
 
 :::steps
@@ -301,6 +303,8 @@ server {
 ```
 De certificaatpaden zijn de plekken waar Certbot een Let's Encrypt-certificaat neerzet; gebruik de paden van uw eigen certificaat als het ergens anders vandaan komt. Controleer het bestand en laad Nginx opnieuw met `sudo nginx -t && sudo systemctl reload nginx`.
 :::
+
+Beide sturen `X-Forwarded-Proto` mee, dat OneUptime vertelt dat een bezoeker via HTTPS kwam. Elke andere proxy moet het ook sturen, anders blijven de aanmeldcookies van statuspagina's en dashboards op uw eigen domeinen niet op HTTPS.
 
 #### Open uw instantie via de proxy
 

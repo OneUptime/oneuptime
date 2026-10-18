@@ -30,6 +30,13 @@ export interface DockerSwarmAlertTemplateArgs {
 export interface DockerSwarmAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. The picker and a resource's
+   * Recommendations list show it on the card; `description` (how it is
+   * computed, and its caveats) is shown once a template is picked.
+   */
+  summary: string;
   description: string;
   category: DockerSwarmAlertTemplateCategory;
   severity: DockerSwarmAlertTemplateSeverity;
@@ -186,6 +193,7 @@ export function buildDockerSwarmMonitorConfig(args: {
 const highCpuTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-cpu",
   name: "High Task CPU Usage",
+  summary: "A task uses more than 80% of one CPU core.",
   description:
     "Alert when any Swarm task's container uses more than 80% of one CPU core (container.cpu.utilization, where 100% = one full core). One incident per task.",
   category: "Resource",
@@ -242,6 +250,7 @@ const highCpuTemplate: DockerSwarmAlertTemplate = {
 const highMemoryTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-memory",
   name: "High Task Memory Usage",
+  summary: "A task uses more than 85% of its memory limit.",
   description:
     "Alert when any Swarm task's container memory usage exceeds 85% of its memory limit — or of the node's total memory when the service sets no limit (container.memory.percent). One incident per task.",
   category: "Resource",
@@ -295,6 +304,7 @@ const highMemoryTemplate: DockerSwarmAlertTemplate = {
 const highProcessCountTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-high-pids",
   name: "High Task Process Count",
+  summary: "A task runs more than 500 processes.",
   description:
     "Alert when any Swarm task's container has an unusually high number of processes (container.pids.count > 500), which may indicate a fork bomb or resource leak. One incident per task.",
   category: "Container",
@@ -339,6 +349,7 @@ const highProcessCountTemplate: DockerSwarmAlertTemplate = {
 const taskDownTemplate: DockerSwarmAlertTemplate = {
   id: "docker-swarm-task-down",
   name: "Task Down (Low Uptime)",
+  summary: "A task restarted: its container is up for less than 60 seconds.",
   description:
     "Alert when any Swarm task's container has been running for less than 60 seconds, indicating the task was just rescheduled, restarted, or crashed and replaced (container.uptime < 60s). One incident per task.",
   category: "Availability",

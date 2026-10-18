@@ -11,7 +11,10 @@ import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
-import { translateText } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
 import FetchMonitors from "../Monitor/FetchMonitors";
 import FetchStatusPages from "../StatusPage/FetchStatusPages";
@@ -47,6 +50,14 @@ export const ANNOUNCEMENT_FORM_STEPS: Array<FormStep<StatusPageAnnouncement>> =
       id: "status-pages",
     },
   ];
+
+/*
+ * The title's example, in an announcement and in a template: what a
+ * visitor reads at the top of the notice.
+ */
+export const ANNOUNCEMENT_TITLE_PLACEHOLDER: string = translationKey(
+  "e.g., Planned maintenance on Saturday",
+);
 
 // Built once: BasicForm folds the fields next to each other that carry one.
 const advancedSection: FormFieldCollapsibleSection<StatusPageAnnouncement> =
@@ -88,7 +99,9 @@ export const getAnnouncementFormFields: (
       stepId: "announcement",
       fieldType: FormFieldSchemaType.Text,
       required: true,
-      placeholder: "Announcement Title",
+      // An example, not the title again; "Title of this resource" said less.
+      placeholder: ANNOUNCEMENT_TITLE_PLACEHOLDER,
+      hideColumnDescription: true,
       validation: {
         minLength: 2,
       },
@@ -335,7 +348,8 @@ export const getAnnouncementTemplateFormFields: () => Array<
       stepId: "announcement",
       fieldType: FormFieldSchemaType.Text,
       required: true,
-      placeholder: "Announcement Title",
+      placeholder: ANNOUNCEMENT_TITLE_PLACEHOLDER,
+      hideColumnDescription: true,
     },
     // Required, as on the announcement itself: the server requires it.
     {

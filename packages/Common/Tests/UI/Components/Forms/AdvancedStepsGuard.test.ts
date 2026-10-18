@@ -498,8 +498,9 @@ describe("rarely used options", () => {
       ["additionalOptions"],
     ],
     /*
-     * A status page monitor rule: how each monitor it adds is shown, folded
-     * on the step that says where the monitors land.
+     * A status page monitor rule: how each monitor it adds is shown, and
+     * its description, folded on the step that says where the monitors
+     * land.
      */
     [
       `${DASHBOARD}/Pages/StatusPages/View/MonitorRules.tsx`,
@@ -510,6 +511,7 @@ describe("rarely used options", () => {
         "showUptimePercent",
         "uptimePercentPrecision",
         "showStatusHistoryChart",
+        "description",
       ],
     ],
   ])(

@@ -89,14 +89,39 @@ describe("the queue Overview's descriptions", () => {
   });
 
   test("each tile carries its own text", () => {
+    /*
+     * Read inside the tiles array: the last tile ends where the array does.
+     * Read to the next `title:` anywhere, it ran into whatever card the page
+     * drew next - and failed once the Explore telemetry links went (#4979).
+     */
+    const tiles: string = between(
+      OVERVIEW,
+      "const tiles: Array<ResourceOverviewTile> = [",
+      "];",
+    );
+    const titles: Array<string> = [
+      "Published",
+      "Consumed",
+      "Errors",
+      "p95 processing time",
+    ];
+    // The four tiles, in order, and no other.
+    expect(tiles.match(/title: "[^"]*",/g)).toEqual(
+      titles.map((title: string): string => {
+        return `title: "${title}",`;
+      }),
+    );
+
     for (const [title, key] of [
       ["Published", "published"],
       ["Consumed", "consumed"],
       ["Errors", "errors"],
       ["p95 processing time", "p95Processing"],
     ] as Array<[string, MessageQueueMetric]>) {
-      // From the tile's title to the next tile's.
-      const tile: string = between(OVERVIEW, `title: "${title}",`, "title:");
+      // From the tile's title to the next tile's, or to the array's end.
+      const start: number = tiles.indexOf(`title: "${title}",`);
+      const next: number = tiles.indexOf("title:", start + 1);
+      const tile: string = tiles.slice(start, next === -1 ? undefined : next);
       expect(tile).toContain(
         `description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.${key},`,
       );
