@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "TAXII-server",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "bijv. Productie-OpenAI",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "De modellen die de AI-functies van dit project gebruiken. Een eigen provider verbruikt geen AI-tegoeden.",
   "Never put keys here.": "Zet hier nooit sleutels in.",
-  "Your deployment's name, exactly as Foundry shows it.": "De naam van uw implementatie, precies zoals Foundry die toont."
+  "Your deployment's name, exactly as Foundry shows it.": "De naam van uw implementatie, precies zoals Foundry die toont.",
+  "Alerts and Incidents": "Waarschuwingen en incidenten",
+  "An alert and an incident.": "Een waarschuwing en een incident.",
+  "Clears the stored token, username and password.": "Wist het opgeslagen token, de gebruikersnaam en het wachtwoord.",
+  "For collections anyone may read.": "Voor collecties die iedereen mag lezen.",
+  "For teams that work security matches alongside their other alerts.": "Voor teams die beveiligingstreffers naast hun andere waarschuwingen afhandelen.",
+  "HTTP basic authentication.": "HTTP-basisauthenticatie.",
+  "Named after the Sigma rule's title until you type a name of your own.": "Heet naar de titel van de Sigma-regel totdat u zelf een naam typt.",
+  "Neither": "Geen van beide",
+  "No alert or incident: the case and the detection finding record the match.": "Geen waarschuwing of incident: de case en de detectiebevinding leggen de treffer vast.",
+  "No sign-in": "Niet aanmelden",
+  "With on-call escalation, SLAs and status pages.": "Met on-call-escalatie, SLA's en statuspagina's.",
+  "A token from the TAXII server's operator.": "Een token van de beheerder van de TAXII-server.",
+  "Bearer token": "Bearer-token"
 }

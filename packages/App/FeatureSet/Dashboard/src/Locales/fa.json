@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "سرور TAXII",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "برای نمونه OpenAI تولید",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "مدل‌هایی که قابلیت‌های هوش مصنوعی این پروژه به کار می‌برند. ارائه‌دهندهٔ خودتان هیچ اعتبار هوش مصنوعی مصرف نمی‌کند.",
   "Never put keys here.": "هرگز کلیدی اینجا قرار ندهید.",
-  "Your deployment's name, exactly as Foundry shows it.": "نام استقرار شما، دقیقاً همان‌طور که Foundry نشان می‌دهد."
+  "Your deployment's name, exactly as Foundry shows it.": "نام استقرار شما، دقیقاً همان‌طور که Foundry نشان می‌دهد.",
+  "Alerts and Incidents": "هشدارها و حوادث",
+  "An alert and an incident.": "یک هشدار و یک حادثه.",
+  "Clears the stored token, username and password.": "توکن، نام کاربری و رمز عبور ذخیره‌شده را پاک می‌کند.",
+  "For collections anyone may read.": "برای مجموعه‌هایی که همه می‌توانند بخوانند.",
+  "For teams that work security matches alongside their other alerts.": "برای تیم‌هایی که تطابق‌های امنیتی را کنار دیگر هشدارهایشان رسیدگی می‌کنند.",
+  "HTTP basic authentication.": "احراز هویت پایهٔ HTTP.",
+  "Named after the Sigma rule's title until you type a name of your own.": "تا وقتی نامی از خودتان ننویسید، به عنوان قاعدهٔ Sigma نام‌گذاری می‌شود.",
+  "Neither": "هیچ‌کدام",
+  "No alert or incident: the case and the detection finding record the match.": "بدون هشدار یا حادثه: پرونده و یافتهٔ تشخیص این تطابق را ثبت می‌کنند.",
+  "No sign-in": "بدون ورود",
+  "With on-call escalation, SLAs and status pages.": "همراه با ارجاع کشیک، SLAها و صفحه‌های وضعیت.",
+  "A token from the TAXII server's operator.": "توکنی از گردانندهٔ سرور TAXII.",
+  "Bearer token": "توکن Bearer"
 }

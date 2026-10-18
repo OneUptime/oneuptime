@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "e.g. Production OpenAI",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "The models this project's AI features use. A provider of your own uses no AI credits.",
   "Never put keys here.": "Never put keys here.",
-  "Your deployment's name, exactly as Foundry shows it.": "Your deployment's name, exactly as Foundry shows it."
+  "Your deployment's name, exactly as Foundry shows it.": "Your deployment's name, exactly as Foundry shows it.",
+  "Alerts and Incidents": "Alerts and Incidents",
+  "An alert and an incident.": "An alert and an incident.",
+  "Clears the stored token, username and password.": "Clears the stored token, username and password.",
+  "For collections anyone may read.": "For collections anyone may read.",
+  "For teams that work security matches alongside their other alerts.": "For teams that work security matches alongside their other alerts.",
+  "HTTP basic authentication.": "HTTP basic authentication.",
+  "Named after the Sigma rule's title until you type a name of your own.": "Named after the Sigma rule's title until you type a name of your own.",
+  "Neither": "Neither",
+  "No alert or incident: the case and the detection finding record the match.": "No alert or incident: the case and the detection finding record the match.",
+  "No sign-in": "No sign-in",
+  "With on-call escalation, SLAs and status pages.": "With on-call escalation, SLAs and status pages.",
+  "A token from the TAXII server's operator.": "A token from the TAXII server's operator.",
+  "Bearer token": "Bearer token"
 }

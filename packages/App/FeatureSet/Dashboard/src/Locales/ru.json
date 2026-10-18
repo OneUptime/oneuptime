@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "Сервер TAXII",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "напр. OpenAI для продакшена",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "Модели, которые используют функции ИИ этого проекта. Собственный поставщик не расходует кредиты ИИ.",
   "Never put keys here.": "Никогда не указывайте здесь ключи.",
-  "Your deployment's name, exactly as Foundry shows it.": "Имя вашего развёртывания точно так, как его показывает Foundry."
+  "Your deployment's name, exactly as Foundry shows it.": "Имя вашего развёртывания точно так, как его показывает Foundry.",
+  "Alerts and Incidents": "Оповещения и инциденты",
+  "An alert and an incident.": "Оповещение и инцидент.",
+  "Clears the stored token, username and password.": "Удаляет сохранённые токен, имя пользователя и пароль.",
+  "For collections anyone may read.": "Для коллекций, которые может читать кто угодно.",
+  "For teams that work security matches alongside their other alerts.": "Для команд, которые разбирают срабатывания безопасности вместе с остальными оповещениями.",
+  "HTTP basic authentication.": "Базовая HTTP-аутентификация.",
+  "Named after the Sigma rule's title until you type a name of your own.": "Называется по заголовку правила Sigma, пока вы не введёте своё имя.",
+  "Neither": "Ничего",
+  "No alert or incident: the case and the detection finding record the match.": "Без оповещения и инцидента: срабатывание фиксируют дело и результат обнаружения.",
+  "No sign-in": "Без входа",
+  "With on-call escalation, SLAs and status pages.": "С эскалацией дежурств, SLA и страницами статуса.",
+  "A token from the TAXII server's operator.": "Токен от оператора сервера TAXII.",
+  "Bearer token": "Bearer-токен"
 }

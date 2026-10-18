@@ -11,9 +11,18 @@ import {
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
-import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  DETECTION_RULE_MATCH_WORDING,
+  getSecurityMatchActionFields,
+  getSecurityMatchFindingField,
+} from "../../Components/SecurityEvents/SecurityMatchActionFields";
+import {
+  DETECTION_RULE_NAME_DESCRIPTION,
+  getDetectionRuleNameAfterYamlChange,
+} from "../../Components/SecurityEvents/SecurityMatchRaises";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
@@ -32,6 +41,13 @@ import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItW
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * The description, the detection finding and how matches are counted:
+ * folded under More fields on their steps.
+ */
+const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
+  getAdvancedFormSection<DetectionRule>();
 
 const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -115,49 +131,20 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           matchCountThreshold: 1,
         }}
         /*
-         * Evaluation asks how matches are counted; On Match asks what a
-         * match does. They were one step of nine fields.
+         * The rule, then what a match does. It was five steps - Basic Info,
+         * Sigma Rule, Evaluation, Security Cases, On Match - for a rule
+         * whose one required thing is its Sigma YAML. Now the YAML comes
+         * first and names the rule after its title; Enabled is the Edit
+         * form's (a new rule runs); what a match raises is one choice
+         * (SecurityMatchActionFields); and the description, the detection
+         * finding and how matches are counted wait under More fields,
+         * starting at the defaults the guide documents.
          */
         formSteps={[
-          { title: "Basic Info", id: "basic-info" },
           { title: "Sigma Rule", id: "sigma-rule" },
-          { title: "Evaluation", id: "evaluation" },
-          { title: "Security Cases", id: "cases" },
           { title: "On Match", id: "on-match" },
         ]}
         formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. Failed logon burst",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Describe what this rule detects.",
-          },
-          {
-            field: {
-              isEnabled: true,
-            },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
           {
             field: {
               sigmaRuleYaml: true,
@@ -175,48 +162,117 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             required: true,
             placeholder:
               "Sigma rule YAML — title, logsource, detection and condition.",
+            dataTestId: "detection-rule-sigma-yaml",
+            // The rule is named after the Sigma rule's title (below).
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<DetectionRule>,
+              setNewFormValues: (values: FormValues<DetectionRule>) => void,
+            ): void => {
+              const name: string | null = getDetectionRuleNameAfterYamlChange({
+                name: currentValues.name,
+                previousYaml: currentValues.sigmaRuleYaml,
+                nextYaml: value,
+              });
+
+              if (name === null) {
+                return;
+              }
+
+              setNewFormValues({
+                ...currentValues,
+                sigmaRuleYaml: value,
+                name: name,
+              } as FormValues<DetectionRule>);
+            },
           },
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            stepId: "sigma-rule",
+            description: DETECTION_RULE_NAME_DESCRIPTION,
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "e.g. Failed logon burst",
+            validation: {
+              minLength: 2,
+            },
+          },
+          {
+            field: {
+              isEnabled: true,
+            },
+            title: "Enabled",
+            stepId: "sigma-rule",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            // A new rule runs (createInitialValues); turning it off is an edit.
+            doNotShowWhenCreating: true,
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            stepId: "sigma-rule",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Describe what this rule detects.",
+            collapsibleSection: advancedSection,
+          },
+          ...getSecurityMatchActionFields<DetectionRule>(
+            DETECTION_RULE_MATCH_WORDING,
+          ),
+          getSecurityMatchFindingField<DetectionRule>(
+            DETECTION_RULE_MATCH_WORDING,
+            advancedSection,
+          ),
           {
             field: {
               evaluationIntervalInMinutes: true,
             },
             title: "Evaluation Interval (Minutes)",
-            stepId: "evaluation",
+            stepId: "on-match",
             description: "How often this rule is evaluated, in minutes.",
             fieldType: FormFieldSchemaType.Number,
             required: true,
             placeholder: "e.g. 5",
+            collapsibleSection: advancedSection,
           },
           {
             field: {
               groupByField: true,
             },
             title: "Group By Field",
-            stepId: "evaluation",
+            stepId: "on-match",
             description:
               "Optional. Collapse matches that share this field's value into one finding (e.g. one alert per host).",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "principalHost",
+            collapsibleSection: advancedSection,
           },
           {
             field: {
               distinctCountField: true,
             },
             title: "Distinct Count Field",
-            stepId: "evaluation",
+            stepId: "on-match",
             description:
               "Count distinct values of this field instead of matching events, such as users per IP to catch one IP trying many accounts.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "principalUser",
+            collapsibleSection: advancedSection,
           },
           {
             field: {
               matchCountThreshold: true,
             },
             title: "Match Count Threshold",
-            stepId: "evaluation",
+            stepId: "on-match",
             description:
               "Fire when a group's count reaches this number within one evaluation window. 1 fires on any match.",
             fieldType: FormFieldSchemaType.Number,
@@ -234,96 +290,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               minValue: DETECTION_MATCH_COUNT_THRESHOLD_MIN,
               maxValue: DETECTION_MATCH_COUNT_THRESHOLD_MAX,
             },
-          },
-          {
-            field: {
-              shouldCreateCase: true,
-            },
-            title: "Open a Case on Match",
-            stepId: "cases",
-            description:
-              "Group matches into security cases by user, host or address. Playbooks run on the cases it opens.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              shouldCreateAlert: true,
-            },
-            title: "Create Alert on Match",
-            stepId: "on-match",
-            description:
-              "Also open a OneUptime alert, for teams that work security matches alongside their other alerts.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              alertSeverity: true,
-            },
-            title: "Alert Severity",
-            stepId: "on-match",
-            description:
-              "Optional. Severity of alerts this rule opens. When unset, the Sigma rule's level is mapped onto this project's severities.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: AlertSeverity,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                order: SortOrder.Ascending,
-              },
-            },
-            required: false,
-            placeholder: "Default from Sigma level",
-            showIf: (model: FormValues<DetectionRule>): boolean => {
-              return model.shouldCreateAlert === true;
-            },
-          },
-          {
-            field: {
-              shouldCreateIncident: true,
-            },
-            title: "Create Incident on Match",
-            stepId: "on-match",
-            description:
-              "Incidents are the heavier machinery — on-call escalation, SLAs, status pages. Off by default; alerts usually suffice for detections.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              incidentSeverity: true,
-            },
-            title: "Incident Severity",
-            stepId: "on-match",
-            description:
-              "Optional. Severity of incidents this rule opens. When unset, the Sigma rule's level is mapped onto this project's incident severities.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: IncidentSeverity,
-              labelField: "name",
-              valueField: "_id",
-              sort: {
-                order: SortOrder.Ascending,
-              },
-            },
-            required: false,
-            placeholder: "Default from Sigma level",
-            showIf: (model: FormValues<DetectionRule>): boolean => {
-              return model.shouldCreateIncident === true;
-            },
-          },
-          {
-            field: {
-              shouldWriteDetectionFinding: true,
-            },
-            title: "Write Detection Finding on Match",
-            stepId: "on-match",
-            description:
-              "Write a Detection Finding security event back into the event stream when this rule matches.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
+            collapsibleSection: advancedSection,
           },
         ]}
         showRefreshButton={true}

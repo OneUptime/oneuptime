@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "Servidor TAXII",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "ex.: OpenAI de produção",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "Os modelos que os recursos de IA deste projeto usam. Um provedor próprio não consome créditos de IA.",
   "Never put keys here.": "Nunca coloque chaves aqui.",
-  "Your deployment's name, exactly as Foundry shows it.": "O nome da sua implantação, exatamente como o Foundry mostra."
+  "Your deployment's name, exactly as Foundry shows it.": "O nome da sua implantação, exatamente como o Foundry mostra.",
+  "Alerts and Incidents": "Alertas e incidentes",
+  "An alert and an incident.": "Um alerta e um incidente.",
+  "Clears the stored token, username and password.": "Apaga o token, o nome de usuário e a senha salvos.",
+  "For collections anyone may read.": "Para coleções que qualquer pessoa pode ler.",
+  "For teams that work security matches alongside their other alerts.": "Para equipes que tratam as correspondências de segurança junto com seus outros alertas.",
+  "HTTP basic authentication.": "Autenticação HTTP básica.",
+  "Named after the Sigma rule's title until you type a name of your own.": "Leva o título da regra Sigma até você digitar um nome próprio.",
+  "Neither": "Nenhum",
+  "No alert or incident: the case and the detection finding record the match.": "Nenhum alerta ou incidente: o caso e a constatação de detecção registram a correspondência.",
+  "No sign-in": "Sem login",
+  "With on-call escalation, SLAs and status pages.": "Com escalonamento de plantão, SLAs e páginas de status.",
+  "A token from the TAXII server's operator.": "Um token do operador do servidor TAXII.",
+  "Bearer token": "Token bearer"
 }

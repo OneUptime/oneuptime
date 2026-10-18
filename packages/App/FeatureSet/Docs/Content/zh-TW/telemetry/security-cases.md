@@ -44,8 +44,8 @@ flowchart TB
 
 | 來源 | 何時開啟案件 | 停用方式 |
 | --- | --- | --- |
-| 偵測規則 | 規則符合時 | 規則的 **Security Cases** 步驟中的 **Open a Case on Match** |
-| 威脅情資 | 某個事件提到已知指標時 | 情資來源的 **Security Cases** 步驟中的 **Open a Case on Match** |
+| 偵測規則 | 規則符合時 | 規則的 **符合時** 步驟中的 **Open a Case on Match** |
+| 威脅情資 | 某個事件提到已知指標時 | 情資來源的 **符合時** 步驟中的 **Open a Case on Match** |
 | 已連線的產品 | 匯入的產品本身警示達到或高於連線的閾值時 | 在連線的 **Polling** 步驟中，把 **Open Cases From** 設為 **從未** |
 | 人員 | 有人從 **Security Cases** 開啟案件，或在事件面板中使用 **Open Case** 時 | 無 |
 
@@ -229,7 +229,7 @@ flowchart TB
 ## 疑難排解
 
 :::details 規則符合了，但沒有開啟案件
-檢查規則 **Security Cases** 步驟中的 **Open a Case on Match**。如果偵測涉及的實體已經有未關閉的案件，該偵測會併入那個案件，而不會另外開啟一個：請在那個未關閉案件的 **Detections** 下找它。
+檢查規則 **符合時** 步驟中的 **Open a Case on Match**。如果偵測涉及的實體已經有未關閉的案件，該偵測會併入那個案件，而不會另外開啟一個：請在那個未關閉案件的 **Detections** 下找它。
 :::
 
 :::details 劇本沒有執行

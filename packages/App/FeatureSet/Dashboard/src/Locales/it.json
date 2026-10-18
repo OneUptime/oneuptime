@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "Server TAXII",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "es. OpenAI di produzione",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "I modelli usati dalle funzioni IA di questo progetto. Un provider tuo non consuma crediti IA.",
   "Never put keys here.": "Non inserire mai chiavi qui.",
-  "Your deployment's name, exactly as Foundry shows it.": "Il nome del tuo deployment, esattamente come lo mostra Foundry."
+  "Your deployment's name, exactly as Foundry shows it.": "Il nome del tuo deployment, esattamente come lo mostra Foundry.",
+  "Alerts and Incidents": "Avvisi e incidenti",
+  "An alert and an incident.": "Un avviso e un incidente.",
+  "Clears the stored token, username and password.": "Cancella il token, il nome utente e la password salvati.",
+  "For collections anyone may read.": "Per raccolte che chiunque può leggere.",
+  "For teams that work security matches alongside their other alerts.": "Per i team che gestiscono le corrispondenze di sicurezza insieme agli altri avvisi.",
+  "HTTP basic authentication.": "Autenticazione HTTP di base.",
+  "Named after the Sigma rule's title until you type a name of your own.": "Prende il titolo della regola Sigma finché non ne scrivi uno tuo.",
+  "Neither": "Nessuno dei due",
+  "No alert or incident: the case and the detection finding record the match.": "Nessun avviso o incidente: il caso e il risultato di rilevamento registrano la corrispondenza.",
+  "No sign-in": "Nessun accesso",
+  "With on-call escalation, SLAs and status pages.": "Con escalation della reperibilità, SLA e pagine di stato.",
+  "A token from the TAXII server's operator.": "Un token fornito dall'operatore del server TAXII.",
+  "Bearer token": "Token bearer"
 }

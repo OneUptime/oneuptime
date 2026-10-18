@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "TAXII 서버",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "예: 프로덕션 OpenAI",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "이 프로젝트의 AI 기능이 사용하는 모델입니다. 직접 등록한 공급자는 AI 크레딧을 쓰지 않습니다.",
   "Never put keys here.": "여기에 키를 넣지 마세요.",
-  "Your deployment's name, exactly as Foundry shows it.": "Foundry에 표시된 그대로의 배포 이름입니다."
+  "Your deployment's name, exactly as Foundry shows it.": "Foundry에 표시된 그대로의 배포 이름입니다.",
+  "Alerts and Incidents": "알림 및 인시던트",
+  "An alert and an incident.": "알림과 인시던트를 모두 엽니다.",
+  "Clears the stored token, username and password.": "저장된 토큰, 사용자 이름, 비밀번호를 지웁니다.",
+  "For collections anyone may read.": "누구나 읽을 수 있는 컬렉션용입니다.",
+  "For teams that work security matches alongside their other alerts.": "보안 일치를 다른 알림과 함께 처리하는 팀용입니다.",
+  "HTTP basic authentication.": "HTTP 기본 인증입니다.",
+  "Named after the Sigma rule's title until you type a name of your own.": "직접 이름을 입력하기 전까지는 Sigma 규칙의 제목을 사용합니다.",
+  "Neither": "둘 다 아님",
+  "No alert or incident: the case and the detection finding record the match.": "알림도 인시던트도 없습니다. 케이스와 탐지 결과가 일치를 기록합니다.",
+  "No sign-in": "로그인 없음",
+  "With on-call escalation, SLAs and status pages.": "온콜 에스컬레이션, SLA, 상태 페이지와 함께 처리됩니다.",
+  "A token from the TAXII server's operator.": "TAXII 서버 운영자에게 받은 토큰입니다.",
+  "Bearer token": "Bearer 토큰"
 }

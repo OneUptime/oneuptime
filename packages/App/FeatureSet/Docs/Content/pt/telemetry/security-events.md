@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Abra **Produtos → Security Events → Detection Rules** e clique em **Criar: Detection Rule**.
-2. Em **Informações básicas**, preencha o **Nome** e deixe **Habilitado** ativado.
-3. Em **Sigma Rule**, cole o YAML da regra em **Sigma Rule (YAML)**. Ele é analisado ao salvar, então um erro aparece no formulário.
-4. Em **Avaliação**, defina com que frequência ela roda e quantas correspondências precisa; veja [Configurações de avaliação](#configurações-de-avaliação).
-5. Em **Security Cases**, deixe **Open a Case on Match** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
-6. Em **Ao corresponder**, escolha o que mais uma correspondência faz: **Create Alert on Match** (ativado), **Create Incident on Match** (desativado) e **Write Detection Finding on Match** (ativado), com uma **Severidade do alerta** e uma **Severidade do incidente** opcionais.
+2. Em **Sigma Rule**, cole o YAML da regra em **Sigma Rule (YAML)**. Ele é analisado ao salvar, então um erro aparece no formulário.
+3. O **Nome** é preenchido com o `title` da regra: escreva por cima para chamá-la de outro jeito. Uma regra nova roda; **Habilitado** fica no formulário de edição dela.
+4. Em **Ao corresponder**, deixe **Open a Case on Match** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
+5. Em **Alertas e incidentes**, escolha o que mais uma correspondência gera: **Criar um alerta** (o padrão), **Declarar um incidente**, **Ambos** ou **Nenhum**, com uma **Severidade do alerta** ou uma **Severidade do incidente** opcionais.
+6. **Mais campos** guarda a **Descrição**, **Write Detection Finding on Match** (ativado) e como as correspondências são contadas; veja [Configurações de avaliação](#configurações-de-avaliação).
 :::
 
 Uma primeira regra, que corresponde a logins com falha vindos de fora de `10.x.x.x`:
@@ -372,11 +372,11 @@ Confira se ela está **Habilitado**, e leia **Last Evaluated** e **Last Error** 
 :::
 
 :::details Uma regra correspondeu, mas nenhum alerta abriu
-**Create Alert on Match** está desativado, ou ainda há um alerta aberto para a mesma regra e o mesmo valor de grupo, e as correspondências seguintes entram nele. Um projeto precisa de pelo menos uma severidade de alerta para que as regras abram alertas.
+**Alertas e incidentes** está em **Declarar um incidente** ou **Nenhum**, ou ainda há um alerta aberto para a mesma regra e o mesmo valor de grupo, e as correspondências seguintes entram nele. Um projeto precisa de pelo menos uma severidade de alerta para que as regras abram alertas.
 :::
 
 :::details Uma regra abre alertas demais
-Cada valor do **Group By Field** recebe o próprio alerta: agrupe por algo mais amplo, aumente o limite ou acrescente uma contagem distinta. Se o que importa é o ritmo e não cada correspondência, desative **Create Alert on Match** e coloque um monitor sobre os achados da regra.
+Cada valor do **Group By Field** recebe o próprio alerta: agrupe por algo mais amplo, aumente o limite ou acrescente uma contagem distinta. Se o que importa é o ritmo e não cada correspondência, escolha **Nenhum** em **Alertas e incidentes** e coloque um monitor sobre os achados da regra.
 :::
 
 ## Próximos passos

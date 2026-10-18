@@ -35,7 +35,7 @@ Open **Products → Security Events → Threat Intel**.
 
 ### Create the feed
 
-Click **Create Threat Intel Feed** and fill in its five steps: **Basic Info**, **TAXII Server**, **Authentication**, **Security Cases** and **On Match**. The fields are in the table below.
+Click **Create Threat Intel Feed** and fill in its three steps: **TAXII Server**, **Sign-in** and **On Match**. The fields are in the table below.
 
 ### Check the first poll
 
@@ -48,16 +48,16 @@ Within a minute or two the feed's row shows **Last Polled**, and **Last Poll Sum
 | **Collection ID** | The collection that publishes the indicators. |
 | **Poll Interval (Minutes)** | How often to fetch new objects: 1 to 1440 minutes, 60 by default. |
 | **Minimum Confidence** | Indicators with a lower STIX `confidence` are skipped: 0 to 100, 0 keeps everything. Indicators with no confidence always pass. |
-| **API Token** | A bearer token, for a collection that asks for one. |
-| **Basic Auth Username** and **Basic Auth Password** | For a collection that uses HTTP basic auth. Leave both and the token empty for a public collection. |
+| **Sign-in** | How OneUptime signs in: **No sign-in** for a public collection, **Bearer token** for a token the server's operator gave you, or **Username and password** for HTTP basic auth. |
+| **API Token**, **Basic Auth Username** and **Basic Auth Password** | Asked only for the sign-in picked. |
 | **Open a Case on Match** | On by default: each event that names an indicator opens a [case](/docs/telemetry/security-cases) about it, or joins the open case already about it. |
-| **Create Alert on Match** | On by default: each matched indicator opens an alert. |
+| **Alerts and Incidents** | **Create an alert** by default: each matched indicator opens an alert. |
 | **Alert Severity** | The severity of every alert this feed opens. Leave it empty to take each indicator's threat level. |
-| **Create Incident on Match** | Off by default. Incidents drive on-call escalation, SLAs and status pages, and alerts are usually enough for indicator matches. |
+| **Declare an incident** or **Both** | Under **Alerts and Incidents**. Incidents drive on-call escalation, SLAs and status pages, and alerts are usually enough for indicator matches. |
 | **Incident Severity** | Like **Alert Severity**, for incidents. |
 | **Write Detection Finding on Match** | On by default: each match writes a finding into the event stream. |
 
-Tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **API Token (Bearer)**, **Basic Auth** or **Anonymous (clear stored credentials)**: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.
+Tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.
 
 ### How a feed is polled
 
@@ -143,7 +143,7 @@ Every minute, each enabled feed's active indicators are matched against the even
 ### What a match does
 
 - An alert, titled `[Threat Intel] <feed name> — <indicator value>`, one per feed and value while it stays open. Once it is resolved, the next match opens a new one. Alerts are not resolved automatically.
-- An incident, only with **Create Incident on Match**, deduplicated the same way.
+- An incident, only with **Declare an incident** or **Both** under **Alerts and Incidents**, deduplicated the same way.
 - A Threat Intel finding, with **Write Detection Finding on Match**: a `Detection Finding` event (OCSF class 2004) from the product `OneUptime Threat Intel`, with the indicator's threat level as its severity, and these attributes:
 
 | Attribute | Value |
@@ -199,7 +199,7 @@ Matching compares an indicator's value with an event's observables, not with eve
 :::
 
 :::details A match didn't open an alert
-**Create Alert on Match** is off, or an alert for the same feed and value is still open, and later matches are folded into it. A project needs at least one alert severity for a feed to open alerts.
+**Alerts and Incidents** is set to **Declare an incident** or **Neither**, or an alert for the same feed and value is still open, and later matches are folded into it. A project needs at least one alert severity for a feed to open alerts.
 :::
 
 ## Next steps

@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "TAXII-server",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "t.ex. Produktions-OpenAI",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "Modellerna som projektets AI-funktioner använder. En egen leverantör använder inga AI-krediter.",
   "Never put keys here.": "Ange aldrig nycklar här.",
-  "Your deployment's name, exactly as Foundry shows it.": "Namnet på din distribution, exakt som Foundry visar det."
+  "Your deployment's name, exactly as Foundry shows it.": "Namnet på din distribution, exakt som Foundry visar det.",
+  "Alerts and Incidents": "Varningar och incidenter",
+  "An alert and an incident.": "En varning och en incident.",
+  "Clears the stored token, username and password.": "Rensar den sparade token, användarnamnet och lösenordet.",
+  "For collections anyone may read.": "För samlingar som alla får läsa.",
+  "For teams that work security matches alongside their other alerts.": "För team som hanterar säkerhetsträffar tillsammans med sina andra varningar.",
+  "HTTP basic authentication.": "HTTP-basautentisering.",
+  "Named after the Sigma rule's title until you type a name of your own.": "Heter som Sigma-regelns titel tills du skriver ett eget namn.",
+  "Neither": "Ingetdera",
+  "No alert or incident: the case and the detection finding record the match.": "Ingen varning eller incident: ärendet och detektionsfyndet registrerar träffen.",
+  "No sign-in": "Ingen inloggning",
+  "With on-call escalation, SLAs and status pages.": "Med joureskalering, SLA:er och statussidor.",
+  "A token from the TAXII server's operator.": "En token från TAXII-serverns operatör.",
+  "Bearer token": "Bearer-token"
 }

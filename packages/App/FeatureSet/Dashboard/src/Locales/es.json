@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "p. ej., OpenAI de producción",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "Los modelos que usan las funciones de IA de este proyecto. Un proveedor propio no consume créditos de IA.",
   "Never put keys here.": "Nunca ponga claves aquí.",
-  "Your deployment's name, exactly as Foundry shows it.": "El nombre de su implementación, tal como lo muestra Foundry."
+  "Your deployment's name, exactly as Foundry shows it.": "El nombre de su implementación, tal como lo muestra Foundry.",
+  "Alerts and Incidents": "Alertas e incidentes",
+  "An alert and an incident.": "Una alerta y un incidente.",
+  "Clears the stored token, username and password.": "Borra el token, el nombre de usuario y la contraseña guardados.",
+  "For collections anyone may read.": "Para colecciones que cualquiera puede leer.",
+  "For teams that work security matches alongside their other alerts.": "Para equipos que gestionan las coincidencias de seguridad junto con sus otras alertas.",
+  "HTTP basic authentication.": "Autenticación HTTP básica.",
+  "Named after the Sigma rule's title until you type a name of your own.": "Lleva el título de la regla Sigma hasta que escriba un nombre propio.",
+  "Neither": "Ninguno",
+  "No alert or incident: the case and the detection finding record the match.": "Ni alerta ni incidente: el caso y el hallazgo de detección registran la coincidencia.",
+  "No sign-in": "Sin inicio de sesión",
+  "With on-call escalation, SLAs and status pages.": "Con escalado de guardias, SLA y páginas de estado.",
+  "A token from the TAXII server's operator.": "Un token del operador del servidor TAXII.",
+  "Bearer token": "Token bearer"
 }

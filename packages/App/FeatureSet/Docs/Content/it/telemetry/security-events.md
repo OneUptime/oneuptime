@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Apri **Prodotti → Security Events → Detection Rules** e fai clic su **Crea: Detection Rule**.
-2. In **Informazioni di base**, compila il **Nome** e lascia attivo **Abilitato**.
-3. In **Sigma Rule**, incolla lo YAML della regola in **Sigma Rule (YAML)**. Viene analizzato al salvataggio, così un errore compare nel modulo.
-4. In **Valutazione**, imposta ogni quanto gira e quante corrispondenze le servono; vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
-5. In **Security Cases**, lascia attivo **Open a Case on Match** per raggruppare le sue corrispondenze in casi, in base al valore per cui raggruppa la regola.
-6. In **In caso di corrispondenza**, scegli cos'altro fa una corrispondenza: **Create Alert on Match** (attivo), **Create Incident on Match** (disattivato) e **Write Detection Finding on Match** (attivo), con una **Gravità avviso** e una **Gravità incidente** facoltative.
+2. In **Sigma Rule**, incolla lo YAML della regola in **Sigma Rule (YAML)**. Viene analizzato al salvataggio, così un errore compare nel modulo.
+3. Il **Nome** si compila dal `title` della regola: scrivici sopra per chiamarla in un altro modo. Una nuova regola gira; **Abilitato** è nel suo modulo di modifica.
+4. In **In caso di corrispondenza**, lascia attivo **Open a Case on Match** per raggruppare le sue corrispondenze in casi, in base al valore per cui raggruppa la regola.
+5. In **Avvisi e incidenti**, scegli cos'altro genera una corrispondenza: **Crea un avviso** (predefinito), **Dichiara un incidente**, **Entrambi** o **Nessuno dei due**, con una **Gravità avviso** o una **Gravità incidente** facoltativa.
+6. **Altri campi** contiene la **Descrizione**, **Write Detection Finding on Match** (attivo) e il modo in cui si contano le corrispondenze; vedi [Impostazioni di valutazione](#impostazioni-di-valutazione).
 :::
 
 Una prima regola, che corrisponde agli accessi falliti da fuori `10.x.x.x`:
@@ -372,11 +372,11 @@ Controlla che sia **Abilitato**, e leggi **Last Evaluated** e **Last Error** nel
 :::
 
 :::details Una regola ha corrisposto, ma non si è aperto nessun avviso
-**Create Alert on Match** è disattivato, oppure è ancora aperto un avviso per la stessa regola e lo stesso valore di gruppo, e le corrispondenze successive confluiscono in esso. Un progetto ha bisogno di almeno una gravità di avviso perché le regole aprano avvisi.
+**Avvisi e incidenti** è impostato su **Dichiara un incidente** o **Nessuno dei due**, oppure è ancora aperto un avviso per la stessa regola e lo stesso valore di gruppo, e le corrispondenze successive confluiscono in esso. Un progetto ha bisogno di almeno una gravità di avviso perché le regole aprano avvisi.
 :::
 
 :::details Una regola apre troppi avvisi
-Ogni valore del **Group By Field** riceve il proprio avviso: raggruppa per qualcosa di più ampio, alza la soglia o aggiungi un conteggio distinto. Se ti interessa il ritmo più di ogni corrispondenza, disattiva **Create Alert on Match** e metti un monitor sulle risultanze della regola.
+Ogni valore del **Group By Field** riceve il proprio avviso: raggruppa per qualcosa di più ampio, alza la soglia o aggiungi un conteggio distinto. Se ti interessa il ritmo più di ogni corrispondenza, imposta **Avvisi e incidenti** su **Nessuno dei due** e metti un monitor sulle risultanze della regola.
 :::
 
 ## Passaggi successivi

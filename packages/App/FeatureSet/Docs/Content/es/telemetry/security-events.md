@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Abre **Productos → Eventos de seguridad → Reglas de detección** y haz clic en **Crear Regla de detección**.
-2. En **Información básica**, rellena el **Nombre** y deja **Habilitado** activado.
-3. En **Regla Sigma**, pega el YAML de la regla en **Regla Sigma (YAML)**. Se analiza al guardar, así que un error aparece en el formulario.
-4. En **Evaluación**, define cada cuánto se ejecuta y cuántas coincidencias necesita; consulta [Ajustes de evaluación](#ajustes-de-evaluación).
-5. En **Security Cases**, deja **Open a Case on Match** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.
-6. En **Al coincidir**, elige qué más hace una coincidencia: **Crear alerta al coincidir** (activado), **Crear incidente al coincidir** (desactivado) y **Escribir un hallazgo de detección al coincidir** (activado), con una **Gravedad de la alerta** y una **Gravedad del incidente** opcionales.
+2. En **Regla Sigma**, pega el YAML de la regla en **Regla Sigma (YAML)**. Se analiza al guardar, así que un error aparece en el formulario.
+3. El **Nombre** se rellena con el `title` de la regla: escríbelo encima para llamarla de otra forma. Una regla nueva se ejecuta; **Habilitado** está en su formulario de edición.
+4. En **Al coincidir**, deja **Open a Case on Match** activado para agrupar sus coincidencias en casos, por el valor por el que agrupa la regla.
+5. En **Alertas e incidentes**, elige qué más genera una coincidencia: **Crear una alerta** (el valor por defecto), **Declarar un incidente**, **Ambos** o **Ninguno**, con una **Gravedad de la alerta** o una **Gravedad del incidente** opcionales.
+6. **Más campos** contiene la **Descripción**, **Escribir un hallazgo de detección al coincidir** (activado) y cómo se cuentan las coincidencias; consulta [Ajustes de evaluación](#ajustes-de-evaluación).
 :::
 
 Una primera regla, que coincide con los inicios de sesión fallidos desde fuera de `10.x.x.x`:
@@ -372,11 +372,11 @@ Comprueba que está **Habilitado** y lee **Última evaluación** y **Último err
 :::
 
 :::details Una regla coincidió, pero no se abrió ninguna alerta
-**Crear alerta al coincidir** está desactivado, o sigue abierta una alerta de la misma regla y el mismo valor de grupo, y las coincidencias posteriores se suman a ella. Un proyecto necesita al menos una gravedad de alerta para que las reglas abran alertas.
+**Alertas e incidentes** está en **Declarar un incidente** o **Ninguno**, o sigue abierta una alerta de la misma regla y el mismo valor de grupo, y las coincidencias posteriores se suman a ella. Un proyecto necesita al menos una gravedad de alerta para que las reglas abran alertas.
 :::
 
 :::details Una regla abre demasiadas alertas
-Cada valor del **Campo de agrupación** recibe su propia alerta: agrupa por algo más general, sube el umbral o añade un recuento distinto. Si te importa el ritmo más que cada coincidencia, desactiva **Crear alerta al coincidir** y pon un monitor sobre los hallazgos de la regla.
+Cada valor del **Campo de agrupación** recibe su propia alerta: agrupa por algo más general, sube el umbral o añade un recuento distinto. Si te importa el ritmo más que cada coincidencia, elige **Ninguno** en **Alertas e incidentes** y pon un monitor sobre los hallazgos de la regla.
 :::
 
 ## Próximos pasos

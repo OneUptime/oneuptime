@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "TAXII 服务器",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "例如 生产环境 OpenAI",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "此项目的 AI 功能使用的模型。你自己的提供商不消耗 AI 积分。",
   "Never put keys here.": "切勿在此填写密钥。",
-  "Your deployment's name, exactly as Foundry shows it.": "你的部署名称，须与 Foundry 中显示的完全一致。"
+  "Your deployment's name, exactly as Foundry shows it.": "你的部署名称，须与 Foundry 中显示的完全一致。",
+  "Alerts and Incidents": "警报和事件",
+  "An alert and an incident.": "一条警报和一个事件。",
+  "Clears the stored token, username and password.": "清除已保存的令牌、用户名和密码。",
+  "For collections anyone may read.": "适用于任何人都可读取的集合。",
+  "For teams that work security matches alongside their other alerts.": "适合将安全匹配与其他警报一起处理的团队。",
+  "HTTP basic authentication.": "HTTP 基本身份验证。",
+  "Named after the Sigma rule's title until you type a name of your own.": "在你输入自己的名称之前，沿用 Sigma 规则的标题。",
+  "Neither": "都不",
+  "No alert or incident: the case and the detection finding record the match.": "不创建警报或事件：由案例和检测结果记录这次匹配。",
+  "No sign-in": "无需登录",
+  "With on-call escalation, SLAs and status pages.": "会触发值班升级、SLA 和状态页。",
+  "A token from the TAXII server's operator.": "TAXII 服务器运营方提供的令牌。",
+  "Bearer token": "Bearer 令牌"
 }

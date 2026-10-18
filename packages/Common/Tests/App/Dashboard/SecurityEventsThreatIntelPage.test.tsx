@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -28,6 +28,19 @@ type CapturedFormField = {
 
 type CapturedTableProps = {
   formFields?: Array<CapturedFormField>;
+  formSteps?: Array<{
+    id: string;
+    title: string;
+    showIf?: ((values: Record<string, unknown>) => boolean) | undefined;
+  }>;
+  actionButtons?: Array<{
+    title: string;
+    onClick: (
+      item: Record<string, unknown>,
+      onCompleteAction: () => void,
+      onError: (error: Error) => void,
+    ) => void;
+  }>;
   createInitialValues?: Record<string, unknown>;
   helpContent?:
     | {
@@ -46,6 +59,25 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     default: (props: CapturedTableProps) => {
       capturedFeedTableProps = props;
       return React.createElement("div", { "data-testid": "feeds-table" });
+    },
+  };
+});
+
+// The Update Credentials dialog, as the fields it is handed.
+let capturedCredentialsDialog: {
+  formProps: { fields: Array<Record<string, unknown>> };
+} | null = null;
+
+jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
+  return {
+    __esModule: true,
+    default: (props: {
+      formProps: { fields: Array<Record<string, unknown>> };
+    }) => {
+      capturedCredentialsDialog = props;
+      return React.createElement("div", {
+        "data-testid": "credentials-dialog",
+      });
     },
   };
 });
@@ -177,6 +209,260 @@ describe("Threat Intel page", () => {
     );
     expect(capturedFeedTableProps?.createInitialValues).toMatchObject({
       pollIntervalInMinutes: THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
+    });
+  });
+
+  describe("adding a feed: where it is, how to sign in to it, what a match does", () => {
+    type FormField = Record<string, unknown> & {
+      field?: Record<string, boolean>;
+      title: string;
+      stepId?: string;
+      showIf?: (values: Record<string, unknown>) => boolean;
+      required?: boolean | ((values: Record<string, unknown>) => boolean);
+      doNotShowWhenEditing?: boolean;
+      doNotShowWhenCreating?: boolean;
+      formOnly?: boolean;
+      overrideFieldKey?: string;
+      defaultValue?: unknown;
+      radioButtonOptions?: Array<{
+        value: string;
+        title: string;
+        description?: string;
+      }>;
+    };
+
+    function fields(): Array<FormField> {
+      return (capturedFeedTableProps?.formFields ||
+        []) as unknown as Array<FormField>;
+    }
+
+    function byColumn(column: string): FormField {
+      const found: FormField | undefined = fields().find(
+        (field: FormField): boolean => {
+          return Object.keys(field.field || {})[0] === column;
+        },
+      );
+
+      expect(found).toBeDefined();
+
+      return found!;
+    }
+
+    function byKey(key: string): FormField {
+      const found: FormField | undefined = fields().find(
+        (field: FormField): boolean => {
+          return field.overrideFieldKey === key;
+        },
+      );
+
+      expect(found).toBeDefined();
+
+      return found!;
+    }
+
+    function isRequired(
+      field: FormField,
+      values: Record<string, unknown>,
+    ): boolean {
+      return typeof field.required === "function"
+        ? field.required(values)
+        : Boolean(field.required);
+    }
+
+    const ANONYMOUS: Record<string, unknown> = { taxiiSignIn: "anonymous" };
+    const TOKEN: Record<string, unknown> = { taxiiSignIn: "api-token" };
+    const BASIC: Record<string, unknown> = { taxiiSignIn: "basic-auth" };
+
+    test("three steps: the TAXII server, Sign-in, On Match", () => {
+      renderPage();
+
+      expect(
+        (capturedFeedTableProps?.formSteps || []).map(
+          (step: { id: string; title: string }) => {
+            return [step.id, step.title];
+          },
+        ),
+      ).toEqual([
+        ["taxii-server", "TAXII Server"],
+        ["sign-in", "Sign-in"],
+        ["on-match", "On Match"],
+      ]);
+    });
+
+    test("Sign-in is one choice of three, a new feed's only, starting on No sign-in", () => {
+      renderPage();
+
+      const choice: FormField = byKey("taxiiSignIn");
+
+      expect(choice.formOnly).toBe(true);
+      expect(choice.doNotShowWhenEditing).toBe(true);
+      expect(choice.stepId).toBe("sign-in");
+      expect(choice.defaultValue).toBe("anonymous");
+      expect(
+        (choice.radioButtonOptions || []).map(
+          (option: { value: string; title: string }) => {
+            return [option.value, option.title];
+          },
+        ),
+      ).toEqual([
+        ["anonymous", "No sign-in"],
+        ["api-token", "Bearer token"],
+        ["basic-auth", "Username and password"],
+      ]);
+    });
+
+    test("each answer asks only for its own secrets, and requires them", () => {
+      renderPage();
+
+      const token: FormField = byColumn("apiToken");
+      const username: FormField = byColumn("basicAuthUsername");
+      const password: FormField = byColumn("basicAuthPassword");
+
+      for (const [values, shown] of [
+        [ANONYMOUS, []],
+        [TOKEN, ["apiToken"]],
+        [BASIC, ["basicAuthUsername", "basicAuthPassword"]],
+      ] as Array<[Record<string, unknown>, Array<string>]>) {
+        expect({
+          values,
+          shown: [token, username, password]
+            .filter((field: FormField) => {
+              return field.showIf!(values);
+            })
+            .map((field: FormField) => {
+              return Object.keys(field.field || {})[0];
+            }),
+          required: [token, username, password]
+            .filter((field: FormField) => {
+              return isRequired(field, values);
+            })
+            .map((field: FormField) => {
+              return Object.keys(field.field || {})[0];
+            }),
+        }).toEqual({ values, shown, required: shown });
+      }
+    });
+
+    test("an existing feed's Edit form shows the username it signs in with, and never a secret", () => {
+      renderPage();
+
+      const signInStep: {
+        showIf?: ((values: Record<string, unknown>) => boolean) | undefined;
+      } = (capturedFeedTableProps?.formSteps || []).find(
+        (step: { id: string }) => {
+          return step.id === "sign-in";
+        },
+      )!;
+
+      // Editing: no choice is asked.
+      expect(
+        byColumn("basicAuthUsername").showIf!({ basicAuthUsername: "svc" }),
+      ).toBe(true);
+      expect(byColumn("basicAuthUsername").showIf!({})).toBe(false);
+      expect(signInStep.showIf!({ basicAuthUsername: "svc" })).toBe(true);
+      expect(signInStep.showIf!({})).toBe(false);
+      // Creating: the step is always walked.
+      expect(signInStep.showIf!(ANONYMOUS)).toBe(true);
+
+      expect(byColumn("apiToken").doNotShowWhenEditing).toBe(true);
+      expect(byColumn("basicAuthPassword").doNotShowWhenEditing).toBe(true);
+    });
+
+    test("a new feed is polled: Enabled is the Edit form's", () => {
+      renderPage();
+
+      expect(byColumn("isEnabled").doNotShowWhenCreating).toBe(true);
+      expect(capturedFeedTableProps?.createInitialValues).toMatchObject({
+        isEnabled: true,
+      });
+    });
+
+    test("what a match raises is the detection rules' choice, on the On Match step", () => {
+      renderPage();
+
+      const choice: FormField = byKey("securityMatchRaises");
+
+      expect(choice.stepId).toBe("on-match");
+      expect(
+        (choice.radioButtonOptions || []).map((option: { value: string }) => {
+          return option.value;
+        }),
+      ).toEqual(["alert", "incident", "both", "neither"]);
+    });
+
+    test("the description, the poll interval and the confidence floor wait under More fields", () => {
+      renderPage();
+
+      for (const column of [
+        "description",
+        "pollIntervalInMinutes",
+        "minimumConfidence",
+      ]) {
+        const field: FormField = byColumn(column);
+
+        expect({
+          column,
+          step: field.stepId,
+          folded: Boolean(field["collapsibleSection"]),
+        }).toEqual({ column, step: "taxii-server", folded: true });
+      }
+    });
+
+    test("Update Credentials offers the same answers, No sign-in clearing what is stored", () => {
+      capturedCredentialsDialog = null;
+      renderPage();
+
+      const update:
+        | {
+            onClick: (
+              item: Record<string, unknown>,
+              onCompleteAction: () => void,
+              onError: (error: Error) => void,
+            ) => void;
+          }
+        | undefined = capturedFeedTableProps?.actionButtons?.find(
+        (button: { title: string }) => {
+          return button.title === "Update Credentials";
+        },
+      );
+
+      expect(update).toBeDefined();
+
+      act(() => {
+        update!.onClick(
+          { _id: "22222222-2222-4222-8222-222222222222" },
+          () => {
+            // completed
+          },
+          () => {
+            // no error
+          },
+        );
+      });
+
+      const mode: FormField = capturedCredentialsDialog!.formProps
+        .fields[0] as unknown as FormField;
+
+      expect(mode.title).toBe("Sign-in");
+      expect(
+        (mode.radioButtonOptions || []).map(
+          (option: { value: string; title: string; description?: string }) => {
+            return [option.value, option.title, option.description];
+          },
+        ),
+      ).toEqual([
+        [
+          "anonymous",
+          "No sign-in",
+          "Clears the stored token, username and password.",
+        ],
+        [
+          "api-token",
+          "Bearer token",
+          "A token from the TAXII server's operator.",
+        ],
+        ["basic-auth", "Username and password", "HTTP basic authentication."],
+      ]);
     });
   });
 

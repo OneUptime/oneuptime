@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "TAXII सर्वर",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "उदा. प्रोडक्शन OpenAI",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "वे मॉडल जिनका इस प्रोजेक्ट की AI सुविधाएँ उपयोग करती हैं। आपका अपना प्रदाता कोई AI क्रेडिट ख़र्च नहीं करता।",
   "Never put keys here.": "यहाँ कभी कुंजियाँ न डालें।",
-  "Your deployment's name, exactly as Foundry shows it.": "आपके डिप्लॉयमेंट का नाम, ठीक वैसा जैसा Foundry दिखाता है।"
+  "Your deployment's name, exactly as Foundry shows it.": "आपके डिप्लॉयमेंट का नाम, ठीक वैसा जैसा Foundry दिखाता है।",
+  "Alerts and Incidents": "अलर्ट और घटनाएं",
+  "An alert and an incident.": "एक अलर्ट और एक घटना।",
+  "Clears the stored token, username and password.": "सहेजे गए टोकन, उपयोगकर्ता नाम और पासवर्ड को मिटा देता है।",
+  "For collections anyone may read.": "उन संग्रहों के लिए जिन्हें कोई भी पढ़ सकता है।",
+  "For teams that work security matches alongside their other alerts.": "उन टीमों के लिए जो सुरक्षा मिलानों को अपने बाकी अलर्ट के साथ संभालती हैं।",
+  "HTTP basic authentication.": "HTTP बेसिक ऑथेंटिकेशन।",
+  "Named after the Sigma rule's title until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, यह Sigma नियम के शीर्षक पर रहता है।",
+  "Neither": "कोई नहीं",
+  "No alert or incident: the case and the detection finding record the match.": "कोई अलर्ट या घटना नहीं: केस और डिटेक्शन फ़ाइंडिंग मिलान को दर्ज करते हैं।",
+  "No sign-in": "साइन-इन नहीं",
+  "With on-call escalation, SLAs and status pages.": "ऑन-कॉल एस्केलेशन, SLA और स्टेटस पेज के साथ।",
+  "A token from the TAXII server's operator.": "TAXII सर्वर के ऑपरेटर से मिला टोकन।",
+  "Bearer token": "Bearer टोकन"
 }

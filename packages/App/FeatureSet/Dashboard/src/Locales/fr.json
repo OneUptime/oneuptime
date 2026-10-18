@@ -17059,7 +17059,7 @@
   "System name": "System name",
   "Systemd Units": "Systemd Units",
   "TAXII API Root URL": "TAXII API Root URL",
-  "TAXII Server": "TAXII Server",
+  "TAXII Server": "Serveur TAXII",
   "TCP Connect": "TCP Connect",
   "TLS Handshake": "TLS Handshake",
   "TLS or certificate failure": "TLS or certificate failure",
@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "ex. OpenAI de production",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "Les modèles qu'utilisent les fonctions d'IA de ce projet. Un fournisseur à vous ne consomme aucun crédit IA.",
   "Never put keys here.": "N'y mettez jamais de clés.",
-  "Your deployment's name, exactly as Foundry shows it.": "Le nom de votre déploiement, exactement comme Foundry l'affiche."
+  "Your deployment's name, exactly as Foundry shows it.": "Le nom de votre déploiement, exactement comme Foundry l'affiche.",
+  "Alerts and Incidents": "Alertes et incidents",
+  "An alert and an incident.": "Une alerte et un incident.",
+  "Clears the stored token, username and password.": "Efface le jeton, le nom d'utilisateur et le mot de passe enregistrés.",
+  "For collections anyone may read.": "Pour les collections que tout le monde peut lire.",
+  "For teams that work security matches alongside their other alerts.": "Pour les équipes qui traitent les correspondances de sécurité avec leurs autres alertes.",
+  "HTTP basic authentication.": "Authentification HTTP basique.",
+  "Named after the Sigma rule's title until you type a name of your own.": "Porte le titre de la règle Sigma jusqu'à ce que vous saisissiez votre propre nom.",
+  "Neither": "Aucun des deux",
+  "No alert or incident: the case and the detection finding record the match.": "Ni alerte ni incident : le cas et le résultat de détection enregistrent la correspondance.",
+  "No sign-in": "Sans connexion",
+  "With on-call escalation, SLAs and status pages.": "Avec escalade d'astreinte, SLA et pages de statut.",
+  "A token from the TAXII server's operator.": "Un jeton fourni par l'opérateur du serveur TAXII.",
+  "Bearer token": "Jeton bearer"
 }

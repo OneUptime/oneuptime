@@ -224,12 +224,30 @@ describe("Detection Rules page", () => {
       expect(field.validation?.minValue).toBe(1);
     });
 
-    test("both new fields sit on the evaluation step alongside Group By Field", () => {
+    /*
+     * How matches are counted is folded under More fields on the On Match
+     * step now: a new rule starts at the defaults the guide documents.
+     */
+    test("both new fields sit under More fields on the On Match step, beside Group By Field", () => {
       renderPage();
 
-      expect(fieldTitled("Group By Field").stepId).toBe("evaluation");
-      expect(fieldTitled("Distinct Count Field").stepId).toBe("evaluation");
-      expect(fieldTitled("Match Count Threshold").stepId).toBe("evaluation");
+      for (const title of [
+        "Evaluation Interval (Minutes)",
+        "Group By Field",
+        "Distinct Count Field",
+        "Match Count Threshold",
+      ]) {
+        const field: CapturedFormField = fieldTitled(title);
+
+        expect({ title, stepId: field.stepId }).toEqual({
+          title,
+          stepId: "on-match",
+        });
+        expect(
+          (field as unknown as { collapsibleSection?: { id: string } })
+            .collapsibleSection?.id,
+        ).toBe("advanced");
+      }
     });
 
     test("a fresh create form seeds matchCountThreshold with the DB default of 1", () => {
@@ -323,6 +341,196 @@ describe("Detection Rules page", () => {
       expect(
         screen.getByText(/did not include telemetry features/),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("the form asks for the rule, then what a match does", () => {
+    type CapturedStep = { id: string; title: string };
+
+    function steps(): Array<CapturedStep> {
+      return (
+        (capturedTableProps as unknown as { formSteps?: Array<CapturedStep> })
+          ?.formSteps || []
+      );
+    }
+
+    function fieldByColumn(column: string): CapturedFormField {
+      const field: CapturedFormField | undefined = (
+        capturedTableProps?.formFields || []
+      ).find((formField: CapturedFormField): boolean => {
+        return Object.keys(formField.field || {})[0] === column;
+      });
+
+      expect(field).toBeDefined();
+
+      return field!;
+    }
+
+    type ChoiceField = CapturedFormField & {
+      overrideFieldKey?: string | undefined;
+      formOnly?: boolean | undefined;
+      radioButtonOptions?: Array<{ value: string; title: string }>;
+      getDefaultValue?: (values: Record<string, unknown>) => string;
+      onChange?: (
+        value: unknown,
+        values: Record<string, unknown>,
+        set: (values: Record<string, unknown>) => void,
+      ) => void;
+    };
+
+    function raisesChoice(): ChoiceField {
+      const field: CapturedFormField | undefined = (
+        capturedTableProps?.formFields || []
+      ).find((formField: CapturedFormField): boolean => {
+        return (
+          (formField as ChoiceField).overrideFieldKey === "securityMatchRaises"
+        );
+      });
+
+      expect(field).toBeDefined();
+
+      return field as ChoiceField;
+    }
+
+    test("two steps: the Sigma rule, then On Match", () => {
+      renderPage();
+
+      expect(
+        steps().map((step: CapturedStep) => {
+          return [step.id, step.title];
+        }),
+      ).toEqual([
+        ["sigma-rule", "Sigma Rule"],
+        ["on-match", "On Match"],
+      ]);
+    });
+
+    test("the rule is named after its Sigma rule's title until a name of one's own is typed", () => {
+      renderPage();
+
+      const yaml: ChoiceField = fieldTitled("Sigma Rule (YAML)") as ChoiceField;
+      const named: Array<Record<string, unknown>> = [];
+      const set: (values: Record<string, unknown>) => void = (
+        values: Record<string, unknown>,
+      ): void => {
+        named.push(values);
+      };
+
+      yaml.onChange!(
+        "title: Failed logon burst\nlogsource:\n  category: authentication",
+        { name: "", sigmaRuleYaml: "" },
+        set,
+      );
+      // The name the last title gave follows the next one.
+      yaml.onChange!(
+        "title: 'Password spraying'\ndetection: {}",
+        {
+          name: "Failed logon burst",
+          sigmaRuleYaml: "title: Failed logon burst",
+        },
+        set,
+      );
+      // A name of one's own stays.
+      yaml.onChange!(
+        "title: Something else",
+        { name: "My rule", sigmaRuleYaml: "title: Password spraying" },
+        set,
+      );
+
+      expect(
+        named.map((values: Record<string, unknown>) => {
+          return values["name"];
+        }),
+      ).toEqual(["Failed logon burst", "Password spraying"]);
+    });
+
+    test("a new rule runs: Enabled is the Edit form's", () => {
+      renderPage();
+
+      const enabled: CapturedFormField = fieldByColumn("isEnabled");
+
+      expect(
+        (enabled as unknown as { doNotShowWhenCreating?: boolean })
+          .doNotShowWhenCreating,
+      ).toBe(true);
+      expect(capturedTableProps?.createInitialValues).toMatchObject({
+        isEnabled: true,
+      });
+    });
+
+    test("what a match raises is one choice, the default first, written to both columns", () => {
+      renderPage();
+
+      const choice: ChoiceField = raisesChoice();
+
+      expect(choice.formOnly).toBe(true);
+      expect(choice.stepId).toBe("on-match");
+      expect(
+        (choice.radioButtonOptions || []).map(
+          (option: { value: string; title: string }) => {
+            return option.title;
+          },
+        ),
+      ).toEqual(["Create an alert", "Declare an incident", "Both", "Neither"]);
+
+      // A new rule starts where its columns' defaults start: an alert.
+      expect(
+        choice.getDefaultValue!(capturedTableProps?.createInitialValues || {}),
+      ).toBe("alert");
+      // A Rule Library rule (no alert, no incident) reads as Neither.
+      expect(
+        choice.getDefaultValue!({
+          shouldCreateAlert: false,
+          shouldCreateIncident: false,
+        }),
+      ).toBe("neither");
+
+      const written: Array<Record<string, unknown>> = [];
+
+      for (const answer of ["incident", "both", "neither", "alert"]) {
+        choice.onChange!(
+          answer,
+          { name: "Rule" },
+          (values: Record<string, unknown>) => {
+            written.push(values);
+          },
+        );
+      }
+
+      expect(written).toEqual([
+        { name: "Rule", shouldCreateAlert: false, shouldCreateIncident: true },
+        { name: "Rule", shouldCreateAlert: true, shouldCreateIncident: true },
+        { name: "Rule", shouldCreateAlert: false, shouldCreateIncident: false },
+        { name: "Rule", shouldCreateAlert: true, shouldCreateIncident: false },
+      ]);
+    });
+
+    test("the two columns behind the choice are loaded and saved, never shown", () => {
+      renderPage();
+
+      for (const column of ["shouldCreateAlert", "shouldCreateIncident"]) {
+        const field: CapturedFormField = fieldByColumn(column);
+
+        expect(field.showIf).toBeDefined();
+        expect(field.showIf!({})).toBe(false);
+        expect(field.stepId).toBe("on-match");
+      }
+    });
+
+    test("the case is asked on the same step, and the finding waits under More fields", () => {
+      renderPage();
+
+      expect(fieldByColumn("shouldCreateCase").stepId).toBe("on-match");
+
+      const finding: CapturedFormField = fieldByColumn(
+        "shouldWriteDetectionFinding",
+      );
+
+      expect(finding.stepId).toBe("on-match");
+      expect(
+        (finding as unknown as { collapsibleSection?: { id: string } })
+          .collapsibleSection?.id,
+      ).toBe("advanced");
     });
   });
 

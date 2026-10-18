@@ -30863,5 +30863,18 @@
   "e.g. Production OpenAI": "例: 本番用 OpenAI",
   "The models this project's AI features use. A provider of your own uses no AI credits.": "このプロジェクトの AI 機能が使うモデル。独自のプロバイダーは AI クレジットを消費しません。",
   "Never put keys here.": "ここにキーは入れないでください。",
-  "Your deployment's name, exactly as Foundry shows it.": "デプロイの名前。Foundry の表示どおりに入力します。"
+  "Your deployment's name, exactly as Foundry shows it.": "デプロイの名前。Foundry の表示どおりに入力します。",
+  "Alerts and Incidents": "アラートとインシデント",
+  "An alert and an incident.": "アラートとインシデントの両方。",
+  "Clears the stored token, username and password.": "保存されているトークン、ユーザー名、パスワードを消去します。",
+  "For collections anyone may read.": "誰でも読めるコレクション向け。",
+  "For teams that work security matches alongside their other alerts.": "セキュリティの一致を他のアラートと一緒に扱うチーム向け。",
+  "HTTP basic authentication.": "HTTP ベーシック認証。",
+  "Named after the Sigma rule's title until you type a name of your own.": "独自の名前を入力するまでは、Sigma ルールのタイトルが使われます。",
+  "Neither": "どちらもなし",
+  "No alert or incident: the case and the detection finding record the match.": "アラートもインシデントも作成しません。ケースと検出結果が一致を記録します。",
+  "No sign-in": "サインインなし",
+  "With on-call escalation, SLAs and status pages.": "オンコールのエスカレーション、SLA、ステータスページが動きます。",
+  "A token from the TAXII server's operator.": "TAXII サーバーの運用者から受け取ったトークン。",
+  "Bearer token": "Bearer トークン"
 }
