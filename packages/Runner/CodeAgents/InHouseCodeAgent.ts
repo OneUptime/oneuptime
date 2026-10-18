@@ -11,6 +11,9 @@ import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI, { LlmCompletionResult } from "../Utils/BackendAPI";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "../Utils/GitPorcelain";
 import SecretRedactor from "../Utils/SecretRedactor";
+import WorkspaceFileAccess, {
+  WorkspaceTarget,
+} from "../Utils/WorkspaceFileAccess";
 import CodeAgentWorkspaceGuard, {
   CommandGuardDecision,
   MAX_WRITE_FILE_CHARS,
@@ -345,7 +348,8 @@ export default class InHouseCodeAgent implements CodeAgent {
       "You are working inside a cloned git repository. Use the provided tools to",
       "explore and modify it:",
       "- read_file / write_file / list_directory / search_files operate on paths",
-      "  relative to the repository root and cannot leave it.",
+      "  relative to the repository root and cannot leave it (links included);",
+      "  write_file cannot change the .git directory.",
       ...(RUNS_PROJECT_AUTHORED_COMMANDS
         ? [
             "- run_command runs a shell command in the repository root (120 second",
@@ -543,17 +547,17 @@ export default class InHouseCodeAgent implements CodeAgent {
     args: JSONObject,
   ): Promise<ToolExecution> {
     const requestedPath: string = (args["path"] as string) || "";
-    const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
+    /*
+     * Resolved where the path really leads, links included: a link the
+     * repository carries never reads anything outside the workspace.
+     */
+    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForRead(
       workspaceRoot,
       requestedPath,
     );
-    const relativePath: string =
-      CodeAgentWorkspaceGuard.toWorkspaceRelativePath(
-        workspaceRoot,
-        absolutePath,
-      );
+    const relativePath: string = target.relativePath;
 
-    const content: string = await LocalFile.read(absolutePath);
+    const content: string = await LocalFile.read(target.absolutePath);
 
     return {
       narration: `read ${relativePath}`,
@@ -587,15 +591,16 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     const content: string = args["content"];
-    const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
+    /*
+     * Writes land in the working tree only: never outside the workspace
+     * (links included) and never in the repository's git metadata, which
+     * the pipeline's own git commands read once the agent is done.
+     */
+    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForWrite(
       workspaceRoot,
       requestedPath,
     );
-    const relativePath: string =
-      CodeAgentWorkspaceGuard.toWorkspaceRelativePath(
-        workspaceRoot,
-        absolutePath,
-      );
+    const relativePath: string = target.relativePath;
 
     /*
      * A model that loops on a generation bug can otherwise fill the
@@ -613,8 +618,7 @@ export default class InHouseCodeAgent implements CodeAgent {
       };
     }
 
-    await LocalFile.makeDirectory(path.dirname(absolutePath));
-    await LocalFile.write(absolutePath, content);
+    await WorkspaceFileAccess.writeFile(target, content);
 
     /*
      * Remember what the model authored. This survives a later run_command
@@ -635,18 +639,14 @@ export default class InHouseCodeAgent implements CodeAgent {
     args: JSONObject,
   ): Promise<ToolExecution> {
     const requestedPath: string = (args["path"] as string) || ".";
-    const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
+    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForRead(
       workspaceRoot,
       requestedPath,
     );
-    const relativePath: string =
-      CodeAgentWorkspaceGuard.toWorkspaceRelativePath(
-        workspaceRoot,
-        absolutePath,
-      );
+    const relativePath: string = target.relativePath;
 
     const entries: Array<{ name: string; isDirectory(): boolean }> =
-      await LocalFile.readDirectory(absolutePath);
+      await LocalFile.readDirectory(target.absolutePath);
 
     if (entries.length === 0) {
       return {

@@ -171,6 +171,20 @@ export default class BuildVerification {
     repositoryPath: string;
     onOutput?: ((chunk: string) => void) | undefined;
   }): Promise<CommandRunResult> {
+    /*
+     * The spawn point holds the shared-Runner rule too, not only
+     * verifyWithRepairs: a repository's command never runs on the shared
+     * in-cluster Runner, whoever asks (see RUNS_PROJECT_AUTHORED_COMMANDS).
+     * Reported as not passed, so nothing can read it as a green build.
+     */
+    if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
+      return {
+        passed: false,
+        failedCommand: data.command,
+        outputTail: `The ${data.command.label} command was not run: a shared Runner does not run a repository's commands.`,
+      };
+    }
+
     return new Promise<CommandRunResult>(
       (resolve: (result: CommandRunResult) => void) => {
         let outputTail: string = "";

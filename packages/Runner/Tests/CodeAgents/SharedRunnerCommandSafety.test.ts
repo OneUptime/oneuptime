@@ -298,6 +298,38 @@ describe("the shared (cluster-scoped) Runner does not run shell commands", () =>
     // The configured command never ran: its sentinel file does not exist.
     expect(fs.existsSync(path.join(workspace, "SETUP_RAN.txt"))).toBe(false);
   });
+
+  test("the command runner itself refuses, whoever calls it (the spawn point, not only verification)", async () => {
+    const mods: LoadedModules = loadForScope(CLUSTER_KEY);
+    const workspace: string = makeWorkspace();
+
+    const single: Awaited<
+      ReturnType<typeof BuildVerificationType.runCommand>
+    > = await mods.BuildVerification.runCommand({
+      command: { label: "build", command: "echo ran > BUILD_RAN.txt" },
+      repositoryPath: workspace,
+    });
+
+    const several: Awaited<
+      ReturnType<typeof BuildVerificationType.runCommands>
+    > = await mods.BuildVerification.runCommands({
+      commands: [
+        { label: "setup", command: "echo ran > SETUP_RAN.txt" },
+        { label: "test", command: "echo ran > TEST_RAN.txt" },
+      ],
+      repositoryPath: workspace,
+    });
+
+    // Never reported as passed, so it cannot read as a green build.
+    expect(single.passed).toBe(false);
+    expect(single.outputTail).toContain("not run");
+    expect(several.passed).toBe(false);
+    expect(several.failedCommand?.label).toBe("setup");
+
+    for (const sentinel of ["BUILD_RAN.txt", "SETUP_RAN.txt", "TEST_RAN.txt"]) {
+      expect(fs.existsSync(path.join(workspace, sentinel))).toBe(false);
+    }
+  });
 });
 
 describe("a project-scoped Runner keeps running commands (no regression)", () => {
@@ -358,5 +390,20 @@ describe("a project-scoped Runner keeps running commands (no regression)", () =>
     expect(outcome.status).toBe("Passed");
     // The configured command ran: its sentinel file exists.
     expect(fs.existsSync(path.join(workspace, "SETUP_RAN.txt"))).toBe(true);
+  });
+
+  test("the command runner runs a repository's command", async () => {
+    const mods: LoadedModules = loadForScope(null);
+    const workspace: string = makeWorkspace();
+
+    const result: Awaited<
+      ReturnType<typeof BuildVerificationType.runCommand>
+    > = await mods.BuildVerification.runCommand({
+      command: { label: "build", command: "echo ran > BUILD_RAN.txt" },
+      repositoryPath: workspace,
+    });
+
+    expect(result.passed).toBe(true);
+    expect(fs.existsSync(path.join(workspace, "BUILD_RAN.txt"))).toBe(true);
   });
 });
