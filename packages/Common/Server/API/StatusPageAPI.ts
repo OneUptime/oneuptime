@@ -2,6 +2,11 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import PublicDashboardRateLimit, {
   PublicDashboardRateLimitBucket,
 } from "../Middleware/PublicDashboardRateLimit";
+import PublicMessageRateLimit, {
+  PublicMessageChannel,
+  PublicMessageContact,
+  PublicMessageKind,
+} from "../Utils/RateLimit/PublicMessageRateLimit";
 import AcmeChallengeService from "../Services/AcmeChallengeService";
 import IncidentEpisodeService from "../Services/IncidentEpisodeService";
 import IncidentEpisodeMemberService from "../Services/IncidentEpisodeMemberService";
@@ -2107,6 +2112,8 @@ export default class StatusPageAPI extends BaseAPI<
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
+          // A sign-up refused for its rate limits says when to come back.
+          PublicMessageRateLimit.setRetryAfterFor(res, err);
           next(err);
         }
       },
@@ -2123,6 +2130,8 @@ export default class StatusPageAPI extends BaseAPI<
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
+          // A link refused for its rate limits says when to come back.
+          PublicMessageRateLimit.setRetryAfterFor(res, err);
           next(err);
         }
       },
@@ -3224,6 +3233,38 @@ export default class StatusPageAPI extends BaseAPI<
       : undefined;
 
     /*
+     * Every request for a link is counted, against the caller and against
+     * the contact it names (PublicMessageRateLimit), before anything is
+     * looked up: whether or not a subscription matches, so a refusal says
+     * nothing about who is subscribed.
+     */
+    let contact: PublicMessageContact;
+
+    if (email) {
+      contact = PublicMessageRateLimit.forEmail(email);
+    } else if (phone) {
+      contact = PublicMessageRateLimit.forPhone(phone);
+    } else if (slackWorkspaceName) {
+      contact = PublicMessageRateLimit.forWorkspace(
+        PublicMessageChannel.Slack,
+        statusPageId,
+        slackWorkspaceName,
+      );
+    } else {
+      contact = PublicMessageRateLimit.forWorkspace(
+        PublicMessageChannel.MicrosoftTeams,
+        statusPageId,
+        microsoftTeamsWorkspaceName!,
+      );
+    }
+
+    await PublicMessageRateLimit.assertMaySend({
+      req: req,
+      kind: PublicMessageKind.StatusPageManageLink,
+      contacts: [contact],
+    });
+
+    /*
      * Each lookup selects only the contact for its own channel, so a link can
      * only be delivered where that subscriber signed up.
      */
@@ -4045,6 +4086,18 @@ export default class StatusPageAPI extends BaseAPI<
         getLogAttributesFromRequest(req as any),
       );
       /*
+       * A sign-up sends each contact it names a message as it is created - a
+       * confirmation email, a text, a chat post or a webhook call - so it is
+       * counted first, against the caller and against each contact
+       * (PublicMessageRateLimit), and refused when either has had enough.
+       */
+      await PublicMessageRateLimit.assertMaySend({
+        req: req,
+        kind: PublicMessageKind.StatusPageSignUp,
+        contacts: this.getSignUpContacts(statusPageSubscriber),
+      });
+
+      /*
        * A sign-up, not a subscriber the team added (Is Added By Team stays
        * off); the resources it names are ones this page shows a visitor.
        */
@@ -4057,6 +4110,54 @@ export default class StatusPageAPI extends BaseAPI<
       `Subscription process completed for status page with ID: ${objectId}`,
       getLogAttributesFromRequest(req as any),
     );
+  }
+
+  /*
+   * The contacts a new sign-up sends a message to as it is created: its
+   * email address, phone number, Slack and Microsoft Teams channels and
+   * webhook, whichever it names. A workspace name alone is sent nothing.
+   */
+  private getSignUpContacts(
+    subscriber: StatusPageSubscriber,
+  ): Array<PublicMessageContact> {
+    const contacts: Array<PublicMessageContact> = [];
+
+    if (subscriber.subscriberEmail) {
+      contacts.push(PublicMessageRateLimit.forEmail(subscriber.subscriberEmail));
+    }
+
+    if (subscriber.subscriberPhone) {
+      contacts.push(PublicMessageRateLimit.forPhone(subscriber.subscriberPhone));
+    }
+
+    if (subscriber.slackIncomingWebhookUrl) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.Slack,
+          subscriber.slackIncomingWebhookUrl,
+        ),
+      );
+    }
+
+    if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.MicrosoftTeams,
+          subscriber.microsoftTeamsIncomingWebhookUrl,
+        ),
+      );
+    }
+
+    if (subscriber.subscriberWebhook) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.Webhook,
+          subscriber.subscriberWebhook,
+        ),
+      );
+    }
+
+    return contacts;
   }
 
   @CaptureSpan()

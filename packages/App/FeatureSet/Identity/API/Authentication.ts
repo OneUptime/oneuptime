@@ -99,6 +99,9 @@ import IdentityRateLimit, {
   IdentityRateLimitBucket,
   VERIFICATION_EMAIL_RESEND_UNAVAILABLE_MESSAGE,
 } from "Common/Server/Middleware/IdentityRateLimit";
+import PublicMessageRateLimit, {
+  PublicMessageKind,
+} from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import { URL as NodeURL } from "url";
 
@@ -706,8 +709,16 @@ router.post(
            * carried tokens, and a token that has since expired -- without
            * covering the dishonest one, because the mail goes to the address,
            * never to the requester. The captcha verified at the top of this
-           * handler is what stops this branch from being a mail cannon.
+           * handler, where it is on, and the limits on the emails a sign-up
+           * sends (PublicMessageRateLimit: per caller and per address) are
+           * what stop this branch from being a mail cannon.
            */
+          await PublicMessageRateLimit.assertMaySend({
+            req: req,
+            kind: PublicMessageKind.SignUpEmail,
+            contacts: [PublicMessageRateLimit.forEmail(partialUser.email!)],
+          });
+
           await AuthenticationEmail.sendCompleteRegistrationEmail({
             userId: alreadySavedUser.id!,
             email: partialUser.email as Email,
@@ -768,6 +779,17 @@ router.post(
           },
         });
       } else {
+        /*
+         * A new account is sent its welcome email below. Counted first, per
+         * caller and per address (PublicMessageRateLimit), so nothing is
+         * created for a sign-up that is refused.
+         */
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.SignUpEmail,
+          contacts: [PublicMessageRateLimit.forEmail(partialUser.email!)],
+        });
+
         const user: User = partialUser;
 
         savedUser = await UserService.createUserOnSignup({
@@ -971,6 +993,8 @@ router.post(
         new BadRequestException("Failed to create a user"),
       );
     } catch (err) {
+      // A sign-up refused for its rate limits says when to come back.
+      PublicMessageRateLimit.setRetryAfterFor(res, err);
       return next(err);
     }
   },
@@ -1010,6 +1034,18 @@ router.post(
       });
 
       if (alreadySavedUser && alreadySavedUser.password) {
+        /*
+         * Each request emails the address a reset link, so it is counted
+         * first, per caller and per address (PublicMessageRateLimit), and
+         * refused when either has had enough - before the token is replaced,
+         * so the link in the latest email still works.
+         */
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.PasswordReset,
+          contacts: [PublicMessageRateLimit.forEmail(user.email!)],
+        });
+
         // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
         const token: string = crypto.randomUUID();
         const hashedToken: string = await HashedString.hashValue(
@@ -1074,6 +1110,8 @@ router.post(
         ),
       );
     } catch (err) {
+      // A reset refused for its rate limits says when to come back.
+      PublicMessageRateLimit.setRetryAfterFor(res, err);
       return next(err);
     }
   },
