@@ -9,6 +9,10 @@ import OwnedScopePermission from "Common/Server/Types/Database/Permissions/Owned
 import OwnerTableRegistry, {
   OwnerTablePair,
 } from "Common/Server/Types/Database/Permissions/OwnerTableRegistry";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -24,8 +28,10 @@ import path from "path";
  * schedules too. The upgrade guide says what changes, right after the note
  * on adding and removing owners. Every docs language says it, in its own
  * words. What the pages claim is held to the product here too: the kinds
- * they name are the kinds the owner registry holds, and the ones read in
- * full are exactly the ones the registry lets every reader read.
+ * they name are the kinds the owner registry holds, the ones read in full
+ * are exactly the ones the registry lets every reader read, a Runner's key
+ * shows only where owned, the monitors in a group go with the group, and
+ * an incident or an alert goes into an episode only as its own owners'.
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -67,59 +73,88 @@ const OWNED_PARAGRAPH_SAYS: Record<string, Array<string>> = {
   en: [
     "It narrows every resource that can have owners — monitors, incidents, dashboards, services, monitor groups, on-call schedules and the like — and what belongs to them, such as a schedule's layers.",
     "Probes, Runners, AI agents, on-call schedules and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own.",
+    "A Runner's key, which lets whoever holds it act as the Runner, shows only on the Runners you or your teams own.",
   ],
   da: [
     "Det indsnævrer alle ressourcer, der kan have ejere",
     "så en tilladelse med omfanget Ejede læser stadig dem alle",
+    "En Runners nøgle",
   ],
   de: [
     "Eingegrenzt wird jede Ressource, die Eigentümer haben kann",
     "liest sie deshalb weiterhin alle",
+    "Den Schlüssel eines Runners",
   ],
   es: [
     "Acota todos los recursos que pueden tener propietarios",
     "sigue leyéndolos todos",
+    "La clave de un Runner",
   ],
   fa: [
     "هر منبعی را که می‌تواند مالک داشته باشد تنگ می‌کند",
     "همچنان همهٔ آن‌ها را می‌خواند",
+    "کلید یک Runner",
   ],
   fr: [
     "Cela restreint toutes les ressources pouvant avoir des propriétaires",
     "les lit donc toujours tous",
+    "La clé d'un Runner",
   ],
   hi: [
     "यह हर उस संसाधन को संकुचित करता है जिसके स्वामी हो सकते हैं",
     "अब भी उन सभी को पढ़ती है",
+    "किसी Runner की कुंजी",
   ],
   it: [
     "Restringe ogni risorsa che può avere proprietari",
     "continua a leggerli tutti",
+    "La chiave di un Runner",
   ],
-  ja: ["オーナーを持てるすべてのリソース", "引き続きすべて読み取れ"],
-  ko: ["소유자를 가질 수 있는 모든 리소스", "여전히 모두 읽으며"],
+  ja: [
+    "オーナーを持てるすべてのリソース",
+    "引き続きすべて読み取れ",
+    "Runner のキー",
+  ],
+  ko: [
+    "소유자를 가질 수 있는 모든 리소스",
+    "여전히 모두 읽으며",
+    "Runner의 키",
+  ],
   nl: [
     "Het beperkt elke resource die eigenaren kan hebben",
     "leest ze nog steeds allemaal",
+    "De sleutel van een Runner",
   ],
   no: [
     "Det snevrer inn alle ressurser som kan ha eiere",
     "leser fortsatt alle sammen",
+    "En Runners nøkkel",
   ],
   pt: [
     "Isso restringe todo recurso que pode ter proprietários",
     "continua lendo todos eles",
+    "A chave de um Runner",
   ],
   ru: [
     "Сужается каждый ресурс, у которого могут быть владельцы",
     "по-прежнему читает их все",
+    "Ключ Runner",
   ],
   sv: [
     "Det smalnar av varje resurs som kan ha ägare",
     "läser fortfarande alla",
+    "En Runners nyckel",
   ],
-  "zh-CN": ["它会收窄每一种能有所有者的资源", "仍能读取它们全部"],
-  "zh-TW": ["它會收窄每一種能有擁有者的資源", "仍能讀取它們全部"],
+  "zh-CN": [
+    "它会收窄每一种能有所有者的资源",
+    "仍能读取它们全部",
+    "Runner 的密钥",
+  ],
+  "zh-TW": [
+    "它會收窄每一種能有擁有者的資源",
+    "仍能讀取它們全部",
+    "Runner 的金鑰",
+  ],
 };
 
 // The upgrade note's bold lead.
@@ -303,8 +338,9 @@ describe("Docs: the Owned scope narrows every resource with owners", () => {
 
     for (const sentence of [
       "Monitor groups, on-call schedules, alert and incident episodes, incoming call policies, incident and maintenance templates, probes, Runners and AI agents have owners too, and a permission scoped to `Owned` - such as `MonitorAdmin`, `OnCallMember` or `ProjectMember` - now changes and deletes only the ones its people or their teams own, and adds and removes owners only on those.",
-      "What belongs to one goes with it: a schedule's layers, the people in them and its shared calendar link, an incoming call policy's escalation rules, an episode's notes, state changes and role members.",
-      "Monitor groups, episodes and incoming call policies are also read only where owned; probes, Runners, AI agents, on-call schedules and templates are still read in full, so they can be picked.",
+      "What belongs to one goes with it: a schedule's layers, the people in them and its shared calendar link, an incoming call policy's escalation rules, an episode's notes, state changes and role members, and the monitors in a monitor group.",
+      "Incidents and alerts are added to an episode, one or many at a time, only where the person or their team owns them.",
+      "Monitor groups, episodes and incoming call policies are also read only where owned; probes, Runners, AI agents, on-call schedules and templates are still read in full, so they can be picked - all but a Runner's key, which shows only where owned.",
       "Someone who creates one of them with a permission scoped to `Owned` is made its owner; one that nobody owns is changed only by a permission over the whole project, so make your teams the owners of the ones they look after - an episode a grouping rule opens takes the rule's episode owners.",
       "See [Users, Teams & Permissions](/docs/permissions/index).",
     ]) {
@@ -462,6 +498,11 @@ describe("what the docs say holds in the product", () => {
 
     for (const [part, kind] of [
       ["IncomingCallPolicyEscalationRule", "IncomingCallPolicy"],
+      // The monitors in a monitor group go with the group.
+      ["MonitorGroupResource", "MonitorGroup"],
+      // An incident or an alert goes into an episode as its own owners'.
+      ["IncidentEpisodeMember", "Incident"],
+      ["AlertEpisodeMember", "Alert"],
       ["IncidentEpisodeRoleMember", "IncidentEpisode"],
       ["IncidentEpisodeInternalNote", "IncidentEpisode"],
       ["IncidentEpisodePublicNote", "IncidentEpisode"],
@@ -473,6 +514,48 @@ describe("what the docs say holds in the product", () => {
         part,
         OwnedScopePermission.getOwnedThrough(modelNamed(part))?.parentModels,
       ]).toEqual([part, [modelNamed(kind)]]);
+    }
+  });
+
+  test("a Runner's key shows only where owned: it is the one column of a kind read in full that follows the owners", () => {
+    const runner: ModelType = modelNamed("Runner");
+    const projectId: ObjectID = ObjectID.generate();
+
+    const ownedRunbookAdmin: DatabaseCommonInteractionProps = {
+      userId: ObjectID.generate(),
+      tenantId: projectId,
+      userTenantAccessPermission: {
+        [projectId.toString()]: {
+          _type: "UserTenantAccessPermission",
+          projectId: projectId,
+          permissions: [
+            {
+              _type: "UserPermission",
+              permission: Permission.RunbookAdmin,
+              labelIds: [],
+              isBlockPermission: false,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        },
+      },
+    };
+
+    expect(OwnedScopePermission.leavesReadsAlone(runner)).toBe(true);
+    expect(
+      OwnedScopePermission.getColumnsKeptToOwners(runner, ownedRunbookAdmin),
+    ).toEqual(["key"]);
+
+    for (const kind of READ_IN_FULL.filter((name: string): boolean => {
+      return name !== "Runner";
+    })) {
+      expect([
+        kind,
+        OwnedScopePermission.getColumnsKeptToOwners(
+          modelNamed(kind),
+          ownedRunbookAdmin,
+        ),
+      ]).toEqual([kind, []]);
     }
   });
 
