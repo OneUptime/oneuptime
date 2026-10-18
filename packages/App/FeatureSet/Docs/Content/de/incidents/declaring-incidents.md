@@ -116,7 +116,7 @@ Dieser Schritt erscheint nur, wenn bei mindestens einem benutzerdefinierten Vorf
 
 ### Schritt 3 — Bereitschaft & Rollen
 
-- **Bereitschaftsrichtlinie** – eine Mehrfachauswahl der Bereitschaftsrichtlinien, die beim Anlegen dieses Vorfalls ausgeführt werden. Das entspricht `onCallDutyPolicies` am Vorfall.
+- **Bereitschaftsrichtlinie** – eine Mehrfachauswahl der Bereitschaftsrichtlinien, über die alarmiert wird, sobald der Vorfall gemeldet ist. Das entspricht `onCallDutyPolicies` am Vorfall.
 - **Vorfallrollen zuweisen** – wer jede Rolle übernimmt, die Ihr Projekt definiert, eine Karte pro Rolle. Eine als **Primär** markierte Rolle, die Sie leer lassen, gehört Ihnen: Sie übernehmen sie beim Melden des Vorfalls, und die Zusammenfassung sagt es. Eine Rolle für eine Person sagt das, sobald sie eine hat; eine Rolle für mehrere behält ihre Auswahl.
 
 Dies ist die einzige Stelle, an der eine Bereitschaftsrichtlinie direkt an einen Vorfall gehängt wird. Schweregrade tragen keine Bereitschaftsrichtlinie – der Schweregrad ist eine Beschriftung und beeinflusst die Alarmierung nur als *Kriterium* in einer Bereitschaftsregel. Regeln unter **Vorfälle → Regeln → Bereitschaftsregeln** fügen ihre Richtlinien zu dem hinzu, was Sie hier wählen; ausgeführt wird die Vereinigung beider, ohne Duplikate. Ein in einem späteren Status gemeldeter Vorfall führt keine davon aus – siehe [Bereits bestätigt oder behoben gemeldet](#bereits-bestätigt-oder-behoben-gemeldet).

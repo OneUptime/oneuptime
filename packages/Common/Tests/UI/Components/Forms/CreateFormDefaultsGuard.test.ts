@@ -1029,7 +1029,11 @@ describe("the project's create forms", () => {
       }),
     ).toBe(true);
 
-    // The reminder rules lost their one-switch Status step.
+    /*
+     * The reminder rules lost their one-switch Status step, then their Rule
+     * Info step: they start with what they match, then how often they remind
+     * (Dashboard Utils/Form/EventRuleForm), with Enabled on the edit form.
+     */
     for (const [file, label] of [
       [
         `${DASHBOARD}/Pages/Incidents/Settings/IncidentReminderRules.tsx`,
@@ -1046,7 +1050,7 @@ describe("the project's create forms", () => {
     ] as Array<[string, string]>) {
       const enabled: FormFieldFacts = fieldOn(file, label, "isEnabled");
       expect(enabled.isEditOnly).toBe(true);
-      expect(enabled.stepId).toBe("rule-info");
+      expect(enabled.stepId).toBe("reminder-settings");
 
       const createForm: CreateForm = createForms.find(
         (item: CreateForm): boolean => {
@@ -1057,7 +1061,7 @@ describe("the project's create forms", () => {
         (createForm.form.steps || []).map((step: { id: string | null }) => {
           return step.id;
         }),
-      ).toEqual(["rule-info", "match-criteria", "reminder-settings"]);
+      ).toEqual(["match-criteria", "reminder-settings"]);
     }
   });
 });

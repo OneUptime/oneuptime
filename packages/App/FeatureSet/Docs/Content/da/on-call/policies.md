@@ -94,7 +94,7 @@ Du finder udførelseslogs tre steder:
 
 - i politikkens egne **Udførelseslogs**, under **Protokoller**;
 - under **Vagtordning → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
-- på en hændelses side **Vagtudførelser** og under en advarsels **Vagtudførelser**.
+- på en hændelses eller en advarsels side **Vagtudførelser**.
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **View Timeline** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. En vagtplan, hvor ingen har vagt, viser **No one was on call** i stedet for en person. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
 

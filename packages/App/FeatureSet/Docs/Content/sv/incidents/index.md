@@ -193,7 +193,7 @@ Vad varje sida innehåller:
 - **Roller**, **Jourexekveringar**, **Ägare** — vem som arbetar med den, vilka policyer som kördes och vem som meddelas.
 - **Aviseringsloggar**, **AI-loggar**, **Granskningsloggar** — vad som skickades och vad som ändrades.
 - **Privata anteckningar** och **Offentliga anteckningar** — vad ditt team och dina kunder fick veta. Se [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed).
-- **Anpassade fält**, **Inställningar**, **Ta bort incident** — sidan **Inställningar** innehåller **Synlig på statussidan** och **Privat incident**, kortet **Statussideomfång** som begränsar incidenten till vissa statussidor, och kortet **Reminders**, vars reglage **Skicka påminnelser** sparas så snart du slår om det och visar när nästa påminnelse skickas.
+- **Anpassade fält**, **Inställningar**, **Ta bort incident** — sidan **Inställningar** innehåller **Synlig på statussidan** och **Privat incident**, kortet **Statussideomfång** som begränsar incidenten till vissa statussidor, och kortet **Påminnelser**, vars reglage **Skicka påminnelser** sparas så snart du slår om det och visar när nästa påminnelse skickas.
 
 ## Så passar incidenter in i resten av OneUptime
 

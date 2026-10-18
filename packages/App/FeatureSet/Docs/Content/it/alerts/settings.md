@@ -77,17 +77,13 @@ Con due o più condizioni, scegliete **Soddisfa tutte**, dove ognuna deve valere
 **Avvisi → Regole → Regole di reperibilità** rende automatiche le chiamate. Ogni regola corrispondente aggiunge le sue policy al nuovo avviso, e l'avviso le esegue insieme alle policy che aveva già, ciascuna una volta.
 
 :::steps
-### Dare un nome alla regola
-
-Fate clic su **Crea: Alert On-Call Rule**. In **Informazioni di base**, dategli un **Nome**, come «Contatta il team del database per qualsiasi avviso del DB», e una **Descrizione** se volete.
-
 ### Scegliere gli avvisi
 
-In **Criteri di corrispondenza**, **Tutti gli avvisi**, da cui parte una nuova regola, corrisponde a ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete le condizioni che un avviso deve soddisfare.
+Fate clic su **Crea: Alert On-Call Rule**. In **Corrispondenza**, **Tutti gli avvisi**, da cui parte una nuova regola, corrisponde a ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete le condizioni che un avviso deve soddisfare.
 
 ### Scegliere le policy
 
-In **Policy di reperibilità**, scegliete le **Policy di reperibilità** che la regola esegue, poi create la regola.
+In **Policy di reperibilità**, scegliete le **Policy di reperibilità** che la regola attiva. Il suo **Nome** le segue, come «Chiama Platform on-call», finché non ne digitate uno vostro, e una **Descrizione** attende sotto **Altri campi**. Poi create la regola.
 :::
 
 Una gravità da sola non chiama nessuno: una regola di reperibilità che corrisponde su **Avviso Gravità** è il modo per impostare «chiamare il team del database per ogni avviso High». Per vedere che cosa è stato eseguito per un avviso, aprite la sua pagina **Esecuzioni di reperibilità**. Ogni persona viene poi raggiunta nel modo impostato in **Impostazioni utente → Regole di reperibilità**, nella scheda **Avvisi**; vedere [Regole di escalation](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ Le **Regole del proprietario** aggiungono utenti e team proprietari ai nuovi avv
 
 ## Regole di privacy e di runbook
 
-Le **Regole di privacy** rendono privati i nuovi avvisi corrispondenti, prima che giri qualsiasi altra cosa: solo i loro proprietari e gli amministratori e proprietari del progetto possono vederli. Una regola ha un passaggio **Informazioni di base** e un passaggio **Criteri di corrispondenza**, e rende privato ogni avviso a cui corrisponde. Vedere [Avvisi privati](/docs/alerts/index#avvisi-privati).
+Le **Regole di privacy** rendono privati i nuovi avvisi corrispondenti, prima che giri qualsiasi altra cosa: solo i loro proprietari e gli amministratori e proprietari del progetto possono vederli. Una regola ha due passaggi: **Corrispondenza**, gli avvisi che rende privati, poi **Nome**, già compilato come «Rendi privati gli avvisi». Vedere [Avvisi privati](/docs/alerts/index#avvisi-privati).
 
 Le **Regole di runbook** avviano un runbook quando un nuovo avviso corrisponde, a meno che l'avviso non sia stato creato risolto. Vedere [Regole di runbook](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ Le **Regole di runbook** avviano un runbook quando un nuovo avviso corrisponde, 
 **Avvisi → Regole → Reminder Rules** ricorda un avviso ai suoi proprietari finché resta aperto. Ogni nuovo avviso riceve la prima regola che gli corrisponde, dall'alto verso il basso dell'elenco.
 
 :::steps
-### Dare un nome alla regola di promemoria
-
-Fate clic su **Crea: Alert Reminder Rule**. In **Rule Info**, dategli un **Nome**, come «Critical Alert Reminders».
-
 ### Scegliere gli avvisi da ricordare
 
-In **Criteri di corrispondenza**, lasciate selezionato **Tutti gli avvisi** per ricordare ogni avviso, oppure scegliete **Solo gli avvisi che soddisfano le condizioni** e poi le **Avviso Gravità** e le **Etichette** a cui si applica.
+Fate clic su **Crea: Alert Reminder Rule**. In **Corrispondenza**, lasciate selezionato **Tutti gli avvisi** per ricordare ogni avviso, oppure scegliete **Solo gli avvisi che soddisfano le condizioni** e poi le **Avviso Gravità** e le **Etichette** a cui si applica.
 
 ### Impostare l'intervallo
 
-In **Reminder Settings**, impostate **Reminder Interval (minutes)**, ogni quanto vengono ricordati i proprietari, e **Stop Reminders When**: **Risolto**, il valore predefinito, o **Riconosciuto**. Poi create la regola.
+In **Promemoria**, impostate **Intervallo del promemoria (minuti)**, ogni quanto vengono ricordati i proprietari, e **Interrompi i promemoria quando**: **Risolto**, il valore predefinito, o **Riconosciuto**. Il suo **Nome** segue entrambi, per esempio «Promemoria ogni 30 minuti fino alla risoluzione», finché non ne digitate uno vostro. Poi create la regola.
 :::
 
 I proprietari ricevono ogni promemoria come **Alert reminder**, attivo via e-mail per impostazione predefinita. La regola di un avviso viene ricalcolata quando cambiano la sua gravità o le sue etichette. Per fermare i promemoria di un avviso, disattivate **Invia promemoria** nella sua pagina **Impostazioni**; il salvataggio avviene nel momento in cui lo azionate.

@@ -82,13 +82,14 @@ Abra um evento na lista para ver suas páginas. Seu menu lateral reúne:
 
 | Seção do menu lateral | Páginas                                                                                   |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Básico**        | **Visão geral**, **Descrição**, **Proprietários**, **Linha do tempo de estado**, **Runbooks**   |
-| **Registros**     | **Logs de notificação** e **Registros de IA**: cada mensagem enviada sobre o evento, e o que a IA fez por ele |
+| **Visão geral** | **Visão geral**, **Linha do tempo de estado**, **Descrição**, **Runbooks** |
+| **Equipe** | **Proprietários** |
+| **Notificações**     | **Logs de notificação** e **Registros de IA**: cada mensagem enviada sobre o evento, e o que a IA fez por ele |
 | **Notas**         | **Notas privadas** e **Notas públicas**                                                        |
 | **Desenvolvedores** | **Terraform**, **API** e **Assistentes de IA**: o evento gerenciado pelo código              |
 | **Avançado**      | **Campos personalizados**, **Configurações**, **Registros de auditoria**, **Excluir evento**    |
 
-**Básico** e **Notas** ficam abertas; as outras seções começam recolhidas até você clicar nelas.
+**Visão geral**, **Equipe** e **Notas** ficam abertas; as outras seções começam recolhidas até você clicar nelas.
 
 - **Visão geral** — o cabeçalho mostra o número, o título e o estado do evento, quanto falta para começar ou há quanto tempo ele dura, e os botões que o fazem avançar. Abaixo, **Começa**, **Termina** e **Duração** mostram a janela planejada no seu fuso horário. O **Agendado Manutenção Feed** registra tudo o que aconteceu com o evento, ao lado dos cartões **Maintenance Details** e **Recursos afetados**, e dos cartões **Medições** e **Campos personalizados** quando o seu projeto tem algum.
 - **Linha do tempo de estado** — cada estado em que o evento esteve, quando e por quanto tempo. Veja [Estados da manutenção](/docs/scheduled-maintenance/states#a-linha-do-tempo-de-estado).

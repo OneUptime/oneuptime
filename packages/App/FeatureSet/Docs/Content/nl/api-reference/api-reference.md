@@ -200,7 +200,7 @@ Een wijziging die zo'n record verplaatst, volgt dezelfde regel: elk record dat z
 
 #### Eigenaren
 
-De eigenaren van een resource - de eigenaarsrecords van gebruikers en teams van een monitor, een piketbeleid, een dashboard en elke andere resource met eigenaren - worden op dezelfde manier gelezen via de resource die ze bezitten: ze opsommen, lezen, toevoegen en verwijderen vereist een machtiging om die resource te lezen, onder haar labels en eigenaren, en een eigenaarsrecord van een resource die je niet mag lezen, krijgt een antwoord alsof het niet bestaat.
+De eigenaren van een resource - de eigenaarsrecords van gebruikers en teams van een monitor, een piketbeleid, een dashboard en elke andere resource met eigenaren - worden op dezelfde manier gelezen via de resource die ze bezitten: ze opsommen, lezen, toevoegen en verwijderen vereist een machtiging om die resource te lezen, onder haar labels en eigenaren, en een eigenaarsrecord van een resource die je niet mag lezen, krijgt een antwoord alsof het niet bestaat. Ook het toevoegen en verwijderen ervan houdt zich aan het bereik van de machtiging die het toestaat: een met het bereik `Owned` bereikt alleen de eigenaren van resources waarvan jij of een van je teams eigenaar is, en het toevoegen van een eigenaar aan een andere resource wordt geweigerd met een `422` die dat zegt.
 
 #### Records die een schrijfactie opsomt of noemt
 

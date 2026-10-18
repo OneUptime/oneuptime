@@ -1504,6 +1504,8 @@ const IncidentCreate: FunctionComponent<
                   stepId: "incident-details",
                   required: true,
                   placeholder: "Incident Title",
+                  // Its column's description only says the title again.
+                  hideColumnDescription: true,
                   validation: {
                     minLength: 2,
                   },
@@ -1514,7 +1516,7 @@ const IncidentCreate: FunctionComponent<
                   },
                   title: "Incident Severity",
                   stepId: "incident-details",
-                  description: "What type of incident is this?",
+                  description: "How serious is it?",
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentSeverity,
@@ -2265,7 +2267,7 @@ const IncidentCreate: FunctionComponent<
                   title: "On-Call Policy",
                   stepId: "on-call",
                   description:
-                    "Select on-call duty policy to execute when this incident is created.",
+                    "The on-call policies to page as soon as the incident is declared.",
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
                     type: OnCallDutyPolicy,

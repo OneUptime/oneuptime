@@ -84,7 +84,7 @@ Each row has **View Alert** to open the alert and **Unlink** to remove the link.
 
 ## Linking incidents from an alert
 
-The alert side mirrors the incident side. Open an alert and choose **Linked Incidents** in the **Basic** section of its side menu. The table lists every incident the alert is linked to, with the incident number, title and current state, and when and by whom it was linked.
+The alert side mirrors the incident side. Open an alert and choose **Linked Incidents** in the **Investigation** section of its side menu. The table lists every incident the alert is linked to, with the incident number, title and current state, and when and by whom it was linked.
 
 - **Link Incident** links this alert to an existing incident. Its dropdown works like the one on the incident side: the most recent incidents first, each with its number — such as `INC-42: Checkout is down` — and typing searches every incident by title.
 - **View Incident** opens a linked incident.

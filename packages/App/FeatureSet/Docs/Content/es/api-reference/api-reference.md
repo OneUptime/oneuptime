@@ -200,7 +200,7 @@ Un cambio que mueve un registro así sigue la misma regla: cada registro que añ
 
 #### Propietarios
 
-Los propietarios de un recurso - los registros de propietarios de usuario y de equipo de un monitor, una política de guardia, un panel y cualquier otro recurso con propietarios - se leen a través del recurso del que son propietarios de la misma forma: enumerarlos, leerlos, añadirlos y quitarlos necesita un permiso para leer ese recurso, bajo sus etiquetas y propietarios, y un registro de propietario de un recurso que no puedes leer se responde como si no existiera.
+Los propietarios de un recurso - los registros de propietarios de usuario y de equipo de un monitor, una política de guardia, un panel y cualquier otro recurso con propietarios - se leen a través del recurso del que son propietarios de la misma forma: enumerarlos, leerlos, añadirlos y quitarlos necesita un permiso para leer ese recurso, bajo sus etiquetas y propietarios, y un registro de propietario de un recurso que no puedes leer se responde como si no existiera. Añadirlos y quitarlos también se ajusta al alcance del permiso que lo permite: uno con el alcance `Owned` solo llega a los propietarios de los recursos de los que tú o uno de tus equipos son propietarios, y añadir un propietario a cualquier otro recurso se rechaza con un `422` que lo indica.
 
 #### Registros que una escritura enumera o nombra
 

@@ -217,7 +217,7 @@ Eigenaren hebben twee taken:
 
 Eigendom op zich verleent niets. Eigenaar van een monitor zijn geeft geen bewerkrecht, tenzij een van uw teams ook een monitormachtiging heeft. Eigendom perkt toegang in; het verruimt die nooit.
 
-Wie eigenaar is van een resource, wordt gelezen via die resource. De eigenaren van een monitor of van een andere resource worden alleen weergegeven, gelezen, toegevoegd en verwijderd door iemand die die resource mag lezen, en een machtiging voor alleen eigenaren bereikt de eigenaren van geen enkele resource die u niet mag lezen.
+Wie eigenaar is van een resource, wordt gelezen via die resource. De eigenaren van een monitor of van een andere resource worden alleen weergegeven, gelezen, toegevoegd en verwijderd door iemand die die resource mag lezen, en een machtiging voor alleen eigenaren bereikt de eigenaren van geen enkele resource die u niet mag lezen. Ook het toevoegen en verwijderen van eigenaren houdt zich aan het bereik van de machtiging die het toestaat: met het bereik `Owned` bereikt die alleen de resources waarvan u of een van uw teams al eigenaar is, hoeveel meer u ook mag lezen, dus dat u een monitor mag lezen, laat u niet uzelf tot eigenaar ervan maken. Een eigenaar wordt toegevoegd of verwijderd, maar nooit naar een andere resource verplaatst.
 
 ## Labels
 

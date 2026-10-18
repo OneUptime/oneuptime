@@ -125,7 +125,7 @@ describe("what an event's feed records for an edit", () => {
 
   test("says a reminder counted from the start moves with the start", () => {
     expect(text).toContain(
-      "A reminder rule (**Scheduled Maintenance → Rules → Reminder Rules**) with **Remind While Event is Scheduled** off counts the first reminder from the event's start, so moving **Starts At** to another time moves that reminder with it while the start is still ahead; the reminders of a rule that reminds while the event is scheduled stay where they are.",
+      "A reminder rule (**Scheduled Maintenance → Rules → Reminder Rules**) that reminds **While it is in progress** counts the first reminder from the event's start, so moving **Starts At** to another time moves that reminder with it while the start is still ahead; the reminders of a rule that reminds before it starts stay where they are.",
     );
   });
 

@@ -150,15 +150,15 @@ An episode you create has no grouping rule, so the list shows its **Grouping Rul
 
 | Side menu section | Pages                                                              |
 | ----------------- | ------------------------------------------------------------------ |
-| **Basic**         | **Overview**, **Description**, **Root Cause**, **Remediation Notes** |
-| **Ownership**     | **Owners**                                                         |
-| **Timeline**      | **State Timeline**                                                 |
-| **Alerts**        | **Member Alerts**                                                  |
-| **Episode Notes** | **Private Notes**                                                  |
-| **Developer**     | **Terraform**, **API**, **AI Assistants**                          |
-| **Advanced**      | **Audit Logs**, **Delete Episode**                                 |
+| **Overview** | **Overview**, **State Timeline** |
+| **Investigation** | **Description**, **Root Cause**, **Remediation Notes** |
+| **Team** | **Owners** |
+| **Alerts** | **Member Alerts** |
+| **Notes** | **Private Notes** |
+| **Developer** | **Terraform**, **API**, **AI Assistants** |
+| **Advanced** | **Audit Logs**, **Delete Episode** |
 
-**Ownership**, **Developer** and **Advanced** start folded. The **Overview** leads with **Alerts in this episode**, then the **Episode Feed**, beside the **Episode Details** card: its number, state, severity, alert count, grouping rule and on-call policies. Its header has **Acknowledge** and **Resolve**, and **Move episode to** in the **⋯** menu.
+**Developer** and **Advanced** start folded. The **Overview** leads with **Alerts in this episode**, then the **Episode Feed**, beside the **Episode Details** card: its number, state, severity, alert count, grouping rule and on-call policies. Its header has **Acknowledge** and **Resolve**, and **Move episode to** in the **⋯** menu.
 
 **Alerts → Active Episodes** lists the episodes that are not resolved yet, and the badge beside it counts them.
 

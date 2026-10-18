@@ -82,13 +82,14 @@ Ouvrez un événement depuis la liste pour voir ses pages. Son menu latéral con
 
 | Section du menu latéral | Pages                                                                                   |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Basique**       | **Vue d'ensemble**, **Description**, **Propriétaires**, **Chronologie d'état**, **Runbooks**   |
-| **Journaux**      | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'événement, et tout ce que l'IA a fait pour lui |
+| **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie d'état**, **Description**, **Runbooks** |
+| **Équipe** | **Propriétaires** |
+| **Notifications**      | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'événement, et tout ce que l'IA a fait pour lui |
 | **Notes**         | **Notes privées** et **Notes publiques**                                                       |
 | **Développeurs**  | **Terraform**, **API** et **Assistants IA** : l'événement géré par le code                     |
 | **Avancé**        | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'événement**      |
 
-**Basique** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
+**Vue d'ensemble**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 
 - **Vue d'ensemble** — l'en-tête affiche le numéro, le titre et l'état de l'événement, le temps restant avant son début ou depuis combien de temps il dure, et les boutons qui le font avancer. En dessous, **Commence**, **Se termine** et **Durée** montrent la fenêtre prévue dans votre fuseau horaire. Le **Fil d'activité de la maintenance planifiée** enregistre tout ce qui est arrivé à l'événement, à côté des cartes **Détails de la maintenance** et **Ressources affectées**, ainsi que des cartes **Mesures** et **Champs personnalisés** quand votre projet en a.
 - **Chronologie d'état** — chaque état dans lequel l'événement a été, quand et pendant combien de temps. Voir [États de la maintenance](/docs/scheduled-maintenance/states#la-chronologie-détat).

@@ -82,13 +82,14 @@ Abre un evento desde la lista para ver sus páginas. Su menú lateral contiene:
 
 | Sección del menú lateral | Páginas                                                                                |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Básico**        | **Vista general**, **Descripción**, **Propietarios**, **Cronología de estados**, **Runbooks**   |
-| **Registros**     | **Registros de notificación** y **Registros de IA**: cada mensaje enviado sobre el evento y lo que la IA hizo por él |
+| **Vista general** | **Vista general**, **Cronología de estados**, **Descripción**, **Runbooks** |
+| **Equipo** | **Propietarios** |
+| **Notificaciones**     | **Registros de notificación** y **Registros de IA**: cada mensaje enviado sobre el evento y lo que la IA hizo por él |
 | **Notas**         | **Notas privadas** y **Notas públicas**                                                        |
 | **Desarrolladores** | **Terraform**, **API** y **Asistentes de IA**: el evento gestionado desde código            |
 | **Avanzado**      | **Campos personalizados**, **Ajustes**, **Registros de auditoría**, **Eliminar evento**        |
 
-**Básico** y **Notas** están abiertas; las demás secciones empiezan plegadas hasta que haces clic en ellas.
+**Vista general**, **Equipo** y **Notas** están abiertas; las demás secciones empiezan plegadas hasta que haces clic en ellas.
 
 - **Vista general** — la cabecera muestra el número, el título y el estado del evento, cuánto falta para que empiece o cuánto lleva en marcha, y los botones que lo hacen avanzar. Debajo, **Empieza**, **Finaliza** y **Duración** muestran la ventana planificada en tu zona horaria. El **Feed del mantenimiento programado** registra todo lo que le ha pasado al evento, junto a las tarjetas **Detalles del mantenimiento** y **Recursos afectados**, y las tarjetas **Mediciones** y **Campos personalizados** cuando tu proyecto tiene alguno.
 - **Cronología de estados** — cada estado en el que ha estado el evento, cuándo y durante cuánto tiempo. Consulta [Estados del mantenimiento](/docs/scheduled-maintenance/states#la-cronología-de-estados).

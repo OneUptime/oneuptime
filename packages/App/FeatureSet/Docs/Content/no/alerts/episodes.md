@@ -150,15 +150,15 @@ En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperi
 
 | Seksjon i sidemenyen | Sider                                                                       |
 | -------------------- | --------------------------------------------------------------------------- |
-| **Grunnleggende**    | **Oversikt**, **Beskrivelse**, **Rotårsak**, **Utbedringsnotater**          |
-| **Eierskap**         | **Eiere**                                                                   |
-| **Tidslinje**        | **Tilstandstidslinje**                                                      |
-| **Varsler**          | **Medlemsvarsler**                                                          |
-| **Episodenotater**   | **Private notater**                                                         |
-| **Utvikler**         | **Terraform**, **API**, **AI-assistenter**                                  |
-| **Avansert**         | **Revisjonslogger**, **Slett episode**                                      |
+| **Oversikt** | **Oversikt**, **Tilstandstidslinje** |
+| **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedringsnotater** |
+| **Team** | **Eiere** |
+| **Varsler** | **Medlemsvarsler** |
+| **Notater** | **Private notater** |
+| **Utvikler** | **Terraform**, **API**, **AI-assistenter** |
+| **Avansert** | **Revisjonslogger**, **Slett episode** |
 
-**Eierskap**, **Utvikler** og **Avansert** starter sammenfoldet. **Oversikt** begynner med **Alerts in this episode**, deretter **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Move episode to** i menyen **⋯**.
+**Utvikler** og **Avansert** starter sammenfoldet. **Oversikt** begynner med **Alerts in this episode**, deretter **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Move episode to** i menyen **⋯**.
 
 **Varsler → Aktive episoder** viser episodene som ikke er løst ennå, og merket ved siden av teller dem.
 

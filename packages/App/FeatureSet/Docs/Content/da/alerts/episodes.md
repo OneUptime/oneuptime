@@ -150,15 +150,15 @@ En episode, du opretter, har ingen grupperingsregel, så listen viser dens **Gru
 
 | Sektion i sidemenuen | Sider                                                                       |
 | -------------------- | --------------------------------------------------------------------------- |
-| **Grundlæggende**    | **Oversigt**, **Beskrivelse**, **Grundårsag**, **Afhjælpningsnoter**        |
-| **Ejerskab**         | **Ejere**                                                                   |
-| **Tidslinje**        | **Tilstandstidslinje**                                                      |
-| **Advarsler**        | **Medlemsadvarsler**                                                        |
-| **Episodenoter**     | **Private noter**                                                           |
-| **Udvikler**         | **Terraform**, **API**, **AI-assistenter**                                  |
-| **Avanceret**        | **Auditlogs**, **Slet episode**                                             |
+| **Oversigt** | **Oversigt**, **Tilstandstidslinje** |
+| **Undersøgelse** | **Beskrivelse**, **Grundårsag**, **Afhjælpningsnoter** |
+| **Team** | **Ejere** |
+| **Advarsler** | **Medlemsadvarsler** |
+| **Noter** | **Private noter** |
+| **Udvikler** | **Terraform**, **API**, **AI-assistenter** |
+| **Avanceret** | **Auditlogs**, **Slet episode** |
 
-**Ejerskab**, **Udvikler** og **Avanceret** er foldet sammen fra start. **Oversigt** begynder med **Alerts in this episode**, derefter **Episodefeed**, ved siden af kortet **Episodedetaljer**: dens nummer, tilstand, alvorsgrad, antal advarsler, grupperingsregel og vagtpolitikker. Dens hoved har **Bekræft** og **Løs** og **Move episode to** i menuen **⋯**.
+**Udvikler** og **Avanceret** er foldet sammen fra start. **Oversigt** begynder med **Alerts in this episode**, derefter **Episodefeed**, ved siden af kortet **Episodedetaljer**: dens nummer, tilstand, alvorsgrad, antal advarsler, grupperingsregel og vagtpolitikker. Dens hoved har **Bekræft** og **Løs** og **Move episode to** i menuen **⋯**.
 
 **Advarsler → Aktive episoder** viser de episoder, der endnu ikke er løst, og mærket ved siden af tæller dem.
 

@@ -217,7 +217,7 @@ Os proprietários fazem dois trabalhos:
 
 A propriedade sozinha não concede nada. Ser proprietário de um monitor não permite editá-lo, a menos que uma equipe a que você pertence também tenha uma permissão sobre monitores. A propriedade restringe o acesso; ela nunca o amplia.
 
-Quem é proprietário de um recurso é lido por meio do recurso. Os proprietários de um monitor ou de qualquer outro recurso só são listados, lidos, adicionados e removidos por quem pode ler esse recurso, e uma permissão apenas sobre os proprietários não alcança os proprietários de nenhum recurso que você não pode ler.
+Quem é proprietário de um recurso é lido por meio do recurso. Os proprietários de um monitor ou de qualquer outro recurso só são listados, lidos, adicionados e removidos por quem pode ler esse recurso, e uma permissão apenas sobre os proprietários não alcança os proprietários de nenhum recurso que você não pode ler. Adicionar e remover proprietários também segue o escopo da permissão que o permite: com o escopo `Owned`, ela só alcança os recursos dos quais você ou uma das suas equipes já são proprietários, por mais recursos que você possa ler, então poder ler um monitor não permite que você se torne o proprietário dele. Um proprietário é adicionado ou removido, mas nunca movido para outro recurso.
 
 ## Rótulos
 

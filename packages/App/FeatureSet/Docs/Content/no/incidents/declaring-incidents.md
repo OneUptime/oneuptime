@@ -116,7 +116,7 @@ Dette trinnet vises bare når minst ett egendefinert hendelsesfelt har **Vis ved
 
 ### Trinn 3 — Vakt og roller
 
-- **Vaktpolicy** — et flervalg av vaktpolicyene som skal kjøres når denne hendelsen opprettes. Det tilsvarer `onCallDutyPolicies` på hendelsen.
+- **Vaktpolicy** — et flervalg av vaktretningslinjene som tilkalles så snart hendelsen er erklært. Det tilsvarer `onCallDutyPolicies` på hendelsen.
 - **Tildel hendelsesroller** — hvem som tar hver rolle prosjektet ditt definerer, ett kort per rolle. En rolle med merket **Primær** som du lar stå tom, er din: du tar den når hendelsen erklæres, og sammendraget sier det. En rolle for én person sier det når den har en; en rolle for flere beholder velgeren sin.
 
 Dette er det eneste stedet der en vaktpolicy knyttes direkte til en hendelse. Alvorlighetsgrader har ingen vaktpolicy — alvorlighetsgraden er en etikett, og den påvirker bare tilkalling som *treffkriterium* i en vaktregel. Regler som er satt opp under **Hendelser → Regler → Vaktregler**, legger policyene sine til på toppen av det du velger her; det endelige settet som kjører, er foreningen av begge uten duplikater. En hendelse som erklæres i en senere tilstand, kjører ingen av dem — se [Erklært allerede bekreftet eller løst](#erklært-allerede-bekreftet-eller-løst).

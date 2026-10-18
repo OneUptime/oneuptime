@@ -200,7 +200,7 @@ Una modifica che sposta un record del genere segue la stessa regola: ogni record
 
 #### Proprietari
 
-I proprietari di una risorsa - i record dei proprietari utente e team di un monitor, di una policy di reperibilità, di una dashboard e di ogni altra risorsa con proprietari - si leggono attraverso la risorsa che possiedono allo stesso modo: elencarli, leggerli, aggiungerli e rimuoverli richiede un'autorizzazione a leggere quella risorsa, sotto le sue etichette e i suoi proprietari, e un record di proprietario di una risorsa che non puoi leggere riceve la risposta come se non esistesse.
+I proprietari di una risorsa - i record dei proprietari utente e team di un monitor, di una policy di reperibilità, di una dashboard e di ogni altra risorsa con proprietari - si leggono attraverso la risorsa che possiedono allo stesso modo: elencarli, leggerli, aggiungerli e rimuoverli richiede un'autorizzazione a leggere quella risorsa, sotto le sue etichette e i suoi proprietari, e un record di proprietario di una risorsa che non puoi leggere riceve la risposta come se non esistesse. Anche aggiungerli e rimuoverli segue l'ambito dell'autorizzazione che lo consente: una con l'ambito `Owned` raggiunge solo i proprietari delle risorse di cui tu o uno dei tuoi team siete proprietari, e l'aggiunta di un proprietario a qualsiasi altra risorsa viene rifiutata con un `422` che lo dice.
 
 #### Record che una scrittura elenca o nomina
 

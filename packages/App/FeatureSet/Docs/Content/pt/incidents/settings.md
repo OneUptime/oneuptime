@@ -607,14 +607,13 @@ As regras salvas antes de o formulário perguntar pelos proprietários ainda pod
 
 ## Regras de plantão de incidente
 
-**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, descreve regras que executam automaticamente políticas de plantão quando incidentes correspondentes são criados. A página tem duas abas: **Incident Rules** e **Episode Rules**.
+**Incidentes → Regras → Regras de Plantão** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) é onde você torna o acionamento automático. O cartão, **Regras de plantão de incidente**, diz o que elas fazem: acionar políticas de plantão automaticamente para novos incidentes que corresponderem. A página tem duas abas: **Incident Rules** e **Episode Rules**.
 
-O formulário de criação tem três etapas:
+O formulário de criação tem duas etapas:
 
 :::steps
-1. **Informações básicas** — **Nome** (o texto de exemplo sugere algo como acionar a equipe de banco de dados para qualquer incidente de BD) e **Descrição**. A regra começa habilitada; o formulário de edição dela acrescenta o interruptor **Habilitado**, e a lista mostra uma etiqueta verde **Habilitado** ou vermelha **Desabilitado** por regra.
-2. **Critérios de Correspondência** — **Todos os incidentes**, onde uma regra nova começa, ou **Somente os incidentes que atendem às condições**, que abre as condições da regra. Cada condição escolhe um critério — **Monitores**, **Incidente Severidades**, **Rótulos de incidentes**, **Rótulos do Monitor**, **Título do Incidente**, **Descrição do incidente**, **Nome do Monitor** ou **Descrição do Monitor** — um operador e um valor, e se lê como uma frase: «Se **Título do Incidente** contém `database`», «E **Rótulos do Monitor** tem algum de _Production_».
-3. **Políticas de plantão** — as políticas que esta regra executa.
+1. **Corresponder** — **Todos os incidentes**, onde uma regra nova começa, ou **Somente os incidentes que atendem às condições**, que abre as condições da regra. Cada condição escolhe um critério — **Monitores**, **Incidente Severidades**, **Rótulos de incidentes**, **Rótulos do Monitor**, **Título do Incidente**, **Descrição do incidente**, **Nome do Monitor** ou **Descrição do Monitor** — um operador e um valor, e se lê como uma frase: «Se **Título do Incidente** contém `database`», «E **Rótulos do Monitor** tem algum de _Production_».
+2. **Políticas de plantão** — as políticas que esta regra aciona, e o **Nome** da regra, preenchido a partir delas ("Acionar Platform on-call") até você digitar um próprio; a **Descrição** fica em **Mais campos**. A regra começa habilitada; o formulário de edição dela acrescenta o interruptor **Habilitado**, e a lista mostra uma etiqueta verde **Habilitado** ou vermelha **Desabilitado** por regra.
 :::
 
 ### Como a correspondência é resolvida
@@ -632,7 +631,7 @@ As regras que a própria página traz valem a pena ser internalizadas:
 
 ## Anexar políticas de plantão diretamente
 
-As regras não são o único caminho. Todo incidente tem uma lista própria de políticas de plantão, que aparece como o campo **Política de plantão** na etapa **Plantão e funções** do assistente de declaração e na etapa **Plantão** de um modelo de incidente. A descrição do campo diz isso claramente: estas são as políticas de plantão a executar quando este incidente for criado.
+As regras não são o único caminho. Todo incidente tem uma lista própria de políticas de plantão, que aparece como o campo **Política de plantão** na etapa **Plantão e funções** do assistente de declaração e na etapa **Plantão** de um modelo de incidente. A descrição dele diz quando elas são acionadas: assim que o incidente é declarado.
 
 Quando um incidente é criado, o OneUptime executa as regras de rótulos, depois as regras de plantão (que mesclam as políticas correspondentes delas na lista do incidente), depois as regras de runbook — e, se a lista resultante não estiver vazia, toda política nela é executada. As execuções rodam em paralelo e são concluídas de forma independente, então a falha de uma política não interrompe as outras. Cada execução é marcada com o incidente que a disparou e com o tipo de evento de notificação de incidente criado.
 
