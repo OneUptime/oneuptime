@@ -34,7 +34,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { createServer, Server } from "http";
+import {
+  ClientRequest,
+  createServer,
+  request as httpRequest,
+  IncomingMessage,
+  Server,
+} from "http";
 import { AddressInfo } from "net";
 
 /*
@@ -1076,7 +1082,133 @@ describe("an installation whose operator set ONEUPTIME_SECRET", () => {
       }
     }
   });
+
+  test("never takes the key from a URL, whatever the parameter is called or however it is nested", async () => {
+    const key: string = encodeURIComponent(operatorKey);
+
+    for (const request of everyRequest(installation)) {
+      for (const name of [
+        "clusterKey",
+        "CLUSTERKEY",
+        "cluster_key",
+        "cluster-key",
+        "x-clusterkey",
+        "X_Cluster_Key",
+        "clusterKey[]",
+        "clusterKey[0]",
+        "a[clusterKey]",
+        "cluster.key",
+        "cluster%4Bey",
+        "key",
+      ]) {
+        const result: HttpResult = await send(
+          installation,
+          request.method,
+          `${request.url}?${name}=${key}`,
+          {},
+        );
+
+        // Refused as a key in a URL, or as no key at all: never let through.
+        expect({ ...request, name, status: result.status }).toStrictEqual({
+          ...request,
+          name,
+          status: 400,
+        });
+        expect([
+          installation.messages.inUrl,
+          installation.messages.notFound,
+        ]).toContain(result.body?.["message"]);
+      }
+    }
+  });
+
+  test("reads one header, once: the key sent twice, or a wrong clusterkey beside the right x-clusterkey, is refused", async () => {
+    const key: string = encodeURIComponent(operatorKey);
+
+    for (const request of everyRequest(installation)) {
+      for (const [headers, expected] of [
+        [{ clusterkey: [key, key] }, { status: 400, message: "invalid" }],
+        [
+          { clusterkey: "wrong", "x-clusterkey": key },
+          { status: 400, message: "invalid" },
+        ],
+        [
+          { clusterkey: key, "x-clusterkey": "wrong" },
+          { status: 200, message: "passed" },
+        ],
+      ] as Array<
+        [
+          Record<string, string | Array<string>>,
+          { status: number; message: string },
+        ]
+      >) {
+        const result: HttpResult = await sendHeaderLines(
+          installation,
+          request.url,
+          headers,
+        );
+
+        expect({ ...request, headers, ...result }).toStrictEqual({
+          ...request,
+          headers,
+          status: expected.status,
+          body:
+            expected.message === "passed"
+              ? CHECK_PASSED
+              : { message: installation.messages.invalid },
+        });
+      }
+    }
+  });
 });
+
+/*
+ * A POST with these header lines exactly as given: a name with a list of
+ * values is sent as that many lines, as a client that repeats a header
+ * would.
+ */
+async function sendHeaderLines(
+  installation: RunningInstallation,
+  url: string,
+  headers: Record<string, string | Array<string>>,
+): Promise<HttpResult> {
+  const target: URL = new URL(`${installation.origin}${url}`);
+
+  return await new Promise<HttpResult>(
+    (resolve: (result: HttpResult) => void, reject: (error: Error) => void) => {
+      const outgoing: ClientRequest = httpRequest(
+        {
+          host: target.hostname,
+          port: target.port,
+          path: `${target.pathname}${target.search}`,
+          method: "POST",
+          headers: { "content-type": "application/json", ...headers },
+        },
+        (response: IncomingMessage) => {
+          let text: string = "";
+
+          response.on("data", (chunk: Buffer) => {
+            text += chunk.toString("utf8");
+          });
+          response.on("end", () => {
+            let parsed: JSONObject | null = null;
+
+            try {
+              parsed = JSON.parse(text) as JSONObject;
+            } catch {
+              parsed = null;
+            }
+
+            resolve({ status: response.statusCode || 0, body: parsed });
+          });
+        },
+      );
+
+      outgoing.on("error", reject);
+      outgoing.end("{}");
+    },
+  );
+}
 
 describe("the real handlers behind the routes", () => {
   /*

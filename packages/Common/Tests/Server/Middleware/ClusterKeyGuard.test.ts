@@ -149,6 +149,47 @@ function codeOf(relativePath: string): string {
     );
 }
 
+// A file's syntax tree (comments are no part of it).
+function parse(relativePath: string): ts.SourceFile {
+  return ts.createSourceFile(
+    path.basename(relativePath),
+    fs.readFileSync(path.join(REPOSITORY_DIRECTORY, relativePath), "utf8"),
+    ts.ScriptTarget.Latest,
+    true,
+    relativePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+}
+
+// Where a node is, for a failure to name.
+function placeOf(
+  relativePath: string,
+  sourceFile: ts.SourceFile,
+  node: ts.Node,
+): string {
+  const line: number =
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
+    1;
+
+  return `${relativePath}:${line}: ${node.getText(sourceFile).slice(0, 120)}`;
+}
+
+/*
+ * All that code outside ClusterKeyAuthorization uses of it: present the key
+ * in a header, hand a router one of its checks, take the key's headers out
+ * of headers it hands on, and - the Runner - ask whether it was given a key
+ * it may send. Nothing else reads, compares or holds the key, or the class.
+ */
+const MEMBERS_USED_OUTSIDE: Array<string> = [
+  "getClusterKeyHeaders",
+  "isAuthorizedRunnerRegistrationMiddleware",
+  "isAuthorizedServiceMiddleware",
+  "isConfiguredClusterKeyShipped",
+  "withoutClusterKeyHeaders",
+];
+
+// What an Express request is called where a route reads it.
+const REQUEST_NAMES: Array<string> = ["req", "request"];
+
 /*
  * Product code files whose raw text matches `pattern` (a cheap first pass),
  * then whose code does, comments removed.
@@ -459,6 +500,44 @@ describe("a presented cluster key is read in one place", () => {
 
     expect(misnamed).toEqual([]);
   });
+
+  test("code outside ClusterKeyAuthorization only presents, checks or strips the key, through the members for that, and never holds the class", () => {
+    const used: Set<string> = new Set<string>();
+    const otherwise: Array<string> = [];
+
+    for (const relativePath of productFilesWhoseCodeMatches(
+      /ClusterKeyAuthorization/,
+    )) {
+      if (relativePath === CLUSTER_KEY_AUTHORIZATION) {
+        continue;
+      }
+
+      const sourceFile: ts.SourceFile = parse(relativePath);
+
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (ts.isIdentifier(node) && node.text === "ClusterKeyAuthorization") {
+          const parent: ts.Node = node.parent;
+
+          if (
+            ts.isPropertyAccessExpression(parent) &&
+            parent.expression === node
+          ) {
+            used.add(parent.name.text);
+          } else if (!ts.isImportClause(parent)) {
+            // Passed along, stored, aliased or indexed: out of sight of the checks.
+            otherwise.push(placeOf(relativePath, sourceFile, parent));
+          }
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(sourceFile);
+    }
+
+    expect(otherwise).toEqual([]);
+    expect(Array.from(used).sort()).toEqual(MEMBERS_USED_OUTSIDE);
+  });
 });
 
 describe("only processes that can know the installation's key present it", () => {
@@ -607,6 +686,115 @@ describe("the routes that take the cluster key, and who calls them", () => {
     expect(codeOf(INCOMING_REQUEST_INGEST)).not.toMatch(
       /requestHeaders: Dictionary<string> = req\.headers/,
     );
+  });
+
+  test("every file that presents the key puts it in the headers of a POST it makes, once for each route it calls", () => {
+    const shapes: Record<string, Array<string>> = {};
+    const expected: Record<string, Array<string>> = {};
+
+    for (const relativePath of Object.keys(PRESENTERS)) {
+      const sourceFile: ts.SourceFile = parse(relativePath);
+
+      shapes[relativePath] = [];
+      expected[relativePath] = CLUSTER_KEY_ROUTE_CALLERS.filter(
+        (entry: ClusterKeyRouteCaller): boolean => {
+          return entry.caller === relativePath;
+        },
+      ).map((): string => {
+        return "the headers of an API.post";
+      });
+
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (
+          ts.isCallExpression(node) &&
+          node.expression.getText(sourceFile) ===
+            "ClusterKeyAuthorization.getClusterKeyHeaders"
+        ) {
+          // ...ClusterKeyAuthorization.getClusterKeyHeaders(), in `headers: {}`
+          const spread: ts.Node = node.parent;
+          const headers: ts.Node = spread.parent;
+          const property: ts.Node = headers.parent;
+          const options: ts.Node = property.parent;
+          const post: ts.Node = options.parent;
+
+          const inPostHeaders: boolean =
+            ts.isSpreadAssignment(spread) &&
+            ts.isObjectLiteralExpression(headers) &&
+            ts.isPropertyAssignment(property) &&
+            property.name.getText(sourceFile) === "headers" &&
+            ts.isObjectLiteralExpression(options) &&
+            ts.isCallExpression(post) &&
+            post.expression.getText(sourceFile) === "API.post" &&
+            post.arguments[0] === options;
+
+          shapes[relativePath]!.push(
+            inPostHeaders
+              ? "the headers of an API.post"
+              : placeOf(relativePath, sourceFile, post),
+          );
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(sourceFile);
+    }
+
+    expect(shapes).toEqual(expected);
+  });
+
+  test("a route that takes the key hands none of the request's headers on: its file reads a header by name, if at all", () => {
+    const handedOn: Array<string> = [];
+
+    for (const relativePath of Array.from(
+      new Set(
+        findClusterKeyRoutes().map((route: ClusterKeyRoute): string => {
+          return route.file;
+        }),
+      ),
+    )) {
+      const sourceFile: ts.SourceFile = parse(relativePath);
+
+      const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+        if (
+          ts.isPropertyAccessExpression(node) &&
+          ts.isIdentifier(node.expression) &&
+          REQUEST_NAMES.includes(node.expression.text) &&
+          ["headers", "rawHeaders", "headersDistinct"].includes(node.name.text)
+        ) {
+          const parent: ts.Node = node.parent;
+          const byName: boolean =
+            node.name.text === "headers" &&
+            ((ts.isElementAccessExpression(parent) &&
+              parent.expression === node) ||
+              (ts.isPropertyAccessExpression(parent) &&
+                parent.expression === node));
+
+          if (!byName) {
+            handedOn.push(placeOf(relativePath, sourceFile, parent));
+          }
+        }
+
+        if (
+          ts.isCallExpression(node) &&
+          ts.isPropertyAccessExpression(node.expression) &&
+          ts.isIdentifier(node.expression.expression) &&
+          REQUEST_NAMES.includes(node.expression.expression.text) &&
+          ["get", "header"].includes(node.expression.name.text) &&
+          !node.arguments.every((argument: ts.Expression): boolean => {
+            return ts.isStringLiteralLike(argument);
+          })
+        ) {
+          handedOn.push(placeOf(relativePath, sourceFile, node));
+        }
+
+        ts.forEachChild(node, visit);
+      };
+
+      visit(sourceFile);
+    }
+
+    expect(handedOn).toEqual([]);
   });
 });
 
