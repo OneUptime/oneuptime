@@ -460,25 +460,30 @@ describe("rarely used options", () => {
    * headers and per-type options) and a status page monitor rule (what is
    * shown beside the monitors it adds). Their options are folded at the end
    * of the step before - on the create form and on the record's own page.
+   *
+   * An LLM provider's form is now Provider, then Connection
+   * (Common/UI/Components/AI/LlmProviderFormFields), with its description
+   * folded beside them: a project's provider with its default switch, a
+   * global one with its price.
    */
   test.each([
     [
       `${DASHBOARD}/Pages/Settings/LlmProviders.tsx`,
       "ModelTable",
-      "provider-settings",
-      ["isDefault", "additionalParams"],
+      "connection",
+      ["description", "isDefault", "additionalParams"],
     ],
     [
       `${DASHBOARD}/Pages/Settings/LlmProviderView.tsx`,
       "CardModelDetail",
-      "provider-settings",
-      ["isDefault", "additionalParams"],
+      "connection",
+      ["description", "isDefault", "additionalParams"],
     ],
     [
       `${ADMIN_DASHBOARD}/Pages/Settings/LlmProviders/Index.tsx`,
       "ModelTable",
-      "provider-settings",
-      ["additionalParams", "costPerMillionTokensInUSDCents"],
+      "connection",
+      ["description", "additionalParams", "costPerMillionTokensInUSDCents"],
     ],
     [
       `${DASHBOARD}/Pages/Dashboards/Settings/DataSources.tsx`,

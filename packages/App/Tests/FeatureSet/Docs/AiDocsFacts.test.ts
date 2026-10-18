@@ -875,38 +875,57 @@ describe("LLM Providers", () => {
     );
   });
 
+  /*
+   * The form a project's provider is created and edited with: the shared
+   * one (Common/UI/Components/AI/LlmProviderFormFields), which the page
+   * draws.
+   */
+  function providerForm(): string {
+    expect(dashboardSource("Pages/Settings/LlmProviders.tsx")).toContain(
+      "formFields={getProjectLlmProviderFormFields()}",
+    );
+
+    return flat(
+      readRepoFile("Common/UI/Components/AI/LlmProviderFormFields.tsx"),
+    );
+  }
+
   it("starts a new provider as the default, in the form and on the server", () => {
     const service: string = flat(
       readRepoFile("Common/Server/Services/LlmProviderService.ts"),
     );
-    const form: string = flat(
-      dashboardSource("Pages/Settings/LlmProviders.tsx"),
-    );
+    const form: string = providerForm();
 
     expect(service).toContain(
       "if (createBy.data.isDefault === undefined) { createBy.data.isDefault = true;",
+    );
+    expect(form).toContain(
+      'field: { isDefault: true, }, title: "Set as Default",',
     );
     expect(form).toContain("defaultValue: true,");
   });
 
   it("walks the create form's two steps by their titles, with each step's fields", () => {
-    const form: string = flat(
-      dashboardSource("Pages/Settings/LlmProviders.tsx"),
-    );
+    const form: string = providerForm();
     const setUp: string = flat(
       englishSection(LLM_PROVIDERS, "## Setting Up an LLM Provider"),
     );
 
     for (const [step, id] of [
-      ["Basic Info", "basic-info"],
-      ["Provider Settings", "provider-settings"],
+      ["Provider", "provider"],
+      ["Connection", "connection"],
     ] as Array<[string, string]>) {
-      expect(form).toContain(`title: "${step}", id: "${id}",`);
+      expect(form).toContain(`{ title: "${step}", id: "${id}" }`);
       expect(setUp).toContain(`On ${bold(step)}`);
     }
 
-    expect(setUp).toContain(`give it a ${bold("Name")} that says what it is`);
-    expect(setUp).toContain(`optionally a ${bold("Description")}`);
+    // The provider is picked first, then named after it.
+    expect(setUp).toContain(`pick your ${bold("LLM Provider")}`);
+    expect(form).toContain("getLlmProviderNameAfterPick");
+    expect(setUp).toContain(
+      `${bold("Name")}: the provider's name until you type your own`,
+    );
+    expect(setUp).toContain(`a ${bold("Description")}`);
   });
 
   it("lists every provider type the form offers, in a table row of its own", () => {

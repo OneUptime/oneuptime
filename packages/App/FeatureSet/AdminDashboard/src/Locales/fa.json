@@ -558,9 +558,7 @@
         "bannerDescription": "ارائه‌دهندگان LLM قابلیت‌های هوش مصنوعی را ممکن می‌کنند. می‌توانید ارائه‌دهندگان LLM سراسری را که در دسترس همه پروژه‌ها هستند پیکربندی کنید.",
         "cardTitle": "ارائه‌دهندگان LLM سراسری",
         "cardDescription": "ارائه‌دهندگان LLM سراسری برای قابلیت‌های هوش مصنوعی در دسترس همه پروژه‌ها هستند. OpenAI، Azure OpenAI، Anthropic، Groq، Mistral، Ollama یا سایر ارائه‌دهندگان LLM را پیکربندی کنید.",
-        "noItems": "هیچ ارائه‌دهنده LLM پیکربندی نشده است. برای فعال کردن قابلیت‌های هوش مصنوعی یک ارائه‌دهنده LLM اضافه کنید.",
-        "stepBasicInfo": "اطلاعات پایه",
-        "stepProviderSettings": "تنظیمات ارائه‌دهنده"
+        "noItems": "هیچ ارائه‌دهنده LLM پیکربندی نشده است. برای فعال کردن قابلیت‌های هوش مصنوعی یک ارائه‌دهنده LLM اضافه کنید."
       }
     }
   },
@@ -928,5 +926,34 @@
   "For one person getting started.": "برای یک نفر که تازه شروع می‌کند.",
   "For teams. On-call, workflows, integrations and API access.": "برای تیم‌ها. آنکال، گردش‌های کاری، یکپارچه‌سازی‌ها و دسترسی API.",
   "For larger teams. SSO, advanced access control and faster support.": "برای تیم‌های بزرگ‌تر. SSO، کنترل دسترسی پیشرفته و پشتیبانی سریع‌تر.",
-  "Custom terms, a dedicated engineer and phone support.": "شرایط سفارشی، یک مهندس اختصاصی و پشتیبانی تلفنی."
+  "Custom terms, a dedicated engineer and phone support.": "شرایط سفارشی، یک مهندس اختصاصی و پشتیبانی تلفنی.",
+  "Connection": "اتصال",
+  "OpenAI-Compatible (vLLM, LocalAI, etc.)": "سازگار با OpenAI (vLLM، LocalAI و غیره)",
+  "GPT models, with an API key from OpenAI.": "مدل‌های GPT، با کلید API از OpenAI.",
+  "Claude models, with an API key from Anthropic.": "مدل‌های Claude، با کلید API از Anthropic.",
+  "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.": "مدل‌هایی که در Azure مستقر می‌کنید: مدل‌های OpenAI، Foundry Models و Claude.",
+  "Fast open models, with an API key from Groq.": "مدل‌های باز سریع، با کلید API از Groq.",
+  "Mistral's models, with an API key from Mistral.": "مدل‌های Mistral، با کلید API از Mistral.",
+  "Open models you run yourself. No API key.": "مدل‌های بازی که خودتان اجرا می‌کنید. بدون کلید API.",
+  "Any server with an OpenAI-style API, such as vLLM or LocalAI.": "هر سروری با API به سبک OpenAI، مانند vLLM یا LocalAI.",
+  "Additional Parameters": "پارامترهای اضافی",
+  "Create one at platform.openai.com, under API keys.": "یکی را در platform.openai.com، بخش API keys بسازید.",
+  "Create one at console.anthropic.com, under API Keys.": "یکی را در console.anthropic.com، بخش API Keys بسازید.",
+  "KEY 1 or KEY 2, from your resource's Keys and Endpoint page.": "KEY 1 یا KEY 2، از صفحهٔ Keys and Endpoint منبع شما.",
+  "Your resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.": "نقطهٔ پایانی منبع شما، مانند https://<resource>.openai.azure.com/openai/v1، یا برای Claude نشانی https://<resource>.services.ai.azure.com/anthropic.",
+  "Create one at console.groq.com, under API Keys.": "یکی را در console.groq.com، بخش API Keys بسازید.",
+  "Create one at console.mistral.ai, under API Keys.": "یکی را در console.mistral.ai، بخش API Keys بسازید.",
+  "An address the OneUptime server can reach, such as http://ollama:11434. Not localhost.": "نشانی‌ای که سرور OneUptime به آن دسترسی دارد، مانند http://ollama:11434. نه localhost.",
+  "A model you pulled into Ollama. Leave empty for {{model}}.": "مدلی که در Ollama دریافت کرده‌اید. برای {{model}} خالی بگذارید.",
+  "Only if your server asks for one.": "فقط اگر سرور شما آن را بخواهد.",
+  "Your server's OpenAI-style API, such as http://vllm:8000/v1. Not localhost.": "API به سبک OpenAI سرور شما، مانند http://vllm:8000/v1. نه localhost.",
+  "A model your server serves, exactly as it names it.": "مدلی که سرور شما ارائه می‌دهد، دقیقاً با همان نامی که سرور به آن می‌دهد.",
+  "Leave empty for {{model}}.": "برای {{model}} خالی بگذارید.",
+  "Only to go through a proxy or a gateway. Leave empty for {{provider}}'s own API: {{url}}.": "فقط برای عبور از پراکسی یا درگاه. برای API خودِ {{provider}} خالی بگذارید: {{url}}.",
+  "Named after the provider until you type a name of your own.": "تا وقتی نامی از خودتان ننویسید، به نام ارائه‌دهنده است.",
+  "e.g. Production OpenAI": "برای نمونه OpenAI تولید",
+  "What this provider is for.": "این ارائه‌دهنده برای چیست.",
+  "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "پارامترهای JSON اضافی که با هر درخواست برای ارائه‌دهنده ارسال می‌شوند، مانند {\"temperature\": 0.2}. مگر اینکه مدل شما به آن‌ها نیاز داشته باشد، خالی بگذارید.",
+  "Never put keys here.": "هرگز کلیدی اینجا قرار ندهید.",
+  "Your deployment's name, exactly as Foundry shows it.": "نام استقرار شما، دقیقاً همان‌طور که Foundry نشان می‌دهد."
 }

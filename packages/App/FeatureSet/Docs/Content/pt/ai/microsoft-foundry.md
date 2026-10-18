@@ -111,20 +111,20 @@ Com `--custom-domain contoso-ai`, o endpoint do recurso é `https://contoso-ai.o
 
 Vá para **Configurações do projeto** > **IA** > **Provedores LLM** e clique em **Criar: Provedor LLM**.
 
-### Dar nome ao provedor
+### Escolher o provedor
 
-Em **Informações básicas**, digite um **Nome**, como `Azure gpt-5.1`, e, se quiser, uma **Descrição**. Clique em **Próximo**.
+Em **Provedor**, escolha **Azure OpenAI / Microsoft Foundry** como **Provedor LLM** e clique em **Próximo** para ir para **Conexão**.
 
-### Preencher as configurações do provedor
+### Preencher a conexão
 
 | Campo | O que digitar |
 | --- | --- |
-| **Provedor LLM** | **Azure OpenAI / Microsoft Foundry** |
 | **Chave de API** | **KEY 1** ou **KEY 2** do recurso |
-| **Nome do Modelo** | O nome da implantação, exatamente como o Foundry o mostra, como `gpt-5.1` |
 | **URL base** | O endpoint do recurso com `/openai/v1`, como `https://contoso-ai.openai.azure.com/openai/v1`. Para o Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Nome do Modelo** | O nome da implantação, exatamente como o Foundry o mostra, como `gpt-5.1` |
+| **Nome** | De início, o nome do provedor: dê a ele um que diga qual implantação é, como `Azure gpt-5.1` |
 
-**Definir como padrão**, em **Mais campos**, está ativado: os recursos de IA usam o provedor padrão do projeto. Clique em **Criar: Provedor LLM**.
+**Mais campos** tem uma **Descrição** e **Definir como padrão**, que está ativado: os recursos de IA usam o provedor padrão do projeto. Clique em **Criar: Provedor LLM**.
 
 ### Testar a conexão
 

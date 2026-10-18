@@ -558,9 +558,7 @@
         "bannerDescription": "LLM 提供商启用 AI 功能。您可以配置所有项目可用的全局 LLM 提供商。",
         "cardTitle": "全局 LLM 提供商",
         "cardDescription": "全局 LLM 提供商可用于所有项目的 AI 功能。配置 OpenAI、Anthropic、Ollama 或其他 LLM 提供商。",
-        "noItems": "未配置 LLM 提供商。添加 LLM 提供商以启用 AI 功能。",
-        "stepBasicInfo": "基本信息",
-        "stepProviderSettings": "提供商设置"
+        "noItems": "未配置 LLM 提供商。添加 LLM 提供商以启用 AI 功能。"
       }
     }
   },
@@ -928,5 +926,34 @@
   "For one person getting started.": "适合个人入门使用。",
   "For teams. On-call, workflows, integrations and API access.": "适合团队。值班、工作流、集成和 API 访问。",
   "For larger teams. SSO, advanced access control and faster support.": "适合较大的团队。SSO、高级访问控制和更快的支持。",
-  "Custom terms, a dedicated engineer and phone support.": "定制条款、专属工程师和电话支持。"
+  "Custom terms, a dedicated engineer and phone support.": "定制条款、专属工程师和电话支持。",
+  "Connection": "连接",
+  "OpenAI-Compatible (vLLM, LocalAI, etc.)": "OpenAI 兼容（vLLM、LocalAI 等）",
+  "GPT models, with an API key from OpenAI.": "GPT 模型，使用 OpenAI 的 API 密钥。",
+  "Claude models, with an API key from Anthropic.": "Claude 模型，使用 Anthropic 的 API 密钥。",
+  "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.": "你在 Azure 中部署的模型：OpenAI 模型、Foundry Models 和 Claude。",
+  "Fast open models, with an API key from Groq.": "快速的开放模型，使用 Groq 的 API 密钥。",
+  "Mistral's models, with an API key from Mistral.": "Mistral 的模型，使用 Mistral 的 API 密钥。",
+  "Open models you run yourself. No API key.": "你自己运行的开放模型。无需 API 密钥。",
+  "Any server with an OpenAI-style API, such as vLLM or LocalAI.": "任何提供 OpenAI 风格 API 的服务器，例如 vLLM 或 LocalAI。",
+  "Additional Parameters": "附加参数",
+  "Create one at platform.openai.com, under API keys.": "在 platform.openai.com 的 API keys 中创建。",
+  "Create one at console.anthropic.com, under API Keys.": "在 console.anthropic.com 的 API Keys 中创建。",
+  "KEY 1 or KEY 2, from your resource's Keys and Endpoint page.": "资源“密钥和终结点”页面上的 KEY 1 或 KEY 2。",
+  "Your resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.": "你的资源终结点，例如 https://<resource>.openai.azure.com/openai/v1；Claude 则为 https://<resource>.services.ai.azure.com/anthropic。",
+  "Create one at console.groq.com, under API Keys.": "在 console.groq.com 的 API Keys 中创建。",
+  "Create one at console.mistral.ai, under API Keys.": "在 console.mistral.ai 的 API Keys 中创建。",
+  "An address the OneUptime server can reach, such as http://ollama:11434. Not localhost.": "OneUptime 服务器可访问的地址，例如 http://ollama:11434。不能用 localhost。",
+  "A model you pulled into Ollama. Leave empty for {{model}}.": "你已拉取到 Ollama 中的模型。留空则使用 {{model}}。",
+  "Only if your server asks for one.": "仅在你的服务器要求时填写。",
+  "Your server's OpenAI-style API, such as http://vllm:8000/v1. Not localhost.": "你的服务器的 OpenAI 风格 API，例如 http://vllm:8000/v1。不能用 localhost。",
+  "A model your server serves, exactly as it names it.": "你的服务器提供的模型，名称须与服务器中的完全一致。",
+  "Leave empty for {{model}}.": "留空则使用 {{model}}。",
+  "Only to go through a proxy or a gateway. Leave empty for {{provider}}'s own API: {{url}}.": "仅在经由代理或网关时填写。留空则使用 {{provider}} 自己的 API：{{url}}。",
+  "Named after the provider until you type a name of your own.": "在你输入自己的名称之前，沿用提供商的名称。",
+  "e.g. Production OpenAI": "例如 生产环境 OpenAI",
+  "What this provider is for.": "此提供商的用途。",
+  "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "每次请求都会发送给提供商的额外 JSON 参数，例如 {\"temperature\": 0.2}。除非模型需要，否则留空。",
+  "Never put keys here.": "切勿在此填写密钥。",
+  "Your deployment's name, exactly as Foundry shows it.": "你的部署名称，须与 Foundry 中显示的完全一致。"
 }

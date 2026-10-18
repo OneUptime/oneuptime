@@ -111,20 +111,20 @@ Met `--custom-domain contoso-ai` is het eindpunt van de resource `https://contos
 
 Ga naar **Projectinstellingen** > **AI** > **LLM-providers** en klik op **LLM-provider aanmaken**.
 
-### De provider een naam geven
+### De provider kiezen
 
-Voer onder **Basisinformatie** een **Naam** in, zoals `Azure gpt-5.1`, en eventueel een **Beschrijving**. Klik op **Volgende**.
+Kies onder **Provider** **Azure OpenAI / Microsoft Foundry** als **LLM-provider** en klik op **Volgende** om naar **Verbinding** te gaan.
 
-### Providerinstellingen invullen
+### De verbinding invullen
 
 | Veld | Wat u invult |
 | --- | --- |
-| **LLM-provider** | **Azure OpenAI / Microsoft Foundry** |
 | **API-sleutel** | **KEY 1** of **KEY 2** van de resource |
-| **Modelnaam** | De naam van de implementatie, precies zoals Foundry hem toont, zoals `gpt-5.1` |
 | **Basis-URL** | Het eindpunt van de resource met `/openai/v1`, zoals `https://contoso-ai.openai.azure.com/openai/v1`. Voor Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modelnaam** | De naam van de implementatie, precies zoals Foundry hem toont, zoals `gpt-5.1` |
+| **Naam** | Eerst de naam van de provider: geef hem een naam die zegt welke implementatie het is, zoals `Azure gpt-5.1` |
 
-**Instellen als standaard**, onder **Meer velden**, staat aan: AI-functies gebruiken de standaardprovider van het project. Klik op **LLM-provider aanmaken**.
+**Meer velden** bevat een **Beschrijving** en **Instellen als standaard**, dat aan staat: AI-functies gebruiken de standaardprovider van het project. Klik op **LLM-provider aanmaken**.
 
 ### De verbinding testen
 

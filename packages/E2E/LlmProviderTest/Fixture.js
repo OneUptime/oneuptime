@@ -45,6 +45,10 @@ import UserUtil from "Common/UI/Utils/User";
  *   ?verdict=  passed (default) | warning | truncated | badkey | badmodel
  *              | busy | unreachable | refused | plan | legacy | slow
  *   ?theme=dark   ?lang=ja|de
+ *   ?blankmodel=1 the provider on its own page left its Model Name and Base
+ *                 URL blank (its page names the defaults the server uses)
+ *
+ * Every provider a form saves is kept in state.saves (LlmProviderForm.spec).
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -188,7 +192,7 @@ const providers = [
   provider(PROVIDER_ID, {
     name: "Chatgpt",
     llmType: LlmType.OpenAI,
-    modelName: "gpt-5.1",
+    modelName: params.get("blankmodel") === "1" ? undefined : "gpt-5.1",
     isDefault: true,
   }),
   provider(SECOND_PROVIDER_ID, {
@@ -315,6 +319,8 @@ const VERDICTS = {
 const state = {
   // Every Test request: the URL's path, the body and the headers sent.
   tests: [],
+  // Every provider a form saved: what it sent, and whether it was new.
+  saves: [],
   verdict: params.get("verdict") || "passed",
   // A held test waits here until the spec releases it.
   held: [],
@@ -387,6 +393,23 @@ ModelAPI.getItem = async (args) => {
     return item.id.toString() === args.id.toString();
   });
   return found ? copy(found) : null;
+};
+
+// A create or an edit, kept as the columns the provider form writes.
+ModelAPI.createOrUpdate = async (args) => {
+  const model = args.model;
+  state.saves.push({
+    formType: String(args.formType),
+    name: model.name,
+    description: model.description,
+    llmType: model.llmType,
+    apiKey: model.apiKey,
+    baseUrl: model.baseUrl,
+    modelName: model.modelName,
+    isDefault: model.isDefault,
+    isGlobalLlm: model.isGlobalLlm,
+  });
+  return { data: model };
 };
 
 // The tenant header every Dashboard request carries.

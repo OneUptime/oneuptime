@@ -19,18 +19,23 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Providers (create), a provider's own page (edit), and the Admin
  * Dashboard's Global LLM Providers.
  *
+ * The three draw one form now (Common/UI/Components/AI/
+ * LlmProviderFormFields): the provider first, as a card each, then only
+ * what that provider needs, with its own help under each field.
+ *
  *   - The provider is offered as "Azure OpenAI / Microsoft Foundry", the one
  *     type every Foundry deployment goes through.
- *   - API Key, Model Name and Base URL say what to paste for Foundry, and
- *     every Base URL the help suggests reaches the endpoint the docs say it
- *     does (LlmProviderEndpoint).
+ *   - Picked, API Key, Model Name and Base URL say what to paste for
+ *     Foundry, and every Base URL the help suggests reaches the endpoint the
+ *     docs say it does (LlmProviderEndpoint).
  *   - Base URL holds 100 characters, as the column does, and says so at the
  *     field: a deployment's whole Target URI with its api-version is refused
  *     before the save, while the resource's endpoint is taken.
  *
  * The tables and the detail card are captured instead of drawn: only the
- * fields they are handed are under test. The Base URL field is then handed
- * to the real BasicForm, to show what a person sees.
+ * fields they are handed are under test. The help under a field is drawn
+ * from the field itself, for the provider picked; the Base URL field is
+ * then handed to the real BasicForm, to show what a person sees.
  */
 
 const mockTables: Array<Record<string, unknown>> = [];
@@ -98,11 +103,14 @@ import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import { JSONObject } from "../../../Types/JSON";
 import LlmType from "../../../Types/LLM/LlmType";
 import ObjectID from "../../../Types/ObjectID";
+import { getLlmProviderFormSteps } from "../../../UI/Components/AI/LlmProviderFormFields";
+import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 import BasicForm from "../../../UI/Components/Forms/BasicForm";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
+import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
+import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Validation from "../../../UI/Components/Forms/Validation";
-import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import Navigation from "../../../UI/Utils/Navigation";
 import LlmProviderEndpoint from "../../../Utils/LLM/LlmProviderEndpoint";
 
@@ -118,7 +126,7 @@ type Field = ModelField<LlmProvider>;
 
 interface ProviderForm {
   name: string;
-  fields: () => Array<Field>;
+  form: () => { fields: Array<Field>; steps: Array<FormStep<LlmProvider>> };
 }
 
 function fieldOf(fields: Array<Field>, column: keyof LlmProvider): Field {
@@ -133,7 +141,16 @@ function fieldOf(fields: Array<Field>, column: keyof LlmProvider): Field {
   return found;
 }
 
-function tableFields(id: string): Array<Field> {
+function columnsOf(fields: Array<Field>): Array<string> {
+  return fields.map((field: Field): string => {
+    return Object.keys(field.field || {})[0] || "";
+  });
+}
+
+function tableForm(id: string): {
+  fields: Array<Field>;
+  steps: Array<FormStep<LlmProvider>>;
+} {
   const table: Record<string, unknown> | undefined = mockTables.find(
     (props: Record<string, unknown>) => {
       return props["id"] === id;
@@ -144,21 +161,24 @@ function tableFields(id: string): Array<Field> {
     throw new Error(`The ${id} table was not drawn.`);
   }
 
-  return table["formFields"] as Array<Field>;
+  return {
+    fields: table["formFields"] as Array<Field>,
+    steps: table["formSteps"] as Array<FormStep<LlmProvider>>,
+  };
 }
 
 const FORMS: Array<ProviderForm> = [
   {
     name: "Project Settings > AI > LLM Providers (create)",
-    fields: (): Array<Field> => {
+    form: () => {
       render(<LlmProvidersPage {...({} as unknown as PageComponentProps)} />);
 
-      return tableFields("project-llms-table");
+      return tableForm("project-llms-table");
     },
   },
   {
     name: "an LLM provider's page (edit)",
-    fields: (): Array<Field> => {
+    form: () => {
       render(
         <LlmProviderViewPage {...({} as unknown as PageComponentProps)} />,
       );
@@ -170,18 +190,41 @@ const FORMS: Array<ProviderForm> = [
         throw new Error("The provider's detail card was not drawn.");
       }
 
-      return detail["formFields"] as Array<Field>;
+      return {
+        fields: detail["formFields"] as Array<Field>,
+        steps: detail["formSteps"] as Array<FormStep<LlmProvider>>,
+      };
     },
   },
   {
     name: "Admin Dashboard > Settings > Global LLM Providers",
-    fields: (): Array<Field> => {
+    form: () => {
       render(<AdminLlmProvidersPage />);
 
-      return tableFields("llms-table");
+      return tableForm("llms-table");
     },
   },
 ];
+
+// The help a field draws under it, for a provider picked, as text.
+function helpUnder(field: Field, values: JSONObject): string {
+  const footer: ReactElement | undefined = field.getFooterElement?.(
+    values as FormValues<LlmProvider>,
+  );
+
+  if (!footer) {
+    return "";
+  }
+
+  const drawn: ReturnType<typeof render> = render(footer);
+  const text: string = (drawn.container.textContent || "").trim();
+
+  drawn.unmount();
+
+  return text;
+}
+
+const AZURE: JSONObject = { llmType: LlmType.AzureOpenAI };
 
 beforeEach(() => {
   mockTables.length = 0;
@@ -197,52 +240,113 @@ afterEach(() => {
 });
 
 describe.each(FORMS)("$name", (form: ProviderForm) => {
+  test("asks which provider first, then how to reach it", () => {
+    const { fields, steps } = form.form();
+
+    expect(steps).toEqual(getLlmProviderFormSteps());
+    expect(
+      steps.map((step: FormStep<LlmProvider>) => {
+        return step.title;
+      }),
+    ).toEqual(["Provider", "Connection"]);
+    // The provider alone on the first step, the rest on the second.
+    expect(
+      fields
+        .filter((field: Field) => {
+          return field.stepId === "provider";
+        })
+        .map((field: Field) => {
+          return Object.keys(field.field || {})[0];
+        }),
+    ).toEqual(["llmType"]);
+    expect(columnsOf(fields).slice(0, 5)).toEqual([
+      "llmType",
+      "apiKey",
+      "baseUrl",
+      "modelName",
+      "name",
+    ]);
+  });
+
   test("offers every Foundry deployment as Azure OpenAI / Microsoft Foundry, each provider type once", () => {
-    const options: Array<DropdownOption> = fieldOf(form.fields(), "llmType")
-      .dropdownOptions as Array<DropdownOption>;
+    const options: Array<CardSelectOption> = fieldOf(
+      form.form().fields,
+      "llmType",
+    ).cardSelectOptions as Array<CardSelectOption>;
 
     expect(
-      options.find((option: DropdownOption) => {
+      options.find((option: CardSelectOption) => {
         return option.value === LlmType.AzureOpenAI;
-      })?.label,
+      })?.title,
     ).toBe(FOUNDRY_LABEL);
     expect(
+      options.find((option: CardSelectOption) => {
+        return option.value === LlmType.AzureOpenAI;
+      })?.description,
+    ).toBe(
+      "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.",
+    );
+    expect(
       options
-        .map((option: DropdownOption) => {
+        .map((option: CardSelectOption) => {
           return option.value;
         })
         .sort(),
     ).toEqual([...Object.values(LlmType)].sort());
   });
 
-  test("the API Key asks for one of the resource's keys", () => {
-    expect(fieldOf(form.fields(), "apiKey").description).toContain(
-      `${FOUNDRY_LABEL} (one of your resource's keys)`,
+  test("the API Key asks for one of the resource's keys, as the server's refusal does", () => {
+    expect(helpUnder(fieldOf(form.form().fields, "apiKey"), AZURE)).toBe(
+      "KEY 1 or KEY 2, from your resource's Keys and Endpoint page.",
     );
   });
 
   test("the Model Name asks for the deployment's name", () => {
-    expect(fieldOf(form.fields(), "modelName").description).toContain(
-      `For ${FOUNDRY_LABEL}, your deployment's name.`,
+    expect(helpUnder(fieldOf(form.form().fields, "modelName"), AZURE)).toBe(
+      "Your deployment's name, exactly as Foundry shows it.",
     );
   });
 
   test("the Base URL asks for the resource's endpoint, not a deployment URL with an api-version", () => {
-    const description: string =
-      (fieldOf(form.fields(), "baseUrl").description as string) || "";
-
-    expect(description).toContain(
-      "On Azure: https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.",
+    const help: string = helpUnder(
+      fieldOf(form.form().fields, "baseUrl"),
+      AZURE,
     );
-    expect(description).not.toContain("/openai/deployments/");
-    expect(description).not.toContain("api-version");
+
+    expect(help).toBe(
+      "Your resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Never put keys here.",
+    );
+    expect(help).not.toContain("/openai/deployments/");
+    expect(help).not.toContain("api-version");
+  });
+
+  test("Azure needs its API Key and Base URL, and not a Model Name", () => {
+    const fields: Array<Field> = form.form().fields;
+    const azure: FormValues<LlmProvider> = AZURE as FormValues<LlmProvider>;
+
+    for (const column of ["apiKey", "baseUrl"] as Array<keyof LlmProvider>) {
+      const required: Field["required"] = fieldOf(fields, column).required;
+
+      expect({
+        column,
+        required: typeof required === "function" ? required(azure) : required,
+      }).toEqual({ column, required: true });
+    }
+
+    const modelName: Field["required"] = fieldOf(fields, "modelName").required;
+
+    expect(typeof modelName === "function" ? modelName(azure) : modelName).toBe(
+      false,
+    );
   });
 
   test("every Azure endpoint the Base URL help suggests reaches the API it is suggested for", () => {
-    const description: string =
-      (fieldOf(form.fields(), "baseUrl").description as string) || "";
+    const help: string = helpUnder(
+      fieldOf(form.form().fields, "baseUrl"),
+      AZURE,
+    );
     const suggested: Array<string> = (
-      description.match(/https:\/\/<resource>[^\s,]+/g) || []
+      help.match(/https:\/\/<resource>[^\s,]+/g) || []
     ).map((url: string) => {
       return url.replace("<resource>", "contoso-ai");
     });
@@ -267,17 +371,16 @@ describe.each(FORMS)("$name", (form: ProviderForm) => {
   test("the Base URL holds as many characters as its column", () => {
     const metadata: TableColumnMetadata =
       new LlmProvider().getTableColumnMetadata("baseUrl");
+    const baseUrl: Field = fieldOf(form.form().fields, "baseUrl");
 
-    expect(fieldOf(form.fields(), "baseUrl").validation?.maxLength).toBe(
+    expect(baseUrl.validation?.maxLength).toBe(
       getMaxLengthFromTableColumnType(metadata.type),
     );
-    expect(fieldOf(form.fields(), "baseUrl").validation?.maxLength).toBe(
-      ColumnLength.ShortURL,
-    );
+    expect(baseUrl.validation?.maxLength).toBe(ColumnLength.ShortURL);
   });
 
   test("a deployment's whole Target URI is refused at the field, the resource's endpoint is taken", () => {
-    const baseUrl: Field = fieldOf(form.fields(), "baseUrl");
+    const baseUrl: Field = fieldOf(form.form().fields, "baseUrl");
 
     expect(TARGET_URI.length).toBeGreaterThan(ColumnLength.ShortURL);
     expect(Validation.validateLength(TARGET_URI, baseUrl)).toBe(
@@ -288,59 +391,56 @@ describe.each(FORMS)("$name", (form: ProviderForm) => {
 });
 
 describe("the three forms say the same thing about Azure", () => {
-  test("their API Key, Model Name and the Azure sentence of the Base URL help match", () => {
+  test("their API Key, Model Name and Base URL help match", () => {
     const helps: Array<Record<string, string>> = FORMS.map(
       (form: ProviderForm) => {
-        const fields: Array<Field> = form.fields();
+        const fields: Array<Field> = form.form().fields;
         cleanup();
 
-        const baseUrl: string =
-          (fieldOf(fields, "baseUrl").description as string) || "";
-        const start: number = baseUrl.indexOf("On Azure:");
-        const end: number = baseUrl.indexOf("for Claude.");
-
         return {
-          apiKey: (fieldOf(fields, "apiKey").description as string) || "",
-          modelName: (fieldOf(fields, "modelName").description as string) || "",
-          azure:
-            start === -1 || end === -1
-              ? ""
-              : baseUrl.slice(start, end + "for Claude.".length),
+          apiKey: helpUnder(fieldOf(fields, "apiKey"), AZURE),
+          modelName: helpUnder(fieldOf(fields, "modelName"), AZURE),
+          baseUrl: helpUnder(fieldOf(fields, "baseUrl"), AZURE),
         };
       },
     );
 
-    expect(helps[0]!["azure"]).not.toBe("");
+    expect(helps[0]!["baseUrl"]).not.toBe("");
     expect(helps[1]).toEqual(helps[0]);
     expect(helps[2]).toEqual(helps[0]);
   });
 });
 
 describe("what a person sees at the Base URL field", () => {
-  async function submitBaseUrl(value: string): Promise<MockFunction> {
-    const fields: Array<Field> = FORMS[0]!.fields();
+  // The Base URL field alone, on the real form, with Azure picked.
+  async function drawBaseUrl(onSubmit: MockFunction): Promise<HTMLElement> {
+    const fields: Array<Field> = FORMS[0]!.form().fields;
     cleanup();
 
     const baseUrl: Field = {
       ...fieldOf(fields, "baseUrl"),
       stepId: undefined,
     };
-    const onSubmit: MockFunction = getJestMockFunction();
 
     render(
       <BasicForm
         id="base-url"
         fields={[baseUrl] as unknown as Fields<JSONObject>}
-        initialValues={{}}
+        initialValues={{ llmType: LlmType.AzureOpenAI }}
         onSubmit={onSubmit}
         submitButtonText="Save"
         disableAutofocus={true}
       />,
     );
 
-    const input: HTMLElement = await screen.findByRole("textbox", {
+    return await screen.findByRole("textbox", {
       name: /Base URL/,
     });
+  }
+
+  async function submitBaseUrl(value: string): Promise<MockFunction> {
+    const onSubmit: MockFunction = getJestMockFunction();
+    const input: HTMLElement = await drawBaseUrl(onSubmit);
 
     await userEvent.setup({ delay: null }).type(input, value);
     await userEvent
@@ -368,5 +468,13 @@ describe("what a person sees at the Base URL field", () => {
     expect(
       screen.queryByText("Base URL cannot be more than 100 characters."),
     ).not.toBeInTheDocument();
+  });
+
+  test("the help under it is Azure's while Azure is picked", async () => {
+    await drawBaseUrl(getJestMockFunction());
+
+    expect(
+      screen.getByTestId("llm-provider-base-url-hint").textContent,
+    ).toContain("https://<resource>.openai.azure.com/openai/v1");
   });
 });

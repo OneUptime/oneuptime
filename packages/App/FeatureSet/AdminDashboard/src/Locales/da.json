@@ -558,9 +558,7 @@
         "bannerDescription": "LLM-udbydere aktiverer AI-funktioner. Du kan konfigurere globale LLM-udbydere, der er tilgængelige for alle projekter.",
         "cardTitle": "Globale LLM-udbydere",
         "cardDescription": "Globale LLM-udbydere er tilgængelige for alle projekter for AI-funktioner. Konfigurer OpenAI, Anthropic, Ollama eller andre LLM-udbydere.",
-        "noItems": "Ingen LLM-udbydere konfigureret. Tilføj en LLM-udbyder for at aktivere AI-funktioner.",
-        "stepBasicInfo": "Grundlæggende info",
-        "stepProviderSettings": "Udbyderindstillinger"
+        "noItems": "Ingen LLM-udbydere konfigureret. Tilføj en LLM-udbyder for at aktivere AI-funktioner."
       }
     }
   },
@@ -928,5 +926,34 @@
   "For one person getting started.": "Til én person, der skal i gang.",
   "For teams. On-call, workflows, integrations and API access.": "Til teams. Vagt, arbejdsgange, integrationer og API-adgang.",
   "For larger teams. SSO, advanced access control and faster support.": "Til større teams. SSO, avanceret adgangskontrol og hurtigere support.",
-  "Custom terms, a dedicated engineer and phone support.": "Skræddersyede vilkår, en dedikeret ingeniør og telefonsupport."
+  "Custom terms, a dedicated engineer and phone support.": "Skræddersyede vilkår, en dedikeret ingeniør og telefonsupport.",
+  "Connection": "Forbindelse",
+  "OpenAI-Compatible (vLLM, LocalAI, etc.)": "OpenAI-kompatibel (vLLM, LocalAI osv.)",
+  "GPT models, with an API key from OpenAI.": "GPT-modeller med en API-nøgle fra OpenAI.",
+  "Claude models, with an API key from Anthropic.": "Claude-modeller med en API-nøgle fra Anthropic.",
+  "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.": "Modeller, du udruller i Azure: OpenAI-modeller, Foundry Models og Claude.",
+  "Fast open models, with an API key from Groq.": "Hurtige åbne modeller med en API-nøgle fra Groq.",
+  "Mistral's models, with an API key from Mistral.": "Mistrals modeller med en API-nøgle fra Mistral.",
+  "Open models you run yourself. No API key.": "Åbne modeller, du selv kører. Ingen API-nøgle.",
+  "Any server with an OpenAI-style API, such as vLLM or LocalAI.": "Enhver server med et API i OpenAI-stil, f.eks. vLLM eller LocalAI.",
+  "Additional Parameters": "Yderligere parametre",
+  "Create one at platform.openai.com, under API keys.": "Opret en på platform.openai.com under API keys.",
+  "Create one at console.anthropic.com, under API Keys.": "Opret en på console.anthropic.com under API Keys.",
+  "KEY 1 or KEY 2, from your resource's Keys and Endpoint page.": "KEY 1 eller KEY 2 fra siden Nøgler og slutpunkt for din ressource.",
+  "Your resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.": "Din ressources slutpunkt, f.eks. https://<resource>.openai.azure.com/openai/v1, eller https://<resource>.services.ai.azure.com/anthropic til Claude.",
+  "Create one at console.groq.com, under API Keys.": "Opret en på console.groq.com under API Keys.",
+  "Create one at console.mistral.ai, under API Keys.": "Opret en på console.mistral.ai under API Keys.",
+  "An address the OneUptime server can reach, such as http://ollama:11434. Not localhost.": "En adresse, OneUptime-serveren kan nå, f.eks. http://ollama:11434. Ikke localhost.",
+  "A model you pulled into Ollama. Leave empty for {{model}}.": "En model, du har hentet ind i Ollama. Lad feltet stå tomt for {{model}}.",
+  "Only if your server asks for one.": "Kun hvis din server beder om en.",
+  "Your server's OpenAI-style API, such as http://vllm:8000/v1. Not localhost.": "Din servers API i OpenAI-stil, f.eks. http://vllm:8000/v1. Ikke localhost.",
+  "A model your server serves, exactly as it names it.": "En model, din server leverer, skrevet præcis som serveren kalder den.",
+  "Leave empty for {{model}}.": "Lad feltet stå tomt for {{model}}.",
+  "Only to go through a proxy or a gateway. Leave empty for {{provider}}'s own API: {{url}}.": "Kun for at gå gennem en proxy eller en gateway. Lad feltet stå tomt for {{provider}}s eget API: {{url}}.",
+  "Named after the provider until you type a name of your own.": "Hedder som udbyderen, indtil du skriver dit eget navn.",
+  "e.g. Production OpenAI": "f.eks. Produktions-OpenAI",
+  "What this provider is for.": "Hvad udbyderen bruges til.",
+  "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Ekstra JSON-parametre, der sendes til udbyderen med hver anmodning, fx {\"temperature\": 0.2}. Lad stå tom, medmindre din model har brug for dem.",
+  "Never put keys here.": "Angiv aldrig nøgler her.",
+  "Your deployment's name, exactly as Foundry shows it.": "Navnet på din udrulning, præcis som Foundry viser det."
 }
