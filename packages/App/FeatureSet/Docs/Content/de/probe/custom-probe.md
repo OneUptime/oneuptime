@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Die Sonde anlegen
 
-Öffnen Sie **Monitore → Einstellungen → Sonden** und klicken Sie auf **Sonde erstellen**. Geben Sie ihr einen **Name** und eine **Beschreibung**: beide sind Pflicht. Unter **Weitere Felder** finden Sie das **Sondenlogo**, **Überwachung bei neuen Monitoren automatisch aktivieren**, womit diese Sonde für jeden neuen Monitor ausgewählt wird, den Sie anlegen, und **Beschriftungen**.
+Öffnen Sie **Monitore → Einstellungen → Sonden** und klicken Sie auf **Sonde erstellen**. Geben Sie ihr einen **Name** und eine **Beschreibung**: beide sind Pflicht. Unter **Weitere Felder** finden Sie das **Sondenlogo**, **Zu neuen Monitoren hinzufügen**, womit jeder neue Monitor mit dieser Sonde als Auswahl beginnt, und **Beschriftungen**.
 
 ### ID und Schlüssel kopieren
 

@@ -152,6 +152,7 @@ export class Service extends DatabaseService<Model> {
       await ChannelVerification.sendFirstCodeOrRemoveItem({
         service: this,
         itemId: createdItem.id!,
+        item: createdItem,
         issueAndSend: async (): Promise<void> => {
           await this.issueAndSendVerificationCode(createdItem);
         },
@@ -237,6 +238,16 @@ export class Service extends DatabaseService<Model> {
         "Item with ID " + itemId.toString() + " not found",
       );
     }
+
+    /*
+     * Only for a member of the row's project: anybody else's row is answered
+     * as one that does not exist, before the project is asked whether it can
+     * send (ChannelVerification.assertOwnerIsProjectMember).
+     */
+    await ChannelVerification.assertOwnerIsProjectMember({
+      item: item,
+      itemId: itemId,
+    });
 
     if (item.isVerified) {
       throw new BadDataException("WhatsApp number already verified");

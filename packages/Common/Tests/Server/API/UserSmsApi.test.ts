@@ -2,6 +2,7 @@ import UserSmsAPI from "../../../Server/API/UserSmsAPI";
 import UserCallService from "../../../Server/Services/UserCallService";
 import UserSmsService from "../../../Server/Services/UserSmsService";
 import ChannelVerification from "../../../Server/Utils/ChannelVerification";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
 import {
   NextFunction,
@@ -72,6 +73,8 @@ describe("UserSmsAPI", () => {
       status: jest.fn().mockReturnThis(),
     } as unknown as OneUptimeResponse;
     nextFunction = jest.fn();
+    // The number's owner is a member of its project, as in the dashboard.
+    jest.spyOn(ProjectMembership, "isMember").mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -186,6 +189,39 @@ describe("UserSmsAPI", () => {
         ...overrides,
       } as UserSMS;
     };
+
+    /*
+     * The person's own number, in a project they are not a member of (any
+     * more): the right code verifies nothing, and the answer is the one a
+     * number that does not exist gets.
+     */
+    it("should answer an owner who is not a member of the number's project as if it did not exist", async () => {
+      mockRequest.body = {
+        itemId: ITEM_ID,
+        code: "123456",
+      };
+      mockRequest.userAuthorization = {
+        userId: new ObjectID("user123"),
+      } as JSONWebTokenData;
+
+      UserSmsService.findOneById = jest.fn().mockResolvedValue(buildLiveItem());
+      jest.spyOn(ProjectMembership, "isMember").mockResolvedValue(false);
+
+      await mockRouter
+        .match("post", "/user-sms/verify")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(Response.sendErrorResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+        new BadDataException("Item not found"),
+      );
+      expect(UserSmsService.updateOneById).not.toHaveBeenCalled();
+      expect(
+        UserSmsService.atomicIncrementColumnValueByOneAndGetValue,
+      ).not.toHaveBeenCalled();
+      expect(UserCallService.verifyNumbersProvenBySms).not.toHaveBeenCalled();
+    });
 
     it("should handle Invalid code", async () => {
       const error: BadDataException = new BadDataException("Invalid code");
@@ -427,6 +463,35 @@ describe("UserSmsAPI", () => {
         "sendErrorResponse",
       );
       expect(response).toHaveBeenCalledWith(mockRequest, mockResponse, error);
+      expect(UserSmsService.resendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A session that names nobody is refused before any number is read, so
+     * two missing ids - the caller's and an ownerless row's - never compare
+     * equal.
+     */
+    it("should refuse a session that names no person before reading the number", async () => {
+      mockRequest.body = {
+        itemId: "item1",
+      };
+      mockRequest.userAuthorization = {} as JSONWebTokenData;
+
+      UserSmsService.findOneById = jest
+        .fn()
+        .mockResolvedValue({ _id: "123" } as UserSMS);
+      UserSmsService.resendVerificationCode = jest.fn().mockResolvedValue(null);
+
+      await mockRouter
+        .match("post", "/user-sms/resend-verification-code")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(Response.sendErrorResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+        new BadDataException("Invalid user ID"),
+      );
+      expect(UserSmsService.findOneById).not.toHaveBeenCalled();
       expect(UserSmsService.resendVerificationCode).not.toHaveBeenCalled();
     });
 

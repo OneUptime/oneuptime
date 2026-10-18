@@ -168,7 +168,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ### 수집할 항목 고르기
 
-끌 이유가 없다면 **Metric Groups**의 모든 그룹을 켜 둔 채로 두세요. [메트릭 그룹](#메트릭-그룹)을 참조하세요.
+**추가 필드**에 있는 **Metric Groups**의 모든 그룹은 처음에 켜져 있습니다. 끌 이유가 없다면 켜 둔 채로 두세요. [메트릭 그룹](#메트릭-그룹)을 참조하세요.
 
 ### 연결 테스트하기
 
@@ -191,13 +191,14 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **호스트** | 프로브에서 접근할 수 있는 데이터베이스 호스트(예: `db.internal`). |
 | **포트** | 데이터베이스 포트. |
 | **데이터베이스 이름** | 연결할 데이터베이스. 데이터베이스 범위 메트릭(크기, 캐시 적중률, 임시 파일로의 유출)은 이 데이터베이스에 대해 보고되고, 서버 범위 메트릭(연결, 가동 시간, 복제)은 서버 전체에 대해 보고됩니다. 단, Azure SQL Database에서는 연결을 모니터링하는 데이터베이스에 대해서만 셉니다. |
-| **Use Windows Integrated Authentication** | Microsoft SQL Server 전용. 사용자 이름과 비밀번호 대신 프로브 프로세스의 ID로 인증합니다. SQL Query 모니터 페이지의 [Windows 통합 인증](/docs/monitor/sql-monitor#windows-통합-인증)을 참조하세요. 설정 방법은 같습니다. |
+| **인증** | Microsoft SQL Server 전용: 기본값인 **사용자 이름과 비밀번호**, 또는 프로브 프로세스로 로그인하는 **Windows Integrated Authentication**. SQL Query 모니터 페이지의 [Windows 통합 인증](/docs/monitor/sql-monitor#windows-통합-인증)을 참조하세요. 설정 방법은 같습니다. |
 | **사용자 이름** | 모니터링 사용자. Windows 통합 인증을 쓰지 않는다면 필수입니다. |
 | **비밀번호** | 비밀번호. 일반 텍스트로 입력하지 말고 `{{monitorSecrets.name}}`으로 [모니터 시크릿](/docs/monitor/monitor-secrets)을 참조하세요([모니터 시크릿 사용하기](#비밀번호에-모니터-시크릿-사용하기) 참조). |
 | **Use SSL/TLS** | TLS로 연결합니다. 켜면 자체 서명 인증서를 위해 **Verify server certificate**를 끌 수 있습니다. |
-| **Metric Groups** | 실행할 그룹: Connections, 활동, Throughput, Locks and Blocking, 스토리지, Replication, 유지 관리. 기본적으로 모두 켜져 있습니다. [메트릭 그룹](#메트릭-그룹)을 참조하세요. 모니터 세부 정보에는 **Collected Metric Groups**로 표시됩니다. |
 
 ### 추가 필드
+
+**Metric Groups**도 여기에 있습니다: Connections, 활동, Throughput, Locks and Blocking, 스토리지, Replication, 유지 관리 중 실행할 그룹. 기본적으로 모두 켜져 있습니다. [메트릭 그룹](#메트릭-그룹)을 참조하세요. 모니터 세부 정보에는 **Collected Metric Groups**로 표시됩니다.
 
 | 필드 | 기본값 | 최댓값 | 제한하는 것 |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL은 `track_io_timing`이 켜져 있을 때만 이 값들을 측정하�
 :::
 
 :::details 확인할 때마다 Metric Groups Failed가 0보다 큼
-어떤 확인에서도 수집할 수 없는 그룹이 있어서 같은 수집 문제가 반복됩니다. 모니터 요약에 그룹, 이유, 해결하는 `GRANT`가 표시됩니다. 그 권한을 부여하거나, 받을 수 없다면 **Metric Groups**에서 그 그룹을 꺼서 문제가 반복되지 않게 하세요.
+어떤 확인에서도 수집할 수 없는 그룹이 있어서 같은 수집 문제가 반복됩니다. 모니터 요약에 그룹, 이유, 해결하는 `GRANT`가 표시됩니다. 그 권한을 부여하거나, 받을 수 없다면 **추가 필드 → Metric Groups**에서 그 그룹을 꺼서 문제가 반복되지 않게 하세요.
 :::
 
 ## 다음 단계

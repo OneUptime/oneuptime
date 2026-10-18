@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Skapa sonden
 
-Öppna **Övervakare → Inställningar → Sonder** och klicka på **Skapa Sond**. Ge den ett **Namn** och en **Beskrivning**: båda är obligatoriska. **Fler fält** innehåller **Sondlogotyp**, **Aktivera övervakning automatiskt på nya övervakare**, som väljer den här sonden för varje ny övervakare du skapar, och **Etiketter**.
+Öppna **Övervakare → Inställningar → Sonder** och klicka på **Skapa Sond**. Ge den ett **Namn** och en **Beskrivning**: båda är obligatoriska. **Fler fält** innehåller **Sondlogotyp**, **Lägg till på nya övervakare**, som gör att varje ny övervakare börjar med den här sonden vald, och **Etiketter**.
 
 ### Kopiera dess ID och nyckel
 

@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Créer la sonde
 
-Ouvrez **Moniteurs → Paramètres → Sondes** et cliquez sur **Créer : Sonde**. Donnez-lui un **Nom** et une **Description** : les deux sont obligatoires. **Plus de champs** contient le **Logo de la sonde**, **Activer automatiquement la surveillance sur les nouveaux moniteurs**, qui choisit cette sonde pour chaque nouveau moniteur que vous créez, et les **Étiquettes**.
+Ouvrez **Moniteurs → Paramètres → Sondes** et cliquez sur **Créer : Sonde**. Donnez-lui un **Nom** et une **Description** : les deux sont obligatoires. **Plus de champs** contient le **Logo de la sonde**, **Ajouter aux nouveaux moniteurs**, qui fait démarrer chaque nouveau moniteur avec cette sonde sélectionnée, et les **Étiquettes**.
 
 ### Copier son ID et sa clé
 

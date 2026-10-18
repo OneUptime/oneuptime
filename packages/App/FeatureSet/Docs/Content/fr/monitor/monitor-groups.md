@@ -5,7 +5,7 @@ Un groupe de moniteurs réunit plusieurs moniteurs en un seul statut. Regroupez 
 :::cards
 - [Comment le statut d'un groupe est calculé](#comment-le-statut-dun-groupe-est-calculé): Le pire statut parmi ses moniteurs.
 - [Activer les groupes de moniteurs](#activer-les-groupes-de-moniteurs): Un seul interrupteur dans les paramètres du projet.
-- [Créer un groupe de moniteurs](#créer-un-groupe-de-moniteurs): Nommez-le, puis attribuez-lui ses moniteurs.
+- [Créer un groupe de moniteurs](#créer-un-groupe-de-moniteurs): Nommez-le, puis ajoutez-lui ses moniteurs.
 - [Afficher un groupe sur une page de statut](#afficher-un-groupe-sur-une-page-de-statut): Une seule ligne pour tout le groupe.
 :::
 
@@ -27,7 +27,7 @@ flowchart TB
 ```
 
 - **Les moniteurs archivés ne comptent pas.** Un moniteur archivé n'est pas vérifié, son statut est donc figé ; le groupe l'écarte.
-- **Un groupe vide est opérationnel.** Un groupe sans moniteur, ou avec seulement des moniteurs archivés, affiche votre statut opérationnel.
+- **Un groupe vide est opérationnel.** Un groupe sans moniteur, ou avec seulement des moniteurs archivés, affiche votre statut opérationnel. Tant que vous n'ajoutez pas de moniteur, le tableau de bord affiche **Aucun moniteur pour l'instant** à la place de son statut.
 - **L'ordre est le vôtre.** Le pire statut suit l'ordre de **Moniteurs → Paramètres → Statut du moniteur**. Voir [Statuts de moniteur](/docs/monitor/criteria-and-statuses#statuts-de-moniteur).
 
 Un groupe de moniteurs n'est pas un groupe de page de statut. Un groupe de page de statut est un titre sur une page de statut qui contient des lignes. Un groupe de moniteurs est une ligne qui représente plusieurs moniteurs, et n'importe quelle page de statut peut l'afficher.
@@ -63,16 +63,16 @@ Allez dans **Moniteurs → Groupes de moniteurs**. La carte **Groupes de moniteu
 
 Cliquez sur **Créer : Groupe de moniteurs**, saisissez un **Nom** et, si vous le souhaitez, une **Description**, puis cliquez sur **Créer : Groupe de moniteurs** en bas du formulaire. Le groupe commence sans aucun moniteur.
 
-### Attribuer ses moniteurs
+### Ajouter ses moniteurs
 
-Ouvrez le groupe et cliquez sur **Moniteurs** dans son menu latéral. Cliquez sur **Attribuer un moniteur**, choisissez un moniteur sous **Sélectionner le moniteur** et cliquez sur **Attribuer**. Faites-le pour chaque moniteur du groupe.
+Ouvrez le groupe : tant qu'il n'a aucun moniteur, sa **Vue d'ensemble** propose **Ajouter des moniteurs**. Ensuite, cliquez sur **Moniteurs** dans son menu latéral, puis sur **Ajouter des moniteurs**. Choisissez chaque moniteur du groupe sous **Moniteurs** et cliquez sur **Ajouter des moniteurs**.
 
 ### Vérifier son statut
 
 Cliquez sur **Vue d'ensemble**. **État actuel** montre le statut actuel du groupe, et **Graphique de disponibilité** montre ses 90 derniers jours, une barre par jour.
 :::
 
-Pour retirer un moniteur du groupe, cliquez sur **Désassigner** sur sa ligne dans **Moniteurs dans le groupe**. Le moniteur lui-même ne change pas. Un moniteur peut appartenir à plusieurs groupes.
+Pour retirer un moniteur du groupe, cliquez sur **Supprimer** sur sa ligne dans **Moniteurs dans le groupe**. Le moniteur lui-même ne change pas. Un moniteur peut appartenir à plusieurs groupes.
 
 ## Les pages d'un groupe
 
@@ -80,12 +80,12 @@ Ouvrez un groupe pour voir ses pages dans le menu latéral :
 
 | Page | Ce qu'elle montre |
 | --- | --- |
-| **Vue d'ensemble** | **Détails du groupe de moniteurs**, **État actuel** et **Graphique de disponibilité** avec le pourcentage de disponibilité du groupe sur les 90 derniers jours. |
-| **Propriétaires** | Les personnes et les équipes responsables du groupe. |
-| **Moniteurs** | **Moniteurs dans le groupe**, avec **Attribuer un moniteur** et **Désassigner**. |
+| **Vue d'ensemble** | **Détails du groupe de moniteurs**, **État actuel** et **Graphique de disponibilité** avec le pourcentage de disponibilité du groupe sur les 90 derniers jours. Un groupe sans moniteur propose **Ajouter des moniteurs** à la place du graphique. |
+| **Moniteurs** | **Moniteurs dans le groupe**, avec **Ajouter des moniteurs** et **Supprimer**. |
 | **Incidents** | Les incidents sur n'importe quel moniteur du groupe. |
 | **Alertes** | Les alertes sur n'importe quel moniteur du groupe. |
-| **Journaux d'audit** | Qui a modifié le groupe, et quand. Elle se trouve sous **Avancé**, qui est replié au départ. |
+| **Propriétaires** | Les personnes et les équipes responsables du groupe. Elle se trouve sous **Avancé**, qui est replié au départ. |
+| **Journaux d'audit** | Qui a modifié le groupe, et quand, également sous **Avancé**. |
 | **Supprimer le groupe** | Supprime le groupe, également sous **Avancé**. |
 
 La disponibilité de la **Vue d'ensemble** compte tout statut autre que l'opérationnel comme indisponibilité. Une page de statut ne compte que les statuts de sa propre liste **Compte comme indisponibilité** : voir [Choisir ce qui s'affiche sur la page](/docs/status-pages/index#choisir-ce-qui-saffiche-sur-la-page).
@@ -130,7 +130,7 @@ L'interrupteur **Groupes de moniteurs** est désactivé. Activez-le sous **Param
 :::
 
 :::details Le groupe affiche Hors ligne, mais la plupart de ses moniteurs fonctionnent
-C'est la règle : le groupe affiche son pire moniteur. Ouvrez **Moniteurs** dans le groupe pour trouver le moniteur en panne, ou désassignez un moniteur qui n'a pas sa place dans le groupe.
+C'est la règle : le groupe affiche son pire moniteur. Ouvrez **Moniteurs** dans le groupe pour trouver le moniteur en panne, ou retirez un moniteur qui n'a pas sa place dans le groupe.
 :::
 
 :::details Une page de statut ne peut pas ajouter le groupe

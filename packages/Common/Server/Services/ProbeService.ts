@@ -124,6 +124,17 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The auth cache entry of a probe: one per probe, whatever case its id is
+   * written in. Postgres reads a uuid in any case, so a probe authenticates
+   * with its id upper-cased too - and an entry per spelling would be one
+   * that rotating or deleting the probe (which writes the revocation
+   * sentinel under the id as stored, lower-cased) never reaches.
+   */
+  private getAuthCacheKey(probeId: ObjectID): string {
+    return probeId.toString().toLowerCase();
+  }
+
+  /*
    * Verifies a probeId/probeKey pair, serving repeat verifications from
    * cache. This runs on EVERY authenticated probe request (heartbeats,
    * monitor list fetches, result ingest), so it must stay responsive even
@@ -145,6 +156,9 @@ export class Service extends ProjectReferencesService<Model> {
    *   the stale window if the invalidation write itself fails: a REVOKED
    *   key can then still authenticate for at most
    *   PROBE_AUTH_KEY_HASH_CACHE_TTL_IN_SECONDS.
+   * - A probe has one entry, whatever case its id arrives in
+   *   (getAuthCacheKey), so that sentinel is the entry every spelling of
+   *   the id reads.
    * - Any cache failure (Redis down, slow, timeout) falls back to the
    *   database check — never open.
    */
@@ -162,13 +176,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     const presentedKeyHash: string = this.hashProbeKey(data.probeKey);
 
+    const cacheKey: string = this.getAuthCacheKey(data.probeId);
+
     try {
       const cachedKeyHash: string | null = await this.boundedCacheOperation(
         "Probe auth cache read",
-        GlobalCache.getString(
-          PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE,
-          data.probeId.toString(),
-        ),
+        GlobalCache.getString(PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE, cacheKey),
       );
 
       if (cachedKeyHash && cachedKeyHash === presentedKeyHash) {
@@ -216,10 +229,7 @@ export class Service extends ProjectReferencesService<Model> {
        */
       const currentCacheValue: string | null = await this.boundedCacheOperation(
         "Probe auth cache pre-write read",
-        GlobalCache.getString(
-          PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE,
-          data.probeId.toString(),
-        ),
+        GlobalCache.getString(PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE, cacheKey),
       );
 
       if (
@@ -230,7 +240,7 @@ export class Service extends ProjectReferencesService<Model> {
           "Probe auth cache write",
           GlobalCache.setString(
             PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE,
-            data.probeId.toString(),
+            cacheKey,
             presentedKeyHash,
             {
               expiresInSeconds: PROBE_AUTH_KEY_HASH_CACHE_TTL_IN_SECONDS,
@@ -271,7 +281,7 @@ export class Service extends ProjectReferencesService<Model> {
           "Probe auth cache invalidation",
           GlobalCache.setString(
             PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE,
-            probeId.toString(),
+            this.getAuthCacheKey(probeId),
             PROBE_AUTH_KEY_REVOKED_SENTINEL,
             {
               expiresInSeconds: PROBE_AUTH_KEY_HASH_CACHE_TTL_IN_SECONDS,

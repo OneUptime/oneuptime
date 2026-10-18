@@ -482,6 +482,51 @@ describe("the Join call button in the event's header", () => {
     );
   });
 
+  test.each([
+    "javascript:alert(document.domain)",
+    "JavaScript:alert(document.domain)",
+    "  javascript:alert(document.domain)",
+    "java\nscript:alert(document.domain)",
+    "data:text/html,<script>alert(1)</script>",
+    "//evil.example.com/room",
+    "not a link",
+  ])(
+    "is absent when the newest call's link is not an http or https address: %j",
+    (joinUrl: string) => {
+      const open: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(window, "open")
+        .mockImplementation((): null => {
+          return null;
+        });
+
+      expect(
+        getJoinVideoCallAction([
+          callOf(VideoCallProvider.CustomLink, joinUrl),
+          callOf(VideoCallProvider.Zoom, "https://example.zoom.us/j/1"),
+        ]),
+      ).toBeNull();
+      expect(open).not.toHaveBeenCalled();
+    },
+  );
+
+  test("opens the newest call's link as the browser reads it", () => {
+    const open: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(window, "open")
+      .mockImplementation((): null => {
+        return null;
+      });
+
+    getJoinVideoCallAction([
+      callOf(VideoCallProvider.CustomLink, "  HTTPS://Bridge.Example.com "),
+    ])!.onClick();
+
+    expect(open).toHaveBeenCalledWith(
+      "https://bridge.example.com/",
+      "_blank",
+      "noopener,noreferrer",
+    );
+  });
+
   test("says Join huddle for a Slack huddle", () => {
     expect(
       getJoinVideoCallAction([

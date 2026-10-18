@@ -119,6 +119,7 @@ import MoveGoogleSecOpsConnectionsToSecurityEventConnections from "./MoveGoogleS
 import BackfillAuditLogRootResource from "./BackfillAuditLogRootResource";
 import MaterializeAttributeValuesIndex from "./MaterializeAttributeValuesIndex";
 import RemoveChatAccountLinksNotMadeBySignIn from "./RemoveChatAccountLinksNotMadeBySignIn";
+import RemoveNotificationSettingsOfNonMembers from "./RemoveNotificationSettingsOfNonMembers";
 import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkflows";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
@@ -736,6 +737,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * sits before the last slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveChatAccountLinksNotMadeBySignIn(),
+  /*
+   * A person's own notification settings for a project are added only by
+   * a member of it now; this removes the ones people who are not members
+   * of a project hold there, as leaving removes them (the walk
+   * RemoveNotificationSettingsOfFormerMembers ran). Postgres-only,
+   * idempotent, never touches a member's rows. No ordering requirement,
+   * so it sits before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new RemoveNotificationSettingsOfNonMembers(),
   /*
    * Huntress became a workflow trigger: each Huntress connection becomes
    * the workflow that does what it did - same id, same address Huntress

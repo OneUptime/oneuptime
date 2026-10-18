@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30512,
-    "untranslated": 9763
+    "keys": 30566,
+    "untranslated": 9759
   },
   "sameAsEnglish": [
     " incidents",
@@ -366,6 +366,8 @@
     "port {{port}}",
     "services",
     "syslog",
+    "{{count}} incident",
+    "{{count}} incidents",
     "{{count}} minutes",
     "{{count}} option",
     "{{count}} options",

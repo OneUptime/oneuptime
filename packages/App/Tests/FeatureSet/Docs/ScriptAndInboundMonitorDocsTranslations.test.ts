@@ -137,7 +137,13 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SQL Query Error",
     "JavaScript Expression",
   ],
-  [SYNTHETIC_MONITOR]: ["Synthetic Monitoring", "Result Value", "Screen Size"],
+  [SYNTHETIC_MONITOR]: [
+    "Synthetic Monitoring",
+    "Result Value",
+    "Screen Size",
+    // The Browser Type list's option a new monitor starts on (BrowserType).
+    "Chromium",
+  ],
   [INCOMING_REQUEST_MONITOR]: [
     ...RECEIVED_CONDITIONS_IN_ENGLISH,
     "Request Header",
