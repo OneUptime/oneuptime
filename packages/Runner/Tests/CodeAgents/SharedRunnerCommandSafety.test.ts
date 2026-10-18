@@ -97,7 +97,11 @@ function makeWorkspace(): string {
 }
 
 function toolCall(name: string, args: Record<string, unknown>): LLMToolCall {
-  return { id: `call-${name}`, name, arguments: args } as unknown as LLMToolCall;
+  return {
+    id: `call-${name}`,
+    name,
+    arguments: args,
+  } as unknown as LLMToolCall;
 }
 
 /*
@@ -190,8 +194,7 @@ async function runAgent(
 
 // The `tools` the agent advertised on its first completion call.
 function advertisedToolNames(): Array<string> {
-  const firstCall: Array<unknown> | undefined =
-    llmCompletionMock.mock.calls[0];
+  const firstCall: Array<unknown> | undefined = llmCompletionMock.mock.calls[0];
   const payload: { tools?: Array<{ name: string }> } =
     (firstCall?.[0] as { tools?: Array<{ name: string }> }) || {};
 
