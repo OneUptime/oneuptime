@@ -744,6 +744,24 @@ const printedValueFor: (label: string) => string = (label: string): string => {
   return valueElement?.textContent || "";
 };
 
+/*
+ * A test card's sentence and link are its body, not its description: a
+ * card's description is hidden on a phone (max-md:hidden), which left the
+ * card a title with nothing under it there. The link is drawn as one.
+ */
+const expectTestLinkInBody: (card: HTMLElement, testId: string) => void = (
+  card: HTMLElement,
+  testId: string,
+): void => {
+  const body: HTMLElement = within(card).getByTestId(testId);
+
+  expect(body).toHaveTextContent(
+    'Open this link to test the provider. It must be enabled, which only adds a "Sign in with SSO" option and locks no one out.',
+  );
+  expect(within(body).getByRole("link")).toHaveClass("text-indigo-600");
+  expect(within(card).queryByTestId("card-description")).toBeNull();
+};
+
 const expectNothingRetired: () => void = (): void => {
   for (const testId of RETIRED_TEST_IDS) {
     expect({ testId, present: screen.queryByTestId(testId) !== null }).toEqual({
@@ -1030,6 +1048,7 @@ describe("the Global SSO provider page", () => {
       expect(testLink).toHaveAttribute("href", SAML_TEST_LOGIN_URL);
       expect(testLink).toHaveAttribute("target", "_blank");
       expect(testLink).toHaveTextContent(SAML_TEST_LOGIN_URL);
+      expectTestLinkInBody(testCard, "global-sso-test-link");
     });
   });
 
@@ -1147,6 +1166,7 @@ describe("the Global OIDC provider page", () => {
       expect(testLink).toHaveAttribute("href", OIDC_TEST_LOGIN_URL);
       expect(testLink).toHaveAttribute("target", "_blank");
       expect(testLink).toHaveTextContent(OIDC_TEST_LOGIN_URL);
+      expectTestLinkInBody(testCard, "global-oidc-test-link");
     });
   });
 

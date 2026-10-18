@@ -67,7 +67,6 @@ const SSO_PAGES: Array<SsoPage> = [
     printedUrls: [
       "`${HTTP_PROTOCOL}${HOST}/${props.currentProject?._id}/${showSingleSignOnUrlId}`",
       "`/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`",
-      "`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`",
     ],
     requireSso: "switch",
   },
@@ -101,6 +100,44 @@ const STATUS_PAGE_SIGN_IN_TEST: Array<string> = [
   "StatusPage",
   "StatusPageSignInTestCard.tsx",
 ];
+
+/*
+ * The project's sign-in link to test a provider with, printed by the card
+ * Settings > SSO draws under its SAML and OIDC providers - once there is
+ * one to test.
+ */
+describe("Settings > SSO > Test Single Sign On (SSO)", () => {
+  const card: string = readCode(
+    "Components",
+    "Sso",
+    "ProjectSignInTestCard.tsx",
+  );
+  const page: string = readCode("Pages", "Settings", "SSO.tsx");
+
+  test("prints the project's sign-in link byte for byte", () => {
+    expect(card).toContain(
+      "`${DASHBOARD_URL.toString()}/${projectId.toString()}/sso`",
+    );
+    expect(page).toContain(
+      "<ProjectSignInTestCard projectId={ProjectUtil.getCurrentProjectId()!} />",
+    );
+  });
+
+  test("is drawn once either list holds a provider to test", () => {
+    expect(page).toContain(
+      "const hasProviderToTest: boolean = samlProviderCount + oidcProviderCount > 0;",
+    );
+    expect(page).toContain(
+      "{hasProviderToTest ? ( <ProjectSignInTestCard projectId={ProjectUtil.getCurrentProjectId()!} /> ) : ( <></> )}",
+    );
+    expect(page).toContain("setSamlProviderCount(totalCount);");
+    expect(page).toContain("onProviderCountChange={setOidcProviderCount}");
+  });
+
+  test("reaches nothing that depends on the edition or the license", () => {
+    expect(enterpriseConstructsIn(card)).toEqual([]);
+  });
+});
 
 describe("Status page > Test Sign-In", () => {
   test("prints the status page's sign-in link byte for byte", () => {
@@ -215,7 +252,7 @@ describe.each(SSO_PAGES)("$name page", (page: SsoPage) => {
         'import RequireSsoForLoginCard from "../../Components/Project/RequireSsoForLoginCard";',
       );
       expect(code).toContain(
-        "<RequireSsoForLoginCard projectId={ProjectUtil.getCurrentProjectId()!} />",
+        "<RequireSsoForLoginCard projectId={ProjectUtil.getCurrentProjectId()!} isTestLinkShown={hasProviderToTest} />",
       );
       expect(countOf(code, "isEditable={true}")).toBe(1);
       expect(code).not.toContain("CardModelDetail");
@@ -279,7 +316,7 @@ describe("Settings > SSO's OpenID Connect providers", () => {
     );
     expect(countOf(page, "<ProjectOidcProviders ")).toBe(1);
     expect(page.indexOf("<ProjectOidcProviders ")).toBeLessThan(
-      page.indexOf("title={`Test Single Sign On (SSO)`}"),
+      page.indexOf("<ProjectSignInTestCard"),
     );
     expect(page.indexOf("<ProjectOidcProviders ")).toBeLessThan(
       page.indexOf("<RequireSsoForLoginCard"),

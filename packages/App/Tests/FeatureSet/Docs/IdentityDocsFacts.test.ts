@@ -77,6 +77,9 @@ const SOURCES: Record<string, string> = {
   projectSsoPage: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
   // On the SSO page, under its SAML providers.
   projectOidcProviders: `${DASHBOARD}/Components/Sso/ProjectOidcProviders.tsx`,
+  // What the SSO page calls its providers, and its test link's card.
+  projectSsoCopy: `${DASHBOARD}/Components/Sso/ProjectSsoCopy.ts`,
+  projectSignInTestCard: `${DASHBOARD}/Components/Sso/ProjectSignInTestCard.tsx`,
   movedPagePaths: `${DASHBOARD}/Routes/MovedPagePaths.ts`,
   settingsRoutes: `${DASHBOARD}/Routes/SettingsRoutes.tsx`,
   providerPickPage: `${DASHBOARD}/Pages/Onboarding/SSO.tsx`,
@@ -123,7 +126,7 @@ const ROLE_LEVEL: RegExp = / (Admin|Member|Viewer)$/;
 
 // The test link of a project's SSO page: the project's /sso page.
 const SSO_TEST_LINK: RegExp =
-  /const testUrl: string = `\$\{DASHBOARD_URL\.toString\(\)\}\/\$\{ProjectUtil\.getCurrentProjectId\(\)\?\.toString\(\)\}\/sso`;/;
+  /return `\$\{DASHBOARD_URL\.toString\(\)\}\/\$\{projectId\.toString\(\)\}\/sso`;/;
 
 /*
  * The global provider's two questions, both in the form's More fields
@@ -717,10 +720,37 @@ describe("the SSO guide", () => {
     }
   });
 
+  /*
+   * The project's SSO page names its two lists for what they hold, as a
+   * status page's lists do: Add SAML Provider and Add OIDC Provider, where
+   * they read Create SSO and Create OIDC after the models.
+   */
+  it("names the SSO page's buttons as the page draws them", () => {
+    const copy: string = readSource("projectSsoCopy");
+    const page: string = readSource("projectSsoPage");
+    const oidc: string = readSource("projectOidcProviders");
+
+    for (const [source, key, noun, button] of [
+      [page, "samlProvider", "SAML Provider", "Add SAML Provider"],
+      [oidc, "oidcProvider", "OIDC Provider", "Add OIDC Provider"],
+    ] as Array<[string, string, string, string]>) {
+      expect(copy).toContain(`${key}: translationKey("${noun}")`);
+      expect(source).toContain(`singularName={ProjectSsoCopy.${key}}`);
+      expect(source).toContain('createVerb="Add"');
+      expect({ button, named: english(SSO).includes(`**${button}**`) }).toEqual(
+        { button, named: true },
+      );
+    }
+
+    expect(english(SSO)).not.toContain("**Create SSO**");
+    expect(english(SSO)).not.toContain("**Create OIDC**");
+    expect(readSource("modelTable")).toContain(
+      'Add: translationKey("Add {{itemName}}")',
+    );
+  });
+
   it("names the create buttons after the models", () => {
     for (const [model, page] of [
-      [new ProjectSSO(), SSO],
-      [new ProjectOIDC(), SSO],
       [new ProjectSCIM(), SCIM],
       [new GlobalSSO(), GLOBAL_SSO],
       [new GlobalOIDC(), GLOBAL_SSO],
@@ -743,8 +773,16 @@ describe("the SSO guide", () => {
 
   it("says the test link opens the project's providers, one of which you pick", () => {
     // One link, on the SSO page, for its SAML and OIDC providers alike.
-    expect(SSO_TEST_LINK.test(readSource("projectSsoPage"))).toBe(true);
+    expect(SSO_TEST_LINK.test(readSource("projectSignInTestCard"))).toBe(true);
+    expect(readSource("projectSsoPage")).toContain("<ProjectSignInTestCard");
     expect(readSource("projectOidcProviders")).not.toContain("testUrl");
+    // The card the docs name.
+    expect(readSource("projectSsoCopy")).toContain(
+      'testTitle: translationKey("Test Single Sign On (SSO)")',
+    );
+    expect(readSource("projectSignInTestCard")).toContain(
+      "<Card title={ProjectSsoCopy.testTitle}>",
+    );
     expect(english(SSO)).toContain(
       "6. Open the link in the **Test Single Sign On (SSO)** card and pick the provider, to sign in through it before you require SSO for the project.",
     );
@@ -775,8 +813,9 @@ describe("the SSO guide", () => {
 
     const settingsPage: string = readSource("projectSsoPage");
 
+    expect(settingsPage.indexOf("<ProjectSignInTestCard")).toBeGreaterThan(0);
     expect(settingsPage.indexOf("<RequireSsoForLoginCard")).toBeGreaterThan(
-      settingsPage.indexOf("title={`Test Single Sign On (SSO)`}"),
+      settingsPage.indexOf("<ProjectSignInTestCard"),
     );
 
     const page: string = english(SSO);

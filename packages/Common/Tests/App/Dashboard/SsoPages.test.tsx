@@ -172,6 +172,11 @@ interface MockFormField {
   field?: Record<string, unknown> | undefined;
 }
 
+interface MockColumn {
+  title: string;
+  hideOnMobile?: boolean | undefined;
+}
+
 interface MockCreatedItem {
   statusPageId?: { toString: () => string } | undefined;
   projectId?: { toString: () => string } | undefined;
@@ -210,6 +215,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     onFetchSuccess?:
       | ((data: Array<unknown>, totalCount: number) => void)
       | undefined;
+    singularName?: string | undefined;
+    pluralName?: string | undefined;
+    createVerb?: string | undefined;
+    noItemsMessage?: string | undefined;
+    columns?: Array<MockColumn> | undefined;
   }) => ReactElement = (props: {
     id: string;
     modelType: { new (): unknown };
@@ -226,6 +236,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
     onFetchSuccess?:
       | ((data: Array<unknown>, totalCount: number) => void)
       | undefined;
+    singularName?: string | undefined;
+    pluralName?: string | undefined;
+    createVerb?: string | undefined;
+    noItemsMessage?: string | undefined;
+    columns?: Array<MockColumn> | undefined;
   }): ReactElement => {
     const [created, setCreated] = react.useState<string>("");
 
@@ -260,6 +275,23 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
         data-create-initial-values={JSON.stringify(
           props.createInitialValues || null,
         )}
+        data-singular-name={props.singularName || ""}
+        data-plural-name={props.pluralName || ""}
+        data-create-verb={props.createVerb || ""}
+        data-no-items-message={props.noItemsMessage || ""}
+        data-columns={(props.columns || [])
+          .map((column: MockColumn) => {
+            return column.title;
+          })
+          .join("|")}
+        data-columns-hidden-on-mobile={(props.columns || [])
+          .filter((column: MockColumn) => {
+            return Boolean(column.hideOnMobile);
+          })
+          .map((column: MockColumn) => {
+            return column.title;
+          })
+          .join("|")}
       >
         {visibleActions.map((button: MockActionButton) => {
           return (
@@ -568,6 +600,13 @@ interface PageCase {
   formFields: Array<string>;
   // Status pages attach new providers to the page and its project.
   attachesToStatusPage: boolean;
+  // What the list calls a row and its button: "Add SAML Provider".
+  names: { singular: string; plural: string; createVerb: string };
+  // The list's columns, and those a phone leaves out.
+  columns: Array<string>;
+  columnsHiddenOnMobile: Array<string>;
+  // The card with the test link: drawn once there is a provider to try.
+  testTitle: string;
   upsellTitle: string;
   featureName: string;
   // The plugin key that used to serve the screen from ee/.
@@ -628,6 +667,14 @@ const PAGE_CASES: Array<PageCase> = [
       "description",
     ],
     attachesToStatusPage: false,
+    names: {
+      singular: "SAML Provider",
+      plural: "SAML Providers",
+      createVerb: "Add",
+    },
+    columns: ["Name", "Description", "Teams", "Enabled"],
+    columnsHiddenOnMobile: ["Description"],
+    testTitle: "Test Single Sign On (SSO)",
     ...PROJECT_SSO_UPSELL,
     retiredPluginKey: "SettingsSSO",
     leftover: {
@@ -676,6 +723,14 @@ const PAGE_CASES: Array<PageCase> = [
       "description",
     ],
     attachesToStatusPage: false,
+    names: {
+      singular: "OIDC Provider",
+      plural: "OIDC Providers",
+      createVerb: "Add",
+    },
+    columns: ["Name", "Description", "Teams", "Enabled"],
+    columnsHiddenOnMobile: ["Description"],
+    testTitle: "Test Single Sign On (SSO)",
     ...PROJECT_SSO_UPSELL,
     retiredPluginKey: "SettingsOIDC",
     leftover: {
@@ -714,6 +769,14 @@ const PAGE_CASES: Array<PageCase> = [
       "description",
     ],
     attachesToStatusPage: true,
+    names: {
+      singular: "SSO Provider",
+      plural: "SSO Providers",
+      createVerb: "Add",
+    },
+    columns: ["Name", "Description", "Enabled"],
+    columnsHiddenOnMobile: ["Description", "Enabled"],
+    testTitle: "Test Sign-In",
     upsellTitle: "Status Page SSO",
     featureName: "Status Page SAML SSO",
     retiredPluginKey: "StatusPageSSO",
@@ -751,6 +814,14 @@ const PAGE_CASES: Array<PageCase> = [
       "description",
     ],
     attachesToStatusPage: true,
+    names: {
+      singular: "OIDC Provider",
+      plural: "OIDC Providers",
+      createVerb: "Add",
+    },
+    columns: ["Name", "Description", "Enabled"],
+    columnsHiddenOnMobile: ["Description", "Enabled"],
+    testTitle: "Test Sign-In",
     upsellTitle: "Status Page OIDC",
     featureName: "Status Page OIDC SSO",
     retiredPluginKey: "StatusPageOIDC",
@@ -1123,24 +1194,62 @@ describe.each(PAGE_CASES)("$name", (pageCase: PageCase) => {
   test("links to the page that tests single sign-on, byte for byte", async () => {
     renderPage(pageCase);
 
-    if (pageCase.attachesToStatusPage) {
-      // A status page's Test Sign-In waits for a provider to test.
-      expect(
-        screen.queryByText(pageCase.testLink, { exact: true }),
-      ).not.toBeInTheDocument();
+    // The test link waits for a provider to test.
+    expect(
+      screen.queryByText(pageCase.testLink, { exact: true }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(pageCase.testTitle)).not.toBeInTheDocument();
 
-      await act(async () => {
-        fireEvent.click(screen.getByTestId(`fetched-${pageCase.table}-1`));
-      });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`fetched-${pageCase.table}-1`));
+    });
 
-      expect(screen.getByText("Test Sign-In")).toBeInTheDocument();
-    }
+    expect(screen.getByText(pageCase.testTitle)).toBeInTheDocument();
 
     const link: HTMLElement = screen.getByText(pageCase.testLink, {
       exact: true,
     });
 
     expect(link.closest("a")).toHaveAttribute("href", pageCase.testLink);
+    expect(link.closest("a")).toHaveAttribute("target", "_blank");
+  });
+
+  test("names its providers and its button, with the shared empty state's words", () => {
+    renderPage(pageCase);
+
+    const table: HTMLElement = providerTable(pageCase);
+
+    expect(table).toHaveAttribute(
+      "data-singular-name",
+      pageCase.names.singular,
+    );
+    expect(table).toHaveAttribute("data-plural-name", pageCase.names.plural);
+    expect(table).toHaveAttribute(
+      "data-create-verb",
+      pageCase.names.createVerb,
+    );
+    /*
+     * No words of its own for an empty list: the shared table says "No
+     * SAML providers yet", where the page said "No SSO configuration
+     * found.", the words of a search that missed.
+     */
+    expect(table).toHaveAttribute("data-no-items-message", "");
+  });
+
+  test("lists what tells its providers apart, and leaves the description off a phone", () => {
+    renderPage(pageCase);
+
+    const table: HTMLElement = providerTable(pageCase);
+
+    expect(table).toHaveAttribute("data-columns", pageCase.columns.join("|"));
+    expect(table).toHaveAttribute(
+      "data-columns-hidden-on-mobile",
+      pageCase.columnsHiddenOnMobile.join("|"),
+    );
+    // The teams newcomers join are "Teams", as the form names them.
+    expect(table.getAttribute("data-columns")).not.toContain(
+      "Add User to Team",
+    );
   });
 
   if (pageCase.attachesToStatusPage) {
@@ -1621,6 +1730,16 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
     await settle();
 
     expect(screen.getAllByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveLength(1);
+    // No provider yet, so no link above: no line pointing at it.
+    expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
+      "data-card-description",
+      "",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("fetched-sso-table-1"));
+    });
+
     expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
       "data-card-description",
       "Test SSO with the link above before you require it.",
@@ -1669,6 +1788,10 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
 
     await settle();
 
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("fetched-oidc-table-1"));
+    });
+
     expect(screen.getByTestId("model-table-sso-table")).toBeInTheDocument();
     expect(screen.getByTestId("model-table-oidc-table")).toBeInTheDocument();
     // SAML first, then OIDC, then the test link, then the switch.
@@ -1694,6 +1817,60 @@ describe("Settings > SSO below Scale: Require SSO for Login stays reachable whil
           ) & Node.DOCUMENT_POSITION_FOLLOWING,
       ),
     ).toBe(true);
+  });
+
+  /*
+   * One test link for both kinds of provider: drawn while either list
+   * holds one, gone once neither does. Before the first provider it would
+   * open a sign-in page with nothing on it.
+   */
+  test("the test link is drawn while either list holds a provider", async () => {
+    pinCloud(PlanType.Scale);
+
+    renderPage(settingsSso);
+
+    await settle();
+
+    const testLinkCard: () => HTMLElement | null = (): HTMLElement | null => {
+      return screen.queryByTestId("project-sign-in-test");
+    };
+
+    expect(testLinkCard()).toBeNull();
+
+    // An OIDC provider alone is enough.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("fetched-oidc-table-1"));
+    });
+
+    expect(testLinkCard()).not.toBeNull();
+    expect(testLinkCard()).toHaveTextContent(
+      `Sign in through one of these providers before you require SSO: ${settingsSso.testLink}`,
+    );
+
+    // Then a SAML one too; the OIDC one goes: still one to test.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("fetched-sso-table-1"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("fetched-oidc-table-0"));
+    });
+
+    expect(testLinkCard()).not.toBeNull();
+    expect(
+      screen.getAllByText(settingsSso.testLink, { exact: true }),
+    ).toHaveLength(1);
+
+    // The last one goes: nothing left to test.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("fetched-sso-table-0"));
+    });
+
+    expect(testLinkCard()).toBeNull();
+    expect(screen.queryByText("Test Single Sign On (SSO)")).toBeNull();
+    expect(screen.getByTestId(REQUIRE_SSO_SWITCH_CARD)).toHaveAttribute(
+      "data-card-description",
+      "",
+    );
   });
 
   test("a new provider of either kind starts on the members team, looked up once", async () => {

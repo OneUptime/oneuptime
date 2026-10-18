@@ -800,6 +800,70 @@ describe("Admin > Settings > Email > Host Settings", () => {
     }
   });
 
+  test("the dialog is titled like the button that opens it, not after the model", async () => {
+    await renderPage();
+
+    const dialog: HTMLElement = await openEditDialog();
+
+    // It read "Edit Global Config", the name of the row it edits.
+    expect(within(dialog).getByTestId("modal-title").textContent).toBe(
+      text(ENGLISH, "pages.settings.email.smtpEditButton"),
+    );
+    expect(dialog).not.toHaveTextContent("Global Config");
+  });
+
+  test("the card says what it holds, in a line", async () => {
+    await renderPage();
+
+    const card: HTMLElement = await smtpCard();
+
+    expect(
+      within(card).getByText(
+        "The mail server OneUptime sends through, and who the emails come from.",
+      ),
+    ).toBeInTheDocument();
+    expect(card).not.toHaveTextContent("Please configure");
+  });
+
+  test("the card's Authentication Type reads as the dialog's answer, in the reader's language", async () => {
+    stored = {
+      ...SMTP_INSTANCE,
+      smtpAuthType: SMTPAuthenticationType.None,
+      smtpUsername: null,
+    };
+
+    await renderPage("de");
+
+    const card: HTMLElement = await smtpCard(GERMAN);
+
+    // The answer "None", in German: not the stored English.
+    await waitFor(
+      () => {
+        expect(within(card).getByText(text(GERMAN, "None"))).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(text(GERMAN, "None")).toBe("Keine");
+  });
+
+  test("an instance that never picked a sign-in reads Username and Password, translated", async () => {
+    stored = { ...SMTP_INSTANCE, smtpAuthType: null };
+
+    await renderPage("de");
+
+    const card: HTMLElement = await smtpCard(GERMAN);
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByText(text(GERMAN, "Username and Password")),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).queryByText("Username and Password")).toBeNull();
+  });
+
   test("reads in the Admin Dashboard's languages: German", async () => {
     await renderPage("de");
 
@@ -891,6 +955,106 @@ describe("Admin > Settings > Email > Email Server Settings", () => {
 
     return screen.getByTestId("modal");
   }
+
+  test("the dialog is titled like the button that opens it", async () => {
+    await renderPage();
+
+    const dialog: HTMLElement = await openServerDialog(await serverCard());
+
+    expect(within(dialog).getByTestId("modal-title")).toHaveTextContent(
+      /^Edit Server$/,
+    );
+    expect(text(ENGLISH, "pages.settings.email.serverEditButton")).toBe(
+      "Edit Server",
+    );
+  });
+
+  test("each card says what it is for, not what to do", () => {
+    const email: Record<string, string> = (
+      (ENGLISH["pages"] as Record<string, unknown>)["settings"] as Record<
+        string,
+        Record<string, string>
+      >
+    )["email"] as Record<string, string>;
+
+    expect(email["adminNotificationCardDescription"]).toBe(
+      "Where OneUptime writes about this server, such as when a probe goes offline.",
+    );
+    expect(email["serverCardDescription"]).toBe(
+      "How this server sends its email.",
+    );
+    expect(email["smtpCardDescription"]).toBe(
+      "The mail server OneUptime sends through, and who the emails come from.",
+    );
+    // SendGrid as the company writes it, as the dialog's answer does.
+    expect(email["sendgridCardTitle"]).toBe("SendGrid Settings");
+    expect(email["sendgridCardDescription"]).toBe(
+      "Your SendGrid API key, and who the emails come from.",
+    );
+
+    for (const description of [
+      email["adminNotificationCardDescription"],
+      email["serverCardDescription"],
+      email["smtpCardDescription"],
+      email["sendgridCardDescription"],
+    ]) {
+      expect(description).not.toMatch(
+        /^(Enter|Pick|Please)\b|would like to|Sendgrid/,
+      );
+    }
+  });
+
+  test("the SendGrid card and field say SendGrid, in every language", async () => {
+    stored = { ...SMTP_INSTANCE, emailServerType: EmailServerType.Sendgrid };
+
+    await renderPage();
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("SendGrid Settings")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(screen.queryByText(/Sendgrid/)).toBeNull();
+
+    for (const locale of [
+      "da",
+      "de",
+      "en",
+      "es",
+      "fa",
+      "fr",
+      "hi",
+      "it",
+      "ja",
+      "ko",
+      "nl",
+      "no",
+      "pt",
+      "ru",
+      "sv",
+      "zh-CN",
+      "zh-TW",
+    ]) {
+      const strings: Locale = readLocale(locale);
+
+      expect({
+        locale,
+        title: text(strings, "pages.settings.email.sendgridCardTitle"),
+      }).toEqual({
+        locale,
+        title: expect.stringContaining("SendGrid"),
+      });
+      expect({ locale, field: text(strings, "SendGrid API Key") }).toEqual({
+        locale,
+        field: expect.stringContaining("SendGrid"),
+      });
+      expect({ locale, old: strings["Sendgrid API Key"] }).toEqual({
+        locale,
+        old: undefined,
+      });
+    }
+  });
 
   test("the card names the stored answer as the dialog does", async () => {
     stored = { ...SMTP_INSTANCE, emailServerType: EmailServerType.Sendgrid };

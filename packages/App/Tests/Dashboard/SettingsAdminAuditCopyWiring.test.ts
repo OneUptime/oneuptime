@@ -274,3 +274,182 @@ describe("the Admin Dashboard's locales word what its pages now draw", () => {
     }
   });
 });
+
+/*
+ * The UI review of the audit: what a page calls its things, said once, in
+ * the words of the button that opened a dialog.
+ */
+describe("Project Settings > SSO names what each card holds", () => {
+  const page: string = read(DASHBOARD, "Pages", "Settings", "SSO.tsx");
+  const oidc: string = read(
+    DASHBOARD,
+    "Components",
+    "Sso",
+    "ProjectOidcProviders.tsx",
+  );
+  const copy: string = read(
+    DASHBOARD,
+    "Components",
+    "Sso",
+    "ProjectSsoCopy.ts",
+  );
+
+  test("Add SAML Provider and Add OIDC Provider, not Create SSO and Create OIDC", () => {
+    expect(copy).toContain('samlProvider: translationKey("SAML Provider")');
+    expect(copy).toContain('samlProviders: translationKey("SAML Providers")');
+    expect(copy).toContain('oidcProvider: translationKey("OIDC Provider")');
+    expect(copy).toContain('oidcProviders: translationKey("OIDC Providers")');
+
+    for (const [source, singular, plural] of [
+      [page, "samlProvider", "samlProviders"],
+      [oidc, "oidcProvider", "oidcProviders"],
+    ] as Array<[string, string, string]>) {
+      expect(source).toContain(`singularName={ProjectSsoCopy.${singular}}`);
+      expect(source).toContain(`pluralName={ProjectSsoCopy.${plural}}`);
+      expect(source).toContain('createVerb="Add"');
+      // The shared empty state: "No SAML providers yet", not a missed search.
+      expect(source).not.toContain("noItemsMessage");
+      expect(source).not.toContain("configuration found");
+      // The teams newcomers join, named as the form names them.
+      expect(source).toContain("title: ProjectSsoCopy.teamsColumn");
+      expect(source).not.toContain("Add User to Team");
+    }
+  });
+
+  test("draws the test link once there is a provider to try, in the card's body", () => {
+    const card: string = read(
+      DASHBOARD,
+      "Components",
+      "Sso",
+      "ProjectSignInTestCard.tsx",
+    );
+
+    expect(page).toContain(
+      "const hasProviderToTest: boolean = samlProviderCount + oidcProviderCount > 0;",
+    );
+    expect(page).toContain("{hasProviderToTest ? ( <ProjectSignInTestCard");
+    expect(page).toContain("isTestLinkShown={hasProviderToTest}");
+    expect(oidc).toContain("props.onProviderCountChange?.(totalCount);");
+    // The sentence and link are the body: a description is hidden on a phone.
+    expect(card).toContain("<Card title={ProjectSsoCopy.testTitle}>");
+    expect(card).not.toContain("description=");
+  });
+});
+
+describe("a team's and an API key's Add dialogs say what their button said", () => {
+  const words: string = read(
+    DASHBOARD,
+    "Components",
+    "Permission",
+    "AddPermissionDialogWords.ts",
+  );
+
+  test("Add a Role / Add Role, and Add a Permission / Add Permission", () => {
+    expect(words).toContain('title: translationKey("Add a Role")');
+    expect(words).toContain('submitButtonText: translationKey("Add Role")');
+    expect(words).toContain('title: translationKey("Add a Permission")');
+    expect(words).toContain(
+      'submitButtonText: translationKey("Add Permission")',
+    );
+  });
+
+  test.each([
+    ["Team", "TeamPermissionTable.tsx"],
+    ["ApiKey", "ApiKeyPermissionTable.tsx"],
+  ])(
+    "%s's table names its Add dialog after the button",
+    (folder: string, file: string) => {
+      const table: string = read(DASHBOARD, "Components", folder, file);
+
+      expect(table).toContain("ADD_PERMISSION_DIALOG_WORDS[");
+      expect(table).toContain(
+        "createPermissionType === CreatePermissionType.RoleBased",
+      );
+      expect(table).toMatch(
+        /createFormTitle=\{[^}]*createDialogWords\.title\}/,
+      );
+      expect(table).toMatch(
+        /createFormSubmitButtonText=\{[^}]*createDialogWords\.submitButtonText[^}]*\}/,
+      );
+    },
+  );
+});
+
+describe("the Admin Dashboard's settings dialogs are titled like their buttons", () => {
+  const PAGES: Array<Array<string>> = [
+    ["Email", "Index.tsx"],
+    ["APIKey", "Index.tsx"],
+    ["CallSMS", "Index.tsx"],
+    ["DataRetention", "Index.tsx"],
+    ["WhatsApp", "Index.tsx"],
+    ["Telegram", "Index.tsx"],
+  ];
+
+  const EDIT_BUTTON: RegExp = /editButtonText=\{t\("([^"]+)"\)\}/g;
+
+  test.each(PAGES)("Settings > %s", (folder: string, file: string) => {
+    const page: string = read(ADMIN, "Pages", "Settings", folder, file);
+    const keys: Array<string> = [...page.matchAll(EDIT_BUTTON)].map(
+      (match: RegExpMatchArray): string => {
+        return match[1] as string;
+      },
+    );
+
+    expect(keys.length).toBeGreaterThan(0);
+
+    for (const key of keys) {
+      // Never "Edit Global Config", the name of the row it edits.
+      expect({
+        key,
+        titled: page.includes(`editModalTitle={t("${key}")}`),
+      }).toEqual({
+        key,
+        titled: true,
+      });
+    }
+  });
+});
+
+describe("the Admin Dashboard's Email and API key cards say what they are for", () => {
+  test("the master API key's rows do not repeat the card's line", () => {
+    const page: string = read(
+      ADMIN,
+      "Pages",
+      "Settings",
+      "APIKey",
+      "Index.tsx",
+    );
+
+    expect(page).not.toContain(
+      "This API key has root access to all the resources in all the projects on OneUptime.",
+    );
+    expect(page).not.toContain("Enable or disable the master API key.");
+  });
+
+  test("SendGrid is written as SendGrid", () => {
+    const page: string = read(ADMIN, "Pages", "Settings", "Email", "Index.tsx");
+
+    expect(page).toContain('title: "SendGrid API Key"');
+    expect(page).not.toContain('title: "Sendgrid API Key"');
+  });
+
+  test("the SMTP card reads its sign-in as the dialog's answer, in the reader's language", () => {
+    const page: string = read(ADMIN, "Pages", "Settings", "Email", "Index.tsx");
+
+    expect(page).toContain("t(getSmtpAuthTypeTitle(item.smtpAuthType))");
+  });
+});
+
+describe("Global SSO and Global OIDC draw their test link in the card's body", () => {
+  test.each([
+    ["GlobalSSO", "global-sso-test-link"],
+    ["GlobalOIDC", "global-oidc-test-link"],
+  ])("Settings > %s", (folder: string, testId: string) => {
+    const page: string = read(ADMIN, "Pages", "Settings", folder, "View.tsx");
+
+    expect(page).toContain(`data-testid="${testId}"`);
+    expect(page).not.toMatch(
+      /title=\{"Test this (SSO|OIDC) provider"\} description=/,
+    );
+  });
+});

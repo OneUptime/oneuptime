@@ -378,9 +378,7 @@ async function openModal(trigger: HTMLElement): Promise<HTMLElement> {
 
 async function submitModal(modal: HTMLElement): Promise<void> {
   await act(async (): Promise<void> => {
-    fireEvent.click(
-      within(modal).getByRole("button", { name: /^Create Team Permission/ }),
-    );
+    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
   });
 }
 
@@ -504,6 +502,17 @@ describe("what the team's members can do", () => {
       cardButton(card("Permissions"), "Add Role"),
     );
 
+    /*
+     * Named after the button that opened it, as a custom role's dialog
+     * is: it read "Create New Team Permission" behind Add Role.
+     */
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      /^Add a Role$/,
+    );
+    expect(
+      within(modal).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent(/^Add Role$/);
+
     const roles: number = PermissionHelper.getRolePermissionProps().length;
     expect(within(modal).getAllByRole("radio")).toHaveLength(roles);
     expect(within(modal).getByText("Domain Roles")).toBeInTheDocument();
@@ -561,6 +570,12 @@ describe("what the team's members can do", () => {
       within(modal).getByPlaceholderText("Search permissions..."),
     ).toBeInTheDocument();
     expect(within(modal).queryAllByRole("radio")).toEqual([]);
+    expect(within(modal).getByTestId("modal-title")).toHaveTextContent(
+      /^Add a Permission$/,
+    );
+    expect(
+      within(modal).getByTestId("modal-footer-submit-button"),
+    ).toHaveTextContent(/^Add Permission$/);
   });
 
   test("lists the team's roles with their scope", async () => {

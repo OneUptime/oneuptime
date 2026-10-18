@@ -91,7 +91,7 @@ Zwei Fragen am Anbieter ändern das, eingeklappt unter **Weitere Felder**. Jede 
 
 | Frage | Antworten |
 | --- | --- |
-| **Personen ohne Konto** | **Erhalten eines bei der ersten Anmeldung**: Sie treten den zugewiesenen Projekten bei; ist keines zugewiesen, müssen sie zuerst eingeladen werden. **Müssen zuerst eingeladen werden**: Personen müssen in ein Projekt eingeladen sein, bevor sie sich mit diesem Anbieter anmelden können, auch wenn Projekte zugewiesen sind. |
+| **Personen ohne Konto** | **Erhalten bei der ersten Anmeldung ein Konto**: Sie treten den zugewiesenen Projekten bei; ist keines zugewiesen, müssen sie zuerst eingeladen werden. **Müssen zuerst eingeladen werden**: Personen müssen in ein Projekt eingeladen sein, bevor sie sich mit diesem Anbieter anmelden können, auch wenn Projekte zugewiesen sind. |
 | **Wo diese Anmeldung als SSO zählt** | **Jedes Projekt**: Projekte, die SSO verlangen, akzeptieren eine Anmeldung mit diesem Anbieter. **Nur zugewiesene Projekte**: Die Anmeldung mit diesem Anbieter erfüllt die SSO-Pflicht nur in den ihm zugewiesenen Projekten, sodass bereits angemeldete Personen den Zugriff auf andere Projekte verlieren können. |
 
 Mit **Jedes Projekt** erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen.

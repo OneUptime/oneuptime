@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { drawnTableButton } from "./DocsDashboardLabels";
 
 /*
  * Adding an OpenID Connect provider asks for its name, issuer URL, client ID
@@ -283,6 +284,45 @@ describe("Project SSO: the OpenID Connect section", () => {
 
       // The notes on SAML roles still close the page.
       expect(page.lastIndexOf("\n## ")).toBeGreaterThan(at);
+    },
+  );
+});
+
+/*
+ * The SSO page's two lists are named for what they hold, as a status
+ * page's are: Add SAML Provider and Add OIDC Provider (they read Create
+ * SSO and Create OIDC). Every language names them as its Dashboard draws
+ * them - the whole phrase when the locale words it, else its "Add" with
+ * the provider's name in it.
+ */
+describe("Project SSO: the buttons that add a provider", () => {
+  it.each(LANGUAGES)(
+    "in %s: Add SAML Provider four times, Add OIDC Provider once",
+    (language: string) => {
+      const page: string = readPage(language, "identity/sso");
+      const addSaml: string = `**${drawnTableButton(language, "Add SAML Provider")}**`;
+      const addOidc: string = `**${drawnTableButton(language, "Add OIDC Provider")}**`;
+
+      expect({ addSaml, count: page.split(addSaml).length - 1 }).toEqual({
+        addSaml,
+        count: 4,
+      });
+      expect({ addOidc, count: page.split(addOidc).length - 1 }).toEqual({
+        addOidc,
+        count: 1,
+      });
+
+      for (const retired of ["Create SSO", "Create OIDC"]) {
+        const old: string = `**${drawnTableButton(language, retired)}**`;
+
+        expect({ old, named: page.includes(old) }).toEqual({
+          old,
+          named: false,
+        });
+      }
+
+      // The OIDC button is in the OIDC section, under the SAML providers.
+      expect(sectionOf(page, "OpenID Connect (OIDC)")).toContain(addOidc);
     },
   );
 });
