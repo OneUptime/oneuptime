@@ -6,7 +6,7 @@
  * and repeatPolicyIfNoOneAnswersTimes (how many times). The call handler
  * (Notification/API/IncomingCall: dial-status) starts the rules again while
  * the call's repeatCount is below this, and the policy's Settings page says
- * the same in words (its "When Nobody Answers" card). So both read it here.
+ * the same in words (its "Repeat Policy" card). So both read it here.
  *
  * Unlike an on-call policy's repeats (OnCallDutyPolicyRepeat), a number left
  * at 0, or never set, counts as 1 while the switch is on: the call handler
