@@ -116,7 +116,8 @@ export function getValuesForFixPullRequestLimit<TValues>(data: {
 
 /*
  * The limit as the repository's settings show it, in words: no limit,
- * none, or the number.
+ * none, or up to the number. A bare "3" beside "AI Fix Pull Requests" read
+ * as three pull requests.
  */
 export const FIX_PULL_REQUEST_LIMIT_SHOWN: Record<
   Exclude<FixPullRequestLimit, FixPullRequestLimit.Limit>,
@@ -127,3 +128,15 @@ export const FIX_PULL_REQUEST_LIMIT_SHOWN: Record<
     "None: AI opens no fix pull requests here",
   ),
 };
+
+export const FIX_PULL_REQUEST_LIMIT_SHOWN_COUNT: string = translationKey(
+  "Up to {{limit}} open at once",
+);
+
+/*
+ * What the settings card says under the limit's title: the question the
+ * form's choice answers.
+ */
+export const FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION: string = translationKey(
+  "How many fix pull requests AI may have open at once in this repository.",
+);

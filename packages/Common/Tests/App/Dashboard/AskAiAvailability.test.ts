@@ -9,6 +9,7 @@ import AIChatUnavailableReason, {
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * The rule Ask AI uses to decide whether it can take a question, and the words
@@ -195,6 +196,14 @@ describe("every reason can be explained to the person who hit it", () => {
         return getAIChatUnavailableCopy(reason).actionLabel;
       }),
     ).toEqual(["Upgrade plan", "Open AI Features", "Add an LLM provider"]);
+  });
+
+  test("each button's icon is for what it does, not a gear on all three", () => {
+    expect(
+      ALL_REASONS.map((reason: AIChatUnavailableReason): IconProp => {
+        return getAIChatUnavailableCopy(reason).actionIcon;
+      }),
+    ).toEqual([IconProp.Upgrade, IconProp.Settings, IconProp.Add]);
   });
 
   test("each reason points somewhere different — three reasons collapsing onto one page would hide two of them", () => {

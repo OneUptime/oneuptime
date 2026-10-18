@@ -4,12 +4,16 @@ import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import {
+  RUNNER_CREDENTIAL_TYPE_ANSWERS,
+  RUNNER_CREDENTIAL_TYPE_COPY,
   SSH_SIGN_IN_ANSWERS,
   SSH_SIGN_IN_COPY,
   SSH_SIGN_IN_FIELD_KEY,
@@ -31,6 +35,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const RunbookCredentials: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // What most people leave alone: the description.
+  const moreFields: FormFieldCollapsibleSection<RunbookCredential> =
+    getAdvancedFormSection<RunbookCredential>();
+
   return (
     <Fragment>
       <ModelTable<RunbookCredential>
@@ -55,6 +63,13 @@ const RunbookCredentials: FunctionComponent<
         noItemsMessage={
           "No credentials yet. Create one, assign it to the Runner that will use it, then reference it from an SSH or Kubernetes step."
         }
+        /*
+         * A new credential starts as SSH, the first answer of its Type
+         * choice: the steps after it follow the type picked.
+         */
+        createInitialValues={{
+          credentialType: RunbookCredentialType.SSH,
+        }}
         formSteps={[
           { title: "Credential", id: "credential" },
           /*
@@ -97,23 +112,31 @@ const RunbookCredentials: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "prod-cluster",
+            // "Any friendly name of this object" says nothing the title does not.
+            hideColumnDescription: true,
             validation: { minLength: 2 },
           },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "credential",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Service account limited to restarting checkout pods.",
-          },
+          /*
+           * Two plain answers, one line each, where a dropdown of two asked
+           * for a pick with nothing picked.
+           */
           {
             field: { credentialType: true },
             title: "Type",
             stepId: "credential",
             description:
               "Which kind of access this is. It cannot be changed later — create a new credential instead.",
-            fieldType: FormFieldSchemaType.Dropdown,
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: RUNNER_CREDENTIAL_TYPE_ANSWERS.map(
+              (type: RunbookCredentialType) => {
+                return {
+                  value: type,
+                  title: RUNNER_CREDENTIAL_TYPE_COPY[type].title,
+                  description: RUNNER_CREDENTIAL_TYPE_COPY[type].description,
+                };
+              },
+            ),
+            dataTestId: "runner-credential-type",
             required: true,
             /*
              * The column is immutable, so its update ACL is empty and the edit
@@ -123,13 +146,16 @@ const RunbookCredentials: FunctionComponent<
              */
             showEvenIfPermissionDoesNotExist: true,
             doNotShowWhenEditing: true,
-            dropdownOptions: [
-              { value: RunbookCredentialType.SSH, label: "SSH" },
-              {
-                value: RunbookCredentialType.Kubernetes,
-                label: "Kubernetes",
-              },
-            ],
+          },
+          {
+            field: { description: true },
+            title: "Description",
+            stepId: "credential",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "Service account limited to restarting checkout pods.",
+            collapsibleSection: moreFields,
           },
 
           {

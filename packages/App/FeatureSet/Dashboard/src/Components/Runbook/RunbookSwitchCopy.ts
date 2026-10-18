@@ -36,8 +36,13 @@ export const RunbookSwitchCopy: {
   switchOnDescription: translationKey(
     "It can be run by hand, and automatically by rules and OneUptime AI.",
   ),
+  /*
+   * "By hand or automatically" next to what it qualifies: after "until it
+   * is turned back on" it read as how it would be turned on. Also the
+   * description of the turned-off banner on the runbook's Overview.
+   */
   switchOffDescription: translationKey(
-    "It does not run until it is turned back on, by hand or automatically. Executions already running are not stopped.",
+    "It cannot be run, by hand or automatically, until it is turned back on. Executions already running are not stopped.",
   ),
 };
 

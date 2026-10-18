@@ -25,6 +25,11 @@ export interface ComponentProps {
   onClick?: () => void;
   isSelected?: boolean;
   tabPanelId?: string;
+  /*
+   * The tab sits in a row that wraps (Tabs wrap): the row spaces its tabs
+   * and its lines, so the tab adds no margin of its own.
+   */
+  isInWrappingRow?: boolean | undefined;
 }
 
 const TabElement: FunctionComponent<ComponentProps> = (
@@ -52,7 +57,7 @@ const TabElement: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <div className="mt-3 mb-3">
+    <div className={props.isInWrappingRow ? "" : "mt-3 mb-3"}>
       <div
         id={`tab-${props.tab.name}`}
         data-testid={`tab-${props.tab.name}`}

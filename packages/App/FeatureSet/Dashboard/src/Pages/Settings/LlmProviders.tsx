@@ -32,6 +32,7 @@ import React, {
 } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { Green } from "Common/Types/BrandColors";
 
 /*
@@ -192,7 +193,8 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 if (item.isDefault) {
                   return <Pill text="Default" color={Green} />;
                 }
-                return <span className="text-gray-400">-</span>;
+                // The quiet dash every table leaves for "no".
+                return <TableEmptyValue screenReaderText="No" />;
               },
             },
           ]}
@@ -219,7 +221,13 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               "/llm-provider/global-llms",
             ),
           }}
-          noItemsMessage={"No global LLM Providers configured."}
+          /*
+           * The card's own line says the global providers are ready to use:
+           * with none, it says where AI features turn instead.
+           */
+          noItemsMessage={
+            "No global LLM providers. AI features use the providers you add above."
+          }
           showRefreshButton={true}
           searchableFields={["name", "description", "modelName"]}
           filters={[
@@ -252,7 +260,6 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               title: "Description",
               type: FieldType.Text,
-              noValueMessage: "-",
             },
             ...(BILLING_ENABLED
               ? [

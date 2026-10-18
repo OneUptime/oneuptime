@@ -8,6 +8,7 @@ import {
   getLlmProviderFormSteps,
 } from "../../../UI/Components/AI/LlmProviderFormFields";
 import {
+  LLM_PROVIDER_DEFAULT_VALUE_TEMPLATE,
   LLM_PROVIDER_TYPES,
   LLM_PROVIDER_TYPE_COPY,
   LlmProviderFormCopy,
@@ -101,6 +102,8 @@ function drawnTexts(): Array<string> {
   add(LlmProviderFormCopy.optionalBaseUrlHint);
   add(LlmProviderFormCopy.baseUrlNoKeys);
   add(MORE_FIELDS_SECTION_TITLE);
+  // The list's Model column names a blank Model by the server's default.
+  add(LLM_PROVIDER_DEFAULT_VALUE_TEMPLATE);
 
   return Array.from(texts);
 }
@@ -118,6 +121,7 @@ describe("the Global LLM Providers form, in the Admin Dashboard's languages", ()
         "Never put keys here.",
         "Leave empty for {{model}}.",
         "More fields",
+        "{{name}} (default)",
       ]),
     );
   });

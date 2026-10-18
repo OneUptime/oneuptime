@@ -46,7 +46,9 @@ import UserUtil from "Common/UI/Utils/User";
  *              | busy | unreachable | refused | plan | legacy | slow
  *   ?theme=dark   ?lang=ja|de
  *   ?blankmodel=1 the provider on its own page left its Model Name and Base
- *                 URL blank (its page names the defaults the server uses)
+ *                 URL blank (its page names the defaults the server uses),
+ *                 and the Admin Dashboard's self-hosted Llama its Model Name
+ *                 (its list names the model the server uses)
  *
  * Every provider a form saves is kept in state.saves (LlmProviderForm.spec).
  */
@@ -222,7 +224,7 @@ const globalProviders = [
       description: "Ollama in the data centre",
       isGlobalLlm: true,
       llmType: LlmType.Ollama,
-      modelName: "llama3.3:70b",
+      modelName: params.get("blankmodel") === "1" ? undefined : "llama3.3:70b",
     });
     item.projectId = undefined;
     return item;

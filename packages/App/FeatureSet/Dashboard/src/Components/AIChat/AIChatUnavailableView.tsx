@@ -5,7 +5,6 @@ import AIChatUnavailableReason, {
   getAIChatUnavailableCopy,
 } from "./AIChatAvailability";
 import Route from "Common/Types/API/Route";
-import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -60,7 +59,7 @@ const AIChatUnavailableView: FunctionComponent<ComponentProps> = (
         to={actionRoute}
         className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
       >
-        <Icon icon={IconProp.Settings} className="h-4 w-4" />
+        <Icon icon={copy.actionIcon} className="h-4 w-4" />
         <span>{translator.translateText(copy.actionLabel)}</span>
       </Link>
     </div>

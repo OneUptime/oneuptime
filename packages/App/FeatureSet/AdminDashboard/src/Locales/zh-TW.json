@@ -955,5 +955,6 @@
   "What this provider is for.": "此提供者的用途。",
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "每次請求都會傳送給提供者的額外 JSON 參數，例如 {\"temperature\": 0.2}。除非模型需要，否則留空。",
   "Never put keys here.": "切勿在此填寫金鑰。",
-  "Your deployment's name, exactly as Foundry shows it.": "你的部署名稱，須與 Foundry 中顯示的完全一致。"
+  "Your deployment's name, exactly as Foundry shows it.": "你的部署名稱，須與 Foundry 中顯示的完全一致。",
+  "{{name}} (default)": "{{name}}（預設）"
 }

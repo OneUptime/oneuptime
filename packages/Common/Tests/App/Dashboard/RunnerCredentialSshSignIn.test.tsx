@@ -70,6 +70,8 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 import RunnerCredentialsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerCredentials";
 import {
+  RUNNER_CREDENTIAL_TYPE_ANSWERS,
+  RUNNER_CREDENTIAL_TYPE_COPY,
   SshSignIn,
   getSshSignIn,
   showsSshSecret,
@@ -325,5 +327,145 @@ describe("how an SSH credential signs in", () => {
     expect(JSON.stringify(saved["sshPassword"])).toContain("s3cret");
     expect(saved["sshPrivateKey"]).toBeUndefined();
     expect(saved["sshSignIn"]).toBeUndefined();
+  });
+});
+
+/*
+ * What a credential reaches: a Type the later steps follow (SSH Host and
+ * SSH Authentication, or Kubernetes). It was a dropdown of two with nothing
+ * picked; it is two plain answers now, each with its line, SSH picked for a
+ * new credential. The column and its values are unchanged.
+ */
+describe("what a credential reaches", () => {
+  function table(): Record<string, unknown> {
+    capturedFields();
+
+    return mockTables[mockTables.length - 1]!;
+  }
+
+  test("is two plain answers, SSH first, each saying what it reaches", () => {
+    const type: Field = byColumn(capturedFields(), "credentialType");
+
+    expect(type.fieldType).toBe("RadioButton");
+    expect(type.dropdownOptions).toBeUndefined();
+    expect(
+      (type.radioButtonOptions || []).map(
+        (option: {
+          value: unknown;
+          title: string;
+          description?: string | undefined;
+        }) => {
+          return [option.value, option.title, option.description];
+        },
+      ),
+    ).toEqual([
+      [
+        RunbookCredentialType.SSH,
+        "SSH",
+        "A server the Runner signs in to with a key or a password.",
+      ],
+      [
+        RunbookCredentialType.Kubernetes,
+        "Kubernetes",
+        "A cluster's API server, reached with a service account token.",
+      ],
+    ]);
+    expect(RUNNER_CREDENTIAL_TYPE_ANSWERS).toEqual([
+      RunbookCredentialType.SSH,
+      RunbookCredentialType.Kubernetes,
+    ]);
+    // Every type the column has is an answer.
+    expect(Object.keys(RUNNER_CREDENTIAL_TYPE_COPY).sort()).toEqual(
+      Object.values(RunbookCredentialType).sort(),
+    );
+    // Asked once: the type cannot be changed later.
+    expect(type.doNotShowWhenEditing).toBe(true);
+    expect(type.required).toBe(true);
+  });
+
+  test("a new credential starts as SSH", () => {
+    expect(table()["createInitialValues"]).toEqual({
+      credentialType: RunbookCredentialType.SSH,
+    });
+  });
+
+  test("the first step asks the name and the type; the description waits under More fields", () => {
+    const fields: Array<Field> = capturedFields();
+    const credentialStep: Array<string> = fields
+      .filter((field: Field) => {
+        return field.stepId === "credential" && !field.collapsibleSection;
+      })
+      .map((field: Field): string => {
+        return Object.keys(field.field || {})[0] || "";
+      });
+
+    expect(credentialStep).toEqual(["name", "credentialType"]);
+
+    const description: Field = byColumn(fields, "description");
+
+    expect(description.collapsibleSection).toBeDefined();
+    expect(description.required).toBe(false);
+    // "Any friendly name of this object" and its like say nothing.
+    expect(byColumn(fields, "name").hideColumnDescription).toBe(true);
+    expect(description.hideColumnDescription).toBe(true);
+  });
+
+  test("in the real form, SSH is picked and its steps follow; picking Kubernetes swaps them", async () => {
+    const created: Record<string, unknown> = table();
+
+    cleanup();
+
+    render(
+      <MemoryRouter>
+        <ModelFormModal<RunbookCredential>
+          modelType={RunbookCredential}
+          title="Create"
+          submitButtonText="Create"
+          initialValues={created["createInitialValues"] as never}
+          formProps={{
+            name: "credential",
+            id: "credential",
+            modelType: RunbookCredential,
+            fields: (created["formFields"] as Array<Field>).filter(
+              (field: Field) => {
+                return !field.doNotShowWhenCreating;
+              },
+            ),
+            steps: created["formSteps"] as Array<FormStep<RunbookCredential>>,
+            formType: FormType.Create,
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("modal")).toBeInTheDocument();
+    });
+    await settle();
+
+    const dialog: HTMLElement = screen.getByTestId("modal");
+    const steps: () => string = (): string => {
+      return (
+        within(dialog).getByRole("navigation", { name: "Progress" })
+          .textContent || ""
+      );
+    };
+
+    await waitFor(() => {
+      expect(within(dialog).getByRole("radio", { name: /^SSH/ })).toBeChecked();
+    });
+    expect(steps()).toContain("SSH Host");
+    expect(steps()).toContain("SSH Authentication");
+    expect(steps()).not.toContain("Kubernetes");
+
+    fireEvent.click(within(dialog).getByRole("radio", { name: /^Kubernetes/ }));
+    await settle();
+
+    expect(
+      within(dialog).getByRole("radio", { name: /^Kubernetes/ }),
+    ).toBeChecked();
+    expect(steps()).toContain("Kubernetes");
+    expect(steps()).not.toContain("SSH Host");
+    expect(steps()).not.toContain("SSH Authentication");
   });
 });

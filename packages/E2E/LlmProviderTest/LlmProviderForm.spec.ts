@@ -386,6 +386,29 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     );
     await shoot(page, "form-connection-ollama-de");
   });
+
+  test("in Japanese, a hint's two sentences run on, with no space after the full stop", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=list&lang=ja");
+    await page
+      .getByRole("button", { name: "LLM プロバイダーを作成" })
+      .first()
+      .click();
+    await expect(card(page, "Ollama")).toBeVisible();
+    await card(page, "Ollama").click();
+    await next(page).click();
+
+    const text: string = (await hint(page, "base-url").textContent()) || "";
+
+    // Two sentences, each translated: the second follows the full stop.
+    expect(text).toContain("http://ollama:11434");
+    expect(text).toContain("。");
+    expect(text).not.toContain("。 ");
+    await shoot(page, "form-connection-ollama-ja");
+  });
 });
 
 test.describe("a provider's own page", () => {
@@ -452,5 +475,17 @@ test.describe("Admin Dashboard > Settings > Global LLM Providers: adding one", (
       apiKey: "gsk-test",
       isGlobalLlm: true,
     });
+  });
+
+  test("the list names a blank Model by the model the server uses, as a project's list does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=admin&blankmodel=1");
+
+    await expect(page.getByText("llama3.1 (default)")).toBeVisible();
+    await expect(page.getByText("claude-sonnet-5-5")).toBeVisible();
+    await shoot(page, "admin-list-default-model");
   });
 });

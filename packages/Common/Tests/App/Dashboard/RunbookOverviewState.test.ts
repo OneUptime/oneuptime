@@ -136,6 +136,21 @@ describe("the Overview's words", () => {
     });
   });
 
+  /*
+   * The turned-off banner's line, which is also the Settings switch's.
+   * "It does not run until it is turned back on, by hand or automatically"
+   * read as how it would be turned on; "by hand or automatically" sits next
+   * to what it qualifies now.
+   */
+  test("the turned-off line says it cannot be run, by hand or automatically", () => {
+    expect(RunbookSwitchCopy.switchOffDescription).toBe(
+      "It cannot be run, by hand or automatically, until it is turned back on. Executions already running are not stopped.",
+    );
+    expect(RunbookSwitchCopy.switchOffDescription).not.toContain(
+      "turned back on, by hand",
+    );
+  });
+
   test.each(LANGUAGES)("are translated in %s", (language: string) => {
     const locale: Record<string, string> = JSON.parse(
       fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),

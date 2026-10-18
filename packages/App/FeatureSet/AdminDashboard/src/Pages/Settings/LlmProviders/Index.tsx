@@ -13,7 +13,13 @@ import {
   getGlobalLlmProviderFormFields,
   getLlmProviderFormSteps,
 } from "Common/UI/Components/AI/LlmProviderFormFields";
-import { getLlmProviderTypeCopy } from "Common/UI/Components/AI/LlmProviderFormCopy";
+import {
+  getLlmProviderDefaultModel,
+  getLlmProviderShownValue,
+  getLlmProviderTypeCopy,
+} from "Common/UI/Components/AI/LlmProviderFormCopy";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -24,6 +30,7 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
 
   // The global provider whose Test dialog is open.
   const [testedProviderId, setTestedProviderId] = useState<string | null>(null);
@@ -107,6 +114,8 @@ const Settings: FunctionComponent = (): ReactElement => {
         })}
         selectMoreFields={{
           apiKey: true,
+          // The Model column names a Claude deployment's default by it.
+          baseUrl: true,
         }}
         filters={[
           {
@@ -162,7 +171,24 @@ const Settings: FunctionComponent = (): ReactElement => {
             },
             title: "Model",
             type: FieldType.Text,
-            noValueMessage: "-",
+            /*
+             * Left blank, the model the server asks for, by name - as a
+             * project's LLM Providers list shows it ("gpt-5.1 (default)").
+             */
+            getElement: (item: LlmProvider): ReactElement => {
+              return (
+                <span>
+                  {getLlmProviderShownValue({
+                    value: item.modelName,
+                    defaultValue: getLlmProviderDefaultModel({
+                      llmType: item.llmType,
+                      baseUrl: item.baseUrl,
+                    }),
+                    translator: translator,
+                  })}
+                </span>
+              );
+            },
           },
           ...(BILLING_ENABLED
             ? [

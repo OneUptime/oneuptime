@@ -1203,6 +1203,30 @@ describe("a client's setup", () => {
     expect(setup()).toHaveTextContent("inside Claude Code");
   });
 
+  test("the four clients wrap onto a second line on a phone, so Cursor is never scrolled out of sight", () => {
+    renderPage();
+
+    const row: HTMLElement = within(
+      screen.getByTestId("mcp-server-connect"),
+    ).getByRole("tablist");
+
+    // A row that scrolls hid VS Code and Cursor past the edge at 390px.
+    expect(row).toHaveClass("flex-wrap");
+    expect(row).not.toHaveClass("overflow-x-auto");
+  });
+
+  test("a client's setup lines up with the address and the sign-in choice above it", () => {
+    renderPage();
+
+    const panel: HTMLElement = within(
+      screen.getByTestId("mcp-server-connect"),
+    ).getByRole("tabpanel");
+
+    // The shared panel's ml-1 set the setup 4px in from the rest of the card.
+    expect(panel).not.toHaveClass("ml-1");
+    expect(panel).toContainElement(setup());
+  });
+
   test.each(SETUPS)(
     "%s, signing in with %s: the one setup for that client and that way",
     (
@@ -1438,7 +1462,40 @@ describe("the page's other cards", () => {
     renderPage();
 
     expect(card("What agents can do")).toHaveTextContent(
-      "A client connected by sign-in can also be limited to read-only access when it is authorized.",
+      "A client connected by sign-in can be limited to read only.",
+    );
+  });
+
+  test("says what agents can do in the reader's words, not the protocol's", () => {
+    renderPage();
+
+    const agents: HTMLElement = card("What agents can do");
+
+    expect(
+      within(agents)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual([
+      "Incident response: acknowledge and resolve incidents and alerts, add notes and post status page updates.",
+      "Investigation: search logs, metrics, traces, exceptions and monitor results over a time range.",
+      "Management: create, change and delete incidents, alerts, monitors, status pages, on-call policies, teams, labels and more.",
+      "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.",
+    ]);
+
+    for (const jargon of [
+      "create/read/update/delete",
+      "annotated",
+      "auto-approve",
+      "tool call",
+      "time-range filters",
+    ]) {
+      expect(agents.textContent).not.toContain(jargon);
+    }
+
+    expect(agents).toHaveTextContent(
+      "See the MCP server documentation for every tool.",
     );
   });
 });

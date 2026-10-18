@@ -955,5 +955,6 @@
   "What this provider is for.": "Wofür dieser Anbieter da ist.",
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Zusätzliche JSON-Parameter, die bei jeder Anfrage an den Anbieter gesendet werden, etwa {\"temperature\": 0.2}. Leer lassen, außer Ihr Modell braucht sie.",
   "Never put keys here.": "Tragen Sie hier nie Schlüssel ein.",
-  "Your deployment's name, exactly as Foundry shows it.": "Der Name Ihrer Bereitstellung, genau wie Foundry ihn zeigt."
+  "Your deployment's name, exactly as Foundry shows it.": "Der Name Ihrer Bereitstellung, genau wie Foundry ihn zeigt.",
+  "{{name}} (default)": "{{name}} (Standard)"
 }

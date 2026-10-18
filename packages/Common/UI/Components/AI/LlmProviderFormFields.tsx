@@ -7,7 +7,9 @@ import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
 import { getAdvancedFormSection } from "../Forms/Utils/AdvancedFormSection";
-import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import { joinSentences } from "../DeleteConfirmation/DeleteConsequences";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import {
   LLM_PROVIDER_TYPES,
   LLM_PROVIDER_TYPE_COPY,
@@ -19,7 +21,7 @@ import {
   needsModelName,
   takesApiKey,
 } from "./LlmProviderFormCopy";
-import React, { ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * THE LLM PROVIDER FORM: WHICH PROVIDER, THEN WHAT IT NEEDS.
@@ -72,11 +74,37 @@ export const LLM_PROVIDER_CARD_OPTIONS: Array<CardSelectOption> =
     };
   });
 
+interface LlmProviderHintProps {
+  text?: string | undefined;
+  values: Record<string, string>;
+  afterText?: string | undefined;
+  testId: string;
+}
+
 /*
  * A hint under a field, in the reader's language: the provider's own line,
  * with what it names filled in, and a sentence every provider's field says
- * after it (afterText).
+ * after it (afterText) - run together as the reader's script writes
+ * sentences: a space after each, none after a full-width stop ("…不可です。
+ * ここに…", not "…不可です。 ここに…").
  */
+const LlmProviderHint: FunctionComponent<LlmProviderHintProps> = (
+  props: LlmProviderHintProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <p className="mt-1.5 text-xs text-gray-500" data-testid={props.testId}>
+      {joinSentences([
+        props.text
+          ? translator.translateTemplate(props.text, props.values)
+          : "",
+        props.afterText ? translator.translateText(props.afterText) || "" : "",
+      ])}
+    </p>
+  );
+};
+
 function renderHint(
   text: string | undefined,
   values: Record<string, string>,
@@ -88,15 +116,12 @@ function renderHint(
   }
 
   return (
-    <p className="mt-1.5 text-xs text-gray-500" data-testid={testId}>
-      {text ? (
-        <TranslatedSentence template={text} slots={{}} values={values} />
-      ) : null}
-      {text && afterText ? " " : null}
-      {afterText ? (
-        <TranslatedSentence template={afterText} slots={{}} />
-      ) : null}
-    </p>
+    <LlmProviderHint
+      text={text}
+      values={values}
+      afterText={afterText}
+      testId={testId}
+    />
   );
 }
 

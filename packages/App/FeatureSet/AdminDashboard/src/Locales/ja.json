@@ -955,5 +955,6 @@
   "What this provider is for.": "このプロバイダーの用途。",
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "すべてのリクエストでプロバイダーに送る追加の JSON パラメーター ({\"temperature\": 0.2} など)。モデルが必要としない限り空欄のままにします。",
   "Never put keys here.": "ここにキーは入れないでください。",
-  "Your deployment's name, exactly as Foundry shows it.": "デプロイの名前。Foundry の表示どおりに入力します。"
+  "Your deployment's name, exactly as Foundry shows it.": "デプロイの名前。Foundry の表示どおりに入力します。",
+  "{{name}} (default)": "{{name}}（デフォルト）"
 }

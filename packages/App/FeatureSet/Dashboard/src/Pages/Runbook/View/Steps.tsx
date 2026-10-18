@@ -1211,7 +1211,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     )}
                   </p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 max-w-5xl mx-auto">
+                {/*
+                 * Four to a row: the seven step types make two even rows
+                 * (four and three) rather than five and an orphaned two,
+                 * and each card's line wraps less.
+                 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl mx-auto">
                   {ALL_STEP_TYPES.map((t: RunbookStepType) => {
                     const meta: StepTypeMeta = STEP_TYPE_META[t];
                     return (
@@ -2161,7 +2166,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <div className="text-xs font-medium text-gray-500 mb-3 text-center uppercase tracking-wide">
                   {translator.translateText("Add another step")}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {ALL_STEP_TYPES.map((t: RunbookStepType) => {
                     const meta: StepTypeMeta = STEP_TYPE_META[t];
                     return (
@@ -2171,7 +2176,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         onClick={() => {
                           return add(t);
                         }}
-                        className={`group text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-3 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
+                        /*
+                         * A column from the top, like the first step's
+                         * cards: a button centres what it holds, so a card
+                         * beside a taller one had its icon lower.
+                         */
+                        className={`group flex flex-col items-start justify-start text-left rounded-lg border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm transition p-3 focus:outline-none focus:ring-2 focus:ring-indigo-300`}
                       >
                         <div
                           className={`inline-flex items-center justify-center h-8 w-8 rounded-lg ${meta.bg} ring-1 ${meta.ring} mb-2`}

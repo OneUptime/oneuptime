@@ -478,3 +478,123 @@ describe("what a person sees at the Base URL field", () => {
     ).toContain("https://<resource>.openai.azure.com/openai/v1");
   });
 });
+
+/*
+ * The lists the form adds to: a value that is not there is the quiet dash
+ * every table leaves (TableEmptyValue), the global list says where AI
+ * turns when it has nothing, and the Admin Dashboard names a blank Model
+ * by the model the server uses, as a project's list does.
+ */
+describe("the lists of LLM providers", () => {
+  interface DrawnColumn {
+    field?: Record<string, boolean>;
+    noValueMessage?: string;
+    getElement?: (item: LlmProvider) => ReactElement;
+  }
+
+  function tableProps(id: string): Record<string, unknown> {
+    const table: Record<string, unknown> | undefined = mockTables.find(
+      (props: Record<string, unknown>) => {
+        return props["id"] === id;
+      },
+    );
+
+    if (!table) {
+      throw new Error(`The ${id} table was not drawn.`);
+    }
+
+    return table;
+  }
+
+  function columnOf(id: string, column: string): DrawnColumn {
+    const found: DrawnColumn | undefined = (
+      tableProps(id)["columns"] as Array<DrawnColumn>
+    ).find((drawn: DrawnColumn) => {
+      return Object.keys(drawn.field || {})[0] === column;
+    });
+
+    if (!found) {
+      throw new Error(`The ${id} table has no ${column} column.`);
+    }
+
+    return found;
+  }
+
+  function provider(fields: Partial<LlmProvider>): LlmProvider {
+    const item: LlmProvider = new LlmProvider();
+
+    Object.assign(item, fields);
+
+    return item;
+  }
+
+  test("a project's provider that is not the default shows the quiet dash", () => {
+    render(<LlmProvidersPage {...({} as unknown as PageComponentProps)} />);
+
+    const isDefault: DrawnColumn = columnOf("project-llms-table", "isDefault");
+    const notDefault: ReturnType<typeof render> = render(
+      isDefault.getElement!(provider({ isDefault: false })),
+    );
+
+    expect(notDefault.getByTestId("table-empty-value")).toBeInTheDocument();
+    // Heard as the word, never seen as a grey hyphen of its own.
+    expect(notDefault.getByTestId("table-empty-value")).toHaveTextContent("No");
+
+    notDefault.unmount();
+
+    const theDefault: ReturnType<typeof render> = render(
+      isDefault.getElement!(provider({ isDefault: true })),
+    );
+
+    expect(theDefault.queryByTestId("table-empty-value")).toBeNull();
+    expect(theDefault.container).toHaveTextContent("Default");
+  });
+
+  test("the global list leaves an empty description to the table's own dash, and says where AI turns when it has none", () => {
+    render(<LlmProvidersPage {...({} as unknown as PageComponentProps)} />);
+
+    expect(
+      columnOf("global-llms-table", "description").noValueMessage,
+    ).toBeUndefined();
+    expect(tableProps("global-llms-table")["noItemsMessage"]).toBe(
+      "No global LLM providers. AI features use the providers you add above.",
+    );
+  });
+
+  test("the Admin Dashboard names a blank Model by the model the server uses", () => {
+    render(<AdminLlmProvidersPage />);
+
+    const model: DrawnColumn = columnOf("llms-table", "modelName");
+    const shown: (fields: Partial<LlmProvider>) => string = (
+      fields: Partial<LlmProvider>,
+    ): string => {
+      const drawn: ReturnType<typeof render> = render(
+        model.getElement!(provider(fields)),
+      );
+      const text: string = drawn.container.textContent || "";
+
+      drawn.unmount();
+
+      return text;
+    };
+
+    expect(model.noValueMessage).toBeUndefined();
+    expect(shown({ llmType: LlmType.Ollama })).toBe("llama3.1 (default)");
+    expect(shown({ llmType: LlmType.Ollama, modelName: "llama3.3:70b" })).toBe(
+      "llama3.3:70b",
+    );
+    // A Claude deployment on Foundry is asked for Anthropic's default.
+    expect(
+      shown({
+        llmType: LlmType.AzureOpenAI,
+        baseUrl: "https://contoso.services.ai.azure.com/anthropic",
+      }),
+    ).toBe("claude-sonnet-5-5 (default)");
+    // ...so the list reads the Base URL too.
+    expect(
+      (tableProps("llms-table")["selectMoreFields"] as Record<string, unknown>)[
+        "baseUrl"
+      ],
+    ).toBe(true);
+  });
+});

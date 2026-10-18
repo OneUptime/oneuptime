@@ -464,6 +464,17 @@ describe("Threat Intel page", () => {
         ["basic-auth", "Username and password", "HTTP basic authentication."],
       ]);
     });
+
+    test("a severity's line says what an empty pick does, and not again that it is optional", () => {
+      renderPage();
+
+      expect(byColumn("alertSeverity")["description"]).toBe(
+        "Left empty, the indicator's confidence picks one of this project's alert severities.",
+      );
+      expect(byColumn("incidentSeverity")["description"]).toBe(
+        "Left empty, the indicator's confidence picks one of this project's incident severities.",
+      );
+    });
   });
 
   test("a reseller plan without telemetry sees neither the card nor the tables", () => {

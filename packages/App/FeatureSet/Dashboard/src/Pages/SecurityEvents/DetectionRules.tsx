@@ -43,6 +43,12 @@ import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/Secu
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
+ * How often a new rule runs, as the form starts it (the column's own
+ * default, for a rule made through the API, is a minute).
+ */
+const DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES: number = 5;
+
+/*
  * The description, the detection finding and how matches are counted:
  * folded under More fields on their steps.
  */
@@ -118,7 +124,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         noItemsMessage={"No detection rules found."}
         createInitialValues={{
           isEnabled: true,
-          evaluationIntervalInMinutes: 5,
+          evaluationIntervalInMinutes:
+            DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES,
           /*
            * Mirror the DB defaults (DetectionRule.ts): without these the
            * severity dropdowns' showIf sees undefined on a fresh create
@@ -240,6 +247,17 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             required: true,
             placeholder: "e.g. 5",
             collapsibleSection: advancedSection,
+            /*
+             * At what a new rule starts with, it is nobody's setting: the
+             * folded More fields does not mark it as set on a new rule (it
+             * compared with the column's 1 minute and always did).
+             */
+            isAtDefault: (values: FormValues<DetectionRule>): boolean => {
+              return (
+                Number(values.evaluationIntervalInMinutes) ===
+                DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES
+              );
+            },
           },
           {
             field: {
@@ -248,7 +266,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Group By Field",
             stepId: "on-match",
             description:
-              "Optional. Collapse matches that share this field's value into one finding (e.g. one alert per host).",
+              "Matches that share this field's value become one finding, such as one alert per host.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "principalHost",

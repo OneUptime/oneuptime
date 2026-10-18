@@ -39,6 +39,11 @@ export interface AIChatUnavailableCopy {
    */
   actionPage: PageMap;
   actionLabel: string;
+  /*
+   * The button's icon, for what it does: a gear sat on Upgrade plan and
+   * Add an LLM provider alike.
+   */
+  actionIcon: IconProp;
 }
 
 const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
@@ -49,6 +54,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
       "Ask AI needs the Growth plan or higher. Upgrade the project to ask questions about your logs, traces, metrics, incidents and monitors.",
     actionPage: PageMap.SETTINGS_BILLING,
     actionLabel: translationKey("Upgrade plan"),
+    actionIcon: IconProp.Upgrade,
   },
   [AIChatUnavailableReason.DisabledForProject]: {
     icon: IconProp.Sparkles,
@@ -62,6 +68,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
      */
     actionPage: PageMap.SETTINGS_AI_FEATURES,
     actionLabel: translationKey("Open AI Features"),
+    actionIcon: IconProp.Settings,
   },
   [AIChatUnavailableReason.NoProviderConfigured]: {
     icon: IconProp.Sparkles,
@@ -70,6 +77,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
       "Ask AI sends your questions to a model, and this project has no provider to send them to yet. Add one to start chatting.",
     actionPage: PageMap.SETTINGS_AI_LLM_PROVIDERS,
     actionLabel: translationKey("Add an LLM provider"),
+    actionIcon: IconProp.Add,
   },
 };
 

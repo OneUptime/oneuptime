@@ -202,8 +202,13 @@ const McpServerCard: FunctionComponent<ComponentProps> = (
           <h3 className="text-sm font-medium text-gray-900">
             {translator.translateText("Your client")}
           </h3>
+          {/*
+           * Four clients do not fit one line on a phone: the row wraps, so
+           * Cursor is never scrolled out of sight.
+           */}
           <Tabs
             tabs={tabs}
+            wrap={true}
             onTabChange={() => {
               // Each tab draws its own setup; nothing else follows the tab.
             }}

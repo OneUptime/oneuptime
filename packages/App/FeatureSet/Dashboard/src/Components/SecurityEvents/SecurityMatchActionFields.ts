@@ -43,7 +43,11 @@ import {
 
 export type SecurityMatchSubject = DetectionRule | ThreatIntelFeed;
 
-// What a match is, in each form's words.
+/*
+ * What a match is, in each form's words. A severity's line says what an
+ * empty pick does; that it may be left empty is the field's own
+ * "(Optional)", so the line does not start by saying it again.
+ */
 export interface SecurityMatchWording {
   caseDescription: string;
   alertSeverityDescription: string;
@@ -57,10 +61,10 @@ export const DETECTION_RULE_MATCH_WORDING: SecurityMatchWording = {
     "Group matches into security cases by user, host or address. Playbooks run on the cases it opens.",
   ),
   alertSeverityDescription: translationKey(
-    "Optional. Severity of alerts this rule opens. When unset, the Sigma rule's level is mapped onto this project's severities.",
+    "Left empty, the Sigma rule's level picks one of this project's alert severities.",
   ),
   incidentSeverityDescription: translationKey(
-    "Optional. Severity of incidents this rule opens. When unset, the Sigma rule's level is mapped onto this project's incident severities.",
+    "Left empty, the Sigma rule's level picks one of this project's incident severities.",
   ),
   severityPlaceholder: translationKey("Default from Sigma level"),
   findingDescription: translationKey(
@@ -73,10 +77,10 @@ export const THREAT_INTEL_MATCH_WORDING: SecurityMatchWording = {
     "Group events that name a known indicator into security cases. Playbooks run on the cases it opens.",
   ),
   alertSeverityDescription: translationKey(
-    "Optional. Severity of alerts this feed opens. When unset, the indicator's STIX confidence is mapped onto this project's severities.",
+    "Left empty, the indicator's confidence picks one of this project's alert severities.",
   ),
   incidentSeverityDescription: translationKey(
-    "Optional. Severity of incidents this feed opens. When unset, the indicator's STIX confidence is mapped onto this project's incident severities.",
+    "Left empty, the indicator's confidence picks one of this project's incident severities.",
   ),
   severityPlaceholder: translationKey("Default from indicator confidence"),
   findingDescription: translationKey(

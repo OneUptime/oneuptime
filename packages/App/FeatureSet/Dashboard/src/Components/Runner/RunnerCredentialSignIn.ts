@@ -1,4 +1,36 @@
+import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * WHAT A CREDENTIAL REACHES: TWO PLAIN ANSWERS.
+ *
+ * A credential's Type was a dropdown of two with nothing picked. It is the
+ * question every later step follows (SSH Host and SSH Authentication, or
+ * Kubernetes), so it is two answers now, each with what it reaches in a
+ * line, SSH picked for a new credential (the page's createInitialValues).
+ * The column and its values are as before.
+ */
+export const RUNNER_CREDENTIAL_TYPE_ANSWERS: ReadonlyArray<RunbookCredentialType> =
+  [RunbookCredentialType.SSH, RunbookCredentialType.Kubernetes];
+
+export const RUNNER_CREDENTIAL_TYPE_COPY: Record<
+  RunbookCredentialType,
+  { title: string; description: string }
+> = {
+  // Names, the same in every language.
+  [RunbookCredentialType.SSH]: {
+    title: "SSH",
+    description: translationKey(
+      "A server the Runner signs in to with a key or a password.",
+    ),
+  },
+  [RunbookCredentialType.Kubernetes]: {
+    title: "Kubernetes",
+    description: translationKey(
+      "A cluster's API server, reached with a service account token.",
+    ),
+  },
+};
 
 /*
  * HOW AN SSH CREDENTIAL SIGNS IN: ONE CHOICE.

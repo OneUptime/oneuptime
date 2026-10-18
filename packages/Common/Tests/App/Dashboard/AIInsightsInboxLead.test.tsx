@@ -215,6 +215,29 @@ describe("the AI Insights inbox", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("the first run's way on is drawn as a button, centred, and the page is not a screen of white on a phone", async () => {
+    rows = [];
+    renderInbox();
+
+    await screen.findByText("No insights yet", {}, { timeout: WAIT_TIMEOUT });
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Go to Insights Settings",
+    });
+
+    // A bordered button: the OUTLINE style has no border and read as text.
+    expect(button).toHaveClass("border", "border-gray-300", "bg-white");
+    // Button's dialog-footer margin is taken off, so it sits centred.
+    expect(button.parentElement?.className).toContain("[&>button]:md:ml-0");
+
+    const empty: HTMLElement = document.getElementById(
+      "ai-insights-empty-state",
+    ) as HTMLElement;
+
+    expect(empty).toHaveClass("py-20", "md:pt-52", "md:pb-52");
+    expect(empty).not.toHaveClass("pt-52");
+  });
+
   test("a filter from a shared link keeps the inbox whole, so it can be cleared", async () => {
     rows = [];
     window.history.replaceState(

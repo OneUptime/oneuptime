@@ -264,33 +264,39 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
         ]}
       />
 
+      {/*
+       * Plain words, one line each where they fit: "full create/read/
+       * update/delete tools", "annotated so MCP clients can auto-approve
+       * them" and "in a single tool call" were the protocol's words, not
+       * the reader's.
+       */}
       <Card title="What agents can do">
         <div className="space-y-4 text-sm text-gray-600">
           <ul className="list-disc pl-5 space-y-1">
             <li>
               {translator.translateText(
-                "Incident response: acknowledge and resolve incidents and alerts, add internal notes, and post public status-page updates in a single tool call.",
+                "Incident response: acknowledge and resolve incidents and alerts, add notes and post status page updates.",
               )}
             </li>
             <li>
               {translator.translateText(
-                "Investigation: query logs, metrics, traces, exceptions, and monitor probe results with time-range filters.",
+                "Investigation: search logs, metrics, traces, exceptions and monitor results over a time range.",
               )}
             </li>
             <li>
               {translator.translateText(
-                "Management: full create/read/update/delete tools for incidents, alerts, monitors, status pages, on-call policies, scheduled maintenance, teams, labels, and more.",
+                "Management: create, change and delete incidents, alerts, monitors, status pages, on-call policies, teams, labels and more.",
               )}
             </li>
             <li>
               {translator.translateText(
-                "Safety: read-only tools are annotated so MCP clients can auto-approve them, while destructive tools (like deletes) require explicit confirmation. A client connected by sign-in can also be limited to read-only access when it is authorized.",
+                "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.",
               )}
             </li>
           </ul>
           <p>
             <TranslatedSentence
-              template="See the {{docsLink}} for the full tool catalog and query syntax."
+              template="See the {{docsLink}} for every tool."
               slots={{
                 docsLink: (
                   <Link

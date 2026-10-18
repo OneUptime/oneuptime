@@ -955,5 +955,6 @@
   "What this provider is for.": "이 공급자의 용도입니다.",
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "모든 요청과 함께 공급자에게 보내는 추가 JSON 매개변수입니다(예: {\"temperature\": 0.2}). 모델에 필요하지 않으면 비워 두세요.",
   "Never put keys here.": "여기에 키를 넣지 마세요.",
-  "Your deployment's name, exactly as Foundry shows it.": "Foundry에 표시된 그대로의 배포 이름입니다."
+  "Your deployment's name, exactly as Foundry shows it.": "Foundry에 표시된 그대로의 배포 이름입니다.",
+  "{{name}} (default)": "{{name}} (기본값)"
 }

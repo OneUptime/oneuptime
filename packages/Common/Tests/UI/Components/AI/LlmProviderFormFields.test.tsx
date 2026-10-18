@@ -1,7 +1,11 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import { cleanup, render } from "@testing-library/react";
-import { ReactElement } from "react";
+import fs from "fs";
+import { createInstance, i18n } from "i18next";
+import path from "path";
+import React, { ReactElement } from "react";
+import { I18nextProvider } from "react-i18next";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import IconProp from "../../../../Types/Icon/IconProp";
 import LlmType from "../../../../Types/LLM/LlmType";
@@ -294,6 +298,87 @@ describe("the help under each field, for the provider picked", () => {
       helpUnder(fieldOf(fields, "modelName"), LlmType.OpenAICompatible),
     ).toBe("A model your server serves, exactly as it names it.");
     expect(helpUnder(fieldOf(fields, "modelName"), undefined)).toBe("");
+  });
+
+  /*
+   * A hint is two sentences, each translated on its own. Chinese and
+   * Japanese put no space after a full-width full stop, so the two read
+   * with a stray gap ("…不可です。 ここに…") when joined with one.
+   */
+  describe("in the reader's language", () => {
+    const DASHBOARD_LOCALES: string = path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "..",
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Locales",
+    );
+
+    const OLLAMA_BASE_URL_HINT: string =
+      LLM_PROVIDER_TYPE_COPY[LlmType.Ollama].baseUrlHint || "";
+
+    function locale(code: string): Record<string, string> {
+      return JSON.parse(
+        fs.readFileSync(path.join(DASHBOARD_LOCALES, `${code}.json`), "utf8"),
+      ) as Record<string, string>;
+    }
+
+    async function baseUrlHelpIn(code: string): Promise<string> {
+      const language: i18n = createInstance();
+
+      await language.init({
+        lng: code,
+        fallbackLng: false,
+        resources: { [code]: { translation: locale(code) } },
+        keySeparator: false,
+        nsSeparator: false,
+        interpolation: { escapeValue: false },
+      });
+
+      const footer: ReactElement | undefined = fieldOf(
+        fields,
+        "baseUrl",
+      ).getFooterElement?.(valuesFor(LlmType.Ollama));
+      const drawn: ReturnType<typeof render> = render(
+        <I18nextProvider i18n={language}>{footer}</I18nextProvider>,
+      );
+      const text: string = drawn.container.textContent || "";
+
+      drawn.unmount();
+
+      return text;
+    }
+
+    test.each(["ja", "zh-CN", "zh-TW"])(
+      "%s: the hint's two sentences run on, with no space after the full stop",
+      async (code: string) => {
+        const words: Record<string, string> = locale(code);
+        const first: string = words[OLLAMA_BASE_URL_HINT]!;
+        const second: string = words[LlmProviderFormCopy.baseUrlNoKeys]!;
+
+        // Both are translated, and the first ends the way the script does.
+        expect(first).not.toBe(OLLAMA_BASE_URL_HINT);
+        expect(first.endsWith("。")).toBe(true);
+        expect(await baseUrlHelpIn(code)).toBe(`${first}${second}`);
+      },
+    );
+
+    test.each(["de", "fr", "ko", "hi"])(
+      "%s: a space between the two sentences, as its sentences are written",
+      async (code: string) => {
+        const words: Record<string, string> = locale(code);
+
+        expect(await baseUrlHelpIn(code)).toBe(
+          `${words[OLLAMA_BASE_URL_HINT]} ${words[LlmProviderFormCopy.baseUrlNoKeys]}`,
+        );
+      },
+    );
   });
 
   test.each(LLM_PROVIDER_TYPES)(

@@ -85,6 +85,10 @@ import PermissionGate, {
 import ObjectID from "../../../Types/ObjectID";
 import Route from "../../../Types/API/Route";
 import DetectionRulesGuide from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
+import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
+import Field from "../../../UI/Components/Forms/Types/Field";
+import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import { isFormFieldValueSet } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { guideToMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -514,6 +518,70 @@ describe("Detection Rules page", () => {
         expect(field.showIf).toBeDefined();
         expect(field.showIf!({})).toBe(false);
         expect(field.stepId).toBe("on-match");
+      }
+    });
+
+    /*
+     * A new rule starts at 5 minutes, not the column's 1: the folded More
+     * fields compared with the column and showed "Evaluation Interval
+     * (Minutes): 5" as set on every new rule.
+     */
+    test("More fields does not call a new rule's evaluation interval set, until it is changed", () => {
+      renderPage();
+
+      const values: FormValues<DetectionRule> =
+        (capturedTableProps?.createInitialValues ||
+          {}) as FormValues<DetectionRule>;
+      const interval: Field<DetectionRule> = {
+        ...(fieldByColumn(
+          "evaluationIntervalInMinutes",
+        ) as unknown as Field<DetectionRule>),
+        // What ModelForm hands a field that names no default of its own.
+        columnDefaultValue: 1,
+      };
+
+      expect(
+        (values as unknown as Record<string, unknown>)[
+          "evaluationIntervalInMinutes"
+        ],
+      ).toBe(5);
+      expect(isFormFieldValueSet(interval, values)).toBe(false);
+      expect(
+        isFormFieldValueSet(interval, {
+          ...values,
+          evaluationIntervalInMinutes: 15,
+        } as FormValues<DetectionRule>),
+      ).toBe(true);
+    });
+
+    test("a severity's line says what an empty pick does, and not again that it is optional", () => {
+      renderPage();
+
+      const descriptionOf: (column: string) => string = (
+        column: string,
+      ): string => {
+        return (
+          (fieldByColumn(column) as unknown as { description?: string })
+            .description || ""
+        );
+      };
+
+      expect(descriptionOf("alertSeverity")).toBe(
+        "Left empty, the Sigma rule's level picks one of this project's alert severities.",
+      );
+      expect(descriptionOf("incidentSeverity")).toBe(
+        "Left empty, the Sigma rule's level picks one of this project's incident severities.",
+      );
+      expect(descriptionOf("groupByField")).toBe(
+        "Matches that share this field's value become one finding, such as one alert per host.",
+      );
+
+      for (const column of [
+        "alertSeverity",
+        "incidentSeverity",
+        "groupByField",
+      ]) {
+        expect(descriptionOf(column).startsWith("Optional")).toBe(false);
       }
     });
 

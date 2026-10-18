@@ -248,7 +248,55 @@ describe("the limit on AI fix pull requests", () => {
 
     expect(text(null)).toBe("No limit");
     expect(text(0)).toBe("None: AI opens no fix pull requests here");
-    expect(text(4)).toBe("4");
+    // A bare "4" beside the title read as four pull requests.
+    expect(text(4)).toBe("Up to 4 open at once");
+    expect(text(1)).toBe("Up to 1 open at once");
+  });
+
+  test("the page names the limit as its Edit form's choice does", () => {
+    const shown: DetailField | undefined = detailFields().find(
+      (field: DetailField) => {
+        return Object.keys(field.field || {})[0] === "maxOpenFixPullRequests";
+      },
+    );
+    const choice: FormField | undefined = formFields().find(
+      (field: FormField) => {
+        return field.overrideFieldKey === "fixPullRequestLimit";
+      },
+    );
+
+    expect(choice?.title).toBe("AI Fix Pull Requests");
+    expect(shown?.title).toBe(choice?.title);
+    expect((shown as { description?: string }).description).toBe(
+      "How many fix pull requests AI may have open at once in this repository.",
+    );
+  });
+});
+
+describe("the build and test commands on the page", () => {
+  test("say what each does in a few plain words", () => {
+    const descriptionOf: (column: string) => string | undefined = (
+      column: string,
+    ): string | undefined => {
+      return (
+        detailFields().find((field: DetailField) => {
+          return Object.keys(field.field || {})[0] === column;
+        }) as { description?: string } | undefined
+      )?.description;
+    };
+
+    expect(descriptionOf("setupCommand")).toBe(
+      "Installs dependencies before an AI fix is checked.",
+    );
+    expect(descriptionOf("buildCommand")).toBe("Checks that an AI fix builds.");
+    expect(descriptionOf("testCommand")).toBe(
+      "Runs the tests against an AI fix.",
+    );
+
+    for (const column of ["setupCommand", "buildCommand", "testCommand"]) {
+      expect(descriptionOf(column)).not.toContain("AI-authored");
+      expect(descriptionOf(column)).not.toContain("executes");
+    }
   });
 });
 
