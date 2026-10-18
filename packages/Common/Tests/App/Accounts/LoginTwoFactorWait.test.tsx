@@ -248,8 +248,8 @@ describe("a code the server makes wait", () => {
       await screen.findByText(BACKUP_CODE_WAIT_MESSAGE),
     ).toBeInTheDocument();
     expect(loginCalls).toHaveLength(0);
-    expect(postedUrls[postedUrls.length - 1]!.endsWith("/verify-backup-code")).toBe(
-      true,
-    );
+    expect(
+      postedUrls[postedUrls.length - 1]!.endsWith("/verify-backup-code"),
+    ).toBe(true);
   });
 });

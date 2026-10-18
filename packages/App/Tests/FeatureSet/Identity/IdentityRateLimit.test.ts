@@ -379,7 +379,11 @@ jest.mock("Common/Server/Utils/Response", () => {
  * this limiter in front of it.
  */
 jest.mock("Common/Server/Utils/TwoFactorWrongCodes", () => {
-  return require("./TwoFactorWrongCodesStandIn").letEveryCodeBeChecked();
+  return (
+    jest.requireActual("./TwoFactorWrongCodesStandIn") as {
+      letEveryCodeBeChecked: () => Record<string, unknown>;
+    }
+  ).letEveryCodeBeChecked();
 });
 
 // Importing the router registers every handler, and every middleware, above.

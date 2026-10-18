@@ -29,7 +29,8 @@ import ts from "typescript";
  * the routes, App's TwoFactorWrongCodesSignIn.test.ts.
  */
 
-const SIGN_IN: string = "packages/App/FeatureSet/Identity/API/Authentication.ts";
+const SIGN_IN: string =
+  "packages/App/FeatureSet/Identity/API/Authentication.ts";
 
 // Every product file that checks an authenticator app's code, and why.
 const CHECKS_AN_AUTHENTICATOR_CODE: Record<string, string> = {
@@ -122,10 +123,7 @@ function ifStatementsTesting(
 
 // The code of the one block that runs when `name` is true.
 function branchTesting(sourceFile: ts.SourceFile, name: string): string {
-  const branches: Array<ts.IfStatement> = ifStatementsTesting(
-    sourceFile,
-    name,
-  );
+  const branches: Array<ts.IfStatement> = ifStatementsTesting(sourceFile, name);
 
   expect([name, branches.length]).toEqual([name, 1]);
 
@@ -292,7 +290,9 @@ describe("the guard's own reading", () => {
       ),
     ).toBe(true);
     expect(
-      REFUSES_AT_ONCE.test(") {\n    logger.info(x);\n    return sendCodeNotChecked({",),
+      REFUSES_AT_ONCE.test(
+        ") {\n    logger.info(x);\n    return sendCodeNotChecked({",
+      ),
     ).toBe(false);
   });
 

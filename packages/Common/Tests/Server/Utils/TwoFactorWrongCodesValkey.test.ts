@@ -427,9 +427,7 @@ describe("forgetting", () => {
 
     await TwoFactorWrongCodes.forget(forgotten);
 
-    expect((await check(kept)).outcome).toBe(
-      TwoFactorCodeCheckOutcome.Waiting,
-    );
+    expect((await check(kept)).outcome).toBe(TwoFactorCodeCheckOutcome.Waiting);
   });
 });
 
@@ -470,7 +468,9 @@ describe("the owner's email: once a day", () => {
       }),
     ).toBe(false);
 
-    const ttl: number = await client.ttl(TwoFactorWrongCodes.getToldKey(userId));
+    const ttl: number = await client.ttl(
+      TwoFactorWrongCodes.getToldKey(userId),
+    );
 
     expect(ttl).toBeGreaterThan(24 * 60 * 60 - 10);
     expect(ttl).toBeLessThanOrEqual(24 * 60 * 60);

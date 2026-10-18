@@ -89,16 +89,19 @@ type SentMail = {
 };
 
 function sentMails(): Array<SentMail> {
-  return jest.mocked(MailService.sendMail).mock.calls.map(
-    (call: Array<unknown>): SentMail => {
+  return jest
+    .mocked(MailService.sendMail)
+    .mock.calls.map((call: Array<unknown>): SentMail => {
       return call[0] as SentMail;
-    },
-  );
+    });
 }
 
 function render(vars: Record<string, string>): string {
   return Handlebars.compile(
-    fs.readFileSync(Path.join(TEMPLATES_DIR, "TwoFactorWrongCodes.hbs"), "utf8"),
+    fs.readFileSync(
+      Path.join(TEMPLATES_DIR, "TwoFactorWrongCodes.hbs"),
+      "utf8",
+    ),
   )({ brandProductName: "OneUptime", ...vars });
 }
 

@@ -296,7 +296,11 @@ jest.mock("Common/Server/Utils/Response", () => {
  * many are. That count is TwoFactorWrongCodesSignIn.test.ts.
  */
 jest.mock("Common/Server/Utils/TwoFactorWrongCodes", () => {
-  return require("./TwoFactorWrongCodesStandIn").letEveryCodeBeChecked();
+  return (
+    jest.requireActual("./TwoFactorWrongCodesStandIn") as {
+      letEveryCodeBeChecked: () => Record<string, unknown>;
+    }
+  ).letEveryCodeBeChecked();
 });
 
 // Importing the router registers every handler on the mock router above.

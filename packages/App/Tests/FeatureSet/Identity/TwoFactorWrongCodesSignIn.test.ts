@@ -428,21 +428,26 @@ async function attempt(data: {
   const entitiesBefore: number = sendEntityResponse.mock.calls.length;
 
   let reachedHandler: boolean = false;
-  let nextError: unknown = undefined;
+
+  // What the chain handed to next(): an error, or that it went on.
+  const passed: { nextError: unknown; continued: boolean } = {
+    nextError: undefined,
+    continued: false,
+  };
+
+  const next: NextFunction = ((err?: unknown): void => {
+    if (err) {
+      passed.nextError = err;
+      return;
+    }
+
+    passed.continued = true;
+  }) as unknown as NextFunction;
 
   for (let index: number = 0; index < handlers.length; index++) {
     const handler: RouteHandler = handlers[index] as RouteHandler;
 
-    let continued: boolean = false;
-
-    const next: NextFunction = ((err?: unknown): void => {
-      if (err) {
-        nextError = err;
-        return;
-      }
-
-      continued = true;
-    }) as unknown as NextFunction;
+    passed.continued = false;
 
     if (index === handlers.length - 1) {
       reachedHandler = true;
@@ -450,7 +455,7 @@ async function attempt(data: {
 
     await handler(req, res, next);
 
-    if (!continued) {
+    if (!passed.continued) {
       break;
     }
   }
@@ -470,7 +475,7 @@ async function attempt(data: {
     errorMessage: error?.message,
     retryAfter: headers["Retry-After"],
     signedIn: sendEntityResponse.mock.calls.length > entitiesBefore,
-    nextError,
+    nextError: passed.nextError,
   };
 }
 
@@ -902,7 +907,11 @@ describe("only somebody with the password moves the count, or learns of it", () 
     ],
   ])(
     "%s is refused before the count, which stays untouched",
-    async (_name: string, options: Record<string, boolean>, message: string) => {
+    async (
+      _name: string,
+      options: Record<string, boolean>,
+      message: string,
+    ) => {
       const account: Account = await newAccount(options);
 
       for (let index: number = 0; index < 8; index++) {
@@ -999,7 +1008,10 @@ describe("backup codes: a count of their own", () => {
 
     consumeBackupCode.mockClear();
 
-    const refused: AttemptResult = await enterBackupCode(account, "abcde-fghij");
+    const refused: AttemptResult = await enterBackupCode(
+      account,
+      "abcde-fghij",
+    );
 
     expect(refused.errorCode).toBe(ExceptionCode.TooManyRequestsException);
     expect(refused.errorMessage).toBe(
@@ -1028,7 +1040,10 @@ describe("backup codes: a count of their own", () => {
 
     expect(
       await client.exists(
-        TwoFactorWrongCodes.getKey(TwoFactorCodeKind.BackupCode, account.user.id!),
+        TwoFactorWrongCodes.getKey(
+          TwoFactorCodeKind.BackupCode,
+          account.user.id!,
+        ),
       ),
     ).toBe(0);
   });

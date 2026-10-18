@@ -209,7 +209,8 @@ export default class TwoFactorWrongCodes {
         throw new Error("The wrong code count answered something else");
       }
 
-      const [isAllowed, wrongCodesInARow, milliseconds] = answer as Array<number>;
+      const [isAllowed, wrongCodesInARow, milliseconds] =
+        answer as Array<number>;
 
       return {
         outcome:

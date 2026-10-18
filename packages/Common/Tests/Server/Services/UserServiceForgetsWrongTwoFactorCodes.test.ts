@@ -99,9 +99,9 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getHost")
     .mockResolvedValue(new Hostname("oneuptime.example.com"));
-  jest.spyOn(DatabaseConfig, "getHttpProtocol").mockResolvedValue(
-    Protocol.HTTPS,
-  );
+  jest
+    .spyOn(DatabaseConfig, "getHttpProtocol")
+    .mockResolvedValue(Protocol.HTTPS);
   jest.spyOn(MailService, "sendMail").mockResolvedValue(undefined as never);
   jest.spyOn(logger, "info").mockImplementation((): void => {
     return undefined;

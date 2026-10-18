@@ -126,7 +126,9 @@ const ENTRY_INDEX: number = ENGLISH_ENTRIES.findIndex(
     return entry.title === ENTRY_TITLE;
   },
 );
-const ENGLISH_ENTRY: string = flattened(ENGLISH_ENTRIES[ENTRY_INDEX]?.body || "");
+const ENGLISH_ENTRY: string = flattened(
+  ENGLISH_ENTRIES[ENTRY_INDEX]?.body || "",
+);
 
 const ENGLISH_ITEMS: Array<string> = otherChangesItems("en");
 const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
@@ -168,9 +170,9 @@ describe("the code the docs describe", () => {
     expect(
       passwordChange.slice(0, passwordChange.indexOf("MailService.sendMail(")),
     ).toContain("await TwoFactorWrongCodes.forget(user.id!);");
-    expect(reset.slice(0, reset.indexOf("public async setPassword("))).toContain(
-      "await TwoFactorWrongCodes.forget(user.id!);",
-    );
+    expect(
+      reset.slice(0, reset.indexOf("public async setPassword(")),
+    ).toContain("await TwoFactorWrongCodes.forget(user.id!);");
   });
 });
 

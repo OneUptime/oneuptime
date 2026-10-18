@@ -14,7 +14,11 @@ import { TwoFactorCodeCheck } from "Common/Server/Utils/TwoFactorWrongCodes";
  * For a jest.mock factory:
  *
  *   jest.mock("Common/Server/Utils/TwoFactorWrongCodes", () => {
- *     return require("./TwoFactorWrongCodesStandIn").letEveryCodeBeChecked();
+ *     return (
+ *       jest.requireActual("./TwoFactorWrongCodesStandIn") as {
+ *         letEveryCodeBeChecked: () => Record<string, unknown>;
+ *       }
+ *     ).letEveryCodeBeChecked();
  *   });
  */
 export function letEveryCodeBeChecked(): Record<string, unknown> {
@@ -23,9 +27,9 @@ export function letEveryCodeBeChecked(): Record<string, unknown> {
   } = jest.requireActual("Common/Server/Utils/TwoFactorWrongCodes");
 
   const allowed: TwoFactorCodeCheck = {
-    outcome: (
-      actual["TwoFactorCodeCheckOutcome"] as Record<string, string>
-    )["Allowed"] as TwoFactorCodeCheck["outcome"],
+    outcome: (actual["TwoFactorCodeCheckOutcome"] as Record<string, string>)[
+      "Allowed"
+    ] as TwoFactorCodeCheck["outcome"],
     wrongCodesInARow: 1,
     waitSeconds: 0,
   };

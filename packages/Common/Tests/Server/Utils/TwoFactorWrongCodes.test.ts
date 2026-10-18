@@ -387,8 +387,8 @@ describe("no count, no check", () => {
       });
     }
 
-    const linesAfterTheFirstMinute: number = jest.mocked(logger.warn).mock
-      .calls.length;
+    const linesAfterTheFirstMinute: number = jest.mocked(logger.warn).mock.calls
+      .length;
 
     expect(linesAfterTheFirstMinute).toBeLessThanOrEqual(2);
 
