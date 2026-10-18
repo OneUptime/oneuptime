@@ -1428,6 +1428,27 @@ jobs:
           Tests/Server/API/KubernetesClusterEditScopePostgres.test.ts
           --forceExit
 
+      # Clones the migrated team, custom role, API key, monitor (owners,
+      # status timeline, tests), status page (owners, announcements and
+      # templates) tables, and those of every other kind with owners of its
+      # own, into an isolated schema and deletes through the routes, the real
+      # user middleware and MonitorService's hooks as a member whose grants
+      # are scoped to Owned: by id and by query, they delete only what they
+      # or their team own - through a custom role too - never make themselves
+      # an owner of a monitor they may not read, and the records of a monitor
+      # or a status page keep to the owned ones.
+      - name: Test what a member limited to owned records deletes on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OWNED_RECORDS_DELETE_TESTS: "true"
+          OWNED_RECORDS_DELETE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OWNED_RECORDS_DELETE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OWNED_RECORDS_DELETE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/OwnedRecordsDeletePostgres.test.ts
+          --forceExit
+
       # Clones the migrated team, label, monitor, on-call policy, severity,
       # status, incident and workspace connection tables into an isolated
       # schema and opens Slack's and Teams' New Incident forms and the Execute
