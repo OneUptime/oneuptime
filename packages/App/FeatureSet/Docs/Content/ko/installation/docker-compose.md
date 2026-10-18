@@ -372,16 +372,16 @@ ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
 ```
 
 :::details PostgreSQL을 사설 네트워크 주소에 게시하기
-사설 네트워크의 도구가 터널 없이 PostgreSQL에 접근해야 한다면, 그 네트워크에서 서버가 쓰는 주소에도 게시하세요. `docker-compose.yml` 옆에 `docker-compose.override.yml`을 만드세요. `npm start`와 `npm run update`가 이 파일을 읽습니다.
+사설 네트워크의 도구가 터널 없이 PostgreSQL에 접근해야 한다면, 그 네트워크에서 서버가 쓰는 주소에도 별도의 포트로 게시하세요. `docker-compose.yml` 옆에 `docker-compose.override.yml`을 만드세요. `npm start`와 `npm run update`가 이 파일을 읽습니다.
 
 ```yaml title="docker-compose.override.yml"
 services:
   postgres:
     ports:
-      - "10.0.0.5:5400:5432"
+      - "10.0.0.5:5401:5432"
 ```
 
-`10.0.0.5` 자리에는 서버 자신의 사설 주소를 넣고, 공인 주소는 절대 쓰지 마세요. 그리고 먼저 PostgreSQL에 고유한 비밀번호를 주세요([데이터베이스 비밀번호 바꾸기](#데이터베이스-비밀번호-바꾸기) 참고). 그런 다음 `npm start`를 실행하세요.
+`10.0.0.5` 자리에는 서버 자신의 사설 주소를 넣고, 공인 주소는 절대 쓰지 마세요. 그리고 먼저 PostgreSQL에 고유한 비밀번호를 주세요([데이터베이스 비밀번호 바꾸기](#데이터베이스-비밀번호-바꾸기) 참고). 그런 다음 `npm start`를 실행하면 PostgreSQL이 그 주소의 포트 5401에서도 응답합니다.
 :::
 
 ClickHouse는 텔레메트리를 Docker 볼륨 `oneuptime_clickhouse`에 보관하며, 이를 백업하는 스크립트는 없습니다. 그 텔레메트리를 남겨야 한다면 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) 같은 ClickHouse 도구로 볼륨을 백업하거나, OneUptime을 멈춘 상태에서 복사하세요.

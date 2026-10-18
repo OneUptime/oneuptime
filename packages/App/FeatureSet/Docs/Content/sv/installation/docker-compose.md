@@ -372,16 +372,16 @@ ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
 ```
 
 :::details Publicera PostgreSQL på en adress i ett privat nätverk
-Om ett verktyg i ditt privata nätverk måste nå PostgreSQL utan tunnel, publicera den även på serverns adress i det nätverket. Skapa `docker-compose.override.yml` bredvid `docker-compose.yml`; `npm start` och `npm run update` läser den:
+Om ett verktyg i ditt privata nätverk måste nå PostgreSQL utan tunnel, publicera den även på serverns adress i det nätverket, på en egen port. Skapa `docker-compose.override.yml` bredvid `docker-compose.yml`; `npm start` och `npm run update` läser den:
 
 ```yaml title="docker-compose.override.yml"
 services:
   postgres:
     ports:
-      - "10.0.0.5:5400:5432"
+      - "10.0.0.5:5401:5432"
 ```
 
-Använd serverns egen privata adress i stället för `10.0.0.5`, aldrig en offentlig, och ge först PostgreSQL ett eget lösenord (se [Byt databasens lösenord](#byt-databasens-lösenord)). Kör sedan `npm start`.
+Använd serverns egen privata adress i stället för `10.0.0.5`, aldrig en offentlig, och ge först PostgreSQL ett eget lösenord (se [Byt databasens lösenord](#byt-databasens-lösenord)). Kör sedan `npm start`, så svarar PostgreSQL även på port 5401 på den adressen.
 :::
 
 ClickHouse håller din telemetri i Docker-volymen `oneuptime_clickhouse`, och inget skript säkerhetskopierar den. Om du behöver behålla den telemetrin säkerhetskopierar du volymen med ett ClickHouse-verktyg som [clickhouse-backup](https://github.com/Altinity/clickhouse-backup), eller kopierar den medan OneUptime är stoppat.

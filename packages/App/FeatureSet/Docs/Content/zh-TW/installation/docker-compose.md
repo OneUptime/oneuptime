@@ -372,16 +372,16 @@ ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
 ```
 
 :::details 在私有網路位址上發布 PostgreSQL
-如果私有網路中的某個工具必須不經通道連到 PostgreSQL，請同時把它發布在伺服器於該網路中的位址上。在 `docker-compose.yml` 旁邊建立 `docker-compose.override.yml`；`npm start` 和 `npm run update` 會讀取它：
+如果私有網路中的某個工具必須不經通道連到 PostgreSQL，請同時把它發布在伺服器於該網路中的位址上，並使用獨立的連接埠。在 `docker-compose.yml` 旁邊建立 `docker-compose.override.yml`；`npm start` 和 `npm run update` 會讀取它：
 
 ```yaml title="docker-compose.override.yml"
 services:
   postgres:
     ports:
-      - "10.0.0.5:5400:5432"
+      - "10.0.0.5:5401:5432"
 ```
 
-把 `10.0.0.5` 換成伺服器自己的私有位址，絕不要使用公開位址，並先為 PostgreSQL 設定專屬密碼（請參閱 [變更資料庫密碼](#變更資料庫密碼)）。然後執行 `npm start`。
+把 `10.0.0.5` 換成伺服器自己的私有位址，絕不要使用公開位址，並先為 PostgreSQL 設定專屬密碼（請參閱 [變更資料庫密碼](#變更資料庫密碼)）。然後執行 `npm start`，PostgreSQL 也會在該位址的連接埠 5401 上回應。
 :::
 
 ClickHouse 把遙測資料保存在 Docker 磁碟區 `oneuptime_clickhouse` 中，沒有任何指令碼會備份它。如果需要保留這些遙測資料，請使用 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) 等 ClickHouse 工具備份該磁碟區，或在 OneUptime 停止時複製它。

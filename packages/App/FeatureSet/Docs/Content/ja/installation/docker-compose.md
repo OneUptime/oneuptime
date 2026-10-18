@@ -372,16 +372,16 @@ ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
 ```
 
 :::details PostgreSQL をプライベートネットワークのアドレスで公開する
-プライベートネットワーク上のツールがトンネルなしで PostgreSQL に到達する必要がある場合は、そのネットワークでのサーバーのアドレスでも公開します。`docker-compose.yml` の隣に `docker-compose.override.yml` を作成します。`npm start` と `npm run update` はこのファイルを読み込みます。
+プライベートネットワーク上のツールがトンネルなしで PostgreSQL に到達する必要がある場合は、そのネットワークでのサーバーのアドレスでも、別のポートで公開します。`docker-compose.yml` の隣に `docker-compose.override.yml` を作成します。`npm start` と `npm run update` はこのファイルを読み込みます。
 
 ```yaml title="docker-compose.override.yml"
 services:
   postgres:
     ports:
-      - "10.0.0.5:5400:5432"
+      - "10.0.0.5:5401:5432"
 ```
 
-`10.0.0.5` の代わりにサーバー自身のプライベートアドレスを指定し、パブリックなアドレスは決して使わないでください。また、先に PostgreSQL に専用のパスワードを設定してください ([データベースのパスワードを変更する](#データベースのパスワードを変更する) を参照)。そのあと `npm start` を実行します。
+`10.0.0.5` の代わりにサーバー自身のプライベートアドレスを指定し、パブリックなアドレスは決して使わないでください。また、先に PostgreSQL に専用のパスワードを設定してください ([データベースのパスワードを変更する](#データベースのパスワードを変更する) を参照)。そのあと `npm start` を実行すると、PostgreSQL はそのアドレスのポート 5401 でも応答します。
 :::
 
 ClickHouse はテレメトリを Docker ボリューム `oneuptime_clickhouse` に保存しており、これをバックアップするスクリプトはありません。そのテレメトリを残す必要がある場合は、[clickhouse-backup](https://github.com/Altinity/clickhouse-backup) などの ClickHouse ツールでボリュームをバックアップするか、OneUptime を停止してからコピーしてください。

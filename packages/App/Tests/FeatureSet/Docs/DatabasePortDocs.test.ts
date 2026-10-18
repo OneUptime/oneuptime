@@ -51,7 +51,7 @@ const OVERRIDE_EXAMPLE: Array<string> = [
   "services:",
   "  postgres:",
   "    ports:",
-  '      - "10.0.0.5:5400:5432"',
+  '      - "10.0.0.5:5401:5432"',
 ];
 
 const NOTE_LEAD: string =
@@ -272,16 +272,25 @@ describe("the Docker Compose guide on PostgreSQL's port", () => {
 
     expect(example).toEqual(OVERRIDE_EXAMPLE);
     expect(compose.services).toContain("postgres");
-    // 10.0.0.0/8: a private address, on the published host and container ports.
+    // 10.0.0.0/8: a private address, onto PostgreSQL's container port.
     expect(port).not.toBeNull();
     expect(port![1]).toBe("10");
-    expect(`${port![2]}:${port![3]}`).toBe(`${published![2]}:${published![3]}`);
+    expect(port![3]).toBe(published![3]);
+    /*
+     * On a host port of its own: Compose adds the override's port to
+     * docker-compose.yml's, and the same host port on a second address
+     * collides with the loopback one as soon as that address is 0.0.0.0.
+     */
+    expect(port![2]).not.toBe(published![2]);
+    expect(ENGLISH_GUIDE).toContain(
+      `Then run \`npm start\`, and PostgreSQL also answers on port ${port![2]} of that address.`,
+    );
     // Compose reads docker-compose.override.yml by itself when no -f is given.
     expect(scripts["start"]).toContain("docker compose up");
     expect(scripts["start"]).not.toContain(" -f ");
     expect(scripts["update"]).toContain("npm run start");
     expect(ENGLISH_GUIDE).toContain(
-      "Create `docker-compose.override.yml` next to `docker-compose.yml`; `npm start` and `npm run update` read it:",
+      "publish it on the server's address in that network too, on a port of its own. Create `docker-compose.override.yml` next to `docker-compose.yml`; `npm start` and `npm run update` read it:",
     );
     expect(ENGLISH_GUIDE).toContain(
       "Put the server's own private address in place of `10.0.0.5`, never a public one",

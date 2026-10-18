@@ -57,7 +57,8 @@ const OVERRIDE_DETAILS =
   ":::details Publish PostgreSQL on a private network address";
 const RESTORE_ADD_HOST = /--add-host=host\.docker\.internal:(\S+)/;
 const FENCE_START = /^```(\w+)/;
-const PRIVATE_ADDRESS_IN_EXAMPLE = /"(\d+\.\d+\.\d+\.\d+):5400:5432"/;
+// The example's "ADDRESS:HOST_PORT:5432" entry.
+const PRIVATE_ADDRESS_IN_EXAMPLE = /"(\d+\.\d+\.\d+\.\d+):(\d+):5432"/;
 const RANDOM_PASSWORD = /^[0-9a-f]{64}$/;
 const GENERATED_PASSWORD_LINE = /^DATABASE_PASSWORD=[0-9a-f]{64}$/m;
 // 10.0.0.0/8, 172.16.0.0/12 and 192.168.0.0/16.
@@ -582,17 +583,23 @@ describeRuntime("the Docker Compose guide's commands, run as written", () => {
     ).toBe("nothing");
   });
 
-  test("the override that publishes PostgreSQL on a private address keeps the loopback port too", async () => {
+  test("the override that publishes PostgreSQL on a private address, on a port of its own, keeps the loopback port too", async () => {
     const addresses = otherAddresses();
     expect(addresses.length).toBeGreaterThan(0);
 
     const example = codeBlockAfter(OVERRIDE_DETAILS, "yaml").join("\n");
     const exampleAddress = PRIVATE_ADDRESS_IN_EXAMPLE.exec(example);
     expect(exampleAddress).not.toBeNull();
+    // A host port other than docker-compose.yml's 5400.
+    expect(exampleAddress[2]).not.toBe("5400");
 
-    // The guide's file, with this machine's address and this test's port.
+    // The guide's file, with this machine's address and a port of this test's.
+    const privatePort = await freePort();
     const override = yaml.load(
-      example.replace(exampleAddress[0], `"${addresses[0]}:${port}:5432"`),
+      example.replace(
+        exampleAddress[0],
+        `"${addresses[0]}:${privatePort}:5432"`,
+      ),
     );
     const overrideFile = path.join(directory, "docker-compose.override.yml");
     fs.writeFileSync(overrideFile, yaml.dump(override));
@@ -603,6 +610,8 @@ describeRuntime("the Docker Compose guide's commands, run as written", () => {
     up();
 
     expect(await answers(LOOPBACK_ADDRESS, port)).toBe(true);
-    expect(await answers(addresses[0], port)).toBe(true);
+    expect(await answers(addresses[0], privatePort)).toBe(true);
+    // Only the address the override names: not its port on loopback.
+    expect(await answers(LOOPBACK_ADDRESS, privatePort)).toBe(false);
   });
 });
