@@ -558,9 +558,7 @@
         "bannerDescription": "LLM-providers schakelen AI-functies in. U kunt globale LLM-providers configureren die beschikbaar zijn voor alle projecten.",
         "cardTitle": "Globale LLM-providers",
         "cardDescription": "Globale LLM-providers zijn beschikbaar voor alle projecten voor AI-functies. Configureer OpenAI, Anthropic, Ollama of andere LLM-providers.",
-        "noItems": "Geen LLM-providers geconfigureerd. Voeg een LLM-provider toe om AI-functies in te schakelen.",
-        "stepBasicInfo": "Basisinformatie",
-        "stepProviderSettings": "Providerinstellingen"
+        "noItems": "Geen LLM-providers geconfigureerd. Voeg een LLM-provider toe om AI-functies in te schakelen."
       }
     }
   },
@@ -957,5 +955,35 @@
   "Get one on their first sign-in": "Krijgen er een bij hun eerste aanmelding",
   "They join the projects attached to this provider. With none attached, they must be invited first.": "Ze worden lid van de projecten die aan deze provider zijn gekoppeld. Is er geen gekoppeld, dan moeten ze eerst worden uitgenodigd.",
   "Must be invited first": "Moeten eerst worden uitgenodigd",
-  "They are turned away until someone invites them to a project.": "Ze worden geweigerd totdat iemand ze voor een project uitnodigt."
+  "They are turned away until someone invites them to a project.": "Ze worden geweigerd totdat iemand ze voor een project uitnodigt.",
+  "Connection": "Verbinding",
+  "OpenAI-Compatible (vLLM, LocalAI, etc.)": "OpenAI-compatibel (vLLM, LocalAI, enz.)",
+  "GPT models, with an API key from OpenAI.": "GPT-modellen, met een API-sleutel van OpenAI.",
+  "Claude models, with an API key from Anthropic.": "Claude-modellen, met een API-sleutel van Anthropic.",
+  "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.": "Modellen die u in Azure implementeert: OpenAI-modellen, Foundry Models en Claude.",
+  "Fast open models, with an API key from Groq.": "Snelle open modellen, met een API-sleutel van Groq.",
+  "Mistral's models, with an API key from Mistral.": "De modellen van Mistral, met een API-sleutel van Mistral.",
+  "Open models you run yourself. No API key.": "Open modellen die u zelf draait. Geen API-sleutel.",
+  "Any server with an OpenAI-style API, such as vLLM or LocalAI.": "Elke server met een API in OpenAI-stijl, zoals vLLM of LocalAI.",
+  "Additional Parameters": "Extra parameters",
+  "Create one at platform.openai.com, under API keys.": "Maak er een aan op platform.openai.com, onder API keys.",
+  "Create one at console.anthropic.com, under API Keys.": "Maak er een aan op console.anthropic.com, onder API Keys.",
+  "KEY 1 or KEY 2, from your resource's Keys and Endpoint page.": "KEY 1 of KEY 2, van de pagina Sleutels en eindpunt van uw resource.",
+  "Your resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.": "Het eindpunt van uw resource, zoals https://<resource>.openai.azure.com/openai/v1, of https://<resource>.services.ai.azure.com/anthropic voor Claude.",
+  "Create one at console.groq.com, under API Keys.": "Maak er een aan op console.groq.com, onder API Keys.",
+  "Create one at console.mistral.ai, under API Keys.": "Maak er een aan op console.mistral.ai, onder API Keys.",
+  "An address the OneUptime server can reach, such as http://ollama:11434. Not localhost.": "Een adres dat de OneUptime-server kan bereiken, zoals http://ollama:11434. Niet localhost.",
+  "A model you pulled into Ollama. Leave empty for {{model}}.": "Een model dat u in Ollama hebt binnengehaald. Laat leeg voor {{model}}.",
+  "Only if your server asks for one.": "Alleen als uw server erom vraagt.",
+  "Your server's OpenAI-style API, such as http://vllm:8000/v1. Not localhost.": "De API in OpenAI-stijl van uw server, zoals http://vllm:8000/v1. Niet localhost.",
+  "A model your server serves, exactly as it names it.": "Een model dat uw server aanbiedt, precies zoals de server het noemt.",
+  "Leave empty for {{model}}.": "Laat leeg voor {{model}}.",
+  "Only to go through a proxy or a gateway. Leave empty for {{provider}}'s own API: {{url}}.": "Alleen om via een proxy of gateway te gaan. Laat leeg voor de eigen API van {{provider}}: {{url}}.",
+  "Named after the provider until you type a name of your own.": "Heet naar de provider totdat u zelf een naam typt.",
+  "e.g. Production OpenAI": "bijv. Productie-OpenAI",
+  "What this provider is for.": "Waarvoor deze provider dient.",
+  "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Extra JSON-parameters die bij elk verzoek naar de provider gaan, zoals {\"temperature\": 0.2}. Laat leeg tenzij uw model ze nodig heeft.",
+  "Never put keys here.": "Zet hier nooit sleutels in.",
+  "Your deployment's name, exactly as Foundry shows it.": "De naam van uw implementatie, precies zoals Foundry die toont.",
+  "{{name}} (default)": "{{name}} (standaard)"
 }

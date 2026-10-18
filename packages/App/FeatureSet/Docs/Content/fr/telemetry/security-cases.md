@@ -44,8 +44,8 @@ Chacune de ces actions peut aussi être accordée isolément, de la création d'
 
 | Source | Ouvre un dossier quand | Pour la désactiver |
 | --- | --- | --- |
-| Règles de détection | Une règle correspond | **Open a Case on Match**, à l'étape **Security Cases** de la règle |
-| Renseignement sur les menaces | Un événement nomme un indicateur connu | **Open a Case on Match**, à l'étape **Security Cases** du flux |
+| Règles de détection | Une règle correspond | **Open a Case on Match**, à l'étape **En cas de correspondance** de la règle |
+| Renseignement sur les menaces | Un événement nomme un indicateur connu | **Open a Case on Match**, à l'étape **En cas de correspondance** du flux |
 | Produits connectés | Une alerte propre au produit est importée à un niveau égal ou supérieur au seuil de la connexion | **Open Cases From** réglé sur **Jamais**, à l'étape **Polling** de la connexion |
 | Personnes | Quelqu'un en ouvre un depuis **Security Cases**, ou avec **Open Case** dans le panneau d'un événement | Impossible |
 
@@ -229,7 +229,7 @@ Un projet qui n'a encore ni dossier ni détection affiche, au-dessus de tout cel
 ## Dépannage
 
 :::details Une règle correspond, mais aucun dossier ne s'ouvre
-Vérifiez **Open a Case on Match** à l'étape **Security Cases** de la règle. Une détection portant sur une entité qui a déjà un dossier ouvert s'ajoute à ce dossier au lieu d'en ouvrir un autre : cherchez-la sous **Détections** dans le dossier ouvert.
+Vérifiez **Open a Case on Match** à l'étape **En cas de correspondance** de la règle. Une détection portant sur une entité qui a déjà un dossier ouvert s'ajoute à ce dossier au lieu d'en ouvrir un autre : cherchez-la sous **Détections** dans le dossier ouvert.
 :::
 
 :::details Un playbook ne s'est pas exécuté

@@ -105,7 +105,7 @@ Stel dat u wilt dat elk incident met "db-primary" in de titel een database-failo
 :::steps
 ### Het runbook maken
 
-Klik onder **Runbooks** op **Runbook aanmaken** en noem het "DB primary failover". Open het, ga naar **Stappen**, voeg deze stappen toe en klik dan op **Save Steps**:
+Klik onder **Runbooks** op **Runbook aanmaken** en noem het "DB primary failover". Het opent op **Stappen**: voeg deze stappen toe en klik dan op **Save Steps**:
 
 | # | Type | Titel |
 | --- | --- | --- |

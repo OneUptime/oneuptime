@@ -345,6 +345,62 @@ describe("the messages people act on name Runbooks", () => {
     );
   });
 
+  test("the step editor's empty credential picker points at the Credentials page under Runners", () => {
+    const steps: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Pages",
+      "Runbook",
+      "View",
+      "Steps.tsx",
+    ).replace(/\s+/g, " ");
+
+    /*
+     * Credentials moved under Runners in the Runbooks menu; the picker
+     * still sent people to a Settings page that no longer lists them.
+     */
+    expect(steps).toContain(
+      'translator.translateText( "Runbooks › Runners › Credentials", )',
+    );
+    expect(steps).not.toContain("Settings › Credentials");
+  });
+
+  test("the step editor calls a Runner a Runner, never an agent", () => {
+    const steps: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Pages",
+      "Runbook",
+      "View",
+      "Steps.tsx",
+    );
+
+    expect(steps).toContain('placeholder="Select a Runner"');
+    expect(steps).toContain('"Unknown Runner ({{id}})"');
+    expect(steps).toContain(
+      'description: "Run a shell command on one of your Runners.",',
+    );
+    expect(steps).toContain(
+      'description: "Run JavaScript on one of your Runners and use what it returns.",',
+    );
+
+    for (const retired of [
+      "Select an agent",
+      "Unknown agent",
+      "on the agent.",
+      "sandboxed JS snippet",
+    ]) {
+      expect({ retired, found: steps.includes(retired) }).toEqual({
+        retired,
+        found: false,
+      });
+    }
+  });
+
   test("a Runner started without credentials is told where to create them", () => {
     const config: string = read("Runner", "Config.ts");
 

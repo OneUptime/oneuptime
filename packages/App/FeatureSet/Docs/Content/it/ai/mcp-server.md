@@ -111,7 +111,7 @@ Cosa può fare un client collegato:
 
 ### Gestire i client collegati
 
-Ogni client collegato tramite accesso è elencato in **Impostazioni del progetto → IA → Server MCP**, sotto **Connected MCP Clients**, con chi lo ha collegato, cosa può fare e quando è stato usato l'ultima volta. Vedi i client che hai collegato tu; i proprietari e gli amministratori del progetto vedono quelli di tutti.
+Ogni client collegato tramite accesso è elencato in **Impostazioni del progetto → IA → Server MCP**, sotto **Client MCP connessi**, con chi lo ha collegato, cosa può fare e quando è stato usato l'ultima volta. Vedi i client che hai collegato tu; i proprietari e gli amministratori del progetto vedono quelli di tutti.
 
 Fai clic su **Disconnect** per disconnettere un client. Smette subito di funzionare.
 
@@ -195,6 +195,19 @@ La variabile di input con `"password": true` chiede la chiave all'avvio del serv
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

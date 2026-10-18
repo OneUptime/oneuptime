@@ -558,9 +558,7 @@
         "bannerDescription": "LLM 供應商啟用 AI 功能。您可以設定所有專案可用的全域 LLM 供應商。",
         "cardTitle": "全域 LLM 供應商",
         "cardDescription": "全域 LLM 供應商可用於所有專案的 AI 功能。設定 OpenAI、Anthropic、Ollama 或其他 LLM 供應商。",
-        "noItems": "未設定 LLM 供應商。新增 LLM 供應商以啟用 AI 功能。",
-        "stepBasicInfo": "基本資訊",
-        "stepProviderSettings": "供應商設定"
+        "noItems": "未設定 LLM 供應商。新增 LLM 供應商以啟用 AI 功能。"
       }
     }
   },
@@ -957,5 +955,35 @@
   "Get one on their first sign-in": "首次登入時獲得帳戶",
   "They join the projects attached to this provider. With none attached, they must be invited first.": "他們會加入附加到此提供者的專案。若沒有附加的專案，則必須先被邀請。",
   "Must be invited first": "必須先被邀請",
-  "They are turned away until someone invites them to a project.": "在有人邀請他們加入專案之前，他們會被拒絕登入。"
+  "They are turned away until someone invites them to a project.": "在有人邀請他們加入專案之前，他們會被拒絕登入。",
+  "Connection": "連線",
+  "OpenAI-Compatible (vLLM, LocalAI, etc.)": "OpenAI 相容（vLLM、LocalAI 等）",
+  "GPT models, with an API key from OpenAI.": "GPT 模型，使用 OpenAI 的 API 金鑰。",
+  "Claude models, with an API key from Anthropic.": "Claude 模型，使用 Anthropic 的 API 金鑰。",
+  "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.": "你在 Azure 中部署的模型：OpenAI 模型、Foundry Models 和 Claude。",
+  "Fast open models, with an API key from Groq.": "快速的開放模型，使用 Groq 的 API 金鑰。",
+  "Mistral's models, with an API key from Mistral.": "Mistral 的模型，使用 Mistral 的 API 金鑰。",
+  "Open models you run yourself. No API key.": "你自己執行的開放模型。不需要 API 金鑰。",
+  "Any server with an OpenAI-style API, such as vLLM or LocalAI.": "任何提供 OpenAI 風格 API 的伺服器，例如 vLLM 或 LocalAI。",
+  "Additional Parameters": "其他參數",
+  "Create one at platform.openai.com, under API keys.": "在 platform.openai.com 的 API keys 中建立。",
+  "Create one at console.anthropic.com, under API Keys.": "在 console.anthropic.com 的 API Keys 中建立。",
+  "KEY 1 or KEY 2, from your resource's Keys and Endpoint page.": "資源「金鑰和端點」頁面上的 KEY 1 或 KEY 2。",
+  "Your resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.": "你的資源端點，例如 https://<resource>.openai.azure.com/openai/v1；Claude 則為 https://<resource>.services.ai.azure.com/anthropic。",
+  "Create one at console.groq.com, under API Keys.": "在 console.groq.com 的 API Keys 中建立。",
+  "Create one at console.mistral.ai, under API Keys.": "在 console.mistral.ai 的 API Keys 中建立。",
+  "An address the OneUptime server can reach, such as http://ollama:11434. Not localhost.": "OneUptime 伺服器可連到的位址，例如 http://ollama:11434。不能用 localhost。",
+  "A model you pulled into Ollama. Leave empty for {{model}}.": "你已拉取到 Ollama 中的模型。留空則使用 {{model}}。",
+  "Only if your server asks for one.": "僅在你的伺服器要求時填寫。",
+  "Your server's OpenAI-style API, such as http://vllm:8000/v1. Not localhost.": "你的伺服器的 OpenAI 風格 API，例如 http://vllm:8000/v1。不能用 localhost。",
+  "A model your server serves, exactly as it names it.": "你的伺服器提供的模型，名稱須與伺服器中的完全一致。",
+  "Leave empty for {{model}}.": "留空則使用 {{model}}。",
+  "Only to go through a proxy or a gateway. Leave empty for {{provider}}'s own API: {{url}}.": "僅在經由代理或閘道時填寫。留空則使用 {{provider}} 自己的 API：{{url}}。",
+  "Named after the provider until you type a name of your own.": "在你輸入自己的名稱之前，沿用提供者的名稱。",
+  "e.g. Production OpenAI": "例如 正式環境 OpenAI",
+  "What this provider is for.": "此提供者的用途。",
+  "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "每次請求都會傳送給提供者的額外 JSON 參數，例如 {\"temperature\": 0.2}。除非模型需要，否則留空。",
+  "Never put keys here.": "切勿在此填寫金鑰。",
+  "Your deployment's name, exactly as Foundry shows it.": "你的部署名稱，須與 Foundry 中顯示的完全一致。",
+  "{{name}} (default)": "{{name}}（預設）"
 }

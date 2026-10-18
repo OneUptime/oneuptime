@@ -25,11 +25,11 @@ Abra **Produtos → Runbooks**. Runbooks fica no grupo **Painéis e automação*
 
 ### Criar o runbook
 
-Clique em **Criar: Runbook**, informe um **Nome** e, se quiser, uma **Descrição** do propósito do runbook. Em **Mais campos** ficam o interruptor **Habilitado**, ligado por padrão, e os **Rótulos**. O novo runbook aparece na lista: abra-o.
+Clique em **Criar: Runbook**, informe um **Nome** e, se quiser, uma **Descrição** do propósito do runbook. Em **Mais campos** ficam o interruptor **Habilitado**, ligado por padrão, e os **Rótulos**. O novo runbook abre na página **Etapas** dele.
 
 ### Adicionar etapas
 
-Vá para **Etapas**. Em **Start your runbook**, escolha o tipo da primeira etapa; abaixo da última etapa, **Add another step** oferece os mesmos sete tipos. Cada etapa abre com seu **Título**, sua **Descrição** (em Markdown, mostrada a quem responde) e as configurações do seu tipo. Assim que o runbook tiver uma etapa, **Adicionar etapa**, no topo do cartão, adiciona uma etapa Manual.
+Em **Start your runbook**, escolha o tipo da primeira etapa; abaixo da última etapa, **Add another step** oferece os mesmos sete tipos. Cada etapa abre com seu **Título**, sua **Descrição** (em Markdown, mostrada a quem responde) e as configurações do seu tipo. Assim que o runbook tiver uma etapa, **Adicionar etapa**, no topo do cartão, adiciona uma etapa Manual.
 
 ### Ordenar as etapas
 
@@ -78,8 +78,8 @@ Um trecho de JavaScript, executado em um sandbox `isolated-vm` em um [agente de 
 | --- | --- | --- |
 | **Runner** | O Runner que executa a etapa. Só esse Runner pode assumir o trabalho. | — |
 | **Script** | O JavaScript a executar. Retorne um valor com `return` para capturá-lo; cada linha de `console.log` também é capturada. Lançar um erro faz a etapa falhar. | — |
-| **Execution timeout** | Por quanto tempo o Runner deixa o trecho rodar antes de destruir o sandbox. | 30 segundos |
-| **Claim timeout** | Por quanto tempo o Worker espera o Runner assumir o trabalho. | 2 minutos |
+| **Tempo limite de execução** | Por quanto tempo o Runner deixa o trecho rodar antes de destruir o sandbox. | 30 segundos |
+| **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. | 2 minutos |
 
 ```javascript
 const start = Date.now();
@@ -117,8 +117,8 @@ Um script bash, executado com `bash -c <script>` em um [agente de runbook](/docs
 | --- | --- | --- |
 | **Runner** | O Runner que executa a etapa. Só esse Runner pode assumir o trabalho. | — |
 | **Script Bash** | O script. A saída (stdout e stderr) é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. | — |
-| **Execution timeout** | Por quanto tempo o Runner deixa o script rodar antes de matá-lo com `SIGKILL`. Aumente-o para etapas que legitimamente levam minutos. | 30 segundos |
-| **Claim timeout** | Por quanto tempo o Worker espera o Runner assumir o trabalho. | 2 minutos |
+| **Tempo limite de execução** | Por quanto tempo o Runner deixa o script rodar antes de matá-lo com `SIGKILL`. Aumente-o para etapas que legitimamente levam minutos. | 30 segundos |
+| **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. | 2 minutos |
 
 O script roda dentro do contêiner do Runner, com as ferramentas que a imagem traz, como `curl`, `wget` e o cliente `ssh`, e com o acesso de rede do host onde roda. Por exemplo, para verificar um serviço que só a sua rede alcança:
 
@@ -147,8 +147,8 @@ Executar um comando em um host que o Runner alcança por SSH. Diferente de `ssh 
 | **Runner** | O Runner que abre a conexão. Ele precisa alcançar o host pela rede. |
 | **Credential** | Uma credencial SSH com o host, a porta, o usuário e a chave ou senha. Ela precisa estar atribuída ao Runner escolhido; caso contrário, a etapa falha em vez de rodar com o acesso errado. |
 | **Command** | Executado no host remoto como o usuário da credencial. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. |
-| **Execution timeout** | Cobre conexão, autenticação e execução do comando juntas, para que um comando travado não mantenha a etapa aberta. 30 segundos por padrão. |
-| **Claim timeout** | Por quanto tempo o Worker espera o Runner assumir o trabalho. 2 minutos por padrão. |
+| **Tempo limite de execução** | Cobre conexão, autenticação e execução do comando juntas, para que um comando travado não mantenha a etapa aberta. 30 segundos por padrão. |
+| **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. 2 minutos por padrão. |
 
 ### Kubernetes
 
@@ -162,8 +162,8 @@ Reiniciar ou escalar uma carga de trabalho em um cluster. As ações são um con
 | **Workload kind** | **Deployment**, **StatefulSet** ou **DaemonSet**. |
 | **Namespace** e **Workload name** | A carga de trabalho alvo. |
 | **Réplicas** | Só ao escalar. Zero é permitido: esvaziar uma carga de trabalho é uma remediação legítima. Um DaemonSet roda um pod por nó e não pode ser escalado; reinicie-o em vez disso. |
-| **Execution timeout** | Por quanto tempo o Runner espera o servidor de API aceitar a alteração. 30 segundos por padrão. |
-| **Claim timeout** | Por quanto tempo o Worker espera o Runner assumir o trabalho. 2 minutos por padrão. |
+| **Tempo limite de execução** | Por quanto tempo o Runner espera o servidor de API aceitar a alteração. 30 segundos por padrão. |
+| **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. 2 minutos por padrão. |
 
 Se o servidor de API recusar a alteração, a própria mensagem dele aparece na etapa, então uma falha de permissão diz qual vínculo de função ampliar.
 

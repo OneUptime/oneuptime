@@ -35,7 +35,7 @@ Open **Producten → Security Events → Threat Intel**.
 
 ### Maak de feed aan
 
-Klik op **Threat Intel Feed aanmaken** en vul de vijf stappen in: **Basisinformatie**, **TAXII Server**, **Authenticatie**, **Security Cases** en **Bij overeenkomst**. De velden staan in de tabel hieronder.
+Klik op **Threat Intel Feed aanmaken** en vul de drie stappen in: **TAXII-server**, **Aanmelden** en **Bij overeenkomst**. De velden staan in de tabel hieronder.
 
 ### Controleer de eerste ophaalronde
 
@@ -48,16 +48,16 @@ Binnen een minuut of twee toont de rij van de feed **Last Polled**, en **Last Po
 | **Collection ID** | De collectie die de indicatoren publiceert. |
 | **Poll Interval (Minutes)** | Hoe vaak nieuwe objecten worden opgehaald: 1 tot 1440 minuten, standaard 60. |
 | **Minimum Confidence** | Indicatoren met een lagere STIX-`confidence` worden overgeslagen: 0 tot 100, en 0 houdt alles. Indicatoren zonder confidence komen altijd door. |
-| **API Token** | Een bearer-token, voor een collectie die erom vraagt. |
-| **Basic Auth Username** en **Basic Auth Password** | Voor een collectie die HTTP Basic-authenticatie gebruikt. Laat beide en het token leeg voor een openbare collectie. |
+| **Aanmelden** | Hoe OneUptime zich aanmeldt: **Niet aanmelden** voor een openbare collectie, **Bearer-token** voor een token van de beheerder van de server, of **Gebruikersnaam en wachtwoord** voor HTTP Basic-authenticatie. |
+| **API Token**, **Basic Auth Username** en **Basic Auth Password** | Alleen gevraagd voor de gekozen aanmelding. |
 | **Open a Case on Match** | Standaard aan: elke gebeurtenis die een indicator noemt, opent een [zaak](/docs/telemetry/security-cases) over die indicator, of wordt toegevoegd aan de open zaak die er al over gaat. |
-| **Create Alert on Match** | Standaard aan: elke gematchte indicator opent een waarschuwing. |
+| **Waarschuwingen en incidenten** | Standaard **Een waarschuwing maken**: elke gematchte indicator opent een waarschuwing. |
 | **Ernst van waarschuwing** | De ernst van elke waarschuwing die deze feed opent. Laat het leeg om het dreigingsniveau van elke indicator te nemen. |
-| **Create Incident on Match** | Standaard uit. Incidenten sturen on-call-escalatie, SLA's en statuspagina's aan, en voor indicatormatches zijn waarschuwingen meestal genoeg. |
+| **Een incident melden** of **Beide** | Onder **Waarschuwingen en incidenten**. Incidenten sturen on-call-escalatie, SLA's en statuspagina's aan, en voor indicatormatches zijn waarschuwingen meestal genoeg. |
 | **Ernst van incident** | Zoals **Ernst van waarschuwing**, voor incidenten. |
 | **Write Detection Finding on Match** | Standaard aan: elke match schrijft een bevinding in de gebeurtenisstroom. |
 
-Tokens en wachtwoorden worden versleuteld en na het opslaan nooit meer getoond. Om ze te wijzigen, kies je **Update Credentials** in de rij van de feed en daarna **API Token (Bearer)**, **Basic Auth** of **Anonymous (clear stored credentials)**: je keuze vervangt de aanmelding van de feed, dus het opslaan van een token wist een opgeslagen wachtwoord, en omgekeerd.
+Tokens en wachtwoorden worden versleuteld en na het opslaan nooit meer getoond. Om ze te wijzigen, kies je **Update Credentials** in de rij van de feed en daarna **Bearer-token**, **Gebruikersnaam en wachtwoord** of **Niet aanmelden**, dat wist wat is opgeslagen: je keuze vervangt de aanmelding van de feed, dus het opslaan van een token wist een opgeslagen wachtwoord, en omgekeerd.
 
 ### Hoe een feed wordt opgehaald
 
@@ -143,7 +143,7 @@ Elke minuut worden de actieve indicatoren van elke ingeschakelde feed vergeleken
 ### Wat een match doet
 
 - Een waarschuwing, met de titel `[Threat Intel] <feed name> — <indicator value>`, één per feed en waarde zolang ze openstaat. Zodra ze is opgelost, opent de volgende match een nieuwe. Waarschuwingen worden niet automatisch opgelost.
-- Een incident, alleen met **Create Incident on Match**, op dezelfde manier ontdubbeld.
+- Een incident, alleen met **Een incident melden** of **Beide** onder **Waarschuwingen en incidenten**, op dezelfde manier ontdubbeld.
 - Een Threat Intel-bevinding, met **Write Detection Finding on Match**: een gebeurtenis `Detection Finding` (OCSF-klasse 2004) van het product `OneUptime Threat Intel`, met het dreigingsniveau van de indicator als ernst, en deze attributen:
 
 | Attribuut | Waarde |
@@ -199,7 +199,7 @@ Matchen vergelijkt de waarde van een indicator met de observables van een gebeur
 :::
 
 :::details Een match opende geen waarschuwing
-**Create Alert on Match** staat uit, of een waarschuwing voor dezelfde feed en waarde staat nog open, en latere matches worden daarin opgenomen. Een project heeft minstens één ernstniveau voor waarschuwingen nodig voordat een feed waarschuwingen kan openen.
+**Waarschuwingen en incidenten** staat op **Een incident melden** of **Geen van beide**, of een waarschuwing voor dezelfde feed en waarde staat nog open, en latere matches worden daarin opgenomen. Een project heeft minstens één ernstniveau voor waarschuwingen nodig voordat een feed waarschuwingen kan openen.
 :::
 
 ## Volgende stappen

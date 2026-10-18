@@ -129,7 +129,7 @@ Din rolle læser runbooks, men kører dem ikke: knappen siger "Du har ikke tilla
 :::
 
 :::details Start af en kørsel fejler med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstillinger**, eller det har ingen gemte trin. Slå kontakten til, eller tilføj trin, og klik på **Save Steps**.
+Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstillinger**, eller det har ingen gemte trin. Slå kontakten til, eller tilføj trin, og klik på **Save Steps**. Dets **Oversigt** siger hvilken, med **Slå runbook til** eller **Tilføj trin**.
 :::
 
 :::details Et trin fejlede, fordi det mangler en Runner eller en loginoplysning

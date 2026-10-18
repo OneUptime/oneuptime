@@ -44,8 +44,8 @@ flowchart TB
 
 | 来源 | 何时打开案例 | 停用方式 |
 | --- | --- | --- |
-| 检测规则 | 规则匹配时 | 规则的 **Security Cases** 步骤中的 **Open a Case on Match** |
-| 威胁情报 | 某个事件提到已知指标时 | 情报源的 **Security Cases** 步骤中的 **Open a Case on Match** |
+| 检测规则 | 规则匹配时 | 规则的 **匹配时** 步骤中的 **Open a Case on Match** |
+| 威胁情报 | 某个事件提到已知指标时 | 情报源的 **匹配时** 步骤中的 **Open a Case on Match** |
 | 已连接的产品 | 导入的产品自身警报达到或高于连接的阈值时 | 在连接的 **Polling** 步骤中，把 **Open Cases From** 设为 **从未** |
 | 人员 | 有人从 **Security Cases** 中打开案例，或在事件面板中使用 **Open Case** 时 | 无 |
 
@@ -229,7 +229,7 @@ flowchart TB
 ## 故障排除
 
 :::details 规则匹配了，但没有打开案例
-检查规则 **Security Cases** 步骤中的 **Open a Case on Match**。如果检测涉及的实体已有未关闭的案例，该检测会并入那个案例，而不会另开一个：请在那个未关闭案例的 **Detections** 下查找它。
+检查规则 **匹配时** 步骤中的 **Open a Case on Match**。如果检测涉及的实体已有未关闭的案例，该检测会并入那个案例，而不会另开一个：请在那个未关闭案例的 **Detections** 下查找它。
 :::
 
 :::details 剧本没有运行

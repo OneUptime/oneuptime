@@ -36,11 +36,12 @@ import { getJestSpyOn } from "../../Spy";
  *     ID - with the webhook's verify token, the app secret and the two IDs
  *     folded under Advanced, which says "Configured" when any is set; the
  *     setup guide on the page says where they went;
- *   - Settings > Global LLM Providers: Basic Info, then Provider Settings,
- *     with Additional Parameters and (where projects are billed for AI) the
- *     cost per million tokens folded at its end - no Advanced step and no
- *     Cost step - and a free provider's Edit form not calling its 0 cost
- *     "Configured".
+ *   - Settings > Global LLM Providers: the shared LLM provider form
+ *     (LlmProviderFormFields) - Provider, a card each, then Connection, with
+ *     the description, Additional Parameters and (where projects are billed
+ *     for AI) the cost per million tokens folded at its end - no Advanced
+ *     step and no Cost step - and a free provider's Edit form not calling
+ *     its 0 cost "Configured".
  *
  * Only the network, the page chrome, the side menu, the dropdown and the
  * setup guide's markdown viewer are stand-ins; the Global LLM Providers
@@ -709,11 +710,7 @@ describe("Settings > Global LLM Providers", () => {
       });
   }
 
-  test("walks Basic Info, then Provider Settings - no Advanced step and no Cost step", async () => {
-    billingEnabledForTest = true;
-
-    const dialog: HTMLElement = await openDialog(FormType.Create);
-
+  async function waitForSteps(dialog: HTMLElement): Promise<void> {
     await waitFor(
       () => {
         expect(
@@ -722,42 +719,26 @@ describe("Settings > Global LLM Providers", () => {
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
+  }
 
-    const titles: Array<string> = stepTitles(dialog);
-
-    expect(titles).toHaveLength(2);
-    expect(titles[0]).toContain("Basic Info");
-    expect(titles[1]).toContain("Provider Settings");
-    expect(titles.join(" ")).not.toMatch(/Advanced|Cost/);
-  });
-
-  test("names its two steps in the reader's language", async () => {
-    const dialog: HTMLElement = await openDialog(FormType.Create, "de");
-
+  // Picks a provider's card, then goes on to Connection.
+  async function pickProvider(
+    dialog: HTMLElement,
+    type: string,
+  ): Promise<void> {
     await waitFor(
       () => {
         expect(
-          within(dialog).getByRole("navigation", { name: "Progress" }),
+          within(dialog).getByTestId(`card-select-option-${type}`),
         ).toBeVisible();
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
 
-    const titles: Array<string> = stepTitles(dialog);
-
-    expect(titles).toHaveLength(2);
-    expect(titles[0]).toContain(
-      text(GERMAN, "pages.settings.llmProviders.stepBasicInfo"),
-    );
-    expect(titles[1]).toContain(
-      text(GERMAN, "pages.settings.llmProviders.stepProviderSettings"),
-    );
-  });
-
-  test("folds Additional Parameters and the cost at the end of Provider Settings, and creates a free global provider", async () => {
-    billingEnabledForTest = true;
-
-    const dialog: HTMLElement = await openDialog(FormType.Create);
+    fireEvent.click(within(dialog).getByTestId(`card-select-option-${type}`));
+    await settle();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Next" }));
+    await settle();
 
     await waitFor(
       () => {
@@ -765,45 +746,111 @@ describe("Settings > Global LLM Providers", () => {
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
-    await settle();
+  }
 
-    fireEvent.change(within(dialog).getByPlaceholderText("My OpenAI GPT-4"), {
-      target: { value: "Shared GPT" },
-    });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Next" }));
-    await settle();
+  test("walks Provider, then Connection - no Advanced step and no Cost step", async () => {
+    billingEnabledForTest = true;
+
+    const dialog: HTMLElement = await openDialog(FormType.Create);
+
+    await waitForSteps(dialog);
+
+    const titles: Array<string> = stepTitles(dialog);
+
+    expect(titles).toHaveLength(2);
+    expect(titles[0]).toContain("Provider");
+    expect(titles[1]).toContain("Connection");
+    expect(titles.join(" ")).not.toMatch(/Advanced|Cost/);
+  });
+
+  test("names its two steps in the reader's language", async () => {
+    const dialog: HTMLElement = await openDialog(FormType.Create, "de");
+
+    await waitForSteps(dialog);
+
+    const titles: Array<string> = stepTitles(dialog);
+
+    expect(titles).toHaveLength(2);
+    expect(titles[0]).toContain(text(GERMAN, "Provider"));
+    expect(titles[1]).toContain(text(GERMAN, "Connection"));
+    expect(text(GERMAN, "Connection")).not.toBe("Connection");
+  });
+
+  test("offers one card per provider, each saying what it is, in the reader's language", async () => {
+    const dialog: HTMLElement = await openDialog(FormType.Create, "de");
 
     await waitFor(
       () => {
-        expect(label(dialog, "LLM Provider")).toBeVisible();
+        expect(
+          within(dialog).getByTestId("card-select-option-Ollama"),
+        ).toBeVisible();
       },
       { timeout: WAIT_FOR_TIMEOUT },
     );
 
+    expect(
+      within(dialog)
+        .getAllByRole("radio")
+        .map((card: HTMLElement) => {
+          return card.getAttribute("data-testid");
+        }),
+    ).toEqual([
+      "card-select-option-OpenAI",
+      "card-select-option-Anthropic",
+      "card-select-option-AzureOpenAI",
+      "card-select-option-Groq",
+      "card-select-option-Mistral",
+      "card-select-option-Ollama",
+      "card-select-option-OpenAICompatible",
+    ]);
+    expect(
+      within(dialog).getByTestId("card-select-option-Ollama"),
+    ).toHaveTextContent(
+      text(GERMAN, "Open models you run yourself. No API key."),
+    );
+  });
+
+  test("folds the description, Additional Parameters and the cost at the end of Connection, and creates a free global provider", async () => {
+    billingEnabledForTest = true;
+
+    const dialog: HTMLElement = await openDialog(FormType.Create);
+
+    await pickProvider(dialog, "OpenAI");
+
     expect(label(dialog, "API Key")).toBeVisible();
-    expect(label(dialog, "Model Name")).toBeVisible();
     expect(label(dialog, "Base URL")).toBeVisible();
+    expect(label(dialog, "Model Name")).toBeVisible();
+
+    // Named after the provider until a name of one's own is typed.
+    const name: HTMLInputElement = within(dialog).getByPlaceholderText(
+      "e.g. Production OpenAI",
+    ) as HTMLInputElement;
+
+    expect(name.value).toBe("OpenAI");
 
     const header: HTMLElement = advancedHeader(dialog, "More fields");
 
     expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(label(dialog, "Description")).not.toBeVisible();
     expect(label(dialog, "Additional Parameters")).not.toBeVisible();
     expect(
       label(dialog, "Cost Per Million Tokens (USD Cents)"),
     ).not.toBeVisible();
     // A free provider, the default, is nothing to call out.
     expect(setChips(header)).toEqual([]);
+    // A global provider is never a project's default.
+    expect(within(dialog).queryByText("Set as Default")).toBeNull();
 
     fireEvent.click(header);
 
+    expect(label(dialog, "Description")).toBeVisible();
     expect(label(dialog, "Additional Parameters")).toBeVisible();
     expect(label(dialog, "Cost Per Million Tokens (USD Cents)")).toBeVisible();
 
-    const pickProvider: HTMLElement = within(dialog).getAllByRole("button", {
-      name: /^Pick /,
-    })[0]!;
-
-    fireEvent.click(pickProvider);
+    fireEvent.change(name, { target: { value: "Shared GPT" } });
+    fireEvent.change(within(dialog).getByTestId("llm-provider-api-key"), {
+      target: { value: "sk-shared" },
+    });
     await settle();
 
     fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
@@ -818,6 +865,8 @@ describe("Settings > Global LLM Providers", () => {
     const saved: Record<string, unknown> = savedValues(mockAdminCreateOrUpdate);
 
     expect(saved["name"]).toBe("Shared GPT");
+    expect(saved["llmType"]).toBe("OpenAI");
+    expect(saved["apiKey"]).toBe("sk-shared");
     expect(saved["isGlobalLlm"]).toBe(true);
     expect(Number(saved["costPerMillionTokensInUSDCents"] || 0)).toBe(0);
   });
@@ -827,28 +876,14 @@ describe("Settings > Global LLM Providers", () => {
 
     const dialog: HTMLElement = await openDialog(FormType.Create);
 
-    await waitFor(
-      () => {
-        expect(label(dialog, "Name")).toBeVisible();
-      },
-      { timeout: WAIT_FOR_TIMEOUT },
-    );
-    await settle();
+    await waitForSteps(dialog);
 
     expect(stepTitles(dialog)).toHaveLength(2);
 
-    fireEvent.change(within(dialog).getByPlaceholderText("My OpenAI GPT-4"), {
-      target: { value: "Local Llama" },
-    });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Next" }));
-    await settle();
+    await pickProvider(dialog, "Ollama");
 
-    await waitFor(
-      () => {
-        expect(label(dialog, "LLM Provider")).toBeVisible();
-      },
-      { timeout: WAIT_FOR_TIMEOUT },
-    );
+    // Ollama reads no API key, so none is asked for.
+    expect(within(dialog).queryByTestId("llm-provider-api-key")).toBeNull();
 
     fireEvent.click(advancedHeader(dialog, "More fields"));
 
@@ -874,12 +909,7 @@ describe("Settings > Global LLM Providers", () => {
 
       const dialog: HTMLElement = await openDialog(FormType.Update);
 
-      await waitFor(
-        () => {
-          expect(label(dialog, "Name")).toBeVisible();
-        },
-        { timeout: WAIT_FOR_TIMEOUT },
-      );
+      await waitForSteps(dialog);
       await settle();
 
       // Saves from any step: the folded section is on the second.
@@ -888,7 +918,7 @@ describe("Settings > Global LLM Providers", () => {
 
       await waitFor(
         () => {
-          expect(label(dialog, "LLM Provider")).toBeVisible();
+          expect(label(dialog, "Name")).toBeVisible();
         },
         { timeout: WAIT_FOR_TIMEOUT },
       );

@@ -554,17 +554,30 @@ const AIInsightsPage: FunctionComponent<
           id="ai-insights-empty-state"
           icon={IconProp.LightBulb}
           showSolidBackground={true}
+          /*
+           * The whole page on a first run: tall on a laptop, not a screen
+           * and a half of white on a phone.
+           */
+          paddingClassName="py-20 md:pt-52 md:pb-52"
           title="No insights yet"
           description="OneUptime AI watches this project's telemetry and files a quiet insight when something looks off. It never pages anyone."
           footer={
-            <Button
-              title="Go to Insights Settings"
-              icon={IconProp.Settings}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => {
-                Navigation.navigate(settingsRoute);
-              }}
-            />
+            /*
+             * The page's one way on, drawn as a button: the OUTLINE style
+             * has no border, so it read as a line of text. The wrapper
+             * takes off the dialog-footer margin Button carries from md,
+             * which set it off centre.
+             */
+            <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+              <Button
+                title="Go to Insights Settings"
+                icon={IconProp.Settings}
+                buttonStyle={ButtonStyleType.NORMAL}
+                onClick={() => {
+                  Navigation.navigate(settingsRoute);
+                }}
+              />
+            </div>
           }
         />
       );
@@ -685,6 +698,31 @@ const AIInsightsPage: FunctionComponent<
       </div>
     );
   };
+
+  /*
+   * A project with no insights at all, and nothing filtered: the five
+   * status tiles would each read 0 and the filters would narrow nothing,
+   * so the page is its empty state alone - what Insights are, and one way
+   * on (Insights Settings). The intro above the list says what the empty
+   * state says. As soon as there is one insight, or a filter from a shared
+   * link, the inbox is drawn whole.
+   */
+  const isFirstRun: boolean =
+    !hasActiveFilters &&
+    !isLoading &&
+    !error &&
+    insights.length === 0 &&
+    statusCounts !== null &&
+    (statusCounts[ALL_FILTER_VALUE] || 0) === 0;
+
+  if (isFirstRun) {
+    return (
+      <div className="space-y-5" data-testid="ai-insights-first-run">
+        <AIPlanGate />
+        {getContent()}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

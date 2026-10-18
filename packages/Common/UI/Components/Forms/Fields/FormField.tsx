@@ -762,6 +762,7 @@ const FormField: <T extends GenericObject>(
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               singleColumn={props.field.cardSelectSingleColumn}
+              maxColumns={props.field.cardSelectMaxColumns}
               searchable={props.field.cardSelectSearchable}
               searchPlaceholder={props.field.cardSelectSearchPlaceholder}
               searchHint={props.field.cardSelectSearchHint}

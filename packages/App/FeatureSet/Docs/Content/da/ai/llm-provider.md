@@ -93,19 +93,19 @@ Synkroniseringen er deklarativ: ændr en variabel, og udbyderen følger med ved 
 
 Gå til **Projektindstillinger → AI → LLM-udbydere** (sidemenuens afsnit **AI** starter sammenfoldet), og klik på **Opret LLM-udbyder**.
 
-### Navngiv udbyderen
+### Vælg udbyderen
 
-Under **Grundlæggende oplysninger** giver du den et **Navn**, der siger, hvad den er, såsom "Production OpenAI" eller "Local Ollama", og eventuelt en **Beskrivelse**.
+Under **Udbyder** vælger du din **LLM-udbyder**: et kort for OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama og enhver OpenAI-kompatibel server, hvert med en linje om, hvad det er.
 
-### Udfyld udbyderens indstillinger
+### Forbind den
 
-Under **Udbyderindstillinger**:
+Under **Forbindelse** spørger formularen kun om det, udbyderen bruger, med sin egen hjælp under hvert felt:
 
-- **LLM-udbyder**: typen af udbyder (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama eller OpenAI Compatible)
-- **API-nøgle**: din API-nøgle (påkrævet for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral; valgfri for Ollama og OpenAI-kompatible servere)
-- **Modelnavn**: modellen, der skal bruges, såsom `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`
-- **Basis-URL**: endpointet, påkrævet for Azure OpenAI, Ollama og OpenAI Compatible; valgfri for de andre, for at tilsidesætte deres standard
-- **Flere felter**, foldet sammen under felterne ovenfor: **Indstil som standard**, som er slået til for en ny udbyder, fordi AI-funktioner kun bruger projektets standardudbyder, og **Yderligere parametre**, et valgfrit JSON-objekt med ekstra parametre, der sendes til udbyderen med hver anmodning (for eksempel `{"temperature": 0.2}`)
+- **API-nøgle**: din API-nøgle, påkrævet for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral og valgfri for en OpenAI-kompatibel server; for Ollama bliver der ikke spurgt om en
+- **Basis-URL**: endpointet, påkrævet for Azure OpenAI, Ollama og OpenAI Compatible; for de andre kun for at gå gennem en proxy eller en gateway
+- **Modelnavn**: modellen, der skal bruges, såsom `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`. Står det tomt, bruger OneUptime udbyderens standardmodel, undtagen på en OpenAI-kompatibel server, som skal have en
+- **Navn**: udbyderens navn, indtil du skriver dit eget, såsom "Production OpenAI" eller "Local Ollama"
+- **Flere felter**, foldet sammen under felterne ovenfor: en **Beskrivelse**, **Indstil som standard**, som er slået til for en ny udbyder, fordi AI-funktioner kun bruger projektets standardudbyder, og **Yderligere parametre**, et valgfrit JSON-objekt med ekstra parametre, der sendes til udbyderen med hver anmodning (for eksempel `{"temperature": 0.2}`)
 
 **Hvem der kan se en udbyder.** Et projekts LLM-udbydere læses kun af de medlemmer, der må læse projektets indstillinger: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** og **Read LLM**. En udbyders **API-nøgle** og **Yderligere parametre** læses kun af projektets ejere og administratorer, fordi parametrene sendes til udbyderen med hver anmodning og kan indeholde et token eller en header ligesom nøglen. De andre medlemmer ser, om der er gemt parametre, men ikke hvilke. Medlemmer, der må redigere en udbyder, kan stadig erstatte dens API-nøgle eller parametre uden at læse dem: i redigeringsformularen starter de felter tomme, og et felt, der lades tomt, beholder det gemte. For at fjerne parametrene skal du gemme `{}`. Kun projektets ejere og administratorer kan ændre en udbyders **Basis-URL**, fordi dens API-nøgle og yderligere parametre sendes til den adresse; de andre medlemmer, der må redigere en udbyder, kan ændre alt andet. Alle, der kan læse en udbyder, kan læse dens **Basis-URL**, så læg aldrig en nøgle, et token eller en adgangskode i den: brug **API-nøgle**. Listen **Globale LLM-udbydere** på samme side, de fælles udbydere, som et projekt falder tilbage på, viser deres navn, beskrivelse og pris til alle, der er logget ind, og intet andet om dem.
 

@@ -9,6 +9,7 @@ import AIChatUnavailableReason, {
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
+import IconProp from "../../../Types/Icon/IconProp";
 
 /*
  * The rule Ask AI uses to decide whether it can take a question, and the words
@@ -170,17 +171,40 @@ describe("every reason can be explained to the person who hit it", () => {
   );
 
   test.each(ALL_REASONS)(
-    "%s tells the user where to go, not just that something is wrong",
+    "%s offers the way out as a button that says what it opens",
     (reason: AIChatUnavailableReason) => {
       const copy: AIChatUnavailableCopy = getAIChatUnavailableCopy(reason);
 
       /*
        * The whole point of the notice: whoever is looking at it usually did
-       * not flip the switch, so "Settings" alone is not an answer.
+       * not flip the switch, so it opens the settings page that owns it.
+       * The button says what it opens ("Add an LLM provider") in a few
+       * words; it used to spell the menu path ("Go to Project Settings >
+       * AI > LLM Providers"), which the link itself already follows.
        */
-      expect(copy.actionLabel).toMatch(/Settings/);
+      expect(RouteMap[copy.actionPage as PageMap]!.toString()).toContain(
+        "/settings/",
+      );
+      expect(copy.actionLabel).not.toMatch(/Go to|>/);
+      expect(copy.actionLabel.split(" ").length).toBeLessThanOrEqual(4);
     },
   );
+
+  test("each button names its own next step", () => {
+    expect(
+      ALL_REASONS.map((reason: AIChatUnavailableReason): string => {
+        return getAIChatUnavailableCopy(reason).actionLabel;
+      }),
+    ).toEqual(["Upgrade plan", "Open AI Features", "Add an LLM provider"]);
+  });
+
+  test("each button's icon is for what it does, not a gear on all three", () => {
+    expect(
+      ALL_REASONS.map((reason: AIChatUnavailableReason): IconProp => {
+        return getAIChatUnavailableCopy(reason).actionIcon;
+      }),
+    ).toEqual([IconProp.Upgrade, IconProp.Settings, IconProp.Add]);
+  });
 
   test("each reason points somewhere different — three reasons collapsing onto one page would hide two of them", () => {
     const pages: Array<PageMap> = ALL_REASONS.map(

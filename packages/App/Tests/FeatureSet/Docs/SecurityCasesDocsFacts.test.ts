@@ -200,9 +200,29 @@ describe("Security Cases and Playbooks docs", () => {
       ),
     );
 
+    /*
+     * Both draw the shared On Match step (SecurityMatchActionFields), whose
+     * first switch opens cases.
+     */
+    const onMatch: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityEvents/SecurityMatchActionFields.ts`,
+      ),
+    );
+
+    expect(onMatch).toContain(
+      'title: "Open a Case on Match", stepId: "on-match",',
+    );
+
     for (const form of [rules, feeds]) {
-      expect(form).toContain('title: "Open a Case on Match", stepId: "cases",');
-      expect(form).toContain('{ title: "Security Cases", id: "cases" }');
+      expect(form).toContain('{ title: "On Match", id: "on-match" }');
+      expect(form).toContain("...getSecurityMatchActionFields<");
+    }
+
+    for (const row of sourceRows.slice(0, 2)) {
+      expect(row[2]).toMatch(
+        /^\*\*Open a Case on Match\*\*, on the (rule|feed)'s \*\*On Match\*\* step$/,
+      );
     }
 
     expect(connections).toContain('title: "Open Cases From",');

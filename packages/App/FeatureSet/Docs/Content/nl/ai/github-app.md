@@ -108,7 +108,7 @@ Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-
 
 GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor [Hersteltaken](/docs/ai/ai-agent):
 
-- **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, op de pagina **Instellingen** van de repository). Er is geen maximum tot je er een instelt, en 0 blokkeert AI-pull-requests met een fix op die repository. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
+- **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
 
 Per issue of pull request is er steeds maar één run van een soort actief. Twee keer vragen vertelt je dat hij er al mee bezig is; om een review vragen terwijl een herziening loopt, start ze allebei, omdat het verschillende verzoeken zijn.
 

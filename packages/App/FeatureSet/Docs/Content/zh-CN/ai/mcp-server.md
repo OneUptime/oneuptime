@@ -111,7 +111,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### 管理已连接的客户端
 
-通过登录连接的每个客户端都列在 **项目设置 → 人工智能 → MCP 服务器** 的 **Connected MCP Clients** 下，并显示是谁连接的、可以做什么以及上次使用的时间。您能看到自己连接的客户端；项目所有者和管理员能看到所有人的客户端。
+通过登录连接的每个客户端都列在 **项目设置 → 人工智能 → MCP 服务器** 的 **已连接的 MCP 客户端** 下，并显示是谁连接的、可以做什么以及上次使用的时间。您能看到自己连接的客户端；项目所有者和管理员能看到所有人的客户端。
 
 点击 **Disconnect** 可让客户端退出登录。它会立即停止工作。
 
@@ -195,6 +195,19 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

@@ -25,11 +25,11 @@ Du skriver ett runbook som en ordnad lista med steg på dess sida **Steg**. Den 
 
 ### Skapa runbooket
 
-Klicka på **Skapa Runbook**, ange ett **Namn** och eventuellt en **Beskrivning** av vad runbooket är till för. Under **Fler fält** finns brytaren **Aktiverad**, som är påslagen som standard, och **Etiketter**. Det nya runbooket visas i listan: öppna det.
+Klicka på **Skapa Runbook**, ange ett **Namn** och eventuellt en **Beskrivning** av vad runbooket är till för. Under **Fler fält** finns brytaren **Aktiverad**, som är påslagen som standard, och **Etiketter**. Det nya runbooket öppnas på sin sida **Steg**.
 
 ### Lägg till steg
 
-Gå till **Steg**. Under **Start your runbook** väljer du typen för det första steget; under det sista steget erbjuder **Add another step** samma sju typer. Varje steg öppnas med sin **Titel**, sin **Beskrivning** (Markdown, visas för den som hanterar incidenten) och inställningarna för sin typ. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
+Under **Start your runbook** väljer du typen för det första steget; under det sista steget erbjuder **Add another step** samma sju typer. Varje steg öppnas med sin **Titel**, sin **Beskrivning** (Markdown, visas för den som hanterar incidenten) och inställningarna för sin typ. När runbooket har ett steg lägger **Lägg till steg** högst upp på kortet till ett Manual-steg.
 
 ### Ordna stegen
 
@@ -78,8 +78,8 @@ Ett stycke JavaScript som körs i en `isolated-vm`-sandlåda på en [runbook-age
 | --- | --- | --- |
 | **Runner** | Den Runner som kör steget. Bara den Runnern får ta jobbet. | — |
 | **Script** | Den JavaScript-kod som ska köras. Returnera ett värde med `return` för att registrera det; varje rad från `console.log` registreras också. Ett kastat fel får steget att misslyckas. | — |
-| **Execution timeout** | Hur länge Runnern låter koden köra innan den river sandlådan. | 30 sekunder |
-| **Claim timeout** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
+| **Tidsgräns för körning** | Hur länge Runnern låter koden köra innan den river sandlådan. | 30 sekunder |
+| **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
 
 ```javascript
 const start = Date.now();
@@ -117,8 +117,8 @@ Ett bash-skript som körs med `bash -c <script>` på en [runbook-agent](/docs/ru
 | --- | --- | --- |
 | **Runner** | Den Runner som kör steget. Bara den Runnern får ta jobbet. | — |
 | **Bash-skript** | Skriptet. Output (stdout och stderr) registreras upp till 50 KB, och en slutkod som inte är noll får steget att misslyckas. | — |
-| **Execution timeout** | Hur länge Runnern låter skriptet köra innan den dödar det med `SIGKILL`. Höj den för steg som av goda skäl tar minuter. | 30 sekunder |
-| **Claim timeout** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
+| **Tidsgräns för körning** | Hur länge Runnern låter skriptet köra innan den dödar det med `SIGKILL`. Höj den för steg som av goda skäl tar minuter. | 30 sekunder |
+| **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
 
 Skriptet körs i Runnerns container med de verktyg som dess image levereras med, som `curl`, `wget` och `ssh`-klienten, och med nätverksåtkomsten från den värd det körs på. Till exempel för att kontrollera en tjänst som bara ditt nätverk kan nå:
 
@@ -147,8 +147,8 @@ Kör ett kommando på en värd som Runnern kan nå via SSH. Till skillnad från 
 | **Runner** | Den Runner som öppnar anslutningen. Den måste kunna nå värden över nätverket. |
 | **Credential** | En SSH-autentiseringsuppgift med värd, port, användare och nyckel eller lösenord. Den måste vara tilldelad den Runner du valde, annars misslyckas steget i stället för att köras med fel åtkomst. |
 | **Command** | Körs på fjärrvärden som autentiseringsuppgiftens användare. Output registreras upp till 50 KB, och en slutkod som inte är noll får steget att misslyckas. |
-| **Execution timeout** | Täcker anslutning, autentisering och körning av kommandot tillsammans, så att ett kommando som hänger sig inte kan hålla steget öppet. Standard 30 sekunder. |
-| **Claim timeout** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
+| **Tidsgräns för körning** | Täcker anslutning, autentisering och körning av kommandot tillsammans, så att ett kommando som hänger sig inte kan hålla steget öppet. Standard 30 sekunder. |
+| **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
 
 ### Kubernetes
 
@@ -162,8 +162,8 @@ Starta om eller skala en arbetsbelastning i ett kluster. Åtgärderna är avsikt
 | **Workload kind** | **Distribution**, **StatefulSet** eller **DaemonSet**. |
 | **Namnrymd** och **Workload name** | Den arbetsbelastning som åtgärden gäller. |
 | **Repliker** | Bara vid skalning. Noll är tillåtet: att tömma en arbetsbelastning är en legitim åtgärd. Ett DaemonSet kör en pod per nod och kan inte skalas; starta om det i stället. |
-| **Execution timeout** | Hur länge Runnern väntar på att API-servern godtar ändringen. Standard 30 sekunder. |
-| **Claim timeout** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
+| **Tidsgräns för körning** | Hur länge Runnern väntar på att API-servern godtar ändringen. Standard 30 sekunder. |
+| **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
 
 Om API-servern avvisar ändringen visas dess eget meddelande på steget, så ett behörighetsfel talar om vilken rollbindning du behöver utöka.
 

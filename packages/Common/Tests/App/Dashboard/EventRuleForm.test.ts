@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import ReminderStopState from "../../../Types/Reminder/ReminderStopState";
 import ScheduledMaintenanceReminderStopState from "../../../Types/Reminder/ScheduledMaintenanceReminderStopState";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import Runbook from "../../../Models/DatabaseModels/Runbook";
 import type Field from "../../../UI/Components/Forms/Types/Field";
 import {
   DEFAULT_REMINDER_INTERVAL_IN_MINUTES,
@@ -25,6 +26,12 @@ import {
   getReminderRuleActionFields,
   getReminderRuleFormSteps,
   getReminderRuleName,
+  getRunbookRuleActionFields,
+  getRunbookRuleFormSteps,
+  getRunbookRuleName,
+  RUNBOOK_RULE_NAME_DESCRIPTION,
+  RUNBOOK_RULE_NAME_WORDING,
+  RUNBOOK_RULE_RUNBOOKS_DESCRIPTION,
   getSlaRuleFormSteps,
   getSlaRuleName,
   readMinutes,
@@ -74,6 +81,7 @@ describe("every rule starts with what it matches", () => {
     ["a privacy", "Name", "rule-name", getPrivacyRuleFormSteps],
     ["an SLA", "Targets", "sla-targets", getSlaRuleFormSteps],
     ["a reminder", "Reminders", "reminder-settings", getReminderRuleFormSteps],
+    ["a runbook", "Runbooks", "runbooks", getRunbookRuleFormSteps],
   ] as Array<
     [string, string, string, () => Array<{ title: string; id: string }>]
   >)(
@@ -95,6 +103,7 @@ describe("every rule starts with what it matches", () => {
     ["an on-call", getOnCallRuleActionFields<Values>()],
     ["a privacy", getPrivacyRuleActionFields<Values>("incident")],
     ["a reminder", getReminderRuleActionFields<Values>("incident")],
+    ["a runbook", getRunbookRuleActionFields<Values>()],
   ] as Array<[string, Array<Field<Values>>]>)(
     "%s rule asks nothing on its Match step, and its name and description last",
     (_kind: string, fields: Array<Field<Values>>) => {
@@ -174,6 +183,145 @@ describe("an on-call rule's name", () => {
     );
     // That a policy two rules pick runs once is for the help and the docs.
     expect(ON_CALL_RULE_POLICIES_DESCRIPTION).not.toContain("runs once");
+  });
+});
+
+describe("a runbook rule's name", () => {
+  test("is the runbooks it starts", () => {
+    expect(getRunbookRuleName(["Database failover"])).toBe(
+      "Start Database failover",
+    );
+    expect(getRunbookRuleName(["Database failover", "Flush cache"])).toBe(
+      "Start Database failover, Flush cache",
+    );
+    // A runbook picked twice is named once; blank names are not named.
+    expect(
+      getRunbookRuleName(["Database failover", " ", "Database failover"]),
+    ).toBe("Start Database failover");
+    expect(getRunbookRuleName([])).toBe("");
+    expect(RUNBOOK_RULE_NAME_WORDING.picksSlot).toBe("runbooks");
+    expect(RUNBOOK_RULE_NAME_WORDING.allPicks).toBe("Start {{runbooks}}");
+  });
+
+  test("counts what does not fit, and always fits the Name column", () => {
+    const many: Array<string> = Array.from(
+      { length: 12 },
+      (_value: unknown, index: number): string => {
+        return `Restart the checkout service in region ${index + 1}`;
+      },
+    );
+    const name: string = getRunbookRuleName(many);
+
+    expect(name.length).toBeLessThanOrEqual(RULE_NAME_MAX_LENGTH);
+    expect(name).toMatch(/^Start Restart the checkout service in region 1/);
+    expect(name).toMatch(/and \d+ more$/);
+
+    // One runbook too long to fit on its own is shortened, with an ellipsis.
+    const long: string = getRunbookRuleName(["x".repeat(500)]);
+    expect(long.length).toBeLessThanOrEqual(RULE_NAME_MAX_LENGTH);
+    expect(long.startsWith("Start x")).toBe(true);
+    expect(long.endsWith("…")).toBe(true);
+  });
+
+  test("the runbooks picker is required, lists runbooks and says what it is for in one sentence", () => {
+    const runbooks: Field<Values> = getRunbookRuleActionFields<Values>()[0]!;
+
+    expect(Object.keys(runbooks.field || {})).toEqual(["runbooks"]);
+    expect(runbooks.title).toBe("Runbooks to Start");
+    expect(runbooks.required).toBe(true);
+    expect(runbooks.stepId).toBe("runbooks");
+    expect(runbooks.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
+    expect(runbooks.dropdownModal?.type).toBe(Runbook);
+    expect(runbooks.dropdownModal?.labelField).toBe("name");
+    expect(runbooks.description).toBe(RUNBOOK_RULE_RUNBOOKS_DESCRIPTION);
+    expect(RUNBOOK_RULE_RUNBOOKS_DESCRIPTION).toBe(
+      "The runbooks to start when this rule matches.",
+    );
+  });
+
+  test("the name says it follows the runbooks, with an example of one", () => {
+    const name: Field<Values> = getRunbookRuleActionFields<Values>().find(
+      (field: Field<Values>): boolean => {
+        return Object.keys(field.field || {})[0] === "name";
+      },
+    )!;
+
+    expect(name.description).toBe(RUNBOOK_RULE_NAME_DESCRIPTION);
+    expect(name.placeholder).toBe("e.g. Start Database failover");
+    expect(name.validation?.minLength).toBe(2);
+  });
+
+  test("picking runbooks names the rule after them, until a name is typed", () => {
+    const onChange: Field<Values>["onChange"] =
+      getRunbookRuleActionFields<Values>()[0]!.onChange;
+
+    const pick: (
+      values: Values,
+      picked: Array<string>,
+      before: Array<string>,
+    ) => Values | null = (
+      values: Values,
+      picked: Array<string>,
+      before: Array<string>,
+    ): Values | null => {
+      let set: Values | null = null;
+
+      onChange?.(
+        picked,
+        values as never,
+        (next: unknown): void => {
+          set = next as Values;
+        },
+        {
+          selectedOptions: picked.map((label: string) => {
+            return { label: label, value: label };
+          }),
+          previousOptions: before.map((label: string) => {
+            return { label: label, value: label };
+          }),
+        },
+      );
+
+      return set;
+    };
+
+    // An empty name takes the runbook's.
+    expect(pick({}, ["Database failover"], [])).toEqual({
+      name: "Start Database failover",
+      [FILLED_IN_RULE_NAME_KEY]: "Start Database failover",
+    });
+
+    // The name it filled in follows the next pick.
+    expect(
+      pick(
+        {
+          name: "Start Database failover",
+          [FILLED_IN_RULE_NAME_KEY]: "Start Database failover",
+        },
+        ["Database failover", "Flush cache"],
+        ["Database failover"],
+      ),
+    ).toEqual({
+      name: "Start Database failover, Flush cache",
+      [FILLED_IN_RULE_NAME_KEY]: "Start Database failover, Flush cache",
+    });
+
+    // A name somebody typed stays.
+    expect(
+      pick({ name: "Fail over the primary" }, ["Database failover"], []),
+    ).toBeNull();
+
+    // Taking every runbook away empties the name the form filled in.
+    expect(
+      pick(
+        {
+          name: "Start Database failover",
+          [FILLED_IN_RULE_NAME_KEY]: "Start Database failover",
+        },
+        [],
+        ["Database failover"],
+      ),
+    ).toEqual({ name: "", [FILLED_IN_RULE_NAME_KEY]: "" });
   });
 });
 

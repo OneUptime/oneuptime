@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Åpne **Produkter → Security Events → Detection Rules**, og klikk på **Opprett Detection Rule**.
-2. Gi den et **Navn** under **Grunnleggende informasjon**, og la **Aktivert** stå på.
-3. Lim inn regelens YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkes når du lagrer, så en feil vises i skjemaet.
-4. Angi under **Evaluering** hvor ofte den kjører og hvor mange treff den trenger; se [Evalueringsinnstillinger](#evalueringsinnstillinger).
-5. La **Open a Case on Match** stå på under **Security Cases** for å samle treffene i saker, etter verdien regelen grupperer etter.
-6. Velg under **Ved treff** hva et treff ellers skal gjøre: **Create Alert on Match** (på), **Create Incident on Match** (av) og **Write Detection Finding on Match** (på), med valgfri **Varselsalvor** og **Hendelsesalvor**.
+2. Lim inn regelens YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkes når du lagrer, så en feil vises i skjemaet.
+3. **Navn** fylles inn fra regelens `title`: skriv over det for å kalle regelen noe annet. En ny regel kjører; **Aktivert** står i redigeringsskjemaet.
+4. La **Open a Case on Match** stå på under **Ved treff** for å samle treffene i saker, etter verdien regelen grupperer etter.
+5. Velg under **Varsler og hendelser** hva et treff ellers skal utløse: **Opprett et varsel** (standard), **Erklær en hendelse**, **Begge** eller **Ingen av dem**, med valgfri **Varselsalvor** eller **Hendelsesalvor**.
+6. **Flere felt** har **Beskrivelse**, **Write Detection Finding on Match** (på) og hvordan treff telles; se [Evalueringsinnstillinger](#evalueringsinnstillinger).
 :::
 
 En første regel, som treffer mislykkede pålogginger fra utenfor `10.x.x.x`:
@@ -372,11 +372,11 @@ Sjekk at den er **Aktivert**, og les **Last Evaluated** og **Last Error** i rade
 :::
 
 :::details En regel traff, men ingen varsler ble åpnet
-**Create Alert on Match** er av, eller et varsel for den samme regelen og gruppeverdien er fortsatt åpent, og senere treff legges inn i det. Et prosjekt må ha minst én varselalvorlighetsgrad for at regler skal kunne åpne varsler.
+**Varsler og hendelser** står på **Erklær en hendelse** eller **Ingen av dem**, eller et varsel for den samme regelen og gruppeverdien er fortsatt åpent, og senere treff legges inn i det. Et prosjekt må ha minst én varselalvorlighetsgrad for at regler skal kunne åpne varsler.
 :::
 
 :::details En regel åpner for mange varsler
-Hver verdi av **Group By Field** får sitt eget varsel: grupper etter noe grovere, hev terskelen, eller legg til et Distinct Count Field. Bryr du deg om takten og ikke om hvert treff, slår du av **Create Alert on Match** og setter en monitor på regelens funn.
+Hver verdi av **Group By Field** får sitt eget varsel: grupper etter noe grovere, hev terskelen, eller legg til et Distinct Count Field. Bryr du deg om takten og ikke om hvert treff, setter du **Varsler og hendelser** til **Ingen av dem** og setter en monitor på regelens funn.
 :::
 
 ## Neste steg

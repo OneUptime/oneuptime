@@ -111,7 +111,7 @@ Vad en ansluten klient kan göra:
 
 ### Hantera anslutna klienter
 
-Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Connected MCP Clients**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; projektets ägare och administratörer ser allas.
+Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Anslutna MCP-klienter**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; projektets ägare och administratörer ser allas.
 
 Klicka på **Disconnect** för att logga ut en klient. Den slutar fungera direkt.
 
@@ -195,6 +195,19 @@ Indatavariabeln med `"password": true` frågar efter nyckeln när servern starta
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

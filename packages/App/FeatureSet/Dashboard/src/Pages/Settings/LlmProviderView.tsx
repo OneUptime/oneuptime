@@ -7,18 +7,22 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import TestLlmProviderModal from "Common/UI/Components/AI/TestLlmProviderModal";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  getLlmProviderFormSteps,
+  getProjectLlmProviderFormFields,
+} from "Common/UI/Components/AI/LlmProviderFormFields";
+import {
+  getLlmProviderDefaultModel,
+  getLlmProviderShownValue,
+  getLlmProviderTypeCopy,
+} from "Common/UI/Components/AI/LlmProviderFormCopy";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ColumnLength from "Common/Types/Database/ColumnLength";
 import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TestLLMProvider from "Common/UI/Utils/TestLLMProvider";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
-import LlmTypeDropdownOptions from "Common/UI/Utils/LlmTypeDropdownOptions";
 import React, {
   Fragment,
   FunctionComponent,
@@ -32,10 +36,6 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-
-// Set as Default and Additional Parameters, folded at the end of Provider Settings.
-const advancedSection: FormFieldCollapsibleSection<LlmProvider> =
-  getAdvancedFormSection<LlmProvider>();
 
 const LlmProviderView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -99,118 +99,15 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
           buttons: testButtons,
         }}
         isEditable={true}
-        // As on the create form: Advanced is folded into Provider Settings.
-        formSteps={[
-          {
-            title: "Basic Info",
-            id: "basic-info",
-          },
-          {
-            title: "Provider Settings",
-            id: "provider-settings",
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            stepId: "basic-info",
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "My OpenAI GPT-4",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "GPT-4 for general AI features.",
-          },
-          {
-            field: {
-              llmType: true,
-            },
-            title: "LLM Provider",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            placeholder: "Select LLM Provider",
-            dropdownOptions: LlmTypeDropdownOptions,
-          },
-          {
-            field: {
-              apiKey: true,
-            },
-            title: "API Key",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "sk-...",
-            description:
-              "Required for OpenAI, Azure OpenAI / Microsoft Foundry (one of your resource's keys), Anthropic, Groq and Mistral.",
-          },
-          {
-            field: {
-              modelName: true,
-            },
-            title: "Model Name",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",
-            description:
-              "The model to use, such as gpt-5.1 or claude-sonnet-5-5. For Azure OpenAI / Microsoft Foundry, your deployment's name.",
-          },
-          {
-            field: {
-              baseUrl: true,
-            },
-            title: "Base URL",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.URL,
-            required: false,
-            placeholder: "http://ollama:11434",
-            // The column holds 100 characters; see LlmProviders.tsx.
-            validation: {
-              maxLength: ColumnLength.ShortURL,
-            },
-            description:
-              "On Azure: https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude. Never put keys here.",
-          },
-          {
-            field: {
-              isDefault: true,
-            },
-            title: "Set as Default",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            collapsibleSection: advancedSection,
-            description:
-              "Set this as the default LLM provider for the project. When a default is set, the global LLM provider will not be used.",
-          },
-          {
-            field: {
-              additionalParams: true,
-            },
-            title: "Additional Parameters",
-            stepId: "provider-settings",
-            fieldType: FormFieldSchemaType.JSON,
-            required: false,
-            collapsibleSection: advancedSection,
-            description:
-              'Extra JSON parameters sent to the provider with every request, such as {"temperature": 0.2}. Leave empty unless your model needs them.',
-          },
-        ]}
+        /*
+         * The same form the provider was created with: which provider, then
+         * only what it needs (LlmProviderFormFields). A blank API Key keeps
+         * the one stored.
+         */
+        formSteps={getLlmProviderFormSteps()}
+        formFields={getProjectLlmProviderFormFields()}
         modelDetailProps={{
+          showDetailsInNumberOfColumns: 2,
           modelType: LlmProvider,
           id: "model-detail-llm",
           fields: [
@@ -239,20 +136,60 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
                 llmType: true,
               },
               title: "Provider",
+              fieldType: FieldType.Element,
+              getElement: (item: LlmProvider): ReactElement => {
+                return (
+                  <span>
+                    {getLlmProviderTypeCopy(item.llmType)?.title ||
+                      item.llmType}
+                  </span>
+                );
+              },
             },
             {
               field: {
                 modelName: true,
               },
               title: "Model Name",
-              placeholder: "Not specified",
+              fieldType: FieldType.Element,
+              /*
+               * Left blank, the model the server asks for: said by name
+               * ("gpt-5.1 (default)") rather than "Not specified".
+               */
+              getElement: (item: LlmProvider): ReactElement => {
+                return (
+                  <span>
+                    {getLlmProviderShownValue({
+                      value: item.modelName,
+                      defaultValue: getLlmProviderDefaultModel({
+                        llmType: item.llmType,
+                        baseUrl: item.baseUrl,
+                      }),
+                      translator: translator,
+                    })}
+                  </span>
+                );
+              },
             },
             {
               field: {
                 baseUrl: true,
               },
               title: "Base URL",
-              placeholder: "Not specified (using default)",
+              fieldType: FieldType.Element,
+              // Left blank, the provider's own API, by its address.
+              getElement: (item: LlmProvider): ReactElement => {
+                return (
+                  <span className="break-all">
+                    {getLlmProviderShownValue({
+                      value: item.baseUrl,
+                      defaultValue: getLlmProviderTypeCopy(item.llmType)
+                        ?.defaultBaseUrl,
+                      translator: translator,
+                    })}
+                  </span>
+                );
+              },
             },
             canReadAdditionalParams
               ? {

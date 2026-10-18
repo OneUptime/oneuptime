@@ -129,7 +129,7 @@ Din roll läser runbooks men kör dem inte: knappen säger "Du har inte behörig
 :::
 
 :::details Att starta en körning misslyckas med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Inställningar**, eller så har det inga sparade steg. Slå på brytaren, eller lägg till steg, och klicka på **Save Steps**.
+Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Inställningar**, eller så har det inga sparade steg. Slå på brytaren, eller lägg till steg, och klicka på **Save Steps**. Dess **Översikt** säger vilket, med **Slå på runbook** eller **Lägg till steg**.
 :::
 
 :::details Ett steg misslyckades för att det saknar en Runner eller en autentiseringsuppgift

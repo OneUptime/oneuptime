@@ -558,9 +558,7 @@
         "bannerDescription": "Les fournisseurs LLM activent les fonctionnalités d'IA. Vous pouvez configurer des fournisseurs LLM globaux disponibles pour tous les projets.",
         "cardTitle": "Fournisseurs LLM globaux",
         "cardDescription": "Les fournisseurs LLM globaux sont disponibles pour tous les projets pour les fonctionnalités d'IA. Configurez OpenAI, Anthropic, Ollama ou d'autres fournisseurs LLM.",
-        "noItems": "Aucun fournisseur LLM configuré. Ajoutez un fournisseur LLM pour activer les fonctionnalités d'IA.",
-        "stepBasicInfo": "Informations de base",
-        "stepProviderSettings": "Paramètres du fournisseur"
+        "noItems": "Aucun fournisseur LLM configuré. Ajoutez un fournisseur LLM pour activer les fonctionnalités d'IA."
       }
     }
   },
@@ -957,5 +955,35 @@
   "Get one on their first sign-in": "En obtiennent un à leur première connexion",
   "They join the projects attached to this provider. With none attached, they must be invited first.": "Elles rejoignent les projets attachés à ce fournisseur. Si aucun n'est attaché, elles doivent d'abord être invitées.",
   "Must be invited first": "Doivent d'abord être invitées",
-  "They are turned away until someone invites them to a project.": "Elles sont refusées jusqu'à ce que quelqu'un les invite dans un projet."
+  "They are turned away until someone invites them to a project.": "Elles sont refusées jusqu'à ce que quelqu'un les invite dans un projet.",
+  "Connection": "Connexion",
+  "OpenAI-Compatible (vLLM, LocalAI, etc.)": "Compatible OpenAI (vLLM, LocalAI, etc.)",
+  "GPT models, with an API key from OpenAI.": "Modèles GPT, avec une clé API d'OpenAI.",
+  "Claude models, with an API key from Anthropic.": "Modèles Claude, avec une clé API d'Anthropic.",
+  "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.": "Les modèles que vous déployez dans Azure : modèles OpenAI, Foundry Models et Claude.",
+  "Fast open models, with an API key from Groq.": "Modèles ouverts rapides, avec une clé API de Groq.",
+  "Mistral's models, with an API key from Mistral.": "Les modèles de Mistral, avec une clé API de Mistral.",
+  "Open models you run yourself. No API key.": "Des modèles ouverts que vous exécutez vous-même. Sans clé API.",
+  "Any server with an OpenAI-style API, such as vLLM or LocalAI.": "Tout serveur doté d'une API de style OpenAI, comme vLLM ou LocalAI.",
+  "Additional Parameters": "Paramètres supplémentaires",
+  "Create one at platform.openai.com, under API keys.": "Créez-en une sur platform.openai.com, dans API keys.",
+  "Create one at console.anthropic.com, under API Keys.": "Créez-en une sur console.anthropic.com, dans API Keys.",
+  "KEY 1 or KEY 2, from your resource's Keys and Endpoint page.": "KEY 1 ou KEY 2, depuis la page « Clés et point de terminaison » de votre ressource.",
+  "Your resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.": "Le point de terminaison de votre ressource, comme https://<resource>.openai.azure.com/openai/v1, ou https://<resource>.services.ai.azure.com/anthropic pour Claude.",
+  "Create one at console.groq.com, under API Keys.": "Créez-en une sur console.groq.com, dans API Keys.",
+  "Create one at console.mistral.ai, under API Keys.": "Créez-en une sur console.mistral.ai, dans API Keys.",
+  "An address the OneUptime server can reach, such as http://ollama:11434. Not localhost.": "Une adresse que le serveur OneUptime peut joindre, comme http://ollama:11434. Pas localhost.",
+  "A model you pulled into Ollama. Leave empty for {{model}}.": "Un modèle que vous avez téléchargé dans Ollama. Laissez vide pour {{model}}.",
+  "Only if your server asks for one.": "Seulement si votre serveur en demande une.",
+  "Your server's OpenAI-style API, such as http://vllm:8000/v1. Not localhost.": "L'API de style OpenAI de votre serveur, comme http://vllm:8000/v1. Pas localhost.",
+  "A model your server serves, exactly as it names it.": "Un modèle servi par votre serveur, écrit exactement comme il le nomme.",
+  "Leave empty for {{model}}.": "Laissez vide pour {{model}}.",
+  "Only to go through a proxy or a gateway. Leave empty for {{provider}}'s own API: {{url}}.": "Uniquement pour passer par un proxy ou une passerelle. Laissez vide pour l'API de {{provider}} : {{url}}.",
+  "Named after the provider until you type a name of your own.": "Porte le nom du fournisseur jusqu'à ce que vous saisissiez le vôtre.",
+  "e.g. Production OpenAI": "ex. OpenAI de production",
+  "What this provider is for.": "À quoi sert ce fournisseur.",
+  "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Paramètres JSON supplémentaires envoyés au fournisseur à chaque requête, comme {\"temperature\": 0.2}. Laissez vide sauf si votre modèle en a besoin.",
+  "Never put keys here.": "N'y mettez jamais de clés.",
+  "Your deployment's name, exactly as Foundry shows it.": "Le nom de votre déploiement, exactement comme Foundry l'affiche.",
+  "{{name}} (default)": "{{name}} (par défaut)"
 }

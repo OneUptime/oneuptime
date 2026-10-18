@@ -17,6 +17,14 @@ export interface ComponentProps {
    * Falls back to the first tab when absent or unknown.
    */
   initialTabName?: string | undefined;
+  /*
+   * A few tabs inside a card, such as one per client to set up: on a narrow
+   * screen the tab row wraps onto a second line instead of scrolling
+   * sideways, so no tab is out of sight, and the panel starts at the card's
+   * edge like everything else in it. Left out, the row scrolls on a phone
+   * and the panel is set in a little, as it always was.
+   */
+  wrap?: boolean | undefined;
 }
 
 const Tabs: FunctionComponent<ComponentProps> = (
@@ -134,7 +142,11 @@ const Tabs: FunctionComponent<ComponentProps> = (
       <nav
         role="tablist"
         aria-orientation="horizontal"
-        className="flex space-x-2 overflow-x-auto md:overflow-visible md:space-x-4"
+        className={
+          props.wrap
+            ? "flex flex-wrap gap-2 py-3 md:gap-x-4"
+            : "flex space-x-2 overflow-x-auto md:overflow-visible md:space-x-4"
+        }
         aria-label={translator.translateText("Tabs")}
         onKeyDown={handleTabListKeyDown}
       >
@@ -148,6 +160,7 @@ const Tabs: FunctionComponent<ComponentProps> = (
               }}
               isSelected={tab.name === currentTabName}
               tabPanelId={tabPanelId}
+              isInWrappingRow={props.wrap}
             />
           );
         })}
@@ -156,7 +169,7 @@ const Tabs: FunctionComponent<ComponentProps> = (
         id={tabPanelId}
         role="tabpanel"
         aria-labelledby={`tab-${currentTabName || "default"}`}
-        className="mt-3 ml-1"
+        className={props.wrap ? "mt-3" : "mt-3 ml-1"}
       >
         {currentTab && currentTab.children}
       </div>

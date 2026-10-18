@@ -558,9 +558,7 @@
         "bannerDescription": "LLM प्रदाता AI सुविधाओं को सक्षम करते हैं। आप वैश्विक LLM प्रदाता कॉन्फ़िगर कर सकते हैं जो सभी परियोजनाओं के लिए उपलब्ध हैं।",
         "cardTitle": "वैश्विक LLM प्रदाता",
         "cardDescription": "वैश्विक LLM प्रदाता AI सुविधाओं के लिए सभी परियोजनाओं के लिए उपलब्ध हैं। OpenAI, Anthropic, Ollama, या अन्य LLM प्रदाता कॉन्फ़िगर करें।",
-        "noItems": "कोई LLM प्रदाता कॉन्फ़िगर नहीं किए गए। AI सुविधाओं को सक्षम करने के लिए एक LLM प्रदाता जोड़ें।",
-        "stepBasicInfo": "मूल जानकारी",
-        "stepProviderSettings": "प्रदाता सेटिंग्स"
+        "noItems": "कोई LLM प्रदाता कॉन्फ़िगर नहीं किए गए। AI सुविधाओं को सक्षम करने के लिए एक LLM प्रदाता जोड़ें।"
       }
     }
   },
@@ -957,5 +955,35 @@
   "Get one on their first sign-in": "पहली बार साइन इन करने पर खाता पाते हैं",
   "They join the projects attached to this provider. With none attached, they must be invited first.": "वे इस प्रदाता से संलग्न प्रोजेक्ट में शामिल होते हैं। कोई प्रोजेक्ट संलग्न न हो, तो उन्हें पहले आमंत्रित करना होगा।",
   "Must be invited first": "पहले आमंत्रित होना ज़रूरी है",
-  "They are turned away until someone invites them to a project.": "जब तक कोई उन्हें किसी प्रोजेक्ट में आमंत्रित न करे, उन्हें लौटा दिया जाता है।"
+  "They are turned away until someone invites them to a project.": "जब तक कोई उन्हें किसी प्रोजेक्ट में आमंत्रित न करे, उन्हें लौटा दिया जाता है।",
+  "Connection": "कनेक्शन",
+  "OpenAI-Compatible (vLLM, LocalAI, etc.)": "OpenAI-संगत (vLLM, LocalAI आदि)",
+  "GPT models, with an API key from OpenAI.": "GPT मॉडल, OpenAI की API कुंजी के साथ।",
+  "Claude models, with an API key from Anthropic.": "Claude मॉडल, Anthropic की API कुंजी के साथ।",
+  "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.": "Azure में आपके डिप्लॉय किए मॉडल: OpenAI मॉडल, Foundry Models और Claude।",
+  "Fast open models, with an API key from Groq.": "तेज़ ओपन मॉडल, Groq की API कुंजी के साथ।",
+  "Mistral's models, with an API key from Mistral.": "Mistral के मॉडल, Mistral की API कुंजी के साथ।",
+  "Open models you run yourself. No API key.": "ओपन मॉडल जिन्हें आप ख़ुद चलाते हैं। API कुंजी नहीं चाहिए।",
+  "Any server with an OpenAI-style API, such as vLLM or LocalAI.": "OpenAI-शैली API वाला कोई भी सर्वर, जैसे vLLM या LocalAI।",
+  "Additional Parameters": "अतिरिक्त पैरामीटर",
+  "Create one at platform.openai.com, under API keys.": "platform.openai.com पर API keys में जाकर बनाएँ।",
+  "Create one at console.anthropic.com, under API Keys.": "console.anthropic.com पर API Keys में जाकर बनाएँ।",
+  "KEY 1 or KEY 2, from your resource's Keys and Endpoint page.": "आपके संसाधन के Keys and Endpoint पेज से KEY 1 या KEY 2।",
+  "Your resource's endpoint, such as https://<resource>.openai.azure.com/openai/v1, or https://<resource>.services.ai.azure.com/anthropic for Claude.": "आपके संसाधन का एंडपॉइंट, जैसे https://<resource>.openai.azure.com/openai/v1, या Claude के लिए https://<resource>.services.ai.azure.com/anthropic।",
+  "Create one at console.groq.com, under API Keys.": "console.groq.com पर API Keys में जाकर बनाएँ।",
+  "Create one at console.mistral.ai, under API Keys.": "console.mistral.ai पर API Keys में जाकर बनाएँ।",
+  "An address the OneUptime server can reach, such as http://ollama:11434. Not localhost.": "ऐसा पता जिस तक OneUptime सर्वर पहुँच सके, जैसे http://ollama:11434। localhost नहीं।",
+  "A model you pulled into Ollama. Leave empty for {{model}}.": "Ollama में डाउनलोड किया गया मॉडल। {{model}} के लिए खाली छोड़ें।",
+  "Only if your server asks for one.": "केवल तब, जब आपका सर्वर इसे माँगे।",
+  "Your server's OpenAI-style API, such as http://vllm:8000/v1. Not localhost.": "आपके सर्वर की OpenAI-शैली API, जैसे http://vllm:8000/v1। localhost नहीं।",
+  "A model your server serves, exactly as it names it.": "आपका सर्वर जो मॉडल देता है, ठीक उसी नाम से जो सर्वर उसे देता है।",
+  "Leave empty for {{model}}.": "{{model}} के लिए खाली छोड़ें।",
+  "Only to go through a proxy or a gateway. Leave empty for {{provider}}'s own API: {{url}}.": "केवल किसी प्रॉक्सी या गेटवे से होकर जाने के लिए। {{provider}} की अपनी API ({{url}}) के लिए खाली छोड़ें।",
+  "Named after the provider until you type a name of your own.": "जब तक आप अपना नाम नहीं लिखते, यह प्रदाता के नाम पर रहता है।",
+  "e.g. Production OpenAI": "उदा. प्रोडक्शन OpenAI",
+  "What this provider is for.": "यह प्रदाता किसलिए है।",
+  "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "हर अनुरोध के साथ प्रदाता को भेजे जाने वाले अतिरिक्त JSON पैरामीटर, जैसे {\"temperature\": 0.2}। जब तक आपके मॉडल को इनकी ज़रूरत न हो, खाली छोड़ें।",
+  "Never put keys here.": "यहाँ कभी कुंजियाँ न डालें।",
+  "Your deployment's name, exactly as Foundry shows it.": "आपके डिप्लॉयमेंट का नाम, ठीक वैसा जैसा Foundry दिखाता है।",
+  "{{name}} (default)": "{{name}} (डिफ़ॉल्ट)"
 }

@@ -105,7 +105,7 @@ Angenommen, jeder Vorfall mit „db-primary“ im Titel soll ein fünfstufiges D
 :::steps
 ### Das Runbook erstellen
 
-Klicken Sie unter **Runbooks** auf **Runbook erstellen** und nennen Sie es „DB primary failover“. Öffnen Sie es, gehen Sie zu **Schritte**, fügen Sie diese Schritte hinzu und klicken Sie dann auf **Schritte speichern**:
+Klicken Sie unter **Runbooks** auf **Runbook erstellen** und nennen Sie es „DB primary failover“. Es öffnet sich auf **Schritte**: Fügen Sie diese Schritte hinzu und klicken Sie dann auf **Schritte speichern**:
 
 | # | Typ | Titel |
 | --- | --- | --- |
