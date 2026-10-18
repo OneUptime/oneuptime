@@ -117,8 +117,17 @@ const McpServerCard: FunctionComponent<ComponentProps> = (
               slots={getSlots(setup, client)}
             />
           </p>
+          {/*
+           * A command is one line, read whole and copied: it wraps rather
+           * than running under the copy button on a phone. A file's JSON
+           * reads best as written.
+           */}
           {setup.code ? (
-            <CodeBlock language={setup.code.language} code={setup.code.text} />
+            <CodeBlock
+              language={setup.code.language}
+              code={setup.code.text}
+              wrapLongLines={setup.code.language === "bash"}
+            />
           ) : (
             <></>
           )}
@@ -134,7 +143,7 @@ const McpServerCard: FunctionComponent<ComponentProps> = (
           <h3 className="text-sm font-medium text-gray-900">
             {translator.translateText("Server URL")}
           </h3>
-          <CodeBlock language="text" code={props.mcpUrl} />
+          <CodeBlock language="text" code={props.mcpUrl} wrapLongLines={true} />
         </div>
 
         <div>

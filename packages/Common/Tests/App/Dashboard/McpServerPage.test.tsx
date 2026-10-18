@@ -25,6 +25,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
 import { ModalTableBulkDefaultActions } from "../../../UI/Components/ModelTable/BaseModelTable";
+import { CODE_BLOCK_WRAP_CLASS_NAME } from "../../../UI/Components/CodeBlock/CodeBlock";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import Navigation from "../../../UI/Utils/Navigation";
 
@@ -1247,6 +1248,36 @@ describe("a client's setup", () => {
     pickSignIn("API key");
 
     expect(snippets(container)).toHaveLength(2);
+  });
+
+  test("the address and a command wrap on a narrow screen; a file's JSON keeps its lines", () => {
+    const { container } = renderPage();
+
+    type WrapsFunction = (block: Element) => boolean;
+
+    const wraps: WrapsFunction = (block: Element): boolean => {
+      return block.className.includes(CODE_BLOCK_WRAP_CLASS_NAME);
+    };
+
+    const codeBlocks: () => Array<Element> = (): Array<Element> => {
+      return Array.from(container.querySelectorAll("pre > code"));
+    };
+
+    // The address, and Claude Code's command.
+    expect(codeBlocks().map(wraps)).toEqual([true, true]);
+
+    pickSignIn("API key");
+
+    expect(codeBlocks().map(wraps)).toEqual([true, true]);
+
+    for (const client of ["Claude Desktop", "VS Code", "Cursor"]) {
+      pickClient(client);
+
+      expect({ client, wraps: codeBlocks().map(wraps) }).toEqual({
+        client,
+        wraps: [true, false],
+      });
+    }
   });
 
   test("each sentence keeps its command, file or menu in place, drawn as such", () => {
