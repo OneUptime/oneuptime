@@ -14605,7 +14605,7 @@
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
   "Per-second inbound and outbound network throughput summed across all guests.": "Per-second inbound and outbound network throughput summed across all guests.",
-  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "要录制的会话比例，默认 100。降低它可以节省成本：在“Always”下，减半即可让存储量减半。",
+  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "要录制的会话比例，默认 100。降低它可以节省成本：在“始终”下，减半即可让存储量减半。",
   "Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent.": "Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent.",
   "Perf": "Perf",
   "Performance & Tracing": "Performance & Tracing",

@@ -117,7 +117,9 @@ function lineOf(radio: HTMLElement): string {
   return (document.getElementById(id || "")?.textContent || "").trim();
 }
 
-async function submitFromLastStep(onSubmit: MockFunction): Promise<BurnRateValues> {
+async function submitFromLastStep(
+  onSubmit: MockFunction,
+): Promise<BurnRateValues> {
   // Walk to the last step with Next, then create.
   for (let step: number = 0; step < 4; step++) {
     const next: HTMLElement | null = screen.queryByTestId("form-next-button");
@@ -170,7 +172,9 @@ describe("When it fires", () => {
 
     // The two output switches are gone from the screen; SLO owners stays.
     expect(screen.queryByRole("switch", { name: "Create Alert" })).toBeNull();
-    expect(screen.queryByRole("switch", { name: "Declare Incident" })).toBeNull();
+    expect(
+      screen.queryByRole("switch", { name: "Declare Incident" }),
+    ).toBeNull();
     expect(
       screen.getByRole("switch", { name: "Add SLO Owners as Owners" }),
     ).toBeInTheDocument();
@@ -233,7 +237,10 @@ describe("When it fires", () => {
   });
 
   test.each([
-    [{ shouldCreateAlert: true, shouldCreateIncident: false }, "Create an alert"],
+    [
+      { shouldCreateAlert: true, shouldCreateIncident: false },
+      "Create an alert",
+    ],
     [
       { shouldCreateAlert: false, shouldCreateIncident: true },
       "Declare an incident",
@@ -246,7 +253,9 @@ describe("When it fires", () => {
       const group: HTMLElement = await question();
 
       await waitFor(() => {
-        expect(within(group).getByRole("radio", { name: answer })).toBeChecked();
+        expect(
+          within(group).getByRole("radio", { name: answer }),
+        ).toBeChecked();
       });
     },
   );

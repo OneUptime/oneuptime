@@ -14605,7 +14605,7 @@
   "Per-interface bandwidth utilization. One series per interface.": "インターフェースごとの帯域幅の使用率。インターフェースごとに 1 系列です。",
   "Per-second client IOPS and throughput summed across all pools.": "全プールで合計した、1 秒あたりのクライアント IOPS とスループット。",
   "Per-second inbound and outbound network throughput summed across all guests.": "全ゲストで合計した、1 秒あたりの受信・送信ネットワークスループット。",
-  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "記録するセッションの割合 (既定は 100)。コストを抑えるには下げてください。「Always」では半分にすると保存量も半分になります。",
+  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "記録するセッションの割合 (既定は 100)。コストを抑えるには下げてください。「常に」では半分にすると保存量も半分になります。",
   "Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent.": "残っているエラーバジェットの割合。リスクありと枯渇の境界が示されます。負の値は予算の使いすぎを意味します。",
   "Perf": "パフォーマンス",
   "Performance & Tracing": "パフォーマンスとトレーシング",

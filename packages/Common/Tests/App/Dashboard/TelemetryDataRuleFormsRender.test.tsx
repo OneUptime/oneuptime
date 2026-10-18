@@ -597,12 +597,13 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
     expect(
       answers.map((radio: HTMLElement): string => {
         return (
-          question.querySelector(`label[for="${radio.id}"]`)?.textContent ||
-          ""
+          question.querySelector(`label[for="${radio.id}"]`)?.textContent || ""
         ).trim();
       }),
     ).toEqual(["Redact", "Mask", "Hash"]);
-    expect(within(question).getByRole("radio", { name: "Redact" })).toBeChecked();
+    expect(
+      within(question).getByRole("radio", { name: "Redact" }),
+    ).toBeChecked();
 
     const lineOf: (name: string) => string = (name: string): string => {
       const id: string | null = within(question)
@@ -619,9 +620,7 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
     expect(lineOf("Hash")).toBe(
       "Replaces it with a short hash, so equal values still look alike.",
     );
-    expect(
-      within(dialog()).queryByText(/Mask: partially hide/),
-    ).toBeNull();
+    expect(within(dialog()).queryByText(/Mask: partially hide/)).toBeNull();
   });
 
   test("says Configured once a folded default is changed, and sends it", async () => {
@@ -935,7 +934,9 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
     expect(
       within(dialog()).queryByText(/permanently discards matching/),
     ).toBeNull();
-    expect(within(dialog()).queryByRole("combobox", { name: "Action" })).toBeNull();
+    expect(
+      within(dialog()).queryByRole("combobox", { name: "Action" }),
+    ).toBeNull();
   });
 
   test("asks for the share to keep only under Sample, and creates a sampling filter", async () => {
@@ -953,15 +954,16 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
     );
 
     expect(
-      within(dialog()).queryByRole("spinbutton", { name: /^Sample Percentage/ }),
+      within(dialog()).queryByRole("spinbutton", {
+        name: /^Sample Percentage/,
+      }),
     ).toBeNull();
 
     await user.click(within(action).getByRole("radio", { name: "Sample" }));
 
-    const share: HTMLElement = await within(dialog()).findByRole(
-      "spinbutton",
-      { name: /^Sample Percentage/ },
-    );
+    const share: HTMLElement = await within(dialog()).findByRole("spinbutton", {
+      name: /^Sample Percentage/,
+    });
     const noun: string = page.singularName.startsWith("Log") ? "log" : "span";
 
     expect(
@@ -969,7 +971,9 @@ describe.each(DROP_FILTER_PAGES)("$name", (page: DropFilterPage) => {
         `The share of matching ${noun}s to keep, from 1 to 99. 10 keeps one in ten.`,
       ),
     ).toBeInTheDocument();
-    expect(within(dialog()).queryByText(/Required when Action is Sample/)).toBeNull();
+    expect(
+      within(dialog()).queryByText(/Required when Action is Sample/),
+    ).toBeNull();
 
     fireEvent.change(share, { target: { value: "10" } });
 

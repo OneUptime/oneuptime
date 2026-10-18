@@ -129,7 +129,9 @@ async function openActionEdit(): Promise<HTMLElement> {
     { selector: "h2" },
     { timeout: WAIT_TIMEOUT },
   );
-  const card: HTMLElement = title.closest('[data-testid="card"]') as HTMLElement;
+  const card: HTMLElement = title.closest(
+    '[data-testid="card"]',
+  ) as HTMLElement;
 
   expect(card).not.toBeNull();
 

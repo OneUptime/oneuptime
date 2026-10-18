@@ -14605,7 +14605,7 @@
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
   "Per-second inbound and outbound network throughput summed across all guests.": "Per-second inbound and outbound network throughput summed across all guests.",
-  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "녹화할 세션의 비율로, 기본값은 100입니다. 비용을 줄이려면 낮추세요. 'Always'에서는 절반으로 줄이면 저장량도 절반이 됩니다.",
+  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "녹화할 세션의 비율로, 기본값은 100입니다. 비용을 줄이려면 낮추세요. '항상'에서는 절반으로 줄이면 저장량도 절반이 됩니다.",
   "Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent.": "Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent.",
   "Perf": "Perf",
   "Performance & Tracing": "Performance & Tracing",

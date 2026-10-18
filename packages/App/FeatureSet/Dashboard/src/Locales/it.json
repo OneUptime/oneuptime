@@ -14605,7 +14605,7 @@
   "Per-interface bandwidth utilization. One series per interface.": "Per-interface bandwidth utilization. One series per interface.",
   "Per-second client IOPS and throughput summed across all pools.": "Per-second client IOPS and throughput summed across all pools.",
   "Per-second inbound and outbound network throughput summed across all guests.": "Per-second inbound and outbound network throughput summed across all guests.",
-  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "La quota di sessioni da registrare, 100 per impostazione predefinita. Abbassala per ridurre i costi: con «Always», dimezzarla dimezza ciò che viene salvato.",
+  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "La quota di sessioni da registrare, 100 per impostazione predefinita. Abbassala per ridurre i costi: con «Sempre», dimezzarla dimezza ciò che viene salvato.",
   "Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent.": "Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent.",
   "Perf": "Perf",
   "Performance & Tracing": "Performance & Tracing",

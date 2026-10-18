@@ -455,7 +455,8 @@ const MetricPipelineRules: FunctionComponent<
           field: { addAttributeKey: true },
           title: "Attribute Key",
           stepId: "action",
-          description: "The attribute to act on, such as deployment.environment.",
+          description:
+            "The attribute to act on, such as deployment.environment.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           showIf: (values: FormValues<MetricPipelineRule>): boolean => {
@@ -481,7 +482,8 @@ const MetricPipelineRules: FunctionComponent<
           field: { redactReplacement: true },
           title: "Redact Replacement",
           stepId: "action",
-          description: "What to write in place of the value. Empty writes [REDACTED].",
+          description:
+            "What to write in place of the value. Empty writes [REDACTED].",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "[REDACTED]",

@@ -1466,7 +1466,9 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     expect(create).toContain(`answer **${BURN_RATE_DECLARES_FIELD_TITLE}**: `);
 
     for (const declares of BURN_RATE_DECLARES_ANSWERS) {
-      expect(create).toContain(`**${BURN_RATE_DECLARES_COPY[declares].title}**`);
+      expect(create).toContain(
+        `**${BURN_RATE_DECLARES_COPY[declares].title}**`,
+      );
     }
 
     expect(create).toContain(
@@ -1474,9 +1476,9 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     );
 
     for (const replaced of ["Create Alert", "Declare Incident"]) {
-      expect(
-        blockFrom(form, `title: "${replaced}",`, "stepId:"),
-      ).toContain("showIf: (): boolean => {\n      return false;");
+      expect(blockFrom(form, `title: "${replaced}",`, "stepId:")).toContain(
+        "showIf: (): boolean => {\n      return false;",
+      );
       expect(create).not.toContain(`**${replaced}**`);
     }
 

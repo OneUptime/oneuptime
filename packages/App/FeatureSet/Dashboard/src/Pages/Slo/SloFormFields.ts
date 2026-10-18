@@ -224,15 +224,17 @@ export const SLO_WINDOW_TYPE_DESCRIPTIONS: Record<SloWindowType, string> = {
  * closed list. The answers keep the names the docs and the Settings card
  * use, and Rolling - what a new SLO starts with - comes first.
  */
-export const SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS: Record<SloWindowType, string> =
-  {
-    [SloWindowType.Rolling]: translationKey(
-      "The last N days, always up to date. Suits services that must be reliable at every moment.",
-    ),
-    [SloWindowType.CalendarMonth]: translationKey(
-      "Each month on its own, reset on the 1st. Suits targets reported or promised per month.",
-    ),
-  };
+export const SLO_WINDOW_TYPE_CHOICE_DESCRIPTIONS: Record<
+  SloWindowType,
+  string
+> = {
+  [SloWindowType.Rolling]: translationKey(
+    "The last N days, always up to date. Suits services that must be reliable at every moment.",
+  ),
+  [SloWindowType.CalendarMonth]: translationKey(
+    "Each month on its own, reset on the 1st. Suits targets reported or promised per month.",
+  ),
+};
 
 export type GetSloWindowTypeChoicesFunction = () => Array<RadioButton>;
 

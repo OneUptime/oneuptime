@@ -14605,7 +14605,7 @@
   "Per-interface bandwidth utilization. One series per interface.": "Utilización del ancho de banda por interfaz. Una serie por interfaz.",
   "Per-second client IOPS and throughput summed across all pools.": "IOPS y rendimiento de clientes por segundo, sumados en todos los pools.",
   "Per-second inbound and outbound network throughput summed across all guests.": "Rendimiento de red entrante y saliente por segundo, sumado en todos los invitados.",
-  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "La proporción de sesiones que se graban, 100 de forma predeterminada. Bájela para reducir el costo: con «Always», reducirla a la mitad reduce a la mitad lo que se guarda.",
+  "The share of sessions to record, 100 by default. Lower it to cut cost: with Always, halving it halves what is stored.": "La proporción de sesiones que se graban, 100 de forma predeterminada. Bájela para reducir el costo: con «Siempre», reducirla a la mitad reduce a la mitad lo que se guarda.",
   "Percentage of the error budget that remains, with the at-risk and exhausted boundaries marked. Negative values mean the budget is overspent.": "Porcentaje del presupuesto de errores que queda, con los límites de riesgo y de agotamiento marcados. Los valores negativos significan que el presupuesto se ha sobrepasado.",
   "Perf": "Rendimiento",
   "Performance & Tracing": "Rendimiento y trazado",

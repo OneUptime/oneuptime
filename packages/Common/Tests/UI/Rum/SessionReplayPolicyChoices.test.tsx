@@ -248,9 +248,8 @@ function lineOf(radio: HTMLElement): string {
 function savedModel(): Record<string, unknown> {
   expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
 
-  const call: Array<unknown> = createOrUpdateMock.mock.calls[0] as Array<
-    unknown
-  >;
+  const call: Array<unknown> = createOrUpdateMock.mock
+    .calls[0] as Array<unknown>;
 
   return (call[0] as { model: Record<string, unknown> }).model;
 }
@@ -320,10 +319,7 @@ describe("Edit Session Replay Policy", () => {
       "When to upload a recording",
     );
 
-    expect(answersOf(question)).toEqual([
-      "Always",
-      "On error or frustration",
-    ]);
+    expect(answersOf(question)).toEqual(["Always", "On error or frustration"]);
 
     const always: HTMLElement = within(question).getByRole("radio", {
       name: "Always",
@@ -539,11 +535,9 @@ describe("Edit Session Replay Policy", () => {
     renderPage();
     const modal: HTMLElement = await openEditPolicy();
 
-    const samplePercentage: HTMLElement = await within(modal).findByDisplayValue(
-      "40",
-      {},
-      { timeout: WAIT_TIMEOUT },
-    );
+    const samplePercentage: HTMLElement = await within(
+      modal,
+    ).findByDisplayValue("40", {}, { timeout: WAIT_TIMEOUT });
     fireEvent.change(samplePercentage, { target: { value: "" } });
 
     await openStep(modal, "Performance & Tracing");
@@ -558,7 +552,11 @@ describe("Edit Session Replay Policy", () => {
 
     await openStep(modal, "Limits");
     fireEvent.change(
-      await within(modal).findByDisplayValue("5", {}, { timeout: WAIT_TIMEOUT }),
+      await within(modal).findByDisplayValue(
+        "5",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
       { target: { value: "" } },
     );
 

@@ -50,7 +50,8 @@ export interface ComponentProps {
 const TelemetryFirstStepsEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const copy: TelemetryFirstStepsCopy = TELEMETRY_FIRST_STEPS_COPY[props.signal];
+  const copy: TelemetryFirstStepsCopy =
+    TELEMETRY_FIRST_STEPS_COPY[props.signal];
 
   const actions: Array<TableEmptyStateAction> = [
     {

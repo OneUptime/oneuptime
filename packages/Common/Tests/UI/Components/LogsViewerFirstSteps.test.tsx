@@ -156,9 +156,8 @@ describe("the Logs page's first steps in an empty explorer", () => {
   test("a typed search keeps the 'try adjusting filters' line too", async () => {
     const table: HTMLElement = await renderLogs({ firstSteps: FIRST_STEPS });
 
-    const search: HTMLElement = screen.getByPlaceholderText(
-      /^Search logs\.\.\./,
-    );
+    const search: HTMLElement =
+      screen.getByPlaceholderText(/^Search logs\.\.\./);
     fireEvent.change(search, { target: { value: "connection refused" } });
 
     expect(within(table).queryByTestId("page-first-steps")).toBeNull();

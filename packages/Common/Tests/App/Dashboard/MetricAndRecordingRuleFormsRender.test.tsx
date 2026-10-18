@@ -637,7 +637,9 @@ describe("Metrics > Settings > Pipeline Rules", () => {
         "The attribute to act on, such as deployment.environment.",
       ),
     ).toBeInTheDocument();
-    expect(within(dialog()).getByText("The value to give it.")).toBeInTheDocument();
+    expect(
+      within(dialog()).getByText("The value to give it."),
+    ).toBeInTheDocument();
 
     await pickRuleType(MetricPipelineRuleType.RedactAttribute);
 

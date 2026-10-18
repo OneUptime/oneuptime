@@ -14,6 +14,7 @@ import {
   render,
   renderHook,
   screen,
+  RenderHookResult,
   waitFor,
   within,
 } from "@testing-library/react";
@@ -321,12 +322,13 @@ describe("useProjectHasExceptions", () => {
   test("asks nothing until the list is empty and unnarrowed", async () => {
     countSpy.mockResolvedValue(0 as never);
 
-    const hook: ReturnType<typeof renderHook> = renderHook(
-      (props: { shouldAsk: boolean }) => {
-        return useProjectHasExceptions(props.shouldAsk);
-      },
-      { initialProps: { shouldAsk: false } },
-    );
+    const hook: RenderHookResult<boolean | null, { shouldAsk: boolean }> =
+      renderHook(
+        (props: { shouldAsk: boolean }) => {
+          return useProjectHasExceptions(props.shouldAsk);
+        },
+        { initialProps: { shouldAsk: false } },
+      );
 
     await act(async () => {
       await Promise.resolve();
@@ -381,12 +383,13 @@ describe("useProjectHasExceptions", () => {
   test("asks once, however often the list empties again", async () => {
     countSpy.mockResolvedValue(0 as never);
 
-    const hook: ReturnType<typeof renderHook> = renderHook(
-      (props: { shouldAsk: boolean }) => {
-        return useProjectHasExceptions(props.shouldAsk);
-      },
-      { initialProps: { shouldAsk: true } },
-    );
+    const hook: RenderHookResult<boolean | null, { shouldAsk: boolean }> =
+      renderHook(
+        (props: { shouldAsk: boolean }) => {
+          return useProjectHasExceptions(props.shouldAsk);
+        },
+        { initialProps: { shouldAsk: true } },
+      );
 
     await waitFor(() => {
       expect(hook.result.current).toBe(false);

@@ -282,8 +282,7 @@ export function isNarrowedByReader(data: {
   searchQuery: string;
 }): boolean {
   return (
-    (data.activeFilters || []).length > 0 ||
-    data.searchQuery.trim().length > 0
+    (data.activeFilters || []).length > 0 || data.searchQuery.trim().length > 0
   );
 }
 
