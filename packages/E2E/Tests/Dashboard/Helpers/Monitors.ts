@@ -624,11 +624,21 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
     .click();
   await page.waitForTimeout(1000);
 
-  // Pick a Quick Setup template so the monitor step is fully configured.
+  /*
+   * Pick a Quick Setup template so the monitor step is fully configured.
+   * Templates are radio rows in the "Alert templates" group since #4979
+   * (AlertTemplatePicker), not buttons; the monitor type cards are radios
+   * too, so the pick is held to that group. Once picked, the list folds
+   * into the chosen template.
+   */
   await page
-    .getByRole("button", { name: data.recipe.templateName })
+    .getByRole("radiogroup", { name: "Alert templates" })
+    .getByRole("radio", { name: data.recipe.templateName })
     .first()
     .click();
+  await page
+    .getByTestId("alert-template-picked")
+    .waitFor({ state: "visible", timeout: 30000 });
   await page.waitForTimeout(1500);
 
   // Criteria is the last step these types show: create from it.
