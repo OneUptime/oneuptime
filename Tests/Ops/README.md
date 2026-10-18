@@ -841,6 +841,14 @@ group, read from `github.event.schedule` (which GitHub sets on scheduled runs
 only), is not the one master's pushes share, so a merge that lands during the
 nightly run neither cancels it nor is cancelled by it.
 
+The same workflow runs the provider's acceptance tests, written with
+terraform-plugin-testing, which HashiCorp also asks partner providers to pass.
+Go skips them unless `TF_ACC` is set, so the suite pins the step that runs
+them: `TF_ACC=1`, `TF_ACC_TERRAFORM_PATH` at the Terraform the job installed
+(so nothing is downloaded), `test-env.sh` sourced for the OneUptime and the
+project key, and a place after the test account step and both end-to-end
+runs.
+
 ### `ReleaseCriticalPath.test.js`
 
 What a release run waits for, and what it no longer does. The organization

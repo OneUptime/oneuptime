@@ -38,12 +38,11 @@ interface Exception {
  * shrinks.
  */
 const EXCEPTIONS: ReadonlyArray<Exception> = [
-  {
-    where:
-      /^packages\/App\/FeatureSet\/(Dashboard\/src\/Pages\/Settings\/LlmProvider(s|View)\.tsx|AdminDashboard\/src\/Pages\/Settings\/LlmProviders\/Index\.tsx):/,
-    reason:
-      "LLM providers belong to the automation and AI audit, which reworks their forms.",
-  },
+  /*
+   * The LLM provider forms left this list with #4990: they are one shared
+   * form now (Common/UI/Components/AI/LlmProviderFormFields), in its own
+   * words.
+   */
   {
     where:
       /^packages\/App\/FeatureSet\/AdminDashboard\/src\/Pages\/Settings\/AIAgents\/Index\.tsx:/,

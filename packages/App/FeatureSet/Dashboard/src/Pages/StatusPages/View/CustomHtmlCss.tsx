@@ -6,6 +6,7 @@ import {
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -14,6 +15,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { type ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import Domain from "Common/Models/DatabaseModels/Domain";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "Common/Models/DatabaseModels/StatusPageDomain";
 import React, {
@@ -50,6 +52,11 @@ const StatusPageCustomCode: FunctionComponent<
    * nowhere, and the page says so, with Custom Domains a click away; a page
    * that has one is not told again on every visit. Null while it is asked,
    * and after a read that failed: no notice on a guess.
+   *
+   * Two reads: the page's CNAME-verified domains, then whether any of their
+   * project domains is verified. Domain.isVerified cannot be read through
+   * the relation (it has no canReadOnRelationQuery), so selecting it on the
+   * first read would throw, and the notice would never show.
    */
   const [hasServingDomain, setHasServingDomain] = useState<boolean | null>(
     null,
@@ -58,39 +65,62 @@ const StatusPageCustomCode: FunctionComponent<
   useEffect(() => {
     let isCancelled: boolean = false;
 
-    const readDomains: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const domains: ListResult<StatusPageDomain> =
-          await ModelAPI.getList<StatusPageDomain>({
-            modelType: StatusPageDomain,
-            query: {
-              statusPageId: new ObjectID(statusPageId),
-              isCnameVerified: true,
-            } as Query<StatusPageDomain>,
-            select: {
-              _id: true,
-              domain: {
-                isVerified: true,
-              },
-            },
-            sort: {},
-            limit: CUSTOM_CODE_DOMAINS_READ_LIMIT,
-            skip: 0,
-          });
+    const readDomains: () => Promise<boolean> = async (): Promise<boolean> => {
+      const pageDomains: ListResult<StatusPageDomain> =
+        await ModelAPI.getList<StatusPageDomain>({
+          modelType: StatusPageDomain,
+          query: {
+            statusPageId: new ObjectID(statusPageId),
+            isCnameVerified: true,
+          } as Query<StatusPageDomain>,
+          select: {
+            _id: true,
+            domainId: true,
+          },
+          sort: {},
+          limit: CUSTOM_CODE_DOMAINS_READ_LIMIT,
+          skip: 0,
+        });
 
-        if (!isCancelled) {
-          setHasServingDomain(
-            domains.data.some((domain: StatusPageDomain): boolean => {
-              return Boolean(domain.domain?.isVerified);
-            }),
-          );
+      const domainIds: Array<ObjectID> = [];
+
+      for (const pageDomain of pageDomains.data) {
+        if (pageDomain.domainId) {
+          domainIds.push(pageDomain.domainId);
         }
-      } catch {
-        // Not known: the notice waits for an answer.
       }
+
+      if (domainIds.length === 0) {
+        return false;
+      }
+
+      const verifiedDomains: ListResult<Domain> =
+        await ModelAPI.getList<Domain>({
+          modelType: Domain,
+          query: {
+            _id: new Includes(domainIds),
+            isVerified: true,
+          } as Query<Domain>,
+          select: {
+            _id: true,
+          },
+          sort: {},
+          limit: 1,
+          skip: 0,
+        });
+
+      return verifiedDomains.data.length > 0;
     };
 
-    void readDomains();
+    void readDomains()
+      .then((hasDomain: boolean): void => {
+        if (!isCancelled) {
+          setHasServingDomain(hasDomain);
+        }
+      })
+      .catch((): void => {
+        // Not known: the notice waits for an answer.
+      });
 
     return () => {
       isCancelled = true;

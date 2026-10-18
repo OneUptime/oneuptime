@@ -3,7 +3,8 @@
  *
  * Verifies the tools/list metadata generated for real models:
  * - every tool carries a title and operation-appropriate annotations
- *   (readOnlyHint / destructiveHint / idempotentHint)
+ *   (readOnlyHint / destructiveHint / openWorldHint / idempotentHint): every
+ *   write is destructive, and no tool reaches past the caller's project
  * - database list/get tools expose a `select` array parameter
  * - the list tool's sort schema carries the ASC/DESC enum
  * - analytics (telemetry) models generate ONLY list and count tools
@@ -78,6 +79,8 @@ describe("Generated tool metadata", () => {
         (name: string) => {
           expect(findTool(tools, name).annotations).toEqual({
             readOnlyHint: true,
+            destructiveHint: false,
+            openWorldHint: false,
           });
         },
       );
@@ -87,21 +90,24 @@ describe("Generated tool metadata", () => {
       expect(findTool(tools, "delete_incident").annotations).toEqual({
         readOnlyHint: false,
         destructiveHint: true,
+        openWorldHint: false,
         idempotentHint: true,
       });
     });
 
-    it("marks the create tool non-destructive and not read-only", () => {
+    it("marks the create tool destructive: creating an incident pages people", () => {
       expect(findTool(tools, "create_incident").annotations).toEqual({
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
       });
     });
 
-    it("marks the update tool idempotent", () => {
+    it("marks the update tool destructive, as it overwrites, and idempotent", () => {
       expect(findTool(tools, "update_incident").annotations).toEqual({
         readOnlyHint: false,
-        destructiveHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
         idempotentHint: true,
       });
     });
@@ -157,7 +163,11 @@ describe("Generated tool metadata", () => {
 
     it("marks both tools read-only", () => {
       tools.forEach((tool: McpToolInfo) => {
-        expect(tool.annotations).toEqual({ readOnlyHint: true });
+        expect(tool.annotations).toEqual({
+          readOnlyHint: true,
+          destructiveHint: false,
+          openWorldHint: false,
+        });
         expect(typeof tool.title).toBe("string");
       });
     });
