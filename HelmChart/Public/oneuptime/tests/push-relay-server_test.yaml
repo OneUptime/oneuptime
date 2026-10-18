@@ -1,0 +1,108 @@
+# PUSH_NOTIFICATION_RELAY_SERVER_ENABLED decides whether a server relays
+# mobile pushes for other OneUptime servers: answers the push relay's routes,
+# which send what another server asks with this server's EXPO_ACCESS_TOKEN.
+#
+# Unset, the app reads it as "only where billing is on": OneUptime's cloud,
+# the relay self-hosted servers send through by default, stays one with no
+# deploy change, and no self-hosted server is one. So unset must render
+# empty, and an explicit false must render "false": `default` is the trap
+# this suite guards, since false is empty to it and would render as unset -
+# the cloud's relay switched back on by the value meant to turn it off.
+suite: push relay server
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: renders empty when the operator never set it
+    templates:
+      - templates/app.yaml
+    # app.yaml renders both a Service and a Deployment under the same name,
+    # so select the Deployment by kind.
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
+            value: ""
+
+  - it: renders empty when the pushNotification block has only the relay url
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      pushNotification:
+        relayUrl: https://relay.example.com/api/notification/push-relay/send
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
+            value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUSH_NOTIFICATION_RELAY_URL
+            value: https://relay.example.com/api/notification/push-relay/send
+
+  # The assertion that a `default` idiom would fail.
+  - it: renders false when the operator turns it off
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      pushNotification:
+        relayServerEnabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
+            value: "false"
+
+  - it: renders true when the operator turns it on
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      pushNotification:
+        relayServerEnabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
+            value: "true"
+
+  - it: is not turned on by an Expo access token
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      expo:
+        accessToken: an-expo-access-token
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: PUSH_NOTIFICATION_RELAY_SERVER_ENABLED
+            value: ""
+
+  - it: refuses a value that is not true or false
+    templates:
+      - templates/app.yaml
+    set:
+      pushNotification:
+        relayServerEnabled: "yes"
+    asserts:
+      - failedTemplate: {}

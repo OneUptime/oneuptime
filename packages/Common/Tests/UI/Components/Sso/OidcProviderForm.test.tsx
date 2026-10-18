@@ -18,7 +18,7 @@ import Permission from "../../../../Types/Permission";
  * Adding an OpenID Connect provider, through the real ModelForm and
  * BasicForm with only the network stubbed: the form opens on the four
  * things the identity provider gives (name, issuer, client ID, secret),
- * walks on to Sign-in, where Create OIDC is, and saves a complete provider -
+ * walks on to Sign-in, where Add OIDC Provider is, and saves a complete provider -
  * the
  * discovery URL from the issuer, the usual scopes and claim names, the
  * description from the name, the members team it started on, and off until
@@ -149,7 +149,7 @@ import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import { getOidcProviderFormFields } from "../../../../UI/Components/Sso/OidcProviderFormFields";
 import { getSsoProviderFormSteps } from "../../../../UI/Components/Sso/SsoProviderFormFields";
 
-const ACTION: string = "Create OIDC";
+const ACTION: string = "Add OIDC Provider";
 const SAVE: string = "Save Changes";
 
 async function renderProviderForm(data: {

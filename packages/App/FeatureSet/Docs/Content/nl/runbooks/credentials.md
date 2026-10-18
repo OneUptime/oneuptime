@@ -43,7 +43,7 @@ Voer in de stap **Credential** een **Naam** in, zoals `prod-cluster`, een option
 
 :::tabs
 @tab SSH
-Voer onder **SSH-host** de **Hostnaam**, de **Poort** (22 als u die leeg laat) en de **Gebruikersnaam** in. Plak onder **SSH-authenticatie** een **Private Key (PEM)**, met de bijbehorende **Private Key Passphrase** als die er is, of voer een **Wachtwoord** in voor een host zonder sleuteltoegang. Een sleutel is de betere keuze als u kunt kiezen.
+Voer onder **SSH-host** de **Hostnaam**, de **Poort** (22 als u die leeg laat) en de **Gebruikersnaam** in. Kies onder **SSH-authenticatie** bij **Aanmelden met**: een **Privésleutel**, de betere keuze als u kunt kiezen, en plak dan de **Private Key (PEM)**, met de bijbehorende **Private Key Passphrase** als die er is; of een **Wachtwoord**, voor een host zonder sleuteltoegang, en voer dan het **Wachtwoord** in.
 @tab Kubernetes
 Voer onder **Kubernetes** de **API Server URL** in, zoals `https://10.0.0.1:6443`, het **Service Account Token** en het **CA Certificate (PEM)**, zodat de Runner de API-server kan verifiëren. Laat de CA alleen leeg als de API-server een certificaat toont dat de Runner al vertrouwt.
 :::

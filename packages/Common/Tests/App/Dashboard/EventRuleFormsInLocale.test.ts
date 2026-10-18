@@ -15,6 +15,9 @@ import {
   REMINDER_RULE_NAME_DESCRIPTION,
   REMINDER_RULE_NAME_WORDING,
   REMINDER_STOP_OPTION_DESCRIPTIONS,
+  RUNBOOK_RULE_NAME_DESCRIPTION,
+  RUNBOOK_RULE_NAME_WORDING,
+  RUNBOOK_RULE_RUNBOOKS_DESCRIPTION,
   SLA_RULE_NAME_DESCRIPTION,
   SLA_RULE_NAME_WORDING,
   getMaintenanceReminderRuleName,
@@ -26,6 +29,8 @@ import {
   getReminderRuleActionFields,
   getReminderRuleFormSteps,
   getReminderRuleName,
+  getRunbookRuleActionFields,
+  getRunbookRuleName,
   getSlaRuleFormSteps,
   getSlaRuleName,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/EventRuleForm";
@@ -47,8 +52,8 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/RemindersSwitchCopy";
 
 /*
- * The on-call, privacy, SLA and reminder rule forms of Incidents, Alerts and
- * Scheduled Maintenance, and the create forms' plainer help, in every
+ * The on-call, privacy, SLA, reminder and runbook rule forms of Incidents,
+ * Alerts and Scheduled Maintenance, and the create forms' plainer help, in every
  * language the Dashboard ships - read from the locale files themselves:
  *
  *   - every word these forms add is the language's own, and every sentence
@@ -220,6 +225,8 @@ const SHARED_WORDS: Set<string> = new Set([
   "Resolved",
   "Acknowledged",
   "30",
+  // A loanword in several languages (German, French, Spanish ...).
+  "Runbooks",
 ]);
 
 // Every word the rule forms add, from the modules that draw them.
@@ -257,6 +264,13 @@ function ruleFormWords(): Array<string> {
     ),
     ...fieldTitlesAndDescriptions(
       getReminderRuleActionFields<Record<string, unknown>>("incident"),
+    ),
+    RUNBOOK_RULE_NAME_WORDING.allPicks,
+    RUNBOOK_RULE_NAME_WORDING.somePicks.other,
+    RUNBOOK_RULE_RUNBOOKS_DESCRIPTION,
+    RUNBOOK_RULE_NAME_DESCRIPTION,
+    ...fieldTitlesAndDescriptions(
+      getRunbookRuleActionFields<Record<string, unknown>>(),
     ),
     MAINTENANCE_REMINDER_INTERVAL_DESCRIPTION,
     MAINTENANCE_REMINDER_TIMING_FIELD_TITLE,
@@ -354,6 +368,18 @@ describe.each(LANGUAGES)("in %s", (language: string) => {
       fill(words[ON_CALL_RULE_NAME_WORDING.allPicks]!, {
         policies: "Platform on-call",
       }),
+    );
+  });
+
+  test("a runbook rule is named after its runbooks in the language", () => {
+    expect(getRunbookRuleName(["Database failover"])).toBe(
+      fill(words[RUNBOOK_RULE_NAME_WORDING.allPicks]!, {
+        runbooks: "Database failover",
+      }),
+    );
+    // The runbook's own name is never translated.
+    expect(getRunbookRuleName(["Database failover"])).toContain(
+      "Database failover",
     );
   });
 

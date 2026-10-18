@@ -25,11 +25,11 @@ Abre **Productos → Runbooks**. Runbooks está en el grupo **Paneles y automati
 
 ### Crear el runbook
 
-Haz clic en **Crear Runbook**, escribe un **Nombre** y, si quieres, una **Descripción** de para qué sirve el runbook. En **Más campos** están el interruptor **Habilitado**, activado por defecto, y las **Etiquetas**. El nuevo runbook aparece en la lista: ábrelo.
+Haz clic en **Crear Runbook**, escribe un **Nombre** y, si quieres, una **Descripción** de para qué sirve el runbook. En **Más campos** están el interruptor **Habilitado**, activado por defecto, y las **Etiquetas**. El nuevo runbook se abre en su página **Pasos**.
 
 ### Añadir pasos
 
-Ve a **Pasos**. En **Inicia tu runbook**, elige el tipo del primer paso; debajo del último paso, **Añadir otro paso** ofrece los mismos siete tipos. Cada paso se abre con su **Título**, su **Descripción** (en Markdown, visible para quien responde) y los ajustes de su tipo. En cuanto el runbook tiene un paso, **Añadir paso**, en la parte superior de la tarjeta, añade un paso Manual.
+En **Inicia tu runbook**, elige el tipo del primer paso; debajo del último paso, **Añadir otro paso** ofrece los mismos siete tipos. Cada paso se abre con su **Título**, su **Descripción** (en Markdown, visible para quien responde) y los ajustes de su tipo. En cuanto el runbook tiene un paso, **Añadir paso**, en la parte superior de la tarjeta, añade un paso Manual.
 
 ### Ordenar los pasos
 

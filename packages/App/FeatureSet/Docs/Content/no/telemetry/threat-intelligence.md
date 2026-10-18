@@ -35,7 +35,7 @@ flowchart TB
 
 ### Opprett feeden
 
-Klikk på **Opprett Threat Intel Feed**, og fyll ut de fem stegene: **Grunnleggende informasjon**, **TAXII Server**, **Autentisering**, **Security Cases** og **Ved treff**. Feltene står i tabellen nedenfor.
+Klikk på **Opprett Threat Intel Feed**, og fyll ut de tre stegene: **TAXII-server**, **Pålogging** og **Ved treff**. Feltene står i tabellen nedenfor.
 
 ### Sjekk den første hentingen
 
@@ -48,16 +48,16 @@ I løpet av et minutt eller to viser feedens rad **Last Polled**, og **Last Poll
 | **Collection ID** | Samlingen som publiserer indikatorene. |
 | **Poll Interval (Minutes)** | Hvor ofte nye objekter hentes: 1 til 1440 minutter, 60 som standard. |
 | **Minimum Confidence** | Indikatorer med lavere STIX-`confidence` hoppes over: 0 til 100, og 0 beholder alt. Indikatorer uten confidence slipper alltid gjennom. |
-| **API Token** | Et bearer-token, for en samling som ber om det. |
-| **Basic Auth Username** og **Basic Auth Password** | For en samling som bruker HTTP Basic-autentisering. La begge og tokenet stå tomme for en offentlig samling. |
+| **Pålogging** | Hvordan OneUptime logger på: **Ingen pålogging** for en offentlig samling, **Bearer-token** for et token fra operatøren av serveren eller **Brukernavn og passord** for HTTP Basic-autentisering. |
+| **API Token**, **Basic Auth Username** og **Basic Auth Password** | Spørres bare om for påloggingen som er valgt. |
 | **Open a Case on Match** | På som standard: hver hendelse som nevner en indikator, åpner en [sak](/docs/telemetry/security-cases) om den, eller legges til i den åpne saken som allerede gjelder den. |
-| **Create Alert on Match** | På som standard: hver indikator som treffer, åpner et varsel. |
+| **Varsler og hendelser** | **Opprett et varsel** som standard: hver indikator som treffer, åpner et varsel. |
 | **Varselsalvor** | Alvorlighetsgraden til hvert varsel denne feeden åpner. La den stå tom for å bruke trusselnivået til hver indikator. |
-| **Create Incident on Match** | Av som standard. Hendelser (incidents) driver vakteskalering, SLA-er og statussider, og for indikatortreff er varsler som regel nok. |
+| **Erklær en hendelse** eller **Begge** | Under **Varsler og hendelser**. Hendelser (incidents) driver vakteskalering, SLA-er og statussider, og for indikatortreff er varsler som regel nok. |
 | **Hendelsesalvor** | Som **Varselsalvor**, for hendelser (incidents). |
 | **Write Detection Finding on Match** | På som standard: hvert treff skriver et funn inn i hendelsesstrømmen. |
 
-Tokener og passord krypteres og vises aldri igjen etter at du har lagret dem. For å endre dem velger du **Update Credentials** i feedens rad og deretter **API Token (Bearer)**, **Basic Auth** eller **Anonymous (clear stored credentials)**: valget ditt erstatter feedens pålogging, så å lagre et token fjerner et lagret passord, og omvendt.
+Tokener og passord krypteres og vises aldri igjen etter at du har lagret dem. For å endre dem velger du **Update Credentials** i feedens rad og deretter **Bearer-token**, **Brukernavn og passord** eller **Ingen pålogging**, som fjerner det lagrede: valget ditt erstatter feedens pålogging, så å lagre et token fjerner et lagret passord, og omvendt.
 
 ### Slik hentes en feed
 
@@ -143,7 +143,7 @@ Hvert minutt sammenlignes de aktive indikatorene til hver aktiverte feed med hen
 ### Hva et treff gjør
 
 - Et varsel med tittelen `[Threat Intel] <feed name> — <indicator value>`, ett per feed og verdi så lenge det er åpent. Når det er løst, åpner neste treff et nytt. Varsler løses ikke automatisk.
-- En hendelse (incident), bare med **Create Incident on Match**, deduplisert på samme måte.
+- En hendelse (incident), bare med **Erklær en hendelse** eller **Begge** under **Varsler og hendelser**, deduplisert på samme måte.
 - Et Threat Intel-funn, med **Write Detection Finding on Match**: en hendelse `Detection Finding` (OCSF-klasse 2004) fra produktet `OneUptime Threat Intel`, med indikatorens trusselnivå som alvorlighetsgrad, og disse attributtene:
 
 | Attributt | Verdi |
@@ -199,7 +199,7 @@ Sammenligningen sammenligner en indikators verdi med en hendelses observables, i
 :::
 
 :::details Et treff åpnet ikke noe varsel
-**Create Alert on Match** er av, eller et varsel for den samme feeden og verdien er fortsatt åpent, og senere treff legges inn i det. Et prosjekt må ha minst én varselalvorlighetsgrad for at en feed skal kunne åpne varsler.
+**Varsler og hendelser** står på **Erklær en hendelse** eller **Ingen av dem**, eller et varsel for den samme feeden og verdien er fortsatt åpent, og senere treff legges inn i det. Et prosjekt må ha minst én varselalvorlighetsgrad for at en feed skal kunne åpne varsler.
 :::
 
 ## Neste steg

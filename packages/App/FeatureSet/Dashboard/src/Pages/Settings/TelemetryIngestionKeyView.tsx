@@ -62,6 +62,8 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             validation: {
               minLength: 2,
             },
+            // Not the column's "Any friendly name of this object", written for the API.
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -72,6 +74,7 @@ const TelemetryIngestionKeyView: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Telemetry Ingestion Key Description",
+            hideColumnDescription: true,
           },
           {
             field: {

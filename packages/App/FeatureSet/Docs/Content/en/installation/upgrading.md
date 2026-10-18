@@ -1327,6 +1327,23 @@ API, SSO, or the Slack and Microsoft Teams apps.
   record by its number or name as well as its ID, and sends the JSON typed
   for a trigger as JSON: a Manual trigger's **JSON** arrives as an object,
   so a later step reads a field of it without a **Text to JSON** step.
+- **Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers
+  to stay there.** OneUptime set its cookies without `Secure`, so a browser
+  that signed in over HTTPS still sent its session with any plain-HTTP
+  request to the same address. Now every cookie OneUptime sets while the
+  browser is on HTTPS is `Secure`, and an installation with
+  `HTTP_PROTOCOL=https` sends `Strict-Transport-Security` for its `HOST`: a
+  browser that has seen it reaches that name over HTTPS only, on every port,
+  for a year (`HSTS_MAX_AGE_SECONDS`, which `config.example.env` now lists;
+  `0` makes browsers forget it). Status pages and dashboards on custom
+  domains get `Secure` cookies whenever they are served over HTTPS, and no
+  `Strict-Transport-Security`. A browser's cookies from before the upgrade
+  are replaced as its session renews, or at its next sign-in. With
+  `HTTP_PROTOCOL=https`, people have to sign in over HTTPS: a sign-in over
+  plain HTTP to `HOST` no longer keeps them signed in. Behind your own proxy,
+  check that it sends `X-Forwarded-Proto`, as Caddy and the Nginx example in
+  [Set up HTTPS](/docs/installation/docker-compose#set-up-https) do. An
+  installation served over plain HTTP (`HTTP_PROTOCOL=http`) sees no change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

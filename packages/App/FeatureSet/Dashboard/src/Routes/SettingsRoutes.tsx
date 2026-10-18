@@ -3,7 +3,11 @@ import SettingsLayout from "../Pages/Settings/Layout";
 
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, SettingsRoutePath } from "../Utils/RouteMap";
-import { MOVED_RUNNER_SETTINGS_PATHS } from "./MovedPagePaths";
+import {
+  MOVED_OIDC_SETTINGS_PATH,
+  MOVED_RUNNER_SETTINGS_PATHS,
+} from "./MovedPagePaths";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, lazy, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
@@ -28,7 +32,6 @@ import SettingsDomains from "../Pages/Settings/Domains";
 
 import SettingsBilling from "../Pages/Settings/Billing";
 import SettingsSSO from "../Pages/Settings/SSO";
-import SettingsOIDC from "../Pages/Settings/OIDC";
 
 import SettingsSCIM from "../Pages/Settings/SCIM";
 
@@ -100,6 +103,15 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         element={
           <MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNER_VIEW} />
         }
+      />
+      {/*
+       * The OIDC providers moved onto the SSO page, beside the SAML ones
+       * (Components/Sso/ProjectOidcProviders). The old address forwards
+       * there - outside the layout, so the menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_OIDC_SETTINGS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.SETTINGS_SSO} />}
       />
       <PageRoute
         path={MOVED_RUNNER_SETTINGS_PATHS.runnerCredentials}
@@ -314,16 +326,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsSSO
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_SSO] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_OIDC)}
-          element={
-            <SettingsOIDC
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_OIDC] as Route}
             />
           }
         />

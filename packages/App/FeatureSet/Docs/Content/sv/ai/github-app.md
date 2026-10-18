@@ -108,7 +108,7 @@ Varje kommando som startar arbete är en fullständig agentkörning: en klon, up
 
 GitHub-kommandon är AI-arbete utanför incidenter och larm, så ingen daglig gräns för åtgärdsuppgifter gäller för dem; projektets egna dagliga AI-gränser gäller, när projektet sätter dem. Den enda andra gränsen är den som redan styr [Åtgärdsuppgifter](/docs/ai/ai-agent):
 
-- **Taket för öppna pull requests** (**Max Open Fix Pull Requests**, på repositoriets sida **Inställningar**). Det finns inget tak förrän du sätter ett, och 0 blockerar AI-åtgärds-pull-requests i det repositoriet. Granskningar och revideringar är undantagna: ingen av dem lägger till en pull request i din granskningskö.
+- **Taket för öppna pull requests** (**Max Open Fix Pull Requests**, på repositoriets sida **Inställningar**). **AI-rättnings-pull requests** står på **Ingen gräns** tills du väljer **En gräns**, eller **Inga**, som blockerar AI-åtgärds-pull-requests i det repositoriet. Granskningar och revideringar är undantagna: ingen av dem lägger till en pull request i din granskningskö.
 
 Bara en körning av ett slag är aktiv åt gången per issue eller pull request. Frågar du två gånger får du veta att den redan arbetar; ber du om en granskning medan en revidering körs startar båda, eftersom det är olika begäranden.
 

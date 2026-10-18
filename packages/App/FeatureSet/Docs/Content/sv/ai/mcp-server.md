@@ -39,7 +39,7 @@ Servern är tillståndslös: den utfärdar inga sessions-id:n och varje begäran
 - **Planerat underhåll**: skapa och hantera underhållshändelser.
 - **Telemetri**: fråga efter loggar, mätvärden, spår, undantag, monitorloggar, säkerhetshändelser med mera, endast läsning.
 
-Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 27 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. Skrivskyddade verktyg har `readOnlyHint` och borttagningsverktyg har `destructiveHint`, så att en klient själv kan köra säkra anrop och fråga dig före destruktiva. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
+Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 27 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. Skrivskyddade verktyg har `readOnlyHint`, varje verktyg som ändrar något har `destructiveHint`, och bara verktygen för publika statussidor har `openWorldHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
 
 ## Innan du börjar
 
@@ -111,7 +111,7 @@ Vad en ansluten klient kan göra:
 
 ### Hantera anslutna klienter
 
-Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Connected MCP Clients**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; projektets ägare och administratörer ser allas.
+Varje klient som anslutits genom inloggning listas på **Projektinställningar → AI → MCP-server**, under **Anslutna MCP-klienter**, med vem som anslöt den, vad den får göra och när den senast användes. Du ser de klienter du har anslutit; projektets ägare och administratörer ser allas.
 
 Klicka på **Disconnect** för att logga ut en klient. Den slutar fungera direkt.
 
@@ -195,6 +195,19 @@ Indatavariabeln med `"password": true` frågar efter nyckeln när servern starta
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

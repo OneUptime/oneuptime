@@ -93,19 +93,19 @@ De synchronisatie is declaratief: wijzig een variabele en de provider volgt bij 
 
 Ga naar **Projectinstellingen → AI → LLM-providers** (de sectie **AI** van het zijmenu is eerst ingeklapt) en klik op **LLM-provider aanmaken**.
 
-### Geef de provider een naam
+### Kies de provider
 
-Geef hem onder **Basisinformatie** een **Naam** die zegt wat hij is, zoals "Production OpenAI" of "Local Ollama", en eventueel een **Beschrijving**.
+Kies onder **Provider** je **LLM-provider**: een kaart voor OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama en elke OpenAI-compatibele server, elk met een regel over wat het is.
 
-### Vul de instellingen van de provider in
+### Verbind hem
 
-Onder **Providerinstellingen**:
+Onder **Verbinding** vraagt het formulier alleen wat die provider gebruikt, met eigen hulp onder elk veld:
 
-- **LLM-provider**: het soort provider (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama of OpenAI Compatible)
-- **API-sleutel**: je API-sleutel (nodig voor OpenAI, Azure OpenAI, Anthropic, Groq en Mistral; optioneel voor Ollama en OpenAI-compatibele servers)
-- **Modelnaam**: het model dat gebruikt wordt, zoals `gpt-5.1`, `claude-sonnet-5-5` of `llama3.1`
-- **Basis-URL**: het endpoint, nodig voor Azure OpenAI, Ollama en OpenAI Compatible; optioneel voor de andere, om hun standaard te overschrijven
-- **Meer velden**, ingeklapt onder de velden hierboven: **Instellen als standaard**, dat aan staat voor een nieuwe provider omdat AI-functies alleen de standaardprovider van het project gebruiken, en **Extra parameters**, een optioneel JSON-object met extra parameters dat bij elk verzoek naar de provider wordt gestuurd (bijvoorbeeld `{"temperature": 0.2}`)
+- **API-sleutel**: je API-sleutel, nodig voor OpenAI, Azure OpenAI, Anthropic, Groq en Mistral en optioneel voor een OpenAI-compatibele server; voor Ollama wordt er geen gevraagd
+- **Basis-URL**: het endpoint, nodig voor Azure OpenAI, Ollama en OpenAI Compatible; voor de andere alleen om via een proxy of gateway te gaan
+- **Modelnaam**: het model dat gebruikt wordt, zoals `gpt-5.1`, `claude-sonnet-5-5` of `llama3.1`. Leeg gelaten gebruikt OneUptime het standaardmodel van de provider, behalve bij een OpenAI-compatibele server, die er een nodig heeft
+- **Naam**: de naam van de provider totdat je zelf een naam typt, zoals "Production OpenAI" of "Local Ollama"
+- **Meer velden**, ingeklapt onder de velden hierboven: een **Beschrijving**, **Instellen als standaard**, dat aan staat voor een nieuwe provider omdat AI-functies alleen de standaardprovider van het project gebruiken, en **Extra parameters**, een optioneel JSON-object met extra parameters dat bij elk verzoek naar de provider wordt gestuurd (bijvoorbeeld `{"temperature": 0.2}`)
 
 **Wie een provider kan zien.** De LLM-providers van een project worden alleen gelezen door de leden die de instellingen van het project mogen lezen: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** en **Read LLM**. De **API-sleutel** en de **Extra parameters** van een provider worden alleen gelezen door de eigenaren en beheerders van het project, omdat de parameters bij elk verzoek naar de provider worden gestuurd en net als de sleutel een token of een header kunnen bevatten. De andere leden zien of er parameters zijn opgeslagen, niet welke. Leden die een provider mogen bewerken, kunnen de API-sleutel of de parameters nog steeds vervangen zonder ze te lezen: in het bewerkformulier zijn die velden eerst leeg, en een veld leeg laten behoudt wat er is opgeslagen. Om de parameters te verwijderen, sla je `{}` op. Alleen eigenaren en beheerders van het project kunnen de **Basis-URL** van een provider wijzigen, omdat de API-sleutel en de extra parameters naar dat adres worden gestuurd; de andere leden die een provider mogen bewerken, kunnen al het andere wijzigen. Iedereen die een provider kan lezen, kan de **Basis-URL** lezen, zet er dus nooit een sleutel, een token of een wachtwoord in: gebruik de **API-sleutel**. De lijst **Globale LLM-providers** op dezelfde pagina, de gedeelde providers waarop een project terugvalt, toont hun naam, beschrijving en prijs aan iedereen die is aangemeld, en verder niets over hen.
 

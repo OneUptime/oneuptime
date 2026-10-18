@@ -111,20 +111,20 @@ With `--custom-domain contoso-ai`, the resource's endpoint is `https://contoso-a
 
 Go to **Project Settings** > **AI** > **LLM Providers** and click **Create LLM Provider**.
 
-### Name the provider
+### Pick the provider
 
-On **Basic Info**, enter a **Name**, such as `Azure gpt-5.1`, and, if you like, a **Description**. Click **Next**.
+On **Provider**, pick **Azure OpenAI / Microsoft Foundry** as the **LLM Provider** and click **Next** to go on to **Connection**.
 
-### Fill in Provider Settings
+### Fill in the connection
 
 | Field | What to enter |
 | --- | --- |
-| **LLM Provider** | **Azure OpenAI / Microsoft Foundry** |
 | **API Key** | **KEY 1** or **KEY 2** of the resource |
-| **Model Name** | The deployment's name, exactly as Foundry shows it, such as `gpt-5.1` |
 | **Base URL** | The resource's endpoint with `/openai/v1`, such as `https://contoso-ai.openai.azure.com/openai/v1`. For Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Model Name** | The deployment's name, exactly as Foundry shows it, such as `gpt-5.1` |
+| **Name** | The provider's name to start with: give it one that says which deployment it is, such as `Azure gpt-5.1` |
 
-**Set as Default**, under **More fields**, is on: AI features use the project's default provider. Click **Create LLM Provider**.
+**More fields** holds a **Description** and **Set as Default**, which is on: AI features use the project's default provider. Click **Create LLM Provider**.
 
 ### Test the connection
 

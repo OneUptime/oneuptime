@@ -83,7 +83,10 @@ import {
   giveCustomRoleAccess,
   giveRoleAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
-import { getRoleIcon } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
+import {
+  ROLE_CARD_SUMMARIES,
+  getRoleIcon,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import Team from "../../../Models/DatabaseModels/Team";
@@ -237,6 +240,10 @@ describe("the cards", () => {
 
     for (const option of forTeam.slice(0, 3)) {
       expect(option.icon).toBe(getRoleIcon(option.value as Permission));
+      // The line the role's card says in Add Role, so a role reads the same in both.
+      expect(option.description).toBe(
+        ROLE_CARD_SUMMARIES[option.value as Permission],
+      );
     }
   });
 

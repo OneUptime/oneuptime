@@ -913,6 +913,52 @@ export const TrustedProxyHops: number = ((): number => {
 
 export const ProvisionSsl: boolean = process.env["PROVISION_SSL"] === "true";
 
+// One year: what browsers and security scanners expect of an HTTPS-only site.
+export const DEFAULT_HSTS_MAX_AGE_SECONDS: number = 365 * 24 * 60 * 60;
+
+// A number of seconds as the header writes it: plain digits, nothing else.
+const HSTS_MAX_AGE_DIGITS: RegExp = /^\d+$/;
+
+/*
+ * How long a browser keeps to HTTPS for this installation's own address
+ * (HOST) once it has reached it over HTTPS: the max-age of the
+ * Strict-Transport-Security header that an installation with
+ * HTTP_PROTOCOL=https sends (Server/Utils/RequestTransport.ts).
+ *
+ * One year unless HSTS_MAX_AGE_SECONDS says otherwise. 0 is the way back: it
+ * tells every browser that visits over HTTPS to forget the rule, for when the
+ * address has to answer over plain HTTP again. Anything that is not a whole,
+ * non-negative number of seconds keeps the default, so a typo never turns
+ * the protection off.
+ *
+ * That means plain digits, and a number small enough to be written back as
+ * digits. "1e3" or "+600" is a typo here, and a value past
+ * Number.MAX_SAFE_INTEGER (a few zeros too many) would come out of the
+ * header as "max-age=3.1536e+22", which browsers do not read as a max-age:
+ * they ignore the whole header, and the protection is off.
+ */
+export const parseHstsMaxAgeSeconds: (
+  rawValue: string | undefined,
+) => number = (rawValue: string | undefined): number => {
+  const trimmedValue: string = rawValue?.trim() || "";
+
+  if (!HSTS_MAX_AGE_DIGITS.test(trimmedValue)) {
+    return DEFAULT_HSTS_MAX_AGE_SECONDS;
+  }
+
+  const parsedValue: number = Number(trimmedValue);
+
+  if (!Number.isSafeInteger(parsedValue)) {
+    return DEFAULT_HSTS_MAX_AGE_SECONDS;
+  }
+
+  return parsedValue;
+};
+
+export const HstsMaxAgeSeconds: number = parseHstsMaxAgeSeconds(
+  process.env["HSTS_MAX_AGE_SECONDS"],
+);
+
 export const CaptchaEnabled: boolean =
   process.env["CAPTCHA_ENABLED"] === "true";
 
@@ -1559,6 +1605,43 @@ export const ExpoAccessToken: string | undefined =
 export const PushNotificationRelayUrl: string =
   process.env["PUSH_NOTIFICATION_RELAY_URL"] ||
   "https://oneuptime.com/api/notification/push-relay/send";
+
+/*
+ * Whether this server relays mobile pushes for other OneUptime servers: the
+ * push relay (App/FeatureSet/Notification/API/PushRelay.ts), which sends
+ * what another server asks it to with this server's EXPO_ACCESS_TOKEN, and
+ * reads those pushes' receipts.
+ *
+ * OneUptime's cloud is the relay a self-hosted server sends through by
+ * default (PUSH_NOTIFICATION_RELAY_URL), so where BILLING_ENABLED is true it
+ * is on unless PUSH_NOTIFICATION_RELAY_SERVER_ENABLED says otherwise.
+ * Anywhere else it is off unless set to exactly "true": an EXPO_ACCESS_TOKEN
+ * set for a server's own pushes does not make it a relay for others.
+ *
+ * Empty or unset: on only where BILLING_ENABLED is true. "true": on.
+ * Anything else: off - a value that is not "true" never turns a relay on.
+ */
+export const readPushNotificationRelayServerEnabled: (data: {
+  value: string | undefined;
+  isBillingEnabled: boolean;
+}) => boolean = (data: {
+  value: string | undefined;
+  isBillingEnabled: boolean;
+}): boolean => {
+  const value: string = (data.value || "").trim();
+
+  if (!value) {
+    return data.isBillingEnabled;
+  }
+
+  return value === "true";
+};
+
+export const PushNotificationRelayServerEnabled: boolean =
+  readPushNotificationRelayServerEnabled({
+    value: process.env["PUSH_NOTIFICATION_RELAY_SERVER_ENABLED"],
+    isBillingEnabled: IsBillingEnabled,
+  });
 
 export const DEFAULT_ENTERPRISE_LICENSE_SERVER_URL: string =
   "https://oneuptime.com";

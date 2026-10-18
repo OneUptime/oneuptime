@@ -62,6 +62,8 @@ export const getTeamCreateFormFields: (
       validation: {
         minLength: 2,
       },
+      // Not the column's "Any friendly name of this object", written for the API.
+      hideColumnDescription: true,
     },
     /*
      * Not a column of the team: the page adds the role once the team exists
@@ -83,6 +85,7 @@ export const getTeamCreateFormFields: (
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "Team Description",
+      hideColumnDescription: true,
       collapsibleSection: advanced,
     },
   ];

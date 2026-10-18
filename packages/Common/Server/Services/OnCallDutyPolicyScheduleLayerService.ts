@@ -9,6 +9,7 @@ import Recurring from "../../Types/Events/Recurring";
 import RestrictionTimes, {
   RestrictionType,
 } from "../../Types/OnCallDutyPolicy/RestrictionTimes";
+import { getDefaultLayerRotation } from "../../Types/OnCallDutyPolicy/ScheduleLayerDefaults";
 import OneUptimeDate from "../../Types/Date";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
@@ -162,6 +163,23 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!createBy.data.onCallDutyPolicyScheduleId) {
       throw new BadDataException("onCallDutyPolicyScheduleId is required");
+    }
+
+    /*
+     * The dashboard always sends a rotation and restriction times
+     * (buildNewScheduleLayer). An API client need not: the Terraform
+     * provider has both optional, as the API's schema does, and a layer
+     * written without them failed with "rotation is required" or
+     * "restrictionTimes is required". Left out, or null, they take what
+     * every new layer starts with: a weekly hand-off, on call around the
+     * clock.
+     */
+    if (!createBy.data.rotation) {
+      createBy.data.rotation = getDefaultLayerRotation();
+    }
+
+    if (!createBy.data.restrictionTimes) {
+      createBy.data.restrictionTimes = RestrictionTimes.getDefault();
     }
 
     this.validateRotationInterval(createBy.data.rotation);

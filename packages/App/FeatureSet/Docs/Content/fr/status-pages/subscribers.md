@@ -43,7 +43,7 @@ Les interrupteurs décident comment les visiteurs peuvent s'inscrire eux-mêmes,
 
 Sur OneUptime Cloud, un interrupteur que votre formule n'inclut pas porte le nom de la formule à côté : **Growth** pour **SMS** et **Afficher la page des abonnés**, **Scale** pour **Slack**, **Microsoft Teams** et **Webhook**. Désactiver un canal fonctionne avec toutes les formules, si bien qu'un canal activé pendant un essai peut toujours être désactivé ; l'interrupteur l'indique en dessous.
 
-Chaque canal a aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams** et **Abonnés au webhook**. C'est là que vous voyez qui est inscrit, ajoutez quelqu'un à la main ou vous laissez une entrée **Notes** (`internalNote`) sur un abonné donné. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec l'interrupteur du canal juste à côté, pour que vous puissiez l'activer sans quitter la liste.
+Chaque canal a aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams** et **Abonnés au webhook**. C'est là que vous voyez qui est inscrit, ajoutez quelqu'un à la main avec **Ajouter un abonné** ou vous laissez une **Note interne** (`internalNote`) sur un abonné donné, que seule votre équipe voit. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec l'interrupteur du canal juste à côté, pour que vous puissiez l'activer sans quitter la liste.
 
 **Un seul interrupteur ne suffit pas.** L'élément **S'abonner** de la barre de navigation de la page de statut n'apparaît que lorsque **Afficher la page des abonnés** est activé *et* qu'au moins un canal est activé. Si vous activez **E-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
 
@@ -66,7 +66,7 @@ Aucun des deux réglages ne supprime d'abonné, et les désactiver envoie de nou
 
 ## Ce qu'un visiteur voit sur la page S'abonner
 
-La page **S'abonner** a un sous-menu avec un onglet par canal activé. Chaque onglet demande le strict nécessaire :
+La page **S'abonner** a un sous-menu avec un onglet par canal activé ; avec un seul canal activé, il n'y a pas de sous-menu, seulement le formulaire de ce canal. Chaque onglet demande le strict nécessaire :
 
 | Onglet | Adresse | Titre | Ce qu'il demande |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ Le bouton d'envoi s'intitule **S'abonner**. Une inscription par SMS, Slack, Micr
 
 ## Laisser les abonnés choisir ressources et types d'événements
 
-Par défaut, un abonné reçoit tout ce qui concerne la page. Deux interrupteurs de la carte **Paramètres d'abonné avancés** changent cela :
+Par défaut, un abonné reçoit tout ce qui concerne la page. Deux interrupteurs de la carte **Choix des abonnés** sur **Paramètres des abonnés** changent cela, et chacun s'enregistre dès que vous le basculez :
 
 - **Permettre aux abonnés de choisir les ressources** (`allowSubscribersToChooseResources`) — désactivé par défaut. Activez-le et le formulaire d'abonnement gagne un interrupteur **S'abonner à toutes les ressources** ; désactivez-le et **Sélectionner les ressources à suivre** apparaît pour que le visiteur choisisse des ressources une à une.
 - **Permettre aux abonnés de choisir les types d'événements** (`allowSubscribersToChooseEventTypes`) — désactivé par défaut. Même principe : un interrupteur **S'abonner à tous les types d'événements**, et **Sélectionner les types d'événements à suivre** en dessous quand il est désactivé.
@@ -99,17 +99,17 @@ Les choix sont enregistrés sur l'abonné sous **Abonné à toutes les ressource
 
 Utile pour : une page qui couvre plusieurs produits. Un client qui n'utilise que votre API ne veut pas être prévenu chaque fois que le site marketing vacille — laissez-le réduire la liste lui-même plutôt que de le voir se désabonner complètement.
 
-La même carte contient aussi **Fuseaux horaires des abonnés**.
+**Fuseaux horaires des abonnés** se trouve sous **Plus de paramètres** sur le même écran (voir [plus bas](#pied-de-page-de-le-mail-smtp-personnalisé-et-twilio)).
 
 ## Double confirmation par e-mail
 
 Les abonnés par e-mail confirment toujours. Lorsqu'un abonné est créé avec une adresse e-mail et n'a pas été créé déjà confirmé, **Abonnement confirmé** (`isSubscriptionConfirmed`) est forcé à `false` et un **Subscription Confirmation Token** à six chiffres est généré. OneUptime envoie alors un lien de confirmation de la forme `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Le visiteur arrive sur une page **Confirmer l'abonnement** et, une fois la confirmation passée, voit *Abonnement confirmé avec succès*.
 
-Les abonnés SMS, Slack, Microsoft Teams et webhook sautent cette étape — ils sont créés avec `isSubscriptionConfirmed` déjà à `true`. Il en va de même des abonnés e-mail que votre équipe ajoute sur **Abonnés e-mail** : **Ne pas envoyer de lien de confirmation** y est activé par défaut. Désactivez-le pour que l'adresse confirme comme lors d'une inscription.
+Les abonnés SMS, Slack, Microsoft Teams et webhook sautent cette étape — ils sont créés avec `isSubscriptionConfirmed` déjà à `true`. Quand votre équipe ajoute un abonné e-mail sur **Abonnés e-mail**, **Quand vous les ajoutez** décide : **Les abonner maintenant** (par défaut : confirmé, et rien n'est envoyé), **Les abonner maintenant et les prévenir** (confirmé, et l'e-mail qui dit qu'il est abonné est envoyé) ou **Leur demander de confirmer d'abord** (le lien de confirmation est envoyé, comme lors d'une inscription). **Ajouter en masse** pose la même question.
 
 **Non confirmé signifie silencieux.** La requête qui récupère les abonnés pour une notification filtre sur `isUnsubscribed: false` et `isSubscriptionConfirmed: true`. Une adresse e-mail qui n'a jamais cliqué sur le lien reste dans votre liste **Abonnés e-mail** et ne reçoit rien. Si quelqu'un jure être abonné mais ne reçoit rien, vérifiez d'abord cette colonne.
 
-Il n'y a pas d'interrupteur pour désactiver la confirmation par e-mail — elle s'applique sans condition à toute personne qui s'inscrit via la page de statut. Une colonne distincte par abonné, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, true par défaut), contrôle l'e-mail « vous êtes abonné » qui part une fois l'abonné confirmé.
+Il n'y a pas d'interrupteur pour désactiver la confirmation par e-mail — elle s'applique sans condition à toute personne qui s'inscrit via la page de statut. Une colonne distincte par abonné, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, true par défaut), contrôle l'e-mail « vous êtes abonné » qui part une fois l'abonné confirmé. Dans le tableau de bord, **Quand vous les ajoutez** la définit pour un abonné e-mail, et **Envoyer un message de bienvenue**, sous **Plus de champs**, pour les autres canaux.
 
 ## Gérer et annuler un abonnement
 
@@ -131,7 +131,7 @@ Sur une page de statut privée, elle nécessite un visiteur connecté, comme le 
 
 Les points de terminaison derrière tout cela sont `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token`, ainsi que `GET` et `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. Le `GET` de désabonnement décrit seulement le lien. Le `POST` annule l'abonnement quel que soit son corps, y compris le corps `List-Unsubscribe=One-Click` d'une demande de désabonnement en un clic. Chaque point de terminaison qui prend un jeton donne la même réponse pour un jeton absent ou erroné, un abonné supprimé et un abonné d'une autre page de statut, si bien qu'aucun ne permet de savoir qui est abonné.
 
-Le désabonnement bascule un indicateur au lieu de supprimer une ligne, si bien que l'enregistrement reste dans la liste du canal avec **Est désabonné** défini — utile quand vous devez expliquer plus tard pourquoi une adresse a cessé de recevoir du courrier. Il enregistre aussi **Désabonné le** (`unsubscribedAt`), qui que ce soit qui ait annulé l'abonnement : l'abonné via le lien ou la page **Mettre à jour l'abonnement**, ou un membre de l'équipe dans le tableau de bord ou via l'API. Chaque liste d'abonnés a une colonne et un filtre **Désabonné le**. Désactiver de nouveau **Est désabonné** l'efface. Les abonnements annulés avant que OneUptime n'enregistre cela n'ont pas de date.
+Le désabonnement bascule un indicateur au lieu de supprimer une ligne, si bien que l'enregistrement reste dans la liste du canal avec **Est désabonné** défini — utile quand vous devez expliquer plus tard pourquoi une adresse a cessé de recevoir du courrier. Il enregistre aussi **Désabonné le** (`unsubscribedAt`), qui que ce soit qui ait annulé l'abonnement : l'abonné via le lien ou la page **Mettre à jour l'abonnement**, ou un membre de l'équipe dans le tableau de bord ou via l'API. Chaque liste d'abonnés a une colonne et un filtre **Désabonné le**. Remettre le **Statut** d'un abonné sur **Abonné** l'efface. Les abonnements annulés avant que OneUptime n'enregistre cela n'ont pas de date.
 
 Un lien ne portant que l'identifiant de l'abonné n'ouvre plus rien. Un lien **Mettre à jour l'abonnement** d'un message plus ancien, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, ouvre une page qui indique que le lien a expiré, avec **Obtenir un nouveau lien**, qui mène à la page **S'abonner**. Les très anciens messages portaient `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, qui désabonnait dès qu'on l'ouvrait. Il ne change plus rien : il mène à la page de désabonnement, qui indique que le lien est périmé et qu'il faut utiliser celui d'un message récent.
 
@@ -392,9 +392,10 @@ Pendant que vous rédigez un modèle, **Aperçu en direct** sous le corps du mod
 
 ## Pied de page de l'e-mail, SMTP personnalisé et Twilio
 
-Trois autres cartes de **Paramètres des abonnés** contrôlent la façon dont les messages aux abonnés quittent votre projet :
+Quatre autres sections, sous **Plus de paramètres** en bas de **Paramètres des abonnés**, contrôlent la façon dont les messages aux abonnés quittent votre projet :
 
-- **Paramètres du pied de page de l'e-mail** — **Activer le texte personnalisé du pied de page de l'e-mail** et **Texte de pied de page des notifications par e-mail aux abonnés** placent votre propre pied de page sur les e-mails aux abonnés.
+- **Fuseaux horaires des abonnés** — les fuseaux horaires dans lesquels les heures des notifications sont affichées, choisis avec **Modifier les fuseaux horaires**. Si aucun n'est choisi, les heures sont affichées en UTC et à l'heure de Londres, New York, Los Angeles, Calcutta et Sydney.
+- **Pied de page des e-mails** — la ligne à la fin de chaque e-mail envoyé aux abonnés de la page. **Modifier le pied de page** demande le **Pied de page** : **Le pied de page par défaut**, une ligne qui dit qu'ils reçoivent l'e-mail parce qu'ils sont abonnés, ou **Votre propre texte**, le **Texte du pied de page** que vous écrivez (`enableCustomSubscriberEmailNotificationFooterText` et `subscriberEmailNotificationFooterText`). Votre propre texte laissé vide envoie le pied de page par défaut.
 - **SMTP personnalisé** — **Configuration SMTP personnalisée** envoie les e-mails aux abonnés par votre propre serveur de messagerie au lieu de celui par défaut.
 - **Configuration Twilio** — **Configuration Twilio** est le compte Twilio utilisé pour les abonnés SMS.
 

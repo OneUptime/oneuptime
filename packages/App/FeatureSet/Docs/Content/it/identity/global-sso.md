@@ -87,14 +87,14 @@ flowchart TB
 
 Chi è già membro di un progetto collegato mantiene i team che ha lì.
 
-Due interruttori del provider cambiano questo comportamento. Partono entrambi disattivati, raccolti sotto **Altri campi**:
+Due domande del provider cambiano questo comportamento, raccolte sotto **Altri campi**. Ognuna parte dalla prima risposta:
 
-| Interruttore | Che cosa fa quando è attivo |
+| Domanda | Risposte |
 | --- | --- |
-| **Disable Sign Up with SSO** | Le persone devono essere invitate in un progetto prima di poter accedere con questo provider, anche se ci sono progetti collegati. Al primo accesso non viene creato nessuno. |
-| **Restrict to Attached Projects** | Accedere con questo provider soddisfa l'obbligo di SSO solo nei progetti collegati a esso, quindi chi ha già eseguito l'accesso può perdere l'accesso ad altri progetti. |
+| **Persone senza account** | **Ne ricevono uno al primo accesso**: entrano nei progetti collegati; se non ce n'è nessuno collegato, devono prima essere invitate. **Devono prima essere invitate**: le persone devono essere invitate in un progetto prima di poter accedere con questo provider, anche se ci sono progetti collegati. |
+| **Dove questo accesso vale come SSO** | **Ogni progetto**: i progetti che richiedono l'SSO accettano un accesso con questo provider. **Solo i progetti collegati**: accedere con questo provider soddisfa l'obbligo di SSO solo nei progetti collegati a esso, quindi chi ha già eseguito l'accesso può perdere l'accesso ad altri progetti. |
 
-Con **Restrict to Attached Projects** disattivato, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati.
+Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati.
 
 ## Imporre l'SSO
 
@@ -136,11 +136,11 @@ Due modifiche su chi può accedere vengono verificate una dopo l'altra. Se nello
 ## Risoluzione dei problemi
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La persona non ha ancora un account OneUptime e il provider non ne crea: o non ha progetti collegati, o **Disable Sign Up with SSO** è attivo. Invitala in un progetto o collega un progetto al provider.
+La persona non ha ancora un account OneUptime e il provider non ne crea: o non ha progetti collegati, o **Persone senza account** è impostato su **Devono prima essere invitate**. Invitala in un progetto o collega un progetto al provider.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** è attivo e la persona non è membro di nessun progetto collegato al provider. Collega uno dei suoi progetti o aggiungila a un progetto collegato.
+**Dove questo accesso vale come SSO** è impostato su **Solo i progetti collegati** e la persona non è membro di nessun progetto collegato al provider. Collega uno dei suoi progetti o aggiungila a un progetto collegato.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"

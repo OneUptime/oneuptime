@@ -33,11 +33,11 @@ Du trenger tillatelse til å redigere SLO-et.
 
 ### Velg monitorene
 
-Klikk på **Add Monitors** og velg monitorer fra prosjektet. Bare monitorer som ikke allerede er knyttet til, vises.
+Klikk på **Legg til monitorer** og velg monitorer fra prosjektet. Bare monitorer som ikke allerede er knyttet til, vises.
 
 ### Lagre listen
 
-Klikk på **Add Monitors**. Monitorene vises i listen med kilden **Manual** og teller med i SLI-en fra neste evaluering.
+Klikk på **Legg til monitorer**. Monitorene vises i listen med kilden **Manual** og teller med i SLI-en fra neste evaluering.
 :::
 
 Klikk på **Fjern** i raden til en monitor for å ta den ut av SLO-et. Selve monitoren endres ikke; den slutter bare å telle med i SLI-en og feilbudsjettet til SLO-et.
@@ -114,7 +114,7 @@ Regler synkroniserer på nytt ved hver lagring, så **Run Now** er for å ta igj
 
 Så lenge minst én regel er aktivert, er det reglene som styrer monitorene til SLO-et:
 
-- monitorer kan ikke legges til for hånd: **Add Monitors** er deaktivert, og et banner sier **This SLO's monitors are managed by its monitor rules**, med en lenke **Manage Monitor Rules**;
+- monitorer kan ikke legges til for hånd: **Legg til monitorer** er deaktivert, og et banner sier **This SLO's monitors are managed by its monitor rules**, med en lenke **Manage Monitor Rules**;
 - monitorer som en regel har knyttet til, kan ikke fjernes for hånd, fordi regelen ville knyttet dem til igjen: knappen **Fjern** er låst, og verktøytipset forklarer hvorfor;
 - monitorer som ble knyttet til for hånd før regler ble slått på, kan fortsatt fjernes.
 
@@ -144,7 +144,7 @@ Hver tilknytning og frakobling, og hver regel som opprettes, redigeres eller sle
 
 ## Feilsøking
 
-:::details Add Monitors er deaktivert
+:::details Legg til monitorer er deaktivert
 Minst én av monitorreglene til SLO-et er aktivert, så det er reglene som styrer monitorene. Endre reglene, eller slå dem alle av for å velge monitorer for hånd.
 :::
 

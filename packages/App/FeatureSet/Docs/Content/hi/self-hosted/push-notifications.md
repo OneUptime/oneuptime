@@ -44,6 +44,7 @@ OneUptime मोबाइल ऐप बैकएंड के पास एक E
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | जब तक `EXPO_ACCESS_TOKEN` सेट नहीं है, मोबाइल पुश कहाँ जाते हैं। |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | खाली | आपके Expo प्रोजेक्ट के टोकन से मोबाइल पुश सीधे Expo को भेजता है। |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | खाली | इस सर्वर के `EXPO_ACCESS_TOKEN` से दूसरे OneUptime सर्वरों के मोबाइल पुश रिले करता है। खाली का मतलब बंद है, जब तक `BILLING_ENABLED` `true` न हो। |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | खाली | कुंजी जोड़ी का सार्वजनिक आधा हिस्सा, जिससे ब्राउज़र सब्सक्राइब करते हैं। |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | खाली | निजी आधा हिस्सा, जो हर वेब पुश पर हस्ताक्षर करता है। |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | एक संपर्क पता जिस पर ब्राउज़र की पुश सेवाएँ आपसे संपर्क कर सकें। |
@@ -81,6 +82,8 @@ expo:
 | मोबाइल ऐप या ब्राउज़र → OneUptime | आपका OneUptime होस्टनाम | HTTPS / TCP 443 | साइन इन करना, डिवाइस पंजीकृत करना और सूचना लिंक खोलना। |
 
 अगर आप `PUSH_NOTIFICATION_RELAY_URL` बदलते हैं, तो उसके गंतव्य होस्टनाम और कॉन्फ़िगर किए गए पोर्ट को अनुमति दें। कस्टम रिले को OneUptime का रिले API लागू करना होगा। ये डिफ़ॉल्ट और रिले तथा सीधी डिलीवरी के बीच का बदलाव [OneUptime के कॉन्फ़िगरेशन](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) और [पुश सेवा](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) में परिभाषित हैं। सीधे Expo को भेजे गए अनुरोध [Expo की भेजने वाली गाइड](https://docs.expo.dev/push-notifications/sending-notifications/) में बताए गए एंडपॉइंट का उपयोग करते हैं। OneUptime रिले से डिलीवरी रसीदें उसी पते पर, `/send` की जगह `/receipts` लगाकर, पढ़ता है। उस रूट के बिना रिले भी पुश पहुँचाता है; तब जिस डिवाइस से ऐप हटा दिया गया हो, उसका पता तभी चलता है जब उस पर भेजा गया कोई बाद का पुश अस्वीकार हो जाए।
+
+कोई सेल्फ-होस्टेड OneUptime सर्वर दूसरे सर्वरों के पुश केवल `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` और अपने `EXPO_ACCESS_TOKEN` के साथ रिले करता है; इस सेटिंग के बिना वह उस पते पर 404 लौटाता है। इसे केवल उसी सर्वर पर चालू करें जिसके ज़रिए आपके दूसरे OneUptime सर्वर भेजते हैं, और केवल उन्हीं सर्वरों को उस पते तक पहुँचने दें।
 
 Web Push के लिए, आपकी टीम जिन ब्राउज़रों का उपयोग करती है उनके असली सब्सक्रिप्शन एंडपॉइंट होस्ट को अनुमति दें। OneUptime `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` और `push.apple.com` को, उनके सबडोमेन सहित, स्वीकार करता है। आम उदाहरण हैं `updates.push.services.mozilla.com` और `web.push.apple.com`। गंतव्य [ब्राउज़र का पुश सब्सक्रिप्शन](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) देता है; केवल Expo या OneUptime के रिले को अनुमति देने से Web Push सक्षम नहीं होता।
 

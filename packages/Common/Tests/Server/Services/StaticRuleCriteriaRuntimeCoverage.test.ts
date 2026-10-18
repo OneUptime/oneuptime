@@ -116,12 +116,12 @@ function extractFormMatchFields(data: {
 /*
  * A form with a Match Criteria step: one its page writes out, or a shared
  * one - the label and owner rule form (Dashboard Utils/Form/ResourceRuleForm)
- * or the on-call, privacy, SLA and reminder rule forms (Utils/Form/
- * EventRuleForm) - whose Match step is the same "match-criteria" step and
+ * or the on-call, privacy, SLA, reminder and runbook rule forms
+ * (Utils/Form/EventRuleForm) - whose Match step is the same "match-criteria" step and
  * whose page writes its criteria fields itself.
  */
 const MATCH_CRITERIA_FORM: RegExp =
-  /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner|OnCall|Privacy|Sla|Reminder)RuleFormSteps</;
+  /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner|OnCall|Privacy|Sla|Reminder|Runbook)RuleFormSteps</;
 
 function discoverStaticRuleForms(): {
   formFiles: Array<string>;

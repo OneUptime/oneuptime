@@ -36,6 +36,14 @@ import SubscriberChannelOffPanel from "../../../Components/StatusPage/Subscriber
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
+import { SubscriberFormCopy } from "../../../Components/StatusPage/SubscriberFormChoices";
+import {
+  getSubscriberInternalNoteField,
+  getSubscriberStatusFields,
+  getSubscriberWelcomeField,
+} from "../../../Components/StatusPage/SubscriberFormFields";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import React, {
@@ -239,6 +247,13 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
       return; // don't do anything if loading
     }
 
+    /*
+     * The channel's own fields, its Status on Edit, and under More fields
+     * the welcome message and the internal note (SubscriberFormFields.tsx).
+     */
+    const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
+      getAdvancedFormSection<StatusPageSubscriber>();
+
     const formFields: Array<ModelField<StatusPageSubscriber>> = [
       {
         field: {
@@ -263,36 +278,7 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
         placeholder: "https://hooks.slack.com/services/...",
         disableSpellCheck: true,
       },
-      {
-        field: {
-          sendYouHaveSubscribedMessage: true,
-        },
-        title: "Send Subscription Notification",
-        stepId: "subscriber-info",
-        description:
-          "Send a notification to the Slack channel confirming the subscription.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenEditing: true,
-        /*
-         * Off on purpose, though the column defaults to on: someone an admin
-         * adds is sent a "you have subscribed" message only when the admin
-         * asks for one (CreateFormDefaultsGuard lists why).
-         */
-        defaultValue: false,
-      },
-
-      {
-        field: {
-          isUnsubscribed: true,
-        },
-        title: "Unsubscribe",
-        stepId: "subscriber-info",
-        description: "Unsubscribe this Slack channel from the status page.",
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        doNotShowWhenCreating: true,
-      },
+      ...getSubscriberStatusFields({ isEmail: false }),
     ];
 
     if (allowSubscribersToChooseResources) {
@@ -354,18 +340,8 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
       });
     }
 
-    // add internal note field
-    formFields.push({
-      field: {
-        internalNote: true,
-      },
-      title: "Internal Note",
-      stepId: "internal-info",
-      description:
-        "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
-      fieldType: FormFieldSchemaType.Markdown,
-      required: false,
-    });
+    formFields.push(getSubscriberWelcomeField(moreFields));
+    formFields.push(getSubscriberInternalNoteField(moreFields));
 
     setFormFields(formFields);
   }, [isLoading]);
@@ -427,6 +403,9 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
               return Promise.resolve(item);
             }}
             refreshToggle={refreshToggle}
+            singularName="Subscriber"
+            pluralName="Subscribers"
+            createVerb="Add"
             cardProps={{
               title: "Slack Subscribers",
               description:
@@ -442,7 +421,6 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
                 },
               ],
             }}
-            noItemsMessage={"No Slack subscribers found."}
             /*
              * Who gets the updates, then - when this page lets subscribers
              * choose - what they hear about, as the bulk add form asks it.
@@ -451,14 +429,14 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
               allowSubscribersToChooseResources ||
               allowSubscribersToChooseEventTypes
                 ? [
+                    /*
+                     * SUBSCRIBER_INFO_STEP_ID, written out: the form
+                     * scanners of the guard tests read literal ids.
+                     */
                     { title: "Subscriber Info", id: "subscriber-info" },
                     { title: "Notifications", id: "notifications" },
-                    { title: "Internal Info", id: "internal-info" },
                   ]
-                : [
-                    { title: "Subscriber Info", id: "subscriber-info" },
-                    { title: "Internal Info", id: "internal-info" },
-                  ]
+                : undefined
             }
             formFields={formFields}
             showRefreshButton={true}
@@ -577,8 +555,8 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
                 />
                 <div className="pt-2">
                   <Toggle
-                    title="Send Subscription Notification"
-                    description="Send a notification to the Slack channels confirming the subscription."
+                    title={SubscriberFormCopy.welcomeTitle}
+                    description={SubscriberFormCopy.welcomeDescription}
                     value={sendNotification}
                     onChange={(value: boolean) => {
                       setSendNotification(value);

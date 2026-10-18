@@ -61,7 +61,8 @@ interface OidcForm {
 
 const OIDC_FORMS: Array<OidcForm> = [
   {
-    file: `${DASHBOARD}/Pages/Settings/OIDC.tsx`,
+    // On Settings > SSO, under the SAML providers.
+    file: `${DASHBOARD}/Components/Sso/ProjectOidcProviders.tsx`,
     label: "ModelTable: Settings > Project OIDC",
     host: "ModelTable",
     builderCall:
@@ -116,15 +117,20 @@ const PROVIDER_STEP_OPEN: Array<string> = [
  */
 const SIGN_IN_STEP_OPEN: Array<string> = ["teams", "isEnabled"];
 
-// Everything with an answer, folded (the last two only on the Global form).
+/*
+ * Everything with an answer, folded. The last two only on the Global form:
+ * its two questions, People without an account and Where this sign-in counts as SSO,
+ * by the keys the form keeps them under. The columns they write
+ * (disableSignUpWithSso, restrictToAttachedProjects) are registered unseen.
+ */
 const SIGN_IN_STEP_FOLDED: Array<string> = [
   "discoveryURL",
   "scopes",
   "emailClaimName",
   "nameClaimName",
   "description",
-  "disableSignUpWithSso",
-  "restrictToAttachedProjects",
+  "SSO_GLOBAL_SIGN_UP_FIELD_KEY",
+  "SSO_GLOBAL_REACH_FIELD_KEY",
 ];
 
 const SCANNED: Array<FormFacts> = scanFormFiles({
@@ -299,13 +305,24 @@ describe("the OIDC provider forms ask for the issuer, client ID and secret; the 
     ).toEqual([OIDC_FORMS[2]!.builderCall, OIDC_FORMS[3]!.builderCall]);
   });
 
+  /*
+   * The SSO page looks the members team up once and hands it to its SAML
+   * table and to the OIDC providers under it.
+   */
   test("the project's form starts on the members team", () => {
     const source: string = dense(OIDC_FORMS[0]!.file);
+    const page: string = dense(`${DASHBOARD}/Pages/Settings/SSO.tsx`);
 
     expect(source).toContain(
-      "const createInitialValues: FormValues<ProjectOIDC> | undefined = useDefaultSsoTeamsInitialValues<ProjectOIDC>();",
+      "const createInitialValues: FormValues<ProjectOIDC> | undefined = props.createInitialValues;",
     );
     expect(source).toContain("createInitialValues={createInitialValues}");
+    expect(page).toContain(
+      "const createInitialValues: FormValues<ProjectSSO> | undefined = useDefaultSsoTeamsInitialValues<ProjectSSO>();",
+    );
+    expect(page).toMatch(
+      /<ProjectOidcProviders [^>]*createInitialValues=\{ createInitialValues as unknown as \| FormValues<ProjectOIDC> \| undefined \}/,
+    );
   });
 
   /*
@@ -322,7 +339,7 @@ describe("the OIDC provider forms ask for the issuer, client ID and secret; the 
       }),
     ).toEqual([OIDC_FORMS[0]]);
     expect(dense(OIDC_FORMS[0]!.file)).toContain(
-      'import { getSsoTeamsGrantNote } from "../../Components/Sso/SsoTeamsGrantNote";',
+      'import { getSsoTeamsGrantNote } from "./SsoTeamsGrantNote";',
     );
   });
 

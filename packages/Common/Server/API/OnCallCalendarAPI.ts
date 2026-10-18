@@ -77,16 +77,20 @@ import { OnCallCalendarFeedKind } from "../../Types/OnCallDutyPolicy/OnCallCalen
  * NO SCHEME REDIRECT. These routes answer on whatever scheme reached the app
  * and never redirect. They used to send plain http to https (301) when
  * HTTP_PROTOCOL=https, PROVISION_SSL=true and the forwarded scheme said http.
- * The app cannot see the scheme the CLIENT used: every proxying location in
- * Nginx/default.conf.template sets `X-Forwarded-Proto $scheme`, which is the
- * scheme of the hop INTO Nginx, and on any install whose TLS ends in front of
- * Nginx -- a CDN, a load balancer, OneUptime Cloud itself -- that hop is http
- * on every request. The 301 then pointed at the very URL the client had just
- * asked for: an endless loop, so Google Calendar, Outlook and Apple Calendar
- * all fetched nothing, and every feed URL the dashboard handed out was dead.
- * Nothing needs the redirect: the links are built from HOST and HTTP_PROTOCOL
- * (an https install hands out https links), and sending plain http to https
- * is the edge proxy's job, the one hop that knows what the client spoke.
+ * The app cannot always see the scheme the CLIENT used. Back then every
+ * proxying location in Nginx/default.conf.template set
+ * `X-Forwarded-Proto $scheme`, the scheme of the hop INTO Nginx, and on any
+ * install whose TLS ends in front of Nginx -- a CDN, a load balancer,
+ * OneUptime Cloud itself -- that hop is http on every request.
+ * The 301 then pointed at the very URL the client had just asked for: an
+ * endless loop, so Google Calendar, Outlook and Apple Calendar all fetched
+ * nothing, and every feed URL the dashboard handed out was dead. Nginx now
+ * forwards `$visitor_scheme`, which is https when the proxy in front says so,
+ * but a proxy that says nothing still leaves it at http, so the loop would
+ * come back for those installs. Nothing needs the redirect: the links are
+ * built from HOST and HTTP_PROTOCOL (an https install hands out https links),
+ * and sending plain http to https is the edge proxy's job, the one hop that
+ * knows what the client spoke.
  *
  * ONE RESPONSE RULE, applied everywhere:
  *   unknown / malformed / expired token          -> 404, generic body

@@ -65,7 +65,7 @@ Klik op **Monitor Groep aanmaken**, vul een **Naam** en, als u wilt, een **Besch
 
 ### Haar monitoren toevoegen
 
-Open de groep: zolang ze geen monitor heeft, biedt haar **Overzicht** **Add Monitors** aan. Klik later in haar zijmenu op **Monitoren** en dan op **Add Monitors**. Kies onder **Monitoren** elke monitor van de groep en klik op **Add Monitors**.
+Open de groep: zolang ze geen monitor heeft, biedt haar **Overzicht** **Monitoren toevoegen** aan. Klik later in haar zijmenu op **Monitoren** en dan op **Monitoren toevoegen**. Kies onder **Monitoren** elke monitor van de groep en klik op **Monitoren toevoegen**.
 
 ### Haar status controleren
 
@@ -80,8 +80,8 @@ Open een groep om haar pagina's in het zijmenu te zien:
 
 | Pagina | Wat ze toont |
 | --- | --- |
-| **Overzicht** | **Details van monitorgroep**, **Huidige status** en **Uptime grafiek** met het beschikbaarheidspercentage van de groep over de laatste 90 dagen. Een groep zonder monitoren biedt **Add Monitors** aan in plaats van de grafiek. |
-| **Monitoren** | **Monitoren in groep**, met **Add Monitors** en **Verwijderen**. |
+| **Overzicht** | **Details van monitorgroep**, **Huidige status** en **Uptime grafiek** met het beschikbaarheidspercentage van de groep over de laatste 90 dagen. Een groep zonder monitoren biedt **Monitoren toevoegen** aan in plaats van de grafiek. |
+| **Monitoren** | **Monitoren in groep**, met **Monitoren toevoegen** en **Verwijderen**. |
 | **Incidenten** | De incidenten op elke monitor in de groep. |
 | **Waarschuwingen** | De waarschuwingen op elke monitor in de groep. |
 | **Eigenaren** | De mensen en teams die verantwoordelijk zijn voor de groep. Staat onder **Geavanceerd**, dat ingeklapt begint. |

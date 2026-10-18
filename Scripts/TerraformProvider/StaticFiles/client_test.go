@@ -87,6 +87,16 @@ func analyticsUnknownColumnMessage(column string) string {
 	return fmt.Sprintf("Unknown column: %s", column)
 }
 
+/*
+ * A root or master-admin caller - the master API key of a self-hosted
+ * OneUptime - skips the select permission check, so a column the server does
+ * not have is refused further in, by the model's column metadata
+ * (Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel.ts).
+ */
+func rootUnknownColumnMessage(column string) string {
+	return fmt.Sprintf("TableColumnMetadata not found for %s column", column)
+}
+
 // rejection is one canned refusal, returned for as long as its column is still
 // present in the request's select.
 type rejection struct {
@@ -348,6 +358,31 @@ func TestPostWithSelect_DropsAnalyticsUnknownColumn(t *testing.T) {
 		t.Fatalf("expected one retry (2 requests), got %d", api.requestCount())
 	}
 	assertSelected(t, api.selectAt(1), "_id", "body")
+}
+
+/*
+ * OneUptime/terraform-provider-oneuptime#9. The master API key refreshed a
+ * project against a server older than the provider, which has no
+ * alertEpisodeNumberPrefix column: the whole read failed instead of losing
+ * the one attribute.
+ */
+func TestPostWithSelect_DropsUnknownColumnForTheMasterKey(t *testing.T) {
+	selectParam := map[string]interface{}{"_id": true, "name": true, "alertEpisodeNumberPrefix": true}
+
+	api, client := newFakeAPI(t, rejection{
+		column:     "alertEpisodeNumberPrefix",
+		statusCode: http.StatusBadRequest,
+		envelope:   envelopeError,
+		message:    rootUnknownColumnMessage("alertEpisodeNumberPrefix"),
+	})
+
+	if _, err := client.PostWithSelect(context.Background(), "/project/abc/get-item", selectParam); err != nil {
+		t.Fatalf("PostWithSelect: %s", err)
+	}
+	if api.requestCount() != 2 {
+		t.Fatalf("expected one retry (2 requests), got %d", api.requestCount())
+	}
+	assertSelected(t, api.selectAt(1), "_id", "name")
 }
 
 /*
@@ -706,6 +741,11 @@ func TestDroppableSelectColumn(t *testing.T) {
 			name: "analytics unknown column",
 			body: jsonBody(t, envelopeError, analyticsUnknownColumnMessage("spanId")),
 			want: "spanId",
+		},
+		{
+			name: "unknown column, for a root or master-admin caller",
+			body: jsonBody(t, envelopeError, rootUnknownColumnMessage("alertEpisodeNumberPrefix")),
+			want: "alertEpisodeNumberPrefix",
 		},
 		{
 			/*

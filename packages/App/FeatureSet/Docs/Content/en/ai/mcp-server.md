@@ -39,7 +39,7 @@ The server is stateless: it issues no session ids, and every request stands on i
 - **Scheduled maintenance**: create and manage maintenance events.
 - **Telemetry**: query logs, metrics, traces, exceptions, monitor logs, security events and more, read-only.
 
-There are create, get, list, update, delete and count tools for 27 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. Read-only tools carry `readOnlyHint` and delete tools carry `destructiveHint`, so a client can run safe calls on its own and ask you before destructive ones. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
+There are create, get, list, update, delete and count tools for 27 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. Read-only tools carry `readOnlyHint`, every tool that changes something carries `destructiveHint`, and only the public status page tools carry `openWorldHint`, so a client can run read-only calls on its own and ask you before any change. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
 
 ## Before you begin
 
@@ -195,6 +195,19 @@ The input variable with `"password": true` asks for the key when the server star
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

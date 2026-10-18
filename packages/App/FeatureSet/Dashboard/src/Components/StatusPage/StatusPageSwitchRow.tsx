@@ -12,6 +12,7 @@ import {
 import { BrandingSwitchColumn } from "./StatusPageBrandingCopy";
 import { SubscriberNotificationsColumn } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import { LimitSubscribersToPrivateUsersColumn } from "Common/Types/StatusPage/SubscriberRestrictions";
+import { SubscriberChoiceColumn } from "./SubscriberChoicesCopy";
 
 /*
  * One switch for one of a status page's boolean columns, that saves the
@@ -21,7 +22,8 @@ import { LimitSubscribersToPrivateUsersColumn } from "Common/Types/StatusPage/Su
  * list, so a channel reads and behaves the same in both places, every
  * switch on the "What your status page shows" card on Advanced Settings,
  * Search Engine Indexing on the Branding page, and Send Notifications to
- * Subscribers and Only Private Users Can Subscribe on Subscriber Settings.
+ * Subscribers, Only Private Users Can Subscribe and the two Subscriber
+ * Choices on Subscriber Settings.
  *
  * It is the shared ModelSwitchRow (Common/UI/Components/ModelSwitch), for a
  * status page: the switch moves at once, is locked while the change is
@@ -38,7 +40,8 @@ export type StatusPageSwitchColumn =
   | DisplaySwitchColumn
   | BrandingSwitchColumn
   | SubscriberNotificationsColumn
-  | LimitSubscribersToPrivateUsersColumn;
+  | LimitSubscribersToPrivateUsersColumn
+  | SubscriberChoiceColumn;
 
 export interface ComponentProps {
   statusPageId: ObjectID;

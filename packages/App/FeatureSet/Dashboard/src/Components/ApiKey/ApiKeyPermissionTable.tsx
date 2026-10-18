@@ -1,4 +1,3 @@
-import LabelsElement from "Common/UI/Components/Label/Labels";
 import ProjectUtil from "Common/UI/Utils/Project";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -23,6 +22,12 @@ import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import Label from "Common/Models/DatabaseModels/Label";
 import Project from "Common/Models/DatabaseModels/Project";
 import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
+import PermissionScopeCell from "../Permission/PermissionScopeCell";
+import {
+  ADD_PERMISSION_DIALOG_WORDS,
+  AddPermissionDialogKind,
+  AddPermissionDialogWords,
+} from "../Permission/AddPermissionDialogWords";
 import React, {
   FunctionComponent,
   MutableRefObject,
@@ -78,6 +83,14 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
     useState<CreatePermissionType>(CreatePermissionType.RoleBased);
 
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
+
+  // What the Add dialog is called: what the button that opened it said.
+  const createDialogWords: AddPermissionDialogWords =
+    ADD_PERMISSION_DIALOG_WORDS[
+      createPermissionType === CreatePermissionType.RoleBased
+        ? AddPermissionDialogKind.Role
+        : AddPermissionDialogKind.SinglePermission
+    ];
 
   type OpenCreateFormFunction = (type: CreatePermissionType) => void;
 
@@ -137,6 +150,7 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
         await formRef.current.setFieldValue("labels", [], true);
       },
       title: "Permission",
+      description: "One permission, for exactly what the key needs.",
       fieldType: FormFieldSchemaType.CustomComponent,
       required: true,
       placeholder: "Search permissions...",
@@ -164,9 +178,9 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
       field: {
         labels: true,
       },
-      title: "Restrict to Labels",
+      title: "Labels",
       description:
-        "If you want to restrict this permission to specific labels, you can select them here. This is an optional and an advanced feature.",
+        "Leave empty to reach every resource, or pick labels to reach only resources that carry one.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
       dropdownModal: {
         type: Label,
@@ -242,6 +256,15 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
        */
       isCreateable={isBlock}
       showCreateForm={isBlock ? undefined : showCreateForm}
+      /*
+       * Named after the button that opened it - "Add a Role" behind Add
+       * Role - where it read "Add New Permission" behind either. A block
+       * keeps the table's own words, from its own Add button.
+       */
+      createFormTitle={isBlock ? undefined : createDialogWords.title}
+      createFormSubmitButtonText={
+        isBlock ? undefined : createDialogWords.submitButtonText
+      }
       isViewable={false}
       createEditModalWidth={ModalWidth.Large}
       createEditFromRef={formRef}
@@ -303,7 +326,7 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
               name: true,
             },
           },
-          title: "Restrict to Labels",
+          title: "Labels",
           type: FieldType.EntityArray,
           filterEntityType: Label,
           filterQuery: {
@@ -340,37 +363,20 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
               color: true,
             },
           },
-          title: "Restrict to Labels",
+          /*
+           * What the row reaches, in the words a team's Scope uses: a key
+           * has no Owned scope, so it reaches the whole project, or the
+           * resources carrying one of its labels.
+           */
+          title: "Scope",
           type: FieldType.EntityArray,
 
           getElement: (item: ApiKeyPermission): ReactElement => {
-            if (
-              item &&
-              item["permission"] &&
-              !PermissionHelper.isAccessControlPermission(
-                item["permission"] as Permission,
-              )
-            ) {
-              return (
-                <p>
-                  {translator.translateText(
-                    "Restriction by labels cannot be applied to this permission.",
-                  )}
-                </p>
-              );
-            }
-
-            if (!item["labels"] || item["labels"].length === 0) {
-              return (
-                <p>
-                  {translator.translateText(
-                    "No restrictions has been applied to this permission.",
-                  )}
-                </p>
-              );
-            }
-
-            return <LabelsElement labels={item["labels"] || []} />;
+            return (
+              <PermissionScopeCell
+                labels={(item["labels"] || []) as Array<Label>}
+              />
+            );
           },
         },
       ]}

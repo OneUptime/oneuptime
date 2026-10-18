@@ -32,7 +32,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         description: "Automate user provisioning via SCIM.",
         featureName: "SCIM User Provisioning",
         featureDescription:
-          "Provision and deprovision users automatically from your identity provider — Okta, Azure AD, OneLogin and any other SCIM 2.0 system.",
+          "Provision and deprovision users automatically from your identity provider — Okta, Microsoft Entra ID, OneLogin and any other SCIM 2.0 system.",
         benefits: [
           {
             icon: IconProp.User,

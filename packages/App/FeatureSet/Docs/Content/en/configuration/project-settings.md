@@ -36,7 +36,7 @@ flowchart LR
 | **Notifications** | **Notification Settings**, **Notification Logs**, **Mobile Apps** | [Notifications](#notifications) |
 | **AI** | **AI Features**, **LLM Providers**, **AI Credits**, **AI Logs**, **MCP Server** | [LLM Providers](/docs/ai/llm-provider), [MCP Server](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#cost-controls) |
 | **Advanced** | **Domains**, **API Keys**, **Feature Flags** | [Custom domains](/docs/status-pages/branding-and-domains#custom-domains), [API keys](/docs/permissions/index#api-keys), [Feature flags](#feature-flags) |
-| **Security** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **Security** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Billing and Invoices** | **Billing**, **Usage History**, **Invoices** | [Billing & Usage](/docs/configuration/billing) |
 | **Audit Logs** | **Audit Logs**, **Settings** | [Audit Logs](/docs/configuration/audit-logs) |
 | **Danger Zone** | **Danger Zone** | [Delete the project](#delete-the-project) |

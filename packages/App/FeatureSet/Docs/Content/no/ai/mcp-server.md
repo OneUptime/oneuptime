@@ -39,7 +39,7 @@ Serveren er tilstandsløs: den utsteder ingen økt-ID-er, og hver forespørsel s
 - **Planlagt vedlikehold**: opprett og administrer vedlikeholdshendelser.
 - **Telemetri**: spør etter logger, målinger, spor, unntak, monitorlogger, sikkerhetshendelser og mer, kun lesing.
 
-Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 27 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. Skrivebeskyttede verktøy har `readOnlyHint` og sletteverktøy har `destructiveHint`, så en klient kan kjøre trygge kall selv og spørre deg før destruktive. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
+Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 27 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. Skrivebeskyttede verktøy har `readOnlyHint`, alle verktøy som endrer noe, har `destructiveHint`, og bare verktøyene for offentlige statussider har `openWorldHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
 
 ## Før du begynner
 
@@ -111,7 +111,7 @@ Hva en tilkoblet klient kan gjøre:
 
 ### Administrer tilkoblede klienter
 
-Hver klient som er koblet til ved innlogging, står på **Prosjektinnstillinger → KI → MCP-server**, under **Connected MCP Clients**, med hvem som koblet den til, hva den kan gjøre og når den sist ble brukt. Du ser klientene du har koblet til; prosjektets eiere og administratorer ser alles.
+Hver klient som er koblet til ved innlogging, står på **Prosjektinnstillinger → KI → MCP-server**, under **Tilkoblede MCP-klienter**, med hvem som koblet den til, hva den kan gjøre og når den sist ble brukt. Du ser klientene du har koblet til; prosjektets eiere og administratorer ser alles.
 
 Klikk **Disconnect** for å logge ut en klient. Den slutter å virke med en gang.
 
@@ -195,6 +195,19 @@ Inputvariabelen med `"password": true` spør etter nøkkelen når serveren start
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

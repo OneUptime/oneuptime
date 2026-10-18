@@ -36,7 +36,7 @@ flowchart LR
 | **सूचनाएं** | **सूचना सेटिंग्स**, **सूचना लॉग**, **मोबाइल ऐप्स** | [सूचनाएं](#सूचनाएं) |
 | **एआई** | **AI Features**, **LLM प्रदाता**, **AI क्रेडिट**, **AI लॉग**, **MCP सर्वर** | [LLM प्रदाता](/docs/ai/llm-provider), [MCP सर्वर](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#लागत-नियंत्रण) |
 | **उन्नत** | **डोमेन**, **API कुंजियाँ**, **फ़ीचर फ़्लैग** | [कस्टम डोमेन](/docs/status-pages/branding-and-domains#कस्टम-डोमेन), [API कुंजियाँ](/docs/permissions/index#api-कुंजियाँ), [फ़ीचर फ़्लैग](#फ़ीचर-फ़्लैग) |
-| **सुरक्षा** | **SSO**, **OIDC**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
+| **सुरक्षा** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **बिलिंग और चालान** | **बिलिंग**, **उपयोग इतिहास**, **चालान** | [बिलिंग और उपयोग](/docs/configuration/billing) |
 | **ऑडिट लॉग** | **ऑडिट लॉग**, **सेटिंग्स** | [ऑडिट लॉग](/docs/configuration/audit-logs) |
 | **खतरा क्षेत्र** | **खतरा क्षेत्र** | [प्रोजेक्ट हटाएं](#प्रोजेक्ट-हटाएं) |

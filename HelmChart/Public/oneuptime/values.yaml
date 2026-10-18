@@ -1214,6 +1214,13 @@ expo:
 # Push notification relay URL for self-hosted instances without Expo credentials
 pushNotification:
   relayUrl: https://oneuptime.com/api/notification/push-relay/send
+  # Whether this server relays mobile pushes for other OneUptime servers
+  # (/api/notification/push-relay), sending what they ask with its
+  # expo.accessToken. Leave it unset: it is then on only where billing is on
+  # (OneUptime's cloud). Set it to true only if your other OneUptime servers
+  # send their pushes through this one (their pushNotification.relayUrl);
+  # expo.accessToken alone sends this server's own pushes and relays nothing.
+  relayServerEnabled:
 
 incidents:
   disableAutomaticCreation: false

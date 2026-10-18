@@ -44,8 +44,8 @@ Hver av disse rettighetene kan også gis for seg, fra å opprette en sak til å 
 
 | Kilde | Åpner en sak når | Slås av med |
 | --- | --- | --- |
-| Deteksjonsregler | En regel treffer | **Open a Case on Match**, i regelens steg **Security Cases** |
-| Trusseletterretning | En hendelse nevner en kjent indikator | **Open a Case on Match**, i feedens steg **Security Cases** |
+| Deteksjonsregler | En regel treffer | **Open a Case on Match**, i regelens steg **Ved treff** |
+| Trusseletterretning | En hendelse nevner en kjent indikator | **Open a Case on Match**, i feedens steg **Ved treff** |
 | Tilkoblede produkter | Et varsel fra selve produktet importeres på eller over tilkoblingens terskel | **Open Cases From** satt til **Aldri**, i tilkoblingens steg **Polling** |
 | Personer | Noen åpner en fra **Security Cases**, eller med **Open Case** i panelet til en hendelse | Ingen |
 
@@ -229,7 +229,7 @@ Et prosjekt som ennå ikke har saker eller deteksjoner, viser over disse de tre 
 ## Feilsøking
 
 :::details En regel treffer, men ingen sak åpnes
-Sjekk **Open a Case on Match** i regelens steg **Security Cases**. En deteksjon om en entitet som allerede har en åpen sak, legges til i den saken i stedet for å åpne en ny: se etter den under **Detections** på den åpne saken.
+Sjekk **Open a Case on Match** i regelens steg **Ved treff**. En deteksjon om en entitet som allerede har en åpen sak, legges til i den saken i stedet for å åpne en ny: se etter den under **Detections** på den åpne saken.
 :::
 
 :::details En playbook kjørte ikke

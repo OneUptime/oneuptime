@@ -13,6 +13,7 @@ import {
   VapidSubject,
   ExpoAccessToken,
   PushNotificationRelayUrl,
+  PushNotificationRelayServerEnabled,
 } from "../EnvironmentConfig";
 import webpush from "web-push";
 import {
@@ -1544,6 +1545,18 @@ export default class PushNotificationService {
 
   public static hasExpoAccessToken(): boolean {
     return Boolean(ExpoAccessToken);
+  }
+
+  /*
+   * Whether this server relays pushes for other OneUptime servers - answers
+   * the push relay's routes (App/FeatureSet/Notification/API/PushRelay.ts)
+   * at all. OneUptime's cloud does; any other server only when its operator
+   * set PUSH_NOTIFICATION_RELAY_SERVER_ENABLED to true
+   * (EnvironmentConfig.readPushNotificationRelayServerEnabled). An
+   * EXPO_ACCESS_TOKEN alone is this server's own pushes, not a relay.
+   */
+  public static isPushRelayServer(): boolean {
+    return PushNotificationRelayServerEnabled;
   }
 
   /*

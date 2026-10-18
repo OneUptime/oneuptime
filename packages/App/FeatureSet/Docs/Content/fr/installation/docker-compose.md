@@ -178,6 +178,8 @@ OneUptime sert du HTTP simple jusqu'à ce que vous choisissiez l'une des deux fa
 
 Si vous placez des pages de statut ou des tableaux de bord sur des domaines personnalisés, laisser OneUptime gérer TLS est la configuration la plus simple : l'ingress commande et sert lui-même les certificats de ces domaines.
 
+Avec `HTTP_PROTOCOL=https`, OneUptime construit des liens HTTPS, garde les cookies de connexion sur HTTPS et demande aux navigateurs de n'atteindre votre `HOST` qu'en HTTPS. Un navigateur s'y tient pendant un an, sur tous les ports de ce nom ; si `HOST` doit un jour répondre de nouveau en HTTP simple, définissez donc `HSTS_MAX_AGE_SECONDS=0` dans `config.env` quelque temps avant : les navigateurs oublient la règle à leur visite suivante.
+
 ### Laisser OneUptime obtenir un certificat
 
 :::steps
@@ -301,6 +303,8 @@ server {
 ```
 Les chemins des certificats sont ceux où Certbot place un certificat Let's Encrypt ; utilisez les chemins de votre propre certificat s'il vient d'ailleurs. Vérifiez le fichier et rechargez Nginx avec `sudo nginx -t && sudo systemctl reload nginx`.
 :::
+
+Les deux envoient `X-Forwarded-Proto`, qui indique à OneUptime qu'un visiteur est venu en HTTPS. Tout autre proxy doit l'envoyer aussi, sinon les cookies de connexion des pages de statut et des tableaux de bord sur vos domaines personnalisés ne restent pas sur HTTPS.
 
 #### Ouvrir votre instance via le proxy
 

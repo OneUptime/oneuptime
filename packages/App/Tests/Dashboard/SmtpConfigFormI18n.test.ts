@@ -52,7 +52,6 @@ const NEW_STRINGS: Array<string> = [
   "The port your provider gives you, usually 587. Port 465 is always encrypted.",
   "The account OneUptime signs in as, often the email address you send from. With OAuth, enter the email address of the mailbox that sends.",
   "The account's password, or the API key your provider gives you for SMTP.",
-  "SMTP works with most mail servers. Pick Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off.",
   "Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted.",
   "The address your emails come from. Your server must allow sending from it; with Microsoft Graph, it is the mailbox that sends.",
   // What the folded Advanced header says.
@@ -63,13 +62,34 @@ const NEW_STRINGS: Array<string> = [
   "TLS is required.",
   "TLS is used only if the server offers it.",
   "Port 465 is always encrypted, but the certificate is not checked.",
+  /*
+   * Transport, Authentication Type and OAuth Provider Type as plain
+   * answers: what each asks, and one line under each answer.
+   */
+  "How OneUptime sends your mail.",
+  "Works with most mail servers.",
+  "For a Microsoft 365 tenant with SMTP AUTH turned off.",
+  "How OneUptime signs in to your mail server.",
+  "The account's password, or an API key your provider gives you.",
+  "For Microsoft 365 and Google Workspace, where passwords are often turned off.",
+  "For a relay that needs no sign-in.",
+  "The OAuth grant your provider uses.",
+  "Microsoft 365 and most other providers.",
+  "Google Workspace service accounts.",
+  // The From Name's line.
+  "The name people see your emails come from.",
 ];
 
 /*
  * Labels the builder draws that the Admin Dashboard's small locale files
- * did not carry before (the Dashboard's already had them).
+ * did not carry before (the Dashboard's already had them), and the sign-in
+ * answer both apps now word the same.
  */
-const ADMIN_ALSO: Array<string> = ["Server", "Username"];
+const ADMIN_ALSO: Array<string> = [
+  "Server",
+  "Username",
+  "Username and Password",
+];
 
 // Labels that read the same in some languages ("Server" in German).
 const MAY_READ_AS_ENGLISH: Array<string> = ["Server"];
@@ -92,6 +112,13 @@ const RETIRED_STRINGS: Array<string> = [
   "Username / Email",
   "OAuth Settings",
   "SMTP Server",
+  // The descriptions that named every answer, before the answers said it.
+  "SMTP works with most mail servers. Pick Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off.",
+  "Select the authentication method. Use OAuth for providers like Microsoft 365, Google Workspace, etc.",
+  "Select the OAuth grant type. Use 'Client Credentials' for Microsoft 365 and most providers. Use 'JWT Bearer' for Google Workspace service accounts.",
+  "This is the display name your team and customers see, when they receive emails from OneUptime.",
+  "Friendly description for this config so you remember what this is about.",
+  "Friendly name for this config so you remember what this is about.",
 ];
 
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];

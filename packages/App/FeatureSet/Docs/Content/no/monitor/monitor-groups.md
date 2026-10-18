@@ -65,7 +65,7 @@ Klikk på **Opprett Monitor Gruppe**, skriv inn et **Navn** og, om du vil, en **
 
 ### Legg til monitorene
 
-Åpne gruppen: til den har en monitor, tilbyr **Oversikt** **Add Monitors**. Senere klikker du på **Monitorer** i sidemenyen og deretter på **Add Monitors**. Velg hver monitor i gruppen under **Monitorer** og klikk på **Add Monitors**.
+Åpne gruppen: til den har en monitor, tilbyr **Oversikt** **Legg til monitorer**. Senere klikker du på **Monitorer** i sidemenyen og deretter på **Legg til monitorer**. Velg hver monitor i gruppen under **Monitorer** og klikk på **Legg til monitorer**.
 
 ### Sjekk statusen
 
@@ -80,8 +80,8 @@ For å ta en monitor ut av gruppen klikker du på **Fjern** i raden i **Overvåk
 
 | Side | Hva den viser |
 | --- | --- |
-| **Oversikt** | **Detaljer for overvåkingsgruppe**, **Gjeldende status** og **Oppetidsgraf** med gruppens oppetid i prosent de siste 90 dagene. En gruppe uten monitorer tilbyr **Add Monitors** i stedet for grafen. |
-| **Monitorer** | **Overvåkinger i gruppe**, med **Add Monitors** og **Fjern**. |
+| **Oversikt** | **Detaljer for overvåkingsgruppe**, **Gjeldende status** og **Oppetidsgraf** med gruppens oppetid i prosent de siste 90 dagene. En gruppe uten monitorer tilbyr **Legg til monitorer** i stedet for grafen. |
+| **Monitorer** | **Overvåkinger i gruppe**, med **Legg til monitorer** og **Fjern**. |
 | **Hendelser** | Hendelsene på en hvilken som helst monitor i gruppen. |
 | **Varsler** | Varslene på en hvilken som helst monitor i gruppen. |
 | **Eiere** | Personene og teamene som har ansvaret for gruppen. Den ligger under **Avansert**, som starter sammenslått. |

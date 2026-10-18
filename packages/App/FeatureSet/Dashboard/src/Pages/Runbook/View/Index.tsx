@@ -11,7 +11,7 @@ import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -65,6 +65,17 @@ import {
   UnattendedTriggerText,
   getUnattendedTriggerText,
 } from "../../../Components/Runbook/Triggers/RunbookExecutionTrigger";
+import {
+  RUNBOOK_ADD_STEPS_BUTTON_TEST_ID,
+  RUNBOOK_NO_STEPS_TEST_ID,
+  RunbookOverviewCopy,
+  RunbookOverviewFacts,
+  getRunNowLockedReason,
+  getRunbookOverviewFacts,
+  isRunNowOffered,
+} from "../../../Components/Runbook/RunbookOverviewState";
+import RunbookTurnedOffBanner from "../../../Components/Runbook/RunbookTurnedOffBanner";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 
 function statusPill(status: RunbookExecutionStatus | undefined): ReactElement {
   switch (status) {
@@ -182,6 +193,12 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
     successRuns: 0,
     failedRuns: 0,
   });
+  /*
+   * Whether the runbook is turned on and has a step, read with its details:
+   * null until it is (RunbookOverviewState).
+   */
+  const [facts, setFacts] = useState<RunbookOverviewFacts | null>(null);
+  const [detailsRefresher, setDetailsRefresher] = useState<boolean>(false);
 
   const loadStats: () => Promise<void> = async (): Promise<void> => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -315,10 +332,32 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
   /*
    * Run Now is locked, saying why, for whoever holds none of the run
    * permissions - a Runbook Viewer or a Viewer reads the runbook and runs
-   * nothing (Components/Runbook/RunbookRunGate).
+   * nothing (Components/Runbook/RunbookRunGate) - and while the runbook is
+   * turned off. It is not offered at all while the runbook has no step:
+   * the Activity card offers Add Steps instead (RunbookOverviewState).
    */
-  const runLockedReason: string | undefined =
-    getRunbookRunLockedReason(getRunbookRunGate());
+  const runLockedReason: string | undefined = getRunNowLockedReason({
+    permissionReason: getRunbookRunLockedReason(getRunbookRunGate()),
+    facts: facts,
+  });
+
+  const goToSteps: () => void = () => {
+    Navigation.navigate(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUNBOOK_VIEW_STEPS] as Route,
+        { modelId },
+      ),
+    );
+  };
+
+  /*
+   * A runbook with no step, and no run to show: the Activity card is its
+   * first step instead of three cards of zeros. A runbook whose steps were
+   * all removed after it ran keeps its activity, and the first step too.
+   */
+  const showsFirstStep: boolean = Boolean(facts && !facts.hasSteps);
+  const showsActivity: boolean =
+    !showsFirstStep || (stats.isLoaded && stats.totalRuns > 0);
 
   const lastExec: RunbookExecution | null = stats.lastExecution;
   const lastStartedAt: Date | undefined =
@@ -346,22 +385,41 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
+      {facts?.isTurnedOff ? (
+        <RunbookTurnedOffBanner
+          runbookId={modelId}
+          onTurnedOn={() => {
+            setFacts((current: RunbookOverviewFacts | null) => {
+              return current ? { ...current, isTurnedOff: false } : current;
+            });
+            setDetailsRefresher((current: boolean): boolean => {
+              return !current;
+            });
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       <CardModelDetail<Runbook>
         name="Runbook > Overview"
+        refresher={detailsRefresher}
         cardProps={{
           title: "Runbook",
-          buttons: [
-            {
-              title: isRunning ? "Starting..." : "Run Now",
-              buttonStyle: ButtonStyleType.PRIMARY,
-              icon: IconProp.Play,
-              onClick: () => {
-                void runNow();
-              },
-              disabled: isRunning || Boolean(runLockedReason),
-              tooltip: runLockedReason,
-            },
-          ],
+          buttons: isRunNowOffered(facts)
+            ? [
+                {
+                  title: isRunning ? "Starting..." : "Run Now",
+                  buttonStyle: ButtonStyleType.PRIMARY,
+                  icon: IconProp.Play,
+                  onClick: () => {
+                    void runNow();
+                  },
+                  disabled: isRunning || Boolean(runLockedReason),
+                  tooltip: runLockedReason,
+                },
+              ]
+            : [],
         }}
         isEditable={true}
         formFields={[
@@ -387,6 +445,11 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showDetailsInNumberOfColumns: 2,
           modelType: Runbook,
           id: "model-detail-runbook-overview",
+          // What the Overview offers first: whether it is on, and has a step.
+          selectMoreFields: { steps: true, isEnabled: true },
+          onItemLoaded: (item: Runbook): void => {
+            setFacts(getRunbookOverviewFacts(item));
+          },
           fields: [
             {
               field: { _id: true },
@@ -426,104 +489,167 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
-      <Card
-        title="Activity"
-        description="Recent execution history for this runbook."
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div
-            className={`rounded-xl border border-gray-200 bg-white p-4 ${lastExec?._id ? "cursor-pointer hover:border-indigo-300 hover:shadow-sm transition" : ""}`}
-            onClick={() => {
-              if (lastExec?._id) {
-                goToExecution(lastExec._id as unknown as string);
+      {showsFirstStep && !showsActivity ? (
+        <Card title="Activity">
+          <div data-testid={RUNBOOK_NO_STEPS_TEST_ID}>
+            <EmptyState
+              id="runbook-no-steps"
+              title={RunbookOverviewCopy.noStepsTitle}
+              description={RunbookOverviewCopy.noStepsDescription}
+              icon={IconProp.List}
+              paddingClassName="py-8"
+              footer={
+                /*
+                 * Button keeps a dialog footer's left margin (md:ml-3), which
+                 * would push it off the centre here, so its wrapper clears it.
+                 */
+                <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                  <Button
+                    title={RunbookOverviewCopy.addStepsButton}
+                    icon={IconProp.Add}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    dataTestId={RUNBOOK_ADD_STEPS_BUTTON_TEST_ID}
+                    onClick={goToSteps}
+                  />
+                </div>
               }
-            }}
-          >
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {translator.translateText("Last Run")}
-            </div>
-            {!stats.isLoaded ? (
-              <div className="text-sm text-gray-400">
-                {translator.translateText("Loading…")}
-              </div>
-            ) : lastExec ? (
-              <div className="flex flex-col gap-1">
-                <div>
-                  {statusPill(lastExec.status as RunbookExecutionStatus)}
-                </div>
-                <div className="text-sm text-gray-700">
-                  {lastStartedAt ? OneUptimeDate.fromNow(lastStartedAt) : "—"}
-                </div>
-                <div className="text-xs text-gray-500">
-                  {lastStartedAt
-                    ? OneUptimeDate.getDateAsLocalFormattedString(lastStartedAt)
-                    : null}
-                </div>
-                <div className="mt-1">
-                  {triggerSourceElement(lastExec, translator)}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-gray-500">
-                <TranslatedSentence
-                  template="Never run yet. Click {{runNow}} to start one."
-                  slots={{
-                    runNow: (
-                      <span className="font-medium text-gray-700">
-                        {translator.translateText("Run Now")}
-                      </span>
-                    ),
-                  }}
+            />
+          </div>
+        </Card>
+      ) : (
+        <Card
+          title="Activity"
+          description="Recent execution history for this runbook."
+        >
+          {showsFirstStep ? (
+            <div
+              className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3"
+              data-testid={RUNBOOK_NO_STEPS_TEST_ID}
+            >
+              <p className="text-sm text-gray-700">
+                {translator.translateText(
+                  RunbookOverviewCopy.noStepsDescription,
+                )}
+              </p>
+              <div className="ml-auto shrink-0">
+                <Button
+                  title={RunbookOverviewCopy.addStepsButton}
+                  icon={IconProp.Add}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  dataTestId={RUNBOOK_ADD_STEPS_BUTTON_TEST_ID}
+                  onClick={goToSteps}
                 />
               </div>
-            )}
-          </div>
-
-          <div
-            className="rounded-xl border border-gray-200 bg-white p-4 cursor-pointer hover:border-indigo-300 hover:shadow-sm transition"
-            onClick={goToExecutionsList}
-          >
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {translator.translateText("Total Runs")}
             </div>
-            <div className="text-3xl font-semibold text-gray-900">
-              {stats.isLoaded ? stats.totalRuns : "—"}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {translator.translateText("All executions on record")}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-              {translator.translateText("Outcomes")}
-            </div>
-            <div className="flex items-baseline gap-3 text-sm">
-              <div className="flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                <span className="font-semibold text-gray-900">
-                  {stats.isLoaded ? stats.successRuns : "—"}
-                </span>
-                <span className="text-gray-500">
-                  {translator.translateText("completed")}
-                </span>
+          ) : (
+            <></>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div
+              className={`rounded-xl border border-gray-200 bg-white p-4 ${lastExec?._id ? "cursor-pointer hover:border-indigo-300 hover:shadow-sm transition" : ""}`}
+              onClick={() => {
+                if (lastExec?._id) {
+                  goToExecution(lastExec._id as unknown as string);
+                }
+              }}
+            >
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                {translator.translateText("Last Run")}
               </div>
-              <div className="flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
-                <span className="font-semibold text-gray-900">
-                  {stats.isLoaded ? stats.failedRuns : "—"}
-                </span>
-                <span className="text-gray-500">
-                  {translator.translateText("failed")}
-                </span>
+              {!stats.isLoaded ? (
+                <div className="text-sm text-gray-400">
+                  {translator.translateText("Loading…")}
+                </div>
+              ) : lastExec ? (
+                <div className="flex flex-col gap-1">
+                  <div>
+                    {statusPill(lastExec.status as RunbookExecutionStatus)}
+                  </div>
+                  <div className="text-sm text-gray-700">
+                    {lastStartedAt ? OneUptimeDate.fromNow(lastStartedAt) : "—"}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {lastStartedAt
+                      ? OneUptimeDate.getDateAsLocalFormattedString(
+                          lastStartedAt,
+                        )
+                      : null}
+                  </div>
+                  <div className="mt-1">
+                    {triggerSourceElement(lastExec, translator)}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  {/*
+                   * Pointing at Run Now only while it can be pressed: a
+                   * runbook that is off, or has no step, says what is
+                   * missing elsewhere on the page.
+                   */}
+                  {isRunNowOffered(facts) && !runLockedReason ? (
+                    <TranslatedSentence
+                      template="Never run yet. Click {{runNow}} to start one."
+                      slots={{
+                        runNow: (
+                          <span className="font-medium text-gray-700">
+                            {translator.translateText("Run Now")}
+                          </span>
+                        ),
+                      }}
+                    />
+                  ) : (
+                    translator.translateText("Never run yet.")
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div
+              className="rounded-xl border border-gray-200 bg-white p-4 cursor-pointer hover:border-indigo-300 hover:shadow-sm transition"
+              onClick={goToExecutionsList}
+            >
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                {translator.translateText("Total Runs")}
+              </div>
+              <div className="text-3xl font-semibold text-gray-900">
+                {stats.isLoaded ? stats.totalRuns : "—"}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {translator.translateText("All executions on record")}
               </div>
             </div>
-            <div className="text-xs text-gray-500 mt-2">
-              {translator.translateText("Across all recorded executions")}
+
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                {translator.translateText("Outcomes")}
+              </div>
+              <div className="flex items-baseline gap-3 text-sm">
+                <div className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="font-semibold text-gray-900">
+                    {stats.isLoaded ? stats.successRuns : "—"}
+                  </span>
+                  <span className="text-gray-500">
+                    {translator.translateText("completed")}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
+                  <span className="font-semibold text-gray-900">
+                    {stats.isLoaded ? stats.failedRuns : "—"}
+                  </span>
+                  <span className="text-gray-500">
+                    {translator.translateText("failed")}
+                  </span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 mt-2">
+                {translator.translateText("Across all recorded executions")}
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {error && (
         <ConfirmModal

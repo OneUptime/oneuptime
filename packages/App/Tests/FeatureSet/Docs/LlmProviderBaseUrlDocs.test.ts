@@ -3,6 +3,12 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
+import {
+  LLM_PROVIDER_TYPES,
+  LLM_PROVIDER_TYPE_COPY,
+  LlmProviderFormCopy,
+  LlmProviderTypeCopy,
+} from "Common/UI/Components/AI/LlmProviderFormCopy";
 import API from "Common/Utils/API";
 import DataSourceEgressGuard, {
   AddressVerdict,
@@ -53,7 +59,11 @@ const CHART_DIR: string = path.join(
 const LLM_PROVIDER_PAGE: string = "ai/llm-provider.md";
 const AI_AGENT_PAGE: string = "ai/ai-agent.md";
 
-// The forms whose Base URL field shows a placeholder.
+/*
+ * The forms that add or edit an LLM provider: each draws the shared one
+ * (Common/UI/Components/AI/LlmProviderFormFields), whose Base URL says
+ * under it, for the provider picked, what address to give.
+ */
 const BASE_URL_FORMS: Array<string> = [
   "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviders.tsx",
   "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviderView.tsx",
@@ -195,23 +205,50 @@ describe("every Base URL the LLM guides suggest is one the guard lets through on
   }
 });
 
+// The line under Base URL for a provider, as the form fills it in.
+function baseUrlHintOf(type: LlmType): string {
+  const copy: LlmProviderTypeCopy = LLM_PROVIDER_TYPE_COPY[type];
+
+  if (copy.baseUrlHint) {
+    return copy.baseUrlHint;
+  }
+
+  return LlmProviderFormCopy.optionalBaseUrlHint
+    .replace("{{provider}}", copy.defaultName)
+    .replace("{{url}}", copy.defaultBaseUrl || "");
+}
+
 describe("no other Base URL hint suggests a refused address", () => {
   test.each(BASE_URL_FORMS)(
-    "the Base URL placeholder in %s",
+    "%s draws the shared provider form",
     (form: string) => {
       const source: string = fs.readFileSync(
         path.join(PACKAGES_ROOT, form),
         "utf8",
       );
-      const field: RegExpMatchArray | null = source.match(
-        /title:\s*"Base URL",[\s\S]*?placeholder:\s*"([^"]*)"/,
-      );
 
-      expect(field).not.toBeNull();
-      expect(suggestedHosts(field![1]!)).toHaveLength(1);
-      expect(refusedHosts(field![1]!)).toEqual([]);
+      expect(source).toMatch(
+        /formFields=\{get(?:Project|Global)LlmProviderFormFields\(/,
+      );
+      // And no Base URL of its own, with help of its own.
+      expect(source).not.toMatch(/title:\s*"Base URL",[^{}]*placeholder:/);
     },
   );
+
+  test.each(LLM_PROVIDER_TYPES)(
+    "the Base URL hint the form shows for %s",
+    (type: LlmType) => {
+      const hint: string = baseUrlHintOf(type);
+
+      expect(suggestedHosts(hint).length).toBeGreaterThan(0);
+      expect(refusedHosts(hint)).toEqual([]);
+    },
+  );
+
+  // Ollama runs beside OneUptime: its hint is the guide's address.
+  test("Ollama's hint is the address the guides give", () => {
+    expect(suggestedHosts(baseUrlHintOf(LlmType.Ollama))).toEqual(["ollama"]);
+  });
 
   test("the GLOBAL_LLM_PROVIDER_* block of config.example.env", () => {
     const example: string = fs.readFileSync(

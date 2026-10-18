@@ -178,6 +178,8 @@ OneUptime は、HTTPS を追加する 2 つの方法のどちらかを選ぶま�
 
 ステータスページやダッシュボードをカスタムドメインに置く場合は、OneUptime に TLS を任せるほうが簡単です。ingress がそれらのドメインの証明書を自分で注文し、提供します。
 
+`HTTP_PROTOCOL=https` を設定すると、OneUptime は HTTPS のリンクを作り、サインイン用の Cookie を HTTPS 上に保ち、ブラウザーに `HOST` へは HTTPS でだけアクセスするよう伝えます。ブラウザーはその名前のすべてのポートについて、一年間これを守ります。そのため、いつか `HOST` が再び通常の HTTP で応答する必要がある場合は、しばらく前に `HSTS_MAX_AGE_SECONDS=0` を `config.env` に設定してください。ブラウザーは次回のアクセス時にこのルールを忘れます。
+
 ### OneUptime に証明書を取得させる
 
 :::steps
@@ -301,6 +303,8 @@ server {
 ```
 証明書のパスは、Certbot が Let's Encrypt 証明書を置く場所です。証明書をほかから入手した場合は、そのパスを使ってください。`sudo nginx -t && sudo systemctl reload nginx` でファイルを確認し、Nginx を再読み込みします。
 :::
+
+どちらも `X-Forwarded-Proto` を送ります。これは、訪問者が HTTPS で来たことを OneUptime に伝えます。ほかのプロキシを使う場合もこれを送る必要があります。送らないと、カスタムドメイン上のステータスページとダッシュボードのサインイン用 Cookie が HTTPS 上に保たれません。
 
 #### プロキシ経由でインスタンスを開く
 

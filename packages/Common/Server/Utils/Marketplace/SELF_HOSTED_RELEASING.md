@@ -846,12 +846,13 @@ cost a review round.
 - **The automation has met the real listings only in part.** Checked against
   them on 2026-10-18: AWS's product description (a draft lists a placeholder
   version), and what Partner Center answers: it spells `externalId` and
-  `jobId`, and answers 400 ("has no published submission"), not 404, for a
-  target the offer was never published to. And `cpa` 1.3.59 reads the ARM
-  template from `clusterArmTemplate`, as Microsoft's samples spell it (the
-  docs' table says `clusterARMTemplate`, which it rejects as missing). Not
-  yet: AWS's version change set, and Microsoft's configure request and
-  `azure.bundleRepository`, until their first real run.
+  `jobId`, and a bundle reference's `tenantId` and `subscriptionId` (the docs'
+  examples say `tenantID` and `subscriptionID`, which it refuses), and answers
+  400 ("has no published submission"), not 404, for a target the offer was
+  never published to. And `cpa` 1.3.59 reads the ARM template from
+  `clusterArmTemplate`, as Microsoft's samples spell it (the docs' table says
+  `clusterARMTemplate`, which it rejects as missing). Not yet: AWS's version
+  change set and Microsoft's publish to preview, until their first success.
 - `mpdev verify` does not run in the workflow (it needs a GKE cluster, which
   costs money): Google's review runs the same checks on every version.
 - Microsoft and Google editions install on `linux/amd64` nodes only.

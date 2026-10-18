@@ -35,7 +35,7 @@ Ouvrez **Produits → Événements de sécurité → Threat Intel**.
 
 ### Créer le flux
 
-Cliquez sur **Créer : Flux de renseignements sur les menaces** et remplissez ses cinq étapes : **Informations de base**, **TAXII Server**, **Authentification**, **Security Cases** et **En cas de correspondance**. Les champs figurent dans le tableau ci-dessous.
+Cliquez sur **Créer : Flux de renseignements sur les menaces** et remplissez ses trois étapes : **Serveur TAXII**, **Connexion** et **En cas de correspondance**. Les champs figurent dans le tableau ci-dessous.
 
 ### Vérifier la première interrogation
 
@@ -48,16 +48,16 @@ En une minute ou deux, la ligne du flux affiche **Dernière interrogation**, et 
 | **ID de la collection** | La collection qui publie les indicateurs. |
 | **Poll Interval (Minutes)** | La fréquence de récupération des nouveaux objets : de 1 à 1440 minutes, 60 par défaut. |
 | **Confiance minimale** | Les indicateurs dont la `confidence` STIX est inférieure sont ignorés : de 0 à 100, et 0 garde tout. Les indicateurs sans confiance passent toujours. |
-| **Jeton d'API** | Un jeton bearer, pour une collection qui en demande un. |
-| **Nom d'utilisateur Basic Auth** et **Mot de passe Basic Auth** | Pour une collection qui utilise l'authentification HTTP basique. Laissez les deux et le jeton vides pour une collection publique. |
+| **Connexion** | La façon dont OneUptime se connecte : **Sans connexion** pour une collection publique, **Jeton bearer** pour un jeton fourni par l'opérateur du serveur, ou **Nom d'utilisateur et mot de passe** pour l'authentification HTTP basique. |
+| **Jeton d'API**, **Nom d'utilisateur Basic Auth** et **Mot de passe Basic Auth** | Demandés seulement pour la connexion choisie. |
 | **Open a Case on Match** | Activé par défaut : chaque événement qui nomme un indicateur ouvre un [dossier](/docs/telemetry/security-cases) sur cet indicateur, ou rejoint le dossier ouvert qui porte déjà sur lui. |
-| **Créer une alerte en cas de correspondance** | Activé par défaut : chaque indicateur correspondant ouvre une alerte. |
+| **Alertes et incidents** | **Créer une alerte** par défaut : chaque indicateur correspondant ouvre une alerte. |
 | **Gravité de l'alerte** | La gravité de chaque alerte ouverte par ce flux. Laissez-la vide pour prendre le niveau de menace de chaque indicateur. |
-| **Créer un incident en cas de correspondance** | Désactivé par défaut. Les incidents déclenchent l'escalade d'astreinte, les SLA et les pages de statut, et pour les correspondances d'indicateurs les alertes suffisent en général. |
+| **Déclarer un incident** ou **Les deux** | Sous **Alertes et incidents**. Les incidents déclenchent l'escalade d'astreinte, les SLA et les pages de statut, et pour les correspondances d'indicateurs les alertes suffisent en général. |
 | **Gravité de l'incident** | Comme **Gravité de l'alerte**, pour les incidents. |
 | **Write Detection Finding on Match** | Activé par défaut : chaque correspondance écrit un constat dans le flux d'événements. |
 
-Les jetons et les mots de passe sont chiffrés et ne sont plus jamais affichés après l'enregistrement. Pour les changer, choisissez **Update Credentials** dans la ligne du flux, puis **Jeton d'API (Bearer)**, **Basic Auth** ou **Anonyme (effacer les identifiants enregistrés)** : votre choix remplace la connexion du flux, donc enregistrer un jeton efface un mot de passe enregistré, et inversement.
+Les jetons et les mots de passe sont chiffrés et ne sont plus jamais affichés après l'enregistrement. Pour les changer, choisissez **Update Credentials** dans la ligne du flux, puis **Jeton bearer**, **Nom d'utilisateur et mot de passe** ou **Sans connexion**, qui efface ce qui est enregistré : votre choix remplace la connexion du flux, donc enregistrer un jeton efface un mot de passe enregistré, et inversement.
 
 ### Comment un flux est interrogé
 
@@ -143,7 +143,7 @@ Chaque minute, les indicateurs actifs de chaque flux activé sont confrontés au
 ### Ce que fait une correspondance
 
 - Une alerte, intitulée `[Threat Intel] <feed name> — <indicator value>`, une par flux et par valeur tant qu'elle reste ouverte. Une fois résolue, la correspondance suivante en ouvre une nouvelle. Les alertes ne sont pas résolues automatiquement.
-- Un incident, uniquement avec **Créer un incident en cas de correspondance**, dédupliqué de la même façon.
+- Un incident, uniquement avec **Déclarer un incident** ou **Les deux** sous **Alertes et incidents**, dédupliqué de la même façon.
 - Un constat de renseignement, avec **Write Detection Finding on Match** : un événement `Detection Finding` (classe OCSF 2004) du produit `OneUptime Threat Intel`, avec le niveau de menace de l'indicateur comme gravité, et ces attributs :
 
 | Attribut | Valeur |
@@ -199,7 +199,7 @@ La confrontation compare la valeur d'un indicateur aux observables d'un événem
 :::
 
 :::details Une correspondance n'a pas ouvert d'alerte
-**Créer une alerte en cas de correspondance** est désactivé, ou une alerte pour le même flux et la même valeur est encore ouverte, et les correspondances suivantes s'y ajoutent. Un projet a besoin d'au moins une gravité d'alerte pour qu'un flux ouvre des alertes.
+**Alertes et incidents** est réglé sur **Déclarer un incident** ou **Aucun des deux**, ou une alerte pour le même flux et la même valeur est encore ouverte, et les correspondances suivantes s'y ajoutent. Un projet a besoin d'au moins une gravité d'alerte pour qu'un flux ouvre des alertes.
 :::
 
 ## Étapes suivantes

@@ -27,8 +27,10 @@ import {
  *   - Add Multiple Monitors: the monitors (and, for a grid group, the cell
  *     they go in);
  *   - a group: its name and parent, with Layout and Advanced folded;
- *   - a monitor rule: its three steps, the display options folded on the
- *     Group step (AdvancedStepsGuard pins where).
+ *   - a monitor rule: what it matches, then where the monitors go, with
+ *     its name filled in from that and the display options and the
+ *     description folded on the Group step (AdvancedStepsGuard pins
+ *     where), as every other rule form asks.
  *
  * This guard reads those forms the way the long-form and Advanced-step
  * guards do (Tests/Helpers/FormStepsScan) and pins each one's shape, so a
@@ -290,15 +292,39 @@ describe("the status page resource forms", () => {
       "RuleTable: Status Page > Monitor Rules",
     );
 
-    test("walks three steps, none of them a page of display options", () => {
+    /*
+     * What the rule matches comes first, then where the monitors go - no
+     * Basic Info step asking for a name before anyone has said what the
+     * rule is for.
+     */
+    test("walks Match, then Group: no step of its own for a name", () => {
       expect(
         (form.steps || []).map((step: FormStepFacts): string | null => {
           return step.id;
         }),
-      ).toEqual(["basic-info", "match-criteria", "group"]);
+      ).toEqual(["match-criteria", "group"]);
+      expect(
+        (form.steps || []).map((step: FormStepFacts): string | null => {
+          return step.title;
+        }),
+      ).toEqual(["Match", "Group"]);
     });
 
-    test("folds how each monitor it adds is shown on the Group step", () => {
+    test("asks only for the conditions on its first step", () => {
+      const onMatchStep: Array<FormFieldFacts> = form.fields.filter(
+        (field: FormFieldFacts): boolean => {
+          return field.stepId === "match-criteria";
+        },
+      );
+
+      expect(keys(onMatchStep)).toEqual([
+        "monitorLabels",
+        "monitorNamePattern",
+        "monitorDescriptionPattern",
+      ]);
+    });
+
+    test("asks where the monitors go, then the name made from it, and folds the rest on the Group step", () => {
       const onGroupStep: Array<FormFieldFacts> = form.fields.filter(
         (field: FormFieldFacts): boolean => {
           return field.stepId === "group";
@@ -307,12 +333,36 @@ describe("the status page resource forms", () => {
 
       expect(keys(onGroupStep)).toEqual([
         "statusPageGroup",
+        "name",
+        "isEnabled",
         "showCurrentStatus",
         "showUptimePercent",
         "uptimePercentPrecision",
         "showStatusHistoryChart",
+        "description",
       ]);
-      expect(countFieldRows(onGroupStep)).toBe(2);
+
+      // The group, the name, and one fold - Enabled is on the Edit form only.
+      expect(
+        keys(
+          openFields(form).filter((field: FormFieldFacts): boolean => {
+            return field.stepId === "group";
+          }),
+        ),
+      ).toEqual(["statusPageGroup", "name", "isEnabled"]);
+      expect(
+        keys(
+          onGroupStep.filter((field: FormFieldFacts): boolean => {
+            return field.collapsibleSection !== undefined;
+          }),
+        ),
+      ).toEqual([
+        "showCurrentStatus",
+        "showUptimePercent",
+        "uptimePercentPrecision",
+        "showStatusHistoryChart",
+        "description",
+      ]);
     });
 
     /*

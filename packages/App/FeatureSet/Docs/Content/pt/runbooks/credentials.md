@@ -43,7 +43,7 @@ Na etapa **Credential**, informe um **Nome**, como `prod-cluster`, uma **Descri�
 
 :::tabs
 @tab SSH
-Em **Host SSH**, informe o **Nome do host**, a **Porta** (22 se ficar vazia) e o **Nome de usuário**. Em **Autenticação SSH**, cole uma **Private Key (PEM)**, com sua **Private Key Passphrase** se houver, ou informe uma **Senha** para um host sem acesso por chave. Uma chave é a melhor opção quando você pode escolher.
+Em **Host SSH**, informe o **Nome do host**, a **Porta** (22 se ficar vazia) e o **Nome de usuário**. Em **Autenticação SSH**, escolha como **Entrar com**: uma **Chave privada**, a melhor opção quando você pode escolher, e cole a **Private Key (PEM)**, com sua **Private Key Passphrase** se houver; ou uma **Senha**, para um host sem acesso por chave, e informe a **Senha**.
 @tab Kubernetes
 Em **Kubernetes**, informe a **API Server URL**, como `https://10.0.0.1:6443`, o **Service Account Token** e o **CA Certificate (PEM)** para que o Runner possa verificar o servidor de API. Deixe a CA vazia só se o servidor de API apresentar um certificado em que o Runner já confia.
 :::

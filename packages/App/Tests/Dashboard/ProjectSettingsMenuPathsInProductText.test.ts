@@ -180,7 +180,8 @@ describe("the menu the paths are held to, read from its source", () => {
       ["AI Features", "LLM Providers", "AI Credits", "AI Logs", "MCP Server"],
     ],
     ["Advanced", ["Domains", "API Keys", "Feature Flags"]],
-    ["Security", ["SSO", "OIDC", "SCIM"]],
+    // SSO holds the project's SAML and OpenID Connect providers.
+    ["Security", ["SSO", "SCIM"]],
     ["Billing and Invoices", ["Billing", "Usage History", "Invoices"]],
   ])(
     "%s holds the pages the texts name",
@@ -583,14 +584,6 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
     [
       "App/FeatureSet/MCP/Handlers/ToolHandler.ts",
       ["Project Settings > Billing and Invoices > Billing"],
-    ],
-    [
-      "App/FeatureSet/Dashboard/src/Components/AIChat/AIChatAvailability.ts",
-      [
-        "Project Settings > AI > AI Features",
-        "Project Settings > AI > LLM Providers",
-        "Project Settings > Billing and Invoices > Billing",
-      ],
     ],
     [
       "Common/Server/Types/Database/Permissions/BillingPermission.ts",

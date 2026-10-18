@@ -148,6 +148,13 @@ export default interface Field<TEntity> {
     | undefined;
   cardSelectSingleColumn?: boolean | undefined;
   /*
+   * At most this many cards side by side (CardSelect maxColumns); three
+   * when left out. A choice whose cards carry a line each reads better two
+   * to a row in a dialog, where three columns squeeze every line to a few
+   * words.
+   */
+  cardSelectMaxColumns?: 2 | 3 | undefined;
+  /*
    * Give the card picker a search box, and lay a big catalog out as compact
    * rows with its common choices first and the rest behind a More button,
    * shrinking to the choice made with a Change button (CardSelectCatalog).

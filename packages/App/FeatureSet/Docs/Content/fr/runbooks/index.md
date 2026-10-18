@@ -105,7 +105,7 @@ Supposons que chaque incident dont le titre contient « db-primary » doive lanc
 :::steps
 ### Créer le runbook
 
-Sous **Runbooks**, cliquez sur **Créer : Runbook** et nommez-le « DB primary failover ». Ouvrez-le, allez dans **Étapes**, ajoutez ces étapes, puis cliquez sur **Save Steps** :
+Sous **Runbooks**, cliquez sur **Créer : Runbook** et nommez-le « DB primary failover ». Il s'ouvre sur **Étapes** : ajoutez ces étapes, puis cliquez sur **Save Steps** :
 
 | # | Type | Titre |
 | --- | --- | --- |

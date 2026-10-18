@@ -83,12 +83,11 @@ const Settings: FunctionComponent<ComponentProps> = (
 
   return (
     <React.Fragment>
-      <Alert
-        type={AlertType.DANGER}
-        strongTitle="DANGER ZONE"
-        title="Deleting your project will delete it permanently and there is no way to recover. "
-      />
-
+      {/*
+       * No red DANGER ZONE banner over the card: the Delete Project card
+       * says the same ("Permanently delete <project>. This action cannot be
+       * undone."), and its dialog asks for the project's name.
+       */}
       {billingMarketplace && (
         <Alert
           type={AlertType.WARNING}

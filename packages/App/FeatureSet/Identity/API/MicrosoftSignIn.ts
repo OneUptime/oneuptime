@@ -155,9 +155,8 @@ router.get(
     const stateCookie: string | undefined =
       CookieUtil.getCookieFromExpressRequest(req, STATE_COOKIE_NAME);
 
-    res.clearCookie(STATE_COOKIE_NAME, {
+    CookieUtil.removeCookie(res, STATE_COOKIE_NAME, {
       path: STATE_COOKIE_PATH,
-      sameSite: "lax",
     });
 
     if (typeof req.query["error"] === "string") {

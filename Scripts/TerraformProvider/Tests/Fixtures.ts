@@ -298,7 +298,7 @@ function listResponse(schemaRef: any): any {
 }
 
 // Create + get-item + get-list for a model whose schemas are all one.
-function crudPaths(data: {
+export function crudPaths(data: {
   path: string;
   table: string;
   tag: string;
