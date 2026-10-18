@@ -49,6 +49,8 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
  *     and -- the other half of that same coin -- two different accounts are
  *     not silently collapsed onto one shared counter;
  *   - a caller-supplied X-Forwarded-For entry does not buy a fresh bucket;
+ *   - nor does sending from another address of one IPv6 /64, while the
+ *     people of an office sharing a /64 still sign in as they did;
  *   - the window does not slide forward under sustained load, which would
  *     turn a fifteen minute pause into a permanent lockout;
  *   - it fails CLOSED, so a Redis outage does not quietly restore the
@@ -113,6 +115,16 @@ class FakePipeline {
     this.commands.push((): [Error | null, unknown] => {
       this.client.expires.push({ key, ttlSeconds });
       return [null, 1];
+    });
+
+    return this;
+  }
+
+  // As Redis answers GET: the count as a string, or null for no key.
+  public get(key: string): FakePipeline {
+    this.commands.push((): [Error | null, unknown] => {
+      const count: number | undefined = this.client.counters.get(key);
+      return [null, count === undefined ? null : String(count)];
     });
 
     return this;
@@ -1062,6 +1074,207 @@ describe("when Redis is unreachable", () => {
 
     isRedisConnected = true;
     expect((await attempt()).reachedHandler).toBe(true);
+  });
+});
+
+describe("an IPv6 /64 is counted as well as each of its addresses", () => {
+  /*
+   * One IPv6 host is commonly given a whole /64 and can send each attempt
+   * from another address of it, so each counter is kept for the /64 as
+   * well, with room for ten addresses: a /64 is as often an office's
+   * network, where many people sign in, as one host's.
+   */
+  const NETWORK_ROOM: number = 10;
+
+  // Host `index` of the /64 2001:db8:5:6::/64 (or of another).
+  const hostOf: (index: number, prefix?: string) => string = (
+    index: number,
+    prefix: string = "2001:db8:5:6",
+  ): string => {
+    return `${prefix}:${(index >> 16).toString(16)}:${(index & 0xffff).toString(16)}:a:b`;
+  };
+
+  // The request as our Nginx forwards it: the address it saw, last.
+  const from: (address: string) => AttemptOptions = (
+    address: string,
+  ): AttemptOptions => {
+    return {
+      headers: { "x-forwarded-for": address },
+      socketAddress: "10.0.0.2",
+    };
+  };
+
+  it("second-factor guesses against one account, from address after address of one /64, reach the handler ten addresses' worth of times", async () => {
+    let reached: number = 0;
+    let lastRefusal: AttemptResult | undefined = undefined;
+
+    for (let index: number = 0; index < 400; index++) {
+      const result: AttemptResult = await attempt({
+        ...from(hostOf(index + 1)),
+        emailShape: "string",
+      });
+
+      if (result.reachedHandler) {
+        reached++;
+      } else {
+        lastRefusal = result;
+      }
+    }
+
+    expect(reached).toBe(PER_ACCOUNT_LIMIT * NETWORK_ROOM);
+    expect(findOneBy).toHaveBeenCalledTimes(PER_ACCOUNT_LIMIT * NETWORK_ROOM);
+    expect(lastRefusal?.errorCode).toBe(ExceptionCode.TooManyRequestsException);
+    expect(Number(lastRefusal?.retryAfter)).toBeGreaterThan(0);
+  });
+
+  it("does not lock the account's owner out from anywhere else", async () => {
+    for (let index: number = 0; index < 150; index++) {
+      await attempt({ ...from(hostOf(index + 1)), emailShape: "string" });
+    }
+
+    expect(
+      (await attempt({ ...from(hostOf(1)), emailShape: "string" }))
+        .reachedHandler,
+    ).toBe(false);
+
+    // The owner at home, on another /64, and on an IPv4 network.
+    expect(
+      (
+        await attempt({
+          ...from(hostOf(1, "2001:db8:99:1")),
+          emailShape: "string",
+        })
+      ).reachedHandler,
+    ).toBe(true);
+    expect(
+      (await attempt({ ...from("198.51.100.23"), emailShape: "string" }))
+        .reachedHandler,
+    ).toBe(true);
+  });
+
+  it("rotating the account as well meets the /64's ceiling of ten addresses' worth", async () => {
+    let reached: number = 0;
+
+    for (
+      let index: number = 0;
+      index < PER_IP_LIMIT * NETWORK_ROOM + 50;
+      index++
+    ) {
+      const result: AttemptResult = await attempt({
+        uri: "/login",
+        email: `victim-${index}@example.com`,
+        ...from(hostOf(index + 1)),
+      });
+
+      if (result.reachedHandler) {
+        reached++;
+      }
+    }
+
+    expect(reached).toBe(PER_IP_LIMIT * NETWORK_ROOM);
+  });
+
+  it("an office that shares a /64 signs in as it did: three hundred people, each from their own address, twice", async () => {
+    let refused: number = 0;
+
+    for (let person: number = 0; person < 300; person++) {
+      for (let attemptIndex: number = 0; attemptIndex < 2; attemptIndex++) {
+        const result: AttemptResult = await attempt({
+          uri: "/login",
+          email: `colleague-${person}@example.com`,
+          ...from(hostOf(person + 1)),
+        });
+
+        if (!result.reachedHandler) {
+          refused++;
+        }
+      }
+    }
+
+    expect(refused).toBe(0);
+  });
+
+  it("one colleague hammering a shared account from their own address leaves the rest of the office the rest of the /64's allowance", async () => {
+    let noisyReached: number = 0;
+
+    for (let index: number = 0; index < 60; index++) {
+      if (
+        (await attempt({ uri: "/login", ...from(hostOf(1)) })).reachedHandler
+      ) {
+        noisyReached++;
+      }
+    }
+
+    expect(noisyReached).toBe(PER_ACCOUNT_LIMIT);
+
+    let othersReached: number = 0;
+
+    for (let index: number = 0; index < 200; index++) {
+      if (
+        (await attempt({ uri: "/login", ...from(hostOf(index + 2)) }))
+          .reachedHandler
+      ) {
+        othersReached++;
+      }
+    }
+
+    expect(othersReached).toBe(
+      PER_ACCOUNT_LIMIT * NETWORK_ROOM - PER_ACCOUNT_LIMIT,
+    );
+  });
+
+  it("second-factor guesses from the 6to4 and Teredo addresses of one IPv4 host reach the handler only that host's IPv4 budget", async () => {
+    /*
+     * 203.0.113.50 (cb00:7132) can send from every /64 of its 6to4 /48,
+     * 2002:cb00:7132::/48, and from a Teredo address naming any server it
+     * likes, its own address inverted at the end (34ff:8ecd).
+     */
+    let reached: number = 0;
+
+    for (let index: number = 0; index < 400; index++) {
+      const address: string =
+        index % 2 === 0
+          ? `2002:cb00:7132:${index.toString(16)}::1`
+          : `2001:0:${index.toString(16)}:1:8000:${(0xffff - index).toString(16)}:34ff:8ecd`;
+
+      if (
+        (await attempt({ ...from(address), emailShape: "string" }))
+          .reachedHandler
+      ) {
+        reached++;
+      }
+    }
+
+    expect(reached).toBe(PER_ACCOUNT_LIMIT);
+    expect(findOneBy).toHaveBeenCalledTimes(PER_ACCOUNT_LIMIT);
+
+    // Its plain IPv4 requests are the same host's, with nothing left.
+    expect(
+      (await attempt({ ...from("203.0.113.50"), emailShape: "string" }))
+        .reachedHandler,
+    ).toBe(false);
+    expect(
+      Array.from(redisClient.counters.keys()).filter((key: string): boolean => {
+        return key.includes("/64");
+      }),
+    ).toEqual([]);
+  });
+
+  it("an IPv4 network is held to exactly the budget it always had", async () => {
+    let reached: number = 0;
+
+    for (let index: number = 0; index < PER_ACCOUNT_LIMIT + 5; index++) {
+      if ((await attempt(from("203.0.113.50"))).reachedHandler) {
+        reached++;
+      }
+    }
+
+    expect(reached).toBe(PER_ACCOUNT_LIMIT);
+    expect(
+      Array.from(redisClient.counters.keys()).filter((key: string): boolean => {
+        return key.includes("/64");
+      }),
+    ).toEqual([]);
   });
 });
 

@@ -2,6 +2,9 @@ import Redis, { ClientType } from "../../Infrastructure/Redis";
 import resolveTrustedClientIp, { ClientIpRequestLike } from "../ClientIp";
 import { ExpressRequest } from "../Express";
 import logger from "../Logger";
+import ClientRateLimitCounter, {
+  ClientRateLimitRefusal,
+} from "../RateLimit/ClientRateLimitCounter";
 import ObjectID from "../../../Types/ObjectID";
 import {
   RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE,
@@ -18,7 +21,10 @@ import {
  *   - per address, every call to any runbook webhook - wrong keys and
  *     refused calls included - so nobody can guess a key one call at a
  *     time, nor make the server look a runbook up without end
- *     (RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE);
+ *     (RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE). For an IPv6 caller
+ *     its /64 is counted as well, with room for ten addresses
+ *     (ClientRateLimitCounter): one host can call from every address of
+ *     its /64, and would otherwise take a fresh allowance from each;
  *   - per runbook, only the calls about to start a run - the key matched,
  *     the webhook and runbook are on, the body is acceptable - so a stranger
  *     sending garbage to a runbook's id cannot use up the budget its real
@@ -43,6 +49,11 @@ export interface RunbookWebhookRateLimitDecision {
   retryAfterSeconds?: number | undefined;
   // True only on the call that first crossed the line in this window.
   isFirstRejectionInWindow?: boolean | undefined;
+  /*
+   * The caller's IPv6 /64 when the addresses of that /64 together went over
+   * the per-address limit, rather than the caller's own address.
+   */
+  ipv6Network64?: string | undefined;
 }
 
 export const RUNBOOK_WEBHOOK_RATE_LIMIT_WINDOW_SECONDS: number = 60;
@@ -72,13 +83,37 @@ export default class RunbookWebhookRateLimit {
     return address.toLowerCase();
   }
 
-  // Counts a call from the caller's address against every runbook webhook.
+  /*
+   * Counts a call from the caller's address against every runbook webhook:
+   * under the address, and for an IPv6 caller under its /64 as well.
+   */
   public static async consumeForAddress(
     req: ExpressRequest,
   ): Promise<RunbookWebhookRateLimitDecision> {
+    const address: string = RunbookWebhookRateLimit.getAddressKey(req);
+
     return await RunbookWebhookRateLimit.consume({
-      key: `a:${RunbookWebhookRateLimit.getAddressKey(req)}`,
-      limit: RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE,
+      what: `address ${address}`,
+      count: async (
+        redis: ClientType,
+        windowIndex: number,
+      ): Promise<ClientRateLimitRefusal<string> | null> => {
+        return await ClientRateLimitCounter.count<string>({
+          redis: redis,
+          clientIp: address,
+          ttlSeconds:
+            RUNBOOK_WEBHOOK_RATE_LIMIT_WINDOW_SECONDS * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: "address",
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}a:${clientKey}:${windowIndex}`;
+              },
+              limit: RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE,
+            },
+          ],
+        });
+      },
     });
   }
 
@@ -86,9 +121,27 @@ export default class RunbookWebhookRateLimit {
   public static async consumeForRunbook(
     runbookId: ObjectID,
   ): Promise<RunbookWebhookRateLimitDecision> {
+    const key: string = `r:${runbookId.toString().toLowerCase()}`;
+
     return await RunbookWebhookRateLimit.consume({
-      key: `r:${runbookId.toString().toLowerCase()}`,
-      limit: RUNBOOK_WEBHOOK_RUNS_PER_MINUTE,
+      what: key,
+      count: async (
+        redis: ClientType,
+        windowIndex: number,
+      ): Promise<ClientRateLimitRefusal<string> | null> => {
+        return await ClientRateLimitCounter.countFixed<string>({
+          redis: redis,
+          ttlSeconds:
+            RUNBOOK_WEBHOOK_RATE_LIMIT_WINDOW_SECONDS * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: "runbook",
+              key: `${KEY_PREFIX}${key}:${windowIndex}`,
+              limit: RUNBOOK_WEBHOOK_RUNS_PER_MINUTE,
+            },
+          ],
+        });
+      },
     });
   }
 
@@ -98,9 +151,18 @@ export default class RunbookWebhookRateLimit {
     return Math.max(1, Math.ceil((windowMs - (now % windowMs)) / 1000));
   }
 
+  /*
+   * Counts one call in this minute's window (ClientRateLimitCounter: only
+   * the call that created a key sets its expiry, so the window cannot slide
+   * for as long as calls keep coming) and decides.
+   */
   private static async consume(data: {
-    key: string;
-    limit: number;
+    // What is counted, for the log line when the counter fails.
+    what: string;
+    count: (
+      redis: ClientType,
+      windowIndex: number,
+    ) => Promise<ClientRateLimitRefusal<string> | null>;
   }): Promise<RunbookWebhookRateLimitDecision> {
     const client: ClientType | null = Redis.getClient();
 
@@ -110,38 +172,26 @@ export default class RunbookWebhookRateLimit {
 
     const windowMs: number = RUNBOOK_WEBHOOK_RATE_LIMIT_WINDOW_SECONDS * 1000;
     const windowIndex: number = Math.floor(Date.now() / windowMs);
-    const counterKey: string = `${KEY_PREFIX}${data.key}:${windowIndex}`;
 
     try {
-      const count: number = await client.incr(counterKey);
+      const refusal: ClientRateLimitRefusal<string> | null = await data.count(
+        client,
+        windowIndex,
+      );
 
-      if (typeof count !== "number") {
-        throw new Error("Rate limit counter returned a non-numeric value");
+      if (!refusal) {
+        return { outcome: RunbookWebhookRateLimitOutcome.Allowed };
       }
 
-      /*
-       * Only the call that created the key sets its expiry: setting it on
-       * every call would slide the window for as long as calls keep coming.
-       */
-      if (count === 1) {
-        await client.expire(
-          counterKey,
-          RUNBOOK_WEBHOOK_RATE_LIMIT_WINDOW_SECONDS * TTL_MULTIPLIER,
-        );
-      }
-
-      if (count > data.limit) {
-        return {
-          outcome: RunbookWebhookRateLimitOutcome.RateLimited,
-          retryAfterSeconds: RunbookWebhookRateLimit.getSecondsUntilWindowEnd(),
-          isFirstRejectionInWindow: count === data.limit + 1,
-        };
-      }
-
-      return { outcome: RunbookWebhookRateLimitOutcome.Allowed };
+      return {
+        outcome: RunbookWebhookRateLimitOutcome.RateLimited,
+        retryAfterSeconds: RunbookWebhookRateLimit.getSecondsUntilWindowEnd(),
+        isFirstRejectionInWindow: refusal.isFirstRefusalInWindow,
+        ipv6Network64: refusal.ipv6Network64,
+      };
     } catch (error) {
       logger.warn(
-        `RunbookWebhookRateLimit: the counter for ${data.key} could not be read; refusing the call.`,
+        `RunbookWebhookRateLimit: the counter for ${data.what} could not be read; refusing the call.`,
       );
       logger.warn(error);
 
