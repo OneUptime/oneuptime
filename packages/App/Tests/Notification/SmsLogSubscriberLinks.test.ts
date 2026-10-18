@@ -88,6 +88,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import PublicMessageRateLimit from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
@@ -332,6 +333,15 @@ beforeAll(() => {
 beforeEach(() => {
   jest.clearAllMocks();
   stubProjectDirectory({});
+
+  /*
+   * Every request here is within the limits on what a public route may
+   * send its contacts (PublicMessageRateLimit), which
+   * Common/Tests/Server/API/StatusPageSubscriberMessageLimits.test.ts holds.
+   */
+  jest
+    .spyOn(PublicMessageRateLimit, "assertMaySend")
+    .mockResolvedValue(undefined);
   delivered = [];
   pendingSends = [];
 
