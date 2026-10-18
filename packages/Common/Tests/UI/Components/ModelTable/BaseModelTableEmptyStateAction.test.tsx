@@ -8,6 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   afterEach,
   beforeEach,
@@ -981,5 +982,40 @@ describe("a viewer who may read none of the columns", () => {
       "Ask a project admin for one of these permissions:",
     );
     expect(screen.queryByTestId(NO_ITEMS_TEST_ID)).toBeNull();
+  });
+});
+
+/*
+ * Static markup runs no effects, so it is the first paint exactly. The
+ * columns are built in an effect, and the table used to read "no columns
+ * built yet" as "no column allowed": every table opened on "You don't have
+ * access to this list", for a frame, or for as long as a slow page took to
+ * run its effects. That is how a master admin was told so on the Admin
+ * Dashboard's lists.
+ */
+describe("a viewer who may read the columns", () => {
+  type FirstPaintFunction = () => string;
+
+  const firstPaint: FirstPaintFunction = (): string => {
+    return renderToStaticMarkup(
+      <BaseModelTable<Monitor> {...makeProps({ rows: ROWS })} />,
+    );
+  };
+
+  test("is not told they have no access on the first paint", () => {
+    const markup: string = firstPaint();
+
+    expect(markup).not.toContain(`${TABLE_ID}-no-access`);
+    expect(markup).not.toContain("have access to this list");
+  });
+
+  test("nor when they read them through a permission, not as a master admin", () => {
+    isMasterAdminForTest = false;
+    permissionsForTest = [Permission.ReadProjectMonitor];
+
+    const markup: string = firstPaint();
+
+    expect(markup).not.toContain(`${TABLE_ID}-no-access`);
+    expect(markup).not.toContain("have access to this list");
   });
 });
