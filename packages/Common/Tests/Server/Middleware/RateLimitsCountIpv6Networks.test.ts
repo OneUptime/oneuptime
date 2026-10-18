@@ -11,11 +11,9 @@ import {
  * EVERY RATE LIMIT THAT COUNTS A CLIENT ADDRESS COUNTS ITS IPV6 /64 TOO.
  *
  * One IPv6 host is commonly given a whole /64, and can send every request
- * from another address of it. A limit that counted each address on its own
- * would hand that host a fresh allowance with every request: sign-in
- * attempts against one account, codes against one channel, master password
- * guesses against one dashboard or status page, form submissions,
- * calendar feed fetches, MCP OAuth registrations, runbook webhook calls.
+ * from another address of it, so every limit that counts a client address
+ * counts the /64 as well, with room for ten addresses
+ * (ClientRateLimitCounter).
  *
  * Each limit below is driven through its real middleware (or the call its
  * route makes), with requests that arrive the way they do through our

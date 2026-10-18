@@ -1080,11 +1080,9 @@ describe("when Redis is unreachable", () => {
 describe("an IPv6 /64 is counted as well as each of its addresses", () => {
   /*
    * One IPv6 host is commonly given a whole /64 and can send each attempt
-   * from another address of it. Counted per address alone, that host had a
-   * fresh allowance with every attempt - against a second factor, the
-   * unbounded guessing this limiter exists to stop. Each counter is now kept
-   * for the /64 as well, with room for ten addresses: a /64 is as often an
-   * office's network, where many people sign in, as one host's.
+   * from another address of it, so each counter is kept for the /64 as
+   * well, with room for ten addresses: a /64 is as often an office's
+   * network, where many people sign in, as one host's.
    */
   const NETWORK_ROOM: number = 10;
 

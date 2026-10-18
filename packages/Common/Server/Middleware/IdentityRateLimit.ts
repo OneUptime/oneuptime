@@ -119,12 +119,10 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * for.
  *
  * AN IPV6 /64 IS COUNTED TOO. One IPv6 host is commonly given a whole /64 and
- * can send every attempt from another address of it, so "how many addresses
- * they have" would be every one of 2^64 and neither counter would hold it to
- * anything. For an IPv6 client both counters are kept twice
- * (ClientRateLimitCounter): per address, at the limits below, and per /64,
- * with room for ten addresses -- a /64 is as often an office's network, where
- * many people sign in, as one host's. The per-account /64 counter is still
+ * can send every attempt from another address of it, so for an IPv6 client
+ * both counters are kept twice (ClientRateLimitCounter): per address, at the
+ * limits below, and per /64, with room for ten addresses -- a /64 is as often
+ * an office's network, where many people sign in, as one host's. The per-account /64 counter is still
  * keyed on the /64 and the account together, never on the account alone, so
  * attempts from one /64 never lock the account's owner out from anywhere
  * else; and an address over its own limit is not counted against its /64, so
