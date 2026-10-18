@@ -10,6 +10,7 @@ import SubscribeSideMenu from "./SideMenu";
 import {
   SubscribePageProps,
   getSubscribePreferenceFields,
+  isSubscribeChannelMenuShown,
 } from "./SubscribePageUtils";
 import Route from "Common/Types/API/Route";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
@@ -131,12 +132,14 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       title: t("subscribe.email.yourEmail"),
       /*
-       * Explicit localized description; otherwise the model's hardcoded English
-       * column description ("Email address of the subscriber.") leaks through.
+       * The card above says where updates go; the field says more only for
+       * a signed-in reader, whose address it fills in. The model's English
+       * column description ("Email address of the subscriber.") never shows.
        */
-      description: signInEmail
-        ? t("subscribe.email.signedInEmailDescription")
-        : t("subscribe.email.description"),
+      ...(signInEmail
+        ? { description: t("subscribe.email.signedInEmailDescription") }
+        : {}),
+      hideColumnDescription: true,
       fieldType: FormFieldSchemaType.Email,
       required: true,
       placeholder: t("subscribe.email.placeholder"),
@@ -280,16 +283,22 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         },
       ]}
       sideMenu={
-        <SubscribeSideMenu
-          isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
-          enableEmailSubscribers={props.enableEmailSubscribers}
-          enableSMSSubscribers={props.enableSMSSubscribers}
-          enableSlackSubscribers={props.enableSlackSubscribers}
-          enableMicrosoftTeamsSubscribers={
-            props.enableMicrosoftTeamsSubscribers
-          }
-          enableWebhookSubscribers={props.enableWebhookSubscribers}
-        />
+        /*
+         * The channels, only when there is more than one to pick
+         * from (isSubscribeChannelMenuShown).
+         */
+        isSubscribeChannelMenuShown(props) ? (
+          <SubscribeSideMenu
+            isPreviewStatusPage={Boolean(StatusPageUtil.isPreviewPage())}
+            enableEmailSubscribers={props.enableEmailSubscribers}
+            enableSMSSubscribers={props.enableSMSSubscribers}
+            enableSlackSubscribers={props.enableSlackSubscribers}
+            enableMicrosoftTeamsSubscribers={
+              props.enableMicrosoftTeamsSubscribers
+            }
+            enableWebhookSubscribers={props.enableWebhookSubscribers}
+          />
+        ) : undefined
       }
     >
       {isLaoding ? <FormSkeleton /> : <></>}

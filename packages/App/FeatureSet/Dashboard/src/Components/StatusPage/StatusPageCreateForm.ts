@@ -25,76 +25,78 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
  */
 
 // Create Status Page: the name, then More fields (description, labels).
-export const getStatusPageCreateFormFields: () => Array<Field<StatusPage>> =
-  (): Array<Field<StatusPage>> => {
-    const moreFields: FormFieldCollapsibleSection<StatusPage> =
-      getAdvancedFormSection<StatusPage>();
+export const getStatusPageCreateFormFields: () => Array<
+  Field<StatusPage>
+> = (): Array<Field<StatusPage>> => {
+  const moreFields: FormFieldCollapsibleSection<StatusPage> =
+    getAdvancedFormSection<StatusPage>();
 
-    return [
-      {
-        field: {
-          name: true,
-        },
-        title: "Name",
-        fieldType: FormFieldSchemaType.Text,
-        required: true,
-        placeholder: StatusPageOverviewCopy.namePlaceholder,
-        // The title says it; "Any friendly name of this object" says nothing more.
-        hideColumnDescription: true,
-        validation: {
-          minLength: 2,
-        },
+  return [
+    {
+      field: {
+        name: true,
       },
-      {
-        field: {
-          description: true,
-        },
-        title: "Description",
-        fieldType: FormFieldSchemaType.LongText,
-        required: false,
-        placeholder: StatusPageOverviewCopy.descriptionPlaceholder,
-        hideColumnDescription: true,
-        collapsibleSection: moreFields,
+      title: "Name",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: StatusPageOverviewCopy.namePlaceholder,
+      // The title says it; "Any friendly name of this object" says nothing more.
+      hideColumnDescription: true,
+      validation: {
+        minLength: 2,
       },
-      getLabelsFormField<StatusPage>({
-        collapsibleSection: moreFields,
-      }),
-    ];
-  };
+    },
+    {
+      field: {
+        description: true,
+      },
+      title: "Description",
+      fieldType: FormFieldSchemaType.LongText,
+      required: false,
+      placeholder: StatusPageOverviewCopy.descriptionPlaceholder,
+      hideColumnDescription: true,
+      collapsibleSection: moreFields,
+    },
+    getLabelsFormField<StatusPage>({
+      collapsibleSection: moreFields,
+    }),
+  ];
+};
 
 /*
  * The details card's Edit dialog: the name and the description open - the
  * description is on the card, so it is edited where it is read - and the
  * labels folded (getLabelsFormField folds them under a section of its own).
  */
-export const getStatusPageDetailsFormFields: () => Array<Field<StatusPage>> =
-  (): Array<Field<StatusPage>> => {
-    return [
-      {
-        field: {
-          name: true,
-        },
-        title: "Name",
-        fieldType: FormFieldSchemaType.Text,
-        required: true,
-        placeholder: StatusPageOverviewCopy.namePlaceholder,
-        hideColumnDescription: true,
-        validation: {
-          minLength: 2,
-        },
+export const getStatusPageDetailsFormFields: () => Array<
+  Field<StatusPage>
+> = (): Array<Field<StatusPage>> => {
+  return [
+    {
+      field: {
+        name: true,
       },
-      {
-        field: {
-          description: true,
-        },
-        title: "Description",
-        fieldType: FormFieldSchemaType.LongText,
-        required: false,
-        placeholder: StatusPageOverviewCopy.descriptionPlaceholder,
-        hideColumnDescription: true,
+      title: "Name",
+      fieldType: FormFieldSchemaType.Text,
+      required: true,
+      placeholder: StatusPageOverviewCopy.namePlaceholder,
+      hideColumnDescription: true,
+      validation: {
+        minLength: 2,
       },
-      getLabelsFormField<StatusPage>(),
-    ];
-  };
+    },
+    {
+      field: {
+        description: true,
+      },
+      title: "Description",
+      fieldType: FormFieldSchemaType.LongText,
+      required: false,
+      placeholder: StatusPageOverviewCopy.descriptionPlaceholder,
+      hideColumnDescription: true,
+    },
+    getLabelsFormField<StatusPage>(),
+  ];
+};
 
 export default getStatusPageCreateFormFields;

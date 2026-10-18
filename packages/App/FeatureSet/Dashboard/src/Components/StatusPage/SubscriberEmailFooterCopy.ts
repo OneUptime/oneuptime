@@ -51,9 +51,7 @@ export const SubscriberEmailFooterCopy: {
     "A line that says they get the email because they subscribed.",
   ),
   customTitle: translationKey("Your own text"),
-  customDescription: translationKey(
-    "Add a note, a link or a support address.",
-  ),
+  customDescription: translationKey("Add a note, a link or a support address."),
   textTitle: translationKey("Footer Text"),
   rowTitle: translationKey("Footer"),
   defaultPill: translationKey("Default"),

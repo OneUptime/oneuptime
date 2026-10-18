@@ -54,7 +54,9 @@ export const StatusPageCustomCodeCopy: {
   headerDescription: translationKey(
     "Replaces the page's header: its logo and header links.",
   ),
-  headerEmpty: translationKey("None: the page shows its logo and header links."),
+  headerEmpty: translationKey(
+    "None: the page shows its logo and header links.",
+  ),
   headerEdit: translationKey("Edit Header HTML"),
   footerTitle: translationKey("Footer HTML"),
   footerDescription: translationKey(
@@ -63,7 +65,9 @@ export const StatusPageCustomCodeCopy: {
   footerEmpty: translationKey("None: the page shows its own footer."),
   footerEdit: translationKey("Edit Footer HTML"),
   cssTitle: translationKey("Custom CSS"),
-  cssDescription: translationKey("Styles added to every page of the status page."),
+  cssDescription: translationKey(
+    "Styles added to every page of the status page.",
+  ),
   cssEdit: translationKey("Edit CSS"),
   javaScriptTitle: translationKey("Custom JavaScript"),
   javaScriptDescription: translationKey("Runs when the status page loads."),

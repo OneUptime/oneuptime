@@ -811,6 +811,8 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         fieldType: FormFieldSchemaType.RadioButton,
         radioButtonOptions: STATUS_PAGE_GROUP_VIEW_MODE_OPTIONS,
         required: false,
+        // One of the two is always picked: there is nothing to leave out.
+        hideOptionalLabel: true,
         defaultValue: StatusPageGroupViewMode.List,
         collapsibleSection: layoutSection,
       },
@@ -937,8 +939,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
         defaultValue: true,
-        description:
-          "Current Status will be shown beside this group on your status page.",
+        description: "Shows the group's status beside its name.",
         collapsibleSection: advancedSection,
       },
       {
@@ -950,7 +951,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         required: false,
         defaultValue: false,
         description:
-          "Show uptime percentage beside this group on your status page. The number of days is configured in Status Page Settings.",
+          "Shows the group's uptime beside it, over the days set under Uptime History on Advanced Settings.",
         collapsibleSection: advancedSection,
       },
       {

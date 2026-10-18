@@ -40,6 +40,25 @@ import {
 export type BrandingSwitchColumn = "enableSearchEngineIndexing";
 
 export const StatusPageBrandingCopy: {
+  /*
+   * The cards everyone sets, each saying what it changes for a visitor:
+   * they said "These will show up on your status page.", "Favicon will be
+   * used for SEO." (it is the browser tab's icon) and "Header Links for
+   * your status page", and two lists said "No status header link for this
+   * status page."
+   */
+  imagesDescription: string;
+  titleDescription: string;
+  pageTitlePlaceholder: string;
+  pageDescriptionPlaceholder: string;
+  faviconDescription: string;
+  headerLinksDescription: string;
+  headerLink: string;
+  headerLinks: string;
+  copyrightDescription: string;
+  footerLinksDescription: string;
+  footerLink: string;
+  footerLinks: string;
   // Under the More settings section's title, once it is open.
   advancedDescription: string;
   // The cards under More settings, as its folded header names them.
@@ -75,6 +94,28 @@ export const StatusPageBrandingCopy: {
   searchEngineIndexingSwitchDescription: string;
   notFound: string;
 } = {
+  imagesDescription: translationKey("Shown at the top of your status page."),
+  titleDescription: translationKey(
+    "Its name in the browser tab and in subscriber emails, and the description search engines show.",
+  ),
+  pageTitlePlaceholder: translationKey("e.g., Acme Status"),
+  pageDescriptionPlaceholder: translationKey(
+    "e.g., Live status of Acme's website and API.",
+  ),
+  faviconDescription: translationKey("The small icon in the browser tab."),
+  headerLinksDescription: translationKey(
+    "Links at the top of your status page, such as your website or support.",
+  ),
+  headerLink: translationKey("Header Link"),
+  headerLinks: translationKey("Header Links"),
+  copyrightDescription: translationKey(
+    "The line at the bottom of your status page, such as Acme, Inc.",
+  ),
+  footerLinksDescription: translationKey(
+    "Links at the bottom of your status page, such as your terms or privacy policy.",
+  ),
+  footerLink: translationKey("Footer Link"),
+  footerLinks: translationKey("Footer Links"),
   advancedDescription: translationKey(
     "History chart colors, languages, and whether search engines may list this page.",
   ),

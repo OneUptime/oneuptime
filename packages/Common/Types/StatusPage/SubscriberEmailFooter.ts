@@ -14,7 +14,10 @@ export const DEFAULT_SUBSCRIBER_EMAIL_FOOTER_TEXT: string =
   "This is an automated email sent to you because you are subscribed to this Status Page.";
 
 export interface SubscriberEmailFooterColumns {
-  enableCustomSubscriberEmailNotificationFooterText?: boolean | null | undefined;
+  enableCustomSubscriberEmailNotificationFooterText?:
+    | boolean
+    | null
+    | undefined;
   subscriberEmailNotificationFooterText?: string | null | undefined;
 }
 

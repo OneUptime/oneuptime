@@ -240,10 +240,14 @@ export const StatusPageAccessCopy: {
  * it). Named "Require SSO for Login" as the project's own switch is.
  * Turning it on asks first, with a red button: private users who sign in
  * with an email and password are locked out from then on.
+ *
+ * The card has no line of its own. It said "Test SSO with the link above
+ * before you require it.", which the Test Sign-In card right above it
+ * already says beside the link - and that card waits for a provider, so on
+ * a page with none the line pointed at a link that was not there.
  */
 export const StatusPageRequireSsoCopy: {
   cardTitle: string;
-  cardDescription: string;
   switchTitle: string;
   switchOnDescription: string;
   switchOffDescription: string;
@@ -253,9 +257,6 @@ export const StatusPageRequireSsoCopy: {
   confirmButton: string;
 } = {
   cardTitle: translationKey("SSO Settings"),
-  cardDescription: translationKey(
-    "Test SSO with the link above before you require it.",
-  ),
   switchTitle: translationKey("Require SSO for Login"),
   switchOnDescription: translationKey(
     "Private users sign in with SSO or OIDC only. Signing in with an email and password is turned off.",

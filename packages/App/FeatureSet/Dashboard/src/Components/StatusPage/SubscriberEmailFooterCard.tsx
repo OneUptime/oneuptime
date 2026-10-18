@@ -46,9 +46,9 @@ const isCustomInForm: (values: FormValues<StatusPage>) => boolean = (
  * The line subscribers read: the page's own text, or the default line - in
  * English, as the emails send it - with a Default pill.
  */
-export const EmailFooterLine: FunctionComponent<{ item: StatusPage }> = (props: {
+export const EmailFooterLine: FunctionComponent<{
   item: StatusPage;
-}): ReactElement => {
+}> = (props: { item: StatusPage }): ReactElement => {
   if (isCustomSubscriberEmailFooterUsed(props.item)) {
     return (
       <span className="whitespace-pre-line" data-testid="email-footer-line">

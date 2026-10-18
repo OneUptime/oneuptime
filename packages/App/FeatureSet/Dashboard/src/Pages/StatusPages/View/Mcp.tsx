@@ -102,19 +102,21 @@ const StatusPageMcp: FunctionComponent<
         </div>
       </Card>
 
-      <Card
-        title="Connect Claude Desktop"
-        description={
-          <div className="space-y-2 w-full mt-3">
-            <p>
-              <TranslatedSentence
-                template="Add this to {{file}}:"
-                slots={{ file: <code>claude_desktop_config.json</code> }}
-              />
-            </p>
-            <CodeBlock
-              language="json"
-              code={`{
+      <Card title="Connect Claude Desktop">
+        {/*
+         * The card's body, not its description: a description is hidden on
+         * a phone, and is a <p> that cannot hold these blocks.
+         */}
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <TranslatedSentence
+              template="Add this to {{file}}:"
+              slots={{ file: <code>claude_desktop_config.json</code> }}
+            />
+          </p>
+          <CodeBlock
+            language="json"
+            code={`{
   "mcpServers": {
     "oneuptime": {
       "transport": "streamable-http",
@@ -122,36 +124,38 @@ const StatusPageMcp: FunctionComponent<
     }
   }
 }`}
-            />
-          </div>
-        }
-      />
+          />
+        </div>
+      </Card>
 
-      <Card
-        title="Connect Claude Code"
-        description={
-          <div className="space-y-2 w-full mt-3">
-            <CodeBlock
-              language="bash"
-              code={`claude mcp add --transport http oneuptime ${mcpUrl}`}
-            />
-          </div>
-        }
-      />
+      <Card title="Connect Claude Code">
+        {/*
+         * The card's body, not its description: a description is hidden on
+         * a phone, and is a <p> that cannot hold these blocks.
+         */}
+        <div className="space-y-2 text-sm text-gray-600">
+          <CodeBlock
+            language="bash"
+            code={`claude mcp add --transport http oneuptime ${mcpUrl}`}
+          />
+        </div>
+      </Card>
 
-      <Card
-        title="Connect VS Code or Cursor"
-        description={
-          <div className="space-y-2 w-full mt-3">
-            <p>
-              <TranslatedSentence
-                template="Add this to {{file}} (VS Code) or your MCP configuration (Cursor):"
-                slots={{ file: <code>.vscode/mcp.json</code> }}
-              />
-            </p>
-            <CodeBlock
-              language="json"
-              code={`{
+      <Card title="Connect VS Code or Cursor">
+        {/*
+         * The card's body, not its description: a description is hidden on
+         * a phone, and is a <p> that cannot hold these blocks.
+         */}
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <TranslatedSentence
+              template="Add this to {{file}} (VS Code) or your MCP configuration (Cursor):"
+              slots={{ file: <code>.vscode/mcp.json</code> }}
+            />
+          </p>
+          <CodeBlock
+            language="json"
+            code={`{
   "servers": {
     "oneuptime": {
       "type": "http",
@@ -159,11 +163,9 @@ const StatusPageMcp: FunctionComponent<
     }
   }
 }`}
-            />
-          </div>
-        }
-      />
-
+          />
+        </div>
+      </Card>
     </Fragment>
   );
 };

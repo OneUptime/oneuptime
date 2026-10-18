@@ -83,7 +83,9 @@ export const SubscriberChoicesCopy: {
   twilioPlaceholder: string;
 } = {
   cardTitle: translationKey("Subscriber Choices"),
-  cardDescription: translationKey("What visitors can pick when they subscribe."),
+  cardDescription: translationKey(
+    "What visitors can pick when they subscribe.",
+  ),
   resourcesTitle: translationKey("Allow Subscribers to Choose Resources"),
   resourcesOnDescription: translationKey(
     "On: visitors pick the monitors and groups they hear about.",

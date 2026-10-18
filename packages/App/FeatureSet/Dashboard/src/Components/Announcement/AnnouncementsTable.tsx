@@ -167,6 +167,13 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         name="Status Page > Announcements"
         isViewable={true}
+        /*
+         * "Announcement", not the model's "Status Page Announcement": every
+         * row's button read "View Status Page Announcement", wide enough to
+         * push the End column under the actions on a 1280px screen.
+         */
+        singularName="Announcement"
+        pluralName="Announcements"
         query={{
           ...(props.query || {}),
           projectId: ProjectUtil.getCurrentProjectId()!,
@@ -176,9 +183,8 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
           buttons: cardbuttons,
           description:
             props.description ||
-            "Create and manage announcements that will be shown on status pages.",
+            "Notices on your status pages, such as planned work or news.",
         }}
-        noItemsMessage={"No announcements found."}
         createEditModalWidth={ModalWidth.Large}
         showRefreshButton={true}
         viewPageRoute={RouteUtil.populateRouteParams(
@@ -256,7 +262,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             },
             title: "End Announcement At",
             type: FieldType.DateTime,
-            noValueMessage: "-",
+            // Shown until removed: the table's quiet dash, like every cell.
             hideOnMobile: true,
           },
           {

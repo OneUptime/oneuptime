@@ -150,7 +150,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         name="Status Page > Branding > Header Style"
         cardProps={{
           title: "Logo and Cover Image",
-          description: "These will show up on your status page.",
+          description: StatusPageBrandingCopy.imagesDescription,
         }}
         isEditable={true}
         editButtonText={"Edit Images"}
@@ -262,7 +262,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         name="Status Page > Branding > Title and Description"
         cardProps={{
           title: "Title and Description",
-          description: "This will also be used for SEO.",
+          description: StatusPageBrandingCopy.titleDescription,
         }}
         editButtonText={"Edit"}
         isEditable={true}
@@ -274,7 +274,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             title: "Page Title",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "Please enter page title here.",
+            placeholder: StatusPageBrandingCopy.pageTitlePlaceholder,
           },
           {
             field: {
@@ -283,7 +283,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             title: "Page Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Please enter page description here.",
+            placeholder: StatusPageBrandingCopy.pageDescriptionPlaceholder,
           },
         ]}
         modelDetailProps={{
@@ -297,7 +297,6 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               },
               fieldType: FieldType.Text,
               title: "Page Title",
-              placeholder: "No page title entered so far.",
             },
             {
               field: {
@@ -305,7 +304,6 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               },
               fieldType: FieldType.Text,
               title: "Page Description",
-              placeholder: "No page description entered so far.",
             },
           ],
           modelId: modelId,
@@ -316,7 +314,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         name="Status Page > Branding > Favicon"
         cardProps={{
           title: "Favicon",
-          description: "Favicon will be used for SEO.",
+          description: StatusPageBrandingCopy.faviconDescription,
         }}
         isEditable={true}
         editButtonText={"Edit Favicon"}
@@ -382,11 +380,13 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
+        singularName={StatusPageBrandingCopy.headerLink}
+        pluralName={StatusPageBrandingCopy.headerLinks}
+        createVerb="Add"
         cardProps={{
           title: "Header Links",
-          description: "Header Links for your status page",
+          description: StatusPageBrandingCopy.headerLinksDescription,
         }}
-        noItemsMessage={"No status header link for this status page."}
         formFields={[
           {
             field: {
@@ -494,7 +494,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         name="Status Page > Branding > Copyright"
         cardProps={{
           title: "Copyright Info",
-          description: "Copyright info for your status page",
+          description: StatusPageBrandingCopy.copyrightDescription,
         }}
         isEditable={true}
         editButtonText={"Edit Copyright"}
@@ -520,7 +520,6 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               },
               fieldType: FieldType.Text,
               title: "Copyright Info",
-              placeholder: "No copyright info entered so far.",
             },
           ],
           modelId: modelId,
@@ -557,11 +556,13 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
+        singularName={StatusPageBrandingCopy.footerLink}
+        pluralName={StatusPageBrandingCopy.footerLinks}
+        createVerb="Add"
         cardProps={{
           title: "Footer Links",
-          description: "Footer Links for your status page",
+          description: StatusPageBrandingCopy.footerLinksDescription,
         }}
-        noItemsMessage={"No status footer link for this status page."}
         formFields={[
           {
             field: {

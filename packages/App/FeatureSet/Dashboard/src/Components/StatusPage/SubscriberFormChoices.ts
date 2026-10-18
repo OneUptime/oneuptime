@@ -152,18 +152,19 @@ export const SUBSCRIBER_ADD_CHOICE_COLUMNS: Record<
  * subscriber is created: not confirmed is a confirmation link whatever the
  * second says; confirmed sends the welcome only with the second on.
  */
-export const readSubscriberAddChoice: (values: Values) => SubscriberAddChoice =
-  (values: Values): SubscriberAddChoice => {
-    if (values["isSubscriptionConfirmed"] === false) {
-      return SubscriberAddChoice.AskToConfirm;
-    }
+export const readSubscriberAddChoice: (
+  values: Values,
+) => SubscriberAddChoice = (values: Values): SubscriberAddChoice => {
+  if (values["isSubscriptionConfirmed"] === false) {
+    return SubscriberAddChoice.AskToConfirm;
+  }
 
-    if (values["sendYouHaveSubscribedMessage"] === true) {
-      return SubscriberAddChoice.SubscribeAndTell;
-    }
+  if (values["sendYouHaveSubscribedMessage"] === true) {
+    return SubscriberAddChoice.SubscribeAndTell;
+  }
 
-    return SubscriberAddChoice.SubscribeNow;
-  };
+  return SubscriberAddChoice.SubscribeNow;
+};
 
 export const SUBSCRIBER_ADD_CHOICE: ColumnChoiceConfig<SubscriberAddChoice> = {
   key: SUBSCRIBER_ADD_CHOICE_FIELD_KEY,
@@ -193,18 +194,19 @@ export const SUBSCRIBER_ADD_CHOICE: ColumnChoiceConfig<SubscriberAddChoice> = {
 };
 
 // The status a stored subscriber has, as the tables' Status column reads it.
-export const readSubscriberStatus: (values: Values) => SubscriberStatusChoice =
-  (values: Values): SubscriberStatusChoice => {
-    if (values["isUnsubscribed"] === true) {
-      return SubscriberStatusChoice.Unsubscribed;
-    }
+export const readSubscriberStatus: (
+  values: Values,
+) => SubscriberStatusChoice = (values: Values): SubscriberStatusChoice => {
+  if (values["isUnsubscribed"] === true) {
+    return SubscriberStatusChoice.Unsubscribed;
+  }
 
-    if (values["isSubscriptionConfirmed"] === false) {
-      return SubscriberStatusChoice.AwaitingConfirmation;
-    }
+  if (values["isSubscriptionConfirmed"] === false) {
+    return SubscriberStatusChoice.AwaitingConfirmation;
+  }
 
-    return SubscriberStatusChoice.Subscribed;
-  };
+  return SubscriberStatusChoice.Subscribed;
+};
 
 /*
  * An email subscriber's Status: the three the table shows. Subscribed
@@ -241,8 +243,7 @@ export const EMAIL_SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice>
 
       return {
         isUnsubscribed: false,
-        isSubscriptionConfirmed:
-          choice === SubscriberStatusChoice.Subscribed,
+        isSubscriptionConfirmed: choice === SubscriberStatusChoice.Subscribed,
       };
     },
     dataTestId: "subscriber-status",
@@ -279,22 +280,22 @@ export const SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice> = {
 };
 
 // The columns Add in Bulk sends for an answer (it has no hidden columns).
-export const getSubscriberAddChoiceColumns: (
+export const getSubscriberAddChoiceColumns: (choice: unknown) => {
+  isSubscriptionConfirmed: boolean;
+  sendYouHaveSubscribedMessage: boolean;
+} = (
   choice: unknown,
-) => { isSubscriptionConfirmed: boolean; sendYouHaveSubscribedMessage: boolean } =
-  (
-    choice: unknown,
-  ): {
-    isSubscriptionConfirmed: boolean;
-    sendYouHaveSubscribedMessage: boolean;
-  } => {
-    const known: SubscriberAddChoice = Object.values(
-      SubscriberAddChoice,
-    ).includes(choice as SubscriberAddChoice)
-      ? (choice as SubscriberAddChoice)
-      : SubscriberAddChoice.SubscribeNow;
+): {
+  isSubscriptionConfirmed: boolean;
+  sendYouHaveSubscribedMessage: boolean;
+} => {
+  const known: SubscriberAddChoice = Object.values(
+    SubscriberAddChoice,
+  ).includes(choice as SubscriberAddChoice)
+    ? (choice as SubscriberAddChoice)
+    : SubscriberAddChoice.SubscribeNow;
 
-    return { ...SUBSCRIBER_ADD_CHOICE_COLUMNS[known] };
-  };
+  return { ...SUBSCRIBER_ADD_CHOICE_COLUMNS[known] };
+};
 
 export default SubscriberFormCopy;
