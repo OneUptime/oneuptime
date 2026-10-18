@@ -30876,5 +30876,9 @@
   "No sign-in": "Niet aanmelden",
   "With on-call escalation, SLAs and status pages.": "Met on-call-escalatie, SLA's en statuspagina's.",
   "A token from the TAXII server's operator.": "Een token van de beheerder van de TAXII-server.",
-  "Bearer token": "Bearer-token"
+  "Bearer token": "Bearer-token",
+  "For hosts without key access.": "Voor hosts zonder toegang met een sleutel.",
+  "Private key": "Privésleutel",
+  "Sign in with": "Aanmelden met",
+  "The better option where you have the choice.": "De betere keuze waar u kunt kiezen."
 }

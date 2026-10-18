@@ -30876,5 +30876,9 @@
   "No sign-in": "サインインなし",
   "With on-call escalation, SLAs and status pages.": "オンコールのエスカレーション、SLA、ステータスページが動きます。",
   "A token from the TAXII server's operator.": "TAXII サーバーの運用者から受け取ったトークン。",
-  "Bearer token": "Bearer トークン"
+  "Bearer token": "Bearer トークン",
+  "For hosts without key access.": "鍵でアクセスできないホスト向け。",
+  "Private key": "秘密鍵",
+  "Sign in with": "サインイン方法",
+  "The better option where you have the choice.": "選べるなら、こちらがおすすめです。"
 }

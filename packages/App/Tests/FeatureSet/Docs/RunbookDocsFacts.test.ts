@@ -200,6 +200,10 @@ const RUNNER_VIEW: string = readDashboard(
 const CREDENTIALS_PAGE: string = readDashboard(
   "Pages/Runbook/Runners/RunnerCredentials.tsx",
 );
+// How an SSH credential signs in: the choice's words.
+const SSH_SIGN_IN: string = readDashboard(
+  "Components/Runner/RunnerCredentialSignIn.ts",
+);
 const SECRETS_PAGE: string = readDashboard("Pages/Runbook/Secrets.tsx");
 const RULES_TABLE: string = readDashboard(
   "Components/Runbook/RunbookRulesTable.tsx",
@@ -1705,6 +1709,23 @@ describe("credentials and secrets", () => {
       });
       expect(create).toContain(`**${field}**`);
     }
+
+    // An SSH credential asks how it signs in first: a key or a password.
+    expect(CREDENTIALS_PAGE).toContain(
+      "overrideFieldKey: SSH_SIGN_IN_FIELD_KEY, formOnly: true, title: SSH_SIGN_IN_FIELD_TITLE,".replace(
+        /, /g,
+        ",\n            ",
+      ),
+    );
+
+    for (const word of ["Sign in with", "Private key", "Password"]) {
+      expect(SSH_SIGN_IN).toContain(`translationKey("${word}")`);
+      expect(create).toContain(`**${word}**`);
+    }
+
+    expect(create).toContain(
+      "pick how to **Sign in with**: a **Private key**, the better option where you have the choice",
+    );
   });
 
   it("connect to port 22 when the port is left empty", () => {

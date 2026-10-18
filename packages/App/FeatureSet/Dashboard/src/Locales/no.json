@@ -30876,5 +30876,9 @@
   "No sign-in": "Ingen pålogging",
   "With on-call escalation, SLAs and status pages.": "Med vakteskalering, SLA-er og statussider.",
   "A token from the TAXII server's operator.": "Et token fra operatøren av TAXII-serveren.",
-  "Bearer token": "Bearer-token"
+  "Bearer token": "Bearer-token",
+  "For hosts without key access.": "For verter uten nøkkeltilgang.",
+  "Private key": "Privat nøkkel",
+  "Sign in with": "Logg på med",
+  "The better option where you have the choice.": "Det beste valget der du kan velge."
 }

@@ -30876,5 +30876,9 @@
   "No sign-in": "Nessun accesso",
   "With on-call escalation, SLAs and status pages.": "Con escalation della reperibilità, SLA e pagine di stato.",
   "A token from the TAXII server's operator.": "Un token fornito dall'operatore del server TAXII.",
-  "Bearer token": "Token bearer"
+  "Bearer token": "Token bearer",
+  "For hosts without key access.": "Per gli host senza accesso tramite chiave.",
+  "Private key": "Chiave privata",
+  "Sign in with": "Accedi con",
+  "The better option where you have the choice.": "L'opzione migliore quando puoi scegliere."
 }

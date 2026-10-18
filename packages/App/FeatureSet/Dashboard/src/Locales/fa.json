@@ -30876,5 +30876,9 @@
   "No sign-in": "بدون ورود",
   "With on-call escalation, SLAs and status pages.": "همراه با ارجاع کشیک، SLAها و صفحه‌های وضعیت.",
   "A token from the TAXII server's operator.": "توکنی از گردانندهٔ سرور TAXII.",
-  "Bearer token": "توکن Bearer"
+  "Bearer token": "توکن Bearer",
+  "For hosts without key access.": "برای میزبان‌هایی که با کلید دسترسی ندارند.",
+  "Private key": "کلید خصوصی",
+  "Sign in with": "ورود با",
+  "The better option where you have the choice.": "هرجا انتخاب دارید، گزینهٔ بهتری است."
 }

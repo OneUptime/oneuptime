@@ -30876,5 +30876,9 @@
   "No sign-in": "Без входа",
   "With on-call escalation, SLAs and status pages.": "С эскалацией дежурств, SLA и страницами статуса.",
   "A token from the TAXII server's operator.": "Токен от оператора сервера TAXII.",
-  "Bearer token": "Bearer-токен"
+  "Bearer token": "Bearer-токен",
+  "For hosts without key access.": "Для хостов без доступа по ключу.",
+  "Private key": "Закрытый ключ",
+  "Sign in with": "Способ входа",
+  "The better option where you have the choice.": "Лучший вариант, если есть выбор."
 }

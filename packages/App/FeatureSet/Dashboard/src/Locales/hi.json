@@ -30876,5 +30876,9 @@
   "No sign-in": "साइन-इन नहीं",
   "With on-call escalation, SLAs and status pages.": "ऑन-कॉल एस्केलेशन, SLA और स्टेटस पेज के साथ।",
   "A token from the TAXII server's operator.": "TAXII सर्वर के ऑपरेटर से मिला टोकन।",
-  "Bearer token": "Bearer टोकन"
+  "Bearer token": "Bearer टोकन",
+  "For hosts without key access.": "उन होस्ट के लिए जिन पर कुंजी से पहुँच नहीं है।",
+  "Private key": "निजी कुंजी",
+  "Sign in with": "इससे साइन इन करें",
+  "The better option where you have the choice.": "जहाँ विकल्प हो, वहाँ यही बेहतर है।"
 }

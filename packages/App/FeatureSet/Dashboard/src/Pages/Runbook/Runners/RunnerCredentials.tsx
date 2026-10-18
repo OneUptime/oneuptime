@@ -9,6 +9,15 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
+import {
+  SSH_SIGN_IN_ANSWERS,
+  SSH_SIGN_IN_COPY,
+  SSH_SIGN_IN_FIELD_KEY,
+  SSH_SIGN_IN_FIELD_TITLE,
+  SshSignIn,
+  getSshSignIn,
+  showsSshSecret,
+} from "../../../Components/Runner/RunnerCredentialSignIn";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -156,17 +165,50 @@ const RunbookCredentials: FunctionComponent<
             required: true,
             placeholder: "deploy",
           },
+          /*
+           * A key or a password: one choice (RunnerCredentialSignIn) where
+           * the key, its passphrase and a password were asked at once. A new
+           * credential's only - stored secrets are never read back, so an
+           * Edit form offers every secret field, each kept when left blank.
+           */
+          {
+            overrideField: { sshUsername: true },
+            overrideFieldKey: SSH_SIGN_IN_FIELD_KEY,
+            formOnly: true,
+            title: SSH_SIGN_IN_FIELD_TITLE,
+            stepId: "ssh-authentication",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: SSH_SIGN_IN_ANSWERS.map((signIn: SshSignIn) => {
+              return {
+                value: signIn,
+                title: SSH_SIGN_IN_COPY[signIn].title,
+                description: SSH_SIGN_IN_COPY[signIn].description,
+              };
+            }),
+            required: true,
+            hideColumnDescription: true,
+            doNotShowWhenEditing: true,
+            defaultValue: SshSignIn.PrivateKey,
+            dataTestId: "ssh-sign-in",
+          },
           {
             field: { sshPrivateKey: true },
             title: "Private Key (PEM)",
             stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
-              return item.credentialType === RunbookCredentialType.SSH;
+              return (
+                item.credentialType === RunbookCredentialType.SSH &&
+                showsSshSecret(item, SshSignIn.PrivateKey)
+              );
             },
-            description:
-              "Encrypted at rest and never shown again. Leave empty when using a password.",
+            description: "Encrypted at rest and never shown again.",
             fieldType: FormFieldSchemaType.LongText,
-            required: false,
+            required: (item: FormValues<RunbookCredential>): boolean => {
+              return getSshSignIn(item) === SshSignIn.PrivateKey;
+            },
             placeholder: "-----BEGIN OPENSSH PRIVATE KEY-----",
           },
           {
@@ -174,7 +216,10 @@ const RunbookCredentials: FunctionComponent<
             title: "Private Key Passphrase",
             stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
-              return item.credentialType === RunbookCredentialType.SSH;
+              return (
+                item.credentialType === RunbookCredentialType.SSH &&
+                showsSshSecret(item, SshSignIn.PrivateKey)
+              );
             },
             description: "Only if the key is passphrase-protected.",
             fieldType: FormFieldSchemaType.Password,
@@ -185,12 +230,16 @@ const RunbookCredentials: FunctionComponent<
             title: "Password",
             stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
-              return item.credentialType === RunbookCredentialType.SSH;
+              return (
+                item.credentialType === RunbookCredentialType.SSH &&
+                showsSshSecret(item, SshSignIn.Password)
+              );
             },
-            description:
-              "For hosts without key access. A key is the better option where you have the choice.",
+            description: "Encrypted at rest and never shown again.",
             fieldType: FormFieldSchemaType.Password,
-            required: false,
+            required: (item: FormValues<RunbookCredential>): boolean => {
+              return getSshSignIn(item) === SshSignIn.Password;
+            },
           },
 
           {

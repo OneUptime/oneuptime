@@ -8,6 +8,8 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -30,6 +32,8 @@ const AIChatUnavailableView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const copy: AIChatUnavailableCopy = getAIChatUnavailableCopy(props.reason);
+  // In the reader's language: the copy is English text keys.
+  const translator: Translator = useTranslator();
 
   const actionRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[copy.actionPage as PageMap] as Route,
@@ -45,11 +49,11 @@ const AIChatUnavailableView: FunctionComponent<ComponentProps> = (
       </div>
 
       <h3 className="mt-4 text-base font-semibold tracking-tight text-gray-900">
-        {copy.title}
+        {translator.translateText(copy.title)}
       </h3>
 
       <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500">
-        {copy.description}
+        {translator.translateText(copy.description)}
       </p>
 
       <Link
@@ -57,7 +61,7 @@ const AIChatUnavailableView: FunctionComponent<ComponentProps> = (
         className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
       >
         <Icon icon={IconProp.Settings} className="h-4 w-4" />
-        <span>{copy.actionLabel}</span>
+        <span>{translator.translateText(copy.actionLabel)}</span>
       </Link>
     </div>
   );

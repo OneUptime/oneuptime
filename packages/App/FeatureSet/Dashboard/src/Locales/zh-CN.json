@@ -30876,5 +30876,9 @@
   "No sign-in": "无需登录",
   "With on-call escalation, SLAs and status pages.": "会触发值班升级、SLA 和状态页。",
   "A token from the TAXII server's operator.": "TAXII 服务器运营方提供的令牌。",
-  "Bearer token": "Bearer 令牌"
+  "Bearer token": "Bearer 令牌",
+  "For hosts without key access.": "适用于无法用密钥访问的主机。",
+  "Private key": "私钥",
+  "Sign in with": "登录方式",
+  "The better option where you have the choice.": "可以选择时，这是更好的方式。"
 }

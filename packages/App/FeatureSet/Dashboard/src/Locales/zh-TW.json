@@ -30876,5 +30876,9 @@
   "No sign-in": "無需登入",
   "With on-call escalation, SLAs and status pages.": "會觸發值班升級、SLA 和狀態頁。",
   "A token from the TAXII server's operator.": "TAXII 伺服器營運方提供的權杖。",
-  "Bearer token": "Bearer 權杖"
+  "Bearer token": "Bearer 權杖",
+  "For hosts without key access.": "適用於無法用金鑰存取的主機。",
+  "Private key": "私密金鑰",
+  "Sign in with": "登入方式",
+  "The better option where you have the choice.": "可以選擇時，這是更好的方式。"
 }

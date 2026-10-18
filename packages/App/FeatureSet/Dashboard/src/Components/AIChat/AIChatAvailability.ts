@@ -1,5 +1,6 @@
 import PageMap from "../../Utils/PageMap";
 import IconProp from "Common/Types/Icon/IconProp";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Why Ask AI cannot answer a question right now.
@@ -31,7 +32,11 @@ export interface AIChatUnavailableCopy {
   icon: IconProp;
   title: string;
   description: string;
-  // The settings page that owns the switch, and the words that link to it.
+  /*
+   * The settings page that owns the switch, and the button that opens it:
+   * what to do there, in a few words. It read "Go to Project Settings > AI
+   * > LLM Providers", a menu path on a button; the description says where.
+   */
   actionPage: PageMap;
   actionLabel: string;
 }
@@ -43,7 +48,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
     description:
       "Ask AI needs the Growth plan or higher. Upgrade the project to ask questions about your logs, traces, metrics, incidents and monitors.",
     actionPage: PageMap.SETTINGS_BILLING,
-    actionLabel: "Go to Project Settings > Billing and Invoices > Billing",
+    actionLabel: translationKey("Upgrade plan"),
   },
   [AIChatUnavailableReason.DisabledForProject]: {
     icon: IconProp.Sparkles,
@@ -56,7 +61,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
      * a page they cannot find.
      */
     actionPage: PageMap.SETTINGS_AI_FEATURES,
-    actionLabel: "Go to Project Settings > AI > AI Features",
+    actionLabel: translationKey("Open AI Features"),
   },
   [AIChatUnavailableReason.NoProviderConfigured]: {
     icon: IconProp.Sparkles,
@@ -64,7 +69,7 @@ const COPY: Record<AIChatUnavailableReason, AIChatUnavailableCopy> = {
     description:
       "Ask AI sends your questions to a model, and this project has no provider to send them to yet. Add one to start chatting.",
     actionPage: PageMap.SETTINGS_AI_LLM_PROVIDERS,
-    actionLabel: "Go to Project Settings > AI > LLM Providers",
+    actionLabel: translationKey("Add an LLM provider"),
   },
 };
 
