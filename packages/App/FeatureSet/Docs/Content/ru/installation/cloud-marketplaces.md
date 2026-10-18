@@ -182,4 +182,5 @@ OneUptime не может отправлять отчёты маркетплей
 - [Обновление](/docs/installation/upgrading): Заметки к обновлению для каждого релиза.
 - [Подбор размеров и планирование ёмкости](/docs/installation/sizing): Подберите размеры хранилищ данных под свою телеметрию.
 - [Архитектура](/docs/self-hosted/architecture): Что работает в вашем кластере.
+- [Агент Kubernetes](/docs/telemetry/kubernetes-agent#установка-в-виде-дополнения-amazon-eks): Бесплатно и в AWS Marketplace — как дополнение Amazon EKS для кластеров, которые отправляют данные в OneUptime.
 :::

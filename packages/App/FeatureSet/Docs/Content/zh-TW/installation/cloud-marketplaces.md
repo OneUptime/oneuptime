@@ -182,4 +182,5 @@ OneUptime 的資料庫需要持久性磁碟區。請為叢集設定預設的 Sto
 - [升級](/docs/installation/upgrading): 每個版本的升級說明。
 - [規模與容量規劃](/docs/installation/sizing): 依您的遙測資料決定資料儲存的規模。
 - [架構](/docs/self-hosted/architecture): 您的叢集中執行了什麼。
+- [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent#作為-amazon-eks-附加元件安裝): 也能以 Amazon EKS 附加元件的形式在 AWS Marketplace 上免費取得，適用於將資料傳送到 OneUptime 的叢集。
 :::

@@ -182,4 +182,5 @@ OneUptimes databaser behöver beständiga volymer. Ge klustret en standard-Stora
 - [Uppgradering](/docs/installation/upgrading): Uppgraderingsanteckningarna för varje version.
 - [Dimensionering och kapacitetsplanering](/docs/installation/sizing): Dimensionera datalagren för din telemetri.
 - [Arkitektur](/docs/self-hosted/architecture): Vad som körs i ditt kluster.
+- [Kubernetes-agent](/docs/telemetry/kubernetes-agent#installera-som-amazon-eks-tillägg): Gratis även på AWS Marketplace, som Amazon EKS-tillägg, för kluster som skickar data till OneUptime.
 :::

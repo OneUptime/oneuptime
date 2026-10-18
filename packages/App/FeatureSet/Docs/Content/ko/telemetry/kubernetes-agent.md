@@ -4,6 +4,7 @@ OneUptime Kubernetes 에이전트는 Helm 차트로, 클러스터의 메트릭, 
 
 :::cards
 - [에이전트 설치](#에이전트-설치): Helm으로 네 단계.
+- [Amazon EKS 추가 기능으로 설치](#amazon-eks-추가-기능으로-설치): Helm 없이 EKS 콘솔에서.
 - [구성 옵션](#구성-옵션): 필터, 샘플링, 컨트롤 플레인, 서비스 메시, 비용, 레이블.
 - [Kubernetes AI 에이전트](#kubernetes-ai-에이전트): OneUptime AI를 위한 읽기 전용 `kubectl`과, 허용할 때의 수정.
 - [전송량 줄이기](#수집하는-데이터양-줄이기): 효과가 큰 순서로 정리한 조정 수단.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 **제품 → 인프라 → Kubernetes → 모든 클러스터**를 엽니다. 몇 분 안에 클러스터가 `clusterName`으로 나타나고 노드, Pod, 워크로드가 채워집니다. Kubernetes AI 에이전트는 클러스터의 **AI** 아래 **에이전트** 페이지에 연결됨으로 표시됩니다.
 :::
 
+## Amazon EKS 추가 기능으로 설치
+
+Amazon EKS에서는 에이전트를 EKS 콘솔에서 추가할 수도 있습니다. EKS 콘솔에서 에이전트는 AWS Marketplace 추가 기능 중 하나로 제공됩니다. 비용은 들지 않으며, 설치, 업그레이드, 제거는 EKS가 대신 처리합니다. 이 추가 기능은 이 차트를 추가 기능에 필요한 방식으로 구성한 것입니다:
+
+- 직접 운영하는 OneUptime의 URL을 지정하지 않으면 OneUptime Cloud(`https://oneuptime.com`)로 데이터를 보냅니다.
+- 수집 키는 직접 만든 Kubernetes Secret에서 읽으며, EKS가 일반 텍스트로 표시하는 추가 기능 구성에서는 절대 읽지 않습니다.
+- 클러스터를 EKS 클러스터 이름으로 OneUptime에 보고합니다.
+- `oneuptime-agent` 네임스페이스에서 실행됩니다.
+
+:::steps
+### 수집 키를 Secret에 저장
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### 추가 기능 추가
+
+EKS 콘솔에서 클러스터를 열고 **Add-ons** 탭을 선택한 뒤 **Get more add-ons** 버튼을 선택하고, AWS Marketplace 추가 기능 중에서 OneUptime Kubernetes 에이전트를 고르세요. 무료로 구독한 다음 추가 기능을 생성하세요. AWS CLI로 추가할 수도 있습니다:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### 실행 중인지 확인
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Pod가 실행되면 추가 기능은 `ACTIVE` 상태가 되고, 몇 분 안에 클러스터가 EKS 클러스터 이름으로 OneUptime에 나타납니다. `CreateContainerConfigError` 상태에 머무는 Pod는 Secret을 찾지 못하는 것입니다. 첫 번째 단계처럼 `oneuptime-agent` 네임스페이스에 Secret을 만드세요.
+:::
+
+### 추가 기능 구성 값
+
+EKS 콘솔의 **Optional configuration settings** 섹션에서 설정하거나, 추가 기능을 생성하거나 업데이트할 때 `--configuration-values`로 설정하세요. 모두 선택 사항입니다:
+
+- `oneuptime.url`: OneUptime의 주소. 기본값은 `https://oneuptime.com`입니다.
+- `oneuptime.existingSecretName`: 수집 키를 `api-key` 항목에 담고 있는 Secret. 기본값은 `oneuptime-ingestion-key`입니다.
+- `oneuptime.labels`: 이 클러스터가 보내는 모든 데이터에 붙는 프로젝트 레이블(예: `{"team": "payments"}`).
+- `preset`: Fargate에서만 실행되는 클러스터에는 `eks-fargate`, 그 밖에는 기본값인 `standard`.
+- `logs.enabled`, `ebpf.enabled`, `aiAgent.enabled`: Pod 로그, eBPF 트레이스, [Kubernetes AI 에이전트](#kubernetes-ai-에이전트). 모두 기본적으로 켜져 있습니다.
+- `kubeStateMetrics.enabled`, `cost.enabled`: kube-state-metrics와 [비용 옵저버빌리티](/docs/telemetry/kubernetes-cost). 모두 기본적으로 꺼져 있습니다.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+업데이트는 구성 전체를 교체하므로, 지정하지 않은 값은 기본값으로 돌아갑니다. 프로파일러, OneUptime AI의 수정, 네임스페이스 필터 등 차트의 나머지 설정에는 [Helm 설치](#에이전트-설치)가 필요합니다. 클러스터를 Helm 설치에서 추가 기능으로 옮기려면 먼저 Helm 릴리스를 제거하세요.
+
 ## 프리셋 선택
 
 `preset`은 플랫폼에서 작동하는 기본값을 고릅니다. Pod 로그를 `hostPath`를 통해 노드에서 읽을지 Kubernetes API를 통해 읽을지, 그리고 어떤 워크로드가 privileged로 실행될 수 있는지입니다.
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## 구성 옵션
 
 아래 옵션은 모두 Helm 값입니다. 설치할 때 설정하거나, 설치된 에이전트에서는 `helm upgrade ... --reset-then-reuse-values --set <value>`로 설정하세요.
+
+### 수집 키를 Secret에 보관
+
+`--set oneuptime.apiKey`는 키를 릴리스의 값에 남기며, Helm은 이 값을 리비전마다 저장합니다. 키를 값에 남기지 않으려면 에이전트의 네임스페이스에 있는 Secret에 `api-key` 항목으로 키를 넣고, 대신 그 Secret의 이름을 지정하세요:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+그러면 모든 에이전트 워크로드가 그 Secret에서 키를 읽고, 차트는 자체 Secret을 만들지 않습니다. `oneuptime.apiKey`와 `oneuptime.existingSecretName` 중 하나만 설정하고 둘 다 설정하지는 마세요. 둘을 함께 설정하면 차트가 거부합니다. Secret은 External Secrets Operator처럼 Secret을 생성하는 도구라면 무엇으로든 만들 수 있습니다.
 
 ### 네임스페이스 필터링
 
