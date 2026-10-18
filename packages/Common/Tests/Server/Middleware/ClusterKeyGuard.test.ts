@@ -42,11 +42,13 @@ import ts from "typescript";
 
 const CODE_FILE: RegExp = /\.(?:ts|tsx)$/;
 
-const ENVIRONMENT_CONFIG: string = "packages/Common/Server/EnvironmentConfig.ts";
+const ENVIRONMENT_CONFIG: string =
+  "packages/Common/Server/EnvironmentConfig.ts";
 const CLUSTER_KEY_AUTHORIZATION: string =
   "packages/Common/Server/Middleware/ClusterKeyAuthorization.ts";
 const RUNNER_CONFIG: string = "packages/Runner/Config.ts";
-const RUNNER_REGISTRATION: string = "packages/Runner/Services/RegisterRunner.ts";
+const RUNNER_REGISTRATION: string =
+  "packages/Runner/Services/RegisterRunner.ts";
 
 const ONEUPTIME_SECRET_READ: RegExp =
   /process\.env(?:\[\s*["'`]ONEUPTIME_SECRET["'`]\s*\]|\.ONEUPTIME_SECRET\b)/;
@@ -106,7 +108,9 @@ function filesImportingFromEnvironmentConfig(
 ): Array<string> {
   const importers: Array<string> = [];
 
-  for (const relativePath of productFilesWhoseCodeMatches(/EnvironmentConfig/)) {
+  for (const relativePath of productFilesWhoseCodeMatches(
+    /EnvironmentConfig/,
+  )) {
     const sourceFile: ts.SourceFile = ts.createSourceFile(
       path.basename(relativePath),
       fs.readFileSync(path.join(REPOSITORY_DIRECTORY, relativePath), "utf8"),
@@ -146,9 +150,7 @@ function filesImportingFromEnvironmentConfig(
         bindings &&
         ts.isNamedImports(bindings) &&
         bindings.elements.some((element: ts.ImportSpecifier): boolean => {
-          return names.includes(
-            (element.propertyName || element.name).text,
-          );
+          return names.includes((element.propertyName || element.name).text);
         })
       ) {
         importers.push(relativePath);
@@ -176,7 +178,10 @@ describe("ONEUPTIME_SECRET is read in one place, with no fallback", () => {
 
   test("only ClusterKeyAuthorization reads the configured key, and only the Runner whether one is set", () => {
     expect(
-      filesImportingFromEnvironmentConfig(["ClusterKey", "IsClusterKeyShipped"]),
+      filesImportingFromEnvironmentConfig([
+        "ClusterKey",
+        "IsClusterKeyShipped",
+      ]),
     ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
     expect(filesImportingFromEnvironmentConfig(["HasClusterKey"])).toEqual([
       RUNNER_CONFIG,
@@ -236,7 +241,9 @@ describe("a presented cluster key is read in one place", () => {
         if (
           ts.isImportDeclaration(node) &&
           ts.isStringLiteral(node.moduleSpecifier) &&
-          node.moduleSpecifier.text.endsWith("Middleware/ClusterKeyAuthorization")
+          node.moduleSpecifier.text.endsWith(
+            "Middleware/ClusterKeyAuthorization",
+          )
         ) {
           const clause: ts.ImportClause | undefined = node.importClause;
 
@@ -284,7 +291,8 @@ describe("a presented cluster key is read in one place", () => {
 });
 
 describe("only processes that can know the installation's key present it", () => {
-  const presenters: Array<string> = productFilesWhoseCodeMatches(PRESENTING_CALL);
+  const presenters: Array<string> =
+    productFilesWhoseCodeMatches(PRESENTING_CALL);
 
   test("the app's own code and the Runner, nothing else", () => {
     expect(presenters.length).toBeGreaterThan(0);
@@ -316,7 +324,9 @@ describe("only processes that can know the installation's key present it", () =>
     const check: number = code.indexOf(
       "if (ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) {",
     );
-    const present: number = code.indexOf("ClusterKeyAuthorization.getClusterKey()");
+    const present: number = code.indexOf(
+      "ClusterKeyAuthorization.getClusterKey()",
+    );
 
     expect(check).toBeGreaterThan(-1);
     expect(present).toBeGreaterThan(check);

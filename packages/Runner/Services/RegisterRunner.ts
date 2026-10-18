@@ -407,10 +407,10 @@ export default class Register {
           error instanceof ShippedClusterKeyError
             ? "nothing is sent until an operator sets ONEUPTIME_SECRET; what to do is logged below (and only once)."
             : needsOperator
-          ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
-          : error instanceof RegistrationRefusedError
-            ? "the Runner keeps retrying; the reason the server gave is logged below."
-            : "the Runner keeps retrying until the server is reachable.";
+              ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
+              : error instanceof RegistrationRefusedError
+                ? "the Runner keeps retrying; the reason the server gave is logged below."
+                : "the Runner keeps retrying until the server is reachable.";
 
         logger.error(
           isLastAttempt

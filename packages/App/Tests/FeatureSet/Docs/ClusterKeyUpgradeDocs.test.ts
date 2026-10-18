@@ -204,9 +204,9 @@ describe("the English upgrade note on a placeholder ONEUPTIME_SECRET", () => {
     expect(ENGLISH_NOTE).toContain(
       "until then the Runner logs what to set and does not register",
     );
-    expect(
-      source("packages/Runner/Services/RegisterRunner.ts"),
-    ).toContain("This in-cluster Runner cannot register");
+    expect(source("packages/Runner/Services/RegisterRunner.ts")).toContain(
+      "This in-cluster Runner cannot register",
+    );
     expect(ENGLISH_NOTE).toContain(
       "An installation that set its own `ONEUPTIME_SECRET` sees no change.",
     );

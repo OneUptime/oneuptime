@@ -162,7 +162,11 @@ describe("the secrets it may set", () => {
     ["the old fallback", "secret", true],
     ["the placeholder", PLACEHOLDER, true],
     ["a placeholder with something appended", `${PLACEHOLDER}-2`, true],
-    ["a probe's placeholder", "probe-1-please-change-this-to-random-value", true],
+    [
+      "a probe's placeholder",
+      "probe-1-please-change-this-to-random-value",
+      true,
+    ],
     ["an operator's value", "3b9f1c7e5a2d48f6b0e9c3a7d1f5b8e2", false],
     ["one that starts like the fallback", "secretive", false],
     ["an empty value", "", false],
@@ -196,7 +200,10 @@ describe("replacePlaceholderSecrets", () => {
       });
 
     expect(changed).toEqual([
-      [`ONEUPTIME_SECRET=${PLACEHOLDER}`, "ONEUPTIME_SECRET=the-new-cluster-key"],
+      [
+        `ONEUPTIME_SECRET=${PLACEHOLDER}`,
+        "ONEUPTIME_SECRET=the-new-cluster-key",
+      ],
     ]);
   });
 
@@ -219,7 +226,10 @@ describe("replacePlaceholderSecrets", () => {
     ["an operator's key", "ONEUPTIME_SECRET=3b9f1c7e5a2d48f6b0e9c3a7d1f5b8e2"],
     ["an empty value", "ONEUPTIME_SECRET="],
     ["a commented-out placeholder", `# ONEUPTIME_SECRET=${PLACEHOLDER}`],
-    ["a different setting with the same prefix", `ONEUPTIME_SECRET_X=${PLACEHOLDER}`],
+    [
+      "a different setting with the same prefix",
+      `ONEUPTIME_SECRET_X=${PLACEHOLDER}`,
+    ],
   ])("leaves %s alone", (_label, line) => {
     const contents = `HOST=localhost\n${line}\nAPP_TAG=release\n`;
     const result = replacePlaceholderSecrets(contents, fakeSecret);
@@ -240,7 +250,9 @@ describe("replacePlaceholderSecrets", () => {
     });
 
     expect(result.replaced).toEqual(["ONEUPTIME_SECRET"]);
-    expect(result.contents).toBe(`${line.slice(0, line.indexOf("=") + 1)}fresh\n`);
+    expect(result.contents).toBe(
+      `${line.slice(0, line.indexOf("=") + 1)}fresh\n`,
+    );
   });
 
   test("keeps Windows line endings", () => {
@@ -378,7 +390,10 @@ describe("the script, run the way npm start and configure.sh run it", () => {
 
   test("requiring the script only exports functions: it reads and writes no files", () => {
     const dir = workspace();
-    fs.writeFileSync(path.join(dir, "config.env"), `ONEUPTIME_SECRET=${PLACEHOLDER}\n`);
+    fs.writeFileSync(
+      path.join(dir, "config.env"),
+      `ONEUPTIME_SECRET=${PLACEHOLDER}\n`,
+    );
 
     const required = spawnSync(
       process.execPath,
@@ -412,7 +427,9 @@ describe("where it runs", () => {
       path.join(REPO_ROOT, "Scripts", "Install", "configure.sh"),
       "utf8",
     );
-    const merge = configure.indexOf("node ./Scripts/Install/MergeEnvTemplate.js");
+    const merge = configure.indexOf(
+      "node ./Scripts/Install/MergeEnvTemplate.js",
+    );
     const replace = configure.indexOf(
       "node ./Scripts/Install/ReplacePlaceholderSecrets.js",
     );

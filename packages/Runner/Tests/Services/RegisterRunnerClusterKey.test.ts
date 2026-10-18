@@ -78,9 +78,18 @@ jest.mock("Common/Server/Utils/Logger", () => {
 type RegisterModule = typeof import("../../Services/RegisterRunner");
 
 const SHIPPED_VALUES: Array<[string, string]> = [
-  ["the placeholder config.example.env ships", "please-change-this-to-random-value"],
-  ["the placeholder padded with spaces", " please-change-this-to-random-value "],
-  ["a global probe's placeholder", "probe-1-please-change-this-to-random-value"],
+  [
+    "the placeholder config.example.env ships",
+    "please-change-this-to-random-value",
+  ],
+  [
+    "the placeholder padded with spaces",
+    " please-change-this-to-random-value ",
+  ],
+  [
+    "a global probe's placeholder",
+    "probe-1-please-change-this-to-random-value",
+  ],
   ['the code\'s old fallback "secret"', "secret"],
   ['"secret" padded with spaces', "  secret  "],
   ["blank", "   "],

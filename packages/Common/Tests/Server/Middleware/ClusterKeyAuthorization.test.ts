@@ -106,8 +106,9 @@ function loadInstallation(
       loaded = {
         configured: configured,
         label: String(configured),
-        ClusterKeyAuthorization:
-          middlewareModule["default"] as unknown as ClusterKeyAuthorizationClass,
+        ClusterKeyAuthorization: middlewareModule[
+          "default"
+        ] as unknown as ClusterKeyAuthorizationClass,
         TokenSigningKey: TokenSigningKey,
         messages: {
           notFound: middlewareModule["CLUSTER_KEY_NOT_FOUND_MESSAGE"] as string,
@@ -141,7 +142,10 @@ const CHANNELS: Array<Channel> = [
   "body",
 ];
 
-function requestWith(channel: Channel, key: unknown): JSONObject {
+// A request as the middleware reads it: any value in any place.
+type FakeRequest = Record<string, Record<string, unknown>>;
+
+function requestWith(channel: Channel, key: unknown): FakeRequest {
   switch (channel) {
     case "params":
       return { params: { clusterKey: key }, headers: {} };
@@ -164,7 +168,7 @@ interface Outcome {
 
 async function present(
   installation: Installation,
-  request: JSONObject,
+  request: FakeRequest,
 ): Promise<Outcome> {
   const next: Mock<() => void> = jest.fn();
   const status: Mock<(code: number) => unknown> = jest.fn();
@@ -258,49 +262,55 @@ describe.each(SHIPPED_CLUSTER_KEYS)(
       ).not.toBe(installation.TokenSigningKey.get());
     });
 
-    describe.each(CHANNELS)("a request carrying the key in its %s", (channel: Channel) => {
-      test("is refused with every shipped value", async () => {
-        for (const value of shippedValuesAStrangerWouldTry()) {
+    describe.each(CHANNELS)(
+      "a request carrying the key in its %s",
+      (channel: Channel) => {
+        test("is refused with every shipped value", async () => {
+          for (const value of shippedValuesAStrangerWouldTry()) {
+            const outcome: Outcome = await present(
+              installation,
+              requestWith(channel, value),
+            );
+
+            expect({ value, ...outcome }).toStrictEqual({
+              value,
+              passed: false,
+              status: 400,
+              message: installation.messages.shipped,
+            });
+          }
+        });
+
+        test("is let through with the installation's own key", async () => {
           const outcome: Outcome = await present(
             installation,
-            requestWith(channel, value),
+            requestWith(
+              channel,
+              installation.ClusterKeyAuthorization.getClusterKey(),
+            ),
           );
 
-          expect({ value, ...outcome }).toStrictEqual({
-            value,
+          expect(outcome).toStrictEqual({
+            passed: true,
+            status: null,
+            message: null,
+          });
+        });
+
+        test("is refused with another installation's key", async () => {
+          const outcome: Outcome = await present(
+            installation,
+            requestWith(channel, derivedClusterKey(OTHER_INSTALLATION_KEY)),
+          );
+
+          expect(outcome).toStrictEqual({
             passed: false,
             status: 400,
-            message: installation.messages.shipped,
+            message: installation.messages.invalid,
           });
-        }
-      });
-
-      test("is let through with the installation's own key", async () => {
-        const outcome: Outcome = await present(
-          installation,
-          requestWith(channel, installation.ClusterKeyAuthorization.getClusterKey()),
-        );
-
-        expect(outcome).toStrictEqual({
-          passed: true,
-          status: null,
-          message: null,
         });
-      });
-
-      test("is refused with another installation's key", async () => {
-        const outcome: Outcome = await present(
-          installation,
-          requestWith(channel, derivedClusterKey(OTHER_INSTALLATION_KEY)),
-        );
-
-        expect(outcome).toStrictEqual({
-          passed: false,
-          status: 400,
-          message: installation.messages.invalid,
-        });
-      });
-    });
+      },
+    );
   },
 );
 
@@ -326,67 +336,70 @@ describe.each(OPERATOR_CLUSTER_KEYS)(
       ).toStrictEqual({ clusterkey: encodeURIComponent(operatorKey) });
     });
 
-    describe.each(CHANNELS)("a request carrying the key in its %s", (channel: Channel) => {
-      test("is let through with the operator's key as services send it", async () => {
-        const outcome: Outcome = await present(
-          installation,
-          requestWith(channel, encodeURIComponent(operatorKey)),
-        );
-
-        expect(outcome.passed).toBe(true);
-      });
-
-      test("is refused with every shipped value", async () => {
-        for (const value of shippedValuesAStrangerWouldTry()) {
+    describe.each(CHANNELS)(
+      "a request carrying the key in its %s",
+      (channel: Channel) => {
+        test("is let through with the operator's key as services send it", async () => {
           const outcome: Outcome = await present(
             installation,
-            requestWith(channel, value),
+            requestWith(channel, encodeURIComponent(operatorKey)),
           );
 
-          expect({ value, ...outcome }).toStrictEqual({
-            value,
+          expect(outcome.passed).toBe(true);
+        });
+
+        test("is refused with every shipped value", async () => {
+          for (const value of shippedValuesAStrangerWouldTry()) {
+            const outcome: Outcome = await present(
+              installation,
+              requestWith(channel, value),
+            );
+
+            expect({ value, ...outcome }).toStrictEqual({
+              value,
+              passed: false,
+              status: 400,
+              message: installation.messages.shipped,
+            });
+          }
+        });
+
+        test("is refused with the key an installation that kept a shipped value derives", async () => {
+          const outcome: Outcome = await present(
+            installation,
+            requestWith(channel, derivedClusterKey(INSTALLATION_KEY)),
+          );
+
+          expect(outcome).toStrictEqual({
             passed: false,
             status: 400,
-            message: installation.messages.shipped,
+            message: installation.messages.invalid,
           });
-        }
-      });
-
-      test("is refused with the key an installation that kept a shipped value derives", async () => {
-        const outcome: Outcome = await present(
-          installation,
-          requestWith(channel, derivedClusterKey(INSTALLATION_KEY)),
-        );
-
-        expect(outcome).toStrictEqual({
-          passed: false,
-          status: 400,
-          message: installation.messages.invalid,
         });
-      });
 
-      test("is refused with a near miss", async () => {
-        for (const nearMiss of [
-          encodeURIComponent(operatorKey) + "x",
-          encodeURIComponent(operatorKey).slice(0, -1),
-          encodeURIComponent(operatorKey).toUpperCase() ===
-          encodeURIComponent(operatorKey)
-            ? encodeURIComponent(operatorKey).toLowerCase()
-            : encodeURIComponent(operatorKey).toUpperCase(),
-        ]) {
-          if (nearMiss === encodeURIComponent(operatorKey)) {
-            continue;
+        test("is refused with a near miss", async () => {
+          for (const nearMiss of [
+            encodeURIComponent(operatorKey) + "x",
+            encodeURIComponent(operatorKey).slice(0, -1),
+            encodeURIComponent(operatorKey).toUpperCase() ===
+            encodeURIComponent(operatorKey)
+              ? encodeURIComponent(operatorKey).toLowerCase()
+              : encodeURIComponent(operatorKey).toUpperCase(),
+          ]) {
+            if (nearMiss === encodeURIComponent(operatorKey)) {
+              continue;
+            }
+
+            const outcome: Outcome = await present(
+              installation,
+              requestWith(channel, nearMiss),
+            );
+
+            expect(outcome.passed).toBe(false);
           }
-
-          const outcome: Outcome = await present(
-            installation,
-            requestWith(channel, nearMiss),
-          );
-
-          expect(outcome.passed).toBe(false);
-        }
-      });
-    });
+        });
+      },
+    );
   },
 );
 
@@ -430,12 +443,13 @@ describe("the app and worker processes of one installation that kept a shipped v
   });
 
   test("refuse a call from another installation that kept the same shipped value", async () => {
-    expect(anotherInstallation.ClusterKeyAuthorization.getClusterKey()).not.toBe(
-      api.ClusterKeyAuthorization.getClusterKey(),
-    );
+    expect(
+      anotherInstallation.ClusterKeyAuthorization.getClusterKey(),
+    ).not.toBe(api.ClusterKeyAuthorization.getClusterKey());
 
     const outcome: Outcome = await present(api, {
-      headers: anotherInstallation.ClusterKeyAuthorization.getClusterKeyHeaders(),
+      headers:
+        anotherInstallation.ClusterKeyAuthorization.getClusterKeyHeaders(),
     });
 
     expect(outcome).toStrictEqual({
@@ -519,7 +533,7 @@ describe("what a request can carry", () => {
       { params: {}, query: {}, headers: {}, body: {} },
       { headers: { clusterkey: "" } },
       { body: { clusterKey: "" }, headers: {} },
-    ] as Array<JSONObject>) {
+    ] as Array<FakeRequest>) {
       const outcome: Outcome = await present(installation, request);
 
       expect(outcome).toStrictEqual({
@@ -619,11 +633,14 @@ describe("isAcceptedClusterKey", () => {
 describe("isShippedSecretValue", () => {
   const installation: Installation = loadInstallation(undefined);
 
-  test.each(SHIPPED_CLUSTER_KEYS)("$label is shipped", (configuration: ClusterKeyConfiguration) => {
-    expect(installation.config.isShippedSecretValue(configuration.value)).toBe(
-      true,
-    );
-  });
+  test.each(SHIPPED_CLUSTER_KEYS)(
+    "$label is shipped",
+    (configuration: ClusterKeyConfiguration) => {
+      expect(
+        installation.config.isShippedSecretValue(configuration.value),
+      ).toBe(true);
+    },
+  );
 
   test.each(readExampleEnvPlaceholders())(
     "config.example.env's %s is shipped",
@@ -632,11 +649,14 @@ describe("isShippedSecretValue", () => {
     },
   );
 
-  test.each(OPERATOR_CLUSTER_KEYS)("$label is not", (configuration: ClusterKeyConfiguration) => {
-    expect(installation.config.isShippedSecretValue(configuration.value)).toBe(
-      false,
-    );
-  });
+  test.each(OPERATOR_CLUSTER_KEYS)(
+    "$label is not",
+    (configuration: ClusterKeyConfiguration) => {
+      expect(
+        installation.config.isShippedSecretValue(configuration.value),
+      ).toBe(false);
+    },
+  );
 
   test("a null is treated as unset", () => {
     expect(installation.config.isShippedSecretValue(null)).toBe(true);

@@ -394,7 +394,8 @@ async function startInstallation(
           req: ExpressRequest,
           res: ExpressResponse,
           next: NextFunction,
-        ) => Promise<void> = ClusterKeyAuthorization.isAuthorizedServiceMiddleware;
+        ) => Promise<void> =
+          ClusterKeyAuthorization.isAuthorizedServiceMiddleware;
 
         ClusterKeyAuthorization.isAuthorizedServiceMiddleware = async (
           req: ExpressRequest,
@@ -464,7 +465,9 @@ async function startInstallation(
       app.use("/workflow", new WorkflowAPI().router);
 
       // The two kinds of trigger that take the cluster key, set up as ComponentCodeAPI sets them up.
-      const Express: AnyModule = require_("Common/Server/Utils/Express").default;
+      const Express: AnyModule = require_(
+        "Common/Server/Utils/Express",
+      ).default;
       const componentRouter: ExpressRouter = Express.getRouter();
       const runWorkflow: () => Promise<void> = async (): Promise<void> => {
         reached.push("workflow run");
@@ -556,43 +559,90 @@ function standInForSenders(record: {
     }) as never);
   };
 
-  standIn("../../FeatureSet/Notification/Services/MailService", "send", (args: Array<unknown>) => {
-    record.mails.push(args[0] as JSONObject);
-  });
-  standIn("../../FeatureSet/Notification/Services/SmsService", "sendSms", (args: Array<unknown>) => {
-    record.smses.push({ to: String(args[0]), message: args[1] as string });
-  });
+  standIn(
+    "../../FeatureSet/Notification/Services/MailService",
+    "send",
+    (args: Array<unknown>) => {
+      record.mails.push(args[0] as JSONObject);
+    },
+  );
+  standIn(
+    "../../FeatureSet/Notification/Services/SmsService",
+    "sendSms",
+    (args: Array<unknown>) => {
+      record.smses.push({ to: String(args[0]), message: args[1] as string });
+    },
+  );
   standIn("../../FeatureSet/Notification/Services/CallService", "makeCall");
-  standIn("../../FeatureSet/Notification/Services/WhatsAppService", "sendWhatsApp");
-  standIn("../../FeatureSet/Notification/Services/TelegramService", "sendTelegram");
-  standIn("../../FeatureSet/Notification/Services/WebhookService", "sendWebhook");
-  standIn("Common/Server/Utils/Telemetry/TelemetryFanInWriter", "submit", () => {
-    return { accepted: true };
-  });
-  standIn("../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService", "getQueueStats", () => {
-    return { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0, total: 0 };
-  });
-  standIn("../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService", "getQueueSize", () => {
-    return 0;
-  });
-  standIn("../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService", "getFailedJobs", () => {
-    return [];
-  });
+  standIn(
+    "../../FeatureSet/Notification/Services/WhatsAppService",
+    "sendWhatsApp",
+  );
+  standIn(
+    "../../FeatureSet/Notification/Services/TelegramService",
+    "sendTelegram",
+  );
+  standIn(
+    "../../FeatureSet/Notification/Services/WebhookService",
+    "sendWebhook",
+  );
+  standIn(
+    "Common/Server/Utils/Telemetry/TelemetryFanInWriter",
+    "submit",
+    () => {
+      return { accepted: true };
+    },
+  );
+  standIn(
+    "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService",
+    "getQueueStats",
+    () => {
+      return {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        total: 0,
+      };
+    },
+  );
+  standIn(
+    "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService",
+    "getQueueSize",
+    () => {
+      return 0;
+    },
+  );
+  standIn(
+    "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService",
+    "getFailedJobs",
+    () => {
+      return [];
+    },
+  );
   standIn("Common/Server/Services/MonitorProbeService", "findBy", () => {
     return [];
   });
   standIn("Common/Server/Services/MonitorProbeService", "countBy", () => {
-    const PositiveNumber: AnyModule = require_("Common/Types/PositiveNumber").default;
+    const PositiveNumber: AnyModule = require_(
+      "Common/Types/PositiveNumber",
+    ).default;
     return new PositiveNumber(0);
   });
   standIn("Common/Server/Services/ProbeService", "findOneById", () => {
     return { _id: PROBE_ID };
   });
   standIn("Common/Server/Services/MonitorService", "countBy", () => {
-    const PositiveNumber: AnyModule = require_("Common/Types/PositiveNumber").default;
+    const PositiveNumber: AnyModule = require_(
+      "Common/Types/PositiveNumber",
+    ).default;
     return new PositiveNumber(0);
   });
-  standIn("../../FeatureSet/Workflow/Services/QueueWorkflow", "reconcileSchedule");
+  standIn(
+    "../../FeatureSet/Workflow/Services/QueueWorkflow",
+    "reconcileSchedule",
+  );
   standIn("Common/Server/Services/WorkflowService", "findOneById", () => {
     return null;
   });
@@ -602,18 +652,29 @@ function standInForSenders(record: {
   standIn("Common/Server/Services/WorkflowService", "findOneBy", () => {
     return null;
   });
-  standIn("Common/Server/Services/ProjectCallSMSConfigService", "findOneById", () => {
-    return null;
-  });
+  standIn(
+    "Common/Server/Services/ProjectCallSMSConfigService",
+    "findOneById",
+    () => {
+      return null;
+    },
+  );
   standIn("Common/Server/Services/AIAgentService", "findOneBy", () => {
     return null;
   });
-  standIn("Common/Server/Services/AIAgentService", "create", (args: Array<unknown>) => {
-    const data: AnyModule = (args[0] as JSONObject)["data"];
-    record.registeredAgents.push({ key: data.key, isGlobalAIAgent: data.isGlobalAIAgent });
-    data._id = "2b3c4d5e-6f70-4a81-9b2c-3d4e5f607182";
-    return data;
-  });
+  standIn(
+    "Common/Server/Services/AIAgentService",
+    "create",
+    (args: Array<unknown>) => {
+      const data: AnyModule = (args[0] as JSONObject)["data"];
+      record.registeredAgents.push({
+        key: data.key,
+        isGlobalAIAgent: data.isGlobalAIAgent,
+      });
+      data._id = "2b3c4d5e-6f70-4a81-9b2c-3d4e5f607182";
+      return data;
+    },
+  );
 }
 
 interface HttpResult {
@@ -720,11 +781,9 @@ describe("the routes that take the cluster key", () => {
  */
 const SHIPPED_INSTALLATIONS: Array<ClusterKeyConfiguration> =
   SHIPPED_CLUSTER_KEYS.filter((configuration: ClusterKeyConfiguration) => {
-    return [
-      undefined,
-      "secret",
-      "please-change-this-to-random-value",
-    ].includes(configuration.value);
+    return [undefined, "secret", "please-change-this-to-random-value"].includes(
+      configuration.value,
+    );
   });
 
 describe.each(SHIPPED_INSTALLATIONS)(
@@ -1033,10 +1092,16 @@ describe("the real handlers behind the routes", () => {
           body: { message: api.messages.shipped },
         });
 
-        const inBody: HttpResult = await send(api, "POST", sendCase.url, {}, {
-          ...sendCase.body,
-          clusterKey: value,
-        });
+        const inBody: HttpResult = await send(
+          api,
+          "POST",
+          sendCase.url,
+          {},
+          {
+            ...sendCase.body,
+            clusterKey: value,
+          },
+        );
 
         expect(inBody.status).toBe(400);
       }
@@ -1064,25 +1129,46 @@ describe("the real handlers behind the routes", () => {
 
       expect(
         (
-          await send(api, "POST", "/api/notification/email/send", headers, SENDS[0]!.body)
+          await send(
+            api,
+            "POST",
+            "/api/notification/email/send",
+            headers,
+            SENDS[0]!.body,
+          )
         ).status,
-      ).toBe(200);
-      expect(
-        (await send(api, "POST", "/api/notification/sms/send", headers, SENDS[1]!.body))
-          .status,
       ).toBe(200);
       expect(
         (
-          await send(api, "POST", "/api/ai-agent/register", {}, {
-            aiAgentKey: "the-runner-key",
-            clusterKey: worker.ClusterKeyAuthorization.getClusterKey(),
-          })
+          await send(
+            api,
+            "POST",
+            "/api/notification/sms/send",
+            headers,
+            SENDS[1]!.body,
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await send(
+            api,
+            "POST",
+            "/api/ai-agent/register",
+            {},
+            {
+              aiAgentKey: "the-runner-key",
+              clusterKey: worker.ClusterKeyAuthorization.getClusterKey(),
+            },
+          )
         ).status,
       ).toBe(200);
 
-      expect(api.mails.map((mail: JSONObject) => String(mail["toEmail"]))).toStrictEqual([
-        "someone@example.com",
-      ]);
+      expect(
+        api.mails.map((mail: JSONObject) => {
+          return String(mail["toEmail"]);
+        }),
+      ).toStrictEqual(["someone@example.com"]);
       expect(api.smses).toStrictEqual([
         { to: "+15005550006", message: "Your code" },
       ]);
@@ -1105,7 +1191,12 @@ describe("a worker's own MailService and SmsService, calling the API process", (
   async function workerOf(
     api: RunningInstallation,
     installationKey: string,
-  ): Promise<{ MailService: AnyModule; SmsService: AnyModule; Email: AnyModule; Phone: AnyModule }> {
+  ): Promise<{
+    MailService: AnyModule;
+    SmsService: AnyModule;
+    Email: AnyModule;
+    Phone: AnyModule;
+  }> {
     const port: string = new URL(api.origin).port;
     const saved: Record<string, string | undefined> = {
       SERVER_APP_HOSTNAME: process.env["SERVER_APP_HOSTNAME"],
@@ -1126,9 +1217,9 @@ describe("a worker's own MailService and SmsService, calling the API process", (
 
     try {
       jest.isolateModules(() => {
-        require_("Common/Server/Utils/TokenSigningKey").default.useInstallationKey(
-          installationKey,
-        );
+        require_(
+          "Common/Server/Utils/TokenSigningKey",
+        ).default.useInstallationKey(installationKey);
 
         const BlockedProjectNotifications: AnyModule = require_(
           "Common/Server/Utils/Notification/BlockedProjectNotifications",
@@ -1194,12 +1285,16 @@ describe("a worker's own MailService and SmsService, calling the API process", (
 
     expect(mailResult.statusCode).toBe(200);
     expect(smsResult.statusCode).toBe(200);
-    expect(api.mails.map((mail: JSONObject) => String(mail["toEmail"]))).toStrictEqual([
-      "oncall@example.com",
-    ]);
-    expect(api.smses.map((sms: JSONObject) => sms["message"])).toStrictEqual([
-      "Incident #1",
-    ]);
+    expect(
+      api.mails.map((mail: JSONObject) => {
+        return String(mail["toEmail"]);
+      }),
+    ).toStrictEqual(["oncall@example.com"]);
+    expect(
+      api.smses.map((sms: JSONObject) => {
+        return sms["message"];
+      }),
+    ).toStrictEqual(["Incident #1"]);
   });
 
   test("a worker of another installation that kept the same placeholder is refused, and nothing is sent", async () => {

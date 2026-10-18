@@ -574,7 +574,9 @@ export const ShippedSecretFallback: string = "secret";
 
 export const ShippedSecretPlaceholderMark: string = "please-change-this";
 
-export function isShippedSecretValue(value: string | null | undefined): boolean {
+export function isShippedSecretValue(
+  value: string | null | undefined,
+): boolean {
   if (typeof value !== "string") {
     return true;
   }
