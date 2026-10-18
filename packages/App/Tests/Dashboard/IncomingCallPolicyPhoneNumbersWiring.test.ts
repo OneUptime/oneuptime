@@ -68,15 +68,22 @@ describe("the incoming-call phone-number manager", () => {
    * On the policy page the phone numbers are step 2 of 3. "Add Phone Number"
    * is the primary button while the policy has none - it is the next step -
    * and plain once it has one, when the next step is step 3's "Manage Rules".
-   * Both used to be filled at once.
+   * Both used to be filled at once. Once there are rules, Manage Rules is
+   * the same outlined button as Add Phone Number beside it: it was a grey
+   * link (text-gray-400, 2.8:1 on white) that read as disabled.
    */
   test("Add Phone Number is the primary step only while the policy has no number", () => {
     expect(MANAGER_CODE).toMatch(
       /title="Add Phone Number"\s*buttonStyle=\{\s*props\.phoneNumbers\.length === 0\s*\?\s*ButtonStyleType\.PRIMARY\s*:\s*ButtonStyleType\.NORMAL\s*\}/,
     );
     expect(OVERVIEW_CODE).toMatch(
-      /title="Manage Rules"\s*buttonStyle=\{\s*hasEscalationRules\s*\?\s*ButtonStyleType\.SECONDARY_LINK\s*:\s*ButtonStyleType\.PRIMARY\s*\}/,
+      /title="Manage Rules"\s*buttonStyle=\{\s*hasEscalationRules\s*\?\s*ButtonStyleType\.NORMAL\s*:\s*ButtonStyleType\.PRIMARY\s*\}/,
     );
+    expect(OVERVIEW_CODE).toMatch(
+      /title="Manage Rules"\s*buttonStyle=\{ButtonStyleType\.NORMAL\}/,
+    );
+    // No grey link that reads as disabled on the policy page.
+    expect(OVERVIEW_CODE).not.toContain("ButtonStyleType.SECONDARY_LINK");
   });
 
   test("a number to pick from a list is a plain button, and its confirmation the primary one", () => {

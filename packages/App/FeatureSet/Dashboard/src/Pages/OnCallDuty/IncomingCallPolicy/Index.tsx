@@ -352,7 +352,7 @@ const IncomingCallPolicyView: FunctionComponent<
             )}
           </div>
           {hasPhoneNumbers ? (
-            <p className="ml-auto text-xs text-gray-400 text-right">
+            <p className="ml-auto text-xs text-gray-500 text-right">
               {translator.translateText("Remove all phone numbers to change")}
             </p>
           ) : (
@@ -361,7 +361,7 @@ const IncomingCallPolicyView: FunctionComponent<
                 title={hasTwilioConfig ? "Change" : "Select"}
                 buttonStyle={
                   hasTwilioConfig
-                    ? ButtonStyleType.SECONDARY_LINK
+                    ? ButtonStyleType.NORMAL
                     : ButtonStyleType.PRIMARY
                 }
                 onClick={() => {
@@ -475,7 +475,7 @@ const IncomingCallPolicyView: FunctionComponent<
                 title="Manage Rules"
                 buttonStyle={
                   hasEscalationRules
-                    ? ButtonStyleType.SECONDARY_LINK
+                    ? ButtonStyleType.NORMAL
                     : ButtonStyleType.PRIMARY
                 }
                 icon={IconProp.ArrowCircleRight}
@@ -525,7 +525,7 @@ const IncomingCallPolicyView: FunctionComponent<
               </p>
             </div>
           </div>
-          <p className="ml-auto text-xs text-gray-400">
+          <p className="ml-auto text-xs text-gray-500">
             {translator.translateText("Remove all phone numbers to change")}
           </p>
         </div>
@@ -580,7 +580,7 @@ const IncomingCallPolicyView: FunctionComponent<
           <div className="ml-auto shrink-0">
             <Button
               title="Manage Rules"
-              buttonStyle={ButtonStyleType.SECONDARY_LINK}
+              buttonStyle={ButtonStyleType.NORMAL}
               icon={IconProp.ArrowCircleRight}
               onClick={() => {
                 Navigation.navigate(
