@@ -8,6 +8,14 @@ import {
   MCP_SERVER,
 } from "./AiDocsPages";
 import { tables } from "./DocsPageShape";
+import {
+  MCP_CLIENTS,
+  MCP_CLIENT_NAMES,
+  MCP_SIGN_IN_ANSWERS,
+  McpClient,
+  McpConnectSetupStep,
+  getMcpConnectSetup,
+} from "../../../FeatureSet/Dashboard/src/Components/Mcp/McpConnectSetup";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import {
   PACKAGES_DIR,
@@ -1139,29 +1147,81 @@ describe("MCP Server", () => {
   });
 
   it("gives the same connect steps as the MCP Server settings page", () => {
-    const settings: string = dashboardSource("Pages/Settings/McpServer.tsx");
+    /*
+     * The page builds every setup from McpConnectSetup, for a client and a
+     * way of signing in; with the cloud's address, each snippet is the
+     * docs' own, word for word.
+     */
     const page: string = englishPage(MCP_SERVER);
+    const cloudUrl: string = "https://oneuptime.com/mcp";
+    const snippets: Array<string> = [];
 
-    expect(settings).toContain(
-      "code={`claude mcp add --transport http oneuptime ${mcpUrl}`}",
-    );
+    for (const client of MCP_CLIENTS) {
+      for (const signIn of MCP_SIGN_IN_ANSWERS) {
+        const setup: McpConnectSetupStep = getMcpConnectSetup({
+          client,
+          signIn,
+          mcpUrl: cloudUrl,
+        });
+
+        if (setup.code) {
+          snippets.push(setup.code.text);
+          expect({
+            client,
+            signIn,
+            inDocs: page.includes(setup.code.text),
+          }).toEqual({
+            client,
+            signIn,
+            inDocs: true,
+          });
+        }
+      }
+    }
+
+    // Every client but Claude Desktop's sign-in (a menu, not a file) has one.
+    expect(snippets).toHaveLength(MCP_CLIENTS.length * 2 - 1);
     expect(page).toContain(
       "claude mcp add --transport http oneuptime https://oneuptime.com/mcp\n",
     );
-    expect(settings).toContain(
-      'code={`claude mcp add --transport http oneuptime ${mcpUrl} --header "x-api-key: your-api-key-here"`}',
-    );
-    expect(page).toContain(
-      'claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-api-key: your-api-key-here"',
-    );
-    expect(settings).toContain(
+
+    // Claude's menu, named on the page as the docs name it.
+    const card: string = dashboardSource("Components/Mcp/McpServerCard.tsx");
+
+    expect(card).toContain(
       'translator.translateText("Customize → Connectors")',
     );
-    expect(settings).toContain(
-      'translator.translateText("Add custom connector")',
-    );
+    expect(card).toContain('translator.translateText("Add custom connector")');
     expect(page).toContain(
       `open ${bold("Customize → Connectors")}, choose ${bold("Add custom connector")}`,
+    );
+  });
+
+  it("names a tab on the page for every client the docs give a setup for", () => {
+    const tabsOf: (heading: string) => Array<string> = (
+      heading: string,
+    ): Array<string> => {
+      return englishSection(MCP_SERVER, heading)
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.startsWith("@tab ");
+        })
+        .map((line: string): string => {
+          return line.slice("@tab ".length);
+        });
+    };
+
+    // Claude Desktop signs in through Claude's own connector menu: "Claude".
+    expect(tabsOf("## Connect a client")).toEqual([
+      MCP_CLIENT_NAMES[McpClient.ClaudeCode],
+      "Claude",
+      MCP_CLIENT_NAMES[McpClient.VsCode],
+      MCP_CLIENT_NAMES[McpClient.Cursor],
+    ]);
+    expect(tabsOf("## Connecting with an API key")).toEqual(
+      MCP_CLIENTS.map((client: McpClient): string => {
+        return MCP_CLIENT_NAMES[client];
+      }),
     );
   });
 

@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import React, { ReactElement } from "react";
@@ -43,10 +49,11 @@ const GERMAN: Record<string, string> = {
   // Pages/StatusPages/View/StatusPagePreviewLink.tsx
   "Here's a link to preview your status page: {{link}}":
     "Mit diesem Link sehen Sie eine Vorschau Ihrer Statusseite: {{link}}",
-  // Pages/Settings/McpServer.tsx
-  "API key.": "API-Schlüssel.",
-  "For an agent that runs unattended, send a OneUptime API key in the {{apiKeyHeader}} header (or {{bearerHeader}}). The key determines which project the agent operates on and what it may do. Create a scoped API key with least-privilege permissions in {{apiKeysLink}}. Never give an AI agent a master API key — it would grant instance-wide admin access across all projects.":
-    "Ein Agent, der unbeaufsichtigt läuft, sendet einen OneUptime-API-Schlüssel im Header {{apiKeyHeader}} (oder {{bearerHeader}}). Erstellen Sie unter {{apiKeysLink}} einen Schlüssel mit möglichst wenigen Rechten. Geben Sie einem KI-Agenten nie einen Master-API-Schlüssel.",
+  // Pages/Settings/McpServer.tsx (Components/Mcp/McpServerCard.tsx)
+  "Sign in with": "Anmelden mit",
+  "API key": "API-Schlüssel",
+  "Create a key in {{apiKeysLink}} with the least access the agent needs. Never give an agent a master API key: it grants admin access to the whole instance.":
+    "Erstellen Sie unter {{apiKeysLink}} einen Schlüssel mit möglichst wenigen Rechten. Geben Sie einem Agenten nie einen Master-API-Schlüssel.",
   "Project Settings → Advanced → API Keys":
     "Projekteinstellungen → Erweitert → API-Schlüssel",
   "Connected {{date}}": "Verbunden am {{date}}",
@@ -305,34 +312,28 @@ describe("Settings > MCP Server in German", () => {
     );
   };
 
-  test("the API key paragraph is one German sentence with its code and link in place", () => {
+  test("the API key's note is one German sentence with its link in place", () => {
     renderPage();
 
-    const label: HTMLElement = screen.getByText("API-Schlüssel.");
-    const paragraph: HTMLElement = label.closest("p") as HTMLElement;
-    const text: string = normalizedText(paragraph);
-
-    expect(text).toContain(
-      "Ein Agent, der unbeaufsichtigt läuft, sendet einen OneUptime-API-Schlüssel im Header x-api-key (oder Authorization: Bearer).",
-    );
-    expect(text).toContain(
-      "Erstellen Sie unter Projekteinstellungen → Erweitert → API-Schlüssel einen Schlüssel mit möglichst wenigen Rechten.",
+    // The choice reads in German, and picking the key brings its note.
+    fireEvent.click(
+      within(screen.getByTestId("mcp-sign-in")).getByLabelText("API-Schlüssel"),
     );
 
-    // The slots are the page's own elements, not text.
-    const codes: Array<string> = Array.from(
-      paragraph.querySelectorAll("code"),
-    ).map((code: Element): string => {
-      return code.textContent || "";
-    });
+    const note: HTMLElement = screen.getByTestId("mcp-sign-in-note");
 
-    expect(codes).toEqual(["x-api-key", "Authorization: Bearer"]);
+    expect(screen.getByTestId("mcp-sign-in")).toHaveAccessibleName(
+      "Anmelden mit",
+    );
+    expect(normalizedText(note)).toBe(
+      "Erstellen Sie unter Projekteinstellungen → Erweitert → API-Schlüssel einen Schlüssel mit möglichst wenigen Rechten. Geben Sie einem Agenten nie einen Master-API-Schlüssel.",
+    );
+
+    // The link is the page's own element, not text.
     expect(
-      Array.from(paragraph.querySelectorAll("a")).map(
-        (link: Element): string => {
-          return link.textContent || "";
-        },
-      ),
+      Array.from(note.querySelectorAll("a")).map((link: Element): string => {
+        return link.textContent || "";
+      }),
     ).toEqual(["Projekteinstellungen → Erweitert → API-Schlüssel"]);
   });
 

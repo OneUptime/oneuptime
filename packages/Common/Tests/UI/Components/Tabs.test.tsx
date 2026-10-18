@@ -2,6 +2,8 @@ import { Tab } from "../../../UI/Components/Tabs/Tab";
 import Tabs from "../../../UI/Components/Tabs/Tabs";
 import "@testing-library/jest-dom";
 import { fireEvent, render } from "@testing-library/react";
+import { createInstance, i18n } from "i18next";
+import { I18nextProvider } from "react-i18next";
 import React from "react";
 import { describe, expect, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
@@ -108,5 +110,35 @@ describe("Tabs", () => {
     expect(() => {
       return getByTestId("tab-tab2");
     }).toThrow();
+  });
+
+  test("a tab whose name is a name is drawn as given; any other is in the reader's language", async () => {
+    // A product's name can be a word the language has: Japanese's text cursor.
+    const japanese: i18n = createInstance();
+
+    await japanese.init({
+      lng: "ja",
+      fallbackLng: false,
+      resources: {
+        ja: { translation: { Cursor: "カーソル", Settings: "設定" } },
+      },
+      keySeparator: false,
+      nsSeparator: false,
+      interpolation: { escapeValue: false },
+    });
+
+    const named: Array<Tab> = [
+      { name: "Cursor", isName: true, children: <div>cursor setup</div> },
+      { name: "Settings", children: <div>settings</div> },
+    ];
+
+    const { getByTestId } = render(
+      <I18nextProvider i18n={japanese}>
+        <Tabs tabs={named} onTabChange={getJestMockFunction()} />
+      </I18nextProvider>,
+    );
+
+    expect(getByTestId("tab-Cursor")).toHaveTextContent(/^Cursor$/);
+    expect(getByTestId("tab-Settings")).toHaveTextContent(/^設定$/);
   });
 });

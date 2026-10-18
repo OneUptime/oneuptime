@@ -197,6 +197,19 @@ La variable de entrada con `"password": true` pide la clave cuando arranca el se
   ]
 }
 ```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
+}
+```
 :::
 
 ## VS Code con GitHub Copilot

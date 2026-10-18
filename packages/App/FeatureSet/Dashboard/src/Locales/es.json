@@ -30887,5 +30887,16 @@
   "AI opens no fix pull requests in this repository.": "La IA no abre pull requests de corrección en este repositorio.",
   "AI waits while this many of its fix pull requests are open.": "La IA espera mientras haya este número de sus pull requests de corrección abiertas.",
   "How many may be open at once.": "Cuántas pueden estar abiertas a la vez.",
-  "None: AI opens no fix pull requests here": "Ninguna: la IA no abre aquí pull requests de corrección"
+  "None: AI opens no fix pull requests here": "Ninguna: la IA no abre aquí pull requests de corrección",
+  "Add the server with your API key:": "Añade el servidor con tu clave de API:",
+  "Add this to {{file}}. Cursor opens OneUptime for you to sign in:": "Añade esto a {{file}}. Cursor abre OneUptime para que inicies sesión:",
+  "Add this to {{file}}. VS Code asks for your API key when you start the server:": "Añade esto a {{file}}. VS Code te pide la clave de API cuando inicias el servidor:",
+  "Add this to {{file}}. VS Code opens OneUptime for you to sign in when you start the server:": "Añade esto a {{file}}. Al iniciar el servidor, VS Code abre OneUptime para que inicies sesión:",
+  "Clients connected this way are listed under Connected MCP Clients, where you can disconnect them.": "Los clientes conectados así aparecen en «Clientes MCP conectados», donde puedes desconectarlos.",
+  "Connect AI agents such as Claude, Cursor and GitHub Copilot to work in this project.": "Conecta agentes de IA como Claude, Cursor y GitHub Copilot para que trabajen en este proyecto.",
+  "Create a key in {{apiKeysLink}} with the least access the agent needs. Never give an agent a master API key: it grants admin access to the whole instance.": "Crea una clave en {{apiKeysLink}} con el mínimo acceso que necesite el agente. Nunca des a un agente una clave de API maestra: concede acceso de administrador a toda la instancia.",
+  "For an agent that runs unattended, such as a scheduled job. It acts with the key's permissions, in the key's project.": "Para un agente que se ejecuta sin supervisión, como una tarea programada. Actúa con los permisos de la clave, en el proyecto de la clave.",
+  "Server URL": "URL del servidor",
+  "The client opens OneUptime for you to sign in, then acts as you, with your permissions and never more. You can limit it to read only.": "El cliente abre OneUptime para que inicies sesión y luego actúa como tú, con tus permisos y nunca más. Puedes limitarlo a solo lectura.",
+  "Your client": "Tu cliente"
 }

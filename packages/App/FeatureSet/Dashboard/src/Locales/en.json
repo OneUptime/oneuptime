@@ -30887,5 +30887,16 @@
   "AI opens no fix pull requests in this repository.": "AI opens no fix pull requests in this repository.",
   "AI waits while this many of its fix pull requests are open.": "AI waits while this many of its fix pull requests are open.",
   "How many may be open at once.": "How many may be open at once.",
-  "None: AI opens no fix pull requests here": "None: AI opens no fix pull requests here"
+  "None: AI opens no fix pull requests here": "None: AI opens no fix pull requests here",
+  "Add the server with your API key:": "Add the server with your API key:",
+  "Add this to {{file}}. Cursor opens OneUptime for you to sign in:": "Add this to {{file}}. Cursor opens OneUptime for you to sign in:",
+  "Add this to {{file}}. VS Code asks for your API key when you start the server:": "Add this to {{file}}. VS Code asks for your API key when you start the server:",
+  "Add this to {{file}}. VS Code opens OneUptime for you to sign in when you start the server:": "Add this to {{file}}. VS Code opens OneUptime for you to sign in when you start the server:",
+  "Clients connected this way are listed under Connected MCP Clients, where you can disconnect them.": "Clients connected this way are listed under Connected MCP Clients, where you can disconnect them.",
+  "Connect AI agents such as Claude, Cursor and GitHub Copilot to work in this project.": "Connect AI agents such as Claude, Cursor and GitHub Copilot to work in this project.",
+  "Create a key in {{apiKeysLink}} with the least access the agent needs. Never give an agent a master API key: it grants admin access to the whole instance.": "Create a key in {{apiKeysLink}} with the least access the agent needs. Never give an agent a master API key: it grants admin access to the whole instance.",
+  "For an agent that runs unattended, such as a scheduled job. It acts with the key's permissions, in the key's project.": "For an agent that runs unattended, such as a scheduled job. It acts with the key's permissions, in the key's project.",
+  "Server URL": "Server URL",
+  "The client opens OneUptime for you to sign in, then acts as you, with your permissions and never more. You can limit it to read only.": "The client opens OneUptime for you to sign in, then acts as you, with your permissions and never more. You can limit it to read only.",
+  "Your client": "Your client"
 }

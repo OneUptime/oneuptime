@@ -30887,5 +30887,16 @@
   "AI opens no fix pull requests in this repository.": "このリポジトリでは、AI は修正プルリクエストを開きません。",
   "AI waits while this many of its fix pull requests are open.": "この数の修正プルリクエストが開いている間、AI は待ちます。",
   "How many may be open at once.": "同時に開いておけるのは何件か。",
-  "None: AI opens no fix pull requests here": "なし: ここでは AI は修正プルリクエストを開きません"
+  "None: AI opens no fix pull requests here": "なし: ここでは AI は修正プルリクエストを開きません",
+  "Add the server with your API key:": "API キーを付けてサーバーを追加してください:",
+  "Add this to {{file}}. Cursor opens OneUptime for you to sign in:": "これを {{file}} に追加してください。Cursor が OneUptime を開くので、サインインしてください:",
+  "Add this to {{file}}. VS Code asks for your API key when you start the server:": "これを {{file}} に追加してください。サーバーを起動すると、VS Code が API キーを尋ねます:",
+  "Add this to {{file}}. VS Code opens OneUptime for you to sign in when you start the server:": "これを {{file}} に追加してください。サーバーを起動すると VS Code が OneUptime を開くので、サインインしてください:",
+  "Clients connected this way are listed under Connected MCP Clients, where you can disconnect them.": "この方法で接続したクライアントは「接続済みの MCP クライアント」に表示され、そこで切断できます。",
+  "Connect AI agents such as Claude, Cursor and GitHub Copilot to work in this project.": "Claude、Cursor、GitHub Copilot などの AI エージェントを接続して、このプロジェクトで作業させます。",
+  "Create a key in {{apiKeysLink}} with the least access the agent needs. Never give an agent a master API key: it grants admin access to the whole instance.": "{{apiKeysLink}} で、エージェントに必要な最小限のアクセス権を持つキーを作成してください。エージェントにマスター API キーを渡さないでください。インスタンス全体の管理者アクセスを与えてしまいます。",
+  "For an agent that runs unattended, such as a scheduled job. It acts with the key's permissions, in the key's project.": "スケジュールされたジョブなど、無人で実行するエージェント向けです。キーの権限で、キーのプロジェクト内で動作します。",
+  "Server URL": "サーバー URL",
+  "The client opens OneUptime for you to sign in, then acts as you, with your permissions and never more. You can limit it to read only.": "クライアントが OneUptime を開くので、サインインしてください。その後はあなたとして、あなたの権限の範囲内でのみ動作します。読み取り専用に制限することもできます。",
+  "Your client": "使用するクライアント"
 }
