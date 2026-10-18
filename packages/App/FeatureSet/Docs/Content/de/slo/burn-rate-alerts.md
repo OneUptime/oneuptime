@@ -79,7 +79,7 @@ Sie brauchen die Berechtigung, SLO-Burn-Rate-Regeln zu erstellen.
 
 ### Die Regel benennen
 
-Geben Sie unter **Regel** einen **Name** ein, etwa „Fast burn“. **Aktiviert** ist eingeschaltet.
+Geben Sie unter **Regel** einen **Name** ein, etwa „Fast burn“. Eine neue Regel ist eingeschaltet; damit sie später nicht mehr auslöst, schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus.
 
 ### Das Burn-Zeitfenster festlegen
 
@@ -87,7 +87,7 @@ Legen Sie unter **Burn-Zeitfenster** den **Burn-Rate-Schwellenwert** fest (zum B
 
 ### Festlegen, was sie meldet
 
-Schalten Sie unter **Was es meldet** **Warnung erstellen**, **Vorfall melden** oder beides ein. **SLO-Eigentümer als Eigentümer hinzufügen** macht die Eigentümer des SLO außerdem zu Eigentümern von allem, was die Regel erzeugt.
+Wählen Sie unter **Was es meldet** bei **Wenn sie auslöst**: **Warnung erstellen**, die Voreinstellung, **Vorfall melden** oder **Beide**. **SLO-Eigentümer als Eigentümer hinzufügen** macht die Eigentümer des SLO außerdem zu Eigentümern von allem, was die Regel erzeugt.
 
 ### Die Warnung und den Vorfall beschreiben
 
@@ -103,18 +103,18 @@ OneUptime prüft die Zahlen einer Regel beim Speichern:
 | **Langes Zeitfenster (Minuten)** | Länger als das kurze Zeitfenster. |
 | **Unterdrückung erneuter Auslösung (Minuten)** | 0 oder mehr. Leer bedeutet die Länge des langen Zeitfensters. |
 
-Eine Regel muss eine Warnung erstellen, einen Vorfall melden oder beides: Eine Regel, bei der beides ausgeschaltet ist, wird abgelehnt, denn sie würde bei jeder Auswertung geprüft und nie etwas melden.
+Jede Antwort auf **Wenn sie auslöst** öffnet etwas. Die API lehnt eine Regel ab, die weder eine Warnung erstellen noch einen Vorfall melden würde, denn sie würde bei jeder Auswertung geprüft und nie etwas melden.
 
 Die Regeltabelle zeigt für jede Regel ihren Schwellenwert, ihre Zeitfenster und die Unterdrückung, was sie meldet (und ob die Warnung oder der Vorfall nur von Hand aufgelöst wird oder privat ist), ihre Schweregrade, Bereitschaftsrichtlinien, Eigentümer und Beschriftungen.
 
 > [!TIP]
-> Ein guter Anfang: Behalten Sie die beiden Standardregeln, schicken Sie die Fast-Burn-Regel mit hohem Schweregrad an Ihre alarmierende Bereitschaftsrichtlinie, und lassen Sie die Slow-Burn-Regel eine Warnung mit niedrigerem Schweregrad für die Arbeitszeit auslösen. Arbeitet Ihr Team alles über Vorfälle ab, schalten Sie bei der Fast-Burn-Regel **Vorfall melden** ein, und schalten Sie dort **Warnung erstellen** aus, wenn Sie nicht beides bekommen möchten.
+> Ein guter Anfang: Behalten Sie die beiden Standardregeln, schicken Sie die Fast-Burn-Regel mit hohem Schweregrad an Ihre alarmierende Bereitschaftsrichtlinie, und lassen Sie die Slow-Burn-Regel eine Warnung mit niedrigerem Schweregrad für die Arbeitszeit auslösen. Arbeitet Ihr Team alles über Vorfälle ab, wählen Sie bei der Fast-Burn-Regel **Vorfall melden**, oder **Beide**, um zusätzlich eine Warnung zu bekommen.
 
 ## Was eine Regel meldet
 
-|  | **Warnung erstellen** | **Vorfall melden** |
+|  | **Warnung** | **Vorfall** |
 | --- | --- | --- |
-| Anfangs | Ein | Aus |
+| Geöffnet durch | **Warnung erstellen**, die Voreinstellung, oder **Beide** | **Vorfall melden** oder **Beide** |
 | Was es ist | Das leichte Signal: Es landet in der Warnungsliste. | Das schwere: Es bekommt eine Vorfallnummer und startet den ganzen Reaktionsablauf. |
 | Titel und Beschreibung | Eigene oder der eingebaute Text | Eigene oder der eingebaute Text |
 | Schweregrad | **Warnungsschweregrad**: der schwerste des Projekts, wenn leer | **Vorfallsschweregrad**: der schwerste des Projekts, wenn leer |
@@ -195,7 +195,7 @@ Beschriftungen, Eigentümer-Teams und Bereitschaftsrichtlinien müssen zum Proje
 
 Manche Änderungen lösen immer auf, was eine Regel offen hat, unabhängig von ihren Einstellungen zum automatischen Auflösen, damit nichts weiter eskaliert für eine Regel, die es nicht mehr rechtfertigen kann:
 
-- das Ausschalten von **Warnung erstellen** oder **Vorfall melden** schließt, was diese Ausgabe geöffnet hat;
+- **Wenn sie auslöst** so zu ändern, dass die Warnung oder der Vorfall wegfällt, schließt, was diese Ausgabe geöffnet hat;
 - das Ausschalten oder Löschen der Regel;
 - das Ausschalten der Auswertung des SLO, das Archivieren oder Löschen des SLO;
 - das SLO wird **Pausiert** oder **Falsch konfiguriert**, weil es dann nichts misst;

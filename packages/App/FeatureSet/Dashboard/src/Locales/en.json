@@ -30773,7 +30773,6 @@
   "Opens an incident. Burn rate incidents never reach status pages.": "Opens an incident. Burn rate incidents never reach status pages.",
   "Pick what this rule opens when it fires.": "Pick what this rule opens when it fires.",
   "Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives.": "Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives.",
-  "Raise an alert": "Raise an alert",
   "Replaces each match with [REDACTED].": "Replaces each match with [REDACTED].",
   "Replaces it with a short hash, so equal values still look alike.": "Replaces it with a short hash, so equal values still look alike.",
   "Require explicit": "Require explicit",

@@ -30773,7 +30773,6 @@
   "Opens an incident. Burn rate incidents never reach status pages.": "Abre un incidente. Los incidentes de tasa de consumo nunca llegan a las páginas de estado.",
   "Pick what this rule opens when it fires.": "Elige qué abre esta regla cuando se dispara.",
   "Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives.": "Elige qué estás instrumentando y sigue los pasos. Tu app aparece en la lista de arriba en cuanto llega su primera telemetría.",
-  "Raise an alert": "Lanzar una alerta",
   "Replaces each match with [REDACTED].": "Sustituye cada coincidencia por [REDACTED].",
   "Replaces it with a short hash, so equal values still look alike.": "Lo sustituye por un hash corto, así los valores iguales siguen pareciéndose.",
   "Require explicit": "Exigir explícito",

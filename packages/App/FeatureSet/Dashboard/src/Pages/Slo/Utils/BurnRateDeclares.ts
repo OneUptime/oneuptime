@@ -8,11 +8,13 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * both" - and turning the first off without the second stopped the form on
  * "This rule would do nothing". It is one question with three answers now,
  * each saying in a line what it opens, and no answer that does nothing.
+ * The answers are worded as the monitor recommendations' own alert or
+ * incident choice words them (Create an alert, Declare an incident, Both).
  *
  * The answer is written into the rule's two columns as before
  * (shouldCreateAlert, shouldCreateIncident), read with the same defaults the
  * worker uses (willCreateAlert / willDeclareIncident): the API, Terraform
- * and every stored rule are unchanged. A new rule starts on Raise an alert,
+ * and every stored rule are unchanged. A new rule starts on Create an alert,
  * what the two column defaults have always made.
  *
  * React-free on purpose: App's tests read this without the page.
@@ -67,7 +69,7 @@ export const BURN_RATE_DECLARES_COPY: Record<
   BurnRateDeclaresCopy
 > = {
   [BurnRateDeclares.Alert]: {
-    title: translationKey("Raise an alert"),
+    title: translationKey("Create an alert"),
     description: translationKey("Opens an alert for the team to look at."),
   },
   [BurnRateDeclares.Incident]: {

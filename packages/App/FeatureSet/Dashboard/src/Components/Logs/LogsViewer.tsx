@@ -2162,6 +2162,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [filterOptions, disableLiveMode, props.onTimeRangeChange],
   );
 
+  /*
+   * What an empty, unnarrowed list shows on the Logs page: the setup guide
+   * and, on a short range, the past week. Embedded viewers (a service's or a
+   * host's logs) keep the plain empty message.
+   */
+  const firstSteps: ReactElement | undefined = props.offersSetupWhenEmpty ? (
+    <TelemetryFirstStepsEmptyState
+      signal={TelemetryFirstStepsSignal.Logs}
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    />
+  ) : undefined;
+
   const rebuildFilterOptionsFromFacets: (
     facets: Map<string, Set<string>>,
   ) => Query<Log> = useCallback(
@@ -2967,15 +2980,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           logs={logs}
           showFilters={props.showFilters}
           noLogsMessage={props.noLogsMessage}
-          emptyContentWhenUnfiltered={
-            props.offersSetupWhenEmpty ? (
-              <TelemetryFirstStepsEmptyState
-                signal={TelemetryFirstStepsSignal.Logs}
-                timeRange={timeRange}
-                onTimeRangeChange={handleTimeRangeChange}
-              />
-            ) : undefined
-          }
+          emptyContentWhenUnfiltered={firstSteps}
           totalCount={totalCount}
           hasMore={resultTotalListAnswer?.page.hasMore}
           resultTotal={resultTotal}

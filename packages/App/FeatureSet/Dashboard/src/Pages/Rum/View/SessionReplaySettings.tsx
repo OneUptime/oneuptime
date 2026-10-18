@@ -549,9 +549,15 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 getElement: (item: RumApplication): ReactElement => {
                   return (
                     <span className="text-sm text-gray-900">
-                      {labelEnum(
-                        CAPTURE_TRIGGER_LABELS,
-                        item.sessionReplayCaptureTrigger ?? "",
+                      {/*
+                       * The words Edit Policy's choices use, in the reader's
+                       * language like those choices.
+                       */}
+                      {translator.translateText(
+                        labelEnum(
+                          CAPTURE_TRIGGER_LABELS,
+                          item.sessionReplayCaptureTrigger ?? "",
+                        ),
                       )}
                     </span>
                   );
@@ -668,9 +674,11 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 getElement: (item: RumApplication): ReactElement => {
                   return (
                     <span className="text-sm text-gray-900">
-                      {labelEnum(
-                        CONSENT_MODE_LABELS,
-                        item.sessionReplayConsentMode ?? "",
+                      {translator.translateText(
+                        labelEnum(
+                          CONSENT_MODE_LABELS,
+                          item.sessionReplayConsentMode ?? "",
+                        ),
                       )}
                     </span>
                   );

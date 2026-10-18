@@ -39,6 +39,13 @@ import {
   getSloBudgetRunway,
 } from "Common/Utils/Slo/SloProjection";
 import SloUtil from "Common/Utils/Slo/SloUtil";
+import {
+  BURN_RATE_DECLARES_ANSWERS,
+  BURN_RATE_DECLARES_COPY,
+  BURN_RATE_DECLARES_FIELD_TITLE,
+  BurnRateDeclares,
+  getBurnRateDeclares,
+} from "../../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateDeclares";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1435,8 +1442,6 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       "Long Window (Minutes)",
       "Short Window (Minutes)",
       "Re-fire Suppression (Minutes)",
-      "Create Alert",
-      "Declare Incident",
       "Add SLO Owners as Owners",
     ]) {
       expect({ field, onForm: form.includes(`title: "${field}",`) }).toEqual({
@@ -1448,6 +1453,41 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
         named: true,
       });
     }
+
+    /*
+     * What the rule opens is one choice, When it fires, with three answers:
+     * the page names the choice and each answer as the form draws them, the
+     * default first. The two switches it replaced stay registered unseen
+     * (the form loads and saves the columns through them), so the page no
+     * longer names them.
+     */
+    expect(form).toContain("title: BURN_RATE_DECLARES_FIELD_TITLE,");
+    expect(form).toContain("radioButtonOptions: getBurnRateDeclaresChoices(),");
+    expect(create).toContain(`answer **${BURN_RATE_DECLARES_FIELD_TITLE}**: `);
+
+    for (const declares of BURN_RATE_DECLARES_ANSWERS) {
+      expect(create).toContain(`**${BURN_RATE_DECLARES_COPY[declares].title}**`);
+    }
+
+    expect(create).toContain(
+      `**${BURN_RATE_DECLARES_COPY[BurnRateDeclares.Alert].title}**, the default`,
+    );
+
+    for (const replaced of ["Create Alert", "Declare Incident"]) {
+      expect(
+        blockFrom(form, `title: "${replaced}",`, "stepId:"),
+      ).toContain("showIf: (): boolean => {\n      return false;");
+      expect(create).not.toContain(`**${replaced}**`);
+    }
+
+    // A new rule is on; Enabled is on its edit form only.
+    expect(blockFrom(form, 'title: "Enabled",', "stepId:")).toContain(
+      "doNotShowWhenCreating: true,",
+    );
+    expect(create).toContain(
+      "A new rule is on; to stop it firing later, switch **Enabled** off on its edit form.",
+    );
+    expect(create).not.toContain("**Enabled** is on.");
   });
 
   it("states the rules a rule's numbers must keep, as the server checks them", () => {
@@ -1463,6 +1503,9 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     );
     expect(service).toContain(
       '"A burn rate rule must create an alert, declare an incident, or both."',
+    );
+    expect(page).toContain(
+      "The API refuses a rule that would create no alert and declare no incident",
     );
     expect(readSource("worker")).toContain(
       "rule.refireSuppressionMinutes ?? rule.longWindowInMinutes!",
@@ -1519,7 +1562,21 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
       byRow[row[0] as string] = row.slice(1);
     }
 
-    expect(byRow["Starts"]).toEqual(["On", "Off"]);
+    /*
+     * A new rule starts on Create an alert: the answer the two columns'
+     * defaults (an alert, no incident) make, and the form's first answer.
+     */
+    const copy: typeof BURN_RATE_DECLARES_COPY = BURN_RATE_DECLARES_COPY;
+
+    expect(BURN_RATE_DECLARES_ANSWERS[0]).toBe(BurnRateDeclares.Alert);
+    expect(getBurnRateDeclares({})).toBe(BurnRateDeclares.Alert);
+    expect(section(page, "What a rule declares")).toContain(
+      "|  | **Alert** | **Incident** |",
+    );
+    expect(byRow["Opened by"]).toEqual([
+      `**${copy[BurnRateDeclares.Alert].title}**, the default, or **${copy[BurnRateDeclares.Both].title}**`,
+      `**${copy[BurnRateDeclares.Incident].title}** or **${copy[BurnRateDeclares.Both].title}**`,
+    ]);
     expect(byRow["Private"]).toEqual(["Off", "Off"]);
     expect(byRow["Auto-resolve"]).toEqual(["On", "On"]);
     expect(section(page, "Owners, labels and privacy")).toContain(
@@ -1537,11 +1594,10 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
   });
 
   it("names the incidents a rule declares as staying off status pages", () => {
-    const form: string = readSource("burnRuleForm");
-
-    expect(form).toContain(
-      "Burn rate incidents are never published to status pages and never notify subscribers.",
-    );
+    // The line under the incident answer of When it fires says so.
+    expect(
+      BURN_RATE_DECLARES_COPY[BurnRateDeclares.Incident].description,
+    ).toContain("Burn rate incidents never reach status pages.");
     expect(page).toContain(
       "A burn rate incident is never shown on status pages and never notifies status page subscribers.",
     );

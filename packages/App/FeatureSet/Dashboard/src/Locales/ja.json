@@ -30773,7 +30773,6 @@
   "Opens an incident. Burn rate incidents never reach status pages.": "インシデントを作成します。バーンレートのインシデントはステータスページに載りません。",
   "Pick what this rule opens when it fires.": "このルールが発火したときに作成するものを選んでください。",
   "Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives.": "計装する対象を選んで手順に従ってください。最初のテレメトリが届くと、アプリが上の一覧に表示されます。",
-  "Raise an alert": "アラートを発行",
   "Replaces each match with [REDACTED].": "一致した箇所を [REDACTED] に置き換えます。",
   "Replaces it with a short hash, so equal values still look alike.": "短いハッシュに置き換えるので、同じ値は同じに見えます。",
   "Require explicit": "明示的な同意を必須",

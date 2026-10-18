@@ -79,7 +79,7 @@ Du behöver behörighet att skapa SLO-regler för förbrukningstakt.
 
 ### Ge regeln ett namn
 
-Under **Rule** anger du ett **Namn**, som ”Fast burn”. **Aktiverad** är påslaget.
+Under **Rule** anger du ett **Namn**, som ”Fast burn”. En ny regel är påslagen; vill du senare hindra den från att utlösas stänger du av **Aktiverad** i dess redigeringsformulär.
 
 ### Ange förbrukningsfönstret
 
@@ -87,7 +87,7 @@ Under **Burn Window** anger du **Burn Rate Threshold** (till exempel `14.4`), **
 
 ### Välj vad den deklarerar
 
-Under **What It Declares** slår du på **Skapa varning**, **Deklarera incident** eller båda. **Add SLO Owners as Owners** gör också SLO:ets ägare till ägare av allt som regeln skapar.
+Under **What It Declares** svarar du på **När den utlöses**: **Skapa ett larm**, standardvalet, **Deklarera en incident** eller **Båda**. **Add SLO Owners as Owners** gör också SLO:ets ägare till ägare av allt som regeln skapar.
 
 ### Beskriv larmet och incidenten
 
@@ -103,18 +103,18 @@ OneUptime kontrollerar en regels siffror när du sparar den:
 | **Long Window (Minutes)** | Längre än det korta fönstret. |
 | **Re-fire Suppression (Minutes)** | 0 eller mer. Tomt betyder det långa fönstrets längd. |
 
-En regel måste skapa ett larm, deklarera en incident eller båda: en regel där båda är avstängda avvisas, eftersom den skulle kontrolleras vid varje utvärdering utan att någonsin deklarera något.
+Varje svar på **När den utlöses** öppnar något. API:et avvisar en regel som varken skulle skapa ett larm eller deklarera en incident, eftersom den skulle kontrolleras vid varje utvärdering utan att någonsin deklarera något.
 
 Regeltabellen visar för varje regel tröskeln, fönstren och undertryckningen, vad den deklarerar (och om larmet eller incidenten bara löses för hand, eller är privat), allvarlighetsgraderna, jourpolicyerna, ägarna och etiketterna.
 
 > [!TIP]
-> En bra början: behåll de två standardreglerna, skicka regeln för snabb förbrukning till den jourpolicy som larmar folk, med hög allvarlighetsgrad, och låt regeln för långsam förbrukning utlösa ett larm med lägre allvarlighetsgrad för kontorstid. Arbetar ditt team med incidenter slår du på **Deklarera incident** på regeln för snabb förbrukning, och stänger av **Skapa varning** där om du hellre inte vill få båda.
+> En bra början: behåll de två standardreglerna, skicka regeln för snabb förbrukning till den jourpolicy som larmar folk, med hög allvarlighetsgrad, och låt regeln för långsam förbrukning utlösa ett larm med lägre allvarlighetsgrad för kontorstid. Arbetar ditt team med incidenter väljer du **Deklarera en incident** för regeln för snabb förbrukning, eller **Båda** för att också få ett larm.
 
 ## Vad en regel deklarerar
 
-|  | **Skapa varning** | **Deklarera incident** |
+|  | **Larm** | **Incident** |
 | --- | --- | --- |
-| Från början | På | Av |
+| Öppnas av | **Skapa ett larm**, standardvalet, eller **Båda** | **Deklarera en incident** eller **Båda** |
 | Vad det är | Den lätta signalen: hamnar i listan över larm. | Den tunga signalen: får ett incidentnummer och startar hela insatsflödet. |
 | Rubrik och beskrivning | Egna, eller standardtexten | Egna, eller standardtexten |
 | Allvarlighetsgrad | **Varningsallvar**: projektets högsta om tomt | **Incidentallvar**: projektets högsta om tomt |
@@ -195,7 +195,7 @@ Etiketter, ägarteam och jourpolicyer måste höra till SLO:ets projekt.
 
 Vissa ändringar löser alltid det som en regel har öppnat, oavsett vad dess inställningar för automatisk lösning säger, så att inget fortsätter att eskalera för en regel som inte längre kan motivera det:
 
-- att stänga av **Skapa varning** eller **Deklarera incident** stänger det som den utdatan hade öppnat;
+- att ändra **När den utlöses** så att larmet eller incidenten utelämnas stänger det som den utdatan hade öppnat;
 - att stänga av regeln eller radera den;
 - att stänga av SLO:ets utvärdering, arkivera SLO:et eller radera det;
 - att SLO:et går över till **Pausad** eller **Misconfigured**, eftersom det då inte mäter något;

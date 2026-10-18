@@ -158,7 +158,7 @@ describe("When it fires", () => {
           group.querySelector(`label[for="${radio.id}"]`)?.textContent || ""
         ).trim();
       }),
-    ).toEqual(["Raise an alert", "Declare an incident", "Both"]);
+    ).toEqual(["Create an alert", "Declare an incident", "Both"]);
 
     expect(lineOf(radios[0]!)).toBe("Opens an alert for the team to look at.");
     expect(lineOf(radios[1]!)).toBe(
@@ -176,13 +176,13 @@ describe("When it fires", () => {
     ).toBeInTheDocument();
   });
 
-  test("a new rule starts on Raise an alert, with the Alert step only", async () => {
+  test("a new rule starts on Create an alert, with the Alert step only", async () => {
     renderForm();
     const group: HTMLElement = await question();
 
     await waitFor(() => {
       expect(
-        within(group).getByRole("radio", { name: "Raise an alert" }),
+        within(group).getByRole("radio", { name: "Create an alert" }),
       ).toBeChecked();
     });
     expect(stepTitles()).toEqual(["What It Declares", "Alert"]);
@@ -222,7 +222,7 @@ describe("When it fires", () => {
     expect(values.shouldCreateIncident).toBe(true);
   });
 
-  test("Raise an alert, left as it starts, writes an alert and no incident", async () => {
+  test("Create an alert, left as it starts, writes an alert and no incident", async () => {
     const onSubmit: MockFunction = renderForm();
     await question();
 
@@ -233,7 +233,7 @@ describe("When it fires", () => {
   });
 
   test.each([
-    [{ shouldCreateAlert: true, shouldCreateIncident: false }, "Raise an alert"],
+    [{ shouldCreateAlert: true, shouldCreateIncident: false }, "Create an alert"],
     [
       { shouldCreateAlert: false, shouldCreateIncident: true },
       "Declare an incident",
