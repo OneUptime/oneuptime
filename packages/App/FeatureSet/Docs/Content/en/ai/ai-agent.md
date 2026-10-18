@@ -31,7 +31,7 @@ flowchart TB
 3. The Runner fetches the task's context. For an exception, that is its type, its message and its stack trace.
 4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id.
 5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs.
-6. If the repository has verification commands, the Runner builds and tests the change before committing anything, and hands a failure back to the code agent to repair (see [Verification before the pull request](#verification-before-the-pull-request)).
+6. If the repository has verification commands, a Runner of your own builds and tests the change before committing anything, and hands a failure back to the code agent to repair (see [Verification before the pull request](#verification-before-the-pull-request)).
 7. The Runner commits, pushes the branch, opens the pull request, and deletes the workspace.
 
 The page the task was started from shows its live status. Every task is listed under **Products → Code → Tasks**: open one for its **Overview**, its **Logs** (a line for every file the Runner read or wrote and every command it ran) and its **Pull Requests**.
@@ -68,11 +68,11 @@ When any of them is set, every fix run checks its change before the pull request
 
 1. When the code agent finishes, the commands run in order at the root of the repository, on the Runner, in the cloned workspace. Each one gets up to 15 minutes and runs with `CI=true`, so nothing waits on a prompt; the first failure stops the pass.
 2. On a failure, the end of the failing command's output goes back to the same code agent as a repair task, with instructions to fix its own change rather than weaken or skip tests, and the commands run again. It makes at most **2** repair attempts. They share the run's LLM budget, and their edits land in the same commit as the fix.
-3. The outcome, passed, failed or skipped (no commands set), is written in a Verification section of the pull request's description and recorded on the task's pull request.
+3. The outcome, passed, failed or skipped (no commands set, or a shared Runner), is written in a Verification section of the pull request's description and recorded on the task's pull request.
 
 A change that still fails verification is not thrown away: the pull request opens anyway, with a clearly marked "Verification failed" section that names the failing command and ends with its output. The work is kept, and the reviewer decides. A repository with no commands set is reported as skipped, rather than implying a green build.
 
-The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them. OneUptime's shared Runners do not run them at all — on a shared Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change; run a Runner of your own to have fixes built and tested on the Runner before the pull request opens.
+The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them. OneUptime's shared Runners never run them: on a shared Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change. [Run a Runner of your own](#run-a-runner-of-your-own) to have fixes built and tested before the pull request opens.
 
 ## Before you begin
 

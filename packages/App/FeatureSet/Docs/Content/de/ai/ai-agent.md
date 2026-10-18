@@ -31,7 +31,7 @@ flowchart TB
 3. Der Runner holt den Kontext der Aufgabe. Bei einer Ausnahme sind das ihr Typ, ihre Meldung und ihr Stack-Trace.
 4. Er klont das Repository in einen eigenen Arbeitsbereich und legt einen Branch an. Eine Korrektur einer Ausnahme heißt `oneuptime-fix-exception-`, gefolgt von den ersten Zeichen der ID des Laufs.
 5. Ein Code-Agent, angetrieben vom LLM-Anbieter Ihres Projekts, liest den Code und schreibt die Änderung. Der OneUptime-Server führt die LLM-Aufrufe aus, sodass der Runner den API-Schlüssel Ihres Anbieters nie besitzt, und jeder Aufruf wird gemessen und in den KI-Protokollen aufgeführt.
-6. Hat das Repository Prüfbefehle, baut und testet der Runner die Änderung, bevor er etwas committet, und gibt einen Fehler zur Reparatur an den Code-Agenten zurück (siehe [Prüfung vor dem Pull Request](#prüfung-vor-dem-pull-request)).
+6. Hat das Repository Prüfbefehle, baut und testet ein eigener Runner die Änderung, bevor er etwas committet, und gibt einen Fehler zur Reparatur an den Code-Agenten zurück (siehe [Prüfung vor dem Pull Request](#prüfung-vor-dem-pull-request)).
 7. Der Runner committet, pusht den Branch, öffnet den Pull Request und löscht den Arbeitsbereich.
 
 Die Seite, auf der die Aufgabe gestartet wurde, zeigt ihren Live-Status. Jede Aufgabe steht unter **Produkte → Code → Aufgaben**: Öffnen Sie eine für ihre **Übersicht**, ihre **Protokolle** (eine Zeile für jede Datei, die der Runner gelesen oder geschrieben hat, und jeden Befehl, den er ausgeführt hat) und ihre **Pull-Anfragen**.
@@ -68,11 +68,11 @@ Ist einer davon gesetzt, prüft jeder Korrekturlauf seine Änderung, bevor der P
 
 1. Wenn der Code-Agent fertig ist, laufen die Befehle der Reihe nach im Stammverzeichnis des Repositorys, auf dem Runner, im geklonten Arbeitsbereich. Jeder bekommt bis zu 15 Minuten und läuft mit `CI=true`, sodass nichts auf eine Eingabe wartet; der erste Fehler beendet den Durchlauf.
 2. Bei einem Fehler geht das Ende der Ausgabe des fehlgeschlagenen Befehls als Reparaturaufgabe an denselben Code-Agenten zurück, mit der Anweisung, seine eigene Änderung zu korrigieren, statt Tests abzuschwächen oder zu überspringen, und die Befehle laufen erneut. Er unternimmt höchstens **2** Reparaturversuche. Sie teilen sich das LLM-Budget des Laufs, und ihre Änderungen landen im selben Commit wie die Korrektur.
-3. Das Ergebnis, bestanden, fehlgeschlagen oder übersprungen (keine Befehle gesetzt), steht in einem Abschnitt Verification der Beschreibung des Pull Requests und wird am Pull Request der Aufgabe gespeichert.
+3. Das Ergebnis, bestanden, fehlgeschlagen oder übersprungen (keine Befehle gesetzt oder ein gemeinsam genutzter Runner), steht in einem Abschnitt Verification der Beschreibung des Pull Requests und wird am Pull Request der Aufgabe gespeichert.
 
 Eine Änderung, die die Prüfung weiterhin nicht besteht, wird nicht verworfen: Der Pull Request öffnet sich trotzdem, mit einem deutlich markierten Abschnitt "Verification failed", der den fehlgeschlagenen Befehl nennt und mit seiner Ausgabe endet. Die Arbeit bleibt erhalten, und der Prüfer entscheidet. Ein Repository ohne gesetzte Befehle wird als übersprungen gemeldet, statt einen grünen Build vorzutäuschen.
 
-Die Befehle sind Repository-Einstellungen, die Ihr Team schreibt und die auf Ihrem eigenen Runner laufen: dasselbe Vertrauensmodell wie die Bash-Schritte eines Runbooks. Die KI schreibt oder ändert sie nie.
+Die Befehle sind Repository-Einstellungen, die Ihr Team schreibt und die auf Ihrem eigenen Runner laufen: dasselbe Vertrauensmodell wie die Bash-Schritte eines Runbooks. Die KI schreibt oder ändert sie nie. Die gemeinsam genutzten Runner von OneUptime führen sie nie aus: Auf einem gemeinsam genutzten Runner wird die Korrektur geschrieben und zur Durchsicht geöffnet, die Prüfung wird als übersprungen gemeldet, und das eigene CI Ihres Repositorys prüft die Änderung. [Betreiben Sie einen eigenen Runner](#einen-eigenen-runner-betreiben), damit Korrekturen gebaut und getestet werden, bevor sich der Pull Request öffnet.
 
 ## Bevor Sie beginnen
 
