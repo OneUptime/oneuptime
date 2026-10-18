@@ -564,3 +564,28 @@ describe("the cluster key OneUptime's services present", () => {
     }
   });
 });
+
+/*
+ * Log lines are text anybody can put a header or a field into, so the
+ * cluster key's spellings must keep every rule's time in line with the
+ * text's length: about 400,000 characters of each worst case, each read in
+ * well under 2 seconds.
+ */
+describe("the cluster key's spellings keep redaction linear", () => {
+  const LENGTH: number = 400000;
+
+  it.each([
+    ["the name run together", "clusterkey".repeat(LENGTH / 10)],
+    ["the name's start over and over", "cluster_".repeat(LENGTH / 8)],
+    ["names and separators with no value", "x-clusterkey=".repeat(LENGTH / 13)],
+    ["an unterminated JSON member", `"clusterKey":"${"a".repeat(LENGTH)}`],
+    ["a header line with a long value", `clusterkey: ${"k".repeat(LENGTH)}`],
+    ["a header line of spaces", `clusterkey:${" ".repeat(LENGTH)}`],
+  ])("%s", (_label: string, text: string) => {
+    const startedAt: number = Date.now();
+
+    redactLogString(text);
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+});
