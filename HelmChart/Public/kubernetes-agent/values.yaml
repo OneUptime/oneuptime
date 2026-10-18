@@ -293,9 +293,16 @@ sampling:
     hashSeed: 22
 
 # OTel Collector image configuration
+#
+# The same collector the other OneUptime agents are built FROM. 0.96.0, the
+# pin before this one, carries known critical vulnerabilities (Go 1.21,
+# grpc 1.62, docker 24) that later releases fixed. The collector configs
+# keep what OneUptime reads as it was on 0.96.0 (the `*.cpu.utilization`
+# names, per-CPU `system.cpu.time`), and they still run on 0.96.0, which an
+# upgrade with --reuse-values keeps (see NOTES.txt).
 image:
   repository: otel/opentelemetry-collector-contrib
-  tag: "0.96.0"
+  tag: "0.161.0"
   pullPolicy: IfNotPresent
 
 # Debug sidecar — drops a shell + network tools (curl, dig, nc, tcpdump, …)

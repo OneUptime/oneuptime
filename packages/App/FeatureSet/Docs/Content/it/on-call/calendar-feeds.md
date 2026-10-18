@@ -241,7 +241,7 @@ Il feed mostra la rotazione **così come è configurata adesso**, anche per i gi
 - I link sono per progetto. Un link personale trapelato espone i turni di un progetto, non di tutti i progetti di cui fai parte.
 - Rigenerare un link sposta il vecchio token in un periodo di tolleranza di 30 giorni (calendario vuoto, poi 404). **Disattiva link** serve un calendario vuoto. Un link sconosciuto o scaduto risponde con un semplice 404 senza indizi. I calendari vuoti fanno svuotare la copia alle app sottoscritte; un 404 la fa conservare, per questo disattivare e rigenerare servono calendari vuoti.
 - I token sono memorizzati come hash; la copia mostrata nella pagina delle impostazioni è cifrata con `ENCRYPTION_SECRET`. Imposta questa variabile con un vero segreto su un'installazione self-hosted: il server avvisa all'avvio quando non è impostata o è ancora uno dei segnaposto forniti da questo repository (`secret`, o il `please-change-this-to-random-value` impostato da `config.example.env`). Se la cambi in seguito, la pagina propone **Rigenera link** perché la copia memorizzata non è più leggibile; il feed continua a funzionare finché non lo fai.
-- Le risposte dei feed sono contrassegnate con `Cache-Control: private`, escluse dai motori di ricerca (`X-Robots-Tag: noindex`) e soggette a limiti di frequenza per link e per indirizzo client.
+- Le risposte dei feed sono contrassegnate con `Cache-Control: private`, escluse dai motori di ricerca (`X-Robots-Tag: noindex`) e soggette a limiti di frequenza per link e per indirizzo client, e per /64 IPv6 con dieci volte i limiti di un indirizzo.
 
 Il Nginx di OneUptime tiene le richieste dei feed fuori dai suoi log:
 
@@ -319,7 +319,7 @@ Il link è sconosciuto, è stato eliminato o il suo periodo di tolleranza è fin
 :::
 
 :::details 429 o «troppe richieste»
-Molti client dietro un unico indirizzo (un NAT d'ufficio, un gateway VPN) condividono il budget per indirizzo. Aumenta `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` e controlla `TRUSTED_PROXY_HOPS`: se è troppo basso, ogni client viene attribuito al tuo proxy e tutti condividono un unico budget.
+Molti client dietro un unico indirizzo (un NAT d'ufficio, un gateway VPN) condividono il budget per indirizzo. I client di uno stesso /64 IPv6 condividono anche dieci volte quel budget. Aumenta `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` e controlla `TRUSTED_PROXY_HOPS`: se è troppo basso, ogni client viene attribuito al tuo proxy e tutti condividono un unico budget.
 :::
 
 :::details Errori di certificato in Calendario di Apple, Thunderbird o Outlook

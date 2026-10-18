@@ -519,9 +519,9 @@ describe("KubernetesMetricCatalog", () => {
    * `k8s.statefulset.ready_replicas` — but the agent's k8s_cluster receiver
    * emits `k8s.deployment.available`, `k8s.deployment.desired` and
    * `k8s.statefulset.ready_pods`, and no "unavailable" series at all. The
-   * chart renames nothing, so every one of those entries charted and
-   * alerted on a metric that never arrives: an empty chart, and a monitor
-   * that is never Met, with no error anywhere.
+   * chart renames none of them (it renames only kubelet CPU), so every one
+   * of those entries charted and alerted on a metric that never arrives: an
+   * empty chart, and a monitor that is never Met, with no error anywhere.
    */
   describe("every entry names a metric the shipped agent emits", () => {
     test("the agent chart still pins the collector these names were read from", () => {

@@ -3,6 +3,9 @@ import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import resolveTrustedClientIp, {
   ClientIpRequestLike,
 } from "Common/Server/Utils/ClientIp";
+import ClientRateLimitCounter, {
+  ClientRateLimitRefusal,
+} from "Common/Server/Utils/RateLimit/ClientRateLimitCounter";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -24,7 +27,10 @@ import TooManyRequestsException from "Common/Types/Exception/TooManyRequestsExce
  * fixed-window shape as Common/Server/Middleware/IdentityRateLimit.ts:
  *
  *   - one counter per (license key, client address) and one per client
- *     address, both incremented on every request;
+ *     address, both incremented on every request - and for an IPv6 client
+ *     both again for its /64, with room for ten addresses
+ *     (ClientRateLimitCounter), since one host can send from every address
+ *     of its /64;
  *   - the license key is HASHED before it becomes part of a Redis key, so no
  *     key ever lands in Redis or a log;
  *   - the client address comes from the trusted end of X-Forwarded-For
@@ -67,6 +73,11 @@ export interface LicenseServerRateLimitDecision {
   retryAfterSeconds?: number | undefined;
   // Which counter rejected. Unset unless rejected.
   scope?: LicenseServerRateLimitScope | undefined;
+  /*
+   * The client's IPv6 /64 when the addresses of that /64 together went over
+   * the counter's limit, rather than the client's own address.
+   */
+  ipv6Network64?: string | undefined;
   // True only on the request that first crossed the limit in this window.
   isFirstRejectionInWindow?: boolean | undefined;
 }
@@ -226,9 +237,10 @@ export default class LicenseServerRateLimit {
   }
 
   /*
-   * Increments both counters and decides. Both INCRs go out in one pipeline;
-   * the EXPIRE follow-up is sent only by the request that created a key, so
-   * the window never slides forward under sustained load.
+   * Increments both counters and decides (ClientRateLimitCounter: per
+   * address, and for an IPv6 client per /64 as well). Both INCRs go out in
+   * one pipeline; the EXPIRE follow-up is sent only by the request that
+   * created a key, so the window never slides forward under sustained load.
    */
   public static async consume(data: {
     bucket: LicenseServerRateLimitBucket;
@@ -246,72 +258,43 @@ export default class LicenseServerRateLimit {
     const windowMs: number = config.windowSeconds * 1000;
     const windowIndex: number = Math.floor(Date.now() / windowMs);
 
-    const licenseKeyCounterKey: string = `${KEY_PREFIX}${data.bucket}:k:${data.licenseKeyHash}:${data.clientIp}:${windowIndex}`;
-    const ipCounterKey: string = `${KEY_PREFIX}${data.bucket}:i:${data.clientIp}:${windowIndex}`;
-
     try {
-      const pipelineResults: Array<[Error | null, unknown]> | null =
-        (await client
-          .pipeline()
-          .incr(licenseKeyCounterKey)
-          .incr(ipCounterKey)
-          .exec()) as Array<[Error | null, unknown]> | null;
+      const refusal: ClientRateLimitRefusal<LicenseServerRateLimitScope> | null =
+        await ClientRateLimitCounter.count<LicenseServerRateLimitScope>({
+          redis: client,
+          clientIp: data.clientIp,
+          ttlSeconds: config.windowSeconds * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: LicenseServerRateLimitScope.LicenseKey,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}${data.bucket}:k:${data.licenseKeyHash}:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perLicenseKeyLimit,
+            },
+            {
+              scope: LicenseServerRateLimitScope.Ip,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}${data.bucket}:i:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perIpLimit,
+            },
+          ],
+        });
 
-      if (!pipelineResults || pipelineResults.length < 2) {
-        throw new Error("Rate limit pipeline returned no result");
+      if (!refusal) {
+        return { outcome: LicenseServerRateLimitOutcome.Allowed };
       }
 
-      const licenseKeyCount: number = LicenseServerRateLimit.readCounterResult(
-        pipelineResults[0],
-      );
-      const ipCount: number = LicenseServerRateLimit.readCounterResult(
-        pipelineResults[1],
-      );
-
-      const keysToExpire: Array<string> = [];
-
-      if (licenseKeyCount === 1) {
-        keysToExpire.push(licenseKeyCounterKey);
-      }
-
-      if (ipCount === 1) {
-        keysToExpire.push(ipCounterKey);
-      }
-
-      if (keysToExpire.length > 0) {
-        const expirePipeline: ReturnType<ClientType["pipeline"]> =
-          client.pipeline();
-
-        for (const key of keysToExpire) {
-          expirePipeline.expire(key, config.windowSeconds * TTL_MULTIPLIER);
-        }
-
-        await expirePipeline.exec();
-      }
-
-      const retryAfterSeconds: number =
-        LicenseServerRateLimit.getSecondsUntilWindowEnd(config.windowSeconds);
-
-      if (licenseKeyCount > config.perLicenseKeyLimit) {
-        return {
-          outcome: LicenseServerRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: LicenseServerRateLimitScope.LicenseKey,
-          isFirstRejectionInWindow:
-            licenseKeyCount === config.perLicenseKeyLimit + 1,
-        };
-      }
-
-      if (ipCount > config.perIpLimit) {
-        return {
-          outcome: LicenseServerRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: LicenseServerRateLimitScope.Ip,
-          isFirstRejectionInWindow: ipCount === config.perIpLimit + 1,
-        };
-      }
-
-      return { outcome: LicenseServerRateLimitOutcome.Allowed };
+      return {
+        outcome: LicenseServerRateLimitOutcome.RateLimited,
+        retryAfterSeconds: LicenseServerRateLimit.getSecondsUntilWindowEnd(
+          config.windowSeconds,
+        ),
+        scope: refusal.scope,
+        ipv6Network64: refusal.ipv6Network64,
+        isFirstRejectionInWindow: refusal.isFirstRefusalInWindow,
+      };
     } catch (err) {
       if (LicenseServerRateLimit.shouldLogCounterUnavailable(data.bucket)) {
         logger.warn(
@@ -364,7 +347,10 @@ export default class LicenseServerRateLimit {
 
         if (decision.isFirstRejectionInWindow) {
           logger.warn(
-            `LicenseServerRateLimit: rejecting ${bucket} requests from ${clientIp} (${decision.scope} limit).`,
+            `LicenseServerRateLimit: rejecting ${bucket} requests from ${clientIp} (${ClientRateLimitCounter.describeLimit(
+              String(decision.scope),
+              decision.ipv6Network64,
+            )}).`,
           );
         }
 
@@ -397,26 +383,6 @@ export default class LicenseServerRateLimit {
   // Test suites only: reset the log throttle.
   public static resetForTests(): void {
     LicenseServerRateLimit.counterUnavailableLastLoggedAt.clear();
-  }
-
-  private static readCounterResult(
-    result: [Error | null, unknown] | undefined,
-  ): number {
-    if (!result) {
-      throw new Error("Rate limit counter returned no result");
-    }
-
-    const [error, value] = result;
-
-    if (error) {
-      throw error;
-    }
-
-    if (typeof value !== "number") {
-      throw new Error("Rate limit counter returned a non-numeric value");
-    }
-
-    return value;
   }
 
   private static getSecondsUntilWindowEnd(windowSeconds: number): number {

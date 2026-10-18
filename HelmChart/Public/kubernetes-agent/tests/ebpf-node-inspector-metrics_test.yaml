@@ -42,7 +42,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-node-inspector\\n        - batch\\n"
+          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-node-inspector\\n        - batch\\n"
 
   - it: runs it after the user's metric filters and the resource processor
     set:
@@ -54,7 +54,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - filter/telemetry\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-node-inspector\\n        - batch\\n"
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n        - resource\\n(?: *#[^\\n]*\\n)*        - filter/ebpf-node-inspector\\n        - batch\\n"
 
   - it: never runs it on traces or logs
     asserts:
@@ -80,7 +80,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n      exporters:\\n        - otlphttp\\n    logs:\\n"
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n        - batch\\n      exporters:\\n        - otlphttp\\n    logs:\\n"
 
   - it: stays on for a release upgraded with --reuse-values from values that predate it
     set:
@@ -108,7 +108,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n"
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n        - batch\\n"
 
   - it: does not exist when OBI's Node.js agent is off, since OBI then never injects it
     set:
@@ -123,7 +123,7 @@ tests:
       - template: templates/configmap-deployment.yaml
         matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - batch\\n      exporters:\\n        - otlphttp\\n    logs:\\n"
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n        - batch\\n      exporters:\\n        - otlphttp\\n    logs:\\n"
 
   - it: is its own switch, apart from the database span filters
     set:

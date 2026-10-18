@@ -117,7 +117,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 | `404` | 이 URL에 응답하는 Runbook 웹훅이 없습니다. Runbook ID나 키가 틀렸거나 URL이 재설정되었습니다. |
 | `405` | 요청이 `GET` 입니다. `GET` 은 실행을 시작하지 않으므로 채팅 앱의 링크 미리보기가 실수로 실행할 수 없습니다. |
 | `413` | 본문이 64KB보다 큽니다. |
-| `429` | 웹훅이 지난 1분 동안 30번 실행을 시작했거나, 그 실행 중 10개가 아직 진행 중이거나, 한 주소가 1분 동안 Runbook 웹훅을 120번 넘게 호출했습니다. 가능한 경우 `Retry-After` 헤더가 다시 시도할 시점을 알려 줍니다. |
+| `429` | 웹훅이 지난 1분 동안 30번 실행을 시작했거나, 그 실행 중 10개가 아직 진행 중이거나, 한 주소가 1분 동안 Runbook 웹훅을 120번 넘게 호출했거나, 하나의 IPv6 /64 에 속한 주소들이 합쳐서 1200번 넘게 호출했습니다. 가능한 경우 `Retry-After` 헤더가 다시 시도할 시점을 알려 줍니다. |
 | `503` | OneUptime이 지금은 호출 수를 셀 수 없습니다. 1분 후에 다시 시도하세요. |
 
 거부된 호출은 아무것도 시작하지 않으며, 본문이 이유를 한 문장으로 알려 줍니다. 예: "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

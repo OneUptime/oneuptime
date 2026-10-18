@@ -1,5 +1,8 @@
 import Redis, { ClientType } from "../Infrastructure/Redis";
 import resolveTrustedClientIp, { ClientIpRequestLike } from "../Utils/ClientIp";
+import ClientRateLimitCounter, {
+  ClientRateLimitRefusal,
+} from "../Utils/RateLimit/ClientRateLimitCounter";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -20,11 +23,13 @@ import logger from "../Utils/Logger";
  * attacker and a token.
  *
  * One fixed-window counter per bucket per client address, the shape the
- * on-call calendar feed limiter uses. The budgets are fixed rather than
- * configurable: they are sized so that no real client comes near them even
- * with a whole office behind one address (a connected client exchanges a
- * token about once an hour), and an operator who has to tune them has a
- * problem a number will not fix.
+ * on-call calendar feed limiter uses - and for an IPv6 client one for its
+ * /64 as well, with room for ten addresses (ClientRateLimitCounter), since
+ * one host can send from every address of its /64. The budgets are fixed
+ * rather than configurable: they are sized so that no real client comes
+ * near them even with a whole office behind one address (a connected client
+ * exchanges a token about once an hour), and an operator who has to tune
+ * them has a problem a number will not fix.
  */
 
 export enum McpOAuthRateLimitBucket {
@@ -57,6 +62,12 @@ export interface McpOAuthRateLimitDecision {
 
   /* True only on the request that first crossed the line in this window. */
   isFirstRejectionInWindow?: boolean | undefined;
+
+  /*
+   * The client's IPv6 /64 when the addresses of that /64 together went over
+   * the limit, rather than the client's own address. For logs.
+   */
+  ipv6Network64?: string | undefined;
 }
 
 interface BucketConfig {
@@ -164,37 +175,44 @@ export default class McpOAuthRateLimit {
     const config: BucketConfig = BUCKET_CONFIG[data.bucket];
     const windowMs: number = config.windowSeconds * 1000;
     const windowIndex: number = Math.floor(Date.now() / windowMs);
-    const counterKey: string = `${KEY_PREFIX}${data.bucket}:${data.clientIp}:${windowIndex}`;
 
     try {
-      const count: unknown = await client.incr(counterKey);
-
-      if (typeof count !== "number") {
-        throw new Error("Rate limit counter returned a non-numeric value");
-      }
-
       /*
-       * The expiry is set only by the write that created the key. Re-issuing
-       * it on every increment would slide the window for as long as the load
-       * continued, and a caller that tripped the limit once could never
-       * recover.
+       * Counted by ClientRateLimitCounter: under the client's address, and
+       * for an IPv6 client under its /64 as well. The expiry is set only by
+       * the write that created a key. Re-issuing it on every increment would
+       * slide the window for as long as the load continued, and a caller
+       * that tripped the limit once could never recover.
        */
-      if (count === 1) {
-        await client.expire(counterKey, config.windowSeconds * TTL_MULTIPLIER);
+      const refusal: ClientRateLimitRefusal<McpOAuthRateLimitBucket> | null =
+        await ClientRateLimitCounter.count<McpOAuthRateLimitBucket>({
+          redis: client,
+          clientIp: data.clientIp,
+          ttlSeconds: config.windowSeconds * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: data.bucket,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}${data.bucket}:${clientKey}:${windowIndex}`;
+              },
+              limit: config.limit,
+            },
+          ],
+        });
+
+      if (!refusal) {
+        return { outcome: McpOAuthRateLimitOutcome.Allowed };
       }
 
-      if (count > config.limit) {
-        return {
-          outcome: McpOAuthRateLimitOutcome.RateLimited,
-          retryAfterSeconds: Math.max(
-            1,
-            Math.ceil((windowMs - (Date.now() % windowMs)) / 1000),
-          ),
-          isFirstRejectionInWindow: count === config.limit + 1,
-        };
-      }
-
-      return { outcome: McpOAuthRateLimitOutcome.Allowed };
+      return {
+        outcome: McpOAuthRateLimitOutcome.RateLimited,
+        retryAfterSeconds: Math.max(
+          1,
+          Math.ceil((windowMs - (Date.now() % windowMs)) / 1000),
+        ),
+        isFirstRejectionInWindow: refusal.isFirstRefusalInWindow,
+        ipv6Network64: refusal.ipv6Network64,
+      };
     } catch (err) {
       if (McpOAuthRateLimit.shouldLogCounterUnavailable()) {
         logger.warn(
@@ -235,10 +253,15 @@ export default class McpOAuthRateLimit {
           res.setHeader("Retry-After", String(decision.retryAfterSeconds));
         }
 
-        // One line per address per window, not one per refused request.
+        // One line per address (or /64) per window, not one per request.
         if (decision.isFirstRejectionInWindow) {
           logger.warn(
-            `McpOAuthRateLimit: rejected ${bucket} requests from ${clientIp}`,
+            decision.ipv6Network64
+              ? `McpOAuthRateLimit: rejected ${bucket} requests from ${clientIp} (${ClientRateLimitCounter.describeLimit(
+                  bucket,
+                  decision.ipv6Network64,
+                )})`
+              : `McpOAuthRateLimit: rejected ${bucket} requests from ${clientIp}`,
           );
         }
 

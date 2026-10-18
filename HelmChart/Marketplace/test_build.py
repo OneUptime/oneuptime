@@ -877,9 +877,8 @@ class EksAddonBuildTest(unittest.TestCase):
         self.assertIn(build.EKS_ADDON_PREDATES, str(raised.exception))
 
     def test_refuses_an_image_the_agent_chart_does_not_pin(self) -> None:
-        values = build.ValuesEditor(
-            (build.AGENT_CHART / "values.yaml").read_text().replace('tag: "0.96.0"', 'tag: ""', 1)
-        )
+        values = build.ValuesEditor((build.AGENT_CHART / "values.yaml").read_text())
+        values.set(["image", "tag"], "")
 
         with self.assertRaises(ValueError):
             build.plan_addon_images("14.0.65", self.edition, values)
