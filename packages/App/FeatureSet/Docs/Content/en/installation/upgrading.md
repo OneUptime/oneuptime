@@ -1378,6 +1378,18 @@ API, SSO, or the Slack and Microsoft Teams apps.
   `docker-compose.yml`, `git pull` stops at that file: run
   `git checkout docker-compose.yml`, then pull again. Helm installs see no
   change.
+- **Wrong two-factor codes are counted for the account, wherever they come
+  from.** Once a sign-in's password is right, every wrong authenticator code
+  is counted for that account, from whatever address or network it is
+  entered: after five in a row, each next code waits before it is checked,
+  one minute at first and twice as long after each wrong code, up to an
+  hour. Backup codes have a count of their own, so wrong authenticator codes
+  never hold them, and a security key is never held. The account's owner is
+  emailed when the waits begin, at most once a day. A sign-in that gets its
+  code right, a new password, or a master admin's reset of two-factor
+  authentication ends the wait, and wrong codes are forgotten a day after
+  the last one. Someone who gets their code right within five tries sees no
+  change. See [Your Account](/docs/introduction/your-account).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

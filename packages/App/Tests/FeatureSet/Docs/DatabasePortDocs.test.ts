@@ -20,8 +20,8 @@ import path from "path";
  *     commands name the compose service and the config.env settings that
  *     exist; ComposeDatabaseRuntime (Tests/Ops) runs them for real;
  *   - the upgrade note (installation/upgrading, "Other changes in 14") sits
- *     after the note on a placeholder ONEUPTIME_SECRET and before the
- *     pointer to the endpoint changes, says the same, and links to those two
+ *     after the note on a placeholder ONEUPTIME_SECRET and before the note on
+ *     wrong two-factor codes, says the same, and links to those two
  *     sections - in
  *     every language at that language's own headings;
  *   - every translation carries the guide's sections and the note in the
@@ -65,7 +65,9 @@ const NOTE_LEAD: string =
 // The note before it (ClusterKeyUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**OneUptime refuses a placeholder `ONEUPTIME_SECRET`.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+// The note after it (TwoFactorWrongCodesDocs).
+const NEXT_LEAD: string =
+  "**Wrong two-factor codes are counted for the account, wherever they come from.**";
 
 const HEADING_LINE: RegExp = /^#{1,6}\s/;
 const HEADING_MARKER: RegExp = /^#+\s+/;
@@ -481,7 +483,7 @@ function noteLinks(language: string): Array<string> {
 }
 
 describe("the English upgrade note on PostgreSQL's port and password", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on a placeholder ONEUPTIME_SECRET and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on a placeholder ONEUPTIME_SECRET and before the note on wrong two-factor codes", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -493,9 +495,9 @@ describe("the English upgrade note on PostgreSQL's port and password", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says what the compose files publish now, and that backups reach it as before", () => {

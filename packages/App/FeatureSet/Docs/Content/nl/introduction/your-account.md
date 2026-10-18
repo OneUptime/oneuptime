@@ -148,6 +148,10 @@ Opnieuw inloggen stuurt een nieuwe link: kijk ook in uw spammap. Kunt u niet inl
 Kies bij de tweede stap van het inloggen **Geen toegang meer tot uw authenticator-app?** en voer een van uw back-upcodes in. Open daarna **Beveiliging → Two-factor authentication** en voeg uw nieuwe app toe. Zonder back-upcodes vraagt u een beheerder van uw OneUptime-installatie om de tweestapsverificatie van uw account te resetten.
 :::
 
+:::details Inloggen laat mij wachten voordat ik een andere code probeer
+Na vijf verkeerde codes op rij wacht elke volgende code voordat die wordt gecontroleerd: één minuut, dan twee, dan vier, enzovoort, tot een uur. OneUptime telt verkeerde codes voor uw account, waar ze ook worden ingevoerd, stuurt u een e-mail wanneer het wachten begint, en begint opnieuw te tellen zodra u een code goed invoert. Wacht en probeer het opnieuw, log in met een beveiligingssleutel, of kies **Geen toegang meer tot uw authenticator-app?** en voer een back-upcode in. Hebt u die codes niet ingevoerd, dan kent iemand uw wachtwoord: reset het met **Wachtwoord vergeten?** op de inlogpagina, wat ook het wachten beëindigt.
+:::
+
 :::details Tijden in het dashboard wijken een uur af
 Het dashboard toont tijden in de **Tijdzone** van uw profiel, niet in die van uw computer. Controleer die onder **Gebruikersprofiel → Overzicht**.
 :::
