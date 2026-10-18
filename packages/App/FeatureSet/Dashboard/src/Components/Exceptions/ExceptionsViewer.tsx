@@ -122,6 +122,7 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import useProjectHasExceptions from "./useProjectHasExceptions";
 import {
   showsTelemetryFirstSteps,
   TelemetryFirstStepsSignal,
@@ -1332,16 +1333,10 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope;
 
   /*
-   * Whether the project has any exception group at all, asked once - only
-   * on an Exceptions page, and only once its list came back empty with
-   * nothing the reader set narrowing it. Null until asked. A failed count
-   * reads as "has some", so the list keeps its own message rather than
-   * sending someone who has exceptions to a setup guide.
+   * The Exceptions pages' first steps: shown while the list is empty, nothing
+   * the reader set narrows it, and the project has no exception at all
+   * (asked once, useProjectHasExceptions).
    */
-  const [projectHasExceptions, setProjectHasExceptions] = useState<
-    boolean | null
-  >(null);
-
   const isUnnarrowedEmptyList: boolean = showsTelemetryFirstSteps({
     hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
     isEmpty: !isLoading && !holdsReads && !error && exceptions.length === 0,
@@ -1349,35 +1344,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     searchText: submittedSearch,
   });
 
-  useEffect(() => {
-    if (!isUnnarrowedEmptyList || projectHasExceptions !== null) {
-      return;
-    }
-
-    let isCancelled: boolean = false;
-
-    void (async (): Promise<void> => {
-      let hasExceptions: boolean = true;
-
-      try {
-        const count: number = await ModelAPI.count<TelemetryException>({
-          modelType: TelemetryException,
-          query: {},
-        });
-        hasExceptions = count > 0;
-      } catch {
-        hasExceptions = true;
-      }
-
-      if (!isCancelled) {
-        setProjectHasExceptions(hasExceptions);
-      }
-    })();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [isUnnarrowedEmptyList, projectHasExceptions]);
+  const projectHasExceptions: boolean | null = useProjectHasExceptions(
+    isUnnarrowedEmptyList,
+  );
 
   const query: Query<TelemetryException> = useMemo(() => {
     const q: Query<TelemetryException> = {};
