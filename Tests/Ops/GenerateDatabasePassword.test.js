@@ -37,6 +37,9 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const SCRIPT_PATH = "./Scripts/Install/GenerateDatabasePassword.js";
 const PLACEHOLDER = "please-change-this-to-random-value";
 const RANDOM_PASSWORD = /^[0-9a-f]{64}$/;
+// One `node ./Scripts/Install/<Name>.js` command of an npm script.
+const INSTALL_STEP = /^node \.\/Scripts\/Install\/[\w.-]+\.js$/;
+const INSTALL_STEP_IN_SCRIPT = /node (\.\/Scripts\/Install\/[\w.-]+\.js)/g;
 
 const TEMPLATE = fs.readFileSync(
   path.join(REPO_ROOT, "config.example.env"),
@@ -506,11 +509,24 @@ describe("the messages", () => {
 describe("wiring", () => {
   const STEP = `node ${SCRIPT_PATH} && `;
 
-  test("npm start runs it as the first command of its own script, before Compose starts anything, and npm run update ends with npm run start", () => {
-    const start = ROOT_PACKAGE.scripts.start;
+  // The install steps npm start's script begins with, before it reads config.env.
+  function leadingInstallSteps(start) {
+    const commands = start.split(" && ");
+    const firstOther = commands.findIndex((command) => {
+      return !INSTALL_STEP.test(command);
+    });
 
-    expect(start.startsWith(STEP)).toBe(true);
-    expect(start.indexOf(STEP)).toBeLessThan(start.indexOf("docker compose"));
+    return commands.slice(0, firstOther);
+  }
+
+  test("npm start runs it as a command of its own script, before it reads config.env and Compose starts anything, and npm run update ends with npm run start", () => {
+    const start = ROOT_PACKAGE.scripts.start;
+    const leading = leadingInstallSteps(start);
+    const rest = start.split(" && ").slice(leading.length);
+
+    expect(leading).toContain(`node ${SCRIPT_PATH}`);
+    expect(rest[0]).toBe("export $(grep -v '^#' config.env | xargs)");
+    expect(rest[1].startsWith("docker compose up ")).toBe(true);
     expect(start.split(SCRIPT_PATH)).toHaveLength(2);
     expect(ROOT_PACKAGE.scripts.update).toMatch(/&& npm run start$/);
     expect(fs.existsSync(path.join(REPO_ROOT, SCRIPT_PATH))).toBe(true);
@@ -548,10 +564,15 @@ describe("wiring", () => {
       fs.mkdirSync(path.join(directory, "Scripts", "Install"), {
         recursive: true,
       });
-      fs.copyFileSync(
-        path.join(REPO_ROOT, SCRIPT_PATH),
-        path.join(directory, SCRIPT_PATH),
-      );
+      // Every install step the scripts run, this one among them.
+      for (const command of Object.values(scripts)) {
+        for (const match of command.matchAll(INSTALL_STEP_IN_SCRIPT)) {
+          fs.copyFileSync(
+            path.join(REPO_ROOT, match[1]),
+            path.join(directory, match[1]),
+          );
+        }
+      }
       fs.writeFileSync(path.join(directory, "config.env"), TEMPLATE);
       fs.writeFileSync(
         path.join(directory, "package.json"),
@@ -588,6 +609,7 @@ describe("wiring", () => {
       }
       env.PATH = `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}`;
       env.npm_config_ignore_scripts = ignoreScripts ? "true" : "false";
+      env.npm_config_update_notifier = "false";
 
       const result = spawnSync("npm", ["start"], {
         cwd: directory,
@@ -636,7 +658,7 @@ describe("wiring", () => {
     const result = npmStartIn(
       {
         prestart: `node ${SCRIPT_PATH}`,
-        start: ROOT_PACKAGE.scripts.start.slice(STEP.length),
+        start: ROOT_PACKAGE.scripts.start.split(STEP).join(""),
       },
       true,
     );

@@ -84,6 +84,11 @@ const OVERRIDE_PORT: RegExp = /^ {6}- "(\d+)\.\d+\.\d+\.\d+:(\d+):(\d+)"$/;
 const COMPOSE_PORT: RegExp = /^([\d.]+):(\d+):(\d+)$/;
 const CONFIG_KEY: RegExp = /^([A-Z][A-Z0-9_]*)=/;
 const SETTING_IN_COMMAND: RegExp = /\$([A-Z][A-Z0-9_]+)/g;
+const GENERATE_STEP: string =
+  "node ./Scripts/Install/GenerateDatabasePassword.js";
+// One `node ./Scripts/Install/<Name>.js` command of an npm script.
+const INSTALL_STEP: RegExp = /^node \.\/Scripts\/Install\/[\w.-]+\.js$/;
+
 function isConfigWrite(command: string): boolean {
   return command.trim().startsWith("sed -i ");
 }
@@ -96,9 +101,18 @@ function endsTheChainLink(command: string): boolean {
   return command.endsWith(" &&");
 }
 
-// npm start's script begins with the step that gives a new install its password.
-const GENERATE_STEP_FIRST: RegExp =
-  /^node \.\/Scripts\/Install\/GenerateDatabasePassword\.js && /;
+/*
+ * The install steps npm start's script runs before it reads config.env and
+ * starts Compose: the step that gives a new install its password is one.
+ */
+function leadingInstallSteps(start: string): Array<string> {
+  const commands: Array<string> = start.split(" && ");
+  const firstOther: number = commands.findIndex((command: string): boolean => {
+    return !INSTALL_STEP.test(command);
+  });
+
+  return commands.slice(0, firstOther);
+}
 
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 const jsYaml: { load: (text: string) => unknown } = require(
@@ -320,7 +334,9 @@ describe("the Docker Compose guide on PostgreSQL's port", () => {
 
 describe("the Docker Compose guide on the database password", () => {
   it("says npm start gives a placeholder DATABASE_PASSWORD a random value on the first start - its script does, first", () => {
-    expect(rootScripts()["start"]).toMatch(GENERATE_STEP_FIRST);
+    expect(leadingInstallSteps(rootScripts()["start"] as string)).toContain(
+      GENERATE_STEP,
+    );
     expect(ENGLISH_GUIDE).toContain(
       "If `DATABASE_PASSWORD` is still the placeholder at the first start, `npm start` gives it a random value before PostgreSQL creates its database.",
     );
@@ -508,7 +524,9 @@ describe("the English upgrade note on PostgreSQL's port and password", () => {
       "Scripts/Install/GenerateDatabasePassword.js",
     );
 
-    expect(rootScripts()["start"]).toMatch(GENERATE_STEP_FIRST);
+    expect(leadingInstallSteps(rootScripts()["start"] as string)).toContain(
+      GENERATE_STEP,
+    );
     expect(script).toContain('const PLACEHOLDER_MARK = "please-change-this";');
     expect(script).toContain('"warn-created"');
     expect(ENGLISH_NOTE).toContain(
