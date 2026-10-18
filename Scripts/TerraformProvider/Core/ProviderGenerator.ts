@@ -350,6 +350,10 @@ var droppableSelectColumnPatterns = []*regexp.Regexp{
     regexp.MustCompile(\`Cannot select on \\\\?"([A-Za-z0-9_]+)\`),
     // ClickHouse-backed models reject an unknown column more tersely.
     regexp.MustCompile(\`Unknown column: ([A-Za-z0-9_]+)\`),
+    // A root or master-admin caller (a self-hosted master API key) skips the
+    // select permission check, and the model's column metadata refuses an
+    // unknown column instead: "TableColumnMetadata not found for X column".
+    regexp.MustCompile(\`TableColumnMetadata not found for ([A-Za-z0-9_]+) column\`),
 }
 
 // droppableSelectColumn returns the column named by a select-rejection error
