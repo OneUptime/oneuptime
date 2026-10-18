@@ -21,9 +21,9 @@ import crypto from "crypto";
  * A route behind isAuthorizedServiceMiddleware does what only OneUptime
  * itself may ask for - send an email, an SMS, a call or a message with the
  * installation's own accounts, run a workflow, write telemetry for any
- * project, register a Runner that fixes code for every project - and it is
- * reachable through the ingress like any other route. What keeps a stranger
- * out is that the caller presents this installation's cluster key.
+ * project, register a Runner that fixes code for every project. A caller
+ * proves it is one of this installation's own services by presenting the
+ * installation's cluster key.
  *
  * ONEUPTIME_SECRET, WHEN THE OPERATOR CHOSE ONE
  *

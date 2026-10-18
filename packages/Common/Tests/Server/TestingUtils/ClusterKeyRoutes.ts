@@ -9,10 +9,11 @@ import ts from "typescript";
  * the source: a router call (get, post, put, patch, delete, all, use) that
  * hands it ClusterKeyAuthorization.isAuthorizedServiceMiddleware.
  *
- * ClusterKeyGuard pins the list, so a new route that takes the cluster key
- * is noticed, and the over-HTTP suite in App
- * (Tests/ClusterKey/ClusterKeyRoutesOverHttp.test.ts) sends the key a
- * stranger knows to every one of them.
+ * The over-HTTP suite in App (Tests/ClusterKey/ClusterKeyRoutesOverHttp.test.ts)
+ * holds its own list of routes to this one, so a new route that takes the
+ * cluster key is noticed, and sends every value this repository ships to
+ * every one of them. ClusterKeyGuard checks every use of the check is such a
+ * route.
  */
 
 export interface ClusterKeyRoute {

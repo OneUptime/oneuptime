@@ -24,10 +24,9 @@ import type { Mock } from "jest-mock";
  *
  * Those routes send an email, an SMS, a call or a message with the
  * installation's own accounts, run workflows, write telemetry for any
- * project and register the Runner that fixes code for every project - and
- * the ingress reaches them like any other route. An installation that left
- * ONEUPTIME_SECRET unset, or at a value this repository ships, used to
- * present and accept that public value, so anybody could call them.
+ * project and register the Runner that fixes code for every project. Only
+ * OneUptime's own services may ask for that, and a value this repository
+ * ships is never their key.
  *
  * Each installation below is a fresh module registry: EnvironmentConfig reads
  * the ONEUPTIME_SECRET it names, and the real middleware runs on requests
@@ -205,7 +204,7 @@ function derivedClusterKey(signingKey: string): string {
 }
 
 /*
- * The values a stranger would try: every shipped value, as it is, trimmed,
+ * The values everybody knows: every shipped value, as it is, trimmed,
  * and URI-encoded the way a service sends a key.
  */
 function shippedValuesAStrangerWouldTry(): Array<string> {

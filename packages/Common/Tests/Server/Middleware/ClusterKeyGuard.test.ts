@@ -36,8 +36,8 @@ import ts from "typescript";
  *     value derives; and the Runner never presents one before checking it
  *     was given a key it may send.
  *
- * App's Tests/ClusterKey/ClusterKeyRoutesOverHttp sends what a stranger knows
- * to every route found here.
+ * App's Tests/ClusterKey/ClusterKeyRoutesOverHttp sends every value this
+ * repository ships to every route found here.
  */
 
 const CODE_FILE: RegExp = /\.(?:ts|tsx)$/;

@@ -56,9 +56,8 @@ jest.mock("Common/Server/Utils/Logger", () => {
  * or a webhook with the installation's own accounts, release its phone
  * numbers, run its workflows, write telemetry for any project, show what its
  * queues hold and which monitors its probes check, and register the Runner
- * that fixes code for every project. The ingress reaches them like any other
- * route. An installation that left ONEUPTIME_SECRET unset, or at a value this
- * repository ships, used to take that public value from anybody.
+ * that fixes code for every project. Only OneUptime's own services may ask
+ * for that, and a value this repository ships is never their key.
  *
  * Each installation here is a fresh copy of the product, loaded with the
  * ONEUPTIME_SECRET it names: the real EnvironmentConfig reads it, and the
@@ -723,7 +722,7 @@ function everyRequest(
 }
 
 /*
- * The values a stranger would try: every value this repository ships for any
+ * The values everybody knows: every value this repository ships for any
  * setting, as it is and URI-encoded the way a OneUptime service sends a key.
  */
 function shippedValues(): Array<string> {
@@ -1007,7 +1006,7 @@ describe("the real handlers behind the routes", () => {
   /*
    * The API process of an installation that kept the shipped placeholder,
    * and two callers: a worker of the same installation (it loaded the same
-   * installation key) and a stranger who knows only what the repository
+   * installation key) and a caller that knows only what the repository
    * ships.
    */
   let api: RunningInstallation;
@@ -1030,8 +1029,8 @@ describe("the real handlers behind the routes", () => {
       url: "/api/notification/email/send",
       body: {
         toEmail: "someone@example.com",
-        subject: "Your account",
-        body: "Sign in here",
+        subject: "Weekly summary",
+        body: "All monitors are up.",
         templateType: "EmptyTemplate",
         vars: {},
       },
@@ -1039,7 +1038,7 @@ describe("the real handlers behind the routes", () => {
     {
       name: "an SMS",
       url: "/api/notification/sms/send",
-      body: { to: "+15005550006", message: "Your code" },
+      body: { to: "+15005550006", message: "All monitors are up" },
     },
     {
       name: "a call",
@@ -1059,12 +1058,12 @@ describe("the real handlers behind the routes", () => {
     {
       name: "a webhook",
       url: "/api/notification/webhook/send",
-      body: { url: "http://169.254.169.254/latest", eventType: "test" },
+      body: { url: "https://example.com/hooks/oneuptime", eventType: "test" },
     },
     {
       name: "a global AI agent registration",
       url: "/api/ai-agent/register",
-      body: { aiAgentKey: "a-key-of-the-callers-choosing" },
+      body: { aiAgentKey: "an-agent-key" },
     },
     {
       name: "a workflow update",
@@ -1170,7 +1169,7 @@ describe("the real handlers behind the routes", () => {
         }),
       ).toStrictEqual(["someone@example.com"]);
       expect(api.smses).toStrictEqual([
-        { to: "+15005550006", message: "Your code" },
+        { to: "+15005550006", message: "All monitors are up" },
       ]);
       expect(api.registeredAgents).toStrictEqual([
         { key: "the-runner-key", isGlobalAIAgent: true },
@@ -1302,14 +1301,14 @@ describe("a worker's own MailService and SmsService, calling the API process", (
       mails: api.mails.length,
       smses: api.smses.length,
     };
-    const stranger: AnyModule = await workerOf(api, OTHER_INSTALLATION_KEY);
+    const otherWorker: AnyModule = await workerOf(api, OTHER_INSTALLATION_KEY);
 
-    const mailResult: AnyModule = await stranger.MailService.sendMail({
-      toEmail: new stranger.Email("victim@example.com"),
-      subject: "Reset your password",
+    const mailResult: AnyModule = await otherWorker.MailService.sendMail({
+      toEmail: new otherWorker.Email("someone@example.com"),
+      subject: "Weekly summary",
       templateType: "EmptyTemplate",
       vars: {},
-      body: "Click here",
+      body: "All monitors are up.",
     });
 
     expect(mailResult.statusCode).toBe(400);
