@@ -6,8 +6,11 @@ import CacheGenerations from "../../../Server/Infrastructure/CacheGenerations";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
+import { AddIncomingCallLogItemPolicy1803600000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1803600000000-AddIncomingCallLogItemPolicy";
+import { AddIncomingCallLogItemPolicyIndexAndKey1803650000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1803650000000-AddIncomingCallLogItemPolicyIndexAndKey";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import IncomingCallLogItemService from "../../../Server/Services/IncomingCallLogItemService";
 import MonitorOwnerTeamService from "../../../Server/Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../Server/Services/MonitorOwnerUserService";
 import MonitorService from "../../../Server/Services/MonitorService";
@@ -19,7 +22,10 @@ import OwnerTableRegistry, {
   OwnerTablePair,
 } from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import CustomRoleSync from "../../../Server/Utils/CustomRole/CustomRoleSync";
-import { UnreadableParentException } from "../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
+import {
+  UnreadableParentException,
+  UnreadableReferenceException,
+} from "../../../Server/Utils/Database/ProjectScopedReferenceRefusal";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -36,6 +42,8 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeInternalNote from "../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodeRoleMember from "../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncomingCallLog from "../../../Models/DatabaseModels/IncomingCallLog";
+import IncomingCallLogItem from "../../../Models/DatabaseModels/IncomingCallLogItem";
+import IncomingCallStatus from "../../../Types/IncomingCall/IncomingCallStatus";
 import IncomingCallPolicyEscalationRule from "../../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "../../../Models/DatabaseModels/MonitorOwnerTeam";
@@ -52,6 +60,7 @@ import OnCallDutyPolicyScheduleLayer from "../../../Models/DatabaseModels/OnCall
 import OnCallDutyPolicyScheduleLayerUser from "../../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageAnnouncementTemplate from "../../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
+import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
@@ -77,7 +86,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { DataSource, EntityMetadata } from "typeorm";
+import { DataSource, EntityMetadata, QueryRunner } from "typeorm";
 import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
 
 /*
@@ -273,10 +282,14 @@ const TABLES: Array<string> = [
   "OnCallDutyPolicyScheduleCalendarFeed",
   "IncomingCallPolicyEscalationRule",
   "IncomingCallLog",
+  // Each attempt to reach someone during a call.
+  "IncomingCallLogItem",
   "IncidentEpisodeRoleMember",
   "IncidentEpisodeInternalNote",
   // The monitors a group holds.
   "MonitorGroupResource",
+  // What a status page shows: a monitor group among them.
+  "StatusPageResource",
 ];
 
 interface PermissionRow {
@@ -454,9 +467,11 @@ describePostgres(
       OnCallDutyPolicyScheduleLayerUser,
       IncomingCallPolicyEscalationRule,
       IncomingCallLog,
+      IncomingCallLogItem,
       IncidentEpisodeRoleMember,
       IncidentEpisodeInternalNote,
       MonitorGroupResource,
+      StatusPageResource,
     ] as Array<{ new (): BaseModel }>) {
       partServices[modelType.name] = new DatabaseService(
         modelType,
@@ -4586,6 +4601,78 @@ describePostgres(
         );
         expect(await rowExists("MonitorGroup", groups[2]!)).toBe(true);
       });
+
+      /*
+       * A group the member may not read is not one they name either: a
+       * status page of theirs shows another team's monitor group only when
+       * they may read it - picking one is reading it - however the request
+       * names it.
+       */
+      test("Project Member scoped to Owned: a status page of theirs shows no monitor group of another team's, named by its id; beside a read of every group it shows any", async () => {
+        const myPage: ObjectID = await insertKind("StatusPage", "memberTeam");
+        const myGroup: ObjectID = await insertKind(
+          "MonitorGroup",
+          "memberTeam",
+        );
+        const theirGroup: ObjectID = await insertKind(
+          "MonitorGroup",
+          "otherTeam",
+        );
+
+        // Whether a status page resource showing `groupId` is written.
+        const show: (groupId: ObjectID) => Promise<Outcome> = async (
+          groupId: ObjectID,
+        ): Promise<Outcome> => {
+          return await createThrough({
+            caller: member,
+            path: pathOf(StatusPageResource),
+            row: {
+              statusPageId: myPage,
+              monitorGroupId: groupId,
+              displayName: `Group ${groupId.toString()}`,
+              order: 1,
+            },
+          });
+        };
+
+        const shownCount: (groupId: ObjectID) => Promise<number> = async (
+          groupId: ObjectID,
+        ): Promise<number> => {
+          return (
+            await database.query(
+              `SELECT "_id" FROM "${schema}"."StatusPageResource" WHERE "statusPageId" = $1 AND "monitorGroupId" = $2`,
+              [myPage.toString(), groupId.toString()],
+            )
+          ).length;
+        };
+
+        await setGrants([
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const refused: Outcome = await show(theirGroup);
+
+        expect(refused.error).toBeInstanceOf(UnreadableReferenceException);
+        expect(await shownCount(theirGroup)).toBe(0);
+
+        expect((await show(myGroup)).error).toBeUndefined();
+        expect(await shownCount(myGroup)).toBe(1);
+
+        // A read of every group: any group can be picked.
+        await setGrants([
+          { permission: Permission.Viewer },
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        expect((await show(theirGroup)).error).toBeUndefined();
+        expect(await shownCount(theirGroup)).toBe(1);
+      });
     });
 
     /*
@@ -5021,6 +5108,16 @@ describePostgres(
           incomingCallPolicyId: theirs,
         });
 
+        // Who each call rang: the attempts, with their call's policy.
+        const myAttempt: ObjectID = await insertPart("IncomingCallLogItem", {
+          incomingCallLogId: myCall,
+          incomingCallPolicyId: mine,
+        });
+        const theirAttempt: ObjectID = await insertPart("IncomingCallLogItem", {
+          incomingCallLogId: theirCall,
+          incomingCallPolicyId: theirs,
+        });
+
         expect(
           (
             await listThrough({
@@ -5039,6 +5136,43 @@ describePostgres(
             })
           ).ids,
         ).toEqual(idsOf([myCall]));
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallLogItem),
+              ids: [myAttempt, theirAttempt],
+            })
+          ).ids,
+        ).toEqual(idsOf([myAttempt]));
+
+        // Nor read one by one, nor found by the call it was part of.
+        expectMissing(
+          await send({
+            method: "post",
+            uri: `${pathOf(IncomingCallLogItem)}/:id/get-item`,
+            caller: member,
+            id: theirAttempt,
+            body: { select: { _id: true, userPhoneNumber: true } },
+          }),
+          new IncomingCallLogItem().singularName!,
+        );
+        expect(
+          (
+            await send({
+              method: "post",
+              uri: `${pathOf(IncomingCallLogItem)}/get-list`,
+              caller: member,
+              body: {
+                query: JSONFunctions.serialize({
+                  incomingCallLogId: theirCall,
+                } as unknown as JSONObject),
+                select: { _id: true },
+                limit: 50,
+              },
+            })
+          ).ids,
+        ).toEqual([]);
 
         // No rule added to theirs, and theirs is answered as missing.
         const added: Outcome = await createThrough({
@@ -5096,6 +5230,143 @@ describePostgres(
             myRule,
           ),
         );
+      });
+
+      test("Viewer over the whole project beside Project Member scoped to Owned: every call, and who it rang, is read; the escalation rules are still changed only on their own policies", async () => {
+        await setGrants([
+          { permission: Permission.Viewer },
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
+        ]);
+
+        const mine: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "memberTeam",
+        );
+        const theirs: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "otherTeam",
+        );
+
+        const theirRule: ObjectID = await insertPart(
+          "IncomingCallPolicyEscalationRule",
+          { incomingCallPolicyId: theirs, order: 1 },
+        );
+        const myCall: ObjectID = await insertPart("IncomingCallLog", {
+          incomingCallPolicyId: mine,
+        });
+        const theirCall: ObjectID = await insertPart("IncomingCallLog", {
+          incomingCallPolicyId: theirs,
+        });
+        const myAttempt: ObjectID = await insertPart("IncomingCallLogItem", {
+          incomingCallLogId: myCall,
+          incomingCallPolicyId: mine,
+        });
+        const theirAttempt: ObjectID = await insertPart("IncomingCallLogItem", {
+          incomingCallLogId: theirCall,
+          incomingCallPolicyId: theirs,
+        });
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallLog),
+              ids: [myCall, theirCall],
+            })
+          ).ids,
+        ).toEqual(idsOf([myCall, theirCall]));
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallLogItem),
+              ids: [myAttempt, theirAttempt],
+            })
+          ).ids,
+        ).toEqual(idsOf([myAttempt, theirAttempt]));
+
+        // Another team's rule: read, not changed or removed.
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: pathOf(IncomingCallPolicyEscalationRule),
+              ids: [theirRule],
+            })
+          ).ids,
+        ).toEqual(idsOf([theirRule]));
+
+        const ruleName: string = new IncomingCallPolicyEscalationRule()
+          .singularName!;
+
+        expectReadableNotWritten(
+          await updateThrough({
+            caller: member,
+            path: pathOf(IncomingCallPolicyEscalationRule),
+            id: theirRule,
+            row: { order: 5 },
+          }),
+          ruleName,
+          "update",
+        );
+        expectReadableNotWritten(
+          await deleteItem(
+            pathOf(IncomingCallPolicyEscalationRule),
+            member,
+            theirRule,
+          ),
+          ruleName,
+          "delete",
+        );
+        expect(
+          await valueOf("IncomingCallPolicyEscalationRule", "order", theirRule),
+        ).toBe(1);
+      });
+
+      test("an attempt OneUptime writes while it rings someone names the policy of its call, whatever the write named", async () => {
+        const mine: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "memberTeam",
+        );
+        const theirs: ObjectID = await insertKind(
+          "IncomingCallPolicy",
+          "otherTeam",
+        );
+        const theirCall: ObjectID = await insertPart("IncomingCallLog", {
+          incomingCallPolicyId: theirs,
+        });
+
+        for (const named of [undefined, mine]) {
+          // As a call that rings someone writes it.
+          const attempt: IncomingCallLogItem = new IncomingCallLogItem();
+          attempt.projectId = projectId;
+          attempt.incomingCallLogId = theirCall;
+          attempt.status = IncomingCallStatus.Ringing;
+          attempt.startedAt = new Date();
+          attempt.isAnswered = false;
+
+          if (named) {
+            attempt.incomingCallPolicyId = named;
+          }
+
+          const written: IncomingCallLogItem =
+            await IncomingCallLogItemService.create({
+              data: attempt,
+              props: { isRoot: true },
+            });
+
+          expect([
+            named?.toString() || "none named",
+            await valueOf(
+              "IncomingCallLogItem",
+              "incomingCallPolicyId",
+              written.id!,
+            ),
+          ]).toEqual([named?.toString() || "none named", theirs.toString()]);
+        }
       });
 
       test("Incident Member scoped to Owned: who holds a role on an episode is changed only on the episodes they or their team own", async () => {
@@ -5782,6 +6053,138 @@ describePostgres(
         IncidentEpisodeInternalNote,
         IncidentEpisode,
       );
+    });
+
+    /*
+     * THE ATTEMPTS OF THE CALLS MADE BEFORE THIS CHANGE take the policy of
+     * their call: the migration adds the column and gives each attempt the
+     * policy its call names, then the online migration indexes the column
+     * and keys it to the policy - an attempt goes with its policy. Run
+     * again, it changes nothing. In a schema of its own, with the three
+     * tables as they were before it.
+     */
+    test("the attempts of the calls made before the change take the policy of their call, indexed and keyed to it, however often the migration runs", async () => {
+      const before: string = `call_attempts_${ObjectID.generate()
+        .toString()
+        .replace(/-/g, "")}`;
+      const runner: QueryRunner = database.createQueryRunner();
+
+      const policyA: string = ObjectID.generate().toString();
+      const policyB: string = ObjectID.generate().toString();
+      const callA: string = ObjectID.generate().toString();
+      const callB: string = ObjectID.generate().toString();
+      const attempts: Dictionary<string> = {
+        [ObjectID.generate().toString()]: policyA,
+        [ObjectID.generate().toString()]: policyA,
+        [ObjectID.generate().toString()]: policyB,
+      };
+      const callOf: (policyId: string) => string = (
+        policyId: string,
+      ): string => {
+        return policyId === policyA ? callA : callB;
+      };
+
+      try {
+        await database.query(`CREATE SCHEMA "${before}"`);
+
+        for (const table of [
+          "IncomingCallPolicy",
+          "IncomingCallLog",
+          "IncomingCallLogItem",
+        ]) {
+          await database.query(
+            `CREATE TABLE "${before}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
+          );
+        }
+
+        // The attempts' table as it was before the change.
+        await database.query(
+          `ALTER TABLE "${before}"."IncomingCallLogItem" DROP COLUMN "incomingCallPolicyId"`,
+        );
+
+        for (const policyId of [policyA, policyB]) {
+          await database.query(
+            `INSERT INTO "${before}"."IncomingCallPolicy" ("_id", "version", "projectId", "name", "slug") VALUES ($1, 1, $2, $3, $3)`,
+            [policyId, projectId.toString(), `policy-${policyId}`],
+          );
+          await database.query(
+            `INSERT INTO "${before}"."IncomingCallLog" ("_id", "version", "projectId", "incomingCallPolicyId") VALUES ($1, 1, $2, $3)`,
+            [callOf(policyId), projectId.toString(), policyId],
+          );
+        }
+
+        for (const [attemptId, policyId] of Object.entries(attempts)) {
+          await database.query(
+            `INSERT INTO "${before}"."IncomingCallLogItem" ("_id", "version", "projectId", "incomingCallLogId") VALUES ($1, 1, $2, $3)`,
+            [attemptId, projectId.toString(), callOf(policyId)],
+          );
+        }
+
+        await runner.query(`SET search_path TO "${before}"`);
+        await new AddIncomingCallLogItemPolicy1803600000000().up(runner);
+
+        for (let run: number = 0; run < 2; run++) {
+          await new AddIncomingCallLogItemPolicyIndexAndKey1803650000000().up(
+            runner,
+          );
+        }
+
+        const rows: Array<{ _id: string; incomingCallPolicyId: string }> =
+          await database.query(
+            `SELECT "_id", "incomingCallPolicyId" FROM "${before}"."IncomingCallLogItem"`,
+          );
+
+        expect(
+          Object.fromEntries(
+            rows.map((row: { _id: string; incomingCallPolicyId: string }) => {
+              return [row._id, row.incomingCallPolicyId];
+            }),
+          ),
+        ).toEqual(attempts);
+
+        const indexes: Array<{ isValid: boolean }> = await database.query(
+          `SELECT x.indisvalid AS "isValid" FROM pg_index x JOIN pg_class c ON c.oid = x.indexrelid JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = $1 AND c.relname = $2`,
+          [before, "IDX_d728fcf2cd2e2bafbbb0ee8719"],
+        );
+
+        expect(indexes).toEqual([{ isValid: true }]);
+
+        const keys: Array<{ isValidated: boolean; onDelete: string }> =
+          await database.query(
+            `SELECT con.convalidated AS "isValidated", con.confdeltype AS "onDelete" FROM pg_constraint con JOIN pg_namespace n ON n.oid = con.connamespace WHERE n.nspname = $1 AND con.conname = $2`,
+            [before, "FK_d728fcf2cd2e2bafbbb0ee87193"],
+          );
+
+        expect(keys).toEqual([{ isValidated: true, onDelete: "c" }]);
+
+        // An attempt goes with its policy.
+        await database.query(
+          `DELETE FROM "${before}"."IncomingCallPolicy" WHERE "_id" = $1`,
+          [policyB],
+        );
+
+        expect(
+          (
+            await database.query(
+              `SELECT "_id" FROM "${before}"."IncomingCallLogItem" ORDER BY "_id"`,
+            )
+          ).map((row: { _id: string }): string => {
+            return row._id;
+          }),
+        ).toEqual(
+          Object.keys(attempts)
+            .filter((attemptId: string): boolean => {
+              return attempts[attemptId] === policyA;
+            })
+            .sort(),
+        );
+      } finally {
+        await runner.query(`RESET search_path`).catch(() => {
+          return undefined;
+        });
+        await runner.release();
+        await database.query(`DROP SCHEMA IF EXISTS "${before}" CASCADE`);
+      }
     });
 
     test("the sweep covers every kind with owner tables but the monitor, which the suite runs through its own routes", () => {

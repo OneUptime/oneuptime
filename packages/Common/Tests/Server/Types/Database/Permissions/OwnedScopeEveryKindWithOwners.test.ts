@@ -24,6 +24,7 @@ import IncidentEpisodeStateTimeline from "../../../../../Models/DatabaseModels/I
 import IncidentEpisodeRoleMember from "../../../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncomingCallLog from "../../../../../Models/DatabaseModels/IncomingCallLog";
+import IncomingCallLogItem from "../../../../../Models/DatabaseModels/IncomingCallLogItem";
 import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "../../../../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import Label from "../../../../../Models/DatabaseModels/Label";
@@ -162,6 +163,12 @@ const PARTS_OF_A_KIND: Array<PartOfAKind> = [
   },
   {
     modelType: IncomingCallLog,
+    kind: IncomingCallPolicy,
+    fkColumn: "incomingCallPolicyId",
+  },
+  // Who a call rang, at which number: each attempt goes with its call.
+  {
+    modelType: IncomingCallLogItem,
     kind: IncomingCallPolicy,
     fkColumn: "incomingCallPolicyId",
   },
@@ -860,12 +867,20 @@ describe.each(PARTS_OF_A_KIND)(
 
     test("is created only on a record of its kind the member owns, or is creating", async () => {
       if (scopeable(part.modelType, DatabaseRequestType.Create).length === 0) {
-        // Written by OneUptime alone: nobody's create to scope.
+        /*
+         * Written by OneUptime, or by a Project Owner or Admin, whom no
+         * scope narrows: nobody's create to scope.
+         */
         expect(
           TablePermission.getTablePermission(
             part.modelType,
             DatabaseRequestType.Create,
-          ),
+          ).filter((permission: Permission): boolean => {
+            return (
+              permission !== Permission.ProjectOwner &&
+              permission !== Permission.ProjectAdmin
+            );
+          }),
         ).toEqual([]);
         return;
       }
@@ -1020,6 +1035,182 @@ describe.each(Array.from(OwnerTableRegistry.keys()))(
     });
   },
 );
+
+/*
+ * WHAT NAMES ONE OF THESE KINDS FOLLOWS ITS OWNERS, OR SAYS WHY IT IS LEFT
+ * AS IT IS.
+ *
+ * The kinds swept here, and the records that take their owners from one of
+ * them (@OwnedThrough). A model whose records name one of them is a kind
+ * with owners itself, an owner table, takes its owners from a record
+ * (@OwnedThrough), or is read through one (@CanAccessIfCanReadOn): the Owned
+ * scope reaches it either way. Any other is listed below, by the column that
+ * names the kind, with why it is left as it is - it picks a record of the
+ * kind, which reading it allows, or it logs what OneUptime sent. A new model
+ * that names one of these kinds and follows no owners fails here until it
+ * does, or is listed with its reason; the list may only shrink, each entry
+ * a line the sweep still finds.
+ */
+const KINDS_WHOSE_NAMERS_ARE_SWEPT: Array<string> = [
+  "AlertEpisode",
+  "IncidentEpisode",
+  "MonitorGroup",
+  "IncomingCallPolicy",
+  "OnCallDutyPolicySchedule",
+  "IncidentTemplate",
+  "ScheduledMaintenanceTemplate",
+  "Probe",
+  "Runner",
+  "AIAgent",
+];
+
+const PICKS_A_PROBE: string =
+  "picks the probe it runs on: probes are read in full, so they can be picked";
+const PICKS_RUNNERS: string =
+  "picks the Runners it is handed to: Runners are read in full, so they can be picked";
+const LOGS_A_NOTIFICATION: string =
+  "a log of what OneUptime sent, written by OneUptime alone";
+
+const NAMES_A_KIND_AS_IT_IS: Record<string, string> = {
+  "AIAgentTaskPullRequest.aiAgent":
+    "a pull request an AI agent's task opened: AI agents are read in full",
+  "AutoRemediationRule.commandRunners": PICKS_RUNNERS,
+  "CallLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "EmailLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "NetworkDeviceDiagnostic.probe": PICKS_A_PROBE,
+  "NetworkDeviceDiscoveryScan.probe": PICKS_A_PROBE,
+  "NetworkSite.probe": PICKS_A_PROBE,
+  "PacketCapture.probe": PICKS_A_PROBE,
+  "PushNotificationLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "RunbookCredential.runners": PICKS_RUNNERS,
+  "RunbookSecret.runners": PICKS_RUNNERS,
+  "RunnerJob.targetAgent":
+    "work handed to a Runner, read with the runbook run or the AI run it is for",
+  "SmsLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "TelegramLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "UserOnCallShiftReminderLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "VMwareVCenterConnectionTest.probe": PICKS_A_PROBE,
+  "WebhookLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "WhatsAppLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "WorkspaceNotificationLog.alertEpisode": LOGS_A_NOTIFICATION,
+  "WorkspaceNotificationLog.incidentEpisode": LOGS_A_NOTIFICATION,
+  "WorkspaceNotificationLog.onCallDutyPolicySchedule": LOGS_A_NOTIFICATION,
+  "WorkspaceUserGroup.onCallDutyPolicySchedules":
+    "a Slack or Microsoft Teams user group kept in step with schedules: an integration setting that changes nothing about them",
+};
+
+// Whether the Owned scope reaches a model's records by owners of some record.
+function followsOwners(modelType: ModelType): boolean {
+  return Boolean(
+    OwnerTableRegistry.has(modelType.name) ||
+      OwnedScopePermission.getOwnedThrough(modelType) ||
+      new modelType().canAccessIfCanReadOn,
+  );
+}
+
+// The models whose records are the swept kinds' or take their owners from one.
+function sweptKindsAndTheirParts(): Set<ModelType> {
+  const kinds: Array<ModelType> = KINDS_WHOSE_NAMERS_ARE_SWEPT.map(
+    (name: string): ModelType => {
+      return modelNamed(name)!;
+    },
+  );
+
+  return new Set<ModelType>([
+    ...kinds,
+    ...MODEL_TYPES.filter((modelType: ModelType): boolean => {
+      const parents: Array<unknown> =
+        OwnedScopePermission.getOwnedThrough(modelType)?.parentModels || [];
+
+      return (
+        parents.length > 0 &&
+        parents.every((parent: unknown): boolean => {
+          return kinds.includes(parent as ModelType);
+        })
+      );
+    }),
+  ]);
+}
+
+// Every `Model.column` naming a swept record, of a model that follows no owners.
+function namersFollowingNoOwners(): Array<string> {
+  const swept: Set<ModelType> = sweptKindsAndTheirParts();
+  const lines: Array<string> = [];
+
+  for (const modelType of MODEL_TYPES) {
+    if (followsOwners(modelType)) {
+      continue;
+    }
+
+    const model: BaseModel = new modelType();
+
+    for (const column of model.getTableColumns().columns) {
+      const metadata: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(column);
+
+      if (
+        metadata &&
+        (metadata.type === TableColumnType.Entity ||
+          metadata.type === TableColumnType.EntityArray) &&
+        swept.has(metadata.modelType as ModelType)
+      ) {
+        lines.push(`${modelType.name}.${column}`);
+      }
+    }
+  }
+
+  return lines.sort();
+}
+
+describe("what names one of these kinds follows its owners, or is left as it is with a reason", () => {
+  test("the swept kinds are kinds with owners, and their parts are found", () => {
+    for (const name of KINDS_WHOSE_NAMERS_ARE_SWEPT) {
+      expect([name, OwnerTableRegistry.has(name)]).toEqual([name, true]);
+    }
+
+    const swept: Set<ModelType> = sweptKindsAndTheirParts();
+
+    for (const part of PARTS_OF_A_KIND) {
+      expect([part.modelType.name, swept.has(part.modelType)]).toEqual([
+        part.modelType.name,
+        true,
+      ]);
+    }
+  });
+
+  test("every model naming a swept kind, or one of its parts, follows owners - but the ones left as they are, each with its reason", () => {
+    expect(namersFollowingNoOwners()).toEqual(
+      Object.keys(NAMES_A_KIND_AS_IT_IS).sort(),
+    );
+  });
+
+  test("an attempt to reach someone during a call follows its call's policy, by the policy the call names", () => {
+    expect(followsOwners(IncomingCallLogItem)).toBe(true);
+    expect(
+      OwnedScopePermission.getOwnedThrough(IncomingCallLogItem)?.parentModels,
+    ).toEqual([IncomingCallPolicy]);
+    expect(namersFollowingNoOwners()).not.toContain(
+      "IncomingCallLogItem.incomingCallLog",
+    );
+  });
+
+  test("every reason is said, and every entry still names a model and a column", () => {
+    for (const [line, reason] of Object.entries(NAMES_A_KIND_AS_IT_IS)) {
+      const [modelName, column] = line.split(".");
+      const modelType: ModelType | undefined = modelNamed(modelName || "");
+
+      expect([line, Boolean(modelType), reason.length > 20]).toEqual([
+        line,
+        true,
+        true,
+      ]);
+      expect([
+        line,
+        Boolean(new modelType!().getTableColumnMetadata(column || "")),
+      ]).toEqual([line, true]);
+    }
+  });
+});
 
 /*
  * Routes of their own that hold a record to its update rule before they act
