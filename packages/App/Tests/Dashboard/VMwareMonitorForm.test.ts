@@ -72,6 +72,17 @@ const templatePickerSource: string = readSource(
   "VMwareMonitor",
   "VMwareTemplatePicker.tsx",
 );
+
+// Anything that is not part of a word: the source split into its words.
+const NOT_A_WORD_CHARACTER: RegExp = /[^A-Za-z0-9_]+/;
+
+/*
+ * The picker's source as whole words, so a word like "Node" is caught but
+ * React's "ReactNode" (the children's type) is not.
+ */
+const templatePickerWords: Set<string> = new Set(
+  templatePickerSource.split(NOT_A_WORD_CHARACTER),
+);
 const metricPickerSource: string = readSource(
   "VMwareMonitor",
   "VMwareMetricPicker.tsx",
@@ -395,8 +406,13 @@ describe("VMwareTemplatePicker", () => {
 
     for (const word of ["Proxmox", "pve", "Guest", "Node", "LXC", "QEMU"]) {
       expect(labels).not.toContain(word);
-      expect(templatePickerSource).not.toContain(word);
+      expect({ word, inPicker: templatePickerWords.has(word) }).toEqual({
+        word,
+        inPicker: false,
+      });
     }
+    // The split does see the picker's words.
+    expect(templatePickerWords.has("VMWARE_TEMPLATE_CATEGORIES")).toBe(true);
     expect(labels).toContain("ESXi Host");
     expect(labels).toContain("Datastore");
     expect(labels).toContain("vSAN");
