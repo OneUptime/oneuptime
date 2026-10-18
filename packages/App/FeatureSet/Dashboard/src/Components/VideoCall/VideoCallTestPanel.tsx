@@ -15,6 +15,7 @@ import React, {
   useState,
 } from "react";
 import { VideoCallTestResult } from "./VideoCallApi";
+import { getOpenableJoinUrl } from "./VideoCallJoinLink";
 import VideoCallProviderLogo from "./VideoCallProviderLogo";
 
 /*
@@ -129,7 +130,7 @@ const VideoCallTestPanel: FunctionComponent<ComponentProps> = (
               {translator.translateText("Test meeting created")}
             </div>
             <a
-              href={state.result.joinUrl}
+              href={getOpenableJoinUrl(state.result.joinUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-0.5 block truncate text-sm text-emerald-700 underline-offset-2 hover:underline"
