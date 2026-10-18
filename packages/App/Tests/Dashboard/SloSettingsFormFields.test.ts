@@ -10,12 +10,14 @@ import {
   describeSloErrorBudget,
   describeSloWindow,
   getSloDowntimeSettingsFormFields,
-  getSloMultiMonitorModeDropdownOptions,
+  getSloMultiMonitorModeChoices,
   getSloObjectiveSettingsFormFields,
   getSloPeriodSettingsFormFields,
   orderDowntimeMonitorStatuses,
+  SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS,
   SLO_MULTI_MONITOR_MODE_DESCRIPTIONS,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Permission from "Common/Types/Permission";
@@ -25,7 +27,6 @@ import { DEFAULT_ROLLING_WINDOW_DAYS } from "Common/Utils/Slo/SloHealth";
 import SloEvaluationSwitchCopy, {
   SLO_EVALUATION_SWITCH_COLUMN,
 } from "../../FeatureSet/Dashboard/src/Components/Slo/SloEvaluationSwitchCopy";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -337,26 +338,56 @@ describe("the Objective and Compliance Period cards", () => {
 });
 
 describe("the Downtime Calculation card", () => {
-  test("offers every multi-monitor mode, each explained in plain language", () => {
+  /*
+   * A dropdown under a sentence about the field used to hide what each mode
+   * does inside its closed list. The two modes are answers on the form now,
+   * each with one line: what counts as downtime, and when to pick it.
+   */
+  test("offers every multi-monitor mode as an answer with one line, Any Monitor Down first", () => {
     const field: SloField = fieldIn(DOWNTIME_FIELDS, "multiMonitorMode");
-    const options: Array<DropdownOption> =
-      field.dropdownOptions as Array<DropdownOption>;
+    const options: Array<RadioButton> =
+      field.radioButtonOptions as Array<RadioButton>;
 
-    expect(field.fieldType).toBe(FormFieldSchemaType.Dropdown);
+    expect(field.fieldType).toBe(FormFieldSchemaType.RadioButton);
     expect(field.required).toBe(true);
-    expect(options).toEqual(getSloMultiMonitorModeDropdownOptions());
+    expect(field.dropdownOptions).toBeUndefined();
+    expect(options).toEqual(getSloMultiMonitorModeChoices());
     expect(
-      options.map((option: DropdownOption): unknown => {
+      options.map((option: RadioButton): string => {
         return option.value;
       }),
-    ).toEqual(Object.values(SloMultiMonitorMode));
+    ).toEqual([
+      SloMultiMonitorMode.AnyDown,
+      SloMultiMonitorMode.MonitorSecondsAverage,
+    ]);
+    // The column's default, Any Monitor Down, is the first answer.
+    expect(
+      new ServiceLevelObjective().getTableColumnMetadata("multiMonitorMode")
+        .defaultValue,
+    ).toBe(SloMultiMonitorMode.AnyDown);
 
     for (const option of options) {
-      expect(option.label).toBe(option.value);
+      // Named as the docs and the Settings card name the mode.
+      expect(option.title).toBe(option.value);
       expect(option.description).toBe(
-        SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[
+        SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS[
           option.value as SloMultiMonitorMode
         ],
+      );
+      // One line under an answer.
+      expect(option.description!.length).toBeLessThanOrEqual(100);
+    }
+
+    // The field's own line says when the choice matters, nothing more.
+    expect(field.description).toBe(
+      "Only matters when this SLO measures more than one monitor.",
+    );
+  });
+
+  test("keeps the card's longer sentence for the chosen mode apart from the answers' lines", () => {
+    for (const mode of Object.values(SloMultiMonitorMode)) {
+      expect(SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode]).not.toBe(
+        SLO_MULTI_MONITOR_MODE_CHOICE_DESCRIPTIONS[mode],
       );
     }
   });

@@ -136,7 +136,7 @@ Der Marketplace lehnt ein gekündigtes oder ausgesetztes Abonnement ab, ebenso e
 
 OneUptime migriert seine Datenbank, wenn das neue Release startet. Lesen Sie die [Upgrade-Hinweise](/docs/installation/upgrading), bevor Sie auf eine neue Hauptversion wechseln.
 
-Aktualisieren Sie über den Marketplace: Das Editions-Label kann ein neueres OneUptime-Release anzeigen, bevor es auf Ihrem Marketplace verfügbar ist.
+Aktualisieren Sie über den Marketplace. Eine Marketplace-Installation vergleicht sich nicht mit den OneUptime-Releases auf GitHub: Die Versionen, die Ihr Marketplace anbietet, sind die, auf die Sie aktualisieren.
 
 ## Einstellungen und Skalierung
 

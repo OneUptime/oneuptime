@@ -5,6 +5,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnedThrough from "../../Types/Database/AccessControl/OwnedThrough";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -66,6 +67,13 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.EditOnCallDutyPolicyScheduleLayer,
   ],
 })
+/*
+ * A layer is one of its schedule's rotations: whoever changes it changes the
+ * schedule, so a grant scoped to Owned adds, changes and removes layers only
+ * on the schedules its holder or their teams own. Read by every reader of
+ * schedules, as the schedule is (OwnerTablePair.ownedScopeLeavesReads).
+ */
+@OwnedThrough("onCallDutyPolicyScheduleId", OnCallDutyPolicySchedule)
 @CrudApiEndpoint(new Route("/on-call-duty-schedule-layer"))
 @TableMetadata({
   tableName: "OnCallDutyPolicyScheduleLayer",

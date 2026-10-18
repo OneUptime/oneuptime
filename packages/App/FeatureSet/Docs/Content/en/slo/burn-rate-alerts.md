@@ -79,7 +79,7 @@ Open the SLO, go to **Burn Rate Rules** and click **Create SLO Burn Rate Rule**,
 
 ### Name the rule
 
-On **Rule**, enter a **Name**, such as "Fast burn". **Enabled** is on.
+On **Rule**, enter a **Name**, such as "Fast burn". A new rule is on; to stop it firing later, switch **Enabled** off on its edit form.
 
 ### Set the burn window
 
@@ -87,7 +87,7 @@ On **Burn Window**, set the **Burn Rate Threshold** (for example `14.4`), the **
 
 ### Choose what it declares
 
-On **What It Declares**, turn on **Create Alert**, **Declare Incident**, or both. **Add SLO Owners as Owners** also makes the SLO's owners owners of everything the rule creates.
+On **What It Declares**, answer **When it fires**: **Create an alert**, the default, **Declare an incident**, or **Both**. **Add SLO Owners as Owners** also makes the SLO's owners owners of everything the rule creates.
 
 ### Describe the alert and the incident
 
@@ -103,18 +103,18 @@ OneUptime checks a rule's numbers when you save it:
 | **Long Window (Minutes)** | Longer than the short window. |
 | **Re-fire Suppression (Minutes)** | 0 or more. Empty means the length of the long window. |
 
-A rule must create an alert, declare an incident or both: a rule with both turned off is refused, because it would be checked at every evaluation and never declare anything.
+Every answer to **When it fires** opens something. The API refuses a rule that would create no alert and declare no incident, because it would be checked at every evaluation and never declare anything.
 
 The rules table shows, for each rule, its threshold, its windows and suppression, what it declares (and whether the alert or incident is resolved only by hand, or private), its severities, on-call policies, owners and labels.
 
 > [!TIP]
-> A good start: keep the two default rules, send the fast-burn rule to your paging on-call policy at a high severity, and let the slow-burn rule raise a lower-severity alert for working hours. If your team runs everything through incidents, turn on **Declare Incident** for the fast-burn rule, and turn off **Create Alert** on it if you would rather not get both.
+> A good start: keep the two default rules, send the fast-burn rule to your paging on-call policy at a high severity, and let the slow-burn rule raise a lower-severity alert for working hours. If your team runs everything through incidents, pick **Declare an incident** for the fast-burn rule, or **Both** to get an alert as well.
 
 ## What a rule declares
 
-|  | **Create Alert** | **Declare Incident** |
+|  | **Alert** | **Incident** |
 | --- | --- | --- |
-| Starts | On | Off |
+| Opened by | **Create an alert**, the default, or **Both** | **Declare an incident** or **Both** |
 | What it is | The light signal: it lands in the alert list. | The heavy one: it takes an incident number and opens the whole response workflow. |
 | Title and description | Its own, or the built-in text | Its own, or the built-in text |
 | Severity | **Alert Severity**: the project's most severe one if empty | **Incident Severity**: the project's most severe one if empty |
@@ -195,7 +195,7 @@ Labels, owner teams and on-call policies must belong to the SLO's project.
 
 Some changes always resolve what a rule has open, whatever its auto-resolve settings say, so nothing is left escalating for a rule that can no longer justify it:
 
-- turning off **Create Alert** or **Declare Incident** closes what that output opened;
+- changing **When it fires** to leave out the alert or the incident closes what that output opened;
 - turning the rule off or deleting it;
 - turning the SLO's evaluation off, archiving the SLO or deleting it;
 - the SLO turning **Paused** or **Misconfigured**, because it then measures nothing;

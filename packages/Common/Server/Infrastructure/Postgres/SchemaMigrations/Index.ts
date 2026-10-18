@@ -116,6 +116,8 @@ import { AddWorkflowWebhookSigningSecret1803400000000 } from "./1803400000000-Ad
 import { AddScheduledMaintenanceCalendarFeed1803450000000 } from "./1803450000000-AddScheduledMaintenanceCalendarFeed";
 import { AddIncidentVideoCallTranscript1803500000000 } from "./1803500000000-AddIncidentVideoCallTranscript";
 import { AddIncidentVideoCallTranscriptUserLinks1803550000000 } from "./1803550000000-AddIncidentVideoCallTranscriptUserLinks";
+import { AddIncomingCallLogItemPolicy1803600000000 } from "./1803600000000-AddIncomingCallLogItemPolicy";
+import { AddIncomingCallLogItemPolicyIndexAndKey1803650000000 } from "./1803650000000-AddIncomingCallLogItemPolicyIndexAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1434,4 +1436,6 @@ export default [
   AddScheduledMaintenanceCalendarFeed1803450000000,
   AddIncidentVideoCallTranscript1803500000000,
   AddIncidentVideoCallTranscriptUserLinks1803550000000,
+  AddIncomingCallLogItemPolicy1803600000000,
+  AddIncomingCallLogItemPolicyIndexAndKey1803650000000,
 ];

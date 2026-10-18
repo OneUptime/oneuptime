@@ -3,6 +3,7 @@ import Query from "../Query";
 import Select from "../Select";
 import ColumnPermissions from "./ColumnPermission";
 import ColumnRefusalMessage from "./ColumnRefusalMessage";
+import OwnedScopePermission from "./OwnedScopePermission";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import RelationListPermission from "./RelationListPermission";
 import BaseModel, {
@@ -366,8 +367,29 @@ export default class QueryPermission {
     const excludedColumnNames: Array<string> =
       ColumnPermissions.getExcludedColumnNames();
 
+    /*
+     * The related model's columns the caller reads only on the records they
+     * or their teams own (a Runner's key: OwnedScopePermission
+     * .getColumnsKeptToOwners). A filter through the relation would match
+     * every other record by them too, so it is refused.
+     */
+    const keptToOwners: Array<string> =
+      OwnedScopePermission.getColumnsKeptToOwners(
+        tableColumnMetadata.modelType,
+        data.props,
+      );
+
     for (const relationFilter of relationFilters) {
       for (const relatedColumn of Object.keys(relationFilter)) {
+        if (keptToOwners.includes(relatedColumn)) {
+          throw new NotAuthorizedException(
+            OwnedScopePermission.getColumnKeptToOwnersRefusal(
+              tableColumnMetadata.modelType,
+              relatedColumn,
+            ),
+          );
+        }
+
         const relatedColumnMetadata: TableColumnMetadata | undefined =
           relatedModel.getTableColumnMetadata(relatedColumn);
 

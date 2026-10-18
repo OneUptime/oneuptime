@@ -4,15 +4,17 @@
 # OneUptime Enterprise sold on AWS Marketplace (EKS), Microsoft Marketplace
 # (AKS) and Google Cloud Marketplace (GKE), billed per user by the hour.
 #
-# The build script's own unit tests run first. Then each edition is built
+# The unit tests of build.py and of the release automation run first. Then each edition is built
 # from the chart as it is now and rendered with helm, and what each
 # marketplace checks at submission is checked here, so a chart change that
 # would be rejected fails on the pull request instead:
 #
 #   every edition  lints and renders; every image comes from the
 #                  marketplace's own registry, none from Docker Hub and none
-#                  "latest"; the app knows which marketplace bills it; no
-#                  subchart, archive or helm test hook is shipped;
+#                  "latest"; the app knows which marketplace bills it, and
+#                  makes no update check against GitHub (upgrades come
+#                  through the marketplace); no subchart, archive or helm
+#                  test hook is shipped;
 #   aws            every image written out in values.yaml; the app and worker
 #                  run as the IRSA service account; at most 50 images;
 #   azure          the CNAB manifest, UI definition and ARM template agree;
@@ -71,6 +73,11 @@ check_common() {
     marketplace_env="$(grep -A1 'name: ENTERPRISE_MARKETPLACE$' "$rendered" | grep 'value:' | sort -u | tr -d ' ')"
     assert_eq "${marketplace}: the app is told which marketplace bills it" "value:\"${marketplace}\"" "$marketplace_env"
 
+    # Upgrades come through the marketplace: no comparing with, or calling, GitHub's releases.
+    local update_check_env
+    update_check_env="$(grep -A1 'name: DISABLE_UPDATE_CHECK$' "$rendered" | grep 'value:' | sort -u | tr -d ' ')"
+    assert_eq "${marketplace}: the app makes no update check against GitHub" "value:'true'" "$update_check_env"
+
     assert_absent "${marketplace}: no helm test hook" "$(cat "$rendered")" '"helm.sh/hook": test'
 
     if [ -d "${chart}/charts" ] || [ -n "$(find "$chart" -name '*.tgz' -print -quit)" ]; then
@@ -99,9 +106,9 @@ render() {
 # --- build.py's own unit tests -----------------------------------------------
 
 if python3 -m unittest discover -s "$MARKETPLACE_DIR" -p 'test_*.py' >"${WORK_DIR}/unittest.log" 2>&1; then
-    pass "build.py unit tests ($(grep -oE 'Ran [0-9]+ tests' "${WORK_DIR}/unittest.log"))"
+    pass "unit tests of build.py and the release automation ($(grep -oE 'Ran [0-9]+ tests' "${WORK_DIR}/unittest.log"))"
 else
-    fail "build.py unit tests"
+    fail "unit tests of build.py and the release automation"
     sed 's/^/        /' "${WORK_DIR}/unittest.log" | tail -40
 fi
 
@@ -174,7 +181,8 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace azure --version "$VERSION
     AZURE_MANIFEST="$(cat "${AZURE_OUT}/manifest.yaml")"
     assert_present "azure: the manifest version is the release" "$AZURE_MANIFEST" "version: ${VERSION}"
     assert_present "azure: the manifest points at the chart" "$AZURE_MANIFEST" 'helmChart: "./oneuptime"'
-    assert_present "azure: the manifest names the ARM template as Microsoft spells it" "$AZURE_MANIFEST" 'clusterARMTemplate: "./mainTemplate.json"'
+    assert_present "azure: the manifest names the ARM template as container-package-app reads it" "$AZURE_MANIFEST" 'clusterArmTemplate: "./mainTemplate.json"'
+    assert_absent "azure: not as Microsoft's docs spell it, which cpa rejects" "$AZURE_MANIFEST" 'clusterARMTemplate:'
     assert_present "azure: the manifest names the create experience" "$AZURE_MANIFEST" 'uiDefinition: "./createUIDefinition.json"'
     assert_present "azure: one installation per cluster" "$AZURE_MANIFEST" 'defaultScope: "cluster"'
 
@@ -357,6 +365,86 @@ for marketplace in aws azure google-cloud; do
             assert_present "google-cloud: tags every image with its track" "$MIRROR" "crane tag "
             ;;
     esac
+done
+
+# A run again: an image an earlier run copied into AWS Marketplace's registry is left as it is
+# (its repositories may refuse to overwrite a tag). crane is a stand-in here: it says the first
+# image is there already, and logs everything else it is asked to do.
+if [ -f "${WORK_DIR}/aws/images.json" ]; then
+    FAKE_BIN="${WORK_DIR}/fake-bin"
+    CRANE_LOG="${WORK_DIR}/crane.log"
+    mkdir -p "$FAKE_BIN"
+    : >"$CRANE_LOG"
+    cat >"${FAKE_BIN}/crane" <<'CRANE'
+#!/usr/bin/env bash
+echo "$*" >>"$CRANE_LOG"
+if [ "$1" = "digest" ]; then
+    [ "$2" = "$CRANE_EXISTING" ] && echo "sha256:1111" && exit 0
+    exit 1
+fi
+CRANE
+    chmod +x "${FAKE_BIN}/crane"
+    FIRST_TARGET="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["images"][0]["target"])' "${WORK_DIR}/aws/images.json")"
+
+    if MIRROR="$(PATH="${FAKE_BIN}:${PATH}" CRANE_LOG="$CRANE_LOG" CRANE_EXISTING="$FIRST_TARGET" \
+        bash "${MARKETPLACE_DIR}/mirror-images.sh" "${WORK_DIR}/aws/images.json" 2>&1)"; then
+        FILTERED="$(grep '^index filter ' "$CRANE_LOG" || true)"
+        assert_present "aws: an image an earlier run copied is left as it is" "$MIRROR" "= ${FIRST_TARGET} is there already"
+        assert_absent "aws: and is not copied again" "$FILTERED" "--tag ${FIRST_TARGET}"
+        assert_eq "aws: every other image is copied" "6" "$(grep -c . <<<"$FILTERED" || true)"
+    else
+        fail "aws: mirror-images.sh copies with crane"
+        echo "$MIRROR" | sed 's/^/        /'
+    fi
+fi
+
+# --- The release automation (HelmChart/Marketplace/automation) --------------------------
+#
+# What the Marketplace Release workflow sends, built from the editions above with no cloud:
+# the AWS change set, the Partner Center request and the Google steps - and the one-time setup
+# scripts parse.
+
+AUTOMATION_DIR="${MARKETPLACE_DIR}/automation"
+ZERO_DIGEST="sha256:$(printf '0%.0s' {1..64})"
+
+if [ -f "${WORK_DIR}/aws/images.json" ]; then
+    if python3 "${AUTOMATION_DIR}/aws_catalog.py" plan --images-json "${WORK_DIR}/aws/images.json" --version "$VERSION" \
+        --product-id prod-test --out "${WORK_DIR}/aws-change-set.json" >/dev/null 2>"${WORK_DIR}/aws-change-set.log"; then
+        CHANGE_SET="$(cat "${WORK_DIR}/aws-change-set.json")"
+        assert_present "aws: the change set adds the version" "$CHANGE_SET" '"ChangeType": "AddDeliveryOptions"'
+        assert_present "aws: the change set ships the chart" "$CHANGE_SET" "\"HelmChartUri\": \"$(edition_value aws registry)/oneuptime:${VERSION}\""
+        assert_present "aws: the buyer's service account reaches the chart" "$CHANGE_SET" '"DefaultValue": "${AWSMP_SERVICE_ACCOUNT}"'
+        CHANGE_SET_IMAGES="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))[0]["DetailsDocument"]["DeliveryOptions"][0]["Details"]["HelmDeliveryOptionDetails"]["ContainerImages"]))' "${WORK_DIR}/aws-change-set.json")"
+        assert_eq "aws: the change set lists every image" "7" "$CHANGE_SET_IMAGES"
+    else
+        fail "aws: the change set builds"
+        sed 's/^/        /' "${WORK_DIR}/aws-change-set.log" | tail -10
+    fi
+fi
+
+if python3 "${AUTOMATION_DIR}/partner_center.py" plan --tag "$VERSION" --digest "$ZERO_DIGEST" \
+    --out "${WORK_DIR}/partner-center.json" >/dev/null 2>"${WORK_DIR}/partner-center.log"; then
+    REQUEST="$(cat "${WORK_DIR}/partner-center.json")"
+    assert_present "azure: the request points the plan at the release's bundle" "$REQUEST" "\"tag\": \"${VERSION}\""
+    assert_present "azure: the bundle is the one cpa pushes" "$REQUEST" "\"repositoryName\": \"$(edition_value azure bundleRepository)\""
+    assert_present "azure: the cluster extension type is the plan's" "$REQUEST" "\"clusterExtensionType\": \"$(edition_value azure clusterExtensionType)\""
+else
+    fail "azure: the Partner Center request builds"
+    sed 's/^/        /' "${WORK_DIR}/partner-center.log" | tail -10
+fi
+
+GOOGLE_STEPS="$(GITHUB_STEP_SUMMARY='' python3 "${AUTOMATION_DIR}/google_cloud_release.py" summary --version "$VERSION" --deployer-digest "$ZERO_DIGEST" 2>&1 || true)"
+assert_present "google-cloud: the Producer Portal steps name the deployer" "$GOOGLE_STEPS" "$(edition_value google-cloud registry)/deployer:${VERSION}"
+
+for SETUP in google azure azure-registry; do
+    SETUP_SCRIPT="$(python3 "${AUTOMATION_DIR}/ci_setup.py" "$SETUP" 2>/dev/null || true)"
+
+    if [ -n "$SETUP_SCRIPT" ] && bash -n <<<"$SETUP_SCRIPT" 2>"${WORK_DIR}/setup-${SETUP}.log"; then
+        pass "setup: the ${SETUP} script is valid bash"
+    else
+        fail "setup: the ${SETUP} script is valid bash"
+        sed 's/^/        /' "${WORK_DIR}/setup-${SETUP}.log" | tail -5
+    fi
 done
 
 harness_report

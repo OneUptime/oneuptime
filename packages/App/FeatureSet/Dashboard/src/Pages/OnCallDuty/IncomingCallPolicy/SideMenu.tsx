@@ -15,6 +15,15 @@ export interface ComponentProps {
   modelId: ObjectID;
 }
 
+/*
+ * An incoming call policy's menu reads like an on-call policy's: Basic,
+ * Logs, Developer, then Advanced with Settings, Audit Logs and Delete
+ * Policy. It used to have a Danger Zone section for Delete Policy alone,
+ * and a Documentation page that drew a manual of its own in the product -
+ * the docs page (/docs/on-call/incoming-call-policy) is the one place for
+ * it, linked from the policy list's ⋯ menu, and the old address forwards to
+ * the policy's Overview (MovedPagePaths).
+ */
 const DashboardSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -54,18 +63,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Team}
-        />
-        <SideMenuItem
-          link={{
-            title: "Documentation",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS
-              ] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Book}
         />
       </SideMenuSection>
 
@@ -115,9 +112,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.List}
         />
-      </SideMenuSection>
-
-      <SideMenuSection title="Danger Zone">
         <SideMenuItem
           link={{
             title: "Delete Policy",

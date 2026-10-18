@@ -79,7 +79,7 @@ Quando um incidente ou alerta chega à política, **Level 1** aciona os destinat
 
 Um incidente, alerta ou episódio criado já confirmado ou resolvido — registrado depois do fato — não executa nenhuma de suas políticas: ninguém é acionado, e o feed dele informa isso, citando-as. Veja [Declarado já confirmado ou resolvido](/docs/incidents/declaring-incidents#declarado-já-confirmado-ou-resolvido).
 
-Para repetir uma política, clique em **Editar** no cartão **Política de Repetição**, ative **Repeat if no one acknowledges** e defina **Number of times to repeat**.
+Para repetir uma política, clique em **Editar** no cartão **Política de Repetição**, escolha **Recomeçar a partir do Level 1** e defina **Quantas vezes mais?**.
 
 ### O resumo do escalonamento
 

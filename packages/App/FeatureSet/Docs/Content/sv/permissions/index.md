@@ -196,7 +196,7 @@ Varje tillåten behörighet ges med en omfattning, vald under **Omfattning** nä
 | Ägda av det här teamet eller dess medlemmar | Behörigheten gäller bara resurser där det här teamet, eller den agerande användaren, står som ägare. |
 | Begränsa efter etiketter (avancerat) | Behörigheten gäller bara resurser som bär minst en av de valda etiketterna. |
 
-**Ägda** är det enklaste sättet att bygga en modell där "ni sköter era egna tjänster": ge ett team `MonitorAdmin` med omfattningen Ägda och gör sedan teamet till ägare av de övervakare det ansvarar för. Det smalnar bara av resurser som faktiskt kan ha ägare — övervakare, incidenter, instrumentpaneler, tjänster och liknande. Projektkonfiguration (incidenttillstånd, etiketter, själva teamen) har ingen ägare, så en roll med omfattningen Ägda beter sig normalt där.
+**Ägda** är det enklaste sättet att bygga en modell där "ni sköter era egna tjänster": ge ett team `MonitorAdmin` med omfattningen Ägda och gör sedan teamet till ägare av de övervakare det ansvarar för. Det smalnar av varje resurs som kan ha ägare — övervakare, incidenter, instrumentpaneler, tjänster, monitorgrupper, jourscheman och liknande — och det som hör till dem, som lagren i ett jourschema. Sonder, Runners, AI-agenter, jourscheman och incident- och underhållsmallar är det som andra resurser ställs in med, så en behörighet med omfattningen Ägda läser fortfarande alla, och du kan välja vilken som helst av dem; den ändrar och tar bara bort dem som du eller dina team äger. En Runners nyckel, som låter den som har den uppträda som Runnern, visas bara på de Runners som du eller dina team äger. Projektkonfiguration (incidenttillstånd, etiketter, själva teamen) har ingen ägare, så en roll med omfattningen Ägda beter sig normalt där.
 
 **Etiketter** är den mer manuella varianten av samma idé: märk resurser och ge sedan behörigheter som är begränsade till de märkningarna.
 
@@ -323,7 +323,7 @@ Upplösta behörigheter cachas per användare och projekt och uppdateras när te
 
 **Ett team som bara tittar.** Skapa teamet med **Tittare** under **Åtkomst**. För bara vissa områden väljer du **Välj behörigheter senare** och lägger till de områdesvisa `*Viewer`-rollerna som teamet ska se.
 
-**Jouringenjörer som sköter sina egna tjänster.** Ge teamet `MonitorAdmin`, `IncidentMember` och `OnCallMember` med omfattningen **Ägda**, och lägg sedan till teamet som ägare av övervakarna det driver.
+**Jouringenjörer som sköter sina egna tjänster.** Ge teamet `MonitorAdmin`, `IncidentMember` och `OnCallMember` med omfattningen **Ägda**, och lägg sedan till teamet som ägare av övervakarna, jourpolicyerna och jourschemana det driver. Det som dess personer skapar med dessa behörigheter äger de redan.
 
 **Konsulter som hålls borta från produktion.** Ge teamet de roller det behöver med omfattningen **Alla**, och lägg sedan till en **blockerad behörighet** (under **Fler inställningar** på teamets sida Behörigheter) för de känsliga förmågorna, begränsad till etiketten `Production`.
 

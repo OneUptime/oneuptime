@@ -15,13 +15,7 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -35,11 +29,16 @@ import {
   getNameFromIdentityField,
 } from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PodmanDocumentationCard from "../../Components/Podman/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -48,9 +47,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [hostCount, setHostCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch = useFirstRecordWatch<PodmanHost>({
+    modelType: PodmanHost,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<PodmanHost>({ modelType: PodmanHost });
@@ -103,32 +102,17 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     extraFacets: podmanExtraFacets,
   });
 
-  const fetchHostCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: PodmanHost,
-        query: {},
-      });
-      setHostCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchHostCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   /*
@@ -145,10 +129,17 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <Fragment>
       <ModelTable<PodmanHost>
         modelType={PodmanHost}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="podman-hosts-table"
         userPreferencesKey="podman-hosts-table"
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -156,9 +147,7 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: PodmanHost): Promise<PodmanHost> => {
-          setHostCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -326,10 +315,10 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
-      {hostCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <PodmanDocumentationCard
           title="Getting Started with Podman Monitoring"
-          description="No Podman hosts connected yet. Install the agent using the guide below and your host will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

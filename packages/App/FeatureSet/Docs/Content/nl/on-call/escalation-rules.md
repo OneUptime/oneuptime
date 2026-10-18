@@ -79,7 +79,7 @@ Wanneer een incident of waarschuwing het beleid bereikt, roept **Level 1** metee
 
 Een incident, waarschuwing of episode die al bevestigd of opgelost wordt aangemaakt — achteraf vastgelegd — voert geen enkel beleid uit: niemand wordt opgeroepen, en de feed meldt dat, met de namen van het beleid erbij. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
 
-Om een beleid te herhalen, klikt u op **Bewerken** op de kaart **Herhaalbeleid**, zet u **Repeat if no one acknowledges** aan en stelt u **Number of times to repeat** in.
+Om een beleid te herhalen, klikt u op **Bewerken** op de kaart **Herhaalbeleid**, kiest u **Opnieuw beginnen bij Level 1** en vult u **Hoe vaak nog?** in.
 
 ### Het escalatieoverzicht
 

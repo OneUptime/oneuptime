@@ -1005,6 +1005,36 @@ image: that is about 10 GB, more than a standard runner has to spare, and the
 scanner emails security@oneuptime.com when its build fails. `.oss-scanner/README.md` says how to build it locally
 with the scanner's own tools.
 
+### `MarketplaceRelease.test.js`
+
+`.github/workflows/marketplace-release.yml` ships OneUptime releases to the
+AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace listings of
+self-hosted OneUptime Enterprise. What makes it safe is invisible at runtime,
+so the suite pins it:
+
+- it runs once a week, only when `MARKETPLACE_RELEASES` is `enabled`, or by
+  hand, where `dry_run` defaults to true;
+- it finds the release it ships: the version asked for, or else the newest
+  `#.#.#` tag, and that tag's commit (even of an annotated tag). The suite runs
+  that step against a repository of its own, and checks it writes nothing but
+  those two outputs, whatever is typed in;
+- each push job asks its marketplace whether it has the release before it
+  pushes anything, and every later step, and the publishing job after it, runs
+  only when the marketplace does not have it;
+- it holds no secret; `permissions: {}` at the top, `contents: read` for every
+  job, and `id-token: write` only for the jobs that sign in to a cloud;
+- every job that publishes (adds an AWS version, changes or publishes the
+  Microsoft offer) runs in the `marketplace-publish` environment, so it waits
+  for a maintainer; the jobs that only push run in `marketplace-push`; no other
+  job runs in an environment. The one-time setup
+  (`HelmChart/Marketplace/automation/ci_setup.py`) trusts those two
+  environments and nothing else;
+- no `${{ }}` in a script: values reach scripts through `env`;
+- every edition is built from the chart as it was released, through
+  `.github/actions/marketplace-edition` (which pins crane by its sha256), after
+  the marketplace chart suite passed; runs are never cancelled halfway;
+- every script it runs exists.
+
 ### `agent-ebpf-e2e/`
 
 Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway

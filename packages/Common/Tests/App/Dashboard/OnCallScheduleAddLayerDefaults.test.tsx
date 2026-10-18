@@ -29,6 +29,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * schedule's timezone, around the clock. Add Layer used to start a daily
  * rotation with its first hand-off a day later.
  *
+ * And the empty page asks for that first layer in the card the layers go
+ * in, Rotation layers, rather than 13rem down the bare page (the UI
+ * review).
+ *
  * On the real Layers component, with only the network stubbed.
  */
 
@@ -177,6 +181,38 @@ async function addLayerToEmptySchedule(): Promise<OnCallDutyPolicyScheduleLayer>
 
   return request.model as OnCallDutyPolicyScheduleLayer;
 }
+
+describe("a schedule with no layers", () => {
+  test("asks for its first layer in the Rotation layers card, with Add Layer centred", async () => {
+    render(
+      <Layers
+        onCallDutyPolicyScheduleId={SCHEDULE_ID}
+        projectId={PROJECT_ID}
+      />,
+    );
+
+    const title: HTMLElement = await screen.findByText(
+      "Build your on-call rotation",
+    );
+    const card: HTMLElement = title.closest(
+      "[data-testid='card']",
+    ) as HTMLElement;
+
+    expect(card).not.toBeNull();
+    expect(card).toHaveTextContent("Rotation layers");
+
+    const state: HTMLElement = card.querySelector("#no-layers") as HTMLElement;
+
+    expect(state.className.split(" ")).toContain("py-8");
+    expect(state.className).not.toContain("pt-52");
+
+    const add: HTMLElement = screen.getByRole("button", { name: "Add Layer" });
+
+    expect((add.parentElement as HTMLElement).className).toContain(
+      "[&>button]:md:ml-0",
+    );
+  });
+});
 
 describe("Add Layer on a schedule with no layers", () => {
   test("adds Layer 1 of this schedule, first in its order", async () => {

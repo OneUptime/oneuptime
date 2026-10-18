@@ -271,15 +271,22 @@ export default class BasePermission {
      * every operation, so a write narrowed to them for itself or for its
      * read is narrowed once.
      */
-    const isLimitedToOwnedRecords: boolean = operations.some(
-      (operation: RecordOperation): boolean => {
+    const isLimitedToOwnedRecords: boolean =
+      operations.some((operation: RecordOperation): boolean => {
         return OwnedScopePermission.isLimitedToOwnedRecords(
           modelType,
           props,
           operation,
         );
-      },
-    );
+      }) ||
+      /*
+       * A read filtered by a column the caller reads only on the records
+       * they or their teams own (a Runner's key, of a kind every reader of
+       * it reads): it reaches only those - a match says what the column
+       * holds. OwnedScopePermission.getColumnsKeptToOwners.
+       */
+      (type === DatabaseRequestType.Read &&
+        OwnedScopePermission.namesColumnsKeptToOwners(modelType, query, props));
 
     if (isLimitedToOwnedRecords) {
       query = await OwnedScopePermission.addOwnedRecordsToQuery(

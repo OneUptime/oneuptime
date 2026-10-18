@@ -1,5 +1,4 @@
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
-import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import BasePermission from "../../../../../Server/Types/Database/Permissions/BasePermission";
 import ColumnPermissions from "../../../../../Server/Types/Database/Permissions/ColumnPermission";
 import CreateScopeException from "../../../../../Server/Types/Database/Permissions/CreateScopeException";
@@ -28,6 +27,7 @@ import UserType from "../../../../../Types/UserType";
 import { meetsCondition } from "../../../TestingUtils/QueryConditions";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
 import { withLabelJoinTables } from "../../../TestingUtils/LabelJoinTables";
+import { isReadByEveryReader } from "../../../TestingUtils/OwnedScopeKinds";
 import {
   afterEach,
   beforeEach,
@@ -62,15 +62,19 @@ jest.mock("../../../../../Server/Utils/Logger");
  *     own, or on the one they are creating (a create form's owners), and is
  *     refused saying so on any other; a change and a delete reach only the
  *     owner rows of the resources they own; a read reaches the owners of
- *     every resource they read;
+ *     every resource they read - of every resource of a kind other records
+ *     are set up with (a probe, a template, an on-call schedule), which its
+ *     readers all read whatever their scope (TestingUtils/OwnedScopeKinds);
  *   - the same grants over the whole project, a role that cannot be scoped,
  *     a workflow step (which acts as a Project Admin) and OneUptime itself
  *     reach every resource;
  *   - an owner is added or removed, never moved: no column of any owner
  *     table can be changed;
- *   - the rule follows the registry: the owner tables of a kind the Owned
- *     scope does not narrow yet are left as that kind is, and are held to it
- *     as soon as the kind is registered, with no other change.
+ *   - the rule follows the registry: every owner table of the schema names
+ *     a kind the registry holds (OwnedScopeEveryKindWithOwners holds the
+ *     kinds themselves to it), and a kind taken out of the registry leaves
+ *     its owner tables as the kind is, held to the rule again once it is
+ *     back - with no other change.
  *
  * What the member owns is stubbed (the owner tables are not read here,
  * except where the lookup itself is asked); OwnedRecordsDeletePostgres runs
@@ -850,12 +854,19 @@ describe("everyone else", () => {
           type,
         );
 
+        /*
+         * Owners are read through the resource: those of every resource of
+         * a kind its readers all read, whatever their scope.
+         */
+        const readsEvery: boolean =
+          type === DatabaseRequestType.Read && isReadByEveryReader(table.kind);
+
         expect([
           table.name,
           type,
           reaches(query, table.fkColumn, OWNED_ID),
           reaches(query, table.fkColumn, OTHER_ID),
-        ]).toEqual([table.name, type, true, false]);
+        ]).toEqual([table.name, type, true, readsEvery]);
       }
 
       await expect(
@@ -1130,111 +1141,109 @@ describe("an owner is added or removed, never moved", () => {
 });
 
 describe("the rule follows the registry", () => {
-  /*
-   * The owner tables of the kinds the registry does not name yet. The Owned
-   * scope does not narrow those kinds themselves, so neither does it their
-   * owners - until the kind is registered.
-   */
-  const UNREGISTERED: Array<AnyOwnerTable> = ALL_OWNER_TABLES.filter(
-    (table: AnyOwnerTable): boolean => {
-      return !OwnerTableRegistry.has(table.kind);
-    },
-  );
+  test("every owner table of the schema names a kind the registry holds: none is left as its kind once was", () => {
+    // Both owner tables of every kind, as the sweep above takes them.
+    expect(ALL_OWNER_TABLES.length).toBe(OwnerTableRegistry.size * 2);
 
-  test("the owner tables of a kind the Owned scope does not narrow yet are left as that kind is", () => {
-    for (const { modelType, kind } of UNREGISTERED) {
+    const unregistered: Array<string> = ALL_OWNER_TABLES.filter(
+      (table: AnyOwnerTable): boolean => {
+        return !OwnerTableRegistry.has(table.kind);
+      },
+    ).map((table: AnyOwnerTable): string => {
+      return `${table.modelType.name}: its ${table.kind} is not in OwnerTableRegistry, so a grant scoped to Owned would add and remove its owners on every one`;
+    });
+
+    expect(unregistered).toEqual([]);
+
+    for (const { modelType } of ALL_OWNER_TABLES) {
       expect([
         modelType.name,
         OwnedScopePermission.isOwnerTable(modelType),
-        OwnedScopePermission.getOwnedThrough(modelType),
-      ]).toEqual([modelType.name, false, null]);
-
-      const kindType: ModelType | undefined = modelNamed(kind);
-
-      expect([kind, Boolean(kindType)]).toEqual([kind, true]);
-
-      // The kind itself is not narrowed by the Owned scope either.
-      expect([
-        kind,
-        OwnedScopePermission.isLimitedToOwnedRecords(
-          kindType!,
-          memberWith(
-            rowsAt(
-              scopeable(kindType!, DatabaseRequestType.Delete),
-              PermissionScope.Owned,
-            ),
-          ),
-          DatabaseRequestType.Delete,
-        ),
-      ]).toEqual([kind, false]);
+      ]).toEqual([modelType.name, true]);
     }
   });
 
-  test("a kind that is registered has its owner tables held to the rule, with no other change", async () => {
-    ownsOnly(OWNED_ID);
+  test.each(Array.from(OwnerTableRegistry.keys()))(
+    "%s: taken out of the registry, its owner tables are left as the kind is, and held to the rule again once it is back",
+    async (kind: string) => {
+      ownsOnly(OWNED_ID);
 
-    // Each kind the registry does not name yet, registered for this test.
-    for (const { modelType, kind } of UNREGISTERED) {
-      if (!modelType.name.endsWith("OwnerUser")) {
-        continue;
-      }
+      const pair: OwnerTablePair = OwnerTableRegistry.get(kind)!;
+      const tables: Array<OwnerTable> = ownerTablesOf(kind, pair);
+      const kindType: ModelType = modelNamed(kind)!;
 
-      const teamType: ModelType | undefined = modelNamed(`${kind}OwnerTeam`);
-      const relation: TableColumnMetadata | undefined = resourceRelationOf(
-        modelType,
-        kind,
-      );
+      // What the member is held to while the kind is registered.
+      const expectHeld: () => Promise<void> = async (): Promise<void> => {
+        for (const table of tables) {
+          const props: DatabaseCommonInteractionProps =
+            readsEveryManagesOwn(table);
 
-      expect([kind, Boolean(teamType), Boolean(relation)]).toEqual([
-        kind,
-        true,
-        true,
-      ]);
+          expect([
+            table.name,
+            OwnedScopePermission.isOwnerTable(table.modelType),
+            OwnedScopePermission.getOwnedThrough(table.modelType)?.fkColumn,
+            OwnedScopePermission.isLimitedToOwnedRecords(
+              table.modelType,
+              props,
+              DatabaseRequestType.Delete,
+            ),
+          ]).toEqual([table.name, true, pair.fkColumn, true]);
 
-      const pair: OwnerTablePair = {
-        ownerUserService: new DatabaseService(modelType),
-        ownerTeamService: new DatabaseService(teamType!),
-        fkColumn: relation!.manyToOneRelationColumn!,
+          await expect(
+            checkOwnerCreate({ table, resourceId: OTHER_ID, props }),
+          ).rejects.toThrow(CreateScopeException);
+
+          await expect(
+            checkOwnerCreate({ table, resourceId: OWNED_ID, props }),
+          ).resolves.toBeUndefined();
+        }
       };
+
+      await expectHeld();
 
       await withRegistryChanged(
         (): void => {
-          OwnerTableRegistry.set(kind, pair);
+          OwnerTableRegistry.delete(kind);
         },
         async (): Promise<void> => {
-          for (const table of ownerTablesOf(kind, pair)) {
+          for (const table of tables) {
             const props: DatabaseCommonInteractionProps =
               readsEveryManagesOwn(table);
 
             expect([
               table.name,
               OwnedScopePermission.isOwnerTable(table.modelType),
-            ]).toEqual([table.name, true]);
+              OwnedScopePermission.getOwnedThrough(table.modelType),
+            ]).toEqual([table.name, false, null]);
 
             await expect(
               checkOwnerCreate({ table, resourceId: OTHER_ID, props }),
-            ).rejects.toThrow(CreateScopeException);
-
-            await expect(
-              checkOwnerCreate({ table, resourceId: OWNED_ID, props }),
             ).resolves.toBeUndefined();
-
-            expect([
-              table.name,
-              OwnedScopePermission.isLimitedToOwnedRecords(
-                table.modelType,
-                props,
-                DatabaseRequestType.Delete,
-              ),
-            ]).toEqual([table.name, true]);
           }
+
+          // Nor is the kind itself narrowed, but by a decorator of its own.
+          expect([
+            kind,
+            OwnedScopePermission.isLimitedToOwnedRecords(
+              kindType,
+              memberWith(
+                rowsAt(
+                  scopeable(kindType, DatabaseRequestType.Delete),
+                  PermissionScope.Owned,
+                ),
+              ),
+              DatabaseRequestType.Delete,
+            ),
+          ]).toEqual([kind, Boolean(new kindType().isOperationalResource)]);
         },
       );
 
-      // Taken out again, they are left as before.
-      expect(OwnedScopePermission.isOwnerTable(modelType)).toBe(false);
-    }
-  });
+      // Back in its place, and held again.
+      expect(OwnerTableRegistry.get(kind)).toBe(pair);
+
+      await expectHeld();
+    },
+  );
 
   test("a kind taken out of the registry leaves its owner tables as it is, and they are held again once it is back", async () => {
     ownsOnly(OWNED_ID);

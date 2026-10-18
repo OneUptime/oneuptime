@@ -638,6 +638,174 @@ describe("saving an SLO settings card", () => {
 });
 
 /*
+ * Edit Period and Edit Downtime Calculation asked with dropdowns whose one
+ * description explained both modes ("Rolling suits ... Calendar Month suits
+ * ..."), with each mode's meaning hidden in the closed list. The modes are
+ * answers on the dialog now, each with one line, and the stored values are
+ * the enum values they always were.
+ */
+describe("the period and the downtime as plain choices", () => {
+  let createOrUpdate: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    createOrUpdate = jest
+      .spyOn(ModelAPI, "createOrUpdate")
+      .mockResolvedValue({ data: {} } as unknown as Awaited<
+        ReturnType<typeof ModelAPI.createOrUpdate>
+      >);
+  });
+
+  async function openCardEdit(buttonName: string): Promise<HTMLElement> {
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: buttonName },
+        { timeout: WAIT_TIMEOUT },
+      ),
+    );
+
+    return await screen.findByTestId("modal", {}, { timeout: WAIT_TIMEOUT });
+  }
+
+  function lineOf(radio: HTMLElement): string {
+    const id: string | null = radio.getAttribute("aria-describedby");
+
+    return (document.getElementById(id || "")?.textContent || "").trim();
+  }
+
+  function savedModel(): Record<string, unknown> {
+    return (
+      createOrUpdate.mock.calls[0]![0] as { model: Record<string, unknown> }
+    ).model;
+  }
+
+  test.each(["Edit Objective", "Edit Period", "Edit Downtime Calculation"])(
+    "%s opens a dialog titled like its button, not 'Edit Service Level Objective'",
+    async (buttonName: string) => {
+      openSettings();
+      const modal: HTMLElement = await openCardEdit(buttonName);
+
+      expect(
+        (within(modal).getByTestId("modal-title").textContent || "").trim(),
+      ).toBe(buttonName);
+      expect(
+        within(modal).queryByText("Edit Service Level Objective"),
+      ).toBeNull();
+    },
+  );
+
+  test("Edit Period asks the window type as two answers, each with its line", async () => {
+    openSettings();
+    const modal: HTMLElement = await openCardEdit("Edit Period");
+
+    const question: HTMLElement = await within(modal).findByRole(
+      "radiogroup",
+      { name: /^Window Type/ },
+      { timeout: WAIT_TIMEOUT },
+    );
+    const rolling: HTMLElement = within(question).getByRole("radio", {
+      name: "Rolling",
+    });
+    const calendar: HTMLElement = within(question).getByRole("radio", {
+      name: "Calendar Month",
+    });
+
+    expect(rolling).toBeChecked();
+    expect(calendar).not.toBeChecked();
+    expect(lineOf(rolling)).toBe(
+      "The last N days, always up to date. Suits services that must be reliable at every moment.",
+    );
+    expect(lineOf(calendar)).toBe(
+      "Each month on its own, reset on the 1st. Suits targets reported or promised per month.",
+    );
+    expect(within(modal).queryByText(/Rolling suits services/)).toBeNull();
+    expect(
+      within(modal).queryByRole("combobox", { name: /^Window Type/ }),
+    ).toBeNull();
+  });
+
+  test("picking Calendar Month swaps the days for the timezone, and saves the month", async () => {
+    openSettings();
+    const modal: HTMLElement = await openCardEdit("Edit Period");
+
+    const question: HTMLElement = await within(modal).findByRole(
+      "radiogroup",
+      { name: /^Window Type/ },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(within(modal).getByText("Window (Days)")).toBeInTheDocument();
+
+    fireEvent.click(
+      within(question).getByRole("radio", { name: "Calendar Month" }),
+    );
+
+    await waitFor(
+      () => {
+        expect(within(modal).queryByText("Window (Days)")).toBeNull();
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(within(modal).getByText("Timezone")).toBeInTheDocument();
+
+    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(
+      () => {
+        expect(createOrUpdate).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(savedModel()["windowType"]).toBe(SloWindowType.CalendarMonth);
+  });
+
+  test("Edit Downtime Calculation asks the multi-monitor mode as two answers, each with its line", async () => {
+    serveSlo({ multiMonitorMode: SloMultiMonitorMode.AnyDown });
+
+    openSettings();
+    const modal: HTMLElement = await openCardEdit("Edit Downtime Calculation");
+
+    const question: HTMLElement = await within(modal).findByRole(
+      "radiogroup",
+      { name: /^Multi Monitor Mode/ },
+      { timeout: WAIT_TIMEOUT },
+    );
+    const anyDown: HTMLElement = within(question).getByRole("radio", {
+      name: SloMultiMonitorMode.AnyDown,
+    });
+    const average: HTMLElement = within(question).getByRole("radio", {
+      name: SloMultiMonitorMode.MonitorSecondsAverage,
+    });
+
+    expect(anyDown).toBeChecked();
+    expect(lineOf(anyDown)).toBe(
+      "Down whenever any monitor is down. For monitors that must all be up.",
+    );
+    expect(lineOf(average)).toBe(
+      "Downtime averaged across monitors. For replicas, where one down is a partial outage.",
+    );
+    expect(
+      within(modal).getByText(
+        "Only matters when this SLO measures more than one monitor.",
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(average);
+    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(
+      () => {
+        expect(createOrUpdate).toHaveBeenCalledTimes(1);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+    expect(savedModel()["multiMonitorMode"]).toBe(
+      SloMultiMonitorMode.MonitorSecondsAverage,
+    );
+  });
+});
+
+/*
  * Evaluation is one switch, "Evaluate this SLO", saving the moment it is
  * flipped, with when the SLO was last evaluated as a line under it. It used
  * to be Edit Evaluation, flip "Enabled", Save. Turning it off asks first,

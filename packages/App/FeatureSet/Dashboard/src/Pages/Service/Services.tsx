@@ -16,7 +16,17 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import Route from "Common/Types/API/Route";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  SERVICE_NAME_HELP,
+  SERVICES_EMPTY_DESCRIPTION,
+  SET_UP_TELEMETRY_ACTION,
+} from "../../Components/Service/ServiceListCopy";
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceOwnerTeam from "Common/Models/DatabaseModels/ServiceOwnerTeam";
 import ServiceOwnerUser from "Common/Models/DatabaseModels/ServiceOwnerUser";
@@ -58,6 +68,10 @@ const ServicesPage: FunctionComponent<
     showLabelsFacet: true,
   });
 
+  // Description and labels fold together under one Advanced section.
+  const moreFields: FormFieldCollapsibleSection<Service> =
+    getAdvancedFormSection<Service>();
+
   return (
     <Fragment>
       <ModelTable<Service>
@@ -65,7 +79,29 @@ const ServicesPage: FunctionComponent<
         id="service-table"
         userPreferencesKey="service-table"
         topContent={filterBar}
-        emptyState={facetEmptyState}
+        /*
+         * A service appears by itself when telemetry with a new service.name
+         * arrives, so an empty list says so, with the setup guide beside the
+         * Create button for a service made by hand.
+         */
+        emptyState={{
+          ...facetEmptyState,
+          description: SERVICES_EMPTY_DESCRIPTION,
+          actions: [
+            {
+              title: SET_UP_TELEMETRY_ACTION,
+              icon: IconProp.Book,
+              dataTestId: "services-set-up-telemetry",
+              onClick: (): void => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.TRACES_DOCUMENTATION] as Route,
+                  ),
+                );
+              },
+            },
+          ],
+        }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -107,9 +143,14 @@ const ServicesPage: FunctionComponent<
               name: true,
             },
             title: "Name",
+            /*
+             * What telemetry is matched on: a service made by hand only
+             * fills when its name is the service.name the apps send.
+             */
+            description: SERVICE_NAME_HELP,
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Service Name",
+            placeholder: "e.g., checkout-api",
             validation: {
               minLength: 2,
             },
@@ -121,9 +162,10 @@ const ServicesPage: FunctionComponent<
             title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Description",
+            placeholder: "What this service does",
+            collapsibleSection: moreFields,
           },
-          getLabelsFormField<Service>(),
+          getLabelsFormField<Service>({ collapsibleSection: moreFields }),
         ]}
         showRefreshButton={true}
         viewPageRoute={Navigation.getCurrentRoute()}
@@ -170,7 +212,6 @@ const ServicesPage: FunctionComponent<
             field: {
               description: true,
             },
-            noValueMessage: "-",
             title: "Description",
             type: FieldType.LongText,
           },

@@ -29,7 +29,6 @@ import {
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import MetricsViewer from "../../../Components/Metrics/MetricsViewer";
 import {
@@ -167,27 +166,6 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
   };
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Metrics",
-      description: "Every metric the provider reports about this resource",
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-    {
-      title: "Owners",
-      description: "Who is responsible for this resource",
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_OWNERS),
-      icon: IconProp.Team,
-    },
-    {
-      title: "Documentation",
-      description: "How resources are discovered from your cloud account",
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION),
-      icon: IconProp.Book,
-    },
-  ];
-
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "Cloud Provider", value: getCloudProviderLabel(provider) },
     { label: "Resource Type", value: type, mono: true },
@@ -232,7 +210,6 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         description={r.description as string}
         chips={chips}
         tiles={[]}
-        quickLinks={quickLinks}
         detailRows={detailRows}
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}
