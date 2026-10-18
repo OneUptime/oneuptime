@@ -136,7 +136,7 @@ Marknadsplatsen nekar en prenumeration som har sagts upp eller stängts av, och 
 
 OneUptime migrerar sin databas när den nya versionen startar. Läs [uppgraderingsanteckningarna](/docs/installation/upgrading) innan du byter till en ny huvudversion.
 
-Uppgradera via marknadsplatsen: utgåvemärket kan visa en nyare OneUptime-version innan den finns på din marknadsplats.
+Uppgradera via marknadsplatsen. En installation från marknadsplatsen jämför sig inte med OneUptimes versioner på GitHub: versionerna som din marknadsplats erbjuder är de du uppgraderar till.
 
 ## Inställningar och skalning
 

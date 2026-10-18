@@ -10,19 +10,20 @@ again: it creates what is missing and leaves what is there.
         product's repositories and add versions to it - nothing else.
     ci_setup.py azure-registry [--location eastus] [--apply]
         In the HackerBay tenant (az signed in): the container registry (Basic, about USD 5 a
-        month), Microsoft's ingestion app allowed to pull from it, and a weekly task that keeps
+        month), Microsoft's ingestion app allowed to pull from it, and a daily task that keeps
         each repository's 3 newest releases (Microsoft serves buyers from its own copy).
     ci_setup.py azure [--apply]
         An Entra app the workflow signs in as through federated credentials (no secret), with
         AcrPush on the registry. It must then be added to Partner Center as a Manager by hand.
     ci_setup.py google [--apply]
         In the oneuptime-marketplace project (gcloud signed in): the Artifact Registry
-        repository with a cleanup policy keeping the 3 newest releases, a service account that
-        can write to it, and Workload Identity Federation for the workflow's environments.
+        repository with a cleanup policy keeping each image's 3 newest releases, a service
+        account that can write to it, and Workload Identity Federation for the workflow's
+        environments.
     ci_setup.py github --reviewer <login> [--reviewer <login>] [--set NAME=VALUE]... [--enable] [--apply]
         The two environments (marketplace-push: master only; marketplace-publish: master only,
         and every job waits for a reviewer), the repository variables the scripts above print,
-        and with --enable, MARKETPLACE_RELEASES=enabled so the workflow runs after each release.
+        and with --enable, MARKETPLACE_RELEASES=enabled so the workflow ships weekly.
 """
 
 import argparse
@@ -193,12 +194,16 @@ def azure_registry_name(edition: Dict[str, Any]) -> str:
 
 
 def azure_purge_command(edition: Dict[str, Any]) -> str:
-    """ACR's own purge, run weekly by an ACR task: each repository keeps its newest releases."""
+    """
+    ACR's own purge, run daily by an ACR task: each repository keeps its 3 newest releases (by
+    count, whatever the release pace), and anything pushed in the last day, so a release that is
+    still being published is never taken from under it.
+    """
     filters: List[str] = [
         f"--filter '{re.escape(edition['repositoryPrefix'])}/.*:.*'",
         f"--filter '{re.escape(edition['bundleRepository'])}:.*'",
     ]
-    return f"acr purge {' '.join(filters)} --ago 7d --keep {KEEP_RELEASES} --untagged"
+    return f"acr purge {' '.join(filters)} --ago 1d --keep {KEEP_RELEASES} --untagged"
 
 
 def azure_registry_script(edition: Dict[str, Any], location: str) -> str:
@@ -216,10 +221,12 @@ if [ -z "$(az role assignment list --assignee {AZURE_INGESTION_APP_ID} --role Ac
   az role assignment create --assignee {AZURE_INGESTION_APP_ID} --role AcrPull --scope "$REGISTRY_ID" >/dev/null
 fi
 az provider register --namespace Microsoft.PartnerCenterIngestion --wait
-if ! az acr task show --registry {name} --name purge-old-releases >/dev/null 2>&1; then
-  az acr task create --registry {name} --name purge-old-releases --schedule "0 3 * * 0" --context /dev/null \\
-    --cmd {shlex.quote(azure_purge_command(edition))} >/dev/null
+# Recreated on every run, so a changed rule always takes effect.
+if az acr task show --registry {name} --name purge-old-releases >/dev/null 2>&1; then
+  az acr task delete --registry {name} --name purge-old-releases --yes >/dev/null
 fi
+az acr task create --registry {name} --name purge-old-releases --schedule "0 3 * * *" --context /dev/null \\
+  --cmd {shlex.quote(azure_purge_command(edition))} >/dev/null
 echo "Registry ready: {azure_registry_name(edition)}.azurecr.io (Basic), keeping each repository's {KEEP_RELEASES} newest releases."
 """
 
@@ -266,7 +273,10 @@ echo "By hand, once: in Partner Center, Account settings > User management > Mic
 
 
 def google_cleanup_policy() -> List[Dict[str, Any]]:
-    """Keep each image's newest releases; delete the rest once they are a month old."""
+    """
+    Keep each image's 3 newest releases, by count; delete the rest once they are a day old (Google
+    serves buyers from its own copy). Keep policies win over delete policies.
+    """
     return [
         {
             "name": "keep-the-newest-releases",
@@ -276,7 +286,7 @@ def google_cleanup_policy() -> List[Dict[str, Any]]:
         {
             "name": "delete-older-releases",
             "action": {"type": "Delete"},
-            "condition": {"olderThan": "30d"},
+            "condition": {"olderThan": "1d"},
         },
     ]
 

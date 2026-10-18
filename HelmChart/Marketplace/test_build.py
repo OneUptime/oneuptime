@@ -291,6 +291,20 @@ class BuildTest(unittest.TestCase):
 
         self.assertEqual((values.read_bytes(), chart.read_bytes()), before)
 
+    def test_every_edition_upgrades_through_its_marketplace_alone(self) -> None:
+        # Google's chart sits in the deployer's build context.
+        charts = {"aws": "oneuptime", "azure": "oneuptime", "google-cloud": "chart/oneuptime"}
+
+        for marketplace in build.MARKETPLACES:
+            build.build(marketplace, "1.2.3", self.out / marketplace)
+            values_path: Path = self.out / marketplace / charts[marketplace] / "values.yaml"
+            values = build.ValuesEditor(values_path.read_text())
+
+            self.assertEqual(values.get_scalar(["updateCheck", "disabled"]), "true", marketplace)
+
+        public = build.ValuesEditor((build.PUBLIC_CHART / "values.yaml").read_text())
+        self.assertEqual(public.get_scalar(["updateCheck", "disabled"]), "false")
+
     def test_writes_the_plan_for_the_mirror(self) -> None:
         build.build("aws", "1.2.3", self.out)
         plan = json.loads((self.out / "images.json").read_text())
