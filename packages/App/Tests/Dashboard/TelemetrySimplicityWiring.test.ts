@@ -227,12 +227,19 @@ describe("an empty explorer offers first steps on its product page only", () => 
     /*
      * The chart kept its card for the Count / Response time picker and said
      * "No data for this metric in the selected range" over first steps that
-     * say the same with a way forward. It steps aside while they show
-     * (rendered in Common's TracesFirstStepsChart).
+     * say the same with a way forward. It steps aside while they show and it
+     * has no bar - only once the list's read came back empty (rendered in
+     * Common's TracesFirstStepsChart).
      */
     const code: string = readCode("Components/Traces/TracesViewer.tsx");
 
-    expect(code).toContain("showHistogram={!showsFirstSteps}");
+    expect(code).toContain("showHistogram={!chartStepsAside}");
+    expect(code).toContain(
+      "const chartStepsAside: boolean =\n    showsFirstSteps && histogramBuckets.length === 0;",
+    );
+    expect(code).toContain(
+      "const showsFirstSteps: boolean =\n    offersFirstSteps &&\n    listAnswer !== null &&",
+    );
     expect(code).toContain("emptyContent={\n        offersFirstSteps ? (");
     expect(code).not.toContain("showHistogram={true}");
   });
