@@ -52,6 +52,13 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  * The owners of a resource are owned through it (getOwnedThrough): a grant
  * scoped to Owned adds and removes owners only on the resources the caller
  * or their teams own, however many more they may read.
+ *
+ * EVERY KIND WITH OWNERS IS NARROWED: the kinds of OwnerTableRegistry, the
+ * records that take their owners from one (@OwnedThrough) and the owner
+ * rows themselves. A kind other records are set up with - a probe, a
+ * runner, a template, an on-call schedule - stays readable to every reader
+ * of it, as picking one needs (leavesReadsAlone); its changes and deletes
+ * keep to the scope like every other kind's.
  */
 export default class OwnedScopePermission {
   @CaptureSpan()
@@ -114,6 +121,21 @@ export default class OwnedScopePermission {
       !model.ownedThrough &&
       !this.getOwnerTableRegistry().has(model.constructor.name) &&
       !OwnedScopePermission.isOwnerTableWrite(modelType, type)
+    ) {
+      return false;
+    }
+
+    /*
+     * A kind other records are set up with - the probe a monitor runs on,
+     * the template an incident is declared from, the on-call schedule an
+     * escalation rule pages - is read by every reader of it whatever the
+     * scope of their grant, and so are the records that take their owners
+     * from it: picking one is reading it. Its changes and deletes keep to
+     * the scope. See leavesReadsAlone.
+     */
+    if (
+      type === DatabaseRequestType.Read &&
+      OwnedScopePermission.leavesReadsAlone(modelType)
     ) {
       return false;
     }
@@ -353,6 +375,41 @@ export default class OwnedScopePermission {
     );
 
     return data.query;
+  }
+
+  /*
+   * WHETHER THE OWNED SCOPE LEAVES READS OF A MODEL ALONE: a kind other
+   * records are set up with (OwnerTablePair.ownedScopeLeavesReads - probes,
+   * runners, AI agents, templates, on-call schedules), or a model that
+   * takes its owners only from such kinds (@OwnedThrough - a schedule's
+   * layers - or an owner table's resource: getOwnedThrough). Whoever may
+   * read it reads all of it, as labels and blocks allow, whatever the scope
+   * of their grant; a grant scoped to Owned still changes and deletes only
+   * the records its holder or their teams own. False for every other model:
+   * a kind with owners is narrowed on reads too, and a model without owners
+   * has nothing for the scope to narrow.
+   */
+  public static leavesReadsAlone(modelType: { new (): BaseModel }): boolean {
+    const ownedThrough: OwnedThroughMetadata | null =
+      OwnedScopePermission.getOwnedThrough(modelType);
+
+    const kinds: Array<string | undefined> = ownedThrough
+      ? ownedThrough.parentModels.map((parentModel: unknown) => {
+          return OwnedScopePermission.getClassName(parentModel);
+        })
+      : [OwnedScopePermission.getClassName(modelType)];
+
+    const ownerTableRegistry: Map<string, OwnerTablePair> =
+      this.getOwnerTableRegistry();
+
+    return (
+      kinds.length > 0 &&
+      kinds.every((kind: string | undefined): boolean => {
+        return Boolean(
+          kind && ownerTableRegistry.get(kind)?.ownedScopeLeavesReads,
+        );
+      })
+    );
   }
 
   /*
