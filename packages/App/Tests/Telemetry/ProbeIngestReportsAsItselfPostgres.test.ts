@@ -1132,4 +1132,182 @@ describePostgres("a probe reports as itself (Postgres)", () => {
     expect(queuedJobs).toHaveLength(0);
     expect(await storedTestResult(testOfGlobalProbe)).toBeNull();
   });
+
+  test("another probe named in any spelling - upper-cased, padded, as JSON writes an ObjectID - is refused at the door", async () => {
+    const spellings: Array<unknown> = [];
+
+    for (const impersonated of [globalProbe, probeB]) {
+      const id: string = impersonated.id.toString();
+
+      spellings.push(
+        id.toUpperCase(),
+        `  ${id}  `,
+        { _type: "ObjectID", value: id.toUpperCase() },
+        [id],
+      );
+    }
+
+    for (const spelling of spellings) {
+      const answer: HttpResult = await post(
+        "/probe/response/ingest",
+        probeBody(probeA, {
+          probeMonitorResponse: checkResult({
+            monitor: monitorB,
+            failureCause: OUTAGE,
+            extra: { probeId: spelling as JSONObject },
+          }),
+        }),
+      );
+
+      expect({ spelling, status: answer.status }).toEqual({
+        spelling,
+        status: 400,
+      });
+    }
+
+    expect(queuedJobs).toHaveLength(0);
+
+    const stored: Record<string, JSONObject | null> =
+      await storedResults(monitorB);
+
+    expect(stored[globalProbe.id.toString()]).toBeNull();
+    expect(stored[probeB.id.toString()]).toBeNull();
+    expect(evaluated).toHaveLength(0);
+  });
+
+  test("a probe named only behind __proto__ names nobody: the result is the sender's", async () => {
+    /*
+     * JSON.parse keeps "__proto__" as a key of its own; spread into the
+     * result it stays one, and the body carries it as written.
+     */
+    const hidden: JSONObject = JSON.parse(
+      `{"__proto__":{"probeId":"${globalProbe.id.toString()}"}}`,
+    ) as JSONObject;
+
+    for (const monitor of [monitorA, monitorB]) {
+      const answer: HttpResult = await post(
+        "/probe/response/ingest",
+        probeBody(probeA, {
+          probeMonitorResponse: checkResult({
+            monitor: monitor,
+            failureCause: OUTAGE,
+            extra: hidden,
+          }),
+        }),
+      );
+
+      expect(answer.status).toBe(200);
+    }
+
+    const outcomes: Array<JobOutcome> = await runQueuedJobs();
+
+    // A's own monitor: stored under A's own row, not the global probe's.
+    expect(outcomes[0]!.error).toBeNull();
+
+    const storedA: Record<string, JSONObject | null> =
+      await storedResults(monitorA);
+
+    expect(resultFor(storedA, probeA, monitorA)).toBeTruthy();
+    expect(storedA[globalProbe.id.toString()]).toBeNull();
+
+    // B's monitor, which A's probe does not check: refused, nothing stored.
+    expect(outcomes[1]!.error).toBeInstanceOf(BadDataException);
+
+    const storedB: Record<string, JSONObject | null> =
+      await storedResults(monitorB);
+
+    expect(storedB[globalProbe.id.toString()]).toBeNull();
+    expect(storedB[probeB.id.toString()]).toBeNull();
+
+    expect(
+      evaluated.map((e: { monitorId: string }) => {
+        return e.monitorId;
+      }),
+    ).toEqual([monitorA.id.toString()]);
+  });
+
+  test("a probe that sends its id upper-cased reports as itself, under its own row", async () => {
+    const answer: HttpResult = await post("/probe/response/ingest", {
+      ...probeBody(probeA, {
+        probeMonitorResponse: checkResult({
+          monitor: monitorA,
+          extra: { probeId: probeA.id.toString().toUpperCase() },
+        }),
+      }),
+      probeId: probeA.id.toString().toUpperCase(),
+    });
+
+    expect(answer.status).toBe(200);
+
+    const outcomes: Array<JobOutcome> = await runQueuedJobs();
+
+    expect(outcomes[0]!.error).toBeNull();
+    // Queued as the one id Postgres stores.
+    expect(
+      (outcomes[0]!.job.probeMonitorResponse as JSONObject)["probeId"],
+    ).toBe(probeA.id.toString());
+
+    const stored: Record<string, JSONObject | null> =
+      await storedResults(monitorA);
+
+    expect(resultFor(stored, probeA, monitorA)).toBeTruthy();
+    expect(resultFor(stored, probeA, monitorA)!["probeId"]).toEqual({
+      _type: "ObjectID",
+      value: probeA.id.toString(),
+    });
+  });
+
+  test("a rotated key stops working at once, whatever case the probe's id is sent in", async () => {
+    // The auth cache as Redis keeps it: what one request writes, the next reads.
+    const cache: Map<string, string> = new Map<string, string>();
+
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockImplementation(
+        async (namespace: string, key: string): Promise<string | null> => {
+          return cache.get(`${namespace}::${key}`) ?? null;
+        },
+      );
+
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockImplementation(
+        async (
+          namespace: string,
+          key: string,
+          value: string,
+        ): Promise<void> => {
+          cache.set(`${namespace}::${key}`, value);
+        },
+      );
+
+    const upperCasedBody: () => JSONObject = (): JSONObject => {
+      return {
+        ...probeBody(probeA, {
+          probeMonitorResponse: checkResult({ monitor: monitorA }),
+        }),
+        probeId: probeA.id.toString().toUpperCase(),
+      };
+    };
+
+    // Accepted, and cached, while the key is good.
+    expect(
+      (await post("/probe/response/ingest", upperCasedBody())).status,
+    ).toBe(200);
+
+    // A's owner rotates the key: the row changes and the cache is revoked.
+    await database.query(
+      `UPDATE "${schema}"."Probe" SET "key" = $1 WHERE "_id" = $2`,
+      [ObjectID.generate().toString(), probeA.id.toString()],
+    );
+    await ProbeService.invalidateProbeAuthCache([probeA.id]);
+
+    const afterRotation: HttpResult = await post(
+      "/probe/response/ingest",
+      upperCasedBody(),
+    );
+
+    expect(afterRotation.status).toBe(400);
+    expect(afterRotation.body["message"]).toBe("Invalid Probe ID or Probe Key");
+  });
 });
