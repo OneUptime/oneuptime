@@ -799,7 +799,7 @@ ${importSection}`;
 
 \`rotation\` and \`restriction_times\` take JSON: write them with \`jsonencode()\`, in the shapes below. The provider checks every \`_type\` and timestamp in them at plan time.
 
-Both are optional. Left out, a layer hands off every week and is on call around the clock (OneUptime 14.0.72 and later; earlier versions refuse a layer without them).
+Both are optional. Left out, a layer hands off every week and is on call around the clock (OneUptime 14.0.73 and later; earlier versions refuse a layer without them).
 
 ### Rotation
 
