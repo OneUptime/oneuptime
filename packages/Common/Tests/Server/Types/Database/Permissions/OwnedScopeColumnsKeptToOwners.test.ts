@@ -309,6 +309,22 @@ describe("which columns follow the owners where every reader reads the kind", ()
     }
   });
 
+  test("no kind with a column kept to its owners is read across projects: each project's grants decide it, and a read across projects has none", () => {
+    for (const kind of Object.keys(COLUMNS_KEPT_TO_OWNERS)) {
+      const modelType: ModelType | undefined = MODEL_TYPES.find(
+        (each: ModelType): boolean => {
+          return each.name === kind;
+        },
+      );
+
+      expect([kind, Boolean(modelType)]).toEqual([kind, true]);
+      expect([kind, new modelType!().canQueryMultiTenant()]).toEqual([
+        kind,
+        false,
+      ]);
+    }
+  });
+
   test("a Runner is read by every reader of Runners, and its key only by those who may change it", () => {
     expect(OwnedScopePermission.leavesReadsAlone(Runner)).toBe(true);
 

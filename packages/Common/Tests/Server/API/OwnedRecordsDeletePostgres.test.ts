@@ -5190,6 +5190,11 @@ describePostgres(
       const KEY_REFUSAL: string =
         "Your access lets you read the Agent Key only of the Runners you or your teams own, so you cannot sort or filter Runners by it.";
 
+      // A key is unique across Runners, so every test makes its own.
+      const keyOf: (name: string) => string = (name: string): string => {
+        return `${name}-${ObjectID.generate().toString()}`;
+      };
+
       const insertRunner: (
         owner: Owner,
         key: string,
@@ -5207,22 +5212,23 @@ describePostgres(
         });
       };
 
-      // The Runners a list answers with, by id, and the key it read of each.
+      interface RunnersListed {
+        // The Runners listed, by id, sorted.
+        ids?: Array<string>;
+        // The key read of each: undefined where it was left out.
+        keys?: Dictionary<string | undefined>;
+        error?: unknown;
+      }
+
       const listRunners: (data: {
         caller: Caller;
         query: Dictionary<unknown>;
         sort?: Dictionary<unknown>;
-      }) => Promise<{
-        keys?: Dictionary<string | undefined>;
-        error?: unknown;
-      }> = async (data: {
+      }) => Promise<RunnersListed> = async (data: {
         caller: Caller;
         query: Dictionary<unknown>;
         sort?: Dictionary<unknown>;
-      }): Promise<{
-        keys?: Dictionary<string | undefined>;
-        error?: unknown;
-      }> => {
+      }): Promise<RunnersListed> => {
         const outcome: Outcome = await send({
           method: "post",
           uri: "/runner/get-list",
@@ -5245,13 +5251,12 @@ describePostgres(
 
         const keys: Dictionary<string | undefined> = {};
 
-        // A key left out of a row is read as no key at all.
         for (const row of rows) {
           keys[row.id!.toString()] =
             (row.getColumnValue("key") as string | null) || undefined;
         }
 
-        return { keys: keys };
+        return { ids: Object.keys(keys).sort(), keys: keys };
       };
 
       const runnersOf: (ids: Array<ObjectID>) => Dictionary<unknown> = (
@@ -5289,10 +5294,6 @@ describePostgres(
         async ({ rows }: { grant: string; rows: Array<PermissionRow> }) => {
           await setGrants(rows);
 
-          // A key is unique across Runners.
-          const keyOf: (name: string) => string = (name: string): string => {
-            return `${name}-${ObjectID.generate().toString()}`;
-          };
           const mineKey: string = keyOf("mine");
           const oursKey: string = keyOf("ours");
 
@@ -5307,14 +5308,14 @@ describePostgres(
             keyOf("nobody"),
           );
 
-          expect(
-            (
-              await listRunners({
-                caller: member,
-                query: runnersOf([mine, ours, theirs, nobodys]),
-              })
-            ).keys,
-          ).toEqual({
+          const listed: RunnersListed = await listRunners({
+            caller: member,
+            query: runnersOf([mine, ours, theirs, nobodys]),
+          });
+
+          // Every Runner is listed, the key only of the ones they own.
+          expect(listed.ids).toEqual(idsOf([mine, ours, theirs, nobodys]));
+          expect(listed.keys).toStrictEqual({
             [mine.toString()]: mineKey,
             [ours.toString()]: oursKey,
             [theirs.toString()]: undefined,
@@ -5347,49 +5348,49 @@ describePostgres(
           { permission: Permission.RunbookAdmin, scope: PermissionScope.Owned },
         ]);
 
-        const mine: ObjectID = await insertRunner("member", "match-mine");
-        const theirs: ObjectID = await insertRunner(
-          "otherTeam",
-          "match-theirs",
-        );
+        const mineKey: string = keyOf("match-mine");
+        const theirsKey: string = keyOf("match-theirs");
+
+        const mine: ObjectID = await insertRunner("member", mineKey);
+        const theirs: ObjectID = await insertRunner("otherTeam", theirsKey);
         const all: Array<ObjectID> = [mine, theirs];
 
         // By the key itself: another team's is never matched.
         expect(
-          (
-            await listRunners({
-              caller: member,
-              query: { ...runnersOf(all), key: "match-theirs" },
-            })
-          ).keys,
-        ).toEqual({});
+          await listRunners({
+            caller: member,
+            query: { ...runnersOf(all), key: theirsKey },
+          }),
+        ).toStrictEqual({ ids: [], keys: {} });
         expect(
-          (
-            await listRunners({
-              caller: member,
-              query: { ...runnersOf(all), key: "match-mine" },
-            })
-          ).keys,
-        ).toEqual({ [mine.toString()]: "match-mine" });
+          await listRunners({
+            caller: member,
+            query: { ...runnersOf(all), key: mineKey },
+          }),
+        ).toStrictEqual({
+          ids: idsOf([mine]),
+          keys: { [mine.toString()]: mineKey },
+        });
 
-        // By a free-text search that reads the key.
+        // By a free-text search that reads the key: only their own.
         expect(
-          (
-            await listRunners({
-              caller: member,
-              query: {
-                ...runnersOf(all),
-                search: new MultiSearch({
-                  value: "match-",
-                  fields: ["name", "key"],
-                }),
-              },
-            })
-          ).keys,
-        ).toEqual({ [mine.toString()]: "match-mine" });
+          await listRunners({
+            caller: member,
+            query: {
+              ...runnersOf(all),
+              search: new MultiSearch({
+                value: "match-",
+                fields: ["name", "key"],
+              }),
+            },
+          }),
+        ).toStrictEqual({
+          ids: idsOf([mine]),
+          keys: { [mine.toString()]: mineKey },
+        });
 
         // Ordered by the key: refused, as a read of every key one guess at a time.
-        const sorted: { error?: unknown } = await listRunners({
+        const sorted: RunnersListed = await listRunners({
           caller: member,
           query: runnersOf(all),
           sort: { key: SortOrder.Ascending },
@@ -5400,15 +5401,13 @@ describePostgres(
 
         // Ordered by anything else, every Runner is listed.
         expect(
-          Object.keys(
-            (
-              await listRunners({
-                caller: member,
-                query: runnersOf(all),
-                sort: { name: SortOrder.Ascending },
-              })
-            ).keys || {},
-          ).sort(),
+          (
+            await listRunners({
+              caller: member,
+              query: runnersOf(all),
+              sort: { name: SortOrder.Ascending },
+            })
+          ).ids,
         ).toEqual(idsOf(all));
 
         // A Runner's owners, matched by the key of the Runner they own: refused.
@@ -5418,7 +5417,7 @@ describePostgres(
           caller: member,
           body: {
             query: JSONFunctions.serialize({
-              runner: { key: "match-theirs" },
+              runner: { key: theirsKey },
             } as unknown as JSONObject),
             select: { _id: true },
             limit: 50,
@@ -5434,8 +5433,11 @@ describePostgres(
           { permission: Permission.RunbookAdmin, scope: PermissionScope.All },
         ]);
 
-        const mine: ObjectID = await insertRunner("member", "wide-mine");
-        const theirs: ObjectID = await insertRunner("otherTeam", "wide-theirs");
+        const mineKey: string = keyOf("wide-mine");
+        const theirsKey: string = keyOf("wide-theirs");
+
+        const mine: ObjectID = await insertRunner("member", mineKey);
+        const theirs: ObjectID = await insertRunner("otherTeam", theirsKey);
         const apiKey: ObjectID = await createApiKey([Permission.RunbookAdmin]);
 
         for (const caller of [
@@ -5443,26 +5445,28 @@ describePostgres(
           { kind: "apiKey", apiKey: apiKey } as Caller,
         ]) {
           expect(
-            (
-              await listRunners({
-                caller: caller,
-                query: runnersOf([mine, theirs]),
-                sort: { key: SortOrder.Ascending },
-              })
-            ).keys,
-          ).toEqual({
-            [mine.toString()]: "wide-mine",
-            [theirs.toString()]: "wide-theirs",
+            await listRunners({
+              caller: caller,
+              query: runnersOf([mine, theirs]),
+              sort: { key: SortOrder.Ascending },
+            }),
+          ).toStrictEqual({
+            ids: idsOf([mine, theirs]),
+            keys: {
+              [mine.toString()]: mineKey,
+              [theirs.toString()]: theirsKey,
+            },
           });
 
           expect(
-            (
-              await listRunners({
-                caller: caller,
-                query: { ...runnersOf([mine, theirs]), key: "wide-theirs" },
-              })
-            ).keys,
-          ).toEqual({ [theirs.toString()]: "wide-theirs" });
+            await listRunners({
+              caller: caller,
+              query: { ...runnersOf([mine, theirs]), key: theirsKey },
+            }),
+          ).toStrictEqual({
+            ids: idsOf([theirs]),
+            keys: { [theirs.toString()]: theirsKey },
+          });
         }
       });
     });
