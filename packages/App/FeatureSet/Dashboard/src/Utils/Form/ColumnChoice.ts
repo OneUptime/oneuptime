@@ -17,6 +17,12 @@
  * shows the answer the stored columns make - on an Edit form, the record's
  * own.
  *
+ * A config can offer an answer only beside the one the form opened with
+ * (isOptionOffered): a subscriber can be put back to Awaiting Confirmation
+ * only while they are awaiting it, as nothing sends them a new link. The
+ * answer the form opened with is kept in a second form-only value at the
+ * first pick, as the pick writes over the columns it was read from.
+ *
  * Kept free of React, so App/Tests can read it. The field that draws a
  * config is ColumnChoiceField.tsx.
  */
@@ -39,6 +45,13 @@ export interface ColumnChoiceConfig<TChoice extends string> {
   readChoice: (values: Record<string, unknown>) => TChoice;
   // The columns an answer writes, and what it writes into them.
   getColumns: (choice: TChoice) => Record<string, unknown>;
+  /*
+   * Whether an answer is offered on a form that opened with another one
+   * (on an Edit form, the record's own). Every answer, when left out.
+   */
+  isOptionOffered?:
+    | ((choice: TChoice, openedWith: TChoice) => boolean)
+    | undefined;
   dataTestId: string;
 }
 
@@ -81,7 +94,72 @@ export const getColumnChoiceInForm: <TChoice extends string>(
   return config.readChoice(asValues(values));
 };
 
-// A form's values once an answer is picked: the pick and the columns it writes.
+// The form-only value that keeps the answer a form opened with.
+export const getColumnChoiceOpenedWithKey: <TChoice extends string>(
+  config: ColumnChoiceConfig<TChoice>,
+) => string = <TChoice extends string>(
+  config: ColumnChoiceConfig<TChoice>,
+): string => {
+  return `${config.key}OpenedWith`;
+};
+
+/*
+ * The answer a form opened with: the one kept at its first pick, and until
+ * then the one its columns make - on an Edit form, the record's own.
+ */
+export const getColumnChoiceOpenedWith: <TChoice extends string>(
+  config: ColumnChoiceConfig<TChoice>,
+  values: unknown,
+) => TChoice = <TChoice extends string>(
+  config: ColumnChoiceConfig<TChoice>,
+  values: unknown,
+): TChoice => {
+  const kept: unknown = asValues(values)[getColumnChoiceOpenedWithKey(config)];
+
+  if (isColumnChoice(config, kept)) {
+    return kept;
+  }
+
+  return config.readChoice(asValues(values));
+};
+
+/*
+ * The answers a form offers: every one, or - for a config that offers some
+ * only beside the answer the form opened with - those, and always the one
+ * it shows, so the question never stands with nothing picked.
+ */
+export const getOfferedColumnChoiceOptions: <TChoice extends string>(
+  config: ColumnChoiceConfig<TChoice>,
+  values: unknown,
+) => Array<ColumnChoiceOption<TChoice>> = <TChoice extends string>(
+  config: ColumnChoiceConfig<TChoice>,
+  values: unknown,
+): Array<ColumnChoiceOption<TChoice>> => {
+  const isOptionOffered:
+    | ((choice: TChoice, openedWith: TChoice) => boolean)
+    | undefined = config.isOptionOffered;
+
+  if (!isOptionOffered) {
+    return [...config.options];
+  }
+
+  const openedWith: TChoice = getColumnChoiceOpenedWith(config, values);
+  const shown: TChoice = getColumnChoiceInForm(config, values);
+
+  return config.options.filter(
+    (option: ColumnChoiceOption<TChoice>): boolean => {
+      return (
+        option.value === shown || isOptionOffered(option.value, openedWith)
+      );
+    },
+  );
+};
+
+/*
+ * A form's values once an answer is picked: the pick and the columns it
+ * writes - and, for a config that offers some answers only beside the one
+ * the form opened with, that answer, kept before the columns change.
+ */
 export const getValuesForColumnChoice: <TChoice extends string>(data: {
   config: ColumnChoiceConfig<TChoice>;
   values: unknown;
@@ -93,6 +171,12 @@ export const getValuesForColumnChoice: <TChoice extends string>(data: {
 }): Values => {
   return {
     ...asValues(data.values),
+    ...(data.config.isOptionOffered
+      ? {
+          [getColumnChoiceOpenedWithKey(data.config)]:
+            getColumnChoiceOpenedWith(data.config, data.values),
+        }
+      : {}),
     [data.config.key]: data.choice,
     ...data.config.getColumns(data.choice),
   };

@@ -117,6 +117,7 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   EMAIL_SUBSCRIBER_STATUS,
+  isEmailSubscriberStatusOffered,
   readSubscriberAddChoice,
   readSubscriberStatus,
   SUBSCRIBER_ADD_CHOICE,
@@ -140,7 +141,10 @@ import {
   ColumnChoiceConfig,
   ColumnChoiceOption,
   getColumnChoiceInForm,
+  getColumnChoiceOpenedWith,
+  getColumnChoiceOpenedWithKey,
   getColumnChoiceRadioButtons,
+  getOfferedColumnChoiceOptions,
   getColumnChoiceTitle,
   getColumnChoiceTitles,
   getValuesForColumnChoice,
@@ -845,5 +849,238 @@ describe("Email Subscribers > Edit, through the real form", () => {
 
     expect(request.model["isUnsubscribed"]).toBe(true);
     expect(request.model["isSubscriptionConfirmed"]).toBe(true);
+  });
+
+  /*
+   * Nothing sends a new confirmation link to a subscriber put back to
+   * Awaiting Confirmation: the link goes out when a subscriber is added.
+   * Offered to a subscribed or unsubscribed one, it would stop their
+   * updates for a link that never comes.
+   */
+  test.each([
+    [{ isUnsubscribed: false, isSubscriptionConfirmed: true }, "Subscribed"],
+    [{ isUnsubscribed: true, isSubscriptionConfirmed: true }, "Unsubscribed"],
+    [{ isUnsubscribed: true, isSubscriptionConfirmed: false }, "Unsubscribed"],
+  ])(
+    "a subscriber stored as %j (%s) is not offered Awaiting Confirmation",
+    async (stored: JSONObject, status: string) => {
+      await renderEditForm(stored);
+
+      await waitFor(() => {
+        expect(screen.getByRole("radio", { name: status })).toBeChecked();
+      });
+
+      expect(screen.getAllByRole("radio")).toHaveLength(2);
+      expect(
+        screen.getByRole("radio", { name: "Subscribed" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("radio", { name: "Unsubscribed" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("radio", { name: "Awaiting Confirmation" }),
+      ).toBeNull();
+      expect(
+        screen.queryByText(SubscriberFormCopy.awaitingConfirmationDescription),
+      ).toBeNull();
+    },
+  );
+
+  test("one awaiting confirmation keeps all three answers while they are picked between", async () => {
+    await renderEditForm({
+      isUnsubscribed: false,
+      isSubscriptionConfirmed: false,
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("radio", { name: "Awaiting Confirmation" }),
+      ).toBeChecked();
+    });
+
+    // Subscribed writes confirmed: the answer stays offered all the same.
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("radio", { name: "Subscribed" }));
+    });
+
+    expect(screen.getByRole("radio", { name: "Subscribed" })).toBeChecked();
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("radio", { name: "Awaiting Confirmation" }),
+      );
+    });
+
+    expect(
+      screen.getByRole("radio", { name: "Awaiting Confirmation" }),
+    ).toBeChecked();
+
+    const request: CapturedRequest = await submit("Save");
+
+    expect(request.model["isUnsubscribed"]).toBe(false);
+    expect(request.model["isSubscriptionConfirmed"]).toBe(false);
+    // The answer the form opened with is the form's own: never sent.
+    expect(
+      request.model[getColumnChoiceOpenedWithKey(EMAIL_SUBSCRIBER_STATUS)],
+    ).toBeUndefined();
+  });
+
+  test("a subscribed one who is unsubscribed and subscribed again is still not offered it", async () => {
+    await renderEditForm({
+      isUnsubscribed: false,
+      isSubscriptionConfirmed: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("radio", { name: "Subscribed" })).toBeChecked();
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("radio", { name: "Unsubscribed" }));
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByRole("radio", { name: "Subscribed" }));
+    });
+
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(
+      screen.queryByRole("radio", { name: "Awaiting Confirmation" }),
+    ).toBeNull();
+  });
+});
+
+describe("an email subscriber's Status offers Awaiting Confirmation only while they await it", () => {
+  test("the rule: every answer but Awaiting Confirmation, which only beside itself", () => {
+    for (const openedWith of Object.values(SubscriberStatusChoice)) {
+      expect(
+        isEmailSubscriberStatusOffered(
+          SubscriberStatusChoice.Subscribed,
+          openedWith,
+        ),
+      ).toBe(true);
+      expect(
+        isEmailSubscriberStatusOffered(
+          SubscriberStatusChoice.Unsubscribed,
+          openedWith,
+        ),
+      ).toBe(true);
+      expect(
+        isEmailSubscriberStatusOffered(
+          SubscriberStatusChoice.AwaitingConfirmation,
+          openedWith,
+        ),
+      ).toBe(openedWith === SubscriberStatusChoice.AwaitingConfirmation);
+    }
+
+    // The other channels and the Add question offer every answer.
+    expect(SUBSCRIBER_STATUS.isOptionOffered).toBeUndefined();
+    expect(SUBSCRIBER_ADD_CHOICE.isOptionOffered).toBeUndefined();
+  });
+
+  const titlesOffered: (values: Values) => Array<string> = (
+    values: Values,
+  ): Array<string> => {
+    return getOfferedColumnChoiceOptions(EMAIL_SUBSCRIBER_STATUS, values).map(
+      (option: ColumnChoiceOption<SubscriberStatusChoice>): string => {
+        return option.title;
+      },
+    );
+  };
+
+  test("offers by the answer the form opened with, read from the record until a pick keeps it", () => {
+    expect(
+      titlesOffered({ isUnsubscribed: false, isSubscriptionConfirmed: true }),
+    ).toEqual(["Subscribed", "Unsubscribed"]);
+    expect(
+      titlesOffered({ isUnsubscribed: true, isSubscriptionConfirmed: false }),
+    ).toEqual(["Subscribed", "Unsubscribed"]);
+    expect(
+      titlesOffered({ isUnsubscribed: false, isSubscriptionConfirmed: false }),
+    ).toEqual(["Subscribed", "Awaiting Confirmation", "Unsubscribed"]);
+
+    // Opened awaiting, then confirmed by a pick: the form still opened awaiting.
+    const picked: Values = getValuesForColumnChoice({
+      config: EMAIL_SUBSCRIBER_STATUS,
+      values: { isUnsubscribed: false, isSubscriptionConfirmed: false },
+      choice: SubscriberStatusChoice.Subscribed,
+    });
+
+    expect(picked).toEqual({
+      isUnsubscribed: false,
+      isSubscriptionConfirmed: true,
+      [SUBSCRIBER_STATUS_FIELD_KEY]: SubscriberStatusChoice.Subscribed,
+      [getColumnChoiceOpenedWithKey(EMAIL_SUBSCRIBER_STATUS)]:
+        SubscriberStatusChoice.AwaitingConfirmation,
+    });
+    expect(getColumnChoiceOpenedWith(EMAIL_SUBSCRIBER_STATUS, picked)).toBe(
+      SubscriberStatusChoice.AwaitingConfirmation,
+    );
+    expect(titlesOffered(picked)).toEqual([
+      "Subscribed",
+      "Awaiting Confirmation",
+      "Unsubscribed",
+    ]);
+
+    // A second pick keeps what the form opened with, not the first pick.
+    const pickedAgain: Values = getValuesForColumnChoice({
+      config: EMAIL_SUBSCRIBER_STATUS,
+      values: picked,
+      choice: SubscriberStatusChoice.Unsubscribed,
+    });
+
+    expect(
+      pickedAgain[getColumnChoiceOpenedWithKey(EMAIL_SUBSCRIBER_STATUS)],
+    ).toBe(SubscriberStatusChoice.AwaitingConfirmation);
+  });
+
+  test("always offers the answer the form shows, so the question is never left unpicked", () => {
+    // A form opened subscribed that somehow shows Awaiting Confirmation.
+    expect(
+      titlesOffered({
+        [SUBSCRIBER_STATUS_FIELD_KEY]:
+          SubscriberStatusChoice.AwaitingConfirmation,
+        [getColumnChoiceOpenedWithKey(EMAIL_SUBSCRIBER_STATUS)]:
+          SubscriberStatusChoice.Subscribed,
+      }),
+    ).toEqual(["Subscribed", "Awaiting Confirmation", "Unsubscribed"]);
+  });
+
+  test("a config that offers every answer keeps no opened-with value", () => {
+    expect(
+      Object.keys(
+        getValuesForColumnChoice({
+          config: SUBSCRIBER_STATUS,
+          values: { isUnsubscribed: false },
+          choice: SubscriberStatusChoice.Unsubscribed,
+        }),
+      ).sort(),
+    ).toEqual(["isUnsubscribed", SUBSCRIBER_STATUS_FIELD_KEY].sort());
+    expect(
+      getOfferedColumnChoiceOptions(SUBSCRIBER_STATUS, {
+        isUnsubscribed: true,
+      }).length,
+    ).toBe(2);
+  });
+
+  test("the radios draw only the answers offered", () => {
+    render(
+      <ColumnChoiceRadio<SubscriberStatusChoice>
+        config={EMAIL_SUBSCRIBER_STATUS}
+        value={SubscriberStatusChoice.Subscribed}
+        offeredOptions={getOfferedColumnChoiceOptions(EMAIL_SUBSCRIBER_STATUS, {
+          isUnsubscribed: false,
+          isSubscriptionConfirmed: true,
+        })}
+        onChange={(): void => {
+          // Not asserted on.
+        }}
+      />,
+    );
+
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(
+      screen.queryByRole("radio", { name: "Awaiting Confirmation" }),
+    ).toBeNull();
   });
 });

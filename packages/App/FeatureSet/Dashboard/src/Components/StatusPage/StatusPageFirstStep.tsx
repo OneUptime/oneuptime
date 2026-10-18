@@ -41,6 +41,12 @@ export interface ComponentProps {
   statusPageId: ObjectID;
 }
 
+/*
+ * The card's body class: none of the margin a card puts between its header
+ * and its body, as this card has no header (Card's default is mt-4).
+ */
+export const STATUS_PAGE_FIRST_STEP_BODY_CLASS_NAME: string = "mt-0";
+
 enum FirstStepState {
   Asking = "Asking",
   Shown = "Shown",
@@ -93,7 +99,11 @@ const StatusPageFirstStep: FunctionComponent<ComponentProps> = (
   ).isAllowed;
 
   return (
-    <Card>
+    /*
+     * A card with no title: its body starts at the card's own padding, not
+     * a header's distance below it, so the step sits in the middle.
+     */
+    <Card bodyClassName={STATUS_PAGE_FIRST_STEP_BODY_CLASS_NAME}>
       <div data-testid={STATUS_PAGE_FIRST_STEP_TEST_ID}>
         <EmptyState
           id={STATUS_PAGE_FIRST_STEP_TEST_ID + "-empty-state"}

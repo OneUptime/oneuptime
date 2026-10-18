@@ -26,7 +26,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * subscriber who exists, it only said whether they had confirmed - beside
  * an "Unsubscribe" switch. Its Edit form now asks for its Status, in the
  * words of the table's Status column: Subscribed, Awaiting Confirmation
- * (email only), Unsubscribed. Each writes isUnsubscribed, and an email
+ * (email only, and only while they are awaiting it - nothing sends a new
+ * link), Unsubscribed. Each writes isUnsubscribed, and an email
  * subscriber's isSubscriptionConfirmed.
  *
  * The other channels confirm nobody (the server marks every SMS, Slack,
@@ -209,10 +210,31 @@ export const readSubscriberStatus: (
 };
 
 /*
- * An email subscriber's Status: the three the table shows. Subscribed
- * confirms one who has not clicked the link yet (as turning "Do not send
- * confirmation link" on did); Unsubscribed leaves whether they had
- * confirmed as it is.
+ * Whether an email subscriber's Edit form offers an answer. Awaiting
+ * Confirmation only to a subscriber who is awaiting it: nothing sends a
+ * new link to anyone put back to it (the confirmation link goes out when a
+ * subscriber is added), so a subscribed or unsubscribed one would wait for
+ * a link that never comes and get nothing.
+ */
+export const isEmailSubscriberStatusOffered: (
+  choice: SubscriberStatusChoice,
+  openedWith: SubscriberStatusChoice,
+) => boolean = (
+  choice: SubscriberStatusChoice,
+  openedWith: SubscriberStatusChoice,
+): boolean => {
+  return (
+    choice !== SubscriberStatusChoice.AwaitingConfirmation ||
+    openedWith === SubscriberStatusChoice.AwaitingConfirmation
+  );
+};
+
+/*
+ * An email subscriber's Status: the three the table shows, Awaiting
+ * Confirmation only while they are awaiting it (see
+ * isEmailSubscriberStatusOffered). Subscribed confirms one who has not
+ * clicked the link yet (as turning "Do not send confirmation link" on
+ * did); Unsubscribed leaves whether they had confirmed as it is.
  */
 export const EMAIL_SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice> =
   {
@@ -246,6 +268,7 @@ export const EMAIL_SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice>
         isSubscriptionConfirmed: choice === SubscriberStatusChoice.Subscribed,
       };
     },
+    isOptionOffered: isEmailSubscriberStatusOffered,
     dataTestId: "subscriber-status",
   };
 

@@ -21,7 +21,33 @@ export interface ComponentProps {
   language: string;
   maxHeight?: string | undefined;
   showCopyButton?: boolean | undefined;
+  /*
+   * Wrap a line too long for the box instead of scrolling it sideways, and
+   * keep the text clear of the copy button: for a snippet of a line or two
+   * that people read whole and copy - an address, an ID, an embed code -
+   * not for a program, whose lines read best as written.
+   */
+  wrapLongLines?: boolean | undefined;
 }
+
+/*
+ * The code's own font for every token in it. Every frontend's index.ejs
+ * draws every element in Inter (`* { font-family: Inter, ... }`), and a
+ * rule that matches an element beats the font it would inherit, so
+ * highlight.js's token spans - a JSON key, an HTML attribute - were drawn
+ * in Inter between the code font's braces and spaces.
+ */
+export const CODE_BLOCK_TOKEN_FONT_CLASS_NAME: string =
+  "[&_*]:[font-family:inherit]";
+
+/*
+ * A long line wraps, anywhere it must, and stops short of the copy button.
+ * The gutter is important: the highlight theme's own .hljs padding comes
+ * after the utilities and would take it back.
+ */
+export const CODE_BLOCK_WRAP_CLASS_NAME: string =
+  "whitespace-pre-wrap break-words";
+export const CODE_BLOCK_COPY_BUTTON_GUTTER_CLASS_NAME: string = "!pr-14";
 
 const CodeBlock: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -74,7 +100,14 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
    * `hljs` carries the a11y-dark theme background; react-highlight added it
    * post-mount, we add it up front so there is no unstyled first paint.
    */
-  const codeClassName: string = `hljs p-4 language-${props.language} text-sm leading-relaxed`;
+  const codeClassName: string = [
+    `hljs p-4 language-${props.language} text-sm leading-relaxed`,
+    CODE_BLOCK_TOKEN_FONT_CLASS_NAME,
+    ...(props.wrapLongLines ? [CODE_BLOCK_WRAP_CLASS_NAME] : []),
+    ...(props.wrapLongLines && showCopyButton && typeof props.code === "string"
+      ? [CODE_BLOCK_COPY_BUTTON_GUTTER_CLASS_NAME]
+      : []),
+  ].join(" ");
 
   return (
     <div className="relative group">

@@ -2,6 +2,7 @@ import {
   ColumnChoiceConfig,
   ColumnChoiceOption,
   getColumnChoiceInForm,
+  getOfferedColumnChoiceOptions,
   getValuesForColumnChoice,
   isColumnChoice,
 } from "./ColumnChoice";
@@ -33,6 +34,11 @@ export interface ColumnChoiceRadioProps<TChoice extends string> {
   config: ColumnChoiceConfig<TChoice>;
   value: TChoice;
   onChange: (choice: TChoice) => void;
+  /*
+   * The answers to draw, when not every one is offered
+   * (getOfferedColumnChoiceOptions). Every answer, when left out.
+   */
+  offeredOptions?: ReadonlyArray<ColumnChoiceOption<TChoice>> | undefined;
   error?: string | undefined;
   ariaLabelledby?: string | undefined;
 }
@@ -44,21 +50,21 @@ export const ColumnChoiceRadio: <TChoice extends string>(
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const options: Array<RadioOption> = props.config.options.map(
-    (option: ColumnChoiceOption<TChoice>): RadioOption => {
-      return {
-        value: option.value,
-        label: translator.translateText(option.title) || option.title,
-        ...(option.description
-          ? {
-              description:
-                translator.translateText(option.description) ||
-                option.description,
-            }
-          : {}),
-      };
-    },
-  );
+  const options: Array<RadioOption> = (
+    props.offeredOptions || props.config.options
+  ).map((option: ColumnChoiceOption<TChoice>): RadioOption => {
+    return {
+      value: option.value,
+      label: translator.translateText(option.title) || option.title,
+      ...(option.description
+        ? {
+            description:
+              translator.translateText(option.description) ||
+              option.description,
+          }
+        : {}),
+    };
+  });
 
   return (
     <Radio
@@ -149,6 +155,7 @@ export const getColumnChoiceField: <
         <ColumnChoiceRadio<TChoice>
           config={config}
           value={getColumnChoiceInForm(config, values)}
+          offeredOptions={getOfferedColumnChoiceOptions(config, values)}
           error={props.error}
           ariaLabelledby={props.ariaLabelledby}
           onChange={(choice: TChoice): void => {

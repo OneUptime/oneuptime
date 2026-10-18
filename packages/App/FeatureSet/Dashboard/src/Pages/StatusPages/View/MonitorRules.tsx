@@ -228,7 +228,11 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           {
             field: { isEnabled: true },
             title: "Status",
-            type: FieldType.Boolean,
+            /*
+             * An element, not a Boolean: a phone's card leaves out a Boolean
+             * that is off, so a disabled rule showed no status at all.
+             */
+            type: FieldType.Element,
             getElement: (item: StatusPageMonitorRule): ReactElement => {
               return item.isEnabled ? (
                 <Pill color={Green} text="Enabled" />
@@ -369,6 +373,8 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             stepId: "group",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
+            // "Description of this status page monitor rule" says no more.
+            hideColumnDescription: true,
             collapsibleSection: advancedSection,
           },
         ]}

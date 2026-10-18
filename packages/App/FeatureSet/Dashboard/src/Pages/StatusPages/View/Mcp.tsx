@@ -71,13 +71,17 @@ const StatusPageMcp: FunctionComponent<
               "Add this server to your AI assistant. It needs no API key.",
             )}
           </p>
-          <CodeBlock language="text" code={mcpUrl} />
+          {/*
+           * An address and an ID, read whole and copied: they wrap rather
+           * than running under the copy button on a phone.
+           */}
+          <CodeBlock language="text" code={mcpUrl} wrapLongLines={true} />
           <p>
             {translator.translateText(
               "The assistant names this page by its ID, or by one of its custom domains:",
             )}
           </p>
-          <CodeBlock language="text" code={statusPageId} />
+          <CodeBlock language="text" code={statusPageId} wrapLongLines={true} />
           <p>
             <TranslatedSentence
               template="Turning the server off does not hide the page itself: who can see it is set on {{accessLink}}. The tools are listed in the {{docsLink}}."
@@ -137,6 +141,7 @@ const StatusPageMcp: FunctionComponent<
           <CodeBlock
             language="bash"
             code={`claude mcp add --transport http oneuptime ${mcpUrl}`}
+            wrapLongLines={true}
           />
         </div>
       </Card>

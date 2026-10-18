@@ -77,6 +77,8 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // A status page's own Announcements tab, rather than the product's list.
+  const isOnOneStatusPage: boolean = Boolean(props.statusPageId);
   const [announcementTemplates, setAnnouncementTemplates] = useState<
     Array<StatusPageAnnouncementTemplate>
   >([]);
@@ -225,26 +227,34 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             title: "Subscribers Notified",
             type: FieldType.Boolean,
           },
-          {
-            field: {
-              statusPages: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Shown on Status Pages",
-            type: FieldType.EntityArray,
+          /*
+           * On a status page's own tab every row is on that page: which
+           * pages show it is a question for the product's list only.
+           */
+          ...(isOnOneStatusPage
+            ? []
+            : [
+                {
+                  field: {
+                    statusPages: {
+                      name: true,
+                      _id: true,
+                      projectId: true,
+                    },
+                  },
+                  title: "Shown on Status Pages",
+                  type: FieldType.EntityArray,
 
-            filterEntityType: StatusPage,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
+                  filterEntityType: StatusPage,
+                  filterQuery: {
+                    projectId: ProjectUtil.getCurrentProjectId()!,
+                  },
+                  filterDropdownField: {
+                    label: "name",
+                    value: "_id",
+                  },
+                },
+              ]),
         ]}
         columns={[
           {
@@ -271,32 +281,41 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             // Shown until removed: the table's quiet dash, like every cell.
             hideOnMobile: true,
           },
-          {
-            field: {
-              statusPages: {
-                name: true,
-              },
-            },
-            hideOnMobile: true,
-            title: "Shown on Status Pages",
-            type: FieldType.Element,
-            getElement: (item: StatusPageAnnouncement) => {
-              if (!item.statusPages || !Array.isArray(item.statusPages)) {
-                return (
-                  <p>
-                    {translator.translateText(
-                      "No status pages selected for this announcement.",
-                    )}
-                  </p>
-                );
-              }
-              return (
-                <div>
-                  <StatusPagesElement statusPages={item.statusPages} />
-                </div>
-              );
-            },
-          },
+          /*
+           * The status pages that show each row - on the product's list.
+           * On a page's own tab the column only repeated that page's name,
+           * beside a title it squeezed to its first words.
+           */
+          ...(isOnOneStatusPage
+            ? []
+            : [
+                {
+                  field: {
+                    statusPages: {
+                      name: true,
+                    },
+                  },
+                  hideOnMobile: true,
+                  title: "Shown on Status Pages",
+                  type: FieldType.Element,
+                  getElement: (item: StatusPageAnnouncement) => {
+                    if (!item.statusPages || !Array.isArray(item.statusPages)) {
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No status pages selected for this announcement.",
+                          )}
+                        </p>
+                      );
+                    }
+                    return (
+                      <div>
+                        <StatusPagesElement statusPages={item.statusPages} />
+                      </div>
+                    );
+                  },
+                },
+              ]),
         ]}
       />
 

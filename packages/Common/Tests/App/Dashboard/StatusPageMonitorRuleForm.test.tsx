@@ -233,6 +233,10 @@ jest.mock("../../../UI/Utils/User", () => {
 });
 
 import Route from "../../../Types/API/Route";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import Table from "../../../UI/Components/Table/Table";
+import FieldType from "../../../UI/Components/Types/FieldType";
+import ModelTableColumns from "../../../UI/Components/ModelTable/Column";
 import StatusPageMonitorRule from "../../../Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -448,6 +452,104 @@ describe("Status Pages > a page > Monitor Rules: the table", () => {
     await renderPage();
 
     expect(mockTable.props?.noItemsMessage).toBeUndefined();
+  });
+
+  /*
+   * A phone draws each row as a card, and a card leaves out a Boolean
+   * column that is off: typed Boolean, a disabled rule's card showed no
+   * status at all. The page's own Status column, through the real Table at
+   * a phone's width, says Enabled and Disabled.
+   */
+  test("says Disabled on a phone too: its Status column draws an element, not a Boolean", async () => {
+    await renderPage();
+
+    const statusColumn: ModelTableColumns<StatusPageMonitorRule> | undefined = (
+      (mockTable.props?.columns || []) as unknown as Array<
+        ModelTableColumns<StatusPageMonitorRule>
+      >
+    ).find((column: ModelTableColumns<StatusPageMonitorRule>): boolean => {
+      return column.title === "Status";
+    });
+
+    expect(statusColumn).toBeDefined();
+    expect(statusColumn!.type).toBe(FieldType.Element);
+
+    cleanup();
+
+    const rules: Array<StatusPageMonitorRule> = [
+      Object.assign(new StatusPageMonitorRule(), {
+        _id: "66666666-6666-4666-8666-000000000001",
+        name: "Add monitors to Website",
+        isEnabled: true,
+      }),
+      Object.assign(new StatusPageMonitorRule(), {
+        _id: "66666666-6666-4666-8666-000000000002",
+        name: "Add monitors to the top of the page",
+        isEnabled: false,
+      }),
+    ];
+
+    const renderOnPhone: (type: FieldType) => void = (
+      type: FieldType,
+    ): void => {
+      render(
+        <Table<StatusPageMonitorRule>
+          id="phone-rules"
+          data={rules}
+          columns={[
+            { title: "Name", type: FieldType.Text, key: "name" },
+            {
+              title: statusColumn!.title,
+              type: type,
+              key: "isEnabled",
+              getElement: statusColumn!.getElement as (
+                item: StatusPageMonitorRule,
+              ) => ReactElement,
+            },
+          ]}
+          currentPageNumber={1}
+          totalItemsCount={rules.length}
+          itemsOnPage={10}
+          error=""
+          isLoading={false}
+          singularLabel="Monitor Rule"
+          pluralLabel="Monitor Rules"
+          sortBy={null}
+          sortOrder={SortOrder.Ascending}
+          onSortChanged={() => {}}
+          onNavigateToPage={() => {}}
+        />,
+      );
+    };
+
+    const innerWidth: number = window.innerWidth;
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 390,
+    });
+
+    try {
+      renderOnPhone(statusColumn!.type as FieldType);
+
+      expect(await screen.findByText("Enabled")).toBeInTheDocument();
+      expect(screen.getByText("Disabled")).toBeInTheDocument();
+
+      cleanup();
+
+      // Why: the same column typed Boolean loses the disabled rule's status.
+      renderOnPhone(FieldType.Boolean);
+
+      expect(await screen.findByText("Enabled")).toBeInTheDocument();
+      expect(screen.queryByText("Disabled")).toBeNull();
+    } finally {
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: innerWidth,
+      });
+    }
   });
 });
 

@@ -185,8 +185,6 @@ const NEW_WORDS: Array<string> = [
   "Paste one of these where the badge should show.",
   "The badge needs a token before it can be shown.",
   "Making the badge's token...",
-  "The secret token in the badge's link. Regenerate it if the link was shared too widely.",
-  "Turn on Enable Embedded Status Badge to see the badge and the code to embed it.",
   "Markdown, linked to the status page",
   // Monitor Rules: Match, then Group, with the name filled in.
   "Monitor Rule",
@@ -481,6 +479,26 @@ describe("the screens", () => {
     expect(code).not.toContain("noItemsMessage");
   });
 
+  /*
+   * A phone draws each row as a card, and a card leaves out a Boolean
+   * column that is off: typed Boolean, a disabled rule showed no status.
+   */
+  test.each([
+    "Pages/StatusPages/View/MonitorRules.tsx",
+    "Pages/StatusPages/Settings/StatusPageOwnerRules.tsx",
+    "Pages/StatusPages/Settings/StatusPageLabelRules.tsx",
+  ])(
+    "%s says Enabled or Disabled on a phone too: its Status column is an element",
+    (file: string) => {
+      const code: string = readCode(file);
+
+      expect(code).toContain(
+        'field: { isEnabled: true }, title: "Status", type: FieldType.Element, getElement:',
+      );
+      expect(code).not.toContain('title: "Status", type: FieldType.Boolean');
+    },
+  );
+
   test("the embedded badge is its switch: turning it on makes its token, which waits under More settings", () => {
     const code: string = readCode("Pages/StatusPages/View/EmbeddedStatus.tsx");
 
@@ -488,6 +506,15 @@ describe("the screens", () => {
       "onSaved={(isOn: boolean): void => { if ( shouldMakeBadgeTokenWhenTurnedOn({ isOn: isOn, token: tokenRef.current, }) ) {",
     );
     expect(code).toContain("<AdvancedPageSection");
+    // Off, there is nothing to embed: the card is there only while it is on.
+    expect(code).toContain(
+      '{isEmbeddedStatusEnabled ? ( <Card bodyClassName="mt-6" title="Embed the Badge"',
+    );
+    expect(code).not.toContain("EmbeddedStatusCopy.turnOn");
+    // The fold's one card says what the token is: the fold does not repeat it.
+    expect(code).toContain("<AdvancedPageSection items={[");
+    // Its HTML and Markdown are long lines, read whole: they wrap.
+    expect(code.split("wrapLongLines={true}").length - 1).toBe(2);
     // The token card is inside the fold, after the badge's own card.
     expect(code.indexOf('title="Embed the Badge"')).toBeLessThan(
       code.indexOf("<AdvancedPageSection"),
@@ -495,6 +522,23 @@ describe("the screens", () => {
     expect(code.indexOf("<AdvancedPageSection")).toBeLessThan(
       code.indexOf("title={EmbeddedStatusCopy.tokenCardTitle}"),
     );
+  });
+
+  test("MCP's address, page ID and Claude Code command wrap rather than run under the copy button; its configs keep their lines", () => {
+    const code: string = readCode("Pages/StatusPages/View/Mcp.tsx");
+
+    expect(code).toContain(
+      '<CodeBlock language="text" code={mcpUrl} wrapLongLines={true} />',
+    );
+    expect(code).toContain(
+      '<CodeBlock language="text" code={statusPageId} wrapLongLines={true} />',
+    );
+    expect(code).toContain(
+      "code={`claude mcp add --transport http oneuptime ${mcpUrl}`} wrapLongLines={true}",
+    );
+    // The two JSON configs are programs: written as they are.
+    expect(code.split('language="json"').length - 1).toBe(2);
+    expect(code.split("wrapLongLines={true}").length - 1).toBe(3);
   });
 
   test("the announcement lists are Announcements, as the menus say, with Starts and Ends that fit beside the row's actions", () => {
@@ -509,6 +553,15 @@ describe("the screens", () => {
     expect(table.split('title: "Ends",').length - 1).toBe(2);
     expect(table).not.toContain('title: "Show Announcement At"');
     expect(table).not.toContain('title: "End Announcement At"');
+    /*
+     * A status page's own tab leaves out which pages show each row - the
+     * column and its filter - as every row is on that page.
+     */
+    expect(table).toContain(
+      "const isOnOneStatusPage: boolean = Boolean(props.statusPageId);",
+    );
+    expect(table.split("...(isOnOneStatusPage ? [] : [").length - 1).toBe(2);
+    expect(table.split('title: "Shown on Status Pages",').length - 1).toBe(2);
   });
 
   test("the template lists are named as the menu names them: Create Announcement Template, Create Template", () => {

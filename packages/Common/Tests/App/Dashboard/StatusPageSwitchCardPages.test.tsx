@@ -196,12 +196,50 @@ describe("Embedded Status: the badge is one switch", () => {
     ).toBe(control);
     expect(control).toHaveAttribute("aria-checked", "false");
     expect(screen.queryByRole("button", { name: "Edit Settings" })).toBeNull();
-    // Off: the Embed the Badge card says the one thing that is missing.
+    /*
+     * Off, there is nothing to embed: no Embed the Badge card, and no
+     * sentence under the switch repeating what the switch says.
+     */
+    expect(
+      screen.queryByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+    ).toBeNull();
+    expect(screen.queryByText("Embed the Badge")).toBeNull();
+    expect(
+      screen.queryByText(/Turn on Enable Embedded Status Badge/),
+    ).toBeNull();
+    // The token's fold is there, folded, whatever the switch says.
+    expect(
+      within(screen.getByTestId(EMBEDDED_STATUS_BADGE_MORE_TEST_ID)).getByRole(
+        "button",
+        { name: /More settings/ },
+      ),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("turning it on brings the Embed the Badge card in under the switch", async () => {
+    stored.embeddedOverallStatusToken = "badge-token";
+
+    const control: HTMLElement = await renderPage();
+
+    expect(
+      screen.queryByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+    ).toBeNull();
+
+    fireEvent.click(control);
+    await flush();
+
+    expect(screen.getByText("Embed the Badge")).toBeInTheDocument();
     expect(
       screen.getByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
-    ).toHaveTextContent(
-      "Turn on Enable Embedded Status Badge to see the badge and the code to embed it.",
-    );
+    ).toBeInTheDocument();
+
+    // And turning it off again takes it away.
+    fireEvent.click(control);
+    await flush();
+
+    expect(
+      screen.queryByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+    ).toBeNull();
   });
 
   test("it reads the switch's column with the token, once", async () => {
@@ -438,6 +476,20 @@ describe("Embedded Status: the badge is one switch", () => {
     expect(
       within(more).getByRole("heading", { name: "Security Token" }),
     ).toBeInTheDocument();
+
+    /*
+     * Its one card says what the token is: the fold does not say it a
+     * second time above it.
+     */
+    await act(async () => {
+      fireEvent.click(header);
+    });
+
+    expect(header).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(more).getAllByText(EmbeddedStatusCopy.tokenCardDescription),
+    ).toHaveLength(1);
+    expect(within(more).queryByText(/Regenerate it if the link/)).toBeNull();
   });
 
   test("Regenerate Token asks first: the current token stops working", async () => {
@@ -504,11 +556,10 @@ describe("Embedded Status: the badge is one switch", () => {
 
     expect(control).toHaveAttribute("aria-checked", "false");
     expect(screen.queryByAltText("Status Badge")).toBeNull();
+    // Back off, so nothing to embed: the card goes with the switch.
     expect(
-      screen.getByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
-    ).toHaveTextContent(
-      "Turn on Enable Embedded Status Badge to see the badge and the code to embed it.",
-    );
+      screen.queryByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+    ).toBeNull();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Please upgrade your plan to Growth to access this feature",
     );

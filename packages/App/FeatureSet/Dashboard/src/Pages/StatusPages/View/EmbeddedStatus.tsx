@@ -42,11 +42,12 @@ import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
  * switch on, and press Create Token on a card of its own.
  *
  * Now the switch is the one step: the first time it is turned on, the
- * badge gets its token, and the card under it shows the badge and the code
- * to embed it. The token itself - read, copied, or regenerated when its
- * link was shared too widely - waits under More settings, as it is needed
- * only then. A page switched on before it had a token offers Create Token
- * where the badge would be.
+ * badge gets its token, and a card appears under it with the badge and the
+ * code to embed it. While the badge is off there is nothing to embed, so
+ * the page is the switch. The token itself - read, copied, or regenerated
+ * when its link was shared too widely - waits under More settings, as it
+ * is needed only then. A page switched on before it had a token offers
+ * Create Token where the badge would be.
  */
 
 // The data-testid of the Embedded Status Badge switch.
@@ -63,24 +64,16 @@ export const EMBEDDED_STATUS_BADGE_MORE_TEST_ID: string =
 
 export const EmbeddedStatusCopy: {
   switchDescription: string;
-  turnOn: string;
   needsToken: string;
   creatingToken: string;
-  moreDescription: string;
   tokenCardTitle: string;
   tokenCardDescription: string;
 } = {
   switchDescription: translationKey(
     "Serves the badge at a link with a secret token, made the first time you turn it on.",
   ),
-  turnOn: translationKey(
-    "Turn on Enable Embedded Status Badge to see the badge and the code to embed it.",
-  ),
   needsToken: translationKey("The badge needs a token before it can be shown."),
   creatingToken: translationKey("Making the badge's token..."),
-  moreDescription: translationKey(
-    "The secret token in the badge's link. Regenerate it if the link was shared too widely.",
-  ),
   tokenCardTitle: translationKey("Security Token"),
   tokenCardDescription: translationKey(
     "The secret part of the badge's link. Anyone with the link can show the badge.",
@@ -226,18 +219,10 @@ const StatusPageEmbeddedStatus: FunctionComponent<
   };
 
   /*
-   * The badge and the code that shows it, once it is switched on and has a
-   * token; until then, the one thing that is missing.
+   * The badge and the code that shows it, once it has a token; until then,
+   * the token that is missing. Drawn only while the badge is on.
    */
   const getEmbedBody: () => ReactElement = (): ReactElement => {
-    if (!isEmbeddedStatusEnabled) {
-      return getEmbedPlaceholder(
-        <p className="text-center text-sm text-gray-500">
-          {translator.translateText(EmbeddedStatusCopy.turnOn)}
-        </p>,
-      );
-    }
-
     if (!badgeUrlWithToken) {
       if (isRegenerating) {
         return getEmbedPlaceholder(
@@ -291,9 +276,14 @@ const StatusPageEmbeddedStatus: FunctionComponent<
           <p className="text-sm font-medium text-gray-700">
             {translator.translateText("HTML")}
           </p>
+          {/*
+           * One long line, read whole and copied: it wraps rather than
+           * running under the copy button (CodeBlock wrapLongLines).
+           */}
           <CodeBlock
             language="html"
             code={`<img src="${badgeUrlWithToken}" alt="Status Badge" />`}
+            wrapLongLines={true}
           />
         </div>
         <div className="space-y-2">
@@ -303,6 +293,7 @@ const StatusPageEmbeddedStatus: FunctionComponent<
           <CodeBlock
             language="markdown"
             code={`[![Status](${badgeUrlWithToken})](${statusPageUrl})`}
+            wrapLongLines={true}
           />
         </div>
       </div>
@@ -356,23 +347,30 @@ const StatusPageEmbeddedStatus: FunctionComponent<
           dataTestId={EMBEDDED_STATUS_BADGE_SWITCH_TEST_ID}
         />
 
-        <Card
-          bodyClassName="mt-6"
-          title="Embed the Badge"
-          description="Paste one of these where the badge should show."
-        >
-          <div data-testid={EMBEDDED_STATUS_BADGE_EMBED_TEST_ID}>
-            {getEmbedBody()}
-          </div>
-        </Card>
+        {/*
+         * Only while the badge is on: off, there is nothing to embed, and
+         * the switch above says what turning it on does.
+         */}
+        {isEmbeddedStatusEnabled ? (
+          <Card
+            bodyClassName="mt-6"
+            title="Embed the Badge"
+            description="Paste one of these where the badge should show."
+          >
+            <div data-testid={EMBEDDED_STATUS_BADGE_EMBED_TEST_ID}>
+              {getEmbedBody()}
+            </div>
+          </Card>
+        ) : (
+          <></>
+        )}
 
         {/*
          * The token is in the code above already; it is needed on its own
          * only to read it, or to regenerate it when its link was shared too
-         * widely.
+         * widely. The one card in the fold says so itself.
          */}
         <AdvancedPageSection
-          description={EmbeddedStatusCopy.moreDescription}
           items={[
             {
               key: "security-token",

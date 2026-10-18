@@ -215,7 +215,9 @@ import {
   getStatusPageCreateFormFields,
   getStatusPageDetailsFormFields,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageCreateForm";
-import StatusPageFirstStep from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageFirstStep";
+import StatusPageFirstStep, {
+  STATUS_PAGE_FIRST_STEP_BODY_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageFirstStep";
 import {
   STATUS_PAGE_FIRST_STEP_BUTTON_TEST_ID,
   STATUS_PAGE_FIRST_STEP_TEST_ID,
@@ -499,6 +501,24 @@ describe("the Overview's first step", () => {
       "Nothing on this status page yet",
     );
     expect(StatusPageOverviewCopy.firstStepButton).toBe("Add Monitors");
+  });
+
+  /*
+   * The card has no title, so its body must not keep the margin a card
+   * puts under its header: the step sat 16px lower than it was tall below.
+   */
+  test("sits in the middle of its card: no header margin above a card with no title", async () => {
+    await renderFirstStep();
+
+    const step: HTMLElement = await screen.findByTestId(
+      STATUS_PAGE_FIRST_STEP_TEST_ID,
+    );
+    const body: HTMLElement = step.parentElement as HTMLElement;
+
+    expect(STATUS_PAGE_FIRST_STEP_BODY_CLASS_NAME).toBe("mt-0");
+    expect(body).toHaveClass(STATUS_PAGE_FIRST_STEP_BODY_CLASS_NAME);
+    expect(body).not.toHaveClass("mt-4");
+    expect(screen.queryByTestId("card-details-heading")).toBeNull();
   });
 });
 
