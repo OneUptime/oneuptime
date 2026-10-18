@@ -105,7 +105,7 @@ Anta att varje incident med "db-primary" i titeln ska starta ett runbook för da
 :::steps
 ### Skapa runbooket
 
-Under **Runbooks** klickar du på **Skapa Runbook** och kallar det "DB primary failover". Öppna det, gå till **Steg**, lägg till de här stegen och klicka sedan på **Save Steps**:
+Under **Runbooks** klickar du på **Skapa Runbook** och kallar det "DB primary failover". Det öppnas på **Steg**: lägg till de här stegen och klicka sedan på **Save Steps**:
 
 | # | Typ | Titel |
 | --- | --- | --- |

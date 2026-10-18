@@ -105,7 +105,7 @@ Suppose you want every incident with "db-primary" in its title to start a five-s
 :::steps
 ### Create the runbook
 
-Under **Runbooks**, click **Create Runbook** and name it "DB primary failover". Open it, go to **Steps** and add these steps, then click **Save Steps**:
+Under **Runbooks**, click **Create Runbook** and name it "DB primary failover". It opens on its **Steps**: add these steps, then click **Save Steps**:
 
 | # | Type | Title |
 | --- | --- | --- |

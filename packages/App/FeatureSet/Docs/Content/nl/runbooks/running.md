@@ -129,7 +129,7 @@ Uw rol leest runbooks maar voert ze niet uit: de knop zegt "Je hebt geen toestem
 :::
 
 :::details Een uitvoering starten mislukt met "Runbook is disabled" of "Runbook has no steps to run"
-De schakelaar **Dit runbook uitvoeren** van het runbook staat uit, op de pagina **Instellingen** ervan, of het heeft geen opgeslagen stappen. Zet de schakelaar aan, of voeg stappen toe en klik op **Save Steps**.
+De schakelaar **Dit runbook uitvoeren** van het runbook staat uit, op de pagina **Instellingen** ervan, of het heeft geen opgeslagen stappen. Zet de schakelaar aan, of voeg stappen toe en klik op **Save Steps**. Het **Overzicht** zegt welke, met **Runbook inschakelen** of **Stappen toevoegen**.
 :::
 
 :::details Een stap is mislukt omdat er een Runner of inloggegeven ontbreekt

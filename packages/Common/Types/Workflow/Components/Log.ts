@@ -10,7 +10,8 @@ const components: Array<ComponentMetadata> = [
     id: ComponentID.Log,
     title: "Log",
     category: "Utils",
-    description: "Log to console what ever is passed to this component",
+    // What the step does, in the words of the run's Logs tab.
+    description: "Writes its value to the run's log.",
     iconProp: IconProp.Logs,
     componentType: ComponentType.Component,
     arguments: [

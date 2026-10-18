@@ -111,20 +111,20 @@ Med `--custom-domain contoso-ai` är resursens slutpunkt `https://contoso-ai.ope
 
 Gå till **Projektinställningar** > **AI** > **LLM-leverantörer** och klicka på **Skapa LLM-leverantör**.
 
-### Namnge leverantören
+### Välj leverantören
 
-Under **Grundläggande information** anger du ett **Namn**, till exempel `Azure gpt-5.1`, och om du vill en **Beskrivning**. Klicka på **Nästa**.
+Under **Leverantör** väljer du **Azure OpenAI / Microsoft Foundry** som **LLM-leverantör** och klickar på **Nästa** för att gå vidare till **Anslutning**.
 
-### Fyll i leverantörsinställningarna
+### Fyll i anslutningen
 
 | Fält | Det här anger du |
 | --- | --- |
-| **LLM-leverantör** | **Azure OpenAI / Microsoft Foundry** |
 | **API-nyckel** | Resursens **KEY 1** eller **KEY 2** |
-| **Modellnamn** | Distributionens namn, exakt som Foundry visar det, till exempel `gpt-5.1` |
 | **Bas-URL** | Resursens slutpunkt med `/openai/v1`, till exempel `https://contoso-ai.openai.azure.com/openai/v1`. För Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modellnamn** | Distributionens namn, exakt som Foundry visar det, till exempel `gpt-5.1` |
+| **Namn** | Först leverantörens namn: ge den ett som säger vilken distribution det är, till exempel `Azure gpt-5.1` |
 
-**Ange som standard**, under **Fler fält**, är påslaget: AI-funktioner använder projektets standardleverantör. Klicka på **Skapa LLM-leverantör**.
+**Fler fält** innehåller en **Beskrivning** och **Ange som standard**, som är påslaget: AI-funktioner använder projektets standardleverantör. Klicka på **Skapa LLM-leverantör**.
 
 ### Testa anslutningen
 

@@ -44,8 +44,8 @@ Cada uma dessas ações também pode ser concedida separadamente, de criar um ca
 
 | Origem | Abre um caso quando | Como desativar |
 | --- | --- | --- |
-| Regras de detecção | Uma regra corresponde | **Open a Case on Match**, na etapa **Security Cases** da regra |
-| Inteligência de ameaças | Um evento cita um indicador conhecido | **Open a Case on Match**, na etapa **Security Cases** do feed |
+| Regras de detecção | Uma regra corresponde | **Open a Case on Match**, na etapa **Ao corresponder** da regra |
+| Inteligência de ameaças | Um evento cita um indicador conhecido | **Open a Case on Match**, na etapa **Ao corresponder** do feed |
 | Produtos conectados | Um alerta do próprio produto é importado no limite da conexão ou acima dele | **Open Cases From** definido como **Nunca**, na etapa **Polling** da conexão |
 | Pessoas | Alguém abre um em **Security Cases**, ou com **Open Case** no painel de um evento | Não há como |
 
@@ -229,7 +229,7 @@ Um projeto ainda sem casos e sem detecções mostra, acima de tudo isso, os trê
 ## Solução de problemas
 
 :::details Uma regra corresponde, mas nenhum caso abre
-Confira **Open a Case on Match** na etapa **Security Cases** da regra. Uma detecção sobre uma entidade que já tem um caso aberto entra nesse caso em vez de abrir outro: procure-a em **Detections** no caso aberto.
+Confira **Open a Case on Match** na etapa **Ao corresponder** da regra. Uma detecção sobre uma entidade que já tem um caso aberto entra nesse caso em vez de abrir outro: procure-a em **Detections** no caso aberto.
 :::
 
 :::details Um playbook não rodou

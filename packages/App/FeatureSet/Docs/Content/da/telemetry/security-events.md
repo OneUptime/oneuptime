@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Åbn **Produkter → Security Events → Detection Rules**, og klik på **Opret Detection Rule**.
-2. Giv den et **Navn** under **Grundlæggende oplysninger**, og lad **Aktiveret** være slået til.
-3. Indsæt regelens YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den fortolkes, når du gemmer, så en fejl vises i formularen.
-4. Angiv under **Evaluering**, hvor ofte den kører, og hvor mange match den kræver; se [Evalueringsindstillinger](#evalueringsindstillinger).
-5. Lad **Open a Case on Match** være slået til under **Security Cases** for at samle regelens match i sager efter den værdi, reglen grupperer efter.
-6. Vælg under **Ved match**, hvad et match ellers gør: **Create Alert on Match** (til), **Create Incident on Match** (fra) og **Write Detection Finding on Match** (til), med en valgfri **Advarselsalvor** og **Hændelsesalvor**.
+2. Indsæt regelens YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den fortolkes, når du gemmer, så en fejl vises i formularen.
+3. **Navn** udfyldes med regelens `title`: skriv ovenpå for at kalde reglen noget andet. En ny regel kører; **Aktiveret** står i dens redigeringsformular.
+4. Lad **Open a Case on Match** være slået til under **Ved match** for at samle regelens match i sager efter den værdi, reglen grupperer efter.
+5. Vælg under **Advarsler og hændelser**, hvad et match ellers udløser: **Opret en advarsel** (standard), **Erklær en hændelse**, **Begge** eller **Ingen af dem**, med en valgfri **Advarselsalvor** eller **Hændelsesalvor**.
+6. **Flere felter** rummer **Beskrivelse**, **Write Detection Finding on Match** (til) og hvordan match tælles; se [Evalueringsindstillinger](#evalueringsindstillinger).
 :::
 
 En første regel, der matcher mislykkede logins uden for `10.x.x.x`:
@@ -372,11 +372,11 @@ Tjek, at den er **Aktiveret**, og læs **Last Evaluated** og **Last Error** i de
 :::
 
 :::details En regel matchede, men ingen advarsel blev åbnet
-**Create Alert on Match** er slået fra, eller en advarsel for den samme regel og gruppeværdi er stadig åben, og senere match lægges ind i den. Et projekt skal have mindst én advarselsalvorlighed, for at regler kan åbne advarsler.
+**Advarsler og hændelser** står på **Erklær en hændelse** eller **Ingen af dem**, eller en advarsel for den samme regel og gruppeværdi er stadig åben, og senere match lægges ind i den. Et projekt skal have mindst én advarselsalvorlighed, for at regler kan åbne advarsler.
 :::
 
 :::details En regel åbner for mange advarsler
-Hver værdi af **Group By Field** får sin egen advarsel: gruppér efter noget grovere, hæv tærsklen, eller tilføj et Distinct Count Field. Er det hyppigheden, du bekymrer dig om, og ikke hvert match, så slå **Create Alert on Match** fra, og sæt en monitor på regelens fund.
+Hver værdi af **Group By Field** får sin egen advarsel: gruppér efter noget grovere, hæv tærsklen, eller tilføj et Distinct Count Field. Er det hyppigheden, du bekymrer dig om, og ikke hvert match, så sæt **Advarsler og hændelser** til **Ingen af dem**, og sæt en monitor på regelens fund.
 :::
 
 ## Næste trin

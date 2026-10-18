@@ -105,7 +105,7 @@ Suponha que você queira que todo incidente com "db-primary" no título inicie u
 :::steps
 ### Criar o runbook
 
-Em **Runbooks**, clique em **Criar: Runbook** e dê o nome "DB primary failover". Abra-o, vá para **Etapas**, adicione estas etapas e clique em **Save Steps**:
+Em **Runbooks**, clique em **Criar: Runbook** e dê o nome "DB primary failover". Ele abre em **Etapas**: adicione estas etapas e clique em **Save Steps**:
 
 | # | Tipo | Título |
 | --- | --- | --- |

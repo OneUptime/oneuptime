@@ -310,11 +310,11 @@ const MARKDOWN_HEADING: RegExp = /^#{2,4} /m;
 /*
  * A page whose form has a Match Criteria step: written on the page, or the
  * shared Match step of the label and owner rule forms (Dashboard Utils/Form/
- * ResourceRuleForm) and of the on-call, privacy, SLA and reminder rule forms
- * (Utils/Form/EventRuleForm).
+ * ResourceRuleForm) and of the on-call, privacy, SLA, reminder and runbook
+ * rule forms (Utils/Form/EventRuleForm).
  */
 const MATCH_CRITERIA_STEP: RegExp =
-  /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner|OnCall|Privacy|Sla|Reminder)RuleFormSteps</;
+  /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner|OnCall|Privacy|Sla|Reminder|Runbook)RuleFormSteps</;
 
 function markdownTemplates(source: string): Array<string> {
   const sourceFile: ts.SourceFile = ts.createSourceFile(

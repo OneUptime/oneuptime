@@ -111,20 +111,20 @@ Med `--custom-domain contoso-ai` er endepunktet til ressursen `https://contoso-a
 
 Gå til **Prosjektinnstillinger** > **KI** > **LLM-leverandører**, og klikk på **Opprett LLM-leverandør**.
 
-### Gi leverandøren et navn
+### Velg leverandøren
 
-Under **Grunnleggende informasjon** skriver du inn et **Navn**, for eksempel `Azure gpt-5.1`, og eventuelt en **Beskrivelse**. Klikk på **Neste**.
+Under **Leverandør** velger du **Azure OpenAI / Microsoft Foundry** som **LLM-leverandør** og klikker på **Neste** for å gå videre til **Tilkobling**.
 
-### Fyll ut leverandørinnstillingene
+### Fyll ut tilkoblingen
 
 | Felt | Hva du skriver inn |
 | --- | --- |
-| **LLM-leverandør** | **Azure OpenAI / Microsoft Foundry** |
 | **API-nøkkel** | Ressursens **KEY 1** eller **KEY 2** |
-| **Modellnavn** | Navnet på utrullingen, nøyaktig slik Foundry viser det, for eksempel `gpt-5.1` |
 | **Basis-URL** | Ressursens endepunkt med `/openai/v1`, for eksempel `https://contoso-ai.openai.azure.com/openai/v1`. For Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modellnavn** | Navnet på utrullingen, nøyaktig slik Foundry viser det, for eksempel `gpt-5.1` |
+| **Navn** | Først leverandørens navn: gi den et som sier hvilken utrulling det er, for eksempel `Azure gpt-5.1` |
 
-**Angi som standard**, under **Flere felt**, er slått på: KI-funksjoner bruker prosjektets standardleverandør. Klikk på **Opprett LLM-leverandør**.
+**Flere felt** har en **Beskrivelse** og **Angi som standard**, som er slått på: KI-funksjoner bruker prosjektets standardleverandør. Klikk på **Opprett LLM-leverandør**.
 
 ### Test tilkoblingen
 

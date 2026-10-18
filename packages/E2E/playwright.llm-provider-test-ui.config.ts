@@ -15,7 +15,8 @@ const port: string = process.env["LLM_PROVIDER_TEST_FIXTURE_PORT"] || "4264";
 
 export default defineConfig({
   testDir: "./LlmProviderTest",
-  testMatch: "LlmProviderTest.spec.ts",
+  // Test LLM Provider, and the form a provider is added with.
+  testMatch: ["LlmProviderTest.spec.ts", "LlmProviderForm.spec.ts"],
   timeout: 90000,
   expect: { timeout: 15000 },
   workers: 1,

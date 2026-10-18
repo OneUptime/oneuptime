@@ -93,19 +93,19 @@ The sync is declarative: change a variable and the provider follows at the next 
 
 Go to **Project Settings → AI → LLM Providers** (the **AI** section of the side menu starts folded) and click **Create LLM Provider**.
 
-### Name the provider
+### Pick the provider
 
-On **Basic Info**, give it a **Name** that says what it is, such as "Production OpenAI" or "Local Ollama", and optionally a **Description**.
+On **Provider**, pick your **LLM Provider**: a card each for OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama and any OpenAI-compatible server, each saying what it is in a line.
 
-### Fill in the provider's settings
+### Connect it
 
-On **Provider Settings**:
+On **Connection**, the form asks only for what that provider uses, with its own help under each field:
 
-- **LLM Provider**: the kind of provider (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama or OpenAI Compatible)
-- **API Key**: your API key (required for OpenAI, Azure OpenAI, Anthropic, Groq and Mistral; optional for Ollama and OpenAI-compatible servers)
-- **Model Name**: the model to use, such as `gpt-5.1`, `claude-sonnet-5-5` or `llama3.1`
-- **Base URL**: the endpoint, required for Azure OpenAI, Ollama and OpenAI Compatible; optional for the others, to override their default
-- **More fields**, folded under the fields above: **Set as Default**, which is on for a new provider because AI features only use the project's default provider, and **Additional Parameters**, an optional JSON object of extra parameters sent to the provider with every request (for example `{"temperature": 0.2}`)
+- **API Key**: your API key, required for OpenAI, Azure OpenAI, Anthropic, Groq and Mistral and optional for an OpenAI-compatible server; Ollama is not asked for one
+- **Base URL**: the endpoint, required for Azure OpenAI, Ollama and OpenAI Compatible; for the others, only to go through a proxy or a gateway
+- **Model Name**: the model to use, such as `gpt-5.1`, `claude-sonnet-5-5` or `llama3.1`. Left empty, OneUptime uses the provider's default model, except on an OpenAI-compatible server, which needs one
+- **Name**: the provider's name until you type your own, such as "Production OpenAI" or "Local Ollama"
+- **More fields**, folded under the fields above: a **Description**, **Set as Default**, which is on for a new provider because AI features only use the project's default provider, and **Additional Parameters**, an optional JSON object of extra parameters sent to the provider with every request (for example `{"temperature": 0.2}`)
 
 **Who can see a provider.** A project's LLM providers are read only by its members who may read the project's settings: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** and **Read LLM**. A provider's **API Key** and **Additional Parameters** are read by the project's owners and admins alone, because the parameters are sent to the provider with every request and can carry a token or a header just like the key. The other members see whether any parameters are saved, not what they are. Members who may edit a provider can still replace its API Key or its parameters without reading them: in the edit form those fields start empty, and leaving one blank keeps what is stored. To remove the parameters, save `{}`. Only project owners and admins can change a provider's **Base URL**, because its API Key and Additional Parameters are sent to that address; the other members who may edit a provider can change everything else. Everyone who can read a provider can read its **Base URL**, so never put a key, a token or a password in it: use the **API Key**. The **Global LLM Providers** list on the same page - the shared providers a project falls back to - shows their name, description and price to anyone signed in, and nothing else about them.
 

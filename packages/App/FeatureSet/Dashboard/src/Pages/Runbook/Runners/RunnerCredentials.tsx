@@ -4,11 +4,24 @@ import PageComponentProps from "../../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
+import {
+  RUNNER_CREDENTIAL_TYPE_ANSWERS,
+  RUNNER_CREDENTIAL_TYPE_COPY,
+  SSH_SIGN_IN_ANSWERS,
+  SSH_SIGN_IN_COPY,
+  SSH_SIGN_IN_FIELD_KEY,
+  SSH_SIGN_IN_FIELD_TITLE,
+  SshSignIn,
+  getSshSignIn,
+  showsSshSecret,
+} from "../../../Components/Runner/RunnerCredentialSignIn";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -22,6 +35,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const RunbookCredentials: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // What most people leave alone: the description.
+  const moreFields: FormFieldCollapsibleSection<RunbookCredential> =
+    getAdvancedFormSection<RunbookCredential>();
+
   return (
     <Fragment>
       <ModelTable<RunbookCredential>
@@ -46,6 +63,13 @@ const RunbookCredentials: FunctionComponent<
         noItemsMessage={
           "No credentials yet. Create one, assign it to the Runner that will use it, then reference it from an SSH or Kubernetes step."
         }
+        /*
+         * A new credential starts as SSH, the first answer of its Type
+         * choice: the steps after it follow the type picked.
+         */
+        createInitialValues={{
+          credentialType: RunbookCredentialType.SSH,
+        }}
         formSteps={[
           { title: "Credential", id: "credential" },
           /*
@@ -88,23 +112,31 @@ const RunbookCredentials: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "prod-cluster",
+            // "Any friendly name of this object" says nothing the title does not.
+            hideColumnDescription: true,
             validation: { minLength: 2 },
           },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "credential",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Service account limited to restarting checkout pods.",
-          },
+          /*
+           * Two plain answers, one line each, where a dropdown of two asked
+           * for a pick with nothing picked.
+           */
           {
             field: { credentialType: true },
             title: "Type",
             stepId: "credential",
             description:
               "Which kind of access this is. It cannot be changed later — create a new credential instead.",
-            fieldType: FormFieldSchemaType.Dropdown,
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: RUNNER_CREDENTIAL_TYPE_ANSWERS.map(
+              (type: RunbookCredentialType) => {
+                return {
+                  value: type,
+                  title: RUNNER_CREDENTIAL_TYPE_COPY[type].title,
+                  description: RUNNER_CREDENTIAL_TYPE_COPY[type].description,
+                };
+              },
+            ),
+            dataTestId: "runner-credential-type",
             required: true,
             /*
              * The column is immutable, so its update ACL is empty and the edit
@@ -114,13 +146,16 @@ const RunbookCredentials: FunctionComponent<
              */
             showEvenIfPermissionDoesNotExist: true,
             doNotShowWhenEditing: true,
-            dropdownOptions: [
-              { value: RunbookCredentialType.SSH, label: "SSH" },
-              {
-                value: RunbookCredentialType.Kubernetes,
-                label: "Kubernetes",
-              },
-            ],
+          },
+          {
+            field: { description: true },
+            title: "Description",
+            stepId: "credential",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            hideColumnDescription: true,
+            placeholder: "Service account limited to restarting checkout pods.",
+            collapsibleSection: moreFields,
           },
 
           {
@@ -156,17 +191,50 @@ const RunbookCredentials: FunctionComponent<
             required: true,
             placeholder: "deploy",
           },
+          /*
+           * A key or a password: one choice (RunnerCredentialSignIn) where
+           * the key, its passphrase and a password were asked at once. A new
+           * credential's only - stored secrets are never read back, so an
+           * Edit form offers every secret field, each kept when left blank.
+           */
+          {
+            overrideField: { sshUsername: true },
+            overrideFieldKey: SSH_SIGN_IN_FIELD_KEY,
+            formOnly: true,
+            title: SSH_SIGN_IN_FIELD_TITLE,
+            stepId: "ssh-authentication",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: SSH_SIGN_IN_ANSWERS.map((signIn: SshSignIn) => {
+              return {
+                value: signIn,
+                title: SSH_SIGN_IN_COPY[signIn].title,
+                description: SSH_SIGN_IN_COPY[signIn].description,
+              };
+            }),
+            required: true,
+            hideColumnDescription: true,
+            doNotShowWhenEditing: true,
+            defaultValue: SshSignIn.PrivateKey,
+            dataTestId: "ssh-sign-in",
+          },
           {
             field: { sshPrivateKey: true },
             title: "Private Key (PEM)",
             stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
-              return item.credentialType === RunbookCredentialType.SSH;
+              return (
+                item.credentialType === RunbookCredentialType.SSH &&
+                showsSshSecret(item, SshSignIn.PrivateKey)
+              );
             },
-            description:
-              "Encrypted at rest and never shown again. Leave empty when using a password.",
+            description: "Encrypted at rest and never shown again.",
             fieldType: FormFieldSchemaType.LongText,
-            required: false,
+            required: (item: FormValues<RunbookCredential>): boolean => {
+              return getSshSignIn(item) === SshSignIn.PrivateKey;
+            },
             placeholder: "-----BEGIN OPENSSH PRIVATE KEY-----",
           },
           {
@@ -174,7 +242,10 @@ const RunbookCredentials: FunctionComponent<
             title: "Private Key Passphrase",
             stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
-              return item.credentialType === RunbookCredentialType.SSH;
+              return (
+                item.credentialType === RunbookCredentialType.SSH &&
+                showsSshSecret(item, SshSignIn.PrivateKey)
+              );
             },
             description: "Only if the key is passphrase-protected.",
             fieldType: FormFieldSchemaType.Password,
@@ -185,12 +256,16 @@ const RunbookCredentials: FunctionComponent<
             title: "Password",
             stepId: "ssh-authentication",
             showIf: (item: FormValues<RunbookCredential>): boolean => {
-              return item.credentialType === RunbookCredentialType.SSH;
+              return (
+                item.credentialType === RunbookCredentialType.SSH &&
+                showsSshSecret(item, SshSignIn.Password)
+              );
             },
-            description:
-              "For hosts without key access. A key is the better option where you have the choice.",
+            description: "Encrypted at rest and never shown again.",
             fieldType: FormFieldSchemaType.Password,
-            required: false,
+            required: (item: FormValues<RunbookCredential>): boolean => {
+              return getSshSignIn(item) === SshSignIn.Password;
+            },
           },
 
           {

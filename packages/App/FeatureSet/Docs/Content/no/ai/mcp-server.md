@@ -111,7 +111,7 @@ Hva en tilkoblet klient kan gjøre:
 
 ### Administrer tilkoblede klienter
 
-Hver klient som er koblet til ved innlogging, står på **Prosjektinnstillinger → KI → MCP-server**, under **Connected MCP Clients**, med hvem som koblet den til, hva den kan gjøre og når den sist ble brukt. Du ser klientene du har koblet til; prosjektets eiere og administratorer ser alles.
+Hver klient som er koblet til ved innlogging, står på **Prosjektinnstillinger → KI → MCP-server**, under **Tilkoblede MCP-klienter**, med hvem som koblet den til, hva den kan gjøre og når den sist ble brukt. Du ser klientene du har koblet til; prosjektets eiere og administratorer ser alles.
 
 Klikk **Disconnect** for å logge ut en klient. Den slutter å virke med en gang.
 
@@ -195,6 +195,19 @@ Inputvariabelen med `"password": true` spør etter nøkkelen når serveren start
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

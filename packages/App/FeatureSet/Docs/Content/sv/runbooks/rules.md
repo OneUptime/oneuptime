@@ -9,7 +9,7 @@ Runbook-regler startar runbooks automatiskt när en **incident**, ett **larm** e
 Alla tre sidorna redigerar samma sorts regel, filtrerad till den produktens regler.
 
 :::cards
-- [Skapa en runbook-regel](#skapa-en-runbook-regel): Fyra steg: ett namn, villkor och de runbooks som ska startas.
+- [Skapa en runbook-regel](#skapa-en-runbook-regel): Tre steg: villkor och sedan de runbooks som ska startas, som regeln namnges efter.
 - [Villkor](#villkor): Varje kriterium och operator som en regel kan använda.
 - [Matchningslogik](#matchningslogik): Flera regler, monitorvillkor och etikettregler.
 - [Exempel](#exempel): Tre regler att kopiera.
@@ -51,27 +51,23 @@ Du ser alla körningar, startade av en regel eller inte, under **Runbooks → K�
 
 I **Incidenter**, **Varningar** eller **Schemalagt underhåll** öppnar du **Regler → Runbook-regler** och klickar på **Skapa Runbook Rule**.
 
-### Namnge regeln
-
-Under **Grundläggande information** anger du ett **Namn**, till exempel "Starta DB-failover vid databasincidenter", och eventuellt en **Beskrivning**.
-
 ### Lägg till villkor
 
-Under **Matchningskriterier** börjar **Gäller för** på varje ny händelse av det här slaget, till exempel **Alla incidenter**, och regeln startar sina runbooks för var och en. För att snäva in regeln väljer du det andra svaret, till exempel **Endast incidenter som uppfyller villkoren**, och sedan ett kriterium och en operator, och du skriver in eller väljer värdet. Klicka på **Lägg till villkor** för fler villkor och välj **Matcha alla** eller **Matcha något**.
+Under **Matcha** börjar **Gäller för** på varje ny händelse av det här slaget, till exempel **Alla incidenter**, och regeln startar sina runbooks för var och en. För att snäva in regeln väljer du det andra svaret, till exempel **Endast incidenter som uppfyller villkoren**, och sedan ett kriterium och en operator, och du skriver in eller väljer värdet. Klicka på **Lägg till villkor** för fler villkor och välj **Matcha alla** eller **Matcha något**.
 
 ### Välj runbooks
 
-Under **Runbooks** väljer du ett eller flera **Runbooks att starta** och klickar på **Skapa Runbook Rule**. Regeln är aktiv så snart den har skapats och visas i listan med statusen **Aktiverad**.
+Under **Runbooks** väljer du ett eller flera **Runbooks att starta**. Regelns **Namn** följer dem, till exempel "Starta Database failover", tills du skriver ett eget, och en **Beskrivning** väntar under **Fler fält**. Klicka på **Skapa Runbook Rule**. Regeln är aktiv så snart den har skapats och visas i listan med statusen **Aktiverad**.
 :::
 
 ## Hur en regel är uppbyggd
 
 | Fält | Syfte |
 | --- | --- |
-| **Namn** | En kort, läsbar etikett för regeln. |
-| **Beskrivning** | Valfri kontext för kolleger. |
+| **Namn** | Namngiven efter de runbooks den startar, till exempel "Starta Database failover", tills du skriver ett eget. |
+| **Beskrivning** | Valfri kontext för kolleger, under **Fler fält**. |
 | **Aktiverad** | Påslagen för en ny regel. Stäng av den i regelns redigeringsformulär för att pausa den utan att ta bort den. |
-| **Villkor** | Vad regeln matchar, i steget **Matchningskriterier**. En regel utan villkor, till exempel på **Alla incidenter**, matchar varje händelse av dess typ. |
+| **Villkor** | Vad regeln matchar, i steget **Matcha**. En regel utan villkor, till exempel på **Alla incidenter**, matchar varje händelse av dess typ. |
 | **Runbooks att starta** | Ett eller flera runbooks som startas när regeln utlöses. |
 
 ## Villkor
