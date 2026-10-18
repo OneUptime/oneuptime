@@ -96,14 +96,8 @@ const OWNED_PARAGRAPH_SAYS: Record<string, Array<string>> = {
     "Restringe ogni risorsa che può avere proprietari",
     "continua a leggerli tutti",
   ],
-  ja: [
-    "オーナーを持てるすべてのリソース",
-    "引き続きすべて読み取れ",
-  ],
-  ko: [
-    "소유자를 가질 수 있는 모든 리소스",
-    "여전히 모두 읽으며",
-  ],
+  ja: ["オーナーを持てるすべてのリソース", "引き続きすべて読み取れ"],
+  ko: ["소유자를 가질 수 있는 모든 리소스", "여전히 모두 읽으며"],
   nl: [
     "Het beperkt elke resource die eigenaren kan hebben",
     "leest ze nog steeds allemaal",
@@ -238,10 +232,7 @@ describe("Docs: the Owned scope narrows every resource with owners", () => {
       }
 
       // On the English page's line, so the two lie side by side.
-      expect([
-        language,
-        page.split("\n").indexOf(paragraph),
-      ]).toEqual([
+      expect([language, page.split("\n").indexOf(paragraph)]).toEqual([
         language,
         read("en", "permissions/index.md")
           .split("\n")
@@ -253,10 +244,7 @@ describe("Docs: the Owned scope narrows every resource with owners", () => {
       // Translated: none of the English sentences is left in English.
       if (language !== "en") {
         for (const english of OWNED_PARAGRAPH_SAYS["en"]!) {
-          expect([language, page.includes(english)]).toEqual([
-            language,
-            false,
-          ]);
+          expect([language, page.includes(english)]).toEqual([language, false]);
         }
       }
     },
@@ -282,7 +270,11 @@ describe("Docs: the Owned scope narrows every resource with owners", () => {
       )[englishLine]!;
 
       // The same roles, and two sentences after its lead, as in English.
-      for (const code of ["`MonitorAdmin`", "`IncidentMember`", "`OnCallMember`"]) {
+      for (const code of [
+        "`MonitorAdmin`",
+        "`IncidentMember`",
+        "`OnCallMember`",
+      ]) {
         expect([language, code, countOf(translated, code)]).toEqual([
           language,
           code,

@@ -4142,30 +4142,35 @@ describePostgres(
      */
     describe("the records other records are set up with, picked by a member whose grants are scoped to Owned", () => {
       // A record of a swept kind, owned by `owner`.
-      const insertKind: (name: string, owner: Owner) => Promise<ObjectID> =
-        async (name: string, owner: Owner): Promise<ObjectID> => {
-          const kind: OwningKind = SWEPT_KINDS.find(
-            (each: OwningKind): boolean => {
-              return each.name === name;
-            },
-          )!;
+      const insertKind: (
+        name: string,
+        owner: Owner,
+      ) => Promise<ObjectID> = async (
+        name: string,
+        owner: Owner,
+      ): Promise<ObjectID> => {
+        const kind: OwningKind = SWEPT_KINDS.find(
+          (each: OwningKind): boolean => {
+            return each.name === name;
+          },
+        )!;
 
-          return await insertOwned({
-            table: database.getMetadata(kind.modelType).tableName,
-            ownerUserTable: database.getMetadata(
-              kind.pair.ownerUserService.modelType,
-            ).tableName,
-            ownerTeamTable: database.getMetadata(
-              kind.pair.ownerTeamService.modelType,
-            ).tableName,
-            ownerColumn: kind.pair.fkColumn,
-            owner: owner,
-          });
-        };
+        return await insertOwned({
+          table: database.getMetadata(kind.modelType).tableName,
+          ownerUserTable: database.getMetadata(
+            kind.pair.ownerUserService.modelType,
+          ).tableName,
+          ownerTeamTable: database.getMetadata(
+            kind.pair.ownerTeamService.modelType,
+          ).tableName,
+          ownerColumn: kind.pair.fkColumn,
+          owner: owner,
+        });
+      };
 
-      const pathOf: (modelType: { new (): BaseModel }) => string = (
-        modelType: { new (): BaseModel },
-      ): string => {
+      const pathOf: (modelType: { new (): BaseModel }) => string = (modelType: {
+        new (): BaseModel;
+      }): string => {
         return new modelType().getCrudApiPath()!.toString();
       };
 
@@ -4576,30 +4581,35 @@ describePostgres(
      * they or their teams own, and reads them as that record is read.
      */
     describe("the parts of a kind with owners keep to its owners", () => {
-      const insertKind: (name: string, owner: Owner) => Promise<ObjectID> =
-        async (name: string, owner: Owner): Promise<ObjectID> => {
-          const kind: OwningKind = SWEPT_KINDS.find(
-            (each: OwningKind): boolean => {
-              return each.name === name;
-            },
-          )!;
+      const insertKind: (
+        name: string,
+        owner: Owner,
+      ) => Promise<ObjectID> = async (
+        name: string,
+        owner: Owner,
+      ): Promise<ObjectID> => {
+        const kind: OwningKind = SWEPT_KINDS.find(
+          (each: OwningKind): boolean => {
+            return each.name === name;
+          },
+        )!;
 
-          return await insertOwned({
-            table: database.getMetadata(kind.modelType).tableName,
-            ownerUserTable: database.getMetadata(
-              kind.pair.ownerUserService.modelType,
-            ).tableName,
-            ownerTeamTable: database.getMetadata(
-              kind.pair.ownerTeamService.modelType,
-            ).tableName,
-            ownerColumn: kind.pair.fkColumn,
-            owner: owner,
-          });
-        };
+        return await insertOwned({
+          table: database.getMetadata(kind.modelType).tableName,
+          ownerUserTable: database.getMetadata(
+            kind.pair.ownerUserService.modelType,
+          ).tableName,
+          ownerTeamTable: database.getMetadata(
+            kind.pair.ownerTeamService.modelType,
+          ).tableName,
+          ownerColumn: kind.pair.fkColumn,
+          owner: owner,
+        });
+      };
 
-      const pathOf: (modelType: { new (): BaseModel }) => string = (
-        modelType: { new (): BaseModel },
-      ): string => {
+      const pathOf: (modelType: { new (): BaseModel }) => string = (modelType: {
+        new (): BaseModel;
+      }): string => {
         return new modelType().getCrudApiPath()!.toString();
       };
 
@@ -4778,7 +4788,11 @@ describePostgres(
           "update",
         );
         expect(
-          await valueOf("OnCallDutyPolicyScheduleLayerUser", "userId", theirTurn),
+          await valueOf(
+            "OnCallDutyPolicyScheduleLayerUser",
+            "userId",
+            theirTurn,
+          ),
         ).toBe(otherUserId.toString());
 
         expectReadableNotWritten(
@@ -4802,9 +4816,9 @@ describePostgres(
         expect(
           await rowExists("OnCallDutyPolicyScheduleLayerUser", theirTurn),
         ).toBe(true);
-        expect(await rowExists("OnCallDutyPolicyScheduleLayer", theirLayer)).toBe(
-          true,
-        );
+        expect(
+          await rowExists("OnCallDutyPolicyScheduleLayer", theirLayer),
+        ).toBe(true);
 
         // Their own schedule's: added to, changed and removed.
         const added: Outcome = await createThrough({
@@ -4825,7 +4839,11 @@ describePostgres(
           ).error,
         ).toBeUndefined();
         expect(
-          await valueOf("OnCallDutyPolicyScheduleLayer", "handOffTime", myLayer),
+          await valueOf(
+            "OnCallDutyPolicyScheduleLayer",
+            "handOffTime",
+            myLayer,
+          ),
         ).toEqual(handOffTime);
         expect(
           (
@@ -4868,18 +4886,21 @@ describePostgres(
         const props: DatabaseCommonInteractionProps = await propsOf(member);
 
         // Publishing theirs: refused, and no link is made.
-        const linkOf: (scheduleId: ObjectID) => Promise<OnCallDutyPolicyScheduleCalendarFeed> =
-          (scheduleId: ObjectID): Promise<OnCallDutyPolicyScheduleCalendarFeed> => {
-            const feed: OnCallDutyPolicyScheduleCalendarFeed =
-              new OnCallDutyPolicyScheduleCalendarFeed();
-            feed.projectId = projectId;
-            feed.onCallDutyPolicyScheduleId = scheduleId;
+        const linkOf: (
+          scheduleId: ObjectID,
+        ) => Promise<OnCallDutyPolicyScheduleCalendarFeed> = (
+          scheduleId: ObjectID,
+        ): Promise<OnCallDutyPolicyScheduleCalendarFeed> => {
+          const feed: OnCallDutyPolicyScheduleCalendarFeed =
+            new OnCallDutyPolicyScheduleCalendarFeed();
+          feed.projectId = projectId;
+          feed.onCallDutyPolicyScheduleId = scheduleId;
 
-            return OnCallDutyPolicyScheduleCalendarFeedService.create({
-              data: feed,
-              props: props,
-            });
-          };
+          return OnCallDutyPolicyScheduleCalendarFeedService.create({
+            data: feed,
+            props: props,
+          });
+        };
 
         await expect(linkOf(theirs)).rejects.toThrow(
           new CreateScopeException(
@@ -5018,8 +5039,8 @@ describePostgres(
           ),
         ).toHaveLength(1);
 
-        const ruleName: string =
-          new IncomingCallPolicyEscalationRule().singularName!;
+        const ruleName: string = new IncomingCallPolicyEscalationRule()
+          .singularName!;
 
         expectMissing(
           await updateThrough({
@@ -5123,7 +5144,11 @@ describePostgres(
         ).toHaveLength(1);
 
         expectMissing(
-          await deleteItem(pathOf(IncidentEpisodeRoleMember), member, theirRole),
+          await deleteItem(
+            pathOf(IncidentEpisodeRoleMember),
+            member,
+            theirRole,
+          ),
           new IncidentEpisodeRoleMember().singularName!,
         );
         expect(await rowExists("IncidentEpisodeRoleMember", theirRole)).toBe(

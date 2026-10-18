@@ -709,15 +709,18 @@ describe.each(PARTS_OF_A_KIND)(
     const kindName: string = part.kind.name;
 
     // The member's every grant on the record and on its kind, at `scope`.
-    const grantsAt: (scope: PermissionScope) => DatabaseCommonInteractionProps =
-      (scope: PermissionScope): DatabaseCommonInteractionProps => {
-        return memberWith(
-          rowsAt(
-            [...everyGrantOn(part.modelType), ...everyGrantOn(part.kind)],
-            scope,
-          ),
-        );
-      };
+    const grantsAt: (
+      scope: PermissionScope,
+    ) => DatabaseCommonInteractionProps = (
+      scope: PermissionScope,
+    ): DatabaseCommonInteractionProps => {
+      return memberWith(
+        rowsAt(
+          [...everyGrantOn(part.modelType), ...everyGrantOn(part.kind)],
+          scope,
+        ),
+      );
+    };
 
     // A record of the part naming `parentId` of its kind.
     const recordOn: (parentId: string) => BaseModel = (
@@ -795,7 +798,6 @@ describe.each(PARTS_OF_A_KIND)(
           true,
           type === DatabaseRequestType.Read && isReadByEveryReader(kindName),
         ]);
-
       }
     });
 

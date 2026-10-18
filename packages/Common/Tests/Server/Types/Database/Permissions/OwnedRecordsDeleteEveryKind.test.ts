@@ -380,13 +380,11 @@ const UPDATABLE_KINDS: Array<Kind> = EVERY_KIND.filter(
   },
 );
 
-const READABLE_KINDS: Array<Kind> = EVERY_KIND.filter(
-  (kind: Kind): boolean => {
-    return (
-      scopeablePermissions(kind.modelType, DatabaseRequestType.Read).length > 0
-    );
-  },
-);
+const READABLE_KINDS: Array<Kind> = EVERY_KIND.filter((kind: Kind): boolean => {
+  return (
+    scopeablePermissions(kind.modelType, DatabaseRequestType.Read).length > 0
+  );
+});
 
 /*
  * Whether every reader of a kind reads all of its records whatever the scope
@@ -409,7 +407,10 @@ function isReadByEveryReaderOfIt(kind: Kind): boolean {
     kind.modelType,
   );
 
-  if (readThrough && REGISTERED.includes((readThrough.modelType as ModelType).name)) {
+  if (
+    readThrough &&
+    REGISTERED.includes((readThrough.modelType as ModelType).name)
+  ) {
     parents.push((readThrough.modelType as ModelType).name);
   }
 
