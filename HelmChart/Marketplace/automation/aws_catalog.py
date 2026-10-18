@@ -7,6 +7,9 @@ The AWS Marketplace container product, through the Catalog API (`aws marketplace
         image of the edition, as editions.json and aws/delivery-option.json describe them
     aws_catalog.py submit --change-set change-set.json --name "OneUptime X.Y.Z" [--wait-minutes 90]
         starts it and follows it until AWS has scanned and applied it (or the time is up)
+    aws_catalog.py shipped --version X.Y.Z
+        whether the product has that version already (its title); writes shipped=true|false
+        for the next steps, so a release is never added twice
     aws_catalog.py add-repositories [--wait-minutes 30]
         one-time: creates the product's repositories (AddRepositories), named as images.json
         names the images, plus "oneuptime" for the chart
@@ -31,6 +34,7 @@ from release_common import (
     load_editions,
     run,
     wait_for,
+    write_outputs,
     write_summary,
 )
 
@@ -145,6 +149,31 @@ def repository_names(images: Dict[str, Any]) -> List[str]:
     return [CHART_REPOSITORY] + [image["name"] for image in images["images"].values()]
 
 
+def product_versions(described: Dict[str, Any]) -> List[str]:
+    """
+    The version titles of a container product, as DescribeEntity gives them: ContainerProduct@1.0's
+    Versions, which AWS leaves out while the product has none (the shape AWS publishes in
+    awslabs/aws-marketplace-catalog-api-shapes-for-python).
+    """
+    document: Any = described.get("DetailsDocument")
+
+    if document is None and isinstance(described.get("Details"), str):
+        document = json.loads(described["Details"] or "{}")
+
+    if not isinstance(document, dict):
+        raise ReleaseError(
+            "AWS did not describe the product (DescribeEntity has no details): "
+            "check the product ID in editions.json."
+        )
+
+    versions: Any = document.get("Versions", [])
+
+    if not isinstance(versions, list):
+        raise ReleaseError("AWS listed the product's versions as something other than a list.")
+
+    return [str(version.get("VersionTitle", "")) for version in versions if isinstance(version, dict)]
+
+
 def change_set_state(described: Dict[str, Any]) -> Tuple[str, List[str]]:
     """running, succeeded, failed or cancelled, with the errors AWS gave."""
     status: str = described.get("Status", "")
@@ -198,6 +227,9 @@ class Catalog:
 
     def describe(self, change_set_id: str) -> Dict[str, Any]:
         return self.call("describe-change-set", "--catalog", CATALOG, "--change-set-id", change_set_id)
+
+    def describe_entity(self, entity_id: str) -> Dict[str, Any]:
+        return self.call("describe-entity", "--catalog", CATALOG, "--entity-id", entity_id)
 
     def container_products(self) -> List[Dict[str, Any]]:
         listed: Dict[str, Any] = self.call(
@@ -262,6 +294,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     submit.add_argument("--name", required=True)
     submit.add_argument("--wait-minutes", type=float, default=90)
 
+    shipped = commands.add_parser("shipped")
+    shipped.add_argument("--version", required=True)
+
     repositories = commands.add_parser("add-repositories")
     repositories.add_argument("--wait-minutes", type=float, default=30)
 
@@ -303,6 +338,21 @@ def main(argv: Optional[List[str]] = None) -> int:
                 follow(catalog, change_set_id, arguments.wait_minutes),
                 f"\"{arguments.name}\"",
             )
+
+        if arguments.command == "shipped":
+            version: str = check_version(arguments.version)
+            entity_id: str = edition.get("productId", "")
+
+            if not entity_id:
+                raise ReleaseError("editions.json has no aws.productId: the product must exist first.")
+
+            titles: List[str] = product_versions(catalog.describe_entity(entity_id))
+            has_it: bool = version in titles
+            write_outputs({"shipped": "true" if has_it else "false"})
+
+            if has_it:
+                write_summary(f"AWS Marketplace has {version} already: nothing to push or add.")
+            return 0
 
         if arguments.command == "add-repositories":
             names: List[str] = repository_names(load_json(IMAGES_FILE))
