@@ -34,15 +34,13 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 /*
  * A security playbook's Run Workflow step starts a workflow through that
- * workflow's own Webhook trigger, inside the cluster. The Webhook trigger is
- * an address anybody holding the workflow's webhook URL may call: it checks
- * the URL's secret, nothing else, and hands the run whatever the request
- * carried - its headers, query string and body - as the trigger's values,
- * which the run's later steps read and its log shows.
+ * workflow's own Webhook trigger, inside the cluster. The trigger asks for
+ * its URL's secret and nothing else, and the request's headers, query string
+ * and body become the run's values, the project's to read.
  *
- * So the step sends the case and nothing else, and the trigger never hands a
- * run the key OneUptime's own services present to each other, whoever sends
- * it.
+ * The rule: the step sends the case alone, and the trigger keeps every
+ * header but the two the key OneUptime's own services present to each
+ * other travels in.
  *
  * Everything here is real but the database and the dashboard address: the
  * playbook step's request goes over HTTP, through the real JSON parser, to

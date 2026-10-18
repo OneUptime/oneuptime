@@ -931,9 +931,8 @@ export default class SecurityPlaybookActions {
     }
 
     /*
-     * The workflow's own webhook trigger, inside the cluster. Its secret key
-     * is all the trigger asks for, and the trigger hands the run whatever a
-     * request carries, so the request carries the case and nothing else.
+     * The workflow's own webhook trigger, inside the cluster: its secret key
+     * is all the trigger asks for, so the request carries the case alone.
      */
     await API.post({
       url: new URL(

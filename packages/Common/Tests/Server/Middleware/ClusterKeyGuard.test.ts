@@ -533,9 +533,7 @@ describe("only processes that can know the installation's key present it", () =>
  *
  * Each route that takes the key is called by one of OneUptime's own
  * services, named in CLUSTER_KEY_ROUTE_CALLERS with the address it calls,
- * and each file that presents the key presents it to such a route alone -
- * not to a route that checks something else, and not to one that hands the
- * request on.
+ * and each file that presents the key presents it to such a route alone.
  */
 describe("the routes that take the cluster key, and who calls them", () => {
   function routeKey(route: {
