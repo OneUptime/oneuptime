@@ -118,6 +118,7 @@ import { AddIncidentVideoCallTranscript1803500000000 } from "./1803500000000-Add
 import { AddIncidentVideoCallTranscriptUserLinks1803550000000 } from "./1803550000000-AddIncidentVideoCallTranscriptUserLinks";
 import { AddIncomingCallLogItemPolicy1803600000000 } from "./1803600000000-AddIncomingCallLogItemPolicy";
 import { AddIncomingCallLogItemPolicyIndexAndKey1803650000000 } from "./1803650000000-AddIncomingCallLogItemPolicyIndexAndKey";
+import { AddProjectSCIMUsersAndClientSecrets1803700000000 } from "./1803700000000-AddProjectSCIMUsersAndClientSecrets";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1438,4 +1439,5 @@ export default [
   AddIncidentVideoCallTranscriptUserLinks1803550000000,
   AddIncomingCallLogItemPolicy1803600000000,
   AddIncomingCallLogItemPolicyIndexAndKey1803650000000,
+  AddProjectSCIMUsersAndClientSecrets1803700000000,
 ];

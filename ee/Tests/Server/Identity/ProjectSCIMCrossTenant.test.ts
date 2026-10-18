@@ -38,6 +38,7 @@ import FakeEnterpriseModule, {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
 
@@ -64,6 +65,13 @@ import { AddressInfo } from "net";
  * accepted. The fake records which creates asked TeamMemberService to send an
  * invitation email (miscDataProps.email); that the service then sends it is
  * TeamMemberAutoAcceptInvitation.test.ts's to prove.
+ *
+ * An address SCIM may not give an account is not an error: the identity
+ * provider's new userName or email is kept on the connection's record of the
+ * user (ProjectSCIMUser) and answered with, and the account keeps the address
+ * it signs in with - an error would be retried for ever, and Microsoft Entra
+ * ID can quarantine a provisioning job over one. So these tests hold the
+ * account, not the answer: whose email is what.
  *
  * Every suite pins billing: on is the hosted service, off is self-hosted.
  * ---------------------------------------------------------------------------
@@ -109,6 +117,15 @@ jest.mock("Common/Server/Utils/Logger", () => {
     },
     getLogAttributesFromRequest: jest.fn().mockReturnValue({}),
   };
+});
+
+jest.mock("Common/Server/Services/ProjectSCIMUserService", () => {
+  const fake: typeof import("./FakeProjectSCIMUserService") =
+    jest.requireActual(
+      "./FakeProjectSCIMUserService",
+    ) as typeof import("./FakeProjectSCIMUserService");
+
+  return { __esModule: true, default: fake.fakeProjectSCIMUserService };
 });
 
 jest.mock("../../../Server/Identity/Utils/SCIMLogger", () => {
@@ -193,9 +210,15 @@ const matchesValue: (actual: unknown, expected: unknown) => boolean = (
     typeof operator === "object" &&
     operator.objectLiteralParameters
   ) {
-    const values: Array<unknown> = (Object.values(
+    const parameter: unknown = Object.values(
       operator.objectLiteralParameters,
-    )[0] || []) as Array<unknown>;
+    )[0];
+    // QueryHelper.any's list of ids, or findWithSameText's one lower-cased text.
+    const values: Array<unknown> = Array.isArray(parameter)
+      ? parameter
+      : parameter === undefined
+        ? []
+        : [parameter];
 
     return values.map(idOf).includes(idOf(actual));
   }
@@ -281,6 +304,15 @@ jest.mock("Common/Server/Services/UserService", () => {
           },
         );
         return user ? toUser(user) : null;
+      },
+      findBy: async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<User>> => {
+        return world.users
+          .filter((item: FakeUser) => {
+            return matchesQuery(item, args.query);
+          })
+          .map(toUser);
       },
       createByEmail: async (args: {
         email: Email;
@@ -413,6 +445,15 @@ jest.mock("Common/Server/Services/TeamService", () => {
           },
         );
         return team ? toTeam(team) : null;
+      },
+      findBy: async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<Team>> => {
+        return world.teams
+          .filter((item: FakeTeam) => {
+            return matchesQuery(item, args.query);
+          })
+          .map(toTeam);
       },
       create: async (args: { data: Team }): Promise<Team> => {
         const team: FakeTeam = {
@@ -786,6 +827,7 @@ afterAll(async () => {
 beforeEach(() => {
   jest.clearAllMocks();
   seedWorld();
+  fakeProjectSCIMUserService.reset();
 
   projectConfig = new ProjectSCIM(new ObjectID(SCIM_ID));
   projectConfig.autoProvisionUsers = true;
@@ -868,13 +910,86 @@ function expectSuccess(result: HttpResult): void {
   expect(result.status).toBeLessThan(300);
 }
 
-function expectMutabilityRefusal(result: HttpResult, detail: string): void {
-  expect(result.status).toBe(400);
-  expect(result.body["schemas"]).toEqual([
-    "urn:ietf:params:scim:api:messages:2.0:Error",
-  ]);
-  expect(result.body["scimType"]).toBe("mutability");
-  expect(result.body["detail"]).toBe(detail);
+/*
+ * The request succeeded, and the address it asked for was not given to the
+ * account: the connection's SCIM log says why (`refusal`). The identity
+ * provider is answered with the SCIM user as it sent it - its own record.
+ */
+function expectEmailChangeNotApplied(
+  result: HttpResult,
+  refusal: string,
+): void {
+  expect(result.status).toBe(200);
+  expect(createProjectSCIMLog).toHaveBeenCalledWith(
+    expect.objectContaining({
+      operationType: "UpdateUser",
+      status: "Success",
+      httpStatusCode: 200,
+      steps: expect.arrayContaining([
+        `Email change not applied to the OneUptime account: ${refusal} The SCIM user keeps the address the identity provider sent.`,
+      ]),
+    }),
+  );
+}
+
+// The addresses a SCIM user answers with: its userName and its emails.
+function answeredAddresses(result: HttpResult): Array<string> {
+  return [
+    result.body["userName"] as string,
+    ...((result.body["emails"] as Array<JSONObject> | undefined) || []).map(
+      (email: JSONObject): string => {
+        return email["value"] as string;
+      },
+    ),
+  ];
+}
+
+/*
+ * No membership that existed was lost or accepted for its owner, and every
+ * new one is in this project - and, on the hosted service, accepted only for
+ * an account that has joined it: what a request that changes nobody's
+ * address may still do. An Okta PUT with active true adds a user to the
+ * connection's teams, as it always has; a self-hosted install accepts the
+ * people its SCIM adds (ProjectSCIMAccountPolicy).
+ */
+function expectNoMembershipForced(
+  before: Array<FakeMembership>,
+  hosted: boolean,
+): void {
+  for (const row of before) {
+    const now: FakeMembership | undefined = world.memberships.find(
+      (item: FakeMembership) => {
+        return item.id === row.id;
+      },
+    );
+
+    expect(now).toBeDefined();
+    expect(now!.hasAcceptedInvitation).toBe(row.hasAcceptedInvitation);
+  }
+
+  for (const row of world.memberships) {
+    if (
+      before.some((item: FakeMembership) => {
+        return item.id === row.id;
+      })
+    ) {
+      continue;
+    }
+
+    expect(row.projectId).toBe(PROJECT_ID);
+
+    if (hosted && row.hasAcceptedInvitation) {
+      expect(
+        before.some((item: FakeMembership) => {
+          return (
+            item.userId === row.userId &&
+            item.projectId === PROJECT_ID &&
+            item.hasAcceptedInvitation
+          );
+        }),
+      ).toBe(true);
+    }
+  }
 }
 
 async function sendBulkUserUpdate(
@@ -955,7 +1070,7 @@ describe.each(deployments)(
       "$label",
       ({ pick }: { pick: (c: Cast) => string }) => {
         test.each(emailChangeShapes)(
-          "is refused with a SCIM mutability error for $label, and nothing changes",
+          "keeps its address for $label, and no membership is forced",
           async ({ method, body }: EmailChangeShape) => {
             const victim: string = pick(cast);
             const originalEmail: string = emailOf(victim);
@@ -967,88 +1082,83 @@ describe.each(deployments)(
               body(ATTACKER_MAILBOX),
             );
 
-            expectMutabilityRefusal(result, refusalForUnmanaged);
+            expect(result.status).toBe(200);
             expect(emailOf(victim)).toBe(originalEmail);
             expect(world.userUpdates).toEqual([]);
-            // Refused before anything was written: no team was touched either.
-            expect(world.memberships).toEqual(before);
+            expectNoMembershipForced(before, hosted);
+
+            if (method === "PATCH") {
+              // A PATCH of the address alone touches no team.
+              expect(world.memberships).toEqual(before);
+            }
           },
         );
 
-        test("is refused inside a Bulk request, as that operation's 400", async () => {
+        /*
+         * The address alone: an activation beside it would, on a
+         * self-hosted install, accept a pending invitee into the project -
+         * which its policy allows - and an account that has joined this
+         * project and no other is one its SCIM may readdress there.
+         */
+        test("keeps its address inside a Bulk request too", async () => {
           const victim: string = pick(cast);
           const originalEmail: string = emailOf(victim);
+          const before: Array<FakeMembership> = snapshotMemberships();
 
           for (const method of ["PUT", "PATCH"] as const) {
             const result: HttpResult = await sendBulkUserUpdate(
               method,
               victim,
-              { userName: ATTACKER_MAILBOX, active: true },
+              { userName: ATTACKER_MAILBOX },
             );
 
             expect(result.status).toBe(200);
             const operation: JSONObject = (
               result.body["Operations"] as Array<JSONObject>
             )[0]!;
-            expect(operation["status"]).toBe("400");
-            expect((operation["response"] as JSONObject)["scimType"]).toBe(
-              "mutability",
-            );
-            expect((operation["response"] as JSONObject)["detail"]).toBe(
-              refusalForUnmanaged,
-            );
+            expect(operation["status"]).toBe("200");
           }
 
           expect(emailOf(victim)).toBe(originalEmail);
           expect(world.userUpdates).toEqual([]);
+          expectNoMembershipForced(before, hosted);
         });
       },
     );
 
-    test("the refusal is written to the project's SCIM log as an error", async () => {
-      await send(
+    test("the address that was not given is written to the project's SCIM log, with why", async () => {
+      const result: HttpResult = await send(
         "PATCH",
         scimPath(`Users/${cast.pendingInvitee}`),
         patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
       );
 
+      expectEmailChangeNotApplied(result, refusalForUnmanaged);
       expect(createProjectSCIMLog).toHaveBeenCalledWith(
         expect.objectContaining({
-          operationType: "UpdateUser",
-          status: "Error",
-          statusMessage: refusalForUnmanaged,
-          httpStatusCode: 400,
           affectedUserEmail: "alice@globex.example",
-          additionalContext: expect.objectContaining({
-            emailChangeRefused: true,
+          userInfo: expect.objectContaining({
+            email: "alice@globex.example",
+            previousEmail: "alice@globex.example",
           }),
         }),
       );
     });
 
-    test("a refused email change does not also deactivate: the whole request is refused", async () => {
+    test("an address that is not given does not hold up a deactivation", async () => {
       /*
-       * All or nothing, like any other 400. The IdP retries the request; the
-       * deprovisioning goes through as soon as it stops asking for the email.
+       * Deprovisioning never waits on an attribute: the account keeps its
+       * address, and leaves this project's teams.
        */
-      const before: Array<FakeMembership> = snapshotMemberships();
-
       const result: HttpResult = await send(
         "PUT",
         scimPath(`Users/${cast.multiProjectMember}`),
         { userName: ATTACKER_MAILBOX, active: false },
       );
 
-      expect(result.status).toBe(400);
-      expect(world.memberships).toEqual(before);
-
-      const retry: HttpResult = await send(
-        "PUT",
-        scimPath(`Users/${cast.multiProjectMember}`),
-        { userName: "bob@example.com", active: false },
-      );
-
-      expect(retry.status).toBe(200);
+      expect(result.status).toBe(200);
+      expect(result.body["active"]).toBe(false);
+      expect(emailOf(cast.multiProjectMember)).toBe("bob@example.com");
       expect(membershipsOf(cast.multiProjectMember)).toEqual([]);
       expect(
         membershipsOf(cast.multiProjectMember, OTHER_PROJECT_ID),
@@ -1068,10 +1178,12 @@ describe.each(deployments)(
         );
 
         expect(result.status).toBe(200);
-        expect(result.body["userName"]).toBe("alice@globex.example");
+        // The SCIM user answers with the userName as it was sent.
+        expect(result.body["userName"]).toBe(sameAddress);
       }
 
       expect(world.userUpdates).toEqual([]);
+      expect(emailOf(cast.pendingInvitee)).toBe("alice@globex.example");
     });
 
     test("deprovisioning a pending invitee still works: removal never needs the account's consent", async () => {
@@ -1111,8 +1223,10 @@ describe.each(deployments)(
         patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
       );
 
-      expect(rewrite.status).toBe(400);
+      // Answered, and the account keeps the address it signs in with.
+      expect(rewrite.status).toBe(200);
       expect(emailOf(victim)).toBe("victim@othercorp.example");
+      expect(world.userUpdates).toEqual([]);
       expect(
         world.users.some((user: FakeUser) => {
           return user.email === ATTACKER_MAILBOX;
@@ -1136,11 +1250,35 @@ describe("on the hosted service, SCIM never changes an email address", () => {
         body("carol.new@acme.example"),
       );
 
-      expectMutabilityRefusal(result, HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE);
+      expect(result.status).toBe(200);
       expect(emailOf(cast.managedMember)).toBe("carol@acme.example");
       expect(world.userUpdates).toEqual([]);
+      // The SCIM user is what the identity provider sent.
+      expect(answeredAddresses(result)).toContain("carol.new@acme.example");
     },
   );
+
+  test("the identity provider reads back what it sent, and the log says the account kept its address", async () => {
+    const result: HttpResult = await send(
+      "PATCH",
+      scimPath(`Users/${cast.managedMember}`),
+      patch({
+        op: "Replace",
+        path: "userName",
+        value: "carol.new@acme.example",
+      }),
+    );
+
+    expectEmailChangeNotApplied(result, HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE);
+
+    const readBack: HttpResult = await send(
+      "GET",
+      scimPath(`Users/${cast.managedMember}`),
+    );
+
+    expect(readBack.body["userName"]).toBe("carol.new@acme.example");
+    expect(emailOf(cast.managedMember)).toBe("carol@acme.example");
+  });
 
   test("an SCIM-provisioned account is no exception: its mailbox owner may since have claimed it", async () => {
     const created: HttpResult = await send("POST", scimPath("Users"), {
@@ -1154,7 +1292,7 @@ describe("on the hosted service, SCIM never changes an email address", () => {
       patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
     );
 
-    expectMutabilityRefusal(result, HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE);
+    expectEmailChangeNotApplied(result, HOSTED_EMAIL_CHANGE_REFUSED_MESSAGE);
     expect(emailOf(newUserId)).toBe("new.hire@acme.example");
   });
 });
@@ -1164,8 +1302,33 @@ describe("on a self-hosted install, SCIM still changes the email of an account t
     setTestBillingEnabled(false);
   });
 
-  test.each(emailChangeShapes)(
-    "for $label",
+  /*
+   * The account signs in with its userName when that is an address
+   * (getAccountEmail): a new userName moves it, and so does a new email of a
+   * user whose userName is no address.
+   */
+  test.each(
+    emailChangeShapes.filter((shape: EmailChangeShape): boolean => {
+      return !shape.label.includes("email");
+    }),
+  )("for $label", async ({ method, body }: EmailChangeShape) => {
+    const result: HttpResult = await send(
+      method,
+      scimPath(`Users/${cast.managedMember}`),
+      body("carol.new@acme.example"),
+    );
+
+    expect(result.status).toBe(200);
+    expect(result.body["userName"]).toBe("carol.new@acme.example");
+    expect(emailOf(cast.managedMember)).toBe("carol.new@acme.example");
+  });
+
+  test.each(
+    emailChangeShapes.filter((shape: EmailChangeShape): boolean => {
+      return shape.label.includes("email");
+    }),
+  )(
+    "but a new email beside a userName that is an address leaves the account signing in with its userName, for $label",
     async ({ method, body }: EmailChangeShape) => {
       const result: HttpResult = await send(
         method,
@@ -1174,10 +1337,36 @@ describe("on a self-hosted install, SCIM still changes the email of an account t
       );
 
       expect(result.status).toBe(200);
-      expect(result.body["userName"]).toBe("carol.new@acme.example");
-      expect(emailOf(cast.managedMember)).toBe("carol.new@acme.example");
+      expect(result.body["userName"]).toBe("carol@acme.example");
+      expect(result.body["emails"]).toEqual([
+        expect.objectContaining({ value: "carol.new@acme.example" }),
+      ]);
+      expect(emailOf(cast.managedMember)).toBe("carol@acme.example");
     },
   );
+
+  test("a new email moves the account when its userName is no address", async () => {
+    await send(
+      "PATCH",
+      scimPath(`Users/${cast.managedMember}`),
+      patch({ op: "Replace", path: "userName", value: "cjones" }),
+    );
+
+    expect(emailOf(cast.managedMember)).toBe("carol@acme.example");
+
+    const result: HttpResult = await send(
+      "PATCH",
+      scimPath(`Users/${cast.managedMember}`),
+      patch({
+        op: "Replace",
+        path: 'emails[type eq "work"].value',
+        value: "carol.new@acme.example",
+      }),
+    );
+
+    expect(result.status).toBe(200);
+    expect(emailOf(cast.managedMember)).toBe("carol.new@acme.example");
+  });
 
   test("and inside a Bulk request", async () => {
     const result: HttpResult = await sendBulkUserUpdate(
@@ -1207,7 +1396,7 @@ describe("on a self-hosted install, SCIM still changes the email of an account t
       patch({ op: "Replace", path: "userName", value: ATTACKER_MAILBOX }),
     );
 
-    expectMutabilityRefusal(result, UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE);
+    expectEmailChangeNotApplied(result, UNMANAGED_EMAIL_CHANGE_REFUSED_MESSAGE);
     expect(emailOf(cast.managedMember)).toBe("carol@acme.example");
   });
 });
@@ -1388,22 +1577,22 @@ describe("on the hosted service, an existing account is invited, not added", () 
     expect(invitationEmailsFor(newUserId)).toEqual([]);
   });
 
-  test("so is one it creates while answering a userName filter", async () => {
+  /*
+   * A lookup used to create the account it looked for. An identity provider
+   * asks before it creates: it is answered with no user, and creates them.
+   */
+  test("a userName filter for someone not provisioned yet creates nobody", async () => {
+    const usersBefore: number = world.users.length;
+
     const result: HttpResult = await send(
       "GET",
       `${scimPath("Users")}?filter=${encodeURIComponent('userName eq "new.hire@acme.example"')}`,
     );
 
     expect(result.status).toBe(200);
-    const newUser: FakeUser = world.users.find((user: FakeUser) => {
-      return user.email === "new.hire@acme.example";
-    })!;
-    expect(
-      membershipsOf(newUser.id).every((row: FakeMembership) => {
-        return row.hasAcceptedInvitation;
-      }),
-    ).toBe(true);
-    expect(membershipsOf(newUser.id)).toHaveLength(2);
+    expect(result.body["totalResults"]).toBe(0);
+    expect(result.body["Resources"]).toEqual([]);
+    expect(world.users).toHaveLength(usersBefore);
   });
 
   test("a userName filter for an existing outsider adds nobody", async () => {

@@ -12,6 +12,7 @@ import {
   createProjectSCIMLog,
   createStatusPageSCIMLog,
 } from "../Utils/SCIMLogger";
+import { sendScimError } from "../Utils/SCIMUtils";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
 import PlanCutoffCredentialAccess from "Common/Server/Utils/Billing/PlanCutoffCredentialAccess";
@@ -110,6 +111,13 @@ export default class SCIMMiddleware {
       if (!bearerToken) {
         throw new NotAuthorizedException(
           "Bearer token is required for SCIM authentication",
+        );
+      }
+
+      // Connection ids are UUIDs: anything else names no connection.
+      if (!ObjectID.isValidUUID(scimId)) {
+        throw new NotAuthorizedException(
+          "Invalid bearer token or SCIM configuration not found",
         );
       }
 
@@ -257,17 +265,25 @@ export default class SCIMMiddleware {
       );
     } catch (err) {
       /*
-       * Record on THIS middleware's own @CaptureSpan span before handing the
-       * error to Express. The decorator sees a normal return (we call
-       * next(err) rather than rethrowing — Express 4 does not catch a
-       * rejection from an async middleware), so its recorder never runs and
-       * without this the error is invisible on the span it actually belongs
-       * to. Goes through SpanUtil so the event is typed by class name rather
-       * than by HTTP status, and so a rejected credential produces a `fault`
-       * event instead of an Issue.
+       * Record on THIS middleware's own @CaptureSpan span before answering.
+       * The decorator sees a normal return (we answer rather than rethrow -
+       * Express 4 does not catch a rejection from an async middleware), so
+       * its recorder never runs and without this the error is invisible on
+       * the span it actually belongs to. Goes through SpanUtil so the event
+       * is typed by class name rather than by HTTP status, and so a rejected
+       * credential produces a `fault` event instead of an Issue.
        */
       SpanUtil.recordExceptionOnCurrentSpan(err);
-      return next(err);
+
+      /*
+       * Answered here, in the SCIM error format, rather than by Express's
+       * error handler: that one writes { error } - which an identity
+       * provider cannot read - and answers a refused credential (a
+       * NotAuthorizedException) with 422. A SCIM client is told 401, with
+       * how to authenticate (sendScimError), as Okta's SCIM spec test
+       * checks.
+       */
+      return sendScimError(req, res, err);
     }
   }
 

@@ -48,6 +48,7 @@ import {
   installFakeEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
 
 /*
  * SCIM works fully only while the project is on the plan that sells it:
@@ -114,6 +115,15 @@ jest.mock("App/FeatureSet/Identity/API/StatusPageAuthentication", () => {
     ) as typeof import("Common/Server/Utils/Express");
 
   return { __esModule: true, default: express.default.getRouter() };
+});
+
+jest.mock("Common/Server/Services/ProjectSCIMUserService", () => {
+  const fake: typeof import("./FakeProjectSCIMUserService") =
+    jest.requireActual(
+      "./FakeProjectSCIMUserService",
+    ) as typeof import("./FakeProjectSCIMUserService");
+
+  return { __esModule: true, default: fake.fakeProjectSCIMUserService };
 });
 
 jest.mock("../../../Server/Identity/Utils/SCIMLogger", () => {
@@ -395,6 +405,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  fakeProjectSCIMUserService.reset();
   setTestBillingEnabled(true);
   currentPlan = PlanType.Free;
 

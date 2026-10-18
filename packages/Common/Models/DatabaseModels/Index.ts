@@ -526,6 +526,7 @@ import ServiceFeed from "./ServiceFeed";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
+import ProjectSCIMUser from "./ProjectSCIMUser";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import DeletedProject from "./DeletedProject";
 import MarketplaceSubscription from "./MarketplaceSubscription";
@@ -980,6 +981,7 @@ const AllModelTypes: Array<{
 
   ProjectSCIM,
   ProjectSCIMLog,
+  ProjectSCIMUser,
   StatusPageSCIMLog,
 
   KubernetesCluster,
