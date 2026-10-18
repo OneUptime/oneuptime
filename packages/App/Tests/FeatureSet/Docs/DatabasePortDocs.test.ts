@@ -64,11 +64,15 @@ const LAST_ITEM_START: string = "- See [API and endpoint changes]";
 const HEADING_LINE: RegExp = /^#{1,6}\s/;
 const HEADING_MARKER: RegExp = /^#+\s+/;
 const FENCE_LINE: RegExp = /^\s*```/;
-// A link's target. The target may hold neither bracket, so each try stops at
-// the next "]" and the scan stays linear.
+/*
+ * A link's target. The target may hold neither bracket, so each try stops at
+ * the next "]" and the scan stays linear.
+ */
 const LINK_TARGET: RegExp = /\]\(([^()[\]\s]+)\)/g;
-// The docs address the script's warning names.
-// The value the script gives CHANGE_PASSWORD_DOCS_URL, parsed below as a URL.
+/*
+ * The docs address the script's warning names: the value it gives
+ * CHANGE_PASSWORD_DOCS_URL, parsed below as a URL.
+ */
 const SCRIPT_DOCS_URL: RegExp = /CHANGE_PASSWORD_DOCS_URL =\s*"([^"]+)"/;
 const SSH_FORWARD: RegExp = /-L (\d+):([\d.]+):(\d+) /;
 const OVERRIDE_PORT: RegExp = /^ {6}- "(\d+)\.\d+\.\d+\.\d+:(\d+):(\d+)"$/;
