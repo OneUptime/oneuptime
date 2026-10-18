@@ -213,7 +213,21 @@ const TABLES: Array<string> = [
 interface PermissionRow {
   permission: Permission;
   scope?: PermissionScope;
+  // The labels a row scoped to Labels is limited to.
+  labelIds?: Array<ObjectID>;
 }
+
+// The scope a row is stored with: Labels when it names labels, else All.
+const scopeOf: (row: PermissionRow) => PermissionScope = (
+  row: PermissionRow,
+): PermissionScope => {
+  return (
+    row.scope ||
+    (row.labelIds && row.labelIds.length > 0
+      ? PermissionScope.Labels
+      : PermissionScope.All)
+  );
+};
 
 type Caller =
   | {
@@ -321,6 +335,9 @@ describePostgres(
       ) as DatabaseService<BaseModel>;
       new BaseAPI(kind.modelType, sweptServices[kind.name]!);
     }
+
+    // A label of the project, that a grant limited to labels names.
+    const readLabelId: ObjectID = ObjectID.generate();
 
     // The member every request is made as, and the people around them.
     const memberId: ObjectID = ObjectID.generate();
@@ -579,15 +596,24 @@ describePostgres(
       );
 
       for (const row of rows) {
+        const rowId: ObjectID = ObjectID.generate();
+
         await insert("TeamPermission", {
-          _id: ObjectID.generate(),
+          _id: rowId,
           projectId: projectId,
           teamId: memberTeamId,
           permission: row.permission,
           isBlockPermission: false,
-          scope: row.scope || PermissionScope.All,
+          scope: scopeOf(row),
           version: 1,
         });
+
+        for (const labelId of row.labelIds || []) {
+          await insert("TeamPermissionLabel", {
+            teamPermissionId: rowId,
+            labelId: labelId,
+          });
+        }
       }
     };
 
@@ -611,14 +637,23 @@ describePostgres(
       });
 
       for (const row of rows) {
+        const rolePermissionId: ObjectID = ObjectID.generate();
+
         await insert("CustomRolePermission", {
-          _id: ObjectID.generate(),
+          _id: rolePermissionId,
           projectId: projectId,
           customRoleId: roleId,
           permission: row.permission,
-          scope: row.scope || PermissionScope.All,
+          scope: scopeOf(row),
           version: 1,
         });
+
+        for (const labelId of row.labelIds || []) {
+          await insert("CustomRolePermissionLabel", {
+            customRolePermissionId: rolePermissionId,
+            labelId: labelId,
+          });
+        }
       }
 
       await insert("TeamCustomRole", {
@@ -645,7 +680,7 @@ describePostgres(
           .map((row: PermissionRow): Dictionary<unknown> => {
             return {
               permission: row.permission,
-              scope: row.scope || PermissionScope.All,
+              scope: scopeOf(row),
               isCopy: true,
             };
           })
@@ -1109,6 +1144,13 @@ describePostgres(
         });
       }
 
+      await insertAnyRow("Label", {
+        _id: readLabelId,
+        projectId: projectId,
+        name: "Read by label",
+        version: 1,
+      });
+
       // The outsider may delete every monitor of their own project.
       await insert("TeamPermission", {
         _id: ObjectID.generate(),
@@ -1568,6 +1610,207 @@ describePostgres(
         }
       });
     });
+
+    /*
+     * A delete scoped to Owned beside a read of more monitors - the whole
+     * project's, or those carrying a label. A member set up to "see every
+     * monitor, manage your own" is a common shape, and the Owned scope must
+     * still hold their delete to the monitors they or their team own: being
+     * able to read a monitor is not being able to delete it.
+     *
+     * (A separate hardening - narrowing who may add or remove a monitor's
+     * owners by the same Owned scope, so a broad reader cannot hand a
+     * monitor to themselves by naming themselves its owner - is tracked on
+     * its own, since it is a change to owner-management scope across every
+     * kind that carries owners, not to the delete this suite covers.)
+     */
+    const READ_BEYOND_OWNED_GRANTS: Array<[string, () => Promise<void>]> = [
+      [
+        "Monitor Admin scoped to Owned beside Monitor Viewer over the whole project",
+        async (): Promise<void> => {
+          await setGrants([
+            {
+              permission: Permission.MonitorAdmin,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.MonitorViewer,
+              scope: PermissionScope.All,
+            },
+          ]);
+        },
+      ],
+      [
+        "Monitor Member scoped to Owned beside the Viewer role",
+        async (): Promise<void> => {
+          await setGrants([
+            {
+              permission: Permission.MonitorMember,
+              scope: PermissionScope.Owned,
+            },
+            { permission: Permission.Viewer, scope: PermissionScope.All },
+          ]);
+        },
+      ],
+      [
+        "Delete Monitor scoped to Owned beside Read Monitor over the whole project",
+        async (): Promise<void> => {
+          await setGrants([
+            {
+              permission: Permission.ReadProjectMonitor,
+              scope: PermissionScope.All,
+            },
+            {
+              permission: Permission.DeleteProjectMonitor,
+              scope: PermissionScope.Owned,
+            },
+          ]);
+        },
+      ],
+      [
+        "Monitor Admin scoped to Owned beside Monitor Viewer limited to a label every monitor here carries",
+        async (): Promise<void> => {
+          await setGrants([
+            {
+              permission: Permission.MonitorAdmin,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.MonitorViewer,
+              labelIds: [readLabelId],
+            },
+          ]);
+        },
+      ],
+      [
+        "a custom role's Monitor Admin scoped to Owned and Monitor Viewer over the whole project",
+        async (): Promise<void> => {
+          await giveCustomRole([
+            {
+              permission: Permission.MonitorAdmin,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.MonitorViewer,
+              scope: PermissionScope.All,
+            },
+          ]);
+        },
+      ],
+    ];
+
+    // A monitor owned by `owner`, carrying the label a read may be limited to.
+    const insertLabelledMonitor: (owner: Owner) => Promise<ObjectID> = async (
+      owner: Owner,
+    ): Promise<ObjectID> => {
+      const monitorId: ObjectID = await insertMonitor(owner);
+
+      await insert("MonitorLabel", {
+        monitorId: monitorId,
+        labelId: readLabelId,
+      });
+
+      return monitorId;
+    };
+
+    describe.each(READ_BEYOND_OWNED_GRANTS)(
+      "a member holding %s",
+      (_grant: string, grant: () => Promise<void>) => {
+        beforeAll(async () => {
+          await grant();
+        });
+
+        test("reads the monitors they do not own, and deletes only the ones they or their team own, by either route", async () => {
+          const owned: Array<ObjectID> = [
+            await insertLabelledMonitor("member"),
+            await insertLabelledMonitor("memberTeam"),
+          ];
+          const others: Array<ObjectID> = [];
+
+          for (const owner of OTHERS) {
+            others.push(await insertLabelledMonitor(owner));
+          }
+
+          // They read every monitor, owned or not.
+          const listed: Outcome = await send({
+            method: "post",
+            uri: "/monitor/get-list",
+            caller: member,
+            body: {
+              query: JSONFunctions.serialize({
+                _id: new Includes([...owned, ...others]),
+              } as unknown as JSONObject),
+              select: { _id: true },
+              limit: 50,
+            },
+          });
+
+          expect(listed.error).toBeUndefined();
+          expect(listed.ids).toEqual(
+            [...owned, ...others]
+              .map((id: ObjectID): string => {
+                return id.toString();
+              })
+              .sort(),
+          );
+
+          // A monitor they do not own is refused - as one they may read but not delete.
+          for (const [route, remove] of REMOVALS) {
+            for (const monitorId of others) {
+              const outcome: Outcome = await remove(
+                "/monitor",
+                member,
+                monitorId,
+              );
+
+              expect([route, outcome.error]).toEqual([
+                route,
+                expect.any(NotAuthorizedException),
+              ]);
+              expect((outcome.error as Error).message).toBe(
+                "You do not have permission to delete this monitor.",
+              );
+              expect(await rowExists("Monitor", monitorId)).toBe(true);
+            }
+          }
+
+          // The monitors they or their team own are deleted.
+          for (const monitorId of owned) {
+            expectDeleted(await deleteItem("/monitor", member, monitorId));
+            expect(await rowExists("Monitor", monitorId)).toBe(false);
+          }
+        });
+
+        test("a delete by query removes only the monitors they or their team own, though they read more", async () => {
+          const owned: Array<ObjectID> = [
+            await insertLabelledMonitor("member"),
+            await insertLabelledMonitor("memberTeam"),
+          ];
+          const others: Array<ObjectID> = [];
+
+          for (const owner of OTHERS) {
+            others.push(await insertLabelledMonitor(owner));
+          }
+
+          const removed: number = await MonitorService.deleteBy({
+            query: { _id: new Includes([...owned, ...others]) },
+            props: await propsOf(member),
+            limit: 50,
+            skip: 0,
+          });
+
+          expect(removed).toBe(2);
+
+          for (const id of owned) {
+            expect(await rowExists("Monitor", id)).toBe(false);
+          }
+
+          for (const id of others) {
+            expect(await rowExists("Monitor", id)).toBe(true);
+          }
+        });
+      },
+    );
 
     describe("the records of a monitor, and of a status page", () => {
       test.each([
