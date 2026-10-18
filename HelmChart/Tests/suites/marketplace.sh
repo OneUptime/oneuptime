@@ -181,7 +181,8 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace azure --version "$VERSION
     AZURE_MANIFEST="$(cat "${AZURE_OUT}/manifest.yaml")"
     assert_present "azure: the manifest version is the release" "$AZURE_MANIFEST" "version: ${VERSION}"
     assert_present "azure: the manifest points at the chart" "$AZURE_MANIFEST" 'helmChart: "./oneuptime"'
-    assert_present "azure: the manifest names the ARM template as Microsoft spells it" "$AZURE_MANIFEST" 'clusterARMTemplate: "./mainTemplate.json"'
+    assert_present "azure: the manifest names the ARM template as container-package-app reads it" "$AZURE_MANIFEST" 'clusterArmTemplate: "./mainTemplate.json"'
+    assert_absent "azure: not as Microsoft's docs spell it, which cpa rejects" "$AZURE_MANIFEST" 'clusterARMTemplate:'
     assert_present "azure: the manifest names the create experience" "$AZURE_MANIFEST" 'uiDefinition: "./createUIDefinition.json"'
     assert_present "azure: one installation per cluster" "$AZURE_MANIFEST" 'defaultScope: "cluster"'
 
