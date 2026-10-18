@@ -153,7 +153,9 @@ function ownerTablesOf(kind: string, pair: OwnerTablePair): Array<OwnerTable> {
       );
 
       if (!relation || relation.manyToOneRelationColumn !== pair.fkColumn) {
-        throw new Error(`${modelType.name} names no ${kind} by ${pair.fkColumn}.`);
+        throw new Error(
+          `${modelType.name} names no ${kind} by ${pair.fkColumn}.`,
+        );
       }
 
       return {
@@ -523,7 +525,8 @@ describe("an owner row is owned through its resource", () => {
     "$name: what a member owns is read off the owners of the $kind",
     async (table: OwnerTable) => {
       const OWNED_BY_THEM: string = "c27d8e9f-0a1b-4c2d-8e3f-4a5b6c7d8e9f";
-      const OWNED_BY_THEIR_TEAM: string = "d38e9f0a-1b2c-4d3e-9f4a-5b6c7d8e9f0a";
+      const OWNED_BY_THEIR_TEAM: string =
+        "d38e9f0a-1b2c-4d3e-9f4a-5b6c7d8e9f0a";
 
       interface FindBy {
         query: Dictionary<unknown>;
@@ -540,9 +543,7 @@ describe("an owner row is owned through its resource", () => {
         owners: string,
         id: string,
       ): ((findBy: FindBy) => Promise<Array<Dictionary<unknown>>>) => {
-        return async (
-          findBy: FindBy,
-        ): Promise<Array<Dictionary<unknown>>> => {
+        return async (findBy: FindBy): Promise<Array<Dictionary<unknown>>> => {
           asked.push({ owners: owners, query: findBy.query });
 
           // Read by OneUptime, for the column the registry names.
@@ -612,8 +613,7 @@ describe("a member who reads every resource but may add and remove owners only o
     async (table: OwnerTable) => {
       ownsOnly(OWNED_ID);
 
-      const props: DatabaseCommonInteractionProps =
-        readsEveryManagesOwn(table);
+      const props: DatabaseCommonInteractionProps = readsEveryManagesOwn(table);
 
       await expect(
         checkOwnerCreate({ table, resourceId: OWNED_ID, props }),
@@ -663,8 +663,7 @@ describe("a member who reads every resource but may add and remove owners only o
     async (table: OwnerTable) => {
       ownsOnly(OWNED_ID);
 
-      const props: DatabaseCommonInteractionProps =
-        readsEveryManagesOwn(table);
+      const props: DatabaseCommonInteractionProps = readsEveryManagesOwn(table);
 
       for (const type of [
         DatabaseRequestType.Delete,
@@ -1186,9 +1185,9 @@ describe("the rule follows the registry", () => {
         OwnerTableRegistry.delete("Monitor");
       },
       async (): Promise<void> => {
-        expect(
-          OwnedScopePermission.isOwnerTable(monitorOwners.modelType),
-        ).toBe(false);
+        expect(OwnedScopePermission.isOwnerTable(monitorOwners.modelType)).toBe(
+          false,
+        );
 
         await expect(
           checkOwnerCreate({

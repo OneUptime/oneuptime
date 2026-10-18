@@ -18,7 +18,10 @@ import path from "path";
  * may only shrink: an entry nothing reads any more fails the test too.
  */
 
-const SERVER_DIRECTORY: string = path.resolve(__dirname, "../../../../../Server");
+const SERVER_DIRECTORY: string = path.resolve(
+  __dirname,
+  "../../../../../Server",
+);
 
 // Every `.ownedThrough` read of a model's decorator.
 const DECORATOR_READ: RegExp = /\.ownedThrough\b/g;

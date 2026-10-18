@@ -407,7 +407,9 @@ describe("OwnersCard", () => {
 
   test("says why an owner could not be removed, in the confirmation, and keeps the owner", async () => {
     deleteItemMock.mockRejectedValue(
-      new Error("You do not have permission to delete this incident user owner."),
+      new Error(
+        "You do not have permission to delete this incident user owner.",
+      ),
     );
 
     renderCard();

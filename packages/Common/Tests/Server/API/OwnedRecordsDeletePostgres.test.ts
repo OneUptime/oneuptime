@@ -1057,14 +1057,16 @@ describePostgres(
       return `Your access lets you add owners only to the ${pluralName} you or your teams own.`;
     };
 
-    const expectOwnerAddRefused: (outcome: Outcome, pluralName: string) => void =
-      (outcome: Outcome, pluralName: string): void => {
-        expect(outcome.item).toBeUndefined();
-        expect(outcome.error).toBeInstanceOf(CreateScopeException);
-        expect((outcome.error as Error).message).toBe(
-          OWNER_ADD_REFUSAL(pluralName),
-        );
-      };
+    const expectOwnerAddRefused: (
+      outcome: Outcome,
+      pluralName: string,
+    ) => void = (outcome: Outcome, pluralName: string): void => {
+      expect(outcome.item).toBeUndefined();
+      expect(outcome.error).toBeInstanceOf(CreateScopeException);
+      expect((outcome.error as Error).message).toBe(
+        OWNER_ADD_REFUSAL(pluralName),
+      );
+    };
 
     beforeAll(async () => {
       database = new DataSource({
@@ -1932,9 +1934,8 @@ describePostgres(
      * member may manage, so an owner row is owned through its monitor: a
      * member whose permission to add and remove owners is scoped to Owned
      * adds and removes them only on the monitors they or their team own,
-     * however many more they may read - or naming themselves an owner of a
-     * monitor they only read would hand them what the scope keeps to their
-     * own. Every grant shape that reads more than it manages, the owner
+     * however many more they may read: reading a monitor is not owning it.
+     * Every grant shape that reads more than it manages, the owner
      * permissions themselves, Project Member, and a custom role.
      */
     const OWNER_MANAGING_GRANTS: Array<[string, () => Promise<void>]> = [
@@ -2195,8 +2196,10 @@ describePostgres(
               );
             };
 
-            const personRow: Dictionary<string> | undefined =
-              await ownerRowOf("MonitorOwnerUser", otherUserId);
+            const personRow: Dictionary<string> | undefined = await ownerRowOf(
+              "MonitorOwnerUser",
+              otherUserId,
+            );
             const teamRow: Dictionary<string> | undefined = await ownerRowOf(
               "MonitorOwnerTeam",
               otherTeamId,
@@ -2262,9 +2265,9 @@ describePostgres(
           });
 
           expect(removed).toBe(1);
-          expect(await ownerRowsOf("MonitorOwnerUser", "monitorId", ours)).toEqual(
-            [],
-          );
+          expect(
+            await ownerRowsOf("MonitorOwnerUser", "monitorId", ours),
+          ).toEqual([]);
           expect(
             (await ownerRowsOf("MonitorOwnerUser", "monitorId", theirs)).map(
               (row: Dictionary<string>): string => {
@@ -2303,11 +2306,11 @@ describePostgres(
               undefined,
             ]);
             expect(listed.ids).toEqual(
-              (
-                await ownerRowsOf(ownerTable.table, "monitorId", monitorId)
-              ).map((row: Dictionary<string>): string => {
-                return row["_id"]!;
-              }),
+              (await ownerRowsOf(ownerTable.table, "monitorId", monitorId)).map(
+                (row: Dictionary<string>): string => {
+                  return row["_id"]!;
+                },
+              ),
             );
             expect(listed.ids).toHaveLength(1);
           }

@@ -258,7 +258,9 @@ describe("DatabaseService.autoOwnerOnCreate", () => {
    * (whose create relies on ownership, as a monitor's would).
    */
   test("a record of a kind with no owner rows of its own makes nobody its owner, and logs nothing", async () => {
-    const ownerRow: MonitorOwnerUser = new MonitorOwnerUser(ObjectID.generate());
+    const ownerRow: MonitorOwnerUser = new MonitorOwnerUser(
+      ObjectID.generate(),
+    );
     ownerRow.projectId = PROJECT_ID;
     ownerRow.monitorId = MONITOR_A;
     ownerRow.userId = USER_B;

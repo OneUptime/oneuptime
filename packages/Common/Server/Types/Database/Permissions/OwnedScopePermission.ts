@@ -391,13 +391,12 @@ export default class OwnedScopePermission {
    * the Owned scope reads to decide what a member may manage, so adding or
    * removing an owner is managing the monitor: a grant scoped to Owned adds
    * and removes owners only on the monitors the caller or one of their teams
-   * own - however many more they may read - or naming themselves an owner of
-   * a monitor they only read would hand them the rest of what their Owned
-   * grant keeps to their own. A create is held to it by CreateScopePermission
-   * (checkOwnedCreate), a change and a delete by the record rule
-   * (isLimitedToOwnedRecords, isOwnerTableWrite). A read of owners is not:
-   * who owns a resource is read through the resource
-   * (BasePermission.addParentAccessToQuery), by its own read rule and scope.
+   * own, however many more they may read - reading a monitor is not owning
+   * it. A create is held to it by CreateScopePermission (checkOwnedCreate),
+   * a change and a delete by the record rule (isLimitedToOwnedRecords,
+   * isOwnerTableWrite). A read of owners is not: who owns a resource is read
+   * through the resource (BasePermission.addParentAccessToQuery), by its own
+   * read rule and scope.
    *
    * Read off the registry, not declared on each owner table, so a kind that
    * is registered there has its owner tables held to the same rule with no

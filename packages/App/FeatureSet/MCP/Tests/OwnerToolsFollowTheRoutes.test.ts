@@ -53,7 +53,13 @@ describe("MCP adds and removes no owners of its own", () => {
     }
   });
 
-  test.each(OWNER_TABLES.map((modelType: ModelClass) => [modelType.name, modelType]))(
+  const OWNER_TABLE_CASES: Array<[string, ModelClass]> = OWNER_TABLES.map(
+    (modelType: ModelClass): [string, ModelClass] => {
+      return [modelType.name, modelType];
+    },
+  );
+
+  test.each(OWNER_TABLE_CASES)(
     "%s is no MCP tool",
     (_name: string, modelType: ModelClass) => {
       expect(toolsFor(modelType).tools).toEqual([]);

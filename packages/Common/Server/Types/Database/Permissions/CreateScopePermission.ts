@@ -548,8 +548,7 @@ export default class CreateScopePermission {
       .parentModels[0] as { new (): BaseModel } | undefined;
 
     const parentPluralName: string =
-      (parentModelType ? new parentModelType().pluralName : null) ||
-      "records";
+      (parentModelType ? new parentModelType().pluralName : null) || "records";
 
     // An owner row: said as adding an owner, as the Owners tab adds one.
     if (OwnedScopePermission.isOwnerTable(modelType)) {

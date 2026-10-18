@@ -113,8 +113,10 @@ const API_REFERENCE_SCOPE: Record<string, string> = {
   pt: "Adicioná-los e removê-los também segue o escopo da permissão que o permite: uma com o escopo `Owned`",
   ru: "Добавление и удаление тоже подчиняются области разрешения, которое это позволяет: разрешение с областью `Owned`",
   sv: "Att lägga till och ta bort dem håller sig också till omfattningen av den behörighet som tillåter det: en med omfattningen `Owned`",
-  "zh-CN": "添加和移除它们同样遵循允许此操作的权限的范围：`Owned` 范围的权限只触及",
-  "zh-TW": "新增和移除它們同樣遵循允許此操作的權限的範圍：`Owned` 範圍的權限只觸及",
+  "zh-CN":
+    "添加和移除它们同样遵循允许此操作的权限的范围：`Owned` 范围的权限只触及",
+  "zh-TW":
+    "新增和移除它們同樣遵循允許此操作的權限的範圍：`Owned` 範圍的權限只觸及",
 };
 
 // The upgrade note's bold lead.
@@ -339,9 +341,10 @@ describe("Docs: adding and removing owners keeps to the Owned scope", () => {
         ]);
       }
 
-      expect([language, note.includes("](/docs/permissions/index)")]).toEqual(
-        [language, true],
-      );
+      expect([language, note.includes("](/docs/permissions/index)")]).toEqual([
+        language,
+        true,
+      ]);
     },
   );
 });
@@ -426,9 +429,9 @@ describe("what the docs say holds in the product", () => {
       [string, OwnerTablePair]
     >) {
       for (const service of [pair.ownerUserService, pair.ownerTeamService]) {
-        const resource: ModelType | undefined = OwnedScopePermission.getOwnedThrough(
-          service.modelType,
-        )?.parentModels[0] as ModelType | undefined;
+        const resource: ModelType | undefined =
+          OwnedScopePermission.getOwnedThrough(service.modelType)
+            ?.parentModels[0] as ModelType | undefined;
 
         expect([service.modelType.name, resource?.name]).toEqual([
           service.modelType.name,
@@ -466,10 +469,11 @@ describe("what the docs say holds in the product", () => {
   test("an owner is added or removed, never moved: no column of an owner table can be changed", () => {
     const excluded: Array<string> = ColumnPermissions.getExcludedColumnNames();
 
-    const ownerTables: Array<ModelType> = (AllModelTypes as Array<ModelType>)
-      .filter((modelType: ModelType): boolean => {
-        return OWNER_TABLE_NAME.test(new modelType().tableName || "");
-      });
+    const ownerTables: Array<ModelType> = (
+      AllModelTypes as Array<ModelType>
+    ).filter((modelType: ModelType): boolean => {
+      return OWNER_TABLE_NAME.test(new modelType().tableName || "");
+    });
 
     expect(ownerTables.length).toBeGreaterThanOrEqual(74);
 
@@ -492,15 +496,16 @@ describe("what the docs say holds in the product", () => {
 
   test("a workflow step acts as a Project Admin, which no scope narrows", () => {
     expect(WorkflowPrincipal.PERMISSION).toBe(Permission.ProjectAdmin);
-    expect(PermissionHelper.isScopeApplicable(WorkflowPrincipal.PERMISSION)).toBe(
-      false,
-    );
+    expect(
+      PermissionHelper.isScopeApplicable(WorkflowPrincipal.PERMISSION),
+    ).toBe(false);
   });
 
   test("the roles the upgrade note names add and remove a monitor's owners", () => {
-    for (const modelType of [MonitorOwnerUser, MonitorOwnerTeam] as Array<
-      ModelType
-    >) {
+    for (const modelType of [
+      MonitorOwnerUser,
+      MonitorOwnerTeam,
+    ] as Array<ModelType>) {
       const model: BaseModel = new modelType();
 
       for (const role of [
