@@ -44,6 +44,7 @@ flowchart TB
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | ورودی | اعلان‌های Alertmanager را به حادثه تبدیل می‌کند. |
 | [Grafana](/docs/integrations/grafana) | ورودی | هشدارهای Grafana را به حادثه تبدیل می‌کند. |
 | [Datadog](/docs/integrations/datadog) | ورودی | هشدارهای مانیتورهای Datadog را به حادثه تبدیل می‌کند. |
+| [Vercel](/docs/integrations/vercel) | ورودی | OneUptime را از Vercel Marketplace اضافه کنید: ردیابی‌ها، لاگ‌ها، مانیتورهای دسترس‌پذیری و یک صفحهٔ وضعیت برای پروژه‌های Vercel شما. |
 
 ### ابزارهای امنیتی
 

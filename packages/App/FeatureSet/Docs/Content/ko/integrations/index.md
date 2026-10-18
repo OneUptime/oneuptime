@@ -44,6 +44,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 인바운드 | Alertmanager 알림을 인시던트로 만듭니다. |
 | [Grafana](/docs/integrations/grafana) | 인바운드 | Grafana 알림을 인시던트로 만듭니다. |
 | [Datadog](/docs/integrations/datadog) | 인바운드 | Datadog 모니터 알림을 인시던트로 만듭니다. |
+| [Vercel](/docs/integrations/vercel) | 인바운드 | Vercel Marketplace에서 OneUptime을 추가합니다. Vercel 프로젝트의 트레이스, 로그, 가동 시간 모니터와 상태 페이지를 제공합니다. |
 
 ### 보안 도구
 

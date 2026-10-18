@@ -44,6 +44,7 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | インバウンド | Alertmanager の通知をインシデントにします。 |
 | [Grafana](/docs/integrations/grafana) | インバウンド | Grafana のアラートをインシデントにします。 |
 | [Datadog](/docs/integrations/datadog) | インバウンド | Datadog モニターのアラートをインシデントにします。 |
+| [Vercel](/docs/integrations/vercel) | インバウンド | Vercel Marketplace から OneUptime を追加します。Vercel プロジェクトのトレース、ログ、稼働監視モニター、ステータスページが手に入ります。 |
 
 ### セキュリティツール
 

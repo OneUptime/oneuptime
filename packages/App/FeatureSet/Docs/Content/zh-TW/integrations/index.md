@@ -44,6 +44,7 @@ flowchart TB
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 傳入 | 把 Alertmanager 通知轉為事件。 |
 | [Grafana](/docs/integrations/grafana) | 傳入 | 把 Grafana 警示轉為事件。 |
 | [Datadog](/docs/integrations/datadog) | 傳入 | 把 Datadog 監控警示轉為事件。 |
+| [Vercel](/docs/integrations/vercel) | 傳入 | 從 Vercel Marketplace 新增 OneUptime：為你的 Vercel 專案提供追蹤、日誌、可用性監控和狀態頁。 |
 
 ### 安全工具
 

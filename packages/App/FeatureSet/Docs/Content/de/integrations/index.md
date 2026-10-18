@@ -44,6 +44,7 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Eingehend | Macht aus Alertmanager-Benachrichtigungen Vorfälle. |
 | [Grafana](/docs/integrations/grafana) | Eingehend | Macht aus Grafana-Alarmen Vorfälle. |
 | [Datadog](/docs/integrations/datadog) | Eingehend | Macht aus Datadog-Monitoralarmen Vorfälle. |
+| [Vercel](/docs/integrations/vercel) | Eingehend | Fügen Sie OneUptime über den Vercel Marketplace hinzu: Traces, Logs, Uptime-Monitore und eine Statusseite für Ihre Vercel-Projekte. |
 
 ### Sicherheitswerkzeuge
 

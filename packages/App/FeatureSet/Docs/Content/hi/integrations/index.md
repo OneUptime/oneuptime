@@ -44,6 +44,7 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | इनबाउंड | Alertmanager की सूचनाओं को घटनाओं में बदलता है। |
 | [Grafana](/docs/integrations/grafana) | इनबाउंड | Grafana अलर्ट को घटनाओं में बदलता है। |
 | [Datadog](/docs/integrations/datadog) | इनबाउंड | Datadog मॉनिटर अलर्ट को घटनाओं में बदलता है। |
+| [Vercel](/docs/integrations/vercel) | इनबाउंड | Vercel Marketplace से OneUptime जोड़ें: आपके Vercel प्रोजेक्ट के लिए ट्रेस, लॉग, अपटाइम मॉनिटर और एक स्टेटस पेज। |
 
 ### सुरक्षा टूल
 

@@ -44,6 +44,7 @@ Start from the top of the table: the higher a way is, the less there is to maint
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inbound | Turn Alertmanager notifications into incidents. |
 | [Grafana](/docs/integrations/grafana) | Inbound | Turn Grafana alerts into incidents. |
 | [Datadog](/docs/integrations/datadog) | Inbound | Turn Datadog monitor alerts into incidents. |
+| [Vercel](/docs/integrations/vercel) | Inbound | Add OneUptime from the Vercel Marketplace: traces, logs, uptime monitors and a status page for your Vercel projects. |
 
 ### Security tools
 

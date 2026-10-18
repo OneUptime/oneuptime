@@ -44,6 +44,7 @@ Start fra toppen av tabellen: jo høyere en måte står, jo mindre er det å ved
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Innkommende | Gjør varsler fra Alertmanager om til hendelser. |
 | [Grafana](/docs/integrations/grafana) | Innkommende | Gjør Grafana-varsler om til hendelser. |
 | [Datadog](/docs/integrations/datadog) | Innkommende | Gjør varsler fra Datadog-monitorer om til hendelser. |
+| [Vercel](/docs/integrations/vercel) | Innkommende | Legg til OneUptime fra Vercel Marketplace: traces, logger, oppetidsmonitorer og en statusside for Vercel-prosjektene dine. |
 
 ### Sikkerhetsverktøy
 

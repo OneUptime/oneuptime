@@ -44,6 +44,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkommande | Gör aviseringar från Alertmanager till incidenter. |
 | [Grafana](/docs/integrations/grafana) | Inkommande | Gör larm från Grafana till incidenter. |
 | [Datadog](/docs/integrations/datadog) | Inkommande | Gör larm från Datadog-monitorer till incidenter. |
+| [Vercel](/docs/integrations/vercel) | Inkommande | Lägg till OneUptime från Vercel Marketplace: spår, loggar, drifttidsmonitorer och en statussida för dina Vercel-projekt. |
 
 ### Säkerhetsverktyg
 

@@ -44,6 +44,7 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | De entrada | Transforma as notificações do Alertmanager em incidentes. |
 | [Grafana](/docs/integrations/grafana) | De entrada | Transforma os alertas do Grafana em incidentes. |
 | [Datadog](/docs/integrations/datadog) | De entrada | Transforma os alertas dos monitores do Datadog em incidentes. |
+| [Vercel](/docs/integrations/vercel) | De entrada | Adicione o OneUptime pelo Vercel Marketplace: traces, logs, monitores de disponibilidade e uma página de status para seus projetos da Vercel. |
 
 ### Ferramentas de segurança
 

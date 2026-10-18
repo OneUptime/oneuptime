@@ -44,6 +44,7 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkomend | Maakt van Alertmanager-meldingen incidenten. |
 | [Grafana](/docs/integrations/grafana) | Inkomend | Maakt van Grafana-alerts incidenten. |
 | [Datadog](/docs/integrations/datadog) | Inkomend | Maakt van alerts van Datadog-monitors incidenten. |
+| [Vercel](/docs/integrations/vercel) | Inkomend | Voeg OneUptime toe vanuit de Vercel Marketplace: traces, logs, uptime-monitors en een statuspagina voor uw Vercel-projecten. |
 
 ### Beveiligingstools
 
