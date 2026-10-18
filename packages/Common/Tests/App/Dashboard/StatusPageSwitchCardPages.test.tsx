@@ -67,9 +67,12 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 import StatusPageEmbeddedStatus, {
+  EMBEDDED_STATUS_BADGE_EMBED_TEST_ID,
   EMBEDDED_STATUS_BADGE_SWITCH_TEST_ID,
+  getEmbeddedBadgeTokenButtonTitle,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmbeddedStatus";
 import StatusPageMcp, {
+  STATUS_PAGE_MCP_DOCS_PATH,
   STATUS_PAGE_MCP_SERVER_SWITCH_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Mcp";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
@@ -187,11 +190,12 @@ describe("Embedded Status: the badge is one switch", () => {
     ).toBe(control);
     expect(control).toHaveAttribute("aria-checked", "false");
     expect(screen.queryByRole("button", { name: "Edit Settings" })).toBeNull();
+    // Off: the Embed the Badge card says the one thing that is missing.
     expect(
-      screen.getByText(
-        "Enable the embedded status badge to view the live preview.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+    ).toHaveTextContent(
+      "Turn on Enable Embedded Status Badge to see the badge and the code to embed it.",
+    );
   });
 
   test("it reads the switch's column with the token, once", async () => {
@@ -221,15 +225,102 @@ describe("Embedded Status: the badge is one switch", () => {
     );
   });
 
-  test("on with no token yet, the preview asks for one", async () => {
+  test("on with no token yet, the preview asks for one, and the token card offers Create Token", async () => {
     stored.enableEmbeddedOverallStatus = true;
 
     const control: HTMLElement = await renderPage();
 
     expect(control).toHaveAttribute("aria-checked", "true");
     expect(
-      screen.getByText("Generate a security token to see the live preview."),
+      screen.getByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+    ).toHaveTextContent(
+      "Create a token to see the badge and the code to embed it.",
+    );
+    expect(screen.getByText("No token yet.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Create Token" }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Regenerate Token" })).toBeNull();
+  });
+
+  test("Create Token saves a new token at once, with no question: nothing is embedded yet", async () => {
+    stored.enableEmbeddedOverallStatus = true;
+
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create Token" }));
+    });
+    await flush();
+
+    // No confirmation: the token was saved straight away.
+    expect(screen.queryByText("Regenerate Security Token")).toBeNull();
+    expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    expect(updateCall().modelType).toBe(StatusPage);
+    expect(updateCall().id.toString()).toBe(STATUS_PAGE_ID);
+    expect(Object.keys(updateCall().data)).toEqual([
+      "embeddedOverallStatusToken",
+    ]);
+
+    const token: string = updateCall().data[
+      "embeddedOverallStatusToken"
+    ] as string;
+
+    expect(token.length).toBeGreaterThan(10);
+
+    // The badge and its code show with the new token.
+    expect(screen.getByAltText("Status Badge").getAttribute("src")).toContain(
+      `/status-page/badge/${STATUS_PAGE_ID}?token=${token}`,
+    );
+    expect(
+      screen.getByRole("button", { name: "Regenerate Token" }),
+    ).toBeInTheDocument();
+  });
+
+  test("Regenerate Token asks first: the current token stops working", async () => {
+    stored.enableEmbeddedOverallStatus = true;
+    stored.embeddedOverallStatusToken = "badge-token";
+
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Regenerate Token" }));
+    });
+    await flush();
+
+    expect(screen.getByText("Regenerate Security Token")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "The current token stops working, and embedded badges break until you update them with the new one.",
+      ),
+    ).toBeInTheDocument();
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("on with a token, Embed the Badge shows the badge, its HTML and its Markdown linked to the status page", async () => {
+    stored.enableEmbeddedOverallStatus = true;
+    stored.embeddedOverallStatusToken = "badge-token";
+
+    await renderPage();
+
+    const embed: HTMLElement = screen.getByTestId(
+      EMBEDDED_STATUS_BADGE_EMBED_TEST_ID,
+    );
+
+    expect(screen.getByText("Embed the Badge")).toBeInTheDocument();
+    expect(embed).toHaveTextContent("HTML");
+    expect(embed).toHaveTextContent("Markdown, linked to the status page");
+    expect(embed.textContent).toContain(
+      `<img src="`,
+    );
+    expect(embed.textContent).toContain(
+      `/status-page/badge/${STATUS_PAGE_ID}?token=badge-token" alt="Status Badge" />`,
+    );
+    // The Markdown links the badge to the page: its preview link, without a domain.
+    expect(embed.textContent).toContain(
+      `[![Status](`,
+    );
+    expect(embed.textContent).toContain(`/${STATUS_PAGE_ID})`);
   });
 
   test("a refused change puts the preview back with the switch", async () => {
@@ -248,10 +339,10 @@ describe("Embedded Status: the badge is one switch", () => {
     expect(control).toHaveAttribute("aria-checked", "false");
     expect(screen.queryByAltText("Status Badge")).toBeNull();
     expect(
-      screen.getByText(
-        "Enable the embedded status badge to view the live preview.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByTestId(EMBEDDED_STATUS_BADGE_EMBED_TEST_ID),
+    ).toHaveTextContent(
+      "Turn on Enable Embedded Status Badge to see the badge and the code to embed it.",
+    );
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Please upgrade your plan to Growth to access this feature",
     );
@@ -262,11 +353,16 @@ describe("Embedded Status: the badge is one switch", () => {
 
     await renderPage();
 
+    expect(screen.queryByText("No token yet.")).toBeNull();
     expect(
-      screen.queryByText(
-        "No token has been generated yet. Enable the embedded badge and use “Regenerate Token” to create one.",
-      ),
-    ).toBeNull();
+      screen.getByRole("button", { name: "Regenerate Token" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create Token" })).toBeNull();
+  });
+
+  test("the token button is Create Token until there is a token", () => {
+    expect(getEmbeddedBadgeTokenButtonTitle(false)).toBe("Create Token");
+    expect(getEmbeddedBadgeTokenButtonTitle(true)).toBe("Regenerate Token");
   });
 });
 
@@ -323,13 +419,55 @@ describe("MCP: the MCP server is one switch", () => {
     expect(control).toHaveAttribute("aria-checked", "false");
   });
 
-  test("the help below still names the switch it is about", async () => {
+  test("Connect an AI Assistant gives the server's address and this page's ID, and says what turning it off does not do", async () => {
     await renderPage();
 
-    expect(screen.getByText("When the toggle is off")).toBeInTheDocument();
-    // "Turning off Enable MCP Server gates all four tools..."
+    expect(screen.getByText("Connect an AI Assistant")).toBeInTheDocument();
     expect(
-      screen.getAllByText("Enable MCP Server", { exact: true }).length,
-    ).toBeGreaterThanOrEqual(2);
+      screen.getByText(
+        "Add this server to your AI assistant. It needs no API key.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "The assistant names this page by its ID, or by one of its custom domains:",
+      ),
+    ).toBeInTheDocument();
+    expect(document.body.textContent).toContain(STATUS_PAGE_ID);
+    expect(document.body.textContent).toContain(
+      "Turning the server off does not hide the page itself: who can see it is set on Access. The tools are listed in the MCP Server docs.",
+    );
+
+    // Access opens this page's Access screen; the docs open in a new tab.
+    const access: HTMLElement = screen.getByRole("link", { name: "Access" });
+
+    expect(access.getAttribute("href")).toContain(
+      `/status-pages/${STATUS_PAGE_ID}/authentication-settings`,
+    );
+
+    const docs: HTMLElement = screen.getByRole("link", {
+      name: "MCP Server docs",
+    });
+
+    expect(docs.getAttribute("href")).toBe(STATUS_PAGE_MCP_DOCS_PATH);
+    expect(STATUS_PAGE_MCP_DOCS_PATH).toBe("/docs/ai/mcp-server");
+  });
+
+  test("no manual of its own: the tools and the toggle are explained in the docs", async () => {
+    await renderPage();
+
+    expect(screen.queryByText("When the toggle is off")).toBeNull();
+    // Only the switch names itself.
+    expect(
+      screen.getAllByText("Enable MCP Server", { exact: true }),
+    ).toHaveLength(1);
+    // The connect cards, each one client.
+    for (const title of [
+      "Connect Claude Desktop",
+      "Connect Claude Code",
+      "Connect VS Code or Cursor",
+    ]) {
+      expect(screen.getByText(title)).toBeInTheDocument();
+    }
   });
 });

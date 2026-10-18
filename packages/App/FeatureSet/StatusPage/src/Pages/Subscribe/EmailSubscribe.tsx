@@ -136,9 +136,9 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
        * a signed-in reader, whose address it fills in. The model's English
        * column description ("Email address of the subscriber.") never shows.
        */
-      ...(signInEmail
-        ? { description: t("subscribe.email.signedInEmailDescription") }
-        : {}),
+      description: signInEmail
+        ? t("subscribe.email.signedInEmailDescription")
+        : "",
       hideColumnDescription: true,
       fieldType: FormFieldSchemaType.Email,
       required: true,

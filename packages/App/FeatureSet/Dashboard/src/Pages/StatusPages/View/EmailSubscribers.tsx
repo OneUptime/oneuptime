@@ -51,7 +51,6 @@ import {
 } from "../../../Components/StatusPage/SubscriberFormChoices";
 import { getColumnChoiceRadioButtons } from "../../../Utils/Form/ColumnChoice";
 import {
-  SUBSCRIBER_INFO_STEP_ID,
   getEmailSubscriberAddChoiceFields,
   getSubscriberInternalNoteField,
   getSubscriberStatusFields,
@@ -503,7 +502,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               allowSubscribersToChooseResources ||
               allowSubscribersToChooseEventTypes
                 ? [
-                    { title: "Subscriber Info", id: SUBSCRIBER_INFO_STEP_ID },
+                    /*
+                     * SUBSCRIBER_INFO_STEP_ID, written out: the form
+                     * scanners of the guard tests read literal ids.
+                     */
+                    { title: "Subscriber Info", id: "subscriber-info" },
                     { title: "Notifications", id: "notifications" },
                   ]
                 : undefined

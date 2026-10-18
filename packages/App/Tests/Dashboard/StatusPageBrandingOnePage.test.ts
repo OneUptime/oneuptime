@@ -495,6 +495,15 @@ describe("one place for each branding setting", () => {
     ],
   };
 
+  /*
+   * Files that say the word in a sentence for people, never the column: the
+   * custom code page says footer HTML replaces the footer's language and
+   * theme switches. Each is checked to use no column of that name.
+   */
+  const SAID_IN_WORDS: Record<string, Array<string>> = {
+    theme: ["Components/StatusPage/StatusPageCustomCodeCopy.ts"],
+  };
+
   const statusPageSources: Array<string> = [
     ...listSources(path.join(DASHBOARD_SRC, "Pages", "StatusPages")),
     ...listSources(path.join(DASHBOARD_SRC, "Components", "StatusPage")),
@@ -504,15 +513,32 @@ describe("one place for each branding setting", () => {
     "%s is named only where it is set",
     (column: string) => {
       const pattern: RegExp = new RegExp(`\\b${column}\\b`);
+      const inWords: Array<string> = SAID_IN_WORDS[column] || [];
 
       const naming: Array<string> = statusPageSources
         .filter((file: string): boolean => {
           return pattern.test(readSource(file));
         })
         .map(relative)
+        .filter((file: string): boolean => {
+          return !inWords.includes(file);
+        })
         .sort();
 
       expect(naming).toEqual(OWNERS[column]);
+
+      for (const file of inWords) {
+        const source: string = readSource(path.join(DASHBOARD_SRC, file));
+
+        // Said, not used: no property, access or key of that name.
+        expect([file, pattern.test(source)]).toEqual([file, true]);
+        expect([
+          file,
+          new RegExp(`\\b${column}\\s*:|\\.${column}\\b|["'\`]${column}["'\`]`).test(
+            source,
+          ),
+        ]).toEqual([file, false]);
+      }
     },
   );
 });

@@ -79,13 +79,16 @@ const SSO_PAGES: Array<SsoPage> = [
     ],
     requireSso: null,
   },
+  /*
+   * A status page's sign-in link to test a provider with is printed by the
+   * Test Sign-In card both pages draw (STATUS_PAGE_SIGN_IN_TEST below).
+   */
   {
     name: "Status page > SSO",
     file: ["Pages", "StatusPages", "View", "SSO.tsx"],
     printedUrls: [
       "`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`",
       "`/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`",
-      "`${STATUS_PAGE_URL.toString()}/${modelId}/sso`",
     ],
     requireSso: "status-page-switch",
   },
@@ -95,11 +98,37 @@ const SSO_PAGES: Array<SsoPage> = [
     printedUrls: [
       "`/status-page-oidc-callback/${modelId.toString()}/${showOidcConfigId}`",
       "`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showOidcConfigId}`",
-      "`${STATUS_PAGE_URL.toString()}/${modelId}/sso`",
     ],
     requireSso: null,
   },
 ];
+
+// The Test Sign-In card of a status page's SSO and OIDC pages.
+const STATUS_PAGE_SIGN_IN_TEST: Array<string> = [
+  "Components",
+  "StatusPage",
+  "StatusPageSignInTestCard.tsx",
+];
+
+describe("Status page > Test Sign-In", () => {
+  test("prints the status page's sign-in link byte for byte", () => {
+    expect(readCode(...STATUS_PAGE_SIGN_IN_TEST)).toContain(
+      "`${STATUS_PAGE_URL.toString()}/${statusPageId.toString()}/sso`",
+    );
+  });
+
+  test.each([
+    ["Pages", "StatusPages", "View", "SSO.tsx"],
+    ["Pages", "StatusPages", "View", "OIDC.tsx"],
+  ])(
+    "%s/%s/%s/%s draws it once there is a provider to test",
+    (...file: Array<string>) => {
+      expect(readCode(...file)).toContain(
+        "{providerCount > 0 ? ( <StatusPageSignInTestCard statusPageId={modelId} /> ) : ( <></> )}",
+      );
+    },
+  );
+});
 
 /*
  * What would make a single sign-on page depend on the edition or the
