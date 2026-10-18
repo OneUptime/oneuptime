@@ -92,7 +92,9 @@ export const getSmtpAuthTypeTitle: (value: unknown) => string = (
     return choice.title;
   }
 
-  return value ? String(value) : (SMTP_AUTH_TYPE_CHOICES[0] as RadioButton).title;
+  return value
+    ? String(value)
+    : (SMTP_AUTH_TYPE_CHOICES[0] as RadioButton).title;
 };
 
 const Settings: FunctionComponent = (): ReactElement => {
@@ -345,7 +347,9 @@ const Settings: FunctionComponent = (): ReactElement => {
                 title: "Authentication Type",
                 fieldType: FieldType.Element,
                 getElement: (item: GlobalConfig): ReactElement => {
-                  return <span>{t(getSmtpAuthTypeTitle(item.smtpAuthType))}</span>;
+                  return (
+                    <span>{t(getSmtpAuthTypeTitle(item.smtpAuthType))}</span>
+                  );
                 },
                 showIf: (item: GlobalConfig): boolean => {
                   return showsSmtpServerFields(
