@@ -215,7 +215,7 @@ describe("the on-call schedule layer's guide", () => {
 
   test("says what leaving both out gives, and from which version", () => {
     expect(layerDoc).toContain("Both are optional.");
-    expect(layerDoc).toContain("OneUptime 14.0.72 and later");
+    expect(layerDoc).toContain("OneUptime 14.0.73 and later");
   });
 });
 

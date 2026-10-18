@@ -1120,6 +1120,19 @@ mentions the key in; its permissions are `contents: read`, with no `${{ }}`
 in its scripts; and it installs the `mcp-publisher` it pins, checking the
 archive's sha256 before unpacking it.
 
+### `ChatGPTPluginPackage.test.js`
+
+`npm run build-chatgpt-plugin` (`Scripts/MCP/BuildChatGPTPlugin.sh`) builds
+the ZIP OneUptime uploads to the ChatGPT plugin directory from
+`packages/App/FeatureSet/MCP/ChatGPTPlugin`. The suite runs the script and
+reads the ZIP back: every file of the package but its README, at the root of
+the archive, byte for byte; a rebuild replaces an earlier ZIP instead of adding
+to it; and a relative output path lands where the command was typed, through
+npm (`INIT_CWD`) as well as bash. It needs `zip` and `unzip`: without them the
+ZIP checks are skipped with the reason logged, except in CI, where they fail.
+What the package says is held by
+`packages/App/FeatureSet/MCP/Tests/ChatGPTPlugin.test.ts`.
+
 ### `agent-ebpf-e2e/`
 
 Not part of `npm test`: it installs the Kubernetes agent chart on a throwaway
