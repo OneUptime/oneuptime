@@ -127,13 +127,13 @@ afterAll(async () => {
 });
 
 describe("the Enterprise Edition hands core its SCIM routers only", () => {
-  test("getIdentityRouters is exactly the Identity area's two SCIM routers", () => {
+  test("getIdentityRouters is exactly the Identity area's two SCIM routers and the SCIM token endpoint", () => {
     expect(EnterpriseModule.getIdentityRouters()).toEqual(
       IDENTITY_ROUTERS.map((entry: { router: ExpressRouter }) => {
         return entry.router;
       }),
     );
-    expect(EnterpriseModule.getIdentityRouters()).toHaveLength(2);
+    expect(EnterpriseModule.getIdentityRouters()).toHaveLength(3);
   });
 
   test("none of them is a core single sign-on router", () => {

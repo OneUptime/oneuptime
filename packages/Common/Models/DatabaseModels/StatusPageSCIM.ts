@@ -314,9 +314,11 @@ export default class StatusPageSCIM extends BaseModel {
    * id; the client secret is made by OneUptime, shown once, and kept only as
    * its SHA-256 hash. A secret works for a year. Replacing it keeps the one
    * before working until that one expires or is deleted, so the identity
-   * provider can be moved to the new secret without a gap. Like the bearer token, they are made and replaced by whoever may edit the status page's single sign-on.
-   * The token endpoint and the SCIM routes read these as root (ee/Server/
-   * Identity/Utils/SCIMOAuth.ts).
+   * provider can be moved to the new secret without a gap. Like the bearer
+   * token, they are made and replaced by whoever may edit the status page's
+   * single sign-on, and when they expire is read by whoever may read that
+   * token. The token endpoint and the SCIM routes read these as root
+   * (ee/Server/Identity/Utils/SCIMOAuth.ts).
    */
   @ColumnAccessControl({
     create: [
@@ -355,7 +357,7 @@ export default class StatusPageSCIM extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.EditStatusPageSSO,
+      Permission.ReadStatusPageSSO,
     ],
     update: [
       Permission.ProjectOwner,
@@ -413,7 +415,7 @@ export default class StatusPageSCIM extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.EditStatusPageSSO,
+      Permission.ReadStatusPageSSO,
     ],
     update: [
       Permission.ProjectOwner,

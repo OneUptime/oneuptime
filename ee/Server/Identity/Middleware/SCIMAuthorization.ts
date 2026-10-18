@@ -13,6 +13,12 @@ import {
   createStatusPageSCIMLog,
 } from "../Utils/SCIMLogger";
 import { sendScimError } from "../Utils/SCIMUtils";
+import {
+  isLiveScimClientSecretFingerprint,
+  readScimAccessToken,
+  ScimAccessTokenClaims,
+} from "../Utils/SCIMOAuth";
+import OneUptimeDate from "Common/Types/Date";
 import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
 import PlanCutoffCredentialAccess from "Common/Server/Utils/Billing/PlanCutoffCredentialAccess";
@@ -50,6 +56,22 @@ import logger, {
  * Utils/SCIMBelowPlan's to say.
  */
 export { SCIM_BELOW_PLAN_STATUS, getScimBelowPlanResponse };
+
+// The client secrets an access token is held to, read with its connection.
+const CLIENT_SECRETS_SELECT: {
+  oauthClientSecretHash: true;
+  oauthClientSecretExpiresAt: true;
+  oauthPreviousClientSecretHash: true;
+  oauthPreviousClientSecretExpiresAt: true;
+} = {
+  oauthClientSecretHash: true,
+  oauthClientSecretExpiresAt: true,
+  oauthPreviousClientSecretHash: true,
+  oauthPreviousClientSecretExpiresAt: true,
+};
+
+export const ACCESS_TOKEN_SECRET_ENDED_MESSAGE: string =
+  "The client secret this access token was issued with has been replaced, deleted or has expired. Request a new access token with a current client secret.";
 
 // What getMissingPlanOrRefuse returns once it has answered the request.
 type Refused = "refused";
@@ -122,27 +144,49 @@ export default class SCIMMiddleware {
       }
 
       // Try to find Project SCIM configuration first
+      /*
+       * An OAuth 2.0 access token (Utils/SCIMOAuth.ts) names its connection
+       * and the secret it was issued with: the connection is found by id
+       * alone, and held to that secret still being one of its own. A
+       * connection's own bearer token is matched in the query itself, as
+       * it always was. A token shaped like an access token that is not one
+       * is tried as a bearer token, so no bearer token is ever refused for
+       * its shape.
+       */
+      const accessToken: ScimAccessTokenClaims | null = readScimAccessToken({
+        token: bearerToken,
+        connectionId: scimId,
+      });
+
       const projectScimConfig: ProjectSCIM | null =
-        await ProjectSCIMService.findOneBy({
-          query: {
-            _id: new ObjectID(scimId),
-            bearerToken: bearerToken,
-          },
-          select: {
-            _id: true,
-            projectId: true,
-            autoProvisionUsers: true,
-            autoDeprovisionUsers: true,
-            enablePushGroups: true,
-            teams: {
-              _id: true,
-              name: true,
-            },
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        !accessToken || accessToken.connectionType === "project"
+          ? SCIMMiddleware.withLiveSecret(
+              accessToken,
+              await ProjectSCIMService.findOneBy({
+                query: accessToken
+                  ? { _id: new ObjectID(scimId) }
+                  : {
+                      _id: new ObjectID(scimId),
+                      bearerToken: bearerToken,
+                    },
+                select: {
+                  _id: true,
+                  projectId: true,
+                  autoProvisionUsers: true,
+                  autoDeprovisionUsers: true,
+                  enablePushGroups: true,
+                  teams: {
+                    _id: true,
+                    name: true,
+                  },
+                  ...(accessToken ? CLIENT_SECRETS_SELECT : {}),
+                },
+                props: {
+                  isRoot: true,
+                },
+              }),
+            )
+          : null;
 
       if (projectScimConfig) {
         const projectMissingPlan: PlanType | null | Refused =
@@ -193,22 +237,30 @@ export default class SCIMMiddleware {
 
       // If not found, try Status Page SCIM configuration
       const statusPageScimConfig: StatusPageSCIM | null =
-        await StatusPageSCIMService.findOneBy({
-          query: {
-            _id: new ObjectID(scimId),
-            bearerToken: bearerToken,
-          },
-          select: {
-            _id: true,
-            projectId: true,
-            statusPageId: true,
-            autoProvisionUsers: true,
-            autoDeprovisionUsers: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
+        !accessToken || accessToken.connectionType === "status-page"
+          ? SCIMMiddleware.withLiveSecret(
+              accessToken,
+              await StatusPageSCIMService.findOneBy({
+                query: accessToken
+                  ? { _id: new ObjectID(scimId) }
+                  : {
+                      _id: new ObjectID(scimId),
+                      bearerToken: bearerToken,
+                    },
+                select: {
+                  _id: true,
+                  projectId: true,
+                  statusPageId: true,
+                  autoProvisionUsers: true,
+                  autoDeprovisionUsers: true,
+                  ...(accessToken ? CLIENT_SECRETS_SELECT : {}),
+                },
+                props: {
+                  isRoot: true,
+                },
+              }),
+            )
+          : null;
 
       if (statusPageScimConfig) {
         const statusPageMissingPlan: PlanType | null | Refused =
@@ -285,6 +337,34 @@ export default class SCIMMiddleware {
        */
       return sendScimError(req, res, err);
     }
+  }
+
+  /*
+   * The connection an access token found, while the secret it was issued
+   * with is still one of the connection's own: replacing or deleting the
+   * secret, or its expiring, ends the tokens it gave at once. Without an
+   * access token - a connection's own bearer token, matched in the query -
+   * the connection as found.
+   */
+  private static withLiveSecret<T extends ProjectSCIM | StatusPageSCIM | null>(
+    accessToken: ScimAccessTokenClaims | null,
+    connection: T,
+  ): T | null {
+    if (!accessToken || !connection) {
+      return connection;
+    }
+
+    if (
+      !isLiveScimClientSecretFingerprint({
+        secretFingerprint: accessToken.secretFingerprint,
+        connection: connection,
+        now: OneUptimeDate.getCurrentDate(),
+      })
+    ) {
+      throw new NotAuthorizedException(ACCESS_TOKEN_SECRET_ENDED_MESSAGE);
+    }
+
+    return connection;
   }
 
   /*

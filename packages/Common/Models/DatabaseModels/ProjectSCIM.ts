@@ -235,9 +235,10 @@ export default class ProjectSCIM extends BaseModel {
    * id; the client secret is made by OneUptime, shown once, and kept only as
    * its SHA-256 hash. A secret works for a year. Replacing it keeps the one
    * before working until that one expires or is deleted, so the identity
-   * provider can be moved to the new secret without a gap. Like the bearer token, they are a project owner's to make and replace.
-   * The token endpoint and the SCIM routes read these as root (ee/Server/
-   * Identity/Utils/SCIMOAuth.ts).
+   * provider can be moved to the new secret without a gap. Like the bearer
+   * token, they are a project owner's to make, replace and see. The token
+   * endpoint and the SCIM routes read these as root (ee/Server/Identity/
+   * Utils/SCIMOAuth.ts).
    */
   @ColumnAccessControl({
     create: [Permission.ProjectOwner],

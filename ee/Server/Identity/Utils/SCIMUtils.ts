@@ -450,6 +450,14 @@ export const generateServiceProviderConfig: (
         description: "Authentication scheme using HTTP Bearer Token",
         primary: true,
       },
+      {
+        type: "oauthbearertoken",
+        name: "OAuth Bearer Token",
+        description:
+          "An OAuth 2.0 access token from the token endpoint, for the connection's client ID and client secret (client credentials grant).",
+        specUri: "https://www.rfc-editor.org/rfc/rfc6749",
+        documentationUri: documentationUrl,
+      },
     ],
     meta: {
       location: `${baseUrl}${endpointPath}/ServiceProviderConfig`,

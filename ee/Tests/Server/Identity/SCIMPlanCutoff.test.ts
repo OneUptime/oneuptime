@@ -197,24 +197,32 @@ const getRoutes: (router: ExpressRouter) => Array<[string, string]> = (
   return routes;
 };
 
-const ROUTES: Array<ScimRoute> = IDENTITY_ROUTERS.flatMap(
-  (entry: IdentityRouterEntry): Array<ScimRoute> => {
-    return getRoutes(entry.router).map(
-      ([method, pattern]: [string, string]): ScimRoute => {
-        return {
-          method,
-          pattern,
-          path: pattern
-            .replace(":projectScimId", PROJECT_SCIM_ID)
-            .replace(":statusPageScimId", STATUS_PAGE_SCIM_ID)
-            .replace(":userId", RECORD_ID)
-            .replace(":groupId", RECORD_ID),
-          kind: pattern.startsWith("/status-page-scim/") ? "status" : "project",
-        };
-      },
-    );
+/*
+ * The routes behind the SCIM middleware. The token endpoint of SCIM's OAuth
+ * 2.0 client credentials (SCIMOAuthToken) is not one: it issues tokens on
+ * every plan, as a connection below the plan still takes access away and
+ * needs one to (SCIMOAuthToken.test.ts).
+ */
+const ROUTES: Array<ScimRoute> = IDENTITY_ROUTERS.filter(
+  (entry: IdentityRouterEntry): boolean => {
+    return entry.name !== "SCIMOAuthToken";
   },
-);
+).flatMap((entry: IdentityRouterEntry): Array<ScimRoute> => {
+  return getRoutes(entry.router).map(
+    ([method, pattern]: [string, string]): ScimRoute => {
+      return {
+        method,
+        pattern,
+        path: pattern
+          .replace(":projectScimId", PROJECT_SCIM_ID)
+          .replace(":statusPageScimId", STATUS_PAGE_SCIM_ID)
+          .replace(":userId", RECORD_ID)
+          .replace(":groupId", RECORD_ID),
+        kind: pattern.startsWith("/status-page-scim/") ? "status" : "project",
+      };
+    },
+  );
+});
 
 /*
  * What each route does below the plan, said once, by hand: the door refuses
