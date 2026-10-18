@@ -100,6 +100,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -293,6 +294,7 @@ const ID = {
   step: (number) => uuid("84000000", number),
   networkDevice: (number) => uuid("85000000", number),
   secret: (number) => uuid("86000000", number),
+  kubernetesCluster: (number) => uuid("87000000", number),
 };
 let rowCounter = 0;
 function rowId() {
@@ -659,6 +661,17 @@ for (const definition of PROBE_DEFINITIONS) {
     connectionStatus: ProbeConnectionStatus.Connected,
   });
 }
+
+/*
+ * The cluster a Kubernetes monitor's criteria step offers (its cluster
+ * picker reads the KubernetesCluster table): the one the Kubernetes monitor
+ * below watches.
+ */
+insert(KubernetesCluster, {
+  _id: ID.kubernetesCluster(1),
+  name: "Production cluster (eu-west-1)",
+  clusterIdentifier: "prod-eu-west-1",
+});
 
 /*
  * The one global probe, served by GET /probe/global-probes with ?probes=

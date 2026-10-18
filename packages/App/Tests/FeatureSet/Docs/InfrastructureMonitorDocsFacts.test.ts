@@ -81,6 +81,11 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { KUBERNETES_TEMPLATE_CATEGORIES } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
+import {
+  ALERT_TEMPLATE_TIME_RANGE,
+  AlertTemplateCategory,
+} from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 import fs from "fs";
 import path from "path";
 
@@ -1014,9 +1019,16 @@ describe(`${KUBERNETES}: the template table`, () => {
       `${FORMS}/KubernetesMonitor/KubernetesTemplatePicker.tsx`,
     );
 
-    for (const label of Object.values(CATEGORY_LABELS)) {
-      expect(picker).toContain(`label: "${label}"`);
-    }
+    expect(picker).toContain("categories={KUBERNETES_TEMPLATE_CATEGORIES}");
+    expect(
+      Object.fromEntries(
+        KUBERNETES_TEMPLATE_CATEGORIES.map(
+          (category: AlertTemplateCategory): [string, string] => {
+            return [category.category, category.label];
+          },
+        ),
+      ),
+    ).toEqual(CATEGORY_LABELS);
   });
 
   it("states every threshold and long window a template fires on", () => {
@@ -1441,12 +1453,23 @@ describe("creating a telemetry-backed infrastructure monitor", () => {
   });
 
   it("a template's names stay as the picker shows them, and its Time Range stays editable", () => {
+    /*
+     * Once a template is picked, Template Configuration (one shared panel)
+     * explains it and keeps its Time Range editable.
+     */
+    const configuration: string = source(
+      `${FORMS}/AlertTemplatePicker/AlertTemplateConfiguration.tsx`,
+    );
+
+    expect(ALERT_TEMPLATE_TIME_RANGE).toBe("Time Range");
+    expect(configuration).toContain("title={ALERT_TEMPLATE_TIME_RANGE}");
+    expect(configuration).toContain("<RollingTimePicker");
+
     for (const facts of CREATE_FACTS) {
       const form: string = source(`${FORMS}/${facts.form}`);
 
-      expect(form).toContain(
-        "The following settings have been auto-configured. You can adjust the time range below.",
-      );
+      expect(form).toContain("<AlertTemplateConfiguration");
+      expect(form).toContain("onRollingTimeChange={");
       expect(englishPage(facts.page)).toContain(
         "You can still change the **Time Range**.",
       );

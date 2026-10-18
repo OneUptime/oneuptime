@@ -492,7 +492,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Resource Scope"
-                description={"Select the scope of resources to monitor."}
+                description={
+                  "The level the metric is watched at. It decides which filters you see."
+                }
                 required={true}
               />
               <Dropdown
@@ -609,7 +611,9 @@ const KubernetesMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div>
           <FieldLabelElement
             title="Resource Scope"
-            description={"Select the scope of resources to monitor."}
+            description={
+              "The level the metric is watched at. It decides which filters you see."
+            }
             required={true}
           />
           <Dropdown

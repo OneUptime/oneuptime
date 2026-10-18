@@ -596,6 +596,239 @@ test.describe("Create Monitor, start to finish", () => {
 });
 
 /*
+ * QUICK SETUP'S ALERT TEMPLATES, ON AN INFRASTRUCTURE MONITOR.
+ *
+ * Kubernetes (and nine other infrastructure types) start their criteria
+ * step on Quick Setup: pick a template, and it fills in the metric, the
+ * thresholds and the criteria. The list carried every template's whole
+ * description - up to 509 characters of metric names and formulas,
+ * seventeen cards one under the other. Now each template is one compact
+ * row (name, severity, one line saying when it fires), two to a line on a
+ * wide screen, and the picked template's full description is under
+ * Template Configuration, beside its Time Range.
+ */
+test.describe("Quick Setup's alert templates", () => {
+  const KUBERNETES_TEMPLATE_COUNT: number = 17;
+  const ETCD_DESCRIPTION_START: string =
+    "Requires the agent's control-plane scrape";
+
+  async function openKubernetesQuickSetup(
+    page: Page,
+    query: string = "",
+  ): Promise<Locator> {
+    const form: Locator = await openCreate(
+      page,
+      `?monitorType=Kubernetes${query ? `&${query}` : ""}`,
+    );
+
+    await nameInput(form).fill("Production cluster health");
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+
+    const templates: Locator = page.getByRole("radiogroup", {
+      name: "Alert templates",
+    });
+    await expect(templates).toBeVisible({ timeout: 60000 });
+
+    return form;
+  }
+
+  test("one row per template, two to a line, and no long description on the list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    await openKubernetesQuickSetup(page);
+
+    const rows: Locator = page
+      .getByRole("radiogroup", { name: "Alert templates" })
+      .getByRole("radio");
+    await expect(rows).toHaveCount(KUBERNETES_TEMPLATE_COUNT);
+
+    // Under the picker's headings, in its order.
+    await expect(
+      page.getByTestId("alert-template-picker").getByRole("heading"),
+    ).toHaveText([
+      "Workload",
+      "Node",
+      "Control Plane",
+      "Storage",
+      "Scheduling",
+    ]);
+
+    // Two to a line: the first two Workload templates share a top.
+    const first: { x: number; y: number; width: number; height: number } =
+      await boxOf(rows.nth(0));
+    const second: { x: number; y: number; width: number; height: number } =
+      await boxOf(rows.nth(1));
+    expect(Math.abs(first.y - second.y)).toBeLessThan(2);
+    expect(second.x).toBeGreaterThan(first.x + first.width - 2);
+
+    // Compact: a name line and a summary of one or two short lines.
+    for (const row of await rows.all()) {
+      expect((await boxOf(row)).height).toBeLessThan(90);
+    }
+
+    // Each says in one line when it fires; the formula stays off the list.
+    await expect(
+      page.getByTestId("alert-template-summary-k8s-high-cpu"),
+    ).toHaveText("A node uses more than 90% of its allocatable CPU.");
+    await expect(
+      page.getByText(ETCD_DESCRIPTION_START, { exact: false }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText("k8s.node.cpu.usage", { exact: false }),
+    ).toHaveCount(0);
+
+    // Nothing is picked yet, and the list is one tab stop.
+    for (const row of await rows.all()) {
+      await expect(row).toHaveAttribute("aria-checked", "false");
+    }
+    await expect(rows.nth(0)).toHaveAttribute("tabindex", "0");
+    await expect(rows.nth(1)).toHaveAttribute("tabindex", "-1");
+
+    await screenshot(page, "create-monitor-alert-templates");
+  });
+
+  test("a picked template explains itself, keeps its Time Range, and is what Create Monitor sends", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(150000);
+
+    const form: Locator = await openKubernetesQuickSetup(page);
+
+    // The cluster the monitor watches.
+    await form
+      .locator(".ou-select__control", { hasText: "Select a cluster..." })
+      .click();
+    await page
+      .locator(".ou-select__option", {
+        hasText: "Production cluster (eu-west-1)",
+      })
+      .click();
+
+    const etcd: Locator = page.getByTestId("alert-template-k8s-etcd-no-leader");
+    await etcd.click();
+    await expect(etcd).toHaveAttribute("aria-checked", "true");
+
+    const configuration: Locator = page.getByTestId(
+      "alert-template-configuration",
+    );
+    await expect(configuration).toBeVisible();
+    await expect(
+      configuration.getByRole("heading", { name: "Template Configuration" }),
+    ).toBeVisible();
+    await expect(
+      configuration.getByTestId("alert-template-configuration-name"),
+    ).toHaveText("etcd No Leader");
+    await expect(
+      configuration.getByTestId("alert-template-description"),
+    ).toContainText(ETCD_DESCRIPTION_START);
+    await expect(configuration.getByText("Time Range")).toBeVisible();
+
+    // The panel sits right under the list, not a screen away.
+    const lastRow: { y: number; height: number } = await boxOf(
+      page
+        .getByRole("radiogroup", { name: "Alert templates" })
+        .getByRole("radio")
+        .last(),
+    );
+    const panel: { y: number } = await boxOf(configuration);
+    expect(panel.y - (lastRow.y + lastRow.height)).toBeLessThan(40);
+
+    // The template replaced the criteria with its own.
+    await expect(
+      page.getByTestId("monitor-criteria-header").first(),
+    ).toContainText("etcd No Leader");
+
+    await screenshot(page, "create-monitor-alert-template-picked");
+
+    await page.getByTestId("Create Monitor").click();
+    await expect(page).toHaveURL(
+      `/dashboard/${PROJECT_ID}/monitors/${CREATED_MONITOR_ID}`,
+      { timeout: 30000 },
+    );
+
+    const creates: Array<RecordedCreate> = await createsRecorded(page);
+    expect(creates).toHaveLength(1);
+    expect(creates[0]!.data["monitorType"]).toBe("Kubernetes");
+
+    const steps: string = JSON.stringify(creates[0]!.data["monitorSteps"]);
+    expect(steps).toContain("prod-eu-west-1");
+    expect(steps).toContain("etcd No Leader");
+  });
+
+  test("fits a phone: one row a line, nothing wider than the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await openKubernetesQuickSetup(page);
+
+    const rows: Locator = page
+      .getByRole("radiogroup", { name: "Alert templates" })
+      .getByRole("radio");
+    const first: { x: number; y: number; width: number } = await boxOf(
+      rows.nth(0),
+    );
+    const second: { x: number; y: number } = await boxOf(rows.nth(1));
+    expect(second.y).toBeGreaterThan(first.y);
+
+    for (const row of await rows.all()) {
+      const box: { x: number; width: number } = await boxOf(row);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(390);
+    }
+
+    await rows.nth(2).click();
+    const configuration: { x: number; width: number } = await boxOf(
+      page.getByTestId("alert-template-configuration"),
+    );
+    expect(configuration.x + configuration.width).toBeLessThanOrEqual(390);
+
+    await screenshot(page, "create-monitor-alert-templates-phone");
+  });
+
+  test("dark mode: rows, the picked row and the panel sit on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(120000);
+
+    await openKubernetesQuickSetup(page, "theme=dark");
+
+    const row: Locator = page.getByTestId("alert-template-k8s-high-cpu");
+    expect(
+      await row.evaluate((element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      }),
+    ).not.toBe(WHITE_RGB);
+
+    await row.click();
+
+    for (const element of [
+      row,
+      page.getByTestId("alert-template-configuration"),
+    ]) {
+      expect(
+        await element.evaluate((node: Element): string => {
+          return getComputedStyle(node).backgroundColor;
+        }),
+      ).not.toBe(WHITE_RGB);
+    }
+
+    await screenshot(page, "create-monitor-alert-templates-dark");
+  });
+});
+
+/*
  * PLAINER FIELDS ON THE CRITERIA STEP.
  *
  * The maintainer, on a switch whose help explained two modes: "Shouldnt this
