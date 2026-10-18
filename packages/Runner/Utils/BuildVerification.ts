@@ -468,9 +468,9 @@ export default class BuildVerification {
 
     /*
      * The shared in-cluster Runner never runs a repository's configured
-     * commands: they are authored by one project and would execute on a host
-     * shared with every other project (see RUNS_PROJECT_AUTHORED_COMMANDS in
-     * Config). The fix is still written and opened for review; the
+     * commands: it serves every project, so nothing one project configures
+     * runs on it (see RUNS_PROJECT_AUTHORED_COMMANDS in Config). The fix is
+     * still written and opened for review; the
      * repository's own CI and the reviewer check it. Reported honestly as
      * Skipped, the same status a repository with no commands gets, so the
      * pull request never implies a green build. A Runner of the project's

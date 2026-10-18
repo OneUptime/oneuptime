@@ -78,13 +78,11 @@ x-common-variables: &common-variables
 
 # The environment of the shared Runner (the `runner` service below). It serves
 # AI code fixes for every project that has no Runner of its own, so it holds
-# ONLY what it needs to reach the OneUptime server and report telemetry — never
-# the server's runtime secrets (database, ClickHouse, encryption, GitHub App,
-# billing, chat and marketplace credentials). It reaches everything over the
-# network, authenticated with ONEUPTIME_SECRET (its cluster key) and
-# ONEUPTIME_RUNNER_KEY, and its LLM calls are mediated by the server. This is
-# deliberately NOT a merge of common-runtime-variables; the SharedRunnerMinimalEnv
-# ops test holds the list minimal.
+# ONLY what it needs: its OneUptime URL, its keys and its telemetry settings,
+# never the server's own settings. It reaches the server with ONEUPTIME_SECRET
+# (its cluster key) and ONEUPTIME_RUNNER_KEY, and its LLM calls are mediated by
+# the server. This is deliberately NOT a merge of common-runtime-variables; the
+# SharedRunnerMinimalEnv ops test holds the list minimal.
 x-common-runner-variables: &common-runner-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
   LOG_LEVEL: ${LOG_LEVEL}

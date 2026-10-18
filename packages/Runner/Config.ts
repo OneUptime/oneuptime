@@ -301,16 +301,14 @@ export const CLUSTER_ENABLE_CODE_FIXES: boolean =
  * that project's own repository commands — the same trust model as a runbook
  * Bash step, which this Runner already executes.
  *
- * The SHARED in-cluster Runner must NOT. It serves AI code fixes for every
- * project that has no Runner of its own, so a command one project configures
- * (or a model composes from that project's untrusted repository and incident
- * text) would run on a host shared with every other project — and, on a
- * self-hosted install, next to the installation's own settings. Running it
- * there is arbitrary code execution by one tenant on shared infrastructure,
- * so the shared Runner instead writes the fix with its file tools and opens
- * it for review; the repository's own CI and the human reviewer run the
- * tests. The kubernetes-agent Runner never runs the code-fix loop at all
- * (its filesystem is read-only), so cluster scope is the whole condition.
+ * The SHARED in-cluster Runner does NOT. It serves AI code fixes for every
+ * project that has no Runner of its own, so nothing one project configures,
+ * and nothing a model composes, runs on it. It writes the fix with its file
+ * tools (which stay inside the repository's working tree, see
+ * WorkspaceFileAccess) and opens it for review; the repository's own CI and
+ * the human reviewer run the tests. The kubernetes-agent Runner never runs
+ * the code-fix loop at all (its filesystem is read-only), so cluster scope is
+ * the whole condition.
  */
 export const RUNS_PROJECT_AUTHORED_COMMANDS: boolean = !IS_CLUSTER_SCOPED;
 

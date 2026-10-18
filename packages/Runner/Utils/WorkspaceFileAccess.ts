@@ -4,21 +4,20 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Where the code agent's file tools may read and write.
- *
- * CodeAgentWorkspaceGuard.resolveWorkspacePath checks a path as text. That
- * is not enough on its own: a repository can carry links, and a link inside
- * the working tree can lead anywhere on the host. The file tools are the
- * agent's whole surface on the shared in-cluster Runner (it runs no shell
- * there), so they hold the boundary by where a path really leads:
+ * Where the code agent's file tools may read and write: inside the
+ * workspace, judged by where a path really leads (every link resolved), not
+ * by its text alone (CodeAgentWorkspaceGuard.resolveWorkspacePath checks the
+ * text first). The file tools are the agent's whole surface on the shared
+ * in-cluster Runner (it runs no shell there), so they hold this boundary
+ * themselves:
  *
  *   - Reads (read_file, list_directory) follow links only while they stay
  *     inside the workspace. A link that leads out of it, or to nothing, is
  *     refused.
  *   - Writes (write_file) land only in the working tree: never outside the
  *     workspace, never through a link that leads to nothing, and never in a
- *     repository's git metadata (`.git`), which the pipeline's own git
- *     commands read after the agent is done.
+ *     repository's git metadata (`.git`): the pipeline owns the
+ *     repository's git state.
  *
  * The answer is the real location (links resolved), and the tools act on
  * that location, so what was checked is what is touched.

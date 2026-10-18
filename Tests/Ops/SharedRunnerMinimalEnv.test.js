@@ -6,17 +6,15 @@
  * hold ONLY what it needs to reach the OneUptime server and report telemetry:
  * never the server's runtime secrets.
  *
- * It reaches everything over the network, authenticated with ONEUPTIME_SECRET
- * (its cluster key) and ONEUPTIME_RUNNER_KEY; its LLM calls are mediated by
- * the server. So its environment is x-common-runner-variables plus a few
- * service-level keys — deliberately NOT a merge of x-common-runtime-variables,
- * which carries the database, ClickHouse, encryption, GitHub App, billing,
- * chat and marketplace credentials the app runs with.
+ * It reaches the server with ONEUPTIME_SECRET (its cluster key) and
+ * ONEUPTIME_RUNNER_KEY; its LLM calls are mediated by the server. So its
+ * environment is x-common-runner-variables plus a few service-level keys —
+ * deliberately NOT a merge of x-common-runtime-variables, the app's whole
+ * environment.
  *
  * This test holds that: it fails the moment the runner service is wired to the
- * full runtime env again, so the leak cannot come back unnoticed. It reads the
- * compose file directly (js-yaml resolves the `<<` anchor merge), so it needs
- * no Docker.
+ * app's environment again. It reads the compose file directly (js-yaml resolves
+ * the `<<` anchor merge), so it needs no Docker.
  */
 
 const fs = require("fs");

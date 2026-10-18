@@ -4,11 +4,8 @@
  * commands or a model-composed shell command.
  *
  * It serves AI code fixes for EVERY project that has no Runner of its own, so
- * a command one project configures (its Setup/Build/Test command) or a model
- * composes from that project's untrusted repository and incident text would
- * run on a host shared with every other project — and, on a self-hosted
- * install, next to the installation's own settings. That is arbitrary code
- * execution by one tenant on shared infrastructure.
+ * nothing one project configures (its Setup/Build/Test command) and nothing a
+ * model composes runs on it.
  *
  * These tests drive the REAL code against a REAL git repository on disk and
  * assert on what ended up in the working tree: a command that WOULD run

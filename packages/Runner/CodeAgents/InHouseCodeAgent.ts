@@ -593,8 +593,8 @@ export default class InHouseCodeAgent implements CodeAgent {
     const content: string = args["content"];
     /*
      * Writes land in the working tree only: never outside the workspace
-     * (links included) and never in the repository's git metadata, which
-     * the pipeline's own git commands read once the agent is done.
+     * (links included) and never in the repository's git metadata (the
+     * pipeline owns the repository's git state).
      */
     const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForWrite(
       workspaceRoot,
@@ -735,11 +735,10 @@ export default class InHouseCodeAgent implements CodeAgent {
 
     /*
      * The shared in-cluster Runner never runs a shell command: it serves
-     * every project, so a command composed from one project's untrusted
-     * repository and incident text would execute on a host shared with every
-     * other project (see RUNS_PROJECT_AUTHORED_COMMANDS). The tool is not
-     * offered there, but a model can still emit the call, so refuse it here
-     * BEFORE anything spawns — this, not the tool list, is the control.
+     * every project, so nothing a model composes runs on it (see
+     * RUNS_PROJECT_AUTHORED_COMMANDS). The tool is not offered there, but a
+     * model can still emit the call, so refuse it here BEFORE anything
+     * spawns — this, not the tool list, is the control.
      */
     if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
       return {

@@ -11,8 +11,7 @@
  *     carries; and
  *   - write_file never writes outside the working tree: not outside the
  *     workspace (links included), and never into the repository's git
- *     metadata, which the pipeline's own git commands read after the agent
- *     is done.
+ *     metadata (the pipeline owns the repository's git state).
  *
  * The rule is the same on a project-scoped Runner, so every case runs in
  * both scopes. Like the other tool suites, these drive the REAL agent with a
