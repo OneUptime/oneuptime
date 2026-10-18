@@ -5,7 +5,7 @@ Eine Statusseite ist das öffentliche Gesicht von allem, was Sie überwachen: ei
 Wenn um 2 Uhr nachts etwas kaputtgeht, ist die Statusseite das Erste, was Ihre Support-Warteschlange verlinkt. Und sie ist die Quelle, aus der Ihre Abonnenten benachrichtigt werden – es lohnt sich also, sie einzurichten, bevor Sie sie brauchen, und nicht mitten im Ausfall.
 
 :::cards
-- [Eine Statusseite anlegen](#eine-statusseite-anlegen): Zwei Felder zum Start, alles andere danach.
+- [Eine Statusseite anlegen](#eine-statusseite-anlegen): Ein Name zum Start, alles andere danach.
 - [Festlegen, was sie zeigt](#auswählen-was-auf-der-seite-erscheint): Vorfälle, Episoden, Ankündigungen, Wartungen und Verfügbarkeit, in einer Karte.
 - [Festlegen, wer sie sehen darf](#einschränken-wer-die-seite-sehen-darf): Alle mit dem Link, nur angemeldete Personen oder alle mit dem Passwort.
 - [Eine Statusseite archivieren](#eine-statusseite-archivieren): Eine Seite offline nehmen, ohne sie zu löschen.
@@ -33,7 +33,7 @@ Die Seite zeigt die Monitore, die Sie darauf setzen, als ihre Ressourcen, und Vo
 
 ## Auf einen Blick
 
-- **Mit zwei Feldern angelegt.** Eine neue Statusseite fragt nur nach **Name** und **Beschreibung**. Ressourcen, Branding und Domains richten Sie danach ein.
+- **Mit einem Namen angelegt.** Eine neue Statusseite fragt nur nach ihrem **Name**; **Beschreibung** und **Beschriftungen** warten unter **Weitere Felder**. Ressourcen, Branding und Domains richten Sie danach ein.
 - **Ressourcen sind das, was Besucher sehen.** Jede Zeile der Seite ist eine **Statusseite Ressource** – ein Monitor (oder eine Monitorgruppe) mit eigenem Anzeigenamen, eigenem Tooltip und eigenen Verfügbarkeitsoptionen. Gruppen teilen eine lange Seite in Abschnitte und lassen sich verschachteln.
 - **Eine Vorschau-URL ab dem ersten Tag.** Jede Statusseite bekommt einen Vorschaulink, damit Sie sie ansehen können, bevor es überhaupt eine eigene Domain gibt.
 - **Die besucherseitigen Routen hängen an Einstellungen.** Vorfälle, Episoden, Ankündigungen und geplante Ereignisse erscheinen jeweils nur, solange ihr Schalter in **Was Ihre Statusseite zeigt** (unter **Erweiterte Einstellungen**) an ist, die Abonnentenseite nur, solange **Abonnentenseite anzeigen** an ist.
@@ -61,13 +61,13 @@ Die Seite zeigt die Monitore, die Sie darauf setzen, als ihre Ressourcen, und Vo
 
 ### Die Seite benennen
 
-Füllen Sie im Dialog **Neu erstellen: Statusseite** das Feld **Name** aus (Pflichtfeld, mindestens zwei Zeichen) und optional **Beschreibung**, und klicken Sie dann auf **Statusseite erstellen**.
+Füllen Sie im Dialog **Neu erstellen: Statusseite** das Feld **Name** aus (Pflichtfeld, mindestens zwei Zeichen), und klicken Sie dann auf **Statusseite erstellen**. **Beschreibung** und **Beschriftungen** sind optional, unter **Weitere Felder**.
 
-Das ist das ganze Formular. Die Liste, auf der Sie wieder landen, zeigt **Name**, **Beschreibung**, **Beschriftungen** und **Eigentümer** und lässt sich nach **Statusseiten-ID**, **Name** und **Beschreibung** filtern.
+Das ist das ganze Formular. Die Liste **Statusseiten** zeigt **Name**, **Beschreibung**, **Beschriftungen** und **Eigentümer** und lässt sich nach **Statusseiten-ID**, **Name** und **Beschreibung** filtern.
 
 ### Die neue Seite öffnen
 
-Öffnen Sie die neue Seite, und Sie landen auf ihrem Bildschirm **Übersicht** mit zwei Karten: **Vorschau-URL der Statusseite** mit einem Link auf die Seite selbst und **Statusseiten-Details**, wo Sie Name, Beschreibung und Beschriftungen bearbeiten, die Sie gerade gesetzt haben. Sobald das Projekt benutzerdefinierte Felder für Statusseiten hat, folgt ihnen eine Karte **Benutzerdefinierte Felder**.
+Die neue Seite öffnet sich auf ihrem Bildschirm **Übersicht**. Solange die Seite keine Ressource hat, beginnt der Bildschirm mit **Noch nichts auf dieser Statusseite** und **Monitore hinzufügen**, das ihren Bildschirm **Ressourcen** öffnet. Danach folgen zwei Karten: **Link zur Statusseite**, mit dem Link auf die Seite selbst und **Link kopieren**, und **Statusseiten-Details**, wo Sie Name, Beschreibung und Beschriftungen bearbeiten, die Sie gerade gesetzt haben. Sobald das Projekt benutzerdefinierte Felder für Statusseiten hat, folgt ihnen eine Karte **Benutzerdefinierte Felder**.
 :::
 
 Eine Seite, die über die API oder Terraform angelegt wird, unterliegt denselben Tarifen wie die unten beschriebenen Einstellungen. In OneUptime Cloud wird das Anlegen einer Seite mit einer eingeschalteten Einstellung, die Ihr Tarif nicht enthält – zum Beispiel privat, eine ausgeblendete Liste, eigenes HTML, CSS oder JavaScript, E-Mail-Berichte, SMS-, Slack-, Microsoft-Teams- oder Webhook-Abonnenten, eine IP-Zulassungsliste –, mit `402 Payment Required` abgelehnt, und die Meldung nennt den Tarif. Der Tarif jeder Einstellung steht unten bei ihr. Einstellungen, die auf ihrem Standard bleiben, wie dieses Formular sie lässt, funktionieren in jedem Tarif.
@@ -167,7 +167,7 @@ Unter der Karte stehen **Statusseite als JSON exportieren**, das die eigenen Ein
 
 ## Vorschau, bevor Sie live gehen
 
-Der Bildschirm **Übersicht** jeder Statusseite trägt eine Karte **Vorschau-URL der Statusseite** mit einem Link direkt auf die Seite. Nutzen Sie sie, solange Sie noch Ressourcen hinzufügen und bevor es eine eigene Domain gibt.
+Der Bildschirm **Übersicht** jeder Statusseite trägt eine Karte **Link zur Statusseite** mit einem Link direkt auf die Seite und **Link kopieren** daneben. Nutzen Sie sie, solange Sie noch Ressourcen hinzufügen und bevor es eine eigene Domain gibt.
 
 Hinter den Kulissen hat jede öffentliche Route einen Vorschau-Zwilling unter `/status-page/{statusPageId}/...` – eine Vorschau der Übersicht, eine Vorschau der Vorfallliste, eine Vorschau der Abonnieren-Seite und so weiter. Eine URL oder ein Screenshot aus der Dashboard-Vorschau stimmt deshalb nicht mit dem überein, was ein Kunde sieht, sobald eine eigene Domain angehängt ist – prüfen Sie also jeden Link, den Sie in ein Runbook oder eine E-Mail einfügen.
 
@@ -195,11 +195,11 @@ Fügen Sie die Personen, die sich anmelden dürfen, auf **Statusseiten → Ihre 
 
 ### SSO und OIDC
 
-Für eine private Seite, die an Ihren Identitätsanbieter gebunden ist, konfiguriert **Statusseiten → Ihre Seite → Sicherheit → SSO** SAML: Sie geben die Anmelde-URL, den Aussteller und das x509-Zertifikat ein, und die Signatur- und Digest-Methoden sind unter **Weitere Felder** vorausgefüllt. **Statusseiten → Ihre Seite → Sicherheit → OIDC** konfiguriert OpenID Connect: Sie geben Aussteller, Client-ID und Secret ein, und Discovery-URL, Scopes und Claim-Namen sind unter **Weitere Felder** vorausgefüllt. **SCIM** stellt private Benutzer automatisch aus dem IdP bereit. In OneUptime Cloud brauchen alle drei den Tarif Scale oder höher. Auf einer selbst gehosteten Installation gehören SSO und OIDC zu jeder Edition, und SCIM braucht die [Enterprise Edition](/docs/self-hosted/enterprise).
+Für eine private Seite, die an Ihren Identitätsanbieter gebunden ist, konfiguriert **Statusseiten → Ihre Seite → Sicherheit → SSO** SAML: **SSO-Anbieter hinzufügen** fragt nach der Anmelde-URL, dem Aussteller und dem x509-Zertifikat, und die Signatur- und Digest-Methoden sind unter **Weitere Felder** vorausgefüllt. **Statusseiten → Ihre Seite → Sicherheit → OIDC** konfiguriert OpenID Connect: **OIDC-Anbieter hinzufügen** fragt nach Aussteller, Client-ID und Secret, und Discovery-URL, Scopes und Claim-Namen sind unter **Weitere Felder** vorausgefüllt. Sobald eine Seite einen Anbieter hat, verlinkt die Karte **Anmeldung testen** unter der Liste auf die Anmeldung der Seite, um ihn auszuprobieren. **SCIM** stellt private Benutzer automatisch aus dem IdP bereit. In OneUptime Cloud brauchen alle drei den Tarif Scale oder höher. Auf einer selbst gehosteten Installation gehören SSO und OIDC zu jeder Edition, und SCIM braucht die [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Wenn Sie den SSO- oder OIDC-Anbieter einer Statusseite ausschalten oder löschen, werden die privaten Benutzer abgemeldet, die er angemeldet hat: Ihre Sitzungen enden bei ihrer nächsten Anfrage, und das Wiedereinschalten des Anbieters bringt sie nicht zurück – sie melden sich erneut damit an. Ein neues Zertifikat oder Client-Secret, andere URLs oder ein neuer Name lassen alle angemeldet. Auf einer Seite, die SSO verlangt, kann sich nach dem Ausschalten ihres letzten Anbieters niemand mehr anmelden, bis Sie wieder einen einschalten oder **SSO für die Anmeldung erzwingen** ausschalten; um zu einem anderen Anbieter zu wechseln, richten Sie den neuen ein und testen ihn, bevor Sie den alten ausschalten.
 
-Unter den Anbietern enthält die Karte **SSO-Einstellungen** den Schalter **SSO für die Anmeldung erzwingen** (`requireSsoForLogin`, standardmäßig aus), der in dem Moment speichert, in dem Sie ihn umlegen. Das Einschalten fragt zuerst nach, denn ab dann können sich private Benutzer nicht mehr mit E-Mail und Passwort anmelden: Nur Personen, die Ihr SSO- oder OIDC-Anbieter hineinlässt, können die Seite sehen. Testen Sie SSO mit dem Link auf diesem Bildschirm, bevor Sie ihn einschalten. Er zählt nur, solange **Nur angemeldete Personen** die Wahl ist, und der Bildschirm **Zugriff** führt ihn unter dieser Wahl als **SSO vorgeschrieben** auf. Solange er an ist, wird auch ein privater Benutzer, der mit E-Mail und Passwort angemeldet ist, bei seiner nächsten Anfrage abgemeldet: Es zählen nur Sitzungen, die ein SSO- oder OIDC-Anbieter angemeldet hat. In OneUptime Cloud braucht das Einschalten den Tarif **Scale**, und das Ausschalten funktioniert in jedem Tarif. Eine Seite, die nach dem Ende einer Scale-Testphase oder nach einem Wechsel in einen niedrigeren Tarif weiterhin SSO verlangt, verlangt es, bis jemand es ausschaltet: Ihre Seiten **SSO** und **OIDC** zeigen dafür den Schalter unter dem Upsell des Tarifs.
+Unter den Anbietern enthält die Karte **SSO-Einstellungen** den Schalter **SSO für die Anmeldung erzwingen** (`requireSsoForLogin`, standardmäßig aus), der in dem Moment speichert, in dem Sie ihn umlegen. Das Einschalten fragt zuerst nach, denn ab dann können sich private Benutzer nicht mehr mit E-Mail und Passwort anmelden: Nur Personen, die Ihr SSO- oder OIDC-Anbieter hineinlässt, können die Seite sehen. Probieren Sie den Link auf der Karte **Anmeldung testen** darüber aus, bevor Sie ihn einschalten. Er zählt nur, solange **Nur angemeldete Personen** die Wahl ist, und der Bildschirm **Zugriff** führt ihn unter dieser Wahl als **SSO vorgeschrieben** auf. Solange er an ist, wird auch ein privater Benutzer, der mit E-Mail und Passwort angemeldet ist, bei seiner nächsten Anfrage abgemeldet: Es zählen nur Sitzungen, die ein SSO- oder OIDC-Anbieter angemeldet hat. In OneUptime Cloud braucht das Einschalten den Tarif **Scale**, und das Ausschalten funktioniert in jedem Tarif. Eine Seite, die nach dem Ende einer Scale-Testphase oder nach einem Wechsel in einen niedrigeren Tarif weiterhin SSO verlangt, verlangt es, bis jemand es ausschaltet: Ihre Seiten **SSO** und **OIDC** zeigen dafür den Schalter unter dem Upsell des Tarifs.
 
 ### Lesersitzungen
 
@@ -215,7 +215,7 @@ Unter **Weitere Einstellungen** auf **Zugriff** beschränkt der Abschnitt **IP-Z
 
 Drei Wege, den Status anderswo als auf der Seite selbst zu zeigen.
 
-**Eingebettetes Status-Badge.** Schalten Sie auf **Statusseiten → Ihre Seite → Erweitert → Eingebetteter Status** **Eingebettetes Status-Badge aktivieren** ein (`enableEmbeddedOverallStatus`, standardmäßig aus) und klicken Sie dann auf der Karte **Sicherheitstoken** auf **Token neu generieren**, um dem Badge sein Token zu geben (`embeddedOverallStatusToken`). Das Badge wird unter `/api/status-page/badge/<status-page-id>?token=<token>` ausgeliefert, und der Bildschirm zeigt es unter **Badge-Vorschau** mit Snippets zum Kopieren, damit Sie den aktuellen Gesamtstatus in Ihre Dokumentation, die Fußzeile Ihrer App oder eine Marketingseite einbauen können.
+**Eingebettetes Status-Badge.** Schalten Sie auf **Statusseiten → Ihre Seite → Erweitert → Eingebetteter Status** **Eingebettetes Status-Badge aktivieren** ein (`enableEmbeddedOverallStatus`, standardmäßig aus) und klicken Sie dann auf der Karte **Sicherheitstoken** auf **Token erstellen**, um dem Badge sein Token zu geben (`embeddedOverallStatusToken`); sobald es eines hat, heißt die Schaltfläche **Token neu generieren**. Das Badge wird unter `/api/status-page/badge/<status-page-id>?token=<token>` ausgeliefert, und die Karte **Badge einbetten** zeigt es mit seinem **HTML** und **Markdown, mit Link zur Statusseite** zum Kopieren, damit Sie den aktuellen Gesamtstatus in Ihre Dokumentation, die Fußzeile Ihrer App oder eine Marketingseite einbauen können.
 
 **RSS-Feed.** Jede Statusseite liefert `/rss` aus – einen Feed mit dem Titel „{Seitentitel} Updates“, mit dem **Seitentitel** der Seite aus **Branding** oder ihrem Namen, wenn sie keinen hat, und mit Einträgen, die mit `Incident: `, `Announcement: ` und `Scheduled Maintenance: ` beginnen. Praktisch für alle, die Ihre Updates lieber in einen Reader oder einen Chatbot leiten, als per E-Mail zu abonnieren.
 

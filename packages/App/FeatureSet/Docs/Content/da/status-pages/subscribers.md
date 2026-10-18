@@ -43,7 +43,7 @@ Kontakterne bestemmer, hvordan besøgende kan tilmelde sig selv, og statussiden 
 
 På OneUptime Cloud står abonnementets navn ved en kontakt, som dit abonnement ikke omfatter: **Growth** for **SMS** og **Vis abonnentside**, **Scale** for **Slack**, **Microsoft Teams** og **Webhook**. At slå en kanal fra virker på alle abonnementer, så en kanal, som en prøveperiode slog til, altid kan slås fra igen; kontakten siger det under sig.
 
-Hver kanal har også sin egen liste i statussidens sidemenu under **Abonnenter**: **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter** og **Webhook-abonnenter**. Det er der, du ser, hvem der er tilmeldt, tilføjer nogen manuelt eller efterlader dig selv en post i **Noter** (`internalNote`) om en bestemt abonnent. Så længe en kanal er slået fra, siger toppen af dens liste det, med kanalens kontakt lige der, så du kan slå den til uden at forlade listen.
+Hver kanal har også sin egen liste i statussidens sidemenu under **Abonnenter**: **E-mail-abonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter** og **Webhook-abonnenter**. Det er der, du ser, hvem der er tilmeldt, tilføjer nogen manuelt med **Tilføj abonnent** eller efterlader dig selv en **Intern note** (`internalNote`) om en bestemt abonnent, som kun dit team ser. Så længe en kanal er slået fra, siger toppen af dens liste det, med kanalens kontakt lige der, så du kan slå den til uden at forlade listen.
 
 **Én kontakt er ikke nok.** Punktet **Abonner** i statussidens navigationsbjælke vises kun, når **Vis abonnentside** er slået til, *og* mindst én kanal er slået til. Hvis du slår **E-mail** til, men lader **Vis abonnentside** være slået fra, har besøgende ingen mulighed for at nå formularen.
 
@@ -66,7 +66,7 @@ Ingen af indstillingerne sletter en abonnent, og når de slås fra, sendes der t
 
 ## Hvad en besøgende ser på Abonner-siden
 
-Siden **Abonner** har en undermenu med én fane pr. slået-til kanal. Hver fane beder om det mindste, den har brug for:
+Siden **Abonner** har en undermenu med én fane pr. slået-til kanal; med kun én kanal slået til er der ingen undermenu, kun den kanals formular. Hver fane beder om det mindste, den har brug for:
 
 | Fane | Adresse | Overskrift | Hvad den beder om |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ Indsendelsesknappen hedder **Abonner**. En tilmelding via SMS, Slack, Microsoft 
 
 ## Lad abonnenter vælge ressourcer og hændelsestyper
 
-Som standard får en abonnent alt på siden. To kontakter på kortet **Avancerede abonnentindstillinger** ændrer det:
+Som standard får en abonnent alt på siden. To kontakter på kortet **Valg for abonnenter** under **Abonnementsindstillinger** ændrer det, og hver gemmes, så snart du slår den om:
 
 - **Tillad abonnenter at vælge ressourcer** (`allowSubscribersToChooseResources`) — slået fra som standard. Slå den til, og tilmeldingsformularen får en kontakt **Abonner på alle ressourcer**; slå den fra, og **Vælg ressourcer at abonnere på** vises, så den besøgende kan vælge enkelte ressourcer.
 - **Tillad abonnenter at vælge begivenhedstyper** (`allowSubscribersToChooseEventTypes`) — slået fra som standard. Samme form: en kontakt **Abonner på alle hændelsestyper** og **Vælg hændelsestyper at abonnere på** nedenunder, når den er slået fra.
@@ -99,17 +99,17 @@ Valgene havner på abonnentposten som **Is Subscribed to All Resources** (`isSub
 
 God til: en side, der dækker flere produkter. En kunde, der kun bruger dit API, vil ikke have en besked, hver gang marketingsitet vakler — lad dem selv indsnævre listen i stedet for at se dem afmelde sig helt.
 
-Det samme kort indeholder også **Tidszoner for abonnenter**.
+**Tidszoner for abonnenter** ligger under **Yderligere indstillinger** på samme skærm (se [nedenfor](#e-mailsidefod-egen-smtp-og-twilio)).
 
 ## Dobbelt bekræftelse på e-mail
 
 E-mailabonnenter bekræfter altid. Når en abonnent oprettes med en e-mailadresse og ikke blev oprettet som allerede bekræftet, tvinges **Is Subscription Confirmed** (`isSubscriptionConfirmed`) til `false`, og der genereres et sekscifret **Subscription Confirmation Token**. OneUptime sender derefter et bekræftelseslink på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Den besøgende lander på en side **Bekræft abonnement** og ser, når det er gået igennem, *Abonnement bekræftet*.
 
-Abonnenter via SMS, Slack, Microsoft Teams og webhook springer dette over — de oprettes med `isSubscriptionConfirmed` allerede sat til `true`. Det samme gør e-mailabonnenter, som dit team tilføjer under **E-mail-abonnenter**: der er **Send ikke bekræftelseslink** slået til som standard. Slå det fra for at få adressen til at bekræfte som ved en tilmelding.
+Abonnenter via SMS, Slack, Microsoft Teams og webhook springer dette over — de oprettes med `isSubscriptionConfirmed` allerede sat til `true`. Når dit team tilføjer en e-mailabonnent under **E-mail-abonnenter**, afgør **Når du tilføjer dem** det: **Abonner dem nu** (standard: bekræftet, og der sendes intet), **Abonner dem nu, og giv dem besked** (bekræftet, og e-mailen om, at de er tilmeldt, sendes) eller **Bed dem om at bekræfte først** (de får bekræftelseslinket, som ved en tilmelding). **Tilføj i bulk** spørger om det samme.
 
 **Ubekræftet betyder stille.** Forespørgslen, der henter abonnenter til en notifikation, filtrerer på `isUnsubscribed: false` og `isSubscriptionConfirmed: true`. En e-mailadresse, der aldrig klikkede på linket, bliver stående i din liste **E-mail-abonnenter** og modtager intet. Hvis nogen sværger på, at de er tilmeldt, men intet hører, så tjek den kolonne først.
 
-Der er ingen kontakt til at slå e-mailbekræftelsen fra — den er ubetinget for alle, der tilmelder sig via statussiden. En separat kolonne pr. abonnent, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, standard true), styrer e-mailen "du er tilmeldt", der sendes, når en abonnent er bekræftet.
+Der er ingen kontakt til at slå e-mailbekræftelsen fra — den er ubetinget for alle, der tilmelder sig via statussiden. En separat kolonne pr. abonnent, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, standard true), styrer e-mailen "du er tilmeldt", der sendes, når en abonnent er bekræftet. På dashboardet sætter **Når du tilføjer dem** den for en e-mailabonnent og **Send en velkomstbesked**, under **Flere felter**, for de andre kanaler.
 
 ## Administrer og opsig et abonnement
 
@@ -131,7 +131,7 @@ På en privat statusside kræver den en besøgende, der er logget ind, ligesom r
 
 Endpointene bag alt dette er `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token` samt `GET` og `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. Afmeldings-`GET` beskriver kun linket. `POST` opsiger abonnementet, uanset brødteksten, også brødteksten `List-Unsubscribe=One-Click` i en afmeldingsforespørgsel med ét klik. Alle endpoints, der tager et token, giver det samme svar for et manglende eller forkert token, en slettet abonnent og en abonnent på en anden statusside, så ingen af dem kan bruges til at finde ud af, hvem der er tilmeldt.
 
-Afmelding vender et flag i stedet for at slette en række, så posten bliver stående i kanallisten med **Er afmeldt** sat — nyttigt, når du senere skal forklare, hvorfor en bestemt adresse holdt op med at få post. Den registrerer også **Afmeldt den** (`unsubscribedAt`), uanset hvem der opsagde abonnementet: abonnenten via linket eller siden **Opdater abonnement**, eller en kollega på dashboardet eller via API'et. Hver abonnentliste har en kolonne og et filter **Afmeldt den**. At slå **Er afmeldt** fra igen rydder den. Abonnementer, der blev opsagt, før OneUptime registrerede dette, har ingen dato.
+Afmelding vender et flag i stedet for at slette en række, så posten bliver stående i kanallisten med **Er afmeldt** sat — nyttigt, når du senere skal forklare, hvorfor en bestemt adresse holdt op med at få post. Den registrerer også **Afmeldt den** (`unsubscribedAt`), uanset hvem der opsagde abonnementet: abonnenten via linket eller siden **Opdater abonnement**, eller en kollega på dashboardet eller via API'et. Hver abonnentliste har en kolonne og et filter **Afmeldt den**. At sætte en abonnents **Status** tilbage til **Abonneret** rydder den. Abonnementer, der blev opsagt, før OneUptime registrerede dette, har ingen dato.
 
 Et link med kun abonnentens id åbner ikke længere noget. Et link til **Opdater abonnement** i en ældre besked, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, åbner en side, der siger, at linket er udløbet, med **Få et nyt link**, som fører til siden **Abonner**. Meget gamle beskeder havde `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, som tidligere afmeldte, så snart det blev åbnet. Det ændrer ikke længere noget: det fører til afmeldingssiden, som siger, at linket er forældet, og at man skal bruge det i en nyere besked.
 
@@ -392,9 +392,10 @@ Mens du skriver en skabelon, udfylder **Live-eksempel** under skabelonens brødt
 
 ## E-mailsidefod, egen SMTP og Twilio
 
-Tre kort mere under **Abonnementsindstillinger** styrer, hvordan beskeder til abonnenter forlader dit projekt:
+Fire afsnit mere, under **Yderligere indstillinger** nederst på **Abonnementsindstillinger**, styrer, hvordan beskeder til abonnenter forlader dit projekt:
 
-- **Indstillinger for e-mailsidefod** — **Aktivér brugerdefineret tekst i e-mailsidefod** og **Sidefodstekst til e-mailnotifikationer for abonnenter** sætter din egen sidefod på e-mails til abonnenter.
+- **Tidszoner for abonnenter** — de tidszoner, tider i notifikationer vises i, valgt med **Rediger tidszoner**. Er ingen valgt, vises tider i UTC og i London-, New York-, Los Angeles-, Kolkata- og Sydney-tid.
+- **E-mail-sidefod** — linjen i slutningen af hver e-mail til sidens abonnenter. **Rediger sidefod** spørger efter **Sidefod**: **Standardsidefoden**, en linje, der siger, at de får e-mailen, fordi de abonnerer, eller **Din egen tekst**, den **Sidefodstekst**, du skriver (`enableCustomSubscriberEmailNotificationFooterText` og `subscriberEmailNotificationFooterText`). Lader du din egen tekst stå tom, sendes standardsidefoden.
 - **Brugerdefineret SMTP** — **Brugerdefineret SMTP-konfiguration** sender e-mail til abonnenter via din egen mailserver i stedet for standardserveren.
 - **Twilio-konfiguration** — **Twilio-konfiguration** er den Twilio-konto, der bruges til SMS-abonnenter.
 

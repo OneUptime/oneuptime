@@ -43,7 +43,7 @@ Reglagen avgör hur besökare kan registrera sig själva, och statussidan avvisa
 
 På OneUptime Cloud står abonnemangets namn vid ett reglage som ditt abonnemang inte omfattar: **Growth** för **SMS** och **Visa prenumerantsida**, **Scale** för **Slack**, **Microsoft Teams** och **Webhook**. Att stänga av en kanal fungerar på alla abonnemang, så en kanal som en provperiod slog på kan alltid stängas av igen; reglaget säger det under sig.
 
-Varje kanal har också en egen lista i statussidans sidomeny under **Prenumeranter**: **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter** och **Webhook-prenumeranter**. Det är där du ser vem som är registrerad, lägger till någon manuellt eller lämnar en **Anteckningar** (`internalNote`) till dig själv om en viss prenumerant. Så länge en kanal är av säger listans överkant det, med kanalens reglage just där, så att du kan slå på den utan att lämna listan.
+Varje kanal har också en egen lista i statussidans sidomeny under **Prenumeranter**: **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter** och **Webhook-prenumeranter**. Det är där du ser vem som är registrerad, lägger till någon manuellt med **Lägg till prenumerant** eller lämnar en **Intern anteckning** (`internalNote`) till dig själv om en viss prenumerant, som bara ditt team ser. Så länge en kanal är av säger listans överkant det, med kanalens reglage just där, så att du kan slå på den utan att lämna listan.
 
 **Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på *och* minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
 
@@ -66,7 +66,7 @@ Ingen av inställningarna tar bort en prenumerant, och när de stängs av skicka
 
 ## Vad en besökare ser på prenumerationssidan
 
-Sidan **Prenumerera** har en undermeny med en flik per påslagen kanal. Varje flik frågar efter det minsta den behöver:
+Sidan **Prenumerera** har en undermeny med en flik per påslagen kanal; med bara en kanal påslagen finns ingen undermeny, bara den kanalens formulär. Varje flik frågar efter det minsta den behöver:
 
 | Flik | Adress | Rubrik | Vad den frågar efter |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ Knappen för att skicka heter **Prenumerera**. En registrering via SMS, Slack, M
 
 ## Låta prenumeranter välja resurser och händelsetyper
 
-Som standard får en prenumerant allt på sidan. Två reglage på kortet **Avancerade prenumerantinställningar** ändrar det:
+Som standard får en prenumerant allt på sidan. Två reglage på kortet **Val för prenumeranter** under **Prenumerantinställningar** ändrar det, och vart och ett sparas så fort du slår om det:
 
 - **Tillåt prenumeranter att välja resurser** (`allowSubscribersToChooseResources`) — av som standard. Slå på den så får prenumerationsformuläret ett reglage **Prenumerera på alla resurser**; slå av det så visas **Välj resurser att prenumerera på**, så att besökaren kan välja enskilda resurser.
 - **Tillåt prenumeranter att välja händelsetyper** (`allowSubscribersToChooseEventTypes`) — av som standard. Samma form: ett reglage **Prenumerera på alla händelsetyper**, och **Välj händelsetyper att prenumerera på** under när det är av.
@@ -99,17 +99,17 @@ Valen hamnar i prenumerantposten som **Is Subscribed to All Resources** (`isSubs
 
 Bra för: en sida som täcker flera produkter. En kund som bara använder ditt API vill inte ha en avisering varje gång marknadsföringswebbplatsen vacklar — låt hen begränsa listan själv i stället för att se hen avregistrera sig helt.
 
-Samma kort innehåller också **Prenumeranters tidszoner**.
+**Prenumeranters tidszoner** finns under **Fler inställningar** på samma skärm (se [nedan](#e-postsidfot-anpassad-smtp-och-twilio)).
 
 ## Dubbel opt-in för e-post
 
 E-postprenumeranter bekräftar alltid. När en prenumerant skapas med en e-postadress och inte skapades som redan bekräftad tvingas **Is Subscription Confirmed** (`isSubscriptionConfirmed`) till `false`, och en sexsiffrig **Subscription Confirmation Token** genereras. OneUptime skickar sedan en bekräftelselänk på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Besökaren hamnar på en sida **Bekräfta prenumeration** och ser, när det har gått igenom, *Prenumeration bekräftad*.
 
-Prenumeranter via SMS, Slack, Microsoft Teams och webhook hoppar över det här — de skapas med `isSubscriptionConfirmed` redan satt till `true`. Det gör även e-postprenumeranter som ditt team lägger till under **E-postprenumeranter**: där är **Skicka inte bekräftelselänk** på som standard. Stäng av det för att låta adressen bekräfta som vid en registrering.
+Prenumeranter via SMS, Slack, Microsoft Teams och webhook hoppar över det här — de skapas med `isSubscriptionConfirmed` redan satt till `true`. När ditt team lägger till en e-postprenumerant under **E-postprenumeranter** avgör **När du lägger till dem**: **Lägg till dem som prenumeranter nu** (standard: bekräftad, och inget skickas), **Lägg till dem nu och meddela dem** (bekräftad, och e-postmeddelandet om att de prenumererar skickas) eller **Be dem bekräfta först** (de får bekräftelselänken, som vid en registrering). **Lägg till i bulk** frågar samma sak.
 
 **Obekräftad betyder tyst.** Frågan som hämtar prenumeranter till en avisering filtrerar på `isUnsubscribed: false` och `isSubscriptionConfirmed: true`. En e-postadress som aldrig klickade på länken blir kvar i din lista **E-postprenumeranter** och får ingenting. Om någon svär på att hen prenumererar men inte hör något, kontrollera den kolumnen först.
 
-Det finns inget reglage för att stänga av e-postbekräftelsen — den är ovillkorlig för alla som registrerar sig via statussidan. En separat kolumn per prenumerant, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, standard true), styr e-postmeddelandet "du prenumererar" som skickas när en prenumerant har bekräftats.
+Det finns inget reglage för att stänga av e-postbekräftelsen — den är ovillkorlig för alla som registrerar sig via statussidan. En separat kolumn per prenumerant, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, standard true), styr e-postmeddelandet "du prenumererar" som skickas när en prenumerant har bekräftats. I instrumentpanelen ställer **När du lägger till dem** in den för en e-postprenumerant, och **Skicka ett välkomstmeddelande**, under **Fler fält**, för de andra kanalerna.
 
 ## Hantera och avsluta en prenumeration
 
@@ -131,7 +131,7 @@ På en privat statussida kräver den en inloggad besökare, som resten av sidan.
 
 Slutpunkterna bakom allt detta är `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token`, och `GET` och `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. Avregistreringens `GET` beskriver bara länken. `POST` avslutar prenumerationen oavsett innehåll, även innehållet `List-Unsubscribe=One-Click` i en avregistreringsbegäran med ett klick. Varje slutpunkt som tar en token ger samma svar för en saknad eller felaktig token, en borttagen prenumerant och en prenumerant på en annan statussida, så ingen av dem kan användas för att ta reda på vem som prenumererar.
 
-Avregistrering vänder en flagga i stället för att ta bort en rad, så posten blir kvar i kanallistan med **Är avprenumererad** satt — användbart när du senare behöver förklara varför en viss adress slutade få e-post. Den registrerar också **Avprenumererad den** (`unsubscribedAt`), vem som än avslutade prenumerationen: prenumeranten via länken eller sidan **Uppdatera prenumeration**, eller en kollega i instrumentpanelen eller via API:et. Varje prenumerantlista har en kolumn och ett filter **Avprenumererad den**. Att stänga av **Är avprenumererad** igen rensar den. Prenumerationer som avslutades innan OneUptime registrerade detta har inget datum.
+Avregistrering vänder en flagga i stället för att ta bort en rad, så posten blir kvar i kanallistan med **Är avprenumererad** satt — användbart när du senare behöver förklara varför en viss adress slutade få e-post. Den registrerar också **Avprenumererad den** (`unsubscribedAt`), vem som än avslutade prenumerationen: prenumeranten via länken eller sidan **Uppdatera prenumeration**, eller en kollega i instrumentpanelen eller via API:et. Varje prenumerantlista har en kolumn och ett filter **Avprenumererad den**. Att sätta en prenumerants **Status** tillbaka till **Prenumererar** rensar den. Prenumerationer som avslutades innan OneUptime registrerade detta har inget datum.
 
 En länk med bara prenumerantens id öppnar inte längre något. En länk till **Uppdatera prenumeration** i ett äldre meddelande, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, öppnar en sida som säger att länken har gått ut, med **Få en ny länk**, som leder till sidan **Prenumerera**. Mycket gamla meddelanden innehöll `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, som förr avregistrerade så fort den öppnades. Den ändrar inte längre något: den leder till avregistreringssidan, som säger att länken är inaktuell och att man ska använda den i ett nyare meddelande.
 
@@ -392,9 +392,10 @@ Medan du skriver en mall fyller **Förhandsgranskning i realtid** under mallens 
 
 ## E-postsidfot, anpassad SMTP och Twilio
 
-Tre kort till under **Prenumerantinställningar** styr hur meddelanden till prenumeranter lämnar ditt projekt:
+Fyra avsnitt till, under **Fler inställningar** längst ned i **Prenumerantinställningar**, styr hur meddelanden till prenumeranter lämnar ditt projekt:
 
-- **Inställningar för e-postsidfot** — **Aktivera anpassad text för e-postsidfot** och **Sidfotstext för prenumeranters e-postavisering** sätter din egen sidfot på e-postmeddelanden till prenumeranter.
+- **Prenumeranters tidszoner** — tidszonerna som tider i aviseringar visas i, valda med **Redigera tidszoner**. Är ingen vald visas tider i UTC och i London-, New York-, Los Angeles-, Kolkata- och Sydneytid.
+- **Sidfot i e-post** — raden i slutet av varje e-postmeddelande till sidans prenumeranter. **Redigera sidfot** frågar efter **Sidfot**: **Standardsidfoten**, en rad som säger att de får e-postmeddelandet eftersom de prenumererar, eller **Din egen text**, den **Sidfotstext** du skriver (`enableCustomSubscriberEmailNotificationFooterText` och `subscriberEmailNotificationFooterText`). Lämnas din egen text tom skickas standardsidfoten.
 - **Anpassad SMTP** — **Anpassad SMTP-konfiguration** skickar e-post till prenumeranter via din egen e-postserver i stället för standardservern.
 - **Twilio-konfiguration** — **Twilio-konfiguration** är Twilio-kontot som används för SMS-prenumeranter.
 

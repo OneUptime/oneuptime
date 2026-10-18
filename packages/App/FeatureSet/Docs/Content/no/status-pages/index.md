@@ -5,7 +5,7 @@ En statusside er det offentlige ansiktet til alt du overvåker: én URL som kund
 Når noe går i stykker klokken 2 om natten, er statussiden det første supportkøen din henviser til. Det er også derfra abonnentene dine blir varslet, så det lønner seg å sette den opp før du trenger den, ikke midt i nedetiden.
 
 :::cards
-- [Opprett en statusside](#å-opprette-en-statusside): To felt for å komme i gang, alt det andre etterpå.
+- [Opprett en statusside](#å-opprette-en-statusside): Et navn for å komme i gang, alt det andre etterpå.
 - [Velg hva den viser](#å-velge-hva-som-vises-på-siden): Hendelser, episoder, kunngjøringer, vedlikehold og oppetid, på ett kort.
 - [Bestem hvem som kan se den](#å-begrense-hvem-som-kan-se-siden): Alle med lenken, bare personer som logger inn, eller alle med passordet.
 - [Arkiver en statusside](#å-arkivere-en-statusside): Ta en side offline uten å slette den.
@@ -33,7 +33,7 @@ Siden viser monitorene du setter på den, som ressurser, og hendelser når siden
 
 ## Kort oppsummert
 
-- **Opprettes med to felt.** En ny statusside ber bare om **Navn** og **Beskrivelse**. Ressurser, merkevare og domener setter du opp etterpå.
+- **Opprettes med et navn.** En ny statusside ber bare om sitt **Navn**; **Beskrivelse** og **Etiketter** venter under **Flere felt**. Ressurser, merkevare og domener setter du opp etterpå.
 - **Ressurser er det de besøkende ser.** Hver rad på siden er en **Statusside Ressurs**: en monitor (eller monitorgruppe) med sitt eget visningsnavn, verktøytips og oppetidsvalg. Grupper deler en lang side inn i seksjoner og kan nøstes.
 - **En URL for forhåndsvisning fra første dag.** Hver statusside får en forhåndsvisningslenke, slik at du kan se den før det finnes et egendefinert domene.
 - **Rutene for besøkende avhenger av innstillinger.** Hendelser, episoder, kunngjøringer og planlagte hendelser vises bare så lenge bryteren deres i **Hva statussiden din viser** (under **Avanserte innstillinger**) er slått på, og abonnementssiden bare så lenge **Vis abonnentside** er slått på.
@@ -61,13 +61,13 @@ Siden viser monitorene du setter på den, som ressurser, og hendelser når siden
 
 ### Gi siden et navn
 
-Fyll ut **Navn** (påkrevd, minst to tegn) i vinduet **Opprett ny: Statusside** og, om du vil, **Beskrivelse**, og klikk på **Opprett statusside**.
+Fyll ut **Navn** (påkrevd, minst to tegn) i vinduet **Opprett ny: Statusside**, og klikk på **Opprett statusside**. **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**.
 
-Det er hele skjemaet. Listen du kommer tilbake til, viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere**, og kan filtreres etter **Statusside-ID**, **Navn** og **Beskrivelse**.
+Det er hele skjemaet. Listen **Statussider** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere**, og kan filtreres etter **Statusside-ID**, **Navn** og **Beskrivelse**.
 
 ### Åpne den nye siden
 
-Åpne den nye siden, så havner du på skjermen **Oversikt**, som har to kort: **Status Page Preview URL**, med en lenke til selve siden, og **Detaljer for statusside**, der du kan redigere navnet, beskrivelsen og etikettene du nettopp satte. Når prosjektet har egendefinerte felt for statussider, følger et kort **Egendefinerte felt**.
+Den nye siden åpnes på skjermen **Oversikt**. Til siden har en ressurs, begynner skjermen med **Ingenting på denne statussiden ennå** og **Add Monitors**, som åpner skjermen **Ressurser**. Deretter kommer to kort: **Lenke til statussiden**, med lenken til selve siden og **Kopier lenke**, og **Detaljer for statusside**, der du kan redigere navnet, beskrivelsen og etikettene du nettopp satte. Når prosjektet har egendefinerte felt for statussider, følger et kort **Egendefinerte felt**.
 :::
 
 En side som opprettes med API-et eller med Terraform, er underlagt de samme abonnementene som innstillingene nedenfor. På OneUptime Cloud blir oppretting av en side med en påslått innstilling som abonnementet ditt ikke inkluderer (for eksempel privat, en skjult liste, egendefinert HTML, CSS eller JavaScript, e-postrapporter, abonnenter via SMS, Slack, Microsoft Teams eller webhook, en IP-tillatelsesliste) avvist med `402 Payment Required`, og meldingen nevner abonnementet. Abonnementet for hver innstilling står ved innstillingen nedenfor. Innstillinger som står på standard, slik dette skjemaet lar dem stå, fungerer på alle abonnementer.
@@ -167,7 +167,7 @@ Under kortet står **Eksporter Statusside som JSON**, som laster ned statussiden
 
 ## Å forhåndsvise før du går live
 
-Skjermen **Oversikt** for hver statusside har et kort **Status Page Preview URL** med en direkte lenke til siden. Bruk den mens du fortsatt legger til ressurser, og før det finnes et egendefinert domene.
+Skjermen **Oversikt** for hver statusside har et kort **Lenke til statussiden** med en direkte lenke til siden og **Kopier lenke** ved siden av. Bruk den mens du fortsatt legger til ressurser, og før det finnes et egendefinert domene.
 
 Bak kulissene har hver offentlig rute en forhåndsvisningstvilling under `/status-page/{statusPageId}/...`: en forhåndsvist oversikt, en forhåndsvist hendelsesliste, en forhåndsvist abonnementsside og så videre. En URL eller et skjermbilde tatt fra dashbordets forhåndsvisning vil derfor ikke samsvare med det en kunde ser når et egendefinert domene er koblet til, så kontroller alle lenker du limer inn i en runbook eller en e-post.
 
@@ -195,11 +195,11 @@ Legg til personene som kan logge inn, under **Statussider → siden din → Sikk
 
 ### SSO og OIDC
 
-For en privat side som er koblet til identitetsleverandøren din, setter **Statussider → siden din → Sikkerhet → SSO** opp SAML: du skriver inn påloggings-URL-en, utstederen og x509-sertifikatet, og signerings- og digest-metodene fylles ut under **Flere felt**. **Statussider → siden din → Sikkerhet → OIDC** setter opp OpenID Connect: du skriver inn utstederen, klient-ID-en og hemmeligheten, og discovery-URL-en, scopes og claim-navnene fylles ut under **Flere felt**. **SCIM** oppretter private brukere automatisk fra IdP-en. På OneUptime Cloud krever alle tre abonnementet Scale eller høyere. I en selvdriftet installasjon er SSO og OIDC en del av alle utgaver, og SCIM krever [Enterprise Edition](/docs/self-hosted/enterprise).
+For en privat side som er koblet til identitetsleverandøren din, setter **Statussider → siden din → Sikkerhet → SSO** opp SAML: **Legg til SSO-leverandør** ber om påloggings-URL-en, utstederen og x509-sertifikatet, og signerings- og digest-metodene fylles ut under **Flere felt**. **Statussider → siden din → Sikkerhet → OIDC** setter opp OpenID Connect: **Legg til OIDC-leverandør** ber om utstederen, klient-ID-en og hemmeligheten, og discovery-URL-en, scopes og claim-navnene fylles ut under **Flere felt**. Når en side har en leverandør, lenker kortet **Test innlogging** under listen til sidens innlogging, så du kan prøve den. **SCIM** oppretter private brukere automatisk fra IdP-en. På OneUptime Cloud krever alle tre abonnementet Scale eller høyere. I en selvdriftet installasjon er SSO og OIDC en del av alle utgaver, og SCIM krever [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Å slå av eller slette en statussides SSO- eller OIDC-leverandør logger ut de private brukerne den logget inn: øktene deres avsluttes ved neste forespørsel, og å slå på leverandøren igjen henter dem ikke tilbake; de logger inn gjennom den på nytt. Et nytt sertifikat eller en ny klienthemmelighet, andre URL-er eller et nytt navn holder alle innlogget. På en side som krever SSO, stenger det alle ute å slå av den siste leverandøren, til du slår på en igjen eller slår av **Krev SSO for innlogging**; for å bytte til en annen leverandør setter du opp og tester den nye før du slår av den gamle.
 
-Under leverandørene inneholder kortet **SSO-innstillinger** bryteren **Krev SSO for innlogging** (`requireSsoForLogin`, av som standard), som lagres så snart du slår den om. Å slå den på ber om bekreftelse først, fordi private brukere deretter ikke kan logge inn med e-post og passord: bare personene SSO- eller OIDC-leverandøren din slipper inn, kan se siden. Test SSO med lenken på den skjermen før du slår den på. Den har bare betydning så lenge **Bare personer som logger inn** er valget, og skjermen **Tilgang** viser den som **SSO påkrevd** under det valget. Mens den er på, blir også en privat bruker som logget inn med e-post og passord, logget ut ved neste forespørsel: bare økter som en SSO- eller OIDC-leverandør startet, teller. På OneUptime Cloud krever det abonnementet **Scale** å slå den på, og å slå den av fungerer på alle abonnementer. En side som fortsatt krever SSO etter at en prøveperiode med Scale er over, eller etter et bytte til et lavere abonnement, fortsetter med det til noen slår det av: sidene **SSO** og **OIDC** viser bryteren for det under abonnementstilbudet.
+Under leverandørene inneholder kortet **SSO-innstillinger** bryteren **Krev SSO for innlogging** (`requireSsoForLogin`, av som standard), som lagres så snart du slår den om. Å slå den på ber om bekreftelse først, fordi private brukere deretter ikke kan logge inn med e-post og passord: bare personene SSO- eller OIDC-leverandøren din slipper inn, kan se siden. Prøv lenken på kortet **Test innlogging** over det før du slår den på. Den har bare betydning så lenge **Bare personer som logger inn** er valget, og skjermen **Tilgang** viser den som **SSO påkrevd** under det valget. Mens den er på, blir også en privat bruker som logget inn med e-post og passord, logget ut ved neste forespørsel: bare økter som en SSO- eller OIDC-leverandør startet, teller. På OneUptime Cloud krever det abonnementet **Scale** å slå den på, og å slå den av fungerer på alle abonnementer. En side som fortsatt krever SSO etter at en prøveperiode med Scale er over, eller etter et bytte til et lavere abonnement, fortsetter med det til noen slår det av: sidene **SSO** og **OIDC** viser bryteren for det under abonnementstilbudet.
 
 ### Leserøkter
 
@@ -215,7 +215,7 @@ Under **Flere innstillinger** på **Tilgang** begrenser seksjonen **IP-tillatels
 
 Tre måter å vise status andre steder enn på selve siden.
 
-**Innebygd statusmerke.** Under **Statussider → siden din → Avansert → Innebygd status** slår du på **Aktiver innebygd statusmerke** (`enableEmbeddedOverallStatus`, av som standard), og klikker deretter på **Regenerer token** på kortet **Sikkerhetstoken** for å gi merket et token (`embeddedOverallStatusToken`). Merket leveres fra `/api/status-page/badge/<status-page-id>?token=<token>`, og skjermen viser det i **Badge-forhåndsvisning** med utdrag du kan kopiere, slik at du kan sette den gjeldende samlede statusen inn i dokumentasjonen din, bunnteksten i appen din eller en markedsføringsside.
+**Innebygd statusmerke.** Under **Statussider → siden din → Avansert → Innebygd status** slår du på **Aktiver innebygd statusmerke** (`enableEmbeddedOverallStatus`, av som standard), og klikker deretter på **Opprett token** på kortet **Sikkerhetstoken** for å gi merket et token (`embeddedOverallStatusToken`); når det har et, heter knappen **Regenerer token**. Merket leveres fra `/api/status-page/badge/<status-page-id>?token=<token>`, og kortet **Bygg inn merket** viser det, med **HTML** og **Markdown, med lenke til statussiden** å kopiere, slik at du kan sette den gjeldende samlede statusen inn i dokumentasjonen din, bunnteksten i appen din eller en markedsføringsside.
 
 **RSS-strøm.** Hver statusside leverer `/rss`: en strøm med tittelen "{sidetittel} Updates", med **Sidetittel** angitt under **Merkevare**, eller sidens navn hvis den ikke har noen, og der elementene begynner med `Incident: `, `Announcement: ` og `Scheduled Maintenance: `. Nyttig for dem som heller vil hente oppdateringene dine inn i en strømleser eller en chatbot enn å abonnere via e-post.
 

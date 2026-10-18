@@ -60,12 +60,12 @@ Den egendefinerte CSS-en og HTML-en din gjelder i begge temaene; [Egendefinert H
 
 ### Tittel, beskrivelse og favicon
 
-- **Tittel og beskrivelse**: kortet nevner at dette også brukes til SEO. **Rediger** åpner **Sidetittel** (plassholder `Please enter page title here.`) og **Sidebeskrivelse**. Søkemotorer og forhåndsvisninger av lenker viser dem, så skriv dem for en kunde, ikke for teamet ditt.
+- **Tittel og beskrivelse**: sidens navn i nettleserfanen og i e-poster til abonnenter, og beskrivelsen søkemotorer viser. **Rediger** åpner **Sidetittel** (plassholder `e.g., Acme Status`) og **Sidebeskrivelse**. Søkemotorer og forhåndsvisninger av lenker viser dem, så skriv dem for en kunde, ikke for teamet ditt.
 - **Favicon**: **Edit Favicon** åpner opplastingen **Favicon**: det lille ikonet i nettleserfanen.
 
 ### Topptekstlenker
 
-Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som nettstedet ditt, dokumentasjonen din eller en kundestøtteportal. Hver lenke har en **Tittel** og en **Lenke** (en URL, plassholder `https://link.com`), og du endrer rekkefølgen ved å dra. Uten lenker sier tabellen **Ingen statustoppteksttekstlenke for denne statussiden**, med **Opprett Statusside Topptekst Lenke** under.
+Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som nettstedet ditt, dokumentasjonen din eller en kundestøtteportal. Hver lenke har en **Tittel** og en **Lenke** (en URL, plassholder `https://link.com`), og du endrer rekkefølgen ved å dra. Uten lenker sier tabellen hva de er til, med **Legg til Topptekstlenke** under.
 
 ### Beskrivelse av oversiktssiden
 
@@ -74,7 +74,7 @@ Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som ne
 ### Bunntekst
 
 - **Opphavsrettsinformasjon**: **Edit Copyright** åpner ett felt, **Opphavsrettsinformasjon**, med plassholderen `Acme, Inc.`.
-- **Bunntekstlenker**: det samme paret **Tittel** og **Lenke** som topptekstlenkene, sortert ved å dra. Uten lenker står det «Ingen statusbunntekstlenke for denne statussiden.»
+- **Bunntekstlenker**: det samme paret **Tittel** og **Lenke** som topptekstlenkene, sortert ved å dra og lagt til med **Legg til Bunntekstlenke**.
 
 Topptekstlenker er for navigering; bunntekstlenker er for det med liten skrift, som juridisk informasjon, personvern og vilkår.
 
@@ -130,8 +130,8 @@ De var tidligere to egne kort, **Samlet oppetidsprosent** og **Overvåkerstatuse
 
 | Kort | Kolonne | Hva det inneholder |
 | ---- | ------ | ------------- |
-| **Topptekst-HTML** | `headerHTML` | HTML som legges til i sidens topptekst (plassholder `Insert Custom HTML here.`). |
-| **Bunntekst-HTML** | `footerHTML` | HTML som legges til i sidens bunntekst. |
+| **Topptekst-HTML** | `headerHTML` | HTML som vises i stedet for sidens topptekst, med logoen og topptekstlenkene (plassholder `Insert Custom HTML here.`). |
+| **Bunntekst-HTML** | `footerHTML` | HTML som vises i stedet for sidens bunntekst, med lenkene og valgene for språk og tema. |
 | **Egendefinert CSS** | `customCSS` | Stiler for hele siden (plassholder `Insert Custom CSS here.`). |
 | **Egendefinert JavaScript** | `customJavaScript` | Et skript siden kjører (plassholder `Insert Custom JavaScript here.`). |
 

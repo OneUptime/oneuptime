@@ -85,15 +85,15 @@ Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-
 :::steps
 ### Opprett statussiden
 
-Klikk på **Publiser en statusside** i sjekklisten, eller åpne **Statussider** fra menyen **Produkter**. Klikk på **Opprett statusside**, skriv inn et **Navn**, for eksempel `Acme Status`, og klikk på **Opprett statusside**.
+Klikk på **Publiser en statusside** i sjekklisten, eller åpne **Statussider** fra menyen **Produkter**. Klikk på **Opprett statusside**, skriv inn et **Navn**, for eksempel `Acme Status`, og klikk på **Opprett statusside**. Den nye siden åpnes på sin **Oversikt**.
 
 ### Legg til monitoren din
 
-Åpne den nye statussiden. I sidemenyen, under **Ressurser**, velger du **Monitorer**; i prosjekter med monitorgrupper slått på heter punktet **Ressurser**. Klikk på **Legg til monitor**, velg nettstedsmonitoren din, og klikk på **Legg til monitor**. Raden viser monitorens navn til besøkende; endre det under **Visningsnavn** om du vil.
+Klikk på **Add Monitors** på **Oversikt**, eller velg **Monitorer** under **Ressurser** i sidemenyen til siden; i prosjekter med monitorgrupper slått på heter punktet **Ressurser**. Klikk på **Legg til monitor**, velg nettstedsmonitoren din, og klikk på **Legg til monitor**. Raden viser monitorens navn til besøkende; endre det under **Visningsnavn** om du vil.
 
 ### Åpne siden
 
-Velg **Oversikt** i sidemenyen. Kortet **Status Page Preview URL** lenker til statussiden din: åpne den, og nettstedet ditt vises som i drift.
+Velg **Oversikt** i sidemenyen. Kortet **Lenke til statussiden** lenker til statussiden din: åpne den, og nettstedet ditt vises som i drift.
 :::
 
 En ny statusside er offentlig: alle med adressen kan åpne den. Se [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains) for å gi den ditt eget domene, logo og farger.

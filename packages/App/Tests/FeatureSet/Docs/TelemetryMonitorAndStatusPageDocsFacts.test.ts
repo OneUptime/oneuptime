@@ -2490,7 +2490,10 @@ describe("status page branding", () => {
 
   it("every placeholder the page quotes is one the Dashboard draws", () => {
     const sources: Record<string, string> = {
-      branding: dashboardSource("Pages/StatusPages/View/Branding.tsx"),
+      // The page and its copy module, which holds the page title's example.
+      branding:
+        dashboardSource("Pages/StatusPages/View/Branding.tsx") +
+        dashboardSource("Components/StatusPage/StatusPageBrandingCopy.ts"),
       customCode: dashboardSource("Pages/StatusPages/View/CustomHtmlCss.tsx"),
       domains:
         dashboardSource("Components/CustomDomain/CustomDomainCopy.ts") +
@@ -2504,7 +2507,7 @@ describe("status page branding", () => {
           "Upload logo",
           "Logo of My Company",
           "Upload cover image",
-          "Please enter page title here.",
+          "e.g., Acme Status",
           "https://link.com",
           "Acme, Inc.",
           "All languages",

@@ -5,7 +5,7 @@ Uma página de status é a face pública de tudo o que você monitora: uma únic
 Quando algo quebra às 2 da manhã, a página de status é a primeira coisa para a qual sua fila de suporte aponta. É também de onde seus assinantes são notificados, então vale a pena configurá-la antes de precisar dela, não no meio da indisponibilidade.
 
 :::cards
-- [Criar uma página de status](#criar-uma-página-de-status): Dois campos para começar, todo o resto depois.
+- [Criar uma página de status](#criar-uma-página-de-status): Um nome para começar, todo o resto depois.
 - [Escolher o que ela mostra](#escolher-o-que-aparece-na-página): Incidentes, episódios, anúncios, manutenção e tempo de atividade, em um único cartão.
 - [Decidir quem pode vê-la](#restringir-quem-pode-ver-a-página): Qualquer pessoa com o link, apenas quem entra ou qualquer pessoa com a senha.
 - [Arquivar uma página de status](#arquivar-uma-página-de-status): Tirar uma página do ar sem excluí-la.
@@ -33,7 +33,7 @@ A página mostra como recursos os monitores que você coloca nela, e os incident
 
 ## Em resumo
 
-- **Criada com dois campos.** Uma nova página de status pede apenas **Nome** e **Descrição**. Recursos, marca e domínios são configurados depois.
+- **Criada com um nome.** Uma nova página de status pede apenas o **Nome**; **Descrição** e **Rótulos** ficam em **Mais campos**. Recursos, marca e domínios são configurados depois.
 - **Os recursos são o que os visitantes veem.** Cada linha da página é um **Página de status Recurso**: um monitor (ou grupo de monitores) com seu próprio nome de exibição, dica e opções de tempo de atividade. Os grupos dividem uma página longa em seções e podem ser aninhados.
 - **Uma URL de pré-visualização desde o primeiro dia.** Toda página de status recebe um link de pré-visualização, para que você possa vê-la antes de existir um domínio personalizado.
 - **As rotas para visitantes dependem de configurações.** Incidentes, episódios, anúncios e eventos agendados só aparecem enquanto seu interruptor em **O que sua página de status mostra** (em **Configurações avançadas**) estiver ligado, e a página de inscrição só enquanto **Mostrar página de assinantes** estiver ligado.
@@ -61,13 +61,13 @@ Abra **Páginas de status → Todas as páginas de status** e clique em **Criar 
 
 ### Dar um nome à página
 
-Na janela **Criar: Página de status**, preencha **Nome** (obrigatório, pelo menos dois caracteres) e, se quiser, **Descrição**, e clique em **Criar página de status**.
+Na janela **Criar: Página de status**, preencha **Nome** (obrigatório, pelo menos dois caracteres) e clique em **Criar página de status**. **Descrição** e **Rótulos** são opcionais, em **Mais campos**.
 
-Esse é o formulário inteiro. A lista para a qual você volta mostra **Nome**, **Descrição**, **Rótulos** e **Proprietários**, e pode ser filtrada por **ID da página de status**, **Nome** e **Descrição**.
+Esse é o formulário inteiro. A lista **Páginas de status** mostra **Nome**, **Descrição**, **Rótulos** e **Proprietários**, e pode ser filtrada por **ID da página de status**, **Nome** e **Descrição**.
 
 ### Abrir a nova página
 
-Abra a nova página e você chega à tela **Visão geral** dela, que tem dois cartões: **Status Page Preview URL**, com um link para a própria página, e **Detalhes da página de status**, onde você pode editar o nome, a descrição e os rótulos que acabou de definir. Quando o projeto tem campos personalizados de páginas de status, um cartão **Campos personalizados** vem em seguida.
+A nova página abre na tela **Visão geral** dela. Enquanto a página não tem nenhum recurso, a tela começa com **Ainda não há nada nesta página de status** e **Add Monitors**, que abre a tela **Recursos** dela. Depois vêm dois cartões: **Link da página de status**, com o link para a própria página e **Copiar link**, e **Detalhes da página de status**, onde você pode editar o nome, a descrição e os rótulos que acabou de definir. Quando o projeto tem campos personalizados de páginas de status, um cartão **Campos personalizados** vem em seguida.
 :::
 
 Uma página criada com a API ou com o Terraform está sujeita aos mesmos planos das configurações descritas abaixo. No OneUptime Cloud, criar uma página com uma configuração ligada que seu plano não inclui (por exemplo privada, uma lista oculta, HTML, CSS ou JavaScript personalizados, relatórios por e-mail, assinantes de SMS, Slack, Microsoft Teams ou webhook, uma lista de IPs permitidos) é recusado com `402 Payment Required`, e a mensagem cita o plano. O plano de cada configuração é indicado ao lado dela abaixo. As configurações deixadas no padrão, como este formulário as deixa, funcionam em todos os planos.
@@ -167,7 +167,7 @@ Abaixo do cartão ficam **Exportar como JSON: Página de status**, que baixa as 
 
 ## Ver como ficou antes de publicar
 
-A tela **Visão geral** de cada página de status tem um cartão **Status Page Preview URL** com um link direto para a página. Use-o enquanto ainda estiver adicionando recursos e antes de existir um domínio personalizado.
+A tela **Visão geral** de cada página de status tem um cartão **Link da página de status** com um link direto para a página e **Copiar link** ao lado. Use-o enquanto ainda estiver adicionando recursos e antes de existir um domínio personalizado.
 
 Nos bastidores, cada rota pública tem uma gêmea de pré-visualização em `/status-page/{statusPageId}/...`: uma visão geral de pré-visualização, uma lista de incidentes de pré-visualização, uma página de inscrição de pré-visualização e assim por diante. Por isso, uma URL ou captura de tela tirada da pré-visualização do painel não vai corresponder ao que um cliente vê depois que um domínio personalizado estiver conectado, então confira qualquer link que você colar em um runbook ou e-mail.
 
@@ -195,11 +195,11 @@ Adicione as pessoas que podem entrar em **Páginas de status → sua página →
 
 ### SSO e OIDC
 
-Para uma página privada ligada ao seu provedor de identidade, **Páginas de status → sua página → Segurança → SSO** configura o SAML: você informa a URL de login, o emissor e o certificado x509, e os métodos de assinatura e de digest são preenchidos em **Mais campos**. **Páginas de status → sua página → Segurança → OIDC** configura o OpenID Connect: você informa o emissor, o ID do cliente e o segredo, e a URL de descoberta, os escopos e os nomes das claims são preenchidos em **Mais campos**. O **SCIM** provisiona usuários privados automaticamente a partir do IdP. No OneUptime Cloud, os três precisam do plano Scale ou superior. Em uma instalação auto-hospedada, SSO e OIDC fazem parte de todas as edições, e o SCIM precisa da [Edição Enterprise](/docs/self-hosted/enterprise).
+Para uma página privada ligada ao seu provedor de identidade, **Páginas de status → sua página → Segurança → SSO** configura o SAML: **Adicionar provedor SSO** pede a URL de login, o emissor e o certificado x509, e os métodos de assinatura e de digest são preenchidos em **Mais campos**. **Páginas de status → sua página → Segurança → OIDC** configura o OpenID Connect: **Adicionar provedor OIDC** pede o emissor, o ID do cliente e o segredo, e a URL de descoberta, os escopos e os nomes das claims são preenchidos em **Mais campos**. Quando a página tem um provedor, o cartão **Testar o login** abaixo da lista leva ao login da página, para testá-lo. O **SCIM** provisiona usuários privados automaticamente a partir do IdP. No OneUptime Cloud, os três precisam do plano Scale ou superior. Em uma instalação auto-hospedada, SSO e OIDC fazem parte de todas as edições, e o SCIM precisa da [Edição Enterprise](/docs/self-hosted/enterprise).
 
 Desligar ou excluir o provedor de SSO ou OIDC de uma página de status desconecta os usuários privados que ele fez entrar: as sessões deles terminam na próxima solicitação, e ligar o provedor de novo não as traz de volta; eles entram de novo por ele. Um novo certificado ou segredo do cliente, outras URLs ou um novo nome mantêm todos conectados. Em uma página que exige SSO, desligar seu último provedor deixa todos sem acesso até que você ligue um de novo ou desligue **Exigir SSO para login**; para trocar de provedor, configure e teste o novo antes de desligar o antigo.
 
-Abaixo dos provedores, o cartão **Configurações de SSO** contém o interruptor **Exigir SSO para login** (`requireSsoForLogin`, desligado por padrão), que é salvo assim que você o muda. Ligá-lo pede confirmação primeiro, porque a partir daí os usuários privados não conseguem entrar com e-mail e senha: apenas as pessoas que seu provedor de SSO ou OIDC deixa entrar podem ver a página. Teste o SSO com o link daquela tela antes de ligá-lo. Ele só importa enquanto **Apenas quem entra** for a escolha, e a tela **Acesso** o mostra como **SSO obrigatório** abaixo dessa escolha. Enquanto ele está ligado, um usuário privado que entrou com e-mail e senha também é desconectado na próxima solicitação: só contam as sessões que um provedor de SSO ou OIDC iniciou. No OneUptime Cloud, ligá-lo precisa do plano **Scale**, e desligá-lo funciona em todos os planos. Uma página que ainda exige SSO depois do fim de um teste do Scale, ou depois de mudar para um plano inferior, continua exigindo até que alguém o desligue: as páginas **SSO** e **OIDC** dela mostram o interruptor abaixo da oferta do plano para isso.
+Abaixo dos provedores, o cartão **Configurações de SSO** contém o interruptor **Exigir SSO para login** (`requireSsoForLogin`, desligado por padrão), que é salvo assim que você o muda. Ligá-lo pede confirmação primeiro, porque a partir daí os usuários privados não conseguem entrar com e-mail e senha: apenas as pessoas que seu provedor de SSO ou OIDC deixa entrar podem ver a página. Teste o link do cartão **Testar o login** acima dele antes de ligá-lo. Ele só importa enquanto **Apenas quem entra** for a escolha, e a tela **Acesso** o mostra como **SSO obrigatório** abaixo dessa escolha. Enquanto ele está ligado, um usuário privado que entrou com e-mail e senha também é desconectado na próxima solicitação: só contam as sessões que um provedor de SSO ou OIDC iniciou. No OneUptime Cloud, ligá-lo precisa do plano **Scale**, e desligá-lo funciona em todos os planos. Uma página que ainda exige SSO depois do fim de um teste do Scale, ou depois de mudar para um plano inferior, continua exigindo até que alguém o desligue: as páginas **SSO** e **OIDC** dela mostram o interruptor abaixo da oferta do plano para isso.
 
 ### Sessões de leitores
 
@@ -215,7 +215,7 @@ Em **Mais configurações** de **Acesso**, a seção **Lista de IPs permitidos**
 
 Três formas de mostrar o status em outro lugar que não a própria página.
 
-**Selo de status incorporado.** Em **Páginas de status → sua página → Avançado → Status incorporado**, ligue **Habilitar selo de status incorporado** (`enableEmbeddedOverallStatus`, desligado por padrão) e clique em **Regenerar token** no cartão **Token de segurança** para dar ao selo o token dele (`embeddedOverallStatusToken`). O selo é servido em `/api/status-page/badge/<status-page-id>?token=<token>`, e a tela o mostra em **Pré-visualização do selo** com trechos para copiar, para que você possa colocar o status geral atual na sua documentação, no rodapé do seu aplicativo ou em uma página de marketing.
+**Selo de status incorporado.** Em **Páginas de status → sua página → Avançado → Status incorporado**, ligue **Habilitar selo de status incorporado** (`enableEmbeddedOverallStatus`, desligado por padrão) e clique em **Criar token** no cartão **Token de segurança** para dar ao selo o token dele (`embeddedOverallStatusToken`); quando ele já tem um, o botão passa a ser **Regenerar token**. O selo é servido em `/api/status-page/badge/<status-page-id>?token=<token>`, e o cartão **Incorporar o selo** o mostra, com o **HTML** e o **Markdown, com link para a página de status** dele para copiar, para que você possa colocar o status geral atual na sua documentação, no rodapé do seu aplicativo ou em uma página de marketing.
 
 **Feed RSS.** Toda página de status serve `/rss`: um feed intitulado "{título da página} Updates", com o **Título da página** definido em **Marca**, ou o nome dela se não tiver um, e cujos itens começam com `Incident: `, `Announcement: ` e `Scheduled Maintenance: `. Útil para quem prefere levar suas atualizações para um leitor ou um chatbot em vez de se inscrever por e-mail.
 

@@ -43,7 +43,7 @@ The switches decide how visitors can sign themselves up, and the status page ref
 
 On OneUptime Cloud, a switch your plan does not include has the plan's name beside it: **Growth** for **SMS** and **Show Subscriber Page**, **Scale** for **Slack**, **Microsoft Teams** and **Webhook**. Turning a channel off works on every plan, so a channel a trial turned on can always be turned off again; the switch says so under it.
 
-Each channel also gets its own list in the status page side menu under **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **Microsoft Teams Subscribers** and **Webhook Subscribers**. That is where you look at who is signed up, add someone by hand, or leave yourself a **Notes** (`internalNote`) entry on a particular subscriber. While a channel is off, the top of its list says so, with the channel's switch right there, so you can turn it on without leaving the list.
+Each channel also gets its own list in the status page side menu under **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **Microsoft Teams Subscribers** and **Webhook Subscribers**. That is where you look at who is signed up, add someone by hand with **Add Subscriber**, or leave yourself an **Internal Note** (`internalNote`) on a particular subscriber, which only your team sees. While a channel is off, the top of its list says so, with the channel's switch right there, so you can turn it on without leaving the list.
 
 **One switch is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** is on *and* at least one channel is on. If you turn on **Email** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
 
@@ -66,7 +66,7 @@ Neither setting deletes a subscriber, and turning them off sends to everyone aga
 
 ## What a visitor sees on the Subscribe page
 
-The **Subscribe** page has a sub-menu with one tab per enabled channel. Each tab asks for the minimum it needs:
+The **Subscribe** page has a sub-menu with one tab per enabled channel; with only one channel on, there is no sub-menu, just that channel's form. Each tab asks for the minimum it needs:
 
 | Tab | Address | Heading | What it asks for |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ The submit button reads **Subscribe**. A signup by SMS, Slack, Microsoft Teams o
 
 ## Letting subscribers choose resources and event types
 
-By default a subscriber gets everything on the page. Two toggles in the **Advanced Subscriber Settings** card change that:
+By default a subscriber gets everything on the page. Two switches in the **Subscriber Choices** card on **Subscriber Settings** change that, each saving the moment you flip it:
 
 - **Allow Subscribers to Choose Resources** (`allowSubscribersToChooseResources`) — off by default. Turn it on and the subscribe form grows a **Subscribe to All Resources** toggle; clear it and **Select Resources to Subscribe** appears so the visitor can pick individual resources.
 - **Allow Subscribers to Choose Event Types** (`allowSubscribersToChooseEventTypes`) — off by default. Same shape: a **Subscribe to All Event Types** toggle, and **Select Event Types to Subscribe** underneath when it is cleared.
@@ -99,17 +99,17 @@ The choices land on the subscriber record as **Is Subscribed to All Resources** 
 
 Good for: a page that covers several products. A customer who only uses your API does not want a page every time the marketing site wobbles — let them narrow the list themselves rather than watching them unsubscribe entirely.
 
-The same card also carries **Subscriber Timezones**.
+**Subscriber Timezones** is under **More settings** on the same screen (see [below](#email-footer-custom-smtp-and-twilio)).
 
 ## Email double opt-in
 
 Email subscribers always confirm. When a subscriber is created with an email address and was not created already-confirmed, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) is forced to `false` and a six-digit **Subscription Confirmation Token** is generated. OneUptime then emails a confirmation link shaped like `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. The visitor lands on a **Confirm Subscription** page and, once it goes through, sees *Subscription confirmed successfully*.
 
-SMS, Slack, Microsoft Teams and webhook subscribers skip this — they are created with `isSubscriptionConfirmed` already set to `true`. So do email subscribers your team adds on **Email Subscribers**: **Do not send confirmation link** is on by default there. Turn it off to have the address confirm like a sign-up.
+SMS, Slack, Microsoft Teams and webhook subscribers skip this — they are created with `isSubscriptionConfirmed` already set to `true`. When your team adds an email subscriber on **Email Subscribers**, **When you add them** decides: **Subscribe them now** (the default: confirmed, and sent nothing), **Subscribe them now and tell them** (confirmed, and sent the email that says they are subscribed) or **Ask them to confirm first** (sent the confirmation link, like a sign-up). **Add in Bulk** asks the same.
 
 **Unconfirmed means silent.** The query that fetches subscribers for a notification filters on `isUnsubscribed: false` and `isSubscriptionConfirmed: true`. An email address that never clicked the link will sit in your **Email Subscribers** list and receive nothing. If someone swears they are subscribed but hears nothing, check that column first.
 
-There is no toggle to turn email confirmation off — it is unconditional for anyone who signs up through the status page. A separate per-subscriber column, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, default true), controls the "you have subscribed" email that goes out once a subscriber is confirmed.
+There is no toggle to turn email confirmation off — it is unconditional for anyone who signs up through the status page. A separate per-subscriber column, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, default true), controls the "you have subscribed" email that goes out once a subscriber is confirmed. On the dashboard, **When you add them** sets it for an email subscriber, and **Send a welcome message**, under **More fields**, for the other channels.
 
 ## Managing and canceling a subscription
 
@@ -131,7 +131,7 @@ On a private status page it needs a signed-in visitor, like the rest of the page
 
 The endpoints behind all of this are `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token`, and `GET` and `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. The unsubscribe `GET` only describes the link. The `POST` cancels the subscription whatever its body, including the `List-Unsubscribe=One-Click` body of a one-click unsubscribe request. Every endpoint that takes a token gives the same answer for a missing or wrong token, a deleted subscriber and a subscriber of another status page, so none can be used to find out who is subscribed.
 
-Unsubscribing flips a flag rather than deleting a row, so the record stays in the channel list with **Is Unsubscribed** set — useful when you need to explain later why a particular address stopped receiving mail. It also records **Unsubscribed At** (`unsubscribedAt`), whoever cancelled the subscription: the subscriber through the link or the **Update Subscription** page, or a teammate on the dashboard or through the API. Each subscriber list has an **Unsubscribed At** column and filter. Turning **Is Unsubscribed** off again clears it. Subscriptions cancelled before OneUptime recorded this have no date.
+Unsubscribing flips a flag rather than deleting a row, so the record stays in the channel list with **Is Unsubscribed** set — useful when you need to explain later why a particular address stopped receiving mail. It also records **Unsubscribed At** (`unsubscribedAt`), whoever cancelled the subscription: the subscriber through the link or the **Update Subscription** page, or a teammate on the dashboard or through the API. Each subscriber list has an **Unsubscribed At** column and filter. Setting a subscriber's **Status** back to **Subscribed** clears it. Subscriptions cancelled before OneUptime recorded this have no date.
 
 A link with only the subscriber's id opens nothing any more. An **Update Subscription** link in an older message, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, opens a page that says the link has expired, with **Get a new link**, which leads to the **Subscribe** page. Very old messages carried `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, which used to unsubscribe as soon as it was opened. It no longer changes anything: it leads to the unsubscribe page, which says the link is out of date and to use the one in a recent message.
 
@@ -392,9 +392,10 @@ While you write a template, **Live preview** under the template body fills it in
 
 ## Email footer, custom SMTP and Twilio
 
-Three more cards on **Subscriber Settings** control how subscriber messages leave your project:
+Four more sections, under **More settings** at the bottom of **Subscriber Settings**, control how subscriber messages leave your project:
 
-- **Email Footer Settings** — **Enable Custom Email Footer Text** and **Subscriber Email Notification Footer Text** put your own footer on subscriber emails.
+- **Subscriber Timezones** — the time zones the times in notifications are shown in, picked with **Edit Timezones**. With none picked, times are shown in UTC and in London, New York, Los Angeles, Kolkata and Sydney time.
+- **Email Footer** — the line at the end of every email to the page's subscribers. **Edit Footer** asks for the **Footer**: **The default footer**, a line that says they get the email because they subscribed, or **Your own text**, the **Footer Text** you write (`enableCustomSubscriberEmailNotificationFooterText` and `subscriberEmailNotificationFooterText`). Your own text left empty sends the default footer.
 - **Custom SMTP** — **Custom SMTP Config** sends subscriber email through your own mail server instead of the default.
 - **Twilio Config** — **Twilio Config** is the Twilio account used for SMS subscribers.
 

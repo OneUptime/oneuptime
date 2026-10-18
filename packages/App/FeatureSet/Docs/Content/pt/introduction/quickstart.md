@@ -85,15 +85,15 @@ Para mais níveis, rodízios e quanto tempo cada nível espera, veja [Regras de 
 :::steps
 ### Criar a página de status
 
-Na lista, clique em **Publique uma página de status**, ou abra **Páginas de status** no menu **Produtos**. Clique em **Criar página de status**, digite um **Nome**, por exemplo `Acme Status`, e clique em **Criar página de status**.
+Na lista, clique em **Publique uma página de status**, ou abra **Páginas de status** no menu **Produtos**. Clique em **Criar página de status**, digite um **Nome**, por exemplo `Acme Status`, e clique em **Criar página de status**. A nova página abre na **Visão geral** dela.
 
 ### Adicionar seu monitor
 
-Abra a nova página de status. No menu lateral dela, em **Recursos**, escolha **Monitores**; em projetos com grupos de monitores ativados, o item se chama **Recursos**. Clique em **Adicionar monitor**, escolha o monitor do seu site e clique em **Adicionar monitor**. A linha mostra aos visitantes o nome do monitor; mude-o em **Nome de exibição**, se quiser.
+Clique em **Add Monitors** na **Visão geral** ou, no menu lateral da página, em **Recursos**, escolha **Monitores**; em projetos com grupos de monitores ativados, o item se chama **Recursos**. Clique em **Adicionar monitor**, escolha o monitor do seu site e clique em **Adicionar monitor**. A linha mostra aos visitantes o nome do monitor; mude-o em **Nome de exibição**, se quiser.
 
 ### Abrir a página
 
-Escolha **Visão geral** no menu lateral. O cartão **Status Page Preview URL** leva à sua página de status: abra-a, e seu site aparece como operacional.
+Escolha **Visão geral** no menu lateral. O cartão **Link da página de status** leva à sua página de status: abra-a, e seu site aparece como operacional.
 :::
 
 Uma página de status nova é pública: qualquer pessoa com o endereço pode abri-la. Para dar a ela seu próprio domínio, seu logotipo e suas cores, veja [Marca e domínios da página de status](/docs/status-pages/branding-and-domains).

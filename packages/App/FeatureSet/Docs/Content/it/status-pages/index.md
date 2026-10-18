@@ -5,7 +5,7 @@ Una pagina di stato è il volto pubblico di tutto ciò che monitorate: un unico 
 Quando qualcosa si rompe alle 2 di notte, la pagina di stato è la prima cosa a cui rimanda la vostra coda di supporto. È anche da lì che vengono notificati i vostri iscritti, quindi conviene configurarla prima di averne bisogno, non nel mezzo del disservizio.
 
 :::cards
-- [Creare una pagina di stato](#creare-una-pagina-di-stato): Due campi per iniziare, tutto il resto dopo.
+- [Creare una pagina di stato](#creare-una-pagina-di-stato): Un nome per iniziare, tutto il resto dopo.
 - [Scegliere che cosa mostra](#scegliere-che-cosa-compare-sulla-pagina): Incidenti, episodi, annunci, manutenzione e uptime, in un'unica scheda.
 - [Decidere chi può vederla](#limitare-chi-può-vedere-la-pagina): Chiunque abbia il link, solo chi accede o chiunque abbia la password.
 - [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato): Mettere offline una pagina senza eliminarla.
@@ -33,7 +33,7 @@ La pagina mostra come risorse i monitor che vi inserite, e gli incidenti vi arri
 
 ## In sintesi
 
-- **Si crea con due campi.** Una nuova pagina di stato chiede solo **Nome** e **Descrizione**. Risorse, branding e domini si configurano dopo.
+- **Si crea con un nome.** Una nuova pagina di stato chiede solo il suo **Nome**; **Descrizione** ed **Etichette** aspettano in **Altri campi**. Risorse, branding e domini si configurano dopo.
 - **Le risorse sono ciò che vedono i visitatori.** Ogni riga della pagina è una **Pagina di stato Risorsa**: un monitor (o gruppo di monitor) con un proprio nome visualizzato, un tooltip e opzioni di uptime. I gruppi dividono una pagina lunga in sezioni e si possono annidare.
 - **Un URL di anteprima fin dal primo giorno.** Ogni pagina di stato riceve un link di anteprima, così potete vederla prima che esista un dominio personalizzato.
 - **I percorsi per i visitatori dipendono dalle impostazioni.** Incidenti, episodi, annunci ed eventi pianificati compaiono solo finché il loro interruttore in **Cosa mostra la tua pagina di stato** (in **Impostazioni avanzate**) è attivo, e la pagina di iscrizione solo finché lo è **Mostra pagina iscritti**.
@@ -61,13 +61,13 @@ Aprite **Pagine di stato → Tutte le pagine di stato** e fate clic su **Crea pa
 
 ### Dare un nome alla pagina
 
-Nella finestra **Crea: Pagina di stato**, compilate **Nome** (obbligatorio, almeno due caratteri) e, se volete, **Descrizione**, poi fate clic su **Crea pagina di stato**.
+Nella finestra **Crea: Pagina di stato**, compilate **Nome** (obbligatorio, almeno due caratteri), poi fate clic su **Crea pagina di stato**. **Descrizione** ed **Etichette** sono facoltativi, in **Altri campi**.
 
-Questo è tutto il modulo. L'elenco a cui tornate mostra **Nome**, **Descrizione**, **Etichette** e **Proprietari**, e si può filtrare per **ID della pagina di stato**, **Nome** e **Descrizione**.
+Questo è tutto il modulo. L'elenco **Pagine di stato** mostra **Nome**, **Descrizione**, **Etichette** e **Proprietari**, e si può filtrare per **ID della pagina di stato**, **Nome** e **Descrizione**.
 
 ### Aprire la nuova pagina
 
-Aprite la nuova pagina e arriverete alla sua schermata **Panoramica**, che ha due schede: **Status Page Preview URL**, con un link alla pagina vera e propria, e **Dettagli della pagina di stato**, dove potete modificare il nome, la descrizione e le etichette appena impostati. Quando il progetto ha campi personalizzati delle pagine di stato, segue una scheda **Campi personalizzati**.
+La nuova pagina si apre sulla sua schermata **Panoramica**. Finché la pagina non ha una risorsa, la schermata comincia con **Ancora niente su questa pagina di stato** e **Add Monitors**, che apre la sua schermata **Risorse**. Seguono due schede: **Link della pagina di stato**, con il link alla pagina vera e propria e **Copia link**, e **Dettagli della pagina di stato**, dove potete modificare il nome, la descrizione e le etichette appena impostati. Quando il progetto ha campi personalizzati delle pagine di stato, segue una scheda **Campi personalizzati**.
 :::
 
 Una pagina creata con l'API o con Terraform è soggetta agli stessi piani delle impostazioni descritte più sotto. Su OneUptime Cloud, creare una pagina con un'impostazione attiva che il vostro piano non include (per esempio privata, un elenco nascosto, HTML, CSS o JavaScript personalizzati, report via email, iscritti via SMS, Slack, Microsoft Teams o webhook, una lista di IP consentiti) viene rifiutato con `402 Payment Required`, e il messaggio indica il piano. Il piano di ogni impostazione è indicato accanto a essa più sotto. Le impostazioni lasciate al valore predefinito, come le lascia questo modulo, funzionano su tutti i piani.
@@ -167,7 +167,7 @@ Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le i
 
 ## Vedere l'anteprima prima di andare in produzione
 
-La schermata **Panoramica** di ogni pagina di stato ha una scheda **Status Page Preview URL** con un link diretto alla pagina. Usatela mentre state ancora aggiungendo risorse e prima che esista un dominio personalizzato.
+La schermata **Panoramica** di ogni pagina di stato ha una scheda **Link della pagina di stato** con un link diretto alla pagina e **Copia link** accanto. Usatela mentre state ancora aggiungendo risorse e prima che esista un dominio personalizzato.
 
 Dietro le quinte, ogni percorso pubblico ha un gemello di anteprima in `/status-page/{statusPageId}/...`: una panoramica di anteprima, un elenco degli incidenti di anteprima, una pagina di iscrizione di anteprima e così via. Per questo un URL o uno screenshot presi dall'anteprima della dashboard non corrisponderanno a ciò che vede un cliente una volta collegato un dominio personalizzato, quindi verificate ogni link che incollate in un runbook o in un'email.
 
@@ -195,11 +195,11 @@ Aggiungete le persone che possono accedere in **Pagine di stato → la vostra pa
 
 ### SSO e OIDC
 
-Per una pagina privata collegata al vostro provider di identità, **Pagine di stato → la vostra pagina → Sicurezza → SSO** configura SAML: inserite l'URL di accesso, l'emittente e il certificato x509, e i metodi di firma e di digest si compilano in **Altri campi**. **Pagine di stato → la vostra pagina → Sicurezza → OIDC** configura OpenID Connect: inserite l'emittente, l'ID client e il secret, e l'URL di discovery, gli scope e i nomi dei claim si compilano in **Altri campi**. **SCIM** fornisce automaticamente utenti privati dall'IdP. Su OneUptime Cloud, tutti e tre richiedono il piano Scale o superiore. In un'installazione self-hosted, SSO e OIDC fanno parte di ogni edizione, e SCIM richiede l'[Edizione Enterprise](/docs/self-hosted/enterprise).
+Per una pagina privata collegata al vostro provider di identità, **Pagine di stato → la vostra pagina → Sicurezza → SSO** configura SAML: **Aggiungi provider SSO** chiede l'URL di accesso, l'emittente e il certificato x509, e i metodi di firma e di digest si compilano in **Altri campi**. **Pagine di stato → la vostra pagina → Sicurezza → OIDC** configura OpenID Connect: **Aggiungi provider OIDC** chiede l'emittente, l'ID client e il secret, e l'URL di discovery, gli scope e i nomi dei claim si compilano in **Altri campi**. Quando una pagina ha un provider, la scheda **Prova l'accesso** sotto l'elenco porta all'accesso della pagina, per provarlo. **SCIM** fornisce automaticamente utenti privati dall'IdP. Su OneUptime Cloud, tutti e tre richiedono il piano Scale o superiore. In un'installazione self-hosted, SSO e OIDC fanno parte di ogni edizione, e SCIM richiede l'[Edizione Enterprise](/docs/self-hosted/enterprise).
 
 Disattivare o eliminare il provider SSO o OIDC di una pagina di stato disconnette gli utenti privati che ha fatto accedere: le loro sessioni terminano alla richiesta successiva, e riattivare il provider non le recupera; accedono di nuovo tramite esso. Un nuovo certificato o un nuovo secret client, altri URL o un nuovo nome mantengono tutti connessi. Su una pagina che richiede l'SSO, disattivare il suo ultimo provider lascia tutti senza accesso finché non ne riattivate uno o non disattivate **Richiedi l'SSO per l'accesso**; per passare a un altro provider, configurate e provate quello nuovo prima di disattivare quello vecchio.
 
-Sotto i provider, la scheda **Impostazioni SSO** contiene l'interruttore **Richiedi l'SSO per l'accesso** (`requireSsoForLogin`, disattivato per impostazione predefinita), che si salva appena lo cambiate. Attivarlo chiede prima conferma, perché da quel momento gli utenti privati non possono accedere con email e password: solo le persone che il vostro provider SSO o OIDC lascia entrare possono vedere la pagina. Provate l'SSO con il link di quella schermata prima di attivarlo. Conta solo finché **Solo chi accede** è la scelta in vigore, e la schermata **Accesso** lo mostra come **SSO obbligatorio** sotto quella scelta. Mentre è attivo, anche un utente privato che ha effettuato l'accesso con email e password viene disconnesso alla richiesta successiva: contano solo le sessioni avviate da un provider SSO o OIDC. Su OneUptime Cloud, attivarlo richiede il piano **Scale**, e disattivarlo funziona su tutti i piani. Una pagina che richiede ancora l'SSO dopo la fine di una prova di Scale, o dopo un passaggio a un piano inferiore, continua a richiederlo finché qualcuno non lo disattiva: le sue pagine **SSO** e **OIDC** mostrano l'interruttore sotto l'offerta del piano.
+Sotto i provider, la scheda **Impostazioni SSO** contiene l'interruttore **Richiedi l'SSO per l'accesso** (`requireSsoForLogin`, disattivato per impostazione predefinita), che si salva appena lo cambiate. Attivarlo chiede prima conferma, perché da quel momento gli utenti privati non possono accedere con email e password: solo le persone che il vostro provider SSO o OIDC lascia entrare possono vedere la pagina. Provate il link della scheda **Prova l'accesso** qui sopra prima di attivarlo. Conta solo finché **Solo chi accede** è la scelta in vigore, e la schermata **Accesso** lo mostra come **SSO obbligatorio** sotto quella scelta. Mentre è attivo, anche un utente privato che ha effettuato l'accesso con email e password viene disconnesso alla richiesta successiva: contano solo le sessioni avviate da un provider SSO o OIDC. Su OneUptime Cloud, attivarlo richiede il piano **Scale**, e disattivarlo funziona su tutti i piani. Una pagina che richiede ancora l'SSO dopo la fine di una prova di Scale, o dopo un passaggio a un piano inferiore, continua a richiederlo finché qualcuno non lo disattiva: le sue pagine **SSO** e **OIDC** mostrano l'interruttore sotto l'offerta del piano.
 
 ### Sessioni dei lettori
 
@@ -215,7 +215,7 @@ In **Altre impostazioni** di **Accesso**, la sezione **Lista IP consentiti** (la
 
 Tre modi per mostrare lo stato altrove rispetto alla pagina stessa.
 
-**Badge di stato incorporato.** In **Pagine di stato → la vostra pagina → Avanzato → Stato incorporato**, attivate **Abilita badge di stato incorporato** (`enableEmbeddedOverallStatus`, disattivato per impostazione predefinita), poi fate clic su **Rigenera token** nella scheda **Token di sicurezza** per dare al badge il suo token (`embeddedOverallStatusToken`). Il badge è servito da `/api/status-page/badge/<status-page-id>?token=<token>`, e la schermata lo mostra in **Anteprima del badge** con frammenti da copiare, così potete mettere lo stato generale attuale nella vostra documentazione, nel piè di pagina della vostra app o in una pagina di marketing.
+**Badge di stato incorporato.** In **Pagine di stato → la vostra pagina → Avanzato → Stato incorporato**, attivate **Abilita badge di stato incorporato** (`enableEmbeddedOverallStatus`, disattivato per impostazione predefinita), poi fate clic su **Crea token** nella scheda **Token di sicurezza** per dare al badge il suo token (`embeddedOverallStatusToken`); quando ne ha uno, il pulsante diventa **Rigenera token**. Il badge è servito da `/api/status-page/badge/<status-page-id>?token=<token>`, e la scheda **Incorpora il badge** lo mostra, con il suo **HTML** e il suo **Markdown, con link alla pagina di stato** da copiare, così potete mettere lo stato generale attuale nella vostra documentazione, nel piè di pagina della vostra app o in una pagina di marketing.
 
 **Feed RSS.** Ogni pagina di stato serve `/rss`: un feed intitolato "{titolo della pagina} Updates", con il **Titolo della pagina** impostato in **Branding**, o il suo nome se non ne ha uno, e le cui voci iniziano con `Incident: `, `Announcement: ` e `Scheduled Maintenance: `. Utile per chi preferisce portare i vostri aggiornamenti in un lettore o in un chatbot invece di iscriversi via email.
 

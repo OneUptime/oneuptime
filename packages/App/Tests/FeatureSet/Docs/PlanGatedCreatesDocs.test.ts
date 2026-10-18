@@ -181,20 +181,33 @@ describe("the status pages guide", () => {
   });
 
   test("the Create form it describes writes none of the paid settings", () => {
-    const form: string = fs.readFileSync(
+    const page: string = fs.readFileSync(
       path.join(
         REPO_ROOT,
         "App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages.tsx",
       ),
       "utf8",
     );
+
+    // The list's Create Status Page asks for the create form's fields.
+    expect(page).toContain("return getStatusPageCreateFormFields();");
+    expect(page).toContain("formFields={createFormFields}");
+
+    const form: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageCreateForm.ts",
+      ),
+      "utf8",
+    );
     const formFields: string = form.slice(
-      form.indexOf("formFields={["),
-      form.indexOf("saveFilterProps="),
+      form.indexOf("export const getStatusPageCreateFormFields"),
+      form.indexOf("export const getStatusPageDetailsFormFields"),
     );
 
     expect(formFields).toContain("name: true");
     expect(formFields).toContain("description: true");
+    expect(formFields).toContain("getLabelsFormField<StatusPage>(");
 
     for (const column of Object.keys(
       getColumnBillingAccessControlForAllColumns(new StatusPage()),
