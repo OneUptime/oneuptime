@@ -30799,5 +30799,7 @@
   "e.g., checkout-api": "例: checkout-api",
   "Edit Session Replay Policy": "セッションリプレイのポリシーを編集",
   "Edit Action": "アクションを編集",
-  "Use the service.name your apps send, so their telemetry shows up under this service.": "アプリが送信する service.name を使うと、そのテレメトリがこのサービスに表示されます。"
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "アプリが送信する service.name を使うと、そのテレメトリがこのサービスに表示されます。",
+  "No profiles here yet": "プロファイルはまだありません",
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "プロファイルは、コードが時間とメモリをどこで使っているかを示します。アプリやホストが送信すると、すぐにここに表示されます。"
 }

@@ -16424,7 +16424,7 @@
   "Set up an authenticator app or security key below, then enable two-factor authentication for your account.": "Set up an authenticator app or security key below, then enable two-factor authentication for your account.",
   "Set up billing": "Set up billing",
   "Set up network device monitoring": "Set up network device monitoring",
-  "Set up profiling": "Set up profiling",
+  "Set up profiling": "راه‌اندازی پروفایل‌گیری",
   "Set up the grid": "Set up the grid",
   "Set up these rules": "Set up these rules",
   "Set up tracing": "راه‌اندازی ردیابی",
@@ -30799,5 +30799,7 @@
   "e.g., checkout-api": "مثلاً checkout-api",
   "Edit Session Replay Policy": "ویرایش سیاست Session Replay",
   "Edit Action": "ویرایش اقدام",
-  "Use the service.name your apps send, so their telemetry shows up under this service.": "همان service.name را به کار ببرید که برنامه‌هایتان می‌فرستند، تا تله‌متری آن‌ها زیر این سرویس نمایش داده شود."
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "همان service.name را به کار ببرید که برنامه‌هایتان می‌فرستند، تا تله‌متری آن‌ها زیر این سرویس نمایش داده شود.",
+  "No profiles here yet": "هنوز پروفایلی اینجا نیست",
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "پروفایل‌ها نشان می‌دهند کد شما زمان و حافظه‌اش را کجا صرف می‌کند. به محض اینکه برنامه‌ها یا میزبان‌هایتان آن‌ها را بفرستند، اینجا نمایش داده می‌شوند."
 }

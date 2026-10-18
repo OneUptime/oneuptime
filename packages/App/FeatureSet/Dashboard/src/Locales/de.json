@@ -30799,5 +30799,7 @@
   "e.g., checkout-api": "z. B. checkout-api",
   "Edit Session Replay Policy": "Richtlinie für Sitzungswiedergabe bearbeiten",
   "Edit Action": "Aktion bearbeiten",
-  "Use the service.name your apps send, so their telemetry shows up under this service.": "Verwenden Sie den service.name, den Ihre Apps senden, damit ihre Telemetrie unter diesem Dienst erscheint."
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "Verwenden Sie den service.name, den Ihre Apps senden, damit ihre Telemetrie unter diesem Dienst erscheint.",
+  "No profiles here yet": "Noch keine Profile",
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Profile zeigen, wo Ihr Code Zeit und Speicher verbraucht. Sie erscheinen hier, sobald Ihre Apps oder Hosts sie senden."
 }

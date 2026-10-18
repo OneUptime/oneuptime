@@ -202,6 +202,27 @@ describe("an empty explorer offers first steps on its product page only", () => 
     );
   });
 
+  test("the Profiler's Overview and All profiles say it the same way", () => {
+    /*
+     * Rendered in Common's ProfilesFirstSteps; here, that both keep reading
+     * the shared copy rather than a sentence of their own.
+     */
+    expect(readCode("Components/Profiles/ProfilesDashboard.tsx")).toContain(
+      "signal={TelemetryFirstStepsSignal.Profiles}",
+    );
+
+    const table: string = readCode("Components/Profiles/ProfileTable.tsx");
+
+    expect(table).toContain(
+      "getTelemetryFirstStepsSetupAction(TelemetryFirstStepsSignal.Profiles)",
+    );
+    expect(table).toContain(
+      "TELEMETRY_FIRST_STEPS_COPY[TelemetryFirstStepsSignal.Profiles]",
+    );
+    // A list a deep-link chip emptied says nothing matches instead.
+    expect(table).toContain("isFiltered: true,");
+  });
+
   test("the Traces page draws no empty chart over its first steps", () => {
     /*
      * The chart kept its card for the Count / Response time picker and said
@@ -406,6 +427,14 @@ describe("the descriptions that explained two modes are gone", () => {
     ],
     "Pages/Slo/SloSettingsFormFields.ts": [
       "How downtime is combined when this SLO measures more than one monitor.",
+    ],
+    // The Profiler's empty states: the first steps, not a setup paragraph.
+    "Components/Profiles/ProfilesDashboard.tsx": [
+      "Send continuous profiles with Grafana Alloy",
+      '"No profiles yet"',
+    ],
+    "Components/Profiles/ProfileTable.tsx": [
+      "No profiles found. Send continuous profiles with Grafana Alloy",
     ],
   };
 

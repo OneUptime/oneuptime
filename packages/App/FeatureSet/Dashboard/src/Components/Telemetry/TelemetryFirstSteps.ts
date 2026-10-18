@@ -24,6 +24,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * Only the product pages pass these: a logs, traces or metrics list
  * embedded in a service, a host or an incident keeps its own message.
  *
+ * The Profiler's Overview and All profiles list say it the same way
+ * (ProfilesDashboard, ProfileTable). Their empty state was a six-line
+ * paragraph naming Grafana Alloy, eBPF and a Pyroscope SDK for eight
+ * languages - the setup guide's job - in a box of its own design.
+ *
  * React-free on purpose: App's tests read these without the explorers.
  */
 
@@ -32,6 +37,7 @@ export enum TelemetryFirstStepsSignal {
   Traces = "traces",
   Metrics = "metrics",
   Exceptions = "exceptions",
+  Profiles = "profiles",
 }
 
 export interface TelemetryFirstStepsCopy {
@@ -89,6 +95,20 @@ export const TELEMETRY_FIRST_STEPS_COPY: Record<
     setupAction: translationKey("Set up exception tracking"),
     icon: IconProp.Bug,
     dataTestId: "exceptions-first-steps",
+  },
+  /*
+   * Profiles are the one signal a new user may not know, so the line
+   * says what they show before when they come. No longer range either:
+   * the Overview shows these only while there is no profile anywhere.
+   */
+  [TelemetryFirstStepsSignal.Profiles]: {
+    title: translationKey("No profiles here yet"),
+    description: translationKey(
+      "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.",
+    ),
+    setupAction: translationKey("Set up profiling"),
+    icon: IconProp.Fire,
+    dataTestId: "profiles-first-steps",
   },
 };
 

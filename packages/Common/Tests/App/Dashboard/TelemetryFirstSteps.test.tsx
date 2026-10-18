@@ -131,6 +131,15 @@ describe("the first steps of an empty explorer", () => {
       setupPage: PageMap.EXCEPTIONS_DOCUMENTATION,
       icon: IconProp.Bug,
     },
+    {
+      signal: TelemetryFirstStepsSignal.Profiles,
+      title: "No profiles here yet",
+      description:
+        "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.",
+      setup: "Set up profiling",
+      setupPage: PageMap.PROFILES_DOCUMENTATION,
+      icon: IconProp.Fire,
+    },
   ];
 
   test.each(cases)(
@@ -276,6 +285,23 @@ describe("the first steps of an empty explorer", () => {
       screen.queryByRole("button", { name: "Show the past week" }),
     ).toBeNull();
     expect(screen.getAllByRole("button")).toHaveLength(1);
+  });
+
+  test("offers no longer range without a window: the Profiler's Overview", () => {
+    // A range handler alone is not enough: there is no window to widen.
+    render(
+      <TelemetryFirstStepsEmptyState
+        signal={TelemetryFirstStepsSignal.Profiles}
+        onTimeRangeChange={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Show the past week" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Set up profiling" }),
+    ).toBeInTheDocument();
   });
 });
 

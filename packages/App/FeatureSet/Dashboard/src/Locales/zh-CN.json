@@ -16424,7 +16424,7 @@
   "Set up an authenticator app or security key below, then enable two-factor authentication for your account.": "Set up an authenticator app or security key below, then enable two-factor authentication for your account.",
   "Set up billing": "Set up billing",
   "Set up network device monitoring": "Set up network device monitoring",
-  "Set up profiling": "Set up profiling",
+  "Set up profiling": "设置性能剖析",
   "Set up the grid": "Set up the grid",
   "Set up these rules": "Set up these rules",
   "Set up tracing": "设置追踪",
@@ -30799,5 +30799,7 @@
   "e.g., checkout-api": "例如：checkout-api",
   "Edit Session Replay Policy": "编辑 Session Replay 策略",
   "Edit Action": "编辑操作",
-  "Use the service.name your apps send, so their telemetry shows up under this service.": "使用你的应用发送的 service.name，它们的遥测数据就会显示在此服务下。"
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "使用你的应用发送的 service.name，它们的遥测数据就会显示在此服务下。",
+  "No profiles here yet": "这里还没有性能剖析数据",
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "性能剖析数据显示你的代码把时间和内存花在了哪里。你的应用或主机一发送，就会显示在这里。"
 }

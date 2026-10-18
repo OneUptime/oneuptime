@@ -36,14 +36,38 @@ const SETUP_PAGES: Record<TelemetryFirstStepsSignal, PageMap> = {
   [TelemetryFirstStepsSignal.Traces]: PageMap.TRACES_DOCUMENTATION,
   [TelemetryFirstStepsSignal.Metrics]: PageMap.METRICS_DOCUMENTATION,
   [TelemetryFirstStepsSignal.Exceptions]: PageMap.EXCEPTIONS_DOCUMENTATION,
+  [TelemetryFirstStepsSignal.Profiles]: PageMap.PROFILES_DOCUMENTATION,
 };
+
+/**
+ * The first steps' one way in: the product's Setup Guide tab. A list drawn
+ * by ModelTable (the Profiler's All profiles) offers it in its own empty
+ * state with this.
+ */
+export function getTelemetryFirstStepsSetupAction(
+  signal: TelemetryFirstStepsSignal,
+): TableEmptyStateAction {
+  const copy: TelemetryFirstStepsCopy = TELEMETRY_FIRST_STEPS_COPY[signal];
+
+  return {
+    title: copy.setupAction,
+    icon: IconProp.Book,
+    dataTestId: `${copy.dataTestId}-setup`,
+    onClick: (): void => {
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(RouteMap[SETUP_PAGES[signal]] as Route),
+      );
+    },
+  };
+}
 
 export interface ComponentProps {
   signal: TelemetryFirstStepsSignal;
-  timeRange: RangeStartAndEndDateTime;
+  // The window the list shows; with no window there is no longer one.
+  timeRange?: RangeStartAndEndDateTime | undefined;
   /*
-   * Unset when a longer range cannot help: Exceptions shows these steps
-   * only for a project with no exception at any time.
+   * Unset when a longer range cannot help: Exceptions and Profiles show
+   * these steps only for a project with none at any time.
    */
   onTimeRangeChange?:
     | ((timeRange: RangeStartAndEndDateTime) => void)
@@ -57,25 +81,14 @@ const TelemetryFirstStepsEmptyState: FunctionComponent<ComponentProps> = (
     TELEMETRY_FIRST_STEPS_COPY[props.signal];
 
   const actions: Array<TableEmptyStateAction> = [
-    {
-      title: copy.setupAction,
-      icon: IconProp.Book,
-      dataTestId: `${copy.dataTestId}-setup`,
-      onClick: (): void => {
-        Navigation.navigate(
-          RouteUtil.populateRouteParams(
-            RouteMap[SETUP_PAGES[props.signal]] as Route,
-          ),
-        );
-      },
-    },
+    getTelemetryFirstStepsSetupAction(props.signal),
   ];
 
   const onTimeRangeChange:
     | ((timeRange: RangeStartAndEndDateTime) => void)
     | undefined = props.onTimeRangeChange;
 
-  if (onTimeRangeChange && offersPastWeek(props.timeRange)) {
+  if (onTimeRangeChange && props.timeRange && offersPastWeek(props.timeRange)) {
     actions.push({
       title: SHOW_PAST_WEEK_ACTION,
       icon: IconProp.Calendar,

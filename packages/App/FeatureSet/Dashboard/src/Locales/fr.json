@@ -16424,7 +16424,7 @@
   "Set up an authenticator app or security key below, then enable two-factor authentication for your account.": "Set up an authenticator app or security key below, then enable two-factor authentication for your account.",
   "Set up billing": "Set up billing",
   "Set up network device monitoring": "Set up network device monitoring",
-  "Set up profiling": "Set up profiling",
+  "Set up profiling": "Configurer le profilage",
   "Set up the grid": "Set up the grid",
   "Set up these rules": "Set up these rules",
   "Set up tracing": "Configurer le traçage",
@@ -30799,5 +30799,7 @@
   "e.g., checkout-api": "ex. : checkout-api",
   "Edit Session Replay Policy": "Modifier la politique de relecture de session",
   "Edit Action": "Modifier l'action",
-  "Use the service.name your apps send, so their telemetry shows up under this service.": "Utilisez le service.name envoyé par vos applications, pour que leur télémétrie apparaisse sous ce service."
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "Utilisez le service.name envoyé par vos applications, pour que leur télémétrie apparaisse sous ce service.",
+  "No profiles here yet": "Aucun profil pour l'instant",
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "Les profils montrent où votre code passe son temps et utilise sa mémoire. Ils apparaissent ici dès que vos applications ou vos hôtes les envoient."
 }

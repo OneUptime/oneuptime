@@ -16424,7 +16424,7 @@
   "Set up an authenticator app or security key below, then enable two-factor authentication for your account.": "Set up an authenticator app or security key below, then enable two-factor authentication for your account.",
   "Set up billing": "Set up billing",
   "Set up network device monitoring": "Set up network device monitoring",
-  "Set up profiling": "Set up profiling",
+  "Set up profiling": "프로파일링 설정",
   "Set up the grid": "Set up the grid",
   "Set up these rules": "Set up these rules",
   "Set up tracing": "트레이싱 설정",
@@ -30799,5 +30799,7 @@
   "e.g., checkout-api": "예: checkout-api",
   "Edit Session Replay Policy": "Session Replay 정책 편집",
   "Edit Action": "작업 편집",
-  "Use the service.name your apps send, so their telemetry shows up under this service.": "앱이 보내는 service.name을 사용하면 해당 텔레메트리가 이 서비스 아래에 표시됩니다."
+  "Use the service.name your apps send, so their telemetry shows up under this service.": "앱이 보내는 service.name을 사용하면 해당 텔레메트리가 이 서비스 아래에 표시됩니다.",
+  "No profiles here yet": "아직 프로파일이 없습니다",
+  "Profiles show where your code spends its time and memory. They appear here as soon as your apps or hosts send them.": "프로파일은 코드가 시간과 메모리를 어디에 쓰는지 보여 줍니다. 앱이나 호스트가 보내는 즉시 여기에 표시됩니다."
 }
