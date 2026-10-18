@@ -281,6 +281,50 @@ describe("the Zabbix templates, as the picker lists them", () => {
     }
   });
 
+  /*
+   * An incident is declared and an alert is created, in every word of an
+   * alert template: its picker line and description, and its scripts and
+   * log lines, which people read in the Builder. The UI review found two
+   * lines saying an alert was "declared" for a Zabbix problem.
+   */
+  test("the alert ones say an alert is created, never declared, anywhere in them", () => {
+    for (const candidate of ZABBIX) {
+      if (candidate.subcategory !== "Alerts") {
+        continue;
+      }
+
+      const everything: string = JSON.stringify({
+        template: candidate,
+        graph: getTemplateGraphSpec(candidate.id),
+      }).toLowerCase();
+
+      expect({
+        id: candidate.id,
+        saysDeclared: everything.includes("declare"),
+      }).toEqual({ id: candidate.id, saysDeclared: false });
+    }
+  });
+
+  /*
+   * The picker shows a template's line on one line until it is picked: so
+   * the line starts with what the template does, as the Jira ones do, not
+   * with when.
+   */
+  test("each line starts with what the template does", () => {
+    expect(
+      ZABBIX.map((candidate: WorkflowTemplate): string => {
+        return candidate.description;
+      }),
+    ).toEqual([
+      "Pages on-call for High and Disaster problems, adds updates made in Zabbix as private notes, and resolves the incident when the problem recovers.",
+      "Acknowledges the Zabbix problem when the incident is acknowledged, and closes it when the incident is resolved.",
+      "Adds every new private note on an incident to its Zabbix problem as a message, so the people working in Zabbix see it too.",
+      "Pages on-call for High and Disaster problems, adds updates made in Zabbix as private notes, and resolves the alert when the problem recovers.",
+      "Acknowledges the Zabbix problem when the alert is acknowledged, and closes it when the alert is resolved.",
+      "Adds every new private note on an alert to its Zabbix problem as a message, so the people working in Zabbix see it too.",
+    ]);
+  });
+
   test("the workflow Zabbix sends its problems to asks only for the Zabbix URL, the address its links go to", () => {
     for (const templateId of PROBLEM_TEMPLATES) {
       expect(

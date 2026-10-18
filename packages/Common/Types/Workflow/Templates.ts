@@ -7898,7 +7898,7 @@ const zabbixScript: ZabbixScriptFunction = (
   const helpers: string = String.raw`// ---- Shared by the Zabbix templates ----
 const FROM_ONEUPTIME = ${JSON.stringify(ZABBIX_SYNCED_FROM_ONEUPTIME_MARKER)};
 const FROM_ZABBIX = ${JSON.stringify(ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER)};
-// The custom field an ${kind.noun} declared for a Zabbix problem keeps the problem's event ID in.
+// The custom field an ${kind.noun} ${kind.created} for a Zabbix problem keeps the problem's event ID in.
 const EVENT_ID_FIELD = ${JSON.stringify(ZABBIX_EVENT_ID_CUSTOM_FIELD)};
 // Zabbix numbers its events and its triggers.
 const ZABBIX_ID = /^[0-9]{1,20}$/;
@@ -7933,7 +7933,7 @@ const numbered = (value) => {
 };
 // Reasons can quote Zabbix's text, so they are defused like everything else.
 const skip = (reason) => ({ proceed: false, reason: defuse(asText(reason)) });
-// The Zabbix problem an ${kind.noun} was declared for: the event ID its custom fields keep, or ''.
+// The Zabbix problem an ${kind.noun} was ${kind.created} for: the event ID its custom fields keep, or ''.
 const eventIdOf = (record) => {
   const fields = record && record.customFields && typeof record.customFields === 'object' ? record.customFields : {};
   const id = oneLine(asText(fields[EVENT_ID_FIELD]));
@@ -8176,7 +8176,7 @@ return {
 
 /*
  * OneUptime -> Zabbix: whether the record's new state means anything in
- * Zabbix, before a request is sent: only a record declared for a Zabbix
+ * Zabbix, before a request is sent: only a record opened for a Zabbix
  * problem, and only when it is acknowledged or resolved.
  */
 const zabbixPlanStateScript: ZabbixKindScriptFunction = (
@@ -8296,7 +8296,7 @@ const zabbixNoteMessageScript: ZabbixKindScriptFunction = (
   return zabbixScript(
     kind,
     String.raw`
-// Writes the Zabbix message for a new private note on an ${r} declared for a Zabbix problem.
+// Writes the Zabbix message for a new private note on an ${r} ${kind.created} for a Zabbix problem.
 // Notes on private ${kind.plural} stay in OneUptime. Set this to true to post them anyway.
 const SYNC_PRIVATE_${kind.pluralUpper} = false;
 // Zabbix keeps at most this many characters of a message.
