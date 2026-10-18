@@ -150,15 +150,15 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 
 | Avsnitt i sidomenyn    | Sidor                                                                       |
 | ---------------------- | --------------------------------------------------------------------------- |
-| **Grundläggande**      | **Översikt**, **Beskrivning**, **Rotorsak**, **Åtgärdsanteckningar**        |
-| **Ägarskap**           | **Ägare**                                                                   |
-| **Tidslinje**          | **Tillståndstidslinje**                                                     |
-| **Varningar**          | **Medlemsvarningar**                                                        |
-| **Episodanteckningar** | **Privata anteckningar**                                                    |
-| **Utvecklare**         | **Terraform**, **API**, **AI-assistenter**                                  |
-| **Avancerad**          | **Granskningsloggar**, **Ta bort episod**                                   |
+| **Översikt** | **Översikt**, **Tillståndstidslinje** |
+| **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärdsanteckningar** |
+| **Team** | **Ägare** |
+| **Varningar** | **Medlemsvarningar** |
+| **Anteckningar** | **Privata anteckningar** |
+| **Utvecklare** | **Terraform**, **API**, **AI-assistenter** |
+| **Avancerad** | **Granskningsloggar**, **Ta bort episod** |
 
-**Ägarskap**, **Utvecklare** och **Avancerad** börjar hopfällda. **Översikt** inleds med **Alerts in this episode**, sedan **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Move episode to** i menyn **⋯**.
+**Utvecklare** och **Avancerad** börjar hopfällda. **Översikt** inleds med **Alerts in this episode**, sedan **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Move episode to** i menyn **⋯**.
 
 **Varningar → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
 

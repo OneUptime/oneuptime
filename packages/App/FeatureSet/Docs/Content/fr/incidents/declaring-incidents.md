@@ -116,7 +116,7 @@ Cette étape n'apparaît que lorsqu'au moins un champ personnalisé d'incident a
 
 ### Étape 3 — Astreinte et rôles
 
-- **Politique d'astreinte** — une sélection multiple des politiques d'astreinte à exécuter à la création de cet incident. Elle correspond à `onCallDutyPolicies` sur l'incident.
+- **Politique d'astreinte** — une sélection multiple des politiques d'astreinte à déclencher dès que l'incident est déclaré. Elle correspond à `onCallDutyPolicies` sur l'incident.
 - **Attribuer les rôles de l'incident** — qui prend chaque rôle que votre projet définit, une carte par rôle. Un rôle marqué **Principal** que vous laissez vide vous revient : vous le prenez quand l'incident est déclaré, et le récapitulatif le dit. Un rôle tenu par une seule personne l'indique dès qu'il en a une ; un rôle qui en accepte plusieurs garde son sélecteur.
 
 C'est le seul endroit où une politique d'astreinte est rattachée directement à un incident. Les gravités ne portent pas de politique d'astreinte — la gravité est une étiquette, et elle n'influe sur les alertes que comme *critère de correspondance* dans une règle d'astreinte. Les règles configurées dans **Incidents → Règles → Règles d'astreinte** ajoutent leurs politiques à ce que vous choisissez ici ; l'ensemble final exécuté est l'union sans doublons des deux. Un incident déclaré dans un état ultérieur n'en exécute aucune — voir [Déclaré déjà pris en compte ou résolu](#déclaré-déjà-pris-en-compte-ou-résolu).

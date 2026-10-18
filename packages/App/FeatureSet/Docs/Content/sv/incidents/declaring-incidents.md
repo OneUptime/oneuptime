@@ -116,7 +116,7 @@ Det här steget visas bara när minst ett anpassat incidentfält har **Visa vid 
 
 ### Steg 3 — Jour och roller
 
-- **Jourpolicy** — ett flerval av jourpolicyerna som ska köras när den här incidenten skapas. Det motsvarar `onCallDutyPolicies` på incidenten.
+- **Jourpolicy** — ett flerval av jourpolicyerna som larmas så snart incidenten har deklarerats. Det motsvarar `onCallDutyPolicies` på incidenten.
 - **Tilldela incidentroller** — vem som tar varje roll som ditt projekt definierar, ett kort per roll. En roll med märket **Primär** som du lämnar tom är din: du tar den när incidenten deklareras, och sammanfattningen säger det. En roll för en person säger det när den har en; en roll för flera behåller sin väljare.
 
 Det här är det enda stället där en jourpolicy kopplas direkt till en incident. Allvarlighetsgrader har ingen jourpolicy — allvarlighetsgraden är en etikett, och den påverkar bara larmningen som *matchningskriterium* i en jourregel. Regler som är konfigurerade under **Incidenter → Regler → Jourregler** lägger till sina policyer ovanpå det du väljer här; den slutliga uppsättningen som körs är unionen av båda, utan dubbletter. En incident som deklareras i ett senare tillstånd kör ingen av dem — se [Deklarerad redan bekräftad eller löst](#deklarerad-redan-bekräftad-eller-löst).

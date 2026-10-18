@@ -94,7 +94,7 @@ Ausführungsprotokolle finden Sie an drei Stellen:
 
 - in den eigenen **Ausführungsprotokolle** der Richtlinie, unter **Protokolle**;
 - unter **Bereitschaftsdienst → Erweitert → Ausführungsprotokolle**, für jede Richtlinie, wobei direkte Alarmierungen aus Workflows und Chat als **Direkte Alarmierung** erscheinen;
-- auf der Seite **Bereitschaftsausführungen** eines Vorfalls und unter **Bereitschaftsausführungen** einer Warnung.
+- auf der Seite **Bereitschaftsausführungen** eines Vorfalls oder einer Warnung.
 
 Jede Zeile zeigt, was den Lauf ausgelöst hat, wann, seinen **Status** und wer ihn bestätigt hat. **View Timeline** öffnet seine **Zeitachse der Ausführung**: jede Eskalationsregel, wen sie alarmiert hat, über welchen Plan und wie jeder Alarm geendet hat. Ein Plan, in dem niemand Bereitschaft hat, zeigt statt einer Person **No one was on call**. In OneUptime Cloud brauchen Ausführungsprotokolle den Plan **Growth**.
 

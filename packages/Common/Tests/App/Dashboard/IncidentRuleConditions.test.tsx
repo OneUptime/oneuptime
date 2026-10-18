@@ -22,9 +22,11 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 /*
  * The form from the maintainer's screenshot - Create New Incident Privacy
- * Rule, Match Criteria step - with the page's real fields in the real
- * ModelForm and the real dropdowns. Only the table around the form and the
- * network are stubbed.
+ * Rule, its Match step (Match Criteria then) - with the page's real fields
+ * in the real ModelForm and the real dropdowns. Only the table around the
+ * form and the network are stubbed. The form opens on Match, as every rule
+ * form does now, and creates the rule from its last step, Name
+ * (Dashboard Utils/Form/EventRuleForm).
  *
  * "Instead of saying 'incident title pattern,' we can just say 'incident
  * title' ... Please also improve the UI while you are at it."
@@ -208,8 +210,7 @@ async function renderCreateForm(): Promise<void> {
     />,
   );
 
-  const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: /Next/i }));
+  // The form opens on Match: no step comes before it.
   await screen.findByTestId("rule-criteria-builder");
 }
 
@@ -231,10 +232,18 @@ async function renderEditForm(rule: IncidentPrivacyRule): Promise<void> {
     />,
   );
 
-  const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-  // An edit form opens any step from its step list.
-  await user.click(await screen.findByText("Match Criteria"));
+  // An edit form opens on its first step, Match.
   await screen.findByTestId("rule-criteria-builder");
+}
+
+/*
+ * Creates or saves the rule: from Match, Next walks to the Name step, where
+ * the form's action is - Create, or Save Changes.
+ */
+async function submitFromNameStep(action: string): Promise<void> {
+  const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Next" }));
+  await user.click(await screen.findByRole("button", { name: action }));
 }
 
 // "Only incidents that match conditions": one condition to fill in appears.
@@ -309,11 +318,8 @@ describe("Create New Incident Privacy Rule - Match Criteria", () => {
      * incident could not tell they needed no condition at all.
      */
     await renderCreateForm();
-    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
-    await user.click(
-      screen.getByRole("button", { name: "Create Incident Privacy Rule" }),
-    );
+    await submitFromNameStep("Create Incident Privacy Rule");
     await waitFor(() => {
       expect(submittedRule).not.toBeNull();
     });
@@ -360,9 +366,7 @@ describe("Create New Incident Privacy Rule - Match Criteria", () => {
 
     expect(screen.queryByTestId("rule-criteria-row-0")).toBeNull();
 
-    await user.click(
-      screen.getByRole("button", { name: "Create Incident Privacy Rule" }),
-    );
+    await submitFromNameStep("Create Incident Privacy Rule");
     await waitFor(() => {
       expect(submittedRule).not.toBeNull();
     });
@@ -434,9 +438,7 @@ describe("Create New Incident Privacy Rule - Match Criteria", () => {
       "Or",
     );
 
-    await user.click(
-      screen.getByRole("button", { name: "Create Incident Privacy Rule" }),
-    );
+    await submitFromNameStep("Create Incident Privacy Rule");
     await waitFor(() => {
       expect(submittedRule).not.toBeNull();
     });
@@ -479,9 +481,7 @@ describe("Create New Incident Privacy Rule - Match Criteria", () => {
       "prod-.*",
     );
 
-    await user.click(
-      screen.getByRole("button", { name: "Create Incident Privacy Rule" }),
-    );
+    await submitFromNameStep("Create Incident Privacy Rule");
     await waitFor(() => {
       expect(submittedRule).not.toBeNull();
     });
@@ -500,9 +500,8 @@ describe("Create New Incident Privacy Rule - Match Criteria", () => {
 
     await chooseConditions();
     await selectOption("Criteria for condition 1", "Incident Title");
-    await user.click(
-      screen.getByRole("button", { name: "Create Incident Privacy Rule" }),
-    );
+    // Next checks the step before it leaves it.
+    await user.click(screen.getByRole("button", { name: "Next" }));
 
     const row: HTMLElement = screen.getByTestId("rule-criteria-row-0");
     expect(await within(row).findByRole("alert")).toHaveTextContent(
@@ -587,7 +586,7 @@ describe("Edit Incident Privacy Rule - Match Criteria", () => {
       expect(screen.getByTestId("rule-criteria-row-0")).toBeInTheDocument();
     });
     await user.click(screen.getByRole("radio", { name: "All incidents" }));
-    await user.click(screen.getByRole("button", { name: "Save Changes" }));
+    await submitFromNameStep("Save Changes");
 
     await waitFor(() => {
       expect(submittedRule).not.toBeNull();

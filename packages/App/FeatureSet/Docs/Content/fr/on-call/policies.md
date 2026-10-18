@@ -94,7 +94,7 @@ Vous trouvez les journaux d'exécution à trois endroits :
 
 - dans les propres **Journaux d'exécution** de la politique, sous **Journaux** ;
 - dans **Astreinte → Avancé → Journaux d'exécution**, pour toutes les politiques, où les appels directs venus des workflows et du chat apparaissent comme **Appel direct** ;
-- sur la page **Exécutions d'astreinte** d'un incident, et dans **Exécutions d'astreinte** d'une alerte.
+- sur la page **Exécutions d'astreinte** d'un incident ou d'une alerte.
 
 Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **View Timeline** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. Un planning où personne n'est d'astreinte affiche **No one was on call** au lieu d'une personne. Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.
 

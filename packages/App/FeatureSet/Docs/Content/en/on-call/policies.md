@@ -94,7 +94,7 @@ You find execution logs in three places:
 
 - the policy's own **Execution Logs**, under **Logs**;
 - **On-Call Duty → Advanced → Execution Logs**, for every policy, with direct pages from workflows and chat listed as **Direct page**;
-- the **On-Call Executions** page of an incident, and **On Call Executions** of an alert.
+- the **On-Call Executions** page of an incident or an alert.
 
 Each row shows what triggered the run, when, its **Status** and who acknowledged it. **View Timeline** opens its **Execution Timeline**: each escalation rule, who it paged, through which schedule, and how each page ended. A schedule with nobody on call shows **No one was on call** instead of a person. On OneUptime Cloud, execution logs need the **Growth** plan.
 

@@ -609,14 +609,13 @@ Rules saved before the form asked for owners may still have a default team and u
 
 ## Incident on-call rules
 
-**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, describes rules that automatically execute on-call duty policies when matching incidents are created. The page has two tabs: **Incident Rules** and **Episode Rules**.
+**Incidents → Rules → On-Call Rules** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) is where you make paging automatic. The card, **Incident On-Call Rules**, says what they do: page on-call policies automatically for new incidents that match. The page has two tabs: **Incident Rules** and **Episode Rules**.
 
-The create form has three steps:
+The create form has two steps:
 
 :::steps
-1. **Basic Info** — **Name** (the placeholder suggests something like paging the database team for any DB incident) and **Description**. The rule starts enabled; its edit form adds the **Enabled** switch, and the list renders a green **Enabled** or red **Disabled** pill per rule.
-2. **Match Criteria** — **All incidents**, where a new rule starts, or **Only incidents that match conditions**, which opens the rule's conditions. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
-3. **On-Call Policies** — the policies this rule executes.
+1. **Match** — **All incidents**, where a new rule starts, or **Only incidents that match conditions**, which opens the rule's conditions. Each condition picks a criterion — **Monitors**, **Incident Severities**, **Incident Labels**, **Monitor Labels**, **Incident Title**, **Incident Description**, **Monitor Name** or **Monitor Description** — an operator and a value, and reads like a sentence: "If **Incident Title** contains `database`", "And **Monitor Labels** has any of _Production_".
+2. **On-Call Policies** — the policies this rule pages, and the rule's **Name**, filled in from them ("Page Platform on-call") until you type a name of your own; its **Description** waits under **More fields**. The rule starts enabled; its edit form adds the **Enabled** switch, and the list renders a green **Enabled** or red **Disabled** pill per rule.
 :::
 
 ### How matching resolves
@@ -634,7 +633,7 @@ The rules the page ships with itself are worth internalizing:
 
 ## Attaching on-call policies directly
 
-Rules are not the only route. Every incident carries an on-call policy list of its own, surfaced as the **On-Call Policy** field on the **On-Call & Roles** step of the declare wizard and on the **On-Call** step of an incident template. The field description says it plainly: these are the on-call duty policies to execute when this incident is created.
+Rules are not the only route. Every incident carries an on-call policy list of its own, surfaced as the **On-Call Policy** field on the **On-Call & Roles** step of the declare wizard and on the **On-Call** step of an incident template. Its description says when they are paged: as soon as the incident is declared.
 
 When an incident is created, OneUptime runs label rules, then on-call rules (which merge their matching policies into the incident's list), then runbook rules — and if the resulting list is non-empty, every policy in it is executed. Executions run in parallel and are settled independently, so one policy failing does not stop the others. Each execution is tagged with the incident that triggered it and with the incident-created notification event type.
 

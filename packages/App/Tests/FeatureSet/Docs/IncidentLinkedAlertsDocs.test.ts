@@ -1296,8 +1296,9 @@ describe("Incident Linked Alerts docs", () => {
         section: "Investigation",
         title: LINKED_ALERTS_TITLE,
       });
+      // An alert's menu has the incident's sections, Investigation among them.
       expect(alertPage).toEqual({
-        section: "Basic",
+        section: "Investigation",
         title: "Linked Incidents",
       });
     });

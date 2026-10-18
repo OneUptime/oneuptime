@@ -17,33 +17,33 @@ import { Green, Red } from "Common/Types/BrandColors";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import {
+  getPrivacyRuleActionFields,
+  getPrivacyRuleFormSteps,
+} from "../../../Utils/Form/EventRuleForm";
 
 const incidentPrivacyDocumentation: string = `
 ### How Incident Privacy Rules Work
 
-Incident Privacy Rules automatically mark matching incidents as **private** when they are created — visible only to their owners (users + members of owner teams), project admins, and project owners.
+A privacy rule makes every new incident it matches private: only the incident's owners (the people and teams named as its owners), project admins and project owners can see it.
 
 ### Match Criteria
 
-A rule matches an incident only when **all** specified criteria pass. Empty criteria are skipped.
+The conditions a new incident must meet.
 
-- **Monitors**, **Severities**, **Incident Labels**, **Monitor Labels** — any-of (M2M)
-- **Title / Description Pattern**, **Monitor Name / Description Pattern** — case-insensitive regex
+### What It Does
 
-### Action
-
-When a rule matches, the incident's \`isPrivate\` flag is set to \`true\`. Multiple matching rules behave additively — once any rule matches, the incident is private. The rule fires before workspace channel creation, so private incidents also get private Slack/Teams channels.
+A matching incident is private from the moment it is created. One matching rule is enough. Privacy is decided before anything else happens to the incident, so its Slack or Microsoft Teams channel is private too.
 `;
 
 const incidentEpisodePrivacyDocumentation: string = `
 ### How Incident Episode Privacy Rules Work
 
-Match an incident episode on creation and mark it as **private** automatically.
+An episode privacy rule makes every new incident episode it matches private: only its owners, project admins and project owners can see it.
 
 ### Match Criteria
 
-- **Incident Severities**, **Episode Labels** — any of the selected values
-- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
+The conditions a new episode must meet.
 `;
 
 interface RulesTableProps {
@@ -79,12 +79,11 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Incident Privacy Rules",
-        description:
-          "Auto-mark incidents as private when they match these rules.",
+        description: "Make new incidents private when they match.",
       }}
       helpContent={{
         title: "How Incident Privacy Rules Work",
-        description: "Match incidents and automatically set them to private.",
+        description: "Which new incidents become private.",
         markdown: incidentPrivacyDocumentation,
       }}
       sortBy="name"
@@ -118,35 +117,8 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-      ]}
+      formSteps={getPrivacyRuleFormSteps<IncidentPrivacyRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Mark database incidents as private",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { monitors: true },
           title: "Monitors",
@@ -240,6 +212,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "production|critical",
         },
+        ...getPrivacyRuleActionFields<IncidentPrivacyRule>("incident"),
       ]}
       showRefreshButton={true}
     />
@@ -274,12 +247,11 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Incident Episode Privacy Rules",
-        description:
-          "Auto-mark incident episodes as private when they match these rules.",
+        description: "Make new incident episodes private when they match.",
       }}
       helpContent={{
         title: "How Incident Episode Privacy Rules Work",
-        description: "Match episodes and automatically set them to private.",
+        description: "Which new episodes become private.",
         markdown: incidentEpisodePrivacyDocumentation,
       }}
       sortBy="name"
@@ -313,33 +285,8 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
           },
         },
       ]}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-      ]}
+      formSteps={getPrivacyRuleFormSteps<IncidentEpisodePrivacyRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-        },
         {
           field: { incidentSeverities: true },
           title: "Incident Severities",
@@ -391,6 +338,9 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "timeout|connection refused",
         },
+        ...getPrivacyRuleActionFields<IncidentEpisodePrivacyRule>(
+          "incidentEpisode",
+        ),
       ]}
       showRefreshButton={true}
     />

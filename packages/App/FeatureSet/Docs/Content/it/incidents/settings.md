@@ -607,14 +607,13 @@ Le regole salvate prima che il modulo chiedesse i proprietari possono avere anco
 
 ## Regole di reperibilità degli incidenti
 
-**Incidenti → Regole → Regole di reperibilità** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) è dove rendete automatici gli avvisi. La scheda, **Regole di reperibilità incidente**, descrive regole che eseguono automaticamente policy di reperibilità quando vengono creati incidenti corrispondenti. La pagina ha due schede: **Incident Rules** ed **Episode Rules**.
+**Incidenti → Regole → Regole di reperibilità** (`/dashboard/{projectId}/incidents/settings/on-call-rules`) è dove rendete automatici gli avvisi. La scheda, **Regole di reperibilità incidente**, dice cosa fanno: attivare automaticamente le policy di reperibilità per i nuovi incidenti che corrispondono. La pagina ha due schede: **Incident Rules** ed **Episode Rules**.
 
-Il modulo di creazione ha tre passaggi:
+Il modulo di creazione ha due passaggi:
 
 :::steps
-1. **Informazioni di base** — **Nome** (il testo segnaposto suggerisce qualcosa come avvisare il team del database per qualsiasi incidente del DB) e **Descrizione**. La regola parte abilitata; il suo modulo di modifica aggiunge l'interruttore **Abilitato**, e l'elenco mostra un'etichetta verde **Abilitato** o rossa **Disabilitato** per regola.
-2. **Criteri di corrispondenza** — **Tutti gli incidenti**, da cui parte una nuova regola, oppure **Solo gli incidenti che soddisfano le condizioni**, che apre le condizioni della regola. Ogni condizione sceglie un criterio — **Monitor**, **Incidente Gravità**, **Etichette dell'incidente**, **Etichette del monitor**, **Titolo dell'incidente**, **Descrizione dell'incidente**, **Nome del monitor** o **Descrizione del monitor** — un operatore e un valore, e si legge come una frase: «Se **Titolo dell'incidente** contiene `database`», «E **Etichette del monitor** ha uno qualsiasi di _Production_».
-3. **Policy di reperibilità** — le policy che questa regola esegue.
+1. **Corrispondenza** — **Tutti gli incidenti**, da cui parte una nuova regola, oppure **Solo gli incidenti che soddisfano le condizioni**, che apre le condizioni della regola. Ogni condizione sceglie un criterio — **Monitor**, **Incidente Gravità**, **Etichette dell'incidente**, **Etichette del monitor**, **Titolo dell'incidente**, **Descrizione dell'incidente**, **Nome del monitor** o **Descrizione del monitor** — un operatore e un valore, e si legge come una frase: «Se **Titolo dell'incidente** contiene `database`», «E **Etichette del monitor** ha uno qualsiasi di _Production_».
+2. **Policy di reperibilità** — le policy che questa regola attiva, e il **Nome** della regola, compilato a partire da esse («Chiama Platform on-call») finché non ne digitate uno vostro; la sua **Descrizione** attende sotto **Altri campi**. La regola parte abilitata; il suo modulo di modifica aggiunge l'interruttore **Abilitato**, e l'elenco mostra un'etichetta verde **Abilitato** o rossa **Disabilitato** per regola.
 :::
 
 ### Come si risolve la corrispondenza
@@ -632,7 +631,7 @@ Le regole che la pagina stessa porta con sé vanno interiorizzate:
 
 ## Collegare direttamente le policy di reperibilità
 
-Le regole non sono l'unica via. Ogni incidente porta con sé un proprio elenco di policy di reperibilità, mostrato come il campo **Policy di reperibilità** nel passaggio **Reperibilità e ruoli** della procedura guidata di dichiarazione e nel passaggio **Reperibilità** di un modello di incidente. La descrizione del campo lo dice chiaramente: sono le policy di reperibilità da eseguire quando questo incidente viene creato.
+Le regole non sono l'unica via. Ogni incidente porta con sé un proprio elenco di policy di reperibilità, mostrato come il campo **Policy di reperibilità** nel passaggio **Reperibilità e ruoli** della procedura guidata di dichiarazione e nel passaggio **Reperibilità** di un modello di incidente. La sua descrizione dice quando vengono attivate: appena l'incidente viene dichiarato.
 
 Quando viene creato un incidente, OneUptime esegue le regole delle etichette, poi le regole di reperibilità (che uniscono le loro policy corrispondenti all'elenco dell'incidente), poi le regole di runbook — e se l'elenco risultante non è vuoto, ogni policy al suo interno viene eseguita. Le esecuzioni avvengono in parallelo e si concludono in modo indipendente, così il fallimento di una policy non ferma le altre. Ogni esecuzione viene contrassegnata con l'incidente che l'ha attivata e con il tipo di evento di notifica di incidente creato.
 

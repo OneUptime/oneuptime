@@ -381,7 +381,7 @@ const IncidentDelete: FunctionComponent<
               },
               title: "Private Incident",
               description:
-                "Visible only to owners (users + members of owner teams), project admins, and project owners. Hidden from status pages.",
+                "Only the incident's owners, project admins and project owners can see it. It never shows on status pages and takes no public notes.",
               fieldType: FieldType.Boolean,
             },
           ],

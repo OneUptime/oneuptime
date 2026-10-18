@@ -56,7 +56,7 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 | Bereich       | Was Sie dort tun                                                                                                          |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Warnungen** | **Alle Warnungen** und **Aktive Warnungen**, deren rotes Abzeichen die noch nicht behobenen Warnungen zählt.                |
-| **Episoden**  | **Alle Episoden**, **Aktive Episoden** und **Dokumentation**, eine Seite im Dashboard über das Gruppieren.                  |
+| **Episoden** | **Alle Episoden** und **Aktive Episoden**: zusammengehörige Warnungen, gebündelt zu einem Problem, an dem Sie arbeiten. |
 | **KI**        | **Einblicke**, **Protokolle** und **Einstellungen**: was OneUptime AI aus Ihren Warnungen gelernt hat, alles, was es getan hat, und was es darf. |
 | **Arbeitsbereich** | **Slack** und **Microsoft Teams**, je nachdem, was das Projekt verbunden hat, oder **Slack oder Teams verbinden**, wenn es keines hat. |
 | **Regeln**    | **Gruppierungsregeln**, **Bereitschaftsregeln**, **Eigentümerregeln**, **Runbook-Regeln**, **Datenschutzregeln**, **Beschriftungsregeln**, **Erinnerungsregeln**. |
@@ -129,14 +129,15 @@ Während Sie daran arbeiten, halten Sie Erkenntnisse als **Private Notizen** fes
 
 | Bereich im Seitenmenü | Seiten                                                                                                     |
 | ----------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Grundlegend**   | **Übersicht**, **Beschreibung**, **Grundursache**, **Behebung**, **Runbooks**, **Zustands-Zeitachse**, **Eigentümer**, **Verknüpfte Vorfälle** |
-| **Bereitschaft**  | **Bereitschaftsausführungen**: welche Bereitschaftsrichtlinien für die Warnung liefen, und wie jede verlief    |
-| **Protokolle**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über die Warnung, und alles, was die KI für sie getan hat |
-| **Warnungsnotizen** | **Private Notizen**                                                                                          |
+| **Übersicht** | **Übersicht** und **Zustands-Zeitachse** |
+| **Untersuchung** | **Beschreibung**, **Grundursache**, **Behebung**, **Runbooks**, **Verknüpfte Vorfälle** |
+| **Team** | **Bereitschaftsausführungen** und **Eigentümer**: wer für die Warnung alarmiert wurde und wem sie gehört |
+| **Benachrichtigungen**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über die Warnung, und alles, was die KI für sie getan hat |
+| **Notizen** | **Private Notizen**                                                                                          |
 | **Entwickler**    | **Terraform**, **API** und **KI-Assistenten**: die Warnung aus Code verwaltet                                  |
-| **Erweitert**     | **Benutzerdefinierte Felder**, **Audit-Protokolle**, **Einstellungen**, **Warnung löschen**                    |
+| **Erweitert** | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Warnung löschen** |
 
-**Grundlegend** und **Warnungsnotizen** sind geöffnet; die anderen Bereiche sind eingeklappt, bis Sie sie anklicken.
+**Übersicht**, **Untersuchung**, **Team** und **Notizen** sind geöffnet; die anderen Bereiche sind eingeklappt, bis Sie sie anklicken.
 
 - **Übersicht** — drei Kacheln dazu, wie lange es bis zur Bestätigung und zur Behebung der Warnung dauerte, und ihre **Dauer**. Die Karte **KI-Untersuchung** steht oben auf der Seite, mit **Ask OneUptime AI** an ihrem Ende, und der **Warnungs-Feed** hält alles fest, was mit der Warnung geschah. Daneben stehen die Karte **Warnungsdetails**, die Messungen der Warnung und ihre **Betroffene Ressourcen**.
 - **Zustands-Zeitachse** — jeder Status, in dem die Warnung war, wann und wie lange. Siehe [Die Statuszeitachse](/docs/alerts/states-and-severities#die-statuszeitachse).

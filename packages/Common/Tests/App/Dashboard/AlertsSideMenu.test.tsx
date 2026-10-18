@@ -169,6 +169,11 @@ describe("Alerts side menu", () => {
       ]);
     });
 
+    /*
+     * Episodes holds the two lists and nothing else: its "Documentation"
+     * page, a manual drawn in the product, gave way to the docs, which the
+     * episode list links to.
+     */
     test("the alert, episode and workspace sections are unchanged by the move", async () => {
       await renderAlertsMenu();
 
@@ -183,7 +188,6 @@ describe("Alerts side menu", () => {
           title: "Active Episodes",
           href: routeFor(PageMap.UNRESOLVED_ALERT_EPISODES),
         },
-        { title: "Documentation", href: routeFor(PageMap.ALERT_EPISODE_DOCS) },
       ]);
 
       expect(linksIn("Workspace")).toEqual([

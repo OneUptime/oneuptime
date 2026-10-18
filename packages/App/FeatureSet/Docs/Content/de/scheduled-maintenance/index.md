@@ -82,13 +82,14 @@ Solange ein Ereignis läuft, behandelt OneUptime den geplanten Ausfall als erwar
 
 | Abschnitt im Seitenmenü | Seiten                                                                                     |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Grundlegend**   | **Übersicht**, **Beschreibung**, **Eigentümer**, **Zustands-Zeitachse**, **Runbooks**           |
-| **Protokolle**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über das Ereignis und alles, was die KI dafür getan hat |
+| **Übersicht** | **Übersicht**, **Zustands-Zeitachse**, **Beschreibung**, **Runbooks** |
+| **Team** | **Eigentümer** |
+| **Benachrichtigungen**    | **Benachrichtigungsprotokolle** und **KI-Protokolle**: jede Nachricht über das Ereignis und alles, was die KI dafür getan hat |
 | **Notizen**       | **Private Notizen** und **Öffentliche Notizen**                                                |
 | **Entwickler**    | **Terraform**, **API** und **KI-Assistenten**: das Ereignis per Code verwaltet                  |
 | **Erweitert**     | **Benutzerdefinierte Felder**, **Einstellungen**, **Audit-Protokolle**, **Ereignis löschen**    |
 
-**Grundlegend** und **Notizen** sind geöffnet; die anderen Abschnitte bleiben eingeklappt, bis Sie sie anklicken.
+**Übersicht**, **Team** und **Notizen** sind geöffnet; die anderen Abschnitte bleiben eingeklappt, bis Sie sie anklicken.
 
 - **Übersicht** — die Kopfzeile zeigt Nummer, Titel und Status des Ereignisses, wie lange es bis zum Beginn dauert oder wie lange es schon läuft, und die Schaltflächen, die es weiterschieben. Darunter zeigen **Beginnt**, **Endet** und **Dauer** das geplante Zeitfenster in Ihrer Zeitzone. Der **Feed der geplanten Wartung** zeichnet alles auf, was dem Ereignis passiert ist, neben den Karten **Wartungsdetails** und **Betroffene Ressourcen** sowie den Karten **Messungen** und **Benutzerdefinierte Felder**, wenn Ihr Projekt welche hat.
 - **Zustands-Zeitachse** — jeder Status, in dem das Ereignis war, wann und wie lange. Siehe [Wartungsstatus](/docs/scheduled-maintenance/states#die-zustands-zeitachse).
