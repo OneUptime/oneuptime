@@ -2619,3 +2619,100 @@ test("every proxying location forwards the visitor's scheme", () => {
     "no location may forward nginx's own $scheme in place of the visitor's",
   );
 });
+
+/*
+ * The app tells its own address (HOST) from a status page's or a dashboard's
+ * custom domain by the Host header this ingress passes on - never by
+ * X-Forwarded-Host, which a caller writes. An installation with
+ * HTTP_PROTOCOL=https keeps the cookies of HOST on HTTPS (Secure) and tells
+ * browsers to stay on HTTPS for it (Strict-Transport-Security) by that Host
+ * alone, even behind a proxy that never says the visitor used https
+ * (Common/Server/Utils/RequestTransport.ts). So every location that serves
+ * the routes that write sign-in cookies passes on the Host the browser asked
+ * for. `proxy_set_header Host $server_name` there would hand the app this
+ * server's first name ("localhost") for every request, and those cookies
+ * would quietly lose Secure.
+ */
+const SIGN_IN_COOKIE_ADDRESSES = {
+  // The installation's own address.
+  primary: [
+    "/identity/login",
+    "/identity/refresh-token",
+    "/identity/logout",
+    "/identity/passkey-login-options",
+    "/identity/microsoft/callback",
+    "/identity/oidc-callback/project/provider",
+    "/identity/global-sso/x",
+    "/identity/status-page-oidc-callback/page/provider",
+    "/api/identity/login",
+    "/api/marketplace/aws/register",
+    "/accounts/login",
+    "/dashboard/x",
+    "/status-page/x",
+    "/status-page-api/x",
+    "/status-page-identity-api/login/x",
+    "/status-page-sso-api/x",
+    "/status-page-oidc-api/x",
+    "/public-dashboard/x",
+    "/public-dashboard-api/x",
+    "/mcp",
+  ],
+  // A status page's or a dashboard's custom domain, on either port.
+  statusPage: [
+    "/",
+    "/status-page-api/x",
+    "/status-page-identity-api/login/x",
+    "/status-page-sso-api/x",
+    "/status-page-oidc-api/x",
+    "/public-dashboard-api/x",
+  ],
+};
+
+test("every location that writes sign-in cookies passes on the Host the browser asked for", () => {
+  const statusPageServerBlocks = serverBlocks.filter((block) => {
+    return block !== primaryServerBlock;
+  });
+
+  assert.equal(statusPageServerBlocks.length, 2);
+
+  const blocksAndAddresses = [
+    [primaryServerBlock, SIGN_IN_COOKIE_ADDRESSES.primary],
+    ...statusPageServerBlocks.map((block) => {
+      return [block, SIGN_IN_COOKIE_ADDRESSES.statusPage];
+    }),
+  ];
+
+  for (const [serverBlock, addresses] of blocksAndAddresses) {
+    const locations = getLocationBlocks(serverBlock.body);
+
+    for (const address of addresses) {
+      const location = resolveLocation(locations, address);
+
+      assert.ok(location, `nothing serves ${address}`);
+      assert.ok(
+        /proxy_pass/.test(location.body),
+        `${address} is not proxied to the app`,
+      );
+      assert.deepEqual(
+        getDirectives(location.body, "proxy_set_header").filter((header) => {
+          return header.startsWith("proxy_set_header Host ");
+        }),
+        ["proxy_set_header Host $host;"],
+        `${address} (location ${location.spec}) must pass on the browser's Host`,
+      );
+    }
+  }
+});
+
+test("no location hands the app a Host the caller wrote in X-Forwarded-Host", () => {
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      for (const header of getDirectives(location.body, "proxy_set_header")) {
+        assert.ok(
+          !/^proxy_set_header Host \$http_x_forwarded_host;$/i.test(header),
+          `location ${location.spec} passes on a caller's X-Forwarded-Host as Host`,
+        );
+      }
+    }
+  }
+});

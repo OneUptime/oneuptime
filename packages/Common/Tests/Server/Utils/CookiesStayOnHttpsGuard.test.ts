@@ -31,8 +31,25 @@ import ts from "typescript";
 
 const COOKIE_MODULE: string = "packages/Common/Server/Utils/Cookie.ts";
 const CODE_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs)$/;
+const TEMPLATE_FILE: RegExp = /\.(?:ejs|html)$/;
 const COOKIE_MENTION: RegExp = /cookie/i;
 const UNIVERSAL_COOKIE_MODULE: string = "universal-cookie";
+
+/*
+ * The cookie libraries product code may import: cookie-parser reads what a
+ * browser sends, and universal-cookie writes browser cookies under the rule
+ * below. Any other one would write cookies this guard does not read.
+ */
+const COOKIE_LIBRARIES: ReadonlySet<string> = new Set<string>([
+  "cookie-parser",
+  UNIVERSAL_COOKIE_MODULE,
+]);
+
+// What `document.cookie = ...` writes when it removes a cookie (it expires it).
+const COOKIE_REMOVAL: RegExp = /expires=thu,\s*01 jan 1970|max-age=0(?![0-9])/i;
+// Says Secure, or decides it (isHttps ? "; Secure" : ""), and is no "insecure".
+const SECURE_ATTRIBUTE: RegExp = /(?<!in)secure/i;
+const DOCUMENT_COOKIE: string = "document.cookie";
 
 // The server's own cookie writers, on an Express response.
 const SERVER_COOKIE_WRITERS: ReadonlySet<string> = new Set<string>([
@@ -287,6 +304,135 @@ function findBrowserCookieWritesWithoutSecure(
   return writes;
 }
 
+// Whether a cookie string written to document.cookie may stand as it is.
+function isAllowedDocumentCookieValue(value: string): boolean {
+  return COOKIE_REMOVAL.test(value) || SECURE_ATTRIBUTE.test(value);
+}
+
+function isDocumentCookie(node: ts.Expression): boolean {
+  if (!ts.isPropertyAccessExpression(node) || node.name.text !== "cookie") {
+    return false;
+  }
+
+  const owner: ts.Expression = node.expression;
+
+  return (
+    (ts.isIdentifier(owner) && owner.text === "document") ||
+    (ts.isPropertyAccessExpression(owner) && owner.name.text === "document")
+  );
+}
+
+/*
+ * A browser cookie written straight to document.cookie that neither says
+ * whether it is Secure nor removes the cookie (expires it). In code it is
+ * read by the parser; in a template (.ejs, .html), whose scripts are inline,
+ * by the line the write is on.
+ */
+function findDocumentCookieWritesWithoutSecure(
+  file: string,
+  text: string,
+): Array<CookieWrite> {
+  if (!text.includes(DOCUMENT_COOKIE)) {
+    return [];
+  }
+
+  const writes: Array<CookieWrite> = [];
+
+  if (TEMPLATE_FILE.test(file)) {
+    text.split("\n").forEach((lineText: string, index: number): void => {
+      let at: number = lineText.indexOf(DOCUMENT_COOKIE);
+
+      while (at !== -1) {
+        const rest: string = lineText
+          .slice(at + DOCUMENT_COOKIE.length)
+          .trimStart();
+        const isWrite: boolean =
+          (rest.startsWith("=") && !rest.startsWith("==")) ||
+          rest.startsWith("+=");
+
+        if (isWrite && !isAllowedDocumentCookieValue(rest)) {
+          writes.push({
+            file,
+            line: index + 1,
+            code: lineText.trim(),
+          });
+        }
+
+        at = lineText.indexOf(DOCUMENT_COOKIE, at + DOCUMENT_COOKIE.length);
+      }
+    });
+
+    return writes;
+  }
+
+  const sourceFile: ts.SourceFile = parse(file, text);
+
+  visit(sourceFile, (node: ts.Node): void => {
+    if (
+      ts.isBinaryExpression(node) &&
+      (node.operatorToken.kind === ts.SyntaxKind.EqualsToken ||
+        node.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken) &&
+      isDocumentCookie(node.left) &&
+      !isAllowedDocumentCookieValue(node.right.getText(sourceFile))
+    ) {
+      writes.push(writeAt(file, sourceFile, node));
+    }
+  });
+
+  return writes;
+}
+
+/*
+ * The package a module specifier names: "universal-cookie" of
+ * "universal-cookie", "@scope/name" of "@scope/name/sub", "Common" of
+ * "Common/Server/Utils/Cookie" (the repository's own package, whose file
+ * names are no library).
+ */
+function packageNameOf(specifier: string): string {
+  const parts: Array<string> = specifier.split("/");
+
+  return specifier.startsWith("@")
+    ? parts.slice(0, 2).join("/")
+    : parts[0] || "";
+}
+
+// The packages a file imports or requires whose names speak of cookies.
+function findCookieLibraries(file: string, text: string): Array<string> {
+  const sourceFile: ts.SourceFile = parse(file, text);
+  const libraries: Array<string> = [];
+
+  const note: (specifier: ts.Expression | undefined) => void = (
+    specifier: ts.Expression | undefined,
+  ): void => {
+    if (
+      specifier &&
+      ts.isStringLiteralLike(specifier) &&
+      !specifier.text.startsWith(".") &&
+      COOKIE_MENTION.test(packageNameOf(specifier.text))
+    ) {
+      libraries.push(packageNameOf(specifier.text));
+    }
+  };
+
+  visit(sourceFile, (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      note(node.moduleSpecifier);
+      return;
+    }
+
+    if (
+      ts.isCallExpression(node) &&
+      ((ts.isIdentifier(node.expression) &&
+        node.expression.text === "require") ||
+        node.expression.kind === ts.SyntaxKind.ImportKeyword)
+    ) {
+      note(node.arguments[0]);
+    }
+  });
+
+  return libraries;
+}
+
 const hasEe: boolean = fs.existsSync(path.join(REPOSITORY_DIRECTORY, "ee"));
 
 // Product code that mentions cookies at all: the only files these rules read.
@@ -303,6 +449,23 @@ function cookieCode(): Array<{ file: string; text: string }> {
     })
     .filter((entry: { file: string; text: string }): boolean => {
       return COOKIE_MENTION.test(entry.text);
+    });
+}
+
+// Product templates (.ejs, .html) whose inline scripts touch document.cookie.
+function cookieTemplates(): Array<{ file: string; text: string }> {
+  return listProductFiles(REPOSITORY_DIRECTORY, ["packages", "ee"])
+    .filter((file: string): boolean => {
+      return TEMPLATE_FILE.test(file);
+    })
+    .map((file: string) => {
+      return {
+        file,
+        text: fs.readFileSync(path.join(REPOSITORY_DIRECTORY, file), "utf8"),
+      };
+    })
+    .filter((entry: { file: string; text: string }): boolean => {
+      return entry.text.includes(DOCUMENT_COOKIE);
     });
 }
 
@@ -367,6 +530,41 @@ describe("every cookie OneUptime writes goes through the rule that keeps it on H
 
     // setCookie and removeCookie, each asking the rule.
     expect(text.split("RequestTransport.isHttps(res.req)").length - 1).toBe(2);
+  });
+
+  test("no browser code writes document.cookie without saying whether it is Secure, except to remove a cookie", () => {
+    const templates: Array<{ file: string; text: string }> = cookieTemplates();
+
+    // The consent banner's script removes analytics cookies this way.
+    expect(
+      templates.map((entry: { file: string; text: string }) => {
+        return entry.file;
+      }),
+    ).toContain("packages/Common/Server/Views/Partials/AnalyticsConsent.ejs");
+
+    const writes: Array<CookieWrite> = [...code, ...templates].flatMap(
+      (entry: { file: string; text: string }) => {
+        return findDocumentCookieWritesWithoutSecure(entry.file, entry.text);
+      },
+    );
+
+    expect(writes).toEqual([]);
+  });
+
+  test("no product code brings in a cookie library but the two these rules cover", () => {
+    const libraries: Array<string> = code.flatMap(
+      (entry: { file: string; text: string }) => {
+        return findCookieLibraries(entry.file, entry.text);
+      },
+    );
+
+    expect(libraries).toContain("cookie-parser");
+    expect(libraries).toContain(UNIVERSAL_COOKIE_MODULE);
+    expect(
+      [...new Set(libraries)].filter((library: string): boolean => {
+        return !COOKIE_LIBRARIES.has(library);
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -439,5 +637,79 @@ describe("the guard finds what it is there to find", () => {
         "map.set('a', 1);",
       ),
     ).toEqual([]);
+  });
+
+  test("a document.cookie write in code that does not say whether it is Secure", () => {
+    const source: string = [
+      "document.cookie = 'session=' + token + '; path=/';",
+      "window.document.cookie = `a=${value}; path=/`;",
+      "document.cookie += 'b=1';",
+      "document.cookie = 'insecure=1; path=/';",
+      "document.cookie = `c=${value}; path=/${isHttps ? '; Secure' : ''}`;",
+      "document.cookie = 'd=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';",
+      "document.cookie = 'e=; Max-Age=0; path=/';",
+      "const all: string = document.cookie;",
+      "if (document.cookie == 'x') {}",
+      "// document.cookie = 'in a comment';",
+    ].join("\n");
+
+    expect(
+      findDocumentCookieWritesWithoutSecure(
+        "packages/Common/UI/Utils/Some.ts",
+        source,
+      ).map((write: CookieWrite) => {
+        return write.line;
+      }),
+    ).toEqual([1, 2, 3, 4]);
+  });
+
+  test("a document.cookie write in a template's inline script", () => {
+    const source: string = [
+      "<script>",
+      "  document.cookie = 'session=' + token + '; path=/';",
+      "  document.cookie='a=1';",
+      "  var removed = document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';",
+      "  document.cookie = 'b=1; Secure; path=/';",
+      "  var all = document.cookie.split(';');",
+      "  if (document.cookie === '') {}",
+      "</script>",
+    ].join("\n");
+
+    expect(
+      findDocumentCookieWritesWithoutSecure(
+        "packages/Common/Server/Views/Some.ejs",
+        source,
+      ).map((write: CookieWrite) => {
+        return write.line;
+      }),
+    ).toEqual([2, 3]);
+  });
+
+  test("a cookie library other than the two these rules cover", () => {
+    const source: string = [
+      "import Cookies from 'js-cookie';",
+      "import { serialize } from 'cookie';",
+      "import UniversalCookies from 'universal-cookie';",
+      "import CookieParser from 'cookie-parser';",
+      "import CookieUtil from '../Utils/Cookie';",
+      "import ServerCookieUtil from 'Common/Server/Utils/Cookie';",
+      "const nookies = require('nookies-cookie');",
+      "export { default as ReactCookie } from 'react-cookie';",
+      "const lazy = import('cookies-next');",
+      "import CookieManager from '@react-native-cookies/cookies/lib';",
+    ].join("\n");
+
+    expect(
+      findCookieLibraries("packages/Common/UI/Utils/Some.ts", source),
+    ).toEqual([
+      "js-cookie",
+      "cookie",
+      "universal-cookie",
+      "cookie-parser",
+      "nookies-cookie",
+      "react-cookie",
+      "cookies-next",
+      "@react-native-cookies/cookies",
+    ]);
   });
 });

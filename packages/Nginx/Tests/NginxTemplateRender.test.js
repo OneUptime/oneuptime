@@ -1405,3 +1405,67 @@ for (const billingEnabled of [true, false]) {
     },
   );
 }
+
+/*
+ * The app knows its own address (HOST, oneuptime.example.com in these
+ * renders) by the Host this ingress passes on: an installation with
+ * HTTP_PROTOCOL=https keeps HOST's cookies Secure, and tells browsers to stay
+ * on HTTPS for it, by that Host alone. So a real nginx must hand the app the
+ * Host the browser asked for on every sign-in address - in nginx's own
+ * spelling, lower case and without a port - and a custom domain must reach
+ * the app as itself, whatever X-Forwarded-Host a caller adds.
+ */
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx hands the app the Host the browser asked for on the sign-in addresses (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        for (const requestedHost of [
+          "oneuptime.example.com",
+          "OneUptime.Example.COM",
+          "oneuptime.example.com:80",
+        ]) {
+          for (const uri of [
+            "/identity/login",
+            "/identity/refresh-token",
+            "/api/identity/login",
+            "/accounts/login",
+            "/dashboard/",
+            "/status-page-api/x",
+            "/status-page-identity-api/login/x",
+            "/public-dashboard-api/x",
+          ]) {
+            const response = await getThroughIngress(port, uri, requestedHost, {
+              "X-Forwarded-Host": "status.customer.com",
+            });
+
+            assert.equal(response.answer?.upstream, "app", response.body);
+            assert.equal(
+              response.answer?.host,
+              "oneuptime.example.com",
+              `${uri} under Host ${requestedHost}: ${response.body}`,
+            );
+          }
+        }
+
+        // A custom domain reaches the app as itself, never as HOST.
+        for (const uri of [
+          "/status-page-identity-api/login/x",
+          "/status-page-api/x",
+          "/public-dashboard-api/x",
+        ]) {
+          const response = await getThroughIngress(
+            port,
+            uri,
+            "status.customer.com",
+            { "X-Forwarded-Host": "oneuptime.example.com" },
+          );
+
+          assert.equal(response.answer?.upstream, "app", response.body);
+          assert.equal(response.answer?.host, "status.customer.com");
+        }
+      });
+    },
+  );
+}
