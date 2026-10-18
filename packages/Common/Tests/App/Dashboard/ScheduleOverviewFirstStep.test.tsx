@@ -38,6 +38,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Now the Final Schedule says who is on call, a schedule without layers
  * shows one step - Go to Layers - and the calendar and chat cards wait until
  * there are shifts to follow. Its Edit button names it as every menu does.
+ * The step sits in the Final Schedule's own card (the UI review): it used to
+ * float on the bare page 13rem under the details card.
  *
  * The page, its details card, FinalPreview and the edit dialog are the real
  * ones. The Final Schedule's calendar (LayersPreview) and the calendar and
@@ -166,6 +168,7 @@ jest.mock("../../../UI/Utils/User", () => {
 import ScheduleOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutySchedule/Index";
 import {
   SCHEDULE_EDIT_BUTTON_TEXT,
+  SCHEDULE_FINAL_SCHEDULE_TITLE,
   SCHEDULE_NO_LAYERS_TEST_ID,
   ScheduleNoLayersCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/ScheduleOverviewCopy";
@@ -256,6 +259,40 @@ describe("a schedule nobody takes turns on yet", () => {
         RouteMap[PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS] as Route,
         { modelId: new ObjectID(SCHEDULE_ID) },
       ).toString(),
+    );
+  });
+
+  test("sits in the Final Schedule's card, close under its title, with Go to Layers centred", async () => {
+    await renderOverview();
+
+    const empty: HTMLElement = await screen.findByTestId(
+      SCHEDULE_NO_LAYERS_TEST_ID,
+    );
+    const card: HTMLElement = empty.closest(
+      "[data-testid='card']",
+    ) as HTMLElement;
+
+    expect(card).not.toBeNull();
+    expect(
+      within(card).getByRole("heading", {
+        name: SCHEDULE_FINAL_SCHEDULE_TITLE,
+      }),
+    ).toBeInTheDocument();
+    expect(SCHEDULE_FINAL_SCHEDULE_TITLE).toBe("Final Schedule");
+
+    // A card's padding, not a full page's 13rem above and below.
+    const state: HTMLElement = empty.querySelector("#no-layers") as HTMLElement;
+
+    expect(state.className.split(" ")).toContain("py-8");
+    expect(state.className).not.toContain("pt-52");
+
+    // Button keeps a dialog footer's md:ml-3; its wrapper clears it.
+    const go: HTMLElement = within(empty).getByRole("button", {
+      name: ScheduleNoLayersCopy.button,
+    });
+
+    expect((go.parentElement as HTMLElement).className).toContain(
+      "[&>button]:md:ml-0",
     );
   });
 

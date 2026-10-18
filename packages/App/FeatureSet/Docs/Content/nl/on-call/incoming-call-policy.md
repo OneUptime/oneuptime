@@ -167,7 +167,7 @@ Nummers voor inkomende oproepen worden per sms geverifieerd, dus **SMS** moet ee
 
 Open het beleid en kies **Instellingen** onder **Geavanceerd** in het zijmenu ervan. De pagina heeft drie kaarten:
 
-- **Gesprekken aannemen**: **Gesprekken naar de nummers van dit beleid aannemen** wordt opgeslagen zodra u de schakelaar omzet. Staat die uit, dan horen bellers dat de lijn niet beschikbaar is en wordt niemand gebeld; de nummers, regels en belogboeken blijven bewaard. Uitzetten vraagt eerst om bevestiging, met **Geen gesprekken meer aannemen**.
+- **Gesprekken aannemen**: **Gesprekken naar de nummers van dit beleid aannemen** wordt opgeslagen zodra u de schakelaar omzet. Staat die uit, dan horen bellers dat de lijn niet beschikbaar is en wordt niemand gebeld; de nummers, regels en belogboeken blijven bewaard. Uitzetten vraagt eerst om bevestiging, met **Geen gesprekken meer aannemen**. Zolang het uit staat, zegt het **Overzicht** van het beleid dat, met **Weer gesprekken aannemen** om het weer aan te zetten.
 - **Herhaalbeleid**: wat er gebeurt als niemand opneemt na de laatste regel. **Bewerken** vraagt **Als niemand opneemt na de laatste regel**: **Gesprek beëindigen**, of **Opnieuw laten overgaan vanaf de eerste regel** en **Hoe vaak nog?**.
 - **Spraakberichten**: wat bellers horen. **Berichten bewerken** wijzigt ze.
 

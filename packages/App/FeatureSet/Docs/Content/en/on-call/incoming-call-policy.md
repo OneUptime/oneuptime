@@ -167,7 +167,7 @@ Incoming call numbers are verified by SMS, so **SMS** has to be on for the proje
 
 Open the policy and choose **Settings** under **Advanced** in its side menu. It has three cards:
 
-- **Answer Calls**: **Answer calls to this policy's numbers** saves as soon as you flip it. Off, callers hear that the line is not available and nobody is rung; its numbers, rules and call logs are kept. Turning it off asks first, with **Stop answering calls**.
+- **Answer Calls**: **Answer calls to this policy's numbers** saves as soon as you flip it. Off, callers hear that the line is not available and nobody is rung; its numbers, rules and call logs are kept. Turning it off asks first, with **Stop answering calls**. While it is off, the policy's **Overview** says so, with **Start answering calls** to turn it back on.
 - **Repeat Policy**: what happens when nobody answers after the last rule. **Edit** asks **If nobody answers after the last rule**: **End the call**, or **Ring again from the first rule** and **How many more times?**.
 - **Voice Messages**: what callers hear. **Edit Messages** changes them.
 

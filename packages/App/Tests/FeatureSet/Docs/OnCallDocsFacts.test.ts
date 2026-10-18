@@ -504,9 +504,8 @@ describe("the Incoming Call Policy page", () => {
       }).toEqual({ constant, inRoute: true });
     }
 
-    expect(copy).toContain(
-      'emptyMessage: translationKey("Not set. Callers hear “{{message}}”")',
-    );
+    // Shown first, with a quiet Default pill beside them.
+    expect(copy).toContain('defaultPill: translationKey("Default")');
     expect(DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE).toBe(
       columnDefault(policySource, "noAnswerMessage"),
     );
@@ -599,6 +598,24 @@ describe("the Incoming Call Policy page", () => {
         onPage: true,
       });
     }
+  });
+
+  it("says the Overview of a policy that does not answer calls says so, with the button that turns calls on", () => {
+    const copy: string = readDashboardFile(
+      "Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy.ts",
+    );
+    const overview: string = readDashboardFile(
+      "Pages/OnCallDuty/IncomingCallPolicy/Index.tsx",
+    );
+
+    expect(copy).toContain(
+      'startAnsweringButton: translationKey("Start answering calls")',
+    );
+    expect(overview).toContain("<IncomingCallAnswerCallsOffBanner");
+
+    expect(page).toContain(
+      "Turning it off asks first, with **Stop answering calls**. While it is off, the policy's **Overview** says so, with **Start answering calls** to turn it back on.",
+    );
   });
 
   it("lists the call log's columns and its timeline", () => {

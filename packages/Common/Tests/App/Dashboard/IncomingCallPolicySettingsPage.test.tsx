@@ -35,6 +35,13 @@ import { getJestSpyOn } from "../../Spy";
  * (one switch that saves on flip, and asks before it turns calls away),
  * Repeat Policy (one choice) and Voice Messages.
  *
+ * The UI review: Voice Messages says on the card when each message is read
+ * out (the names alone do not tell No Answer from No One Available), shows
+ * an emptied message's words first with a quiet Default pill - it read
+ * "Not set. Callers hear ..." three times - and its dialog's boxes start at
+ * three lines and grow. Stop answering calls? speaks of everyone who
+ * calls, not of calls that hear.
+ *
  * The page, its cards, the switch, the dialogs and the forms are the real
  * ones; only the network and the permission snapshot are stubbed.
  */
@@ -144,9 +151,14 @@ import IncomingCallPolicySettings, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/Settings";
 import {
   INCOMING_CALL_ANSWER_CALLS_TEST_ID,
+  INCOMING_CALL_DEFAULT_MESSAGE_PILL_TEST_ID,
   IncomingCallAnswerCallsCopy,
   IncomingCallVoiceMessagesCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy";
+import {
+  DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE,
+  DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE,
+} from "../../../Types/IncomingCall/IncomingCallMessages";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Route from "../../../Types/API/Route";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
@@ -345,6 +357,15 @@ describe("Answer Calls", () => {
       submitButtonType: ButtonStyleType.DANGER,
     });
   });
+
+  test("the question speaks of the people who call, not of calls that hear", () => {
+    expect(IncomingCallAnswerCallsCopy.turnOffConfirmDescription).toBe(
+      "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.",
+    );
+    expect(IncomingCallAnswerCallsCopy.turnOffConfirmDescription).not.toContain(
+      "every call to",
+    );
+  });
 });
 
 describe("Repeat Policy, on the Settings page", () => {
@@ -371,19 +392,97 @@ describe("Voice Messages", () => {
     ).toBeInTheDocument();
   });
 
-  test("an emptied message shows the words callers hear instead, not 'No message set'", async () => {
+  test("an emptied message shows the words callers hear instead, marked Default - not 'No message set'", async () => {
     await renderPage();
 
     await screen.findByText(IncomingCallVoiceMessagesCopy.cardTitle);
 
-    expect(document.body).toHaveTextContent(
-      "Not set. Callers hear “No one is available. Please try again later.”",
+    // The two emptied messages: their words, then a Default pill each.
+    const pills: Array<HTMLElement> = screen.getAllByTestId(
+      INCOMING_CALL_DEFAULT_MESSAGE_PILL_TEST_ID,
     );
-    expect(document.body).toHaveTextContent(
-      "Not set. Callers hear “We're sorry, but no on-call engineer is currently available.”",
-    );
+
+    expect(pills).toHaveLength(2);
+
+    for (const [index, words] of [
+      DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE,
+      DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE,
+    ].entries()) {
+      const row: HTMLElement = pills[index]!.parentElement as HTMLElement;
+
+      expect(row).toHaveTextContent(words);
+      expect(pills[index]).toHaveTextContent(/^Default$/);
+      // The words first, then the pill.
+      expect(row.textContent!.indexOf(words)).toBe(0);
+    }
+
+    expect(IncomingCallVoiceMessagesCopy.defaultPill).toBe("Default");
+    expect(document.body).not.toHaveTextContent("Not set");
     expect(document.body).not.toHaveTextContent("No message set");
     expect(document.body).not.toHaveTextContent("No greeting message set");
+  });
+
+  test("a message of the policy's own is shown as written, with no pill", async () => {
+    await renderPage();
+
+    const own: HTMLElement = await screen.findByText(
+      "Thanks for calling Acme. Connecting you now.",
+    );
+
+    expect(
+      within(own.parentElement as HTMLElement).queryByTestId(
+        INCOMING_CALL_DEFAULT_MESSAGE_PILL_TEST_ID,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the card says when each message is read out, not only the dialog", async () => {
+    await renderPage();
+
+    await screen.findByText(IncomingCallVoiceMessagesCopy.cardTitle);
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+
+    for (const message of [
+      IncomingCallVoiceMessagesCopy.greeting,
+      IncomingCallVoiceMessagesCopy.noAnswer,
+      IncomingCallVoiceMessagesCopy.noOneAvailable,
+    ]) {
+      const when: HTMLElement = screen.getByText(message.description);
+      const field: HTMLElement = when.closest(
+        "[data-testid='detail-field']",
+      ) as HTMLElement;
+
+      // Under the message's own name, in its own row.
+      expect(field).not.toBeNull();
+      expect(field).toHaveTextContent(message.title);
+    }
+  });
+
+  test("the dialog's boxes start at three lines and grow with the words", async () => {
+    await renderPage();
+
+    const edit: HTMLElement = await screen.findByRole("button", {
+      name: "Edit Messages",
+    });
+
+    await act(async () => {
+      fireEvent.click(edit);
+    });
+    await settle();
+
+    const dialog: HTMLElement = await screen.findByTestId("modal");
+    const boxes: Array<HTMLTextAreaElement> = Array.from(
+      dialog.querySelectorAll("textarea"),
+    );
+
+    expect(boxes).toHaveLength(3);
+
+    for (const box of boxes) {
+      expect(box).toHaveAttribute("rows", "3");
+      // Not held to the fixed box's six-line floor.
+      expect(box.className).not.toContain("min-h-32");
+    }
   });
 
   test("Edit Messages opens Edit Voice Messages, each field saying when it is read out", async () => {

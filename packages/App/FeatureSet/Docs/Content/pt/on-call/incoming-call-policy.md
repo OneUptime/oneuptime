@@ -167,7 +167,7 @@ Os números para chamadas recebidas são verificados por SMS, então o **SMS** p
 
 Abra a política e escolha **Configurações** em **Avançado** no menu lateral dela. A página tem três cartões:
 
-- **Atender chamadas**: **Atender as chamadas para os números desta política** é salvo assim que você o muda. Desligado, quem liga ouve que a linha não está disponível e ninguém é chamado; os números, as regras e os registros de chamadas são mantidos. Desligar pede confirmação antes, com **Parar de atender chamadas**.
+- **Atender chamadas**: **Atender as chamadas para os números desta política** é salvo assim que você o muda. Desligado, quem liga ouve que a linha não está disponível e ninguém é chamado; os números, as regras e os registros de chamadas são mantidos. Desligar pede confirmação antes, com **Parar de atender chamadas**. Enquanto está desligado, a **Visão geral** da política o indica, com **Voltar a atender chamadas** para religá-lo.
 - **Política de Repetição**: o que acontece quando ninguém atende depois da última regra. **Editar** pergunta **Se ninguém atender depois da última regra**: **Encerrar a chamada**, ou **Tocar de novo a partir da primeira regra** e **Quantas vezes mais?**.
 - **Mensagens de voz**: o que quem liga ouve. **Editar mensagens** as muda.
 

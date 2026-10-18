@@ -167,7 +167,7 @@ Numre for innkommende anrop verifiseres på SMS, så **SMS** må først være sl
 
 Åpne policyen og velg **Innstillinger** under **Avansert** i sidemenyen. Siden har tre kort:
 
-- **Besvar anrop**: **Besvar anrop til numrene til denne policyen** lagres så snart du slår den om. Slått av hører innringere at linjen ikke er tilgjengelig, og ingen blir ringt opp; numrene, reglene og anropsloggene beholdes. Før den slås av, spør siden først, med **Slutt å besvare anrop**.
+- **Besvar anrop**: **Besvar anrop til numrene til denne policyen** lagres så snart du slår den om. Slått av hører innringere at linjen ikke er tilgjengelig, og ingen blir ringt opp; numrene, reglene og anropsloggene beholdes. Før den slås av, spør siden først, med **Slutt å besvare anrop**. Så lenge den er slått av, sier policyens **Oversikt** det, med **Besvar anrop igjen** for å slå den på igjen.
 - **Gjentakelsesretningslinje**: hva som skjer når ingen svarer etter den siste regelen. **Rediger** spør **Hvis ingen svarer etter den siste regelen**: **Avslutt anropet**, eller **Ring igjen fra den første regelen** og **Hvor mange ganger til?**.
 - **Talemeldinger**: hva innringere hører. **Rediger meldinger** endrer dem.
 

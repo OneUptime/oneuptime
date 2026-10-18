@@ -167,7 +167,7 @@ Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være sl
 
 Åbn politikken, og vælg **Indstillinger** under **Avanceret** i dens sidemenu. Siden har tre kort:
 
-- **Besvar opkald**: **Besvar opkald til denne politiks numre** gemmes, så snart du slår den om. Slået fra hører opkaldere, at linjen ikke er tilgængelig, og ingen bliver ringet op; dens numre, regler og opkaldslogs bevares. Før den slås fra, spørger siden først, med **Stop med at besvare opkald**.
+- **Besvar opkald**: **Besvar opkald til denne politiks numre** gemmes, så snart du slår den om. Slået fra hører opkaldere, at linjen ikke er tilgængelig, og ingen bliver ringet op; dens numre, regler og opkaldslogs bevares. Før den slås fra, spørger siden først, med **Stop med at besvare opkald**. Så længe den er slået fra, siger politikkens **Oversigt** det, med **Besvar opkald igen** til at slå den til igen.
 - **Gentagelsespolitik**: hvad der sker, når ingen svarer efter den sidste regel. **Rediger** spørger **Hvis ingen svarer efter den sidste regel**: **Afslut opkaldet**, eller **Ring igen fra den første regel** og **Hvor mange gange mere?**.
 - **Talebeskeder**: hvad opkaldere hører. **Rediger beskeder** ændrer dem.
 

@@ -167,7 +167,7 @@ Nummer för inkommande samtal verifieras via SMS, så **SMS** måste först vara
 
 Öppna policyn och välj **Inställningar** under **Avancerad** i dess sidomeny. Sidan har tre kort:
 
-- **Besvara samtal**: **Besvara samtal till den här policyns nummer** sparas så snart du slår om den. Avstängd hör uppringare att linjen inte är tillgänglig, och ingen rings upp; dess nummer, regler och samtalsloggar behålls. Innan den stängs av frågar sidan först, med **Sluta besvara samtal**.
+- **Besvara samtal**: **Besvara samtal till den här policyns nummer** sparas så snart du slår om den. Avstängd hör uppringare att linjen inte är tillgänglig, och ingen rings upp; dess nummer, regler och samtalsloggar behålls. Innan den stängs av frågar sidan först, med **Sluta besvara samtal**. Så länge den är avslagen säger policyns **Översikt** det, med **Besvara samtal igen** för att slå på den igen.
 - **Upprepningspolicy**: vad som händer när ingen svarar efter den sista regeln. **Redigera** frågar **Om ingen svarar efter den sista regeln**: **Avsluta samtalet**, eller **Ring igen från den första regeln** och **Hur många gånger till?**.
 - **Röstmeddelanden**: vad uppringare hör. **Redigera meddelanden** ändrar dem.
 

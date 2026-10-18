@@ -167,7 +167,7 @@ Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doiv
 
 Ouvrez la politique et choisissez **Paramètres** sous **Avancé** dans son menu latéral. La page a trois cartes :
 
-- **Répondre aux appels** : **Répondre aux appels vers les numéros de cette politique** s'enregistre dès que vous le basculez. Désactivé, les appelants entendent que la ligne n'est pas disponible et personne ne sonne ; ses numéros, ses règles et ses journaux d'appels sont conservés. Le désactiver demande d'abord confirmation, avec **Ne plus répondre aux appels**.
+- **Répondre aux appels** : **Répondre aux appels vers les numéros de cette politique** s'enregistre dès que vous le basculez. Désactivé, les appelants entendent que la ligne n'est pas disponible et personne ne sonne ; ses numéros, ses règles et ses journaux d'appels sont conservés. Le désactiver demande d'abord confirmation, avec **Ne plus répondre aux appels**. Tant qu'il est désactivé, la **Vue d'ensemble** de la politique l'indique, avec **Répondre à nouveau aux appels** pour le réactiver.
 - **Politique de répétition** : ce qui se passe quand personne ne répond après la dernière règle. **Modifier** demande **Si personne ne répond après la dernière règle** : **Terminer l'appel**, ou **Sonner de nouveau depuis la première règle** et **Combien de fois de plus ?**.
 - **Messages vocaux** : ce qu'entendent les appelants. **Modifier les messages** les change.
 

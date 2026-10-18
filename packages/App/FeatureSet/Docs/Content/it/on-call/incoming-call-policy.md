@@ -167,7 +167,7 @@ I numeri per le chiamate in entrata vengono verificati via SMS, quindi gli **SMS
 
 Apri la policy e scegli **Impostazioni** in **Avanzato** nel suo menu laterale. Ha tre schede:
 
-- **Rispondi alle chiamate**: **Rispondi alle chiamate ai numeri di questa policy** si salva appena lo cambi. Disattivato, chi chiama sente che la linea non è disponibile e nessuno viene chiamato; i suoi numeri, le regole e i registri chiamate vengono conservati. Prima di disattivarlo viene chiesta conferma, con **Smetti di rispondere alle chiamate**.
+- **Rispondi alle chiamate**: **Rispondi alle chiamate ai numeri di questa policy** si salva appena lo cambi. Disattivato, chi chiama sente che la linea non è disponibile e nessuno viene chiamato; i suoi numeri, le regole e i registri chiamate vengono conservati. Prima di disattivarlo viene chiesta conferma, con **Smetti di rispondere alle chiamate**. Finché è disattivato, la **Panoramica** della policy lo indica, con **Riprendi a rispondere alle chiamate** per riattivarlo.
 - **Criterio di ripetizione**: cosa succede quando nessuno risponde dopo l'ultima regola. **Modifica** chiede **Se nessuno risponde dopo l'ultima regola**: **Termina la chiamata**, oppure **Squilla di nuovo dalla prima regola** e **Quante volte ancora?**.
 - **Messaggi vocali**: cosa sente chi chiama. **Modifica messaggi** li cambia.
 

@@ -20,6 +20,10 @@ import path from "path";
  *   object" under Name, nor "Friendly description that will help you
  *   remember" under Description.
  * - A schedule's Overview says who is on call once, in its Final Schedule.
+ * - The UI review: an incoming call policy whose Answer Calls is off opens
+ *   its Overview with a banner and a Start answering calls button, rather
+ *   than a card description sending the reader to Settings; the words it
+ *   added are in every language, and the ones it retired are in none.
  *
  * App has no renderer, so the pages are read as text. Common's
  * RepeatPolicyChoiceCard, IncomingCallPolicySettingsPage,
@@ -289,7 +293,7 @@ describe("names and descriptions in the area's forms", () => {
     },
   );
 
-  test("the person's on-call rule form says how long after the page a method is used", () => {
+  test("the person's on-call rule form says how long after being paged a method is used", () => {
     const table: string = flat(
       read("Components/NotificationRule/OnCallRulesTable.tsx"),
     );
@@ -301,6 +305,114 @@ describe("names and descriptions in the area's forms", () => {
       'description: "How long after being paged to use this method."',
     );
   });
+});
+
+describe("an incoming call policy that is not answering calls", () => {
+  const overview: string = flat(
+    codeOf(read("Pages/OnCallDuty/IncomingCallPolicy/Index.tsx")),
+  );
+  const banner: string = flat(
+    codeOf(
+      read(
+        "Components/IncomingCallPolicy/IncomingCallAnswerCallsOffBanner.tsx",
+      ),
+    ),
+  );
+
+  test("opens its Overview with the banner, and only while calls are off", () => {
+    expect(overview).toContain(
+      "{!isAnsweringCalls ? ( <IncomingCallAnswerCallsOffBanner",
+    );
+    expect(overview).toContain(
+      "setIsAnsweringCalls(fetchedPolicy?.isEnabled !== false);",
+    );
+    // The banner comes before both of the page's first cards.
+    expect(overview.indexOf("<IncomingCallAnswerCallsOffBanner")).toBeLessThan(
+      overview.indexOf("{isSetupComplete ? detailsCard : setupCard}"),
+    );
+    expect(overview).not.toContain("Set up, but not answering calls");
+    expect(overview).not.toContain("under Settings");
+  });
+
+  test("turns calls on with what the Answer Calls switch writes, gated as the switch is", () => {
+    expect(banner).toContain("useSaveModelSwitch<IncomingCallPolicy>(");
+    expect(banner).toContain("column: INCOMING_CALL_ANSWER_CALLS_COLUMN,");
+    expect(banner).toContain("value: true,");
+    expect(banner).toContain("disabled={!startAnswering.gate.isAllowed}");
+    expect(banner).toContain("icon={IconProp.PauseCircle}");
+    expect(banner).toContain("type={AlertBannerType.Info}");
+  });
+});
+
+describe("words the UI review added or retired", () => {
+  const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
+  const LANGUAGES: Array<string> = [
+    "de",
+    "fr",
+    "es",
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ja",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ];
+
+  const ADDED: Array<string> = [
+    "Not answering calls",
+    "Start answering calls",
+    "Until it is turned back on, everyone who calls this policy's numbers hears that the line is not available, and nobody is rung.",
+    "How long after being paged to use this method.",
+  ];
+
+  // Added by this audit, and no longer read by anything.
+  const RETIRED: Array<string> = [
+    "Not set. Callers hear “{{message}}”",
+    "Set up, but not answering calls. Turn on Answer Calls under Settings.",
+    "How long after the page to use this method.",
+    "Until this is turned back on, every call to this policy's numbers hears that the line is not available, and nobody is rung.",
+  ];
+
+  function readLocale(language: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+  }
+
+  test.each(LANGUAGES)(
+    "%s words every sentence the review added",
+    (language: string) => {
+      const strings: Record<string, string> = readLocale(language);
+
+      for (const key of ADDED) {
+        expect({
+          key,
+          translated: Boolean(strings[key]) && strings[key] !== key,
+        }).toEqual({
+          key,
+          translated: true,
+        });
+      }
+    },
+  );
+
+  test.each(["en", ...LANGUAGES])(
+    "%s keeps none of the sentences the review retired",
+    (language: string) => {
+      const strings: Record<string, string> = readLocale(language);
+
+      for (const key of RETIRED) {
+        expect({ key, kept: key in strings }).toEqual({ key, kept: false });
+      }
+    },
+  );
 });
 
 describe("a schedule's Overview", () => {

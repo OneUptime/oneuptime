@@ -167,7 +167,7 @@ Los números para llamadas entrantes se verifican por SMS, así que primero el p
 
 Abre la política y elige **Ajustes** en **Avanzado** en su menú lateral. Tiene tres tarjetas:
 
-- **Contestar llamadas**: **Contestar las llamadas a los números de esta política** se guarda en cuanto lo cambias. Desactivado, quienes llaman oyen que la línea no está disponible y no suena nadie; sus números, reglas y registros de llamadas se conservan. Desactivarlo pide confirmación antes, con **Dejar de contestar llamadas**.
+- **Contestar llamadas**: **Contestar las llamadas a los números de esta política** se guarda en cuanto lo cambias. Desactivado, quienes llaman oyen que la línea no está disponible y no suena nadie; sus números, reglas y registros de llamadas se conservan. Desactivarlo pide confirmación antes, con **Dejar de contestar llamadas**. Mientras está desactivado, la **Vista general** de la política lo indica, con **Volver a contestar llamadas** para volver a activarlo.
 - **Política de repetición**: qué pasa cuando nadie contesta después de la última regla. **Editar** pregunta **Si nadie contesta después de la última regla**: **Terminar la llamada**, o **Volver a sonar desde la primera regla** y **¿Cuántas veces más?**.
 - **Mensajes de voz**: lo que oyen quienes llaman. **Editar mensajes** los cambia.
 

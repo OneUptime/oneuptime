@@ -11,6 +11,7 @@ import {
   act,
   cleanup,
   configure,
+  fireEvent,
   render,
   screen,
 } from "@testing-library/react";
@@ -39,8 +40,14 @@ import {
  *   - Create asks for the name, with the description and the labels under
  *     More fields, as Create On-Call Policy does, and opens the new policy's
  *     Overview: it used to leave a "Setup Needed" row in the list;
- *   - the Overview leads with its Setup card while a step is left, and says
- *     a set-up policy that is turned off is not answering calls;
+ *   - the Overview leads with its Setup card while a step is left, and a
+ *     policy whose Answer Calls is off opens with a banner that says so,
+ *     with Start answering calls to turn it back on right there (the UI
+ *     review: it was one line in a card's description, "Turn on Answer
+ *     Calls under Settings");
+ *   - the Setup and Phone Numbers cards start their rows at the title's
+ *     edge, and keep each step's number and icon round on a phone, where
+ *     a row's button wraps under it;
  *   - its side menu reads like an on-call policy's: no Documentation page of
  *     its own, and Delete Policy under Advanced, not a Danger Zone of one.
  *
@@ -57,6 +64,8 @@ let capturedTableProps: Record<string, any> = {};
 let storedPolicy: JSONObject = {};
 let ruleCount: number = 0;
 let phoneNumbers: Array<JSONObject> = [];
+let updates: Array<JSONObject> = [];
+let policyReads: number = 0;
 
 const navigateMock: MockFunction = getJestMockFunction();
 
@@ -89,11 +98,17 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: async (data: {
         modelType: { new (): unknown };
       }): Promise<unknown> => {
+        policyReads++;
         return Object.assign(
           new data.modelType() as Record<string, unknown>,
           { _id: POLICY_ID },
           storedPolicy,
         );
+      },
+      updateById: async (data: { data: JSONObject }): Promise<unknown> => {
+        updates.push(data.data);
+        storedPolicy = { ...storedPolicy, ...data.data };
+        return {};
       },
       getList: async (): Promise<unknown> => {
         return {
@@ -167,6 +182,12 @@ import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import IncomingCallPolicy from "../../../Models/DatabaseModels/IncomingCallPolicy";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import {
+  INCOMING_CALL_ANSWER_CALLS_OFF_BANNER_TEST_ID,
+  INCOMING_CALL_START_ANSWERING_BUTTON_TEST_ID,
+  IncomingCallAnswerCallsCopy,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy";
 import { getJestSpyOn } from "../../Spy";
 
 const PAGE_PROPS: PageComponentProps = {
@@ -178,6 +199,9 @@ beforeEach(() => {
   storedPolicy = {};
   ruleCount = 0;
   phoneNumbers = [];
+  updates = [];
+  policyReads = 0;
+  PermissionGate.clearPermissionPropsCache();
   navigateMock.mockReset();
   getJestSpyOn(Navigation, "navigate").mockImplementation(
     (...args: Array<unknown>): void => {
@@ -423,16 +447,175 @@ describe("a policy's Overview", () => {
     ).toBeInTheDocument();
   });
 
-  test("says a set-up policy that is turned off is not answering calls, and where to turn it on", async () => {
+  test("a policy that answers calls opens with no banner", async () => {
+    setUp(true);
+
+    await renderOverview();
+
+    await screen.findByText("Phone Numbers & Twilio Configuration");
+
+    expect(
+      screen.queryByTestId(INCOMING_CALL_ANSWER_CALLS_OFF_BANNER_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("a policy whose Answer Calls is off", () => {
+  test("opens with a banner that says so, above everything, with the button that answers calls", async () => {
+    setUp(false);
+
+    await renderOverview();
+
+    const banner: HTMLElement = await screen.findByTestId(
+      INCOMING_CALL_ANSWER_CALLS_OFF_BANNER_TEST_ID,
+    );
+
+    expect(banner).toHaveTextContent("Not answering calls");
+    expect(banner).toHaveTextContent(
+      IncomingCallAnswerCallsCopy.switchOffDescription,
+    );
+    expect(
+      screen.getByTestId(INCOMING_CALL_START_ANSWERING_BUTTON_TEST_ID),
+    ).toHaveTextContent("Start answering calls");
+
+    // First on the page: before the details card.
+    expect(positionOf("Not answering calls")).toBeLessThan(
+      positionOf("Incoming Call Policy Details"),
+    );
+    // No longer a line sending the reader to Settings.
+    expect(document.body).not.toHaveTextContent("under Settings");
+    expect(document.body).not.toHaveTextContent(
+      "Set up, but not answering calls",
+    );
+  });
+
+  test("the set-up card says what its numbers do, as it does while calls are answered", async () => {
     setUp(false);
 
     await renderOverview();
 
     expect(
       await screen.findByText(
-        "Set up, but not answering calls. Turn on Answer Calls under Settings.",
+        "Calls to these numbers ring the people its escalation rules name.",
       ),
     ).toBeInTheDocument();
-    expect(document.body).not.toHaveTextContent("ready to receive calls");
+  });
+
+  test("Start answering calls turns calls on in place: the banner goes and the Status says Enabled", async () => {
+    setUp(false);
+
+    await renderOverview();
+
+    await screen.findByTestId(INCOMING_CALL_ANSWER_CALLS_OFF_BANNER_TEST_ID);
+    expect(await screen.findByText("Disabled")).toBeInTheDocument();
+
+    const readsBefore: number = policyReads;
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(INCOMING_CALL_START_ANSWERING_BUTTON_TEST_ID),
+      );
+    });
+    await settle();
+
+    expect(updates).toEqual([{ isEnabled: true }]);
+    expect(
+      screen.queryByTestId(INCOMING_CALL_ANSWER_CALLS_OFF_BANNER_TEST_ID),
+    ).not.toBeInTheDocument();
+
+    // The details card reads the policy again, and says what it is now.
+    expect(policyReads).toBeGreaterThan(readsBefore);
+    expect(await screen.findByText("Enabled")).toBeInTheDocument();
+    expect(screen.queryByText("Disabled")).not.toBeInTheDocument();
+    // In place: no trip to another page.
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("a policy that is off and not set up shows the banner over its Setup card", async () => {
+    storedPolicy = { name: "Sandbox line", isEnabled: false };
+
+    await renderOverview();
+
+    await screen.findByTestId(INCOMING_CALL_ANSWER_CALLS_OFF_BANNER_TEST_ID);
+
+    expect(positionOf("Not answering calls")).toBeLessThan(positionOf("Setup"));
+  });
+
+  test("a policy whose switch could not be read is not called off", async () => {
+    storedPolicy = { name: "Support hotline" };
+
+    await renderOverview();
+
+    await screen.findByText("Setup");
+
+    expect(
+      screen.queryByTestId(INCOMING_CALL_ANSWER_CALLS_OFF_BANNER_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+});
+
+// A flex item that never shrinks below its own size.
+const KEEPS_ITS_SIZE: RegExp = /(^|\s)(shrink-0|flex-shrink-0)(\s|$)/;
+
+describe("the Setup and Phone Numbers cards, on a phone", () => {
+  // The box a step's number, or a row's icon, is drawn in.
+  function circleOf(text: string): HTMLElement {
+    return screen
+      .getAllByText(text, { exact: true })
+      .find((element: HTMLElement): boolean => {
+        return element.className.includes("rounded-full");
+      }) as HTMLElement;
+  }
+
+  test("start their rows at the title's edge, as every card's body does", async () => {
+    storedPolicy = { name: "Sandbox line", isEnabled: true };
+
+    await renderOverview();
+
+    const step: HTMLElement = await screen.findByText(
+      "Select Twilio Configuration",
+    );
+    const body: HTMLElement = step.closest(".space-y-6") as HTMLElement;
+
+    expect(body).not.toBeNull();
+    // An inner p-6 set the steps 24px in from the title.
+    expect(body.className.split(" ")).not.toContain("p-6");
+  });
+
+  test("keep each step's number round: it never shrinks beside a long step", async () => {
+    storedPolicy = { name: "Sandbox line", isEnabled: true };
+
+    await renderOverview();
+
+    await screen.findByText("Select Twilio Configuration");
+
+    for (const number of ["1", "2", "3"]) {
+      const circle: HTMLElement = circleOf(number);
+
+      expect({ number, circle: Boolean(circle) }).toEqual({
+        number,
+        circle: true,
+      });
+      expect({
+        number,
+        keepsItsSize: KEEPS_ITS_SIZE.test(circle.className),
+      }).toEqual({ number, keepsItsSize: true });
+    }
+  });
+
+  test("wrap a row's button under it, at the right, instead of squeezing its words", async () => {
+    storedPolicy = { name: "Sandbox line", isEnabled: true };
+
+    await renderOverview();
+
+    const select: HTMLElement = await screen.findByRole("button", {
+      name: "Select",
+    });
+    const wrapper: HTMLElement = select.parentElement as HTMLElement;
+    const row: HTMLElement = wrapper.parentElement as HTMLElement;
+
+    expect(wrapper.className).toContain("ml-auto");
+    expect(wrapper.className).toContain("shrink-0");
+    expect(row.className).toContain("flex-wrap");
   });
 });

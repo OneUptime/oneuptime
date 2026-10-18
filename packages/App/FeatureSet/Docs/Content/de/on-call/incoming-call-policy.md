@@ -167,7 +167,7 @@ Nummern für eingehende Anrufe werden per SMS verifiziert, deshalb muss **SMS** 
 
 Öffnen Sie die Richtlinie und wählen Sie im Seitenmenü **Einstellungen** unter **Erweitert**. Die Seite hat drei Karten:
 
-- **Anrufe annehmen**: **Anrufe an die Nummern dieser Richtlinie annehmen** speichert, sobald Sie den Schalter umlegen. Ausgeschaltet hören Anrufer, dass die Leitung nicht verfügbar ist, und niemand wird angerufen; Nummern, Regeln und Anrufprotokolle bleiben erhalten. Vor dem Ausschalten fragt die Seite nach, mit **Keine Anrufe mehr annehmen**.
+- **Anrufe annehmen**: **Anrufe an die Nummern dieser Richtlinie annehmen** speichert, sobald Sie den Schalter umlegen. Ausgeschaltet hören Anrufer, dass die Leitung nicht verfügbar ist, und niemand wird angerufen; Nummern, Regeln und Anrufprotokolle bleiben erhalten. Vor dem Ausschalten fragt die Seite nach, mit **Keine Anrufe mehr annehmen**. Solange er aus ist, sagt die **Übersicht** der Richtlinie das, mit **Anrufe wieder annehmen** zum Wiedereinschalten.
 - **Wiederholungsrichtlinie**: was passiert, wenn nach der letzten Regel niemand annimmt. **Bearbeiten** fragt **Wenn nach der letzten Regel niemand annimmt**: **Anruf beenden** oder **Erneut ab der ersten Regel klingeln** und **Wie oft noch?**.
 - **Sprachnachrichten**: was Anrufer hören. **Nachrichten bearbeiten** ändert sie.
 

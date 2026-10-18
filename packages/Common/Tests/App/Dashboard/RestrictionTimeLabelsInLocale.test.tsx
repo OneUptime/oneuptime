@@ -1,12 +1,15 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import fs from "fs";
 import i18next from "i18next";
 import path from "path";
 import React from "react";
 import { initReactI18next } from "react-i18next";
-import RestrictionTimesFieldElement from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/RestrictionTimesFieldElement";
+import RestrictionTimesFieldElement, {
+  RESTRICTION_TIME_LABEL_CLASS_NAME,
+  RESTRICTION_WINDOW_END_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallScheduleLayer/RestrictionTimesFieldElement";
 import DayOfWeek from "../../../Types/Day/DayOfWeek";
 import RestrictionTimes, {
   RestrictionType,
@@ -24,6 +27,12 @@ import RestrictionTimes, {
  * labels them. The three choices above them - No Restrictions, Specific
  * Times of the Day, Specific Times of the Week - were drawn in English in
  * every language; they are now in the reader's, as the error names them.
+ *
+ * The UI review drew them as a form names its fields - quiet, not the detail
+ * cards' tracked capitals with a dot - and laid a weekly window out as one
+ * row: From and To, each its day over its time, then Delete. The day
+ * pickers were as wide as a day's name, so their arrow and clear button
+ * wrapped under it, and the row ran past the card on a phone.
  */
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -316,5 +325,102 @@ describe("a layer's restriction hours, drawn in the reader's language", () => {
 
     expect(screen.getAllByText("From:")).toHaveLength(1);
     expect(screen.getAllByText("To:")).toHaveLength(1);
+  });
+});
+
+describe("a layer's restriction rows, laid out to read and to fit", () => {
+  test("From: and To: are quiet form labels, not tracked capitals with a dot", () => {
+    render(
+      <RestrictionTimesFieldElement
+        value={dailyRestriction()}
+        timezone="UTC"
+      />,
+    );
+
+    for (const label of ["From:", "To:"]) {
+      const element: HTMLElement = screen.getByText(label);
+
+      expect(element.className).toBe(RESTRICTION_TIME_LABEL_CLASS_NAME);
+      expect(element.className).not.toContain("uppercase");
+      expect(element.className).not.toContain("tracking-widest");
+      // The detail cards' dot after the name.
+      expect(element.querySelector(".rounded-full")).toBeNull();
+    }
+  });
+
+  test("a daily window's From and To wrap under each other on a narrow screen", () => {
+    render(
+      <RestrictionTimesFieldElement
+        value={dailyRestriction()}
+        timezone="UTC"
+      />,
+    );
+
+    const row: HTMLElement = screen.getByText("From:").parentElement!
+      .parentElement as HTMLElement;
+
+    expect(row.className.split(" ")).toContain("flex-wrap");
+    expect(row).toHaveTextContent("To:");
+  });
+
+  test("a weekly window is one row: From and To, each its day over its time, then Delete", () => {
+    render(
+      <RestrictionTimesFieldElement
+        value={weeklyRestriction()}
+        timezone="UTC"
+      />,
+    );
+
+    const froms: Array<HTMLElement> = screen.getAllByText("From:");
+
+    expect(froms).toHaveLength(2);
+
+    for (const from of froms) {
+      const end: HTMLElement = from.parentElement as HTMLElement;
+      const row: HTMLElement = end.parentElement as HTMLElement;
+
+      expect(row.className.split(" ")).toContain("flex-wrap");
+      // The day over the time, as wide as the time.
+      expect((from.nextElementSibling as HTMLElement).className).toBe(
+        RESTRICTION_WINDOW_END_CLASS_NAME,
+      );
+      expect(row).toHaveTextContent("To:");
+      expect(
+        within(row).getByRole("button", { name: "Delete" }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  test("a weekly window's days cannot be cleared: a window always has a day", () => {
+    const view: ReturnType<typeof render> = render(
+      <RestrictionTimesFieldElement
+        value={weeklyRestriction()}
+        timezone="UTC"
+      />,
+    );
+
+    // Two windows, two days each, every one of them set.
+    expect(view.container.querySelectorAll(".ou-select__control")).toHaveLength(
+      4,
+    );
+    expect(
+      view.container.querySelectorAll(".ou-select__clear-indicator"),
+    ).toHaveLength(0);
+  });
+
+  test("windows stand apart, so each From reads with its own To", () => {
+    render(
+      <RestrictionTimesFieldElement
+        value={weeklyRestriction()}
+        timezone="UTC"
+      />,
+    );
+
+    const firstRow: HTMLElement = screen.getAllByText("From:")[0]!
+      .parentElement!.parentElement as HTMLElement;
+    const list: HTMLElement = firstRow.parentElement!.parentElement!
+      .parentElement as HTMLElement;
+
+    expect(list.className.split(" ")).toContain("space-y-4");
   });
 });
