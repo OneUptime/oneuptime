@@ -725,6 +725,7 @@ describe("credentials in a URL", () => {
       "UCLUSTERKEY-".repeat(LENGTH / 12),
     ],
     ["one letter and dotted capitals", `secret a${".C".repeat(LENGTH / 2)}`],
+    ["capitals joined by plus signs", `secret ${"A+".repeat(LENGTH / 2)}`],
   ])(
     "are looked for in time in line with the text: %s",
     (_label: string, text: string) => {
