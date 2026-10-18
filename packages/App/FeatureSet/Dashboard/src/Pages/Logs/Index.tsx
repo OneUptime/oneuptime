@@ -23,6 +23,8 @@ const LogsPage: FunctionComponent<PageComponentProps> = (
       enableRealtime={true}
       id="logs"
       syncUrlState={true}
+      // The product page: an empty explorer offers the setup guide.
+      offersSetupWhenEmpty={true}
     />
   );
 };

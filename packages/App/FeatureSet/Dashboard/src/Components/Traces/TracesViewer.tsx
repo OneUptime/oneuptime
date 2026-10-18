@@ -77,6 +77,11 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
 import SpanDetailsPanel from "./SpanDetailsPanel";
 import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import {
+  showsTelemetryFirstSteps,
+  TelemetryFirstStepsSignal,
+} from "../Telemetry/TelemetryFirstSteps";
 import {
   serializeSavedViewTimeRange,
   deserializeSavedViewTimeRange,
@@ -600,6 +605,13 @@ interface Props {
   limit?: number | undefined;
   /** Empty-state copy, so an embed can name the window it searched. */
   emptyMessage?: string | undefined;
+  /*
+   * The Traces page's explorer: an empty list that no filter or search
+   * narrows offers the setup guide and a longer range instead of "try
+   * adjusting filters" (Telemetry/TelemetryFirstSteps). Embeds leave it
+   * unset and keep their emptyMessage.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
   /*
    * Only the spans one exception group's occurrences were raised in — the
    * exception detail page's span list. Applied to the list, the histogram and
@@ -3160,6 +3172,32 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    */
   const scopeHint: string = spanScope.notCarried.join(", ");
 
+  /*
+   * The Traces page's first steps (Telemetry/TelemetryFirstSteps): what an
+   * empty list that no filter or search narrows shows in place of "try
+   * adjusting filters".
+   */
+  const offersFirstSteps: boolean = showsTelemetryFirstSteps({
+    hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+    isEmpty: true,
+    filterCount: activeFilters.length,
+    searchText: submittedSearch,
+  });
+
+  /*
+   * While they show, the chart above has nothing to draw either. It kept
+   * its card for the Count / Response time picker, so a first visit read
+   * "No data for this metric in the selected range" over the first steps
+   * that say the same thing with a way forward. It steps aside until the
+   * list has a span, as the Logs page's empty chart does.
+   */
+  const showsFirstSteps: boolean =
+    offersFirstSteps &&
+    !isLoading &&
+    !listError &&
+    !error &&
+    spans.length === 0;
+
   const viewer: ReactElement = (
     <TelemetryViewer<Span>
       items={spans}
@@ -3285,6 +3323,19 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         </>
       }
       emptyMessage={props.emptyMessage || "No traces found"}
+      emptyContent={
+        offersFirstSteps ? (
+          <TelemetryFirstStepsEmptyState
+            signal={TelemetryFirstStepsSignal.Traces}
+            timeRange={timeRange}
+            onTimeRangeChange={(value: RangeStartAndEndDateTime) => {
+              setTimeRange(value);
+              setPage(1);
+              props.onTimeRangeChange?.(value);
+            }}
+          />
+        ) : undefined
+      }
       /*
        * Each row is a span, so a count of them is a count of spans — called
        * "traces" it read as roughly ten times the traffic it was. Limited to
@@ -3451,8 +3502,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       onRemoveFilter={handleRemoveFilter}
       onClearAllFilters={handleClearAllFilters}
       lockedFilterSignal="traces"
-      // Histogram
-      showHistogram={true}
+      // Histogram: none while the first steps say there is nothing yet.
+      showHistogram={!showsFirstSteps}
       histogramBuckets={histogramBuckets}
       histogramSeries={histogramSeries}
       /*

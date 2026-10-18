@@ -104,10 +104,14 @@ const RumApplications: FunctionComponent<
           appIdentifier: true,
           clientType: true,
         }}
+        /*
+         * Also what the empty list says: in plain words, not the resource
+         * attributes ingest matches on ("browser.* / device.*").
+         */
         cardProps={{
           title: "RUM Applications",
           description:
-            "Browser & mobile applications auto-discovered from OpenTelemetry RUM telemetry (browser.* / device.* resource attributes). One row per application.",
+            "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.",
         }}
         formFields={[
           getIdentityFormField<RumApplication>({
@@ -279,7 +283,7 @@ const RumApplications: FunctionComponent<
       {count === 0 && (
         <RumDocumentationCard
           title="Getting Started with Real User Monitoring"
-          description="No RUM applications connected yet. Instrument your browser or mobile app with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
+          description="Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives."
         />
       )}
     </Fragment>

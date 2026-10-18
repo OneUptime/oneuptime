@@ -15,7 +15,8 @@ const TracesPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <TracesViewer />;
+  // The product page: an empty explorer offers the setup guide.
+  return <TracesViewer offersSetupWhenEmpty={true} />;
 };
 
 export default TracesPage;
