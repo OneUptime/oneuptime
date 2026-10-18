@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import { RUNS_PROJECT_AUTHORED_COMMANDS } from "../Config";
 import FixVerificationStatus from "Common/Types/AI/FixVerificationStatus";
 import { CodeAgent, CodeAgentResult } from "../CodeAgents/Index";
 import { CodeRepositoryInfo } from "./BackendAPI";
@@ -170,6 +171,20 @@ export default class BuildVerification {
     repositoryPath: string;
     onOutput?: ((chunk: string) => void) | undefined;
   }): Promise<CommandRunResult> {
+    /*
+     * The spawn point holds the shared-Runner rule too, not only
+     * verifyWithRepairs: a repository's command never runs on the shared
+     * in-cluster Runner, whoever asks (see RUNS_PROJECT_AUTHORED_COMMANDS).
+     * Reported as not passed, so nothing can read it as a green build.
+     */
+    if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
+      return {
+        passed: false,
+        failedCommand: data.command,
+        outputTail: `The ${data.command.label} command was not run: a shared Runner does not run a repository's commands.`,
+      };
+    }
+
     return new Promise<CommandRunResult>(
       (resolve: (result: CommandRunResult) => void) => {
         let outputTail: string = "";
@@ -450,6 +465,33 @@ export default class BuildVerification {
     const commands: Array<VerificationCommand> = this.commandsForRepository(
       data.repo,
     );
+
+    /*
+     * The shared in-cluster Runner never runs a repository's configured
+     * commands: it serves every project, so nothing one project configures
+     * runs on it (see RUNS_PROJECT_AUTHORED_COMMANDS in Config). The fix is
+     * still written and opened for review; the
+     * repository's own CI and the reviewer check it. Reported honestly as
+     * Skipped, the same status a repository with no commands gets, so the
+     * pull request never implies a green build. A Runner of the project's
+     * own runs verification as before.
+     */
+    if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
+      if (commands.length > 0) {
+        await data.log(
+          "This is a shared Runner, so the repository's setup/build/test commands are not run here. The fix opens for review and your repository's own CI checks it; run a Runner of your own to have fixes verified on the Runner before the pull request opens.",
+        );
+      }
+
+      return {
+        status: FixVerificationStatus.Skipped,
+        summary:
+          "Not verified — a shared Runner does not run the repository's setup/build/test commands. The pull request opened for review; your repository's own CI checks the change. Run a Runner of your own (Runbooks → Runners) to have fixes built and tested on the Runner before the pull request opens.",
+        repairAttemptsUsed: 0,
+        repairSummaries: [],
+        repairPaths: [],
+      };
+    }
 
     if (commands.length === 0) {
       return {

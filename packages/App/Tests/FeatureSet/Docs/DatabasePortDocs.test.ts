@@ -21,7 +21,7 @@ import path from "path";
  *     exist; ComposeDatabaseRuntime (Tests/Ops) runs them for real;
  *   - the upgrade note (installation/upgrading, "Other changes in 14") sits
  *     after the note on the header ONEUPTIME_SECRET travels in and before the
- *     pointer to the endpoint changes, says the same, and links to those two
+ *     note on the bundled Runner, says the same, and links to those two
  *     sections - in
  *     every language at that language's own headings;
  *   - every translation carries the guide's sections and the note in the
@@ -65,7 +65,9 @@ const NOTE_LEAD: string =
 // The note before it (ClusterKeyHeaderUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to the routes that take it.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+// The note after it (SharedRunnerUpgradeDocs).
+const NEXT_LEAD: string =
+  "**The bundled Runner no longer runs a repository's commands, and holds only what it needs.**";
 
 const HEADING_LINE: RegExp = /^#{1,6}\s/;
 const HEADING_MARKER: RegExp = /^#+\s+/;
@@ -481,7 +483,7 @@ function noteLinks(language: string): Array<string> {
 }
 
 describe("the English upgrade note on PostgreSQL's port and password", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on the header ONEUPTIME_SECRET travels in and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the header ONEUPTIME_SECRET travels in and before the note on the bundled Runner", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -493,9 +495,9 @@ describe("the English upgrade note on PostgreSQL's port and password", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says what the compose files publish now, and that backups reach it as before", () => {
