@@ -632,11 +632,38 @@ export const EnableQueueDashboard: boolean =
 export const QueueDashboardSecret: string =
   process.env["QUEUE_DASHBOARD_SECRET"] || "";
 
+/*
+ * THE GLOBAL-PROBE REGISTRATION KEY (REGISTER_PROBE_KEY)
+ *
+ * A global probe belongs to no project and runs the monitors of every
+ * project on the installation. REGISTER_PROBE_KEY is what a probe presents to
+ * become one (Telemetry/API/ProbeIngest/Register). It is the installation's
+ * own secret: the value exactly as the operator set it, and there is no
+ * fallback. An installation that left it unset or at a value this repository
+ * ships (EnvironmentConfig.isShippedSecretValue) registers no global probe at
+ * all: a value public in the repository proves nothing.
+ *
+ * REGISTER_PROBE_KEY is a secret OneUptime's own containers share and that
+ * nothing stored depends on, so Docker Compose gives it a random value at
+ * install (Scripts/Install/ReplacePlaceholderSecrets.js) and the Helm chart
+ * generates one; a probe's own key (PROBE_KEY / GLOBAL_PROBE_n_KEY) is held to
+ * the same bar by ProbeService.verifyProbeKey.
+ */
 export const RegisterProbeKey: ObjectID = new ObjectID(
-  process.env["REGISTER_PROBE_KEY"] || "secret",
+  process.env["REGISTER_PROBE_KEY"] || "",
 );
 
+// Whether REGISTER_PROBE_KEY is set at all (whether this probe auto-registers as global).
 export const HasRegisterProbeKey: boolean = Boolean(
+  process.env["REGISTER_PROBE_KEY"],
+);
+
+/*
+ * True when REGISTER_PROBE_KEY is unset or a value this repository ships, so
+ * global-probe registration is refused from every caller. Read by the
+ * registration route, never as a fallback identity.
+ */
+export const IsRegisterProbeKeyShipped: boolean = isShippedSecretValue(
   process.env["REGISTER_PROBE_KEY"],
 );
 

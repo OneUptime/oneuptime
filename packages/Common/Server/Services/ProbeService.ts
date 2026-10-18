@@ -10,7 +10,7 @@ import Model, {
 } from "../../Models/DatabaseModels/Probe";
 import ProbeOwnerUser from "../../Models/DatabaseModels/ProbeOwnerUser";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ProbeOwnerTeam from "../../Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -36,7 +36,8 @@ import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { IsBillingEnabled, isShippedSecretValue } from "../EnvironmentConfig";
+import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
@@ -174,6 +175,21 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("probeKey is required");
     }
 
+    /*
+     * A key this repository ships never authenticates a probe: a probe
+     * whose key is unset, "secret" or a config.example.env placeholder
+     * (EnvironmentConfig.isShippedSecretValue) is refused, whether or not a
+     * row with that key exists. This is the one check every authenticated
+     * probe request passes through, so the rule holds on every probe-ingest
+     * route at once. A real probe's key is a long random value
+     * (ObjectID.generate on create, REGISTER_PROBE_KEY-gated registration,
+     * or the Helm/Compose generated GLOBAL_PROBE_n_KEY), never a shipped
+     * value, so this never refuses one.
+     */
+    if (isShippedSecretValue(data.probeKey)) {
+      return false;
+    }
+
     const presentedKeyHash: string = this.hashProbeKey(data.probeKey);
 
     const cacheKey: string = this.getAuthCacheKey(data.probeId);
@@ -259,6 +275,44 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return true;
+  }
+
+  /*
+   * The global probe a probe registering under a key no global probe holds
+   * takes over (Telemetry/API/ProbeIngest/Register), or null: among the
+   * global probes of its name, the one that already holds the key, else the
+   * one whose key is a value this repository ships (ShippedKeyTakeover). That
+   * is a bundled probe that ran on the config.example.env key and came back
+   * under the random key npm start gave it: it keeps its id, so the monitors
+   * assigned to it keep running. A global probe whose key is the
+   * installation's own is never taken over by its name.
+   */
+  @CaptureSpan()
+  public async findGlobalProbeToTakeOver(data: {
+    name: string;
+    presentedKey: string;
+  }): Promise<Model | null> {
+    const sameNamedGlobalProbes: Array<Model> = await this.findBy({
+      query: {
+        name: data.name,
+        isGlobalProbe: true,
+      },
+      select: {
+        _id: true,
+        key: true,
+        lastAlive: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return ShippedKeyTakeover.pickRowToTakeOver({
+      rows: sameNamedGlobalProbes,
+      presentedKey: data.presentedKey,
+    });
   }
 
   /*
