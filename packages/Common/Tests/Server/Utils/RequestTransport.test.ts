@@ -36,6 +36,9 @@ type TransportEnvGlobal = typeof globalThis & {
 
 const INSTALLATION_HOST: string = "oneuptime.example.com";
 
+// RFC 6797's max-age: delta-seconds, digits only. Browsers ignore anything else.
+const MAX_AGE_HEADER: RegExp = /^max-age=\d+$/;
+
 jest.mock("../../../Server/EnvironmentConfig", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../Server/EnvironmentConfig",
@@ -359,6 +362,17 @@ describe("HSTS_MAX_AGE_SECONDS", () => {
     ["one year", DEFAULT_HSTS_MAX_AGE_SECONDS],
     ["Infinity", DEFAULT_HSTS_MAX_AGE_SECONDS],
     ["NaN", DEFAULT_HSTS_MAX_AGE_SECONDS],
+    // Spellings Number() would take that are not seconds written as digits.
+    ["1e3", DEFAULT_HSTS_MAX_AGE_SECONDS],
+    ["0x10", DEFAULT_HSTS_MAX_AGE_SECONDS],
+    ["+600", DEFAULT_HSTS_MAX_AGE_SECONDS],
+    ["1_000", DEFAULT_HSTS_MAX_AGE_SECONDS],
+    ["600 600", DEFAULT_HSTS_MAX_AGE_SECONDS],
+    // A few zeros too many: kept as the year, not written as 3.1536e+22.
+    ["31536000000000000000000", DEFAULT_HSTS_MAX_AGE_SECONDS],
+    ["9007199254740993", DEFAULT_HSTS_MAX_AGE_SECONDS],
+    ["9007199254740991", 9007199254740991],
+    ["000600", 600],
   ];
 
   test.each(cases)(
@@ -367,6 +381,32 @@ describe("HSTS_MAX_AGE_SECONDS", () => {
       expect(parseHstsMaxAgeSeconds(raw)).toBe(seconds);
     },
   );
+
+  test("whatever is configured, the header carries max-age as plain digits, which is all browsers read", () => {
+    const configured: Array<string | undefined> = [
+      ...cases.map((entry: [string | undefined, number]) => {
+        return entry[0];
+      }),
+      "1e21",
+      "1e400",
+      "-0",
+      "  31536000  ",
+      "99999999999999999999999999999999999999999",
+    ];
+
+    for (const raw of configured) {
+      setEnv({ hstsMaxAgeSeconds: parseHstsMaxAgeSeconds(raw) });
+
+      const header: string | null = RequestTransport.getStrictTransportSecurity(
+        request({ host: INSTALLATION_HOST }),
+      );
+
+      expect({ raw, wellFormed: MAX_AGE_HEADER.test(header || "") }).toEqual({
+        raw,
+        wellFormed: true,
+      });
+    }
+  });
 });
 
 describe("hostnameOf", () => {
