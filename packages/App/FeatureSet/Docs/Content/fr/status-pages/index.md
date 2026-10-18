@@ -5,7 +5,7 @@ Une page de statut est la vitrine publique de tout ce que vous surveillez : une 
 Quand quelque chose casse à 2 h du matin, la page de statut est la première chose vers laquelle votre file de support renvoie. C'est aussi d'elle que partent les notifications à vos abonnés — elle vaut donc d'être mise en place avant d'en avoir besoin, pas pendant la panne.
 
 :::cards
-- [Créer une page de statut](#créer-une-page-de-statut): Deux champs pour commencer, tout le reste ensuite.
+- [Créer une page de statut](#créer-une-page-de-statut): Un nom pour commencer, tout le reste ensuite.
 - [Choisir ce qu'elle affiche](#choisir-ce-qui-saffiche-sur-la-page): Incidents, épisodes, annonces, maintenance et disponibilité, dans une seule carte.
 - [Décider qui peut la voir](#restreindre-qui-peut-voir-la-page): Toute personne disposant du lien, uniquement les personnes qui se connectent, ou toute personne disposant du mot de passe.
 - [Archiver une page de statut](#archiver-une-page-de-statut): Mettre une page hors ligne sans la supprimer.
@@ -33,7 +33,7 @@ La page montre les moniteurs que vous y placez comme ses ressources, et les inci
 
 ## En un coup d'œil
 
-- **Créée avec deux champs.** Une nouvelle page de statut ne demande que **Nom** et **Description**. Les ressources, l'image de marque et les domaines se configurent ensuite.
+- **Créée avec un nom.** Une nouvelle page de statut ne demande que son **Nom** ; **Description** et **Étiquettes** attendent sous **Plus de champs**. Les ressources, l'image de marque et les domaines se configurent ensuite.
 - **Les ressources sont ce que voient les visiteurs.** Chaque ligne de la page est une **Ressource de la page de statut** — un moniteur (ou un groupe de moniteurs) avec son propre nom d'affichage, son infobulle et ses options de disponibilité. Les groupes découpent une longue page en sections et peuvent s'imbriquer.
 - **Une URL d'aperçu dès le premier jour.** Chaque page de statut reçoit un lien d'aperçu pour que vous puissiez la regarder avant même qu'un domaine personnalisé existe.
 - **Les routes visibles des visiteurs dépendent des paramètres.** Les incidents, les épisodes, les annonces et les événements planifiés n'apparaissent chacun que tant que leur interrupteur dans **Ce que montre votre page de statut** (sur **Paramètres avancés**) est activé, et la page d'abonnement uniquement tant que **Afficher la page des abonnés** est activé.
@@ -61,13 +61,13 @@ Ouvrez **Pages de statut → Toutes les pages de statut** et cliquez sur **Crée
 
 ### Nommer la page
 
-Dans la fenêtre **Créer : Page de statut**, renseignez **Nom** (obligatoire, au moins deux caractères) et, si vous le souhaitez, **Description**, puis cliquez sur **Créer une page de statut**.
+Dans la fenêtre **Créer : Page de statut**, renseignez **Nom** (obligatoire, au moins deux caractères), puis cliquez sur **Créer une page de statut**. **Description** et **Étiquettes** sont facultatifs, sous **Plus de champs**.
 
-C'est tout le formulaire. La liste sur laquelle vous revenez affiche **Nom**, **Description**, **Étiquettes** et **Propriétaires**, et peut être filtrée par **ID de la page de statut**, **Nom** et **Description**.
+C'est tout le formulaire. La liste **Pages de statut** affiche **Nom**, **Description**, **Étiquettes** et **Propriétaires**, et peut être filtrée par **ID de la page de statut**, **Nom** et **Description**.
 
 ### Ouvrir la nouvelle page
 
-Ouvrez la nouvelle page : vous arrivez sur son écran **Vue d'ensemble**, qui porte deux cartes : **Status Page Preview URL**, avec un lien vers la page elle-même, et **Détails de la page de statut**, où vous pouvez modifier le nom, la description et les étiquettes que vous venez de définir. Dès que le projet a des champs personnalisés de page de statut, une carte **Champs personnalisés** les suit.
+La nouvelle page s'ouvre sur son écran **Vue d'ensemble**. Tant que la page n'a aucune ressource, l'écran commence par **Rien sur cette page de statut pour l'instant** et **Ajouter des moniteurs**, qui ouvre son écran **Ressources**. Viennent ensuite deux cartes : **Lien de la page de statut**, avec le lien vers la page elle-même et **Copier le lien**, et **Détails de la page de statut**, où vous pouvez modifier le nom, la description et les étiquettes que vous venez de définir. Dès que le projet a des champs personnalisés de page de statut, une carte **Champs personnalisés** les suit.
 :::
 
 Une page créée via l'API ou Terraform est soumise aux mêmes formules que les paramètres décrits ci-dessous. Sur OneUptime Cloud, créer une page avec un paramètre activé que votre formule n'inclut pas — par exemple privée, une liste masquée, du HTML, CSS ou JavaScript personnalisé, des rapports par e-mail, des abonnés SMS, Slack, Microsoft Teams ou webhook, une liste d'autorisation IP — est refusé avec `402 Payment Required`, et le message nomme la formule. La formule de chaque paramètre est indiquée avec lui ci-dessous. Les paramètres laissés à leur valeur par défaut, comme ce formulaire les laisse, fonctionnent avec toutes les formules.
@@ -167,7 +167,7 @@ Sous la carte se trouvent **Exporter au format JSON : Page de statut**, qui tél
 
 ## Prévisualiser avant la mise en ligne
 
-L'écran **Vue d'ensemble** de chaque page de statut porte une carte **Status Page Preview URL** avec un lien direct vers la page. Utilisez-la pendant que vous ajoutez encore des ressources et avant qu'un domaine personnalisé existe.
+L'écran **Vue d'ensemble** de chaque page de statut porte une carte **Lien de la page de statut** avec un lien direct vers la page, et **Copier le lien** à côté. Utilisez-la pendant que vous ajoutez encore des ressources et avant qu'un domaine personnalisé existe.
 
 En coulisses, chaque route publique a un jumeau d'aperçu sous `/status-page/{statusPageId}/...` — un aperçu de la vue d'ensemble, un aperçu de la liste des incidents, un aperçu de la page d'abonnement, et ainsi de suite. Une URL ou une capture d'écran prise depuis l'aperçu du tableau de bord ne correspondra donc pas à ce que voit un client une fois un domaine personnalisé rattaché : vérifiez tout lien que vous collez dans un runbook ou un e-mail.
 
@@ -195,11 +195,11 @@ Ajoutez les personnes autorisées à se connecter sur **Pages de statut → votr
 
 ### SSO et OIDC
 
-Pour une page privée liée à votre fournisseur d'identité, **Pages de statut → votre page → Sécurité → SSO** configure SAML : vous saisissez l'URL de connexion, l'émetteur et le certificat x509, et les méthodes de signature et de condensat sont préremplies sous **Plus de champs**. **Pages de statut → votre page → Sécurité → OIDC** configure OpenID Connect : vous saisissez l'émetteur, l'ID client et le secret, et l'URL de découverte, les scopes et les noms de claims sont préremplis sous **Plus de champs**. **SCIM** provisionne automatiquement les utilisateurs privés depuis l'IdP. Sur OneUptime Cloud, les trois nécessitent la formule Scale ou supérieure. Sur une installation auto-hébergée, SSO et OIDC font partie de toutes les éditions, et SCIM nécessite l'[Édition Enterprise](/docs/self-hosted/enterprise).
+Pour une page privée liée à votre fournisseur d'identité, **Pages de statut → votre page → Sécurité → SSO** configure SAML : **Ajouter un fournisseur SSO** demande l'URL de connexion, l'émetteur et le certificat x509, et les méthodes de signature et de condensat sont préremplies sous **Plus de champs**. **Pages de statut → votre page → Sécurité → OIDC** configure OpenID Connect : **Ajouter un fournisseur OIDC** demande l'émetteur, l'ID client et le secret, et l'URL de découverte, les scopes et les noms de claims sont préremplis sous **Plus de champs**. Dès qu'une page a un fournisseur, la carte **Tester la connexion** sous la liste renvoie vers la connexion de la page, pour l'essayer. **SCIM** provisionne automatiquement les utilisateurs privés depuis l'IdP. Sur OneUptime Cloud, les trois nécessitent la formule Scale ou supérieure. Sur une installation auto-hébergée, SSO et OIDC font partie de toutes les éditions, et SCIM nécessite l'[Édition Enterprise](/docs/self-hosted/enterprise).
 
 Désactiver ou supprimer le fournisseur SSO ou OIDC d'une page de statut déconnecte les utilisateurs privés qu'il avait connectés : leurs sessions se terminent à leur prochaine requête, et réactiver le fournisseur ne les fait pas revenir — ils se reconnectent avec lui. Un nouveau certificat ou secret client, d'autres URL ou un nouveau nom laissent tout le monde connecté. Sur une page qui exige le SSO, désactiver son dernier fournisseur ne laisse plus personne se connecter tant que vous n'en réactivez pas un ou ne désactivez pas **Exiger le SSO pour la connexion** ; pour passer à un autre fournisseur, configurez et testez le nouveau avant de désactiver l'ancien.
 
-Sous les fournisseurs, la carte **Paramètres SSO** contient l'interrupteur **Exiger le SSO pour la connexion** (`requireSsoForLogin`, désactivé par défaut), qui enregistre dès que vous le basculez. L'activer demande d'abord une confirmation, car dès lors les utilisateurs privés ne peuvent plus se connecter avec un e-mail et un mot de passe : seules les personnes que votre fournisseur SSO ou OIDC laisse entrer peuvent voir la page. Testez le SSO avec le lien de cet écran avant de l'activer. Il ne compte que tant que **Uniquement les personnes qui se connectent** est le choix, et l'écran **Accès** l'affiche comme **SSO exigé** sous ce choix. Tant qu'il est activé, un utilisateur privé connecté avec un e-mail et un mot de passe est lui aussi déconnecté à sa prochaine requête : seules comptent les sessions qu'un fournisseur SSO ou OIDC a ouvertes. Sur OneUptime Cloud, l'activer nécessite la formule **Scale**, et le désactiver fonctionne avec toutes les formules. Une page qui exige encore le SSO après la fin d'un essai Scale, ou après un passage à une formule inférieure, continue de l'exiger jusqu'à ce que quelqu'un le désactive : ses pages **SSO** et **OIDC** affichent l'interrupteur sous l'incitation à la formule pour cela.
+Sous les fournisseurs, la carte **Paramètres SSO** contient l'interrupteur **Exiger le SSO pour la connexion** (`requireSsoForLogin`, désactivé par défaut), qui enregistre dès que vous le basculez. L'activer demande d'abord une confirmation, car dès lors les utilisateurs privés ne peuvent plus se connecter avec un e-mail et un mot de passe : seules les personnes que votre fournisseur SSO ou OIDC laisse entrer peuvent voir la page. Essayez le lien de la carte **Tester la connexion** au-dessus avant de l'activer. Il ne compte que tant que **Uniquement les personnes qui se connectent** est le choix, et l'écran **Accès** l'affiche comme **SSO exigé** sous ce choix. Tant qu'il est activé, un utilisateur privé connecté avec un e-mail et un mot de passe est lui aussi déconnecté à sa prochaine requête : seules comptent les sessions qu'un fournisseur SSO ou OIDC a ouvertes. Sur OneUptime Cloud, l'activer nécessite la formule **Scale**, et le désactiver fonctionne avec toutes les formules. Une page qui exige encore le SSO après la fin d'un essai Scale, ou après un passage à une formule inférieure, continue de l'exiger jusqu'à ce que quelqu'un le désactive : ses pages **SSO** et **OIDC** affichent l'interrupteur sous l'incitation à la formule pour cela.
 
 ### Sessions des lecteurs
 
@@ -215,7 +215,7 @@ Sous **Plus de paramètres** sur **Accès**, la section **Liste d'autorisation I
 
 Trois façons d'afficher le statut ailleurs que sur la page elle-même.
 
-**Badge de statut intégré.** Sur **Pages de statut → votre page → Avancé → Statut intégré**, activez **Activer le badge de statut intégré** (`enableEmbeddedOverallStatus`, désactivé par défaut), puis cliquez sur **Regénérer le jeton** sur la carte **Jeton de sécurité** pour donner au badge son jeton (`embeddedOverallStatusToken`). Le badge est servi depuis `/api/status-page/badge/<status-page-id>?token=<token>`, et l'écran l'affiche sous **Aperçu du badge** avec des extraits à copier, pour que vous puissiez placer le statut global actuel dans votre documentation, le pied de page de votre application ou une page marketing.
+**Badge de statut intégré.** Sur **Pages de statut → votre page → Avancé → Statut intégré**, activez **Activer le badge de statut intégré** (`enableEmbeddedOverallStatus`, désactivé par défaut). La première fois que vous l'activez, le badge reçoit son jeton (`embeddedOverallStatusToken`), et la carte **Intégrer le badge** affiche le badge, servi depuis `/api/status-page/badge/<status-page-id>?token=<token>`, avec son **HTML** et son **Markdown, avec un lien vers la page de statut** à copier, pour que vous puissiez placer le statut global actuel dans votre documentation, le pied de page de votre application ou une page marketing. Le jeton se trouve sur la carte **Jeton de sécurité** sous **Plus de paramètres**, avec **Regénérer le jeton** si le lien a été trop largement partagé.
 
 **Flux RSS.** Chaque page de statut sert `/rss` — un flux intitulé « {titre de la page} Updates », avec le **Titre de la page** défini dans **Image de marque**, ou son nom si elle n'en a pas, et dont les éléments commencent par `Incident: `, `Announcement: ` et `Scheduled Maintenance: `. Pratique pour ceux qui préfèrent faire passer vos mises à jour par un lecteur ou un chatbot plutôt que s'abonner par e-mail.
 

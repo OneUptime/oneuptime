@@ -33,11 +33,11 @@ Apri lo SLO e vai a **Monitor**.
 
 ### Scegliere i monitor
 
-Fai clic su **Add Monitors** e scegli i monitor del progetto. Sono elencati solo i monitor non ancora collegati.
+Fai clic su **Aggiungi monitor** e scegli i monitor del progetto. Sono elencati solo i monitor non ancora collegati.
 
 ### Salvare l'elenco
 
-Fai clic su **Add Monitors**. I monitor compaiono nell'elenco con l'origine **Manual** e contano per lo SLI dalla valutazione successiva.
+Fai clic su **Aggiungi monitor**. I monitor compaiono nell'elenco con l'origine **Manual** e contano per lo SLI dalla valutazione successiva.
 :::
 
 Per togliere un monitor dallo SLO, fai clic su **Rimuovi** nella sua riga. Il monitor in sé non cambia; smette solo di contare per lo SLI e il budget di errore dello SLO.
@@ -114,7 +114,7 @@ Le regole si risincronizzano a ogni salvataggio, quindi **Run Now** serve a recu
 
 Finché almeno una regola è abilitata, sono le regole a gestire i monitor dello SLO:
 
-- non si possono aggiungere monitor a mano: **Add Monitors** è disattivato, e un banner dice **This SLO's monitors are managed by its monitor rules**, con un link **Manage Monitor Rules**;
+- non si possono aggiungere monitor a mano: **Aggiungi monitor** è disattivato, e un banner dice **This SLO's monitors are managed by its monitor rules**, con un link **Manage Monitor Rules**;
 - i monitor collegati da una regola non si possono togliere a mano, perché la regola li ricollegherebbe: il loro pulsante **Rimuovi** è bloccato e il suo suggerimento spiega perché;
 - i monitor collegati a mano prima che le regole fossero attivate si possono ancora togliere.
 
@@ -144,7 +144,7 @@ Ogni collegamento e scollegamento, e ogni regola creata, modificata o eliminata,
 
 ## Risoluzione dei problemi
 
-:::details Add Monitors è disattivato
+:::details Aggiungi monitor è disattivato
 Almeno una delle regole dei monitor dello SLO è abilitata, quindi sono le regole a gestire i suoi monitor. Cambia le regole, oppure disattivale tutte per scegliere i monitor a mano.
 :::
 

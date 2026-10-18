@@ -150,10 +150,11 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         name="Status Page > Branding > Header Style"
         cardProps={{
           title: "Logo and Cover Image",
-          description: "These will show up on your status page.",
+          description: StatusPageBrandingCopy.imagesDescription,
         }}
         isEditable={true}
         editButtonText={"Edit Images"}
+        editModalTitle={"Edit Images"}
         formSteps={[
           { title: "Logo", id: "logo" },
           { title: "Cover Image", id: "cover-image" },
@@ -262,9 +263,16 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         name="Status Page > Branding > Title and Description"
         cardProps={{
           title: "Title and Description",
-          description: "This will also be used for SEO.",
+          description: StatusPageBrandingCopy.titleDescription,
         }}
         editButtonText={"Edit"}
+        /*
+         * The dialog says what the two are for, as the card does, so its
+         * fields need no help of their own: "Title of your Status Page.
+         * This is used for SEO." said less, in a word few people know.
+         */
+        editModalTitle={StatusPageBrandingCopy.titleEditTitle}
+        editModalDescription={StatusPageBrandingCopy.titleDescription}
         isEditable={true}
         formFields={[
           {
@@ -274,7 +282,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             title: "Page Title",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "Please enter page title here.",
+            placeholder: StatusPageBrandingCopy.pageTitlePlaceholder,
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -283,7 +292,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             title: "Page Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            placeholder: "Please enter page description here.",
+            placeholder: StatusPageBrandingCopy.pageDescriptionPlaceholder,
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
@@ -297,7 +307,6 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               },
               fieldType: FieldType.Text,
               title: "Page Title",
-              placeholder: "No page title entered so far.",
             },
             {
               field: {
@@ -305,7 +314,6 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               },
               fieldType: FieldType.Text,
               title: "Page Description",
-              placeholder: "No page description entered so far.",
             },
           ],
           modelId: modelId,
@@ -316,10 +324,11 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         name="Status Page > Branding > Favicon"
         cardProps={{
           title: "Favicon",
-          description: "Favicon will be used for SEO.",
+          description: StatusPageBrandingCopy.faviconDescription,
         }}
         isEditable={true}
         editButtonText={"Edit Favicon"}
+        editModalTitle={"Edit Favicon"}
         formFields={[
           {
             field: {
@@ -382,11 +391,13 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
+        singularName={StatusPageBrandingCopy.headerLink}
+        pluralName={StatusPageBrandingCopy.headerLinks}
+        createVerb="Add"
         cardProps={{
           title: "Header Links",
-          description: "Header Links for your status page",
+          description: StatusPageBrandingCopy.headerLinksDescription,
         }}
-        noItemsMessage={"No status header link for this status page."}
         formFields={[
           {
             field: {
@@ -395,7 +406,12 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             title: "Title",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Title",
+            /*
+             * The words visitors click, by example: "Title of this
+             * resource", the column's help, said less.
+             */
+            placeholder: StatusPageBrandingCopy.headerLinkTitlePlaceholder,
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -405,6 +421,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.URL,
             required: true,
             placeholder: "https://link.com",
+            // "URL to a website or any other resource" says no more.
+            hideColumnDescription: true,
             disableSpellCheck: true,
           },
         ]}
@@ -458,6 +476,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         createEditModalWidth={ModalWidth.Large}
         isEditable={true}
         editButtonText={StatusPageBrandingCopy.overviewDescriptionEditButton}
+        editModalTitle={StatusPageBrandingCopy.overviewDescriptionEditButton}
         formFields={[
           {
             field: {
@@ -494,10 +513,11 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
         name="Status Page > Branding > Copyright"
         cardProps={{
           title: "Copyright Info",
-          description: "Copyright info for your status page",
+          description: StatusPageBrandingCopy.copyrightDescription,
         }}
         isEditable={true}
         editButtonText={"Edit Copyright"}
+        editModalTitle={"Edit Copyright"}
         formFields={[
           {
             field: {
@@ -520,7 +540,6 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
               },
               fieldType: FieldType.Text,
               title: "Copyright Info",
-              placeholder: "No copyright info entered so far.",
             },
           ],
           modelId: modelId,
@@ -557,11 +576,13 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           item.projectId = new ObjectID(props.currentProject._id);
           return Promise.resolve(item);
         }}
+        singularName={StatusPageBrandingCopy.footerLink}
+        pluralName={StatusPageBrandingCopy.footerLinks}
+        createVerb="Add"
         cardProps={{
           title: "Footer Links",
-          description: "Footer Links for your status page",
+          description: StatusPageBrandingCopy.footerLinksDescription,
         }}
-        noItemsMessage={"No status footer link for this status page."}
         formFields={[
           {
             field: {
@@ -570,7 +591,12 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             title: "Title",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "Title",
+            /*
+             * The words visitors click, by example: "Title of this
+             * resource", the column's help, said less.
+             */
+            placeholder: StatusPageBrandingCopy.footerLinkTitlePlaceholder,
+            hideColumnDescription: true,
           },
           {
             field: {
@@ -580,6 +606,8 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             fieldType: FormFieldSchemaType.URL,
             required: true,
             placeholder: "https://link.com",
+            // "URL to a website or any other resource" says no more.
+            hideColumnDescription: true,
             disableSpellCheck: true,
           },
         ]}
@@ -639,6 +667,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           }}
           isEditable={true}
           editButtonText={"Edit Default Bar Color"}
+          editModalTitle={"Edit Default Bar Color"}
           formFields={[
             {
               field: {
@@ -831,6 +860,7 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             description: StatusPageBrandingCopy.languagesDescription,
           }}
           editButtonText={StatusPageBrandingCopy.languagesEditButton}
+          editModalTitle={StatusPageBrandingCopy.languagesEditButton}
           isEditable={true}
           formFields={[
             {

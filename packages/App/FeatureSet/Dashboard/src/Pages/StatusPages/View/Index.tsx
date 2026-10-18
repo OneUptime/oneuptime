@@ -1,12 +1,12 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import StatusPagePreviewLink from "./StatusPagePreviewLink";
+import StatusPageFirstStep from "../../../Components/StatusPage/StatusPageFirstStep";
+import { getStatusPageDetailsFormFields } from "../../../Components/StatusPage/StatusPageCreateForm";
 import ObjectID from "Common/Types/ObjectID";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
-import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
@@ -19,39 +19,21 @@ const StatusPageView: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * While the page shows no monitors, the one next step comes first:
+       * visitors see no status until monitors are added on Resources.
+       */}
+      <StatusPageFirstStep statusPageId={modelId} />
+
       <StatusPagePreviewLink modelId={modelId} />
 
-      {/* StatusPage View  */}
       <CardModelDetail<StatusPage>
         name="Status Page > Status Page Details"
         cardProps={{
           title: "Status Page Details",
         }}
         isEditable={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Status Page Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          getLabelsFormField<StatusPage>(),
-        ]}
+        formFields={getStatusPageDetailsFormFields()}
         modelDetailProps={{
           showDetailsInNumberOfColumns: 2,
           modelType: StatusPage,
@@ -68,7 +50,11 @@ const StatusPageView: FunctionComponent<
               field: {
                 name: true,
               },
-              title: "Status Page Name",
+              /*
+               * The card is the status page's details: "Name" says it,
+               * as on every other details card.
+               */
+              title: "Name",
             },
             {
               field: {

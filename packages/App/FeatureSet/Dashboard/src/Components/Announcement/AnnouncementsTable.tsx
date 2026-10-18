@@ -77,6 +77,8 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // A status page's own Announcements tab, rather than the product's list.
+  const isOnOneStatusPage: boolean = Boolean(props.statusPageId);
   const [announcementTemplates, setAnnouncementTemplates] = useState<
     Array<StatusPageAnnouncementTemplate>
   >([]);
@@ -167,18 +169,30 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
         isEditable={false}
         name="Status Page > Announcements"
         isViewable={true}
+        /*
+         * "Announcement", not the model's "Status Page Announcement": every
+         * row's button read "View Status Page Announcement", wide enough to
+         * push the End column under the actions on a 1280px screen.
+         */
+        singularName="Announcement"
+        pluralName="Announcements"
         query={{
           ...(props.query || {}),
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
+        /*
+         * "Announcements", as the menus name the page, and "Starts" and
+         * "Ends" for when a notice shows, as on a maintenance event: "Show
+         * Announcement At" and "End Announcement At" were cut off beside the
+         * row's actions at 1280px.
+         */
         cardProps={{
-          title: props.title || "Status Page Announcements",
+          title: props.title || "Announcements",
           buttons: cardbuttons,
           description:
             props.description ||
-            "Create and manage announcements that will be shown on status pages.",
+            "Notices on your status pages, such as planned work or news.",
         }}
-        noItemsMessage={"No announcements found."}
         createEditModalWidth={ModalWidth.Large}
         showRefreshButton={true}
         viewPageRoute={RouteUtil.populateRouteParams(
@@ -196,14 +210,14 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               showAnnouncementAt: true,
             },
-            title: "Show Announcement At",
+            title: "Starts",
             type: FieldType.Date,
           },
           {
             field: {
               endAnnouncementAt: true,
             },
-            title: "End Announcement At",
+            title: "Ends",
             type: FieldType.Date,
           },
           {
@@ -213,26 +227,34 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             title: "Subscribers Notified",
             type: FieldType.Boolean,
           },
-          {
-            field: {
-              statusPages: {
-                name: true,
-                _id: true,
-                projectId: true,
-              },
-            },
-            title: "Shown on Status Pages",
-            type: FieldType.EntityArray,
+          /*
+           * On a status page's own tab every row is on that page: which
+           * pages show it is a question for the product's list only.
+           */
+          ...(isOnOneStatusPage
+            ? []
+            : [
+                {
+                  field: {
+                    statusPages: {
+                      name: true,
+                      _id: true,
+                      projectId: true,
+                    },
+                  },
+                  title: "Shown on Status Pages",
+                  type: FieldType.EntityArray,
 
-            filterEntityType: StatusPage,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
+                  filterEntityType: StatusPage,
+                  filterQuery: {
+                    projectId: ProjectUtil.getCurrentProjectId()!,
+                  },
+                  filterDropdownField: {
+                    label: "name",
+                    value: "_id",
+                  },
+                },
+              ]),
         ]}
         columns={[
           {
@@ -246,7 +268,7 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               showAnnouncementAt: true,
             },
-            title: "Show Announcement At",
+            title: "Starts",
             type: FieldType.DateTime,
             hideOnMobile: true,
           },
@@ -254,37 +276,46 @@ const AnnouncementTable: FunctionComponent<ComponentProps> = (
             field: {
               endAnnouncementAt: true,
             },
-            title: "End Announcement At",
+            title: "Ends",
             type: FieldType.DateTime,
-            noValueMessage: "-",
+            // Shown until removed: the table's quiet dash, like every cell.
             hideOnMobile: true,
           },
-          {
-            field: {
-              statusPages: {
-                name: true,
-              },
-            },
-            hideOnMobile: true,
-            title: "Shown on Status Pages",
-            type: FieldType.Element,
-            getElement: (item: StatusPageAnnouncement) => {
-              if (!item.statusPages || !Array.isArray(item.statusPages)) {
-                return (
-                  <p>
-                    {translator.translateText(
-                      "No status pages selected for this announcement.",
-                    )}
-                  </p>
-                );
-              }
-              return (
-                <div>
-                  <StatusPagesElement statusPages={item.statusPages} />
-                </div>
-              );
-            },
-          },
+          /*
+           * The status pages that show each row - on the product's list.
+           * On a page's own tab the column only repeated that page's name,
+           * beside a title it squeezed to its first words.
+           */
+          ...(isOnOneStatusPage
+            ? []
+            : [
+                {
+                  field: {
+                    statusPages: {
+                      name: true,
+                    },
+                  },
+                  hideOnMobile: true,
+                  title: "Shown on Status Pages",
+                  type: FieldType.Element,
+                  getElement: (item: StatusPageAnnouncement) => {
+                    if (!item.statusPages || !Array.isArray(item.statusPages)) {
+                      return (
+                        <p>
+                          {translator.translateText(
+                            "No status pages selected for this announcement.",
+                          )}
+                        </p>
+                      );
+                    }
+                    return (
+                      <div>
+                        <StatusPagesElement statusPages={item.statusPages} />
+                      </div>
+                    );
+                  },
+                },
+              ]),
         ]}
       />
 

@@ -123,7 +123,7 @@ describe("what a record takes its owners from is read through OwnedScopePermissi
 
   test("the rule's own readers ask getOwnedThrough", () => {
     for (const [file, asks] of [
-      ["Types/Database/Permissions/OwnedScopePermission.ts", 3],
+      ["Types/Database/Permissions/OwnedScopePermission.ts", 5],
       ["Types/Database/Permissions/BasePermission.ts", 1],
       ["Types/Database/Permissions/CreateScopePermission.ts", 1],
     ] as Array<[string, number]>) {

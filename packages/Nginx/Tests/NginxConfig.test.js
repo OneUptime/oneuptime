@@ -694,7 +694,7 @@ test("the calendar feed location proxies exactly like the block it pre-empts", (
     "proxy_set_header Host $host;",
     "proxy_set_header X-Real-IP $remote_addr;",
     "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
-    "proxy_set_header X-Forwarded-Proto $scheme;",
+    "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
   ];
 
   for (const serverBlock of serverBlocks) {
@@ -1986,7 +1986,7 @@ test("the OAuth discovery location proxies exactly like /mcp, the block that ser
     "proxy_set_header Host $host;",
     "proxy_set_header X-Real-IP $remote_addr;",
     "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
-    "proxy_set_header X-Forwarded-Proto $scheme;",
+    "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
   ];
 
   const discovery = findOAuthDiscoveryLocations(primaryServerBlock)[0];
@@ -2451,4 +2451,268 @@ test("everything the app serves under /file still reaches it", () => {
   assert.ok(
     /proxy_pass\s+\$\{BACKEND_APP_TARGET\}\s*;/.test(fileLocation.body),
   );
+});
+
+/*
+ * The scheme the visitor used reaches the app, so the app can keep the
+ * visitor's cookies on HTTPS (Secure) whenever the browser is on HTTPS:
+ * Common/Server/Utils/RequestTransport.ts reads it, as Express's req.secure.
+ *
+ * Every proxying location forwards $visitor_scheme: nginx's own $scheme
+ * (https where this ingress ended TLS), raised to https when the proxy in
+ * front of this one - a CDN, a load balancer, the operator's own TLS proxy -
+ * said the visitor used https. Before, that https was overwritten with this
+ * hop's http, and the app took every visitor behind such a proxy for a
+ * plain-HTTP one.
+ *
+ * /notification keeps its own passthrough ($forwarded_proto): Twilio signs
+ * the exact URL it called, so that location hands on whatever scheme the
+ * proxy in front reported, http included.
+ */
+const VISITOR_SCHEME_MAP_PATTERN =
+  /^map\s+\$http_x_forwarded_proto\s+\$visitor_scheme\s*\{([^}]*)\}/m;
+
+function visitorSchemeMapEntries() {
+  const match = VISITOR_SCHEME_MAP_PATTERN.exec(stripComments(template));
+
+  assert.ok(
+    match,
+    "expected a map from $http_x_forwarded_proto to $visitor_scheme",
+  );
+
+  return match[1]
+    .split(";")
+    .map((entry) => {
+      return entry.trim().replace(/\s+/g, " ");
+    })
+    .filter((entry) => {
+      return entry.length > 0;
+    });
+}
+
+// The one regex key of the map, as JavaScript reads it (the same PCRE subset).
+function visitorSchemeClaimPattern() {
+  const regexEntries = visitorSchemeMapEntries().filter((entry) => {
+    return entry.startsWith('"~');
+  });
+
+  assert.equal(regexEntries.length, 1, "expected exactly one regex key");
+
+  const keyMatch = /^"~(\*?)(.+)" (\S+)$/.exec(regexEntries[0]);
+
+  assert.ok(keyMatch, `could not read the map entry ${regexEntries[0]}`);
+  assert.equal(keyMatch[1], "*", "the https claim must match in any case");
+  assert.equal(keyMatch[3], "https", "a matching claim must map to https");
+
+  return new RegExp(keyMatch[2], "i");
+}
+
+test("the visitor's scheme defaults to the scheme of the hop into this ingress", () => {
+  const entries = visitorSchemeMapEntries();
+
+  assert.deepEqual(
+    entries.filter((entry) => {
+      return entry.startsWith("default ");
+    }),
+    ["default $scheme"],
+  );
+
+  // A default and the https claim - nothing a caller sends maps to http.
+  assert.equal(entries.length, 2, `unexpected map entries: ${entries}`);
+  assert.ok(
+    entries.every((entry) => {
+      return !/ http$/.test(entry);
+    }),
+    "no entry may map a claim to http",
+  );
+});
+
+test("only an https claim, first in the list, raises the visitor's scheme to https", () => {
+  const claim = visitorSchemeClaimPattern();
+
+  for (const value of [
+    "https",
+    "HTTPS",
+    "Https",
+    " https ",
+    "https, http",
+    "https,http",
+    "https , http",
+  ]) {
+    assert.ok(claim.test(value), `"${value}" is the visitor using https`);
+  }
+
+  for (const value of [
+    "",
+    "http",
+    "http, https",
+    "httpss",
+    "xhttps",
+    "https-ish",
+    "wss",
+    "ws",
+  ]) {
+    assert.ok(!claim.test(value), `"${value}" is not the visitor using https`);
+  }
+
+  // Linear in the length of what a caller sends.
+  const long = `https${" ".repeat(200000)}x`;
+  const startedAt = Date.now();
+
+  assert.ok(!claim.test(long));
+  assert.ok(Date.now() - startedAt < 2000, "the claim pattern must be linear");
+});
+
+test("every proxying location forwards the visitor's scheme", () => {
+  const forwarding = [];
+
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      const headers = getDirectives(location.body, "proxy_set_header").filter(
+        (header) => {
+          return header.startsWith("proxy_set_header X-Forwarded-Proto ");
+        },
+      );
+
+      if (location.spec === "/notification") {
+        assert.deepEqual(headers, [
+          "proxy_set_header X-Forwarded-Proto $forwarded_proto;",
+        ]);
+        continue;
+      }
+
+      if (!/proxy_pass|grpc_pass/.test(location.body)) {
+        continue;
+      }
+
+      forwarding.push(location.spec);
+
+      if (/grpc_pass/.test(location.body)) {
+        continue;
+      }
+
+      assert.deepEqual(
+        headers,
+        ["proxy_set_header X-Forwarded-Proto $visitor_scheme;"],
+        `location ${location.spec} must forward the visitor's scheme`,
+      );
+    }
+  }
+
+  // Every server block, and the locations that set sign-in cookies among them.
+  assert.ok(forwarding.length > 60, `only ${forwarding.length} locations`);
+  for (const spec of [
+    "/identity",
+    "/api",
+    "/accounts",
+    "/dashboard",
+    "/status-page-identity-api/",
+    "/status-page-sso-api/",
+    "/status-page-oidc-api/",
+    "/public-dashboard-api/",
+  ]) {
+    assert.ok(forwarding.includes(spec), `${spec} is not forwarded`);
+  }
+
+  assert.ok(
+    !/X-Forwarded-Proto\s+\$scheme\s*;/.test(stripComments(template)),
+    "no location may forward nginx's own $scheme in place of the visitor's",
+  );
+});
+
+/*
+ * The app tells its own address (HOST) from a status page's or a dashboard's
+ * custom domain by the Host header this ingress passes on - never by
+ * X-Forwarded-Host, which a caller writes. An installation with
+ * HTTP_PROTOCOL=https keeps the cookies of HOST on HTTPS (Secure) and tells
+ * browsers to stay on HTTPS for it (Strict-Transport-Security) by that Host
+ * alone, even behind a proxy that never says the visitor used https
+ * (Common/Server/Utils/RequestTransport.ts). So every location that serves
+ * the routes that write sign-in cookies passes on the Host the browser asked
+ * for. `proxy_set_header Host $server_name` there would hand the app this
+ * server's first name ("localhost") for every request, and those cookies
+ * would quietly lose Secure.
+ */
+const SIGN_IN_COOKIE_ADDRESSES = {
+  // The installation's own address.
+  primary: [
+    "/identity/login",
+    "/identity/refresh-token",
+    "/identity/logout",
+    "/identity/passkey-login-options",
+    "/identity/microsoft/callback",
+    "/identity/oidc-callback/project/provider",
+    "/identity/global-sso/x",
+    "/identity/status-page-oidc-callback/page/provider",
+    "/api/identity/login",
+    "/api/marketplace/aws/register",
+    "/accounts/login",
+    "/dashboard/x",
+    "/status-page/x",
+    "/status-page-api/x",
+    "/status-page-identity-api/login/x",
+    "/status-page-sso-api/x",
+    "/status-page-oidc-api/x",
+    "/public-dashboard/x",
+    "/public-dashboard-api/x",
+    "/mcp",
+  ],
+  // A status page's or a dashboard's custom domain, on either port.
+  statusPage: [
+    "/",
+    "/status-page-api/x",
+    "/status-page-identity-api/login/x",
+    "/status-page-sso-api/x",
+    "/status-page-oidc-api/x",
+    "/public-dashboard-api/x",
+  ],
+};
+
+test("every location that writes sign-in cookies passes on the Host the browser asked for", () => {
+  const statusPageServerBlocks = serverBlocks.filter((block) => {
+    return block !== primaryServerBlock;
+  });
+
+  assert.equal(statusPageServerBlocks.length, 2);
+
+  const blocksAndAddresses = [
+    [primaryServerBlock, SIGN_IN_COOKIE_ADDRESSES.primary],
+    ...statusPageServerBlocks.map((block) => {
+      return [block, SIGN_IN_COOKIE_ADDRESSES.statusPage];
+    }),
+  ];
+
+  for (const [serverBlock, addresses] of blocksAndAddresses) {
+    const locations = getLocationBlocks(serverBlock.body);
+
+    for (const address of addresses) {
+      const location = resolveLocation(locations, address);
+
+      assert.ok(location, `nothing serves ${address}`);
+      assert.ok(
+        /proxy_pass/.test(location.body),
+        `${address} is not proxied to the app`,
+      );
+      assert.deepEqual(
+        getDirectives(location.body, "proxy_set_header").filter((header) => {
+          return header.startsWith("proxy_set_header Host ");
+        }),
+        ["proxy_set_header Host $host;"],
+        `${address} (location ${location.spec}) must pass on the browser's Host`,
+      );
+    }
+  }
+});
+
+test("no location hands the app a Host the caller wrote in X-Forwarded-Host", () => {
+  for (const serverBlock of serverBlocks) {
+    for (const location of getLocationBlocks(serverBlock.body)) {
+      for (const header of getDirectives(location.body, "proxy_set_header")) {
+        assert.ok(
+          !/^proxy_set_header Host \$http_x_forwarded_host;$/i.test(header),
+          `location ${location.spec} passes on a caller's X-Forwarded-Host as Host`,
+        );
+      }
+    }
+  }
 });

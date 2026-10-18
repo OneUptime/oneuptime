@@ -13,13 +13,7 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, {
-  Fragment,
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -28,31 +22,30 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ProxmoxDocumentationCard from "../../Components/Proxmox/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
-/*
- * WI-18: while the project has no clusters yet, re-count on this
- * cadence so the page flips from the install guide to the table the
- * moment the first agent batch lands — no hard refresh.
- */
-const FIRST_DATA_POLL_INTERVAL_MS: number = 10 * 1000;
-
 const ProxmoxClusters: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [clusterCount, setClusterCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const firstRecordWatch: FirstRecordWatch =
+    useFirstRecordWatch<ProxmoxCluster>({
+      modelType: ProxmoxCluster,
+    });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<ProxmoxCluster>({ modelType: ProxmoxCluster });
@@ -105,74 +98,34 @@ const ProxmoxClusters: FunctionComponent<
     extraFacets: proxmoxExtraFacets,
   });
 
-  const fetchClusterCount: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const count: number = await ModelAPI.count({
-        modelType: ProxmoxCluster,
-        query: {},
-      });
-      setClusterCount(count);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchClusterCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  /*
-   * Live first-data poll (WI-18): the one-shot count above paints the
-   * empty state; this effect keeps quietly re-counting every 10s while
-   * the count is zero and flips the page to the table on the first
-   * nonzero result. The interval is cleared on unmount and is not
-   * re-armed once a cluster exists (the effect re-runs with a nonzero
-   * count and bails). Background failures keep the empty state rather
-   * than replacing the install guide with an error.
-   */
-  useEffect(() => {
-    if (clusterCount !== 0) {
-      return undefined;
-    }
-    const timer: ReturnType<typeof setInterval> = setInterval(() => {
-      ModelAPI.count({
-        modelType: ProxmoxCluster,
-        query: {},
-      })
-        .then((count: number) => {
-          if (count > 0) {
-            setClusterCount(count);
-          }
-        })
-        .catch(() => {
-          // Transient background-poll failure — keep polling.
-        });
-    }, FIRST_DATA_POLL_INTERVAL_MS);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [clusterCount]);
-
-  if (isLoading) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
   return (
     <Fragment>
       <ModelTable<ProxmoxCluster>
         modelType={ProxmoxCluster}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="proxmox-clusters-table"
         userPreferencesKey="proxmox-clusters-table"
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -180,9 +133,7 @@ const ProxmoxClusters: FunctionComponent<
           onResourcesFetched(data);
         }}
         onCreateSuccess={(item: ProxmoxCluster): Promise<ProxmoxCluster> => {
-          setClusterCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           return Promise.resolve(item);
         }}
         isDeleteable={true}
@@ -349,10 +300,10 @@ const ProxmoxClusters: FunctionComponent<
           );
         }}
       />
-      {clusterCount === 0 && (
+      {firstRecordWatch.count === 0 && (
         <ProxmoxDocumentationCard
           title="Getting Started with Proxmox Monitoring"
-          description="No Proxmox clusters connected yet. Connect one with the guide below — the agent or Proxmox VE 9's native push — and it will appear here automatically."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

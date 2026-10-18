@@ -43,7 +43,7 @@ Os interruptores decidem como os visitantes podem se inscrever sozinhos, e a pá
 
 No OneUptime Cloud, um interruptor que seu plano não inclui mostra ao lado o nome do plano: **Growth** para **SMS** e **Mostrar página de assinantes**, **Scale** para **Slack**, **Microsoft Teams** e **Webhook**. Desligar um canal funciona em todos os planos, então um canal que um teste ligou sempre pode ser desligado de novo; o interruptor diz isso logo abaixo.
 
-Cada canal também tem sua própria lista no menu lateral da página de status, em **Assinantes**: **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do Microsoft Teams** e **Assinantes de webhook**. É ali que você vê quem está inscrito, adiciona alguém manualmente ou deixa para si uma entrada **Notas** (`internalNote`) sobre um assinante específico. Enquanto um canal está desligado, o topo da lista dele diz isso, com o interruptor do canal ali mesmo, para que você possa ligá-lo sem sair da lista.
+Cada canal também tem sua própria lista no menu lateral da página de status, em **Assinantes**: **Assinantes de e-mail**, **Assinantes de SMS**, **Assinantes do Slack**, **Assinantes do Microsoft Teams** e **Assinantes de webhook**. É ali que você vê quem está inscrito, adiciona alguém manualmente com **Adicionar assinante** ou deixa para si uma **Nota Interna** (`internalNote`) sobre um assinante específico, que só a sua equipe vê. Enquanto um canal está desligado, o topo da lista dele diz isso, com o interruptor do canal ali mesmo, para que você possa ligá-lo sem sair da lista.
 
 **Um interruptor não basta.** O item **Inscrever-se** na barra de navegação da página de status só aparece quando **Mostrar página de assinantes** está ligado *e* pelo menos um canal está ligado. Se você ligar **E-mail** mas deixar **Mostrar página de assinantes** desligado, os visitantes não têm como chegar ao formulário.
 
@@ -66,7 +66,7 @@ Nenhuma das duas configurações exclui um assinante, e desligá-las volta a env
 
 ## O que um visitante vê na página Inscrever-se
 
-A página **Inscrever-se** tem um submenu com uma aba para cada canal ligado. Cada aba pede o mínimo de que precisa:
+A página **Inscrever-se** tem um submenu com uma aba para cada canal ligado; com só um canal ligado, não há submenu, apenas o formulário desse canal. Cada aba pede o mínimo de que precisa:
 
 | Aba | Endereço | Título | O que pede |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ O botão de envio diz **Inscrever-se**. Uma inscrição por SMS, Slack, Microsof
 
 ## Deixar o assinante escolher recursos e tipos de evento
 
-Por padrão, um assinante recebe tudo o que está na página. Dois interruptores no cartão **Configurações avançadas de assinante** mudam isso:
+Por padrão, um assinante recebe tudo o que está na página. Dois interruptores no cartão **Escolhas dos assinantes** em **Configurações de assinantes** mudam isso, e cada um é salvo assim que você o muda:
 
 - **Permitir que assinantes escolham recursos** (`allowSubscribersToChooseResources`) — desligado por padrão. Ligue-o e o formulário de inscrição ganha um interruptor **Inscrever-se em todos os recursos**; desligue-o e aparece **Selecionar recursos para inscrever-se**, para que o visitante possa escolher recursos individuais.
 - **Permitir que assinantes escolham tipos de evento** (`allowSubscribersToChooseEventTypes`) — desligado por padrão. A mesma forma: um interruptor **Inscrever-se em todos os tipos de eventos**, e **Selecionar tipos de eventos para inscrever-se** abaixo quando ele é desligado.
@@ -99,17 +99,17 @@ As escolhas ficam no registro do assinante como **Is Subscribed to All Resources
 
 Bom para: uma página que cobre vários produtos. Um cliente que só usa sua API não quer um aviso toda vez que o site de marketing oscila — deixe que ele mesmo restrinja a lista em vez de vê-lo cancelar a inscrição de vez.
 
-O mesmo cartão também traz **Fusos Horários do Assinante**.
+**Fusos Horários do Assinante** fica em **Mais configurações** na mesma tela (veja [abaixo](#rodapé-de-e-mail-smtp-próprio-e-twilio)).
 
 ## Dupla confirmação por e-mail
 
 Assinantes de e-mail sempre confirmam. Quando um assinante é criado com um endereço de e-mail e não foi criado já confirmado, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) é forçado para `false` e um **Subscription Confirmation Token** de seis dígitos é gerado. A OneUptime então envia por e-mail um link de confirmação no formato `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. O visitante chega a uma página **Confirmar inscrição** e, quando ela é concluída, vê *Inscrição confirmada com sucesso*.
 
-Assinantes de SMS, Slack, Microsoft Teams e webhook pulam isso: são criados com `isSubscriptionConfirmed` já como `true`. O mesmo vale para os assinantes de e-mail que sua equipe adiciona em **Assinantes de e-mail**: ali **Não enviar link de confirmação** vem ligado por padrão. Desligue-o para que o endereço confirme como em uma inscrição.
+Assinantes de SMS, Slack, Microsoft Teams e webhook pulam isso: são criados com `isSubscriptionConfirmed` já como `true`. Quando sua equipe adiciona um assinante de e-mail em **Assinantes de e-mail**, **Ao adicioná-los** decide: **Inscrevê-los agora** (o padrão: confirmado, e nada é enviado), **Inscrevê-los agora e avisá-los** (confirmado, e recebe o e-mail que diz que está inscrito) ou **Pedir que confirmem primeiro** (recebe o link de confirmação, como em uma inscrição). **Adicionar em massa** pergunta o mesmo.
 
 **Não confirmado significa silêncio.** A consulta que busca os assinantes para uma notificação filtra por `isUnsubscribed: false` e `isSubscriptionConfirmed: true`. Um endereço de e-mail que nunca clicou no link fica na sua lista **Assinantes de e-mail** e não recebe nada. Se alguém jura que está inscrito mas não recebe nada, verifique essa coluna primeiro.
 
-Não há interruptor para desligar a confirmação por e-mail — ela é incondicional para quem se inscreve pela página de status. Uma coluna separada por assinante, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, verdadeiro por padrão), controla o e-mail "você se inscreveu" enviado quando um assinante é confirmado.
+Não há interruptor para desligar a confirmação por e-mail — ela é incondicional para quem se inscreve pela página de status. Uma coluna separada por assinante, **Send You Have Subscribed Message** (`sendYouHaveSubscribedMessage`, verdadeiro por padrão), controla o e-mail "você se inscreveu" enviado quando um assinante é confirmado. No painel, **Ao adicioná-los** a define para um assinante de e-mail, e **Enviar uma mensagem de boas-vindas**, em **Mais campos**, para os outros canais.
 
 ## Gerenciar e cancelar uma inscrição
 
@@ -131,7 +131,7 @@ Em uma página de status privada, ela exige um visitante que entrou, como o rest
 
 Os endpoints por trás de tudo isso são `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token`, e `GET` e `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. O `GET` de cancelamento apenas descreve o link. O `POST` cancela a inscrição qualquer que seja o corpo, incluindo o corpo `List-Unsubscribe=One-Click` de uma solicitação de cancelamento com um clique. Todo endpoint que recebe um token dá a mesma resposta para um token ausente ou errado, um assinante excluído e um assinante de outra página de status, então nenhum pode ser usado para descobrir quem está inscrito.
 
-Cancelar a inscrição muda um indicador em vez de excluir uma linha, então o registro permanece na lista do canal com **Está Descadastrado** marcado — útil quando você precisar explicar depois por que um endereço específico parou de receber e-mails. Isso também registra **Inscrição cancelada em** (`unsubscribedAt`), seja quem for que cancelou a inscrição: o assinante pelo link ou pela página **Atualizar inscrição**, ou um colega pelo painel ou pela API. Cada lista de assinantes tem uma coluna e um filtro **Inscrição cancelada em**. Desligar **Está Descadastrado** de novo o limpa. Inscrições canceladas antes de a OneUptime registrar isso não têm data.
+Cancelar a inscrição muda um indicador em vez de excluir uma linha, então o registro permanece na lista do canal com **Está Descadastrado** marcado — útil quando você precisar explicar depois por que um endereço específico parou de receber e-mails. Isso também registra **Inscrição cancelada em** (`unsubscribedAt`), seja quem for que cancelou a inscrição: o assinante pelo link ou pela página **Atualizar inscrição**, ou um colega pelo painel ou pela API. Cada lista de assinantes tem uma coluna e um filtro **Inscrição cancelada em**. Voltar o **Status** de um assinante para **Inscrito** o limpa. Inscrições canceladas antes de a OneUptime registrar isso não têm data.
 
 Um link só com o ID do assinante não abre mais nada. Um link **Atualizar inscrição** em uma mensagem mais antiga, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, abre uma página que diz que o link expirou, com **Receber um novo link**, que leva à página **Inscrever-se**. Mensagens muito antigas traziam `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, que cancelava a inscrição assim que era aberto. Ele não muda mais nada: leva à página de cancelamento, que diz que o link está desatualizado e para usar o de uma mensagem recente.
 
@@ -392,9 +392,10 @@ Enquanto você escreve um modelo, **Pré-visualização ao vivo** abaixo do corp
 
 ## Rodapé de e-mail, SMTP próprio e Twilio
 
-Mais três cartões em **Configurações de assinantes** controlam como as mensagens a assinantes saem do seu projeto:
+Mais quatro seções, em **Mais configurações** no fim de **Configurações de assinantes**, controlam como as mensagens a assinantes saem do seu projeto:
 
-- **Configurações do rodapé do e-mail** — **Habilitar texto personalizado de rodapé do e-mail** e **Texto de Rodapé da Notificação por E-mail ao Assinante** colocam seu próprio rodapé nos e-mails aos assinantes.
+- **Fusos Horários do Assinante** — os fusos horários em que os horários das notificações são mostrados, escolhidos com **Editar fusos horários**. Sem nenhum escolhido, os horários são mostrados em UTC e no horário de Londres, Nova York, Los Angeles, Calcutá e Sydney.
+- **Rodapé do e-mail** — a linha no fim de cada e-mail aos assinantes da página. **Editar rodapé** pede o **Rodapé**: **O rodapé padrão**, uma linha que diz que eles recebem o e-mail porque se inscreveram, ou **Seu próprio texto**, o **Texto do rodapé** que você escreve (`enableCustomSubscriberEmailNotificationFooterText` e `subscriberEmailNotificationFooterText`). Se o seu próprio texto ficar vazio, vai o rodapé padrão.
 - **SMTP Personalizado** — **Configuração SMTP Personalizada** envia os e-mails aos assinantes pelo seu próprio servidor de e-mail em vez do padrão.
 - **Configuração do Twilio** — **Configuração do Twilio** é a conta do Twilio usada para os assinantes de SMS.
 

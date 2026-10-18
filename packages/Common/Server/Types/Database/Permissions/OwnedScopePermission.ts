@@ -2,6 +2,7 @@ import DatabaseRequestType from "../../BaseDatabase/DatabaseRequestType";
 import Query from "../Query";
 import QueryHelper from "../QueryHelper";
 import QueryUtil from "../QueryUtil";
+import Select from "../Select";
 import TablePermission from "./TablePermission";
 /*
  * Type-only import: keeps the OwnerTablePair shape available without
@@ -15,6 +16,7 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
+import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -24,6 +26,7 @@ import PermissionScope from "../../../../Types/Database/AccessControl/Permission
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
@@ -52,6 +55,13 @@ import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
  * The owners of a resource are owned through it (getOwnedThrough): a grant
  * scoped to Owned adds and removes owners only on the resources the caller
  * or their teams own, however many more they may read.
+ *
+ * EVERY KIND WITH OWNERS IS NARROWED: the kinds of OwnerTableRegistry, the
+ * records that take their owners from one (@OwnedThrough) and the owner
+ * rows themselves. A kind other records are set up with - a probe, a
+ * runner, a template, an on-call schedule - stays readable to every reader
+ * of it, as picking one needs (leavesReadsAlone); its changes and deletes
+ * keep to the scope like every other kind's.
  */
 export default class OwnedScopePermission {
   @CaptureSpan()
@@ -165,8 +175,27 @@ export default class OwnedScopePermission {
         return p.scope !== PermissionScope.Owned;
       },
     );
-    // All applicable rows are Owned-scoped.
-    return !hasNonOwnedGrant;
+
+    if (hasNonOwnedGrant) {
+      return false;
+    }
+
+    /*
+     * Every applicable row is Owned-scoped. A kind other records are set
+     * up with - the probe a monitor runs on, the template an incident is
+     * declared from, the on-call schedule an escalation rule pages - is
+     * read by every reader of it all the same, and so are the records that
+     * take their owners from it: picking one is reading it. Its changes and
+     * deletes keep to the scope. See leavesReadsAlone.
+     */
+    if (
+      type === DatabaseRequestType.Read &&
+      OwnedScopePermission.leavesReadsAlone(modelType)
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   /*
@@ -353,6 +382,276 @@ export default class OwnedScopePermission {
     );
 
     return data.query;
+  }
+
+  /*
+   * WHETHER THE OWNED SCOPE LEAVES READS OF A MODEL ALONE: a kind other
+   * records are set up with (OwnerTablePair.ownedScopeLeavesReads - probes,
+   * runners, AI agents, templates, on-call schedules), or a model that
+   * takes its owners only from such kinds (@OwnedThrough - a schedule's
+   * layers - or an owner table's resource: getOwnedThrough). Whoever may
+   * read it reads all of it, as labels and blocks allow, whatever the scope
+   * of their grant; a grant scoped to Owned still changes and deletes only
+   * the records its holder or their teams own. False for every other model:
+   * a kind with owners is narrowed on reads too, and a model without owners
+   * has nothing for the scope to narrow.
+   */
+  public static leavesReadsAlone(modelType: { new (): BaseModel }): boolean {
+    const ownedThrough: OwnedThroughMetadata | null =
+      OwnedScopePermission.getOwnedThrough(modelType);
+
+    const kinds: Array<string | undefined> = ownedThrough
+      ? ownedThrough.parentModels.map((parentModel: unknown) => {
+          return OwnedScopePermission.getClassName(parentModel);
+        })
+      : [OwnedScopePermission.getClassName(modelType)];
+
+    const ownerTableRegistry: Map<string, OwnerTablePair> =
+      this.getOwnerTableRegistry();
+
+    return (
+      kinds.length > 0 &&
+      kinds.every((kind: string | undefined): boolean => {
+        return Boolean(
+          kind && ownerTableRegistry.get(kind)?.ownedScopeLeavesReads,
+        );
+      })
+    );
+  }
+
+  /*
+   * THE COLUMNS OF A KIND READ IN FULL THAT FOLLOW ITS OWNERS ALL THE SAME:
+   * the ones only those who may change the kind may read (every permission
+   * that reads the column is one that changes the kind) - a Runner's key,
+   * which lets whoever presents it claim the work meant for that Runner,
+   * and the secrets and credentials that come with it. Reading such a
+   * column is as good as managing the record, so the Owned scope, which
+   * leaves the reads of the kind alone that it may be picked
+   * (leavesReadsAlone), does not leave the column alone: for a caller whose
+   * every grant that lets them read it is scoped to Owned, it is read only
+   * on the records they or their teams own. It is left out of every other
+   * record they read (withholdColumnsKeptToOwners), a filter on it reaches
+   * only the records they own (BasePermission.addRecordScopeToQuery), and
+   * they may neither order the records by it (DatabaseService) nor filter
+   * another record by it (QueryPermission): an order or a match is read one
+   * guess at a time. None for a kind whose reads the scope narrows already,
+   * and none for a caller with a grant over the whole project, or limited to
+   * labels, that lets them read the column.
+   */
+  public static getColumnsKeptToOwners(
+    modelType: { new (): BaseModel },
+    props: DatabaseCommonInteractionProps,
+  ): Array<string> {
+    if (
+      props.isRoot ||
+      props.isMasterAdmin ||
+      !OwnedScopePermission.leavesReadsAlone(modelType)
+    ) {
+      return [];
+    }
+
+    const model: BaseModel = new modelType();
+    const changePermissions: Array<Permission> = model.getUpdatePermissions();
+
+    const userPermissions: Array<UserPermission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      );
+
+    return model.getTableColumns().columns.filter((column: string): boolean => {
+      const readPermissions: Array<Permission> =
+        model.getColumnAccessControlFor(column)?.read || [];
+
+      // A column nobody reads, or one some reader who may not change it reads.
+      if (
+        readPermissions.length === 0 ||
+        !readPermissions.every((permission: Permission): boolean => {
+          return changePermissions.includes(permission);
+        })
+      ) {
+        return false;
+      }
+
+      const grantingRows: Array<UserPermission> = userPermissions.filter(
+        (row: UserPermission): boolean => {
+          return readPermissions.includes(row.permission);
+        },
+      );
+
+      // No grant reads it at all: the select check refuses it already.
+      return (
+        grantingRows.length > 0 &&
+        grantingRows.every((row: UserPermission): boolean => {
+          return (
+            PermissionHelper.isScopeApplicable(row.permission) &&
+            row.scope === PermissionScope.Owned
+          );
+        })
+      );
+    });
+  }
+
+  /*
+   * Whether `query` filters on a column the caller reads only on the records
+   * they or their teams own (getColumnsKeptToOwners) - by its name, or among
+   * the columns a free-text search reads.
+   */
+  public static namesColumnsKeptToOwners<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    query: Query<TBaseModel>,
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    const kept: Array<string> = OwnedScopePermission.getColumnsKeptToOwners(
+      modelType,
+      props,
+    );
+
+    if (kept.length === 0) {
+      return false;
+    }
+
+    return Object.keys(query || {}).some((key: string): boolean => {
+      const value: unknown = (query as Record<string, unknown>)[key];
+
+      if (value instanceof MultiSearch) {
+        return (value.fields || []).some((field: string): boolean => {
+          return kept.includes(field);
+        });
+      }
+
+      return kept.includes(key);
+    });
+  }
+
+  /*
+   * Refuses an order by a column the caller reads only on the records they
+   * or their teams own (getColumnsKeptToOwners) - of the model, or of a
+   * record it names, ordered through the relation: where the other records
+   * fall in it says what they hold, one guess at a time.
+   */
+  public static checkSortOnColumnsKeptToOwners(
+    modelType: { new (): BaseModel },
+    sort: unknown,
+    props: DatabaseCommonInteractionProps,
+    // How many relations deep the order is read: a few at most.
+    depth: number = 0,
+  ): void {
+    if (!sort || typeof sort !== "object" || depth > 3) {
+      return;
+    }
+
+    const kept: Array<string> = OwnedScopePermission.getColumnsKeptToOwners(
+      modelType,
+      props,
+    );
+    const model: BaseModel = new modelType();
+
+    for (const [column, order] of Object.entries(
+      sort as Record<string, unknown>,
+    )) {
+      if (kept.includes(column)) {
+        throw new NotAuthorizedException(
+          OwnedScopePermission.getColumnKeptToOwnersRefusal(modelType, column),
+        );
+      }
+
+      // An order through a relation, by the related record's columns.
+      const relatedModelType: { new (): BaseModel } | undefined =
+        order && typeof order === "object"
+          ? (model.getTableColumnMetadata(column)?.modelType as
+              | { new (): BaseModel }
+              | undefined)
+          : undefined;
+
+      if (relatedModelType) {
+        OwnedScopePermission.checkSortOnColumnsKeptToOwners(
+          relatedModelType,
+          order,
+          props,
+          depth + 1,
+        );
+      }
+    }
+  }
+
+  // How a use of a column kept to the owners is refused (getColumnsKeptToOwners).
+  public static getColumnKeptToOwnersRefusal(
+    modelType: { new (): BaseModel },
+    column: string,
+  ): string {
+    const model: BaseModel = new modelType();
+    const title: string = model.getTableColumnMetadata(column)?.title || column;
+
+    return `Your access lets you read the ${title} only of the ${model.pluralName} you or your teams own, so you cannot sort or filter ${model.pluralName} by it.`;
+  }
+
+  /*
+   * Leaves the columns kept to the owners (getColumnsKeptToOwners) out of
+   * the rows a read hands back that the caller and their teams do not own:
+   * the rest of each record is read as before. A row that takes its owners
+   * from another record (getOwnedThrough) is theirs when the record it
+   * names is. A row read without what tells whose it is - its id, or the
+   * key naming the record it takes its owners from - is left without them
+   * too.
+   */
+  public static async withholdColumnsKeptToOwners<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    rows: Array<TBaseModel>;
+    select: Select<TBaseModel> | null | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<TBaseModel>> {
+    if (data.rows.length === 0 || !data.select) {
+      return data.rows;
+    }
+
+    const selected: Array<string> = OwnedScopePermission.getColumnsKeptToOwners(
+      data.modelType,
+      data.props,
+    ).filter((column: string): boolean => {
+      return Boolean((data.select as Record<string, unknown>)[column]);
+    });
+
+    if (selected.length === 0) {
+      return data.rows;
+    }
+
+    const ownedIds: Set<string> = new Set<string>(
+      (await OwnedScopePermission.getOwnedIds(data.modelType, data.props)).map(
+        (id: ObjectID): string => {
+          return id.toString().toLowerCase();
+        },
+      ),
+    );
+
+    const ownedThrough: OwnedThroughMetadata | null =
+      OwnedScopePermission.getOwnedThrough(data.modelType);
+
+    for (const row of data.rows) {
+      const values: Record<string, unknown> = row as unknown as Record<
+        string,
+        unknown
+      >;
+      const ownerKey: unknown = ownedThrough
+        ? values[ownedThrough.fkColumn]
+        : row._id;
+
+      if (
+        ownerKey !== null &&
+        ownerKey !== undefined &&
+        ownedIds.has(ownerKey.toString().toLowerCase())
+      ) {
+        continue;
+      }
+
+      for (const column of selected) {
+        (row as unknown as Record<string, unknown>)[column] = undefined;
+      }
+    }
+
+    return data.rows;
   }
 
   /*

@@ -100,6 +100,13 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
           tableId: `subscriber-notification-templates-table-${notificationMethod.toLowerCase().replace(/\s+/g, "-")}`,
         }}
         name={`Settings > Subscriber Notification Templates > ${notificationMethod}`}
+        /*
+         * Each tab's rows are its channel's templates, under a card that says
+         * which ("Email Templates"): "Create Template", not "Create
+         * Subscriber Notification Template".
+         */
+        singularName="Template"
+        pluralName="Templates"
         isDeleteable={true}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         isEditable={false}
@@ -114,10 +121,6 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             methodDescriptions[notificationMethod],
           ),
         }}
-        noItemsMessage={translator.translateTemplate(
-          "No {{method}} notification templates found.",
-          { method: translatableTerm(notificationMethod) },
-        )}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           notificationMethod: notificationMethod,

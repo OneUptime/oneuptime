@@ -583,6 +583,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * Whether a list read has come back. Before the first one, `exceptions` is
+   * empty and nothing is loading - the first render, ahead of the effect that
+   * sends the read - which is not a list that came back empty.
+   */
+  const [hasListAnswered, setHasListAnswered] = useState<boolean>(false);
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [hosts, setHosts] = useState<Array<Host>>([]);
@@ -1335,11 +1341,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   /*
    * The Exceptions pages' first steps: shown while the list is empty, nothing
    * the reader set narrows it, and the project has no exception at all
-   * (asked once, useProjectHasExceptions).
+   * (asked once, useProjectHasExceptions). Empty means a read came back with
+   * no rows: judged before the first one, every page load asked, rows or not.
    */
   const isUnnarrowedEmptyList: boolean = showsTelemetryFirstSteps({
     hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
-    isEmpty: !isLoading && !holdsReads && !error && exceptions.length === 0,
+    isEmpty:
+      hasListAnswered &&
+      !isLoading &&
+      !holdsReads &&
+      !error &&
+      exceptions.length === 0,
     filterCount: activeFilters.length,
     searchText: submittedSearch,
   });
@@ -1501,6 +1513,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         });
       setExceptions(result.data || []);
       setTotalCount(result.count);
+      setHasListAnswered(true);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {

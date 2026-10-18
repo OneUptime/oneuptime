@@ -199,6 +199,13 @@ export interface MonitorRecommendation {
   monitorType: MonitorType;
   templateId: string;
   name: string;
+  /*
+   * One plain sentence: when the monitor fires, without metric names. The
+   * card shows it in place of `description`, which stays one press away.
+   * Infrastructure catalogs write one for every template; the others do not
+   * yet, and their cards show the description as before.
+   */
+  summary?: string | undefined;
   description: string;
   category: string;
   severity: MonitorRecommendationSeverity;

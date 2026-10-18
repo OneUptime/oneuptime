@@ -178,6 +178,8 @@ OneUptime leverer vanlig HTTP til du velger én av to måter å legge til HTTPS 
 
 Hvis du legger statussider eller dashbord på egne domener, er det enklest å la OneUptime håndtere TLS: Ingressen bestiller og leverer selv sertifikatene for de domenene.
 
+Med `HTTP_PROTOCOL=https` bygger OneUptime HTTPS-lenker, holder påloggingsinformasjonskapsler på HTTPS og ber nettlesere om å nå `HOST`-en din bare over HTTPS. En nettleser holder seg til det i ett år, på alle porter for det navnet, så hvis `HOST` en dag må svare over vanlig HTTP igjen, setter du `HSTS_MAX_AGE_SECONDS=0` i `config.env` en stund før: Nettlesere glemmer regelen ved neste besøk.
+
 ### La OneUptime hente et sertifikat
 
 :::steps
@@ -301,6 +303,8 @@ server {
 ```
 Sertifikatbanene er der Certbot legger et sertifikat fra Let's Encrypt; bruk banene til ditt eget sertifikat hvis det kommer fra et annet sted. Sjekk filen og last inn Nginx på nytt med `sudo nginx -t && sudo systemctl reload nginx`.
 :::
+
+Begge sender `X-Forwarded-Proto`, som forteller OneUptime at en besøkende kom over HTTPS. Alle andre proxyer må også sende den, ellers holdes ikke påloggingsinformasjonskapslene for statussider og dashbord på egne domener på HTTPS.
 
 #### Åpne instansen gjennom proxyen
 

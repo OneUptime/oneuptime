@@ -33,6 +33,7 @@ import {
   StorageArrayAlertTemplate,
   buildStorageArrayMonitorConfig,
 } from "Common/Types/Monitor/StorageArrayAlertTemplates";
+import AlertTemplateConfiguration from "../AlertTemplatePicker/AlertTemplateConfiguration";
 import {
   StorageArrayMetricDefinition,
   getStorageArrayObjectLabel,
@@ -41,8 +42,6 @@ import StorageSystem, {
   StorageSystemUtil,
 } from "Common/Types/StorageArray/StorageSystem";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Window used when a step arrives without one (a legacy step, or a config
@@ -177,7 +176,6 @@ export function getResourceFilterFields(
 const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [rollingTime, setRollingTime] = React.useState<RollingTime | null>(
     null,
   );
@@ -293,6 +291,8 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     template: StorageArrayAlertTemplate,
   ) => void = (template: StorageArrayAlertTemplate): void => {
     setSelectedTemplateId(template.id);
+    // The template replaces the metric the Custom Metric tab picked.
+    setSelectedMetricId(undefined);
 
     const arrayIdentifier: string =
       monitorStepStorageArrayMonitor.arrayIdentifier;
@@ -334,6 +334,8 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     metric: StorageArrayMetricDefinition,
   ) => void = (metric: StorageArrayMetricDefinition): void => {
     setSelectedMetricId(metric.id);
+    // The metric replaces the one Quick Setup's template set.
+    setSelectedTemplateId(undefined);
     setCustomAggregation(metric.defaultAggregation);
 
     const arrayIdentifier: string =
@@ -384,7 +386,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
         <FieldLabelElement
           title="Storage Array"
           description={
-            "Select the storage array to monitor. Its platform decides which metrics and templates are offered."
+            "Its platform decides which metrics and templates are offered."
           }
           required={true}
         />
@@ -454,39 +456,17 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
           onTemplateSelected={(template: StorageArrayAlertTemplate) => {
             handleTemplateSelection(template);
           }}
-        />
-
-        {selectedTemplateId && (
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              {translator.translateText("Template Configuration")}
-            </h4>
-            <p className="text-xs text-blue-700 mb-3">
-              {translator.translateText(
-                "The following settings have been auto-configured. You can adjust the time range below.",
-              )}
-            </p>
-
-            <FieldLabelElement
-              title="Time Range"
-              description={"Adjust the monitoring time range."}
-              required={true}
-            />
-            <RollingTimePicker
-              value={monitorStepStorageArrayMonitor.rollingTime}
-              onChange={(value: RollingTime) => {
-                if (value === monitorStepStorageArrayMonitor.rollingTime) {
-                  return;
-                }
-
-                props.onChange({
-                  ...monitorStepStorageArrayMonitor,
-                  rollingTime: value,
-                });
-              }}
-            />
-          </div>
-        )}
+        >
+          <AlertTemplateConfiguration
+            rollingTime={monitorStepStorageArrayMonitor.rollingTime}
+            onRollingTimeChange={(value: RollingTime) => {
+              props.onChange({
+                ...monitorStepStorageArrayMonitor,
+                rollingTime: value,
+              });
+            }}
+          />
+        </StorageArrayTemplatePicker>
       </div>
     );
   };
@@ -495,13 +475,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-4 space-y-4">
         <div>
-          <FieldLabelElement
-            title="Storage Array Metric"
-            description={
-              "A metric the array exports, grouped by what it describes."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Storage Array Metric" required={true} />
           <StorageArrayMetricPicker
             storageSystem={storageSystem}
             selectedMetricId={selectedMetricId}
@@ -519,7 +493,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
               <FieldLabelElement
                 title="Aggregation"
                 description={
-                  "How should the metric values be aggregated over the time range."
+                  "How the metric values are combined over the time range."
                 }
                 required={true}
               />
@@ -573,9 +547,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
             <div>
               <FieldLabelElement
                 title="Time Range"
-                description={
-                  "Select the time range for the storage array monitor."
-                }
+                description={"How far back each check looks."}
                 required={true}
               />
               <RollingTimePicker
@@ -606,7 +578,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="mt-3">
           <FieldLabelElement
             title="Time Range"
-            description={"Select the time range for the storage array monitor."}
+            description={"How far back each check looks."}
             required={true}
           />
           <RollingTimePicker
@@ -625,13 +597,7 @@ const StorageArrayMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div className="mt-3">
-          <FieldLabelElement
-            title="Select Metrics"
-            description={
-              "The array metrics to monitor, with label filters and grouping."
-            }
-            required={true}
-          />
+          <FieldLabelElement title="Select Metrics" required={true} />
 
           <div className="mt-3"></div>
 

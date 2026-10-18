@@ -61,7 +61,7 @@ export const SubscriberRestrictionsCopy: {
     "Off: anyone who can see this status page can subscribe.",
   ),
   privateUsersOnlyNoSignInNote: translationKey(
-    "Readers do not sign in to this status page as it is set up now, so while this is on, visitors cannot subscribe and only your team can add subscribers.",
+    "This page has no sign-in, so while this is on, only your team can add subscribers.",
   ),
   allowedDomainsLabel: translationKey("Allowed Email Domains"),
   allowedDomainsDescription: translationKey(

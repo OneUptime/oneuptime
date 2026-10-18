@@ -2236,8 +2236,9 @@ describe("status page monitor rules", () => {
       new StatusPageResource().getTableColumnMetadata("showUptimePercent")
         .defaultValue,
     ).toBe(false);
+    // Enabled is on the rule's edit form only: a new rule starts on.
     expect(RESOURCES).toContain(
-      "On **Basic Info**, enter a **Name**. **Enabled** is on by default.",
+      "A new rule is on: its **Enabled** switch is on its edit form.",
     );
     expect(RESOURCES).toContain("on a rule, **Show Uptime %** starts on.");
   });
@@ -2246,22 +2247,46 @@ describe("status page monitor rules", () => {
     const view: string = dashboardSource(
       "Pages/StatusPages/View/MonitorRules.tsx",
     );
+    const form: string = dashboardSource(
+      "Components/StatusPage/StatusPageMonitorRuleForm.ts",
+    );
 
-    for (const step of ["Basic Info", "Match Criteria", "Group"]) {
+    // What it matches, then where the monitors go: no Basic Info step.
+    for (const step of ["Match", "Group"]) {
       expect(view).toContain(`{ title: "${step}", id: "`);
       expect(RESOURCES).toContain(`On **${step}**,`);
     }
+    expect(view).not.toContain('"Basic Info"');
+    expect(RESOURCES).not.toContain("**Basic Info**");
 
     for (const title of [
       "Monitor Labels",
       "Monitor Name",
       "Monitor Description",
-      "Add Monitors To Group",
       "Adds Monitors To",
     ]) {
       expect(view).toContain(`title: "${title}"`);
       expect(RESOURCES).toContain(`**${title}**`);
     }
+
+    // The group field and the button, worded in the form's copy.
+    expect(form).toContain(
+      'groupFieldTitle: translationKey("Add Monitors To")',
+    );
+    expect(view).toContain("title: StatusPageMonitorRuleCopy.groupFieldTitle,");
+    expect(RESOURCES).toContain("**Add Monitors To**");
+    expect(form).toContain(
+      'createButton: translationKey("Create Monitor Rule")',
+    );
+    expect(RESOURCES).toContain("click **Create Monitor Rule**");
+
+    // The name, made from the group until somebody types one.
+    expect(form).toContain(
+      'toGroup: translationKey("Add monitors to {{group}}")',
+    );
+    expect(RESOURCES).toContain(
+      'The rule\'s **Name** is filled in from it, such as "Add monitors to Website", until you type a name of your own.',
+    );
   });
 
   it("matches names and descriptions by a case-insensitive regular expression or a * wildcard, as the page's examples show", () => {
@@ -2490,7 +2515,10 @@ describe("status page branding", () => {
 
   it("every placeholder the page quotes is one the Dashboard draws", () => {
     const sources: Record<string, string> = {
-      branding: dashboardSource("Pages/StatusPages/View/Branding.tsx"),
+      // The page and its copy module, which holds the page title's example.
+      branding:
+        dashboardSource("Pages/StatusPages/View/Branding.tsx") +
+        dashboardSource("Components/StatusPage/StatusPageBrandingCopy.ts"),
       customCode: dashboardSource("Pages/StatusPages/View/CustomHtmlCss.tsx"),
       domains:
         dashboardSource("Components/CustomDomain/CustomDomainCopy.ts") +
@@ -2504,7 +2532,7 @@ describe("status page branding", () => {
           "Upload logo",
           "Logo of My Company",
           "Upload cover image",
-          "Please enter page title here.",
+          "e.g., Acme Status",
           "https://link.com",
           "Acme, Inc.",
           "All languages",

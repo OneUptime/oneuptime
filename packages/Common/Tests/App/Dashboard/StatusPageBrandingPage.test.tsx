@@ -449,6 +449,154 @@ describe("the cards people set", () => {
     );
   });
 
+  test("each card says what it changes for a visitor", async () => {
+    await renderPage();
+
+    expect(
+      cardPropsOf("Status Page > Branding > Header Style")["description"],
+    ).toBe("Shown at the top of your status page.");
+    expect(
+      cardPropsOf("Status Page > Branding > Title and Description")[
+        "description"
+      ],
+    ).toBe(
+      "Its name in the browser tab and in subscriber emails, and the description search engines show.",
+    );
+    // The favicon is the browser tab's icon; it was said to be "used for SEO".
+    expect(cardPropsOf("Status Page > Branding > Favicon")["description"]).toBe(
+      "The small icon in the browser tab.",
+    );
+    expect(
+      cardPropsOf("Status Page > Branding > Copyright")["description"],
+    ).toBe("The line at the bottom of your status page, such as Acme, Inc.");
+
+    const descriptions: Array<unknown> = Array.from(store.latest.values()).map(
+      (recorded: Recorded): unknown => {
+        return (
+          recorded.props["cardProps"] as Record<string, unknown> | undefined
+        )?.["description"];
+      },
+    );
+
+    expect(descriptions.length).toBeGreaterThan(5);
+
+    for (const description of [
+      "These will show up on your status page.",
+      "This will also be used for SEO.",
+      "Favicon will be used for SEO.",
+      "Copyright info for your status page",
+      "Header Links for your status page",
+    ]) {
+      expect(descriptions).not.toContain(description);
+    }
+  });
+
+  /*
+   * Each dialog is named like the button that opens it (Edit Images, not
+   * the model's "Edit Status Page"), as the custom code cards' are.
+   */
+  test.each([
+    ["Status Page > Branding > Header Style", "Edit Images"],
+    ["Status Page > Branding > Favicon", "Edit Favicon"],
+    ["Status Page > Branding > Overview Page", "Edit Description"],
+    ["Status Page > Branding > Copyright", "Edit Copyright"],
+    ["Status Page > Branding > Default Bar Color", "Edit Default Bar Color"],
+    ["Status Page > Languages", "Edit Languages"],
+  ])(
+    "%s: its dialog is named like its button, %s",
+    async (name: string, title: string) => {
+      await renderPage();
+
+      expect(propsOf(name)["editButtonText"]).toBe(title);
+      expect(propsOf(name)["editModalTitle"]).toBe(title);
+    },
+  );
+
+  test("Title and Description's dialog says what the two are for, so its fields need no help, and no SEO", async () => {
+    await renderPage();
+
+    const name: string = "Status Page > Branding > Title and Description";
+    const props: Record<string, unknown> = propsOf(name);
+
+    expect(props["editModalTitle"]).toBe("Edit Title and Description");
+    expect(StatusPageBrandingCopy.titleEditTitle).toBe(
+      "Edit Title and Description",
+    );
+    expect(props["editModalDescription"]).toBe(
+      StatusPageBrandingCopy.titleDescription,
+    );
+    expect(props["editModalDescription"]).toBe(
+      cardPropsOf(name)["description"],
+    );
+
+    for (const field of formFieldsOf(name) as Array<
+      FieldShape & { hideColumnDescription?: boolean }
+    >) {
+      expect([field.title, field.hideColumnDescription]).toEqual([
+        field.title,
+        true,
+      ]);
+      expect(field.description).toBeUndefined();
+    }
+  });
+
+  test("the page title's example is a name, and the detail rows have no stand-in sentences", async () => {
+    await renderPage();
+
+    const name: string = "Status Page > Branding > Title and Description";
+    const [title, description] = formFieldsOf(name) as [
+      FieldShape & { placeholder?: string },
+      FieldShape & { placeholder?: string },
+    ];
+
+    expect(title.placeholder).toBe("e.g., Acme Status");
+    expect(description.placeholder).toBe(
+      "e.g., Live status of Acme's website and API.",
+    );
+
+    for (const row of detailFieldsOf(name) as Array<
+      FieldShape & { placeholder?: string }
+    >) {
+      expect(row.placeholder).toBeUndefined();
+    }
+  });
+
+  test.each([
+    [
+      "Status Page > Header Links",
+      "Header Link",
+      "Header Links",
+      "Links at the top of your status page, such as your website or support.",
+    ],
+    [
+      "Status Page > Footer Links",
+      "Footer Link",
+      "Footer Links",
+      "Links at the bottom of your status page, such as your terms or privacy policy.",
+    ],
+  ])(
+    "%s: its rows are each a %s, added with Add, and an empty table says what they are for",
+    async (
+      name: string,
+      singular: string,
+      plural: string,
+      description: string,
+    ) => {
+      await renderPage();
+
+      const props: Record<string, unknown> = propsOf(name);
+
+      expect(props["singularName"]).toBe(singular);
+      expect(props["pluralName"]).toBe(plural);
+      expect(props["createVerb"]).toBe("Add");
+      expect(
+        (props["cardProps"] as Record<string, unknown>)["description"],
+      ).toBe(description);
+      // No message of its own: empty, the table says the card's line.
+      expect(props["noItemsMessage"]).toBeUndefined();
+    },
+  );
+
   test.each([
     ["Status Page > Header Links", StatusPageHeaderLink, "Header Links"],
     ["Status Page > Footer Links", StatusPageFooterLink, "Footer Links"],
@@ -472,6 +620,34 @@ describe("the cards people set", () => {
           ] as ObjectID
         ).toString(),
       ).toBe(STATUS_PAGE_ID);
+    },
+  );
+
+  /*
+   * A link's dialog asks for the words visitors click by example, and
+   * neither field repeats the column's help ("Title of this resource",
+   * "URL to a website or any other resource on the internet").
+   */
+  test.each([
+    ["Status Page > Header Links", "e.g., Support"],
+    ["Status Page > Footer Links", "e.g., Privacy Policy"],
+  ])(
+    "%s: a link's title asks by example, and neither field repeats its column's help",
+    async (name: string, placeholder: string) => {
+      await renderPage();
+
+      const [title, link] = formFieldsOf(name) as [
+        FieldShape & { hideColumnDescription?: boolean },
+        FieldShape & { hideColumnDescription?: boolean },
+      ];
+
+      expect(columnsOf([title, link])).toEqual(["title", "link"]);
+      expect(title.placeholder).toBe(placeholder);
+      expect(title.hideColumnDescription).toBe(true);
+      expect(title.description).toBeUndefined();
+      expect(link.hideColumnDescription).toBe(true);
+      expect(link.description).toBeUndefined();
+      expect(link.placeholder).toBe("https://link.com");
     },
   );
 

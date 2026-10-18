@@ -178,6 +178,8 @@ npm start
 
 如果你把状态页面或仪表板放在自定义域名上，让 OneUptime 处理 TLS 是更简单的方案：ingress 会自己申请并提供这些域名的证书。
 
+设置 `HTTP_PROTOCOL=https` 后，OneUptime 会生成 HTTPS 链接，把登录 Cookie 留在 HTTPS 上，并告诉浏览器只通过 HTTPS 访问你的 `HOST`。浏览器会在一年内、在这个名称的所有端口上遵守这一点；所以如果 `HOST` 将来需要重新通过普通 HTTP 应答，请提前一段时间把 `HSTS_MAX_AGE_SECONDS=0` 写进 `config.env`：浏览器会在下次访问时忘掉这条规则。
+
 ### 让 OneUptime 获取证书
 
 :::steps
@@ -301,6 +303,8 @@ server {
 ```
 证书路径是 Certbot 存放 Let's Encrypt 证书的位置；如果你的证书来自其他地方，请使用它自己的路径。使用 `sudo nginx -t && sudo systemctl reload nginx` 检查文件并重新加载 Nginx。
 :::
+
+两者都会发送 `X-Forwarded-Proto`，它告诉 OneUptime 访问者是通过 HTTPS 来的。其他任何代理也必须发送它，否则你自定义域名上的状态页面和仪表板的登录 Cookie 不会被留在 HTTPS 上。
 
 #### 通过代理打开你的实例
 

@@ -27,6 +27,13 @@ export interface HostAlertTemplateArgs {
 export interface HostAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. The picker and a resource's
+   * Recommendations list show it on the card; `description` (how it is
+   * computed, and its caveats) is shown once a template is picked.
+   */
+  summary: string;
   description: string;
   category: HostAlertTemplateCategory;
   severity: HostAlertTemplateSeverity;
@@ -308,6 +315,7 @@ export function buildHostFormulaMonitorConfig(args: {
 const highCpuTemplate: HostAlertTemplate = {
   id: "host-high-cpu",
   name: "High CPU Utilization",
+  summary: "CPU stays more than 80% busy for the whole window.",
   description:
     "Alert when host CPU busy time (user + system) exceeds 80% for the whole evaluation window.",
   category: "Resource",
@@ -377,6 +385,7 @@ const highCpuTemplate: HostAlertTemplate = {
 const highMemoryTemplate: HostAlertTemplate = {
   id: "host-high-memory",
   name: "High Memory Utilization",
+  summary: "Memory in use passes 85%, page cache not counted.",
   description:
     "Alert when memory in use — excluding buffers and page cache — exceeds 85% of physical memory.",
   category: "Resource",
@@ -438,6 +447,7 @@ const highMemoryTemplate: HostAlertTemplate = {
 const highFilesystemUsageTemplate: HostAlertTemplate = {
   id: "host-high-filesystem",
   name: "High Filesystem Usage",
+  summary: "A filesystem is more than 90% full.",
   description:
     "Alert when host filesystem utilization exceeds 90%. One alert per mountpoint.",
   category: "Resource",
@@ -521,6 +531,7 @@ const highFilesystemUsageTemplate: HostAlertTemplate = {
 const highLoadAverageTemplate: HostAlertTemplate = {
   id: "host-high-load-average",
   name: "High Load Average (1m)",
+  summary: "The 1-minute load average stays above 4.",
   description:
     "Alert when the host's 1-minute load average stays above 4. The threshold is an absolute run-queue length and is NOT normalized by core count.",
   category: "Resource",
@@ -569,6 +580,8 @@ const highLoadAverageTemplate: HostAlertTemplate = {
 const highProcessCountTemplate: HostAlertTemplate = {
   id: "host-high-processes",
   name: "High Process Count",
+  summary:
+    "More than 2000 processes are in one state, such as sleeping. Linux only.",
   description:
     "Alert when the host's largest process-state bucket (running, sleeping, idle, ...) exceeds 2000 processes, which may indicate a fork bomb or resource leak. Linux only.",
   category: "Host",

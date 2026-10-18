@@ -43,7 +43,7 @@ Los interruptores deciden cómo pueden registrarse los visitantes por sí mismos
 
 En OneUptime Cloud, un interruptor que tu plan no incluye muestra a su lado el nombre del plan: **Growth** para **SMS** y **Mostrar página de suscriptores**, **Scale** para **Slack**, **Microsoft Teams** y **Webhook**. Desactivar un canal funciona en todos los planes, así que un canal que activó una prueba siempre se puede volver a desactivar; el interruptor lo indica debajo.
 
-Cada canal tiene además su propia lista en el menú lateral de la página de estado, en **Suscriptores**: **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de Microsoft Teams** y **Suscriptores de webhook**. Ahí es donde miras quién está registrado, añades a alguien a mano o te dejas una entrada **Notas** (`internalNote`) sobre un suscriptor concreto. Mientras un canal está desactivado, la parte superior de su lista lo indica, con el interruptor del canal ahí mismo, para que puedas activarlo sin salir de la lista.
+Cada canal tiene además su propia lista en el menú lateral de la página de estado, en **Suscriptores**: **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de Microsoft Teams** y **Suscriptores de webhook**. Ahí es donde miras quién está registrado, añades a alguien a mano con **Añadir suscriptor** o te dejas una **Nota interna** (`internalNote`) sobre un suscriptor concreto, que solo ve tu equipo. Mientras un canal está desactivado, la parte superior de su lista lo indica, con el interruptor del canal ahí mismo, para que puedas activarlo sin salir de la lista.
 
 **Un interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** está activado *y* al menos un canal está activado. Si activas **Correo electrónico** pero dejas **Mostrar página de suscriptores** desactivado, los visitantes no tienen forma de llegar al formulario.
 
@@ -66,7 +66,7 @@ Ninguno de los dos ajustes elimina a un suscriptor, y al desactivarlos se vuelve
 
 ## Qué ve un visitante en la página Suscribirse
 
-La página **Suscribirse** tiene un submenú con una pestaña por cada canal activado. Cada pestaña pide lo mínimo que necesita:
+La página **Suscribirse** tiene un submenú con una pestaña por cada canal activado; con un solo canal activado no hay submenú, solo el formulario de ese canal. Cada pestaña pide lo mínimo que necesita:
 
 | Pestaña | Dirección | Encabezado | Qué pide |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ El botón de envío dice **Suscribirse**. Un registro por SMS, Slack, Microsoft 
 
 ## Dejar que los suscriptores elijan recursos y tipos de eventos
 
-De forma predeterminada, un suscriptor recibe todo lo de la página. Dos interruptores de la tarjeta **Ajustes avanzados de suscriptor** cambian eso:
+De forma predeterminada, un suscriptor recibe todo lo de la página. Dos interruptores de la tarjeta **Opciones de los suscriptores** en **Ajustes de suscriptores** cambian eso, y cada uno se guarda en cuanto lo cambias:
 
 - **Permitir a los suscriptores elegir recursos** (`allowSubscribersToChooseResources`) — desactivado por defecto. Actívalo y el formulario de suscripción gana un interruptor **Suscribirse a todos los recursos**; desactívalo y aparece **Seleccionar recursos para suscribirse**, para que el visitante pueda elegir recursos concretos.
 - **Permitir a los suscriptores elegir tipos de eventos** (`allowSubscribersToChooseEventTypes`) — desactivado por defecto. La misma forma: un interruptor **Suscribirse a todos los tipos de eventos**, y **Seleccionar tipos de eventos para suscribirse** debajo cuando se desactiva.
@@ -99,17 +99,17 @@ Las elecciones quedan en el registro del suscriptor como **Suscrito a todos los 
 
 Útil para: una página que cubre varios productos. Un cliente que solo usa tu API no quiere un aviso cada vez que el sitio de marketing falla; deja que reduzca la lista él mismo en lugar de ver cómo cancela la suscripción por completo.
 
-La misma tarjeta también contiene **Zonas horarias del suscriptor**.
+**Zonas horarias del suscriptor** está en **Más ajustes** en la misma pantalla (consulta [más abajo](#pie-de-correo-smtp-personalizado-y-twilio)).
 
 ## Doble confirmación por correo electrónico
 
 Los suscriptores por correo electrónico siempre confirman. Cuando se crea un suscriptor con una dirección de correo electrónico y no se creó ya confirmado, **Suscripción confirmada** (`isSubscriptionConfirmed`) se fuerza a `false` y se genera un **Token de confirmación de la suscripción** de seis dígitos. OneUptime envía entonces un enlace de confirmación con la forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. El visitante llega a una página **Confirmar suscripción** y, cuando se completa, ve *Suscripción confirmada con éxito*.
 
-Los suscriptores por SMS, Slack, Microsoft Teams y webhook se saltan esto: se crean con `isSubscriptionConfirmed` ya en `true`. Lo mismo ocurre con los suscriptores por correo electrónico que tu equipo añade en **Suscriptores por correo electrónico**: allí **No enviar enlace de confirmación** está activado por defecto. Desactívalo para que la dirección se confirme como en un registro.
+Los suscriptores por SMS, Slack, Microsoft Teams y webhook se saltan esto: se crean con `isSubscriptionConfirmed` ya en `true`. Cuando tu equipo añade un suscriptor por correo electrónico en **Suscriptores por correo electrónico**, decide **Al añadirlos**: **Suscribirlos ahora** (la opción predeterminada: confirmado y sin enviarle nada), **Suscribirlos ahora y avisarles** (confirmado, y se le envía el correo que dice que está suscrito) o **Pedirles que confirmen primero** (se le envía el enlace de confirmación, como en un registro). **Añadir en masa** pregunta lo mismo.
 
 **Sin confirmar significa en silencio.** La consulta que obtiene los suscriptores para una notificación filtra por `isUnsubscribed: false` y `isSubscriptionConfirmed: true`. Una dirección de correo electrónico que nunca hizo clic en el enlace se quedará en tu lista **Suscriptores por correo electrónico** y no recibirá nada. Si alguien jura que está suscrito pero no recibe nada, comprueba primero esa columna.
 
-No hay ningún interruptor para desactivar la confirmación por correo electrónico: es incondicional para cualquiera que se registre a través de la página de estado. Una columna aparte por suscriptor, **Enviar el mensaje "Te has suscrito"** (`sendYouHaveSubscribedMessage`, verdadero por defecto), controla el correo «te has suscrito» que se envía una vez confirmado un suscriptor.
+No hay ningún interruptor para desactivar la confirmación por correo electrónico: es incondicional para cualquiera que se registre a través de la página de estado. Una columna aparte por suscriptor, **Enviar el mensaje "Te has suscrito"** (`sendYouHaveSubscribedMessage`, verdadero por defecto), controla el correo «te has suscrito» que se envía una vez confirmado un suscriptor. En el panel, **Al añadirlos** la fija para un suscriptor por correo electrónico, y **Enviar un mensaje de bienvenida**, en **Más campos**, para los demás canales.
 
 ## Gestionar y cancelar una suscripción
 
@@ -131,7 +131,7 @@ En una página de estado privada necesita un visitante con la sesión iniciada, 
 
 Los endpoints que hay detrás de todo esto son `POST .../subscribe/:statusPageId`, `POST .../manage-subscription/:statusPageId`, `POST .../get-subscription/:statusPageId/:subscriberId/:token`, `PUT .../update-subscription/:statusPageId/:subscriberId/:token`, y `GET` y `POST .../unsubscribe/:statusPageId/:subscriberId/:token`. El `GET` de baja solo describe el enlace. El `POST` cancela la suscripción sea cual sea su cuerpo, incluido el cuerpo `List-Unsubscribe=One-Click` de una solicitud de baja con un clic. Cada endpoint que recibe un token da la misma respuesta para un token ausente o incorrecto, un suscriptor eliminado y un suscriptor de otra página de estado, así que ninguno se puede usar para averiguar quién está suscrito.
 
-Cancelar la suscripción cambia un indicador en lugar de eliminar una fila, así que el registro se queda en la lista del canal con **Está dado de baja** marcado, algo útil cuando más adelante necesitas explicar por qué una dirección concreta dejó de recibir correo. También registra **Suscripción cancelada el** (`unsubscribedAt`), la cancele quien la cancele: el suscriptor a través del enlace o de la página **Actualizar suscripción**, o un compañero en el panel o a través de la API. Cada lista de suscriptores tiene una columna y un filtro **Suscripción cancelada el**. Volver a desactivar **Está dado de baja** lo borra. Las suscripciones canceladas antes de que OneUptime registrara esto no tienen fecha.
+Cancelar la suscripción cambia un indicador en lugar de eliminar una fila, así que el registro se queda en la lista del canal con **Está dado de baja** marcado, algo útil cuando más adelante necesitas explicar por qué una dirección concreta dejó de recibir correo. También registra **Suscripción cancelada el** (`unsubscribedAt`), la cancele quien la cancele: el suscriptor a través del enlace o de la página **Actualizar suscripción**, o un compañero en el panel o a través de la API. Cada lista de suscriptores tiene una columna y un filtro **Suscripción cancelada el**. Volver a poner el **Estado** de un suscriptor en **Suscrito** lo borra. Las suscripciones canceladas antes de que OneUptime registrara esto no tienen fecha.
 
 Un enlace con solo el ID del suscriptor ya no abre nada. Un enlace **Actualizar suscripción** de un mensaje más antiguo, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}`, abre una página que dice que el enlace ha caducado, con **Obtener un enlace nuevo**, que lleva a la página **Suscribirse**. Los mensajes muy antiguos llevaban `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`, que antes cancelaba la suscripción en cuanto se abría. Ya no cambia nada: lleva a la página de baja, que dice que el enlace está obsoleto y que se use el de un mensaje reciente.
 
@@ -392,9 +392,10 @@ Mientras escribes una plantilla, **Vista previa en vivo** debajo del cuerpo de l
 
 ## Pie de correo, SMTP personalizado y Twilio
 
-Tres tarjetas más de **Ajustes de suscriptores** controlan cómo salen de tu proyecto los mensajes a suscriptores:
+Cuatro secciones más, en **Más ajustes** al final de **Ajustes de suscriptores**, controlan cómo salen de tu proyecto los mensajes a suscriptores:
 
-- **Ajustes del pie de página del correo electrónico** — **Habilitar texto personalizado del pie de página del correo electrónico** y **Texto de pie de página de notificación por correo electrónico para suscriptores** ponen tu propio pie de página en los correos a suscriptores.
+- **Zonas horarias del suscriptor** — las zonas horarias en las que se muestran las horas de las notificaciones, elegidas con **Editar zonas horarias**. Si no eliges ninguna, las horas se muestran en UTC y en la hora de Londres, Nueva York, Los Ángeles, Calcuta y Sídney.
+- **Pie de página del correo** — la línea al final de cada correo a los suscriptores de la página. **Editar pie de página** pide el **Pie de página**: **El pie de página predeterminado**, una línea que dice que reciben el correo porque se suscribieron, o **Tu propio texto**, el **Texto del pie de página** que escribes (`enableCustomSubscriberEmailNotificationFooterText` y `subscriberEmailNotificationFooterText`). Si dejas vacío tu propio texto, se envía el pie de página predeterminado.
 - **SMTP personalizado** — **Configuración de SMTP personalizado** envía el correo a suscriptores a través de tu propio servidor de correo en lugar del predeterminado.
 - **Configuración de Twilio** — **Configuración de Twilio** es la cuenta de Twilio que se usa para los suscriptores por SMS.
 

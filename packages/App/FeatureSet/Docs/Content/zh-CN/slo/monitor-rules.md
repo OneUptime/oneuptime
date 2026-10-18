@@ -33,11 +33,11 @@ flowchart TB
 
 ### 选择监视器
 
-点击 **Add Monitors**，从项目中选择监视器。只会列出尚未关联的监视器。
+点击 **添加监视器**，从项目中选择监视器。只会列出尚未关联的监视器。
 
 ### 保存列表
 
-点击 **Add Monitors**。监视器以来源 **Manual** 出现在列表中，并从下一次评估开始计入 SLI。
+点击 **添加监视器**。监视器以来源 **Manual** 出现在列表中，并从下一次评估开始计入 SLI。
 :::
 
 要从 SLO 中移除某个监视器，请点击该行的 **移除**。监视器本身不会改变，只是不再计入该 SLO 的 SLI 和错误预算。
@@ -114,7 +114,7 @@ flowchart TB
 
 只要至少有一条规则处于启用状态，SLO 的监视器就由规则管理：
 
-- 无法手动添加监视器：**Add Monitors** 被禁用，横幅显示 **This SLO's monitors are managed by its monitor rules**，并附有 **Manage Monitor Rules** 链接；
+- 无法手动添加监视器：**添加监视器** 被禁用，横幅显示 **This SLO's monitors are managed by its monitor rules**，并附有 **Manage Monitor Rules** 链接；
 - 规则关联的监视器无法手动移除，因为规则会再次关联它们：它们的 **移除** 按钮被锁定，提示信息会说明原因；
 - 在开启规则之前手动关联的监视器仍然可以移除。
 
@@ -144,7 +144,7 @@ API 也是如此。关闭所有规则即可重新自己选择监视器。
 
 ## 故障排除
 
-:::details Add Monitors 被禁用
+:::details 添加监视器 被禁用
 SLO 至少有一条监视器规则处于启用状态，因此其监视器由规则管理。修改规则，或全部关闭以手动选择监视器。
 :::
 

@@ -178,6 +178,8 @@ OneUptime serves plain HTTP until you choose one of two ways to add HTTPS:
 
 If you put status pages or dashboards on custom domains, letting OneUptime handle TLS is the simpler setup: the ingress orders and serves those domains' certificates itself.
 
+With `HTTP_PROTOCOL=https`, OneUptime builds HTTPS links, keeps sign-in cookies on HTTPS and tells browsers to reach your `HOST` over HTTPS only. A browser keeps to that for a year, on every port of that name, so if `HOST` ever has to answer over plain HTTP again, set `HSTS_MAX_AGE_SECONDS=0` in `config.env` a while before: browsers forget the rule at their next visit.
+
 ### Let OneUptime get a certificate
 
 :::steps
@@ -301,6 +303,8 @@ server {
 ```
 The certificate paths are where Certbot puts a Let's Encrypt certificate; use your own certificate's paths if it comes from elsewhere. Check the file and reload Nginx with `sudo nginx -t && sudo systemctl reload nginx`.
 :::
+
+Both send `X-Forwarded-Proto`, which tells OneUptime that a visitor came over HTTPS. Any other proxy has to send it too, or the sign-in cookies of status pages and dashboards on your custom domains are not kept on HTTPS.
 
 #### Open your instance through the proxy
 

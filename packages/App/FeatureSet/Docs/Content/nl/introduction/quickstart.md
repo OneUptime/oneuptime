@@ -85,15 +85,15 @@ Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](
 :::steps
 ### De statuspagina aanmaken
 
-Klik in de checklist op **Publiceer een statuspagina**, of open **Statuspagina's** vanuit het menu **Producten**. Klik op **Statuspagina maken**, voer een **Naam** in, bijvoorbeeld `Acme Status`, en klik op **Statuspagina maken**.
+Klik in de checklist op **Publiceer een statuspagina**, of open **Statuspagina's** vanuit het menu **Producten**. Klik op **Statuspagina maken**, voer een **Naam** in, bijvoorbeeld `Acme Status`, en klik op **Statuspagina maken**. De nieuwe pagina opent op het **Overzicht**.
 
 ### Uw monitor toevoegen
 
-Open de nieuwe statuspagina. Kies in het zijmenu, onder **Middelen**, het item **Monitoren**; in projecten met monitorgroepen ingeschakeld heet het **Middelen**. Klik op **Monitor toevoegen**, kies uw websitemonitor en klik op **Monitor toevoegen**. De rij toont bezoekers de naam van de monitor; wijzig die desgewenst onder **Weergavenaam**.
+Klik op **Monitoren toevoegen** in het **Overzicht**, of kies in het zijmenu van de pagina, onder **Middelen**, het item **Monitoren**; in projecten met monitorgroepen ingeschakeld heet het **Middelen**. Klik op **Monitor toevoegen**, kies uw websitemonitor en klik op **Monitor toevoegen**. De rij toont bezoekers de naam van de monitor; wijzig die desgewenst onder **Weergavenaam**.
 
 ### De pagina openen
 
-Kies **Overzicht** in het zijmenu. De kaart **Status Page Preview URL** linkt naar uw statuspagina: open die, en uw website staat erop als operationeel.
+Kies **Overzicht** in het zijmenu. De kaart **Link naar de statuspagina** linkt naar uw statuspagina: open die, en uw website staat erop als operationeel.
 :::
 
 Een nieuwe statuspagina is openbaar: iedereen met het adres kan haar openen. Hoe u haar uw eigen domein, logo en kleuren geeft, leest u in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).

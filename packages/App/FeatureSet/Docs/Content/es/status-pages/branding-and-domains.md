@@ -60,12 +60,12 @@ Tu CSS y tu HTML personalizados se aplican en ambos temas; [HTML, CSS y JavaScri
 
 ### Título, descripción y favicon
 
-- **Título y descripción**: la tarjeta indica que también se usa para SEO. **Editar** abre **Título de la página** (texto de ejemplo `Please enter page title here.`) y **Descripción de la página**. Los buscadores y las vistas previas de enlaces los muestran, así que escríbelos para un cliente, no para tu equipo.
+- **Título y descripción**: el nombre de la página en la pestaña del navegador y en los correos a suscriptores, y la descripción que muestran los buscadores. **Editar** abre **Título de la página** (texto de ejemplo `e.g., Acme Status`) y **Descripción de la página**. Los buscadores y las vistas previas de enlaces los muestran, así que escríbelos para un cliente, no para tu equipo.
 - **Favicon**: **Editar favicon** abre la subida de **Favicon**: el pequeño icono de la pestaña del navegador.
 
 ### Enlaces de la cabecera
 
-La tabla **Enlaces de la cabecera** contiene los enlaces de la cabecera de la página de estado, como tu sitio web, tu documentación o un portal de soporte. Cada enlace tiene un **Título** y un **Enlace** (una URL, texto de ejemplo `https://link.com`), y se reordenan arrastrando. Sin enlaces, la tabla dice **No hay enlace de encabezado de estado para esta página de estado**, con **Crear Enlace del encabezado de la página de estado** debajo.
+La tabla **Enlaces de la cabecera** contiene los enlaces de la cabecera de la página de estado, como tu sitio web, tu documentación o un portal de soporte. Cada enlace tiene un **Título** y un **Enlace** (una URL, texto de ejemplo `https://link.com`), y se reordenan arrastrando. Sin enlaces, la tabla dice para qué sirven, con **Añadir Enlace de la cabecera** debajo.
 
 ### Descripción de la página de vista general
 
@@ -74,7 +74,7 @@ La tabla **Enlaces de la cabecera** contiene los enlaces de la cabecera de la p�
 ### Pie de página
 
 - **Información de copyright**: **Editar copyright** abre un campo, **Información de copyright**, con el texto de ejemplo `Acme, Inc.`.
-- **Enlaces del pie de página**: el mismo par **Título** y **Enlace** que los enlaces de la cabecera, ordenados arrastrando. Sin enlaces, dice «No hay enlace de pie de página de estado para esta página de estado.»
+- **Enlaces del pie de página**: el mismo par **Título** y **Enlace** que los enlaces de la cabecera, ordenados arrastrando y añadidos con **Añadir Enlace del pie de página**.
 
 Los enlaces de la cabecera son para navegar; los del pie de página, para la letra pequeña, como el aviso legal, la privacidad y los términos.
 
@@ -130,8 +130,8 @@ Antes eran dos tarjetas propias, **Porcentaje de tiempo de actividad general** y
 
 | Tarjeta | Columna | Qué contiene |
 | ---- | ------ | ------------- |
-| **HTML de la cabecera** | `headerHTML` | HTML añadido a la cabecera de la página (texto de ejemplo `Insert Custom HTML here.`). |
-| **HTML del pie de página** | `footerHTML` | HTML añadido al pie de la página. |
+| **HTML de la cabecera** | `headerHTML` | HTML que se muestra en lugar de la cabecera de la página, con su logotipo y sus enlaces (texto de ejemplo `Insert Custom HTML here.`). |
+| **HTML del pie de página** | `footerHTML` | HTML que se muestra en lugar del pie de la página, con sus enlaces y sus selectores de idioma y tema. |
 | **CSS personalizado** | `customCSS` | Estilos para toda la página (texto de ejemplo `Insert Custom CSS here.`). |
 | **JavaScript personalizado** | `customJavaScript` | Un script que ejecuta la página (texto de ejemplo `Insert Custom JavaScript here.`). |
 

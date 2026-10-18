@@ -5,7 +5,7 @@ A status page is the public face of everything you monitor: one URL your custome
 When something breaks at 2am, the status page is the first thing your support queue links to. It is also the thing your subscribers get notified from — so it is worth setting up before you need it, not during the outage.
 
 :::cards
-- [Create a status page](#creating-a-status-page): Two fields to start, everything else afterwards.
+- [Create a status page](#creating-a-status-page): A name to start, everything else afterwards.
 - [Choose what it shows](#choosing-what-shows-on-the-page): Incidents, episodes, announcements, maintenance and uptime, in one card.
 - [Decide who can see it](#restricting-who-can-see-the-page): Anyone with the link, only people who sign in, or anyone with the password.
 - [Archive a status page](#archiving-a-status-page): Take a page offline without deleting it.
@@ -33,7 +33,7 @@ The page shows the monitors you put on it as its resources, and incidents reach 
 
 ## At a glance
 
-- **Created with two fields.** A new status page only asks for **Name** and **Description**. Resources, branding and domains are all configured afterwards.
+- **Created with a name.** A new status page only asks for its **Name**; **Description** and **Labels** wait under **More fields**. Resources, branding and domains are all configured afterwards.
 - **Resources are what visitors see.** Each row on the page is a **Status Page Resource** — a monitor (or monitor group) with its own display name, tooltip and uptime options. Groups split a long page into sections and can be nested.
 - **A preview URL from day one.** Every status page gets a preview link so you can look at it before a custom domain exists.
 - **Visitor-facing routes are gated by settings.** Incidents, episodes, announcements and scheduled events each appear only while their switch in **What your status page shows** (on **Advanced Settings**) is on, and the subscribe page only while **Show Subscriber Page** is on.
@@ -61,13 +61,13 @@ Open **Status Pages → All Status Pages** and click **Create Status Page**.
 
 ### Name the page
 
-In the **Create New Status Page** modal, fill in **Name** (required, at least two characters) and, optionally, **Description**, then click **Create Status Page**.
+In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Description** and **Labels** are optional, under **More fields**.
 
-That's the whole create form. The list you land back on shows **Name**, **Description**, **Labels** and **Owners**, and can be filtered by **Status Page ID**, **Name** and **Description**.
+That's the whole create form. The **Status Pages** list shows **Name**, **Description**, **Labels** and **Owners**, and can be filtered by **Status Page ID**, **Name** and **Description**.
 
 ### Open the new page
 
-Open the new page and you land on its **Overview** screen, which carries two cards: **Status Page Preview URL** with a link to the page itself, and **Status Page Details** where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.
+The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens its **Resources** screen. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.
 :::
 
 A page created through the API or Terraform is held to the same plans as the settings described below. On OneUptime Cloud, creating a page with a setting your plan does not include switched on - for example private, a list hidden, custom HTML, CSS or JavaScript, email reports, SMS, Slack, Microsoft Teams or webhook subscribers, an IP allowlist - is refused with `402 Payment Required`, and the message names the plan. Each setting's plan is given with it below. Settings left at their defaults, as this form leaves them, work on every plan.
@@ -167,7 +167,7 @@ Below the card are **Export Status Page as JSON**, which downloads the status pa
 
 ## Previewing before you go live
 
-The **Overview** screen of every status page carries a **Status Page Preview URL** card with a link straight to the page. Use it while you're still adding resources and before any custom domain exists.
+The **Overview** screen of every status page carries a **Status Page Link** card with a link straight to the page, and **Copy link** beside it. Use it while you're still adding resources and before any custom domain exists.
 
 Behind the scenes, every public route has a preview twin under `/status-page/{statusPageId}/...` — a preview overview, a preview incident list, a preview subscribe page, and so on. That means a URL or screenshot taken from the dashboard preview will not match what a customer sees once a custom domain is attached, so double-check any link you paste into a runbook or an email.
 
@@ -195,11 +195,11 @@ Add the people who may sign in on **Status Pages → your page → Security → 
 
 ### SSO and OIDC
 
-For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML: you enter the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**. **Status Pages → your page → Security → OIDC** configures OpenID Connect: you enter the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
+For a private page tied to your identity provider, **Status Pages → your page → Security → SSO** configures SAML: **Add SSO Provider** asks for the sign-on URL, issuer and x509 certificate, and the signature and digest methods are filled in under **More fields**. **Status Pages → your page → Security → OIDC** configures OpenID Connect: **Add OIDC Provider** asks for the issuer, client ID and secret, and the discovery URL, scopes and claim names are filled in under **More fields**. Once a page has a provider, the **Test Sign-In** card under the list links to the page's sign-in, to try it. **SCIM** provisions private users from the IdP automatically. On OneUptime Cloud all three need the Scale plan or above. On a self-hosted installation, SSO and OIDC are part of every edition, and SCIM needs the [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Turning a status page's SSO or OIDC provider off, or deleting it, signs out the private users it signed in: their sessions end at their next request, and turning the provider on again does not bring them back - they sign in with it again. A new certificate or client secret, other URLs or a new name keep everyone signed in. On a page that requires SSO, turning off its last provider leaves nobody able to sign in until you turn one on again or turn **Require SSO for Login** off; to move to another provider, set up and test the new one before you turn the old one off.
 
-Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Test SSO with the link on that screen before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice. While it is on, a private user signed in with an email and password is signed out at their next request too: only sessions an SSO or OIDC provider signed in count. On OneUptime Cloud, turning it on needs the **Scale** plan, and turning it off works on every plan. A page that still requires SSO after a Scale trial ends, or after a move to a lower plan, keeps requiring it until someone turns it off: its **SSO** and **OIDC** pages show the switch under the plan's upsell for that.
+Under the providers, the **SSO Settings** card holds the **Require SSO for Login** switch (`requireSsoForLogin`, off by default), which saves the moment you flip it. Turning it on asks first, because from then on private users can't sign in with an email and password: only people your SSO or OIDC provider lets in can see the page. Try the link on the **Test Sign-In** card above it before you turn it on. It matters only while **Only people who sign in** is the choice, and the **Access** screen lists it as **SSO required** under that choice. While it is on, a private user signed in with an email and password is signed out at their next request too: only sessions an SSO or OIDC provider signed in count. On OneUptime Cloud, turning it on needs the **Scale** plan, and turning it off works on every plan. A page that still requires SSO after a Scale trial ends, or after a move to a lower plan, keeps requiring it until someone turns it off: its **SSO** and **OIDC** pages show the switch under the plan's upsell for that.
 
 ### Reader sessions
 
@@ -215,7 +215,7 @@ Under **More settings** on **Access**, the **IP Allowlist** section (the `ipWhit
 
 Three ways to surface status somewhere other than the page itself.
 
-**Embedded status badge.** On **Status Pages → your page → Advanced → Embedded Status**, turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default), then click **Regenerate Token** on the **Security Token** card to give the badge its token (`embeddedOverallStatusToken`). The badge is served from `/api/status-page/badge/<status-page-id>?token=<token>`, and the screen shows it under **Badge Preview** with snippets to copy, so you can drop the current overall status into your docs, your app's footer or a marketing page.
+**Embedded status badge.** On **Status Pages → your page → Advanced → Embedded Status**, turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default). The first time you turn it on, the badge gets its token (`embeddedOverallStatusToken`), and the **Embed the Badge** card shows the badge, served from `/api/status-page/badge/<status-page-id>?token=<token>`, with its **HTML** and **Markdown, linked to the status page** to copy, so you can drop the current overall status into your docs, your app's footer or a marketing page. The token waits on the **Security Token** card under **More settings**, with **Regenerate Token** for when the link was shared too widely.
 
 **RSS feed.** Every status page serves `/rss` — a feed titled "{page title} Updates", with the page's **Page Title** from **Branding**, or its name when it has none, and whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `. Handy for people who would rather pipe your updates into a reader or a chat bot than subscribe by email.
 

@@ -65,7 +65,7 @@ Klik på **Opret Monitor Gruppe**, indtast et **Navn** og, hvis du vil, en **Bes
 
 ### Tilføj dens monitorer
 
-Åbn gruppen: indtil den har en monitor, tilbyder dens **Oversigt** **Add Monitors**. Senere klikker du på **Monitorer** i dens sidemenu og derefter på **Add Monitors**. Vælg hver monitor i gruppen under **Monitorer**, og klik på **Add Monitors**.
+Åbn gruppen: indtil den har en monitor, tilbyder dens **Oversigt** **Tilføj monitorer**. Senere klikker du på **Monitorer** i dens sidemenu og derefter på **Tilføj monitorer**. Vælg hver monitor i gruppen under **Monitorer**, og klik på **Tilføj monitorer**.
 
 ### Tjek dens status
 
@@ -80,8 +80,8 @@ For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række unde
 
 | Side | Hvad den viser |
 | --- | --- |
-| **Oversigt** | **Detaljer om overvågningsgruppe**, **Aktuel status** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Add Monitors** i stedet for grafen. |
-| **Monitorer** | **Overvågninger i gruppe**, med **Add Monitors** og **Fjern**. |
+| **Oversigt** | **Detaljer om overvågningsgruppe**, **Aktuel status** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Tilføj monitorer** i stedet for grafen. |
+| **Monitorer** | **Overvågninger i gruppe**, med **Tilføj monitorer** og **Fjern**. |
 | **Hændelser** | Hændelserne på enhver monitor i gruppen. |
 | **Advarsler** | Advarslerne på enhver monitor i gruppen. |
 | **Ejere** | De personer og teams, der er ansvarlige for gruppen. Den ligger under **Avanceret**, som starter foldet sammen. |
