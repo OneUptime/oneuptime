@@ -69,19 +69,19 @@ products and their data".
 
 ## How it is built
 
-| Piece | Code |
-| --- | --- |
-| Provider API Vercel calls (`/api/marketplace/vercel/v1/...`) | [Server/API/VercelMarketplaceProviderAPI.ts](../../API/VercelMarketplaceProviderAPI.ts), [Vercel/VercelMarketplaceProvider.ts](Vercel/VercelMarketplaceProvider.ts) |
-| Who is calling: Vercel's OIDC token (RS256, `https://marketplace.vercel.com/.well-known/jwks`, audience = client ID) | [Vercel/VercelMarketplaceAuth.ts](Vercel/VercelMarketplaceAuth.ts) |
-| A resource: its project, key, status page, secrets; deprovisioning | [Vercel/VercelMarketplaceResources.ts](Vercel/VercelMarketplaceResources.ts), [Vercel/VercelResource.ts](Vercel/VercelResource.ts) |
-| Plans (OneUptime's, from `SUBSCRIPTION_PLAN_*`) | [Vercel/VercelMarketplacePlans.ts](Vercel/VercelMarketplacePlans.ts) |
-| Billing: running totals, invoices, uninstall | [Vercel/VercelMarketplaceBilling.ts](Vercel/VercelMarketplaceBilling.ts), job `Marketplace:VercelBilling` |
-| The marketplace framework's adapter | [Vercel/VercelMarketplaceAdapter.ts](Vercel/VercelMarketplaceAdapter.ts) |
-| Calls OneUptime makes to Vercel | [Vercel/VercelMarketplaceAPI.ts](Vercel/VercelMarketplaceAPI.ts) |
-| Webhooks (`x-vercel-signature`, HMAC-SHA1 with the client secret) | [Vercel/VercelMarketplaceWebhooks.ts](Vercel/VercelMarketplaceWebhooks.ts) |
-| Monitors of connected projects | [Vercel/VercelMarketplaceMonitors.ts](Vercel/VercelMarketplaceMonitors.ts) |
-| Sign-in from Vercel | [App/FeatureSet/Identity/API/VercelSignIn.ts](../../../../App/FeatureSet/Identity/API/VercelSignIn.ts), [Vercel/VercelMarketplaceSignIn.ts](Vercel/VercelMarketplaceSignIn.ts) |
-| Log drain endpoint | [App/FeatureSet/Telemetry/API/VercelLogDrain.ts](../../../../App/FeatureSet/Telemetry/API/VercelLogDrain.ts), its service and `Utils/VercelLogDrain.ts` |
+| Piece                                                                                                                | Code                                                                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Provider API Vercel calls (`/api/marketplace/vercel/v1/...`)                                                         | [Server/API/VercelMarketplaceProviderAPI.ts](../../API/VercelMarketplaceProviderAPI.ts), [Vercel/VercelMarketplaceProvider.ts](Vercel/VercelMarketplaceProvider.ts)            |
+| Who is calling: Vercel's OIDC token (RS256, `https://marketplace.vercel.com/.well-known/jwks`, audience = client ID) | [Vercel/VercelMarketplaceAuth.ts](Vercel/VercelMarketplaceAuth.ts)                                                                                                             |
+| A resource: its project, key, status page, secrets; deprovisioning                                                   | [Vercel/VercelMarketplaceResources.ts](Vercel/VercelMarketplaceResources.ts), [Vercel/VercelResource.ts](Vercel/VercelResource.ts)                                             |
+| Plans (OneUptime's, from `SUBSCRIPTION_PLAN_*`)                                                                      | [Vercel/VercelMarketplacePlans.ts](Vercel/VercelMarketplacePlans.ts)                                                                                                           |
+| Billing: running totals, invoices, uninstall                                                                         | [Vercel/VercelMarketplaceBilling.ts](Vercel/VercelMarketplaceBilling.ts), job `Marketplace:VercelBilling`                                                                      |
+| The marketplace framework's adapter                                                                                  | [Vercel/VercelMarketplaceAdapter.ts](Vercel/VercelMarketplaceAdapter.ts)                                                                                                       |
+| Calls OneUptime makes to Vercel                                                                                      | [Vercel/VercelMarketplaceAPI.ts](Vercel/VercelMarketplaceAPI.ts)                                                                                                               |
+| Webhooks (`x-vercel-signature`, HMAC-SHA1 with the client secret)                                                    | [Vercel/VercelMarketplaceWebhooks.ts](Vercel/VercelMarketplaceWebhooks.ts)                                                                                                     |
+| Monitors of connected projects                                                                                       | [Vercel/VercelMarketplaceMonitors.ts](Vercel/VercelMarketplaceMonitors.ts)                                                                                                     |
+| Sign-in from Vercel                                                                                                  | [App/FeatureSet/Identity/API/VercelSignIn.ts](../../../../App/FeatureSet/Identity/API/VercelSignIn.ts), [Vercel/VercelMarketplaceSignIn.ts](Vercel/VercelMarketplaceSignIn.ts) |
+| Log drain endpoint                                                                                                   | [App/FeatureSet/Telemetry/API/VercelLogDrain.ts](../../../../App/FeatureSet/Telemetry/API/VercelLogDrain.ts), its service and `Utils/VercelLogDrain.ts`                        |
 
 A resource is a `MarketplaceSubscription` with `marketplace` `Vercel`:
 `externalSubscriptionId` is the resource's ID (OneUptime makes it),
@@ -145,10 +145,10 @@ days before anything destructive; OneUptime does nothing destructive at all).
 
 ## The settings OneUptime needs
 
-| Environment variable | Helm value | What it is |
-| --- | --- | --- |
-| `VERCEL_MARKETPLACE_CLIENT_ID` | `cloudMarketplace.vercel.clientId` | The integration's client ID (`oac_...`), on its Credentials page. The audience of every token Vercel signs for OneUptime. |
-| `VERCEL_MARKETPLACE_CLIENT_SECRET` | `cloudMarketplace.vercel.clientSecret` (or `existingSecret.clientSecretKey`) | Its client secret. Verifies webhooks and drain deliveries, and exchanges sign-in codes. |
+| Environment variable               | Helm value                                                                   | What it is                                                                                                                |
+| ---------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `VERCEL_MARKETPLACE_CLIENT_ID`     | `cloudMarketplace.vercel.clientId`                                           | The integration's client ID (`oac_...`), on its Credentials page. The audience of every token Vercel signs for OneUptime. |
+| `VERCEL_MARKETPLACE_CLIENT_SECRET` | `cloudMarketplace.vercel.clientSecret` (or `existingSecret.clientSecretKey`) | Its client secret. Verifies webhooks and drain deliveries, and exchanges sign-in codes.                                   |
 
 Both must be set, on OneUptime Cloud (`BILLING_ENABLED=true`), for Vercel to
 be offered; with either missing, every Vercel route answers 404 and nothing
@@ -167,26 +167,26 @@ Console → Create**, as the team that will own it (Pro plan).
 
 ### Integration
 
-| Field | Value |
-| --- | --- |
-| Name | OneUptime |
-| URL Slug | `oneuptime` (if free; the listing is `vercel.com/integrations/<slug>`) |
-| Developer | HackerBay, Inc. |
-| Contact email | A maintainer's (private) |
-| Support contact email | A support address a maintainer chooses (public) |
-| Short Description (≤ 40) | `Uptime, logs, traces and status pages` |
-| Category | Observability |
-| Website | `https://oneuptime.com` |
-| Documentation URL | `https://oneuptime.com/docs/integrations/vercel` |
-| EULA URL | `https://oneuptime.com/legal/terms` |
-| Privacy Policy URL | `https://oneuptime.com/legal/privacy` |
-| Support URL | `https://oneuptime.com/support` |
-| Redirect URL | Leave **empty**: OneUptime has no connectable-account (OAuth) flow, and the checklist says to remove it |
-| Base URL | `https://oneuptime.com/api/marketplace/vercel` |
-| Redirect Login URL | `https://oneuptime.com/identity/vercel/sso` |
-| Webhook URL | `https://oneuptime.com/api/marketplace/vercel/webhook` |
-| Configuration URL | Leave empty |
-| Installation-level Billing Plans | **Off**: plans are per resource |
+| Field                            | Value                                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Name                             | OneUptime                                                                                               |
+| URL Slug                         | `oneuptime` (if free; the listing is `vercel.com/integrations/<slug>`)                                  |
+| Developer                        | HackerBay, Inc.                                                                                         |
+| Contact email                    | A maintainer's (private)                                                                                |
+| Support contact email            | A support address a maintainer chooses (public)                                                         |
+| Short Description (≤ 40)         | `Uptime, logs, traces and status pages`                                                                 |
+| Category                         | Observability                                                                                           |
+| Website                          | `https://oneuptime.com`                                                                                 |
+| Documentation URL                | `https://oneuptime.com/docs/integrations/vercel`                                                        |
+| EULA URL                         | `https://oneuptime.com/legal/terms`                                                                     |
+| Privacy Policy URL               | `https://oneuptime.com/legal/privacy`                                                                   |
+| Support URL                      | `https://oneuptime.com/support`                                                                         |
+| Redirect URL                     | Leave **empty**: OneUptime has no connectable-account (OAuth) flow, and the checklist says to remove it |
+| Base URL                         | `https://oneuptime.com/api/marketplace/vercel`                                                          |
+| Redirect Login URL               | `https://oneuptime.com/identity/vercel/sso`                                                             |
+| Webhook URL                      | `https://oneuptime.com/api/marketplace/vercel/webhook`                                                  |
+| Configuration URL                | Leave empty                                                                                             |
+| Installation-level Billing Plans | **Off**: plans are per resource                                                                         |
 
 **Overview (≤ 768 characters):**
 
@@ -201,11 +201,11 @@ and the support link.
 
 **API Scopes:**
 
-| Scope | Access | Why |
-| --- | --- | --- |
-| Projects (`project`) | Read | The production domain of a project connected before it had one (`GET /v9/projects/{id}/domains`), for its monitor |
-| Deployments (`deployment`) | Read | The deployment webhooks |
-| Everything else | None | |
+| Scope                      | Access | Why                                                                                                               |
+| -------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
+| Projects (`project`)       | Read   | The production domain of a project connected before it had one (`GET /v9/projects/{id}/domains`), for its monitor |
+| Deployments (`deployment`) | Read   | The deployment webhooks                                                                                           |
+| Everything else            | None   |                                                                                                                   |
 
 **Webhook events:** `deployment.succeeded`, `deployment.promoted` (if
 listed), `integration-configuration.removed`, and every marketplace and
@@ -229,16 +229,16 @@ becomes the listing's Open Graph image. A maintainer approves every image.
 
 ### Product
 
-| Field | Value |
-| --- | --- |
-| Name | OneUptime |
-| URL Slug | `oneuptime` (the product ID Vercel sends; OneUptime records it, whatever it is) |
-| Short Description | `Uptime, logs, traces and status pages` |
-| Short Billing Plans Description (< 30) | `Free, Growth and Scale` |
-| Disable Resource Renaming | Off: a rename renames the project |
-| Global Config Support | Off |
-| Checks API | Off (not built - see [Known gaps](#known-gaps)) |
-| Deployment Actions | None |
+| Field                                  | Value                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------- |
+| Name                                   | OneUptime                                                                       |
+| URL Slug                               | `oneuptime` (the product ID Vercel sends; OneUptime records it, whatever it is) |
+| Short Description                      | `Uptime, logs, traces and status pages`                                         |
+| Short Billing Plans Description (< 30) | `Free, Growth and Scale`                                                        |
+| Disable Resource Renaming              | Off: a rename renames the project                                               |
+| Global Config Support                  | Off                                                                             |
+| Checks API                             | Off (not built - see [Known gaps](#known-gaps))                                 |
+| Deployment Actions                     | None                                                                            |
 
 **Metadata Schema** (check it in the Preview Form):
 
