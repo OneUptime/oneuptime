@@ -27,6 +27,7 @@ import IncomingCallLog from "../../../../../Models/DatabaseModels/IncomingCallLo
 import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
 import IncomingCallPolicyEscalationRule from "../../../../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import Label from "../../../../../Models/DatabaseModels/Label";
+import MonitorGroup from "../../../../../Models/DatabaseModels/MonitorGroup";
 import MonitorGroupResource from "../../../../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorProbe from "../../../../../Models/DatabaseModels/MonitorProbe";
 import OnCallDutyPolicyEscalationRuleSchedule from "../../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
@@ -204,6 +205,17 @@ const PARTS_OF_A_KIND: Array<PartOfAKind> = [
     modelType: AlertEpisodeFeed,
     kind: AlertEpisode,
     fkColumn: "alertEpisodeId",
+  },
+  /*
+   * The monitors a group holds are the group's: they make the status a
+   * status page shows for it. Held to the group's owners, not to each
+   * monitor's - a member who may read another team's group cannot put a
+   * monitor of theirs in it, and the group's owners take out any monitor.
+   */
+  {
+    modelType: MonitorGroupResource,
+    kind: MonitorGroup,
+    fkColumn: "monitorGroupId",
   },
 ];
 

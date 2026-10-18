@@ -40,6 +40,8 @@ import IncomingCallPolicyEscalationRule from "../../../Models/DatabaseModels/Inc
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorOwnerTeam from "../../../Models/DatabaseModels/MonitorOwnerTeam";
 import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
+import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
+import MonitorGroupResource from "../../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorTest from "../../../Models/DatabaseModels/MonitorTest";
@@ -52,6 +54,8 @@ import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnn
 import StatusPageAnnouncementTemplate from "../../../Models/DatabaseModels/StatusPageAnnouncementTemplate";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../Types/Dictionary";
 import Exception from "../../../Types/Exception/Exception";
@@ -138,8 +142,13 @@ import { RelationMetadata } from "typeorm/metadata/RelationMetadata";
  *     owned ones as its monitors do.
  *   - The records that are part of a kind with owners - a schedule's layers,
  *     the people in them and its shared link, an incoming call policy's
- *     escalation rules and calls, an episode's notes and role members -
- *     keep to its owners.
+ *     escalation rules and calls, an episode's notes and role members, the
+ *     monitors a group holds - keep to its owners.
+ *   - A Runner is read by every reader of Runners, but its key - which lets
+ *     whoever holds it act as the Runner - only where the member or their
+ *     team own the Runner: left out of the others, not matched by a filter
+ *     or a search, not ordered by, and not filtered on through a Runner's
+ *     owners.
  *
  * Opt in with RUN_POSTGRES_OWNED_RECORDS_DELETE_TESTS=true against a
  * database the registered migrations have been applied to, e.g. from
@@ -266,6 +275,8 @@ const TABLES: Array<string> = [
   "IncomingCallLog",
   "IncidentEpisodeRoleMember",
   "IncidentEpisodeInternalNote",
+  // The monitors a group holds.
+  "MonitorGroupResource",
 ];
 
 interface PermissionRow {
@@ -445,6 +456,7 @@ describePostgres(
       IncomingCallLog,
       IncidentEpisodeRoleMember,
       IncidentEpisodeInternalNote,
+      MonitorGroupResource,
     ] as Array<{ new (): BaseModel }>) {
       partServices[modelType.name] = new DatabaseService(
         modelType,
@@ -5163,6 +5175,474 @@ describePostgres(
         expectDeleted(
           await deleteItem(pathOf(IncidentEpisodeRoleMember), member, myRole),
         );
+      });
+    });
+
+    /*
+     * A RUNNER'S KEY IS ITS IDENTITY. Every reader of Runners reads every
+     * Runner, so that a runbook step can pick one; but whoever presents a
+     * Runner's key is handed the work meant for it, with the runbook secrets
+     * and credentials that come with it. So a member who may read keys only
+     * through a grant scoped to Owned reads the key of the Runners they or
+     * their teams own, and of no other - however they ask.
+     */
+    describe("a Runner's key keeps to its owners, though every Runner is read", () => {
+      const KEY_REFUSAL: string =
+        "Your access lets you read the Agent Key only of the Runners you or your teams own, so you cannot sort or filter Runners by it.";
+
+      const insertRunner: (
+        owner: Owner,
+        key: string,
+      ) => Promise<ObjectID> = async (
+        owner: Owner,
+        key: string,
+      ): Promise<ObjectID> => {
+        return await insertOwned({
+          table: "Runner",
+          ownerUserTable: "RunnerOwnerUser",
+          ownerTeamTable: "RunnerOwnerTeam",
+          ownerColumn: "runnerId",
+          owner: owner,
+          row: { key: key },
+        });
+      };
+
+      // The Runners a list answers with, by id, and the key it read of each.
+      const listRunners: (data: {
+        caller: Caller;
+        query: Dictionary<unknown>;
+        sort?: Dictionary<unknown>;
+      }) => Promise<{
+        keys?: Dictionary<string | undefined>;
+        error?: unknown;
+      }> = async (data: {
+        caller: Caller;
+        query: Dictionary<unknown>;
+        sort?: Dictionary<unknown>;
+      }): Promise<{
+        keys?: Dictionary<string | undefined>;
+        error?: unknown;
+      }> => {
+        const outcome: Outcome = await send({
+          method: "post",
+          uri: "/runner/get-list",
+          caller: data.caller,
+          body: {
+            query: JSONFunctions.serialize(data.query as unknown as JSONObject),
+            select: { _id: true, name: true, key: true },
+            ...(data.sort ? { sort: data.sort as JSONObject } : {}),
+            limit: 50,
+          },
+        });
+
+        if (outcome.error) {
+          return { error: outcome.error };
+        }
+
+        const rows: Array<BaseModel> = jest.mocked(
+          Response.sendEntityArrayResponse,
+        ).mock.calls[0]![2] as Array<BaseModel>;
+
+        const keys: Dictionary<string | undefined> = {};
+
+        // A key left out of a row is read as no key at all.
+        for (const row of rows) {
+          keys[row.id!.toString()] =
+            (row.getColumnValue("key") as string | null) || undefined;
+        }
+
+        return { keys: keys };
+      };
+
+      const runnersOf: (ids: Array<ObjectID>) => Dictionary<unknown> = (
+        ids: Array<ObjectID>,
+      ): Dictionary<unknown> => {
+        return { _id: new Includes(ids) };
+      };
+
+      test.each([
+        {
+          grant: "Runbook Admin scoped to Owned",
+          rows: [
+            {
+              permission: Permission.RunbookAdmin,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        },
+        {
+          grant:
+            "Runbook Viewer over the whole project beside Runbook Admin scoped to Owned",
+          rows: [
+            {
+              permission: Permission.RunbookViewer,
+              scope: PermissionScope.All,
+            },
+            {
+              permission: Permission.RunbookAdmin,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        },
+      ] as Array<{ grant: string; rows: Array<PermissionRow> }>)(
+        "$grant: every Runner listed and read, the key only of their own",
+        async ({ rows }: { grant: string; rows: Array<PermissionRow> }) => {
+          await setGrants(rows);
+
+          // A key is unique across Runners.
+          const keyOf: (name: string) => string = (name: string): string => {
+            return `${name}-${ObjectID.generate().toString()}`;
+          };
+          const mineKey: string = keyOf("mine");
+          const oursKey: string = keyOf("ours");
+
+          const mine: ObjectID = await insertRunner("member", mineKey);
+          const ours: ObjectID = await insertRunner("memberTeam", oursKey);
+          const theirs: ObjectID = await insertRunner(
+            "otherTeam",
+            keyOf("theirs"),
+          );
+          const nobodys: ObjectID = await insertRunner(
+            "nobody",
+            keyOf("nobody"),
+          );
+
+          expect(
+            (
+              await listRunners({
+                caller: member,
+                query: runnersOf([mine, ours, theirs, nobodys]),
+              })
+            ).keys,
+          ).toEqual({
+            [mine.toString()]: mineKey,
+            [ours.toString()]: oursKey,
+            [theirs.toString()]: undefined,
+            [nobodys.toString()]: undefined,
+          });
+
+          // One by one: the Runner is read, its key only when it is theirs.
+          for (const [id, key] of [
+            [mine, mineKey],
+            [theirs, undefined],
+          ] as Array<[ObjectID, string | undefined]>) {
+            const outcome: Outcome = await send({
+              method: "post",
+              uri: "/runner/:id/get-item",
+              caller: member,
+              id: id,
+              body: { select: { _id: true, name: true, key: true } },
+            });
+
+            expect(outcome.error).toBeUndefined();
+            expect(outcome.item?.id?.toString()).toBe(id.toString());
+            expect(outcome.item?.getColumnValue("name")).toBeTruthy();
+            expect(outcome.item?.getColumnValue("key") || undefined).toBe(key);
+          }
+        },
+      );
+
+      test("Runbook Admin scoped to Owned: a filter or a search on the key finds only their own Runners, and Runners are not ordered by it", async () => {
+        await setGrants([
+          { permission: Permission.RunbookAdmin, scope: PermissionScope.Owned },
+        ]);
+
+        const mine: ObjectID = await insertRunner("member", "match-mine");
+        const theirs: ObjectID = await insertRunner(
+          "otherTeam",
+          "match-theirs",
+        );
+        const all: Array<ObjectID> = [mine, theirs];
+
+        // By the key itself: another team's is never matched.
+        expect(
+          (
+            await listRunners({
+              caller: member,
+              query: { ...runnersOf(all), key: "match-theirs" },
+            })
+          ).keys,
+        ).toEqual({});
+        expect(
+          (
+            await listRunners({
+              caller: member,
+              query: { ...runnersOf(all), key: "match-mine" },
+            })
+          ).keys,
+        ).toEqual({ [mine.toString()]: "match-mine" });
+
+        // By a free-text search that reads the key.
+        expect(
+          (
+            await listRunners({
+              caller: member,
+              query: {
+                ...runnersOf(all),
+                search: new MultiSearch({
+                  value: "match-",
+                  fields: ["name", "key"],
+                }),
+              },
+            })
+          ).keys,
+        ).toEqual({ [mine.toString()]: "match-mine" });
+
+        // Ordered by the key: refused, as a read of every key one guess at a time.
+        const sorted: { error?: unknown } = await listRunners({
+          caller: member,
+          query: runnersOf(all),
+          sort: { key: SortOrder.Ascending },
+        });
+
+        expect(sorted.error).toBeInstanceOf(NotAuthorizedException);
+        expect((sorted.error as Error).message).toBe(KEY_REFUSAL);
+
+        // Ordered by anything else, every Runner is listed.
+        expect(
+          Object.keys(
+            (
+              await listRunners({
+                caller: member,
+                query: runnersOf(all),
+                sort: { name: SortOrder.Ascending },
+              })
+            ).keys || {},
+          ).sort(),
+        ).toEqual(idsOf(all));
+
+        // A Runner's owners, matched by the key of the Runner they own: refused.
+        const byOwners: Outcome = await send({
+          method: "post",
+          uri: "/runner-owner-user/get-list",
+          caller: member,
+          body: {
+            query: JSONFunctions.serialize({
+              runner: { key: "match-theirs" },
+            } as unknown as JSONObject),
+            select: { _id: true },
+            limit: 50,
+          },
+        });
+
+        expect(byOwners.error).toBeInstanceOf(NotAuthorizedException);
+        expect((byOwners.error as Error).message).toBe(KEY_REFUSAL);
+      });
+
+      test("Runbook Admin over the whole project, and an API key: every Runner's key, filtered and ordered by it as before", async () => {
+        await setGrants([
+          { permission: Permission.RunbookAdmin, scope: PermissionScope.All },
+        ]);
+
+        const mine: ObjectID = await insertRunner("member", "wide-mine");
+        const theirs: ObjectID = await insertRunner("otherTeam", "wide-theirs");
+        const apiKey: ObjectID = await createApiKey([Permission.RunbookAdmin]);
+
+        for (const caller of [
+          member,
+          { kind: "apiKey", apiKey: apiKey } as Caller,
+        ]) {
+          expect(
+            (
+              await listRunners({
+                caller: caller,
+                query: runnersOf([mine, theirs]),
+                sort: { key: SortOrder.Ascending },
+              })
+            ).keys,
+          ).toEqual({
+            [mine.toString()]: "wide-mine",
+            [theirs.toString()]: "wide-theirs",
+          });
+
+          expect(
+            (
+              await listRunners({
+                caller: caller,
+                query: { ...runnersOf([mine, theirs]), key: "wide-theirs" },
+              })
+            ).keys,
+          ).toEqual({ [theirs.toString()]: "wide-theirs" });
+        }
+      });
+    });
+
+    /*
+     * THE MONITORS A GROUP HOLDS ARE THE GROUP'S. They make the status a
+     * status page shows for it, and nothing in a group changes the monitors
+     * it holds, so a group's members are held to the group's owners: a
+     * member whose permission to add monitors to groups is scoped to Owned
+     * adds them to, and takes them out of, the groups they or their teams
+     * own - any monitor they may read - and no other group, however many
+     * groups they may read.
+     */
+    describe("the monitors a group holds keep to the group's owners", () => {
+      const insertGroup: (owner: Owner) => Promise<ObjectID> = async (
+        owner: Owner,
+      ): Promise<ObjectID> => {
+        return await insertOwned({
+          table: "MonitorGroup",
+          ownerUserTable: "MonitorGroupOwnerUser",
+          ownerTeamTable: "MonitorGroupOwnerTeam",
+          ownerColumn: "monitorGroupId",
+          owner: owner,
+        });
+      };
+
+      // A monitor in a group, as a project admin would have put it there.
+      const insertMembership: (
+        groupId: ObjectID,
+        monitorId: ObjectID,
+      ) => Promise<ObjectID> = async (
+        groupId: ObjectID,
+        monitorId: ObjectID,
+      ): Promise<ObjectID> => {
+        const id: ObjectID = ObjectID.generate();
+
+        await insertAnyRow("MonitorGroupResource", {
+          _id: id,
+          projectId: projectId,
+          monitorGroupId: groupId,
+          monitorId: monitorId,
+          version: 1,
+        });
+
+        return id;
+      };
+
+      const membershipsOf: (
+        groupId: ObjectID,
+      ) => Promise<Array<string>> = async (
+        groupId: ObjectID,
+      ): Promise<Array<string>> => {
+        const rows: Array<{ monitorId: string }> = await database.query(
+          `SELECT "monitorId" FROM "${schema}"."MonitorGroupResource" WHERE "monitorGroupId" = $1 AND "deletedAt" IS NULL ORDER BY "monitorId"`,
+          [groupId.toString()],
+        );
+
+        return rows.map((row: { monitorId: string }): string => {
+          return row.monitorId;
+        });
+      };
+
+      const PATH: string = "/monitor-group-resource";
+
+      test("Monitor Viewer over the whole project beside Monitor Admin scoped to Owned: a monitor of theirs is not put in another team's group, and their own group's owners take out any monitor", async () => {
+        await setGrants([
+          { permission: Permission.MonitorViewer, scope: PermissionScope.All },
+          { permission: Permission.MonitorAdmin, scope: PermissionScope.Owned },
+        ]);
+
+        const myGroup: ObjectID = await insertGroup("member");
+        const theirGroup: ObjectID = await insertGroup("otherTeam");
+        const myMonitor: ObjectID = await insertMonitor("member");
+        const theirMonitor: ObjectID = await insertMonitor("otherTeam");
+
+        // Another team's group, which they read: no monitor of theirs goes in.
+        expectPartCreateRefused(
+          await createThrough({
+            caller: member,
+            path: PATH,
+            row: { monitorGroupId: theirGroup, monitorId: myMonitor },
+          }),
+          MonitorGroupResource,
+          MonitorGroup,
+        );
+        expect(await membershipsOf(theirGroup)).toEqual([]);
+
+        // Their own group holds any monitor they read - another team's too.
+        for (const monitorId of [myMonitor, theirMonitor]) {
+          expect(
+            (
+              await createThrough({
+                caller: member,
+                path: PATH,
+                row: { monitorGroupId: myGroup, monitorId: monitorId },
+              })
+            ).error,
+          ).toBeUndefined();
+        }
+        expect(await membershipsOf(myGroup)).toEqual(
+          idsOf([myMonitor, theirMonitor]),
+        );
+
+        // A monitor of theirs someone put in another team's group stays there.
+        const inTheirs: ObjectID = await insertMembership(
+          theirGroup,
+          myMonitor,
+        );
+
+        expectReadableNotWritten(
+          await deleteItem(PATH, member, inTheirs),
+          "Monitor Group Resource",
+          "delete",
+        );
+        expect(await membershipsOf(theirGroup)).toEqual(idsOf([myMonitor]));
+
+        // Another team's monitor put in their group: theirs to take out.
+        const intruder: ObjectID = await insertGroup("member");
+        const placed: ObjectID = await insertMembership(intruder, theirMonitor);
+
+        expectDeleted(await deleteItem(PATH, member, placed));
+        expect(await membershipsOf(intruder)).toEqual([]);
+      });
+
+      test("Monitor Admin scoped to Owned: every monitor in their own group is listed, and nothing of another team's group", async () => {
+        await setGrants([
+          { permission: Permission.MonitorAdmin, scope: PermissionScope.Owned },
+        ]);
+
+        const myGroup: ObjectID = await insertGroup("memberTeam");
+        const theirGroup: ObjectID = await insertGroup("otherTeam");
+        const myMonitor: ObjectID = await insertMonitor("member");
+        const theirMonitor: ObjectID = await insertMonitor("otherTeam");
+
+        const memberships: Array<ObjectID> = [
+          await insertMembership(myGroup, myMonitor),
+          await insertMembership(myGroup, theirMonitor),
+          await insertMembership(theirGroup, myMonitor),
+          await insertMembership(theirGroup, theirMonitor),
+        ];
+
+        expect(
+          (
+            await listThrough({
+              caller: member,
+              path: PATH,
+              ids: memberships,
+            })
+          ).ids,
+        ).toEqual(idsOf(memberships.slice(0, 2)));
+
+        // And a monitor of another team's group is not taken out of it.
+        expectMissing(
+          await deleteItem(PATH, member, memberships[2]!),
+          "Monitor Group Resource",
+        );
+        expect(await membershipsOf(theirGroup)).toEqual(
+          idsOf([myMonitor, theirMonitor]),
+        );
+      });
+
+      test("the same permissions over the whole project put any monitor in any group, and take any out", async () => {
+        await setGrants([
+          { permission: Permission.MonitorAdmin, scope: PermissionScope.All },
+        ]);
+
+        const theirGroup: ObjectID = await insertGroup("otherTeam");
+        const myMonitor: ObjectID = await insertMonitor("member");
+
+        const created: Outcome = await createThrough({
+          caller: member,
+          path: PATH,
+          row: { monitorGroupId: theirGroup, monitorId: myMonitor },
+        });
+
+        expect(created.error).toBeUndefined();
+        expect(await membershipsOf(theirGroup)).toEqual(idsOf([myMonitor]));
+
+        expectDeleted(await deleteItem(PATH, member, created.item!.id!));
+        expect(await membershipsOf(theirGroup)).toEqual([]);
       });
     });
 
