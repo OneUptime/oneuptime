@@ -15,7 +15,8 @@ const MetricsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <MetricsViewer />;
+  // The product page: an empty explorer offers the setup guide.
+  return <MetricsViewer offersSetupWhenEmpty={true} />;
 };
 
 export default MetricsPage;

@@ -47,6 +47,16 @@ export interface ComponentProps {
 
 type SloStatusSummaryCounts = Partial<Record<SloStatusSummaryTileKey, number>>;
 
+/*
+ * Every live SLO is counted by exactly one tile (the tiles share the list's
+ * status precedence), so the tiles add up to the live SLOs.
+ */
+export function hasAnySlo(counts: SloStatusSummaryCounts): boolean {
+  return Object.values(counts).some((count: number | undefined): boolean => {
+    return (count || 0) > 0;
+  });
+}
+
 /**
  * A row of counts above the SLO list: how many live SLOs are Healthy, At Risk,
  * Budget Exhausted, Misconfigured, Paused and Disabled. Clicking a tile filters
@@ -132,6 +142,16 @@ const SloStatusSummaryCards: FunctionComponent<ComponentProps> = (
   }, [props.projectId.toString(), props.refreshToken]);
 
   if (hasError) {
+    return <></>;
+  }
+
+  /*
+   * A project without a live SLO has nothing to count. Six zeros - Budget
+   * Exhausted, Misconfigured, Paused, each with what it means - sat above
+   * the empty list's one next step (Create SLO) before there was anything
+   * to be healthy or not. The strip shows once there is an SLO.
+   */
+  if (counts && !hasAnySlo(counts)) {
     return <></>;
   }
 

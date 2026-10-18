@@ -48,6 +48,21 @@ import {
 
 const EM_DASH: string = "—";
 
+/*
+ * Each card's dialog is titled like the button that opens it. All three
+ * said "Edit Service Level Objective" over the two or three fields of one
+ * card.
+ */
+const SLO_SETTINGS_DIALOG_TITLES: {
+  objective: string;
+  period: string;
+  downtime: string;
+} = {
+  objective: translationKey("Edit Objective"),
+  period: translationKey("Edit Period"),
+  downtime: translationKey("Edit Downtime Calculation"),
+};
+
 // Each mode's name (the enum value is its English name).
 const MULTI_MONITOR_MODE_NAMES: Record<SloMultiMonitorMode, string> = {
   [SloMultiMonitorMode.AnyDown]: translationKey("Any Monitor Down"),
@@ -193,6 +208,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText="Edit Objective"
+        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.objective}
         formFields={objectiveFormFields}
         onSaveSuccess={refreshBanner}
         modelDetailProps={{
@@ -278,6 +294,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText="Edit Period"
+        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.period}
         formFields={periodFormFields}
         onSaveSuccess={refreshBanner}
         modelDetailProps={{
@@ -349,6 +366,7 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText="Edit Downtime Calculation"
+        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.downtime}
         formFields={downtimeFormFields}
         onSaveSuccess={refreshBanner}
         modelDetailProps={{

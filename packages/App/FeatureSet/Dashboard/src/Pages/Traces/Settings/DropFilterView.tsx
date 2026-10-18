@@ -13,9 +13,11 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Navigation from "Common/UI/Utils/Navigation";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import FilterQueryBuilder from "../../../Components/FilterQueryBuilder/FilterQueryBuilder";
+import {
+  DROP_FILTER_EDIT_ACTION_TITLE,
+  getTraceDropFilterActionFields,
+} from "../../../Components/Telemetry/DropFilterForm";
 import TraceFilterConfig from "../../../Components/FilterQueryBuilder/TraceFilterConfig";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import TraceDropFilterAction from "Common/Types/Trace/TraceDropFilterAction";
 import {
   isSamplePercentageConfigured,
   MAX_SAMPLE_PERCENTAGE,
@@ -99,44 +101,13 @@ const TraceDropFilterView: FunctionComponent<PageComponentProps> = (
             "Choose whether to drop all matching spans or keep a sample.",
         }}
         isEditable={true}
-        formFields={[
-          {
-            field: { action: true },
-            title: "Action",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: [
-              {
-                label: "Drop — Discard all matching spans",
-                value: "drop",
-              },
-              {
-                label: "Sample — Keep a percentage of matching spans",
-                value: "sample",
-              },
-            ],
-          },
-          {
-            field: { samplePercentage: true },
-            title: "Sample Percentage",
-            fieldType: FormFieldSchemaType.Number,
-            /*
-             * Required only while the Sample action is selected. Saving a
-             * sample filter with no percentage used to be allowed, and the
-             * engine read the blank as "throw away half".
-             */
-            required: (values: FormValues<TraceDropFilter>): boolean => {
-              return values.action === TraceDropFilterAction.Sample;
-            },
-            validation: {
-              minValue: MIN_SAMPLE_PERCENTAGE,
-              maxValue: MAX_SAMPLE_PERCENTAGE,
-            },
-            description:
-              "Required when Action is Sample. Percentage of matching spans to keep, between 1 and 99 (e.g. 10 = keep 10%, discard 90%).",
-            placeholder: "e.g. 10",
-          },
-        ]}
+        editButtonText={DROP_FILTER_EDIT_ACTION_TITLE}
+        editModalTitle={DROP_FILTER_EDIT_ACTION_TITLE}
+        /*
+         * The create form's Action fields (DropFilterForm): Drop or Sample,
+         * each with its line, and the percentage only for Sample.
+         */
+        formFields={getTraceDropFilterActionFields()}
         modelDetailProps={{
           modelType: TraceDropFilter,
           id: "model-detail-trace-drop-filter-action",

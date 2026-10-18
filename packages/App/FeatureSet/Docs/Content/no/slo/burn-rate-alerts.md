@@ -79,7 +79,7 @@ Du trenger tillatelse til å opprette SLO-forbruksrateregler.
 
 ### Gi regelen et navn
 
-Under **Rule** skriver du inn et **Navn**, som «Fast burn». **Aktivert** er slått på.
+Under **Rule** skriver du inn et **Navn**, som «Fast burn». En ny regel er slått på; vil du senere hindre den i å utløses, slår du av **Aktivert** i redigeringsskjemaet.
 
 ### Angi forbruksvinduet
 
@@ -87,7 +87,7 @@ Under **Burn Window** angir du **Burn Rate Threshold** (for eksempel `14.4`), **
 
 ### Velg hva den erklærer
 
-Under **What It Declares** slår du på **Opprett varsel**, **Erklær hendelse** eller begge. **Add SLO Owners as Owners** gjør også eierne av SLO-et til eiere av alt regelen oppretter.
+Under **What It Declares** svarer du på **Når den utløses**: **Opprett et varsel**, standardvalget, **Erklær en hendelse** eller **Begge**. **Add SLO Owners as Owners** gjør også eierne av SLO-et til eiere av alt regelen oppretter.
 
 ### Beskriv varselet og hendelsen
 
@@ -103,18 +103,18 @@ OneUptime sjekker tallene til en regel når du lagrer den:
 | **Long Window (Minutes)** | Lengre enn det korte vinduet. |
 | **Re-fire Suppression (Minutes)** | 0 eller mer. Tom betyr lengden på det lange vinduet. |
 
-En regel må opprette et varsel, erklære en hendelse eller begge: en regel med begge slått av avvises, fordi den ville blitt sjekket ved hver evaluering uten noen gang å erklære noe.
+Hvert svar på **Når den utløses** åpner noe. API-et avviser en regel som verken ville opprettet et varsel eller erklært en hendelse, fordi den ville blitt sjekket ved hver evaluering uten noen gang å erklære noe.
 
 Regeltabellen viser for hver regel terskelen, vinduene og undertrykkingen, hva den erklærer (og om varselet eller hendelsen bare løses for hånd, eller er privat), alvorsgradene, vaktpolicyene, eierne og etikettene.
 
 > [!TIP]
-> Et godt utgangspunkt: behold de to standardreglene, send regelen for raskt forbruk til vaktpolicyen som tilkaller folk, med høy alvorsgrad, og la regelen for sakte forbruk utløse et varsel med lavere alvorsgrad for arbeidstiden. Jobber teamet ditt med hendelser, slår du på **Erklær hendelse** på regelen for raskt forbruk, og slår av **Opprett varsel** der hvis du helst ikke vil få begge.
+> Et godt utgangspunkt: behold de to standardreglene, send regelen for raskt forbruk til vaktpolicyen som tilkaller folk, med høy alvorsgrad, og la regelen for sakte forbruk utløse et varsel med lavere alvorsgrad for arbeidstiden. Jobber teamet ditt med hendelser, velger du **Erklær en hendelse** for regelen for raskt forbruk, eller **Begge** for også å få et varsel.
 
 ## Hva en regel erklærer
 
-|  | **Opprett varsel** | **Erklær hendelse** |
+|  | **Varsel** | **Hendelse** |
 | --- | --- | --- |
-| Fra start | På | Av |
+| Åpnes av | **Opprett et varsel**, standardvalget, eller **Begge** | **Erklær en hendelse** eller **Begge** |
 | Hva det er | Det lette signalet: havner i listen over varsler. | Det tunge signalet: får et hendelsesnummer og starter hele responsforløpet. |
 | Tittel og beskrivelse | Egne, eller standardteksten | Egne, eller standardteksten |
 | Alvorsgrad | **Varselsalvor**: prosjektets høyeste hvis tom | **Hendelsesalvor**: prosjektets høyeste hvis tom |
@@ -195,7 +195,7 @@ Etiketter, eierteam og vaktpolicyer må høre til prosjektet til SLO-et.
 
 Noen endringer løser alltid det en regel har åpnet, uansett hva innstillingene for automatisk løsning sier, så ingenting fortsetter å eskalere for en regel som ikke lenger kan begrunne det:
 
-- å slå av **Opprett varsel** eller **Erklær hendelse** lukker det den utgangen hadde åpnet;
+- å endre **Når den utløses** slik at varselet eller hendelsen utelates, lukker det den utgangen hadde åpnet;
 - å slå av regelen eller slette den;
 - å slå av evalueringen av SLO-et, arkivere SLO-et eller slette det;
 - at SLO-et går over til **Pauset** eller **Misconfigured**, fordi det da ikke måler noe;

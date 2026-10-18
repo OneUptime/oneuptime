@@ -229,7 +229,9 @@ needs it. Record each one in [History](#history).
 | Microsoft offer, plan, extension type, bundle    | Partner Center; the bundle's repository is the one `cpa buildbundle` pushes to (check after the first run) | `editions.json`, `azure.offerId`, `planId`, `clusterExtensionType`, `resourceGroup`, `bundleRepository`                                                                                                                                                                            |
 | Ready                                            | Every value of the edition above is the portal's real one                                                  | `editions.json`, `"ready": true` for that edition. Until then the workflow pushes and submits nothing to that marketplace                                                                                                                                                          |
 
-The values in `editions.json` today are placeholders, and no edition is ready.
+The AWS and Microsoft values in `editions.json` are the real ones, and both
+editions are ready. Google Cloud's service name waits for its Producer Portal
+product.
 
 ### AWS Marketplace: container product
 
@@ -768,11 +770,10 @@ charge you believe is wrong; we review every request.
 ```
 
 **Dimension / meter / metric (all three):** ID `users`; display name "Users";
-description:
+description (AWS takes at most 90 characters):
 
 ```text
-OneUptime users (everyone with a OneUptime login), billed per user for every
-hour the installation runs. Status page subscribers are not billed.
+Each OneUptime user (anyone with a login), per hour. Status page subscribers are free.
 ```
 
 ## Operating it
@@ -831,10 +832,8 @@ cost a review round.
 
 ## Known gaps
 
-- `AWS_SELF_HOSTED_PRODUCT_CODES` is empty until AWS issues the product code,
-  so the AWS edition cannot bill (or be licensed) before then.
-- The values in `editions.json` are placeholders until each portal shows the
-  real ones.
+- Google Cloud's values in `editions.json` are placeholders until Producer
+  Portal has the product.
 - **Google Cloud deployments have no upgrade path yet.** Google Cloud
   Marketplace never updates a deployed app, and a deployer-based app has no
   upgrade button: Google asks sellers to document the upgrade steps, and the
@@ -843,14 +842,13 @@ cost a review round.
   Google listing goes live.
 - **Google's version is added by hand** in Producer Portal: Google has no API
   for it. The workflow pushes everything and writes what to add.
-- **The automation has not met the real listings yet.** The Partner Center
-  requests (a preview API) and `azure.bundleRepository` follow Microsoft's
-  documentation, and the AWS change set follows the Catalog API's: check the
-  first real run of each, and correct `editions.json` or the scripts there.
-  The same goes for the checks of what each marketplace has: AWS's reads the
-  product's `Versions` as AWS's published shapes describe them, and
-  Microsoft's reads the preview's technical configuration
-  (`targetType=preview`).
+- **The automation has met the real listings only in part.** Checked against
+  them on 2026-10-18: AWS's product description (a draft lists a placeholder
+  version), and what Partner Center answers: it spells `externalId` and
+  `jobId`, and answers 400 ("has no published submission"), not 404, for a
+  target the offer was never published to. Not yet: AWS's version change set,
+  and Microsoft's configure request and `azure.bundleRepository`, until their
+  first real run.
 - `mpdev verify` does not run in the workflow (it needs a GKE cluster); run it
   by hand before submitting a Google version when it matters.
 - Microsoft and Google editions install on `linux/amd64` nodes only.
@@ -867,6 +865,12 @@ rejection, go-live and price change.
 | 2026-10-17 | All three   | The Marketplace Release workflow and the one-time CI setup added; nothing set up yet                | Agent      |
 | 2026-10-18 | All three   | The workflow ships weekly and skips what a marketplace has; the registries keep 3 releases by count | Agent      |
 | 2026-10-18 | All three   | The editions turn off OneUptime's update check: buyers upgrade through their marketplace            | Agent      |
+| 2026-10-18 | AWS         | Container product prod-5ijwaqpun3coo, code c8qvytt92i74r7bhzi6nxunsi, created as a draft (API)      | Agent      |
+| 2026-10-18 | AWS         | Offer offer-nazez256wqin4 drafted: Standard EULA, Cloud's refund policy, `users` at USD 0.01        | Agent      |
+| 2026-10-18 | Microsoft   | Offer `oneuptime-enterprise` drafted (API): plan `enterprise`, `users` at USD 0.10, Cloud's terms   | Agent      |
+| 2026-10-18 | Microsoft   | Registry `oneuptimemarketplace` (Basic, daily purge); the release app is a Partner Center Manager   | Agent      |
+| 2026-10-18 | Google      | Artifact Registry `oneuptime` (us, keeps 3 releases), the release service account and Workload ID   | Agent      |
+| 2026-10-18 | GitHub      | Release environments (reviewers simlarsen, nawazdhandala) and variables; releases not enabled yet   | Agent      |
 
 ## Notes for agents driving the browser
 
