@@ -89,9 +89,9 @@ Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid, en 
 
 ### Ernstniveaus
 
-Het sjabloon wijst de zes ernstniveaus van Zabbix toe aan je incidenternstniveaus, van ernstigst naar beneden:
+In een nieuw project wijst het sjabloon de zes ernstniveaus van Zabbix toe aan deze incident- en waarschuwingsernstniveaus:
 
-| Zabbix-ernst | Incidenternst (nieuw project) | Waarschuwingsernst (nieuw project) | Dienst |
+| Zabbix-ernst | Incident | Waarschuwing | Dienst |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Opgeroepen |
 | High | Critical Incident | High | Opgeroepen |

@@ -89,9 +89,9 @@ Alt annet, for eksempel en forespørsel fra et annet verktøy, blir stående, og
 
 ### Alvorlighetsgrader
 
-Malen knytter Zabbix sine seks alvorlighetsgrader til hendelsesalvorlighetsgradene dine, fra den mest alvorlige og nedover:
+I et nytt prosjekt knytter malen Zabbix sine seks alvorlighetsgrader til disse alvorlighetsgradene for hendelser og varsler:
 
-| Zabbix-alvorlighetsgrad | Hendelsens alvorlighetsgrad (nytt prosjekt) | Varselets alvorlighetsgrad (nytt prosjekt) | Vakt |
+| Zabbix-alvorlighetsgrad | Hendelse | Varsel | Vakt |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Varslet |
 | High | Critical Incident | High | Varslet |

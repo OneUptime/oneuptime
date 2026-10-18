@@ -89,9 +89,9 @@ Todo o resto, como uma requisição de outra ferramenta, é deixado como está, 
 
 ### Gravidades
 
-O modelo mapeia as seis gravidades do Zabbix nas suas gravidades de incidente, da mais grave para baixo:
+Em um projeto novo, o modelo mapeia as seis gravidades do Zabbix nestas gravidades de incidente e de alerta:
 
-| Gravidade do Zabbix | Gravidade de incidente (projeto novo) | Gravidade de alerta (projeto novo) | Plantão |
+| Gravidade do Zabbix | Incidente | Alerta | Plantão |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Chamado |
 | High | Critical Incident | High | Chamado |

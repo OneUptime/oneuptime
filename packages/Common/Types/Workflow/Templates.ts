@@ -7818,7 +7818,7 @@ const zabbixUrlVariable: ZabbixUrlVariableFunction = (
   return {
     name: "zabbixUrl",
     title: "Zabbix URL",
-    description: `The address you open Zabbix at, such as https://zabbix.example.com, or https://example.com/zabbix when it runs under a path. ${usedFor}`,
+    description: `The address you open Zabbix at, such as https://zabbix.example.com or https://example.com/zabbix. ${usedFor}`,
     placeholder: "https://zabbix.example.com",
     required: true,
     isSecret: false,
@@ -7839,7 +7839,7 @@ const ZABBIX_API_TOKEN: WorkflowTemplateVariable = {
   name: "zabbixApiToken",
   title: "Zabbix API Token",
   description:
-    "An API token of the Zabbix user the workflow acts as, from Users → API tokens in Zabbix. The user's role needs access to the API and to acknowledging, commenting on and closing problems.",
+    "Create one in Zabbix under Users → API tokens, for a user whose role has API access and may acknowledge, comment on and close problems.",
   placeholder:
     "0424bd59b807674191e7d77572075f33a3f1c0d2b4e6f8091a2b3c4d5e6f7a8b",
   required: true,
@@ -7847,7 +7847,7 @@ const ZABBIX_API_TOKEN: WorkflowTemplateVariable = {
   format: {
     pattern: ZABBIX_API_TOKEN_PATTERN,
     message:
-      "Enter the API token Zabbix showed when it was created: 64 characters, the digits 0 to 9 and the letters a to f.",
+      "Paste the 64-character API token Zabbix showed when you created it.",
   },
 };
 
@@ -8204,7 +8204,7 @@ if (!eventId) return skip(number + ' was not ${kind.created} for a Zabbix proble
 const state = record.${kind.stateRelation} || {};
 const wanted = state.isResolvedState === true ? 'close' : state.isAcknowledgedState === true ? 'acknowledge' : '';
 if (!wanted) {
-  return skip(number + ' moved to ' + (oneLine(state.name) || 'a new state') + ', which means nothing in Zabbix.');
+  return skip(number + ' moved to ' + (oneLine(state.name) || 'a new state') + ': only acknowledging or resolving the ${r} updates Zabbix.');
 }
 
 return { proceed: true, eventId: eventId, wanted: wanted, number: defuse(number) };
@@ -8376,6 +8376,31 @@ const zabbixPageArgs: ZabbixPageArgsFunction = (
   };
 };
 
+/*
+ * WHERE THE ZABBIX STEPS SIT ON THE CANVAS.
+ *
+ * On a grid, so that no card lies on another and every connection has room
+ * to turn between two cards. Rows are ZABBIX_CANVAS_ROW apart: the tallest
+ * card these steps draw is 192 px (a title on two lines), and a connection
+ * turns 20 px under the card it leaves. A Page step is drawn taller, 218 px,
+ * until someone picks who it pages - which is how the template leaves it -
+ * so what follows it is ZABBIX_CANVAS_PAGE_ROW further down. A path's steps
+ * run straight down one column; what ends a path early - a failure, a skip,
+ * the No of an If / Else - sits one slot (ZABBIX_CANVAS_SLOT) to the right,
+ * a row below the step it comes from, which is where that step's right-hand
+ * output leads.
+ */
+const ZABBIX_CANVAS_ROW: number = 220;
+const ZABBIX_CANVAS_PAGE_ROW: number = 260;
+const ZABBIX_CANVAS_SLOT: number = 300;
+
+type ZabbixCanvasRowFunction = (row: number) => number;
+
+// The top of a row: the trigger's is 100, as in every template.
+const zabbixCanvasRow: ZabbixCanvasRowFunction = (row: number): number => {
+  return 100 + row * ZABBIX_CANVAS_ROW;
+};
+
 /* ----------------------- Zabbix -> OneUptime ----------------------- */
 
 type ZabbixRecordReferenceFunction = (componentId: string) => string;
@@ -8431,6 +8456,22 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
       args: { value: value },
     });
   };
+
+  /*
+   * Where each step sits (ZABBIX_CANVAS_ROW): the trigger, the read and the
+   * Switch / Case in one column at the top, then a column per path under
+   * the Switch / Case's outputs, left to right as they are - problem,
+   * recovery, update - with what is ignored at the top right.
+   *
+   * The recovery column starts right under its output, and the update
+   * column one row lower than the problem column, so that no two of the
+   * Switch / Case's connections run along the same line: the problem's and
+   * what is ignored turn above the first row, the update's below it, where
+   * nothing is in its way.
+   */
+  const P: number = -640;
+  const R: number = 0;
+  const U: number = 640;
 
   const numberOf: ZabbixRecordReferenceFunction = (
     componentId: string,
@@ -8539,7 +8580,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "find-severities-1",
     metadataId: `${r}-severity-find-many`,
     componentType: ComponentType.Component,
-    position: { x: 100, y: 300 },
+    position: { x: 100, y: zabbixCanvasRow(1) },
     args: {
       // Every row. Query cannot be left empty, so it asks for any id.
       query: { _id: { _type: "NotNull", value: null } },
@@ -8551,7 +8592,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
 
   log(
     "log-severities-failed",
-    { x: 450, y: 500 },
+    { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
     `❌ Could not read this project's ${r} severities, so nothing Zabbix sent was read. Why is in the run log above.`,
   );
   connect("find-severities-1", "error", "log-severities-failed");
@@ -8560,7 +8601,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "read-event-1",
     metadataId: ComponentID.JavaScriptCode,
     componentType: ComponentType.Component,
-    position: { x: 100, y: 500 },
+    position: { x: 100, y: zabbixCanvasRow(2) },
     args: {
       code: zabbixReadEventScript(kind),
       /*
@@ -8580,7 +8621,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
 
   log(
     "log-read-failed",
-    { x: 650, y: 700 },
+    { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
     "❌ Could not read what Zabbix sent: {{local.components.read-event-1.returnValues.error}}",
   );
   connect("read-event-1", "error", "log-read-failed");
@@ -8594,8 +8635,9 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
      * (Workflow/PortLayout): 288px. read-event-1 leads into it from its
      * Success output, a quarter across that card (x 164), so it starts at
      * 20 and the connection runs straight down into the middle of it.
+     * Its recovery output is then right above the recovery column.
      */
-    position: { x: 20, y: 700 },
+    position: { x: 20, y: zabbixCanvasRow(3) },
     args: {
       value: zabbixEventValue("kind"),
       cases: [
@@ -8622,19 +8664,25 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
   });
   connect("read-event-1", "success", "switch-1");
 
-  // Default: a request that is not a Zabbix event, or not one of the three.
-  log("log-ignored", { x: 1900, y: 940 }, `ℹ️ ${zabbixEventValue("reason")}`);
+  /*
+   * Default: a request that is not a Zabbix event, or not one of the three.
+   * Above the update column and to the right of where its connection comes
+   * down, so the two never share a line.
+   */
+  log(
+    "log-ignored",
+    { x: U + 160, y: zabbixCanvasRow(4) },
+    `ℹ️ ${zabbixEventValue("reason")}`,
+  );
   connect("switch-1", SWITCH_DEFAULT_PORT_ID, "log-ignored");
 
   /* ---- problem: declare the record, unless the problem has one, and page ---- */
-
-  const P: number = -1100;
 
   addNode({
     componentId: `find-${r}-0`,
     metadataId: `${r}-find-one`,
     componentType: ComponentType.Component,
-    position: { x: P, y: 940 },
+    position: { x: P, y: zabbixCanvasRow(4) },
     args: findRecordArgs,
   });
   connect("switch-1", "case-1", `find-${r}-0`);
@@ -8646,7 +8694,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
    */
   log(
     "log-lookup-failed",
-    { x: P + 300, y: 1140 },
+    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
     `⚠️ Could not check whether ${ZABBIX_PROBLEM} has an ${r} already, so a new one is ${kind.created}. Why the check failed is in the run log above.`,
   );
   connect(`find-${r}-0`, "error", "log-lookup-failed");
@@ -8655,7 +8703,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "if-found-0",
     metadataId: ComponentID.IfElse,
     componentType: ComponentType.Component,
-    position: { x: P, y: 1140 },
+    position: { x: P, y: zabbixCanvasRow(5) },
     args: foundCondition(`find-${r}-0`),
   });
   connect(`find-${r}-0`, "success", "if-found-0");
@@ -8663,7 +8711,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
   // Yes is the If / Else's left output, so the step it leads to is on the left.
   log(
     "log-already-open",
-    { x: P - 300, y: 1340 },
+    { x: P - ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
     `ℹ️ ${ZABBIX_PROBLEM} has an ${r} already, ${numberOf(`find-${r}-0`)}, so no other was ${kind.created}.`,
   );
   connect("if-found-0", "yes", "log-already-open");
@@ -8672,7 +8720,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: `create-${r}-1`,
     metadataId: `${r}-create-one`,
     componentType: ComponentType.Component,
-    position: { x: P, y: 1340 },
+    position: { x: P, y: zabbixCanvasRow(6) },
     args: {
       /*
        * The problem's event ID in customFields is what the recovery and
@@ -8696,7 +8744,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
 
   log(
     "log-create-failed",
-    { x: P + 300, y: 1540 },
+    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
     `❌ Could not ${kind.create} an ${r} for ${ZABBIX_PROBLEM}. Why is in the run log above.`,
   );
   connect(`create-${r}-1`, "error", "log-create-failed");
@@ -8705,7 +8753,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "if-page-1",
     metadataId: ComponentID.IfElse,
     componentType: ComponentType.Component,
-    position: { x: P, y: 1540 },
+    position: { x: P, y: zabbixCanvasRow(7) },
     args: {
       "input-1-type": ConditionValueType.Number,
       "input-1": zabbixEventValue("severityNumber"),
@@ -8720,7 +8768,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "page-on-call-policy-1",
     metadataId: ComponentID.PageOnCallPolicy,
     componentType: ComponentType.Component,
-    position: { x: P - 150, y: 1740 },
+    position: { x: P, y: zabbixCanvasRow(8) },
     args: zabbixPageArgs(
       kind,
       `{{local.components.create-${r}-1.returnValues.model._id}}`,
@@ -8730,41 +8778,42 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
 
   log(
     "log-not-paged",
-    { x: P + 150, y: 1740 },
+    { x: P + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
     `ℹ️ ${kind.Created} an ${r} at ${zabbixEventValue("severityName")} for ${ZABBIX_PROBLEM}. It is ${zabbixEventValue("zabbixSeverity")} in Zabbix, so nobody was paged.`,
   );
   connect("if-page-1", "no", "log-not-paged");
 
   log(
     "log-paged",
-    { x: P - 300, y: 1940 },
+    { x: P, y: zabbixCanvasRow(8) + ZABBIX_CANVAS_PAGE_ROW },
     `📟 ${kind.Created} an ${r} at ${zabbixEventValue("severityName")} for ${ZABBIX_PROBLEM}. {{local.components.page-on-call-policy-1.returnValues.summary}}`,
   );
   connect("page-on-call-policy-1", PAGE_SUCCESS_PORT_ID, "log-paged");
 
   log(
     "log-nobody-paged",
-    { x: P, y: 1940 },
+    {
+      x: P + ZABBIX_CANVAS_SLOT,
+      y: zabbixCanvasRow(8) + ZABBIX_CANVAS_PAGE_ROW,
+    },
     `❌ ${kind.Created} an ${r} for ${ZABBIX_PROBLEM}, but nobody was paged: {{local.components.page-on-call-policy-1.returnValues.error}}`,
   );
   connect("page-on-call-policy-1", PAGE_ERROR_PORT_ID, "log-nobody-paged");
 
   /* ---- recovery: resolve the problem's record ---- */
 
-  const R: number = 0;
-
   addNode({
     componentId: `find-${r}-1`,
     metadataId: `${r}-find-one`,
     componentType: ComponentType.Component,
-    position: { x: R, y: 940 },
+    position: { x: R, y: zabbixCanvasRow(5) },
     args: findRecordArgs,
   });
   connect("switch-1", "case-2", `find-${r}-1`);
 
   log(
     "log-find-failed-1",
-    { x: R + 300, y: 1140 },
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
     `❌ Could not look for the ${r} of ${ZABBIX_PROBLEM}, so it was not resolved. Why is in the run log above.`,
   );
   connect(`find-${r}-1`, "error", "log-find-failed-1");
@@ -8773,7 +8822,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "if-found-1",
     metadataId: ComponentID.IfElse,
     componentType: ComponentType.Component,
-    position: { x: R, y: 1140 },
+    position: { x: R, y: zabbixCanvasRow(6) },
     args: foundCondition(`find-${r}-1`),
   });
   connect(`find-${r}-1`, "success", "if-found-1");
@@ -8782,21 +8831,21 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "find-states-1",
     metadataId: `${r}-state-find-many`,
     componentType: ComponentType.Component,
-    position: { x: R - 150, y: 1340 },
+    position: { x: R, y: zabbixCanvasRow(7) },
     args: findStatesArgs,
   });
   connect("if-found-1", "yes", "find-states-1");
 
   log(
     `log-no-${r}-1`,
-    { x: R + 150, y: 1340 },
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
     `ℹ️ ${ZABBIX_PROBLEM} has no ${r}, so its recovery changed nothing.`,
   );
   connect("if-found-1", "no", `log-no-${r}-1`);
 
   log(
     "log-states-failed-1",
-    { x: R + 150, y: 1540 },
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
     `❌ Could not read this project's ${r} states, so ${numberOf(`find-${r}-1`)} was not resolved. Why is in the run log above.`,
   );
   connect("find-states-1", "error", "log-states-failed-1");
@@ -8805,14 +8854,14 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "decide-state-1",
     metadataId: ComponentID.JavaScriptCode,
     componentType: ComponentType.Component,
-    position: { x: R - 150, y: 1540 },
+    position: { x: R, y: zabbixCanvasRow(8) },
     args: decideStateArgs(`find-${r}-1`, "find-states-1"),
   });
   connect("find-states-1", "success", "decide-state-1");
 
   log(
     "log-decide-failed-1",
-    { x: R + 150, y: 1740 },
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(9) },
     `❌ Could not tell whether ${numberOf(`find-${r}-1`)} is resolved, so it was not resolved: {{local.components.decide-state-1.returnValues.error}}`,
   );
   connect("decide-state-1", "error", "log-decide-failed-1");
@@ -8821,7 +8870,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "if-change-1",
     metadataId: ComponentID.IfElse,
     componentType: ComponentType.Component,
-    position: { x: R - 150, y: 1740 },
+    position: { x: R, y: zabbixCanvasRow(9) },
     args: proceedCondition("decide-state-1"),
   });
   connect("decide-state-1", "success", "if-change-1");
@@ -8830,48 +8879,46 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "change-state-1",
     metadataId: `${r}-state-timeline-create-one`,
     componentType: ComponentType.Component,
-    position: { x: R - 300, y: 1940 },
+    position: { x: R, y: zabbixCanvasRow(10) },
     args: changeStateArgs("decide-state-1"),
   });
   connect("if-change-1", "yes", "change-state-1");
 
   log(
     "log-unchanged-1",
-    { x: R, y: 1940 },
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(10) },
     "ℹ️ {{local.components.decide-state-1.returnValues.returnValue.reason}}",
   );
   connect("if-change-1", "no", "log-unchanged-1");
 
   log(
     "log-resolved",
-    { x: R - 450, y: 2140 },
+    { x: R, y: zabbixCanvasRow(11) },
     `✅ Resolved ${numberOf(`find-${r}-1`)}: ${ZABBIX_PROBLEM} recovered.`,
   );
   connect("change-state-1", "success", "log-resolved");
 
   log(
     "log-resolve-failed",
-    { x: R - 150, y: 2140 },
+    { x: R + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(11) },
     `❌ Could not resolve ${numberOf(`find-${r}-1`)} for ${ZABBIX_PROBLEM}. Why is in the run log above.`,
   );
   connect("change-state-1", "error", "log-resolve-failed");
 
   /* ---- update: a private note, and an acknowledgment ---- */
 
-  const U: number = 1200;
-
   addNode({
     componentId: `find-${r}-2`,
     metadataId: `${r}-find-one`,
     componentType: ComponentType.Component,
-    position: { x: U, y: 940 },
+    position: { x: U, y: zabbixCanvasRow(5) },
     args: findRecordArgs,
   });
   connect("switch-1", "case-3", `find-${r}-2`);
 
   log(
     "log-find-failed-2",
-    { x: U + 300, y: 1140 },
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
     `❌ Could not look for the ${r} of ${ZABBIX_PROBLEM}, so the update was not noted. Why is in the run log above.`,
   );
   connect(`find-${r}-2`, "error", "log-find-failed-2");
@@ -8880,7 +8927,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "if-found-2",
     metadataId: ComponentID.IfElse,
     componentType: ComponentType.Component,
-    position: { x: U, y: 1140 },
+    position: { x: U, y: zabbixCanvasRow(6) },
     args: foundCondition(`find-${r}-2`),
   });
   connect(`find-${r}-2`, "success", "if-found-2");
@@ -8889,7 +8936,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "add-note-2",
     metadataId: `${r}-internal-note-create-one`,
     componentType: ComponentType.Component,
-    position: { x: U - 150, y: 1340 },
+    position: { x: U, y: zabbixCanvasRow(7) },
     args: {
       json: jsonText({
         [kind.idColumn]: `{{local.components.find-${r}-2.returnValues.model._id}}`,
@@ -8901,14 +8948,14 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
 
   log(
     `log-no-${r}-2`,
-    { x: U + 150, y: 1340 },
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
     `ℹ️ ${ZABBIX_PROBLEM} has no ${r}, so the update was not noted.`,
   );
   connect("if-found-2", "no", `log-no-${r}-2`);
 
   log(
     "log-note-failed",
-    { x: U + 150, y: 1540 },
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
     `❌ Could not add the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)}. Why is in the run log above.`,
   );
   connect("add-note-2", "error", "log-note-failed");
@@ -8917,7 +8964,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "if-acknowledged-2",
     metadataId: ComponentID.IfElse,
     componentType: ComponentType.Component,
-    position: { x: U - 150, y: 1540 },
+    position: { x: U, y: zabbixCanvasRow(8) },
     args: {
       "input-1-type": ConditionValueType.Text,
       "input-1": zabbixEventValue("target"),
@@ -8932,21 +8979,21 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "find-states-2",
     metadataId: `${r}-state-find-many`,
     componentType: ComponentType.Component,
-    position: { x: U - 300, y: 1740 },
+    position: { x: U, y: zabbixCanvasRow(9) },
     args: findStatesArgs,
   });
   connect("if-acknowledged-2", "yes", "find-states-2");
 
   log(
     "log-noted",
-    { x: U, y: 1740 },
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(9) },
     `✅ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note.`,
   );
   connect("if-acknowledged-2", "no", "log-noted");
 
   log(
     "log-states-failed-2",
-    { x: U, y: 1940 },
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(10) },
     `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not read this project's ${r} states, so it was not acknowledged. Why is in the run log above.`,
   );
   connect("find-states-2", "error", "log-states-failed-2");
@@ -8955,14 +9002,14 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "decide-state-2",
     metadataId: ComponentID.JavaScriptCode,
     componentType: ComponentType.Component,
-    position: { x: U - 300, y: 1940 },
+    position: { x: U, y: zabbixCanvasRow(10) },
     args: decideStateArgs(`find-${r}-2`, "find-states-2"),
   });
   connect("find-states-2", "success", "decide-state-2");
 
   log(
     "log-decide-failed-2",
-    { x: U, y: 2140 },
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(11) },
     `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not tell whether it is acknowledged, so it was not acknowledged: {{local.components.decide-state-2.returnValues.error}}`,
   );
   connect("decide-state-2", "error", "log-decide-failed-2");
@@ -8971,7 +9018,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "if-change-2",
     metadataId: ComponentID.IfElse,
     componentType: ComponentType.Component,
-    position: { x: U - 300, y: 2140 },
+    position: { x: U, y: zabbixCanvasRow(11) },
     args: proceedCondition("decide-state-2"),
   });
   connect("decide-state-2", "success", "if-change-2");
@@ -8980,28 +9027,28 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
     componentId: "change-state-2",
     metadataId: `${r}-state-timeline-create-one`,
     componentType: ComponentType.Component,
-    position: { x: U - 450, y: 2340 },
+    position: { x: U, y: zabbixCanvasRow(12) },
     args: changeStateArgs("decide-state-2"),
   });
   connect("if-change-2", "yes", "change-state-2");
 
   log(
     "log-unchanged-2",
-    { x: U - 150, y: 2340 },
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(12) },
     `ℹ️ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note. {{local.components.decide-state-2.returnValues.returnValue.reason}}`,
   );
   connect("if-change-2", "no", "log-unchanged-2");
 
   log(
     "log-acknowledged",
-    { x: U - 600, y: 2540 },
+    { x: U, y: zabbixCanvasRow(13) },
     `✅ Acknowledged ${numberOf(`find-${r}-2`)}, and added the update to ${ZABBIX_PROBLEM} to it as a private note: the problem was acknowledged in Zabbix.`,
   );
   connect("change-state-2", "success", "log-acknowledged");
 
   log(
     "log-acknowledge-failed",
-    { x: U - 300, y: 2540 },
+    { x: U + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(13) },
     `❌ Added the update to ${ZABBIX_PROBLEM} to ${numberOf(`find-${r}-2`)} as a private note, but could not acknowledge it. Why is in the run log above.`,
   );
   connect("change-state-2", "error", "log-acknowledge-failed");
@@ -9021,7 +9068,7 @@ const zabbixProblemTemplate: ZabbixTemplateFunction = (
      * is said where it is done (the trigger, and the Zabbix guide).
      */
     workflowDescription: `${kind.Create}s an ${r}${kind.quietCreateText} for each Zabbix problem sent to this workflow's URL, and pages the on-call policy you pick for High and Disaster problems. Updates made in Zabbix become private notes, acknowledging the problem in Zabbix acknowledges the ${r}, and the problem's recovery resolves it.`,
-    variables: [zabbixUrlVariable("Links to the problem in Zabbix go there.")],
+    variables: [zabbixUrlVariable("Links to problems go there.")],
     graph: { nodes: nodes, edges: edges },
   };
 };
@@ -9043,13 +9090,13 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
   return {
     id: `zabbix-update-problem-on-${r}-state`,
     name: `Acknowledge or close the Zabbix problem with the ${r}`,
-    description: `When the ${r} is acknowledged, acknowledges its Zabbix problem. When it is resolved, closes the problem, or acknowledges it where Zabbix does not allow closing it by hand.`,
+    description: `Acknowledges the Zabbix problem when the ${r} is acknowledged, and closes it when the ${r} is resolved.`,
     teaches:
       "How to call a JSON-RPC API with a token, and read an answer that reports errors in its body.",
     category: WorkflowTemplateCategory.Zabbix,
     icon: IconProp.CheckCircle,
     workflowName: `Sync ${r} state to Zabbix`,
-    workflowDescription: `Acknowledges the Zabbix problem of an ${r} declared for one when the ${r} is acknowledged, and closes it when the ${r} is resolved. A problem whose trigger does not allow closing it by hand is acknowledged with a message instead.`,
+    workflowDescription: `Acknowledges an ${r}'s Zabbix problem when the ${r} is acknowledged, and closes it when the ${r} is resolved. A problem whose trigger does not allow closing it by hand is acknowledged, with a message, instead.`,
     variables: [
       zabbixUrlVariable("The workflow calls Zabbix's API there."),
       ZABBIX_API_TOKEN,
@@ -9080,7 +9127,7 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "plan-state-1",
           metadataId: ComponentID.JavaScriptCode,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
+          position: { x: 100, y: zabbixCanvasRow(1) },
           args: {
             code: zabbixPlanStateScript(kind),
             arguments: jsonText({
@@ -9092,7 +9139,7 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "log-plan-failed",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: 400, y: 500 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
           args: {
             value: `❌ Could not tell what the ${r}'s new state means in Zabbix: {{local.components.plan-state-1.returnValues.error}}`,
           },
@@ -9101,14 +9148,14 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "if-linked-1",
           metadataId: ComponentID.IfElse,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
+          position: { x: 100, y: zabbixCanvasRow(2) },
           args: proceedCondition("plan-state-1"),
         },
         {
           componentId: "log-skipped",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
           args: { value: `ℹ️ ${planned("reason")}` },
         },
         {
@@ -9120,7 +9167,7 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "get-problem-1",
           metadataId: ComponentID.ApiPost,
           componentType: ComponentType.Component,
-          position: { x: -200, y: 700 },
+          position: { x: 100, y: zabbixCanvasRow(3) },
           args: {
             url: ZABBIX_API_URL,
             "request-headers": zabbixHeaders(),
@@ -9135,7 +9182,7 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "log-get-failed",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(4) },
           args: {
             value: `❌ Could not reach Zabbix to read problem ${planned("eventId")}: {{local.components.get-problem-1.returnValues.error}}\nZabbix said: {{local.components.get-problem-1.returnValues.response-body}}`,
           },
@@ -9144,7 +9191,7 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "choose-action-1",
           metadataId: ComponentID.JavaScriptCode,
           componentType: ComponentType.Component,
-          position: { x: -200, y: 900 },
+          position: { x: 100, y: zabbixCanvasRow(4) },
           args: {
             code: zabbixChooseActionScript(kind),
             // Zabbix's answer goes last: it came from outside.
@@ -9159,7 +9206,7 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "log-choose-failed",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
           args: {
             value: `❌ Could not read Zabbix problem ${planned("eventId")}, so Zabbix was not updated: {{local.components.choose-action-1.returnValues.error}}`,
           },
@@ -9168,21 +9215,21 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "if-update-1",
           metadataId: ComponentID.IfElse,
           componentType: ComponentType.Component,
-          position: { x: -200, y: 1100 },
+          position: { x: 100, y: zabbixCanvasRow(5) },
           args: proceedCondition("choose-action-1"),
         },
         {
           componentId: "log-unchanged",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: -200, y: 1300 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
           args: { value: `ℹ️ ${chosen("reason")}` },
         },
         {
           componentId: "update-problem-1",
           metadataId: ComponentID.ApiPost,
           componentType: ComponentType.Component,
-          position: { x: -500, y: 1300 },
+          position: { x: 100, y: zabbixCanvasRow(6) },
           args: {
             url: ZABBIX_API_URL,
             "request-headers": zabbixHeaders(),
@@ -9197,7 +9244,7 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "log-update-failed",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: -200, y: 1500 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(7) },
           args: {
             value: `❌ Could not reach Zabbix to update problem ${chosen("eventId")}: {{local.components.update-problem-1.returnValues.error}}\nZabbix said: {{local.components.update-problem-1.returnValues.response-body}}`,
           },
@@ -9206,7 +9253,7 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "check-answer-1",
           metadataId: ComponentID.JavaScriptCode,
           componentType: ComponentType.Component,
-          position: { x: -500, y: 1500 },
+          position: { x: 100, y: zabbixCanvasRow(7) },
           args: {
             code: zabbixCheckAnswerScript(kind),
             arguments: jsonText({
@@ -9219,14 +9266,14 @@ const zabbixStateTemplate: ZabbixTemplateFunction = (
           componentId: "log-updated",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: -800, y: 1700 },
+          position: { x: 100, y: zabbixCanvasRow(8) },
           args: { value: `✅ ${chosen("done")}` },
         },
         {
           componentId: "log-refused",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: -500, y: 1700 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(8) },
           args: {
             value: `❌ Zabbix did not update problem ${chosen("eventId")}: {{local.components.check-answer-1.returnValues.error}}`,
           },
@@ -9324,13 +9371,13 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
   return {
     id: `zabbix-message-from-${r}-private-note`,
     name: `Copy ${r} private notes to the Zabbix problem`,
-    description: `Adds each new private note on an ${r} declared for a Zabbix problem to the problem as a message, so the people working in Zabbix read it too.`,
+    description: `Adds every new private note on an ${r} to its Zabbix problem as a message, so the people working in Zabbix see it too.`,
     teaches:
       "How a marker in the text stops two systems echoing each other's messages back.",
     category: WorkflowTemplateCategory.Zabbix,
     icon: IconProp.ChatBubbleLeftRight,
     workflowName: `Copy ${r} private notes to Zabbix`,
-    workflowDescription: `Adds each new private note on an ${r} declared for a Zabbix problem to the problem as a message. Notes that came from Zabbix are not sent back.`,
+    workflowDescription: `Adds every new private note on an ${r} ${kind.created} for a Zabbix problem to that problem as a message. Notes that came from Zabbix are not sent back.`,
     variables: [
       zabbixUrlVariable("The workflow calls Zabbix's API there."),
       ZABBIX_API_TOKEN,
@@ -9361,7 +9408,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: `find-${r}-1`,
           metadataId: `${r}-find-one`,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 300 },
+          position: { x: 100, y: zabbixCanvasRow(1) },
           args: {
             query: {
               _id: `{{local.components.note-on-create-1.returnValues.model.${kind.idColumn}.value}}`,
@@ -9378,7 +9425,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: `log-find-${r}-failed`,
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: 400, y: 500 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(2) },
           args: {
             value: `❌ Could not read the ${r} the note is on, so it was not posted to Zabbix. Why is in the run log above.`,
           },
@@ -9387,7 +9434,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: "build-message-1",
           metadataId: ComponentID.JavaScriptCode,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 500 },
+          position: { x: 100, y: zabbixCanvasRow(2) },
           args: {
             code: zabbixNoteMessageScript(kind),
             arguments: jsonText({
@@ -9400,7 +9447,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: "log-build-failed",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: 400, y: 700 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(3) },
           args: {
             value:
               "❌ Could not write the Zabbix message: {{local.components.build-message-1.returnValues.error}}",
@@ -9410,21 +9457,21 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: "if-post-1",
           metadataId: ComponentID.IfElse,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 700 },
+          position: { x: 100, y: zabbixCanvasRow(3) },
           args: proceedCondition("build-message-1"),
         },
         {
           componentId: "log-skipped",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 900 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(4) },
           args: { value: `ℹ️ ${built("reason")}` },
         },
         {
           componentId: "post-message-1",
           metadataId: ComponentID.ApiPost,
           componentType: ComponentType.Component,
-          position: { x: -200, y: 900 },
+          position: { x: 100, y: zabbixCanvasRow(4) },
           args: {
             url: ZABBIX_API_URL,
             "request-headers": zabbixHeaders(),
@@ -9439,7 +9486,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: "log-post-failed",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: 100, y: 1100 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(5) },
           args: {
             value: `❌ Could not reach Zabbix to add the note to problem ${built("eventId")}: {{local.components.post-message-1.returnValues.error}}\nZabbix said: {{local.components.post-message-1.returnValues.response-body}}`,
           },
@@ -9448,7 +9495,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: "check-answer-1",
           metadataId: ComponentID.JavaScriptCode,
           componentType: ComponentType.Component,
-          position: { x: -200, y: 1100 },
+          position: { x: 100, y: zabbixCanvasRow(5) },
           args: {
             code: zabbixCheckAnswerScript(kind),
             arguments: jsonText({
@@ -9461,7 +9508,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: "log-posted",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: -500, y: 1300 },
+          position: { x: 100, y: zabbixCanvasRow(6) },
           args: {
             value: `✅ Added the note to Zabbix problem ${built("eventId")} as a message.`,
           },
@@ -9470,7 +9517,7 @@ const zabbixNoteTemplate: ZabbixTemplateFunction = (
           componentId: "log-refused",
           metadataId: ComponentID.Log,
           componentType: ComponentType.Component,
-          position: { x: -200, y: 1300 },
+          position: { x: 100 + ZABBIX_CANVAS_SLOT, y: zabbixCanvasRow(6) },
           args: {
             value: `❌ Zabbix did not add the note to problem ${built("eventId")}: {{local.components.check-answer-1.returnValues.error}}`,
           },

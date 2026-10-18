@@ -89,9 +89,9 @@ Tutto il resto, come una richiesta di un altro strumento, viene lasciato com'è,
 
 ### Gravità
 
-Il modello mappa le sei gravità di Zabbix sulle tue gravità di incidente, dalla più grave in giù:
+In un nuovo progetto, il modello mappa le sei gravità di Zabbix su queste gravità di incidente e di avviso:
 
-| Gravità di Zabbix | Gravità dell'incidente (nuovo progetto) | Gravità dell'avviso (nuovo progetto) | Reperibili |
+| Gravità di Zabbix | Incidente | Avviso | Reperibili |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Chiamati |
 | High | Critical Incident | High | Chiamati |

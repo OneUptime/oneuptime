@@ -89,9 +89,9 @@ Tout le reste, comme une requête d'un autre outil, est laissé tel quel, et la 
 
 ### Sévérités
 
-Le modèle fait correspondre les six sévérités de Zabbix à vos gravités d'incident, de la plus grave à la moins grave :
+Dans un nouveau projet, le modèle fait correspondre les six sévérités de Zabbix à ces gravités d'incident et d'alerte :
 
-| Sévérité Zabbix | Gravité d'incident (nouveau projet) | Gravité d'alerte (nouveau projet) | Astreinte |
+| Sévérité Zabbix | Incident | Alerte | Astreinte |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Prévenue |
 | High | Critical Incident | High | Prévenue |

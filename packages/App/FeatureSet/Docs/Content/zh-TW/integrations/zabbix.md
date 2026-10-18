@@ -89,9 +89,9 @@ Zabbix 透過使用者的媒介把問題傳送給該使用者。這裡的媒介�
 
 ### 嚴重程度
 
-範本把 Zabbix 的六個嚴重程度從最嚴重往下對應到你的事件嚴重程度：
+在新專案中，範本把 Zabbix 的六個嚴重程度對應到以下事件和警示嚴重程度：
 
-| Zabbix 嚴重程度 | 事件嚴重程度（新專案） | 警示嚴重程度（新專案） | 待命 |
+| Zabbix 嚴重程度 | 事件 | 警示 | 待命 |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | 呼叫 |
 | High | Critical Incident | High | 呼叫 |

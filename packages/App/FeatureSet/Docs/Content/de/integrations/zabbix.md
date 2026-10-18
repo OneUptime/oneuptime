@@ -89,9 +89,9 @@ Alles andere, etwa eine Anfrage eines anderen Werkzeugs, bleibt unberührt, und 
 
 ### Schweregrade
 
-Die Vorlage bildet die sechs Schweregrade von Zabbix auf Ihre Vorfallschweregrade ab, vom schwersten abwärts:
+In einem neuen Projekt bildet die Vorlage die sechs Schweregrade von Zabbix auf diese Vorfall- und Warnungsschweregrade ab:
 
-| Zabbix-Schweregrad | Vorfallschweregrad (neues Projekt) | Warnungsschweregrad (neues Projekt) | Bereitschaft |
+| Zabbix-Schweregrad | Vorfall | Warnung | Bereitschaft |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Alarmiert |
 | High | Critical Incident | High | Alarmiert |

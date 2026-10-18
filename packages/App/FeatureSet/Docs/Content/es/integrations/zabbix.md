@@ -89,9 +89,9 @@ Todo lo demás, como una solicitud de otra herramienta, se deja tal cual, y el �
 
 ### Gravedades
 
-La plantilla asigna las seis gravedades de Zabbix a tus gravedades de incidente, de la más grave hacia abajo:
+En un proyecto nuevo, la plantilla asigna las seis gravedades de Zabbix a estas gravedades de incidente y de alerta:
 
-| Gravedad de Zabbix | Gravedad de incidente (proyecto nuevo) | Gravedad de alerta (proyecto nuevo) | Guardia |
+| Gravedad de Zabbix | Incidente | Alerta | Guardia |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Avisada |
 | High | Critical Incident | High | Avisada |

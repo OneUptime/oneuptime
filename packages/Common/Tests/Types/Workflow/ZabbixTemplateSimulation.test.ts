@@ -1054,7 +1054,7 @@ describe.each(KINDS)(
 
       expect(trace.requests).toHaveLength(0);
       expect(trace.logs).toEqual([
-        `ℹ️ ${kind.number} moved to Created, which means nothing in Zabbix.`,
+        `ℹ️ ${kind.number} moved to Created: only acknowledging or resolving the ${r} updates Zabbix.`,
       ]);
     });
 

@@ -769,7 +769,7 @@ test.describe("Create a workflow", () => {
       "workflow-variable-zabbixApiToken",
     );
     const message: string =
-      "Enter the API token Zabbix showed when it was created: 64 characters, the digits 0 to 9 and the letters a to f.";
+      "Paste the 64-character API token Zabbix showed when you created it.";
 
     await expect(url).toBeFocused();
     expect((await boxOf(url)).y).toBeLessThan((await boxOf(secret)).y);

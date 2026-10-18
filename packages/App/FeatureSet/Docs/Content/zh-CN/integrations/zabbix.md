@@ -89,9 +89,9 @@ Zabbix 通过用户的媒介把问题发送给该用户。这里的媒介是一�
 
 ### 严重程度
 
-模板把 Zabbix 的六个严重程度从最严重往下映射到你的事件严重程度：
+在新项目中，模板把 Zabbix 的六个严重程度映射到以下事件和警报严重程度：
 
-| Zabbix 严重程度 | 事件严重程度（新项目） | 警报严重程度（新项目） | 值班 |
+| Zabbix 严重程度 | 事件 | 警报 | 值班 |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | 呼叫 |
 | High | Critical Incident | High | 呼叫 |

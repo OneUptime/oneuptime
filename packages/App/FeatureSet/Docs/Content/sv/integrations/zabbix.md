@@ -89,9 +89,9 @@ Allt annat, till exempel en begäran från ett annat verktyg, lämnas orört, oc
 
 ### Allvarlighetsgrader
 
-Mallen kopplar Zabbix sex allvarlighetsgrader till dina incidentallvarlighetsgrader, från den allvarligaste och nedåt:
+I ett nytt projekt kopplar mallen Zabbix sex allvarlighetsgrader till dessa allvarlighetsgrader för incidenter och varningar:
 
-| Zabbix-allvarlighetsgrad | Incidentens allvarlighetsgrad (nytt projekt) | Varningens allvarlighetsgrad (nytt projekt) | Jour |
+| Zabbix-allvarlighetsgrad | Incident | Varning | Jour |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Larmad |
 | High | Critical Incident | High | Larmad |

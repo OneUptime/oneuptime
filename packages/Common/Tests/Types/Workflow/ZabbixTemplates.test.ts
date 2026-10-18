@@ -62,10 +62,7 @@ import {
   getWorkflowTemplates,
   getWorkflowTemplatesByCategory,
 } from "../../../Types/Workflow/Templates";
-import {
-  DEFAULT_NODE_HEIGHT,
-  WORKFLOW_NODE_WIDTH,
-} from "../../../UI/Components/Workflow/NodePlacement";
+import { WORKFLOW_NODE_WIDTH } from "../../../UI/Components/Workflow/NodePlacement";
 import { getOutputLayout } from "../../../UI/Components/Workflow/PortLayout";
 import { loadComponentsAndCategories } from "../../../UI/Components/Workflow/Utils";
 import { describe, expect, test } from "@jest/globals";
@@ -933,6 +930,21 @@ interface Card {
   bottom: number;
 }
 
+/*
+ * How tall the canvas draws these cards, at most, as measured in the
+ * Builder: 192 px when a title takes two lines ("Find Many Incident
+ * Severities"), and 218 px for a Page step whose card still asks for who
+ * to page - which is how the template leaves it. The canvas's own default
+ * height, 200 px, is shorter than both, and let a Page step lie over the
+ * two steps under it. WorkflowBuilderZabbixCanvas.spec.ts (packages/E2E)
+ * measures the cards the browser draws.
+ */
+const TALLEST_CARD: number = 192;
+const TALLEST_PAGE_CARD: number = 218;
+
+// What a connection needs under the card it leaves: it turns 20 px below it.
+const ROOM_UNDER_A_CARD: number = 20;
+
 // Each step as the canvas draws it: its width from its outputs, as Component.tsx does.
 function cardsOf(graph: JSONObject): Array<Card> {
   return (graph["nodes"] as Array<JSONObject>).map(
@@ -958,7 +970,11 @@ function cardsOf(graph: JSONObject): Array<Card> {
         left: position.x,
         top: position.y,
         right: position.x + width,
-        bottom: position.y + DEFAULT_NODE_HEIGHT,
+        bottom:
+          position.y +
+          (data["metadataId"] === ComponentID.PageOnCallPolicy
+            ? TALLEST_PAGE_CARD
+            : TALLEST_CARD),
       };
     },
   );
@@ -974,25 +990,30 @@ function graphOf(templateId: string): JSONObject {
 }
 
 describe("the Zabbix templates on the canvas", () => {
-  test.each(ZABBIX_IDS)("%s: no card lies on another", (templateId: string) => {
-    const cards: Array<Card> = cardsOf(graphOf(templateId));
-    const overlapping: Array<string> = [];
+  test.each(ZABBIX_IDS)(
+    "%s: no card lies on another, and each leaves room under it for the connections it starts",
+    (templateId: string) => {
+      const cards: Array<Card> = cardsOf(graphOf(templateId));
+      const tooClose: Array<string> = [];
 
-    cards.forEach((card: Card, index: number): void => {
-      for (const other of cards.slice(index + 1)) {
-        if (
-          card.left < other.right &&
-          other.left < card.right &&
-          card.top < other.bottom &&
-          other.top < card.bottom
-        ) {
-          overlapping.push(`${card.id} and ${other.id}`);
+      cards.forEach((card: Card, index: number): void => {
+        for (const other of cards.slice(index + 1)) {
+          const sideBySide: boolean =
+            card.left < other.right && other.left < card.right;
+          const gap: number = Math.max(
+            other.top - card.bottom,
+            card.top - other.bottom,
+          );
+
+          if (sideBySide && gap < ROOM_UNDER_A_CARD) {
+            tooClose.push(`${card.id} and ${other.id}: ${gap}`);
+          }
         }
-      }
-    });
+      });
 
-    expect(overlapping).toEqual([]);
-  });
+      expect(tooClose).toEqual([]);
+    },
+  );
 
   test.each(ZABBIX_IDS)(
     "%s: the trigger is the top card, and every step is below the one it follows",

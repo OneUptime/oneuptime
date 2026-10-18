@@ -89,9 +89,9 @@ Alt andet, f.eks. en anmodning fra et andet værktøj, bliver ladt være, og kø
 
 ### Alvorligheder
 
-Skabelonen knytter Zabbix' seks alvorligheder til dine hændelsesalvorligheder, fra den mest alvorlige og nedad:
+I et nyt projekt knytter skabelonen Zabbix' seks alvorligheder til disse hændelses- og advarselsalvorligheder:
 
-| Zabbix-alvorlighed | Hændelsens alvorlighed (nyt projekt) | Advarslens alvorlighed (nyt projekt) | Vagt |
+| Zabbix-alvorlighed | Hændelse | Advarsel | Vagt |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Kaldt op |
 | High | Critical Incident | High | Kaldt op |

@@ -89,9 +89,9 @@ Anything else, such as a request from another tool, is left alone, and the run's
 
 ### Severities
 
-The template maps Zabbix's six severities onto your incident severities, from the most severe down:
+In a new project, the template maps Zabbix's six severities onto these incident and alert severities:
 
-| Zabbix severity | Incident severity (new project) | Alert severity (new project) | On-call |
+| Zabbix severity | Incident | Alert | On-call |
 | --- | --- | --- | --- |
 | Disaster | Critical Incident | High | Paged |
 | High | Critical Incident | High | Paged |
