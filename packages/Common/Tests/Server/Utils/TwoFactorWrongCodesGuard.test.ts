@@ -93,8 +93,8 @@ function productFilesWhoseCodeMatches(pattern: RegExp): Array<string> {
     });
 }
 
-// Every node of a file, depth first.
-function nodesOf(sourceFile: ts.SourceFile): Array<ts.Node> {
+// Every node of a file, or of one node, depth first.
+function nodesOf(root: ts.Node): Array<ts.Node> {
   const nodes: Array<ts.Node> = [];
 
   const visit: (node: ts.Node) => void = (node: ts.Node): void => {
@@ -102,7 +102,7 @@ function nodesOf(sourceFile: ts.SourceFile): Array<ts.Node> {
     ts.forEachChild(node, visit);
   };
 
-  visit(sourceFile);
+  visit(root);
 
   return nodes;
 }
@@ -121,13 +121,21 @@ function ifStatementsTesting(
   });
 }
 
-// The code of the one block that runs when `name` is true.
-function branchTesting(sourceFile: ts.SourceFile, name: string): string {
+// The one block that runs when `name` is true.
+function branchStatementTesting(
+  sourceFile: ts.SourceFile,
+  name: string,
+): ts.Statement {
   const branches: Array<ts.IfStatement> = ifStatementsTesting(sourceFile, name);
 
   expect([name, branches.length]).toEqual([name, 1]);
 
-  return codeOfNode(branches[0]!.thenStatement, sourceFile);
+  return branches[0]!.thenStatement;
+}
+
+// The code of the one block that runs when `name` is true.
+function branchTesting(sourceFile: ts.SourceFile, name: string): string {
+  return codeOfNode(branchStatementTesting(sourceFile, name), sourceFile);
 }
 
 // Where `text` first appears in `code`; -1 when it does not.
@@ -202,13 +210,105 @@ describe("in the sign-in handler, a code is counted before it is checked", () =>
     expect(at(branch, ".consumeCode(")).toBeGreaterThan(refuse);
   });
 
-  test("a wrong code is reported to the owner's count in both branches", () => {
-    for (const name of ["verifyTotpAuth", "verifyBackupCode"]) {
-      expect([
-        name,
-        branchTesting(sourceFile, name).includes("tellOwnerAboutWrongCode("),
-      ]).toEqual([name, true]);
-    }
+  test.each([
+    [
+      "verifyTotpAuth",
+      ["UserTotpAuthService.findOneBy(", "TotpAuth.verifyToken("],
+      "isVerified",
+    ],
+    ["verifyBackupCode", [".consumeCode("], "isBackupCodeConsumed"],
+  ])(
+    "%s: the code is checked inside a try whose finally tells the owner whenever the counted attempt did not pass - a wrong code, or one that failed before it was checked",
+    (name: string, checks: Array<string>, passed: string) => {
+      const branch: ts.Statement = branchStatementTesting(sourceFile, name);
+
+      const tries: Array<ts.TryStatement> = nodesOf(branch).filter(
+        (node: ts.Node): node is ts.TryStatement => {
+          return ts.isTryStatement(node);
+        },
+      );
+
+      expect([name, tries.length]).toEqual([name, 1]);
+
+      const tryStatement: ts.TryStatement = tries[0]!;
+      const tryCode: string = codeOfNode(tryStatement.tryBlock, sourceFile);
+
+      for (const check of checks) {
+        expect([name, check, tryCode.includes(check)]).toEqual([
+          name,
+          check,
+          true,
+        ]);
+
+        // Checked nowhere in the branch but inside that try.
+        const branchCode: string = codeOfNode(branch, sourceFile);
+
+        expect([name, check, branchCode.split(check).length - 1]).toEqual([
+          name,
+          check,
+          1,
+        ]);
+      }
+
+      // No catch: a failure still fails the request, after the owner is told.
+      expect([name, tryStatement.catchClause]).toEqual([name, undefined]);
+      expect(tryStatement.finallyBlock).toBeDefined();
+
+      const finallyStatements: ts.NodeArray<ts.Statement> =
+        tryStatement.finallyBlock!.statements;
+
+      expect([name, finallyStatements.length]).toEqual([name, 1]);
+
+      const onlyStatement: ts.Statement = finallyStatements[0]!;
+
+      expect(ts.isIfStatement(onlyStatement)).toBe(true);
+
+      const tellsTheOwner: ts.IfStatement = onlyStatement as ts.IfStatement;
+
+      expect(codeOfNode(tellsTheOwner.expression, sourceFile)).toBe(
+        `!${passed}`,
+      );
+      expect(tellsTheOwner.elseStatement).toBeUndefined();
+      expect(
+        codeOfNode(tellsTheOwner.thenStatement, sourceFile).includes(
+          "await tellOwnerAboutWrongCode(",
+        ),
+      ).toBe(true);
+
+      // Whether the attempt passed is false until the check itself says so.
+      expect(
+        codeOfNode(branch, sourceFile).includes(
+          `let ${passed}: boolean = false;`,
+        ),
+      ).toBe(true);
+    },
+  );
+
+  test("telling the owner never throws: it runs in a finally, where a throw would replace the answer", () => {
+    const tellOwner: Array<ts.VariableDeclaration> = nodesOf(sourceFile).filter(
+      (node: ts.Node): node is ts.VariableDeclaration => {
+        return (
+          ts.isVariableDeclaration(node) &&
+          ts.isIdentifier(node.name) &&
+          node.name.text === "tellOwnerAboutWrongCode"
+        );
+      },
+    );
+
+    expect(tellOwner).toHaveLength(1);
+
+    const body: ts.ConciseBody | undefined = (
+      tellOwner[0]!.initializer as ts.ArrowFunction | undefined
+    )?.body;
+
+    expect(body !== undefined && ts.isBlock(body)).toBe(true);
+
+    const statements: ts.NodeArray<ts.Statement> = (body as ts.Block)
+      .statements;
+
+    expect(statements).toHaveLength(1);
+    expect(ts.isTryStatement(statements[0]!)).toBe(true);
+    expect((statements[0] as ts.TryStatement).catchClause).toBeDefined();
   });
 
   test("the count is moved only after the password was checked", () => {

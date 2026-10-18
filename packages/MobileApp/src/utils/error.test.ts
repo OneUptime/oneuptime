@@ -97,6 +97,19 @@ describe("getFriendlyErrorMessage when the server never answered", () => {
 });
 
 describe("getFriendlyErrorMessage reading the server's own message", () => {
+  test("a 429 that asks the person to wait is shown in the server's words, not as a status number", () => {
+    /*
+     * The sign-in routes answer 429 when an account has had too many wrong
+     * second-step codes, and say how long to wait and what to do instead.
+     */
+    const wait: string =
+      "Too many wrong codes have been entered for this account. Please wait 4 minutes before you try another code, or use a backup code. If you did not enter these codes, reset your password.";
+
+    expect(
+      getFriendlyErrorMessage(axiosErrorWithResponse(429, { message: wait })),
+    ).toBe(wait);
+  });
+
   test("prefers the message field of the response body", () => {
     expect(
       getFriendlyErrorMessage(

@@ -2367,12 +2367,15 @@ const sendCodeNotChecked: SendCodeNotCheckedFunction = (data: {
 };
 
 /*
- * After a wrong code: once the waits have begun, the owner is emailed, at
- * most once a day (TwoFactorWrongCodes.shouldTellOwner), at the address on
- * the account rather than in the browser that entered the codes.
+ * After a counted attempt that did not sign in - a wrong code, an app that
+ * is not the account's, or a request that failed before its code could be
+ * checked: once the waits have begun, the owner is emailed, at most once a
+ * day (TwoFactorWrongCodes.shouldTellOwner), at the address on the account
+ * rather than in the browser that entered the codes.
  *
- * The mail is never awaited and never fails the answer: the caller is about
- * to be told their code was wrong, whatever the mail server says.
+ * Called from a `finally`, so it never throws: the mail is never awaited,
+ * and nothing here may change the answer the caller gets, whatever the mail
+ * server or Valkey says.
  */
 type TellOwnerAboutWrongCodeFunction = (data: {
   req: ExpressRequest;
@@ -2385,26 +2388,30 @@ const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
   user: User;
   check: TwoFactorCodeCheck;
 }): Promise<void> => {
-  const shouldTellOwner: boolean = await TwoFactorWrongCodes.shouldTellOwner({
-    userId: data.user.id!,
-    wrongCodesInARow: data.check.wrongCodesInARow,
-  });
+  try {
+    const shouldTellOwner: boolean = await TwoFactorWrongCodes.shouldTellOwner({
+      userId: data.user.id!,
+      wrongCodesInARow: data.check.wrongCodesInARow,
+    });
 
-  if (!shouldTellOwner) {
-    return;
-  }
+    if (!shouldTellOwner) {
+      return;
+    }
 
-  logger.warn(
-    `Wrong two factor codes in a row for user ${data.user.id!.toString()}: ${data.check.wrongCodesInARow}. Each next code now waits.`,
-    getLogAttributesFromRequest(data.req as RequestLike),
-  );
+    logger.warn(
+      `Wrong two factor codes in a row for user ${data.user.id!.toString()}: ${data.check.wrongCodesInARow}. Each next code now waits.`,
+      getLogAttributesFromRequest(data.req as RequestLike),
+    );
 
-  AuthenticationEmail.sendTwoFactorWrongCodesEmail({
-    user: data.user,
-    wrongCodesInARow: data.check.wrongCodesInARow,
-  }).catch((err: Error) => {
+    AuthenticationEmail.sendTwoFactorWrongCodesEmail({
+      user: data.user,
+      wrongCodesInARow: data.check.wrongCodesInARow,
+    }).catch((err: Error) => {
+      logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
+    });
+  } catch (err) {
     logger.error(err, getLogAttributesFromRequest(data.req as RequestLike));
-  });
+  }
 };
 
 /*
@@ -2787,8 +2794,17 @@ const login: LoginFunction = async (options: {
           const code: string = data["code"] as string;
           const twoFactorAuthId: string = data["twoFactorAuthId"] as string;
 
-          const totpAuth: UserTotpAuth | null =
-            await UserTotpAuthService.findOneBy({
+          let totpAuth: UserTotpAuth | null = null;
+          let isVerified: boolean = false;
+
+          /*
+           * Whatever ends this counted attempt short of the right code - an
+           * app that is not the account's, a wrong code, or an id that is not
+           * one, which the query refuses by throwing - tells the owner once
+           * the waits have begun, as the count already holds it against them.
+           */
+          try {
+            totpAuth = await UserTotpAuthService.findOneBy({
               query: {
                 _id: twoFactorAuthId,
                 userId: alreadySavedUser.id!,
@@ -2803,13 +2819,24 @@ const login: LoginFunction = async (options: {
               },
             });
 
-          if (!totpAuth) {
-            await tellOwnerAboutWrongCode({
-              req,
-              user: alreadySavedUser,
-              check: codeCheck,
-            });
+            if (totpAuth) {
+              isVerified = TotpAuth.verifyToken({
+                token: code,
+                secret: totpAuth.twoFactorSecret!,
+                email: alreadySavedUser.email!,
+              });
+            }
+          } finally {
+            if (!isVerified) {
+              await tellOwnerAboutWrongCode({
+                req,
+                user: alreadySavedUser,
+                check: codeCheck,
+              });
+            }
+          }
 
+          if (!totpAuth) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -2817,19 +2844,7 @@ const login: LoginFunction = async (options: {
             );
           }
 
-          const isVerified: boolean = TotpAuth.verifyToken({
-            token: code,
-            secret: totpAuth.twoFactorSecret!,
-            email: alreadySavedUser.email!,
-          });
-
           if (!isVerified) {
-            await tellOwnerAboutWrongCode({
-              req,
-              user: alreadySavedUser,
-              check: codeCheck,
-            });
-
             return Response.sendErrorResponse(
               req,
               res,
@@ -2929,19 +2944,30 @@ const login: LoginFunction = async (options: {
             });
           }
 
-          const isBackupCodeConsumed: boolean =
-            await UserTwoFactorBackupCodeService.consumeCode({
-              userId: alreadySavedUser.id!,
-              code: backupCode,
-            });
+          let isBackupCodeConsumed: boolean = false;
+
+          /*
+           * A counted attempt that spends no code - a wrong one, or a look-up
+           * that failed - tells the owner once the waits have begun, as a
+           * wrong authenticator code does.
+           */
+          try {
+            isBackupCodeConsumed =
+              await UserTwoFactorBackupCodeService.consumeCode({
+                userId: alreadySavedUser.id!,
+                code: backupCode,
+              });
+          } finally {
+            if (!isBackupCodeConsumed) {
+              await tellOwnerAboutWrongCode({
+                req,
+                user: alreadySavedUser,
+                check: backupCodeCheck,
+              });
+            }
+          }
 
           if (!isBackupCodeConsumed) {
-            await tellOwnerAboutWrongCode({
-              req,
-              user: alreadySavedUser,
-              check: backupCodeCheck,
-            });
-
             /*
              * One message for "no such code", "already used" and "belongs to
              * somebody else". Telling the caller which would turn this route

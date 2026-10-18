@@ -27,6 +27,8 @@ import Email from "Common/Types/Email";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import UUIDColumnFilter from "Common/Server/Types/Database/UUIDColumnFilter";
 import HashedString from "Common/Types/HashedString";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -481,6 +483,8 @@ async function attempt(data: {
 type Account = {
   user: User;
   email: string;
+  // The account's one authenticator app.
+  totp: UserTotpAuth;
   code: () => string;
   wrongCode: () => string;
 };
@@ -543,6 +547,7 @@ async function newAccount(options?: {
   return {
     user,
     email,
+    totp: row,
     code,
     wrongCode: (): string => {
       // A six digit code the account's app is not showing.
@@ -1157,6 +1162,286 @@ describe("the owner is told", () => {
     expect(fifth.errorMessage).toBe("Invalid code.");
     expect(fifth.nextError).toBeUndefined();
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("deciding whether to tell the owner can never change the answer, even when it throws", async () => {
+    const account: Account = await newAccount();
+
+    jest
+      .spyOn(TwoFactorWrongCodes, "shouldTellOwner")
+      .mockRejectedValue(new Error("unexpected") as never);
+
+    for (let index: number = 0; index < 5; index++) {
+      const result: AttemptResult = await enterCode(
+        account,
+        account.wrongCode(),
+      );
+
+      expect(result.errorMessage).toBe("Invalid code.");
+      expect(result.nextError).toBeUndefined();
+    }
+
+    const backup: AttemptResult = await enterBackupCode(account, "abcde-fghij");
+
+    expect(backup.errorMessage).toBe("Invalid backup code.");
+    expect(backup.nextError).toBeUndefined();
+
+    expect((await enterCode(account, account.code())).errorCode).toBe(
+      ExceptionCode.TooManyRequestsException,
+    );
+  });
+});
+
+describe("a caller with the password gets no more codes checked by changing the request", () => {
+  it("codes checked against two authenticator apps of one account share its one count", async () => {
+    const account: Account = await newAccount();
+
+    const secondSecret: string = TotpAuth.generateSecret();
+    const secondOtpUrl: string = buildOtpauthUri({
+      secret: secondSecret,
+      label: account.email,
+      algorithm: "SHA1",
+    });
+    const secondId: ObjectID = new ObjectID(
+      "88888888-8888-4888-8888-888888888888",
+    );
+
+    const first: UserTotpAuth = account.totp;
+    const second: UserTotpAuth = new UserTotpAuth();
+    second.id = secondId;
+    second.twoFactorSecret = secondSecret;
+    second.twoFactorOtpUrl = secondOtpUrl;
+    second.isVerified = true;
+
+    totpFindBy.mockResolvedValue([first, second] as never);
+    totpFindOneBy.mockImplementation(((args: {
+      query: { _id: string };
+    }): Promise<UserTotpAuth | null> => {
+      return Promise.resolve(
+        [first, second].find((row: UserTotpAuth): boolean => {
+          return row.id!.toString() === args.query._id;
+        }) || null,
+      );
+    }) as never);
+
+    const secondCode: () => string = (): string => {
+      return conformingAppCode(secondOtpUrl);
+    };
+
+    for (let index: number = 0; index < 5; index++) {
+      const result: AttemptResult = await attempt({
+        uri: "/verify-totp-auth",
+        account,
+        body: {
+          code: account.wrongCode(),
+          twoFactorAuthId: (index % 2 === 0 ? TOTP_ID : secondId).toString(),
+        },
+      });
+
+      expect(result.errorMessage).toBe("Invalid code.");
+    }
+
+    verifyToken.mockClear();
+
+    for (const [id, code] of [
+      [TOTP_ID, account.code()],
+      [secondId, secondCode()],
+    ] as Array<[ObjectID, string]>) {
+      const result: AttemptResult = await attempt({
+        uri: "/verify-totp-auth",
+        account,
+        body: { code: code, twoFactorAuthId: id.toString() },
+      });
+
+      expect(result.errorCode).toBe(ExceptionCode.TooManyRequestsException);
+    }
+
+    expect(verifyToken).not.toHaveBeenCalled();
+  });
+
+  it("a code sent as a list, a number or an object is one attempt with one code checked - never the right one among many", async () => {
+    const account: Account = await newAccount();
+
+    const right: string = account.code();
+    const shapes: Array<unknown> = [
+      [
+        ...Array.from({ length: 200 }, (_value: unknown, index: number) => {
+          return String(index).padStart(6, "0");
+        }),
+        right,
+      ],
+      [right],
+      Number(right),
+      { value: right },
+      `${right}${right}`,
+    ];
+
+    for (const shape of shapes) {
+      const result: AttemptResult = await attempt({
+        uri: "/verify-totp-auth",
+        account,
+        body: { code: shape, twoFactorAuthId: TOTP_ID.toString() },
+      });
+
+      expect(result.errorMessage).toBe("Invalid code.");
+      expect(result.signedIn).toBe(false);
+    }
+
+    expect(verifyToken).toHaveBeenCalledTimes(shapes.length);
+    expect(
+      verifyToken.mock.results.map((result: { value: unknown }) => {
+        return result.value;
+      }),
+    ).toEqual(Array(shapes.length).fill(false));
+
+    expect((await enterCode(account, account.code())).errorCode).toBe(
+      ExceptionCode.TooManyRequestsException,
+    );
+  });
+
+  it("an id that is not one is counted like an app that is not the account's, and the owner is told when the waits begin", async () => {
+    const account: Account = await newAccount();
+    const row: UserTotpAuth = account.totp;
+
+    // As the real query does: an id that is not a uuid is refused with a 400.
+    totpFindOneBy.mockImplementation(((args: {
+      query: { _id: unknown };
+    }): Promise<UserTotpAuth> => {
+      if (!UUIDColumnFilter.isUUIDText(args.query._id as string)) {
+        return Promise.reject(
+          new BadDataException('Invalid ID for "_id" in the query.'),
+        );
+      }
+
+      return Promise.resolve(row);
+    }) as never);
+
+    for (let index: number = 0; index < 5; index++) {
+      const result: AttemptResult = await attempt({
+        uri: "/verify-totp-auth",
+        account,
+        body: { code: account.code(), twoFactorAuthId: `not-an-id-${index}` },
+      });
+
+      expect(result.nextError).toBeInstanceOf(BadDataException);
+      expect(result.signedIn).toBe(false);
+    }
+
+    expect(verifyToken).not.toHaveBeenCalled();
+    expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledTimes(1);
+    expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledWith({
+      user: account.user,
+      wrongCodesInARow: 5,
+    });
+
+    expect((await enterCode(account, account.code())).errorCode).toBe(
+      ExceptionCode.TooManyRequestsException,
+    );
+  });
+
+  it("a backup code that cannot be looked up is counted, and the owner is told when the waits begin", async () => {
+    const account: Account = await newAccount();
+
+    consumeBackupCode.mockRejectedValue(new Error("connection lost") as never);
+
+    for (let index: number = 0; index < 5; index++) {
+      const result: AttemptResult = await enterBackupCode(
+        account,
+        "abcde-fghij",
+      );
+
+      expect((result.nextError as Error)?.message).toBe("connection lost");
+    }
+
+    expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledTimes(1);
+    expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledWith({
+      user: account.user,
+      wrongCodesInARow: 5,
+    });
+
+    consumeBackupCode.mockClear();
+
+    expect((await enterBackupCode(account, "abcde-fghij")).errorCode).toBe(
+      ExceptionCode.TooManyRequestsException,
+    );
+    expect(consumeBackupCode).not.toHaveBeenCalled();
+  });
+
+  it("codes sent together the moment a wait ends: one is checked, and the rest wait for the next", async () => {
+    const account: Account = await newAccount();
+
+    await fiveWrongCodes(account);
+    waitSeconds(60);
+    verifyToken.mockClear();
+
+    const results: Array<AttemptResult> = await Promise.all(
+      Array.from({ length: 30 }, (): Promise<AttemptResult> => {
+        return enterCode(account, account.wrongCode());
+      }),
+    );
+
+    expect(verifyToken).toHaveBeenCalledTimes(1);
+
+    const refused: Array<AttemptResult> = results.filter(
+      (result: AttemptResult): boolean => {
+        return result.errorCode === ExceptionCode.TooManyRequestsException;
+      },
+    );
+
+    expect(refused).toHaveLength(29);
+    expect(
+      refused.map((result: AttemptResult) => {
+        return result.retryAfter;
+      }),
+    ).toEqual(Array(29).fill("120"));
+  });
+
+  it("wrong backup codes sent at the same moment from many networks: five are checked, never more", async () => {
+    const account: Account = await newAccount();
+
+    const results: Array<AttemptResult> = await Promise.all(
+      Array.from({ length: 30 }, (): Promise<AttemptResult> => {
+        return enterBackupCode(account, "abcde-fghij");
+      }),
+    );
+
+    expect(consumeBackupCode).toHaveBeenCalledTimes(5);
+    expect(
+      results.filter((result: AttemptResult): boolean => {
+        return result.errorCode === ExceptionCode.TooManyRequestsException;
+      }),
+    ).toHaveLength(25);
+  });
+
+  it("the first enrolment route checks no code of an app the account already has, waiting or not", async () => {
+    const account: Account = await newAccount();
+
+    const enrol: () => Promise<AttemptResult> = (): Promise<AttemptResult> => {
+      return attempt({
+        uri: "/verify-totp-enrolment",
+        account,
+        body: { code: account.code(), twoFactorAuthId: TOTP_ID.toString() },
+      });
+    };
+
+    expect((await enrol()).errorMessage).toBe(
+      "Two factor authentication is already set up for this account.",
+    );
+
+    await fiveWrongCodes(account);
+    verifyToken.mockClear();
+
+    const result: AttemptResult = await enrol();
+
+    expect(result.errorMessage).toBe(
+      "Two factor authentication is already set up for this account.",
+    );
+    expect(result.signedIn).toBe(false);
+    expect(verifyToken).not.toHaveBeenCalled();
+
+    expect((await enterCode(account, account.code())).errorCode).toBe(
+      ExceptionCode.TooManyRequestsException,
+    );
   });
 });
 
