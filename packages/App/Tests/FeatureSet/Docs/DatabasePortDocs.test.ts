@@ -20,8 +20,9 @@ import path from "path";
  *     commands name the compose service and the config.env settings that
  *     exist; ComposeDatabaseRuntime (Tests/Ops) runs them for real;
  *   - the upgrade note (installation/upgrading, "Other changes in 14") sits
- *     after the note on sign-in cookies and before the pointer to the
- *     endpoint changes, says the same, and links to those two sections - in
+ *     after the note on a placeholder ONEUPTIME_SECRET and before the
+ *     pointer to the endpoint changes, says the same, and links to those two
+ *     sections - in
  *     every language at that language's own headings;
  *   - every translation carries the guide's sections and the note in the
  *     English places, worded its own way, with the English commands and code.
@@ -61,9 +62,9 @@ const OVERRIDE_EXAMPLE: Array<string> = [
 
 const NOTE_LEAD: string =
   "**PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.**";
-// The note before it (HttpsCookiesUpgradeDocs).
+// The note before it (ClusterKeyUpgradeDocs).
 const PREVIOUS_LEAD: string =
-  "**Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers to stay there.**";
+  "**OneUptime refuses a placeholder `ONEUPTIME_SECRET`.**";
 const LAST_ITEM_START: string = "- See [API and endpoint changes]";
 
 const HEADING_LINE: RegExp = /^#{1,6}\s/;
@@ -480,7 +481,7 @@ function noteLinks(language: string): Array<string> {
 }
 
 describe("the English upgrade note on PostgreSQL's port and password", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on sign-in cookies and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on a placeholder ONEUPTIME_SECRET and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

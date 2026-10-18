@@ -636,10 +636,14 @@ describe("wiring", () => {
   test.each([false, true])(
     "npm start (ignore-scripts=%s) gives a new install its own password before docker compose up",
     (ignoreScripts) => {
-      const result = npmStartIn(
-        { start: ROOT_PACKAGE.scripts.start },
-        ignoreScripts,
-      );
+      // npm start as the repository ships it: its start script and any hook.
+      const shipped = {};
+      for (const name of ["prestart", "start", "poststart"]) {
+        if (ROOT_PACKAGE.scripts[name]) {
+          shipped[name] = ROOT_PACKAGE.scripts[name];
+        }
+      }
+      const result = npmStartIn(shipped, ignoreScripts);
 
       expect({ status: result.status, output: result.output }).toEqual({
         status: 0,

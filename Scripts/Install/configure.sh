@@ -231,6 +231,10 @@ main() {
     
     print_info "Merging environment templates..."
     node ./Scripts/Install/MergeEnvTemplate.js
+
+    # An internal secret still at its config.example.env placeholder gets a
+    # random value (OneUptime refuses the placeholder from any caller).
+    node ./Scripts/Install/ReplacePlaceholderSecrets.js
     
     # Load environment variables
     # shellcheck disable=SC2046
