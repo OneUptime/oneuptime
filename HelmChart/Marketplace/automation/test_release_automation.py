@@ -7,6 +7,7 @@ the CLIs and the HTTP API are fakes.
     python3 -m unittest discover -s HelmChart/Marketplace -p 'test_*.py'
 """
 
+import contextlib
 import io
 import json
 import os
@@ -17,6 +18,7 @@ import unittest
 import urllib.error
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -55,6 +57,33 @@ ALL_VARIABLES = {name: "set" for names in release_plan.REQUIRED_VARIABLES.values
 
 def ready_editions() -> Dict[str, Any]:
     return {"aws": dict(READY_AWS), "azure": dict(READY_AZURE), "google-cloud": dict(READY_GOOGLE)}
+
+
+def run_cli(main: Any, argv: List[str], **patches: Any) -> Dict[str, Any]:
+    """Runs a CLI's main with the module's names patched; its exit code, outputs and summary."""
+    module = sys.modules[main.__module__]
+
+    with tempfile.TemporaryDirectory() as directory:
+        outputs = Path(directory) / "outputs"
+        summary = Path(directory) / "summary"
+        environment = {"GITHUB_OUTPUT": str(outputs), "GITHUB_STEP_SUMMARY": str(summary)}
+        environment.update(patches.pop("environment", {}))
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.dict(os.environ, environment))
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            stack.enter_context(contextlib.redirect_stderr(io.StringIO()))
+
+            for name, value in patches.items():
+                stack.enter_context(mock.patch.object(module, name, value))
+
+            code = main(argv)
+
+        return {
+            "code": code,
+            "outputs": outputs.read_text() if outputs.exists() else "",
+            "summary": summary.read_text() if summary.exists() else "",
+        }
 
 
 def aws_images_plan(count: int = 3, version: str = VERSION) -> Dict[str, Any]:
@@ -147,8 +176,8 @@ class ReleasePlanTest(unittest.TestCase):
         arguments: Dict[str, Any] = {
             "event": "workflow_dispatch",
             "action": "release",
-            "version_input": "",
-            "version_file": VERSION,
+            "version": VERSION,
+            "released": True,
             "marketplaces_input": "",
             "dry_run_input": "",
             "variables": dict(ALL_VARIABLES),
@@ -157,19 +186,25 @@ class ReleasePlanTest(unittest.TestCase):
         arguments.update(overrides)
         return release_plan.make_plan(**arguments)
 
-    def test_after_a_release_it_releases_every_ready_marketplace_for_real(self) -> None:
-        plan = self.plan(event="workflow_run", dry_run_input="true")
+    def test_weekly_it_ships_to_every_ready_marketplace_for_real(self) -> None:
+        plan = self.plan(event="schedule", dry_run_input="true", marketplaces_input="aws")
         self.assertFalse(plan["dry_run"])
+        self.assertTrue(plan["automatic"])
         self.assertEqual(plan["runs"], {"aws": True, "azure": True, "google-cloud": True})
         self.assertEqual(plan["version"], VERSION)
 
-    def test_after_a_release_it_skips_a_marketplace_that_is_not_set_up(self) -> None:
+    def test_runs_on_nothing_but_the_week_and_by_hand(self) -> None:
+        for event in ("workflow_run", "push", ""):
+            with self.assertRaises(release_common.ReleaseError):
+                self.plan(event=event)
+
+    def test_weekly_it_skips_a_marketplace_that_is_not_set_up(self) -> None:
         editions = ready_editions()
         editions["azure"]["ready"] = False
         variables = dict(ALL_VARIABLES)
         del variables["MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT"]
 
-        plan = self.plan(event="workflow_run", editions=editions, variables=variables)
+        plan = self.plan(event="schedule", editions=editions, variables=variables)
         self.assertEqual(plan["runs"], {"aws": True, "azure": False, "google-cloud": False})
         self.assertIn("ready", " ".join(plan["skipped"]["azure"]))
         self.assertIn("MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT", " ".join(plan["skipped"]["google-cloud"]))
@@ -193,11 +228,31 @@ class ReleasePlanTest(unittest.TestCase):
         plan = self.plan(dry_run_input="false", marketplaces_input="azure")
         self.assertEqual(plan["runs"], {"aws": False, "azure": True, "google-cloud": False})
 
-    def test_the_version_asked_for_wins_over_the_version_file(self) -> None:
-        self.assertEqual(self.plan(version_input="14.0.60")["version"], "14.0.60")
+    def test_the_version_is_a_release_number(self) -> None:
+        self.assertEqual(self.plan(version=" 14.0.60 ")["version"], "14.0.60")
 
-        with self.assertRaises(release_common.ReleaseError):
-            self.plan(version_input="latest")
+        for bad in ("latest", "v14.0.60", "14.0"):
+            with self.assertRaises(release_common.ReleaseError):
+                self.plan(version=bad)
+
+    def test_without_a_release_tag_there_is_nothing_to_ship(self) -> None:
+        for event in ("schedule", "workflow_dispatch"):
+            with self.assertRaises(release_common.ReleaseError) as raised:
+                self.plan(event=event, version="", released=False)
+
+            self.assertIn("no release tag", str(raised.exception))
+
+    def test_a_real_run_ships_only_a_version_that_was_released(self) -> None:
+        for arguments in ({"event": "schedule"}, {"dry_run_input": "false"}):
+            with self.assertRaises(release_common.ReleaseError) as raised:
+                self.plan(released=False, **arguments)
+
+            self.assertIn("was not released", str(raised.exception))
+
+        # A dry run may try a version that has no tag yet: it builds from this checkout's chart.
+        self.assertTrue(self.plan(released=False)["dry_run"])
+        # Going live publishes what is in preview already, whatever the newest tag.
+        self.assertEqual(self.plan(action="azure-go-live", released=False)["action"], "azure-go-live")
 
     def test_azure_go_live_is_azure_only_and_never_a_dry_run(self) -> None:
         plan = self.plan(action="azure-go-live", dry_run_input="true", marketplaces_input="aws")
@@ -214,7 +269,7 @@ class ReleasePlanTest(unittest.TestCase):
     def test_outputs_and_summary(self) -> None:
         editions = ready_editions()
         editions["google-cloud"]["ready"] = False
-        plan = self.plan(event="workflow_run", editions=editions)
+        plan = self.plan(event="schedule", editions=editions)
         outputs = release_plan.outputs_of(plan)
         self.assertEqual(
             outputs,
@@ -230,11 +285,32 @@ class ReleasePlanTest(unittest.TestCase):
                 "any": "true",
             },
         )
-        nothing = self.plan(event="workflow_run", editions={name: {} for name in release_common.MARKETPLACES})
+        nothing = self.plan(event="schedule", editions={name: {} for name in release_common.MARKETPLACES})
         self.assertEqual(release_plan.outputs_of(nothing)["any"], "false")
         summary = release_plan.summary_of(plan)
         self.assertIn("| google-cloud | skipped:", summary)
-        self.assertIn("| aws | pushes, then publishes once approved |", summary)
+        self.assertIn("| aws | ships it, once approved, unless it has it already |", summary)
+        self.assertIn("| azure | builds and checks |", release_plan.summary_of(self.plan()))
+        self.assertIn(
+            "| google-cloud | pushes it, unless it has it already; it is then added in Producer Portal by hand |",
+            release_plan.summary_of(self.plan(event="schedule")),
+        )
+        self.assertIn(
+            "| azure | publishes the newest preview to live |",
+            release_plan.summary_of(self.plan(action="azure-go-live")),
+        )
+
+    def test_main_reads_the_workflow_s_environment(self) -> None:
+        environment = dict(ALL_VARIABLES, EVENT_NAME="workflow_dispatch", VERSION=VERSION, RELEASE_SHA="", DRY_RUN_INPUT="false")
+        failed = run_cli(release_plan.main, [], environment=environment, load_editions=ready_editions)
+        self.assertEqual((failed["code"], failed["outputs"]), (1, ""))
+
+        environment["RELEASE_SHA"] = "0123456789abcdef0123456789abcdef01234567"
+        shipped = run_cli(release_plan.main, [], environment=environment, load_editions=ready_editions)
+        self.assertEqual(shipped["code"], 0)
+        self.assertIn(f"version={VERSION}\n", shipped["outputs"])
+        self.assertIn("dry_run=false\n", shipped["outputs"])
+        self.assertIn("any=true\n", shipped["outputs"])
 
 
 class AwsCatalogTest(unittest.TestCase):
@@ -315,6 +391,49 @@ class AwsCatalogTest(unittest.TestCase):
         self.assertEqual(state, "failed")
         self.assertEqual(errors, ["Validation failed", "INVALID_HELM_LINT: lint"])
         self.assertEqual(aws_catalog.change_set_state({"Status": "CANCELLED"})[0], "cancelled")
+
+    def test_the_versions_a_product_has(self) -> None:
+        versions = [{"VersionTitle": "14.0.64", "Id": "a"}, {"VersionTitle": "14.0.65", "Id": "b"}]
+        self.assertEqual(aws_catalog.product_versions({"DetailsDocument": {"Versions": versions}}), ["14.0.64", "14.0.65"])
+        self.assertEqual(aws_catalog.product_versions({"Details": json.dumps({"Versions": versions})}), ["14.0.64", "14.0.65"])
+        # AWS leaves Versions out while the product has none.
+        self.assertEqual(aws_catalog.product_versions({"DetailsDocument": {"Description": {}}}), [])
+
+        for bad in ({}, {"DetailsDocument": {"Versions": "14.0.65"}}):
+            with self.assertRaises(release_common.ReleaseError):
+                aws_catalog.product_versions(bad)
+
+    def test_shipped_says_whether_the_product_has_the_version(self) -> None:
+        real = aws_catalog.Catalog
+        calls: List[List[str]] = []
+
+        def runner(command: List[str]) -> str:
+            calls.append(command)
+            return json.dumps({"DetailsDocument": {"Versions": [{"VersionTitle": "14.0.65"}]}})
+
+        def shipped(version: str, editions: Dict[str, Any]) -> Dict[str, Any]:
+            return run_cli(
+                aws_catalog.main,
+                ["shipped", "--version", version],
+                load_editions=lambda: editions,
+                Catalog=lambda: real(runner),
+            )
+
+        has_it = shipped("14.0.65", ready_editions())
+        self.assertEqual((has_it["code"], has_it["outputs"]), (0, "shipped=true\n"))
+        self.assertIn("has 14.0.65 already", has_it["summary"])
+        self.assertEqual(calls[0][2], "describe-entity")
+        self.assertEqual(calls[0][calls[0].index("--entity-id") + 1], "prod-abc123")
+        self.assertEqual(calls[0][calls[0].index("--catalog") + 1], "AWSMarketplace")
+
+        new = shipped(VERSION, ready_editions())
+        self.assertEqual((new["code"], new["outputs"], new["summary"]), (0, "shipped=false\n", ""))
+
+        editions = ready_editions()
+        editions["aws"]["productId"] = ""
+        calls.clear()
+        self.assertEqual(shipped(VERSION, editions)["code"], 1)
+        self.assertEqual(calls, [])
 
     def test_the_catalog_is_called_in_us_east_1_and_followed(self) -> None:
         calls: List[List[str]] = []
@@ -454,6 +573,50 @@ class PartnerCenterTest(unittest.TestCase):
             partner_center.technical_configuration(
                 existing, product_id=PRODUCT, plan_id=PLAN, cluster_extension_type="HackerBay.OneUptimeEnterprise", reference=self.reference()
             )
+
+    def test_the_bundle_tags_the_plan_names(self) -> None:
+        self.assertEqual(partner_center.configured_tags(TREE["resources"], "enterprise"), ["14.0.65"])
+        self.assertEqual(partner_center.configured_tags(TREE["resources"], "gold"), [])
+        self.assertEqual(partner_center.configured_tags(TREE["resources"][:2], "enterprise"), [])
+        self.assertEqual(partner_center.configured_tags([], "enterprise"), [])
+
+    def test_an_offer_never_published_to_preview_has_nothing_there(self) -> None:
+        def not_found() -> urllib.error.HTTPError:
+            return urllib.error.HTTPError(
+                "https://graph.microsoft.com/rp/product-ingestion/resource-tree", 404, "Not Found", {}, io.BytesIO(b"{}")
+            )
+
+        fake = FakePartnerCenter({"resource-tree/": not_found()})
+        self.assertEqual(partner_center.PartnerCenter("the-token", opener=fake).resource_tree(PRODUCT, "preview"), [])
+        self.assertIn("targetType=preview", fake.requests[0]["path"])
+
+        # The draft is always there: a 404 for it is an error.
+        with self.assertRaises(release_common.ReleaseError):
+            partner_center.PartnerCenter("the-token", opener=FakePartnerCenter({"resource-tree/": not_found()})).resource_tree(PRODUCT)
+
+    def test_shipped_asks_the_offer_s_preview(self) -> None:
+        real = partner_center.PartnerCenter
+
+        def shipped(tag: str) -> Any:
+            fake = FakePartnerCenter({"product?": {"value": [{"id": PRODUCT}]}, "resource-tree/": TREE})
+            result = run_cli(
+                partner_center.main,
+                ["shipped", "--tag", tag],
+                environment={"PARTNER_CENTER_TOKEN": "the-token"},
+                load_editions=ready_editions,
+                PartnerCenter=lambda token: real(token, opener=fake),
+            )
+            return result, fake
+
+        has_it, fake = shipped("14.0.65")
+        self.assertEqual((has_it["code"], has_it["outputs"]), (0, "shipped=true\n"))
+        self.assertIn("preview has bundle 14.0.65 already", has_it["summary"])
+        self.assertTrue(fake.requests[1]["path"].startswith(f"resource-tree/{PRODUCT}?targetType=preview&"))
+        self.assertEqual([request["method"] for request in fake.requests], ["GET", "GET"])
+
+        new, _ = shipped(VERSION)
+        self.assertEqual((new["code"], new["outputs"], new["summary"]), (0, "shipped=false\n", ""))
+        self.assertEqual(shipped("latest")[0]["code"], 1)
 
     def test_finds_the_plan_by_its_id(self) -> None:
         self.assertEqual(partner_center.find_plan(TREE["resources"], "enterprise"), PLAN)
@@ -597,11 +760,24 @@ class CiSetupTest(unittest.TestCase):
         self.assertIn("--keep 3", purge)
         self.assertIn(r"--filter 'com\.oneuptime\.enterprise:.*'", purge)
         self.assertIn("--filter 'oneuptime/.*:.*'", purge)
+        # By count, whatever the release pace, with a day's grace for a release being published.
+        self.assertIn("--ago 1d ", purge)
+        self.assertIn("--untagged", purge)
+
+    def test_the_azure_purge_runs_daily_and_a_changed_rule_takes_effect(self) -> None:
+        script = ci_setup.azure_registry_script(READY_AZURE, "eastus")
+        self.assertIn('--schedule "0 3 * * *"', script)
+        delete = script.index("az acr task delete --registry oneuptimemarketplace --name purge-old-releases --yes")
+        create = script.index("az acr task create --registry oneuptimemarketplace --name purge-old-releases")
+        self.assertLess(delete, create)
+        self.assertNotIn("if ! az acr task show", script)
 
     def test_the_google_repository_keeps_the_newest_releases(self) -> None:
         policies = {policy["name"]: policy for policy in ci_setup.google_cleanup_policy()}
         self.assertEqual(policies["keep-the-newest-releases"]["mostRecentVersions"], {"keepCount": 3})
-        self.assertEqual(policies["delete-older-releases"]["condition"], {"olderThan": "30d"})
+        self.assertEqual(policies["delete-older-releases"]["condition"], {"olderThan": "1d"})
+        self.assertEqual(policies["keep-the-newest-releases"]["action"], {"type": "Keep"})
+        self.assertIn("--no-dry-run", ci_setup.google_script())
         self.assertIn(
             """--attribute-condition='assertion.repository == "OneUptime/oneuptime" """
             """&& assertion.environment.startsWith("marketplace-")'""",

@@ -136,7 +136,7 @@ Det markedsplassen avviser, er et oppsagt eller suspendert abonnement, eller en 
 
 OneUptime migrerer databasen sin når den nye releasen starter. Les [oppgraderingsnotatene](/docs/installation/upgrading) før du går over til en ny hovedversjon.
 
-Oppgrader gjennom markedsplassen: utgavemerket kan vise en nyere OneUptime-release før den er tilgjengelig på markedsplassen din.
+Oppgrader gjennom markedsplassen. En installasjon fra markedsplassen sammenligner seg ikke med OneUptime-releasene på GitHub: Versjonene markedsplassen din tilbyr, er de du oppgraderer til.
 
 ## Innstillinger og skalering
 

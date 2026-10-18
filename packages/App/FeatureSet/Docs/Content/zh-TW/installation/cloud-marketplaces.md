@@ -136,7 +136,7 @@ kubectl get service --namespace <namespace>
 
 新版本啟動時，OneUptime 會移轉資料庫。升級到新的主要版本之前，請先閱讀[升級說明](/docs/installation/upgrading)。
 
-請透過雲端市集升級：版本標籤可能會在較新的 OneUptime 版本上架到您的雲端市集之前就顯示它。
+請透過雲端市集升級。從雲端市集安裝的執行個體不會與 GitHub 上的 OneUptime 版本進行比較：您的雲端市集提供的版本，就是應升級到的版本。
 
 ## 設定與規模調整
 

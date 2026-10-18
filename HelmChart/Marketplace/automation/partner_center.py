@@ -6,6 +6,9 @@ The Microsoft Marketplace offer, through Partner Center's Product Ingestion API
     partner_center.py plan --tag X.Y.Z --digest sha256:... --out configure.json
         the configure request that points the plan's technical configuration at the bundle
         (offline: product and plan named by their offer and plan IDs)
+    partner_center.py shipped --tag X.Y.Z
+        whether the offer's preview already has that bundle; writes shipped=true|false for the
+        next steps, so a release is never published twice
     partner_center.py update-bundle --tag X.Y.Z --digest sha256:... [--wait-minutes 20]
         sets it on the draft, and waits for Partner Center to take it
     partner_center.py publish --target preview [--wait-minutes 60]
@@ -31,7 +34,14 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from release_common import ReleaseError, check_version, load_editions, wait_for, write_summary
+from release_common import (
+    ReleaseError,
+    check_version,
+    load_editions,
+    wait_for,
+    write_outputs,
+    write_summary,
+)
 
 API = "https://graph.microsoft.com/rp/product-ingestion"
 # The configure, status and submission requests.
@@ -61,7 +71,8 @@ class PartnerCenter:
         path: str,
         query: Optional[Dict[str, str]] = None,
         body: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        missing_ok: bool = False,
+    ) -> Optional[Dict[str, Any]]:
         url: str = f"{API}/{path}"
 
         if query:
@@ -84,6 +95,10 @@ class PartnerCenter:
         except urllib.error.HTTPError as error:
             said: str = error.read().decode("utf-8", "replace")[-2000:]
             error.close()
+
+            if missing_ok and error.code == 404:
+                return None
+
             raise ReleaseError(f"Partner Center answered {error.code} to {method} {path}: {said}")
         except urllib.error.URLError as error:
             raise ReleaseError(f"Partner Center could not be reached: {error.reason}")
@@ -101,11 +116,17 @@ class PartnerCenter:
 
         return values[0]["id"]
 
-    def resource_tree(self, product_id: str) -> List[Dict[str, Any]]:
-        tree: Dict[str, Any] = self.request(
-            "GET", f"resource-tree/{product_id}", {"$version": TREE_VERSION}
+    def resource_tree(self, product_id: str, target: str = "") -> List[Dict[str, Any]]:
+        """The offer's resources: the draft, or the preview or live environment's."""
+        query: Dict[str, str] = {"$version": TREE_VERSION}
+
+        if target:
+            query = {"targetType": target, "$version": TREE_VERSION}
+
+        tree: Optional[Dict[str, Any]] = self.request(
+            "GET", f"resource-tree/{product_id}", query, missing_ok=bool(target)
         )
-        return tree.get("resources", [])
+        return (tree or {}).get("resources", [])
 
     def configure(self, resources: List[Dict[str, Any]]) -> Dict[str, Any]:
         return self.request(
@@ -146,6 +167,18 @@ def find_technical_configuration(
             return resource
 
     return None
+
+
+def configured_tags(resources: List[Dict[str, Any]], plan_external_id: str) -> List[str]:
+    """The bundle tags the plan's technical configuration names; empty with no such plan yet."""
+    try:
+        plan_id: str = find_plan(resources, plan_external_id)
+    except ReleaseError:
+        return []
+
+    configuration: Optional[Dict[str, Any]] = find_technical_configuration(resources, plan_id)
+    references: List[Dict[str, Any]] = (configuration or {}).get("cnabReferences", []) or []
+    return [str(reference.get("tag", "")) for reference in references]
 
 
 def cnab_reference(
@@ -300,6 +333,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     plan.add_argument("--digest", required=True)
     plan.add_argument("--out", required=True, type=Path)
 
+    shipped = commands.add_parser("shipped")
+    shipped.add_argument("--tag", required=True)
+
     update = commands.add_parser("update-bundle")
     update.add_argument("--tag", required=True)
     update.add_argument("--digest", required=True)
@@ -340,6 +376,17 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         center = PartnerCenter(os.environ.get("PARTNER_CENTER_TOKEN", ""))
         product_id: str = center.product_id(edition["offerId"])
+
+        if arguments.command == "shipped":
+            tag: str = check_version(arguments.tag)
+            has_it: bool = tag in configured_tags(
+                center.resource_tree(product_id, "preview"), edition["planId"]
+            )
+            write_outputs({"shipped": "true" if has_it else "false"})
+
+            if has_it:
+                write_summary(f"Microsoft Marketplace's preview has bundle {tag} already: nothing to push or publish.")
+            return 0
 
         if arguments.command == "update-bundle":
             resources: List[Dict[str, Any]] = center.resource_tree(product_id)

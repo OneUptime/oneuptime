@@ -87,6 +87,7 @@ telemetry writers only get `ENTERPRISE_MARKETPLACE`, for the license.
 | `ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_CONSUMER_ID`           | Key `consumer-id` of the Secret named by `enterpriseMarketplace.googleCloud.reportingSecret`, which Marketplace creates |
 | `ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_ENTITLEMENT_ID`        | Key `entitlement-id` of that Secret                                                                                     |
 | `ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY`         | Key `reporting-key` of that Secret                                                                                      |
+| `DISABLE_UPDATE_CHECK`                                      | `updateCheck.disabled`: `true` in every edition (build.py); upgrades come through the marketplace, not GitHub           |
 
 The AWS product code is compiled in (`AWS_SELF_HOSTED_PRODUCT_CODES` in
 [SelfHostedMarketplaceConfig.ts](SelfHosted/SelfHostedMarketplaceConfig.ts)),
@@ -132,14 +133,20 @@ Besides each marketplace's fee, about USD 5 to 7 a month:
 | Cost                       | About                                  | Kept down by                                                                                                                          |
 | -------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Marketplace fees           | AWS 20% (public) or 3% (private); 3%   | Selling to any sizeable buyer on AWS through a private offer, even at the list price                                                  |
-| Azure Container Registry   | USD 5 a month (Basic)                  | The weekly `acr purge` task keeps each repository's 3 newest releases; Microsoft serves buyers from its own registry                  |
-| Google Artifact Registry   | About USD 1 a month                    | The cleanup policy keeps each image's 3 newest releases; Google serves buyers from its own registry                                   |
+| Azure Container Registry   | USD 5 a month (Basic)                  | A daily `acr purge` task keeps each repository's 3 newest releases, by count; Microsoft serves buyers from its own registry           |
+| Google Artifact Registry   | About USD 1 a month                    | The cleanup policy keeps each image's 3 newest releases, by count, and deletes the rest; Google serves buyers from its own registry   |
 | AWS Marketplace's registry | Nothing                                | It is AWS Marketplace's account, not ours                                                                                             |
 | Reporting usage, CI        | Nothing                                | The metering APIs are free; GitHub Actions is free for a public repository                                                            |
 | Test clusters              | About USD 0.10 an hour, plus the nodes | Only for minor and major releases; small, spot nodes; deleted right after. AKS has no cluster fee, GKE's free tier covers one cluster |
 
 Buyers' clusters and their downloads are on the buyers' cloud bills, never on
 ours.
+
+The workflow ships once a week, not each of OneUptime's several releases a day:
+every version a marketplace takes is a review, an approval, a copy in two of
+the registries above, and on Microsoft an upgrade of every buyer's cluster. With
+the cleanup counting releases rather than days, each registry holds about 3
+releases whatever the pace.
 
 ## Who does what
 
@@ -155,7 +162,7 @@ go-ahead in chat for that exact step.
 | Anything that costs money: the Azure Container Registry, test clusters, Artifact Registry               | Maintainer approves the cost first                                                                                        |
 | Prices, dimensions, private offer terms                                                                 | Maintainer, a go-ahead for each exact change                                                                              |
 | Building an edition, running the tests, scanning the images                                             | Agent or maintainer                                                                                                       |
-| Copying images and pushing charts and bundles to the marketplace registries                             | The Marketplace Release workflow, after every release; by hand, an agent or maintainer for a release the maintainer named |
+| Copying images and pushing charts and bundles to the marketplace registries                             | The Marketplace Release workflow, every Monday; by hand, an agent or a maintainer, for a release the maintainer has named |
 | Approving each publish the workflow makes (**Review deployments** on the run, `marketplace-publish`)    | Maintainer, a required reviewer of that environment                                                                       |
 | The one-time CI setup (`ci_setup.py`): it prints each script to read first                              | Agent or maintainer, signed in as the maintainer, once the maintainer approved its costs                                  |
 | Filling in and saving portal drafts: listing copy, plans without prices, technical settings             | Agent                                                                                                                     |
@@ -190,8 +197,10 @@ see [Releasing a version](#releasing-a-version).
 
 Every edition is the public chart with every image (OneUptime's, and the
 PostgreSQL, ClickHouse and Valkey it bundles) taken from the marketplace's
-registry, `enterpriseMarketplace.provider` set, no subcharts and no `helm test`
-pod. The chart tests' `marketplace` suite builds and checks all three:
+registry, `enterpriseMarketplace.provider` set, the update check off (buyers
+upgrade through the marketplace, which has a release a week, not GitHub's
+several a day), no subcharts and no `helm test` pod. The chart tests'
+`marketplace` suite builds and checks all three:
 
 ```bash
 bash HelmChart/Tests/run.sh marketplace
@@ -268,10 +277,11 @@ OneUptime's Partner Center account and the HackerBay tenant
    about USD 5 a month). `ci_setup.py azure-registry` creates it in the
    tenant's subscription with what Microsoft needs: its ingestion app may pull
    from it, and `Microsoft.PartnerCenterIngestion` is registered. It also adds
-   a weekly ACR task (`acr purge`) that keeps each repository's 3 newest
-   releases: Microsoft serves buyers from its own copy, so Basic's 10 GiB is
-   enough. Read the script, then run it (`az login` first, as an Owner of the
-   subscription):
+   a daily ACR task (`acr purge`) that keeps each repository's 3 newest
+   releases, and anything pushed in the last day: Microsoft serves buyers from
+   its own copy, so Basic's 10 GiB is enough. Running the script again
+   replaces the task, so a changed rule takes effect. Read the script, then
+   run it (`az login` first, as an Owner of the subscription):
 
    ```bash
    python3 HelmChart/Marketplace/automation/ci_setup.py azure-registry
@@ -332,8 +342,9 @@ Everything lives in the `oneuptime-marketplace` project, never in
    and whatever else Producer Portal's technical integration page asks for.
 4. **The registry** (the maintainer approves the cost: Artifact Registry
    storage, about a dollar a month). `ci_setup.py google` creates it, with a
-   cleanup policy that keeps each image's 3 newest releases (Google serves
-   buyers from its own copy), and the workflow's sign-in (below). By hand:
+   cleanup policy that keeps each image's 3 newest releases and deletes the
+   rest once they are a day old (Google serves buyers from its own copy), and
+   the workflow's sign-in (below). By hand:
 
    ```bash
    gcloud services enable artifactregistry.googleapis.com servicecontrol.googleapis.com servicemanagement.googleapis.com --project=oneuptime-marketplace
@@ -385,7 +396,7 @@ script is safe to run again, and prints the repository variables to set.
    `marketplace-publish` environment (master only, and every job waits for a
    reviewer), and sets the variables. Add `--enable` to set
    `MARKETPLACE_RELEASES=enabled` once a dry run has passed: the workflow
-   then runs after every release.
+   then ships the newest release every Monday.
 
 5. **Each edition**: set `"ready": true` in `editions.json` once its values
    are real.
@@ -398,16 +409,26 @@ Ship the same OneUptime release to all three listings.
 
 ### With the Marketplace Release workflow
 
-After every release, once `MARKETPLACE_RELEASES` is `enabled`,
-[the workflow](../../../../../.github/workflows/marketplace-release.yml) does
-everything below for each ready marketplace:
+Every Monday at 09:00 UTC, once `MARKETPLACE_RELEASES` is `enabled`,
+[the workflow](../../../../../.github/workflows/marketplace-release.yml) ships
+the newest release (the newest `#.#.#` tag, which GitHub cuts only once the
+release's images are all published), doing everything below for each ready
+marketplace:
 
 1. **Tests** the marketplace chart suite on the chart as it was released.
-2. **Pushes**, with no approval (pushing publishes nothing): each edition's
+2. **Asks each marketplace whether it has the release already**: AWS for the
+   product's versions, Partner Center for the bundle the preview names,
+   Artifact Registry for the deployer. One that has it is left alone: nothing
+   is pushed, and its publishing job neither runs nor asks for an approval. So
+   a week with no new release ships nothing, and running the workflow again
+   ships nothing twice.
+3. **Pushes**, with no approval (pushing publishes nothing): each edition's
    images, then the chart to AWS Marketplace's registry, the bundle (built
    with Microsoft's `cpa`) to our Azure registry, and the deployer to
-   Artifact Registry.
-3. **Waits for a maintainer** to approve the publishing jobs (**Review
+   Artifact Registry. What an earlier run pushed (its publishing did not go
+   through) is used again: AWS images and chart, and Microsoft's bundle, are
+   not pushed twice.
+4. **Waits for a maintainer** to approve the publishing jobs (**Review
    deployments** on the run), then:
    - **AWS**: adds the version (Catalog API, `AddDeliveryOptions`, with the
      GitHub release's notes) and follows AWS's scan; the version is public
@@ -416,16 +437,18 @@ everything below for each ready marketplace:
      bundle and publishes the offer to **preview** (Product Ingestion API).
    - **Google**: Google has no API for this step. The run's summary says
      what to add in Producer Portal: the deployer, its digest and its track.
-4. **Microsoft goes live by hand**: once the preview has passed Microsoft's
+5. **Microsoft goes live by hand**: once the preview has passed Microsoft's
    checks and been tried (see [Checking an installation](#checking-an-installation)),
    run the workflow with **action: azure-go-live**; after its approval it
    publishes the newest succeeded preview to live, and AKS then upgrades
    buyers' clusters to it.
 
-Run it by hand for one marketplace, an older release, or a dry run
-(**version**, **marketplaces**, **dry_run**). A dry run builds and checks
-everything and keeps what a real run would send (the AWS change set, the
-Partner Center request) as the run's artifacts.
+Run it by hand for a release that should not wait for Monday (an urgent
+fix), one marketplace, an older release, or a dry run (**version**,
+**marketplaces**, **dry_run**; an empty version is the newest release). A real
+run ships only a released version (one with its tag). A dry run builds and
+checks everything and keeps what a real run would send (the AWS change set,
+the Partner Center request) as the run's artifacts.
 
 The steps below are what the workflow runs, and how to do them by hand.
 
@@ -818,16 +841,16 @@ cost a review round.
   buyer guide only says to contact support. Settle it with the Partner
   Engineer (Terraform-based Kubernetes apps update in place) before the
   Google listing goes live.
-- **OneUptime's update notice reads GitHub releases**, so a marketplace
-  installation is told about a release before it is on its marketplace. The
-  buyer guide tells buyers to upgrade through the marketplace; setting
-  `updateCheck.disabled` in the editions (`build.py`) would remove the notice.
 - **Google's version is added by hand** in Producer Portal: Google has no API
   for it. The workflow pushes everything and writes what to add.
 - **The automation has not met the real listings yet.** The Partner Center
   requests (a preview API) and `azure.bundleRepository` follow Microsoft's
   documentation, and the AWS change set follows the Catalog API's: check the
   first real run of each, and correct `editions.json` or the scripts there.
+  The same goes for the checks of what each marketplace has: AWS's reads the
+  product's `Versions` as AWS's published shapes describe them, and
+  Microsoft's reads the preview's technical configuration
+  (`targetType=preview`).
 - `mpdev verify` does not run in the workflow (it needs a GKE cluster); run it
   by hand before submitting a Google version when it matters.
 - Microsoft and Google editions install on `linux/amd64` nodes only.
@@ -842,6 +865,8 @@ rejection, go-live and price change.
 | 2026-10-17 | All three   | Pricing approved: per user-hour, USD 0.10, one public plan per marketplace, deals as private offers | Maintainer |
 | 2026-10-17 | All three   | Billing, licensing and packaging merged with this guide; nothing submitted to any marketplace       | Agent      |
 | 2026-10-17 | All three   | The Marketplace Release workflow and the one-time CI setup added; nothing set up yet                | Agent      |
+| 2026-10-18 | All three   | The workflow ships weekly and skips what a marketplace has; the registries keep 3 releases by count | Agent      |
+| 2026-10-18 | All three   | The editions turn off OneUptime's update check: buyers upgrade through their marketplace            | Agent      |
 
 ## Notes for agents driving the browser
 
