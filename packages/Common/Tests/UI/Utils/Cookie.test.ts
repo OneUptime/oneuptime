@@ -104,6 +104,22 @@ describe("UI Cookie util", () => {
       expect(write).not.toContain("Max-Age");
     });
 
+    /*
+     * This file's page is plain HTTP (jsdom's default URL), where a browser
+     * refuses to keep a Secure cookie at all - so a plain-HTTP installation's
+     * pages write their cookies as they always did, and keep them.
+     * CookieHttps.test.ts holds the HTTPS half.
+     */
+    it("on a plain-HTTP page writes the cookie without Secure, so the browser keeps it", () => {
+      expect(window.location.protocol).toBe("http:");
+      expect(Cookie.isPageOnHttps()).toBe(false);
+
+      Cookie.setItem(CookieName.UserID, "user-on-http");
+
+      expect(lastWriteFor(CookieName.UserID)).not.toMatch(/;\s*Secure/i);
+      expect(readRawJar()[CookieName.UserID]).toBe("user-on-http");
+    });
+
     it("URL-encodes characters that are not legal in a cookie value", () => {
       const value: string = "Jane Doe; admin=true, héllo";
 
