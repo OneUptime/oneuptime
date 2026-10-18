@@ -1967,8 +1967,6 @@
   "Comma-separated values": "以逗號分隔的值",
   "Common Name": "通用名稱",
   "Community String": "社群字串",
-  "Company CallSMS Server": "公司 CallSMS 伺服器",
-  "Company CallSMS server hosted on AWS": "託管於 AWS 的公司 CallSMS 伺服器",
   "Company SMTP Server": "公司 SMTP 伺服器",
   "Company SMTP server hosted on AWS": "託管於 AWS 的公司 SMTP 伺服器",
   "Company, Inc.": "Company, Inc.",
@@ -30897,5 +30895,7 @@
   "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).": "來自您 Microsoft Entra ID 應用程式註冊的應用程式（用戶端）ID（或用於 JWT Bearer 的服務帳戶）。",
   "Group resources with labels. A team's permission can be limited to the resources with certain labels.": "用標籤將資源分組。團隊的權限可以限定為帶有特定標籤的資源。",
   "SAML Provider": "SAML 提供者",
-  "SAML Providers": "SAML 提供者"
+  "SAML Providers": "SAML 提供者",
+  "Company Twilio Account": "公司 Twilio 帳戶",
+  "Twilio account for SMS and calls": "用於簡訊和電話的 Twilio 帳戶"
 }

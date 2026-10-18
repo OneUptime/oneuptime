@@ -1967,8 +1967,6 @@
   "Comma-separated values": "अल्पविराम से अलग किए गए मान",
   "Common Name": "सामान्य नाम",
   "Community String": "कम्युनिटी स्ट्रिंग",
-  "Company CallSMS Server": "कंपनी CallSMS सर्वर",
-  "Company CallSMS server hosted on AWS": "AWS पर होस्ट किया गया कंपनी CallSMS सर्वर",
   "Company SMTP Server": "कंपनी SMTP सर्वर",
   "Company SMTP server hosted on AWS": "AWS पर होस्ट किया गया कंपनी SMTP सर्वर",
   "Company, Inc.": "Company, Inc.",
@@ -30897,5 +30895,7 @@
   "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).": "आपके Microsoft Entra ID app पंजीकरण (या JWT Bearer के लिए सेवा खाता) से एप्लिकेशन (Client) ID।",
   "Group resources with labels. A team's permission can be limited to the resources with certain labels.": "लेबल से संसाधनों को समूहित करें। किसी टीम की अनुमति केवल कुछ लेबल वाले संसाधनों तक सीमित हो सकती है।",
   "SAML Provider": "SAML प्रदाता",
-  "SAML Providers": "SAML प्रदाता"
+  "SAML Providers": "SAML प्रदाता",
+  "Company Twilio Account": "कंपनी का Twilio खाता",
+  "Twilio account for SMS and calls": "SMS और कॉल के लिए Twilio खाता"
 }

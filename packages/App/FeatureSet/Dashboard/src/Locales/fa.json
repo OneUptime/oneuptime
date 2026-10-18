@@ -1967,8 +1967,6 @@
   "Comma-separated values": "مقادیر جداشده با ویرگول",
   "Common Name": "نام مشترک",
   "Community String": "Community String",
-  "Company CallSMS Server": "سرور تماس و پیامک شرکت",
-  "Company CallSMS server hosted on AWS": "سرور تماس و پیامک شرکت که روی AWS میزبانی می‌شود",
   "Company SMTP Server": "سرور SMTP شرکت",
   "Company SMTP server hosted on AWS": "سرور SMTP شرکت که روی AWS میزبانی می‌شود",
   "Company, Inc.": "Company, Inc.",
@@ -30897,5 +30895,7 @@
   "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).": "شناسه اپلیکیشن (کلاینت) از ثبت اپلیکیشن شما در Microsoft Entra ID (یا حساب سرویس برای JWT Bearer).",
   "Group resources with labels. A team's permission can be limited to the resources with certain labels.": "منابع را با برچسب‌ها دسته‌بندی کنید. دسترسی یک تیم را می‌توان به منابعی با برچسب‌های مشخص محدود کرد.",
   "SAML Provider": "ارائه‌دهنده SAML",
-  "SAML Providers": "ارائه‌دهندگان SAML"
+  "SAML Providers": "ارائه‌دهندگان SAML",
+  "Company Twilio Account": "حساب Twilio شرکت",
+  "Twilio account for SMS and calls": "حساب Twilio برای پیامک و تماس"
 }

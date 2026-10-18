@@ -303,7 +303,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             required: true,
             // The placeholder shows one; "Friendly name for this config ..." said nothing more.
             hideColumnDescription: true,
-            placeholder: "Company CallSMS Server",
+            placeholder: "Company Twilio Account",
             stepId: "basic-info",
             validation: {
               minLength: 2,
@@ -318,7 +318,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             required: false,
             stepId: "basic-info",
             hideColumnDescription: true,
-            placeholder: "Company CallSMS server hosted on AWS",
+            placeholder: "Twilio account for SMS and calls",
           },
           {
             field: {

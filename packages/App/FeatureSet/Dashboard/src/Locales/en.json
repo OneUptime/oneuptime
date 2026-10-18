@@ -1967,8 +1967,6 @@
   "Comma-separated values": "Comma-separated values",
   "Common Name": "Common Name",
   "Community String": "Community String",
-  "Company CallSMS Server": "Company CallSMS Server",
-  "Company CallSMS server hosted on AWS": "Company CallSMS server hosted on AWS",
   "Company SMTP Server": "Company SMTP Server",
   "Company SMTP server hosted on AWS": "Company SMTP server hosted on AWS",
   "Company, Inc.": "Company, Inc.",
@@ -30897,5 +30895,7 @@
   "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).": "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).",
   "Group resources with labels. A team's permission can be limited to the resources with certain labels.": "Group resources with labels. A team's permission can be limited to the resources with certain labels.",
   "SAML Provider": "SAML Provider",
-  "SAML Providers": "SAML Providers"
+  "SAML Providers": "SAML Providers",
+  "Company Twilio Account": "Company Twilio Account",
+  "Twilio account for SMS and calls": "Twilio account for SMS and calls"
 }

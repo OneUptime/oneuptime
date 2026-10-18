@@ -1967,8 +1967,6 @@
   "Comma-separated values": "Kommaseparerede værdier",
   "Common Name": "Almindeligt navn",
   "Community String": "Community-streng",
-  "Company CallSMS Server": "Virksomhedens CallSMS-server",
-  "Company CallSMS server hosted on AWS": "Virksomhedens CallSMS-server hostet på AWS",
   "Company SMTP Server": "Virksomhedens SMTP-server",
   "Company SMTP server hosted on AWS": "Virksomhedens SMTP-server hostet på AWS",
   "Company, Inc.": "Company, Inc.",
@@ -30897,5 +30895,7 @@
   "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).": "Applikations-(klient-)ID fra din Microsoft Entra ID-appregistrering (eller tjenestekonto for JWT Bearer).",
   "Group resources with labels. A team's permission can be limited to the resources with certain labels.": "Gruppér ressourcer med etiketter. Et teams tilladelse kan begrænses til ressourcerne med bestemte etiketter.",
   "SAML Provider": "SAML-udbyder",
-  "SAML Providers": "SAML-udbydere"
+  "SAML Providers": "SAML-udbydere",
+  "Company Twilio Account": "Virksomhedens Twilio-konto",
+  "Twilio account for SMS and calls": "Twilio-konto til sms og opkald"
 }

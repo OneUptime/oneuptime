@@ -1967,8 +1967,6 @@
   "Comma-separated values": "カンマ区切りの値",
   "Common Name": "コモンネーム",
   "Community String": "コミュニティ文字列",
-  "Company CallSMS Server": "会社の通話/SMS サーバー",
-  "Company CallSMS server hosted on AWS": "AWS でホストされている会社の CallSMS サーバー",
   "Company SMTP Server": "会社の SMTP サーバー",
   "Company SMTP server hosted on AWS": "AWS でホストされている会社の SMTP サーバー",
   "Company, Inc.": "Company, Inc.",
@@ -30897,5 +30895,7 @@
   "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).": "Microsoft Entra ID アプリ登録（または JWT Bearer 用のサービスアカウント）のアプリケーション（クライアント）ID。",
   "Group resources with labels. A team's permission can be limited to the resources with certain labels.": "ラベルでリソースをまとめます。チームの権限を、特定のラベルが付いたリソースだけに限ることもできます。",
   "SAML Provider": "SAML プロバイダー",
-  "SAML Providers": "SAML プロバイダー"
+  "SAML Providers": "SAML プロバイダー",
+  "Company Twilio Account": "会社の Twilio アカウント",
+  "Twilio account for SMS and calls": "SMS と通話用の Twilio アカウント"
 }

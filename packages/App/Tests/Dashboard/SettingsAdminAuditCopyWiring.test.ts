@@ -144,6 +144,13 @@ describe("Project Settings > Call and SMS", () => {
     expect(table).toContain('title: "Twilio Secondary Phone Numbers"');
   });
 
+  test("its examples are a Twilio account, not a CallSMS server hosted on AWS", () => {
+    expect(table).toContain('placeholder: "Company Twilio Account"');
+    expect(table).toContain('placeholder: "Twilio account for SMS and calls"');
+    expect(table).not.toContain("CallSMS Server");
+    expect(table).not.toContain("hosted on AWS");
+  });
+
   test("tells configs apart by name, account, number and default", () => {
     const columns: string = table.slice(table.indexOf("columns={["));
 

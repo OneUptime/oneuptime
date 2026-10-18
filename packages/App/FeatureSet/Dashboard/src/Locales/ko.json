@@ -1967,8 +1967,6 @@
   "Comma-separated values": "쉼표로 구분된 값",
   "Common Name": "일반 이름",
   "Community String": "커뮤니티 문자열",
-  "Company CallSMS Server": "회사 CallSMS 서버",
-  "Company CallSMS server hosted on AWS": "AWS에서 호스팅되는 회사 CallSMS 서버",
   "Company SMTP Server": "회사 SMTP 서버",
   "Company SMTP server hosted on AWS": "AWS에서 호스팅되는 회사 SMTP 서버",
   "Company, Inc.": "Company, Inc.",
@@ -30897,5 +30895,7 @@
   "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).": "Microsoft Entra ID 앱 등록(또는 JWT Bearer용 서비스 계정)의 애플리케이션(클라이언트) ID입니다.",
   "Group resources with labels. A team's permission can be limited to the resources with certain labels.": "레이블로 리소스를 묶습니다. 팀의 권한을 특정 레이블이 있는 리소스로 제한할 수 있습니다.",
   "SAML Provider": "SAML 공급자",
-  "SAML Providers": "SAML 공급자"
+  "SAML Providers": "SAML 공급자",
+  "Company Twilio Account": "회사 Twilio 계정",
+  "Twilio account for SMS and calls": "SMS 및 전화용 Twilio 계정"
 }
