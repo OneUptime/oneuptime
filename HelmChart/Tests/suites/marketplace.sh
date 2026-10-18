@@ -359,6 +359,37 @@ for marketplace in aws azure google-cloud; do
     esac
 done
 
+# A run again: an image an earlier run copied into AWS Marketplace's registry is left as it is
+# (its repositories may refuse to overwrite a tag). crane is a stand-in here: it says the first
+# image is there already, and logs everything else it is asked to do.
+if [ -f "${WORK_DIR}/aws/images.json" ]; then
+    FAKE_BIN="${WORK_DIR}/fake-bin"
+    CRANE_LOG="${WORK_DIR}/crane.log"
+    mkdir -p "$FAKE_BIN"
+    : >"$CRANE_LOG"
+    cat >"${FAKE_BIN}/crane" <<'CRANE'
+#!/usr/bin/env bash
+echo "$*" >>"$CRANE_LOG"
+if [ "$1" = "digest" ]; then
+    [ "$2" = "$CRANE_EXISTING" ] && echo "sha256:1111" && exit 0
+    exit 1
+fi
+CRANE
+    chmod +x "${FAKE_BIN}/crane"
+    FIRST_TARGET="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["images"][0]["target"])' "${WORK_DIR}/aws/images.json")"
+
+    if MIRROR="$(PATH="${FAKE_BIN}:${PATH}" CRANE_LOG="$CRANE_LOG" CRANE_EXISTING="$FIRST_TARGET" \
+        bash "${MARKETPLACE_DIR}/mirror-images.sh" "${WORK_DIR}/aws/images.json" 2>&1)"; then
+        FILTERED="$(grep '^index filter ' "$CRANE_LOG" || true)"
+        assert_present "aws: an image an earlier run copied is left as it is" "$MIRROR" "= ${FIRST_TARGET} is there already"
+        assert_absent "aws: and is not copied again" "$FILTERED" "--tag ${FIRST_TARGET}"
+        assert_eq "aws: every other image is copied" "6" "$(grep -c . <<<"$FILTERED" || true)"
+    else
+        fail "aws: mirror-images.sh copies with crane"
+        echo "$MIRROR" | sed 's/^/        /'
+    fi
+fi
+
 # --- The release automation (HelmChart/Marketplace/automation) --------------------------
 #
 # What the Marketplace Release workflow sends, built from the editions above with no cloud:

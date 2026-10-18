@@ -79,6 +79,13 @@ SERVICE_NAME="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[
 while IFS=$'\t' read -r marketplace source target extra_tags; do
     case "$marketplace" in
         aws)
+            # A release's image is the same image every time, and AWS Marketplace's repositories
+            # may refuse to overwrite a tag: one an earlier run copied is left as it is.
+            if [ "$DRY_RUN" != "true" ] && crane digest "$target" >/dev/null 2>&1; then
+                echo "= $target is there already"
+                continue
+            fi
+
             run crane index filter "$source" --platform linux/amd64 --platform linux/arm64 --tag "$target"
             ;;
         azure)

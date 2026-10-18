@@ -1007,14 +1007,20 @@ with the scanner's own tools.
 
 ### `MarketplaceRelease.test.js`
 
-`.github/workflows/marketplace-release.yml` ships each release to the AWS
-Marketplace, Microsoft Marketplace and Google Cloud Marketplace listings of
+`.github/workflows/marketplace-release.yml` ships OneUptime releases to the
+AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace listings of
 self-hosted OneUptime Enterprise. What makes it safe is invisible at runtime,
 so the suite pins it:
 
-- it runs after the release workflow (by that workflow's exact `name`), only
-  when that run succeeded and `MARKETPLACE_RELEASES` is `enabled`, or by hand,
-  where `dry_run` defaults to true;
+- it runs once a week, only when `MARKETPLACE_RELEASES` is `enabled`, or by
+  hand, where `dry_run` defaults to true;
+- it finds the release it ships: the version asked for, or else the newest
+  `#.#.#` tag, and that tag's commit (even of an annotated tag). The suite runs
+  that step against a repository of its own, and checks it writes nothing but
+  those two outputs, whatever is typed in;
+- each push job asks its marketplace whether it has the release before it
+  pushes anything, and every later step, and the publishing job after it, runs
+  only when the marketplace does not have it;
 - it holds no secret; `permissions: {}` at the top, `contents: read` for every
   job, and `id-token: write` only for the jobs that sign in to a cloud;
 - every job that publishes (adds an AWS version, changes or publishes the

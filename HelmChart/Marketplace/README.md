@@ -38,13 +38,15 @@ Partner Center request, the Google steps - and checks the setup scripts parse.
 ## Releases
 
 [`.github/workflows/marketplace-release.yml`](../../.github/workflows/marketplace-release.yml)
-ships every OneUptime release to the three marketplaces once
-`MARKETPLACE_RELEASES` is enabled: it tests the released chart, pushes each
-ready edition to its marketplace's registry, and - after a maintainer approves
-the run's publishing jobs - adds the AWS version and publishes the Microsoft
-offer to preview. Google's version is added in Producer Portal by hand, from
-the run's summary. Run it by hand for a dry run (the default), one marketplace
-or another release, or to put a Microsoft preview live (`azure-go-live`).
+ships the newest OneUptime release to the three marketplaces every Monday once
+`MARKETPLACE_RELEASES` is enabled: it tests the released chart, asks each
+marketplace whether it has the release already (one that has it is left
+alone), pushes each ready edition to its marketplace's registry, and - after a
+maintainer approves the run's publishing jobs - adds the AWS version and
+publishes the Microsoft offer to preview. Google's version is added in
+Producer Portal by hand, from the run's summary. Run it by hand for a dry run
+(the default), a release that should not wait for Monday, one marketplace or
+another release, or to put a Microsoft preview live (`azure-go-live`).
 
 How to release, test and submit each edition - and which steps only a
 maintainer may take - is in the runbook:
