@@ -19,7 +19,8 @@ const GenerateDatabasePassword = require("../../Scripts/Install/GenerateDatabase
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const TRANSLATIONS_DIR = "Docs/translations";
-const GUIDE = "packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md";
+const GUIDE =
+  "packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md";
 const GUIDE_STEP = "### Generate random secrets";
 const PLACEHOLDER = "please-change-this-to-random-value";
 const PLACEHOLDER_MARK = "please-change-this";
@@ -99,7 +100,9 @@ function guideLoop() {
   const step = guide.slice(guide.indexOf(GUIDE_STEP));
   const block = codeBlocks(step)[0];
 
-  expect(block[block.length - 1]).toBe('grep -c "please-change-this" config.env');
+  expect(block[block.length - 1]).toBe(
+    'grep -c "please-change-this" config.env',
+  );
   return block.slice(0, -1);
 }
 
@@ -135,7 +138,9 @@ describe("running the quick start's config step on config.example.env", () => {
   let settings;
 
   beforeAll(() => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-readme-"));
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "oneuptime-readme-"),
+    );
 
     try {
       fs.copyFileSync(
@@ -151,7 +156,10 @@ describe("running the quick start's config step on config.example.env", () => {
         encoding: "utf8",
       });
       template = read("config.example.env");
-      result.config = fs.readFileSync(path.join(directory, "config.env"), "utf8");
+      result.config = fs.readFileSync(
+        path.join(directory, "config.env"),
+        "utf8",
+      );
       settings = settingsOf(result.config);
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });

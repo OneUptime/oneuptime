@@ -44,13 +44,17 @@ const describeRuntime = RUN ? describe : describe.skip;
 
 const POSTGRES_IMAGE = "postgres:15";
 const PLACEHOLDER = "please-change-this-to-random-value";
-const TEMPLATE = fs.readFileSync(path.join(REPO_ROOT, "config.example.env"), "utf8");
+const TEMPLATE = fs.readFileSync(
+  path.join(REPO_ROOT, "config.example.env"),
+  "utf8",
+);
 const DOCS_PAGE = path.join(
   REPO_ROOT,
   "packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md",
 );
 const CHANGE_PASSWORD_HEADING = "### Change the database password";
-const OVERRIDE_DETAILS = ":::details Publish PostgreSQL on a private network address";
+const OVERRIDE_DETAILS =
+  ":::details Publish PostgreSQL on a private network address";
 const RESTORE_ADD_HOST = /--add-host=host\.docker\.internal:(\S+)/;
 const FENCE_START = /^```(\w+)/;
 const PRIVATE_ADDRESS_IN_EXAMPLE = /"(\d+\.\d+\.\d+\.\d+):5400:5432"/;
@@ -205,7 +209,9 @@ function envOf(configFile) {
   return {
     ...process.env,
     ...Object.fromEntries(
-      GenerateDatabasePassword.readSettings(fs.readFileSync(configFile, "utf8")),
+      GenerateDatabasePassword.readSettings(
+        fs.readFileSync(configFile, "utf8"),
+      ),
     ),
   };
 }
@@ -335,119 +341,142 @@ describeRuntime("PostgreSQL as docker-compose.yml publishes it", () => {
   });
 });
 
-describeRuntime("npm start's prestart against real Docker and docker-compose.yml", () => {
-  const project = projectName("first-start");
-  const databaseContainer = `${project}-db`;
-  let directory;
-  let configFile;
+describeRuntime(
+  "npm start's prestart against real Docker and docker-compose.yml",
+  () => {
+    const project = projectName("first-start");
+    const databaseContainer = `${project}-db`;
+    let directory;
+    let configFile;
 
-  beforeAll(() => {
-    directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-ops-pg-"));
-    configFile = configEnvWith(directory, [
-      `COMPOSE_PROJECT_NAME=${project}`,
-      `COMPOSE_FILE=${path.join(REPO_ROOT, "docker-compose.yml")}`,
-    ]);
-  });
-
-  afterAll(() => {
-    docker(["rm", "-f", "-v", databaseContainer]);
-    removeProject(directory, configFile, project);
-  });
-
-  function prestart() {
-    const logged = [];
-    const warned = [];
-    const decision = GenerateDatabasePassword.run({
-      cwd: directory,
-      env: process.env,
-      log: (message) => {
-        logged.push(message);
-      },
-      warn: (message) => {
-        warned.push(message);
-      },
-    });
-
-    return { decision, logged, warned };
-  }
-
-  function currentPassword() {
-    return GenerateDatabasePassword.readSettings(
-      fs.readFileSync(configFile, "utf8"),
-    ).get("DATABASE_PASSWORD");
-  }
-
-  test("a new install: no database yet, so the placeholder gets a random value", () => {
-    expect(currentPassword()).toBe(PLACEHOLDER);
-
-    const first = prestart();
-
-    expect(first.decision).toBe("generate");
-    expect(currentPassword()).toMatch(RANDOM_PASSWORD);
-  });
-
-  test("PostgreSQL creates its database with that value, and not with the placeholder", () => {
-    const password = currentPassword();
-
-    // The bundled service, started the way Compose starts it, without
-    // publishing a port: only the project's own network reaches it.
-    mustDocker(["compose", "run", "-d", "--no-deps", "--name", databaseContainer, "postgres"], {
-      cwd: directory,
-      env: envOf(configFile),
-    });
-
-    let ready = false;
-    for (let attempt = 0; attempt < 90 && !ready; attempt++) {
-      ready =
-        docker(["exec", databaseContainer, "pg_isready", "-q", "-h", "127.0.0.1"]).status === 0;
-      if (!ready) {
-        spawnSync("sleep", ["1"]);
-      }
-    }
-    expect(ready).toBe(true);
-
-    const fromTheNetwork = (candidate) => {
-      return docker([
-        "run",
-        "--rm",
-        "--network",
-        `${project}_oneuptime`,
-        POSTGRES_IMAGE,
-        "psql",
-        `postgresql://postgres:${candidate}@${databaseContainer}:5432/oneuptimedb`,
-        "-Atc",
-        "select current_user",
+    beforeAll(() => {
+      directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-ops-pg-"));
+      configFile = configEnvWith(directory, [
+        `COMPOSE_PROJECT_NAME=${project}`,
+        `COMPOSE_FILE=${path.join(REPO_ROOT, "docker-compose.yml")}`,
       ]);
-    };
+    });
 
-    expect(fromTheNetwork(password).output.trim()).toBe("postgres");
-    expect(fromTheNetwork(PLACEHOLDER).output).toContain(
-      "password authentication failed",
-    );
-  });
+    afterAll(() => {
+      docker(["rm", "-f", "-v", databaseContainer]);
+      removeProject(directory, configFile, project);
+    });
 
-  test("the next start leaves the generated password as it is", () => {
-    const password = currentPassword();
-    const next = prestart();
+    function prestart() {
+      const logged = [];
+      const warned = [];
+      const decision = GenerateDatabasePassword.run({
+        cwd: directory,
+        env: process.env,
+        log: (message) => {
+          logged.push(message);
+        },
+        warn: (message) => {
+          warned.push(message);
+        },
+      });
 
-    expect(next.decision).toBe("nothing");
-    expect(currentPassword()).toBe(password);
-  });
+      return { decision, logged, warned };
+    }
 
-  test("a database that exists is seen as created: a placeholder then stays in config.env, with a warning", () => {
-    docker(["stop", databaseContainer]);
-    const withPlaceholder = fs
-      .readFileSync(configFile, "utf8")
-      .replace(GENERATED_PASSWORD_LINE, `DATABASE_PASSWORD=${PLACEHOLDER}`);
-    fs.writeFileSync(configFile, withPlaceholder);
+    function currentPassword() {
+      return GenerateDatabasePassword.readSettings(
+        fs.readFileSync(configFile, "utf8"),
+      ).get("DATABASE_PASSWORD");
+    }
 
-    const later = prestart();
+    test("a new install: no database yet, so the placeholder gets a random value", () => {
+      expect(currentPassword()).toBe(PLACEHOLDER);
 
-    expect(later.decision).toBe("warn-created");
-    expect(fs.readFileSync(configFile, "utf8")).toBe(withPlaceholder);
-    expect(later.warned).toEqual([GenerateDatabasePassword.MESSAGES["warn-created"]]);
-  });
-});
+      const first = prestart();
+
+      expect(first.decision).toBe("generate");
+      expect(currentPassword()).toMatch(RANDOM_PASSWORD);
+    });
+
+    test("PostgreSQL creates its database with that value, and not with the placeholder", () => {
+      const password = currentPassword();
+
+      // The bundled service, started the way Compose starts it, without
+      // publishing a port: only the project's own network reaches it.
+      mustDocker(
+        [
+          "compose",
+          "run",
+          "-d",
+          "--no-deps",
+          "--name",
+          databaseContainer,
+          "postgres",
+        ],
+        {
+          cwd: directory,
+          env: envOf(configFile),
+        },
+      );
+
+      let ready = false;
+      for (let attempt = 0; attempt < 90 && !ready; attempt++) {
+        ready =
+          docker([
+            "exec",
+            databaseContainer,
+            "pg_isready",
+            "-q",
+            "-h",
+            "127.0.0.1",
+          ]).status === 0;
+        if (!ready) {
+          spawnSync("sleep", ["1"]);
+        }
+      }
+      expect(ready).toBe(true);
+
+      const fromTheNetwork = (candidate) => {
+        return docker([
+          "run",
+          "--rm",
+          "--network",
+          `${project}_oneuptime`,
+          POSTGRES_IMAGE,
+          "psql",
+          `postgresql://postgres:${candidate}@${databaseContainer}:5432/oneuptimedb`,
+          "-Atc",
+          "select current_user",
+        ]);
+      };
+
+      expect(fromTheNetwork(password).output.trim()).toBe("postgres");
+      expect(fromTheNetwork(PLACEHOLDER).output).toContain(
+        "password authentication failed",
+      );
+    });
+
+    test("the next start leaves the generated password as it is", () => {
+      const password = currentPassword();
+      const next = prestart();
+
+      expect(next.decision).toBe("nothing");
+      expect(currentPassword()).toBe(password);
+    });
+
+    test("a database that exists is seen as created: a placeholder then stays in config.env, with a warning", () => {
+      docker(["stop", databaseContainer]);
+      const withPlaceholder = fs
+        .readFileSync(configFile, "utf8")
+        .replace(GENERATED_PASSWORD_LINE, `DATABASE_PASSWORD=${PLACEHOLDER}`);
+      fs.writeFileSync(configFile, withPlaceholder);
+
+      const later = prestart();
+
+      expect(later.decision).toBe("warn-created");
+      expect(fs.readFileSync(configFile, "utf8")).toBe(withPlaceholder);
+      expect(later.warned).toEqual([
+        GenerateDatabasePassword.MESSAGES["warn-created"],
+      ]);
+    });
+  },
+);
 
 describeRuntime("the Docker Compose guide's commands, run as written", () => {
   const project = projectName("guide");
@@ -502,11 +531,15 @@ describeRuntime("the Docker Compose guide's commands, run as written", () => {
 
     // The block ends by starting OneUptime again; here, PostgreSQL alone.
     expect(commands[commands.length - 1]).toBe("npm start");
-    const run = spawnSync("bash", ["-e", "-c", commands.slice(0, -1).join("\n")], {
-      cwd: directory,
-      env: process.env,
-      encoding: "utf8",
-    });
+    const run = spawnSync(
+      "bash",
+      ["-e", "-c", commands.slice(0, -1).join("\n")],
+      {
+        cwd: directory,
+        env: process.env,
+        encoding: "utf8",
+      },
+    );
     expect(`${run.stdout}${run.stderr}`).toContain("ALTER ROLE");
     expect(run.status).toBe(0);
     up();
@@ -517,7 +550,9 @@ describeRuntime("the Docker Compose guide's commands, run as written", () => {
 
     expect(password).toMatch(RANDOM_PASSWORD);
     expect(loginOnLoopback(password)).toBe("postgres");
-    expect(loginOnLoopback(PLACEHOLDER)).toContain("password authentication failed");
+    expect(loginOnLoopback(PLACEHOLDER)).toContain(
+      "password authentication failed",
+    );
     expect(
       GenerateDatabasePassword.run({
         cwd: directory,

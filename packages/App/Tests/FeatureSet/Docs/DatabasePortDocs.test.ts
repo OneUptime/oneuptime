@@ -269,9 +269,7 @@ describe("the Docker Compose guide on PostgreSQL's port", () => {
     // 10.0.0.0/8: a private address, on the published host and container ports.
     expect(port).not.toBeNull();
     expect(port![1]).toBe("10");
-    expect(`${port![2]}:${port![3]}`).toBe(
-      `${published![2]}:${published![3]}`,
-    );
+    expect(`${port![2]}:${port![3]}`).toBe(`${published![2]}:${published![3]}`);
     // Compose reads docker-compose.override.yml by itself when no -f is given.
     expect(scripts["start"]).toContain("docker compose up");
     expect(scripts["start"]).not.toContain(" -f ");

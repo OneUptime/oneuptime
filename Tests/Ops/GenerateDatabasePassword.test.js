@@ -61,7 +61,11 @@ function dockerAnswering(state) {
     }
 
     if (state === DATABASE_STATE.UNKNOWN) {
-      return { status: 1, stdout: "", stderr: "Cannot connect to the Docker daemon" };
+      return {
+        status: 1,
+        stdout: "",
+        stderr: "Cannot connect to the Docker daemon",
+      };
     }
 
     return { status: 0, stdout: `oneuptime-database:${state}\n`, stderr: "" };
@@ -253,7 +257,10 @@ describe("replacing a shipped DATABASE_PASSWORD in config.env", () => {
 
 describe("what the step decides", () => {
   const bundled = (password) => {
-    return settingsOf([`DATABASE_PASSWORD=${password}`, "DATABASE_HOST=postgres"]);
+    return settingsOf([
+      `DATABASE_PASSWORD=${password}`,
+      "DATABASE_HOST=postgres",
+    ]);
   };
 
   test.each([
@@ -290,9 +297,9 @@ describe("what the step decides", () => {
   });
 
   test("no DATABASE_HOST at all is not the bundled PostgreSQL", () => {
-    expect(decide(settingsOf([`DATABASE_PASSWORD=${PLACEHOLDER}`]), "not-created")).toBe(
-      "warn-external",
-    );
+    expect(
+      decide(settingsOf([`DATABASE_PASSWORD=${PLACEHOLDER}`]), "not-created"),
+    ).toBe("warn-external");
   });
 });
 
@@ -318,7 +325,10 @@ describe("asking Docker whether the bundled PostgreSQL has created its database"
     [{ status: 0, stdout: "oneuptime-database:created\n" }, "created"],
     [{ status: 0, stdout: "oneuptime-database:not-created\n" }, "not-created"],
     [
-      { status: 0, stdout: "Pulling postgres\n  oneuptime-database:created  \n" },
+      {
+        status: 0,
+        stdout: "Pulling postgres\n  oneuptime-database:created  \n",
+      },
       "created",
     ],
     [{ status: 0, stdout: "" }, "unknown"],
@@ -481,7 +491,9 @@ describe("the messages", () => {
       expect(message).not.toContain(PLACEHOLDER);
     }
 
-    expect(new URL(CHANGE_PASSWORD_DOCS_URL).origin).toBe("https://oneuptime.com");
+    expect(new URL(CHANGE_PASSWORD_DOCS_URL).origin).toBe(
+      "https://oneuptime.com",
+    );
     expect(new URL(CHANGE_PASSWORD_DOCS_URL).pathname).toBe(
       "/docs/installation/docker-compose",
     );

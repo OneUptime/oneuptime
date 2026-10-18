@@ -32,7 +32,10 @@ const {
   renderCompose,
 } = require("./Utils/ComposePorts");
 
-const PRODUCTION_COMPOSE_FILES = ["docker-compose.yml", "docker-compose.base.yml"];
+const PRODUCTION_COMPOSE_FILES = [
+  "docker-compose.yml",
+  "docker-compose.base.yml",
+];
 const DEV_COMPOSE_FILE = "Scripts/Dev/docker-compose.dev.yml";
 const E2E_CLICKHOUSE_OVERLAY = "packages/E2E/docker-compose.e2e-clickhouse.yml";
 
@@ -116,14 +119,18 @@ describe("the guard sees the compose files that run OneUptime's datastores", () 
         image: "docker.elastic.co/elasticsearch/elasticsearch:8.15.3",
       }),
     ).toBe(true);
-    expect(isDataStoreService("cache", { image: "redis@sha256:abc" })).toBe(true);
+    expect(isDataStoreService("cache", { image: "redis@sha256:abc" })).toBe(
+      true,
+    );
     expect(isDataStoreService("app", { image: "oneuptime/app:release" })).toBe(
       false,
     );
-    expect(isDataStoreService("ingress", { extends: { service: "ingress" } })).toBe(
-      false,
+    expect(
+      isDataStoreService("ingress", { extends: { service: "ingress" } }),
+    ).toBe(false);
+    expect(imageName("ghcr.io/cloudnative-pg/postgresql:15")).toBe(
+      "postgresql",
     );
-    expect(imageName("ghcr.io/cloudnative-pg/postgresql:15")).toBe("postgresql");
     expect(imageName(undefined)).toBe("");
   });
 });
@@ -139,7 +146,10 @@ describe("reading a published port", () => {
       "0.0.0.0:5400:5432",
       { hostIp: "0.0.0.0", hostPort: "5400", containerPort: "5432" },
     ],
-    ["[::]:5400:5432", { hostIp: "::", hostPort: "5400", containerPort: "5432" }],
+    [
+      "[::]:5400:5432",
+      { hostIp: "::", hostPort: "5400", containerPort: "5432" },
+    ],
     [
       "[::1]:5400:5432/tcp",
       { hostIp: "::1", hostPort: "5400", containerPort: "5432" },
