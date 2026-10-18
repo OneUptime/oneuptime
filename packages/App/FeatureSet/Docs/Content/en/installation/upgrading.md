@@ -1378,6 +1378,18 @@ API, SSO, or the Slack and Microsoft Teams apps.
   `docker-compose.yml`, `git pull` stops at that file: run
   `git checkout docker-compose.yml`, then pull again. Helm installs see no
   change.
+- **The bundled Runner no longer runs a repository's commands, and holds only
+  what it needs.** The Runner that Docker Compose (its `runner` service) and the
+  Helm chart (`runner.enabled`) start serves AI code fixes for every project
+  without a Runner of its own. It no longer runs a code repository's setup,
+  build and test commands, and its code agent has no command tool: the fix is
+  written, the pull request opens with its verification shown as skipped, and
+  your repository's own CI checks the change. It also starts with only its
+  OneUptime URL, its keys and its telemetry settings instead of the app's whole
+  environment; settings you gave it through `runner.extraEnv` or a Compose
+  override stay. To have fixes built and tested before the pull request opens,
+  [run a Runner of your own](/docs/ai/ai-agent#run-a-runner-of-your-own): it
+  verifies them as before. Runners you installed yourself see no change.
 - **Wrong two-factor codes are counted for the account, wherever they come
   from.** Once a sign-in's password is right, every wrong authenticator code
   is counted for that account, from whatever address or network it is

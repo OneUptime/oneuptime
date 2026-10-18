@@ -20,8 +20,8 @@ import path from "path";
  *     commands name the compose service and the config.env settings that
  *     exist; ComposeDatabaseRuntime (Tests/Ops) runs them for real;
  *   - the upgrade note (installation/upgrading, "Other changes in 14") sits
- *     after the note on a placeholder ONEUPTIME_SECRET and before the note on
- *     wrong two-factor codes, says the same, and links to those two
+ *     after the note on a placeholder ONEUPTIME_SECRET and before the
+ *     pointer to the endpoint changes, says the same, and links to those two
  *     sections - in
  *     every language at that language's own headings;
  *   - every translation carries the guide's sections and the note in the
@@ -65,9 +65,9 @@ const NOTE_LEAD: string =
 // The note before it (ClusterKeyUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**OneUptime refuses a placeholder `ONEUPTIME_SECRET`.**";
-// The note after it (TwoFactorWrongCodesDocs).
+// The note after it (SharedRunnerUpgradeDocs).
 const NEXT_LEAD: string =
-  "**Wrong two-factor codes are counted for the account, wherever they come from.**";
+  "**The bundled Runner no longer runs a repository's commands, and holds only what it needs.**";
 
 const HEADING_LINE: RegExp = /^#{1,6}\s/;
 const HEADING_MARKER: RegExp = /^#+\s+/;
@@ -483,7 +483,7 @@ function noteLinks(language: string): Array<string> {
 }
 
 describe("the English upgrade note on PostgreSQL's port and password", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on a placeholder ONEUPTIME_SECRET and before the note on wrong two-factor codes", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on a placeholder ONEUPTIME_SECRET and before the note on the bundled Runner", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

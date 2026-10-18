@@ -29,7 +29,7 @@ import path from "path";
  *     security key and a backup code still sign in; a password reset ends the
  *     wait - naming the sign-in page's links as the sign-in page draws them;
  *   - the upgrade note (installation/upgrading, "Other changes in 14"),
- *     after the note on PostgreSQL's port and before the pointer to the
+ *     after the note on the bundled Runner and before the pointer to the
  *     endpoint changes, saying the same and linking to Your Account;
  *   - every translation carries both in the English places, each in its own
  *     words, with that language's sign-in labels.
@@ -51,9 +51,9 @@ const ENTRY_AFTER: string = "Times in the dashboard are an hour off";
 
 const NOTE_LEAD: string =
   "**Wrong two-factor codes are counted for the account, wherever they come from.**";
-// The note before it (DatabasePortDocs).
+// The note before it (SharedRunnerUpgradeDocs).
 const PREVIOUS_LEAD: string =
-  "**PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.**";
+  "**The bundled Runner no longer runs a repository's commands, and holds only what it needs.**";
 const LAST_ITEM_START: string = "- See [API and endpoint changes]";
 
 const DETAILS_OPEN: string = ":::details ";
@@ -210,7 +210,7 @@ describe("Your Account's troubleshooting entry", () => {
 });
 
 describe("the English upgrade note on wrong two-factor codes", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on PostgreSQL's port and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the bundled Runner and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

@@ -307,25 +307,15 @@ tests:
             name: SOURCE_MAP_MAX_FILES_PER_REQUEST
             value: "20"
 
-  - it: reaches the runner
-    templates:
-      - templates/runner.yaml
-    documentSelector:
-      path: kind
-      value: Deployment
-    set:
-      sourceMaps.maxMapsPerRelease: 7000
-    asserts:
-      - contains:
-          path: spec.template.spec.containers[0].env
-          content:
-            name: SOURCE_MAP_MAX_MAPS_PER_RELEASE
-            value: "7000"
-
+  # The shared Runner is deliberately NOT asserted here: it takes a minimal
+  # environment, not oneuptime.env.runtime, so it never gets the source-map
+  # limits (it does not ingest or resolve source maps). See
+  # tests/runner-minimal-env_test.yaml.
+  #
   # test-server does not include the env helper itself -- it is built from the
   # shared `oneuptime.deployment` helper, which is a second, independent path
-  # to the same env block. A regression there is invisible to every assertion
-  # above, because app, worker, telemetry-writer and runner all inline the
+  # to the same env block. A regression there is invisible to the app
+  # assertion above, because app, worker and telemetry-writer all inline the
   # include directly.
   - it: reaches workloads built from the shared deployment helper
     templates:

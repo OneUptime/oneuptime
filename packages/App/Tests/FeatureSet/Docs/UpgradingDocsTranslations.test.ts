@@ -344,6 +344,7 @@ const PROSE_LEADS: Array<string> = [
   "Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers to stay there.",
   "OneUptime refuses a placeholder `ONEUPTIME_SECRET`.",
   "PostgreSQL answers only on the server itself, and a new install starts with a database password of its own.",
+  "The bundled Runner no longer runs a repository's commands, and holds only what it needs.",
   "Wrong two-factor codes are counted for the account, wherever they come from.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",

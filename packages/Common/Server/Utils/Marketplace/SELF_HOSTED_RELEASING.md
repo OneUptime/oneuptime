@@ -1024,10 +1024,13 @@ cost a review round.
   submitted. Unverified until the first version: the seller alias, whether the
   environment override fills `clusterName` in, the release name EKS renders
   with (the chart does not depend on it), and AWS's scan of the agent's
-  images: `otel/opentelemetry-collector-contrib:0.96.0` (February 2024) and
-  `prometheus:v2.55.1` may carry Go vulnerabilities it blocks. Scan them
-  first (`trivy image --severity HIGH,CRITICAL --ignore-unfixed <source>`, for
-  each source in the edition's `images.json`).
+  images. Scanned with trivy 0.75.0 on 2026-10-18, both architectures: no
+  fixable critical finding in any of them; fixable high ones in
+  kube-state-metrics v2.20.0 (9), Prometheus v3.15.0 (8), OpenCost 1.121.3
+  (7), the collector 0.161.0 (4: Go 1.26.8 and x/net, fixed in 0.163.1),
+  OBI v0.14.0 (4) and the AI agent's kubectl (13). Scan again before each
+  submission (`trivy image --severity HIGH,CRITICAL --ignore-unfixed
+  <source>`, for each source in the edition's `images.json`).
 
 ## History
 
