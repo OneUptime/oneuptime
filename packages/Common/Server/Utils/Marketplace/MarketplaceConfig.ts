@@ -15,7 +15,11 @@ import {
   GoogleCloudMarketplaceSignupAudience,
   GoogleCloudMarketplaceUsageMetric,
   Host,
+  HttpProtocol,
   IsBillingEnabled,
+  VercelMarketplaceClientId,
+  VercelMarketplaceClientSecret,
+  VercelMarketplaceIntegrationSlug,
 } from "../../EnvironmentConfig";
 import CloudMarketplace from "../../../Types/Marketplace/CloudMarketplace";
 import GoogleCloudMarketplaceAPI, {
@@ -66,6 +70,17 @@ export default class MarketplaceConfig {
     );
   }
 
+  public static isVercelConfigured(): boolean {
+    return (
+      IsBillingEnabled &&
+      Boolean(
+        VercelMarketplaceClientId &&
+          VercelMarketplaceClientSecret &&
+          VercelMarketplaceIntegrationSlug,
+      )
+    );
+  }
+
   public static isConfigured(marketplace: CloudMarketplace): boolean {
     switch (marketplace) {
       case CloudMarketplace.AWS:
@@ -74,7 +89,17 @@ export default class MarketplaceConfig {
         return MarketplaceConfig.isAzureConfigured();
       case CloudMarketplace.GoogleCloud:
         return MarketplaceConfig.isGoogleCloudConfigured();
+      case CloudMarketplace.Vercel:
+        return MarketplaceConfig.isVercelConfigured();
     }
+  }
+
+  /*
+   * The address telemetry is sent to, as Vercel projects are given it: this
+   * server's own host, where /otlp, /telemetry and /identity are served.
+   */
+  public static getPublicOrigin(): string {
+    return `${HttpProtocol}${Host}`.replace(/\/$/, "");
   }
 
   public static getGoogleCloudServiceAccountKey(): GoogleServiceAccountKey | null {
@@ -115,6 +140,11 @@ export default class MarketplaceConfig {
       azureWebhookUrl: `${apiBase}/marketplace/azure/webhook`,
       googleCloudSignupUrl: `${apiBase}/marketplace/google-cloud/signup`,
       googleCloudEventsUrl: `${apiBase}/marketplace/google-cloud/events`,
+      vercelBaseUrl: `${apiBase}/marketplace/vercel`,
+      vercelWebhookUrl: `${apiBase}/marketplace/vercel/webhook`,
+      vercelRedirectLoginUrl: `${MarketplaceConfig.getPublicOrigin()}/identity/vercel/sso`,
+      vercelLogDrainUrl: `${MarketplaceConfig.getPublicOrigin()}/telemetry/vercel/v1/logs`,
+      vercelTraceDrainUrl: `${MarketplaceConfig.getPublicOrigin()}/otlp/v1/traces`,
     };
   }
 }

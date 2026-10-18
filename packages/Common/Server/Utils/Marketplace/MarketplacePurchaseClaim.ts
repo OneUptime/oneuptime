@@ -428,9 +428,10 @@ export default class MarketplacePurchaseClaim {
    * A new project, created for the buyer as if they had created it
    * themselves - its owner, its default teams and states, the duplicate-name
    * check - but billed by the marketplace from the start: no card customer,
-   * no card subscriptions, and the plan's trial on its per-user price.
+   * no card subscriptions, and the plan's trial on its per-user price. Also
+   * how a Vercel resource gets its project (VercelMarketplaceProvider).
    */
-  private static async createProject(data: {
+  public static async createProject(data: {
     userId: ObjectID;
     name: string;
     plan: SubscriptionPlan;

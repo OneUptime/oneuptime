@@ -8,7 +8,7 @@
  * the hourly usage report behind it indefinitely.
  */
 
-export type MarketplaceHttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
+export type MarketplaceHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 export interface MarketplaceHttpRequest {
   method: MarketplaceHttpMethod;

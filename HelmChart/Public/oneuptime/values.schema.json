@@ -4479,6 +4479,46 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "vercel": {
+                    "type": "object",
+                    "properties": {
+                        "clientId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "clientSecret": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "integrationSlug": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "clientSecretKey": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "clientSecretKey"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
