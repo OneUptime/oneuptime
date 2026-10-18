@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "Für Hosts ohne Schlüsselzugang.",
   "Private key": "Privater Schlüssel",
   "Sign in with": "Anmelden mit",
-  "The better option where you have the choice.": "Die bessere Wahl, wo Sie sie haben."
+  "The better option where you have the choice.": "Die bessere Wahl, wo Sie sie haben.",
+  "A limit": "Ein Limit",
+  "AI Fix Pull Requests": "KI-Korrektur-Pull-Requests",
+  "AI opens as many fix pull requests as it needs.": "Die KI öffnet so viele Korrektur-Pull-Requests, wie sie braucht.",
+  "AI opens no fix pull requests in this repository.": "Die KI öffnet in diesem Repository keine Korrektur-Pull-Requests.",
+  "AI waits while this many of its fix pull requests are open.": "Die KI wartet, solange so viele ihrer Korrektur-Pull-Requests offen sind.",
+  "How many may be open at once.": "Wie viele gleichzeitig offen sein dürfen.",
+  "None: AI opens no fix pull requests here": "Keine: Die KI öffnet hier keine Korrektur-Pull-Requests"
 }

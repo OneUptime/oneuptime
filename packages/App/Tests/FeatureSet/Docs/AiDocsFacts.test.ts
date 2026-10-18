@@ -831,6 +831,29 @@ describe("GitHub App", () => {
     expect(page).toContain(
       "the repository's trigger label, `oneuptime` unless you changed it",
     );
+
+    // The cap is one choice: no limit, a limit, or none.
+    const limit: string = flat(
+      dashboardSource("Components/CodeRepository/FixPullRequestLimit.ts"),
+    );
+
+    for (const word of [
+      "AI Fix Pull Requests",
+      "No limit",
+      "A limit",
+      "None",
+    ]) {
+      expect(limit).toMatch(
+        new RegExp(`translationKey\\(\\s*"${escapeRegExp(word)}",?\\s*\\)`),
+      );
+    }
+
+    expect(settings).toContain(
+      "overrideFieldKey: FIX_PULL_REQUEST_LIMIT_FIELD_KEY, formOnly: true,",
+    );
+    expect(page).toContain(
+      `${bold("AI Fix Pull Requests")} is ${bold("No limit")} until you choose ${bold("A limit")}, or ${bold("None")}, which blocks AI fix pull requests on that repository.`,
+    );
   });
 
   it("states a run's budget as a fix task's", () => {

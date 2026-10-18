@@ -188,6 +188,57 @@ describe("the AI Insights inbox", () => {
     ).toHaveLength(1);
   });
 
+  /*
+   * A project with no insights yet: five tiles reading 0 and filters that
+   * narrow nothing were drawn above "No insights yet". The page is the
+   * empty state alone now, with its one way on.
+   */
+  test("a project with no insights yet is its empty state alone, with one way on", async () => {
+    rows = [];
+    renderInbox();
+
+    await screen.findByText("No insights yet", {}, { timeout: WAIT_TIMEOUT });
+
+    expect(screen.getByTestId("ai-insights-first-run")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Go to Insights Settings" }),
+    ).toBeInTheDocument();
+    // No status tiles, no filters, and no intro saying what the state says.
+    expect(screen.queryByText("All insights")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: "Sort insights" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /^OneUptime AI watches your telemetry around the clock/,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a filter from a shared link keeps the inbox whole, so it can be cleared", async () => {
+    rows = [];
+    window.history.replaceState(
+      window.history.state,
+      "",
+      "/dashboard/00000000-0000-4000-8000-000000000001/ai-insights?severity=High",
+    );
+    renderInbox();
+
+    await screen.findByText(
+      "No insights match your filters",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(screen.queryByTestId("ai-insights-first-run")).toBeNull();
+    expect(
+      screen.getByRole("combobox", { name: "Sort insights" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /Clear Filters/ }).length,
+    ).toBeGreaterThan(0);
+  });
+
   test("when the highlights cannot be read, the inbox is the page as before", async () => {
     highlightsAnswer = async (): Promise<HTTPErrorResponse> => {
       return new HTTPErrorResponse(500, { message: "down" }, {});

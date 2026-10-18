@@ -5,12 +5,28 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  FIX_PULL_REQUEST_LIMIT_ANSWERS,
+  FIX_PULL_REQUEST_LIMIT_COPY,
+  FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
+  FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
+  FIX_PULL_REQUEST_LIMIT_SHOWN,
+  FixPullRequestLimit,
+  getFixPullRequestLimit,
+  getPickedFixPullRequestLimit,
+  getValuesForFixPullRequestLimit,
+} from "../../../Components/CodeRepository/FixPullRequestLimit";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const CodeRepositorySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const translator: Translator = useTranslator();
 
   return (
     <Fragment>
@@ -40,17 +56,81 @@ const CodeRepositorySettings: FunctionComponent<
             required: true,
             placeholder: "main",
           },
+          /*
+           * One choice - no limit, a limit or none (FixPullRequestLimit) -
+           * where a number's help explained "Leave empty for no cap, or 0
+           * to block them". Form-only: a pick writes the column below,
+           * which is asked only for a limit.
+           */
+          {
+            overrideField: {
+              maxOpenFixPullRequests: true,
+            },
+            overrideFieldKey: FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
+            formOnly: true,
+            title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
+            stepId: "pull-requests",
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: FIX_PULL_REQUEST_LIMIT_ANSWERS.map(
+              (limit: FixPullRequestLimit) => {
+                return {
+                  value: limit,
+                  title: FIX_PULL_REQUEST_LIMIT_COPY[limit].title,
+                  description: FIX_PULL_REQUEST_LIMIT_COPY[limit].description,
+                };
+              },
+            ),
+            required: true,
+            hideColumnDescription: true,
+            dataTestId: "fix-pull-request-limit",
+            getDefaultValue: (values: FormValues<CodeRepository>): string => {
+              return getFixPullRequestLimit(values);
+            },
+            onChange: (
+              value: unknown,
+              currentValues: FormValues<CodeRepository>,
+              setNewFormValues: (values: FormValues<CodeRepository>) => void,
+            ): void => {
+              if (
+                !(
+                  Object.values(FixPullRequestLimit) as Array<unknown>
+                ).includes(value)
+              ) {
+                return;
+              }
+
+              setNewFormValues(
+                getValuesForFixPullRequestLimit({
+                  values: currentValues,
+                  limit: value as FixPullRequestLimit,
+                }),
+              );
+            },
+          } as ModelField<CodeRepository>,
           {
             field: {
               maxOpenFixPullRequests: true,
             },
             title: "Max Open Fix Pull Requests",
             stepId: "pull-requests",
-            description:
-              "How many AI fix pull requests may be open here at once. Leave empty for no cap, or 0 to block them.",
+            description: "How many may be open at once.",
             fieldType: FormFieldSchemaType.Number,
-            required: false,
-            placeholder: "No cap",
+            showIf: (values: FormValues<CodeRepository>): boolean => {
+              return (
+                getPickedFixPullRequestLimit(values) ===
+                FixPullRequestLimit.Limit
+              );
+            },
+            required: (values: FormValues<CodeRepository>): boolean => {
+              return (
+                getPickedFixPullRequestLimit(values) ===
+                FixPullRequestLimit.Limit
+              );
+            },
+            validation: {
+              minValue: 1,
+            },
+            placeholder: "3",
           },
           {
             field: {
@@ -74,6 +154,10 @@ const CodeRepositorySettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Text,
             required: false,
             placeholder: "oneuptime",
+            // Only read while the app answers commands at all.
+            showIf: (values: FormValues<CodeRepository>): boolean => {
+              return values.isGitHubCommandsEnabled === true;
+            },
           },
           {
             field: {
@@ -141,6 +225,10 @@ const CodeRepositorySettings: FunctionComponent<
               description: "The issue label that hands an issue to the app.",
               placeholder: "oneuptime",
               fieldType: FieldType.Text,
+              // A label nothing reads while commands are off says nothing.
+              showIf: (item: CodeRepository): boolean => {
+                return item.isGitHubCommandsEnabled === true;
+              },
             },
             {
               field: {
@@ -149,8 +237,23 @@ const CodeRepositorySettings: FunctionComponent<
               title: "Max Open Fix Pull Requests",
               description:
                 "How many AI-authored fix pull requests may be open at once on this repository.",
-              placeholder: "No cap",
-              fieldType: FieldType.Number,
+              fieldType: FieldType.Element,
+              // In words: no limit and none read as what they mean.
+              getElement: (item: CodeRepository): ReactElement => {
+                const limit: FixPullRequestLimit = getFixPullRequestLimit(item);
+
+                return (
+                  <span>
+                    {limit === FixPullRequestLimit.Limit
+                      ? translator.formatNumber(
+                          Number(item.maxOpenFixPullRequests),
+                        )
+                      : translator.translateText(
+                          FIX_PULL_REQUEST_LIMIT_SHOWN[limit],
+                        )}
+                  </span>
+                );
+              },
             },
             {
               field: {

@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "برای میزبان‌هایی که با کلید دسترسی ندارند.",
   "Private key": "کلید خصوصی",
   "Sign in with": "ورود با",
-  "The better option where you have the choice.": "هرجا انتخاب دارید، گزینهٔ بهتری است."
+  "The better option where you have the choice.": "هرجا انتخاب دارید، گزینهٔ بهتری است.",
+  "A limit": "یک سقف",
+  "AI Fix Pull Requests": "درخواست‌های ادغام اصلاحی هوش مصنوعی",
+  "AI opens as many fix pull requests as it needs.": "هوش مصنوعی هر تعداد درخواست ادغام اصلاحی که لازم باشد باز می‌کند.",
+  "AI opens no fix pull requests in this repository.": "هوش مصنوعی در این مخزن هیچ درخواست ادغام اصلاحی باز نمی‌کند.",
+  "AI waits while this many of its fix pull requests are open.": "تا وقتی این تعداد از درخواست‌های ادغام اصلاحی‌اش باز باشد، هوش مصنوعی منتظر می‌ماند.",
+  "How many may be open at once.": "چند مورد می‌تواند هم‌زمان باز باشد.",
+  "None: AI opens no fix pull requests here": "هیچ: هوش مصنوعی اینجا هیچ درخواست ادغام اصلاحی باز نمی‌کند"
 }

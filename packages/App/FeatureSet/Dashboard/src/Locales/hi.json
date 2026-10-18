@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "उन होस्ट के लिए जिन पर कुंजी से पहुँच नहीं है।",
   "Private key": "निजी कुंजी",
   "Sign in with": "इससे साइन इन करें",
-  "The better option where you have the choice.": "जहाँ विकल्प हो, वहाँ यही बेहतर है।"
+  "The better option where you have the choice.": "जहाँ विकल्प हो, वहाँ यही बेहतर है।",
+  "A limit": "एक सीमा",
+  "AI Fix Pull Requests": "AI फ़िक्स पुल रिक्वेस्ट",
+  "AI opens as many fix pull requests as it needs.": "AI जितनी ज़रूरत हो उतनी फ़िक्स पुल रिक्वेस्ट खोलता है।",
+  "AI opens no fix pull requests in this repository.": "इस रिपॉज़िटरी में AI कोई फ़िक्स पुल रिक्वेस्ट नहीं खोलता।",
+  "AI waits while this many of its fix pull requests are open.": "जब तक इतनी फ़िक्स पुल रिक्वेस्ट खुली हैं, AI इंतज़ार करता है।",
+  "How many may be open at once.": "एक साथ कितनी खुली रह सकती हैं।",
+  "None: AI opens no fix pull requests here": "कोई नहीं: यहाँ AI कोई फ़िक्स पुल रिक्वेस्ट नहीं खोलता"
 }

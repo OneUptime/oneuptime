@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "適用於無法用金鑰存取的主機。",
   "Private key": "私密金鑰",
   "Sign in with": "登入方式",
-  "The better option where you have the choice.": "可以選擇時，這是更好的方式。"
+  "The better option where you have the choice.": "可以選擇時，這是更好的方式。",
+  "A limit": "設定上限",
+  "AI Fix Pull Requests": "AI 修正提取要求",
+  "AI opens as many fix pull requests as it needs.": "AI 會依需要開啟修正提取要求。",
+  "AI opens no fix pull requests in this repository.": "AI 不會在此存放庫中開啟修正提取要求。",
+  "AI waits while this many of its fix pull requests are open.": "當這麼多 AI 修正提取要求處於開啟狀態時，AI 會等待。",
+  "How many may be open at once.": "同時最多可開啟多少個。",
+  "None: AI opens no fix pull requests here": "無：AI 不會在此開啟修正提取要求"
 }

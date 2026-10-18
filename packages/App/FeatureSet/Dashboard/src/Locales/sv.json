@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "För värdar utan nyckelåtkomst.",
   "Private key": "Privat nyckel",
   "Sign in with": "Logga in med",
-  "The better option where you have the choice.": "Det bättre valet där du kan välja."
+  "The better option where you have the choice.": "Det bättre valet där du kan välja.",
+  "A limit": "En gräns",
+  "AI Fix Pull Requests": "AI-rättnings-pull requests",
+  "AI opens as many fix pull requests as it needs.": "AI öppnar så många rättnings-pull requests som den behöver.",
+  "AI opens no fix pull requests in this repository.": "AI öppnar inga rättnings-pull requests i det här repositoryt.",
+  "AI waits while this many of its fix pull requests are open.": "AI väntar så länge så många av dess rättnings-pull requests är öppna.",
+  "How many may be open at once.": "Hur många som får vara öppna samtidigt.",
+  "None: AI opens no fix pull requests here": "Inga: AI öppnar inga rättnings-pull requests här"
 }

@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "鍵でアクセスできないホスト向け。",
   "Private key": "秘密鍵",
   "Sign in with": "サインイン方法",
-  "The better option where you have the choice.": "選べるなら、こちらがおすすめです。"
+  "The better option where you have the choice.": "選べるなら、こちらがおすすめです。",
+  "A limit": "上限あり",
+  "AI Fix Pull Requests": "AI の修正プルリクエスト",
+  "AI opens as many fix pull requests as it needs.": "AI は必要なだけ修正プルリクエストを開きます。",
+  "AI opens no fix pull requests in this repository.": "このリポジトリでは、AI は修正プルリクエストを開きません。",
+  "AI waits while this many of its fix pull requests are open.": "この数の修正プルリクエストが開いている間、AI は待ちます。",
+  "How many may be open at once.": "同時に開いておけるのは何件か。",
+  "None: AI opens no fix pull requests here": "なし: ここでは AI は修正プルリクエストを開きません"
 }

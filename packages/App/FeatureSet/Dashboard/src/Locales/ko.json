@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "키로 접속할 수 없는 호스트용입니다.",
   "Private key": "개인 키",
   "Sign in with": "로그인 방법",
-  "The better option where you have the choice.": "선택할 수 있다면 더 나은 방법입니다."
+  "The better option where you have the choice.": "선택할 수 있다면 더 나은 방법입니다.",
+  "A limit": "제한",
+  "AI Fix Pull Requests": "AI 수정 풀 리퀘스트",
+  "AI opens as many fix pull requests as it needs.": "AI가 필요한 만큼 수정 풀 리퀘스트를 엽니다.",
+  "AI opens no fix pull requests in this repository.": "이 저장소에서는 AI가 수정 풀 리퀘스트를 열지 않습니다.",
+  "AI waits while this many of its fix pull requests are open.": "수정 풀 리퀘스트가 이만큼 열려 있는 동안 AI는 기다립니다.",
+  "How many may be open at once.": "동시에 열어 둘 수 있는 개수입니다.",
+  "None: AI opens no fix pull requests here": "없음: 여기서는 AI가 수정 풀 리퀘스트를 열지 않습니다"
 }

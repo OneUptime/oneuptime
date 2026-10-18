@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "For verter uten nøkkeltilgang.",
   "Private key": "Privat nøkkel",
   "Sign in with": "Logg på med",
-  "The better option where you have the choice.": "Det beste valget der du kan velge."
+  "The better option where you have the choice.": "Det beste valget der du kan velge.",
+  "A limit": "En grense",
+  "AI Fix Pull Requests": "AI-rettings-pull requests",
+  "AI opens as many fix pull requests as it needs.": "AI åpner så mange rettings-pull requests som den trenger.",
+  "AI opens no fix pull requests in this repository.": "AI åpner ingen rettings-pull requests i dette repositoryet.",
+  "AI waits while this many of its fix pull requests are open.": "AI venter så lenge så mange av rettings-pull requestene er åpne.",
+  "How many may be open at once.": "Hvor mange som kan være åpne samtidig.",
+  "None: AI opens no fix pull requests here": "Ingen: AI åpner ingen rettings-pull requests her"
 }

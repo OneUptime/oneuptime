@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "适用于无法用密钥访问的主机。",
   "Private key": "私钥",
   "Sign in with": "登录方式",
-  "The better option where you have the choice.": "可以选择时，这是更好的方式。"
+  "The better option where you have the choice.": "可以选择时，这是更好的方式。",
+  "A limit": "设置上限",
+  "AI Fix Pull Requests": "AI 修复拉取请求",
+  "AI opens as many fix pull requests as it needs.": "AI 会按需打开修复拉取请求。",
+  "AI opens no fix pull requests in this repository.": "AI 不会在此仓库中打开修复拉取请求。",
+  "AI waits while this many of its fix pull requests are open.": "当这么多 AI 修复拉取请求处于打开状态时，AI 会等待。",
+  "How many may be open at once.": "同时最多可打开多少个。",
+  "None: AI opens no fix pull requests here": "无：AI 不会在此打开修复拉取请求"
 }

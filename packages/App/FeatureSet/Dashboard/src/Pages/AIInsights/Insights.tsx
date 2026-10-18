@@ -686,6 +686,31 @@ const AIInsightsPage: FunctionComponent<
     );
   };
 
+  /*
+   * A project with no insights at all, and nothing filtered: the five
+   * status tiles would each read 0 and the filters would narrow nothing,
+   * so the page is its empty state alone - what Insights are, and one way
+   * on (Insights Settings). The intro above the list says what the empty
+   * state says. As soon as there is one insight, or a filter from a shared
+   * link, the inbox is drawn whole.
+   */
+  const isFirstRun: boolean =
+    !hasActiveFilters &&
+    !isLoading &&
+    !error &&
+    insights.length === 0 &&
+    statusCounts !== null &&
+    (statusCounts[ALL_FILTER_VALUE] || 0) === 0;
+
+  if (isFirstRun) {
+    return (
+      <div className="space-y-5" data-testid="ai-insights-first-run">
+        <AIPlanGate />
+        {getContent()}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <AIPlanGate />

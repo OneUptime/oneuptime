@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "Voor hosts zonder toegang met een sleutel.",
   "Private key": "Privésleutel",
   "Sign in with": "Aanmelden met",
-  "The better option where you have the choice.": "De betere keuze waar u kunt kiezen."
+  "The better option where you have the choice.": "De betere keuze waar u kunt kiezen.",
+  "A limit": "Een limiet",
+  "AI Fix Pull Requests": "AI-fix-pullrequests",
+  "AI opens as many fix pull requests as it needs.": "AI opent zoveel fix-pullrequests als nodig.",
+  "AI opens no fix pull requests in this repository.": "AI opent geen fix-pullrequests in deze repository.",
+  "AI waits while this many of its fix pull requests are open.": "AI wacht zolang dit aantal van zijn fix-pullrequests openstaat.",
+  "How many may be open at once.": "Hoeveel er tegelijk open mogen staan.",
+  "None: AI opens no fix pull requests here": "Geen: AI opent hier geen fix-pullrequests"
 }

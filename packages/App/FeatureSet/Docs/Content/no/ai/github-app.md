@@ -108,7 +108,7 @@ Hver kommando som starter arbeid, er en full agentkjøring: en klon, opptil 40 L
 
 GitHub-kommandoer er AI-arbeid utenfor hendelser og varsler, så ingen daglig grense for rettingsoppgaver gjelder for dem; prosjektets egne daglige AI-grenser gjør det, når prosjektet setter dem. Den eneste andre grensen er den som allerede gjelder for [Rettingsoppgaver](/docs/ai/ai-agent):
 
-- **Taket på åpne pull requests** (**Max Open Fix Pull Requests**, på repositoriets side **Innstillinger**). Det finnes ikke noe tak før du setter et, og 0 blokkerer AI-rettings-pull-requests i det repositoriet. Gjennomganger og revisjoner er unntatt: ingen av dem legger en pull request i gjennomgangskøen din.
+- **Taket på åpne pull requests** (**Max Open Fix Pull Requests**, på repositoriets side **Innstillinger**). **AI-rettings-pull requests** står på **Ingen grense** til du velger **En grense**, eller **Ingen**, som blokkerer AI-rettings-pull-requests i det repositoriet. Gjennomganger og revisjoner er unntatt: ingen av dem legger en pull request i gjennomgangskøen din.
 
 Bare én kjøring av en type er aktiv om gangen per issue eller pull request. Spør du to ganger, får du vite at den allerede jobber; ber du om en gjennomgang mens en revisjon kjører, starter begge, siden det er forskjellige forespørsler.
 

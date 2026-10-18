@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "For hosts without key access.",
   "Private key": "Private key",
   "Sign in with": "Sign in with",
-  "The better option where you have the choice.": "The better option where you have the choice."
+  "The better option where you have the choice.": "The better option where you have the choice.",
+  "A limit": "A limit",
+  "AI Fix Pull Requests": "AI Fix Pull Requests",
+  "AI opens as many fix pull requests as it needs.": "AI opens as many fix pull requests as it needs.",
+  "AI opens no fix pull requests in this repository.": "AI opens no fix pull requests in this repository.",
+  "AI waits while this many of its fix pull requests are open.": "AI waits while this many of its fix pull requests are open.",
+  "How many may be open at once.": "How many may be open at once.",
+  "None: AI opens no fix pull requests here": "None: AI opens no fix pull requests here"
 }

@@ -30880,5 +30880,12 @@
   "For hosts without key access.": "Для хостов без доступа по ключу.",
   "Private key": "Закрытый ключ",
   "Sign in with": "Способ входа",
-  "The better option where you have the choice.": "Лучший вариант, если есть выбор."
+  "The better option where you have the choice.": "Лучший вариант, если есть выбор.",
+  "A limit": "Ограничение",
+  "AI Fix Pull Requests": "Пул-реквесты с исправлениями ИИ",
+  "AI opens as many fix pull requests as it needs.": "ИИ открывает столько пул-реквестов с исправлениями, сколько нужно.",
+  "AI opens no fix pull requests in this repository.": "ИИ не открывает пул-реквесты с исправлениями в этом репозитории.",
+  "AI waits while this many of its fix pull requests are open.": "ИИ ждёт, пока открыто столько его пул-реквестов с исправлениями.",
+  "How many may be open at once.": "Сколько может быть открыто одновременно.",
+  "None: AI opens no fix pull requests here": "Нет: ИИ не открывает здесь пул-реквесты с исправлениями"
 }
