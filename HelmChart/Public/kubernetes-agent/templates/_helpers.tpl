@@ -76,10 +76,9 @@ Create chart name and version as used by the chart label.
 {{/*
 Common labels
 
-managed-by is written out rather than read from .Release.Service, which is
-always "Helm" when Helm installs the chart: Amazon EKS renders it as an add-on
-too (HelmChart/Marketplace), and refuses every Release object but .Name and
-.Namespace.
+managed-by is written out, as Helm itself would always fill it in ("Helm"):
+Amazon EKS renders this chart as an add-on too (HelmChart/Marketplace), and
+refuses a chart that reads any Release object but .Name and .Namespace.
 */}}
 {{- define "kubernetes-agent.labels" -}}
 helm.sh/chart: {{ include "kubernetes-agent.chart" . }}

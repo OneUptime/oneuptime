@@ -17,6 +17,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -856,6 +857,24 @@ class EksAddonBuildTest(unittest.TestCase):
 
         for name, content in before.items():
             self.assertEqual((build.AGENT_CHART / name).read_bytes(), content, name)
+
+    def test_refuses_a_release_from_before_the_add_on(self) -> None:
+        old_chart: Path = self.out / "old-agent-chart"
+        shutil.copytree(build.AGENT_CHART, old_chart)
+        values: Path = old_chart / "values.yaml"
+        values.write_text(
+            "\n".join(
+                line
+                for line in values.read_text().split("\n")
+                if not line.startswith("  existingSecretName:")
+            )
+        )
+
+        with mock.patch.object(build, "AGENT_CHART", old_chart):
+            with self.assertRaises(ValueError) as raised:
+                build.build(build.EKS_ADDON, "14.0.65", self.out / "edition")
+
+        self.assertIn(build.EKS_ADDON_PREDATES, str(raised.exception))
 
     def test_refuses_an_image_the_agent_chart_does_not_pin(self) -> None:
         values = build.ValuesEditor(

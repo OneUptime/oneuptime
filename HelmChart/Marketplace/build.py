@@ -76,6 +76,8 @@ EDITIONS: Tuple[str, ...] = MARKETPLACES + (EKS_ADDON,)
 EKS_ADDON_DIR: Path = HERE / EKS_ADDON
 # Where Amazon EKS reads an add-on's configuration schema from: beside Chart.yaml.
 EKS_CONFIGURATION_SCHEMA: str = "aws_mp_configuration_schema.json"
+# How build.py refuses a release from before the add-on (the marketplace suite skips it).
+EKS_ADDON_PREDATES: str = "This release predates the EKS add-on"
 VERSION_PATTERN: re.Pattern = re.compile(r"^\d+\.\d+\.\d+$")
 PLAIN_KEY: re.Pattern = re.compile(r"^[A-Za-z0-9_-]+$")
 DOUBLE_QUOTED: re.Pattern = re.compile(r'^"((?:[^"\\]|\\.)*)"')
@@ -642,6 +644,15 @@ def build_aws_eks_addon(
 
     values_path: Path = chart / "values.yaml"
     editor: ValuesEditor = ValuesEditor(values_path.read_text(encoding="utf-8"))
+
+    try:
+        editor.get_scalar(["oneuptime", "existingSecretName"])
+    except KeyError:
+        raise ValueError(
+            f"{EKS_ADDON_PREDATES}: its Kubernetes agent chart cannot read the ingestion key from a "
+            "Secret (oneuptime.existingSecretName), and an add-on's configuration takes no key."
+        )
+
     plan: List[Dict[str, Any]] = plan_addon_images(version, edition, editor)
 
     # Each image written out in values.yaml, its registry beside its name: the
