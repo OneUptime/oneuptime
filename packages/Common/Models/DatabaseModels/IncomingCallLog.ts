@@ -50,12 +50,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 /*
  * The calls to a policy's number are read with the policy: a grant scoped to
- * Owned reads the calls of the policies its holder or their teams own, and
- * the calls that reached no policy, which belong to the project.
+ * Owned reads the calls of the policies its holder or their teams own.
  */
-@OwnedThrough("incomingCallPolicyId", IncomingCallPolicy, {
-  includeUnattributed: true,
-})
+@OwnedThrough("incomingCallPolicyId", IncomingCallPolicy)
 @CrudApiEndpoint(new Route("/incoming-call-log"))
 @Entity({
   name: "IncomingCallLog",

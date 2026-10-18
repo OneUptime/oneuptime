@@ -125,8 +125,6 @@ interface PartOfAKind {
   modelType: ModelType;
   kind: ModelType;
   fkColumn: string;
-  // A record that names none belongs to the project (a call to no policy).
-  includeUnattributed: boolean;
 }
 
 const PARTS_OF_A_KIND: Array<PartOfAKind> = [
@@ -134,37 +132,31 @@ const PARTS_OF_A_KIND: Array<PartOfAKind> = [
     modelType: OnCallDutyPolicyScheduleLayer,
     kind: OnCallDutyPolicySchedule,
     fkColumn: "onCallDutyPolicyScheduleId",
-    includeUnattributed: false,
   },
   {
     modelType: OnCallDutyPolicyScheduleLayerUser,
     kind: OnCallDutyPolicySchedule,
     fkColumn: "onCallDutyPolicyScheduleId",
-    includeUnattributed: false,
   },
   {
     modelType: OnCallDutyPolicyScheduleCalendarFeed,
     kind: OnCallDutyPolicySchedule,
     fkColumn: "onCallDutyPolicyScheduleId",
-    includeUnattributed: false,
   },
   {
     modelType: IncomingCallPolicyEscalationRule,
     kind: IncomingCallPolicy,
     fkColumn: "incomingCallPolicyId",
-    includeUnattributed: false,
   },
   {
     modelType: IncomingCallLog,
     kind: IncomingCallPolicy,
     fkColumn: "incomingCallPolicyId",
-    includeUnattributed: true,
   },
   {
     modelType: IncidentEpisodeRoleMember,
     kind: IncidentEpisode,
     fkColumn: "incidentEpisodeId",
-    includeUnattributed: false,
   },
 ];
 
@@ -743,8 +735,12 @@ describe.each(PARTS_OF_A_KIND)(
 
       expect(ownedThrough?.fkColumn).toBe(part.fkColumn);
       expect(ownedThrough?.parentModels).toEqual([part.kind]);
-      expect(ownedThrough?.includeUnattributed).toBe(part.includeUnattributed);
+      // Every one of them names its record: none is the project's alone.
+      expect(ownedThrough?.includeUnattributed).toBe(false);
       expect(ownedThrough?.includeProjectScope).toBe(false);
+      expect(
+        new part.modelType().getTableColumnMetadata(part.fkColumn)?.required,
+      ).toBe(true);
       expect(OwnerTableRegistry.has(kindName)).toBe(true);
 
       // The column names a record of that kind, and no other.
@@ -798,24 +794,6 @@ describe.each(PARTS_OF_A_KIND)(
           type === DatabaseRequestType.Read && isReadByEveryReader(kindName),
         ]);
 
-        /*
-         * A record that names none - a call that reached no policy - is the
-         * project's, and stays beside the owned ones: "or none".
-         */
-        if (part.includeUnattributed) {
-          const condition: { getSql?: (alias: string) => string } =
-            query[part.fkColumn] as { getSql?: (alias: string) => string };
-
-          expect([
-            part.modelType.name,
-            type,
-            String(condition?.getSql?.("parent")),
-          ]).toEqual([
-            part.modelType.name,
-            type,
-            expect.stringContaining("parent IS NULL"),
-          ]);
-        }
       }
     });
 
