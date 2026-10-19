@@ -652,7 +652,7 @@ describe("opening a folded section", () => {
     }
   });
 
-  test("each folded section's toggle names the rows it shows", async () => {
+  test("each folded section's title is a button that controls its own rows", async () => {
     await renderRunbookMenuAt(RUNBOOK_PATH);
 
     for (const section of FOLDED_SECTIONS) {
