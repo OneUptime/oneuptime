@@ -1,3 +1,4 @@
+import SubscriptionConfirmationLink from "../../../Types/StatusPage/SubscriptionConfirmationLink";
 import crypto from "crypto";
 
 /*
@@ -14,11 +15,12 @@ import crypto from "crypto";
  *
  * A link works for a day (VALID_FOR_HOURS) after it is sent - when its
  * subscription was created, the one time a link is sent for it - as a link
- * to verify an account's email address or to reset a password does. While
- * it works, it holds its contact on its status page: signing the contact up
- * there again sends nothing new. Once it has run out, the subscription
- * confirms nothing more, and the contact's next sign-up replaces it with a
- * new one and a new link (StatusPageSubscriberService).
+ * to verify an account's email address or to reset a password does
+ * (Types/StatusPage/SubscriptionConfirmationLink, which the dashboard reads
+ * too). While it works, it holds its contact on its status page: signing
+ * the contact up there again sends nothing new. Once it has run out, the
+ * subscription confirms nothing more, and the contact's next sign-up
+ * replaces it with a new one and a new link (StatusPageSubscriberService).
  *
  * Codes minted before codes were 32 characters are six digits. The route
  * still takes one inside its day, as it takes any code, but only until a
@@ -34,10 +36,11 @@ export default class StatusPageSubscriberConfirmationCode {
   public static readonly LENGTH: number = 32;
 
   // How long a link to confirm a subscription works once it is sent.
-  public static readonly VALID_FOR_HOURS: number = 24;
+  public static readonly VALID_FOR_HOURS: number =
+    SubscriptionConfirmationLink.VALID_FOR_HOURS;
 
   public static readonly VALID_FOR_MS: number =
-    StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS * 60 * 60 * 1000;
+    SubscriptionConfirmationLink.VALID_FOR_MS;
 
   public static generate(): string {
     return crypto
@@ -79,13 +82,9 @@ export default class StatusPageSubscriberConfirmationCode {
     return stored.length > 0 && presented.length > 0 && isEqual;
   }
 
-  /*
-   * When the link of a subscription created at `createdAt` stops working.
-   */
+  // When the link of a subscription created at `createdAt` stops working.
   public static getExpiresAt(createdAt: Date): Date {
-    return new Date(
-      createdAt.getTime() + StatusPageSubscriberConfirmationCode.VALID_FOR_MS,
-    );
+    return SubscriptionConfirmationLink.getExpiresAt(createdAt);
   }
 
   /*
@@ -97,18 +96,7 @@ export default class StatusPageSubscriberConfirmationCode {
     createdAt: Date | string | null | undefined,
     now: number = Date.now(),
   ): boolean {
-    const created: number =
-      createdAt instanceof Date
-        ? createdAt.getTime()
-        : typeof createdAt === "string"
-          ? new Date(createdAt).getTime()
-          : NaN;
-
-    if (!Number.isFinite(created)) {
-      return true;
-    }
-
-    return now >= created + StatusPageSubscriberConfirmationCode.VALID_FOR_MS;
+    return SubscriptionConfirmationLink.hasExpired(createdAt, now);
   }
 
   /*
@@ -120,18 +108,6 @@ export default class StatusPageSubscriberConfirmationCode {
     createdAt: Date | string | null | undefined,
     now: number = Date.now(),
   ): number {
-    if (StatusPageSubscriberConfirmationCode.hasExpired(createdAt, now)) {
-      return 0;
-    }
-
-    const created: number = new Date(createdAt as Date | string).getTime();
-
-    return Math.max(
-      1,
-      Math.ceil(
-        (created + StatusPageSubscriberConfirmationCode.VALID_FOR_MS - now) /
-          1000,
-      ),
-    );
+    return SubscriptionConfirmationLink.getSecondsLeft(createdAt, now);
   }
 }

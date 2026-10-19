@@ -17,7 +17,6 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import Pill from "Common/UI/Components/Pill/Pill";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
@@ -43,6 +42,7 @@ import SubscriberChannelOffPanel from "../../../Components/StatusPage/Subscriber
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
+import SubscriberStatusPill from "../../../Components/StatusPage/SubscriberStatusPill";
 import {
   SUBSCRIBER_ADD_CHOICE,
   SubscriberAddChoice,
@@ -566,23 +566,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 title: "Status",
                 type: FieldType.Text,
                 getElement: (item: StatusPageSubscriber): ReactElement => {
-                  if (item["isUnsubscribed"]) {
-                    return <Pill color={Red} text={"Unsubscribed"} />;
-                  }
-
-                  if (!item["isSubscriptionConfirmed"]) {
-                    return (
-                      <Pill
-                        color={Yellow}
-                        text={"Awaiting Confirmation"}
-                        tooltip={
-                          SubscriberFormCopy.awaitingConfirmationDescription
-                        }
-                      />
-                    );
-                  }
-
-                  return <Pill color={Green} text={"Subscribed"} />;
+                  // Awaiting the link we emailed them, while it works.
+                  return (
+                    <SubscriberStatusPill
+                      subscriber={item}
+                      awaitingConfirmationDescription={
+                        SubscriberFormCopy.awaitingConfirmationDescription
+                      }
+                    />
+                  );
                 },
               },
               {

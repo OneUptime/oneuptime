@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "所有工具请参阅 {{docsLink}}。",
   "Twilio account for SMS and calls": "用于短信和电话的 Twilio 账户",
   "Up to {{limit}} open at once": "同时最多 {{limit}} 个",
-  "Gets nothing until they open the link we texted them.": "在打开我们通过短信发送的链接之前，不会收到任何内容。"
+  "Gets nothing until they open the link we texted them.": "在打开我们通过短信发送的链接之前，不会收到任何内容。",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "不会收到任何内容：我们发送的确认链接在打开前已过期。对方可以重新订阅，你也可以重新添加。",
+  "Link Expired": "链接已过期"
 }

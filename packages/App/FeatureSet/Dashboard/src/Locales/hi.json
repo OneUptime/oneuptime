@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "सभी टूल के लिए {{docsLink}} देखें।",
   "Twilio account for SMS and calls": "SMS और कॉल के लिए Twilio खाता",
   "Up to {{limit}} open at once": "एक साथ अधिकतम {{limit}} खुली",
-  "Gets nothing until they open the link we texted them.": "जब तक वे हमारे SMS में भेजे गए लिंक को नहीं खोलते, उन्हें कुछ नहीं मिलता।"
+  "Gets nothing until they open the link we texted them.": "जब तक वे हमारे SMS में भेजे गए लिंक को नहीं खोलते, उन्हें कुछ नहीं मिलता।",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "कुछ नहीं मिलता: पुष्टि के लिए भेजा गया हमारा लिंक खोले जाने से पहले ही समाप्त हो गया। वे फिर से साइन अप कर सकते हैं, या आप उन्हें फिर से जोड़ सकते हैं।",
+  "Link Expired": "लिंक की समय-सीमा खत्म"
 }

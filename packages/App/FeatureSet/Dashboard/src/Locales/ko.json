@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "모든 도구는 {{docsLink}}에서 확인하세요.",
   "Twilio account for SMS and calls": "SMS 및 전화용 Twilio 계정",
   "Up to {{limit}} open at once": "동시에 최대 {{limit}}개",
-  "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다."
+  "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다.",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "아무것도 받지 않습니다. 확인을 위해 보낸 링크가 열리기 전에 만료되었습니다. 다시 가입하게 하거나 직접 다시 추가할 수 있습니다.",
+  "Link Expired": "링크 만료됨"
 }

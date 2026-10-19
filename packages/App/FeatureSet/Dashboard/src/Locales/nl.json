@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "Zie de {{docsLink}} voor alle tools.",
   "Twilio account for SMS and calls": "Twilio-account voor sms en oproepen",
   "Up to {{limit}} open at once": "Tot {{limit}} tegelijk open",
-  "Gets nothing until they open the link we texted them.": "Krijgt niets tot de link die we per sms stuurden is geopend."
+  "Gets nothing until they open the link we texted them.": "Krijgt niets tot de link die we per sms stuurden is geopend.",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Krijgt niets: de bevestigingslink die we stuurden is verlopen voordat hij werd geopend. Diegene kan zich opnieuw aanmelden, of u voegt diegene opnieuw toe.",
+  "Link Expired": "Link verlopen"
 }

@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "See the {{docsLink}} for every tool.",
   "Twilio account for SMS and calls": "Twilio account for SMS and calls",
   "Up to {{limit}} open at once": "Up to {{limit}} open at once",
-  "Gets nothing until they open the link we texted them.": "Gets nothing until they open the link we texted them."
+  "Gets nothing until they open the link we texted them.": "Gets nothing until they open the link we texted them.",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.",
+  "Link Expired": "Link Expired"
 }

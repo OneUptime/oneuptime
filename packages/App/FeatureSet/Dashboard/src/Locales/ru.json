@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "Список всех инструментов — {{docsLink}}.",
   "Twilio account for SMS and calls": "Аккаунт Twilio для SMS и звонков",
   "Up to {{limit}} open at once": "До {{limit}} открытых одновременно",
-  "Gets nothing until they open the link we texted them.": "Ничего не получает, пока не откроет ссылку из нашего SMS."
+  "Gets nothing until they open the link we texted them.": "Ничего не получает, пока не откроет ссылку из нашего SMS.",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Ничего не получает: ссылка для подтверждения, которую мы отправили, истекла до того, как её открыли. Подписчик может подписаться снова, или вы можете добавить его заново.",
+  "Link Expired": "Ссылка истекла"
 }
