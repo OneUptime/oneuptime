@@ -266,6 +266,18 @@ async function horizontalOverflow(page: Page): Promise<number> {
   });
 }
 
+/*
+ * Where an element's text starts, not its box: a centred line sits inside a
+ * box as wide as its neighbour's, so only the text's own edge tells.
+ */
+async function textLeftEdge(locator: Locator): Promise<number> {
+  return await locator.evaluate((element: Element): number => {
+    const range: Range = document.createRange();
+    range.selectNodeContents(element);
+    return range.getBoundingClientRect().left;
+  });
+}
+
 test.describe("Teams > Settings > Roles", () => {
   test("lists the project's custom roles, each with how many permissions it holds", async ({
     page,
@@ -691,6 +703,18 @@ test.describe("the Teams menu", () => {
     await openRoles(page);
     await expect(menuButton).toContainText("Settings / Roles");
 
+    /*
+     * Its two lines start at one edge: a button centres its text, which set
+     * "Navigate to" off-centre above "Settings / Roles".
+     */
+    const labelLeft: number = await textLeftEdge(
+      menuButton.getByText("Navigate to", { exact: true }),
+    );
+    const whereLeft: number = await textLeftEdge(
+      menuButton.getByRole("heading", { name: "Settings / Roles" }),
+    );
+    expect(Math.abs(labelLeft - whereLeft)).toBeLessThanOrEqual(1);
+
     await openRole(page, ROLE_IDS["responder"]!);
     await expect(menuButton).toContainText("Settings / Roles");
 
@@ -1084,6 +1108,44 @@ test.describe("a team's Permissions page", () => {
     await screenshot(page, "team-permissions");
   });
 
+  /*
+   * Roles waits in the Teams menu's folded Settings section, and a team's
+   * own menu has no entry for it: the card's "Roles" is a link to it.
+   */
+  test("the card's Roles is a link to the Roles page, which opens with Settings open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTeamPermissions(page, TEAM_IDS["platform"]!);
+
+    const description: Locator = page
+      .getByTestId("team-custom-roles")
+      .getByTestId("card-description");
+    await expect(description).toHaveText(
+      "Named sets of permissions, made on the Roles page. Changing a role changes this team too.",
+    );
+    const rolesLink: Locator = description.getByRole("link", {
+      name: "Roles",
+      exact: true,
+    });
+    await expect(rolesLink).toHaveAttribute("href", ROLES_ROUTE);
+
+    await rolesLink.click();
+
+    await expectPath(page, ROLES_ROUTE);
+    await expect(
+      page.getByRole("heading", { name: "Custom Roles", exact: true }),
+    ).toBeVisible();
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveClass(/bg-indigo-50/);
+  });
+
   test("Add Custom Role offers only the roles the team does not have", async ({
     page,
   }: {
@@ -1307,6 +1369,27 @@ test.describe("in another language", () => {
     );
     await expect(roleCard).toContainText("Incident Responder");
     await expect(roleCard).not.toContainText(GERMAN_WORD_FOR_IT);
+  });
+
+  test("a team's Custom Roles card links the menu's word for Roles inside its own sentence", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${TEAMS_ROUTE}/${TEAM_IDS["platform"]}/permissions?lang=de`,
+    );
+
+    const description: Locator = page
+      .getByTestId("team-custom-roles")
+      .getByTestId("card-description");
+    // The German sentence, the link where German grammar puts the page's name.
+    await expect(description).toHaveText(
+      "Benannte Sätze von Berechtigungen, erstellt auf der Seite Rollen. Eine Änderung einer Rolle ändert auch dieses Team.",
+    );
+    await expect(
+      description.getByRole("link", { name: "Rollen", exact: true }),
+    ).toHaveAttribute("href", ROLES_ROUTE);
   });
 });
 
