@@ -79,3 +79,9 @@ volumes:
 networks:
   oneuptime:
     driver: bridge
+    # IPv6 for OneUptime's network: with it, Docker hands the ingress a
+    # visitor's IPv6 connection with the visitor's own address. Without it,
+    # Docker passes every IPv6 visitor on from one address of its own, and
+    # OneUptime cannot tell them apart. Off unless ENABLE_IPV6=true in
+    # config.env: it needs Docker Engine 27 or later, and IPv6 in the kernel.
+    enable_ipv6: ${ENABLE_IPV6:-false}

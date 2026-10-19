@@ -64,27 +64,65 @@ ensure_placeholder_certificate() {
   return 0
 }
 
+# Listening on IPv6 as well as IPv4.
+#
+# The address the app counts a visitor by is the one this ingress accepts the
+# connection from, so a visitor who comes over IPv6 has to reach it over IPv6.
+# Where the ingress's network has IPv6 (Docker Compose with ENABLE_IPV6=true,
+# a dual-stack Kubernetes cluster), Docker and Kubernetes hand such a
+# connection to the ingress over IPv6, with the visitor's own address, and
+# only an ingress listening there accepts it. So unless NGINX_LISTEN_ADDRESS
+# names the one address to listen on, every listen on 7849 and 7850 has an
+# IPv6 twin on [::] (IPv6 only, next to the IPv4 one) whenever this kernel
+# has IPv6 at all. On a network without IPv6 the twin has nothing but ::1 to
+# listen on, and nothing changes.
+#
+# A kernel without IPv6 (booted with ipv6.disable=1) has no
+# /proc/net/if_inet6, and nginx could not open an IPv6 socket there: no twin.
+NGINX_IPV6_SUPPORT_FILE="${NGINX_IPV6_SUPPORT_FILE:-/proc/net/if_inet6}"
+
+if [ -z "${NGINX_LISTEN_ADDRESS}" ] && [ -f "${NGINX_IPV6_SUPPORT_FILE}" ]; then
+  export NGINX_IPV6_LISTEN_DEFAULT_DIRECTIVE="    listen [::]:7849 default_server;"
+  export NGINX_IPV6_LISTEN_SSL_DEFAULT_DIRECTIVE="    listen [::]:7850 ssl default_server;"
+  export NGINX_IPV6_LISTEN_DIRECTIVE="    listen [::]:7849;"
+  NGINX_IPV6_LISTEN_SSL_DIRECTIVE="    listen [::]:7850 ssl;"
+else
+  export NGINX_IPV6_LISTEN_DEFAULT_DIRECTIVE=""
+  export NGINX_IPV6_LISTEN_SSL_DEFAULT_DIRECTIVE=""
+  export NGINX_IPV6_LISTEN_DIRECTIVE=""
+  NGINX_IPV6_LISTEN_SSL_DIRECTIVE=""
+fi
+
 # Prepare conditional SSL directives for templates that need them.
+#
+# NGINX_LISTEN_OPTIONS are options of the listening socket, which nginx takes
+# once for each address and port: the template writes them on the
+# default_server listen of 7849 and of 7850, so the primary's own listen on
+# 7850 below carries none.
 if [ -n "${PROVISION_SSL}" ]; then
   if [ -n "${SERVER_CERT_PATH}" ] && [ -n "${SERVER_CERT_KEY_PATH}" ]; then
     if ensure_placeholder_certificate "${SERVER_CERT_PATH}" "${SERVER_CERT_KEY_PATH}" "${PRIMARY_DOMAIN_LOWER}"; then
-      export PROVISION_SSL_LISTEN_DIRECTIVE="    listen ${NGINX_LISTEN_ADDRESS}7850 ssl ${NGINX_LISTEN_OPTIONS};"
+      export PROVISION_SSL_LISTEN_DIRECTIVE="    listen ${NGINX_LISTEN_ADDRESS}7850 ssl;"
+      export PROVISION_SSL_IPV6_LISTEN_DIRECTIVE="${NGINX_IPV6_LISTEN_SSL_DIRECTIVE}"
       export PROVISION_SSL_CERTIFICATE_DIRECTIVE="    ssl_certificate ${SERVER_CERT_PATH};"
       export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE="    ssl_certificate_key ${SERVER_CERT_KEY_PATH};"
     else
       echo "$ME: WARNING: failed to ensure placeholder certificate for '${PRIMARY_DOMAIN_LOWER}'. HTTPS directives disabled to keep nginx healthy."
       export PROVISION_SSL_LISTEN_DIRECTIVE=""
+      export PROVISION_SSL_IPV6_LISTEN_DIRECTIVE=""
       export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
       export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE=""
     fi
   else
     echo "$ME: WARNING: PRIMARY_DOMAIN not set; cannot enable HTTPS provisioning."
     export PROVISION_SSL_LISTEN_DIRECTIVE=""
+    export PROVISION_SSL_IPV6_LISTEN_DIRECTIVE=""
     export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
     export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE=""
   fi
 else
   export PROVISION_SSL_LISTEN_DIRECTIVE=""
+  export PROVISION_SSL_IPV6_LISTEN_DIRECTIVE=""
   export PROVISION_SSL_CERTIFICATE_DIRECTIVE=""
   export PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE=""
 fi

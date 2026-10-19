@@ -46,6 +46,7 @@ const {
   getDirectives,
   getLocationBlocks,
   getServerBlocks,
+  ingressListenEnvironment,
   readNginxConf,
   readTemplate,
   resolveLocation,
@@ -600,7 +601,9 @@ const INGRESS_HOST = "oneuptime.example.com";
 
 /**
  * A full container environment, so a render is representative of a real
- * deployment, with `overrides` on top.
+ * deployment, with `overrides` on top. The listen directives are the ones
+ * envsubst-on-templates.sh exports for the NGINX_LISTEN_ADDRESS it ends up
+ * with, on a kernel with IPv6; an override names them to differ.
  */
 function baseEnvironment(overrides = {}) {
   const environment = {};
@@ -617,7 +620,6 @@ function baseEnvironment(overrides = {}) {
     NGINX_LISTEN_ADDRESS: "",
     NGINX_LISTEN_OPTIONS: "",
     NGINX_RESOLVER: "127.0.0.11",
-    PROVISION_SSL_LISTEN_DIRECTIVE: "",
     PROVISION_SSL_CERTIFICATE_DIRECTIVE: "",
     PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: "",
     SERVER_APP_HOSTNAME: "app",
@@ -630,7 +632,16 @@ function baseEnvironment(overrides = {}) {
   delete environment.NGINX_UPSTREAM_KEEPALIVE_CONNECTIONS;
   delete environment.NGINX_INGEST_ACCESS_LOG;
 
-  return { ...environment, ...overrides };
+  const listenAddress =
+    overrides.NGINX_LISTEN_ADDRESS === undefined
+      ? environment.NGINX_LISTEN_ADDRESS
+      : overrides.NGINX_LISTEN_ADDRESS;
+
+  return {
+    ...environment,
+    ...ingressListenEnvironment({ listenAddress }),
+    ...overrides,
+  };
 }
 
 /**
@@ -1681,7 +1692,10 @@ async function startIngress({
 
     // What envsubst-on-templates.sh exports when PROVISION_SSL is set.
     Object.assign(environment, {
-      PROVISION_SSL_LISTEN_DIRECTIVE: `    listen ${environment.NGINX_LISTEN_ADDRESS}7850 ssl ${environment.NGINX_LISTEN_OPTIONS};`,
+      ...ingressListenEnvironment({
+        listenAddress: environment.NGINX_LISTEN_ADDRESS,
+        provisionSsl: true,
+      }),
       PROVISION_SSL_CERTIFICATE_DIRECTIVE: `    ssl_certificate ${certificatePath};`,
       PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE: `    ssl_certificate_key ${keyPath};`,
     });
