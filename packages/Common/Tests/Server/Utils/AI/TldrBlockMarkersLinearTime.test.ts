@@ -70,6 +70,32 @@ const WORST_TEXTS: Array<[string, string]> = [
   ],
 ];
 
+/*
+ * Lines of stacked markers, each one marker shorter than the line before,
+ * then a long number that no "." or ")" follows. Each round takes the last
+ * marker off one more line, and the white space after that marker reaches
+ * the number, so the number's line start is looked at again in every round
+ * - near a thousand of them on this text. Its digits are read in one step
+ * each time, never one by one.
+ */
+const LONG_NUMBER_LENGTH: number = 2400000;
+
+const linesOfMarkersThenANumber: (unit: string, length: number) => string = (
+  unit: string,
+  length: number,
+): string => {
+  const lines: number = Math.floor(Math.sqrt(length / 3));
+  let text: string = "";
+
+  for (let line: number = lines; line >= 1; line--) {
+    text += unit.repeat(line) + "\n";
+  }
+
+  return text + "1".repeat(length - text.length) + "x";
+};
+
+const MARKER_UNITS: ReadonlyArray<string> = ["> ", "- ", "1. ", "## "];
+
 const WORST_LABELS: Array<[string, string]> = [
   ["label lines", repeat("TL;DR\n", LENGTH) + "The pool ran dry."],
   ["inline labels", repeat("TLDR: ", LENGTH) + "The pool ran dry."],
@@ -91,6 +117,36 @@ describe("text built to be slow is read quickly", () => {
   test.each([...WORST_TEXTS, ...WORST_LABELS])(
     "%s, as a TL;DR and as a report's summary",
     (_label: string, text: string) => {
+      expect(
+        timeOf(() => {
+          InvestigationTldr.sanitizeTldr(text);
+          InvestigationReportSummary.fromReport(text);
+        }),
+      ).toBeLessThan(2000);
+    },
+  );
+
+  test.each(MARKER_UNITS)(
+    "lines of %j, each one shorter, then a long number, stripped of block markers",
+    (unit: string) => {
+      const text: string = linesOfMarkersThenANumber(unit, LONG_NUMBER_LENGTH);
+      const numberLine: string = text.slice(text.lastIndexOf("\n") + 1);
+      let stripped: string = "";
+
+      expect(
+        timeOf(() => {
+          stripped = stripBlockMarkers(text);
+        }),
+      ).toBeLessThan(2000);
+      expect(stripped).toBe(numberLine);
+    },
+  );
+
+  test.each(MARKER_UNITS)(
+    "lines of %j, each one shorter, then a long number, as a TL;DR and as a report's summary",
+    (unit: string) => {
+      const text: string = linesOfMarkersThenANumber(unit, LONG_NUMBER_LENGTH);
+
       expect(
         timeOf(() => {
           InvestigationTldr.sanitizeTldr(text);
@@ -213,6 +269,27 @@ describe("the markers taken off are the markers the rounds took off", () => {
     }
 
     expect(differences).toEqual([]);
+  });
+
+  test("after lines of markers that each end on a long number", () => {
+    const differences: Array<string> = [];
+
+    for (const unit of MARKER_UNITS) {
+      for (const length of [30, 300, 3000]) {
+        for (const ending of ["x", ". x", ") y", ").", "\n- y", ""]) {
+          const text: string =
+            linesOfMarkersThenANumber(unit, length).slice(0, -1) + ending;
+
+          if (stripBlockMarkers(text) !== roundsBefore(text)) {
+            differences.push(JSON.stringify(text.slice(-40)));
+          }
+        }
+      }
+    }
+
+    expect(differences).toEqual([]);
+    expect(stripBlockMarkers("> > \n> \n123. x")).toBe("x");
+    expect(stripBlockMarkers("> > \n> \n123x")).toBe("123x");
   });
 
   test("where the order of the rounds decides what is taken", () => {

@@ -149,6 +149,22 @@ export const stripBlockMarkers: StripBlockMarkersFunction = (
     return text.charCodeAt(index);
   };
 
+  /*
+   * Where the run of digits that holds an index ends in the text: a line
+   * start whose marker is a long number that no "." or ")" follows can be
+   * looked at again in every round that takes something off before it, and
+   * its digits are read in one step each time rather than one by one.
+   */
+  const digitRunEnd: Int32Array = new Int32Array(length + 1);
+
+  digitRunEnd[length] = length;
+
+  for (let index: number = length - 1; index >= 0; index--) {
+    digitRunEnd[index] = isDigitCode(codeAt(index))
+      ? digitRunEnd[index + 1]!
+      : index;
+  }
+
   // Whether the character still before `index` ends a line (or none is).
   const isLineStartNow: (index: number) => boolean = (
     index: number,
@@ -200,8 +216,14 @@ export const stripBlockMarkers: StripBlockMarkersFunction = (
       if (isQuoteOrBulletCode(code)) {
         index = remaining.nextFrom(index + 1);
       } else if (isDigitCode(code)) {
+        /*
+         * Every character from here to the end of the run of digits in the
+         * text is a digit, whether or not it is still there: the first one
+         * still there after that end is where the digits now end, unless it
+         * is a digit too (then the read goes on from it).
+         */
         while (index < length && isDigitCode(codeAt(index))) {
-          index = remaining.nextFrom(index + 1);
+          index = remaining.nextFrom(digitRunEnd[index]!);
         }
 
         if (index >= length || !isOrderedListEndCode(codeAt(index))) {
