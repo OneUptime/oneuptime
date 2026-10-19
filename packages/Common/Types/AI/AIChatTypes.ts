@@ -41,6 +41,8 @@ export enum AIChatCitationTargetType {
   RumApplicationView = "RumApplicationView",
   TelemetryResources = "TelemetryResources",
   TelemetryResourceView = "TelemetryResourceView",
+  // One telemetry service's page; params: { serviceId }.
+  ServiceView = "ServiceView",
 }
 
 export interface AIChatCitationTarget {

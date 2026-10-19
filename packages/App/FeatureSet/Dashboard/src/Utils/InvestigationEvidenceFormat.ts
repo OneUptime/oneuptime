@@ -596,6 +596,7 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.RumApplicationView]: "RUM application",
   [AIChatCitationTargetType.TelemetryResources]: "Infrastructure resources",
   [AIChatCitationTargetType.TelemetryResourceView]: "Infrastructure resource",
+  [AIChatCitationTargetType.ServiceView]: "Service",
   [AIChatCitationTargetType.Exceptions]: "Exceptions",
   [AIChatCitationTargetType.Incidents]: "Incidents",
   [AIChatCitationTargetType.IncidentView]: "Incident",
