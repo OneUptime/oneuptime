@@ -28,6 +28,7 @@ interface EnvironmentConfigShape {
   getUsableInboundEmailWebhookSecret: (
     value: string | null | undefined,
   ) => string | undefined;
+  getFrontendEnvVars: () => Record<string, unknown>;
 }
 
 /* <repo>/Common/Tests/Server -> <repo> */
@@ -280,6 +281,28 @@ describe("InboundEmailWebhookSecretWarning", () => {
     }
   });
 
+  it("says to change SendGrid's URL before the secret, so the emails sent in between are retried", async () => {
+    const config: EnvironmentConfigShape = await load({
+      INBOUND_EMAIL_DOMAIN: DOMAIN,
+    });
+    const warning: string = config.InboundEmailWebhookSecretWarning || "";
+
+    const reuse: number = warning.indexOf(
+      "already ends with a long random value of your own, set INBOUND_EMAIL_WEBHOOK_SECRET to that value",
+    );
+    const urlFirst: number = warning.indexOf("Otherwise change that URL first");
+    const secretThen: number = warning.indexOf(
+      "and then set INBOUND_EMAIL_WEBHOOK_SECRET to the same value",
+    );
+
+    expect(reuse).toBeGreaterThan(-1);
+    expect(urlFirst).toBeGreaterThan(reuse);
+    expect(secretThen).toBeGreaterThan(urlFirst);
+    expect(warning).toContain(
+      "so that SendGrid retries the emails sent in between instead of having them refused for a wrong secret",
+    );
+  });
+
   it("never echoes a value it was given", async () => {
     for (const value of [
       "please-change-this-to-random-value-7",
@@ -300,5 +323,32 @@ describe("InboundEmailWebhookSecretWarning", () => {
     expect(config.InboundEmailSetupDocsUrl).toBe(
       "https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email#configure-oneuptime",
     );
+  });
+});
+
+/*
+ * The settings every visitor's browser is handed (env.js, getFrontendEnvVars)
+ * name the inbound domain, which every monitor's address shows anyway, and
+ * never the secret: whoever has it can deliver an email.
+ */
+describe("the settings handed to the browser", () => {
+  it("carry the inbound domain, and never the webhook secret, however it is set", async () => {
+    for (const value of [
+      OPERATORS_SECRET,
+      ` ${OPERATORS_SECRET}\n`,
+      "YOUR_SECRET",
+    ]) {
+      const config: EnvironmentConfigShape = await load({
+        INBOUND_EMAIL_DOMAIN: DOMAIN,
+        INBOUND_EMAIL_WEBHOOK_SECRET: value,
+      });
+      const frontend: Record<string, unknown> = config.getFrontendEnvVars();
+
+      expect(frontend["INBOUND_EMAIL_DOMAIN"]).toBe(DOMAIN);
+      expect(Object.keys(frontend)).not.toContain(
+        "INBOUND_EMAIL_WEBHOOK_SECRET",
+      );
+      expect(JSON.stringify(frontend)).not.toContain(value.trim());
+    }
   });
 });

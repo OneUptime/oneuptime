@@ -160,7 +160,8 @@ describe("the English upgrade note on the inbound email webhook secret", () => {
       "While that is empty, or a placeholder from the setup guide, every email is refused with `503` and none reaches an Incoming Email Monitor or a workflow",
       "the app says so at startup, and so does `helm upgrade`",
       "If the Destination URL in SendGrid's Inbound Parse settings already ends with a long random value of your own, set `INBOUND_EMAIL_WEBHOOK_SECRET` to that value",
-      "otherwise set it to a new one and make that URL end with it",
+      // SendGrid's URL first: until the secret is set, its emails get 503 and are retried.
+      "otherwise first make that URL end with a new one, then set the secret to the same value",
       "With Docker Compose, set it in `config.env` and run `npm start`; with Helm, set `inboundEmail.webhookSecret` and run `helm upgrade`.",
       "SendGrid retries a refused email for up to three days",
       "An installation that set its own secret sees no change.",

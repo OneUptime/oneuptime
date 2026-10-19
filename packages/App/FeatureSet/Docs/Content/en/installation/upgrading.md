@@ -1468,8 +1468,8 @@ API, SSO, or the Slack and Microsoft Teams apps.
   `503` and none reaches an Incoming Email Monitor or a workflow; the app says
   so at startup, and so does `helm upgrade`. If the Destination URL in
   SendGrid's Inbound Parse settings already ends with a long random value of
-  your own, set `INBOUND_EMAIL_WEBHOOK_SECRET` to that value; otherwise set it
-  to a new one and make that URL end with it, as
+  your own, set `INBOUND_EMAIL_WEBHOOK_SECRET` to that value; otherwise first
+  make that URL end with a new one, then set the secret to the same value, as
   [Configure OneUptime](/docs/self-hosted/sendgrid-inbound-email#configure-oneuptime)
   shows. With Docker Compose, set it in `config.env` and run `npm start`; with
   Helm, set `inboundEmail.webhookSecret` and run `helm upgrade`. SendGrid

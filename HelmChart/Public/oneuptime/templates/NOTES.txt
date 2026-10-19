@@ -109,16 +109,19 @@ ACTION REQUIRED -- incoming email is refused until inboundEmail.webhookSecret is
 
 inboundEmail.domain is set, but inboundEmail.webhookSecret is empty or a
 placeholder, so nothing proves an email was delivered by SendGrid: OneUptime
-refuses every one of them, and none reaches an Incoming Email monitor or a
-workflow. Set inboundEmail.webhookSecret to a long random value
-(openssl rand -hex 32 makes one), or to the last part of the Destination URL
-in SendGrid's Inbound Parse settings if that is already a long random value of
-your own, make that URL end with it, and run helm upgrade:
+refuses every one of them with 503, and none reaches an Incoming Email monitor
+or a workflow. SendGrid retries a refused email for up to three days.
 
-https://{{ .Values.host }}/incoming-email/sendgrid/<the same value>
+If the Destination URL in SendGrid's Inbound Parse settings already ends with
+a long random value of your own, set inboundEmail.webhookSecret to that value
+and run helm upgrade. Otherwise change that URL first, to end with a new long
+random value (openssl rand -hex 32 makes one):
 
-SendGrid retries a refused email for up to three days, so the ones sent
-meanwhile arrive once it is set. Details: https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email
+https://{{ .Values.host }}/incoming-email/sendgrid/<the new value>
+
+then set inboundEmail.webhookSecret to the same value and run helm upgrade.
+In that order the emails sent meanwhile are retried, and arrive once it is
+set. Details: https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email
 {{- end }}
 {{- end }}
 {{- if and (include "oneuptime.kedaOperatorInstalled" .) (not .Values.keda.enabled) }}
