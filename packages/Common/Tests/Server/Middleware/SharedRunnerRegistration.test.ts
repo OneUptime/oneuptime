@@ -43,7 +43,8 @@ import type { SpyInstance } from "jest-mock";
  *   - a wrong one is refused, and counted for the client: ten different
  *     wrong keys, then every registration it sends is refused until the
  *     window ends, the right key too; a Runner that keeps sending one old
- *     key is never refused for it;
+ *     key is never refused for it; and keys from a private network address,
+ *     where the Runner calls from, are never counted;
  *   - an app that holds no key of its own lets no Runner register with one;
  *   - a request that carries a cluster key is decided by it, as before: a
  *     Runner of an earlier release, or one whose deployment still gives it
@@ -498,6 +499,38 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
       await register(app, CLIENT, withRunnerKey(OPERATOR_RUNNER_KEY)),
     ).toStrictEqual(LET_THROUGH);
   });
+
+  /*
+   * The shared Runner registers from a private network address - the
+   * bundled Nginx sees the Docker Compose Runner at its container network's
+   * gateway, and the Helm chart's calls from its pod - which a proxy, a load
+   * balancer or a container network can show other callers as too. Keys
+   * from such an address are never counted, so no caller beside the Runner
+   * can keep it from registering.
+   */
+  test.each([
+    ["a container network's gateway", "172.18.0.1"],
+    ["a pod's address", "10.42.0.9"],
+    ["an IPv6 unique local address", "fd00:12:34::9"],
+  ])(
+    "from %s, wrong keys are refused as wrong and never counted, and the Runner registers there with its key",
+    async (_label: string, address: string) => {
+      for (
+        let index: number = 0;
+        index < WRONG_COMPONENT_KEYS_PER_ADDRESS * 3;
+        index++
+      ) {
+        expect(
+          await register(app, address, withRunnerKey(`guess-${index}`)),
+        ).toStrictEqual(refusedWith(app.messages.wrong));
+      }
+
+      expect(
+        await register(app, address, withRunnerKey(OPERATOR_RUNNER_KEY)),
+      ).toStrictEqual(LET_THROUGH);
+      expect(redis.sets.size).toBe(0);
+    },
+  );
 });
 
 describe.each([

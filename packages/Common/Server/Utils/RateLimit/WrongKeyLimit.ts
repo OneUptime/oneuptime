@@ -154,9 +154,7 @@ export default class WrongKeyLimit {
       return null;
     }
 
-    const clientIp: string =
-      resolveTrustedClientIp(data.req as unknown as ClientIpRequestLike) ||
-      "unknown";
+    const clientIp: string = WrongKeyLimit.getClientIp(data.req);
 
     const windowIndex: number = Math.floor(
       Date.now() / (this.spec.windowSeconds * 1000),
@@ -211,6 +209,17 @@ export default class WrongKeyLimit {
     return {
       retryAfterSeconds: this.getSecondsUntilWindowEnd(),
     };
+  }
+
+  /*
+   * The client a request is counted for: the address it is attributed to
+   * (resolveClientIp, through the proxies TRUSTED_PROXY_HOPS counts), or
+   * "unknown", the one client every caller that cannot be placed shares.
+   */
+  public static getClientIp(req: ExpressRequest): string {
+    return (
+      resolveTrustedClientIp(req as unknown as ClientIpRequestLike) || "unknown"
+    );
   }
 
   // Seconds left in the current window, at least one.

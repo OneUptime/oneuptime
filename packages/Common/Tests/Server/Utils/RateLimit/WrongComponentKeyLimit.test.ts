@@ -854,6 +854,301 @@ describe("what Valkey keeps of a wrong key", () => {
   });
 });
 
+/*
+ * OneUptime's own probes, its shared Runner and the agents beside it call
+ * from private network addresses, which a proxy, a load balancer or a
+ * container network can show many callers as. A client over the limit is
+ * refused whichever key it carries, so a key from such an address is never
+ * counted: nobody beside a probe can stop it.
+ */
+describe("a key from a private network address is never counted", () => {
+  // An address a container network's gateway has, as the bundled Nginx sees it.
+  const SHARED_PRIVATE_ADDRESS: string = "172.18.0.1";
+
+  test.each([
+    ["a probe", ComponentKeyKind.Probe as const, PROBE_A],
+    ["a Runner or an AI agent", ComponentKeyKind.Agent as const, RUNNER_A],
+  ])(
+    "%s: wrong key after wrong key from one, and the component's right key from the same address is still let through; nothing is read or kept",
+    async (
+      _label: string,
+      kind: ComponentKeyKind.Probe | ComponentKeyKind.Agent,
+      componentId: string,
+    ) => {
+      const lookup: ExistenceCheck = exists(true);
+
+      for (
+        let index: number = 0;
+        index < WRONG_COMPONENT_KEYS_PER_ADDRESS * 3;
+        index++
+      ) {
+        expect(
+          await presentComponentKey({
+            from: SHARED_PRIVATE_ADDRESS,
+            kind: kind,
+            componentId: componentId,
+            key: `guess-${index}`,
+            isKeyRight: false,
+            existence: lookup,
+          }),
+        ).toBeNull();
+      }
+
+      expect(
+        await presentComponentKey({
+          from: SHARED_PRIVATE_ADDRESS,
+          kind: kind,
+          componentId: componentId,
+          key: "the-right-key",
+          isKeyRight: true,
+          existence: lookup,
+        }),
+      ).toBeNull();
+
+      expect(lookup.asked()).toBe(0);
+      expect(redis.sent).toHaveLength(0);
+      expect(redis.keys()).toStrictEqual([]);
+      expect(mockWarnings).toStrictEqual([]);
+    },
+  );
+
+  test.each([
+    ["REGISTER_PROBE_KEY", ComponentKeyKind.ProbeRegistration as const],
+    ["the shared Runner's key", ComponentKeyKind.SharedRunner as const],
+  ])(
+    "%s: wrong value after wrong value from one, and the right one from the same address still registers; nothing is kept",
+    async (
+      _label: string,
+      kind: ComponentKeyKind.ProbeRegistration | ComponentKeyKind.SharedRunner,
+    ) => {
+      for (
+        let index: number = 0;
+        index < WRONG_COMPONENT_KEYS_PER_ADDRESS * 3;
+        index++
+      ) {
+        expect(
+          await presentRegistrationKey({
+            from: SHARED_PRIVATE_ADDRESS,
+            kind: kind,
+            key: `guess-${index}`,
+            isKeyRight: false,
+          }),
+        ).toBeNull();
+      }
+
+      expect(
+        await presentRegistrationKey({
+          from: SHARED_PRIVATE_ADDRESS,
+          kind: kind,
+          key: "the-right-key",
+          isKeyRight: true,
+        }),
+      ).toBeNull();
+
+      expect(redis.sent).toHaveLength(0);
+      expect(redis.keys()).toStrictEqual([]);
+    },
+  );
+
+  test.each([
+    ["10.0.0.0/8", "10.0.0.1"],
+    ["10.0.0.0/8, its last address", "10.255.255.254"],
+    ["172.16.0.0/12", "172.16.0.1"],
+    ["172.16.0.0/12, its last address", "172.31.255.254"],
+    ["192.168.0.0/16", "192.168.1.20"],
+    ["loopback", "127.0.0.1"],
+    ["loopback, anywhere in 127.0.0.0/8", "127.10.0.3"],
+    ["IPv4 link-local", "169.254.12.7"],
+    ["IPv6 loopback", "::1"],
+    ["IPv6 unique local, fc00::/7", "fd12:3456:789a::5"],
+    ["IPv6 unique local, its fc half", "fc00::7"],
+    ["IPv6 link-local", "fe80::1"],
+    ["a private IPv4 address written as IPv6", "::ffff:10.1.2.3"],
+  ])("%s (%s): never counted", async (_label: string, address: string) => {
+    expect(WrongComponentKeyLimit.isPrivateNetworkAddress(address)).toBe(true);
+
+    for (
+      let index: number = 0;
+      index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      expect(
+        await presentComponentKey({
+          from: address,
+          key: `guess-${index}`,
+          isKeyRight: false,
+        }),
+      ).toBeNull();
+    }
+
+    expect(redis.sent).toHaveLength(0);
+  });
+
+  test.each([
+    ["just below 10.0.0.0/8", "9.255.255.255"],
+    ["just above 10.0.0.0/8", "11.0.0.1"],
+    ["just below 172.16.0.0/12", "172.15.255.254"],
+    ["just above 172.16.0.0/12", "172.32.0.1"],
+    ["just above 192.168.0.0/16", "192.169.0.1"],
+    ["shared address space, 100.64.0.0/10", "100.64.0.1"],
+    ["just above 169.254.0.0/16", "169.255.0.1"],
+    ["documentation, on the internet's side", "203.0.113.9"],
+    ["a public IPv4 address written as IPv6", "::ffff:203.0.113.9"],
+    ["a global IPv6 address", "2001:db8:1:2::9"],
+    ["IPv6 just below fc00::/7", "fbff::1"],
+    ["the retired IPv6 site-local prefix", "fec0::1"],
+    ["6to4, written over a private IPv4 address", "2002:a00:1::1"],
+    ["the translation prefix, over a private IPv4 address", "64:ff9b::a00:1"],
+  ])(
+    "%s (%s): counted like any client",
+    async (_label: string, address: string) => {
+      expect(WrongComponentKeyLimit.isPrivateNetworkAddress(address)).toBe(
+        false,
+      );
+
+      for (
+        let index: number = 0;
+        index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+        index++
+      ) {
+        expect(
+          await presentComponentKey({
+            from: address,
+            key: `guess-${index}`,
+            isKeyRight: false,
+          }),
+        ).toBeNull();
+      }
+
+      expect(
+        await presentComponentKey({
+          from: address,
+          key: "guess-eleven",
+          isKeyRight: false,
+        }),
+      ).not.toBeNull();
+    },
+  );
+
+  test("a client that cannot be placed is counted, as every such caller is one client", async () => {
+    expect(WrongComponentKeyLimit.isPrivateNetworkAddress("unknown")).toBe(
+      false,
+    );
+
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      expect(
+        await presentRegistrationKey({
+          from: "not-an-address",
+          key: `guess-${index}`,
+          isKeyRight: false,
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      await presentRegistrationKey({
+        from: "not-an-address",
+        key: "guess-eleven",
+        isKeyRight: false,
+      }),
+    ).not.toBeNull();
+    expect(redis.keysHolding(":unknown:").length).toBeGreaterThan(0);
+  });
+
+  test("a private address a caller writes into X-Forwarded-For itself changes nothing: the address the bundled Nginx wrote is counted", async () => {
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      expect(
+        await presentComponentKey({
+          from: `10.0.0.${index + 1}, ${CLIENT}`,
+          key: `guess-${index}`,
+          isKeyRight: false,
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      await presentComponentKey({
+        from: `127.0.0.1, ${CLIENT}`,
+        key: "the-right-key",
+        isKeyRight: true,
+      }),
+    ).toBeNull();
+    expect(
+      await presentComponentKey({
+        from: `192.168.0.1, ${CLIENT}`,
+        key: "guess-eleven",
+        isKeyRight: false,
+      }),
+    ).not.toBeNull();
+    expect(
+      await presentComponentKey({
+        from: `172.18.0.1, ${CLIENT}`,
+        key: "the-right-key",
+        isKeyRight: true,
+      }),
+    ).not.toBeNull();
+  });
+
+  test("a probe that reaches the app with no proxy in between, from a pod's address, is never counted", async () => {
+    const direct: ExpressRequest = {
+      headers: {},
+      socket: { remoteAddress: "::ffff:10.42.0.17" },
+      query: {},
+      params: {},
+      body: {},
+    } as unknown as ExpressRequest;
+
+    for (let index: number = 0; index < 30; index++) {
+      expect(
+        await WrongComponentKeyLimit.checkComponentKey({
+          req: direct,
+          kind: ComponentKeyKind.Probe,
+          componentId: PROBE_A,
+          presentedKey: `guess-${index}`,
+          isKeyRight: false,
+          componentExists: exists(true).check,
+        }),
+      ).toBeNull();
+    }
+
+    expect(redis.sent).toHaveLength(0);
+  });
+
+  test("an address with its link's zone, and text that is no address, are read safely", () => {
+    expect(WrongComponentKeyLimit.isPrivateNetworkAddress("fe80::1%eth0")).toBe(
+      true,
+    );
+    expect(WrongComponentKeyLimit.isPrivateNetworkAddress("")).toBe(false);
+    expect(WrongComponentKeyLimit.isPrivateNetworkAddress("10.0.0")).toBe(
+      false,
+    );
+    expect(
+      WrongComponentKeyLimit.isPrivateNetworkAddress("10.0.0.1.example.com"),
+    ).toBe(false);
+    expect(
+      WrongComponentKeyLimit.isPrivateNetworkAddress("10.0.0.1%eth0"),
+    ).toBe(false);
+    expect(
+      WrongComponentKeyLimit.isPrivateNetworkAddress(
+        `fe80::1${"%".repeat(100000)}`,
+      ),
+    ).toBe(true);
+    expect(
+      WrongComponentKeyLimit.isPrivateNetworkAddress(
+        undefined as unknown as string,
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("Valkey away, slow or failing: keys are compared as always", () => {
   test("not connected: nothing is counted, and no component is looked up", async () => {
     mockRedisState.connected = false;

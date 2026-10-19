@@ -371,6 +371,40 @@ describe("a component's wrong keys, on a real Valkey", () => {
     expect(await client.scard(sets[0]!)).toBe(1);
   });
 
+  test("keys from a private network address, where OneUptime's own probes call from, write nothing and are never refused", async () => {
+    const probe: string = componentOf(6);
+
+    for (const address of ["172.18.0.1", "10.42.0.17", "fd00:12:34::8"]) {
+      for (
+        let index: number = 0;
+        index < WRONG_COMPONENT_KEYS_PER_ADDRESS * 3;
+        index++
+      ) {
+        expect(
+          await present({
+            from: address,
+            component: probe,
+            key: `guess-${index}`,
+            isKeyRight: false,
+          }),
+        ).toBeNull();
+      }
+
+      expect(
+        await present({
+          from: address,
+          component: probe,
+          key: "right",
+          isKeyRight: true,
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      await client.keys(`probe-key:wrong-keys:{${probe}}:*`),
+    ).toStrictEqual([]);
+  });
+
   test("the right key writes nothing", async () => {
     const address: string = ipv4Of(33);
 

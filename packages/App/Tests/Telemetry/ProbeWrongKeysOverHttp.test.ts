@@ -21,6 +21,8 @@
  *   - REGISTER_PROBE_KEY: ten different wrong ones from a client, then its
  *     registrations are refused, the right key too; probes that all hold one
  *     old registration key are never refused for it;
+ *   - keys from a private network address, where OneUptime's own probes
+ *     call from, are never counted, so no caller beside them can stop them;
  *   - Valkey away, keys are compared as they always were.
  */
 import FakeCounterRedis from "Common/Tests/Server/TestingUtils/Redis/FakeCounterRedis";
@@ -544,5 +546,84 @@ describe("REGISTER_PROBE_KEY, over HTTP", () => {
     }
 
     expect(redis.sets.size).toBe(0);
+  });
+});
+
+/*
+ * OneUptime's own probes call from a private network address - the bundled
+ * Nginx sees the probes Docker Compose starts at their container network's
+ * gateway, and the Helm chart's call from their pods' addresses - which a
+ * proxy, a load balancer or a container network can show other callers as
+ * too. A client over the limit is refused whichever key it carries, so keys
+ * from such an address are never counted: no caller beside a probe can stop
+ * it.
+ */
+describe("a private network address, where OneUptime's own probes call from", () => {
+  test.each([
+    ["a container network's gateway", "172.18.0.1"],
+    ["a pod's address", "10.42.0.17"],
+    ["an IPv6 unique local address", "fd00:12:34::8"],
+  ])(
+    "%s: wrong probe and registration keys from it are answered as wrong and never counted; the probe that holds its key keeps working, and probes keep registering",
+    async (_label: string, address: string) => {
+      for (
+        let index: number = 0;
+        index < WRONG_COMPONENT_KEYS_PER_ADDRESS * 3;
+        index++
+      ) {
+        const wrongProbeKey: PostResult = await heartbeat(
+          address,
+          PROBE_ONE,
+          `guess-${index}`,
+        );
+
+        expect(wrongProbeKey.status).toBe(400);
+        expect(wrongProbeKey.body["message"]).toBe(
+          "Invalid Probe ID or Probe Key",
+        );
+        expect((await registerProbe(address, `guess-${index}`)).status).toBe(
+          400,
+        );
+      }
+
+      expect(
+        (await heartbeat(address, PROBE_ONE, PROBES[PROBE_ONE]!)).status,
+      ).toBe(200);
+      expect((await registerProbe(address, REGISTER_PROBE_KEY)).status).toBe(
+        200,
+      );
+      expect(running.created).toHaveLength(1);
+      expect(redis.sets.size).toBe(0);
+    },
+  );
+
+  test("a private address a caller writes in front of its own changes nothing: its own address is counted", async () => {
+    const forged: string = `172.18.0.1, ${CLIENT}`;
+
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      expect(
+        (await heartbeat(forged, PROBE_ONE, `guess-${index}`)).status,
+      ).toBe(400);
+    }
+
+    expect(
+      (await heartbeat(forged, PROBE_ONE, PROBES[PROBE_ONE]!)).status,
+    ).toBe(200);
+    expect((await heartbeat(forged, PROBE_ONE, "guess-eleven")).status).toBe(
+      429,
+    );
+    expect(
+      (await heartbeat(`10.0.0.9, ${CLIENT}`, PROBE_ONE, PROBES[PROBE_ONE]!))
+        .status,
+    ).toBe(429);
+
+    // The probe at its private address: answered.
+    expect(
+      (await heartbeat("172.18.0.1", PROBE_ONE, PROBES[PROBE_ONE]!)).status,
+    ).toBe(200);
   });
 });

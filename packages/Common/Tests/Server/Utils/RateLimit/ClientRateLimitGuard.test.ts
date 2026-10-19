@@ -110,6 +110,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "checks a dashboard's IP allowlist",
   "packages/Common/Server/Services/StatusPageService.ts":
     "checks a status page's IP allowlist",
+  "packages/Common/Server/Utils/RateLimit/WrongComponentKeyLimit.ts":
+    "leaves a key from a private network address uncounted; every other key is counted by WrongKeyLimit, through ClientRateLimitCounter",
   "packages/Probe/Services/SyslogReceiver.ts":
     "records the address a syslog message arrived from",
   "packages/Probe/Utils/ProbeApiDiagnostics.ts":

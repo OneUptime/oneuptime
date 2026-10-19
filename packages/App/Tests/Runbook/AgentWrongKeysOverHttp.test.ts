@@ -19,6 +19,8 @@
  *     it speaks: guessing on two routes buys no extra tries;
  *   - a Runner that keeps its old key, and ids nothing has, are never
  *     counted;
+ *   - keys from a private network address, where the shared Runner and the
+ *     agents beside OneUptime call from, are never counted;
  *   - the right key is never counted.
  */
 import FakeCounterRedis from "Common/Tests/Server/TestingUtils/Redis/FakeCounterRedis";
@@ -168,6 +170,14 @@ let server: http.Server;
 let origin: string;
 let redis: FakeCounterRedis;
 
+/*
+ * Runner ids whose every lookup fails, and ids whose lookup by id alone (the
+ * one that asks whether a Runner exists) fails, as a busy database fails it.
+ */
+const FAILING_RUNNER_LOOKUPS: Set<string> = new Set<string>();
+const FAILING_RUNNER_EXISTENCE_LOOKUPS: Set<string> = new Set<string>();
+let runnerLookups: number = 0;
+
 beforeAll(async () => {
   let runnerIngress: AnyModule;
   let aiAgentApi: AnyModule;
@@ -183,7 +193,26 @@ beforeAll(async () => {
     const aiRunService: AnyModule =
       require("Common/Server/Services/AIRunService").default;
 
-    runnerService.findOneBy = jest.fn(tableLookup(RUNNERS, ObjectIDClass));
+    const runnerTable: (findBy: unknown) => Promise<unknown> = tableLookup(
+      RUNNERS,
+      ObjectIDClass,
+    );
+
+    runnerService.findOneBy = jest.fn(async (findBy: unknown) => {
+      runnerLookups++;
+
+      const query: JSONObject = (findBy as { query: JSONObject }).query;
+      const id: string = String(query["_id"]).toLowerCase();
+
+      if (
+        FAILING_RUNNER_LOOKUPS.has(id) ||
+        (!("key" in query) && FAILING_RUNNER_EXISTENCE_LOOKUPS.has(id))
+      ) {
+        throw new Error("The database did not answer in time");
+      }
+
+      return await runnerTable(findBy);
+    });
     runnerService.heartbeat = jest.fn(async () => {});
     aiAgentService.findOneBy = jest.fn(tableLookup(AI_AGENTS, ObjectIDClass));
     aiAgentService.updateLastAlive = jest.fn(async () => {});
@@ -236,6 +265,12 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  /*
+   * A request the app never answered would keep the server, and this
+   * suite, open for good: end every connection first.
+   */
+  server.closeAllConnections();
+
   await new Promise<void>((resolve: () => void) => {
     server.close(() => {
       resolve();
@@ -247,6 +282,9 @@ beforeEach(() => {
   redis = new FakeCounterRedis();
   mockRedisState.client = redis;
   mockRedisState.connected = true;
+  FAILING_RUNNER_LOOKUPS.clear();
+  FAILING_RUNNER_EXISTENCE_LOOKUPS.clear();
+  runnerLookups = 0;
 });
 
 interface PostResult {
@@ -580,6 +618,155 @@ describe("what is never counted", () => {
 
     expect(
       (await runbookHeartbeat(CLIENT, RUNNER, RUNNERS[RUNNER]!.key)).status,
+    ).toBe(200);
+  });
+
+  /*
+   * The shared Runner and the agents beside OneUptime call from a private
+   * network address, which a proxy, a load balancer or a container network
+   * can show other callers as too: keys from it are never counted, so no
+   * caller beside them can stop them.
+   */
+  test.each([
+    ["a container network's gateway", "172.18.0.1"],
+    ["a pod's address", "10.42.0.9"],
+    ["the server itself", "127.0.0.1"],
+  ])(
+    "keys from %s, on all three routes: answered as wrong, never counted, and the Runner's and the shared Runner's right keys keep working there",
+    async (_label: string, address: string) => {
+      for (
+        let index: number = 0;
+        index < WRONG_COMPONENT_KEYS_PER_ADDRESS * 3;
+        index++
+      ) {
+        expect(
+          (await runbookHeartbeat(address, RUNNER, `guess-${index}`)).status,
+        ).toBe(400);
+        expect(
+          (await codeFixCount(address, RUNNER, `guess-code-fix-${index}`))
+            .status,
+        ).toBe(400);
+        expect(
+          (await agentAlive(address, GLOBAL_AGENT, `guess-${index}`)).status,
+        ).toBe(400);
+        expect(
+          (await codeFixCount(address, GLOBAL_AGENT, `guess-${index}`)).status,
+        ).toBe(400);
+      }
+
+      expect(
+        (await runbookHeartbeat(address, RUNNER, RUNNERS[RUNNER]!.key)).status,
+      ).toBe(200);
+      expect(
+        (await codeFixCount(address, RUNNER, RUNNERS[RUNNER]!.key)).status,
+      ).toBe(200);
+      expect(
+        (await agentAlive(address, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key))
+          .status,
+      ).toBe(200);
+      expect(
+        (
+          await codeFixCount(
+            address,
+            GLOBAL_AGENT,
+            AI_AGENTS[GLOBAL_AGENT]!.key,
+          )
+        ).status,
+      ).toBe(200);
+      expect(redis.sets.size).toBe(0);
+    },
+  );
+});
+
+// A request's answer, or a failure when none comes within a few seconds.
+async function answeredWithin(
+  pending: Promise<PostResult>,
+  seconds: number,
+): Promise<PostResult> {
+  let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+
+  const timeout: Promise<never> = new Promise<never>(
+    (_resolve: (value: never) => void, reject: (err: Error) => void) => {
+      timer = setTimeout(() => {
+        reject(new Error(`No answer within ${seconds} seconds`));
+      }, seconds * 1000);
+    },
+  );
+
+  try {
+    return await Promise.race([pending, timeout]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
+describe("every runbook protocol request is answered", () => {
+  test("an id that is no id is refused at once, and the Runner table is never read", async () => {
+    for (const id of [
+      "not-an-id",
+      "1",
+      `${RUNNER}x`,
+      `{${RUNNER}`,
+      "x".repeat(5000),
+    ]) {
+      const result: PostResult = await answeredWithin(
+        runbookHeartbeat(CLIENT, id, "a-key-of-some-runner"),
+        5,
+      );
+
+      expect(result.status).toBe(400);
+      expect(result.body["message"]).toBe("agentId is not a valid identifier");
+    }
+
+    expect(runnerLookups).toBe(0);
+    expect(redis.sets.size).toBe(0);
+  });
+
+  test("every spelling Postgres reads as the Runner's id still authenticates it", async () => {
+    for (const id of [
+      RUNNER.toUpperCase(),
+      `{${RUNNER}}`,
+      RUNNER.split("-").join(""),
+    ]) {
+      expect(
+        (await runbookHeartbeat(CLIENT, id, RUNNERS[RUNNER]!.key)).status,
+      ).toBe(200);
+    }
+  });
+
+  test("a lookup that fails is answered through the app's error handler, never left open", async () => {
+    FAILING_RUNNER_LOOKUPS.add(RUNNER);
+
+    const result: PostResult = await answeredWithin(
+      runbookHeartbeat(CLIENT, RUNNER, RUNNERS[RUNNER]!.key),
+      5,
+    );
+
+    expect(result.status).toBe(500);
+    expect(result.body["message"]).toBe("The database did not answer in time");
+  });
+
+  test("a wrong key whose Runner cannot be looked up just then is answered too, and not counted", async () => {
+    FAILING_RUNNER_EXISTENCE_LOOKUPS.add(RUNNER);
+
+    const result: PostResult = await answeredWithin(
+      runbookHeartbeat(CLIENT, RUNNER, "a-wrong-key"),
+      5,
+    );
+
+    expect(result.status).toBe(500);
+    expect(redis.sets.size).toBe(0);
+
+    // The Runner itself, with its key: answered as ever.
+    expect(
+      (
+        await answeredWithin(
+          runbookHeartbeat(CLIENT, RUNNER, RUNNERS[RUNNER]!.key),
+          5,
+        )
+      ).status,
     ).toBe(200);
   });
 });
