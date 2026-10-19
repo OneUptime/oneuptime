@@ -30,8 +30,13 @@ BINARIES=(
 ARCHES=("amd64" "arm64")
 
 # The Windows Installer platform of each MSI. wixl cannot build an ARM64
-# package, so the arm64 MSI is an x86 one, which every ARM64 Windows installs.
-WIXL_ARCHES=("x64" "x86")
+# package, so the arm64 MSI is an x64 one carrying the arm64 program, which
+# Windows 11 on Arm installs. Not x86: Windows Installer maps a 32-bit
+# package's ProgramFiles64Folder to the 32-bit Program Files, so the native
+# ARM64 program missed C:\Program Files\OneUptimeInfrastructureAgent, where
+# the docs say it is (Windows 10 on Arm, which has no x64 emulation, has been
+# out of support since October 2025).
+WIXL_ARCHES=("x64" "x64")
 
 # Ensure output directory exists
 mkdir -p "$OUTPUT_DIR"
