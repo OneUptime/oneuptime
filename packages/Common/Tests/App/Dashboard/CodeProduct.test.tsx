@@ -13,12 +13,19 @@ import React from "react";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import CodeSideMenu from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeSideMenu";
 import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
+import CodeRepositorySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/SideMenu";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
   PROJECT_ID,
+  activeLinkTitles,
   goTo,
   linksIn,
   renderMenu,
@@ -28,41 +35,29 @@ import {
 } from "./SideMenuHarness";
 
 /*
- * Tasks and Code Repositories are two route trees (/ai/agents and
- * /code-repository) but one product: every task runs in a connected
- * repository, and a repository is only there so tasks have somewhere to open
- * pull requests. The Products menu therefore carries a single Tasks item in
- * its Code section. That only holds together if, wherever the user lands,
+ * Code is one product: the repositories first (/code), a repository's page
+ * holding its tasks and the box to ask AI (/code/repositories/:id), and a
+ * task's page its conversation (/code/tasks/:id). That only holds together
+ * if, wherever someone lands,
  *
- *  - the side menu shows both pages, and
- *  - the navbar still names Tasks as the product they are in.
+ *  - the side menu shows where they are - the repositories, or the
+ *    repository's own pages - and links into the open project, and
+ *  - the navbar still names Code as the product they are in, a task's
+ *    conversation (which has no side menu) included.
  *
  * Both are rendered here from the real components and route table.
  */
 
 const ORIGINAL_WIDTH: number = window.innerWidth;
 const REPOSITORY_ID: string = "3c9d2f1e-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
+const TASK_ID: string = "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
 
 const translation: i18n = createInstance();
 
-function findAnchor(title: string): HTMLAnchorElement {
-  const anchor: HTMLAnchorElement | undefined = Array.from(
-    document.querySelectorAll("a"),
-  ).find((candidate: Element): boolean => {
-    return (
-      candidate.querySelector("span.truncate")?.textContent?.trim() === title
-    );
-  }) as HTMLAnchorElement | undefined;
-
-  if (!anchor) {
-    throw new Error(`No side-menu link titled "${title}" was rendered.`);
-  }
-
-  return anchor;
-}
-
-function isActive(title: string): boolean {
-  return findAnchor(title).classList.contains("text-indigo-700");
+function repositoryRoute(pageMap: PageMap): string {
+  return RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
+    modelId: new ObjectID(REPOSITORY_ID),
+  }).toString();
 }
 
 beforeAll(async () => {
@@ -88,62 +83,92 @@ afterEach(() => {
   setViewportWidth(ORIGINAL_WIDTH);
 });
 
-describe("the Code side menu", () => {
-  test("lists Tasks and Code Repositories under one Code section", async () => {
-    goTo(`/dashboard/${PROJECT_ID}/ai/agents`);
+describe("Code's side menu", () => {
+  test("lists the repositories under Code, with the Developer pages", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/code`);
     await renderMenu(<CodeSideMenu />);
 
     expect(sectionTitlesInOrder()).toEqual(["Code", "Developer"]);
+    expect(linksIn("Code")).toEqual([
+      { title: "Repositories", href: routeFor(PageMap.CODE) },
+    ]);
     expect(
       linksIn("Developer").map((link: { title: string }): string => {
         return link.title;
       }),
     ).toEqual(["Terraform", "API", "AI Assistants"]);
-    expect(linksIn("Code")).toEqual([
-      { title: "Tasks", href: routeFor(PageMap.AI_AGENT_TASKS) },
+  });
+
+  test("links into the current project, and marks the repositories as the page you are on", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/code`);
+    await renderMenu(<CodeSideMenu />);
+
+    for (const link of linksIn("Code")) {
+      expect(link.href).toBe(`/dashboard/${PROJECT_ID}/code`);
+      expect(link.href).not.toContain(":projectId");
+    }
+    expect(activeLinkTitles()).toEqual(["Repositories"]);
+  });
+});
+
+describe("a repository's side menu", () => {
+  test("puts its tasks first, then its settings, its Developer pages and, apart, deleting it", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`);
+    await renderMenu(
+      <CodeRepositorySideMenu modelId={new ObjectID(REPOSITORY_ID)} />,
+    );
+
+    expect(sectionTitlesInOrder()).toEqual([
+      "Repository",
+      "Developer",
+      "Advanced",
+    ]);
+    expect(linksIn("Repository")).toEqual([
+      { title: "Tasks", href: repositoryRoute(PageMap.CODE_REPOSITORY_VIEW) },
       {
-        title: "Code Repositories",
-        href: routeFor(PageMap.CODE_REPOSITORY),
+        title: "Settings",
+        href: repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_SETTINGS),
+      },
+    ]);
+    expect(linksIn("Advanced")).toEqual([
+      {
+        title: "Delete Repository",
+        href: repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_DELETE),
       },
     ]);
   });
 
-  test("links into the current project", async () => {
-    goTo(`/dashboard/${PROJECT_ID}/code-repository`);
-    await renderMenu(<CodeSideMenu />);
-
-    for (const link of linksIn("Code")) {
-      expect(link.href).toContain(PROJECT_ID);
-      expect(link.href).not.toContain(":projectId");
-    }
+  test("its pages live under /code/repositories/:id", () => {
+    expect(repositoryRoute(PageMap.CODE_REPOSITORY_VIEW)).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`,
+    );
+    expect(repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_SETTINGS)).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`,
+    );
+    expect(repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_DELETE)).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/delete`,
+    );
   });
 
   test.each([
-    ["the Tasks list", "ai/agents", "Tasks", "Code Repositories"],
-    [
-      "the Code Repositories list",
-      "code-repository",
-      "Code Repositories",
-      "Tasks",
-    ],
+    ["its tasks", "", "Tasks"],
+    ["its settings", "/settings", "Settings"],
   ])(
-    "highlights the page the user is on (%s)",
-    async (
-      _page: string,
-      path: string,
-      activeTitle: string,
-      inactiveTitle: string,
-    ) => {
-      goTo(`/dashboard/${PROJECT_ID}/${path}`);
-      await renderMenu(<CodeSideMenu />);
+    "marks the page you are on (%s)",
+    async (_page: string, suffix: string, active: string) => {
+      goTo(
+        `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}${suffix}`,
+      );
+      await renderMenu(
+        <CodeRepositorySideMenu modelId={new ObjectID(REPOSITORY_ID)} />,
+      );
 
-      expect(isActive(activeTitle)).toBe(true);
-      expect(isActive(inactiveTitle)).toBe(false);
+      expect(activeLinkTitles()).toEqual([active]);
     },
   );
 });
 
-describe("the navbar names Tasks as the product on every Code page", () => {
+describe("the navbar names Code as the product on every Code page", () => {
   function renderNavbar(): void {
     render(
       <I18nextProvider i18n={translation}>
@@ -153,26 +178,28 @@ describe("the navbar names Tasks as the product on every Code page", () => {
   }
 
   test.each([
-    ["the Tasks list", "ai/agents"],
-    ["the Code Repositories list", "code-repository"],
-    ["a repository's settings", `code-repository/${REPOSITORY_ID}/settings`],
+    ["the repositories", "code"],
+    ["a repository's tasks", `code/repositories/${REPOSITORY_ID}`],
+    ["a repository's settings", `code/repositories/${REPOSITORY_ID}/settings`],
+    ["a task's conversation", `code/tasks/${TASK_ID}`],
+    ["a task's log", `code/tasks/${TASK_ID}/log`],
   ])("%s", (_page: string, path: string) => {
     goTo(`/dashboard/${PROJECT_ID}/${path}`);
     renderNavbar();
 
-    expect(screen.getByRole("button", { name: "Tasks" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Code" })).toBeVisible();
     expect(
       screen.queryByRole("button", { name: "Products" }),
     ).not.toBeInTheDocument();
   });
 
-  test("on a phone, the Code Repositories page is still in Tasks", () => {
+  test("on a phone, a task's conversation is still in Code", () => {
     setViewportWidth(MOBILE_WIDTH);
-    goTo(`/dashboard/${PROJECT_ID}/code-repository`);
+    goTo(`/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`);
     renderNavbar();
 
     expect(screen.getByTestId("mobile-nav-toggle")).toBeInTheDocument();
-    expect(screen.getByText("Tasks")).toBeInTheDocument();
+    expect(screen.getByText("Code")).toBeInTheDocument();
     expect(screen.queryByText("Home")).not.toBeInTheDocument();
   });
 
@@ -187,7 +214,7 @@ describe("the navbar names Tasks as the product on every Code page", () => {
 
       expect(screen.getByRole("button", { name: product })).toBeVisible();
       expect(
-        screen.queryByRole("button", { name: "Tasks" }),
+        screen.queryByRole("button", { name: "Code" }),
       ).not.toBeInTheDocument();
     },
   );

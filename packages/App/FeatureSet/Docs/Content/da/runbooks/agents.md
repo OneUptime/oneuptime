@@ -96,7 +96,7 @@ Gå til **Runbooks → Runbook-agenter**, og opret en ny agent. Klik på **Opret
 | **Beskrivelse** | **Runner** | Valgfri. En sætning om, hvad denne vært kan nå. |
 | **Etiketter** | **Runner** (under **Flere felter**) | Valgfri. |
 | **Kører runbooks** | **Funktioner** | Slået til som standard. Lader denne Runner overtage runbook-trin. |
-| **Kører AI-koderettelser** | **Funktioner** | Slået fra som standard. Lader den åbne pull requests med AI-koderettelser; se [Fix Tasks](/docs/ai/ai-agent). |
+| **Kører AI-koderettelser** | **Funktioner** | Slået fra som standard. Lader den åbne pull requests med AI-koderettelser; se [Kode](/docs/ai/ai-agent). |
 | **Kører AI-afhjælpningskommandoer** | **Funktioner** | Slået fra som standard. Lader automatisk AI-afhjælpning køre politikkontrollerede kommandoer på den. At slå den til for en Runner, der har SSH-loginoplysninger, kræver tilladelse til at læse runbook-loginoplysninger; se [Runners, der kører OneUptime AI's kommandoer](/docs/runbooks/credentials#runners-der-kører-oneuptime-ais-kommandoer). |
 
 En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes.

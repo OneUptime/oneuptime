@@ -14,31 +14,6 @@ export interface BreadcrumbTrailFixture {
 
 const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents",
-    titles: ["Project", "AI Tasks"],
-  },
-  {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents/:id",
-    titles: ["Project", "AI Tasks", "View Task"],
-  },
-  {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents/:id/delete",
-    titles: ["Project", "AI Tasks", "View Task", "Delete Task"],
-  },
-  {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents/:id/logs",
-    titles: ["Project", "AI Tasks", "View Task", "Logs"],
-  },
-  {
-    getter: "getAIAgentTasksBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/ai/agents/:id/pull-requests",
-    titles: ["Project", "AI Tasks", "View Task", "Pull Requests"],
-  },
-  {
     getter: "getAIInsightsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/ai/insights",
     titles: ["Project", "Insights"],
@@ -412,29 +387,34 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: ["Project", "Cloud", "View Resource", "Traces"],
   },
   {
-    getter: "getCodeRepositoryBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/code-repository",
-    titles: ["Project", "Code Repositories"],
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code",
+    titles: ["Project", "Code"],
   },
   {
-    getter: "getCodeRepositoryBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/code-repository/:id",
-    titles: ["Project", "Code Repositories", "View Repository"],
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/repositories/:id",
+    titles: ["Project", "Code", "Repository"],
   },
   {
-    getter: "getCodeRepositoryBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/code-repository/:id/delete",
-    titles: [
-      "Project",
-      "Code Repositories",
-      "View Repository",
-      "Delete Repository",
-    ],
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/repositories/:id/delete",
+    titles: ["Project", "Code", "Repository", "Delete Repository"],
   },
   {
-    getter: "getCodeRepositoryBreadcrumbs",
-    pagePattern: "/dashboard/:projectId/code-repository/:id/settings",
-    titles: ["Project", "Code Repositories", "View Repository", "Settings"],
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/repositories/:id/settings",
+    titles: ["Project", "Code", "Repository", "Settings"],
+  },
+  {
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/tasks/:id",
+    titles: ["Project", "Code", "Task"],
+  },
+  {
+    getter: "getCodeBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/code/tasks/:id/log",
+    titles: ["Project", "Code", "Task", "Log"],
   },
   {
     getter: "getDashboardBreadcrumbs",

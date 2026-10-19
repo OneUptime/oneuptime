@@ -22,7 +22,7 @@
  *
  * /dashboard/connect-return is listed although it, too, hands the user into a
  * project: it carries them to a particular page of it - the Slack, Microsoft
- * Teams or Code Repositories page a connection came back to - and does so
+ * Teams or Code page a connection came back to - and does so
  * itself, once a project is selected. Sending them to the project's home
  * instead would lose where they were going and what happened.
  */

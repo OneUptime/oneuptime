@@ -628,15 +628,13 @@ export const OTHER_ONE_PLACES: Array<OnePlace> = [
     file: `${PAGES}/Service/View/Settings.tsx`,
   },
   {
+    /*
+     * A repository's page in Code is its tasks and the box to ask AI; its
+     * Settings page holds its details and what AI does in it.
+     */
     model: "CodeRepository",
-    keys: ["mainBranchName"],
-    file: `${PAGES}/CodeRepository/View/Settings.tsx`,
-  },
-  {
-    // A repository's page is its details; its Settings are its AI fix runs'.
-    model: "CodeRepository",
-    keys: ["name", "description", "labels"],
-    file: `${PAGES}/CodeRepository/View/Index.tsx`,
+    keys: ["name", "description", "labels", "mainBranchName"],
+    file: `${PAGES}/Code/Repository/Settings.tsx`,
   },
   {
     // The Runner Details card on a Runner's page; the list only creates.

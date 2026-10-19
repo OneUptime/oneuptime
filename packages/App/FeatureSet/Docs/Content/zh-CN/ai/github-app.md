@@ -29,12 +29,12 @@ flowchart TB
     R --> O["同一条评论，<br/>改写为结果"]
 ```
 
-它与 [修复任务](/docs/ai/ai-agent) 使用同一个代理和同一个 Runner，预算也相同；只有触发方式不同。
+它与 [代码](/docs/ai/ai-agent) 使用同一个代理和同一个 Runner，预算也相同；只有触发方式不同。
 
 ## 开始之前
 
-- 存储库必须通过 GitHub App **连接到一个 OneUptime 项目**：在 **任务 → 代码存储库** 下连接它（打开 **产品 → 代码 → 任务**）。自托管实例需要先有自己的 GitHub App：请参阅 [GitHub 集成](/docs/self-hosted/github-integration)。如果该应用已经安装在 GitHub 账号上，请在那里点击 **连接现有安装**，而不是再次安装。
-- 必须有一个开启了 **执行 AI 代码修复** 的 Runner 在线：就是执行 [修复任务](/docs/ai/ai-agent) 的那个 Runner。没有它，命令会被接受，然后在 30 分钟后失败，并提示没有代理领取它们。
+- 存储库必须通过 GitHub App **连接到一个 OneUptime 项目**：在 **产品 → 代码** 中连接它。自托管实例需要先有自己的 GitHub App：请参阅 [GitHub 集成](/docs/self-hosted/github-integration)。如果该应用已经安装在 GitHub 账号上，请在那里点击 **连接现有安装**，而不是再次安装。
+- 必须有一个开启了 **执行 AI 代码修复** 的 Runner 在线：就是执行 [代码](/docs/ai/ai-agent) 中任务的那个 Runner。没有它，命令会被接受，然后在 30 分钟后失败，并提示没有代理领取它们。
 - GitHub App 需要 **Read & write** 级别的 **Issues** 权限，并且必须订阅 [需要订阅的事件](#需要订阅的事件) 中列出的 webhook 事件。
 
 ## 命令
@@ -106,7 +106,7 @@ should cover the 429 case
 
 每条启动工作的命令都是一次完整的代理运行：一次克隆，最多 40 次 LLM 调用和 100,000 个输出令牌，以及在你设置了的情况下存储库的构建和测试命令。
 
-GitHub 命令是事件和警报之外的 AI 工作，因此不适用每日修复任务限制；当项目设置了自己的每日 AI 限制时，这些限制适用。唯一的其他限制，就是已经约束 [修复任务](/docs/ai/ai-agent) 的那一个：
+GitHub 命令是事件和警报之外的 AI 工作，因此不适用每日修复任务限制；当项目设置了自己的每日 AI 限制时，这些限制适用。唯一的其他限制，就是已经约束 [代码](/docs/ai/ai-agent) 中任务的那一个：
 
 - **未关闭拉取请求的上限**（存储库 **设置** 页面上的 **Max Open Fix Pull Requests**）。在你选择 **设置上限** 之前，**AI 修复拉取请求** 为 **无限制**；选择 **无** 会阻止该存储库上的 AI 修复拉取请求。审查和修订不受此限制：两者都不会向你的审查队列添加拉取请求。
 
@@ -148,7 +148,7 @@ issue 文本、拉取请求描述、diff 和评论都会成为代理提示的一
 ## 故障排除
 
 :::details 提及它时什么都没发生
-先检查 handle：它是应用的 slug，而不是显示名称。然后检查存储库是否已连接到项目（**任务 → 代码存储库**）、**Respond to GitHub Commands** 是否已开启，以及你的 GitHub App 是否已订阅上述事件。
+先检查 handle：它是应用的 slug，而不是显示名称。然后检查存储库是否已连接到项目（在 **产品 → 代码** 中）、**Respond to GitHub Commands** 是否已开启，以及你的 GitHub App 是否已订阅上述事件。
 :::
 
 :::details 它回复 😕 反应却什么都不说
@@ -170,7 +170,7 @@ issue 文本、拉取请求描述、diff 和评论都会成为代理提示的一
 ## 后续步骤
 
 :::cards
-- [修复任务](/docs/ai/ai-agent): 同一个代理，从异常、追踪或调查启动。
+- [代码](/docs/ai/ai-agent): 同一个代理，在存储库中提出请求，或从异常、追踪或调查启动。
 - [GitHub 集成](/docs/self-hosted/github-integration): 在自托管实例上创建并配置 GitHub App。
 - [Runbook 代理](/docs/runbooks/agents): 执行每次运行的 worker。
 :::

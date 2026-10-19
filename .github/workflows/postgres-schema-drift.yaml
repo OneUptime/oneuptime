@@ -411,6 +411,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IoTDeviceLatestMetricsPostgres.test.ts --forceExit
 
+      # Code: the backfill that puts existing code-fix runs on their
+      # repository (never across projects, never failing on bad JSON) and
+      # the grouped reads behind each repository's card - a task waits for
+      # its person only when its LATEST turn asked. Clones the migrated
+      # AIRun, CodeRepository and AIAgentTaskPullRequest into an isolated
+      # schema.
+      - name: Test Code's backfill and repository stats against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CODE_TASK_TESTS: "true"
+          CODE_TASK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CODE_TASK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CODE_TASK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CodeTaskPostgres.test.ts --forceExit
+
       # Clones the migrated NetworkDevice, CloudResource and InventoryItem
       # tables into an isolated schema and runs the inventory mirror's
       # reconcile against them. jsonb reorders an attribute bag's keys, so

@@ -96,7 +96,7 @@ Allez dans **Runbooks → Agents de runbook** et créez un nouvel agent. Cliquez
 | **Description** | **Agent Runbook** | Facultatif. Une phrase sur ce que cet hôte peut joindre. |
 | **Étiquettes** | **Agent Runbook** (sous **Plus de champs**) | Facultatif. |
 | **Exécute les runbooks** | **Capacités** | Activé par défaut. Permet à cet agent de prendre des étapes de runbook. |
-| **Exécute les corrections de code IA** | **Capacités** | Désactivé par défaut. Lui permet d'ouvrir des pull requests de correction de code par IA ; voir [Fix Tasks](/docs/ai/ai-agent). |
+| **Exécute les corrections de code IA** | **Capacités** | Désactivé par défaut. Lui permet d'ouvrir des pull requests de correction de code par IA ; voir [Code](/docs/ai/ai-agent). |
 | **Exécute les commandes de remédiation IA** | **Capacités** | Désactivé par défaut. Permet à la remédiation automatique par IA d'y exécuter des commandes vérifiées par une politique. L'activer pour un agent qui détient des identifiants SSH demande l'autorisation de lire les identifiants de runbook ; voir [Agents Runbook qui exécutent les commandes d'OneUptime AI](/docs/runbooks/credentials#agents-runbook-qui-exécutent-les-commandes-doneuptime-ai). |
 
 Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer.

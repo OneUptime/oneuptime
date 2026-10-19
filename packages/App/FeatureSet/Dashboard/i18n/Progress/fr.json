@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 30977,
-    "untranslated": 9685
+    "keys": 31144,
+    "untranslated": 9673
   },
   "sameAsEnglish": [
     " incidents",
@@ -346,6 +346,7 @@
     "Standard",
     "Threads",
     "Trace",
+    "Trace {{traceId}}",
     "Traces",
     "Transport",
     "Tunnel",

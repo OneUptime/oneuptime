@@ -60,15 +60,17 @@ export interface OpenedPullRequest {
  * so a GitHub outage costs a minute rather than the reply.
  */
 export default class GitHubRunReply {
+  // The task's conversation in Code.
   public static buildRunUrl(data: {
     projectId: ObjectID;
     aiRunId: ObjectID;
   }): string {
-    return `${DashboardClientUrl.toString()}/${data.projectId.toString()}/ai/agents/${data.aiRunId.toString()}`;
+    return `${DashboardClientUrl.toString()}/${data.projectId.toString()}/code/tasks/${data.aiRunId.toString()}`;
   }
 
+  // Code, the project's repositories and their tasks.
   public static buildProjectRunsUrl(projectId: ObjectID): string {
-    return `${DashboardClientUrl.toString()}/${projectId.toString()}/ai/agents`;
+    return `${DashboardClientUrl.toString()}/${projectId.toString()}/code`;
   }
 
   /*

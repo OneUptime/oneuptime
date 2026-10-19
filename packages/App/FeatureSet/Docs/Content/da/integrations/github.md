@@ -30,11 +30,11 @@ De to er adskilte, og du kan bruge den ene eller begge. GitHub App arbejder i de
 
 ## Forbind dine repositorier
 
-Åbn **Produkter → Kode → Opgaver**, derefter **Koderepositorier**, og klik på **Connect with GitHub App**. GitHub spørger, hvor appen skal installeres, og hvilke repositorier den må bruge. Hvert repositorie i installationen importeres og holdes ajour, når du føjer repositorier til installationen eller fjerner dem.
+Åbn **Produkter → Kode**, og klik på **Forbind GitHub**. GitHub spørger, hvor appen skal installeres, og hvilke repositorier den må bruge. Hvert repositorie i installationen importeres og holdes ajour, når du føjer repositorier til installationen eller fjerner dem.
 
-Hvis appen allerede er installeret på kontoen, til et andet projekt eller direkte fra GitHub, så klik på **Forbind en eksisterende installation** under kortet **Connect with GitHub App** i stedet for at installere den igen. Det kræver en GitHub-konto, der administrerer installationen: ejeren af en personlig konto, eller en person med admin-adgang til hvert repositorie, installationen har adgang til, sådan som en ejer af organisationen har.
+Hvis appen allerede er installeret på kontoen, til et andet projekt eller direkte fra GitHub, så klik på **Forbind en eksisterende installation** under **Forbind GitHub** i stedet for at installere den igen. Det kræver en GitHub-konto, der administrerer installationen: ejeren af en personlig konto, eller en person med admin-adgang til hvert repositorie, installationen har adgang til, sådan som en ejer af organisationen har.
 
-En selvhostet instans skal først have sin egen GitHub App: [GitHub-integration](/docs/self-hosted/github-integration) viser, hvordan du opretter den. Derefter åbner [Rettelsesopgaver](/docs/ai/ai-agent) pull requests i dine repositorier, og siden [GitHub App](/docs/ai/github-app) viser, hvad appen gør, når du nævner den i et issue eller en pull request.
+En selvhostet instans skal først have sin egen GitHub App: [GitHub-integration](/docs/self-hosted/github-integration) viser, hvordan du opretter den. Derefter åbner AI pull requests i dine repositorier fra [Kode](/docs/ai/ai-agent), og siden [GitHub App](/docs/ai/github-app) viser, hvad appen gør, når du nævner den i et issue eller en pull request.
 
 ## Før du går i gang
 

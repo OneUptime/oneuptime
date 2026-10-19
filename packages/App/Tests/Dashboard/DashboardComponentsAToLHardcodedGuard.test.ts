@@ -26,6 +26,14 @@ const ALLOWED: Record<string, { count: number; why: string }> = {
     count: 2,
     why: '"{n} ms" span durations (unit)',
   },
+  "Components/Code/CodeContextModal.tsx": {
+    count: 2,
+    why: "placeholders that are code: an example path in a repository (src/api/users.ts) and an example trace id",
+  },
+  "Components/Code/CodeTaskTurn.tsx": {
+    count: 2,
+    why: '"OneUptime" and "OneUptime AI" (product names): who started a task, and who takes a turn',
+  },
   "Components/CustomSMTP/CustomSMTPTable.tsx": {
     count: 1,
     why: '"Microsoft Graph" (product name): the server a Graph config sends through',

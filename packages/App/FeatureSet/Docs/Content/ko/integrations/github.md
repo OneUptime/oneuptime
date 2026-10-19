@@ -30,11 +30,11 @@ flowchart TB
 
 ## 저장소 연결
 
-**제품 → 코드 → 작업**을 연 다음 **코드 저장소**를 열고 **Connect with GitHub App**을 클릭합니다. GitHub가 앱을 어디에 설치할지, 어떤 저장소를 사용할 수 있는지 묻습니다. 설치에 포함된 모든 저장소를 가져오며, 설치에 저장소를 추가하거나 빼면 그에 맞게 갱신됩니다.
+**제품 → 코드**를 열고 **GitHub 연결**을 클릭합니다. GitHub가 앱을 어디에 설치할지, 어떤 저장소를 사용할 수 있는지 묻습니다. 설치에 포함된 모든 저장소를 가져오며, 설치에 저장소를 추가하거나 빼면 그에 맞게 갱신됩니다.
 
-계정에 앱이 이미 설치되어 있다면(다른 프로젝트용으로 설치했거나 GitHub에서 바로 설치한 경우) 다시 설치하는 대신 **Connect with GitHub App** 카드 아래의 **기존 설치 연결**을 클릭합니다. 이때는 그 설치를 관리하는 GitHub 계정이 필요합니다. 개인 계정이라면 그 소유자, 조직이라면 설치가 접근할 수 있는 모든 저장소에 admin 권한이 있는 사람입니다(조직 소유자는 이 권한이 있습니다).
+계정에 앱이 이미 설치되어 있다면(다른 프로젝트용으로 설치했거나 GitHub에서 바로 설치한 경우) 다시 설치하는 대신 **GitHub 연결** 아래의 **기존 설치 연결**을 클릭합니다. 이때는 그 설치를 관리하는 GitHub 계정이 필요합니다. 개인 계정이라면 그 소유자, 조직이라면 설치가 접근할 수 있는 모든 저장소에 admin 권한이 있는 사람입니다(조직 소유자는 이 권한이 있습니다).
 
-자체 호스팅 인스턴스에는 먼저 자체 GitHub App이 필요합니다. 만드는 방법은 [GitHub 통합](/docs/self-hosted/github-integration)에서 설명합니다. 그 뒤에는 [수정 작업](/docs/ai/ai-agent)이 저장소에 pull request를 열고, issue나 pull request에서 앱을 멘션할 때 앱이 하는 일은 [GitHub App](/docs/ai/github-app) 페이지에서 설명합니다.
+자체 호스팅 인스턴스에는 먼저 자체 GitHub App이 필요합니다. 만드는 방법은 [GitHub 통합](/docs/self-hosted/github-integration)에서 설명합니다. 그 뒤에는 AI가 [코드](/docs/ai/ai-agent)에서 저장소에 pull request를 열고, issue나 pull request에서 앱을 멘션할 때 앱이 하는 일은 [GitHub App](/docs/ai/github-app) 페이지에서 설명합니다.
 
 ## 사전 요건
 

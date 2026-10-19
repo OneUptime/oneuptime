@@ -11,7 +11,7 @@ import {
   ASK_AI,
   AiDocsPageEntry,
   CREATE_BUTTONS,
-  FIX_TASKS,
+  CODE_PAGE,
   GITHUB_APP,
   INFRASTRUCTURE_AI_AGENTS,
   KEPT_AS_WRITTEN,
@@ -49,7 +49,12 @@ import {
   tables,
   unbalancedLines,
 } from "./DocsPageShape";
-import { drawnPath, drawnPathSegment } from "./DocsProductsMenu";
+import {
+  drawnMenuGroup,
+  drawnMenuItem,
+  drawnPath,
+  drawnPathSegment,
+} from "./DocsProductsMenu";
 import {
   CARD_LINE,
   anchorProblems,
@@ -134,7 +139,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [ASK_AI]: 23,
   [AI_SRE]: 24,
   [INFRASTRUCTURE_AI_AGENTS]: 26,
-  [FIX_TASKS]: 25,
+  [CODE_PAGE]: 25,
   [GITHUB_APP]: 25,
   [LLM_PROVIDERS]: 25,
   [MCP_SERVER]: 24,
@@ -1048,15 +1053,27 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnPath("en", ["Products", "AI", "Chat"])).toBe(
       "**Products → AI → Chat**",
     );
-    expect(drawnPath("en", ["Products", "Code", "Tasks"])).toBe(
-      "**Products → Code → Tasks**",
-    );
+    expect(drawnPath("en", ["Products", "Code"])).toBe("**Products → Code**");
     // The German menu reads "Chat" where no flat label of it exists.
     expect(drawnPathSegment("de", ["Products", "AI", "Chat"], 2)).toBe("Chat");
     // A Persian path is a bold span per segment.
-    expect(drawnPath("fa", ["Products", "Code", "Tasks"])).toBe(
-      `**${drawnPathSegment("fa", ["Products", "Code", "Tasks"], 0)}** > **${drawnPathSegment("fa", ["Products", "Code", "Tasks"], 1)}** > **${drawnPathSegment("fa", ["Products", "Code", "Tasks"], 2)}**`,
+    expect(drawnPath("fa", ["Products", "Code"])).toBe(
+      `**${drawnPathSegment("fa", ["Products", "Code"], 0)}** > **${drawnPathSegment("fa", ["Products", "Code"], 1)}**`,
     );
+  });
+
+  /*
+   * "Products → Code" names the menu's Code group, and Code, its one
+   * product: a page names the two as one only while every menu reads them
+   * alike.
+   */
+  it("read the Code group and its one product alike in every language", () => {
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      expect({
+        language,
+        product: drawnMenuItem(language, "Code"),
+      }).toEqual({ language, product: drawnMenuGroup(language, "Code") });
+    }
   });
 
   it("draw the consent page's choices from the Accounts app's locale", () => {

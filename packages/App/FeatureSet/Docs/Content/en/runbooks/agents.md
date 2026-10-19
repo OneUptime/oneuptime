@@ -96,7 +96,7 @@ Go to **Runbooks → Runners** and create a new agent. Click **Create Runner** a
 | **Description** | **Runner** | Optional. A sentence on what this host can reach. |
 | **Labels** | **Runner** (under **More fields**) | Optional. |
 | **Runs Runbooks** | **Capabilities** | On by default. Lets this Runner take runbook steps. |
-| **Runs AI Code Fixes** | **Capabilities** | Off by default. Lets it open AI code-fix pull requests; see [Fix Tasks](/docs/ai/ai-agent). |
+| **Runs AI Code Fixes** | **Capabilities** | Off by default. Lets it open AI code-fix pull requests; see [Code](/docs/ai/ai-agent). |
 | **Runs AI Remediation Commands** | **Capabilities** | Off by default. Lets AI auto-remediation run policy-checked commands on it. Turning it on for a Runner that holds SSH credentials takes permission to read runbook credentials; see [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands). |
 
 A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it.

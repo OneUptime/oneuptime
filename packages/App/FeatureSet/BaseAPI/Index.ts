@@ -47,6 +47,8 @@ import AIAgentTaskLogAPI from "Common/Server/API/AIAgentTaskLogAPI";
 import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestAPI";
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
+import AIAgentCodeTaskAPI from "Common/Server/API/AIAgentCodeTaskAPI";
+import CodeTaskAPI from "Common/Server/API/CodeTaskAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
@@ -5681,6 +5683,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new AIAgentGitHubAPI().getRouter(),
     );
 
+    // The agent worker's protocol for requests from Code.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new AIAgentCodeTaskAPI().getRouter(),
+    );
+
+    // Code: repositories, their tasks, and asking AI in them.
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, new CodeTaskAPI().getRouter());
+
     // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5935,7 +5946,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AI Observability Chat
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIChatAPI);
 
-    // AI code-fix readiness — the gates the AI Tasks page renders
+    // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);
 
     // What a project's AI used today, against its own daily AI limits

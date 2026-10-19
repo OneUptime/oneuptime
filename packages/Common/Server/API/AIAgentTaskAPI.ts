@@ -24,6 +24,9 @@ import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext from "../../Types/AI/CodeFixTaskContext";
 import PositiveNumber from "../../Types/PositiveNumber";
 import GitHubRunReply from "../Utils/CodeRepository/GitHub/GitHubRunReply";
+import CodeTaskOutcomeReader, {
+  CodeTaskOutcomeRead,
+} from "../Utils/AI/CodeTask/CodeTaskOutcomeReader";
 
 /*
  * The agent worker's task protocol. The route names and request shapes are
@@ -75,6 +78,13 @@ export default class AIAgentTaskAPI {
             await AIRunService.claimNextQueuedCodeFixRun({
               aiAgentId: aiAgent.id,
               projectId: aiAgent.projectId,
+              /*
+               * The recipes this Runner has handlers for. A Runner built
+               * before it said is handed only the recipes every Runner has.
+               */
+              supportedTaskTypes: CodeFixTaskTypeHelper.readSupportedTaskTypes(
+                (req.body as JSONObject | undefined)?.["supportedTaskTypes"],
+              ),
             });
 
           if (!run) {
@@ -235,6 +245,19 @@ export default class AIAgentTaskAPI {
               ? data["unrecordedPullRequests"]
               : undefined;
 
+          /*
+           * What a code task's turn ended with: the AI's reply, the files it
+           * changed and their diff, and whether it asked the person a
+           * question (see Types/AI/CodeTask). Read, checked and capped by
+           * CodeTaskOutcomeReader; Runners that predate it send none, and
+           * the turn is kept as before.
+           */
+          const outcomeRead: CodeTaskOutcomeRead | null =
+            status === AIAgentTaskStatus.Completed ||
+            status === AIAgentTaskStatus.NoFixFound
+              ? CodeTaskOutcomeReader.read(data["outcome"])
+              : null;
+
           /* Validate status value */
           const validStatuses: Array<AIAgentTaskStatus> = [
             AIAgentTaskStatus.InProgress,
@@ -381,6 +404,18 @@ export default class AIAgentTaskAPI {
                     ? { errorMessage: statusMessage }
                     : {}),
                   ...(taskContext ? { taskContext: taskContext } : {}),
+                  ...(outcomeRead
+                    ? {
+                        taskOutcome: outcomeRead.outcome,
+                        // Only a turn that finished can wait for an answer.
+                        needsUserInput:
+                          outcomeRead.needsInput &&
+                          toStatus === AIRunStatus.Completed,
+                        ...(outcomeRead.changes
+                          ? { codeChanges: outcomeRead.changes }
+                          : {}),
+                      }
+                    : {}),
                 },
               });
 

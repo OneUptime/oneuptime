@@ -285,7 +285,7 @@ describe("GitHub App installation binding", () => {
 
       expect(answeredWith()).toBeNull();
       expect(answeredAt()).toContain(
-        `/${projectId.toString()}/code-repository?installation_id=${victimInstallationId}`,
+        `/${projectId.toString()}/code?installation_id=${victimInstallationId}`,
       );
       expect(updateProjectSpy).toHaveBeenCalledTimes(1);
 

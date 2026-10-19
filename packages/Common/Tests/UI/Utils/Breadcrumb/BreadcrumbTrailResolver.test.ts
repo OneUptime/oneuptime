@@ -267,15 +267,27 @@ describe("BreadcrumbTrailResolver", () => {
       );
     });
 
-    test('"AI Tasks" links to /ai/agents on an /ai/agents/:id page', () => {
+    test('"Code" links to /code on a /code/repositories/:id page', () => {
       const target: BreadcrumbTarget = resolveOne({
         index: 1,
         crumbCount: 3,
-        pagePattern: `${PROJECT}/ai/agents/:id`,
+        pagePattern: `${PROJECT}/code/repositories/:id`,
       });
       expect(target.kind).toBe(BreadcrumbTargetKind.Ancestor);
-      expect(resolvedPattern(target, `${PROJECT}/ai/agents/:id`)).toBe(
-        `${PROJECT}/ai/agents`,
+      expect(resolvedPattern(target, `${PROJECT}/code/repositories/:id`)).toBe(
+        `${PROJECT}/code`,
+      );
+    });
+
+    test('"Code" links to /code on a /code/tasks/:id page, past the /code/tasks that is no page', () => {
+      const target: BreadcrumbTarget = resolveOne({
+        index: 1,
+        crumbCount: 3,
+        pagePattern: `${PROJECT}/code/tasks/:id`,
+      });
+      expect(target.kind).toBe(BreadcrumbTargetKind.Ancestor);
+      expect(resolvedPattern(target, `${PROJECT}/code/tasks/:id`)).toBe(
+        `${PROJECT}/code`,
       );
     });
   });

@@ -14,7 +14,7 @@ An LLM provider is the model behind every AI feature in OneUptime: investigation
 - **Investigations**: OneUptime AI investigates new incidents and alerts and posts a cited root cause analysis to the timeline. See [AI SRE](/docs/ai/ai-sre).
 - **Questions**: **Ask AI** answers from your project's data, with a citation on every claim. See [Ask AI](/docs/ai/ask-ai).
 - **Drafts**: **Draft with AI** in the notes of incidents, alerts and scheduled maintenance, and postmortems, drafted on request or when an incident resolves.
-- **Code**: pull requests that fix exceptions, slow traces and the causes investigations find, from OneUptime or from GitHub. See [Fix Tasks](/docs/ai/ai-agent).
+- **Code**: pull requests that fix exceptions, slow traces and the causes investigations find, from OneUptime or from GitHub. See [Code](/docs/ai/ai-agent).
 - **Everything else**: AI Insights triage, the AI steps of workflows and runbooks, and answers in Slack and Microsoft Teams.
 
 ## Which provider AI uses
@@ -301,7 +301,7 @@ Still stuck? Look for your error in [OneUptime's GitHub issues](https://github.c
 ## Next steps
 
 :::cards
-- [Fix Tasks](/docs/ai/ai-agent): Pull requests your provider writes, and where they start.
+- [Code](/docs/ai/ai-agent): Pull requests your provider writes, and where they start.
 - [AI SRE](/docs/ai/ai-sre): What OneUptime AI does with the provider once it has one.
 - [Ask AI](/docs/ai/ask-ai): Ask your project a question, and switch a conversation's provider.
 :::

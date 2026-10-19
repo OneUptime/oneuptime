@@ -115,7 +115,7 @@ Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe
 | **Regressionstest generieren** | Fügt einen Test hinzu, der fehlschlägt, bis der Fehler behoben ist. |
 | **Fehlerbehandlung verbessern** | Für erwartete Fehler: prüft Eingaben früher, hält Benutzerdaten aus Meldungen heraus und markiert den Fehler als behandelt. |
 
-Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein über die GitHub App verbundenes GitHub-Repository und einen KI-Agenten, der online ist und die Aufgabe ausführt. Die Seite prüft jedes davon und verlinkt, was fehlt. Die Aufgaben pausieren, solange die Ausnahme behoben oder archiviert ist. Siehe [Korrekturaufgaben](/docs/ai/ai-agent).
+Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein über die GitHub App verbundenes GitHub-Repository und einen KI-Agenten, der online ist und die Aufgabe ausführt. Die Seite prüft jedes davon und verlinkt, was fehlt. Die Aufgaben pausieren, solange die Ausnahme behoben oder archiviert ist. Siehe [Code](/docs/ai/ai-agent).
 
 ## Ausnahmen-Einblicke
 
@@ -140,6 +140,6 @@ Ein neues Vorkommen öffnet eine behobene Ausnahme absichtlich wieder: Der Fehle
 :::cards
 - [Ausnahmen-Überwachung](/docs/monitor/exceptions-monitor): Benachrichtigt werden, wenn Ausnahmen sprunghaft zunehmen.
 - [Source Maps](/docs/telemetry/source-maps): Lesbare Stack-Traces für Browser-Code.
-- [Korrekturaufgaben](/docs/ai/ai-agent): Wie die KI Code korrigiert und Pull Requests öffnet.
+- [Code](/docs/ai/ai-agent): Wie die KI Code korrigiert und Pull Requests öffnet.
 - [Trace-Explorer](/docs/telemetry/traces-explorer): Die Anfrage sehen, in der eine Ausnahme auftrat.
 :::

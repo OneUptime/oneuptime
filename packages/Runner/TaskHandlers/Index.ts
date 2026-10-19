@@ -26,3 +26,4 @@ export { default as GitHubTaskHandlerBase } from "./GitHubTaskHandlerBase";
 export { default as GitHubIssueFixTaskHandler } from "./GitHubIssueFixTaskHandler";
 export { default as GitHubPullRequestRevisionTaskHandler } from "./GitHubPullRequestRevisionTaskHandler";
 export { default as GitHubPullRequestReviewTaskHandler } from "./GitHubPullRequestReviewTaskHandler";
+export { default as CodeRequestTaskHandler } from "./CodeRequestTaskHandler";
