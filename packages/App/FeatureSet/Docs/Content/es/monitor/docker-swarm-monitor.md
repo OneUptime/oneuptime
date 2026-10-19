@@ -116,7 +116,7 @@ El colector del agente usa el receptor `docker_stats` de OpenTelemetry, así que
 
 | Métrica | Unidad | Descripción |
 | --- | --- | --- |
-| `container.cpu.utilization` | % | Uso de CPU del contenedor de una tarea, donde el 100 % es un núcleo de CPU completo. |
+| `container.cpu.utilization` | % | CPU que usó el contenedor de una tarea en cada intervalo de 30 segundos, donde el 100 % es un núcleo de CPU completo. |
 
 ### Memoria
 

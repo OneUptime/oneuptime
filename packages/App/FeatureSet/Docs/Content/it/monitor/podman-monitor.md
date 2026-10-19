@@ -101,7 +101,7 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 I due modelli in percentuale usano **Media**: le loro metriche sono già percentuali per container, quindi la media di un minuto è la lettura sostenuta. Il numero di riavvii e il numero di processi usano **Massimo**, dove un singolo campione oltre la soglia è il segnale.
 
 > [!NOTE]
-> `container.cpu.utilization` è il numero stampato da `podman stats`: il 100% è un core di CPU intero, non l'intera quota di CPU del container. Un container con più core segna ben oltre 100 quando è sano, quindi alzate la soglia per quei container.
+> `container.cpu.utilization` è il numero stampato da `podman stats`, in media sull'intervallo di 30 secondi dell'agente: il 100% è un core di CPU intero, non l'intera quota di CPU del container. Un container con più core segna ben oltre 100 quando è sano, quindi alzate la soglia per quei container.
 
 > [!NOTE]
 > `container.restarts` è un totale progressivo tenuto da Podman, non un conteggio dei riavvii nella finestra. Per questo **High Container Restart Count** resta aperto finché il container non viene ricreato, il che azzera il conteggio.
@@ -119,7 +119,7 @@ L'agente usa il receiver OpenTelemetry `docker_stats` puntato sul socket compati
 
 | Metrica | Descrizione |
 | --- | --- |
-| `container.cpu.utilization` | Utilizzo della CPU del container, dove il 100% è un core di CPU intero. |
+| `container.cpu.utilization` | CPU usata dal container in ogni intervallo di 30 secondi, dove il 100% è un core di CPU intero. |
 | `container.cpu.usage.total` | Tempo di CPU usato dall'avvio del container, in nanosecondi. Un contatore sull'intera vita. |
 | `container.cpu.throttling_data.throttled_time` | Nanosecondi in cui il container è stato limitato dal suo limite di CPU. Un contatore sull'intera vita. |
 | `container.cpu.throttling_data.throttled_periods` | Periodi di limitazione dall'avvio del container. Un contatore sull'intera vita. |
@@ -285,7 +285,7 @@ OneUptime identifica un host tramite `resource.host.name`, che l'agente prende d
 :::
 
 :::details Un avviso sulla CPU non scatta mai
-Raggruppate la query per `resource.container.name`, come fa il modello **High Container CPU Usage**, così ogni container viene giudicato separatamente. Una media su tutti i container di un host occupato viene abbassata da quelli inattivi. Ricordate che il 100% significa un core intero, quindi un container a cui sono consentiti più core ha bisogno di una soglia più alta.
+Raggruppate la query per `resource.container.name`, come fa il modello **High Container CPU Usage**, così ogni container viene giudicato separatamente. Una media su tutti i container di un host occupato viene abbassata da quelli inattivi. Ricordate che il 100% significa un core intero, quindi un container a cui sono consentiti più core ha bisogno di una soglia più alta. Se la CPU di un container è una linea piatta vicina allo zero qualunque sia il suo carico, sull'host gira un agente più vecchio: [aggiornatelo](/docs/telemetry/podman-host#aggiornare-lagent).
 :::
 
 :::details L'avviso sul numero di riavvii non si risolve mai

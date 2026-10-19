@@ -101,7 +101,7 @@ A criteria fires only when the condition holds for every minute of its window, a
 The two percentage templates use **Average**: their metrics are already per-container percentages, so the average of a minute is the sustained reading. Restart count and process count use **Maximum**, where one breaching sample is the signal.
 
 > [!NOTE]
-> `container.cpu.utilization` is the number `podman stats` prints: 100% is one full CPU core, not the container's whole CPU allowance. A container given several cores reads well above 100 while healthy, so raise the threshold for those.
+> `container.cpu.utilization` is the number `podman stats` prints, averaged over the agent's 30-second interval: 100% is one full CPU core, not the container's whole CPU allowance. A container given several cores reads well above 100 while healthy, so raise the threshold for those.
 
 > [!NOTE]
 > `container.restarts` is a running total kept by Podman, not a count of restarts in the window. **High Container Restart Count** therefore stays open until the container is recreated, which resets the count.
@@ -119,7 +119,7 @@ The agent uses the OpenTelemetry `docker_stats` receiver pointed at Podman's Doc
 
 | Metric | Description |
 | --- | --- |
-| `container.cpu.utilization` | CPU utilization of the container, where 100% is one full CPU core. |
+| `container.cpu.utilization` | CPU the container used over each 30-second interval, where 100% is one full CPU core. |
 | `container.cpu.usage.total` | CPU time used since the container started, in nanoseconds. A lifetime counter. |
 | `container.cpu.throttling_data.throttled_time` | Nanoseconds the container has been throttled by its CPU limit. A lifetime counter. |
 | `container.cpu.throttling_data.throttled_periods` | Throttling periods since the container started. A lifetime counter. |
@@ -285,7 +285,7 @@ OneUptime identifies a host by `resource.host.name`, which the agent takes from 
 :::
 
 :::details A CPU alert never fires
-Group the query by `resource.container.name`, as the **High Container CPU Usage** template does, so each container is judged on its own. An average across every container on a busy host is pulled down by the idle ones. Remember that 100% means one full core, so a container allowed several cores needs a higher threshold.
+Group the query by `resource.container.name`, as the **High Container CPU Usage** template does, so each container is judged on its own. An average across every container on a busy host is pulled down by the idle ones. Remember that 100% means one full core, so a container allowed several cores needs a higher threshold. If a container's CPU is a flat line near zero whatever its load, the host runs an older agent: [upgrade it](/docs/telemetry/podman-host#upgrading-the-agent).
 :::
 
 :::details The restart-count alert never clears

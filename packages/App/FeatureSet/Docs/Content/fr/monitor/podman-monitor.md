@@ -101,7 +101,7 @@ Un critère ne se déclenche que si la condition est remplie à chaque minute de
 Les deux modèles en pourcentage utilisent **Moyenne** : leurs métriques sont déjà des pourcentages par conteneur, donc la moyenne d'une minute est la valeur soutenue. Le nombre de redémarrages et le nombre de processus utilisent **Maximum**, pour lesquels une seule mesure au-dessus du seuil est le signal.
 
 > [!NOTE]
-> `container.cpu.utilization` est le nombre qu'affiche `podman stats` : 100 % correspond à un cœur de CPU complet, et non à toute l'allocation de CPU du conteneur. Un conteneur doté de plusieurs cœurs affiche bien plus de 100 en bonne santé ; relevez donc le seuil pour ceux-là.
+> `container.cpu.utilization` est le nombre qu'affiche `podman stats`, en moyenne sur l'intervalle de 30 secondes de l'agent : 100 % correspond à un cœur de CPU complet, et non à toute l'allocation de CPU du conteneur. Un conteneur doté de plusieurs cœurs affiche bien plus de 100 en bonne santé ; relevez donc le seuil pour ceux-là.
 
 > [!NOTE]
 > `container.restarts` est un total cumulé tenu par Podman, et non un nombre de redémarrages dans la fenêtre. **High Container Restart Count** reste donc ouvert jusqu'à ce que le conteneur soit recréé, ce qui remet le compteur à zéro.
@@ -119,7 +119,7 @@ L'agent utilise le récepteur OpenTelemetry `docker_stats` pointé sur le socket
 
 | Métrique | Description |
 | --- | --- |
-| `container.cpu.utilization` | Utilisation du CPU du conteneur, où 100 % correspond à un cœur de CPU complet. |
+| `container.cpu.utilization` | CPU utilisé par le conteneur sur chaque intervalle de 30 secondes, où 100 % correspond à un cœur de CPU complet. |
 | `container.cpu.usage.total` | Temps CPU utilisé depuis le démarrage du conteneur, en nanosecondes. Un compteur sur toute la durée de vie. |
 | `container.cpu.throttling_data.throttled_time` | Nanosecondes pendant lesquelles le conteneur a été bridé par sa limite de CPU. Un compteur sur toute la durée de vie. |
 | `container.cpu.throttling_data.throttled_periods` | Périodes de bridage depuis le démarrage du conteneur. Un compteur sur toute la durée de vie. |
@@ -285,7 +285,7 @@ OneUptime identifie un hôte par `resource.host.name`, que l'agent tire de `PODM
 :::
 
 :::details Une alerte CPU ne se déclenche jamais
-Regroupez la requête par `resource.container.name`, comme le fait le modèle **High Container CPU Usage**, pour que chaque conteneur soit jugé séparément. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé.
+Regroupez la requête par `resource.container.name`, comme le fait le modèle **High Container CPU Usage**, pour que chaque conteneur soit jugé séparément. Une moyenne sur tous les conteneurs d'un hôte chargé est tirée vers le bas par les conteneurs inactifs. N'oubliez pas que 100 % correspond à un cœur complet, donc un conteneur autorisé à utiliser plusieurs cœurs a besoin d'un seuil plus élevé. Si le CPU d'un conteneur reste une ligne plate proche de zéro quelle que soit sa charge, l'hôte exécute un agent plus ancien : [mettez-le à jour](/docs/telemetry/podman-host#mettre-à-jour-lagent).
 :::
 
 :::details L'alerte sur le nombre de redémarrages ne se rétablit jamais

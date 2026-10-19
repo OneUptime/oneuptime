@@ -285,6 +285,10 @@ L'agent deve essere eseguito come root per leggere `/var/run/docker.sock`. Verif
 3. Verifica che la chiave di acquisizione sia valida e non sia scaduta.
 :::
 
+:::details La CPU dei container è una linea piatta vicina allo zero
+Un agent più vecchio invia il valore di CPU calcolato dal receiver `docker_stats` stesso. Dal collector 0.150.0 il receiver lo ricava da una sola lettura delle statistiche: tutta la CPU usata da un container dal suo avvio, divisa per tutta la CPU usata dall'host dal suo boot. La linea si muove appena e non segue il carico, mentre `container.cpu.usage.total` sì. [Aggiorna l'agent](#aggiornare-lagent): dalla sua seconda lettura in poi invia la CPU usata da ogni container in ogni intervallo di 30 secondi. Le letture già salvate restano com'erano.
+:::
+
 :::details Le metriche arrivano, ma i log dei container no
 Molto probabilmente i tuoi container usano un driver di log diverso da `json-file`. Controlla quali file osserva l'agent e quale driver usa un container:
 

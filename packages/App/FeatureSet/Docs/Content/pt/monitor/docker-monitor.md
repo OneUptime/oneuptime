@@ -100,7 +100,7 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
 
 > [!NOTE]
-> `container.cpu.utilization` é o número que o `docker stats` imprime: 100% é um núcleo de CPU inteiro, não o host inteiro, então um contêiner usando dois núcleos marca 200. Em um host com vários núcleos, o limite de 80 é um orçamento de CPU, não uma fatia da máquina.
+> `container.cpu.utilization` é o número que o `docker stats` imprime, em média no intervalo de 30 segundos do agente: 100% é um núcleo de CPU inteiro, não o host inteiro, então um contêiner usando dois núcleos marca 200. Em um host com vários núcleos, o limite de 80 é um orçamento de CPU, não uma fatia da máquina.
 
 > [!NOTE]
 > `container.memory.percent` divide pelo limite de memória do contêiner quando há um definido e, caso contrário, pela memória total **do host**. Verifique se o contêiner foi iniciado com `--memory` antes de tratar uma violação como um encerramento iminente por falta de memória.
@@ -119,7 +119,7 @@ O agente usa o receptor `docker_stats` do OpenTelemetry no socket do Docker, a c
 
 | Métrica | Descrição |
 | --- | --- |
-| `container.cpu.utilization` | Uso de CPU, em que 100% é um núcleo de CPU inteiro (a coluna CPU% do `docker stats`). |
+| `container.cpu.utilization` | CPU usada em cada intervalo de 30 segundos, em que 100% é um núcleo de CPU inteiro (a coluna CPU% do `docker stats`). |
 | `container.cpu.usage.total` | Tempo de CPU usado desde que o contêiner iniciou, em nanossegundos. Um contador de toda a vida útil. |
 | `container.cpu.throttling_data.throttled_time` | Nanossegundos em que o contêiner foi limitado pelo seu limite de CPU desde que iniciou. Um contador de toda a vida útil. |
 | `container.cpu.throttling_data.throttled_periods` | Períodos de limitação desde que o contêiner iniciou. Um contador de toda a vida útil. |
@@ -282,7 +282,7 @@ O OneUptime identifica um host por `resource.host.name`, que o agente obtém de 
 :::
 
 :::details Um alerta de CPU nunca dispara
-Agrupe a consulta por `resource.container.name` e agregue com **Máximo**, como faz o modelo **High Container CPU Usage**. Uma média de todos os contêineres de um host ocupado é puxada para baixo pelos ociosos. Lembre-se de que 100% significa um núcleo inteiro, então um contêiner que pode usar vários núcleos precisa de um limite mais alto.
+Agrupe a consulta por `resource.container.name` e agregue com **Máximo**, como faz o modelo **High Container CPU Usage**. Uma média de todos os contêineres de um host ocupado é puxada para baixo pelos ociosos. Lembre-se de que 100% significa um núcleo inteiro, então um contêiner que pode usar vários núcleos precisa de um limite mais alto. Se a CPU de um contêiner for uma linha plana perto de zero, qualquer que seja a carga, o host executa um agente antigo: [atualize-o](/docs/telemetry/docker-host#atualizando-o-agente).
 :::
 
 :::details O modelo de loop de reinícios ou de limitação parou de alertar

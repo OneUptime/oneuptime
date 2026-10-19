@@ -101,7 +101,7 @@ Un criterio solo se dispara cuando la condición se cumple en cada minuto de su 
 Las dos plantillas de porcentaje usan **Promedio**: sus métricas ya son porcentajes por contenedor, así que el promedio de un minuto es la lectura sostenida. El número de reinicios y el número de procesos usan **Máximo**, donde una sola muestra por encima del umbral es la señal.
 
 > [!NOTE]
-> `container.cpu.utilization` es el número que imprime `podman stats`: el 100 % es un núcleo de CPU completo, no toda la asignación de CPU del contenedor. Un contenedor con varios núcleos marca bastante más de 100 cuando está sano, así que suba el umbral en esos casos.
+> `container.cpu.utilization` es el número que imprime `podman stats`, promediado en el intervalo de 30 segundos del agente: el 100 % es un núcleo de CPU completo, no toda la asignación de CPU del contenedor. Un contenedor con varios núcleos marca bastante más de 100 cuando está sano, así que suba el umbral en esos casos.
 
 > [!NOTE]
 > `container.restarts` es un total acumulado que lleva Podman, no un recuento de reinicios en la ventana. Por eso **High Container Restart Count** sigue abierta hasta que se vuelve a crear el contenedor, lo que pone el recuento a cero.
@@ -119,7 +119,7 @@ El agente usa el receptor `docker_stats` de OpenTelemetry apuntando al socket co
 
 | Métrica | Descripción |
 | --- | --- |
-| `container.cpu.utilization` | Uso de CPU del contenedor, donde el 100 % es un núcleo de CPU completo. |
+| `container.cpu.utilization` | CPU que usó el contenedor en cada intervalo de 30 segundos, donde el 100 % es un núcleo de CPU completo. |
 | `container.cpu.usage.total` | Tiempo de CPU usado desde que se inició el contenedor, en nanosegundos. Un contador de toda la vida útil. |
 | `container.cpu.throttling_data.throttled_time` | Nanosegundos que el contenedor ha estado limitado por su límite de CPU. Un contador de toda la vida útil. |
 | `container.cpu.throttling_data.throttled_periods` | Periodos de limitación desde que se inició el contenedor. Un contador de toda la vida útil. |
@@ -285,7 +285,7 @@ OneUptime identifica un host por `resource.host.name`, que el agente toma de `PO
 :::
 
 :::details Una alerta de CPU nunca se dispara
-Agrupe la consulta por `resource.container.name`, como hace la plantilla **High Container CPU Usage**, para que cada contenedor se juzgue por separado. Un promedio de todos los contenedores de un host ocupado se ve arrastrado a la baja por los inactivos. Recuerde que el 100 % significa un núcleo completo, así que un contenedor al que se permiten varios núcleos necesita un umbral más alto.
+Agrupe la consulta por `resource.container.name`, como hace la plantilla **High Container CPU Usage**, para que cada contenedor se juzgue por separado. Un promedio de todos los contenedores de un host ocupado se ve arrastrado a la baja por los inactivos. Recuerde que el 100 % significa un núcleo completo, así que un contenedor al que se permiten varios núcleos necesita un umbral más alto. Si la CPU de un contenedor es una línea plana cerca de cero sea cual sea su carga, el host ejecuta un agente antiguo: [actualícelo](/docs/telemetry/podman-host#actualizar-el-agente).
 :::
 
 :::details La alerta del número de reinicios nunca se resuelve

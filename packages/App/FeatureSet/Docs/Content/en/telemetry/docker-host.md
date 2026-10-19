@@ -285,6 +285,10 @@ The agent must run as root to read `/var/run/docker.sock`. Check that `--user 0:
 3. Check that the ingestion key is valid and has not expired.
 :::
 
+:::details Container CPU is a flat line near zero
+An older agent sends the `docker_stats` receiver's own CPU figure. Since collector 0.150.0 the receiver works it out from a single stats reading: all the CPU a container used since it started, divided by all the CPU the host used since it booted. The line barely moves and does not follow the load, while `container.cpu.usage.total` does. [Upgrade the agent](#upgrading-the-agent): from its second reading on, it sends the CPU each container used over each 30-second interval. Readings already stored stay as they were.
+:::
+
 :::details Metrics arrive but no container logs
 Your containers most likely use another log driver than `json-file`. Check which files the agent watches, and which driver a container uses:
 

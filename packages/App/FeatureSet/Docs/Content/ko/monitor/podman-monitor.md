@@ -101,7 +101,7 @@ flowchart TB
 두 퍼센트 템플릿은 **평균** 을 씁니다. 메트릭이 이미 컨테이너별 퍼센트이므로 1분 평균이 지속적인 값이 됩니다. 재시작 횟수와 프로세스 수는 **최대** 를 쓰며, 임계값을 넘는 샘플 하나가 곧 신호입니다.
 
 > [!NOTE]
-> `container.cpu.utilization`은 `podman stats`가 출력하는 수치입니다. 100%는 컨테이너의 전체 CPU 할당이 아니라 CPU 코어 하나입니다. 여러 코어를 받은 컨테이너는 정상일 때도 100을 훨씬 넘으므로, 그런 컨테이너는 임계값을 올리세요.
+> `container.cpu.utilization`은 `podman stats`가 출력하는 수치를 에이전트의 30초 간격으로 평균한 값입니다. 100%는 컨테이너의 전체 CPU 할당이 아니라 CPU 코어 하나입니다. 여러 코어를 받은 컨테이너는 정상일 때도 100을 훨씬 넘으므로, 그런 컨테이너는 임계값을 올리세요.
 
 > [!NOTE]
 > `container.restarts`는 Podman이 유지하는 누적 합계이며, 기간 안의 재시작 횟수가 아닙니다. 그래서 **High Container Restart Count** 템플릿은 컨테이너를 다시 만들어 횟수가 초기화될 때까지 열려 있습니다.
@@ -119,7 +119,7 @@ CPU 스로틀링 템플릿은 없습니다. 에이전트가 수집하는 스로�
 
 | 메트릭 | 설명 |
 | --- | --- |
-| `container.cpu.utilization` | 컨테이너의 CPU 사용률. 100%가 CPU 코어 하나입니다. |
+| `container.cpu.utilization` | 30초 간격마다의 컨테이너 CPU 사용률. 100%가 CPU 코어 하나입니다. |
 | `container.cpu.usage.total` | 컨테이너가 시작된 이후 쓴 CPU 시간(나노초). 수명 전체 카운터. |
 | `container.cpu.throttling_data.throttled_time` | 컨테이너가 CPU 한도로 스로틀링된 나노초. 수명 전체 카운터. |
 | `container.cpu.throttling_data.throttled_periods` | 컨테이너가 시작된 이후의 스로틀링 기간 수. 수명 전체 카운터. |
@@ -285,7 +285,7 @@ OneUptime은 `resource.host.name`으로 호스트를 식별하며, 에이전트�
 :::
 
 :::details CPU 알림이 작동하지 않음
-**High Container CPU Usage** 템플릿처럼 쿼리를 `resource.container.name`으로 그룹화해 컨테이너를 하나씩 판단하세요. 바쁜 호스트에서 모든 컨테이너를 평균하면 유휴 컨테이너 때문에 값이 낮아집니다. 100%는 코어 하나를 뜻하므로, 여러 코어를 쓸 수 있는 컨테이너에는 더 높은 임계값이 필요합니다.
+**High Container CPU Usage** 템플릿처럼 쿼리를 `resource.container.name`으로 그룹화해 컨테이너를 하나씩 판단하세요. 바쁜 호스트에서 모든 컨테이너를 평균하면 유휴 컨테이너 때문에 값이 낮아집니다. 100%는 코어 하나를 뜻하므로, 여러 코어를 쓸 수 있는 컨테이너에는 더 높은 임계값이 필요합니다. 부하와 관계없이 컨테이너 CPU가 0 근처의 평평한 선이라면 호스트에서 오래된 에이전트가 실행 중입니다. [에이전트를 업그레이드하세요](/docs/telemetry/podman-host#에이전트-업그레이드).
 :::
 
 :::details 재시작 횟수 알림이 해제되지 않음

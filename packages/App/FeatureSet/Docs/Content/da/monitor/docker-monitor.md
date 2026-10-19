@@ -100,7 +100,7 @@ Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gæl
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 
 > [!NOTE]
-> `container.cpu.utilization` er det tal, `docker stats` udskriver: 100 % er én hel CPU-kerne, ikke hele værten, så en container, der bruger to kerner, viser 200. På en vært med flere kerner er tærsklen på 80 et CPU-budget, ikke en andel af maskinen.
+> `container.cpu.utilization` er det tal, `docker stats` udskriver, i gennemsnit over agentens interval på 30 sekunder: 100 % er én hel CPU-kerne, ikke hele værten, så en container, der bruger to kerner, viser 200. På en vært med flere kerner er tærsklen på 80 et CPU-budget, ikke en andel af maskinen.
 
 > [!NOTE]
 > `container.memory.percent` dividerer med containerens hukommelsesgrænse, når der er sat en, og ellers med **værtens** samlede hukommelse. Kontrollér, om containeren blev startet med `--memory`, før du behandler en overskridelse som et nært forestående drab på grund af hukommelsesmangel.
@@ -119,7 +119,7 @@ Agenten bruger OpenTelemetry-modtageren `docker_stats` mod Docker-socketten hver
 
 | Metrik | Beskrivelse |
 | --- | --- |
-| `container.cpu.utilization` | CPU-udnyttelse, hvor 100 % er én hel CPU-kerne (kolonnen CPU% i `docker stats`). |
+| `container.cpu.utilization` | CPU brugt i hvert interval på 30 sekunder, hvor 100 % er én hel CPU-kerne (kolonnen CPU% i `docker stats`). |
 | `container.cpu.usage.total` | Brugt CPU-tid, siden containeren startede, i nanosekunder. En tæller over hele levetiden. |
 | `container.cpu.throttling_data.throttled_time` | Nanosekunder, containeren er blevet droslet af sin CPU-grænse, siden den startede. En tæller over hele levetiden. |
 | `container.cpu.throttling_data.throttled_periods` | Droslingsperioder, siden containeren startede. En tæller over hele levetiden. |
@@ -282,7 +282,7 @@ OneUptime identificerer en vært ud fra `resource.host.name`, som agenten tager 
 :::
 
 :::details En CPU-advarsel udløses aldrig
-Gruppér forespørgslen efter `resource.container.name`, og aggregér med **Maksimum**, som skabelonen **High Container CPU Usage** gør. Et gennemsnit over alle containere på en travl vært trækkes ned af de inaktive. Husk, at 100 % betyder én hel kerne, så en container, der må bruge flere kerner, har brug for en højere tærskel.
+Gruppér forespørgslen efter `resource.container.name`, og aggregér med **Maksimum**, som skabelonen **High Container CPU Usage** gør. Et gennemsnit over alle containere på en travl vært trækkes ned af de inaktive. Husk, at 100 % betyder én hel kerne, så en container, der må bruge flere kerner, har brug for en højere tærskel. Er en containers CPU en flad linje nær nul uanset belastningen, kører værten en ældre agent: [opgradér den](/docs/telemetry/docker-host#opgradering-af-agenten).
 :::
 
 :::details Skabelonen for genstartsløkker eller drosling holdt op med at advare

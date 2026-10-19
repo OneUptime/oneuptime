@@ -101,7 +101,7 @@ flowchart TB
 兩個百分比範本使用 **平均**：它們的指標本來就是每個容器的百分比，所以一分鐘的平均值就是持續的讀數。重新啟動次數和處理程序數使用 **最大值**，只要有一個樣本越界就是訊號。
 
 > [!NOTE]
-> `container.cpu.utilization` 就是 `podman stats` 輸出的數字：100% 是一個完整的 CPU 核心，而不是容器的全部 CPU 配額。被分配多個核心的容器在健康時也會遠高於 100，所以請為這類容器調高閾值。
+> `container.cpu.utilization` 就是 `podman stats` 輸出的數字在代理程式每個 30 秒間隔內的平均值：100% 是一個完整的 CPU 核心，而不是容器的全部 CPU 配額。被分配多個核心的容器在健康時也會遠高於 100，所以請為這類容器調高閾值。
 
 > [!NOTE]
 > `container.restarts` 是 Podman 維護的累計總數，而不是視窗內的重新啟動次數。因此 **High Container Restart Count** 範本會一直保持開啟，直到重新建立容器、計數被重設為止。
@@ -119,7 +119,7 @@ flowchart TB
 
 | 指標 | 說明 |
 | --- | --- |
-| `container.cpu.utilization` | 容器的 CPU 使用率，100% 表示一個完整的 CPU 核心。 |
+| `container.cpu.utilization` | 容器在每個 30 秒間隔內的 CPU 使用率，100% 表示一個完整的 CPU 核心。 |
 | `container.cpu.usage.total` | 容器啟動以來使用的 CPU 時間，單位為奈秒。生命週期計數器。 |
 | `container.cpu.throttling_data.throttled_time` | 容器被其 CPU 限制節流的奈秒數。生命週期計數器。 |
 | `container.cpu.throttling_data.throttled_periods` | 容器啟動以來的節流週期數。生命週期計數器。 |
@@ -285,7 +285,7 @@ OneUptime 以 `resource.host.name` 識別主機，代理程式從 `PODMAN_HOST_N
 :::
 
 :::details CPU 警示從不觸發
-像 **High Container CPU Usage** 範本一樣，依 `resource.container.name` 將查詢分組，以便個別評判每個容器。在忙碌的主機上對所有容器取平均值，會被閒置的容器拉低。請記得 100% 表示一個完整的核心，所以允許使用多個核心的容器需要更高的閾值。
+像 **High Container CPU Usage** 範本一樣，依 `resource.container.name` 將查詢分組，以便個別評判每個容器。在忙碌的主機上對所有容器取平均值，會被閒置的容器拉低。請記得 100% 表示一個完整的核心，所以允許使用多個核心的容器需要更高的閾值。如果某個容器的 CPU 無論負載如何都是一條接近零的平線，表示主機執行的是舊版代理程式：[請升級它](/docs/telemetry/podman-host#升級代理程式)。
 :::
 
 :::details 重新啟動次數警示一直不會清除

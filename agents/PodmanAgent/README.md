@@ -65,8 +65,10 @@ podman compose up -d
 
 These metrics come from the `docker_stats` receiver, which works against Podman's Docker-API compatible socket, so the metric names are identical to the Docker agent.
 
-- **CPU**: `container.cpu.usage.total`, `container.cpu.percent`, `container.cpu.throttling_data.throttled_time`
+- **CPU**: `container.cpu.usage.total`, `container.cpu.utilization`, `container.cpu.throttling_data.throttled_time`
 - **Memory**: `container.memory.usage.total`, `container.memory.usage.limit`, `container.memory.percent`
+
+`container.cpu.utilization` is the CPU a container used over each 30-second collection interval, as a percent of one core: 100% is one core busy for the whole interval, so a container on two cores reads 200%, as `podman stats` counts it. The agent builds it from `container.cpu.usage.total` (`transform/cpu-utilization-source` and the processors after it in `otel-collector-config.yaml`), so it always matches that counter's per-second rate; the `docker_stats` receiver's own figure is turned off, because Podman's Docker-compatible API sends no previous reading with a stats sample and the receiver's figure stays a flat line near zero. A container's first scrape after the agent starts, and the first after it restarts, send no CPU percent. `container.memory.percent` is memory in use as a percent of the container's memory limit, or of the host's memory when it has none, and is sent with the unit `%`.
 - **Network**: `container.network.io.usage.rx_bytes`, `container.network.io.usage.tx_bytes`
 - **Block I/O**: `container.blockio.io_service_bytes_recursive.read`, `container.blockio.io_service_bytes_recursive.write`
 - **Container Info**: `container.uptime`, `container.restarts`, `container.pids.count`

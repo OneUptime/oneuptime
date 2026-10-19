@@ -101,7 +101,7 @@ Ein Kriterium löst nur aus, wenn die Bedingung in jeder Minute seines Zeitfenst
 Die beiden Prozent-Vorlagen verwenden **Durchschnitt**: Ihre Metriken sind bereits Prozentwerte pro Container, der Durchschnitt einer Minute ist also der anhaltende Messwert. Neustartzahl und Prozessanzahl verwenden **Maximum**, bei denen ein einzelner Messwert über dem Schwellenwert das Signal ist.
 
 > [!NOTE]
-> `container.cpu.utilization` ist die Zahl, die `podman stats` ausgibt: 100 % ist ein voller CPU-Kern, nicht das gesamte CPU-Kontingent des Containers. Ein Container mit mehreren Kernen liest im gesunden Zustand deutlich über 100; erhöhen Sie für solche den Schwellenwert.
+> `container.cpu.utilization` ist die Zahl, die `podman stats` ausgibt, gemittelt über das 30-Sekunden-Intervall des Agenten: 100 % ist ein voller CPU-Kern, nicht das gesamte CPU-Kontingent des Containers. Ein Container mit mehreren Kernen liest im gesunden Zustand deutlich über 100; erhöhen Sie für solche den Schwellenwert.
 
 > [!NOTE]
 > `container.restarts` ist eine laufende Summe, die Podman führt, keine Zahl der Neustarts im Zeitfenster. **High Container Restart Count** bleibt daher offen, bis der Container neu erstellt wird, was die Zahl zurücksetzt.
@@ -119,7 +119,7 @@ Der Agent verwendet den OpenTelemetry-Receiver `docker_stats`, gerichtet auf den
 
 | Metrik | Beschreibung |
 | --- | --- |
-| `container.cpu.utilization` | CPU-Auslastung des Containers, wobei 100 % ein voller CPU-Kern ist. |
+| `container.cpu.utilization` | CPU-Nutzung des Containers in jedem 30-Sekunden-Intervall, wobei 100 % ein voller CPU-Kern ist. |
 | `container.cpu.usage.total` | Seit dem Start des Containers verbrauchte CPU-Zeit, in Nanosekunden. Ein Zähler über die gesamte Lebensdauer. |
 | `container.cpu.throttling_data.throttled_time` | Nanosekunden, die der Container durch sein CPU-Limit gedrosselt wurde. Ein Zähler über die gesamte Lebensdauer. |
 | `container.cpu.throttling_data.throttled_periods` | Drosselungsperioden seit dem Start des Containers. Ein Zähler über die gesamte Lebensdauer. |
@@ -285,7 +285,7 @@ OneUptime erkennt einen Host an `resource.host.name`, den der Agent aus `PODMAN_
 :::
 
 :::details Eine CPU-Warnung löst nie aus
-Gruppieren Sie die Abfrage nach `resource.container.name`, wie es die Vorlage **High Container CPU Usage** tut, damit jeder Container einzeln beurteilt wird. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert.
+Gruppieren Sie die Abfrage nach `resource.container.name`, wie es die Vorlage **High Container CPU Usage** tut, damit jeder Container einzeln beurteilt wird. Ein Durchschnitt über alle Container eines ausgelasteten Hosts wird von den untätigen nach unten gezogen. Denken Sie daran, dass 100 % einen vollen Kern bedeuten; ein Container, dem mehrere Kerne zustehen, braucht daher einen höheren Schwellenwert. Ist die CPU eines Containers unabhängig von seiner Last eine flache Linie nahe null, läuft auf dem Host ein älterer Agent: [Aktualisieren Sie ihn](/docs/telemetry/podman-host#agent-aktualisieren).
 :::
 
 :::details Die Warnung zur Neustartzahl klingt nie ab

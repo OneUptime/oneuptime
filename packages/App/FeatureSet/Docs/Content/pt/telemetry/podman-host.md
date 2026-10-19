@@ -284,6 +284,10 @@ O agente precisa ser executado como root para ler `/run/podman/podman.sock`. Ver
 3. Verifique se a chave de ingestão é válida e não expirou.
 :::
 
+:::details A CPU dos contêineres é uma linha plana perto de zero
+Um agente mais antigo envia o valor de CPU calculado pelo próprio receiver `docker_stats`, que precisa da leitura de estatísticas anterior à atual, e a API compatível com Docker do Podman nunca a envia: o receiver divide toda a CPU que um contêiner usou desde que iniciou por toda a CPU que o host usou desde que foi ligado. A linha mal se move e não acompanha a carga, enquanto `container.cpu.usage.total` acompanha. [Atualize o agente](#atualizando-o-agente): a partir da segunda leitura, ele envia a CPU que cada contêiner usou em cada intervalo de 30 segundos. As leituras já armazenadas ficam como estavam.
+:::
+
 :::details As métricas chegam, mas os logs dos contêineres não
 Os seus contêineres provavelmente usam `journald`, o driver de log padrão do Podman. Verifique quais arquivos o agente observa e qual driver um contêiner usa:
 

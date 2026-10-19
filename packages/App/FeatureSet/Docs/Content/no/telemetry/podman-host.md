@@ -284,6 +284,10 @@ Agenten må kjøre som root for å lese `/run/podman/podman.sock`. Sjekk at `--u
 3. Sjekk at inntaksnøkkelen er gyldig og ikke har utløpt.
 :::
 
+:::details Container-CPU er en flat linje nær null
+En eldre agent sender mottakeren `docker_stats` sitt eget CPU-tall, som trenger statistikkmålingen før den nåværende, og Podmans Docker-kompatible API sender den aldri: Mottakeren deler all CPU en container har brukt siden den startet, på all CPU verten har brukt siden den startet opp. Linjen beveger seg knapt og følger ikke belastningen, mens `container.cpu.usage.total` gjør det. [Oppgrader agenten](#oppgradere-agenten): fra sin andre måling sender den CPU-en hver container brukte i hvert intervall på 30 sekunder. Målinger som allerede er lagret, forblir som de var.
+:::
+
 :::details Metrikker kommer inn, men ingen containerlogger
 Containerne dine bruker mest sannsynlig `journald`, standardloggdriveren i Podman. Sjekk hvilke filer agenten overvåker, og hvilken driver en container bruker:
 

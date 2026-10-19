@@ -100,7 +100,7 @@ flowchart TB
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。
 
 > [!NOTE]
-> `container.cpu.utilization` 就是 `docker stats` 輸出的數字：100% 是一個完整的 CPU 核心，而不是整台主機，所以使用兩個核心的容器讀數為 200。在多核心主機上，80 這個閾值是 CPU 預算，而不是機器的占比。
+> `container.cpu.utilization` 就是 `docker stats` 輸出的數字在代理程式每個 30 秒間隔內的平均值：100% 是一個完整的 CPU 核心，而不是整台主機，所以使用兩個核心的容器讀數為 200。在多核心主機上，80 這個閾值是 CPU 預算，而不是機器的占比。
 
 > [!NOTE]
 > `container.memory.percent` 在容器設有記憶體限制時除以該限制，否則除以**主機**的總記憶體。在把超限視為即將發生的記憶體不足終止之前，請先檢查容器是否以 `--memory` 啟動。
@@ -119,7 +119,7 @@ flowchart TB
 
 | 指標 | 說明 |
 | --- | --- |
-| `container.cpu.utilization` | CPU 使用率，100% 表示一個完整的 CPU 核心（即 `docker stats` 的 CPU% 欄）。 |
+| `container.cpu.utilization` | 每個 30 秒間隔內的 CPU 使用率，100% 表示一個完整的 CPU 核心（即 `docker stats` 的 CPU% 欄）。 |
 | `container.cpu.usage.total` | 容器啟動以來使用的 CPU 時間，單位為奈秒。生命週期計數器。 |
 | `container.cpu.throttling_data.throttled_time` | 容器啟動以來被其 CPU 限制節流的奈秒數。生命週期計數器。 |
 | `container.cpu.throttling_data.throttled_periods` | 容器啟動以來的節流週期數。生命週期計數器。 |
@@ -282,7 +282,7 @@ OneUptime 以 `resource.host.name` 識別主機，代理程式從 `DOCKER_HOST_N
 :::
 
 :::details CPU 警示從不觸發
-像 **High Container CPU Usage** 範本一樣，依 `resource.container.name` 將查詢分組，並以 **最大值** 彙總。在忙碌的主機上對所有容器取平均值，會被閒置的容器拉低。請記得 100% 表示一個完整的核心，所以允許使用多個核心的容器需要更高的閾值。
+像 **High Container CPU Usage** 範本一樣，依 `resource.container.name` 將查詢分組，並以 **最大值** 彙總。在忙碌的主機上對所有容器取平均值，會被閒置的容器拉低。請記得 100% 表示一個完整的核心，所以允許使用多個核心的容器需要更高的閾值。如果某個容器的 CPU 無論負載如何都是一條接近零的平線，表示主機執行的是舊版代理程式：[請升級它](/docs/telemetry/docker-host#升級代理程式)。
 :::
 
 :::details 重新啟動迴圈或節流範本不再發出警示
