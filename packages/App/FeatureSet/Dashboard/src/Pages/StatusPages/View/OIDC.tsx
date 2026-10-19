@@ -194,7 +194,9 @@ const OIDCSettings: FunctionComponent<PageComponentProps> = (
                   values={[
                     {
                       label: "Redirect URI (Callback URL):",
-                      value: `${URL.fromString(IDENTITY_URL.toString()).addRoute(
+                      value: `${URL.fromString(
+                        IDENTITY_URL.toString(),
+                      ).addRoute(
                         `/status-page-oidc-callback/${modelId.toString()}/${showOidcConfigId}`,
                       )}`,
                     },

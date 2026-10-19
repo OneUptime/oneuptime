@@ -227,9 +227,7 @@ function row(stored: StoredDomain): CustomDomainModel {
   model.fullDomain = stored.fullDomain;
   model.subdomain = stored.fullDomain.split(".")[0] || "";
   model.isCnameVerified = stored.state !== "dns";
-  model.isSslOrdered = !["dns", "unordered", "uploaded"].includes(
-    stored.state,
-  );
+  model.isSslOrdered = !["dns", "unordered", "uploaded"].includes(stored.state);
   model.isSslProvisioned = ["live", "expired", "renewal"].includes(
     stored.state,
   );
@@ -532,7 +530,9 @@ describe.each(KINDS)("the addresses of $name", (kindCase: KindCase) => {
   });
 
   test("a live custom domain comes first: a link to https://<domain> in a new tab, with Copy link", async () => {
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "live" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
 
     await renderList(kindCase);
 
@@ -578,9 +578,7 @@ describe.each(KINDS)("the addresses of $name", (kindCase: KindCase) => {
     const certificates: { url: { toString: () => string } } = apiGetMock.mock
       .calls[0]![0] as { url: { toString: () => string } };
 
-    expect(certificates.url.toString()).toBe(
-      apiUrl(kindCase.certificatesPath),
-    );
+    expect(certificates.url.toString()).toBe(apiUrl(kindCase.certificatesPath));
 
     // A page with a custom domain is not offered one more.
     expect(
@@ -604,7 +602,9 @@ describe.each(KINDS)("the addresses of $name", (kindCase: KindCase) => {
   });
 
   test("a custom domain waiting for DNS: no link, not live yet and why, with DNS Setup", async () => {
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "dns" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "dns" },
+    ];
 
     await renderList(kindCase);
 
@@ -630,7 +630,9 @@ describe.each(KINDS)("the addresses of $name", (kindCase: KindCase) => {
   });
 
   test("DNS Setup opens the Custom Domains page's own dialog on the domain, and Check now reads the list again", async () => {
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "dns" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "dns" },
+    ];
 
     await renderList(kindCase);
 
@@ -654,7 +656,9 @@ describe.each(KINDS)("the addresses of $name", (kindCase: KindCase) => {
     ];
 
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole("button", { name: "Check now" }));
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Check now" }),
+      );
     });
     await flush();
 
@@ -695,15 +699,15 @@ describe.each(KINDS)("the addresses of $name", (kindCase: KindCase) => {
 describe("each state of a custom domain", () => {
   test.each([
     ["its certificate issued", "live", true, null, false],
-    ["a renewal that failed, its certificate still valid", "renewal", true, null, false],
-    ["an uploaded certificate", "uploaded", true, null, false],
     [
-      "waiting for DNS",
-      "dns",
-      false,
-      CustomDomainState.WaitingForDns,
+      "a renewal that failed, its certificate still valid",
+      "renewal",
       true,
+      null,
+      false,
     ],
+    ["an uploaded certificate", "uploaded", true, null, false],
+    ["waiting for DNS", "dns", false, CustomDomainState.WaitingForDns, true],
     [
       "waiting for its certificate",
       "issuing",
@@ -884,7 +888,9 @@ describe("who sees what", () => {
       isAllowed: false,
       disabledReason: "You need Read Status Page Domain.",
     };
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "live" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
 
     await renderList();
 
@@ -902,7 +908,9 @@ describe("who sees what", () => {
   test("before the permissions have arrived the domains are read anyway: the server has the last word", async () => {
     hasSnapshot = false;
     gates[ModelAction.Read] = { isAllowed: false };
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "live" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
 
     await renderList();
 
@@ -932,7 +940,9 @@ describe("who sees what", () => {
       isAllowed: false,
       disabledReason: "You need Edit Status Page Domain.",
     };
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "dns" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "dns" },
+    ];
 
     await renderList();
 
@@ -964,7 +974,9 @@ describe("who sees what", () => {
     ).not.toBeInTheDocument();
 
     cleanup();
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "live" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
 
     await renderList();
 
@@ -1017,7 +1029,9 @@ describe("while the domains are read, and when they cannot be", () => {
 
     expect(listed()).toEqual([`live ${oneUptimeText(STATUS_PAGE)}`]);
 
-    const error: HTMLElement = screen.getByTestId(PUBLIC_ADDRESS_TEST_IDS.error);
+    const error: HTMLElement = screen.getByTestId(
+      PUBLIC_ADDRESS_TEST_IDS.error,
+    );
 
     expect(error).toHaveTextContent(PublicAddressCopy.loadError);
     // No offer to add a domain while nobody knows whether there is one.
@@ -1025,7 +1039,9 @@ describe("while the domains are read, and when they cannot be", () => {
       screen.queryByTestId(PUBLIC_ADDRESS_TEST_IDS.addCustomDomain),
     ).not.toBeInTheDocument();
 
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "live" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
 
     await act(async () => {
       fireEvent.click(
@@ -1164,7 +1180,9 @@ describe("an address the URL type would refuse", () => {
   });
 
   test("a live address opens in a new tab without handing the new page this one", async () => {
-    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "live" }];
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
 
     await renderList();
 

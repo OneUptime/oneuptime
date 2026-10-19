@@ -1,4 +1,7 @@
-import { CustomDomainStateInput, getCustomDomainState } from "./CustomDomainCopy";
+import {
+  CustomDomainStateInput,
+  getCustomDomainState,
+} from "./CustomDomainCopy";
 import PublicAddressCopy, {
   getCustomDomainUrl,
   isCustomDomainLive,
@@ -41,7 +44,10 @@ const CustomDomainName: FunctionComponent<ComponentProps> = (
 
   if (!isLive) {
     return (
-      <span className="break-all" data-testid={CUSTOM_DOMAIN_NAME_TEST_IDS.name}>
+      <span
+        className="break-all"
+        data-testid={CUSTOM_DOMAIN_NAME_TEST_IDS.name}
+      >
         {fullDomain}
       </span>
     );

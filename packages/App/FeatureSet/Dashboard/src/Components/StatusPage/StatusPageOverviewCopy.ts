@@ -72,7 +72,8 @@ export const StatusPageOverviewCopy: {
 export const STATUS_PAGE_LINK_TEST_ID: string = "status-page-link";
 
 // Its line saying that visitors sign in, or enter a password.
-export const STATUS_PAGE_LINK_ACCESS_TEST_ID: string = "status-page-link-access";
+export const STATUS_PAGE_LINK_ACCESS_TEST_ID: string =
+  "status-page-link-access";
 
 // The domain the card's "such as" names: what most status pages use.
 export const STATUS_PAGE_EXAMPLE_DOMAIN: string = "status.example.com";

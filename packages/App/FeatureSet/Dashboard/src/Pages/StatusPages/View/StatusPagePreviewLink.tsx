@@ -124,7 +124,9 @@ const StatusPagePreviewLink: FunctionComponent<ComponentProps> = (
           )}
           className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
         >
-          {translator.translateText(StatusPageOverviewCopy.linkCardChangeAccess)}
+          {translator.translateText(
+            StatusPageOverviewCopy.linkCardChangeAccess,
+          )}
         </Link>
       </p>
     </div>

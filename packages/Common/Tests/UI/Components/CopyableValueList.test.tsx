@@ -108,9 +108,7 @@ describe("one row per value", () => {
       const term: HTMLElement = screen.getByText(item.label);
 
       expect(term.nextElementSibling?.textContent).toBe(item.value);
-      expect(screen.getByTestId(item.dataTestId)).toHaveTextContent(
-        item.value,
-      );
+      expect(screen.getByTestId(item.dataTestId)).toHaveTextContent(item.value);
       expect(screen.getByText(item.value, { exact: true })).toBe(
         screen.getByTestId(item.dataTestId),
       );
@@ -149,9 +147,9 @@ describe("copying", () => {
   test("the button sits in the value's row, beside it", () => {
     render(list());
 
-    const row: HTMLElement = screen.getByTestId("entity-id").closest(
-      "div.flex",
-    ) as HTMLElement;
+    const row: HTMLElement = screen
+      .getByTestId("entity-id")
+      .closest("div.flex") as HTMLElement;
 
     expect(
       within(row).getByRole("button", {

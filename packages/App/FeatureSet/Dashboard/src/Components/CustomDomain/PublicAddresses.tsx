@@ -185,9 +185,11 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
    * A quiet read (after DNS Setup's Check now) keeps the list on screen
    * until the answer is in.
    */
-  const readDomains: (options: { isQuiet: boolean }) => Promise<void> = async (
-    options: { isQuiet: boolean },
-  ): Promise<void> => {
+  const readDomains: (options: {
+    isQuiet: boolean;
+  }) => Promise<void> = async (options: {
+    isQuiet: boolean;
+  }): Promise<void> => {
     readRef.current += 1;
     const read: number = readRef.current;
 

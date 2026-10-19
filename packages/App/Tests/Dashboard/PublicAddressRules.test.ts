@@ -62,9 +62,12 @@ function domain(
     id: id,
     fullDomain: fullDomain,
     isCnameVerified: !["dns", "uploadedBeforeDns"].includes(state),
-    isSslOrdered: !["dns", "unordered", "uploaded", "uploadedBeforeDns"].includes(
-      state,
-    ),
+    isSslOrdered: ![
+      "dns",
+      "unordered",
+      "uploaded",
+      "uploadedBeforeDns",
+    ].includes(state),
     isSslProvisioned: ["live", "expired", "renewal"].includes(state),
     isCustomCertificate: ["uploaded", "uploadedBeforeDns"].includes(state),
   };
@@ -77,7 +80,10 @@ function certificateFor(
 ): CustomDomainCertificate | undefined {
   switch (state) {
     case "live":
-      return { domainId: row.id, expiresAt: new Date(NOW.getTime() + 60 * DAY) };
+      return {
+        domainId: row.id,
+        expiresAt: new Date(NOW.getTime() + 60 * DAY),
+      };
     case "issuing":
       return { domainId: row.id };
     case "failed":
@@ -106,7 +112,11 @@ function addressesOf(
     CustomDomainCertificate
   >();
   const domains: Array<Domain> = rows.map(
-    ([id, fullDomain, state]: [string, string, Parameters<typeof domain>[2]]) => {
+    ([id, fullDomain, state]: [
+      string,
+      string,
+      Parameters<typeof domain>[2],
+    ]) => {
       const row: Domain = domain(id, fullDomain, state);
       const certificate: CustomDomainCertificate | undefined = certificateFor(
         row,
@@ -139,9 +149,8 @@ function summary(addresses: Array<PublicAddress<Domain>>): Array<string> {
 
 describe("which custom domain is live", () => {
   test("every state the Custom Domains page knows is either live or not", () => {
-    const live: Array<CustomDomainState> = Object.values(
-      CustomDomainState,
-    ).filter(isCustomDomainLive);
+    const live: Array<CustomDomainState> =
+      Object.values(CustomDomainState).filter(isCustomDomainLive);
 
     expect([...live].sort()).toEqual([...LIVE_CUSTOM_DOMAIN_STATES].sort());
     expect(new Set(LIVE_CUSTOM_DOMAIN_STATES)).toEqual(
@@ -171,33 +180,24 @@ describe("which custom domain is live", () => {
       "uploadedBeforeDns",
       false,
     ],
-  ])(
-    "%s: %s",
-    (
-      _label: string,
-      state: string,
-      isLive: boolean,
-    ) => {
-      const addresses: Array<PublicAddress<Domain>> = addressesOf([
-        ["d1", "status.acme.com", state as Parameters<typeof domain>[2]],
-      ]);
+  ])("%s: %s", (_label: string, state: string, isLive: boolean) => {
+    const addresses: Array<PublicAddress<Domain>> = addressesOf([
+      ["d1", "status.acme.com", state as Parameters<typeof domain>[2]],
+    ]);
 
-      expect(addresses[0]!.kind).toBe(PublicAddressKind.CustomDomain);
-      expect(addresses[0]!.isLive).toBe(isLive);
-    },
-  );
+    expect(addresses[0]!.kind).toBe(PublicAddressKind.CustomDomain);
+    expect(addresses[0]!.isLive).toBe(isLive);
+  });
 
   test("without its certificate (not read, or the read failed), the row's own flags decide", () => {
     const provisioned: Domain = domain("d1", "status.acme.com", "live");
     const waiting: Domain = domain("d2", "status-eu.acme.com", "issuing");
 
-    const addresses: Array<PublicAddress<Domain>> = getPublicAddresses<Domain>(
-      {
-        domains: [provisioned, waiting],
-        oneUptimeUrl: ONEUPTIME_URL,
-        now: NOW,
-      },
-    );
+    const addresses: Array<PublicAddress<Domain>> = getPublicAddresses<Domain>({
+      domains: [provisioned, waiting],
+      oneUptimeUrl: ONEUPTIME_URL,
+      now: NOW,
+    });
 
     expect(summary(addresses)).toEqual([
       "live status.acme.com",
@@ -208,16 +208,14 @@ describe("which custom domain is live", () => {
 
   test("a certificate that expired a moment ago is not live, though the row still says provisioned", () => {
     const row: Domain = domain("d1", "status.acme.com", "live");
-    const addresses: Array<PublicAddress<Domain>> = getPublicAddresses<Domain>(
-      {
-        domains: [row],
-        getCertificate: (): CustomDomainCertificate => {
-          return { domainId: "d1", expiresAt: new Date(NOW.getTime() - 1000) };
-        },
-        oneUptimeUrl: ONEUPTIME_URL,
-        now: NOW,
+    const addresses: Array<PublicAddress<Domain>> = getPublicAddresses<Domain>({
+      domains: [row],
+      getCertificate: (): CustomDomainCertificate => {
+        return { domainId: "d1", expiresAt: new Date(NOW.getTime() - 1000) };
       },
-    );
+      oneUptimeUrl: ONEUPTIME_URL,
+      now: NOW,
+    });
 
     expect(addresses[0]!.isLive).toBe(false);
     expect(addresses[0]!.state).toBe(CustomDomainState.CertificateExpired);
@@ -293,18 +291,16 @@ describe("the order of the addresses", () => {
   });
 
   test("a row without a domain name is left out: there is nothing to show or open", () => {
-    const addresses: Array<PublicAddress<Domain>> = getPublicAddresses<Domain>(
-      {
-        domains: [
-          { ...domain("d1", "", "live") },
-          { ...domain("d2", "   ", "live") },
-          { id: "d3", isCnameVerified: true },
-          domain("d4", " status.acme.com ", "live"),
-        ],
-        oneUptimeUrl: ONEUPTIME_URL,
-        now: NOW,
-      },
-    );
+    const addresses: Array<PublicAddress<Domain>> = getPublicAddresses<Domain>({
+      domains: [
+        { ...domain("d1", "", "live") },
+        { ...domain("d2", "   ", "live") },
+        { id: "d3", isCnameVerified: true },
+        domain("d4", " status.acme.com ", "live"),
+      ],
+      oneUptimeUrl: ONEUPTIME_URL,
+      now: NOW,
+    });
 
     expect(summary(addresses)).toEqual([
       "live status.acme.com",

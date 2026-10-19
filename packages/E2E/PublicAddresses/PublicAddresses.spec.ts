@@ -307,10 +307,7 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
 
     const link: Locator = only.getByRole("link");
 
-    await expect(link).toHaveAttribute(
-      "href",
-      `https://${ONEUPTIME_ADDRESS}`,
-    );
+    await expect(link).toHaveAttribute("href", `https://${ONEUPTIME_ADDRESS}`);
     await expect(link).toHaveAttribute("target", "_blank");
 
     const copy: Locator = only.getByRole("button", {
@@ -387,8 +384,10 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
       );
     }
 
-    // DNS Setup where there is something to do - not while a certificate
-    // is being issued, which only needs waiting for.
+    /*
+     * DNS Setup where there is something to do - not while a certificate
+     * is being issued, which only needs waiting for.
+     */
     await expect(
       row(page, "status-eu.acme.com").getByTestId("public-address-dns-setup"),
     ).toBeVisible();
@@ -398,9 +397,7 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
       ),
     ).toBeVisible();
     await expect(
-      row(page, "status-apac.acme.com").getByTestId(
-        "public-address-dns-setup",
-      ),
+      row(page, "status-apac.acme.com").getByTestId("public-address-dns-setup"),
     ).toHaveCount(0);
 
     // The Copy link and DNS Setup buttons are one size, lined up.
@@ -653,7 +650,11 @@ test.describe("a status page's Overview: the Status Page Link card", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, `${STATUS_PAGE}?theme=dark&access=signin&${SEVERAL}`, 1280);
+    await open(
+      page,
+      `${STATUS_PAGE}?theme=dark&access=signin&${SEVERAL}`,
+      1280,
+    );
 
     const live: Locator = row(page, "status.acme.com");
     const background: string = await backgroundOf(live);
@@ -785,9 +786,7 @@ test.describe("a dashboard's Sharing page: under the public choice", () => {
     page: Page;
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto(
-      `${SHARING}?share=private&domains=live:status.acme.com`,
-    );
+    await page.goto(`${SHARING}?share=private&domains=live:status.acme.com`);
 
     await expect(
       page.getByTestId("dashboard-access-ProjectOnly-row"),

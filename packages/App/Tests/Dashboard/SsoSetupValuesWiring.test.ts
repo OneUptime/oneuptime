@@ -60,7 +60,12 @@ const PLACES: Array<Place> = [
   },
   {
     name: "a project's OIDC providers (Settings > SSO)",
-    file: path.join(DASHBOARD_SRC, "Components", "Sso", "ProjectOidcProviders.tsx"),
+    file: path.join(
+      DASHBOARD_SRC,
+      "Components",
+      "Sso",
+      "ProjectOidcProviders.tsx",
+    ),
     labels: ["Redirect URI (Callback URL):", "Identifier (audience):"],
   },
   {
@@ -134,9 +139,12 @@ describe("every place an identity provider's values are shown", () => {
         },
       );
 
-      expect([place.name, [...positions].sort((a: number, b: number) => {
-        return a - b;
-      })]).toEqual([place.name, positions]);
+      expect([
+        place.name,
+        [...positions].sort((a: number, b: number) => {
+          return a - b;
+        }),
+      ]).toEqual([place.name, positions]);
     }
   });
 });

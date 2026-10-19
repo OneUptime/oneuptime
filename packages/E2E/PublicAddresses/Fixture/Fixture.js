@@ -190,9 +190,7 @@ function domainRow(ModelType, parentColumn, parentId, spec) {
   record.subdomain = spec.fullDomain.split(".")[0];
   record.isCnameVerified = spec.state !== "dns";
   record.isSslOrdered = !["dns", "unordered", "uploaded"].includes(spec.state);
-  record.isSslProvisioned = ["live", "expired", "renewal"].includes(
-    spec.state,
-  );
+  record.isSslProvisioned = ["live", "expired", "renewal"].includes(spec.state);
   record.isCustomCertificate = spec.state === "uploaded";
   return record;
 }

@@ -135,9 +135,7 @@ describe("the status page's Overview", () => {
     expect(card).toContain("<PublicAddresses");
     expect(card).toContain("kind={STATUS_PAGE_CUSTOM_DOMAINS}");
     expect(card).toContain("parentId={props.modelId}");
-    expect(card).toContain(
-      "`${STATUS_PAGE_URL.toString()}/${modelIdString}`",
-    );
+    expect(card).toContain("`${STATUS_PAGE_URL.toString()}/${modelIdString}`");
     expect(card).toContain("PageMap.STATUS_PAGE_VIEW_DOMAINS");
     expect(card).toContain("exampleDomain={STATUS_PAGE_EXAMPLE_DOMAIN}");
     expect(card).toContain("note={accessNote}");
@@ -156,9 +154,7 @@ describe("the status page's Overview", () => {
     );
     // Change access opens the Access page (its address is the old one).
     expect(card).toContain("PageMap.STATUS_PAGE_VIEW_AUTHENTICATION_SETTINGS");
-    expect(card).toContain(
-      "data-testid={STATUS_PAGE_LINK_ACCESS_TEST_ID}",
-    );
+    expect(card).toContain("data-testid={STATUS_PAGE_LINK_ACCESS_TEST_ID}");
     expect(STATUS_PAGE_LINK_ACCESS_TEST_ID).toBe("status-page-link-access");
     // A public page needs no line, and the card never names the columns.
     expect(card).not.toContain("StatusPageAccess.Anyone");

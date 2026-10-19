@@ -55,7 +55,8 @@ const CopyableValueList: FunctionComponent<ComponentProps> = (
       data-testid={props.dataTestId}
     >
       {props.values.map((item: CopyableValue): ReactElement => {
-        const label: string = translator.translateText(item.label) || item.label;
+        const label: string =
+          translator.translateText(item.label) || item.label;
 
         return (
           <div

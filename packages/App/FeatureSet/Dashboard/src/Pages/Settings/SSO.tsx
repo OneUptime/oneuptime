@@ -284,7 +284,9 @@ const SSOSettings: FunctionComponent<PageComponentProps> = (
                     },
                     {
                       label: "Reply URL (Assertion Consumer Service URL):",
-                      value: `${URL.fromString(IDENTITY_URL.toString()).addRoute(
+                      value: `${URL.fromString(
+                        IDENTITY_URL.toString(),
+                      ).addRoute(
                         `/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`,
                       )}`,
                     },

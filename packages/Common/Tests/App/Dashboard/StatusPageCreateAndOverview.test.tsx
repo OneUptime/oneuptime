@@ -680,27 +680,47 @@ describe("the Status Page Link card", () => {
   test.each([
     [
       "a public page: no line",
-      { isPublicStatusPage: true, enableMasterPassword: false, hasMasterPassword: false },
+      {
+        isPublicStatusPage: true,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+      },
       null,
     ],
     [
       "a public page whose password switch was left on: still public",
-      { isPublicStatusPage: true, enableMasterPassword: true, hasMasterPassword: true },
+      {
+        isPublicStatusPage: true,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+      },
       null,
     ],
     [
       "a private page: visitors sign in",
-      { isPublicStatusPage: false, enableMasterPassword: false, hasMasterPassword: false },
+      {
+        isPublicStatusPage: false,
+        enableMasterPassword: false,
+        hasMasterPassword: false,
+      },
       "Visitors sign in to see this status page.",
     ],
     [
       "a private page with the password switch on but no password: visitors sign in, as the server holds it",
-      { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: false },
+      {
+        isPublicStatusPage: false,
+        enableMasterPassword: true,
+        hasMasterPassword: false,
+      },
       "Visitors sign in to see this status page.",
     ],
     [
       "a password-protected page: visitors enter the password",
-      { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: true },
+      {
+        isPublicStatusPage: false,
+        enableMasterPassword: true,
+        hasMasterPassword: true,
+      },
       "Visitors enter the password to see this status page.",
     ],
   ])(
@@ -738,8 +758,7 @@ describe("the Status Page Link card", () => {
       );
 
       expect(
-        list.compareDocumentPosition(line!) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
+        list.compareDocumentPosition(line!) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     },
   );
@@ -766,9 +785,9 @@ describe("the Status Page Link card", () => {
 
       expect(screen.queryByTestId(STATUS_PAGE_LINK_ACCESS_TEST_ID)).toBeNull();
       expect(screen.queryByText("Network down")).toBeNull();
-      expect(
-        screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row),
-      ).toHaveLength(1);
+      expect(screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row)).toHaveLength(
+        1,
+      );
     },
   );
 });

@@ -157,9 +157,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
         const getElement: unknown = domainColumn?.getElement;
 
         return typeof getElement === "function"
-          ? (getElement as (row: CustomDomainModel) => React.ReactElement)(
-              item,
-            )
+          ? (getElement as (row: CustomDomainModel) => React.ReactElement)(item)
           : item.fullDomain;
       };
 
@@ -552,22 +550,24 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       ).not.toBeInTheDocument();
       expect(statusOf(PROVISIONED)).toContain("Certificate expired");
       // The uploaded certificate's domain is still live.
-      expect(
-        within(domainCellOf(UPLOADED)).getByRole("link"),
-      ).toHaveAttribute("href", `https://${UPLOADED}`);
+      expect(within(domainCellOf(UPLOADED)).getByRole("link")).toHaveAttribute(
+        "href",
+        `https://${UPLOADED}`,
+      );
     });
 
     test("the column still reads, sorts and filters by the domain's full name", () => {
       renderPage();
 
-      const column: { field?: Record<string, unknown>; type?: unknown } =
-        (tableProps().columns as Array<{
+      const column: { field?: Record<string, unknown>; type?: unknown } = (
+        tableProps().columns as Array<{
           title: string;
           field?: Record<string, unknown>;
           type?: unknown;
-        }>).find((candidate: { title: string }) => {
-          return candidate.title === "Domain";
-        })!;
+        }>
+      ).find((candidate: { title: string }) => {
+        return candidate.title === "Domain";
+      })!;
 
       expect(column.field).toEqual({ fullDomain: true });
       expect(column.type).toBe(FieldType.Element);

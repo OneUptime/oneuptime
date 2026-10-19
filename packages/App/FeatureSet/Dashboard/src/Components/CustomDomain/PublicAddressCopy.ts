@@ -128,10 +128,12 @@ export const getAddressParts: (url: string) => {
 };
 
 // The address as the row writes it: host and path, without the scheme.
-export const getAddressText: (address: { host: string; path: string }) => string =
-  (address: { host: string; path: string }): string => {
-    return `${address.host}${address.path}`;
-  };
+export const getAddressText: (address: {
+  host: string;
+  path: string;
+}) => string = (address: { host: string; path: string }): string => {
+  return `${address.host}${address.path}`;
+};
 
 const compareDomains: (first: string, second: string) => number = (
   first: string,
@@ -154,7 +156,9 @@ const compareDomains: (first: string, second: string) => number = (
  * address. A row without a domain name is left out: there is nothing to
  * show or open.
  */
-export const getPublicAddresses: <TDomain extends PublicAddressDomainInput>(data: {
+export const getPublicAddresses: <
+  TDomain extends PublicAddressDomainInput,
+>(data: {
   domains: ReadonlyArray<TDomain>;
   getCertificate?:
     | ((domain: TDomain) => CustomDomainCertificate | undefined)
@@ -180,8 +184,9 @@ export const getPublicAddresses: <TDomain extends PublicAddressDomainInput>(data
       continue;
     }
 
-    const certificate: CustomDomainCertificate | undefined =
-      data.getCertificate ? data.getCertificate(domain) : undefined;
+    const certificate: CustomDomainCertificate | undefined = data.getCertificate
+      ? data.getCertificate(domain)
+      : undefined;
     const state: CustomDomainState = getCustomDomainState(
       domain,
       certificate,
@@ -201,10 +206,7 @@ export const getPublicAddresses: <TDomain extends PublicAddressDomainInput>(data
   }
 
   customDomains.sort(
-    (
-      first: PublicAddress<TDomain>,
-      second: PublicAddress<TDomain>,
-    ): number => {
+    (first: PublicAddress<TDomain>, second: PublicAddress<TDomain>): number => {
       if (first.isLive !== second.isLive) {
         return first.isLive ? -1 : 1;
       }
@@ -229,10 +231,11 @@ export const getPublicAddresses: <TDomain extends PublicAddressDomainInput>(data
  * verified domain on the free certificate. The list asks for the
  * certificates only when one does.
  */
-export const isCertificateNeededFor: (domain: CustomDomainStateInput) => boolean =
-  (domain: CustomDomainStateInput): boolean => {
-    return Boolean(domain.isCnameVerified) && !domain.isCustomCertificate;
-  };
+export const isCertificateNeededFor: (
+  domain: CustomDomainStateInput,
+) => boolean = (domain: CustomDomainStateInput): boolean => {
+  return Boolean(domain.isCnameVerified) && !domain.isCustomCertificate;
+};
 
 /*
  * Why a custom domain is not live yet, in the words its Status column on
