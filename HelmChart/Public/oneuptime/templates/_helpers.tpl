@@ -12,6 +12,61 @@ Usage:
 {{- end -}}
 
 {{/*
+The name the bundled Altinity operator chart gives its resources (its own
+"altinity-clickhouse-operator.fullname"), worked out from its values: the
+operator reads its credentials Secret by that name (its config.yaml's
+clickhouse.access.secret.name), and this chart renders that Secret.
+*/}}
+{{- define "oneuptime.altinityOperator.fullname" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- if $values.fullnameOverride -}}
+{{- $values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default "altinity-clickhouse-operator" $values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The namespace the bundled Altinity operator runs in, as its chart decides it.
+*/}}
+{{- define "oneuptime.altinityOperator.namespace" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- $values.namespaceOverride | default .Release.Namespace -}}
+{{- end -}}
+
+{{/*
+The password of the operator's own ClickHouse user as values or the cluster
+already hold it: the one set in values, else the one its Secret stores, else
+nothing - and the Secret's template then makes a random one.
+*/}}
+{{- define "oneuptime.altinityOperator.password" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- $secret := $values.secret | default dict -}}
+{{- if $secret.password -}}
+{{- $secret.password -}}
+{{- else -}}
+{{- $stored := ((lookup "v1" "Secret" (include "oneuptime.altinityOperator.namespace" .) (include "oneuptime.altinityOperator.fullname" .)).data) | default dict -}}
+{{- if (index $stored "password") -}}
+{{- index $stored "password" | b64dec -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The password the bundled Altinity operator's chart ships to every
+installation. A value of the installation's own replaces it (secrets.yaml);
+NOTES.txt says so to an installation that still runs with it.
+*/}}
+{{- define "oneuptime.altinityOperator.shippedPassword" -}}
+clickhouse_operator_password
+{{- end -}}
+
+{{/*
 The effective settings for the cache/queue tier, which runs Valkey.
 
 These lived under `redis:` and `externalRedis:` until 13.0.0. Both old keys are
@@ -655,9 +710,9 @@ to `default`, and would render as unset - a relay again where billing is on.
   {{- end }}
 
 {{- /*
-Cloud marketplaces (AWS, Microsoft, Google Cloud Marketplace). Read only where
-billing is enabled; each marketplace is offered only when all of its values
-are set. Secrets can come from an existing Kubernetes secret.
+Cloud marketplaces (AWS, Microsoft, Google Cloud and Vercel Marketplace). Read
+only where billing is enabled; each marketplace is offered only when all of its
+values are set. Secrets can come from an existing Kubernetes secret.
 */}}
 - name: AWS_MARKETPLACE_ACCESS_KEY_ID
   value: {{ default "" ((($.Values.cloudMarketplace).aws).accessKeyId) | quote }}
@@ -715,6 +770,17 @@ are set. Secrets can come from an existing Kubernetes secret.
   value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).signupAudience) | quote }}
 - name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE
   value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).pubSubAudience) | quote }}
+- name: VERCEL_MARKETPLACE_CLIENT_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).vercel).clientId) | quote }}
+- name: VERCEL_MARKETPLACE_CLIENT_SECRET
+  {{- if ((($.Values.cloudMarketplace).vercel).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.vercel.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.vercel.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).vercel).clientSecret) | quote }}
+  {{- end }}
 
 - name: CAPTCHA_SECRET_KEY
   value: {{ default "" $.Values.captcha.secretKey | quote }}

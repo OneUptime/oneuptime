@@ -598,8 +598,9 @@ class ReleasedChartsTest(unittest.TestCase):
     def agent_chart(self, directory: Path, with_the_add_on: bool) -> Path:
         chart: Path = directory / ("new" if with_the_add_on else "old")
         chart.mkdir()
-        secret: str = '  existingSecretName: ""\n' if with_the_add_on else ""
-        (chart / "values.yaml").write_text('oneuptime:\n  url: ""\n' + secret)
+        # The values key the add-on brought: a key with an empty value, no secret.
+        add_on_key: str = '  existingSecretName: ""\n' if with_the_add_on else ""
+        (chart / "values.yaml").write_text('oneuptime:\n  url: ""\n' + add_on_key)
         return chart
 
     def predates(self, chart: Path, released: str) -> bool:

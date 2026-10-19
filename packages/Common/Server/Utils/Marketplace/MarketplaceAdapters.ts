@@ -3,6 +3,7 @@ import AwsMarketplaceAdapter from "./AWS/AwsMarketplaceAdapter";
 import AzureMarketplaceAdapter from "./Azure/AzureMarketplaceAdapter";
 import GoogleCloudMarketplaceAdapter from "./GoogleCloud/GoogleCloudMarketplaceAdapter";
 import MarketplaceAdapter from "./MarketplaceAdapter";
+import VercelMarketplaceAdapter from "./Vercel/VercelMarketplaceAdapter";
 
 /*
  * One adapter per marketplace, made on first use: each holds an API client
@@ -46,6 +47,8 @@ export default class MarketplaceAdapters {
         return new AzureMarketplaceAdapter();
       case CloudMarketplace.GoogleCloud:
         return new GoogleCloudMarketplaceAdapter();
+      case CloudMarketplace.Vercel:
+        return new VercelMarketplaceAdapter();
     }
   }
 }

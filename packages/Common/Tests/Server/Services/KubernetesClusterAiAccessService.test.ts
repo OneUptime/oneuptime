@@ -2573,6 +2573,34 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       expect(runnerUpdates).toHaveLength(0);
     });
 
+    it.each([
+      ["the placeholder", "please-change-this-to-random-value"],
+      ["the old fallback", "secret"],
+      ["a padded placeholder", " please-change-this-to-random-value "],
+    ])(
+      "a row from before the write rule that holds a shipped key (%s) is not proved by presenting it",
+      async (_label: string, shippedKey: string) => {
+        jest
+          .spyOn(KubernetesClusterService, "findOneBy")
+          .mockResolvedValue(fakeCluster({ aiAccessRunnerId: RUNNER_ID }));
+        mockRunnerLookups({ bound: onlineAgentRunner({ key: shippedKey }) });
+
+        await expect(
+          KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+            projectId: PROJECT_ID,
+            clusterIdentifier: "prod-us",
+            posture: { allowWrites: true },
+            previousRunnerKey: shippedKey,
+          }),
+        ).rejects.toThrow(ForbiddenException);
+
+        // Nothing rotated: the row keeps its key, and no feed item says otherwise.
+        expect(runnerUpdates).toHaveLength(0);
+        expect(clusterUpdates).toHaveLength(0);
+        expect(feedItems).toHaveLength(0);
+      },
+    );
+
     it("applies the same rule to the by-name agent row of an unbound cluster", async () => {
       jest
         .spyOn(KubernetesClusterService, "findOneBy")

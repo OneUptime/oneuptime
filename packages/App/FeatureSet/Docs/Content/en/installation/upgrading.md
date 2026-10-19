@@ -1434,6 +1434,33 @@ API, SSO, or the Slack and Microsoft Teams apps.
   shows: until then that probe or Runner cannot register. Custom probes and
   Runners you installed yourself, which already have their own keys, and an
   installation that set its own keys, see no change.
+- **Probes, Runners, the infrastructure agent and OneUptime's own services
+  follow redirects only on the server they call.** A request that carries one
+  of their keys follows a redirect to the same address, or to that address
+  moved from `http` to `https`, and nowhere else: a redirect to another server
+  fails the request, with an error that names that server. If your OneUptime
+  address redirects to another host name, such as an old domain to a new one,
+  set `ONEUPTIME_URL` on your probes and Runners, and the infrastructure
+  agent's `--oneuptime-url`, to the address it redirects to. An address that
+  answers directly, or only moves from `http` to `https`, sees no change.
+- **The bundled ClickHouse and Valkey get passwords of their own.** When
+  `CLICKHOUSE_PASSWORD` or `VALKEY_PASSWORD` in `config.env` is still the
+  `config.example.env` placeholder, `npm start` and `npm run update` now give
+  it a random value, on an existing install too. That is done only while
+  `CLICKHOUSE_HOST` or `VALKEY_HOST` names the ClickHouse or Valkey that Docker
+  Compose runs: both take their password each time they start, so the same
+  start recreates them with the new one, and ClickHouse keeps its data. A tool
+  of your own that signs in to either needs the new value from `config.env`. A
+  placeholder for a ClickHouse or cache you run elsewhere is left as it is, and
+  `npm start` says so. At startup, the app now also warns when
+  `REGISTER_PROBE_KEY` is unset or a value the repository ships, or a datastore
+  password is one. A probe's, a Runner's or an AI agent's key can no longer be
+  set to such a value, and a Runner of yours that has one stops connecting
+  until you reset its key in the dashboard and give the Runner the new one.
+  With Helm and the Altinity operator (`clickhouseOperator.altinity.enabled`),
+  a new install gives the operator's own ClickHouse user a random password
+  instead of the one its chart ships to every installation. An existing install
+  keeps its password, and `helm upgrade` says how to change it.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

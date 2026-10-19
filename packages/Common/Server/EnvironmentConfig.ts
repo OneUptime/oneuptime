@@ -667,6 +667,16 @@ export const IsRegisterProbeKeyShipped: boolean = isShippedSecretValue(
   process.env["REGISTER_PROBE_KEY"],
 );
 
+/*
+ * Said once at boot by the app (App/Index.ts) when REGISTER_PROBE_KEY is
+ * unset or a value this repository ships, or null: every global probe's
+ * registration is refused until it is the installation's own, and the probe
+ * says so only in its own log.
+ */
+export const RegisterProbeKeyWarning: string | null = IsRegisterProbeKeyShipped
+  ? 'REGISTER_PROBE_KEY is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value, so no probe can register as a global probe until REGISTER_PROBE_KEY is a long random value, the same on the app and on every global probe. npm start and npm run update put one in config.env for Docker Compose; with Helm, leave registerProbeKey empty to have the chart generate one, or set it to one.'
+  : null;
+
 export const AppApiHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_APP_HOSTNAME"] || "localhost"}:${
     process.env["APP_PORT"] || 80
@@ -870,6 +880,63 @@ export const ClickhouseUsername: string =
 
 export const ClickhousePassword: string =
   process.env["CLICKHOUSE_PASSWORD"] || "password";
+
+/*
+ * THE DATASTORE PASSWORDS
+ *
+ * config.example.env ships DATABASE_PASSWORD, CLICKHOUSE_PASSWORD and
+ * VALKEY_PASSWORD as placeholders, which are public in this repository. With
+ * Docker Compose, npm start gives the bundled ClickHouse and Valkey random
+ * passwords on any start, and the bundled PostgreSQL one before it creates
+ * its database (Scripts/Install). An installation started another way, or
+ * whose database was created with the placeholder, keeps it until an
+ * operator changes it, which the app cannot do for a datastore. So the app
+ * says, once at boot (App/Index.ts), which of them still holds a value this
+ * repository ships. A blank password is an operator's own choice (a cache
+ * without a password), so only a value that is not blank counts.
+ */
+export const ChangeDatabasePasswordDocsUrl: string =
+  "https://oneuptime.com/docs/installation/docker-compose#change-the-database-password";
+
+export const ShippedDatastorePasswordSettings: Array<string> = (
+  [
+    ["DATABASE_PASSWORD", process.env["DATABASE_PASSWORD"]],
+    ["CLICKHOUSE_PASSWORD", process.env["CLICKHOUSE_PASSWORD"]],
+    // VALKEY_PASSWORD, or the REDIS_PASSWORD it was called before.
+    ["VALKEY_PASSWORD", getCacheEnvVar("PASSWORD")],
+  ] as Array<[string, string | undefined]>
+)
+  .filter((setting: [string, string | undefined]): boolean => {
+    const value: string | undefined = setting[1];
+
+    return (
+      typeof value === "string" &&
+      value.trim() !== "" &&
+      isShippedSecretValue(value)
+    );
+  })
+  .map((setting: [string, string | undefined]): string => {
+    return setting[0];
+  });
+
+// What the app says about `settings`, or null when there are none.
+export function describeShippedDatastorePasswords(
+  settings: Array<string>,
+): string | null {
+  if (settings.length === 0) {
+    return null;
+  }
+
+  const named: string =
+    settings.length === 1
+      ? settings[0]!
+      : `${settings.slice(0, -1).join(", ")} and ${settings[settings.length - 1]}`;
+
+  return `${named} still ${settings.length === 1 ? "holds" : "hold"} a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env), which is public. With Docker Compose, npm start and npm run update give the bundled ClickHouse and Valkey a random password, and ${ChangeDatabasePasswordDocsUrl} shows how to change PostgreSQL's. A datastore OneUptime does not run needs a long random password of its own, set here and on the datastore.`;
+}
+
+export const DatastorePasswordWarning: string | null =
+  describeShippedDatastorePasswords(ShippedDatastorePasswordSettings);
 
 export const ClickhouseDatabase: string =
   process.env["CLICKHOUSE_DATABASE"] || "oneuptime";
@@ -1674,6 +1741,18 @@ export const GoogleCloudMarketplacePubSubServiceAccountEmail: string | null =
   process.env["GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL"] || null;
 export const GoogleCloudMarketplacePubSubAudience: string | null =
   process.env["GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE"] || null;
+
+/*
+ * Vercel Marketplace: OneUptime as a native integration
+ * (Server/Utils/Marketplace/Vercel, VERCEL_RELEASING.md). The integration's
+ * client ID (oac_...) is the audience of every token Vercel signs for
+ * OneUptime; its client secret signs webhooks and drain deliveries and
+ * exchanges sign-in codes.
+ */
+export const VercelMarketplaceClientId: string | null =
+  process.env["VERCEL_MARKETPLACE_CLIENT_ID"] || null;
+export const VercelMarketplaceClientSecret: string | null =
+  process.env["VERCEL_MARKETPLACE_CLIENT_SECRET"] || null;
 
 /*
  * Sign in with Microsoft: a multi-tenant Microsoft Entra app (work, school

@@ -182,6 +182,11 @@ export interface SamlResponseOptions {
   // Replaces the whole <Conditions> element ("" leaves it out).
   rawConditions?: string | undefined;
   displayName?: string | null | undefined;
+  /*
+   * The assertion's attributes, as [Name, value] pairs written as they are:
+   * an <AttributeStatement> of them, in place of the displayName claim.
+   */
+  attributes?: Array<[name: string, value: string]> | undefined;
 }
 
 function attribute(name: string, value: string | null | undefined): string {
@@ -272,8 +277,13 @@ export function buildSamlResponse(options: SamlResponseOptions): string {
           })
           .join("")}</saml:Conditions>`;
 
-  const attributeStatement: string =
-    options.displayName === null || options.displayName === undefined
+  const attributeStatement: string = options.attributes
+    ? `<saml:AttributeStatement>${options.attributes
+        .map(([name, value]: [string, string]): string => {
+          return `<saml:Attribute Name="${name}"><saml:AttributeValue>${value}</saml:AttributeValue></saml:Attribute>`;
+        })
+        .join("")}</saml:AttributeStatement>`
+    : options.displayName === null || options.displayName === undefined
       ? ""
       : `<saml:AttributeStatement><saml:Attribute Name="${MS_DISPLAY_NAME_CLAIM}"><saml:AttributeValue>${options.displayName}</saml:AttributeValue></saml:Attribute></saml:AttributeStatement>`;
 

@@ -8,9 +8,12 @@ needs, and keep it running. Follow the repository's
 
 It does not cover self-hosted OneUptime Enterprise, which the same
 marketplaces sell as a Kubernetes application billed per user-hour: see
-[SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md). Every setting in this
-guide is ignored unless billing is enabled (`BILLING_ENABLED=true`, OneUptime
-Cloud only).
+[SELF_HOSTED_RELEASING.md](SELF_HOSTED_RELEASING.md). OneUptime Cloud is also
+a native integration on the Vercel Marketplace, billed by the same hourly
+usage report and invoiced through Vercel: see
+[VERCEL_RELEASING.md](VERCEL_RELEASING.md). Every setting in this guide is
+ignored unless billing is enabled (`BILLING_ENABLED=true`, OneUptime Cloud
+only).
 
 Written on **16 October 2026**, together with the integration code, before any
 listing existed. Nothing in this guide had been submitted to any marketplace

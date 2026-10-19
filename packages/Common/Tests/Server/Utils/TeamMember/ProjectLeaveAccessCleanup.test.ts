@@ -3,6 +3,7 @@ import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import McpOAuthGrantService from "../../../../Server/Services/McpOAuthGrantService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import UserProjectSsoConsentService from "../../../../Server/Services/UserProjectSsoConsentService";
+import UserProjectSsoIdentityService from "../../../../Server/Services/UserProjectSsoIdentityService";
 import logger from "../../../../Server/Utils/Logger";
 import ProjectLeaveAccessCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveAccessCleanup";
 import ProjectLeaveNotificationCleanup from "../../../../Server/Utils/TeamMember/ProjectLeaveNotificationCleanup";
@@ -100,7 +101,7 @@ interface TableSpies {
 }
 
 /*
- * Fakes countBy/deleteBy on both access tables. `rows` is what each holds
+ * Fakes countBy/deleteBy on every access table. `rows` is what each holds
  * for the person (default 1); `failing` tables throw.
  */
 function fakeAccessTables(options?: {
@@ -152,10 +153,11 @@ describe("ProjectLeaveAccessCleanup", () => {
   });
 
   describe("which tables let a person into a project", () => {
-    test("the MCP clients they connected, then their consent to the project's single sign-on", () => {
+    test("the MCP clients they connected, their consent to the project's single sign-on, then the identity their SAML sign-ins are bound to", () => {
       expect(accessTableNames()).toEqual([
         "McpOAuthGrant",
         "UserProjectSsoConsent",
+        "UserProjectSsoIdentity",
       ]);
 
       expect(
@@ -164,6 +166,9 @@ describe("ProjectLeaveAccessCleanup", () => {
       expect(
         ProjectLeaveAccessCleanup.getPersonalAccessTables()[1]!.service,
       ).toBe(UserProjectSsoConsentService);
+      expect(
+        ProjectLeaveAccessCleanup.getPersonalAccessTables()[2]!.service,
+      ).toBe(UserProjectSsoIdentityService);
     });
 
     test("every access table is a per-project table of one person, removed whole", () => {
@@ -249,7 +254,11 @@ describe("ProjectLeaveAccessCleanup", () => {
   describe("removeProjectAccess", () => {
     test("removes each table's rows of that person in that project, as root, clients first", async () => {
       const spies: Record<string, TableSpies> = fakeAccessTables({
-        rows: { McpOAuthGrant: 2, UserProjectSsoConsent: 1 },
+        rows: {
+          McpOAuthGrant: 2,
+          UserProjectSsoConsent: 1,
+          UserProjectSsoIdentity: 3,
+        },
       });
 
       const result: ProjectLeaveRemovalResult =
@@ -259,7 +268,11 @@ describe("ProjectLeaveAccessCleanup", () => {
         });
 
       expect(result).toEqual({
-        removedRowCounts: { McpOAuthGrant: 2, UserProjectSsoConsent: 1 },
+        removedRowCounts: {
+          McpOAuthGrant: 2,
+          UserProjectSsoConsent: 1,
+          UserProjectSsoIdentity: 3,
+        },
         failedTables: [],
       });
 
@@ -267,6 +280,11 @@ describe("ProjectLeaveAccessCleanup", () => {
         spies["McpOAuthGrant"]!.deleteBy.mock.invocationCallOrder[0]!,
       ).toBeLessThan(
         spies["UserProjectSsoConsent"]!.deleteBy.mock.invocationCallOrder[0]!,
+      );
+      expect(
+        spies["UserProjectSsoConsent"]!.deleteBy.mock.invocationCallOrder[0]!,
+      ).toBeLessThan(
+        spies["UserProjectSsoIdentity"]!.deleteBy.mock.invocationCallOrder[0]!,
       );
 
       for (const spy of Object.values(spies)) {
@@ -298,10 +316,13 @@ describe("ProjectLeaveAccessCleanup", () => {
 
       expect(spies["McpOAuthGrant"]!.deleteBy).not.toHaveBeenCalled();
       expect(spies["UserProjectSsoConsent"]!.deleteBy).toHaveBeenCalledTimes(1);
-      expect(result.removedRowCounts).toEqual({ UserProjectSsoConsent: 1 });
+      expect(result.removedRowCounts).toEqual({
+        UserProjectSsoConsent: 1,
+        UserProjectSsoIdentity: 1,
+      });
     });
 
-    test("a failing table is logged and named; the other still goes", async () => {
+    test("a failing table is logged and named; the others still go", async () => {
       const spies: Record<string, TableSpies> = fakeAccessTables({
         failing: ["McpOAuthGrant"],
       });
@@ -315,6 +336,9 @@ describe("ProjectLeaveAccessCleanup", () => {
       expect(result.failedTables).toEqual(["McpOAuthGrant"]);
       expect(spies["McpOAuthGrant"]!.deleteBy).not.toHaveBeenCalled();
       expect(spies["UserProjectSsoConsent"]!.deleteBy).toHaveBeenCalledTimes(1);
+      expect(spies["UserProjectSsoIdentity"]!.deleteBy).toHaveBeenCalledTimes(
+        1,
+      );
       expect(logger.error).toHaveBeenCalled();
     });
 
@@ -354,7 +378,7 @@ describe("ProjectLeaveAccessCleanup", () => {
       userId: "33333333-0000-4000-8000-000000000003",
     };
 
-    test("finding them: one statement over both access tables, only rows not deleted, only people with no accepted membership", async () => {
+    test("finding them: one statement over every access table, only rows not deleted, only people with no accepted membership", async () => {
       const query: Mock<(sql: string) => Promise<unknown>> = jest.fn(
         async (): Promise<unknown> => {
           return [P1];
@@ -376,6 +400,9 @@ describe("ProjectLeaveAccessCleanup", () => {
       expect(sql).toContain(`FROM "McpOAuthGrant" WHERE "deletedAt" IS NULL`);
       expect(sql).toContain(
         `FROM "UserProjectSsoConsent" WHERE "deletedAt" IS NULL`,
+      );
+      expect(sql).toContain(
+        `FROM "UserProjectSsoIdentity" WHERE "deletedAt" IS NULL`,
       );
       expect(sql).toContain(" UNION ");
       expect(sql).toContain(`AND NOT EXISTS (SELECT 1 FROM "TeamMember"`);

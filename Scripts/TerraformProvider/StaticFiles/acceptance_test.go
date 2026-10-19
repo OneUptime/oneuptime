@@ -103,10 +103,14 @@ resource "oneuptime_monitor" "test" {
 				ConfigPlanChecks: testAccUpdatesInPlace(address),
 				Check:            resource.TestCheckResourceAttr(address, "description", "Updated by the provider's acceptance tests"),
 			},
+			// The worker that tells a new monitor's owners sets
+			// is_owner_notified_of_resource_creation (and updated_at) on its
+			// own time, after the apply: the import may or may not see it.
 			{
-				ResourceName:      address,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            address,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"is_owner_notified_of_resource_creation", "updated_at"},
 			},
 		},
 	})
@@ -145,10 +149,14 @@ resource "oneuptime_status_page" "test" {
 				ConfigPlanChecks: testAccUpdatesInPlace(address),
 				Check:            resource.TestCheckResourceAttr(address, "page_title", "Acceptance Status (Updated)"),
 			},
+			// As for a monitor: the worker that tells a new status page's
+			// owners sets is_owner_notified_of_resource_creation (and
+			// updated_at) on its own time, after the apply.
 			{
-				ResourceName:      address,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            address,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"is_owner_notified_of_resource_creation", "updated_at"},
 			},
 		},
 	})

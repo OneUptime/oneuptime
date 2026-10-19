@@ -31,6 +31,7 @@ import {
 } from "../../License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../../License/UseEnterpriseLicenseMode";
 import ReadOnlyActionsNotice from "../../TightenOnly/ReadOnlyActionsNotice";
+import ScimOAuthClientCredentials from "../../Components/ScimOAuthClientCredentials";
 import {
   buildRotateBearerTokenUpdate,
   generateScimBearerToken,
@@ -43,7 +44,9 @@ import {
  * description wait under Advanced at their defaults (../../ScimFormFields).
  * Once it is saved, the dialog with the SCIM URLs and the bearer token to
  * give the identity provider opens straight away: that is the next thing to
- * do.
+ * do. The same dialog makes the OAuth 2.0 client secret for identity
+ * providers that ask for client credentials instead of a bearer token
+ * (../../Components/ScimOAuthClientCredentials).
  */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -154,6 +157,8 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 selectMoreFields={{
                   bearerToken: true,
+                  oauthClientSecretExpiresAt: true,
+                  oauthPreviousClientSecretExpiresAt: true,
                 }}
                 filters={[]}
                 columns={[
@@ -283,6 +288,24 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 <strong>Note:</strong> Make sure to use this bearer token in the
                 Authorization header when making SCIM API requests.
               </p>
+              <br />
+              <ScimOAuthClientCredentials
+                key={showSCIMUrlId}
+                connectionType="status-page"
+                connectionId={showSCIMUrlId}
+                clientSecretExpiresAt={
+                  currentSCIMConfig.oauthClientSecretExpiresAt
+                }
+                previousClientSecretExpiresAt={
+                  currentSCIMConfig.oauthPreviousClientSecretExpiresAt
+                }
+                canChange={!isReadOnly}
+                onChange={() => {
+                  setRefresher((value: boolean) => {
+                    return !value;
+                  });
+                }}
+              />
             </div>
           }
           submitButtonText={"Close"}

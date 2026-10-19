@@ -90,6 +90,12 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 > [!TIP]
 > Slack och Microsoft Teams har också arbetsflödessteg. Använd den inbyggda anslutningen för incidentkanaler och jour, och ett arbetsflödessteg när du bara behöver ett meddelande i en kanal.
 
+### Hostingplattformar
+
+| Verktyg | Riktning | Vad det gör |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Inkommande | Lägg till OneUptime från Vercel Marketplace: spår, loggar, drifttidsmonitorer och en statussida för dina Vercel-projekt. |
+
 ## Byt från ett annat verktyg
 
 För att lämna ett annat verktyg för jour, drifttid eller statussidor tar du över ditt team i stället för att ansluta de två. **Projektinställningar → Importera från ett annat verktyg** läser ditt konto med en API-nyckel, visar vad det hittade och skapar det du kryssar i. Varje verktyg har en guide:

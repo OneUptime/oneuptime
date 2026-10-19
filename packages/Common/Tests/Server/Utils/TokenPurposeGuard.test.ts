@@ -91,6 +91,8 @@ const SESSION_MINTERS: Array<string> = [
  * the readers above has already taken for what it is.
  */
 const RAW_CLAIM_READERS: Record<string, string> = {
+  "ee/Server/Identity/Utils/SCIMOAuth.ts":
+    "a SCIM connection's OAuth access token, by its own purpose, connection and client secret",
   "packages/App/FeatureSet/Identity/API/GlobalOIDC.ts":
     "the state cookie of a Global OIDC sign-in in flight, matched to the provider's answer",
   "packages/App/FeatureSet/Identity/API/OIDC.ts":
