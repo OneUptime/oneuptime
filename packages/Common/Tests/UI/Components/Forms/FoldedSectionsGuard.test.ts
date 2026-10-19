@@ -23,7 +23,8 @@ import {
  *     hand-built editor such as the monitor form, a FoldedSection titled
  *     MORE_FIELDS_SECTION_TITLE that lists what it holds;
  *   - on a page, "More settings": AdvancedPageSection.
- * Each lists what is inside while folded, the set ones as chips.
+ * Each lists what is inside while folded, the set ones with what they are
+ * set to.
  *
  * This guard keeps it so. Across every front end (Dashboard, Admin
  * Dashboard, Status Page, Accounts, Common UI and ee) it fails:
