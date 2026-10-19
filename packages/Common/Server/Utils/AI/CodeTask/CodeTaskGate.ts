@@ -35,8 +35,8 @@ import ObjectID from "../../../../Types/ObjectID";
  * WHETHER AI MAY START OR CONTINUE A TASK IN A REPOSITORY, AND IF NOT, WHY.
  *
  * Everything that gates AI work anywhere in OneUptime, asked in the order a
- * person would fix it: permission to edit the repository, the plan and the
- * subscription, the project's one AI switch (Project.enableAi), a repository
+ * person would fix it: the subscription and the plan, permission to edit the
+ * repository, the project's one AI switch (Project.enableAi), a repository
  * the GitHub App can reach, an LLM provider with credits behind it, the
  * project's own daily AI limits, and a Runner online to do the work.
  *
@@ -49,10 +49,10 @@ import ObjectID from "../../../../Types/ObjectID";
  */
 
 export const CODE_TASK_PLAN_REQUIRED_MESSAGE: string =
-  "AI in Code needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing.";
+  "AI in Code needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing.";
 
 export const CODE_TASK_SUBSCRIPTION_UNPAID_MESSAGE: string =
-  "This project's subscription is unpaid. Update the payment method in Project Settings > Billing to use AI.";
+  "This project's subscription is unpaid. Update the payment method in Project Settings > Billing and Invoices > Billing to use AI.";
 
 export const CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE: string =
   "AI can only work in a GitHub repository connected through the GitHub App, and this one is not. Connect GitHub again from Code.";
@@ -70,15 +70,14 @@ export default class CodeTaskGate {
     canAsk: boolean;
     billingEnabled?: boolean | undefined;
   }): Promise<CodeTaskBlocker | null> {
-    if (!data.canAsk) {
-      return {
-        type: CodeTaskBlockerType.NoPermission,
-        message: CODE_TASK_ASK_REFUSED_MESSAGE,
-      };
-    }
-
     const billingEnabled: boolean = data.billingEnabled ?? IsBillingEnabled;
 
+    /*
+     * The bill and the plan come first: they stop everyone in the project,
+     * and a plan below the repositories' own also reads as "may not edit
+     * the repository" - which would send people to an admin who cannot
+     * help either.
+     */
     if (billingEnabled && data.props.isSubscriptionUnpaid) {
       return {
         type: CodeTaskBlockerType.SubscriptionUnpaid,
@@ -98,6 +97,13 @@ export default class CodeTaskGate {
       return {
         type: CodeTaskBlockerType.PlanRequired,
         message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+      };
+    }
+
+    if (!data.canAsk) {
+      return {
+        type: CodeTaskBlockerType.NoPermission,
+        message: CODE_TASK_ASK_REFUSED_MESSAGE,
       };
     }
 

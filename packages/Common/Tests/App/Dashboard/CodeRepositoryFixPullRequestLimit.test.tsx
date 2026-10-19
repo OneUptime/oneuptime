@@ -34,7 +34,7 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   };
 });
 
-import CodeRepositorySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/CodeRepository/View/Settings";
+import CodeRepositorySettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/Settings";
 import {
   FixPullRequestLimit,
   getFixPullRequestLimit,

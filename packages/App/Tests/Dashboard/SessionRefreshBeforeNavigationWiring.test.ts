@@ -90,7 +90,7 @@ describe("dashboard links to authenticated routes", () => {
 
 describe("Connect with GitHub App", () => {
   const source: string = readSource(
-    "Dashboard/src/Pages/CodeRepository/CodeRepository.tsx",
+    "Dashboard/src/Components/Code/GitHubConnect.tsx",
   );
   const handler: string = slice(
     source,

@@ -194,10 +194,10 @@ export enum CodeTaskState {
  * the link that fixes it; the server refuses with the same sentence.
  */
 export enum CodeTaskBlockerType {
+  SubscriptionUnpaid = "SubscriptionUnpaid",
+  PlanRequired = "PlanRequired",
   // The person may read the repository's tasks, not ask in it.
   NoPermission = "NoPermission",
-  PlanRequired = "PlanRequired",
-  SubscriptionUnpaid = "SubscriptionUnpaid",
   // Project Settings > AI > AI Features: Enable AI is off.
   AiDisabled = "AiDisabled",
   // Not connected through the GitHub App, or the installation is gone.

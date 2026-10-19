@@ -1185,17 +1185,18 @@ describe("the status page side menu names Microsoft Teams in full", () => {
 });
 
 describe("the AI agent emails send their owners to a page that exists", () => {
-  test("the link is the project's Tasks page, a route the Dashboard has", () => {
+  test("the link is the project's Code page, a route the Dashboard has", () => {
     const service: string = fs.readFileSync(
       path.join(PACKAGES_ROOT, "Common/Server/Services/AIAgentService.ts"),
       "utf8",
     );
     const routes: string = readDashboardSource("Utils/RouteMap.ts");
 
-    expect(service).toContain("`/${projectId.toString()}/ai/agents`");
+    expect(service).toContain("`/${projectId.toString()}/code`");
     expect(service).not.toContain("settings/ai-agents");
+    expect(service).not.toContain("/ai/agents`");
     expect(routes).toContain(
-      "[PageMap.AI_AGENT_TASKS]: new Route(\n    `/dashboard/${RouteParams.ProjectID}/ai/agents`,",
+      "[PageMap.CODE]: new Route(`/dashboard/${RouteParams.ProjectID}/code`),",
     );
     expect(routes).not.toContain("ai-agents");
   });
@@ -1211,9 +1212,12 @@ describe("the AI agent emails send their owners to a page that exists", () => {
     const english: { navbar: { items: Record<string, unknown> } } =
       dashboardLocale("en") as { navbar: { items: Record<string, unknown> } };
 
-    expect(english.navbar.items["aiAgentsTitle"]).toBe("Tasks");
-    expect(template).toContain("on the Tasks page.");
-    expect(template).toContain('buttonText="View Tasks"');
+    expect(english.navbar.items["codeTitle"]).toBe("Code");
+    expect(template).toContain(
+      "Code tells you whether an AI agent is online for this project",
+    );
+    expect(template).toContain('buttonText="Open Code"');
+    expect(template).not.toContain("Tasks");
     expect(template).not.toContain("Project Settings");
   });
 });

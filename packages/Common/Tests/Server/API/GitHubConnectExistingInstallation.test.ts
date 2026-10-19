@@ -35,10 +35,10 @@ import {
 /*
  * Connecting a GitHub App installation that already exists.
  *
- * Installing from Code Repositories cannot do it: on an account that already
+ * Installing from Code cannot do it: on an account that already
  * has the app, GitHub shows the installation's settings instead of
  * installing, drops the state on the way there, and sends nobody back. So
- * Code Repositories also offers "connect an existing installation", which
+ * Code also offers "connect an existing installation", which
  * signs the person in to GitHub (GET /github/connect-existing-url) and comes
  * back to the same callback with an OAuth code. What they may connect is
  * every installation of the app their GitHub account administers - one is
@@ -287,7 +287,7 @@ describe("Connecting a GitHub App installation that already exists", () => {
       ).toBe("111");
       expect(importSpy).toHaveBeenCalledTimes(1);
       expect(answeredAt()).toContain(
-        `/${projectId.toString()}/code-repository?installation_id=111`,
+        `/${projectId.toString()}/code?installation_id=111`,
       );
       // No installation id from the redirect is ever needed, or trusted.
       expect(verifySpy).not.toHaveBeenCalled();
@@ -338,7 +338,7 @@ describe("Connecting a GitHub App installation that already exists", () => {
       ]);
 
       expect(answeredAt()).toContain(
-        `/${projectId.toString()}/code-repository`,
+        `/${projectId.toString()}/code`,
       );
       expect(answeredQuery().get(GITHUB_INSTALLATION_CHOICE_QUERY_PARAM)).toBe(
         "choice-state",
@@ -462,7 +462,7 @@ describe("Connecting a GitHub App installation that already exists", () => {
       ).toBe("222");
       expect(importSpy).toHaveBeenCalledTimes(1);
       expect(answeredAt()).toContain(
-        `/${projectId.toString()}/code-repository?installation_id=222`,
+        `/${projectId.toString()}/code?installation_id=222`,
       );
       expect(administeredSpy).not.toHaveBeenCalled();
       expect(verifySpy).not.toHaveBeenCalled();

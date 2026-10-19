@@ -47,7 +47,8 @@ jest.mock("../../../UI/Utils/Analytics", () => {
   return { __esModule: true, default: { capture: jest.fn() } };
 });
 
-import AICodeFixReadiness from "../../../../App/FeatureSet/Dashboard/src/Components/AIAgentTask/AICodeFixReadiness";
+import CodeBlockerNotice from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeBlockerNotice";
+import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
 import RunnerElement from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/Runner";
 import RunnersElement from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/Runners";
 import RunbookSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/SideMenu";
@@ -524,74 +525,39 @@ describe("links elsewhere in the dashboard arrive at the Runbooks pages", () => 
     expect(routeFor(link!.pageMap)).toBe(RUNNERS_PATH);
   });
 
-  describe("the AI code-fix readiness card", () => {
-    function readinessResponse(agentOk: boolean): HTTPResponse<JSONObject> {
-      return new HTTPResponse<JSONObject>(
-        200,
-        {
-          ready: agentOk,
-          checks: [
-            {
-              id: "repositoryConnected",
-              ok: true,
-              title: "A code repository is connected",
-              detail: "",
-            },
-            {
-              id: "llmProvider",
-              ok: true,
-              title: "An LLM provider is available",
-              detail: "",
-            },
-            {
-              id: "agentAvailable",
-              ok: agentOk,
-              title: "A Runner that runs AI code fixes is online",
-              detail: agentOk ? "" : "No agent is available for this project.",
-            },
-          ],
-        },
-        {},
+  /*
+   * Code says, above a repository's request box, when no Runner is online to
+   * do the work - with the one link that fixes it.
+   */
+  describe("Code's notice that no Runner is online", () => {
+    function renderNoAgentNotice(): void {
+      render(
+        <CodeBlockerNotice
+          blocker={{
+            type: CodeTaskBlockerType.NoAgent,
+            message: "No agent is available for this project.",
+          }}
+        />,
       );
     }
 
-    test("its missing-Runner tile sends people to Runbooks → Runners", async () => {
-      jest.spyOn(API, "post").mockResolvedValue(readinessResponse(false));
-      const navigate: SpyInstance<typeof Navigation.navigate> = jest
-        .spyOn(Navigation, "navigate")
-        .mockImplementation((): void => {});
+    test("its fix sends people to Runbooks → Runners", () => {
+      renderNoAgentNotice();
 
-      render(<AICodeFixReadiness />);
+      const fix: HTMLElement = screen.getByTestId("code-blocker-fix");
 
-      const tile: HTMLElement = await waitFor((): HTMLElement => {
-        return screen.getByTestId("ai-readiness-check-agentAvailable");
-      });
-      expect(tile).toHaveAttribute("role", "button");
-
-      fireEvent.click(tile);
-
-      expect(navigate).toHaveBeenCalledTimes(1);
-      expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
-        RUNNERS_PATH,
-      );
+      expect(fix).toHaveTextContent("Set up a Runner");
+      expect(fix).toHaveAttribute("href", RUNNERS_PATH);
     });
 
-    test("the same tile works from the keyboard", async () => {
-      jest.spyOn(API, "post").mockResolvedValue(readinessResponse(false));
-      const navigate: SpyInstance<typeof Navigation.navigate> = jest
-        .spyOn(Navigation, "navigate")
-        .mockImplementation((): void => {});
+    test("it says why in the reader's words, not the server's", () => {
+      renderNoAgentNotice();
 
-      render(<AICodeFixReadiness />);
-
-      const tile: HTMLElement = await waitFor((): HTMLElement => {
-        return screen.getByTestId("ai-readiness-check-agentAvailable");
-      });
-
-      fireEvent.keyDown(tile, { key: "Enter" });
-
-      expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
-        RUNNERS_PATH,
+      expect(screen.getByTestId("code-blocker")).toHaveTextContent(
+        "No Runner is online to do the work. AI works in your code through a Runner with Runs AI Code Fixes turned on.",
+      );
+      expect(screen.getByTestId("code-blocker")).not.toHaveTextContent(
+        "No agent is available for this project.",
       );
     });
   });

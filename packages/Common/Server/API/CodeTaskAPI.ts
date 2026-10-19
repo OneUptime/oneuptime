@@ -297,7 +297,7 @@ export default class CodeTaskAPI {
     ]);
 
     const summaries: Array<CodeTaskSummaryJSON> =
-      await CodeTaskPresenter.summarize({ projectId, tasks });
+      await CodeTaskPresenter.summarize({ projectId, tasks, props });
 
     return {
       tasks: summaries as unknown as Array<JSONObject>,
@@ -340,6 +340,7 @@ export default class CodeTaskAPI {
         projectId,
         task,
         canSeeChanges: canAsk,
+        props,
       }),
       repository
         ? CodeTaskGate.getBlocker({ props, projectId, repository, canAsk })

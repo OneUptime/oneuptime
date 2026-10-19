@@ -26,6 +26,7 @@ import {
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
 } from "../../../../Types/AI/CodeTask";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import ObjectID from "../../../../Types/ObjectID";
@@ -53,6 +54,8 @@ export default class CodeTaskPresenter {
   public static async summarize(data: {
     projectId: ObjectID;
     tasks: Array<AIRun>;
+    // The reader's: the records tasks started from are named as they may.
+    props: DatabaseCommonInteractionProps;
   }): Promise<Array<CodeTaskSummaryJSON>> {
     if (data.tasks.length === 0) {
       return [];
@@ -91,6 +94,7 @@ export default class CodeTaskPresenter {
       CodeTaskOrigin.loadSubjects({
         projectId: data.projectId,
         runs: data.tasks,
+        props: data.props,
       }),
       CodeTaskPresenter.loadOriginContexts(data.tasks),
       CodeTaskThread.getPeople(
@@ -134,6 +138,7 @@ export default class CodeTaskPresenter {
     projectId: ObjectID;
     task: AIRun;
     canSeeChanges: boolean;
+    props: DatabaseCommonInteractionProps;
   }): Promise<{ task: CodeTaskSummaryJSON; turns: Array<CodeTaskTurnJSON> }> {
     const select: Select<AIRun> = {
       ...CODE_TASK_TURN_SELECT,
@@ -171,6 +176,7 @@ export default class CodeTaskPresenter {
       CodeTaskOrigin.loadSubjects({
         projectId: data.projectId,
         runs: [turns[0]!],
+        props: data.props,
       }),
       CodeTaskThread.getPeople(
         turns
@@ -473,9 +479,13 @@ export default class CodeTaskPresenter {
       Array<AIRunEvent>
     >();
 
+    /*
+     * The newest events of each turn, oldest first: a turn still working
+     * shows its latest steps however long it has run.
+     */
     const lists: Array<Array<AIRunEvent>> = await Promise.all(
-      runIds.map((runId: ObjectID): Promise<Array<AIRunEvent>> => {
-        return AIRunEventService.findBy({
+      runIds.map(async (runId: ObjectID): Promise<Array<AIRunEvent>> => {
+        const newestFirst: Array<AIRunEvent> = await AIRunEventService.findBy({
           query: { aiRunId: runId },
           select: {
             _id: true,
@@ -486,11 +496,13 @@ export default class CodeTaskPresenter {
             resultSummary: true,
             createdAt: true,
           },
-          sort: { sequence: SortOrder.Ascending },
+          sort: { sequence: SortOrder.Descending },
           limit: MAX_STEPS_PER_TURN,
           skip: 0,
           props: { isRoot: true },
         });
+
+        return [...newestFirst].reverse();
       }),
     );
 

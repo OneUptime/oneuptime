@@ -46,7 +46,6 @@ const CodeRepositorySettings: FunctionComponent<
         name="Repository > Repository Details"
         cardProps={{
           title: "Repository Details",
-          description: "What this repository is called in OneUptime.",
         }}
         isEditable={true}
         formFields={[

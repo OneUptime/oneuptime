@@ -131,7 +131,12 @@ export default class CodeTaskAgentBrief {
             return turn.userId!;
           }),
       ),
-      CodeTaskOrigin.loadSubjects({ projectId, runs: [task] }),
+      // The Runner works for the task: what started it is named in full.
+      CodeTaskOrigin.loadSubjects({
+        projectId,
+        runs: [task],
+        props: { isRoot: true },
+      }),
     ]);
 
     const workingPullRequest: AIAgentTaskPullRequest | null =

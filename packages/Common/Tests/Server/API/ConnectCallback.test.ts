@@ -291,9 +291,9 @@ describe("the page a connection goes back to", () => {
     [
       ConnectProvider.GitHub,
       ConnectStartPage.ProjectSettings,
-      "/code-repository",
+      "/code",
     ],
-    [ConnectProvider.GitHub, ConnectStartPage.UserSettings, "/code-repository"],
+    [ConnectProvider.GitHub, ConnectStartPage.UserSettings, "/code"],
   ])(
     "%s started on %s goes back to %s",
     (provider: ConnectProvider, startPage: ConnectStartPage, path: string) => {
@@ -450,7 +450,7 @@ describe("route: one order, and every ending answered once", () => {
     );
 
     expect(probe.redirectedTo).toEqual([
-      `${pageOf("/code-repository")}?error=plan-required`,
+      `${pageOf("/code")}?error=plan-required`,
     ]);
   });
 

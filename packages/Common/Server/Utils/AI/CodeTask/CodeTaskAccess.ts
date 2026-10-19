@@ -177,11 +177,15 @@ export default class CodeTaskAccess {
     } catch (error) {
       /*
        * A plan below the repositories' own is a refusal too; the Code pages
-       * say so in its own words (CodeTaskGate), first.
+       * say so in its own words (CodeTaskGate), first. A record kept from
+       * the caller's edits by its labels reads as "not found" to an edit -
+       * while they may still read it, as a person who may read every
+       * repository but change only some does.
        */
       if (
         error instanceof NotAuthorizedException ||
-        error instanceof PaymentRequiredException
+        error instanceof PaymentRequiredException ||
+        error instanceof NotFoundException
       ) {
         return false;
       }

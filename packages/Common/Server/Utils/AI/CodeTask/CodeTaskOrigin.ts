@@ -18,6 +18,7 @@ import {
   CodeTaskOriginJSON,
   CodeTaskOriginType,
 } from "../../../../Types/AI/CodeTask";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -28,8 +29,9 @@ import ObjectID from "../../../../Types/ObjectID";
  * first turn shows that origin instead of a request, by the name a person
  * knows it by: the exception's message, the incident's number and title,
  * the GitHub issue's number. The names are read for a whole page of tasks
- * at once (loadSubjects), as root - the caller has already been allowed to
- * read the tasks, and only names go back, never the records.
+ * at once (loadSubjects), under the reader's own permissions: a person who
+ * may read a repository's tasks but not the incident one was started from
+ * reads "started from an incident", not its title.
  */
 
 const LABEL_LENGTH: number = 120;
@@ -45,6 +47,8 @@ export default class CodeTaskOrigin {
   public static async loadSubjects(data: {
     projectId: ObjectID;
     runs: Array<AIRun>;
+    // The reader's: a name they may not read is left out.
+    props: DatabaseCommonInteractionProps;
   }): Promise<CodeTaskOriginSubjects> {
     const exceptionIds: Set<string> = new Set<string>();
     const incidentIds: Set<string> = new Set<string>();
@@ -70,50 +74,56 @@ export default class CodeTaskOrigin {
       Array<Alert>,
     ] = await Promise.all([
       exceptionIds.size > 0
-        ? TelemetryExceptionService.findBy({
-            query: {
-              _id: QueryHelper.any(Array.from(exceptionIds)),
-              projectId: data.projectId,
-            },
-            select: { _id: true, message: true, exceptionType: true },
-            limit: exceptionIds.size,
-            skip: 0,
-            props: { isRoot: true },
-          })
+        ? CodeTaskOrigin.readable(
+            TelemetryExceptionService.findBy({
+              query: {
+                _id: QueryHelper.any(Array.from(exceptionIds)),
+                projectId: data.projectId,
+              },
+              select: { _id: true, message: true, exceptionType: true },
+              limit: exceptionIds.size,
+              skip: 0,
+              props: data.props,
+            }),
+          )
         : Promise.resolve([]),
       incidentIds.size > 0
-        ? IncidentService.findBy({
-            query: {
-              _id: QueryHelper.any(Array.from(incidentIds)),
-              projectId: data.projectId,
-            },
-            select: {
-              _id: true,
-              title: true,
-              incidentNumber: true,
-              incidentNumberWithPrefix: true,
-            },
-            limit: incidentIds.size,
-            skip: 0,
-            props: { isRoot: true },
-          })
+        ? CodeTaskOrigin.readable(
+            IncidentService.findBy({
+              query: {
+                _id: QueryHelper.any(Array.from(incidentIds)),
+                projectId: data.projectId,
+              },
+              select: {
+                _id: true,
+                title: true,
+                incidentNumber: true,
+                incidentNumberWithPrefix: true,
+              },
+              limit: incidentIds.size,
+              skip: 0,
+              props: data.props,
+            }),
+          )
         : Promise.resolve([]),
       alertIds.size > 0
-        ? AlertService.findBy({
-            query: {
-              _id: QueryHelper.any(Array.from(alertIds)),
-              projectId: data.projectId,
-            },
-            select: {
-              _id: true,
-              title: true,
-              alertNumber: true,
-              alertNumberWithPrefix: true,
-            },
-            limit: alertIds.size,
-            skip: 0,
-            props: { isRoot: true },
-          })
+        ? CodeTaskOrigin.readable(
+            AlertService.findBy({
+              query: {
+                _id: QueryHelper.any(Array.from(alertIds)),
+                projectId: data.projectId,
+              },
+              select: {
+                _id: true,
+                title: true,
+                alertNumber: true,
+                alertNumberWithPrefix: true,
+              },
+              limit: alertIds.size,
+              skip: 0,
+              props: data.props,
+            }),
+          )
         : Promise.resolve([]),
     ]);
 
@@ -296,6 +306,19 @@ export default class CodeTaskOrigin {
     return oneLine.length > LABEL_LENGTH
       ? `${oneLine.substring(0, LABEL_LENGTH - 1).trimEnd()}…`
       : oneLine;
+  }
+
+  /*
+   * What the reader may read of a list: a table they may not read at all
+   * (no read permission, a plan below it) names nothing, rather than
+   * failing the page.
+   */
+  private static async readable<T>(read: Promise<Array<T>>): Promise<Array<T>> {
+    try {
+      return await read;
+    } catch {
+      return [];
+    }
   }
 
   private static byId<T extends { id?: ObjectID | null }>(

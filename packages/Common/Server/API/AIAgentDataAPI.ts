@@ -1346,6 +1346,26 @@ export default class AIAgentDataAPI {
           });
 
           /*
+           * A request from Code was asked in one repository, and works in
+           * that one only: its run names it, so a token for any other is
+           * refused, whichever repository of the project the worker names.
+           */
+          if (
+            tokenRun &&
+            CodeFixTaskTypeHelper.isCodeRequest(tokenRun.codeFixTaskType) &&
+            tokenRun.codeRepositoryId?.toString() !==
+              codeRepositoryId.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This task was asked in another repository, and works only there.",
+              ),
+            );
+          }
+
+          /*
            * Linked before the cap answers, so a run the cap stops still
            * shows on its repository's page, with the cap's reason.
            */

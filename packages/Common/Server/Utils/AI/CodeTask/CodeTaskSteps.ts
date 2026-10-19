@@ -28,6 +28,9 @@ const MAX_PREFIX_GROUP_LENGTH: number = 120;
 // Lines the pipeline writes for itself, not worth a step.
 const NOISE_PREFIXES: Array<string> = [
   "Starting ",
+  // TaskLogger's step bookkeeping: "Starting: clone", "Completed: clone".
+  "Starting:",
+  "Completed:",
   "Cleaning up workspace",
   "Task completed",
   "Initializing in-house code agent",
@@ -231,7 +234,18 @@ export default class CodeTaskSteps {
 
       const end: number = text.indexOf("] ");
 
-      if (end < 0 || end > MAX_PREFIX_GROUP_LENGTH) {
+      if (end < 0) {
+        // A line with no message: its last group ends the text.
+        const close: number = text.indexOf("]");
+
+        if (close === text.length - 1 && close <= MAX_PREFIX_GROUP_LENGTH) {
+          text = "";
+        }
+
+        break;
+      }
+
+      if (end > MAX_PREFIX_GROUP_LENGTH) {
         break;
       }
 

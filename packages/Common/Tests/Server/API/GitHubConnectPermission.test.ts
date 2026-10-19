@@ -570,7 +570,7 @@ describe("Connecting a GitHub App installation", () => {
   ): void {
     expect(response.status).toBe(302);
     expect(response.location).toBe(
-      `${DashboardClientUrl.toString()}/${projectId.toString()}/code-repository?error=${code}`,
+      `${DashboardClientUrl.toString()}/${projectId.toString()}/code?error=${code}`,
     );
   }
 
@@ -862,7 +862,7 @@ describe("Connecting a GitHub App installation", () => {
 
       expect(response.status).toBe(302);
       expect(response.location).toBe(
-        `${DashboardClientUrl.toString()}/${projectId.toString()}/code-repository?installation_id=${INSTALLATION_ID}`,
+        `${DashboardClientUrl.toString()}/${projectId.toString()}/code?installation_id=${INSTALLATION_ID}`,
       );
 
       expect(verifyInstallation).toHaveBeenCalledTimes(1);
