@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -33,8 +34,11 @@ import { getJestSpyOn } from "../../Spy";
  * Now Create asks for the name, with the description and the labels under
  * More fields, and opens the new page's Overview. While the page has no
  * resource, the Overview starts with that one next step, Add Monitors. The
- * link card says what the link is for, the link looks like one, and Copy
- * link sits beside it.
+ * link card says where visitors find the page: every address it answers at,
+ * its custom domains first (Components/CustomDomain/PublicAddresses, held
+ * state by state in PublicAddresses.test.tsx), each live one a link with
+ * Copy link - and, when visitors cannot just open them, that they sign in or
+ * enter the password, with Change access.
  *
  * The list page is rendered with its table captured; the Overview's own
  * pieces are rendered for real, with only the network, the permission gate
@@ -49,6 +53,8 @@ interface CapturedTableProps {
 
 let tableProps: CapturedTableProps | null = null;
 const countMock: MockFunction = getJestMockFunction();
+const getItemMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
 
 jest.mock("react-i18next", () => {
   return {
@@ -110,16 +116,14 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       count: (...args: Array<unknown>): unknown => {
         return countMock(...args);
       },
-      getList: async (): Promise<{
-        data: Array<unknown>;
-        count: number;
-        skip: number;
-        limit: number;
-      }> => {
-        return { data: [], count: 0, skip: 0, limit: 10 };
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
       },
-      getItem: async (): Promise<null> => {
-        return null;
+      getItem: (...args: Array<unknown>): unknown => {
+        return getItemMock(...args);
+      },
+      getCommonHeaders: (): Record<string, string> => {
+        return {};
       },
     },
   };
@@ -221,9 +225,19 @@ import StatusPageFirstStep, {
 import {
   STATUS_PAGE_FIRST_STEP_BUTTON_TEST_ID,
   STATUS_PAGE_FIRST_STEP_TEST_ID,
+  STATUS_PAGE_LINK_ACCESS_TEST_ID,
   STATUS_PAGE_LINK_TEST_ID,
   StatusPageOverviewCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageOverviewCopy";
+import { getStatusPageAccessSelect } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageAccessCopy";
+import {
+  getAddressParts,
+  getAddressText,
+  PUBLIC_ADDRESS_TEST_IDS,
+  PublicAddressKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
+import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
+import HashedString from "../../../Types/HashedString";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StatusPagesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages";
 import StatusPagePreviewLink from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPagePreviewLink";
@@ -262,6 +276,23 @@ beforeEach(() => {
   countMock.mockImplementation(async (): Promise<number> => {
     return 0;
   });
+
+  getItemMock.mockReset();
+  getItemMock.mockImplementation(async (): Promise<null> => {
+    return null;
+  });
+
+  getListMock.mockReset();
+  getListMock.mockImplementation(
+    async (): Promise<{
+      data: Array<unknown>;
+      count: number;
+      skip: number;
+      limit: number;
+    }> => {
+      return { data: [], count: 0, skip: 0, limit: 10 };
+    },
+  );
 
   getJestSpyOn(PermissionGate, "check").mockImplementation(
     (): PermissionGateResult => {
@@ -522,29 +553,222 @@ describe("the Overview's first step", () => {
   });
 });
 
-describe("the Status Page Link card", () => {
-  test("is the page's own address as a link, opened in a new tab, with Copy link", () => {
+interface StoredAccess {
+  isPublicStatusPage: boolean;
+  enableMasterPassword: boolean;
+  hasMasterPassword: boolean;
+}
+
+// The status page as the card reads it, for who can see it.
+function statusPageWith(access: StoredAccess): StatusPage {
+  const statusPage: StatusPage = new StatusPage();
+  statusPage._id = STATUS_PAGE_ID;
+  statusPage.isPublicStatusPage = access.isPublicStatusPage;
+  statusPage.enableMasterPassword = access.enableMasterPassword;
+
+  if (access.hasMasterPassword) {
+    statusPage.masterPassword = new HashedString("stored-hash", true);
+  }
+
+  return statusPage;
+}
+
+async function renderLinkCard(): Promise<void> {
+  await act(async () => {
     render(
       <MemoryRouter>
         <StatusPagePreviewLink modelId={new ObjectID(STATUS_PAGE_ID)} />
       </MemoryRouter>,
     );
+  });
+
+  await act(async () => {
+    for (let i: number = 0; i < 8; i++) {
+      await Promise.resolve();
+    }
+  });
+}
+
+const STATUS_PAGE_ADDRESS: string = `${STATUS_PAGE_URL.toString()}/${STATUS_PAGE_ID}`;
+
+describe("the Status Page Link card", () => {
+  test("says where visitors find the page, and lists its address on OneUptime as a link opened in a new tab, with Copy link", async () => {
+    await renderLinkCard();
 
     expect(screen.getByText("Status Page Link")).toBeInTheDocument();
     expect(
-      screen.getByText("Open it to see your status page as visitors do."),
+      screen.getByText("Where visitors find your status page."),
     ).toBeInTheDocument();
 
     const body: HTMLElement = screen.getByTestId(STATUS_PAGE_LINK_TEST_ID);
-    const address: string = `${STATUS_PAGE_URL.toString()}/${STATUS_PAGE_ID}`;
-    const link: HTMLAnchorElement = body.querySelector("a")!;
+    const row: HTMLElement = within(body).getByTestId(
+      PUBLIC_ADDRESS_TEST_IDS.row,
+    );
 
-    expect(link).toHaveTextContent(address);
-    expect(link.getAttribute("href")).toBe(address);
-    expect(link.getAttribute("target")).toBe("_blank");
-    expect(
-      screen.getByRole("button", { name: "Copy link" }),
-    ).toBeInTheDocument();
+    expect(row).toHaveAttribute("data-kind", PublicAddressKind.OneUptime);
+    expect(row).toHaveTextContent("OneUptime address");
+
+    const link: HTMLElement = within(row).getByRole("link");
+
+    expect(link).toHaveAttribute("href", STATUS_PAGE_ADDRESS);
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.querySelector("[title]")).toHaveAttribute(
+      "title",
+      STATUS_PAGE_ADDRESS,
+    );
+
+    const copy: HTMLElement = within(row).getByRole("button", {
+      name: /^Copy link to /,
+    });
+
+    expect(copy).toHaveTextContent("Copy link");
     expect(screen.queryByText(/Here's a link/)).toBeNull();
+    expect(
+      screen.queryByText("Open it to see your status page as visitors do."),
+    ).toBeNull();
   });
+
+  test("its custom domains come first, read for this page in this project", async () => {
+    getListMock.mockImplementation(async (): Promise<unknown> => {
+      const domain: StatusPageDomain = new StatusPageDomain();
+      domain._id = "3f3f3f3f-0000-4000-8000-0000000000cc";
+      domain.fullDomain = "status.acme.com";
+      domain.isCnameVerified = true;
+      domain.isSslOrdered = true;
+      domain.isSslProvisioned = true;
+      domain.isCustomCertificate = true;
+
+      return { data: [domain], count: 1, skip: 0, limit: 1 };
+    });
+
+    await renderLinkCard();
+
+    const request: Record<string, unknown> = getListMock.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(request["modelType"]).toBe(StatusPageDomain);
+    expect(
+      String((request["query"] as Record<string, unknown>)["statusPageId"]),
+    ).toBe(STATUS_PAGE_ID);
+    expect(
+      String((request["query"] as Record<string, unknown>)["projectId"]),
+    ).toBe(PROJECT_ID);
+
+    expect(
+      screen
+        .getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row)
+        .map((row: HTMLElement): string | null => {
+          return row.getAttribute("data-address");
+        }),
+    ).toEqual([
+      "status.acme.com",
+      getAddressText(getAddressParts(STATUS_PAGE_ADDRESS)),
+    ]);
+  });
+
+  test("reads who can see the page with the Access page's own columns", async () => {
+    await renderLinkCard();
+
+    const request: Record<string, unknown> = getItemMock.mock
+      .calls[0]![0] as Record<string, unknown>;
+
+    expect(request["modelType"]).toBe(StatusPage);
+    expect(String(request["id"])).toBe(STATUS_PAGE_ID);
+    expect(request["select"]).toEqual(getStatusPageAccessSelect());
+  });
+
+  test.each([
+    [
+      "a public page: no line",
+      { isPublicStatusPage: true, enableMasterPassword: false, hasMasterPassword: false },
+      null,
+    ],
+    [
+      "a public page whose password switch was left on: still public",
+      { isPublicStatusPage: true, enableMasterPassword: true, hasMasterPassword: true },
+      null,
+    ],
+    [
+      "a private page: visitors sign in",
+      { isPublicStatusPage: false, enableMasterPassword: false, hasMasterPassword: false },
+      "Visitors sign in to see this status page.",
+    ],
+    [
+      "a private page with the password switch on but no password: visitors sign in, as the server holds it",
+      { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: false },
+      "Visitors sign in to see this status page.",
+    ],
+    [
+      "a password-protected page: visitors enter the password",
+      { isPublicStatusPage: false, enableMasterPassword: true, hasMasterPassword: true },
+      "Visitors enter the password to see this status page.",
+    ],
+  ])(
+    "%s",
+    async (_label: string, access: StoredAccess, sentence: string | null) => {
+      getItemMock.mockImplementation(async (): Promise<StatusPage> => {
+        return statusPageWith(access);
+      });
+
+      await renderLinkCard();
+
+      const line: HTMLElement | null = screen.queryByTestId(
+        STATUS_PAGE_LINK_ACCESS_TEST_ID,
+      );
+
+      if (!sentence) {
+        expect(line).toBeNull();
+        return;
+      }
+
+      expect(line).not.toBeNull();
+      expect(line).toHaveTextContent(`${sentence} Change access`);
+
+      const change: HTMLElement = within(line!).getByRole("link", {
+        name: "Change access",
+      });
+
+      expect(change.getAttribute("href")).toBe(
+        `/dashboard/${PROJECT_ID}/status-pages/${STATUS_PAGE_ID}/authentication-settings`,
+      );
+
+      // Under the addresses, inside the card.
+      const list: HTMLElement = screen.getByTestId(
+        PUBLIC_ADDRESS_TEST_IDS.list,
+      );
+
+      expect(
+        list.compareDocumentPosition(line!) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    },
+  );
+
+  test.each([
+    [
+      "cannot be read",
+      async (): Promise<never> => {
+        throw new Error("Network down");
+      },
+    ],
+    [
+      "is not found",
+      async (): Promise<null> => {
+        return null;
+      },
+    ],
+  ])(
+    "a page whose access %s: no line, and never an error on the Overview",
+    async (_label: string, answer: () => Promise<unknown>) => {
+      getItemMock.mockImplementation(answer);
+
+      await renderLinkCard();
+
+      expect(screen.queryByTestId(STATUS_PAGE_LINK_ACCESS_TEST_ID)).toBeNull();
+      expect(screen.queryByText("Network down")).toBeNull();
+      expect(
+        screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row),
+      ).toHaveLength(1);
+    },
+  );
 });

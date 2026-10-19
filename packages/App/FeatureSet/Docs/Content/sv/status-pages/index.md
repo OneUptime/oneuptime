@@ -167,7 +167,7 @@ Under kortet finns **Exportera Statussida som JSON**, som laddar ned statussidan
 
 ## Förhandsgranska innan du går live
 
-Skärmen **Översikt** för varje statussida har ett kort **Länk till statussidan** med en direktlänk till sidan och **Kopiera länk** bredvid. Använd den medan du fortfarande lägger till resurser och innan det finns en anpassad domän.
+Skärmen **Översikt** för varje statussida har ett kort **Länk till statussidan** med varje adress som sidan svarar på: först dess anpassade domäner, sedan dess adress hos OneUptime, var och en med **Kopiera länk** bredvid. En anpassad domän som inte är live än är markerad med **Inte live än**, med orsaken, och med **DNS-inställning** när något återstår att göra. När besökare måste logga in eller ange ett lösenord säger kortet det. Använd OneUptime-adressen medan du fortfarande lägger till resurser och innan en anpassad domän är live.
 
 Bakom kulisserna har varje offentlig rutt en förhandsgranskningstvilling under `/status-page/{statusPageId}/...`: en förhandsgranskad översikt, en förhandsgranskad incidentlista, en förhandsgranskad prenumerationssida och så vidare. En URL eller skärmbild från instrumentpanelens förhandsgranskning stämmer därför inte med det en kund ser när en anpassad domän är kopplad, så kontrollera alla länkar du klistrar in i en runbook eller ett e-postmeddelande.
 

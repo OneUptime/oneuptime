@@ -403,6 +403,7 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
                   className="h-3.5 w-3.5 flex-none text-gray-400 group-hover:text-indigo-600"
                 />
                 <span className="sr-only">
+                  {" "}
                   {translator.translateText(PublicAddressCopy.opensInNewTab)}
                 </span>
               </Link>

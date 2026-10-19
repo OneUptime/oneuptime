@@ -37,9 +37,11 @@ import { getJestSpyOn } from "../../Spy";
  *   that sharing it again needs Growth). A move to the password
  *   asks for one in the same dialog when none is set, so the page never
  *   locks the link by itself.
- * - Under the public choice in force: the public link, opening in a new
- *   tab, and a button that copies it. Under the password, while it is the
- *   choice: Change Password, which writes the password alone.
+ * - Under the public choice in force: where visitors open it - its custom
+ *   domains first, then the public link - each live one opening in a new
+ *   tab, with a button that copies it (the list is PublicAddresses, held
+ *   state by state in PublicAddresses.test.tsx). Under the password, while
+ *   it is the choice: Change Password, which writes the password alone.
  * - A choice the plan does not include shows the plan and cannot be picked;
  *   someone who may not change it sees every choice locked, with why - and
  *   can still copy the link.
@@ -56,6 +58,7 @@ import { getJestSpyOn } from "../../Spy";
  */
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
 const copyMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
@@ -67,6 +70,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       updateById: (...args: Array<unknown>): unknown => {
         return updateByIdMock(...args);
+      },
+      // The dashboard's custom domains, under the public choice.
+      getList: (...args: Array<unknown>): unknown => {
+        return getListMock(...args);
+      },
+      getCommonHeaders: (): Record<string, string> => {
+        return {};
       },
     },
   };
@@ -98,7 +108,12 @@ import DashboardSharingCopy, {
   SHARE_WITH_PASSWORD_CONFIRMATION_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Sharing/DashboardSharingCopy";
 import { getPublicDashboardUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Sharing/PublicDashboardUrl";
+import {
+  PUBLIC_ADDRESS_TEST_IDS,
+  PublicAddressKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
 import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
@@ -150,6 +165,8 @@ const LOCKED_DASHBOARD: StoredDashboard = {
 };
 
 let stored: StoredDashboard | null | Error = PRIVATE_DASHBOARD;
+// The dashboard's custom domains, as the list reads them.
+let customDomains: Array<DashboardDomain> = [];
 let gate: PermissionGateResult = { isAllowed: true };
 let plan: PlanType | null = null;
 let refusal: Error | null = null;
@@ -196,6 +213,17 @@ beforeEach(() => {
     }
 
     return {};
+  });
+
+  customDomains = [];
+  getListMock.mockReset();
+  getListMock.mockImplementation(async (): Promise<unknown> => {
+    return {
+      data: customDomains,
+      count: customDomains.length,
+      skip: 0,
+      limit: customDomains.length,
+    };
   });
 
   copyMock.mockReset();
@@ -469,8 +497,29 @@ describe("what the card shows", () => {
   });
 });
 
-describe("the public link", () => {
-  test("is the public viewer's address for this dashboard", () => {
+describe("where visitors open it", () => {
+  // What the list shows of the public link: the address without its scheme.
+  const PUBLIC_LINK_TEXT: string = PUBLIC_LINK.slice(
+    PUBLIC_LINK.indexOf("://") + 3,
+  );
+
+  function addressRows(): Array<HTMLElement> {
+    return screen.queryAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row);
+  }
+
+  function liveDomain(fullDomain: string, id: string): DashboardDomain {
+    const domain: DashboardDomain = new DashboardDomain();
+    domain._id = id;
+    domain.fullDomain = fullDomain;
+    domain.isCnameVerified = true;
+    // Its own certificate: live without asking about a free one.
+    domain.isCustomCertificate = true;
+    domain.isSslOrdered = false;
+    domain.isSslProvisioned = false;
+    return domain;
+  }
+
+  test("the public link is the public viewer's address for this dashboard", () => {
     expect(getPublicDashboardUrl(new ObjectID(DASHBOARD_ID)).toString()).toBe(
       PUBLIC_LINK,
     );
@@ -478,13 +527,15 @@ describe("the public link", () => {
     expect(PUBLIC_LINK).toMatch(/\/public-dashboard\/6b6b6b6b-/);
   });
 
-  test("a private dashboard has none", async () => {
+  test("a private dashboard has none, and its custom domains are not read", async () => {
     await renderCard();
 
     expect(
       screen.queryByTestId(DASHBOARD_PUBLIC_LINK_TEST_ID),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(PUBLIC_LINK)).not.toBeInTheDocument();
+    expect(addressRows()).toHaveLength(0);
+    expect(screen.queryByText(PUBLIC_LINK_TEXT)).not.toBeInTheDocument();
+    expect(getListMock).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -500,7 +551,7 @@ describe("the public link", () => {
       DashboardAccess.AnyoneWithPassword,
     ],
   ])(
-    "sits under the choice in force, %s, opening in a new tab",
+    "sit under the choice in force, %s: the public link, opening in a new tab",
     async (
       _label: string,
       dashboard: StoredDashboard,
@@ -510,15 +561,20 @@ describe("the public link", () => {
 
       await renderCard();
 
-      const link: HTMLElement = within(row(access)).getByTestId(
+      const section: HTMLElement = within(row(access)).getByTestId(
         DASHBOARD_PUBLIC_LINK_TEST_ID,
       );
 
-      expect(link).toHaveTextContent(DashboardSharingCopy.publicLinkTitle);
+      const rows: Array<HTMLElement> = within(section).getAllByTestId(
+        PUBLIC_ADDRESS_TEST_IDS.row,
+      );
 
-      const anchor: HTMLElement = within(link).getByRole("link", {
-        name: PUBLIC_LINK,
-      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toHaveAttribute("data-kind", PublicAddressKind.OneUptime);
+      expect(rows[0]).toHaveAttribute("data-address", PUBLIC_LINK_TEXT);
+      expect(rows[0]).toHaveTextContent("OneUptime address");
+
+      const anchor: HTMLElement = within(rows[0]!).getByRole("link");
 
       expect(anchor).toHaveAttribute("href", PUBLIC_LINK);
       expect(anchor).toHaveAttribute("target", "_blank");
@@ -527,19 +583,65 @@ describe("the public link", () => {
       expect(screen.getAllByTestId(DASHBOARD_PUBLIC_LINK_TEST_ID)).toHaveLength(
         1,
       );
+
+      // The dashboard's own custom domains were asked for.
+      const request: Record<string, unknown> = getListMock.mock
+        .calls[0]![0] as Record<string, unknown>;
+
+      expect(request["modelType"]).toBe(DashboardDomain);
+      expect(
+        String((request["query"] as Record<string, unknown>)["dashboardId"]),
+      ).toBe(DASHBOARD_ID);
     },
   );
 
-  test("Copy link copies it, and says so", async () => {
+  test("its custom domains come first, each live one to open and copy, then the public link", async () => {
+    stored = { ...PUBLIC_DASHBOARD };
+    customDomains = [
+      liveDomain("dashboard.acme.com", "6c6c6c6c-0000-4000-8000-0000000000c1"),
+    ];
+
+    await renderCard();
+
+    expect(
+      addressRows().map((element: HTMLElement): string | null => {
+        return element.getAttribute("data-address");
+      }),
+    ).toEqual(["dashboard.acme.com", PUBLIC_LINK_TEXT]);
+
+    const domainRow: HTMLElement = addressRows()[0]!;
+
+    expect(domainRow).toHaveAttribute(
+      "data-kind",
+      PublicAddressKind.CustomDomain,
+    );
+    expect(within(domainRow).getByRole("link")).toHaveAttribute(
+      "href",
+      "https://dashboard.acme.com/",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(domainRow).getByRole("button", {
+          name: "Copy link to dashboard.acme.com",
+        }),
+      );
+    });
+    await flush();
+
+    expect(copyMock).toHaveBeenCalledWith("https://dashboard.acme.com");
+  });
+
+  test("Copy link copies the public link, and says so", async () => {
     stored = { ...PUBLIC_DASHBOARD };
 
     await renderCard();
 
     const button: HTMLElement = within(
       screen.getByTestId(DASHBOARD_PUBLIC_LINK_TEST_ID),
-    ).getByRole("button", { name: DashboardSharingCopy.copyLinkTitle });
+    ).getByRole("button", { name: `Copy link to ${PUBLIC_LINK_TEXT}` });
 
-    expect(button).toHaveTextContent(DashboardSharingCopy.copyLink);
+    expect(button).toHaveTextContent("Copy link");
 
     await act(async () => {
       fireEvent.click(button);
@@ -547,10 +649,10 @@ describe("the public link", () => {
     await flush();
 
     expect(copyMock).toHaveBeenCalledWith(PUBLIC_LINK);
-    expect(button).toHaveTextContent(DashboardSharingCopy.copied);
+    expect(button).toHaveTextContent("Copied!");
   });
 
-  test("appears once the dashboard is shared, and goes once it is not", async () => {
+  test("appear once the dashboard is shared, and go once it is not", async () => {
     await renderCard();
     await pick(DashboardAccess.AnyoneWithLink);
     await submitDialog();
@@ -560,6 +662,7 @@ describe("the public link", () => {
         DASHBOARD_PUBLIC_LINK_TEST_ID,
       ),
     ).toBeInTheDocument();
+    expect(addressRows()).toHaveLength(1);
 
     await pick(DashboardAccess.ProjectOnly);
     await submitDialog();
@@ -567,9 +670,9 @@ describe("the public link", () => {
     expect(
       screen.queryByTestId(DASHBOARD_PUBLIC_LINK_TEST_ID),
     ).not.toBeInTheDocument();
+    expect(addressRows()).toHaveLength(0);
   });
 });
-
 describe("moving to another choice", () => {
   test("to anyone with the link, from a private dashboard: asks, then writes the public switch alone", async () => {
     await renderCard();
@@ -1293,7 +1396,7 @@ describe("permissions", () => {
       fireEvent.click(
         within(screen.getByTestId(DASHBOARD_PUBLIC_LINK_TEST_ID)).getByRole(
           "button",
-          { name: DashboardSharingCopy.copyLinkTitle },
+          { name: /^Copy link to / },
         ),
       );
     });
