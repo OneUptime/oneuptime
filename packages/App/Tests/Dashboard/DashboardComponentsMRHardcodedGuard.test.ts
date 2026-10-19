@@ -34,6 +34,10 @@ const ALLOWED: Record<string, { count: number; why: string }> = {
     count: 1,
     why: '"${n} USD" (currency): the amounts Auto Recharge offers',
   },
+  "Components/Runbook/Steps/RunbookVariableChips.tsx": {
+    count: 1,
+    why: "`local.${name}`: how a step writes one of a runbook's own variables ({{local.variables.NAME}}), code that is copied as it is",
+  },
 };
 
 type CountByFileFunction = (
