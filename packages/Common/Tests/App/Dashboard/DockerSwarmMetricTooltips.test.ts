@@ -666,27 +666,39 @@ describe("CPU and memory texts match what the rows actually carry", () => {
     }
   });
 
-  test("task CPU names a scale only once ingest stops scaling the mirrored value by 100 a second time", () => {
+  /*
+   * docker_stats reports a percent (100 = one core) under the unit "1", and
+   * ingest used to multiply every "1" by 100 again on its way to the Task
+   * row, so these texts named no scale. The metric loop now reads a
+   * docker_stats percent's "1" as "%" (ContainerStatsPercentUnit) before the
+   * Task buffer sees it, and cpuValueToPercent takes a "%" as it is: the
+   * row holds the percent, and the texts say what 100% is.
+   */
+  test("task CPU names its scale, now that ingest mirrors docker_stats' percent as it is", () => {
+    const metricLoopUnit: string = between(
+      METRICS_INGEST,
+      "const metricUnit: string =",
+      ";\n",
+    );
+    expect(metricLoopUnit).toContain("ContainerStatsPercentUnit.getStoredUnit(");
+    expect(metricLoopUnit).toContain("scopeName: scopeName");
+
+    const taskBuffer: string = between(
+      METRICS_INGEST,
+      "this.bufferDockerSwarmTaskMetric({",
+      "});",
+    );
+    expect(taskBuffer).toContain("metricUnit,");
+
     const cpuToPercent: string = between(
       METRICS_INGEST,
       "private static cpuValueToPercent(",
       "\n  }\n",
     );
-    const stillMultiplies: boolean = cpuToPercent.includes(
-      "return rawValue * 100;",
-    );
+    expect(cpuToPercent).toContain('if (unit === "%") {\n      return rawValue;');
 
     for (const text of [T.taskCpu, T.taskCpuColumn]) {
-      if (stillMultiplies) {
-        /*
-         * docker_stats already reports a percent (100 = one core) under
-         * unit "1", so the Task rows hold 100x that. Promising "100% is one
-         * core" would be false until the ingest is fixed.
-         */
-        expect(text).not.toMatch(/core/i);
-      } else {
-        expect(text).toMatch(/100% is one full CPU core/);
-      }
+      expect(text).toMatch(/100% is one full CPU core/);
     }
   });
 });
