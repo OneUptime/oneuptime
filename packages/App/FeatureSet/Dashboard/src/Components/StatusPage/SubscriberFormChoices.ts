@@ -1,5 +1,6 @@
 import { ColumnChoiceConfig } from "../../Utils/Form/ColumnChoice";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import SubscriptionConfirmationLink from "Common/Types/StatusPage/SubscriptionConfirmationLink";
 
 /*
  * ADDING A SUBSCRIBER BY HAND, AND CHANGING ONE: PLAIN CHOICES.
@@ -36,6 +37,12 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * subscriber. So those Add forms keep one switch, Send a welcome message,
  * now folded with the internal note under More fields: off, as before,
  * unless somebody turns it on.
+ *
+ * The link to confirm works for a day after it is sent
+ * (Common/Types/StatusPage/SubscriptionConfirmationLink). An email or SMS
+ * subscriber who has not opened it by then never will, and is sent
+ * nothing: the table's Status shows Link Expired for them, and how to get
+ * them a new link (getSubscriberTableStatus, SubscriberStatusPill).
  *
  * Kept free of React, so App/Tests read these exact strings and rules.
  * Every string is a whole sentence or a whole name, wrapped in
@@ -82,6 +89,8 @@ export const SubscriberFormCopy: {
   awaitingTextConfirmationDescription: string;
   unsubscribedTitle: string;
   unsubscribedDescription: string;
+  linkExpiredTitle: string;
+  linkExpiredDescription: string;
   welcomeTitle: string;
   welcomeDescription: string;
   internalNoteDescription: string;
@@ -120,6 +129,10 @@ export const SubscriberFormCopy: {
   ),
   unsubscribedTitle: translationKey("Unsubscribed"),
   unsubscribedDescription: translationKey("Gets nothing."),
+  linkExpiredTitle: translationKey("Link Expired"),
+  linkExpiredDescription: translationKey(
+    "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.",
+  ),
   welcomeTitle: translationKey("Send a welcome message"),
   welcomeDescription: translationKey(
     "Tells them they are subscribed, with a link to unsubscribe.",
@@ -331,6 +344,48 @@ export const SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice> = {
     return { isUnsubscribed: choice === SubscriberStatusChoice.Unsubscribed };
   },
   dataTestId: "subscriber-status",
+};
+
+/*
+ * What an email or SMS subscriber table's Status column shows for a
+ * subscriber at `now` (the browser's clock): Unsubscribed, Subscribed, and
+ * - for one not confirmed yet - Awaiting Confirmation while the link we
+ * sent them works, a day from Created At (SubscriptionConfirmationLink),
+ * or Link Expired once it has run out: they never will confirm with it,
+ * and are sent nothing. The table reads Created At for its Subscribed At
+ * column; a subscriber whose age cannot be told is taken as expired, as the
+ * server takes it.
+ */
+export enum SubscriberTableStatus {
+  Subscribed = "subscribed",
+  AwaitingConfirmation = "awaiting-confirmation",
+  LinkExpired = "link-expired",
+  Unsubscribed = "unsubscribed",
+}
+
+export const getSubscriberTableStatus: (
+  values: Values,
+  now?: number,
+) => SubscriberTableStatus = (
+  values: Values,
+  now: number = Date.now(),
+): SubscriberTableStatus => {
+  const status: SubscriberStatusChoice = readSubscriberStatus(values);
+
+  if (status === SubscriberStatusChoice.Unsubscribed) {
+    return SubscriberTableStatus.Unsubscribed;
+  }
+
+  if (status === SubscriberStatusChoice.Subscribed) {
+    return SubscriberTableStatus.Subscribed;
+  }
+
+  return SubscriptionConfirmationLink.hasExpired(
+    values["createdAt"] as Date | string | undefined,
+    now,
+  )
+    ? SubscriberTableStatus.LinkExpired
+    : SubscriberTableStatus.AwaitingConfirmation;
 };
 
 // The columns Add in Bulk sends for an answer (it has no hidden columns).

@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "Næste forsøg på at hente transskription",
   "Transcript Fetch Reason": "Årsag ved hentning af transskription",
   "Transcript Fetch Status": "Status for hentning af transskription",
-  "Video Call Summary": "Opsummering af videoopkald"
+  "Video Call Summary": "Opsummering af videoopkald",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Får intet: linket til bekræftelse, vi sendte, udløb, før det blev åbnet. Abonnenten kan tilmelde sig igen, eller du kan tilføje vedkommende igen.",
+  "Link Expired": "Link udløbet"
 }

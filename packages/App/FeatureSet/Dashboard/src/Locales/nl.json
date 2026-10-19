@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "Volgende poging om transcriptie op te halen",
   "Transcript Fetch Reason": "Reden bij ophalen van transcriptie",
   "Transcript Fetch Status": "Status van ophalen van transcriptie",
-  "Video Call Summary": "Samenvatting van videogesprek"
+  "Video Call Summary": "Samenvatting van videogesprek",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Krijgt niets: de bevestigingslink die we stuurden is verlopen voordat hij werd geopend. Diegene kan zich opnieuw aanmelden, of u voegt diegene opnieuw toe.",
+  "Link Expired": "Link verlopen"
 }

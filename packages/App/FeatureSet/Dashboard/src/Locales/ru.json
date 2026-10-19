@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "Следующая попытка получить расшифровку",
   "Transcript Fetch Reason": "Причина при получении расшифровки",
   "Transcript Fetch Status": "Статус получения расшифровки",
-  "Video Call Summary": "Сводка видеозвонка"
+  "Video Call Summary": "Сводка видеозвонка",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Ничего не получает: ссылка для подтверждения, которую мы отправили, истекла до того, как её открыли. Подписчик может подписаться снова, или вы можете добавить его заново.",
+  "Link Expired": "Ссылка истекла"
 }

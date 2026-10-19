@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "ट्रांसक्रिप्ट प्राप्ति का अगला प्रयास",
   "Transcript Fetch Reason": "ट्रांसक्रिप्ट प्राप्ति का कारण",
   "Transcript Fetch Status": "ट्रांसक्रिप्ट प्राप्ति की स्थिति",
-  "Video Call Summary": "वीडियो कॉल सारांश"
+  "Video Call Summary": "वीडियो कॉल सारांश",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "कुछ नहीं मिलता: पुष्टि के लिए भेजा गया हमारा लिंक खोले जाने से पहले ही समाप्त हो गया। वे फिर से साइन अप कर सकते हैं, या आप उन्हें फिर से जोड़ सकते हैं।",
+  "Link Expired": "लिंक की समय-सीमा खत्म"
 }

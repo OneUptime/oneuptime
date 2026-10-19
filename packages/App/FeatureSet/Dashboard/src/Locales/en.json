@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "Transcript Fetch Next Attempt At",
   "Transcript Fetch Reason": "Transcript Fetch Reason",
   "Transcript Fetch Status": "Transcript Fetch Status",
-  "Video Call Summary": "Video Call Summary"
+  "Video Call Summary": "Video Call Summary",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.",
+  "Link Expired": "Link Expired"
 }

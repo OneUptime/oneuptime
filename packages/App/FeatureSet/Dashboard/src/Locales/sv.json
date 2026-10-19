@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "Nästa försök att hämta transkription",
   "Transcript Fetch Reason": "Orsak vid hämtning av transkription",
   "Transcript Fetch Status": "Status för hämtning av transkription",
-  "Video Call Summary": "Sammanfattning av videosamtal"
+  "Video Call Summary": "Sammanfattning av videosamtal",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Får ingenting: bekräftelselänken vi skickade gick ut innan den öppnades. Personen kan anmäla sig igen, eller så kan du lägga till hen igen.",
+  "Link Expired": "Länken har gått ut"
 }

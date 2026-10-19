@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "تلاش بعدی برای دریافت رونوشت",
   "Transcript Fetch Reason": "دلیل دریافت رونوشت",
   "Transcript Fetch Status": "وضعیت دریافت رونوشت",
-  "Video Call Summary": "خلاصه تماس تصویری"
+  "Video Call Summary": "خلاصه تماس تصویری",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "چیزی دریافت نمی‌کند: پیوند تأییدی که برایش فرستادیم پیش از باز شدن منقضی شد. می‌تواند دوباره عضو شود، یا شما می‌توانید دوباره او را اضافه کنید.",
+  "Link Expired": "پیوند منقضی‌شده"
 }

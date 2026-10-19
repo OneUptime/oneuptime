@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "Prochaine récupération de la transcription le",
   "Transcript Fetch Reason": "Motif de la récupération de la transcription",
   "Transcript Fetch Status": "Statut de la récupération de la transcription",
-  "Video Call Summary": "Résumé de l'appel vidéo"
+  "Video Call Summary": "Résumé de l'appel vidéo",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Ne reçoit rien : le lien de confirmation que nous avons envoyé a expiré avant d'être ouvert. La personne peut se réabonner, ou vous pouvez l'ajouter à nouveau.",
+  "Link Expired": "Lien expiré"
 }

@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "转录获取下次尝试时间",
   "Transcript Fetch Reason": "转录获取原因",
   "Transcript Fetch Status": "转录获取状态",
-  "Video Call Summary": "视频通话摘要"
+  "Video Call Summary": "视频通话摘要",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "不会收到任何内容：我们发送的确认链接在打开前已过期。对方可以重新订阅，你也可以重新添加。",
+  "Link Expired": "链接已过期"
 }
