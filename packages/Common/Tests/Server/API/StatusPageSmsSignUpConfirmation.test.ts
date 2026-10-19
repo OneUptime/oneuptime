@@ -90,6 +90,7 @@ import StatusPageSubscriberService, {
   getYouHaveSubscribedTextMessage,
 } from "../../../Server/Services/StatusPageSubscriberService";
 import Response from "../../../Server/Utils/Response";
+import logger from "../../../Server/Utils/Logger";
 import StatusPageSubscriberUnsubscribe from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import ObjectID from "../../../Types/ObjectID";
 import { StoredRow } from "../TestingUtils/InMemoryRepository";
@@ -153,7 +154,10 @@ describe("a visitor signing up by text", () => {
 
     expect(row["isSubscriptionConfirmed"]).toBe(false);
     expect(row["isAddedByTeam"]).toBe(false);
-    expect(String(row["subscriptionConfirmationToken"])).toMatch(/^\d{6}$/);
+    // A code nobody can guess: 32 hex characters (StatusPageSubscriberConfirmationCode).
+    expect(String(row["subscriptionConfirmationToken"])).toMatch(
+      /^[0-9a-f]{32}$/,
+    );
 
     expect(textsSent(world)).toEqual([
       {
@@ -370,6 +374,127 @@ describe("opening the link", () => {
 
     expect(row["isSubscriptionConfirmed"]).toBe(true);
     expect(world.texts).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the code in the link", () => {
+  test("is 32 hex characters, new for every sign-up, by text and by email alike", async () => {
+    await signUp("192.0.2.1", { subscriberPhone: PHONE });
+    await signUp("192.0.2.2", { subscriberEmail: "reader@example.com" });
+
+    const codes: Array<string> = rowsOf(world).map((row: StoredRow): string => {
+      return String(row["subscriptionConfirmationToken"]);
+    });
+
+    expect(codes).toHaveLength(2);
+
+    for (const code of codes) {
+      expect(code).toMatch(/^[0-9a-f]{32}$/);
+    }
+
+    expect(codes[0]).not.toBe(codes[1]);
+  });
+
+  test("is minted by the server, whatever code the create carried", async () => {
+    // The team asking an address to confirm first, through the API.
+    const answer: Answer = await teamAdd({
+      subscriberEmail: "reader@example.com",
+      isSubscriptionConfirmed: false,
+      subscriptionConfirmationToken: "123456",
+    });
+
+    expect(answer.error).toBeUndefined();
+
+    const row: StoredRow = onlyRow();
+
+    expect(row["subscriptionConfirmationToken"]).not.toBe("123456");
+    expect(String(row["subscriptionConfirmationToken"])).toMatch(
+      /^[0-9a-f]{32}$/,
+    );
+  });
+
+  test.each([
+    [
+      "a six-digit number",
+      (_code: string): string => {
+        return "482913";
+      },
+    ],
+    [
+      "the code's first half",
+      (code: string): string => {
+        return code.slice(0, 16);
+      },
+    ],
+    [
+      "the code with its last character changed",
+      (code: string): string => {
+        return `${code.slice(0, -1)}${code.endsWith("0") ? "1" : "0"}`;
+      },
+    ],
+    [
+      "the code with more after it",
+      (code: string): string => {
+        return `${code}0`;
+      },
+    ],
+  ])(
+    "%s confirms nothing, and sends nothing",
+    async (_label: string, guess: (code: string) => string) => {
+      await signUp("192.0.2.1", { subscriberPhone: PHONE });
+
+      const row: StoredRow = onlyRow();
+
+      await confirm(
+        String(row["_id"]),
+        guess(String(row["subscriptionConfirmationToken"])),
+      );
+
+      expect(row["isSubscriptionConfirmed"]).toBe(false);
+      expect(Response.sendErrorResponse).toHaveBeenCalled();
+      expect(world.texts).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test.each([
+    ["by text", { subscriberPhone: PHONE }],
+    ["by email", { subscriberEmail: "reader@example.com" }],
+  ])(
+    "of a sign-up %s is never written to the log",
+    async (_label: string, body: Record<string, string>) => {
+      await signUp("192.0.2.1", body);
+
+      const code: string = String(onlyRow()["subscriptionConfirmationToken"]);
+      const logged: string = JSON.stringify([
+        ...jest.mocked(logger.debug).mock.calls,
+        ...jest.mocked(logger.info).mock.calls,
+        ...jest.mocked(logger.warn).mock.calls,
+        ...jest.mocked(logger.error).mock.calls,
+      ]);
+
+      expect(code).toMatch(/^[0-9a-f]{32}$/);
+      expect(logged).not.toContain(code);
+    },
+  );
+
+  test("of six digits, as a link sent before carries, still confirms its own subscription", async () => {
+    const id: string = ObjectID.generate().toString();
+
+    world.subscribers.rows.push({
+      _id: id,
+      projectId: WORLD_PROJECT_ID,
+      statusPageId: WORLD_PAGE_ID,
+      subscriberEmail: "earlier@example.com",
+      isSubscriptionConfirmed: false,
+      subscriptionConfirmationToken: "482913",
+      sendYouHaveSubscribedMessage: false,
+      unsubscribeToken: "5d".repeat(32),
+      version: 1,
+    });
+
+    await confirm(id, "482913");
+
+    expect(world.subscribers.get(id)!["isSubscriptionConfirmed"]).toBe(true);
   });
 });
 

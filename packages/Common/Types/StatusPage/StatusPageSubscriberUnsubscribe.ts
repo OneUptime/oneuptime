@@ -167,12 +167,13 @@ const LINK_TOKEN_PATTERN: RegExp = new RegExp(
 /*
  * The code of a link that confirms a subscription, anywhere in a text: the
  * route segment of the Confirm Subscription page, the subscriber id, and the
- * code in its verification-token query. Linear for the same reasons: the
- * route segment and the query's name are literals, and the code is at most
- * sixteen digits.
+ * code in its verification-token query - 32 hex characters
+ * (StatusPageSubscriberConfirmationCode), or the six digits of a code minted
+ * before. Linear for the same reasons: the route segment and the query's
+ * name are literals, and the code is at most 64 characters of one class.
  */
 const CONFIRMATION_CODE_PATTERN: RegExp = new RegExp(
-  `(/confirm-subscription/${UUID_PATTERN}\\?verification-token=)[0-9]{1,16}`,
+  `(/confirm-subscription/${UUID_PATTERN}\\?verification-token=)[0-9a-fA-F]{1,64}`,
   "g",
 );
 

@@ -47,7 +47,6 @@ import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/Statu
 import { IncidentSubscriberAudienceCounts } from "../../Types/StatusPage/IncidentSubscriberAudience";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
-import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -66,6 +65,7 @@ import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeDetails,
   StatusPageSubscriberUnsubscribeState,
 } from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+import StatusPageSubscriberConfirmationCode from "../Utils/StatusPage/StatusPageSubscriberConfirmationCode";
 import StatusPageSubscriberUnsubscribeToken from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeToken";
 import StatusPageSubscriberUnsubscribeNotice, {
   StatusPageSubscriberUnsubscribeNoticeEmail,
@@ -1006,10 +1006,13 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(
-      100000,
-      999999,
-    ).toString();
+    /*
+     * The code in the link that confirms the subscription: one nobody can
+     * guess, minted here whatever the request carried
+     * (StatusPageSubscriberConfirmationCode).
+     */
+    data.data.subscriptionConfirmationToken =
+      StatusPageSubscriberConfirmationCode.generate();
 
     /*
      * The secret in this subscriber's unsubscribe link. Always minted here,
@@ -1040,13 +1043,11 @@ export class Service extends ProjectReferencesService<Model> {
     } else {
       delete data.data.unsubscribedAt;
     }
-    logger.debug(
-      `Subscription Confirmation Token: ${data.data.subscriptionConfirmationToken}`,
-      {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes,
-    );
+    // Never the code itself: the link it is in is the whole of the confirmation.
+    logger.debug("Subscription confirmation code minted.", {
+      projectId: data.data.projectId?.toString(),
+      statusPageId: data.data.statusPageId?.toString(),
+    } as LogAttributes);
 
     // Not the data itself: it now carries the unsubscribe token.
     logger.debug("onBeforeCreate processed data.", {
@@ -2888,9 +2889,6 @@ Stay informed about service availability! 🚀`.toString();
       confirmationToken: subscriber.subscriptionConfirmationToken || "",
       statusPageSubscriberId: subscriber.id!,
     }).toString();
-    logger.debug(`Confirm Subscription Link: ${confirmSubscriptionLink}`, {
-      statusPageSubscriberId: data.subscriberId?.toString(),
-    } as LogAttributes);
 
     if (
       subscriber.statusPageId &&
@@ -3209,21 +3207,17 @@ Stay informed about service availability! 🚀`.toString();
     confirmationToken: string;
     statusPageSubscriberId: ObjectID;
   }): URL {
-    logger.debug("getConfirmSubscriptionLink called with data:", {
-      statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
-    } as LogAttributes);
-    logger.debug(data, {
-      statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
-    } as LogAttributes);
-
     const confirmSubscriptionLink: URL = URL.fromString(
       data.statusPageUrl,
     ).addRoute(
       `/confirm-subscription/${data.statusPageSubscriberId.toString()}?verification-token=${data.confirmationToken}`,
     );
 
+    // The link with its code redacted: the code is the whole of the confirmation.
     logger.debug(
-      `Generated Confirm Subscription Link: ${confirmSubscriptionLink.toString()}`,
+      `Generated Confirm Subscription Link: ${StatusPageSubscriberUnsubscribe.redactCredentials(
+        confirmSubscriptionLink.toString(),
+      )}`,
       {
         statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
       } as LogAttributes,

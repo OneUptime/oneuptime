@@ -440,6 +440,25 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials", () => {
     expect(result).not.toContain(TOKEN);
   });
 
+  test("replaces a code of 32 hex characters, the shape of the codes minted now, whole", () => {
+    const code: string = "9f86d081884c7d659a2feaa0c55ad015";
+    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
+      `Confirm: https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=${code}`,
+    );
+
+    expect(result).toBe(`Confirm: ${confirmationRedacted}`);
+    expect(result).not.toContain(code.slice(0, 6));
+    expect(result).not.toContain(code.slice(-6));
+  });
+
+  test("a code in capitals is caught too, and the text after it is kept", () => {
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=9F86D081884C7D659A2FEAA0C55AD015 - Acme`,
+      ),
+    ).toBe(`${confirmationRedacted} - Acme`);
+  });
+
   test("leaves a confirmation link with no code, or a code of another page's query, alone", () => {
     const untouched: string = [
       `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}`,
@@ -503,6 +522,18 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials on long text", () =>
       expect(result).toBe(text);
     },
   );
+
+  test("a confirmation link whose code runs on: the code's 64 characters go, the rest is kept, in well under two seconds", () => {
+    const startedAt: number = Date.now();
+    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
+      `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=${"f".repeat(LENGTH)}`,
+    );
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(result).toBe(
+      `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=[redacted]${"f".repeat(LENGTH - 64)}`,
+    );
+  });
 
   test("a long text full of real links: every token goes, in well under two seconds", () => {
     const manage: string = `/update-subscription/${SUBSCRIBER_ID}-${TOKEN} `;
