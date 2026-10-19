@@ -206,6 +206,13 @@ const BEHIND_LINE_TERMINATOR: number = 4;
 const MOVE_UNKNOWN: number = -1;
 
 /*
+ * The marks that tell which steps a reading has visited are 32-bit, and an
+ * automaton or the ordered machine counts them up for as long as it is
+ * kept; before the count outgrows them, the marks start over.
+ */
+const MARK_RESET_AT: number = 0x3fffffff;
+
+/*
  * How many moves one program's automaton keeps (states times code unit
  * classes times look-around answers) - about 128 KB - and how many
  * look-arounds a program may read to be run this way.
@@ -432,6 +439,13 @@ class AutomatonStore {
     }
   }
 
+  // Test seam: every kept automaton's count of marks, set.
+  public setMarksForTests(mark: number): void {
+    for (const automaton of this.recency.keys()) {
+      automaton.setMarkForTests(mark);
+    }
+  }
+
   // Test seam: forget every automaton.
   public clear(): void {
     this.forwardAutomata.clear();
@@ -484,6 +498,11 @@ export function getKeptAutomataCount(): number {
 // Test seam: forget every kept automaton.
 export function clearKeptAutomata(): void {
   automata.clear();
+}
+
+// Test seam: set every kept automaton's count of marks, to reach its limit.
+export function setKeptAutomataMarksForTests(mark: number): void {
+  automata.setMarksForTests(mark);
 }
 
 /*
@@ -739,6 +758,11 @@ class LazyDfa {
     const ops: Int32Array = program.ops;
     const argA: Int32Array = program.argA;
     const argB: Int32Array = program.argB;
+    if (this.mark >= MARK_RESET_AT) {
+      this.marks.fill(0);
+      this.mark = 0;
+    }
+
     const marks: Int32Array = this.marks;
     const stack: Int32Array = this.stack;
     const found: Int32Array = this.found;
@@ -816,6 +840,11 @@ class LazyDfa {
     this.meter.spend(visits);
 
     return foundLength;
+  }
+
+  // Test seam: the count of marks, set.
+  public setMarkForTests(mark: number): void {
+    this.mark = mark;
   }
 
   // Whether the automaton keeps as many moves as it may.
@@ -1316,8 +1345,6 @@ interface AnchoredWorkspace {
   secondPcs: Int32Array;
   secondSlots: Array<Array<number>>;
 }
-
-const MARK_RESET_AT: number = 0x3fffffff;
 
 function newWorkspace(size: number): AnchoredWorkspace {
   return {

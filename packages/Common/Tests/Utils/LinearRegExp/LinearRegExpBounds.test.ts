@@ -11,6 +11,7 @@ import {
   MAX_KEPT_AUTOMATA_BYTES,
   newPositionBits,
   positionBit,
+  setKeptAutomataMarksForTests,
   setPositionBit,
   WORK_PER_CODE_UNIT,
   WORK_PER_STEP,
@@ -371,6 +372,37 @@ describe("what the matcher keeps between questions", () => {
       MAX_KEPT_AUTOMATA_BYTES / (8 * 1024),
     );
     expect(getKeptAutomataCount()).toBeGreaterThan(1000);
+    clearKeptAutomata();
+  });
+
+  test("an automaton kept for billions of readings still tells the steps it visited apart", () => {
+    clearKeptAutomata();
+
+    /*
+     * Every reading of the steps a state reaches counts one more mark, for
+     * as long as the automaton is kept - and the marks are 32-bit. Past
+     * 2^31 a mark no longer matched the one written, so a reading followed
+     * every way through sixteen choices of two ways that meet again: 65,536
+     * of them, past the work allowed.
+     */
+    const source: string = "(?:x?|y?){16}z";
+    const pattern: LinearRegExp = new LinearRegExp(source);
+
+    // The automaton is made, and has met only the state it starts in.
+    expect(pattern.test("")).toBe(false);
+    setKeptAutomataMarksForTests(2 ** 31 - 3);
+
+    // (JavaScript's own engine takes 3^16 ways on a text without a z.)
+    for (const [text, matches] of [
+      ["xxyz", true],
+      ["qz", true],
+      ["xyxyxyxyq", false],
+      ["z", true],
+      ["yyq", false],
+    ] as Array<[string, boolean]>) {
+      expect(pattern.test(text)).toBe(matches);
+    }
+
     clearKeptAutomata();
   });
 
