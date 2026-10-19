@@ -710,9 +710,9 @@ to `default`, and would render as unset - a relay again where billing is on.
   {{- end }}
 
 {{- /*
-Cloud marketplaces (AWS, Microsoft, Google Cloud Marketplace). Read only where
-billing is enabled; each marketplace is offered only when all of its values
-are set. Secrets can come from an existing Kubernetes secret.
+Cloud marketplaces (AWS, Microsoft, Google Cloud and Vercel Marketplace). Read
+only where billing is enabled; each marketplace is offered only when all of its
+values are set. Secrets can come from an existing Kubernetes secret.
 */}}
 - name: AWS_MARKETPLACE_ACCESS_KEY_ID
   value: {{ default "" ((($.Values.cloudMarketplace).aws).accessKeyId) | quote }}
@@ -770,6 +770,17 @@ are set. Secrets can come from an existing Kubernetes secret.
   value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).signupAudience) | quote }}
 - name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE
   value: {{ default "" ((($.Values.cloudMarketplace).googleCloud).pubSubAudience) | quote }}
+- name: VERCEL_MARKETPLACE_CLIENT_ID
+  value: {{ default "" ((($.Values.cloudMarketplace).vercel).clientId) | quote }}
+- name: VERCEL_MARKETPLACE_CLIENT_SECRET
+  {{- if ((($.Values.cloudMarketplace).vercel).existingSecret) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.cloudMarketplace.vercel.existingSecret.name | quote }}
+      key: {{ $.Values.cloudMarketplace.vercel.existingSecret.clientSecretKey | quote }}
+  {{- else }}
+  value: {{ default "" ((($.Values.cloudMarketplace).vercel).clientSecret) | quote }}
+  {{- end }}
 
 - name: CAPTCHA_SECRET_KEY
   value: {{ default "" $.Values.captcha.secretKey | quote }}

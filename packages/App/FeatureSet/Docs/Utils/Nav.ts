@@ -1218,6 +1218,10 @@ const DocsNav: NavGroup[] = [
         title: "IRC",
         url: "/docs/integrations/irc",
       },
+      {
+        title: "Vercel",
+        url: "/docs/integrations/vercel",
+      },
     ],
   },
   {

@@ -256,6 +256,7 @@
     "Discord": "Discord",
     "Telegram": "Telegram",
     "IRC": "IRC",
+    "Vercel": "Vercel",
     "Custom Probes": "Aangepaste probes",
     "Incoming Request Ingress": "Ingress voor inkomende verzoeken",
     "Packet Capture": "Pakketcapture",

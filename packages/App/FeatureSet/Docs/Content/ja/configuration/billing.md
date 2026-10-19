@@ -66,7 +66,7 @@ flowchart TB
 API キーには Growth プラン以上が必要で、Scale プラン未満では SCIM 接続はユーザーの削除しかできません。それらを停止するプランは、選ぶ前に対象の数を表示し、停止中は **請求** ページに **このプランには含まれません** と表示されます。何も削除されず、それらを含むプランに戻れば再び動作します。
 
 > [!NOTE]
-> OneUptime をリセラーやクラウドマーケットプレイス (AWS Marketplace、Microsoft Marketplace、Google Cloud Marketplace) 経由で購入しましたか? その場合は **請求** ページにそう表示されます。リセラーがプランを代わりに変更し、マーケットプレイスはプロジェクトのプランと使用量をクラウドの請求書に計上します。
+> OneUptime をリセラーやクラウドマーケットプレイス (AWS Marketplace、Microsoft Marketplace、Google Cloud Marketplace、Vercel Marketplace) 経由で購入しましたか? その場合は **請求** ページにそう表示されます。リセラーがプランを代わりに変更し、マーケットプレイスはプロジェクトのプランと使用量をクラウドの請求書に計上します。
 
 ## 支払い方法
 

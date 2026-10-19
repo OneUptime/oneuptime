@@ -647,13 +647,17 @@ describe("TelemetryIngest browser ingestion key guard", () => {
 
     test("a browser key is refused 403 on every other surface, naming the surface and pointing at a server key", async () => {
       /*
-       * Ten infrastructure / build-time pipes plus the three identity
-       * registrations (the Kubernetes agent Runner, the Kubernetes AI agent
-       * and the resource AI agents), which mint cluster or infrastructure
-       * credentials and must never be reachable with a key scraped off a
-       * page.
+       * Eleven infrastructure / build-time pipes (the Vercel log drain
+       * among them: Vercel's servers send it, never a browser) plus the
+       * three identity registrations (the Kubernetes agent Runner, the
+       * Kubernetes AI agent and the resource AI agents), which mint cluster
+       * or infrastructure credentials and must never be reachable with a key
+       * scraped off a page.
        */
-      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(13);
+      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(14);
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.VercelLogDrain,
+      );
       expect(BROWSER_DISALLOWED_SURFACES).toContain(
         TelemetryIngestSurface.KubernetesAgentRunner,
       );

@@ -90,6 +90,12 @@ Start from the top of the table: the higher a way is, the less there is to maint
 > [!TIP]
 > Slack and Microsoft Teams also have workflow steps. Use the built-in connection for incident channels and on-call, and a workflow step when you only need a message in a channel.
 
+### Hosting platforms
+
+| Tool | Direction | What it does |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Inbound | Add OneUptime from the Vercel Marketplace: traces, logs, uptime monitors and a status page for your Vercel projects. |
+
 ## Moving from another tool
 
 To leave another on-call, uptime or status page tool, bring your team over instead of connecting the two. **Project Settings → Import from another tool** reads your account with an API key, shows you what it found, and creates what you tick. Each tool has a guide:

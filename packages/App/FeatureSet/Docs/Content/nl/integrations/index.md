@@ -90,6 +90,12 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 > [!TIP]
 > Slack en Microsoft Teams hebben ook workflowstappen. Gebruik de ingebouwde koppeling voor incidentkanalen en diensten, en een workflowstap wanneer je alleen een bericht in een kanaal nodig hebt.
 
+### Hostingplatforms
+
+| Tool | Richting | Wat hij doet |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Inkomend | Voeg OneUptime toe vanuit de Vercel Marketplace: traces, logs, uptime-monitors en een statuspagina voor uw Vercel-projecten. |
+
 ## Overstappen van een andere tool
 
 Om een andere tool voor diensten, uptime of statuspagina's te verlaten, haal je je team over in plaats van de twee te koppelen. **Projectinstellingen → Importeren uit een andere tool** leest je account met een API-sleutel, laat zien wat het vond en maakt aan wat je aanvinkt. Elke tool heeft een handleiding:

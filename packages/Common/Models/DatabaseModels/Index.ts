@@ -531,6 +531,8 @@ import DeletedProject from "./DeletedProject";
 import MarketplaceSubscription from "./MarketplaceSubscription";
 import MarketplaceUsageReport from "./MarketplaceUsageReport";
 import MarketplaceCharge from "./MarketplaceCharge";
+import VercelMarketplaceInstallation from "./VercelMarketplaceInstallation";
+import VercelMarketplaceConnection from "./VercelMarketplaceConnection";
 import UserNotificationEmailRollupItem from "./UserNotificationEmailRollupItem";
 import UserNotificationEmailRollupBatch from "./UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupSetting from "./UserNotificationEmailRollupSetting";
@@ -1087,6 +1089,8 @@ const AllModelTypes: Array<{
   MarketplaceSubscription,
   MarketplaceUsageReport,
   MarketplaceCharge,
+  VercelMarketplaceInstallation,
+  VercelMarketplaceConnection,
   UserNotificationEmailRollupItem,
   UserNotificationEmailRollupBatch,
   UserNotificationEmailRollupSetting,
