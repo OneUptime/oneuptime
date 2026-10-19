@@ -347,7 +347,8 @@ jobs:
       # project's own Runner, never a Bash or AI-composed row, never a step of
       # a project that turned global Runners off (one already waiting
       # included), at most three of one project's steps at once, and global
-      # Runners claiming at the same moment never take the same step.
+      # Runners claiming at the same moment never take the same step, nor
+      # more than three of one project's.
       - name: Test the global Runners' claim against Postgres
         working-directory: packages/Common
         env:
