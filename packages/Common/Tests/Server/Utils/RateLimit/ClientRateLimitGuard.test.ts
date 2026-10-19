@@ -128,6 +128,7 @@ const REDIS_LIMITS: Array<string> = [
   "packages/Common/Server/Middleware/OnCallCalendarFeedRateLimit.ts",
   "packages/Common/Server/Middleware/McpOAuthRateLimit.ts",
   "packages/Common/Server/Utils/Runbook/RunbookWebhookRateLimit.ts",
+  "packages/Common/Server/Utils/RateLimit/PublicMessageRateLimit.ts",
   "ee/Server/LicenseServer/LicenseServerRateLimit.ts",
 ];
 
@@ -158,8 +159,9 @@ const CLIENT_ADDRESS_READ: RegExp =
 // ClientRateLimitCounter.count(...), with or without its type argument.
 const COUNTS_THROUGH_COUNTER: RegExp =
   /\bClientRateLimitCounter\.count(?:<[^<>()]*>)?\(/;
+// From any folder, or from its own (a limit next to it in RateLimit/).
 const IMPORTS_COUNTER: RegExp =
-  /from\s+["'](?:[^"']*\/)?RateLimit\/ClientRateLimitCounter["']/;
+  /from\s+["'](?:[^"']*\/)?(?:RateLimit\/|\.\/)ClientRateLimitCounter["']/;
 const READS_RATE_LIMIT_CLIENT: RegExp = /\bgetRateLimitClient\s*\(/;
 const COUNTS_THE_NETWORK: RegExp = /\.ipv6Network64\b/;
 
@@ -413,6 +415,24 @@ describe("the guard's own patterns", () => {
       "const requestIp: string = data.requestIp;",
     ]) {
       expect([code, CLIENT_ADDRESS_READ.test(code)]).toEqual([code, false]);
+    }
+  });
+
+  test("see the client counter imported from any folder, and from its own", () => {
+    for (const code of [
+      'import ClientRateLimitCounter from "../Utils/RateLimit/ClientRateLimitCounter";',
+      'import ClientRateLimitCounter, { ClientRateLimitRefusal } from "../RateLimit/ClientRateLimitCounter";',
+      'import ClientRateLimitCounter from "Common/Server/Utils/RateLimit/ClientRateLimitCounter";',
+      'import ClientRateLimitCounter from "./ClientRateLimitCounter";',
+    ]) {
+      expect([code, IMPORTS_COUNTER.test(code)]).toEqual([code, true]);
+    }
+
+    for (const code of [
+      'import OtherClientRateLimitCounter from "./OtherClientRateLimitCounter";',
+      'import ClientRateLimitCounter from "../Elsewhere/ClientRateLimitCounter";',
+    ]) {
+      expect([code, IMPORTS_COUNTER.test(code)]).toEqual([code, false]);
     }
   });
 

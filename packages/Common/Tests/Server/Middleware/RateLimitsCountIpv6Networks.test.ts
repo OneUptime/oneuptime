@@ -91,6 +91,11 @@ import RunbookWebhookRateLimit, {
   RunbookWebhookRateLimitDecision,
   RunbookWebhookRateLimitOutcome,
 } from "../../../Server/Utils/Runbook/RunbookWebhookRateLimit";
+import PublicMessageRateLimit, {
+  PublicMessageKind,
+  PublicMessageRateLimitException,
+  PublicMessageRateLimitScope,
+} from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import { RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE } from "../../../Types/Runbook/RunbookWebhook";
 import Exception from "../../../Types/Exception/Exception";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
@@ -389,6 +394,66 @@ function mcpOAuthSurface(bucket: McpOAuthRateLimitBucket): Surface {
 
 const RUNBOOK_REFUSAL: string = "Too many runbook webhook calls.";
 
+/*
+ * A public route about to send a message to an address its caller names:
+ * the call each route makes (PublicMessageRateLimit.assertMaySend), by
+ * email, or by text message for the text allowance every kind shares.
+ */
+function publicMessageSurface(
+  kind: PublicMessageKind,
+  byText: boolean = false,
+): Surface {
+  const perClient: number = byText
+    ? PublicMessageRateLimit.getConfig().perClientTextMessageLimit
+    : PublicMessageRateLimit.getConfig().kinds[kind].perClientLimit;
+  let sent: number = 0;
+
+  return {
+    name: `public messages: ${kind}${byText ? " by text message" : ""}`,
+    /*
+     * A different contact every time: a contact's counter is not keyed on
+     * the address, so only the caller's counters are in play.
+     */
+    send: async (address: string): Promise<Answer> => {
+      sent++;
+
+      try {
+        await PublicMessageRateLimit.assertMaySend({
+          req: requestFrom(address),
+          kind: kind,
+          contacts: [
+            byText
+              ? PublicMessageRateLimit.forPhone(
+                  `+1415${String(sent).padStart(7, "0")}`,
+                )
+              : PublicMessageRateLimit.forEmail(`person-${sent}@example.com`),
+          ],
+        });
+
+        return { allowed: true, message: undefined, retryAfter: undefined };
+      } catch (error) {
+        expect(error).toBeInstanceOf(PublicMessageRateLimitException);
+
+        return {
+          allowed: false,
+          message: (error as PublicMessageRateLimitException).message,
+          retryAfter: String(
+            (error as PublicMessageRateLimitException).retryAfterSeconds,
+          ),
+        };
+      }
+    },
+    perResource: perClient,
+    perClient: perClient,
+    refusal: PublicMessageRateLimit.getRefusalMessage({
+      kind: kind,
+      scope: byText
+        ? PublicMessageRateLimitScope.ClientTextMessages
+        : PublicMessageRateLimitScope.Client,
+    }),
+  };
+}
+
 function runbookWebhookSurface(): Surface {
   return {
     name: "runbook webhooks",
@@ -496,6 +561,13 @@ function everySurface(): Array<Surface> {
     mcpOAuthSurface(McpOAuthRateLimitBucket.Revoke),
     mcpOAuthSurface(McpOAuthRateLimitBucket.Consent),
     runbookWebhookSurface(),
+    publicMessageSurface(PublicMessageKind.StatusPageSignUp),
+    publicMessageSurface(PublicMessageKind.StatusPageSignUp, true),
+    publicMessageSurface(PublicMessageKind.StatusPageManageLink),
+    publicMessageSurface(PublicMessageKind.StatusPageManageLink, true),
+    publicMessageSurface(PublicMessageKind.StatusPagePasswordReset),
+    publicMessageSurface(PublicMessageKind.PasswordReset),
+    publicMessageSurface(PublicMessageKind.SignUpEmail),
   ];
 }
 

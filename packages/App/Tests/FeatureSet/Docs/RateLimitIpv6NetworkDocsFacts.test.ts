@@ -11,8 +11,9 @@ import { describe, expect, it } from "@jest/globals";
  * addresses of one IPv6 /64 are counted together too, with ten addresses'
  * room (ClientIp getIpv6NetworkRateLimit, which every such limit counts
  * by): the forms' rate limits, the calendar feeds' rate limits and their
- * troubleshooting, and the runbook webhook's 429. Held here to the code's
- * own room, in English, and to being said in every language.
+ * troubleshooting, the runbook webhook's 429, and a status page's limits on
+ * signups and management links. Held here to the code's own room, in
+ * English, and to being said in every language.
  */
 
 const ROOM_IN_WORDS: Record<number, string> = { 10: "ten" };
@@ -35,6 +36,10 @@ const NETWORK_SENTENCES: Array<{ page: string; english: string }> = [
     english: `or the addresses of one IPv6 /64 more than ${getIpv6NetworkRateLimit(
       RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE,
     )} together.`,
+  },
+  {
+    page: "status-pages/subscribers",
+    english: `Each limit per network also counts the addresses of one IPv6 /64 together, at ${ROOM_IN_WORDS[IPV6_NETWORK_RATE_LIMIT_ROOM_IN_ADDRESSES]} times its number.`,
   },
 ];
 

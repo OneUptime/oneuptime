@@ -78,6 +78,40 @@ Sidan **Prenumerera** har en undermeny med en flik per påslagen kanal; med bara
 
 Knappen för att skicka heter **Prenumerera**. En registrering via SMS, Slack, Microsoft Teams eller webhook visar *Du har prenumererat.* En registrering via e-post säger att en bekräftelselänk har skickats och att man ska kontrollera skräppostmappen om den inte kommer fram (se [Dubbel opt-in för e-post](#dubbel-opt-in-för-e-post)). Flikarna **E-post**, **SMS**, **Slack** och **MS Teams** har också uppdelningen **Ny prenumeration** / **Hantera befintlig prenumeration**, så att någon som redan prenumererar kan komma tillbaka till sina inställningar utan att leta efter ett gammalt meddelande.
 
+## Gränser för registreringar och länkar
+
+Varje registrering skickar genast ett meddelande till sin kontakt, ett bekräftelsemejl, ett SMS, ett Slack- eller Microsoft Teams-meddelande eller ett webhook-anrop, och det gör **Skicka hanteringslänk** också. För att ingen ska kunna använda en statussida för att skicka meddelanden till folk som inte har bett om dem, eller för att driva upp ditt projekts SMS-kostnader, är båda begränsade för varje besökares nätverk och för varje kontakt. Gränserna ligger långt över vad folk gör: ett helt kontor kan registrera sig tillsammans under en incident.
+
+| Vad som begränsas | Gräns |
+| --- | --- |
+| Registreringar från ett nätverk | 60 på 15 minuter |
+| Registreringar och hanteringslänkar via SMS från ett nätverk, tillsammans | 10 på 15 minuter |
+| Hanteringslänkar som begärs från ett nätverk | 30 på 15 minuter |
+| Registreringar av en e-postadress, ett telefonnummer, en Slack- eller Microsoft Teams-kanal eller en webhook, på alla statussidor tillsammans | 10 på en timme |
+| Hanteringslänkar för en e-postadress eller ett telefonnummer på alla statussidor tillsammans, eller för ett Slack- eller Microsoft Teams-arbetsytenamn på en statussida | 5 på en timme |
+
+Över en gräns svarar API:t `429` med en `Retry-After`-header, i sekunder, och besökaren får veta att det var för många registreringar eller länkar från deras nätverk, eller för den kontakten, och att de ska försöka igen senare. Inget skapas eller skickas, och ditt projekt märker inget av det: ingen prenumerant läggs till, och inget meddelande skickas eller betalas. Gränserna för hanteringslänkar räknar varje begäran, oavsett om en prenumeration matchar eller inte, så de kan inte användas för att ta reda på vem som prenumererar. En e-postadress räknas hur den än är skriven, med versaler, med en `+tag` eller, för Gmail, med punkter, och ett telefonnummer hur det än är inskrivet. En registrering tar en e-postadress: en lista med adresser avvisas.
+
+Varje gräns per nätverk räknar också adresserna i ett IPv6 /64 tillsammans, med tio gånger sitt tal. Tidsfönstren är fasta, inte glidande. Om hastighetsbegränsaren inte kan nås fortsätter registreringar och hanteringslänkar via e-post, Slack, Microsoft Teams och webhook oräknade, och de via SMS avvisas med `503` tills den är tillbaka, eftersom varje SMS kostar pengar. Att ändra eller avsluta en prenumeration från dess egen länk är aldrig begränsat, och inte heller att ditt team lägger till prenumeranter på instrumentpanelen eller via API:t.
+
+En privat användare som ber om en länk för att återställa lösenordet på statussidans inloggningssida är begränsad på samma sätt: 5 återställningsmejl till en adress på en timme, på alla statussidor tillsammans, och 30 från ett nätverk på 15 minuter.
+
+På en egenvärdad installation ändrar de här miljövariablerna i OneUptime-appen gränserna:
+
+| Variabel | Standard | Vad den anger |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | Tidsfönstret för gränserna per nätverk, i sekunder. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | Tidsfönstret för gränserna per kontakt, i sekunder. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Registreringar från en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Registreringar och hanteringslänkar via SMS från en adress per tidsfönster, tillsammans. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Hanteringslänkar som begärs från en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Registreringar av en kontakt per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Hanteringslänkar för en kontakt per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Lösenordsåterställningar för privata användare som begärs från en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Återställningsmejl för privata användare till en adress per tidsfönster. |
+
+Varken `config.env` eller Helm-diagrammets värden skickar dem vidare: lägg själv till dem i miljön för containern `app`, med `app.extraEnv`, eller hela diagrammets `extraEnv`, i Helm-diagrammet, eller i en `docker-compose.override.yml` för Docker Compose. `TRUSTED_PROXY_HOPS` avgör vilken adress gränserna per nätverk räknar.
+
 ## Låta prenumeranter välja resurser och händelsetyper
 
 Som standard får en prenumerant allt på sidan. Två reglage på kortet **Val för prenumeranter** under **Prenumerantinställningar** ändrar det, och vart och ett sparas så fort du slår om det:

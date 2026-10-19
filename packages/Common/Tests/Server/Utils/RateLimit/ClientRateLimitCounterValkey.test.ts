@@ -83,6 +83,12 @@ import RunbookWebhookRateLimit, {
   RunbookWebhookRateLimitOutcome,
 } from "../../../../Server/Utils/Runbook/RunbookWebhookRateLimit";
 import { RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE } from "../../../../Types/Runbook/RunbookWebhook";
+import PublicMessageRateLimit, {
+  PublicMessageContact,
+  PublicMessageKind,
+  PublicMessageRateLimitOutcome,
+  PublicMessageSendPermit,
+} from "../../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import { ExpressRequest } from "../../../../Server/Utils/Express";
 import {
   TestRedisClient,
@@ -294,6 +300,142 @@ describe("the counter, on a real Valkey", () => {
         },
       ).length,
     ).toBe(getIpv6NetworkRateLimit(4));
+  });
+});
+
+describe("a public message's counters, on a real Valkey", () => {
+  /*
+   * A contact of this run's own: its counters are named by a hash of it,
+   * which no other run's contact shares.
+   */
+  function contactOf(name: string): PublicMessageContact {
+    const contact: PublicMessageContact = PublicMessageRateLimit.forEmail(
+      `${name}-${RUN.replace(":", "-")}@example.com`,
+    );
+
+    writtenKeyPatterns.add(
+      `pubmsg:rl:*:k:${PublicMessageRateLimit.getContactKey(contact)}:*`,
+    );
+
+    return contact;
+  }
+
+  async function contactCount(contact: PublicMessageContact): Promise<string> {
+    const keys: Array<string> = await client.keys(
+      `pubmsg:rl:*:k:${PublicMessageRateLimit.getContactKey(contact)}:*`,
+    );
+
+    expect(keys).toHaveLength(1);
+
+    return (await client.get(keys[0]!)) || "";
+  }
+
+  test("one contact is sent its sign-ups from host after host, then refused; only a hash of it is written", async () => {
+    const victim: PublicMessageContact = contactOf("victim");
+    let allowed: number = 0;
+
+    for (let host: number = 1; host <= 15; host++) {
+      const decision: { outcome: PublicMessageRateLimitOutcome } =
+        await PublicMessageRateLimit.consume({
+          clientIp: PublicMessageRateLimit.resolveClientIp(
+            requestFrom(hostOf(host, OTHER_PREFIX)),
+          ),
+          kind: PublicMessageKind.StatusPageSignUp,
+          contacts: [victim],
+        });
+
+      if (decision.outcome === PublicMessageRateLimitOutcome.Allowed) {
+        allowed++;
+      }
+    }
+
+    expect(allowed).toBe(10);
+    expect(await contactCount(victim)).toBe("15");
+
+    const keys: Array<string> = await client.keys(
+      `pubmsg:rl:*:k:${PublicMessageRateLimit.getContactKey(victim)}:*`,
+    );
+
+    expect(keys[0]).not.toContain("example.com");
+    expect(await client.ttl(keys[0]!)).toBeGreaterThan(60 * 60);
+  });
+
+  test("a permit gives its contacts their count back, its expiry kept, and the caller's count stays", async () => {
+    const first: PublicMessageContact = contactOf("first");
+    const second: PublicMessageContact = contactOf("second");
+
+    const permit: PublicMessageSendPermit =
+      await PublicMessageRateLimit.assertMaySend({
+        req: requestFrom(hostOf(7)),
+        kind: PublicMessageKind.SignUpEmail,
+        contacts: [first, second],
+      });
+
+    expect(await contactCount(first)).toBe("1");
+
+    await permit.giveBack();
+    await permit.giveBack();
+
+    expect(await contactCount(first)).toBe("0");
+    expect(await contactCount(second)).toBe("0");
+
+    const firstKeys: Array<string> = await client.keys(
+      `pubmsg:rl:*:k:${PublicMessageRateLimit.getContactKey(first)}:*`,
+    );
+
+    expect(await client.ttl(firstKeys[0]!)).toBeGreaterThan(60 * 60);
+
+    const callerKeys: Array<string> = await client.keys(
+      `pubmsg:rl:sign-up-email:c:${hostOf(7)}:*`,
+    );
+
+    expect(callerKeys).toHaveLength(1);
+    expect(await client.get(callerKeys[0]!)).toBe("1");
+  });
+
+  test("a key the server lost before its give-back comes back below zero, with an expiry", async () => {
+    const key: string = `valkey-run-${RUN}:lost-contact`;
+    writtenKeyPatterns.add(key);
+
+    await ClientRateLimitCounter.uncountFixed({
+      redis: client as unknown as Parameters<
+        typeof ClientRateLimitCounter.uncountFixed
+      >[0]["redis"],
+      keys: [key],
+      ttlSeconds: 120,
+    });
+
+    expect(await client.get(key)).toBe("-1");
+    expect(await client.ttl(key)).toBeGreaterThan(100);
+  });
+
+  test("sign-ups by text from one /64: ten addresses' worth, then refused", async () => {
+    let allowed: number = 0;
+
+    for (
+      let host: number = 1;
+      host <= getIpv6NetworkRateLimit(10) + 20;
+      host++
+    ) {
+      const decision: { outcome: PublicMessageRateLimitOutcome } =
+        await PublicMessageRateLimit.consume({
+          clientIp: PublicMessageRateLimit.resolveClientIp(
+            requestFrom(hostOf(host)),
+          ),
+          kind: PublicMessageKind.StatusPageSignUp,
+          contacts: [
+            PublicMessageRateLimit.forPhone(
+              `+1415${String(host).padStart(7, "0")}`,
+            ),
+          ],
+        });
+
+      if (decision.outcome === PublicMessageRateLimitOutcome.Allowed) {
+        allowed++;
+      }
+    }
+
+    expect(allowed).toBe(getIpv6NetworkRateLimit(10));
   });
 });
 
