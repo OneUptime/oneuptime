@@ -577,7 +577,12 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <Icon icon={activeItem.icon} className="h-3.5 w-3.5" />
               </div>
             )}
-            <div className="min-w-0">
+            {/*
+             * text-left: a <button> centres its text, which set "Navigate to"
+             * off-centre above the page's name, the two lines starting at
+             * different edges. Both start at the icon's side.
+             */}
+            <div className="min-w-0 text-left">
               <p className="text-xs text-gray-400 font-medium">
                 {translateString("Navigate to")}
               </p>
