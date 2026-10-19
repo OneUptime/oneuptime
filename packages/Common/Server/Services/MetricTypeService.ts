@@ -330,8 +330,26 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const { junction, metricTypeColumn, serviceColumn } =
-      this.getServicesJunction("attachServices");
+    /*
+     * Identifiers come from entity metadata, never from the caller, and every
+     * value is bound as a parameter — the same rule the other raw-SQL paths in
+     * DatabaseService follow.
+     */
+    const relation: RelationMetadata | undefined =
+      this.getRepository().metadata.findRelationWithPropertyPath("services");
+
+    const junction: string | undefined =
+      relation?.junctionEntityMetadata?.tableName;
+    const metricTypeColumn: string | undefined =
+      relation?.junctionEntityMetadata?.columns[0]?.databaseName;
+    const serviceColumn: string | undefined =
+      relation?.junctionEntityMetadata?.columns[1]?.databaseName;
+
+    if (!junction || !metricTypeColumn || !serviceColumn) {
+      throw new BadDataException(
+        "MetricTypeService.attachServices: the services relation has no junction metadata",
+      );
+    }
 
     /*
      * Deduplicate and SORT. Concurrent statements that insert overlapping sets
@@ -363,6 +381,7 @@ export class Service extends ProjectReferencesService<Model> {
    * named container add thousands of services a day to the container metrics,
    * and that read alone was enough to saturate the ingest workers. This asks
    * the junction about the given services only, through its primary key.
+   * Identifiers come from entity metadata, and every value is bound.
    */
   @CaptureSpan()
   public async findAttachedServiceIds(data: {
@@ -377,13 +396,19 @@ export class Service extends ProjectReferencesService<Model> {
       return new Set<string>();
     }
 
-    const { junction, metricTypeColumn, serviceColumn } =
-      this.getServicesJunction("findAttachedServiceIds");
+    const junction: ReturnType<typeof QueryUtil.getManyToManyRelationMetadata> =
+      QueryUtil.getManyToManyRelationMetadata(Model, "services");
+
+    if (!junction) {
+      throw new BadDataException(
+        "MetricTypeService.findAttachedServiceIds: the services relation has no junction metadata",
+      );
+    }
 
     const rows: Array<{ serviceId: string }> =
       await this.getRepository().manager.query(
-        `SELECT "${serviceColumn}" AS "serviceId" FROM "${junction}" ` +
-          `WHERE "${metricTypeColumn}" = $1 AND "${serviceColumn}" = ANY($2::uuid[])`,
+        `SELECT "${junction.relationColumnName}" AS "serviceId" FROM "${junction.joinTableName}" ` +
+          `WHERE "${junction.ownerColumnName}" = $1 AND "${junction.relationColumnName}" = ANY($2::uuid[])`,
         [
           data.metricTypeId.toString(),
           data.serviceIds.map((id: ObjectID) => {
@@ -397,35 +422,6 @@ export class Service extends ProjectReferencesService<Model> {
         return row.serviceId;
       }),
     );
-  }
-
-  /*
-   * Identifiers come from entity metadata, never from the caller, and every
-   * value is bound as a parameter — the same rule the other raw-SQL paths in
-   * DatabaseService follow.
-   */
-  private getServicesJunction(caller: string): {
-    junction: string;
-    metricTypeColumn: string;
-    serviceColumn: string;
-  } {
-    const relation: RelationMetadata | undefined =
-      this.getRepository().metadata.findRelationWithPropertyPath("services");
-
-    const junction: string | undefined =
-      relation?.junctionEntityMetadata?.tableName;
-    const metricTypeColumn: string | undefined =
-      relation?.junctionEntityMetadata?.columns[0]?.databaseName;
-    const serviceColumn: string | undefined =
-      relation?.junctionEntityMetadata?.columns[1]?.databaseName;
-
-    if (!junction || !metricTypeColumn || !serviceColumn) {
-      throw new BadDataException(
-        `MetricTypeService.${caller}: the services relation has no junction metadata`,
-      );
-    }
-
-    return { junction, metricTypeColumn, serviceColumn };
   }
 }
 
