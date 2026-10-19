@@ -1,6 +1,6 @@
 import CodeApi, { CodeTaskListResponse } from "./CodeApi";
 import {
-  CODE_TASK_ORIGIN_SHORT,
+  CODE_TASK_ASKED_BY,
   CODE_TASK_STATE_COPY,
   getRecipeLabel,
 } from "./CodeTaskCopy";
@@ -224,15 +224,44 @@ export const CodeTaskRow: FunctionComponent<{
   const title: string =
     task.title || translator.translateTemplate(getRecipeLabel(task.recipe));
 
-  const origin: string =
-    task.origin.type === CodeTaskOriginType.Request
-      ? task.origin.label
-        ? translator.translateTemplate(
-            CODE_TASK_ORIGIN_SHORT[CodeTaskOriginType.Request],
-            { label: task.origin.label },
-          )
-        : ""
-      : translator.translateTemplate(CODE_TASK_ORIGIN_SHORT[task.origin.type]);
+  /*
+   * Who asked, for a request; for a task OneUptime started, its kind ("Fix
+   * Exception") says what started it - its title already names the record.
+   */
+  const startedBy: string = isRequest
+    ? task.origin.type === CodeTaskOriginType.Request && task.origin.label
+      ? translator.translateTemplate(CODE_TASK_ASKED_BY, {
+          name: task.origin.label,
+        })
+      : ""
+    : translator.translateText(getRecipeLabel(task.recipe)) || "";
+
+  const meta: Array<ReactElement> = [];
+
+  if (task.taskNumber) {
+    meta.push(<span key="number">#{task.taskNumber}</span>);
+  }
+
+  if (startedBy) {
+    meta.push(
+      <span key="started-by" className={isRequest ? "" : "text-gray-600"}>
+        {startedBy}
+      </span>,
+    );
+  }
+
+  meta.push(<CodeTimeAgo key="time" date={task.lastActivityAt} />);
+
+  if (task.pullRequest?.number) {
+    meta.push(
+      <span key="pull-request" className="inline-flex items-center gap-1">
+        <Icon icon={IconProp.GitHub} className="h-3 w-3" />
+        {translator.translateTemplate("PR #{{number}}", {
+          number: task.pullRequest.number.toString(),
+        })}
+      </span>,
+    );
+  }
 
   return (
     <li data-testid="code-task-row" data-task-state={task.state}>
@@ -264,33 +293,32 @@ export const CodeTaskRow: FunctionComponent<{
           <p className="line-clamp-2 break-words text-sm font-medium text-gray-900">
             {title}
           </p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
-            {task.taskNumber ? <span>#{task.taskNumber}</span> : <></>}
-            {!isRequest ? (
-              <span className="text-gray-600">
-                {translator.translateText(getRecipeLabel(task.recipe))}
-              </span>
-            ) : (
-              <></>
-            )}
-            {origin ? <span>{origin}</span> : <></>}
-            <CodeTimeAgo date={task.lastActivityAt} />
-            {task.pullRequest?.number ? (
-              <span className="inline-flex items-center gap-1">
-                <Icon icon={IconProp.GitHub} className="h-3 w-3" />
-                {translator.translateTemplate("PR #{{number}}", {
-                  number: task.pullRequest.number.toString(),
-                })}
-              </span>
-            ) : (
-              <></>
-            )}
+          <div
+            data-testid="code-task-row-meta"
+            className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
+          >
+            {/* On a phone the state leads the line, so the title keeps the width. */}
+            <CodeTaskStateBadge
+              state={task.state}
+              isQueued={task.isQueued}
+              className="sm:hidden"
+            />
+            {meta.map((item: ReactElement, index: number) => {
+              return (
+                <span
+                  key={item.key || index}
+                  className="inline-flex items-center whitespace-nowrap"
+                >
+                  {item}
+                </span>
+              );
+            })}
           </div>
         </div>
         <CodeTaskStateBadge
           state={task.state}
           isQueued={task.isQueued}
-          className="mt-0.5"
+          className="mt-0.5 max-sm:hidden"
         />
       </Link>
     </li>

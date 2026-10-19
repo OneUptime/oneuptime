@@ -70,21 +70,9 @@ const RepositoryCard: FunctionComponent<ComponentProps> = (
           <GitHubMark className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700">
-              {repository.name}
-            </h3>
-            {repository.isConnected ? (
-              <></>
-            ) : (
-              <span
-                data-testid="code-repository-not-connected"
-                className="inline-flex flex-shrink-0 items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20"
-              >
-                {translator.translateText("Not connected")}
-              </span>
-            )}
-          </div>
+          <h3 className="truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-700">
+            {repository.name}
+          </h3>
           {fullName && fullName !== repository.name ? (
             <p className="truncate text-xs text-gray-500">{fullName}</p>
           ) : (
@@ -105,71 +93,109 @@ const RepositoryCard: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <div
-        data-testid="code-repository-stats"
-        className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-4 text-xs text-gray-600"
-      >
-        {stats.working > 0 ? (
-          <span className="inline-flex items-center gap-1.5 font-medium text-indigo-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-            {translator.translatePlural(
-              { one: "{{count}} working", other: "{{count}} working" },
-              stats.working,
+      {/*
+       * What needs someone first - AI at work, a question waiting - then a
+       * quieter line: how many tasks, the open pull requests, and when
+       * anything last happened. A repository AI cannot reach says so here,
+       * where it takes no room from the name.
+       */}
+      <div className="mt-auto space-y-2 pt-4">
+        {!repository.isConnected ||
+        stats.working > 0 ||
+        stats.waitingForYou > 0 ? (
+          <div
+            data-testid="code-repository-attention"
+            className="flex flex-wrap items-center gap-1.5"
+          >
+            {repository.isConnected ? (
+              <></>
+            ) : (
+              <span
+                data-testid="code-repository-not-connected"
+                className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20"
+              >
+                <Icon icon={IconProp.LinkSlash} className="h-3 w-3" />
+                {translator.translateText("Not connected")}
+              </span>
             )}
-          </span>
+            {stats.working > 0 ? (
+              <span
+                data-testid="code-repository-working"
+                className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                {translator.translatePlural(
+                  { one: "{{count}} working", other: "{{count}} working" },
+                  stats.working,
+                )}
+              </span>
+            ) : (
+              <></>
+            )}
+            {stats.waitingForYou > 0 ? (
+              <span
+                data-testid="code-repository-waiting"
+                className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} waiting for you",
+                    other: "{{count}} waiting for you",
+                  },
+                  stats.waitingForYou,
+                )}
+              </span>
+            ) : (
+              <></>
+            )}
+          </div>
         ) : (
           <></>
         )}
-        {stats.waitingForYou > 0 ? (
-          <span className="inline-flex items-center gap-1.5 font-medium text-amber-800">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            {translator.translatePlural(
-              {
-                one: "{{count}} waiting for you",
-                other: "{{count}} waiting for you",
-              },
-              stats.waitingForYou,
-            )}
+
+        <div
+          data-testid="code-repository-stats"
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
+        >
+          <span className="whitespace-nowrap">
+            {stats.taskCount > 0
+              ? translator.translatePlural(
+                  { one: "{{count}} task", other: "{{count}} tasks" },
+                  stats.taskCount,
+                )
+              : translator.translateText("No tasks yet")}
           </span>
-        ) : (
-          <></>
-        )}
-        {stats.openPullRequests > 0 ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Icon
-              icon={IconProp.GitHub}
-              className="h-3.5 w-3.5 text-gray-400"
-            />
-            {translator.translatePlural(
-              {
-                one: "{{count}} open pull request",
-                other: "{{count}} open pull requests",
-              },
-              stats.openPullRequests,
-            )}
-          </span>
-        ) : (
-          <></>
-        )}
-        {stats.taskCount > 0 ? (
-          <span>
-            {translator.translatePlural(
-              { one: "{{count}} task", other: "{{count}} tasks" },
-              stats.taskCount,
-            )}
-          </span>
-        ) : (
-          <span className="text-gray-500">
-            {translator.translateText("No tasks yet")}
-          </span>
-        )}
-        {stats.lastActivityAt ? (
-          <span className="text-gray-500">
-            <CodeTimeAgo date={stats.lastActivityAt} />
-          </span>
-        ) : (
-          <></>
-        )}
+          {stats.openPullRequests > 0 ? (
+            <>
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <Icon
+                  icon={IconProp.GitHub}
+                  className="h-3.5 w-3.5 text-gray-400"
+                />
+                {translator.translatePlural(
+                  {
+                    one: "{{count}} open pull request",
+                    other: "{{count}} open pull requests",
+                  },
+                  stats.openPullRequests,
+                )}
+              </span>
+            </>
+          ) : (
+            <></>
+          )}
+          {stats.lastActivityAt ? (
+            <>
+              <CodeTimeAgo
+                date={stats.lastActivityAt}
+                className="whitespace-nowrap"
+              />
+            </>
+          ) : (
+            <></>
+          )}
+        </div>
       </div>
     </Link>
   );

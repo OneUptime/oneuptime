@@ -101,7 +101,8 @@ export default class CodeApi {
 
     return {
       tasks: (response["tasks"] as unknown as Array<CodeTaskSummaryJSON>) || [],
-      count: (response["count"] as number) || 0,
+      // The server says "totalCount" (see CodeTaskAPI.listTasks).
+      count: (response["totalCount"] as number) || 0,
       skip: (response["skip"] as number) || 0,
       limit: (response["limit"] as number) || data.limit,
     };

@@ -299,9 +299,14 @@ export default class CodeTaskAPI {
     const summaries: Array<CodeTaskSummaryJSON> =
       await CodeTaskPresenter.summarize({ projectId, tasks, props });
 
+    /*
+     * "totalCount", not "count": a body holding count, skip and limit
+     * together reads as a list envelope to the Dashboard's HTTPResponse,
+     * which then looks for the rows under "data" and finds none.
+     */
     return {
       tasks: summaries as unknown as Array<JSONObject>,
-      count: count.toNumber(),
+      totalCount: count.toNumber(),
       skip,
       limit,
     };

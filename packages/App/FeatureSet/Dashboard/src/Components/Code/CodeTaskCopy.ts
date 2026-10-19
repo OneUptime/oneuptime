@@ -132,19 +132,11 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.Unknown]: translationKey("OneUptime started this task"),
 };
 
-// What started a task, in a list row's meta line.
-export const CODE_TASK_ORIGIN_SHORT: Record<CodeTaskOriginType, string> = {
-  [CodeTaskOriginType.Request]: translationKey("Asked by {{label}}"),
-  [CodeTaskOriginType.Exception]: translationKey("From an exception"),
-  [CodeTaskOriginType.Incident]: translationKey("From an incident"),
-  [CodeTaskOriginType.Alert]: translationKey("From an alert"),
-  [CodeTaskOriginType.Trace]: translationKey("From a slow trace"),
-  [CodeTaskOriginType.Service]: translationKey("From a service"),
-  [CodeTaskOriginType.Insight]: translationKey("From an AI insight"),
-  [CodeTaskOriginType.GitHubIssue]: translationKey("From GitHub"),
-  [CodeTaskOriginType.GitHubPullRequest]: translationKey("From GitHub"),
-  [CodeTaskOriginType.Unknown]: translationKey("Started by OneUptime"),
-};
+/*
+ * Who asked, in a list row's meta line. A task OneUptime started is named
+ * by its kind there ("Fix Exception"); its title already names the record.
+ */
+export const CODE_TASK_ASKED_BY: string = translationKey("Asked by {{name}}");
 
 // A step the AI took, as the conversation words it.
 export const CODE_TASK_STEP_SENTENCES: Record<CodeTaskStepKind, string> = {

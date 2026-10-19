@@ -752,7 +752,12 @@ describe("listing a repository's tasks", () => {
       body: { repositoryId: REPOSITORY_ID.toString(), skip: 20, limit: 5000 },
     });
 
-    expect(result).toEqual({ tasks: [], count: 41, skip: 20, limit: 50 });
+    expect(result).toEqual({
+      tasks: [],
+      totalCount: 41,
+      skip: 20,
+      limit: 50,
+    });
 
     const read: {
       query: Record<string, unknown>;

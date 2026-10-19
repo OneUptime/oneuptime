@@ -92,7 +92,14 @@ const CodeRepositoryTasks: FunctionComponent<
 
   const fullName: string = getRepositoryFullName(repository.repository);
   const canSend: boolean = repository.canAsk && !repository.blocker;
-  const showExamples: boolean = canSend && taskCount === 0;
+  const hasNoTasks: boolean = (taskCount ?? repository.stats.taskCount) === 0;
+  const showExamples: boolean = canSend && hasNoTasks;
+  /*
+   * A repository with no task yet, for someone who may ask: the request box
+   * and its examples are the one thing to do, so no empty list beside them.
+   * Someone who may only read is told where tasks will show up.
+   */
+  const showTaskList: boolean = !(repository.canAsk && hasNoTasks);
 
   return (
     <div className="space-y-5">
@@ -228,57 +235,62 @@ const CodeRepositoryTasks: FunctionComponent<
         )}
       </section>
 
-      <section
-        aria-labelledby="code-tasks-heading"
-        className="rounded-xl border border-gray-200 bg-white shadow-sm"
-      >
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3.5 sm:px-5">
-          <h2
-            id="code-tasks-heading"
-            className="text-base font-semibold text-gray-900"
-          >
-            {translator.translateText("Tasks")}
-            {taskCount ? (
-              <span className="ml-2 text-sm font-normal text-gray-500">
-                {taskCount}
-              </span>
-            ) : (
-              <></>
-            )}
-          </h2>
-        </div>
-        <CodeTaskList
-          repositoryId={new ObjectID(repositoryId).toString()}
-          onCount={(count: number) => {
-            setTaskCount(count);
-          }}
-          emptyState={
-            <div
-              data-testid="code-tasks-empty"
-              className="px-6 py-10 text-center"
+      {showTaskList ? (
+        <section
+          data-testid="code-tasks"
+          aria-labelledby="code-tasks-heading"
+          className="rounded-xl border border-gray-200 bg-white shadow-sm"
+        >
+          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3.5 sm:px-5">
+            <h2
+              id="code-tasks-heading"
+              className="text-base font-semibold text-gray-900"
             >
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50">
-                <Icon
-                  icon={IconProp.Sparkles}
-                  className="h-5 w-5 text-indigo-500"
-                />
+              {translator.translateText("Tasks")}
+              {taskCount ? (
+                <span className="ml-2 text-sm font-normal text-gray-500">
+                  {taskCount}
+                </span>
+              ) : (
+                <></>
+              )}
+            </h2>
+          </div>
+          <CodeTaskList
+            repositoryId={new ObjectID(repositoryId).toString()}
+            onCount={(count: number) => {
+              setTaskCount(count);
+            }}
+            emptyState={
+              <div
+                data-testid="code-tasks-empty"
+                className="px-6 py-10 text-center"
+              >
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50">
+                  <Icon
+                    icon={IconProp.Sparkles}
+                    className="h-5 w-5 text-indigo-500"
+                  />
+                </div>
+                <p className="mt-3 text-sm font-medium text-gray-900">
+                  {translator.translateText("No tasks yet")}
+                </p>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">
+                  {repository.canAsk
+                    ? translator.translateText(
+                        "Ask AI something above. Each request becomes a task here that you can follow and reply to.",
+                      )
+                    : translator.translateText(
+                        "When someone asks AI to work in this repository, the task shows up here.",
+                      )}
+                </p>
               </div>
-              <p className="mt-3 text-sm font-medium text-gray-900">
-                {translator.translateText("No tasks yet")}
-              </p>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500">
-                {repository.canAsk
-                  ? translator.translateText(
-                      "Ask AI something above. Each request becomes a task here that you can follow and reply to.",
-                    )
-                  : translator.translateText(
-                      "When someone asks AI to work in this repository, the task shows up here.",
-                    )}
-              </p>
-            </div>
-          }
-        />
-      </section>
+            }
+          />
+        </section>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

@@ -617,7 +617,7 @@ const CodeTaskLogPage: FunctionComponent<
               description={
                 isActive
                   ? "This task has not reported a step yet. This page updates on its own."
-                  : "This task recorded no steps. If it failed before starting, the reason is on the Overview."
+                  : "This task recorded no steps. If it failed before starting, the reason is in the conversation."
               }
             />
           ) : (
