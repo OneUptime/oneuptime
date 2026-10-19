@@ -74,7 +74,9 @@ const refuseUnlessFromMailProvider: (
       return Response.sendErrorResponse(
         req,
         res,
-        new ServiceUnavailableException(INBOUND_EMAIL_NO_WEBHOOK_SECRET_MESSAGE),
+        new ServiceUnavailableException(
+          INBOUND_EMAIL_NO_WEBHOOK_SECRET_MESSAGE,
+        ),
       );
     }
 
