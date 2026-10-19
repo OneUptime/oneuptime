@@ -149,17 +149,23 @@ export default class Runner extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Empty for a global Runner (isGlobalRunner): one the OneUptime server
+   * runs for every project, which no project owns. Every Runner a project
+   * creates gets its project here from the tenant it is created in, and
+   * RunnerService refuses a Runner that is neither (GlobalRunnerRow).
+   */
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public projectId?: ObjectID = undefined;
@@ -559,6 +565,52 @@ export default class Runner extends BaseModel {
     default: false,
   })
   public canRunAiCommands?: boolean = undefined;
+
+  /*
+   * A global Runner: one the OneUptime server runs for every project, with
+   * no project of its own (projectId is empty). A master admin creates it
+   * under Admin Dashboard -> Settings -> Global Runners and starts the
+   * Runner image with its id and key, as any Runner is started; on
+   * OneUptime Cloud, OneUptime runs them.
+   *
+   * It runs only what can be kept apart project by project on a shared
+   * host (GlobalRunnerWork): a JavaScript step, in a sandbox of its own
+   * that reaches the internet and nothing else. A step that picked no
+   * Runner runs on one (GlobalRunnerChoice), unless its project turned
+   * global Runners off. Never written by anyone but OneUptime and a master
+   * admin, so no project can turn its own Runner into one.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunner,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Global Runner",
+    description:
+      "Whether OneUptime runs this Runner for every project. Global Runners run JavaScript steps in a sandbox that can reach the internet but not your network. Only a master admin creates them.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isGlobalRunner?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],

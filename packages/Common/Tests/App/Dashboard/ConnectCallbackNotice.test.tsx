@@ -39,6 +39,7 @@ const query: Record<string, string | null> = {};
 const setQueryStringMock: MockFunction = getJestMockFunction();
 const navigateMock: MockFunction = getJestMockFunction();
 const apiGetMock: MockFunction = getJestMockFunction();
+const apiPostMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Config", () => {
   const actualConfig: Record<string, unknown> = jest.requireActual(
@@ -76,7 +77,7 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       getCurrentRoute: () => {
         return {
           toString: () => {
-            return `/dashboard/${PROJECT_ID}/code-repository`;
+            return `/dashboard/${PROJECT_ID}/code`;
           },
         };
       },
@@ -126,6 +127,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
     default: {
       get: (...args: Array<unknown>) => {
         return apiGetMock(...args);
+      },
+      post: (...args: Array<unknown>) => {
+        return apiPostMock(...args);
       },
       getFriendlyMessage: (error: unknown) => {
         return String(error);
@@ -180,11 +184,14 @@ jest.mock(
       default: () => {
         return null;
       },
+      isAIAccessibleOnCurrentPlan: (): boolean => {
+        return true;
+      },
     };
   },
 );
 
-import CodeRepositoryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/CodeRepository/CodeRepository";
+import CodePage from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Code";
 import ConnectReturn from "../../../../App/FeatureSet/Dashboard/src/Pages/ConnectReturn/ConnectReturn";
 import MicrosoftTeamsIntegration from "../../../../App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegration";
 import SlackIntegration from "../../../../App/FeatureSet/Dashboard/src/Components/Slack/SlackIntegration";
@@ -214,6 +221,11 @@ beforeEach(() => {
   apiGetMock.mockReset();
   apiGetMock.mockImplementation(async () => {
     return { data: { authorizationUrl: "https://provider.example/authorize" } };
+  });
+  // Code's first page, with no repository connected yet.
+  apiPostMock.mockReset();
+  apiPostMock.mockImplementation(async () => {
+    return { data: { repositories: [], tasksWithoutRepositoryCount: 0 } };
   });
 });
 
@@ -245,11 +257,11 @@ async function renderTeams(startPage?: ConnectStartPage): Promise<void> {
   });
 }
 
-async function renderCodeRepositories(): Promise<void> {
+async function renderCode(): Promise<void> {
   await act(async () => {
     render(
-      <CodeRepositoryPage
-        pageRoute={new Route(`/dashboard/${PROJECT_ID}/code-repository`)}
+      <CodePage
+        pageRoute={new Route(`/dashboard/${PROJECT_ID}/code`)}
         currentProject={null}
         hasPaymentMethod={true}
       />,
@@ -441,11 +453,11 @@ describe("Microsoft Teams page (?error=)", () => {
   });
 });
 
-describe("Code Repositories page (?error=)", () => {
+describe("Code page (?error=)", () => {
   test("an installation that could not be verified says so, without GitHub's words", async () => {
     query["error"] = "github-not-verified";
 
-    await renderCodeRepositories();
+    await renderCode();
 
     expect(notice()).toHaveTextContent("GitHub was not connected");
     expect(notice()).toHaveTextContent(
@@ -454,14 +466,14 @@ describe("Code Repositories page (?error=)", () => {
     expect(setQueryStringMock).toHaveBeenCalledWith({ error: null });
     // The page itself is there, Connect button and all.
     expect(
-      screen.getByRole("button", { name: "Connect with GitHub App" }),
+      screen.getByRole("button", { name: "Connect GitHub" }),
     ).toBeInTheDocument();
   });
 
   test("a plan refusal names the plan, as the locked card does", async () => {
     query["error"] = "plan-required";
 
-    await renderCodeRepositories();
+    await renderCode();
 
     expect(notice()).toHaveTextContent(
       "Connecting GitHub needs the Growth plan.",
@@ -471,7 +483,7 @@ describe("Code Repositories page (?error=)", () => {
   test("no permission is the start's own refusal", async () => {
     query["error"] = "no-permission";
 
-    await renderCodeRepositories();
+    await renderCode();
 
     expect(notice()).toHaveTextContent(
       "You do not have permission to add code repositories to this project.",
@@ -483,7 +495,7 @@ describe("Code Repositories page (?error=)", () => {
     async (unknown: string) => {
       query["error"] = unknown;
 
-      await renderCodeRepositories();
+      await renderCode();
 
       expect(notice()).toHaveTextContent(COULD_NOT_FINISH);
       expect(document.body.textContent).not.toContain(unknown);
@@ -561,7 +573,7 @@ describe("the connect-return page", () => {
     ]);
   });
 
-  test("GitHub's own redirect goes to Code Repositories with nothing to say", async () => {
+  test("GitHub's own redirect goes to Code with nothing to say", async () => {
     query["provider"] = "github";
 
     await renderConnectReturn({
@@ -572,7 +584,7 @@ describe("the connect-return page", () => {
 
     expect(navigatedTo()).toEqual([
       {
-        path: `/dashboard/${PROJECT_ID}/code-repository`,
+        path: `/dashboard/${PROJECT_ID}/code`,
         options: { replace: true },
       },
     ]);

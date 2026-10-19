@@ -20,7 +20,7 @@ import { HardcodedString } from "../../FeatureSet/Dashboard/scripts/i18n/Extract
 const DASHBOARD_SOURCE: string = "packages/App/FeatureSet/Dashboard/src/";
 
 const ALLOWED_IN_PAGES: Record<string, { count: number; why: string }> = {
-  "Pages/AIAgentTasks/View/Logs.tsx": {
+  "Pages/Code/Task/Log.tsx": {
     count: 2,
     why: '"{n} ms" durations (unit)',
   },

@@ -144,7 +144,7 @@ Bash and JavaScript steps have no **Credential** field. To give a script a passw
 :::steps
 ### Create the secret
 
-Click **Create Runbook Secret**. On the **Secret** step, enter a **Name** (letters, numbers, hyphens and underscores), an optional **Description** and the **Secret Value**. On the **Access** step, pick the Runners under **Runbook agents which have access to this secret**.
+Click **Create Runbook Secret**. On the **Secret** step, enter a **Name** (letters, numbers, hyphens and underscores), an optional **Description** and the **Secret Value**. On the **Access** step, pick your Runners under **Your Runners that can use this secret**. On a server with [global Runners](/docs/runbooks/agents#global-runners), **Global Runners can use this secret** also lets this project's steps that run on a global Runner use it. It starts on for a new secret while the project uses global Runners.
 
 ### Use it in a script
 
@@ -156,7 +156,7 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 
-When a Runner the secret is assigned to claims the step, it receives the script with the value filled in.
+When a Runner the secret is assigned to claims the step, it receives the script with the value filled in. So does a global Runner, when the secret lets global Runners use it. A step on a global Runner that names a secret global Runners may not use fails, naming the secret, rather than running without it.
 :::
 
 Like a credential's secret fields, a secret's value is encrypted at rest and never returned by the API: **Update Secret Value** replaces it. On OneUptime Cloud, runbook secrets also need the **Growth** plan or above.

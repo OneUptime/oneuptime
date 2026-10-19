@@ -35,7 +35,7 @@ flowchart TB
 
 Varje gång ett runbook körs skapas en **körning**. När den startar kopieras runbookets steg över till den, och OneUptime går igenom dem i ordning. Ett Manual-steg, eller ett steg som kräver godkännande, pausar körningen tills någon agerar.
 
-HTTP- och AI-steg körs på OneUptime Worker. JavaScript-, Bash-, SSH- och Kubernetes-steg körs på en [Runner](/docs/runbooks/agents) som du installerar i din egen infrastruktur, så att dina skript aldrig körs på OneUptimes servrar. Varje stegs status, output och felmeddelande registreras på körningen, som stannar kvar på den incident, det larm eller den händelse den kördes för.
+HTTP- och AI-steg körs på OneUptime Worker. Bash-, SSH- och Kubernetes-steg körs på en [Runner](/docs/runbooks/agents) som du installerar i din egen infrastruktur, så att de skripten aldrig körs på OneUptimes servrar. Ett JavaScript-steg körs också på en av dina Runners eller, om det inte väljer någon, på en [global Runner](/docs/runbooks/agents#globala-runners), i en sandlåda som bara når internet. Varje stegs status, output och felmeddelande registreras på körningen, som stannar kvar på den incident, det larm eller den händelse den kördes för.
 
 ## Centrala begrepp
 
@@ -46,9 +46,9 @@ HTTP- och AI-steg körs på OneUptime Worker. JavaScript-, Bash-, SSH- och Kuber
 | **Runbook-regel** | En regel som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller schemalagda underhållshändelser som uppfyller dess villkor: deras monitorer, allvarlighetsgrad, etiketter, monitoretiketter, titel eller beskrivning. |
 | **Körning** | En körning av ett runbook. Skapas när en regel utlöses, när någon klickar på **Kör Runbook** på en händelse eller när någon klickar på **Run Now** på själva runbooket. Den innehåller en ögonblicksbild av stegen och varje stegs status och output. |
 | **Ögonblicksbild** | Den frysta kopian av runbookets steg som ligger på varje körning. Du kan redigera runbooket senare utan att skriva om historiken för tidigare körningar. |
-| **Runner** | En liten agent som du kör på en värd i din egen infrastruktur. Den kör de JavaScript-, Bash-, SSH- och Kubernetes-steg som pekar på den. Kallas även en runbook-agent. |
+| **Runner** | En liten agent som du kör på en värd i din egen infrastruktur. Den kör de JavaScript-, Bash-, SSH- och Kubernetes-steg som pekar på den. Kallas även en runbook-agent. En global Runner, en av dem som OneUptime kör för alla projekt, kör de JavaScript-steg som inte nämner någon. |
 | **Autentiseringsuppgift** | Hanterad SSH- eller Kubernetes-åtkomst som SSH- och Kubernetes-steg använder. Krypterad i vila och lämnas bara ut till de Runners du tilldelar den. |
-| **Hemlighet** | Ett enskilt värde, till exempel en API-token, som ett Bash- eller JavaScript-skript använder som `{{runbookSecrets.NAME}}`. Krypterad i vila och lämnas bara ut till de Runners du tilldelar den. |
+| **Hemlighet** | Ett enskilt värde, till exempel en API-token, som ett Bash- eller JavaScript-skript använder som `{{runbookSecrets.NAME}}`. Krypterad i vila och lämnas bara ut till de Runners du tilldelar den. Globala Runners får den bara om du låter dem. |
 
 ## Stegtyper
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 En monitor öppnar incidenten `INC-4821 · db-primary connection timeout`. Regeln matchar och en körning startar:
 
-- Steg 1 (JavaScript) körs på den Runner du valde för det. Returvärdet, till exempel `{ lagMs: 412 }`, registreras.
+- Steg 1 (JavaScript) körs på den Runner du valde för det. Returvärdet, till exempel `{ lagMs: 412 }`, registreras. Ett steg som inte väljer någon Runner körs på en global Runner.
 - Steg 2 (Manual) pausar körningen, som visar **Väntar på dig**. Den jourhavande kontrollerar instrumentpanelen och klickar på **Mark complete**.
 - Steg 3 (HTTP request) körs och svaret på `POST` registreras.
 - Steg 4 (Manual) pausar körningen igen tills någon slutför det.
@@ -170,7 +170,7 @@ Körningen stannar kvar på incidentens sida **Runbooks**. När du skriver postm
 
 :::cards
 - [Skriva ett runbook](/docs/runbooks/authoring): Skapa ditt första runbook och dess steg.
-- [Runbook-agenter](/docs/runbooks/agents): Installera en Runner innan du skriver ett JavaScript-, Bash-, SSH- eller Kubernetes-steg.
+- [Runbook-agenter](/docs/runbooks/agents): Installera en Runner innan du skriver ett Bash-, SSH- eller Kubernetes-steg.
 - [Runbook-regler](/docs/runbooks/rules): Starta runbooks automatiskt när incidenter skapas.
 - [Runbook-konfiguration & säkerhet](/docs/runbooks/configuration): Gränser, tidsgränser, behörigheter och härdning.
 :::

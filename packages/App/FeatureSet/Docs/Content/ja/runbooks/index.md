@@ -35,7 +35,7 @@ flowchart TB
 
 Runbook を実行するたびに **実行** が作成されます。開始時に Runbook のステップがコピーされ、OneUptime はそれを順に処理します。Manual ステップや承認が必要なステップは、誰かが対応するまで実行を一時停止します。
 
-HTTP と AI のステップは OneUptime Worker で実行されます。JavaScript、Bash、SSH、Kubernetes のステップは自社インフラにインストールした [Runner](/docs/runbooks/agents) で実行されるため、スクリプトが OneUptime のサーバーで実行されることはありません。各ステップのステータス、出力、エラーメッセージは実行に記録され、実行は対象のインシデント、アラート、イベントに残ります。
+HTTP と AI のステップは OneUptime Worker で実行されます。Bash、SSH、Kubernetes のステップは自社インフラにインストールした [Runner](/docs/runbooks/agents) で実行されるため、それらのスクリプトが OneUptime のサーバーで実行されることはありません。JavaScript のステップも自社の Runner で実行されるか、Runner を選ばない場合は、インターネットにしかアクセスできないサンドボックスで [グローバル Runner](/docs/runbooks/agents#グローバル-runner) によって実行されます。各ステップのステータス、出力、エラーメッセージは実行に記録され、実行は対象のインシデント、アラート、イベントに残ります。
 
 ## 主な概念
 
@@ -46,9 +46,9 @@ HTTP と AI のステップは OneUptime Worker で実行されます。JavaScri
 | **Runbook ルール** | 条件（モニター、重大度、ラベル、モニターのラベル、タイトル、説明）を満たすインシデント、アラート、定期メンテナンスイベントに、1 つ以上の Runbook を自動で関連付けるルールです。 |
 | **実行** | Runbook の 1 回の実行です。ルールが発火したとき、誰かがイベントで **Runbook を実行** をクリックしたとき、または Runbook 自体で **今すぐ実行** をクリックしたときに作成されます。ステップのスナップショットと、各ステップのステータスと出力を保持します。 |
 | **スナップショット** | 各実行に保存される、Runbook のステップの固定されたコピーです。後から Runbook を編集しても、過去の実行の履歴は書き換わりません。 |
-| **Runner** | 自社インフラのホストで動かす小さなエージェントです。自分を指定した JavaScript、Bash、SSH、Kubernetes のステップを実行します。Runbook エージェントとも呼ばれます。 |
+| **Runner** | 自社インフラのホストで動かす小さなエージェントです。自分を指定した JavaScript、Bash、SSH、Kubernetes のステップを実行します。Runbook エージェントとも呼ばれます。 OneUptime がすべてのプロジェクトのために動かすグローバル Runner は、Runner を指定しない JavaScript のステップを実行します。 |
 | **認証情報** | SSH と Kubernetes のステップが使う、管理された SSH または Kubernetes のアクセス権です。保存時に暗号化され、割り当てた Runner にだけ渡されます。 |
-| **シークレット** | Bash や JavaScript のスクリプトが `{{runbookSecrets.NAME}}` として使う、API トークンなどの単一の値です。保存時に暗号化され、割り当てた Runner にだけ渡されます。 |
+| **シークレット** | Bash や JavaScript のスクリプトが `{{runbookSecrets.NAME}}` として使う、API トークンなどの単一の値です。保存時に暗号化され、割り当てた Runner にだけ渡されます。 グローバル Runner には、許可した場合にだけ渡されます。 |
 
 ## ステップの種類
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 モニターがインシデント `INC-4821 · db-primary connection timeout` を開きます。ルールが一致し、実行が始まります。
 
-- ステップ 1（JavaScript）は、そのステップ用に選んだ Runner で実行されます。`{ lagMs: 412 }` のような戻り値が記録されます。
+- ステップ 1（JavaScript）は、そのステップ用に選んだ Runner で実行されます。`{ lagMs: 412 }` のような戻り値が記録されます。 Runner を選ばないステップは、グローバル Runner で実行されます。
 - ステップ 2（Manual）で実行が一時停止し、 **あなたの対応待ち** と表示されます。オンコール担当者がダッシュボードを確認して **完了にする** をクリックします。
 - ステップ 3（HTTP request）が実行され、`POST` のレスポンスが記録されます。
 - ステップ 4（Manual）で、誰かが完了するまで実行が再び一時停止します。
@@ -170,7 +170,7 @@ Runbooks:    [DB primary failover]
 
 :::cards
 - [Runbook を作成する](/docs/runbooks/authoring): 最初の Runbook とそのステップを作成します。
-- [Runbook エージェント](/docs/runbooks/agents): JavaScript、Bash、SSH、Kubernetes のステップを書く前に Runner をインストールします。
+- [Runbook エージェント](/docs/runbooks/agents): Bash、SSH、Kubernetes のステップを書く前に Runner をインストールします。
 - [Runbook ルール](/docs/runbooks/rules): インシデントが作成されたときに Runbook を自動で開始します。
 - [Runbook の設定と安全性](/docs/runbooks/configuration): 上限、タイムアウト、権限、堅牢化。
 :::

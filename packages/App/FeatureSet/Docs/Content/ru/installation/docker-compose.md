@@ -139,6 +139,7 @@ grep -c "please-change-this" config.env
 | `REGISTER_PROBE_KEY` | Регистрацию зондов в вашем экземпляре. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Глобальные зонды, которые может запускать Docker Compose (`probe-1` работает по умолчанию). |
 | `ONEUPTIME_RUNNER_KEY` | Встроенный Runner. |
+| `GLOBAL_RUNNER_KEY` | Встроенный глобальный Runner, который выполняет шаги JavaScript всех проектов. |
 
 > [!IMPORTANT]
 > Задайте секреты до первого запуска и не меняйте их потом. PostgreSQL принимает пароль только при создании своей базы данных, а смена `ENCRYPTION_SECRET` позже делает нечитаемым любое значение, зашифрованное старым. Если при первом запуске `DATABASE_PASSWORD` всё ещё заглушка, `npm start` задаёт ему случайное значение до того, как PostgreSQL создаст свою базу данных.

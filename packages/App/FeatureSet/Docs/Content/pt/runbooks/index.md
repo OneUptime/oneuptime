@@ -35,7 +35,7 @@ flowchart TB
 
 Cada execução de um runbook é uma **execução**. Quando ela começa, as etapas do runbook são copiadas para ela, e o OneUptime as percorre em ordem. Uma etapa Manual, ou uma etapa que precisa de aprovação, pausa a execução até que alguém aja.
 
-As etapas HTTP e de IA são executadas no Worker do OneUptime. As etapas JavaScript, Bash, SSH e Kubernetes são executadas em um [Runner](/docs/runbooks/agents) que você instala na sua própria infraestrutura, então seus scripts nunca rodam nos servidores do OneUptime. O status, a saída e a mensagem de erro de cada etapa ficam registrados na execução, que permanece ligada ao incidente, alerta ou evento para o qual ela rodou.
+As etapas HTTP e de IA são executadas no Worker do OneUptime. As etapas Bash, SSH e Kubernetes são executadas em um [Runner](/docs/runbooks/agents) que você instala na sua própria infraestrutura, então esses scripts nunca rodam nos servidores do OneUptime. Uma etapa JavaScript também roda em um dos seus Runners ou, se não escolher nenhum, em um [Runner global](/docs/runbooks/agents#runners-globais), em um sandbox que só alcança a internet. O status, a saída e a mensagem de erro de cada etapa ficam registrados na execução, que permanece ligada ao incidente, alerta ou evento para o qual ela rodou.
 
 ## Conceitos principais
 
@@ -46,9 +46,9 @@ As etapas HTTP e de IA são executadas no Worker do OneUptime. As etapas JavaScr
 | **Regra de runbook** | Uma regra que anexa automaticamente um ou mais runbooks a incidentes, alertas ou eventos de manutenção programada que atendem às suas condições: seus monitores, severidade, rótulos, rótulos dos monitores, título ou descrição. |
 | **Execução** | Uma execução de um runbook. É criada quando uma regra dispara, quando alguém clica em **Executar Runbook** em um evento ou quando alguém clica em **Run Now** no próprio runbook. Guarda um instantâneo das etapas e o status e a saída de cada etapa. |
 | **Instantâneo** | A cópia congelada das etapas do runbook que fica em cada execução. Você pode editar o runbook depois sem reescrever o histórico das execuções anteriores. |
-| **Runner** | Um pequeno agente que você executa em um host da sua própria infraestrutura. Ele executa as etapas JavaScript, Bash, SSH e Kubernetes que o indicam. Também chamado de agente de runbook. |
+| **Runner** | Um pequeno agente que você executa em um host da sua própria infraestrutura. Ele executa as etapas JavaScript, Bash, SSH e Kubernetes que o indicam. Também chamado de agente de runbook. Um Runner global, um dos que o OneUptime executa para todos os projetos, executa as etapas JavaScript que não citam nenhum. |
 | **Credencial** | Acesso SSH ou Kubernetes gerenciado, usado pelas etapas SSH e Kubernetes. Criptografada em repouso e entregue apenas aos Runners aos quais você a atribui. |
-| **Segredo** | Um único valor, como um token de API, que um script Bash ou JavaScript usa como `{{runbookSecrets.NAME}}`. Criptografado em repouso e entregue apenas aos Runners aos quais você o atribui. |
+| **Segredo** | Um único valor, como um token de API, que um script Bash ou JavaScript usa como `{{runbookSecrets.NAME}}`. Criptografado em repouso e entregue apenas aos Runners aos quais você o atribui. Runners globais o recebem só se você permitir. |
 
 ## Tipos de etapa
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 Um monitor abre o incidente `INC-4821 · db-primary connection timeout`. A regra corresponde e uma execução começa:
 
-- A etapa 1 (JavaScript) é executada no Runner que você escolheu para ela. Seu valor de retorno, como `{ lagMs: 412 }`, é capturado.
+- A etapa 1 (JavaScript) é executada no Runner que você escolheu para ela. Seu valor de retorno, como `{ lagMs: 412 }`, é capturado. Uma etapa que não escolhe nenhum Runner roda em um Runner global.
 - A etapa 2 (Manual) pausa a execução, que mostra **Aguardando você**. A pessoa de plantão confere o painel e clica em **Mark complete**.
 - A etapa 3 (HTTP request) é executada, e a resposta ao `POST` é capturada.
 - A etapa 4 (Manual) pausa a execução de novo até que alguém a conclua.
@@ -170,7 +170,7 @@ A execução fica na página **Runbooks** do incidente. Quando você escrever o 
 
 :::cards
 - [Escrever um runbook](/docs/runbooks/authoring): Criar seu primeiro runbook e suas etapas.
-- [Agentes de runbook](/docs/runbooks/agents): Instalar um Runner antes de escrever uma etapa JavaScript, Bash, SSH ou Kubernetes.
+- [Agentes de runbook](/docs/runbooks/agents): Instalar um Runner antes de escrever uma etapa Bash, SSH ou Kubernetes.
 - [Regras de runbook](/docs/runbooks/rules): Iniciar runbooks automaticamente quando incidentes forem criados.
 - [Configuração e segurança de runbooks](/docs/runbooks/configuration): Limites, timeouts, permissões e proteção.
 :::

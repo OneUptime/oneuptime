@@ -992,7 +992,7 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
    * App's (read-only), its main branch is on its Settings page.
    */
   onePage(
-    `${DASHBOARD}/Pages/CodeRepository/View/Index.tsx`,
+    `${DASHBOARD}/Pages/Code/Repository/Settings.tsx`,
     "CardModelDetail: Repository > Repository Details",
     NAME_DESCRIPTION,
     LABELS_ONLY,

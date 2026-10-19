@@ -3,26 +3,28 @@ import fs from "fs";
 import path from "path";
 
 /*
- * The Products menu has a Code section holding one item, Tasks. Code
- * Repositories used to be an AI item of its own; it is now a page of Tasks,
- * because every task runs in a connected repository and a repository is only
- * there so tasks have somewhere to open pull requests.
+ * Tasks and Code Repositories became one product, Code: the repositories
+ * first, each repository's tasks inside it, and a task's page its
+ * conversation with AI. The Products menu's Code section holds that one
+ * item, and the old addresses forward to the pages that took over.
  *
  * Every piece of that fails quietly rather than loudly:
  *
- *   - a missing category key renders a raw key as the section heading,
- *   - a Tasks item without the repository route goes dark on the
- *     repositories page, so the navbar stops saying where the user is,
- *   - a layout that drops the shared side menu strands the other page,
+ *   - a missing category or item key renders a raw key as the menu's text,
+ *   - an item still pointing at the old route opens a page that only
+ *     forwards, and stops lighting up on Code's own pages,
  *   - a locale left with the old item keys carries dead strings, and one
- *     whose item title differs from its side-menu label names Tasks twice,
- *   - copy that still says "AI > Code Repositories" sends users to a menu
- *     item that no longer exists.
+ *     whose item title differs from the page's own title names Code twice,
+ *   - a moved page whose old address is not mounted any more strands every
+ *     bookmark, GitHub comment and email that links to it,
+ *   - copy that still says "Tasks > Code Repositories" sends people to a
+ *     menu item that no longer exists.
  *
  * The App suite runs in plain Node and cannot import dashboard components, so
  * these are source-level invariants. Whitespace is squashed so Prettier can
  * reflow without breaking them. The rendered behaviour is pinned in
- * Common/Tests/App/Dashboard/CodeProduct.test.tsx.
+ * Common/Tests/App/Dashboard/CodeProduct.test.tsx and the Code*.test.tsx
+ * suites beside it.
  */
 
 const APP_ROOT: string = path.join(__dirname, "..", "..");
@@ -93,41 +95,63 @@ describe("the Products menu catalog", () => {
     expect(dense(raw)).toContain('t("navbar.categories.code","Code")');
   });
 
-  test("Tasks is the Code section's one item and stays lit on repository pages", () => {
-    const tasks: string = entryAt("aiAgentsTitle");
+  test("Code is the Code section's one item, and opens Code's first page", () => {
+    const code: string = entryAt("codeTitle");
 
-    expect(tasks).toContain("category: codeCategory");
-    expect(tasks).toContain("activeRoute: RouteMap[PageMap.AI_AGENT_TASKS]");
-    expect(tasks).toContain(
-      "additionalActiveRoutes: [RouteMap[PageMap.CODE_REPOSITORY] as Route]",
+    expect(code).toContain('t("navbar.items.codeTitle", "Code")');
+    expect(code).toContain("category: codeCategory");
+    expect(dense(code)).toContain(
+      "route:RouteUtil.populateRouteParams(RouteMap[PageMap.CODE]asRoute)",
     );
+    expect(code).toContain("activeRoute: RouteMap[PageMap.CODE]");
     expect(catalog.split("category: codeCategory")).toHaveLength(2);
   });
 
-  test("searching for repositories still finds the product that holds them", () => {
-    const tasks: string = entryAt("aiAgentsTitle");
+  test("every page of Code lives under /code, so the item needs no other route to stay lit", () => {
+    const code: string = entryAt("codeTitle");
+    const routes: string = readSource("Utils", "RouteMap.ts");
+
+    expect(code).not.toContain("additionalActiveRoutes");
+    expect(routes).toContain(
+      "[PageMap.CODE_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/code/*`),",
+    );
+    for (const key of [
+      "CODE_REPOSITORY_VIEW",
+      "CODE_REPOSITORY_VIEW_SETTINGS",
+      "CODE_REPOSITORY_VIEW_DELETE",
+      "CODE_TASK_VIEW",
+      "CODE_TASK_VIEW_LOG",
+    ]) {
+      expect(dense(routes)).toContain(
+        `[PageMap.${key}]:newRoute(\`/dashboard/\${RouteParams.ProjectID}/code/\${CodeRoutePath[PageMap.${key}]}\`,),`,
+      );
+    }
+  });
+
+  test("searching for the old names, or for what Code does, still finds it", () => {
+    const code: string = entryAt("codeTitle");
 
     for (const keyword of [
+      "tasks",
+      "ai tasks",
+      "ask ai",
       "code repositories",
       "repositories",
       "github",
       "source code",
       "pull requests",
     ]) {
-      expect(tasks).toContain(`"${keyword}"`);
+      expect(code).toContain(`"${keyword}"`);
     }
   });
 
-  test("Code Repositories is no longer an item of its own", () => {
+  test("Tasks and Code Repositories are no longer items of their own", () => {
+    expect(catalog).not.toContain("navbar.items.aiAgentsTitle");
+    expect(catalog).not.toContain("navbar.items.aiAgentsDescription");
     expect(catalog).not.toContain("navbar.items.codeRepositoriesTitle");
     expect(catalog).not.toContain("navbar.items.codeRepositoriesDescription");
-    // Reachable only through Tasks: no item lands on it or is lit by it alone.
-    expect(dense(catalog)).not.toContain(
-      "populateRouteParams(RouteMap[PageMap.CODE_REPOSITORY]",
-    );
-    expect(catalog).not.toContain(
-      "activeRoute: RouteMap[PageMap.CODE_REPOSITORY]",
-    );
+    expect(catalog).not.toContain("AI_AGENT_TASKS");
+    expect(catalog).not.toContain("CODE_REPOSITORY]");
   });
 
   test("the Code section sits between AI and Resources", () => {
@@ -146,10 +170,10 @@ describe("the Products menu catalog", () => {
     const items: Locale = locales["en"]!["navbar"]["items"];
 
     expect(squash(raw)).toContain(
-      `"navbar.items.aiAgentsTitle", "${items["aiAgentsTitle"]}"`,
+      `"navbar.items.codeTitle", "${items["codeTitle"]}"`,
     );
     expect(squash(raw)).toContain(
-      `"navbar.items.aiAgentsDescription", "${items["aiAgentsDescription"]}"`,
+      `"navbar.items.codeDescription", "${items["codeDescription"]}"`,
     );
   });
 });
@@ -174,28 +198,32 @@ describe("the locale files", () => {
       const items: Locale =
         locales[file.replace(/\.json$/, "")]!["navbar"]["items"];
 
+      expect(items).not.toHaveProperty("aiAgentsTitle");
+      expect(items).not.toHaveProperty("aiAgentsDescription");
       expect(items).not.toHaveProperty("codeRepositoriesTitle");
       expect(items).not.toHaveProperty("codeRepositoriesDescription");
     },
   );
 
   test.each(localeFiles)(
-    "%s names Tasks the same in the Products menu and the side menu",
+    "%s names Code the same in the Products menu, its section and its page",
     (file: string) => {
       const locale: Locale = locales[file.replace(/\.json$/, "")]!;
 
-      // The side menu label is looked up as the flat English-text key.
-      expect(locale["navbar"]["items"]["aiAgentsTitle"]).toBe(locale["Tasks"]);
+      // The page title and the side menu are looked up as the flat key.
+      expect(locale["navbar"]["items"]["codeTitle"]).toBe(locale["Code"]);
+      expect(locale["navbar"]["categories"]["code"]).toBe(locale["Code"]);
     },
   );
 
-  test("every locale translates the rewritten Tasks description", () => {
+  test("every locale translates Code's description", () => {
     const english: string =
-      locales["en"]!["navbar"]["items"]["aiAgentsDescription"];
+      locales["en"]!["navbar"]["items"]["codeDescription"];
+
+    expect(english).toContain("Connect GitHub here.");
 
     for (const [code, locale] of Object.entries(locales)) {
-      const description: unknown =
-        locale["navbar"]["items"]["aiAgentsDescription"];
+      const description: unknown = locale["navbar"]["items"]["codeDescription"];
       expect(typeof description).toBe("string");
       if (code !== "en") {
         expect(description).not.toBe(english);
@@ -204,70 +232,121 @@ describe("the locale files", () => {
   });
 });
 
-describe("both list pages render the one Code side menu", () => {
-  test.each([
-    ["Tasks", ["Pages", "AIAgentTasks", "Layout.tsx"]],
-    ["Code Repositories", ["Pages", "CodeRepository", "Layout.tsx"]],
-  ])("%s", (_name: string, file: Array<string>) => {
-    const layout: string = squash(readSource(...file));
+describe("Code's pages and the old addresses", () => {
+  test("Code's first page renders its side menu, and a repository its own", () => {
+    const layout: string = squash(readSource("Pages", "Code", "Layout.tsx"));
+    const repositoryLayout: string = squash(
+      readSource("Pages", "Code", "Repository", "Layout.tsx"),
+    );
 
     expect(layout).toContain(
       'import CodeSideMenu from "../../Components/Code/CodeSideMenu";',
     );
     expect(layout).toContain("sideMenu={<CodeSideMenu />}");
-  });
-
-  test("the old one-item repository menu is gone", () => {
-    expect(
-      fs.existsSync(
-        path.join(DASHBOARD_SRC, "Pages", "CodeRepository", "SideMenu.tsx"),
-      ),
-    ).toBe(false);
-  });
-
-  test("the menu links to both pages", () => {
-    const menu: string = squash(
-      readSource("Components", "Code", "CodeSideMenu.tsx"),
+    expect(repositoryLayout).toContain(
+      "sideMenu={<SideMenu modelId={modelId} />}",
     );
+  });
 
-    expect(menu).toContain("RouteMap[PageMap.AI_AGENT_TASKS] as Route");
-    expect(menu).toContain("RouteMap[PageMap.CODE_REPOSITORY] as Route");
+  test("the pages of Tasks and Code Repositories are gone, not left beside Code", () => {
+    for (const gone of [
+      ["Pages", "AIAgentTasks"],
+      ["Pages", "CodeRepository"],
+      ["Components", "AIAgentTask"],
+      ["Routes", "AIAgentTasksRoutes.tsx"],
+      ["Routes", "CodeRepositoryRoutes.tsx"],
+    ]) {
+      expect({
+        gone: gone.join("/"),
+        exists: fs.existsSync(path.join(DASHBOARD_SRC, ...gone)),
+      }).toEqual({ gone: gone.join("/"), exists: false });
+    }
+  });
+
+  test("the old addresses are mounted, and only forward", () => {
+    const app: string = dense(readSource("App.tsx"));
+    const routes: string = readSource("Utils", "RouteMap.ts");
+    const paths: string = readSource("Routes", "MovedPagePaths.ts");
+
+    expect(app).toContain(
+      'path={RouteMap[PageMap.MOVED_AI_AGENT_TASKS_ROOT]?.toString()||""}element={<MovedTaskRoutes{...commonPageProps}/>}',
+    );
+    expect(app).toContain(
+      'path={RouteMap[PageMap.MOVED_CODE_REPOSITORY_ROOT]?.toString()||""}element={<MovedRepositoryRoutes{...commonPageProps}/>}',
+    );
+    expect(dense(routes)).toContain(
+      "[PageMap.MOVED_AI_AGENT_TASKS_ROOT]:newRoute(`/dashboard/${RouteParams.ProjectID}/${MOVED_CODE_ROOT_PATHS.tasks}/*`,),",
+    );
+    expect(dense(routes)).toContain(
+      "[PageMap.MOVED_CODE_REPOSITORY_ROOT]:newRoute(`/dashboard/${RouteParams.ProjectID}/${MOVED_CODE_ROOT_PATHS.repositories}/*`,),",
+    );
+    expect(dense(paths)).toContain('tasks:"ai/agents",');
+    expect(dense(paths)).toContain('repositories:"code-repository",');
+  });
+
+  test("the old route keys are gone from PageMap, so nothing can link to them", () => {
+    const pageMap: string = readSource("Utils", "PageMap.ts");
+
+    expect(pageMap).not.toMatch(/\bAI_AGENT_TASK/);
+    expect(pageMap).not.toMatch(/\bCODE_REPOSITORY\b/);
+    expect(pageMap).not.toMatch(/\bCODE_REPOSITORY_ROOT\b/);
   });
 });
 
-describe("copy that tells users where repositories are connected", () => {
+describe("copy that tells people where repositories are connected", () => {
   test.each([
     "TelemetryImprovementTaskTrigger.ts",
     "FixPerformanceTaskTrigger.ts",
     "FixFromIncidentTaskTrigger.ts",
-  ])("%s points at Tasks > Code Repositories", (file: string) => {
+  ])("%s points at Code", (file: string) => {
     const source: string = fs.readFileSync(
       path.join(COMMON_ROOT, "Server", "Utils", "AI", "SRE", file),
       "utf8",
     );
 
-    expect(source).toContain("Connect one under Tasks > Code Repositories.");
-    expect(source).not.toContain("AI > Code Repositories");
+    expect(source).toContain("Connect one in Code.");
+    expect(source).toContain("Track its progress in Code.");
+    expect(source).not.toContain("Code Repositories");
+    expect(source).not.toContain("AI > Tasks");
   });
 
-  test("the self-hosted GitHub guide walks through Tasks", () => {
+  test("a switched-off GitHub command says where to switch it back on", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        COMMON_ROOT,
+        "Server",
+        "Utils",
+        "CodeRepository",
+        "GitHub",
+        "GitHubCommandAuthorizer.ts",
+      ),
+      "utf8",
+    );
+
+    expect(source).toContain(
+      "turn them back on in OneUptime under Code → this repository → Settings.",
+    );
+    expect(source).not.toContain("Code Repositories →");
+  });
+
+  test("the self-hosted GitHub guide walks through Code", () => {
     const guide: string = fs.readFileSync(
       path.join(DOCS_EN, "self-hosted", "github-integration.md"),
       "utf8",
     );
 
-    expect(guide).toContain(
-      "Navigate to **Products** > **Tasks** > **Code Repositories**",
-    );
+    expect(guide).toContain("Navigate to **Products** > **Code**");
+    expect(guide).not.toContain("**Tasks**");
   });
 
-  test("the GitHub App guide no longer sends users to Project Settings", () => {
+  test("the GitHub App guide sends people to Code, not to pages that are gone", () => {
     const guide: string = fs.readFileSync(
       path.join(DOCS_EN, "ai", "github-app.md"),
       "utf8",
     );
 
     expect(guide).not.toContain("Project Settings → Code Repositories");
-    expect(guide.split("**Tasks → Code Repositories**")).toHaveLength(3);
+    expect(guide).not.toContain("Tasks → Code Repositories");
+    expect(guide).toContain("**Products → Code**");
   });
 });

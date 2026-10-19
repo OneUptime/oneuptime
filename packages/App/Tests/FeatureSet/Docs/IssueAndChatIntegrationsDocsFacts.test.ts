@@ -410,29 +410,22 @@ describe("GitHub and GitLab: an issue for every incident", () => {
     );
   });
 
-  it("GitHub: connects repositories through the GitHub App, from Products → Code → Tasks, then Code Repositories", () => {
+  it("GitHub: connects repositories through the GitHub App, from Products → Code", () => {
     const navigation: string = readRepoFile(
       "App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx",
     );
-    const sideMenu: string = readRepoFile(
-      "App/FeatureSet/Dashboard/src/Components/Code/CodeSideMenu.tsx",
-    );
     const repositories: string = readRepoFile(
-      "App/FeatureSet/Dashboard/src/Pages/CodeRepository/CodeRepository.tsx",
+      "App/FeatureSet/Dashboard/src/Components/Code/GitHubConnect.tsx",
     );
     const text: string = englishPage(GITHUB);
 
-    expect(navigation).toContain('t("navbar.items.aiAgentsTitle", "Tasks")');
-    expect(sideMenu).toContain('title: "Code Repositories"');
+    expect(navigation).toContain('t("navbar.items.codeTitle", "Code")');
     expect(repositories).toContain(
-      'translator.translateText("Connect with GitHub App")',
-    );
-    expect(repositories).toContain(
-      "Install the GitHub App to import every repository in the installation and keep them in sync.",
+      'translator.translateText("Connect GitHub")',
     );
     expect(new CodeRepository().getCreateBillingPlan()).toBe(PlanType.Growth);
     expect(text).toContain(
-      `Open ${bold("Products → Code → Tasks")}, then ${bold("Code Repositories")}, and click ${bold("Connect with GitHub App")}.`,
+      `Open ${bold("Products → Code")} and click ${bold("Connect GitHub")}.`,
     );
     expect(text).toContain(
       "Every repository in the installation is imported, and stays in step as you add repositories to the installation or take them out.",
@@ -448,22 +441,20 @@ describe("GitHub and GitLab: an issue for every incident", () => {
    */
   it("GitHub: sends an account that already has the app to Connect an existing installation, for an account that administers it", () => {
     const repositories: string = readRepoFile(
-      "App/FeatureSet/Dashboard/src/Pages/CodeRepository/CodeRepository.tsx",
+      "App/FeatureSet/Dashboard/src/Components/Code/GitHubConnect.tsx",
     );
     const github: string = readRepoFile(
       "Common/Server/Utils/CodeRepository/GitHub/GitHub.ts",
     );
     const text: string = englishPage(GITHUB);
 
-    // The link follows the card, inside the same grid.
+    // The link follows the Connect GitHub button.
     expect(
       repositories.indexOf(
         'data-testid="connect-existing-github-installation"',
       ),
-    ).toBeGreaterThan(
-      repositories.indexOf('data-testid="connect-github-app-card"'),
-    );
-    expect(repositories).toContain('data-testid="connect-github-app-card"');
+    ).toBeGreaterThan(repositories.indexOf('id="connect-github-app"'));
+    expect(repositories).toContain('id="connect-github-app"');
     expect(repositories).toContain('"Connect an existing installation"');
     expect(readRepoFile("Common/Server/API/GitHubAPI.ts")).toContain(
       '"/github/connect-existing-url"',
@@ -474,7 +465,7 @@ describe("GitHub and GitLab: an issue for every incident", () => {
     );
     expect(github).toContain('if (permissions?.["admin"] !== true) {');
     expect(text).toContain(
-      `click ${bold("Connect an existing installation")}, under the ${bold("Connect with GitHub App")} card, instead of installing it again.`,
+      `click ${bold("Connect an existing installation")}, under ${bold("Connect GitHub")}, instead of installing it again.`,
     );
     expect(text).toContain(
       "This needs a GitHub account that administers the installation: the owner of a personal account, or someone with admin on every repository the installation can access",
@@ -486,7 +477,7 @@ describe("GitHub and GitLab: an issue for every incident", () => {
       ConnectProvider,
     ) as Array<string>;
     const repositories: string = readRepoFile(
-      "App/FeatureSet/Dashboard/src/Pages/CodeRepository/CodeRepository.tsx",
+      "App/FeatureSet/Dashboard/src/Components/Code/GitHubConnect.tsx",
     );
 
     expect(providers).toContain("github");

@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { registerConfigCommands } from "./Commands/ConfigCommands";
+import { registerDeployCommands } from "./Commands/DeployCommands";
 import { registerResourceCommands } from "./Commands/ResourceCommands";
 import {
   readCliVersion,
@@ -29,6 +30,7 @@ export function buildProgram(): Command {
   // Register command groups
   registerConfigCommands(program);
   registerUtilityCommands(program);
+  registerDeployCommands(program);
   registerResourceCommands(program);
 
   return program;

@@ -154,6 +154,10 @@ function stubHandler(result: TaskResult | Error): void {
     getHandler: (): TaskHandler => {
       return handler;
     },
+    // The recipes the claim says this Runner can do.
+    getRegisteredTaskTypes: (): Array<string> => {
+      return ["FixException"];
+    },
   } as unknown as TaskHandlerRegistry);
 }
 

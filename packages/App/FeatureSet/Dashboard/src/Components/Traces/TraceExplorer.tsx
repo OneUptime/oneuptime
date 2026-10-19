@@ -861,7 +861,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
           performanceFixRoute={
             perfFixRunId
               ? RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                  RouteMap[PageMap.CODE_TASK_VIEW] as Route,
                   { modelId: perfFixRunId },
                 )
               : null

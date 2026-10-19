@@ -1718,23 +1718,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   {
     id: "code",
     title: "Code",
-    icon: IconProp.CPUChip,
+    productPage: PageMap.CODE,
+    icon: IconProp.Code,
     iconColor: "violet",
     sections: [
       {
         title: "Code",
         pages: [
           {
-            page: PageMap.AI_AGENT_TASKS,
-            title: "Tasks",
-            icon: IconProp.CPUChip,
-            keywords: ["ai agent tasks", "pull requests", "fixes"],
-          },
-          {
-            page: PageMap.CODE_REPOSITORY,
-            title: "Code Repositories",
+            page: PageMap.CODE,
+            title: "Repositories",
             icon: IconProp.Code,
-            keywords: ["github", "gitlab", "repository", "connect repository"],
+            keywords: [
+              "code repositories",
+              "repository",
+              "connect repository",
+              "github",
+              "tasks",
+              "ai agent tasks",
+              "ask ai",
+              "pull requests",
+              "fixes",
+            ],
           },
         ],
       },

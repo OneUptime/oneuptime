@@ -144,7 +144,7 @@ Les étapes Bash et JavaScript n'ont pas de champ **Identifiant**. Pour donner �
 :::steps
 ### Créer le secret
 
-Cliquez sur **Créer : Secret de runbook**. À l'étape **Secret**, saisissez un **Nom** (lettres, chiffres, tirets et traits de soulignement), une **Description** facultative et la **Valeur du secret**. À l'étape **Accès**, choisissez les agents sous **Agents Runbook ayant accès à ce secret**.
+Cliquez sur **Créer : Secret de runbook**. À l'étape **Secret**, saisissez un **Nom** (lettres, chiffres, tirets et traits de soulignement), une **Description** facultative et la **Valeur du secret**. À l'étape **Accès**, choisissez vos agents sous **Vos agents Runbook qui peuvent utiliser ce secret**. Sur un serveur doté d'[agents Runbook globaux](/docs/runbooks/agents#agents-runbook-globaux), **Les agents Runbook globaux peuvent utiliser ce secret** permet aussi aux étapes de ce projet qui s'exécutent sur un agent global de l'utiliser. Il est activé pour un nouveau secret tant que le projet utilise les agents globaux.
 
 ### L'utiliser dans un script
 
@@ -156,7 +156,7 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 
-Quand un agent auquel le secret est attribué prend l'étape en charge, il reçoit le script avec la valeur insérée.
+Quand un agent auquel le secret est attribué prend l'étape en charge, il reçoit le script avec la valeur insérée. Un agent global aussi, quand le secret autorise les agents globaux à l'utiliser. Une étape sur un agent global qui nomme un secret que les agents globaux ne peuvent pas utiliser échoue en nommant le secret, plutôt que de s'exécuter sans lui.
 :::
 
 Comme les champs secrets d'un identifiant, la valeur d'un secret est chiffrée au repos et jamais renvoyée par l'API : **Mettre à jour la valeur secrète** la remplace. Sur OneUptime Cloud, les secrets de runbook demandent aussi l'offre **Growth** ou supérieure.

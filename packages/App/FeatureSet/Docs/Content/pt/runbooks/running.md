@@ -133,11 +133,11 @@ O interruptor **Executar este runbook** do runbook está desligado, na página *
 :::
 
 :::details Uma etapa falhou porque falta um Runner ou uma credencial
-A mensagem diz, por exemplo, "Bash step is missing a Runner. Pick one under Runbooks → Runners." A etapa foi salva sem **Runner**, ou uma etapa SSH ou Kubernetes sem **Credential**. Abra as **Etapas** do runbook, escolha o que falta na etapa, clique em **Save Steps** e execute o runbook de novo.
+A mensagem diz, por exemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." A etapa foi salva sem **Runner**, ou uma etapa SSH ou Kubernetes sem **Credential**. Uma etapa JavaScript só precisa de um Runner próprio quando nenhum [Runner global](/docs/runbooks/agents#runners-globais) consegue executá-la. Abra as **Etapas** do runbook, escolha o que falta na etapa, clique em **Save Steps** e execute o runbook de novo.
 :::
 
 :::details Uma etapa falhou porque nenhum agente de runbook a assumiu
-A mensagem diz "No runbook agent picked up this step before the wait window expired." O Runner da etapa não assumiu o trabalho dentro do seu claim timeout. Verifique em **Runbooks → Agentes de runbook** se o Runner está **Conectado** e se **Executa runbooks** está ligado. Consulte [Agentes de runbook](/docs/runbooks/agents#solução-de-problemas).
+A mensagem diz "No runbook agent picked up this step before the wait window expired." O Runner da etapa não assumiu o trabalho dentro do seu claim timeout. Verifique em **Runbooks → Agentes de runbook** se o Runner está **Conectado** e se **Executa runbooks** está ligado. Consulte [Agentes de runbook](/docs/runbooks/agents#solução-de-problemas). Uma etapa em um Runner global diz, em vez disso, "No global Runner picked up this step before the wait window expired.": execute o runbook de novo, aumente o claim timeout da etapa ou escolha um dos seus próprios Runners.
 :::
 
 :::details A execução está esperando há horas

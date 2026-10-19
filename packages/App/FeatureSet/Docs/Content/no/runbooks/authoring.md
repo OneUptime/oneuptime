@@ -12,7 +12,7 @@ Du skriver et runbook som en ordnet liste med trinn på siden **Trinn**. Denne s
 ## Før du begynner
 
 - **En rolle som skriver runbooks.** Project Owner, Project Admin og Runbook Admin oppretter runbooks og lagrer trinnene deres. Med detaljerte tillatelser trenger du **Create Runbook** og **Edit Runbook**. Se [Tillatelser](/docs/runbooks/configuration#tillatelser).
-- **En Runner, for JavaScript-, Bash-, SSH- og Kubernetes-trinn.** Disse trinnene kjører på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldri på OneUptime Worker. Installer en først.
+- **En Runner, for Bash-, SSH- og Kubernetes-trinn.** Disse trinnene kjører på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldri på OneUptime Worker. Installer en først. Et JavaScript-trinn kjører på en [global Runner](/docs/runbooks/agents#globale-runnere) med mindre du velger en av dine egne.
 - **Påloggingsinformasjon, for SSH- og Kubernetes-trinn, og tillatelse til å lese den.** Se [Runbook-påloggingsinformasjon](/docs/runbooks/credentials). Et trinn kan bare peke på påloggingsinformasjon hvis du har lov til å lese runbook-påloggingsinformasjon: Project Owner, Project Admin eller **Read Runbook Credential**. Runbook Admin omfatter ikke dette.
 - **En LLM-leverandør, for AI-trinn.** Se [LLM-leverandører](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Bruk det til det bare et menneske kan kontrollere eller gjøre: "Bekreft i lastb
 
 ### JavaScript
 
-Et stykke JavaScript som kjører i en `isolated-vm`-sandkasse på en [runbook-agent](/docs/runbooks/agents) i din egen infrastruktur, ikke på OneUptime Worker.
+Et stykke JavaScript som kjører i en `isolated-vm`-sandkasse på en [runbook-agent](/docs/runbooks/agents), ikke på OneUptime Worker: på en av dine egne, eller på en [global Runner](/docs/runbooks/agents#globale-runnere) når trinnet ikke velger noen.
 
 | Felt | Hva det gjør | Standard |
 | --- | --- | --- |
-| **Runner** | Runneren som kjører trinnet. Bare den Runneren kan ta jobben. | — |
+| **Runner** | Runneren som kjører trinnet: **Global Runner** eller en av dine egne. Bare Runneren du velger, kan ta jobben; enhver global Runner kan ta et trinn på **Global Runner**. | **Global Runner**, når det finnes en |
 | **Script** | JavaScript-koden som skal kjøre. Returner en verdi med `return` for å registrere den; hver linje fra `console.log` registreres også. En kastet feil får trinnet til å feile. | — |
-| **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar koden kjøre før den river ned sandkassen. | 30 sekunder |
+| **Tidsavbrudd for kjøring** | Hvor lenge Runneren lar koden kjøre før den river ned sandkassen. En global Runner lar den kjøre i høyst 5 minutter. | 30 sekunder |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. | 2 minutter |
 
 ```javascript

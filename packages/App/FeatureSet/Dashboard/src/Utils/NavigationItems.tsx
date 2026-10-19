@@ -356,18 +356,22 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: aiCategory,
     },
     /*
-     * Code — the AI's work in your source code. One item, not a Tasks item
-     * and a Code Repositories item: every task runs in a connected
-     * repository, and a repository is only there so tasks have somewhere to
-     * open pull requests. So Tasks is the product and Code Repositories is a
-     * page in its side menu (as Network holds devices and sites), and the
-     * item stays lit on both.
+     * Code — your repositories, and AI you ask to work in them. One item:
+     * it opens on the repositories, each repository's page holds its tasks
+     * and the box to ask AI, and a task's page is its conversation. Every
+     * page of it lives under /code, so the item stays lit on all of them.
+     * (It replaced Tasks and Code Repositories; the old words stay as
+     * keywords, so people who learned them still find it.)
      */
     {
-      title: t("navbar.items.aiAgentsTitle", "Tasks"),
+      title: t("navbar.items.codeTitle", "Code"),
       keywords: [
+        "tasks",
+        "ai tasks",
         "ai agents",
         "agent tasks",
+        "ask ai",
+        "coding agent",
         "automated fixes",
         "fix pull requests",
         "pull requests",
@@ -379,15 +383,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "source code",
       ],
       description: t(
-        "navbar.items.aiAgentsDescription",
-        "AI opens pull requests that fix your code. Connect GitHub here.",
+        "navbar.items.codeDescription",
+        "Ask AI to change your code and open pull requests. Connect GitHub here.",
       ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.AI_AGENT_TASKS],
-      additionalActiveRoutes: [RouteMap[PageMap.CODE_REPOSITORY] as Route],
-      icon: IconProp.CPUChip,
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.CODE] as Route),
+      activeRoute: RouteMap[PageMap.CODE],
+      icon: IconProp.Code,
       iconColor: "violet",
       category: codeCategory,
     },

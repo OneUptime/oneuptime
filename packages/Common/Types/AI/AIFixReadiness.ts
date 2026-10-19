@@ -1,9 +1,8 @@
 /*
  * What a CodeFix run needs before it can complete, as a wire contract shared
- * by the server checks and every UI that renders them. Two surfaces consume
- * this today: the per-exception "Fix with AI Agent" panel
- * (GET /telemetry-exception/ai-fix-readiness/:id) and the project-wide AI
- * Tasks page (POST /ai-readiness/code-fix).
+ * by the server checks and every UI that renders them: the per-exception
+ * "Fix with AI Agent" panel (GET /telemetry-exception/ai-fix-readiness/:id)
+ * and the project-wide route (POST /ai-readiness/code-fix).
  */
 
 /*

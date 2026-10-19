@@ -123,3 +123,24 @@ describe("infrastructure evidence navigation", () => {
     },
   );
 });
+
+describe("service evidence navigation", () => {
+  beforeEach(() => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("one service's change feed opens that service's page", () => {
+    const route: string | undefined = getRouteForCitationTarget({
+      type: AIChatCitationTargetType.ServiceView,
+      params: { serviceId: RESOURCE_ID },
+    })?.toString();
+
+    expect(route).toBe(`/dashboard/${PROJECT_ID}/service/${RESOURCE_ID}`);
+  });
+});

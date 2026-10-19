@@ -173,6 +173,7 @@ describe("Admin Settings: only Basic starts open", () => {
       { title: "Authentication", expanded: false },
       { title: "Notifications", expanded: false },
       { title: "Monitoring", expanded: false },
+      { title: "Runbooks", expanded: false },
       { title: "Data Retention", expanded: false },
       { title: "AI", expanded: false },
       { title: "API and Integrations", expanded: false },
@@ -194,6 +195,7 @@ describe("Admin Settings: only Basic starts open", () => {
       { title: "«Authentication»", expanded: false },
       { title: "«Notifications»", expanded: false },
       { title: "«Monitoring»", expanded: false },
+      { title: "«Runbooks»", expanded: false },
       { title: "«Data Retention»", expanded: false },
       { title: "«AI»", expanded: false },
       { title: "«API and Integrations»", expanded: false },
@@ -203,6 +205,7 @@ describe("Admin Settings: only Basic starts open", () => {
   test.each([
     [PageMap.SETTINGS_SMTP, "Notifications", "Emails"],
     [PageMap.SETTINGS_AI_AGENTS, "AI", "Global AI Agents"],
+    [PageMap.SETTINGS_GLOBAL_RUNNERS, "Runbooks", "Global Runners"],
     [PageMap.SETTINGS_GLOBAL_SSO, "Authentication", "Global SSO"],
     [PageMap.SETTINGS_API_KEY, "API and Integrations", "API Key"],
   ])(

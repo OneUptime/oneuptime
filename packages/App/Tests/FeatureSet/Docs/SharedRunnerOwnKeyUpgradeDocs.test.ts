@@ -31,7 +31,8 @@ import path from "path";
  *     from, are not counted.
  *
  * The notes sit after the note on the inbound email webhook secret
- * (InboundEmailWebhookSecretUpgradeDocs) and before the endpoint pointer,
+ * (InboundEmailWebhookSecretUpgradeDocs) and before the note on the bundled
+ * global Runner (GlobalRunnerUpgradeDocs),
  * and every translation carries them in the English notes' places, under
  * leads of its own, with the English notes' code.
  */
@@ -45,7 +46,8 @@ const WRONG_KEYS_LEAD: string = "Wrong probe and Runner keys are counted.";
 // The note before them (InboundEmailWebhookSecretUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "Incoming email needs a webhook secret of your own.";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after them (GlobalRunnerUpgradeDocs).
+const NEXT_LEAD: string = "Every install runs a global Runner of its own.";
 
 const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
   (language: string): boolean => {
@@ -75,7 +77,7 @@ const WRONG_KEYS_NOTE: string = flattened(
 );
 
 describe("where the two notes sit", () => {
-  it("each is a note of the 13 → 14 changes, once, after the inbound email note and before the endpoint pointer, the Runner's key first", () => {
+  it("each is a note of the 13 → 14 changes, once, after the inbound email note and before the global Runner note, the Runner's key first", () => {
     for (const lead of [RUNNER_KEY_LEAD, WRONG_KEYS_LEAD]) {
       expect(
         ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -91,9 +93,11 @@ describe("where the two notes sit", () => {
       ),
     ).toBe(true);
     expect(WRONG_KEYS_INDEX).toBe(RUNNER_KEY_INDEX + 1);
-    expect(ENGLISH_ITEMS[WRONG_KEYS_INDEX + 1]!.startsWith(POINTER_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[WRONG_KEYS_INDEX + 1]!).startsWith(
+        `- **${NEXT_LEAD}**`,
+      ),
+    ).toBe(true);
   });
 });
 

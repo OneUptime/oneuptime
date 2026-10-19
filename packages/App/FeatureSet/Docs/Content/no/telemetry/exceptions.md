@@ -113,9 +113,9 @@ Siden **AI Assistance** tilbyr tre oppgaver. Hver kjører som en AI-oppgave som 
 | --- | --- |
 | **Fix this exception with AI** | Retter rotårsaken. Start den med **Fix with AI**. |
 | **Generate Regression Test** | Legger til en test som feiler til feilen er rettet. |
-| **Improve Error Handling** | For forventede feil: validerer inndata tidligere, holder brukerdata ute av meldinger og merker feilen som håndtert. |
+| **Forbedre feilhåndtering** | For forventede feil: validerer inndata tidligere, holder brukerdata ute av meldinger og merker feilen som håndtert. |
 
-AI trenger tre ting først: en LLM-leverandør, et GitHub-lager koblet til via GitHub App, og en AI-agent på nett som kjører oppgaven. Siden sjekker hver av dem og lenker til det som mangler. Oppgavene står på pause mens unntaket er løst eller arkivert. Se [Rettingsoppgaver](/docs/ai/ai-agent).
+AI trenger tre ting først: en LLM-leverandør, et GitHub-lager koblet til via GitHub App, og en AI-agent på nett som kjører oppgaven. Siden sjekker hver av dem og lenker til det som mangler. Oppgavene står på pause mens unntaket er løst eller arkivert. Se [Kode](/docs/ai/ai-agent).
 
 ## Innsikt i unntak
 
@@ -140,6 +140,6 @@ En ny forekomst gjenåpner et løst unntak med vilje: feilen skjer fortsatt. Kon
 :::cards
 - [Unntak-overvåking](/docs/monitor/exceptions-monitor): Få varsel når unntak øker kraftig.
 - [Source maps](/docs/telemetry/source-maps): Lesbare stack traces for nettleserkode.
-- [Rettingsoppgaver](/docs/ai/ai-agent): Hvordan AI retter kode og åpner pull requests.
+- [Kode](/docs/ai/ai-agent): Hvordan AI retter kode og åpner pull requests.
 - [Sporutforsker](/docs/telemetry/traces-explorer): Se forespørselen et unntak skjedde i.
 :::

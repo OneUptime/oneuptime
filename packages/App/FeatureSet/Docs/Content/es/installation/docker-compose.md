@@ -139,6 +139,7 @@ El último comando imprime `0`: no queda ningún marcador. El bucle usa GNU `sed
 | `REGISTER_PROBE_KEY` | El registro de sondas en tu instancia. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Las sondas globales que puede ejecutar Docker Compose (`probe-1` se ejecuta de forma predeterminada). |
 | `ONEUPTIME_RUNNER_KEY` | El Runner incluido. |
+| `GLOBAL_RUNNER_KEY` | El Runner global incluido, que ejecuta los pasos JavaScript de todos los proyectos. |
 
 > [!IMPORTANT]
 > Define los secretos antes del primer arranque y mantenlos después. PostgreSQL solo toma su contraseña cuando crea su base de datos, y cambiar `ENCRYPTION_SECRET` más adelante hace ilegible cualquier valor cifrado con el anterior. Si `DATABASE_PASSWORD` sigue siendo el marcador en el primer arranque, `npm start` le da un valor aleatorio antes de que PostgreSQL cree su base de datos.

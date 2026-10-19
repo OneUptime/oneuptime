@@ -35,7 +35,7 @@ flowchart TB
 
 Every run is an **execution**. When it starts, the runbook's steps are copied onto it, and OneUptime works through them in order. A Manual step, or a step that needs approval, pauses the run until someone acts on it.
 
-HTTP and AI steps run on the OneUptime Worker. JavaScript, Bash, SSH and Kubernetes steps run on a [Runner](/docs/runbooks/agents) you install in your own infrastructure, so your scripts never run on OneUptime's servers. Each step's status, output and error message are recorded on the execution, which stays with the incident, alert or event it ran for.
+HTTP and AI steps run on the OneUptime Worker. Bash, SSH and Kubernetes steps run on a [Runner](/docs/runbooks/agents) you install in your own infrastructure, so those scripts never run on OneUptime's servers. A JavaScript step runs on one of your Runners too or, if it picks none, on a [global Runner](/docs/runbooks/agents#global-runners), in a sandbox that reaches the internet only. Each step's status, output and error message are recorded on the execution, which stays with the incident, alert or event it ran for.
 
 ## Key concepts
 
@@ -46,9 +46,9 @@ HTTP and AI steps run on the OneUptime Worker. JavaScript, Bash, SSH and Kuberne
 | **Runbook Rule** | A rule that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events that match its conditions: their monitors, severity, labels, monitor labels, title or description. |
 | **Execution** | One run of a runbook. Created when a rule fires, when someone clicks **Run Runbook** on an event, or when someone clicks **Run Now** on the runbook itself. It holds a snapshot of the steps and each step's status and output. |
 | **Snapshot** | The frozen copy of the runbook's steps that lives on each execution. You can edit the runbook later without rewriting the history of past runs. |
-| **Runner** | A small agent you run on a host in your own infrastructure. It runs the JavaScript, Bash, SSH and Kubernetes steps that name it. Also called a Runbook Agent. |
+| **Runner** | A small agent you run on a host in your own infrastructure. It runs the JavaScript, Bash, SSH and Kubernetes steps that name it. Also called a Runbook Agent. A global Runner, one OneUptime runs for every project, runs the JavaScript steps that name none. |
 | **Credential** | Managed SSH or Kubernetes access that SSH and Kubernetes steps use. Encrypted at rest and handed only to the Runners you assign it to. |
-| **Secret** | A single value, such as an API token, that a Bash or JavaScript script uses as `{{runbookSecrets.NAME}}`. Encrypted at rest and handed only to the Runners you assign it to. |
+| **Secret** | A single value, such as an API token, that a Bash or JavaScript script uses as `{{runbookSecrets.NAME}}`. Encrypted at rest and handed only to the Runners you assign it to. Global Runners get it only if you let them. |
 
 ## Step types
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 A monitor opens incident `INC-4821 · db-primary connection timeout`. The rule matches and an execution starts:
 
-- Step 1 (JavaScript) runs on the Runner you picked for it. Its return value, such as `{ lagMs: 412 }`, is captured.
+- Step 1 (JavaScript) runs on the Runner you picked for it. Its return value, such as `{ lagMs: 412 }`, is captured. A step that picks no Runner runs on a global Runner.
 - Step 2 (Manual) pauses the run, which shows **Waiting for you**. The on-call checks the dashboard and clicks **Mark complete**.
 - Step 3 (HTTP request) runs, and the `POST` response is captured.
 - Step 4 (Manual) pauses the run again until someone completes it.
@@ -170,7 +170,7 @@ The execution stays on the incident's **Runbooks** page. When you write the post
 
 :::cards
 - [Authoring a Runbook](/docs/runbooks/authoring): Create your first runbook and its steps.
-- [Runbook Agents](/docs/runbooks/agents): Install a Runner before you write a JavaScript, Bash, SSH or Kubernetes step.
+- [Runbook Agents](/docs/runbooks/agents): Install a Runner before you write a Bash, SSH or Kubernetes step.
 - [Runbook Rules](/docs/runbooks/rules): Start runbooks automatically when incidents are created.
 - [Runbook Configuration & Safety](/docs/runbooks/configuration): Limits, timeouts, permissions and hardening.
 :::

@@ -288,6 +288,50 @@ export default class RunbookSecret extends BaseModel {
   })
   public runners?: Array<Runner> = undefined;
 
+  /*
+   * Whether a step of this secret's project that runs on a global Runner -
+   * one the OneUptime server runs for every project - gets this secret
+   * filled into its script. Only ever for a step of the secret's own
+   * project (RunbookSecretsUtil.loadForGlobalRunnerJob), and never while the
+   * project has turned global Runners off. Off unless someone who may write
+   * the secret turns it on: a secret that existed before global Runners
+   * reaches only the Runners it was assigned to.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookSecret,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadRunbookSecret,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditRunbookSecret,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Global Runners Can Use It",
+    description:
+      "Whether steps of this project that run on a global Runner get this secret. Global Runners are the ones OneUptime runs for every project; a step of another project never gets it.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isAvailableToGlobalRunners?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

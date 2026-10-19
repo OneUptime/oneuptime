@@ -40,16 +40,16 @@ flowchart TB
 
 ## Come vengono inviati i passaggi dei Runner
 
-I passaggi JavaScript, Bash, SSH e Kubernetes **non vengono mai eseguiti sul Worker di OneUptime**. Vengono inviati come lavori a un [agente di runbook](/docs/runbooks/agents) specifico: un piccolo processo che installi su un host della tua infrastruttura.
+I passaggi JavaScript, Bash, SSH e Kubernetes **non vengono mai eseguiti sul Worker di OneUptime**. Vengono inviati come lavori a un [agente di runbook](/docs/runbooks/agents) specifico: un piccolo processo che installi su un host della tua infrastruttura. Un passaggio JavaScript che non ne sceglie nessuno va ai [Runner globali](/docs/runbooks/agents#runner-globali) che OneUptime esegue per ogni progetto.
 
 Il modello di invio:
 
 1. Chi scrive il passaggio del runbook sceglie un Runner dal menu a tendina mentre lo scrive.
-2. Quando il passaggio viene eseguito, il Worker inserisce una riga in `RunnerJob` con `targetAgentId` impostato sull'ID di quel Runner e stato `Pending`.
-3. Quel Runner specifico (e solo lui) prende in carico il lavoro in modo atomico, lo esegue in locale — Bash tramite `bash -c <script>`, JavaScript in una sandbox `isolated-vm`, SSH e Kubernetes con la credenziale del passaggio — e restituisce il risultato.
+2. Quando il passaggio viene eseguito, il Worker inserisce una riga in `RunnerJob` con `targetAgentId` impostato sull'ID di quel Runner e stato `Pending`. Un passaggio JavaScript che non ne ha scelto nessuno, in un progetto che usa i Runner globali, riceve invece `runsOnGlobalRunner`.
+3. Quel Runner specifico (e solo lui) prende in carico il lavoro in modo atomico, lo esegue in locale — Bash tramite `bash -c <script>`, JavaScript in una sandbox `isolated-vm`, SSH e Kubernetes con la credenziale del passaggio — e restituisce il risultato. Qualsiasi Runner globale può prendere in carico un lavoro con `runsOnGlobalRunner`.
 4. Il Worker riprende il runbook con il risultato.
 
-Non esiste più il flag d'ambiente `RUNBOOK_BASH_ENABLED`. Il funzionamento di questi passaggi in un'installazione dipende solo dal fatto che il progetto abbia un Runner connesso con **Esegue i runbook** attivo.
+Non esiste più il flag d'ambiente `RUNBOOK_BASH_ENABLED`. Il funzionamento di questi passaggi in un'installazione dipende solo dal fatto che il progetto abbia un Runner connesso con **Esegue i runbook** attivo. Un passaggio JavaScript funziona anche su un Runner globale.
 
 ## Limiti di output e timeout
 
@@ -92,11 +92,12 @@ Quando un passaggio manuale viene spuntato tramite l'API, l'esecuzione viene rim
 
 ## Note di protezione
 
-- **JavaScript, Bash, SSH e Kubernetes** vengono eseguiti su un host Runner che controlli tu, non sul Worker di OneUptime. JavaScript gira in un isolate `isolated-vm` separato con 128 MB di memoria e senza accesso al file system o ai processi del Runner; può fare richieste HTTP con `axios`, ma le richieste verso reti private e indirizzi di loopback e link-local vengono rifiutate. Bash viene eseguito tramite `bash -c`, con il timeout applicato sul Runner.
+- **JavaScript, Bash, SSH e Kubernetes** vengono eseguiti su un host Runner che controlli tu, non sul Worker di OneUptime. JavaScript gira in un isolate `isolated-vm` separato con 128 MB di memoria e senza accesso al file system o ai processi del Runner; può fare richieste HTTP con `axios`, ma le richieste verso reti private e indirizzi di loopback e link-local vengono rifiutate. Bash viene eseguito tramite `bash -c`, con il timeout applicato sul Runner. Un passaggio JavaScript che non ne sceglie nessuno viene invece eseguito su un Runner globale.
 - **I passaggi HTTP** usano una convalida dello stato permissiva, così una risposta 4xx o 5xx viene registrata come passaggio non riuscito invece di sollevare un'eccezione, e l'output acquisito riflette ciò che il servizio remoto ha davvero restituito. I reindirizzamenti non vengono seguiti. Il Worker non chiama mai indirizzi di loopback o link-local, come un endpoint di metadati cloud; su OneUptime Cloud rifiuta anche gli indirizzi di rete privata, e un OneUptime self-hosted li rifiuta con `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **I passaggi IA** non vedono mai le note private degli incidenti né i messaggi di Slack e Microsoft Teams, e l'output dei passaggi precedenti viene analizzato alla ricerca di segreti, che vengono oscurati prima di raggiungere il modello. Le immagini incorporate e i dati codificati lunghi vengono esclusi dal prompt. Vedi [AI](/docs/runbooks/authoring#ai).
+- **Runner globali**: eseguono solo passaggi JavaScript, ognuno in una sandbox creata per quel passaggio e scartata dopo, che raggiunge solo indirizzi pubblici di internet, per al massimo 5 minuti, e al massimo tre passaggi di uno stesso progetto alla volta. Ricevono solo i segreti di runbook del progetto stesso del passaggio attivati per i Runner globali, e mai una credenziale; quello incluso ha una propria chiave e nient'altro del server. Vedi [Runner globali](/docs/runbooks/agents#runner-globali).
 - **L'autenticazione dei Runner** avviene tramite ID e chiave segreta, impostati sul container del Runner come variabili d'ambiente. Lato server, l'identità effettiva del Runner proviene dalla riga del database corrispondente all'ID e alla chiave presentati: un client non può spacciarsi per un altro Runner nemmeno con una chiave compromessa.
-- **Credenziali e segreti** sono cifrati a riposo, l'API non li restituisce mai e vengono consegnati solo ai Runner a cui sono assegnati, quando questi prendono in carico un passaggio.
+- **Credenziali e segreti** sono cifrati a riposo, l'API non li restituisce mai e vengono consegnati solo ai Runner a cui sono assegnati, quando questi prendono in carico un passaggio. Un segreto di runbook viene consegnato anche a un Runner globale che prende in carico un passaggio del progetto stesso del segreto, quando il segreto consente ai Runner globali di usarlo.
 
 ## Tabelle del database
 
@@ -105,8 +106,8 @@ Quando un passaggio manuale viene spuntato tramite l'API, l'esecuzione viene rim
 | `Runbook` | Il modello: nome, slug, descrizione, `isEnabled`, etichette e i passaggi in JSON. |
 | `RunbookExecution` | Una riga per esecuzione, con le chiavi esterne facoltative `incidentId`, `alertId` e `scheduledMaintenanceId` e un array JSON `stepExecutions` che fotografa i passaggi e lo stato di ciascuno. |
 | `RunbookRule` | Le regole di attivazione automatica, con un discriminatore `triggerEntityType` (Incident, Alert, ScheduledMaintenance), una relazione molti-a-molti con i runbook da avviare e ciò che confrontano: una colonna JSON `criteria` (le condizioni) più collegamenti molti-a-molti a monitor, gravità degli incidenti, gravità degli avvisi, etichette ed etichette dei monitor, e pattern per titolo, descrizione, nome del monitor e descrizione del monitor. |
-| `Runner` | Una riga per Runner installato: nome, chiave segreta, `lastAlive`, `connectionStatus`, informazioni sull'host e funzionalità. |
-| `RunnerJob` | Una riga per passaggio inviato a un Runner: `targetAgentId` (il Runner scelto da chi ha scritto il passaggio), tipo di passaggio, script o payload, stato (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` o `Cancelled`), scadenza della presa in carico, lease, output e codice di uscita. |
+| `Runner` | Una riga per Runner installato: nome, chiave segreta, `lastAlive`, `connectionStatus`, informazioni sull'host e funzionalità. Un Runner globale ha `isGlobalRunner` impostato e nessun progetto. |
+| `RunnerJob` | Una riga per passaggio inviato a un Runner: `targetAgentId` (il Runner scelto da chi ha scritto il passaggio), tipo di passaggio, script o payload, stato (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` o `Cancelled`), scadenza della presa in carico, lease, output e codice di uscita. `runsOnGlobalRunner` segna un passaggio che qualsiasi Runner globale può prendere in carico. |
 | `RunbookCredential` | Le credenziali SSH e Kubernetes, con i campi segreti cifrati, e i Runner a cui sono assegnate. |
 | `RunbookSecret` | I segreti dei runbook, cifrati, e i Runner che possono riceverli. |
 

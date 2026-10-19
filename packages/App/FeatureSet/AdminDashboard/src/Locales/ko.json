@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "글로벌 프로브",
+    "globalRunners": "글로벌 Runner",
     "dataRetention": "데이터 보존",
     "globalAiAgents": "글로벌 AI 에이전트",
     "globalLlmProviders": "글로벌 LLM 공급자",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "모니터링",
     "settingsGlobalProbes": "글로벌 프로브",
+    "settingsRunbooks": "런북",
+    "settingsGlobalRunners": "글로벌 Runner",
     "settingsDataRetention": "데이터 보존",
     "settingsAi": "AI",
     "settingsGlobalAiAgents": "글로벌 AI 에이전트",
@@ -526,6 +529,18 @@
         "keyModalDescription": "다음은 프로브 키입니다. 비밀로 유지하세요.",
         "probeIdLabel": "프로브 ID:",
         "probeKeyLabel": "프로브 키:"
+      },
+      "globalRunners": {
+        "cardTitle": "글로벌 Runner",
+        "cardDescription": "OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다. JavaScript 단계를 실행하며, 각 단계는 인터넷에만 닿는 샌드박스에서 실행됩니다.",
+        "noItems": "글로벌 Runner를 추가하세요. 만든 다음 'ID 및 키 표시'에 있는 명령으로 시작하세요.",
+        "showIdKey": "ID 및 키 표시",
+        "keyModalTitle": "글로벌 Runner 키",
+        "keyModalDescription": "이 글로벌 Runner는 인터넷에 닿는 호스트에서 시작하세요. 키는 비밀로 유지하세요. 키를 가진 사람은 글로벌 Runner를 사용하는 모든 프로젝트의 JavaScript 단계를 가져갈 수 있습니다.",
+        "runnerIdLabel": "Runner ID:",
+        "runnerKeyLabel": "Runner 키:",
+        "commandLabel": "Docker 호스트에서 실행",
+        "neverConnected": "연결된 적 없음"
       },
       "aiAgents": {
         "bannerTitle": "글로벌 AI 에이전트 설정에 도움이 필요하신가요?",

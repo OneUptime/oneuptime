@@ -1,4 +1,5 @@
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
+import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
 import {
   TelemetryServiceMetadata,
   getScalarEntityKeyColumns,
@@ -1581,8 +1582,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
     const release: string =
       (finalAttributes["resource.service.version"] as string) || "";
-    const environment: string =
-      (finalAttributes["resource.deployment.environment"] as string) || "";
+    const environment: string = readDeploymentEnvironment(finalAttributes, {
+      prefix: "resource.",
+    });
 
     const ingestionTimestamp: string = getIngestionStamp().db;
     const exceptionAttributes: JSONObject = {

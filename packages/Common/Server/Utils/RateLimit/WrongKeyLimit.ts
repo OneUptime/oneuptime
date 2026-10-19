@@ -5,6 +5,7 @@ import resolveTrustedClientIp, { ClientIpRequestLike } from "../ClientIp";
 import ClientRateLimitCounter, {
   ClientRateLimitRefusal,
 } from "./ClientRateLimitCounter";
+import net from "net";
 
 /*
  * DIFFERENT WRONG KEYS, COUNTED FOR THE CLIENT THAT SENDS THEM.
@@ -55,6 +56,25 @@ import ClientRateLimitCounter, {
  * under a key of the installation's own), never the key: a wrong key can be a
  * near miss, or the real key of another component or installation.
  *
+ * NOT ON A PRIVATE NETWORK ADDRESS
+ *
+ * A client over the limit is refused whichever key it carries, the right one
+ * too, so a limit must never count an address OneUptime's own services and
+ * components share with other callers. Every one of them that presents such a
+ * key calls from a private network address: the app and its workers call
+ * each other over the installation's own network, and the bundled probes, the
+ * shared Runner, the agents beside them and Runners of earlier releases call
+ * from a container network, a cluster's pod network or the server itself. And
+ * such an address is often not one caller's alone: a proxy, a load balancer
+ * or a container network can show many callers as one. So a key presented
+ * from a private network address (RFC 1918, loopback, link-local, IPv6 unique
+ * local; PRIVATE_NETWORKS below) is compared as it always was, and never
+ * counted or refused: nothing is read or kept for it, and nothing sent from
+ * beside OneUptime's own services can get them refused. Every other address
+ * is counted. The address is the one the proxies TRUSTED_PROXY_HOPS counts
+ * wrote (getClientIp), so an address a caller writes in front of its own
+ * changes nothing.
+ *
  * FAILS OPEN
  *
  * When Valkey cannot be reached, or does not answer within
@@ -79,6 +99,21 @@ const TTL_MULTIPLIER: number = 2;
 
 // How often a failing count may be logged.
 const COUNTER_FAILED_LOG_INTERVAL_MS: number = 60 * 1000;
+
+/*
+ * The private network addresses whose keys are never counted (NOT ON A
+ * PRIVATE NETWORK ADDRESS above). An IPv4 address written as IPv6
+ * (::ffff:10.0.0.1) is read as the IPv4 address it is.
+ */
+const PRIVATE_NETWORKS: net.BlockList = new net.BlockList();
+PRIVATE_NETWORKS.addSubnet("10.0.0.0", 8, "ipv4");
+PRIVATE_NETWORKS.addSubnet("172.16.0.0", 12, "ipv4");
+PRIVATE_NETWORKS.addSubnet("192.168.0.0", 16, "ipv4");
+PRIVATE_NETWORKS.addSubnet("127.0.0.0", 8, "ipv4");
+PRIVATE_NETWORKS.addSubnet("169.254.0.0", 16, "ipv4");
+PRIVATE_NETWORKS.addAddress("::1", "ipv6");
+PRIVATE_NETWORKS.addSubnet("fc00::", 7, "ipv6");
+PRIVATE_NETWORKS.addSubnet("fe80::", 10, "ipv6");
 
 export interface WrongKeyLimitSpec {
   // What a log line calls this limit: "wrong cluster key".
@@ -158,6 +193,14 @@ export default class WrongKeyLimit {
 
     const clientIp: string = WrongKeyLimit.getClientIp(data.req);
 
+    /*
+     * A private network address: never counted, and never refused (NOT ON A
+     * PRIVATE NETWORK ADDRESS above).
+     */
+    if (WrongKeyLimit.isPrivateNetworkAddress(clientIp)) {
+      return null;
+    }
+
     const windowIndex: number = Math.floor(
       Date.now() / (this.spec.windowSeconds * 1000),
     );
@@ -221,6 +264,37 @@ export default class WrongKeyLimit {
   public static getClientIp(req: ExpressRequest): string {
     return (
       resolveTrustedClientIp(req as unknown as ClientIpRequestLike) || "unknown"
+    );
+  }
+
+  /*
+   * Whether a client address is a private network address, whose keys are
+   * never counted (NOT ON A PRIVATE NETWORK ADDRESS above). Anything that is
+   * not an address - "unknown", the client every caller that cannot be
+   * placed shares - is counted.
+   */
+  public static isPrivateNetworkAddress(address: string): boolean {
+    const text: string = typeof address === "string" ? address : "";
+
+    // An IPv6 link-local address may carry its zone ("fe80::1%eth0").
+    const bare: string = text.includes(":") ? text.split("%")[0] || "" : text;
+    const family: number = net.isIP(bare);
+
+    if (family === 4) {
+      return PRIVATE_NETWORKS.check(bare, "ipv4");
+    }
+
+    if (family === 6) {
+      return PRIVATE_NETWORKS.check(bare, "ipv6");
+    }
+
+    return false;
+  }
+
+  // Whether a request's client is a private network address (getClientIp).
+  public static isFromPrivateNetwork(req: ExpressRequest): boolean {
+    return WrongKeyLimit.isPrivateNetworkAddress(
+      WrongKeyLimit.getClientIp(req),
     );
   }
 

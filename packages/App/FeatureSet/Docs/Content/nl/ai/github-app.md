@@ -29,12 +29,12 @@ flowchart TB
     R --> O["Dezelfde opmerking,<br/>herschreven met<br/>de uitkomst"]
 ```
 
-Het is dezelfde agent en dezelfde Runner als bij [Hersteltaken](/docs/ai/ai-agent), met hetzelfde budget; alleen de trigger verschilt.
+Het is dezelfde agent en dezelfde Runner als in [Code](/docs/ai/ai-agent), met hetzelfde budget; alleen de trigger verschilt.
 
 ## Voordat je begint
 
-- De repository moet via de GitHub App **gekoppeld zijn aan een OneUptime-project**: koppel hem onder **Taken → Code-repositories** (open **Producten → Code → Taken**). Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: zie [GitHub-integratie](/docs/self-hosted/github-integration). Is de app al op het GitHub-account geïnstalleerd, klik daar dan op **Een bestaande installatie koppelen** in plaats van hem opnieuw te installeren.
-- Er moet een Runner met **Voert AI-codecorrecties uit** online zijn: dezelfde Runner die de [Hersteltaken](/docs/ai/ai-agent) uitvoert. Zonder Runner worden opdrachten geaccepteerd en mislukken ze na 30 minuten, met een melding dat geen agent ze heeft opgepakt.
+- De repository moet via de GitHub App **gekoppeld zijn aan een OneUptime-project**: koppel hem in **Producten → Code**. Een zelf gehoste instantie heeft eerst een eigen GitHub App nodig: zie [GitHub-integratie](/docs/self-hosted/github-integration). Is de app al op het GitHub-account geïnstalleerd, klik daar dan op **Een bestaande installatie koppelen** in plaats van hem opnieuw te installeren.
+- Er moet een Runner met **Voert AI-codecorrecties uit** online zijn: dezelfde Runner die de taken in [Code](/docs/ai/ai-agent) uitvoert. Zonder Runner worden opdrachten geaccepteerd en mislukken ze na 30 minuten, met een melding dat geen agent ze heeft opgepakt.
 - De GitHub App heeft de machtiging **Issues** met **Read & write** nodig en moet zijn geabonneerd op de webhook-events onder [Waarop je je abonneert](#waarop-je-je-abonneert).
 
 ## De opdrachten
@@ -106,7 +106,7 @@ Hij negeert ook elke opmerking die een bot schreef, zijn eigen inbegrepen, en ve
 
 Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en de build- en testopdrachten van je repository als je die hebt ingesteld.
 
-GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor [Hersteltaken](/docs/ai/ai-agent):
+GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor de taken in [Code](/docs/ai/ai-agent):
 
 - **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
 
@@ -148,7 +148,7 @@ Behandel een pull request die de AI schreef zoals je er een zou behandelen van e
 ## Problemen oplossen
 
 :::details Er gebeurt niets als ik hem noem
-Controleer eerst de handle: dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (**Taken → Code-repositories**), of **Respond to GitHub Commands** aan staat en of je GitHub App op de events hierboven is geabonneerd.
+Controleer eerst de handle: dat is de slug van de app, niet de weergavenaam. Controleer daarna of de repository aan een project is gekoppeld (in **Producten → Code**), of **Respond to GitHub Commands** aan staat en of je GitHub App op de events hierboven is geabonneerd.
 :::
 
 :::details Hij reageert met 😕 en zegt niets
@@ -170,7 +170,7 @@ Een herziening heeft een branch in deze repository nodig. Vraag in plaats daarva
 ## Volgende stappen
 
 :::cards
-- [Hersteltaken](/docs/ai/ai-agent): Dezelfde agent, gestart vanuit een uitzondering, een trace of een onderzoek.
+- [Code](/docs/ai/ai-agent): Dezelfde agent, gevraagd in een repository of gestart vanuit een uitzondering, een trace of een onderzoek.
 - [GitHub-integratie](/docs/self-hosted/github-integration): Maak en configureer de GitHub App op een zelf gehoste instantie.
 - [Runbook-agenten](/docs/runbooks/agents): De worker die elke run uitvoert.
 :::

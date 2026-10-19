@@ -93,7 +93,7 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
                   <Link
                     className="underline"
                     to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                      RouteMap[PageMap.CODE_TASK_VIEW] as Route,
                       { modelId: aiRunId },
                     )}
                   >

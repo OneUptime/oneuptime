@@ -123,6 +123,10 @@ import { AddProjectSCIMUsersAndClientSecrets1803750000000 } from "./180375000000
 import { AddUserProjectSsoIdentity1803800000000 } from "./1803800000000-AddUserProjectSsoIdentity";
 import { AddIncidentCallTranscriptAutoFetch1803850000000 } from "./1803850000000-AddIncidentCallTranscriptAutoFetch";
 import { AddIncidentCallTranscriptAutoFetchIndexes1803900000000 } from "./1803900000000-AddIncidentCallTranscriptAutoFetchIndexes";
+import { AddGlobalRunners1803950000000 } from "./1803950000000-AddGlobalRunners";
+import { AddGlobalRunnerJobIndex1804000000000 } from "./1804000000000-AddGlobalRunnerJobIndex";
+import { AddCodeTasks1804050000000 } from "./1804050000000-AddCodeTasks";
+import { AddCodeTaskIndexesAndKey1804100000000 } from "./1804100000000-AddCodeTaskIndexesAndKey";
 import { AddSecurityEventDestinationsAndLogSources1804150000000 } from "./1804150000000-AddSecurityEventDestinationsAndLogSources";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1449,5 +1453,9 @@ export default [
   AddUserProjectSsoIdentity1803800000000,
   AddIncidentCallTranscriptAutoFetch1803850000000,
   AddIncidentCallTranscriptAutoFetchIndexes1803900000000,
+  AddGlobalRunners1803950000000,
+  AddGlobalRunnerJobIndex1804000000000,
+  AddCodeTasks1804050000000,
+  AddCodeTaskIndexesAndKey1804100000000,
   AddSecurityEventDestinationsAndLogSources1804150000000,
 ];

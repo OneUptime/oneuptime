@@ -227,7 +227,7 @@ export default class GitHubAPI {
 
   /*
    * A sign-in found more than one installation its GitHub account
-   * administers: Code Repositories shows them and the person picks one. The
+   * administers: Code shows them and the person picks one. The
    * pick comes back through the callback with a state of its own, which
    * carries the installations offered here, so it can only be one of them.
    */

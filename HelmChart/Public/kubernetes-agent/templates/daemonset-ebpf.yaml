@@ -138,6 +138,27 @@ spec:
               value: "true"
             {{- end }}
             {{- end }}
+            {{- $bufferSizes := .Values.ebpf.bufferSizes | default dict }}
+            {{- $sqlBuffers := dict }}
+            {{- range $protocol := list "postgres" "mysql" "mssql" }}
+            {{- $bytes := index $bufferSizes $protocol | default 0 | int }}
+            {{- if gt $bytes 0 }}
+            {{- $_ := set $sqlBuffers $protocol $bytes }}
+            {{- end }}
+            {{- end }}
+            {{- if $sqlBuffers }}
+            # Copy up to this many bytes of each database request (and,
+            # separately, each response) so OBI reads whole statements
+            # (ebpf.bufferSizes). Its small fixed capture stops db.query.text
+            # at about 250 characters and can miss a long statement sent with
+            # bound parameters altogether. Unset or 0 copies nothing extra.
+            {{- range $protocol := list "postgres" "mysql" "mssql" }}
+            {{- if hasKey $sqlBuffers $protocol }}
+            - name: OTEL_EBPF_BPF_BUFFER_SIZE_{{ upper $protocol }}
+              value: {{ get $sqlBuffers $protocol | quote }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
             # OTLP HTTP export to the in-cluster collector (the
             # metrics-collector Deployment). The collector adds k8sattributes
             # enrichment, batches, and forwards over OTLP HTTP to OneUptime.

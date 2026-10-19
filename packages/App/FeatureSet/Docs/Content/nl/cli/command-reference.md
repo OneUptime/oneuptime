@@ -6,7 +6,7 @@ Elke opdracht van de CLI `oneuptime`, met zijn argumenten, opties en standaardwa
 - [Globale opties](#globale-opties): De opties die elke opdracht neemt.
 - [Inloggen en contexten](#inloggen-en-contexten): login en de context-opdrachten.
 - [Opdrachten voor bronnen](#opdrachten-voor-bronnen): list, get, create, update, delete en count.
-- [Andere opdrachten](#andere-opdrachten): whoami, resources, version en help.
+- [Andere opdrachten](#andere-opdrachten): deploy, whoami, resources, version en help.
 :::
 
 ## De opdrachten
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>en elke bron"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## Globale opties
@@ -222,6 +222,31 @@ Elke bewerking is één verzoek aan de API, met de sleutel in de header `APIKey`
 
 ## Andere opdrachten
 
+### `oneuptime deploy`
+
+Legt een deploy, of een andere wijziging, vast vanuit een pipeline: die wordt getekend op de grafieken van de service en gelezen door OneUptime AI wanneer het een incident onderzoekt. Hij schrijft met een telemetrie-ingestiesleutel, niet met een API-sleutel. Zie [Deploys en wijzigingen](/docs/telemetry/change-events).
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| Optie | Verplicht | Wat het is | Standaard |
+| --- | --- | --- | --- |
+| `--service <name>` | Nee | De service die is gedeployd | Een wijziging voor het hele project |
+| `--service-version <version>` | Nee | De gedeployde versie | |
+| `--previous-version <version>` | Nee | De versie die erdoor werd vervangen | |
+| `--commit <sha>` | Nee | De gedeployde commit | |
+| `--repository <url>` | Nee | De repository waarin de commit staat | |
+| `--branch <name>` | Nee | De gedeployde branch | |
+| `--pull-request <number>` | Nee | De gedeployde pull request | |
+| `--environment <name>` | Nee | De omgeving waarnaar is gedeployd | |
+| `--title <title>` | Nee | De titel van de wijziging; een ander soort dan een deploy heeft er een nodig | `Deploy <version>` |
+| `--description <text>` | Nee | Details van de wijziging | |
+| `--type <type>` | Nee | Het soort wijziging, zoals `config-change` of `rollback` | `deployment` |
+| `--time <time>` | Nee | Wanneer het gebeurde, zoals `2026-10-19T10:00:00Z` | Nu |
+| `--attribute <key=value...>` | Nee | Meer attributen, als `key=value`, een of meer | |
+| `--ingestion-key <key>` | Nee | Een telemetrie-ingestiesleutel van het project | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 Toont de URL en de API-sleutel die de volgende opdracht gebruikt, met gemaskeerde sleutel, en de context waar ze vandaan komen. Hij roept OneUptime niet aan. Zie [Controleren wat de CLI gaat gebruiken](/docs/cli/authentication#controleren-wat-de-cli-gaat-gebruiken).
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | De API-sleutel, als geen vlag `--api-key` er een geeft |
 | `ONEUPTIME_URL` | Het adres van je OneUptime, als geen vlag `--url` er een geeft |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | De telemetrie-ingestiesleutel waarmee `oneuptime deploy` schrijft, als geen vlag `--ingestion-key` er een geeft |
 | `NO_COLOR` | Ingesteld op een willekeurige waarde, zet hij kleuren uit |
 
 ## Bestanden

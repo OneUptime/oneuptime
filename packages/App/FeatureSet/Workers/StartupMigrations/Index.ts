@@ -2,6 +2,7 @@ import RemoveLegacyAIAgentTaskCrons from "./RemoveLegacyAIAgentTaskCrons";
 import RemoveLegacyGoogleSecOpsCrons from "./RemoveLegacyGoogleSecOpsCrons";
 import RemoveLegacySentinelInsightCron from "./RemoveLegacySentinelInsightCron";
 import SeedGlobalLlmProviderFromEnv from "./SeedGlobalLlmProviderFromEnv";
+import SeedBundledGlobalRunner from "./SeedBundledGlobalRunner";
 import StartupMigrationBase from "./StartupMigrationBase";
 
 /*
@@ -10,6 +11,7 @@ import StartupMigrationBase from "./StartupMigrationBase";
  */
 const StartupMigrations: Array<StartupMigrationBase> = [
   new SeedGlobalLlmProviderFromEnv(),
+  new SeedBundledGlobalRunner(),
   new RemoveLegacySentinelInsightCron(),
   new RemoveLegacyAIAgentTaskCrons(),
   new RemoveLegacyGoogleSecOpsCrons(),

@@ -113,9 +113,9 @@ A página **AI Assistance** oferece três tarefas. Cada uma roda como uma tarefa
 | --- | --- |
 | **Fix this exception with AI** | Corrige a causa raiz. Inicie-a com **Fix with AI**. |
 | **Generate Regression Test** | Adiciona um teste que falha até o bug ser corrigido. |
-| **Improve Error Handling** | Para erros esperados: valida a entrada mais cedo, mantém os dados do usuário fora das mensagens e marca o erro como tratado. |
+| **Melhorar o tratamento de erros** | Para erros esperados: valida a entrada mais cedo, mantém os dados do usuário fora das mensagens e marca o erro como tratado. |
 
-Antes, a IA precisa de três coisas: um provedor de LLM, um repositório do GitHub conectado pela GitHub App e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Tarefas de correção](/docs/ai/ai-agent).
+Antes, a IA precisa de três coisas: um provedor de LLM, um repositório do GitHub conectado pela GitHub App e um agente de IA online para executar a tarefa. A página verifica cada uma e leva ao que estiver faltando. As tarefas ficam pausadas enquanto a exceção estiver resolvida ou arquivada. Veja [Código](/docs/ai/ai-agent).
 
 ## Insights de exceções
 
@@ -140,6 +140,6 @@ Uma nova ocorrência reabre uma exceção resolvida de propósito: o erro ainda 
 :::cards
 - [Monitor de exceções](/docs/monitor/exceptions-monitor): Receber alertas quando as exceções dispararem.
 - [Source maps](/docs/telemetry/source-maps): Stack traces legíveis para código de navegador.
-- [Tarefas de correção](/docs/ai/ai-agent): Como a IA corrige código e abre pull requests.
+- [Código](/docs/ai/ai-agent): Como a IA corrige código e abre pull requests.
 - [Explorador de traços](/docs/telemetry/traces-explorer): Ver a requisição em que uma exceção aconteceu.
 :::

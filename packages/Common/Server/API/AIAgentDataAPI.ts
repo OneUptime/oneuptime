@@ -64,6 +64,8 @@ import GitHubUtil, {
 import GitHubInstallationBinding from "../Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
+import QueryHelper from "../Types/Database/QueryHelper";
+import CodeTaskThread from "../Utils/AI/CodeTask/CodeTaskThread";
 
 export default class AIAgentDataAPI {
   public router!: ExpressRouter;
@@ -78,19 +80,19 @@ export default class AIAgentDataAPI {
   }
 
   /*
-   * The task recipe a repository-token request belongs to, when that recipe is
-   * exempt from the per-repository open-PR cap — otherwise null.
+   * The run a repository-token request names, when it is a code-fix run of
+   * the repository's project the agent may act on - otherwise null.
    *
-   * Derived from the run, never from the request. `taskId` names a task; it
-   * does not assert anything about it, and a task in another project answers
-   * null exactly as a missing one does. An absent taskId also answers null, so
-   * an older worker that does not send one keeps the cap in full.
+   * `taskId` names a task; it does not assert anything about it, and a task
+   * in another project answers null exactly as a missing one does. An absent
+   * taskId also answers null, so an older worker that does not send one keeps
+   * the cap in full.
    */
-  private static async getCapExemptTaskType(data: {
+  private static async findTokenRun(data: {
     aiAgent: CodeFixAgentIdentity;
     taskId: string | undefined;
     projectId: ObjectID | undefined;
-  }): Promise<CodeFixTaskType | null> {
+  }): Promise<AIRun | null> {
     if (!data.taskId || !data.projectId) {
       return null;
     }
@@ -105,26 +107,111 @@ export default class AIAgentDataAPI {
 
     const run: AIRun | null = await AIRunService.findOneById({
       id: taskId,
-      select: { _id: true, projectId: true, codeFixTaskType: true },
+      select: {
+        _id: true,
+        projectId: true,
+        runType: true,
+        codeFixTaskType: true,
+        codeRepositoryId: true,
+        codeTaskId: true,
+      },
       props: { isRoot: true },
     });
 
     if (
       !run ||
       !run.projectId ||
+      run.runType !== AIRunType.CodeFix ||
       run.projectId.toString() !== data.projectId.toString() ||
       CodeFixAgentAuth.deniesAccessToProject(data.aiAgent, run.projectId)
     ) {
       return null;
     }
 
+    return run;
+  }
+
+  /*
+   * Whether the run is exempt from the per-repository open-PR cap. Derived
+   * from the run, never from the request.
+   *
+   * Exempt: work that cannot ADD to the review queue - a GitHub revision
+   * (pushes to a pull request already open and counted), a review (writes
+   * nothing), and a request from Code whose task already has an open pull
+   * request in this repository, which the turn pushes to (see
+   * CodeTaskThread.getWorkingPullRequest).
+   */
+  private static async isCapExempt(data: {
+    run: AIRun | null;
+    codeRepositoryId: ObjectID;
+  }): Promise<boolean> {
+    if (!data.run || !data.run.projectId) {
+      return false;
+    }
+
     const taskType: CodeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
-      run.codeFixTaskType,
+      data.run.codeFixTaskType,
     );
 
-    return CodeFixTaskTypeHelper.opensNewPullRequest(taskType)
-      ? null
-      : taskType;
+    if (!CodeFixTaskTypeHelper.opensNewPullRequest(taskType)) {
+      return true;
+    }
+
+    if (
+      !CodeFixTaskTypeHelper.isCodeRequest(taskType) ||
+      data.run.codeRepositoryId?.toString() !== data.codeRepositoryId.toString()
+    ) {
+      return false;
+    }
+
+    const task: AIRun | null = await CodeTaskThread.findTask({
+      projectId: data.run.projectId,
+      taskId: data.run.codeTaskId || data.run.id!,
+      select: { _id: true, codeRepositoryId: true, codeTaskId: true },
+    });
+
+    if (!task) {
+      return false;
+    }
+
+    return Boolean(
+      await CodeTaskThread.findWorkingPullRequest({
+        projectId: data.run.projectId,
+        task: task,
+      }),
+    );
+  }
+
+  /*
+   * A run that is handed a token for a repository works in it: a recipe
+   * that finds its repository as it goes (an exception fix, a fix from an
+   * investigation) is linked to it here, so it appears on that repository's
+   * page in Code even if it never opens a pull request. Only a run with no
+   * repository yet is linked.
+   */
+  private static async linkRunToRepository(data: {
+    run: AIRun | null;
+    codeRepositoryId: ObjectID;
+  }): Promise<void> {
+    if (!data.run || data.run.codeRepositoryId || !data.run.id) {
+      return;
+    }
+
+    try {
+      await AIRunService.updateOneBy({
+        query: {
+          _id: data.run.id.toString(),
+          codeRepositoryId: QueryHelper.isNull(),
+        },
+        data: { codeRepositoryId: data.codeRepositoryId } as never,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      // A display link: never fail the token over it.
+      logger.error(
+        `Could not link run ${data.run.id.toString()} to repository ${data.codeRepositoryId.toString()}: ${error}`,
+      );
+    }
   }
 
   private initRoutes(): void {
@@ -1248,16 +1335,51 @@ export default class AIAgentDataAPI {
            *
            * The exemption is derived from the RUN, never from the request: a
            * caller cannot ask to skip the cap, it can only name a task, and
-           * the task must be in the agent's own project.
+           * the task must be in the agent's own project. A request from Code
+           * whose task already has an open pull request here pushes to it,
+           * so it is exempt too (isCapExempt).
            */
-          const capExemptTaskType: CodeFixTaskType | null =
-            await AIAgentDataAPI.getCapExemptTaskType({
-              aiAgent,
-              taskId: data["taskId"] as string | undefined,
-              projectId: codeRepository.projectId,
-            });
+          const tokenRun: AIRun | null = await AIAgentDataAPI.findTokenRun({
+            aiAgent,
+            taskId: data["taskId"] as string | undefined,
+            projectId: codeRepository.projectId,
+          });
 
-          const openPrCap: OpenPullRequestCapDecision = capExemptTaskType
+          /*
+           * A request from Code was asked in one repository, and works in
+           * that one only: its run names it, so a token for any other is
+           * refused, whichever repository of the project the worker names.
+           */
+          if (
+            tokenRun &&
+            CodeFixTaskTypeHelper.isCodeRequest(tokenRun.codeFixTaskType) &&
+            tokenRun.codeRepositoryId?.toString() !==
+              codeRepositoryId.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This task was asked in another repository, and works only there.",
+              ),
+            );
+          }
+
+          /*
+           * Linked before the cap answers, so a run the cap stops still
+           * shows on its repository's page, with the cap's reason.
+           */
+          await AIAgentDataAPI.linkRunToRepository({
+            run: tokenRun,
+            codeRepositoryId: codeRepositoryId,
+          });
+
+          const isCapExempt: boolean = await AIAgentDataAPI.isCapExempt({
+            run: tokenRun,
+            codeRepositoryId: codeRepositoryId,
+          });
+
+          const openPrCap: OpenPullRequestCapDecision = isCapExempt
             ? {
                 allowed: true,
                 limit: null,

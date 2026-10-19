@@ -6,7 +6,7 @@
 - [전역 옵션](#전역-옵션): 모든 명령이 받는 옵션.
 - [로그인과 컨텍스트](#로그인과-컨텍스트): login과 context 명령.
 - [리소스 명령](#리소스-명령): list, get, create, update, delete, count.
-- [기타 명령](#기타-명령): whoami, resources, version, help.
+- [기타 명령](#기타-명령): deploy, whoami, resources, version, help.
 :::
 
 ## 명령 구성
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>등 모든 리소스"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## 전역 옵션
@@ -222,6 +222,31 @@ CLI는 OneUptime과 함께 릴리스되므로 `oneuptime resources`는 설치한
 
 ## 기타 명령
 
+### `oneuptime deploy`
+
+파이프라인에서 배포나 다른 변경을 기록합니다. 기록된 변경은 서비스의 차트에 표시되고, OneUptime AI가 인시던트를 조사할 때 읽습니다. 쓰기에는 API 키가 아니라 텔레메트리 수집 키를 사용합니다. [배포 및 변경 사항](/docs/telemetry/change-events)을 참조하세요.
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| 옵션 | 필수 | 설명 | 기본값 |
+| --- | --- | --- | --- |
+| `--service <name>` | 아니요 | 배포된 서비스 | 프로젝트 전체의 변경 |
+| `--service-version <version>` | 아니요 | 배포된 버전 | |
+| `--previous-version <version>` | 아니요 | 대체된 버전 | |
+| `--commit <sha>` | 아니요 | 배포된 커밋 | |
+| `--repository <url>` | 아니요 | 커밋이 있는 저장소 | |
+| `--branch <name>` | 아니요 | 배포된 브랜치 | |
+| `--pull-request <number>` | 아니요 | 배포된 풀 리퀘스트 | |
+| `--environment <name>` | 아니요 | 배포 대상 환경 | |
+| `--title <title>` | 아니요 | 변경의 제목. 배포가 아닌 다른 종류의 변경에는 필요합니다 | `Deploy <version>` |
+| `--description <text>` | 아니요 | 변경의 세부 정보 | |
+| `--type <type>` | 아니요 | 변경의 종류(예: `config-change`, `rollback`) | `deployment` |
+| `--time <time>` | 아니요 | 발생한 시각(예: `2026-10-19T10:00:00Z`) | 지금 |
+| `--attribute <key=value...>` | 아니요 | 추가 속성. `key=value` 형식으로 하나 이상 | |
+| `--ingestion-key <key>` | 아니요 | 프로젝트의 텔레메트리 수집 키 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 다음 명령이 사용할 URL과 API 키(키는 가린 채)와 그 값을 가져온 컨텍스트를 보여 줍니다. OneUptime은 호출하지 않습니다. [CLI가 사용할 값 확인](/docs/cli/authentication#cli가-사용할-값-확인)을 참조하세요.
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | `--api-key` 플래그가 주지 않을 때의 API 키 |
 | `ONEUPTIME_URL` | `--url` 플래그가 주지 않을 때의 OneUptime 주소 |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | `--ingestion-key` 플래그가 주지 않을 때 `oneuptime deploy`가 쓰기에 사용하는 텔레메트리 수집 키 |
 | `NO_COLOR` | 아무 값이나 설정하면 색이 꺼집니다 |
 
 ## 파일

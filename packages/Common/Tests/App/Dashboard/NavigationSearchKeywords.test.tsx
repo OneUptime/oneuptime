@@ -57,11 +57,13 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["error tracking", "Exceptions", PageMap.EXCEPTIONS],
   ["genai", "AI / LLM", PageMap.LLM],
   ["copilot", "Chat", PageMap.AI_COPILOT],
-  ["ai agents", "Tasks", PageMap.AI_AGENT_TASKS],
-  // Code Repositories is a page of Tasks now, so its words lead there.
-  ["source code", "Tasks", PageMap.AI_AGENT_TASKS],
-  ["github", "Tasks", PageMap.AI_AGENT_TASKS],
-  ["repositories", "Tasks", PageMap.AI_AGENT_TASKS],
+  ["ai agents", "Code", PageMap.CODE],
+  // Tasks and Code Repositories became Code, so their words lead there.
+  ["tasks", "Code", PageMap.CODE],
+  ["ask ai", "Code", PageMap.CODE],
+  ["source code", "Code", PageMap.CODE],
+  ["github", "Code", PageMap.CODE],
+  ["repositories", "Code", PageMap.CODE],
   ["dependency map", "Topology", PageMap.TOPOLOGY],
   ["cmdb", "Inventory", PageMap.INVENTORY],
   ["container monitoring", "Docker", PageMap.DOCKER_HOSTS],

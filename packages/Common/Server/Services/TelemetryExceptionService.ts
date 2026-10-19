@@ -371,9 +371,9 @@ export class Service extends ProjectReferencesService<Model> {
     const projectId: ObjectID = telemetryException.projectId;
 
     /*
-     * 1. An LLM provider the agent may use — the same gate the project-wide
-     * AI Tasks page renders, so the two surfaces can never disagree about
-     * whether this project has a usable provider.
+     * 1. An LLM provider the agent may use — the same gate Code's request
+     * box asks, so the two surfaces can never disagree about whether this
+     * project has a usable provider.
      */
     const llmCheck: AIFixReadinessCheck =
       await CodeFixReadiness.getLlmProviderCheck({
