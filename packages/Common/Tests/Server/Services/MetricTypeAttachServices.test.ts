@@ -1,4 +1,5 @@
 import MetricTypeService from "../../../Server/Services/MetricTypeService";
+import QueryUtil from "../../../Server/Types/Database/QueryUtil";
 import ObjectID from "../../../Types/ObjectID";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { getJestSpyOn } from "../../Spy";
@@ -44,50 +45,41 @@ interface CapturedQuery {
   params: Array<unknown>;
 }
 
-/** Fakes the repository: captures every statement and answers with `rows`. */
-function fakeRepository(
-  captured: Array<CapturedQuery>,
-  rows: () => Array<unknown>,
-): void {
-  getJestSpyOn(MetricTypeService, "getRepository").mockReturnValue({
-    metadata: {
-      findRelationWithPropertyPath: (path: string) => {
-        if (path !== "services") {
-          return undefined;
-        }
-        return {
-          junctionEntityMetadata: {
-            tableName: "MetricTypeService",
-            columns: [
-              { databaseName: "metricTypeId" },
-              { databaseName: "serviceId" },
-            ],
-          },
-        };
-      },
-    },
-    manager: {
-      query: async (
-        sql: string,
-        params: Array<unknown>,
-      ): Promise<Array<unknown>> => {
-        captured.push({ sql, params });
-        return rows();
-      },
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
-}
-
 describe("MetricTypeService.attachServices", () => {
   let captured: Array<CapturedQuery>;
 
   beforeEach(() => {
     jest.restoreAllMocks();
     captured = [];
-    fakeRepository(captured, () => {
-      return [];
-    });
+
+    getJestSpyOn(MetricTypeService, "getRepository").mockReturnValue({
+      metadata: {
+        findRelationWithPropertyPath: (path: string) => {
+          if (path !== "services") {
+            return undefined;
+          }
+          return {
+            junctionEntityMetadata: {
+              tableName: "MetricTypeService",
+              columns: [
+                { databaseName: "metricTypeId" },
+                { databaseName: "serviceId" },
+              ],
+            },
+          };
+        },
+      },
+      manager: {
+        query: async (
+          sql: string,
+          params: Array<unknown>,
+        ): Promise<Array<unknown>> => {
+          captured.push({ sql, params });
+          return [];
+        },
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
   });
 
   it("writes the associations in one statement", async () => {
@@ -243,9 +235,25 @@ describe("MetricTypeService.findAttachedServiceIds", () => {
     jest.restoreAllMocks();
     captured = [];
     stored = [];
-    fakeRepository(captured, () => {
-      return stored;
+
+    getJestSpyOn(QueryUtil, "getManyToManyRelationMetadata").mockReturnValue({
+      joinTableName: "MetricTypeService",
+      ownerColumnName: "metricTypeId",
+      relationColumnName: "serviceId",
     });
+
+    getJestSpyOn(MetricTypeService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (
+          sql: string,
+          params: Array<unknown>,
+        ): Promise<Array<unknown>> => {
+          captured.push({ sql, params });
+          return stored;
+        },
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
   });
 
   it("asks about the given services only, in one read through the junction key", async () => {
@@ -302,14 +310,9 @@ describe("MetricTypeService.findAttachedServiceIds", () => {
   });
 
   it("fails loudly if the relation metadata is missing rather than guessing", async () => {
-    getJestSpyOn(MetricTypeService, "getRepository").mockReturnValue({
-      metadata: {
-        findRelationWithPropertyPath: () => {
-          return undefined;
-        },
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    getJestSpyOn(QueryUtil, "getManyToManyRelationMetadata").mockReturnValue(
+      null,
+    );
 
     await expect(
       MetricTypeService.findAttachedServiceIds({
@@ -317,5 +320,6 @@ describe("MetricTypeService.findAttachedServiceIds", () => {
         serviceIds: [SERVICE_A],
       }),
     ).rejects.toThrow(BadDataException);
+    expect(captured).toHaveLength(0);
   });
 });
