@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Добавление роли в {{role}}",
   "Custom Role Details": "Сведения о пользовательской роли",
   "Members of these teams can do everything this role allows.": "Участники этих команд могут делать всё, что разрешает эта роль.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Именованные наборы разрешений, созданные на странице «Роли». Изменение роли меняет и эту команду.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Именованные наборы разрешений, созданные на странице «{{roles}}». Изменение роли меняет и эту команду.",
   "Shown on every team you give the role to.": "Показывается в каждой команде, которой вы выдаёте роль.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "Встроенные роли, которые она объединяет, для каждого ресурса проекта. Отдельные разрешения добавляются на странице роли.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "Встроенные роли, которые она объединяет, для каждого ресурса проекта. Роли, которых нет у вас самих, не показаны.",

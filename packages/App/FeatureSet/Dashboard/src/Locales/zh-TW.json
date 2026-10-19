@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "向 {{role}} 新增角色",
   "Custom Role Details": "自訂角色詳細資訊",
   "Members of these teams can do everything this role allows.": "這些團隊的成員可以做此角色允許的一切。",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "在「角色」頁面建立的具名權限集。變更角色也會變更此團隊。",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "在「{{roles}}」頁面建立的具名權限集。變更角色也會變更此團隊。",
   "Shown on every team you give the role to.": "顯示在你授予此角色的每個團隊上。",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "它包含的內建角色，適用於專案中的所有資源。單一權限請在角色頁面新增。",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "它包含的內建角色，適用於專案中的所有資源。你自己沒有的角色不會列出。",
