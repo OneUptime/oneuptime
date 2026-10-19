@@ -426,6 +426,34 @@ export const PostgresIdleTimeoutMs: number = parseInt(
 );
 
 /*
+ * pg-pool connection lifetime (ms). A connection older than this is closed
+ * and replaced: right away when it is idle, otherwise as soon as the query or
+ * transaction using it gives it back - never in the middle of one. Without
+ * it, the connections a busy process opens at boot stay open for as long as
+ * the process lives, and that hides its queries from anything that only
+ * sees a connection being opened:
+ *
+ *   - The Kubernetes agent's eBPF instrumentation ties a Node.js query to the
+ *     request that ran it through the socket the query goes out on, and it
+ *     learns a socket only when it sees it opened. A pod started while the
+ *     agent was still attaching to others (a rollout), or running when the
+ *     agent restarts, had its pool open before the agent could see it: every
+ *     query on it lands under whichever request most recently began - on a
+ *     pod busy with telemetry ingest, nearly always one of those - and the
+ *     request that ran it shows no database calls at all.
+ *   - A new PgBouncer or Postgres replica behind DATABASE_HOST only ever gets
+ *     the connections opened after it came up.
+ *
+ * Replacing a connection costs one new connection to PgBouncer or Postgres,
+ * once per connection per lifetime. Set to 0 to keep connections for as long
+ * as they stay healthy.
+ */
+export const PostgresConnectionMaxLifetimeMs: number = parseInt(
+  process.env["DATABASE_CONNECTION_MAX_LIFETIME_MS"] || "600000",
+  10,
+);
+
+/*
  * TCP keepalive initial delay (ms) for Postgres sockets. When the client
  * process dies ungracefully (SIGKILL, OOM, crash) or a network partition cuts
  * the link, Postgres has no way to know the client is gone and the backend
@@ -596,10 +624,12 @@ export function isShippedSecretValue(
  * OneUptime's own services prove to each other that a call comes from one of
  * them by presenting this key: the app and worker processes when one asks
  * another to send an email, an SMS, a call, a WhatsApp or Telegram message
- * or a webhook, to run a workflow or to write telemetry, and the in-cluster
- * Runner when it registers to fix code for every project
+ * or a webhook, to run a workflow or to write telemetry
  * (ClusterKeyAuthorization). The routes that take it are reachable through
- * the ingress like any other.
+ * the ingress like any other. The shared Runner holds no cluster key: it
+ * registers with its own key (SharedRunnerKey, below), and only a Runner of
+ * an earlier release, or one whose deployment still gives it
+ * ONEUPTIME_SECRET, registers with this one.
  *
  * ClusterKey is the value exactly as the operator set it, read only by
  * ClusterKeyAuthorization, and only when it is not one this repository ships
@@ -611,7 +641,10 @@ export const ClusterKey: ObjectID = new ObjectID(
   process.env["ONEUPTIME_SECRET"] || "",
 );
 
-// Whether ONEUPTIME_SECRET is set at all (the Runner's cluster-scoped mode).
+/*
+ * Whether ONEUPTIME_SECRET is set at all: on a Runner, that its deployment
+ * (from an earlier release) marks it as the shared Runner by giving it one.
+ */
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
 
 export const IsClusterKeyShipped: boolean = isShippedSecretValue(
@@ -623,8 +656,31 @@ export const IsClusterKeyShipped: boolean = isShippedSecretValue(
  * or a shipped value, or null. The Runner says its own.
  */
 export const ClusterKeyWarning: string | null = IsClusterKeyShipped
-  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, so nothing needs changing for them, but the in-cluster Runner cannot register until ONEUPTIME_SECRET is a long random value, the same on the app and the Runner. npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
+  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, and the shared Runner registers with its own ONEUPTIME_RUNNER_KEY, so nothing needs changing for them. Anything else that calls OneUptime with ONEUPTIME_SECRET needs a long random value: npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
   : null;
+
+/*
+ * THE SHARED RUNNER'S KEY (ONEUPTIME_RUNNER_KEY), AS THE APP HOLDS IT
+ *
+ * The shared Runner - the runner service of Docker Compose and the Helm
+ * chart - serves AI code fixes for every project with no Runner of its own,
+ * as the installation's global AI agent. It proves it is that Runner with
+ * its own key, ONEUPTIME_RUNNER_KEY, which its deployment gives the app as
+ * well (SharedRunnerKeyAuthorization): so the Runner needs no cluster key,
+ * which opens far more than its registration.
+ *
+ * The value exactly as the operator set it, read only by
+ * SharedRunnerKeyAuthorization, and never accepted when it is a value this
+ * repository ships (IsSharedRunnerKeyShipped): then the shared Runner
+ * registers only as a Runner of an earlier release does, with the cluster
+ * key.
+ */
+export const SharedRunnerKey: string =
+  process.env["ONEUPTIME_RUNNER_KEY"] || "";
+
+export const IsSharedRunnerKeyShipped: boolean = isShippedSecretValue(
+  process.env["ONEUPTIME_RUNNER_KEY"],
+);
 
 export const EnableQueueDashboard: boolean =
   process.env["ENABLE_QUEUE_DASHBOARD"] === "true";

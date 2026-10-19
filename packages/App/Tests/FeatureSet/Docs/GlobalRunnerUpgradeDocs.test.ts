@@ -15,8 +15,8 @@ import path from "path";
  * that pick no Runner - held to the code that makes it true.
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
- * note on incoming email's webhook secret (InboundEmailWebhookSecretUpgradeDocs)
- * and before the endpoint pointer, and every translation carries it in the
+ * note that wrong probe and Runner keys are counted
+ * (SharedRunnerOwnKeyUpgradeDocs) and before the endpoint pointer, and every translation carries it in the
  * English note's place, with the English note's code and a link to the
  * Global Runners section in the reader's language. What it claims is what
  * the install does:
@@ -34,9 +34,8 @@ const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 const REPO_ROOT: string = path.resolve(PACKAGES_DIR, "..");
 
 const NOTE_LEAD: string = "**Every install runs a global Runner of its own.**";
-// The note before it (InboundEmailWebhookSecretUpgradeDocs).
-const PREVIOUS_LEAD: string =
-  "**Incoming email needs a webhook secret of your own.**";
+// The note before it (SharedRunnerOwnKeyUpgradeDocs).
+const PREVIOUS_LEAD: string = "**Wrong probe and Runner keys are counted.**";
 const POINTER_START: string = "- See [API and endpoint changes]";
 
 const SECTION_LINK: string = "(/docs/runbooks/agents#";
@@ -58,7 +57,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the bundled global Runner", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on incoming email's webhook secret and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note that wrong probe and Runner keys are counted and before the endpoint pointer", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

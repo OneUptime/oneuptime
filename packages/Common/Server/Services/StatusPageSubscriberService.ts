@@ -98,6 +98,7 @@ import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import PublicMessageRateLimit, {
   PublicMessageChannel,
   PublicMessageContact,
+  PublicMessageRateLimitException,
   PublicMessageSendPermit,
   TeamMessageKind,
 } from "../Utils/RateLimit/PublicMessageRateLimit";
@@ -206,9 +207,10 @@ export const SMS_SIGN_UP_UNAVAILABLE_MESSAGE: string =
 
 /*
  * The text a visitor who signed up by text message is sent: the link that
- * confirms the subscription, last, so a phone shows it whole, and what to do
- * when it was not them. Nothing else is sent to the number until the link
- * is opened.
+ * confirms the subscription, last, so a phone shows it whole, how long it
+ * works (StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS), and what to
+ * do when it was not them. No notification is sent to the number until the
+ * link is opened.
  */
 export const getConfirmSubscriptionTextMessage: (data: {
   statusPageName: string;
@@ -217,7 +219,7 @@ export const getConfirmSubscriptionTextMessage: (data: {
   statusPageName: string;
   confirmationUrl: string;
 }): string => {
-  return `Confirm your subscription to ${data.statusPageName} by text message. Not you? Ignore this message and nothing more will be sent. ${data.confirmationUrl}`;
+  return `Confirm your subscription to ${data.statusPageName} by text message within ${StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS} hours. Not you? Ignore this and you will not be subscribed. ${data.confirmationUrl}`;
 };
 
 // The text that tells a phone subscriber it is subscribed, with its unsubscribe link.
@@ -322,6 +324,18 @@ type SubscriberRowFinder = (data: {
 const CONTACT_LOOKUP_BATCH_SIZE: number = 1000;
 
 /*
+ * What a lookup of a contact on a page reads of each subscription it finds:
+ * whether it still holds the contact (Service.holdsItsContact) - cancelled
+ * or not, confirmed or not, and when its link to confirm was sent.
+ */
+const SUBSCRIPTION_HOLD_COLUMNS: Record<string, boolean> = {
+  _id: true,
+  isUnsubscribed: true,
+  isSubscriptionConfirmed: true,
+  createdAt: true,
+};
+
+/*
  * The lock every create that names a contact takes on its page, so two
  * creates of one contact on one page are decided one after the other
  * (getCreateLimit): with the page's id after it.
@@ -340,6 +354,30 @@ export const CONTACT_ALREADY_SUBSCRIBED_MESSAGE: string =
   "This status page already has a subscriber with this contact. A phone number, email address or webhook can be subscribed to a status page once, however it is written.";
 
 /*
+ * What a visitor signing a contact up is told while the link to confirm an
+ * earlier subscription of it, on the same page, still works (a day:
+ * StatusPageSubscriberConfirmationCode). The link went to the contact
+ * itself, so its owner has it; nothing new is sent to the contact until it
+ * runs out, and then a sign-up replaces the waiting subscription and sends
+ * a new link. Said by the contact the sign-up names.
+ */
+export const CONFIRMATION_LINK_SENT_TO_EMAIL_MESSAGE: string =
+  "We already sent a link to confirm this subscription to this email address. Open it to subscribe, and check your spam folder if you cannot find it. The link works for 24 hours; after that, you can sign up again for a new one.";
+
+export const CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE: string =
+  "We already sent a link to confirm this subscription to this phone number. Open it to subscribe. The link works for 24 hours; after that, you can sign up again for a new one.";
+
+export const CONFIRMATION_LINK_SENT_MESSAGE: string =
+  "We already sent a link to confirm this subscription. Open it to subscribe. The link works for 24 hours; after that, you can sign up again for a new one.";
+
+/*
+ * What opening a link to confirm a subscription is told once the link has
+ * run out (SubscriptionConfirmationOutcome.Expired).
+ */
+export const CONFIRMATION_LINK_EXPIRED_MESSAGE: string =
+  "This link to confirm your subscription has expired: links work for 24 hours. To get a new one, subscribe again.";
+
+/*
  * What a visitor's sign-up that names more than one contact is told. A
  * subscription has one confirmation code, and is confirmed, and welcomed,
  * by the one contact that signed up.
@@ -351,6 +389,11 @@ export const ONE_CONTACT_PER_SIGN_UP_MESSAGE: string =
 export enum SubscriptionConfirmationOutcome {
   // The link names no subscription: no such subscriber, or not its code.
   NotFound = "not-found",
+  /*
+   * The link is the subscription's own, but it ran out a day after it was
+   * sent (StatusPageSubscriberConfirmationCode): nothing is confirmed.
+   */
+  Expired = "expired",
   // The subscription was confirmed already: nothing is sent again.
   AlreadyConfirmed = "already-confirmed",
   // This request confirmed it, and sent its welcome.
@@ -402,7 +445,7 @@ export class Service extends ProjectReferencesService<Model> {
    * So the two secrets onBeforeCreate minted are taken off it first: the
    * unsubscribe token, which lets whoever holds it cancel the subscription
    * without signing in - and makes the team's notice say the subscriber did -
-   * and the six-digit confirmation code. Nobody can read either column
+   * and the confirmation code. Nobody can read either column
    * (read: []). They leave the server only inside the messages to the
    * subscription's own contact, which onCreateSuccess has sent by now; the
    * confirmation email reads its code back from the database.
@@ -433,9 +476,9 @@ export class Service extends ProjectReferencesService<Model> {
    * them was written:
    *
    *  - that its page has no subscription of the same contact yet, however
-   *    either is written (findSubscriptionsOfContacts), under the page's
-   *    lock: two sign-ups of one number typed two ways, sent together,
-   *    leave one subscriber;
+   *    either is written (findSubscriptionsOfContacts) - none that holds it
+   *    (holdsItsContact) - under the page's lock: two sign-ups of one
+   *    number typed two ways, sent together, leave one subscriber;
    *  - the Free plan's limit on subscribers (getFreePlanCreateLimit), under
    *    the project's lock, which then holds the contact's check too.
    *
@@ -481,15 +524,12 @@ export class Service extends ProjectReferencesService<Model> {
           find: this.getTransactionRowFinder(manager),
         });
 
-      if (
-        subscriptions.some((subscription: Model): boolean => {
-          return !subscription.isUnsubscribed;
-        })
-      ) {
-        throw new BadDataException(
-          this.getAlreadySubscribedMessage(statusPageSignUps.has(subscriber)),
-        );
-      }
+      this.assertContactNotHeld({
+        subscriptions: subscriptions,
+        subscriber: subscriber,
+        isSignUp: statusPageSignUps.has(subscriber),
+        now: Date.now(),
+      });
     };
 
     if (freePlanLimit) {
@@ -824,24 +864,24 @@ export class Service extends ProjectReferencesService<Model> {
       } as LogAttributes,
     );
 
-    if (
-      contactSubscriptions.some((subscription: Model): boolean => {
-        return !subscription.isUnsubscribed;
-      })
-    ) {
-      logger.debug("Subscriber is already subscribed and not unsubscribed.", {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes);
-      throw new BadDataException(
-        this.getAlreadySubscribedMessage(statusPageSignUps.has(data.data)),
-      );
-    }
+    /*
+     * Refused while one of them holds the contact: it is subscribed, or
+     * waiting for its confirmation while the link to it still works
+     * (holdsItsContact).
+     */
+    this.assertContactNotHeld({
+      subscriptions: contactSubscriptions,
+      subscriber: data.data,
+      isSignUp: statusPageSignUps.has(data.data),
+      now: Date.now(),
+    });
 
     /*
      * A contact who cancelled and subscribes again gets a new subscription,
      * and the cancelled one is removed once the new one exists
      * (onCreateSuccess) - so a create that is refused or fails leaves it.
+     * So is a subscription that waited for its confirmation until its link
+     * ran out: the new one, with a new link, takes its place.
      */
     const replacedSubscriberIds: Array<ObjectID> = contactSubscriptions
       .map((subscription: Model): ObjectID | null => {
@@ -1106,6 +1146,102 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Whether a subscription holds its contact on its page against a new
+   * subscription of the contact there, at `now` (the app's clock): one that
+   * is on and confirmed, or on and waiting for its confirmation while the
+   * link to it still works - a day after it was sent, when the subscription
+   * was created (StatusPageSubscriberConfirmationCode). A cancelled one
+   * holds nothing, and neither does one whose link has run out: nobody can
+   * confirm it any more, and the contact's next subscription replaces it
+   * (onCreateSuccess). So whoever signs a contact up first cannot keep its
+   * owner from subscribing for longer than that day - and the link went to
+   * the contact itself.
+   */
+  public holdsItsContact(
+    subscription: Pick<
+      Model,
+      "isUnsubscribed" | "isSubscriptionConfirmed" | "createdAt"
+    >,
+    now: number,
+  ): boolean {
+    if (subscription.isUnsubscribed) {
+      return false;
+    }
+
+    if (subscription.isSubscriptionConfirmed) {
+      return true;
+    }
+
+    return !StatusPageSubscriberConfirmationCode.hasExpired(
+      subscription.createdAt,
+      now,
+    );
+  }
+
+  /*
+   * Refuses a create whose contact one of `subscriptions` - every
+   * subscription of the contact on its page - holds (holdsItsContact).
+   *
+   * The team is told the rule its contact runs into. A visitor is told they
+   * are subscribed, or - when every subscription that holds the contact is
+   * waiting for its confirmation - that a link to confirm it was sent
+   * already, and when to come back for a new one: the contact gets one such
+   * link from a page a day, however often it is signed up. Refused for a
+   * while (429, with Retry-After), and nothing is sent, so the sign-up gives
+   * its contact its count back (createFromStatusPageSignUp).
+   */
+  private assertContactNotHeld(data: {
+    subscriptions: Array<Model>;
+    subscriber: Model;
+    isSignUp: boolean;
+    now: number;
+  }): void {
+    const holders: Array<Model> = data.subscriptions.filter(
+      (subscription: Model): boolean => {
+        return this.holdsItsContact(subscription, data.now);
+      },
+    );
+
+    if (holders.length === 0) {
+      return;
+    }
+
+    logger.debug("The contact is held by a subscription of the page.", {
+      projectId: data.subscriber.projectId?.toString(),
+      statusPageId: data.subscriber.statusPageId?.toString(),
+    } as LogAttributes);
+
+    const waiting: Array<Model> = holders.filter((holder: Model): boolean => {
+      return !holder.isSubscriptionConfirmed;
+    });
+
+    if (!data.isSignUp || waiting.length < holders.length) {
+      throw new BadDataException(
+        this.getAlreadySubscribedMessage(data.isSignUp),
+      );
+    }
+
+    // Until the last of their links runs out.
+    const secondsLeft: number = Math.max(
+      ...waiting.map((holder: Model): number => {
+        return StatusPageSubscriberConfirmationCode.getSecondsLeft(
+          holder.createdAt,
+          data.now,
+        );
+      }),
+    );
+
+    throw new PublicMessageRateLimitException(
+      data.subscriber.subscriberEmail
+        ? CONFIRMATION_LINK_SENT_TO_EMAIL_MESSAGE
+        : data.subscriber.subscriberPhone
+          ? CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE
+          : CONFIRMATION_LINK_SENT_MESSAGE,
+      secondsLeft,
+    );
+  }
+
+  /*
    * The contacts `subscriber` names: each of its email address, phone
    * number, Slack and Microsoft Teams channels and webhook that holds
    * something. A workspace name alone is no contact.
@@ -1125,7 +1261,8 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * Every subscription of the page under one of the contacts `subscriber`
    * names - its email address, its phone's line, each of its webhooks'
-   * addresses (SubscriberContactKey) - active or cancelled, each once.
+   * addresses (SubscriberContactKey) - active or cancelled, each once, with
+   * what holdsItsContact reads (SUBSCRIPTION_HOLD_COLUMNS).
    * `exceptIds` leaves subscriptions out (one being changed). Read in
    * batches, every one of them: a webhook's address is compared here, not
    * in the database, so a page's subscribers of that channel are all read.
@@ -1173,7 +1310,7 @@ export class Service extends ProjectReferencesService<Model> {
             ...page,
             subscriberEmail: QueryHelper.findWithSameText(email),
           },
-          select: { _id: true, isUnsubscribed: true },
+          select: SUBSCRIPTION_HOLD_COLUMNS,
         }),
       );
     }
@@ -1191,7 +1328,7 @@ export class Service extends ProjectReferencesService<Model> {
               data.subscriber.subscriberPhone,
             ),
           },
-          select: { _id: true, isUnsubscribed: true },
+          select: SUBSCRIPTION_HOLD_COLUMNS,
         }),
       );
     }
@@ -1209,7 +1346,7 @@ export class Service extends ProjectReferencesService<Model> {
           ...page,
           [column]: QueryHelper.notNull(),
         },
-        select: { _id: true, isUnsubscribed: true, [column]: true },
+        select: { ...SUBSCRIPTION_HOLD_COLUMNS, [column]: true },
       });
 
       keep(
@@ -2514,9 +2651,12 @@ export class Service extends ProjectReferencesService<Model> {
       carryForward?.statusPage;
 
     /*
-     * The contact's cancelled subscriptions on this page go now that the new
-     * one exists: links to them stop working. Only cancelled ones, of the
-     * same status page and project as the new subscriber.
+     * The contact's subscriptions on this page that the new one replaces go
+     * now that it exists: links to them stop working. Only those that hold
+     * the contact no more (holdsItsContact), of the same status page and
+     * project as the new subscriber - cancelled ones, and ones still waiting
+     * for a confirmation whose link has run out - each asked again as it is
+     * deleted, so one confirmed or turned back on since is kept.
      */
     const replacedSubscriberIds: Array<ObjectID> =
       carryForward?.replacedSubscriberIds || [];
@@ -2533,6 +2673,26 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: createdItem.projectId,
           statusPageId: createdItem.statusPageId,
           isUnsubscribed: true,
+        },
+        limit: replacedSubscriberIds.length,
+        skip: 0,
+        props: {
+          ignoreHooks: true,
+          isRoot: true,
+        },
+      });
+
+      await this.deleteBy({
+        query: {
+          _id: QueryHelper.any(replacedSubscriberIds),
+          projectId: createdItem.projectId,
+          statusPageId: createdItem.statusPageId,
+          isSubscriptionConfirmed: false,
+          createdAt: QueryHelper.lessThanEqualTo(
+            new Date(
+              Date.now() - StatusPageSubscriberConfirmationCode.VALID_FOR_MS,
+            ),
+          ),
         },
         limit: replacedSubscriberIds.length,
         skip: 0,
@@ -2884,15 +3044,24 @@ Stay informed about service availability! 🚀`.toString();
   /*
    * A subscription's confirmation link opened (StatusPageAPI's
    * confirm-subscription route): the subscriber it names and the code it
-   * carries - text only, as anything else would leave the code out of the
-   * lookup. A subscription not yet confirmed is confirmed, and told it is
-   * subscribed, on its email or by text.
+   * carries - text only, compared with the subscription's own code exactly
+   * and in constant time (StatusPageSubscriberConfirmationCode.matches). A
+   * subscription not yet confirmed is confirmed, and told it is subscribed,
+   * on its email or by text - while its link works: a day after it was
+   * sent, when the subscription was created. Opened later it is Expired,
+   * and confirms nothing.
    *
    * Once, however many requests open the link at the same moment - a double
    * tap, a page loaded twice. The update names the subscription as it was
    * read - not confirmed, at the version read - so the first request to
    * write it confirms it and the others match no row (DatabaseService's
    * compare-and-set on the version): only that one sends the welcome.
+   *
+   * A code minted before codes were 32 characters is six digits. A wrong
+   * code for a subscription waiting with one gives that code up
+   * (retireShortConfirmationCode): a short code confirms through its own
+   * link and nothing else. Its subscription can still be confirmed by the
+   * team, and its contact signed up again once its day is over.
    */
   @CaptureSpan()
   public async confirmSubscription(data: {
@@ -2907,11 +3076,12 @@ Stay informed about service availability! 🚀`.toString();
         ? await this.findOneBy({
             query: {
               _id: data.subscriberId,
-              subscriptionConfirmationToken: data.code,
             },
             select: {
               _id: true,
               isSubscriptionConfirmed: true,
+              subscriptionConfirmationToken: true,
+              createdAt: true,
               version: true,
             },
             props: {
@@ -2924,8 +3094,31 @@ Stay informed about service availability! 🚀`.toString();
       return SubscriptionConfirmationOutcome.NotFound;
     }
 
+    if (
+      !StatusPageSubscriberConfirmationCode.matches({
+        stored: subscriber.subscriptionConfirmationToken,
+        presented: data.code,
+      })
+    ) {
+      if (
+        !subscriber.isSubscriptionConfirmed &&
+        subscriber.subscriptionConfirmationToken &&
+        !StatusPageSubscriberConfirmationCode.isCurrent(
+          subscriber.subscriptionConfirmationToken,
+        )
+      ) {
+        await this.retireShortConfirmationCode(subscriber);
+      }
+
+      return SubscriptionConfirmationOutcome.NotFound;
+    }
+
     if (subscriber.isSubscriptionConfirmed) {
       return SubscriptionConfirmationOutcome.AlreadyConfirmed;
+    }
+
+    if (StatusPageSubscriberConfirmationCode.hasExpired(subscriber.createdAt)) {
+      return SubscriptionConfirmationOutcome.Expired;
     }
 
     const confirmed: number = await this.updateOneBy({
@@ -2945,7 +3138,27 @@ Stay informed about service availability! 🚀`.toString();
     });
 
     if (confirmed === 0) {
-      return SubscriptionConfirmationOutcome.AlreadyConfirmed;
+      /*
+       * Another request wrote the subscription first: another opening of
+       * this link confirmed it - or a wrong code gave up its short code,
+       * and then this link confirms nothing.
+       */
+      const now: Model | null = await this.findOneBy({
+        query: {
+          _id: subscriber.id.toString(),
+        },
+        select: {
+          _id: true,
+          isSubscriptionConfirmed: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return now?.isSubscriptionConfirmed
+        ? SubscriptionConfirmationOutcome.AlreadyConfirmed
+        : SubscriptionConfirmationOutcome.NotFound;
     }
 
     await this.sendYouHaveSubscribedEmail({
@@ -2957,6 +3170,46 @@ Stay informed about service availability! 🚀`.toString();
     });
 
     return SubscriptionConfirmationOutcome.Confirmed;
+  }
+
+  /*
+   * Gives up the short code of a subscription that waits for its
+   * confirmation (confirmSubscription): a wrong code was tried for it, and
+   * nobody who holds the link sends a wrong one - the link carries the code
+   * whole. Its code is cleared, and no request confirms a subscription
+   * without one.
+   *
+   * Written only to the subscription as it was read - not confirmed, with
+   * that code, at the version read - and moving its version on, as every
+   * write does: requests that read it together race on one version, as
+   * openings of a link do, so of a right code and wrong ones tried at the
+   * same moment, at most one is answered and the others match no row. One
+   * statement, without hooks: nothing about the subscription a teammate or a
+   * workflow would hear of has changed.
+   */
+  private async retireShortConfirmationCode(
+    subscriber: Pick<
+      Model,
+      "_id" | "subscriptionConfirmationToken" | "version"
+    >,
+  ): Promise<void> {
+    await this.getRepository().update(
+      {
+        _id: subscriber._id!.toString(),
+        isSubscriptionConfirmed: false,
+        subscriptionConfirmationToken:
+          subscriber.subscriptionConfirmationToken!,
+        ...(typeof subscriber.version === "number"
+          ? { version: subscriber.version }
+          : {}),
+      } as FindOptionsWhere<Model>,
+      {
+        subscriptionConfirmationToken: null,
+        version: () => {
+          return '"version" + 1';
+        },
+      } as any,
+    );
   }
 
   /*

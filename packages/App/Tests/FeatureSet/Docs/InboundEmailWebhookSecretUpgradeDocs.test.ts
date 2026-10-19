@@ -22,8 +22,8 @@ import path from "path";
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
  * note on the bundled datastores' passwords (DatastorePasswordUpgradeDocs)
- * and before the note on the bundled global Runner (GlobalRunnerUpgradeDocs),
- * and every translation carries it in the
+ * and before the note on the bundled Runner's own key
+ * (SharedRunnerOwnKeyUpgradeDocs), and every translation carries it in the
  * English note's place, with the English note's code and a link that lands
  * on the setup step in the reader's language. What it claims is what the
  * code does:
@@ -48,8 +48,9 @@ const NOTE_LEAD: string =
 // The note before it (DatastorePasswordUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**The bundled ClickHouse and Valkey get passwords of their own.**";
-// The note after it (GlobalRunnerUpgradeDocs).
-const NEXT_LEAD: string = "**Every install runs a global Runner of its own.**";
+// The note after it (SharedRunnerOwnKeyUpgradeDocs).
+const NEXT_LEAD: string =
+  "**The bundled Runner registers with its own key, and holds no `ONEUPTIME_SECRET`.**";
 
 const SETUP_PAGE: string = "self-hosted/sendgrid-inbound-email";
 const SETUP_STEP: string = "Configure OneUptime";
@@ -124,7 +125,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the inbound email webhook secret", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on the bundled datastores' passwords and before the note on the bundled global Runner", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the bundled datastores' passwords and before the note on the bundled Runner's own key", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {

@@ -7,9 +7,11 @@ import SmsService from "../../../Server/Services/SmsService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService, {
   ALREADY_SUBSCRIBED_MESSAGE,
+  CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE,
   CONTACT_ALREADY_SUBSCRIBED_MESSAGE,
   SubscriptionConfirmationOutcome,
 } from "../../../Server/Services/StatusPageSubscriberService";
+import { PublicMessageRateLimitException } from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import logger from "../../../Server/Utils/Logger";
 import SubscriberContactSql from "../../../Server/Utils/StatusPage/SubscriberContactSql";
 import StatusPageSubscriberWebhookUtil from "../../../Server/Utils/StatusPageSubscriberWebhook";
@@ -70,6 +72,13 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * Every create goes through the real service, as a visitor signing up
  * (createFromStatusPageSignUp) or the team adding a subscriber. Email, SMS,
  * webhooks, live updates and workflows are stood in for.
+ *
+ * And a subscription waiting for its confirmation holds its contact only
+ * while its link works, a day after it was sent: the SQL that reads a
+ * subscription's age, the statement that removes one whose link has run
+ * out, and the one that gives up a six-digit code from before - which
+ * moves the subscription's version on, so a confirmation read before it
+ * writes nothing - are held to Postgres here too.
  *
  * Opt in with RUN_POSTGRES_SUBSCRIBER_CONTACT_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
@@ -380,7 +389,15 @@ describePostgres(
           })
           .map((result: PromiseSettledResult<unknown>): string => {
             const reason: unknown = (result as { reason: unknown }).reason;
-            expect(reason).toBeInstanceOf(BadDataException);
+            /*
+             * Refused for the contact: told it is subscribed (400), or - its
+             * subscription waiting for its confirmation - that the link was
+             * sent (429).
+             */
+            expect(
+              reason instanceof BadDataException ||
+                reason instanceof PublicMessageRateLimitException,
+            ).toBe(true);
             return (reason as Error).message;
           }),
       };
@@ -464,8 +481,41 @@ describePostgres(
       });
 
       expect(outcome.created).toBe(1);
+      // The one that got in waits for its confirmation: its link was sent.
       expect(outcome.refusals).toEqual(
         Array.from({ length: RACING_CREATES - 1 }, (): string => {
+          return CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE;
+        }),
+      );
+      expect(await subscribersOf(pageId)).toBe(1);
+    });
+
+    test("twelve visitors sign up a confirmed number, twelve ways, held the same: each is told it is subscribed already", async () => {
+      await insertProjectAndPages("growth");
+
+      await database.query(
+        `INSERT INTO "${schema}"."StatusPageSubscriber" ("_id", "version", "projectId", "statusPageId", "subscriberPhone", "isUnsubscribed", "isSubscriptionConfirmed", "unsubscribeToken", "createdAt") VALUES ($1, 1, $2, $3, '+14155550100', false, true, $4, now() - interval '400 days')`,
+        [
+          ObjectID.generate().toString(),
+          projectId.toString(),
+          pageId.toString(),
+          "5c".repeat(32),
+        ],
+      );
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        hold: true,
+        create: (index: number): Promise<unknown> => {
+          return signUp(
+            subscriberOf({ subscriberPhone: new Phone(ONE_NUMBER[index]!) }),
+          );
+        },
+      });
+
+      expect(outcome.created).toBe(0);
+      expect(outcome.refusals).toEqual(
+        Array.from({ length: RACING_CREATES }, (): string => {
           return ALREADY_SUBSCRIBED_MESSAGE;
         }),
       );
@@ -655,6 +705,279 @@ describePostgres(
         );
 
       expect(confirmed[0]!.isSubscriptionConfirmed).toBe(true);
+    });
+
+    // A subscription of the page waiting for its confirmation, sent `age` ago (an SQL interval).
+    async function insertWaiting(data: {
+      phone: string;
+      age: string;
+      code?: string;
+    }): Promise<string> {
+      const id: string = ObjectID.generate().toString();
+
+      await database.query(
+        `INSERT INTO "${schema}"."StatusPageSubscriber" ("_id", "version", "projectId", "statusPageId", "subscriberPhone", "isUnsubscribed", "isSubscriptionConfirmed", "sendYouHaveSubscribedMessage", "subscriptionConfirmationToken", "unsubscribeToken", "createdAt") VALUES ($1, 1, $2, $3, $4, false, false, true, $5, $6, now() - $7::interval)`,
+        [
+          id,
+          projectId.toString(),
+          pageId.toString(),
+          data.phone,
+          data.code || "c".repeat(32),
+          "5e".repeat(32),
+          data.age,
+        ],
+      );
+
+      return id;
+    }
+
+    async function rowOf(id: string): Promise<
+      | {
+          isSubscriptionConfirmed: boolean;
+          code: string | null;
+          version: number;
+        }
+      | undefined
+    > {
+      const rows: Array<{
+        isSubscriptionConfirmed: boolean;
+        code: string | null;
+        version: number;
+      }> = await database.query(
+        `SELECT "isSubscriptionConfirmed", "subscriptionConfirmationToken" AS "code", "version" FROM "${schema}"."StatusPageSubscriber" WHERE "_id" = $1 AND "deletedAt" IS NULL`,
+        [id],
+      );
+
+      return rows[0];
+    }
+
+    test("a number waiting for its confirmation is held while its link works, and a sign-up once it has run out replaces it", async () => {
+      await insertProjectAndPages("growth");
+
+      const fresh: string = await insertWaiting({
+        phone: "+14155550100",
+        age: "23 hours",
+      });
+
+      await expect(
+        signUp(subscriberOf({ subscriberPhone: new Phone("141 555 50100") })),
+      ).rejects.toThrow(CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE);
+      expect(await subscribersOf(pageId)).toBe(1);
+
+      // Its link runs out.
+      await database.query(
+        `UPDATE "${schema}"."StatusPageSubscriber" SET "createdAt" = now() - interval '24 hours 1 second' WHERE "_id" = $1`,
+        [fresh],
+      );
+
+      await signUp(
+        subscriberOf({ subscriberPhone: new Phone("141 555 50100") }),
+      );
+
+      const rows: Array<{
+        _id: string;
+        isSubscriptionConfirmed: boolean;
+        code: string;
+      }> = await database.query(
+        `SELECT "_id", "isSubscriptionConfirmed", "subscriptionConfirmationToken" AS "code" FROM "${schema}"."StatusPageSubscriber" WHERE "statusPageId" = $1 AND "deletedAt" IS NULL`,
+        [pageId.toString()],
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!._id).not.toBe(fresh);
+      expect(rows[0]!.isSubscriptionConfirmed).toBe(false);
+      expect(rows[0]!.code).toMatch(/^[0-9a-f]{32}$/);
+      expect(rows[0]!.code).not.toBe("c".repeat(32));
+    });
+
+    test("twelve visitors sign up, twelve ways, a number whose waiting subscription has run out, held until all passed the early check: one new subscription, and the old one gone", async () => {
+      await insertProjectAndPages("growth");
+
+      const runOut: string = await insertWaiting({
+        phone: "14155550100",
+        age: "2 days",
+      });
+
+      const outcome: Outcome = await createAtOnce({
+        count: RACING_CREATES,
+        hold: true,
+        create: (index: number): Promise<unknown> => {
+          return signUp(
+            subscriberOf({ subscriberPhone: new Phone(ONE_NUMBER[index]!) }),
+          );
+        },
+      });
+
+      expect(outcome.created).toBe(1);
+      expect(outcome.refusals).toEqual(
+        Array.from({ length: RACING_CREATES - 1 }, (): string => {
+          return CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE;
+        }),
+      );
+      expect(await subscribersOf(pageId)).toBe(1);
+      expect(await rowOf(runOut)).toBeUndefined();
+    });
+
+    test("the team adding a number whose sign-up's link has run out: added, and the sign-up removed; inside its day, refused", async () => {
+      await insertProjectAndPages("growth");
+
+      const inItsDay: string = await insertWaiting({
+        phone: "+14155550100",
+        age: "1 hour",
+      });
+
+      await expect(
+        teamAdd(subscriberOf({ subscriberPhone: new Phone("+14155550100") })),
+      ).rejects.toThrow(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+
+      await database.query(
+        `UPDATE "${schema}"."StatusPageSubscriber" SET "createdAt" = now() - interval '3 days' WHERE "_id" = $1`,
+        [inItsDay],
+      );
+
+      await teamAdd(
+        subscriberOf({ subscriberPhone: new Phone("+14155550100") }),
+      );
+
+      expect(await subscribersOf(pageId)).toBe(1);
+      expect(await rowOf(inItsDay)).toBeUndefined();
+    });
+
+    test("a link opened inside its day confirms; once its day is over, it has expired and confirms nothing", async () => {
+      await insertProjectAndPages("growth");
+
+      const inItsDay: string = await insertWaiting({
+        phone: "+14155550100",
+        age: "23 hours 59 minutes",
+      });
+      const runOut: string = await insertWaiting({
+        phone: "+14155550199",
+        age: "24 hours 1 second",
+        code: "d".repeat(32),
+      });
+
+      expect(
+        await StatusPageSubscriberService.confirmSubscription({
+          subscriberId: runOut,
+          code: "d".repeat(32),
+        }),
+      ).toBe(SubscriptionConfirmationOutcome.Expired);
+      expect((await rowOf(runOut))!.isSubscriptionConfirmed).toBe(false);
+
+      expect(
+        await StatusPageSubscriberService.confirmSubscription({
+          subscriberId: inItsDay,
+          code: "c".repeat(32),
+        }),
+      ).toBe(SubscriptionConfirmationOutcome.Confirmed);
+      expect((await rowOf(inItsDay))!.isSubscriptionConfirmed).toBe(true);
+      expect(welcomeTexts()).toBe(1);
+    });
+
+    test("a wrong code for a six-digit code clears it and moves the version on: the right code then confirms nothing", async () => {
+      await insertProjectAndPages("growth");
+
+      const earlier: string = await insertWaiting({
+        phone: "+14155550100",
+        age: "1 hour",
+        code: "482913",
+      });
+
+      expect(
+        await StatusPageSubscriberService.confirmSubscription({
+          subscriberId: earlier,
+          code: "100000",
+        }),
+      ).toBe(SubscriptionConfirmationOutcome.NotFound);
+
+      expect(await rowOf(earlier)).toEqual({
+        isSubscriptionConfirmed: false,
+        code: null,
+        version: 2,
+      });
+
+      expect(
+        await StatusPageSubscriberService.confirmSubscription({
+          subscriberId: earlier,
+          code: "482913",
+        }),
+      ).toBe(SubscriptionConfirmationOutcome.NotFound);
+      expect((await rowOf(earlier))!.isSubscriptionConfirmed).toBe(false);
+      expect(welcomeTexts()).toBe(0);
+    });
+
+    test("a wrong code for a 32-character code writes nothing", async () => {
+      await insertProjectAndPages("growth");
+
+      const id: string = await insertWaiting({
+        phone: "+14155550100",
+        age: "1 hour",
+      });
+
+      expect(
+        await StatusPageSubscriberService.confirmSubscription({
+          subscriberId: id,
+          code: "e".repeat(32),
+        }),
+      ).toBe(SubscriptionConfirmationOutcome.NotFound);
+      expect(await rowOf(id)).toEqual({
+        isSubscriptionConfirmed: false,
+        code: "c".repeat(32),
+        version: 1,
+      });
+    });
+
+    test("the right six-digit code opened together with eleven wrong ones, five times over: never both confirmed and given up, and at most one welcome", async () => {
+      await insertProjectAndPages("growth");
+
+      for (let round: number = 0; round < 5; round++) {
+        jest.mocked(SmsService.sendSms).mockClear();
+
+        const id: string = await insertWaiting({
+          phone: `+1415555020${round}`,
+          age: "1 hour",
+          code: "482913",
+        });
+
+        const codes: Array<string> = Array.from(
+          { length: RACING_CREATES },
+          (_unused: unknown, index: number): string => {
+            return index === round ? "482913" : String(300000 + index);
+          },
+        );
+
+        const outcomes: Array<SubscriptionConfirmationOutcome> =
+          await Promise.all(
+            codes.map(
+              (code: string): Promise<SubscriptionConfirmationOutcome> => {
+                return StatusPageSubscriberService.confirmSubscription({
+                  subscriberId: id,
+                  code: code,
+                });
+              },
+            ),
+          );
+
+        const row: {
+          isSubscriptionConfirmed: boolean;
+          code: string | null;
+          version: number;
+        } = (await rowOf(id))!;
+
+        // Exactly one write: the confirmation, or giving the code up.
+        expect([round, row.isSubscriptionConfirmed, row.code === null]).toEqual(
+          [round, !(row.code === null), row.code === null],
+        );
+        expect(row.version).toBe(2);
+        expect(
+          outcomes.filter(
+            (outcome: SubscriptionConfirmationOutcome): boolean => {
+              return outcome === SubscriptionConfirmationOutcome.Confirmed;
+            },
+          ),
+        ).toHaveLength(row.isSubscriptionConfirmed ? 1 : 0);
+        expect(welcomeTexts()).toBe(row.isSubscriptionConfirmed ? 1 : 0);
+      }
     });
 
     test("a cancelled subscription is not turned back on where another subscriber of the page has its number under another spelling", async () => {

@@ -530,6 +530,29 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Whether an AI agent with this id exists. Asked only for a key that did
+   * not match it, so that a wrong key is counted only for an agent there is
+   * (WrongComponentKeyLimit): an id no agent has can never be let in,
+   * whatever key comes with it.
+   */
+  @CaptureSpan()
+  public async hasAIAgentWithId(aiAgentId: ObjectID): Promise<boolean> {
+    const aiAgent: Model | null = await this.findOneBy({
+      query: {
+        _id: aiAgentId.toString(),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(aiAgent);
+  }
+
+  /*
    * The global AI agent the in-cluster Runner registering under a key no
    * global agent holds takes over (API/AIAgentAPI, /register), or null: the
    * global agent that already holds the key, else the one whose key is a

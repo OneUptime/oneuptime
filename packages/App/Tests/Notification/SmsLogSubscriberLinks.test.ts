@@ -233,9 +233,9 @@ async function sendYouHaveSubscribedSms(): Promise<void> {
 
 /*
  * The text a visitor who signed up by SMS is sent: the link that confirms
- * the subscription, with its code.
+ * the subscription, with its code (StatusPageSubscriberConfirmationCode).
  */
-const CONFIRMATION_CODE: string = "482913";
+const CONFIRMATION_CODE: string = "9f8e7d6c5b4a39281706f5e4d3c2b1a0";
 
 async function sendConfirmationSms(): Promise<void> {
   const created: StatusPageSubscriber = new StatusPageSubscriber();
@@ -545,13 +545,13 @@ describe("a status page subscriber's texts in the SMS log", () => {
     const confirmationUrl: string = `${STATUS_PAGE_URL}/confirm-subscription/${SUBSCRIBER_ID}?verification-token=`;
 
     expect(delivered).toEqual([
-      `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmationUrl}${CONFIRMATION_CODE}`,
+      `Confirm your subscription to Acme Status by text message within 24 hours. Not you? Ignore this and you will not be subscribed. ${confirmationUrl}${CONFIRMATION_CODE}`,
     ]);
 
     const logged: Array<string> = await smsLogAsReader();
 
     expect(logged).toEqual([
-      `Confirm your subscription to Acme Status by text message. Not you? Ignore this message and nothing more will be sent. ${confirmationUrl}[redacted]`,
+      `Confirm your subscription to Acme Status by text message within 24 hours. Not you? Ignore this and you will not be subscribed. ${confirmationUrl}[redacted]`,
     ]);
     expect(logged.join("\n")).not.toContain(CONFIRMATION_CODE);
 

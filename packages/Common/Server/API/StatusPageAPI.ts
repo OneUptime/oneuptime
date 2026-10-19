@@ -40,6 +40,7 @@ import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupM
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService, {
+  CONFIRMATION_LINK_EXPIRED_MESSAGE,
   ONE_CONTACT_PER_SIGN_UP_MESSAGE,
   SMS_SIGN_UP_UNAVAILABLE_MESSAGE,
   SubscriptionConfirmationOutcome,
@@ -790,7 +791,9 @@ export default class StatusPageAPI extends BaseAPI<
      * So only text is taken as the code. A request without one used to leave
      * the code out of the lookup altogether - a filter on an undefined value
      * is no filter - and the id alone confirmed the sign-up. Every link that
-     * confirms nothing gets the same answer. Once confirmed, the subscriber
+     * confirms nothing gets the same answer, but one: a link that is the
+     * subscription's own, opened more than a day after it was sent, is told
+     * it has expired, and to subscribe again. Once confirmed, the subscriber
      * is told it is subscribed, on its email or by text - once, however many
      * times the link is opened (StatusPageSubscriberService
      * .confirmSubscription).
@@ -814,6 +817,14 @@ export default class StatusPageAPI extends BaseAPI<
               new NotFoundException(
                 "Subscriber not found or confirmation token is invalid",
               ),
+            );
+          }
+
+          if (outcome === SubscriptionConfirmationOutcome.Expired) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(CONFIRMATION_LINK_EXPIRED_MESSAGE),
             );
           }
 

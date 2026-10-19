@@ -107,6 +107,9 @@ const ATTRIBUTE_UTIL_FILE: string =
   "Common/Server/Utils/Monitor/CapturedMetricAttributeUtil.ts";
 const MONITOR_STEP_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorStep.tsx";
+// Retry Count on Error is held to 5, as the docs say.
+const RETRY_COUNT_ON_ERROR_CAP: RegExp =
+  /:\s*retryCountOnError > 5\s*\?\s*5\s*:/;
 const CRITERIA_FILTER_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/CriteriaFilter.tsx";
 const CRITERIA_INSTANCE_FORM_FILE: string =
@@ -1044,9 +1047,8 @@ describe("Synthetic Monitor", () => {
       expect(form).toContain(title);
     }
 
-    expect(form).toContain(
-      ": retryCountOnError > 5\n                      ? 5",
-    );
+    // The cap, however deep the field sits in the form's markup.
+    expect(form).toMatch(RETRY_COUNT_ON_ERROR_CAP);
     expect(page).toContain(
       "Under **More fields**, **Retry Count on Error** retries a failed run up to 5 times.",
     );

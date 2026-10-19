@@ -3,6 +3,7 @@ import useTranslateValue from "../../Utils/Translation";
 import { translationKey } from "../../Utils/TranslateTemplate";
 import FoldedSection from "../FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "../FoldedSection/FoldedSectionItem";
+import { FoldedSectionVariant } from "../FoldedSection/FoldedSectionVariant";
 import {
   OpenFormSectionsContext,
   ReportFormSectionOpenFunction,
@@ -19,14 +20,16 @@ import React, {
 
 /*
  * A form's folded section (FormFieldCollapsibleSection), drawn as a
- * FoldedSection: "More fields" (getAdvancedFormSection) and every other
- * section a form folds its fields into - "Subscriber Notifications",
+ * FoldedSection: "More fields" (getAdvancedFormSection) - one quiet line,
+ * "More fields · Description, Labels" - and every other section a form
+ * folds its fields into, drawn as a card - "Subscriber Notifications",
  * "Layout", "Add a public note".
  *
  * Folded, its header says what is inside:
  *   - a section that lists its fields (More fields, whose title says
- *     nothing of what it holds) names them, the set ones as chips that say
- *     what they are set to, with its summary sentences under them;
+ *     nothing of what it holds) names them after its title, the set ones
+ *     with what they are set to ("More fields · Description, Labels: 2"),
+ *     with its summary sentences under them;
  *   - any other section shows its summary sentences when it has them - they
  *     say what is set already - and otherwise the chips of its set fields;
  *   - a section that says it is configured but has no set field to show
@@ -68,6 +71,12 @@ export interface ComponentProps {
   items?: Array<FoldedSectionItem> | undefined;
   // List every field while folded (More fields), not only the set ones.
   listFieldsWhileFolded?: boolean | undefined;
+  /*
+   * How the fold is drawn: a framed card (left out), or one quiet line -
+   * More fields (FormFieldCollapsibleSection.variant).
+   */
+  variant?: FoldedSectionVariant | undefined;
+  // A card's icon tile (FormFieldCollapsibleSection.icon); a line has none.
   icon?: IconProp | undefined;
   children: ReactElement;
 }
@@ -160,8 +169,9 @@ const CollapsibleFormSection: FunctionComponent<ComponentProps> = (
   return (
     <FoldedSection
       title={props.title}
-      description={props.description}
+      variant={props.variant}
       icon={props.icon}
+      description={props.description}
       items={items}
       summary={summary || undefined}
       badge={

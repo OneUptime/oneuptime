@@ -1353,13 +1353,11 @@ API, SSO, or the Slack and Microsoft Teams apps.
   call each other with a key derived from the installation's own token
   signing key instead. `npm start` and `npm run update` now give
   `ONEUPTIME_SECRET` a random value in `config.env` when it still holds a
-  placeholder, so the bundled Runner keeps registering. If you start the
-  containers another way, or set `oneuptimeSecret` to a placeholder in Helm,
-  set `ONEUPTIME_SECRET` to a long random value, the same for the app and
-  the Runner, as
+  placeholder. If you start the containers another way, or set
+  `oneuptimeSecret` to a placeholder in Helm, and a script of yours calls
+  OneUptime with `ONEUPTIME_SECRET`, give it a long random value, as
   [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
-  shows: until then the Runner logs what to set and does not register. An
-  installation that set its own `ONEUPTIME_SECRET` sees no change.
+  shows. An installation that set its own `ONEUPTIME_SECRET` sees no change.
 - **OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to
   the routes that take it.** Those routes read it from the `clusterkey`
   request header alone. A request whose URL carries it is refused, and a body
@@ -1399,7 +1397,7 @@ API, SSO, or the Slack and Microsoft Teams apps.
   build and test commands, and its code agent has no command tool: the fix is
   written, the pull request opens with its verification shown as skipped, and
   your repository's own CI checks the change. It also starts with only its
-  OneUptime URL, its keys and its telemetry settings instead of the app's whole
+  OneUptime URL, its key and its telemetry settings instead of the app's whole
   environment; settings you gave it through `runner.extraEnv` or a Compose
   override stay. To have fixes built and tested before the pull request opens,
   [run a Runner of your own](/docs/ai/ai-agent#run-a-runner-of-your-own): it
@@ -1476,6 +1474,27 @@ API, SSO, or the Slack and Microsoft Teams apps.
   retries a refused email for up to three days, so the emails sent meanwhile
   arrive once it is set. An installation that set its own secret sees no
   change.
+- **The bundled Runner registers with its own key, and holds no
+  `ONEUPTIME_SECRET`.** The Runner that Docker Compose (its `runner` service)
+  and the Helm chart (`runner.enabled`) start now registers with its
+  `ONEUPTIME_RUNNER_KEY`, which the app is given too, so its container no longer
+  holds `ONEUPTIME_SECRET`, the key OneUptime's own services call each other
+  with. `npm run update` and `helm upgrade` set this up. If you start the
+  containers another way, give the app the Runner's `ONEUPTIME_RUNNER_KEY`, set
+  `ONEUPTIME_RUNNER_SHARED` to `true` on the Runner, and take `ONEUPTIME_SECRET`
+  out of its environment. A Runner of an earlier release, or one that is still
+  given `ONEUPTIME_SECRET`, keeps registering with it, and the app logs that it
+  should be updated.
+- **Wrong probe and Runner keys are counted.** One address may send only ten
+  different wrong keys for one probe, Runner or AI agent in a quarter of an
+  hour, and only ten different wrong values of `REGISTER_PROBE_KEY` or of the
+  bundled Runner's `ONEUPTIME_RUNNER_KEY`. After that, its requests for that
+  probe, Runner or agent, or its registrations, are answered with `429` until
+  the quarter of an hour ends, the right key included. A probe or Runner that
+  still sends the key it had before a reset sends one wrong key however often it
+  calls, so it is never refused for it. Keys sent from a private network
+  address, which is where the bundled probes and Runner call from, are not
+  counted at all, so nothing sent beside them can get them refused.
 - **Every install runs a global Runner of its own.** A new `global-runner`
   service in Docker Compose, and a `globalRunner` deployment in the Helm chart,
   run the JavaScript steps of every project that picks no Runner of its own,

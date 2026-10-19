@@ -67,7 +67,7 @@ Click **Create Custom Rule** under the templates, or **Create Alert Grouping Rul
 On **Which Alerts**, **All alerts**, where a new rule starts, groups every new alert. To narrow it down, pick **Only alerts that match conditions** and add conditions on monitors, severities, labels, titles and descriptions. Then click **Create Alert Grouping Rule**.
 :::
 
-Everything else a rule can do is folded under **More fields** at the end of the **Grouping** step, in three groups. Folded, its header names what it holds and shows each setting the rule uses as a chip, so editing a rule never hides what it does.
+Everything else a rule can do is folded under **More fields** at the end of the **Grouping** step, in three groups. Folded, its header names what it holds and says what each setting the rule uses is set to, so editing a rule never hides what it does.
 
 | Group                     | Settings                                                                                                   |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |

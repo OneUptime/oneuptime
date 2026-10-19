@@ -107,10 +107,10 @@ testHook:
 # install, into the `<release>-secrets` Secret, and keeps it across upgrades.
 # If you set one, make it a long random string.
 #
-# oneuptimeSecret is the cluster key OneUptime's own services, the in-cluster
-# Runner among them, present to each other. OneUptime refuses a value its
-# repository ships ("secret", or a "please-change-this-..." placeholder) from
-# every caller, so a Runner given one does not register.
+# oneuptimeSecret is the cluster key OneUptime's own services present to each
+# other. OneUptime refuses a value its repository ships ("secret", or a
+# "please-change-this-..." placeholder) from every caller. The in-cluster
+# Runner does not hold it: it registers with its own key (runner.key below).
 oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:
@@ -2323,8 +2323,9 @@ telemetryWriter:
 # AI Agent Configuration
 # Runs the OneUptime AI Agent within your Kubernetes cluster.
 # The in-cluster OneUptime Runner. It serves the AI code-fix capability for
-# every project in this deployment; it registers itself automatically (no
-# credentials needed) and idles cheaply when no LLM provider is configured.
+# every project in this deployment; it registers itself automatically with its
+# key (runner.key below, which the chart gives the app as well) and idles
+# cheaply when no LLM provider is configured.
 # Customers who want runbook steps executed inside their OWN network install
 # their own project-scoped Runner instead — see Runner/README.md.
 # Set enabled to false to not run it.
@@ -2347,7 +2348,8 @@ runner:
   # in-cluster Runner auto-registers itself using the key below)
   id:
   # Runner Key (optional — auto-generated and stored in the release
-  # secrets when not provided)
+  # secrets when not provided). The app is given the same key, and lets the
+  # Runner register as this installation's shared Runner with it.
   key:
   # Reference a Secret you manage for ONEUPTIME_RUNNER_KEY, instead of the value
   # the chart generates into `<release>-secrets`. The key is the Runner's identity
