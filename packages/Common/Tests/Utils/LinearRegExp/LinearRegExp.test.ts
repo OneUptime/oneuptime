@@ -212,7 +212,7 @@ describe("JavaScript's corners, kept", () => {
     const longS: string = String.fromCharCode(0x017f);
     const sharpS: string = String.fromCharCode(0x00df);
 
-    for (const [source, text] of [
+    const cases: ReadonlyArray<[string, string]> = [
       ["k", kelvin],
       [kelvin, "k"],
       [kelvin, kelvin],
@@ -226,7 +226,9 @@ describe("JavaScript's corners, kept", () => {
       ["[^k]", kelvin],
       ["\\W", "k"],
       ["\\w", longS],
-    ]) {
+    ];
+
+    for (const [source, text] of cases) {
       expect({ source, text, matches: linear(source, "i").test(text) }).toEqual(
         { source, text, matches: new RegExp(source, "i").test(text) },
       );

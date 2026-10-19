@@ -921,7 +921,12 @@ class LazyDfa {
    */
   private keptStateFor(pcs: Array<number>, behind: number): DfaState | number {
     if (this.isFull()) {
-      return { pcs: Int32Array.from(pcs), behind: behind, moves: null, ends: null };
+      return {
+        pcs: Int32Array.from(pcs),
+        behind: behind,
+        moves: null,
+        ends: null,
+      };
     }
 
     // A set of ways: their order does not matter for where one ends.
@@ -946,7 +951,12 @@ class LazyDfa {
       key.length;
 
     if (!this.store.reserve(this, bytes)) {
-      return { pcs: Int32Array.from(pcs), behind: behind, moves: null, ends: null };
+      return {
+        pcs: Int32Array.from(pcs),
+        behind: behind,
+        moves: null,
+        ends: null,
+      };
     }
 
     this.bytes += bytes;

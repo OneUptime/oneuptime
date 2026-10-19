@@ -233,7 +233,9 @@ describe("a rule's conditions", () => {
     );
     expect(() => {
       MonitorRulePatternValidator.validate({ namePattern: "(\\w)\\1*" });
-    }).toThrow(`Monitor Name Pattern "(\\w)\\1*" cannot run: ${CANNOT_RUN_REASON}`);
+    }).toThrow(
+      `Monitor Name Pattern "(\\w)\\1*" cannot run: ${CANNOT_RUN_REASON}`,
+    );
   });
 
   test("keep one with a look-ahead, and one that is a wildcard", () => {

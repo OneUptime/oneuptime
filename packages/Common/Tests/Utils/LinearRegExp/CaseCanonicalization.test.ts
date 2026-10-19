@@ -181,4 +181,50 @@ describe("a case-insensitive class", () => {
       expect(got).toEqual(expected);
     }
   });
+
+  test("matches what V8's matches for random ranges, from the smallest to all of them", () => {
+    const random: SeededRandom = seededRandom(4242);
+
+    for (let round: number = 0; round < 12; round++) {
+      const first: number = round === 0 ? 0 : random(0xfff0);
+      const last: number =
+        round === 0
+          ? 0xffff
+          : Math.min(0xffff, first + random(round % 2 === 0 ? 0x40 : 0x4000));
+      const closed: CharacterSet = closeOverCase(
+        CharacterSet.fromPairs([first, last]),
+      );
+      const pattern: RegExp = new RegExp(
+        `[\\u${hex4(first)}-\\u${hex4(last)}]`,
+        "gi",
+      );
+      const expected: Array<number> = [];
+
+      for (const match of ALL_CODE_UNITS.matchAll(pattern)) {
+        expected.push(match.index!);
+      }
+
+      const got: Array<number> = [];
+
+      for (let codeUnit: number = 0; codeUnit <= 0xffff; codeUnit++) {
+        if (closed.has(codeUnit)) {
+          got.push(codeUnit);
+        }
+      }
+
+      expect({ first, last, got }).toEqual({ first, last, got: expected });
+    }
+  });
+
+  test("is closed once per class: the same members give the very same set", () => {
+    // Written twice, in two patterns or twice in one, the class is one set.
+    const once: CharacterSet = closeOverCase(
+      CharacterSet.fromPairs([0x100, 0x24f, 0x370, 0x3ff]),
+    );
+    const again: CharacterSet = closeOverCase(
+      CharacterSet.fromPairs([0x370, 0x3ff, 0x100, 0x24f]),
+    );
+
+    expect(again).toBe(once);
+  });
 });

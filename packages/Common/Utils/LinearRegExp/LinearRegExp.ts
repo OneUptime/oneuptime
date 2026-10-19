@@ -102,19 +102,20 @@ export default class LinearRegExp {
       }
     }
 
-    /*
-     * The running engine decides what is a regular expression, and says what
-     * is wrong with what is not: the message people saw before. Building a
-     * RegExp only parses the pattern; it is never run.
-     */
-    LinearRegExp.checkSyntax(source, flags);
-
+    // Refused before anything reads it: a filter can carry megabytes.
     if (source.length > MAX_PATTERN_LENGTH) {
       throw new PatternProblemError(
         PatternProblemReason.TooLarge,
         `The pattern is longer than ${MAX_PATTERN_LENGTH} characters.`,
       );
     }
+
+    /*
+     * The running engine decides what is a regular expression, and says what
+     * is wrong with what is not: the message people saw before. Building a
+     * RegExp only parses the pattern; it is never run.
+     */
+    LinearRegExp.checkSyntax(source, flags);
 
     this.source = source;
     this.flags = flags;

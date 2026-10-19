@@ -444,8 +444,10 @@ describe("the finder", () => {
   });
 
   test("reads the code the servers run, and finds what it should there", () => {
-    const byFile: Map<string, Array<BuiltPattern>> =
-      builtPatternsInServerCode();
+    const byFile: Map<
+      string,
+      Array<BuiltPattern>
+    > = builtPatternsInServerCode();
 
     expect(byFile.size).toBeGreaterThan(10);
     expect(
@@ -472,8 +474,10 @@ describe("the finder", () => {
 
 describe("RegExps the servers, workers and probes build from text not written in their code", () => {
   test("each is in a file listed with what it builds them from", () => {
-    const byFile: Map<string, Array<BuiltPattern>> =
-      builtPatternsInServerCode();
+    const byFile: Map<
+      string,
+      Array<BuiltPattern>
+    > = builtPatternsInServerCode();
     const problems: Array<string> = [];
 
     for (const [file, built] of byFile) {

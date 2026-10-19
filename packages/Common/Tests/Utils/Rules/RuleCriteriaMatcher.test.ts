@@ -1066,10 +1066,11 @@ describe("RuleCriteriaMatcher text legacy adapter", () => {
   ])(
     "fails closed on a saved %s pattern that refers back to a group, '*' or not",
     (operator: RuleCriteriaOperator) => {
-      const matchesLegacyRule: Mock<SyncRuleMatcher> =
-        jest.fn<SyncRuleMatcher>((): boolean => {
+      const matchesLegacyRule: Mock<SyncRuleMatcher> = jest.fn<SyncRuleMatcher>(
+        (): boolean => {
           return false;
-        });
+        },
+      );
 
       for (const pattern of ["(db)-\\1", "(\\w)\\1*"]) {
         expect(

@@ -77,6 +77,11 @@ function expectTooLarge(source: string, flags: string = ""): void {
   );
 }
 
+// The engine's module as require() hands it over: its default export the class.
+type Loaded = { default: typeof LinearRegExp };
+
+const ENGINE_MODULE: string = "../../../Utils/LinearRegExp/LinearRegExp";
+
 function compiledOf(pattern: LinearRegExp): CompiledPattern {
   return (pattern as unknown as { compiled: CompiledPattern }).compiled;
 }
@@ -156,7 +161,9 @@ describe("how large a pattern it compiles", () => {
     expectTooLarge(distinct(MAX_LOOKAROUNDS + 1));
 
     const atLimit: LinearRegExp = new LinearRegExp(distinct(MAX_LOOKAROUNDS));
-    expect(atLimit.test("xxa")).toBe(new RegExp(distinct(MAX_LOOKAROUNDS)).test("xxa"));
+    expect(atLimit.test("xxa")).toBe(
+      new RegExp(distinct(MAX_LOOKAROUNDS)).test("xxa"),
+    );
     expect(atLimit.test("a")).toBe(true);
 
     // The grok library's (?<![0-9]) beside every IP address: one look-around.
@@ -177,10 +184,16 @@ describe("how large a pattern it compiles", () => {
     expectTooLarge(`${atLimit}x`);
   });
 
-  test("what is not a regular expression is still told so first, however long", () => {
-    expect(refusalOf(`(${"a".repeat(MAX_PATTERN_LENGTH * 2)}`)).toBeInstanceOf(
-      SyntaxError,
-    );
+  test("a pattern longer than the limit is refused before anything reads it, valid or not", () => {
+    // Megabytes of pattern, as a filter's JSON could carry: refused at once.
+    const startedAt: number = Date.now();
+
+    expectTooLarge(`(${"a".repeat(5_000_000)}`);
+    expectTooLarge("a".repeat(5_000_000));
+    expect(Date.now() - startedAt).toBeLessThan(500);
+
+    // Shorter than the limit, what is not a regular expression says so.
+    expect(refusalOf("(abc")).toBeInstanceOf(SyntaxError);
   });
 
   test("a pattern of the largest case-insensitive classes, each new, compiles quickly", () => {
@@ -219,7 +232,7 @@ describe("how large a pattern it compiles", () => {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-      const isolated: { default: typeof LinearRegExp } = require("../../../Utils/LinearRegExp/LinearRegExp");
+      const isolated: Loaded = require(ENGINE_MODULE) as Loaded;
       let refusal: unknown = null;
 
       try {
@@ -273,12 +286,15 @@ describe("what the matcher keeps between questions", () => {
   test("one automaton never holds more than its own limit", () => {
     clearKeptAutomata();
 
-    const pattern: LinearRegExp = new LinearRegExp(
-      "(?:[ab]*a[ab]{12}|[ab]{0,4000})Q",
-    );
+    /*
+     * Few kinds of code unit - a-z, and "_", which the word boundary tells
+     * apart anyway - so the automaton may keep thousands of states, and
+     * each holds up to three thousand steps: some twenty megabytes, kept.
+     */
+    const pattern: LinearRegExp = new LinearRegExp("[a-z]{0,3000}_");
 
     try {
-      pattern.test(randomText(200000, "ab", 11));
+      pattern.test(randomText(400000, "abcdefghijklmnopqrstuvwxyz", 11));
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(PatternWorkLimitError);
     }
@@ -286,6 +302,7 @@ describe("what the matcher keeps between questions", () => {
     // test() reads with one automaton: the pattern read forwards.
     expect(getKeptAutomataCount()).toBe(1);
     expect(getKeptAutomataBytes()).toBeLessThanOrEqual(MAX_AUTOMATON_BYTES);
+    expect(getKeptAutomataBytes()).toBeGreaterThan(MAX_AUTOMATON_BYTES * 0.9);
   });
 
   test("a pattern whose automaton was dropped answers as before", () => {
@@ -352,9 +369,7 @@ describe("what the matcher keeps between questions", () => {
         pattern.replace("xyxz yz z", (): string => {
           return "_";
         }),
-      ).toBe(
-        "xyxz yz z".replace(new RegExp(`(?:x|y){0,${size}}z`, "g"), "_"),
-      );
+      ).toBe("xyxz yz z".replace(new RegExp(`(?:x|y){0,${size}}z`, "g"), "_"));
     }
 
     /*
@@ -447,7 +462,10 @@ describe("a yes or no for every position of a text", () => {
     const pattern: LinearRegExp = new LinearRegExp(source, "g");
     const compiled: CompiledPattern = compiledOf(pattern);
     const text: string = `${"ab".repeat(1000000)}x`;
-    const meter: WorkMeter = WorkMeter.forText(text.length, compiled.totalSteps);
+    const meter: WorkMeter = WorkMeter.forText(
+      text.length,
+      compiled.totalSteps,
+    );
     const tables: Array<Uint8Array> = computeLookaroundTables(
       compiled,
       text,
@@ -499,17 +517,20 @@ describe("the work one question may take", () => {
     expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 
-  test("copying what ways captured counts as work: a thousand groups do not hold a short text", () => {
+  test("copying what ways captured counts as work: many groups do not hold a short text", () => {
     /*
-     * Every way that starts another repetition copies what the thousand
-     * groups captured. Uncounted, a thousand characters took four seconds;
-     * counted, the question stops within its work.
+     * At every position each of 1,500 alternatives saves where its group
+     * starts, copying what all 1,500 groups captured. Uncounted, the copies
+     * took a second and a half on two thousand characters; counted, the
+     * question stops within its work.
      */
-    const groups: string = `(?:${"(a?)".repeat(1000)})*b`;
+    const groups: string = `(?:${Array.from({ length: 1500 }, (): string => {
+      return "(a)";
+    }).join("|")})*!`;
     const pattern: LinearRegExp = new LinearRegExp(groups, "", {
       captures: true,
     });
-    const text: string = `${"a".repeat(1000)}b`;
+    const text: string = `${"a".repeat(2000)}!`;
     const startedAt: number = Date.now();
 
     for (let run: number = 0; run < 3; run++) {
@@ -520,7 +541,7 @@ describe("the work one question may take", () => {
       }
     }
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(Date.now() - startedAt).toBeLessThan(1500);
   });
 
   test("a large pattern on many short texts stops within its allowance each time", () => {

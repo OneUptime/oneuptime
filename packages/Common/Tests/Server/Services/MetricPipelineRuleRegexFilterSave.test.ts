@@ -11,7 +11,10 @@ import MetricPipelineRuleFilterCondition, {
   MetricPipelineRuleFilterCheckOn,
   MetricPipelineRuleFilterConditionType,
 } from "../../../Types/Metrics/MetricPipelineRuleFilterCondition";
-import { describePatternProblemReason, PatternProblemReason } from "../../../Utils/LinearRegExp/PatternProblem";
+import {
+  describePatternProblemReason,
+  PatternProblemReason,
+} from "../../../Utils/LinearRegExp/PatternProblem";
 import { describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -79,7 +82,9 @@ describe("the refusal for a rule's filters", () => {
   });
 
   test("a pattern too large to run", () => {
-    expect(getMetricPipelineRuleFiltersRefusal([regexFilter(".{0,9000}")])).toBe(
+    expect(
+      getMetricPipelineRuleFiltersRefusal([regexFilter(".{0,9000}")]),
+    ).toBe(
       `Filter 1: the pattern ${describePatternProblemReason(PatternProblemReason.TooLarge)}`,
     );
   });
