@@ -15,6 +15,10 @@ import RuleCriteria, {
 import { RULE_CRITERIA_FIELDS_BY_MODEL } from "../../../Types/Rules/RuleCriteriaFieldRegistry";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { getRuleCriteriaValidationError } from "../../../Utils/Rules/RuleCriteriaMatcher";
+import {
+  clearLinearRegExpCache,
+  getCachedPatternCount,
+} from "../../../Utils/LinearRegExp/PatternCache";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -166,6 +170,49 @@ describe("saving a rule's pattern", () => {
       sanitize(column, { monitorNamePattern: "a{20000}" }, false),
     ).rejects.toThrow(
       'Monitor Name Pattern "a{20000}" cannot run: it is too large to run. Shorten it, or repeat its parts fewer times.',
+    );
+  });
+
+  test("leaves a pattern longer than its column to the length check, unread and unquoted", async () => {
+    clearLinearRegExpCache();
+
+    const startedAt: number = Date.now();
+
+    for (const column of patternColumns()) {
+      // Megabytes, a back-reference first: what a request body can carry.
+      const pattern: string = `(a)\\1${"a".repeat(1_000_000)}`;
+      let refusal: unknown = null;
+
+      try {
+        await sanitize(column, { [column.field]: pattern }, false);
+      } catch (error: unknown) {
+        refusal = error;
+      }
+
+      expect(refusal).toBeInstanceOf(BadDataException);
+      expect((refusal as BadDataException).message).toBe(
+        `${column.field} length cannot be more than 500 characters`,
+      );
+    }
+
+    // No pattern of them was read, nor kept by the matcher's cache.
+    expect(getCachedPatternCount()).toBe(0);
+    expect(Date.now() - startedAt).toBeLessThan(10000);
+  });
+
+  test("quotes a long pattern it refuses by its beginning only", () => {
+    const pattern: string = `(a)\\1${"b".repeat(1_000_000)}`;
+    let refusal: unknown = null;
+
+    try {
+      MonitorRulePatternValidator.validate({ namePattern: pattern });
+    } catch (error: unknown) {
+      refusal = error;
+    }
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as BadDataException).message).toBe(
+      `Monitor Name Pattern "${pattern.slice(0, 500)}…" cannot run: it is too large to run. Shorten it, or repeat its parts fewer times.`,
     );
   });
 

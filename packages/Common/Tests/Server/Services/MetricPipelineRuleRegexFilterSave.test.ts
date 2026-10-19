@@ -15,6 +15,11 @@ import {
   describePatternProblemReason,
   PatternProblemReason,
 } from "../../../Utils/LinearRegExp/PatternProblem";
+import {
+  clearLinearRegExpCache,
+  getCachedPatternCharacters,
+  getCachedPatternCount,
+} from "../../../Utils/LinearRegExp/PatternCache";
 import { describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
@@ -87,6 +92,29 @@ describe("the refusal for a rule's filters", () => {
     ).toBe(
       `Filter 1: the pattern ${describePatternProblemReason(PatternProblemReason.TooLarge)}`,
     );
+  });
+
+  test("megabytes of pattern, save after save: too large, said at once, and nothing of them kept", () => {
+    clearLinearRegExpCache();
+
+    const startedAt: number = Date.now();
+
+    for (let index: number = 0; index < 20; index++) {
+      const pattern: string = `${index}(${"a".repeat(1_000_000)}`;
+      const refusal: string | null = getMetricPipelineRuleFiltersRefusal([
+        regexFilter(pattern),
+      ]);
+
+      expect(refusal).toBe(
+        `Filter 1: the pattern ${describePatternProblemReason(PatternProblemReason.TooLarge)}`,
+      );
+      // The refusal does not repeat the pattern back.
+      expect(refusal!.length).toBeLessThan(200);
+    }
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(getCachedPatternCount()).toBe(0);
+    expect(getCachedPatternCharacters()).toBe(0);
   });
 
   test("what is not a regular expression, with the engine's reason", () => {

@@ -450,6 +450,11 @@ function grokStepsOf(entry: CompiledGrokPattern | BadDataException): number {
 }
 
 export function compileGrokPatternCached(pattern: string): CompiledGrokPattern {
+  if (typeof pattern === "string" && pattern.length > MAX_GROK_PATTERN_LENGTH) {
+    // Refused at once, and never kept: its text would be the cache's key.
+    return compileGrokPattern(pattern);
+  }
+
   const cached: CompiledGrokPattern | BadDataException | undefined =
     compileCache.get(pattern);
 
@@ -496,6 +501,11 @@ export function compileGrokPatternCached(pattern: string): CompiledGrokPattern {
 /** How many matcher steps the cached compilations hold, for tests. */
 export function getCachedGrokSteps(): number {
   return cachedGrokSteps;
+}
+
+/** How many compilations are cached, refusals included, for tests. */
+export function getCachedGrokPatternCount(): number {
+  return compileCache.size;
 }
 
 /** Test seam: forget every cached compilation. */

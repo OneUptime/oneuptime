@@ -12,6 +12,11 @@ import {
   ScrubRuleCustomRegexProblem,
 } from "../../../Types/Telemetry/ScrubRule";
 import { PatternProblemReason } from "../../../Utils/LinearRegExp/PatternProblem";
+import {
+  clearLinearRegExpCache,
+  getCachedPatternCharacters,
+  getCachedPatternCount,
+} from "../../../Utils/LinearRegExp/PatternCache";
 import { validateScrubRule } from "../../../Server/Utils/ScrubRuleValidation";
 import {
   getScrubRuleCustomRegexError,
@@ -52,6 +57,26 @@ describe("checking a pattern before it is saved", () => {
       problem: ScrubRuleCustomRegexProblem.CannotRun,
       cannotRunReason: PatternProblemReason.TooLarge,
     });
+  });
+
+  test("megabytes of pattern are too large, said at once, and nothing of them is kept", () => {
+    clearLinearRegExpCache();
+
+    const startedAt: number = Date.now();
+
+    for (let index: number = 0; index < 20; index++) {
+      // Distinct, as one save after another could send them.
+      expect(
+        checkScrubRuleCustomRegex(`${index}${"x".repeat(1_000_000)}`),
+      ).toEqual({
+        problem: ScrubRuleCustomRegexProblem.CannotRun,
+        cannotRunReason: PatternProblemReason.TooLarge,
+      });
+    }
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(getCachedPatternCount()).toBe(0);
+    expect(getCachedPatternCharacters()).toBe(0);
   });
 
   test("a look-behind or look-ahead runs, as it always has", () => {

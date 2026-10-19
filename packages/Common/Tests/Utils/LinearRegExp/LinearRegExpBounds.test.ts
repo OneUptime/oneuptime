@@ -18,16 +18,22 @@ import {
 } from "../../../Utils/LinearRegExp/Matcher";
 import {
   clearLinearRegExpCache,
+  getCachedPatternCharacters,
+  getCachedPatternCount,
   getCachedPatternSteps,
   getLinearRegExp,
+  MAX_CACHED_PATTERN_CHARACTERS,
   MAX_CACHED_PATTERN_STEPS,
   MAX_CACHED_PATTERNS,
+  tryGetLinearRegExp,
 } from "../../../Utils/LinearRegExp/PatternCache";
 import {
   clearGrokCompileCache,
   compileGrokPatternCached,
+  getCachedGrokPatternCount,
   getCachedGrokSteps,
   MAX_CACHED_GROK_STEPS,
+  MAX_GROK_PATTERN_LENGTH,
 } from "../../../Utils/Grok/Grok";
 import { MAX_GROUP_NESTING } from "../../../Utils/LinearRegExp/Parser";
 import {
@@ -220,6 +226,58 @@ describe("how large a pattern it compiles", () => {
     expect(pattern.test("short text")).toBe(false);
   });
 
+  test("parts that compile to no step, copied by a count, are refused as too large, quickly", () => {
+    /*
+     * Each copy of the repeat visits every part of its body, and x{0}, (?:)
+     * and a group whose captures nobody reads emit nothing: thousands of
+     * them beside one character, copied thousands of times, are few steps
+     * and tens of millions of visits. A compile visits a few parts per step
+     * at most; these are refused before they take a second.
+     */
+    for (const [source, copies] of [
+      [`(?:${"x{0}".repeat(4990)}a){9000}`, 9000],
+      [`(?:${"(?:)".repeat(4990)}a){9000}`, 9000],
+      [`(?:${"()".repeat(6000)}a){1000}`, 1000],
+    ] as Array<[string, number]>) {
+      expect(source.length).toBeLessThanOrEqual(MAX_PATTERN_LENGTH);
+      // JavaScript takes each.
+      expect(new RegExp(source).test("a".repeat(copies))).toBe(true);
+
+      const startedAt: number = Date.now();
+      const refusal: unknown = refusalOf(source);
+
+      expect(refusal).toBeInstanceOf(PatternProblemError);
+      expect((refusal as PatternProblemError).reason).toBe(
+        PatternProblemReason.TooLarge,
+      );
+      expect((refusal as Error).message).toContain(
+        "compiling it would visit its parts more than",
+      );
+      expect(Date.now() - startedAt).toBeLessThan(500);
+    }
+
+    // The same parts copied a few times are no problem.
+    const fewCopies: LinearRegExp = new LinearRegExp(
+      `(?:${"x{0}".repeat(400)}a){3}`,
+    );
+    expect(fewCopies.test("xaaax")).toBe(true);
+    expect(fewCopies.test("xaax")).toBe(false);
+  });
+
+  test("whether a part can match nothing is worked out once, however many copies ask", () => {
+    // Every copy of the outer repeat asks it of the inner one, of 9,890 options.
+    const source: string = `(?:(?:${"a|".repeat(9890)}a){0}|){4990}`;
+
+    expect(source.length).toBeLessThanOrEqual(MAX_PATTERN_LENGTH);
+
+    const startedAt: number = Date.now();
+    const pattern: LinearRegExp = new LinearRegExp(source);
+
+    expect(Date.now() - startedAt).toBeLessThan(300);
+    expect(pattern.test("c")).toBe(new RegExp(source).test("c"));
+    expect(pattern.exec("c")?.value).toBe(new RegExp(source).exec("c")?.[0]);
+  });
+
   test("a stack too deep for compiling is a pattern too large, not an error of the engine", () => {
     jest.isolateModules(() => {
       jest.doMock("../../../Utils/LinearRegExp/Parser", () => {
@@ -404,6 +462,98 @@ describe("what the caches of compiled patterns keep", () => {
 
     clearLinearRegExpCache();
     expect(getCachedPatternSteps()).toBe(0);
+  });
+
+  test("a pattern longer than any that can run is refused each time, at once, and never kept", () => {
+    clearLinearRegExpCache();
+
+    const startedAt: number = Date.now();
+
+    // Distinct megabytes of pattern, as one request after another could send.
+    for (let index: number = 0; index < 30; index++) {
+      const source: string = `${index}(a)\\1${"a".repeat(1_000_000)}`;
+      let refusal: unknown = null;
+
+      try {
+        getLinearRegExp(source, "i");
+      } catch (error: unknown) {
+        refusal = error;
+      }
+
+      expect(refusal).toBeInstanceOf(PatternProblemError);
+      expect((refusal as PatternProblemError).reason).toBe(
+        PatternProblemReason.TooLarge,
+      );
+      expect(tryGetLinearRegExp(source)).toBeNull();
+    }
+
+    // Nothing of them is kept: not as a refusal, not as a key.
+    expect(getCachedPatternCount()).toBe(0);
+    expect(getCachedPatternCharacters()).toBe(0);
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+
+    // One as long as may run is compiled, and kept, as before.
+    const atLimit: string = `${"(?:)".repeat(MAX_PATTERN_LENGTH / 4 - 1)}abcd`;
+
+    expect(atLimit.length).toBe(MAX_PATTERN_LENGTH);
+    expect(getLinearRegExp(atLimit).test("xabcdx")).toBe(true);
+    expect(getCachedPatternCount()).toBe(1);
+    clearLinearRegExpCache();
+  });
+
+  test("the patterns cached together keep at most so many characters of text", () => {
+    clearLinearRegExpCache();
+
+    // As long as a pattern may be, each compiling to a handful of steps.
+    const padding: string = "(?:)".repeat(MAX_PATTERN_LENGTH / 4 - 5);
+
+    for (let index: number = 0; index < 150; index++) {
+      expect(getLinearRegExp(`${padding}x${index}`).steps).toBeLessThan(20);
+      // A refusal quotes its pattern in its message: that counts too.
+      expect(tryGetLinearRegExp(`${padding}(${index}`)).toBeNull();
+      expect(getCachedPatternCharacters()).toBeLessThanOrEqual(
+        MAX_CACHED_PATTERN_CHARACTERS,
+      );
+    }
+
+    // Far fewer than the count allows: the characters decided.
+    expect(getCachedPatternCount()).toBeLessThan(MAX_CACHED_PATTERNS / 4);
+    expect(getCachedPatternCharacters()).toBeGreaterThan(
+      MAX_CACHED_PATTERN_CHARACTERS / 2,
+    );
+
+    // The least recently used were dropped; the most recent is still kept.
+    const kept: LinearRegExp = getLinearRegExp(`${padding}x149`);
+    expect(getLinearRegExp(`${padding}x149`)).toBe(kept);
+    expect(getLinearRegExp(`${padding}x0`)).not.toBe(
+      getLinearRegExp(`${padding}x149`),
+    );
+
+    clearLinearRegExpCache();
+    expect(getCachedPatternCharacters()).toBe(0);
+    expect(getCachedPatternCount()).toBe(0);
+  });
+
+  test("a grok pattern longer than may be written is refused each time, and never kept", () => {
+    clearGrokCompileCache();
+
+    for (let index: number = 0; index < 20; index++) {
+      const pattern: string = `%{WORD:w${index}} ${"x".repeat(1_000_000)}`;
+
+      expect(() => {
+        compileGrokPatternCached(pattern);
+      }).toThrow(
+        `Grok pattern cannot be longer than ${MAX_GROK_PATTERN_LENGTH} characters.`,
+      );
+    }
+
+    expect(getCachedGrokPatternCount()).toBe(0);
+
+    // One within the length is compiled once and kept, as before.
+    const compiled: unknown = compileGrokPatternCached("%{WORD:word} done");
+    expect(compileGrokPatternCached("%{WORD:word} done")).toBe(compiled);
+    expect(getCachedGrokPatternCount()).toBe(1);
+    clearGrokCompileCache();
   });
 
   test("small patterns are kept by the thousand", () => {

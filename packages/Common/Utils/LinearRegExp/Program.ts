@@ -83,6 +83,17 @@ export const MAX_LOOKAROUNDS: number = 32;
  */
 export const MAX_EMPTY_REPEAT_NESTING: number = 8;
 
+/*
+ * How many times compiling one program may visit a part of the parsed
+ * pattern, per step the program may have, beyond one visit to each part. A
+ * part inside a counted repeat is visited once per copy, and some parts -
+ * (?:), x{0}, a group whose captures nobody reads - emit no step at all, so
+ * the steps alone would not bound how long a compile takes: (?:x{0}x{0}...a)
+ * repeated ten thousand times is ten thousand steps and fifty million
+ * visits. A real pattern visits a few parts per step.
+ */
+export const MAX_VISITS_PER_STEP: number = 8;
+
 export interface Program {
   ops: Int32Array;
   argA: Int32Array;
@@ -166,25 +177,23 @@ export interface CompileOptions {
   maxSteps: number;
 }
 
-function isNullable(node: SyntaxNode): boolean {
+// How many parts the parsed pattern has: each is visited once at least.
+function countParts(node: SyntaxNode): number {
   switch (node.kind) {
-    case "Empty":
-    case "Assertion":
-    case "Lookaround":
-      return true;
-    case "Character":
-    case "Set":
-      return false;
     case "Group":
-      return isNullable(node.body);
     case "Repeat":
-      return node.min === 0 || isNullable(node.body);
+    case "Lookaround":
+      return 1 + countParts(node.body);
     case "Alternation":
-      return node.options.some(isNullable);
+      return node.options.reduce((parts: number, option: SyntaxNode) => {
+        return parts + countParts(option);
+      }, 1);
     case "Sequence":
-      return node.items.every(isNullable);
+      return node.items.reduce((parts: number, item: SyntaxNode) => {
+        return parts + countParts(item);
+      }, 1);
     default:
-      return true;
+      return 1;
   }
 }
 
@@ -207,10 +216,13 @@ function hasCapture(node: SyntaxNode): boolean {
 
 class StepBudget {
   private used: number = 0;
+  private visited: number = 0;
   private readonly limit: number;
+  private readonly visitLimit: number;
 
-  public constructor(limit: number) {
+  public constructor(limit: number, parts: number) {
     this.limit = limit;
+    this.visitLimit = parts + MAX_VISITS_PER_STEP * limit;
   }
 
   public spend(): void {
@@ -220,6 +232,18 @@ class StepBudget {
       throw new PatternProblemError(
         PatternProblemReason.TooLarge,
         `The pattern is too large: it would take more than ${this.limit} steps to run.`,
+      );
+    }
+  }
+
+  // One more visit to a part of the parsed pattern.
+  public visit(): void {
+    this.visited++;
+
+    if (this.visited > this.visitLimit) {
+      throw new PatternProblemError(
+        PatternProblemReason.TooLarge,
+        `The pattern is too large: compiling it would visit its parts more than ${this.visitLimit} times.`,
       );
     }
   }
@@ -319,7 +343,14 @@ class ProgramBuilder {
 
 class Compiler {
   private readonly options: CompileOptions;
+  // How many parts the parsed pattern has (countParts).
+  private readonly parts: number;
   private budget: StepBudget;
+  // Whether each part can match empty text, worked out once a part.
+  private readonly nullableParts: Map<SyntaxNode, boolean> = new Map<
+    SyntaxNode,
+    boolean
+  >();
   // Each look-around is compiled once; the backwards copy reads the same one.
   private readonly lookaroundIndexByNode: Map<LookaroundNode, number> = new Map<
     LookaroundNode,
@@ -341,14 +372,15 @@ class Compiler {
   >();
   public readonly lookarounds: Array<LookaroundProgram> = [];
 
-  public constructor(options: CompileOptions) {
+  public constructor(options: CompileOptions, parts: number) {
     this.options = options;
-    this.budget = new StepBudget(options.maxSteps);
+    this.parts = parts;
+    this.budget = new StepBudget(options.maxSteps, parts);
   }
 
   public compileReversed(pattern: ParsedPattern): Program {
     // A copy of the pattern, with a budget of its own.
-    this.budget = new StepBudget(this.options.maxSteps);
+    this.budget = new StepBudget(this.options.maxSteps, this.parts);
     const builder: ProgramBuilder = this.newBuilder(0);
 
     this.emit(builder, pattern.root, {
@@ -430,11 +462,58 @@ class Compiler {
     return program;
   }
 
+  /*
+   * Whether a part can match empty text. Asked again for every copy of a
+   * repeat around it, so each part's answer is kept: a part is read once.
+   */
+  private isNullable(node: SyntaxNode): boolean {
+    const known: boolean | undefined = this.nullableParts.get(node);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    let nullable: boolean;
+
+    switch (node.kind) {
+      case "Character":
+      case "Set":
+        nullable = false;
+        break;
+      case "Group":
+        nullable = this.isNullable(node.body);
+        break;
+      case "Repeat":
+        nullable = node.min === 0 || this.isNullable(node.body);
+        break;
+      case "Alternation":
+        nullable = node.options.some((option: SyntaxNode): boolean => {
+          return this.isNullable(option);
+        });
+        break;
+      case "Sequence":
+        nullable = node.items.every((item: SyntaxNode): boolean => {
+          return this.isNullable(item);
+        });
+        break;
+      default:
+        // Empty, an assertion, a look-around: they read nothing.
+        nullable = true;
+        break;
+    }
+
+    this.nullableParts.set(node, nullable);
+
+    return nullable;
+  }
+
   private emit(
     builder: ProgramBuilder,
     node: SyntaxNode,
     mode: EmitMode,
   ): void {
+    this.budget.visit();
+
     switch (node.kind) {
       case "Empty":
         return;
@@ -557,7 +636,7 @@ class Compiler {
      * matches, does not need it.
      */
     const register: number =
-      mode.checksProgress && isNullable(node.body)
+      mode.checksProgress && this.isNullable(node.body)
         ? builder.allocateRegister()
         : -1;
 
@@ -777,7 +856,7 @@ export function compilePattern(
   pattern: ParsedPattern,
   options: CompileOptions,
 ): CompiledPattern {
-  const compiler: Compiler = new Compiler(options);
+  const compiler: Compiler = new Compiler(options, countParts(pattern.root));
   const main: Program = compiler.compileMain(pattern);
   const reversed: Program = compiler.compileReversed(pattern);
 

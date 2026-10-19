@@ -78,6 +78,20 @@ const SUPPORTED_FLAGS: string = "gims";
  */
 export const MAX_PATTERN_LENGTH: number = 20_000;
 
+/*
+ * Refuses a pattern longer than MAX_PATTERN_LENGTH, as too large. Asked
+ * before anything reads the pattern - or keeps it: a filter or a request can
+ * carry megabytes of text.
+ */
+export function refusePatternTooLong(source: string): void {
+  if (source.length > MAX_PATTERN_LENGTH) {
+    throw new PatternProblemError(
+      PatternProblemReason.TooLarge,
+      `The pattern is longer than ${MAX_PATTERN_LENGTH} characters.`,
+    );
+  }
+}
+
 export default class LinearRegExp {
   public readonly source: string;
   public readonly flags: string;
@@ -103,12 +117,7 @@ export default class LinearRegExp {
     }
 
     // Refused before anything reads it: a filter can carry megabytes.
-    if (source.length > MAX_PATTERN_LENGTH) {
-      throw new PatternProblemError(
-        PatternProblemReason.TooLarge,
-        `The pattern is longer than ${MAX_PATTERN_LENGTH} characters.`,
-      );
-    }
+    refusePatternTooLong(source);
 
     /*
      * The running engine decides what is a regular expression, and says what

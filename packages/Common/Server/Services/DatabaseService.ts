@@ -2303,6 +2303,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
+      const maxLength: number | undefined = getMaxLengthFromTableColumnType(
+        metadata.type,
+      );
+
+      if (maxLength !== undefined && value.length > maxLength) {
+        // Longer than its column holds: refused for that just after, unread.
+        continue;
+      }
+
       const refusal: string | null = RulePatternMatchUtil.getCannotRunMessage(
         metadata.title || field,
         value,

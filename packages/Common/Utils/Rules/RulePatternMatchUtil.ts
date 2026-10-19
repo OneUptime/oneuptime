@@ -34,6 +34,9 @@ import {
   PatternProblemReason,
 } from "../LinearRegExp/PatternProblem";
 
+// How much of a pattern a refusal quotes: a rule's pattern column holds 500.
+const MAX_QUOTED_PATTERN_LENGTH: number = 500;
+
 export class RulePatternMatchUtil {
   /*
    * True when `value` satisfies `pattern`. An empty/missing pattern is "no
@@ -125,7 +128,9 @@ export class RulePatternMatchUtil {
   /*
    * The refusal a rule's save gives for a pattern that is a regular
    * expression the matcher cannot run - `Monitor Name Pattern "(a)\1"
-   * cannot run: it refers back to ...` - or null for any other pattern.
+   * cannot run: it refers back to ...` - or null for any other pattern. A
+   * long pattern is quoted by its beginning only: one too large to run can
+   * be megabytes.
    */
   public static getCannotRunMessage(
     title: string,
@@ -134,9 +139,16 @@ export class RulePatternMatchUtil {
     const problem: string | null =
       RulePatternMatchUtil.getRegexProblem(pattern);
 
-    return problem === null
-      ? null
-      : `${title} "${pattern}" cannot run: ${problem}`;
+    if (problem === null) {
+      return null;
+    }
+
+    const quoted: string =
+      pattern.length > MAX_QUOTED_PATTERN_LENGTH
+        ? `${pattern.slice(0, MAX_QUOTED_PATTERN_LENGTH)}…`
+        : pattern;
+
+    return `${title} "${quoted}" cannot run: ${problem}`;
   }
 
   /*
