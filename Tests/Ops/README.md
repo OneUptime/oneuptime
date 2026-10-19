@@ -624,7 +624,9 @@ line near zero that never follows the load. So the agents turn it off and build
 `cumulative_to_delta` (CPU time since the previous scrape), `delta_to_rate` (per
 second) and a scale to percent of one core with the unit `%`. The same last
 processor gives `container.memory.percent` - a 0-100 figure the receiver labels
-`1`, the unit of a 0-1 fraction - the unit `%`.
+`1`, the unit of a 0-1 fraction - the unit `%`, and a description that says
+what it is a percent of (the container's memory limit, or the host's memory
+when the container has none).
 
 The suite holds the three configs to that: the receiver's own figure off and
 the counter it is built from on, the four processors exactly as written and
@@ -643,7 +645,8 @@ nothing, 10%; and 1% throughout - the customer's container), then runs the
 agent's whole metrics pipeline against the machine's Docker daemon, with a
 container held to half a core by its CPU quota: `container.cpu.utilization`
 reads 50% (within 15 points), equals the rate of `container.cpu.usage.total`,
-and `container.memory.percent` is usage over limit, in `%`. The Podman agent's
+and `container.memory.percent` is usage over limit, in `%`; in both parts each
+percent carries the description the agents set. The Podman agent's
 receiver is pointed at the Docker socket, so that run checks its pipeline, not
 Podman's API. It needs docker; the "Ops Config Test" workflow runs it after
 `agent-cpu-names-behaviour.sh`. `Utils/ContainerAgentCpuBehaviour.js` builds its
