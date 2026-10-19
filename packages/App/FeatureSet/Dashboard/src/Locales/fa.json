@@ -31220,5 +31220,21 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "اکنون هیچ Runner سراسری متصل نیست. اگر هیچ Runnerی گام را در مهلت برداشتن آن برندارد، گام شکست می‌خورد.",
   "JavaScript, needs a Runner": "JavaScript، به یک Runner نیاز دارد",
   "Bash script, needs a Runner": "اسکریپت Bash، به یک Runner نیاز دارد",
-  "Stored encrypted. Only the Runners you let use it can read it.": "رمزگذاری‌شده ذخیره می‌شود. فقط Runnerهایی که اجازه استفاده از آن را می‌دهید می‌توانند آن را بخوانند."
+  "Stored encrypted. Only the Runners you let use it can read it.": "رمزگذاری‌شده ذخیره می‌شود. فقط Runnerهایی که اجازه استفاده از آن را می‌دهید می‌توانند آن را بخوانند.",
+  "Choose which resolved incidents OneUptime AI drafts a postmortem for, and the templates a draft may follow. With no rule, every resolved incident gets a draft; with rules, the first rule that matches decides.": "انتخاب کنید OneUptime AI برای کدام حوادث حل‌شده پیش‌نویس گزارش پس از حادثه بنویسد و پیش‌نویس از کدام قالب‌ها پیروی کند. بدون هیچ قاعده‌ای، هر حادثه حل‌شده پیش‌نویس می‌گیرد؛ با وجود قواعد، اولین قاعده منطبق تصمیم می‌گیرد.",
+  "Draft with the standard outline": "پیش‌نویس با ساختار استاندارد",
+  "Draft with {{templates}}": "پیش‌نویس با {{templates}}",
+  "Draft with {{templates}} and {{count}} more": "پیش‌نویس با {{templates}} و {{count}} مورد دیگر",
+  "Draft with {{templates}} and {{count}} more_one": "پیش‌نویس با {{templates}} و {{count}} مورد دیگر",
+  "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.": "هر حادثه، با هر شدتی، بررسی می‌شود، تا وقتی اصلاح روشن است اصلاح می‌شود و وقتی حل شد پیش‌نویس گزارش پس از حادثه‌اش نوشته می‌شود. هیچ چیز میزان کار OneUptime AI را محدود نمی‌کند.",
+  "Leave empty for OneUptime AI's standard outline. With more than one, OneUptime AI picks the one that fits the incident best.": "برای ساختار استاندارد OneUptime AI خالی بگذارید. با بیش از یک قالب، OneUptime AI مناسب‌ترین را برای حادثه انتخاب می‌کند.",
+  "Named after its templates until you type a name of your own.": "تا وقتی نام دلخواه خود را وارد نکنید، بر اساس قالب‌هایش نام‌گذاری می‌شود.",
+  "No rules. Every resolved incident gets a postmortem draft.": "هیچ قاعده‌ای نیست. برای هر حادثه حل‌شده پیش‌نویس گزارش پس از حادثه نوشته می‌شود.",
+  "Postmortem Rule": "قاعده گزارش پس از حادثه",
+  "Postmortem Rules": "قواعد گزارش پس از حادثه",
+  "Postmortem rules": "قواعد گزارش پس از حادثه",
+  "Standard outline": "ساختار استاندارد",
+  "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "کدام حوادث بررسی یا اصلاح می‌شوند یا پیش‌نویس گزارش پس از حادثه می‌گیرند، و محدودیت‌های بررسی‌ها و کار روزانه هوش مصنوعی.",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "بدون هیچ قاعده‌ای، OneUptime AI برای هر حادثه حل‌شده پیش‌نویس گزارش پس از حادثه می‌نویسد. قواعدی اضافه کنید تا فقط برای حوادثی که با یکی از آن‌ها منطبق‌اند پیش‌نویس نوشته شود و قالب‌های پیش‌نویس را انتخاب کنید. اولین قاعده منطبق اعمال می‌شود - برای تغییر ترتیب، قواعد را بکشید.",
+  "e.g. Draft with Database outage": "برای نمونه پیش‌نویس با Database outage"
 }

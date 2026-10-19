@@ -31220,5 +31220,21 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "目前沒有已連線的全域 Runner。如果在領取逾時內沒有 Runner 領取，此步驟將失敗。",
   "JavaScript, needs a Runner": "JavaScript，需要 Runner",
   "Bash script, needs a Runner": "Bash 指令碼，需要 Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "加密儲存。只有您允許使用的 Runner 才能讀取。"
+  "Stored encrypted. Only the Runners you let use it can read it.": "加密儲存。只有您允許使用的 Runner 才能讀取。",
+  "Choose which resolved incidents OneUptime AI drafts a postmortem for, and the templates a draft may follow. With no rule, every resolved incident gets a draft; with rules, the first rule that matches decides.": "選擇 OneUptime AI 為哪些已解決的事件起草事後分析，以及草稿可以遵循哪些範本。沒有規則時，每個已解決的事件都會產生草稿；有規則時，由第一條符合的規則決定。",
+  "Draft with the standard outline": "以標準大綱起草",
+  "Draft with {{templates}}": "以 {{templates}} 起草",
+  "Draft with {{templates}} and {{count}} more": "以 {{templates}} 及另外 {{count}} 個起草",
+  "Draft with {{templates}} and {{count}} more_one": "以 {{templates}} 及另外 {{count}} 個起草",
+  "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.": "每個事件都會被調查，無論嚴重程度為何；修正開啟時會被修正；解決後會產生事後分析草稿。OneUptime AI 的工作量不受限制。",
+  "Leave empty for OneUptime AI's standard outline. With more than one, OneUptime AI picks the one that fits the incident best.": "留空則使用 OneUptime AI 的標準大綱。選擇多個時，OneUptime AI 會挑選最適合該事件的一個。",
+  "Named after its templates until you type a name of your own.": "在您輸入自己的名稱之前，會依其範本命名。",
+  "No rules. Every resolved incident gets a postmortem draft.": "沒有規則。每個已解決的事件都會產生事後分析草稿。",
+  "Postmortem Rule": "事後分析規則",
+  "Postmortem Rules": "事後分析規則",
+  "Postmortem rules": "事後分析規則",
+  "Standard outline": "標準大綱",
+  "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "調查、修正哪些事件或為哪些事件起草事後分析，以及調查和每日 AI 工作的限制。",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "沒有規則時，OneUptime AI 會為每個已解決的事件起草事後分析。新增規則可以只為符合其中某條規則的事件起草，並選擇草稿遵循的範本。第一條符合的規則生效——拖曳規則即可調整順序。",
+  "e.g. Draft with Database outage": "例如 以 Database outage 起草"
 }

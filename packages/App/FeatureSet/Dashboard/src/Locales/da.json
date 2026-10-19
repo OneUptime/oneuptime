@@ -31220,5 +31220,21 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "Ingen global Runner er forbundet lige nu. Trinnet fejler, hvis ingen overtager det inden for dets timeout for overtagelse.",
   "JavaScript, needs a Runner": "JavaScript, mangler en Runner",
   "Bash script, needs a Runner": "Bash-script, mangler en Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Gemmes krypteret. Kun de Runnere, du lader bruge den, kan læse den."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Gemmes krypteret. Kun de Runnere, du lader bruge den, kan læse den.",
+  "Choose which resolved incidents OneUptime AI drafts a postmortem for, and the templates a draft may follow. With no rule, every resolved incident gets a draft; with rules, the first rule that matches decides.": "Vælg, hvilke løste hændelser OneUptime AI skriver et udkast til en postmortem for, og hvilke skabeloner et udkast må følge. Uden regler får hver løst hændelse et udkast; med regler afgør den første regel, der matcher.",
+  "Draft with the standard outline": "Skriv udkast med standardopbygningen",
+  "Draft with {{templates}}": "Skriv udkast med {{templates}}",
+  "Draft with {{templates}} and {{count}} more": "Skriv udkast med {{templates}} og {{count}} til",
+  "Draft with {{templates}} and {{count}} more_one": "Skriv udkast med {{templates}} og {{count}} til",
+  "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.": "Hver hændelse bliver undersøgt, uanset alvorlighed, rettet, så længe automatisk rettelse er slået til, og får et udkast til en postmortem, når den er løst. Intet begrænser, hvor meget OneUptime AI gør.",
+  "Leave empty for OneUptime AI's standard outline. With more than one, OneUptime AI picks the one that fits the incident best.": "Lad feltet stå tomt for OneUptime AI's standardopbygning. Med flere vælger OneUptime AI den, der passer bedst til hændelsen.",
+  "Named after its templates until you type a name of your own.": "Navngivet efter dens skabeloner, indtil du skriver dit eget navn.",
+  "No rules. Every resolved incident gets a postmortem draft.": "Ingen regler. Hver løst hændelse får et udkast til en postmortem.",
+  "Postmortem Rule": "Postmortem-regel",
+  "Postmortem Rules": "Postmortem-regler",
+  "Postmortem rules": "Postmortem-regler",
+  "Standard outline": "Standardopbygning",
+  "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "Hvilke hændelser der undersøges, rettes eller får et udkast til en postmortem, og grænser for undersøgelser og for AI-arbejde hver dag.",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "Uden regler skriver OneUptime AI et udkast til en postmortem for hver løst hændelse. Tilføj regler for kun at skrive udkast for de hændelser, der matcher en af dem, og for at vælge de skabeloner, et udkast følger. Den første regel, der matcher, gælder - træk regler for at ændre rækkefølgen.",
+  "e.g. Draft with Database outage": "f.eks. Skriv udkast med Database outage"
 }

@@ -31220,5 +31220,21 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "Gerade ist kein globaler Runner verbunden. Der Schritt schlägt fehl, wenn ihn keiner innerhalb seines Übernahme-Timeouts übernimmt.",
   "JavaScript, needs a Runner": "JavaScript, braucht einen Runner",
   "Bash script, needs a Runner": "Bash-Skript, braucht einen Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Wird verschlüsselt gespeichert. Nur die Runner, denen Sie es erlauben, können es lesen."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Wird verschlüsselt gespeichert. Nur die Runner, denen Sie es erlauben, können es lesen.",
+  "Choose which resolved incidents OneUptime AI drafts a postmortem for, and the templates a draft may follow. With no rule, every resolved incident gets a draft; with rules, the first rule that matches decides.": "Legen Sie fest, für welche gelösten Vorfälle OneUptime AI ein Postmortem entwirft und welchen Vorlagen ein Entwurf folgen darf. Ohne Regeln erhält jeder gelöste Vorfall einen Entwurf; mit Regeln entscheidet die erste passende Regel.",
+  "Draft with the standard outline": "Mit der Standardgliederung entwerfen",
+  "Draft with {{templates}}": "Mit {{templates}} entwerfen",
+  "Draft with {{templates}} and {{count}} more": "Mit {{templates}} und {{count}} weiteren entwerfen",
+  "Draft with {{templates}} and {{count}} more_one": "Mit {{templates}} und {{count}} weiteren entwerfen",
+  "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.": "Jeder Vorfall wird untersucht, unabhängig von seinem Schweregrad, behoben, solange die automatische Behebung eingeschaltet ist, und erhält einen Postmortem-Entwurf, wenn er gelöst wird. Nichts begrenzt, wie viel OneUptime AI tut.",
+  "Leave empty for OneUptime AI's standard outline. With more than one, OneUptime AI picks the one that fits the incident best.": "Leer lassen für die Standardgliederung von OneUptime AI. Bei mehreren wählt OneUptime AI die Vorlage, die am besten zum Vorfall passt.",
+  "Named after its templates until you type a name of your own.": "Nach ihren Vorlagen benannt, bis Sie einen eigenen Namen eingeben.",
+  "No rules. Every resolved incident gets a postmortem draft.": "Keine Regeln. Jeder gelöste Vorfall erhält einen Postmortem-Entwurf.",
+  "Postmortem Rule": "Postmortem-Regel",
+  "Postmortem Rules": "Postmortem-Regeln",
+  "Postmortem rules": "Postmortem-Regeln",
+  "Standard outline": "Standardgliederung",
+  "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "Welche Vorfälle untersucht, behoben oder mit einem Postmortem-Entwurf versehen werden, und Limits für Untersuchungen und für KI-Arbeit pro Tag.",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "Ohne Regeln entwirft OneUptime AI für jeden gelösten Vorfall ein Postmortem. Fügen Sie Regeln hinzu, um nur für die Vorfälle zu entwerfen, die zu einer davon passen, und um die Vorlagen eines Entwurfs festzulegen. Es gilt die erste passende Regel - ziehen Sie Regeln, um ihre Reihenfolge zu ändern.",
+  "e.g. Draft with Database outage": "z. B. Mit Database outage entwerfen"
 }

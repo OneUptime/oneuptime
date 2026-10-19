@@ -81,8 +81,7 @@ export function countPostmortemRuleTemplates(templates: unknown): number {
 export function getPostmortemRuleTemplatesProblem(
   templates: unknown,
 ): string | null {
-  return countPostmortemRuleTemplates(templates) >
-    MAX_POSTMORTEM_RULE_TEMPLATES
+  return countPostmortemRuleTemplates(templates) > MAX_POSTMORTEM_RULE_TEMPLATES
     ? POSTMORTEM_RULE_TOO_MANY_TEMPLATES_MESSAGE
     : null;
 }

@@ -31220,5 +31220,21 @@
   "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.": "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.",
   "JavaScript, needs a Runner": "JavaScript, needs a Runner",
   "Bash script, needs a Runner": "Bash script, needs a Runner",
-  "Stored encrypted. Only the Runners you let use it can read it.": "Stored encrypted. Only the Runners you let use it can read it."
+  "Stored encrypted. Only the Runners you let use it can read it.": "Stored encrypted. Only the Runners you let use it can read it.",
+  "Choose which resolved incidents OneUptime AI drafts a postmortem for, and the templates a draft may follow. With no rule, every resolved incident gets a draft; with rules, the first rule that matches decides.": "Choose which resolved incidents OneUptime AI drafts a postmortem for, and the templates a draft may follow. With no rule, every resolved incident gets a draft; with rules, the first rule that matches decides.",
+  "Draft with the standard outline": "Draft with the standard outline",
+  "Draft with {{templates}}": "Draft with {{templates}}",
+  "Draft with {{templates}} and {{count}} more": "Draft with {{templates}} and {{count}} more",
+  "Draft with {{templates}} and {{count}} more_one": "Draft with {{templates}} and {{count}} more",
+  "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.": "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.",
+  "Leave empty for OneUptime AI's standard outline. With more than one, OneUptime AI picks the one that fits the incident best.": "Leave empty for OneUptime AI's standard outline. With more than one, OneUptime AI picks the one that fits the incident best.",
+  "Named after its templates until you type a name of your own.": "Named after its templates until you type a name of your own.",
+  "No rules. Every resolved incident gets a postmortem draft.": "No rules. Every resolved incident gets a postmortem draft.",
+  "Postmortem Rule": "Postmortem Rule",
+  "Postmortem Rules": "Postmortem Rules",
+  "Postmortem rules": "Postmortem rules",
+  "Standard outline": "Standard outline",
+  "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.",
+  "e.g. Draft with Database outage": "e.g. Draft with Database outage"
 }

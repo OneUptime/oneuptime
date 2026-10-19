@@ -3,10 +3,15 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentPostmortemTemplate from "../../../../Models/DatabaseModels/IncidentPostmortemTemplate";
 import { MAX_POSTMORTEM_RULE_TEMPLATES } from "../../../../Types/AI/PostmortemRuleTemplates";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../../Types/ObjectID";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
+import { getAllEnvVars } from "../../../EnvironmentConfig";
 import AIPostmortemRuleService from "../../../Services/AIPostmortemRuleService";
 import IncidentPostmortemTemplateService from "../../../Services/IncidentPostmortemTemplateService";
+import ProjectService, { CurrentPlan } from "../../../Services/ProjectService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../../Logger";
 import IncidentAlertRuleMatcher from "../../Rules/IncidentAlertRuleMatcher";
@@ -40,6 +45,13 @@ import logIfRuleReadWasTruncated from "../../Rules/RuleEngineRuleRead";
  * their templates cannot be read, there is no plan, and no draft (where an
  * investigation, which only reads, goes ahead - InvestigationRules). Anyone
  * who can edit the incident can still draft it with Generate with AI.
+ *
+ * Postmortem templates are a feature OneUptime Cloud sells on a plan (the
+ * Growth plan, IncidentPostmortemTemplate's read plan): following one is
+ * using it. A project below that plan - a trial that ended, a downgrade - has
+ * its rules still decide which incidents get a draft, but every draft
+ * follows the standard outline, as the dashboard, which offers no template
+ * there, says.
  */
 export interface PostmortemRuleTemplate {
   id: ObjectID;
@@ -240,6 +252,14 @@ export default class PostmortemRules {
     }
 
     try {
+      if (!(await this.isTemplatePlanMet(data.projectId))) {
+        logger.debug(
+          `AI: postmortem rule ${data.rule.id?.toString()} names templates, but the project's plan does not include postmortem templates; the draft follows the standard outline.`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        return [];
+      }
+
       const templates: Array<IncidentPostmortemTemplate> =
         await IncidentPostmortemTemplateService.findBy({
           query: {
@@ -281,5 +301,33 @@ export default class PostmortemRules {
       );
       return null;
     }
+  }
+
+  /*
+   * Whether the project's plan includes postmortem templates: always with
+   * billing off (getCurrentPlan answers no plan), and on OneUptime Cloud
+   * when its plan reaches the templates' read plan.
+   */
+  private static async isTemplatePlanMet(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    const requiredPlan: PlanType | null =
+      new IncidentPostmortemTemplate().getReadBillingPlan();
+
+    if (!requiredPlan) {
+      return true;
+    }
+
+    const current: CurrentPlan = await ProjectService.getCurrentPlan(projectId);
+
+    if (!current.plan) {
+      return true;
+    }
+
+    return SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+      requiredPlan,
+      current.plan,
+      getAllEnvVars(),
+    );
   }
 }
