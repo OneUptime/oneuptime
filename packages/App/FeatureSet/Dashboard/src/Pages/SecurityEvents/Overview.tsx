@@ -472,7 +472,9 @@ const SecurityOverviewPage: FunctionComponent<
                       key="open-cases"
                       variant="segment"
                       icon={IconProp.ShieldExclamation}
-                      label="Open Cases"
+                      label={
+                        translator.translateText("Open Cases") || "Open Cases"
+                      }
                       value={translator.formatNumber(metrics.openCases)}
                       description={openCasesDetail}
                     />,
@@ -481,7 +483,10 @@ const SecurityOverviewPage: FunctionComponent<
                 key="acknowledge"
                 variant="segment"
                 icon={IconProp.User}
-                label="Mean Time to Acknowledge"
+                label={
+                  translator.translateText("Mean Time to Acknowledge") ||
+                  "Mean Time to Acknowledge"
+                }
                 value={formatDurationInMinutes(
                   metrics.meanTimeToAcknowledgeInMinutes,
                 )}
@@ -496,7 +501,10 @@ const SecurityOverviewPage: FunctionComponent<
                 key="contain"
                 variant="segment"
                 icon={IconProp.ShieldCheck}
-                label="Mean Time to Contain"
+                label={
+                  translator.translateText("Mean Time to Contain") ||
+                  "Mean Time to Contain"
+                }
                 value={formatDurationInMinutes(
                   metrics.meanTimeToContainInMinutes,
                 )}
@@ -511,7 +519,10 @@ const SecurityOverviewPage: FunctionComponent<
                 key="close"
                 variant="segment"
                 icon={IconProp.CheckCircle}
-                label="Mean Time to Close"
+                label={
+                  translator.translateText("Mean Time to Close") ||
+                  "Mean Time to Close"
+                }
                 value={formatDurationInMinutes(
                   metrics.meanTimeToCloseInMinutes,
                 )}

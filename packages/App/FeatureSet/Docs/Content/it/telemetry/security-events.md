@@ -156,7 +156,7 @@ La scheda **Guida alla configurazione** contiene questi frammenti con il tuo hos
 
 ### Trovare eventi di sicurezza nei tuoi log
 
-**Your logs**, in cima a **Connections**, rende una sorgente i log che invii già a OneUptime. Con **Find security events in your logs** attivo, i nuovi log del progetto vengono letti ogni minuto, e ogni accesso SSH, comando sudo, voce di audit di Kubernetes, modifica di AWS CloudTrail e attacco web che contengono viene salvato come evento di sicurezza. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started#trovare-eventi-di-sicurezza-nei-tuoi-log) per cosa copre ciascun tipo.
+La scheda **I tuoi log**, in cima a **Connections**, rende una sorgente i log che invii già a OneUptime. Con **Trova eventi di sicurezza nei tuoi log** attivo, i nuovi log del progetto vengono letti ogni minuto, e ogni accesso SSH, comando sudo, voce di audit di Kubernetes, modifica di AWS CloudTrail e attacco web che contengono viene salvato come evento di sicurezza. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started#trovare-eventi-di-sicurezza-nei-tuoi-log) per cosa copre ciascun tipo.
 
 ### Collegare un prodotto di sicurezza
 
@@ -373,7 +373,7 @@ Controlla la chiave in `x-oneuptime-token` e il percorso, `/security-events/v1/i
 :::
 
 :::details Una regola non corrisponde mai
-Controlla che sia **Abilitato**, e leggi **Last Evaluated** e **Last Error** nella sua riga. Apri un evento che ti aspettavi corrispondesse e confrontalo con la regola, campo per campo: un valore semplice deve essere uguale all'intero campo, quindi usa `contains` o `*` per una parte. Un attributo si nomina come nell'evento (`threat.matched`, non `attributes.threat.matched`). Con una soglia maggiore di 1, le corrispondenze devono cadere in una sola esecuzione.
+Controlla che sia **Abilitato**, e leggi **Last Evaluated** e **Ultimo errore** nella sua riga. Apri un evento che ti aspettavi corrispondesse e confrontalo con la regola, campo per campo: un valore semplice deve essere uguale all'intero campo, quindi usa `contains` o `*` per una parte. Un attributo si nomina come nell'evento (`threat.matched`, non `attributes.threat.matched`). Con una soglia maggiore di 1, le corrispondenze devono cadere in una sola esecuzione.
 :::
 
 :::details Una regola ha corrisposto, ma non si è aperto nessun avviso

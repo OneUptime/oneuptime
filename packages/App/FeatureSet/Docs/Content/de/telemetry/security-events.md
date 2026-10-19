@@ -156,7 +156,7 @@ Der Tab **Einrichtungsanleitung** hat diese Snippets mit Ihrem eigenen Host und 
 
 ### Sicherheitsereignisse in Ihren Logs finden
 
-**Your logs**, oben auf **Verbindungen**, macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Find security events in your logs** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH-Anmeldung, jeder sudo-Befehl, jeder Kubernetes-Audit-Eintrag, jede AWS-CloudTrail-Änderung und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
+Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH-Anmeldung, jeder sudo-Befehl, jeder Kubernetes-Audit-Eintrag, jede AWS-CloudTrail-Änderung und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
 
 ### Ein Sicherheitsprodukt verbinden
 

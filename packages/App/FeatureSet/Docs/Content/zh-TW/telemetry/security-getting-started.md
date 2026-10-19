@@ -18,18 +18,18 @@ OneUptime 會從您已有的資料中找出威脅——您的日誌、您使用�
 :::steps
 ### 開啟大多數團隊需要的功能
 
-開啟 **產品 → Security Events**。在 **概覽** 上按一下 **Turn on recommended**。它會一次開啟三項：**Find security events in your logs**、建議的偵測規則，以及 **Enrich New Cases**——一個將每個新案件與威脅情資比對、並在其中留下分流檢查清單的劇本。
+開啟 **產品 → Security Events**。在 **概覽** 上按一下 **開啟推薦設定**。它會一次開啟三項：**在日誌中尋找安全事件**、建議的偵測規則，以及 **Enrich New Cases**——一個將每個新案件與威脅情資比對、並在其中留下分流檢查清單的劇本。
 
 ### 傳送測試攻擊
 
-按一下 **Send a test attack**。來自一個文件專用位址的十幾次登入失敗會經過真實的處理流程：它們會被儲存，暴力破解規則會偵測到它們，並開啟一個案件。不會呼叫任何人，也不會有 SIEM 收到它們。
+按一下 **傳送測試攻擊**。來自一個文件專用位址的十幾次登入失敗會經過真實的處理流程：它們會被儲存，暴力破解規則會偵測到它們，並開啟一個案件。不會呼叫任何人，也不會有 SIEM 收到它們。
 
 ### 開啟案件
 
-按一下 **Open the case**。真實的發現就是這個樣子：背後的事件、涉及的位址，以及 **Enrich New Cases** 找到的內容。完成後，請把它當作測試關閉。
+按一下 **開啟案例**。真實的發現就是這個樣子：背後的事件、涉及的位址，以及 **Enrich New Cases** 找到的內容。完成後，請把它當作測試關閉。
 :::
 
-從此以後，**概覽** 會先顯示需要有人處理的內容：您的未結案件、無人認領的案件，以及等待核准的劇本步驟；沒有這些時會顯示 **All quiet**。
+從此以後，**概覽** 會先顯示需要有人處理的內容：您的未結案件、無人認領的案件，以及等待核准的劇本步驟；沒有這些時會顯示 **一切正常**。
 
 ## 運作方式
 
@@ -52,7 +52,7 @@ flowchart LR
 
 ## 在日誌中尋找安全性事件
 
-**Connections** 頂端的 **Your logs** 不需要安裝任何東西。開啟 **Find security events in your logs** 後，OneUptime 每分鐘讀取專案的新日誌，並把辨識出的行轉成安全性事件：
+**Connections** 頂端的 **你的日誌** 不需要安裝任何東西。開啟 **在日誌中尋找安全事件** 後，OneUptime 每分鐘讀取專案的新日誌，並把辨識出的行轉成安全性事件：
 
 | 日誌 | 會變成安全性事件的內容 |
 | --- | --- |
@@ -66,7 +66,7 @@ flowchart LR
 
 ## 把 OneUptime 的發現傳送到您的 SIEM
 
-如果您的團隊已經在使用 SIEM，OneUptime 也會把找到的內容傳送到那裡。在 **Connections → Send to your SIEM** 下按一下 **Add destination**，填寫您的 Google SecOps 的區域、執行個體和服務帳戶金鑰，並在儲存前按一下 **Send a test event**。請參閱 [將安全性事件傳送到 Google SecOps](/docs/integrations/google-secops#將安全性事件傳送到-google-secops)。
+如果您的團隊已經在使用 SIEM，OneUptime 也會把找到的內容傳送到那裡。在 **Connections → 傳送到你的 SIEM** 下按一下 **新增目的地**，填寫您的 Google SecOps 的區域、執行個體和服務帳戶金鑰，並在儲存前按一下 **傳送測試事件**。請參閱 [將安全性事件傳送到 Google SecOps](/docs/integrations/google-secops#將安全性事件傳送到-google-secops)。
 
 ## 疑難排解
 
@@ -79,7 +79,7 @@ flowchart LR
 :::
 
 :::details 我的日誌沒有產生安全性事件
-請確認 **Find security events in your logs** 已開啟，且 **Your logs** 顯示了上次檢查的時間。只有上表中的那幾類行才會變成事件：不傳送 SSH、sudo、稽核、CloudTrail 或存取日誌的伺服器，沒有可以找到的內容。
+請確認 **在日誌中尋找安全事件** 已開啟，且 **你的日誌** 顯示了上次檢查的時間。只有上表中的那幾類行才會變成事件：不傳送 SSH、sudo、稽核、CloudTrail 或存取日誌的伺服器，沒有可以找到的內容。
 :::
 
 ## 後續步驟

@@ -51,10 +51,11 @@ Query parameters, parsed once per page load:
 | `?role=`   | `owner` (default) or `viewer`: Security Viewer only, so it can read connections but not create them. Both Add connection buttons are disabled, the reason is written out under the hero button and the tiles become a static "Supported products" list.                                                                                                                                                                                                                                                |
 | `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `?latest=` | Once its time window comes back empty, the Security Events page looks up the project's newest event (one row, no time window) to tell "nothing ever arrived" from "nothing in this window". `none` (default): there is no event at all, so the page shows its empty state. `pending`: the lookup does not answer until the spec calls `window.__securityEventsEmptyStatesFixture.resolveLatestEvent()`. `old`: the newest event arrived at `2026-09-01T09:30:00Z`, outside the default one-day window. |
+| `?siem=`   | `rows`: three SIEMs in the Send to your SIEM table - sending, failing (with its last error) and not sent yet. Without it the table is empty.                                                                                                                                                                                                                                                                                                                                                           |
 
 ## What the fixture records
 
-`window.__securityEventsEmptyStatesFixture` holds `role`, `latest`, `listRequests`
+`window.__securityEventsEmptyStatesFixture` holds `role`, `latest`, `siem`, `listRequests`
 (analytics lists carry `analytics: true`), `countRequests`, `aggregateRequests`,
 `apiRequests`, `creates` and `unhandled`. Anything a page reads that the fixture does not
 model (a model table, an analytics query or an API URL), and any create, answers empty and
@@ -62,12 +63,14 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 
 ## What the spec covers
 
-`SecurityEventsEmptyStates.spec.ts` (38 tests):
+`SecurityEventsEmptyStates.spec.ts` (39 tests):
 
 - **Connections, top to bottom**: Your logs, Your security tools, Send to your SIEM; the Your
   logs switch turns the logs on in one press and says when the first check runs, and a
   viewer cannot flip it; Send to Google SecOps opens its form on the SIEM's own settings, its
-  test event waiting for the settings; dark theme and a phone.
+  test event waiting for the settings; with SIEMs (`?siem=rows`) each row says what it is
+  sent under its name and how sending goes, and the table fits its card at 1280 and 1440,
+  its status never under the sticky actions; dark theme and a phone.
 
 - **Connections empty state**: rendered by the table as its no-items message, inside the
   table card above its Refresh? link and the pagination; header (badge, heading,
@@ -137,6 +140,7 @@ Screenshots (2x) land in `output/playwright/security-events-empty-states-ui/`, n
 | `connections-cards-dark`        | The same in the dark theme                                                        |
 | `connections-cards-phone`       | The same at 390                                                                   |
 | `connections-siem-form-desktop` | Send to Google SecOps, the form's first step                                      |
+| `connections-siem-rows-desktop` | Send to your SIEM with three SIEMs, at 1440                                       |
 | `connections-desktop`           | Connections at 1440                                                               |
 | `connections-tablet`            | Connections at 768                                                                |
 | `connections-mobile`            | Connections at 390, full page                                                     |

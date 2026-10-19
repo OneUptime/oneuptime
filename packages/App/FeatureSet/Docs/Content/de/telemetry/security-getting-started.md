@@ -18,18 +18,18 @@ Zum Einrichten von Sicherheit braucht es die Rolle Project Owner, Project Admin 
 :::steps
 ### Einschalten, was die meisten Teams brauchen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse**. Klicken Sie auf **Übersicht** auf **Turn on recommended**. Damit werden drei Dinge auf einmal eingeschaltet: **Find security events in your logs**, die empfohlenen Erkennungsregeln und **Enrich New Cases**, ein Playbook, das jeden neuen Fall mit Threat Intelligence abgleicht und eine Checkliste zur Einordnung darin hinterlässt.
+Öffnen Sie **Produkte → Sicherheitsereignisse**. Klicken Sie auf **Übersicht** auf **Empfohlenes aktivieren**. Damit werden drei Dinge auf einmal eingeschaltet: **Sicherheitsereignisse in Ihren Protokollen finden**, die empfohlenen Erkennungsregeln und **Enrich New Cases**, ein Playbook, das jeden neuen Fall mit Threat Intelligence abgleicht und eine Checkliste zur Einordnung darin hinterlässt.
 
 ### Einen Testangriff senden
 
-Klicken Sie auf **Send a test attack**. Ein Dutzend fehlgeschlagener Anmeldungen von einer Dokumentationsadresse durchläuft die echte Verarbeitung: Sie werden gespeichert, die Brute-Force-Regel erkennt sie, und ein Fall wird eröffnet. Niemand wird alarmiert, und kein SIEM erhält sie.
+Klicken Sie auf **Testangriff senden**. Ein Dutzend fehlgeschlagener Anmeldungen von einer Dokumentationsadresse durchläuft die echte Verarbeitung: Sie werden gespeichert, die Brute-Force-Regel erkennt sie, und ein Fall wird eröffnet. Niemand wird alarmiert, und kein SIEM erhält sie.
 
 ### Den Fall öffnen
 
-Klicken Sie auf **Open the case**. So sieht ein echter Fund aus: die Ereignisse dahinter, die Adresse, um die es geht, und was **Enrich New Cases** herausgefunden hat. Schließen Sie ihn als Test, wenn Sie fertig sind.
+Klicken Sie auf **Fall öffnen**. So sieht ein echter Fund aus: die Ereignisse dahinter, die Adresse, um die es geht, und was **Enrich New Cases** herausgefunden hat. Schließen Sie ihn als Test, wenn Sie fertig sind.
 :::
 
-Von da an zeigt **Übersicht** zuerst, was jemanden braucht: Ihre offenen Fälle, die Fälle, die niemand übernommen hat, und die Playbook-Schritte, die auf eine Genehmigung warten, oder **All quiet**, wenn es nichts davon gibt.
+Von da an zeigt **Übersicht** zuerst, was jemanden braucht: Ihre offenen Fälle, die Fälle, die niemand übernommen hat, und die Playbook-Schritte, die auf eine Genehmigung warten, oder **Alles ruhig**, wenn es nichts davon gibt.
 
 ## So funktioniert es
 
@@ -52,7 +52,7 @@ Der Streifen oben auf **Übersicht** zeigt jeden Teil mit seinen Zahlen: die Que
 
 ## Sicherheitsereignisse in Ihren Logs finden
 
-**Your logs**, oben auf **Verbindungen**, braucht keine Installation. Ist **Find security events in your logs** eingeschaltet, liest OneUptime jede Minute die neuen Logs des Projekts und macht aus den Zeilen, die es erkennt, Sicherheitsereignisse:
+Die Karte **Ihre Protokolle** oben auf **Verbindungen** braucht keine Installation. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, liest OneUptime jede Minute die neuen Logs des Projekts und macht aus den Zeilen, die es erkennt, Sicherheitsereignisse:
 
 | Logs | Was zum Sicherheitsereignis wird |
 | --- | --- |
@@ -66,7 +66,7 @@ Ihre Logs bleiben, wie sie sind. Nur die Zeilen, die für die Sicherheit zählen
 
 ## An Ihr SIEM senden, was OneUptime findet
 
-Arbeitet Ihr Team bereits in einem SIEM, sendet OneUptime seine Funde auch dorthin. Klicken Sie unter **Verbindungen → Send to your SIEM** auf **Add destination**, tragen Sie Region, Instanz und Dienstkontoschlüssel Ihrer Google-SecOps-Instanz ein und klicken Sie vor dem Speichern auf **Send a test event**. Siehe [Sicherheitsereignisse an Google SecOps senden](/docs/integrations/google-secops#sicherheitsereignisse-an-google-secops-senden).
+Arbeitet Ihr Team bereits in einem SIEM, sendet OneUptime seine Funde auch dorthin. Klicken Sie unter **Verbindungen → An Ihr SIEM senden** auf **Ziel hinzufügen**, tragen Sie Region, Instanz und Dienstkontoschlüssel Ihrer Google-SecOps-Instanz ein und klicken Sie vor dem Speichern auf **Testereignis senden**. Siehe [Sicherheitsereignisse an Google SecOps senden](/docs/integrations/google-secops#sicherheitsereignisse-an-google-secops-senden).
 
 ## Fehlerbehebung
 
@@ -79,7 +79,7 @@ Meist ist der Fall schon offen, bevor die Schaltfläche antwortet; holt die Rege
 :::
 
 :::details Aus meinen Logs kommt kein Sicherheitsereignis
-Prüfen Sie, ob **Find security events in your logs** eingeschaltet ist und **Your logs** anzeigt, wann zuletzt geprüft wurde. Nur die Arten von Zeilen aus der Tabelle oben werden zu Ereignissen: Ein Server, der keine SSH-, sudo-, Audit-, CloudTrail- oder Zugriffslogs sendet, hat nichts zu finden.
+Prüfen Sie, ob **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet ist und die Karte **Ihre Protokolle** anzeigt, wann zuletzt geprüft wurde. Nur die Arten von Zeilen aus der Tabelle oben werden zu Ereignissen: Ein Server, der keine SSH-, sudo-, Audit-, CloudTrail- oder Zugriffslogs sendet, hat nichts zu finden.
 :::
 
 ## Nächste Schritte

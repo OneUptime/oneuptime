@@ -46,7 +46,7 @@ Abra **Produtos → Security Events → Connections** (`/dashboard/{projectId}/s
 
 ### Testar antes de salvar
 
-Clique em **Test these settings** em **Test before saving**. O teste entra e lê eventos com os valores do formulário, sem salvar nada, então uma URL errada ou um filtro inválido aparece antes de a conexão existir. Depois clique em **Próximo**, dê um **Nome** à conexão e crie-a.
+Clique em **Test these settings** em **Testar antes de salvar**. O teste entra e lê eventos com os valores do formulário, sem salvar nada, então uma URL errada ou um filtro inválido aparece antes de a conexão existir. Depois clique em **Próximo**, dê um **Nome** à conexão e crie-a.
 :::
 
 | Configuração | O que informar |
@@ -135,7 +135,7 @@ Quando uma execução não consegue passar do cursor salvo de jeito nenhum, por 
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, a seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os eventos mais novos continuem chegando, e a sobreposição das consultas seguintes não volta mais até ele. A execução continua **Partial**, e **Last Error** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler, ou restrinja o **Event filter**.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os eventos mais novos continuem chegando, e a sobreposição das consultas seguintes não volta mais até ele. A execução continua **Partial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler, ou restrinja o **Event filter**.
 
 Uma execução que falha por completo, com um erro do Okta, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria em toda tentativa. Mudar o **Poll Interval (Minutes)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -165,7 +165,7 @@ Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca import
 
 ## Solução de problemas
 
-O **Last Error** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copy Error** na caixa de diálogo para copiá-lo. Toda mensagem começa com `Okta System Log events request`, e cita o próprio código de erro do Okta depois do status; leia o que vem depois.
+O **Último erro** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copiar erro** na caixa de diálogo para copiá-lo. Toda mensagem começa com `Okta System Log events request`, e cita o próprio código de erro do Okta depois do status; leia o que vem depois.
 
 :::details Last Error diz `failed (HTTP 400)`
 O Okta recusou os parâmetros da requisição, `E0000053`. Quando o token funcionou, é quase sempre o **Event filter**: verifique os operadores dele, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` e `le`, os seus `and` e `or`, e as aspas duplas em volta dos valores, ou esvazie-o para usar as famílias padrão. Em uma importação, também pode significar que o intervalo começa há mais de 180 dias.

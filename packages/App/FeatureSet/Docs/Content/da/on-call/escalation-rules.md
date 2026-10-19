@@ -120,7 +120,7 @@ En længere besked, med en lang titel eller en lang beskrivelse, som en skabelon
 
 ### Når et tilkald ikke sendes
 
-Et tilkald, der ikke sendes, siger hvorfor i personens **Vagtlogs** (Brugerindstillinger): rækken viser **Fejl**, og statusbeskeden giver årsagen. Det bliver ikke længere stående på **Sending**. Beskeden siger én af disse ting:
+Et tilkald, der ikke sendes, siger hvorfor i personens **Vagtlogs** (Brugerindstillinger): rækken viser **Fejl**, og statusbeskeden giver årsagen. Det bliver ikke længere stående på **Sender**. Beskeden siger én af disse ting:
 
 - projektets saldo kunne ikke betale for det, og hvem der kan tilføje saldo;
 - kanalen er slået fra i projektet, og hvem der kan slå den til.

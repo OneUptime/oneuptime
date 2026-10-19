@@ -156,7 +156,7 @@ A aba **Guia de configuração** tem esses trechos com o seu próprio host e a s
 
 ### Encontrar eventos de segurança nos seus logs
 
-**Your logs**, no topo de **Connections**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Find security events in your logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH, comando sudo, registro de auditoria do Kubernetes, mudança no AWS CloudTrail e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
+O cartão **Seus logs**, no topo de **Connections**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH, comando sudo, registro de auditoria do Kubernetes, mudança no AWS CloudTrail e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
 
 ### Conecte um produto de segurança
 
@@ -373,7 +373,7 @@ Confira a chave em `x-oneuptime-token` e o caminho, `/security-events/v1/ingest`
 :::
 
 :::details Uma regra nunca corresponde
-Confira se ela está **Habilitado**, e leia **Last Evaluated** e **Last Error** na linha dela. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
+Confira se ela está **Habilitado**, e leia **Last Evaluated** e **Último erro** na linha dela. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
 :::
 
 :::details Uma regra correspondeu, mas nenhum alerta abriu

@@ -18,18 +18,18 @@ Voor het instellen van beveiliging is de rol Project Owner, Project Admin of Sec
 :::steps
 ### Inschakelen wat de meeste teams nodig hebben
 
-Open **Producten → Security Events**. Klik op **Overzicht** op **Turn on recommended**. Daarmee gaan drie dingen tegelijk aan: **Find security events in your logs**, de aanbevolen detectieregels en **Enrich New Cases**, een playbook dat elke nieuwe zaak vergelijkt met dreigingsinformatie en er een checklist voor de beoordeling in achterlaat.
+Open **Producten → Security Events**. Klik op **Overzicht** op **Aanbevolen inschakelen**. Daarmee gaan drie dingen tegelijk aan: **Beveiligingsgebeurtenissen in uw logboeken vinden**, de aanbevolen detectieregels en **Enrich New Cases**, een playbook dat elke nieuwe zaak vergelijkt met dreigingsinformatie en er een checklist voor de beoordeling in achterlaat.
 
 ### Een testaanval versturen
 
-Klik op **Send a test attack**. Een dozijn mislukte aanmeldingen vanaf een documentatieadres gaat door de echte verwerking: ze worden opgeslagen, de brute-forceregel herkent ze en er wordt een zaak geopend. Niemand wordt opgeroepen en geen enkele SIEM ontvangt ze.
+Klik op **Testaanval sturen**. Een dozijn mislukte aanmeldingen vanaf een documentatieadres gaat door de echte verwerking: ze worden opgeslagen, de brute-forceregel herkent ze en er wordt een zaak geopend. Niemand wordt opgeroepen en geen enkele SIEM ontvangt ze.
 
 ### De zaak openen
 
-Klik op **Open the case**. Zo ziet een echte bevinding eruit: de gebeurtenissen erachter, het adres waar het om gaat en wat **Enrich New Cases** heeft gevonden. Sluit de zaak als test wanneer u klaar bent.
+Klik op **Zaak openen**. Zo ziet een echte bevinding eruit: de gebeurtenissen erachter, het adres waar het om gaat en wat **Enrich New Cases** heeft gevonden. Sluit de zaak als test wanneer u klaar bent.
 :::
 
-Vanaf dan opent **Overzicht** met wat iemand nodig heeft: uw open zaken, de zaken die niemand heeft opgepakt en de playbookstappen die op goedkeuring wachten, of **All quiet** als die er niet zijn.
+Vanaf dan opent **Overzicht** met wat iemand nodig heeft: uw open zaken, de zaken die niemand heeft opgepakt en de playbookstappen die op goedkeuring wachten, of **Alles rustig** als die er niet zijn.
 
 ## Hoe het werkt
 
@@ -52,7 +52,7 @@ De strook boven aan **Overzicht** toont elk onderdeel met zijn cijfers: de bronn
 
 ## Beveiligingsgebeurtenissen in uw logs vinden
 
-**Your logs**, boven aan **Connections**, hoeft niet geïnstalleerd te worden. Met **Find security events in your logs** aan leest OneUptime elke minuut de nieuwe logs van het project en maakt van de regels die het herkent beveiligingsgebeurtenissen:
+De kaart **Uw logboeken**, boven aan **Connections**, hoeft niet geïnstalleerd te worden. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan leest OneUptime elke minuut de nieuwe logs van het project en maakt van de regels die het herkent beveiligingsgebeurtenissen:
 
 | Logs | Wat een beveiligingsgebeurtenis wordt |
 | --- | --- |
@@ -66,7 +66,7 @@ Uw logs blijven zoals ze zijn. Alleen de regels die voor beveiliging tellen, wor
 
 ## Wat OneUptime vindt naar uw SIEM sturen
 
-Werkt uw team al in een SIEM, dan stuurt OneUptime wat het vindt ook daarheen. Klik onder **Connections → Send to your SIEM** op **Add destination**, vul de regio, de instantie en de serviceaccountsleutel van uw Google SecOps in en klik vóór het opslaan op **Send a test event**. Zie [Beveiligingsgebeurtenissen naar Google SecOps sturen](/docs/integrations/google-secops#beveiligingsgebeurtenissen-naar-google-secops-sturen).
+Werkt uw team al in een SIEM, dan stuurt OneUptime wat het vindt ook daarheen. Klik onder **Connections → Naar uw SIEM sturen** op **Bestemming toevoegen**, vul de regio, de instantie en de serviceaccountsleutel van uw Google SecOps in en klik vóór het opslaan op **Testgebeurtenis verzenden**. Zie [Beveiligingsgebeurtenissen naar Google SecOps sturen](/docs/integrations/google-secops#beveiligingsgebeurtenissen-naar-google-secops-sturen).
 
 ## Problemen oplossen
 
@@ -79,7 +79,7 @@ Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter,
 :::
 
 :::details Uit mijn logs komt geen beveiligingsgebeurtenis
-Controleer of **Find security events in your logs** aanstaat en of **Your logs** laat zien wanneer er voor het laatst is gecontroleerd. Alleen de soorten regels uit de tabel hierboven worden gebeurtenissen: een server die geen SSH-, sudo-, audit-, CloudTrail- of toegangslogs stuurt, heeft niets te vinden.
+Controleer of **Beveiligingsgebeurtenissen in uw logboeken vinden** aanstaat en of de kaart **Uw logboeken** laat zien wanneer er voor het laatst is gecontroleerd. Alleen de soorten regels uit de tabel hierboven worden gebeurtenissen: een server die geen SSH-, sudo-, audit-, CloudTrail- of toegangslogs stuurt, heeft niets te vinden.
 :::
 
 ## Volgende stappen

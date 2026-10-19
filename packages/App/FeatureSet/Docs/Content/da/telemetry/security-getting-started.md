@@ -18,18 +18,18 @@ Det kræver rollen Project Owner, Project Admin eller Security Admin at sætte s
 :::steps
 ### Slå det til, som de fleste teams har brug for
 
-Åbn **Produkter → Security Events**. Klik på **Turn on recommended** på **Oversigt**. Det slår tre ting til på én gang: **Find security events in your logs**, de anbefalede detektionsregler og **Enrich New Cases**, en playbook, der tjekker hver ny sag mod trusselsintelligens og efterlader en tjekliste til triage på den.
+Åbn **Produkter → Security Events**. Klik på **Slå anbefalet til** på **Oversigt**. Det slår tre ting til på én gang: **Find sikkerhedshændelser i dine logs**, de anbefalede detektionsregler og **Enrich New Cases**, en playbook, der tjekker hver ny sag mod trusselsintelligens og efterlader en tjekliste til triage på den.
 
 ### Send et testangreb
 
-Klik på **Send a test attack**. Et dusin mislykkede logins fra én dokumentationsadresse går gennem den rigtige behandling: De gemmes, brute force-reglen fanger dem, og en sag åbnes. Ingen bliver tilkaldt, og intet SIEM modtager dem.
+Klik på **Send et testangreb**. Et dusin mislykkede logins fra én dokumentationsadresse går gennem den rigtige behandling: De gemmes, brute force-reglen fanger dem, og en sag åbnes. Ingen bliver tilkaldt, og intet SIEM modtager dem.
 
 ### Åbn sagen
 
-Klik på **Open the case**. Sådan ser et rigtigt fund ud: hændelserne bag det, adressen, det handler om, og hvad **Enrich New Cases** fandt. Luk den som en test, når du er færdig.
+Klik på **Åbn sagen**. Sådan ser et rigtigt fund ud: hændelserne bag det, adressen, det handler om, og hvad **Enrich New Cases** fandt. Luk den som en test, når du er færdig.
 :::
 
-Derefter åbner **Oversigt** på det, der kræver nogen: dine åbne sager, dem ingen har taget, og de playbook-trin, der venter på en godkendelse, eller **All quiet**, når der ikke er nogen.
+Derefter åbner **Oversigt** på det, der kræver nogen: dine åbne sager, dem ingen har taget, og de playbook-trin, der venter på en godkendelse, eller **Alt er roligt**, når der ikke er nogen.
 
 ## Sådan virker det
 
@@ -52,7 +52,7 @@ Båndet øverst på **Oversigt** viser hver del med dens tal: kilderne og deres 
 
 ## Find sikkerhedshændelser i dine logs
 
-**Your logs**, øverst på **Connections**, kræver ingen installation. Med **Find security events in your logs** slået til læser OneUptime projektets nye logs hvert minut og gør de linjer, det genkender, til sikkerhedshændelser:
+Kortet **Dine logs**, øverst på **Connections**, kræver ingen installation. Med **Find sikkerhedshændelser i dine logs** slået til læser OneUptime projektets nye logs hvert minut og gør de linjer, det genkender, til sikkerhedshændelser:
 
 | Logs | Hvad der bliver en sikkerhedshændelse |
 | --- | --- |
@@ -66,7 +66,7 @@ Dine logs forbliver, som de er. Kun de linjer, der betyder noget for sikkerheden
 
 ## Send det, OneUptime finder, til dit SIEM
 
-Arbejder dit team allerede i et SIEM, sender OneUptime også sine fund dertil. Klik på **Add destination** under **Connections → Send to your SIEM**, udfyld region, instans og servicekontonøgle for dit Google SecOps, og klik på **Send a test event**, før du gemmer. Se [Send sikkerhedshændelser til Google SecOps](/docs/integrations/google-secops#send-sikkerhedshændelser-til-google-secops).
+Arbejder dit team allerede i et SIEM, sender OneUptime også sine fund dertil. Klik på **Tilføj destination** under **Connections → Send til dit SIEM**, udfyld region, instans og servicekontonøgle for dit Google SecOps, og klik på **Send en testhændelse**, før du gemmer. Se [Send sikkerhedshændelser til Google SecOps](/docs/integrations/google-secops#send-sikkerhedshændelser-til-google-secops).
 
 ## Fejlfinding
 
@@ -79,7 +79,7 @@ Sagen åbnes som regel, før knappen svarer; når reglen stadig er ved at indhen
 :::
 
 :::details Der kommer ingen sikkerhedshændelse fra mine logs
-Tjek, at **Find security events in your logs** er slået til, og at **Your logs** viser, hvornår der sidst blev tjekket. Kun de slags linjer, der står i tabellen ovenfor, bliver til hændelser: En server, der ikke sender SSH-, sudo-, audit-, CloudTrail- eller adgangslogs, har intet at finde.
+Tjek, at **Find sikkerhedshændelser i dine logs** er slået til, og at kortet **Dine logs** viser, hvornår der sidst blev tjekket. Kun de slags linjer, der står i tabellen ovenfor, bliver til hændelser: En server, der ikke sender SSH-, sudo-, audit-, CloudTrail- eller adgangslogs, har intet at finde.
 :::
 
 ## Næste trin

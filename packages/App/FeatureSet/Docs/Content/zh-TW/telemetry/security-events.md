@@ -156,7 +156,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日誌中尋找安全性事件
 
-**Connections** 頂端的 **Your logs** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **Find security events in your logs** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 登入、sudo 命令、Kubernetes 稽核記錄、AWS CloudTrail 變更和 Web 攻擊都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
+**Connections** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 登入、sudo 命令、Kubernetes 稽核記錄、AWS CloudTrail 變更和 Web 攻擊都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
 
 ### 連線安全性產品
 
@@ -373,7 +373,7 @@ Detection Finding 是來自產品 `OneUptime Detections`、類別為 `Detection 
 :::
 
 :::details 規則從不符合
-檢查它是否處於 **已啟用** 狀態，並查看它所在列中的 **Last Evaluated** 和 **Last Error** 。開啟一個你預期會符合的事件，逐一欄位與規則比對：一般值必須等於整個欄位，所以要符合其中一部分時，請使用 `contains` 或 `*`。屬性依它在事件中的名稱書寫（寫 `threat.matched`，而不是 `attributes.threat.matched`）。閾值大於 1 時，這些符合必須落在同一次執行中。
+檢查它是否處於 **已啟用** 狀態，並查看它所在列中的 **Last Evaluated** 和 **最近的錯誤** 。開啟一個你預期會符合的事件，逐一欄位與規則比對：一般值必須等於整個欄位，所以要符合其中一部分時，請使用 `contains` 或 `*`。屬性依它在事件中的名稱書寫（寫 `threat.matched`，而不是 `attributes.threat.matched`）。閾值大於 1 時，這些符合必須落在同一次執行中。
 :::
 
 :::details 規則符合了，但沒有開啟警示

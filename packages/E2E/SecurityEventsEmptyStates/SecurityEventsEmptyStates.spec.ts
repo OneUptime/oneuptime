@@ -231,6 +231,7 @@ interface UnhandledRequest {
 interface FixtureState {
   role: string;
   latest: string;
+  siem: string;
   listRequests: Array<RecordedModelRequest>;
   countRequests: Array<RecordedModelRequest>;
   aggregateRequests: Array<RecordedModelRequest>;
@@ -255,6 +256,8 @@ interface OpenOptions {
   role?: "owner" | "viewer" | undefined;
   theme?: "light" | "dark" | undefined;
   latest?: "none" | "pending" | "old" | undefined;
+  // Three SIEMs in the Send to your SIEM table.
+  siem?: "none" | "rows" | undefined;
   width?: number | undefined;
   height?: number | undefined;
 }
@@ -418,6 +421,9 @@ async function open(
   }
   if (options.latest && options.latest !== "none") {
     params.set("latest", options.latest);
+  }
+  if (options.siem && options.siem !== "none") {
+    params.set("siem", options.siem);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -1615,6 +1621,91 @@ test.describe("connections: your logs and your SIEM", () => {
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("each SIEM's row says what it is sent under its name and how sending goes, and the table fits its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 1440]) {
+      await openConnections(page, { siem: "rows", width });
+      const card: Locator = siemCard(page);
+      const rows: Locator = card.locator("tbody tr");
+      await expect(rows).toHaveCount(3);
+
+      /*
+       * Two columns between the row's checkbox and its actions: what it is
+       * sent reads under its name, not beside it.
+       */
+      const headers: Array<string> = (
+        await card.locator("thead th").allInnerTexts()
+      ).map((text: string): string => {
+        return text.trim();
+      });
+      expect(headers).toEqual([
+        "Select all items",
+        "Name",
+        "Status",
+        "Actions",
+      ]);
+      await expect(
+        card.getByTestId("security-event-destination-detail"),
+      ).toHaveText([
+        "Google SecOps · Detections only",
+        "Google SecOps · All security events",
+        "Google SecOps · Detections only",
+      ]);
+
+      // Sending, failing, and not sent yet: when it last sent, where it has.
+      await expect(rows.nth(0)).toContainText("Sending");
+      await expect(rows.nth(1)).toContainText("Failing");
+      await expect(rows.nth(2)).toContainText("Starting");
+      await expect(
+        card.getByTestId("security-event-destination-last-sent"),
+      ).toHaveCount(2);
+      // A failing SIEM's one button shows why; the others send a test.
+      await expect(
+        rows.nth(1).getByRole("button", { name: "View Error" }),
+      ).toBeVisible();
+      await expect(
+        rows.nth(0).getByRole("button", { name: "Send a test event" }),
+      ).toBeVisible();
+
+      /*
+       * Nothing scrolls sideways under the sticky actions: a Sends column
+       * of its own ran the table past its card, and the actions covered
+       * the status.
+       */
+      const overflow: number = await card
+        .locator("table")
+        .evaluate((element: Element): number => {
+          const box: HTMLElement = element.parentElement as HTMLElement;
+          return box.scrollWidth - box.clientWidth;
+        });
+      expect(
+        overflow,
+        `${width}: the table scrolls sideways`,
+      ).toBeLessThanOrEqual(1);
+      for (let index: number = 0; index < 3; index++) {
+        const status: Box = await documentBox(
+          rows.nth(index).locator("td").nth(2).locator(":scope > *").first(),
+        );
+        const actions: Box = await documentBox(
+          rows.nth(index).getByTestId("row-actions"),
+        );
+        expect(
+          status.x + status.width,
+          `${width}: row ${index + 1}'s status runs under its actions`,
+        ).toBeLessThanOrEqual(actions.x + 1);
+      }
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await siemCard(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-siem-rows-desktop", {
+      clip: siemCard(page),
+    });
   });
 
   test("dark theme and a phone", async ({ page }: { page: Page }) => {

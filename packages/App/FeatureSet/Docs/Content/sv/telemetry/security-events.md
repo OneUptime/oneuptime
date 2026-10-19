@@ -156,7 +156,7 @@ Fliken **Installationsguide** har de här kodsnuttarna med din egen värd och ny
 
 ### Hitta säkerhetshändelser i dina loggar
 
-**Your logs**, högst upp på **Connections**, gör loggarna du redan skickar till OneUptime till en källa. Med **Find security events in your logs** påslaget läses projektets nya loggar varje minut, och varje SSH-inloggning, sudo-kommando, Kubernetes-granskningspost, AWS CloudTrail-ändring och webbattack i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
+Kortet **Dina loggar**, högst upp på **Connections**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH-inloggning, sudo-kommando, Kubernetes-granskningspost, AWS CloudTrail-ändring och webbattack i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
 
 ### Anslut en säkerhetsprodukt
 
@@ -373,7 +373,7 @@ Kontrollera nyckeln i `x-oneuptime-token` och sökvägen, `/security-events/v1/i
 :::
 
 :::details En regel träffar aldrig
-Kontrollera att den är **Aktiverad**, och läs **Last Evaluated** och **Last Error** i dess rad. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
+Kontrollera att den är **Aktiverad**, och läs **Last Evaluated** och **Senaste fel** i dess rad. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
 :::
 
 :::details En regel träffade, men inget larm öppnades

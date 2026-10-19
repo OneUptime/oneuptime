@@ -85,7 +85,8 @@ that list is not empty.
   approval and lists every run under All Runs.
 - **Detections**: ATT&CK coverage counts what the enabled rules cover and its matrix scrolls inside
   its card; the rule library marks the rules the project has and the recommended ones, filters to
-  them and adds the missing ones in one click; the pages behind Detections are tabs, each its own
+  them and adds the missing ones in one click, its description running under its two buttons the
+  card's whole width; the pages behind Detections are tabs, each its own
   address, with the menu entry lit on every one; the side menu is six entries; entities ranks what
   the findings name.
 - **Every page at 1280, 1024, 768 and 390**: none scrolls sideways.

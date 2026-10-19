@@ -152,6 +152,21 @@ async function open(
   });
 }
 
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Where a visible element is drawn; failing the test when it is not drawn.
+async function boxOf(locator: Locator): Promise<Box> {
+  await expect(locator).toBeVisible();
+  const box: Box | null = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  return box!;
+}
+
 async function fixture(page: Page): Promise<FixtureState> {
   return page.evaluate((): FixtureState => {
     return JSON.parse(
@@ -950,6 +965,30 @@ test.describe("detections", () => {
       timeout: 30000,
     });
     await expect(page.getByText("Added", { exact: true })).toHaveCount(6);
+
+    /*
+     * The two buttons share the title's line and the description runs under
+     * them, the card's whole width: beside them it stood four lines tall in
+     * English, five in German.
+     */
+    const header: Locator = page
+      .getByTestId("card")
+      .filter({
+        has: page.getByRole("heading", { name: "Rule Library", exact: true }),
+      })
+      .getByTestId("card-header");
+    await expect(header).toHaveAttribute("data-header-layout", "toolbar");
+    const headerBox: Box = await boxOf(header);
+    const actionsBox: Box = await boxOf(
+      header.getByTestId("card-header-actions"),
+    );
+    const descriptionBox: Box = await boxOf(
+      header.getByTestId("card-description"),
+    );
+    expect(descriptionBox.y).toBeGreaterThanOrEqual(
+      actionsBox.y + actionsBox.height,
+    );
+    expect(descriptionBox.width).toBeGreaterThan(headerBox.width * 0.9);
     await screenshot(page, "rule-library-desktop", { fullPage: false });
   });
 

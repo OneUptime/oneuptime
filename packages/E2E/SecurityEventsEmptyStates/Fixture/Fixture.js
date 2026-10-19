@@ -85,6 +85,46 @@ const latest = ["pending", "old"].includes(params.get("latest"))
   : "none";
 // ?latest=old: well before the spec's pinned clock (2026-09-22T12:00:00Z).
 const OLD_EVENT_TIME = "2026-09-01T09:30:00.000Z";
+// ?siem=rows: three SIEMs in the Send to your SIEM table.
+const siem = params.get("siem") === "rows" ? "rows" : "none";
+
+/*
+ * Sending, failing and not sent yet, by name: what each is sent reads under
+ * its name, how sending goes in its status. Times are before the spec's
+ * pinned clock (2026-09-22T12:00:00Z).
+ */
+const DESTINATIONS = [
+  {
+    _id: "a0000000-0000-4000-8000-000000000001",
+    name: "Google SecOps production",
+    provider: "google-secops",
+    config: {},
+    sendScope: "detections",
+    isEnabled: true,
+    lastAttemptAt: "2026-09-22T11:59:00.000Z",
+    lastSentAt: "2026-09-22T11:59:00.000Z",
+  },
+  {
+    _id: "a0000000-0000-4000-8000-000000000002",
+    name: "SecOps EU - all events",
+    provider: "google-secops",
+    config: {},
+    sendScope: "all-events",
+    isEnabled: true,
+    lastAttemptAt: "2026-09-22T11:58:00.000Z",
+    lastSentAt: "2026-09-22T10:00:00.000Z",
+    lastError:
+      "The service account cannot import events into this Google SecOps instance (HTTP 403).",
+  },
+  {
+    _id: "a0000000-0000-4000-8000-000000000003",
+    name: "SecOps sandbox",
+    provider: "google-secops",
+    config: {},
+    sendScope: "detections",
+    isEnabled: true,
+  },
+];
 
 let releaseLatestEvent = () => {};
 const latestEventReleased = new Promise((resolve) => {
@@ -94,6 +134,7 @@ const latestEventReleased = new Promise((resolve) => {
 const fixture = {
   role,
   latest,
+  siem,
   listRequests: [],
   countRequests: [],
   aggregateRequests: [],
@@ -204,6 +245,16 @@ ModelAPI.getList = async (options) => {
       limit,
     };
   }
+  if (modelName === tableName(SecurityEventDestination) && siem === "rows") {
+    return {
+      data: DESTINATIONS.map((record) => {
+        return Object.assign(new SecurityEventDestination(), record);
+      }),
+      count: DESTINATIONS.length,
+      skip,
+      limit,
+    };
+  }
   return { data: [], count: 0, skip, limit };
 };
 
@@ -212,6 +263,9 @@ ModelAPI.getCount = async (options) => {
   fixture.countRequests.push({ modelName, query: serialize(options.query) });
   if (!MODEL_TABLES.includes(modelName)) {
     fixture.unhandled.push({ kind: "getCount", modelName });
+  }
+  if (modelName === tableName(SecurityEventDestination) && siem === "rows") {
+    return DESTINATIONS.length;
   }
   return 0;
 };

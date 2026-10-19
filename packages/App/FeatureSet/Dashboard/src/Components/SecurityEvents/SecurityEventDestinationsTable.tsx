@@ -95,8 +95,8 @@ export const SecurityEventDestinationsEmptyState: FunctionComponent<{
 /*
  * "Send to your SIEM": the SIEMs OneUptime sends its security events to, as
  * it finds them (Server/Utils/SecurityEvent/Destinations). Each row says
- * what it is sent and how sending is going; Send a test event shows one
- * arrive before anything real does.
+ * what it is sent (under its name) and how sending is going; Send a test
+ * event shows one arrive before anything real does.
  */
 const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -237,33 +237,50 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
             title: "Name",
             type: FieldType.Text,
             getElement: (item: SecurityEventDestination): ReactElement => {
+              const scope: string | undefined = item.sendScope;
+              /*
+               * What it is and what it is sent read under its name: "Google
+               * SecOps · Detections only". A Sends column of its own ran the
+               * table past its card at 1280 in ten of the seventeen
+               * languages, and the sticky actions hid the status. When room
+               * runs out (French, Dutch, Russian) the line wraps between
+               * its two parts rather than widening the column.
+               */
+              const detailParts: Array<string> = [
+                getSecurityEventDestinationTitle(item.provider),
+                isSecurityEventDestinationScope(scope)
+                  ? translator.translateText(
+                      SECURITY_EVENT_DESTINATION_SCOPE_TEXTS[scope].title,
+                    )
+                  : "",
+              ].filter((part: string | undefined): part is string => {
+                return Boolean(part);
+              });
+
               return (
                 <div>
                   <span>{item.name}</span>
-                  <div className="text-xs text-gray-500">
-                    {getSecurityEventDestinationTitle(item.provider)}
+                  <div
+                    className="whitespace-normal text-xs text-gray-500"
+                    data-testid="security-event-destination-detail"
+                  >
+                    {detailParts.map(
+                      (part: string, index: number): ReactElement => {
+                        const isLast: boolean =
+                          index === detailParts.length - 1;
+
+                        return (
+                          <Fragment key={index}>
+                            <span className="whitespace-nowrap">
+                              {isLast ? part : `${part} ·`}
+                            </span>
+                            {isLast ? "" : " "}
+                          </Fragment>
+                        );
+                      },
+                    )}
                   </div>
                 </div>
-              );
-            },
-          },
-          {
-            field: {
-              sendScope: true,
-            },
-            title: "Sends",
-            type: FieldType.Text,
-            getElement: (item: SecurityEventDestination): ReactElement => {
-              const scope: string | undefined = item.sendScope;
-
-              return (
-                <span>
-                  {isSecurityEventDestinationScope(scope)
-                    ? translator.translateText(
-                        SECURITY_EVENT_DESTINATION_SCOPE_TEXTS[scope].title,
-                      )
-                    : ""}
-                </span>
               );
             },
           },

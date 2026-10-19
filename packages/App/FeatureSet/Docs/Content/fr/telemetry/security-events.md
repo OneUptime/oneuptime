@@ -156,7 +156,7 @@ L'onglet **Guide de configuration** contient ces extraits avec votre propre hôt
 
 ### Trouver des événements de sécurité dans vos journaux
 
-**Your logs**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Find security events in your logs** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH, commande sudo, entrée d'audit Kubernetes, modification AWS CloudTrail et attaque web qu'ils contiennent est stockée comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH, commande sudo, entrée d'audit Kubernetes, modification AWS CloudTrail et attaque web qu'ils contiennent est stockée comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
 
 ### Connecter un produit de sécurité
 

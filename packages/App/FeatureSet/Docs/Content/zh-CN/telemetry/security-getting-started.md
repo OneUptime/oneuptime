@@ -18,18 +18,18 @@ OneUptime 从您已有的数据中发现威胁——您的日志、您使用的�
 :::steps
 ### 开启大多数团队需要的功能
 
-打开 **产品 → Security Events**。在 **概览** 上点击 **Turn on recommended**。它会一次开启三项：**Find security events in your logs**、推荐的检测规则，以及 **Enrich New Cases**——一个将每个新案例与威胁情报比对、并在其中留下分诊清单的剧本。
+打开 **产品 → Security Events**。在 **概览** 上点击 **开启推荐设置**。它会一次开启三项：**在日志中查找安全事件**、推荐的检测规则，以及 **Enrich New Cases**——一个将每个新案例与威胁情报比对、并在其中留下分诊清单的剧本。
 
 ### 发送测试攻击
 
-点击 **Send a test attack**。来自一个文档专用地址的十几次登录失败会经过真实的处理流程：它们被存储，暴力破解规则检测到它们，并打开一个案例。不会呼叫任何人，也不会有 SIEM 收到它们。
+点击 **发送测试攻击**。来自一个文档专用地址的十几次登录失败会经过真实的处理流程：它们被存储，暴力破解规则检测到它们，并打开一个案例。不会呼叫任何人，也不会有 SIEM 收到它们。
 
 ### 打开案例
 
-点击 **Open the case**。真实的发现就是这个样子：背后的事件、涉及的地址，以及 **Enrich New Cases** 发现的内容。完成后，把它作为测试关闭。
+点击 **打开案例**。真实的发现就是这个样子：背后的事件、涉及的地址，以及 **Enrich New Cases** 发现的内容。完成后，把它作为测试关闭。
 :::
 
-从此以后，**概览** 会先显示需要有人处理的内容：您的未结案例、无人认领的案例，以及等待审批的剧本步骤；没有这些时显示 **All quiet**。
+从此以后，**概览** 会先显示需要有人处理的内容：您的未结案例、无人认领的案例，以及等待审批的剧本步骤；没有这些时显示 **一切正常**。
 
 ## 工作原理
 
@@ -52,7 +52,7 @@ flowchart LR
 
 ## 在日志中查找安全事件
 
-**Connections** 顶部的 **Your logs** 无需安装任何东西。开启 **Find security events in your logs** 后，OneUptime 每分钟读取项目的新日志，并把识别出的行变成安全事件：
+**Connections** 顶部的 **你的日志** 无需安装任何东西。开启 **在日志中查找安全事件** 后，OneUptime 每分钟读取项目的新日志，并把识别出的行变成安全事件：
 
 | 日志 | 会变成安全事件的内容 |
 | --- | --- |
@@ -66,7 +66,7 @@ flowchart LR
 
 ## 把 OneUptime 的发现发送到您的 SIEM
 
-如果您的团队已经在使用 SIEM，OneUptime 也会把发现的内容发送到那里。在 **Connections → Send to your SIEM** 下点击 **Add destination**，填写您的 Google SecOps 的区域、实例和服务账号密钥，并在保存前点击 **Send a test event**。请参阅 [将安全事件发送到 Google SecOps](/docs/integrations/google-secops#将安全事件发送到-google-secops)。
+如果您的团队已经在使用 SIEM，OneUptime 也会把发现的内容发送到那里。在 **Connections → 发送到你的 SIEM** 下点击 **添加目标**，填写您的 Google SecOps 的区域、实例和服务账号密钥，并在保存前点击 **发送测试事件**。请参阅 [将安全事件发送到 Google SecOps](/docs/integrations/google-secops#将安全事件发送到-google-secops)。
 
 ## 故障排除
 
@@ -79,7 +79,7 @@ flowchart LR
 :::
 
 :::details 我的日志没有产生安全事件
-请确认 **Find security events in your logs** 已开启，并且 **Your logs** 显示了上次检查的时间。只有上表中的那几类行才会变成事件：不发送 SSH、sudo、审计、CloudTrail 或访问日志的服务器，没有可以发现的内容。
+请确认 **在日志中查找安全事件** 已开启，并且 **你的日志** 显示了上次检查的时间。只有上表中的那几类行才会变成事件：不发送 SSH、sudo、审计、CloudTrail 或访问日志的服务器，没有可以发现的内容。
 :::
 
 ## 后续步骤

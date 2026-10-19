@@ -18,18 +18,18 @@ Mettre en place la sécurité demande le rôle Project Owner, Project Admin ou S
 :::steps
 ### Activer ce dont la plupart des équipes ont besoin
 
-Ouvrez **Produits → Événements de sécurité**. Sur **Vue d'ensemble**, cliquez sur **Turn on recommended**. Trois choses s'activent d'un coup : **Find security events in your logs**, les règles de détection recommandées et **Enrich New Cases**, un playbook qui confronte chaque nouveau dossier au renseignement sur les menaces et y laisse une liste de contrôle pour le tri.
+Ouvrez **Produits → Événements de sécurité**. Sur **Vue d'ensemble**, cliquez sur **Activer les recommandations**. Trois choses s'activent d'un coup : **Trouver des événements de sécurité dans vos journaux**, les règles de détection recommandées et **Enrich New Cases**, un playbook qui confronte chaque nouveau dossier au renseignement sur les menaces et y laisse une liste de contrôle pour le tri.
 
 ### Envoyer une attaque de test
 
-Cliquez sur **Send a test attack**. Une douzaine de connexions échouées depuis une adresse de documentation passent par le vrai traitement : elles sont stockées, la règle de force brute les détecte et un dossier s'ouvre. Personne n'est alerté et aucun SIEM ne les reçoit.
+Cliquez sur **Envoyer une attaque de test**. Une douzaine de connexions échouées depuis une adresse de documentation passent par le vrai traitement : elles sont stockées, la règle de force brute les détecte et un dossier s'ouvre. Personne n'est alerté et aucun SIEM ne les reçoit.
 
 ### Ouvrir le dossier
 
-Cliquez sur **Open the case**. Voici à quoi ressemble une vraie découverte : les événements qui la justifient, l'adresse concernée et ce qu'a trouvé **Enrich New Cases**. Fermez-le comme test une fois terminé.
+Cliquez sur **Ouvrir le dossier**. Voici à quoi ressemble une vraie découverte : les événements qui la justifient, l'adresse concernée et ce qu'a trouvé **Enrich New Cases**. Fermez-le comme test une fois terminé.
 :::
 
-Dès lors, **Vue d'ensemble** s'ouvre sur ce qui attend quelqu'un : vos dossiers ouverts, ceux que personne n'a pris en charge et les étapes de playbook en attente d'approbation, ou **All quiet** s'il n'y en a aucun.
+Dès lors, **Vue d'ensemble** s'ouvre sur ce qui attend quelqu'un : vos dossiers ouverts, ceux que personne n'a pris en charge et les étapes de playbook en attente d'approbation, ou **Tout est calme** s'il n'y en a aucun.
 
 ## Fonctionnement
 
@@ -52,7 +52,7 @@ Le bandeau en haut de **Vue d'ensemble** montre chaque partie avec ses chiffres 
 
 ## Trouver des événements de sécurité dans vos journaux
 
-**Your logs**, en haut de **Connexions**, ne demande aucune installation. Avec **Find security events in your logs** activé, OneUptime lit chaque minute les nouveaux journaux du projet et transforme les lignes qu'il reconnaît en événements de sécurité :
+La carte **Vos journaux**, en haut de **Connexions**, ne demande aucune installation. Avec **Trouver des événements de sécurité dans vos journaux** activé, OneUptime lit chaque minute les nouveaux journaux du projet et transforme les lignes qu'il reconnaît en événements de sécurité :
 
 | Journaux | Ce qui devient un événement de sécurité |
 | --- | --- |
@@ -66,7 +66,7 @@ Vos journaux restent tels quels. Seules les lignes qui comptent pour la sécurit
 
 ## Envoyer ce que trouve OneUptime à votre SIEM
 
-Si votre équipe travaille déjà dans un SIEM, OneUptime y envoie aussi ce qu'il trouve. Sous **Connexions → Send to your SIEM**, cliquez sur **Add destination**, renseignez la région, l'instance et la clé de compte de service de votre Google SecOps, puis cliquez sur **Send a test event** avant d'enregistrer. Voir [Envoyer des événements de sécurité à Google SecOps](/docs/integrations/google-secops#envoyer-des-événements-de-sécurité-à-google-secops).
+Si votre équipe travaille déjà dans un SIEM, OneUptime y envoie aussi ce qu'il trouve. Sous **Connexions → Envoyer vers votre SIEM**, cliquez sur **Ajouter une destination**, renseignez la région, l'instance et la clé de compte de service de votre Google SecOps, puis cliquez sur **Envoyer un événement de test** avant d'enregistrer. Voir [Envoyer des événements de sécurité à Google SecOps](/docs/integrations/google-secops#envoyer-des-événements-de-sécurité-à-google-secops).
 
 ## Dépannage
 
@@ -79,7 +79,7 @@ Le dossier s'ouvre en général avant que le bouton ne réponde ; quand la règl
 :::
 
 :::details Aucun événement de sécurité ne vient de mes journaux
-Vérifiez que **Find security events in your logs** est activé et que **Your logs** indique quand la dernière vérification a eu lieu. Seuls les types de lignes du tableau ci-dessus deviennent des événements : un serveur qui n'envoie ni journaux SSH, sudo, d'audit, CloudTrail ou d'accès n'a rien à trouver.
+Vérifiez que **Trouver des événements de sécurité dans vos journaux** est activé et que la carte **Vos journaux** indique quand la dernière vérification a eu lieu. Seuls les types de lignes du tableau ci-dessus deviennent des événements : un serveur qui n'envoie ni journaux SSH, sudo, d'audit, CloudTrail ou d'accès n'a rien à trouver.
 :::
 
 ## Étapes suivantes

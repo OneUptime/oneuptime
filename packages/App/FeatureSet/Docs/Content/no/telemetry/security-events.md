@@ -156,7 +156,7 @@ Fanen **Oppsettveiledning** har disse kodesnuttene med din egen vert og nøkkel 
 
 ### Finn sikkerhetshendelser i loggene dine
 
-**Your logs**, øverst på **Connections**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Find security events in your logs** slått på leses prosjektets nye logger hvert minutt, og hver SSH-pålogging, sudo-kommando, Kubernetes-revisjonsoppføring, AWS CloudTrail-endring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
+Kortet **Loggene dine**, øverst på **Connections**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH-pålogging, sudo-kommando, Kubernetes-revisjonsoppføring, AWS CloudTrail-endring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
 
 ### Koble til et sikkerhetsprodukt
 
@@ -373,7 +373,7 @@ Sjekk nøkkelen i `x-oneuptime-token` og stien, `/security-events/v1/ingest`. Sj
 :::
 
 :::details En regel treffer aldri
-Sjekk at den er **Aktivert**, og les **Last Evaluated** og **Last Error** i raden. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring.
+Sjekk at den er **Aktivert**, og les **Last Evaluated** og **Siste feil** i raden. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring.
 :::
 
 :::details En regel traff, men ingen varsler ble åpnet

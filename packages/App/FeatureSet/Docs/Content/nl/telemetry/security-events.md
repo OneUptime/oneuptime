@@ -156,7 +156,7 @@ Het tabblad **Installatiegids** bevat deze snippets, met je eigen host en sleute
 
 ### Beveiligingsgebeurtenissen in uw logs vinden
 
-**Your logs**, boven aan **Connections**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Find security events in your logs** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH-aanmelding, sudo-opdracht, Kubernetes-auditregel, AWS CloudTrail-wijziging en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
+De kaart **Uw logboeken**, boven aan **Connections**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH-aanmelding, sudo-opdracht, Kubernetes-auditregel, AWS CloudTrail-wijziging en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
 
 ### Een beveiligingsproduct koppelen
 
@@ -373,7 +373,7 @@ Controleer de sleutel in `x-oneuptime-token` en het pad, `/security-events/v1/in
 :::
 
 :::details Een regel matcht nooit
-Controleer of hij **Ingeschakeld** is, en lees **Last Evaluated** en **Last Error** in zijn rij. Open een gebeurtenis waarvan je een match verwachtte en vergelijk die veld voor veld met de regel: een gewone waarde moet gelijk zijn aan het hele veld, dus gebruik `contains` of `*` voor een deel ervan. Een attribuut wordt genoemd zoals in de gebeurtenis (`threat.matched`, niet `attributes.threat.matched`). Met een drempel boven 1 moeten de matches in één uitvoering vallen.
+Controleer of hij **Ingeschakeld** is, en lees **Last Evaluated** en **Laatste fout** in zijn rij. Open een gebeurtenis waarvan je een match verwachtte en vergelijk die veld voor veld met de regel: een gewone waarde moet gelijk zijn aan het hele veld, dus gebruik `contains` of `*` voor een deel ervan. Een attribuut wordt genoemd zoals in de gebeurtenis (`threat.matched`, niet `attributes.threat.matched`). Met een drempel boven 1 moeten de matches in één uitvoering vallen.
 :::
 
 :::details Een regel matchte, maar er ging geen waarschuwing open

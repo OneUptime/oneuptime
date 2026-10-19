@@ -293,6 +293,12 @@ const RuleLibraryPage: FunctionComponent<
       <Card
         title="Rule Library"
         description="Ready-made detections, such as brute force or impossible travel. Adding one creates a detection rule you can change under Detection Rules. Start with the recommended ones."
+        /*
+         * Two wide buttons beside the description squeezed it into a column
+         * five lines tall in German; here it runs under both, the card's
+         * whole width.
+         */
+        headerLayout="toolbar"
         buttons={[
           ...(recommendedNotAdded.length > 0
             ? [

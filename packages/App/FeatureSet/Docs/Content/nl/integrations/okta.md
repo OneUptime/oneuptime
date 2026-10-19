@@ -46,7 +46,7 @@ Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/
 
 ### Testen voordat je opslaat
 
-Klik op **Test these settings** onder **Test before saving**. De test meldt zich aan en leest gebeurtenissen met de waarden in het formulier, en slaat niets op, dus een verkeerde URL of een ongeldig filter komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
+Klik op **Test these settings** onder **Testen voor het opslaan**. De test meldt zich aan en leest gebeurtenissen met de waarden in het formulier, en slaat niets op, dus een verkeerde URL of een ongeldig filter komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
 :::
 
 | Instelling | Wat je invult |
@@ -135,7 +135,7 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, bijvoorbeeld om
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere gebeurtenissen blijven binnenkomen, en de overlap van latere polls reikt er niet meer in terug. De run blijft **Partial**, en **Last Error** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen, of beperk het **Event filter**.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere gebeurtenissen blijven binnenkomen, en de overlap van latere polls reikt er niet meer in terug. De run blijft **Partial**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen, of beperk het **Event filter**.
 
 Een run die volledig mislukt, met een fout van Okta, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Poll Interval (Minutes)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
@@ -165,7 +165,7 @@ Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert 
 
 ## Problemen oplossen
 
-De **Last Error** van de verbinding bewaart de volledige foutmelding, met referenties gemaskeerd, achter een voorvoegsel dat de mislukte stap noemt. Wanneer een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Copy Error** in het dialoogvenster om hem te kopiëren. Elke melding begint met `Okta System Log events request`, en citeert na de status de eigen foutcode van Okta; lees wat erop volgt.
+De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met referenties gemaskeerd, achter een voorvoegsel dat de mislukte stap noemt. Wanneer een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Fout kopiëren** in het dialoogvenster om hem te kopiëren. Elke melding begint met `Okta System Log events request`, en citeert na de status de eigen foutcode van Okta; lees wat erop volgt.
 
 :::details Last Error zegt `failed (HTTP 400)`
 Okta weigerde de parameters van het verzoek, `E0000053`. Als het token werkte, is het bijna altijd het **Event filter**: controleer de operatoren, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` en `le`, de `and` en `or`, en de dubbele aanhalingstekens rond de waarden, of maak het leeg om de standaardfamilies te gebruiken. Bij een import kan het ook betekenen dat het bereik meer dan 180 dagen geleden begint.

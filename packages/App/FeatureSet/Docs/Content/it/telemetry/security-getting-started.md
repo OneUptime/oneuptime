@@ -18,18 +18,18 @@ Configurare la sicurezza richiede il ruolo Project Owner, Project Admin o Securi
 :::steps
 ### Attivare ciò che serve alla maggior parte dei team
 
-Apri **Prodotti → Security Events**. In **Panoramica**, fai clic su **Turn on recommended**. Si attivano tre cose in una volta: **Find security events in your logs**, le regole di rilevamento consigliate e **Enrich New Cases**, un playbook che confronta ogni nuovo caso con la threat intelligence e vi lascia una checklist per lo smistamento.
+Apri **Prodotti → Security Events**. In **Panoramica**, fai clic su **Attiva quanto consigliato**. Si attivano tre cose in una volta: **Trova eventi di sicurezza nei tuoi log**, le regole di rilevamento consigliate e **Enrich New Cases**, un playbook che confronta ogni nuovo caso con la threat intelligence e vi lascia una checklist per lo smistamento.
 
 ### Inviare un attacco di prova
 
-Fai clic su **Send a test attack**. Una dozzina di accessi falliti da un indirizzo di documentazione attraversa l'elaborazione reale: vengono memorizzati, la regola di forza bruta li rileva e si apre un caso. Nessuno viene allertato e nessun SIEM li riceve.
+Fai clic su **Invia un attacco di prova**. Una dozzina di accessi falliti da un indirizzo di documentazione attraversa l'elaborazione reale: vengono memorizzati, la regola di forza bruta li rileva e si apre un caso. Nessuno viene allertato e nessun SIEM li riceve.
 
 ### Aprire il caso
 
-Fai clic su **Open the case**. Ecco come appare un vero risultato: gli eventi che lo motivano, l'indirizzo a cui si riferisce e ciò che **Enrich New Cases** ha trovato. Chiudilo come test quando hai finito.
+Fai clic su **Apri il caso**. Ecco come appare un vero risultato: gli eventi che lo motivano, l'indirizzo a cui si riferisce e ciò che **Enrich New Cases** ha trovato. Chiudilo come test quando hai finito.
 :::
 
-Da quel momento, **Panoramica** si apre su ciò che richiede qualcuno: i tuoi casi aperti, quelli che nessuno ha preso in carico e i passaggi dei playbook in attesa di approvazione, oppure **All quiet** quando non ce ne sono.
+Da quel momento, **Panoramica** si apre su ciò che richiede qualcuno: i tuoi casi aperti, quelli che nessuno ha preso in carico e i passaggi dei playbook in attesa di approvazione, oppure **Tutto tranquillo** quando non ce ne sono.
 
 ## Come funziona
 
@@ -52,7 +52,7 @@ La striscia in cima a **Panoramica** mostra ogni parte con i suoi numeri: le ori
 
 ## Trovare eventi di sicurezza nei tuoi log
 
-**Your logs**, in cima a **Connections**, non richiede installazioni. Con **Find security events in your logs** attivo, OneUptime legge ogni minuto i nuovi log del progetto e trasforma in eventi di sicurezza le righe che riconosce:
+La scheda **I tuoi log**, in cima a **Connections**, non richiede installazioni. Con **Trova eventi di sicurezza nei tuoi log** attivo, OneUptime legge ogni minuto i nuovi log del progetto e trasforma in eventi di sicurezza le righe che riconosce:
 
 | Log | Cosa diventa un evento di sicurezza |
 | --- | --- |
@@ -66,7 +66,7 @@ I tuoi log restano come sono. Solo le righe che contano per la sicurezza diventa
 
 ## Inviare al tuo SIEM ciò che OneUptime trova
 
-Se il tuo team lavora già in un SIEM, OneUptime invia lì anche ciò che trova. In **Connections → Send to your SIEM**, fai clic su **Add destination**, inserisci la regione, l'istanza e la chiave dell'account di servizio del tuo Google SecOps e fai clic su **Send a test event** prima di salvare. Vedi [Inviare eventi di sicurezza a Google SecOps](/docs/integrations/google-secops#inviare-eventi-di-sicurezza-a-google-secops).
+Se il tuo team lavora già in un SIEM, OneUptime invia lì anche ciò che trova. In **Connections → Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, inserisci la regione, l'istanza e la chiave dell'account di servizio del tuo Google SecOps e fai clic su **Invia un evento di prova** prima di salvare. Vedi [Inviare eventi di sicurezza a Google SecOps](/docs/integrations/google-secops#inviare-eventi-di-sicurezza-a-google-secops).
 
 ## Risoluzione dei problemi
 
@@ -79,7 +79,7 @@ Di solito il caso si apre prima che il pulsante risponda; quando la regola è an
 :::
 
 :::details Dai miei log non arriva alcun evento di sicurezza
-Verifica che **Find security events in your logs** sia attivo e che **Your logs** indichi quando è avvenuto l'ultimo controllo. Solo i tipi di righe della tabella qui sopra diventano eventi: un server che non invia log SSH, sudo, di audit, CloudTrail o di accesso non ha niente da trovare.
+Verifica che **Trova eventi di sicurezza nei tuoi log** sia attivo e che la scheda **I tuoi log** indichi quando è avvenuto l'ultimo controllo. Solo i tipi di righe della tabella qui sopra diventano eventi: un server che non invia log SSH, sudo, di audit, CloudTrail o di accesso non ha niente da trovare.
 :::
 
 ## Passaggi successivi

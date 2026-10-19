@@ -156,7 +156,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日志中查找安全事件
 
-**Connections** 顶部的 **Your logs** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **Find security events in your logs** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 登录、sudo 命令、Kubernetes 审计记录、AWS CloudTrail 更改和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
+**Connections** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 登录、sudo 命令、Kubernetes 审计记录、AWS CloudTrail 更改和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
 
 ### 连接安全产品
 
@@ -373,7 +373,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 :::
 
 :::details 规则从不匹配
-检查它是否处于 **已启用** 状态，并查看它所在行中的 **Last Evaluated** 和 **Last Error** 。打开一个你预期会匹配的事件，逐个字段与规则进行比较：普通值必须等于整个字段，所以匹配其中一部分时请使用 `contains` 或 `*`。属性按它在事件中的名称书写（写 `threat.matched`，而不是 `attributes.threat.matched`）。阈值大于 1 时，这些匹配必须落在同一次运行中。
+检查它是否处于 **已启用** 状态，并查看它所在行中的 **Last Evaluated** 和 **最近错误** 。打开一个你预期会匹配的事件，逐个字段与规则进行比较：普通值必须等于整个字段，所以匹配其中一部分时请使用 `contains` 或 `*`。属性按它在事件中的名称书写（写 `threat.matched`，而不是 `attributes.threat.matched`）。阈值大于 1 时，这些匹配必须落在同一次运行中。
 :::
 
 :::details 规则匹配了，但没有打开警报

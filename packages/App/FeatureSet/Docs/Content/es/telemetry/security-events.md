@@ -156,7 +156,7 @@ La pestaña **Guía de configuración** tiene estos fragmentos con tu propio hos
 
 ### Encontrar eventos de seguridad en sus registros
 
-**Your logs**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Find security events in your logs** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH, comando sudo, entrada de auditoría de Kubernetes, cambio de AWS CloudTrail y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
+La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH, comando sudo, entrada de auditoría de Kubernetes, cambio de AWS CloudTrail y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
 
 ### Conectar un producto de seguridad
 

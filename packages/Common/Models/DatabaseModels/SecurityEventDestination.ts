@@ -72,7 +72,7 @@ const readPermissions: Array<Permission> = [
   pluralName: "Security Event Destinations",
   icon: IconProp.PaperAirplane,
   tableDescription:
-    "SIEMs such as Google SecOps that OneUptime sends the project's detections, or all its security events, to.",
+    "SIEMs such as Google SecOps that receive the project's detections, or all its security events, from OneUptime.",
 })
 @TableAccessControl({
   create: adminPermissions,

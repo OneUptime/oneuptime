@@ -156,7 +156,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 
 ### ログからセキュリティイベントを見つける
 
-**接続** の上部にある **Your logs** は、すでに OneUptime に送っているログをソースにします。**Find security events in your logs** を有効にすると、プロジェクトの新しいログが毎分読み取られ、そこに含まれる SSH サインイン、sudo コマンド、Kubernetes の監査レコード、AWS CloudTrail の変更、Web 攻撃がそれぞれセキュリティイベントとして保存されます。種類ごとの内容は [セキュリティをはじめる](/docs/telemetry/security-getting-started#ログからセキュリティイベントを見つける) を参照してください。
+**接続** の上部にある **ログ** は、すでに OneUptime に送っているログをソースにします。**ログからセキュリティイベントを見つける** を有効にすると、プロジェクトの新しいログが毎分読み取られ、そこに含まれる SSH サインイン、sudo コマンド、Kubernetes の監査レコード、AWS CloudTrail の変更、Web 攻撃がそれぞれセキュリティイベントとして保存されます。種類ごとの内容は [セキュリティをはじめる](/docs/telemetry/security-getting-started#ログからセキュリティイベントを見つける) を参照してください。
 
 ### セキュリティ製品を接続する
 

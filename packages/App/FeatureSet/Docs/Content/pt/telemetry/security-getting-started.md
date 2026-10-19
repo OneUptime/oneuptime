@@ -18,18 +18,18 @@ Configurar a segurança exige a função Project Owner, Project Admin ou Securit
 :::steps
 ### Ativar o que a maioria das equipes precisa
 
-Abra **Produtos → Security Events**. Em **Visão geral**, clique em **Turn on recommended**. Três coisas são ativadas de uma vez: **Find security events in your logs**, as regras de detecção recomendadas e **Enrich New Cases**, um playbook que compara cada caso novo com a inteligência de ameaças e deixa nele uma lista de verificação para a triagem.
+Abra **Produtos → Security Events**. Em **Visão geral**, clique em **Ativar o recomendado**. Três coisas são ativadas de uma vez: **Encontrar eventos de segurança nos seus logs**, as regras de detecção recomendadas e **Enrich New Cases**, um playbook que compara cada caso novo com a inteligência de ameaças e deixa nele uma lista de verificação para a triagem.
 
 ### Enviar um ataque de teste
 
-Clique em **Send a test attack**. Uma dúzia de logins com falha a partir de um endereço de documentação passa pelo processamento real: eles são armazenados, a regra de força bruta os detecta e um caso é aberto. Ninguém é acionado, e nenhum SIEM os recebe.
+Clique em **Enviar um ataque de teste**. Uma dúzia de logins com falha a partir de um endereço de documentação passa pelo processamento real: eles são armazenados, a regra de força bruta os detecta e um caso é aberto. Ninguém é acionado, e nenhum SIEM os recebe.
 
 ### Abrir o caso
 
-Clique em **Open the case**. É assim que uma descoberta real se parece: os eventos que a sustentam, o endereço a que se refere e o que o **Enrich New Cases** encontrou. Feche-o como teste quando terminar.
+Clique em **Abrir o caso**. É assim que uma descoberta real se parece: os eventos que a sustentam, o endereço a que se refere e o que o **Enrich New Cases** encontrou. Feche-o como teste quando terminar.
 :::
 
-A partir daí, **Visão geral** abre no que precisa de alguém: os seus casos abertos, os que ninguém assumiu e as etapas de playbook aguardando uma aprovação, ou **All quiet** quando não há nenhum.
+A partir daí, **Visão geral** abre no que precisa de alguém: os seus casos abertos, os que ninguém assumiu e as etapas de playbook aguardando uma aprovação, ou **Tudo tranquilo** quando não há nenhum.
 
 ## Como funciona
 
@@ -52,7 +52,7 @@ A faixa no topo da **Visão geral** mostra cada parte com seus números: as orig
 
 ## Encontrar eventos de segurança nos seus logs
 
-**Your logs**, no topo de **Connections**, não precisa de instalação. Com **Find security events in your logs** ativado, o OneUptime lê a cada minuto os logs novos do projeto e transforma em eventos de segurança as linhas que reconhece:
+O cartão **Seus logs**, no topo de **Connections**, não precisa de instalação. Com **Encontrar eventos de segurança nos seus logs** ativado, o OneUptime lê a cada minuto os logs novos do projeto e transforma em eventos de segurança as linhas que reconhece:
 
 | Logs | O que vira um evento de segurança |
 | --- | --- |
@@ -66,7 +66,7 @@ Seus logs continuam como estão. Só as linhas que importam para a segurança vi
 
 ## Enviar ao seu SIEM o que o OneUptime encontra
 
-Se a sua equipe já trabalha em um SIEM, o OneUptime também envia para lá o que encontra. Em **Connections → Send to your SIEM**, clique em **Add destination**, preencha a região, a instância e a chave da conta de serviço do seu Google SecOps e clique em **Send a test event** antes de salvar. Consulte [Enviar eventos de segurança ao Google SecOps](/docs/integrations/google-secops#enviar-eventos-de-segurança-ao-google-secops).
+Se a sua equipe já trabalha em um SIEM, o OneUptime também envia para lá o que encontra. Em **Connections → Enviar para o seu SIEM**, clique em **Adicionar destino**, preencha a região, a instância e a chave da conta de serviço do seu Google SecOps e clique em **Enviar um evento de teste** antes de salvar. Consulte [Enviar eventos de segurança ao Google SecOps](/docs/integrations/google-secops#enviar-eventos-de-segurança-ao-google-secops).
 
 ## Solução de problemas
 
@@ -79,7 +79,7 @@ Normalmente o caso abre antes de o botão responder; quando a regra ainda está 
 :::
 
 :::details Nenhum evento de segurança vem dos meus logs
-Verifique se **Find security events in your logs** está ativado e se **Your logs** mostra quando foi a última verificação. Só os tipos de linha da tabela acima viram eventos: um servidor que não envia logs de SSH, sudo, auditoria, CloudTrail ou de acesso não tem nada a encontrar.
+Verifique se **Encontrar eventos de segurança nos seus logs** está ativado e se o cartão **Seus logs** mostra quando foi a última verificação. Só os tipos de linha da tabela acima viram eventos: um servidor que não envia logs de SSH, sudo, auditoria, CloudTrail ou de acesso não tem nada a encontrar.
 :::
 
 ## Próximos passos

@@ -101,14 +101,14 @@ Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{project
 
 ### Probar antes de guardar
 
-Selecciona **Probar esta configuración** en **Probar antes de guardar** antes de guardar. La prueba se ejecuta con los valores del formulario sin guardar nada, así que una clave mal formada, un rol que falta o una instancia equivocada se detectan antes de que exista la conexión. En el formulario de edición, el mismo botón prueba la **Región**, el **Instance resource name** y el **Data to import** que se ven en pantalla con la clave guardada; un campo de credenciales que se deja en blanco conserva la clave guardada. Cuando algo de lo probado difiere de lo que la conexión tiene guardado, incluida una clave recién introducida, no se registra ninguna fila en el historial de ejecuciones, porque la conexión aún no tiene esos ajustes.
+Selecciona **Probar esta configuración** en **Probar antes de guardar** antes de guardar. La prueba se ejecuta con los valores del formulario sin guardar nada, así que una clave mal formada, un rol que falta o una instancia equivocada se detectan antes de que exista la conexión. En el formulario de edición, el mismo botón prueba la **Región**, el **Nombre de recurso de la instancia** y el **Data to import** que se ven en pantalla con la clave guardada; un campo de credenciales que se deja en blanco conserva la clave guardada. Cuando algo de lo probado difiere de lo que la conexión tiene guardado, incluida una clave recién introducida, no se registra ninguna fila en el historial de ejecuciones, porque la conexión aún no tiene esos ajustes.
 :::
 
 | Ajuste | Dónde encontrarlo | Obligatorio |
 | --- | --- | --- |
 | **Región** | El endpoint regional de Google SecOps (`us`, `europe`, `asia-southeast1`, ...) que coincide con la ubicación de tu nombre de recurso de instancia. No hay valor por defecto, para que un inquilino fuera de EE. UU. no pueda guardar por accidente el endpoint equivocado. | Sí |
-| **Instance resource name** | En Google SecOps, **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Sí |
-| **Service account JSON** | Google Cloud, la pestaña **Keys** de la cuenta de servicio. Pega el archivo de clave JSON entero. Solo escritura: cifrado en reposo, la API nunca lo devuelve y nunca se vuelve a mostrar en la página. Usa **Actualizar credenciales** en la conexión para rotarlo. | Sí |
+| **Nombre de recurso de la instancia** | En Google SecOps, **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Sí |
+| **JSON de la cuenta de servicio** | Google Cloud, la pestaña **Keys** de la cuenta de servicio. Pega el archivo de clave JSON entero. Solo escritura: cifrado en reposo, la API nunca lo devuelve y nunca se vuelve a mostrar en la página. Usa **Actualizar credenciales** en la conexión para rotarlo. | Sí |
 | **Data to import** | Las **Alertas** siempre se importan, porque la API de alertas de Google siempre las devuelve. Selecciona **Detecciones** para importar también las coincidencias de reglas que no generaron una alerta. Esto no reenvía eventos UDM sin procesar: reenvíalos tú, como arriba. | Alertas siempre |
 
 El paso de sondeo del formulario pide un **Nombre**, una **Descripción** opcional, el ajuste **Habilitado** de la conexión y el **Intervalo de sondeo (minutos)**: un número entero de `1` a `1440`, `5` por defecto. Cualquier valor fuera de ese rango se rechaza al guardar.
@@ -161,7 +161,7 @@ Un sondeo Parcial también guarda sus avisos en **Último error**, donde se qued
 
 **Probar conexión**, en la fila de la conexión o en **Diagnósticos**, se ejecuta de forma síncrona en el proceso de la API. No necesita un worker en segundo plano, y justo por eso puede decirte cuándo no hay ningún worker en marcha. La lista de comprobaciones:
 
-1. **Configuración**: cada campo está presente y bien formado: una **Región** compatible que coincide con la ubicación de la instancia, un **Instance resource name** con la forma correcta y una clave **Service account JSON** con `client_email`, una `private_key` legible y un `token_uri` de Google. No se contacta con nada si esto falla.
+1. **Configuración**: cada campo está presente y bien formado: una **Región** compatible que coincide con la ubicación de la instancia, un **Nombre de recurso de la instancia** con la forma correcta y una clave **JSON de la cuenta de servicio** con `client_email`, una `private_key` legible y un `token_uri` de Google. No se contacta con nada si esto falla.
 2. **Authenticate with Google**: la clave se cambia por un token de acceso en el endpoint OAuth de Google, antes de contactar con Chronicle.
 3. **Read rule detections**, **Read curated rule detections** y **Read the alerts view**: una sonda de un registro para cada pasada sobre las últimas 24 horas. La comprobación de reglas seleccionadas lee los recuentos de las reglas seleccionadas de los últimos 7 días y sondea la regla seleccionada con más detecciones; si ninguna regla seleccionada se disparó esa semana, pasa sin nada que sondear. Una lectura de reglas seleccionadas respondida con `400`, `403` o `404` es un aviso, porque puede que el inquilino simplemente no tenga acceso a las reglas seleccionadas.
 4. **Detections available to import**: lo que tiene Google con la selección **Data to import** guardada y con la otra (solo Alertas, o Alertas y **Detecciones**) en las últimas 24 horas y los últimos 7 días: el recuento de coincidencias de la vista de alertas y una página de búsqueda por hora de creación por intervalo, indicado como un número o como `1000+`. Cuando la selección guardada no tiene nada pero la otra sí, la comprobación avisa: tus reglas crean detecciones, pero las alertas no están habilitadas en ellas. Edita la conexión y selecciona **Detecciones** en **Data to import**, o habilita las alertas en las reglas de Google SecOps.
@@ -224,15 +224,15 @@ En Google Cloud, cree una cuenta de servicio en el proyecto al que está vincula
 
 ### Añadir el destino
 
-Abra **Productos → Eventos de seguridad → Conexiones**. En **Send to your SIEM**, haga clic en **Add destination**. Elija la **Región**, rellene el **Instance resource name** como para el conector anterior y pegue la clave en **Service account JSON**.
+Abra **Productos → Eventos de seguridad → Conexiones**. En **Enviar a tu SIEM**, haga clic en **Añadir destino**. Elija la **Región**, rellene el **Nombre de recurso de la instancia** como para el conector anterior y pegue la clave en **JSON de la cuenta de servicio**.
 
 ### Enviar un evento de prueba
 
-Haga clic en **Send a test event**. Un `GENERIC_EVENT` del producto `OneUptime Security Events` va a Google SecOps con la configuración del formulario, y no se guarda nada. Aparece en Google SecOps en pocos minutos.
+Haga clic en **Enviar un evento de prueba**. Un `GENERIC_EVENT` del producto `OneUptime Security Events` va a Google SecOps con la configuración del formulario, y no se guarda nada. Aparece en Google SecOps en pocos minutos.
 
 ### Elegir qué enviar
 
-En **What to send**, deje **Detections only**, es decir, lo que encontraron sus reglas y su inteligencia de amenazas y las alertas que generaron sus productos conectados, o elija **All security events**. Haga clic en **Start sending**.
+En **Qué enviar**, deje **Solo detecciones**, es decir, lo que encontraron sus reglas y su inteligencia de amenazas y las alertas que generaron sus productos conectados, o elija **Todos los eventos de seguridad**. Haga clic en **Empezar a enviar**.
 :::
 
 - Un destino envía los eventos que llegan desde el momento en que se guarda, nunca el historial del proyecto, y envía los nuevos cada minuto.
@@ -306,7 +306,7 @@ Si el mismo error persiste, abre **Ver error** desde la columna **Acciones** de 
 
 Google SecOps tenía su propia tarjeta de conexiones, su API y su sondeador. Ahora es un proveedor de Security Event Connections, y la actualización mueve por ti las conexiones existentes.
 
-- **Las conexiones se mueven automáticamente.** Cuando la versión actualizada ejecuta sus migraciones de datos, cada conexión de Google SecOps se copia en Security Event Connections con el proveedor `google-secops`. Conserva su ID, su nombre, su **Región**, su **Instance resource name**, su clave de cuenta de servicio, su estado **Habilitado**, su intervalo de sondeo, su selección **Data to import**, su cursor de sondeo, Último sondeo, Último sondeo correcto, Último evento importado y Último error, así que el sondeo continúa donde se detuvo. El conector conserva la identidad `Google` / `Google SecOps` con la que importaba el anterior, así que las detecciones ya importadas cuentan como **Already imported** en lugar de guardarse dos veces.
+- **Las conexiones se mueven automáticamente.** Cuando la versión actualizada ejecuta sus migraciones de datos, cada conexión de Google SecOps se copia en Security Event Connections con el proveedor `google-secops`. Conserva su ID, su nombre, su **Región**, su **Nombre de recurso de la instancia**, su clave de cuenta de servicio, su estado **Habilitado**, su intervalo de sondeo, su selección **Data to import**, su cursor de sondeo, Último sondeo, Último sondeo correcto, Último evento importado y Último error, así que el sondeo continúa donde se detuvo. El conector conserva la identidad `Google` / `Google SecOps` con la que importaba el anterior, así que las detecciones ya importadas cuentan como **Already imported** en lugar de guardarse dos veces.
 - **El historial reciente de ejecuciones viene con ellas.** Las 500 ejecuciones más recientes de cada conexión se copian en su historial de ejecuciones en **Diagnósticos**. Una ejecución que aún estaba en cola o en marcha se copia como fallida con `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`
 - **Las filas anteriores se deshabilitan, no se borran.** Así, un worker antiguo que siga en marcha durante un despliegue gradual no puede sondear la misma instancia una segunda vez. Volver a una versión con el conector anterior exige habilitar de nuevo esas filas.
 - **Una conexión que no se puede mover se queda donde estaba.** Una sin clave guardada, o cuya clave no se puede descifrar con el `ENCRYPTION_SECRET` de este servidor, se omite y se nombra en el registro del worker; vuelve a añadirla en **Productos → Eventos de seguridad → Conexiones**. Una cuyos ajustes guardados ya no pasan la validación actual se mueve igualmente, y sus sondeos fallan con un mensaje que nombra el campo hasta que la edites. Una que interrumpió un error pasajero de la base de datos se mueve cuando la migración vuelve a ejecutarse en el siguiente arranque de un worker, y el sondeo continúa desde su cursor copiado.

@@ -238,10 +238,12 @@ describe("the Send to your SIEM table", () => {
         return column.title;
       }),
       /*
-       * When it last sent reads under its status, not in a column of its own:
-       * with one, the table ran past its card beside the side menu at 1280.
+       * When it last sent reads under its status, and what it is sent under
+       * its name, not in columns of their own: with them, the table ran past
+       * its card beside the side menu at 1280 - in English with a Last Sent
+       * column, in ten languages with a Sends column.
        */
-    ).toEqual(["Name", "Sends", "Status"]);
+    ).toEqual(["Name", "Status"]);
     expect(
       (props.actionButtons || []).map((button: { title: string }) => {
         return button.title;
@@ -325,6 +327,56 @@ describe("the Send to your SIEM table", () => {
     expect(
       screen.getByTestId("security-event-destinations-empty-note"),
     ).toHaveTextContent("Sending to a SIEM takes Security Admin.");
+  });
+
+  test("each row says what the SIEM is and what it is sent, under its name", async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <SecurityEventDestinationsTable />
+        </MemoryRouter>,
+      );
+    });
+
+    const nameColumn: ModelTableProps<BaseModel>["columns"][number] =
+      capturedTable!.columns.find((column: { title: string }) => {
+        return column.title === "Name";
+      })!;
+
+    const detections: SecurityEventDestination = savedDestination();
+    const everything: SecurityEventDestination = savedDestination();
+    everything.name = "SecOps EU";
+    everything.sendScope = SecurityEventDestinationScope.AllEvents;
+
+    for (const [item, name, detail] of [
+      [detections, "Production SecOps", "Google SecOps · Detections only"],
+      [everything, "SecOps EU", "Google SecOps · All security events"],
+    ] as Array<[SecurityEventDestination, string, string]>) {
+      const { unmount } = render(
+        <MemoryRouter>
+          {nameColumn.getElement!(item as unknown as BaseModel)}
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByText(name)).toBeInTheDocument();
+      const line: HTMLElement = screen.getByTestId(
+        "security-event-destination-detail",
+      );
+      expect(line).toHaveTextContent(detail);
+      /*
+       * Where room runs out the line breaks between its two parts, never
+       * inside one: "Google SecOps ·" over "All security events".
+       */
+      expect(
+        Array.from(line.querySelectorAll("span.whitespace-nowrap")).map(
+          (part: Element): string => {
+            return part.textContent || "";
+          },
+        ),
+      ).toEqual(["Google SecOps ·", detail.split(" · ")[1]]);
+
+      unmount();
+    }
   });
 
   test("each row's status says how sending goes, and when it last sent", async () => {

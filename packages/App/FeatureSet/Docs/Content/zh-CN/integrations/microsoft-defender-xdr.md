@@ -56,7 +56,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 保存之前先测试
 
-点击 **Test before saving** 下的 **Test these settings**。测试会用表单中的值登录并读取警报，但不会存储任何内容，因此错误的密码或缺失的同意会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
+点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值登录并读取警报，但不会存储任何内容，因此错误的密码或缺失的同意会在连接存在之前暴露出来。然后点击 **下一步**，为连接填写 **名称** 并创建它。
 :::
 
 | 设置 | 在哪里找到 |
@@ -116,7 +116,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 已从较长窗口导入的警报会作为重复项被跳过。
 2. **恢复。** 一个窗口被完整读取后，游标会移到它的末尾，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内都有超过 2,000 个警报，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **Partial**，**Last Error** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
+3. **越过单独的一分钟。** 如果连一分钟内都有超过 2,000 个警报，轮询会越过这一分钟，让更新的警报继续到达。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，即可找回一次运行能读取的内容。
 
 因其他原因而为 **Partial** 的运行，例如某个警报无法被读取为安全事件，也会以同样的方式从同一个起点重试。更改 **Poll Interval (Minutes)** 不会改变以上任何一点：它决定轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -146,7 +146,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 ## 故障排除
 
-连接的 **Last Error** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **Copy Error** 复制。请先阅读前缀。
+连接的 **最近错误** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **复制错误** 复制。请先阅读前缀。
 
 :::details Last Error 以 `Microsoft Defender XDR token request` 开头
 - `Microsoft Defender XDR token request failed (HTTP ...)`：Microsoft Entra ID 拒绝颁发令牌，所以根本没有连接 Graph。消息末尾会有一条根据 Entra 的 `error` 代码给出的提示：
@@ -178,7 +178,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 - 在连接存在之前创建的警报早于第一次 24 小时回溯。请用 **Import this time range** 导入它。
 - **Partial** 运行是被 2,000 个警报的上限停下的。下一次轮询会从同一个起点读取更短的窗口，所以一旦包含该警报的窗口被完整读取，它就会被导入。
-- 如果 **Last Error** 指出了轮询越过的某一分钟，请用 **Import this time range** 导入那一分钟。
+- 如果 **最近错误** 指出了轮询越过的某一分钟，请用 **Import this time range** 导入那一分钟。
 :::
 
 :::details 同一个警报出现了两次

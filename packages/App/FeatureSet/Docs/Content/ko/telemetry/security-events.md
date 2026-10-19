@@ -156,7 +156,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 
 ### 로그에서 보안 이벤트 찾기
 
-**Connections** 상단의 **Your logs**는 이미 OneUptime에 보내고 있는 로그를 소스로 만듭니다. **Find security events in your logs**를 켜면 프로젝트의 새 로그를 매분 읽고, 그 안의 SSH 로그인, sudo 명령, Kubernetes 감사 기록, AWS CloudTrail 변경, 웹 공격을 각각 보안 이벤트로 저장합니다. 종류별로 다루는 내용은 [보안 시작하기](/docs/telemetry/security-getting-started#로그에서-보안-이벤트-찾기)를 참고하세요.
+**Connections** 상단의 **내 로그**는 이미 OneUptime에 보내고 있는 로그를 소스로 만듭니다. **로그에서 보안 이벤트 찾기**를 켜면 프로젝트의 새 로그를 매분 읽고, 그 안의 SSH 로그인, sudo 명령, Kubernetes 감사 기록, AWS CloudTrail 변경, 웹 공격을 각각 보안 이벤트로 저장합니다. 종류별로 다루는 내용은 [보안 시작하기](/docs/telemetry/security-getting-started#로그에서-보안-이벤트-찾기)를 참고하세요.
 
 ### 보안 제품 연결하기
 
@@ -373,7 +373,7 @@ Detection Finding은 제품 `OneUptime Detections` 에서 나온 `Detection Find
 :::
 
 :::details 규칙이 전혀 일치하지 않음
-규칙이 **활성화됨** 상태인지 확인하고, 그 행의 **Last Evaluated** 와 **Last Error** 를 읽어 보세요. 일치할 것으로 예상한 이벤트를 열어 규칙과 필드별로 비교하세요. 일반 값은 필드 전체와 같아야 하므로, 일부만 맞추려면 `contains` 나 `*` 를 쓰세요. 속성은 이벤트에 적힌 이름 그대로 씁니다(`attributes.threat.matched` 가 아니라 `threat.matched`). 임곗값이 1보다 크면 일치가 한 번의 실행 안에 들어가야 합니다.
+규칙이 **활성화됨** 상태인지 확인하고, 그 행의 **Last Evaluated** 와 **마지막 오류** 를 읽어 보세요. 일치할 것으로 예상한 이벤트를 열어 규칙과 필드별로 비교하세요. 일반 값은 필드 전체와 같아야 하므로, 일부만 맞추려면 `contains` 나 `*` 를 쓰세요. 속성은 이벤트에 적힌 이름 그대로 씁니다(`attributes.threat.matched` 가 아니라 `threat.matched`). 임곗값이 1보다 크면 일치가 한 번의 실행 안에 들어가야 합니다.
 :::
 
 :::details 규칙이 일치했는데 알림이 열리지 않음

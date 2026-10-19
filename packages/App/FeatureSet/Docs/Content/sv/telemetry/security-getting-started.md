@@ -18,18 +18,18 @@ För att sätta upp säkerhet krävs rollen Project Owner, Project Admin eller S
 :::steps
 ### Slå på det som de flesta team behöver
 
-Öppna **Produkter → Security Events**. Klicka på **Turn on recommended** på **Översikt**. Det slår på tre saker samtidigt: **Find security events in your logs**, de rekommenderade detektionsreglerna och **Enrich New Cases**, en playbook som kontrollerar varje nytt ärende mot hotunderrättelser och lämnar en checklista för triage i det.
+Öppna **Produkter → Security Events**. Klicka på **Slå på rekommenderat** på **Översikt**. Det slår på tre saker samtidigt: **Hitta säkerhetshändelser i dina loggar**, de rekommenderade detektionsreglerna och **Enrich New Cases**, en playbook som kontrollerar varje nytt ärende mot hotunderrättelser och lämnar en checklista för triage i det.
 
 ### Skicka en testattack
 
-Klicka på **Send a test attack**. Ett dussin misslyckade inloggningar från en dokumentationsadress går igenom den riktiga bearbetningen: de lagras, brute force-regeln fångar dem och ett ärende öppnas. Ingen larmas, och inget SIEM tar emot dem.
+Klicka på **Skicka en testattack**. Ett dussin misslyckade inloggningar från en dokumentationsadress går igenom den riktiga bearbetningen: de lagras, brute force-regeln fångar dem och ett ärende öppnas. Ingen larmas, och inget SIEM tar emot dem.
 
 ### Öppna ärendet
 
-Klicka på **Open the case**. Så ser ett riktigt fynd ut: händelserna bakom det, adressen det gäller och vad **Enrich New Cases** hittade. Stäng det som ett test när du är klar.
+Klicka på **Öppna ärendet**. Så ser ett riktigt fynd ut: händelserna bakom det, adressen det gäller och vad **Enrich New Cases** hittade. Stäng det som ett test när du är klar.
 :::
 
-Därefter öppnar **Översikt** på det som behöver någon: dina öppna ärenden, de som ingen har tagit och playbook-stegen som väntar på ett godkännande, eller **All quiet** när det inte finns några.
+Därefter öppnar **Översikt** på det som behöver någon: dina öppna ärenden, de som ingen har tagit och playbook-stegen som väntar på ett godkännande, eller **Allt är lugnt** när det inte finns några.
 
 ## Så fungerar det
 
@@ -52,7 +52,7 @@ Remsan högst upp på **Översikt** visar varje del med sina siffror: källorna 
 
 ## Hitta säkerhetshändelser i dina loggar
 
-**Your logs**, högst upp på **Connections**, behöver ingen installation. Med **Find security events in your logs** påslaget läser OneUptime projektets nya loggar varje minut och gör raderna det känner igen till säkerhetshändelser:
+Kortet **Dina loggar**, högst upp på **Connections**, behöver ingen installation. Med **Hitta säkerhetshändelser i dina loggar** påslaget läser OneUptime projektets nya loggar varje minut och gör raderna det känner igen till säkerhetshändelser:
 
 | Loggar | Vad som blir en säkerhetshändelse |
 | --- | --- |
@@ -66,7 +66,7 @@ Dina loggar förblir som de är. Bara raderna som spelar roll för säkerheten b
 
 ## Skicka det OneUptime hittar till ditt SIEM
 
-Arbetar ditt team redan i ett SIEM skickar OneUptime sina fynd dit också. Klicka på **Add destination** under **Connections → Send to your SIEM**, fyll i region, instans och tjänstekontonyckel för din Google SecOps-instans och klicka på **Send a test event** innan du sparar. Se [Skicka säkerhetshändelser till Google SecOps](/docs/integrations/google-secops#skicka-säkerhetshändelser-till-google-secops).
+Arbetar ditt team redan i ett SIEM skickar OneUptime sina fynd dit också. Klicka på **Lägg till mål** under **Connections → Skicka till ditt SIEM**, fyll i region, instans och tjänstekontonyckel för din Google SecOps-instans och klicka på **Skicka en testhändelse** innan du sparar. Se [Skicka säkerhetshändelser till Google SecOps](/docs/integrations/google-secops#skicka-säkerhetshändelser-till-google-secops).
 
 ## Felsökning
 
@@ -79,7 +79,7 @@ Din roll får inte lägga till detektionsregler, playbooks eller loggkällan. Fr
 :::
 
 :::details Inga säkerhetshändelser kommer från mina loggar
-Kontrollera att **Find security events in your logs** är påslaget och att **Your logs** visar när det senast kontrollerades. Bara typerna av rader i tabellen ovan blir händelser: en server som inte skickar SSH-, sudo-, gransknings-, CloudTrail- eller åtkomstloggar har inget att hitta.
+Kontrollera att **Hitta säkerhetshändelser i dina loggar** är påslaget och att kortet **Dina loggar** visar när det senast kontrollerades. Bara typerna av rader i tabellen ovan blir händelser: en server som inte skickar SSH-, sudo-, gransknings-, CloudTrail- eller åtkomstloggar har inget att hitta.
 :::
 
 ## Nästa steg
