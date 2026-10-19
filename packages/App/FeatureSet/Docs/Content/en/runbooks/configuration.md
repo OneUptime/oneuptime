@@ -40,16 +40,16 @@ flowchart TB
 
 ## How Runner steps are dispatched
 
-JavaScript, Bash, SSH and Kubernetes steps **never execute on the OneUptime Worker**. They are dispatched as jobs to a specific [Runbook Agent](/docs/runbooks/agents): a small process you install on a host inside your own infrastructure.
+JavaScript, Bash, SSH and Kubernetes steps **never execute on the OneUptime Worker**. They are dispatched as jobs to a specific [Runbook Agent](/docs/runbooks/agents): a small process you install on a host inside your own infrastructure. A JavaScript step that picks none goes to the [global Runners](/docs/runbooks/agents#global-runners) OneUptime runs for every project.
 
 The dispatch model:
 
 1. The runbook step author picks a Runner from the dropdown when writing the step.
-2. When the step runs, the Worker inserts a row in `RunnerJob` with `targetAgentId` set to that Runner's ID and status `Pending`.
-3. That specific Runner (and only that Runner) atomically claims the job, runs it locally — Bash via `bash -c <script>`, JavaScript inside an `isolated-vm` sandbox, SSH and Kubernetes with the step's credential — and posts the result back.
+2. When the step runs, the Worker inserts a row in `RunnerJob` with `targetAgentId` set to that Runner's ID and status `Pending`. A JavaScript step that picked none, in a project that uses global Runners, gets `runsOnGlobalRunner` instead.
+3. That specific Runner (and only that Runner) atomically claims the job, runs it locally — Bash via `bash -c <script>`, JavaScript inside an `isolated-vm` sandbox, SSH and Kubernetes with the step's credential — and posts the result back. Any global Runner may claim a job with `runsOnGlobalRunner`.
 4. The Worker resumes the runbook with the result.
 
-There is no `RUNBOOK_BASH_ENABLED` environment flag any more. Whether these steps work in a deployment depends entirely on whether the project has a connected Runner with **Runs Runbooks** on.
+There is no `RUNBOOK_BASH_ENABLED` environment flag any more. Whether these steps work in a deployment depends entirely on whether the project has a connected Runner with **Runs Runbooks** on. A JavaScript step also works on a global Runner.
 
 ## Output caps and timeouts
 
@@ -92,11 +92,12 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 
 ## Hardening notes
 
-- **JavaScript, Bash, SSH and Kubernetes** run on a Runner host you control, not on the OneUptime Worker. JavaScript runs in a separate `isolated-vm` isolate with 128 MB of memory and no access to the Runner's filesystem or processes; it can make HTTP requests with `axios`, but requests to private networks, loopback and link-local addresses are refused. Bash runs via `bash -c`, with its timeout enforced on the Runner.
+- **JavaScript, Bash, SSH and Kubernetes** run on a Runner host you control, not on the OneUptime Worker. JavaScript runs in a separate `isolated-vm` isolate with 128 MB of memory and no access to the Runner's filesystem or processes; it can make HTTP requests with `axios`, but requests to private networks, loopback and link-local addresses are refused. Bash runs via `bash -c`, with its timeout enforced on the Runner. A JavaScript step that picks none runs on a global Runner instead.
 - **HTTP steps** use a permissive status validator, so a 4xx or 5xx response is recorded as a failed step rather than thrown, and the captured output reflects what the upstream actually returned. Redirects are not followed. The Worker never calls loopback or link-local addresses, such as a cloud metadata endpoint; on OneUptime Cloud it also refuses private network addresses, and a self-hosted OneUptime refuses them with `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **AI steps** never see private incident notes or Slack and Microsoft Teams messages, and earlier step output is scanned for secrets, which are redacted, before it reaches the model. Embedded images and long encoded data are left out of the prompt. See [AI](/docs/runbooks/authoring#ai).
+- **Global Runners** run JavaScript steps only, each in a sandbox made for that step and thrown away after it, reaching public internet addresses only, for 5 minutes at most, and at most three of one project's steps at once. They are handed only the runbook secrets of the step's own project that are switched on for global Runners, and never a credential; the bundled one holds its own key and nothing else of the server's. See [Global Runners](/docs/runbooks/agents#global-runners).
 - **Runner auth** is by ID and secret key, set on the Runner container as environment variables. Server-side, the authoritative Runner identity comes from the database row keyed by the presented ID and key: a client cannot impersonate a different Runner even with a compromised key.
-- **Credentials and secrets** are encrypted at rest, never returned by the API, and handed only to the Runners they are assigned to, when those claim a step.
+- **Credentials and secrets** are encrypted at rest, never returned by the API, and handed only to the Runners they are assigned to, when those claim a step. A runbook secret is also handed to a global Runner that claims a step of the secret's own project, when the secret lets global Runners use it.
 
 ## Database tables
 
@@ -105,8 +106,8 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 | `Runbook` | The template: name, slug, description, `isEnabled`, labels and the steps as JSON. |
 | `RunbookExecution` | One row per run, with nullable `incidentId`, `alertId` and `scheduledMaintenanceId` foreign keys and a JSON `stepExecutions` array snapshotting the steps and each step's state. |
 | `RunbookRule` | Auto-trigger rules, with a `triggerEntityType` discriminator (Incident, Alert, ScheduledMaintenance), a many-to-many relationship to runbooks to start, and what they match on: a JSON `criteria` column (the conditions) plus many-to-many links to monitors, incident severities, alert severities, labels and monitor labels, and title, description, monitor name and monitor description patterns. |
-| `Runner` | One row per installed Runner: name, secret key, `lastAlive`, `connectionStatus`, host info and capabilities. |
-| `RunnerJob` | One row per step dispatched to a Runner: `targetAgentId` (the Runner the step author picked), step type, script or payload, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` or `Cancelled`), claim deadline, lease, output and exit code. |
+| `Runner` | One row per installed Runner: name, secret key, `lastAlive`, `connectionStatus`, host info and capabilities. A global Runner has `isGlobalRunner` set and no project. |
+| `RunnerJob` | One row per step dispatched to a Runner: `targetAgentId` (the Runner the step author picked), step type, script or payload, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` or `Cancelled`), claim deadline, lease, output and exit code. `runsOnGlobalRunner` marks a step any global Runner may claim. |
 | `RunbookCredential` | SSH and Kubernetes credentials, with their secret fields encrypted, and the Runners they are assigned to. |
 | `RunbookSecret` | Runbook secrets, encrypted, and the Runners that may receive them. |
 

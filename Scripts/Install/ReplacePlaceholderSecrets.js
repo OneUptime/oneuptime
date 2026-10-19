@@ -40,6 +40,11 @@ const fs = require("fs");
  *     is given too, to let the Runner register with it. The server refuses a
  *     shipped value (SharedRunnerKeyAuthorization, CodeFixAgentAuth,
  *     AIAgentAPI).
+ *   - GLOBAL_RUNNER_KEY: the bundled global Runner's key. The app keeps the
+ *     global Runner's row from it on every boot and the global-runner service
+ *     presents it on every request, so both pick up a fresh value together;
+ *     a shipped value keeps the global Runner off (SeedBundledGlobalRunner)
+ *     and never authenticates (RunnerService.findByIdAndKey).
  *   - CLICKHOUSE_PASSWORD and VALKEY_PASSWORD, below: the passwords of the
  *     ClickHouse and Valkey that Docker Compose runs.
  */
@@ -49,6 +54,7 @@ const GENERATED_SECRETS = [
   "GLOBAL_PROBE_1_KEY",
   "GLOBAL_PROBE_2_KEY",
   "ONEUPTIME_RUNNER_KEY",
+  "GLOBAL_RUNNER_KEY",
 ];
 
 /*
@@ -351,8 +357,8 @@ const describeUnchangedConfig = (action, error) => {
 
   return (
     `config.env could not be ${action} (${reason}), so its placeholder secrets were not given random values. ` +
-    "OneUptime starts anyway, but the bundled probes and Runner do not register while REGISTER_PROBE_KEY, " +
-    "GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY or ONEUPTIME_RUNNER_KEY still holds the " +
+    "OneUptime starts anyway, but the bundled probes and Runners do not register while REGISTER_PROBE_KEY, " +
+    "GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY or GLOBAL_RUNNER_KEY still holds the " +
     "placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one)."
   );
 };

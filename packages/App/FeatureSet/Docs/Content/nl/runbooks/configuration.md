@@ -40,16 +40,16 @@ flowchart TB
 
 ## Hoe Runner-stappen worden verstuurd
 
-JavaScript-, Bash-, SSH- en Kubernetes-stappen **lopen nooit op de OneUptime Worker**. Ze worden als taken verstuurd naar een bepaalde [runbook-agent](/docs/runbooks/agents): een klein proces dat u op een host in uw eigen infrastructuur installeert.
+JavaScript-, Bash-, SSH- en Kubernetes-stappen **lopen nooit op de OneUptime Worker**. Ze worden als taken verstuurd naar een bepaalde [runbook-agent](/docs/runbooks/agents): een klein proces dat u op een host in uw eigen infrastructuur installeert. Een JavaScript-stap die er geen kiest, gaat naar de [globale Runners](/docs/runbooks/agents#globale-runners) die OneUptime voor elk project draait.
 
 Het verzendmodel:
 
 1. Wie de runbook-stap schrijft, kiest bij het schrijven een Runner uit de vervolgkeuzelijst.
-2. Wanneer de stap loopt, voegt de Worker een rij toe aan `RunnerJob` met `targetAgentId` gelijk aan het ID van die Runner en status `Pending`.
-3. Precies die Runner (en alleen die) pakt de taak atomair op, voert hem lokaal uit — Bash via `bash -c <script>`, JavaScript in een `isolated-vm`-sandbox, SSH en Kubernetes met het inloggegeven van de stap — en meldt het resultaat terug.
+2. Wanneer de stap loopt, voegt de Worker een rij toe aan `RunnerJob` met `targetAgentId` gelijk aan het ID van die Runner en status `Pending`. Een JavaScript-stap die er geen koos, krijgt in een project dat globale Runners gebruikt in plaats daarvan `runsOnGlobalRunner`.
+3. Precies die Runner (en alleen die) pakt de taak atomair op, voert hem lokaal uit — Bash via `bash -c <script>`, JavaScript in een `isolated-vm`-sandbox, SSH en Kubernetes met het inloggegeven van de stap — en meldt het resultaat terug. Elke globale Runner mag een taak met `runsOnGlobalRunner` oppakken.
 4. De Worker zet het runbook voort met het resultaat.
 
-De omgevingsvlag `RUNBOOK_BASH_ENABLED` bestaat niet meer. Of deze stappen in een installatie werken, hangt er alleen van af of het project een verbonden Runner heeft met **Voert Runbooks uit** aan.
+De omgevingsvlag `RUNBOOK_BASH_ENABLED` bestaat niet meer. Of deze stappen in een installatie werken, hangt er alleen van af of het project een verbonden Runner heeft met **Voert Runbooks uit** aan. Een JavaScript-stap werkt ook op een globale Runner.
 
 ## Uitvoerlimieten en time-outs
 
@@ -92,11 +92,12 @@ Wanneer een handmatige stap via de API wordt afgevinkt, wordt de uitvoering opni
 
 ## Beveiligingsnotities
 
-- **JavaScript, Bash, SSH en Kubernetes** lopen op een Runner-host die u beheert, niet op de OneUptime Worker. JavaScript loopt in een eigen `isolated-vm`-isolaat met 128 MB geheugen en zonder toegang tot het bestandssysteem of de processen van de Runner; het kan HTTP-verzoeken doen met `axios`, maar verzoeken naar privénetwerken en loopback- en link-local-adressen worden geweigerd. Bash loopt via `bash -c`, met een time-out die op de Runner wordt afgedwongen.
+- **JavaScript, Bash, SSH en Kubernetes** lopen op een Runner-host die u beheert, niet op de OneUptime Worker. JavaScript loopt in een eigen `isolated-vm`-isolaat met 128 MB geheugen en zonder toegang tot het bestandssysteem of de processen van de Runner; het kan HTTP-verzoeken doen met `axios`, maar verzoeken naar privénetwerken en loopback- en link-local-adressen worden geweigerd. Bash loopt via `bash -c`, met een time-out die op de Runner wordt afgedwongen. Een JavaScript-stap die er geen kiest, loopt in plaats daarvan op een globale Runner.
 - **HTTP-stappen** gebruiken een ruime statusvalidatie, zodat een 4xx- of 5xx-antwoord als mislukte stap wordt vastgelegd in plaats van een uitzondering te gooien, en de vastgelegde uitvoer weerspiegelt wat de andere kant echt teruggaf. Doorverwijzingen worden niet gevolgd. De Worker roept nooit loopback- of link-local-adressen aan, zoals een metadata-endpoint van een cloud; in OneUptime Cloud weigert hij ook privénetwerkadressen, en een zelf gehoste OneUptime weigert ze met `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **AI-stappen** zien nooit privénotities van incidenten of berichten uit Slack en Microsoft Teams, en de uitvoer van eerdere stappen wordt doorzocht op geheimen, die worden afgeschermd voordat ze het model bereiken. Ingesloten afbeeldingen en lange gecodeerde gegevens blijven buiten de prompt. Zie [AI](/docs/runbooks/authoring#ai).
+- **Globale Runners** voeren alleen JavaScript-stappen uit, elk in een sandbox die voor die stap wordt gemaakt en daarna weggegooid, die alleen openbare internetadressen bereikt, hooguit 5 minuten lang en met hooguit drie stappen van één project tegelijk. Ze krijgen alleen de runbook-geheimen van het eigen project van de stap die voor globale Runners zijn ingeschakeld, en nooit een credential; de meegeleverde heeft een eigen sleutel en verder niets van de server. Zie [Globale Runners](/docs/runbooks/agents#globale-runners).
 - **Runner-authenticatie** gebeurt met een ID en geheime sleutel, als omgevingsvariabelen op de Runner-container ingesteld. Aan de serverkant komt de geldende identiteit van de Runner uit de databaserij die hoort bij het getoonde ID en de sleutel: een client kan zich zelfs met een gelekte sleutel niet als een andere Runner voordoen.
-- **Inloggegevens en geheimen** worden versleuteld opgeslagen, nooit door de API teruggegeven en alleen overhandigd aan de Runners waaraan ze zijn toegewezen, wanneer die een stap oppakken.
+- **Inloggegevens en geheimen** worden versleuteld opgeslagen, nooit door de API teruggegeven en alleen overhandigd aan de Runners waaraan ze zijn toegewezen, wanneer die een stap oppakken. Een runbook-geheim gaat ook naar een globale Runner die een stap van het eigen project van het geheim oppakt, als het geheim globale Runners toestaat het te gebruiken.
 
 ## Databasetabellen
 
@@ -105,8 +106,8 @@ Wanneer een handmatige stap via de API wordt afgevinkt, wordt de uitvoering opni
 | `Runbook` | Het sjabloon: naam, slug, beschrijving, `isEnabled`, labels en de stappen als JSON. |
 | `RunbookExecution` | Eén rij per uitvoering, met de optionele vreemde sleutels `incidentId`, `alertId` en `scheduledMaintenanceId` en een JSON-array `stepExecutions` die de stappen en de toestand van elke stap vastlegt. |
 | `RunbookRule` | Regels voor automatisch starten, met een onderscheidingsveld `triggerEntityType` (Incident, Alert, ScheduledMaintenance), een veel-op-veel-relatie met de te starten runbooks, en waarop ze matchen: een JSON-kolom `criteria` (de voorwaarden) plus veel-op-veel-koppelingen met monitoren, incidenternsten, waarschuwingsernsten, labels en monitorlabels, en patronen voor titel, beschrijving, monitornaam en monitorbeschrijving. |
-| `Runner` | Eén rij per geïnstalleerde Runner: naam, geheime sleutel, `lastAlive`, `connectionStatus`, hostinformatie en mogelijkheden. |
-| `RunnerJob` | Eén rij per stap die naar een Runner is verstuurd: `targetAgentId` (de Runner die de schrijver van de stap koos), staptype, script of payload, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` of `Cancelled`), claimdeadline, lease, uitvoer en exitcode. |
+| `Runner` | Eén rij per geïnstalleerde Runner: naam, geheime sleutel, `lastAlive`, `connectionStatus`, hostinformatie en mogelijkheden. Bij een globale Runner is `isGlobalRunner` ingesteld en hoort hij bij geen project. |
+| `RunnerJob` | Eén rij per stap die naar een Runner is verstuurd: `targetAgentId` (de Runner die de schrijver van de stap koos), staptype, script of payload, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` of `Cancelled`), claimdeadline, lease, uitvoer en exitcode. `runsOnGlobalRunner` markeert een stap die elke globale Runner mag oppakken. |
 | `RunbookCredential` | SSH- en Kubernetes-inloggegevens, met versleutelde geheime velden, en de Runners waaraan ze zijn toegewezen. |
 | `RunbookSecret` | Runbook-geheimen, versleuteld, en de Runners die ze mogen ontvangen. |
 

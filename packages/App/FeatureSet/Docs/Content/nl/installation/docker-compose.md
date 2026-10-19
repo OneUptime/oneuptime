@@ -139,6 +139,7 @@ Het laatste commando geeft `0`: er is geen tijdelijke waarde meer over. De lus g
 | `REGISTER_PROBE_KEY` | Het registreren van probes bij uw instantie. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globale probes die Docker Compose kan draaien (`probe-1` draait standaard). |
 | `ONEUPTIME_RUNNER_KEY` | De meegeleverde Runner. |
+| `GLOBAL_RUNNER_KEY` | De meegeleverde globale Runner, die de JavaScript-stappen van alle projecten uitvoert. |
 
 > [!IMPORTANT]
 > Stel de geheimen in vóór de eerste start en houd ze daarna aan. PostgreSQL neemt zijn wachtwoord alleen over bij het aanmaken van zijn database, en `ENCRYPTION_SECRET` later wijzigen maakt elke waarde die met de oude is versleuteld onleesbaar. Is `DATABASE_PASSWORD` bij de eerste start nog de tijdelijke waarde, dan geeft `npm start` het een willekeurige waarde voordat PostgreSQL zijn database aanmaakt.

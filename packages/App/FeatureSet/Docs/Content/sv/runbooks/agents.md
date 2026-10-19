@@ -1,10 +1,11 @@
 # Runbook-agenter
 
-En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten självhostad process som kör JavaScript-, Bash-, SSH- och Kubernetes-stegen i dina runbooks **i din egen infrastruktur**. OneUptime Worker kör aldrig dina skript: den köar dem, och den Runner som stegets författare valde tar varje jobb, kör det och skickar tillbaka resultatet. Den här sidan är till för dem som installerar och driver Runners.
+En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten självhostad process som kör JavaScript-, Bash-, SSH- och Kubernetes-stegen i dina runbooks **i din egen infrastruktur**. OneUptime Worker kör aldrig dina skript: den köar dem, och den Runner som stegets författare valde tar varje jobb, kör det och skickar tillbaka resultatet. Den här sidan är till för dem som installerar och driver Runners. Ett JavaScript-steg som inte väljer någon Runner körs i stället på en [global Runner](#globala-runners), en av dem som OneUptime kör för alla projekt.
 
 :::cards
 - [Installera en Runner](#installera-en-runner): Från instrumentpanelen till en ansluten container i fem steg.
 - [Peka ett steg mot en Runner](#peka-ett-steg-mot-en-runner): Bind ett steg till den Runner som ska köra det.
+- [Globala Runners](#globala-runners): De Runners som OneUptime kör för alla projekt, och vad de kör.
 - [Tidsgränser](#tidsgränser): Claim- och körningstidsgränser och hur de samverkar.
 - [Miljövariabler](#miljövariabler): Vad containern läser vid start.
 :::
@@ -32,7 +33,7 @@ flowchart TB
 1. Du skapar en Runner i OneUptime. OneUptime genererar ett ID och en hemlig nyckel åt den.
 2. Du kör Runner-containern på en värd i din infrastruktur med det ID:t, den nyckeln och din OneUptime-URL.
 3. Runnern ber OneUptime om arbete var 5:e sekund och rapporterar var 60:e sekund att den lever.
-4. När du skriver ett JavaScript-, Bash-, SSH- eller Kubernetes-steg väljer du Runnern i en listruta. Steget binds till den Runnern.
+4. När du skriver ett JavaScript-, Bash-, SSH- eller Kubernetes-steg väljer du Runnern i en listruta. Steget binds till den Runnern. Ett JavaScript-steg kan behålla **Global Runner**, som rullgardinsmenyn väljer åt det.
 5. När steget körs köar Workern ett jobb med `targetAgentId` satt till den Runnern. Bara den Runnern kan ta det.
 6. Runnern kör jobbet lokalt — `bash -c <script>` för Bash, en `isolated-vm`-sandlåda för JavaScript, en SSH-anslutning eller ett anrop till klustrets API-server med stegets autentiseringsuppgift —, registrerar resultatet och skickar tillbaka det. Workern återupptar runbooket med resultatet.
 
@@ -48,6 +49,35 @@ Att köra skript på OneUptime Worker hade två problem:
 - **Räckvidd.** De flesta användbara steg verkar på _din_ infrastruktur ("starta om den här tjänsten", "slå upp en post i vår interna databas"), inte på OneUptimes.
 
 Med Runners körs de stegen på en värd som du styr, och du bestämmer vad den värden får göra. HTTP-begäran- och AI-steg körs fortfarande på Workern, eftersom de inte behöver något från ditt nätverk.
+
+## Globala Runners
+
+Globala Runners är de Runners som OneUptime kör för alla projekt. Ett JavaScript-steg som inte väljer en egen Runner körs på en av dem, så du kan skriva det innan du installerar något alls. **Runbooks → Runbook-agenter** listar dem under **Globala Runners**, ovanför dina egna Runners, och rullgardinsmenyn **Runner** i ett JavaScript-steg erbjuder **Global Runner** först.
+
+| | Global Runner | Din egen Runner |
+| --- | --- | --- |
+| Steg den kör | JavaScript | JavaScript, Bash, SSH och Kubernetes |
+| Vad ett steg kan nå | Offentliga internetadresser | Det som dess värd kan nå |
+| Längsta körning för ett steg | 5 minuter | 1 timme |
+| Runbook-hemligheter | De som du låter globala Runners använda | De som du tilldelar den |
+| Autentiseringsuppgifter | Inga | De som du tilldelar den |
+
+En global Runner kör stegen från många projekt, så varje steg hålls åtskilt från alla andra:
+
+- Varje steg körs i en egen `isolated-vm`-sandlåda, skapad för det steget och slängd efteråt: inga filer, inga processer, inga miljövariabler och ingenting som sparas från ett steg till nästa.
+- Dess HTTP-förfrågningar når bara offentliga internetadresser, aldrig en privat adress, en loopback- eller link-local-adress eller en slutpunkt för molnmetadata, så en global Runner når aldrig ditt nätverk.
+- Den får en runbook-hemlighet bara när hemlighetens reglage **Globala Runners får använda den här hemligheten** är påslaget, och bara för ett steg från hemlighetens eget projekt. Den får aldrig autentiseringsuppgifter.
+- Ett projekt kör högst tre steg åt gången på globala Runners, så inget projekt håller dem för sig själv.
+
+Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner misslyckas då och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst.
+
+### Var globala Runners kommer ifrån
+
+I OneUptime Cloud kör OneUptime dem. En egenhostad installation kör som standard en egen, precis som den kör sina egna globala prober: tjänsten `global-runner` i Docker Compose och distributionen `globalRunner` i Helm-diagrammet. Den har sin egen nyckel, `GLOBAL_RUNNER_KEY`, och inget annat från servern.
+
+En huvudadministratör kan lägga till fler för att köra steg från andra värdar: öppna **Inställningar** och sedan **Globala Runners** i administratörspanelen, skapa en och kör det kommando som dess **Visa ID och nyckel** ger på en värd som når internet.
+
+För att stänga av den medföljande anger du `GLOBAL_RUNNER_REPLICAS=0` i Docker Composes `config.env`, eller `globalRunner.enabled` till `false` i Helm-diagrammet. Helt utan global Runner listar **Runbooks → Runbook-agenter** bara dina egna Runners, och varje JavaScript-steg väljer en av dem.
 
 ## Innan du börjar
 
@@ -114,11 +144,11 @@ Lägg till ett JavaScript-, Bash-, SSH- eller Kubernetes-steg i ditt runbooks **
 
 ### Välj Runnern
 
-Stegets listruta **Runner** visar alla Runners i projektet och om de är anslutna. Om projektet inte har någon än säger steget det och hänvisar dig till **Runbooks › Runners**.
+Stegets listruta **Runner** visar alla Runners i projektet och om de är anslutna. Om projektet inte har någon än säger steget det och hänvisar dig till **Runbooks › Runners**. Rullgardinsmenyn i ett JavaScript-steg erbjuder också **Global Runner**, först, och väljer den tills du väljer en av dina egna.
 
 ### Spara stegen
 
-Klicka på **Save Steps**. När en körning når steget köar Workern ett jobb till den Runnerns ID, och bara den Runnern kan ta det.
+Klicka på **Save Steps**. När en körning når steget köar Workern ett jobb till den Runnerns ID, och bara den Runnern kan ta det. Ett steg på **Global Runner** väntar på den globala Runner som är ledig.
 :::
 
 Bash körs med `bash -c`. JavaScript körs i en `isolated-vm`-sandlåda på Runnern utan åtkomst till filsystemet eller processer; det kan anropa publika HTTP-API:er med `axios`, men inte adresser på ett privat nätverk. SSH- och Kubernetes-steg använder den [autentiseringsuppgift](/docs/runbooks/credentials) som steget pekar på, och den måste vara tilldelad samma Runner.
@@ -176,7 +206,7 @@ Det enda detta inte kan berätta är hur långt ett skript kom innan Workern fö
 
 ### Ingen agent online
 
-Om den valda Runnern är offline när steget körs väntar jobbet som `Pending` tills claim timeout har gått, och sedan misslyckas steget med "No runbook agent picked up this step before the wait window expired." Sidan **Runbook-agenter** är där du kontrollerar täckningen innan du kör ett runbook på riktigt.
+Om den valda Runnern är offline när steget körs väntar jobbet som `Pending` tills claim timeout har gått, och sedan misslyckas steget med "No runbook agent picked up this step before the wait window expired." Sidan **Runbook-agenter** är där du kontrollerar täckningen innan du kör ett runbook på riktigt. Ett steg på en global Runner misslyckas i stället med "No global Runner picked up this step before the wait window expired."
 
 ### Gräns för output
 
@@ -235,6 +265,7 @@ Hantering av agenter ligger i den befintliga behörighetsgruppen Runbooks:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — hantera agentposter.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — `RunbookAdmin` bygger runbooks, deras regler och de Runners de körs på, och kör dem. `RunbookMember` öppnar runbooks och deras körningar och kör dem — startar en körning, slutför eller hoppar över dess steg och avbryter den — men skapar, ändrar och tar inte bort något runbook eller någon Runner. `RunbookViewer` läser runbooks och deras körningar och kör ingenting. `RunbookAdmin` samlar alla detaljerade behörigheter ovan.
+- Globala Runners hör inte till något projekt: bara en huvudadministratör lägger till, ändrar eller tar bort en, i administratörspanelen. Alla som kan läsa ett projekts Runners ser dem, och att stänga av **Använd globala Runners** kräver behörighet att redigera projektet.
 
 Att utlösa ett runbook (och därmed skicka dess steg till Runners) kräver en roll som kör runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` eller `RunbookMember` — eller `CreateRunbookExecution`; att slutföra, hoppa över eller avbryta en körning godtar också `EditRunbookExecution`. En roll kör bara de runbooks som dess omfång når.
 
@@ -247,7 +278,7 @@ För den nyfikne: Runnern använder dessa slutpunkter, monterade under `/runner-
 | Slutpunkt | Syfte |
 | --- | --- |
 | `POST /heartbeat` | Livstecken. Uppdaterar Runnerns senast sedd-tid, version och värdinformation och returnerar de funktioner som projektet har gett den. |
-| `POST /claim-next-job` | Ta atomiskt det äldsta jobbet i `Pending` som riktas mot den här Runnerns ID. Returnerar `{ job: null }` när det inte finns något att göra. |
+| `POST /claim-next-job` | Ta atomiskt det äldsta jobbet i `Pending` som riktas mot den här Runnerns ID. Returnerar `{ job: null }` när det inte finns något att göra. En global Runner tar i stället det äldsta steget som väntar på någon global Runner. |
 | `POST /job/:jobId/heartbeat` | Förnya jobbets lease. Returnerar 404 när leasen har löpt ut eller jobbet är avslutat. |
 | `POST /job/:jobId/result` | Skicka in det slutliga resultatet. Ignoreras om leasen redan har gått vidare. |
 | `POST /disconnect` | Logga ut vid en ordnad avstängning. |
@@ -274,6 +305,10 @@ Runnern tog jobbet och slutade sedan förnya sin lease: den kraschade, startade 
 
 :::details Runnern loggar "No capability is enabled"
 Alla funktioner är avstängda för den här Runnern. Slå på **Kör Runbooks** på Runnerns sida i OneUptime. Den hämtar ändringen vid nästa heartbeat.
+:::
+
+:::details Ett steg på en global Runner misslyckas eftersom globala Runners inte får använda en runbook-hemlighet
+Steget nämner en runbook-hemlighet vars reglage **Globala Runners får använda den här hemligheten** är avstängt, så den globala Runnern fick den inte och steget kördes inte. Felet nämner hemligheten. Slå på reglaget för den under **Runbooks → Inställningar → Hemligheter**, eller välj en av dina egna Runners för steget.
 :::
 
 ## Nästa steg

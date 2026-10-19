@@ -1,10 +1,11 @@
 # Runbook 代理程式
 
-**Runbook 代理程式** 在儀表板中稱為 **Runner** ，是一個小型的自行託管處理程序，它 **在您自己的基礎架構中** 執行 Runbook 的 JavaScript、Bash、SSH 和 Kubernetes 步驟。OneUptime Worker 絕不會執行您的指令碼：它把指令碼放入佇列，由步驟作者選擇的 Runner 認領每項工作、執行它並傳回結果。本頁面向安裝和維運 Runner 的人員。
+**Runbook 代理程式** 在儀表板中稱為 **Runner** ，是一個小型的自行託管處理程序，它 **在您自己的基礎架構中** 執行 Runbook 的 JavaScript、Bash、SSH 和 Kubernetes 步驟。OneUptime Worker 絕不會執行您的指令碼：它把指令碼放入佇列，由步驟作者選擇的 Runner 認領每項工作、執行它並傳回結果。本頁面向安裝和維運 Runner 的人員。 未選擇 Runner 的 JavaScript 步驟改為在 [全域 Runner](#全域-runner) 上執行，也就是 OneUptime 為所有專案執行的 Runner。
 
 :::cards
 - [安裝 Runner](#安裝-runner): 五個步驟，從儀表板到已連線的容器。
 - [為步驟指定 Runner](#為步驟指定-runner): 把步驟繫結到應執行它的 Runner。
+- [全域 Runner](#全域-runner): OneUptime 為所有專案執行的 Runner，以及它們執行什麼。
 - [逾時](#逾時): 認領逾時和執行逾時，以及兩者如何搭配。
 - [環境變數](#環境變數): 容器啟動時讀取的內容。
 :::
@@ -32,7 +33,7 @@ flowchart TB
 1. 您在 OneUptime 中建立一個 Runner。OneUptime 會為它產生一個 ID 和一把秘密金鑰。
 2. 您在自己基礎架構中的一台主機上執行 Runner 容器，並提供該 ID、金鑰和您的 OneUptime URL。
 3. Runner 每 5 秒向 OneUptime 要求一次工作，每 60 秒回報一次自己仍在運作。
-4. 撰寫 JavaScript、Bash、SSH 或 Kubernetes 步驟時，您從下拉式清單中選擇 Runner。步驟會繫結到該 Runner。
+4. 撰寫 JavaScript、Bash、SSH 或 Kubernetes 步驟時，您從下拉式清單中選擇 Runner。步驟會繫結到該 Runner。 JavaScript 步驟可以保留下拉式清單為它選擇的 **全域 Runner** 。
 5. 步驟執行時，Worker 會把一項 `targetAgentId` 設為該 Runner 的工作放入佇列。只有該 Runner 能認領它。
 6. Runner 在本機執行工作（Bash 使用 `bash -c <script>`，JavaScript 使用 `isolated-vm` 沙箱，SSH 和 Kubernetes 使用步驟的憑證建立 SSH 連線或呼叫叢集的 API 伺服器），記錄結果並傳回。Worker 以該結果繼續執行 Runbook。
 
@@ -48,6 +49,35 @@ Runner 只持有自己的 ID 和金鑰。其他一切都隨它認領的工作一
 - **可及範圍。** 大多數有用的步驟作用於 _您的_ 基礎架構（「重新啟動這個服務」「在我們的內部資料庫中查詢一筆紀錄」），而不是 OneUptime 的。
 
 有了 Runner，這些步驟會在您掌控的主機上執行，由您決定這台主機可以做什麼。HTTP 請求和 AI 步驟仍在 Worker 上執行，因為它們不需要您網路中的任何東西。
+
+## 全域 Runner
+
+全域 Runner 是 OneUptime 為所有專案執行的 Runner。未選擇自己 Runner 的 JavaScript 步驟會在其中一個上執行，因此您可以在安裝任何東西之前就撰寫它。 **運行手冊 → Runbook 代理程式** 會在 **全域 Runner** 下列出它們，位於您自己的 Runner 上方；JavaScript 步驟的 **Runner** 下拉式清單會最先提供 **全域 Runner** 。
+
+| | 全域 Runner | 您自己的 Runner |
+| --- | --- | --- |
+| 執行的步驟 | JavaScript | JavaScript、Bash、SSH 和 Kubernetes |
+| 步驟可以存取的位址 | 公用網際網路位址 | 其主機可以存取的位址 |
+| 步驟的最長執行時間 | 5 分鐘 | 1 小時 |
+| Runbook 密鑰 | 您允許全域 Runner 使用的密鑰 | 您指派給它的密鑰 |
+| 憑證 | 無 | 您指派給它的憑證 |
+
+全域 Runner 會執行許多專案的步驟，因此每個步驟都與其他所有步驟彼此隔離：
+
+- 每個步驟都在自己的 `isolated-vm` 沙箱中執行，這個沙箱為該步驟建立，並在步驟結束後丟棄：沒有檔案、沒有處理程序、沒有環境變數，也不會從一個步驟保留任何東西到下一個步驟。
+- 它的 HTTP 請求只能到達公用網際網路位址，絕不會到達私人、回送或鏈路本機位址或雲端中繼資料端點，因此全域 Runner 永遠無法存取您的網路。
+- 只有當密鑰的 **全域 Runner 可以使用此密鑰** 開關已開啟時，它才會取得該 Runbook 密鑰，而且只用於該密鑰所屬專案的步驟。它永遠不會取得憑證。
+- 一個專案在全域 Runner 上同時最多執行三個步驟，因此沒有專案能獨占它們。
+
+對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。
+
+### 全域 Runner 從哪裡來
+
+在 OneUptime Cloud 上，由 OneUptime 執行它們。自行託管的安裝預設會執行一個自己的全域 Runner，就像它執行自己的全域探測器一樣：Docker Compose 中的 `global-runner` 服務，以及 Helm chart 中的 `globalRunner` 部署。它持有自己的金鑰 `GLOBAL_RUNNER_KEY`，不持有伺服器的任何其他東西。
+
+主管理員可以新增更多全域 Runner，以便從其他主機執行步驟：在 Admin Dashboard 中依序開啟 **設定** 、 **全域 Runner** ，建立一個，然後在可以存取網際網路的主機上執行其 **顯示 ID 和金鑰** 提供的命令。
+
+若要關閉內建的全域 Runner，請在 Docker Compose 的 `config.env` 中設定 `GLOBAL_RUNNER_REPLICAS=0`，或在 Helm chart 中將 `globalRunner.enabled` 設為 `false`。完全沒有全域 Runner 時， **運行手冊 → Runbook 代理程式** 只會列出您自己的 Runner，每個 JavaScript 步驟都要選擇其中一個。
 
 ## 開始之前
 
@@ -114,11 +144,11 @@ docker rm -f oneuptime-runner
 
 ### 選擇 Runner
 
-步驟的 **Runner** 下拉式清單會列出專案中的所有 Runner 以及它們是否已連線。如果專案中還沒有 Runner，步驟會提示這一點，並引導您前往 **Runbooks › Runners** 。
+步驟的 **Runner** 下拉式清單會列出專案中的所有 Runner 以及它們是否已連線。如果專案中還沒有 Runner，步驟會提示這一點，並引導您前往 **Runbooks › Runners** 。 JavaScript 步驟的下拉式清單也會最先提供 **全域 Runner** ，並在您選擇自己的 Runner 之前一直選取它。
 
 ### 儲存步驟
 
-點選 **Save Steps** 。執行到達該步驟時，Worker 會為該 Runner 的 ID 放入一項工作，只有該 Runner 能認領它。
+點選 **Save Steps** 。執行到達該步驟時，Worker 會為該 Runner 的 ID 放入一項工作，只有該 Runner 能認領它。 選擇 **全域 Runner** 的步驟會等待任何一個空閒的全域 Runner。
 :::
 
 Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中執行，無法存取檔案系統或處理程序；它可以用 `axios` 呼叫公開的 HTTP API，但無法呼叫私人網路上的位址。SSH 和 Kubernetes 步驟使用步驟指定的 [憑證](/docs/runbooks/credentials)，而該憑證必須已指派給同一個 Runner。
@@ -176,7 +206,7 @@ Runner 認領工作時會取得一個短租約（預設 30 秒）。步驟執行
 
 ### 沒有在線的代理程式
 
-如果步驟執行時所選的 Runner 離線，工作會以 `Pending` 等待到 claim timeout 結束，然後步驟失敗，訊息為「No runbook agent picked up this step before the wait window expired.」在正式執行 Runbook 之前，可以在 **Runbook 代理程式** 頁面上檢查涵蓋範圍。
+如果步驟執行時所選的 Runner 離線，工作會以 `Pending` 等待到 claim timeout 結束，然後步驟失敗，訊息為「No runbook agent picked up this step before the wait window expired.」在正式執行 Runbook 之前，可以在 **Runbook 代理程式** 頁面上檢查涵蓋範圍。 全域 Runner 上的步驟則會失敗，訊息為「No global Runner picked up this step before the wait window expired.」
 
 ### 輸出上限
 
@@ -235,6 +265,7 @@ docker rm -f oneuptime-runner
 
 - `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` —— 管理代理程式紀錄。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色）—— `RunbookAdmin` 建構 Runbook、其規則以及執行它們的 Runner，並執行 Runbook。`RunbookMember` 開啟 Runbook 及其執行並執行它們（啟動執行、完成或略過其步驟、取消執行），但不建立、變更或刪除任何 Runbook 或 Runner。`RunbookViewer` 只讀取 Runbook 及其執行，不執行任何東西。`RunbookAdmin` 包含上述所有細部權限。
+- 全域 Runner 不屬於任何專案：只有主管理員可以在 Admin Dashboard 中新增、變更或移除全域 Runner。任何能讀取專案 Runner 的人都能看到它們，而關閉 **使用全域 Runner** 需要編輯專案的權限。
 
 觸發 Runbook（從而把其步驟傳送給 Runner）需要一個執行 Runbook 的角色——`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin` 或 `RunbookMember`——或 `CreateRunbookExecution`；完成、略過或取消執行時也接受 `EditRunbookExecution`。角色只會執行其範圍所及的 Runbook。
 
@@ -247,7 +278,7 @@ docker rm -f oneuptime-runner
 | 端點 | 用途 |
 | --- | --- |
 | `POST /heartbeat` | 存活訊號。更新 Runner 的上次出現時間、版本和主機資訊，並傳回專案授予它的功能。 |
-| `POST /claim-next-job` | 以不可分割的方式認領指向此 Runner ID、最早的 `Pending` 工作。沒有工作時傳回 `{ job: null }`。 |
+| `POST /claim-next-job` | 以不可分割的方式認領指向此 Runner ID、最早的 `Pending` 工作。沒有工作時傳回 `{ job: null }`。 全域 Runner 則會認領正在等待任何全域 Runner 的最早步驟。 |
 | `POST /job/:jobId/heartbeat` | 為工作續約。租約已到期或工作已結束時傳回 404。 |
 | `POST /job/:jobId/result` | 提交最終結果。如果租約已經轉移，則忽略。 |
 | `POST /disconnect` | 正常關閉時登出。 |
@@ -274,6 +305,10 @@ Runner 認領了工作，然後停止續約：它當機了、重新啟動了或�
 
 :::details Runner 記錄顯示「No capability is enabled」
 此 Runner 的所有功能都已關閉。請在 OneUptime 中 Runner 的頁面上開啟 **執行操作手冊** 。它會在下一次心跳時取得此變更。
+:::
+
+:::details 全域 Runner 上的步驟失敗，因為全域 Runner 不能使用某個 Runbook 密鑰
+該步驟引用的 Runbook 密鑰關閉了 **全域 Runner 可以使用此密鑰** 開關，因此全域 Runner 沒有取得它，步驟也沒有執行。錯誤中會寫出該密鑰的名稱。請在 **運行手冊 → 設定 → 密鑰** 中為它開啟該開關，或為該步驟選擇您自己的 Runner。
 :::
 
 ## 後續步驟

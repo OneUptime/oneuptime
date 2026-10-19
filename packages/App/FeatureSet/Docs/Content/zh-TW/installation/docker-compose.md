@@ -139,6 +139,7 @@ grep -c "please-change-this" config.env
 | `REGISTER_PROBE_KEY` | 向你的執行個體註冊探針。 |
 | `GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY` | Docker Compose 可以執行的全域探針（預設執行 `probe-1`）。 |
 | `ONEUPTIME_RUNNER_KEY` | 內建的 Runner。 |
+| `GLOBAL_RUNNER_KEY` | 內建的全域 Runner，執行所有專案的 JavaScript 步驟。 |
 
 > [!IMPORTANT]
 > 請在第一次啟動前設定這些密鑰，之後保持不變。PostgreSQL 只在建立資料庫時採用密碼，而之後變更 `ENCRYPTION_SECRET` 會讓所有以舊密鑰加密的值都無法讀取。如果第一次啟動時 `DATABASE_PASSWORD` 仍是預留位置，`npm start` 會在 PostgreSQL 建立資料庫之前為它設定一個隨機值。

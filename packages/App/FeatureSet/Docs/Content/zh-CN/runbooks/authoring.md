@@ -12,7 +12,7 @@
 ## 开始之前
 
 - **能编写 Runbook 的角色。** Project Owner、Project Admin 和 Runbook Admin 可以创建 Runbook 并保存其步骤。使用细粒度权限时，你需要 **Create Runbook** 和 **Edit Runbook** 。参见 [权限](/docs/runbooks/configuration#权限)。
-- **用于 JavaScript、Bash、SSH 和 Kubernetes 步骤的 Runner。** 这些步骤在你自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，从不在 OneUptime Worker 上运行。请先安装一个。
+- **用于 Bash、SSH 和 Kubernetes 步骤的 Runner。** 这些步骤在你自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，从不在 OneUptime Worker 上运行。请先安装一个。除非你选择自己的某个 Runner，否则 JavaScript 步骤会在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上运行。
 - **用于 SSH 和 Kubernetes 步骤的凭据，以及读取凭据的权限。** 参见 [Runbook 凭据](/docs/runbooks/credentials)。只有当你有权读取 Runbook 凭据时，步骤才能指定凭据：需要 Project Owner、Project Admin 或 **Read Runbook Credential** 。Runbook Admin 不包含此权限。
 - **用于 AI 步骤的 LLM 提供商。** 参见 [LLM 提供商](/docs/ai/llm-provider)。
 
@@ -72,13 +72,13 @@
 
 ### JavaScript
 
-一段在 `isolated-vm` 沙箱中运行的 JavaScript，运行在你自己基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上，而不是 OneUptime Worker 上。
+一段在 `isolated-vm` 沙箱中运行的 JavaScript，运行在 [Runbook 代理](/docs/runbooks/agents) 上，而不是 OneUptime Worker 上：在你的某个 Runner 上，或者在步骤未选择 Runner 时，在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上。
 
 | 字段 | 作用 | 默认值 |
 | --- | --- | --- |
-| **Runner** | 运行该步骤的 Runner。只有这个 Runner 可以领取该作业。 | — |
+| **Runner** | 运行该步骤的 Runner： **全局 Runner** ，或你自己的某个 Runner。只有你选择的 Runner 可以领取该作业；任何全局 Runner 都可以领取选择 **全局 Runner** 的步骤。 | **全局 Runner** （如果有） |
 | **Script** | 要运行的 JavaScript。用 `return` 返回一个值即可记录它；`console.log` 的每一行也会被记录。抛出的错误会使步骤失败。 | — |
-| **执行超时** | Runner 在销毁沙箱之前允许代码运行的时长。 | 30 秒 |
+| **执行超时** | Runner 在销毁沙箱之前允许代码运行的时长。 全局 Runner 最多让它运行 5 分钟。 | 30 秒 |
 | **领取超时** | Worker 等待 Runner 领取作业的时长。 | 2 分钟 |
 
 ```javascript

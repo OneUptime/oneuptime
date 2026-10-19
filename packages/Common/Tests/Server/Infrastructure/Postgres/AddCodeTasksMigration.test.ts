@@ -1,10 +1,10 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
 import {
-  AddCodeTasks1803950000000,
+  AddCodeTasks1804050000000,
   CODE_TASK_BACKFILL_FROM_GITHUB_COMMANDS,
   CODE_TASK_BACKFILL_FROM_PULL_REQUESTS,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1803950000000-AddCodeTasks";
-import { AddCodeTaskIndexesAndKey1804000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804000000000-AddCodeTaskIndexesAndKey";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804050000000-AddCodeTasks";
+import { AddCodeTaskIndexesAndKey1804100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804100000000-AddCodeTaskIndexesAndKey";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -25,8 +25,8 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * runs the backfills on Postgres.
  */
 
-const COLUMNS_MIGRATION: string = "AddCodeTasks1803950000000";
-const KEYS_MIGRATION: string = "AddCodeTaskIndexesAndKey1804000000000";
+const COLUMNS_MIGRATION: string = "AddCodeTasks1804050000000";
+const KEYS_MIGRATION: string = "AddCodeTaskIndexesAndKey1804100000000";
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
 
 type MigrationClass = new () => MigrationInterface;
@@ -75,8 +75,8 @@ afterEach(() => {
 
 describe("the Code migrations", () => {
   test("name themselves after their timestamps", () => {
-    expect(new AddCodeTasks1803950000000().name).toBe(COLUMNS_MIGRATION);
-    expect(new AddCodeTaskIndexesAndKey1804000000000().name).toBe(
+    expect(new AddCodeTasks1804050000000().name).toBe(COLUMNS_MIGRATION);
+    expect(new AddCodeTaskIndexesAndKey1804100000000().name).toBe(
       KEYS_MIGRATION,
     );
   });
@@ -84,16 +84,16 @@ describe("the Code migrations", () => {
   test("are registered once each, the keys right after the columns, after every older migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
-    const columnsAt: number = registered.indexOf(AddCodeTasks1803950000000);
+    const columnsAt: number = registered.indexOf(AddCodeTasks1804050000000);
     const keysAt: number = registered.indexOf(
-      AddCodeTaskIndexesAndKey1804000000000,
+      AddCodeTaskIndexesAndKey1804100000000,
     );
 
     expect(
       registered.filter((migration: MigrationClass): boolean => {
         return (
-          migration === AddCodeTasks1803950000000 ||
-          migration === AddCodeTaskIndexesAndKey1804000000000
+          migration === AddCodeTasks1804050000000 ||
+          migration === AddCodeTaskIndexesAndKey1804100000000
         );
       }),
     ).toHaveLength(2);
@@ -102,7 +102,7 @@ describe("the Code migrations", () => {
 
     for (let before: number = 0; before < columnsAt; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddCodeTasks1803950000000),
+        timestampOf(AddCodeTasks1804050000000),
       );
     }
   });
@@ -116,8 +116,8 @@ describe("the Code migrations", () => {
     );
 
     for (const migration of [
-      AddCodeTasks1803950000000,
-      AddCodeTaskIndexesAndKey1804000000000,
+      AddCodeTasks1804050000000,
+      AddCodeTaskIndexesAndKey1804100000000,
     ]) {
       const timestamp: string = `${timestampOf(migration)}-`;
 
@@ -130,7 +130,7 @@ describe("the Code migrations", () => {
   });
 
   test("add the columns the AIRun model declares, without rewriting the table, then backfill", async () => {
-    expect(await record(new AddCodeTasks1803950000000(), "up")).toEqual([
+    expect(await record(new AddCodeTasks1804050000000(), "up")).toEqual([
       `ALTER TABLE "AIRun" ADD "codeRepositoryId" uuid`,
       `ALTER TABLE "AIRun" ADD "codeTaskId" uuid`,
       `ALTER TABLE "AIRun" ADD "title" character varying(500)`,
@@ -180,7 +180,7 @@ describe("the Code migrations", () => {
   });
 
   test("drop exactly what they added", async () => {
-    expect(await record(new AddCodeTasks1803950000000(), "down")).toEqual([
+    expect(await record(new AddCodeTasks1804050000000(), "down")).toEqual([
       `ALTER TABLE "AIRun" DROP COLUMN "codeChanges"`,
       `ALTER TABLE "AIRun" DROP COLUMN "taskOutcome"`,
       `ALTER TABLE "AIRun" DROP COLUMN "needsUserInput"`,
@@ -191,8 +191,8 @@ describe("the Code migrations", () => {
   });
 
   test("build the indexes and the key online, outside a transaction", async () => {
-    const migration: AddCodeTaskIndexesAndKey1804000000000 =
-      new AddCodeTaskIndexesAndKey1804000000000();
+    const migration: AddCodeTaskIndexesAndKey1804100000000 =
+      new AddCodeTaskIndexesAndKey1804100000000();
 
     expect(migration.transaction).toBe(false);
     expect(await record(migration, "up")).toEqual([
@@ -204,7 +204,7 @@ describe("the Code migrations", () => {
 
   test("removing a repository keeps its tasks: the key sets their repository to null", async () => {
     const steps: Array<string> = await record(
-      new AddCodeTaskIndexesAndKey1804000000000(),
+      new AddCodeTaskIndexesAndKey1804100000000(),
       "up",
     );
 
@@ -217,7 +217,7 @@ describe("the Code migrations", () => {
 
   test("undo the keys and indexes", async () => {
     expect(
-      await record(new AddCodeTaskIndexesAndKey1804000000000(), "down"),
+      await record(new AddCodeTaskIndexesAndKey1804100000000(), "down"),
     ).toEqual([
       `ALTER TABLE "AIRun" DROP CONSTRAINT "FK_fa2f2ed227f46283753c04de74f"`,
       `online: DROP INDEX "public"."IDX_f77e615edd01ea057a25209683"`,

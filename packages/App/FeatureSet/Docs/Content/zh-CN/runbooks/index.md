@@ -35,7 +35,7 @@ flowchart TB
 
 每次运行 Runbook 都会创建一次 **执行** 。执行开始时，Runbook 的步骤会被复制到其中，OneUptime 按顺序逐一处理。Manual 步骤或需要审批的步骤会暂停执行，直到有人处理。
 
-HTTP 和 AI 步骤在 OneUptime Worker 上运行。JavaScript、Bash、SSH 和 Kubernetes 步骤在你安装于自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，因此你的脚本永远不会在 OneUptime 的服务器上运行。每个步骤的状态、输出和错误消息都会记录在执行中，执行会一直保留在它所针对的事件、警报或计划维护事件上。
+HTTP 和 AI 步骤在 OneUptime Worker 上运行。Bash、SSH 和 Kubernetes 步骤在你安装于自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，因此这些脚本永远不会在 OneUptime 的服务器上运行。JavaScript 步骤也可以在你的某个 Runner 上运行；如果它未选择任何 Runner，则在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上、在只能访问互联网的沙箱中运行。每个步骤的状态、输出和错误消息都会记录在执行中，执行会一直保留在它所针对的事件、警报或计划维护事件上。
 
 ## 核心概念
 
@@ -46,9 +46,9 @@ HTTP 和 AI 步骤在 OneUptime Worker 上运行。JavaScript、Bash、SSH 和 K
 | **Runbook 规则** | 一条规则，自动将一个或多个 Runbook 关联到符合其条件（监视器、严重性、标签、监视器标签、标题或描述）的事件、警报或计划维护事件。 |
 | **执行** | Runbook 的一次运行。在规则触发、有人在事件上点击 **运行 Runbook** 或在 Runbook 本身上点击 **Run Now** 时创建。它保存步骤的快照以及每个步骤的状态和输出。 |
 | **快照** | 保存在每次执行中的 Runbook 步骤的冻结副本。之后编辑 Runbook 不会改写过去运行的历史。 |
-| **Runner** | 你在自己基础设施中的主机上运行的小型代理。它运行指定它的 JavaScript、Bash、SSH 和 Kubernetes 步骤。也称为 Runbook 代理。 |
+| **Runner** | 你在自己基础设施中的主机上运行的小型代理。它运行指定它的 JavaScript、Bash、SSH 和 Kubernetes 步骤。也称为 Runbook 代理。 全局 Runner 是 OneUptime 为所有项目运行的 Runner，它运行未指定任何 Runner 的 JavaScript 步骤。 |
 | **凭据** | SSH 和 Kubernetes 步骤使用的受管 SSH 或 Kubernetes 访问权限。静态加密存储，只交给你分配的 Runner。 |
-| **密钥** | 单个值，例如 API 令牌，Bash 或 JavaScript 脚本以 `{{runbookSecrets.NAME}}` 的形式使用它。静态加密存储，只交给你分配的 Runner。 |
+| **密钥** | 单个值，例如 API 令牌，Bash 或 JavaScript 脚本以 `{{runbookSecrets.NAME}}` 的形式使用它。静态加密存储，只交给你分配的 Runner。 只有你允许时，全局 Runner 才会获得它。 |
 
 ## 步骤类型
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 某个监视器打开了事件 `INC-4821 · db-primary connection timeout`。规则匹配，执行开始：
 
-- 步骤 1（JavaScript）在你为它选择的 Runner 上运行。返回值（例如 `{ lagMs: 412 }`）会被记录。
+- 步骤 1（JavaScript）在你为它选择的 Runner 上运行。返回值（例如 `{ lagMs: 412 }`）会被记录。 未选择 Runner 的步骤会在全局 Runner 上运行。
 - 步骤 2（Manual）暂停执行，执行显示 **等待您处理** 。值班人员查看仪表板并点击 **Mark complete** 。
 - 步骤 3（HTTP request）运行，`POST` 的响应被记录。
 - 步骤 4（Manual）再次暂停执行，直到有人完成它。
@@ -170,7 +170,7 @@ Runbooks:    [DB primary failover]
 
 :::cards
 - [编写 Runbook](/docs/runbooks/authoring): 创建你的第一个 Runbook 及其步骤。
-- [Runbook 代理](/docs/runbooks/agents): 在编写 JavaScript、Bash、SSH 或 Kubernetes 步骤之前安装 Runner。
+- [Runbook 代理](/docs/runbooks/agents): 在编写 Bash、SSH 或 Kubernetes 步骤之前安装 Runner。
 - [Runbook 规则](/docs/runbooks/rules): 在创建事件时自动启动 Runbook。
 - [Runbook 配置与安全](/docs/runbooks/configuration): 限制、超时、权限和加固。
 :::

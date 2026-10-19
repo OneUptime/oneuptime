@@ -6,6 +6,7 @@ import KubernetesExecutor from "./KubernetesExecutor";
 import KubectlExecutor from "./KubectlExecutor";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
+import GlobalRunnerMode from "../Utils/GlobalRunnerMode";
 import logger from "Common/Server/Utils/Logger";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import CommandPolicy from "Common/Utils/AiRemediation/CommandPolicy";
@@ -135,6 +136,35 @@ function runBashLocally(data: {
 }
 
 /*
+ * The egress policy of a JavaScript step's sandbox. On any Runner the
+ * strict one applies, because nothing here asks for more: public addresses
+ * only. A global Runner - one OneUptime runs for every project - says so
+ * explicitly and authoritatively (privateNetworkAccessIsAllowed: false, so
+ * nothing in this host's environment can widen it), and keeps DNS answers
+ * out of a refusal's words, as a shared probe does: one project's script
+ * must not learn what the network the global Runner sits in looks like.
+ */
+export function getJavaScriptSandboxPolicy(): {
+  allowPrivateNetworkRequests?: boolean;
+  privateNetworkAccessIsAllowed?: boolean;
+  privateNetworkHint?: string;
+  includeResolutionDetailInError?: boolean;
+} {
+  if (!GlobalRunnerMode.isActive()) {
+    return {};
+  }
+
+  return {
+    allowPrivateNetworkRequests: false,
+    privateNetworkAccessIsAllowed: false,
+    // Appended to the refusal's own sentence, so it starts with a space.
+    privateNetworkHint:
+      " Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.",
+    includeResolutionDetailInError: false,
+  };
+}
+
+/*
  * JavaScript runs inside the same isolated-vm sandbox the server used to use,
  * but now on the agent's machine rather than on the OneUptime Worker. The
  * isolate has no fs or process access and is killed at the timeout.
@@ -157,7 +187,11 @@ async function runJavaScriptLocally(data: {
   try {
     const result: ReturnResult = await VMUtil.runCodeInSandbox({
       code: data.script,
-      options: { args: data.args || {}, timeout: data.timeoutInMs },
+      options: {
+        args: data.args || {},
+        timeout: data.timeoutInMs,
+        ...getJavaScriptSandboxPolicy(),
+      },
     });
 
     const lines: string[] = [...(result.logMessages || [])];
@@ -220,6 +254,18 @@ function prepareStep(job: ClaimedJob): PreparedStep {
 
   if (agentRefusal) {
     return refuseStep(agentRefusal);
+  }
+
+  /*
+   * A global Runner runs a runbook's own JavaScript steps and nothing else,
+   * whatever the server sent (GlobalRunnerMode): checked before any
+   * executor is consulted, so a shell, an SSH hop or a credential never
+   * reaches a host that serves every project.
+   */
+  const globalRefusal: string | null = GlobalRunnerMode.getJobRefusal(job);
+
+  if (globalRefusal) {
+    return refuseStep(globalRefusal);
   }
 
   /*

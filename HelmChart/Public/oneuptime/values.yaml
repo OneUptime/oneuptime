@@ -2396,6 +2396,52 @@ runner:
       failureThreshold: 3
       replicas: 1
 
+# The bundled global Runner. It runs the runbook JavaScript steps of every
+# project that uses global Runners (every project does, unless it turns them
+# off under Runbooks > Runners), each in a sandbox of its own that can reach
+# the internet but no private address. It is the Runner image started with a
+# fixed id and its own key, and holds nothing else: no cluster key, none of the
+# server's settings. Bash, SSH and Kubernetes steps never run on it: they run
+# on a Runner a project installs in its own network.
+# Set enabled to false to turn it off: the server then removes it, and projects
+# use the global Runners a master admin adds (Admin Dashboard > Settings >
+# Global Runners) and their own Runners.
+# See https://oneuptime.com/docs/runbooks/agents#global-runners
+globalRunner:
+  enabled: true
+  replicaCount: 1
+  # How many steps each replica runs at the same time. A project runs at most
+  # three of its steps on global Runners at once, whatever this says.
+  concurrency: 4
+  disableTelemetryCollection: false
+  enableProfiling: false
+  # The global Runner's key (optional — generated and kept in the release
+  # secrets when not provided). The server and the global Runner both read it.
+  key:
+  # Reference a Secret you manage for the key instead of the value the chart
+  # generates into `<release>-secrets` (`helm template` — Argo CD, Flux —
+  # generates a new one on every render). Ignored when `key` is set.
+  existingSecret:
+    name:
+    passwordKey:
+  ports:
+    http: 3877
+  resources:
+  nodeSelector: {}
+  podSecurityContext: {}
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
+  containerSecurityContext: {}
+  # Extra env / volumes for the global Runner. Unlike every other service, it
+  # never takes the chart-wide extraEnv/extraVolumes/extraVolumeMounts: those
+  # are written for the server's pods, and this one runs every project's
+  # steps.
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
 # vLLM: self-hosted, OpenAI-compatible LLM inference server (https://docs.vllm.ai)
 # for running local models in-cluster instead of calling OpenAI/Anthropic/etc.
 # Note: This is disabled by default. Enabling it requires NVIDIA GPU nodes

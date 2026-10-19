@@ -104,11 +104,18 @@ the same three-way precedence:
 | `probes.<key>.existingSecret.passwordKey`    | Key inside that Secret.                                             | `nil`   |
 | `runner.existingSecret.name`                 | Name of an existing Secret holding `ONEUPTIME_RUNNER_KEY`.          | `nil`   |
 | `runner.existingSecret.passwordKey`          | Key inside that Secret.                                             | `nil`   |
+| `globalRunner.existingSecret.name`           | Name of an existing Secret holding the bundled global Runner's key (`GLOBAL_RUNNER_KEY`). | `nil`   |
+| `globalRunner.existingSecret.passwordKey`    | Key inside that Secret.                                             | `nil`   |
 
-An inline `probes.<key>.key` / `runner.key` still wins; with neither set, the
-chart generates the value into `<release>-secrets` as before. As with
-`externalSecrets`, a key you serve yourself is not written into the chart-managed
-Secret at all.
+An inline `probes.<key>.key` / `runner.key` / `globalRunner.key` still wins;
+with neither set, the chart generates the value into `<release>-secrets` as
+before. As with `externalSecrets`, a key you serve yourself is not written into
+the chart-managed Secret at all.
+
+The global Runner's key is the one exception to the orphaning below: the server
+keeps the global Runner under a fixed id and takes its key from the same value
+the global Runner gets, so a regenerated key rotates it rather than leaving a
+second one behind.
 
 **Why this matters for GitOps.** `helm template` — what Argo CD and Flux render
 with — always takes the chart's install branch, so a chart-generated key is a new
@@ -231,6 +238,36 @@ probes:
 
 > **IPv6 targets.** Chart probes run on the cluster's pod network, so they can reach IPv6 destinations only on a dual-stack or IPv6-only cluster. On an IPv4-only cluster, checks of IPv6 destinations fail on these probes (a Ping monitor's failure reason then says the probe cannot send IPv6 traffic). To check a probe, run `kubectl exec -n <namespace> deploy/<release>-probe-<key> -- ping -6 -c 1 2001:4860:4860::8888`: `1 received` means it has IPv6, and `Network is unreachable` means the pod has no IPv6 route. To monitor IPv6 destinations from an IPv4-only cluster, use a [custom probe](https://oneuptime.com/docs/probe/custom-probe#monitoring-ipv6-destinations) on a machine that has IPv6.
 
+## Global Runner
+
+Every install runs one global Runner of its own, on by default, as it runs its
+own global probes. It runs the runbook JavaScript steps of every project that
+uses global Runners (every project does, unless it turns them off under
+**Runbooks > Runners**), each in an isolated-vm sandbox of its own that can
+reach public internet addresses but no private, loopback, link-local or cloud
+metadata address. Bash, SSH and Kubernetes steps never run on it: they run on a
+Runner a project installs in its own network. See
+[Global Runners](https://oneuptime.com/docs/runbooks/agents#global-runners).
+
+It is the Runner image started with a fixed id and its own key, and it holds
+nothing else: no cluster key (`ONEUPTIME_SECRET`), none of the server's
+settings, no ServiceAccount token, and never the chart-wide `extraEnv`,
+`extraVolumes` or `extraVolumeMounts` (those are written for the server's pods,
+and this one runs every project's steps). The app, worker and migrate Job get
+the same key as `GLOBAL_RUNNER_KEY` and keep the global Runner's row from it on
+every boot.
+
+| Parameter                              | Description                                                                 | Default |
+|----------------------------------------|-----------------------------------------------------------------------------|---------|
+| `globalRunner.enabled`                 | Run the bundled global Runner. Set to `false` to turn it off: the server then removes it, and projects use the global Runners a master admin adds (Admin Dashboard > Settings > Global Runners) and their own Runners. | `true` |
+| `globalRunner.replicaCount`            | How many global Runners run. `0` turns it off, as `enabled: false` does.    | `1`     |
+| `globalRunner.concurrency`             | How many steps each global Runner runs at the same time. A project runs at most three of its steps on global Runners at once, whatever this says. | `4` |
+| `globalRunner.key`                     | The global Runner's key. Leave empty to have the chart generate one.        | `nil`   |
+| `globalRunner.existingSecret.name`     | Read the key from a Secret you manage instead. See [Probe and Runner identity keys](#probe-and-runner-identity-keys). | `nil` |
+| `globalRunner.existingSecret.passwordKey` | Key inside that Secret.                                                  | `nil`   |
+| `globalRunner.resources`               | Pod resources (limits, requests).                                           | `nil`   |
+| `globalRunner.extraEnv`, `globalRunner.extraVolumes`, `globalRunner.extraVolumeMounts` | Extra environment variables and volumes for the global Runner alone, for example `HTTPS_PROXY` when it reaches the internet through a proxy. | `[]` |
+
 ## Incidents & alerts
 
 | Parameter                            | Description                                                                          | Default |
@@ -350,7 +387,8 @@ to apply to just that one:
 
 `<service>` is any of `app`, `worker`, `probes.<name>`, `runner`, `home`,
 `telemetryWriter`, `nginx`, `pgbouncer`, `testServer`, `migrate`, `vllm` or
-`cronJobs.e2e`.
+`cronJobs.e2e`. The bundled global Runner (`globalRunner`) takes only its own
+lists, never the chart-wide ones: see [Global Runner](#global-runner).
 
 A service's list **replaces** the chart-wide one — the two are not merged. That
 is the precedence the chart already uses for `hostAliases`, `nodeSelector` and

@@ -12,7 +12,7 @@
 ## پیش از شروع
 
 - **نقشی که رانبوک می‌نویسد.** Project Owner، Project Admin و Runbook Admin رانبوک می‌سازند و گام‌هایش را ذخیره می‌کنند. با مجوزهای جزئی به **Create Runbook** و **Edit Runbook** نیاز دارید. [دسترسی‌ها](/docs/runbooks/configuration#دسترسیها) را ببینید.
-- **یک Runner برای گام‌های JavaScript، Bash، SSH و Kubernetes.** این گام‌ها روی یک [Runner](/docs/runbooks/agents) در زیرساخت خودتان اجرا می‌شوند، هرگز روی OneUptime Worker. اول یکی نصب کنید.
+- **یک Runner برای گام‌های Bash، SSH و Kubernetes.** این گام‌ها روی یک [Runner](/docs/runbooks/agents) در زیرساخت خودتان اجرا می‌شوند، هرگز روی OneUptime Worker. اول یکی نصب کنید. گام JavaScript روی یک [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری) اجرا می‌شود، مگر اینکه یکی از Runnerهای خودتان را انتخاب کنید.
 - **یک اعتبارنامه برای گام‌های SSH و Kubernetes، و مجوز خواندن آن.** [اعتبارنامه‌های رانبوک](/docs/runbooks/credentials) را ببینید. گام فقط وقتی می‌تواند نام یک اعتبارنامه را ببرد که شما اجازه خواندن اعتبارنامه‌های رانبوک را داشته باشید: Project Owner، Project Admin یا **Read Runbook Credential**. Runbook Admin شامل آن نیست.
 - **یک ارائه‌دهنده LLM برای گام‌های AI.** [ارائه‌دهندگان LLM](/docs/ai/llm-provider) را ببینید.
 
@@ -72,13 +72,13 @@
 
 ### JavaScript
 
-قطعه‌ای JavaScript که در یک سندباکس `isolated-vm` روی یک [عامل رانبوک](/docs/runbooks/agents) در زیرساخت خودتان اجرا می‌شود، نه روی OneUptime Worker.
+قطعه‌ای JavaScript که در یک سندباکس `isolated-vm` روی یک [عامل رانبوک](/docs/runbooks/agents) اجرا می‌شود، نه روی OneUptime Worker: روی یکی از Runnerهای شما، یا وقتی گام هیچ‌کدام را انتخاب نکند، روی یک [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری).
 
 | فیلد | چه می‌کند | پیش‌فرض |
 | --- | --- | --- |
-| **Runner** | Runner‌ای که گام را اجرا می‌کند. فقط همین Runner می‌تواند کار را بردارد. | — |
+| **Runner** | Runner‌ای که گام را اجرا می‌کند: **Runner سراسری**، یا یکی از Runnerهای شما. فقط Runner‌ای که انتخاب می‌کنید می‌تواند کار را بردارد؛ هر Runner سراسری‌ای می‌تواند گامی را که روی **Runner سراسری** است بردارد. | **Runner سراسری**، وقتی یکی وجود دارد |
 | **Script** | JavaScript‌ای که باید اجرا شود. برای ثبت یک مقدار آن را با `return` برگردانید؛ هر خط `console.log` هم ثبت می‌شود. خطای پرتاب‌شده باعث شکست گام می‌شود. | — |
-| **مهلت اجرا** | مدتی که Runner پیش از برچیدن سندباکس اجازه اجرا به قطعه می‌دهد. | ۳۰ ثانیه |
+| **مهلت اجرا** | مدتی که Runner پیش از برچیدن سندباکس اجازه اجرا به قطعه می‌دهد. یک Runner سراسری حداکثر ۵ دقیقه به آن اجازه اجرا می‌دهد. | ۳۰ ثانیه |
 | **مهلت برداشتن** | مدتی که Worker منتظر می‌ماند تا Runner کار را بردارد. | ۲ دقیقه |
 
 ```javascript

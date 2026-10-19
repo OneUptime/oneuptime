@@ -12,7 +12,7 @@ U schrijft een runbook als een geordende lijst stappen op de pagina **Stappen** 
 ## Voordat u begint
 
 - **Een rol die runbooks schrijft.** Project Owner, Project Admin en Runbook Admin maken runbooks en slaan de stappen op. Met gedetailleerde machtigingen hebt u **Create Runbook** en **Edit Runbook** nodig. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
-- **Een Runner, voor JavaScript-, Bash-, SSH- en Kubernetes-stappen.** Deze stappen lopen op een [Runner](/docs/runbooks/agents) in uw eigen infrastructuur, nooit op de OneUptime Worker. Installeer er eerst een.
+- **Een Runner, voor Bash-, SSH- en Kubernetes-stappen.** Deze stappen lopen op een [Runner](/docs/runbooks/agents) in uw eigen infrastructuur, nooit op de OneUptime Worker. Installeer er eerst een. Een JavaScript-stap loopt op een [globale Runner](/docs/runbooks/agents#globale-runners), tenzij u een van uw eigen Runners kiest.
 - **Een inloggegeven, voor SSH- en Kubernetes-stappen, en de machtiging om het te lezen.** Zie [Runbook-inloggegevens](/docs/runbooks/credentials). Een stap kan alleen een inloggegeven noemen als u runbook-inloggegevens mag lezen: Project Owner, Project Admin of **Read Runbook Credential**. Runbook Admin bevat dat niet.
 - **Een LLM-provider, voor AI-stappen.** Zie [LLM-providers](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Gebruik dit voor wat alleen een mens kan controleren of doen: "Bevestig in het d
 
 ### JavaScript
 
-Een stukje JavaScript, uitgevoerd in een `isolated-vm`-sandbox op een [runbook-agent](/docs/runbooks/agents) in uw eigen infrastructuur, niet op de OneUptime Worker.
+Een stukje JavaScript, uitgevoerd in een `isolated-vm`-sandbox op een [runbook-agent](/docs/runbooks/agents), niet op de OneUptime Worker: op een van uw eigen, of op een [globale Runner](/docs/runbooks/agents#globale-runners) als de stap er geen kiest.
 
 | Veld | Wat het doet | Standaard |
 | --- | --- | --- |
-| **Runner** | De Runner die de stap uitvoert. Alleen die Runner mag de taak oppakken. | — |
+| **Runner** | De Runner die de stap uitvoert: **Globale Runner**, of een van uw eigen. Alleen de Runner die u kiest, mag de taak oppakken; elke globale Runner mag een stap op **Globale Runner** oppakken. | **Globale Runner**, als er een is |
 | **Script** | Het JavaScript dat wordt uitgevoerd. Geef met `return` een waarde terug om die vast te leggen; elke regel van `console.log` wordt ook vastgelegd. Een gegooide fout laat de stap mislukken. | — |
-| **Uitvoeringstime-out** | Hoe lang de Runner het stukje laat lopen voordat hij de sandbox afbreekt. | 30 seconden |
+| **Uitvoeringstime-out** | Hoe lang de Runner het stukje laat lopen voordat hij de sandbox afbreekt. Een globale Runner laat het hooguit 5 minuten lopen. | 30 seconden |
 | **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. | 2 minuten |
 
 ```javascript

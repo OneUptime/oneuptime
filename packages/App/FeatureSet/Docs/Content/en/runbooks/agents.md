@@ -1,10 +1,11 @@
 # Runbook Agents
 
-A **Runbook Agent**, called a **Runner** in the dashboard, is a small self-hosted process that runs the JavaScript, Bash, SSH and Kubernetes steps of your runbooks **inside your own infrastructure**. The OneUptime Worker never runs your scripts: it queues them, and the Runner the step's author picked claims each one, runs it and posts the result back. This page is for whoever installs and operates Runners.
+A **Runbook Agent**, called a **Runner** in the dashboard, is a small self-hosted process that runs the JavaScript, Bash, SSH and Kubernetes steps of your runbooks **inside your own infrastructure**. The OneUptime Worker never runs your scripts: it queues them, and the Runner the step's author picked claims each one, runs it and posts the result back. This page is for whoever installs and operates Runners. A JavaScript step that picks no Runner runs on a [global Runner](#global-runners) instead, one OneUptime runs for every project.
 
 :::cards
 - [Install a Runner](#install-a-runner): From the dashboard to a connected container, in five steps.
 - [Point a step at a Runner](#point-a-step-at-a-runner): Bind a step to the Runner that should run it.
+- [Global Runners](#global-runners): The Runners OneUptime runs for every project, and what they run.
 - [Timeouts](#timeouts): Claim and execution timeouts, and how they interact.
 - [Environment variables](#environment-variables): What the container reads when it starts.
 :::
@@ -32,7 +33,7 @@ flowchart TB
 1. You create a Runner in OneUptime. OneUptime generates an ID and a secret key for it.
 2. You run the Runner container on a host inside your infrastructure, with that ID and key and your OneUptime URL.
 3. The Runner asks OneUptime for work every 5 seconds, and reports that it is alive every 60 seconds.
-4. When you write a JavaScript, Bash, SSH or Kubernetes step, you pick the Runner from a dropdown. The step is bound to that Runner.
+4. When you write a JavaScript, Bash, SSH or Kubernetes step, you pick the Runner from a dropdown. The step is bound to that Runner. A JavaScript step can keep **Global Runner**, which the dropdown picks for it.
 5. When the step runs, the Worker queues a job with `targetAgentId` set to that Runner. Only that Runner can claim it.
 6. The Runner runs the job locally — `bash -c <script>` for Bash, an `isolated-vm` sandbox for JavaScript, an SSH connection or a call to the cluster's API server with the step's credential — captures the result, and posts it back. The Worker resumes the runbook with the result.
 
@@ -48,6 +49,35 @@ Running scripts on the OneUptime Worker had two problems:
 - **Reach.** Most useful steps act on _your_ infrastructure ("restart this service", "look up a record in our internal database"), not on OneUptime's.
 
 With Runners, those steps run on a host you control, and you decide what that host can do. HTTP request and AI steps still run on the Worker, because they need nothing from your network.
+
+## Global Runners
+
+Global Runners are the Runners OneUptime runs for every project. A JavaScript step that picks no Runner of its own runs on one, so you can write one before you install anything. **Runbooks → Runners** lists them under **Global Runners**, above your own Runners, and a JavaScript step's **Runner** dropdown offers **Global Runner** first.
+
+| | Global Runner | Your own Runner |
+| --- | --- | --- |
+| Steps it runs | JavaScript | JavaScript, Bash, SSH and Kubernetes |
+| What a step can reach | Public internet addresses | What its host can reach |
+| Longest a step runs | 5 minutes | 1 hour |
+| Runbook secrets | The ones you let global Runners use | The ones you assign to it |
+| Credentials | None | The ones you assign to it |
+
+A global Runner runs the steps of many projects, so each step is kept apart from every other:
+
+- Each step runs in an `isolated-vm` sandbox of its own, made for that step and thrown away after it: no files, no processes, no environment variables, and nothing kept from one step to the next.
+- Its HTTP requests reach public internet addresses only, never a private, loopback or link-local address or a cloud metadata endpoint, so a global Runner never reaches your network.
+- It gets a runbook secret only when the secret's **Global Runners can use this secret** switch is on, and only for a step of the secret's own project. It never gets a credential.
+- A project runs at most three steps on global Runners at once, so no project keeps them to itself.
+
+Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way.
+
+### Where global Runners come from
+
+On OneUptime Cloud, OneUptime runs them. A self-hosted install runs one of its own by default, as it runs its own global probes: the `global-runner` service in Docker Compose, and the `globalRunner` deployment in the Helm chart. It holds its own key, `GLOBAL_RUNNER_KEY`, and nothing else of the server's.
+
+A master admin can add more, to run steps from other hosts: in the Admin Dashboard, open **Settings**, then **Global Runners**, create one, and run the command its **Show ID and Key** gives on a host that can reach the internet.
+
+To turn the bundled one off, set `GLOBAL_RUNNER_REPLICAS=0` in Docker Compose's `config.env`, or `globalRunner.enabled` to `false` in the Helm chart. With no global Runner at all, **Runbooks → Runners** lists your own Runners only, and every JavaScript step picks one of them.
 
 ## Before you begin
 
@@ -114,11 +144,11 @@ In your runbook's **Steps**, add a JavaScript, Bash, SSH or Kubernetes step.
 
 ### Pick the Runner
 
-The step's **Runner** dropdown lists every Runner in the project, with whether it is connected. If the project has none yet, the step says so and points you to **Runbooks › Runners**.
+The step's **Runner** dropdown lists every Runner in the project, with whether it is connected. If the project has none yet, the step says so and points you to **Runbooks › Runners**. A JavaScript step's dropdown also offers **Global Runner**, first, and picks it until you pick one of yours.
 
 ### Save the steps
 
-Click **Save Steps**. When a run reaches the step, the Worker queues a job for that Runner's ID, and only that Runner can claim it.
+Click **Save Steps**. When a run reaches the step, the Worker queues a job for that Runner's ID, and only that Runner can claim it. A step on **Global Runner** waits for whichever global Runner is free.
 :::
 
 Bash is executed with `bash -c`. JavaScript runs in an `isolated-vm` sandbox on the Runner, with no filesystem or process access; it can call public HTTP APIs with `axios`, but not addresses on a private network. SSH and Kubernetes steps use the [credential](/docs/runbooks/credentials) the step names, which must be assigned to the same Runner.
@@ -176,7 +206,7 @@ The one thing this cannot tell you is how far a script got before the Worker van
 
 ### No agent online
 
-If the selected Runner is offline when the step runs, the job waits as `Pending` until the claim timeout elapses, and then the step fails with "No runbook agent picked up this step before the wait window expired." The **Runners** page is where you confirm coverage before running a runbook in anger.
+If the selected Runner is offline when the step runs, the job waits as `Pending` until the claim timeout elapses, and then the step fails with "No runbook agent picked up this step before the wait window expired." The **Runners** page is where you confirm coverage before running a runbook in anger. A step on a global Runner fails with "No global Runner picked up this step before the wait window expired." instead.
 
 ### Output cap
 
@@ -235,6 +265,7 @@ Managing agents lives under the existing Runbooks permission group:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — manage agent records.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — `RunbookAdmin` builds runbooks, their rules and the Runners they run on, and runs them. `RunbookMember` opens runbooks and their runs and runs them — it starts a run, completes or skips its steps and cancels it — but creates, changes and deletes no runbook or Runner. `RunbookViewer` reads runbooks and their runs and runs nothing. `RunbookAdmin` bundles all of the granular permissions above.
+- Global Runners belong to no project: only a master admin adds, changes or removes one, in the Admin Dashboard. Everyone who can read a project's Runners sees them, and turning **Use global Runners** off takes the permission to edit the project.
 
 Triggering a runbook (and so dispatching its steps to Runners) takes a role that runs runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` or `RunbookMember` — or `CreateRunbookExecution`; completing, skipping or cancelling a run also accepts `EditRunbookExecution`. A role runs only the runbooks its scope reaches.
 
@@ -247,7 +278,7 @@ For the curious: the Runner uses these endpoints, mounted under `/runner-ingest`
 | Endpoint | Purpose |
 | --- | --- |
 | `POST /heartbeat` | Liveness. Updates the Runner's last-seen time, version and host information, and returns the capabilities the project granted it. |
-| `POST /claim-next-job` | Atomically claim the oldest `Pending` job targeted at this Runner's ID. Returns `{ job: null }` when there is nothing to do. |
+| `POST /claim-next-job` | Atomically claim the oldest `Pending` job targeted at this Runner's ID. Returns `{ job: null }` when there is nothing to do. A global Runner claims the oldest step that waits for any global Runner instead. |
 | `POST /job/:jobId/heartbeat` | Refresh the job's lease. Returns 404 once the lease has lapsed or the job is terminal. |
 | `POST /job/:jobId/result` | Submit the final outcome. Ignored if the lease has already moved on. |
 | `POST /disconnect` | Sign off on a clean shutdown. |
@@ -274,6 +305,10 @@ The Runner claimed the job, then stopped renewing its lease: it crashed, restart
 
 :::details The Runner logs "No capability is enabled"
 Every capability is off for this Runner. Turn on **Runs Runbooks** on the Runner's page in OneUptime. It picks the change up on its next heartbeat.
+:::
+
+:::details A step on a global Runner fails because global Runners may not use a runbook secret
+The step names a runbook secret whose **Global Runners can use this secret** switch is off, so the global Runner was not handed it and the step was not run. The error names the secret. Turn the switch on for it under **Runbooks → Settings → Secrets**, or pick one of your own Runners for the step.
 :::
 
 ## Next steps

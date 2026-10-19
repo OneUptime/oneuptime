@@ -133,11 +133,11 @@ Runbook का **इस Runbook को चलाएं** स्विच उस�
 :::
 
 :::details कोई चरण Runner या क्रेडेंशियल न होने से विफल हुआ
-संदेश कुछ ऐसा होता है: "Bash step is missing a Runner. Pick one under Runbooks → Runners." चरण बिना **Runner** के सहेजा गया था, या कोई SSH या Kubernetes चरण बिना **Credential** के। Runbook के **चरण** खोलें, जो चरण में कमी है उसे चुनें, **Save Steps** पर क्लिक करें, और Runbook फिर से चलाएँ।
+संदेश कुछ ऐसा होता है: "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." चरण बिना **Runner** के सहेजा गया था, या कोई SSH या Kubernetes चरण बिना **Credential** के। JavaScript चरण को अपने Runner की ज़रूरत केवल तब होती है जब कोई [ग्लोबल Runner](/docs/runbooks/agents#ग्लोबल-runner) उसे नहीं चला सकता। Runbook के **चरण** खोलें, जो चरण में कमी है उसे चुनें, **Save Steps** पर क्लिक करें, और Runbook फिर से चलाएँ।
 :::
 
 :::details कोई चरण इसलिए विफल हुआ क्योंकि किसी Runbook एजेंट ने उसे नहीं उठाया
-संदेश है "No runbook agent picked up this step before the wait window expired." चरण के Runner ने अपने claim timeout के भीतर जॉब क्लेम नहीं किया। **रनबुक → Runbook एजेंट** में जाँचें कि Runner **कनेक्टेड** है और **Runbook चलाता है** चालू है। [Runbook एजेंट](/docs/runbooks/agents#समस्या-निवारण) देखें।
+संदेश है "No runbook agent picked up this step before the wait window expired." चरण के Runner ने अपने claim timeout के भीतर जॉब क्लेम नहीं किया। **रनबुक → Runbook एजेंट** में जाँचें कि Runner **कनेक्टेड** है और **Runbook चलाता है** चालू है। [Runbook एजेंट](/docs/runbooks/agents#समस्या-निवारण) देखें। ग्लोबल Runner पर चरण इसके बजाय "No global Runner picked up this step before the wait window expired." बताता है: Runbook फिर से चलाएँ, चरण का claim timeout बढ़ाएँ, या अपना कोई Runner चुनें।
 :::
 
 :::details रन घंटों से प्रतीक्षा कर रहा है

@@ -1,10 +1,11 @@
 # Agents de runbook
 
-Un **agent de runbook**, que le tableau de bord appelle **Agent Runbook** (le Runner), est un petit processus auto-hébergé qui exécute les étapes JavaScript, Bash, SSH et Kubernetes de vos runbooks **dans votre propre infrastructure**. Le Worker OneUptime n'exécute jamais vos scripts : il les met en file, et l'agent Runbook choisi par l'auteur de l'étape prend chacun en charge, l'exécute et renvoie le résultat. Cette page s'adresse à qui installe et exploite les agents Runbook.
+Un **agent de runbook**, que le tableau de bord appelle **Agent Runbook** (le Runner), est un petit processus auto-hébergé qui exécute les étapes JavaScript, Bash, SSH et Kubernetes de vos runbooks **dans votre propre infrastructure**. Le Worker OneUptime n'exécute jamais vos scripts : il les met en file, et l'agent Runbook choisi par l'auteur de l'étape prend chacun en charge, l'exécute et renvoie le résultat. Cette page s'adresse à qui installe et exploite les agents Runbook. Une étape JavaScript qui ne choisit aucun agent s'exécute plutôt sur un [agent Runbook global](#agents-runbook-globaux), l'un de ceux qu'OneUptime fait tourner pour chaque projet.
 
 :::cards
 - [Installer un agent Runbook](#installer-un-agent-runbook): Du tableau de bord à un conteneur connecté, en cinq étapes.
 - [Diriger une étape vers un agent Runbook](#diriger-une-étape-vers-un-agent-runbook): Lier une étape à l'agent Runbook qui doit l'exécuter.
+- [Agents Runbook globaux](#agents-runbook-globaux): Les agents qu'OneUptime fait tourner pour chaque projet, et ce qu'ils exécutent.
 - [Délais](#délais): Délais de prise en charge et d'exécution, et leur interaction.
 - [Variables d'environnement](#variables-denvironnement): Ce que lit le conteneur au démarrage.
 :::
@@ -32,7 +33,7 @@ flowchart TB
 1. Vous créez un agent Runbook dans OneUptime. OneUptime génère pour lui un ID et une clé secrète.
 2. Vous lancez le conteneur de l'agent sur un hôte de votre infrastructure, avec cet ID, cette clé et l'URL de votre OneUptime.
 3. L'agent demande du travail à OneUptime toutes les 5 secondes, et signale qu'il est vivant toutes les 60 secondes.
-4. Quand vous écrivez une étape JavaScript, Bash, SSH ou Kubernetes, vous choisissez l'agent Runbook dans une liste déroulante. L'étape est liée à cet agent.
+4. Quand vous écrivez une étape JavaScript, Bash, SSH ou Kubernetes, vous choisissez l'agent Runbook dans une liste déroulante. L'étape est liée à cet agent. Une étape JavaScript peut garder **Agent Runbook global**, que la liste déroulante choisit pour elle.
 5. Quand l'étape s'exécute, le Worker met en file une tâche dont `targetAgentId` désigne cet agent. Seul cet agent peut la prendre en charge.
 6. L'agent exécute la tâche localement — `bash -c <script>` pour Bash, un bac à sable `isolated-vm` pour JavaScript, une connexion SSH ou un appel au serveur API du cluster avec l'identifiant de l'étape —, capture le résultat et le renvoie. Le Worker reprend le runbook avec ce résultat.
 
@@ -48,6 +49,35 @@ Exécuter les scripts sur le Worker OneUptime posait deux problèmes :
 - **Portée.** La plupart des étapes utiles agissent sur _votre_ infrastructure (« redémarrer ce service », « chercher un enregistrement dans notre base interne »), pas sur celle d'OneUptime.
 
 Avec les agents Runbook, ces étapes s'exécutent sur un hôte que vous contrôlez, et vous décidez de ce que cet hôte peut faire. Les étapes de requête HTTP et IA s'exécutent toujours sur le Worker, car elles n'ont besoin de rien dans votre réseau.
+
+## Agents Runbook globaux
+
+Les agents Runbook globaux sont les agents qu'OneUptime fait tourner pour chaque projet. Une étape JavaScript qui ne choisit aucun agent à elle s'exécute sur l'un d'eux, ce qui vous permet de l'écrire avant d'installer quoi que ce soit. **Runbooks → Agents de runbook** les liste sous **Agents Runbook globaux**, au-dessus de vos propres agents, et la liste déroulante **Agent Runbook** d'une étape JavaScript propose **Agent Runbook global** en premier.
+
+| | Agent Runbook global | Votre propre agent |
+| --- | --- | --- |
+| Étapes qu'il exécute | JavaScript | JavaScript, Bash, SSH et Kubernetes |
+| Ce qu'une étape peut atteindre | Les adresses publiques d'Internet | Ce que son hôte peut atteindre |
+| Durée maximale d'une étape | 5 minutes | 1 heure |
+| Secrets de runbook | Ceux que vous autorisez pour les agents globaux | Ceux que vous lui attribuez |
+| Identifiants | Aucun | Ceux que vous lui attribuez |
+
+Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi chaque étape est tenue à l'écart de toutes les autres :
+
+- Chaque étape s'exécute dans son propre bac à sable `isolated-vm`, créé pour cette étape et jeté après elle : pas de fichiers, pas de processus, pas de variables d'environnement, et rien de conservé d'une étape à l'autre.
+- Ses requêtes HTTP n'atteignent que les adresses publiques d'Internet, jamais une adresse privée, de bouclage ou de lien local ni un point de terminaison de métadonnées cloud, si bien qu'un agent global n'atteint jamais votre réseau.
+- Il ne reçoit un secret de runbook que lorsque l'interrupteur **Les agents Runbook globaux peuvent utiliser ce secret** du secret est activé, et seulement pour une étape du projet propre au secret. Il ne reçoit jamais d'identifiant.
+- Un projet exécute au plus trois étapes à la fois sur les agents globaux, si bien qu'aucun projet ne les garde pour lui seul.
+
+Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent échoue alors, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas.
+
+### D'où viennent les agents Runbook globaux
+
+Sur OneUptime Cloud, c'est OneUptime qui les fait tourner. Une installation auto-hébergée en fait tourner un à elle par défaut, comme elle fait tourner ses propres sondes globales : le service `global-runner` dans Docker Compose et le déploiement `globalRunner` dans le chart Helm. Il détient sa propre clé, `GLOBAL_RUNNER_KEY`, et rien d'autre du serveur.
+
+Un administrateur principal peut en ajouter d'autres, pour exécuter des étapes depuis d'autres hôtes : dans le tableau de bord d'administration, ouvrez **Paramètres**, puis **Agents Runbook globaux**, créez-en un, puis exécutez la commande que donne son **Afficher l'ID et la clé** sur un hôte qui atteint Internet.
+
+Pour désactiver celui qui est fourni, définissez `GLOBAL_RUNNER_REPLICAS=0` dans le `config.env` de Docker Compose, ou `globalRunner.enabled` à `false` dans le chart Helm. Sans aucun agent global, **Runbooks → Agents de runbook** ne liste que vos propres agents, et chaque étape JavaScript en choisit un.
 
 ## Avant de commencer
 
@@ -114,11 +144,11 @@ Dans les **Étapes** de votre runbook, ajoutez une étape JavaScript, Bash, SSH 
 
 ### Choisir l'agent Runbook
 
-La liste déroulante **Agent Runbook** de l'étape affiche chaque agent du projet, et s'il est connecté. Si le projet n'en a encore aucun, l'étape le dit et vous renvoie à **Runbooks › Runners**.
+La liste déroulante **Agent Runbook** de l'étape affiche chaque agent du projet, et s'il est connecté. Si le projet n'en a encore aucun, l'étape le dit et vous renvoie à **Runbooks › Runners**. La liste déroulante d'une étape JavaScript propose aussi **Agent Runbook global**, en premier, et le choisit jusqu'à ce que vous choisissiez l'un des vôtres.
 
 ### Enregistrer les étapes
 
-Cliquez sur **Save Steps**. Quand une exécution atteint l'étape, le Worker met en file une tâche pour l'ID de cet agent, et seul cet agent peut la prendre en charge.
+Cliquez sur **Save Steps**. Quand une exécution atteint l'étape, le Worker met en file une tâche pour l'ID de cet agent, et seul cet agent peut la prendre en charge. Une étape sur **Agent Runbook global** attend l'agent global qui se libère.
 :::
 
 Bash est exécuté avec `bash -c`. JavaScript s'exécute dans un bac à sable `isolated-vm` sur l'agent, sans accès au système de fichiers ni aux processus ; il peut appeler des API HTTP publiques avec `axios`, mais pas des adresses d'un réseau privé. Les étapes SSH et Kubernetes utilisent l'[identifiant](/docs/runbooks/credentials) que l'étape désigne, qui doit être attribué au même agent.
@@ -176,7 +206,7 @@ La seule chose que ce mécanisme ne peut pas dire, c'est jusqu'où un script est
 
 ### Aucun agent en ligne
 
-Si l'agent choisi est hors ligne quand l'étape s'exécute, la tâche attend en `Pending` jusqu'à l'expiration du délai de prise en charge, puis l'étape échoue avec "No runbook agent picked up this step before the wait window expired." La page **Agents de runbook** est l'endroit où vérifier la couverture avant d'exécuter un runbook en situation réelle.
+Si l'agent choisi est hors ligne quand l'étape s'exécute, la tâche attend en `Pending` jusqu'à l'expiration du délai de prise en charge, puis l'étape échoue avec "No runbook agent picked up this step before the wait window expired." La page **Agents de runbook** est l'endroit où vérifier la couverture avant d'exécuter un runbook en situation réelle. Une étape sur un agent Runbook global échoue plutôt avec "No global Runner picked up this step before the wait window expired."
 
 ### Plafond de sortie
 
@@ -235,6 +265,7 @@ La gestion des agents relève du groupe d'autorisations Runbooks existant :
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gérer les enregistrements des agents.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rôles) — `RunbookAdmin` construit les runbooks, leurs règles et les agents sur lesquels ils tournent, et les exécute. `RunbookMember` ouvre les runbooks et leurs exécutions et les exécute — il lance une exécution, termine ou ignore ses étapes et l'annule — mais ne crée, ne modifie ni ne supprime aucun runbook ni aucun agent. `RunbookViewer` lit les runbooks et leurs exécutions et n'exécute rien. `RunbookAdmin` regroupe toutes les autorisations granulaires ci-dessus.
+- Les agents Runbook globaux n'appartiennent à aucun projet : seul un administrateur principal en ajoute, en modifie ou en supprime, dans le tableau de bord d'administration. Quiconque peut lire les agents d'un projet les voit, et désactiver **Utiliser les agents Runbook globaux** demande l'autorisation de modifier le projet.
 
 Déclencher un runbook (et donc envoyer ses étapes aux agents) demande un rôle qui exécute les runbooks — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` ou `RunbookMember` — ou `CreateRunbookExecution` ; terminer, ignorer ou annuler une exécution accepte aussi `EditRunbookExecution`. Un rôle n'exécute que les runbooks que sa portée atteint.
 
@@ -247,7 +278,7 @@ Pour les curieux : l'agent utilise ces points de terminaison, montés sous `/run
 | Point de terminaison | Rôle |
 | --- | --- |
 | `POST /heartbeat` | Signe de vie. Met à jour la dernière heure de contact, la version et les informations d'hôte de l'agent, et renvoie les capacités que le projet lui accorde. |
-| `POST /claim-next-job` | Prendre en charge de façon atomique la plus ancienne tâche `Pending` destinée à l'ID de cet agent. Renvoie `{ job: null }` quand il n'y a rien à faire. |
+| `POST /claim-next-job` | Prendre en charge de façon atomique la plus ancienne tâche `Pending` destinée à l'ID de cet agent. Renvoie `{ job: null }` quand il n'y a rien à faire. Un agent global prend plutôt en charge la plus ancienne étape qui attend n'importe quel agent global. |
 | `POST /job/:jobId/heartbeat` | Rafraîchir le bail de la tâche. Renvoie 404 une fois le bail expiré ou la tâche terminée. |
 | `POST /job/:jobId/result` | Soumettre le résultat final. Ignoré si le bail est déjà passé à autre chose. |
 | `POST /disconnect` | Se déconnecter lors d'un arrêt propre. |
@@ -274,6 +305,10 @@ L'agent a pris la tâche en charge, puis a cessé de renouveler son bail : il a 
 
 :::details L'agent journalise "No capability is enabled"
 Toutes les capacités sont désactivées pour cet agent. Activez **Exécute les runbooks** sur la page de l'agent dans OneUptime. Il prend en compte le changement à son prochain heartbeat.
+:::
+
+:::details Une étape sur un agent Runbook global échoue parce que les agents globaux ne peuvent pas utiliser un secret de runbook
+L'étape nomme un secret de runbook dont l'interrupteur **Les agents Runbook globaux peuvent utiliser ce secret** est désactivé, si bien que l'agent global ne l'a pas reçu et que l'étape n'a pas été exécutée. L'erreur nomme le secret. Activez l'interrupteur pour lui sous **Runbooks → Paramètres → Secrets**, ou choisissez l'un de vos propres agents pour l'étape.
 :::
 
 ## Prochaines étapes

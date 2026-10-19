@@ -174,6 +174,18 @@ function stubDatabase(): Harness {
     name: "office-runner",
   } as unknown as Runner);
 
+  /*
+   * Where a step runs is decided first (GlobalRunnerChoice): the Runner the
+   * step picked is looked up, and one of the step's own project's Runners is
+   * where its job goes.
+   */
+  jest.spyOn(RunnerService, "findOneById").mockResolvedValue({
+    _id: AGENT_ID,
+    id: new ObjectID(AGENT_ID),
+    projectId: makeCtx().projectId,
+    isGlobalRunner: false,
+  } as unknown as Runner);
+
   return { createSpy, pollSpy, findSpy };
 }
 

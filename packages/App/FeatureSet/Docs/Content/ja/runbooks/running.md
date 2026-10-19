@@ -133,11 +133,11 @@ Runbook の **設定** ページで **この Runbook を実行** スイッチが
 :::
 
 :::details Runner または認証情報がないためにステップが失敗した
-メッセージはたとえば「Bash step is missing a Runner. Pick one under Runbooks → Runners.」です。ステップが **Runner** なしで保存されたか、SSH または Kubernetes のステップが **認証情報** なしで保存されました。Runbook の **ステップ** を開き、足りないものを選んで **ステップを保存** をクリックし、Runbook を再実行します。
+メッセージはたとえば「This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.」です。ステップが **Runner** なしで保存されたか、SSH または Kubernetes のステップが **認証情報** なしで保存されました。JavaScript のステップに自社の Runner が必要なのは、それを実行できる [グローバル Runner](/docs/runbooks/agents#グローバル-runner) がない場合だけです。Runbook の **ステップ** を開き、足りないものを選んで **ステップを保存** をクリックし、Runbook を再実行します。
 :::
 
 :::details どの Runbook エージェントもステップを取得しなかったために失敗した
-メッセージは「No runbook agent picked up this step before the wait window expired.」です。ステップの Runner が取得のタイムアウト内にジョブを取得しませんでした。 **Runbook → Runner** で、Runner が **接続済み** で **Runbook を実行** がオンになっていることを確認してください。[Runbook エージェント](/docs/runbooks/agents#トラブルシューティング) を参照してください。
+メッセージは「No runbook agent picked up this step before the wait window expired.」です。ステップの Runner が取得のタイムアウト内にジョブを取得しませんでした。 **Runbook → Runner** で、Runner が **接続済み** で **Runbook を実行** がオンになっていることを確認してください。[Runbook エージェント](/docs/runbooks/agents#トラブルシューティング) を参照してください。 グローバル Runner のステップでは、代わりに「No global Runner picked up this step before the wait window expired.」となります。Runbook を再実行するか、ステップの取得のタイムアウトを延ばすか、自社の Runner を選んでください。
 :::
 
 :::details 実行が何時間も待っている

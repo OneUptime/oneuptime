@@ -139,6 +139,7 @@ Der letzte Befehl gibt `0` aus: Es ist kein Platzhalter mehr übrig. Die Schleif
 | `REGISTER_PROBE_KEY` | Das Registrieren von Probes bei Ihrer Instanz. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | Die globalen Probes, die Docker Compose betreiben kann (`probe-1` läuft standardmäßig). |
 | `ONEUPTIME_RUNNER_KEY` | Den mitgelieferten Runner. |
+| `GLOBAL_RUNNER_KEY` | Den mitgelieferten globalen Runner, der die JavaScript-Schritte aller Projekte ausführt. |
 
 > [!IMPORTANT]
 > Setzen Sie die Geheimnisse vor dem ersten Start und behalten Sie sie danach bei. PostgreSQL übernimmt sein Passwort nur beim Anlegen seiner Datenbank, und eine spätere Änderung von `ENCRYPTION_SECRET` macht jeden mit dem alten Wert verschlüsselten Wert unlesbar. Ist `DATABASE_PASSWORD` beim ersten Start noch der Platzhalter, gibt `npm start` ihm einen zufälligen Wert, bevor PostgreSQL seine Datenbank anlegt.

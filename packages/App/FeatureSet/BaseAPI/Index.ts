@@ -1202,9 +1202,7 @@ import AutoRemediationDecisionService, {
 import AIInvestigationRuleService, {
   Service as AIInvestigationRuleServiceType,
 } from "Common/Server/Services/AIInvestigationRuleService";
-import RunnerService, {
-  Service as RunnerServiceType,
-} from "Common/Server/Services/RunnerService";
+import RunnerAPI from "Common/Server/API/RunnerAPI";
 import RunnerJobService, {
   Service as RunnerJobServiceType,
 } from "Common/Server/Services/RunnerJobService";
@@ -1561,7 +1559,6 @@ import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRul
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
-import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
@@ -4174,7 +4171,8 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Runner, RunnerServiceType>(Runner, RunnerService).getRouter(),
+      // The Runner CRUD routes, and the global Runners every project sees.
+      new RunnerAPI().getRouter(),
     );
 
     app.use(

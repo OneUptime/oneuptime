@@ -139,6 +139,7 @@ grep -c "please-change-this" config.env
 | `REGISTER_PROBE_KEY` | インスタンスへのプローブの登録。 |
 | `GLOBAL_PROBE_1_KEY`、`GLOBAL_PROBE_2_KEY` | Docker Compose が実行できるグローバルプローブ (デフォルトでは `probe-1` が動きます)。 |
 | `ONEUPTIME_RUNNER_KEY` | 同梱の Runner。 |
+| `GLOBAL_RUNNER_KEY` | すべてのプロジェクトの JavaScript のステップを実行する、同梱のグローバル Runner。 |
 
 > [!IMPORTANT]
 > シークレットは最初の起動前に設定し、その後は変えないでください。PostgreSQL はデータベースを作成するときにしかパスワードを受け取りません。また、あとから `ENCRYPTION_SECRET` を変えると、古い値で暗号化されたものはすべて読めなくなります。最初の起動時に `DATABASE_PASSWORD` がまだプレースホルダーのままなら、PostgreSQL がデータベースを作成する前に `npm start` がランダムな値を設定します。

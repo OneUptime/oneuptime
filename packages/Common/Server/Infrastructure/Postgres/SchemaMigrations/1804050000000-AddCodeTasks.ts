@@ -19,7 +19,7 @@ export const CODE_TASK_BACKFILL_FROM_GITHUB_COMMANDS: string = `UPDATE "AIRun" A
 
 /*
  * Generated with npm run generate-postgres-migration; its index and foreign
- * key moved into AddCodeTaskIndexesAndKey1804000000000, which builds them
+ * key moved into AddCodeTaskIndexesAndKey1804100000000, which builds them
  * online.
  *
  * Code: the Tasks product became Code, where a repository holds its tasks
@@ -37,8 +37,8 @@ export const CODE_TASK_BACKFILL_FROM_GITHUB_COMMANDS: string = `UPDATE "AIRun" A
  * code-fix runs their repository; only code-fix runs are touched, through
  * the "runType" index.
  */
-export class AddCodeTasks1803950000000 implements MigrationInterface {
-  public name: string = "AddCodeTasks1803950000000";
+export class AddCodeTasks1804050000000 implements MigrationInterface {
+  public name: string = "AddCodeTasks1804050000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "AIRun" ADD "codeRepositoryId" uuid`);

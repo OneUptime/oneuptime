@@ -317,32 +317,56 @@ describe("the messages people act on name Runbooks", () => {
 
     for (const message of [
       "SSH step is missing a credential. Pick one under Runbooks → Runner Credentials.",
-      "SSH step is missing a Runner. Pick one under Runbooks → Runners.",
       "Kubernetes step is missing a credential. Pick one under Runbooks → Runner Credentials.",
-      "Kubernetes step is missing a Runner. Pick one under Runbooks → Runners.",
     ]) {
       expect(executors).toContain(message);
     }
+
+    /*
+     * Where a step with no Runner of its own runs - the global Runners, or
+     * nowhere - is the one rule in Common (RunnerChoice); its refusals send
+     * people to the same page.
+     */
+    const choice: string = read("Common", "Types", "Runner", "RunnerChoice.ts");
+
+    for (const message of [
+      "Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+      "Pick one of your Runners for the step, or turn global Runners on under Runbooks → Runners.",
+    ]) {
+      expect(choice).toContain(message);
+    }
   });
 
-  test("the step editor's empty Runner picker points at Runbooks › Runners", () => {
-    const steps: string = read(
+  test("the step editor's Runner picker, with nothing to pick, points at Runbooks › Runners", () => {
+    const picker: string = read(
       "App",
       "FeatureSet",
       "Dashboard",
       "src",
-      "Pages",
-      "Runbook",
-      "View",
-      "Steps.tsx",
+      "Components",
+      "Runner",
+      "RunnerPicker.tsx",
     );
 
-    expect(steps).toContain(
-      'template="No Runners in this project yet. Create one under {{location}}, then come back to pick it here."',
+    for (const template of [
+      'template="{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here."',
+      'template="This project does not use global Runners. Add a Runner of your own under {{location}}, or turn global Runners on there."',
+      'template="Add a Runner under {{location}} to run this step, then pick it here."',
+    ]) {
+      expect(picker).toContain(template);
+    }
+
+    /*
+     * Named "Runbooks › Runners", as a link to that page: in a new tab, so
+     * the steps being edited stay as they are.
+     */
+    const flat: string = picker.replace(/\s+/g, " ");
+
+    expect(flat).toContain(
+      '{translator.translateText("Runbooks › Runners")} </Link>',
     );
-    expect(steps).toContain(
-      '<strong> {translator.translateText("Runbooks › Runners")} </strong>',
-    );
+    expect(flat).toContain("RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,");
+    expect(flat).toContain("openInNewTab={true}");
   });
 
   test("the step editor's empty credential picker points at the Credentials page under Runners", () => {
@@ -379,13 +403,28 @@ describe("the messages people act on name Runbooks", () => {
       "Steps.tsx",
     );
 
-    expect(steps).toContain('placeholder="Select a Runner"');
-    expect(steps).toContain('"Unknown Runner ({{id}})"');
+    // The Runner picker every step shares (RunnerPicker) says it the same way.
+    const picker: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Components",
+      "Runner",
+      "RunnerPicker.tsx",
+    );
+
+    expect(picker).toContain('placeholder="Select a Runner"');
+    expect(picker).toContain('"Unknown Runner ({{id}})"');
     expect(steps).toContain(
       'description: "Run a shell command on one of your Runners.",',
     );
+    /*
+     * A JavaScript step runs on a global Runner unless it picks one of the
+     * project's own, so it no longer says "on one of your Runners".
+     */
     expect(steps).toContain(
-      'description: "Run JavaScript on one of your Runners and use what it returns.",',
+      'description: "Run JavaScript in a sandbox and use what it returns.",',
     );
 
     for (const retired of [
@@ -395,6 +434,10 @@ describe("the messages people act on name Runbooks", () => {
       "sandboxed JS snippet",
     ]) {
       expect({ retired, found: steps.includes(retired) }).toEqual({
+        retired,
+        found: false,
+      });
+      expect({ retired, found: picker.includes(retired) }).toEqual({
         retired,
         found: false,
       });

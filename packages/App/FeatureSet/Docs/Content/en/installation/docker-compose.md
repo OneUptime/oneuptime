@@ -139,6 +139,7 @@ The last command prints `0`: no placeholder is left. The loop uses GNU `sed`, wh
 | `REGISTER_PROBE_KEY` | Registering probes with your instance. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | The global probes Docker Compose can run (`probe-1` runs by default). |
 | `ONEUPTIME_RUNNER_KEY` | The bundled Runner. |
+| `GLOBAL_RUNNER_KEY` | The bundled global Runner, which runs every project's JavaScript steps. |
 
 > [!IMPORTANT]
 > Set the secrets before the first start, and keep them afterwards. PostgreSQL takes its password only when it creates its database, and changing `ENCRYPTION_SECRET` later makes every value encrypted with the old one unreadable. If `DATABASE_PASSWORD` is still the placeholder at the first start, `npm start` gives it a random value before PostgreSQL creates its database.

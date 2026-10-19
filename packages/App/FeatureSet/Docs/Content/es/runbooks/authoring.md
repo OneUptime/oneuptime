@@ -12,7 +12,7 @@ Un runbook se escribe como una lista ordenada de pasos en su página **Pasos**. 
 ## Antes de empezar
 
 - **Un rol que escriba runbooks.** Project Owner, Project Admin y Runbook Admin crean runbooks y guardan sus pasos. Con permisos granulares necesitas **Create Runbook** y **Edit Runbook**. Consulta [Permisos](/docs/runbooks/configuration#permisos).
-- **Un Runner, para los pasos JavaScript, Bash, SSH y Kubernetes.** Estos pasos se ejecutan en un [Runner](/docs/runbooks/agents) dentro de tu propia infraestructura, nunca en el Worker de OneUptime. Instala uno primero.
+- **Un Runner, para los pasos Bash, SSH y Kubernetes.** Estos pasos se ejecutan en un [Runner](/docs/runbooks/agents) dentro de tu propia infraestructura, nunca en el Worker de OneUptime. Instala uno primero. Un paso JavaScript se ejecuta en un [Runner global](/docs/runbooks/agents#runners-globales) salvo que elijas uno de los tuyos.
 - **Una credencial, para los pasos SSH y Kubernetes, y permiso para leerla.** Consulta [Credenciales de runbook](/docs/runbooks/credentials). Un paso solo puede nombrar una credencial si puedes leer las credenciales de runbook: Project Owner, Project Admin o **Read Runbook Credential**. Runbook Admin no lo incluye.
 - **Un proveedor de LLM, para los pasos de IA.** Consulta [Proveedores de LLM](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Un elemento de lista de comprobación para una persona. La ejecución se pausa a
 
 ### JavaScript
 
-Un fragmento de JavaScript que se ejecuta en un sandbox `isolated-vm` en un [agente de runbook](/docs/runbooks/agents) dentro de tu propia infraestructura, no en el Worker de OneUptime.
+Un fragmento de JavaScript que se ejecuta en un sandbox `isolated-vm` en un [agente de runbook](/docs/runbooks/agents), no en el Worker de OneUptime: en uno de los tuyos, o en un [Runner global](/docs/runbooks/agents#runners-globales) cuando el paso no elige ninguno.
 
 | Campo | Qué hace | Predeterminado |
 | --- | --- | --- |
-| **Runner** | El Runner que ejecuta el paso. Solo ese Runner puede reclamar el trabajo. | — |
+| **Runner** | El Runner que ejecuta el paso: **Runner global**, o uno de los tuyos. Solo el Runner que eliges puede reclamar el trabajo; cualquier Runner global puede reclamar un paso en **Runner global**. | **Runner global**, cuando hay uno |
 | **Script** | El JavaScript que se ejecuta. Devuelve un valor con `return` para capturarlo; cada línea de `console.log` también se captura. Lanzar un error hace fallar el paso. | — |
-| **Tiempo de espera de ejecución** | Cuánto tiempo deja el Runner que se ejecute el fragmento antes de destruir el sandbox. | 30 segundos |
+| **Tiempo de espera de ejecución** | Cuánto tiempo deja el Runner que se ejecute el fragmento antes de destruir el sandbox. Un Runner global lo deja ejecutarse 5 minutos como mucho. | 30 segundos |
 | **Tiempo de espera de reclamación** | Cuánto tiempo espera el Worker a que el Runner reclame el trabajo. | 2 minutos |
 
 ```javascript
