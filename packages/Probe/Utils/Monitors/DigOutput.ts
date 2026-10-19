@@ -36,9 +36,10 @@ class NextMatch {
   private found: number = -1;
   private searchedFrom: number = -1;
 
+  // A global pattern of the module: its lastIndex is set before each search.
   public constructor(text: string, pattern: RegExp) {
     this.text = text;
-    this.pattern = new RegExp(pattern.source, pattern.flags);
+    this.pattern = pattern;
   }
 
   public atOrAfter(from: number): number {
@@ -69,13 +70,15 @@ class NextMatch {
 export const digOutputHasAuthenticatedData: (stdout: string) => boolean = (
   stdout: string,
 ): boolean => {
-  const labels: RegExp = new RegExp(FLAGS_LABEL.source, FLAGS_LABEL.flags);
+  const labels: RegExp = FLAGS_LABEL;
   const flags: NextMatch = new NextMatch(stdout, AUTHENTICATED_DATA_FLAG);
   const lineEnds: NextMatch = new NextMatch(stdout, LINE_TERMINATOR);
 
   // The end of the line whose first label was asked about.
   let askedLineEnd: number = -1;
   let label: RegExpExecArray | null;
+
+  labels.lastIndex = 0;
 
   while ((label = labels.exec(stdout)) !== null) {
     if (label.index < askedLineEnd) {
@@ -107,8 +110,10 @@ export const digOutputHasAuthenticatedData: (stdout: string) => boolean = (
 export const readDigFlagsField: (stdout: string) => string | null = (
   stdout: string,
 ): string | null => {
-  const labels: RegExp = new RegExp(FLAGS_LABEL.source, FLAGS_LABEL.flags);
+  const labels: RegExp = FLAGS_LABEL;
   let label: RegExpExecArray | null;
+
+  labels.lastIndex = 0;
 
   while ((label = labels.exec(stdout)) !== null) {
     const fieldStart: number = label.index + FLAGS_LABEL_LENGTH;

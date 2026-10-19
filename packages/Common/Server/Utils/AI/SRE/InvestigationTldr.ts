@@ -116,13 +116,12 @@ const afterLeadingMatches: AfterLeadingMatchesFunction = (
   text: string,
   pattern: RegExp,
 ): number => {
-  const sticky: RegExp = new RegExp(pattern.source, pattern.flags);
   let start: number = 0;
 
   for (;;) {
-    sticky.lastIndex = start;
+    pattern.lastIndex = start;
 
-    const match: RegExpExecArray | null = sticky.exec(text);
+    const match: RegExpExecArray | null = pattern.exec(text);
 
     if (!match || match[0].length === 0) {
       return start;

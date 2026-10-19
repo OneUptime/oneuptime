@@ -132,7 +132,8 @@ export const findLabelledValues: FindLabelledValuesFunction = (data: {
 }): Array<string> => {
   const text: string = data.text;
   const values: Array<string> = [];
-  const value: RegExp = new RegExp(data.value.source, data.value.flags);
+  // Sticky: tried right where a value starts (its lastIndex is set first).
+  const value: RegExp = data.value;
   let searchFrom: number = 0;
 
   for (;;) {
