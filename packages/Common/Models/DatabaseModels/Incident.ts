@@ -2838,6 +2838,44 @@ export default class Incident extends BaseModel {
   })
   public holdsMonitors?: boolean = undefined;
 
+  /*
+   * When the automatic postmortem draft started waiting for what the
+   * incident's calls said, recorded by OneUptime: set when the incident
+   * resolves while a call's transcript is still on its way
+   * (isPostmortemWaitingForCalls), cleared once the draft is written or no
+   * longer due. Null the rest of the time.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  // The Workers job finds the drafts that wait by it.
+  @Index()
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.Date,
+    title: "Postmortem Draft Waiting Since",
+    description:
+      "When the automatic postmortem draft started waiting for the transcript of the incident's call, so that the draft reads what was said on it: set when the incident resolves while a call's transcript is still on its way, and cleared once the draft is written. Empty the rest of the time. Set by OneUptime; it cannot be written.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public postmortemDraftWaitingSince?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

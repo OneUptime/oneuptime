@@ -25,12 +25,15 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/CallTranscriptState";
 import {
   CALL_SUMMARY_POLL_INTERVAL_MS,
+  CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS,
   EventVideoCall,
   INCIDENT_CALL_TRANSCRIPT_SELECT,
   VideoCallEventKind,
   fetchEventVideoCalls,
   isAnyCallBeingRead,
+  isAnyCallWaitingForTranscript,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/useEventVideoCalls";
+import { CallTranscriptFetchStatus } from "../../../Types/VideoCall/CallTranscriptAutoFetch";
 import IncidentVideoCall from "../../../Models/DatabaseModels/IncidentVideoCall";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -264,6 +267,110 @@ describe("getCallsWithReadings - the calls the AI Investigation card speaks of",
 
   test("a call's section has an id the Video Call card's Review can scroll to", () => {
     expect(getCallSummarySectionId(CALL_ID)).toBe(`call-summary-${CALL_ID}`);
+  });
+});
+
+/*
+ * Record and transcribe incident calls: while OneUptime gets a call's
+ * transcript by itself the card says so, and once it stopped it says why -
+ * until the transcript is in, when neither matters any more.
+ */
+describe("getCallTranscriptView - OneUptime getting the transcript by itself", () => {
+  test("a call OneUptime waits on says Waiting", () => {
+    const view: CallTranscriptView = getCallTranscriptView(
+      transcriptCall({ fetchStatus: CallTranscriptFetchStatus.Waiting }),
+      NOW,
+    );
+
+    expect(view.hasTranscript).toBe(false);
+    expect(view.fetchStatus).toBe(CallTranscriptFetchStatus.Waiting);
+    expect(view.fetchReason).toBeNull();
+  });
+
+  test("a call OneUptime stopped waiting on keeps the provider's last answer", () => {
+    const view: CallTranscriptView = getCallTranscriptView(
+      transcriptCall({
+        fetchStatus: CallTranscriptFetchStatus.Stopped,
+        fetchReason: VideoCallTranscriptUnavailableReason.NotTranscribed,
+      }),
+      NOW,
+    );
+
+    expect(view.fetchStatus).toBe(CallTranscriptFetchStatus.Stopped);
+    expect(view.fetchReason).toBe(
+      VideoCallTranscriptUnavailableReason.NotTranscribed,
+    );
+  });
+
+  test("once the transcript is in, nothing is waited for, whatever the columns still say", () => {
+    const view: CallTranscriptView = getCallTranscriptView(
+      transcriptCall({
+        info: TRANSCRIPT_INFO,
+        fetchStatus: CallTranscriptFetchStatus.Waiting,
+        fetchReason: VideoCallTranscriptUnavailableReason.NotReady,
+      }),
+      NOW,
+    );
+
+    expect(view.hasTranscript).toBe(true);
+    expect(view.fetchStatus).toBeNull();
+    expect(view.fetchReason).toBeNull();
+  });
+
+  test("values a column should never hold are read as nothing", () => {
+    const call: IncidentVideoCall = transcriptCall();
+    (call as unknown as JSONObject)["transcriptFetchStatus"] = "Paused";
+    (call as unknown as JSONObject)["transcriptFetchReason"] = "Unknown";
+
+    const view: CallTranscriptView = getCallTranscriptView(call, NOW);
+
+    expect(view.fetchStatus).toBeNull();
+    expect(view.fetchReason).toBeNull();
+  });
+
+  test("a call nobody asked about waits for nothing", () => {
+    const view: CallTranscriptView = getCallTranscriptView(
+      transcriptCall(),
+      NOW,
+    );
+
+    expect(view.fetchStatus).toBeNull();
+    expect(view.fetchReason).toBeNull();
+  });
+});
+
+describe("looking again while OneUptime waits for a transcript", () => {
+  test("only while a call is Waiting and has no transcript yet", () => {
+    const waiting: EventVideoCall = transcriptCall({
+      fetchStatus: CallTranscriptFetchStatus.Waiting,
+    });
+    const stopped: EventVideoCall = transcriptCall({
+      fetchStatus: CallTranscriptFetchStatus.Stopped,
+      fetchReason: VideoCallTranscriptUnavailableReason.Expired,
+    });
+    const arrived: EventVideoCall = transcriptCall({
+      info: TRANSCRIPT_INFO,
+      fetchStatus: CallTranscriptFetchStatus.Waiting,
+    });
+
+    expect(isAnyCallWaitingForTranscript([suggestedCall(), waiting])).toBe(
+      true,
+    );
+    expect(isAnyCallWaitingForTranscript([stopped])).toBe(false);
+    expect(isAnyCallWaitingForTranscript([arrived])).toBe(false);
+    expect(isAnyCallWaitingForTranscript([transcriptCall()])).toBe(false);
+    expect(isAnyCallWaitingForTranscript([])).toBe(false);
+  });
+
+  test("looks again once a minute: a transcript comes minutes after a call", () => {
+    expect(CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS).toBe(60 * 1000);
+  });
+
+  test("an incident's calls are read with where OneUptime stands in getting each transcript", () => {
+    expect(INCIDENT_CALL_TRANSCRIPT_SELECT).toMatchObject({
+      transcriptFetchStatus: true,
+      transcriptFetchReason: true,
+    });
   });
 });
 

@@ -10,10 +10,16 @@ import {
   readCallSummary,
 } from "Common/Types/VideoCall/CallSummary";
 import {
+  CallTranscriptFetchStatus,
+  isCallTranscriptFetchStatus,
+} from "Common/Types/VideoCall/CallTranscriptAutoFetch";
+import {
   VideoCallTranscriptInfo,
   VideoCallTranscriptSource,
+  VideoCallTranscriptUnavailableReason,
   canReadVideoCallTranscriptFromProvider,
   isVideoCallTranscriptSource,
+  isVideoCallTranscriptUnavailableReason,
 } from "Common/Types/VideoCall/VideoCallTranscript";
 import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
 import {
@@ -49,6 +55,13 @@ export interface CallTranscriptView {
   hasTranscript: boolean;
   // A Zoom or Google Meet meeting OneUptime started, whose provider can be asked.
   canGetFromProvider: boolean;
+  /*
+   * Where OneUptime stands in getting the transcript by itself (Record and
+   * transcribe incident calls): Waiting until the call is over, Stopped
+   * with the provider's last answer, or null - not asked, or done.
+   */
+  fetchStatus: CallTranscriptFetchStatus | null;
+  fetchReason: VideoCallTranscriptUnavailableReason | null;
   info: VideoCallTranscriptInfo | null;
   source: VideoCallTranscriptSource | null;
   addedAt?: Date | undefined;
@@ -135,6 +148,16 @@ export function getCallTranscriptView(
   return {
     hasTranscript,
     canGetFromProvider: canReadVideoCallTranscriptFromProvider(call),
+    // Once there is a transcript, nothing is waited for.
+    fetchStatus:
+      !hasTranscript && isCallTranscriptFetchStatus(call.transcriptFetchStatus)
+        ? call.transcriptFetchStatus
+        : null,
+    fetchReason:
+      !hasTranscript &&
+      isVideoCallTranscriptUnavailableReason(call.transcriptFetchReason)
+        ? call.transcriptFetchReason
+        : null,
     info,
     source: isVideoCallTranscriptSource(call.transcriptSource)
       ? call.transcriptSource

@@ -22,6 +22,17 @@ import {
   ZOOM_RECORDING_FILES_SCOPE,
 } from "Common/Types/VideoCall/VideoCallProviderCatalog";
 import { VIDEO_CALL_TRANSCRIPT_FILE_EXTENSIONS } from "Common/Types/VideoCall/VideoCallTranscript";
+import {
+  CALL_TRANSCRIPT_FETCH_WINDOW_MS,
+  POSTMORTEM_WAITS_FOR_PREPARING_TRANSCRIPT_MS,
+  POSTMORTEM_WAITS_FOR_UNSEEN_TRANSCRIPT_MS,
+} from "Common/Types/VideoCall/CallTranscriptAutoFetch";
+import VideoCallProvider from "Common/Types/VideoCall/VideoCallProvider";
+import { RECORDABLE_VIDEO_CALL_PROVIDERS } from "Common/Server/Utils/VideoCall/EventVideoCall";
+import Project from "Common/Models/DatabaseModels/Project";
+import CallRecordingSwitchCopy, {
+  CALL_RECORDING_SWITCH_COLUMN,
+} from "../../../FeatureSet/Dashboard/src/Components/VideoCall/CallRecordingSwitchCopy";
 import { GOOGLE_MEET_ENTRY_RETENTION_IN_DAYS } from "Common/Server/Utils/VideoCall/Transcripts/GoogleMeetTranscriptClient";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
@@ -615,6 +626,90 @@ describe("Video Calls docs - call transcripts", () => {
     expect(sectionOf(readPage(), "what-each-provider-keeps")).toContain(
       `Google keeps a transcript for apps to read for ${GOOGLE_MEET_ENTRY_RETENTION_IN_DAYS} days.`,
     );
+  });
+
+  describe("Record and transcribe every call", () => {
+    const HOUR: number = 60 * 60 * 1000;
+
+    test("names the switch as the Video Calls page draws it, where it is", () => {
+      const section: string = sectionOf(
+        readPage(),
+        "record-and-transcribe-every-call",
+      );
+
+      expect(section).toContain(
+        `turn on **${CallRecordingSwitchCopy.switchTitle}** in **Project Settings** > **Workspace** > **Video Calls**.`,
+      );
+      expect(
+        readSource(
+          path.join(
+            DASHBOARD_VIDEO_CALL_COMPONENTS,
+            "..",
+            "..",
+            "Pages",
+            "Settings",
+            "VideoCalls.tsx",
+          ),
+        ),
+      ).toContain("<CallRecordingSwitchCard");
+      // Off by default, as the column is.
+      expect(
+        new Project().getTableColumnMetadata(CALL_RECORDING_SWITCH_COLUMN)
+          ?.defaultValue,
+      ).toBe(false);
+      expect(section).toContain(
+        "It is off by default, because it records people",
+      );
+    });
+
+    test("names the providers OneUptime asks to record, and the calls it never records", () => {
+      const section: string = sectionOf(
+        readPage(),
+        "record-and-transcribe-every-call",
+      );
+
+      expect(RECORDABLE_VIDEO_CALL_PROVIDERS).toEqual([
+        VideoCallProvider.Zoom,
+        VideoCallProvider.GoogleMeet,
+      ]);
+      expect(section).toContain(
+        "OneUptime asks Zoom to record each incident meeting it starts to the cloud, and Google Meet to transcribe it.",
+      );
+      expect(section).toContain(
+        "Microsoft Teams calls, Slack huddles and meeting links are not recorded, and neither are alert calls: add their transcripts by hand.",
+      );
+    });
+
+    test("says how long the postmortem draft waits for the call, as the rule holds it", () => {
+      const section: string = sectionOf(
+        readPage(),
+        "record-and-transcribe-every-call",
+      );
+
+      expect(POSTMORTEM_WAITS_FOR_PREPARING_TRANSCRIPT_MS).toBe(6 * HOUR);
+      expect(POSTMORTEM_WAITS_FOR_UNSEEN_TRANSCRIPT_MS).toBe(HOUR);
+      expect(section).toContain(
+        "up to six hours while Zoom or Google Meet prepares the transcript, and one hour when there is no sign of one yet.",
+      );
+    });
+
+    test("says how long OneUptime keeps asking for a transcript, as the job holds it", () => {
+      expect(CALL_TRANSCRIPT_FETCH_WINDOW_MS).toBe(72 * HOUR);
+      expect(readPage()).toContain(
+        "OneUptime asks Zoom or Google Meet for it every few minutes once the call is over, less often as the call gets older, for three days after the call started.",
+      );
+    });
+
+    test("the steps of Call transcripts point to it", () => {
+      const section: string = sectionOf(readPage(), "call-transcripts");
+
+      expect(section).toContain(
+        "With [every call recorded and transcribed](#record-and-transcribe-every-call), OneUptime gets it by itself once the call is over.",
+      );
+      expect(section).toContain(
+        "What it read is posted to the incident's feed too, and from there to the incident's Slack and Microsoft Teams channels.",
+      );
+    });
   });
 
   test("names who may work on a call's transcript, as the model holds it", () => {

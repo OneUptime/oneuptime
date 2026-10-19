@@ -274,7 +274,7 @@ flowchart TB
 - **リンクされたアラート** — `AlertLinked` と `AlertUnlinked`。**アラートリンク済み** と **アラートリンク解除済み** として表示されます。
 - **通知** — `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自動化** — `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
-- **ビデオ通話** — `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded`。インシデントのために開始した通話とその参加リンク、プロバイダーが通話を開始できなかった理由、または誰かが追加した、あるいはプロバイダーから読み取った通話の文字起こしです。[ビデオ通話](/docs/workspace-connections/video-calls) を参照してください。
+- **ビデオ通話** — `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded`、 `VideoCallSummary`。インシデントのために開始した通話とその参加リンク、プロバイダーが通話を開始できなかった理由、誰かが追加した、あるいはプロバイダーから読み取った通話の文字起こし、またはそこから OneUptime AI が読み取った内容です。OneUptime AI が読み取った内容は、インシデントのチャネルにも投稿されます。[ビデオ通話](/docs/workspace-connections/video-calls) を参照してください。
 
 種類ごとに独自のアイコンがあるので、長いフィードを見渡して、雑談の中から状態の変更を見つけ出せます。AI が生成した根本原因の分析は区別して印が付けられ、制限された Markdown モードで表示されます。**インシデント作成済み** の項目、新しいタイトルを記録する項目、エピソードへの参加や離脱の項目は、タイトルを入力したとおりに表示します。タイトル内の `\`、`[`、`]`、`*`、`_`、`~`、バッククォート、\< をエスケープするので、タイトルが画像、生の HTML、\<!here\> のような Slack のメンション、リンク先を隠すテキストのリンク、太字、斜体、コードになることはありません。タイトル内のアドレスは、引き続きそのアドレスへのリンクとして表示されます。
 

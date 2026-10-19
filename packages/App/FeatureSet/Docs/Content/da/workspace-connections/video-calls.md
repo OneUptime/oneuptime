@@ -107,11 +107,11 @@ Det, de ansvarlige siger i et opkald, hvad de har tjekket, hvad de har mistanke 
 :::steps
 ### Hent transskriptionen efter opkaldet
 
-På hændelsens kort **Video Call** læser **Hent fra Zoom** eller **Hent fra Google Meet** transskriptionen af et møde, som OneUptime startede der. Til ethvert andet opkald tager **Tilføj transskription** den fil, mødeværktøjet gemte (`.vtt`, `.srt` eller `.txt`, op til 5 MB), eller den indsatte transskription.
+På hændelsens kort **Video Call** læser **Hent fra Zoom** eller **Hent fra Google Meet** transskriptionen af et møde, som OneUptime startede der. Til ethvert andet opkald tager **Tilføj transskription** den fil, mødeværktøjet gemte (`.vtt`, `.srt` eller `.txt`, op til 5 MB), eller den indsatte transskription. Med [hvert opkald optaget og transskriberet](#optag-og-transskribér-hvert-opkald) henter OneUptime den selv, når opkaldet er slut.
 
 ### OneUptime AI læser den
 
-Inden for et minut eller to viser hændelsens kort **AI Investigation** den **Foreslået grundårsag**, markeret **Ikke bekræftet**, med de linjer i transskriptionen, den bygger på, citeret med tid og taler. Herunder, foldet sammen, står resten af det, opkaldet sagde: fund, delt op i **Bekræftet i opkaldet** og **Hypoteser**, derefter hvad der blev prøvet, beslutninger, opfølgninger og åbne spørgsmål.
+Inden for et minut eller to viser hændelsens kort **AI Investigation** den **Foreslået grundårsag**, markeret **Ikke bekræftet**, med de linjer i transskriptionen, den bygger på, citeret med tid og taler. Herunder, foldet sammen, står resten af det, opkaldet sagde: fund, delt op i **Bekræftet i opkaldet** og **Hypoteser**, derefter hvad der blev prøvet, beslutninger, opfølgninger og åbne spørgsmål. Det, OneUptime AI læste, slås også op i hændelsens feed og derfra i hændelsens Slack- og Microsoft Teams-kanaler.
 
 ### Brug den, eller afvis den
 
@@ -119,6 +119,17 @@ Inden for et minut eller to viser hændelsens kort **AI Investigation** den **Fo
 :::
 
 OneUptime AI foreslår kun en årsag, når opkaldet nævner en, med de linjer, der siger det, og citerer de linjer, som transskriptionen har dem. Når opkaldet ikke fik afklaret årsagen, siger kortet **Der blev ikke sagt nok i opkaldet til at foreslå en grundårsag** i stedet for at gætte.
+
+### Optag og transskribér hvert opkald
+
+Så ingen skal huske at optage et opkald eller hente dets transskription, skal du slå **Optag og transskribér hændelsesopkald** til under **Projektindstillinger** > **Arbejdsområde** > **Video Calls**. Mens den er slået til:
+
+- OneUptime beder Zoom om at optage hvert hændelsesmøde, den starter, i skyen og Google Meet om at transskribere det. Beskeden, der slår opkaldet op, siger det, før nogen deltager.
+- Når opkaldet er slut, henter OneUptime selv transskriptionen, som **Hent fra Zoom** ville gøre, og OneUptime AI læser den. Indtil da siger kortet **Video Call**, at det venter.
+- Det, OneUptime AI læste, går til hændelsens feed og dens Slack- og Microsoft Teams-kanaler: den foreslåede grundårsag, markeret som ikke bekræftet, derefter hvad der blev bekræftet, prøvet og besluttet, opfølgningerne og de åbne spørgsmål.
+- Når hændelsen løses, før transskriptionen er kommet, venter det automatiske udkast til postmortem på den, så det læser, hvad der blev sagt i opkaldet: op til seks timer, mens Zoom eller Google Meet forbereder transskriptionen, og en time, når der endnu ikke er tegn på en.
+
+Indstillingen er slået fra som standard, fordi den optager mennesker: alle i de opkald kan se, at de bliver optaget eller transskriberet, så tjek, at jeres organisation tillader det. Zoom gemmer kun en transskription, når kontoen optager i skyen med lydtransskription slået til, og Google Meet kun i en Google Workspace-udgave, der har transskriptioner. Microsoft Teams-opkald, Slack-huddles og mødelinks optages ikke, og det gør advarslers opkald heller ikke: tilføj deres transskriptioner manuelt.
 
 ### Hvad hver udbyder gemmer
 
@@ -281,6 +292,10 @@ Dens login holdt op med at virke: kontoen fjernede OneUptime, blev slettet eller
 
 :::details Hent fra Zoom finder ingen transskription
 Zoom gemmer kun en transskription af et møde, der er optaget i skyen med lydtransskription slået til, eller med AI Companions mødeopsummering slået til, og forbereder den, efter at mødet er slut. Kortet siger hvilket: prøv igen senere, eller slå en af dem til for dine hændelsesmøder. Imens tager **Tilføj transskription** en transskription, du har gemt.
+:::
+
+:::details Kortet Video Call venter stadig på en transskription
+Når opkaldet er slut, spørger OneUptime Zoom eller Google Meet efter den med få minutters mellemrum, sjældnere jo ældre opkaldet bliver, i tre dage efter opkaldets start. Transskriptionen kommer få minutter efter, at udbyderen har forberedt den, og Zoom bruger op til omkring det dobbelte af opkaldets længde. **Hent fra Zoom** spørger med det samme. Når udbyderen ikke gemmer nogen transskription, siger kortet det: tjek, at Zoom-kontoen optager i skyen med lydtransskription slået til, eller at jeres Google Workspace-udgave har transskriptioner.
 :::
 
 :::details OneUptime AI kunne ikke læse en transskription

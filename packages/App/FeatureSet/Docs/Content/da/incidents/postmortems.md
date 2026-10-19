@@ -78,6 +78,7 @@ Med **Skriv et udkast til en postmortem, når en hændelse er løst** slået til
 - Den erstatter aldrig en note, der allerede er skrevet.
 - Den skriver aldrig i en postmortem, der allerede er offentliggjort, hvor udkastet ville nå statussiden ugennemgået.
 - Den kræver, at AI er slået til for projektet, og stopper resten af dagen, når projektet når sine daglige AI-grænser. Se [Automatisk postmortem](/docs/ai/ai-sre#automatisk-postmortem).
+- Er transskriptionen af hændelsens opkald stadig på vej, når hændelsen løses, venter den, til OneUptime AI har læst den, så udkastet medtager, hvad der blev sagt i opkaldet: op til seks timer, mens Zoom eller Google Meet forbereder transskriptionen. Se [Optag og transskribér hvert opkald](/docs/workspace-connections/video-calls#optag-og-transskribér-hvert-opkald).
 
 ## Offentliggør den på din statusside
 
@@ -152,7 +153,7 @@ Tjek tre ting: **Offentliggør på statussiden** er slået til, noten er ikke to
 :::
 
 :::details Der kom intet AI-udkast, da hændelsen blev løst
-Hændelsen havde allerede en note, postmortem var allerede offentliggjort, eller **Skriv et udkast til en postmortem, når en hændelse er løst** er slået fra. AI skal være slået til for projektet, og projektet må ikke have nået sine daglige AI-grænser.
+Hændelsen havde allerede en note, postmortem var allerede offentliggjort, eller **Skriv et udkast til en postmortem, når en hændelse er løst** er slået fra. AI skal være slået til for projektet, og projektet må ikke have nået sine daglige AI-grænser. Er transskriptionen af hændelsens opkald på vej, kommer udkastet, når OneUptime AI har læst den.
 :::
 
 ## Næste trin
