@@ -22,13 +22,15 @@
  * is up - which, for a response kept until today, it is.
  *
  * These tests also pin a behaviour worth being explicit about: the email
- * always comes from `<NameID>`, but the display name is only ever read from the
- * Microsoft `displayname` claim. Providers that send a name under a different
- * attribute name (Okta's `firstName`/`lastName`, Auth0's and OneLogin's
- * `.../claims/name`, Shibboleth's `displayName`) yield a null name and the user
- * is created from the email alone. That is the current contract, and the
+ * always comes from `<NameID>`, and the name - only ever used to name an
+ * account created at a first sign-in - from the attributes SSO.ts lists
+ * (SAML_DISPLAY_NAME_ATTRIBUTES and after): the Microsoft `displayname`
+ * claim, Okta's `firstName`/`lastName`, Auth0's `.../claims/name`,
+ * OneLogin's `User.FirstName`, the `givenName` object identifier Keycloak
+ * sends. A provider that sends none of them (Google Workspace, PingOne here)
+ * yields a null name and the user is created from the email alone. The
  * per-vendor expectations below state it plainly rather than leaving it
- * untested.
+ * untested; SamlNameAttributes.test.ts holds the order.
  */
 import SSOUtil, {
   SAML_AUDIENCE_MISMATCH_MESSAGE,
@@ -197,7 +199,7 @@ interface ProviderCase {
   vendor: string;
   document: () => string;
   expectedEmail: string;
-  // Only Entra ID and ADFS send the Microsoft displayname claim.
+  // What the name attributes each provider sends give (see the top).
   expectedName: string | null;
 }
 
@@ -206,7 +208,7 @@ const providers: Array<ProviderCase> = [
     vendor: "Okta",
     document: oktaResponse,
     expectedEmail: "isaac.brock@example.com",
-    expectedName: null,
+    expectedName: "Isaac Brock",
   },
   {
     vendor: "Microsoft Entra ID",
@@ -230,19 +232,19 @@ const providers: Array<ProviderCase> = [
     vendor: "Auth0",
     document: auth0Response,
     expectedEmail: "jane@example.com",
-    expectedName: null,
+    expectedName: "Jane Smith",
   },
   {
     vendor: "Keycloak",
     document: keycloakResponse,
     expectedEmail: "jdoe@example.com",
-    expectedName: null,
+    expectedName: "John",
   },
   {
     vendor: "OneLogin",
     document: oneLoginResponse,
     expectedEmail: "maria.garcia@example.com",
-    expectedName: null,
+    expectedName: "Maria",
   },
   {
     vendor: "PingOne",

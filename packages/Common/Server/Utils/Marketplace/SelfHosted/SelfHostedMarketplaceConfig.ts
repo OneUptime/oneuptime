@@ -162,6 +162,15 @@ export default class SelfHostedMarketplaceConfig {
         return SelfHostedMarketplaceConfig.readAzure(env);
       case CloudMarketplace.GoogleCloud:
         return SelfHostedMarketplaceConfig.readGoogleCloud(env);
+      case CloudMarketplace.Vercel:
+        // Not reachable from a name (MARKETPLACE_BY_NAME): Vercel sells OneUptime Cloud only.
+        return {
+          kind: "incomplete",
+          marketplace: null,
+          problems: [
+            "Vercel Marketplace sells OneUptime Cloud only, not self-hosted OneUptime.",
+          ],
+        };
     }
   }
 

@@ -40,7 +40,8 @@ OneUptime 只从您的 IdP 发送的断言中读取少量内容：
 | Recipient 和 Destination | 必须是提供商的 **Reply URL**，即响应被发送到的地址。 |
 | `NotBefore` 和 `NotOnOrAfter` | 只有在它们允许的时间内，且不晚于签发后 10 分钟，响应才会被接受；并为不一致的时钟留有 3 分钟的余量。 |
 | Name ID | 此人的电子邮件地址。必须是有效的电子邮件地址。 |
-| `http://schemas.microsoft.com/identity/claims/displayname` | 此人的姓名，在 OneUptime 创建其账号时使用。可选。 |
+| 姓名属性 | 此人的姓名，在 OneUptime 创建其账号时使用：显示名称（`displayName` 或 `http://schemas.microsoft.com/identity/claims/displayname`），或者名字和姓氏（`firstName` 和 `lastName`，或者 Microsoft Entra ID 默认发送的 `givenname` 和 `surname` 声明）。可选。 |
+| `http://schemas.microsoft.com/identity/claims/objectidentifier` | 此人的对象 ID，Microsoft Entra ID 默认会发送。通过该提供商的首次登录会把账号关联到此对象 ID；之后如果某次登录使用该账号的电子邮件地址，却带有另一个对象 ID，则会被拒绝。可选。 |
 
 每个响应只能登录一次。再次发送的响应（例如登录后在浏览器中后退）会被拒绝：请重新登录。
 
@@ -133,14 +134,15 @@ Keycloak 是一款流行的开源身份和访问管理解决方案。您需要�
    在 OneUptime 中编辑提供商并开启 **已启用**，然后打开 **Test Single Sign On (SSO)** 卡片中的链接并选择该提供商。您应当被带到 Keycloak 登录页面，然后返回 OneUptime。
 :::
 @tab Microsoft Entra ID
-Microsoft Entra ID（原名 Azure AD / Active Directory）是 Microsoft 的云身份服务。您需要一个支持使用 SAML SSO 的企业应用程序的租户，以及 Entra ID 和 OneUptime 的管理员访问权限。
+Microsoft Entra ID（原名 Azure AD / Active Directory）是 Microsoft 的云身份服务。您需要一个支持使用 SAML SSO 的企业应用程序的租户，以及 Entra ID 和 OneUptime 的管理员访问权限。在 OneUptime Cloud 上，如果 Microsoft Entra 应用程序库中列出了 OneUptime，请从那里添加：它自带 OneUptime 读取的声明，以及 OneUptime 各个 URL 的格式。
 
 :::steps
 1. **在 Entra ID 中创建企业应用程序**
 
    - 登录 [Microsoft Entra admin center](https://entra.microsoft.com)
-   - 前往 **Identity** > **Applications** > **Enterprise applications**，点击 **+ New application**，然后点击 **+ Create your own application**
-   - 输入名称（例如 "OneUptime"），选择 **Integrate any other application you don't find in the gallery (Non-gallery)**，然后点击 **Create**
+   - 前往 **Identity** > **Applications** > **Enterprise applications**，点击 **+ New application**
+   - 从应用程序库添加：搜索 OneUptime，选中它，然后点击 **Create**
+   - 否则：点击 **+ Create your own application**，输入名称（例如 "OneUptime"），选择 **Integrate any other application you don't find in the gallery (Non-gallery)**，然后点击 **Create**
 
 2. **复制 Entra ID 的 SAML 值**
 
@@ -169,10 +171,10 @@ Microsoft Entra ID（原名 Azure AD / Active Directory）是 Microsoft 的云�
 
 5. **以 Name ID 发送电子邮件**
 
-   在 **Attributes & Claims** 中点击 **Edit**：
+   在 **Attributes & Claims** 中点击 **Edit**。从应用程序库添加的应用程序已经设置好以下各项，请检查一遍：
    - 将 **Unique User Identifier (Name ID)** 设为用户的电子邮件地址：`user.mail`，或者在 `user.userprincipalname` 就是电子邮件地址时使用它
    - 将 **Name identifier format** 设为 `Email address`
-   - 可选：添加一个名为 `http://schemas.microsoft.com/identity/claims/displayname`、源属性为 `user.displayname` 的声明，让新账号获得此人的姓名。OneUptime 会忽略其他声明
+   - 保留 Entra ID 的默认声明：新账号会从 `givenname` 和 `surname` 获得此人的姓名，账号会关联到此人的对象 ID，即 `objectidentifier`。可选：添加一个名为 `http://schemas.microsoft.com/identity/claims/displayname`、源属性为 `user.displayname` 的声明，改为用显示名称为新账号命名。OneUptime 会忽略其他声明
 
 6. **分配用户和组**
 
@@ -183,13 +185,14 @@ Microsoft Entra ID（原名 Azure AD / Active Directory）是 Microsoft 的云�
    在 OneUptime 中编辑提供商并开启 **已启用**，然后打开 **Test Single Sign On (SSO)** 卡片中的链接并选择该提供商。您应当被带到 Microsoft 登录页面，然后返回 OneUptime。
 :::
 @tab Okta
-Okta 是一款广泛使用、支持 SAML SSO 的身份平台。您需要一个具有管理员访问权限的 Okta 组织，以及 OneUptime 的管理员访问权限。
+Okta 是一款广泛使用、支持 SAML SSO 的身份平台。您需要一个具有管理员访问权限的 Okta 组织，以及 OneUptime 的管理员访问权限。在 OneUptime Cloud 上，如果 Okta Integration Network 中列出了 OneUptime，请从那里添加：它让用户既可以从 OneUptime 的 **使用 SSO 登录** 页面登录，也可以从其 Okta 仪表板登录，在首次登录时为其创建账号，并且只要求填写两个 ID，而不是 OneUptime 的 URL。
 
 :::steps
-1. **在 Okta 中创建 SAML 应用程序**
+1. **将 OneUptime 添加到 Okta**
 
-   - 在 Okta Admin Console 中前往 **Applications** > **Applications**，点击 **Create App Integration**
-   - 选择 **SAML 2.0** 并点击 **Next**，在 **App name** 中输入 "OneUptime"，然后点击 **Next**
+   - 在 Okta Admin Console 中前往 **Applications** > **Applications**
+   - 从 Okta Integration Network 添加：点击 **Browse App Catalog**，搜索 OneUptime，然后点击 **Add Integration**。Okta 会在 OneUptime 能显示 **OneUptime Project ID** 和 **OneUptime SSO Provider ID** 之前就要求填写它们：暂时在两者中都输入 `0`，您会在第 4 步替换它们。点击 **Done**，然后继续第 2 步
+   - 否则，点击 **Create App Integration**，选择 **SAML 2.0** 并点击 **Next**，在 **App name** 中输入 "OneUptime"，然后点击 **Next**
    - Okta 会在显示自己的 URL 之前先要求填写 OneUptime 的 URL。暂时把您的 OneUptime 地址（例如 `https://oneuptime.com`）填入 **Single sign-on URL** 和 **Audience URI (SP Entity ID)**：您会在第 4 步替换这两个值
    - 将 **Name ID format** 设为 `EmailAddress`，将 **Application username** 设为 `Email`
    - 点击 **Next**，选择 **I'm an Okta customer adding an internal app**，然后点击 **Finish**
@@ -212,11 +215,16 @@ Okta 是一款广泛使用、支持 SAML SSO 的身份平台。您需要一个�
 
 4. **把 OneUptime 的 URL 交给 Okta**
 
-   在应用程序的 **General** 选项卡上，点击 **SAML Settings** 中的 **Edit** 和 **Next**，然后设置：
+   对于从 Okta Integration Network 添加的应用程序，在 **General** 选项卡上点击 **App Settings** 中的 **Edit**，然后设置：
+   - **OneUptime Project ID** 和 **OneUptime SSO Provider ID**：OneUptime 的 **Identifier (Entity ID)** `https://oneuptime.com/<project-id>/<provider-id>` 中的两个 ID
+
+   点击 **Save**，并在 **Sign On** 选项卡上检查 **Application username format** 是否为 `Email`。
+
+   对于您自己创建的应用程序，在 **General** 选项卡上点击 **SAML Settings** 中的 **Edit** 和 **Next**，然后设置：
    - **Single sign-on URL**：OneUptime 的 **Reply URL (Assertion Consumer Service URL)**
    - **Audience URI (SP Entity ID)**：OneUptime 的 **Identifier (Entity ID)**
 
-   可选：添加一个名为 `http://schemas.microsoft.com/identity/claims/displayname`、值为 `user.firstName + " " + user.lastName` 的 attribute statement，让新账号获得此人的姓名。点击 **Next**，然后点击 **Finish**。
+   可选：添加 attribute statement `firstName`（值为 `user.firstName`）和 `lastName`（值为 `user.lastName`），让新账号获得此人的姓名。点击 **Next**，然后点击 **Finish**。
 
 5. **分配人员**
 
@@ -347,6 +355,10 @@ IdP 断言中的签发者不是提供商的 **签发者**。请从 IdP 重新复
 
 :::details "SAML response was already used"
 您的 IdP 的每个响应只能登录一次。登录后在浏览器中后退，或重新加载 IdP 让您经过的页面，都会再次发送同一个响应：请从 OneUptime 或从您的 IdP 重新登录。
+:::
+
+:::details "This account is linked to someone else."
+Microsoft Entra ID 用某个账号的电子邮件地址让某人登录，而该账号已通过此提供商关联到另一个对象 ID：现在 Entra ID 中是另一个人持有这个地址，或者此人的 Entra ID 账号被重新创建过。OneUptime 会拒绝这次登录，这样之后持有该地址的人就无法使用这个账号。如果账号确实属于此人，请将其从项目中移除后再重新添加：其下一次登录会把账号关联到新的对象 ID。
 :::
 
 :::details 登录因签名或证书错误而失败

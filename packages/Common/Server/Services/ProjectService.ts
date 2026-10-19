@@ -11,6 +11,7 @@ import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
 import MarketplaceUsageReporter from "../Utils/Marketplace/MarketplaceUsageReporter";
+import VercelMarketplaceResources from "../Utils/Marketplace/Vercel/VercelMarketplaceResources";
 import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus, {
   MarketplaceSubscriptionStatusUtil,
@@ -1673,6 +1674,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
+
+    /*
+     * On Vercel the plan is the resource's billing plan, which the team
+     * sees in its Vercel dashboard: it follows a change made here. Never
+     * fails the change - Vercel is told best effort.
+     */
+    if (project.billingMarketplace === CloudMarketplace.Vercel) {
+      try {
+        await VercelMarketplaceResources.onPlanChanged({
+          projectId: project.id!,
+          paymentProviderPlanId: data.paymentProviderPlanId,
+        });
+      } catch (err) {
+        logger.error(err);
+      }
+    }
   }
 
   /*
@@ -4067,6 +4084,26 @@ export class ProjectService extends ProjectReferencesService<Model> {
           await BillingService.cancelSubscription(
             project.paymentProviderMeteredSubscriptionId,
           );
+        }
+      }
+
+      /*
+       * A Vercel resource IS its project: deleting the project in OneUptime
+       * deletes the resource on Vercel too, which takes its environment
+       * variables out of the Vercel projects connected to it. One Vercel
+       * deleted itself has ended already, and nothing is sent.
+       */
+      for (const project of onDelete.carryForward) {
+        if (
+          project.id &&
+          deletedProjectIds.has(project.id.toString()) &&
+          project.billingMarketplace === CloudMarketplace.Vercel
+        ) {
+          try {
+            await VercelMarketplaceResources.onProjectDeleted(project.id);
+          } catch (err) {
+            logger.error(err);
+          }
         }
       }
 

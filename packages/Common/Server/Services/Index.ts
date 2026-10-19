@@ -249,6 +249,8 @@ import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
 import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
 import MarketplaceUsageReportService from "./MarketplaceUsageReportService";
 import MarketplaceChargeService from "./MarketplaceChargeService";
+import VercelMarketplaceInstallationService from "./VercelMarketplaceInstallationService";
+import VercelMarketplaceConnectionService from "./VercelMarketplaceConnectionService";
 import RecommendationDismissalService from "./RecommendationDismissalService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
@@ -325,6 +327,7 @@ import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
 import UserSessionService from "./UserSessionService";
 import UserProjectSsoConsentService from "./UserProjectSsoConsentService";
+import UserProjectSsoIdentityService from "./UserProjectSsoIdentityService";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "./UserWebAuthnService";
@@ -457,6 +460,7 @@ import NetworkFlowService from "./NetworkFlowService";
 
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import ProjectSCIMLogService from "./ProjectSCIMLogService";
+import ProjectSCIMUserService from "./ProjectSCIMUserService";
 import StatusPageSCIMLogService from "./StatusPageSCIMLogService";
 import DeletedProjectService from "./DeletedProjectService";
 import CodeRepositoryService from "./CodeRepositoryService";
@@ -511,6 +515,8 @@ const services: Array<BaseService> = [
   MarketplaceSubscriptionService,
   MarketplaceUsageReportService,
   MarketplaceChargeService,
+  VercelMarketplaceInstallationService,
+  VercelMarketplaceConnectionService,
 
   ResellerService,
   ResellerPlanService,
@@ -772,6 +778,7 @@ const services: Array<BaseService> = [
   UserService,
   UserSessionService,
   UserProjectSsoConsentService,
+  UserProjectSsoIdentityService,
   UserCallService,
   UserEmailService,
   UserNotificationRuleService,
@@ -933,6 +940,7 @@ const services: Array<BaseService> = [
   WorkspaceUserNotificationService,
 
   ProjectSCIMLogService,
+  ProjectSCIMUserService,
   StatusPageSCIMLogService,
 
   // Session replay control tables (the recordings themselves are in ClickHouse).

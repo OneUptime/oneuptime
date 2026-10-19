@@ -90,6 +90,12 @@ Commencez par le haut du tableau : plus une façon est haute, moins il y a à ma
 > [!TIP]
 > Slack et Microsoft Teams ont aussi des étapes de workflow. Utilisez la connexion intégrée pour les canaux d'incident et l'astreinte, et une étape de workflow quand il vous faut seulement un message dans un canal.
 
+### Plateformes d'hébergement
+
+| Outil | Sens | Ce qu'il fait |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Entrant | Ajoutez OneUptime depuis le Vercel Marketplace : traces, logs, moniteurs de disponibilité et une page de statut pour vos projets Vercel. |
+
 ## Quitter un autre outil
 
 Pour quitter un autre outil d'astreinte, de disponibilité ou de page de statut, faites venir votre équipe au lieu de connecter les deux. **Paramètres du projet → Importer depuis un autre outil** lit votre compte avec une clé d'API, vous montre ce qu'il a trouvé et crée ce que vous cochez. Chaque outil a son guide :

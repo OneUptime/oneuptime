@@ -41,6 +41,7 @@ import {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
 import { createServer, Server } from "http";
 import { AddressInfo } from "net";
 
@@ -88,6 +89,15 @@ jest.mock("Common/Server/Utils/Logger", () => {
     },
     getLogAttributesFromRequest: jest.fn().mockReturnValue({}),
   };
+});
+
+jest.mock("Common/Server/Services/ProjectSCIMUserService", () => {
+  const fake: typeof import("./FakeProjectSCIMUserService") =
+    jest.requireActual(
+      "./FakeProjectSCIMUserService",
+    ) as typeof import("./FakeProjectSCIMUserService");
+
+  return { __esModule: true, default: fake.fakeProjectSCIMUserService };
 });
 
 jest.mock("../../../Server/Identity/Utils/SCIMLogger", () => {
@@ -177,9 +187,15 @@ const matchesValue: (actual: unknown, expected: unknown) => boolean = (
     typeof operator === "object" &&
     operator.objectLiteralParameters
   ) {
-    const values: Array<unknown> = (Object.values(
+    const parameter: unknown = Object.values(
       operator.objectLiteralParameters,
-    )[0] || []) as Array<unknown>;
+    )[0];
+    // QueryHelper.any's list of ids, or findWithSameText's one lower-cased text.
+    const values: Array<unknown> = Array.isArray(parameter)
+      ? parameter
+      : parameter === undefined
+        ? []
+        : [parameter];
 
     return values.map(idOf).includes(idOf(actual));
   }
@@ -318,6 +334,15 @@ jest.mock("Common/Server/Services/UserService", () => {
           },
         );
         return user ? toUser(user) : null;
+      },
+      findBy: async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<User>> => {
+        return world.users
+          .filter((item: FakeUser) => {
+            return matchesQuery(item, args.query);
+          })
+          .map(toUser);
       },
       createByEmail: async (args: {
         email: Email;
@@ -918,6 +943,7 @@ const expectRefusalLogged: (
 };
 
 beforeEach(() => {
+  fakeProjectSCIMUserService.reset();
   setTestBillingEnabled(true);
   world.plan = PlanType.Free;
   seedWorld();
@@ -2302,7 +2328,11 @@ describe("on the plan (Scale), SCIM does what it always did", () => {
     world.plan = PlanType.Scale;
   });
 
-  test("a userName filter for someone new provisions them", async () => {
+  /*
+   * A lookup used to create the person it looked for. It answers as on every
+   * plan now - no one - and the identity provider creates them (a POST).
+   */
+  test("a userName filter for someone new finds no one, and creates no one", async () => {
     const result: HttpResult = await send(
       "GET",
       project(
@@ -2311,8 +2341,8 @@ describe("on the plan (Scale), SCIM does what it always did", () => {
     );
 
     expect(result.status).toBe(200);
-    expect(result.body["totalResults"]).toBe(1);
-    expect(world.writes).toContain("user created");
+    expect(result.body["totalResults"]).toBe(0);
+    expect(world.writes).not.toContain("user created");
   });
 
   test("creating a user", async () => {

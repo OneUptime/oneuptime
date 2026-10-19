@@ -1,4 +1,6 @@
 import SCIMAPI from "./API/SCIM";
+import SCIMOAuthClientSecretAPI from "./API/SCIMOAuthClientSecret";
+import SCIMOAuthTokenAPI from "./API/SCIMOAuthToken";
 import StatusPageSCIMAPI from "./API/StatusPageSCIM";
 import type { ExpressRouter } from "Common/Server/Utils/Express";
 import EnterpriseArea from "../Types/EnterpriseArea";
@@ -35,10 +37,15 @@ export interface IdentityRouterEntry {
   router: ExpressRouter;
 }
 
-// In mount order: the order core mounted them in before they moved to ee/.
+/*
+ * In mount order: the order core mounted the two SCIM routers in before they
+ * moved to ee/, then the token endpoint of SCIM's OAuth 2.0 client
+ * credentials, whose path no SCIM route shares.
+ */
 export const IDENTITY_ROUTERS: ReadonlyArray<IdentityRouterEntry> = [
   { name: "SCIM", router: SCIMAPI },
   { name: "StatusPageSCIM", router: StatusPageSCIMAPI },
+  { name: "SCIMOAuthToken", router: SCIMOAuthTokenAPI },
 ];
 
 const IdentityArea: EnterpriseArea = {
@@ -47,6 +54,16 @@ const IdentityArea: EnterpriseArea = {
     return IDENTITY_ROUTERS.map((entry: IdentityRouterEntry) => {
       return entry.router;
     });
+  },
+  /*
+   * The dashboard's routes that make and delete a SCIM connection's OAuth
+   * 2.0 client secrets (API/SCIMOAuthClientSecret.ts), under /api next to
+   * the connections' own CRUD routes. They write through the connections'
+   * services with the caller's permissions, which hold them to the
+   * Enterprise Edition and the plan as any save of a connection is.
+   */
+  getApiRouters: (): Array<ExpressRouter> => {
+    return [SCIMOAuthClientSecretAPI];
   },
 };
 

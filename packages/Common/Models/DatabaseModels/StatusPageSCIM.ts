@@ -307,6 +307,135 @@ export default class StatusPageSCIM extends BaseModel {
   })
   public bearerToken?: string = undefined;
 
+  /*
+   * OAuth 2.0 client credentials (RFC 6749, section 4.4), for identity
+   * providers that will not keep a long-lived bearer token - Microsoft Entra
+   * ID's application gallery among them. The client ID is the connection's
+   * id; the client secret is made by OneUptime, shown once, and kept only as
+   * its SHA-256 hash. A secret works for a year. Replacing it keeps the one
+   * before working until that one expires or is deleted, so the identity
+   * provider can be moved to the new secret without a gap. Like the bearer
+   * token, they are made and replaced by whoever may edit the status page's
+   * single sign-on, and when they expire is read by whoever may read that
+   * token. The token endpoint and the SCIM routes read these as root
+   * (ee/Server/Identity/Utils/SCIMOAuth.ts).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateStatusPageSSO,
+    ],
+    read: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditStatusPageSSO,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.LongText,
+    title: "OAuth Client Secret Hash",
+    description:
+      "SHA-256 hash of the connection's OAuth 2.0 client secret. The secret itself is shown once, when it is made, and never kept.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public oauthClientSecretHash?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateStatusPageSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadStatusPageSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditStatusPageSSO,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "OAuth Client Secret Expires At",
+    description:
+      "When the connection's OAuth 2.0 client secret stops working. No access token is issued with an expired secret.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public oauthClientSecretExpiresAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateStatusPageSSO,
+    ],
+    read: [],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditStatusPageSSO,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.LongText,
+    title: "Previous OAuth Client Secret Hash",
+    description:
+      "SHA-256 hash of the client secret the current one replaced, which keeps working until it expires or is deleted.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public oauthPreviousClientSecretHash?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateStatusPageSSO,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadStatusPageSSO,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditStatusPageSSO,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Previous OAuth Client Secret Expires At",
+    description:
+      "When the previous OAuth 2.0 client secret stops working, unless it is deleted before.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public oauthPreviousClientSecretExpiresAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

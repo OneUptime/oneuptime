@@ -282,7 +282,8 @@ describePostgres(
     /*
      * What lets the person into the project on their own: an MCP client they
      * connected, with a token issued to it, and their consent to the
-     * project's single sign-on.
+     * project's single sign-on - and the identity their sign-ins through its
+     * SAML provider are bound to.
      */
     async function insertAccessRows(data: {
       projectId: ObjectID;
@@ -304,6 +305,13 @@ describePostgres(
         _id: ObjectID.generate().toString(),
         projectId: data.projectId.toString(),
         userId: data.userId.toString(),
+      });
+      await insertRow("UserProjectSsoIdentity", {
+        _id: ObjectID.generate().toString(),
+        projectId: data.projectId.toString(),
+        userId: data.userId.toString(),
+        projectSsoId: ObjectID.generate().toString(),
+        objectId: ObjectID.generate().toString(),
       });
 
       clientTokenIds[`${data.projectId.toString()}:${data.userId.toString()}`] =
