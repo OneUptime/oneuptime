@@ -300,9 +300,9 @@ processors:
       - context: metric
         statements:
           - scale_metric(0.0000001, "%") where metric.name == "container.cpu.utilization"
-          - set(metric.description, "CPU used by the container over the collection interval, as a percent of one CPU core (100% is one full core).") where metric.name == "container.cpu.utilization"
+          - set(metric.description, "CPU used over each collection interval, where 100% is one full CPU core.") where metric.name == "container.cpu.utilization"
           - set(metric.unit, "%") where metric.name == "container.memory.percent"
-          - set(metric.description, "Memory in use as a percent of the container's memory limit, or of the host's memory when the container has no limit.") where metric.name == "container.memory.percent"
+          - set(metric.description, "Memory in use as a percent of the container's limit, or of host memory if it has none.") where metric.name == "container.memory.percent"
   resource:
     attributes:
       - key: container.runtime

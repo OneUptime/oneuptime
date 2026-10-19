@@ -46,7 +46,7 @@ export interface CapturedScrape {
 }
 
 // When the receiver started: the start time of every cumulative sum.
-export const CPU_CAPTURE_START_TIME_UNIX_NANO: string = "1792450983296895747";
+export const CPU_CAPTURE_START_TIME_UNIX_NANO: string = "1792453592225305292";
 export const CPU_CAPTURE_HOST_NAME: string = "e2e-final";
 
 export const QUARTER_CORE_CONTAINER: string =
@@ -55,80 +55,80 @@ export const ONE_AND_A_HALF_CORE_CONTAINER: string =
   "docker-agent-percent-metrics-load2";
 
 const QUARTER_CORE_ID: string =
-  "d2bb51013140961be173ac88fc5a81b43d0f398380cc40c8cfdc1353c59d2892";
+  "3b06726174847e494e5d772983a7fac5022e4eea08b8b2655680a3de7da78610";
 const ONE_AND_A_HALF_CORE_ID: string =
-  "45b66e14088b60de3c662f0111140d1b025b9f28f9af7bb82c77b4f881a78826";
+  "14b359f85bebc21eb575c032f3758630aca433c114b96c0b088a5f1ba4fe22ae";
 
 export const CPU_CAPTURE_SCRAPES: Array<CapturedScrape> = [
   {
-    timeUnixNano: "1792450994393381328",
+    timeUnixNano: "1792453603274632013",
     containers: [
       {
         name: QUARTER_CORE_CONTAINER,
         id: QUARTER_CORE_ID,
-        hostname: "d2bb51013140",
+        hostname: "3b0672617484",
         image: "busybox:latest",
-        cpuUsageTotalNanoseconds: "3033648000",
-        cpuUtilizationStartTimeUnixNano: "1792450984393081230",
-        cpuUtilizationPercent: 24.97635046471782,
-        memoryPercent: 0.69580078125,
+        cpuUsageTotalNanoseconds: "2918734000",
+        cpuUtilizationStartTimeUnixNano: "1792453593274135376",
+        cpuUtilizationPercent: 24.99419869561424,
+        memoryPercent: 0.701904296875,
         memoryUsageLimitBytes: "67108864",
-        memoryUsageTotalBytes: "466944",
-        uptimeSeconds: 12.087009411,
+        memoryUsageTotalBytes: "471040",
+        uptimeSeconds: 11.597839111,
       },
       {
         name: ONE_AND_A_HALF_CORE_CONTAINER,
         id: ONE_AND_A_HALF_CORE_ID,
-        hostname: "45b66e14088b",
+        hostname: "14b359f85beb",
         image: "busybox:latest",
-        cpuUsageTotalNanoseconds: "17565408000",
-        cpuUtilizationStartTimeUnixNano: "1792450984393081230",
-        cpuUtilizationPercent: 149.97340932798073,
-        memoryPercent: 25.628662109375,
+        cpuUsageTotalNanoseconds: "17043071000",
+        cpuUtilizationStartTimeUnixNano: "1792453593274135376",
+        cpuUtilizationPercent: 149.9709818861469,
+        memoryPercent: 25.531005859375,
         memoryUsageLimitBytes: "134217728",
-        memoryUsageTotalBytes: "34398208",
-        uptimeSeconds: 11.821263275,
+        memoryUsageTotalBytes: "34267136",
+        uptimeSeconds: 11.426517626,
       },
     ],
   },
   {
-    timeUnixNano: "1792451004393424333",
+    timeUnixNano: "1792453613274083960",
     containers: [
       {
         name: QUARTER_CORE_CONTAINER,
         id: QUARTER_CORE_ID,
-        hostname: "d2bb51013140",
+        hostname: "3b0672617484",
         image: "busybox:latest",
-        cpuUsageTotalNanoseconds: "5531908000",
-        cpuUtilizationStartTimeUnixNano: "1792450994393381328",
-        cpuUtilizationPercent: 24.982492562790732,
-        memoryPercent: 0.69580078125,
+        cpuUsageTotalNanoseconds: "5419096000",
+        cpuUtilizationStartTimeUnixNano: "1792453603274632013",
+        cpuUtilizationPercent: 25.004990406000697,
+        memoryPercent: 0.701904296875,
         memoryUsageLimitBytes: "67108864",
-        memoryUsageTotalBytes: "466944",
-        uptimeSeconds: 22.087052416,
+        memoryUsageTotalBytes: "471040",
+        uptimeSeconds: 21.597291058,
       },
       {
         name: ONE_AND_A_HALF_CORE_CONTAINER,
         id: ONE_AND_A_HALF_CORE_ID,
-        hostname: "45b66e14088b",
+        hostname: "14b359f85beb",
         image: "busybox:latest",
-        cpuUsageTotalNanoseconds: "32561690000",
-        cpuUtilizationStartTimeUnixNano: "1792450994393381328",
-        cpuUtilizationPercent: 149.96217508766603,
-        memoryPercent: 25.628662109375,
+        cpuUsageTotalNanoseconds: "32039558000",
+        cpuUtilizationStartTimeUnixNano: "1792453603274632013",
+        cpuUtilizationPercent: 149.9730893201521,
+        memoryPercent: 25.531005859375,
         memoryUsageLimitBytes: "134217728",
-        memoryUsageTotalBytes: "34398208",
-        uptimeSeconds: 21.82130628,
+        memoryUsageTotalBytes: "34267136",
+        uptimeSeconds: 21.425969573,
       },
     ],
   },
 ];
 
 export const CPU_CAPTURE_DESCRIPTION: string =
-  "CPU used by the container over the collection interval, as a percent of one CPU core (100% is one full core).";
+  "CPU used over each collection interval, where 100% is one full CPU core.";
 
 export const MEMORY_CAPTURE_DESCRIPTION: string =
-  "Memory in use as a percent of the container's memory limit, or of the host's memory when the container has no limit.";
+  "Memory in use as a percent of the container's limit, or of host memory if it has none.";
 
 function stringAttributes(values: Array<[string, string]>): JSONArray {
   return values.map(([key, value]: [string, string]): JSONObject => {

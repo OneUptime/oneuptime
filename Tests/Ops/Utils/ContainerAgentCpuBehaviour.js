@@ -46,10 +46,10 @@ const DOCKER_STATS_SCOPE =
   "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/dockerstatsreceiver";
 
 const CPU_DESCRIPTION =
-  "CPU used by the container over the collection interval, as a percent of one CPU core (100% is one full core).";
+  "CPU used over each collection interval, where 100% is one full CPU core.";
 
 const MEMORY_DESCRIPTION =
-  "Memory in use as a percent of the container's memory limit, or of the host's memory when the container has no limit.";
+  "Memory in use as a percent of the container's limit, or of host memory if it has none.";
 
 // The receiver's start time, and the first scrape a second later.
 const START_NANO = 1700000000000000000n;
