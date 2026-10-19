@@ -143,10 +143,7 @@ function property(
   name: string,
 ): ts.Expression | null {
   for (const member of object.properties) {
-    if (
-      ts.isPropertyAssignment(member) &&
-      propertyName(member.name) === name
-    ) {
+    if (ts.isPropertyAssignment(member) && propertyName(member.name) === name) {
       return member.initializer;
     }
   }

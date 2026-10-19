@@ -1088,9 +1088,7 @@ describe("the alerts list's filters", () => {
     };
 
     expect(request.query["name"]).toBeInstanceOf(Search);
-    expect((request.query["name"] as Search<string>).toString()).toBe(
-      "portal",
-    );
+    expect((request.query["name"] as Search<string>).toString()).toBe("portal");
     expect(Object.keys(request.sort)).toEqual(["name"]);
     expect(options[0]?.icon).toBe(IconProp.AltGlobe);
   });

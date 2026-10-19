@@ -494,7 +494,11 @@ test.describe("the Alerts list of the screenshot", () => {
   }
 
   // A row's cell under the column of that name.
-  async function cell(page: Page, row: Locator, title: string): Promise<Locator> {
+  async function cell(
+    page: Page,
+    row: Locator,
+    title: string,
+  ): Promise<Locator> {
     const titles: Array<string> = (await header(page).allInnerTexts()).map(
       (text: string): string => {
         return text.trim();
