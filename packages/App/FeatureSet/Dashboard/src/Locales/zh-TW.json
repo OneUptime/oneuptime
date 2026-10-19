@@ -31236,5 +31236,6 @@
   "Standard outline": "標準大綱",
   "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "調查、修正哪些事件或為哪些事件起草事後分析，以及調查和每日 AI 工作的限制。",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "沒有規則時，OneUptime AI 會為每個已解決的事件起草事後分析。新增規則可以只為符合其中某條規則的事件起草，並選擇草稿遵循的範本。第一條符合的規則生效——拖曳規則即可調整順序。",
-  "e.g. Draft with Database outage": "例如 以 Database outage 起草"
+  "e.g. Draft with Database outage": "例如 以 Database outage 起草",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.": "沒有規則時，OneUptime AI 會為每個已解決的事件起草事後分析。新增規則可以只為符合其中某條規則的事件起草。"
 }

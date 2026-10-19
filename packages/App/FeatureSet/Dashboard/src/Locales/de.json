@@ -31236,5 +31236,6 @@
   "Standard outline": "Standardgliederung",
   "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "Welche Vorfälle untersucht, behoben oder mit einem Postmortem-Entwurf versehen werden, und Limits für Untersuchungen und für KI-Arbeit pro Tag.",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "Ohne Regeln entwirft OneUptime AI für jeden gelösten Vorfall ein Postmortem. Fügen Sie Regeln hinzu, um nur für die Vorfälle zu entwerfen, die zu einer davon passen, und um die Vorlagen eines Entwurfs festzulegen. Es gilt die erste passende Regel - ziehen Sie Regeln, um ihre Reihenfolge zu ändern.",
-  "e.g. Draft with Database outage": "z. B. Mit Database outage entwerfen"
+  "e.g. Draft with Database outage": "z. B. Mit Database outage entwerfen",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.": "Ohne Regeln entwirft OneUptime AI für jeden gelösten Vorfall ein Postmortem. Fügen Sie Regeln hinzu, um nur für die Vorfälle zu entwerfen, die zu einer davon passen."
 }

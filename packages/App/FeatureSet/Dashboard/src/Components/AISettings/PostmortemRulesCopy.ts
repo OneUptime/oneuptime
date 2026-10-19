@@ -33,6 +33,16 @@ export const POSTMORTEM_RULES_CARD_DESCRIPTION: string = translationKey(
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.",
 );
 
+/*
+ * The same card on OneUptime Cloud for a project below the plan postmortem
+ * templates need: there is no template to choose, so every rule drafts in
+ * the standard outline and their order decides nothing.
+ */
+export const POSTMORTEM_RULES_CARD_DESCRIPTION_WITHOUT_TEMPLATES: string =
+  translationKey(
+    "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.",
+  );
+
 export const POSTMORTEM_RULES_NO_ITEMS_MESSAGE: string = translationKey(
   "No rules. Every resolved incident gets a postmortem draft.",
 );

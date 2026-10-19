@@ -31236,5 +31236,6 @@
   "Standard outline": "Standaardopzet",
   "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "Welke incidenten worden onderzocht, hersteld of een postmortem-concept krijgen, en limieten voor onderzoeken en voor AI-werk per dag.",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "Zonder regels stelt OneUptime AI voor elk opgelost incident een postmortem op. Voeg regels toe om alleen op te stellen voor de incidenten die aan een ervan voldoen, en om de sjablonen van een concept te kiezen. De eerste regel die past, geldt - sleep regels om de volgorde te wijzigen.",
-  "e.g. Draft with Database outage": "bijv. Opstellen met Database outage"
+  "e.g. Draft with Database outage": "bijv. Opstellen met Database outage",
+  "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.": "Zonder regels stelt OneUptime AI voor elk opgelost incident een postmortem op. Voeg regels toe om alleen op te stellen voor de incidenten die aan een ervan voldoen."
 }

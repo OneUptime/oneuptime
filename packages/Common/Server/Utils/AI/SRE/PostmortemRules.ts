@@ -324,10 +324,18 @@ export default class PostmortemRules {
       return true;
     }
 
-    return SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
-      requiredPlan,
-      current.plan,
-      getAllEnvVars(),
-    );
+    try {
+      return SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+        requiredPlan,
+        current.plan,
+        getAllEnvVars(),
+      );
+    } catch {
+      /*
+       * A plan this install does not describe: the plan cannot be told, so
+       * the rule is followed as written rather than every draft stopped.
+       */
+      return true;
+    }
   }
 }

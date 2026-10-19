@@ -32,6 +32,7 @@ import {
   POSTMORTEM_RULE_TEMPLATES_DESCRIPTION,
   POSTMORTEM_RULE_TEMPLATES_TITLE,
   POSTMORTEM_RULES_CARD_DESCRIPTION,
+  POSTMORTEM_RULES_CARD_DESCRIPTION_WITHOUT_TEMPLATES,
   POSTMORTEM_RULES_NO_ITEMS_MESSAGE,
 } from "./PostmortemRulesCopy";
 import {
@@ -113,7 +114,9 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
           AI_LANE_ADVANCED_CARD_TITLES[AiLane.Incident][
             AiLaneAdvancedCard.PostmortemRules
           ],
-        description: POSTMORTEM_RULES_CARD_DESCRIPTION,
+        description: offersTemplates
+          ? POSTMORTEM_RULES_CARD_DESCRIPTION
+          : POSTMORTEM_RULES_CARD_DESCRIPTION_WITHOUT_TEMPLATES,
       }}
       noItemsMessage={POSTMORTEM_RULES_NO_ITEMS_MESSAGE}
       selectMoreFields={{ isEnabled: true }}
@@ -276,7 +279,8 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { name: true },
           title: "Name",
-          description: POSTMORTEM_RULE_NAME_DESCRIPTION,
+          // Named after its templates - when there are templates to pick.
+          description: offersTemplates ? POSTMORTEM_RULE_NAME_DESCRIPTION : "",
           stepId: "postmortem-draft",
           fieldType: FormFieldSchemaType.Text,
           required: true,
