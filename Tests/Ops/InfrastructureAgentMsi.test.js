@@ -264,8 +264,14 @@ describe(`${BUILD}`, () => {
     ).toEqual(["oneuptime-infrastructure-agent.wxs"]);
   });
 
-  test("builds the amd64 MSI as an x64 package and the arm64 one as x86, with the arch, version and program", () => {
-    expect(build).toContain('WIXL_ARCHES=("x64" "x86")');
+  test("builds both MSIs as x64 packages, so both install into C:\\Program Files, with the arch, version and program", () => {
+    /*
+     * wixl cannot build an ARM64 package. As an x86 one, the arm64 MSI put
+     * its native ARM64 program in the 32-bit Program Files (Windows
+     * Installer maps a 32-bit package's ProgramFiles64Folder there), not
+     * where the docs say; test-msi-upgrade.ps1 caught it on Windows on Arm.
+     */
+    expect(build).toContain('WIXL_ARCHES=("x64" "x64")');
     expect(build).toContain('wixl -a "${WIXL_ARCHES[$i]}"');
     expect(build).toContain('-D "Arch=$ARCH"');
     expect(build).toContain('-D "Version=$APP_VERSION"');

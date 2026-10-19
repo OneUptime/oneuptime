@@ -3,12 +3,14 @@
   The infrastructure agent's Windows installer, built by build-msi.sh with
   wixl (msitools) for amd64 and arm64:
 
-    wixl -a x64|x86 -D Arch=amd64|arm64 -D Version=<x.y.z> -D Binary=<exe> \
+    wixl -a x64 -D Arch=amd64|arm64 -D Version=<x.y.z> -D Binary=<exe> \
       -o oneuptime-infrastructure-agent-<arch>.msi oneuptime-infrastructure-agent.wxs
 
-  wixl cannot build an ARM64 package, so the arm64 MSI is an x86 package
-  (every ARM64 Windows runs x86 installers) carrying the arm64 binary. Both
-  install C:\Program Files\OneUptimeInfrastructureAgent.
+  wixl cannot build an ARM64 package, so the arm64 MSI is an x64 package
+  (Windows 11 on Arm installs x64 installers) carrying the arm64 binary. Both
+  install C:\Program Files\OneUptimeInfrastructureAgent. An x86 package
+  would not: Windows Installer maps a 32-bit package's ProgramFiles64Folder
+  to the 32-bit Program Files.
 
   Upgrades. Every build has a ProductCode of its own (Id='*'), and the
   UpgradeCode never changes: Windows finds the installed agent by it, so a
