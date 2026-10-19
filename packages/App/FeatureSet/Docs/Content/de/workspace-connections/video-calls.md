@@ -107,11 +107,11 @@ Was Einsatzkräfte in einem Anruf sagen, was sie geprüft haben, was sie vermute
 :::steps
 ### Das Transkript nach dem Anruf holen
 
-Auf der Karte **Videoanruf** des Vorfalls liest **Von Zoom abrufen** oder **Von Google Meet abrufen** das Transkript eines Meetings, das OneUptime dort gestartet hat. Für jeden anderen Anruf nimmt **Transkript hinzufügen** die Datei, die das Meeting-Tool gespeichert hat (`.vtt`, `.srt` oder `.txt`, bis 5 MB), oder das eingefügte Transkript.
+Auf der Karte **Videoanruf** des Vorfalls liest **Von Zoom abrufen** oder **Von Google Meet abrufen** das Transkript eines Meetings, das OneUptime dort gestartet hat. Für jeden anderen Anruf nimmt **Transkript hinzufügen** die Datei, die das Meeting-Tool gespeichert hat (`.vtt`, `.srt` oder `.txt`, bis 5 MB), oder das eingefügte Transkript. Wird [jeder Anruf aufgezeichnet und transkribiert](#jeden-anruf-aufzeichnen-und-transkribieren), holt OneUptime das Transkript selbst, sobald der Anruf vorbei ist.
 
 ### OneUptime AI liest es
 
-Nach ein bis zwei Minuten zeigt die Karte **KI-Untersuchung** des Vorfalls die **Vorgeschlagene Grundursache**, markiert als **Nicht bestätigt**, mit den Transkriptzeilen, auf denen sie beruht, zitiert mit Zeit und Sprecher. Darunter, eingeklappt, steht der Rest dessen, was im Anruf gesagt wurde: Befunde, aufgeteilt in **Im Anruf bestätigt** und **Hypothesen**, dann was versucht wurde, Entscheidungen, Folgeaufgaben und offene Fragen.
+Nach ein bis zwei Minuten zeigt die Karte **KI-Untersuchung** des Vorfalls die **Vorgeschlagene Grundursache**, markiert als **Nicht bestätigt**, mit den Transkriptzeilen, auf denen sie beruht, zitiert mit Zeit und Sprecher. Darunter, eingeklappt, steht der Rest dessen, was im Anruf gesagt wurde: Befunde, aufgeteilt in **Im Anruf bestätigt** und **Hypothesen**, dann was versucht wurde, Entscheidungen, Folgeaufgaben und offene Fragen. Was OneUptime AI gelesen hat, geht außerdem in den Feed des Vorfalls und von dort in die Slack- und Microsoft-Teams-Kanäle des Vorfalls.
 
 ### Übernehmen oder ausblenden
 
@@ -119,6 +119,17 @@ Nach ein bis zwei Minuten zeigt die Karte **KI-Untersuchung** des Vorfalls die *
 :::
 
 OneUptime AI schlägt eine Ursache nur vor, wenn der Anruf eine nennt, mit den Zeilen, die das sagen, und zitiert diese Zeilen so, wie das Transkript sie enthält. Hat der Anruf die Ursache nicht geklärt, sagt die Karte **Im Anruf wurde nicht genug gesagt, um eine Grundursache vorzuschlagen**, statt zu raten.
+
+### Jeden Anruf aufzeichnen und transkribieren
+
+Damit niemand daran denken muss, einen Anruf aufzuzeichnen oder sein Transkript zu holen, schalten Sie **Anrufe zu Vorfällen aufzeichnen und transkribieren** unter **Projekteinstellungen** > **Arbeitsbereich** > **Videoanrufe** ein. Solange die Einstellung eingeschaltet ist:
+
+- OneUptime bittet Zoom, jedes Vorfall-Meeting, das es startet, in der Cloud aufzuzeichnen, und Google Meet, es zu transkribieren. Die Nachricht, mit der der Anruf gepostet wird, sagt das, bevor jemand beitritt.
+- Sobald der Anruf vorbei ist, holt OneUptime das Transkript selbst, wie es **Von Zoom abrufen** täte, und OneUptime AI liest es. Bis dahin zeigt die Karte **Videoanruf**, dass sie darauf wartet.
+- Was OneUptime AI gelesen hat, geht in den Feed des Vorfalls und in seine Slack- und Microsoft-Teams-Kanäle: die vorgeschlagene Grundursache, als nicht bestätigt markiert, dann was bestätigt, versucht und entschieden wurde, die Folgeaufgaben und die offenen Fragen.
+- Wird der Vorfall behoben, bevor das Transkript da ist, wartet der automatische Postmortem-Entwurf darauf, damit er liest, was im Anruf gesagt wurde: bis zu sechs Stunden, während Zoom oder Google Meet das Transkript vorbereitet, und eine Stunde, wenn noch nichts auf eines hindeutet.
+
+Die Einstellung ist standardmäßig ausgeschaltet, weil sie Menschen aufzeichnet: Alle Teilnehmenden sehen, dass diese Anrufe aufgezeichnet oder transkribiert werden, prüfen Sie also, ob Ihre Organisation das erlaubt. Zoom behält ein Transkript nur, wenn das Konto in der Cloud mit eingeschaltetem Audio-Transkript aufzeichnet, und Google Meet nur in einer Google Workspace-Edition, die Transkripte bietet. Microsoft-Teams-Anrufe, Slack-Huddles und Meeting-Links werden nicht aufgezeichnet, Anrufe zu Warnungen ebenso wenig: Fügen Sie deren Transkripte von Hand hinzu.
 
 ### Was jeder Anbieter aufbewahrt
 
@@ -281,6 +292,10 @@ Ihre Anmeldung funktioniert nicht mehr: Das Konto hat OneUptime entfernt, wurde 
 
 :::details Von Zoom abrufen findet kein Transkript
 Zoom behält ein Transkript nur von einem Meeting, das in der Cloud mit eingeschaltetem Audio-Transkript aufgezeichnet wurde, oder mit eingeschalteter Meeting-Zusammenfassung von AI Companion, und bereitet es nach dem Ende des Meetings vor. Die Karte sagt, was zutrifft: Versuchen Sie es später erneut, oder schalten Sie eines davon für Ihre Vorfall-Meetings ein. Bis dahin nimmt **Transkript hinzufügen** ein Transkript, das Sie gespeichert haben.
+:::
+
+:::details Die Karte Videoanruf wartet noch auf ein Transkript
+Sobald der Anruf vorbei ist, fragt OneUptime Zoom oder Google Meet alle paar Minuten danach, seltener, je älter der Anruf wird, und das bis drei Tage nach dem Start des Anrufs. Das Transkript kommt wenige Minuten, nachdem der Anbieter es vorbereitet hat, und Zoom braucht bis zu etwa doppelt so lange, wie der Anruf gedauert hat. **Von Zoom abrufen** fragt sofort. Behält der Anbieter kein Transkript, sagt die Karte das: Prüfen Sie, ob das Zoom-Konto in der Cloud mit eingeschaltetem Audio-Transkript aufzeichnet oder ob Ihre Google Workspace-Edition Transkripte bietet.
 :::
 
 :::details OneUptime AI konnte ein Transkript nicht lesen

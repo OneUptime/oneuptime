@@ -15,6 +15,9 @@ import IncidentCallSummary, {
   CallSummaryStart,
   MAX_CALL_SUMMARY_STATUS_MESSAGE_LENGTH,
 } from "../../../../../Server/Utils/AI/CallSummary/IncidentCallSummary";
+import IncidentCallSummaryFeed from "../../../../../Server/Utils/AI/CallSummary/IncidentCallSummaryFeed";
+import AIIncidentPostmortemRunner from "../../../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
+import logger from "../../../../../Server/Utils/Logger";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -107,6 +110,8 @@ function lastWrite(): JSONObject {
 }
 
 let executeWithLogging: ReturnType<typeof jest.spyOn>;
+let feedPost: ReturnType<typeof jest.spyOn>;
+let draftWaiting: ReturnType<typeof jest.spyOn>;
 
 function answerWith(content: string | Error): void {
   executeWithLogging.mockImplementation(async (): Promise<AILogResponse> => {
@@ -168,6 +173,11 @@ beforeEach(() => {
   jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
   executeWithLogging = jest.spyOn(AIService, "executeWithLogging");
   answerWith(JSON.stringify(SUGGESTED_ANSWER));
+
+  feedPost = jest.spyOn(IncidentCallSummaryFeed, "post").mockResolvedValue();
+  draftWaiting = jest
+    .spyOn(AIIncidentPostmortemRunner, "draftWaitingPostmortem")
+    .mockResolvedValue();
 });
 
 afterEach(() => {
@@ -405,6 +415,114 @@ describe("IncidentCallSummary.run", () => {
     await IncidentCallSummary.run({ callId: CALL, runId: RUN });
 
     expect(writes).toHaveLength(0);
+  });
+
+  describe("what a reading that ends tells the incident", () => {
+    test("a reading that ends Ready posts what it read to the incident's feed, once it is stored", async () => {
+      let writesWhenPosted: number = -1;
+
+      feedPost.mockImplementation(async (): Promise<void> => {
+        writesWhenPosted = writes.length;
+      });
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN, userId: USER });
+
+      expect(feedPost).toHaveBeenCalledTimes(1);
+      expect(writesWhenPosted).toBe(writes.length);
+
+      const posted: {
+        call: IncidentVideoCall;
+        callLabel: string;
+        summary: CallSummary;
+      } = feedPost.mock.calls[0]![0] as {
+        call: IncidentVideoCall;
+        callLabel: string;
+        summary: CallSummary;
+      };
+
+      expect(posted.call.projectId).toEqual(PROJECT);
+      expect(posted.call.incidentId).toEqual(INCIDENT);
+      expect(posted.callLabel).toBe("Zoom meeting");
+      expect(posted.summary).toEqual(
+        readCallSummary(lastWrite()["callSummary"]),
+      );
+    });
+
+    test("not enough discussion is posted too: what the call settled is news either way", async () => {
+      answerWith(
+        JSON.stringify({ rootCause: { outcome: "not_enough_discussion" } }),
+      );
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(feedPost).toHaveBeenCalledTimes(1);
+      expect(
+        (feedPost.mock.calls[0]![0] as { summary: CallSummary }).summary
+          .rootCause.outcome,
+      ).toBe(CallSummaryRootCauseOutcome.NotEnoughDiscussion);
+    });
+
+    test("a finished reading lets a postmortem draft that waited for it go on, after posting", async () => {
+      const order: Array<string> = [];
+
+      feedPost.mockImplementation(async (): Promise<void> => {
+        order.push("feed");
+      });
+      draftWaiting.mockImplementation(async (): Promise<void> => {
+        order.push("postmortem");
+      });
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(draftWaiting).toHaveBeenCalledWith({ incidentId: INCIDENT });
+      expect(order).toEqual(["feed", "postmortem"]);
+    });
+
+    test("a failed reading posts nothing, and still lets a waiting draft go on - it reads the transcript itself", async () => {
+      answerWith(new BadDataException("No LLM provider."));
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(lastWrite()["callSummaryStatus"]).toBe(CallSummaryStatus.Failed);
+      expect(feedPost).not.toHaveBeenCalled();
+      expect(draftWaiting).toHaveBeenCalledWith({ incidentId: INCIDENT });
+    });
+
+    test("a reading replaced while it ran tells the incident nothing: the newer one will", async () => {
+      executeWithLogging.mockImplementation(
+        async (): Promise<AILogResponse> => {
+          stored.callSummary = { runId: "a-newer-reading" };
+          return {
+            content: JSON.stringify(SUGGESTED_ANSWER),
+            llmLog: new LlmLog(),
+          };
+        },
+      );
+
+      await IncidentCallSummary.run({ callId: CALL, runId: RUN });
+
+      expect(feedPost).not.toHaveBeenCalled();
+      expect(draftWaiting).not.toHaveBeenCalled();
+    });
+
+    test("a draft that cannot go on is logged; the reading stays stored", async () => {
+      draftWaiting.mockRejectedValue(new Error("model unavailable"));
+      const errorLog: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(logger, "error")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+
+      await expect(
+        IncidentCallSummary.run({ callId: CALL, runId: RUN }),
+      ).resolves.toBeUndefined();
+
+      expect(lastWrite()["callSummaryStatus"]).toBe(CallSummaryStatus.Ready);
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.stringContaining("Could not draft a postmortem"),
+        expect.objectContaining({ incidentId: INCIDENT.toString() }),
+      );
+    });
   });
 });
 

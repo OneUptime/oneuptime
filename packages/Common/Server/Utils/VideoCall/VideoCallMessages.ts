@@ -48,6 +48,11 @@ export interface VideoCallAnnouncement {
    * the text reads on from their name: "started a Zoom meeting".
    */
   startedByPerson: boolean;
+  /*
+   * The provider was asked to record and transcribe the call (Record and
+   * transcribe incident calls): the message says so before anyone joins.
+   */
+  recordsAndTranscribes?: boolean | undefined;
 }
 
 export default class VideoCallMessages {
@@ -113,9 +118,43 @@ export default class VideoCallMessages {
           : mdText`📞 A ${call} was started for ${eventReference}.`;
     }
 
+    const recordingNotice: MarkdownText | null =
+      VideoCallMessages.getRecordingNotice(announcement);
+
+    if (recordingNotice) {
+      return mdText`${sentence}
+
+${recordingNotice}
+
+**[${joinLinkWords}](${announcement.joinUrl})**`;
+    }
+
     return mdText`${sentence}
 
 **[${joinLinkWords}](${announcement.joinUrl})**`;
+  }
+
+  /*
+   * What a recorded call says before anyone joins: that the provider records
+   * and transcribes it (Zoom) or transcribes it (Google Meet), and what
+   * becomes of the transcript. Null for a call that is not recorded.
+   */
+  public static getRecordingNotice(
+    announcement: VideoCallAnnouncement,
+  ): MarkdownText | null {
+    if (!announcement.recordsAndTranscribes) {
+      return null;
+    }
+
+    if (announcement.provider === VideoCallProvider.Zoom) {
+      return mdText`⏺️ Zoom records and transcribes this call. OneUptime adds its transcript to the ${announcement.eventNoun.toLowerCase()} once the call is over.`;
+    }
+
+    if (announcement.provider === VideoCallProvider.GoogleMeet) {
+      return mdText`⏺️ Google Meet transcribes this call. OneUptime adds its transcript to the ${announcement.eventNoun.toLowerCase()} once the call is over.`;
+    }
+
+    return null;
   }
 
   /*

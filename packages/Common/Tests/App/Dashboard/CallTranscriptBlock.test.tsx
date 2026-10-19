@@ -66,6 +66,7 @@ import {
   CallSummaryStatus,
   RootCauseSuggestionStatus,
 } from "../../../Types/VideoCall/CallSummary";
+import { CallTranscriptFetchStatus } from "../../../Types/VideoCall/CallTranscriptAutoFetch";
 import {
   VideoCallTranscriptSource,
   VideoCallTranscriptUnavailableReason,
@@ -257,6 +258,161 @@ describe("a call without a transcript", () => {
 
     expect(screen.getByTestId("event-video-call")).toBeVisible();
     expect(screen.queryByTestId("call-transcript-block")).toBeNull();
+  });
+});
+
+/*
+ * Record and transcribe incident calls: OneUptime gets the transcript by
+ * itself once the call is over. Until then the card says so - to everyone
+ * who reads the incident - and keeps Get and Add for whoever may use them;
+ * once it stopped waiting, the provider's last answer says why.
+ */
+describe("a call OneUptime gets the transcript of by itself", () => {
+  test("while it waits, says OneUptime gets it from Zoom once the call is over, and keeps Get and Add", () => {
+    renderCard({
+      calls: [
+        transcriptCall({ fetchStatus: CallTranscriptFetchStatus.Waiting }),
+      ],
+    });
+
+    expect(screen.getByTestId("call-transcript-waiting")).toHaveTextContent(
+      "OneUptime gets it from Zoom once the call is over, and OneUptime AI reads it.",
+    );
+    expect(
+      within(block()).queryByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toBeNull();
+    expect(screen.getByTestId("call-transcript-get")).toBeVisible();
+    expect(screen.getByTestId("call-transcript-add")).toBeVisible();
+  });
+
+  test("a Google Meet call waits on Google Meet", () => {
+    renderCard({
+      calls: [
+        transcriptCall({
+          provider: VideoCallProvider.GoogleMeet,
+          fetchStatus: CallTranscriptFetchStatus.Waiting,
+        }),
+      ],
+    });
+
+    expect(screen.getByTestId("call-transcript-waiting")).toHaveTextContent(
+      "OneUptime gets it from Google Meet once the call is over",
+    );
+  });
+
+  test("a reader who may not add transcripts still sees that it is on its way, with nothing to press", () => {
+    allowed[ModelAction.Create] = false;
+
+    renderCard({
+      calls: [
+        transcriptCall({ fetchStatus: CallTranscriptFetchStatus.Waiting }),
+      ],
+    });
+
+    expect(screen.getByTestId("call-transcript-block")).toBeVisible();
+    expect(screen.getByTestId("call-transcript-waiting")).toBeVisible();
+    expect(screen.queryByTestId("call-transcript-get")).toBeNull();
+    expect(screen.queryByTestId("call-transcript-add")).toBeNull();
+  });
+
+  test("once it stopped, says why in the card's own words, with how to set it up where setting up is the fix", () => {
+    renderCard({
+      calls: [
+        transcriptCall({
+          fetchStatus: CallTranscriptFetchStatus.Stopped,
+          fetchReason: VideoCallTranscriptUnavailableReason.NotTranscribed,
+        }),
+      ],
+    });
+
+    const stopped: HTMLElement = screen.getByTestId(
+      "call-transcript-fetch-stopped",
+    );
+
+    expect(stopped).toHaveAttribute(
+      "data-reason",
+      VideoCallTranscriptUnavailableReason.NotTranscribed,
+    );
+    expect(stopped).toHaveTextContent(
+      getTranscriptUnavailableHeadline(
+        VideoCallTranscriptUnavailableReason.NotTranscribed,
+      ).replace("{{provider}}", "Zoom"),
+    );
+    expect(
+      within(stopped).getByTestId("call-transcript-fetch-set-up-docs"),
+    ).toHaveAttribute("target", "_blank");
+    expect(screen.queryByTestId("call-transcript-waiting")).toBeNull();
+    // Get and Add are still there to try again or add it by hand.
+    expect(screen.getByTestId("call-transcript-get")).toBeVisible();
+    expect(screen.getByTestId("call-transcript-add")).toBeVisible();
+  });
+
+  test("an answer setting up does not fix has no set-up link", () => {
+    renderCard({
+      calls: [
+        transcriptCall({
+          fetchStatus: CallTranscriptFetchStatus.Stopped,
+          fetchReason: VideoCallTranscriptUnavailableReason.Expired,
+        }),
+      ],
+    });
+
+    expect(
+      screen.getByTestId("call-transcript-fetch-stopped"),
+    ).toHaveTextContent(
+      getTranscriptUnavailableHeadline(
+        VideoCallTranscriptUnavailableReason.Expired,
+      ).replace("{{provider}}", "Zoom"),
+    );
+    expect(
+      screen.queryByTestId("call-transcript-fetch-set-up-docs"),
+    ).toBeNull();
+  });
+
+  test("a stop with no answer to give says what a transcript is for, as before", () => {
+    renderCard({
+      calls: [
+        transcriptCall({ fetchStatus: CallTranscriptFetchStatus.Stopped }),
+      ],
+    });
+
+    expect(screen.queryByTestId("call-transcript-fetch-stopped")).toBeNull();
+    expect(
+      within(block()).getByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toBeVisible();
+  });
+
+  test("a reader who may not act on a stop sees no block: there is nothing to do", () => {
+    allowed[ModelAction.Create] = false;
+
+    renderCard({
+      calls: [
+        transcriptCall({
+          fetchStatus: CallTranscriptFetchStatus.Stopped,
+          fetchReason: VideoCallTranscriptUnavailableReason.NotTranscribed,
+        }),
+      ],
+    });
+
+    expect(screen.queryByTestId("call-transcript-block")).toBeNull();
+  });
+
+  test("once the transcript is in, the card is about the transcript, not the waiting", () => {
+    renderCard({
+      calls: [
+        transcriptCall({
+          info: TRANSCRIPT_INFO,
+          fetchStatus: CallTranscriptFetchStatus.Waiting,
+        }),
+      ],
+    });
+
+    expect(screen.queryByTestId("call-transcript-waiting")).toBeNull();
+    expect(screen.getByTestId("call-transcript-view")).toBeVisible();
   });
 });
 
