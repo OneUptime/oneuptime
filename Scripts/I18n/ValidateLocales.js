@@ -34,11 +34,32 @@ const LOCALE_DIRS = {
 
 // en.json is the source of truth; these 16 locales must mirror it.
 const LOCALES = [
-  "de", "fr", "es", "it", "pt", "nl", "da", "no", "sv",
-  "ru", "ja", "ko", "zh-CN", "zh-TW", "hi", "fa",
+  "de",
+  "fr",
+  "es",
+  "it",
+  "pt",
+  "nl",
+  "da",
+  "no",
+  "sv",
+  "ru",
+  "ja",
+  "ko",
+  "zh-CN",
+  "zh-TW",
+  "hi",
+  "fa",
 ];
 
-const PLACEHOLDER = /\{\{[^}]+\}\}/g;
+/*
+ * A {{placeholder}} - or, in a last alternative, a "{{" that starts none,
+ * taken up to the next "}" so the search goes on after it (no "{{" in it
+ * starts one either). Tried alone, the first alternative read on to that "}"
+ * again from every "{{" before it. Only the placeholders are kept: they are
+ * what /\{\{[^}]+\}\}/g matched.
+ */
+const PLACEHOLDER_OR_UNCLOSED = /\{\{[^}]+\}\}|\{\{[^}]*/g;
 
 function flatten(node, prefix, out) {
   if (node !== null && typeof node === "object" && !Array.isArray(node)) {
@@ -56,7 +77,13 @@ function readJson(file) {
 }
 
 function placeholderSet(s) {
-  return new Set((s.match(PLACEHOLDER) || []).sort());
+  return new Set(
+    (s.match(PLACEHOLDER_OR_UNCLOSED) || [])
+      .filter((match) => {
+        return match.endsWith("}}");
+      })
+      .sort(),
+  );
 }
 
 function eqSet(a, b) {
@@ -92,7 +119,9 @@ for (const [fs_name, dir] of Object.entries(LOCALE_DIRS)) {
     try {
       loc = flatten(readJson(locPath), "", {});
     } catch (e) {
-      console.error(`✗ ${fs_name}/${locale}: invalid or missing JSON (${e.message})`);
+      console.error(
+        `✗ ${fs_name}/${locale}: invalid or missing JSON (${e.message})`,
+      );
       hadError = true;
       continue;
     }
@@ -123,7 +152,10 @@ for (const [fs_name, dir] of Object.entries(LOCALE_DIRS)) {
       const show = (label, arr) => {
         if (arr.length) {
           console.error(
-            `    ${label}: ${arr.slice(0, 8).map((k) => k.replace(/\u0000/g, ".")).join(" | ")}${arr.length > 8 ? ` … (+${arr.length - 8})` : ""}`,
+            `    ${label}: ${arr
+              .slice(0, 8)
+              .map((k) => k.replace(/\u0000/g, "."))
+              .join(" | ")}${arr.length > 8 ? ` … (+${arr.length - 8})` : ""}`,
           );
         }
       };

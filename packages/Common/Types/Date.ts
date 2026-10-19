@@ -7,6 +7,7 @@ import moment from "moment-timezone";
 import Timezone from "./Timezone";
 import TimezoneAlias from "./TimezoneAlias";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
+import { refusedValue } from "../Utils/RefusedValue";
 
 export const Moment: typeof moment = moment;
 
@@ -2367,7 +2368,9 @@ export default class OneUptimeDate {
       return moment(date["value"]).toDate();
     }
 
-    throw new BadDataException("Invalid date: " + date?.toString());
+    throw new BadDataException(
+      "Invalid date: " + refusedValue(date?.toString()),
+    );
   }
 
   public static asDateForDatabaseQuery(date: string | Date): string {

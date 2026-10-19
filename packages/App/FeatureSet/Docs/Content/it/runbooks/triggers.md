@@ -35,7 +35,7 @@ Un trigger avvia un'esecuzione come fa **Run Now**: l'esecuzione riguarda i pass
 
 :::steps
 ### Aprire la pagina Trigger del runbook
-Apri il runbook da **Runbook** e fai clic su **Trigger** nel suo menu.
+Apri il runbook da **Runbook** e fai clic su **Impostazioni → Trigger** nel suo menu laterale. **Impostazioni** è inizialmente compresso: fai clic su di esso per mostrare **Trigger**.
 
 ### Configurare la pianificazione
 Fai clic su **Imposta pianificazione**. In **Quando viene eseguito**, scegli un'opzione di **Ripeti** e ciò che richiede. La finestra di dialogo descrive la pianificazione in una frase, come «Viene eseguito ogni giorno feriale alle 09:00», ed elenca le prossime esecuzioni mentre la modifichi.

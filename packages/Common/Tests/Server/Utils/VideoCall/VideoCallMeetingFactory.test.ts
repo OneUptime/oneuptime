@@ -211,6 +211,98 @@ describe("VideoCallMeetingFactory with a sign-in", () => {
     });
   });
 
+  test("passes record and transcribe on to the signed-in account's Google Meet space", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      {
+        status: 200,
+        body: {
+          name: "spaces/abc",
+          meetingUri: "https://meet.google.com/abc-defg-hij",
+        },
+      },
+    ]);
+
+    await VideoCallMeetingFactory.createMeeting({
+      settings: {
+        provider: VideoCallProvider.GoogleMeet,
+        config: { accessType: "TRUSTED" },
+        secrets: {},
+        authMethod: VideoCallAuthMethod.OAuth,
+      },
+      request: { title: "INC-1", recordAndTranscribe: true },
+      http: new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
+      oauth: signIn("google-user-token"),
+    });
+
+    expect(JSON.parse(fetcher.requests[0]!.init.body!)).toEqual({
+      config: {
+        accessType: "TRUSTED",
+        entryPointAccess: "ALL",
+        artifactConfig: {
+          transcriptionConfig: { autoTranscriptionGeneration: "ON" },
+        },
+      },
+    });
+  });
+
+  test("passes record and transcribe on to the signed-in Zoom user's meeting", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 201, body: { id: 7, join_url: "https://zoom.us/j/7" } },
+    ]);
+
+    await VideoCallMeetingFactory.createMeeting({
+      settings: {
+        provider: VideoCallProvider.Zoom,
+        config: {},
+        secrets: {},
+        authMethod: VideoCallAuthMethod.OAuth,
+      },
+      request: { title: "INC-1", recordAndTranscribe: true },
+      http: new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
+      oauth: signIn("zoom-user-token"),
+    });
+
+    expect(
+      (JSON.parse(fetcher.requests[0]!.init.body!) as JSONObject)["settings"],
+    ).toEqual(expect.objectContaining({ auto_recording: "cloud" }));
+  });
+
+  /*
+   * A Teams meeting is created as it always was: OneUptime cannot read its
+   * transcript, and asking Graph to record it is not something it does.
+   */
+  test("leaves a Teams meeting as it always was, even when asked to record and transcribe", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      {
+        status: 201,
+        body: {
+          id: "m",
+          joinWebUrl: "https://teams.microsoft.com/l/meetup-join/x",
+        },
+      },
+    ]);
+
+    await VideoCallMeetingFactory.createMeeting({
+      settings: {
+        provider: VideoCallProvider.MicrosoftTeams,
+        config: { lobbyBypass: "organization" },
+        secrets: {},
+        authMethod: VideoCallAuthMethod.OAuth,
+      },
+      request: { title: "INC-1", recordAndTranscribe: true },
+      http: new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
+      oauth: signIn("graph-user-token"),
+    });
+
+    const body: JSONObject = JSON.parse(
+      fetcher.requests[0]!.init.body!,
+    ) as JSONObject;
+
+    expect(body).not.toHaveProperty("recordAutomatically");
+    expect(body).not.toHaveProperty("allowTranscription");
+    expect(body).not.toHaveProperty("allowRecording");
+  });
+
   test("creates the signed-in account's own Teams meeting, with no access policy involved", async () => {
     const fetcher: ScriptedFetch = scriptedFetch([
       {

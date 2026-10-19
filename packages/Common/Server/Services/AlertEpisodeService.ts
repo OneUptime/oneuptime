@@ -15,6 +15,7 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { clearPlaceholders } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -1466,7 +1467,7 @@ export class Service extends ProjectReferencesService<Model> {
      * alert did not have - which came back into its title each time
      * another alert joined.
      */
-    result = result.replace(/\{\{[^}]+\}\}/g, "");
+    result = clearPlaceholders(result);
 
     return result;
   }

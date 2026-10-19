@@ -35,7 +35,7 @@ Un déclencheur démarre une exécution comme le fait **Run Now** : l'exécution
 
 :::steps
 ### Ouvrir la page Déclencheurs du runbook
-Ouvrez le runbook depuis **Runbooks** et cliquez sur **Déclencheurs** dans son menu.
+Ouvrez le runbook depuis **Runbooks** et cliquez sur **Paramètres → Déclencheurs** dans son menu latéral. **Paramètres** est replié au départ : cliquez dessus pour afficher **Déclencheurs**.
 
 ### Configurer la planification
 Cliquez sur **Configurer la planification**. Sous **Quand il s'exécute**, choisissez une option de **Répéter** et ce qu'elle demande. La boîte de dialogue énonce la planification en une phrase, comme « S'exécute chaque jour de semaine à 09:00 », et liste ses prochaines exécutions au fil de vos modifications.

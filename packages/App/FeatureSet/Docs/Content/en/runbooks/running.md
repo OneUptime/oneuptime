@@ -118,7 +118,7 @@ An execution is a one-shot, immutable record. To run the runbook again, click **
 
 | Where | What it lists |
 | --- | --- |
-| A runbook's **Executions** | Every run of that runbook, with filters for status and start date, and a **Triggered by** column. |
+| A runbook's **Logs → Executions** | Every run of that runbook, with filters for status and start date, and a **Triggered by** column. |
 | **Runbooks → Executions** | Every run of every runbook in the project. |
 | An incident's, alert's or event's **Runbooks** | The runs attached to it. The event's overview shows them too, once there are any. |
 

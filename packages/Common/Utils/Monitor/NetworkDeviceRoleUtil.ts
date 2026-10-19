@@ -186,7 +186,16 @@ const PRODUCT_RULES: ReadonlyArray<RoleRule> = [
    */
   {
     role: "wirelessAccessPoint",
-    pattern: /\b(?:u6\+|u7-|uk-ultra|(?:hive)?ap[\w-]*, (?:hiveos|iq engine))/,
+    /*
+     * The IQ Engine shape - a word that holds "ap" (or "hiveap") where a
+     * word part starts, followed by ", hiveos" or ", iq engine" - is read
+     * once per run of word characters and hyphens: from the character
+     * before the run, the run is taken whole, checked for such an "ap", and
+     * must be followed by the suffix. Tried from every "ap" of the run
+     * instead, each try read the rest of the run again.
+     */
+    pattern:
+      /\b(?:u6\+|u7-|uk-ultra)|(?:^|[^\w-])(?=([\w-]*))(?=[\w-]*?\b(?:hive)?ap)\1, (?:hiveos|iq engine)/,
   },
   { role: "wirelessAccessPoint", pattern: /\be7\b/, vendor: /ubiquiti/ },
   {

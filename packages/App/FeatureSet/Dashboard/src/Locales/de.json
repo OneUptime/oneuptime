@@ -31014,5 +31014,20 @@
   "See the {{docsLink}} for every tool.": "Alle Tools finden Sie in der {{docsLink}}.",
   "Twilio account for SMS and calls": "Twilio-Konto für SMS und Anrufe",
   "Up to {{limit}} open at once": "Bis zu {{limit}} gleichzeitig offen",
-  "Gets nothing until they open the link we texted them.": "Erhält nichts, bis der Link geöffnet wird, den wir per SMS gesendet haben."
+  "Gets nothing until they open the link we texted them.": "Erhält nichts, bis der Link geöffnet wird, den wir per SMS gesendet haben.",
+  "Call transcripts": "Anruf-Transkripte",
+  "Everyone on an incident's Zoom or Google Meet call sees that it is recorded or transcribed. Check that your organization allows recording these calls. Zoom keeps a transcript when the account records to the cloud with its audio transcript on.": "Alle Teilnehmenden eines Zoom- oder Google-Meet-Anrufs zu einem Vorfall sehen, dass er aufgezeichnet oder transkribiert wird. Prüfen Sie, ob Ihre Organisation die Aufzeichnung dieser Anrufe erlaubt. Zoom erstellt ein Transkript, wenn das Konto in der Cloud aufzeichnet und das Audiotranskript aktiviert ist.",
+  "Keep what was said on every incident call, without anyone remembering to.": "Halten Sie fest, was in jedem Anruf zu einem Vorfall gesagt wurde, ohne dass jemand daran denken muss.",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft-Teams-Anrufe, Slack-Huddles und Meeting-Links werden nicht aufgezeichnet: Fügen Sie ihre Transkripte von Hand hinzu.",
+  "OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds the transcript to the incident once the call is over. OneUptime AI then posts what was said to the incident's feed, and the postmortem draft reads it.": "OneUptime bittet Zoom und Google Meet, jeden Anruf, den es für einen Vorfall startet, aufzuzeichnen und zu transkribieren, und fügt das Transkript dem Vorfall hinzu, sobald der Anruf vorbei ist. OneUptime AI veröffentlicht dann im Feed des Vorfalls, was gesagt wurde, und der Postmortem-Entwurf berücksichtigt es.",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime holt es von {{provider}}, sobald der Anruf vorbei ist, und OneUptime AI liest es.",
+  "Postmortem Draft Waiting Since": "Postmortem-Entwurf wartet seit",
+  "Record and Transcribe Incident Calls": "Anrufe zu Vorfällen aufzeichnen und transkribieren",
+  "Record and transcribe incident calls": "Anrufe zu Vorfällen aufzeichnen und transkribieren",
+  "Record and transcribe incident calls?": "Anrufe zu Vorfällen aufzeichnen und transkribieren?",
+  "Transcript Fetch Checked At": "Transkriptabruf geprüft am",
+  "Transcript Fetch Next Attempt At": "Nächster Transkriptabruf am",
+  "Transcript Fetch Reason": "Grund des Transkriptabrufs",
+  "Transcript Fetch Status": "Status des Transkriptabrufs",
+  "Video Call Summary": "Zusammenfassung des Videoanrufs"
 }

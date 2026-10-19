@@ -72,18 +72,39 @@ export interface VercelProductionDeploymentEvent {
 const DOMAIN_PATTERN: RegExp =
   /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/;
 
+// Every character JavaScript's . does not match.
+const LINE_BREAK: RegExp = /[\n\r\u2028\u2029]/;
+
 export default class VercelMarketplaceMonitors {
   public static normalizeDomain(value: unknown): string | null {
     if (typeof value !== "string") {
       return null;
     }
 
-    const domain: string = value
+    let domain: string = value
       .trim()
       .toLowerCase()
-      .replace(/^https?:\/\//, "")
-      .replace(/\/.*$/, "")
-      .replace(/\.$/, "");
+      .replace(/^https?:\/\//, "");
+
+    // A domain is one line: a value with a line break in it is none.
+    if (LINE_BREAK.test(domain)) {
+      return null;
+    }
+
+    /*
+     * Only the host: whatever follows its first slash goes. Cut with indexOf
+     * rather than a pattern - /\/.*$/ tried every slash in turn, in time
+     * that grew with the square of a run of them (code scanning #2311).
+     */
+    const pathStart: number = domain.indexOf("/");
+
+    if (pathStart !== -1) {
+      domain = domain.slice(0, pathStart);
+    }
+
+    if (domain.endsWith(".")) {
+      domain = domain.slice(0, -1);
+    }
 
     return DOMAIN_PATTERN.test(domain) ? domain : null;
   }

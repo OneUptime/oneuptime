@@ -5,6 +5,7 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentVideoCallService from "../../../Server/Services/IncidentVideoCallService";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import IncidentCallSummary from "../../../Server/Utils/AI/CallSummary/IncidentCallSummary";
+import IncidentCallTranscriptSave from "../../../Server/Utils/VideoCall/Transcripts/IncidentCallTranscriptSave";
 import VideoCallTranscriptReader from "../../../Server/Utils/VideoCall/Transcripts/VideoCallTranscriptReader";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
@@ -315,6 +316,10 @@ describe("POST /incident-video-call/:callId/transcript - adding one", () => {
     expect(written["callSummary"]).toBeNull();
     expect(written["rootCauseSuggestionStatus"]).toBeNull();
     expect(written["rootCauseSuggestionReviewedByUserId"]).toBeNull();
+    // And OneUptime no longer waits to get one by itself.
+    expect(written["transcriptFetchStatus"]).toBeNull();
+    expect(written["transcriptFetchReason"]).toBeNull();
+    expect(written["transcriptFetchNextAttemptAt"]).toBeNull();
 
     expect(IncidentCallSummary.start).toHaveBeenCalledWith({
       callId: CALL,
@@ -539,6 +544,31 @@ describe("POST /incident-video-call/:callId/transcript/from-provider", () => {
       expect.objectContaining({
         added: true,
         callSummaryStatus: CallSummaryStatus.Pending,
+      }),
+    );
+  });
+
+  /*
+   * Record and transcribe incident calls: a person who gets (or adds) the
+   * transcript before OneUptime does takes it from here - OneUptime stops
+   * waiting for one, so it is never stored, read and posted twice.
+   */
+  test("found: OneUptime stops waiting to get it by itself", async () => {
+    jest.spyOn(VideoCallTranscriptReader, "read").mockResolvedValue({
+      found: true,
+      lines: [
+        { offsetInSeconds: 1, speaker: "Priya Shah", text: "Rolling back." },
+      ],
+      format: TranscriptText.detectFormat(""),
+    });
+
+    await handlerOf("post", PROVIDER_ROUTE)(request(), res, next);
+
+    expect(writes[0]).toEqual(
+      expect.objectContaining({
+        transcriptFetchStatus: null,
+        transcriptFetchReason: null,
+        transcriptFetchNextAttemptAt: null,
       }),
     );
   });
@@ -878,7 +908,7 @@ describe("the feed entry an added transcript writes", () => {
       source: VideoCallTranscriptSource,
       sentence: string,
     ) => {
-      const markdown: string = IncidentVideoCallAPI.getTranscriptFeedMarkdown({
+      const markdown: string = IncidentCallTranscriptSave.getFeedMarkdown({
         call: callOf(provider),
         info: INFO,
         source,

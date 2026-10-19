@@ -78,6 +78,7 @@ Con **Redactar un post mortem cuando se resuelve un incidente** activado, OneUpt
 - Nunca sustituye una nota que ya está escrita.
 - Nunca escribe en un post mortem ya publicado, donde el borrador llegaría a la página de estado sin revisar.
 - Requiere que la IA esté activada para el proyecto, y se detiene durante el día en cuanto el proyecto alcanza sus límites diarios de IA. Consulte [Post mortem automático](/docs/ai/ai-sre#post-mortem-automático).
+- Si la transcripción de la llamada del incidente aún está en camino cuando se resuelve el incidente, espera a que OneUptime AI la lea, para que el borrador recoja lo que se dijo en la llamada: hasta seis horas mientras Zoom o Google Meet prepara la transcripción. Consulte [Grabar y transcribir cada llamada](/docs/workspace-connections/video-calls#grabar-y-transcribir-cada-llamada).
 
 ## Publicarlo en su página de estado
 
@@ -152,7 +153,7 @@ Compruebe tres cosas: **Publicar en la página de estado** está activado, la no
 :::
 
 :::details No apareció ningún borrador de IA cuando se resolvió el incidente
-El incidente ya tenía una nota, el post mortem ya estaba publicado, o **Redactar un post mortem cuando se resuelve un incidente** está desactivado. La IA debe estar activada para el proyecto, y el proyecto no debe haber alcanzado sus límites diarios de IA.
+El incidente ya tenía una nota, el post mortem ya estaba publicado, o **Redactar un post mortem cuando se resuelve un incidente** está desactivado. La IA debe estar activada para el proyecto, y el proyecto no debe haber alcanzado sus límites diarios de IA. Si la transcripción de la llamada del incidente está en camino, el borrador llega en cuanto OneUptime AI la ha leído.
 :::
 
 ## Próximos pasos

@@ -92,6 +92,17 @@ export enum VideoCallTranscriptUnavailableReason {
   NotSupported = "NotSupported",
 }
 
+export function isVideoCallTranscriptUnavailableReason(
+  value: unknown,
+): value is VideoCallTranscriptUnavailableReason {
+  return (
+    typeof value === "string" &&
+    (
+      Object.values(VideoCallTranscriptUnavailableReason) as Array<string>
+    ).includes(value)
+  );
+}
+
 export interface VideoCallTranscriptUnavailable {
   reason: VideoCallTranscriptUnavailableReason;
   // What happened and what to do, in English, for the person who asked.

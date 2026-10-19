@@ -118,7 +118,7 @@ En udførelse er en engangs, uforanderlig post. Klik på **Kør igen** på en af
 
 | Hvor | Hvad den viser |
 | --- | --- |
-| Et runbooks **Udførelser** | Alle kørsler af det runbook med filtre for status og startdato og en kolonne **Udløst af**. |
+| Et runbooks **Protokoller → Udførelser** | Alle kørsler af det runbook med filtre for status og startdato og en kolonne **Udløst af**. |
 | **Runbooks → Udførelser** | Alle kørsler af alle runbooks i projektet. |
 | Siden **Runbooks** for en hændelse, advarsel eller begivenhed | De kørsler, der er knyttet til den. Begivenhedens oversigt viser dem også, så snart der er nogen. |
 

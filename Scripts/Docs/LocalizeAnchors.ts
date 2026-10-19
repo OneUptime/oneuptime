@@ -61,7 +61,8 @@ const ONLY_PAGES: Array<string> = valuesOf("--page").map(
   },
 );
 
-const FENCE: RegExp = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+// The fence's run is taken whole, so a line is read once (see FENCE_LINE_PATTERN in FeedMarkdown).
+const FENCE: RegExp = /^ {0,3}(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
 const HEADING: RegExp = /^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/;
 const ANCHOR_LINK: RegExp =
   /\]\((\/docs\/([a-z0-9-]+)\/([a-z0-9-]+))?#([^)\s]+)\)/g;

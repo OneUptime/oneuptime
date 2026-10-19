@@ -107,11 +107,11 @@ Det de ansvarlige sier i en samtale, hva de har sjekket, hva de mistenker og hva
 :::steps
 ### Hent transkripsjonen etter samtalen
 
-På hendelsens kort **Video Call** leser **Hent fra Zoom** eller **Hent fra Google Meet** transkripsjonen av et møte OneUptime startet der. For alle andre samtaler tar **Legg til transkripsjon** filen møteverktøyet lagret (`.vtt`, `.srt` eller `.txt`, opptil 5 MB), eller den innlimte transkripsjonen.
+På hendelsens kort **Video Call** leser **Hent fra Zoom** eller **Hent fra Google Meet** transkripsjonen av et møte OneUptime startet der. For alle andre samtaler tar **Legg til transkripsjon** filen møteverktøyet lagret (`.vtt`, `.srt` eller `.txt`, opptil 5 MB), eller den innlimte transkripsjonen. Med [hver samtale tatt opp og transkribert](#ta-opp-og-transkribere-hver-samtale) henter OneUptime den selv når samtalen er over.
 
 ### OneUptime AI leser den
 
-I løpet av et minutt eller to viser hendelsens kort **AI Investigation** **Foreslått rotårsak**, merket **Ikke bekreftet**, med linjene i transkripsjonen den bygger på, sitert med tid og taler. Under, slått sammen, står resten av det samtalen sa: funn, delt opp i **Bekreftet i samtalen** og **Hypoteser**, deretter hva som ble prøvd, beslutninger, oppfølginger og åpne spørsmål.
+I løpet av et minutt eller to viser hendelsens kort **AI Investigation** **Foreslått rotårsak**, merket **Ikke bekreftet**, med linjene i transkripsjonen den bygger på, sitert med tid og taler. Under, slått sammen, står resten av det samtalen sa: funn, delt opp i **Bekreftet i samtalen** og **Hypoteser**, deretter hva som ble prøvd, beslutninger, oppfølginger og åpne spørsmål. Det OneUptime AI leste, publiseres også i hendelsens feed, og derfra i hendelsens Slack- og Microsoft Teams-kanaler.
 
 ### Bruk den, eller avvis den
 
@@ -119,6 +119,17 @@ I løpet av et minutt eller to viser hendelsens kort **AI Investigation** **Fore
 :::
 
 OneUptime AI foreslår bare en årsak når samtalen nevner en, med linjene som sier det, og siterer de linjene slik transkripsjonen har dem. Når samtalen ikke avklarte årsaken, sier kortet **Det ble ikke sagt nok i samtalen til å foreslå en rotårsak** i stedet for å gjette.
+
+### Ta opp og transkribere hver samtale
+
+For at ingen skal måtte huske å ta opp en samtale eller hente transkripsjonen, slår du på **Ta opp og transkriber hendelsessamtaler** under **Prosjektinnstillinger** > **Arbeidsområde** > **Video Calls**. Så lenge den er slått på:
+
+- OneUptime ber Zoom om å ta opp i skyen hvert hendelsesmøte den starter, og Google Meet om å transkribere det. Meldingen som publiserer samtalen, sier fra om det før noen blir med.
+- Når samtalen er over, henter OneUptime transkripsjonen selv, slik **Hent fra Zoom** ville gjort, og OneUptime AI leser den. Inntil da sier kortet **Video Call** at det venter.
+- Det OneUptime AI leste, går til hendelsens feed og dens Slack- og Microsoft Teams-kanaler: den foreslåtte rotårsaken, merket som ikke bekreftet, deretter hva som ble bekreftet, prøvd og bestemt, oppfølgingene og de åpne spørsmålene.
+- Når hendelsen løses før transkripsjonen er kommet, venter det automatiske utkastet til etteranalyse på den, slik at det leser hva som ble sagt i samtalen: opptil seks timer mens Zoom eller Google Meet lager transkripsjonen, og én time når det ennå ikke er tegn til en.
+
+Innstillingen er slått av som standard, fordi den tar opp mennesker: alle i disse samtalene ser at de blir tatt opp eller transkribert, så sjekk at organisasjonen deres tillater det. Zoom tar bare vare på en transkripsjon når kontoen tar opp i skyen med lydtranskripsjon slått på, og Google Meet bare i en Google Workspace-utgave som har transkripsjoner. Microsoft Teams-samtaler, Slack-huddles og møtelenker tas ikke opp, og det gjør heller ikke samtaler for varsler: legg til transkripsjonene deres manuelt.
 
 ### Hva hver leverandør tar vare på
 
@@ -281,6 +292,10 @@ Endre **Who can join** (Google Meet) eller **Who skips the lobby** (Microsoft Te
 
 :::details Hent fra Zoom finner ingen transkripsjon
 Zoom tar bare vare på en transkripsjon av et møte tatt opp i skyen med lydtranskripsjon slått på, eller med AI Companions møtesammendrag slått på, og lager den etter at møtet er slutt. Kortet sier hvilket: prøv igjen senere, eller slå på ett av dem for hendelsesmøtene dine. I mellomtiden tar **Legg til transkripsjon** en transkripsjon du har lagret.
+:::
+
+:::details Kortet Video Call venter fortsatt på en transkripsjon
+Når samtalen er over, spør OneUptime Zoom eller Google Meet etter den med noen minutters mellomrom, sjeldnere jo eldre samtalen blir, i tre dager etter at samtalen startet. Transkripsjonen kommer noen minutter etter at leverandøren har laget den, og Zoom bruker opptil omtrent dobbelt så lang tid som samtalen varte. **Hent fra Zoom** spør med en gang. Når leverandøren ikke tar vare på noen transkripsjon, sier kortet det: sjekk at Zoom-kontoen tar opp i skyen med lydtranskripsjon slått på, eller at Google Workspace-utgaven deres har transkripsjoner.
 :::
 
 :::details OneUptime AI kunne ikke lese en transkripsjon

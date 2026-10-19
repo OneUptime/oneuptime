@@ -141,6 +141,7 @@ export const SHARED_FEED_ENTRY_KINDS: {
   VideoCallStarted: FeedEntryKind;
   VideoCallFailed: FeedEntryKind;
   VideoCallTranscriptAdded: FeedEntryKind;
+  VideoCallSummary: FeedEntryKind;
   ChannelMemberAdded: FeedEntryKind;
   StateChanged: FeedEntryKind;
   SeverityChanged: FeedEntryKind;
@@ -223,6 +224,12 @@ export const SHARED_FEED_ENTRY_KINDS: {
   VideoCallTranscriptAdded: {
     icon: IconProp.DocumentText,
     tone: FeedTone.Info,
+  },
+  // What OneUptime AI read in a call's transcript.
+  VideoCallSummary: {
+    icon: IconProp.Sparkles,
+    tone: FeedTone.AI,
+    isNote: true,
   },
   // Somebody added to the record's own Slack channel from its page.
   ChannelMemberAdded: {

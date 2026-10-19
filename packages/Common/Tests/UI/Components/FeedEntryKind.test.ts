@@ -72,7 +72,11 @@ describe("colours", () => {
 });
 
 describe("what somebody wrote", () => {
-  test("notes, root causes, remediation and postmortem notes are notes; nothing else is", () => {
+  /*
+   * What OneUptime AI read in a call's transcript is written up like an AI
+   * root cause - a lead line, then parts of its own - so it is drawn as one.
+   */
+  test("notes, root causes, remediation, postmortem notes and call summaries are notes; nothing else is", () => {
     const notes: Array<string> = Object.keys(SHARED_FEED_ENTRY_KINDS).filter(
       (name: string) => {
         return (
@@ -89,6 +93,7 @@ describe("what somebody wrote", () => {
       "PublicNote",
       "RemediationNotes",
       "RootCause",
+      "VideoCallSummary",
     ]);
   });
 });

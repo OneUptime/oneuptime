@@ -107,11 +107,11 @@ What responders say on a call, what they checked, what they suspect and what the
 :::steps
 ### Get the transcript after the call
 
-On the incident's **Video Call** card, **Get from Zoom** or **Get from Google Meet** reads the transcript of a meeting OneUptime started there. For any other call, **Add transcript** takes the file the meeting tool saved (`.vtt`, `.srt` or `.txt`, up to 5 MB) or the transcript pasted.
+On the incident's **Video Call** card, **Get from Zoom** or **Get from Google Meet** reads the transcript of a meeting OneUptime started there. For any other call, **Add transcript** takes the file the meeting tool saved (`.vtt`, `.srt` or `.txt`, up to 5 MB) or the transcript pasted. With [every call recorded and transcribed](#record-and-transcribe-every-call), OneUptime gets it by itself once the call is over.
 
 ### OneUptime AI reads it
 
-Within a minute or two, the incident's **AI Investigation** card shows the **Suggested root cause**, marked **Not confirmed**, with the transcript lines it rests on, quoted with their time and speaker. Under it, folded, is the rest of what the call said: the findings, split into **Confirmed on the call** and **Hypotheses**, then what was tried, decisions, follow-ups and open questions.
+Within a minute or two, the incident's **AI Investigation** card shows the **Suggested root cause**, marked **Not confirmed**, with the transcript lines it rests on, quoted with their time and speaker. Under it, folded, is the rest of what the call said: the findings, split into **Confirmed on the call** and **Hypotheses**, then what was tried, decisions, follow-ups and open questions. What it read is posted to the incident's feed too, and from there to the incident's Slack and Microsoft Teams channels.
 
 ### Use it, or dismiss it
 
@@ -119,6 +119,17 @@ Within a minute or two, the incident's **AI Investigation** card shows the **Sug
 :::
 
 OneUptime AI suggests a cause only when the call names one, with the lines that say so, and it quotes those lines as the transcript has them. When the call did not settle the cause, the card says **Not enough was said on the call to suggest a root cause** instead of guessing.
+
+### Record and transcribe every call
+
+So that nobody has to remember to record a call or to get its transcript, turn on **Record and transcribe incident calls** in **Project Settings** > **Workspace** > **Video Calls**. While it is on:
+
+- OneUptime asks Zoom to record each incident meeting it starts to the cloud, and Google Meet to transcribe it. The message that posts the call says so before anyone joins.
+- Once the call is over, OneUptime gets the transcript by itself, as **Get from Zoom** would, and OneUptime AI reads it. Until then the **Video Call** card says that it is waiting.
+- What OneUptime AI read goes to the incident's feed and its Slack and Microsoft Teams channels: the suggested root cause, marked as not confirmed, then what was confirmed, tried and decided, the follow-ups and the open questions.
+- When the incident resolves before the transcript is in, the automatic postmortem draft waits for it, so that it reads what was said on the call: up to six hours while Zoom or Google Meet prepares the transcript, and one hour when there is no sign of one yet.
+
+It is off by default, because it records people: everyone on those calls sees that they are recorded or transcribed, so check that your organization allows it. Zoom keeps a transcript only when the account records to the cloud with its audio transcript on, and Google Meet only on a Google Workspace edition that has transcripts. Microsoft Teams calls, Slack huddles and meeting links are not recorded, and neither are alert calls: add their transcripts by hand.
 
 ### What each provider keeps
 
@@ -281,6 +292,10 @@ Change **Who can join** (Google Meet) or **Who skips the lobby** (Microsoft Team
 
 :::details Get from Zoom finds no transcript
 Zoom keeps a transcript only of a meeting recorded to the cloud with its audio transcript on, or with AI Companion's meeting summary on, and prepares it after the meeting ends. The card says which: try again later, or turn one of them on for your incident meetings. Meanwhile **Add transcript** takes a transcript you saved.
+:::
+
+:::details The Video Call card still waits for a transcript
+OneUptime asks Zoom or Google Meet for it every few minutes once the call is over, less often as the call gets older, for three days after the call started. The transcript comes in minutes after the provider has prepared it, and Zoom takes up to about twice the call's length. **Get from Zoom** asks at once. When the provider keeps no transcript, the card says so: check that the Zoom account records to the cloud with its audio transcript on, or that your Google Workspace edition has transcripts.
 :::
 
 :::details OneUptime AI could not read a transcript

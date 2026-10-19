@@ -35,7 +35,7 @@ Um gatilho inicia uma execução como **Run Now** faz: a execução percorre as 
 
 :::steps
 ### Abrir a página Gatilhos do runbook
-Abra o runbook em **Runbooks** e clique em **Gatilhos** no menu dele.
+Abra o runbook em **Runbooks** e clique em **Configurações → Gatilhos** no menu lateral dele. **Configurações** começa recolhido: clique nele para mostrar **Gatilhos**.
 
 ### Configurar o agendamento
 Clique em **Configurar agendamento**. Em **Quando é executado**, escolha uma opção de **Repetir** e o que ela pede. A caixa de diálogo descreve o agendamento em uma frase, como "É executado em todo dia útil às 09:00", e lista as próximas execuções conforme você o altera.

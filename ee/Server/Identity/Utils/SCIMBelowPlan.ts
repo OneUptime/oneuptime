@@ -465,7 +465,15 @@ export const getScimMemberUserId: (member: ScimGroupMember) => string | null = (
 
 const MEMBERS_FILTER_PATH: RegExp = /^members\s*\[(.*)\]$/i;
 const MEMBER_VALUE_CONDITION: RegExp = /^value\s+eq\s+"([^"]+)"$/i;
-const OR_SEPARATOR: RegExp = /\s+or\s+/i;
+/*
+ * " or " between two conditions, the white space on each side taken whole.
+ * Tried only where a run of white space starts, so the filter - what an
+ * identity provider sent - is read in time in line with its length: tried
+ * from every character of a run "or" does not follow, each try read on to
+ * the end of the run. A split finds the same separators either way: one
+ * that could start inside a run could start where the run does.
+ */
+const OR_SEPARATOR: RegExp = /(?<!\s)\s+or\s+/i;
 
 /*
  * The user ids a filtered members path names - members[value eq "<id>"],
