@@ -256,6 +256,35 @@ services:
       context: .
       dockerfile: ./packages/Runner/Dockerfile
 
+  global-runner:
+    volumes:
+      - ./packages/Runner:/usr/src/app:cached
+      # Use node modules of the container and not host system.
+      - /usr/src/app/node_modules/
+      # See test-server above for why Common is mounted by subdirectory.
+      - ./packages/Common/Models:/usr/src/Common/Models:cached
+      - ./packages/Common/UI:/usr/src/Common/UI:cached
+      - ./packages/Common/Types:/usr/src/Common/Types:cached
+      - ./packages/Common/Utils:/usr/src/Common/Utils:cached
+      - ./packages/Common/Server:/usr/src/Common/Server:cached
+      - ./packages/Common/Scripts:/usr/src/Common/Scripts:cached
+      - ./packages/Common/Tests:/usr/src/Common/Tests:cached
+      - ./packages/Common/Typings:/usr/src/Common/Typings:cached
+      - ./packages/Common/ServiceRoute.ts:/usr/src/Common/ServiceRoute.ts:cached
+      - ./packages/Common/package.json:/usr/src/Common/package.json:cached
+      - ./packages/Common/package-lock.json:/usr/src/Common/package-lock.json:cached
+      - ./packages/Common/tsconfig.json:/usr/src/Common/tsconfig.json:cached
+      - ./packages/Common/jest.config.json:/usr/src/Common/jest.config.json:cached
+
+    extends:
+      file: ./docker-compose.base.yml
+      service: global-runner
+    depends_on:
+      <<: *common-depends-on
+    build:
+      context: .
+      dockerfile: ./packages/Runner/Dockerfile
+
   # Fluentd. Required only for development. In  production its the responsibility of the customer to run fluentd and pipe logs to OneUptime.
   # We run this container just for development, to see if logs are piped.
 

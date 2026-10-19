@@ -40,16 +40,16 @@ flowchart TB
 
 ## Runner 步驟如何分派
 
-JavaScript、Bash、SSH 和 Kubernetes 步驟 **絕不在 OneUptime Worker 上執行** 。它們會以工作的形式分派給特定的 [Runbook 代理程式](/docs/runbooks/agents)：一個您安裝在自己基礎架構中某台主機上的小型處理程序。
+JavaScript、Bash、SSH 和 Kubernetes 步驟 **絕不在 OneUptime Worker 上執行** 。它們會以工作的形式分派給特定的 [Runbook 代理程式](/docs/runbooks/agents)：一個您安裝在自己基礎架構中某台主機上的小型處理程序。 未選擇 Runner 的 JavaScript 步驟會交給 OneUptime 為所有專案執行的 [全域 Runner](/docs/runbooks/agents#全域-runner)。
 
 分派模型：
 
 1. Runbook 步驟的作者在撰寫步驟時從下拉式清單中選擇一個 Runner。
-2. 步驟執行時，Worker 在 `RunnerJob` 中插入一列，`targetAgentId` 設為該 Runner 的 ID，狀態為 `Pending`。
-3. 正是這個 Runner（而且只有它）以不可分割的方式認領工作，在本機執行——Bash 透過 `bash -c <script>`，JavaScript 在 `isolated-vm` 沙箱中，SSH 和 Kubernetes 使用步驟的憑證——並傳回結果。
+2. 步驟執行時，Worker 在 `RunnerJob` 中插入一列，`targetAgentId` 設為該 Runner 的 ID，狀態為 `Pending`。 在使用全域 Runner 的專案中，未選擇 Runner 的 JavaScript 步驟會改為取得 `runsOnGlobalRunner`。
+3. 正是這個 Runner（而且只有它）以不可分割的方式認領工作，在本機執行——Bash 透過 `bash -c <script>`，JavaScript 在 `isolated-vm` 沙箱中，SSH 和 Kubernetes 使用步驟的憑證——並傳回結果。 任何全域 Runner 都可以認領帶有 `runsOnGlobalRunner` 的工作。
 4. Worker 以該結果繼續執行 Runbook。
 
-不再有 `RUNBOOK_BASH_ENABLED` 環境旗標。這些步驟在某個部署中能否運作，完全取決於專案中是否有已連線且開啟了 **執行操作手冊** 的 Runner。
+不再有 `RUNBOOK_BASH_ENABLED` 環境旗標。這些步驟在某個部署中能否運作，完全取決於專案中是否有已連線且開啟了 **執行操作手冊** 的 Runner。 JavaScript 步驟也可以在全域 Runner 上執行。
 
 ## 輸出上限與逾時
 
@@ -92,11 +92,12 @@ Runbook 執行在 `Runbook` BullMQ 佇列上進行。每個 Worker 處理程序�
 
 ## 強化說明
 
-- **JavaScript、Bash、SSH 和 Kubernetes** 在您掌控的 Runner 主機上執行，而不是在 OneUptime Worker 上。JavaScript 在獨立的 `isolated-vm` 隔離環境中執行，擁有 128 MB 記憶體，無法存取 Runner 的檔案系統或處理程序；它可以用 `axios` 發出 HTTP 請求，但發往私人網路、回送和鏈路本機位址的請求會被拒絕。Bash 以 `bash -c` 執行，其逾時在 Runner 上強制執行。
+- **JavaScript、Bash、SSH 和 Kubernetes** 在您掌控的 Runner 主機上執行，而不是在 OneUptime Worker 上。JavaScript 在獨立的 `isolated-vm` 隔離環境中執行，擁有 128 MB 記憶體，無法存取 Runner 的檔案系統或處理程序；它可以用 `axios` 發出 HTTP 請求，但發往私人網路、回送和鏈路本機位址的請求會被拒絕。Bash 以 `bash -c` 執行，其逾時在 Runner 上強制執行。 未選擇 Runner 的 JavaScript 步驟則會在全域 Runner 上執行。
 - **HTTP 步驟** 使用寬鬆的狀態驗證，因此 4xx 或 5xx 回應會被記錄為失敗的步驟，而不是作為例外擲回，記錄的輸出也會反映上游實際傳回的內容。不會追蹤重新導向。Worker 絕不呼叫回送或鏈路本機位址，例如雲端中繼資料端點；在 OneUptime Cloud 上，它也會拒絕私人網路位址，自行託管的 OneUptime 則在設定 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` 時拒絕。
 - **AI 步驟** 永遠看不到事件的私人備註，也看不到 Slack 和 Microsoft Teams 的訊息；前面步驟的輸出會被掃描是否含有機密資訊，並在到達模型之前被遮蔽。內嵌圖片和很長的編碼資料不會進入提示詞。請參閱 [AI](/docs/runbooks/authoring#ai)。
+- **全域 Runner** 只執行 JavaScript 步驟，每個步驟都在為它建立、結束後丟棄的沙箱中執行，只能存取公用網際網路位址，最長 5 分鐘，而且同一專案同時最多執行三個步驟。它們只會取得步驟所屬專案中已為全域 Runner 開啟的 Runbook 密鑰，永遠不會取得憑證；內建的全域 Runner 持有自己的金鑰，不持有伺服器的任何其他東西。請參閱 [全域 Runner](/docs/runbooks/agents#全域-runner)。
 - **Runner 驗證** 使用 ID 和秘密金鑰，以環境變數設定在 Runner 容器上。在伺服器端，Runner 的權威身分來自與所提供的 ID 和金鑰對應的資料庫列：即使金鑰外洩，用戶端也無法冒充另一個 Runner。
-- **憑證和密鑰** 靜態加密儲存，API 永遠不會傳回，只會在指派到的 Runner 認領步驟時交給它們。
+- **憑證和密鑰** 靜態加密儲存，API 永遠不會傳回，只會在指派到的 Runner 認領步驟時交給它們。 當密鑰允許全域 Runner 使用它時，Runbook 密鑰也會交給認領該密鑰所屬專案步驟的全域 Runner。
 
 ## 資料庫資料表
 
@@ -105,8 +106,8 @@ Runbook 執行在 `Runbook` BullMQ 佇列上進行。每個 Worker 處理程序�
 | `Runbook` | 範本：名稱、slug、描述、`isEnabled`、標籤，以及以 JSON 儲存的步驟。 |
 | `RunbookExecution` | 每次執行一列，具有可為空值的外鍵 `incidentId`、`alertId` 和 `scheduledMaintenanceId`，以及一個 JSON 陣列 `stepExecutions`，保存步驟和每個步驟狀態的快照。 |
 | `RunbookRule` | 自動觸發規則，具有判別欄位 `triggerEntityType`（Incident、Alert、ScheduledMaintenance）、與要啟動之 Runbook 的多對多關聯，以及比對依據：JSON 欄 `criteria`（條件），加上指向監測器、事件嚴重性、警示嚴重性、標籤和監測器標籤的多對多連結，以及標題、描述、監測器名稱和監測器描述的比對模式。 |
-| `Runner` | 每個已安裝的 Runner 一列：名稱、秘密金鑰、`lastAlive`、`connectionStatus`、主機資訊和功能。 |
-| `RunnerJob` | 每個分派給 Runner 的步驟一列：`targetAgentId`（步驟作者選擇的 Runner）、步驟類型、指令碼或酬載、狀態（`Pending` → `Claimed` → `Running` → `Succeeded`、`Failed`、`TimedOut` 或 `Cancelled`）、認領期限、租約、輸出和結束代碼。 |
+| `Runner` | 每個已安裝的 Runner 一列：名稱、秘密金鑰、`lastAlive`、`connectionStatus`、主機資訊和功能。 全域 Runner 設定了 `isGlobalRunner`，且不屬於任何專案。 |
+| `RunnerJob` | 每個分派給 Runner 的步驟一列：`targetAgentId`（步驟作者選擇的 Runner）、步驟類型、指令碼或酬載、狀態（`Pending` → `Claimed` → `Running` → `Succeeded`、`Failed`、`TimedOut` 或 `Cancelled`）、認領期限、租約、輸出和結束代碼。 `runsOnGlobalRunner` 標記任何全域 Runner 都可以認領的步驟。 |
 | `RunbookCredential` | SSH 和 Kubernetes 憑證，其機密欄位已加密，以及它們指派到的 Runner。 |
 | `RunbookSecret` | 已加密的 Runbook 密鑰，以及可以接收它們的 Runner。 |
 

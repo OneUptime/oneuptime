@@ -35,7 +35,7 @@ flowchart TB
 
 Chaque exécution d'un runbook est une **exécution**. Au démarrage, les étapes du runbook y sont copiées, et OneUptime les traite dans l'ordre. Une étape Manual, ou une étape qui exige une approbation, met l'exécution en pause jusqu'à ce que quelqu'un agisse.
 
-Les étapes HTTP et IA s'exécutent sur le Worker OneUptime. Les étapes JavaScript, Bash, SSH et Kubernetes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) que vous installez dans votre propre infrastructure, de sorte que vos scripts ne s'exécutent jamais sur les serveurs d'OneUptime. Le statut, la sortie et le message d'erreur de chaque étape sont enregistrés sur l'exécution, qui reste attachée à l'incident, à l'alerte ou à l'événement pour lequel elle a tourné.
+Les étapes HTTP et IA s'exécutent sur le Worker OneUptime. Les étapes Bash, SSH et Kubernetes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) que vous installez dans votre propre infrastructure, de sorte que ces scripts ne s'exécutent jamais sur les serveurs d'OneUptime. Une étape JavaScript s'exécute elle aussi sur l'un de vos agents ou, si elle n'en choisit aucun, sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux), dans un bac à sable qui n'atteint qu'Internet. Le statut, la sortie et le message d'erreur de chaque étape sont enregistrés sur l'exécution, qui reste attachée à l'incident, à l'alerte ou à l'événement pour lequel elle a tourné.
 
 ## Concepts clés
 
@@ -46,9 +46,9 @@ Les étapes HTTP et IA s'exécutent sur le Worker OneUptime. Les étapes JavaScr
 | **Règle de runbook** | Une règle qui attache automatiquement un ou plusieurs runbooks aux incidents, alertes ou événements de maintenance planifiée qui remplissent ses conditions : leurs moniteurs, leur gravité, leurs étiquettes, les étiquettes de leurs moniteurs, leur titre ou leur description. |
 | **Exécution** | Une exécution d'un runbook. Elle est créée quand une règle se déclenche, quand quelqu'un clique sur **Exécuter le Runbook** sur un événement, ou quand quelqu'un clique sur **Run Now** sur le runbook lui-même. Elle contient un instantané des étapes ainsi que le statut et la sortie de chaque étape. |
 | **Instantané** | La copie figée des étapes du runbook qui vit sur chaque exécution. Vous pouvez modifier le runbook plus tard sans réécrire l'historique des exécutions passées. |
-| **Agent Runbook** | Un petit agent que vous faites tourner sur un hôte de votre propre infrastructure. Il exécute les étapes JavaScript, Bash, SSH et Kubernetes qui le désignent. Aussi appelé Runner. |
+| **Agent Runbook** | Un petit agent que vous faites tourner sur un hôte de votre propre infrastructure. Il exécute les étapes JavaScript, Bash, SSH et Kubernetes qui le désignent. Aussi appelé Runner. Un agent Runbook global, l'un de ceux qu'OneUptime fait tourner pour chaque projet, exécute les étapes JavaScript qui n'en nomment aucun. |
 | **Identifiant** | Un accès SSH ou Kubernetes géré, utilisé par les étapes SSH et Kubernetes. Chiffré au repos et remis uniquement aux agents Runbook auxquels vous l'attribuez. |
-| **Secret** | Une valeur unique, comme un jeton d'API, qu'un script Bash ou JavaScript utilise sous la forme `{{runbookSecrets.NAME}}`. Chiffré au repos et remis uniquement aux agents Runbook auxquels vous l'attribuez. |
+| **Secret** | Une valeur unique, comme un jeton d'API, qu'un script Bash ou JavaScript utilise sous la forme `{{runbookSecrets.NAME}}`. Chiffré au repos et remis uniquement aux agents Runbook auxquels vous l'attribuez. Les agents Runbook globaux ne le reçoivent que si vous les y autorisez. |
 
 ## Types d'étapes
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 Un moniteur ouvre l'incident `INC-4821 · db-primary connection timeout`. La règle correspond et une exécution démarre :
 
-- L'étape 1 (JavaScript) s'exécute sur l'agent Runbook que vous avez choisi pour elle. Sa valeur de retour, par exemple `{ lagMs: 412 }`, est capturée.
+- L'étape 1 (JavaScript) s'exécute sur l'agent Runbook que vous avez choisi pour elle. Sa valeur de retour, par exemple `{ lagMs: 412 }`, est capturée. Une étape qui ne choisit aucun agent s'exécute sur un agent Runbook global.
 - L'étape 2 (Manual) met l'exécution en pause, qui affiche **En attente de votre part**. La personne d'astreinte vérifie le tableau de bord et clique sur **Marquer comme terminé**.
 - L'étape 3 (HTTP request) s'exécute, et la réponse au `POST` est capturée.
 - L'étape 4 (Manual) remet l'exécution en pause jusqu'à ce que quelqu'un la termine.
@@ -170,7 +170,7 @@ L'exécution reste sur la page **Runbooks** de l'incident. Quand vous rédigez l
 
 :::cards
 - [Rédiger un runbook](/docs/runbooks/authoring): Créer votre premier runbook et ses étapes.
-- [Agents de runbook](/docs/runbooks/agents): Installer un agent Runbook avant d'écrire une étape JavaScript, Bash, SSH ou Kubernetes.
+- [Agents de runbook](/docs/runbooks/agents): Installer un agent Runbook avant d'écrire une étape Bash, SSH ou Kubernetes.
 - [Règles de runbook](/docs/runbooks/rules): Lancer des runbooks automatiquement à la création d'incidents.
 - [Configuration & sécurité des runbooks](/docs/runbooks/configuration): Limites, délais, autorisations et durcissement.
 :::

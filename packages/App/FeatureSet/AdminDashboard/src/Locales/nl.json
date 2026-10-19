@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Globale probes",
+    "globalRunners": "Globale Runners",
     "dataRetention": "Gegevensbewaring",
     "globalAiAgents": "Globale AI-agenten",
     "globalLlmProviders": "Globale LLM-providers",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Bewaking",
     "settingsGlobalProbes": "Globale probes",
+    "settingsRunbooks": "Runbooks",
+    "settingsGlobalRunners": "Globale Runners",
     "settingsDataRetention": "Gegevensbewaring",
     "settingsAi": "AI",
     "settingsGlobalAiAgents": "Globale AI-agenten",
@@ -526,6 +529,18 @@
         "keyModalDescription": "Hier is uw probe-sleutel. Houd deze geheim.",
         "probeIdLabel": "Probe-ID:",
         "probeKeyLabel": "Probe-sleutel:"
+      },
+      "globalRunners": {
+        "cardTitle": "Globale Runners",
+        "cardDescription": "Runners die OneUptime voor elk project draait. Ze voeren JavaScript-stappen uit, elk in een sandbox die alleen het internet bereikt.",
+        "noItems": "Voeg een globale Runner toe. Maak er een en start hem daarna met de opdracht onder ‘ID en sleutel tonen’.",
+        "showIdKey": "ID en sleutel tonen",
+        "keyModalTitle": "Sleutel van de globale Runner",
+        "keyModalDescription": "Start deze globale Runner op een host die het internet bereikt. Houd de sleutel geheim: wie hem heeft, kan de JavaScript-stappen overnemen van elk project dat globale Runners gebruikt.",
+        "runnerIdLabel": "Runner-ID:",
+        "runnerKeyLabel": "Runner-sleutel:",
+        "commandLabel": "Uitvoeren op je Docker-host",
+        "neverConnected": "Nooit verbonden"
       },
       "aiAgents": {
         "bannerTitle": "Hulp nodig bij het instellen van globale AI-agenten?",

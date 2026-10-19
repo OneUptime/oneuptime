@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Sondas globales",
+    "globalRunners": "Runners globales",
     "dataRetention": "Retención de datos",
     "globalAiAgents": "Agentes de IA globales",
     "globalLlmProviders": "Proveedores LLM globales",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Monitoreo",
     "settingsGlobalProbes": "Sondas globales",
+    "settingsRunbooks": "Runbooks",
+    "settingsGlobalRunners": "Runners globales",
     "settingsDataRetention": "Retención de datos",
     "settingsAi": "IA",
     "settingsGlobalAiAgents": "Agentes de IA globales",
@@ -526,6 +529,18 @@
         "keyModalDescription": "Aquí está su clave de sonda. Por favor, manténgala en secreto.",
         "probeIdLabel": "ID de la sonda:",
         "probeKeyLabel": "Clave de la sonda:"
+      },
+      "globalRunners": {
+        "cardTitle": "Runners globales",
+        "cardDescription": "Runners que OneUptime ejecuta para todos los proyectos. Ejecutan pasos de JavaScript, cada uno en un sandbox que solo llega a internet.",
+        "noItems": "Añade un Runner global. Crea uno y luego inícialo con el comando de «Mostrar ID y clave».",
+        "showIdKey": "Mostrar ID y clave",
+        "keyModalTitle": "Clave del Runner global",
+        "keyModalDescription": "Inicia este Runner global en un host que pueda llegar a internet. Mantén su clave en secreto: quien la tenga puede tomar los pasos de JavaScript de todos los proyectos que usan Runners globales.",
+        "runnerIdLabel": "ID del Runner:",
+        "runnerKeyLabel": "Clave del Runner:",
+        "commandLabel": "Ejecútalo en tu host de Docker",
+        "neverConnected": "Nunca conectado"
       },
       "aiAgents": {
         "bannerTitle": "¿Necesita ayuda para configurar los agentes de IA globales?",

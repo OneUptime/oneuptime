@@ -1,10 +1,11 @@
 # Runbook-agenten
 
-Een **runbook-agent**, in het dashboard **Runner** genoemd, is een klein zelf gehost proces dat de JavaScript-, Bash-, SSH- en Kubernetes-stappen van uw runbooks **in uw eigen infrastructuur** uitvoert. De OneUptime Worker voert uw scripts nooit uit: hij zet ze in de wachtrij, en de Runner die de schrijver van de stap koos, pakt elk script op, voert het uit en meldt het resultaat terug. Deze pagina is voor wie Runners installeert en beheert.
+Een **runbook-agent**, in het dashboard **Runner** genoemd, is een klein zelf gehost proces dat de JavaScript-, Bash-, SSH- en Kubernetes-stappen van uw runbooks **in uw eigen infrastructuur** uitvoert. De OneUptime Worker voert uw scripts nooit uit: hij zet ze in de wachtrij, en de Runner die de schrijver van de stap koos, pakt elk script op, voert het uit en meldt het resultaat terug. Deze pagina is voor wie Runners installeert en beheert. Een JavaScript-stap die geen Runner kiest, loopt in plaats daarvan op een [globale Runner](#globale-runners), een van de Runners die OneUptime voor elk project draait.
 
 :::cards
 - [Een Runner installeren](#een-runner-installeren): Van het dashboard naar een verbonden container, in vijf stappen.
 - [Een stap op een Runner richten](#een-stap-op-een-runner-richten): Een stap koppelen aan de Runner die hem moet uitvoeren.
+- [Globale Runners](#globale-runners): De Runners die OneUptime voor elk project draait, en wat ze uitvoeren.
 - [Time-outs](#time-outs): Claim- en uitvoeringstime-outs, en hoe ze samenwerken.
 - [Omgevingsvariabelen](#omgevingsvariabelen): Wat de container bij het starten leest.
 :::
@@ -32,7 +33,7 @@ flowchart TB
 1. U maakt een Runner in OneUptime. OneUptime genereert er een ID en een geheime sleutel voor.
 2. U draait de Runner-container op een host in uw infrastructuur, met dat ID, die sleutel en uw OneUptime-URL.
 3. De Runner vraagt OneUptime elke 5 seconden om werk en meldt elke 60 seconden dat hij leeft.
-4. Wanneer u een JavaScript-, Bash-, SSH- of Kubernetes-stap schrijft, kiest u de Runner uit een vervolgkeuzelijst. De stap is aan die Runner gekoppeld.
+4. Wanneer u een JavaScript-, Bash-, SSH- of Kubernetes-stap schrijft, kiest u de Runner uit een vervolgkeuzelijst. De stap is aan die Runner gekoppeld. Een JavaScript-stap kan **Globale Runner** houden, die de vervolgkeuzelijst voor hem kiest.
 5. Wanneer de stap loopt, zet de Worker een taak in de wachtrij waarvan `targetAgentId` naar die Runner wijst. Alleen die Runner kan hem oppakken.
 6. De Runner voert de taak lokaal uit — `bash -c <script>` voor Bash, een `isolated-vm`-sandbox voor JavaScript, een SSH-verbinding of een aanroep van de API-server van het cluster met het inloggegeven van de stap —, legt het resultaat vast en meldt het terug. De Worker zet het runbook voort met het resultaat.
 
@@ -48,6 +49,35 @@ Scripts op de OneUptime Worker uitvoeren gaf twee problemen:
 - **Bereik.** De meeste nuttige stappen werken op _uw_ infrastructuur ("herstart deze dienst", "zoek een record op in onze interne database"), niet op die van OneUptime.
 
 Met Runners lopen die stappen op een host die u beheert, en bepaalt u wat die host mag doen. HTTP-verzoek- en AI-stappen lopen nog steeds op de Worker, omdat ze niets uit uw netwerk nodig hebben.
+
+## Globale Runners
+
+Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaScript-stap die geen eigen Runner kiest, loopt op een daarvan, zodat u hem kunt schrijven voordat u iets installeert. **Runbooks → Runbook-agenten** toont ze onder **Globale Runners**, boven uw eigen Runners, en de vervolgkeuzelijst **Runner** van een JavaScript-stap biedt **Globale Runner** als eerste aan.
+
+| | Globale Runner | Uw eigen Runner |
+| --- | --- | --- |
+| Stappen die hij uitvoert | JavaScript | JavaScript, Bash, SSH en Kubernetes |
+| Wat een stap kan bereiken | Openbare internetadressen | Wat zijn host kan bereiken |
+| Langste looptijd van een stap | 5 minuten | 1 uur |
+| Runbook-geheimen | Die u globale Runners toestaat | Die u eraan toewijst |
+| Credentials | Geen | Die u eraan toewijst |
+
+Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt gescheiden gehouden van alle andere:
+
+- Elke stap loopt in een eigen `isolated-vm`-sandbox, gemaakt voor die stap en daarna weggegooid: geen bestanden, geen processen, geen omgevingsvariabelen en niets dat van de ene stap naar de volgende bewaard blijft.
+- Zijn HTTP-verzoeken bereiken alleen openbare internetadressen, nooit een privé-, loopback- of link-local-adres of een cloudmetadata-endpoint, zodat een globale Runner nooit uw netwerk bereikt.
+- Hij krijgt een runbook-geheim alleen wanneer de schakelaar **Globale Runners mogen dit geheim gebruiken** van het geheim aan staat, en alleen voor een stap van het eigen project van het geheim. Hij krijgt nooit een credential.
+- Een project voert hooguit drie stappen tegelijk uit op globale Runners, zodat geen project ze voor zichzelf houdt.
+
+Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, mislukt dan met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval.
+
+### Waar globale Runners vandaan komen
+
+Op OneUptime Cloud draait OneUptime ze. Een zelf gehoste installatie draait standaard een eigen exemplaar, zoals ze haar eigen globale probes draait: de service `global-runner` in Docker Compose en de deployment `globalRunner` in de Helm-chart. Die heeft een eigen sleutel, `GLOBAL_RUNNER_KEY`, en verder niets van de server.
+
+Een hoofdbeheerder kan er meer toevoegen, om stappen vanaf andere hosts uit te voeren: open in het beheerdashboard **Instellingen** en daarna **Globale Runners**, maak er een aan en voer de opdracht die zijn **ID en sleutel tonen** geeft uit op een host die het internet bereikt.
+
+Om de meegeleverde uit te zetten, stelt u `GLOBAL_RUNNER_REPLICAS=0` in de `config.env` van Docker Compose in, of `globalRunner.enabled` op `false` in de Helm-chart. Zonder enige globale Runner toont **Runbooks → Runbook-agenten** alleen uw eigen Runners, en kiest elke JavaScript-stap een daarvan.
 
 ## Voordat u begint
 
@@ -114,11 +144,11 @@ Voeg in de **Stappen** van uw runbook een JavaScript-, Bash-, SSH- of Kubernetes
 
 ### De Runner kiezen
 
-De vervolgkeuzelijst **Runner** van de stap toont elke Runner in het project, en of hij verbonden is. Heeft het project er nog geen, dan zegt de stap dat en verwijst hij u naar **Runbooks › Runners**.
+De vervolgkeuzelijst **Runner** van de stap toont elke Runner in het project, en of hij verbonden is. Heeft het project er nog geen, dan zegt de stap dat en verwijst hij u naar **Runbooks › Runners**. De vervolgkeuzelijst van een JavaScript-stap biedt ook **Globale Runner** aan, als eerste, en kiest die totdat u een van uw eigen Runners kiest.
 
 ### De stappen opslaan
 
-Klik op **Save Steps**. Wanneer een uitvoering de stap bereikt, zet de Worker een taak in de wachtrij voor het ID van die Runner, en alleen die Runner kan hem oppakken.
+Klik op **Save Steps**. Wanneer een uitvoering de stap bereikt, zet de Worker een taak in de wachtrij voor het ID van die Runner, en alleen die Runner kan hem oppakken. Een stap op **Globale Runner** wacht op de globale Runner die vrij is.
 :::
 
 Bash wordt uitgevoerd met `bash -c`. JavaScript loopt in een `isolated-vm`-sandbox op de Runner, zonder toegang tot het bestandssysteem of processen; het kan openbare HTTP-API's aanroepen met `axios`, maar geen adressen in een privénetwerk. SSH- en Kubernetes-stappen gebruiken het [inloggegeven](/docs/runbooks/credentials) dat de stap noemt, dat aan dezelfde Runner moet zijn toegewezen.
@@ -176,7 +206,7 @@ Het enige wat dit u niet kan vertellen, is hoe ver een script kwam voordat de Wo
 
 ### Geen agent online
 
-Is de gekozen Runner offline wanneer de stap loopt, dan wacht de taak als `Pending` tot de claim timeout verstrijkt, en mislukt de stap vervolgens met "No runbook agent picked up this step before the wait window expired." Op de pagina **Runbook-agenten** controleert u de dekking voordat u een runbook in een echte situatie uitvoert.
+Is de gekozen Runner offline wanneer de stap loopt, dan wacht de taak als `Pending` tot de claim timeout verstrijkt, en mislukt de stap vervolgens met "No runbook agent picked up this step before the wait window expired." Op de pagina **Runbook-agenten** controleert u de dekking voordat u een runbook in een echte situatie uitvoert. Een stap op een globale Runner mislukt in plaats daarvan met "No global Runner picked up this step before the wait window expired."
 
 ### Uitvoerlimiet
 
@@ -235,6 +265,7 @@ Het beheer van agenten valt onder de bestaande machtigingsgroep Runbooks:
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — agentrecords beheren.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — `RunbookAdmin` bouwt runbooks, hun regels en de Runners waarop ze lopen, en voert ze uit. `RunbookMember` opent runbooks en hun uitvoeringen en voert ze uit — start een uitvoering, voltooit of slaat stappen over en annuleert haar — maar maakt, wijzigt en verwijdert geen runbook of Runner. `RunbookViewer` leest runbooks en hun uitvoeringen en voert niets uit. `RunbookAdmin` bundelt alle gedetailleerde machtigingen hierboven.
+- Globale Runners horen bij geen enkel project: alleen een hoofdbeheerder voegt er een toe, wijzigt of verwijdert er een, in het beheerdashboard. Iedereen die de Runners van een project mag lezen, ziet ze, en **Globale Runners gebruiken** uitzetten vraagt de machtiging om het project te bewerken.
 
 Een runbook starten (en zo zijn stappen naar Runners sturen) vereist een rol die runbooks uitvoert — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` of `RunbookMember` — of `CreateRunbookExecution`; een uitvoering voltooien, overslaan of annuleren accepteert ook `EditRunbookExecution`. Een rol voert alleen de runbooks uit die binnen zijn bereik vallen.
 
@@ -247,7 +278,7 @@ Voor wie het wil weten: de Runner gebruikt deze endpoints, gekoppeld onder `/run
 | Endpoint | Doel |
 | --- | --- |
 | `POST /heartbeat` | Levensteken. Werkt de laatst-gezien-tijd, versie en hostinformatie van de Runner bij en geeft de mogelijkheden terug die het project hem gaf. |
-| `POST /claim-next-job` | Atomair de oudste taak in `Pending` oppakken die op het ID van deze Runner is gericht. Geeft `{ job: null }` terug als er niets te doen is. |
+| `POST /claim-next-job` | Atomair de oudste taak in `Pending` oppakken die op het ID van deze Runner is gericht. Geeft `{ job: null }` terug als er niets te doen is. Een globale Runner pakt in plaats daarvan de oudste stap op die op een willekeurige globale Runner wacht. |
 | `POST /job/:jobId/heartbeat` | De lease van de taak vernieuwen. Geeft 404 terug zodra de lease is verlopen of de taak klaar is. |
 | `POST /job/:jobId/result` | Het eindresultaat indienen. Wordt genegeerd als de lease al is doorgegaan. |
 | `POST /disconnect` | Afmelden bij een nette afsluiting. |
@@ -274,6 +305,10 @@ De Runner pakte de taak op en stopte toen met het verlengen van zijn lease: hij 
 
 :::details De Runner logt "No capability is enabled"
 Elke mogelijkheid staat uit voor deze Runner. Zet **Voert Runbooks uit** aan op de pagina van de Runner in OneUptime. Hij neemt de wijziging over bij zijn volgende heartbeat.
+:::
+
+:::details Een stap op een globale Runner mislukt omdat globale Runners een runbook-geheim niet mogen gebruiken
+De stap noemt een runbook-geheim waarvan de schakelaar **Globale Runners mogen dit geheim gebruiken** uit staat, dus de globale Runner kreeg het niet en de stap werd niet uitgevoerd. De fout noemt het geheim. Zet de schakelaar ervoor aan onder **Runbooks → Instellingen → Geheimen**, of kies een van uw eigen Runners voor de stap.
 :::
 
 ## Volgende stappen

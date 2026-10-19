@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { RUNNER_INGEST_URL } from "../Config";
 import RunnerIdentity from "../Utils/RunnerIdentity";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
+import GlobalRunnerMode from "../Utils/GlobalRunnerMode";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import { getSameServerRedirectCheck } from "Common/Utils/SameServerRedirect";
@@ -145,6 +146,11 @@ export interface HeartbeatResult {
         canRunAiCommands: boolean;
       }
     | undefined;
+  /*
+   * Whether the server says this is a global Runner (GlobalRunnerMode).
+   * Absent from a server that predates global Runners.
+   */
+  isGlobalRunner?: boolean | undefined;
 }
 
 export default class AgentClient {
@@ -164,6 +170,10 @@ export default class AgentClient {
         "capabilities"
       ] as JSONObject | undefined;
 
+      const isGlobalRunner: unknown = (res.data as JSONObject)?.[
+        "isGlobalRunner"
+      ];
+
       return {
         ok: true,
         statusCode: res.status,
@@ -176,6 +186,7 @@ export default class AgentClient {
               },
             }
           : {}),
+        ...(typeof isGlobalRunner === "boolean" ? { isGlobalRunner } : {}),
       };
     }
     logger.error(
@@ -196,12 +207,19 @@ export default class AgentClient {
    * and the caller sees no job.
    */
   public static async claimNextJob(): Promise<ClaimedJob | null> {
+    /*
+     * A global Runner asks only for what global Runners run, and the
+     * kubernetes-agent Runner only for kubectl; any other Runner for
+     * everything its capabilities allow.
+     */
     const res: AxiosResponse = await http.post(
       "/claim-next-job",
       authBody(
         KubernetesAgentMode.isActive()
           ? { stepTypes: [...KubernetesAgentMode.allowedStepTypes] }
-          : {},
+          : GlobalRunnerMode.isActive()
+            ? { stepTypes: GlobalRunnerMode.getAllowedStepTypes() }
+            : {},
       ),
     );
     if (res.status >= 200 && res.status < 300) {
@@ -214,7 +232,8 @@ export default class AgentClient {
       }
 
       const agentRefusal: string | null =
-        KubernetesAgentMode.getStepTypeRefusal(job.stepType);
+        KubernetesAgentMode.getStepTypeRefusal(job.stepType) ||
+        GlobalRunnerMode.getJobRefusal(job);
 
       if (agentRefusal) {
         logger.warn(

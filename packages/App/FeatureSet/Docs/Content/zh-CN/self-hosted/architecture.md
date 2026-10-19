@@ -55,6 +55,7 @@ flowchart TB
 | Telemetry writer | `app` 的一部分 | `telemetryWriter`（默认关闭） | 一个固定规模的层，执行每一次 ClickHouse 插入，使插入量无论 worker 扩展到多大都保持在限度内。 |
 | 探针 | `probe-1` | `probes` | 运行监视器检查并把结果发回。每个内置探针都是所有项目都能使用的全局探针。 |
 | Runner | `runner` | `runner` | 实例自己的 Runner，可以为每个项目运行 AI 代码修复。Runbook 的步骤运行在你安装到相应位置的 [Runner](/docs/runbooks/agents) 上。 |
+| 全局 Runner | `global-runner` | `globalRunner` | 一个[全局 Runner](/docs/runbooks/agents#全局-runner)：它运行所有未选择自己 Runner 的项目的 JavaScript 步骤，每个步骤都在只能访问互联网的沙箱中运行。它持有自己的密钥，不持有服务器的任何其他东西。 |
 | PostgreSQL | `postgres` | `postgresql`，或 `postgresOperator.cnpg` | 项目、监视器、事件、用户以及其他所有设置和状态。 |
 | ClickHouse | `clickhouse` | `clickhouse`，或 `clickhouseOperator.altinity` | 日志、指标、链路追踪、异常、性能剖析和监视器日志。 |
 | Valkey | `valkey` | `valkey` | 缓存、任务队列，以及待处理的推送回执之类的短期状态。 |

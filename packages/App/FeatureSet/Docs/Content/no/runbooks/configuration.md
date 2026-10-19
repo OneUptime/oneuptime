@@ -40,16 +40,16 @@ flowchart TB
 
 ## Slik sendes Runner-trinn ut
 
-JavaScript-, Bash-, SSH- og Kubernetes-trinn **kjører aldri på OneUptime Worker**. De sendes som jobber til en bestemt [runbook-agent](/docs/runbooks/agents): en liten prosess du installerer på en vert i din egen infrastruktur.
+JavaScript-, Bash-, SSH- og Kubernetes-trinn **kjører aldri på OneUptime Worker**. De sendes som jobber til en bestemt [runbook-agent](/docs/runbooks/agents): en liten prosess du installerer på en vert i din egen infrastruktur. Et JavaScript-trinn som ikke velger noen, går til de [globale Runnerne](/docs/runbooks/agents#globale-runnere) som OneUptime kjører for alle prosjekter.
 
 Utsendingsmodellen:
 
 1. Den som skriver runbook-trinnet, velger en Runner fra nedtrekkslisten.
-2. Når trinnet kjører, setter Workeren inn en rad i `RunnerJob` med `targetAgentId` satt til ID-en til den Runneren og statusen `Pending`.
-3. Nettopp den Runneren (og bare den) tar jobben atomisk, kjører den lokalt — Bash via `bash -c <script>`, JavaScript i en `isolated-vm`-sandkasse, SSH og Kubernetes med påloggingsinformasjonen til trinnet — og sender resultatet tilbake.
+2. Når trinnet kjører, setter Workeren inn en rad i `RunnerJob` med `targetAgentId` satt til ID-en til den Runneren og statusen `Pending`. Et JavaScript-trinn som ikke valgte noen, får i et prosjekt som bruker globale Runnere, `runsOnGlobalRunner` i stedet.
+3. Nettopp den Runneren (og bare den) tar jobben atomisk, kjører den lokalt — Bash via `bash -c <script>`, JavaScript i en `isolated-vm`-sandkasse, SSH og Kubernetes med påloggingsinformasjonen til trinnet — og sender resultatet tilbake. Enhver global Runner kan ta en jobb med `runsOnGlobalRunner`.
 4. Workeren fortsetter runbooket med resultatet.
 
-Det finnes ikke lenger noe miljøflagg `RUNBOOK_BASH_ENABLED`. Om disse trinnene virker i en installasjon, avhenger bare av om prosjektet har en tilkoblet Runner med **Kjører runbooks** slått på.
+Det finnes ikke lenger noe miljøflagg `RUNBOOK_BASH_ENABLED`. Om disse trinnene virker i en installasjon, avhenger bare av om prosjektet har en tilkoblet Runner med **Kjører runbooks** slått på. Et JavaScript-trinn fungerer også på en global Runner.
 
 ## Grenser for output og tidsavbrudd
 
@@ -92,11 +92,12 @@ Når et manuelt trinn krysses av via API-et, settes kjøringen i kø igjen for �
 
 ## Herdingsmerknader
 
-- **JavaScript, Bash, SSH og Kubernetes** kjører på en Runner-vert du kontrollerer, ikke på OneUptime Worker. JavaScript kjører i sitt eget `isolated-vm`-isolat med 128 MB minne og uten tilgang til Runnerens filsystem eller prosesser; det kan sende HTTP-forespørsler med `axios`, men forespørsler til private nettverk, loopback- og link-local-adresser avvises. Bash kjører via `bash -c`, med et tidsavbrudd som håndheves på Runneren.
+- **JavaScript, Bash, SSH og Kubernetes** kjører på en Runner-vert du kontrollerer, ikke på OneUptime Worker. JavaScript kjører i sitt eget `isolated-vm`-isolat med 128 MB minne og uten tilgang til Runnerens filsystem eller prosesser; det kan sende HTTP-forespørsler med `axios`, men forespørsler til private nettverk, loopback- og link-local-adresser avvises. Bash kjører via `bash -c`, med et tidsavbrudd som håndheves på Runneren. Et JavaScript-trinn som ikke velger noen, kjører i stedet på en global Runner.
 - **HTTP-trinn** bruker en tillatende statusvalidering, slik at et 4xx- eller 5xx-svar registreres som et mislykket trinn i stedet for å bli kastet som et unntak, og den registrerte outputen viser hva motparten faktisk returnerte. Omdirigeringer følges ikke. Workeren kaller aldri loopback- eller link-local-adresser, for eksempel et metadataendepunkt i skyen; på OneUptime Cloud avviser den også private nettverksadresser, og en selvhostet OneUptime avviser dem med `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **AI-trinn** ser aldri private hendelsesnotater eller meldinger fra Slack og Microsoft Teams, og outputen fra tidligere trinn skannes etter hemmeligheter, som sladdes før den når modellen. Innebygde bilder og lange kodede data utelates fra prompten. Se [AI](/docs/runbooks/authoring#ai).
+- **Globale Runnere** kjører bare JavaScript-trinn, hvert i en sandkasse som lages for trinnet og kastes etterpå, som bare når offentlige internettadresser, i høyst 5 minutter og med høyst tre trinn fra ett prosjekt om gangen. De får bare runbook-hemmelighetene fra trinnets eget prosjekt som er slått på for globale Runnere, og aldri påloggingsinformasjon; den medfølgende har sin egen nøkkel og ingenting annet fra serveren. Se [Globale Runnere](/docs/runbooks/agents#globale-runnere).
 - **Autentisering av Runnere** skjer med ID og hemmelig nøkkel, satt som miljøvariabler på Runner-containeren. På serveren kommer Runnerens gjeldende identitet fra databaseraden som hører til den framviste ID-en og nøkkelen: en klient kan ikke utgi seg for å være en annen Runner, heller ikke med en kompromittert nøkkel.
-- **Påloggingsinformasjon og hemmeligheter** er kryptert i hvile, returneres aldri av API-et og leveres bare ut til Runnerne de er tildelt, når disse tar et trinn.
+- **Påloggingsinformasjon og hemmeligheter** er kryptert i hvile, returneres aldri av API-et og leveres bare ut til Runnerne de er tildelt, når disse tar et trinn. En runbook-hemmelighet gis også til en global Runner som tar et trinn fra hemmelighetens eget prosjekt, når hemmeligheten lar globale Runnere bruke den.
 
 ## Databasetabeller
 
@@ -105,8 +106,8 @@ Når et manuelt trinn krysses av via API-et, settes kjøringen i kø igjen for �
 | `Runbook` | Malen: navn, slug, beskrivelse, `isEnabled`, etiketter og trinnene som JSON. |
 | `RunbookExecution` | Én rad per kjøring, med de valgfrie fremmednøklene `incidentId`, `alertId` og `scheduledMaintenanceId` og en JSON-matrise `stepExecutions` som fryser trinnene og tilstanden til hvert trinn. |
 | `RunbookRule` | Regler for automatisk start, med en diskriminator `triggerEntityType` (Incident, Alert, ScheduledMaintenance), en mange-til-mange-relasjon til runbookene som skal startes, og det de treffer på: en JSON-kolonne `criteria` (betingelsene) pluss mange-til-mange-koblinger til monitorer, alvorlighetsgrader for hendelser, alvorlighetsgrader for varsler, etiketter og monitoretiketter samt mønstre for tittel, beskrivelse, monitornavn og monitorbeskrivelse. |
-| `Runner` | Én rad per installert Runner: navn, hemmelig nøkkel, `lastAlive`, `connectionStatus`, vertsinformasjon og funksjoner. |
-| `RunnerJob` | Én rad per trinn sendt til en Runner: `targetAgentId` (Runneren forfatteren av trinnet valgte), trinntype, skript eller nyttelast, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` eller `Cancelled`), frist for overtakelse, lease, output og exitkode. |
+| `Runner` | Én rad per installert Runner: navn, hemmelig nøkkel, `lastAlive`, `connectionStatus`, vertsinformasjon og funksjoner. En global Runner har `isGlobalRunner` satt og intet prosjekt. |
+| `RunnerJob` | Én rad per trinn sendt til en Runner: `targetAgentId` (Runneren forfatteren av trinnet valgte), trinntype, skript eller nyttelast, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` eller `Cancelled`), frist for overtakelse, lease, output og exitkode. `runsOnGlobalRunner` merker et trinn som enhver global Runner kan ta. |
 | `RunbookCredential` | SSH- og Kubernetes-påloggingsinformasjon med krypterte hemmelige felt og Runnerne den er tildelt. |
 | `RunbookSecret` | Runbook-hemmeligheter, kryptert, og Runnerne som får motta dem. |
 

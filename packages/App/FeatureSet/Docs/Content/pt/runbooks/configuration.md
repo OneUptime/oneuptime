@@ -40,16 +40,16 @@ flowchart TB
 
 ## Como as etapas de Runner são despachadas
 
-As etapas JavaScript, Bash, SSH e Kubernetes **nunca rodam no Worker do OneUptime**. Elas são despachadas como trabalhos para um [agente de runbook](/docs/runbooks/agents) específico: um pequeno processo que você instala em um host da sua própria infraestrutura.
+As etapas JavaScript, Bash, SSH e Kubernetes **nunca rodam no Worker do OneUptime**. Elas são despachadas como trabalhos para um [agente de runbook](/docs/runbooks/agents) específico: um pequeno processo que você instala em um host da sua própria infraestrutura. Uma etapa JavaScript que não escolhe nenhum vai para os [Runners globais](/docs/runbooks/agents#runners-globais) que o OneUptime executa para todos os projetos.
 
 O modelo de despacho:
 
 1. Quem escreve a etapa do runbook escolhe um Runner na lista suspensa ao escrever a etapa.
-2. Quando a etapa roda, o Worker insere uma linha em `RunnerJob` com `targetAgentId` igual ao ID desse Runner e status `Pending`.
-3. Esse Runner específico (e só ele) assume o trabalho de forma atômica, executa-o localmente — Bash via `bash -c <script>`, JavaScript dentro de um sandbox `isolated-vm`, SSH e Kubernetes com a credencial da etapa — e devolve o resultado.
+2. Quando a etapa roda, o Worker insere uma linha em `RunnerJob` com `targetAgentId` igual ao ID desse Runner e status `Pending`. Uma etapa JavaScript que não escolheu nenhum, em um projeto que usa Runners globais, recebe `runsOnGlobalRunner` em vez disso.
+3. Esse Runner específico (e só ele) assume o trabalho de forma atômica, executa-o localmente — Bash via `bash -c <script>`, JavaScript dentro de um sandbox `isolated-vm`, SSH e Kubernetes com a credencial da etapa — e devolve o resultado. Qualquer Runner global pode assumir um trabalho com `runsOnGlobalRunner`.
 4. O Worker retoma o runbook com o resultado.
 
-Não existe mais o sinalizador de ambiente `RUNBOOK_BASH_ENABLED`. Se essas etapas funcionam em uma instalação depende só de o projeto ter um Runner conectado com **Executa runbooks** ligado.
+Não existe mais o sinalizador de ambiente `RUNBOOK_BASH_ENABLED`. Se essas etapas funcionam em uma instalação depende só de o projeto ter um Runner conectado com **Executa runbooks** ligado. Uma etapa JavaScript também funciona em um Runner global.
 
 ## Limites de saída e timeouts
 
@@ -92,11 +92,12 @@ Quando uma etapa manual é marcada pela API, a execução volta para a fila para
 
 ## Notas de proteção
 
-- **JavaScript, Bash, SSH e Kubernetes** rodam em um host de Runner que você controla, não no Worker do OneUptime. O JavaScript roda em um isolado `isolated-vm` separado com 128 MB de memória e sem acesso ao sistema de arquivos nem aos processos do Runner; ele pode fazer requisições HTTP com `axios`, mas as requisições para redes privadas e para endereços de loopback e link-local são recusadas. O Bash roda via `bash -c`, com o timeout aplicado no Runner.
+- **JavaScript, Bash, SSH e Kubernetes** rodam em um host de Runner que você controla, não no Worker do OneUptime. O JavaScript roda em um isolado `isolated-vm` separado com 128 MB de memória e sem acesso ao sistema de arquivos nem aos processos do Runner; ele pode fazer requisições HTTP com `axios`, mas as requisições para redes privadas e para endereços de loopback e link-local são recusadas. O Bash roda via `bash -c`, com o timeout aplicado no Runner. Uma etapa JavaScript que não escolhe nenhum roda em um Runner global em vez disso.
 - **As etapas HTTP** usam uma validação de status permissiva, então uma resposta 4xx ou 5xx é registrada como etapa com falha em vez de lançar uma exceção, e a saída capturada reflete o que o serviço remoto realmente devolveu. Redirecionamentos não são seguidos. O Worker nunca chama endereços de loopback ou link-local, como um endpoint de metadados da nuvem; no OneUptime Cloud ele também recusa endereços de rede privada, e um OneUptime auto-hospedado os recusa com `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **As etapas de IA** nunca veem as notas privadas dos incidentes nem as mensagens do Slack e do Microsoft Teams, e a saída das etapas anteriores é analisada em busca de segredos, que são ocultados antes de chegar ao modelo. Imagens incorporadas e dados codificados longos ficam fora do prompt. Consulte [AI](/docs/runbooks/authoring#ai).
+- **Runners globais**: executam apenas etapas JavaScript, cada uma em um sandbox criado para essa etapa e descartado depois, que só alcança endereços públicos da internet, por no máximo 5 minutos, e no máximo três etapas de um mesmo projeto por vez. Eles recebem apenas os segredos de runbook do próprio projeto da etapa que estão ligados para Runners globais, e nunca uma credencial; o incluído tem a própria chave e nada mais do servidor. Consulte [Runners globais](/docs/runbooks/agents#runners-globais).
 - **A autenticação dos Runners** é feita por ID e chave secreta, definidos no contêiner do Runner como variáveis de ambiente. No servidor, a identidade válida do Runner vem da linha do banco de dados correspondente ao ID e à chave apresentados: um cliente não consegue se passar por outro Runner nem com uma chave comprometida.
-- **Credenciais e segredos** são criptografados em repouso, nunca devolvidos pela API e entregues apenas aos Runners aos quais estão atribuídos, quando eles assumem uma etapa.
+- **Credenciais e segredos** são criptografados em repouso, nunca devolvidos pela API e entregues apenas aos Runners aos quais estão atribuídos, quando eles assumem uma etapa. Um segredo de runbook também é entregue a um Runner global que assume uma etapa do próprio projeto do segredo, quando o segredo permite que Runners globais o usem.
 
 ## Tabelas do banco de dados
 
@@ -105,8 +106,8 @@ Quando uma etapa manual é marcada pela API, a execução volta para a fila para
 | `Runbook` | O modelo: nome, slug, descrição, `isEnabled`, rótulos e as etapas em JSON. |
 | `RunbookExecution` | Uma linha por execução, com as chaves estrangeiras opcionais `incidentId`, `alertId` e `scheduledMaintenanceId` e um array JSON `stepExecutions` com um instantâneo das etapas e do estado de cada uma. |
 | `RunbookRule` | As regras de disparo automático, com um discriminador `triggerEntityType` (Incident, Alert, ScheduledMaintenance), uma relação muitos-para-muitos com os runbooks a iniciar e aquilo que comparam: uma coluna JSON `criteria` (as condições) mais vínculos muitos-para-muitos com monitores, severidades de incidente, severidades de alerta, rótulos e rótulos de monitor, e padrões de título, descrição, nome de monitor e descrição de monitor. |
-| `Runner` | Uma linha por Runner instalado: nome, chave secreta, `lastAlive`, `connectionStatus`, informações do host e capacidades. |
-| `RunnerJob` | Uma linha por etapa despachada para um Runner: `targetAgentId` (o Runner escolhido por quem escreveu a etapa), tipo de etapa, script ou payload, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` ou `Cancelled`), prazo de assunção, lease, saída e código de saída. |
+| `Runner` | Uma linha por Runner instalado: nome, chave secreta, `lastAlive`, `connectionStatus`, informações do host e capacidades. Um Runner global tem `isGlobalRunner` definido e nenhum projeto. |
+| `RunnerJob` | Uma linha por etapa despachada para um Runner: `targetAgentId` (o Runner escolhido por quem escreveu a etapa), tipo de etapa, script ou payload, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` ou `Cancelled`), prazo de assunção, lease, saída e código de saída. `runsOnGlobalRunner` marca uma etapa que qualquer Runner global pode assumir. |
 | `RunbookCredential` | As credenciais SSH e Kubernetes, com os campos secretos criptografados, e os Runners aos quais estão atribuídas. |
 | `RunbookSecret` | Os segredos de runbook, criptografados, e os Runners que podem recebê-los. |
 

@@ -341,6 +341,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/RunbookSchedulerPostgres.test.ts --forceExit
 
+      # Clones the migrated RunnerJob and Project tables into an isolated
+      # schema and runs the global Runners' claim against them: the oldest
+      # global JavaScript step of whichever project, never a step aimed at a
+      # project's own Runner, never a Bash or AI-composed row, never a step of
+      # a project that turned global Runners off (one already waiting
+      # included), at most three of one project's steps at once, and global
+      # Runners claiming at the same moment never take the same step, nor
+      # more than three of one project's.
+      - name: Test the global Runners' claim against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_GLOBAL_RUNNER_CLAIM_TESTS: "true"
+          GLOBAL_RUNNER_CLAIM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          GLOBAL_RUNNER_CLAIM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          GLOBAL_RUNNER_CLAIM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/GlobalRunnerClaimPostgres.test.ts --forceExit
+
       # Clones the migrated Incident, Alert, Scheduled Maintenance, episode and
       # Monitor tables - each with its label and owner tables - into an
       # isolated schema, and looks records up the way Run Workflow does: by

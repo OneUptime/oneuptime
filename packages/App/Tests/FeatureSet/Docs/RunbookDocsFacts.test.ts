@@ -51,6 +51,10 @@ import RunbookStepType, {
 } from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import {
+  RunnerChoiceRefusal,
+  describeRunnerChoiceRefusal,
+} from "Common/Types/Runner/RunnerChoice";
+import {
   DEFAULT_RUNBOOK_SCHEDULE_MISSED_RUN_POLICY,
   DEFAULT_RUNBOOK_SCHEDULE_OVERLAP_POLICY,
   RUNBOOK_SCHEDULE_HOUR_INTERVALS,
@@ -194,6 +198,12 @@ const RUNNER_KUBERNETES_EXECUTOR: string = readSource(
 );
 
 const STEPS_PAGE: string = readDashboard("Pages/Runbook/View/Steps.tsx");
+// The Runner picker every Runner-run step draws (its Runner field).
+const RUNNER_PICKER: string = readDashboard(
+  "Components/Runner/RunnerPicker.tsx",
+);
+// Where a step runs, and the refusals of a step that cannot run anywhere.
+const RUNNER_CHOICE: string = readSource("Common/Types/Runner/RunnerChoice.ts");
 const EXECUTION_VIEW: string = readDashboard(
   "Pages/Runbook/View/ExecutionView.tsx",
 );
@@ -1219,10 +1229,22 @@ describe("running a runbook", () => {
       expect(RUNNING).toContain(`"${message}"`);
     }
 
-    const missingRunner: string =
-      "Bash step is missing a Runner. Pick one under Runbooks → Runners.";
+    /*
+     * A Bash step with no Runner: the refusal the one "global by default"
+     * rule writes (RunnerChoice), quoted with the step type it names.
+     */
+    const missingRunner: string = describeRunnerChoiceRefusal({
+      refusal: RunnerChoiceRefusal.NeedsOwnRunner,
+      stepType: RunbookStepType.Bash,
+    });
 
-    expect(STEP_EXECUTORS).toContain(`"${missingRunner}"`);
+    expect(missingRunner).toBe(
+      "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.",
+    );
+    expect(RUNNER_CHOICE).toContain(
+      "steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.`;",
+    );
+    expect(STEP_EXECUTORS).toContain("getRunnerChoiceRefusalFromStep({");
     expect(RUNNING).toContain(`"${missingRunner}"`);
   });
 
@@ -1370,8 +1392,19 @@ describe("authoring a runbook", () => {
 
     expect(fields.length).toBeGreaterThanOrEqual(25);
 
+    /*
+     * The Runner field is the Runner picker's, which every step that runs on
+     * a Runner draws (RunnerPicker); every other field is the Steps page's own.
+     */
+    expect(STEPS_PAGE).toContain("<RunnerPicker");
+
     for (const field of new Set(fields)) {
-      expect({ field, drawn: STEPS_PAGE.includes(`"${field}"`) }).toEqual({
+      expect({
+        field,
+        drawn:
+          STEPS_PAGE.includes(`"${field}"`) ||
+          RUNNER_PICKER.includes(`translateText("${field}")`),
+      }).toEqual({
         field,
         drawn: true,
       });
@@ -1794,7 +1827,9 @@ describe("credentials and secrets", () => {
       "Name",
       "Description",
       "Secret Value",
-      "Runbook agents which have access to this secret",
+      "Your Runners that can use this secret",
+      // Asked only on a server with global Runners.
+      "Global Runners can use this secret",
       "Update Secret Value",
     ]) {
       expect({
@@ -1813,7 +1848,7 @@ describe("credentials and secrets", () => {
     expect(CREDENTIALS).toContain(
       "On the **Secret** step, enter a **Name** (letters, numbers, hyphens and underscores)",
     );
-    expect(CREDENTIALS).toContain("On the **Access** step, pick the Runners");
+    expect(CREDENTIALS).toContain("On the **Access** step, pick your Runners");
   });
 });
 

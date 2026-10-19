@@ -12,7 +12,7 @@ Runbook は、その **ステップ** ページでステップの順序付きリ
 ## 始める前に
 
 - **Runbook を書けるロール。** Project Owner、Project Admin、Runbook Admin は Runbook を作成し、そのステップを保存できます。詳細な権限の場合は **Create Runbook** と **Edit Runbook** が必要です。[権限](/docs/runbooks/configuration#権限) を参照してください。
-- **JavaScript、Bash、SSH、Kubernetes のステップ用の Runner。** これらのステップは自社インフラの [Runner](/docs/runbooks/agents) で実行され、OneUptime Worker では実行されません。先にインストールしてください。
+- **Bash、SSH、Kubernetes のステップ用の Runner。** これらのステップは自社インフラの [Runner](/docs/runbooks/agents) で実行され、OneUptime Worker では実行されません。先にインストールしてください。JavaScript のステップは、自社の Runner を選ばない限り [グローバル Runner](/docs/runbooks/agents#グローバル-runner) で実行されます。
 - **SSH と Kubernetes のステップ用の認証情報と、それを読む権限。** [Runbook の認証情報](/docs/runbooks/credentials) を参照してください。ステップが認証情報を指定できるのは、Runbook の認証情報を読む権限がある場合だけです。Project Owner、Project Admin、または **Read Runbook Credential** が必要で、Runbook Admin には含まれません。
 - **AI ステップ用の LLM プロバイダー。** [LLM プロバイダー](/docs/ai/llm-provider) を参照してください。
 
@@ -72,13 +72,13 @@ Runbook は、その **ステップ** ページでステップの順序付きリ
 
 ### JavaScript
 
-自社インフラの [Runbook エージェント](/docs/runbooks/agents) 上の `isolated-vm` サンドボックスで実行される JavaScript です。OneUptime Worker では実行されません。
+OneUptime Worker ではなく [Runbook エージェント](/docs/runbooks/agents) 上の `isolated-vm` サンドボックスで実行される JavaScript です。自社の Runner で実行されるか、ステップが Runner を選ばない場合は [グローバル Runner](/docs/runbooks/agents#グローバル-runner) で実行されます。
 
 | 項目 | 内容 | 既定値 |
 | --- | --- | --- |
-| **Runner** | ステップを実行する Runner です。ジョブを取得できるのはこの Runner だけです。 | — |
+| **Runner** | ステップを実行する Runner です。 **グローバル Runner** か、自社の Runner のいずれかです。ジョブを取得できるのは選んだ Runner だけですが、 **グローバル Runner** のステップはどのグローバル Runner でも取得できます。 | **グローバル Runner** （ある場合） |
 | **スクリプト** | 実行する JavaScript です。値を記録するには `return` で返します。`console.log` の各行も記録されます。エラーがスローされるとステップは失敗します。 | — |
-| **実行タイムアウト** | Runner がサンドボックスを破棄するまでにスニペットを実行させる時間です。 | 30 秒 |
+| **実行タイムアウト** | Runner がサンドボックスを破棄するまでにスニペットを実行させる時間です。 グローバル Runner では最長 5 分です。 | 30 秒 |
 | **取得のタイムアウト** | Worker が Runner によるジョブの取得を待つ時間です。 | 2 分 |
 
 ```javascript

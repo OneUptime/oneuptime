@@ -12,7 +12,7 @@ Vous écrivez un runbook sous forme de liste ordonnée d'étapes, sur sa page **
 ## Avant de commencer
 
 - **Un rôle qui rédige des runbooks.** Project Owner, Project Admin et Runbook Admin créent des runbooks et enregistrent leurs étapes. Avec des autorisations granulaires, il vous faut **Create Runbook** et **Edit Runbook**. Voir [Autorisations](/docs/runbooks/configuration#autorisations).
-- **Un agent Runbook, pour les étapes JavaScript, Bash, SSH et Kubernetes.** Ces étapes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure, jamais sur le Worker OneUptime. Installez-en un d'abord.
+- **Un agent Runbook, pour les étapes Bash, SSH et Kubernetes.** Ces étapes s'exécutent sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure, jamais sur le Worker OneUptime. Installez-en un d'abord. Une étape JavaScript s'exécute sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux), sauf si vous choisissez l'un des vôtres.
 - **Un identifiant, pour les étapes SSH et Kubernetes, et l'autorisation de le lire.** Voir [Identifiants de runbook](/docs/runbooks/credentials). Une étape ne peut désigner un identifiant que si vous pouvez lire les identifiants de runbook : Project Owner, Project Admin, ou **Read Runbook Credential**. Runbook Admin ne l'inclut pas.
 - **Un fournisseur LLM, pour les étapes IA.** Voir [Fournisseurs LLM](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Utilisez-la pour ce que seul un humain peut vérifier ou faire : « Confirmer da
 
 ### JavaScript
 
-Un extrait de JavaScript, exécuté dans un bac à sable `isolated-vm` sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure, pas sur le Worker OneUptime.
+Un extrait de JavaScript, exécuté dans un bac à sable `isolated-vm` sur un [agent Runbook](/docs/runbooks/agents), pas sur le Worker OneUptime : sur l'un des vôtres, ou sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux) quand l'étape n'en choisit aucun.
 
 | Champ | Ce qu'il fait | Valeur par défaut |
 | --- | --- | --- |
-| **Agent Runbook** | L'agent Runbook qui exécute l'étape. Seul cet agent peut prendre en charge la tâche. | — |
+| **Agent Runbook** | L'agent Runbook qui exécute l'étape : **Agent Runbook global**, ou l'un des vôtres. Seul l'agent que vous choisissez peut prendre en charge la tâche ; n'importe quel agent global peut prendre en charge une étape sur **Agent Runbook global**. | **Agent Runbook global**, s'il y en a un |
 | **Script** | Le JavaScript à exécuter. Renvoyez une valeur avec `return` pour la capturer ; chaque ligne de `console.log` est capturée aussi. Lever une erreur fait échouer l'étape. | — |
-| **Délai d'exécution** | Combien de temps l'agent Runbook laisse tourner l'extrait avant de détruire le bac à sable. | 30 secondes |
+| **Délai d'exécution** | Combien de temps l'agent Runbook laisse tourner l'extrait avant de détruire le bac à sable. Un agent Runbook global le laisse tourner 5 minutes au plus. | 30 secondes |
 | **Délai de prise en charge** | Combien de temps le Worker attend que l'agent Runbook prenne la tâche en charge. | 2 minutes |
 
 ```javascript

@@ -56,6 +56,14 @@ services:
     depends_on:
       <<: *common-depends-on
 
+  global-runner:
+    image: oneuptime/runner:${APP_TAG}
+    extends:
+      file: ./docker-compose.base.yml
+      service: global-runner
+    depends_on:
+      <<: *common-depends-on
+
   ingress:
     image: oneuptime/nginx:${APP_TAG}
     extends:

@@ -1,10 +1,11 @@
 # Runbook 에이전트
 
-대시보드에서 **Runner**라고 부르는 **Runbook 에이전트**는 Runbook의 JavaScript, Bash, SSH, Kubernetes 단계를 **자체 인프라에서** 실행하는 작은 자체 호스팅 프로세스입니다. OneUptime Worker는 스크립트를 실행하지 않습니다. Worker는 스크립트를 큐에 넣고, 단계 작성자가 고른 Runner가 각 작업을 가져가 실행한 뒤 결과를 돌려보냅니다. 이 페이지는 Runner를 설치하고 운영하는 사람을 위한 것입니다.
+대시보드에서 **Runner**라고 부르는 **Runbook 에이전트**는 Runbook의 JavaScript, Bash, SSH, Kubernetes 단계를 **자체 인프라에서** 실행하는 작은 자체 호스팅 프로세스입니다. OneUptime Worker는 스크립트를 실행하지 않습니다. Worker는 스크립트를 큐에 넣고, 단계 작성자가 고른 Runner가 각 작업을 가져가 실행한 뒤 결과를 돌려보냅니다. 이 페이지는 Runner를 설치하고 운영하는 사람을 위한 것입니다. Runner를 고르지 않은 JavaScript 단계는 대신 [글로벌 Runner](#글로벌-runner)에서 실행됩니다. 글로벌 Runner는 OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다.
 
 :::cards
 - [Runner 설치](#runner-설치): 대시보드에서 연결된 컨테이너까지 다섯 단계.
 - [단계에 Runner 지정](#단계에-runner-지정): 단계를 실행할 Runner에 연결합니다.
+- [글로벌 Runner](#글로벌-runner): OneUptime이 모든 프로젝트를 위해 실행하는 Runner와 그 Runner가 실행하는 것입니다.
 - [타임아웃](#타임아웃): claim 타임아웃과 실행 타임아웃, 그리고 둘의 관계.
 - [환경 변수](#환경-변수): 컨테이너가 시작할 때 읽는 것.
 :::
@@ -32,7 +33,7 @@ flowchart TB
 1. OneUptime에서 Runner를 만듭니다. OneUptime이 Runner의 ID와 비밀 키를 생성합니다.
 2. 자체 인프라의 호스트에서 그 ID, 키, OneUptime URL로 Runner 컨테이너를 실행합니다.
 3. Runner는 5초마다 OneUptime에 작업을 요청하고, 60초마다 살아 있다고 보고합니다.
-4. JavaScript, Bash, SSH 또는 Kubernetes 단계를 작성할 때 드롭다운에서 Runner를 고릅니다. 단계는 그 Runner에 연결됩니다.
+4. JavaScript, Bash, SSH 또는 Kubernetes 단계를 작성할 때 드롭다운에서 Runner를 고릅니다. 단계는 그 Runner에 연결됩니다. JavaScript 단계는 드롭다운이 골라 두는 **글로벌 Runner**를 그대로 둘 수 있습니다.
 5. 단계가 실행되면 Worker는 `targetAgentId`를 그 Runner로 설정한 작업을 큐에 넣습니다. 그 Runner만 작업을 가져갈 수 있습니다.
 6. Runner는 작업을 로컬에서 실행하고(Bash는 `bash -c <script>`, JavaScript는 `isolated-vm` 샌드박스, SSH와 Kubernetes는 단계의 자격 증명으로 SSH 연결 또는 클러스터 API 서버 호출), 결과를 기록해 돌려보냅니다. Worker는 그 결과로 Runbook을 재개합니다.
 
@@ -48,6 +49,35 @@ OneUptime Worker에서 스크립트를 실행하는 데에는 두 가지 문제�
 - **도달 범위.** 쓸모 있는 단계 대부분은 OneUptime이 아니라 _자체_ 인프라에 작용합니다("이 서비스를 다시 시작", "내부 데이터베이스에서 레코드 조회").
 
 Runner를 쓰면 이런 단계가 여러분이 관리하는 호스트에서 실행되고, 그 호스트에 무엇을 허용할지 여러분이 정합니다. HTTP 요청과 AI 단계는 자체 네트워크의 무엇도 필요하지 않으므로 계속 Worker에서 실행됩니다.
+
+## 글로벌 Runner
+
+글로벌 Runner는 OneUptime이 모든 프로젝트를 위해 실행하는 Runner입니다. 자신의 Runner를 고르지 않은 JavaScript 단계는 그중 하나에서 실행되므로, 아무것도 설치하기 전에 단계를 작성할 수 있습니다. **런북 → Runbook 에이전트**는 내 Runner 위의 **글로벌 Runner** 아래에 이들을 나열하며, JavaScript 단계의 **Runner** 드롭다운은 **글로벌 Runner**를 맨 먼저 보여 줍니다.
+
+| | 글로벌 Runner | 내 Runner |
+| --- | --- | --- |
+| 실행하는 단계 | JavaScript | JavaScript, Bash, SSH, Kubernetes |
+| 단계가 접근할 수 있는 곳 | 공용 인터넷 주소 | 호스트가 접근할 수 있는 곳 |
+| 단계의 최대 실행 시간 | 5분 | 1시간 |
+| Runbook 시크릿 | 글로벌 Runner에 사용을 허용한 것 | 그 Runner에 할당한 것 |
+| 자격 증명 | 없음 | 그 Runner에 할당한 것 |
+
+글로벌 Runner는 여러 프로젝트의 단계를 실행하므로, 각 단계는 다른 모든 단계와 분리됩니다.
+
+- 각 단계는 그 단계를 위해 만들어지고 끝나면 버려지는 자체 `isolated-vm` 샌드박스에서 실행됩니다. 파일도, 프로세스도, 환경 변수도 없으며, 한 단계에서 다음 단계로 아무것도 남지 않습니다.
+- HTTP 요청은 공용 인터넷 주소에만 닿으며, 사설, 루프백, 링크 로컬 주소나 클라우드 메타데이터 엔드포인트에는 절대 닿지 않습니다. 그래서 글로벌 Runner는 여러분의 네트워크에 절대 닿지 않습니다.
+- Runbook 시크릿은 시크릿의 **글로벌 Runner가 이 시크릿을 사용할 수 있음** 스위치가 켜져 있을 때만, 그리고 시크릿이 속한 프로젝트의 단계에 대해서만 전달됩니다. 자격 증명은 절대 전달되지 않습니다.
+- 한 프로젝트가 글로벌 Runner에서 동시에 실행하는 단계는 최대 세 개이므로, 어떤 프로젝트도 글로벌 Runner를 독차지하지 못합니다.
+
+여러분의 네트워크에 접근해야 하는 단계나, 직접 관리하는 호스트에 두고 싶은 단계에는 내 Runner 중 하나를 고르세요. 모든 단계를 내 Runner에서 실행하려면 **런북 → Runbook 에이전트** 맨 아래의 **글로벌 Runner 사용**을 끕니다. 그러면 Runner를 고르지 않은 JavaScript 단계는 내 Runner 중 하나를 고를 때까지 그 이유를 알리며 실패합니다. 내 Runner를 고른 단계는 어느 경우든 그 Runner를 유지합니다.
+
+### 글로벌 Runner의 출처
+
+OneUptime Cloud에서는 OneUptime이 글로벌 Runner를 실행합니다. 자체 호스팅 설치는 자체 글로벌 프로브를 실행하는 것처럼 기본적으로 자체 글로벌 Runner를 하나 실행합니다. Docker Compose의 `global-runner` 서비스와 Helm 차트의 `globalRunner` 배포입니다. 이 Runner는 자체 키인 `GLOBAL_RUNNER_KEY`를 가지며, 서버의 다른 것은 아무것도 갖지 않습니다.
+
+마스터 관리자는 다른 호스트에서 단계를 실행하도록 글로벌 Runner를 더 추가할 수 있습니다. Admin Dashboard에서 **설정**, 이어서 **글로벌 Runner**를 열고 하나를 만든 다음, 그 **ID 및 키 표시**가 알려 주는 명령을 인터넷에 접근할 수 있는 호스트에서 실행합니다.
+
+함께 제공되는 글로벌 Runner를 끄려면 Docker Compose의 `config.env`에서 `GLOBAL_RUNNER_REPLICAS=0`을 설정하거나, Helm 차트에서 `globalRunner.enabled`를 `false`로 설정합니다. 글로벌 Runner가 전혀 없으면 **런북 → Runbook 에이전트**에는 내 Runner만 표시되며, 모든 JavaScript 단계는 그중 하나를 고릅니다.
 
 ## 시작하기 전에
 
@@ -114,11 +144,11 @@ Runbook의 **단계**에 JavaScript, Bash, SSH 또는 Kubernetes 단계를 추�
 
 ### Runner 선택
 
-단계의 **Runner** 드롭다운에는 프로젝트의 모든 Runner와 각 Runner의 연결 여부가 표시됩니다. 프로젝트에 아직 Runner가 없으면 단계가 그렇게 알려 주고 **Runbooks › Runners**를 안내합니다.
+단계의 **Runner** 드롭다운에는 프로젝트의 모든 Runner와 각 Runner의 연결 여부가 표시됩니다. 프로젝트에 아직 Runner가 없으면 단계가 그렇게 알려 주고 **Runbooks › Runners**를 안내합니다. JavaScript 단계의 드롭다운에는 **글로벌 Runner**도 맨 먼저 표시되며, 내 Runner 중 하나를 고를 때까지 그것이 선택되어 있습니다.
 
 ### 단계 저장
 
-**Save Steps**를 클릭합니다. 실행이 그 단계에 도달하면 Worker는 그 Runner의 ID로 작업을 큐에 넣고, 그 Runner만 작업을 가져갈 수 있습니다.
+**Save Steps**를 클릭합니다. 실행이 그 단계에 도달하면 Worker는 그 Runner의 ID로 작업을 큐에 넣고, 그 Runner만 작업을 가져갈 수 있습니다. **글로벌 Runner**로 지정된 단계는 비어 있는 글로벌 Runner를 기다립니다.
 :::
 
 Bash는 `bash -c`로 실행됩니다. JavaScript는 Runner의 `isolated-vm` 샌드박스에서 파일 시스템이나 프로세스에 접근하지 않고 실행됩니다. `axios`로 공개 HTTP API를 호출할 수 있지만 사설 네트워크의 주소는 호출할 수 없습니다. SSH와 Kubernetes 단계는 단계가 지정한 [자격 증명](/docs/runbooks/credentials)을 사용하며, 그 자격 증명은 같은 Runner에 할당되어 있어야 합니다.
@@ -176,7 +206,7 @@ Runbook 실행은 처음부터 끝까지 하나의 Worker에서 실행되므로,
 
 ### 온라인 에이전트가 없음
 
-단계가 실행될 때 선택한 Runner가 오프라인이면, 작업은 claim timeout이 지날 때까지 `Pending`으로 기다린 뒤 "No runbook agent picked up this step before the wait window expired."와 함께 단계가 실패합니다. 실제로 Runbook을 실행하기 전에 **Runbook 에이전트** 페이지에서 커버리지를 확인하세요.
+단계가 실행될 때 선택한 Runner가 오프라인이면, 작업은 claim timeout이 지날 때까지 `Pending`으로 기다린 뒤 "No runbook agent picked up this step before the wait window expired."와 함께 단계가 실패합니다. 실제로 Runbook을 실행하기 전에 **Runbook 에이전트** 페이지에서 커버리지를 확인하세요. 글로벌 Runner의 단계는 대신 "No global Runner picked up this step before the wait window expired."와 함께 실패합니다.
 
 ### 출력 한도
 
@@ -235,6 +265,7 @@ docker rm -f oneuptime-runner
 
 - `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — 에이전트 레코드를 관리합니다.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer`(역할) — `RunbookAdmin`은 Runbook, 그 규칙, 그것이 실행되는 Runner를 구성하고 Runbook을 실행합니다. `RunbookMember`는 Runbook과 그 실행을 열고 Runbook을 실행합니다(실행을 시작하고, 단계를 완료하거나 건너뛰고, 실행을 취소합니다). 하지만 Runbook이나 Runner를 만들거나 바꾸거나 삭제하지는 않습니다. `RunbookViewer`는 Runbook과 그 실행을 읽기만 하고 아무것도 실행하지 않습니다. `RunbookAdmin`은 위의 세분화된 권한을 모두 묶은 것입니다.
+- 글로벌 Runner는 어떤 프로젝트에도 속하지 않습니다. 글로벌 Runner를 추가, 변경, 삭제하는 것은 Admin Dashboard에서 마스터 관리자만 할 수 있습니다. 프로젝트의 Runner를 읽을 수 있는 사람은 모두 글로벌 Runner를 볼 수 있으며, **글로벌 Runner 사용**을 끄려면 프로젝트를 편집할 권한이 필요합니다.
 
 Runbook을 트리거하려면(즉 단계를 Runner에 보내려면) Runbook을 실행하는 역할(`ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin`, `RunbookMember`)이나 `CreateRunbookExecution`이 필요합니다. 실행을 완료, 건너뛰기, 취소할 때는 `EditRunbookExecution`도 받아들입니다. 역할은 그 범위가 미치는 Runbook만 실행합니다.
 
@@ -247,7 +278,7 @@ Runner의 키는 Project Owner, Project Admin, Runbook Admin만 읽을 수 있�
 | 엔드포인트 | 용도 |
 | --- | --- |
 | `POST /heartbeat` | 생존 신호입니다. Runner의 마지막 확인 시각, 버전, 호스트 정보를 갱신하고 프로젝트가 부여한 기능을 돌려줍니다. |
-| `POST /claim-next-job` | 이 Runner의 ID를 대상으로 하는 `Pending` 작업 중 가장 오래된 것을 원자적으로 가져갑니다. 할 일이 없으면 `{ job: null }`을 돌려줍니다. |
+| `POST /claim-next-job` | 이 Runner의 ID를 대상으로 하는 `Pending` 작업 중 가장 오래된 것을 원자적으로 가져갑니다. 할 일이 없으면 `{ job: null }`을 돌려줍니다. 글로벌 Runner는 대신 아무 글로벌 Runner나 기다리는 가장 오래된 단계를 가져갑니다. |
 | `POST /job/:jobId/heartbeat` | 작업의 리스를 갱신합니다. 리스가 만료되었거나 작업이 끝났으면 404를 돌려줍니다. |
 | `POST /job/:jobId/result` | 최종 결과를 제출합니다. 리스가 이미 넘어갔으면 무시됩니다. |
 | `POST /disconnect` | 정상 종료 시 연결을 끊습니다. |
@@ -274,6 +305,10 @@ Runner가 작업을 가져간 뒤 리스 갱신을 멈췄습니다. 충돌했거
 
 :::details Runner 로그에 "No capability is enabled"가 나옴
 이 Runner의 모든 기능이 꺼져 있습니다. OneUptime의 Runner 페이지에서 **런북 실행**을 켜세요. Runner는 다음 하트비트 때 변경을 반영합니다.
+:::
+
+:::details 글로벌 Runner가 Runbook 시크릿을 사용할 수 없어 글로벌 Runner의 단계가 실패함
+단계가 **글로벌 Runner가 이 시크릿을 사용할 수 있음** 스위치가 꺼진 Runbook 시크릿을 지정하므로, 글로벌 Runner는 그 시크릿을 받지 못했고 단계는 실행되지 않았습니다. 오류에 시크릿 이름이 표시됩니다. **런북 → 설정 → 시크릿**에서 그 시크릿의 스위치를 켜거나, 단계에 내 Runner 중 하나를 고르세요.
 :::
 
 ## 다음 단계

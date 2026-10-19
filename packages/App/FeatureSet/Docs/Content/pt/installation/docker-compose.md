@@ -139,6 +139,7 @@ O último comando imprime `0`: não sobrou nenhum segredo de exemplo. O laço us
 | `REGISTER_PROBE_KEY` | O registro de sondas na sua instância. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | As sondas globais que o Docker Compose pode executar (`probe-1` é executada por padrão). |
 | `ONEUPTIME_RUNNER_KEY` | O Runner incluído. |
+| `GLOBAL_RUNNER_KEY` | O Runner global incluído, que executa as etapas JavaScript de todos os projetos. |
 
 > [!IMPORTANT]
 > Defina os segredos antes da primeira inicialização e mantenha-os depois. O PostgreSQL só aceita a senha quando cria o banco de dados, e mudar `ENCRYPTION_SECRET` depois torna ilegível todo valor criptografado com o anterior. Se o `DATABASE_PASSWORD` ainda for o segredo de exemplo na primeira inicialização, o `npm start` dá a ele um valor aleatório antes que o PostgreSQL crie o banco de dados.

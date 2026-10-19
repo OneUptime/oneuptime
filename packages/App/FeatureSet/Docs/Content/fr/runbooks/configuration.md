@@ -40,16 +40,16 @@ flowchart TB
 
 ## Comment les étapes des agents Runbook sont envoyées
 
-Les étapes JavaScript, Bash, SSH et Kubernetes **ne s'exécutent jamais sur le Worker OneUptime**. Elles sont envoyées comme tâches à un [agent de runbook](/docs/runbooks/agents) précis : un petit processus que vous installez sur un hôte de votre propre infrastructure.
+Les étapes JavaScript, Bash, SSH et Kubernetes **ne s'exécutent jamais sur le Worker OneUptime**. Elles sont envoyées comme tâches à un [agent de runbook](/docs/runbooks/agents) précis : un petit processus que vous installez sur un hôte de votre propre infrastructure. Une étape JavaScript qui n'en choisit aucun va aux [agents Runbook globaux](/docs/runbooks/agents#agents-runbook-globaux) qu'OneUptime fait tourner pour chaque projet.
 
 Le modèle d'envoi :
 
 1. L'auteur de l'étape de runbook choisit un agent Runbook dans la liste déroulante en écrivant l'étape.
-2. Quand l'étape s'exécute, le Worker insère une ligne dans `RunnerJob` dont `targetAgentId` vaut l'ID de cet agent et dont le statut est `Pending`.
-3. Cet agent précis (et lui seul) prend la tâche en charge de façon atomique, l'exécute localement — Bash via `bash -c <script>`, JavaScript dans un bac à sable `isolated-vm`, SSH et Kubernetes avec l'identifiant de l'étape — et renvoie le résultat.
+2. Quand l'étape s'exécute, le Worker insère une ligne dans `RunnerJob` dont `targetAgentId` vaut l'ID de cet agent et dont le statut est `Pending`. Une étape JavaScript qui n'en a choisi aucun, dans un projet qui utilise les agents globaux, reçoit plutôt `runsOnGlobalRunner`.
+3. Cet agent précis (et lui seul) prend la tâche en charge de façon atomique, l'exécute localement — Bash via `bash -c <script>`, JavaScript dans un bac à sable `isolated-vm`, SSH et Kubernetes avec l'identifiant de l'étape — et renvoie le résultat. N'importe quel agent global peut prendre en charge une tâche avec `runsOnGlobalRunner`.
 4. Le Worker reprend le runbook avec le résultat.
 
-Il n'existe plus d'indicateur d'environnement `RUNBOOK_BASH_ENABLED`. Le fonctionnement de ces étapes dans un déploiement dépend uniquement de la présence, dans le projet, d'un agent Runbook connecté avec **Exécute les runbooks** activé.
+Il n'existe plus d'indicateur d'environnement `RUNBOOK_BASH_ENABLED`. Le fonctionnement de ces étapes dans un déploiement dépend uniquement de la présence, dans le projet, d'un agent Runbook connecté avec **Exécute les runbooks** activé. Une étape JavaScript fonctionne aussi sur un agent Runbook global.
 
 ## Plafonds de sortie et délais
 
@@ -92,11 +92,12 @@ Quand une étape manuelle est cochée via l'API, l'exécution est remise en file
 
 ## Notes de durcissement
 
-- **JavaScript, Bash, SSH et Kubernetes** s'exécutent sur un hôte d'agent Runbook que vous contrôlez, pas sur le Worker OneUptime. JavaScript tourne dans un isolat `isolated-vm` distinct avec 128 Mo de mémoire et sans accès au système de fichiers ni aux processus de l'agent ; il peut faire des requêtes HTTP avec `axios`, mais les requêtes vers les réseaux privés et les adresses de bouclage et de lien local sont refusées. Bash s'exécute via `bash -c`, avec un délai appliqué sur l'agent.
+- **JavaScript, Bash, SSH et Kubernetes** s'exécutent sur un hôte d'agent Runbook que vous contrôlez, pas sur le Worker OneUptime. JavaScript tourne dans un isolat `isolated-vm` distinct avec 128 Mo de mémoire et sans accès au système de fichiers ni aux processus de l'agent ; il peut faire des requêtes HTTP avec `axios`, mais les requêtes vers les réseaux privés et les adresses de bouclage et de lien local sont refusées. Bash s'exécute via `bash -c`, avec un délai appliqué sur l'agent. Une étape JavaScript qui n'en choisit aucun s'exécute plutôt sur un agent Runbook global.
 - **Les étapes HTTP** utilisent une validation de statut permissive : une réponse 4xx ou 5xx est enregistrée comme étape en échec au lieu de lever une exception, et la sortie capturée reflète ce que le service distant a vraiment renvoyé. Les redirections ne sont pas suivies. Le Worker n'appelle jamais d'adresses de bouclage ou de lien local, comme un point de métadonnées cloud ; sur OneUptime Cloud, il refuse aussi les adresses de réseau privé, et un OneUptime auto-hébergé les refuse avec `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **Les étapes IA** ne voient jamais les notes privées d'incident ni les messages Slack et Microsoft Teams, et la sortie des étapes précédentes est analysée à la recherche de secrets, qui sont masqués avant d'atteindre le modèle. Les images intégrées et les longues données encodées sont laissées hors du prompt. Voir [AI](/docs/runbooks/authoring#ai).
+- **Agents Runbook globaux** : ils n'exécutent que des étapes JavaScript, chacune dans un bac à sable créé pour cette étape et jeté après elle, qui n'atteint que les adresses publiques d'Internet, pendant 5 minutes au plus, et au plus trois étapes d'un même projet à la fois. Ils ne reçoivent que les secrets de runbook du projet propre à l'étape qui sont activés pour les agents globaux, et jamais d'identifiant ; celui qui est fourni détient sa propre clé et rien d'autre du serveur. Voir [Agents Runbook globaux](/docs/runbooks/agents#agents-runbook-globaux).
 - **L'authentification des agents Runbook** se fait par ID et clé secrète, définis sur le conteneur de l'agent comme variables d'environnement. Côté serveur, l'identité de référence de l'agent provient de la ligne de base de données correspondant à l'ID et à la clé présentés : un client ne peut pas se faire passer pour un autre agent, même avec une clé compromise.
-- **Les identifiants et les secrets** sont chiffrés au repos, jamais renvoyés par l'API, et remis uniquement aux agents auxquels ils sont attribués, quand ceux-ci prennent une étape en charge.
+- **Les identifiants et les secrets** sont chiffrés au repos, jamais renvoyés par l'API, et remis uniquement aux agents auxquels ils sont attribués, quand ceux-ci prennent une étape en charge. Un secret de runbook est aussi transmis à un agent global qui prend en charge une étape du projet propre au secret, quand le secret autorise les agents globaux à l'utiliser.
 
 ## Tables de la base de données
 
@@ -105,8 +106,8 @@ Quand une étape manuelle est cochée via l'API, l'exécution est remise en file
 | `Runbook` | Le modèle : nom, slug, description, `isEnabled`, étiquettes et les étapes en JSON. |
 | `RunbookExecution` | Une ligne par exécution, avec les clés étrangères facultatives `incidentId`, `alertId` et `scheduledMaintenanceId` et un tableau JSON `stepExecutions` qui fige les étapes et l'état de chacune. |
 | `RunbookRule` | Les règles de déclenchement automatique, avec un discriminant `triggerEntityType` (Incident, Alert, ScheduledMaintenance), une relation plusieurs-à-plusieurs vers les runbooks à lancer, et ce sur quoi elles portent : une colonne JSON `criteria` (les conditions) plus des liens plusieurs-à-plusieurs vers les moniteurs, les gravités d'incident, les gravités d'alerte, les étiquettes et les étiquettes de moniteur, ainsi que des modèles de titre, de description, de nom de moniteur et de description de moniteur. |
-| `Runner` | Une ligne par agent Runbook installé : nom, clé secrète, `lastAlive`, `connectionStatus`, informations d'hôte et capacités. |
-| `RunnerJob` | Une ligne par étape envoyée à un agent Runbook : `targetAgentId` (l'agent choisi par l'auteur de l'étape), type d'étape, script ou charge utile, statut (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` ou `Cancelled`), échéance de prise en charge, bail, sortie et code de sortie. |
+| `Runner` | Une ligne par agent Runbook installé : nom, clé secrète, `lastAlive`, `connectionStatus`, informations d'hôte et capacités. Un agent global a `isGlobalRunner` défini et aucun projet. |
+| `RunnerJob` | Une ligne par étape envoyée à un agent Runbook : `targetAgentId` (l'agent choisi par l'auteur de l'étape), type d'étape, script ou charge utile, statut (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` ou `Cancelled`), échéance de prise en charge, bail, sortie et code de sortie. `runsOnGlobalRunner` marque une étape que n'importe quel agent global peut prendre en charge. |
 | `RunbookCredential` | Les identifiants SSH et Kubernetes, avec leurs champs secrets chiffrés, et les agents auxquels ils sont attribués. |
 | `RunbookSecret` | Les secrets de runbook, chiffrés, et les agents qui peuvent les recevoir. |
 

@@ -7,12 +7,46 @@ import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 
 export default class RunbookSecretsUtil {
-  public static async loadForAgent(
-    agentId: ObjectID,
-  ): Promise<Array<RunbookSecret>> {
+  /*
+   * The secrets assigned to a project's own Runner: of its project only,
+   * whatever the assignment table says.
+   */
+  public static async loadForAgent(data: {
+    agentId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<Array<RunbookSecret>> {
     return RunbookSecretService.findBy({
       query: {
-        runners: QueryHelper.inRelationArray([agentId]),
+        projectId: data.projectId,
+        runners: QueryHelper.inRelationArray([data.agentId]),
+      },
+      select: {
+        secretValue: true,
+        name: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * The secrets a step claimed by a global Runner gets: those of the step's
+   * OWN project that its people let global Runners use
+   * (RunbookSecret.isAvailableToGlobalRunners). A global Runner serves
+   * every project, so what it is handed is read per job from the job's
+   * project - never from the Runner, which belongs to none - and a step of
+   * one project can never be handed another project's secret.
+   */
+  public static async loadForGlobalRunnerJob(data: {
+    projectId: ObjectID;
+  }): Promise<Array<RunbookSecret>> {
+    return RunbookSecretService.findBy({
+      query: {
+        projectId: data.projectId,
+        isAvailableToGlobalRunners: true,
       },
       select: {
         secretValue: true,

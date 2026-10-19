@@ -144,7 +144,7 @@ Bash- og JavaScript-trin har intet felt **Credential**. For at give et script en
 :::steps
 ### Opret hemmeligheden
 
-Klik på **Opret Runbook Secret**. I trinnet **Hemmelighed** angiver du et **Navn** (bogstaver, tal, bindestreger og understreger), en valgfri **Beskrivelse** og **Værdi af hemmelighed**. I trinnet **Adgang** vælger du Runnerne under **Runbook-agenter, der har adgang til denne hemmelighed**.
+Klik på **Opret Runbook Secret**. I trinnet **Hemmelighed** angiver du et **Navn** (bogstaver, tal, bindestreger og understreger), en valgfri **Beskrivelse** og **Værdi af hemmelighed**. I trinnet **Adgang** vælger du dine Runnere under **Dine Runnere, der må bruge denne hemmelighed**. På en server med [globale Runnere](/docs/runbooks/agents#globale-runnere) lader **Globale Runnere må bruge denne hemmelighed** også dette projekts trin, der kører på en global Runner, bruge den. Den starter slået til for en ny hemmelighed, så længe projektet bruger globale Runnere.
 
 ### Brug den i et script
 
@@ -156,7 +156,7 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 
-Når en Runner, som hemmeligheden er tildelt, overtager trinnet, modtager den scriptet med værdien udfyldt.
+Når en Runner, som hemmeligheden er tildelt, overtager trinnet, modtager den scriptet med værdien udfyldt. Det gør en global Runner også, når hemmeligheden lader globale Runnere bruge den. Et trin på en global Runner, der nævner en hemmelighed, som globale Runnere ikke må bruge, fejler og nævner hemmeligheden i stedet for at køre uden den.
 :::
 
 Ligesom en loginoplysnings hemmelige felter er en hemmeligheds værdi krypteret i hvile og returneres aldrig af API'et: **Opdater hemmelig værdi** erstatter den. På OneUptime Cloud kræver runbook-hemmeligheder også abonnementet **Growth** eller højere.

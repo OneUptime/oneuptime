@@ -7,6 +7,7 @@ import RunnerCapabilities, {
 } from "../Utils/RunnerCapabilities";
 import KubernetesPosture from "../Utils/KubernetesPosture";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
+import GlobalRunnerMode from "../Utils/GlobalRunnerMode";
 import { JSONObject } from "Common/Types/JSON";
 import { KubernetesRunnerPosture } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import logger from "Common/Server/Utils/Logger";
@@ -254,6 +255,9 @@ export class HeartbeatLoop {
       }
 
       this.rejectedInARow = 0;
+
+      // Whether this is a global Runner, as the server says now.
+      GlobalRunnerMode.setFromServer(result.isGlobalRunner);
 
       if (!result.capabilities) {
         return;
