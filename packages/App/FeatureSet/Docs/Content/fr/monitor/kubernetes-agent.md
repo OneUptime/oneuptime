@@ -221,16 +221,16 @@ OBI envoie plusieurs types de signaux. Chacun peut être désactivé avec `--set
 
 ### Relier les traces entre les services
 
-OBI peut aussi propager la trace à travers un appel : lorsque le pod A appelle le pod B via HTTP ou gRPC, le span côté B rejoint la trace de A, sans SDK dans aucune des deux applications. **C'est désactivé par défaut.** Activez-le avec `--set ebpf.contextPropagation=true`, après avoir lu l'avertissement ci-dessous.
+OBI propage aussi la trace à travers un appel : lorsque le pod A appelle le pod B via HTTP ou gRPC, le span côté B rejoint la trace de A, sans SDK dans aucune des deux applications. **C'est activé par défaut.** Sans cela, un appel vers un pod situé sur un autre nœud démarre sa propre trace ; sur le même nœud, OBI relie lui-même les deux extrémités. Désactivez-le avec `--set ebpf.contextPropagation=false` si vous rencontrez le problème décrit dans l'avertissement ci-dessous.
 
 | Option | Par défaut | Ce qu'elle fait |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | désactivé | Écrit un `traceparent` W3C dans le trafic sortant, afin que les spans se relient entre les services. |
+| `ebpf.contextPropagation` | activé | Écrit un `traceparent` W3C dans le trafic sortant, afin que les spans se relient entre les services. |
 | `ebpf.contextPropagationMode` | `headers` | Comment : `headers` (en-têtes de requête HTTP/1.1, le plus restreint), `tcp` (une option TCP, via Linux Traffic Control) ou `all` (les deux). Lu uniquement lorsque `contextPropagation` est activé. |
 | `ebpf.trackRequestHeaders` | activé | Suit les en-têtes de requête dans le noyau, pour que le côté récepteur trouve le `traceparent` aussi sur les serveurs HTTP simples. N'a d'effet que lorsque `contextPropagation` est activé. |
 
 > [!WARNING]
-> Chaque mode de propagation modifie un trafic déjà en vol. Pour le HTTP simple, OBI agrandit la requête sortante dans le noyau pour y loger l'en-tête ; pour le TLS et le TCP brut, il ajoute une option TCP depuis un hook Traffic Control, en réécrivant le paquet et sa somme de contrôle. Si le décompte d'octets de la connexion n'est alors pas corrigé exactement, le flux se **désynchronise** : les transferts via un proxy comme nginx se bloquent en cours de route, dès qu'une réponse dépasse environ 64 Ko, jusqu'à l'expiration de la connexion. Les petites requêtes continuent de fonctionner, donc cela ressemble à un bug de l'application ou du proxy. Aucune version du noyau ne fait disparaître la réécriture. Les traces, les métriques de requêtes et la carte des services fonctionnent toutes sans elle ; un SDK OpenTelemetry dans vos services relie les traces sans aucune réécriture dans le noyau. Si vous l'activez, essayez-la d'abord sur un cluster hors production, et vérifiez les gros transferts à travers votre proxy.
+> Chaque mode de propagation modifie un trafic déjà en vol. Pour le HTTP simple, OBI agrandit la requête sortante dans le noyau pour y loger l'en-tête ; pour le TLS et le TCP brut, il ajoute une option TCP depuis un hook Traffic Control, en réécrivant le paquet et sa somme de contrôle. Si le décompte d'octets de la connexion n'est alors pas corrigé exactement, le flux se **désynchronise** : les transferts via un proxy comme nginx se bloquent en cours de route, dès qu'une réponse dépasse environ 64 Ko, jusqu'à l'expiration de la connexion. Les petites requêtes continuent de fonctionner, donc cela ressemble à un bug de l'application ou du proxy. Aucune version du noyau ne fait disparaître la réécriture. Si les gros transferts à travers votre proxy se bloquent après l'installation de l'agent, ou si un service mesh ou un plugin réseau eBPF se met à faire échouer des pods, désactivez-la : les traces, les métriques de requêtes et la carte des services fonctionnent toutes sans elle, et un SDK OpenTelemetry dans vos services relie les traces sans aucune réécriture dans le noyau. Un agent mis à niveau avec `--reuse-values` conserve la valeur qu'il avait, et les charts antérieurs la livraient désactivée : mettez à niveau avec `--reset-then-reuse-values` pour adopter la nouvelle valeur par défaut.
 
 ### Relier les journaux aux traces
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **OBI tourne, mais aucune trace n'arrive.** Définissez `--set ebpf.printTraces=true` et relisez le journal d'OBI. Des spans à cet endroit signifient que l'export vers OneUptime échoue : vérifiez l'URL et la clé d'ingestion. L'absence de spans peut signifier que le trafic est chiffré par une bibliothèque TLS qu'OBI ne sait pas lire, comme une bibliothèque liée statiquement.
 :::
 
-:::details Les gros transferts se bloquent après l'activation du lien entre traces
-C'est `ebpf.contextPropagation` qui réécrit le trafic : voir l'avertissement dans [Relier les traces entre les services](#relier-les-traces-entre-les-services). Désactivez-le avec `--set ebpf.contextPropagation=false`.
+:::details Les gros transferts se bloquent après l'installation de l'agent
+C'est `ebpf.contextPropagation`, activé par défaut, qui réécrit le trafic : voir l'avertissement dans [Relier les traces entre les services](#relier-les-traces-entre-les-services). Désactivez-le avec `--set ebpf.contextPropagation=false`.
 :::
 
 :::details Des applications plantent avec le code de sortie 139 après l'activation du lien entre journaux
