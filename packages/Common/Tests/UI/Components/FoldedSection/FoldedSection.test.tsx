@@ -1069,8 +1069,9 @@ describe("in Japanese, Chinese and Persian, the line is punctuated their way", (
     );
 
     // The title is Japanese; the names, and so their list, are English.
+    expect(readLocale("ja")["More fields"]).toBe("その他の項目");
     expect(
-      screen.getByRole("button", { name: readLocale("ja")["More fields"] }),
+      screen.getByRole("button", { name: "その他の項目" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("folded-section-contents").textContent).toBe(
       "Customer Tier, Customer Impact",
