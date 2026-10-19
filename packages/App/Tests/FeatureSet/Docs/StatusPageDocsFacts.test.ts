@@ -15,9 +15,12 @@ import {
   DEVELOPER_DOCS_SECTION_TITLE,
   DeveloperDocsPageDefinition,
 } from "../../../FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
+import { StatusPageOverviewCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageOverviewCopy";
+import { SubscriberFormCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/SubscriberFormChoices";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import CacheGenerations from "Common/Server/Infrastructure/CacheGenerations";
+import StatusPageSubscriberConfirmationCode from "Common/Server/Utils/StatusPage/StatusPageSubscriberConfirmationCode";
 import StatusPageOverviewCache from "Common/Server/Utils/StatusPage/StatusPageOverviewCache";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
@@ -25,6 +28,7 @@ import { getColumnBillingAccessControlForAllColumns } from "Common/Types/Databas
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import Dictionary from "Common/Types/Dictionary";
 import { MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS } from "Common/Types/StatusPage/MasterPassword";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import { SECTION_TITLES_COLLAPSED_BY_DEFAULT } from "Common/UI/Components/SideMenu/SideMenuSectionState";
@@ -63,10 +67,16 @@ const STATUS_PAGES_MENU: string = `${DASHBOARD}/Pages/StatusPages/SideMenu.tsx`;
 const STATUS_PAGE_MENU: string = `${DASHBOARD}/Pages/StatusPages/View/SideMenu.tsx`;
 const STATUS_PAGE_OVERVIEW: string = `${DASHBOARD}/Pages/StatusPages/View/Index.tsx`;
 const STATUS_PAGE_PREVIEW_LINK: string = `${DASHBOARD}/Pages/StatusPages/View/StatusPagePreviewLink.tsx`;
+const STATUS_PAGE_CREATE_FORM: string = `${DASHBOARD}/Components/StatusPage/StatusPageCreateForm.ts`;
+const STATUS_PAGE_FIRST_STEP: string = `${DASHBOARD}/Components/StatusPage/StatusPageFirstStep.tsx`;
 const STATUS_PAGE_GROUPS: string = `${DASHBOARD}/Pages/StatusPages/View/Groups.tsx`;
 const EMBEDDED_STATUS: string = `${DASHBOARD}/Pages/StatusPages/View/EmbeddedStatus.tsx`;
 const SUBSCRIBER_SETTINGS: string = `${DASHBOARD}/Pages/StatusPages/View/SubscriberSettings.tsx`;
+const SUBSCRIBER_CHOICES_COPY: string = `${DASHBOARD}/Components/StatusPage/SubscriberChoicesCopy.ts`;
+const SUBSCRIBER_FORM_CHOICES: string = `${DASHBOARD}/Components/StatusPage/SubscriberFormChoices.ts`;
 const EMAIL_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/EmailSubscribers.tsx`;
+const SMS_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/SMSSubscribers.tsx`;
+const SUBSCRIBER_STATUS_PILL: string = `${DASHBOARD}/Components/StatusPage/SubscriberStatusPill.tsx`;
 
 const STATUS_PAGE_APP: string = "App/FeatureSet/StatusPage/src";
 const VISITOR_ROUTES: string = `${STATUS_PAGE_APP}/Utils/RouteMap.ts`;
@@ -351,12 +361,16 @@ function planOf(column: string): PlanType | null {
 describe("the Status Pages Overview: creating a status page", () => {
   const page: string = englishPage(OVERVIEW);
   const list: string = readSource(STATUS_PAGES_LIST);
-  const formFields: string = list.slice(
-    list.indexOf("formFields={["),
-    list.indexOf("saveFilterProps="),
+  const createForm: string = readSource(STATUS_PAGE_CREATE_FORM);
+  // Create Status Page's fields: the create form's, not the details card's.
+  const formFields: string = createForm.slice(
+    createForm.indexOf("export const getStatusPageCreateFormFields"),
+    createForm.indexOf("export const getStatusPageDetailsFormFields"),
   );
 
-  it("asks only for Name, at least two characters, and an optional Description", () => {
+  it("asks only for a Name, at least two characters, with Description and Labels under More fields", () => {
+    expect(list).toContain("return getStatusPageCreateFormFields();");
+    expect(list).toContain("formFields={createFormFields}");
     expect(
       Array.from(formFields.matchAll(/title: "([^"]+)"/g)).map(
         (match: RegExpMatchArray): string => {
@@ -367,12 +381,19 @@ describe("the Status Pages Overview: creating a status page", () => {
     expect(formFields).toMatch(
       /title: "Name",[\s\S]*?required: true,[\s\S]*?minLength: 2,/,
     );
-    expect(formFields).toMatch(/title: "Description",[\s\S]*?required: false/);
+    // Only the name is asked: the description and the labels fold.
+    expect(formFields).toMatch(
+      /title: "Description",[\s\S]*?required: false,[\s\S]*?collapsibleSection: moreFields,/,
+    );
+    expect(formFields).toMatch(
+      /getLabelsFormField<StatusPage>\(\{\s*collapsibleSection: moreFields,\s*\}\)/,
+    );
+    expect(formFields).toContain("getAdvancedFormSection<StatusPage>()");
     expect(page).toContain(
-      "In the **Create New Status Page** modal, fill in **Name** (required, at least two characters) and, optionally, **Description**, then click **Create Status Page**.",
+      "In the **Create New Status Page** modal, fill in **Name** (required, at least two characters), then click **Create Status Page**. **Description** and **Labels** are optional, under **More fields**.",
     );
     expect(page).toContain(
-      "A new status page only asks for **Name** and **Description**.",
+      "A new status page only asks for its **Name**; **Description** and **Labels** wait under **More fields**.",
     );
   });
 
@@ -402,26 +423,46 @@ describe("the Status Pages Overview: creating a status page", () => {
     expect(columns).toEqual(["Name", "Description", "Labels", "Owners"]);
     expect(filters).toEqual(["Status Page ID", "Name", "Description"]);
     expect(page).toContain(
-      `The list you land back on shows ${boldList(columns)}, and can be filtered by ${boldList(filters)}.`,
+      `The **Status Pages** list shows ${boldList(columns)}, and can be filtered by ${boldList(filters)}.`,
     );
   });
 
-  it("lands on the Overview screen, with the preview link and the details card that edits what was just set", () => {
+  it("opens the new page on its Overview: the first step while it has no resource, the link card and the details card that edits what was just set", () => {
     const overview: string = readSource(STATUS_PAGE_OVERVIEW);
-    const details: string = overview.slice(
-      overview.indexOf('title: "Status Page Details"'),
-      overview.indexOf("modelDetailProps="),
+    const details: string = createForm.slice(
+      createForm.indexOf("export const getStatusPageDetailsFormFields"),
+    );
+    const firstStep: string = readSource(STATUS_PAGE_FIRST_STEP);
+    const link: string = readSource(STATUS_PAGE_PREVIEW_LINK);
+
+    // A page made in Create Status Page opens straight away.
+    expect(list).toMatch(
+      /modalType === ModalType\.Create[\s\S]*?RouteMap\[PageMap\.STATUS_PAGE_VIEW\]/,
     );
 
-    expect(readSource(STATUS_PAGE_PREVIEW_LINK)).toContain(
-      "title={`Status Page Preview URL`}",
+    // Its first step counts the page's resources, and opens Resources.
+    expect(overview.indexOf("<StatusPageFirstStep")).toBeLessThan(
+      overview.indexOf("<StatusPagePreviewLink"),
     );
+    expect(firstStep).toContain("count > 0 ? FirstStepState.Hidden");
+    expect(firstStep).toContain("PageMap.STATUS_PAGE_VIEW_RESOURCES");
+    expect(StatusPageOverviewCopy.firstStepTitle).toBe(
+      "Nothing on this status page yet",
+    );
+    expect(StatusPageOverviewCopy.firstStepButton).toBe("Add Monitors");
+
+    // The link card: the page's own address, with Copy link beside it.
+    expect(link).toContain("title={StatusPageOverviewCopy.linkCardTitle}");
+    expect(link).toContain('label="Copy link"');
+    expect(StatusPageOverviewCopy.linkCardTitle).toBe("Status Page Link");
+
+    expect(overview).toContain("formFields={getStatusPageDetailsFormFields()}");
     expect(details).toContain("name: true");
     expect(details).toContain("description: true");
     expect(details).toContain("getLabelsFormField<StatusPage>()");
     expect(overview).toContain("<OverviewCustomFields");
     expect(page).toContain(
-      "Open the new page and you land on its **Overview** screen, which carries two cards: **Status Page Preview URL** with a link to the page itself, and **Status Page Details** where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.",
+      "The new page opens on its **Overview** screen. Until the page has a resource, the screen starts with **Nothing on this status page yet** and **Add Monitors**, which opens its **Resources** screen. Then come two cards: **Status Page Link**, with the link to the page itself and **Copy link**, and **Status Page Details**, where you can edit the name, description and labels you just set. Once the project has status page custom fields, a **Custom Fields** card follows them.",
     );
   });
 });
@@ -628,6 +669,97 @@ describe("the Status Pages Overview: what visitors see", () => {
   });
 });
 
+/*
+ * The argument text of every call to one of StatusPageVisibilityQuery's
+ * helpers in a source: from the "(" after its name to the ")" that closes
+ * it.
+ */
+function visibilityQueryCalls(source: string, helper: string): Array<string> {
+  const call: string = `StatusPageVisibilityQuery.${helper}(`;
+  const found: Array<string> = [];
+  let start: number = source.indexOf(call);
+
+  while (start >= 0) {
+    const open: number = start + call.length - 1;
+    let depth: number = 0;
+    let end: number = open;
+
+    for (; end < source.length; end++) {
+      if (source[end] === "(") {
+        depth++;
+      } else if (source[end] === ")") {
+        depth--;
+
+        if (depth === 0) {
+          break;
+        }
+      }
+    }
+
+    found.push(source.slice(open + 1, end));
+    start = source.indexOf(call, end);
+  }
+
+  return found;
+}
+
+describe("the Status Pages Overview: how incidents, maintenance and announcements reach the page", () => {
+  const page: string = englishPage(OVERVIEW);
+  const api: string = readSource(STATUS_PAGE_API);
+
+  it("finds the page's incidents by the monitors on it", () => {
+    const incidentQueries: Array<string> = [];
+    let start: number = api.indexOf("let incidentQuery: Query<Incident> = {");
+
+    while (start >= 0) {
+      const end: number = api.indexOf("};", start);
+      incidentQueries.push(api.slice(start, end));
+      start = api.indexOf("incidentQuery = {", end);
+    }
+
+    // The list's query and the one for a single incident.
+    expect(incidentQueries.length).toBeGreaterThanOrEqual(2);
+
+    for (const query of incidentQueries) {
+      expect(query).toContain("monitors: monitorsOnStatusPage as any,");
+      expect(query).not.toContain("statusPages:");
+    }
+  });
+
+  it("finds maintenance events and announcements by the status pages they name, never by their monitors", () => {
+    for (const helper of ["shownScheduledMaintenance", "shownAnnouncements"]) {
+      const calls: Array<string> = visibilityQueryCalls(api, helper);
+
+      // The lists, one asked for by its id, the overview and the feeds.
+      expect({ helper, calls: calls.length >= 3 }).toEqual({
+        helper,
+        calls: true,
+      });
+
+      for (const call of calls) {
+        expect({
+          helper,
+          byStatusPage: call.includes("statusPages:"),
+          byMonitor: call.includes("monitors:"),
+        }).toEqual({ helper, byStatusPage: true, byMonitor: false });
+      }
+    }
+
+    // Where an event names them: the create form's own field.
+    expect(
+      readSource(`${DASHBOARD}/Pages/ScheduledMaintenanceEvents/Create.tsx`),
+    ).toContain('title: "Show event on these status pages ",');
+  });
+
+  it("says incidents come through the monitors, and events and announcements through the pages they name", () => {
+    expect(page).toContain(
+      "The page shows the monitors you put on it as its resources, and incidents reach it through those monitors. [Scheduled maintenance events](/docs/scheduled-maintenance/index) and announcements reach it directly: each one names the status pages it is shown on.",
+    );
+    // What it used to say: an event on the page's monitors shows on no page that the event does not name.
+    expect(page).not.toContain("scheduled maintenance reach it through");
+  });
+});
+
 describe("the Status Pages Overview: choosing what shows on the page", () => {
   const page: string = englishPage(OVERVIEW);
   const card: string = sectionOf(page, "## Choosing what shows on the page");
@@ -807,9 +939,17 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
 
     for (const name of [
       'title="Enable Embedded Status Badge"',
-      'title="Security Token"',
-      'title: "Regenerate Token"',
-      'title="Badge Preview"',
+      'tokenCardTitle: translationKey("Security Token")',
+      "title={EmbeddedStatusCopy.tokenCardTitle}",
+      "title: getEmbeddedBadgeTokenButtonTitle(Boolean(token)),",
+      'title="Embed the Badge"',
+      'translator.translateText("Markdown, linked to the status page")',
+      // Create Token until the page has a token, then Regenerate Token.
+      'hasToken\n    ? translationKey("Regenerate Token")\n    : translationKey("Create Token");',
+      // The token is made when the badge is first turned on.
+      "shouldMakeBadgeTokenWhenTurnedOn({",
+      // The token card waits under More settings.
+      "<AdvancedPageSection",
     ]) {
       expect({ name: name, found: screen.includes(name) }).toEqual({
         name: name,
@@ -819,7 +959,10 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
 
     expect(statusPageDefault("enableEmbeddedOverallStatus")).toBe(false);
     expect(page).toContain(
-      "turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default), then click **Regenerate Token** on the **Security Token** card to give the badge its token (`embeddedOverallStatusToken`). The badge is served from `/api/status-page/badge/<status-page-id>?token=<token>`, and the screen shows it under **Badge Preview**",
+      "turn on **Enable Embedded Status Badge** (`enableEmbeddedOverallStatus`, off by default). The first time you turn it on, the badge gets its token (`embeddedOverallStatusToken`), and the **Embed the Badge** card shows the badge, served from `/api/status-page/badge/<status-page-id>?token=<token>`, with its **HTML** and **Markdown, linked to the status page** to copy",
+    );
+    expect(page).toContain(
+      "The token waits on the **Security Token** card under **More settings**, with **Regenerate Token** for when the link was shared too widely.",
     );
   });
 
@@ -957,14 +1100,24 @@ describe("Subscribers & Announcements: channels and signing up", () => {
     }
   });
 
-  it("names the two choices of Advanced Subscriber Settings by their titles, columns and defaults", () => {
+  it("names the two switches of the Subscriber Choices card by their titles, columns and defaults", () => {
     const settings: string = readSource(SUBSCRIBER_SETTINGS);
+    const choicesCopy: string = readSource(SUBSCRIBER_CHOICES_COPY);
     const choosing: string = sectionOf(
       page,
       "## Letting subscribers choose resources and event types",
     );
 
-    expect(settings).toContain('title: "Advanced Subscriber Settings"');
+    expect(settings).toContain(
+      "<SubscriberChoicesCard statusPageId={modelId} />",
+    );
+    expect(settings).not.toContain('title: "Advanced Subscriber Settings"');
+    expect(choicesCopy).toContain(
+      'cardTitle: translationKey("Subscriber Choices")',
+    );
+    expect(choosing).toContain(
+      "Two switches in the **Subscriber Choices** card on **Subscriber Settings** change that, each saving the moment you flip it:",
+    );
 
     for (const [title, column] of [
       [
@@ -976,16 +1129,18 @@ describe("Subscribers & Announcements: channels and signing up", () => {
         "allowSubscribersToChooseEventTypes",
       ],
     ] as Array<[string, string]>) {
-      expect(settings).toContain(`title: "${title}"`);
+      expect(choicesCopy).toContain(`translationKey("${title}")`);
       expect(statusPageDefault(column)).toBe(false);
       expect(choosing).toContain(
         `- **${title}** (\`${column}\`) — off by default.`,
       );
     }
 
+    // The timezones fold under More settings, with the email footer.
+    expect(settings).toContain("<AdvancedPageSection");
     expect(settings).toContain('title: "Subscriber Timezones"');
     expect(choosing).toContain(
-      "The same card also carries **Subscriber Timezones**.",
+      "**Subscriber Timezones** is under **More settings** on the same screen",
     );
   });
 
@@ -1035,33 +1190,119 @@ describe("Subscribers & Announcements: confirming an email address", () => {
   const optIn: string = sectionOf(page, "## Email double opt-in");
   const service: string = readSource(SUBSCRIBER_SERVICE);
 
-  it("makes a six-figure confirmation token, and sends the link the page shows", () => {
+  it("makes a confirmation token of 32 random characters, and sends the link the page shows", () => {
     expect(service).toMatch(
-      /subscriptionConfirmationToken = NumberUtil\.getRandomNumber\(\s*100000,\s*999999,\s*\)\.toString\(\);/,
+      /subscriptionConfirmationToken =\s*StatusPageSubscriberConfirmationCode\.generate\(\);/,
+    );
+    expect(StatusPageSubscriberConfirmationCode.generate()).toMatch(
+      new RegExp(`^[0-9a-f]{${StatusPageSubscriberConfirmationCode.LENGTH}}$`),
     );
     expect(service).toContain(
       "`/confirm-subscription/${data.statusPageSubscriberId.toString()}?verification-token=${data.confirmationToken}`",
     );
     expect(optIn).toContain(
-      `a six-digit **${subscriberColumn("subscriptionConfirmationToken").title}** is generated.`,
+      `a random ${StatusPageSubscriberConfirmationCode.LENGTH}-character **${subscriberColumn("subscriptionConfirmationToken").title}** is generated.`,
     );
     expect(optIn).toContain(
       "`{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`",
     );
   });
 
-  it("confirms email subscribers only, and lets the team skip it", () => {
+  it("confirms email subscribers and sign-ups by text, and lets the team choose for an email address: subscribe now, subscribe and tell, or ask to confirm", () => {
+    const choices: string = readSource(SUBSCRIBER_FORM_CHOICES);
+
+    // An email address confirms unless the team made it confirmed; a sign-up by text always does.
     expect(service).toMatch(
-      /if \(isEmailSubscriber && !isSubscriptionConfirmed\) \{\s*data\.data\.isSubscriptionConfirmed = false;\s*\} else \{\s*data\.data\.isSubscriptionConfirmed = true;/,
+      /const isSignUpByTextMessage: boolean =\s*statusPageSignUps\.has\(data\.data\) && Boolean\(data\.data\.subscriberPhone\);\s*if \(\s*\(isEmailSubscriber && !isSubscriptionConfirmed\) \|\|\s*isSignUpByTextMessage\s*\) \{\s*data\.data\.isSubscriptionConfirmed = false;\s*\} else \{\s*data\.data\.isSubscriptionConfirmed = true;/,
     );
-    expect(readSource(EMAIL_SUBSCRIBERS)).toMatch(
-      /field: \{\s*isSubscriptionConfirmed: true,?\s*\},?\s*(?:stepId: "subscriber-info",\s*)?title: "Do not send confirmation link",[\s\S]*?defaultValue: true,/,
+    // The Add form asks one question, Add in Bulk the same.
+    expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
+      "...getEmailSubscriberAddChoiceFields(),",
     );
+    expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
+      "getSubscriberAddChoiceColumns(data.subscriberAddChoice)",
+    );
+
+    // What each answer writes, and the answer a new subscriber starts with.
+    for (const [choice, confirmed, told] of [
+      ["SubscribeNow", true, false],
+      ["SubscribeAndTell", true, true],
+      ["AskToConfirm", false, false],
+    ] as Array<[string, boolean, boolean]>) {
+      expect(choices).toMatch(
+        new RegExp(
+          `\\[SubscriberAddChoice\\.${choice}\\]: \\{\\s*isSubscriptionConfirmed: ${confirmed},\\s*sendYouHaveSubscribedMessage: ${told},\\s*\\}`,
+        ),
+      );
+    }
+    expect(choices).toMatch(
+      /if \(values\["isSubscriptionConfirmed"\] === false\) \{\s*return SubscriberAddChoice\.AskToConfirm;\s*\}\s*if \(values\["sendYouHaveSubscribedMessage"\] === true\) \{\s*return SubscriberAddChoice\.SubscribeAndTell;\s*\}\s*return SubscriberAddChoice\.SubscribeNow;/,
+    );
+    for (const words of [
+      'addChoiceTitle: translationKey("When you add them")',
+      'subscribeNowTitle: translationKey("Subscribe them now")',
+      'subscribeAndTellTitle: translationKey("Subscribe them now and tell them")',
+      'askToConfirmTitle: translationKey("Ask them to confirm first")',
+    ]) {
+      expect({ words: words, found: choices.includes(words) }).toEqual({
+        words: words,
+        found: true,
+      });
+    }
+
     expect(optIn).toContain(
       `**${subscriberColumn("isSubscriptionConfirmed").title}** (\`isSubscriptionConfirmed\`) is forced to \`false\``,
     );
     expect(optIn).toContain(
-      "**Do not send confirmation link** is on by default there.",
+      "When your team adds an email subscriber on **Email Subscribers**, **When you add them** decides: **Subscribe them now** (the default: confirmed, and sent nothing), **Subscribe them now and tell them** (confirmed, and sent the email that says they are subscribed) or **Ask them to confirm first** (sent the confirmation link, like a sign-up). **Add in Bulk** asks the same.",
+    );
+    expect(optIn).not.toContain("Do not send confirmation link");
+  });
+
+  it("says a sign-up by SMS confirms from the phone: one text first, the welcome once the link is opened, Awaiting Confirmation until then, and the code kept out of the SMS log", () => {
+    const api: string = readSource(STATUS_PAGE_API);
+    const smsSubscribers: string = readSource(SMS_SUBSCRIBERS);
+
+    // The one text a sign-up by SMS is sent, and nothing else until confirmed.
+    expect(service).toContain("getConfirmSubscriptionTextMessage({");
+    expect(service).toMatch(
+      /const isPhoneToConfirm: boolean =\s*createdItem\.isSubscriptionConfirmed === false;/,
+    );
+    /*
+     * Opening the link confirms it (the route asks the service), and the
+     * request that confirmed it sends the welcome, by email and by text.
+     */
+    expect(api).toContain(
+      "await StatusPageSubscriberService.confirmSubscription({",
+    );
+    expect(service).toMatch(
+      /return now\?\.isSubscriptionConfirmed\s*\? SubscriptionConfirmationOutcome\.AlreadyConfirmed\s*: SubscriptionConfirmationOutcome\.NotFound;\s*\}\s*await this\.sendYouHaveSubscribedEmail\(\{\s*subscriberId: subscriber\.id,\s*\}\);\s*await this\.sendYouHaveSubscribedText\(\{\s*subscriberId: subscriber\.id,\s*\}\);/,
+    );
+    // The SMS subscribers list shows who has not confirmed yet.
+    expect(smsSubscribers).toContain("<SubscriberStatusPill");
+    expect(smsSubscribers).toContain(
+      "SubscriberFormCopy.awaitingTextConfirmationDescription",
+    );
+    expect(readSource(SUBSCRIBER_STATUS_PILL)).toContain(
+      'text={"Awaiting Confirmation"}',
+    );
+    // The SMS log keeps the link with its code redacted.
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `https://status.example.com/confirm-subscription/7c9e6679-7425-40de-944b-e07fc1f90ae7?verification-token=${StatusPageSubscriberConfirmationCode.generate()}`,
+      ),
+    ).toBe(
+      `https://status.example.com/confirm-subscription/7c9e6679-7425-40de-944b-e07fc1f90ae7?verification-token=${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
+    );
+
+    expect(optIn).toContain(
+      "**Signups by SMS confirm too.** A visitor who signs up by SMS is texted one message: the confirmation link. Nothing else is sent to the number until the link is opened, and opening it texts the message that says they are subscribed, with the link that cancels the subscription.",
+    );
+    expect(optIn).toContain(
+      "Until then the subscriber shows as **Awaiting Confirmation**, and the SMS log shows the link with its code replaced by `[redacted]`. SMS subscribers from before this are confirmed already.",
+    );
+    expect(optIn).toContain(
+      "Slack, Microsoft Teams and webhook subscribers skip this, and so do SMS subscribers your team adds",
     );
   });
 
@@ -1071,6 +1312,75 @@ describe("Subscribers & Announcements: confirming an email address", () => {
     );
     expect(optIn).toContain(
       "The query that fetches subscribers for a notification filters on `isUnsubscribed: false` and `isSubscriptionConfirmed: true`.",
+    );
+  });
+});
+
+/*
+ * A link to confirm works for a day after it is sent
+ * (StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS), and holds its
+ * contact on its page only that long (Common:
+ * StatusPageSubscriptionLinkExpiry).
+ */
+describe("Subscribers & Announcements: a confirmation link works for a day", () => {
+  const page: string = englishPage(SUBSCRIBERS);
+  const optIn: string = sectionOf(page, "## Email double opt-in");
+  const service: string = readSource(SUBSCRIBER_SERVICE);
+  const api: string = readSource(STATUS_PAGE_API);
+  const hours: number = StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS;
+  const visitorLocale: {
+    subscribe: { confirm: Record<string, string> };
+  } = JSON.parse(readSource(VISITOR_LOCALE));
+
+  it("says how long, as the code holds it, and the email and the SMS say it too", () => {
+    expect(hours).toBe(24);
+    expect(optIn).toContain(
+      `**A confirmation link works for ${hours} hours.** The email and the SMS say so.`,
+    );
+    expect(
+      readSource(
+        "App/FeatureSet/Notification/Templates/ConfirmStatusPageSubscription.hbs",
+      ),
+    ).toContain(`This link expires in ${hours} hours.`);
+    expect(service).toContain(
+      "by text message within ${StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS} hours.",
+    );
+  });
+
+  it("says what opening it later shows: the confirm page's own words, Subscribe again and a 400, and Link Expired in the list", () => {
+    expect(optIn).toContain(
+      `Opened later, it confirms nothing: the **${visitorLocale.subscribe.confirm["title"]}** page says *${visitorLocale.subscribe.confirm["linkNotValid"]}* and offers **${visitorLocale.subscribe.confirm["subscribeAgain"]}**, and the API answers \`400\`.`,
+    );
+    expect(service).toContain(
+      "if (StatusPageSubscriberConfirmationCode.hasExpired(subscriber.createdAt)) {\n      return SubscriptionConfirmationOutcome.Expired;",
+    );
+    expect(api).toMatch(
+      /if \(outcome === SubscriptionConfirmationOutcome\.Expired\) \{\s*return Response\.sendErrorResponse\(\s*req,\s*res,\s*new BadDataException\(CONFIRMATION_LINK_EXPIRED_MESSAGE\),/,
+    );
+    expect(optIn).toContain(
+      `The subscriber stays unconfirmed, is sent nothing and shows as **${SubscriberFormCopy.linkExpiredTitle}** in its list, instead of **${SubscriberFormCopy.awaitingConfirmationTitle}**.`,
+    );
+    expect(readSource(SUBSCRIBER_STATUS_PILL)).toContain(
+      "text={SubscriberFormCopy.linkExpiredTitle}",
+    );
+  });
+
+  it("says signing up again while it works sends nothing more and answers 429 with Retry-After, and replaces it once it has expired", () => {
+    expect(service).toContain("throw new PublicMessageRateLimitException(");
+    expect(service).toContain(
+      "StatusPageSubscriberConfirmationCode.getSecondsLeft(",
+    );
+    expect(service).toMatch(
+      /isSubscriptionConfirmed: false,\s*createdAt: QueryHelper\.lessThanEqualTo\(\s*new Date\(\s*Date\.now\(\) - StatusPageSubscriberConfirmationCode\.VALID_FOR_MS,/,
+    );
+    expect(optIn).toContain(
+      "**Signing up again.** While the link works, signing the same email address or phone number up again on that status page sends nothing more: the visitor is told a link was already sent, and the API answers `429` with a `Retry-After` header.",
+    );
+    expect(optIn).toContain(
+      "Once the link has expired, the subscription no longer holds its contact: a new signup, or your team adding the contact, replaces it, and a signup gets a new link.",
+    );
+    expect(optIn).toContain(
+      `Links sent before this change work for ${hours} hours after their signup too.`,
     );
   });
 });

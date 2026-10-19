@@ -20,6 +20,9 @@ import {
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import LogMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/LogMonitorCriteria";
+import MetricWindowCoverage, {
+  MetricEvaluationWindow,
+} from "Common/Server/Utils/Monitor/Criteria/MetricWindowCoverage";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
@@ -1582,6 +1585,63 @@ describe("the Metrics monitor", () => {
     );
   });
 
+  /*
+   * #4793: All Values waits for a series' data to cover the time range, the
+   * evaluation log quotes the evaluator's own waiting message, and a
+   * Metrics monitor whose data all arrives late (CloudWatch) is judged up
+   * to its newest data point instead of now.
+   */
+  it("says All Values waits for the whole time range, quoting the evaluator's own message, and that late data counts up to its newest point", () => {
+    const window: MetricEvaluationWindow = {
+      startMs: Date.UTC(2026, 9, 16, 12, 0, 30),
+      endMs: Date.UTC(2026, 9, 16, 12, 15, 30),
+      completeFromMs: null,
+    };
+    const message: string = MetricWindowCoverage.describeWait(
+      MetricWindowCoverage.judge({
+        window: window,
+        // A series two minutes old: the minutes from 12:13 on.
+        samples: [13, 14, 15].map((minute: number) => {
+          return {
+            timestamp: new Date(Date.UTC(2026, 9, 16, 12, minute, 0)),
+            value: 1,
+          };
+        }),
+      }),
+    );
+
+    expect(message).toBe(
+      "Waiting for 15 minutes of data: 2 of 15 minutes so far.",
+    );
+    // Quoted as code, without its full stop.
+    expect(METRICS).toContain(
+      `the evaluation log says how far it has got: \`${message.slice(0, -1)}\`.`,
+    );
+
+    expect(METRICS).toContain("- **All Values needs the whole time range.**");
+    expect(METRICS).toContain(
+      "When all of the monitor's data arrives late, as CloudWatch's does, its newest data point takes the place of now.",
+    );
+
+    const criteria: string = oneLine(
+      readSource(
+        "Common/Server/Utils/Monitor/Criteria/MetricMonitorCriteria.ts",
+      ),
+    );
+
+    expect(criteria).toContain("MetricWindowCoverage.judge(");
+    // The Metrics monitor's step - not the infrastructure monitors'.
+    expect(criteria).toContain(
+      "): boolean { return Boolean(monitorStep.data?.metricMonitor); }",
+    );
+    expect(criteria).toContain(
+      "MetricMonitorCriteria.judgesFreshnessByNewestData(input.monitorStep) ? MetricWindowCoverage.getNewestDataPointMs(",
+    );
+    expect(criteria).toContain(
+      "monitorNewestDataPointMs: input.monitorNewestDataPointMs,",
+    );
+  });
+
   it("formulas take the operators the page lists, with or without a $, and queries are named a, b, c in order", () => {
     const section: string = sectionOf(METRICS, "### Formulas");
 
@@ -2176,8 +2236,9 @@ describe("status page monitor rules", () => {
       new StatusPageResource().getTableColumnMetadata("showUptimePercent")
         .defaultValue,
     ).toBe(false);
+    // Enabled is on the rule's edit form only: a new rule starts on.
     expect(RESOURCES).toContain(
-      "On **Basic Info**, enter a **Name**. **Enabled** is on by default.",
+      "A new rule is on: its **Enabled** switch is on its edit form.",
     );
     expect(RESOURCES).toContain("on a rule, **Show Uptime %** starts on.");
   });
@@ -2186,22 +2247,46 @@ describe("status page monitor rules", () => {
     const view: string = dashboardSource(
       "Pages/StatusPages/View/MonitorRules.tsx",
     );
+    const form: string = dashboardSource(
+      "Components/StatusPage/StatusPageMonitorRuleForm.ts",
+    );
 
-    for (const step of ["Basic Info", "Match Criteria", "Group"]) {
+    // What it matches, then where the monitors go: no Basic Info step.
+    for (const step of ["Match", "Group"]) {
       expect(view).toContain(`{ title: "${step}", id: "`);
       expect(RESOURCES).toContain(`On **${step}**,`);
     }
+    expect(view).not.toContain('"Basic Info"');
+    expect(RESOURCES).not.toContain("**Basic Info**");
 
     for (const title of [
       "Monitor Labels",
       "Monitor Name",
       "Monitor Description",
-      "Add Monitors To Group",
       "Adds Monitors To",
     ]) {
       expect(view).toContain(`title: "${title}"`);
       expect(RESOURCES).toContain(`**${title}**`);
     }
+
+    // The group field and the button, worded in the form's copy.
+    expect(form).toContain(
+      'groupFieldTitle: translationKey("Add Monitors To")',
+    );
+    expect(view).toContain("title: StatusPageMonitorRuleCopy.groupFieldTitle,");
+    expect(RESOURCES).toContain("**Add Monitors To**");
+    expect(form).toContain(
+      'createButton: translationKey("Create Monitor Rule")',
+    );
+    expect(RESOURCES).toContain("click **Create Monitor Rule**");
+
+    // The name, made from the group until somebody types one.
+    expect(form).toContain(
+      'toGroup: translationKey("Add monitors to {{group}}")',
+    );
+    expect(RESOURCES).toContain(
+      'The rule\'s **Name** is filled in from it, such as "Add monitors to Website", until you type a name of your own.',
+    );
   });
 
   it("matches names and descriptions by a case-insensitive regular expression or a * wildcard, as the page's examples show", () => {
@@ -2430,7 +2515,10 @@ describe("status page branding", () => {
 
   it("every placeholder the page quotes is one the Dashboard draws", () => {
     const sources: Record<string, string> = {
-      branding: dashboardSource("Pages/StatusPages/View/Branding.tsx"),
+      // The page and its copy module, which holds the page title's example.
+      branding:
+        dashboardSource("Pages/StatusPages/View/Branding.tsx") +
+        dashboardSource("Components/StatusPage/StatusPageBrandingCopy.ts"),
       customCode: dashboardSource("Pages/StatusPages/View/CustomHtmlCss.tsx"),
       domains:
         dashboardSource("Components/CustomDomain/CustomDomainCopy.ts") +
@@ -2444,7 +2532,7 @@ describe("status page branding", () => {
           "Upload logo",
           "Logo of My Company",
           "Upload cover image",
-          "Please enter page title here.",
+          "e.g., Acme Status",
           "https://link.com",
           "Acme, Inc.",
           "All languages",

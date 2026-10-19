@@ -49,7 +49,7 @@ const ProjectTelemetryRetentionByType: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Retention by Telemetry Type",
           description:
-            "Override retention for specific telemetry types (logs, traces, metrics, profiles), with optional finer-grained rules for log severity and trace status. Any field left blank uses the default retention above.",
+            "Keep logs, traces, metrics or profiles for longer or shorter than the default above. Blank fields use the default.",
         }}
         isEditable={!isEnterpriseConfigurationReadOnly(licenseMode)}
         editButtonText="Edit Overrides"
@@ -58,6 +58,7 @@ const ProjectTelemetryRetentionByType: FunctionComponent<PageComponentProps> = (
           {
             field: { telemetryRetentionConfig: true },
             title: "Retention Overrides",
+            description: "Leave a type blank to keep the default retention.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (

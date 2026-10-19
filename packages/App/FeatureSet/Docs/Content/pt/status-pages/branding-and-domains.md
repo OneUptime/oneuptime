@@ -3,7 +3,7 @@
 Sua página de status é a única tela do OneUptime que seus clientes olham, então ela deve ter a sua cara e ficar no seu próprio domínio, como `status.yourcompany.com`. Esta página percorre a página **Marca** cartão por cartão e depois coloca a página de status no seu domínio: adicione o domínio, adicione um registro DNS, e o certificado SSL gratuito vem sozinho.
 
 :::cards
-- [A página Marca](#a-página-marca): Logotipo, título, favicon, links, rodapé, cores e idiomas.
+- [A página Marca](#a-página-marca): Logotipo, tema, título, favicon, links, rodapé, cores e idiomas.
 - [HTML, CSS e JavaScript personalizados](#html-css-e-javascript-personalizados): Tudo o que os controles embutidos não cobrem.
 - [Domínios personalizados](#domínios-personalizados): Seu próprio nome de host, com um certificado gratuito.
 - [A coluna Status](#ler-a-coluna-status-do-domínio): Em que ponto cada domínio está no caminho para o HTTPS.
@@ -15,7 +15,7 @@ Abra uma página de status: a seção **Marca** do menu lateral dela tem três i
 
 | Página | O que você define ali |
 | ---- | ------------------ |
-| **Marca** | Logotipo e imagem de capa, título e descrição da página, favicon, links do cabeçalho, a descrição da página de visão geral, a linha de direitos autorais e os links do rodapé. Recolhidos em **Mais configurações**: as cores do gráfico de histórico, os idiomas e a indexação em mecanismos de pesquisa. |
+| **Marca** | Logotipo e imagem de capa, o tema (claro, escuro ou conforme o dispositivo de cada visitante), título e descrição da página, favicon, links do cabeçalho, a descrição da página de visão geral, a linha de direitos autorais e os links do rodapé. Recolhidos em **Mais configurações**: as cores do gráfico de histórico, os idiomas e a indexação em mecanismos de pesquisa. |
 | **Domínios personalizados** | Seu próprio domínio, o registro DNS dele e o certificado SSL gratuito dele. |
 | **HTML, CSS e JavaScript** | HTML do cabeçalho, HTML do rodapé, CSS personalizado, JavaScript personalizado. |
 
@@ -25,7 +25,7 @@ A marca ficava dividida entre telas separadas de **Marca essencial**, **Cabeçal
 
 ## A página Marca
 
-**Páginas de status → sua página → Marca → Marca** (`{id}/branding`). Cada cartão salva por conta própria. Depois do logotipo, do título e do favicon, os cartões seguem a sua página de status de cima para baixo: os links do cabeçalho, o texto no topo da visão geral e, depois, o rodapé. O que pouca gente muda fica recolhido em **Mais configurações**, no final.
+**Páginas de status → sua página → Marca → Marca** (`{id}/branding`). Cada cartão salva por conta própria. Depois do logotipo, do tema, do título e do favicon, os cartões seguem a sua página de status de cima para baixo: os links do cabeçalho, o texto no topo da visão geral e, depois, o rodapé. O que pouca gente muda fica recolhido em **Mais configurações**, no final.
 
 ### Logotipo e imagem de capa
 
@@ -40,14 +40,32 @@ O logotipo, a imagem de capa e o favicon são arquivos enviados no próprio proj
 
 Sua página de status só mostra imagens do próprio projeto; uma imagem que ela não pode mostrar fica de fora, como se a página não tivesse nenhuma. O painel, a API e o Terraform leem as imagens da página do mesmo jeito: uma imagem de outro projeto volta como nenhuma imagem. Os e-mails que a página envia (aos assinantes, e aos usuários privados sobre o acesso deles) mostram o logotipo do mesmo jeito: um logotipo que a página não pode mostrar também fica de fora deles, em vez de aparecer como uma imagem quebrada.
 
+### Tema
+
+O cartão **Tema**, logo abaixo do logotipo, define como a página aparece para os visitantes. Escolha uma das três opções e ela é salva na hora; não há botão **Editar**.
+
+| Opção | O que os visitantes veem |
+| ------ | ----------------- |
+| **Claro** | A página clara, seja qual for a configuração do dispositivo deles. As páginas de status criadas antes de existir essa opção estão em **Claro**, então continuam com a aparência de sempre. |
+| **Escuro** | A página escura, seja qual for a configuração do dispositivo deles. |
+| **Conforme o dispositivo de cada visitante** | Clara ou escura, conforme o dispositivo deles está configurado, e muda junto com ele enquanto a página está aberta. Um botão de sol ou de lua no rodapé da página permite ao visitante trocar, e o navegador dele lembra a escolha. |
+
+Na página escura, o logotipo fica sobre um fundo claro, então um logotipo feito para uma página branca continua bem visível.
+
+Uma página de status criada de agora em diante começa com **Conforme o dispositivo de cada visitante**. Pela API e pelo Terraform, o campo é `theme`, com um dos valores `Light`, `Dark` ou `System` (**Conforme o dispositivo de cada visitante**), escritos exatamente assim; qualquer outro valor é recusado. Uma configuração do Terraform que não define nenhum `theme` recebe `Light`, então uma configuração escrita antes dessa opção nunca planeja uma mudança em uma página que gerencia.
+
+O tema vai no HTML da página, então a página é desenhada nele desde o início: uma página escura não pisca em branco enquanto carrega, e o navegador desenha as barras de rolagem, os campos de formulário e, nos celulares, a barra de endereço combinando com ela. Todas as partes da página o seguem, inclusive a página de login de uma página de status privada. As barras de tempo de atividade mantêm as cores que você escolheu. Na página escura, o texto em uma cor de status ganha um tom mais claro dessa cor onde a própria cor seria difícil de ler, e uma barra escura demais para ser vista ganha uma borda mais clara.
+
+O seu CSS e o seu HTML personalizados valem nos dois temas; [HTML, CSS e JavaScript personalizados](#html-css-e-javascript-personalizados) explica como estilizar o escuro.
+
 ### Título, descrição e favicon
 
-- **Título e descrição**: o cartão avisa que isto também é usado para SEO. **Editar** abre **Título da página** (texto de exemplo `Please enter page title here.`) e **Descrição da página**. Mecanismos de pesquisa e prévias de links mostram esses textos, então escreva-os para um cliente, não para a sua equipe.
+- **Título e descrição**: o nome da página na aba do navegador e nos e-mails aos assinantes, e a descrição que os mecanismos de pesquisa mostram. **Editar** abre **Título da página** (texto de exemplo `e.g., Acme Status`) e **Descrição da página**. Mecanismos de pesquisa e prévias de links mostram esses textos, então escreva-os para um cliente, não para a sua equipe.
 - **Favicon**: **Edit Favicon** abre o envio **Favicon**: o pequeno ícone na aba do navegador.
 
 ### Links do cabeçalho
 
-A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de status, como o seu site, a sua documentação ou um portal de suporte. Cada link tem um **Título** e um **Link** (uma URL, texto de exemplo `https://link.com`), e você os reordena arrastando. Sem nenhum, a tabela diz **Nenhum link de cabeçalho de status para esta página de status**, com **Criar: Página de status Cabeçalho Link** abaixo.
+A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de status, como o seu site, a sua documentação ou um portal de suporte. Cada link tem um **Título** e um **Link** (uma URL, texto de exemplo `https://link.com`), e você os reordena arrastando. Sem nenhum, a tabela diz para que eles servem, com **Adicionar: Link do Cabeçalho** abaixo.
 
 ### Descrição da página de visão geral
 
@@ -56,7 +74,7 @@ A tabela **Links do Cabeçalho** contém os links do cabeçalho da página de st
 ### Rodapé
 
 - **Informações de direitos autorais**: **Edit Copyright** abre um campo, **Informações de direitos autorais**, com o texto de exemplo `Acme, Inc.`.
-- **Links do rodapé**: o mesmo par **Título** e **Link** dos links do cabeçalho, ordenados arrastando. Sem nenhum, diz "Nenhum link de rodapé de status para esta página de status."
+- **Links do rodapé**: o mesmo par **Título** e **Link** dos links do cabeçalho, ordenados arrastando e adicionados com **Adicionar: Link do rodapé**.
 
 Os links do cabeçalho servem para navegar; os do rodapé, para as letras miúdas, como avisos legais, privacidade e termos.
 
@@ -64,7 +82,7 @@ Os links do cabeçalho servem para navegar; os do rodapé, para as letras miúda
 
 A última seção da página fica recolhida em **Mais configurações**, porque pouca gente muda o que há nela. Recolhida, o cabeçalho dela nomeia as suas quatro seções (**Cor Padrão da Barra**, **Regras de cor das barras**, **Idiomas** e **Indexação em mecanismos de pesquisa**) e mostra cada uma que difere de como uma página de status nova começa: uma cor padrão da barra diferente do verde com que toda página começa, regras de cor das barras diferentes das recomendadas, um idioma padrão diferente do inglês, uma lista de idiomas mais curta ou a indexação em mecanismos de pesquisa desativada. Clique para abri-la: é um único cartão, com as suas seções uma embaixo da outra, cada uma com seu próprio título, separadas por divisórias.
 
-**Cores do gráfico de histórico.** Estes são os únicos controles de cor embutidos de uma página de status. Cada barra do histórico de tempo de atividade é um dia.
+**Cores do gráfico de histórico.** Além do **Tema**, estes são os únicos controles de cor embutidos de uma página de status. Cada barra do histórico de tempo de atividade é um dia.
 
 - **Cor Padrão da Barra**: **Edit Default Bar Color** abre o seletor **Cor Padrão da Barra**. É a cor de um dia ao qual nenhuma regra de cor das barras corresponde. Toda página de status nova começa com verde.
 - **Regras de cor das barras**: uma tabela ordenada de regras que você ordena arrastando. Cada regra tem **Quando a % de tempo de atividade for maior ou igual a** e **Então, use esta cor de barra**; as colunas da tabela dizem `When Uptime Percent >=` e `Then, Bar Color is`. As regras são verificadas de cima para baixo, e a primeira que o tempo de atividade de um dia alcança define a sua cor, então mantenha as porcentagens maiores acima das menores: uma regra abaixo de outra com porcentagem igual ou menor nunca colore um dia. A cor de uma regra nova já vem escolhida, uma que as outras regras ainda não usam; escolha a que você quiser no lugar dela.
@@ -112,8 +130,8 @@ Antes eram dois cartões próprios, **Porcentagem geral de tempo de atividade** 
 
 | Cartão | Coluna | O que contém |
 | ---- | ------ | ------------- |
-| **HTML do Cabeçalho** | `headerHTML` | HTML adicionado ao cabeçalho da página (texto de exemplo `Insert Custom HTML here.`). |
-| **HTML do rodapé** | `footerHTML` | HTML adicionado ao rodapé da página. |
+| **HTML do Cabeçalho** | `headerHTML` | HTML mostrado no lugar do cabeçalho da página, com o logotipo e os links do cabeçalho (texto de exemplo `Insert Custom HTML here.`). |
+| **HTML do rodapé** | `footerHTML` | HTML mostrado no lugar do rodapé da página, com os links e os seletores de idioma e tema. |
 | **CSS Personalizado** | `customCSS` | Estilos para a página inteira (texto de exemplo `Insert Custom CSS here.`). |
 | **JavaScript Personalizado** | `customJavaScript` | Um script que a página executa (texto de exemplo `Insert Custom JavaScript here.`). |
 
@@ -122,7 +140,9 @@ Antes eram dois cartões próprios, **Porcentagem geral de tempo de atividade** 
 
 No OneUptime Cloud, adicionar ou alterar qualquer um deles exige o plano **Growth**. Esvaziar um deles funciona em qualquer plano, então o código personalizado que um período de teste adicionou sempre pode ser removido.
 
-**Não há seletor de tema.** As páginas de status do OneUptime não têm configuração de tema nem de cor da marca: os únicos controles de cor embutidos, em qualquer lugar, são **Cor Padrão da Barra** e as regras de cor das barras do gráfico de histórico, em **Mais configurações** na página **Marca**. Fontes, cores de fundo, cores de destaque e ajustes de layout passam todos pelo **CSS Personalizado**. Se você estava procurando um campo de "cor da marca", esta é a resposta: ele não existe, e esta caixa é a forma de fazer isso.
+**Não há seletor de cor da marca.** Além do **Tema**, que deixa a página clara ou escura, os únicos controles de cor embutidos, em qualquer lugar, são **Cor Padrão da Barra** e as regras de cor das barras do gráfico de histórico, em **Mais configurações** na página **Marca**. Fontes, cores de fundo, cores de destaque e ajustes de layout passam todos pelo **CSS Personalizado**. Se você estava procurando um campo de "cor da marca", esta é a resposta: ele não existe, e esta caixa é a forma de fazer isso.
+
+**Código personalizado no tema escuro.** O seu CSS e o seu HTML personalizados valem nos dois temas. Enquanto a página está escura, o elemento `<html>` dela tem a classe `dark`, então uma regra CSS que começa com `html.dark` estiliza só o tema escuro: `html.dark .my-banner { background: #1e293b; }`. Uma regra sem isso vale nos dois, então uma cor de fundo ou de texto que você define para a página clara continua também na escura: confira o seu CSS personalizado nos dois temas. Se a página tem CSS personalizado ou HTML personalizado no cabeçalho ou no rodapé, o cartão **Tema** avisa isso abaixo das opções.
 
 > [!WARNING]
 > O JavaScript personalizado roda nos navegadores dos seus visitantes, em uma página que as pessoas abrem justamente quando acham que algo quebrou. Mantenha-o pequeno, hospede você mesmo o que ele carrega quando puder, e teste-o antes de depender dele.
@@ -153,7 +173,7 @@ flowchart TB
 
 ### Antes de começar
 
-- **O domínio pai precisa estar verificado.** A lista **Domínio** só mostra os domínios verificados em **Configurações do projeto → Domínios**, onde você prova com um registro TXT que um domínio é seu. O link **Adicionar um domínio** ao lado do campo abre essa página em uma nova aba.
+- **O domínio pai precisa estar verificado.** A lista **Domínio** só mostra os domínios verificados em **Configurações do projeto → Avançado → Domínios**, onde você prova com um registro TXT que um domínio é seu. O link **Adicionar um domínio** ao lado do campo abre essa página em uma nova aba.
 - **Sua instalação precisa de um registro CNAME de páginas de status.** O OneUptime Cloud tem um. Em uma instalação auto-hospedada, defina-o como um nome de host que aponta para o seu servidor OneUptime (um registro A), e garanta que o servidor responda na porta 80, onde o Let's Encrypt faz a verificação. Sem ele, o cartão e a caixa de diálogo **Configuração de DNS** dizem "Custom Domains not enabled for this OneUptime installation" em vez de mostrar um registro.
 
 :::tabs

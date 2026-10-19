@@ -1,10 +1,18 @@
 import { readPage } from "./DocsContentSupport";
+import {
+  MenuSection as DashboardMenuSection,
+  developerSection,
+  menuSections,
+  sectionByTitle,
+  startsCollapsed,
+} from "./DocsDashboardMenus";
 import { boldSpans } from "./DocsTranslationChecks";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import Runner from "Common/Models/DatabaseModels/Runner";
+import { getIpv6NetworkRateLimit } from "Common/Server/Utils/ClientIp";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -82,11 +90,17 @@ import RunnerLiveStatus, {
   RUNNER_ALIVE_WINDOW_IN_MINUTES,
 } from "Common/Types/Runner/RunnerLiveStatus";
 import { RuleCriteriaOperator } from "Common/Types/Rules/RuleCriteria";
+import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
 import {
   getDefaultRuleCriteriaOperator,
   getRuleCriteriaOperatorsForField,
   RULE_CRITERIA_OPERATOR_LABELS,
+  RuleCriteriaCopy,
 } from "Common/UI/Components/RuleCriteria/RuleCriteriaFields";
+import {
+  getRuleCriteriaSubjectCopy,
+  RuleCriteriaSubjectCopy,
+} from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import Field from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import RulePatternMatchUtil from "Common/Utils/Rules/RulePatternMatchUtil";
@@ -194,10 +208,16 @@ const RUNNER_VIEW: string = readDashboard(
 const CREDENTIALS_PAGE: string = readDashboard(
   "Pages/Runbook/Runners/RunnerCredentials.tsx",
 );
+// How an SSH credential signs in: the choice's words.
+const SSH_SIGN_IN: string = readDashboard(
+  "Components/Runner/RunnerCredentialSignIn.ts",
+);
 const SECRETS_PAGE: string = readDashboard("Pages/Runbook/Secrets.tsx");
 const RULES_TABLE: string = readDashboard(
   "Components/Runbook/RunbookRulesTable.tsx",
 );
+// The shared rule form the runbook rules take their steps and fields from.
+const EVENT_RULE_FORM: string = readDashboard("Utils/Form/EventRuleForm.ts");
 
 // The text of the "## " section with this heading, up to the next "## ".
 function section(markdown: string, heading: string): string {
@@ -1425,31 +1445,130 @@ describe("authoring a runbook", () => {
   });
 });
 
+describe("a new runbook's first steps", () => {
+  const list: string = readDashboard("Pages/Runbook/Runbooks.tsx");
+  const overview: string = readDashboard(
+    "Components/Runbook/RunbookOverviewState.ts",
+  );
+
+  it("open a new runbook on its Steps page, as the authoring guide says", () => {
+    expect(list).toContain("modalType === ModalType.Create && item._id");
+    expect(list).toContain("RouteMap[PageMap.RUNBOOK_VIEW_STEPS] as Route");
+    expect(AUTHORING).toContain("The new runbook opens on its **Steps** page.");
+    expect(AUTHORING).not.toContain(
+      "The new runbook appears in the list: open it.",
+    );
+    expect(INDEX).toContain(
+      "It opens on its **Steps**: add these steps, then click **Save Steps**:",
+    );
+  });
+
+  it("say on the Overview why a runbook cannot run, with the button that fixes it", () => {
+    expect(overview).toContain(
+      'turnOnButton: translationKey("Turn on runbook"),',
+    );
+    expect(overview).toContain('addStepsButton: translationKey("Add Steps"),');
+    expect(RUNNING).toContain(
+      "Its **Overview** says which, with **Turn on runbook** or **Add Steps**.",
+    );
+  });
+});
+
 describe("runbook rules", () => {
   it("walk Create Runbook Rule through the form's steps", () => {
-    expect(formSteps(RULES_TABLE)).toEqual([
-      "Basic Info",
-      "Match Criteria",
-      "Runbooks",
-    ]);
-    expect(RULES_TABLE).toContain('title: "Runbooks to Start",');
+    /*
+     * What the rule matches, then the runbooks it starts, from the shared
+     * rule form (Utils/Form/EventRuleForm): no Basic Info step asks for a
+     * name first.
+     */
+    expect(RULES_TABLE).toContain(
+      "formSteps={getRunbookRuleFormSteps<RunbookRule>()}",
+    );
+    expect(RULES_TABLE).toContain(
+      "...getRunbookRuleActionFields<RunbookRule>()",
+    );
+    expect(formSteps(RULES_TABLE)).toEqual([]);
+    expect(RULES_TABLE).not.toContain('"Basic Info"');
 
-    // A rule starts on; the switch is on its edit form only.
-    const enabled: number = RULES_TABLE.indexOf(
-      'title: "Enabled",\n          stepId: "basic-info",',
+    const stepsStart: number = EVENT_RULE_FORM.indexOf(
+      "export const getRunbookRuleFormSteps",
+    );
+    const fieldsStart: number = EVENT_RULE_FORM.indexOf(
+      "export const getRunbookRuleActionFields",
     );
 
+    expect(stepsStart).toBeGreaterThan(0);
+    expect(fieldsStart).toBeGreaterThan(0);
+    expect(
+      formSteps(EVENT_RULE_FORM.slice(stepsStart, stepsStart + 400)),
+    ).toEqual(["Match", "Runbooks"]);
+
+    const fields: string = EVENT_RULE_FORM.slice(
+      fieldsStart,
+      EVENT_RULE_FORM.indexOf("// ---- Privacy rules", fieldsStart),
+    );
+
+    expect(fields).toContain('title: "Runbooks to Start",');
+    expect(fields).toContain(
+      "onChange: followPicksWithRuleName<TEntity>(getRunbookRuleName),",
+    );
+
+    // A rule starts on; the switch is on its edit form only.
+    const enabled: number = fields.indexOf('title: "Enabled",');
+
     expect(enabled).toBeGreaterThan(0);
-    expect(RULES_TABLE.slice(enabled, enabled + 300)).toContain(
+    expect(fields.slice(enabled, enabled + 300)).toContain(
       "doNotShowWhenCreating: true,",
+    );
+
+    // The description waits under More fields.
+    const description: number = fields.indexOf('title: "Description",');
+
+    expect(description).toBeGreaterThan(0);
+    expect(fields.slice(description, description + 300)).toContain(
+      "collapsibleSection: moreFields,",
+    );
+
+    // The rule is named after its runbooks: "Start Database failover".
+    expect(EVENT_RULE_FORM).toContain(
+      'allPicks: translationKey("Start {{runbooks}}"),',
     );
 
     const create: string = section(RULES, "Create a runbook rule");
 
-    expect(create).toContain("On **Basic Info**, enter a **Name**");
-    expect(create).toContain("On **Match Criteria**, click **Add condition**");
+    expect(create).not.toContain("**Basic Info**");
+    expect(create).not.toContain("### Name the rule");
+
+    /*
+     * Match Criteria asks what the rule applies to before any condition:
+     * an incident rule's form says "All incidents" (the table passes its
+     * trigger's subject), and the other answer opens the first condition.
+     */
+    const incidents: RuleCriteriaSubjectCopy = getRuleCriteriaSubjectCopy(
+      RuleCriteriaSubject.Incidents,
+    );
+
+    expect(RULES_TABLE).toContain(
+      "ruleCriteriaSubject={getRunbookRuleAppliesTo(props.triggerEntityType)}",
+    );
     expect(create).toContain(
-      "On **Runbooks**, choose one or more **Runbooks to Start**, then click **Create Runbook Rule**. The rule is on as soon as it is created, and it appears in the list with the status **Enabled**.",
+      `On **Match**, **${RuleCriteriaCopy.appliesToTitle}** starts on every new event of this kind, such as **${incidents.all}**, and the rule starts its runbooks for each one.`,
+    );
+    expect(create).toContain(
+      `pick the other answer, such as **${incidents.matching}**, then pick a criterion and an operator`,
+    );
+    expect(create).toContain(
+      `Click **${RuleCriteriaCopy.addCondition}** for more conditions`,
+    );
+    expect(create).not.toContain("Add none to start the runbooks");
+    expect(create).toContain(
+      'On **Runbooks**, choose one or more **Runbooks to Start**. The rule\'s **Name** follows them, such as "Start Database failover", until you type your own, and a **Description** waits under **More fields**. Click **Create Runbook Rule**. The rule is on as soon as it is created, and it appears in the list with the status **Enabled**.',
+    );
+    expect(RULES).toContain(
+      "| **Conditions** | What the rule matches, on the **Match** step.",
+    );
+    expect(RULES).toContain(
+      "| **Description** | Optional context for teammates, under **More fields**. |",
     );
     expect(RULES).toContain(
       "| **Enabled** | On for a new rule. Switch it off on the rule's edit form to suspend it without deleting it. |",
@@ -1598,6 +1717,23 @@ describe("credentials and secrets", () => {
       });
       expect(create).toContain(`**${field}**`);
     }
+
+    // An SSH credential asks how it signs in first: a key or a password.
+    expect(CREDENTIALS_PAGE).toContain(
+      "overrideFieldKey: SSH_SIGN_IN_FIELD_KEY, formOnly: true, title: SSH_SIGN_IN_FIELD_TITLE,".replace(
+        /, /g,
+        ",\n            ",
+      ),
+    );
+
+    for (const word of ["Sign in with", "Private key", "Password"]) {
+      expect(SSH_SIGN_IN).toContain(`translationKey("${word}")`);
+      expect(create).toContain(`**${word}**`);
+    }
+
+    expect(create).toContain(
+      "pick how to **Sign in with**: a **Private key**, the better option where you have the choice",
+    );
   });
 
   it("connect to port 22 when the port is left empty", () => {
@@ -1672,7 +1808,7 @@ describe("credentials and secrets", () => {
     }
 
     expect(SECRETS_PAGE).toContain(
-      "can only contain letters, numbers, hyphens (-), and underscores (_).",
+      "Letters, numbers, hyphens and underscores.",
     );
     expect(CREDENTIALS).toContain(
       "On the **Secret** step, enter a **Name** (letters, numbers, hyphens and underscores)",
@@ -1895,7 +2031,7 @@ describe("runbook triggers", () => {
       `is nested more than ${RUNBOOK_INPUTS_MAX_DEPTH} levels deep`,
     );
     expect(TRIGGERS).toContain(
-      `The webhook started ${RUNBOOK_WEBHOOK_RUNS_PER_MINUTE} runs in the last minute, ${RUNBOOK_WEBHOOK_MAX_ACTIVE_RUNS} of its runs are still going, or one address made more than ${RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE} calls to runbook webhooks in a minute.`,
+      `The webhook started ${RUNBOOK_WEBHOOK_RUNS_PER_MINUTE} runs in the last minute, ${RUNBOOK_WEBHOOK_MAX_ACTIVE_RUNS} of its runs are still going, or one address made more than ${RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE} calls to runbook webhooks in a minute, or the addresses of one IPv6 /64 more than ${getIpv6NetworkRateLimit(RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE)} together.`,
     );
     expect(TRIGGERS).toContain(
       `The key is ${RUNBOOK_WEBHOOK_SECRET_KEY_LENGTH} random characters`,
@@ -2026,7 +2162,10 @@ describe("runbook triggers", () => {
 
   it("find the page from the runbook's menu, and the dashboard's links on its headings", () => {
     expect(VIEW_SIDE_MENU).toContain('title: "Triggers"');
-    expect(TRIGGERS).toContain("click **Triggers** in its menu");
+    // In the menu's folded Settings section: see "a runbook's own side menu".
+    expect(TRIGGERS).toContain(
+      "click **Settings → Triggers** in its side menu.",
+    );
 
     for (const heading of ["Run on a schedule", "Call the webhook"]) {
       expect(TRIGGERS).toContain(`\n## ${heading}\n`);
@@ -2038,5 +2177,151 @@ describe("runbook triggers", () => {
     expect(TRIGGERS_COPY).toContain(
       '"/docs/runbooks/triggers#call-the-webhook"',
     );
+  });
+});
+
+/*
+ * A runbook's own side menu (Pages/Runbook/View/SideMenu.tsx), as the
+ * overview tables it and the other pages give paths into it. The maintainer
+ * asked for it to show as little as possible: Executions under a folded Logs
+ * section, Triggers under a folded Settings section. So Basic is the only
+ * section open, and a page in another section is named by its path, with the
+ * section that has to be opened first.
+ */
+describe("a runbook's own side menu", () => {
+  const VIEW_MENU_SOURCE: string = readDashboard(
+    "Pages/Runbook/View/SideMenu.tsx",
+  );
+
+  // The menu, its Developer section put where the menu adds it.
+  const viewMenu: Array<DashboardMenuSection> = menuSections(VIEW_MENU_SOURCE, {
+    "{getDeveloperSideMenuSection(": developerSection(),
+  });
+
+  const sectionTitles: Array<string> = viewMenu.map(
+    (menuSection: DashboardMenuSection): string => {
+      return menuSection.title;
+    },
+  );
+
+  const TABLE_HEADER: string = "| Section | Pages |";
+
+  /*
+   * The overview's table of the menu: each row a section, in bold, and its
+   * pages, in bold, in the order the menu draws them.
+   */
+  function overviewMenuTable(): Array<DashboardMenuSection> {
+    const where: string = section(
+      INDEX,
+      "Where runbooks live in the dashboard",
+    );
+    const start: number = where.indexOf(TABLE_HEADER);
+
+    expect({ table: TABLE_HEADER, found: start >= 0 }).toEqual({
+      table: TABLE_HEADER,
+      found: true,
+    });
+
+    return tableRows(where.slice(start)).map(
+      (row: Array<string>): DashboardMenuSection => {
+        return {
+          title: boldSpans(row[0] || "")[0] || "",
+          items: boldSpans(row[1] || ""),
+        };
+      },
+    );
+  }
+
+  // Every "X → Y" path on the runbook pages that starts at a section of this menu.
+  function pathsIntoTheMenu(): Array<string> {
+    const paths: Set<string> = new Set();
+
+    for (const markdown of Object.values(PAGES)) {
+      for (const span of boldSpans(markdown)) {
+        const first: string = span.split(" → ")[0] as string;
+
+        if (span.includes(" → ") && sectionTitles.includes(first)) {
+          paths.add(span);
+        }
+      }
+    }
+
+    return Array.from(paths).sort();
+  }
+
+  it("is read with each section and page the menu draws, in order", () => {
+    expect(viewMenu).toEqual([
+      { title: "Basic", items: ["Overview", "Steps"] },
+      { title: "Logs", items: ["Executions"] },
+      { title: "Owners", items: ["Owners"] },
+      { title: "Settings", items: ["Triggers", "Settings"] },
+      { title: "Developer", items: ["Terraform", "API", "AI Assistants"] },
+      { title: "Advanced", items: ["Audit Logs", "Delete Runbook"] },
+    ]);
+  });
+
+  it("is tabled on the overview section by section and page by page", () => {
+    expect(overviewMenuTable()).toEqual(viewMenu);
+  });
+
+  it("starts with only Basic open, as the overview says", () => {
+    const open: Array<string> = sectionTitles.filter(
+      (title: string): boolean => {
+        return !startsCollapsed(VIEW_MENU_SOURCE, title);
+      },
+    );
+
+    expect(open).toEqual(["Basic"]);
+    expect(INDEX).toContain(
+      "Only **Basic** starts open: click a section's title to open it. A section opens by itself on any page inside it.",
+    );
+  });
+
+  it("names the runs and the triggers by the folded sections that hold them", () => {
+    expect(RUNNING).toContain(
+      "| A runbook's **Logs → Executions** | Every run of that runbook,",
+    );
+    expect(TRIGGERS).toContain(
+      "Open the runbook from **Runbooks**, and click **Settings → Triggers** in its side menu. **Settings** starts folded: click it to show **Triggers**.",
+    );
+
+    for (const [sectionTitle, page] of [
+      ["Logs", "Executions"],
+      ["Settings", "Triggers"],
+    ] as Array<[string, string]>) {
+      expect({
+        sectionTitle,
+        pages: sectionByTitle(viewMenu, sectionTitle).items,
+        folded: startsCollapsed(VIEW_MENU_SOURCE, sectionTitle),
+      }).toEqual({
+        sectionTitle,
+        pages: expect.arrayContaining([page]),
+        folded: true,
+      });
+    }
+  });
+
+  it("gives every path into it as the menu has it", () => {
+    const paths: Array<string> = pathsIntoTheMenu();
+
+    expect(paths).toEqual(["Logs → Executions", "Settings → Triggers"]);
+
+    for (const menuPath of paths) {
+      const [sectionTitle, page] = menuPath.split(" → ") as [string, string];
+
+      expect({
+        menuPath,
+        inSection: sectionByTitle(viewMenu, sectionTitle).items.includes(page),
+      }).toEqual({ menuPath, inSection: true });
+    }
+  });
+
+  it("no longer says Executions or Triggers are a click away in the menu", () => {
+    for (const [name, markdown] of Object.entries(PAGES)) {
+      expect({ page: name, says: markdown.includes("in its menu") }).toEqual({
+        page: name,
+        says: false,
+      });
+    }
   });
 });

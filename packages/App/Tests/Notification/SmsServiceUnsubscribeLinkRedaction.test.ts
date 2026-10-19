@@ -19,13 +19,16 @@ import type { Mock } from "jest-mock";
 import Twilio from "twilio";
 
 /*
- * A status page subscriber's SMS carries its unsubscribe link, and the token
- * in that link lets whoever holds it cancel the subscription without signing
- * in - on a private status page too. The SMS log keeps the text of every SMS
- * a project sends, and project members who may not touch subscribers can
- * read it (SmsLog.smsText: Viewer, Read SMS Log). So the log, and the owners'
- * email about an SMS that could not be sent, keep the link with its token
- * redacted; only Twilio gets the message as written.
+ * A status page subscriber's SMS carries its unsubscribe link - and the SMS
+ * a subscriber asks for to manage the subscription carries its manage link -
+ * and the token in either lets whoever holds it change or cancel the
+ * subscription without signing in, on a private status page too. The SMS log
+ * keeps the text of every SMS a project sends, and project members who may
+ * not touch subscribers can read it (SmsLog.smsText: Viewer, Read SMS Log).
+ * So the log, and the owners' email about an SMS that could not be sent,
+ * keep the links with their tokens redacted; only Twilio gets the message as
+ * written. (SmsLogSubscriberLinks.test.ts walks the whole way, from the
+ * senders through the log to the status page's routes.)
  */
 
 jest.mock("twilio", () => {
@@ -165,7 +168,30 @@ describe("the SMS log never keeps an unsubscribe link's token", () => {
     );
   });
 
-  test("a message without an unsubscribe link is logged as written", async () => {
+  test("the manage link a subscriber asks for is logged with its token redacted too", async () => {
+    const manageLink: string = `https://status.acme.com/update-subscription/${SUBSCRIBER_ID}-${TOKEN}`;
+    const message: string = `You have selected to manage your subscription for the status page: Site 03. You can manage your subscription here: ${manageLink}`;
+
+    await send(message);
+
+    expect(
+      (createMessage.mock.calls[0]![0] as { body: string }).body,
+    ).toContain(manageLink);
+    expect(loggedRows()[0]!.smsText).toBe(
+      message.replace(
+        manageLink,
+        `https://status.acme.com/update-subscription/${SUBSCRIBER_ID}-[redacted]`,
+      ),
+    );
+    expect(loggedRows()[0]!.smsText).not.toContain(TOKEN);
+  });
+
+  test("a message without a token-bearing link is logged as written", async () => {
+    /*
+     * A link with the subscriber id alone - what a public page's SMS
+     * carried before - opens neither the unsubscribe page nor the manage
+     * page, so there is nothing in it to redact.
+     */
     const plain: string =
       "Incident update: Checkout down on Site 03. Details: https://status.acme.com/incidents/1. Unsub: https://status.acme.com/update-subscription/30000000-0000-4000-8000-000000000003";
 

@@ -4,6 +4,7 @@ L'agent Kubernetes de OneUptime est un chart Helm qui collecte les métriques, l
 
 :::cards
 - [Installer l'agent](#installer-lagent): Quatre étapes avec Helm.
+- [Installer en tant que module complémentaire Amazon EKS](#installer-en-tant-que-module-complémentaire-amazon-eks): Depuis la console EKS, sans Helm.
 - [Options de configuration](#options-de-configuration): Filtres, échantillonnage, plan de contrôle, maillage de services, coûts et étiquettes.
 - [Agent IA Kubernetes](#agent-ia-kubernetes): `kubectl` en lecture seule pour OneUptime AI, et des corrections si vous les autorisez.
 - [Envoyer moins](#réduire-le-volume-de-données-collectées): Les leviers, par ordre d'impact.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Ouvrez **Produits → Infrastructure → Kubernetes → Tous les clusters**. Le cluster apparaît sous son `clusterName` en quelques minutes, et ses nœuds, ses pods et ses charges de travail se remplissent. L'agent IA Kubernetes apparaît comme connecté sur la page **Agent** du cluster, sous **IA**.
 :::
 
+## Installer en tant que module complémentaire Amazon EKS
+
+Sur Amazon EKS, vous pouvez aussi ajouter l'agent depuis la console EKS, où il fait partie des modules complémentaires d'AWS Marketplace. Il ne coûte rien, et EKS l'installe, le met à jour et le supprime pour vous. Le module complémentaire est ce chart, configuré comme l'exige un module complémentaire :
+
+- Il envoie les données à OneUptime Cloud, `https://oneuptime.com`, sauf si vous lui indiquez l'URL de votre propre OneUptime.
+- Il lit la clé d'ingestion dans un Secret Kubernetes que vous créez, jamais dans la configuration du module complémentaire, qu'EKS affiche en clair.
+- Il déclare le cluster à OneUptime sous son nom EKS.
+- Il s'exécute dans le namespace `oneuptime-agent`.
+
+:::steps
+### Mettre votre clé d'ingestion dans un Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### Ajouter le module complémentaire
+
+Dans la console EKS, ouvrez votre cluster, sélectionnez **Add-ons**, puis **Get more add-ons**, et choisissez l'agent Kubernetes de OneUptime parmi les modules complémentaires d'AWS Marketplace. Abonnez-vous à ce module complémentaire, ce qui est gratuit, et créez-le. Ou avec l'AWS CLI :
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Vérifier qu'il s'exécute
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Le module complémentaire est `ACTIVE` dès que ses pods s'exécutent, et le cluster apparaît dans OneUptime sous son nom EKS en quelques minutes. Un pod qui reste en `CreateContainerConfigError` ne trouve pas le Secret : créez-le comme à la première étape, dans le namespace `oneuptime-agent`.
+:::
+
+### Valeurs de configuration du module complémentaire
+
+Définissez-les dans les **Optional configuration settings** de la console EKS, ou avec `--configuration-values` lorsque vous créez ou mettez à jour le module complémentaire. Chacune est facultative :
+
+- `oneuptime.url` : l'adresse de votre OneUptime. La valeur par défaut est `https://oneuptime.com`.
+- `oneuptime.existingSecretName` : le Secret qui contient la clé d'ingestion sous `api-key`. La valeur par défaut est `oneuptime-ingestion-key`.
+- `oneuptime.labels` : des étiquettes de projet pour tout ce que ce cluster envoie, comme `{"team": "payments"}`.
+- `preset` : `eks-fargate` pour un cluster qui s'exécute uniquement sur Fargate, sinon `standard`, la valeur par défaut.
+- `logs.enabled`, `ebpf.enabled` et `aiAgent.enabled` : les journaux de pods, les traces eBPF et l'[agent IA Kubernetes](#agent-ia-kubernetes), chacun activé par défaut.
+- `kubeStateMetrics.enabled` et `cost.enabled` : kube-state-metrics et l'[observabilité des coûts](/docs/telemetry/kubernetes-cost), chacun désactivé par défaut.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+Une mise à jour remplace toute la configuration : une valeur que vous omettez revient à sa valeur par défaut. Les autres paramètres du chart, comme le profileur, les corrections apportées par OneUptime AI et les filtres de namespace, nécessitent l'[installation avec Helm](#installer-lagent). Pour faire passer un cluster de l'installation avec Helm au module complémentaire, désinstallez d'abord la release Helm.
+
 ## Choisir un preset
 
 `preset` choisit les valeurs par défaut qui fonctionnent sur votre plateforme : si les journaux de pods sont lus depuis le nœud via `hostPath` ou via l'API Kubernetes, et quelles charges de travail peuvent s'exécuter en mode privilégié.
@@ -169,6 +225,23 @@ En cas de doute, commencez par `standard`. Si l'installation échoue avec une er
 ## Options de configuration
 
 Chaque option ci-dessous est une valeur Helm. Définissez-la à l'installation, ou sur un agent installé avec `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### Conserver la clé d'ingestion dans un Secret
+
+`--set oneuptime.apiKey` conserve la clé dans les valeurs de la release, que Helm enregistre à chaque révision. Pour qu'elle n'y figure pas, placez la clé dans un Secret du namespace de l'agent, sous `api-key`, et indiquez plutôt ce Secret :
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+Chaque charge de travail de l'agent lit alors la clé dans ce Secret, et le chart ne crée pas son propre Secret. Définissez `oneuptime.apiKey` ou `oneuptime.existingSecretName`, pas les deux : le chart refuse les deux à la fois. Le Secret peut provenir de tout ce qui en écrit un, comme l'External Secrets Operator.
 
 ### Filtrage par namespace
 
@@ -455,7 +528,7 @@ Il nécessite un noyau Linux 5.8 ou ultérieur avec BTF (le cas par défaut sur 
 eBPF voit les appels réseau, pas votre code : une trace est donc construite à partir des requêtes que traite un service et des appels qu'il effectue pendant leur traitement :
 
 - **Une requête et ses appels forment une trace.** La requête entrante d'un service est le span racine, nommé `<METHOD> <route>`, et les appels HTTP, gRPC, SQL et Redis que le service effectue pendant son traitement sont ses enfants. (Pour Node.js, cela repose sur l'agent Node.js d'OBI, que le chart active avec `ebpf.nodejs.enabled`.) Les appels que des requêtes concurrentes envoient sur une connexion partagée, ce qui est courant avec les clients Redis, ne peuvent pas toujours être distingués : certains ne sont donc pas placés dans la trace de leur requête.
-- **Un appel vers un service situé sur un autre nœud démarre une nouvelle trace**, sauf si quelque chose transporte le contexte de trace : un SDK OpenTelemetry, ou la propagation de contexte optionnelle décrite plus bas. Lorsque les deux extrémités s'exécutent sur le même nœud, OBI voit les deux et les relie lui-même.
+- **Un appel vers un service situé sur un autre nœud rejoint la trace de l'appelant** grâce à la propagation de contexte, activée par défaut et décrite plus bas. Si elle est désactivée, un tel appel démarre une nouvelle trace, sauf si un SDK OpenTelemetry transporte le contexte de trace. Lorsque les deux extrémités s'exécutent sur le même nœud, OBI voit les deux et les relie lui-même.
 - **Le travail qu'aucune requête n'a déclenché reste isolé.** Un worker de file d'attente qui interroge Redis, ou une tâche cron, n'a aucune requête à laquelle rattacher ses appels.
 - **Les serveurs de bases de données restent généralement isolés.** Les protocoles réseau des bases de données ne transportent aucun contexte de trace : sauf si l'appelant s'exécute sur le même nœud, le span qu'OBI enregistre dans un serveur de bases de données pour chaque commande est une trace d'un seul span.
 
@@ -502,15 +575,15 @@ Toutes sont activées par défaut, sauf une. Désactivez-en une avec `--set ebpf
 | `networkInterZoneMetrics` | désactivée | La variante inter-zones des métriques réseau (double leur cardinalité) |
 | `tcpStats` | activée | Compteurs de temps aller-retour TCP, de connexions échouées et de retransmissions par nœud |
 
-La propagation du contexte de trace entre services, où OBI injecte un `traceparent` W3C pour qu'une requête passant du pod A au pod B apparaisse comme une seule trace sans aucun SDK, est désactivée par défaut. Activez-la avec `--set ebpf.contextPropagation=true`. Elle ne nécessite aucun noyau au-delà de ce dont le reste de l'agent a besoin, et aucune version du noyau ne la rend inopérante.
+La propagation du contexte de trace entre services, où OBI injecte un `traceparent` W3C pour qu'une requête passant du pod A au pod B apparaisse comme une seule trace sans aucun SDK, est activée par défaut. Désactivez-la avec `--set ebpf.contextPropagation=false`. Elle ne nécessite aucun noyau au-delà de ce dont le reste de l'agent a besoin, et aucune version du noyau ne la rend inopérante.
 
-Elle est désactivée, car injecter l'en-tête signifie réécrire du trafic déjà en transit : les requêtes HTTP en clair sont agrandies sur place dans le noyau, tandis qu'une option TCP est ajoutée à TLS et au TCP brut depuis un hook Traffic Control. Si la comptabilité des octets de la connexion n'est pas corrigée exactement, le flux se désynchronise ; le symptôme signalé est celui de transferts via un proxy L7 comme nginx qui se bloquent au milieu du corps dès que la réponse dépasse environ 64KB, alors que les petites requêtes continuent de fonctionner. Ne l'écartez pas en raison de l'âge du noyau : en dessous du noyau 5.17, OBI se rabat sur des programmes à balayage borné et réécrit le trafic de la même façon. Les traces, les métriques RED et la carte des services n'en dépendent pas ; pour relier les services entre eux, un SDK OpenTelemetry propage `traceparent` dans l'espace utilisateur, sans réécriture dans le noyau, et c'est le choix le plus sûr.
+Injecter l'en-tête signifie réécrire du trafic déjà en transit : les requêtes HTTP en clair sont agrandies sur place dans le noyau, tandis qu'une option TCP est ajoutée à TLS et au TCP brut depuis un hook Traffic Control. Si la comptabilité des octets de la connexion n'est pas corrigée exactement, le flux se désynchronise ; le symptôme signalé est celui de transferts via un proxy L7 comme nginx qui se bloquent au milieu du corps dès que la réponse dépasse environ 64KB, alors que les petites requêtes continuent de fonctionner. Ne l'écartez pas en raison de l'âge du noyau : en dessous du noyau 5.17, OBI se rabat sur des programmes à balayage borné et réécrit le trafic de la même façon. Si vous constatez ce symptôme, ou si un maillage de services ou un plugin réseau eBPF se met à faire échouer des pods, désactivez la propagation : les traces, les métriques RED et la carte des services n'en dépendent pas, et un SDK OpenTelemetry propage `traceparent` dans l'espace utilisateur, sans réécriture dans le noyau. Un agent mis à jour avec `--reuse-values` conserve la valeur qu'il avait, et les charts antérieurs la livraient désactivée : mettez à jour avec `--reset-then-reuse-values` pour adopter la nouvelle valeur par défaut.
 
 ## Agent IA Kubernetes
 
 Lorsqu'un incident ou une alerte survient sur ce cluster, OneUptime AI enquête. L'**Agent IA Kubernetes** du chart lui donne un terminal : il exécute `kubectl` en lecture seule comme le ferait un ingénieur d'astreinte (décrire le pod défaillant, lire ses événements, suivre les journaux du conteneur qui plante, vérifier la capacité des nœuds) et cite chaque commande sur la page de l'incident.
 
-L'agent est **activé par défaut** et **en lecture seule** : un petit Deployment (`kubernetes-agent-ai-agent`, étiquette de pod `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) dont le ServiceAccount ne peut que lire. Il s'enregistre avec les mêmes `oneuptime.apiKey` et `clusterName` que le collecteur : il n'y a donc rien à configurer dans le tableau de bord. La page **Agent IA** du cluster (Kubernetes → cluster → IA → Agent) l'affiche comme connecté en une minute, et **Tester la connexion**, dans le menu **⋯** à côté de cet état, exécute `kubectl version` et `kubectl auth can-i --list` à travers lui. Tout ce que l'IA a fait avec lui figure sur la page **Journaux IA** du cluster (IA → Journaux), et ce qu'il faut savoir du cluster — les problèmes qui reviennent sans cesse et pourquoi, le nœud ou la charge de travail derrière la plupart d'entre eux, ce que l'IA a corrigé — sur la page **Analyses IA** (IA → Analyses). L'agent embarque un kubectl épinglé (v1.36.4). Ce n'est pas un Runner et il n'apparaît jamais sous Runbooks → Runners : OneUptime ne lui transmet jamais d'identifiants, n'exécute jamais de runbooks sur lui, et il n'est jamais accepté comme Runner de commandes d'une règle de remédiation automatique.
+L'agent est **activé par défaut** et **en lecture seule** : un petit Deployment (`kubernetes-agent-ai-agent`, étiquette de pod `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`) dont le ServiceAccount ne peut que lire. Il s'enregistre avec les mêmes `oneuptime.apiKey` et `clusterName` que le collecteur : il n'y a donc rien à configurer dans le tableau de bord. La page **Agent IA** du cluster (Kubernetes → cluster → IA → Agent) l'affiche comme connecté en une minute, et **Tester la connexion**, dans le menu **⋯** à côté de cet état, exécute `kubectl version` et `kubectl auth can-i --list` à travers lui. Tout ce que l'IA a fait avec lui figure sur la page **Journaux IA** du cluster (IA → Journaux), et ce qu'il faut savoir du cluster — les problèmes qui reviennent sans cesse et pourquoi, le nœud ou la charge de travail derrière la plupart d'entre eux, ce que l'IA a corrigé — sur la page **Analyses IA** (IA → Analyses). L'agent embarque un kubectl épinglé (v1.36.5). Ce n'est pas un Runner et il n'apparaît jamais sous Runbooks → Runners : OneUptime ne lui transmet jamais d'identifiants, n'exécute jamais de runbooks sur lui, et il n'est jamais accepté comme Runner de commandes d'une règle de remédiation automatique.
 
 Sur un agent installé avant l'existence de l'agent IA, actualisez d'abord votre index de charts, puis mettez à jour (sur un OneUptime auto-hébergé, mettez d'abord OneUptime à jour — voir [Mettre à jour l'agent](#mettre-à-jour-lagent)) :
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **Un refus qui se résout tout seul** — un ancien pod de l'agent qui se signale encore (un pod remplacé sans arrêt propre), ou l'ancien Runner du cluster encore en cours d'arrêt pendant une mise à jour. L'agent réessaie après le délai indiqué par le serveur.
 - **Un refus qui demande votre intervention** — un `clusterName` vide ou trop long, ou un projet qui a atteint sa limite d'agents IA ; le journal indique ce qu'il faut changer. Si un agent ne se connecte jamais et que son journal indique `Another Kubernetes AI agent for cluster "<name>" is online`, deux installations partagent un même `clusterName` (la page de l'agent IA le signale aussi) : celui qui est déjà connecté le garde tant qu'il s'exécute. Donnez donc à chaque cluster son propre `clusterName`, ou supprimez la release en trop. Une clé d'ingestion avec un **Pinned Service Name** ne peut pas enregistrer l'agent — donnez au chart une clé qui n'en a pas.
 
-**Réinitialiser l'agent**, dans le menu **⋯** à côté de l'état de l'agent sur la page de l'agent IA, fait oublier au serveur la clé de l'agent une fois que vous confirmez (un Project Owner, un Project Admin ou **Edit Auto Remediation Rule** peut le faire) ; le pod se reconnecte de lui-même en quelques minutes. La disponibilité de l'agent ne dépend pas de OneUptime : un agent IA mal configuré ne fait donc jamais échouer `helm upgrade --wait` — seul un pod qui ne peut pas tirer son image le fait.
+**Réinitialiser l'agent**, dans le menu **⋯** à côté de l'état de l'agent sur la page de l'agent IA, fait oublier au serveur la clé de l'agent une fois que vous confirmez (un Project Owner, un Project Admin ou **Edit Auto Remediation Rule** peut le faire, sur un cluster qu'il peut modifier) ; le pod se reconnecte de lui-même en quelques minutes. La disponibilité de l'agent ne dépend pas de OneUptime : un agent IA mal configuré ne fait donc jamais échouer `helm upgrade --wait` — seul un pod qui ne peut pas tirer son image le fait.
 
 ## Mettre à jour l'agent
 
@@ -866,7 +939,7 @@ Resserrez davantage si besoin : passez `minSeverity` à `ERROR`, ajoutez `metric
 
 ### Mesurer l'effet
 
-L'utilisation de la télémétrie est comptée par jour : vérifiez donc la tendance sous **Paramètres du projet → Historique d'utilisation** sur un jour ou deux, car elle ne bouge pas au moment où vous appliquez un changement. Changez un réglage à la fois (journaux désactivés, puis intervalle allongé, puis eBPF allégé) pour savoir ce qu'a fait chacun, plutôt que de tout réduire d'un coup et de perdre un moniteur sur lequel vous comptiez.
+L'utilisation de la télémétrie est comptée par jour : vérifiez donc la tendance sous **Paramètres du projet → Facturation et factures → Historique d'utilisation** sur un jour ou deux, car elle ne bouge pas au moment où vous appliquez un changement. Changez un réglage à la fois (journaux désactivés, puis intervalle allongé, puis eBPF allégé) pour savoir ce qu'a fait chacun, plutôt que de tout réduire d'un coup et de perdre un moniteur sur lequel vous comptiez.
 
 ## Dépannage
 

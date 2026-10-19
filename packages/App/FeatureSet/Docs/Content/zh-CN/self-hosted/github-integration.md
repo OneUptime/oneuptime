@@ -23,11 +23,11 @@ sequenceDiagram
     B->>O: Connect with GitHub App
     O-->>B: 重定向到应用的安装页面
     B->>G: 安装并授权应用
-    G-->>B: 重定向到 /api/github/auth/callback
+    G-->>B: 重定向到<br/>/api/github/auth/callback
     B->>O: installation_id 和一次性代码
     O->>G: 交换代码，检查安装
     O->>G: 导入安装中的仓库
-    G->>O: Webhook 发送到 /api/github/webhook
+    G->>O: Webhook 发送到<br/>/api/github/webhook
 ```
 
 - 浏览器重定向携带安装信息和一次性 OAuth 代码。OneUptime 交换该代码，以确认安装该应用的 GitHub 账号管理着这个安装，然后导入其中的仓库。已经存在的安装则改为通过登录 GitHub 来连接：这时该代码会告诉 OneUptime 这个账号管理着哪些安装。

@@ -77,12 +77,24 @@ export interface IncomingEmailJobData {
 export interface ProbeIngestJobData {
   jobType: ProbeIngestJobType;
   ingestionTimestamp: Date;
-  // For probe-response and monitor-test
+  /*
+   * For probe-response and monitor-test: { probeId, probeMonitorResponse },
+   * where probeId is the probe that sent the result as it authenticated
+   * (the route writes it from req.probe, never from the body) and
+   * probeMonitorResponse the result as the probe put it on the wire. A job
+   * queued before the route wrote it this way carries the whole request
+   * body instead, whose top-level probeId is the one the probe
+   * authenticated with - so it is read the same way.
+   */
   probeMonitorResponse?: JSONObject | undefined;
   testId?: string | undefined;
   // For incoming-email
   incomingEmail?: IncomingEmailJobData | undefined;
-  // For snmp-trap: the raw request body ({ probeId, probeKey, snmpTrap })
+  /*
+   * For snmp-trap: { probeId, snmpTrap }, probeId being the probe that
+   * received the trap as it authenticated. Jobs queued earlier carry the
+   * whole request body, whose top-level probeId is that same probe.
+   */
   snmpTrap?: JSONObject | undefined;
   /*
    * For network-device-walk: the raw request body
@@ -648,14 +660,25 @@ export default class TelemetryQueueService {
     return this.addTelemetryIngestJob(req, TelemetryType.SecurityEvents);
   }
 
+  /*
+   * Queues one probe's check result (or monitor test result). `probeId` is
+   * the probe that sent it, as it authenticated: the worker records the
+   * result as that probe's and nobody else's (ProbeReportIdentity). Only
+   * the result itself is queued with it - never the request body, which
+   * carries the probe's key.
+   */
   public static async addProbeIngestJob(data: {
+    probeId: ObjectID;
     probeMonitorResponse: JSONObject;
     jobType: "probe-response" | "monitor-test";
     testId?: string;
   }): Promise<void> {
     try {
       const probeData: ProbeIngestJobData = {
-        probeMonitorResponse: data.probeMonitorResponse,
+        probeMonitorResponse: {
+          probeId: data.probeId.toString(),
+          probeMonitorResponse: data.probeMonitorResponse,
+        },
         jobType: data.jobType,
         testId: data.testId,
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
@@ -693,13 +716,21 @@ export default class TelemetryQueueService {
     }
   }
 
+  /*
+   * Queues one trap a probe received. `probeId` is that probe, as it
+   * authenticated: traps are matched only to the devices it polls.
+   */
   public static async addSnmpTrapIngestJob(data: {
-    snmpTrapRequestBody: JSONObject;
+    probeId: ObjectID;
+    snmpTrap: JSONObject;
   }): Promise<void> {
     try {
       const probeData: ProbeIngestJobData = {
         jobType: "snmp-trap",
-        snmpTrap: data.snmpTrapRequestBody,
+        snmpTrap: {
+          probeId: data.probeId.toString(),
+          snmpTrap: data.snmpTrap,
+        },
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
 
@@ -1164,49 +1195,16 @@ export default class TelemetryQueueService {
     }
   }
 
-  public static async getQueueSize(): Promise<number> {
-    return Queue.getQueueSize(QueueName.Telemetry);
-  }
-
   /*
    * Telemetry queue BACKLOG (waiting + delayed) for autoscaling signals.
    * Active jobs are excluded on purpose: telemetry jobs park in the active
    * state for the fan-in writer's flush window while awaiting their
    * ClickHouse ack, so counting them makes a scaler read busy-but-healthy
-   * capacity as demand — see Queue.getQueueBacklogSize. getQueueSize above
+   * capacity as demand — see Queue.getQueueBacklogSize. Queue.getQueueSize
    * stays active-inclusive for the ingest backpressure checks, where
    * in-flight work genuinely counts against capacity.
    */
   public static async getQueueBacklogSize(): Promise<number> {
     return Queue.getQueueBacklogSize(QueueName.Telemetry);
-  }
-
-  public static async getQueueStats(): Promise<{
-    waiting: number;
-    active: number;
-    completed: number;
-    failed: number;
-    delayed: number;
-    total: number;
-  }> {
-    return Queue.getQueueStats(QueueName.Telemetry);
-  }
-
-  public static getFailedJobs(options?: {
-    start?: number;
-    end?: number;
-  }): Promise<
-    Array<{
-      id: string;
-      name: string;
-      data: JSONObject;
-      failedReason: string;
-      stackTrace?: string;
-      processedOn: Date | null;
-      finishedOn: Date | null;
-      attemptsMade: number;
-    }>
-  > {
-    return Queue.getFailedJobs(QueueName.Telemetry, options);
   }
 }

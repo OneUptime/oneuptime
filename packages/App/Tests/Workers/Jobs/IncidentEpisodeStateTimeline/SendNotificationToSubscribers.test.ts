@@ -264,7 +264,6 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -351,8 +350,8 @@ const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
-// An SMS from this public page carries the manage link (see smsManageLinkFor).
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -1291,10 +1290,10 @@ describe("IncidentEpisodeStateTimeline status pages that hide episodes", () => {
       expect(call.variables["statusPageName"]).toBe("Beta Status");
       expect(call.variables["statusPageUrl"]).toBe(SECOND_STATUS_PAGE_URL);
       expect(call.variables["resourcesAffected"]).toBe("DNS resolvers");
-      // An SMS from a public page carries the manage link (see smsManageLinkFor).
+      // An SMS carries the same token link as every other message, on a public page too.
       expect(call.variables["unsubscribeUrl"]).toBe(
         call.template === templateUsingEveryVariable("sms")
-          ? smsManageLinkFor(SECOND_STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)
+          ? unsubscribeLinkFor(SECOND_STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID)
           : unsubscribeLinkFor(SECOND_STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID),
       );
     }
@@ -1716,10 +1715,10 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
     );
 
     /*
-     * Five templates for each subscriber, the SMS one carrying - from this
-     * public page - the subscriber's manage link (see smsManageLinkFor).
-     * Subscribers are sent to a bounded number at a time, so their compiles
-     * interleave; each still carries its own subscriber's link.
+     * Five templates for each subscriber, the SMS one carrying the same token
+     * link as the others, on this public page too. Subscribers are sent to a
+     * bounded number at a time, so their compiles interleave; each still
+     * carries its own subscriber's link.
      */
     expect([...unsubscribeUrls].sort()).toEqual(
       [
@@ -1728,7 +1727,7 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
         UNSUBSCRIBE_URL,
         UNSUBSCRIBE_URL,
         UNSUBSCRIBE_URL,
-        smsManageLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID),
+        unsubscribeLinkFor(STATUS_PAGE_URL, SECOND_SUBSCRIBER_ID),
         secondUnsubscribeUrl,
         secondUnsubscribeUrl,
         secondUnsubscribeUrl,
@@ -1783,7 +1782,7 @@ describe("IncidentEpisodeStateTimeline custom template variable values", () => {
       expect(message).not.toMatch(/{{|}}/);
 
       for (const name of names) {
-        // An SMS from this public page carries the manage link.
+        // An SMS carries the same token link as every other message, on a public page too.
         const value: string =
           name === "unsubscribeUrl" && channel === "sms"
             ? SMS_UNSUBSCRIBE_URL
@@ -1860,7 +1859,7 @@ describe("IncidentEpisodeStateTimeline custom templates get values in their chan
     expect(sentMail()[0]!["subject"]).toBe(
       `${EPISODE_TITLE} is ${STATE_NAME} (${GROUPED_RESOURCES_TEXT})`,
     );
-    // An SMS from this public page carries the manage link (see smsManageLinkFor).
+    // An SMS carries the same token link as every other message, on a public page too.
     expect(sentSms()).toEqual([
       renderedWithEveryVariable("sms", {
         ...PLAIN_TEXT_VALUES,

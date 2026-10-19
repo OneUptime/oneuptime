@@ -3,18 +3,20 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Settings > SSO / OIDC and Status page > SSO / OIDC are core pages in every
- * edition: single sign-on needs no Enterprise build, no license and no
- * Enterprise plugin. On OneUptime Cloud they are plan-gated (Scale), through
+ * Settings > SSO (the project's SAML and OpenID Connect providers, on one
+ * page) and Status page > SSO / OIDC are core pages in every edition:
+ * single sign-on needs no Enterprise build, no license and no Enterprise
+ * plugin. On OneUptime Cloud they are plan-gated (Scale), through
  * PlanGatedPage and isPlanFeatureEligible, which ask the plan only.
  *
  * The pages' rendered behaviour is covered against a real DOM in
  * Common/Tests/App/Dashboard/SsoPages.test.tsx and PlanGatedPage.test.tsx.
  * What is left is the wiring, asserted here as source text because the App
- * suite runs in plain Node (and in CI with ee/ deleted): none of the four
- * pages may reach the Enterprise plugin door, the ee license helpers or the
- * edition flag, and the URLs they print for identity providers must stay
- * byte for byte what customers configured.
+ * suite runs in plain Node (and in CI with ee/ deleted): none of the three
+ * pages, nor the OIDC providers the project's page draws, may reach the
+ * Enterprise plugin door, the ee license helpers or the edition flag, and
+ * the URLs they print for identity providers must stay byte for byte what
+ * customers configured.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -65,27 +67,19 @@ const SSO_PAGES: Array<SsoPage> = [
     printedUrls: [
       "`${HTTP_PROTOCOL}${HOST}/${props.currentProject?._id}/${showSingleSignOnUrlId}`",
       "`/idp-login/${props.currentProject?._id}/${showSingleSignOnUrlId}`",
-      "`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`",
     ],
     requireSso: "switch",
   },
-  {
-    name: "Settings > OIDC",
-    file: ["Pages", "Settings", "OIDC.tsx"],
-    printedUrls: [
-      "`/oidc-callback/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`",
-      "`${HTTP_PROTOCOL}${HOST}/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`",
-      "`${DASHBOARD_URL.toString()}/${ProjectUtil.getCurrentProjectId()?.toString()}/sso`",
-    ],
-    requireSso: null,
-  },
+  /*
+   * A status page's sign-in link to test a provider with is printed by the
+   * Test Sign-In card both pages draw (STATUS_PAGE_SIGN_IN_TEST below).
+   */
   {
     name: "Status page > SSO",
     file: ["Pages", "StatusPages", "View", "SSO.tsx"],
     printedUrls: [
       "`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showSingleSignOnUrlId}`",
       "`/status-page-idp-login/${modelId.toString()}/${showSingleSignOnUrlId}`",
-      "`${STATUS_PAGE_URL.toString()}/${modelId}/sso`",
     ],
     requireSso: "status-page-switch",
   },
@@ -95,11 +89,75 @@ const SSO_PAGES: Array<SsoPage> = [
     printedUrls: [
       "`/status-page-oidc-callback/${modelId.toString()}/${showOidcConfigId}`",
       "`${HTTP_PROTOCOL}${HOST}/${modelId.toString()}/${showOidcConfigId}`",
-      "`${STATUS_PAGE_URL.toString()}/${modelId}/sso`",
     ],
     requireSso: null,
   },
 ];
+
+// The Test Sign-In card of a status page's SSO and OIDC pages.
+const STATUS_PAGE_SIGN_IN_TEST: Array<string> = [
+  "Components",
+  "StatusPage",
+  "StatusPageSignInTestCard.tsx",
+];
+
+/*
+ * The project's sign-in link to test a provider with, printed by the card
+ * Settings > SSO draws under its SAML and OIDC providers - once there is
+ * one to test.
+ */
+describe("Settings > SSO > Test Single Sign On (SSO)", () => {
+  const card: string = readCode(
+    "Components",
+    "Sso",
+    "ProjectSignInTestCard.tsx",
+  );
+  const page: string = readCode("Pages", "Settings", "SSO.tsx");
+
+  test("prints the project's sign-in link byte for byte", () => {
+    expect(card).toContain(
+      "`${DASHBOARD_URL.toString()}/${projectId.toString()}/sso`",
+    );
+    expect(page).toContain(
+      "<ProjectSignInTestCard projectId={ProjectUtil.getCurrentProjectId()!} />",
+    );
+  });
+
+  test("is drawn once either list holds a provider to test", () => {
+    expect(page).toContain(
+      "const hasProviderToTest: boolean = samlProviderCount + oidcProviderCount > 0;",
+    );
+    expect(page).toContain(
+      "{hasProviderToTest ? ( <ProjectSignInTestCard projectId={ProjectUtil.getCurrentProjectId()!} /> ) : ( <></> )}",
+    );
+    expect(page).toContain("setSamlProviderCount(totalCount);");
+    expect(page).toContain("onProviderCountChange={setOidcProviderCount}");
+  });
+
+  test("reaches nothing that depends on the edition or the license", () => {
+    expect(enterpriseConstructsIn(card)).toEqual([]);
+  });
+});
+
+describe("Status page > Test Sign-In", () => {
+  test("prints the status page's sign-in link byte for byte", () => {
+    expect(readCode(...STATUS_PAGE_SIGN_IN_TEST)).toContain(
+      "`${STATUS_PAGE_URL.toString()}/${statusPageId.toString()}/sso`",
+    );
+  });
+
+  test.each([
+    ["Pages", "StatusPages", "View", "SSO.tsx"],
+    ["Pages", "StatusPages", "View", "OIDC.tsx"],
+  ])(
+    "%s/%s/%s/%s draws it once there is a provider to test",
+    (...file: Array<string>) => {
+      expect(readCode(...file)).toContain(
+        "{providerCount > 0 ? ( <StatusPageSignInTestCard statusPageId={modelId} /> ) : ( <></> )}",
+      );
+    },
+  );
+});
 
 /*
  * What would make a single sign-on page depend on the edition or the
@@ -194,7 +252,7 @@ describe.each(SSO_PAGES)("$name page", (page: SsoPage) => {
         'import RequireSsoForLoginCard from "../../Components/Project/RequireSsoForLoginCard";',
       );
       expect(code).toContain(
-        "<RequireSsoForLoginCard projectId={ProjectUtil.getCurrentProjectId()!} />",
+        "<RequireSsoForLoginCard projectId={ProjectUtil.getCurrentProjectId()!} isTestLinkShown={hasProviderToTest} />",
       );
       expect(countOf(code, "isEditable={true}")).toBe(1);
       expect(code).not.toContain("CardModelDetail");
@@ -231,6 +289,73 @@ describe.each(SSO_PAGES)("$name page", (page: SsoPage) => {
   test("imports core Dashboard code by relative path", () => {
     expect(code).toMatch(/from "(\.\.\/)+PageComponentProps"/);
     expect(code).not.toContain('from "@oneuptime/');
+  });
+});
+
+/*
+ * The project's OpenID Connect providers are on Settings > SSO, under its
+ * SAML providers (they had a page of their own, Settings > OIDC): drawn
+ * by the page, inside its one plan gate, with its one test link and its
+ * one Require SSO for Login switch.
+ */
+describe("Settings > SSO's OpenID Connect providers", () => {
+  const code: string = readCode(
+    "Components",
+    "Sso",
+    "ProjectOidcProviders.tsx",
+  );
+  const page: string = readCode("Pages", "Settings", "SSO.tsx");
+
+  test("reach nothing that depends on the edition or the license", () => {
+    expect(enterpriseConstructsIn(code)).toEqual([]);
+  });
+
+  test("are drawn by the SSO page, inside its plan gate, before its test link and its switch", () => {
+    expect(page).toContain(
+      'import ProjectOidcProviders from "../../Components/Sso/ProjectOidcProviders";',
+    );
+    expect(countOf(page, "<ProjectOidcProviders ")).toBe(1);
+    expect(page.indexOf("<ProjectOidcProviders ")).toBeLessThan(
+      page.indexOf("<ProjectSignInTestCard"),
+    );
+    expect(page.indexOf("<ProjectOidcProviders ")).toBeLessThan(
+      page.indexOf("<RequireSsoForLoginCard"),
+    );
+    expect(page.indexOf("<ProjectOidcProviders ")).toBeGreaterThan(
+      page.indexOf("const SSOSettings"),
+    );
+    expect(page.indexOf("<ProjectOidcProviders ")).toBeLessThan(
+      page.indexOf("const SSOPage"),
+    );
+    // The gate the page draws its settings in is the plan's alone.
+    expect(code).not.toContain("<PlanGatedPage");
+  });
+
+  test("the provider table always offers create, edit and delete, and one row action", () => {
+    expect(code).toContain("isDeleteable={true}");
+    expect(code).toContain("isCreateable={true}");
+    expect(code).toContain("isEditable={true}");
+    expect(code).not.toMatch(/isCreateable=\{(?!true\})/);
+    expect(code).not.toMatch(/isEditable=\{(?!true\})/);
+    expect(code).not.toContain("refreshToggle");
+    expect(code).not.toMatch(/title: "Disable/);
+    expect(countOf(code, "buttonStyleType: ButtonStyleType.NORMAL")).toBe(1);
+  });
+
+  test("leave requiring SSO, and the test link, to the page", () => {
+    expect(code).not.toContain("requireSsoForLogin");
+    expect(code).not.toContain("RequireSsoForLoginCard");
+    expect(code).not.toContain("DASHBOARD_URL");
+    expect(code).not.toContain("CardModelDetail");
+  });
+
+  test("print the identity provider URLs byte for byte", () => {
+    for (const printedUrl of [
+      "`/oidc-callback/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`",
+      "`${HTTP_PROTOCOL}${HOST}/${ProjectUtil.getCurrentProjectId()?.toString()}/${showOidcConfigId}`",
+    ]) {
+      expect(code).toContain(printedUrl);
+    }
   });
 });
 
@@ -289,11 +414,12 @@ describe("routes and the plugin contract", () => {
     expect(settingsRoutes).toContain(
       'import SettingsSSO from "../Pages/Settings/SSO";',
     );
-    expect(settingsRoutes).toContain(
-      'import SettingsOIDC from "../Pages/Settings/OIDC";',
-    );
     expect(settingsRoutes).toContain("<SettingsSSO {...props}");
-    expect(settingsRoutes).toContain("<SettingsOIDC {...props}");
+    // The OIDC page folded into SSO: its old address forwards there.
+    expect(settingsRoutes).not.toContain("Pages/Settings/OIDC");
+    expect(settingsRoutes).toContain(
+      "path={MOVED_OIDC_SETTINGS_PATH} element={<MovedPageRedirect pageMap={PageMap.SETTINGS_SSO} />}",
+    );
     expect(statusPagesRoutes).toContain(
       'import StatusPageViewSSO from "../Pages/StatusPages/View/SSO";',
     );

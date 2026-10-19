@@ -16,16 +16,16 @@ OneUptime ruft Ihre Foundry-Ressource über HTTPS vom OneUptime-Server aus auf, 
 ```mermaid title="Wohin die KI-Anfragen von OneUptime gehen"
 flowchart TB
     subgraph OU["OneUptime-Server"]
-        F["KI-Untersuchungen, Notizen, Postmortems, Fix-Aufgaben"]
+        F["KI-Untersuchungen,<br/>Notizen, Postmortems,<br/>Fix-Aufgaben"]
     end
     subgraph AZ["Ihr Azure-Abonnement"]
-        R["Foundry-Ressource contoso-ai"]
-        V1["OpenAI-v1-API: /openai/v1/chat/completions"]
-        AN["Anthropic-API: /anthropic/v1/messages"]
+        R["Foundry-Ressource<br/>contoso-ai"]
+        V1["OpenAI-v1-API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic-API:<br/>/anthropic/v1/messages"]
         D1["Bereitstellung gpt-5.1"]
-        D2["Bereitstellung claude-sonnet-5-5"]
+        D2["Bereitstellung<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API-Schlüssel"| R
+    F -->|"HTTPS +<br/>API-Schlüssel"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```
@@ -111,20 +111,20 @@ Mit `--custom-domain contoso-ai` lautet der Endpunkt der Ressource `https://cont
 
 Gehen Sie zu **Projekteinstellungen** > **KI** > **LLM-Anbieter** und klicken Sie auf **LLM-Anbieter erstellen**.
 
-### Den Anbieter benennen
+### Den Anbieter auswählen
 
-Geben Sie unter **Grundinformationen** einen **Name** ein, etwa `Azure gpt-5.1`, und auf Wunsch eine **Beschreibung**. Klicken Sie auf **Weiter**.
+Wählen Sie unter **Anbieter** **Azure OpenAI / Microsoft Foundry** als **LLM-Anbieter** und klicken Sie auf **Weiter**, um zu **Verbindung** zu gelangen.
 
-### Anbietereinstellungen ausfüllen
+### Die Verbindung ausfüllen
 
 | Feld | Was Sie eingeben |
 | --- | --- |
-| **LLM-Anbieter** | **Azure OpenAI / Microsoft Foundry** |
 | **API-Schlüssel** | **KEY 1** oder **KEY 2** der Ressource |
-| **Modellname** | Der Name der Bereitstellung, genau wie Foundry ihn anzeigt, etwa `gpt-5.1` |
 | **Basis-URL** | Der Endpunkt der Ressource mit `/openai/v1`, etwa `https://contoso-ai.openai.azure.com/openai/v1`. Für Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modellname** | Der Name der Bereitstellung, genau wie Foundry ihn anzeigt, etwa `gpt-5.1` |
+| **Name** | Zu Beginn der Name des Anbieters: Geben Sie ihm einen, der sagt, welche Bereitstellung es ist, etwa `Azure gpt-5.1` |
 
-**Als Standard festlegen** unter **Weitere Felder** ist eingeschaltet: KI-Funktionen verwenden den Standardanbieter des Projekts. Klicken Sie auf **LLM-Anbieter erstellen**.
+**Weitere Felder** enthält eine **Beschreibung** und **Als Standard festlegen**, das eingeschaltet ist: KI-Funktionen verwenden den Standardanbieter des Projekts. Klicken Sie auf **LLM-Anbieter erstellen**.
 
 ### Die Verbindung testen
 

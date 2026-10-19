@@ -128,10 +128,100 @@ function lastConditionsFrom(
   ]![0] as Array<NotificationRuleCondition>;
 }
 
+/*
+ * The first condition comes with "Only ... that match conditions"; Add
+ * Condition, under it, adds the next ones.
+ */
 async function clickAddCondition(): Promise<void> {
   const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: /Add Condition/i }));
+  const addButton: HTMLElement | null = screen.queryByRole("button", {
+    name: /Add Condition/i,
+  });
+
+  if (addButton) {
+    await user.click(addButton);
+    return;
+  }
+
+  await user.click(screen.getByTestId("notification-rule-applies-to-matching"));
 }
+
+function renderSavedConditions(
+  eventType: NotificationRuleEventType,
+  conditions: Array<NotificationRuleCondition>,
+): { onChange: MockFunction } {
+  const onChange: MockFunction = getJestMockFunction();
+
+  render(
+    <NotificationRuleConditionsElement
+      {...lookupProps()}
+      eventType={eventType}
+      value={conditions}
+      onChange={
+        onChange as unknown as (value: Array<NotificationRuleCondition>) => void
+      }
+    />,
+  );
+
+  return { onChange: onChange };
+}
+
+// What each kind of rule's choice calls its records, and the step above it.
+const APPLIES_TO: Array<{
+  eventType: NotificationRuleEventType;
+  heading: string;
+  all: string;
+  matching: string;
+}> = [
+  {
+    eventType: NotificationRuleEventType.Incident,
+    heading: "Which incidents",
+    all: "All incidents",
+    matching: "Only incidents that match conditions",
+  },
+  {
+    eventType: NotificationRuleEventType.Alert,
+    heading: "Which alerts",
+    all: "All alerts",
+    matching: "Only alerts that match conditions",
+  },
+  {
+    eventType: NotificationRuleEventType.IncidentEpisode,
+    heading: "Which incident episodes",
+    all: "All incident episodes",
+    matching: "Only incident episodes that match conditions",
+  },
+  {
+    eventType: NotificationRuleEventType.AlertEpisode,
+    heading: "Which alert episodes",
+    all: "All alert episodes",
+    matching: "Only alert episodes that match conditions",
+  },
+  {
+    eventType: NotificationRuleEventType.ScheduledMaintenance,
+    heading: "Which scheduled maintenance events",
+    all: "All scheduled maintenance events",
+    matching: "Only scheduled maintenance events that match conditions",
+  },
+  {
+    eventType: NotificationRuleEventType.Monitor,
+    heading: "Which monitors",
+    all: "All monitors",
+    matching: "Only monitors that match conditions",
+  },
+  {
+    eventType: NotificationRuleEventType.OnCallDutyPolicy,
+    heading: "Which on-call policies",
+    all: "All on-call policies",
+    matching: "Only on-call policies that match conditions",
+  },
+];
+
+const INCIDENT_TITLE_CONDITION: NotificationRuleCondition = {
+  checkOn: NotificationRuleConditionCheckOn.IncidentTitle,
+  conditionType: ConditionType.Contains,
+  value: "database",
+};
 
 /*
  * react-select renders one text input per dropdown, in form order:
@@ -157,6 +247,289 @@ async function pickFromDropdown(input: {
 }
 
 describe("The workspace notification rule Conditions editor", () => {
+  /*
+   * "We have customers who think they need to add at least one condition,
+   * but the idea is that if they don't add any condition, it matches all the
+   * incidents. ... Can we please do this everywhere you have conditions?"
+   */
+  describe("what a rule is for: every record, or only those its conditions match", () => {
+    test("the kinds of rule listed here are every kind there is", () => {
+      expect(
+        APPLIES_TO.map((entry: { eventType: NotificationRuleEventType }) => {
+          return entry.eventType;
+        }).sort(),
+      ).toEqual([...Object.values(NotificationRuleEventType)].sort());
+    });
+
+    test.each(APPLIES_TO)(
+      "a new $eventType rule starts on '$all', with no condition to fill in",
+      (entry: {
+        eventType: NotificationRuleEventType;
+        heading: string;
+        all: string;
+        matching: string;
+      }) => {
+        const { onChange } = renderConditions(entry.eventType);
+
+        const group: HTMLElement = screen.getByRole("radiogroup", {
+          name: entry.heading,
+        });
+        expect(
+          (screen.getByRole("radio", { name: entry.all }) as HTMLInputElement)
+            .checked,
+        ).toBe(true);
+        expect(
+          (
+            screen.getByRole("radio", {
+              name: entry.matching,
+            }) as HTMLInputElement
+          ).checked,
+        ).toBe(false);
+        expect(group.querySelectorAll("input[type='radio']").length).toBe(2);
+
+        // Nothing waits to be filled in, and nothing is said twice.
+        expect(screen.queryByRole("combobox")).toBeNull();
+        expect(
+          screen.queryByRole("button", { name: /Add Condition/i }),
+        ).toBeNull();
+        expect(screen.queryByText(/^No conditions:/)).toBeNull();
+        expect(
+          screen.queryByTestId("notification-rule-no-conditions-yet"),
+        ).toBeNull();
+        expect(lastConditionsFrom(onChange)).toEqual([]);
+      },
+    );
+
+    test("'Only incidents that match conditions' opens one condition to fill in, and Add Condition under it", async () => {
+      const { onChange } = renderConditions(NotificationRuleEventType.Incident);
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      await user.click(
+        screen.getByRole("radio", {
+          name: "Only incidents that match conditions",
+        }),
+      );
+
+      const conditions: Array<NotificationRuleCondition> =
+        lastConditionsFrom(onChange);
+      expect(conditions).toHaveLength(1);
+      expect(conditions[0]!.checkOn).toBe(
+        NotificationRuleConditionUtil.getCheckOnByEventType(
+          NotificationRuleEventType.Incident,
+        )[0],
+      );
+
+      const panel: HTMLElement = screen.getByTestId(
+        "notification-rule-applies-to-conditions",
+      );
+      expect(
+        panel.querySelectorAll("[data-testid='notification-rule-conditions']")
+          .length,
+      ).toBe(1);
+      expect(
+        screen.getByRole("button", { name: /Add Condition/i }),
+      ).toBeTruthy();
+    });
+
+    test("'All incidents' takes the conditions out, and 'Only ...' brings them back as they were", async () => {
+      const { onChange } = renderSavedConditions(
+        NotificationRuleEventType.Incident,
+        [INCIDENT_TITLE_CONDITION],
+      );
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      expect(
+        (
+          screen.getByRole("radio", {
+            name: "Only incidents that match conditions",
+          }) as HTMLInputElement
+        ).checked,
+      ).toBe(true);
+
+      await user.click(screen.getByRole("radio", { name: "All incidents" }));
+      expect(lastConditionsFrom(onChange)).toEqual([]);
+      expect(screen.queryByRole("combobox")).toBeNull();
+
+      await user.click(
+        screen.getByRole("radio", {
+          name: "Only incidents that match conditions",
+        }),
+      );
+      expect(lastConditionsFrom(onChange)).toEqual([INCIDENT_TITLE_CONDITION]);
+    });
+
+    test("deleting the last condition is going back to 'All incidents'", async () => {
+      const { onChange } = renderSavedConditions(
+        NotificationRuleEventType.Incident,
+        [INCIDENT_TITLE_CONDITION],
+      );
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      await user.click(screen.getByRole("button", { name: "Delete Filter" }));
+
+      expect(lastConditionsFrom(onChange)).toEqual([]);
+      expect(
+        (
+          screen.getByRole("radio", {
+            name: "All incidents",
+          }) as HTMLInputElement
+        ).checked,
+      ).toBe(true);
+      /*
+       * The Delete Filter button went with the conditions, and the focus
+       * with it: it is on the answer now picked, not lost to the page.
+       */
+      expect(document.activeElement).toBe(
+        screen.getByRole("radio", { name: "All incidents" }),
+      );
+    });
+  });
+
+  /*
+   * The step as it reads: the question, its two answers, and - only once
+   * there are conditions - when they are checked, the conditions, Add
+   * Condition, and a divider over Match Condition when there is one.
+   */
+  describe("the step around the conditions", () => {
+    const CHECKED_WHEN: string =
+      "Conditions are checked when an incident is created and again each time it changes, so a rule for acknowledged incidents acts when an incident is acknowledged.";
+
+    function renderWithDescription(
+      conditions: Array<NotificationRuleCondition>,
+    ): { container: HTMLElement } {
+      const { container } = render(
+        <NotificationRuleConditionsElement
+          {...lookupProps()}
+          eventType={NotificationRuleEventType.Incident}
+          value={conditions}
+          conditionsDescription={CHECKED_WHEN}
+          onChange={(): void => {}}
+        />,
+      );
+
+      return { container: container };
+    }
+
+    // The divider is the element's own last child, after the choice.
+    function divider(container: HTMLElement): Element | null {
+      const root: Element = container.firstElementChild as Element;
+      const last: Element | null = root.lastElementChild;
+
+      return last && last.className.split(/\s+/).includes("border-b")
+        ? last
+        : null;
+    }
+
+    test("when conditions are checked is said over them, and not over 'All incidents'", async () => {
+      renderWithDescription([]);
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      expect(screen.queryByText(CHECKED_WHEN)).toBeNull();
+
+      await user.click(
+        screen.getByRole("radio", {
+          name: "Only incidents that match conditions",
+        }),
+      );
+
+      const line: HTMLElement = screen.getByText(CHECKED_WHEN);
+      const panel: HTMLElement = screen.getByTestId(
+        "notification-rule-applies-to-conditions",
+      );
+      expect(panel.firstElementChild).toBe(line);
+      const radio: HTMLElement = screen.getByRole("radio", {
+        name: "Only incidents that match conditions",
+      });
+      expect(radio.getAttribute("aria-describedby")).toBe(line.id);
+
+      await user.click(screen.getByRole("radio", { name: "All incidents" }));
+      expect(screen.queryByText(CHECKED_WHEN)).toBeNull();
+    });
+
+    test("a summary's conditions, given no such line, say none", async () => {
+      renderConditions(NotificationRuleEventType.Incident);
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      await user.click(
+        screen.getByRole("radio", {
+          name: "Only incidents that match conditions",
+        }),
+      );
+
+      expect(
+        screen.queryByTestId(
+          "notification-rule-applies-to-matching-description",
+        ),
+      ).toBeNull();
+      expect(screen.queryByText(/^Conditions are checked when/)).toBeNull();
+    });
+
+    /*
+     * The divider separates the conditions from Match Condition, the form's
+     * next field, which only appears with two or more. Under "All incidents"
+     * or one condition it closed off nothing: a line over empty space at the
+     * bottom of the step.
+     */
+    test("the divider waits for Match Condition: none with fewer than two conditions", async () => {
+      const { container } = renderWithDescription([]);
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      expect(divider(container)).toBeNull();
+
+      await user.click(
+        screen.getByRole("radio", {
+          name: "Only incidents that match conditions",
+        }),
+      );
+      expect(divider(container)).toBeNull();
+
+      await user.click(screen.getByRole("button", { name: /Add Condition/i }));
+      expect(divider(container)).not.toBeNull();
+
+      await user.click(
+        screen.getAllByRole("button", { name: "Delete Filter" })[1]!,
+      );
+      expect(divider(container)).toBeNull();
+    });
+
+    test("a saved rule with two conditions opens with its divider", () => {
+      const { container } = renderWithDescription([
+        INCIDENT_TITLE_CONDITION,
+        {
+          checkOn: NotificationRuleConditionCheckOn.IncidentDescription,
+          conditionType: ConditionType.Contains,
+          value: "timeout",
+        },
+      ]);
+
+      expect(divider(container)).not.toBeNull();
+    });
+
+    /*
+     * A Button is full width under md, and only from md up sits 12px in
+     * (md:ml-3, for a dialog's footer). Taking those 12px back at every
+     * width pushed the full-width button 12px out of line with the
+     * conditions on a phone.
+     */
+    test("Add Condition lines up with the conditions at every width", async () => {
+      renderConditions(NotificationRuleEventType.Incident);
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+
+      await user.click(
+        screen.getByRole("radio", {
+          name: "Only incidents that match conditions",
+        }),
+      );
+
+      const wrapper: HTMLElement = screen.getByTestId(
+        "notification-rule-add-condition",
+      ).parentElement as HTMLElement;
+      const classes: Array<string> = wrapper.className.split(/\s+/);
+      expect(classes).toContain("md:-ml-3");
+      expect(classes).not.toContain("-ml-3");
+    });
+  });
+
   describe("the On-Call Duty Policy editor reported in #3459", () => {
     test("the Filter Type dropdown lists the on-call fields instead of 'No options'", async () => {
       renderConditions(NotificationRuleEventType.OnCallDutyPolicy);

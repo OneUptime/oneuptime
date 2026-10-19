@@ -236,7 +236,7 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
     <>
       <Card
         title="Incoming Email Address"
-        description="Emails sent to this address are evaluated against this monitor's criteria. Reset it to get a new random address, or customize it to use a name of your own. Either way, the current address stops working immediately."
+        description="Email sent to this address is checked against this monitor's criteria. Resetting or customizing it stops the current address at once."
         buttons={[
           {
             title: "Customize Address",
@@ -302,12 +302,9 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
           title="Reset email address?"
           description={
             <span data-testid="incoming-email-reset-confirmation">
-              {translator.translateText(
-                "This monitor will get a new, randomly generated email address.",
-              )}{" "}
               {currentAddress ? (
                 <TranslatedSentence
-                  template="The current address {{address}} will stop working immediately, and email sent to it will be ignored."
+                  template="This monitor gets a new random address, and {{address}} stops working at once."
                   slots={{
                     address: (
                       <span className="font-mono font-medium text-gray-900">
@@ -318,21 +315,17 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
                 />
               ) : (
                 translator.translateText(
-                  "The current address will stop working immediately, and email sent to it will be ignored.",
+                  "This monitor gets a new random address, and the current one stops working at once.",
                 )
               )}{" "}
               {props.customLocalPart ? (
                 <>
-                  {translator.translateText(
-                    "Your custom address will be removed.",
-                  )}{" "}
+                  {translator.translateText("Your custom address is removed.")}{" "}
                 </>
               ) : (
                 <></>
               )}
-              {translator.translateText(
-                "Update every system that sends email to this monitor.",
-              )}
+              {translator.translateText("Update everything that emails it.")}
             </span>
           }
           submitButtonText="Reset Address"
@@ -352,7 +345,7 @@ const IncomingEmailAddressSettings: FunctionComponent<ComponentProps> = (
         <BasicFormModal<CustomAddressFormData>
           title="Customize email address"
           name="Customize Incoming Email Address"
-          description={`Choose the name before the @. It must be unique across all monitors. When you save, the current address stops working immediately. Anyone who knows this address can send email to this monitor, so avoid names that are easy to guess.`}
+          description={`The name before the @. Saving stops the current address at once, and anyone who knows the new one can email this monitor, so make it hard to guess.`}
           submitButtonText="Save Address"
           isLoading={isSaving}
           onClose={closeModal}

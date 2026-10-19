@@ -41,8 +41,11 @@
  *            minutes after its start; "overrun" is still Ongoing 30 minutes
  *            after its end.
  *   ?fail=   comma separated: evidence, verdict, create-fix-task,
- *            investigation, conversation, conversation-send, resend. The
- *            matching API call throws HTTPErrorResponse. "conversation" is
+ *            investigation, conversation, conversation-send, resend,
+ *            channel-links, channel-members (the channel card's read),
+ *            channel-add (its Join channel and Add people), pass-on-read
+ *            (whether the viewer is paged, for Pass it on), pass-on (passing
+ *            it on). The matching API call throws HTTPErrorResponse. "conversation" is
  *            the read of the AI card's thread and "conversation-send" a
  *            question sent to it. "resend" also marks the subscriber
  *            notifications of Incident #1042 and Scheduled Maintenance #58 as
@@ -74,12 +77,58 @@
  *            run on the card is the follow-up check (IncidentFollowUpCheck)
  *            - its activity starts with why, its report leads with
  *            "Checked again", and the feed holds both reports.
+ *   ?calls=  none (default) | zoom | teams | reading | stuck | transcript
+ *            | not-enough | accepted | dismissed | failed | skipped | two
+ *            Incident #1042's video calls (issue #4875). "zoom": a Zoom
+ *            meeting a workspace rule started, no transcript yet; "teams": a
+ *            Microsoft Teams meeting (only Add transcript: Microsoft lets
+ *            no app read it). The rest are the Zoom meeting with its
+ *            transcript: OneUptime AI reading it, stuck reading it, done with
+ *            a suggested root cause (transcript), done with "not enough was
+ *            said" (not-enough), its suggestion used (accepted) or dismissed,
+ *            a reading that failed, or one skipped because AI is off. "two":
+ *            the Zoom meeting with a suggestion, and an earlier Teams one.
+ *   ?transcriptFetch= found (default) | not-ready | permission
+ *            | not-transcribed
+ *            What Get from Zoom (POST .../transcript/from-provider) answers.
+ *   ?private= 1 makes Incident #1042 and Incident Episode #12 private. A
+ *            private incident or episode takes no public notes: the
+ *            incident's state change dialogs fold a private note and ask
+ *            nothing about subscribers, and both feeds' Add Public Note is
+ *            locked with why.
  *   ?theme=  dark adds html.dark (handled by server.js).
  *   ?channels= the record's own Slack / Microsoft Teams channels, as
  *            GET /workspace-channel-link answers them (the header's Open in
  *            Slack / Open in Microsoft Teams): a comma list of slack (one
  *            Slack channel), slack2 (a second one), teams (one Teams
- *            channel). None by default: no button.
+ *            channel). None by default: no button, and no channel card.
+ *   ?members= who is in those Slack channels, as
+ *            GET /workspace-channel-members answers it for the channel card:
+ *            some (default: Sam, Jordan and Priya, who is in Slack only;
+ *            the viewer is not in it), in (the viewer is), empty (everybody
+ *            left: only the OneUptime app), many (fourteen people), archived,
+ *            unreachable (the app was removed from the private channel),
+ *            not-connected, unavailable, not-found (OneUptime cannot find the
+ *            viewer's Slack account), readonly (the viewer may not edit the
+ *            record) and readonly-public (nor is the channel private).
+ *            POST .../add adds people: Alex Kim is nobody Slack knows (not
+ *            found), and a team adds its people.
+ *   ?teamsPrivate=1 the Teams channel is private.
+ *   ?paged=  the kinds of record an on-call policy is paging the viewer
+ *            about, as GET /on-call-page/pass-on answers it (the header's
+ *            Pass it on): a comma list of incident, alert, incident-episode
+ *            and alert-episode. Nobody is paged by default: no button.
+ *   ?passOn= what passing the page on would do, and did (POST
+ *            /on-call-page/pass-on): next (default; escalation rule 2 of 3,
+ *            Level 2, is paged at once), others (Bob Smith is still paged on
+ *            the rule, and Level 2 is next at 18:40), restart (the last rule:
+ *            the policy starts again from rule 1), stopped (nobody is left
+ *            to page), acknowledged (Sam Lee acknowledged it meanwhile: the
+ *            POST refuses) or two (two policies page the viewer about it).
+ *            Once passed on, the record no longer pages the viewer.
+ *   ?unknown= the people Slack does not know, as POST .../add answers them
+ *            (not found): a comma list of maya, sam, jordan, alex. Alex by
+ *            default.
  *   ?role=   owner (default) | alert-member | loading
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
@@ -226,6 +275,8 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MeasurementEvaluator from "Common/Utils/Measurement/MeasurementEvaluator";
+import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
+import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkdown";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 
@@ -286,12 +337,59 @@ const threadMode = THREAD_MODES.includes(params.get("thread"))
 const channelModes = new Set(
   (params.get("channels") || "").split(",").filter((value) => value.length > 0),
 );
+const MEMBERS_MODES = [
+  "some",
+  "in",
+  "empty",
+  "many",
+  "archived",
+  "unreachable",
+  "not-connected",
+  "unavailable",
+  "not-found",
+  "readonly",
+  "readonly-public",
+];
+const membersMode = MEMBERS_MODES.includes(params.get("members"))
+  ? params.get("members")
+  : "some";
+const isTeamsChannelPrivate = params.get("teamsPrivate") === "1";
+/*
+ * ?paged= / ?passOn=: whether an on-call policy is paging the viewer about
+ * the record, for the header's Pass it on, and what passing on does.
+ */
+const pagedKinds = new Set(
+  (params.get("paged") || "").split(",").filter((value) => value.length > 0),
+);
+const PASS_ON_MODES = [
+  "next",
+  "others",
+  "restart",
+  "stopped",
+  "acknowledged",
+  "two",
+];
+const passOnMode = PASS_ON_MODES.includes(params.get("passOn"))
+  ? params.get("passOn")
+  : "next";
+const unknownToSlack = new Set(
+  (params.get("unknown") ?? "alex")
+    .split(",")
+    .filter((value) => value.length > 0),
+);
 /*
  * ?feed=oncall-run: incident #1042's on-call run in full, as the run writes
  * its feed entries now (OnCallFeedText) - four on-call entries within a
  * minute, which the feed folds into the newest of them.
+ * ?feed=links-and-quotes: a private note on incident #1042 saved from a
+ * Slack message, with the quote and the file the message carried, a
+ * callout, links to another incident and to the docs, and the note's
+ * attachment (see "Links and quotes in a note" below).
  */
-const feedMode = params.get("feed") === "oncall-run" ? "oncall-run" : "default";
+const FEED_MODES = ["oncall-run", "links-and-quotes"];
+const feedMode = FEED_MODES.includes(params.get("feed"))
+  ? params.get("feed")
+  : "default";
 /*
  * ?linked=: what the investigations read about the infrastructure their
  * incident or alert is linked to (see "Linked infrastructure" below).
@@ -300,6 +398,37 @@ const LINKED_MODES = ["alerts", "more", "followup"];
 const linkedMode = LINKED_MODES.includes(params.get("linked"))
   ? params.get("linked")
   : "none";
+/*
+ * ?private=1: incident #1042 and incident episode #12 are private - hidden
+ * from every status page, and taking no public notes.
+ */
+const isPrivateMode = params.get("private") === "1";
+const CALL_MODES = [
+  "zoom",
+  "teams",
+  "reading",
+  "stuck",
+  "transcript",
+  "not-enough",
+  "accepted",
+  "dismissed",
+  "failed",
+  "skipped",
+  "two",
+  // Record and transcribe incident calls: OneUptime gets the transcript by itself.
+  "waiting",
+  "fetch-stopped",
+  "summary",
+];
+const callsMode = CALL_MODES.includes(params.get("calls"))
+  ? params.get("calls")
+  : "none";
+const TRANSCRIPT_FETCH_MODES = ["not-ready", "permission", "not-transcribed"];
+const transcriptFetchMode = TRANSCRIPT_FETCH_MODES.includes(
+  params.get("transcriptFetch"),
+)
+  ? params.get("transcriptFetch")
+  : "found";
 const isResolved = stateMode === "resolved";
 const isAcknowledged = stateMode !== "created";
 // Both a current report and a legacy one post the AI root-cause feed item.
@@ -392,8 +521,12 @@ const fixture = {
     resources: resourcesMode,
     clusters: clustersMode,
     thread: threadMode,
+    members: membersMode,
     linked: linkedMode,
+    private: isPrivateMode,
   },
+  // What the channel card asked to add: { channelId, userIds, teamIds }.
+  channelAdds: [],
   getItemRequests: [],
   listRequests: [],
   countRequests: [],
@@ -963,8 +1096,9 @@ function defineIncident(spec) {
     subscriberNotificationStatusMessage: spec.notificationFailed
       ? RESEND_FAILURE_STATUS_MESSAGE
       : "Notified 1,284 status page subscribers.",
-    isPrivate: false,
-    isVisibleOnStatusPage: true,
+    // ?private=1 makes #1042 private, which also hides it from status pages.
+    isPrivate: isPrivateMode && spec.number === 1042,
+    isVisibleOnStatusPage: !(isPrivateMode && spec.number === 1042),
     rootCause: spec.rootCause,
     remediationNotes: spec.remediationNotes,
     incidentEpisode: spec.episode,
@@ -1218,6 +1352,42 @@ insert(IncidentFeed, {
   createdAt: at("18:09"),
   user: people.maya,
 });
+/*
+ * Links and quotes in a note (?feed=links-and-quotes): a private note saved
+ * from a Slack message, written as IncidentInternalNoteService writes its
+ * feed entry. The quote and the "📎" file link are what ChatMessageMarkdown
+ * makes of the message; the attachment link is FileAttachmentMarkdownUtil's
+ * (the download route, project id first). The spec opens each link and
+ * reads how the quote and the callout are drawn.
+ */
+const SLACK_FILE_URL =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const NOTE_ATTACHMENT_PATH = `/api/incident-internal-note/attachment/${PROJECT_ID}/${uuid("91000000", 1)}/${uuid("92000000", 1)}`;
+if (feedMode === "links-and-quotes") {
+  insert(IncidentFeed, {
+    incidentId: mainIncident.id,
+    incidentFeedEventType: IncidentFeedEventType.PrivateNote,
+    feedInfoInMarkdown: [
+      `📄 posted **private note** for this [Incident #${INCIDENT_NUMBER}](${incidentLink(INCIDENT_NUMBER)}):`,
+      "",
+      "> They said the payment provider is degraded in eu-west.",
+      "",
+      `📎 [image.png](${SLACK_FILE_URL})`,
+      "",
+      "> [!WARNING]",
+      "> **Do not restart the primary.** Fail over to the replica first.",
+      "",
+      `Same as [Incident #1036](${window.location.origin}${incidentLink(1036)}); see the [failover runbook](/docs/incidents/notes-owners-and-feed).`,
+      "",
+      "**Attachments:**",
+      `- [runbook.pdf](${NOTE_ATTACHMENT_PATH})`,
+    ].join("\n"),
+    displayColor: new Color("#64748b"),
+    postedAt: at("18:12"),
+    createdAt: at("18:12"),
+    user: people.sam,
+  });
+}
 insert(IncidentMember, {
   incidentId: mainIncident.id,
   userId: people.maya.id,
@@ -1654,8 +1824,8 @@ table(IncidentEpisode).push({
   labels: [labels.checkout, labels.production],
   assignedToUser: people.maya,
   assignedToUserId: people.maya.id,
-  isVisibleOnStatusPage: true,
-  isPrivate: false,
+  isVisibleOnStatusPage: !isPrivateMode,
+  isPrivate: isPrivateMode,
 });
 for (const [number, addedAt] of [
   [1038, "17:56"],
@@ -3951,6 +4121,10 @@ ModelAPI.getItem = async (options) => {
 
 ModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
+  // A call's transcript being read finishes on a later read of the calls.
+  if (modelName === tableName(IncidentVideoCall)) {
+    advanceCallReadings();
+  }
   const skip = Number(options.skip || 0);
   const limit = Number(options.limit || 10);
   fixture.listRequests.push({
@@ -4682,7 +4856,7 @@ function sendThreadMessage(body) {
   if (failures.has("conversation-send") || !thread) {
     throw fail(
       400,
-      "AI is turned off for this project. Turn it on in Project Settings → AI Features, then ask again.",
+      "AI is turned off for this project. Turn it on in Project Settings → AI → AI Features, then ask again.",
     );
   }
 
@@ -4815,6 +4989,738 @@ function channelLinks(url) {
   return links;
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Who is in the record's channels (the channel card, ?members=)
+ * ---------------------------------------------------------------------------
+ */
+function channelPerson(key, name, member) {
+  return member
+    ? { key, name, userId: member.id.toString(), hasProfilePicture: true }
+    : { key, name };
+}
+
+const SLACK_ONLY_NAMES = [
+  "Priya from Support",
+  "Diego Alvarez",
+  "Hannah Okafor",
+  "Lena Fischer",
+  "Marco Rossi",
+  "Noor Haddad",
+  "Oliver Grant",
+  "Ravi Menon",
+  "Tomás Silva",
+  "Yuki Tanaka",
+];
+
+function initialChannelPeople() {
+  const sam = channelPerson("U0SAM", "Sam Rivera", people.sam);
+  const jordan = channelPerson("U0JORDAN", "Jordan Patel", people.jordan);
+  const maya = channelPerson("U0MAYA", "Maya Chen", people.maya);
+  const priya = channelPerson("U0PRIYA", SLACK_ONLY_NAMES[0]);
+
+  switch (membersMode) {
+    case "in":
+      return [maya, sam, priya];
+    case "empty":
+    case "unreachable":
+    case "not-connected":
+    case "unavailable":
+      return [];
+    case "many":
+      return [
+        sam,
+        jordan,
+        ...SLACK_ONLY_NAMES.map((name, index) => {
+          return channelPerson(`U0SLACK${index}`, name);
+        }),
+        channelPerson("U0ALEXK", "Alex Kim", people.alex),
+      ];
+    case "archived":
+      return [sam, jordan];
+    default:
+      return [sam, jordan, priya];
+  }
+}
+
+// The people in each Slack channel, as the card's adds change them.
+const channelPeopleById = {
+  C0ACME0001: initialChannelPeople(),
+  C0ACME0002: initialChannelPeople(),
+};
+
+const SLACK_CHANNEL_IDS_BY_NAME = {
+  "sre-war-room": "C0ACME0002",
+};
+
+function channelStateOf() {
+  return (
+    {
+      archived: "archived",
+      unreachable: "unreachable",
+      "not-connected": "not-connected",
+      unavailable: "unavailable",
+    }[membersMode] || "members"
+  );
+}
+
+function channelMembers(url) {
+  const route = url.split("/workspace-channel-members/")[1];
+  const links = channelLinks(`/workspace-channel-link/${route}`);
+  const state = channelStateOf();
+
+  const channels = links.map((link) => {
+    if (link.workspaceType === WorkspaceType.MicrosoftTeams) {
+      return {
+        channelId: "19:acme0001acme0001acme0001acme0001@thread.tacv2",
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        name: link.channelName,
+        url: link.url,
+        isPrivate: isTeamsChannelPrivate,
+        state: "managed-in-teams",
+        people: [],
+        peopleCount: 0,
+        viewer: "not-found",
+        teamName: "Checkout SRE",
+      };
+    }
+
+    const channelId =
+      SLACK_CHANNEL_IDS_BY_NAME[link.channelName] || "C0ACME0001";
+    const listed = state === "members" || state === "archived";
+    const inChannel = listed ? channelPeopleById[channelId] : [];
+    const viewerId = people.maya.id.toString();
+    const isViewerIn = inChannel.some((person) => {
+      return person.userId === viewerId;
+    });
+
+    return {
+      channelId,
+      workspaceType: WorkspaceType.Slack,
+      name: link.channelName,
+      url: link.url,
+      isPrivate: listed ? membersMode !== "readonly-public" : null,
+      state,
+      // The viewer first, then everybody by name, as the server sorts them.
+      people: inChannel
+        .map((person) => {
+          return person.userId === viewerId
+            ? { ...person, isViewer: true }
+            : person;
+        })
+        .sort((a, b) => {
+          if (Boolean(a.isViewer) !== Boolean(b.isViewer)) {
+            return a.isViewer ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        }),
+      peopleCount: inChannel.length,
+      viewer:
+        !listed || membersMode === "not-found"
+          ? "not-found"
+          : isViewerIn
+            ? "in"
+            : "not-in",
+    };
+  });
+
+  return {
+    canAddPeople:
+      roleMode === "owner" &&
+      membersMode !== "readonly" &&
+      membersMode !== "readonly-public",
+    channels,
+  };
+}
+
+function addToChannel(body) {
+  fixture.channelAdds.push(body);
+
+  const inChannel = channelPeopleById[body.channelId];
+
+  if (!inChannel) {
+    throw fail(404, "This channel is not one of this incident's channels.");
+  }
+
+  if (membersMode === "archived") {
+    return { channelState: "archived", results: [] };
+  }
+
+  const everybody = Object.values(people);
+  const userIds = [...(body.userIds || [])];
+
+  if ((body.teamIds || []).length > 0) {
+    for (const member of everybody) {
+      if (!userIds.includes(member.id.toString())) {
+        userIds.push(member.id.toString());
+      }
+    }
+  }
+
+  const results = userIds.map((userId) => {
+    const member = everybody.find((candidate) => {
+      return candidate.id.toString() === userId;
+    });
+    const name = member ? member.name.toString() : "Someone";
+
+    // Nobody in Slack has their email address (?unknown=, Alex by default).
+    const memberKey = Object.keys(people).find((key) => {
+      return people[key] === member;
+    });
+
+    if (memberKey && unknownToSlack.has(memberKey)) {
+      return { userId, name, outcome: "not-found" };
+    }
+
+    if (
+      inChannel.some((person) => {
+        return person.userId === userId;
+      })
+    ) {
+      return { userId, name, outcome: "already-in" };
+    }
+
+    inChannel.push(
+      channelPerson(`U0${name.split(" ")[0].toUpperCase()}`, name, member),
+    );
+    return { userId, name, outcome: "added" };
+  });
+
+  return { results };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Incident #1042's calls and their transcripts (?calls=, ?transcriptFetch=)
+ * ---------------------------------------------------------------------------
+ *
+ * The calls the Video Call card lists, with their transcript and what
+ * OneUptime AI read in it, as IncidentVideoCall rows (issue #4875). The
+ * transcript routes are modelled: Get from Zoom answers as
+ * ?transcriptFetch= says, Add transcript stores what was sent, and a
+ * reading that starts is Pending for one read of the calls and Ready (with
+ * CALL_SUMMARY) on the next, as the page's polling would see it.
+ */
+const CALL_TRANSCRIPT_LINES = [
+  {
+    offsetInSeconds: 8,
+    speaker: "Sam Rivera",
+    text: "I'm on. Checkout p95 is at 2.4 seconds and climbing.",
+  },
+  {
+    offsetInSeconds: 31,
+    speaker: "Jordan Patel",
+    text: "Orders DB looks healthy from its side, CPU is at 30%.",
+  },
+  {
+    offsetInSeconds: 72,
+    speaker: "Sam Rivera",
+    text: "The app side is waiting on pg.pool.connect, most requests wait about two seconds.",
+  },
+  {
+    offsetInSeconds: 160,
+    speaker: "Maya Chen",
+    text: "Did anything ship in the last hour?",
+  },
+  {
+    offsetInSeconds: 175,
+    speaker: "Jordan Patel",
+    text: "checkout-api 2026.09.14-2 went out at 17:52.",
+  },
+  {
+    offsetInSeconds: 243,
+    speaker: "Sam Rivera",
+    text: "The new release has DB_POOL_MAX=10, it was 40 before.",
+  },
+  {
+    offsetInSeconds: 270,
+    speaker: "Maya Chen",
+    text: "That would explain the queueing. Can we roll back?",
+  },
+  {
+    offsetInSeconds: 302,
+    speaker: "Jordan Patel",
+    text: "Maybe the cache is cold too, I'm not sure.",
+  },
+  {
+    offsetInSeconds: 375,
+    speaker: "Sam Rivera",
+    text: "Rolling checkout-api back to 2026.09.14-1 now.",
+  },
+  {
+    offsetInSeconds: 588,
+    speaker: "Sam Rivera",
+    text: "Rollback done, p95 is back under 300 milliseconds.",
+  },
+  {
+    offsetInSeconds: 620,
+    speaker: "Maya Chen",
+    text: "So the pool size change caused it. Jordan, can you add an alert on pool usage?",
+  },
+  {
+    offsetInSeconds: 641,
+    speaker: "Jordan Patel",
+    text: "Yes, I'll add the alert today.",
+  },
+];
+
+function callCitation(lineNumber) {
+  const line = CALL_TRANSCRIPT_LINES[lineNumber - 1];
+  return {
+    line: lineNumber,
+    time: TranscriptText.formatOffset(line.offsetInSeconds),
+    speaker: line.speaker,
+    text: line.text,
+  };
+}
+
+function callPoint(text, lineNumbers) {
+  return { text, citations: lineNumbers.map(callCitation) };
+}
+
+// What OneUptime AI read in the fixture's transcript, as the server stores it.
+const CALL_SUMMARY = {
+  version: 1,
+  runId: "fixture-reading-1",
+  generatedAt: at("18:16").toISOString(),
+  rootCause: {
+    outcome: "Suggested",
+    summary:
+      "checkout-api 2026.09.14-2 shipped with DB_POOL_MAX=10 instead of 40, so checkout requests queued for a database connection.",
+    basis: "StatedOnCall",
+    citations: [callCitation(6), callCitation(11), callCitation(10)],
+  },
+  findings: [
+    {
+      ...callPoint("The orders database itself was healthy.", [2]),
+      kind: "Confirmed",
+    },
+    {
+      ...callPoint("Requests waited about two seconds in pg.pool.connect.", [
+        3,
+      ]),
+      kind: "Confirmed",
+    },
+    {
+      ...callPoint("A cold cache may have added to it.", [8]),
+      kind: "Hypothesis",
+    },
+  ],
+  stepsTried: [
+    callPoint("Checked the orders database's own health.", [2]),
+    callPoint("Rolled checkout-api back to 2026.09.14-1.", [9]),
+  ],
+  decisions: [callPoint("Roll checkout-api back to 2026.09.14-1.", [7, 9])],
+  actions: [
+    {
+      ...callPoint("Add an alert on database pool usage.", [11, 12]),
+      owner: "Jordan Patel",
+    },
+  ],
+  openQuestions: [callPoint("Why the release changed DB_POOL_MAX.", [])],
+  linesRead: CALL_TRANSCRIPT_LINES.length,
+  partsRead: 1,
+};
+
+const NOT_ENOUGH_SUMMARY = {
+  ...CALL_SUMMARY,
+  rootCause: { outcome: "NotEnoughDiscussion", citations: [] },
+  findings: [],
+  decisions: [],
+  actions: [],
+  openQuestions: [callPoint("What changed in checkout-api today?", [4])],
+};
+
+const CALL_TRANSCRIPT_STORED = TranscriptText.serialize(CALL_TRANSCRIPT_LINES);
+const CALL_TRANSCRIPT_INFO = TranscriptText.getInfo(CALL_TRANSCRIPT_LINES);
+
+// The fields of a call holding the fixture's transcript.
+function withTranscript(fields) {
+  return {
+    transcript: CALL_TRANSCRIPT_STORED,
+    transcriptSource: "Provider",
+    transcriptInfo: CALL_TRANSCRIPT_INFO,
+    transcriptAddedAt: at("18:15"),
+    transcriptAddedByUserId: people.maya.id,
+    transcriptAddedByUser: people.maya,
+    ...fields,
+  };
+}
+
+function incidentCall(number, fields) {
+  return insert(IncidentVideoCall, {
+    _id: uuid("88000000", number),
+    incidentId: mainIncident.id,
+    createdAt: at("18:02"),
+    ...fields,
+  });
+}
+
+const ZOOM_CALL = {
+  provider: "Zoom",
+  title: `INC-${INCIDENT_NUMBER}: Checkout API p95 latency above 2s`,
+  joinUrl: "https://acme.zoom.us/j/85746065432?pwd=abc",
+  externalMeetingId: "85746065432",
+  videoCallConnectionId: uuid("89000000", 1),
+  workspaceNotificationRuleId: uuid("89100000", 1),
+};
+
+const TEAMS_CALL = {
+  provider: "MicrosoftTeams",
+  title: `INC-${INCIDENT_NUMBER}: Checkout API p95 latency above 2s`,
+  joinUrl: "https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc",
+  externalMeetingId: "MSo1N2Y5ZGFjYy03MWJm",
+  videoCallConnectionId: uuid("89000000", 2),
+  createdByUser: people.sam,
+  createdByUserId: people.sam.id,
+};
+
+if (callsMode === "zoom") {
+  incidentCall(1, ZOOM_CALL);
+}
+
+if (callsMode === "teams") {
+  incidentCall(1, TEAMS_CALL);
+}
+
+if (callsMode === "reading") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Pending",
+      callSummaryUpdatedAt: ago(30 * 1000),
+    }),
+  });
+}
+
+if (callsMode === "stuck") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Pending",
+      callSummaryUpdatedAt: ago(40 * MINUTE),
+    }),
+  });
+}
+
+if (["transcript", "accepted", "dismissed", "two"].includes(callsMode)) {
+  incidentCall(callsMode === "two" ? 2 : 1, {
+    ...ZOOM_CALL,
+    createdAt: callsMode === "two" ? at("18:06") : at("18:02"),
+    ...withTranscript({
+      callSummary: CALL_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+      rootCauseSuggestionStatus:
+        callsMode === "accepted"
+          ? "Accepted"
+          : callsMode === "dismissed"
+            ? "Dismissed"
+            : "Suggested",
+      rootCauseSuggestionReviewedAt: ["accepted", "dismissed"].includes(
+        callsMode,
+      )
+        ? at("18:18")
+        : undefined,
+      rootCauseSuggestionReviewedByUser: ["accepted", "dismissed"].includes(
+        callsMode,
+      )
+        ? people.jordan
+        : undefined,
+    }),
+  });
+}
+
+if (callsMode === "two") {
+  incidentCall(1, { ...TEAMS_CALL, createdAt: at("18:02") });
+}
+
+if (callsMode === "not-enough") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: NOT_ENOUGH_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+if (callsMode === "failed") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummary: { runId: "fixture-reading-1" },
+      callSummaryStatus: "Failed",
+      callSummaryStatusMessage:
+        "This project reached its daily AI token limit. OneUptime AI starts again at midnight UTC.",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+if (callsMode === "skipped") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      callSummaryStatus: "Skipped",
+      callSummaryStatusMessage:
+        "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.",
+      callSummaryUpdatedAt: at("18:16"),
+    }),
+  });
+}
+
+/*
+ * Record and transcribe incident calls: a Zoom meeting OneUptime is waiting
+ * to get the transcript of once the call is over, one it stopped waiting on
+ * (Zoom kept no transcript), and one whose transcript it got and OneUptime
+ * AI read - with what was read posted to the incident's feed, in the words
+ * the server writes it (CallSummaryFeedMarkdown).
+ */
+if (callsMode === "waiting") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    transcriptFetchStatus: "Waiting",
+    transcriptFetchNextAttemptAt: at("18:25"),
+  });
+}
+
+if (callsMode === "fetch-stopped") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    transcriptFetchStatus: "Stopped",
+    transcriptFetchReason: "NotTranscribed",
+    transcriptFetchCheckedAt: at("18:15"),
+  });
+}
+
+if (callsMode === "summary") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      transcriptAddedByUserId: undefined,
+      transcriptAddedByUser: undefined,
+      callSummary: CALL_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+      rootCauseSuggestionStatus: "Suggested",
+    }),
+  });
+
+  insert(IncidentFeed, {
+    incidentId: mainIncident.id,
+    incidentFeedEventType: IncidentFeedEventType.VideoCallSummary,
+    feedInfoInMarkdown: CallSummaryFeedMarkdown.getFeedMarkdown({
+      callLabel: "Zoom meeting",
+      summary: CALL_SUMMARY,
+      details: TranscriptText.describeInfo(CALL_TRANSCRIPT_INFO),
+    }).toString(),
+    displayColor: new Color("#6366f1"),
+    postedAt: at("18:16"),
+    createdAt: at("18:16"),
+  });
+}
+
+function callRecord(callId) {
+  return table(IncidentVideoCall).find((record) => {
+    return String(record._id) === String(callId);
+  });
+}
+
+/*
+ * A reading that started finishes on the second read of the calls after
+ * it: Pending once - what the page shows first - then Ready.
+ */
+function advanceCallReadings() {
+  for (const record of table(IncidentVideoCall)) {
+    if (record.callSummaryStatus !== "Pending" || !record.fixtureReadsLeft) {
+      continue;
+    }
+
+    record.fixtureReadsLeft -= 1;
+
+    if (record.fixtureReadsLeft === 0) {
+      record.callSummaryStatus = "Ready";
+      record.callSummary = CALL_SUMMARY;
+      record.callSummaryUpdatedAt = NOW;
+      record.rootCauseSuggestionStatus = "Suggested";
+    }
+  }
+}
+
+/*
+ * The feed entry the server writes when a transcript is added
+ * (IncidentCallTranscriptSave.getFeedMarkdown): opening with "added",
+ * so the feed puts the person who added it first.
+ */
+function announceCallTranscript(record, source, info) {
+  const details = TranscriptText.describeInfo(info);
+  const feedInfoInMarkdown =
+    source === "Provider"
+      ? `📝 added the call's transcript from **Zoom**: ${details}.`
+      : `📝 added a transcript of the **${record.provider === "MicrosoftTeams" ? "Microsoft Teams meeting" : "Zoom meeting"}**: ${details}.`;
+
+  insert(IncidentFeed, {
+    incidentId: record.incidentId,
+    incidentFeedEventType: IncidentFeedEventType.VideoCallTranscriptAdded,
+    feedInfoInMarkdown,
+    displayColor: new Color("#3b82f6"),
+    postedAt: NOW,
+    createdAt: NOW,
+    user: people.maya,
+  });
+}
+
+function startCallReading(record) {
+  record.callSummary = { runId: `fixture-reading-${Date.now()}` };
+  record.callSummaryStatus = "Pending";
+  record.callSummaryStatusMessage = undefined;
+  record.callSummaryUpdatedAt = NOW;
+  record.rootCauseSuggestionStatus = undefined;
+  record.rootCauseSuggestionReviewedAt = undefined;
+  record.rootCauseSuggestionReviewedByUser = undefined;
+  record.fixtureReadsLeft = 2;
+}
+
+// What the transcript routes answer (IncidentVideoCallAPI), or null for another URL.
+function handleCallTranscriptApi(method, url, body) {
+  const marker = "/incident-video-call/";
+  const markerAt = url.indexOf(marker);
+
+  if (markerAt === -1) {
+    return null;
+  }
+
+  const [callId, ...rest] = url
+    .slice(markerAt + marker.length)
+    .split("?")[0]
+    .split("/");
+  const route = rest.join("/");
+  const record = callRecord(callId);
+
+  if (!record) {
+    throw fail(404, "Video call not found.");
+  }
+
+  if (route === "transcript/from-provider" && method === "POST") {
+    if (transcriptFetchMode === "not-ready") {
+      return ok({
+        added: false,
+        reason: "NotReady",
+        message:
+          "Zoom is still preparing this meeting's transcript. It is usually ready within twice the length of the call. Try again later.",
+      });
+    }
+
+    if (transcriptFetchMode === "permission") {
+      return ok({
+        added: false,
+        reason: "PermissionMissing",
+        message:
+          "This connection's Zoom app cannot read transcripts. On the app's Scopes page in the Zoom App Marketplace, add cloud_recording:read:list_recording_files:admin and cloud_recording:read:meeting_transcript:admin (or recording:read:admin on an older app).",
+      });
+    }
+
+    if (transcriptFetchMode === "not-transcribed") {
+      return ok({
+        added: false,
+        reason: "NotTranscribed",
+        message:
+          "Zoom has no transcript of this meeting. Zoom keeps one when the meeting is recorded to the cloud with Audio transcript on, or when AI Companion's meeting summary is on. You can add the transcript yourself.",
+      });
+    }
+
+    Object.assign(record, withTranscript({ transcriptAddedAt: NOW }));
+    startCallReading(record);
+    announceCallTranscript(record, "Provider", CALL_TRANSCRIPT_INFO);
+    return ok({
+      added: true,
+      transcriptSource: "Provider",
+      transcriptInfo: CALL_TRANSCRIPT_INFO,
+      callSummaryStatus: "Pending",
+    });
+  }
+
+  if (route === "transcript" && method === "POST") {
+    const prepared = TranscriptText.prepare({
+      text: String(body.text || ""),
+      fileName: body.fileName,
+    });
+    Object.assign(record, {
+      transcript: prepared.stored,
+      transcriptSource: "Upload",
+      transcriptInfo: prepared.info,
+      transcriptAddedAt: NOW,
+      transcriptAddedByUserId: people.maya.id,
+      transcriptAddedByUser: people.maya,
+    });
+    startCallReading(record);
+    announceCallTranscript(record, "Upload", prepared.info);
+    return ok({
+      transcriptSource: "Upload",
+      transcriptInfo: prepared.info,
+      callSummaryStatus: "Pending",
+    });
+  }
+
+  if (route === "transcript" && method === "DELETE") {
+    for (const key of [
+      "transcript",
+      "transcriptSource",
+      "transcriptInfo",
+      "transcriptAddedAt",
+      "transcriptAddedByUserId",
+      "transcriptAddedByUser",
+      "callSummary",
+      "callSummaryStatus",
+      "callSummaryStatusMessage",
+      "callSummaryUpdatedAt",
+      "rootCauseSuggestionStatus",
+      "rootCauseSuggestionReviewedAt",
+      "rootCauseSuggestionReviewedByUser",
+    ]) {
+      delete record[key];
+    }
+    return ok({});
+  }
+
+  if (route === "call-summary" && method === "POST") {
+    startCallReading(record);
+    return ok({ callSummaryStatus: "Pending" });
+  }
+
+  if (route === "root-cause-suggestion" && method === "POST") {
+    if (failures.has("suggestion")) {
+      throw fail(
+        403,
+        "You do not have permission to edit this incident's root cause.",
+      );
+    }
+
+    record.rootCauseSuggestionStatus = body.decision;
+    record.rootCauseSuggestionReviewedAt =
+      body.decision === "Suggested" ? undefined : NOW;
+    record.rootCauseSuggestionReviewedByUser =
+      body.decision === "Suggested" ? undefined : people.maya;
+
+    if (body.decision === "Accepted") {
+      const incident = table(Incident).find((item) => {
+        return String(item._id) === String(record.incidentId);
+      });
+      if (incident) {
+        incident.rootCause = body.rootCause;
+      }
+    }
+
+    return ok({ rootCauseSuggestionStatus: body.decision });
+  }
+
+  return null;
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -4913,8 +5819,156 @@ async function handleApi(method, options) {
     return ok({ links: channelLinks(url) });
   }
 
+  /*
+   * GET /workspace-channel-members/<record type>/<record id>: who is in the
+   * record's channels (?members=); POST .../add adds people to one.
+   */
+  if (method === "POST" && url.includes("/workspace-channel-members/")) {
+    if (failures.has("channel-add")) {
+      throw fail(500, "Could not add people to the channel.");
+    }
+    return ok(addToChannel(body));
+  }
+
+  if (method === "GET" && url.includes("/workspace-channel-members/")) {
+    if (failures.has("channel-members")) {
+      throw fail(500, "Slack could not be reached.");
+    }
+    return ok(channelMembers(url));
+  }
+
+  /*
+   * GET /on-call-page/pass-on/<record type>/<record id>: the viewer's own
+   * open pages about the record (?paged=, ?passOn=); POST passes them on.
+   */
+  if (url.includes("/on-call-page/pass-on/")) {
+    const [recordType, recordId] = url
+      .split("/on-call-page/pass-on/")[1]
+      .split("?")[0]
+      .split("/");
+
+    if (method === "GET") {
+      if (failures.has("pass-on-read")) {
+        throw fail(500, "Whether you are paged could not be read.");
+      }
+      return ok({ pages: openPassOnPages(recordType, recordId) });
+    }
+
+    if (method === "POST") {
+      if (failures.has("pass-on")) {
+        throw fail(500, "The page could not be passed on.");
+      }
+      return ok({ answers: passOnAnswers(recordType, recordId) });
+    }
+  }
+
+  // An incident call's transcript routes (?calls=).
+  const callTranscriptAnswer = handleCallTranscriptApi(method, url, body);
+
+  if (callTranscriptAnswer) {
+    return callTranscriptAnswer;
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Pass it on (?paged=, ?passOn=): the record's on-call pages to the viewer.
+ * The answers have the shape OnCallPagePassOnAPI gives, times as ISO text.
+ * ---------------------------------------------------------------------------
+ */
+const passedOnRecords = new Set();
+
+function passOnResult(isPreview, policyName) {
+  const base = {
+    isPreview,
+    isDirectPage: false,
+    policyName,
+    pagedNames: [],
+    stillPagedNames: [],
+    ruleCount: 3,
+  };
+
+  if (passOnMode === "others") {
+    return {
+      ...base,
+      outcome: "OthersStillPaged",
+      rule: { order: 1, name: "Level 1" },
+      stillPagedNames: ["Bob Smith"],
+      nextStepAt: new Date(NOW.getTime() + 20 * 60 * 1000).toISOString(),
+      nextRule: { order: 2, name: "Level 2" },
+    };
+  }
+
+  if (passOnMode === "restart") {
+    return {
+      ...base,
+      outcome: "PolicyStartedAgain",
+      rule: { order: 1, name: "Level 1" },
+      pagedNames: isPreview ? [] : ["Jordan Lee"],
+    };
+  }
+
+  if (passOnMode === "stopped") {
+    return { ...base, outcome: "PagingStopped" };
+  }
+
+  return {
+    ...base,
+    outcome: "NextRulePaged",
+    rule: { order: 2, name: "Level 2" },
+    pagedNames: isPreview ? [] : ["Sam Lee", "Priya Patel"],
+  };
+}
+
+function openPassOnPages(recordType, recordId) {
+  if (
+    !pagedKinds.has(recordType) ||
+    passedOnRecords.has(`${recordType}:${recordId}`)
+  ) {
+    return [];
+  }
+
+  const policies =
+    passOnMode === "two"
+      ? ["Checkout on-call", "Payments escalation"]
+      : ["Checkout on-call"];
+
+  return policies.map((policyName, index) => {
+    return {
+      executionLogId: uuid("73000000", index + 1),
+      preview: passOnResult(true, policyName),
+    };
+  });
+}
+
+function passOnAnswers(recordType, recordId) {
+  const pages = openPassOnPages(recordType, recordId);
+
+  if (pages.length === 0) {
+    return [{ passedOn: false, refusal: "NotPaged" }];
+  }
+
+  if (passOnMode === "acknowledged") {
+    return [
+      {
+        passedOn: false,
+        refusal: "RecordAcknowledged",
+        acknowledgedByName: "Sam Lee",
+      },
+    ];
+  }
+
+  passedOnRecords.add(`${recordType}:${recordId}`);
+
+  return pages.map((page) => {
+    return {
+      passedOn: true,
+      result: passOnResult(false, page.preview.policyName),
+    };
+  });
 }
 
 /*
@@ -4943,6 +5997,21 @@ API.post = async (options) => handleApi("POST", options);
 API.put = async (options) => handleApi("PUT", options);
 API.delete = async (options) => handleApi("DELETE", options);
 API.fetch = async (options) => handleApi(options.method || "GET", options);
+
+/*
+ * The session refresh an attachment link asks for before its tab is pointed
+ * at the file (OpenAuthenticatedUrl). BaseAPI sends it through its parent
+ * class, past the stubs above, so it is answered here: the fixture's session
+ * is always live. It is recorded as the request it stands for.
+ */
+API.refreshSession = async () => {
+  fixture.apiRequests.push({
+    method: "POST",
+    url: "/identity/refresh-token",
+    body: {},
+  });
+  return true;
+};
 
 await i18next.use(initReactI18next).init({
   lng: "en",

@@ -22,6 +22,10 @@
     "label": "Idioma",
     "switchLanguage": "Alterar idioma"
   },
+  "theme": {
+    "switchToDark": "Mudar para o tema escuro",
+    "switchToLight": "Mudar para o tema claro"
+  },
   "nav": {
     "overview": "Visão geral",
     "incidents": "Incidentes",
@@ -125,7 +129,27 @@
     "noneDescription": "Nenhum evento agendado publicado para esta página de status.",
     "scheduledAt": "Agendado para ",
     "report": "Relatório de evento agendado",
-    "notFound": "Nenhum evento agendado encontrado para esta página de status."
+    "notFound": "Nenhum evento agendado encontrado para esta página de status.",
+    "calendar": {
+      "subscribe": "Subscrever o calendário",
+      "subscribeTitle": "Subscrever a manutenção agendada",
+      "subscribeDescription": "Receba a manutenção agendada desta página na sua aplicação de calendário. Mantém-se atualizada sozinha.",
+      "eventTitle": "Adicionar ao calendário",
+      "eventDescription": "Adicione esta manutenção à sua aplicação de calendário.",
+      "addToCalendar": "Adicionar ao calendário",
+      "addHeading": "Adicionar ao seu calendário",
+      "google": "Google Agenda",
+      "googleHint": "Abre o Google Agenda num novo separador",
+      "device": "Calendário da Apple / Outlook",
+      "deviceHint": "Abre a aplicação de calendário deste dispositivo",
+      "deviceFileHint": "Transfere a manutenção para a aplicação de calendário deste dispositivo",
+      "copyHeading": "Ou copie o link",
+      "copyHint": "Cole-o em qualquer aplicação de calendário que consiga subscrever um calendário por URL.",
+      "copy": "Copiar link",
+      "copied": "Copiado!",
+      "done": "Concluído",
+      "refreshNote": "As aplicações de calendário procuram alterações segundo o seu próprio horário, por isso uma atualização pode demorar algumas horas a aparecer."
+    }
   },
   "subscribe": {
     "title": "Inscrever-se",
@@ -161,7 +185,8 @@
       "yourPhoneNumber": "Seu número de telefone",
       "placeholder": "+5511123456789",
       "managePrompt": "Por favor, digite o número de telefone com o qual você se inscreveu",
-      "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este número de telefone."
+      "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este número de telefone.",
+      "confirmationSent": "Enviamos uma mensagem de texto para este número de telefone. Abra o link nela para confirmar sua inscrição."
     },
     "slack": {
       "title": "Inscrever-se via Slack",
@@ -212,11 +237,16 @@
       "saved": "Suas alterações foram salvas.",
       "submit": "Atualizar inscrição",
       "unsubscribe": "Cancelar inscrição",
-      "unsubscribeDescription": "Selecione esta opção se desejar cancelar a inscrição em todos os recursos."
+      "unsubscribeDescription": "Selecione esta opção se desejar cancelar a inscrição em todos os recursos.",
+      "linkNotValid": "Este link para gerenciar sua inscrição expirou ou não é válido. Para receber um novo, use “Gerenciar inscrição existente” na página “Inscrever-se”.",
+      "getNewLink": "Receber um novo link",
+      "loadFailed": "Não foi possível carregar este link. Tente novamente mais tarde."
     },
     "confirm": {
       "title": "Confirmar inscrição",
-      "success": "Inscrição confirmada com sucesso"
+      "success": "Inscrição confirmada com sucesso",
+      "linkNotValid": "Este link para confirmar sua inscrição expirou ou não é válido. Um link funciona por 24 horas após o envio. Para receber um novo, inscreva-se novamente.",
+      "subscribeAgain": "Inscrever-se novamente"
     },
     "unsubscribe": {
       "title": "Cancelar inscrição",
@@ -264,7 +294,8 @@
       "loginPrompt": "Por favor, faça login para ver {{statusPageName}}",
       "forgotPassword": "Esqueceu a senha?",
       "submit": "Entrar",
-      "useSSO": "Usar login único (SSO) em vez disso"
+      "or": "ou",
+      "logInWithSso": "Entrar com SSO"
     },
     "sso": {
       "title": "Entrar com SSO",
@@ -342,5 +373,13 @@
   "{{field}} is required.": "{{field}} é obrigatório.",
   "{{field}} should match {{matchField}}": "{{field}} deve corresponder a {{matchField}}",
   "Email is not valid.": "O e-mail não é válido.",
-  "Next": "Próximo"
+  "Next": "Próximo",
+  "Opens in a new tab": "Abre em uma nova aba",
+  "Note": "Nota",
+  "Tip": "Dica",
+  "Info": "Informação",
+  "Important": "Importante",
+  "Warning": "Aviso",
+  "Caution": "Cuidado",
+  "Danger": "Perigo"
 }

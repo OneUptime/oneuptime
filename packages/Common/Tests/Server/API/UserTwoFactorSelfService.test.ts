@@ -14,6 +14,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
@@ -428,6 +429,14 @@ describe("User two-factor self-service API integration", () => {
       expect(route.middleware).toBe(
         MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
       );
+      /*
+       * The gate reads the session as every route does, asking the person's
+       * account whether they are blocked and still a master admin: here they
+       * are not blocked, and still are one (MasterAdminAuthorization.test.ts
+       * and MasterAdminRemovalOverHttp.test.ts cover the other answers).
+       */
+      getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+      getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
       const request: OneUptimeRequest = requestFor();
       request.params = { userId: OTHER_ID };
       request.body = { isRequired: false };
@@ -438,6 +447,8 @@ describe("User two-factor self-service API integration", () => {
           name: "Self service test",
           isMasterAdmin,
           isGlobalLogin: true,
+          sessionId: ObjectID.generate().toString(),
+          purpose: JsonWebTokenPurpose.UserSession,
         },
         60,
       )}`;

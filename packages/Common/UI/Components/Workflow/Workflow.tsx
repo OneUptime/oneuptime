@@ -3,10 +3,12 @@ import ComponentSettingsModal from "./ComponentSettingsModal";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
 import {
+  WorkflowCanvasNode,
   WorkflowCanvasRect,
   WorkflowCanvasViewport,
   getNewWorkflowNodePosition,
   getViewportToRevealNode,
+  getViewportToRevealTrigger,
 } from "./NodePlacement";
 import {
   LintGraphEdge,
@@ -27,6 +29,7 @@ import {
   getStepValueSources,
 } from "./ValuePicker/StepGraph";
 import { loadComponentsAndCategories } from "./Utils";
+import { getWorkflowAddButton } from "./WorkflowAddButton";
 import {
   ConnectionGraphEdge,
   ConnectionGraphNode,
@@ -73,12 +76,16 @@ import ReactFlow, {
   OnConnect,
   ProOptions,
   ReactFlowInstance,
+  ReactFlowState,
   Viewport,
   addEdge,
   getConnectedEdges,
   updateEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
+  useStore,
+  useStoreApi,
 } from "reactflow";
 // 👇 you need to import the reactflow styles
 import "reactflow/dist/style.css";
@@ -194,12 +201,77 @@ const getCanvasOverlays: GetCanvasOverlaysFunction = (
   });
 };
 
+/*
+ * Once the canvas has opened and fitted the workflow, brings the trigger
+ * into view if the fit left it off screen (getViewportToRevealTrigger): a
+ * workflow too big to fit at the smallest zoom is fitted on its middle,
+ * with the trigger above the top edge. Drawn inside ReactFlow, whose store
+ * says when its first fit is done; it draws nothing.
+ */
+const RevealTriggerOnOpen: FunctionComponent<{
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+}> = (props: {
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+}): null => {
+  const isFitDone: boolean = useStore((state: ReactFlowState): boolean => {
+    return state.fitViewOnInitDone;
+  });
+  const store: ReturnType<typeof useStoreApi> = useStoreApi();
+  const { setViewport } = useReactFlow();
+  const hasRevealed: React.MutableRefObject<boolean> = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!isFitDone || hasRevealed.current) {
+      return;
+    }
+
+    hasRevealed.current = true;
+
+    const state: ReactFlowState = store.getState();
+    const [x, y, zoom] = state.transform;
+    const canvas: HTMLDivElement | null = props.canvasRef.current;
+
+    const nextViewport: WorkflowCanvasViewport | null =
+      getViewportToRevealTrigger({
+        nodes: state.getNodes().map((node: Node): WorkflowCanvasNode => {
+          return {
+            position: node.positionAbsolute || node.position,
+            width: node.width,
+            height: node.height,
+            isTrigger:
+              node.data?.metadata?.componentType === ComponentType.Trigger,
+          };
+        }),
+        viewport: { x: x, y: y, zoom: zoom },
+        canvasSize: { width: state.width, height: state.height },
+        overlays: canvas ? getCanvasOverlays(canvas) : [],
+      });
+
+    if (nextViewport) {
+      // On open, nothing to follow: no animation.
+      setViewport(nextViewport);
+    }
+  }, [isFitDone]);
+
+  return null;
+};
+
 export interface ComponentProps {
   initialNodes: Array<Node>;
   initialEdges: Array<Edge>;
   onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
+  /*
+   * The toolbar's add button was pressed. It opens the panel the button
+   * names (WorkflowAddButton): Add Trigger while the canvas has no trigger,
+   * Add Component once it has one.
+   */
   showComponentsPickerModal: boolean;
   showRunModal: boolean;
+  /*
+   * Told, with false, when an add panel closes - Add Trigger or Add
+   * Component, whatever opened it - so the page clears its request and the
+   * button opens a panel again the next time it is pressed.
+   */
   onComponentPickerModalUpdate: (isModalShown: boolean) => void;
   workflowId: ObjectID;
   onRunModalUpdate: (isModalShown: boolean) => void;
@@ -335,11 +407,37 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
   }, []);
 
+  /*
+   * The toolbar's add button opens the panel it names, read from the canvas
+   * as it is when the button is pressed: Add Trigger while there is no
+   * trigger (the dashed card's panel), Add Component once there is one. It
+   * used to offer steps to a workflow that had nothing to start it.
+   *
+   * Only a change of the page's request acts. A request taken back closes
+   * the panel it opened; a canvas that merely starts without one closes
+   * nothing, so it never shuts a panel the dashed card opened before its
+   * first effects ran.
+   */
+  const wasAddPanelRequestedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   useEffect(() => {
-    if (props.showComponentsPickerModal) {
-      setShowComponentsModal(true);
+    const wasRequested: boolean = wasAddPanelRequestedRef.current;
+    wasAddPanelRequestedRef.current = props.showComponentsPickerModal;
+
+    if (!props.showComponentsPickerModal) {
+      if (wasRequested) {
+        setShowComponentsModal(false);
+        setShowTriggersModal(false);
+      }
+
+      return;
+    }
+
+    if (getWorkflowAddButton(nodes).componentsType === ComponentType.Trigger) {
+      setShowTriggersModal(true);
     } else {
-      setShowComponentsModal(false);
+      setShowComponentsModal(true);
     }
   }, [props.showComponentsPickerModal]);
 
@@ -725,9 +823,26 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     showComponentSettingsModal ||
     showRunModal;
 
+  /*
+   * The page hears when an add panel closes, either one: the toolbar's
+   * button opens Add Trigger on a canvas without a trigger, and a page that
+   * never heard it close would not open anything the next time. Only the
+   * closing is told. The page sets its own request when the button is
+   * pressed, and a canvas that also told it every opening could chase it
+   * back and forth for ever when both changed in the same render.
+   */
+  const wasAddPanelOpenRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
   useEffect(() => {
-    props.onComponentPickerModalUpdate(showComponentsModal);
-  }, [showComponentsModal]);
+    const isAddPanelOpen: boolean = showComponentsModal || showTriggersModal;
+
+    if (wasAddPanelOpenRef.current && !isAddPanelOpen) {
+      props.onComponentPickerModalUpdate(false);
+    }
+
+    wasAddPanelOpenRef.current = isAddPanelOpen;
+  }, [showComponentsModal, showTriggersModal]);
 
   const refreshEdges: VoidFunction = (): void => {
     setEdges((eds: Array<Edge>) => {
@@ -1091,6 +1206,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           size={1}
           color="var(--ou-chart-grid, #cbd5e1)"
         />
+        <RevealTriggerOnOpen canvasRef={canvasRef} />
       </ReactFlow>
 
       {showComponentsModal && (

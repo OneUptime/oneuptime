@@ -4,6 +4,7 @@ OneUptime Kubernetes 代理程式是一個 Helm chart，它會收集叢集的指
 
 :::cards
 - [安裝代理程式](#安裝代理程式): 使用 Helm 的四個步驟。
+- [作為 Amazon EKS 附加元件安裝](#作為-amazon-eks-附加元件安裝): 從 EKS 主控台安裝，不需要 Helm。
 - [設定選項](#設定選項): 篩選器、取樣、控制平面、服務網格、成本和標籤。
 - [Kubernetes AI 代理程式](#kubernetes-ai-代理程式): 供 OneUptime AI 使用的唯讀 `kubectl`，以及在你允許時進行的修正。
 - [減少傳送量](#減少收集的資料量): 依影響大小排列的調整手段。
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 開啟 **產品 → 基礎設施 → Kubernetes → 所有叢集**。幾分鐘內，叢集會以其 `clusterName` 出現，節點、Pod 和工作負載也會填入。Kubernetes AI 代理程式會在叢集 **人工智慧** 下的 **代理程式** 頁面上顯示為已連線。
 :::
 
+## 作為 Amazon EKS 附加元件安裝
+
+在 Amazon EKS 上，你也可以從 EKS 主控台加入此代理程式，它在那裡是 AWS Marketplace 附加元件之一。使用它不需任何費用，EKS 會替你安裝、升級和移除它。此附加元件就是這個 chart，並依附加元件的需求進行了設定：
+
+- 除非你提供自己的 OneUptime 的 URL，否則它會將資料傳送到 OneUptime Cloud（`https://oneuptime.com`）。
+- 它會從你建立的 Kubernetes Secret 讀取擷取金鑰，絕不會從附加元件的設定中讀取，因為 EKS 會以純文字顯示這些設定。
+- 它會以叢集在 EKS 中的名稱向 OneUptime 回報該叢集。
+- 它在 `oneuptime-agent` 命名空間中執行。
+
+:::steps
+### 將擷取金鑰存入 Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### 加入附加元件
+
+在 EKS 主控台中開啟你的叢集，依序選擇 **Add-ons** 和 **Get more add-ons** 後，從 AWS Marketplace 附加元件中選擇 OneUptime Kubernetes 代理程式。免費訂閱它，然後建立該附加元件。也可以使用 AWS CLI：
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### 檢查它是否正在執行
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+一旦其 Pod 開始執行，附加元件就會變為 `ACTIVE`，叢集也會在幾分鐘內以其 EKS 名稱出現在 OneUptime 中。一直停留在 `CreateContainerConfigError` 的 Pod 找不到 Secret：請依照第一步的方式，在 `oneuptime-agent` 命名空間中建立它。
+:::
+
+### 附加元件的設定值
+
+在 EKS 主控台的 **Optional configuration settings** 中設定這些值，或在建立或更新附加元件時使用 `--configuration-values` 設定。每一項都是選用的：
+
+- `oneuptime.url`：你的 OneUptime 的位址。預設值為 `https://oneuptime.com`。
+- `oneuptime.existingSecretName`：以 `api-key` 為鍵保存擷取金鑰的 Secret。預設值為 `oneuptime-ingestion-key`。
+- `oneuptime.labels`：加在此叢集傳送的所有資料上的專案標籤，例如 `{"team": "payments"}`。
+- `preset`：只在 Fargate 上執行的叢集使用 `eks-fargate`，否則使用預設值 `standard`。
+- `logs.enabled`、`ebpf.enabled` 和 `aiAgent.enabled`：Pod 日誌、eBPF 追蹤和 [Kubernetes AI 代理程式](#kubernetes-ai-代理程式)，預設皆為開啟。
+- `kubeStateMetrics.enabled` 和 `cost.enabled`：kube-state-metrics 和 [成本可觀測性](/docs/telemetry/kubernetes-cost)，預設皆為關閉。
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+更新會取代整個設定：你省略的值會恢復為預設值。chart 的其餘設定，例如效能分析工具、OneUptime AI 的修正和命名空間篩選器，需要使用 [Helm 安裝](#安裝代理程式)。若要將叢集從 Helm 安裝改用附加元件，請先解除安裝該 Helm 發行版本。
+
 ## 選擇預設集
 
 `preset` 會選擇適用於你平台的預設值：Pod 日誌是透過 `hostPath` 從節點讀取，還是透過 Kubernetes API 讀取，以及哪些工作負載可以用特權模式執行。
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## 設定選項
 
 下面的每個選項都是一個 Helm 值。可在安裝時設定，或對已安裝的代理程式使用 `helm upgrade ... --reset-then-reuse-values --set <value>` 設定。
+
+### 將擷取金鑰保存在 Secret 中
+
+`--set oneuptime.apiKey` 會將金鑰保存在發行版本的值中，而 Helm 會隨每個修訂版本儲存這些值。若不想讓金鑰出現在這些值中，請將金鑰以 `api-key` 為鍵存入代理程式所在命名空間中的一個 Secret，並改為指定該 Secret 的名稱：
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+之後，代理程式的每個工作負載都會從該 Secret 讀取金鑰，chart 也不會建立自己的 Secret。請設定 `oneuptime.apiKey` 或 `oneuptime.existingSecretName`，而不要同時設定兩者：chart 會拒絕同時設定這兩項。該 Secret 可以來自任何能寫入 Secret 的工具，例如 External Secrets Operator。
 
 ### 命名空間篩選
 
@@ -455,7 +528,7 @@ clusterName: prod
 eBPF 看到的是網路呼叫，而不是你的程式碼，因此一筆追蹤是由服務處理的要求以及它在處理過程中發出的呼叫所構成：
 
 - **一個要求及其呼叫構成一筆追蹤。** 進入服務的要求是根 Span，名為 `<METHOD> <route>`，服務在處理它時發出的 HTTP、gRPC、SQL 和 Redis 呼叫則是它的子 Span。（對於 Node.js，這仰賴 OBI 的 Node.js 代理程式，chart 會透過 `ebpf.nodejs.enabled` 開啟它。）並行要求透過同一個共用連線發出的呼叫（Redis 用戶端中很常見）不一定都能區分開來，因此其中一些不會被放入它們所屬要求的追蹤中。
-- **對另一個節點上服務的呼叫會開始一筆新的追蹤。** 除非有東西將追蹤內容傳遞過去：OpenTelemetry SDK，或下文介紹的需選擇啟用的內容傳播。當兩端在同一個節點上執行時，OBI 能看到兩端並自行將它們關聯起來。
+- **對另一個節點上服務的呼叫會加入呼叫端的追蹤。** 這仰賴預設開啟的內容傳播，詳見下文。關閉它後，這樣的呼叫會開始一筆新的追蹤，除非由 OpenTelemetry SDK 將追蹤內容傳遞過去。當兩端在同一個節點上執行時，OBI 能看到兩端並自行將它們關聯起來。
 - **不是由要求發起的工作是獨立的。** 輪詢 Redis 的佇列 worker 或 cron 工作，沒有其呼叫可歸屬的要求。
 - **資料庫伺服器通常是獨立的。** 資料庫通訊協定不會攜帶追蹤內容，因此除非呼叫端在同一個節點上執行，否則 OBI 在資料庫伺服器內部為每個命令記錄的 Span 都是只有一個 Span 的追蹤。
 
@@ -502,15 +575,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `networkInterZoneMetrics` | 關 | 網路指標的跨區域變體（基數加倍） |
 | `tcpStats` | 開 | 節點層級的 TCP 來回時間、連線失敗和重新傳輸計數器 |
 
-跨服務的追蹤內容傳播預設為關閉：OBI 會注入 W3C `traceparent`，讓從 Pod A 到 Pod B 的要求在任何地方都沒有 SDK 的情況下顯示為一筆追蹤。使用 `--set ebpf.contextPropagation=true` 選擇啟用。它所需的核心不超出代理程式其餘部分的要求，也沒有任何核心版本會讓它失效。
+跨服務的追蹤內容傳播預設為開啟：OBI 會注入 W3C `traceparent`，讓從 Pod A 到 Pod B 的要求在任何地方都沒有 SDK 的情況下顯示為一筆追蹤。使用 `--set ebpf.contextPropagation=false` 關閉它。它所需的核心不超出代理程式其餘部分的要求，也沒有任何核心版本會讓它失效。
 
-它之所以預設關閉，是因為注入標頭意味著改寫已在傳輸中的流量：純文字 HTTP 要求會在核心中就地擴充，而 TLS 和原始 TCP 則會透過 Traffic Control 掛鉤附加一個 TCP 選項。如果連線的位元組計算沒有被精確修正，資料串流就會錯位；已回報的症狀是，經過 nginx 等 L7 Proxy 的傳輸在回應超過約 64KB 後於本文中途停住，而小型要求仍能正常運作。請不要因為核心版本較舊就排除這種可能：在 5.17 以下的核心上，OBI 會退回到有界掃描程式，並以同樣的方式改寫流量。追蹤、RED 指標和服務地圖都不依賴它；若要跨服務關聯，OpenTelemetry SDK 會在使用者空間傳播 `traceparent`，不需在核心中改寫流量，是更安全的選擇。
+注入標頭意味著改寫已在傳輸中的流量：純文字 HTTP 要求會在核心中就地擴充，而 TLS 和原始 TCP 則會透過 Traffic Control 掛鉤附加一個 TCP 選項。如果連線的位元組計算沒有被精確修正，資料串流就會錯位；已回報的症狀是，經過 nginx 等 L7 Proxy 的傳輸在回應超過約 64KB 後於本文中途停住，而小型要求仍能正常運作。請不要因為核心版本較舊就排除這種可能：在 5.17 以下的核心上，OBI 會退回到有界掃描程式，並以同樣的方式改寫流量。如果你遇到這種症狀，或是服務網格或 eBPF 網路外掛程式開始導致 Pod 失敗，請關閉內容傳播：追蹤、RED 指標和服務地圖都不依賴它，而 OpenTelemetry SDK 會在使用者空間傳播 `traceparent`，不需在核心中改寫流量。使用 `--reuse-values` 升級的代理程式會保留原本的值，而較早的 chart 預設關閉此功能：請使用 `--reset-then-reuse-values` 升級，以採用新的預設值。
 
 ## Kubernetes AI 代理程式
 
 當此叢集上出現事件或警示時，OneUptime AI 會進行調查。chart 中的 **Kubernetes AI 代理程式** 會為它提供一個終端機：它會像值班工程師那樣執行唯讀的 `kubectl`（describe 出問題的 Pod、讀取其事件、查看當機容器的日誌、檢查節點容量），並在事件頁面上引用它執行的每一個指令。
 
-該代理程式 **預設為開啟** 且 **唯讀**：一個小型 Deployment（`kubernetes-agent-ai-agent`，Pod 標籤 `component=ai-agent`，映像檔 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能讀取。它會使用與 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行註冊，因此不需要在儀表板中進行任何設定：叢集的 **AI 代理程式** 頁面（Kubernetes → 叢集 → 人工智慧 → 代理程式）會在一分鐘內顯示其為已連線，而該狀態旁邊 **⋯** 選單中的 **測試連線** 會透過它執行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做過的一切都在叢集的 **AI 日誌** 頁面（人工智慧 → 日誌）上，而關於該叢集值得了解的內容——反覆出現的問題及其原因、造成其中大多數問題的節點或工作負載、AI 修正了什麼——則在 **AI Insights** 頁面（人工智慧 → Insights）上。該代理程式內建一個固定版本的 kubectl（v1.36.4）。它不是 Runner，也永遠不會出現在 Runbooks → Runners 下：OneUptime 從不提供它認證資料，從不在它上面執行 runbook，它也永遠不會被接受為自動修復規則的指令 Runner。
+該代理程式 **預設為開啟** 且 **唯讀**：一個小型 Deployment（`kubernetes-agent-ai-agent`，Pod 標籤 `component=ai-agent`，映像檔 `oneuptime/kubernetes-ai-agent`），其 ServiceAccount 只能讀取。它會使用與 Collector 相同的 `oneuptime.apiKey` 和 `clusterName` 自行註冊，因此不需要在儀表板中進行任何設定：叢集的 **AI 代理程式** 頁面（Kubernetes → 叢集 → 人工智慧 → 代理程式）會在一分鐘內顯示其為已連線，而該狀態旁邊 **⋯** 選單中的 **測試連線** 會透過它執行 `kubectl version` 和 `kubectl auth can-i --list`。AI 用它做過的一切都在叢集的 **AI 日誌** 頁面（人工智慧 → 日誌）上，而關於該叢集值得了解的內容——反覆出現的問題及其原因、造成其中大多數問題的節點或工作負載、AI 修正了什麼——則在 **AI Insights** 頁面（人工智慧 → Insights）上。該代理程式內建一個固定版本的 kubectl（v1.36.5）。它不是 Runner，也永遠不會出現在 Runbooks → Runners 下：OneUptime 從不提供它認證資料，從不在它上面執行 runbook，它也永遠不會被接受為自動修復規則的指令 Runner。
 
 對於在 AI 代理程式出現之前安裝的代理程式，請先重新整理 chart 索引，然後升級（在自行託管的 OneUptime 上，請先升級 OneUptime——請參閱 [升級代理程式](#升級代理程式)）：
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **會自行解除的拒絕** — 先前的代理程式 Pod 仍在回報（沒有正常關閉就被取代的 Pod），或舊的叢集內 Runner 在升級期間仍在關閉。代理程式會在伺服器指定的等待時間之後重試。
 - **需要你處理的拒絕** — `clusterName` 為空或過長，或專案已達到 AI 代理程式的上限；日誌會指出需要變更什麼。如果代理程式始終無法連線，而且其日誌顯示 `Another Kubernetes AI agent for cluster "<name>" is online`，表示兩個安裝共用了同一個 `clusterName`（AI 代理程式頁面也會對此發出警告）：已經連線的那個只要在執行就會一直占用它，因此請為每個叢集提供自己的 `clusterName`，或移除多餘的發行版本。帶有 **Pinned Service Name** 的擷取金鑰無法註冊代理程式——請給 chart 一把不帶它的金鑰。
 
-AI 代理程式頁面上代理程式狀態旁邊 **⋯** 選單中的 **重設代理程式**，會在你確認後讓伺服器忘記該代理程式的金鑰（Project Owner、Project Admin 或擁有 **Edit Auto Remediation Rule** 權限者可以執行）；Pod 會在幾分鐘內自行重新連線。代理程式的就緒狀態不依賴 OneUptime，因此設定錯誤的 AI 代理程式永遠不會讓 `helm upgrade --wait` 失敗——只有無法提取映像檔的 Pod 才會。
+AI 代理程式頁面上代理程式狀態旁邊 **⋯** 選單中的 **重設代理程式**，會在你確認後讓伺服器忘記該代理程式的金鑰（Project Owner、Project Admin 或擁有 **Edit Auto Remediation Rule** 權限者可以在其可編輯的叢集上執行）；Pod 會在幾分鐘內自行重新連線。代理程式的就緒狀態不依賴 OneUptime，因此設定錯誤的 AI 代理程式永遠不會讓 `helm upgrade --wait` 失敗——只有無法提取映像檔的 Pod 才會。
 
 ## 升級代理程式
 
@@ -866,7 +939,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 衡量效果
 
-遙測用量以天計算，因此請在一兩天內於 **專案設定 → 使用歷程** 下查看趨勢：它不會在你套用變更的那一刻就有所變化。一次只變更一項設定（先關閉日誌，再調高間隔，再精簡 eBPF），這樣你就能分辨每一項的效果，而不是一下子把所有東西都調低，結果失去了你依賴的監控器。
+遙測用量以天計算，因此請在一兩天內於 **專案設定 → 帳單與發票 → 使用歷程** 下查看趨勢：它不會在你套用變更的那一刻就有所變化。一次只變更一項設定（先關閉日誌，再調高間隔，再精簡 eBPF），這樣你就能分辨每一項的效果，而不是一下子把所有東西都調低，結果失去了你依賴的監控器。
 
 ## 疑難排解
 

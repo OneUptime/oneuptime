@@ -956,7 +956,7 @@ describe("the empty level points at the dropdown only when it can help", () => {
       "topology-hierarchy-empty-description",
     );
     expect(description).toHaveTextContent(
-      "No regions at this level match what you are looking for. Click the search box to see matching sites from anywhere in your network, or clear the search or the health filter to see the rest of this level.",
+      "No regions at this level match. Click the search box to see matching sites from anywhere in your network, or clear the search and filters.",
     );
   });
 

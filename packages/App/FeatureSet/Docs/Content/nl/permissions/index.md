@@ -12,14 +12,14 @@ Alles in OneUptime leeft binnen een **project**. Wie wat mag doen binnen dat pro
 ```mermaid title="Hoe een persoon en een API-sleutel toegang krijgen"
 flowchart TB
     User["Een gebruiker<br/>(één account)"]
-    Key["Een API-sleutel"]
     subgraph Project["Een project"]
         direction TB
+        Key["Een API-sleutel"]
         Team["Team"]
-        Allow["Toegestane machtigingen,<br/>elk met een bereik:<br/>Alle, Eigen of Labels"]
-        Block["Geblokkeerde machtigingen,<br/>die altijd winnen"]
-        KeyRules["De eigen toegestane en<br/>geblokkeerde machtigingen van de sleutel"]
-        Resources["Monitors, incidenten,<br/>statuspagina's en meer"]
+        Allow["Toegestane<br/>machtigingen,<br/>elk met<br/>een bereik:<br/>Alle, Eigen<br/>of Labels"]
+        Block["Geblokkeerde<br/>machtigingen,<br/>die altijd winnen"]
+        KeyRules["De eigen<br/>toegestane en<br/>geblokkeerde<br/>machtigingen<br/>van de sleutel"]
+        Resources["Monitors,<br/>incidenten,<br/>statuspagina's<br/>en meer"]
     end
     User -->|"lid van"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"bereiken"| Resources
     KeyRules -->|"bereiken"| Resources
     Block -.->|"nemen weg"| Resources
+    Allow ~~~ Block
 ```
 
 | Begrip | Wat het is |
@@ -37,6 +38,7 @@ flowchart TB
 | Team | Een benoemde groep binnen een project die machtigingen draagt. |
 | Teamlid | Een gebruiker die voor een team is uitgenodigd en heeft geaccepteerd. |
 | Machtiging | Eén vermogen, bijv. `CreateProjectMonitor`, of een rol die er veel bundelt, bijv. `MonitorAdmin`. |
+| Aangepaste rol | Een set machtigingen die u één keer een naam geeft en aan teams geeft. |
 | Bereik | Hoe ver een toegestane machtiging reikt: alle resources, alleen eigen of alleen gelabelde. |
 | Eigenaar | Een gebruiker of team dat verantwoordelijk is gemaakt voor één specifieke resource. |
 | Label | Een tag die u op resources zet, gebruikt om machtigingen te beperken en om te ordenen. |
@@ -57,6 +59,7 @@ Een gebruiker zit "in" een project als hij lid is van **minstens één team** da
 - Uitnodigingen maken een openstaand teamlid aan. De gebruiker telt pas als projectlid — en krijgt pas enige machtiging — **nadat hij de uitnodiging heeft geaccepteerd.**
 - **Gebruiker uitnodigen** begint bij het ledenteam van het project: het team dat `ProjectMember` voor het hele project heeft, dus **Members** tenzij u het hebt hernoemd. Kies een ander team om de persoon meer of minder toegang te geven. Er is niets gekozen wanneer u zelf niet voor dat team zou mogen uitnodigen — wie iemand uitnodigt, geeft de machtigingen van het team door, en u kunt alleen machtigingen doorgeven die u zelf hebt — of wanneer het project zo'n team niet heeft. Het beheerdersdashboard begint bij hetzelfde team waar een beheerder van de instantie iemand aan een project toevoegt: **Gebruiker uitnodigen** bij een project, **Aan project toevoegen** bij een gebruiker en bij meerdere gebruikers tegelijk, en de projecten die aan een [globale SSO-provider](/docs/identity/global-sso) zijn gekoppeld.
 - Een gebruiker uit alle teams van een project verwijderen ontneemt hem de toegang tot dat project, vanaf zijn volgende verzoek — ook terwijl hij is aangemeld. Zijn account en zijn andere projecten blijven ongemoeid. Hij wordt van de pikettroosters, escalatieregels en overrides van het project gehaald, uit de rollen van de open incidenten en episodes en uit de eigenaren van de resources; opgeloste incidenten houden vast wie ze bezat en leidde.
+- Op een zelf-gehoste installatie ontneemt het intrekken van iemands hoofdbeheerderstoegang in het Admin Dashboard hem die toegang vanaf zijn volgende verzoek — ook terwijl hij is aangemeld. Hij blijft aangemeld en houdt de projecten waarvan hij lid is.
 - Wie een project verlaat, krijgt er geen meldingen meer van. Zijn eigen meldingsmethoden, -regels en -instellingen voor het project verdwijnen met zijn laatste team — e-mail, sms, oproep, WhatsApp, Telegram, push, webhook, Slack en Microsoft Teams, de e-mailsamenvatting en de nog niet verstuurde e-mail, het nummer voor inkomende oproepen en de dienstherinneringen —, zodat opnieuw lid worden met de standaardwaarden begint. Wat hem daarna nog noemt, zoals de gebruiker die een regel voor inkomende oproepen belt of een eigenaar die op een opgelost incident blijft staan, stuurt hem geen meldingen meer: namens een project wordt niets gestuurd naar iemand die er geen lid van is, en een openstaande uitnodiging is nog geen lidmaatschap. Op die plekken staat **Geen lid meer** naast de naam, zodat u er iemand anders kunt neerzetten. Bij iemand die is uitgenodigd en nog niet heeft geaccepteerd, staat in plaats daarvan **Uitnodiging nog niet geaccepteerd**. Als een override iemands meldingen doorstuurt naar iemand die het project heeft verlaten, wordt in plaats daarvan de persoon gealarmeerd voor wie de override geldt. Bij vertrek worden ook de MCP-clients losgekoppeld die de persoon met het project heeft verbonden, en zijn persoonlijke link naar de piketagenda toont vanaf dan een lege agenda. Op OneUptime Cloud bevestigt iemand die via de single sign-on van het project terugkomt dat opnieuw vanuit zijn mailbox.
 - Als uw project SSO afdwingt en een gebruiker zich nog niet via de identityprovider heeft geauthenticeerd, geldt hij als niet-geautoriseerde SSO-gebruiker en ziet hij niets tot hij dat doet. Zie [SSO](/docs/identity/sso).
 - Met SCIM ingesteld kan uw identityprovider gebruikers en hun teamlidmaatschappen automatisch aanmaken, bijwerken en verwijderen. Zie [SCIM](/docs/identity/scim).
@@ -132,6 +135,24 @@ Dit zijn ook de sleutels die u gebruikt bij het aanmaken van API-sleutels, en di
 
 De volledige lijst staat in de [Machtigingsreferentie](/docs/permissions/reference).
 
+### Aangepaste rollen
+
+Een aangepaste rol is een set machtigingen die u één keer een naam geeft en aan teams geeft: bijvoorbeeld een "Incidentbehandelaar" met `IncidentMember`, `AlertMember` en `OnCallViewer`, of een "Teamleider". Elk team dat u de rol geeft, krijgt dezelfde machtigingen, en u wijzigt ze voor al die teams op één plek. Op OneUptime Cloud vragen aangepaste rollen het Scale-abonnement, net als het wijzigen van de machtigingen van een team.
+
+:::steps
+1. Open **Teams** in het menu **Producten**, onder **Instellingen**. Klap **Instellingen** open in het zijmenu, kies **Rollen** en klik op **Aangepaste rol aanmaken**.
+2. Typ de **Naam** en kies onder **Machtigingen** de ingebouwde rollen die ze bundelt, voor elke resource in het project. De beschrijving staat onder **Meer velden**.
+3. Maak de rol aan. Ze opent op haar pagina, waar **Rol toevoegen** nog een ingebouwde rol toevoegt en **Machtiging toevoegen** (in het menu **⋯** van de kaart) één machtiging, elk met een bereik en labels, zoals bij een team.
+4. Klik op **Aan een team geven** onder **Teams met deze rol**. De pagina **Machtigingen** van een team heeft ook **Aangepaste rol toevoegen**, en **Team maken** biedt onder **Toegang** de aangepaste rollen aan die u zou kunnen geven.
+:::
+
+- De leden van een team krijgen elke machtiging van zijn aangepaste rollen, met hetzelfde bereik en dezelfde labels, precies alsof het team ze zelf had. Een blokkering op het team wint nog steeds.
+- Een rol blijft verbonden met de teams die haar hebben: een wijziging bereikt ze allemaal meteen, en de pagina van de rol zegt om hoeveel teams en personen het gaat. **Verwijderen** neemt de rol van één team weg. De rol zelf verwijderen neemt haar machtigingen weg bij elk team dat haar heeft; de teams houden hun leden en hun andere rollen en machtigingen.
+- U kunt in een rol, en als rol aan een team, alleen geven wat u het team ook rechtstreeks zou kunnen geven: een rol met een machtiging die u niet met hetzelfde of een ruimer bereik hebt, wordt geweigerd, en de weigering noemt de machtiging. Een rol bevat nooit `ProjectOwner`, en **Owners** en **Admin** krijgen er nooit een.
+- De pagina **Machtigingen** van een team toont zijn aangepaste rollen boven zijn eigen machtigingen. Wat een rol geeft, wijzigt u op de pagina van de rol, niet op die van het team.
+- API-sleutels krijgen geen aangepaste rollen. Een sleutel dient één integratie, dus geef hem op zijn eigen pagina precies de machtigingen die hij nodig heeft.
+- De ingebouwde rollen staan onder **Ingebouwde rollen**, onderaan de pagina **Rollen**.
+
 ### Toestaan en blokkeren
 
 Elk team heeft twee lijsten:
@@ -171,11 +192,11 @@ Elke toegestane machtiging wordt toegekend met een bereik, gekozen onder **Berei
 
 | Bereik | Betekenis |
 | --- | --- |
-| Alle resources in het project | De standaard. De machtiging geldt voor elke passende resource. |
-| In eigendom van dit team of zijn leden | De machtiging geldt alleen voor resources waarbij dit team, of de handelende gebruiker, als eigenaar staat. |
-| Beperken op labels (geavanceerd) | De machtiging geldt alleen voor resources die minstens één van de gekozen labels dragen. |
+| Alle resources in het project | De standaard, en wat de meeste teams nodig hebben. De machtiging geldt voor elke passende resource. |
+| Alleen resources die van hen zijn | De machtiging geldt alleen voor resources die van de handelende persoon of een van diens teams zijn. |
+| Alleen resources met bepaalde labels | De machtiging geldt alleen voor resources die minstens één van de gekozen labels dragen. |
 
-**Eigen** is de eenvoudigste manier om een model "jullie zorgen voor je eigen diensten" op te zetten: geef een team `MonitorAdmin` met bereik Eigen en maak dat team eigenaar van de monitors waarvoor het verantwoordelijk is. Het beperkt alleen resources die echt eigenaren kunnen hebben — monitors, incidenten, dashboards, diensten en dergelijke. Projectconfiguratie (incidentstatussen, labels, de teams zelf) heeft geen eigenaar, dus daar gedraagt een rol met bereik Eigen zich normaal.
+**Eigen** is de eenvoudigste manier om een model "jullie zorgen voor je eigen diensten" op te zetten: geef een team `MonitorAdmin` met bereik Eigen en maak dat team eigenaar van de monitors waarvoor het verantwoordelijk is. Het beperkt elke resource die eigenaren kan hebben — monitors, incidenten, dashboards, diensten, monitorgroepen, bereikbaarheidsschema's en dergelijke — en wat erbij hoort, zoals de lagen van een schema. Sondes, Runners, AI-agenten, bereikbaarheidsschema's en incident- en onderhoudssjablonen zijn waarmee andere resources worden ingericht, dus een machtiging met bereik Eigen leest ze nog steeds allemaal en u kunt er elk van kiezen; ze wijzigt en verwijdert alleen die waarvan u of uw teams eigenaar zijn. De sleutel van een Runner, waarmee wie hem heeft als die Runner kan optreden, is alleen te zien bij de Runners waarvan u of uw teams eigenaar zijn. Projectconfiguratie (incidentstatussen, labels, de teams zelf) heeft geen eigenaar, dus daar gedraagt een rol met bereik Eigen zich normaal.
 
 **Labels** is de handmatigere versie van hetzelfde idee: tag resources en ken dan machtigingen toe die tot die tags zijn beperkt.
 
@@ -196,7 +217,7 @@ Eigenaren hebben twee taken:
 
 Eigendom op zich verleent niets. Eigenaar van een monitor zijn geeft geen bewerkrecht, tenzij een van uw teams ook een monitormachtiging heeft. Eigendom perkt toegang in; het verruimt die nooit.
 
-Wie eigenaar is van een resource, wordt gelezen via die resource. De eigenaren van een monitor of van een andere resource worden alleen weergegeven, gelezen, toegevoegd en verwijderd door iemand die die resource mag lezen, en een machtiging voor alleen eigenaren bereikt de eigenaren van geen enkele resource die u niet mag lezen.
+Wie eigenaar is van een resource, wordt gelezen via die resource. De eigenaren van een monitor of van een andere resource worden alleen weergegeven, gelezen, toegevoegd en verwijderd door iemand die die resource mag lezen, en een machtiging voor alleen eigenaren bereikt de eigenaren van geen enkele resource die u niet mag lezen. Ook het toevoegen en verwijderen van eigenaren houdt zich aan het bereik van de machtiging die het toestaat: met het bereik `Owned` bereikt die alleen de resources waarvan u of een van uw teams al eigenaar is, hoeveel meer u ook mag lezen, dus dat u een monitor mag lezen, laat u niet uzelf tot eigenaar ervan maken. Een eigenaar wordt toegevoegd of verwijderd, maar nooit naar een andere resource verplaatst.
 
 ## Labels
 
@@ -302,7 +323,7 @@ Opgeloste machtigingen worden per gebruiker en project gecachet en vernieuwd wan
 
 **Een team dat alleen meekijkt.** Maak het team aan met **Kijker** onder **Toegang**. Voor alleen enkele gebieden kiest u **Machtigingen later kiezen** en voegt u de `*Viewer`-rollen per gebied toe die het moet zien.
 
-**Piketengineers die hun eigen diensten beheren.** Geef het team `MonitorAdmin`, `IncidentMember` en `OnCallMember` met bereik **Eigen**, en voeg het team toe als eigenaar van de monitors die het beheert.
+**Piketengineers die hun eigen diensten beheren.** Geef het team `MonitorAdmin`, `IncidentMember` en `OnCallMember` met bereik **Eigen**, en voeg het team toe als eigenaar van de monitors, het bereikbaarheidsbeleid en de schema's die het beheert. Wat de mensen ervan met deze machtigingen aanmaken, is al van hen.
 
 **Externe partijen weg van productie.** Geef het team de rollen die het nodig heeft met bereik **Alle**, en voeg dan een **geblokkeerde machtiging** toe (onder **Meer instellingen** op de pagina Machtigingen van het team) voor de gevoelige vermogens, beperkt tot het label `Production`.
 

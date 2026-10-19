@@ -23,12 +23,12 @@ sequenceDiagram
     B->>O: Connect with Slack
     O-->>B: Redirect to Slack
     B->>S: Allow the app
-    S-->>B: Redirect to /api/slack/auth
+    S-->>B: Redirect to<br/>/api/slack/auth
     B->>O: One-time code
-    O->>S: Exchange code for a bot token
+    O->>S: Exchange code<br/>for a bot token
     Note over O,S: Once connected
-    O->>S: Post messages, outbound HTTPS
-    S->>O: Events, clicks, commands, inbound HTTPS
+    O->>S: Post messages,<br/>outbound HTTPS
+    S->>O: Events, clicks,<br/>commands, inbound HTTPS
 ```
 
 - **Outbound**: OneUptime calls Slack's Web API to post messages, create channels and upload images.
@@ -196,7 +196,7 @@ OAuth is a [browser redirect followed by a server-side token exchange](https://d
 ### Private deployments and callback security
 
 ```mermaid title="Publishing the Slack callbacks from a private deployment"
-flowchart LR
+flowchart TB
     Slack["Slack"] -->|HTTPS 443| GW["Public gateway"]
     GW -->|"/api/slack/* POST only"| ING["OneUptime ingress"]
     Users["Employees on VPN"] --> ING

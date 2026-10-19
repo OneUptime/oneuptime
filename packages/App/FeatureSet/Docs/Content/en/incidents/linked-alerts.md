@@ -84,7 +84,7 @@ Each row has **View Alert** to open the alert and **Unlink** to remove the link.
 
 ## Linking incidents from an alert
 
-The alert side mirrors the incident side. Open an alert and choose **Linked Incidents** in the **Basic** section of its side menu. The table lists every incident the alert is linked to, with the incident number, title and current state, and when and by whom it was linked.
+The alert side mirrors the incident side. Open an alert and choose **Linked Incidents** in the **Investigation** section of its side menu. The table lists every incident the alert is linked to, with the incident number, title and current state, and when and by whom it was linked.
 
 - **Link Incident** links this alert to an existing incident. Its dropdown works like the one on the incident side: the most recent incidents first, each with its number — such as `INC-42: Checkout is down` — and typing searches every incident by title.
 - **View Incident** opens a linked incident.
@@ -144,12 +144,12 @@ sequenceDiagram
     participant You
     participant OneUptime
     participant Alerts
-    You->>OneUptime: Declare Incident, with up to 50 alerts
-    OneUptime->>OneUptime: Check every alert and your permissions
-    OneUptime->>OneUptime: Create the incident and run its privacy rules
+    You->>OneUptime: Declare Incident,<br/>with up to 50 alerts
+    OneUptime->>OneUptime: Check every alert<br/>and your permissions
+    OneUptime->>OneUptime: Create the incident and<br/>run its privacy rules
     OneUptime->>Alerts: Link each alert
-    OneUptime-->>You: The new incident, alerts already linked
-    OneUptime->>Alerts: Acknowledge them in the background, if the box is ticked
+    OneUptime-->>You: The new incident,<br/>alerts already linked
+    OneUptime->>Alerts: Acknowledge them in<br/>the background, if<br/>the box is ticked
 ```
 
 When you submit, the server checks the alerts before it creates anything: at most 50 of them, each an alert in this project that you are allowed to see, and you must be allowed to link alerts to incidents. If any check fails, the request is rejected and no incident is created — so a bad alert id never uses up an incident number. Once the incident exists — and once its privacy rules have run, so the links know whether it is private — every alert is linked before the request returns, so the incident's **Linked Alerts** page already lists them. If a single link fails — say, because the alert was deleted a moment earlier — the incident is still declared and the other alerts are still linked.

@@ -24,6 +24,11 @@ import React, { ReactElement, ReactNode, useId } from "react";
  *   what goes with it, such as the sign-in methods set up, or a button to
  *   change its password. They sit outside the radio's label, so pressing a
  *   link in them picks nothing.
+ * - A choice can carry a small picture of itself (visual), between its
+ *   radio and its words: what a look looks like says it faster than a
+ *   sentence. It is decoration - hidden from screen readers, which hear
+ *   the title - and pressing it picks the choice, as pressing the title
+ *   does.
  * - Someone who may not change the setting sees every choice locked, with
  *   why under the choices.
  * - "Saved" shows beside the choice once it is saved, in a live region that
@@ -49,6 +54,12 @@ export interface ChoiceRowOption<TValue extends string> {
   planNeeded?: PlanType | null | undefined;
   // Lines under the description, already translated.
   details?: ReactNode | undefined;
+  /*
+   * A small picture of the choice, between the radio and the title:
+   * decorative, so it carries no words of its own. Its wrapper is
+   * `${dataTestId}-visual`.
+   */
+  visual?: ReactNode | undefined;
   // The radio's data-testid. The row is `${dataTestId}-row`.
   dataTestId?: string | undefined;
 }
@@ -75,6 +86,14 @@ export interface ComponentProps<TValue extends string> {
   ariaLabel: string;
   dataTestId?: string | undefined;
 }
+
+/*
+ * The slot a choice's picture fills: 54x36 on a phone, 72x48 from sm up
+ * (3:2 both), so a picture made for it is drawn at its size and the rows
+ * line up whatever it holds. The picture fills the slot's width.
+ */
+export const CHOICE_ROW_VISUAL_CLASS_NAME: string =
+  "block w-[54px] flex-shrink-0 sm:w-[72px]";
 
 export const getChoiceRowPlanPillText: (
   translator: Translator,
@@ -164,8 +183,8 @@ const ChoiceRows: <TValue extends string>(
         {/*
          * The status and the plan's pill sit to the right of the text from
          * sm up. On a phone they go under it, lined up with the title (the
-         * radio is 16px and 12px from its text: pl-7), so the sentence keeps
-         * the width.
+         * radio is 16px and 12px from its text: pl-7; a picture adds its
+         * 54px and 12px more: pl-[94px]), so the sentence keeps the width.
          */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -189,6 +208,27 @@ const ChoiceRows: <TValue extends string>(
                 props.onPick(option.value);
               }}
             />
+            {option.visual ? (
+              /*
+               * A second label of the same radio, so pressing the picture
+               * picks the choice the way pressing the title does. Hidden
+               * from screen readers: the title already names the choice.
+               */
+              <label
+                htmlFor={inputId}
+                aria-hidden="true"
+                className={`${CHOICE_ROW_VISUAL_CLASS_NAME} ${
+                  isDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                }`}
+                data-testid={
+                  option.dataTestId ? `${option.dataTestId}-visual` : undefined
+                }
+              >
+                {option.visual}
+              </label>
+            ) : (
+              <></>
+            )}
             <div className="min-w-0 flex-1">
               <label
                 htmlFor={inputId}
@@ -215,7 +255,9 @@ const ChoiceRows: <TValue extends string>(
             </div>
           </div>
           <div
-            className={`flex flex-shrink-0 flex-wrap items-center gap-x-3 pl-7 text-sm sm:pl-0 sm:pt-0.5 ${
+            className={`flex flex-shrink-0 flex-wrap items-center gap-x-3 ${
+              option.visual ? "pl-[94px]" : "pl-7"
+            } text-sm sm:pl-0 sm:pt-0.5 ${
               (isChecked && props.status) || option.planNeeded ? "sm:ml-4" : ""
             }`}
           >

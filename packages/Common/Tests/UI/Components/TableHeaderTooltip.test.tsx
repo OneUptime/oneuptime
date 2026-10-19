@@ -273,8 +273,18 @@ describe("a sortable column with a header tooltip", () => {
     const wrapper: HTMLElement = sortButton.parentElement as HTMLElement;
 
     expect(wrapper.parentElement).toBe(cell);
-    expect(wrapper).toHaveClass("flex", "w-full", "items-center");
-    expect(sortButton).toHaveClass("pl-6", "pr-1", "py-3");
+    expect(wrapper).toHaveClass(
+      "flex",
+      "w-full",
+      "items-center",
+      "whitespace-nowrap",
+    );
+    /*
+     * The button keeps the cell's left padding (pl-3: CPU is not the row's
+     * first column) and the header band's height, so it is as easy to hit
+     * as a full-cell one; the (i) takes the last column's right padding.
+     */
+    expect(sortButton).toHaveClass("pl-3", "pr-1", "py-2.5");
     expect(sortButton).not.toHaveClass("w-full");
     expect(sortButton).not.toHaveClass("px-6");
     expect(sortButton).toHaveAttribute("type", "button");
@@ -290,9 +300,11 @@ describe("a sortable column with a header tooltip", () => {
     const cell: HTMLElement = headerCell("Name");
 
     expect(within(cell).getAllByRole("button")).toHaveLength(1);
+    // The row's first column: the whole cell is the button, 24px in.
     expect(within(cell).getByRole("button", { name: "Name" })).toHaveClass(
       "w-full",
-      "px-6",
+      "pl-6",
+      "pr-3",
     );
   });
 });
@@ -334,9 +346,9 @@ describe("a non-sortable column with a header tooltip", () => {
 
       const content: HTMLElement = buttons[0]!.parentElement as HTMLElement;
       expect(content.className).toBe(
-        "flex w-full px-6 py-3 justify-start items-center",
+        "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-6 pr-6 justify-start",
       );
-      expect(buttons[0]).toHaveClass("ml-1", "font-normal");
+      expect(buttons[0]).toHaveClass("font-normal");
 
       fireEvent.click(buttons[0]!);
       expect(onSortChanged).not.toHaveBeenCalled();
@@ -362,7 +374,7 @@ describe("a non-sortable column with a header tooltip", () => {
     });
 
     expect(info.parentElement?.className).toBe(
-      "flex w-full px-6 py-3 justify-end items-center",
+      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-6 pr-6 justify-end",
     );
   });
 });
@@ -435,8 +447,9 @@ describe("columns without a header tooltip render exactly as before", () => {
     });
 
     expect(button.parentElement).toBe(cell);
-    expect(button.className).toContain("flex w-full px-6 py-3 justify-start");
-    expect(button).not.toHaveClass("pl-6");
+    expect(button.className).toContain(
+      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-6 pr-3 justify-start",
+    );
   });
 
   test("a non-sortable header is the plain content div, without the tooltip alignment", () => {
@@ -447,10 +460,10 @@ describe("columns without a header tooltip render exactly as before", () => {
 
     expect(within(notes).queryByRole("button")).not.toBeInTheDocument();
     expect((notes.firstElementChild as HTMLElement).className).toBe(
-      "flex w-full px-6 py-3 justify-start",
+      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-3 pr-3 justify-start",
     );
     expect((actions.firstElementChild as HTMLElement).className).toBe(
-      "flex w-full px-6 py-3 justify-end",
+      "flex w-full items-center gap-1 whitespace-nowrap py-2.5 pl-3 pr-6 justify-end",
     );
   });
 
@@ -468,7 +481,8 @@ describe("columns without a header tooltip render exactly as before", () => {
 
       const button: HTMLElement = screen.getByRole("button", { name: "Name" });
 
-      expect(button.className).toContain("w-full px-6");
+      expect(button.className).toContain("w-full");
+      expect(button.className).toContain("pl-6 pr-6");
       expect(screen.getAllByRole("button")).toHaveLength(1);
     },
   );

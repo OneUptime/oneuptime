@@ -18,12 +18,12 @@ Il server MCP fa parte di ogni istanza OneUptime, su `/mcp` allo stesso indirizz
 
 ```mermaid title="Come un client raggiunge il tuo progetto"
 flowchart TB
-    C["Il tuo client MCP:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP a /mcp"| M["Il server MCP<br/>di OneUptime"]
-    M --> W{"Come si identifica<br/>il client?"}
-    W -->|"ha effettuato l'accesso"| P["Come te, nel<br/>progetto scelto"]
-    W -->|"una chiave API"| K["Come la chiave,<br/>nel suo progetto"]
-    W -->|"nessuno dei due"| U["Solo gli strumenti<br/>delle pagine di<br/>stato pubbliche"]
-    P --> A["L'API di OneUptime,<br/>con esattamente<br/>quei permessi"]
+    C["Il tuo<br/>client MCP:<br/>Claude,<br/>Cursor,<br/>VS Code"] -->|"HTTP a /mcp"| M["Il server MCP<br/>di OneUptime"]
+    M --> W{"Come si<br/>identifica<br/>il client?"}
+    W -->|"ha effettuato<br/>l'accesso"| P["Come te, nel<br/>progetto<br/>scelto"]
+    W -->|"una chiave API"| K["Come la<br/>chiave,<br/>nel suo<br/>progetto"]
+    W -->|"nessuno<br/>dei due"| U["Solo gli<br/>strumenti<br/>delle pagine di<br/>stato pubbliche"]
+    P --> A["L'API di<br/>OneUptime,<br/>con esattamente<br/>quei permessi"]
     K --> A
 ```
 
@@ -39,7 +39,7 @@ Il server è senza stato: non emette id di sessione e ogni richiesta è indipend
 - **Manutenzione programmata**: creare e gestire eventi di manutenzione.
 - **Telemetria**: interrogare log, metriche, tracce, eccezioni, log dei monitor, eventi di sicurezza e altro, in sola lettura.
 
-Ci sono strumenti per creare, leggere, elencare, aggiornare, eliminare e contare per 27 tipi di record, strumenti per elencare e contare per 9 tipi di telemetria, e strumenti pensati per la risposta agli incidenti. Gli strumenti in sola lettura hanno `readOnlyHint` e quelli di eliminazione hanno `destructiveHint`, così un client può eseguire da solo le chiamate sicure e chiederti conferma prima di quelle distruttive. Una chiamata a uno strumento fallita torna come risultato dello strumento (`isError: true`) con uno `statusCode`, i dettagli e un suggerimento, non come errore del protocollo MCP, così l'agente può leggere l'errore e correggersi.
+Ci sono strumenti per creare, leggere, elencare, aggiornare, eliminare e contare per 27 tipi di record, strumenti per elencare e contare per 9 tipi di telemetria, e strumenti pensati per la risposta agli incidenti. Gli strumenti in sola lettura hanno `readOnlyHint`, ogni strumento che modifica qualcosa ha `destructiveHint` e solo gli strumenti delle pagine di stato pubbliche hanno `openWorldHint`, così un client può eseguire da solo le chiamate in sola lettura e chiederti conferma prima di qualsiasi modifica. Una chiamata a uno strumento fallita torna come risultato dello strumento (`isError: true`) con uno `statusCode`, i dettagli e un suggerimento, non come errore del protocollo MCP, così l'agente può leggere l'errore e correggersi.
 
 ## Prima di iniziare
 
@@ -111,7 +111,7 @@ Cosa può fare un client collegato:
 
 ### Gestire i client collegati
 
-Ogni client collegato tramite accesso è elencato in **Impostazioni del progetto → IA → Server MCP**, sotto **Connected MCP Clients**, con chi lo ha collegato, cosa può fare e quando è stato usato l'ultima volta. Vedi i client che hai collegato tu; i proprietari e gli amministratori del progetto vedono quelli di tutti.
+Ogni client collegato tramite accesso è elencato in **Impostazioni del progetto → IA → Server MCP**, sotto **Client MCP connessi**, con chi lo ha collegato, cosa può fare e quando è stato usato l'ultima volta. Vedi i client che hai collegato tu; i proprietari e gli amministratori del progetto vedono quelli di tutti.
 
 Fai clic su **Disconnect** per disconnettere un client. Smette subito di funzionare.
 
@@ -195,6 +195,19 @@ La variabile di input con `"password": true` chiede la chiave all'avvio del serv
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

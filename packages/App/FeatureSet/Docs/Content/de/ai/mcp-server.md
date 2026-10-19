@@ -20,10 +20,10 @@ Der MCP-Server ist Teil jeder OneUptime-Instanz, unter `/mcp` auf derselben Adre
 flowchart TB
     C["Ihr MCP-Client:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP an /mcp"| M["Der MCP-Server<br/>von OneUptime"]
     M --> W{"Wie weist sich<br/>der Client aus?"}
-    W -->|"er hat sich angemeldet"| P["Als Sie, im<br/>gewählten Projekt"]
-    W -->|"ein API-Schlüssel"| K["Als der Schlüssel,<br/>in seinem Projekt"]
-    W -->|"keins von beiden"| U["Nur Tools für<br/>öffentliche Statusseiten"]
-    P --> A["Die API von OneUptime,<br/>mit genau diesen<br/>Berechtigungen"]
+    W -->|"er hat sich<br/>angemeldet"| P["Als Sie, im<br/>gewählten<br/>Projekt"]
+    W -->|"ein API-<br/>Schlüssel"| K["Als der<br/>Schlüssel,<br/>in seinem<br/>Projekt"]
+    W -->|"keins von<br/>beiden"| U["Nur Tools für<br/>öffentliche<br/>Statusseiten"]
+    P --> A["Die API von<br/>OneUptime,<br/>mit genau diesen<br/>Berechtigungen"]
     K --> A
 ```
 
@@ -39,7 +39,7 @@ Der Server ist zustandslos: Er vergibt keine Sitzungs-IDs, und jede Anfrage steh
 - **Geplante Wartung**: Wartungsereignisse anlegen und verwalten.
 - **Telemetrie**: Logs, Metriken, Traces, Ausnahmen, Monitor-Logs, Sicherheitsereignisse und mehr abfragen, nur lesend.
 
-Es gibt Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für 27 Arten von Datensätzen, Tools zum Auflisten und Zählen für 9 Arten von Telemetrie und Tools speziell für die Vorfallreaktion. Nur lesende Tools tragen `readOnlyHint` und Lösch-Tools `destructiveHint`, sodass ein Client sichere Aufrufe selbstständig ausführen und Sie vor destruktiven fragen kann. Ein fehlgeschlagener Tool-Aufruf kommt als Tool-Ergebnis zurück (`isError: true`) mit einem `statusCode`, den Details und einem Vorschlag, nicht als MCP-Protokollfehler, sodass der Agent den Fehler lesen und sich selbst korrigieren kann.
+Es gibt Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für 27 Arten von Datensätzen, Tools zum Auflisten und Zählen für 9 Arten von Telemetrie und Tools speziell für die Vorfallreaktion. Nur lesende Tools tragen `readOnlyHint`, jedes Tool, das etwas ändert, trägt `destructiveHint`, und nur die Tools für öffentliche Statusseiten tragen `openWorldHint`, sodass ein Client nur lesende Aufrufe selbstständig ausführen und Sie vor jeder Änderung fragen kann. Ein fehlgeschlagener Tool-Aufruf kommt als Tool-Ergebnis zurück (`isError: true`) mit einem `statusCode`, den Details und einem Vorschlag, nicht als MCP-Protokollfehler, sodass der Agent den Fehler lesen und sich selbst korrigieren kann.
 
 ## Bevor Sie beginnen
 
@@ -195,6 +195,19 @@ Die Eingabevariable mit `"password": true` fragt beim Start des Servers nach dem
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

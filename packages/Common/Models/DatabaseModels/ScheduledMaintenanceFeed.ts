@@ -42,6 +42,7 @@ export enum ScheduledMaintenanceFeedEventType {
   OnCallNotification = "OnCallNotification",
   OwnerRuleExecuted = "OwnerRuleExecuted",
   LabelRuleExecuted = "LabelRuleExecuted",
+  ChannelMemberAdded = "ChannelMemberAdded",
 }
 
 @EnableDocumentation()

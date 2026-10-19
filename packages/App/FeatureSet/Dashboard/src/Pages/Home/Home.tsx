@@ -49,6 +49,32 @@ import React, {
  * own small reads beside it, never behind it.
  */
 
+/*
+ * Steps 4 and 5 share a row from xl up: the open work in two thirds, the
+ * project's resources with what is coming up in the last third. Below xl
+ * the row is one column and every card is as tall as what it holds.
+ *
+ * The two sides are rarely the same height - "Nothing needs your attention"
+ * beside seven resources, or sixteen open problems beside them - and a side
+ * that ended early left a gap of bare page under it. So the row ends on one
+ * line: the grid stretches both columns to the row's height (its default,
+ * align-items: stretch - never items-start here), each column stacks its
+ * cards, and the LAST card in each column takes the height the row has left
+ * (Card's fillHeight draws its frame to the bottom). Which card is last
+ * depends on the data - Upcoming maintenance is left out when nothing is
+ * scheduled - so the rule is the column's, not a card's.
+ */
+const HOME_ROW_COLUMN_CLASS_NAME: string =
+  "flex min-w-0 flex-col gap-5 [&>*:last-child]:flex-1";
+
+export const HOME_ROW_CLASS_NAME: string =
+  "grid grid-cols-1 gap-5 xl:grid-cols-3";
+
+export const HOME_ROW_MAIN_COLUMN_CLASS_NAME: string = `${HOME_ROW_COLUMN_CLASS_NAME} xl:col-span-2`;
+
+export const HOME_ROW_SIDE_COLUMN_CLASS_NAME: string =
+  HOME_ROW_COLUMN_CLASS_NAME;
+
 export interface ComponentProps extends PageComponentProps {
   isLoadingProjects: boolean;
   projects: Array<Project>;
@@ -127,15 +153,21 @@ const Home: FunctionComponent<ComponentProps> = (
 
       <GettingStarted projectId={currentProjectId} className="!mb-0" />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <div className="min-w-0 xl:col-span-2">
+      <div data-testid="home-overview-row" className={HOME_ROW_CLASS_NAME}>
+        <div
+          data-testid="home-overview-row-main"
+          className={HOME_ROW_MAIN_COLUMN_CLASS_NAME}
+        >
           <NeedsAttention
             data={overview.data}
             isLoading={overview.isLoading}
             now={now}
           />
         </div>
-        <div className="min-w-0 space-y-5">
+        <div
+          data-testid="home-overview-row-side"
+          className={HOME_ROW_SIDE_COLUMN_CLASS_NAME}
+        >
           <ProjectResources
             projectId={currentProjectId}
             totalMonitors={

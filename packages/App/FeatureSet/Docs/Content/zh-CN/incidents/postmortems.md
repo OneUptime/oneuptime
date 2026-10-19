@@ -67,7 +67,7 @@ flowchart TB
 
 点击 **Generate with AI**。**Generate Postmortem with AI** 对话框在 **选择模板** 下提供大纲：**Standard Postmortem**、**Detailed Technical Postmortem** 或 **Brief Postmortem**，然后是您自己的事后分析模板。**Template Preview** 显示大纲，您可以在生成之前修改它。
 
-点击对话框底部的 **Generate with AI**。OneUptime AI 会读取事件（它的描述、根本原因和修复、状态时间线、公开和私密备注，以及其 Slack 或 Microsoft Teams 频道中的消息），并按照您的大纲编写事后分析。随后编辑器会打开并显示结果。
+点击对话框底部的 **Generate with AI**。OneUptime AI 会读取事件（它的描述、根本原因和修复、状态时间线、公开和私密备注、其 Slack 或 Microsoft Teams 频道中的消息，以及 [其通话](/docs/workspace-connections/video-calls#通话转录) 中说过的内容），并按照您的大纲编写事后分析。随后编辑器会打开并显示结果。
 
 生成需要在 **项目设置 → 人工智能 → AI Features** 下为项目打开 AI，并需要一个 LLM 提供商：请参阅 [LLM 提供商](/docs/ai/llm-provider)。它还需要 Project Owner 或 Project Admin 角色，或拥有 Edit Incident 权限的自定义角色：其他角色可以编写事后分析，但不能生成。
 
@@ -78,6 +78,7 @@ flowchart TB
 - 它从不替换已经写好的备注。
 - 它从不写入已经发布的事后分析，否则草稿会未经审阅就出现在状态页上。
 - 它需要为项目打开 AI，并且一旦项目达到每日 AI 限额，当天就会停止。请参阅 [自动事后分析](/docs/ai/ai-sre#自动事后分析)。
+- 如果事件解决时其通话的转录仍在途中，它会等待 OneUptime AI 读取转录，以便草稿包含通话中说过的内容：在 Zoom 或 Google Meet 准备转录期间最多等待六小时。请参阅 [录制并转录每次通话](/docs/workspace-connections/video-calls#录制并转录每次通话)。
 
 ## 发布到状态页
 
@@ -152,7 +153,7 @@ flowchart TB
 :::
 
 :::details 事件解决时没有出现 AI 草稿
-事件已经有备注、事后分析已经发布，或者 **事件解决后起草事后分析** 是关闭的。项目必须打开 AI，并且项目不能已达到每日 AI 限额。
+事件已经有备注、事后分析已经发布，或者 **事件解决后起草事后分析** 是关闭的。项目必须打开 AI，并且项目不能已达到每日 AI 限额。如果事件的通话有转录正在途中，草稿会在 OneUptime AI 读取转录之后出现。
 :::
 
 ## 后续步骤

@@ -24,12 +24,34 @@ export const MOVED_RUNNER_SETTINGS_PATHS: {
 };
 
 /*
+ * Project Settings > Security > OIDC folded into SSO: one page for single
+ * sign-on, the OpenID Connect providers under the SAML ones, with one test
+ * link and the Require SSO for Login switch both kinds meet. Relative to
+ * …/settings/.
+ */
+export const MOVED_OIDC_SETTINGS_PATH: string = "oidc";
+
+/*
  * Incident forms became Forms (Incidents > Settings > Forms). Relative to
  * …/incidents/.
  */
 export const MOVED_INCIDENT_FORM_PATHS: { forms: string; formView: string } = {
   forms: "settings/forms",
   formView: `settings/forms/${RouteParams.ModelID}`,
+};
+
+/*
+ * Huntress connections (Incidents > Integrations > Huntress) became
+ * workflows with a Huntress Incident Report trigger, each keeping its
+ * connection's id: the list forwards to Workflows, and a connection's page
+ * to its workflow. Relative to …/incidents/.
+ */
+export const MOVED_HUNTRESS_PATHS: {
+  connections: string;
+  connectionView: string;
+} = {
+  connections: "integrations/huntress",
+  connectionView: `integrations/huntress/${RouteParams.ModelID}`,
 };
 
 /*
@@ -50,3 +72,24 @@ export const MOVED_AI_SECTION_PATHS: {
   autoRemediationRules: "settings/auto-remediation-rules",
   aiAutoRemediationRules: "ai/auto-remediation-rules",
 };
+
+/*
+ * Incidents and Alerts each had a "Documentation" page under Episodes in
+ * their side menus: a manual of how episodes and grouping rules work, drawn
+ * in the product, that said what the docs pages say. The docs are the one
+ * place for it now; each episode list links there (View Documentation), and
+ * the old address forwards to that list. Relative to …/incidents/ and to
+ * …/alerts/: both products used the same path.
+ */
+export const MOVED_EPISODE_DOCS_PATH: string = "episodes/documentation";
+
+/*
+ * An incoming call policy had a "Documentation" page in its side menu: a
+ * manual of how incoming calls are routed, drawn in the product, that said
+ * what the docs page (/docs/on-call/incoming-call-policy) says - and had
+ * drifted from it (it offered teams, which a rule cannot ring). The docs are
+ * the one place for it now; the policy list links there (View
+ * Documentation), and the old address forwards to the policy's Overview,
+ * keeping its id. Relative to …/on-call-duty/.
+ */
+export const MOVED_INCOMING_CALL_POLICY_DOCS_PATH: string = `incoming-call-policies/${RouteParams.ModelID}/docs`;

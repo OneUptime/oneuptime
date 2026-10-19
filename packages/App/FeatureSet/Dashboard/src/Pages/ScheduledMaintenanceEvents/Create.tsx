@@ -362,7 +362,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
       <Card
         title="Create New Scheduled Maintenance"
         description={
-          "Scheduled maintenance events are planned maintenance events that you can use to notify your team and subscribers about upcoming maintenance events."
+          "Plan maintenance ahead, and tell your team and your status page subscribers when it happens."
         }
         className="mb-10"
       >
@@ -412,6 +412,8 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.Text,
                   required: true,
                   placeholder: "Event Title",
+                  // Its column's description only says the title again.
+                  hideColumnDescription: true,
                   validation: {
                     minLength: 2,
                   },
@@ -441,8 +443,14 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.DateTime,
                   required: true,
                   placeholder: "Pick Date and Time",
+                  /*
+                   * Or the day the Calendar view's + was pressed on
+                   * (?startsAt=, ScheduledMaintenanceCalendar).
+                   */
                   getDefaultValue: (): string => {
-                    return getDefaultMaintenanceStartsAt();
+                    return getDefaultMaintenanceStartsAt(
+                      Navigation.getQueryStringByName("startsAt"),
+                    );
                   },
                   onChange: moveMaintenanceEndWithStart,
                 },
@@ -672,7 +680,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   title: "Other Affected Resources",
                   stepId: "resources-affected",
                   description:
-                    "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+                    "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
                   getCustomElement: (

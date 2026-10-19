@@ -2,11 +2,16 @@
  * The real workflow builder canvas: react-flow, the step cards, the Add
  * Component / Add Trigger picker and the step settings dialog, with the real
  * component catalog. Nothing is faked; the page around it is reduced to the
- * one toolbar button the Builder page has for adding a step.
+ * one toolbar button the Builder page has for adding a step. Like the
+ * Builder's, it says Add Trigger while the canvas has no trigger and Add
+ * Component once it has one (WorkflowAddButton), read from the graph the
+ * canvas last reported.
  *
  * ?scenario=graph         a Manual trigger connected to a set-up Log step
  * ?scenario=trigger-only  just a Manual trigger
  * ?scenario=empty         the dashed "choose a trigger" placeholder
+ * ?scenario=no-trigger    a Log step whose trigger was deleted, and the
+ *                         dashed placeholder back in the trigger's place
  * ?scenario=switch        a Manual trigger, then a Switch / Case on an
  *                         environment: "production" leads to log-1,
  *                         "staging" to log-2 and Default to log-3; log-4 is
@@ -43,6 +48,10 @@
  *                         runs the POST is on another branch.
  * ?scenario=page...       the Page steps, and the project their settings
  *                         pick people from (PageScenarios.js)
+ * ?scenario=huntress      the Huntress template's workflow, and its
+ *                         trigger's panel: the URL to give Huntress, the
+ *                         signing secret, and whether Huntress reaches it
+ *                         (HuntressScenario.js)
  * ?page=on-call-logs      the Dashboard's real on-call logs table, with
  *                         pages that have no policy behind them among a
  *                         policy's runs (OnCallLogs.js)
@@ -56,12 +65,17 @@
  *                         window.__createdRecords for the spec to read.
  *                         ?failVariables=true makes writing a template's
  *                         settings fail, as a server error would.
+ *
+ * ?page=builder-page      the Dashboard's real Builder page around the
+ *                         canvas: its toolbar and the notice shown while
+ *                         the workflow is off (BuilderPage.js)
  */
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import Workflow, {
   getPlaceholderTriggerNode,
 } from "Common/UI/Components/Workflow/Workflow";
+import { getWorkflowAddButton } from "Common/UI/Components/Workflow/WorkflowAddButton";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
 import ObjectID from "Common/Types/ObjectID";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -86,6 +100,12 @@ import {
   installOnCallLogs,
 } from "./OnCallLogs";
 import { getPageScenario, installPageProject } from "./PageScenarios";
+import {
+  HUNTRESS_WEBHOOK_KEY,
+  getHuntressScenario,
+  installHuntressWorkflow,
+} from "./HuntressScenario";
+import { BuilderPage, installBuilderPage } from "./BuilderPage";
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "graph";
@@ -163,6 +183,11 @@ function storedFields(name, fallback) {
 
 if (scenario === "empty" || scenario === "record-new") {
   initialNodes = [getPlaceholderTriggerNode()];
+} else if (scenario === "no-trigger") {
+  initialNodes = [
+    getPlaceholderTriggerNode(),
+    step("log", 1, 96, 320, { value: "Deployment finished" }),
+  ];
 } else if (scenario === "record") {
   const recordTrigger =
     params.get("trigger") === "create-or-update"
@@ -334,6 +359,15 @@ if (pageScenario) {
   initialNodes = pageScenario.nodes;
   initialEdges = pageScenario.edges;
   installPageProject(params);
+}
+
+// So does the Huntress template's, with the workflow its panel reads.
+const huntressScenario = getHuntressScenario(scenario, metadataOf);
+
+if (huntressScenario) {
+  initialNodes = huntressScenario.nodes;
+  initialEdges = huntressScenario.edges;
+  installHuntressWorkflow(params);
 }
 
 // What the builder hands its page to save, for the spec to read.
@@ -569,6 +603,8 @@ window.__runs = [];
 function App() {
   const [showPicker, setShowPicker] = useState(false);
   const [showRun, setShowRun] = useState(false);
+  // The graph as the canvas last reported it, as the Builder page keeps it.
+  const [graphNodes, setGraphNodes] = useState(initialNodes);
 
   return (
     <div style={{ padding: "16px" }}>
@@ -581,7 +617,7 @@ function App() {
             setShowPicker(true);
           }}
         >
-          Add Component
+          {getWorkflowAddButton(graphNodes).title}
         </button>
         <button
           type="button"
@@ -613,8 +649,13 @@ function App() {
           });
         }}
         runsAreTestRuns={params.get("off") === "1"}
+        webhookSecretKey={huntressScenario ? HUNTRESS_WEBHOOK_KEY : undefined}
+        canSeeWebhookSecretKey={
+          huntressScenario ? params.get("url") !== "hidden" : undefined
+        }
         onWorkflowUpdated={(nodes, edges) => {
           window.__savedGraph = { nodes: nodes, edges: edges };
+          setGraphNodes(nodes);
         }}
       />
     </div>
@@ -733,6 +774,9 @@ if (fixturePage === "create-workflow") {
 } else if (fixturePage === "on-call-timeline") {
   installOnCallLogs();
   createRoot(document.getElementById("root")).render(<OnCallTimelinePage />);
+} else if (fixturePage === "builder-page") {
+  installBuilderPage();
+  createRoot(document.getElementById("root")).render(<BuilderPage />);
 } else {
   createRoot(document.getElementById("root")).render(<App />);
 }

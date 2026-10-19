@@ -4,6 +4,8 @@ import ObjectID from "../../../Types/ObjectID";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import { FindOperator } from "typeorm";
+import { getPhoneLineSql } from "../../../Server/Utils/StatusPage/SubscriberContactSql";
+import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey";
 
 /*
  * A table in memory behind a DatabaseService, for tests that drive the real
@@ -13,9 +15,11 @@ import { FindOperator } from "typeorm";
  * It answers the repository calls that pipeline makes (find, count, save,
  * update, delete) and understands the where clauses it builds: plain values,
  * TypeORM's In / Equal / Not / IsNull / And operators, and the Raw SQL that
- * QueryHelper and the permission layer write (equality, IN, NOT IN ... OR IS
- * NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE). A condition
- * it does not understand fails the test loudly instead of matching quietly.
+ * QueryHelper and the permission layer write (equality, IN, NOT IN, NOT IN
+ * ... OR IS NULL, IS NULL, IS NOT NULL, comparisons, TRUE = TRUE / FALSE),
+ * and a phone number's line (SubscriberContactSql.onPhoneLine).
+ * A condition it does not understand fails the test loudly instead of
+ * matching quietly.
  *
  * Rows are plain objects; every value is compared as text, ids case
  * insensitively.
@@ -122,6 +126,21 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
     return storedText !== null;
   }
 
+  /*
+   * A phone number on a line (SubscriberContactSql.onPhoneLine): the stored
+   * number's line, as SubscriberContactKey writes it - which the SQL does.
+   */
+  const phoneLinePrefix: string = `(${getPhoneLineSql("c")} = :`;
+
+  if (sql.startsWith(phoneLinePrefix) && sql.endsWith(")")) {
+    const name: string = sql.slice(phoneLinePrefix.length, -1);
+
+    return (
+      storedText !== null &&
+      SubscriberContactKey.forPhone(String(stored)) === String(parameters[name])
+    );
+  }
+
   // Values are compared as lower-cased text already, so LOWER() changes nothing.
   match = sql.match(/^\((?:c|LOWER\(c\)) = :(\w+)\)$/);
   if (match) {
@@ -138,6 +157,12 @@ function matchesRaw(stored: unknown, operator: FindOperator<unknown>): boolean {
   match = sql.match(/^\(c NOT IN \(:\.\.\.(\w+)\) or c IS NULL\)$/i);
   if (match) {
     return storedText === null || !listOf(match[1]!).includes(storedText);
+  }
+
+  // SQL's NOT IN never matches an empty value (QueryHelper.notIn).
+  match = sql.match(/^\(c NOT IN \(:\.\.\.(\w+)\)\)$/);
+  if (match) {
+    return storedText !== null && !listOf(match[1]!).includes(storedText);
   }
 
   match = sql.match(/^\(?c (>=|<=|>|<) :(\w+)\)?$/);

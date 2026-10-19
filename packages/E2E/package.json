@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.62",
+  "version": "14.0.76",
   "description": "",
   "repository": {
     "type": "git",
@@ -10,6 +10,7 @@
   "scripts": {
     "test-alerts-ui": "playwright test --config playwright.alerts.config.ts",
     "test-status-page-search-ui": "playwright test --config playwright.status-page-search.config.ts",
+    "test-status-page-theme-ui": "playwright test --config playwright.status-page-theme-ui.config.ts",
     "test-navigation-search-ui": "playwright test --config playwright.navigation-search.config.ts",
     "preinstall": "npx playwright install-deps && npx playwright install",
     "test": "playwright test || (curl $E2E_TESTS_FAILED_WEBHOOK_URL && exit 1)",
@@ -39,6 +40,7 @@
     "test-monitor-overview-ui": "playwright test --config playwright.monitor-overview-ui.config.ts",
     "test-home-overview-ui": "playwright test --config playwright.home-overview-ui.config.ts",
     "test-network-first-run-ui": "playwright test --config playwright.network-first-run-ui.config.ts",
+    "test-infrastructure-first-run-ui": "playwright test --config playwright.infrastructure-first-run-ui.config.ts",
     "test-chart-time-zoom-ui": "playwright test --config playwright.chart-time-zoom-ui.config.ts",
     "test-security-events-empty-states-ui": "playwright test --config playwright.security-events-empty-states-ui.config.ts",
     "test-security-operations-ui": "playwright test --config playwright.security-operations-ui.config.ts",
@@ -51,9 +53,14 @@
     "test-pagination-ui": "playwright test --config playwright.pagination-ui.config.ts",
     "test-calendar-feed-ui": "playwright test --config playwright.calendar-feed-ui.config.ts",
     "test-list-delete-ui": "playwright test --config playwright.list-delete-ui.config.ts",
+    "test-custom-roles-ui": "playwright test --config playwright.custom-roles-ui.config.ts",
     "test-status-timeline-ui": "playwright test --config playwright.status-timeline-ui.config.ts",
     "test-episode-bulk-add-ui": "playwright test --config playwright.episode-bulk-add-ui.config.ts",
-    "test-runbook-triggers-ui": "playwright test --config playwright.runbook-triggers-ui.config.ts"
+    "test-runbook-triggers-ui": "playwright test --config playwright.runbook-triggers-ui.config.ts",
+    "test-sign-in-options-ui": "playwright test --config playwright.sign-in-options-ui.config.ts",
+    "test-maintenance-calendar-ui": "playwright test --config playwright.maintenance-calendar-ui.config.ts",
+    "test-detail-cards-ui": "playwright test --config playwright.detail-cards-ui.config.ts",
+    "test-model-tables-ui": "playwright test --config playwright.model-tables-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

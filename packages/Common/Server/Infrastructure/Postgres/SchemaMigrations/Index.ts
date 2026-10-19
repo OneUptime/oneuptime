@@ -107,6 +107,22 @@ import { AddAIAgentTaskPullRequestIdIndex1802900000000 } from "./1802900000000-A
 import { AddAIRunFollowUpForAlert1802950000000 } from "./1802950000000-AddAIRunFollowUpForAlert";
 import { AddMarketplaceSubscriptions1803000000000 } from "./1803000000000-AddMarketplaceSubscriptions";
 import { AddMarketplaceCharges1803050000000 } from "./1803050000000-AddMarketplaceCharges";
+import { AddCustomRoles1803100000000 } from "./1803100000000-AddCustomRoles";
+import { AddTeamPermissionCustomRoleLinks1803150000000 } from "./1803150000000-AddTeamPermissionCustomRoleLinks";
+import { AddLimitRecordsToOneEpisode1803200000000 } from "./1803200000000-AddLimitRecordsToOneEpisode";
+import { AddStatusPageTheme1803250000000 } from "./1803250000000-AddStatusPageTheme";
+import { AddEnterpriseMarketplaceBilling1803300000000 } from "./1803300000000-AddEnterpriseMarketplaceBilling";
+import { AddWorkflowWebhookSigningSecret1803400000000 } from "./1803400000000-AddWorkflowWebhookSigningSecret";
+import { AddScheduledMaintenanceCalendarFeed1803450000000 } from "./1803450000000-AddScheduledMaintenanceCalendarFeed";
+import { AddIncidentVideoCallTranscript1803500000000 } from "./1803500000000-AddIncidentVideoCallTranscript";
+import { AddIncidentVideoCallTranscriptUserLinks1803550000000 } from "./1803550000000-AddIncidentVideoCallTranscriptUserLinks";
+import { AddIncomingCallLogItemPolicy1803600000000 } from "./1803600000000-AddIncomingCallLogItemPolicy";
+import { AddIncomingCallLogItemPolicyIndexAndKey1803650000000 } from "./1803650000000-AddIncomingCallLogItemPolicyIndexAndKey";
+import { AddVercelMarketplace1803700000000 } from "./1803700000000-AddVercelMarketplace";
+import { AddProjectSCIMUsersAndClientSecrets1803750000000 } from "./1803750000000-AddProjectSCIMUsersAndClientSecrets";
+import { AddUserProjectSsoIdentity1803800000000 } from "./1803800000000-AddUserProjectSsoIdentity";
+import { AddIncidentCallTranscriptAutoFetch1803850000000 } from "./1803850000000-AddIncidentCallTranscriptAutoFetch";
+import { AddIncidentCallTranscriptAutoFetchIndexes1803900000000 } from "./1803900000000-AddIncidentCallTranscriptAutoFetchIndexes";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1416,4 +1432,20 @@ export default [
   AddAIRunFollowUpForAlert1802950000000,
   AddMarketplaceSubscriptions1803000000000,
   AddMarketplaceCharges1803050000000,
+  AddCustomRoles1803100000000,
+  AddTeamPermissionCustomRoleLinks1803150000000,
+  AddLimitRecordsToOneEpisode1803200000000,
+  AddStatusPageTheme1803250000000,
+  AddEnterpriseMarketplaceBilling1803300000000,
+  AddWorkflowWebhookSigningSecret1803400000000,
+  AddScheduledMaintenanceCalendarFeed1803450000000,
+  AddIncidentVideoCallTranscript1803500000000,
+  AddIncidentVideoCallTranscriptUserLinks1803550000000,
+  AddIncomingCallLogItemPolicy1803600000000,
+  AddIncomingCallLogItemPolicyIndexAndKey1803650000000,
+  AddVercelMarketplace1803700000000,
+  AddProjectSCIMUsersAndClientSecrets1803750000000,
+  AddUserProjectSsoIdentity1803800000000,
+  AddIncidentCallTranscriptAutoFetch1803850000000,
+  AddIncidentCallTranscriptAutoFetchIndexes1803900000000,
 ];

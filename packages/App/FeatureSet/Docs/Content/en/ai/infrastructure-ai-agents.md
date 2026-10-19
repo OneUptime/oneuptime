@@ -234,7 +234,7 @@ Query text in the output is normalized — every string and number literal becom
 
 ## How fixes work
 
-Fixes are off until you turn them on, and that takes two settings on the agent: `ONEUPTIME_AI_FIXES` set to a mode other than `off` (see [What AI may do, set by the agent](#what-ai-may-do-set-by-the-agent)), and `ONEUPTIME_AI_ALLOW_WRITES=true` (see [Write access on the agent](#write-access-on-the-agent)). Either one alone changes nothing. An agent older than `ONEUPTIME_AI_FIXES` takes **Fixes** from the resource's AI agent page instead. Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI Features), which it is unless someone turned it off.
+Fixes are off until you turn them on, and that takes two settings on the agent: `ONEUPTIME_AI_FIXES` set to a mode other than `off` (see [What AI may do, set by the agent](#what-ai-may-do-set-by-the-agent)), and `ONEUPTIME_AI_ALLOW_WRITES=true` (see [Write access on the agent](#write-access-on-the-agent)). Either one alone changes nothing. An agent older than `ONEUPTIME_AI_FIXES` takes **Fixes** from the resource's AI agent page instead. Fixes also need AI to be enabled for the project (**Enable AI** under Project Settings → AI → AI Features), which it is unless someone turned it off.
 
 ### Fix modes
 
@@ -350,7 +350,7 @@ One valid entry per resource: `docker stop web` (Docker and Podman), `docker ser
 
 ### Who may change it
 
-While the agent sets investigation and fixes, they change where it runs, whoever you are, and what follows applies to the command allowlist alone. For an agent older than these settings, which leaves them to the AI agent page: turning fixes on — any move from **Off**, **Ask for approval** included — and loosening them — switching to **Automatic** or **Bypass approval**, or adding an allowlist entry — takes a Project Owner, a Project Admin or the **Edit Auto Remediation Rule** permission, the same people who may create a fully automatic remediation rule. **Reset agent** takes the same people. Tightening — **Off**, a less autonomous mode, removing allowlist entries — and the **Investigate** switch are open to anyone who may edit the resource, and so is **Test connection**.
+While the agent sets investigation and fixes, they change where it runs, whoever you are, and what follows applies to the command allowlist alone. For an agent older than these settings, which leaves them to the AI agent page: turning fixes on — any move from **Off**, **Ask for approval** included — and loosening them — switching to **Automatic** or **Bypass approval**, or adding an allowlist entry — takes a Project Owner, a Project Admin or the **Edit Auto Remediation Rule** permission, the same people who may create a fully automatic remediation rule. **Reset agent** takes the same people. Tightening — **Off**, a less autonomous mode, removing allowlist entries — and the **Investigate** switch are open to anyone who may edit the resource, and so are **Test connection** and approving a fix OneUptime AI proposes for it. All of these take permission to edit that very resource: a permission limited to some labels, or to the resources you or your teams own, reaches only those resources, and a block with labels takes away the resources that carry them.
 
 ## Write access on the agent
 

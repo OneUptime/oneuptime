@@ -25,8 +25,10 @@ Jeder Workflow hat genau einen **Trigger** oben. Alles andere ist eine **Kompone
 
 | Was Sie hinzufügen  | Worauf Sie klicken                                       | Der Bereich, der sich öffnet |
 | ------------------- | -------------------------------------------------------- | ---------------------------- |
-| Den Trigger         | Den gestrichelten Platzhalter-Baustein                   | **Add Trigger**              |
+| Den Trigger         | Den gestrichelten Platzhalter-Baustein oder **Auslöser hinzufügen** in der Werkzeugleiste | **Auslöser hinzufügen**      |
 | Jeden anderen Baustein | **Komponente hinzufügen** in der Werkzeugleiste über der Arbeitsfläche | **Komponente hinzufügen** |
+
+Die Schaltfläche in der Werkzeugleiste heißt **Auslöser hinzufügen**, solange der Workflow keinen Trigger hat, und **Komponente hinzufügen**, sobald er einen hat.
 
 Beide Bereiche öffnen sich mit den Bausteinen, die die meisten Workflows verwenden, unter **Beliebt**, gefolgt von den übrigen eingebauten Bausteinen. Klicken Sie unter **OneUptime-Ressourcen** auf eine Ressource wie **Vorfall**, um zu sehen, was Sie damit tun können; **Alle Ressourcen durchsuchen** listet jede auf. Oder suchen Sie: Tippen Sie ein paar Wörter wie `create incident`, und der beste Treffer steht oben. Drücken Sie `/`, um ins Suchfeld zu springen, die Pfeiltasten, um durch die Ergebnisse zu gehen, und **Enter**, um den markierten Baustein hinzuzufügen. Ein Klick auf einen Baustein fügt ihn hinzu.
 
@@ -55,7 +57,7 @@ Ziehen Sie von einem Punkt unten an einem Baustein nach unten zum Punkt oben am 
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Nichts verbunden, also endet die Ausführung"])
+    check -->|"No"| ends(["Nichts verbunden, also<br/>endet die Ausführung"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```
@@ -127,7 +129,7 @@ Eines kann es nicht prüfen: ob es einen Variablennamen gibt. Die Einstellungen 
 Am schnellsten lernen Sie die Arbeitsfläche mit einem Workflow aus zwei Bausteinen kennen, den Sie von Hand starten:
 
 :::steps
-1. Klicken Sie auf den gestrichelten Platzhalter-Baustein und dann im Bereich **Add Trigger** auf **Manuell**.
+1. Klicken Sie auf den gestrichelten Platzhalter-Baustein und dann im Bereich **Auslöser hinzufügen** auf **Manuell**.
 2. Klicken Sie auf **Komponente hinzufügen** und dann unter **Beliebt** auf **Protokoll**. Der neue Baustein landet unter dem Trigger. Verbinden Sie den Punkt **Execute** des Triggers nach unten mit dem Eingangspunkt des Log-Bausteins.
 3. Klicken Sie auf den Log-Baustein, auf dem **Click to set up** steht, und tippen Sie `Hello from ` in seinen **Value**. Klicken Sie auf **{ }** und dann unter **Manuell** auf **JSON**. Die Einstellung zeigt **Manual › JSON** und speichert `{{local.components.manual-1.returnValues.value}}`. `manual-1` ist die **Kennung** des Triggers, die auf dem Trigger-Baustein steht. Klicken Sie auf **Speichern**.
 4. Klicken Sie zurück im **Editor** auf **Arbeitsablauf ausführen**, tragen Sie `{ "name": "Ada" }` in das Feld **JSON** ein, klicken Sie auf **Arbeitsablauf manuell ausführen** und bestätigen Sie mit **Ausführen**. Der Workflow ist noch aus, und er muss nicht an sein: Eine Ausführung, die Sie selbst starten, ist ein **Testlauf**.

@@ -1,9 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import {
   DNSSEC_MONITOR_MORE_FIELDS,
   getMonitorOptionsMoreFieldsItems,
@@ -71,7 +68,7 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <Toggle
           title="Check Nameserver Consistency"
-          description="Query each authoritative nameserver directly and verify they return the same SOA serial. Requires outbound DNS to arbitrary IPs; disable if your network blocks this."
+          description="Ask each authoritative nameserver directly and check they return the same SOA serial. Needs outbound DNS to any IP."
           value={props.monitorStepDnssecMonitor.checkNameserverConsistency}
           onChange={(value: boolean) => {
             props.onChange({
@@ -89,7 +86,6 @@ const DnssecMonitorStepForm: FunctionComponent<ComponentProps> = (
        */}
       <FoldedSection
         title={MORE_FIELDS_SECTION_TITLE}
-        icon={MORE_SECTION_ICON}
         items={getMonitorOptionsMoreFieldsItems(
           props.monitorStepDnssecMonitor,
           DNSSEC_MONITOR_MORE_FIELDS,

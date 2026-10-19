@@ -38,7 +38,7 @@ En **OneUptime Cloud**, cada proyecto puede usar el proveedor global sin configu
 
 Para usar en su lugar tus propias claves de API o un modelo concreto, añade un proveedor propio, como se explica abajo: no se te cobra por la IA que se ejecuta en tu propio proveedor.
 
-El proveedor de LLM global se paga con los créditos de IA del proyecto. Para limitar lo que la IA puede gastar cada día, define un **Límite diario de gasto de IA (USD)** en **Ajustes del proyecto → Funciones de IA → Más ajustes**; un **Límite diario de tokens de IA** ahí limita los tokens en cualquier proveedor, también el tuyo. Consulta [los límites diarios propios del proyecto](/docs/ai/ai-sre#los-límites-diarios-propios-del-proyecto).
+El proveedor de LLM global se paga con los créditos de IA del proyecto. Para limitar lo que la IA puede gastar cada día, define un **Límite diario de gasto de IA (USD)** en **Ajustes del proyecto → IA → Funciones de IA → Más ajustes**; un **Límite diario de tokens de IA** ahí limita los tokens en cualquier proveedor, también el tuyo. Consulta [los límites diarios propios del proyecto](/docs/ai/ai-sre#los-límites-diarios-propios-del-proyecto).
 
 OneUptime Cloud solo puede llegar a endpoints de LLM en la internet pública. No puede conectarse a un modelo en tu red privada, como un servidor Ollama o vLLM autoalojado. Para usar un modelo que ejecutas tú mismo, aloja OneUptime en una red que pueda llegar a él, o expón el modelo en un endpoint público: consulta [Elegir una URL base para un modelo autoalojado](#elegir-una-url-base-para-un-modelo-autoalojado).
 
@@ -93,19 +93,19 @@ La sincronización es declarativa: cambia una variable y el proveedor la sigue e
 
 Ve a **Ajustes del proyecto → IA → Proveedores de LLM** (la sección **IA** del menú lateral empieza plegada) y haz clic en **Crear Proveedor de LLM**.
 
-### Ponle nombre al proveedor
+### Elige el proveedor
 
-En **Información básica**, dale un **Nombre** que diga qué es, como "Production OpenAI" o "Local Ollama", y opcionalmente una **Descripción**.
+En **Proveedor**, elige tu **Proveedor de LLM**: una tarjeta para OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama y cualquier servidor compatible con OpenAI, cada una con una línea que dice qué es.
 
-### Rellena los ajustes del proveedor
+### Conéctalo
 
-En **Ajustes del proveedor**:
+En **Conexión**, el formulario solo pide lo que usa ese proveedor, con su propia ayuda bajo cada campo:
 
-- **Proveedor de LLM**: el tipo de proveedor (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama u OpenAI Compatible)
-- **Clave de API**: tu clave de API (necesaria para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral; opcional para Ollama y los servidores compatibles con OpenAI)
-- **Nombre del modelo**: el modelo que se usa, como `gpt-5.1`, `claude-sonnet-5-5` o `llama3.1`
-- **URL base**: el endpoint, necesario para Azure OpenAI, Ollama y OpenAI Compatible; opcional para los demás, para sustituir su valor predeterminado
-- **Más campos**, plegado bajo los campos anteriores: **Establecer como predeterminado**, que está activado en un proveedor nuevo porque las funciones de IA solo usan el proveedor predeterminado del proyecto, y **Parámetros adicionales**, un objeto JSON opcional con parámetros extra que se envían al proveedor en cada petición (por ejemplo `{"temperature": 0.2}`)
+- **Clave de API**: tu clave de API, necesaria para OpenAI, Azure OpenAI, Anthropic, Groq y Mistral y opcional para un servidor compatible con OpenAI; para Ollama no se pide ninguna
+- **URL base**: el endpoint, necesario para Azure OpenAI, Ollama y OpenAI Compatible; para los demás, solo para pasar por un proxy o una pasarela
+- **Nombre del modelo**: el modelo que se usa, como `gpt-5.1`, `claude-sonnet-5-5` o `llama3.1`. Si lo dejas vacío, OneUptime usa el modelo predeterminado del proveedor, salvo en un servidor compatible con OpenAI, que necesita uno
+- **Nombre**: el nombre del proveedor hasta que escribas el tuyo, como "Production OpenAI" o "Local Ollama"
+- **Más campos**, plegado bajo los campos anteriores: una **Descripción**, **Establecer como predeterminado**, que está activado en un proveedor nuevo porque las funciones de IA solo usan el proveedor predeterminado del proyecto, y **Parámetros adicionales**, un objeto JSON opcional con parámetros extra que se envían al proveedor en cada petición (por ejemplo `{"temperature": 0.2}`)
 
 **Quién puede ver un proveedor.** Los proveedores de LLM de un proyecto solo los leen sus miembros que pueden leer los ajustes del proyecto: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** y **Read LLM**. La **Clave de API** y los **Parámetros adicionales** de un proveedor solo los leen los propietarios y administradores del proyecto, porque los parámetros se envían al proveedor en cada petición y pueden llevar un token o una cabecera igual que la clave. Los demás miembros ven si hay parámetros guardados, no cuáles son. Los miembros que pueden editar un proveedor pueden sustituir su clave de API o sus parámetros sin leerlos: en el formulario de edición esos campos empiezan vacíos, y dejar uno en blanco conserva lo guardado. Para quitar los parámetros, guarda `{}`. Solo los propietarios y administradores del proyecto pueden cambiar la **URL base** de un proveedor, porque su clave de API y sus parámetros adicionales se envían a esa dirección; los demás miembros que pueden editar un proveedor pueden cambiar todo lo demás. Todo el que puede leer un proveedor puede leer su **URL base**, así que nunca pongas en ella una clave, un token o una contraseña: usa la **Clave de API**. La lista **Proveedores LLM globales** de la misma página, los proveedores compartidos a los que recurre un proyecto, muestra su nombre, su descripción y su precio a cualquiera que haya iniciado sesión, y nada más sobre ellos.
 

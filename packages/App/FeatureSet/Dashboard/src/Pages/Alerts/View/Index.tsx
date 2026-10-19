@@ -102,6 +102,11 @@ import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoC
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import usePassOnPage, {
+  PassOnPageControls,
+} from "../../../Components/OnCallPolicy/PassOn/usePassOnPage";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
@@ -433,6 +438,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     recordId: modelId,
     // A rule's channel arrives a moment after a new alert is created.
     recordStartedAt: alertStartedAt,
+  });
+  // "Pass it on", for somebody an on-call policy is paging about it.
+  const passOn: PassOnPageControls = usePassOnPage({
+    recordType: OnCallPageRecordType.Alert,
+    recordId: modelId,
+    // Passing it on is a new feed entry.
+    onPassedOn: refreshFeed,
   });
   const joinVideoCallAction: EventPanelAction | null = getJoinVideoCallAction(
     videoCalls.calls,
@@ -850,6 +862,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isPrivate={isPrivate}
           facts={headerFacts}
           secondaryActions={[
+            ...passOn.actions,
             ...(joinVideoCallAction ? [joinVideoCallAction] : []),
             ...getOpenInChatActions(channelLinks),
           ]}
@@ -860,8 +873,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             refreshData();
             // The state change is a new feed entry.
             refreshFeed();
+            // Acknowledging it ends the reader's own page, if they had one.
+            passOn.refresh();
           }}
         />
+        {passOn.dialog}
       </div>
 
       <EventStatBar
@@ -1123,6 +1139,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
           />
 
+          {/* Who is in the alert's own channel, beside its call. */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.Alert}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={refreshFeed}
+          />
+
           {/* Alert View  */}
           <CardModelDetail<Alert>
             name="Alert Details"
@@ -1180,7 +1205,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 title: "Private Alert",
                 description:
-                  "If enabled, only the alert's owner users and members of its owner teams (plus project admins and owners) can view this alert.",
+                  "Only the alert's owners, project admins and project owners can see it.",
                 fieldType: FormFieldSchemaType.Toggle,
                 required: false,
                 collapsibleSection: advancedSection,

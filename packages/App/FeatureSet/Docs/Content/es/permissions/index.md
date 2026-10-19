@@ -12,14 +12,14 @@ Los **propietarios** son otra idea. Un propietario es quien se responsabiliza de
 ```mermaid title="Cómo obtienen acceso una persona y una clave de API"
 flowchart TB
     User["Un usuario<br/>(una cuenta)"]
-    Key["Una clave de API"]
     subgraph Project["Un proyecto"]
         direction TB
+        Key["Una clave<br/>de API"]
         Team["Equipo"]
-        Allow["Permisos concedidos,<br/>cada uno con un alcance:<br/>Todos, Propios o Etiquetas"]
-        Block["Permisos bloqueados,<br/>que siempre ganan"]
-        KeyRules["Los permisos concedidos y<br/>bloqueados de la propia clave"]
-        Resources["Monitores, incidentes,<br/>páginas de estado y más"]
+        Allow["Permisos<br/>concedidos,<br/>cada uno con<br/>un alcance:<br/>Todos, Propios<br/>o Etiquetas"]
+        Block["Permisos<br/>bloqueados,<br/>que siempre ganan"]
+        KeyRules["Los permisos<br/>concedidos y<br/>bloqueados de<br/>la propia clave"]
+        Resources["Monitores,<br/>incidentes,<br/>páginas de<br/>estado y más"]
     end
     User -->|"miembro de"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"alcanzan"| Resources
     KeyRules -->|"alcanzan"| Resources
     Block -.->|"quitan"| Resources
+    Allow ~~~ Block
 ```
 
 | Concepto | Qué es |
@@ -37,6 +38,7 @@ flowchart TB
 | Equipo | Un grupo con nombre dentro de un proyecto que lleva permisos. |
 | Miembro de equipo | Un usuario al que se ha invitado a un equipo y que ha aceptado. |
 | Permiso | Una capacidad concreta, p. ej. `CreateProjectMonitor`, o un rol que agrupa muchas, p. ej. `MonitorAdmin`. |
+| Rol personalizado | Un conjunto de permisos al que pone nombre una vez y que da a equipos. |
 | Alcance | Hasta dónde llega un permiso concedido: todos los recursos, solo los propios o solo los etiquetados. |
 | Propietario | Un usuario o equipo marcado como responsable de un recurso concreto. |
 | Etiqueta | Una marca que pone en los recursos, usada para restringir permisos y para organizar. |
@@ -57,6 +59,7 @@ Un usuario está «en» un proyecto cuando es miembro de **al menos un equipo** 
 - Las invitaciones crean un miembro de equipo pendiente. El usuario solo cuenta como miembro del proyecto —y solo obtiene algún permiso— **después de aceptar la invitación.**
 - **Invitar usuario** empieza en el equipo de miembros del proyecto: el equipo que tiene `ProjectMember` para todo el proyecto, que es **Members** salvo que lo haya renombrado. Elija otro equipo para dar a la persona más o menos acceso. No hay nada elegido cuando usted no podría invitar a ese equipo —invitar a alguien le transmite los permisos del equipo, y solo puede transmitir permisos que usted tiene— o cuando el proyecto no tiene un equipo así. El panel de administración empieza en el mismo equipo siempre que un administrador de la instancia añade a alguien a un proyecto: **Invitar usuario** en un proyecto, **Añadir al proyecto** en un usuario y en varios usuarios a la vez, y los proyectos asociados a un [proveedor de SSO global](/docs/identity/global-sso).
 - Quitar a un usuario de todos los equipos de un proyecto le retira el acceso a ese proyecto, desde su siguiente petición, incluso mientras tiene la sesión iniciada. Su cuenta y sus otros proyectos no se ven afectados. Se le quita de los calendarios de guardia, las reglas de escalado y las sustituciones del proyecto, de los roles de sus incidentes y episodios abiertos y de los propietarios de sus recursos; los incidentes resueltos conservan el registro de quién los tenía y los dirigió.
+- En una instalación autoalojada, quitarle a alguien el acceso de administrador principal en el Admin Dashboard se lo retira desde su siguiente petición, incluso mientras tiene la sesión iniciada. Mantiene la sesión iniciada y conserva los proyectos de los que es miembro.
 - Quien deja un proyecto deja de recibir sus notificaciones. Sus propios métodos, reglas y ajustes de notificación del proyecto se eliminan con su último equipo — correo, SMS, llamada, WhatsApp, Telegram, push, webhook, Slack y Microsoft Teams, su resumen por correo y el correo aún sin enviar, su número para llamadas entrantes y sus recordatorios de turno —, así que si vuelve a unirse empieza con los valores predeterminados. Lo que todavía lo nombra, como el usuario al que llama una regla de llamadas entrantes o un propietario que se conserva en un incidente resuelto, ya no lo notifica: no se envía nada en nombre de un proyecto a quien no es miembro, y una invitación pendiente todavía no es membresía. Esos lugares muestran **Ya no es miembro** junto a su nombre, para que pueda poner a otra persona. Quien está invitado y aún no ha aceptado muestra en su lugar **Invitación aún no aceptada**. Si una sustitución envía los avisos de alguien a una persona que ha dejado el proyecto, se avisa en su lugar a la persona a la que cubre. Dejar el proyecto también desconecta los clientes MCP que la persona conectó al proyecto, y su enlace personal al calendario de guardias muestra desde entonces un calendario vacío. En OneUptime Cloud, quien vuelve mediante el inicio de sesión único (SSO) del proyecto lo confirma de nuevo desde su correo.
 - Si su proyecto exige SSO y un usuario aún no se ha autenticado con el proveedor de identidad, se le trata como usuario SSO no autorizado y no ve nada hasta que lo haga. Consulte [SSO](/docs/identity/sso).
 - Con SCIM configurado, su proveedor de identidad puede crear, actualizar y eliminar usuarios y sus pertenencias a equipos automáticamente. Consulte [SCIM](/docs/identity/scim).
@@ -132,6 +135,24 @@ Estas son también las claves que usa al crear claves de API, y las que esperan 
 
 La lista completa está en la [Referencia de permisos](/docs/permissions/reference).
 
+### Roles personalizados
+
+Un rol personalizado es un conjunto de permisos al que pone nombre una vez y que da a equipos: por ejemplo, una «Respuesta a incidentes» formada por `IncidentMember`, `AlertMember` y `OnCallViewer`, o un «Líder de equipo». Cada equipo al que se lo da recibe los mismos permisos, y usted los cambia para todos esos equipos en un solo lugar. En OneUptime Cloud, los roles personalizados requieren el plan Scale, como cambiar los permisos de un equipo.
+
+:::steps
+1. Abra **Equipos** en el menú **Productos**, en **Ajustes**. Despliegue **Ajustes** en el menú lateral, elija **Roles** y haga clic en **Crear Rol personalizado**.
+2. Escriba su **Nombre** y elija en **Permisos** los roles predefinidos que agrupa, para cada recurso del proyecto. La descripción está en **Más campos**.
+3. Cree el rol. Se abre en su página, donde **Añadir rol** añade otro rol predefinido y **Añadir permiso** (en el menú **⋯** de la tarjeta) un permiso suelto, cada uno con un alcance y etiquetas, como en un equipo.
+4. Haga clic en **Dar a un equipo** en **Equipos con este rol**. La página **Permisos** de un equipo también tiene **Añadir rol personalizado**, y **Crear equipo** ofrece en **Acceso** los roles personalizados que usted podría dar.
+:::
+
+- Los miembros de un equipo reciben cada permiso de sus roles personalizados, con el mismo alcance y las mismas etiquetas, exactamente como si el equipo los tuviera. Un bloqueo en el equipo sigue ganando.
+- Un rol sigue vinculado a los equipos que lo tienen: un cambio en él les llega a todos al instante, y la página del rol dice cuántos equipos y personas son. **Eliminar** quita el rol a un equipo. Eliminar el propio rol quita sus permisos a cada equipo que lo tiene; los equipos conservan sus miembros y sus otros roles y permisos.
+- Solo puede poner en un rol, y dar como rol a un equipo, lo que podría dar al equipo directamente: un rol con un permiso que usted no tiene con el mismo alcance o uno más amplio se rechaza, y el rechazo nombra el permiso. Un rol nunca contiene `ProjectOwner`, y **Owners** y **Admin** nunca reciben uno.
+- La página **Permisos** de un equipo lista sus roles personalizados encima de sus propios permisos. Lo que da un rol se cambia en la página del rol, no en la del equipo.
+- Las claves de API no admiten roles personalizados. Una clave sirve a una sola integración, así que dele exactamente los permisos que necesita en su propia página.
+- Los roles predefinidos aparecen en **Roles predefinidos**, al final de la página **Roles**.
+
 ### Permitir y bloquear
 
 Cada equipo tiene dos listas:
@@ -171,11 +192,11 @@ Todo permiso concedido lleva un alcance, elegido en **Alcance** al añadirlo:
 
 | Alcance | Significado |
 | --- | --- |
-| Todos los recursos del proyecto | El valor predeterminado. El permiso se aplica a todos los recursos que coincidan. |
-| Propiedad de este equipo o de sus miembros | El permiso solo se aplica a los recursos en los que este equipo, o el usuario que actúa, figura como propietario. |
-| Restringir por etiquetas (avanzado) | El permiso solo se aplica a los recursos que llevan al menos una de las etiquetas elegidas. |
+| Todos los recursos del proyecto | El valor predeterminado y lo que la mayoría de los equipos necesita. El permiso se aplica a todos los recursos que coincidan. |
+| Solo los recursos que les pertenecen | El permiso solo se aplica a los recursos que pertenecen a la persona que actúa o a uno de sus equipos. |
+| Solo los recursos con ciertas etiquetas | El permiso solo se aplica a los recursos que llevan al menos una de las etiquetas elegidas. |
 
-**Propios** es la forma más sencilla de montar un modelo de «cada uno cuida de sus propios servicios»: dé a un equipo `MonitorAdmin` con alcance Propios y haga a ese equipo propietario de los monitores de los que se encarga. Solo acota los recursos que realmente pueden tener propietarios: monitores, incidentes, paneles, servicios y similares. La configuración del proyecto (estados de incidentes, etiquetas, los propios equipos) no tiene propietario, así que un rol con alcance Propios se comporta ahí con normalidad.
+**Propios** es la forma más sencilla de montar un modelo de «cada uno cuida de sus propios servicios»: dé a un equipo `MonitorAdmin` con alcance Propios y haga a ese equipo propietario de los monitores de los que se encarga. Acota todos los recursos que pueden tener propietarios —monitores, incidentes, paneles, servicios, grupos de monitores, programaciones de guardia y similares— y lo que les pertenece, como las capas de una programación. Las sondas, los Runners, los agentes de IA, las programaciones de guardia y las plantillas de incidentes y de mantenimiento son aquello con lo que se configuran otros recursos, así que un permiso con alcance Propios sigue leyéndolos todos y puede elegir cualquiera de ellos; solo cambia y elimina los que usted o sus equipos poseen. La clave de un Runner, que permite a quien la tenga actuar como ese Runner, solo se muestra en los Runners que usted o sus equipos poseen. La configuración del proyecto (estados de incidentes, etiquetas, los propios equipos) no tiene propietario, así que un rol con alcance Propios se comporta ahí con normalidad.
 
 **Etiquetas** es la versión más manual de la misma idea: marque los recursos y luego conceda permisos restringidos a esas marcas.
 
@@ -196,7 +217,7 @@ Los propietarios cumplen dos funciones:
 
 La propiedad por sí sola no concede nada. Ser propietario de un monitor no le permite editarlo salvo que algún equipo suyo tenga además un permiso sobre monitores. La propiedad acota el acceso; nunca lo amplía.
 
-Quién es propietario de un recurso se lee a través del recurso. Los propietarios de un monitor o de cualquier otro recurso solo los lista, lee, añade y elimina alguien que puede leer ese recurso, y un permiso solo sobre los propietarios no alcanza a los propietarios de ningún recurso que usted no pueda leer.
+Quién es propietario de un recurso se lee a través del recurso. Los propietarios de un monitor o de cualquier otro recurso solo los lista, lee, añade y elimina alguien que puede leer ese recurso, y un permiso solo sobre los propietarios no alcanza a los propietarios de ningún recurso que usted no pueda leer. Añadir y eliminar propietarios también se ajusta al alcance del permiso que lo permite: con el alcance `Owned`, solo llega a los recursos de los que usted o uno de sus equipos ya son propietarios, por muchos más que pueda leer, así que poder leer un monitor no le permite hacerse su propietario. Un propietario se añade o se elimina, pero nunca se traslada a otro recurso.
 
 ## Etiquetas
 
@@ -302,7 +323,7 @@ Los permisos resueltos se almacenan en caché por usuario y proyecto, y se refre
 
 **Un equipo que solo observa.** Cree el equipo con **Visor** en **Acceso**. Para solo algunas áreas, elija **Elegir los permisos más tarde** y añada los roles `*Viewer` por área que deba ver.
 
-**Ingenieros de guardia que gestionan sus propios servicios.** Dé al equipo `MonitorAdmin`, `IncidentMember` y `OnCallMember` con alcance **Propios**, y luego añada al equipo como propietario de los monitores que opera.
+**Ingenieros de guardia que gestionan sus propios servicios.** Dé al equipo `MonitorAdmin`, `IncidentMember` y `OnCallMember` con alcance **Propios**, y luego añada al equipo como propietario de los monitores, las políticas de guardia y las programaciones que opera. Lo que sus personas crean con estos permisos ya es suyo.
 
 **Colaboradores externos alejados de producción.** Dé al equipo los roles que necesite con alcance **Todos** y añada después un **permiso bloqueado** (en **Más ajustes**, en la página Permisos del equipo) para las capacidades sensibles, restringido a la etiqueta `Production`.
 

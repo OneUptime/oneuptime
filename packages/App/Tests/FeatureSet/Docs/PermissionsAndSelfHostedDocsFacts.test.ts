@@ -76,9 +76,11 @@ const SOURCES: Record<string, string> = {
   environmentConfig: `${COMMON_SERVER}/EnvironmentConfig.ts`,
   projectService: `${COMMON_SERVER}/Services/ProjectService.ts`,
   pushService: `${COMMON_SERVER}/Services/PushNotificationService.ts`,
+  pushRelay: "packages/App/FeatureSet/Notification/API/PushRelay.ts",
   receiptQueue: `${COMMON_SERVER}/Infrastructure/ExpoPushReceiptQueue.ts`,
   inboundFactory: `${COMMON_SERVER}/Services/InboundEmail/InboundEmailProviderFactory.ts`,
   sendGridProvider: `${COMMON_SERVER}/Services/InboundEmail/Providers/SendGridInboundProvider.ts`,
+  inboundProvider: `${COMMON_SERVER}/Services/InboundEmail/InboundEmailProvider.ts`,
   incomingEmailApi:
     "packages/App/FeatureSet/Telemetry/API/ProbeIngest/IncomingEmail.ts",
   monitorAddress:
@@ -101,6 +103,7 @@ const SOURCES: Record<string, string> = {
   projectInvitations: `${DASHBOARD}/Pages/Global/ProjectInvitations.tsx`,
   userChip: `${DASHBOARD}/Components/User/User.tsx`,
   teamPermissionTable: `${DASHBOARD}/Components/Team/TeamPermissionTable.tsx`,
+  permissionScopeChoice: `${DASHBOARD}/Components/Permission/PermissionScopeChoice.ts`,
   pushCard: `${DASHBOARD}/Components/NotificationMethods/Push.tsx`,
   pushCriticalAlertStatus: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlertStatus.tsx`,
   pushCriticalAlerts: `${DASHBOARD}/Components/NotificationMethods/PushDeviceCriticalAlerts.ts`,
@@ -110,6 +113,9 @@ const SOURCES: Record<string, string> = {
   mobileEas: `${MOBILE_APP}/eas.json`,
   mobileChannels: `${MOBILE_APP}/src/notifications/channels.ts`,
   mobileCriticalAlerts: `${MOBILE_APP}/src/notifications/criticalAlerts.ts`,
+  mobileCriticalAlertsReport: `${MOBILE_APP}/src/notifications/criticalAlertsReport.ts`,
+  mobilePushNotifications: `${MOBILE_APP}/src/hooks/usePushNotifications.ts`,
+  mobileUseCriticalAlerts: `${MOBILE_APP}/src/hooks/useCriticalAlerts.ts`,
   mobileSettingsScreen: `${MOBILE_APP}/src/screens/SettingsScreen.tsx`,
   mobileAlarmSounds: `${MOBILE_APP}/src/notifications/criticalAlertSounds.ts`,
   mobileAlarmSoundScreen: `${MOBILE_APP}/src/screens/settings/CriticalAlertSoundScreen.tsx`,
@@ -143,6 +149,9 @@ const TABLE_SEPARATOR: RegExp = /^\|(?:\s*:?-+:?\s*\|)+$/;
 
 const INLINE_CODE: RegExp = /`([^`]+)`/g;
 
+// Taken out of code a fact reads, so it does not depend on prettier's wrapping.
+const WHITESPACE: RegExp = /\s+/;
+
 // A fenced code block, from its opening fence to its closing one.
 const FENCED_BLOCK: RegExp = /^```[^\n]*\n[\s\S]*?^```[ \t]*$/gm;
 
@@ -168,8 +177,12 @@ const STRING_LITERAL: RegExp = /"([^"]+)"/g;
 // "1.5.0": a release of the mobile app.
 const SEMVER: RegExp = /^(\d+)\.(\d+)\.(\d+)$/;
 
-// 'label: "Owned by this team or its members"' - an option of a dropdown.
-const DROPDOWN_OPTION_LABEL: RegExp = /label: "([^"]+)"/g;
+/*
+ * '[PermissionScope.Owned]: translationKey("Only resources they own"),' -
+ * an answer of the Scope choice, possibly wrapped over lines.
+ */
+const SCOPE_ANSWER_TITLE: RegExp =
+  /\[PermissionScope\.\w+\]: translationKey\(\s*"([^"]+)",?\s*\)/g;
 
 // The ingress location's upstream: the app's own host name and port.
 const INGRESS_TO_APP: RegExp =
@@ -733,30 +746,39 @@ describe("Users, Teams & Permissions, against the dashboard and the server", () 
     }
   });
 
+  /*
+   * The Scope field is three plain answers, All first, the same for a
+   * team's permission and a custom role's (Components/Permission/
+   * PermissionScopeChoice, which both tables build their Scope field from).
+   */
   it("names the scopes as a team permission's Scope field offers them, All first", () => {
+    const choice: string = readSource("permissionScopeChoice");
     const form: string = readSource("teamPermissionTable");
-    const scopeField: number = form.indexOf('title: "Scope"');
     const options: Array<string> = [
       "All resources in the project",
-      "Owned by this team or its members",
-      "Restrict by labels (advanced)",
+      "Only resources they own",
+      "Only resources with certain labels",
     ];
 
-    expect(scopeField).toBeGreaterThan(-1);
-
-    const field: string = form.slice(scopeField, form.indexOf("]", scopeField));
+    const titles: string = choice.slice(
+      choice.indexOf("export const PERMISSION_SCOPE_TITLES"),
+      choice.indexOf("export const PERMISSION_SCOPE_DESCRIPTIONS"),
+    );
 
     expect(
-      [...field.matchAll(DROPDOWN_OPTION_LABEL)].map(
+      [...titles.matchAll(SCOPE_ANSWER_TITLE)].map(
         (match: RegExpExecArray): string => {
           return match[1] as string;
         },
       ),
     ).toEqual(options);
-    expect(field).toContain("value: PermissionScope.All,");
-    expect(form.slice(scopeField, scopeField + 2000)).toContain(
-      "defaultValue: PermissionScope.All,",
+    // In the order the form offers them, and starting on All.
+    expect(choice).toMatch(
+      /PERMISSION_SCOPE_ANSWERS: ReadonlyArray<PermissionScope> = \[\s*PermissionScope\.All,\s*PermissionScope\.Owned,\s*PermissionScope\.Labels,\s*\];/,
     );
+    expect(choice).toContain("defaultValue: PermissionScope.All,");
+    expect(choice).toContain("fieldType: FormFieldSchemaType.RadioButton,");
+    expect(form).toContain("...getPermissionScopeFields<TeamPermission>({");
 
     expect(
       tableHeaded(page, ["Scope", "Meaning"]).map(
@@ -780,7 +802,7 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     "What it does",
   ]);
 
-  it("lists the five push settings, each with its Helm value, its default and its config.example.env line", () => {
+  it("lists the six push settings, each with its Helm value, its default and its config.example.env line", () => {
     const helpers: string = readSource("chartHelpers");
 
     expect(
@@ -790,6 +812,7 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     ).toEqual([
       "PUSH_NOTIFICATION_RELAY_URL",
       "EXPO_ACCESS_TOKEN",
+      "PUSH_NOTIFICATION_RELAY_SERVER_ENABLED",
       "VAPID_PUBLIC_KEY",
       "VAPID_PRIVATE_KEY",
       "VAPID_SUBJECT",
@@ -832,6 +855,37 @@ describe("Push Notifications, against the server, the chart and the mobile app",
     );
     expect(environment).toMatch(
       /process\.env\["EXPO_ACCESS_TOKEN"\] \|\| undefined/,
+    );
+  });
+
+  it("relays for other servers only where the page says: empty is off unless billing is on, and only true turns it on", () => {
+    const environment: string = readSource("environmentConfig");
+
+    expect(environment).toContain(
+      'value: process.env["PUSH_NOTIFICATION_RELAY_SERVER_ENABLED"],\n    isBillingEnabled: IsBillingEnabled,',
+    );
+    expect(environment).toContain(
+      '  if (!value) {\n    return data.isBillingEnabled;\n  }\n\n  return value === "true";',
+    );
+    expect(readSource("pushService")).toContain(
+      "return PushNotificationRelayServerEnabled;",
+    );
+    expect(page).toContain(
+      "Relays mobile pushes for other OneUptime servers, with this server's `EXPO_ACCESS_TOKEN`. Empty means off, unless `BILLING_ENABLED` is `true`.",
+    );
+    expect(page).toContain(
+      "A self-hosted OneUptime server relays pushes for other servers only with `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` and its own `EXPO_ACCESS_TOKEN`; without the setting it answers 404 at that address. Turn it on only on the server your other OneUptime servers send through, and let only those servers reach that address.",
+    );
+  });
+
+  it("answers 404 at the relay's address without the setting, as the page says, before anything else", () => {
+    const relay: string = readSource("pushRelay");
+
+    expect(relay).toContain(
+      "  if (!PushNotificationService.isPushRelayServer()) {\n    res.status(404).json({ message: PUSH_RELAY_NOT_SERVED_MESSAGE });",
+    );
+    expect(relay.indexOf("router.use(")).toBeLessThan(
+      relay.indexOf("router.post("),
     );
   });
 
@@ -954,6 +1008,54 @@ describe("Push Notifications: critical on-call alerts, against the server and th
 
     expect(page).toContain(
       "The same list shows whether each device has critical alerts on and, for a phone that does not, how to turn them on.",
+    );
+  });
+
+  /*
+   * The maintainer turned critical alerts off on a phone, and the device
+   * list went on saying "On": the stored setting followed only the app's
+   * switch, and only when it moved. The app now keeps it in step with the
+   * phone, and the page says so.
+   */
+  it("says the app keeps the stored setting in step with the phone, as the app and the server do", () => {
+    const report: string = readSource("mobileCriticalAlertsReport");
+    const registration: string = readSource("mobilePushNotifications");
+    const settingsHook: string = readSource("mobileUseCriticalAlerts");
+
+    // What it reports: the switch AND what the phone's own settings allow.
+    expect(report).toContain(
+      "data.isChosen && data.availability === CriticalAlertAvailability.Granted",
+    );
+
+    // Each time the app is opened: every registration, and every return to it.
+    expect(registration.split(WHITESPACE).join("")).toContain(
+      "constcriticalAlerts:CriticalAlertsReading=awaitreadCriticalAlerts();",
+    );
+    expect(registration).toContain("void reportCriticalAlerts();");
+
+    // The settings screen tells the server what it reads from the OS.
+    expect(settingsHook).toContain("void reportCriticalAlerts();");
+
+    // ...and the server takes it from a phone it already has.
+    expect(readSource("userPushApi")).toContain(
+      "this.service.restateCriticalAlertEnabled({",
+    );
+
+    // The release the page names is one the app has already shipped.
+    const version: string = (
+      JSON.parse(readSource("mobileAppJson")) as {
+        expo: { version: string };
+      }
+    ).expo.version;
+    const [major, minor] = version.split(".").map(Number);
+
+    expect(major! > 1 || (major === 1 && minor! >= 6)).toBe(true);
+
+    expect(page).toContain(
+      "Versions of the app newer than 1.6.0 report it again each time they are opened, as off while the phone's own settings do not allow critical alerts, so the device list shows what the phone will really do.",
+    );
+    expect(page).toContain(
+      "it reads the current state back from the OS rather than trusting what the app last requested, and tells the server what it finds",
     );
   });
 
@@ -1574,7 +1676,7 @@ describe("SendGrid Inbound Email, against the server, the chart and the ingress"
     expect(page).toContain("Incoming email is off until it is set.");
   });
 
-  it("answers on the route the page gives, which needs its final segment, and checks the secret only when one is set", () => {
+  it("answers on the route the page gives, which needs its final segment, and takes an email only when that segment is the secret", () => {
     const api: string = readSource("incomingEmailApi");
 
     expect(api).toContain('"/incoming-email/sendgrid/:secret",');
@@ -1582,22 +1684,60 @@ describe("SendGrid Inbound Email, against the server, the chart and the ingress"
     expect(httpsPathsIn(withoutFences(page))).toContain(
       "/incoming-email/sendgrid/YOUR_SECRET",
     );
-    expect(page).toContain("The route requires the final path segment.");
+    expect(page).toContain(
+      "The route requires the final path segment, and OneUptime takes an email only when that segment is the secret.",
+    );
 
+    // SendGrid's delivery is the one posted to an address that ends with the secret.
     const provider: string = readSource("sendGridProvider");
-    const validate: string = provider.slice(
-      provider.indexOf("public async validateWebhook("),
+    const check: string = provider.slice(
+      provider.indexOf("protected async isFromProvider("),
       provider.indexOf("public extractSecretKeyFromEmail("),
     );
 
-    expect(validate).toContain("if (this.config.webhookSecret) {");
+    expect(check).toContain(
+      "return SecretKeyComparison.timingSafeEqual(\n      data.pathSecret,\n      data.webhookSecret,\n    );",
+    );
+  });
+
+  it("refuses every email with 503 until the secret is set, or while it is a placeholder from the page", () => {
+    // Every provider: no secret, no email, before the provider is asked.
+    const base: string = readSource("inboundProvider");
+    const validate: string = base.slice(
+      base.indexOf("public async validateWebhook("),
+      base.indexOf("protected abstract isFromProvider("),
+    );
+
     expect(validate).toContain(
-      "return data.pathSecret === this.config.webhookSecret;",
+      "if (!webhookSecret) {\n      return false;\n    }",
     );
-    expect(validate).toContain("return true;");
+
+    // Said to the caller with 503, which SendGrid retries.
+    const api: string = readSource("incomingEmailApi");
+    const missing: string = api.slice(
+      api.indexOf("if (!provider.hasWebhookSecret()) {"),
+      api.indexOf("const isFromProvider: boolean"),
+    );
+
+    expect(missing).toContain("new ServiceUnavailableException(");
+    expect(missing).toContain("INBOUND_EMAIL_NO_WEBHOOK_SECRET_MESSAGE");
     expect(page).toContain(
-      "OneUptime checks its value when the secret is configured; leaving the variable empty disables that check.",
+      "Until the secret is set, every email is refused with `503`, which SendGrid retries for up to three days.",
     );
+    expect(page).toContain(
+      "`INBOUND_EMAIL_WEBHOOK_SECRET` is required: OneUptime refuses every email while it is empty or still a placeholder from this page.",
+    );
+
+    // What counts as no secret: unset, blank, shipped, or the page's placeholders.
+    const environment: string = readSource("environmentConfig");
+
+    for (const placeholder of [
+      '"your_secret",',
+      '"your-secret",',
+      '"replace-with-a-strong-random-secret",',
+    ]) {
+      expect(environment).toContain(placeholder);
+    }
   });
 
   it("routes /incoming-email through the ingress to the app, whose logs the page sends readers to", () => {

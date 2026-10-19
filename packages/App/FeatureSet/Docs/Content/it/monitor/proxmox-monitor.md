@@ -19,9 +19,9 @@ Un monitor Proxmox è legato a un cluster. Ogni minuto esegue la sua query sulle
 flowchart TB
     subgraph site["La vostra rete"]
         direction LR
-        pve["API di Proxmox VE"] --> agent["Agente Proxmox di OneUptime"]
+        pve["API di Proxmox VE"] --> agent["Agente Proxmox<br/>di OneUptime"]
     end
-    agent -->|"metriche pve tramite OTLP"| oneuptime["OneUptime"]
+    agent -->|"metriche pve<br/>tramite OTLP"| oneuptime["OneUptime"]
     native["Invio nativo di<br/>Proxmox VE 9"] -.->|"alternativa"| oneuptime
     oneuptime -->|"primi dati"| registered["Cluster registrato"]
     oneuptime --> monitor["Monitor Proxmox"]
@@ -222,7 +222,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | Campo | Cosa fa |
 | --- | --- |
 | **Metrica** | La query o la formula da controllare, tramite il suo nome di variabile. |
-| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere) o **Any Value** (ne basta uno). |
+| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
 | **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Threshold** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non viene mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |

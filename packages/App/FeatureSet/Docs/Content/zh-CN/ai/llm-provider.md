@@ -38,7 +38,7 @@ flowchart TB
 
 如果想改用你自己的 API 密钥或某个特定模型，请按下文添加你自己的提供商：在你自己的提供商上运行的 AI 不会向你收费。
 
-全局 LLM 提供商的费用从项目的 AI 额度中支付。要限制 AI 每天能花费的金额，请在 **项目设置 → AI Features → 更多设置** 下设置 **每日 AI 支出限制 (USD)**；那里的 **每日 AI Token 限制** 会限制任何提供商上的令牌，包括你自己的提供商。请参阅 [项目自身的每日限制](/docs/ai/ai-sre#项目自身的每日限制)。
+全局 LLM 提供商的费用从项目的 AI 额度中支付。要限制 AI 每天能花费的金额，请在 **项目设置 → 人工智能 → AI Features → 更多设置** 下设置 **每日 AI 支出限制 (USD)**；那里的 **每日 AI Token 限制** 会限制任何提供商上的令牌，包括你自己的提供商。请参阅 [项目自身的每日限制](/docs/ai/ai-sre#项目自身的每日限制)。
 
 OneUptime Cloud 只能访问公共互联网上的 LLM 端点。它无法连接到你私有网络中的模型，例如自托管的 Ollama 或 vLLM 服务器。要使用你自己运行的模型，请在能够访问该模型的网络中自托管 OneUptime，或者把模型发布到公共端点：请参阅 [为自托管模型选择基础 URL](#为自托管模型选择基础-url)。
 
@@ -93,19 +93,19 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 前往 **项目设置 → 人工智能 → LLM 提供商**（侧边菜单的 **人工智能** 部分默认是折叠的），然后点击 **创建LLM 提供商**。
 
-### 为提供商命名
+### 选择提供商
 
-在 **基本信息** 中，为它起一个能说明用途的 **名称**，例如 "Production OpenAI" 或 "Local Ollama"，也可以填写 **描述**。
+在 **提供商** 中选择你的 **LLM 提供商**：OpenAI、Anthropic、Azure OpenAI / Microsoft Foundry、Groq、Mistral、Ollama 和任何 OpenAI 兼容服务器各有一张卡片，每张都用一行说明它是什么。
 
-### 填写提供商的设置
+### 连接它
 
-在 **提供商设置** 中：
+在 **连接** 中，表单只询问该提供商用到的内容，每个字段下方都有对应的帮助：
 
-- **LLM 提供商**：提供商的类型（OpenAI、Azure OpenAI / Microsoft Foundry、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
-- **API 密钥**：你的 API 密钥（OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需；Ollama 和 OpenAI 兼容服务器可选）
-- **模型名称**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`
-- **基础 URL**：端点，Azure OpenAI、Ollama 和 OpenAI Compatible 必需；其他提供商可选，用于覆盖其默认值
-- **更多字段**，折叠在上述字段下方：**设为默认**，新提供商默认开启，因为 AI 功能只使用项目的默认提供商；以及 **附加参数**，一个可选的 JSON 对象，其中的额外参数会随每个请求发送给提供商（例如 `{"temperature": 0.2}`）
+- **API 密钥**：你的 API 密钥，OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需，OpenAI 兼容服务器可选；Ollama 不需要填写
+- **基础 URL**：端点，Azure OpenAI、Ollama 和 OpenAI Compatible 必需；其他提供商仅在经由代理或网关时填写
+- **模型名称**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`。留空时，OneUptime 使用提供商的默认模型；OpenAI 兼容服务器除外，它必须填写
+- **名称**：在你输入自己的名称之前，沿用提供商的名称，例如 "Production OpenAI" 或 "Local Ollama"
+- **更多字段**，折叠在上述字段下方：**描述**；**设为默认**，新提供商默认开启，因为 AI 功能只使用项目的默认提供商；以及 **附加参数**，一个可选的 JSON 对象，其中的额外参数会随每个请求发送给提供商（例如 `{"temperature": 0.2}`）
 
 **谁可以看到提供商。** 项目的 LLM 提供商只有能读取项目设置的成员才能读取：**Project Owner**、**Project Admin**、**Project Member**、**Viewer**、**Settings Admin**、**Settings Member**、**Settings Viewer** 和 **Read LLM**。提供商的 **API 密钥** 和 **附加参数** 只有项目的所有者和管理员才能读取，因为参数会随每个请求发送给提供商，并且可能像密钥一样携带令牌或请求头。其他成员只能看到是否保存了参数，而看不到参数内容。可以编辑提供商的成员仍然可以在不读取的情况下替换其 API 密钥或参数：在编辑表单中这些字段一开始是空的，留空则保留已保存的值。要删除参数，请保存 `{}`。只有项目的所有者和管理员才能修改提供商的 **基础 URL**，因为它的 API 密钥和附加参数会被发送到该地址；其他可以编辑提供商的成员可以修改其余所有内容。任何能读取提供商的人都能读取它的 **基础 URL**，所以绝不要在其中放入密钥、令牌或密码：请使用 **API 密钥**。同一页面上的 **全局 LLM 提供商** 列表（项目回退使用的共享提供商）会向任何已登录的人显示它们的名称、描述和价格，此外不显示任何信息。
 

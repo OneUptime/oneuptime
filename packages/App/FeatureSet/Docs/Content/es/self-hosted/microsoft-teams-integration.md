@@ -17,18 +17,18 @@ OneUptime usa un Azure Bot para su integración con Teams. El tráfico va en los
 
 ```mermaid title="Conectar un proyecto a Teams y luego usarlo"
 sequenceDiagram
-    participant B as Navegador del administrador
+    participant B as Navegador del<br/>administrador
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: Conceder consentimiento de administrador
-    O-->>B: Redirección a Microsoft
-    B->>E: Consentir y luego iniciar sesión
-    E-->>B: Redirección al callback del consentimiento de administrador
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: Conceder<br/>consentimiento<br/>de administrador
+    O-->>B: Redirección<br/>a Microsoft
+    B->>E: Consentir y<br/>luego iniciar<br/>sesión
+    E-->>B: Redirección al<br/>callback del<br/>consentimiento<br/>de administrador
     B->>O: Callback
-    O->>E: Obtener un token de Microsoft Graph
-    Note over O,AB: Una vez conectado
-    O->>AB: Publicar tarjetas de alerta, HTTPS saliente
+    O->>E: Obtener un<br/>token de<br/>Microsoft Graph
+    Note over O,AB: Una vez<br/>conectado
+    O->>AB: Publicar<br/>tarjetas de<br/>alerta, HTTPS<br/>saliente
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -218,7 +218,7 @@ Las redirecciones del registro de aplicación a `/api/microsoft-teams/auth` y `/
 ### Publicar el endpoint del bot desde un despliegue privado
 
 ```mermaid title="Publicar el endpoint del bot desde un despliegue privado"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Pasarela pública"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["Ingress de OneUptime"]
     Users["Empleados en la VPN"] --> ING

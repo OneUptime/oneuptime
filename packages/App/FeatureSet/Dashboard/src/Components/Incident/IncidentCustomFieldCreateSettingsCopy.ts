@@ -54,7 +54,7 @@ export const IncidentCustomFieldCreateSettingsCopy: {
 } = {
   templateTitle: INCIDENT_TEMPLATE_CUSTOM_FIELD_SETTINGS_STEP_TITLE,
   templateDescription:
-    "Choose which custom fields the Details step asks for when an incident is declared from this template, and which of them must be filled in. Fields left on Default follow their own Show on Create and Required on Create settings.",
+    "Which custom fields to ask for when an incident is declared from this template, and which are required. Default follows each field's settings.",
   templateEditButton: "Edit Custom Fields on Create",
   templateDefaultRequired: "Default (Required)",
   templateDefaultOptional: "Default (Optional)",

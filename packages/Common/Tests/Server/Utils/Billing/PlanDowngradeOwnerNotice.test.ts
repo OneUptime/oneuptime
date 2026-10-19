@@ -345,7 +345,7 @@ describe("a downgrade that stops API keys", () => {
     );
     expect(html).toContain("Terraform, the CLI, an MCP client");
     expect(html).toContain(
-      "Nothing was deleted. Upgrade the project in Project Settings &gt; Billing and they work fully again as they are: there are no new keys to make.",
+      "Nothing was deleted. Upgrade the project in Project Settings &gt; Billing and Invoices &gt; Billing and they work fully again as they are: there are no new keys to make.",
     );
     expect(html).toContain(`<a href="${SETTINGS_LINK}">${SETTINGS_LINK}</a>`);
     expect(html).toContain("until the project is back on Growth.");
@@ -575,7 +575,7 @@ describe("what the email holds", () => {
 
     expect(sentHtml()).not.toContain("<a href");
     expect(sentHtml()).toContain(
-      "Upgrade the project in Project Settings &gt; Billing and they work fully again as they are: there are no new keys to make.",
+      "Upgrade the project in Project Settings &gt; Billing and Invoices &gt; Billing and they work fully again as they are: there are no new keys to make.",
     );
   });
 

@@ -99,9 +99,21 @@ export class Service extends DatabaseService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.isVerified) {
-      // issue and send the first verification code
-      const plainCode: string =
-        await this.issueAndSendVerificationCode(createdItem);
+      /*
+       * Issue and send the first verification code - for a member of the
+       * address's project only, as every code is, or no address
+       * (ChannelVerification.sendFirstCodeOrRemoveItem).
+       */
+      let plainCode: string = "";
+
+      await ChannelVerification.sendFirstCodeOrRemoveItem({
+        service: this,
+        itemId: createdItem.id!,
+        item: createdItem,
+        issueAndSend: async (): Promise<void> => {
+          plainCode = await this.issueAndSendVerificationCode(createdItem);
+        },
+      });
 
       /*
        * TEST-ONLY seam, OFF unless explicitly switched on.
@@ -173,6 +185,16 @@ export class Service extends DatabaseService<Model> {
         "Item with ID " + itemId.toString() + " not found",
       );
     }
+
+    /*
+     * Only for a member of the row's project: anybody else's row is answered
+     * as one that does not exist, before the project is asked whether it can
+     * send (ChannelVerification.assertOwnerIsProjectMember).
+     */
+    await ChannelVerification.assertOwnerIsProjectMember({
+      item: item,
+      itemId: itemId,
+    });
 
     if (item.isVerified) {
       throw new BadDataException("Email already verified");

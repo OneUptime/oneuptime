@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 29820,
-    "untranslated": 17147
+    "keys": 30977,
+    "untranslated": 16701
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "CloudWatch Metric Streams",
+    "ICMP (ping)",
     "Null",
     "Runner",
     "VMware vCenter",

@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as Serveur NTP
     Note over P: T1 : la sonde envoie
     P->>S: Requête cliente
-    Note over S: T2 : le serveur reçoit, T3 : le serveur répond
-    S-->>P: Réponse : strate, indicateur de seconde intercalaire, référence, T2, T3
+    Note over S: T2 : le serveur reçoit,<br/>T3 : le serveur répond
+    S-->>P: Réponse : strate, indicateur<br/>de seconde intercalaire,<br/>référence, T2, T3
     Note over P: T4 : la sonde reçoit
 ```
 
@@ -106,7 +106,7 @@ Les critères déterminent quand le serveur est considéré en ligne, dégradé 
 | **NTP Response Time (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | De la requête à la réponse. |
 | **NTP Root Dispersion (in ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | L'estimation, par le serveur lui-même, de son erreur maximale. |
 
-Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Tout** filtre suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer le statut du moniteur, créer une alerte, déclarer un incident, ou une combinaison des trois.
+Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer le statut du moniteur, créer une alerte, déclarer un incident, ou une combinaison des trois.
 
 ### Critères par défaut
 

@@ -489,7 +489,26 @@ const SAMPLE_VALUES: Array<number> = [
   85.1, 90, 95.5, 99, 100, 101, 150, 300, 1000, 1e4, 1e6, 5e8, 1e9, 2.6e11,
 ];
 
-const baseTime: number = Date.UTC(2026, 8, 25, 10, 0, 30);
+/*
+ * One data point a minute across the window the worker asked for, oldest
+ * first, so every series covers it. "All Values" waits for a series' data
+ * to cover the monitor's time range (MetricWindowCoverage), so data from
+ * outside the window - or a single row - would compare nothing at all.
+ */
+function minutesOfWindow(input: {
+  startValue: Date | string;
+  endValue: Date | string;
+}): Array<Date> {
+  const startMs: number = new Date(input.startValue).getTime();
+  const endMs: number = new Date(input.endValue).getTime();
+  const minutes: Array<Date> = [];
+
+  for (let timeMs: number = startMs; timeMs <= endMs; timeMs += 60_000) {
+    minutes.push(new Date(timeMs));
+  }
+
+  return minutes;
+}
 
 function offsetFor(metricName: string): number {
   let sum: number = 0;
@@ -522,34 +541,61 @@ function mockTelemetry(input: {
       : [],
   );
 
-  // Grouped: one raw row per series, labelled with every group-by key.
+  /*
+   * Grouped: one raw row per series per minute of the window, labelled
+   * with every group-by key. A series holds one value throughout, so its
+   * verdict is that value's.
+   */
   metricFindBy.mockImplementation(async (args: unknown) => {
-    const name: string = (args as { query: { name: string } }).query.name;
-    const offset: number = offsetFor(name);
-
-    return SAMPLE_VALUES.map((_value: number, seriesIndex: number) => {
-      const attributes: JSONObject = {};
-      for (const key of groupByKeys) {
-        attributes[key] = `series-${seriesIndex}`;
+    const query: {
+      name: string;
+      time: { startValue: Date; endValue: Date };
+    } = (
+      args as {
+        query: { name: string; time: { startValue: Date; endValue: Date } };
       }
-      return {
-        time: new Date(baseTime),
-        value: SAMPLE_VALUES[(seriesIndex + offset) % SAMPLE_VALUES.length],
-        attributes: attributes,
-      };
-    });
+    ).query;
+    const offset: number = offsetFor(query.name);
+    const rows: Array<JSONObject> = [];
+
+    for (const minute of minutesOfWindow(query.time)) {
+      SAMPLE_VALUES.forEach((_value: number, seriesIndex: number) => {
+        const attributes: JSONObject = {};
+        for (const key of groupByKeys) {
+          attributes[key] = `series-${seriesIndex}`;
+        }
+        rows.push({
+          time: minute,
+          value: SAMPLE_VALUES[(seriesIndex + offset) % SAMPLE_VALUES.length]!,
+          attributes: attributes,
+        });
+      });
+    }
+
+    return rows;
   });
 
-  // Ungrouped: one whole-monitor series, one value per minute.
+  // Ungrouped: one whole-monitor series, one value per minute of the window.
   metricAggregateBy.mockImplementation(async (args: unknown) => {
-    const name: string = (args as { query: { name: string } }).query.name;
-    const offset: number = offsetFor(name);
+    const aggregate: {
+      query: { name: string };
+      startTimestamp: Date;
+      endTimestamp: Date;
+    } = args as {
+      query: { name: string };
+      startTimestamp: Date;
+      endTimestamp: Date;
+    };
+    const offset: number = offsetFor(aggregate.query.name);
 
     return {
-      data: SAMPLE_VALUES.map((_value: number, minute: number) => {
+      data: minutesOfWindow({
+        startValue: aggregate.startTimestamp,
+        endValue: aggregate.endTimestamp,
+      }).map((minute: Date, index: number) => {
         return {
-          timestamp: new Date(baseTime + minute * 60_000),
-          value: SAMPLE_VALUES[(minute + offset) % SAMPLE_VALUES.length],
+          timestamp: minute,
+          value: SAMPLE_VALUES[(index + offset) % SAMPLE_VALUES.length],
         };
       }),
     };

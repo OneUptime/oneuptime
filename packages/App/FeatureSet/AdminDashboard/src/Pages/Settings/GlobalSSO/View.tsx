@@ -14,7 +14,13 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import { getSamlProviderFormFields } from "Common/UI/Components/Sso/SamlProviderFormFields";
-import { getSsoProviderFormSteps } from "Common/UI/Components/Sso/SsoProviderFormFields";
+import {
+  getSsoGlobalReachAnswerTitle,
+  getSsoGlobalSignUpAnswerTitle,
+  getSsoProviderFormSteps,
+  SSO_GLOBAL_REACH_TITLE,
+  SSO_GLOBAL_SIGN_UP_TITLE,
+} from "Common/UI/Components/Sso/SsoProviderFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
@@ -142,21 +148,30 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 title: "Digest Method",
                 fieldType: FieldType.Text,
               },
+              /*
+               * The two questions the edit form asks, answered in its
+               * words (SSO_GLOBAL_SIGN_UP_CHOICES, SSO_GLOBAL_REACH_CHOICES)
+               * rather than as two Yes/No switches.
+               */
               {
                 field: {
                   disableSignUpWithSso: true,
                 },
-                title: "Disable Sign Up with SSO",
-                fieldType: FieldType.Boolean,
-                placeholder: t("common.no"),
+                title: SSO_GLOBAL_SIGN_UP_TITLE,
+                fieldType: FieldType.Element,
+                getElement: (item: GlobalSSO): ReactElement => {
+                  return <span>{t(getSsoGlobalSignUpAnswerTitle(item))}</span>;
+                },
               },
               {
                 field: {
                   restrictToAttachedProjects: true,
                 },
-                title: "Restrict to Attached Projects",
-                fieldType: FieldType.Boolean,
-                placeholder: t("common.no"),
+                title: SSO_GLOBAL_REACH_TITLE,
+                fieldType: FieldType.Element,
+                getElement: (item: GlobalSSO): ReactElement => {
+                  return <span>{t(getSsoGlobalReachAnswerTitle(item))}</span>;
+                },
               },
               {
                 field: {
@@ -171,45 +186,59 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           }}
         />
 
+        {/*
+         * The values in the card's body, the line saying what to do with
+         * them as its description: a description is drawn inside a <p>,
+         * which may hold no block element (React warned of the divs), and
+         * it is a line, not a page.
+         */}
         <Card
           title={"Identity Provider URLs"}
           description={
+            "Paste these values into your SAML identity provider (Okta, Microsoft Entra ID, OneLogin, JumpCloud and more)."
+          }
+        >
+          <div className="space-y-3 text-sm text-gray-700">
             <div>
-              <div className="mb-3">
-                Paste these values into your SAML identity provider (Okta, Azure
-                AD, OneLogin, JumpCloud and more).
+              <div className="font-semibold">
+                ACS URL (Assertion Consumer Service / Reply URL):
               </div>
-              <div className="mb-3">
-                <div className="font-semibold">
-                  ACS URL (Assertion Consumer Service / Reply URL):
-                </div>
-                <div className="break-all">{acsURL}</div>
-              </div>
-              <div>
-                <div className="font-semibold">Issuer (Entity ID):</div>
-                <div className="break-all">{issuerURL}</div>
-              </div>
+              <div className="break-all font-mono">{acsURL}</div>
             </div>
-          }
-        />
+            <div>
+              <div className="font-semibold">Issuer (Entity ID):</div>
+              <div className="break-all font-mono">{issuerURL}</div>
+            </div>
+          </div>
+        </Card>
 
-        <Card
-          title={"Test this SSO provider"}
-          description={
-            <span>
-              Use this link to test the SAML login end-to-end. You do not need
-              to attach any projects first — it signs you in through the
-              identity provider and into the projects you already belong to. The
-              provider must be enabled for the link to work; enabling a global
-              provider only adds a &quot;Sign in with SSO&quot; option and never
-              forces SSO or locks anyone out, so it is safe to enable, test, and
-              disable again if needed.{" "}
-              <Link openInNewTab={true} to={testLoginURL}>
-                <span>{testLoginURL.toString()}</span>
+        {/*
+         * The sentence and the link are the card's body, not its
+         * description: a card's description is hidden on a phone, and the
+         * link is what the card is for. Drawn as a link, as the Dashboard's
+         * test links are.
+         */}
+        <Card title={"Test this SSO provider"}>
+          <div
+            className="space-y-2 text-sm text-gray-600"
+            data-testid="global-sso-test-link"
+          >
+            <p>
+              Open this link to test the provider. It must be enabled, which
+              only adds a &quot;Sign in with SSO&quot; option and locks no one
+              out.
+            </p>
+            <p>
+              <Link
+                openInNewTab={true}
+                to={testLoginURL}
+                className="break-all text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+              >
+                <span className="font-mono">{testLoginURL.toString()}</span>
               </Link>
-            </span>
-          }
-        />
+            </p>
+          </div>
+        </Card>
 
         <ModelTable<GlobalSSOProject>
           modelType={GlobalSSOProject}
@@ -228,11 +257,20 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           isDeleteable={true}
           isEditable={false}
           isCreateable={true}
+          /*
+           * A project is attached to the provider, not created: the button
+           * read "Create Global SSO Project", after the join table's name.
+           */
+          createVerb="Attach"
+          singularName="Project"
+          pluralName="Projects"
+          createFormTitle="Attach a Project"
+          createFormSubmitButtonText="Attach Project"
           modelAPI={AdminModelAPI}
           cardProps={{
             title: "Attached Projects",
             description:
-              "Attach this provider to a project and pick that project's default teams. Add one project + teams at a time to build the list. If no projects are attached, the provider works for all projects a user is already a member of (invite-first). To change an attachment, delete it and add it again.",
+              "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.",
           }}
           noItemsMessage={"No projects attached to this provider."}
           showRefreshButton={true}
@@ -250,7 +288,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
               },
               title: "Project",
               description:
-                "The project federated users are provisioned into for this provider.",
+                "People who sign in for the first time join this project.",
               fieldType: FormFieldSchemaType.Dropdown,
               dropdownModal: {
                 type: Project,
@@ -265,8 +303,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
                 teams: true,
               },
               title: "Teams",
-              description:
-                "Users are added to these teams (from the project selected above) when they sign in.",
+              description: "The teams of that project they join.",
               fieldType: FormFieldSchemaType.CustomComponent,
               getCustomElement: (
                 values: FormValues<GlobalSSOProject>,

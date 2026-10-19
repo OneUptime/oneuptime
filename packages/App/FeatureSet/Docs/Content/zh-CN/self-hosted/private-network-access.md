@@ -15,14 +15,14 @@ OneUptime 会拒绝向解析到私有、环回或链路本地范围的主机发�
 | API、Website、External Status Page 和 Custom JavaScript Code **监视器** | **探测器**自身的环境 | 拒绝私有地址 |
 
 ```mermaid title="三个开关，各自负责一类连接"
-flowchart TB
+flowchart LR
     subgraph Server["OneUptime 服务器"]
         direction TB
         Webhooks["工作流和 Webhook"]
         Outbound["数据源、LLM 提供商、<br/>SMTP 及其他连接"]
     end
     subgraph Probe["每个探测器"]
-        Monitors["API、Website、<br/>External Status Page 和<br/>Custom JavaScript Code 监视器"]
+        Monitors["API、Website、<br/>External Status Page 和<br/>Custom JavaScript Code<br/>监视器"]
     end
     Private["你的私有网络"]
     Webhooks -->|"默认关闭"| Private

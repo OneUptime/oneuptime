@@ -21,15 +21,15 @@ En Docker Swarm-monitor er knyttet til én klynge. Hvert minutt kjører den spø
 flowchart TB
     subgraph cluster["Swarm-klyngen din"]
         direction LR
-        manager["Agent på en manager"]
-        others["Innsamlere på andre noder"]
+        manager["Agent på<br/>en manager"]
+        others["Innsamlere på<br/>andre noder"]
     end
-    manager -->|"metrikker og inventar"| oneuptime["OneUptime"]
+    manager -->|"metrikker<br/>og inventar"| oneuptime["OneUptime"]
     others -->|"metrikker"| oneuptime
     oneuptime -->|"første data"| registered["Klynge registrert"]
-    oneuptime --> monitor["Docker Swarm-monitor"]
+    oneuptime --> monitor["Docker<br/>Swarm-monitor"]
     monitor -->|"hvert minutt"| criteria{"Kriterier oppfylt?"}
-    criteria -->|"ja"| incident["Hendelse eller varsel"]
+    criteria -->|"ja"| incident["Hendelse<br/>eller varsel"]
     criteria -->|"nei"| online["Monitor tilkoblet"]
 ```
 
@@ -148,7 +148,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | Felt | Hva det gjør |
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som kontrolleres, etter variabelnavnet. |
-| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare) eller **Any Value** (én er nok). |
+| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Verdien det sammenlignes med. En liste over enheter står ved siden av når metrikken har en enhet. Vises ikke for avviksbetingelser. |
 | **Følsomhet** | Bare avviksbetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |

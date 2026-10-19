@@ -35,7 +35,7 @@ flowchart TB
 
 ### Den Feed erstellen
 
-Klicken Sie auf **Threat-Intel-Feed erstellen** und füllen Sie seine fünf Schritte aus: **Grundinformationen**, **TAXII-Server**, **Authentifizierung**, **Security Cases** und **Bei Treffer**. Die Felder stehen in der Tabelle unten.
+Klicken Sie auf **Threat-Intel-Feed erstellen** und füllen Sie seine drei Schritte aus: **TAXII-Server**, **Anmeldung** und **Bei Treffer**. Die Felder stehen in der Tabelle unten.
 
 ### Die erste Abfrage prüfen
 
@@ -48,16 +48,16 @@ Innerhalb von ein, zwei Minuten zeigt die Zeile des Feeds **Zuletzt abgefragt**,
 | **Sammlungs-ID** | Die Sammlung, die die Indikatoren veröffentlicht. |
 | **Abfrageintervall (Minuten)** | Wie oft neue Objekte geholt werden: 1 bis 1440 Minuten, standardmäßig 60. |
 | **Mindestkonfidenz** | Indikatoren mit niedrigerer STIX-`confidence` werden übersprungen: 0 bis 100, 0 behält alles. Indikatoren ohne Konfidenz kommen immer durch. |
-| **API-Token** | Ein Bearer-Token, für eine Sammlung, die eines verlangt. |
-| **Basic-Auth-Benutzername** und **Basic-Auth-Passwort** | Für eine Sammlung mit HTTP-Basic-Auth. Lassen Sie beide und das Token für eine öffentliche Sammlung leer. |
+| **Anmeldung** | Wie sich OneUptime anmeldet: **Keine Anmeldung** für eine öffentliche Sammlung, **Bearer-Token** für ein Token vom Betreiber des Servers oder **Benutzername und Passwort** für HTTP-Basic-Auth. |
+| **API-Token**, **Basic-Auth-Benutzername** und **Basic-Auth-Passwort** | Nur für die gewählte Anmeldung abgefragt. |
 | **Open a Case on Match** | Standardmäßig an: Jedes Ereignis, das einen Indikator nennt, eröffnet einen [Fall](/docs/telemetry/security-cases) zu diesem Indikator oder wird dem offenen Fall zugeordnet, der ihn bereits betrifft. |
-| **Bei Treffer Warnung erstellen** | Standardmäßig an: Jeder getroffene Indikator öffnet eine Warnung. |
+| **Warnungen und Vorfälle** | Standardmäßig **Warnung erstellen**: Jeder getroffene Indikator öffnet eine Warnung. |
 | **Warnungsschweregrad** | Der Schweregrad jeder Warnung, die dieser Feed öffnet. Lassen Sie ihn leer, um die Bedrohungsstufe jedes Indikators zu nehmen. |
-| **Bei Treffer Vorfall erstellen** | Standardmäßig aus. Vorfälle steuern Bereitschaftseskalation, SLAs und Statusseiten, und für Indikatortreffer reichen meist Warnungen. |
+| **Vorfall melden** oder **Beide** | Unter **Warnungen und Vorfälle**. Vorfälle steuern Bereitschaftseskalation, SLAs und Statusseiten, und für Indikatortreffer reichen meist Warnungen. |
 | **Vorfallsschweregrad** | Wie **Warnungsschweregrad**, für Vorfälle. |
 | **Bei Treffer Erkennungsbefund schreiben** | Standardmäßig an: Jeder Treffer schreibt einen Befund in den Ereignisstrom. |
 
-Tokens und Passwörter werden verschlüsselt und nach dem Speichern nie wieder angezeigt. Um sie zu ändern, wählen Sie **Anmeldedaten aktualisieren** in der Zeile des Feeds und dann **API-Token (Bearer)**, **Basic Auth** oder **Anonym (gespeicherte Anmeldedaten löschen)**: Ihre Wahl ersetzt die Anmeldung des Feeds, also löscht das Speichern eines Tokens ein gespeichertes Passwort, und umgekehrt.
+Tokens und Passwörter werden verschlüsselt und nach dem Speichern nie wieder angezeigt. Um sie zu ändern, wählen Sie **Anmeldedaten aktualisieren** in der Zeile des Feeds und dann **Bearer-Token**, **Benutzername und Passwort** oder **Keine Anmeldung**, was das Gespeicherte löscht: Ihre Wahl ersetzt die Anmeldung des Feeds, also löscht das Speichern eines Tokens ein gespeichertes Passwort, und umgekehrt.
 
 ### Wie ein Feed abgefragt wird
 
@@ -143,7 +143,7 @@ Jede Minute werden die aktiven Indikatoren jedes aktivierten Feeds mit den Ereig
 ### Was ein Treffer bewirkt
 
 - Eine Warnung mit dem Titel `[Threat Intel] <feed name> — <indicator value>`, eine pro Feed und Wert, solange sie offen ist. Ist sie behoben, öffnet der nächste Treffer eine neue. Warnungen werden nicht automatisch behoben.
-- Ein Vorfall, nur mit **Bei Treffer Vorfall erstellen**, auf dieselbe Weise dedupliziert.
+- Ein Vorfall, nur mit **Vorfall melden** oder **Beide** unter **Warnungen und Vorfälle**, auf dieselbe Weise dedupliziert.
 - Ein Threat-Intel-Befund, mit **Bei Treffer Erkennungsbefund schreiben**: ein Ereignis `Detection Finding` (OCSF-Klasse 2004) vom Produkt `OneUptime Threat Intel`, mit der Bedrohungsstufe des Indikators als Schweregrad und diesen Attributen:
 
 | Attribut | Wert |
@@ -199,7 +199,7 @@ Der Abgleich vergleicht den Wert eines Indikators mit den Observables eines Erei
 :::
 
 :::details Ein Treffer hat keine Warnung geöffnet
-**Bei Treffer Warnung erstellen** ist aus, oder eine Warnung für denselben Feed und Wert ist noch offen, und spätere Treffer fließen in sie ein. Ein Projekt braucht mindestens einen Warnungsschweregrad, damit ein Feed Warnungen öffnet.
+**Warnungen und Vorfälle** steht auf **Vorfall melden** oder **Keines von beiden**, oder eine Warnung für denselben Feed und Wert ist noch offen, und spätere Treffer fließen in sie ein. Ein Projekt braucht mindestens einen Warnungsschweregrad, damit ein Feed Warnungen öffnet.
 :::
 
 ## Nächste Schritte

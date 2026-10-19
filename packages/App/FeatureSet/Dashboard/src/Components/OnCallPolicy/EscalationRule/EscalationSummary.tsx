@@ -391,7 +391,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
         </h2>
         <p className="mt-1.5 text-sm leading-relaxed text-gray-500">
           {translator.translateText(
-            "A plain-english walkthrough of who gets paged, and when, after an incident is triggered.",
+            "Who is paged, and when, once an incident or alert runs this policy.",
           )}
         </p>
       </div>
@@ -422,7 +422,7 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
           />
           <StatTile
             icon={IconProp.Reload}
-            label="Repeats if unacked"
+            label="Repeats"
             value={
               props.repeatEnabled && props.repeatCount > 0
                 ? `${props.repeatCount}×`

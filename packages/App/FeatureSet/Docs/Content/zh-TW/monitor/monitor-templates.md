@@ -157,6 +157,7 @@ flowchart TB
 | Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
 | External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
 | 日誌、Security Events、追蹤、AI / LLM、指標、例外 | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`（監測器的整個設定） |
+| 探測器狀態 | `probeStatusMonitor.probeIds` |
 
 基礎設施監測器（Kubernetes、Docker Container、主機、Podman Container、Proxmox、Docker Swarm、Ceph、儲存陣列、IoT Device）可以保護它們的資源選擇器、篩選條件（主機除外）、指標查詢和查詢時間範圍。這些名稱列在該類型範本的 **Template sync settings** 中。
 :::

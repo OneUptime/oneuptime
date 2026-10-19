@@ -19,10 +19,10 @@ sequenceDiagram
     participant S as Uw systeem
     participant O as OneUptime
     participant T as On-callteam
-    S->>O: E-mail naar het adres van de monitor
+    S->>O: E-mail naar het<br/>adres van de monitor
     O->>O: Op de monitor opslaan
     O->>O: De criteria toetsen
-    O->>T: Waarschuwing of incident, als er een overeenkomt
+    O->>T: Waarschuwing of incident,<br/>als er een overeenkomt
     Note over O: Elke 30 seconden criteria<br/>met Email Received toetsen
 ```
 
@@ -206,14 +206,14 @@ De expressie draait in een sandbox waaraan geen e-mailvelden zijn gebonden, dus 
 
 ## Voorbeeldconfiguraties
 
-Elk voorbeeld is een paar criteria. Een criterium heeft filters, een **Overeenkomstvoorwaarde** (**Alle** of **Elke** van zijn filters), en acties: de status van de monitor wijzigen, een waarschuwing maken, een incident verklaren. Zet **Waarschuwing automatisch oplossen** (of **Incident automatisch oplossen**) aan onder **Meer velden** in de waarschuwing of het incident, zodat het tweede criterium oplost wat het eerste heeft geopend.
+Elk voorbeeld is een paar criteria. Een criterium heeft filters, een **Overeenkomstvoorwaarde** (**Alle** of **Minstens één** van zijn filters), en acties: de status van de monitor wijzigen, een waarschuwing maken, een incident verklaren. Zet **Waarschuwing automatisch oplossen** (of **Incident automatisch oplossen**) aan onder **Meer velden** in de waarschuwing of het incident, zodat het tweede criterium oplost wat het eerste heeft geopend.
 
 ### Voorbeeld 1: Een waarschuwing maken bij kritieke e-mails
 
 | Criterium | Filters | Overeenkomstvoorwaarde | Acties |
 | --- | --- | --- | --- |
-| Kritieke e-mail | **E-mailonderwerp** Bevat `CRITICAL`; **E-mailonderwerp** Bevat `ALERT`; **E-mailonderwerp** Bevat `ERROR` | **Elke** | De status op offline zetten; een waarschuwing maken |
-| Herstel-e-mail | **E-mailonderwerp** Bevat `RESOLVED`; **E-mailonderwerp** Bevat `RECOVERED` | **Elke** | De status op online zetten |
+| Kritieke e-mail | **E-mailonderwerp** Bevat `CRITICAL`; **E-mailonderwerp** Bevat `ALERT`; **E-mailonderwerp** Bevat `ERROR` | **Minstens één** | De status op offline zetten; een waarschuwing maken |
+| Herstel-e-mail | **E-mailonderwerp** Bevat `RESOLVED`; **E-mailonderwerp** Bevat `RECOVERED` | **Minstens één** | De status op online zetten |
 
 Zet het kritieke criterium bovenaan: criteria worden van boven af getoetst, en het eerste dat overeenkomt, beslist.
 

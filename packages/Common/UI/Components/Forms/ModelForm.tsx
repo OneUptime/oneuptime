@@ -58,6 +58,7 @@ import { getMaxLengthFromTableColumnType } from "../../../Types/Database/ColumnL
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
@@ -196,6 +197,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * (Utils/CreateFormDefaults, getCreateFormColorDefault).
    */
   existingItems?: Array<TBaseModel> | undefined;
+  /*
+   * A rule form's records - "All incidents" / "Only incidents that match
+   * conditions" - for a model that holds the rules of several kinds of
+   * record (RuleCriteriaSubject). Every other rule is named by its model.
+   */
+  ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
 }
 
 const ModelForm: <TBaseModel extends BaseModel>(
@@ -723,7 +730,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
       return;
     }
 
-    fieldsToSet = replaceLegacyRuleCriteriaFields(model, fieldsToSet);
+    fieldsToSet = replaceLegacyRuleCriteriaFields(model, fieldsToSet, {
+      subject: props.ruleCriteriaSubject,
+    });
 
     // if there are no fields to set, then show permission error. This is useful when there are no fields to show.
     if (fieldsToSet.length === 0 && props.fields.length > 0) {
@@ -1667,6 +1676,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
         }
         summary={props.summary}
         allowAnyStepNavigation={props.allowAnyStepNavigation}
+        /*
+         * The dropdowns search through the API their first list of options
+         * was read with (fetchDropdownOptions), so an Admin Dashboard form's
+         * search names no project either.
+         */
+        modelAPI={modelAPI}
       ></BasicModelForm>
     </div>
   );

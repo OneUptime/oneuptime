@@ -84,7 +84,7 @@ Cada linha tem **Ver alerta** para abrir o alerta e **Desvincular** para remover
 
 ## Vincular incidentes a partir de um alerta
 
-O lado do alerta espelha o do incidente. Abra um alerta e escolha **Incidentes vinculados** na seção **Básico** do menu lateral dele. A tabela lista cada incidente a que o alerta está vinculado, com o número, o título e o estado atual do incidente, e quando e por quem ele foi vinculado.
+O lado do alerta espelha o do incidente. Abra um alerta e escolha **Incidentes vinculados** na seção **Investigação** do menu lateral dele. A tabela lista cada incidente a que o alerta está vinculado, com o número, o título e o estado atual do incidente, e quando e por quem ele foi vinculado.
 
 - **Vincular incidente** vincula este alerta a um incidente existente. A lista suspensa dele funciona como a do lado do incidente: primeiro os incidentes mais recentes, cada um com seu número — como `INC-42: Checkout is down` — e digitar busca em todos os incidentes pelo título.
 - **Ver incidente** abre um incidente vinculado.
@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Você
     participant OneUptime
     participant Alerts as Alertas
-    You->>OneUptime: Declarar incidente, com até 50 alertas
-    OneUptime->>OneUptime: Verificar cada alerta e suas permissões
-    OneUptime->>OneUptime: Criar o incidente e executar suas regras de privacidade
+    You->>OneUptime: Declarar incidente,<br/>com até 50 alertas
+    OneUptime->>OneUptime: Verificar cada alerta<br/>e suas permissões
+    OneUptime->>OneUptime: Criar o incidente e<br/>executar suas regras<br/>de privacidade
     OneUptime->>Alerts: Vincular cada alerta
-    OneUptime-->>You: O novo incidente, com os alertas já vinculados
-    OneUptime->>Alerts: Confirmá-los em segundo plano, se a caixa estiver marcada
+    OneUptime-->>You: O novo incidente, com<br/>os alertas já vinculados
+    OneUptime->>Alerts: Confirmá-los em<br/>segundo plano, se a<br/>caixa estiver marcada
 ```
 
 Quando você envia, o servidor verifica os alertas antes de criar qualquer coisa: no máximo 50, cada um um alerta deste projeto que você tem permissão para ver, e você precisa ter permissão para vincular alertas a incidentes. Se alguma verificação falhar, a requisição é rejeitada e nenhum incidente é criado — então um id de alerta errado nunca consome um número de incidente. Depois que o incidente existe — e depois que suas regras de privacidade rodaram, para que os vínculos saibam se ele é privado — cada alerta é vinculado antes de a requisição responder, então a página **Alertas vinculados** do incidente já os lista. Se um único vínculo falhar — porque o alerta foi excluído um instante antes, por exemplo — o incidente ainda é declarado e os outros alertas ainda são vinculados.
@@ -164,7 +164,7 @@ Deixe-a marcada e, depois que o incidente for declarado e os alertas vinculados:
 
 - **Os alertas são confirmados em seu nome.** Cada um passa para o seu estado de alerta **Confirmado** como se você mesmo tivesse clicado em **Confirmar** nele: a **Linha do tempo de estado** e o feed do alerta nomeiam você, os proprietários do alerta são notificados, e a mudança é publicada nos canais do Slack e do Microsoft Teams do alerta como qualquer outra mudança de estado de alerta. A causa diz «Acknowledged because Incident INC-42 was declared from this alert.» — ou, para um incidente privado, «Acknowledged because a private incident was declared from this alert.», para que um incidente privado nunca seja nomeado onde o público do alerta possa lê-lo.
 - **O próprio escalonamento de plantão deles para em cerca de um minuto.** A próxima etapa de escalonamento vê um alerta confirmado e para. Acionamentos que já saíram não são recolhidos.
-- **Os lembretes só param se a regra de lembrete disser isso.** Os lembretes de um alerta só param na confirmação quando a regra de lembrete dele tem **Stop Reminders When** definido como **Confirmado**; caso contrário, continuam até o alerta ser resolvido.
+- **Os lembretes só param se a regra de lembrete disser isso.** Os lembretes de um alerta só param na confirmação quando a regra de lembrete dele tem **Parar lembretes quando** definido como **Confirmado**; caso contrário, continuam até o alerta ser resolvido.
 - **Um episódio de alertas continua escalando.** Se um alerta pertence a um episódio que aciona pela própria política de plantão, o episódio continua escalando até que o próprio episódio seja confirmado.
 - **Alertas já confirmados ou resolvidos ficam como estão.** Como em todo lugar, os estados são comparados pela ordem, então um alerta em um estado personalizado depois de **Confirmado** conta como confirmado, e nada é movido para trás.
 
@@ -306,7 +306,7 @@ As caixas de diálogo **Filtrar por tipo de evento** dos dois feeds, no menu **�
 
 Dois interruptores do projeto permitem que o incidente leve consigo seus alertas vinculados. Os dois vêm ativados em projetos novos. Um projeto criado antes de eles virem ativados por padrão mantém a configuração que tinha, que é desativada a menos que alguém os tenha ativado. Eles têm uma página de configurações própria, **Incidentes → Configurações → Alertas vinculados**, onde cada um é um interruptor no cartão **Alertas vinculados** que é salvo assim que você o altera. Só Project Owners e Project Admins podem alterá-los; para todos os outros, os interruptores ficam bloqueados e dizem qual permissão é necessária:
 
-- **Confirmar alertas vinculados quando o incidente for confirmado** — quando o incidente chega ao seu estado confirmado, cada alerta vinculado que ainda não está confirmado passa para o seu estado de alerta **Confirmado**. É isso que interrompe os escalonamentos de plantão desses alertas: a próxima etapa de escalonamento vê um alerta confirmado e para, em cerca de um minuto. Acionamentos que já saíram não são recolhidos. Os lembretes de alerta também param quando a regra de lembrete do alerta tem **Stop Reminders When** definido como **Confirmado**; caso contrário, continuam até o alerta ser resolvido.
+- **Confirmar alertas vinculados quando o incidente for confirmado** — quando o incidente chega ao seu estado confirmado, cada alerta vinculado que ainda não está confirmado passa para o seu estado de alerta **Confirmado**. É isso que interrompe os escalonamentos de plantão desses alertas: a próxima etapa de escalonamento vê um alerta confirmado e para, em cerca de um minuto. Acionamentos que já saíram não são recolhidos. Os lembretes de alerta também param quando a regra de lembrete do alerta tem **Parar lembretes quando** definido como **Confirmado**; caso contrário, continuam até o alerta ser resolvido.
 - **Resolver alertas vinculados quando o incidente for resolvido** — quando o incidente chega ao seu estado resolvido, cada alerta vinculado que ainda não está resolvido passa para o seu estado de alerta **Resolvido**, exceto um alerta que ainda esteja vinculado a outro incidente não resolvido. Esse alerta fica aberto para o outro incidente — confirmado, se o interruptor de confirmação também estiver ativado — e é resolvido quando o último dos incidentes dele for resolvido.
 
 Com os dois interruptores desativados, vincular não muda nada no estado de um alerta. Um alerta vinculado fica onde está até alguém movê-lo, sua política de plantão continua escalando e seus lembretes continuam chegando. A única exceção é declarar um incidente a partir de alertas com a caixa do formulário marcada, o que os confirma ao declarar — veja [Confirmar os alertas ao declarar](#confirmar-os-alertas-ao-declarar).

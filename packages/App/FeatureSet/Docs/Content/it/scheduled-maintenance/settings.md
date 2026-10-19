@@ -67,24 +67,22 @@ Le **Regole di runbook** avviano un runbook quando un nuovo evento corrisponde, 
 **Manutenzione programmata → Regole → Reminder Rules** ricorda l'evento ai suoi proprietari finché il lavoro non viene approvato. Ogni evento riceve la prima regola che gli corrisponde, dall'alto verso il basso nell'elenco.
 
 :::steps
-### Dare un nome alla regola di promemoria
-
-Fate clic su **Crea: Scheduled Maintenance Reminder Rule**. In **Rule Info**, datele un **Nome**, per esempio «Promemoria eventi di manutenzione», e una **Descrizione** se volete.
-
 ### Scegliere su quali eventi ricordare
 
-In **Criteri di corrispondenza**, scegliete le **Etichette** a cui si applica. Lasciatele vuote per ricordare ogni evento.
+Fate clic su **Crea: Scheduled Maintenance Reminder Rule**. In **Corrispondenza**, lasciate selezionato **Tutti gli eventi di manutenzione programmata** per ricordare ogni evento, oppure scegliete **Solo gli eventi di manutenzione programmata che soddisfano le condizioni** e poi le **Etichette** a cui si applica.
 
 ### Impostare l'intervallo
 
-In **Reminder Settings**, impostate **Reminder Interval (minutes)**, ogni quanto vengono ricordati i proprietari, poi create la regola.
+In **Promemoria**, impostate **Intervallo del promemoria (minuti)**, ogni quanto vengono ricordati i proprietari, e scegliete quando inviare i promemoria in **Promemoria ai proprietari**. Il suo **Nome** segue entrambi, per esempio «Promemoria ogni 30 minuti mentre è in corso», finché non ne digitate uno vostro, e una **Descrizione** attende sotto **Altri campi**. Poi create la regola.
 :::
 
-| Impostazione                         | Parte come                             | Cosa fa                                                                              |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Reminder Interval (minutes)**      | Obbligatorio                           | Ogni quanto vengono ricordati i proprietari.                                         |
-| **Stop Reminders When**              | **Remind until event is Completed**    | Oppure **Stop when event starts (Ongoing)**, per fermarsi appena il lavoro è iniziato. |
-| **Remind While Event is Scheduled**  | Disattivato                            | Disattivato, i promemoria iniziano quando l'evento inizia; attivato, partono anche prima. |
+| Risposta | Quando i proprietari ricevono i promemoria |
+| --- | --- |
+| **Mentre è in corso** | Dall'inizio dell'evento fino alla sua fine. Una nuova regola parte da questa risposta. |
+| **Prima che inizi** | Da quando l'evento viene programmato fino al suo inizio. |
+| **Prima che inizi e mentre è in corso** | Da quando l'evento viene programmato fino alla sua fine. |
+
+Una regola salvata tramite l'API o Terraform che attende l'inizio dell'evento e si ferma quando inizia non invia mai un promemoria: l'elenco la contrassegna con **Non invia mai promemoria**, e il suo modulo vi chiede di scegliere una risposta.
 
 I proprietari ricevono ogni promemoria come **Maintenance reminder**, attivo via e-mail per ogni nuovo membro. Salvare, modificare o eliminare una regola di promemoria riassegna la regola a ogni evento non ancora completato. Per fermare i promemoria di un evento, disattivate **Invia promemoria** nella sua pagina **Impostazioni**; salva nel momento in cui lo spostate.
 
@@ -125,7 +123,7 @@ Ogni modello della manutenzione ha trigger e azioni di workflow, con il suo nome
 | **Scheduled Maintenance Member**  | Crea, modifica ed elimina eventi con le loro note, cronologie di stato e proprietari, e entrambi i tipi di modelli. |
 | **Scheduled Maintenance Admin**   | Tutto ciò che fa un membro, e in più crea, modifica ed elimina gli stati di manutenzione.            |
 
-Regole, campi personalizzati e misurazioni richiedono **Project Owner** o **Project Admin**, oppure un ruolo personalizzato con il permesso proprio di quella pagina, come **Create Scheduled Maintenance Owner Rule**. **Project Member** lavora con eventi e modelli, come **Scheduled Maintenance Member**. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
+Regole, campi personalizzati e misurazioni richiedono **Project Owner** o **Project Admin**, oppure un ruolo personalizzato con il permesso proprio di quella pagina, come **Create Scheduled Maintenance Owner Rule**. Le regole di runbook accettano anche **Runbook Admin**. **Project Member** lavora con eventi e modelli, come **Scheduled Maintenance Member**. Vedere [Utenti, team e autorizzazioni](/docs/permissions/index).
 
 ## Risoluzione dei problemi
 
@@ -134,7 +132,7 @@ Aprite la regola e controllate le sue condizioni: ogni condizione compilata deve
 :::
 
 :::details I proprietari non hanno ricevuto nessun promemoria
-Controllate che una regola di promemoria corrisponda alle etichette dell'evento, che **Invia promemoria** dell'evento sia attivo e che **Maintenance reminder** sia attivo nelle impostazioni delle notifiche dei proprietari. Senza **Remind While Event is Scheduled**, i promemoria iniziano solo quando l'evento inizia.
+Controllate che una regola di promemoria corrisponda alle etichette dell'evento, che **Invia promemoria** dell'evento sia attivo e che **Maintenance reminder** sia attivo nelle impostazioni delle notifiche dei proprietari. Una regola impostata su **Mentre è in corso** non invia nulla prima che l'evento inizi.
 :::
 
 ## Passi successivi

@@ -61,6 +61,11 @@ export interface ComponentProps {
    * False when the incident was declared without notifying subscribers.
    */
   notifyStatusPageSubscribersByDefault?: boolean | undefined;
+  /*
+   * The incident is private: it takes no public notes, so "Add Public Note"
+   * is locked with why (EventNoteKind.isPrivateEvent).
+   */
+  isPrivate?: boolean | undefined;
 }
 
 /*
@@ -122,6 +127,12 @@ export const INCIDENT_FEED_KINDS: Record<IncidentFeedEventType, FeedEntryKind> =
       SHARED_FEED_ENTRY_KINDS.VideoCallStarted,
     [IncidentFeedEventType.VideoCallFailed]:
       SHARED_FEED_ENTRY_KINDS.VideoCallFailed,
+    [IncidentFeedEventType.VideoCallTranscriptAdded]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallTranscriptAdded,
+    [IncidentFeedEventType.VideoCallSummary]:
+      SHARED_FEED_ENTRY_KINDS.VideoCallSummary,
+    [IncidentFeedEventType.ChannelMemberAdded]:
+      SHARED_FEED_ENTRY_KINDS.ChannelMemberAdded,
   };
 
 export const INCIDENT_FEED_ICONS: Record<IncidentFeedEventType, IconProp> =
@@ -274,6 +285,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     publicNoteKind: getIncidentPublicNoteKind({
       incidentId: props.incidentId,
       isNotifyingByDefault: notifySubscribersByDefault,
+      isPrivate: props.isPrivate,
     }),
     privateNoteKind: getIncidentPrivateNoteKind({
       incidentId: props.incidentId,

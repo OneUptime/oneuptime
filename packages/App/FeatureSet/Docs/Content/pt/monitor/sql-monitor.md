@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonda
     participant D as Seu banco de dados
-    O->>P: Configurações do monitor, segredos resolvidos
-    P->>D: Sua consulta, somente leitura
+    O->>P: Configurações do<br/>monitor, segredos<br/>resolvidos
+    P->>D: Sua consulta,<br/>somente leitura
     D-->>P: Até Max Rows + 1 linhas
-    P->>O: Número de linhas, escalar, primeira linha, tempo, erro
+    P->>O: Número de linhas,<br/>escalar, primeira<br/>linha, tempo, erro
     O->>O: Avaliar os critérios
 ```
 
@@ -139,7 +139,7 @@ Selecione as **Sondas** que alcançam o banco de dados e um **Intervalo de monit
 | **Host** | O host do banco de dados acessível pela sonda (por exemplo, `db.internal`). |
 | **Porta** | A porta do banco de dados. |
 | **Nome do Banco de Dados** | O banco de dados em que a consulta é executada. |
-| **Use Windows Integrated Authentication** | Somente Microsoft SQL Server. Autenticar com a conta que executa a sonda em vez de um nome de usuário e senha do SQL. Veja [Autenticação integrada do Windows](#autenticação-integrada-do-windows). |
+| **Autenticação** | Somente Microsoft SQL Server: **Usuário e senha**, o padrão, ou **Windows Integrated Authentication**, que entra com a conta que executa a sonda. Veja [Autenticação integrada do Windows](#autenticação-integrada-do-windows). |
 | **Nome de usuário** | Um usuário de banco de dados somente leitura e com privilégio mínimo. |
 | **Senha** | A senha do banco de dados. Recomendamos fortemente fazer referência a um [segredo do monitor](/docs/monitor/monitor-secrets) com `{{monitorSecrets.name}}` em vez de digitar a senha em texto simples (veja [Usar um segredo do monitor para a senha](#usar-um-segredo-do-monitor-para-a-senha)). |
 | **SQL Query** | A consulta somente leitura a executar (veja [Escrever a consulta](#escrever-a-consulta)). |
@@ -157,7 +157,7 @@ Um valor acima do máximo é reduzido ao máximo.
 
 ### Autenticação integrada do Windows
 
-Para o Microsoft SQL Server, ative **Use Windows Integrated Authentication** para abrir uma conexão confiável com a identidade do processo da sonda. Os campos Nome de usuário e Senha são ignorados nesse modo e não são passados ao driver. Como a sonda precisa de uma identidade em que seu domínio confie, use uma sonda auto-hospedada nesse modo de autenticação.
+Para o Microsoft SQL Server, escolha **Windows Integrated Authentication** em **Autenticação** para abrir uma conexão confiável com a identidade do processo da sonda. O formulário então oculta **Nome de usuário** e **Senha**, e nenhum dos dois é passado ao driver. Como a sonda precisa de uma identidade em que seu domínio confie, use uma sonda auto-hospedada nesse modo de autenticação.
 
 | A sonda roda em | O que configurar |
 |---|---|

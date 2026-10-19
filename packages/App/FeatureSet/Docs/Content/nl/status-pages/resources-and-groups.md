@@ -75,11 +75,11 @@ Klik op **Monitor toevoegen**. De rij verschijnt in de groep en op de statuspagi
 In een rastergroep vraagt het dialoogvenster boven **Meer velden** ook om de rij en de kolom waarin de monitor komt; zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling).
 
 > [!TIP]
-> Om meerdere controles als één rij te tonen, voegt u een monitorgroep toe. Met de schakelaar **Monitorgroepen** aan (**Projectinstellingen** > **Geavanceerd** > **Functievlaggen**, die wordt opgeslagen zodra u hem omzet) staat onder de keuzelijst een link **Add a Monitor Group instead.** Klik erop en **Monitor** wordt **Monitor Groep** (**Selecteer monitorgroep**); **Add a Monitor instead.** zet het terug.
+> Om meerdere controles als één rij te tonen, voegt u een [monitorgroep](/docs/monitor/monitor-groups) toe. Met de schakelaar **Monitorgroepen** aan (**Projectinstellingen** > **Geavanceerd** > **Functievlaggen**, die wordt opgeslagen zodra u hem omzet) staat onder de keuzelijst een link **Add a Monitor Group instead.** Klik erop en **Monitor** wordt **Monitor Groep** (**Selecteer monitorgroep**); **Add a Monitor instead.** zet het terug.
 
 ### Meerdere tegelijk toevoegen
 
-**Add Multiple** (ook **Add multiple monitors** in het menu **More actions**) opent **Add Multiple Monitors**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Add Monitors** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
+**Add Multiple** (ook **Add multiple monitors** in het menu **More actions**) opent **Add Multiple Monitors**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Monitoren toevoegen** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
 
 De meervoudige selectie heeft een tabblad **Labels**: klik op een label en elke monitor met dat label wordt in één keer geselecteerd.
 
@@ -139,14 +139,14 @@ Klik op **Create Status Page Group**. De groep verschijnt in de navigator, klaar
 
 De twee velden zijn **Groepsnaam** (`name`) en **Parent Group** (`parentStatusPageGroupId`). De twee ingeklapte secties bevatten de rest:
 
-- **Indeling**: de ingeklapte kop zegt **List** of **Grid**. Ze bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling)), en ze klapt bij een rastergroep vanzelf open.
+- **Indeling**: de ingeklapte kop zegt **Lijst** of **Raster**. Ze bevat **Weergavemodus** en de assen van een raster (zie [Lijstindeling of rasterindeling](#lijstindeling-of-rasterindeling)), en ze klapt bij een rastergroep vanzelf open.
 - **Meer velden**: de exemplaren op groepsniveau van de resource-opties:
   - **Groepsbeschrijving** (`description`): optionele markdown, onder de kop getoond. Een afbeelding erin wordt aan elke bezoeker getoond.
   - **Standaard uitvouwen op statuspagina** (`isExpandedByDefault`): standaard aan; bepaalt of de sectie voor bezoekers open of ingeklapt begint.
   - **Huidige groepsstatus weergeven** (`showCurrentStatus`): standaard aan. Toont een status naast de groepskop.
   - **Uptime % weergeven** (`showUptimePercent`): standaard uit, met **Selecteer uptime-precisie** zodra het aan staat.
 
-Om een groep te wijzigen, gebruikt u **Edit Group** in de kop van het deelvenster, of **Edit group** in het rijmenu van de navigator: **Edit Status Page Group** opent, met een knop **Wijzigingen opslaan**. De kop van het deelvenster toont labels voor de instellingen die aan staan (**Grid**, **Collapsed by default**, **Uptime %**), zodat u ziet hoe een groep is ingesteld zonder het formulier te openen.
+Om een groep te wijzigen, gebruikt u **Edit Group** in de kop van het deelvenster, of **Edit group** in het rijmenu van de navigator: **Edit Status Page Group** opent, met een knop **Wijzigingen opslaan**. De kop van het deelvenster toont labels voor de instellingen die aan staan (**Raster**, **Collapsed by default**, **Uptime %**), zodat u ziet hoe een groep is ingesteld zonder het formulier te openen.
 
 ### Een groep beheren
 
@@ -171,10 +171,10 @@ De sectie **Indeling** van het groepsformulier stelt de **Weergavemodus** (`view
 
 | Als u… wilt | Kies |
 | --------------- | ---- |
-| Een eenvoudige verticale lijst van services wilt tonen, één per rij | **List** (de standaard) |
-| Dezelfde service in meerdere regio's of tenants als matrix wilt tonen | **Grid** |
+| Een eenvoudige verticale lijst van services wilt tonen, één per rij | **Lijst** (de standaard) |
+| Dezelfde service in meerdere regio's of tenants als matrix wilt tonen | **Raster** |
 
-Kies **Grid** en er verschijnen nog vier velden:
+Kies **Raster** en er verschijnen nog vier velden:
 
 | Veld | Wat u invult |
 | ----- | ------------- |
@@ -209,23 +209,19 @@ Een monitorregel voegt monitoren voor u aan de pagina toe: beschrijf de monitore
 :::steps
 ### Monitor Rules openen
 
-Open de statuspagina, kies **Monitor Rules** in de sectie **Middelen** van het zijmenu en klik op **Status Page Monitor Rule aanmaken**.
-
-### De regel een naam geven
-
-Vul op **Basisinformatie** een **Naam** in. **Ingeschakeld** staat standaard aan.
+Open de statuspagina, kies **Monitor Rules** in de sectie **Middelen** van het zijmenu en klik op **Monitorregel aanmaken**.
 
 ### Zeggen met welke monitoren hij overeenkomt
 
-Vul op **Overeenkomstcriteria** minstens één van **Monitorlabels** (een monitor met een van die labels komt overeen), **Monitornaam** en **Monitorbeschrijving** in. Een monitor moet aan elk criterium voldoen dat u invult. De twee patronen accepteren een hoofdletterongevoelige reguliere expressie (`^api-.*`) of een jokerteken `*` (`*checkout*`); `.*` komt met elke monitor overeen.
+Voeg op **Overeenkomst** minstens één voorwaarde toe op **Monitorlabels** (een monitor met een van die labels komt overeen), **Monitornaam** of **Monitorbeschrijving**. Bij twee of meer voorwaarden kiest u of een monitor aan alle of aan één ervan moet voldoen. De twee patronen accepteren een hoofdletterongevoelige reguliere expressie (`^api-.*`) of een jokerteken `*` (`*checkout*`); `.*` komt met elke monitor overeen.
 
 ### De groep kiezen
 
-Kies op **Groep** de groep bij **Add Monitors To Group**, of laat het leeg om de monitoren zonder groep toe te voegen. Daarna volgen dezelfde weergaveopties als bij een resource; bij een regel staat **Uptime % weergeven** standaard aan.
+Kies op **Groep** de groep bij **Monitoren toevoegen aan**, of laat het leeg om de monitoren bovenaan de pagina toe te voegen. De **Naam** van de regel wordt daaruit ingevuld, zoals "Monitoren toevoegen aan Website", totdat u zelf een naam typt. **Meer velden** bevat dezelfde weergaveopties als bij een resource en de **Beschrijving** van de regel; bij een regel staat **Uptime % weergeven** standaard aan.
 
 ### De regel opslaan
 
-De regel draait meteen tegen elke monitor die al bestaat, en de lijst toont onder **Adds Monitors To** de groep waaraan hij monitoren toevoegt.
+De regel draait meteen tegen elke monitor die al bestaat, en de lijst toont onder **Adds Monitors To** de groep waaraan hij monitoren toevoegt. Een nieuwe regel staat aan: zijn schakelaar **Ingeschakeld** staat in zijn bewerkformulier.
 :::
 
 Daarna draait een regel opnieuw voor een monitor telkens wanneer er een wordt aangemaakt of wanneer de labels, de naam of de beschrijving ervan veranderen. Een regel verwijdert alleen de resources die hij zelf heeft toegevoegd: hem uitzetten of verwijderen haalt die van de pagina, en een monitor die u met de hand hebt toegevoegd, wordt nooit aangeraakt. Een monitor die al op de pagina staat, wordt nooit twee keer toegevoegd.

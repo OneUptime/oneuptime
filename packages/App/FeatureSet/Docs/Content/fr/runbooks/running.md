@@ -19,15 +19,15 @@ stateDiagram-v2
     state "Achevé" as Completed
     state "Échec" as Failed
     state "Annulé" as Cancelled
-    [*] --> Scheduled: exécution lancée
-    Scheduled --> Running: un Worker la prend en charge
-    Running --> WaitingForManualStep: étape Manual ou approbation
-    WaitingForManualStep --> Scheduled: terminée, approuvée ou ignorée
-    Running --> Completed: toutes les étapes faites
-    Running --> Failed: une étape échoue
-    Scheduled --> Cancelled: Annuler l'exécution
-    Running --> Cancelled: Annuler l'exécution
-    WaitingForManualStep --> Cancelled: Annuler l'exécution
+    [*] --> Scheduled: exécution<br/>lancée
+    Scheduled --> Running: un Worker<br/>la prend<br/>en charge
+    Running --> WaitingForManualStep: étape Manual<br/>ou approbation
+    WaitingForManualStep --> Scheduled: terminée,<br/>approuvée<br/>ou ignorée
+    Running --> Completed: toutes les<br/>étapes faites
+    Running --> Failed: une étape<br/>échoue
+    Scheduled --> Cancelled: Annuler<br/>l'exécution
+    Running --> Cancelled: Annuler<br/>l'exécution
+    WaitingForManualStep --> Cancelled: Annuler<br/>l'exécution
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
@@ -118,7 +118,7 @@ Une exécution est un enregistrement unique et immuable. Pour relancer le runboo
 
 | Où | Ce qui est listé |
 | --- | --- |
-| Les **Exécutions** d'un runbook | Toutes les exécutions de ce runbook, avec des filtres par statut et date de début, et une colonne **Déclenché par**. |
+| Les **Journaux → Exécutions** d'un runbook | Toutes les exécutions de ce runbook, avec des filtres par statut et date de début, et une colonne **Déclenché par**. |
 | **Runbooks → Exécutions** | Toutes les exécutions de tous les runbooks du projet. |
 | La page **Runbooks** d'un incident, d'une alerte ou d'un événement | Les exécutions qui y sont attachées. La vue d'ensemble de l'événement les affiche aussi, dès qu'il y en a. |
 
@@ -129,7 +129,7 @@ Votre rôle lit les runbooks mais ne les exécute pas : le bouton indique « Vou
 :::
 
 :::details Le lancement échoue avec "Runbook is disabled" ou "Runbook has no steps to run"
-L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page **Paramètres**, ou il n'a aucune étape enregistrée. Activez l'interrupteur, ou ajoutez des étapes et cliquez sur **Save Steps**.
+L'interrupteur **Exécuter ce runbook** du runbook est désactivé, sur sa page **Paramètres**, ou il n'a aucune étape enregistrée. Activez l'interrupteur, ou ajoutez des étapes et cliquez sur **Save Steps**. Sa **Vue d'ensemble** indique lequel, avec **Activer le runbook** ou **Ajouter des étapes**.
 :::
 
 :::details Une étape a échoué parce qu'il lui manque un agent Runbook ou un identifiant

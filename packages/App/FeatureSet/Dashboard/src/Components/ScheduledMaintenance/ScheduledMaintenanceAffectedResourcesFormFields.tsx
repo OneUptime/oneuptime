@@ -176,7 +176,7 @@ export const getScheduledMaintenanceAffectedResourcesFormFields: (
       },
       title: "Other Affected Resources",
       description:
-        "Search and attach hosts, clusters, container hosts, databases, IoT fleets, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+        "Hosts, clusters, databases, network sites and other resources this maintenance affects. A network site covers every site beneath it.",
       fieldType: FormFieldSchemaType.CustomComponent,
       required: false,
       getCustomElement: (

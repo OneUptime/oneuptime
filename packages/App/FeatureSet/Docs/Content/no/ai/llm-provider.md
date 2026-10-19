@@ -25,9 +25,9 @@ AI-funksjoner bruker prosjektets standardleverandør. Et prosjekt uten standardl
 flowchart TB
     F["En AI-funksjon<br/>trenger en modell"] --> D{"Har prosjektet<br/>en standard-<br/>leverandør?"}
     D -->|"ja"| P["Prosjektets<br/>standardleverandør"]
-    D -->|"nei"| G{"Finnes det en global<br/>leverandør?"}
-    G -->|"ja"| GP["Den globale leverandøren:<br/>AI-kreditter på<br/>OneUptime Cloud"]
-    G -->|"nei"| N["Ingenting kjører, og<br/>AI-sidene sier at<br/>en leverandør mangler"]
+    D -->|"nei"| G{"Finnes det<br/>en global<br/>leverandør?"}
+    G -->|"ja"| GP["Den globale<br/>leverandøren:<br/>AI-kreditter på<br/>OneUptime Cloud"]
+    G -->|"nei"| N["Ingenting<br/>kjører, og<br/>AI-sidene sier at<br/>en leverandør<br/>mangler"]
 ```
 
 En leverandør er et prosjekts standard når **Angi som standard** er slått på, noe den er for hver ny leverandør. Et prosjekt der alle leverandørene har standard slått av, faller tilbake på den globale leverandøren, som om det ikke hadde noen.
@@ -38,7 +38,7 @@ På **OneUptime Cloud** kan hvert prosjekt bruke den globale leverandøren uten 
 
 Vil du heller bruke dine egne API-nøkler eller en bestemt modell, legger du til en egen leverandør som beskrevet nedenfor: du betaler ikke for AI som kjører på din egen leverandør.
 
-Den globale LLM-leverandøren betales fra prosjektets AI-kreditter. For å begrense hva AI kan bruke hver dag, sett en **Daglig grense for AI-forbruk (USD)** under **Prosjektinnstillinger → AI Features → Flere innstillinger**; en **Daglig AI-tokengrense** samme sted begrenser tokens hos alle leverandører, også din egen. Se [prosjektets egne daglige grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser).
+Den globale LLM-leverandøren betales fra prosjektets AI-kreditter. For å begrense hva AI kan bruke hver dag, sett en **Daglig grense for AI-forbruk (USD)** under **Prosjektinnstillinger → KI → AI Features → Flere innstillinger**; en **Daglig AI-tokengrense** samme sted begrenser tokens hos alle leverandører, også din egen. Se [prosjektets egne daglige grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser).
 
 OneUptime Cloud kan bare nå LLM-endepunkter på det offentlige internett. Det kan ikke koble til en modell på ditt private nettverk, for eksempel en selvhostet Ollama- eller vLLM-server. For å bruke en modell du kjører selv, selvhoster du OneUptime på et nettverk som kan nå den, eller gjør modellen tilgjengelig på et offentlig endepunkt: se [Velge en basis-URL for en selvhostet modell](#velge-en-basis-url-for-en-selvhostet-modell).
 
@@ -93,19 +93,19 @@ Synkroniseringen er deklarativ: endre en variabel, så følger leverandøren med
 
 Gå til **Prosjektinnstillinger → KI → LLM-leverandører** (sidemenyens del **KI** starter sammenslått), og klikk **Opprett LLM-leverandør**.
 
-### Gi leverandøren et navn
+### Velg leverandøren
 
-Under **Grunnleggende informasjon** gir du den et **Navn** som sier hva den er, for eksempel "Production OpenAI" eller "Local Ollama", og eventuelt en **Beskrivelse**.
+Under **Leverandør** velger du din **LLM-leverandør**: ett kort for OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama og enhver OpenAI-kompatibel server, hvert med en linje om hva det er.
 
-### Fyll inn leverandørens innstillinger
+### Koble den til
 
-Under **Leverandørinnstillinger**:
+Under **Tilkobling** spør skjemaet bare om det leverandøren bruker, med egen hjelp under hvert felt:
 
-- **LLM-leverandør**: typen leverandør (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama eller OpenAI Compatible)
-- **API-nøkkel**: API-nøkkelen din (påkrevd for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral; valgfri for Ollama og OpenAI-kompatible servere)
-- **Modellnavn**: modellen som skal brukes, for eksempel `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`
-- **Basis-URL**: endepunktet, påkrevd for Azure OpenAI, Ollama og OpenAI Compatible; valgfri for de andre, for å overstyre standarden deres
-- **Flere felt**, slått sammen under feltene over: **Angi som standard**, som er på for en ny leverandør fordi AI-funksjoner bare bruker prosjektets standardleverandør, og **Ekstra parametere**, et valgfritt JSON-objekt med ekstra parametere som sendes til leverandøren med hver forespørsel (for eksempel `{"temperature": 0.2}`)
+- **API-nøkkel**: API-nøkkelen din, påkrevd for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral og valgfri for en OpenAI-kompatibel server; for Ollama blir det ikke spurt om noen
+- **Basis-URL**: endepunktet, påkrevd for Azure OpenAI, Ollama og OpenAI Compatible; for de andre bare for å gå via en proxy eller en gateway
+- **Modellnavn**: modellen som skal brukes, for eksempel `gpt-5.1`, `claude-sonnet-5-5` eller `llama3.1`. Står det tomt, bruker OneUptime leverandørens standardmodell, unntatt på en OpenAI-kompatibel server, som trenger en
+- **Navn**: leverandørens navn til du skriver ditt eget, for eksempel "Production OpenAI" eller "Local Ollama"
+- **Flere felt**, slått sammen under feltene over: en **Beskrivelse**, **Angi som standard**, som er på for en ny leverandør fordi AI-funksjoner bare bruker prosjektets standardleverandør, og **Ekstra parametere**, et valgfritt JSON-objekt med ekstra parametere som sendes til leverandøren med hver forespørsel (for eksempel `{"temperature": 0.2}`)
 
 **Hvem som kan se en leverandør.** Et prosjekts LLM-leverandører leses bare av de medlemmene som kan lese prosjektets innstillinger: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** og **Read LLM**. En leverandørs **API-nøkkel** og **Ekstra parametere** leses bare av prosjektets eiere og administratorer, fordi parameterne sendes til leverandøren med hver forespørsel og kan inneholde et token eller en header akkurat som nøkkelen. De andre medlemmene ser om det er lagret parametere, men ikke hvilke. Medlemmer som kan redigere en leverandør, kan fortsatt erstatte API-nøkkelen eller parameterne uten å lese dem: i redigeringsskjemaet starter de feltene tomme, og et felt som står tomt, beholder det som er lagret. For å fjerne parameterne lagrer du `{}`. Bare prosjektets eiere og administratorer kan endre en leverandørs **Basis-URL**, fordi API-nøkkelen og de ekstra parameterne sendes til den adressen; de andre medlemmene som kan redigere en leverandør, kan endre alt annet. Alle som kan lese en leverandør, kan lese dens **Basis-URL**, så legg aldri en nøkkel, et token eller et passord i den: bruk **API-nøkkel**. Listen **Globale LLM-leverandører** på samme side, de delte leverandørene et prosjekt faller tilbake på, viser navn, beskrivelse og pris til alle som er logget inn, og ingenting annet om dem.
 

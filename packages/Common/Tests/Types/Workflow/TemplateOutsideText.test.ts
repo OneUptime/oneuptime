@@ -1,5 +1,13 @@
 /*
- * TEXT FROM JIRA AND DYNAMICS 365, PLACED IN ONEUPTIME AS IT WAS WRITTEN.
+ * TEXT FROM JIRA, DYNAMICS 365 AND ZABBIX, PLACED IN ONEUPTIME AS IT WAS
+ * WRITTEN.
+ *
+ * The Zabbix templates came later, built the same way: the script that
+ * reads what the OneUptime media type posted places a problem's name, its
+ * host, its severity's name, its operational data and tags, and what
+ * someone wrote or did in Zabbix, with the same asWritten; and the step that
+ * moves a record writes the name of whoever acknowledged the problem the
+ * same way. They are held below beside the Jira and Dynamics 365 ones.
  *
  * The Jira and Dynamics 365 templates that bring the other system into
  * OneUptime write what people wrote there into Markdown: an incident's or an
@@ -39,19 +47,40 @@
  */
 
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
+import HuntressSeverity from "../../../Types/Huntress/HuntressSeverity";
+import {
+  HuntressIncidentReportEvent,
+  ParsedHuntressWebhook,
+  parseHuntressWebhook,
+} from "../../../Types/Huntress/HuntressWebhook";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ComponentID from "../../../Types/Workflow/ComponentID";
 import {
+  HuntressTriggerValue,
+  getHuntressTriggerEvent,
+  getHuntressTriggerValues,
+} from "../../../Types/Workflow/HuntressTrigger";
+import {
+  HUNTRESS_INCIDENT_TEMPLATE_ID,
+  HUNTRESS_TRIGGER_COMPONENT_ID,
   ONEUPTIME_SYNCED_FROM_DYNAMICS_MARKER,
   ONEUPTIME_SYNCED_FROM_JIRA_MARKER,
+  ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER,
+  ZabbixEventKind,
   getTemplateGraphSpec,
   getWorkflowTemplates,
 } from "../../../Types/Workflow/Templates";
+import { getHuntressReportPortalUrl } from "../../../Utils/Huntress/HuntressIncidentReportText";
 import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { decodeHtmlEntities } from "../../Helpers/HtmlText";
 import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
+import {
+  getHuntressClosedBody,
+  getHuntressCommentBody,
+  getHuntressIncidentReportBody,
+} from "../Huntress/HuntressWebhookFixtures";
 import {
   CASE_ID,
   CASE_NUMBER,
@@ -86,6 +115,13 @@ import {
   runJiraScript,
   scriptOf,
 } from "./JiraTemplateFixtures";
+import {
+  EVENT_ID as ZABBIX_EVENT_ID,
+  TRIGGER_ID as ZABBIX_TRIGGER_ID,
+  ZABBIX_URL,
+  runZabbixScript,
+  zabbixPostedBody,
+} from "./ZabbixTemplateFixtures";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
 import { Token, marked } from "marked";
 
@@ -113,6 +149,8 @@ const HELPER_SECTION: string =
 const STEP_SECTION: string = "\n// ---- What this step does ----\n";
 
 const ISSUE_URL: string = `${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}`;
+const PROBLEM_URL: string = `${ZABBIX_URL}/tr_events.php?triggerid=${ZABBIX_TRIGGER_ID}&eventid=${ZABBIX_EVENT_ID}`;
+const PROBLEM_LINK: string = `[problem ${ZABBIX_EVENT_ID}](${PROBLEM_URL})`;
 const ISSUE_LINK: string = `[${JIRA_ISSUE_KEY}](${ISSUE_URL})`;
 const CASE_URL: string = `${DYNAMICS_URL}/main.aspx?pagetype=entityrecord&etn=incident&id=${CASE_ID}`;
 
@@ -157,6 +195,8 @@ interface RecordKind {
     statusToState: string;
     noteToRecord: string;
   };
+  // The Zabbix template a problem, its recovery and its updates come to.
+  zabbix: string;
 }
 
 const INCIDENT: RecordKind = {
@@ -181,6 +221,7 @@ const INCIDENT: RecordKind = {
     statusToState: "dynamics-case-status-to-incident-state",
     noteToRecord: "dynamics-case-note-to-incident-private-note",
   },
+  zabbix: "zabbix-declare-incident-from-problem",
 };
 
 const ALERT: RecordKind = {
@@ -205,6 +246,7 @@ const ALERT: RecordKind = {
     statusToState: "dynamics-case-status-to-alert-state",
     noteToRecord: "dynamics-case-note-to-alert-private-note",
   },
+  zabbix: "zabbix-create-alert-from-problem",
 };
 
 const KINDS: Array<[string, RecordKind]> = [
@@ -542,14 +584,15 @@ interface ScriptStep {
   componentId: string;
 }
 
-// Every script step of every Jira and Dynamics 365 template.
+// Every script step of every Jira, Dynamics 365 and Zabbix template.
 function integrationScripts(): Array<ScriptStep> {
   const steps: Array<ScriptStep> = [];
 
   for (const template of getWorkflowTemplates()) {
     if (
       !template.id.startsWith("jira-") &&
-      !template.id.startsWith("dynamics-")
+      !template.id.startsWith("dynamics-") &&
+      !template.id.startsWith("zabbix-")
     ) {
       continue;
     }
@@ -583,19 +626,29 @@ function placingHelpersOf(code: string): string {
   return code.slice(start, end);
 }
 
-describe("the helpers every Jira and Dynamics 365 script starts with", () => {
+describe("the helpers every Jira, Dynamics 365 and Zabbix script starts with", () => {
   const scripts: Array<ScriptStep> = integrationScripts();
 
-  test("finds the Jira and the Dynamics 365 scripts", () => {
+  test("finds the Jira, the Dynamics 365 and the Zabbix scripts", () => {
     const templates: Set<string> = new Set(
       scripts.map((script: ScriptStep): string => {
         return script.templateId;
       }),
     );
 
-    // 17 Jira templates and 13 Dynamics 365 ones, each with one script or more.
-    expect(templates.size).toBe(30);
-    expect(scripts).toHaveLength(44);
+    /*
+     * 17 Jira templates, 13 Dynamics 365 ones and 6 Zabbix ones, each with
+     * one script or more: eight for each kind of Zabbix record, three in the
+     * template Zabbix sends its problems to and five in the two that call
+     * Zabbix.
+     */
+    expect(templates.size).toBe(36);
+    expect(scripts).toHaveLength(60);
+    expect(
+      scripts.filter((script: ScriptStep): boolean => {
+        return script.templateId.startsWith("zabbix-");
+      }),
+    ).toHaveLength(16);
   });
 
   test("every script carries the very same placing helpers, in its helper block", () => {
@@ -824,6 +877,11 @@ describe.each([
       componentId: ALERT.dynamics.prepare,
     },
   ],
+  [
+    "a Zabbix script",
+    runZabbixScript as typeof runJiraScript,
+    { templateId: INCIDENT.zabbix, componentId: "read-event-1" },
+  ],
 ])(
   "asWritten, as %s carries it",
   (_name: string, run: typeof runJiraScript, step: ScriptStep) => {
@@ -928,6 +986,16 @@ const PLACED_OUTPUTS: Array<string> = [
   "dynamics-case-status-to-alert-state decide-state-1 rootCause -> rootCause",
   "dynamics-case-note-to-incident-private-note read-note-1 note -> note",
   "dynamics-case-note-to-alert-private-note read-note-1 note -> note",
+  "zabbix-declare-incident-from-problem read-event-1 title -> title",
+  "zabbix-declare-incident-from-problem read-event-1 description -> description",
+  "zabbix-declare-incident-from-problem read-event-1 note -> note",
+  "zabbix-declare-incident-from-problem decide-state-1 rootCause -> rootCause",
+  "zabbix-declare-incident-from-problem decide-state-2 rootCause -> rootCause",
+  "zabbix-create-alert-from-problem read-event-1 title -> title",
+  "zabbix-create-alert-from-problem read-event-1 description -> description",
+  "zabbix-create-alert-from-problem read-event-1 note -> note",
+  "zabbix-create-alert-from-problem decide-state-1 rootCause -> rootCause",
+  "zabbix-create-alert-from-problem decide-state-2 rootCause -> rootCause",
 ];
 
 const DATA_OUTPUTS: Record<string, string> = {
@@ -943,6 +1011,33 @@ const DATA_OUTPUTS: Record<string, string> = {
   "alertId -> alertId": "an id read off a label or a link column",
   "stateId -> incidentStateId": "the id of one of the project's own states",
   "stateId -> alertStateId": "the id of one of the project's own states",
+  "eventId -> customFields.zabbixEventId":
+    "a Zabbix event ID, which the read step takes as digits only",
+};
+
+/*
+ * Every output a template writes into a record that its trigger handed it.
+ * The Huntress trigger places what came from Huntress before any step reads
+ * it (Utils/Huntress/HuntressIncidentReportText: names as text with mdText,
+ * the analyst's summary and comments as outside Markdown), checked below;
+ * the rest is data the trigger reads or works out.
+ */
+const HUNTRESS_TRIGGER: string = `${HUNTRESS_INCIDENT_TEMPLATE_ID} ${HUNTRESS_TRIGGER_COMPONENT_ID}`;
+
+const TRIGGER_PLACED_OUTPUTS: Array<string> = [
+  `${HUNTRESS_TRIGGER} incident-title -> title`,
+  `${HUNTRESS_TRIGGER} incident-description -> description`,
+  `${HUNTRESS_TRIGGER} note -> note`,
+  `${HUNTRESS_TRIGGER} note -> rootCause`,
+];
+
+const TRIGGER_DATA_OUTPUTS: Record<string, string> = {
+  [`${HUNTRESS_TRIGGER} incident-severity-id -> incidentSeverityId`]:
+    "the id of one of the project's own severities, which the trigger picks",
+  [`${HUNTRESS_TRIGGER} organization-label-id -> labels._id`]:
+    "the id of the project's label the trigger finds or makes",
+  [`${HUNTRESS_TRIGGER} report-id -> customFields.huntressReportId`]:
+    "the report's number, which the payload reader takes as digits only",
 };
 
 // A reference to another step's output: its component and the path of the value.
@@ -1044,6 +1139,16 @@ describe("every output a template writes into a record", () => {
           );
         }
 
+        const writtenByTrigger: string = `${entry.templateId} ${entry.component} ${entry.output} -> ${entry.column}`;
+
+        // What the trigger placed, or read, itself.
+        if (
+          TRIGGER_PLACED_OUTPUTS.includes(writtenByTrigger) ||
+          TRIGGER_DATA_OUTPUTS[writtenByTrigger] !== undefined
+        ) {
+          return false;
+        }
+
         // A record a find step read back from OneUptime.
         return entry.output !== "model._id";
       })
@@ -1065,6 +1170,22 @@ describe("every output a template writes into a record", () => {
       PLACED_OUTPUTS.filter((output: string): boolean => {
         return !writtenText.includes(output);
       }),
+    ).toEqual([]);
+  });
+
+  test("every trigger output these tests place or read is written by its template", () => {
+    const writtenByTriggers: Array<string> = written.map(
+      (entry: WrittenOutput): string => {
+        return `${entry.templateId} ${entry.component} ${entry.output} -> ${entry.column}`;
+      },
+    );
+
+    expect(
+      [...TRIGGER_PLACED_OUTPUTS, ...Object.keys(TRIGGER_DATA_OUTPUTS)].filter(
+        (output: string): boolean => {
+          return !writtenByTriggers.includes(output);
+        },
+      ),
     ).toEqual([]);
   });
 
@@ -1709,6 +1830,52 @@ interface Written {
 }
 
 /*
+ * A host name with markup in it, short enough that a title holding it and
+ * the outside line still fits the record's 500 characters.
+ */
+const HOSTILE_HOST: string =
+  "<@U0123ABC> ![h](https://tracker.example/h.png) <b>web-1</b> [run](https://evil.example)";
+
+// read-event-1 of a Zabbix template, given what the media type posted.
+async function readZabbixEvent(
+  kind: RecordKind,
+  body: JSONObject,
+): Promise<JSONObject> {
+  return await runZabbixScript({
+    templateId: kind.zabbix,
+    componentId: "read-event-1",
+    args: {
+      severities: quoted(kind.severities),
+      zabbixUrl: ZABBIX_URL,
+      payload: quoted(body),
+    },
+  });
+}
+
+// decide-state-2 of a Zabbix template, for an update that acknowledged the problem.
+async function causeFromZabbix(
+  kind: RecordKind,
+  user: string,
+): Promise<JSONObject> {
+  return await runZabbixScript({
+    templateId: kind.zabbix,
+    componentId: "decide-state-2",
+    args: {
+      [kind.noun]: quoted(kind.record),
+      states: quoted(kind.states),
+      zabbixUrl: ZABBIX_URL,
+      event: quoted({
+        kind: "update",
+        eventId: ZABBIX_EVENT_ID,
+        triggerId: ZABBIX_TRIGGER_ID,
+        target: "acknowledged",
+        user: user,
+      }),
+    },
+  });
+}
+
+/*
  * Every script that writes OneUptime text, given the outside text above in
  * every part that came from outside, for both kinds of record.
  */
@@ -1863,6 +2030,69 @@ async function writtenWithOutsideMarkup(): Promise<Array<Written>> {
       ].join("\n"),
       ownLinks: [CASE_URL],
     });
+
+    /*
+     * Zabbix: a problem's name, its host and its severity's name (an
+     * administrator can rename one), its operational data and its tags,
+     * what someone did in Zabbix and wrote with it, and their name.
+     */
+    const problem: JSONObject = await readZabbixEvent(
+      kind,
+      zabbixPostedBody({
+        name: HOSTILE_LINE,
+        host: HOSTILE_HOST,
+        severityName: HOSTILE_LINE,
+        opdata: HOSTILE_LINE,
+        tags: [{ tag: HOSTILE_LINE, value: HOSTILE_HOST }],
+      }),
+    );
+
+    written.push({
+      name: `${kind.noun} from a Zabbix problem: title`,
+      text: textOf(problem, "title"),
+      asTyped: `Zabbix: ${typedLine} on ${HOSTILE_HOST}`,
+      ownLinks: [],
+    });
+    written.push({
+      name: `${kind.noun} from a Zabbix problem: description`,
+      text: textOf(problem, "description"),
+      asTyped: [
+        `${kind.Created} from Zabbix ${PROBLEM_LINK}.`,
+        "",
+        `- Host: ${HOSTILE_HOST}`,
+        `- Severity in Zabbix: ${typedLine}`,
+        "- Started: 2026.10.18 10:15:00",
+        `- Operational data: ${typedLine}`,
+        `- Tags: ${typedLine}: ${HOSTILE_HOST}`,
+      ].join("\n"),
+      ownLinks: [PROBLEM_URL],
+    });
+
+    const updated: JSONObject = await readZabbixEvent(
+      kind,
+      zabbixPostedBody({
+        kind: ZabbixEventKind.Update,
+        updateAction: HOSTILE_LINE,
+        updateMessage: HOSTILE_TEXT,
+        updateUser: HOSTILE_LINE,
+      }),
+    );
+
+    written.push({
+      name: `${kind.noun} note from a Zabbix update`,
+      text: textOf(updated, "note"),
+      asTyped: `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: ${typedLine} updated Zabbix ${PROBLEM_LINK}: ${typedLine}.\n\n${HOSTILE_TEXT}`,
+      ownLinks: [PROBLEM_URL],
+    });
+
+    const acknowledged: JSONObject = await causeFromZabbix(kind, HOSTILE_LINE);
+
+    written.push({
+      name: `${kind.noun} state change from a Zabbix acknowledgment`,
+      text: textOf(acknowledged, "rootCause"),
+      asTyped: `${ONEUPTIME_SYNCED_FROM_ZABBIX_MARKER}: ${typedLine} acknowledged ${PROBLEM_LINK}.`,
+      ownLinks: [PROBLEM_URL],
+    });
   }
 
   return written;
@@ -1880,8 +2110,11 @@ describe("no text written from outside holds anything a renderer acts on", () =>
   });
 
   test("every script that writes OneUptime text is given markup in every part that came from outside", () => {
-    // Nine texts for each kind: two titles, two descriptions, three notes and two causes.
-    expect(written).toHaveLength(18);
+    /*
+     * Thirteen texts for each kind: three titles, three descriptions, four
+     * notes and three causes.
+     */
+    expect(written).toHaveLength(26);
   });
 
   test("each reads exactly as it was typed", () => {
@@ -1912,7 +2145,7 @@ describe("no text written from outside holds anything a renderer acts on", () =>
       written.map((entry: Written): string => {
         return entry.asTyped;
       }),
-      [ISSUE_URL, CASE_URL],
+      [ISSUE_URL, CASE_URL, PROBLEM_URL],
     );
 
     for (const reading of typed) {
@@ -1929,6 +2162,107 @@ describe("no text written from outside holds anything a renderer acts on", () =>
         return reading.dashboardImage && reading.dashboardDiagram;
       }).length,
     ).toBeGreaterThanOrEqual(6);
+  });
+});
+
+/* ------------------------------ Huntress -> OneUptime ------------------------------ */
+
+/*
+ * What the Huntress trigger hands its template to write, given the outside
+ * text above in every part of a report that came from outside: the
+ * subject, the summary, the organization's and the account's names, the
+ * platform, a comment and the status a report is closed with.
+ */
+function huntressEvent(body: JSONObject): HuntressIncidentReportEvent {
+  const parsed: ParsedHuntressWebhook = parseHuntressWebhook(body);
+
+  if (parsed.kind !== "incident-report") {
+    throw new Error(`Not an incident report: ${JSON.stringify(parsed)}`);
+  }
+
+  return parsed.event;
+}
+
+function huntressValues(event: HuntressIncidentReportEvent): JSONObject {
+  return getHuntressTriggerValues({
+    event: event,
+    triggerEvent: getHuntressTriggerEvent(event),
+    severity: HuntressSeverity.Critical,
+    receivedAt: new Date("2026-10-09T04:30:00.000Z"),
+  });
+}
+
+describe("no text a Huntress report brings holds anything a renderer acts on", () => {
+  const outside: JSONObject = {
+    subject: `CRITICAL - Incident on ${HOSTILE_LINE} (${HOSTILE_LINE})`,
+    summary: HOSTILE_TEXT,
+    organization: { id: 4, name: HOSTILE_LINE },
+    account: { id: 5, name: HOSTILE_LINE },
+    platform: HOSTILE_LINE,
+  };
+
+  const report: HuntressIncidentReportEvent = huntressEvent(
+    getHuntressIncidentReportBody(outside),
+  );
+  const comment: HuntressIncidentReportEvent = huntressEvent(
+    getHuntressCommentBody(HOSTILE_TEXT, outside),
+  );
+  const closed: HuntressIncidentReportEvent = huntressEvent(
+    getHuntressClosedBody({ ...outside, status: HOSTILE_LINE }),
+  );
+
+  const reportValues: JSONObject = huntressValues(report);
+  const ownLinks: Array<string> = [getHuntressReportPortalUrl(report) || ""];
+
+  const written: Array<[string, string]> = [
+    ["title", textOf(reportValues, HuntressTriggerValue.IncidentTitle)],
+    [
+      "description",
+      textOf(reportValues, HuntressTriggerValue.IncidentDescription),
+    ],
+    [
+      "the note of a comment",
+      textOf(huntressValues(comment), HuntressTriggerValue.Note),
+    ],
+    [
+      "the note of a close",
+      textOf(huntressValues(closed), HuntressTriggerValue.Note),
+    ],
+  ];
+
+  test("each part a text is made from was given outside markup", () => {
+    // So the check below is not passing on text that never held any.
+    for (const value of [
+      report.subject,
+      report.summary,
+      report.organization.name,
+      comment.comment,
+      closed.status,
+    ]) {
+      const reading: Reading = readingsOf([value || ""], [])[0]!;
+
+      expect({ value, acted: reading.tagStart || reading.images > 0 }).toEqual({
+        value,
+        acted: true,
+      });
+    }
+  });
+
+  test("marked, the dashboard and Slack read no HTML, image, diagram, mention or link that hides where it goes, and no '<' starts anything", () => {
+    const readings: Array<Reading> = readingsOf(
+      written.map((entry: [string, string]): string => {
+        return entry[1];
+      }),
+      ownLinks,
+    );
+
+    readings.forEach((reading: Reading, index: number): void => {
+      expect({ name: written[index]![0], ...reading }).toEqual({
+        name: written[index]![0],
+        text: reading.text,
+        ...NOTHING_ACTS,
+      });
+    });
   });
 });
 

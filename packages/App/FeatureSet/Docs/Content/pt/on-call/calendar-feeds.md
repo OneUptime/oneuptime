@@ -241,12 +241,12 @@ O feed mostra a rotação **como está configurada agora**, inclusive para os di
 - Os links são por projeto. Um link pessoal vazado expõe os turnos de um projeto, não de todos os projetos dos quais você faz parte.
 - Regenerar um link coloca o token antigo em um período de carência de 30 dias (calendário vazio, depois 404). **Desativar link** serve um calendário vazio. Um link desconhecido ou expirado responde com um 404 simples, sem pistas. Calendários vazios fazem os apps assinantes esvaziarem a cópia; um 404 faz com que a mantenham, por isso desativar e regenerar servem calendários vazios.
 - Os tokens são guardados com hash; a cópia mostrada na página de configurações é criptografada com `ENCRYPTION_SECRET`. Defina essa variável com um segredo de verdade em uma instalação auto-hospedada — o servidor avisa na inicialização quando ela não está definida ou ainda é um dos valores de exemplo que este repositório traz (`secret`, ou o `please-change-this-to-random-value` que o `config.example.env` define). Se você a mudar depois, a página oferece **Regenerar link** porque a cópia guardada não pode mais ser lida; o feed continua funcionando até você fazer isso.
-- As respostas dos feeds são marcadas com `Cache-Control: private`, excluídas dos buscadores (`X-Robots-Tag: noindex`) e têm limite de taxa por link e por endereço de cliente.
+- As respostas dos feeds são marcadas com `Cache-Control: private`, excluídas dos buscadores (`X-Robots-Tag: noindex`) e têm limite de taxa por link e por endereço de cliente, e por /64 IPv6 com dez vezes os limites de um endereço.
 
 O Nginx do próprio OneUptime mantém as requisições dos feeds fora dos logs:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;
@@ -319,7 +319,7 @@ Ou `DISABLE_ON_CALL_CALENDAR_FEED` está definido, ou o servidor está ocupado: 
 :::
 
 :::details 429 ou "muitas requisições"
-Muitos clientes atrás de um mesmo endereço — um NAT de escritório, um gateway de VPN — dividem o orçamento por endereço. Aumente `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` e confira `TRUSTED_PROXY_HOPS`: se ele estiver baixo demais, todo cliente é atribuído ao seu próprio proxy e todos dividem um único orçamento.
+Muitos clientes atrás de um mesmo endereço — um NAT de escritório, um gateway de VPN — dividem o orçamento por endereço. Os clientes de um mesmo /64 IPv6 também dividem dez vezes esse orçamento. Aumente `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` e confira `TRUSTED_PROXY_HOPS`: se ele estiver baixo demais, todo cliente é atribuído ao seu próprio proxy e todos dividem um único orçamento.
 :::
 
 :::details Erros de certificado no Calendário da Apple, no Thunderbird ou no Outlook

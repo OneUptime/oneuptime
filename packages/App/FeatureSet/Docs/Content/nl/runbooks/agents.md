@@ -13,15 +13,15 @@ Een **runbook-agent**, in het dashboard **Runner** genoemd, is een klein zelf ge
 
 ```mermaid title="Wat er over het netwerk gaat tussen een Runner en OneUptime"
 flowchart TB
-    subgraph yours["Uw infrastructuur"]
-        direction LR
-        runner["Runner-container"]
-        targets["Hosts, clusters, interne diensten"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker zet de stap in de wachtrij"]
         ingest["Runner-API"]
+    end
+    subgraph yours["Uw infrastructuur"]
+        direction LR
+        runner["Runner-container"]
+        targets["Hosts, clusters, interne diensten"]
     end
     worker --> ingest
     runner -->|"Uitgaand HTTPS, Runner-ID en sleutel"| ingest
@@ -133,10 +133,10 @@ Voor elke stap die op een Runner loopt, gelden twee time-outs:
 
 | Time-out | Standaard | Wat het regelt |
 | --- | --- | --- |
-| **Claim timeout** | 2 minuten | Hoe lang de Worker wacht tot de gekozen Runner de taak oppakt. Pakt de Runner hem niet op tijd op, dan mislukt de stap door een time-out en gaat het runbook verder (of stopt het, afhankelijk van **Doorgaan bij fout**). |
-| **Execution timeout** | 30 seconden | Hoe lang de Runner de stap laat lopen voordat hij hem stopt. Bash krijgt `SIGKILL`; de sandbox van JavaScript wordt afgebroken. |
+| **Time-out voor oppakken** | 2 minuten | Hoe lang de Worker wacht tot de gekozen Runner de taak oppakt. Pakt de Runner hem niet op tijd op, dan mislukt de stap door een time-out en gaat het runbook verder (of stopt het, afhankelijk van **Doorgaan bij fout**). |
+| **Uitvoeringstime-out** | 30 seconden | Hoe lang de Runner de stap laat lopen voordat hij hem stopt. Bash krijgt `SIGKILL`; de sandbox van JavaScript wordt afgebroken. |
 
-Beide zijn per stap in te stellen. Open **Runbooks › uw runbook › Stappen**, klap de stap uit en stel **Execution timeout** en **Claim timeout** (in seconden) in bij de instellingen ervan. Laat een veld leeg om de standaard te gebruiken. Elk accepteert 1 seconde tot 1 uur; waarden buiten dat bereik worden bij het uitvoeren van de stap begrensd.
+Beide zijn per stap in te stellen. Open **Runbooks › uw runbook › Stappen**, klap de stap uit en stel **Uitvoeringstime-out** en **Time-out voor oppakken** (in seconden) in bij de instellingen ervan. Laat een veld leeg om de standaard te gebruiken. Elk accepteert 1 seconde tot 1 uur; waarden buiten dat bereik worden bij het uitvoeren van de stap begrensd.
 
 Het totale wachtvenster van de Worker is `claim timeout + execution timeout + a few seconds`. Kies waarden die bij de stap passen.
 

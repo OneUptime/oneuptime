@@ -18,12 +18,12 @@ De MCP-server maakt deel uit van elke OneUptime-instantie, op `/mcp` op hetzelfd
 
 ```mermaid title="Hoe een client je project bereikt"
 flowchart TB
-    C["Je MCP-client:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP naar /mcp"| M["De MCP-server<br/>van OneUptime"]
+    C["Je MCP-client:<br/>Claude,<br/>Cursor,<br/>VS Code"] -->|"HTTP naar /mcp"| M["De MCP-server<br/>van OneUptime"]
     M --> W{"Hoe identificeert<br/>de client zich?"}
-    W -->|"hij heeft zich aangemeld"| P["Als jij, in het<br/>gekozen project"]
-    W -->|"een API-sleutel"| K["Als de sleutel, in<br/>het project ervan"]
-    W -->|"geen van beide"| U["Alleen tools voor<br/>openbare statuspagina's"]
-    P --> A["De API van OneUptime,<br/>met precies die<br/>machtigingen"]
+    W -->|"hij heeft<br/>zich aangemeld"| P["Als jij,<br/>in het<br/>gekozen<br/>project"]
+    W -->|"een API-sleutel"| K["Als de<br/>sleutel, in<br/>het project ervan"]
+    W -->|"geen van beide"| U["Alleen<br/>tools voor<br/>openbare<br/>statuspagina's"]
+    P --> A["De API van<br/>OneUptime,<br/>met precies die<br/>machtigingen"]
     K --> A
 ```
 
@@ -39,7 +39,7 @@ De server is stateless: hij geeft geen sessie-id's uit en elk verzoek staat op z
 - **Gepland onderhoud**: onderhoudsgebeurtenissen aanmaken en beheren.
 - **Telemetrie**: logs, metrieken, traces, uitzonderingen, monitorlogs, beveiligingsgebeurtenissen en meer opvragen, alleen lezen.
 
-Er zijn tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor 27 soorten records, tools om op te sommen en te tellen voor 9 soorten telemetrie, en tools speciaal voor incidentrespons. Alleen-lezen-tools hebben `readOnlyHint` en verwijdertools hebben `destructiveHint`, zodat een client veilige aanroepen zelf kan uitvoeren en je vóór destructieve aanroepen iets kan vragen. Een mislukte toolaanroep komt terug als toolresultaat (`isError: true`) met een `statusCode`, de details en een suggestie, niet als MCP-protocolfout, zodat de agent de fout kan lezen en zichzelf kan corrigeren.
+Er zijn tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor 27 soorten records, tools om op te sommen en te tellen voor 9 soorten telemetrie, en tools speciaal voor incidentrespons. Alleen-lezen-tools hebben `readOnlyHint`, elke tool die iets wijzigt heeft `destructiveHint`, en alleen de tools voor openbare statuspagina's hebben `openWorldHint`, zodat een client alleen-lezen-aanroepen zelf kan uitvoeren en je vóór elke wijziging iets kan vragen. Een mislukte toolaanroep komt terug als toolresultaat (`isError: true`) met een `statusCode`, de details en een suggestie, niet als MCP-protocolfout, zodat de agent de fout kan lezen en zichzelf kan corrigeren.
 
 ## Voordat je begint
 
@@ -111,7 +111,7 @@ Wat een gekoppelde client kan:
 
 ### Gekoppelde clients beheren
 
-Elke client die door aanmelden is gekoppeld, staat op **Projectinstellingen → AI → MCP-server**, onder **Connected MCP Clients**, met wie hem heeft gekoppeld, wat hij mag en wanneer hij voor het laatst is gebruikt. Je ziet de clients die je zelf hebt gekoppeld; eigenaren en beheerders van het project zien die van iedereen.
+Elke client die door aanmelden is gekoppeld, staat op **Projectinstellingen → AI → MCP-server**, onder **Verbonden MCP-clients**, met wie hem heeft gekoppeld, wat hij mag en wanneer hij voor het laatst is gebruikt. Je ziet de clients die je zelf hebt gekoppeld; eigenaren en beheerders van het project zien die van iedereen.
 
 Klik op **Disconnect** om een client af te melden. Hij werkt meteen niet meer.
 
@@ -195,6 +195,19 @@ De invoervariabele met `"password": true` vraagt om de sleutel wanneer de server
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

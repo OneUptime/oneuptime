@@ -193,7 +193,7 @@ const DISMISS_ROUTE: string = "/auto-remediation/dismiss";
 
 // What the approve route answers, word for word, while the project has AI off.
 const AI_DISABLED_REFUSAL: string =
-  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.";
+  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -590,7 +590,7 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
           .message;
         expect(message).toBe(AI_DISABLED_REFUSAL);
         // The switch lives on the page every install shows.
-        expect(message).toContain("Project Settings → AI Features");
+        expect(message).toContain("Project Settings → AI → AI Features");
         expect(message).not.toContain("AI Credits");
         // Neither retired switch is named any more.
         expect(message).not.toContain("auto-remediation");
@@ -812,11 +812,21 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
     }
 
     let statusSpy: jest.SpyInstance;
+    let mayChangeClusterSpy: jest.SpyInstance;
 
     beforeEach(() => {
       statusSpy = jest
         .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
         .mockResolvedValue(readyAgentStatus());
+
+      /*
+       * The approver may edit the cluster unless a test says otherwise:
+       * approving a kubectl plan takes an edit of every cluster it changes
+       * (KubernetesClusterAiAccessService.assertCallerMayChangeCluster).
+       */
+      mayChangeClusterSpy = jest
+        .spyOn(KubernetesClusterAiAccessService, "assertCallerMayChangeCluster")
+        .mockResolvedValue(undefined);
     });
 
     const ROUNDS: Array<[string, Partial<Record<string, unknown>>]> = [
@@ -842,6 +852,25 @@ describe("Auto-remediation CommandPlan approve/dismiss routes", () => {
         expect(statusSpy).toHaveBeenCalledTimes(1);
         // ...and the AI agent is not a Runner row, so no Runner was re-read.
         expect(runnerFindSpy).not.toHaveBeenCalled();
+        // The approver's own edit of the cluster was asked, once.
+        expect(mayChangeClusterSpy).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    test.each(ROUNDS)(
+      "%s is refused before anything is claimed when the approver may not edit its cluster",
+      async (_label: string, lane: Partial<Record<string, unknown>>) => {
+        mockSuggestion({ ...lane, commandPlan: kubectlPlanJson() });
+        mayChangeClusterSpy.mockRejectedValue(
+          new NotAuthorizedException(
+            "You do not have permission to edit this Kubernetes cluster, so you cannot approve an AI plan that changes it.",
+          ),
+        );
+
+        const result: RouteCallResult = await callRoute({ uri: APPROVE_ROUTE });
+
+        expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+        expectNoClaimAndNoExecution();
       },
     );
 

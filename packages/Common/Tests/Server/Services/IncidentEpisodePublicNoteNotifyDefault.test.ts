@@ -312,7 +312,7 @@ describe.each([
       ).toBe(StatusPageSubscriberNotificationStatus.Skipped);
     });
 
-    test("an explicit yes on a quiet episode is kept, without reading the episode", async () => {
+    test("an explicit yes on a quiet episode is kept: the episode is read once, only for whether it is private", async () => {
       mockEpisodeLookup(episodeWithFlag(false));
 
       const result: OnCreate<IncidentEpisodePublicNote> = await runBeforeCreate(
@@ -320,7 +320,7 @@ describe.each([
         buildProps(),
       );
 
-      expect(IncidentEpisodeService.findOneBy).not.toHaveBeenCalled();
+      expect(IncidentEpisodeService.findOneBy).toHaveBeenCalledTimes(1);
       expect(
         result.createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
       ).toBe(true);
@@ -329,7 +329,7 @@ describe.each([
       ).toBe(StatusPageSubscriberNotificationStatus.Pending);
     });
 
-    test("an explicit no on a notifying episode is kept, without reading the episode", async () => {
+    test("an explicit no on a notifying episode is kept: the episode is read once, only for whether it is private", async () => {
       mockEpisodeLookup(episodeWithFlag(true));
 
       const result: OnCreate<IncidentEpisodePublicNote> = await runBeforeCreate(
@@ -337,7 +337,7 @@ describe.each([
         buildProps(),
       );
 
-      expect(IncidentEpisodeService.findOneBy).not.toHaveBeenCalled();
+      expect(IncidentEpisodeService.findOneBy).toHaveBeenCalledTimes(1);
       expect(
         result.createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated,
       ).toBe(false);
@@ -503,12 +503,13 @@ describe("IncidentEpisodePublicNoteService onBeforeCreate episode lookup", () =>
     expect(episodeLookupQuery()).toEqual({ _id: EPISODE_ID.toString() });
   });
 
-  test("reads only the episode's notify setting", async () => {
+  test("reads only whether the episode is private and its notify setting", async () => {
     mockEpisodeLookup(episodeWithFlag(false));
 
     await runBeforeCreate(buildNote());
 
     expect(episodeLookup().select).toEqual({
+      isPrivate: true,
       shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
     });
   });
@@ -714,7 +715,8 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
         props: noteCreatorProps(),
       });
 
-    expect(IncidentEpisodeService.findOneBy).not.toHaveBeenCalled();
+    // Read once, for whether the episode is private: it is not.
+    expect(IncidentEpisodeService.findOneBy).toHaveBeenCalledTimes(1);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(true);
     expect(saved.subscriberNotificationStatusOnNoteCreated).toBe(
       StatusPageSubscriberNotificationStatus.Pending,
@@ -730,7 +732,8 @@ describe("IncidentEpisodePublicNoteService create() with the notify default", ()
         props: noteCreatorProps(),
       });
 
-    expect(IncidentEpisodeService.findOneBy).not.toHaveBeenCalled();
+    // Read once, for whether the episode is private: it is not.
+    expect(IncidentEpisodeService.findOneBy).toHaveBeenCalledTimes(1);
     expect(saved.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
       false,
     );

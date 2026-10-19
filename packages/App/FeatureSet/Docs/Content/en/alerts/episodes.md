@@ -64,10 +64,10 @@ Click **Create Custom Rule** under the templates, or **Create Alert Grouping Rul
 
 #### Narrow it down
 
-On **Which Alerts**, add conditions on monitors, severities, labels, titles and descriptions. Leave it empty to group every new alert. Then click **Create Alert Grouping Rule**.
+On **Which Alerts**, **All alerts**, where a new rule starts, groups every new alert. To narrow it down, pick **Only alerts that match conditions** and add conditions on monitors, severities, labels, titles and descriptions. Then click **Create Alert Grouping Rule**.
 :::
 
-Everything else a rule can do is folded under **More fields** at the end of the **Grouping** step, in three groups. Folded, its header names what it holds and shows each setting the rule uses as a chip, so editing a rule never hides what it does.
+Everything else a rule can do is folded under **More fields** at the end of the **Grouping** step, in three groups. Folded, its header names what it holds and says what each setting the rule uses is set to, so editing a rule never hides what it does.
 
 | Group                     | Settings                                                                                                   |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ An episode you create has no grouping rule, so the list shows its **Grouping Rul
 
 | Side menu section | Pages                                                              |
 | ----------------- | ------------------------------------------------------------------ |
-| **Basic**         | **Overview**, **Description**, **Root Cause**, **Remediation Notes** |
-| **Ownership**     | **Owners**                                                         |
-| **Timeline**      | **State Timeline**                                                 |
-| **Alerts**        | **Member Alerts**                                                  |
-| **Episode Notes** | **Private Notes**                                                  |
-| **Developer**     | **Terraform**, **API**, **AI Assistants**                          |
-| **Advanced**      | **Audit Logs**, **Delete Episode**                                 |
+| **Overview** | **Overview**, **State Timeline** |
+| **Investigation** | **Description**, **Root Cause**, **Remediation Notes** |
+| **Team** | **Owners** |
+| **Alerts** | **Member Alerts** |
+| **Notes** | **Private Notes** |
+| **Developer** | **Terraform**, **API**, **AI Assistants** |
+| **Advanced** | **Audit Logs**, **Delete Episode** |
 
-**Ownership**, **Developer** and **Advanced** start folded. The **Overview** leads with **Alerts in this episode**, then the **Episode Feed**, beside the **Episode Details** card: its number, state, severity, alert count, grouping rule and on-call policies. Its header has **Acknowledge** and **Resolve**, and **Move episode to** in the **⋯** menu.
+**Developer** and **Advanced** start folded. The **Overview** leads with **Alerts in this episode**, then the **Episode Feed**, beside the **Episode Details** card: its number, state, severity, alert count, grouping rule and on-call policies. Its header has **Acknowledge** and **Resolve**, and **Move episode to** in the **⋯** menu.
 
 **Alerts → Active Episodes** lists the episodes that are not resolved yet, and the badge beside it counts them.
 

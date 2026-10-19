@@ -100,26 +100,72 @@ describe("the repeats a policy allows", () => {
  * Everything that runs a policy, or tells people about a run, reads the
  * repeats through the helper and fetches the switch with the number: a
  * reader that fetched only the number would go back to repeating a policy
- * whose card says "Repeat disabled".
+ * whose card says "Stop paging".
  */
 describe("the readers of a run's repeats", () => {
-  const READERS: ReadonlyArray<string> = [
-    "App/FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+  /*
+   * What decides whether a run starts again, or says it will: moving a run
+   * on (OnCallEscalationAdvance, which the worker and a page passed on both
+   * use), what passing a page on would do, and the run's chat message.
+   */
+  const DECIDERS: ReadonlyArray<string> = [
+    "Common/Server/Utils/OnCall/OnCallEscalationAdvance.ts",
+    "Common/Server/Utils/OnCall/OnCallPagePassOn.ts",
     "Common/Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage.ts",
   ];
 
-  test.each(READERS)(
+  // What reads the run they are decided on: the switch, with the number.
+  const FETCHERS: ReadonlyArray<string> = [
+    "App/FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+    "Common/Server/Utils/OnCall/OnCallPagePassOn.ts",
+    "Common/Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage.ts",
+  ];
+
+  /*
+   * The dashboard's Repeat Policy card: the shared RepeatChoiceCard, drawn
+   * from the on-call policy's RepeatChoice config.
+   */
+  const REPEAT_CHOICE: string =
+    "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/RepeatChoice/RepeatChoice.ts";
+  const REPEAT_CHOICE_CARD: string =
+    "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/RepeatChoice/RepeatChoiceCard.tsx";
+
+  const READERS: ReadonlyArray<string> = Array.from(
+    new Set<string>([
+      ...DECIDERS,
+      ...FETCHERS,
+      REPEAT_CHOICE,
+      REPEAT_CHOICE_CARD,
+    ]),
+  );
+
+  test.each(DECIDERS)(
     "%s reads them through getOnCallPolicyRepeatsAllowed",
+    (file: string) => {
+      expect(readPackageFile(file)).toContain("getOnCallPolicyRepeatsAllowed(");
+    },
+  );
+
+  test.each(FETCHERS)(
+    "%s fetches the switch with the number",
     (file: string) => {
       const source: string = readPackageFile(file);
 
-      expect(source).toContain("getOnCallPolicyRepeatsAllowed(");
       expect(source).toContain("repeatPolicyIfNoOneAcknowledges: true,");
       expect(source).toContain(
         "repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,",
       );
     },
   );
+
+  test("the worker hands the run it read, policy settings and all, to the one way a run moves on", () => {
+    const worker: string = readPackageFile(
+      "App/FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+    );
+
+    expect(worker).toContain("OnCallEscalationAdvance.advance({");
+    expect(worker).toContain("run: executionLog,");
+  });
 
   test.each(READERS)(
     "%s never compares against the number on its own",
@@ -135,16 +181,48 @@ describe("the readers of a run's repeats", () => {
     },
   );
 
+  /*
+   * The card fetches the switch with the number and says what the pair does
+   * through ON_CALL_POLICY_REPEAT.getRepeatsAllowed, which is this helper,
+   * so it shows "Stop paging" exactly when a run would not start again.
+   * Tests/App/Dashboard/RepeatChoice.test.ts holds that reading against the
+   * helper for every switch and number.
+   */
   test("the dashboard's Repeat Policy card reads the switch as the switch, as the run now does", () => {
     const card: string = readPackageFile(
       "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/RepeatPolicy.tsx",
     );
+    const choice: string = readPackageFile(REPEAT_CHOICE);
+    const choiceCard: string = readPackageFile(REPEAT_CHOICE_CARD);
 
-    expect(card).toContain(
-      "const enabledAndHasCount: boolean = isEnabled && repeatCount > 0;",
+    expect(card).toContain("<RepeatChoiceCard<OnCallDutyPolicy>");
+    expect(card).toContain("config={ON_CALL_POLICY_REPEAT}");
+
+    const onCallStart: number = choice.indexOf(
+      "export const ON_CALL_POLICY_REPEAT",
     );
-    expect(card).toContain(
-      '"The policy runs once through all escalation levels. If no one acknowledges, escalation stops here."',
+    const onCallEnd: number = choice.indexOf(
+      "export const INCOMING_CALL_POLICY_REPEAT",
     );
+
+    expect(onCallStart).toBeGreaterThanOrEqual(0);
+    expect(onCallEnd).toBeGreaterThan(onCallStart);
+
+    const onCallConfig: string = choice.slice(onCallStart, onCallEnd);
+
+    expect(onCallConfig).toContain(
+      'repeat: "repeatPolicyIfNoOneAcknowledges",',
+    );
+    expect(onCallConfig).toContain(
+      'times: "repeatPolicyIfNoOneAcknowledgesNoOfTimes",',
+    );
+    expect(onCallConfig).toContain("return getOnCallPolicyRepeatsAllowed({");
+    expect(choice).toContain(
+      "return config.getRepeatsAllowed(asRecord(values)) > 0",
+    );
+
+    expect(choiceCard).toContain("[props.config.columns.repeat]: true,");
+    expect(choiceCard).toContain("[props.config.columns.times]: true,");
+    expect(choiceCard).toContain("getRepeatChoice(props.config, props.item)");
   });
 });

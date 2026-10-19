@@ -1,0 +1,33 @@
+{
+  "_comment": "Where each marketplace edition's images live, and what only that marketplace needs. The registries and IDs are the ones the marketplaces give OneUptime: replace a placeholder the moment the portal shows the real value, and record it in packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md. Set \"ready\" to true only once every value of that edition is the real one: until then the Marketplace Release workflow pushes and submits nothing to that marketplace.",
+  "aws": {
+    "ready": true,
+    "registry": "709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime",
+    "serviceAccountName": "oneuptime",
+    "productId": "prod-5ijwaqpun3coo"
+  },
+  "azure": {
+    "ready": true,
+    "registry": "oneuptimemarketplace.azurecr.io",
+    "repositoryPrefix": "oneuptime",
+    "applicationName": "com.oneuptime.enterprise",
+    "publisher": "HackerBay, Inc.",
+    "namespace": "oneuptime",
+    "offerId": "oneuptime-enterprise",
+    "planId": "enterprise",
+    "clusterExtensionType": "HackerBay.OneUptimeEnterprise",
+    "resourceGroup": "oneuptime-marketplace",
+    "bundleRepository": "com.oneuptime.enterprise"
+  },
+  "google-cloud": {
+    "ready": false,
+    "registry": "us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise",
+    "serviceName": "oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog"
+  },
+  "aws-eks-addon": {
+    "ready": true,
+    "registry": "709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime",
+    "productId": "prod-stb4grzn53gbw",
+    "sellerAlias": "oneuptime"
+  }
+}

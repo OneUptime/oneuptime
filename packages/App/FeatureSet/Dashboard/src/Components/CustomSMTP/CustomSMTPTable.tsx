@@ -19,6 +19,7 @@ import {
   PROJECT_SMTP_CONFIG_FORM_COLUMNS,
   getProjectSmtpConfigFormFields,
   getSmtpConfigFormSteps,
+  showsSmtpServerFields,
   withoutValuesGraphIgnores,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -111,11 +112,10 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
         cardProps={{
           title: "Custom SMTP Configs",
           description:
-            "If you need OneUptime to send emails through your SMTP Server, please enter the server details here.",
+            "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.",
         }}
         formSteps={SMTP_CONFIG_FORM_STEPS}
         name="Settings > Custom SMTP Config"
-        noItemsMessage={"No SMTP Server Configs found."}
         formFields={SMTP_CONFIG_FORM_FIELDS}
         // Port 587 to start from: the column has no default.
         createInitialValues={PROJECT_SMTP_CONFIG_CREATE_INITIAL_VALUES}
@@ -156,6 +156,15 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
             },
           },
         ]}
+        /*
+         * What tells the configs apart at a glance: the name, the server
+         * mail goes through (Microsoft Graph has none) and who it comes
+         * from. The transport, the sign-in and the description are in the
+         * config's Edit dialog.
+         */
+        selectMoreFields={{
+          transportType: true,
+        }}
         columns={[
           {
             field: {
@@ -166,36 +175,27 @@ const CustomSMTPTable: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
-              description: true,
-            },
-
-            title: "Description",
-            noValueMessage: "-",
-            type: FieldType.LongText,
-          },
-          {
-            field: {
-              transportType: true,
-            },
-            title: "Transport",
-            type: FieldType.Text,
-            noValueMessage: "SMTP",
-          },
-          {
-            field: {
               hostname: true,
             },
             title: "Server Host",
             type: FieldType.Text,
-            noValueMessage: "-",
+            // Microsoft Graph sends with no server of the config's own.
+            getElement: (item: ProjectSmtpConfig): ReactElement => {
+              if (
+                !showsSmtpServerFields(item, PROJECT_SMTP_CONFIG_FORM_COLUMNS)
+              ) {
+                return <span>Microsoft Graph</span>;
+              }
+
+              return <span>{item.hostname?.toString() || "-"}</span>;
+            },
           },
           {
             field: {
-              authType: true,
+              fromEmail: true,
             },
-            title: "Auth Type",
-            type: FieldType.Text,
-            noValueMessage: "Username/Password",
+            title: "From Email",
+            type: FieldType.Email,
           },
         ]}
       />

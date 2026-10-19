@@ -26,7 +26,7 @@ RESPONSE=$(curl -s -X POST "${ONEUPTIME_URL}/api/status-page/${RESOURCE_ID}/get-
     -H "Content-Type: application/json" \
     -H "Apikey: $TF_VAR_api_key" \
     -H "projectid: $TF_VAR_project_id" \
-    -d '{"select": {"_id": true, "name": true, "description": true, "pageTitle": true, "pageDescription": true, "isPublicStatusPage": true, "enableEmailSubscribers": true, "enableSmsSubscribers": true}}')
+    -d '{"select": {"_id": true, "name": true, "description": true, "pageTitle": true, "pageDescription": true, "isPublicStatusPage": true, "enableEmailSubscribers": true, "enableSmsSubscribers": true, "theme": true}}')
 
 # Check if response contains the resource
 API_ID=$(echo "$RESPONSE" | jq -r '._id // empty')
@@ -106,5 +106,16 @@ elif [ "$API_SMS_SUBSCRIBERS" != "$EXPECTED_SMS_SUBSCRIBERS" ]; then
 else
     echo "    ✓ enableSmsSubscribers matches: $API_SMS_SUBSCRIBERS"
 fi
+
+# A configuration that names no theme gets the provider's default, Light:
+# the page every status page was before the setting, so a configuration that
+# predates it never plans a change on a page it manages.
+API_THEME_RAW=$(echo "$RESPONSE" | jq '.theme')
+API_THEME=$(unwrap_value "$API_THEME_RAW")
+if [ "$API_THEME" != "Light" ]; then
+    echo "    ✗ FAILED: theme mismatch - Expected: 'Light', Got: '$API_THEME'"
+    exit 1
+fi
+echo "    ✓ theme is the provider's default: $API_THEME"
 
 echo "    ✓ All status page validations passed"

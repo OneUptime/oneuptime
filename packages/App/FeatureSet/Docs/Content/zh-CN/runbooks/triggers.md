@@ -16,12 +16,12 @@ flowchart TB
     subgraph starts["启动运行的是什么"]
         direction LR
         schedule["计划：到了某个时间"]
-        webhook["Webhook：向其 URL 发送 POST"]
+        webhook["Webhook：向其<br/>URL 发送 POST"]
     end
     schedule --> checks["Runbook 已开启且有步骤"]
     webhook --> checks
-    checks --> execution["执行，标记为 Schedule 或 Webhook"]
-    execution --> worker["OneUptime Worker 运行各步骤"]
+    checks --> execution["执行，标记为<br/>Schedule 或 Webhook"]
+    execution --> worker["OneUptime Worker<br/>运行各步骤"]
 ```
 
 触发器启动运行的方式与 **Run Now** 相同：这次运行执行 Runbook 当前的步骤，不关联任何事件、告警或计划维护事件。每次运行都会记录是什么启动了它。Runbook 的 **执行** 和 **运行手册 → 执行** 在 **触发者** 中显示这一点，并附上计划运行的预定时间或调用 Webhook 的地址，两个列表都可以按此筛选。
@@ -35,7 +35,7 @@ flowchart TB
 
 :::steps
 ### 打开 Runbook 的触发器页面
-从 **运行手册** 打开 Runbook，然后点击其菜单中的 **触发器**。
+从 **运行手册** 打开 Runbook，然后点击其侧边菜单中的 **设置 → 触发器**。 **设置** 默认是折叠的：点击它以显示 **触发器**。
 
 ### 设置计划
 点击 **设置计划**。在 **运行时间** 下选择 **重复** 以及它需要的内容。对话框会用一句话说出计划，例如“每个工作日 09:00 运行”，并在你修改时列出接下来的几次运行。
@@ -117,7 +117,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 | `404` | 此 URL 上没有 Runbook Webhook 应答：Runbook ID 或密钥错误，或者 URL 已被重置。 |
 | `405` | 请求是 `GET`。`GET` 永远不会启动运行，因此聊天应用中的链接预览不会意外运行它。 |
 | `413` | 正文大于 64 KB。 |
-| `429` | Webhook 在最近一分钟内启动了 30 次运行，它有 10 次运行仍在进行，或者某个地址在一分钟内调用 Runbook Webhook 超过 120 次。在可能的情况下，`Retry-After` 头会说明何时重试。 |
+| `429` | Webhook 在最近一分钟内启动了 30 次运行，它有 10 次运行仍在进行，或者某个地址在一分钟内调用 Runbook Webhook 超过 120 次，或者同一个 IPv6 /64 中的地址合计超过 1200 次。在可能的情况下，`Retry-After` 头会说明何时重试。 |
 | `503` | OneUptime 目前无法统计调用次数。请一分钟后重试。 |
 
 被拒绝的调用不会启动任何内容，其正文会用一句话说明原因，例如 "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

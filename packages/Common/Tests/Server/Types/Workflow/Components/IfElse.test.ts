@@ -274,7 +274,10 @@ describe("shapes workflows already have", () => {
 
   /*
    * Every If / Else the templates create, with each reference filled in the
-   * two ways a run can fill it: the branch must follow the values.
+   * two ways a run can fill it: the branch must follow the values. What
+   * meets a condition depends on its comparison: the same values meet is
+   * equal to and miss is not equal to, and a value meets is not empty that
+   * an empty one misses.
    */
   test("every template's If / Else follows its values", async () => {
     let checked: number = 0;
@@ -287,27 +290,61 @@ describe("shapes workflows already have", () => {
         }
 
         const args: JSONObject = { ...(node.args || {}) };
+        const operator: unknown = args["operator"];
         const isTrueFalse: boolean =
           args["input-2-type"] === ConditionValueType.Boolean;
 
-        // Met: the value to check is what it is compared with.
-        const matching: JSONObject = {
+        // The same values on both sides, and two different ones.
+        const same: JSONObject = {
           ...args,
           "input-1": isTrueFalse ? true : "same",
           "input-2": isTrueFalse ? args["input-2"] : "same",
         };
-        // Not met.
         const different: JSONObject = {
           ...args,
           "input-1": isTrueFalse ? false : "one",
           "input-2": isTrueFalse ? args["input-2"] : "other",
         };
 
+        let matching: JSONObject = same;
+        let missing: JSONObject = different;
+
+        if (operator === ConditionOperator.NotEqualTo) {
+          matching = different;
+          missing = same;
+        } else if (operator === ConditionOperator.IsNotEmpty) {
+          matching = { ...args, "input-1": "something" };
+          missing = { ...args, "input-1": "" };
+        } else if (operator === ConditionOperator.IsEmpty) {
+          matching = { ...args, "input-1": "" };
+          missing = { ...args, "input-1": "something" };
+        } else if (
+          operator === ConditionOperator.GreaterThanOrEqualTo ||
+          operator === ConditionOperator.GreaterThan ||
+          operator === ConditionOperator.LessThanOrEqualTo ||
+          operator === ConditionOperator.LessThan
+        ) {
+          // A number past the bound, on the side the comparison asks for, and one short of it.
+          const bound: number = Number(args["input-2"]);
+          const above: boolean =
+            operator === ConditionOperator.GreaterThanOrEqualTo ||
+            operator === ConditionOperator.GreaterThan;
+
+          matching = {
+            ...args,
+            "input-1": String(above ? bound + 1 : bound - 1),
+          };
+          missing = {
+            ...args,
+            "input-1": String(above ? bound - 1 : bound + 1),
+          };
+        }
+
         expect({ step: node.componentId, port: await run(matching) }).toEqual({
           step: node.componentId,
           port: "yes",
         });
-        expect({ step: node.componentId, port: await run(different) }).toEqual({
+        expect({ step: node.componentId, port: await run(missing) }).toEqual({
           step: node.componentId,
           port: "no",
         });

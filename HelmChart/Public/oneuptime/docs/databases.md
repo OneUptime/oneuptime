@@ -334,8 +334,12 @@ scaling and backups (via [clickhouse-backup](https://github.com/Altinity/clickho
 
 > **Bundled-operator notes.** The Altinity operator is cluster-scoped and owns
 > the ClickHouse CRDs. Do not enable it in more than one OneUptime release per
-> cluster. Tune the operator itself (including its management-user credentials)
-> under the top-level `altinity-clickhouse-operator:` values.
+> cluster. Tune the operator itself under the top-level
+> `altinity-clickhouse-operator:` values. The operator's own ClickHouse user,
+> `clickhouse_operator`, gets a random password on a new install, kept on
+> upgrade; an installation that already has one keeps it. See
+> [The operator's own password](../../../Docs/Clickhouse.md#the-operators-own-password)
+> to change it.
 
 ### External
 

@@ -55,6 +55,7 @@ import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "./UserWebAuthnService";
+import TwoFactorWrongCodes from "../Utils/TwoFactorWrongCodes";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { getPasswordValidationError } from "../../Types/Password";
@@ -102,15 +103,31 @@ const FIRST_MASTER_ADMIN_ELECTION_LOCK_TIMEOUT_MS: number = 10_000;
 const FIRST_MASTER_ADMIN_ELECTION_ACQUIRE_TIMEOUT_MS: number = 5_000;
 
 /*
- * How long one API node trusts its answer to "is this user blocked?".
- *
- * This bounds how long a block takes to reach a session that is already open
- * on ANOTHER node. The node that wrote the block drops its own entry at once
- * (onUpdateSuccess), and the block revokes every session, so a refresh token
- * is refused immediately everywhere; what this governs is the stateless
- * 15-minute access token, which would otherwise run to expiry.
+ * What the checks on every authenticated request read about an account:
+ * whether a master admin has blocked it, and whether it is a master admin
+ * itself now. One primary-key read answers both.
  */
-export const BLOCKED_USER_CACHE_TTL_MS: number = 60_000;
+export interface AccountStanding {
+  isBlocked: boolean;
+  isMasterAdmin: boolean;
+}
+
+/*
+ * How long one API node trusts what it read about an account
+ * (AccountStanding): whether it is blocked, and whether it is a master admin.
+ *
+ * This bounds how long a block, or removing someone's master admin access,
+ * takes to reach a session that is already open on ANOTHER node when that
+ * node is not told. The node that writes the change drops its own entry at
+ * once (onUpdateSuccess) and tells every other node (RealtimeAccessChanges,
+ * AccountChanged), which drop theirs; a node the message cannot reach answers
+ * as it last read for at most this long. A block also revokes every session,
+ * so a refresh token is refused immediately everywhere, and a renewed session
+ * says what its person is now; what this governs is the stateless 15-minute
+ * access token, which would otherwise run to expiry with what its person was
+ * when it was signed.
+ */
+export const ACCOUNT_STANDING_CACHE_TTL_MS: number = 60_000;
 
 export class Service extends DatabaseService<Model> {
   /*
@@ -121,20 +138,17 @@ export class Service extends DatabaseService<Model> {
     10_000,
   );
 
-  /*
-   * `isUserBlocked` answers, per node. Read with an explicit `undefined`
-   * check: a cached "not blocked" is `false` and must not look like a miss.
-   */
-  private blockedUserCache: InMemoryTTLCache<boolean> = new InMemoryTTLCache(
-    10_000,
-  );
+  // What getAccountStanding read, per node.
+  private accountStandingCache: InMemoryTTLCache<AccountStanding> =
+    new InMemoryTTLCache(10_000);
 
   /*
    * One lookup per user in flight. A dashboard load fires a burst of
    * concurrent requests, and without this a cold cache turns the burst into
    * the same number of identical queries.
    */
-  private blockedUserLookups: Map<string, Promise<boolean>> = new Map();
+  private accountStandingLookups: Map<string, Promise<AccountStanding>> =
+    new Map();
 
   public constructor() {
     super(Model);
@@ -143,7 +157,8 @@ export class Service extends DatabaseService<Model> {
   /**
    * Whether a master admin has blocked this user. For the checks that run on
    * every authenticated request (UserAuthorization, MasterAdminAuthorization),
-   * so it is cached per node for BLOCKED_USER_CACHE_TTL_MS.
+   * so it is read with whether they are a master admin (getAccountStanding)
+   * and cached per node for ACCOUNT_STANDING_CACHE_TTL_MS.
    *
    * The sign-in and refresh-token routes do NOT use this. They load the user
    * row anyway, and they are where a block has to take effect immediately, so
@@ -155,57 +170,101 @@ export class Service extends DatabaseService<Model> {
    */
   @CaptureSpan()
   public async isUserBlocked(userId: ObjectID): Promise<boolean> {
-    const key: string = userId.toString();
+    return (await this.getAccountStanding(userId)).isBlocked;
+  }
 
-    const cached: boolean | undefined = this.blockedUserCache.get(key);
+  /**
+   * Whether this user is a master admin now, as their account says. A
+   * session's access token says only what they were when it was signed, up
+   * to 15 minutes ago: another master admin may have removed the access
+   * since, and the session's next request is answered as they are now
+   * (UserAuthorization.readRequestSession).
+   *
+   * Read with whether they are blocked, by the same row read and from the
+   * same per-node cache, which a write to either column drops on every node.
+   * A user that does not exist is not a master admin.
+   */
+  @CaptureSpan()
+  public async isUserMasterAdmin(userId: ObjectID): Promise<boolean> {
+    return (await this.getAccountStanding(userId)).isMasterAdmin;
+  }
+
+  /*
+   * One primary-key read of what every authenticated request asks about an
+   * account, kept per node for ACCOUNT_STANDING_CACHE_TTL_MS. Rejects when
+   * the read fails: "we could not find out" is not an answer, and nothing
+   * about a failure is kept.
+   */
+  private async getAccountStanding(userId: ObjectID): Promise<AccountStanding> {
+    const key: string = this.getAccountStandingKey(userId);
+
+    const cached: AccountStanding | undefined =
+      this.accountStandingCache.get(key);
 
     if (cached !== undefined) {
       return cached;
     }
 
-    const inFlight: Promise<boolean> | undefined =
-      this.blockedUserLookups.get(key);
+    const inFlight: Promise<AccountStanding> | undefined =
+      this.accountStandingLookups.get(key);
 
     if (inFlight) {
       return inFlight;
     }
 
-    const lookup: Promise<boolean> = this.findOneById({
+    const lookup: Promise<AccountStanding> = this.findOneById({
       id: userId,
-      select: { isBlocked: true },
+      select: { isBlocked: true, isMasterAdmin: true },
       props: { isRoot: true },
     })
-      .then((user: Model | null): boolean => {
-        const isBlocked: boolean = Boolean(user?.isBlocked);
+      .then((user: Model | null): AccountStanding => {
+        const standing: AccountStanding = {
+          isBlocked: Boolean(user?.isBlocked),
+          isMasterAdmin: user?.isMasterAdmin === true,
+        };
 
         /*
-         * Only cached if this lookup is still the current one. A block written
-         * while it was on the wire clears the slot (forgetBlockedStatus), and
-         * the answer this lookup read may predate that write.
+         * Only cached if this lookup is still the current one. A change
+         * written while it was on the wire clears the slot
+         * (forgetAccountStanding), and the answer this lookup read may
+         * predate that write.
          */
-        if (this.blockedUserLookups.get(key) === lookup) {
-          this.blockedUserCache.set(key, isBlocked, BLOCKED_USER_CACHE_TTL_MS);
+        if (this.accountStandingLookups.get(key) === lookup) {
+          this.accountStandingCache.set(
+            key,
+            standing,
+            ACCOUNT_STANDING_CACHE_TTL_MS,
+          );
         }
 
-        return isBlocked;
+        return standing;
       })
       .finally((): void => {
-        if (this.blockedUserLookups.get(key) === lookup) {
-          this.blockedUserLookups.delete(key);
+        if (this.accountStandingLookups.get(key) === lookup) {
+          this.accountStandingLookups.delete(key);
         }
       });
 
-    this.blockedUserLookups.set(key, lookup);
+    this.accountStandingLookups.set(key, lookup);
 
     return lookup;
   }
 
-  // Drops this node's cached answer, so the next request reads the row.
-  public forgetBlockedStatus(userId: ObjectID): void {
-    const key: string = userId.toString();
+  // Drops what this node read about the account, so the next request reads the row.
+  public forgetAccountStanding(userId: ObjectID): void {
+    const key: string = this.getAccountStandingKey(userId);
 
-    this.blockedUserCache.delete(key);
-    this.blockedUserLookups.delete(key);
+    this.accountStandingCache.delete(key);
+    this.accountStandingLookups.delete(key);
+  }
+
+  /*
+   * One account, one entry: the database compares ids without regard to
+   * case, so an id written in capitals names the same account - and a write
+   * to it must drop what was read under either spelling.
+   */
+  private getAccountStandingKey(userId: ObjectID): string {
+    return userId.toString().toLowerCase();
   }
 
   /**
@@ -578,13 +637,26 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  // A deleted account's live updates end at once, on every server.
+  /*
+   * A deleted account's live updates end at once, on every server. So does
+   * whatever a server read about it: an account that is gone is no master
+   * admin, and the access token of a session it already had answers its
+   * next request as no master admin's - not when the minute a server keeps
+   * what it read (ACCOUNT_STANDING_CACHE_TTL_MS) runs out.
+   */
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
     for (const userId of itemIdsBeforeDelete) {
+      this.forgetAccountStanding(userId);
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.AccountChanged,
+        userId: userId.toString(),
+      });
+
       RealtimeAccessChanges.announce({
         kind: RealtimeAccessChangeKind.SessionsEnded,
         userId: userId.toString(),
@@ -638,6 +710,29 @@ export class Service extends DatabaseService<Model> {
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
     /*
+     * Blocked or unblocked, made or no longer a master admin: this server
+     * forgets what it read about them at once, so their next request here -
+     * with the session they already hold - is answered as they are now
+     * (UserAuthorization.readRequestSession reads both). The other servers
+     * are told below.
+     *
+     * Hook-only, like the revocations below: a write made with
+     * `ignoreHooks: true` is seen here only when ACCOUNT_STANDING_CACHE_TTL_MS
+     * runs out.
+     */
+    const changesStanding: boolean = Boolean(
+      onUpdate &&
+        (onUpdate.updateBy.data.isBlocked !== undefined ||
+          onUpdate.updateBy.data.isMasterAdmin !== undefined),
+    );
+
+    if (changesStanding) {
+      for (const userId of updatedItemIds) {
+        this.forgetAccountStanding(userId);
+      }
+    }
+
+    /*
      * A block has to end the sessions the user already holds, not only stop
      * the next sign-in. Revoking them makes /refresh-token refuse at once; the
      * access token already in the browser is refused by UserAuthorization,
@@ -651,8 +746,6 @@ export class Service extends DatabaseService<Model> {
      */
     if (onUpdate && onUpdate.updateBy.data.isBlocked !== undefined) {
       for (const userId of updatedItemIds) {
-        this.forgetBlockedStatus(userId);
-
         if (onUpdate.updateBy.data.isBlocked) {
           await UserSessionService.revokeAllSessionsByUserId(userId, {
             reason: "User blocked",
@@ -672,15 +765,11 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * Blocked or unblocked, made or no longer a server admin: every server
-     * forgets what it held for them - whether they are blocked, and who
-     * they are in each project for live updates - so the next request and
-     * the next live update read them as they are now.
+     * forgets what it held for them - whether they are blocked or a master
+     * admin, and who they are in each project for live updates - so the next
+     * request and the next live update read them as they are now.
      */
-    if (
-      onUpdate &&
-      (onUpdate.updateBy.data.isBlocked !== undefined ||
-        onUpdate.updateBy.data.isMasterAdmin !== undefined)
-    ) {
+    if (changesStanding) {
       for (const userId of updatedItemIds) {
         RealtimeAccessChanges.announce({
           kind: RealtimeAccessChangeKind.AccountChanged,
@@ -698,6 +787,15 @@ export class Service extends DatabaseService<Model> {
         await UserSessionService.revokeAllSessionsByUserId(user.id!, {
           reason: "Password changed",
         });
+
+        /*
+         * A new password ends any wait for wrong two factor codes. Whoever
+         * entered them held the old password, which no longer signs anybody
+         * in; the owner, who just set the new one, signs in at once. Every
+         * way a password changes comes through here: the reset link, the
+         * profile page and a master admin's Set Password.
+         */
+        await TwoFactorWrongCodes.forget(user.id!);
 
         // password changed, send password changed mail
         MailService.sendMail({
@@ -1365,6 +1463,13 @@ export class Service extends DatabaseService<Model> {
     await UserSessionService.revokeAllSessionsByUserId(user.id!, {
       reason: "Two factor auth reset by admin",
     });
+
+    /*
+     * And the wrong codes entered against the authenticators that are gone:
+     * a reset is how an administrator lets somebody in again, so it must not
+     * leave them waiting behind codes for an app they no longer have.
+     */
+    await TwoFactorWrongCodes.forget(user.id!);
 
     logger.info(
       `Two factor auth reset by a master admin for user: ${user.id!.toString()}`,

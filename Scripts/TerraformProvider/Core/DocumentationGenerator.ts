@@ -59,6 +59,19 @@ const MODULES_SOURCE_DIR: string = path.join(
   "modules",
 );
 
+// The on-call layer page's guide to its JSON attributes, and what links to it.
+const ON_CALL_SCHEDULE_LAYER_GUIDE: {
+  resource: string;
+  title: string;
+  anchor: string;
+  attributes: Array<string>;
+} = {
+  resource: "on_call_schedule_layer",
+  title: "Rotation and restriction times",
+  anchor: "rotation-and-restriction-times",
+  attributes: ["rotation", "restriction_times"],
+};
+
 export class DocumentationGenerator {
   private config: TerraformProviderConfig;
   private spec: OpenAPISpec;
@@ -728,12 +741,201 @@ ${renamedNote}
 \`\`\`terraform
 ${this.generateResourceExample(resource, block)}
 \`\`\`
-
+${this.getResourceGuide(resource)}
 ## Schema
 
-${this.renderSchema(block.attributes)}
+${this.renderSchema(this.withGuideLinks(resource, block.attributes))}
 
 ${importSection}`;
+  }
+
+  /*
+   * The prose a page carries between its example and its schema, for
+   * attributes whose JSON shape the API's schema does not describe. Empty for
+   * every other page, which keeps its layout byte for byte.
+   */
+  private getResourceGuide(resource: TerraformResource): string {
+    if (resource.name === ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
+      return `\n${this.getOnCallScheduleLayerGuide()}\n`;
+    }
+
+    return "";
+  }
+
+  // The schema lines of the attributes a page's guide covers point at it.
+  private withGuideLinks(
+    resource: TerraformResource,
+    attributes: Record<string, SchemaDumpAttribute>,
+  ): Record<string, SchemaDumpAttribute> {
+    if (resource.name !== ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
+      return attributes;
+    }
+
+    const linked: Record<string, SchemaDumpAttribute> = { ...attributes };
+
+    for (const name of ON_CALL_SCHEDULE_LAYER_GUIDE.attributes) {
+      const attr: SchemaDumpAttribute | undefined = linked[name];
+      if (attr) {
+        linked[name] = {
+          ...attr,
+          description: `${(attr.description || "").trim()} See [${ON_CALL_SCHEDULE_LAYER_GUIDE.title}](#${ON_CALL_SCHEDULE_LAYER_GUIDE.anchor}).`,
+        };
+      }
+    }
+
+    return linked;
+  }
+
+  /*
+   * What a layer's rotation and restriction times look like. Both are JSON,
+   * and the API's schema says nothing of their shape, so readers worked them
+   * out by trial and error - and one key is spelled restictionType
+   * (OneUptime/terraform-provider-oneuptime#11). The fragments here are not
+   * validated, so each repeats a shape the page's example applies.
+   */
+  private getOnCallScheduleLayerGuide(): string {
+    return `<a id="${ON_CALL_SCHEDULE_LAYER_GUIDE.anchor}"></a>
+## ${ON_CALL_SCHEDULE_LAYER_GUIDE.title}
+
+\`rotation\` and \`restriction_times\` take JSON: write them with \`jsonencode()\`, in the shapes below. The provider checks every \`_type\` and timestamp in them at plan time.
+
+Both are optional. Left out, a layer hands off every week and is on call around the clock (OneUptime 14.0.73 and later; earlier versions refuse a layer without them).
+
+### Rotation
+
+How long each turn lasts. The first hand-off is at \`hand_off_time\`, and the duty moves on to the next person every rotation after that.
+
+\`\`\`terraform
+rotation = jsonencode({
+  _type = "Recurring"
+  value = {
+    intervalType  = "Week" # Hour, Day, Week, Month or Year
+    intervalCount = { _type = "PositiveNumber", value = 1 }
+  }
+})
+\`\`\`
+
+\`intervalCount\` is a whole number, 1 or more: with \`value = 2\` and \`intervalType = "Week"\`, the duty hands off every two weeks.
+
+### Restriction times
+
+When the layer is on call. \`restictionType\` is the key's real name, without the second "r": the server ignores a key spelled any other way.
+
+- \`None\`: around the clock.
+
+  \`\`\`terraform
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = { restictionType = "None" }
+  })
+  \`\`\`
+
+- \`Daily\`: the same hours every day. Only the time of day of \`startTime\` and \`endTime\` counts, and a window that ends before it starts runs past midnight.
+
+  \`\`\`terraform
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = {
+      restictionType = "Daily"
+      dayRestrictionTimes = {
+        startTime = { _type = "DateTime", value = "2026-01-05T09:00:00Z" }
+        endTime   = { _type = "DateTime", value = "2026-01-05T17:00:00Z" }
+      }
+    }
+  })
+  \`\`\`
+
+- \`Weekly\`: windows in the week. A window runs from its \`startTime\` to its \`endTime\`, and both the weekday and the time of day count: date each one on the weekday you mean, and name those weekdays in \`startDay\` and \`endDay\`. A window is continuous, so Monday 09:00 to Friday 17:00 includes the nights in between. For working hours, give each day a window of its own, as the example above does. A window that ends earlier in the week than it starts runs over the weekend:
+
+  \`\`\`terraform
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = {
+      restictionType = "Weekly"
+      weeklyRestrictionTimes = [{
+        startDay  = "Friday"
+        endDay    = "Monday"
+        startTime = { _type = "DateTime", value = "2026-01-09T17:00:00Z" } # a Friday
+        endTime   = { _type = "DateTime", value = "2026-01-12T09:00:00Z" } # the Monday after
+      }]
+    }
+  })
+  \`\`\`
+
+A time is \`{ _type = "DateTime", value = "<RFC 3339 timestamp>" }\`, with or without fractional seconds. It is a wall-clock time in the schedule's \`timezone\`: write it with the offset that time zone has on that date, as in \`2026-01-05T09:00:00-05:00\` for 09:00 in New York. A schedule without a \`timezone\` reads times in the server's time zone.`;
+  }
+
+  /*
+   * A layer's rotation and restriction times, applied: weekday working hours
+   * with a weekly hand-off, above a layer that covers the rest of the week.
+   */
+  private getOnCallScheduleLayerExample(): string {
+    const provider: string = this.config.providerName;
+
+    return `# Weekdays, 09:00 to 17:00. Times are wall-clock times in the schedule's
+# timezone; these are for a schedule in UTC.
+resource "${provider}_on_call_schedule_layer" "example" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.example.id
+  name                            = "Business hours"
+  description                     = "Weekdays, 09:00 to 17:00"
+  order                           = 1 # Lower wins: this layer is on call in its hours.
+  starts_at                       = "2026-01-05T09:00:00Z"
+  hand_off_time                   = "2026-01-12T09:00:00Z"
+
+  # The next person takes over every week.
+  rotation = jsonencode({
+    _type = "Recurring"
+    value = {
+      intervalType  = "Week"
+      intervalCount = { _type = "PositiveNumber", value = 1 }
+    }
+  })
+
+  # One window a day, each dated on its weekday (2026-01-05 is a Monday).
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = {
+      restictionType = "Weekly"
+      weeklyRestrictionTimes = [
+        for day, date in {
+          Monday    = "2026-01-05"
+          Tuesday   = "2026-01-06"
+          Wednesday = "2026-01-07"
+          Thursday  = "2026-01-08"
+          Friday    = "2026-01-09"
+          } : {
+          startDay  = day
+          endDay    = day
+          startTime = { _type = "DateTime", value = "\${date}T09:00:00Z" }
+          endTime   = { _type = "DateTime", value = "\${date}T17:00:00Z" }
+        }
+      ]
+    }
+  })
+}
+
+# Nights and weekends: on call around the clock, below the business-hours
+# layer, so it covers every hour that layer does not.
+resource "${provider}_on_call_schedule_layer" "around_the_clock" {
+  on_call_duty_policy_schedule_id = ${provider}_on_call_policy_schedule.example.id
+  name                            = "Nights and weekends"
+  order                           = 2
+  starts_at                       = "2026-01-05T09:00:00Z"
+  hand_off_time                   = "2026-01-06T09:00:00Z"
+
+  rotation = jsonencode({
+    _type = "Recurring"
+    value = {
+      intervalType  = "Day"
+      intervalCount = { _type = "PositiveNumber", value = 1 }
+    }
+  })
+
+  restriction_times = jsonencode({
+    _type = "RestrictionTimes"
+    value = { restictionType = "None" }
+  })
+}`;
   }
 
   /*
@@ -747,6 +949,10 @@ ${importSection}`;
   ): string {
     if (resource.name === "monitor" && resource.schema["monitor_steps"]) {
       return this.getMonitorExample();
+    }
+
+    if (resource.name === ON_CALL_SCHEDULE_LAYER_GUIDE.resource) {
+      return this.getOnCallScheduleLayerExample();
     }
 
     const provider: string = this.config.providerName;

@@ -25,11 +25,11 @@ Sie schreiben ein Runbook als geordnete Liste von Schritten auf seiner Seite **S
 
 ### Das Runbook erstellen
 
-Klicken Sie auf **Runbook erstellen**, geben Sie einen **Name** und optional eine **Beschreibung** dessen ein, wofür das Runbook gedacht ist. Unter **Weitere Felder** liegen der Schalter **Aktiviert**, standardmäßig an, und **Beschriftungen**. Das neue Runbook erscheint in der Liste: Öffnen Sie es.
+Klicken Sie auf **Runbook erstellen**, geben Sie einen **Name** und optional eine **Beschreibung** dessen ein, wofür das Runbook gedacht ist. Unter **Weitere Felder** liegen der Schalter **Aktiviert**, standardmäßig an, und **Beschriftungen**. Das neue Runbook öffnet sich auf seiner Seite **Schritte**.
 
 ### Schritte hinzufügen
 
-Gehen Sie zu **Schritte**. Unter **Ihr Runbook beginnen** wählen Sie den Typ des ersten Schritts; unter dem letzten Schritt bietet **Weiteren Schritt hinzufügen** dieselben sieben Typen an. Jeder Schritt öffnet sich mit seinem **Titel**, seiner **Beschreibung** (Markdown, für die reagierende Person sichtbar) und den Einstellungen seines Typs. Sobald das Runbook einen Schritt hat, fügt **Schritt hinzufügen** oben auf der Karte einen Manual-Schritt hinzu.
+Unter **Ihr Runbook beginnen** wählen Sie den Typ des ersten Schritts; unter dem letzten Schritt bietet **Weiteren Schritt hinzufügen** dieselben sieben Typen an. Jeder Schritt öffnet sich mit seinem **Titel**, seiner **Beschreibung** (Markdown, für die reagierende Person sichtbar) und den Einstellungen seines Typs. Sobald das Runbook einen Schritt hat, fügt **Schritt hinzufügen** oben auf der Karte einen Manual-Schritt hinzu.
 
 ### Die Schritte ordnen
 
@@ -188,14 +188,14 @@ KI-Schritte werden wie jede andere KI-Funktion gemessen und abgerechnet. Der Sch
 
 ```mermaid title="Was nach einem automatisierten Schritt passiert"
 flowchart TB
-    run["Automatisierter Schritt läuft"] --> ok{"Erfolgreich?"}
-    ok -->|"ja"| approval{"Genehmigung erforderlich an?"}
-    approval -->|"ja"| wait["Lauf wartet auf die Zustimmung einer Person"]
+    run["Automatisierter<br/>Schritt läuft"] --> ok{"Erfolgreich?"}
+    ok -->|"ja"| approval{"Genehmigung<br/>erforderlich an?"}
+    approval -->|"ja"| wait["Lauf wartet auf<br/>die Zustimmung<br/>einer Person"]
     approval -->|"nein"| next["Nächster Schritt läuft"]
     wait --> next
-    ok -->|"nein"| cont{"Bei Fehler fortfahren an?"}
+    ok -->|"nein"| cont{"Bei Fehler<br/>fortfahren an?"}
     cont -->|"ja"| next
-    cont -->|"nein"| failed["Lauf stoppt und ist fehlgeschlagen"]
+    cont -->|"nein"| failed["Lauf stoppt und<br/>ist fehlgeschlagen"]
 ```
 
 Standardmäßig hält ein fehlschlagender Schritt den Lauf an und markiert die Ausführung als `Failed`, mit dem Fehler des Schritts als Grund. Mit **Bei Fehler fortfahren** wird der Fehler aufgezeichnet und der nächste Schritt läuft, was zu Runbooks nach dem Muster „diese drei Dinge versuchen, dann benachrichtigen“ passt. **Genehmigung erforderlich** greift, nachdem ein Schritt gelungen ist: Der Lauf wartet an diesem Schritt, bis jemand auf **Genehmigen & fortfahren** oder **Überspringen** klickt.

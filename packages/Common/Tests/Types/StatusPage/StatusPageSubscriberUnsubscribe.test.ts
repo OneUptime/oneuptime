@@ -9,13 +9,15 @@ import { describe, expect, test } from "@jest/globals";
 
 /*
  * The unsubscribe link every subscriber notification carries,
- * {statusPageUrl}/unsubscribe/{subscriberId}-{token}, and the credential the
- * status page's unsubscribe page reads back out of it.
+ * {statusPageUrl}/unsubscribe/{subscriberId}-{token}, the manage link that
+ * carries the same credential, {statusPageUrl}/update-subscription/
+ * {subscriberId}-{token}, and the credential the status page's two pages read
+ * back out of them.
  *
  * The id and the token travel as ONE path segment so the status page's
  * SensitiveUrlToken bootstrap - which strips exactly one segment after
- * "unsubscribe" - takes both out of the address bar. These pin the shape the
- * builder, the page and the bootstrap all rely on.
+ * "unsubscribe" or "update-subscription" - takes both out of the address bar.
+ * These pin the shape the builders, the pages and the bootstrap all rely on.
  */
 
 const SUBSCRIBER_ID: string = "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d";
@@ -95,13 +97,78 @@ describe("StatusPageSubscriberUnsubscribe links", () => {
     expect(link).not.toContain("update-subscription");
   });
 
-  test("the manage link is the subscriber's Update Subscription page", () => {
+  test("the manage link is the subscriber's Update Subscription page, with the same credential", () => {
+    expect(StatusPageSubscriberUnsubscribe.MANAGE_PAGE_ROUTE_SEGMENT).toBe(
+      "update-subscription",
+    );
+
     expect(
       StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
         statusPageUrl: "https://status.acme.com",
         subscriberId: new ObjectID(SUBSCRIBER_ID),
+        unsubscribeToken: TOKEN,
       }).toString(),
-    ).toBe(`https://status.acme.com/update-subscription/${SUBSCRIBER_ID}`);
+    ).toBe(
+      `https://status.acme.com/update-subscription/${SUBSCRIBER_ID}-${TOKEN}`,
+    );
+  });
+
+  test("the manage link's last segment is exactly the unsubscribe link's credential", () => {
+    const manage: string =
+      StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
+        statusPageUrl: "https://status.acme.com",
+        subscriberId: SUBSCRIBER_ID.toUpperCase(),
+        unsubscribeToken: TOKEN,
+      }).toString();
+    const unsubscribe: string = StatusPageSubscriberUnsubscribe.buildLink({
+      statusPageUrl: "https://status.acme.com",
+      subscriberId: SUBSCRIBER_ID.toUpperCase(),
+      unsubscribeToken: TOKEN,
+    }).toString();
+
+    const lastSegment: (link: string) => string = (link: string): string => {
+      return link.split("/").pop() || "";
+    };
+
+    expect(lastSegment(manage)).toBe(lastSegment(unsubscribe));
+    expect(
+      StatusPageSubscriberUnsubscribe.parseCredential(lastSegment(manage)),
+    ).toEqual({ subscriberId: SUBSCRIBER_ID, token: TOKEN });
+  });
+
+  test("a manage link on a page without a custom domain keeps its /status-page/{id} prefix", () => {
+    const statusPageUrl: string =
+      "https://oneuptime.acme.com/status-page/11111111-1111-4111-8111-111111111111";
+
+    expect(
+      StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
+        statusPageUrl: URL.fromString(statusPageUrl),
+        subscriberId: SUBSCRIBER_ID,
+        unsubscribeToken: TOKEN,
+      }).toString(),
+    ).toBe(`${statusPageUrl}/update-subscription/${SUBSCRIBER_ID}-${TOKEN}`);
+  });
+
+  test("without a token the manage link carries only the id - the page's expired link state", () => {
+    for (const token of [undefined, null, "", "not-a-token"]) {
+      expect(
+        StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
+          statusPageUrl: "https://status.acme.com",
+          subscriberId: SUBSCRIBER_ID,
+          unsubscribeToken: token,
+        }).toString(),
+      ).toBe(`https://status.acme.com/update-subscription/${SUBSCRIBER_ID}`);
+    }
+  });
+
+  test("an SMS carries the same link as every other channel: there is no SMS-only link any more", () => {
+    expect(
+      Object.getOwnPropertyNames(StatusPageSubscriberUnsubscribe).filter(
+        (name: string): boolean => {
+          return name.toLowerCase().includes("sms");
+        },
+      ),
+    ).toEqual([]);
   });
 });
 
@@ -279,11 +346,43 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials", () => {
     ).toBe(`/unsubscribe/${SUBSCRIBER_ID.toUpperCase()}-[redacted]`);
   });
 
-  test("leaves everything else alone: manage links, out-of-date links, other hex", () => {
+  test("replaces the token of a manage link too, and keeps the id", () => {
+    const built: string =
+      StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
+        statusPageUrl: "https://status.acme.com",
+        subscriberId: new ObjectID(SUBSCRIBER_ID),
+        unsubscribeToken: TOKEN,
+      }).toString();
+
+    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
+      `You can manage your subscription here: ${built}`,
+    );
+
+    expect(result).toBe(
+      `You can manage your subscription here: https://status.acme.com/update-subscription/${SUBSCRIBER_ID}-[redacted]`,
+    );
+    expect(result).not.toContain(TOKEN);
+  });
+
+  test("a message with both links keeps neither token", () => {
+    const manage: string = `https://oneuptime.acme.com/status-page/${SUBSCRIBER_ID}/update-subscription/${SUBSCRIBER_ID}-${TOKEN}`;
+
+    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
+      `Manage: ${manage} Unsubscribe: ${link}`,
+    );
+
+    expect(result).toBe(
+      `Manage: https://oneuptime.acme.com/status-page/${SUBSCRIBER_ID}/update-subscription/${SUBSCRIBER_ID}-[redacted] Unsubscribe: ${redacted}`,
+    );
+    expect(result).not.toContain(TOKEN);
+  });
+
+  test("leaves everything else alone: links with no token, other pages, other hex", () => {
     const untouched: string = [
       `https://status.acme.com/update-subscription/${SUBSCRIBER_ID}`,
       `https://status.acme.com/unsubscribe/${SUBSCRIBER_ID}`,
       `https://status.acme.com/incidents/${SUBSCRIBER_ID}-${TOKEN}`,
+      `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}-${TOKEN}`,
       TOKEN,
     ].join(" ");
 
@@ -300,42 +399,158 @@ describe("StatusPageSubscriberUnsubscribe.redactCredentials", () => {
       );
     }
   });
-});
 
-describe("StatusPageSubscriberUnsubscribe.buildSmsLink", () => {
-  const unsubscribeUrl: string = StatusPageSubscriberUnsubscribe.buildLink({
-    statusPageUrl: "https://status.acme.com",
-    subscriberId: new ObjectID(SUBSCRIBER_ID),
-    unsubscribeToken: TOKEN,
-  }).toString();
+  /*
+   * A visitor who signs up by text is texted the link that confirms the
+   * subscription, and the SMS log keeps the text: its code is the whole of
+   * what confirms it, so it is kept out of the log as a token is.
+   */
+  const confirmation: string = `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=482913`;
+  const confirmationRedacted: string = `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=[redacted]`;
 
-  function smsLink(isPublicStatusPage: boolean | null | undefined): string {
-    return StatusPageSubscriberUnsubscribe.buildSmsLink({
-      isPublicStatusPage: isPublicStatusPage,
-      statusPageUrl: "https://status.acme.com",
-      subscriberId: new ObjectID(SUBSCRIBER_ID),
-      unsubscribeUrl: unsubscribeUrl,
-    });
-  }
-
-  test("a public page's SMS keeps the manage link, which works there without signing in", () => {
-    expect(smsLink(true)).toBe(
-      `https://status.acme.com/update-subscription/${SUBSCRIBER_ID}`,
+  test("replaces the code of a link that confirms a subscription, and keeps the id", () => {
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `Confirm your subscription to Acme Status by text message within 24 hours. Not you? Ignore this and you will not be subscribed. ${confirmation}`,
+      ),
+    ).toBe(
+      `Confirm your subscription to Acme Status by text message within 24 hours. Not you? Ignore this and you will not be subscribed. ${confirmationRedacted}`,
     );
   });
 
-  test("which is 57 characters shorter than the token link - an SMS is billed by the segment", () => {
-    expect(unsubscribeUrl.length - smsLink(true).length).toBe(57);
+  test("a confirmation link on the page's own address, or run into more text, is caught too", () => {
+    const ownAddress: string = `https://oneuptime.acme.com/status-page/${SUBSCRIBER_ID}/confirm-subscription/${SUBSCRIBER_ID}?verification-token=000123`;
+
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `${ownAddress} and ${confirmation}xyz`,
+      ),
+    ).toBe(
+      `https://oneuptime.acme.com/status-page/${SUBSCRIBER_ID}/confirm-subscription/${SUBSCRIBER_ID}?verification-token=[redacted] and ${confirmationRedacted}xyz`,
+    );
   });
 
+  test("a message with every kind of link keeps no credential", () => {
+    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
+      `${confirmation} ${link}`,
+    );
+
+    expect(result).toBe(`${confirmationRedacted} ${redacted}`);
+    expect(result).not.toContain("482913");
+    expect(result).not.toContain(TOKEN);
+  });
+
+  test("replaces a code of 32 hex characters, the shape of the codes minted now, whole", () => {
+    const code: string = "9f86d081884c7d659a2feaa0c55ad015";
+    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
+      `Confirm: https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=${code}`,
+    );
+
+    expect(result).toBe(`Confirm: ${confirmationRedacted}`);
+    expect(result).not.toContain(code.slice(0, 6));
+    expect(result).not.toContain(code.slice(-6));
+  });
+
+  test("a code in capitals is caught too, and the text after it is kept", () => {
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=9F86D081884C7D659A2FEAA0C55AD015 - Acme`,
+      ),
+    ).toBe(`${confirmationRedacted} - Acme`);
+  });
+
+  test("leaves a confirmation link with no code, or a code of another page's query, alone", () => {
+    const untouched: string = [
+      `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}`,
+      `https://status.acme.com/confirm-subscription/${SUBSCRIBER_ID}?verification-token=`,
+      `https://status.acme.com/incidents/${SUBSCRIBER_ID}?verification-token=482913`,
+      `https://status.acme.com/confirm-subscription/not-an-id?verification-token=482913`,
+    ].join(" ");
+
+    expect(StatusPageSubscriberUnsubscribe.redactCredentials(untouched)).toBe(
+      untouched,
+    );
+  });
+});
+
+/*
+ * The pattern runs over text people outside OneUptime wrote - an incident's
+ * title in an SMS, a custom template's subject - so it must take time in line
+ * with the text, never with its square. Its worst cases: text that starts a
+ * link at every position and never finishes one.
+ */
+describe("StatusPageSubscriberUnsubscribe.redactCredentials on long text", () => {
+  const LENGTH: number = 400000;
+
   test.each([
-    ["a private page", false],
-    ["a page whose visibility was not read", undefined],
-    ["a page whose visibility is empty", null],
+    ["route segments with no id", "/unsubscribe/".repeat(LENGTH / 13)],
+    [
+      "manage route segments with no id",
+      "/update-subscription/".repeat(Math.ceil(LENGTH / 21)),
+    ],
+    [
+      "ids with a token one character short",
+      `/update-subscription/${SUBSCRIBER_ID}-${TOKEN.slice(0, 63)} `.repeat(
+        Math.ceil(LENGTH / 122),
+      ),
+    ],
+    [
+      "ids run into one another",
+      `/unsubscribe/${SUBSCRIBER_ID}-`.repeat(Math.ceil(LENGTH / 50)),
+    ],
+    ["hex alone", "a".repeat(LENGTH)],
+    [
+      "confirmation route segments with no id",
+      "/confirm-subscription/".repeat(Math.ceil(LENGTH / 22)),
+    ],
+    [
+      "confirmation links with no code, run into one another",
+      `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=`.repeat(
+        Math.ceil(LENGTH / 78),
+      ),
+    ],
+    ["digits alone", "7".repeat(LENGTH)],
   ])(
-    "%s gets the token link: a manage page may need a signed-in visitor",
-    (_label: string, isPublicStatusPage: boolean | null | undefined) => {
-      expect(smsLink(isPublicStatusPage)).toBe(unsubscribeUrl);
+    "%s: answered in well under two seconds",
+    (_label: string, text: string) => {
+      const startedAt: number = Date.now();
+
+      const result: string =
+        StatusPageSubscriberUnsubscribe.redactCredentials(text);
+
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(result).toBe(text);
     },
   );
+
+  test("a confirmation link whose code runs on: the code's 64 characters go, the rest is kept, in well under two seconds", () => {
+    const startedAt: number = Date.now();
+    const result: string = StatusPageSubscriberUnsubscribe.redactCredentials(
+      `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=${"f".repeat(LENGTH)}`,
+    );
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(result).toBe(
+      `/confirm-subscription/${SUBSCRIBER_ID}?verification-token=[redacted]${"f".repeat(LENGTH - 64)}`,
+    );
+  });
+
+  test("a long text full of real links: every token goes, in well under two seconds", () => {
+    const manage: string = `/update-subscription/${SUBSCRIBER_ID}-${TOKEN} `;
+    const unsubscribe: string = `/unsubscribe/${SUBSCRIBER_ID}-${TOKEN} `;
+    const text: string = `${manage}${unsubscribe}`.repeat(
+      Math.ceil(LENGTH / (manage.length + unsubscribe.length)),
+    );
+
+    const startedAt: number = Date.now();
+    const result: string =
+      StatusPageSubscriberUnsubscribe.redactCredentials(text);
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(result).not.toContain(TOKEN);
+    expect(result).toContain(
+      `/update-subscription/${SUBSCRIBER_ID}-[redacted]`,
+    );
+    expect(result).toContain(`/unsubscribe/${SUBSCRIBER_ID}-[redacted]`);
+  });
 });

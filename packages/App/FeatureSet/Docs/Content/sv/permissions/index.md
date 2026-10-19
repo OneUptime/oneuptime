@@ -12,14 +12,14 @@ Allt i OneUptime finns inuti ett **projekt**. Vem som får göra vad i projektet
 ```mermaid title="Så får en person och en API-nyckel åtkomst"
 flowchart TB
     User["En användare<br/>(ett konto)"]
-    Key["En API-nyckel"]
     subgraph Project["Ett projekt"]
         direction TB
+        Key["En API-nyckel"]
         Team["Team"]
-        Allow["Tillåtna behörigheter,<br/>var och en med en omfattning:<br/>Alla, Ägda eller Etiketter"]
-        Block["Blockerade behörigheter,<br/>som alltid vinner"]
-        KeyRules["Nyckelns egna tillåtna<br/>och blockerade behörigheter"]
-        Resources["Övervakare, incidenter,<br/>statussidor och mer"]
+        Allow["Tillåtna<br/>behörigheter,<br/>var och en med<br/>en omfattning:<br/>Alla, Ägda<br/>eller Etiketter"]
+        Block["Blockerade<br/>behörigheter,<br/>som alltid<br/>vinner"]
+        KeyRules["Nyckelns<br/>egna tillåtna<br/>och blockerade<br/>behörigheter"]
+        Resources["Övervakare,<br/>incidenter,<br/>statussidor<br/>och mer"]
     end
     User -->|"medlem i"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"når"| Resources
     KeyRules -->|"når"| Resources
     Block -.->|"tar bort"| Resources
+    Allow ~~~ Block
 ```
 
 | Begrepp | Vad det är |
@@ -37,6 +38,7 @@ flowchart TB
 | Team | En namngiven grupp i ett projekt som bär behörigheter. |
 | Teammedlem | En användare som har bjudits in till ett team och accepterat. |
 | Behörighet | En enskild förmåga, t.ex. `CreateProjectMonitor`, eller en roll som samlar många, t.ex. `MonitorAdmin`. |
+| Anpassad roll | En uppsättning behörigheter som du namnger en gång och ger till team. |
 | Omfattning | Hur långt en tillåten behörighet når: alla resurser, bara ägda eller bara etiketterade. |
 | Ägare | En användare eller ett team som har markerats som ansvarig för en viss resurs. |
 | Etikett | En märkning du sätter på resurser, som används för att begränsa behörigheter och för att organisera. |
@@ -57,6 +59,7 @@ En användare är "i" ett projekt när hen är medlem i **minst ett team** i det
 - Inbjudningar skapar en väntande teammedlem. Användaren räknas som projektmedlem — och får någon behörighet alls — **först efter att ha accepterat inbjudan.**
 - **Bjud in användare** börjar på projektets medlemsteam: teamet som har `ProjectMember` för hela projektet, alltså **Members** om du inte har döpt om det. Välj ett annat team för att ge personen mer eller mindre åtkomst. Inget är valt när du själv inte skulle få bjuda in till det teamet — att bjuda in någon lämnar vidare teamets behörigheter, och du kan bara lämna vidare behörigheter som du själv har — eller när projektet inte har något sådant team. Administratörspanelen börjar på samma team överallt där en administratör av instansen lägger till någon i ett projekt: **Bjud in användare** på ett projekt, **Lägg till i projekt** på en användare och på flera användare samtidigt, och projekten som är kopplade till en [global SSO-leverantör](/docs/identity/global-sso).
 - Tar du bort en användare från alla team i ett projekt förlorar hen åtkomsten till projektet från sin nästa begäran — även medan hen är inloggad. Kontot och hens andra projekt påverkas inte. Hen tas bort från projektets jourscheman, eskaleringsregler och åsidosättningar, från rollerna i dess öppna incidenter och episoder och från ägarna av dess resurser; lösta incidenter behåller uppgiften om vem som ägde och ledde dem.
+- Tar du bort någons åtkomst som huvudadministratör i Admin Dashboard på en självhostad installation förlorar hen den från sin nästa begäran — även medan hen är inloggad. Hen förblir inloggad och behåller de projekt hen är medlem i.
 - Den som lämnar ett projekt får inte längre dess aviseringar. Personens egna aviseringsmetoder, -regler och -inställningar för projektet tas bort tillsammans med det sista teamet — e-post, SMS, samtal, WhatsApp, Telegram, push, webhook, Slack och Microsoft Teams, e-postsammanfattningen och det ännu inte skickade e-postmeddelandet, numret för inkommande samtal och jourpåminnelserna —, så den som går med igen börjar från standardinställningarna. Det som fortfarande nämner personen, till exempel användaren som en regel för inkommande samtal ringer eller en ägare som behålls på en löst incident, aviserar inte längre personen: ingenting skickas för ett projekts räkning till någon som inte är medlem, och en väntande inbjudan är ännu inget medlemskap. De ställena visar **Inte längre medlem** bredvid namnet, så att du kan sätta in någon annan. Den som är inbjuden och inte har accepterat än visar i stället **Inbjudan inte accepterad än**. Om en åsidosättning skickar någons larm vidare till en person som har lämnat projektet larmas i stället den som åsidosättningen täcker. Att lämna projektet kopplar också bort de MCP-klienter som personen har anslutit till projektet, och personens personliga länk till jourkalendern visar därefter en tom kalender. På OneUptime Cloud bekräftar den som kommer tillbaka via projektets enkel inloggning (SSO) den på nytt från sin e-postkorg.
 - Om projektet kräver SSO och en användare ännu inte autentiserat sig via identitetsleverantören behandlas hen som obehörig SSO-användare och ser ingenting förrän det skett. Se [SSO](/docs/identity/sso).
 - Med SCIM konfigurerat kan din identitetsleverantör skapa, uppdatera och ta bort användare och deras teammedlemskap automatiskt. Se [SCIM](/docs/identity/scim).
@@ -132,6 +135,24 @@ Det här är också nycklarna du använder när du skapar API-nycklar, och de so
 
 Hela listan finns i [Behörighetsreferensen](/docs/permissions/reference).
 
+### Anpassade roller
+
+En anpassad roll är en uppsättning behörigheter som du namnger en gång och ger till team: till exempel en "Incidenthanterare" med `IncidentMember`, `AlertMember` och `OnCallViewer`, eller en "Teamledare". Varje team du ger den till får samma behörigheter, och du ändrar dem för alla de teamen på ett ställe. På OneUptime Cloud kräver anpassade roller Scale-planen, liksom att ändra ett teams behörigheter.
+
+:::steps
+1. Öppna **Team** i menyn **Produkter**, under **Inställningar**. Fäll ut **Inställningar** i sidomenyn, välj **Roller** och klicka på **Skapa Anpassad roll**.
+2. Skriv dess **Namn** och välj under **Behörigheter** de inbyggda roller den samlar, för varje resurs i projektet. Beskrivningen finns under **Fler fält**.
+3. Skapa rollen. Den öppnas på sin sida, där **Lägg till roll** lägger till ytterligare en inbyggd roll och **Lägg till behörighet** (i kortets meny **⋯**) en enstaka behörighet, var och en med omfattning och etiketter, som på ett team.
+4. Klicka på **Ge till ett team** under **Team med den här rollen**. Ett teams sida **Behörigheter** har också **Lägg till anpassad roll**, och **Skapa team** erbjuder under **Åtkomst** de anpassade roller du skulle kunna ge.
+:::
+
+- Ett teams medlemmar får varje behörighet i teamets anpassade roller, med samma omfattning och samma etiketter, precis som om teamet hade dem själv. En blockering på teamet vinner fortfarande.
+- En roll förblir kopplad till de team som har den: en ändring av den når alla direkt, och rollens sida säger hur många team och personer det är. **Ta bort** tar rollen från ett team. Tar du bort själva rollen förlorar varje team som har den dess behörigheter; teamen behåller sina medlemmar och sina andra roller och behörigheter.
+- Du kan bara lägga i en roll, och ge ett team som roll, det du kunde ha gett teamet direkt: en roll med en behörighet som du inte har med samma eller en bredare omfattning avvisas, och avvisningen namnger behörigheten. En roll innehåller aldrig `ProjectOwner`, och **Owners** och **Admin** får aldrig någon.
+- Ett teams sida **Behörigheter** visar dess anpassade roller ovanför dess egna behörigheter. Vad en roll ger ändras på rollens sida, inte på teamets.
+- API-nycklar tar inte anpassade roller. En nyckel tjänar en enda integration, så ge den exakt de behörigheter den behöver på dess egen sida.
+- De inbyggda rollerna listas under **Inbyggda roller**, längst ned på sidan **Roller**.
+
 ### Tillåt och blockera
 
 Varje team har två listor:
@@ -171,11 +192,11 @@ Varje tillåten behörighet ges med en omfattning, vald under **Omfattning** nä
 
 | Omfattning | Betydelse |
 | --- | --- |
-| Alla resurser i projektet | Standard. Behörigheten gäller för alla matchande resurser. |
-| Ägda av det här teamet eller dess medlemmar | Behörigheten gäller bara resurser där det här teamet, eller den agerande användaren, står som ägare. |
-| Begränsa efter etiketter (avancerat) | Behörigheten gäller bara resurser som bär minst en av de valda etiketterna. |
+| Alla resurser i projektet | Standard, och det de flesta team behöver. Behörigheten gäller för alla matchande resurser. |
+| Bara resurser som de äger | Behörigheten gäller bara resurser som den agerande personen, eller ett av deras team, äger. |
+| Bara resurser med vissa etiketter | Behörigheten gäller bara resurser som bär minst en av de valda etiketterna. |
 
-**Ägda** är det enklaste sättet att bygga en modell där "ni sköter era egna tjänster": ge ett team `MonitorAdmin` med omfattningen Ägda och gör sedan teamet till ägare av de övervakare det ansvarar för. Det smalnar bara av resurser som faktiskt kan ha ägare — övervakare, incidenter, instrumentpaneler, tjänster och liknande. Projektkonfiguration (incidenttillstånd, etiketter, själva teamen) har ingen ägare, så en roll med omfattningen Ägda beter sig normalt där.
+**Ägda** är det enklaste sättet att bygga en modell där "ni sköter era egna tjänster": ge ett team `MonitorAdmin` med omfattningen Ägda och gör sedan teamet till ägare av de övervakare det ansvarar för. Det smalnar av varje resurs som kan ha ägare — övervakare, incidenter, instrumentpaneler, tjänster, monitorgrupper, jourscheman och liknande — och det som hör till dem, som lagren i ett jourschema. Sonder, Runners, AI-agenter, jourscheman och incident- och underhållsmallar är det som andra resurser ställs in med, så en behörighet med omfattningen Ägda läser fortfarande alla, och du kan välja vilken som helst av dem; den ändrar och tar bara bort dem som du eller dina team äger. En Runners nyckel, som låter den som har den uppträda som Runnern, visas bara på de Runners som du eller dina team äger. Projektkonfiguration (incidenttillstånd, etiketter, själva teamen) har ingen ägare, så en roll med omfattningen Ägda beter sig normalt där.
 
 **Etiketter** är den mer manuella varianten av samma idé: märk resurser och ge sedan behörigheter som är begränsade till de märkningarna.
 
@@ -196,7 +217,7 @@ En ägare är en användare eller ett team som är kopplat till en viss resurs. 
 
 Ägarskap i sig ger ingenting. Att äga en övervakare ger inte rätt att redigera den om inte något av dina team också har en övervakarbehörighet. Ägarskap smalnar av åtkomst; det vidgar den aldrig.
 
-Vem som äger en resurs läses genom resursen. Ägarna till en övervakare eller till någon annan resurs visas, läses, läggs till och tas bort bara av någon som får läsa resursen, och en behörighet för enbart ägare når inte ägarna till någon resurs som du inte får läsa.
+Vem som äger en resurs läses genom resursen. Ägarna till en övervakare eller till någon annan resurs visas, läses, läggs till och tas bort bara av någon som får läsa resursen, och en behörighet för enbart ägare når inte ägarna till någon resurs som du inte får läsa. Att lägga till och ta bort ägare håller sig också till omfattningen av den behörighet som tillåter det: med omfattningen `Owned` når den bara de resurser som du eller något av dina team redan äger, hur många fler du än får läsa, så att du får läsa en övervakare låter dig inte göra dig själv till dess ägare. En ägare läggs till eller tas bort, men flyttas aldrig till en annan resurs.
 
 ## Etiketter
 
@@ -302,7 +323,7 @@ Upplösta behörigheter cachas per användare och projekt och uppdateras när te
 
 **Ett team som bara tittar.** Skapa teamet med **Tittare** under **Åtkomst**. För bara vissa områden väljer du **Välj behörigheter senare** och lägger till de områdesvisa `*Viewer`-rollerna som teamet ska se.
 
-**Jouringenjörer som sköter sina egna tjänster.** Ge teamet `MonitorAdmin`, `IncidentMember` och `OnCallMember` med omfattningen **Ägda**, och lägg sedan till teamet som ägare av övervakarna det driver.
+**Jouringenjörer som sköter sina egna tjänster.** Ge teamet `MonitorAdmin`, `IncidentMember` och `OnCallMember` med omfattningen **Ägda**, och lägg sedan till teamet som ägare av övervakarna, jourpolicyerna och jourschemana det driver. Det som dess personer skapar med dessa behörigheter äger de redan.
 
 **Konsulter som hålls borta från produktion.** Ge teamet de roller det behöver med omfattningen **Alla**, och lägg sedan till en **blockerad behörighet** (under **Fler inställningar** på teamets sida Behörigheter) för de känsliga förmågorna, begränsad till etiketten `Production`.
 

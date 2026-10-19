@@ -67,7 +67,7 @@ Klikk på **Bruk mal**, velg en under **Velg mal** i dialogen **Bruk obduksjonsm
 
 Klikk på **Generate with AI**. Dialogen **Generate Postmortem with AI** tilbyr en disposisjon under **Velg mal**: **Standard Postmortem**, **Detailed Technical Postmortem** eller **Brief Postmortem**, og deretter dine egne maler for etteranalyse. **Template Preview** viser disposisjonen, og du kan endre den før du genererer.
 
-Klikk på **Generate with AI** nederst i dialogen. OneUptime AI leser hendelsen (beskrivelsen, rotårsaken og utbedringen, statustidslinjen, de offentlige og private notatene og meldingene i hendelsens Slack- eller Microsoft Teams-kanal) og skriver etteranalysen etter disposisjonen din. Deretter åpnes editoren med resultatet.
+Klikk på **Generate with AI** nederst i dialogen. OneUptime AI leser hendelsen (beskrivelsen, rotårsaken og utbedringen, statustidslinjen, de offentlige og private notatene, meldingene i hendelsens Slack- eller Microsoft Teams-kanal og det som ble sagt i [samtalene](/docs/workspace-connections/video-calls#transkripsjoner-av-samtaler)) og skriver etteranalysen etter disposisjonen din. Deretter åpnes editoren med resultatet.
 
 Å generere krever at KI er slått på for prosjektet, under **Prosjektinnstillinger → KI → AI Features**, og en LLM-leverandør: se [LLM-leverandører](/docs/ai/llm-provider). Det krever også rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident: andre roller kan skrive etteranalysen, men ikke generere den.
 
@@ -78,6 +78,7 @@ Med **Skriv utkast til etteranalyse når en hendelse er løst** slått på skriv
 - Den erstatter aldri et notat som allerede er skrevet.
 - Den skriver aldri i en etteranalyse som allerede er publisert, der utkastet ville nå statussiden uten gjennomgang.
 - Den krever at KI er slått på for prosjektet, og stopper for dagen så snart prosjektet når de daglige KI-grensene sine. Se [Automatisk etteranalyse](/docs/ai/ai-sre#automatisk-etteranalyse).
+- Er transkripsjonen av hendelsens samtale fortsatt på vei når hendelsen løses, venter den til OneUptime AI har lest den, slik at utkastet tar med det som ble sagt i samtalen: opptil seks timer mens Zoom eller Google Meet lager transkripsjonen. Se [Ta opp og transkribere hver samtale](/docs/workspace-connections/video-calls#ta-opp-og-transkribere-hver-samtale).
 
 ## Publiser den på statussiden din
 
@@ -152,7 +153,7 @@ Sjekk tre ting: **Publiser på statussiden** er slått på, notatet er ikke tomt
 :::
 
 :::details Det kom ikke noe KI-utkast da hendelsen ble løst
-Hendelsen hadde allerede et notat, etteranalysen var allerede publisert, eller **Skriv utkast til etteranalyse når en hendelse er løst** er slått av. KI må være slått på for prosjektet, og prosjektet kan ikke ha nådd de daglige KI-grensene sine.
+Hendelsen hadde allerede et notat, etteranalysen var allerede publisert, eller **Skriv utkast til etteranalyse når en hendelse er løst** er slått av. KI må være slått på for prosjektet, og prosjektet kan ikke ha nådd de daglige KI-grensene sine. Er transkripsjonen av hendelsens samtale på vei, kommer utkastet når OneUptime AI har lest den.
 :::
 
 ## Neste trinn

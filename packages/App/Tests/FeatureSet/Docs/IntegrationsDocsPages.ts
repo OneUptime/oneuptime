@@ -190,18 +190,13 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Request Body",
   ],
   [ZABBIX]: [
+    "Page an On-Call Policy",
     "Webhook",
-    "Out",
-    "If / Else",
-    "Value to check",
-    "Comparison",
-    "is equal to",
+    "Switch / Case",
+    "Log",
     "Compare with",
-    "Create One Incident",
-    "Yes",
-    "Incident Template",
-    "JSON Object",
-    "No",
+    "If / Else",
+    "Request Body",
   ],
   [PAGERDUTY]: [
     ...OUTBOUND_STEPS,
@@ -338,6 +333,14 @@ export const STEP_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  * The facts suites hold each to the templates.
  */
 export const TEMPLATE_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
+  [ZABBIX]: [
+    "Declare an incident for each Zabbix problem",
+    "Create an alert for each Zabbix problem",
+    "Zabbix URL",
+    "Zabbix API Token",
+    "Acknowledge or close the Zabbix problem with the incident",
+    "Copy incident private notes to the Zabbix problem",
+  ],
   [JIRA]: [
     "Create an alert when a Jira issue is created",
     "Create a Jira issue when an alert is created",
@@ -415,6 +418,22 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Recovery operations",
     "Test",
     "Reports → Action log",
+    // The user role, the user group and the API token the templates that call Zabbix act with.
+    "Users → User roles",
+    "Access to API",
+    "Acknowledge problems",
+    "Add problem comments",
+    "Close problems",
+    "Users → User groups",
+    "Read",
+    "Read-write",
+    "Users → API tokens",
+    "Create API token",
+    "Set expiration date and time",
+    "Auth token",
+    "Allow manual close",
+    "Problem update",
+    "Update operations",
   ],
   [PAGERDUTY]: [
     "Integrations",
@@ -647,17 +666,14 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
 /*
  * Bold names no Dashboard locale has as a label, kept as written in every
  * language: the ⋯ menu, a symbol everywhere; what the OAuth 2.0 variable's
- * card says once a token is fetched, and its grant type, both drawn in
- * English; and a custom field's name, which is code.
+ * card says once a token is fetched, drawn in English; and a custom
+ * field's name, which is code. (The grant type, Client Credentials, is a
+ * label of the SMTP form's OAuth answers now, and reads the same in every
+ * language: i18n/SameAsEnglish.json.)
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [DYNAMICS]: [
-      "⋯",
-      "Access Token Fetched",
-      "Client Credentials",
-      "`customFields.dynamicsCaseId`.",
-    ],
+    [DYNAMICS]: ["⋯", "Access Token Fetched", "`customFields.dynamicsCaseId`."],
     /*
      * The criteria filter's conditions, drawn from the filter type's own
      * text, misspelling included.
@@ -816,6 +832,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
 
 // The plans the pages name: the Dashboard shows a plan's name as written.
 export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
+  [ZABBIX]: ["Growth"],
   [PAGERDUTY]: ["Growth"],
   [OPSGENIE]: ["Growth"],
   [SERVICENOW]: ["Growth"],
@@ -841,9 +858,11 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Built-in integrations",
   ],
   [ZABBIX]: [
+    "With the templates",
     "With the monitor",
-    "With the workflow",
     "Treat the URL like a password.",
+    "Links go to your Zabbix.",
+    "Keep the API token to what the workflow does.",
     "Send only what needs an incident.",
     "Self-hosted?",
   ],

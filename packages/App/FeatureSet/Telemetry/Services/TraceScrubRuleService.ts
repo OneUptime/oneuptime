@@ -24,8 +24,14 @@ const scrubRuleCache: InMemoryTTLCache<Array<CompiledRule>> =
 
 // Built-in PII detection patterns — same set as logs.
 const BUILT_IN_PATTERNS: Record<string, RegExp> = {
+  /*
+   * Each part of the address is length-bounded to the sizes RFC 5321 allows
+   * (local part 64, domain 253, final label 63), so finding addresses in a
+   * span body or attribute stays in line with its length however long it is -
+   * this runs over ingested spans for a project with an email scrub rule.
+   */
   [TraceScrubPatternType.Email]:
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}/g,
   [TraceScrubPatternType.CreditCard]: /\b(?:\d{4}[-\s]?){3}\d{4}\b/g,
   [TraceScrubPatternType.SSN]: /\b\d{3}-\d{2}-\d{4}\b/g,
   [TraceScrubPatternType.PhoneNumber]:

@@ -21,14 +21,14 @@ Un monitor Docker Swarm è legato a un cluster. Ogni minuto esegue la sua query 
 flowchart TB
     subgraph cluster["Il vostro cluster Swarm"]
         direction LR
-        manager["Agente su un manager"]
-        others["Collector sugli altri nodi"]
+        manager["Agente su<br/>un manager"]
+        others["Collector sugli<br/>altri nodi"]
     end
-    manager -->|"metriche e inventario"| oneuptime["OneUptime"]
+    manager -->|"metriche e<br/>inventario"| oneuptime["OneUptime"]
     others -->|"metriche"| oneuptime
     oneuptime -->|"primi dati"| registered["Cluster registrato"]
-    oneuptime --> monitor["Monitor Docker Swarm"]
-    monitor -->|"ogni minuto"| criteria{"Criteri soddisfatti?"}
+    oneuptime --> monitor["Monitor<br/>Docker Swarm"]
+    monitor -->|"ogni minuto"| criteria{"Criteri<br/>soddisfatti?"}
     criteria -->|"sì"| incident["Incidente o avviso"]
     criteria -->|"no"| online["Monitor online"]
 ```
@@ -148,7 +148,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | Campo | Cosa fa |
 | --- | --- |
 | **Metrica** | La query o la formula da controllare, tramite il suo nome di variabile. |
-| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere) o **Any Value** (ne basta uno). |
+| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
 | **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a**, oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Threshold** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non viene mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |

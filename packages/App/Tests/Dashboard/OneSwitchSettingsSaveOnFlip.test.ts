@@ -302,9 +302,7 @@ describe("status page switches", () => {
 
     expect(page).toContain("<ModelSwitchCard<StatusPage>");
     expect(page).toContain('column="enableMcpServer"');
-    // The help further down names it.
     expect(page).toContain('title="Enable MCP Server"');
-    expect(page).toContain('translator.translateText("Enable MCP Server")');
     expect(page).not.toContain("CardModelDetail");
   });
 

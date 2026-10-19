@@ -19,15 +19,15 @@ Un moniteur Proxmox est lié à un cluster. Chaque minute, il exécute sa requê
 flowchart TB
     subgraph site["Votre réseau"]
         direction LR
-        pve["API de Proxmox VE"] --> agent["Agent Proxmox de OneUptime"]
+        pve["API de<br/>Proxmox VE"] --> agent["Agent Proxmox<br/>de OneUptime"]
     end
-    agent -->|"métriques pve via OTLP"| oneuptime["OneUptime"]
+    agent -->|"métriques<br/>pve via OTLP"| oneuptime["OneUptime"]
     native["Envoi natif de<br/>Proxmox VE 9"] -.->|"alternative"| oneuptime
-    oneuptime -->|"premières données"| registered["Cluster enregistré"]
+    oneuptime -->|"premières<br/>données"| registered["Cluster<br/>enregistré"]
     oneuptime --> monitor["Moniteur Proxmox"]
-    monitor -->|"chaque minute"| criteria{"Critères remplis ?"}
-    criteria -->|"oui"| incident["Incident ou alerte"]
-    criteria -->|"non"| online["Moniteur en ligne"]
+    monitor -->|"chaque minute"| criteria{"Critères<br/>remplis ?"}
+    criteria -->|"oui"| incident["Incident<br/>ou alerte"]
+    criteria -->|"non"| online["Moniteur<br/>en ligne"]
 ```
 
 ## Avant de commencer
@@ -222,7 +222,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
-| **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre) ou **Any Value** (une seule suffit). |
+| **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
 | **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
 | **Threshold** | La valeur de comparaison. Une liste d'unités se trouve à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |

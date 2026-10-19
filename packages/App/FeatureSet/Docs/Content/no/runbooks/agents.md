@@ -13,15 +13,15 @@ En **runbook-agent**, som heter **Runner** i dashbordet, er en liten selvhostet 
 
 ```mermaid title="Hva som krysser nettverket mellom en Runner og OneUptime"
 flowchart TB
-    subgraph yours["Din infrastruktur"]
-        direction LR
-        runner["Runner-container"]
-        targets["Verter, klynger, interne tjenester"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Workeren setter trinnet i kø"]
         ingest["Runner-API"]
+    end
+    subgraph yours["Din infrastruktur"]
+        direction LR
+        runner["Runner-container"]
+        targets["Verter, klynger, interne tjenester"]
     end
     worker --> ingest
     runner -->|"Utgående HTTPS, Runner-ID og nøkkel"| ingest
@@ -133,10 +133,10 @@ To tidsavbrudd gjelder for hvert trinn som kjører på en Runner:
 
 | Tidsavbrudd | Standard | Hva det styrer |
 | --- | --- | --- |
-| **Claim timeout** | 2 minutter | Hvor lenge Workeren venter på at den valgte Runneren tar jobben. Hvis Runneren ikke tar den i tide, feiler trinnet på grunn av tidsavbrudd, og runbooket fortsetter (eller stopper, avhengig av **Fortsett ved feil**). |
-| **Execution timeout** | 30 sekunder | Hvor lenge Runneren lar trinnet kjøre før den stopper det. Bash får `SIGKILL`; sandkassen til JavaScript rives ned. |
+| **Tidsavbrudd for overtakelse** | 2 minutter | Hvor lenge Workeren venter på at den valgte Runneren tar jobben. Hvis Runneren ikke tar den i tide, feiler trinnet på grunn av tidsavbrudd, og runbooket fortsetter (eller stopper, avhengig av **Fortsett ved feil**). |
+| **Tidsavbrudd for kjøring** | 30 sekunder | Hvor lenge Runneren lar trinnet kjøre før den stopper det. Bash får `SIGKILL`; sandkassen til JavaScript rives ned. |
 
-Begge kan settes per trinn. Åpne **Runbooks › runbooket ditt › Trinn**, fold ut trinnet, og angi **Execution timeout** og **Claim timeout** (i sekunder) i innstillingene. La et felt stå tomt for å bruke standarden. Hver godtar 1 sekund til 1 time; verdier utenfor det intervallet begrenses når trinnet kjører.
+Begge kan settes per trinn. Åpne **Runbooks › runbooket ditt › Trinn**, fold ut trinnet, og angi **Tidsavbrudd for kjøring** og **Tidsavbrudd for overtakelse** (i sekunder) i innstillingene. La et felt stå tomt for å bruke standarden. Hver godtar 1 sekund til 1 time; verdier utenfor det intervallet begrenses når trinnet kjører.
 
 Workerens samlede ventevindu er `claim timeout + execution timeout + a few seconds`. Velg verdier som passer trinnet.
 

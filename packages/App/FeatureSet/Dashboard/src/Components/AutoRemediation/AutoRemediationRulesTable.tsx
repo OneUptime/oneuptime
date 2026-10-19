@@ -19,6 +19,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_REMEDIATION_RULES_TABLE_ID,
+  AI_LANE_RULE_CRITERIA_SUBJECTS,
   AI_LANE_RULES_COPY,
   AiLane,
   AiLaneAdvancedCard,
@@ -110,6 +111,8 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
       isEditable={true}
       isCreateable={true}
       createEditModalWidth={ModalWidth.Large}
+      // "All incidents" or "Only incidents that match conditions".
+      ruleCriteriaSubject={AI_LANE_RULE_CRITERIA_SUBJECTS[props.lane]}
       query={{ triggerEntityType: triggerEntityType }}
       onBeforeCreate={async (item: AutoRemediationRule) => {
         item.triggerEntityType = triggerEntityType;
@@ -284,6 +287,8 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorLabels: true },
           title: "Monitor Labels",
+          description:
+            "Only match incidents and alerts whose monitor has one of these labels.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
@@ -314,6 +319,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           // Who fixes: OneUptime AI or the rule's runbooks.
           field: { remediationAction: true },
           title: "Fix With",
+          description: "Who fixes what this rule matches.",
           stepId: "remediation",
           fieldType: FormFieldSchemaType.CardSelect,
           cardSelectSingleColumn: true,
@@ -340,6 +346,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           // Ask first: whether a fix waits for someone to approve it.
           field: { executionMode: true },
           title: "Approval",
+          description: "Whether each fix waits for someone to approve it.",
           stepId: "remediation",
           fieldType: FormFieldSchemaType.CardSelect,
           cardSelectSingleColumn: true,

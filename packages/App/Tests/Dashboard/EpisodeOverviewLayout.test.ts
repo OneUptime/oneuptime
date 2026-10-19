@@ -89,7 +89,7 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     feedElement: "<IncidentEpisodeFeedElement",
     // The incident episode feed also takes the public note notify default.
     feedElementRest:
-      "notifyStatusPageSubscribersByDefault={ notifyStatusPageSubscribersByDefault } />",
+      "notifyStatusPageSubscribersByDefault={ notifyStatusPageSubscribersByDefault } isPrivate={!PrivateRecordPublicNotes.takesPublicNotes(episode)} />",
     viewAllPage: "PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS",
     memberViewPage: "PageMap.INCIDENT_VIEW",
     memberSelect: "INCIDENT_EPISODE_MEMBER_SELECT",
@@ -510,7 +510,7 @@ describe("episode feeds", () => {
      * IncidentEpisodeNoteNotifyDefaultWiring covers the rest.
      */
     expect(source).toContain(
-      "publicNoteKind: getIncidentEpisodePublicNoteKind({ incidentEpisodeId: props.incidentEpisodeId, isNotifyingByDefault: notifySubscribersByDefault, }),",
+      "publicNoteKind: getIncidentEpisodePublicNoteKind({ incidentEpisodeId: props.incidentEpisodeId, isNotifyingByDefault: notifySubscribersByDefault, isPrivate: props.isPrivate, }),",
     );
     expect(source).toContain(
       "privateNoteKind: getIncidentEpisodePrivateNoteKind({ incidentEpisodeId: props.incidentEpisodeId, }),",

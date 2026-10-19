@@ -18,10 +18,7 @@ import OwnersPicker, {
 } from "Common/UI/Components/PeoplePicker/OwnersPicker";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
@@ -385,7 +382,6 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
        */}
       <FoldedSection
         title={MORE_FIELDS_SECTION_TITLE}
-        icon={MORE_SECTION_ICON}
         description="Auto-resolve and remediation settings"
         items={moreFieldsItems}
         dataTestId="criteria-incident-more-fields"
@@ -406,7 +402,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <Checkbox
               value={criteriaIncident.showIncidentOnStatusPage !== false}
               title="Show Incident on Status Page"
-              description="When disabled, this incident will not be visible on your public status pages"
+              description="Show it on the public status pages that list its monitors."
               onChange={(value: boolean) => {
                 updateField("showIncidentOnStatusPage", value);
               }}
@@ -417,7 +413,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <Checkbox
               value={criteriaIncident.isPrivate === true}
               title="Private Incident"
-              description="When enabled, only the incident's owner users and members of its owner teams (plus project admins and owners) can view this incident. Private incidents are automatically hidden from all status pages."
+              description="Only the incident's owners, project admins and project owners can see it. It never shows on status pages and takes no public notes."
               onChange={(value: boolean) => {
                 updateField("isPrivate", value);
               }}

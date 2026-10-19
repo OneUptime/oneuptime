@@ -223,10 +223,15 @@ describe("Settings > Danger Zone", () => {
     expect(postCalls[0]?.headers?.["tenantid"]).toBe(PROJECT_ID.toString());
   });
 
-  it("warns that the deletion cannot be undone", () => {
+  it("warns that the deletion cannot be undone, once: on the Delete Project card", () => {
     renderPage();
 
-    expect(screen.getByText(/no way to recover/i)).toBeInTheDocument();
+    expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+      "This action cannot be undone.",
+    );
+    // No red banner above the card saying the same thing again.
+    expect(screen.queryByText(/DANGER ZONE/)).toBeNull();
+    expect(screen.queryByText(/no way to recover/i)).toBeNull();
   });
 
   it("does not ask anything until the customer confirms they want to delete", () => {
@@ -448,6 +453,118 @@ describe("Settings > Danger Zone", () => {
         (ModelAPI.getItem as unknown as jest.Mock).mock.calls[0]![0],
       ).toMatchObject({ modelType: Project, id: PROJECT_ID });
       expect(screen.queryByText(/Some other project/)).toBeNull();
+    });
+  });
+
+  /*
+   * Deleting a project a cloud marketplace bills ends OneUptime's billing of
+   * it, after a last charge for what it used - but not the purchase on the
+   * marketplace, which only the buyer can cancel, there. Nothing else tells
+   * them so before the project is gone.
+   */
+  describe("a project a cloud marketplace bills", () => {
+    type CurrentProjectFunction = (billingMarketplace: unknown) => void;
+
+    const currentProjectBilledBy: CurrentProjectFunction = (
+      billingMarketplace: unknown,
+    ): void => {
+      const project: Project = new Project();
+      project._id = PROJECT_ID.toString();
+      project.name = "Acme Production";
+      (
+        project as unknown as { billingMarketplace: unknown }
+      ).billingMarketplace = billingMarketplace;
+
+      getJestSpyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
+    };
+
+    it("tells the customer their purchase stays active on the marketplace until they cancel it there", () => {
+      currentProjectBilledBy("Azure");
+
+      renderPage();
+
+      const notice: HTMLElement = screen.getByTestId(
+        "project-delete-marketplace-notice",
+      );
+      expect(notice).toHaveTextContent("Billed through Microsoft Marketplace");
+      expect(notice).toHaveTextContent(
+        "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on Microsoft Marketplace stays active until you cancel it there.",
+      );
+    });
+
+    it("tells a Vercel customer the resource is deleted on Vercel with the project", () => {
+      currentProjectBilledBy("Vercel");
+
+      renderPage();
+
+      const notice: HTMLElement = screen.getByTestId(
+        "project-delete-marketplace-notice",
+      );
+      expect(notice).toHaveTextContent("Billed through Vercel Marketplace");
+      expect(notice).toHaveTextContent(
+        "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.",
+      );
+      expect(notice).not.toHaveTextContent("stays active until you cancel it");
+    });
+
+    it("names the marketplace that bills the project", () => {
+      currentProjectBilledBy("AWS");
+
+      renderPage();
+
+      expect(
+        screen.getByTestId("project-delete-marketplace-notice"),
+      ).toHaveTextContent("Your OneUptime purchase on AWS Marketplace");
+    });
+
+    it("tells it before the customer is asked to confirm, and still deletes the project", async () => {
+      currentProjectBilledBy("GoogleCloud");
+      const calls: PageCalls = renderPage();
+
+      expect(
+        screen.getByTestId("project-delete-marketplace-notice"),
+      ).toHaveTextContent("Google Cloud Marketplace");
+
+      openConfirmation();
+      await confirm();
+
+      await waitFor(() => {
+        expect(calls.projectDeleted).toBe(1);
+      });
+    });
+
+    it("says nothing about a marketplace for a project billed by card", () => {
+      currentProjectBilledBy(undefined);
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
+      expect(screen.getByTestId("model-delete-card-message")).toHaveTextContent(
+        "This action cannot be undone.",
+      );
+    });
+
+    it("says nothing for a marketplace it does not know", () => {
+      currentProjectBilledBy("SomeOtherMarketplace");
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
+    });
+
+    it("says nothing on a self-hosted install, which no marketplace sells", () => {
+      config.billingEnabled = false;
+      currentProjectBilledBy("Azure");
+
+      renderPage();
+
+      expect(
+        screen.queryByTestId("project-delete-marketplace-notice"),
+      ).toBeNull();
     });
   });
 

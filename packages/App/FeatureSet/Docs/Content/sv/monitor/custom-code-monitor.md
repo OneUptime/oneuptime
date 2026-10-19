@@ -21,7 +21,7 @@ sequenceDiagram
     O->>P: Skript, hemligheter ifyllda
     P->>A: Begäranden från skriptet
     A-->>P: Svar
-    P->>O: Resultat, loggar, tid, mätvärden
+    P->>O: Resultat, loggar,<br/>tid, mätvärden
     O->>O: Utvärdera kriterierna
 ```
 

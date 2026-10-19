@@ -35,7 +35,7 @@ import path from "path";
  *     channel is on, and carries the channel's switch - or, for someone who
  *     may not change it, one sentence - at its top while it is off;
  *   - the four switches live in one place, the Notification Channels card on
- *     Project Settings -> Notification Settings, where each saves the moment
+ *     Project Settings -> Notifications -> Notification Settings, where each saves the moment
  *     it is flipped. No Edit button and no two-step dialog;
  *   - the admin's "Add a notification method" form offers only the channels
  *     that are on;
@@ -255,7 +255,7 @@ describe("the four channels", () => {
         "A project owner, a Billing Admin or someone with Manage Billing can turn",
       );
       expect(definition.offSentence).toContain(
-        "in Project Settings → Notification Settings.",
+        "in Project Settings → Notifications → Notification Settings.",
       );
       expect(definition.offSentence).toContain("off in this project");
       expect(definition.offSentence.toLowerCase()).not.toContain(
@@ -550,7 +550,7 @@ describe("nothing tells a reader to ask a project admin, or to turn a channel on
     ],
     [
       "tells the reader to turn channels on in Notification Settings",
-      /\bTurn (it|them) on in Project Settings > Notification Settings/,
+      /\bTurn (it|them) on in Project Settings > Notifications > Notification Settings/,
     ],
   ];
 
@@ -626,7 +626,7 @@ describe("translations", () => {
     ),
     ProjectNotificationChannelsCopy.whoCanChange,
     ProjectNotificationChannelsCopy.settingsLinkText,
-    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
+    "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.",
     "Channels that are off in this project are not offered. Turn them on in {{settingsLink}}.",
     "You can add an email address, phone number or WhatsApp number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",
     "You can add an email address or phone number for {{name}}, and remove any method they no longer use. Identifiers are always shown masked.",

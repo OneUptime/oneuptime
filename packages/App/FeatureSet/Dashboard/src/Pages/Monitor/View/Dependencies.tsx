@@ -20,6 +20,15 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+
+/*
+ * Edit Dependencies' More fields: which parent statuses silence the monitor.
+ * Built once, so the section's identity holds across renders.
+ */
+const DEPENDENCY_MORE_FIELDS: FormFieldCollapsibleSection<Monitor> =
+  getAdvancedFormSection<Monitor>();
 
 const MonitorDependencies: FunctionComponent<
   PageComponentProps
@@ -41,6 +50,7 @@ const MonitorDependencies: FunctionComponent<
       <CardModelDetail<Monitor>
         name="Monitor Dependencies"
         editButtonText="Edit Dependencies"
+        editModalTitle="Edit Dependencies"
         cardProps={{
           title: "Monitor Dependencies",
           description:
@@ -73,7 +83,12 @@ const MonitorDependencies: FunctionComponent<
             },
             title: "Suppress When Parent Status Is",
             description:
-              "Parent monitor statuses that suppress this monitor's alerts and incidents. Leave empty to suppress when a parent is in any status flagged offline (the default).",
+              "Parent statuses that silence this monitor's alerts and incidents. Leave empty for any offline status.",
+            /*
+             * Any offline status, the default, is what nearly everyone
+             * wants, so the statuses wait under More fields.
+             */
+            collapsibleSection: DEPENDENCY_MORE_FIELDS,
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
               type: MonitorStatus,

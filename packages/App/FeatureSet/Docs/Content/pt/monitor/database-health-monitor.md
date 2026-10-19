@@ -52,10 +52,10 @@ A cada verificação, uma sonda:
 flowchart TB
     connect["Conectar ao banco de dados"] --> probe{"Consulta de teste OK?"}
     probe -->|"Não"| offline["Monitor offline"]
-    probe -->|"Sim"| groups["Executar cada grupo de métricas"]
+    probe -->|"Sim"| groups["Executar cada<br/>grupo de métricas"]
     groups --> group{"Grupo coletado?"}
     group -->|"Sim"| metrics["Métricas informadas"]
-    group -->|"Não"| issue["Métricas ausentes, problema registrado"]
+    group -->|"Não"| issue["Métricas ausentes,<br/>problema registrado"]
     metrics --> criteria["Critérios avaliados"]
     issue --> criteria
 ```
@@ -168,7 +168,7 @@ Escolha o **Database Type** e preencha o host, a porta, o nome do banco de dados
 
 ### Escolher o que coletar
 
-Deixe todos os grupos em **Metric Groups** ativados, a menos que você tenha um motivo para desligar algum — veja [Grupos de métricas](#grupos-de-métricas).
+Todos os grupos em **Metric Groups**, em **Mais campos**, começam ativados. Deixe-os assim, a menos que você tenha um motivo para desligar algum — veja [Grupos de métricas](#grupos-de-métricas).
 
 ### Testar a conexão
 
@@ -191,13 +191,14 @@ Selecione as **Sondas** que conseguem alcançar o banco de dados e um **Interval
 | **Host** | O host do banco de dados acessível pela sonda (por exemplo `db.internal`). |
 | **Porta** | A porta do banco de dados. |
 | **Nome do Banco de Dados** | O banco de dados ao qual se conectar. Métricas de escopo de banco de dados (tamanho, taxa de acerto do cache, uso de arquivos temporários) são informadas para este banco de dados; métricas de escopo de servidor (conexões, tempo de atividade, replicação), para o servidor inteiro — exceto no Azure SQL Database, onde as conexões são contadas só para o banco de dados monitorado. |
-| **Use Windows Integrated Authentication** | Só Microsoft SQL Server. Autentica com a identidade do processo da sonda em vez de nome de usuário e senha. Veja [Autenticação integrada do Windows](/docs/monitor/sql-monitor#autenticação-integrada-do-windows) na página do monitor SQL Query — a configuração é idêntica. |
+| **Autenticação** | Só Microsoft SQL Server: **Usuário e senha**, o padrão, ou **Windows Integrated Authentication**, que entra como o processo da sonda. Veja [Autenticação integrada do Windows](/docs/monitor/sql-monitor#autenticação-integrada-do-windows) na página do monitor SQL Query — a configuração é idêntica. |
 | **Nome de usuário** | O usuário de monitoramento. Obrigatório, a menos que você use a autenticação integrada do Windows. |
 | **Senha** | A senha. Referencie um [segredo do monitor](/docs/monitor/monitor-secrets) com `{{monitorSecrets.name}}` em vez de digitá-la em texto puro (veja [Usar um segredo do monitor](#usar-um-segredo-do-monitor-para-a-senha)). |
 | **Use SSL/TLS** | Conectar via TLS. Quando ativado, você pode desligar **Verify server certificate** para um certificado autoassinado. |
-| **Metric Groups** | Quais grupos executar: Connections, Atividade, Throughput, Locks and Blocking, Armazenamento, Replication e Manutenção. Todos vêm ativados por padrão; veja [Grupos de métricas](#grupos-de-métricas). Os detalhes do monitor os listam como **Collected Metric Groups**. |
 
 ### Mais campos
+
+**Metric Groups** fica aqui: quais grupos executar, entre Connections, Atividade, Throughput, Locks and Blocking, Armazenamento, Replication e Manutenção. Todos vêm ativados por padrão; veja [Grupos de métricas](#grupos-de-métricas). Os detalhes do monitor os listam como **Collected Metric Groups**.
 
 | Campo | Padrão | Máximo | O que limita |
 |---|---|---|---|
@@ -443,7 +444,7 @@ O PostgreSQL só os mede quando `track_io_timing` está ligado, e ele vem deslig
 :::
 
 :::details Metric Groups Failed fica acima de 0 em toda verificação
-Um grupo não pode ser coletado em nenhuma verificação, então o mesmo problema de coleta se repete. O resumo do monitor nomeia o grupo, o motivo e o `GRANT` que o corrige. Execute a permissão ou, se não conseguir obtê-la, desligue esse grupo em **Metric Groups** para que o problema pare de se repetir.
+Um grupo não pode ser coletado em nenhuma verificação, então o mesmo problema de coleta se repete. O resumo do monitor nomeia o grupo, o motivo e o `GRANT` que o corrige. Execute a permissão ou, se não conseguir obtê-la, desligue esse grupo em **Mais campos → Metric Groups** para que o problema pare de se repetir.
 :::
 
 ## Próximos passos

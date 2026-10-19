@@ -334,7 +334,7 @@ describe("every list's Delete", () => {
     },
   );
 
-  test("the monitors table deletes by default, and a monitor group's members unassign instead", () => {
+  test("the monitors table deletes by default, and a monitor group's members are removed from it instead", () => {
     const monitorTable: Array<ModelTableUse> = usesIn(
       "Dashboard/src/Components/Monitor/MonitorTable.tsx",
     );
@@ -348,7 +348,7 @@ describe("every list's Delete", () => {
     );
 
     expect(groupMonitors).toContain("isDeleteable={false}");
-    expect(groupMonitors).toContain('title: "Unassign"');
+    expect(groupMonitors).toContain('title: "Remove"');
   });
 });
 

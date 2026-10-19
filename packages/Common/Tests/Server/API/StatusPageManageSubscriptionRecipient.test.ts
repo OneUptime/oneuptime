@@ -14,6 +14,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import PublicMessageRateLimit from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import Response from "../../../Server/Utils/Response";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
@@ -27,6 +28,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import { mockRouter } from "./Helpers";
+import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
   afterEach,
   beforeAll,
@@ -108,9 +110,11 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
   });
 
   /*
-   * Stands in for the database: matches on every queried column, honours the
-   * sort, skip and limit, and — like the real query — returns only the
-   * columns that were selected.
+   * Stands in for the database: matches on every queried column - a plain
+   * value, or a condition such as a phone number's line
+   * (SubscriberContactSql.onPhoneLine), as the in-memory tables read it -
+   * honours the sort, skip and limit, and — like the real query — returns
+   * only the columns that were selected.
    */
   const findByFake: (findBy: {
     query: JSONObject;
@@ -132,7 +136,10 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
           return (
             storedValue !== undefined &&
             storedValue !== null &&
-            String(storedValue) === String(findBy.query[column])
+            rowMatchesWhere(
+              { [column]: String(storedValue) },
+              { [column]: findBy.query[column] },
+            )
           );
         });
       },
@@ -302,6 +309,15 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Every request here is within the limits on what a public route may
+     * send its contacts (PublicMessageRateLimit), which
+     * StatusPageSubscriberMessageLimits.test.ts holds.
+     */
+    jest
+      .spyOn(PublicMessageRateLimit, "assertMaySend")
+      .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
 
     statusPageId = ObjectID.generate();
     projectId = ObjectID.generate();
@@ -598,7 +614,7 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
       expect(sms[0]!.text).toContain(phoneSubscriber.id!.toString());
     });
 
-    it("looks subscribers up by phone alone, on this status page, oldest first", async () => {
+    it("looks subscribers up by phone alone, on this status page, oldest first, one link", async () => {
       await callManageSubscription({ subscriberPhone: VICTIM_PHONE });
 
       const lookup: {
@@ -624,9 +640,39 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
       );
       expect(lookup.sort).toEqual({ createdAt: SortOrder.Ascending });
       expect(lookup.skip).toBe(0);
-      expect(lookup.limit).toBe(
-        MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST,
-      );
+      // A phone number is subscribed once per page: one link, the oldest's.
+      expect(lookup.limit).toBe(1);
+    });
+
+    it("finds the subscription however the number is typed, and sends its one link to the number as stored", async () => {
+      for (const spelling of [
+        VICTIM_PHONE.replace("+", ""),
+        `00${VICTIM_PHONE.replace("+", "")}`,
+      ]) {
+        jest.clearAllMocks();
+
+        await callManageSubscription({ subscriberPhone: spelling });
+
+        const sms: Array<SentMessage> = sentSms();
+        expect([spelling, sms.length]).toEqual([spelling, 1]);
+        expect(sms[0]!.to).toBe(phoneSubscriber.subscriberPhone!.toString());
+        expect(sms[0]!.text).toContain(phoneSubscriber.id!.toString());
+      }
+    });
+
+    it("a number subscribed twice under two spellings, before a page took each line once, is sent one link: the oldest subscription's", async () => {
+      const older: StatusPageSubscriber = buildSubscriber({
+        subscriberPhone: new Phone(VICTIM_PHONE.replace("+", "")),
+      });
+      storedSubscribers.unshift(older);
+      older.createdAt = new Date(phoneSubscriber.createdAt!.getTime() - 60000);
+
+      await callManageSubscription({ subscriberPhone: VICTIM_PHONE });
+
+      const sms: Array<SentMessage> = sentSms();
+      expect(sms.length).toBe(1);
+      expect(sms[0]!.text).toContain(older.id!.toString());
+      expect(sms[0]!.text).not.toContain(phoneSubscriber.id!.toString());
     });
   });
 

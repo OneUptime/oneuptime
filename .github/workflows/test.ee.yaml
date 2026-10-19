@@ -64,33 +64,37 @@ jobs:
       # App's UI source guards that walk ee/Dashboard and ee/AdminDashboard as
       # well as the core frontends: every More (⋯) menu item has an icon, a
       # details card shows the record's own ID on its ID line, every Show ID
-      # dialog is the shared one that never hands React an object, and no
-      # list asks for the bulk Delete while keeping Delete off its rows. The
+      # dialog is the shared one that never hands React an object, no list
+      # asks for the bulk Delete while keeping Delete off its rows, and every
+      # field, switch, card, dialog and empty-state description is short. The
       # App Test job deletes ee/ first, so only this run holds the Enterprise
       # screens to them. They only read files.
       - name: Run App's UI source guards with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/MoreMenuItemIconsGuard.test.ts Tests/RecordIdLineGuard.test.ts Tests/ShowIdDialogGuard.test.ts Tests/Dashboard/ListDeletePolicy.test.ts Tests/Dashboard/ShortDescriptionsGuard.test.ts --forceExit
       # App's guards that every menu path a text writes ("User Settings >
-      # Notification Settings", "Project Settings > Workspace > Slack",
-      # "On-Call Duty > Advanced > User Overrides") is one a reader can follow
-      # read ee/Server, ee/Dashboard and ee/AdminDashboard too. The App Test
-      # job deletes ee/ first, so only this run holds the Enterprise texts to
-      # them. They only read files.
+      # Notification Settings", "Project Settings > Billing and Invoices >
+      # Billing", "On-Call Duty > Advanced > User Overrides") is one a reader
+      # can follow read ee/Server, ee/Dashboard and ee/AdminDashboard too. The
+      # App Test job deletes ee/ first, so only this run holds the Enterprise
+      # texts to them. They only read files.
       - name: Run App's menu path guard with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/Dashboard/SettingsMenuPathsInProductText.test.ts Tests/Dashboard/OnCallDutyMenuPathsInProductText.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/Dashboard/SettingsMenuPathsInProductText.test.ts Tests/Dashboard/ProjectSettingsMenuPathsInProductText.test.ts Tests/Dashboard/OnCallDutyMenuPathsInProductText.test.ts --forceExit
       # App's docs facts that hold a page to code in ee/ as well as in core:
       # the identity pages to the SCIM server and its pages, the SLO pages to
       # the audit log settings, the upgrading notes to the enterprise Health
       # dashboards, the licence period claims to ee/README.md, the span
-      # metrics page to what ee/ holds, and the RUM and Session Replay pages
-      # to the Enterprise retention override cards. Each checks its ee/ half
-      # only where ee/ is checked out, and the App Test job deletes ee/ first,
-      # so this is where that half runs. They only read files.
+      # metrics page to what ee/ holds, the RUM and Session Replay pages to
+      # the Enterprise retention override cards, the telemetry Data
+      # Retention page to the retention-by-type form, and the Audit Logs page
+      # to the audit log settings form, list, recorder and licence notice.
+      # Each checks its ee/ half only where ee/ is checked out, and the App
+      # Test job deletes ee/ first, so this is where that half runs. They only
+      # read files.
       - name: Run App's docs facts that read ee/ with ee/ present
         working-directory: packages/App
-        run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts Tests/FeatureSet/Docs/RumReplayDocsFacts.test.ts --forceExit
+        run: node node_modules/.bin/jest Tests/FeatureSet/Docs/IdentityDocsFacts.test.ts Tests/FeatureSet/Docs/IdentityDocsTranslations.test.ts Tests/FeatureSet/Docs/SloDocsFacts.test.ts Tests/FeatureSet/Docs/UpgradingDocsFacts.test.ts Tests/FeatureSet/Docs/LicensePeriodClaims.test.ts Tests/FeatureSet/Docs/KubernetesAgentSpanMetricsDocs.test.ts Tests/FeatureSet/Docs/RumReplayDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryExplorersDocsFacts.test.ts Tests/FeatureSet/Docs/TelemetryAdminDocsFacts.test.ts Tests/FeatureSet/Docs/AdministrationDocsFacts.test.ts --forceExit
       # App's guard that only the Builder's Run Workflow and Run just this step
       # hand the workflow queue a person - which is what lets a run start while
       # the workflow is off, as a test run - walks ee/ too, for any other code
@@ -123,6 +127,13 @@ jobs:
       - name: Run Common's relation filter guard with ee/ present
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/Server/Types/Database/RelationFilterKeepsKeyGuard.test.ts --forceExit
+      # Common's guard that a request carrying one of OneUptime's keys keeps
+      # its redirects on the server it was sent to also walks ee/ for
+      # requests whose body or headers name a key. The Common Test job
+      # deletes ee/ first, so only this run reads ee/. It only reads files.
+      - name: Run Common's key-carrying requests guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Utils/KeyCarryingRequestsGuard.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:

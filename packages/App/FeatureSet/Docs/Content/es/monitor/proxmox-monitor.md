@@ -19,14 +19,14 @@ Un monitor de Proxmox está vinculado a un clúster. Cada minuto ejecuta su cons
 flowchart TB
     subgraph site["Su red"]
         direction LR
-        pve["API de Proxmox VE"] --> agent["Agente de Proxmox de OneUptime"]
+        pve["API de<br/>Proxmox VE"] --> agent["Agente de<br/>Proxmox de<br/>OneUptime"]
     end
-    agent -->|"métricas pve por OTLP"| oneuptime["OneUptime"]
+    agent -->|"métricas<br/>pve por OTLP"| oneuptime["OneUptime"]
     native["Envío nativo de<br/>Proxmox VE 9"] -.->|"alternativa"| oneuptime
-    oneuptime -->|"primeros datos"| registered["Clúster registrado"]
-    oneuptime --> monitor["Monitor de Proxmox"]
-    monitor -->|"cada minuto"| criteria{"¿Se cumplen los criterios?"}
-    criteria -->|"sí"| incident["Incidente o alerta"]
+    oneuptime -->|"primeros datos"| registered["Clúster<br/>registrado"]
+    oneuptime --> monitor["Monitor<br/>de Proxmox"]
+    monitor -->|"cada minuto"| criteria{"¿Se cumplen<br/>los criterios?"}
+    criteria -->|"sí"| incident["Incidente<br/>o alerta"]
     criteria -->|"no"| online["Monitor en línea"]
 ```
 
@@ -222,7 +222,7 @@ Un criterio compara una de las consultas o fórmulas del monitor con un umbral. 
 | Campo | Qué hace |
 | --- | --- |
 | **Métrica** | La consulta o fórmula que se comprueba, por su nombre de variable. |
-| **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (cada valor debe coincidir) o **Any Value** (basta con uno). |
+| **Agregación** | Cómo los valores de la ventana se convierten en una sola respuesta: **Promedio**, **Suma**, **Maximum Value**, **Minimum Value**, **All Values** (cada valor debe coincidir, en toda la ventana) o **Any Value** (basta con uno). |
 | **Condición** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** o **Igual a**, o una condición de anomalía: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Umbral** | El valor con el que comparar. Junto a él hay una lista de unidades cuando la métrica tiene unidad. No se muestra para las condiciones de anomalía. |
 | **Sensibilidad** | Solo condiciones de anomalía. **Bajo** (4σ), **Medio** (3σ, el predeterminado) o **Alto** (2σ). |

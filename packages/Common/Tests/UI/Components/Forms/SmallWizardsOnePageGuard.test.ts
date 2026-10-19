@@ -125,44 +125,55 @@ describe("Admin Dashboard > Settings > Global LLM Providers", () => {
     "ModelTable: Settings > Global LLM Providers",
   );
 
-  test("walks what the provider is, then how to reach it - no Advanced or Cost step", () => {
+  /*
+   * The form every LLM provider is added with (Common/UI/Components/AI/
+   * LlmProviderFormFields): which provider, then how to reach it.
+   */
+  test("walks which provider, then how to reach it - no Advanced or Cost step", () => {
     expect(
       (form.steps || []).map((step: FormStepFacts) => {
         return { id: step.id, titleTexts: step.titleTexts };
       }),
     ).toEqual([
-      { id: "basic-info", titleTexts: ["Basic Info"] },
-      { id: "provider-settings", titleTexts: ["Provider Settings"] },
+      { id: "provider", titleTexts: ["Provider"] },
+      { id: "connection", titleTexts: ["Connection"] },
     ]);
   });
 
-  test("folds Additional Parameters and the cost per million tokens at the end of Provider Settings", () => {
+  test("folds the description, Additional Parameters and the cost per million tokens at the end of Connection", () => {
     expect(
       keysOf(
         form.fields.filter((field: FormFieldFacts): boolean => {
-          return field.stepId === "basic-info";
+          return field.stepId === "provider";
         }),
       ),
-    ).toEqual(["name", "description"]);
+    ).toEqual(["llmType"]);
     expect(
       keysOf(
         form.fields.filter((field: FormFieldFacts): boolean => {
-          return field.stepId === "provider-settings";
+          return field.stepId === "connection";
         }),
       ),
     ).toEqual([
-      "llmType",
       "apiKey",
-      "modelName",
       "baseUrl",
+      "modelName",
+      "name",
+      "description",
       "additionalParams",
       "costPerMillionTokensInUSDCents",
     ]);
     expect(keysOf(foldedFields(form))).toEqual([
+      "description",
       "additionalParams",
       "costPerMillionTokensInUSDCents",
     ]);
     expectOneAdvancedSection(form);
+  });
+
+  // A global provider is every project's fallback, never one's default.
+  test("has no default switch", () => {
+    expect(keysOf(form.fields)).not.toContain("isDefault");
   });
 
   test("reads a free provider's cost of 0 as nothing set, so its Edit form does not say Configured", () => {

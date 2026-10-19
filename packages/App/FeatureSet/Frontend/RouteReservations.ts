@@ -39,6 +39,12 @@ export const IngestRoutePrefixesToSkip: Array<string> = [
    */
   "/source-maps",
   /*
+   * The Vercel log drain (/vercel/v1/logs), mounted on both "/telemetry"
+   * and "/" the same way. POST-only today; reserved for the same reason as
+   * /fluentd above.
+   */
+  "/vercel",
+  /*
    * Queue-depth and shed-rate endpoints polled by the KEDA metrics-api
    * scaler (HelmChart/.../keda-scaledobjects.yaml). The worker and api tiers
    * only kept working because App/Index.ts mounts AppMetricsAPI on "/"
@@ -117,6 +123,7 @@ export const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/browserconfig.xml",
   "/rss",
   "/llms.txt",
+  "/maintenance.ics",
 ];
 
 export const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
@@ -143,6 +150,7 @@ export const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
   "/.well-known",
   "/rss",
   "/llms.txt",
+  "/maintenance.ics",
 ];
 
 /*

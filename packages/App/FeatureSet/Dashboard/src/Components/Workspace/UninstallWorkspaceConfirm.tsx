@@ -16,7 +16,7 @@ export const UNINSTALL_WORKSPACE_TITLE: string = translationKey(
 );
 
 export const UNINSTALL_WORKSPACE_WARNING: string = translationKey(
-  "OneUptime stops posting to {{workspace}}, and every member's {{workspace}} account is disconnected from this project, along with their {{workspace}} notification method. The {{workspace}} notification rules and summaries are kept for when you connect again.",
+  "OneUptime stops posting to {{workspace}} and every member's account is disconnected. Rules and summaries are kept for when you reconnect.",
 );
 
 export const UNINSTALL_WORKSPACE_BUTTON: string = translationKey("Uninstall");

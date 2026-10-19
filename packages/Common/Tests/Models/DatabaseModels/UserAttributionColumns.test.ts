@@ -255,12 +255,25 @@ describe("which columns record a person doing something", () => {
       "projectDeleted",
       "requested",
       /*
+       * IncidentVideoCall.rootCauseSuggestionReviewedByUserId: who used the
+       * root cause OneUptime AI suggested from an incident call as the
+       * incident's own, or dismissed it. The transcript routes stamp it
+       * from the caller as the decision is saved; no request chooses it.
+       */
+      "rootCauseSuggestionReviewed",
+      /*
        * WorkflowLog.startedByUserId: who ran a workflow by hand from its
        * Builder (Run Workflow or Run just this step), which is what lets a
        * run of a workflow that is off go ahead as a test run. OneUptime
        * records it from the signed-in caller; no request chooses it.
        */
       "started",
+      /*
+       * IncidentVideoCall.transcriptAddedByUserId: who added a call's
+       * transcript, or had OneUptime read it from the provider. The
+       * transcript routes stamp it from the caller; no request chooses it.
+       */
+      "transcriptAdded",
       "triggered",
       "viewed",
     ];

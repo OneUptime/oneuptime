@@ -67,24 +67,22 @@ En regel matcher kun, når hver betingelse, du udfylder, holder; en betingelse, 
 **Planlagt vedligeholdelse → Regler → Reminder Rules** minder en begivenheds ejere om den, indtil arbejdet er godkendt. Hver begivenhed får den første regel, der matcher den, fra toppen af listen og nedad.
 
 :::steps
-### Navngiv påmindelsesreglen
-
-Klik på **Opret Scheduled Maintenance Reminder Rule**. Under **Rule Info** giver du den et **Navn**, for eksempel "Påmindelser om vedligeholdelse", og en **Beskrivelse**, hvis du vil.
-
 ### Vælg, hvilke begivenheder der mindes om
 
-Under **Matchkriterier** vælger du de **Etiketter**, den gælder for. Lad dem stå tomme for at minde om hver begivenhed.
+Klik på **Opret Scheduled Maintenance Reminder Rule**. Under **Match** lader du **Alle planlagte vedligeholdelsesbegivenheder** være valgt for at minde om hver begivenhed, eller du vælger **Kun planlagte vedligeholdelsesbegivenheder, der opfylder betingelserne** og derefter de **Etiketter**, den gælder for.
 
 ### Indstil intervallet
 
-Under **Reminder Settings** indstiller du **Reminder Interval (minutes)**, hvor ofte ejerne mindes om begivenheden, og opretter derefter reglen.
+Under **Påmindelser** indstiller du **Påmindelsesinterval (minutter)**, hvor ofte ejerne påmindes, og vælger under **Påmind ejere**, hvornår. Dens **Navn** følger begge dele, for eksempel "Påmind hver 30 minutter, mens den er i gang", indtil du skriver dit eget, og en **Beskrivelse** venter under **Flere felter**. Opret derefter reglen.
 :::
 
-| Indstilling                          | Starter som                            | Hvad den gør                                                                          |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Reminder Interval (minutes)**      | Påkrævet                               | Hvor ofte ejerne mindes om begivenheden.                                              |
-| **Stop Reminders When**              | **Remind until event is Completed**    | Eller **Stop when event starts (Ongoing)** for at stoppe, når arbejdet er begyndt.    |
-| **Remind While Event is Scheduled**  | Fra                                    | Fra: påmindelserne begynder, når begivenheden starter; til: de sendes også før start. |
+| Svar | Hvornår ejerne påmindes |
+| --- | --- |
+| **Mens den er i gang** | Fra begivenheden starter, til den slutter. En ny regel starter med dette svar. |
+| **Før den starter** | Fra begivenheden er planlagt, til den starter. |
+| **Før den starter, og mens den er i gang** | Fra begivenheden er planlagt, til den slutter. |
+
+En regel gemt via API'en eller Terraform, der venter på, at begivenheden starter, og stopper, når den starter, sender aldrig en påmindelse: Listen markerer den med **Påminder aldrig**, og dens formular beder dig vælge et svar.
 
 Ejerne får hver påmindelse som **Maintenance reminder**, som er slået til via e-mail for hvert nyt medlem. At gemme, ændre eller slette en påmindelsesregel matcher hver begivenhed, der ikke er fuldført, igen. For at stoppe påmindelserne for én begivenhed slår du **Send påmindelser** fra på dens side **Indstillinger**; den gemmer, så snart du slår den om.
 
@@ -125,7 +123,7 @@ Hver vedligeholdelsesmodel har workflow-udløsere og -handlinger, opkaldt efter 
 | **Scheduled Maintenance Member**  | Opretter, ændrer og sletter begivenheder med deres noter, tilstandstidslinjer og ejere samt begge slags skabeloner. |
 | **Scheduled Maintenance Admin**   | Alt, hvad et medlem gør, og opretter, ændrer og sletter desuden vedligeholdelsestilstande.           |
 
-Regler, brugerdefinerede felter og målinger kræver **Project Owner** eller **Project Admin** eller en brugerdefineret rolle med den sides egen tilladelse, for eksempel **Create Scheduled Maintenance Owner Rule**. **Project Member** arbejder med begivenheder og skabeloner ligesom **Scheduled Maintenance Member**. Se [Brugere, teams og tilladelser](/docs/permissions/index).
+Regler, brugerdefinerede felter og målinger kræver **Project Owner** eller **Project Admin** eller en brugerdefineret rolle med den sides egen tilladelse, for eksempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler accepterer også **Runbook Admin**. **Project Member** arbejder med begivenheder og skabeloner ligesom **Scheduled Maintenance Member**. Se [Brugere, teams og tilladelser](/docs/permissions/index).
 
 ## Fejlfinding
 
@@ -134,7 +132,7 @@ Regler, brugerdefinerede felter og målinger kræver **Project Owner** eller **P
 :::
 
 :::details Ejerne fik ingen påmindelse
-Kontrollér, at en påmindelsesregel matcher begivenhedens etiketter, at begivenhedens **Send påmindelser** er slået til, og at **Maintenance reminder** er slået til i ejernes notifikationsindstillinger. Uden **Remind While Event is Scheduled** begynder påmindelserne først, når begivenheden starter.
+Kontrollér, at en påmindelsesregel matcher begivenhedens etiketter, at begivenhedens **Send påmindelser** er slået til, og at **Maintenance reminder** er slået til i ejernes notifikationsindstillinger. En regel med **Mens den er i gang** sender intet, før begivenheden starter.
 :::
 
 ## Næste skridt

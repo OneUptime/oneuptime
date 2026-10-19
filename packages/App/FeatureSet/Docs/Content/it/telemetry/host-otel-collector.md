@@ -1133,7 +1133,7 @@ service:
 Aggiungi di nuovo una pipeline `logs`, con un receiver `filelog` o `journald` ristretto, quando ti serve.
 
 > [!CAUTION]
-> Fai attenzione a ciò che tagli. Un monitor dei log ha bisogno che i suoi log arrivino, quindi filtrare una severità o un canale silenzia i monitor che lo osservano, e i modelli di avviso Host hanno bisogno delle metriche `*.utilization`. Taglia i dati su cui non agisci, non quelli che un monitor osserva, e verifica il calo in **Impostazioni del progetto → Cronologia utilizzo** un giorno o due dopo (l'utilizzo viene conteggiato per giorno) prima di agire sulla leva successiva.
+> Fai attenzione a ciò che tagli. Un monitor dei log ha bisogno che i suoi log arrivino, quindi filtrare una severità o un canale silenzia i monitor che lo osservano, e i modelli di avviso Host hanno bisogno delle metriche `*.utilization`. Taglia i dati su cui non agisci, non quelli che un monitor osserva, e verifica il calo in **Impostazioni del progetto → Fatturazione e fatture → Cronologia utilizzo** un giorno o due dopo (l'utilizzo viene conteggiato per giorno) prima di agire sulla leva successiva.
 
 ## OneUptime self-hosted e proxy
 

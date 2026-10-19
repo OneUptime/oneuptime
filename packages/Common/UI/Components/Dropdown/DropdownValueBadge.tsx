@@ -10,6 +10,13 @@ import {
 export interface ComponentProps {
   label: string;
   color?: Color | string | undefined;
+  /*
+   * Classes added to the badge's own. A detail card's value sets align-top,
+   * so the badge sits on the value's 24px line rather than on its baseline,
+   * which stood it 2px lower than the values beside it and the row 2px
+   * taller.
+   */
+  className?: string | undefined;
 }
 
 const getColor: (color: Color | string | undefined) => Color | undefined = (
@@ -52,7 +59,7 @@ const DropdownValueBadge: FunctionComponent<ComponentProps> = (
         colors
           ? ""
           : "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-700/10"
-      }`}
+      }${props.className ? ` ${props.className}` : ""}`}
       style={colors ? getPillToneStyle(colors) : undefined}
     >
       <span

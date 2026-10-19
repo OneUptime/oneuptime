@@ -131,11 +131,16 @@ interface ViewOption {
   icon: IconProp;
 }
 
+/*
+ * Each view's icon is a picture of the view: the timeline's stretches of
+ * time stepping along (not a bar chart, which this view is not), the
+ * table's grid.
+ */
 const OPTIONS: ReadonlyArray<ViewOption> = [
   {
     view: StatusTimelineView.Timeline,
     label: translationKey("Timeline"),
-    icon: IconProp.ChartBar,
+    icon: IconProp.Timeline,
   },
   {
     view: StatusTimelineView.Table,

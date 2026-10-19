@@ -21,10 +21,9 @@ import {
 } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   GLOBAL_OIDC_ADVANCED_DEFAULTS_SUMMARY,
-  GLOBAL_OIDC_DISABLE_SIGN_UP_DESCRIPTION,
-  GLOBAL_OIDC_RESTRICT_DESCRIPTION,
   getOidcProviderFormFields,
 } from "../../../../UI/Components/Sso/OidcProviderFormFields";
+import type { RadioButton } from "../../../../UI/Components/RadioButtons/GroupRadioButtons";
 import {
   SAML_ADVANCED_DEFAULTS_SUMMARY,
   SAML_DIGEST_METHOD_DESCRIPTION,
@@ -40,8 +39,10 @@ import {
 } from "../../../../UI/Components/Sso/SamlProviderFormFields";
 import {
   SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
-  SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION,
-  SSO_GLOBAL_RESTRICT_DESCRIPTION,
+  SSO_GLOBAL_REACH_CHOICES,
+  SSO_GLOBAL_REACH_TITLE,
+  SSO_GLOBAL_SIGN_UP_CHOICES,
+  SSO_GLOBAL_SIGN_UP_TITLE,
   isSsoGlobalAccessAtDefaults,
 } from "../../../../UI/Components/Sso/SsoProviderFormFields";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
@@ -53,10 +54,11 @@ import getJestMockFunction, { MockFunction } from "../../../MockType";
  *   Provider   Name, Sign On URL, Issuer, Public Certificate;
  *   Sign-in    Teams (a project's provider), Enabled, then one folded
  *              Advanced section - the signature method, the digest method,
- *              the description and (Global) the sign-up and access switches.
+ *              the description and (Global) the two questions: who can
+ *              sign in, and where the sign-in counts as SSO.
  *
  * What it fills in is what the services fill in for an API caller
- * (Types/SSO/SamlProviderDefaults), and the Global switches are the very
+ * (Types/SSO/SamlProviderDefaults), and the Global questions are the very
  * fields the OIDC builder uses (SsoProviderFormFields).
  */
 
@@ -96,6 +98,41 @@ function fieldFor<TEntity>(
 
 function valuesOf(values: Record<string, unknown>): Values {
   return values as unknown as Values;
+}
+
+/*
+ * A column a Global question writes, registered unseen right after the
+ * question (no override key, and never on screen, whatever it holds).
+ */
+function isUnseenColumn<TEntity>(field: Field<TEntity>): boolean {
+  if (field.overrideFieldKey || !field.showIf) {
+    return false;
+  }
+
+  return [
+    {},
+    { disableSignUpWithSso: true, restrictToAttachedProjects: true },
+  ].every((values: Record<string, unknown>): boolean => {
+    return field.showIf!(values as unknown as FormValues<TEntity>) === false;
+  });
+}
+
+// The field a key's column is asked with: the question, not the unseen column.
+function askedFor<TEntity>(
+  fields: Array<Field<TEntity>>,
+  key: string,
+): Field<TEntity> {
+  const found: Field<TEntity> | undefined = fields.find(
+    (field: Field<TEntity>): boolean => {
+      return keyOf(field) === key && !isUnseenColumn(field);
+    },
+  );
+
+  if (!found) {
+    throw new Error(`No ${key} question`);
+  }
+
+  return found;
 }
 
 function optionValues(
@@ -155,19 +192,25 @@ describe("the fields each form gets", () => {
     ]);
   });
 
-  test("the instance-wide provider: no teams, and its two switches folded at the end", () => {
+  test("the instance-wide provider: no teams, and its two questions folded at the end", () => {
     expect(keysOn(GLOBAL_FIELDS, "provider")).toEqual([
       "name",
       "signOnURL",
       "issuerURL",
       "publicCertificate",
     ]);
+    /*
+     * Each question is a choice kept by its column, then the column itself,
+     * registered unseen so the form loads and saves it.
+     */
     expect(keysOn(GLOBAL_FIELDS, "sign-in")).toEqual([
       "isEnabled",
       "signatureMethod",
       "digestMethod",
       "description",
       "disableSignUpWithSso",
+      "disableSignUpWithSso",
+      "restrictToAttachedProjects",
       "restrictToAttachedProjects",
     ]);
   });
@@ -191,7 +234,12 @@ describe("the fields each form gets", () => {
         },
       );
       const open: Array<Field<unknown>> = fields.slice(0, enabledAt + 1);
-      const folded: Array<Field<unknown>> = fields.slice(enabledAt + 1);
+      // The columns the Global questions write are never on screen.
+      const folded: Array<Field<unknown>> = fields
+        .slice(enabledAt + 1)
+        .filter((field: Field<unknown>): boolean => {
+          return !isUnseenColumn(field);
+        });
 
       expect(folded.length).toBeGreaterThanOrEqual(3);
 
@@ -446,45 +494,63 @@ describe("the description follows the name", () => {
   });
 });
 
-describe("the instance-wide provider's switches", () => {
-  test("are the very fields the OIDC form has, at their columns' default (off)", () => {
+/*
+ * The instance-wide provider's two questions (People without an account, Where this
+ * sign-in counts as SSO) are pinned in full by SsoGlobalQuestions.test.ts;
+ * this holds that the SAML form asks them exactly as the OIDC form does.
+ */
+describe("the instance-wide provider's two questions", () => {
+  test("are the very fields the OIDC form has, each starting on its first answer", () => {
     const oidcGlobal: Array<Field<GlobalSSO>> =
       getOidcProviderFormFields<GlobalSSO>({ withGlobalAccessSwitches: true });
 
-    for (const key of ["disableSignUpWithSso", "restrictToAttachedProjects"]) {
-      const saml: Field<GlobalSSO> = fieldFor(GLOBAL_FIELDS, key);
-      const oidc: Field<GlobalSSO> = fieldFor(oidcGlobal, key);
+    for (const [key, title, choices] of [
+      [
+        "disableSignUpWithSso",
+        SSO_GLOBAL_SIGN_UP_TITLE,
+        SSO_GLOBAL_SIGN_UP_CHOICES,
+      ],
+      [
+        "restrictToAttachedProjects",
+        SSO_GLOBAL_REACH_TITLE,
+        SSO_GLOBAL_REACH_CHOICES,
+      ],
+    ] as Array<[string, string, Array<RadioButton>]>) {
+      const saml: Field<GlobalSSO> = askedFor(GLOBAL_FIELDS, key);
+      const oidc: Field<GlobalSSO> = askedFor(oidcGlobal, key);
 
-      expect(saml.fieldType).toBe(FormFieldSchemaType.Toggle);
-      expect(saml.defaultValue).toBeUndefined();
+      expect(saml.fieldType).toBe(FormFieldSchemaType.RadioButton);
+      expect(saml.title).toBe(title);
+      expect(saml.radioButtonOptions).toBe(choices);
+      expect(saml.formOnly).toBe(true);
+      expect(saml.hideColumnDescription).toBe(true);
+      expect(saml.getDefaultValue!({} as FormValues<GlobalSSO>)).toBe(
+        choices[0]!.value,
+      );
       expect({
         title: saml.title,
-        description: saml.description,
+        overrideFieldKey: saml.overrideFieldKey,
+        radioButtonOptions: saml.radioButtonOptions,
         stepId: saml.stepId,
       }).toEqual({
         title: oidc.title,
-        description: oidc.description,
+        overrideFieldKey: oidc.overrideFieldKey,
+        radioButtonOptions: oidc.radioButtonOptions,
         stepId: oidc.stepId,
       });
-    }
 
-    expect(fieldFor(GLOBAL_FIELDS, "disableSignUpWithSso").description).toBe(
-      SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION,
-    );
-    expect(
-      fieldFor(GLOBAL_FIELDS, "restrictToAttachedProjects").description,
-    ).toBe(SSO_GLOBAL_RESTRICT_DESCRIPTION);
+      // The column itself comes right after, never on screen.
+      const index: number = GLOBAL_FIELDS.indexOf(saml);
+      const column: Field<GlobalSSO> = GLOBAL_FIELDS[index + 1]!;
+
+      expect(keyOf(column)).toBe(key);
+      expect(isUnseenColumn(column)).toBe(true);
+    }
   });
 
-  test("the OIDC builder's names for them still read the same", () => {
+  test("the OIDC builder's summary for them still reads the same", () => {
     expect(GLOBAL_OIDC_ADVANCED_DEFAULTS_SUMMARY).toBe(
       SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY,
-    );
-    expect(GLOBAL_OIDC_DISABLE_SIGN_UP_DESCRIPTION).toBe(
-      SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION,
-    );
-    expect(GLOBAL_OIDC_RESTRICT_DESCRIPTION).toBe(
-      SSO_GLOBAL_RESTRICT_DESCRIPTION,
     );
   });
 

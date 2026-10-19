@@ -64,10 +64,10 @@ Klikk på **Opprett egendefinert regel** under malene, eller på **Opprett grupp
 
 #### Avgrens den
 
-Under **Hvilke varsler** legger du til betingelser for monitorer, alvorlighetsgrader, etiketter, titler og beskrivelser. La det stå tomt for å gruppere hvert nytt varsel. Klikk deretter på **Opprett grupperingsregel for varsler**.
+Under **Hvilke varsler** grupperer **Alle varsler**, som en ny regel starter på, hvert nytt varsel. For å snevre inn regelen velger du **Bare varsler som oppfyller betingelsene** og legger til betingelser for monitorer, alvorlighetsgrader, etiketter, titler og beskrivelser. Klikk deretter på **Opprett grupperingsregel for varsler**.
 :::
 
-Alt annet en regel kan gjøre, er foldet sammen under **Flere felt** sist på trinnet **Gruppering**, i tre grupper. Sammenfoldet nevner overskriften hva den inneholder, og viser hver innstilling regelen bruker som en brikke, så det aldri skjules hva en regel gjør når du redigerer den.
+Alt annet en regel kan gjøre, er foldet sammen under **Flere felt** sist på trinnet **Gruppering**, i tre grupper. Sammenfoldet nevner overskriften hva den inneholder, og sier hva hver innstilling regelen bruker, er satt til, så det aldri skjules hva en regel gjør når du redigerer den.
 
 | Gruppe                    | Innstillinger                                                                                              |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperi
 
 | Seksjon i sidemenyen | Sider                                                                       |
 | -------------------- | --------------------------------------------------------------------------- |
-| **Grunnleggende**    | **Oversikt**, **Beskrivelse**, **Rotårsak**, **Utbedringsnotater**          |
-| **Eierskap**         | **Eiere**                                                                   |
-| **Tidslinje**        | **Tilstandstidslinje**                                                      |
-| **Varsler**          | **Medlemsvarsler**                                                          |
-| **Episodenotater**   | **Private notater**                                                         |
-| **Utvikler**         | **Terraform**, **API**, **AI-assistenter**                                  |
-| **Avansert**         | **Revisjonslogger**, **Slett episode**                                      |
+| **Oversikt** | **Oversikt**, **Tilstandstidslinje** |
+| **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedringsnotater** |
+| **Team** | **Eiere** |
+| **Varsler** | **Medlemsvarsler** |
+| **Notater** | **Private notater** |
+| **Utvikler** | **Terraform**, **API**, **AI-assistenter** |
+| **Avansert** | **Revisjonslogger**, **Slett episode** |
 
-**Eierskap**, **Utvikler** og **Avansert** starter sammenfoldet. **Oversikt** begynner med **Alerts in this episode**, deretter **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Move episode to** i menyen **⋯**.
+**Utvikler** og **Avansert** starter sammenfoldet. **Oversikt** begynner med **Alerts in this episode**, deretter **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Move episode to** i menyen **⋯**.
 
 **Varsler → Aktive episoder** viser episodene som ikke er løst ennå, og merket ved siden av teller dem.
 

@@ -25,7 +25,7 @@ sequenceDiagram
     participant J as 你的作业
     participant O as OneUptime
     participant T as 值班团队
-    J->>O: 向 /heartbeat/KEY 发送 GET 或 POST
+    J->>O: 向 /heartbeat/KEY<br/>发送 GET 或 POST
     O-->>J: 立即返回 200
     O->>O: 评估条件
     Note over O: 每 30 秒<br/>检查缺失的请求

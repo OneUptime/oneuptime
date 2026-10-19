@@ -26,7 +26,7 @@ Beide gelten für das ganze Projekt. Sie finden sie im Seitenmenü der SLO-Liste
 
 ### Festlegen, worauf die Regel passt
 
-Klicken Sie im Schritt **Übereinstimmung** für jede Bedingung, die ein SLO erfüllen muss, auf **Bedingung hinzufügen** (siehe [Übereinstimmungskriterien](#übereinstimmungskriterien)). Bei zwei oder mehr wählen Sie **Alle müssen zutreffen** oder **Eine muss zutreffen**. Eine Regel ohne Bedingungen passt auf jedes neue SLO.
+Im Schritt **Übereinstimmung** steht **Gilt für** bei einer neuen Regel auf **Alle SLOs**, also jedem neuen SLO. Um sie einzugrenzen, wählen Sie **Nur SLOs, die den Bedingungen entsprechen** und füllen die Bedingung aus, die sich öffnet (siehe [Übereinstimmungskriterien](#übereinstimmungskriterien)); klicken Sie für jede weitere Bedingung, die ein SLO erfüllen muss, auf **Bedingung hinzufügen**. Bei zwei oder mehr wählen Sie **Alle müssen zutreffen** oder **Eine muss zutreffen**.
 
 ### Festlegen, was die Regel hinzufügt
 

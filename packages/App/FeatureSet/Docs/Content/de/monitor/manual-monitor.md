@@ -56,6 +56,14 @@ Geben Sie einen **Name** ein — und unter **Weitere Felder** eine **Beschreibun
 ### Im Dashboard
 
 :::steps
+1. Öffnen Sie den Monitor. Klicken Sie oben rechts in seiner Übersicht, neben **Aktualisieren**, auf **Weitere Aktionen** (⋯).
+2. Wählen Sie unter **Status ändern in** den neuen Status.
+3. Klicken Sie auf **Status ändern**. Der neue Status beginnt jetzt und erscheint sofort beim Monitor und auf jeder Statusseite, die ihn auflistet.
+:::
+
+Eine Änderung, die früher begonnen hat, erfassen Sie stattdessen in der Status-Zeitachse des Monitors:
+
+:::steps
 1. Öffnen Sie den Monitor und klicken Sie in seinem Seitenmenü auf **Status-Zeitachse**.
 2. Klicken Sie auf **Monitor-Statusereignis erstellen**.
 3. Wählen Sie den **Monitor-Status**. **Beginnt am** ist jetzt; setzen Sie einen früheren Zeitpunkt, wenn die Änderung früher geschah.

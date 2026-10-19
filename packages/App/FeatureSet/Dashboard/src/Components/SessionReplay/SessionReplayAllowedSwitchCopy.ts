@@ -34,15 +34,15 @@ export const SessionReplayAllowedSwitchCopy: {
 } = {
   cardTitle: translationKey("Session Replay for this Project"),
   cardDescription: translationKey(
-    "Master switch for recording your end users' screens. While this is off, no application in this project can record and any chunk that arrives is refused at ingest. This control is never plan-gated.",
+    "The master switch for recording your users' screens in this project.",
   ),
   switchTitle: translationKey("Allow session replay in this project"),
   switchDescription: translationKey(
-    "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
+    "Records what real people do on your site, including anything not masked. Confirm your masking policy and lawful basis first.",
   ),
   allowConfirmTitle: translationKey("Allow session replay?"),
   allowConfirmDescription: translationKey(
-    "Applications in this project that have session replay turned on start recording what real people do on your site, including anything not masked at capture. Confirm your masking policy and your lawful basis for the recording first.",
+    "Applications with session replay on start recording real people on your site. Confirm your masking policy and lawful basis first.",
   ),
   allowConfirmButton: translationKey("Allow session replay"),
 };

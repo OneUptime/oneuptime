@@ -12,14 +12,14 @@ Everything in OneUptime lives inside a **project**. Who can do what inside that 
 ```mermaid title="How a person and an API key get access"
 flowchart TB
     User["A user<br/>(one account)"]
-    Key["An API key"]
     subgraph Project["A project"]
         direction TB
+        Key["An API key"]
         Team["Team"]
-        Allow["Allow permissions,<br/>each with a scope:<br/>All, Owned or Labels"]
+        Allow["Allow permissions,<br/>each with a scope:<br/>All, Owned<br/>or Labels"]
         Block["Block permissions,<br/>which always win"]
-        KeyRules["The key's own allow<br/>and block permissions"]
-        Resources["Monitors, incidents,<br/>status pages and more"]
+        KeyRules["The key's<br/>own allow<br/>and block<br/>permissions"]
+        Resources["Monitors,<br/>incidents,<br/>status pages<br/>and more"]
     end
     User -->|"member of"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"reach"| Resources
     KeyRules -->|"reach"| Resources
     Block -.->|"take away"| Resources
+    Allow ~~~ Block
 ```
 
 | Concept | What it is |
@@ -37,6 +38,7 @@ flowchart TB
 | Team | A named group inside a project that carries permissions. |
 | Team member | A user who has been invited to a team and accepted. |
 | Permission | A single capability, e.g. `CreateProjectMonitor`, or a role that bundles many, e.g. `MonitorAdmin`. |
+| Custom role | A set of permissions you name once and give to teams. |
 | Scope | How wide an allow permission reaches: all resources, only owned ones, or only labelled ones. |
 | Owner | A user or team marked as responsible for one specific resource. |
 | Label | A tag you put on resources, used to restrict permissions and to organise. |
@@ -57,6 +59,7 @@ A user is "in" a project when they are a member of **at least one team** in it. 
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
 - **Invite User** starts on the project's members team: the team that holds `ProjectMember` for the whole project, which is **Members** unless you renamed it. Pick another team to give the person more or less access. Nothing is picked when you could not invite to that team yourself — inviting someone hands them the team's permissions, and you can only hand on permissions you hold — or when the project has no such team. The Admin Dashboard starts on the same team wherever an instance administrator adds someone to a project: **Invite User** on a project, **Add to Project** on a user and on several users at once, and the projects attached to a [global SSO provider](/docs/identity/global-sso).
 - Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. They are taken off the project's on-call schedules, escalation rules and overrides, off the roles of its open incidents and episodes, and off the owners of its resources; resolved incidents keep the record of who owned and ran them.
+- On a self-hosted installation, removing someone's master admin access in the Admin Dashboard takes it away from their next request on — including while they are signed in. They stay signed in, and keep the projects they are a member of.
 - Someone who leaves a project stops getting its notifications. Their own notification methods, rules and settings for the project go with their last team — email, SMS, phone, WhatsApp, Telegram, push, webhook, Slack and Microsoft Teams, their email rollup and the rollup email not sent yet, their number for incoming calls and their shift reminders — so joining again starts from the defaults. Anything that still names them, such as the user an incoming call rule rings or an owner kept on a resolved incident, no longer notifies them: nothing is sent on a project's behalf to anyone who is not a member of it, and a pending invitation is not membership yet. Those places show **No longer a member** next to their name, so you can put someone else there. Someone invited who has not accepted yet shows **Invitation not accepted yet** instead. If an override routes someone's pages to a person who has left, the person it covers is paged instead. Leaving also disconnects the MCP clients they connected to the project, and their personal on-call calendar link shows an empty calendar from then on. On OneUptime Cloud, someone who comes back through the project's single sign-on confirms it from their mailbox again.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).
@@ -132,6 +135,24 @@ These are also the keys you use when creating API keys, and the ones the API and
 
 The full list is in the [Permission Reference](/docs/permissions/reference).
 
+### Custom roles
+
+A custom role is a set of permissions you name once and give to teams: an Incident Responder made of `IncidentMember`, `AlertMember` and `OnCallViewer`, say, or a Team Lead. Every team you give it to gets the same permissions, and you change them for all of those teams in one place. On OneUptime Cloud, custom roles need the Scale plan, as changing a team's permissions does.
+
+:::steps
+1. Open **Teams** from the **Products** menu, under **Settings**. Expand **Settings** in its side menu, choose **Roles**, and click **Create Custom Role**.
+2. Type its **Name** and pick the built-in roles it bundles under **Permissions**, for every resource in the project. The description is under **More fields**.
+3. Create the role. It opens on its page, where **Add Role** adds another built-in role and **Add Permission** (in the card's **⋯** menu) a single permission, each with a scope and labels, as on a team.
+4. Click **Give to a Team** under **Teams with this Role**. A team's **Permissions** page has **Add Custom Role** too, and **Create Team** offers the custom roles you could give under **Access**.
+:::
+
+- A team's members get every permission of its custom roles, at the same scope and with the same labels, exactly as if the team held them itself. A block on the team still wins.
+- A role stays linked to the teams that have it: a change to it reaches all of them at once, and the role's page says how many teams and people that is. **Remove** takes the role from one team. Deleting the role takes its permissions from every team that has it; the teams keep their members and their other roles and permissions.
+- You can put into a role, and give a team a role, only what you could give the team directly: a role holding a permission you do not hold at the same or a broader scope is refused, and the refusal names the permission. A role never holds `ProjectOwner`, and **Owners** and **Admin** are never given one.
+- A team's **Permissions** page lists its custom roles above its own permissions. What a role gives is changed on the role's page, not on the team's.
+- API keys do not take custom roles. A key serves one integration, so give it exactly the permissions it needs on its own page.
+- The built-in roles are listed under **Built-in Roles**, at the bottom of the **Roles** page.
+
 ### Allow and block
 
 Each team has two lists:
@@ -171,11 +192,11 @@ Every allow permission is granted with a scope, chosen under **Scope** when you 
 
 | Scope | Meaning |
 | --- | --- |
-| All resources in the project | The default. The permission applies to every matching resource. |
-| Owned by this team or its members | The permission only applies to resources where this team, or the user acting, is listed as an owner. |
-| Restrict by labels (advanced) | The permission only applies to resources carrying at least one of the selected labels. |
+| All resources in the project | The default, and what most teams want. The permission applies to every matching resource. |
+| Only resources they own | The permission applies only to resources the person acting, or one of their teams, owns. |
+| Only resources with certain labels | The permission applies only to resources carrying at least one of the labels you pick. |
 
-**Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It only narrows resources that can actually have owners — monitors, incidents, dashboards, services and the like. Project configuration (incident states, labels, teams themselves) has no owner, so an Owned-scoped role behaves normally there.
+**Owned** is the simplest way to build a "you look after your own services" model: give a team `MonitorAdmin` scoped to Owned, then make that team the owner of the monitors it is responsible for. It narrows every resource that can have owners — monitors, incidents, dashboards, services, monitor groups, on-call schedules and the like — and what belongs to them, such as a schedule's layers. Probes, Runners, AI agents, on-call schedules and incident and maintenance templates are what other resources are set up with, so a permission scoped to Owned still reads all of them, and you can pick any of them; it changes and deletes only the ones you or your teams own. A Runner's key, which lets whoever holds it act as the Runner, shows only on the Runners you or your teams own. Project configuration (incident states, labels, teams themselves) has no owner, so an Owned-scoped role behaves normally there.
 
 **Labels** is the more manual version of the same idea: tag resources, then grant permissions restricted to those tags.
 
@@ -196,7 +217,7 @@ Owners do two jobs:
 
 Ownership on its own grants nothing. Being the owner of a monitor does not let you edit it unless a team you belong to also holds a monitor permission. Ownership narrows access; it never widens it.
 
-Who owns a resource is read through the resource. The owners of a monitor or of any other resource are listed, read, added and removed only by someone who may read that resource, and a permission on owners alone reaches the owners of no resource you may not read.
+Who owns a resource is read through the resource. The owners of a monitor or of any other resource are listed, read, added and removed only by someone who may read that resource, and a permission on owners alone reaches the owners of no resource you may not read. Adding and removing owners keeps to the scope of the permission that does it, too: scoped to `Owned`, it reaches only the resources you or one of your teams already own, however many more you may read, so reading a monitor does not let you make yourself its owner. An owner is added or removed, never moved to another resource.
 
 ## Labels
 
@@ -302,7 +323,7 @@ Resolved permissions are cached per user and project, and refreshed when team me
 
 **A team that only watches.** Create the team with **Viewer** under **Access**. For just some areas, pick **Choose permissions later** and add the per-area `*Viewer` roles they should see.
 
-**On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors it runs.
+**On-call engineers who manage their own services.** Give the team `MonitorAdmin`, `IncidentMember` and `OnCallMember` scoped to **Owned**, then add the team as owner of the monitors, on-call policies and schedules it runs. Whatever its people create with these permissions, they own already.
 
 **Contractors kept away from production.** Give the team the roles it needs at **All** scope, then add a **block permission** (under **More settings** on the team's Permissions page) for the sensitive capabilities, restricted to the `Production` label.
 

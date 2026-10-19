@@ -16,16 +16,16 @@ OneUptime 从 OneUptime 服务器通过 HTTPS 调用您的 Foundry 资源，从�
 ```mermaid title="OneUptime 的 AI 请求去往何处"
 flowchart TB
     subgraph OU["OneUptime 服务器"]
-        F["AI 调查、备注、事后复盘、修复任务"]
+        F["AI 调查、备注、<br/>事后复盘、修复任务"]
     end
     subgraph AZ["您的 Azure 订阅"]
         R["Foundry 资源 contoso-ai"]
-        V1["OpenAI v1 API：/openai/v1/chat/completions"]
-        AN["Anthropic API：/anthropic/v1/messages"]
+        V1["OpenAI v1 API：<br/>/openai/v1/chat/completions"]
+        AN["Anthropic API：<br/>/anthropic/v1/messages"]
         D1["部署 gpt-5.1"]
         D2["部署 claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API 密钥"| R
+    F -->|"HTTPS +<br/>API 密钥"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```
@@ -111,20 +111,20 @@ az cognitiveservices account keys list \
 
 前往 **项目设置** > **人工智能** > **LLM 提供商**，然后点击 **创建LLM 提供商**。
 
-### 为提供商命名
+### 选择提供商
 
-在 **基本信息** 中输入 **名称**，例如 `Azure gpt-5.1`，如有需要再输入 **描述**。点击 **下一步**。
+在 **提供商** 中选择 **Azure OpenAI / Microsoft Foundry** 作为 **LLM 提供商**，然后点击 **下一步** 进入 **连接**。
 
-### 填写提供商设置
+### 填写连接
 
 | 字段 | 填写内容 |
 | --- | --- |
-| **LLM 提供商** | **Azure OpenAI / Microsoft Foundry** |
 | **API 密钥** | 资源的 **KEY 1** 或 **KEY 2** |
-| **模型名称** | 与 Foundry 显示完全一致的部署名称，例如 `gpt-5.1` |
 | **基础 URL** | 资源终结点加上 `/openai/v1`，例如 `https://contoso-ai.openai.azure.com/openai/v1`。Claude 使用：`https://contoso-ai.services.ai.azure.com/anthropic` |
+| **模型名称** | 与 Foundry 显示完全一致的部署名称，例如 `gpt-5.1` |
+| **名称** | 起初是提供商的名称：改成能说明是哪个部署的名称，例如 `Azure gpt-5.1` |
 
-**更多字段** 下的 **设为默认** 已开启：AI 功能使用项目的默认提供商。点击 **创建LLM 提供商**。
+**更多字段** 下有 **描述** 和已开启的 **设为默认**：AI 功能使用项目的默认提供商。点击 **创建LLM 提供商**。
 
 ### 测试连接
 

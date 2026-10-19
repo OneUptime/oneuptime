@@ -25,8 +25,10 @@ As alterações são salvas automaticamente. Um selo na barra de ferramentas aco
 
 | Para adicionar         | Clique em                                                      | Painel que se abre            |
 | ---------------------- | -------------------------------------------------------------- | ----------------------------- |
-| O gatilho              | O bloco tracejado de espaço reservado                          | **Add Trigger**               |
+| O gatilho              | O bloco tracejado de espaço reservado, ou **Adicionar gatilho** na barra de ferramentas | **Adicionar gatilho**         |
 | Qualquer outro bloco   | **Adicionar componente**, na barra de ferramentas acima do canvas | **Adicionar componente**   |
+
+O botão da barra de ferramentas mostra **Adicionar gatilho** enquanto o workflow não tem um gatilho, e **Adicionar componente** assim que tem um.
 
 Os dois painéis abrem nos blocos que a maioria dos workflows usa, em **Popular**, seguidos pelos outros blocos integrados. Em **OneUptime resources**, clique em um recurso como **Incidente** para ver o que dá para fazer com ele; **Browse all resources** lista todos. Ou pesquise: digite algumas palavras, como `create incident`, e o resultado mais próximo aparece primeiro. Pressione `/` para ir à caixa de busca, as setas para percorrer os resultados e **Enter** para adicionar o bloco destacado. Clicar em um bloco o adiciona.
 
@@ -55,7 +57,7 @@ Arraste de um ponto na parte de baixo de um bloco até o ponto no topo do próxi
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Nada ligado, então a execução termina"])
+    check -->|"No"| ends(["Nada ligado, então<br/>a execução termina"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```
@@ -127,7 +129,7 @@ Uma coisa ele não consegue verificar: se o nome de uma variável existe. As con
 O jeito mais rápido de pegar o jeito do canvas é um workflow de dois blocos que você inicia manualmente:
 
 :::steps
-1. Clique no bloco tracejado de espaço reservado e depois em **Manual**, no painel **Add Trigger**.
+1. Clique no bloco tracejado de espaço reservado e depois em **Manual**, no painel **Adicionar gatilho**.
 2. Clique em **Adicionar componente** e depois em **Registro**, em **Popular**. O novo bloco aparece abaixo do gatilho. Ligue o ponto **Execute** do gatilho ao ponto de entrada do bloco Log, mais abaixo.
 3. Clique no bloco Log, que mostra **Click to set up**, e digite `Hello from ` no **Value** dele. Clique em **{ }** e depois em **JSON**, em **Manual**. A configuração mostra **Manual › JSON** e salva `{{local.components.manual-1.returnValues.value}}`. `manual-1` é o **Identifier** do gatilho, mostrado no bloco do gatilho. Clique em **Salvar**.
 4. De volta ao **Construtor**, clique em **Executar fluxo de trabalho**, coloque `{ "name": "Ada" }` no campo **JSON**, clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O workflow continua desligado, e não precisa estar ligado: uma execução que você mesmo inicia é uma **Execução de teste**.

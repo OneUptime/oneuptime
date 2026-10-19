@@ -19,16 +19,14 @@ import {
  * are refused (Identity's status page login), and only people the page's
  * SSO or OIDC provider lets in can see it. Turning it off saves at once: it
  * locks nobody out. See StatusPageRequireSsoCopy.
+ *
+ * The card has no description: testing first is said once, beside the link,
+ * by the Test Sign-In card above it (StatusPageSignInTestCard), which shows
+ * once there is a provider to test.
  */
 
 export interface ComponentProps {
   statusPageId: ObjectID;
-  /*
-   * Drawn under the Scale plan's upsell (StatusPageRequireSsoLeftover), not
-   * on the SSO page with its providers and test link: the line about the
-   * test link is left out.
-   */
-  isPlanLeftover?: boolean | undefined;
   // The status page, already read with requireSsoForLogin: no second read.
   initialStatusPage?: StatusPage | undefined;
   // Told whether SSO is required, each time the switch is saved.
@@ -61,11 +59,6 @@ const StatusPageRequireSsoCard: FunctionComponent<ComponentProps> = (
       modelId={props.statusPageId}
       column={STATUS_PAGE_REQUIRE_SSO_COLUMN}
       cardTitle={StatusPageRequireSsoCopy.cardTitle}
-      cardDescription={
-        props.isPlanLeftover
-          ? undefined
-          : StatusPageRequireSsoCopy.cardDescription
-      }
       title={StatusPageRequireSsoCopy.switchTitle}
       getDescription={(isOn: boolean): string => {
         return isOn

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 29820,
-    "untranslated": 5053
+    "keys": 30977,
+    "untranslated": 4958
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -49,6 +49,7 @@
     "Access Points",
     "Active + Clean",
     "Afghanistan",
+    "Agenda",
     "Agent",
     "Aggregation",
     "Alarm",
@@ -225,7 +226,6 @@
     "Hosts",
     "Image",
     "Images",
-    "In Huntress",
     "Index",
     "Info",
     "Initiator",

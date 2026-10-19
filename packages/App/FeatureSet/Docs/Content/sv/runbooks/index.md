@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["Vad som startar en körning"]
         direction LR
         rule["Runbook-regel"]
-        manual["Kör Runbook på en händelse"]
-        runnow["Run Now på runbooket"]
+        manual["Kör Runbook<br/>på en händelse"]
+        runnow["Run Now på<br/>runbooket"]
     end
-    rule --> execution["Körning: en ögonblicksbild av stegen"]
+    rule --> execution["Körning: en<br/>ögonblicksbild<br/>av stegen"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker tar stegen i ordning"]
-    worker -->|"Manual-steg eller godkännande"| person["Väntar på en person"]
-    worker -->|"HTTP- och AI-steg"| onworker["Körs på Workern"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner i din infrastruktur"]
-    person --> record["Status, output och fel registreras"]
+    execution --> worker["OneUptime<br/>Worker tar<br/>stegen i ordning"]
+    worker -->|"Manual-steg<br/>eller godkännande"| person["Väntar på<br/>en person"]
+    worker -->|"HTTP- och<br/>AI-steg"| onworker["Körs på Workern"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner i din<br/>infrastruktur"]
+    person --> record["Status, output och<br/>fel registreras"]
     onworker --> record
     runner --> record
-    record --> history["Händelsens Runbooks-sida och runbookets Körningar"]
+    record --> history["Händelsens<br/>Runbooks-sida<br/>och runbookets<br/>Körningar"]
 ```
 
 Varje gång ett runbook körs skapas en **körning**. När den startar kopieras runbookets steg över till den, och OneUptime går igenom dem i ordning. Ett Manual-steg, eller ett steg som kräver godkännande, pausar körningen tills någon agerar.
@@ -98,6 +98,17 @@ Runbooks finns under **Produkter**, i gruppen **Instrumentpaneler och automatise
 | **Incidenter / Varningar / Schemalagt underhåll → Regler → Runbook-regler** | Skapa de regler som startar runbooks automatiskt. |
 | En incident, ett larm eller en underhållshändelse → **Runbooks** | Se de körningar som är kopplade till den och klicka på **Kör Runbook** för att starta en. |
 
+Ett runbooks egen sidomeny grupperar dess sidor så här. Bara **Grundläggande** är öppet från början: klicka på ett avsnitts rubrik för att öppna det. Ett avsnitt öppnas av sig självt på varje sida i det.
+
+| Avsnitt | Sidor |
+| --- | --- |
+| **Grundläggande** | **Översikt**, **Steg** |
+| **Loggar** | **Körningar** |
+| **Ägare** | **Ägare** |
+| **Inställningar** | **Utlösare**, **Inställningar** |
+| **Utvecklare** | **Terraform**, **API**, **AI-assistenter** |
+| **Avancerad** | **Granskningsloggar**, **Radera runbook** |
+
 ## Ett genomgånget exempel
 
 Anta att varje incident med "db-primary" i titeln ska starta ett runbook för databas-failover med fem steg.
@@ -105,7 +116,7 @@ Anta att varje incident med "db-primary" i titeln ska starta ett runbook för da
 :::steps
 ### Skapa runbooket
 
-Under **Runbooks** klickar du på **Skapa Runbook** och kallar det "DB primary failover". Öppna det, gå till **Steg**, lägg till de här stegen och klicka sedan på **Save Steps**:
+Under **Runbooks** klickar du på **Skapa Runbook** och kallar det "DB primary failover". Det öppnas på **Steg**: lägg till de här stegen och klicka sedan på **Save Steps**:
 
 | # | Typ | Titel |
 | --- | --- | --- |

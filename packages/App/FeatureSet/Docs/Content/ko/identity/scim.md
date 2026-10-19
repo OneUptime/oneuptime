@@ -14,15 +14,15 @@ SCIM(System for Cross-domain Identity Management)은 사람의 프로비저닝�
 
 ## 작동 방식
 
-ID 공급자는 누군가를 할당하거나, 변경하거나, 할당을 해제할 때마다 Bearer 토큰으로 인증하여 OneUptime의 SCIM 엔드포인트를 호출합니다. 요청이 무엇을 바꾸는지는 연결이 어디에 있는지에 따라 달라집니다.
+ID 공급자는 누군가를 할당하거나, 변경하거나, 할당을 해제할 때마다 OneUptime의 SCIM 엔드포인트를 호출합니다. 이때 연결의 Bearer 토큰으로 인증하거나, 연결의 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명)으로 받은 액세스 토큰으로 인증합니다. 요청이 무엇을 바꾸는지는 연결이 어디에 있는지에 따라 달라집니다.
 
 ```mermaid title="SCIM이 OneUptime에서 바꾸는 것"
 flowchart TB
     IdP["ID 공급자"] -->|"SCIM 요청,<br/>Bearer 토큰"| P["프로젝트 SCIM 연결"]
-    IdP -->|"SCIM 요청,<br/>Bearer 토큰"| S["상태 페이지 SCIM 연결"]
-    P --> Q{"푸시 그룹이 켜져 있음?"}
+    IdP -->|"SCIM 요청,<br/>Bearer 토큰"| S["상태 페이지<br/>SCIM 연결"]
+    P --> Q{"푸시 그룹이<br/>켜져 있음?"}
     Q -->|"아니요"| T["사용자가 기본 팀에<br/>들어오고 나감"]
-    Q -->|"예"| G["그룹이 팀이 되고<br/>멤버 구성이 그룹을 따름"]
+    Q -->|"예"| G["그룹이 팀이 되고<br/>멤버 구성이<br/>그룹을 따름"]
     S --> U["비공개 사용자를<br/>추가하고 삭제"]
 ```
 
@@ -57,7 +57,7 @@ SCIM과 [SSO](/docs/identity/sso)는 서로 독립적입니다. SCIM은 프로�
 3. **ID 공급자 구성**
 
    - 대화 상자의 **SCIM Base URL**을 사용합니다. OneUptime Cloud에서는 `https://oneuptime.com/identity/scim/v2/<scim-id>`이며, 자체 호스팅 설치에서는 해당 설치의 호스트가 표시됩니다
-   - 대화 상자의 **Bearer Token**으로 Bearer 토큰 인증을 구성합니다
+   - 대화 상자의 **Bearer Token**으로 Bearer 토큰 인증을 구성합니다. ID 공급자가 대신 OAuth 2.0 클라이언트 자격 증명을 요구한다면 같은 대화 상자의 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명)을 사용하세요
    - 사용자 특성을 매핑합니다(이메일은 필수). Microsoft Entra ID와 Okta에 대한 자세한 내용은 [ID 공급자 연결](#id-공급자-연결)에 있습니다
 :::
 
@@ -77,6 +77,18 @@ sequenceDiagram
 ```
 
 이미 OneUptime 계정이 있던 사람은 OneUptime Cloud에서 초대를 수락하면 합류합니다([자주 묻는 질문](#자주-묻는-질문) 참고). 연결의 기본 팀이 아닌 다른 팀을 통해 받은 액세스에는 영향을 주지 않습니다.
+
+### OAuth 2.0 클라이언트 자격 증명
+
+일부 ID 공급자는 Bearer 토큰을 보관하지 않고 대신 OAuth 2.0 클라이언트 자격 증명을 요구합니다. 프로젝트의 연결이든 상태 페이지의 연결이든 모든 연결은 **SCIM Base URL**과 같은 대화 상자의 **OAuth 2.0 Client Credentials** 아래에 이 자격 증명이 있습니다.
+
+- **Token Endpoint**: ID 공급자가 액세스 토큰을 받는 곳입니다. 모든 연결에서 같으며, OneUptime Cloud에서는 `https://oneuptime.com/identity/scim/oauth/token`입니다.
+- **Client ID**: 연결의 ID입니다.
+- **Client Secret**: **Make Client Secret**을 클릭하고 시크릿을 바로 복사하세요. OneUptime은 시크릿의 해시만 보관하므로 다시 보여 줄 수 없습니다. 시크릿은 1년 동안 유효합니다.
+
+ID 공급자는 클라이언트 ID와 시크릿을 토큰 엔드포인트로 보내고, 1시간 동안 유효한 액세스 토큰을 받습니다. 연결의 Bearer 토큰도 함께 계속 작동합니다.
+
+시크릿을 교체하려면 **Make New Client Secret**을 클릭합니다. 이전 시크릿은 만료되거나 **Delete Previous Secret**을 클릭할 때까지 계속 작동하므로, 프로비저닝을 끊지 않고 ID 공급자에 새 시크릿을 넣을 수 있습니다. ID 공급자가 새 시크릿을 쓰기 시작하면 이전 시크릿을 삭제하세요. 시크릿이 만료되거나 삭제되면 그 시크릿으로 발급된 액세스 토큰도 즉시 더 이상 작동하지 않습니다. 연결의 시크릿을 만들고 삭제할 수 있는 사람은 그 연결의 Bearer 토큰을 변경할 수 있는 사람입니다. 프로젝트에서는 프로젝트 소유자, 상태 페이지에서는 그 상태 페이지의 SSO를 편집할 수 있는 사람입니다.
 
 ## 상태 페이지용 SCIM
 
@@ -98,7 +110,7 @@ sequenceDiagram
 3. **ID 공급자 구성**
 
    - 대화 상자의 **SCIM Base URL**을 사용합니다. OneUptime Cloud에서는 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`입니다
-   - 표시된 토큰으로 Bearer 토큰 인증을 구성합니다
+   - 표시된 토큰으로 Bearer 토큰 인증을 구성하거나, 같은 대화 상자의 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명)을 사용합니다
    - 사용자 특성을 매핑합니다(이메일은 필수)
 :::
 
@@ -132,6 +144,8 @@ Microsoft Entra ID는 SCIM 프로비저닝을 갖춘 엔터프라이즈급 ID �
 - Premium P1 또는 P2 라이선스가 있는 Microsoft Entra ID 테넌트(자동 프로비저닝에 필요).
 - OneUptime Cloud에서 **Scale** 플랜 이상을 사용하는 OneUptime 프로젝트.
 - Microsoft Entra ID와 OneUptime 모두에 대한 관리자 액세스.
+
+Microsoft Entra 애플리케이션 갤러리의 OneUptime 앱은 SSO(Single Sign-On)용입니다. 프로비저닝에는 SSO용으로 갤러리에서 OneUptime을 이미 추가했더라도 아래와 같이 애플리케이션을 직접 만들어 사용하세요.
 
 :::steps
 #### Entra ID용 SCIM 연결 만들기
@@ -209,6 +223,8 @@ Okta는 SCIM을 지원하는 유연한 ID 관리를 제공합니다. 다음이 �
 - OneUptime Cloud에서 **Scale** 플랜 이상을 사용하는 OneUptime 프로젝트.
 - Okta와 OneUptime 모두에 대한 관리자 액세스.
 
+OneUptime Cloud에서는 Okta Integration Network에 OneUptime이 있으면 그곳에서 추가하세요([SSO](/docs/identity/sso) 참고). OneUptime의 SCIM 설정과 특성 매핑이 미리 들어 있으며, 연결의 ID와 Bearer 토큰을 묻습니다.
+
 :::steps
 #### Okta용 SCIM 연결 만들기
 
@@ -228,18 +244,18 @@ Okta는 SCIM을 지원하는 유연한 ID 관리를 제공합니다. 다음이 �
 Okta Admin Console에서 **Applications** > **Applications**로 이동합니다.
 
 - 이미 OneUptime SSO에 Okta를 사용하고 있다면 그 애플리케이션을 엽니다.
-- 그렇지 않다면 **Create App Integration**을 클릭하고 **SAML 2.0**을 선택한 다음, 이름을 "OneUptime"으로 지정하고 SAML 설정을 마칩니다([SSO](/docs/identity/sso) 참고).
+- 그렇지 않다면 Okta Integration Network에 OneUptime이 있는 경우 그곳에서 추가하거나(**Browse App Catalog**를 클릭하고 OneUptime을 검색한 다음 **Add Integration** 클릭), **Create App Integration**을 클릭하고 **SAML 2.0**을 선택한 다음, 이름을 "OneUptime"으로 지정하고 SAML 설정을 마칩니다([SSO](/docs/identity/sso) 참고).
 
 #### Okta에서 SCIM 프로비저닝 켜기
 
 1. OneUptime 애플리케이션의 **General** 탭으로 이동합니다
-2. **App Settings** 섹션에서 **Edit**를 클릭하고, **Provisioning**에서 **SCIM**을 선택한 다음 **Save**를 클릭합니다
-3. 새 **Provisioning** 탭이 나타납니다
+2. **App Settings** 섹션에서 **Edit**를 클릭합니다. Okta Integration Network에서 추가한 애플리케이션이라면 **OneUptime SCIM Connection ID**를 **SCIM Base URL**의 마지막 부분인 `<scim-id>`로 설정합니다. 직접 만든 애플리케이션이라면 **Provisioning**에서 **SCIM**을 선택합니다. **Save**를 클릭합니다
+3. 이제 애플리케이션에 **Provisioning** 탭이 있습니다
 
 #### Okta를 OneUptime에 연결
 
 1. **Provisioning** 탭에서 **Integration**을 클릭한 다음 **Configure API Integration**을 클릭하고 **Enable API integration**을 선택합니다
-2. 다음을 구성합니다.
+2. Okta Integration Network에서 추가한 애플리케이션이라면 OneUptime의 **Bearer Token**을 **API Token**으로 입력합니다. 직접 만든 애플리케이션이라면 다음을 구성합니다.
    - **SCIM connector base URL**: OneUptime의 **SCIM Base URL**(예: `https://oneuptime.com/identity/scim/v2/<scim-id>`)
    - **Unique identifier field for users**: `userName`
    - **Supported provisioning actions**: Import New Users and Profile Updates, Push New Users, Push Profile Updates, 그리고 그룹 기반 프로비저닝을 사용한다면 Push Groups
@@ -290,7 +306,7 @@ OneUptime의 SCIM 구현은 SCIM v2.0 사양을 따르며 규격을 준수하는
 | 설정 | 값 |
 | --- | --- |
 | SCIM Base URL | OneUptime의 **SCIM Base URL**: 프로젝트는 `https://oneuptime.com/identity/scim/v2/<scim-id>`, 상태 페이지는 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
-| 인증 | HTTP Bearer 토큰 |
+| 인증 | HTTP Bearer 토큰 또는 [OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명) |
 | 고유 사용자 식별자 | `userName`(유효한 이메일 주소여야 함) |
 | 작업 | 프로젝트 SCIM과 상태 페이지 SCIM에서 Users에 대한 GET, POST, PUT, PATCH, DELETE. Groups는 프로젝트 SCIM에서만 지원됩니다. |
 
@@ -309,6 +325,8 @@ OneUptime의 SCIM 구현은 SCIM v2.0 사양을 따르며 규격을 준수하는
 | `/Groups/{id}`           | GET, PUT, PATCH, DELETE | 개별 그룹 관리(프로젝트 SCIM 전용)              |
 | `/Bulk`                  | POST                    | 한 번의 요청으로 여러 작업                      |
 
+[OAuth 2.0 클라이언트 자격 증명](#oauth-20-클라이언트-자격-증명)의 토큰 엔드포인트는 기본 URL 아래에 있지 않습니다. OneUptime Cloud에서는 모든 연결이 `https://oneuptime.com/identity/scim/oauth/token`을 사용합니다. 이 엔드포인트는 `client_credentials` 권한 부여 유형을 받으며, 클라이언트 ID와 시크릿은 HTTP Basic 인증이나 폼 데이터로 보냅니다. 응답으로는 1시간 동안 유효한 액세스 토큰(`expires_in` 값 `3600`)을 돌려줍니다.
+
 `/ServiceProviderConfig`가 보고하는 내용:
 
 | 기능 | 지원 여부 |
@@ -316,10 +334,10 @@ OneUptime의 SCIM 구현은 SCIM v2.0 사양을 따르며 규격을 준수하는
 | PATCH | 예 |
 | Bulk | 예, 요청당 최대 1,000개 작업과 1 MB |
 | Filter | 예, 최대 200개 결과 |
-| 정렬 | 예 |
+| 정렬 | 아니요 |
 | 비밀번호 변경 | 아니요 |
 | ETag | 아니요 |
-| 인증 | HTTP Bearer 토큰 |
+| 인증 | HTTP Bearer 토큰 또는 OAuth 2.0 액세스 토큰 |
 
 ID 공급자가 만든 그룹은 프로젝트에서 같은 이름의 팀이 됩니다. 그 이름의 팀이 이미 있으면 새 팀을 만들지 않고 그 팀을 사용합니다.
 
@@ -370,7 +388,7 @@ OneUptime Cloud에서 SCIM을 사용하려면 **Scale** 플랜이 필요합니�
 OneUptime Cloud에서 SCIM 프로비저닝은 프로젝트가 **Scale** 이상일 때만 완전히 작동합니다. 그 아래에서는(Scale 체험 기간이 끝났거나 플랜을 낮춘 뒤) 프로젝트의 SCIM 연결과 상태 페이지의 SCIM 연결이 사람을 제거하기만 하므로, 떠나는 사람은 여전히 액세스를 잃습니다.
 
 - **계속 작동하는 것:** 사용자 비활성화(비활성화한 사람을 제거하도록 설정된 연결에서 `active`를 `false`로 설정), 사용자 삭제, 그룹에서 멤버 제거(멤버를 값으로 하는 `members`에 대한 Entra ID의 `Remove`, `members[value eq "..."]`에 대한 Okta의 `remove`, 또는 그룹에 이미 있는 멤버 일부로 멤버를 교체), 그룹 삭제, `DELETE`로만 이루어진 `Bulk` 요청. 조회에도 응답하지만(ID 공급자가 누군가를 제거하기 전에 하는 사용자와 그룹의 목록 조회 및 필터링), 플랜 미만에서는 조회로 누군가가 생성되지 않습니다.
-- **거부되는 것:** 사용자나 그룹 생성, 사용자 재활성화(연결이 자신의 팀 중 하나에 다시 넣게 될 사람에 대해 `active`를 `true`로 설정), 속하지 않은 그룹에 누군가를 추가, 그리고 사용자의 이메일이나 이름 또는 그룹의 이름만 변경하는 것. 누군가를 추가하는 요청은 동시에 사람을 제거하더라도 전체가 거부됩니다. SCIM `PATCH`는 전부 적용되거나 전혀 적용되지 않기 때문입니다. 거부는 SCIM 형식의 오류가 담긴 `402`이며 ID 공급자에 다음과 같이 표시됩니다. `SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.` 각 거부는 연결의 SCIM 로그에도 기록됩니다.
+- **거부되는 것:** 사용자나 그룹 생성, 사용자 재활성화(연결이 자신의 팀 중 하나에 다시 넣게 될 사람에 대해 `active`를 `true`로 설정), 속하지 않은 그룹에 누군가를 추가, 그리고 사용자의 이메일이나 이름 또는 그룹의 이름만 변경하는 것. 누군가를 추가하는 요청은 동시에 사람을 제거하더라도 전체가 거부됩니다. SCIM `PATCH`는 전부 적용되거나 전혀 적용되지 않기 때문입니다. 거부는 SCIM 형식의 오류가 담긴 `402`이며 ID 공급자에 다음과 같이 표시됩니다. `SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and Invoices > Billing and they work fully again.` 각 거부는 연결의 SCIM 로그에도 기록됩니다.
 - **프로필도 바꾸는 제거**(새 이메일이나 이름을 보내는 비활성화, 또는 멤버를 제거하면서 그룹 이름을 바꾸는 그룹 업데이트)는 통과하며, 이메일, 이름, 그룹 이름은 그대로 남습니다. ID 공급자는 다르다고 보는 내용을 다시 보내므로, 한 번 거부된 변경은 이후 요청과 함께 다시 오고, 제거가 플랜을 기다리는 일은 없습니다. 비활성화한 사람을 제거하지 않는 연결(자동 프로비저닝 해제가 꺼져 있거나 대신 그룹을 푸시하는 연결)에서의 비활성화는 아무도 제거하지 않으므로, 함께 보낸 새 이메일이나 이름은 별도의 변경으로 거부됩니다.
 - **아무것도 바꾸지 않는 요청은 평소처럼 응답합니다**(연결의 모든 팀에 이미 속한 사람에 대해 `active`를 `true`로 한 Okta의 그대로인 `PUT`, 이미 속한 그룹에 누군가를 추가하는 것, 대소문자만 다르게 다시 보낸 이메일, 직함이나 부서처럼 OneUptime이 저장하지 않는 특성). 상태 페이지 비공개 사용자는 페이지에 있거나 아예 없거나 둘 중 하나이므로, `active`를 `true`로 설정해도 그런 사용자는 바뀌지 않습니다.
 
@@ -431,8 +449,8 @@ SCIM이 직접 생성한 사용자와 프로젝트 멤버인 사용자는 어느
 :::details SCIM이 사용자의 이메일 주소나 이름을 변경할 수 있나요?
 OneUptime 계정의 이메일 주소는 그 사람이 속한 모든 프로젝트에 로그인할 때 쓰는 주소이자, 비밀번호 재설정 링크가 전송되는 주소입니다. 따라서:
 
-- **OneUptime Cloud**: SCIM은 이메일 주소를 절대 변경하지 않습니다. 이메일 주소를 변경하려는 요청은 유형이 `mutability`인 SCIM `400` 오류로 거부되며, 해당 요청의 어떤 내용도 적용되지 않습니다. 거부 사유는 ID 공급자에 표시됩니다. 사용자에게 자신의 OneUptime 프로필에서 직접 주소를 변경하도록 요청하세요. 계정에 이미 있는 주소를 그대로 보내는 요청은 변경이 아니므로 성공합니다.
-- **자체 호스팅**: SCIM은 이 프로젝트에 합류했고, 다른 어떤 프로젝트에도 속하지 않으며, OneUptime 관리자가 아닌 사용자의 이메일 주소만 변경합니다. 그 밖의 변경은 같은 방식으로 거부됩니다.
+- **OneUptime Cloud**: SCIM은 이메일 주소를 절대 변경하지 않습니다. 이메일 주소를 변경하려는 요청도 오류 없이 성공합니다. 연결은 ID 공급자가 보낸 주소를 보관하고 그 주소로 응답하지만, 계정은 로그인할 때 쓰는 주소를 그대로 유지합니다. 변경이 적용되지 않았다는 사실은 연결의 SCIM 로그에 남습니다. 사용자에게 자신의 OneUptime 프로필에서 직접 주소를 변경하도록 요청하세요.
+- **자체 호스팅**: SCIM은 이 프로젝트에 합류했고, 다른 어떤 프로젝트에도 속하지 않으며, OneUptime 관리자가 아닌 사용자의 이메일 주소만 변경합니다. 그 밖의 사용자는 OneUptime Cloud에서와 마찬가지로 연결이 새 주소를 보관하고 계정은 자신의 주소를 유지합니다.
 
 이름에도 어디서나 같은 규칙이 적용됩니다. SCIM은 이 프로젝트에 합류했고, 다른 어떤 프로젝트에도 속하지 않으며, OneUptime 관리자가 아닌 사용자의 이름만 업데이트합니다. 그 밖의 사용자는 이름이 그대로 유지되며, 요청의 나머지 부분은 그대로 성공합니다.
 :::

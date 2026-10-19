@@ -19,15 +19,15 @@ sequenceDiagram
     participant P as Sond
     participant B as Webbläsare
     participant A as Din webbapp
-    O->>P: Skript, hemligheter ifyllda
-    loop Varje webbläsare och skärmstorlek
+    O->>P: Skript,<br/>hemligheter<br/>ifyllda
+    loop Varje webbläsare<br/>och skärmstorlek
         P->>B: Kör skriptet
-        B->>A: Ladda sidor, klicka, skriv
+        B->>A: Ladda sidor,<br/>klicka, skriv
         A-->>B: Sidor
-        B-->>P: Resultat, skärmbilder, loggar
+        B-->>P: Resultat,<br/>skärmbilder,<br/>loggar
     end
-    P->>O: Ett svar per körning
-    O->>O: Utvärdera kriterierna
+    P->>O: Ett svar<br/>per körning
+    O->>O: Utvärdera<br/>kriterierna
 ```
 
 | Skärmtyp | Visningsområde |
@@ -56,7 +56,7 @@ Skriv ditt skript i redigeraren **Playwright Code**. Utgå från [exemplet nedan
 
 ### Välj webbläsare och skärmstorlekar
 
-Markera webbläsarna under **Webbläsartyp** och storlekarna under **Skärmtyp**. Skriptet körs en gång för varje kombination, så två webbläsare och tre storlekar ger sex körningar per kontroll. Under **Fler fält** gör **Antal återförsök vid fel** om en misslyckad körning upp till 5 gånger.
+En ny monitor börjar med **Chromium** under **Webbläsartyp** och **Desktop** under **Skärmtyp**; markera fler för att täcka mer. Skriptet körs en gång för varje kombination, så två webbläsare och tre storlekar ger sex körningar per kontroll, och det behöver minst en webbläsare och en storlek. Under **Fler fält** gör **Antal återförsök vid fel** om en misslyckad körning upp till 5 gånger.
 
 ### Testa det
 

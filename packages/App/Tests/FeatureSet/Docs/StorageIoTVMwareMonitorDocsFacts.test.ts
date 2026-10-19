@@ -37,6 +37,7 @@ import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES } from "Common/Utils/VMware/VMwareCollectionSettings";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { ALERT_TEMPLATE_TIME_RANGE } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 import fs from "fs";
 import path from "path";
 
@@ -328,9 +329,9 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
       expect(page).toContain("Pick one of the three tabs:");
       expect(form).toContain('title="Time Range"');
       expect(form).toContain('title="Select Metrics"');
-      expect(form).toContain(
-        "The following settings have been auto-configured. You can adjust the time range below.",
-      );
+      // A picked template's Time Range, under the template the list folds into.
+      expect(form).toContain("<AlertTemplateConfiguration");
+      expect(ALERT_TEMPLATE_TIME_RANGE).toBe("Time Range");
       expect(page).toContain("You can still change the **Time Range**.");
     },
   );

@@ -211,7 +211,7 @@ Een veld is ofwel een korte naam (`severity`, `class`, `category`, `activity`, `
 
 ### Facetten
 
-De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Gebeurtenisklasse**, **Category**, **Activiteit**, **Status**, **Leverancier**, **Product**, **Detection Rule**, **Brongebruiker** en **Bronhost**. Klik op een waarde om alleen haar gebeurtenissen te houden, of op het minteken ernaast om ze weg te laten. De grafiek en elke telling beschrijven precies de gebeurtenissen in de lijst.
+De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Gebeurtenisklasse**, **Category**, **Activiteit**, **Status**, **Leverancier**, **Product**, **Detection Rule**, **Brongebruiker** en **Bronhost**. Klik op een waarde om alleen haar gebeurtenissen te houden, of op het minteken ernaast om ze weg te laten. Klik nog eens om dat ongedaan te maken. De grafiek en elke telling beschrijven precies de gebeurtenissen in de lijst.
 
 ### Correleren
 
@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Open **Producten → Security Events → Detection Rules** en klik op **Detection Rule aanmaken**.
-2. Geef de regel in **Basisinformatie** een **Naam**, en laat **Ingeschakeld** aan.
-3. Plak in **Sigma Rule** de YAML van de regel in **Sigma Rule (YAML)**. Die wordt bij het opslaan geparst, dus een fout verschijnt in het formulier.
-4. Stel in **Evaluatie** in hoe vaak hij draait en hoeveel matches hij nodig heeft; zie [Evaluatie-instellingen](#evaluatie-instellingen).
-5. Laat in **Security Cases** de optie **Open a Case on Match** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
-6. Kies in **Bij overeenkomst** wat een match verder doet: **Create Alert on Match** (aan), **Create Incident on Match** (uit) en **Write Detection Finding on Match** (aan), met een optionele **Ernst van waarschuwing** en **Ernst van incident**.
+2. Plak in **Sigma Rule** de YAML van de regel in **Sigma Rule (YAML)**. Die wordt bij het opslaan geparst, dus een fout verschijnt in het formulier.
+3. De **Naam** vult zich met de `title` van de regel: typ eroverheen om de regel anders te noemen. Een nieuwe regel draait; **Ingeschakeld** staat in zijn bewerkformulier.
+4. Laat in **Bij overeenkomst** de optie **Open a Case on Match** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
+5. Kies onder **Waarschuwingen en incidenten** wat een match verder oplevert: **Een waarschuwing maken** (standaard), **Een incident melden**, **Beide** of **Geen van beide**, met een optionele **Ernst van waarschuwing** of **Ernst van incident**.
+6. **Meer velden** bevat de **Beschrijving**, **Write Detection Finding on Match** (aan) en hoe matches worden geteld; zie [Evaluatie-instellingen](#evaluatie-instellingen).
 :::
 
 Een eerste regel, die matcht op mislukte aanmeldingen van buiten `10.x.x.x`:
@@ -372,11 +372,11 @@ Controleer of hij **Ingeschakeld** is, en lees **Last Evaluated** en **Last Erro
 :::
 
 :::details Een regel matchte, maar er ging geen waarschuwing open
-**Create Alert on Match** staat uit, of een waarschuwing voor dezelfde regel en groepswaarde staat nog open, en latere matches worden daarin opgenomen. Een project heeft minstens één ernstniveau voor waarschuwingen nodig voordat regels waarschuwingen kunnen openen.
+**Waarschuwingen en incidenten** staat op **Een incident melden** of **Geen van beide**, of een waarschuwing voor dezelfde regel en groepswaarde staat nog open, en latere matches worden daarin opgenomen. Een project heeft minstens één ernstniveau voor waarschuwingen nodig voordat regels waarschuwingen kunnen openen.
 :::
 
 :::details Een regel opent te veel waarschuwingen
-Elke waarde van het **Group By Field** krijgt een eigen waarschuwing: groepeer op iets grovers, verhoog de drempel, of voeg een Distinct Count Field toe. Gaat het je om het tempo in plaats van om elke match, zet dan **Create Alert on Match** uit en zet een monitor op de bevindingen van de regel.
+Elke waarde van het **Group By Field** krijgt een eigen waarschuwing: groepeer op iets grovers, verhoog de drempel, of voeg een Distinct Count Field toe. Gaat het je om het tempo in plaats van om elke match, zet dan **Waarschuwingen en incidenten** op **Geen van beide** en zet een monitor op de bevindingen van de regel.
 :::
 
 ## Volgende stappen

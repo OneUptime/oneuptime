@@ -227,7 +227,7 @@ router.post(
             probeId: probeId,
             cidr: scan.cidr ?? null,
             /*
-             * The METHOD, not only the credentials. Turning Check SNMP off
+             * The METHOD, not only the credentials. Switching a scan to ICMP
              * between the SELECT above and this UPDATE changes what the sweep
              * asks of every address — it is a sweep column for exactly that
              * reason (SWEEP_COLUMNS in NetworkDeviceDiscoveryScanService) — so

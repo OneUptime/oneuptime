@@ -19,15 +19,15 @@ sequenceDiagram
     participant P as Sonde
     participant B as Browser
     participant A as Din webapp
-    O->>P: Script, hemmeligheder udfyldt
-    loop Hver browser og skærmstørrelse
+    O->>P: Script,<br/>hemmeligheder<br/>udfyldt
+    loop Hver browser og<br/>skærmstørrelse
         P->>B: Kør scriptet
-        B->>A: Indlæs sider, klik, skriv
+        B->>A: Indlæs sider,<br/>klik, skriv
         A-->>B: Sider
-        B-->>P: Resultat, skærmbilleder, logs
+        B-->>P: Resultat,<br/>skærmbilleder,<br/>logs
     end
     P->>O: Ét svar pr. kørsel
-    O->>O: Evaluér kriterierne
+    O->>O: Evaluér<br/>kriterierne
 ```
 
 | Skærmtype | Viewport |
@@ -56,7 +56,7 @@ Skriv dit script i editoren **Playwright Code**. Start fra [eksemplet nedenfor](
 
 ### Vælg browsere og skærmstørrelser
 
-Sæt flueben ved browserne under **Browsertype** og ved størrelserne under **Skærmtype**. Scriptet kører én gang for hver kombination, så to browsere og tre størrelser giver seks kørsler pr. kontrol. Under **Flere felter** gentager **Antal genforsøg ved fejl** en mislykket kørsel op til 5 gange.
+En ny monitor starter med **Chromium** under **Browsertype** og **Desktop** under **Skærmtype**; sæt flere flueben for at dække mere. Scriptet kører én gang for hver kombination, så to browsere og tre størrelser giver seks kørsler pr. kontrol, og det kræver mindst én browser og én størrelse. Under **Flere felter** gentager **Antal genforsøg ved fejl** en mislykket kørsel op til 5 gange.
 
 ### Test det
 

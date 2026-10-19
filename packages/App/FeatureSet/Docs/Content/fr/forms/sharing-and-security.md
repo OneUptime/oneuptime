@@ -54,10 +54,10 @@ Une image dans la description ou le message de remerciement du formulaire est mo
 sequenceDiagram
     participant V as Navigateur du visiteur
     participant O as OneUptime
-    V->>O: Ouvrir le formulaire, depuis sa propre page
-    O-->>V: Questions, modèles et image de marque
+    V->>O: Ouvrir le formulaire,<br/>depuis sa propre page
+    O-->>V: Questions, modèles<br/>et image de marque
     V->>O: Soumettre les réponses
-    O->>O: Chaque vérification ci-dessous, dans l'ordre
+    O->>O: Chaque vérification<br/>ci-dessous, dans l'ordre
     O-->>V: Le numéro de ce qui a été créé
 ```
 
@@ -110,7 +110,7 @@ Ouvrir un formulaire et le soumettre sont limités par adresse réseau, et la so
 - **Soumettre, par adresse** — par formulaire depuis une adresse, et par adresse sur tous les formulaires. Au-delà de l'une ou l'autre, la personne qui soumet voit "Trop de signalements envoyés depuis votre réseau. Veuillez patienter quelques minutes, puis réessayer." Tout le monde derrière une même adresse — un réseau de bureau, une passerelle VPN — partage ces limites, et chaque soumission compte, même une qui est ensuite refusée pour une mauvaise réponse.
 - **Soumettre, par formulaire** — combien d'enregistrements un formulaire peut créer en une heure, toutes adresses confondues, si bien que même des soumissions depuis de nombreuses adresses à la fois ne peuvent vous alerter qu'un nombre limité de fois par heure. Seule une soumission qui a passé toutes les autres vérifications compte, juste avant la création de son enregistrement. Au-delà, tout le monde voit "Ce formulaire reçoit trop de réponses en ce moment. Veuillez réessayer plus tard." jusqu'à la fin de la fenêtre. **Réinitialiser le lien** démarre le nouveau lien avec un quota neuf.
 
-Chaque limite répond `429` avec un en-tête `Retry-After`, en secondes, et la page dit à la personne qui soumet quand réessayer. Les fenêtres sont fixes, pas glissantes. Si le limiteur de débit est injoignable, les soumissions sont refusées plutôt que laissées passer sans être comptées : l'API répond `503`, et la personne qui soumet voit "Les réponses ne peuvent pas être acceptées pour le moment. Veuillez réessayer dans quelques minutes."
+Chaque limite répond `429` avec un en-tête `Retry-After`, en secondes, et la page dit à la personne qui soumet quand réessayer. Les fenêtres sont fixes, pas glissantes. Chaque limite par adresse compte aussi ensemble les adresses d'un même /64 IPv6, avec dix fois son nombre. Si le limiteur de débit est injoignable, les soumissions sont refusées plutôt que laissées passer sans être comptées : l'API répond `503`, et la personne qui soumet voit "Les réponses ne peuvent pas être acceptées pour le moment. Veuillez réessayer dans quelques minutes."
 
 Sur une installation auto-hébergée, ces variables d'environnement de l'application OneUptime changent les limites :
 

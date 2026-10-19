@@ -2,6 +2,12 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import PublicDashboardRateLimit, {
   PublicDashboardRateLimitBucket,
 } from "../Middleware/PublicDashboardRateLimit";
+import PublicMessageRateLimit, {
+  PublicMessageChannel,
+  PublicMessageContact,
+  PublicMessageKind,
+  PublicMessageSendPermit,
+} from "../Utils/RateLimit/PublicMessageRateLimit";
 import AcmeChallengeService from "../Services/AcmeChallengeService";
 import IncidentEpisodeService from "../Services/IncidentEpisodeService";
 import IncidentEpisodeMemberService from "../Services/IncidentEpisodeMemberService";
@@ -34,7 +40,10 @@ import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupM
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService, {
+  CONFIRMATION_LINK_EXPIRED_MESSAGE,
+  ONE_CONTACT_PER_SIGN_UP_MESSAGE,
   SMS_SIGN_UP_UNAVAILABLE_MESSAGE,
+  SubscriptionConfirmationOutcome,
 } from "../Services/StatusPageSubscriberService";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -49,6 +58,10 @@ import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
   isSearchEngineIndexingEnabled,
 } from "../../Types/StatusPage/SearchEngineIndexing";
+import {
+  parseStatusPageTheme,
+  STATUS_PAGE_THEME_COLUMN,
+} from "../../Types/StatusPage/StatusPageTheme";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
@@ -57,6 +70,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import ArrayUtil from "../../Utils/Array";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import SubscriberContactSql from "../Utils/StatusPage/SubscriberContactSql";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
@@ -142,7 +156,8 @@ import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQ
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
-import StatusPageSubscriberUnsubscribe, {
+import {
+  MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE,
   StatusPageSubscriberUnsubscribeDetails,
   StatusPageSubscriberUnsubscribeState,
 } from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
@@ -321,6 +336,7 @@ export default class StatusPageAPI extends BaseAPI<
               name: true,
               defaultLanguage: true,
               enableSearchEngineIndexing: true,
+              theme: true,
               isArchived: true,
             },
             props: {
@@ -351,6 +367,13 @@ export default class StatusPageAPI extends BaseAPI<
           [SEARCH_ENGINE_INDEXING_FLAG_NAME]: isSearchEngineIndexingEnabled(
             statusPage.enableSearchEngineIndexing,
           ),
+          /*
+           * Light, Dark or System, for the theme the page's HTML is sent
+           * with, so a dark page is dark before its first paint. Read here
+           * the way the app reads it, so the two servers that render the
+           * page never decide what an empty column means.
+           */
+          [STATUS_PAGE_THEME_COLUMN]: parseStatusPageTheme(statusPage.theme),
         });
       },
     );
@@ -756,63 +779,59 @@ export default class StatusPageAPI extends BaseAPI<
       },
     );
 
-    // confirm subscription api
+    /*
+     * The link in the email, or the text message, that asks a new subscriber
+     * to confirm - an email subscriber, and a visitor who signed up by text:
+     * {statusPageUrl}/confirm-subscription/{id}?verification-token={code}.
+     * Until it is opened, the address or the number hears nothing.
+     *
+     * The code is the whole of what proves the request came from the
+     * address's own inbox, or the number's own phone: the subscriber id is
+     * no secret, as every project member who may read subscribers sees it.
+     * So only text is taken as the code. A request without one used to leave
+     * the code out of the lookup altogether - a filter on an undefined value
+     * is no filter - and the id alone confirmed the sign-up. Every link that
+     * confirms nothing gets the same answer, but one: a link that is the
+     * subscription's own, opened more than a day after it was sent, is told
+     * it has expired, and to subscribe again. Once confirmed, the subscriber
+     * is told it is subscribed, on its email or by text - once, however many
+     * times the link is opened (StatusPageSubscriberService
+     * .confirmSubscription).
+     */
     this.router.get(
       `${new this.entityType()
         .getCrudApiPath()
         ?.toString()}/confirm-subscription/:statusPageSubscriberId`,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        const token: string = req.query["verification-token"] as string;
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const outcome: SubscriptionConfirmationOutcome =
+            await StatusPageSubscriberService.confirmSubscription({
+              subscriberId: req.params["statusPageSubscriberId"],
+              code: req.query["verification-token"],
+            });
 
-        const statusPageSubscriberId: ObjectID = new ObjectID(
-          req.params["statusPageSubscriberId"] as string,
-        );
+          if (outcome === SubscriptionConfirmationOutcome.NotFound) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException(
+                "Subscriber not found or confirmation token is invalid",
+              ),
+            );
+          }
 
-        const subscriber: StatusPageSubscriber | null =
-          await StatusPageSubscriberService.findOneBy({
-            query: {
-              _id: statusPageSubscriberId,
-              subscriptionConfirmationToken: token,
-            },
-            select: {
-              isSubscriptionConfirmed: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
+          if (outcome === SubscriptionConfirmationOutcome.Expired) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(CONFIRMATION_LINK_EXPIRED_MESSAGE),
+            );
+          }
 
-        if (!subscriber) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new NotFoundException(
-              "Subscriber not found or confirmation token is invalid",
-            ),
-          );
-        }
-
-        // check if subscription confirmed already.
-
-        if (subscriber.isSubscriptionConfirmed) {
           return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
         }
-
-        await StatusPageSubscriberService.updateOneById({
-          id: statusPageSubscriberId,
-          data: {
-            isSubscriptionConfirmed: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        await StatusPageSubscriberService.sendYouHaveSubscribedEmail({
-          subscriberId: statusPageSubscriberId,
-        });
-
-        return Response.sendEmptySuccessResponse(req, res);
       },
     );
 
@@ -1160,6 +1179,8 @@ export default class StatusPageAPI extends BaseAPI<
             showSubscriberPageOnStatusPage: true,
             defaultLanguage: true,
             enabledLanguages: true,
+            // Light, Dark or System: how the page looks to its visitors.
+            theme: true,
             isArchived: true,
           };
 
@@ -2011,10 +2032,21 @@ export default class StatusPageAPI extends BaseAPI<
       overviewHandler,
     );
 
+    /*
+     * The subscriber's manage page (Update Subscription) reads and changes a
+     * subscription through these two routes. They take the credential of the
+     * link the page was opened from - {subscriberId}-{token}, split into its
+     * two parts - and answer only for the subscription that token belongs to
+     * (StatusPageSubscriberService.findSubscriberForManagePage): the
+     * subscriber id is no secret, as every project member who may read
+     * subscribers sees it, and it must not let them change one. The page's
+     * own read check still comes first, so a private page also needs a
+     * signed-in visitor.
+     */
     this.router.put(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/update-subscription/:statusPageId/:subscriberId`,
+        ?.toString()}/update-subscription/:statusPageId/:subscriberId/:token`,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
@@ -2029,12 +2061,15 @@ export default class StatusPageAPI extends BaseAPI<
     this.router.post(
       `${new this.entityType()
         .getCrudApiPath()
-        ?.toString()}/get-subscription/:statusPageId/:subscriberId`,
+        ?.toString()}/get-subscription/:statusPageId/:subscriberId/:token`,
       UserMiddleware.getPublicRouteUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const subscriber: StatusPageSubscriber =
             await this.getSubscriber(req);
+
+          // A token-bearing answer: never let a shared cache keep it.
+          Response.setNoCacheHeaders(res);
 
           return Response.sendEntityResponse(
             req,
@@ -2059,6 +2094,8 @@ export default class StatusPageAPI extends BaseAPI<
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
+          // A sign-up refused for its rate limits says when to come back.
+          PublicMessageRateLimit.setRetryAfterFor(res, err);
           next(err);
         }
       },
@@ -2075,6 +2112,8 @@ export default class StatusPageAPI extends BaseAPI<
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
+          // A link refused for its rate limits says when to come back.
+          PublicMessageRateLimit.setRetryAfterFor(res, err);
           next(err);
         }
       },
@@ -2425,6 +2464,33 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
+    return await StatusPageAPI.readShownScheduledMaintenanceEvents({
+      statusPageId: statusPageId,
+      scheduledMaintenanceId: scheduledMaintenanceId,
+    });
+  }
+
+  /*
+   * The scheduled maintenance events a status page shows, as its Scheduled
+   * Maintenance page reads them: the events of its history window, every
+   * event still to come and every event in progress - or the one event
+   * asked for - with their public notes, state timelines, the page's
+   * resources and the project's states. Everything a page shows goes
+   * through StatusPageVisibilityQuery here.
+   *
+   * It does not ask who is reading: a caller checks the reader may read the
+   * page first, as getScheduledMaintenanceEvents above does, and the status
+   * page's maintenance calendar (StatusPageMaintenanceCalendarFeed) does
+   * with the same StatusPageService.hasReadAccess - so the calendar holds
+   * exactly what the page shows, and nothing it does not.
+   */
+  public static async readShownScheduledMaintenanceEvents(data: {
+    statusPageId: ObjectID;
+    scheduledMaintenanceId: ObjectID | null;
+  }): Promise<JSONObject> {
+    const statusPageId: ObjectID = data.statusPageId;
+    const scheduledMaintenanceId: ObjectID | null = data.scheduledMaintenanceId;
+
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
         _id: statusPageId.toString(),
@@ -2486,6 +2552,12 @@ export default class StatusPageAPI extends BaseAPI<
 
     let scheduledEventsSelect: Select<ScheduledMaintenance> = {
       createdAt: true,
+      /*
+       * When the event was last written, and how many times: what tells a
+       * calendar app holding it that it changed (MaintenanceCalendar).
+       */
+      updatedAt: true,
+      version: true,
       title: true,
       description: true,
       _id: true,
@@ -3122,9 +3194,9 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    const email: Email | undefined = req.body.data["subscriberEmail"]
-      ? new Email(req.body.data["subscriberEmail"] as string)
-      : undefined;
+    const email: Email | undefined = StatusPageAPI.readSubscriberEmail(
+      req.body.data["subscriberEmail"],
+    );
 
     const phone: Phone | undefined = req.body.data["subscriberPhone"]
       ? new Phone(req.body.data["subscriberPhone"] as string)
@@ -3141,6 +3213,38 @@ export default class StatusPageAPI extends BaseAPI<
     ]
       ? (req.body.data["microsoftTeamsWorkspaceName"] as string)
       : undefined;
+
+    /*
+     * Every request for a link is counted, against the caller and against
+     * the contact it names (PublicMessageRateLimit), before anything is
+     * looked up: whether or not a subscription matches, so a refusal says
+     * nothing about who is subscribed.
+     */
+    let contact: PublicMessageContact;
+
+    if (email) {
+      contact = PublicMessageRateLimit.forEmail(email);
+    } else if (phone) {
+      contact = PublicMessageRateLimit.forPhone(phone);
+    } else if (slackWorkspaceName) {
+      contact = PublicMessageRateLimit.forWorkspace(
+        PublicMessageChannel.Slack,
+        statusPageId,
+        slackWorkspaceName,
+      );
+    } else {
+      contact = PublicMessageRateLimit.forWorkspace(
+        PublicMessageChannel.MicrosoftTeams,
+        statusPageId,
+        microsoftTeamsWorkspaceName!,
+      );
+    }
+
+    await PublicMessageRateLimit.assertMaySend({
+      req: req,
+      kind: PublicMessageKind.StatusPageManageLink,
+      contacts: [contact],
+    });
 
     /*
      * Each lookup selects only the contact for its own channel, so a link can
@@ -3161,7 +3265,13 @@ export default class StatusPageAPI extends BaseAPI<
         unsubscribeToken: true,
       };
     } else if (phone) {
-      lookupQuery = { subscriberPhone: phone };
+      /*
+       * By the number's line, however it was typed at sign-up
+       * (SubscriberContactSql): the page takes each line once.
+       */
+      lookupQuery = {
+        subscriberPhone: SubscriberContactSql.onPhoneLine(phone),
+      };
       lookupSelect = {
         _id: true,
         subscriberPhone: true,
@@ -3192,10 +3302,12 @@ export default class StatusPageAPI extends BaseAPI<
 
     /*
      * An email or phone number is subscribed at most once per status page,
-     * but several channels of one Slack or Teams workspace can be subscribed
-     * under the same workspace name, so every match gets its own link on its
-     * own webhook. Oldest first, so subscriptions added later under the same
-     * name cannot push an existing one past the limit.
+     * so it is sent one link - that of its oldest subscription, should a
+     * number subscribed under two spellings before the page took each line
+     * once have two. Several channels of one Slack or Teams workspace can be
+     * subscribed under the same workspace name, so every match gets its own
+     * link on its own webhook. Oldest first, so subscriptions added later
+     * under the same name cannot push an existing one past the limit.
      */
     const statusPageSubscribers: Array<StatusPageSubscriber> =
       await StatusPageSubscriberService.findBy({
@@ -3207,7 +3319,8 @@ export default class StatusPageAPI extends BaseAPI<
         sort: {
           createdAt: SortOrder.Ascending,
         },
-        limit: MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST,
+        limit:
+          email || phone ? 1 : MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST,
         skip: 0,
         props: {
           isRoot: true,
@@ -3323,19 +3436,20 @@ export default class StatusPageAPI extends BaseAPI<
         const microsoftTeamsIncomingWebhookUrl: URL | undefined =
           statusPageSubscriber.microsoftTeamsIncomingWebhookUrl;
 
+        /*
+         * The visitor asked to manage their subscription, so the message
+         * links to its Update Subscription page - with the subscription's
+         * token, which that page asks for, so only this message's recipient
+         * can open it. It also hands templates the unsubscribe link every
+         * other sender passes as unsubscribeUrl: that one works without
+         * signing in, which the manage page on a private status page does not.
+         */
         const manageUrlink: string =
           StatusPageSubscriberService.getManageSubscriptionLink(
             URL.fromString(statusPageURL),
-            statusPageSubscriber.id!,
+            statusPageSubscriber,
           ).toString();
 
-        /*
-         * The visitor asked to manage their subscription, so the message
-         * links to its Update Subscription page. It also hands templates the
-         * unsubscribe link every other sender passes as unsubscribeUrl: that
-         * one works without signing in, which the manage page on a private
-         * status page does not.
-         */
         const unsubscribeUrl: string =
           StatusPageSubscriberService.getUnsubscribeLink(
             URL.fromString(statusPageURL),
@@ -3428,24 +3542,10 @@ export default class StatusPageAPI extends BaseAPI<
         if (subscriberPhone) {
           let smsMessage: string;
           if (manageSmsTemplate?.templateBody && statusPage.callSmsConfig) {
-            /*
-             * On a public status page an SMS carries the shorter manage link
-             * where other messages carry the unsubscribe link: an SMS is
-             * billed by the segment (see
-             * StatusPageSubscriberUnsubscribe.buildSmsLink).
-             */
             smsMessage =
               StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 manageSmsTemplate.templateBody,
-                {
-                  ...manageTemplateVariables,
-                  unsubscribeUrl: StatusPageSubscriberUnsubscribe.buildSmsLink({
-                    isPublicStatusPage: statusPage.isPublicStatusPage,
-                    statusPageUrl: statusPageURL,
-                    subscriberId: statusPageSubscriber.id!,
-                    unsubscribeUrl: unsubscribeUrl,
-                  }),
-                },
+                manageTemplateVariables,
               );
           } else {
             smsMessage = defaultChatMessage;
@@ -3513,6 +3613,23 @@ export default class StatusPageAPI extends BaseAPI<
         );
       }
     }
+  }
+
+  /*
+   * The one address a sign-up or a manage link names. A value that is not
+   * one mailbox - a list, a group, a name with an address, a trailing dot -
+   * is refused in the words every public message route uses
+   * (PublicMessageRateLimit.forEmail), before Email's constructor would
+   * refuse it in its own.
+   */
+  private static readSubscriberEmail(value: unknown): Email | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    PublicMessageRateLimit.forEmail(value as string);
+
+    return new Email(value as string);
   }
 
   /*
@@ -3718,9 +3835,9 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    const email: Email | undefined = req.body.data["subscriberEmail"]
-      ? new Email(req.body.data["subscriberEmail"] as string)
-      : undefined;
+    const email: Email | undefined = StatusPageAPI.readSubscriberEmail(
+      req.body.data["subscriberEmail"],
+    );
 
     const phone: Phone | undefined = req.body.data["subscriberPhone"]
       ? new Phone(req.body.data["subscriberPhone"] as string)
@@ -3767,40 +3884,15 @@ export default class StatusPageAPI extends BaseAPI<
       );
       statusPageSubscriber = new StatusPageSubscriber();
     } else {
-      const subscriberId: ObjectID = new ObjectID(
-        req.params["subscriberId"] as string,
-      );
-
       logger.debug(
-        `Updating existing subscriber with ID: ${subscriberId} for status page with ID: ${objectId}`,
+        `Updating an existing subscriber for status page with ID: ${objectId}`,
         getLogAttributesFromRequest(req as any),
       );
-      /*
-       * Scope the lookup to the status page in the route. This endpoint only
-       * checks read access on that status page, so without the statusPageId
-       * clause anyone holding a subscriber UUID could pass any status page they
-       * can read and edit a subscriber belonging to a different — possibly
-       * private — status page. A subscriber on another page must be
-       * indistinguishable from one that does not exist, so that the shared
-       * "Subscriber not found" below cannot be used to probe for valid UUIDs.
-       */
-      statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
-        query: {
-          _id: subscriberId.toString(),
-          statusPageId: objectId,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
 
-      if (!statusPageSubscriber) {
-        logger.debug(
-          `Subscriber not found with ID: ${subscriberId} on status page with ID: ${objectId}`,
-          getLogAttributesFromRequest(req as any),
-        );
-        throw new BadDataException("Subscriber not found");
-      }
+      statusPageSubscriber = await this.findSubscriberForManageLink({
+        statusPageId: objectId,
+        req: req,
+      });
 
       isUpdate = true;
     }
@@ -4001,12 +4093,46 @@ export default class StatusPageAPI extends BaseAPI<
         `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
         getLogAttributesFromRequest(req as any),
       );
+
+      /*
+       * One contact at a time, as the Subscribe page's forms send it: a
+       * subscription is confirmed on the contact that signed up (the
+       * subscriber service holds every sign-up to it). Refused before
+       * anything is counted.
+       */
+      if (
+        StatusPageSubscriberService.getContactColumnsNamed(statusPageSubscriber)
+          .length > 1
+      ) {
+        throw new BadDataException(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
+      }
+
+      /*
+       * A sign-up sends each contact it names a message as it is created - a
+       * confirmation email, a text, a chat post or a webhook call - so it is
+       * counted first, against the caller and against each contact
+       * (PublicMessageRateLimit), and refused when either has had enough.
+       */
+      const permit: PublicMessageSendPermit =
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.StatusPageSignUp,
+          contacts: this.getSignUpContacts(statusPageSubscriber),
+        });
+
       /*
        * A sign-up, not a subscriber the team added (Is Added By Team stays
        * off); the resources it names are ones this page shows a visitor.
+       * One refused or failed before anything was sent - already
+       * subscribed, a check of the page or a webhook, a value too long -
+       * gives its contacts their count back: only messages sent count
+       * against a contact. The caller's own count stays spent.
        */
       await StatusPageSubscriberService.createFromStatusPageSignUp(
         statusPageSubscriber,
+        {
+          onNothingSent: permit.giveBack,
+        },
       );
     }
 
@@ -4014,6 +4140,58 @@ export default class StatusPageAPI extends BaseAPI<
       `Subscription process completed for status page with ID: ${objectId}`,
       getLogAttributesFromRequest(req as any),
     );
+  }
+
+  /*
+   * The contacts a new sign-up sends a message to as it is created: its
+   * email address, phone number, Slack and Microsoft Teams channels and
+   * webhook, whichever it names. A workspace name alone is sent nothing.
+   */
+  private getSignUpContacts(
+    subscriber: StatusPageSubscriber,
+  ): Array<PublicMessageContact> {
+    const contacts: Array<PublicMessageContact> = [];
+
+    if (subscriber.subscriberEmail) {
+      contacts.push(
+        PublicMessageRateLimit.forEmail(subscriber.subscriberEmail),
+      );
+    }
+
+    if (subscriber.subscriberPhone) {
+      contacts.push(
+        PublicMessageRateLimit.forPhone(subscriber.subscriberPhone),
+      );
+    }
+
+    if (subscriber.slackIncomingWebhookUrl) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.Slack,
+          subscriber.slackIncomingWebhookUrl,
+        ),
+      );
+    }
+
+    if (subscriber.microsoftTeamsIncomingWebhookUrl) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.MicrosoftTeams,
+          subscriber.microsoftTeamsIncomingWebhookUrl,
+        ),
+      );
+    }
+
+    if (subscriber.subscriberWebhook) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.Webhook,
+          subscriber.subscriberWebhook,
+        ),
+      );
+    }
+
+    return contacts;
   }
 
   @CaptureSpan()
@@ -4046,37 +4224,43 @@ export default class StatusPageAPI extends BaseAPI<
       throw new BadDataException("Status Page not found");
     }
 
-    const subscriberId: ObjectID = new ObjectID(
-      req.params["subscriberId"] as string,
-    );
+    return await this.findSubscriberForManageLink({
+      statusPageId: statusPage.id!,
+      req: req,
+    });
+  }
 
-    const statusPageSubscriber: StatusPageSubscriber | null =
-      await StatusPageSubscriberService.findOneBy({
-        query: {
-          _id: subscriberId.toString(),
-          statusPageId: statusPage.id!,
-        },
-        select: {
-          isUnsubscribed: true,
-          subscriberEmail: true,
-          subscriberPhone: true,
-          slackWorkspaceName: true,
-          statusPageId: true,
-          statusPageResources: true,
-          isSubscribedToAllResources: true,
-          statusPageEventTypes: true,
-          isSubscribedToAllEventTypes: true,
-        },
-        props: {
-          isRoot: true,
-        },
+  /*
+   * The subscription the manage page's link names, for its two routes
+   * (get-subscription and update-subscription): the subscriber id and the
+   * token from the route, checked together on the status page in the route.
+   * Every link that does not open a subscription - no token, a wrong one, a
+   * subscriber that does not exist, was deleted or belongs to another status
+   * page, a malformed id - gets the same answer, so neither route can be used
+   * to find out which subscriptions exist, and the subscriber id alone opens
+   * nothing.
+   */
+  private async findSubscriberForManageLink(data: {
+    statusPageId: ObjectID;
+    req: ExpressRequest;
+  }): Promise<StatusPageSubscriber> {
+    const subscriber: StatusPageSubscriber | null =
+      await StatusPageSubscriberService.findSubscriberForManagePage({
+        statusPageId: data.statusPageId.toString(),
+        subscriberId: data.req.params["subscriberId"] as string,
+        token: data.req.params["token"] as string,
       });
 
-    if (!statusPageSubscriber) {
-      throw new BadDataException("Subscriber not found");
+    if (!subscriber) {
+      logger.debug(
+        `A manage subscription link on status page ${data.statusPageId.toString()} did not open a subscription.`,
+        getLogAttributesFromRequest(data.req as any),
+      );
+
+      throw new BadDataException(MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE);
     }
 
-    return statusPageSubscriber;
+    return subscriber;
   }
 
   /*

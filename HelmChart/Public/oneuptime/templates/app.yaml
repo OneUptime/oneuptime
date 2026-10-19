@@ -36,6 +36,9 @@ spec:
         {{- end }}
         appname: oneuptime
     spec:
+      {{- with (include "oneuptime.serviceAccountName" $) }}
+      serviceAccountName: {{ . | quote }}
+      {{- end }}
       {{- if $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
@@ -54,9 +57,10 @@ spec:
       hostAliases:
         {{- toYaml $.Values.hostAliases | nindent 8 }}
       {{- end }}
-      {{- if $.Values.affinity }}
-      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- with ($.Values.app.affinity | default $.Values.affinity) }}
+      affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" "app" "Constraints" $.Values.app.topologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
@@ -111,6 +115,9 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "app")) | nindent 12 }}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DatabaseMaxOpenConnections" ($.Values.app.databaseMaxOpenConnections | default $.Values.deployment.databaseMaxOpenConnections)) | nindent 12 }}
+            {{- if (($.Values.enterpriseMarketplace).provider) }}
+            {{- include "oneuptime.env.enterpriseMarketplace" (dict "Values" $.Values "Reporter" true) | nindent 12 }}
+            {{- end }}
             - name: PORT
               value: {{ $.Values.app.ports.http | quote }}
             - name: SMS_HIGH_RISK_COST_IN_CENTS
@@ -168,6 +175,13 @@ spec:
             - name: DISABLE_QUEUE_WORKERS
               value: {{ $.Values.worker.enabled | default false | quote }}
             {{- include "oneuptime.env.registerProbeKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- if $.Values.runner.enabled }}
+            {{- /*
+            The shared Runner's key: the app lets the Runner (runner.yaml)
+            register as the installation's shared Runner with it.
+            */}}
+            {{- include "oneuptime.env.runnerKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- end }}
             {{- with (default $.Values.extraEnv $.Values.app.extraEnv) }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

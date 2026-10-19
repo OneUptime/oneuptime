@@ -39,12 +39,23 @@ import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
+import { getSignInOptionClassName } from "../../../UI/Components/SignInOption/SignInOptionStyle";
 
 // A filled button - what a primary button looks like, whatever its colour.
 const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
 
-// Any background, border or shadow: what would make the option a panel or a button.
-const SURFACE_CLASS: RegExp = /(^|\s)(bg-|border|shadow|ring-1\b)/;
+// The classes of a sign-in option in a state (SignInOptionStyle).
+const optionClasses: (
+  state: Parameters<typeof getSignInOptionClassName>[0],
+) => Array<string> = (
+  state: Parameters<typeof getSignInOptionClassName>[0],
+): Array<string> => {
+  return getSignInOptionClassName(state)
+    .split(" ")
+    .filter((name: string) => {
+      return name.length > 0;
+    });
+};
 
 // The menu the help names, as the Dashboard draws it.
 const PASSKEY_MENU_PATH: string = "User Profile → Security → Passkeys";
@@ -123,7 +134,7 @@ const comesAfter: (later: Element, earlier: Element) => boolean = (
 };
 
 const ssoLink: () => HTMLElement = (): HTMLElement => {
-  return screen.getByText(english.login.useSso).closest("a") as HTMLElement;
+  return screen.getByRole("link", { name: english.login.signInWithSso });
 };
 
 // A pending promise and the function that settles it.
@@ -198,22 +209,27 @@ describe("Passwordless passkey login", () => {
     expect(await screen.findByTestId("email")).toHaveValue("");
     expect(screen.getByTestId("password")).toHaveValue("");
     expect(
-      screen.getByText("Use single sign-on (SSO) instead"),
+      screen.getByRole("link", { name: "Sign in with SSO" }),
     ).toBeInTheDocument();
     expect(posted).toHaveLength(0);
   });
 
-  describe("the page leads with the password form, and the passkey is a quiet option under it", () => {
-    test("the email, the password and Login come first; the passkey option is the last way in, under the SSO link", async () => {
+  describe("the page leads with the password form; the other ways in are buttons under it, the passkey last", () => {
+    test("the email, the password and Login come first; then 'or', single sign-on, and the passkey, last", async () => {
       renderPage();
       const email: HTMLElement = await screen.findByTestId("email");
       const password: HTMLElement = screen.getByTestId("password");
       const signIn: HTMLElement = screen.getByTestId("Login");
+      const divider: HTMLElement = screen.getByTestId(
+        "sign-in-options-divider",
+      );
       const passkey: HTMLElement = screen.getByTestId("passkey-login");
 
       expect(comesAfter(password, email)).toBe(true);
       expect(comesAfter(signIn, password)).toBe(true);
-      expect(comesAfter(ssoLink(), signIn)).toBe(true);
+      expect(comesAfter(divider, signIn)).toBe(true);
+      expect(divider).toHaveTextContent(/^or$/);
+      expect(comesAfter(ssoLink(), divider)).toBe(true);
       expect(comesAfter(passkey, ssoLink())).toBe(true);
 
       // Nothing about passkeys is drawn above the form.
@@ -232,13 +248,13 @@ describe("Passwordless passkey login", () => {
     });
 
     /*
-     * The page used to draw "Sign in with a passkey" and "Login" both filled;
-     * then the passkey kept a full-width outlined button in a tinted panel.
-     * Login is the page's one filled button, and the passkey option has no
-     * surface of its own: no background, border or shadow - the weight of
-     * the SSO link above it.
+     * The page used to draw "Sign in with a passkey" and "Login" both filled,
+     * then the passkey in a tinted panel over the form, then the passkey and
+     * single sign-on as centred text links that read as small print. Login
+     * is the page's one filled button; the passkey option is the same normal,
+     * outlined, full-width button as single sign-on above it.
      */
-    test("has one filled button, Login, and draws the passkey option at the weight of the SSO link", async () => {
+    test("has one filled button, Login; the passkey option is the same outlined button as single sign-on", async () => {
       renderPage();
       await screen.findByTestId("email");
 
@@ -253,12 +269,13 @@ describe("Passwordless passkey login", () => {
       expect(signIn).toHaveClass("bg-indigo-600");
       expect(filled).toEqual([signIn]);
 
-      expect(SURFACE_CLASS.test(passkey.className)).toBe(false);
-      expect(passkey).not.toHaveClass("w-full");
-      expect(passkey).toHaveClass("text-indigo-500");
-      expect(
-        ssoLink().querySelector(".text-indigo-500.text-sm"),
-      ).not.toBeNull();
+      expect(passkey).toHaveClass(...optionClasses("ready"));
+      expect(new Set(Array.from(passkey.classList))).toEqual(
+        new Set(Array.from(ssoLink().classList)),
+      );
+      expect(passkey).toHaveClass("w-full", "border", "bg-white");
+      expect(passkey).not.toHaveClass("text-indigo-500");
+      // The words under it - the prompt line, the notices - stay small.
       expect(screen.getByTestId("passkey-option")).toHaveClass("text-sm");
     });
 
@@ -478,18 +495,25 @@ describe("Passwordless passkey login", () => {
       const option: HTMLElement = screen.getByTestId("passkey-login");
 
       expect(option).not.toHaveAttribute("aria-disabled");
-      expect(option).toHaveClass("text-indigo-500");
-      expect(option).not.toHaveClass("text-gray-500");
+      expect(option).toHaveClass(...optionClasses("ready"));
+      expect(option).not.toHaveClass("bg-gray-50");
 
       await clickPasskey();
 
       expect(option).toHaveAttribute("aria-disabled", "true");
       expect(option).not.toBeDisabled();
       expect(option).toHaveFocus();
-      expect(option).toHaveClass("text-gray-500", "cursor-default");
+      expect(option).toHaveClass(...optionClasses("unavailable"));
+      expect(option).toHaveClass(
+        "bg-gray-50",
+        "text-gray-500",
+        "cursor-default",
+      );
       expect(option).toHaveClass("focus-visible:ring-2");
-      expect(option).not.toHaveClass("text-indigo-500");
+      expect(option).not.toHaveClass("bg-white", "shadow-sm");
       expect(option.className).not.toContain("hover:");
+      // Still the same box: as wide as Login and the option above it.
+      expect(option).toHaveClass("w-full");
       expect(option).toHaveTextContent("Sign in with a passkey");
       expect(
         within(option).getByTestId("passkey-login-fingerprint"),
@@ -532,8 +556,8 @@ describe("Passwordless passkey login", () => {
       );
       const option: HTMLElement = screen.getByTestId("passkey-login");
       expect(option).toHaveAttribute("aria-disabled", "true");
-      expect(option).toHaveClass("text-gray-500");
-      expect(option).not.toHaveClass("text-indigo-500");
+      expect(option).toHaveClass(...optionClasses("unavailable"));
+      expect(option).not.toHaveClass("bg-white");
       expect(screen.getByTestId("passkey-notice").textContent).toBe(
         english.login.passkey.unsupported,
       );
@@ -550,7 +574,8 @@ describe("Passwordless passkey login", () => {
       const option: HTMLElement = screen.getByTestId("passkey-login");
       expect(screen.getByTestId("passkey-notice")).toBeInTheDocument();
       expect(option).not.toHaveAttribute("aria-disabled");
-      expect(option).toHaveClass("text-indigo-500");
+      expect(option).toHaveClass(...optionClasses("ready"));
+      expect(option).not.toHaveClass("bg-gray-50");
       expect(option).toBeEnabled();
     });
 
@@ -660,9 +685,7 @@ describe("Passwordless passkey login", () => {
       );
       expect(help).not.toHaveTextContent("Two Factor Auth");
       expect(screen.getByTestId("email")).toBeEnabled();
-      expect(
-        screen.getByText("Use single sign-on (SSO) instead"),
-      ).toBeVisible();
+      expect(ssoLink()).toBeVisible();
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
 
@@ -923,9 +946,15 @@ describe("Passwordless passkey login", () => {
       expect(form).not.toHaveClass("opacity-50");
       expect(form).not.toHaveClass("pointer-events-none");
       expect(form.contains(screen.getByTestId("passkey-option"))).toBe(false);
-      // Everything of the form pauses together, its two links included.
+      /*
+       * Everything of the form pauses together: its links, the "or" divider
+       * and single sign-on, which would leave the page.
+       */
       expect(form.contains(screen.getByTestId("Login"))).toBe(true);
       expect(form.contains(ssoLink())).toBe(true);
+      expect(form.contains(screen.getByTestId("sign-in-options-divider"))).toBe(
+        true,
+      );
       expect(
         form.contains(screen.getByText("Forgot password?").closest("a")),
       ).toBe(true);
@@ -936,6 +965,12 @@ describe("Passwordless passkey login", () => {
       expect(screen.getByTestId("email")).toBeDisabled();
       expect(screen.getByTestId("Login")).toBeDisabled();
       expect(screen.getByTestId("cancel-passkey-login")).toBeEnabled();
+      // The option whose attempt runs stays at full strength: busy, not faded.
+      const option: HTMLElement = screen.getByTestId("passkey-login");
+      expect(option).toBeDisabled();
+      expect(option).toHaveClass(...optionClasses("busy"));
+      expect(option).not.toHaveClass("opacity-50");
+      expect(option.className).not.toContain("hover:");
       expect(
         within(screen.getByRole("status")).getByText(
           "Follow the prompt from your browser or password manager.",
@@ -947,6 +982,9 @@ describe("Passwordless passkey login", () => {
       expect(form).toBeEnabled();
       expect(screen.getByTestId("email")).toBeEnabled();
       expect(screen.getByTestId("Login")).toBeEnabled();
+      expect(screen.getByTestId("passkey-login")).toHaveClass(
+        ...optionClasses("ready"),
+      );
       await act(async () => {
         prompt.settle();
       });
@@ -1342,6 +1380,11 @@ describe("Passwordless passkey login", () => {
     });
 
     expect(screen.getByTestId("passkey-login")).toBeDisabled();
+    // Faded while it waits, like the form a passkey attempt pauses.
+    expect(screen.getByTestId("passkey-login")).toHaveClass(
+      ...optionClasses("paused"),
+    );
+    expect(screen.getByTestId("passkey-login")).toHaveClass("opacity-50");
     fireEvent.click(screen.getByTestId("passkey-login"));
     expect(posted).toHaveLength(0);
 
@@ -1386,11 +1429,12 @@ describe("Passwordless passkey login", () => {
     });
   });
 
-  test("the SSO link stays a link to the SSO page under the form", async () => {
+  test("single sign-on stays a link to the SSO page, under Login", async () => {
     renderPage();
     await screen.findByTestId("email");
 
     expect(ssoLink()).toHaveAttribute("href", "/accounts/sso");
+    expect(ssoLink().tagName).toBe("A");
     expect(comesAfter(ssoLink(), screen.getByTestId("Login"))).toBe(true);
   });
 

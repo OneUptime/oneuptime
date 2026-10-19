@@ -241,12 +241,12 @@ Feedet viser rotationen, **som den er sat op nu**, også for tidligere dage: en 
 - Links er pr. projekt. Et lækket personligt link afslører ét projekts vagter, ikke alle de projekter, du er med i.
 - At generere et link igen flytter det gamle token ind i en henstandsperiode på 30 dage (tom kalender, derefter 404). **Deaktivér link** leverer en tom kalender. Et ukendt eller udløbet link giver en ren 404 uden hint. Tomme kalendere får abonnerede apps til at tømme deres kopi; en 404 får dem til at beholde den, og derfor leverer deaktivering og ny generering tomme kalendere.
 - Tokens gemmes hashet; kopien på indstillingssiden er krypteret med `ENCRYPTION_SECRET`. Sæt den variabel til en rigtig hemmelighed på en selvhostet installation — serveren advarer ved opstart, når den ikke er sat eller stadig er en af de pladsholdere, dette repository leverer (`secret`, eller den `please-change-this-to-random-value`, som `config.example.env` sætter). Ændrer du den senere, tilbyder siden **Generér link igen**, fordi den gemte kopi ikke længere kan læses; feedet virker videre, indtil du gør det.
-- Feedsvar er mærket `Cache-Control: private`, udelukkes fra søgemaskiner (`X-Robots-Tag: noindex`) og har en hastighedsgrænse pr. link og pr. klientadresse.
+- Feedsvar er mærket `Cache-Control: private`, udelukkes fra søgemaskiner (`X-Robots-Tag: noindex`) og har en hastighedsgrænse pr. link og pr. klientadresse, og pr. IPv6-/64 med ti gange en adresses grænser.
 
 OneUptimes egen Nginx holder feedforespørgsler ude af sine logs:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;
@@ -319,7 +319,7 @@ Enten er `DISABLE_ON_CALL_CALENDAR_FEED` sat, eller serveren har travlt: der byg
 :::
 
 :::details 429 eller "too many requests"
-Mange klienter bag én adresse — en kontor-NAT, en VPN-gateway — deler budgettet pr. adresse. Hæv `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW`, og tjek `TRUSTED_PROXY_HOPS`: når den er for lav, tilskrives hver klient din egen proxy, og de deler alle ét budget.
+Mange klienter bag én adresse — en kontor-NAT, en VPN-gateway — deler budgettet pr. adresse. Klienterne i ét IPv6-/64 deler også ti gange det. Hæv `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW`, og tjek `TRUSTED_PROXY_HOPS`: når den er for lav, tilskrives hver klient din egen proxy, og de deler alle ét budget.
 :::
 
 :::details Certifikatfejl i Apple Kalender, Thunderbird eller Outlook

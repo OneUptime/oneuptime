@@ -125,7 +125,7 @@ Ouvrez **Produits → Flux de travail** et cliquez sur **Créer un flux de trava
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** dans le panneau **Add Trigger**. Cliquez sur le déclencheur : **Fields to pass on** commence avec le titre, alors cliquez sur **Ajouter un champ**, cochez la description, puis cliquez sur **Enregistrer**. L'ID affiché sur le bloc, `alert-on-create-1`, est la façon dont les blocs suivants s'y réfèrent.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** dans le panneau **Ajouter un déclencheur**. Cliquez sur le déclencheur : **Fields to pass on** commence avec le titre, alors cliquez sur **Ajouter un champ**, cochez la description, puis cliquez sur **Enregistrer**. L'ID affiché sur le bloc, `alert-on-create-1`, est la façon dont les blocs suivants s'y réfèrent.
 
 ### Vérifier le titre
 

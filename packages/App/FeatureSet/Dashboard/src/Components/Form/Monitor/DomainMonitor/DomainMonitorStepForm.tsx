@@ -1,9 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import {
   DOMAIN_MONITOR_MORE_FIELDS,
   getMonitorOptionsMoreFieldsItems,
@@ -53,7 +50,7 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Lookup Method"
-          description="How registration data is read. Auto uses RDAP when the TLD publishes one and falls back to WHOIS. Some TLDs (such as .digital) have no working WHOIS server, and some (such as .io) have no RDAP service."
+          description="How registration data is read. Auto uses RDAP where the TLD has it and falls back to WHOIS."
           required={true}
         />
         <Dropdown
@@ -77,7 +74,6 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
        */}
       <FoldedSection
         title={MORE_FIELDS_SECTION_TITLE}
-        icon={MORE_SECTION_ICON}
         items={getMonitorOptionsMoreFieldsItems(
           props.monitorStepDomainMonitor,
           DOMAIN_MONITOR_MORE_FIELDS,

@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant D as Votre base de données
-    O->>P: Paramètres du moniteur, secrets résolus
-    P->>D: Votre requête, en lecture seule
-    D-->>P: Jusqu'à Lignes max + 1 lignes
-    P->>O: Nombre de lignes, scalaire, première ligne, durée, erreur
+    O->>P: Paramètres du moniteur,<br/>secrets résolus
+    P->>D: Votre requête,<br/>en lecture seule
+    D-->>P: Jusqu'à Lignes<br/>max + 1 lignes
+    P->>O: Nombre de lignes,<br/>scalaire, première<br/>ligne, durée, erreur
     O->>O: Évaluer les critères
 ```
 
@@ -139,7 +139,7 @@ Sélectionnez les **Sondes** qui atteignent la base de données et un **Interval
 | **Hôte** | L'hôte de la base de données joignable depuis la sonde (par exemple `db.internal`). |
 | **Port** | Le port de la base de données. |
 | **Nom de la base de données** | La base de données sur laquelle exécuter la requête. |
-| **Use Windows Integrated Authentication** | Microsoft SQL Server uniquement. S'authentifier avec le compte qui exécute la sonde au lieu d'un nom d'utilisateur et d'un mot de passe SQL. Voir [Authentification Windows intégrée](#authentification-windows-intégrée). |
+| **Authentification** | Microsoft SQL Server uniquement : **Nom d'utilisateur et mot de passe**, par défaut, ou **Windows Integrated Authentication**, qui se connecte avec le compte qui exécute la sonde. Voir [Authentification Windows intégrée](#authentification-windows-intégrée). |
 | **Nom d'utilisateur** | Un utilisateur de base de données en lecture seule, à privilèges minimaux. |
 | **Mot de passe** | Le mot de passe de la base de données. Nous recommandons vivement de faire référence à un [secret de moniteur](/docs/monitor/monitor-secrets) avec `{{monitorSecrets.name}}` plutôt que de saisir le mot de passe en clair (voir [Utiliser un secret de moniteur pour le mot de passe](#utiliser-un-secret-de-moniteur-pour-le-mot-de-passe)). |
 | **SQL Query** | La requête en lecture seule à exécuter (voir [Écrire la requête](#écrire-la-requête)). |
@@ -157,7 +157,7 @@ Une valeur au-dessus du maximum est ramenée au maximum.
 
 ### Authentification Windows intégrée
 
-Pour Microsoft SQL Server, activez **Use Windows Integrated Authentication** pour ouvrir une connexion approuvée avec l'identité du processus de la sonde. Les champs Nom d'utilisateur et Mot de passe sont ignorés dans ce mode et ne sont pas transmis au pilote. Comme la sonde a besoin d'une identité approuvée par votre domaine, utilisez une sonde auto-hébergée pour ce mode d'authentification.
+Pour Microsoft SQL Server, choisissez **Windows Integrated Authentication** sous **Authentification** pour ouvrir une connexion approuvée avec l'identité du processus de la sonde. Le formulaire masque alors **Nom d'utilisateur** et **Mot de passe**, et aucun des deux n'est transmis au pilote. Comme la sonde a besoin d'une identité approuvée par votre domaine, utilisez une sonde auto-hébergée pour ce mode d'authentification.
 
 | La sonde s'exécute sur | Ce qu'il faut configurer |
 |---|---|

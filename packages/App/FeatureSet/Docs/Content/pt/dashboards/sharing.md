@@ -95,7 +95,7 @@ Depois de verificado, o painel fica acessível tanto no seu domínio personaliza
 Clique em **Criar: Painel Domínio**. A caixa de diálogo tem uma única página:
 
 - **Subdomínio**: só o rótulo, com o exemplo `dashboard (leave blank for root)`. Digite só `dashboard`, não o nome de host inteiro. Deixe-o vazio ou digite `@` para usar o domínio raiz (apex).
-- **Domínio**: os domínios verificados em **Configurações do projeto → Domínios**, onde você prova com um registro TXT que um domínio é seu. Um domínio que você não verificou não aparece na lista, porque seria recusado. O link **Adicionar um domínio** ao lado do campo abre essa página numa nova aba.
+- **Domínio**: os domínios verificados em **Configurações do projeto → Avançado → Domínios**, onde você prova com um registro TXT que um domínio é seu. Um domínio que você não verificou não aparece na lista, porque seria recusado. O link **Adicionar um domínio** ao lado do campo abre essa página numa nova aba.
 - **Mais campos**: recolhido. Enquanto está recolhido, o cabeçalho dele diz qual certificado o domínio vai usar: "Emitimos um certificado SSL gratuito para este domínio e o renovamos automaticamente." Abra-o só para usar um certificado seu (veja abaixo).
 
 Clique em **Criar: Painel Domínio**. A caixa de diálogo se fecha e a **Configuração de DNS** do novo domínio se abre. O nome completo de um domínio fica fixo quando você o adiciona, então **Editar** muda só o certificado dele. Para usar outro subdomínio, adicione esse domínio e exclua o antigo.

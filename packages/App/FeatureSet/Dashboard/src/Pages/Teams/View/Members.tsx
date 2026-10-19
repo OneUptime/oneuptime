@@ -84,7 +84,7 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
       {isPushGroupsManaged && (
         <Banner
           title="Team membership is managed by SCIM Push Groups"
-          description="Add and remove this team's members in your identity provider. To change them here instead, turn off Push Groups in Settings > SCIM."
+          description="Add and remove this team's members in your identity provider. To change them here instead, turn off Push Groups in Project Settings > Security > SCIM."
         />
       )}
 
@@ -161,8 +161,7 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
               user: true,
             },
             title: "Email",
-            description:
-              "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to this team.",
+            description: "We email them an invitation to this team.",
             fieldType: FormFieldSchemaType.Email,
             required: true,
             placeholder: "member@company.com",

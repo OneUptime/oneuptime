@@ -85,10 +85,10 @@ export const IncidentStatusPageScopeCopy: {
 } = {
   pickerTitle: "Limit to these status pages",
   pickerDescription:
-    "Optional. Leave empty to show this incident on, and notify the subscribers of, every status page that lists its monitors. When you pick pages, only the picked pages among those are used. Use the Labels tab to add every page with a label.",
+    "Leave empty to use every status page that lists its monitors, or pick some of those pages.",
   pickerPlaceholder: "Every status page that lists the monitors",
   templatePickerDescription:
-    "Optional. Incidents declared from this template are limited to these status pages: they show on, and notify the subscribers of, only these pages among the status pages that list their monitors.",
+    "Incidents from this template only show on, and notify, these pages among those that list their monitors.",
   noScopeSummary:
     "Not limited: shown on, and notifies, every status page that lists its monitors.",
 
@@ -123,7 +123,7 @@ export const IncidentStatusPageScopeCopy: {
 
   onlyShowScopedIncidentsTitle: "Only Show Incidents Scoped to This Page",
   onlyShowScopedIncidentsDescription:
-    "When on, this status page shows, and notifies its subscribers about, only the incidents limited to it. Incidents that are not limited to any status page - including ones created automatically from a monitor, Slack, Microsoft Teams, the API or AI - never reach it until someone adds this page to them.",
+    "This page shows, and notifies subscribers about, only incidents limited to it. Others, including automatic ones, never reach it.",
 
   audienceLoading: "Working out who will be notified...",
   audienceError: "Could not work out who will be notified.",

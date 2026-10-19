@@ -26,7 +26,7 @@ Open **SLOs**, then **Settings** → **Label Rules** or **Settings** → **Owner
 
 ### Choose what the rule matches
 
-On the **Match** step, click **Add condition** for each condition an SLO must meet (see [Match criteria](#match-criteria)). With two or more, choose **Match all** or **Match any**. A rule with no conditions matches every new SLO.
+On the **Match** step, **Applies to** starts on **All SLOs**, every new SLO. To narrow it down, pick **Only SLOs that match conditions** and fill in the condition that opens (see [Match criteria](#match-criteria)); click **Add condition** for each other condition an SLO must meet. With two or more, choose **Match all** or **Match any**.
 
 ### Choose what the rule adds
 

@@ -112,13 +112,17 @@ for (const width of [1440, 1280, 1024, 390]) {
       detailsBox.x + detailsBox.width,
     );
     /*
-     * The shared mobile detail border has a negative margin; inspect the
-     * actual header/fields instead, so decoration is not treated as content.
+     * The card, its header and its fields all fit, at every width. The
+     * fields' box used to pull itself out 24px whatever the card's padding,
+     * so on a phone (20px) its rule ran 4px past the card's edges: this
+     * checked only the header and the fields there. The box is the card's
+     * ruled body now, padded as the card is.
      */
-    const fittedRegions: Array<Locator> =
-      width >= 768
-        ? [details]
-        : [details.getByTestId("card-header"), details.locator("#slo-details")];
+    const fittedRegions: Array<Locator> = [
+      details,
+      details.getByTestId("card-header"),
+      details.locator("#slo-details"),
+    ];
     for (const region of fittedRegions) {
       expect(
         await region.evaluate((element: HTMLElement | SVGElement): boolean => {
@@ -269,9 +273,21 @@ test("documentation remains accessible from the sidebar", async ({
 }) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await openOverview(page);
+  const details: Locator = card(page, "SLO Details");
+  /*
+   * In the card's ⋯, as a table keeps its documentation - not a button of
+   * its own beside Edit.
+   */
+  await expect(
+    details.getByRole("button", { name: "View Documentation", exact: true }),
+  ).toHaveCount(0);
+  await details
+    .getByTestId("card-header-actions")
+    .getByRole("button", { name: "More options", exact: true })
+    .click();
   const popupPromise: Promise<Page> = page.waitForEvent("popup");
-  await card(page, "SLO Details")
-    .getByRole("button", { name: "View Documentation", exact: true })
+  await page
+    .getByRole("menuitem", { name: "View Documentation", exact: true })
     .click();
   const popup: Page = await popupPromise;
   await expect(popup).toHaveURL(/\/docs\/slo\/error-budget$/);

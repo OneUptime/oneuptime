@@ -20,10 +20,10 @@ stateDiagram-v2
     state "Mislyktes" as Failed
     state "Avbrutt" as Cancelled
     [*] --> Scheduled: kjøring startet
-    Scheduled --> Running: en Worker tar den
-    Running --> WaitingForManualStep: Manual-trinn eller godkjenning
-    WaitingForManualStep --> Scheduled: fullført, godkjent eller hoppet over
-    Running --> Completed: alle trinn ferdige
+    Scheduled --> Running: en Worker<br/>tar den
+    Running --> WaitingForManualStep: Manual-trinn<br/>eller godkjenning
+    WaitingForManualStep --> Scheduled: fullført,<br/>godkjent eller<br/>hoppet over
+    Running --> Completed: alle trinn<br/>ferdige
     Running --> Failed: et trinn feiler
     Scheduled --> Cancelled: Avbryt kjøring
     Running --> Cancelled: Avbryt kjøring
@@ -118,7 +118,7 @@ En kjøring er en engangs, uforanderlig post. Klikk **Kjør igjen** på en avslu
 
 | Hvor | Hva den viser |
 | --- | --- |
-| **Kjøringer** for et runbook | Alle kjøringer av det runbooket, med filtre for status og startdato og en kolonne **Utløst av**. |
+| **Logger → Kjøringer** for et runbook | Alle kjøringer av det runbooket, med filtre for status og startdato og en kolonne **Utløst av**. |
 | **Runbooks → Kjøringer** | Alle kjøringer av alle runbooks i prosjektet. |
 | Siden **Runbooks** for en hendelse, et varsel eller en begivenhet | Kjøringene som er knyttet til den. Begivenhetens oversikt viser dem også så snart det finnes noen. |
 
@@ -129,7 +129,7 @@ Rollen din leser runbooks, men kjører dem ikke: knappen sier "Du har ikke tilla
 :::
 
 :::details Oppstart av en kjøring feiler med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets bryter **Kjør dette runbooket** er slått av på siden **Innstillinger**, eller det har ingen lagrede trinn. Slå bryteren på, eller legg til trinn, og klikk **Save Steps**.
+Runbookets bryter **Kjør dette runbooket** er slått av på siden **Innstillinger**, eller det har ingen lagrede trinn. Slå bryteren på, eller legg til trinn, og klikk **Save Steps**. **Oversikt** sier hvilken, med **Slå på runbook** eller **Legg til trinn**.
 :::
 
 :::details Et trinn feilet fordi det mangler en Runner eller påloggingsinformasjon

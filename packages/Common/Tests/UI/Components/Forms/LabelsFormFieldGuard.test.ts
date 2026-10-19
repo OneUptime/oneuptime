@@ -837,11 +837,15 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     NAME_DESCRIPTION,
     ["isEnabled", "labels"],
   ),
+  /*
+   * The name, with the description and the labels under More fields
+   * (IncomingCallPolicyCreateForm.ts), as Create On-Call Policy asks.
+   */
   onePage(
     `${DASHBOARD}/Pages/OnCallDuty/IncomingCallPolicies.tsx`,
     "ModelTable: On-Call > Incoming Call Policies",
-    NAME_DESCRIPTION,
-    LABELS_ONLY,
+    ["name"],
+    ["description", LABELS_KEY],
   ),
   // Create and Edit Probe: the "More" step held the auto-enable switch and labels.
   ...[
@@ -866,7 +870,6 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
     ["DockerSwarm/Clusters.tsx", "ModelTable: Docker Swarm Clusters"],
     ["IoT/Fleets.tsx", "ModelTable: IoT Fleets"],
     ["Proxmox/Clusters.tsx", "ModelTable: Proxmox Clusters"],
-    ["Service/Services.tsx", "ModelTable: Services"],
   ].map(([file, label]: Array<string>): FormShape => {
     return onePage(
       `${DASHBOARD}/Pages/${file}`,
@@ -875,6 +878,18 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
       LABELS_ONLY,
     );
   }),
+
+  /*
+   * Create Service asks for the service.name its apps send, with the
+   * description folded beside the labels (simplicity-audit-telemetry): most
+   * services are made by ingest, and a hand-made one needs only the name.
+   */
+  onePage(
+    `${DASHBOARD}/Pages/Service/Services.tsx`,
+    "ModelTable: Services",
+    ["name"],
+    ["description", LABELS_KEY],
+  ),
 
   /*
    * Stepped forms: the Labels step goes, the field folds where the name is.
@@ -1019,11 +1034,9 @@ export const LABELS_FORM_SHAPES: Array<FormShape> = [
 
 /*
  * The forms that hand getLabelsFormField a description of their own, in
- * file order: the templates, and the Huntress connection, whose labels are
- * handed on to the incidents they open.
+ * file order: the templates, whose labels are handed on to what they create.
  */
 const TEMPLATES_WORDING_THEIR_OWN_LABELS_HELP: Array<string> = [
-  `${DASHBOARD}/Pages/Incidents/Integrations/HuntressConnectionFormFields.ts: Every incident this connection opens gets these labels, besides one named after the report's Huntress organization.`,
   `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplates.tsx: Incidents declared from this template start with these labels.`,
   `${DASHBOARD}/Pages/Incidents/Settings/IncidentTemplatesView.tsx: Incidents declared from this template start with these labels.`,
   `${DASHBOARD}/Pages/Monitor/Settings/MonitorTemplates.tsx: Default labels applied to monitors created from this template.`,
@@ -1261,9 +1274,9 @@ describe("labels on the project's forms", () => {
   });
 
   /*
-   * One sentence says what labels do, on every form. Only a template (or
-   * the Huntress connection) words its own: its labels are not its access,
-   * they are handed on to what it creates, so it says that instead.
+   * One sentence says what labels do, on every form. Only a template words
+   * its own: its labels are not its access, they are handed on to what it
+   * creates, so it says that instead.
    */
   test("keep the shared help, except on a template, which says what it hands on", () => {
     expect(

@@ -57,14 +57,14 @@ Abre una política desde la lista. Su menú lateral contiene todo lo relativo a 
 
 ## Repetir una política
 
-Cuando la espera del último nivel termina sin que nadie lo reconozca, una política se detiene, salvo que se repita. Para repetirla, abre la página **Reglas de escalado** de la política, haz clic en **Editar** en la tarjeta **Política de repetición** bajo las reglas y rellena **Editar repetición de la política**:
+Cuando la espera del último nivel termina sin que nadie lo reconozca, una política se detiene, salvo que se repita. Para elegirlo, abre la página **Reglas de escalado** de la política y haz clic en **Editar** en la tarjeta **Política de repetición** bajo las reglas. **Editar repetición de la política** pregunta **Si nadie lo reconoce después del último nivel**:
 
-| Campo | Qué hace | En una política nueva |
-| --- | --- | --- |
-| **Repetir si nadie reconoce** | Vuelve a empezar la política desde **Level 1** tras su último nivel. Mientras está desactivado, la política se ejecuta una sola vez. | Desactivado |
-| **Número de veces que repetir** | Cuántas veces más vuelve a empezar la política. | 0 |
+| Respuesta | Qué hace |
+| --- | --- |
+| **Dejar de avisar** | No se avisa a nadie más, así que la política se ejecuta una sola vez. Una política nueva empieza con esta respuesta. |
+| **Empezar de nuevo desde Level 1** | Se avisa de nuevo a cada nivel, en orden. **¿Cuántas veces más?** dice cuántas: 1 o más. |
 
-Con el interruptor activado y tres repeticiones, una política recorre sus niveles cuatro veces en total. **La política de un vistazo** en la **Vista general** dice lo mismo con palabras.
+Una política que empieza de nuevo tres veces más recorre sus niveles cuatro veces en total. La fila **Después del último nivel** de la tarjeta dice lo que hace la política, y **La política de un vistazo** en la **Vista general** dice lo mismo con palabras.
 
 ## Registros de ejecución
 
@@ -94,7 +94,7 @@ Encontrarás registros de ejecución en tres lugares:
 
 - en los propios **Registros de ejecución** de la política, en **Registros**;
 - en **Guardia → Avanzado → Registros de ejecución**, para todas las políticas, donde los avisos directos desde workflows y chat aparecen como **Aviso directo**;
-- en la página **Ejecuciones de guardia** de un incidente, y en **Ejecuciones de guardia** de una alerta.
+- en la página **Ejecuciones de guardia** de un incidente o de una alerta.
 
 Cada fila muestra qué desencadenó la ejecución, cuándo, su **Estado** y quién la reconoció. **View Timeline** abre su **Cronología de ejecución**: cada regla de escalado, a quién avisó, a través de qué programación y cómo terminó cada aviso. Una programación sin nadie de guardia muestra **No one was on call** en lugar de una persona. En OneUptime Cloud, los registros de ejecución necesitan el plan **Growth**.
 
@@ -119,9 +119,11 @@ Las políticas de guardia son el recurso `/api/on-call-duty-policy`, y el recurs
 | --- | --- |
 | **Nombre** | `name` |
 | **Descripción** | `description` |
-| **Repetir si nadie reconoce** | `repeatPolicyIfNoOneAcknowledges` |
-| **Número de veces que repetir** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Si nadie lo reconoce después del último nivel** | `repeatPolicyIfNoOneAcknowledges` |
+| **¿Cuántas veces más?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Archivada | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` es `false` para **Dejar de avisar** y `true` para **Empezar de nuevo desde Level 1**. Con `true` y `repeatPolicyIfNoOneAcknowledgesNoOfTimes` en `0`, una política nunca se repite, y el panel la muestra como **Dejar de avisar**.
 
 Para crear una política con su primer nivel en una sola petición, consulta [Crear reglas con la API o Terraform](/docs/on-call/escalation-rules#crear-reglas-con-la-api-o-terraform).
 

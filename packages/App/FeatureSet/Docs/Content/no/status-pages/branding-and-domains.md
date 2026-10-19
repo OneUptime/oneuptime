@@ -3,7 +3,7 @@
 Statussiden din er den ene skjermen i OneUptime kundene dine ser på, så den bør ligne din egen og ligge på ditt eget domene, som `status.yourcompany.com`. Denne siden går gjennom siden **Merkevare** kort for kort og legger deretter statussiden på domenet ditt: legg til domenet, legg til én DNS-post, så følger det gratis SSL-sertifikatet av seg selv.
 
 :::cards
-- [Siden Merkevare](#siden-merkevare): Logo, tittel, favicon, lenker, bunntekst, farger og språk.
+- [Siden Merkevare](#siden-merkevare): Logo, tema, tittel, favicon, lenker, bunntekst, farger og språk.
 - [Egendefinert HTML, CSS og JavaScript](#egendefinert-html-css-og-javascript): Alt de innebygde innstillingene ikke dekker.
 - [Egendefinerte domener](#egendefinerte-domener): Ditt eget vertsnavn, med et gratis sertifikat.
 - [Kolonnen Status](#slik-leser-du-domenets-kolonne-status): Hvor langt hvert domene har kommet på vei mot HTTPS.
@@ -15,7 +15,7 @@ Statussiden din er den ene skjermen i OneUptime kundene dine ser på, så den b�
 
 | Side | Hva du angir der |
 | ---- | ------------------ |
-| **Merkevare** | Logo og forsidebilde, sidetittel og -beskrivelse, favicon, topptekstlenker, beskrivelsen av oversiktssiden, opphavsrettslinjen og bunntekstlenker. Sammenslått under **Flere innstillinger**: historikkdiagrammets farger, språk og indeksering i søkemotorer. |
+| **Merkevare** | Logo og forsidebilde, temaet (lyst, mørkt eller slik hver besøkendes enhet er innstilt), sidetittel og -beskrivelse, favicon, topptekstlenker, beskrivelsen av oversiktssiden, opphavsrettslinjen og bunntekstlenker. Sammenslått under **Flere innstillinger**: historikkdiagrammets farger, språk og indeksering i søkemotorer. |
 | **Egendefinerte domener** | Ditt eget domene, DNS-posten og det gratis SSL-sertifikatet. |
 | **HTML, CSS og JavaScript** | Topptekst-HTML, bunntekst-HTML, egendefinert CSS, egendefinert JavaScript. |
 
@@ -25,7 +25,7 @@ Merkevaren var tidligere delt på separate skjermer for **Grunnleggende merkevar
 
 ## Siden Merkevare
 
-**Statussider → siden din → Merkevare → Merkevare** (`{id}/branding`). Hvert kort lagres for seg. Etter logoen, tittelen og faviconet følger kortene statussiden din fra topp til bunn: lenkene i toppteksten, teksten øverst i oversikten og deretter bunnteksten. Det få endrer, ligger sammenslått under **Flere innstillinger** nederst.
+**Statussider → siden din → Merkevare → Merkevare** (`{id}/branding`). Hvert kort lagres for seg. Etter logoen, temaet, tittelen og faviconet følger kortene statussiden din fra topp til bunn: lenkene i toppteksten, teksten øverst i oversikten og deretter bunnteksten. Det få endrer, ligger sammenslått under **Flere innstillinger** nederst.
 
 ### Logo og forsidebilde
 
@@ -40,14 +40,32 @@ Logoen, forsidebildet og faviconet er filer som er lastet opp i statussidens ege
 
 Statussiden din viser bare bilder fra sitt eget prosjekt; et bilde den ikke kan vise, utelates, som om siden ikke hadde noe. Dashbordet, API-et og Terraform leser sidens bilder på samme måte: et bilde fra et annet prosjekt kommer tilbake som ikke noe bilde i det hele tatt. E-postene siden sender (til abonnenter, og til private brukere om påloggingen deres), viser logoen på samme måte: en logo siden ikke kan vise, utelates også fra dem i stedet for å vises som et ødelagt bilde.
 
+### Tema
+
+Kortet **Tema**, rett under logoen, bestemmer hvordan siden ser ut for de besøkende. Velg ett av de tre valgene, så lagres det med en gang; det finnes ingen knapp **Rediger**.
+
+| Valg | Hva de besøkende ser |
+| ------ | ----------------- |
+| **Lyst** | Den lyse siden, uansett hvordan enheten deres er innstilt. Statussider som ble laget før innstillingen fantes, er **Lyst**, så de ser ut som de alltid har gjort. |
+| **Mørkt** | Den mørke siden, uansett hvordan enheten deres er innstilt. |
+| **Som hver besøkendes enhet** | Lyst eller mørkt, slik enheten deres er innstilt, og siden skifter med enheten mens den er åpen. En sol- eller måneknapp i sidens bunntekst lar en besøkende bytte, og nettleseren deres husker valget. |
+
+På den mørke siden står logoen på en lys bakgrunn, så en logo som er laget for en hvit side, fortsatt synes godt.
+
+En statusside som lages fra nå av, starter med **Som hver besøkendes enhet**. Gjennom API-et og Terraform heter feltet `theme`, med en av verdiene `Light`, `Dark` eller `System` (**Som hver besøkendes enhet**), skrevet nøyaktig slik; enhver annen verdi avvises. En Terraform-konfigurasjon som ikke angir noe `theme`, får `Light`, så en konfigurasjon som ble skrevet før innstillingen, planlegger aldri en endring på en side den styrer.
+
+Temaet ligger i sidens HTML, så siden tegnes i det fra starten: en mørk side blinker ikke hvitt mens den lastes, og nettleseren tegner rullefeltene, skjemafeltene og, på telefoner, adressefeltet sitt slik at de passer. Alle deler av siden følger det, også innloggingssiden til en privat statusside. Oppetidsstolpene beholder fargene du har valgt. På den mørke siden får tekst i en statusfarge en lysere nyanse av fargen der fargen selv ville vært vanskelig å lese, og en stolpe som er for mørk til å synes, får en lysere kant.
+
+Den egendefinerte CSS-en og HTML-en din gjelder i begge temaene; [Egendefinert HTML, CSS og JavaScript](#egendefinert-html-css-og-javascript) forteller hvordan du styler det mørke.
+
 ### Tittel, beskrivelse og favicon
 
-- **Tittel og beskrivelse**: kortet nevner at dette også brukes til SEO. **Rediger** åpner **Sidetittel** (plassholder `Please enter page title here.`) og **Sidebeskrivelse**. Søkemotorer og forhåndsvisninger av lenker viser dem, så skriv dem for en kunde, ikke for teamet ditt.
+- **Tittel og beskrivelse**: sidens navn i nettleserfanen og i e-poster til abonnenter, og beskrivelsen søkemotorer viser. **Rediger** åpner **Sidetittel** (plassholder `e.g., Acme Status`) og **Sidebeskrivelse**. Søkemotorer og forhåndsvisninger av lenker viser dem, så skriv dem for en kunde, ikke for teamet ditt.
 - **Favicon**: **Edit Favicon** åpner opplastingen **Favicon**: det lille ikonet i nettleserfanen.
 
 ### Topptekstlenker
 
-Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som nettstedet ditt, dokumentasjonen din eller en kundestøtteportal. Hver lenke har en **Tittel** og en **Lenke** (en URL, plassholder `https://link.com`), og du endrer rekkefølgen ved å dra. Uten lenker sier tabellen **Ingen statustoppteksttekstlenke for denne statussiden**, med **Opprett Statusside Topptekst Lenke** under.
+Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som nettstedet ditt, dokumentasjonen din eller en kundestøtteportal. Hver lenke har en **Tittel** og en **Lenke** (en URL, plassholder `https://link.com`), og du endrer rekkefølgen ved å dra. Uten lenker sier tabellen hva de er til, med **Legg til Topptekstlenke** under.
 
 ### Beskrivelse av oversiktssiden
 
@@ -56,7 +74,7 @@ Tabellen **Topptekstlenker** inneholder lenkene i statussidens topptekst, som ne
 ### Bunntekst
 
 - **Opphavsrettsinformasjon**: **Edit Copyright** åpner ett felt, **Opphavsrettsinformasjon**, med plassholderen `Acme, Inc.`.
-- **Bunntekstlenker**: det samme paret **Tittel** og **Lenke** som topptekstlenkene, sortert ved å dra. Uten lenker står det «Ingen statusbunntekstlenke for denne statussiden.»
+- **Bunntekstlenker**: det samme paret **Tittel** og **Lenke** som topptekstlenkene, sortert ved å dra og lagt til med **Legg til Bunntekstlenke**.
 
 Topptekstlenker er for navigering; bunntekstlenker er for det med liten skrift, som juridisk informasjon, personvern og vilkår.
 
@@ -64,7 +82,7 @@ Topptekstlenker er for navigering; bunntekstlenker er for det med liten skrift, 
 
 Sidens siste seksjon ligger sammenslått under **Flere innstillinger**, fordi få noen gang endrer det som står der. Sammenslått nevner overskriften de fire seksjonene (**Standard stolpefarge**, **Regler for stolpefarger**, **Språk** og **Indeksering i søkemotorer**) og viser hver av dem som avviker fra det en ny statusside starter med: en annen standard stolpefarge enn den grønne alle sider starter med, andre regler for stolpefarger enn de anbefalte, et annet standardspråk enn engelsk, en kortere liste over språk eller indeksering i søkemotorer slått av. Klikk på den for å åpne den: det er ett kort med seksjonene under hverandre, hver med egen tittel, atskilt med skillelinjer.
 
-**Historikkdiagrammets farger.** Dette er de eneste innebygde fargeinnstillingene på en statusside. Hver stolpe i oppetidshistorikken er en dag.
+**Historikkdiagrammets farger.** Utenom **Tema** er dette de eneste innebygde fargeinnstillingene på en statusside. Hver stolpe i oppetidshistorikken er en dag.
 
 - **Standard stolpefarge**: **Edit Default Bar Color** åpner velgeren **Standard stolpefarge**. Det er fargen til en dag som ingen stolpefargeregel samsvarer med. Alle nye statussider starter med grønn.
 - **Regler for stolpefarger**: en ordnet tabell med regler du sorterer ved å dra. Hver regel har **Når oppetid % er større enn eller lik** og **Bruk så denne stolpefargen**; tabellens kolonner heter `When Uptime Percent >=` og `Then, Bar Color is`. Reglene sjekkes ovenfra, og den første som en dags oppetid når, bestemmer fargen, så hold høyere prosenter over lavere: en regel under en med samme eller lavere prosent farger aldri en dag. Fargen på en ny regel er allerede valgt, en som de andre reglene ikke bruker ennå; velg heller den du vil ha.
@@ -112,8 +130,8 @@ De var tidligere to egne kort, **Samlet oppetidsprosent** og **Overvåkerstatuse
 
 | Kort | Kolonne | Hva det inneholder |
 | ---- | ------ | ------------- |
-| **Topptekst-HTML** | `headerHTML` | HTML som legges til i sidens topptekst (plassholder `Insert Custom HTML here.`). |
-| **Bunntekst-HTML** | `footerHTML` | HTML som legges til i sidens bunntekst. |
+| **Topptekst-HTML** | `headerHTML` | HTML som vises i stedet for sidens topptekst, med logoen og topptekstlenkene (plassholder `Insert Custom HTML here.`). |
+| **Bunntekst-HTML** | `footerHTML` | HTML som vises i stedet for sidens bunntekst, med lenkene og valgene for språk og tema. |
 | **Egendefinert CSS** | `customCSS` | Stiler for hele siden (plassholder `Insert Custom CSS here.`). |
 | **Egendefinert JavaScript** | `customJavaScript` | Et skript siden kjører (plassholder `Insert Custom JavaScript here.`). |
 
@@ -122,7 +140,9 @@ De var tidligere to egne kort, **Samlet oppetidsprosent** og **Overvåkerstatuse
 
 På OneUptime Cloud krever det planen **Growth** å legge til eller endre noen av dem. Å tømme ett av dem fungerer på alle planer, så egendefinert kode som ble lagt til i en prøveperiode, alltid kan fjernes.
 
-**Det finnes ingen temavelger.** OneUptimes statussider har ingen innstilling for tema eller merkevarefarge: de eneste innebygde fargeinnstillingene noe sted er **Standard stolpefarge** og reglene for historikkdiagrammets stolpefarger, under **Flere innstillinger** på siden **Merkevare**. Skrifttyper, bakgrunnsfarger, aksentfarger og justeringer av oppsettet går alle gjennom **Egendefinert CSS**. Hvis du har lett etter et felt for en «merkevarefarge», er dette svaret: det finnes ikke, og denne boksen er måten å gjøre det på.
+**Det finnes ingen velger for merkevarefarge.** Utenom **Tema**, som gjør siden lys eller mørk, er de eneste innebygde fargeinnstillingene noe sted **Standard stolpefarge** og reglene for historikkdiagrammets stolpefarger, under **Flere innstillinger** på siden **Merkevare**. Skrifttyper, bakgrunnsfarger, aksentfarger og justeringer av oppsettet går alle gjennom **Egendefinert CSS**. Hvis du har lett etter et felt for en «merkevarefarge», er dette svaret: det finnes ikke, og denne boksen er måten å gjøre det på.
+
+**Egendefinert kode i det mørke temaet.** Den egendefinerte CSS-en og HTML-en din gjelder i begge temaene. Mens siden er mørk, har `<html>`-elementet klassen `dark`, så en CSS-regel som starter med `html.dark`, styler bare det mørke temaet: `html.dark .my-banner { background: #1e293b; }`. En regel uten den gjelder i begge, så en bakgrunns- eller tekstfarge du setter for den lyse siden, blir også stående på den mørke: sjekk den egendefinerte CSS-en din i begge temaene. Har siden egendefinert CSS eller HTML i topptekst eller bunntekst, sier kortet **Tema** det under valgene sine.
 
 > [!WARNING]
 > Egendefinert JavaScript kjører i nettleserne til de besøkende, på en side folk åpner nettopp når de tror noe er ødelagt. Hold det lite, host selv det det laster inn, der du kan, og test det før du stoler på det.
@@ -153,7 +173,7 @@ flowchart TB
 
 ### Før du starter
 
-- **Det overordnede domenet må være verifisert.** Nedtrekkslisten **Domene** viser bare domenene som er verifisert under **Prosjektinnstillinger → Domener**, der du med en TXT-post beviser at du eier et domene. Lenken **Legg til et domene** ved siden av feltet åpner den siden i en ny fane.
+- **Det overordnede domenet må være verifisert.** Nedtrekkslisten **Domene** viser bare domenene som er verifisert under **Prosjektinnstillinger → Avansert → Domener**, der du med en TXT-post beviser at du eier et domene. Lenken **Legg til et domene** ved siden av feltet åpner den siden i en ny fane.
 - **Installasjonen din trenger en CNAME-post for statussider.** OneUptime Cloud har en. På en egendriftet installasjon setter du den til et vertsnavn som peker på OneUptime-serveren din (en A-post), og sørger for at serveren svarer på port 80, der Let's Encrypt sjekker den. Uten den sier kortet og dialogen **DNS-oppsett** «Custom Domains not enabled for this OneUptime installation» i stedet for å vise en post.
 
 :::tabs

@@ -87,12 +87,14 @@ flowchart TB
 
 已经是某个附加项目成员的人，会保留其在该项目中的团队。
 
-提供商上的两个开关会改变这一行为。两者默认都处于关闭状态，并折叠在 **更多字段** 中：
+提供商上的两个问题会改变这一行为。两者都折叠在 **更多字段** 中，并从第一个答案开始：
 
-| 开关 | 开启时的作用 |
+| 问题 | 答案 |
 | --- | --- |
-| **Disable Sign Up with SSO** | 即使已附加项目，人员也必须先被邀请加入某个项目，才能使用此提供商登录。首次登录时不会创建新用户。 |
-| **Restrict to Attached Projects** | 使用此提供商登录只会在附加到它的项目中满足 SSO 要求，因此已经登录的人可能会失去对其他项目的访问权限。关闭时，它会在此人所属的每个项目中满足要求，附加项目只决定新来的人被加入到哪里。 |
+| **没有账户的人** | **首次登录时获得账户**：他们会加入附加的项目；若没有附加的项目，则必须先被邀请。**必须先被邀请**：即使已附加项目，人员也必须先被邀请加入某个项目，才能使用此提供商登录。 |
+| **此登录在哪里算作 SSO** | **每个项目**：要求 SSO 的项目接受通过此提供商的登录。**仅限附加的项目**：使用此提供商登录只会在附加到它的项目中满足 SSO 要求，因此已经登录的人可能会失去对其他项目的访问权限。 |
+
+选择 **每个项目** 时，使用此提供商登录会在此人所属的每个项目中满足 SSO 要求，附加项目只决定新来的人被加入到哪里。
 
 ## 强制使用 SSO
 
@@ -134,11 +136,11 @@ flowchart TB
 ## 故障排查
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-此人还没有 OneUptime 账号，而提供商也不会创建账号：要么没有项目附加到它，要么 **Disable Sign Up with SSO** 已开启。请邀请此人加入某个项目，或者把一个项目附加到该提供商。
+此人还没有 OneUptime 账号，而提供商也不会创建账号：要么没有项目附加到它，要么 **没有账户的人** 设为 **必须先被邀请**。请邀请此人加入某个项目，或者把一个项目附加到该提供商。
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** 已开启，而此人不是任何附加到该提供商的项目的成员。请附加此人的某个项目，或者把此人加入某个附加项目。
+**此登录在哪里算作 SSO** 设为 **仅限附加的项目**，而此人不是任何附加到该提供商的项目的成员。请附加此人的某个项目，或者把此人加入某个附加项目。
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"
@@ -147,6 +149,14 @@ flowchart TB
 
 :::details "Issuer URL does not match"
 对于 SAML 提供商，身份提供商响应中的签发者不是提供商上保存的 **Issuer**。请从身份提供商重新复制；两者必须完全一致。
+:::
+
+:::details "SAML Audience does not match"
+对于 SAML 提供商，响应的 audience 不是提供商的 **Issuer (Entity ID)**：您的身份提供商是为其他应用程序创建的这个响应。请在身份提供商中把应用程序的 entity ID 设为提供商页面上的 **Issuer (Entity ID)**。"SAML Recipient does not match" 和 "SAML Destination does not match" 对其 reply URL 的含义相同：请将其设为 **ACS URL (Assertion Consumer Service / Reply URL)**。
+:::
+
+:::details "SAML response was already used"
+您的身份提供商的每个响应只能登录一次，而且只在签发后几分钟内有效：之后会以 "SAML response has expired" 被拒绝。请重新登录。如果响应不断过期，请检查本服务器和您的身份提供商的时钟。
 :::
 
 ## 后续步骤

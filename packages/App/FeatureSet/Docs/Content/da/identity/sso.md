@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Person
     participant O as OneUptime
     participant I as Identitetsudbyder
-    U->>O: Log ind med SSO, vælg projektet
-    O->>I: SAML-anmodning til log på-URL'en
+    U->>O: Log ind med SSO,<br/>vælg projektet
+    O->>I: SAML-anmodning<br/>til log på-URL'en
     I->>U: Loginside
     U->>I: Loginoplysninger og MFA
-    I->>O: Signeret assertion til Reply URL
-    Note over O: Kontrollerer signaturen og udstederen,<br/>læser e-mailen fra Name ID
+    I->>O: Signeret assertion<br/>til Reply URL
+    Note over O: Kontrollerer signaturen<br/>og udstederen,<br/>læser e-mailen fra Name ID
     O->>U: Logget ind i projektet
 ```
 
@@ -36,13 +36,21 @@ OneUptime læser kun få ting fra den assertion, din IdP sender:
 | --- | --- |
 | Signatur | Kontrollerer den med udbyderens **Offentligt certifikat**. Svaret skal være signeret og må ikke være krypteret. |
 | Issuer | Skal svare præcist til udbyderens **Udsteder**. |
+| Audience | Skal være udbyderens **Identifier (Entity ID)**. Et svar, som din IdP lavede til en anden applikation, afvises. |
+| Recipient og Destination | Skal være udbyderens **Reply URL**, den adresse, svaret blev sendt til. |
+| `NotBefore` og `NotOnOrAfter` | Svaret accepteres kun, så længe de tillader det, og senest 10 minutter efter, at det blev udstedt, med 3 minutters spillerum for ure, der ikke går ens. |
 | Name ID | Personens e-mailadresse. Den skal være en gyldig e-mailadresse. |
-| `http://schemas.microsoft.com/identity/claims/displayname` | Personens navn, som bruges, når OneUptime opretter kontoen. Valgfri. |
+| Navneattributter | Personens navn, som bruges, når OneUptime opretter kontoen: et visningsnavn (`displayName` eller `http://schemas.microsoft.com/identity/claims/displayname`) eller et for- og efternavn (`firstName` og `lastName` eller claimene `givenname` og `surname`, som Microsoft Entra ID sender som standard). Valgfri. |
+| `http://schemas.microsoft.com/identity/claims/objectidentifier` | Personens objekt-ID, som Microsoft Entra ID sender som standard. Det første login via udbyderen knytter kontoen til det, og et senere login, der angiver kontoens e-mailadresse med et andet objekt-ID, afvises. Valgfri. |
+
+Hvert svar logger kun ind én gang. Sendes det igen, for eksempel når du går tilbage i browseren efter at have logget ind, afvises det: log ind igen.
 
 Personer, der logger ind for første gang, kommer med i udbyderens **Teams**, og de afgør, hvad personen kan gøre: se [Roller og teams for SSO-brugere](#roller-og-teams-for-sso-brugere).
 
 > [!NOTE]
 > På OneUptime Cloud logger OneUptime ikke en person ind, første gang vedkommende logger ind i projektet med en af projektets SAML- eller OIDC-udbydere; i stedet sender OneUptime et link pr. e-mail. Personen åbner linket, bekræfter, at projektets single sign-on må logge vedkommende ind, og fortsætter med at logge ind. Linket gælder i 24 timer. Det sker én gang pr. projekt og igen, hvis personen forlader projektet og vender tilbage. Selvhostede installationer logger personer ind med det samme.
+
+På OneUptime Cloud optager en person, der kommer med i projektet via SSO, en plads, præcis som en person, du inviterer. Hvis din plan har et fast antal pladser, og de alle er optaget, kan nye personer ikke komme med via SSO, før en plads bliver ledig.
 
 ## Opsætning af SSO
 
@@ -56,7 +64,7 @@ Du skal have tilladelse til at tilføje SSO-udbydere — **Project Owner**, **Pr
 
 2. **Opret SSO-konfigurationen**
 
-   - Klik på **Opret SSO**
+   - Klik på **Tilføj SAML-udbyder**
    - Indtast et **Navn** til SSO-konfigurationen (f.eks. "Keycloak SAML" eller "Okta SAML")
    - Indtast **Log på-URL** fra din identitetsudbyder
    - Indtast **Udsteder** (Entity ID) fra din identitetsudbyder
@@ -100,7 +108,7 @@ Keycloak er en populær open source-løsning til identitets- og adgangsstyring. 
 
 2. **Opret udbyderen i OneUptime**
 
-   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Opret SSO**, og udfyld:
+   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Tilføj SAML-udbyder**, og udfyld:
    - **Navn**: et beskrivende navn (f.eks. `my-project-oneuptime`)
    - **Log på-URL** og **Udsteder**: værdierne ovenfor
    - **Offentligt certifikat**: certifikatet mellem sine egne linjer `BEGIN CERTIFICATE` og `END CERTIFICATE`
@@ -126,14 +134,15 @@ Keycloak er en populær open source-løsning til identitets- og adgangsstyring. 
    Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen. Du bør blive sendt til Keycloaks loginside og tilbage til OneUptime.
 :::
 @tab Microsoft Entra ID
-Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudbaserede identitetstjeneste. Du skal bruge en lejer, der understøtter virksomhedsapplikationer med SAML-SSO, og administratoradgang til både Entra ID og OneUptime.
+Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudbaserede identitetstjeneste. Du skal bruge en lejer, der understøtter virksomhedsapplikationer med SAML-SSO, og administratoradgang til både Entra ID og OneUptime. Findes OneUptime i Microsoft Entra-applikationsgalleriet, så tilføj appen derfra på OneUptime Cloud: den leveres med de claims, OneUptime læser, og mønstrene for OneUptimes URL'er.
 
 :::steps
 1. **Opret en virksomhedsapplikation i Entra ID**
 
    - Log ind i [Microsoft Entra admin center](https://entra.microsoft.com)
-   - Gå til **Identity** > **Applications** > **Enterprise applications**, klik på **+ New application** og derefter på **+ Create your own application**
-   - Indtast et navn (f.eks. "OneUptime"), vælg **Integrate any other application you don't find in the gallery (Non-gallery)**, og klik på **Create**
+   - Gå til **Identity** > **Applications** > **Enterprise applications**, og klik på **+ New application**
+   - Fra galleriet: søg efter OneUptime, vælg den, og klik på **Create**
+   - Ellers: klik på **+ Create your own application**, indtast et navn (f.eks. "OneUptime"), vælg **Integrate any other application you don't find in the gallery (Non-gallery)**, og klik på **Create**
 
 2. **Kopiér Entra ID's SAML-værdier**
 
@@ -143,7 +152,7 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudba
 
 3. **Opret udbyderen i OneUptime**
 
-   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Opret SSO**, og udfyld:
+   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Tilføj SAML-udbyder**, og udfyld:
    - **Navn**: et beskrivende navn (f.eks. `Azure AD SAML`)
    - **Log på-URL**: **Login URL**
    - **Udsteder**: **Microsoft Entra Identifier**
@@ -162,10 +171,10 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudba
 
 5. **Send e-mailen som Name ID**
 
-   Klik på **Edit** under **Attributes & Claims**:
+   Klik på **Edit** under **Attributes & Claims**. Applikationen fra galleriet har allerede disse indstillinger: kontrollér dem.
    - Sæt **Unique User Identifier (Name ID)** til brugerens e-mailadresse: `user.mail`, eller `user.userprincipalname`, hvor det er e-mailadressen
    - Sæt **Name identifier format** til `Email address`
-   - Tilføj eventuelt et claim med navnet `http://schemas.microsoft.com/identity/claims/displayname` og kildeattributten `user.displayname`, så nye konti får personens navn. OneUptime ignorerer de øvrige claims
+   - Behold Entra ID's standardclaims: nye konti får personens navn fra `givenname` og `surname`, og kontoen knyttes til personens objekt-ID, `objectidentifier`. Tilføj eventuelt et claim med navnet `http://schemas.microsoft.com/identity/claims/displayname` og kildeattributten `user.displayname`, så nye konti i stedet får visningsnavnet. OneUptime ignorerer de øvrige claims
 
 6. **Tildel brugere og grupper**
 
@@ -176,13 +185,14 @@ Microsoft Entra ID (tidligere Azure AD / Active Directory) er Microsofts cloudba
    Rediger udbyderen i OneUptime, og slå **Aktiveret** til; åbn derefter linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen. Du bør blive sendt til Microsofts loginside og tilbage til OneUptime.
 :::
 @tab Okta
-Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organisation med administratoradgang og administratoradgang til OneUptime.
+Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organisation med administratoradgang og administratoradgang til OneUptime. Findes OneUptime i Okta Integration Network, så tilføj appen derfra på OneUptime Cloud: den logger personer ind fra OneUptimes side **Log ind med SSO** og fra deres Okta-dashboard, giver dem en konto ved deres første login og beder om to ID'er i stedet for OneUptimes URL'er.
 
 :::steps
-1. **Opret en SAML-applikation i Okta**
+1. **Føj OneUptime til Okta**
 
-   - Gå til **Applications** > **Applications** i Okta Admin Console, og klik på **Create App Integration**
-   - Vælg **SAML 2.0**, og klik på **Next**, indtast "OneUptime" som **App name**, og klik på **Next**
+   - Gå til **Applications** > **Applications** i Okta Admin Console
+   - Fra Okta Integration Network: klik på **Browse App Catalog**, søg efter OneUptime, og klik på **Add Integration**. Okta beder om **OneUptime Project ID** og **OneUptime SSO Provider ID**, før OneUptime kan vise dem: indtast `0` i begge indtil videre; du erstatter dem i trin 4. Klik på **Done**, og fortsæt med trin 2
+   - Ellers: klik på **Create App Integration**, vælg **SAML 2.0**, og klik på **Next**, indtast "OneUptime" som **App name**, og klik på **Next**
    - Okta beder om OneUptimes URL'er, før den viser sine egne. Indtast indtil videre din OneUptime-adresse (for eksempel `https://oneuptime.com`) som **Single sign-on URL** og som **Audience URI (SP Entity ID)**: du erstatter begge i trin 4
    - Sæt **Name ID format** til `EmailAddress` og **Application username** til `Email`
    - Klik på **Next**, vælg **I'm an Okta customer adding an internal app**, og klik på **Finish**
@@ -195,7 +205,7 @@ Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organi
 
 3. **Opret udbyderen i OneUptime**
 
-   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Opret SSO**, og udfyld:
+   Gå til **Projektindstillinger** > **Sikkerhed** > **SSO**, klik på **Tilføj SAML-udbyder**, og udfyld:
    - **Navn**: et beskrivende navn (f.eks. `Okta SAML`)
    - **Log på-URL** og **Udsteder**: Oktas værdier
    - **Offentligt certifikat**: certifikatet, inklusive linjerne `BEGIN CERTIFICATE` og `END CERTIFICATE`
@@ -205,11 +215,16 @@ Okta er en udbredt identitetsplatform med SAML-SSO. Du skal bruge en Okta-organi
 
 4. **Giv Okta OneUptimes URL'er**
 
-   Klik på **Edit** under **SAML Settings** på applikationens fane **General** og derefter på **Next**, og angiv:
+   For applikationen fra Okta Integration Network skal du klikke på **Edit** under **App Settings** på fanen **General** og angive:
+   - **OneUptime Project ID** og **OneUptime SSO Provider ID**: de to ID'er i **Identifier (Entity ID)** fra OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
+
+   Klik på **Save**, og kontrollér, at **Application username format** er `Email` på fanen **Sign On**.
+
+   For din egen applikation skal du klikke på **Edit** under **SAML Settings** på fanen **General** og derefter på **Next** og angive:
    - **Single sign-on URL**: **Reply URL (Assertion Consumer Service URL)** fra OneUptime
    - **Audience URI (SP Entity ID)**: **Identifier (Entity ID)** fra OneUptime
 
-   Tilføj eventuelt en attribute statement med navnet `http://schemas.microsoft.com/identity/claims/displayname` og værdien `user.firstName + " " + user.lastName`, så nye konti får personens navn. Klik på **Next** og derefter på **Finish**.
+   Tilføj eventuelt attribute statements med navnene `firstName`, med værdien `user.firstName`, og `lastName`, med værdien `user.lastName`, så nye konti får personens navn. Klik på **Next** og derefter på **Finish**.
 
 5. **Tildel personer**
 
@@ -237,11 +252,11 @@ Et projekt kan også logge ind via en OpenID Connect-udbyder som Google Workspac
 
 :::steps
 1. Registrer en app (en OIDC-klient) hos din identitetsudbyder, der må bruge authorization code-flowet med PKCE, og kopiér dens **Udsteder-URL**, **Klient-ID** og **Klienthemmelighed**.
-2. Gå til **Projektindstillinger** > **Sikkerhed** > **OIDC** i OneUptime, og klik på **Opret OIDC**.
+2. Gå til **Projektindstillinger** > **Sikkerhed** > **SSO** i OneUptime. Klik på **Tilføj OIDC-udbyder** under SAML-udbyderne.
 3. Indtast et **Navn** (det, personer ser på loginsiden), **Udsteder-URL**, **Klient-ID** og **Klienthemmelighed**. Du kan også indsætte udbyderens discovery-URL i **Udsteder-URL** i stedet.
 4. I trinnet **Login** starter **Teams** med dit projekts medlemsteam: personer, der logger ind for første gang, kommer med i disse teams. Resten er allerede udfyldt under **Flere felter**: **Discovery-URL** (udstederen efterfulgt af `/.well-known/openid-configuration`), **Omfang** (`openid email profile`), claim-navnene `email` og `name` og en beskrivelse ("Sign in with" og navnet). Ændr dem kun, hvis din udbyder kræver det. Kun teams, du selv kunne invitere nogen til, accepteres: et team, der giver mere adgang, end du har, nævnes under **Teams**.
 5. Gem. Dialogen **OIDC Configuration** åbnes med **Redirect URI**: tilføj den til din apps tilladte redirect-URI'er. En ny udbyder starter slået fra, så rediger den bagefter, og slå **Aktiveret** til.
-6. Brug linket i kortet **Test OpenID Connect (OIDC)** til at logge ind via udbyderen, før du kræver SSO for projektet.
+6. Åbn linket i kortet **Test Single Sign On (SSO)**, og vælg udbyderen for at logge ind via den, før du kræver SSO for projektet.
 :::
 
 ## Roller og teams for SSO-brugere
@@ -301,14 +316,14 @@ Hvor hverken projektet eller serveren kræver SSO, stopper det nye logins med ud
 
 ## Udbydere under planen Scale
 
-En SAML- eller OIDC-udbyder, som et projekt stadig har, bliver ved med at logge personer ind, efter at en Scale-prøveperiode slutter, eller planen nedgraderes. Derfor viser siderne **SSO** og **OIDC** under Scale projektets udbydere under opgraderingstilbuddet (**SAML-udbydere, der stadig er sat op**, **OIDC-udbydere, der stadig er sat op**):
+En SAML- eller OIDC-udbyder, som et projekt stadig har, bliver ved med at logge personer ind, efter at en Scale-prøveperiode slutter, eller planen nedgraderes. Derfor viser siden **SSO** under Scale projektets udbydere under opgraderingstilbuddet (**SAML-udbydere, der stadig er sat op**, **OIDC-udbydere, der stadig er sat op**):
 
 - **Slå fra** stopper en udbyder med det samme. OneUptime spørger først.
 - **Slet** fjerner den.
 
 At tilføje en udbyder, ændre en eller slå den til igen kræver **Scale**. Hvem der må hvad, er det samme som med Scale: at slå en udbyder fra kræver tilladelse til at redigere den, at slette den tilladelse til at slette den.
 
-Så længe projektet stadig kræver SSO, viser siderne **SSO** og **OIDC** også **Kræv SSO til login**: slå det fra, før du slår den sidste udbyder fra. Indtil da kan den sidste udbyder, som personer kan logge ind med, hverken slås fra eller slettes, så ingen bliver udelukket fra projektet.
+Så længe projektet stadig kræver SSO, viser siden **SSO** også **Kræv SSO til login**: slå det fra, før du slår den sidste udbyder fra. Indtil da kan den sidste udbyder, som personer kan logge ind med, hverken slås fra eller slettes, så ingen bliver udelukket fra projektet.
 
 En statussides sider **SSO** og **OIDC** viser dens egne udbydere på samme måde. Så længe statussiden stadig kræver SSO, viser begge sider også **Kræv SSO til login**: slå det fra, før du slår dens udbydere fra, ellers kan dens private brugere slet ikke logge ind.
 
@@ -324,6 +339,26 @@ Personen er endnu ikke med i projektet, og udbyderen har ingen **Teams** at føj
 
 :::details "Issuer URL does not match"
 Issuer i din IdP's assertion er ikke udbyderens **Udsteder**. Kopiér den igen fra din IdP — Keycloak-realmets URL, **Microsoft Entra Identifier** eller Oktas Identity Provider Issuer — så de to stemmer præcist overens.
+:::
+
+:::details "SAML Audience does not match"
+Svarets audience er ikke denne udbyders **Identifier (Entity ID)**: din IdP lavede svaret til en anden applikation. Sæt applikationens entity ID i din IdP til **Identifier (Entity ID)** fra **Vis SSO-konfiguration** – **Client ID** i Keycloak, **Identifier (Entity ID)** i Entra ID, **Audience URI (SP Entity ID)** i Okta. En IdP, der er sat op med kun OneUptimes adresse som entity ID, for eksempel `https://oneuptime.com`, virker fortsat.
+:::
+
+:::details "SAML Recipient does not match"
+Svarets recipient er ikke denne udbyders **Reply URL**: svaret blev sendt til en anden adresse. Sæt applikationens reply URL i din IdP til **Reply URL (Assertion Consumer Service URL)** fra **Vis SSO-konfiguration** – **Assertion Consumer Service POST Binding URL** i Keycloak, **Reply URL (Assertion Consumer Service URL)** i Entra ID, **Single sign-on URL** i Okta. "SAML Destination does not match" har samme årsag og samme løsning.
+:::
+
+:::details "SAML response has expired"
+Svaret nåede frem til OneUptime senere, end din IdP tillader, eller mere end 10 minutter efter, at det blev udstedt: log ind igen. Hvis det bliver ved med at ske, går uret i din IdP eller på OneUptime-serveren forkert; OneUptime tillader, at de er 3 minutter fra hinanden. "SAML response is not valid yet" er samme problem den anden vej.
+:::
+
+:::details "SAML response was already used"
+Hvert svar fra din IdP logger kun ind én gang. Går du tilbage i browseren efter at have logget ind, eller genindlæser du den side, din IdP sendte dig igennem, sendes det samme svar igen: log ind igen, fra OneUptime eller fra din IdP.
+:::
+
+:::details "This account is linked to someone else."
+Microsoft Entra ID loggede en person ind med e-mailadressen på en konto, der via denne udbyder er knyttet til et andet objekt-ID: en anden person har nu adressen i Entra ID, eller personens Entra ID-konto er blevet oprettet igen. OneUptime afviser loginforsøget, så den, der får adressen næste gang, ikke kan bruge kontoen. Hvis kontoen tilhører personen, så fjern vedkommende fra projektet, og tilføj vedkommende igen: ved næste login knyttes kontoen til personens nye objekt-ID.
 :::
 
 :::details Login mislykkes med en signatur- eller certifikatfejl

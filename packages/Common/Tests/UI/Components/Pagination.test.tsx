@@ -8,6 +8,11 @@ import Pagination, {
   PAGE_CLASS_NAME,
   PaginationSize,
 } from "../../../UI/Components/Pagination/Pagination";
+import {
+  TABLE_CELL_EDGE_PADDING_LEFT_CLASS_NAME,
+  TABLE_FOOTER_BLEED_CLASS_NAME,
+  TABLE_MOBILE_ROW_CLASS_NAME,
+} from "../../../UI/Components/Table/TableLayout";
 import { describe, expect, it, jest } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -966,9 +971,9 @@ describe("Pagination", () => {
       );
 
       expect(screen.getByTestId("default-bar")).toHaveClass(
-        "px-4",
+        "px-5",
         "py-2.5",
-        "sm:px-6",
+        "md:px-6",
       );
 
       unmount();
@@ -1006,10 +1011,24 @@ describe("Pagination", () => {
       }
     });
 
-    it("lines the default bar's text up with a table's first column", () => {
-      // Table cells are pl-4 sm:pl-6 (CellClassName.ts).
+    it("lines the default bar's text up with a table's first column and its card's text", () => {
+      /*
+       * The table's footer reaches the card's edges, as its rows do
+       * (TableLayout's TABLE_FOOTER_BLEED_CLASS_NAME): its text starts
+       * where a row's does - a phone's card at the card's 20px padding
+       * (TABLE_MOBILE_ROW_CLASS_NAME's px-5), the first cell's pl-6 from md
+       * up.
+       */
       expect(DefaultPaginationSize.barClassName.split(" ")).toEqual(
-        expect.arrayContaining(["px-4", "sm:px-6"]),
+        expect.arrayContaining(["px-5", "md:px-6"]),
+      );
+      expect(DefaultPaginationSize.barClassName.split(" ")).not.toContain(
+        "px-4",
+      );
+      expect(TABLE_MOBILE_ROW_CLASS_NAME.split(" ")).toContain("px-5");
+      expect(TABLE_CELL_EDGE_PADDING_LEFT_CLASS_NAME).toBe("pl-6");
+      expect(TABLE_FOOTER_BLEED_CLASS_NAME.split(" ")).toEqual(
+        expect.arrayContaining(["-mx-5", "md:-mx-6"]),
       );
     });
   });

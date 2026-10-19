@@ -18,11 +18,11 @@ OneUptime 的 **Incoming Email Monitor** 讓你可以根據寄到唯一、依監
 ```mermaid title="郵件如何到達監視器"
 sequenceDiagram
     participant Sender as 寄件郵件伺服器
-    participant SendGrid as SendGrid Inbound Parse
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: 寄到監視器地址的郵件（經由你的 MX 記錄）
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: 把地址比對到監視器或工作流程
+    Sender->>SendGrid: 寄到<br/>監視器地址的<br/>郵件（經由你的<br/>MX 記錄）
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: 把地址比對到<br/>監視器或<br/>工作流程
     OneUptime-->>SendGrid: 200 OK
 ```
 
@@ -49,7 +49,7 @@ sequenceDiagram
 
 為 Webhook 主機名稱發布 DNS，並提供公用用戶端信任的憑證。私有部署的 OneUptime 可以只透過一個能從內部連到 OneUptime 的公用反向代理或閘道公開 Webhook 路徑。保留路徑、密鑰、內容類型和 multipart 請求本文，並讓 POST 無需互動式登入或瀏覽器驗證即可通過。OneUptime 伺服器不需要傳入的 SMTP 接聽程式。請參閱 [SendGrid 的 Inbound Parse 設定](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook)。
 
-把 `INBOUND_EMAIL_WEBHOOK_SECRET` 設為一個強隨機值，並用該值取代 URL 中的 `YOUR_SECRET`。該路由要求包含最後一個路徑區段。設定了密鑰時，OneUptime 會檢查它的值；把變數留空則會關閉這項檢查。請對完整 URL 和監視器的電子郵件地址保密，包括在代理記錄中。OneUptime 目前不驗證 SendGrid 簽署的 Inbound Parse 標頭或 OAuth 權杖。如果你需要這些機制，請依照 [SendGrid 的 Webhook 安全性文件](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) 設定一個閘道，在轉寄給 OneUptime 之前先驗證它們。
+把 `INBOUND_EMAIL_WEBHOOK_SECRET` 設為一個強隨機值，並用該值取代 URL 中的 `YOUR_SECRET`。該路由要求包含最後一個路徑區段，而且只有當該區段就是密鑰時，OneUptime 才會接收郵件。在設定密鑰之前，每封郵件都會以 `503` 被拒絕，SendGrid 會在最多三天內重試。請對完整 URL 和監視器的電子郵件地址保密，包括在代理記錄中。OneUptime 目前不驗證 SendGrid 簽署的 Inbound Parse 標頭或 OAuth 權杖。如果你需要這些機制，請依照 [SendGrid 的 Webhook 安全性文件](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) 設定一個閘道，在轉寄到完整 URL 之前先驗證它們。
 
 SendGrid 沒有為 Inbound Parse 提供可靠的靜態來源 IP 清單。它寄送郵件所用的 IP，以及 `mx.sendgrid.net` 解析出的位址，都不能作為 Webhook 的允許清單。請遵循 [SendGrid 的防火牆指引](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs)，而不是固定一個目前的 DNS 結果。
 
@@ -114,6 +114,8 @@ inboundEmail:
 ```
 :::
 
+`INBOUND_EMAIL_WEBHOOK_SECRET` 是必要的：只要它為空或仍是本頁中的預留位置，OneUptime 就會拒絕每一封郵件。`openssl rand -hex 32` 可以產生一個長隨機值。
+
 然後套用它們：在 Docker Compose 上執行 `npm run start`，它會用新值重新建立容器；在 Kubernetes 上則升級 Helm 發行版本。
 
 ### 建立 Incoming Email 監視器
@@ -133,7 +135,7 @@ inboundEmail:
 | --- | --- | --- | --- | --- |
 | `INBOUND_EMAIL_PROVIDER` | `inboundEmail.provider` | 傳入郵件供應商。只有 SendGrid 一種。 | 否 | `SendGrid` |
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | 為傳入郵件設定的子網域。設定之前，傳入郵件處於關閉狀態。 | 是 | 空 |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | 與 Webhook URL 最後一段 `/incoming-email/sendgrid/YOUR_SECRET` 比較的密鑰。為公開端點設定它；空值會關閉驗證。 | 建議 | 空 |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Webhook URL 最後一段 `/incoming-email/sendgrid/YOUR_SECRET` 必須與之相符的密鑰。只要它為空或是預留位置，每封郵件都會被拒絕。 | 是 | 空 |
 
 Incoming Email 監視器可以依據哪些內容進行比對——主旨、寄件者、本文、收件者，以及郵件是否準時到達——請參閱[可用的篩選器類型](/docs/monitor/incoming-email-monitor#可用的篩選器類型)。
 
@@ -149,6 +151,7 @@ Incoming Email 監視器可以依據哪些內容進行比對——主旨、寄�
 1. **檢查公開的 Webhook 路由：** 包含密鑰的完整 URL 必須能從網際網路連到 OneUptime。缺少最後一個密鑰區段的 URL 不符合該路由。
 2. **檢查防火牆規則：** 允許寄往 Webhook 路徑的 HTTPS POST 請求，不要有登入重新導向或瀏覽器驗證，也不要把 SendGrid 的郵件寄送 IP 當作 Webhook 來源允許清單。
 3. **核對 SSL 憑證：** 為 Webhook 主機名稱使用有效且受公眾信任的憑證，並包含其憑證鏈。
+4. **檢查 Webhook 密鑰：** Destination URL 必須以 `INBOUND_EMAIL_WEBHOOK_SECRET` 的值結尾。只要該變數為空或是預留位置，每封郵件都會以 `503` 被拒絕，`app` 服務的記錄會在啟動時說明這一點；寄送到以其他內容結尾的 URL 的郵件會以 `403` 被拒絕。
 :::
 
 :::details 監視器不建立警示
@@ -164,7 +167,7 @@ Incoming Email 監視器可以依據哪些內容進行比對——主旨、寄�
 ## 安全性最佳做法
 
 1. **使用 HTTPS：** Webhook 端點一律使用 HTTPS
-2. **Webhook 密鑰：** 設定 `INBOUND_EMAIL_WEBHOOK_SECRET`，並把它包含在 Webhook URL 中（例如 `/incoming-email/sendgrid/your-secret`）作為額外驗證
+2. **Webhook 密鑰：** 為 `INBOUND_EMAIL_WEBHOOK_SECRET` 使用一個只屬於你的長隨機值，放在 Webhook URL 的末尾（例如 `/incoming-email/sendgrid/your-secret`）：正是它把 SendGrid 的郵件與其他任何人的郵件區分開來
 3. **網域驗證：** 在 SendGrid 中驗證你的網域，以提高郵件安全性
 4. **限制存取：** 只為可信任的郵件來源建立監視器
 5. **監控記錄：** 定期檢查傳入郵件記錄，留意可疑活動

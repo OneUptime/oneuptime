@@ -69,6 +69,9 @@ jest.mock("../../../FeatureSet/Identity/API/Reseller", () => {
 jest.mock("../../../FeatureSet/Identity/API/MicrosoftSignIn", () => {
   return { __esModule: true, default: { coreRouter: "microsoft-sign-in" } };
 });
+jest.mock("../../../FeatureSet/Identity/API/VercelSignIn", () => {
+  return { __esModule: true, default: { coreRouter: "vercel-sign-in" } };
+});
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
@@ -355,6 +358,7 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       { coreRouter: "authentication" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
+      { coreRouter: "vercel-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
@@ -378,6 +382,7 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       { coreRouter: "authentication" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
+      { coreRouter: "vercel-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),

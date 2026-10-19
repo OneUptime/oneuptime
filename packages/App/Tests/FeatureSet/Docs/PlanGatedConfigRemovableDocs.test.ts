@@ -95,7 +95,7 @@ describe("the API reference", () => {
     );
 
     expect(keysSection).toContain(
-      "Below **Growth**, **Project Settings** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan.",
+      "Below **Growth**, **Project Settings** > **Advanced** > **API Keys** lists the keys the project still has and says they stopped, so any of them can be deleted (revoked) on every plan.",
     );
   });
 
@@ -114,7 +114,14 @@ describe("the SSO guide", () => {
 
   it("lists the providers under the upsell, with Turn off and Delete", () => {
     expect(section).toContain(
-      "below Scale, the **SSO** and **OIDC** pages list the project's providers under the upsell (**SAML providers still set up**, **OIDC providers still set up**):",
+      "below Scale, the **SSO** page lists the project's providers under the upsell (**SAML providers still set up**, **OIDC providers still set up**):",
+    );
+    /*
+     * A project has one SSO page for both kinds: no OIDC page to send to
+     * (a status page still has both).
+     */
+    expect(section).not.toContain(
+      "the **SSO** and **OIDC** pages list the project's providers",
     );
     expect(section).toContain("- **Turn off** stops a provider at once.");
     expect(section).toContain("- **Delete** removes it.");
@@ -129,9 +136,9 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("warns to let people back in first, on the SSO and OIDC pages alike", () => {
+  it("warns to let people back in first, on the project's SSO page and a status page's SSO and OIDC pages alike", () => {
     expect(section).toContain(
-      "While the project still requires SSO, its **SSO** and **OIDC** pages also show **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.",
+      "While the project still requires SSO, its **SSO** page also shows **Require SSO for Login**: turn it off before you turn the last provider off. Until then the last provider people can sign in with cannot be turned off or deleted, so nobody is locked out of the project.",
     );
     expect(section).toContain(
       "While the status page still requires SSO, both pages also show **Require SSO for Login**: turn it off before you turn its providers off, or its private users cannot sign in at all.",

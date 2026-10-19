@@ -7,6 +7,7 @@
 - [一键连接](#一键连接): 只需登录即可连接 Zoom、Google Meet 或 Microsoft Teams。
 - [提供商](#提供商): 您自己应用的服务身份、固定的会议链接或 Slack huddle。
 - [手动开始通话](#手动开始通话): 从事件或警报的页面开始。
+- [通话转录](#通话转录): 事件通话中说了什么，以及 OneUptime AI 从中读出的根本原因。
 :::
 
 ## 工作原理
@@ -63,11 +64,13 @@ flowchart TB
 
 | 提供商 | 用于登录的账户 | OneUptime 可以做什么 |
 | --- | --- | --- |
-| Zoom | 一个 Zoom 用户。由 Basic（免费）用户主持的会议会在 40 分钟后结束。 | 为该用户创建会议（ `meeting:write:meeting` ）并读取其身份（ `user:read:user` ）。 |
+| Zoom | 一个 Zoom 用户。由 Basic（免费）用户主持的会议会在 40 分钟后结束。 | 为该用户创建会议（ `meeting:write:meeting` ）并读取其身份（ `user:read:user` ）。为了 [通话转录](#通话转录)，读取其会议云录制的转录（ `cloud_recording:read:list_recording_files`、 `cloud_recording:read:meeting_transcript` ）。 |
 | Google Meet | 一个可以使用 Google Meet 的 Google 账户。 | 以该账户创建 Meet 空间（ `meetings.space.created` ）并读取其电子邮件地址。 |
 | Microsoft Teams | 一个拥有 Microsoft Teams 的工作或学校账户。个人 Microsoft 账户无法创建 Teams 会议。 | 以该账户创建在线会议（委托权限 `OnlineMeetings.ReadWrite` ）并保持登录（ `offline_access` ）。 |
 
 通过登录建立的连接仍然有决定谁需要等待的设置：Google Meet 的 **Who can join** 和 Microsoft Teams 的 **Who skips the lobby**。在连接所在行使用 **编辑** 更改它们。
+
+在 OneUptime 读取通话转录之前登录的 Zoom 连接会像以前一样开始通话，但在重新登录之前无法读取通话的转录：其所在行的 **Reconnect** 会向 Zoom 请求转录权限。
 
 ### 保持登录
 
@@ -97,6 +100,54 @@ OneUptime 会加密保存登录的刷新令牌，并至少每周刷新一次，�
 
 开始和移除通话需要处理事件（或警报）的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 或 **Incident Member**，或自定义角色中的 **Create Incident Video Call** 和 **Delete Incident Video Call**。能读取该事件的每个人都能看到它的通话。
 
+## 通话转录
+
+响应者在通话中说的话，他们检查了什么、怀疑什么、决定了什么，是事件如何处理的最好记录，而通话一结束它就没了。事件的通话会保留其转录，OneUptime AI 会读取它，找出通话所指向的根本原因。在响应者采用之前，它读出的任何内容都不会进入事件。
+
+:::steps
+### 通话结束后获取转录
+
+在事件的 **Video Call** 卡片上， **从 Zoom 获取** 或 **从 Google Meet 获取** 会读取 OneUptime 在那里开始的会议的转录。对于其他任何通话， **添加转录** 接受会议工具保存的文件（ `.vtt`、 `.srt` 或 `.txt`，最大 5 MB），或粘贴的转录。如果 [每次通话都录制并转录](#录制并转录每次通话)，OneUptime 会在通话结束后自行获取转录。
+
+### OneUptime AI 读取它
+
+一两分钟内，事件的 **AI Investigation** 卡片会显示 **建议的根本原因** ，标记为 **未确认** ，并附上它所依据的转录行，引用时带有时间和发言人。下面折叠着通话中说过的其余内容：发现（分为 **已在通话中确认** 和 **假设** 两个列表），然后是尝试过的操作、决定、后续事项和待解决的问题。它读到的内容也会发布到事件的动态中，再从那里发布到事件的 Slack 和 Microsoft Teams 频道。
+
+### 采用或驳回
+
+**用作根本原因** 会在根本原因的编辑器中打开该建议，连同引用一起。修改需要的内容后保存：它会作为您自己的编辑成为事件的根本原因，并记录在其动态中。 **关闭** 会把建议搁置， **撤销** 会把它恢复。
+:::
+
+只有当通话中指出了原因时，OneUptime AI 才会提出原因，并附上说出它的那些行，且按转录中的原样引用这些行。如果通话没有确定原因，卡片会显示 **通话中讨论的内容不足以提出根本原因** ，而不是猜测。
+
+### 录制并转录每次通话
+
+为了让任何人都不必记着录制通话或获取转录，请在 **项目设置** > **工作区** > **Video Calls** 中开启 **录制并转录事件通话**。开启期间：
+
+- 对于 OneUptime 开始的每个事件会议，它都会请求 Zoom 将会议录制到云端，并请求 Google Meet 进行转录。发布该通话的消息会在任何人加入之前说明这一点。
+- 通话结束后，OneUptime 会像 **从 Zoom 获取** 那样自行获取转录，然后由 OneUptime AI 读取。在此之前， **Video Call** 卡片会显示正在等待。
+- OneUptime AI 读到的内容会发送到事件的动态及其 Slack 和 Microsoft Teams 频道：标记为未确认的建议根本原因，然后是已确认、已尝试和已决定的内容、后续事项以及待解决的问题。
+- 如果事件在转录到达之前就已解决，自动事后分析草稿会等待转录，以便读取通话中说过的内容：在 Zoom 或 Google Meet 准备转录期间最多等待六小时，如果还没有任何转录的迹象，则等待一小时。
+
+此功能默认关闭，因为它会录制人员：这些通话中的每个人都会看到自己正在被录制或转录，因此请确认您的组织允许这样做。只有当账户在开启音频转录的情况下录制到云端时，Zoom 才会保留转录；Google Meet 也只在支持转录的 Google Workspace 版本上保留转录。Microsoft Teams 通话、Slack huddle 和会议链接不会被录制，警报的通话也不会：请手动添加它们的转录。
+
+### 各提供商保留的内容
+
+| 通话 | 如何获得转录 | 需要什么 |
+| --- | --- | --- |
+| Zoom | **从 Zoom 获取** | 会议录制到云端且开启了音频转录，或开启了 AI Companion 的会议摘要。连接需要转录的权限范围（参见 [Zoom](#zoom)），在此之前登录的连接需要 **Reconnect** 。Zoom 会在会议结束后准备转录，通常在会议时长的两倍以内完成。 |
+| Google Meet | **从 Google Meet 获取** | 通话中开启的转录，所用的 Google Workspace 版本需支持转录。无需其他设置：OneUptime 会读取它所创建会议的转录。Google 会将转录保留 30 天供应用读取。 |
+| Microsoft Teams | **添加转录** | Microsoft 不允许任何应用读取以 OneUptime 的方式创建的会议的转录。在 Teams 中，打开会议的回顾，再打开其转录，并将其下载为 `.vtt` 文件。 |
+| 会议链接或 Slack huddle | **添加转录** | 会议工具或 huddle 笔记中保存的转录。 |
+
+### 谁可以做什么
+
+获取、添加、替换和删除转录，让它重新被读取，以及驳回建议，都需要开始事件通话的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 或 **Incident Member**，或自定义角色中的 **Create Incident Video Call**。 **用作根本原因** 需要编辑事件根本原因的权限。能读取该事件的每个人都能看到其通话的转录，以及 OneUptime AI 从中读取的内容。
+
+### OneUptime AI 读取什么
+
+读取转录和调查一样是 AI 工作：只在项目开启 AI 时运行，并计入项目的 AI 用量和每日限额（参见 [成本控制](/docs/ai/ai-sre#成本控制)）。较长的转录会分段读取。关闭 AI 时，转录会保留，卡片会说明它未被读取。删除转录会删除 OneUptime AI 从中读取的内容，并保留事件的根本原因。AI 生成的事后分析草稿也会读取事件通话中说过的内容（参见 [事后分析](/docs/incidents/postmortems)）。
+
 ## 提供商
 
 本节介绍如何使用您自己应用的服务身份连接提供商：Zoom 的 Server-to-Server OAuth 应用、Google 服务账号、Microsoft Entra 应用注册。服务身份从不依赖于某个人，因此无论谁离职都能继续工作。若要改为通过登录连接，请参阅 [一键连接](#一键连接)。
@@ -113,7 +164,7 @@ OneUptime 通过 Zoom **Server-to-Server OAuth** 应用为每个事件创建 Zoo
 
 :::steps
 1. 在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，选择 **Develop** > **Build App**，创建一个 **Server-to-Server OAuth** 应用。创建它需要 Zoom 账户管理员，或允许 Server-to-Server OAuth 应用的角色。
-2. 在应用的 **Scopes** 页面，添加 **meeting:write:meeting:admin** （为用户创建会议）。在细粒度权限范围出现之前创建的应用可以改用 **meeting:write:admin**。
+2. 在应用的 **Scopes** 页面，添加 **meeting:write:meeting:admin** （为用户创建会议）。在细粒度权限范围出现之前创建的应用可以改用 **meeting:write:admin**。要让 OneUptime 也读取 [通话转录](#通话转录)，请添加 **cloud_recording:read:list_recording_files:admin** 和 **cloud_recording:read:meeting_transcript:admin** （在细粒度权限范围出现之前创建的应用使用 **recording:read:admin** ）。
 3. 点击 **Activate** 激活应用，然后将其 **App Credentials** 页面上的 **Account ID**、 **Client ID** 和 **Client secret** 复制到连接表单中。
 4. 填写 **Meeting host**：一个已授权 Zoom 用户的电子邮件，最好是 incidents@example.com 之类的服务账户，这样有人离职后会议仍能正常进行。由 Basic（免费）用户主持的会议会在 40 分钟后结束。
 5. 由于主持人是一个永远不会加入的服务账户，响应人员无需等待主持人即可加入。请确保您 Zoom 账户的 **Waiting room** 设置没有被锁定为开启，否则谁都无法进入。
@@ -215,7 +266,7 @@ OneUptime Cloud 拥有自己的 Zoom、Google 和 Microsoft 应用，用于一�
 | Google Meet | `https://<host>/api/video-call-oauth/google-meet/callback` | `GOOGLE_MEET_APP_CLIENT_ID`, `GOOGLE_MEET_APP_CLIENT_SECRET` | `googleMeetApp.clientId`, `googleMeetApp.clientSecret` |
 | Microsoft Teams | `https://<host>/api/video-call-oauth/microsoft-teams/callback` | `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET` | `microsoftTeamsMeetingsApp.clientId`, `microsoftTeamsMeetingsApp.clientSecret` |
 
-- **Zoom**：在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，选择 **Develop** > **Build App**，创建一个由用户管理的 **General App**。在 **Basic Information** 下，将重定向 URI 作为 OAuth Redirect URL 添加到 **Development** 和 **Production** 两个标签页以及 OAuth 允许列表中，并在 **Production** 标签页上将 **Deauthorization Notification** 端点 URL 设置为 `https://<host>/api/video-call-oauth/zoom/events`。在 **Scopes** 下添加 `meeting:write:meeting` 和 `user:read:user`。 **Features** > **Access** 下的 **Secret Token** 就是 `ZOOM_APP_WEBHOOK_SECRET_TOKEN`。 **Development** 凭据仅适用于您自己 Zoom 账户中的用户； **Production** 凭据在 Zoom 审核并发布应用后对所有人有效。
+- **Zoom**：在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，选择 **Develop** > **Build App**，创建一个由用户管理的 **General App**。在 **Basic Information** 下，将重定向 URI 作为 OAuth Redirect URL 添加到 **Development** 和 **Production** 两个标签页以及 OAuth 允许列表中，并在 **Production** 标签页上将 **Deauthorization Notification** 端点 URL 设置为 `https://<host>/api/video-call-oauth/zoom/events`。在 **Scopes** 下添加 `meeting:write:meeting` 和 `user:read:user`。要让它读取 [通话转录](#通话转录)，还需添加 `cloud_recording:read:list_recording_files` 和 `cloud_recording:read:meeting_transcript`。 **Features** > **Access** 下的 **Secret Token** 就是 `ZOOM_APP_WEBHOOK_SECRET_TOKEN`。 **Development** 凭据仅适用于您自己 Zoom 账户中的用户； **Production** 凭据在 Zoom 审核并发布应用后对所有人有效。
 - **Google Meet**：在 [Google Cloud 控制台](https://console.cloud.google.com/) 中启用 **Google Meet REST API**，使用权限范围 `openid`、 `email` 和 `https://www.googleapis.com/auth/meetings.space.created` 配置 OAuth 同意屏幕（ **Google Auth Platform** ），并使用重定向 URI 创建一个 **Web application** 类型的 OAuth 客户端。将应用发布到生产环境：停留在测试状态的应用会在七天后失去其登录。Google 会审核请求 Meet 权限范围的应用；在审核完成之前，用户在登录前会看到一条警告。
 - **Microsoft Teams**：在 [Microsoft Entra 管理中心](https://entra.microsoft.com/) 中，为 **Accounts in any organizational directory** 注册一个应用，将重定向 URI 添加为 **Web** 重定向 URI，添加 Microsoft Graph 委托权限 `openid`、 `profile`、 `email`、 `offline_access` 和 `OnlineMeetings.ReadWrite`，并创建一个客户端密码。请使用单独的注册，而不是 Microsoft Teams 机器人的注册（ `MICROSOFT_TEAMS_APP_CLIENT_ID` ）。在应用拥有经过验证的发布者之前，大多数组织都需要管理员对其表示同意。
 
@@ -237,6 +288,18 @@ OneUptime Cloud 拥有自己的 Zoom、Google 和 Microsoft 应用，用于一�
 
 :::details 有人在大厅或等候室中等待
 在连接所在行使用 **编辑** 更改 **Who can join** （Google Meet）或 **Who skips the lobby** （Microsoft Teams）。对于 Zoom，请确保账户的 **Waiting room** 设置没有被锁定为开启。
+:::
+
+:::details 从 Zoom 获取找不到转录
+Zoom 只会为录制到云端且开启了音频转录的会议，或开启了 AI Companion 会议摘要的会议保留转录，并在会议结束后准备它。卡片会说明是哪种情况：稍后再试，或为您的事件会议开启其中一项。在此期间， **添加转录** 可以接受您保存的转录。
+:::
+
+:::details Video Call 卡片仍在等待转录
+通话结束后，OneUptime 每隔几分钟向 Zoom 或 Google Meet 请求一次转录，通话结束越久，请求间隔越长，并持续到通话开始后三天。提供商准备好转录后，转录会在几分钟内到达，而 Zoom 最多需要大约通话时长两倍的时间来准备。 **从 Zoom 获取** 会立即请求。如果提供商没有保留转录，卡片会说明这一点：请检查 Zoom 账户是否在开启音频转录的情况下录制到云端，或者您的 Google Workspace 版本是否支持转录。
+:::
+
+:::details OneUptime AI 无法读取转录
+卡片会说明原因：项目已关闭 AI、项目已达到每日 AI 限额，或 AI 提供商拒绝了请求。解决后，卡片上的 **重试** 会重新读取它。
 :::
 
 ## 后续步骤

@@ -99,7 +99,7 @@ Every action Ask AI takes is made as you: it makes the change the dashboard make
 - **The Growth plan, on OneUptime Cloud.** A project on a lower plan sees that AI is not included in its plan, with a link to **Project Settings → Billing and Invoices → Billing**.
 - **AI turned on for the project.** **Enable AI**, on **Project Settings → AI → AI Features**, turns every AI feature of the project off, Ask AI included. It is on unless someone turned it off.
 
-Ask AI counts toward the project's own daily AI limits when the project sets them (Project Settings → AI Features → More settings): once one is reached, Ask AI shows a sentence saying which limit was reached, that OneUptime AI starts again at midnight UTC, and who can raise or remove the limit. The project's owners are emailed the first time a limit is reached each day. The incident and alert daily limits never stop Ask AI. See [the project's own daily limits](/docs/ai/ai-sre#the-projects-own-daily-limits).
+Ask AI counts toward the project's own daily AI limits when the project sets them (Project Settings → AI → AI Features → More settings): once one is reached, Ask AI shows a sentence saying which limit was reached, that OneUptime AI starts again at midnight UTC, and who can raise or remove the limit. The project's owners are emailed the first time a limit is reached each day. The incident and alert daily limits never stop Ask AI. See [the project's own daily limits](/docs/ai/ai-sre#the-projects-own-daily-limits).
 
 ## Troubleshooting
 

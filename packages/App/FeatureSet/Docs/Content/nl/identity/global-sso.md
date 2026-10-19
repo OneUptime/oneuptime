@@ -71,13 +71,13 @@ Hoe een globale provider zich gedraagt, hangt ervan af of u er projecten aan kop
 
 ```mermaid title="Wat een globale provider bij het aanmelden doet"
 flowchart TB
-    S["Iemand meldt zich aan"] --> A{"Projecten gekoppeld?"}
+    S["Iemand meldt<br/>zich aan"] --> A{"Projecten<br/>gekoppeld?"}
     A -->|"Nee"| K{"Heeft een account?"}
-    K -->|"Nee"| R["Geweigerd: eerst uitnodigen"]
-    K -->|"Ja"| E["Aangemeld in de eigen projecten"]
-    A -->|"Ja"| D{"Nieuw, met registratie<br/>uitgeschakeld?"}
+    K -->|"Nee"| R["Geweigerd:<br/>eerst uitnodigen"]
+    K -->|"Ja"| E["Aangemeld in de<br/>eigen projecten"]
+    A -->|"Ja"| D{"Nieuw, met<br/>registratie<br/>uitgeschakeld?"}
     D -->|"Ja"| R
-    D -->|"Nee"| P["Toegevoegd aan gekoppelde projecten<br/>waar hij nog niet in zit"]
+    D -->|"Nee"| P["Toegevoegd<br/>aan gekoppelde<br/>projecten<br/>waar hij nog<br/>niet in zit"]
     P --> E
 ```
 
@@ -87,12 +87,14 @@ flowchart TB
 
 Wie al lid is van een gekoppeld project, houdt daar zijn teams.
 
-Twee schakelaars op de provider veranderen dit. Beide staan eerst uit, ingeklapt onder **Meer velden**:
+Twee vragen op de provider veranderen dit, ingeklapt onder **Meer velden**. Elke vraag begint bij het eerste antwoord:
 
-| Schakelaar | Wat hij doet als hij aanstaat |
+| Vraag | Antwoorden |
 | --- | --- |
-| **Disable Sign Up with SSO** | Mensen moeten voor een project zijn uitgenodigd voordat ze zich met deze provider kunnen aanmelden, ook als er projecten zijn gekoppeld. Bij de eerste aanmelding wordt niemand nieuw aangemaakt. |
-| **Restrict to Attached Projects** | Aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. Staat hij uit, dan voldoet het in elk project waar de persoon bij hoort, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd. |
+| **Mensen zonder account** | **Krijgen er een bij hun eerste aanmelding**: ze worden lid van de gekoppelde projecten; is er geen gekoppeld, dan moeten ze eerst worden uitgenodigd. **Moeten eerst worden uitgenodigd**: mensen moeten voor een project zijn uitgenodigd voordat ze zich met deze provider kunnen aanmelden, ook als er projecten zijn gekoppeld. |
+| **Waar deze aanmelding als SSO telt** | **Elk project**: projecten die SSO vereisen, accepteren een aanmelding met deze provider. **Alleen gekoppelde projecten**: aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. |
+
+Met **Elk project** voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd.
 
 ## SSO afdwingen
 
@@ -134,11 +136,11 @@ Twee wijzigingen in wie zich kan aanmelden, worden na elkaar gecontroleerd. Word
 ## Problemen oplossen
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-De persoon heeft nog geen OneUptime-account en de provider maakt er geen aan: er zijn geen projecten aan gekoppeld, of **Disable Sign Up with SSO** staat aan. Nodig de persoon uit voor een project of koppel een project aan de provider.
+De persoon heeft nog geen OneUptime-account en de provider maakt er geen aan: er zijn geen projecten aan gekoppeld, of **Mensen zonder account** staat op **Moeten eerst worden uitgenodigd**. Nodig de persoon uit voor een project of koppel een project aan de provider.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** staat aan en de persoon is geen lid van een project dat aan de provider is gekoppeld. Koppel een van de projecten van de persoon, of voeg de persoon toe aan een gekoppeld project.
+**Waar deze aanmelding als SSO telt** staat op **Alleen gekoppelde projecten** en de persoon is geen lid van een project dat aan de provider is gekoppeld. Koppel een van de projecten van de persoon, of voeg de persoon toe aan een gekoppeld project.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"
@@ -147,6 +149,14 @@ De persoon heeft een account, maar hoort bij geen enkel project, en de provider 
 
 :::details "Issuer URL does not match"
 Bij een SAML-provider is de issuer in het antwoord van uw identiteitsprovider niet de **Issuer** die op de provider is opgeslagen. Kopieer hem opnieuw uit uw identiteitsprovider; beide moeten exact overeenkomen.
+:::
+
+:::details "SAML Audience does not match"
+Bij een SAML-provider is het antwoord voor een andere applicatie gemaakt: de audience ervan is niet de **Issuer (Entity ID)** van de provider. Stel in uw identiteitsprovider de entity ID van de applicatie in op de **Issuer (Entity ID)** op de pagina van de provider. "SAML Recipient does not match" en "SAML Destination does not match" betekenen hetzelfde voor de reply URL ervan: stel die in op de **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Met elk antwoord van uw identiteitsprovider wordt maar één keer aangemeld, en alleen in de minuten nadat het is uitgegeven: daarna wordt het geweigerd met "SAML response has expired". Meld u opnieuw aan. Verlopen antwoorden steeds weer, controleer dan de klokken van deze server en van uw identiteitsprovider.
 :::
 
 ## Volgende stappen

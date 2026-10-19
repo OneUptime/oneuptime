@@ -25,8 +25,10 @@ Wijzigingen worden automatisch opgeslagen. Een label in de werkbalk houdt het bi
 
 | Om toe te voegen       | Klik op                                                        | Paneel dat opent              |
 | ---------------------- | -------------------------------------------------------------- | ----------------------------- |
-| De trigger             | Het gestippelde plaatshouderblok                               | **Add Trigger**               |
+| De trigger             | Het gestippelde plaatshouderblok, of **Trigger toevoegen** in de werkbalk | **Trigger toevoegen**         |
 | Elk ander blok         | **Component toevoegen**, in de werkbalk boven het canvas       | **Component toevoegen**       |
+
+De knop in de werkbalk heet **Trigger toevoegen** zolang de workflow geen trigger heeft, en **Component toevoegen** zodra hij er een heeft.
 
 Beide panelen openen op de blokken die de meeste workflows gebruiken, onder **Popular**, gevolgd door de andere ingebouwde blokken. Klik onder **OneUptime resources** op een resource zoals **Incident** om te zien wat je ermee kunt doen; **Browse all resources** toont ze allemaal. Of zoek: typ een paar woorden, zoals `create incident`, en de beste overeenkomst staat bovenaan. Druk op `/` om naar het zoekveld te springen, op de pijltjestoetsen om door de resultaten te gaan en op **Enter** om het gemarkeerde blok toe te voegen. Klikken op een blok voegt het toe.
 
@@ -55,7 +57,7 @@ Sleep van een punt onderaan het ene blok naar het punt bovenaan het volgende. De
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Niets aangesloten, dus de uitvoering eindigt"])
+    check -->|"No"| ends(["Niets aangesloten, dus<br/>de uitvoering eindigt"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```
@@ -127,7 +129,7 @@ Eén ding kan hij niet controleren: of een variabelenaam bestaat. De instellinge
 De snelste manier om het canvas te leren kennen is een workflow van twee blokken die je handmatig start:
 
 :::steps
-1. Klik op het gestippelde plaatshouderblok en daarna op **Manual** in het paneel **Add Trigger**.
+1. Klik op het gestippelde plaatshouderblok en daarna op **Manual** in het paneel **Trigger toevoegen**.
 2. Klik op **Component toevoegen** en daarna op **Logboek** onder **Popular**. Het nieuwe blok komt onder de trigger terecht. Verbind het punt **Execute** van de trigger met het invoerpunt van het Log-blok eronder.
 3. Klik op het Log-blok, waarop **Click to set up** staat, en typ `Hello from ` in de **Value** ervan. Klik op **{ }** en daarna op **JSON** onder **Manual**. De instelling toont **Manual › JSON** en slaat `{{local.components.manual-1.returnValues.value}}` op. `manual-1` is de **Identifier** van de trigger, die op het triggerblok staat. Klik op **Opslaan**.
 4. Klik terug in de **Bouwer** op **Workflow uitvoeren**, zet `{ "name": "Ada" }` in het veld **JSON**, klik op **Workflow handmatig uitvoeren** en bevestig met **Uitvoeren**. De workflow staat nog uit, en hij hoeft niet aan te staan: een uitvoering die je zelf start, is een **Testrun**.

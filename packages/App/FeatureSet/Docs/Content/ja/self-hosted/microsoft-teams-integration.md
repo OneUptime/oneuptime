@@ -17,18 +17,18 @@ OneUptime は Teams 統合に Azure Bot を使います。通信は双方向で�
 
 ```mermaid title="プロジェクトを Teams に接続して使う"
 sequenceDiagram
-    participant B as 管理者のブラウザー
+    participant B as 管理者の<br/>ブラウザー
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: 管理者の同意を付与
-    O-->>B: Microsoft へのリダイレクト
-    B->>E: 同意してからサインイン
-    E-->>B: 管理者の同意のコールバックへのリダイレクト
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: 管理者の<br/>同意を付与
+    O-->>B: Microsoft<br/>へのリダイレクト
+    B->>E: 同意してから<br/>サインイン
+    E-->>B: 管理者の同意の<br/>コールバックへ<br/>のリダイレクト
     B->>O: コールバック
-    O->>E: Microsoft Graph トークンを取得
+    O->>E: Microsoft Graph<br/>トークンを取得
     Note over O,AB: 接続後
-    O->>AB: アラートカードを投稿 (送信 HTTPS)
+    O->>AB: アラートカードを<br/>投稿<br/>(送信 HTTPS)
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -218,7 +218,7 @@ Microsoft は [セルフホストのボットに公開されたアクセス可�
 ### プライベートなデプロイからボットのエンドポイントを公開する
 
 ```mermaid title="プライベートなデプロイからボットのエンドポイントを公開する"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["公開ゲートウェイ"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime の ingress"]
     Users["VPN 上の従業員"] --> ING

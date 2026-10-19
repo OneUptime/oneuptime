@@ -13,15 +13,15 @@ Un **agente di runbook**, chiamato **Runner** nella dashboard, è un piccolo pro
 
 ```mermaid title="Cosa passa sulla rete tra un Runner e OneUptime"
 flowchart TB
-    subgraph yours["La tua infrastruttura"]
-        direction LR
-        runner["Container del Runner"]
-        targets["Host, cluster, servizi interni"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Il Worker mette in coda il passaggio"]
         ingest["API dei Runner"]
+    end
+    subgraph yours["La tua infrastruttura"]
+        direction LR
+        runner["Container del Runner"]
+        targets["Host, cluster, servizi interni"]
     end
     worker --> ingest
     runner -->|"HTTPS in uscita, ID e chiave del Runner"| ingest
@@ -133,10 +133,10 @@ A ogni passaggio eseguito su un Runner si applicano due timeout:
 
 | Timeout | Predefinito | Cosa controlla |
 | --- | --- | --- |
-| **Claim timeout** | 2 minuti | Quanto il Worker attende che il Runner scelto prenda in carico il lavoro. Se il Runner non lo prende in tempo, il passaggio fallisce per timeout e il runbook prosegue (o si ferma, a seconda di **Continua in caso di errore**). |
-| **Execution timeout** | 30 secondi | Quanto il Runner lascia girare il passaggio prima di fermarlo. Bash riceve `SIGKILL`; la sandbox di JavaScript viene distrutta. |
+| **Timeout di presa in carico** | 2 minuti | Quanto il Worker attende che il Runner scelto prenda in carico il lavoro. Se il Runner non lo prende in tempo, il passaggio fallisce per timeout e il runbook prosegue (o si ferma, a seconda di **Continua in caso di errore**). |
+| **Timeout di esecuzione** | 30 secondi | Quanto il Runner lascia girare il passaggio prima di fermarlo. Bash riceve `SIGKILL`; la sandbox di JavaScript viene distrutta. |
 
-Entrambi sono configurabili per passaggio. Apri **Runbook › il tuo runbook › Passaggi**, espandi il passaggio e imposta **Execution timeout** e **Claim timeout** (in secondi) nelle sue impostazioni. Lascia un campo vuoto per usare il valore predefinito. Ognuno accetta da 1 secondo a 1 ora; i valori fuori da questo intervallo vengono riportati nei limiti quando il passaggio viene eseguito.
+Entrambi sono configurabili per passaggio. Apri **Runbook › il tuo runbook › Passaggi**, espandi il passaggio e imposta **Timeout di esecuzione** e **Timeout di presa in carico** (in secondi) nelle sue impostazioni. Lascia un campo vuoto per usare il valore predefinito. Ognuno accetta da 1 secondo a 1 ora; i valori fuori da questo intervallo vengono riportati nei limiti quando il passaggio viene eseguito.
 
 La finestra di attesa complessiva del Worker è `claim timeout + execution timeout + a few seconds`. Scegli valori adatti al passaggio.
 

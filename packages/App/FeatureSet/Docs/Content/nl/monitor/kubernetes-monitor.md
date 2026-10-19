@@ -14,7 +14,7 @@ Een Kubernetes-monitor waarschuwt op de metrieken die de OneUptime-Kubernetes-ag
 De agent stuurt de metrieken van het cluster via OTLP naar OneUptime, elk voorzien van de naam van het cluster (`k8s.cluster.name`, de `clusterName` van de chart). De eerste gegevens onder een nieuwe naam registreren het cluster onder **Kubernetes**, en vanaf dan kan het cluster in een Kubernetes-monitor worden gekozen. Elke minuut bevraagt de monitor die metrieken over zijn **Tijdsbereik**, aggregeert ze en vergelijkt het resultaat met zijn criteria.
 
 ```mermaid title="Van clustermetrieken naar een incident"
-flowchart LR
+flowchart TB
     agent["Kubernetes-agent"] -->|"OTLP-metrieken"| metrics["Clustermetrieken"]
     metrics --> monitor["Kubernetes-monitor"]
     monitor -->|"Criteria voldaan"| incident["Waarschuwing of incident"]
@@ -107,7 +107,7 @@ Deze monitors evalueren altijd de **Metric Value** – de waarde van de geconfig
 | Som | Som van alle waarden |
 | Maximum Value | Hoogste waarde in het tijdvenster |
 | Minimum Value | Laagste waarde in het tijdvenster |
-| All Values | Alle waarden moeten aan het criterium voldoen |
+| All Values | Alle waarden moeten aan het criterium voldoen en het hele tijdvenster dekken |
 | Any Value | Ten minste één waarde moet overeenkomen |
 
 ### Voorwaarden

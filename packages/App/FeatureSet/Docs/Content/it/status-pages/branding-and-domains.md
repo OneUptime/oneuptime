@@ -3,7 +3,7 @@
 La vostra pagina di stato è l'unica schermata di OneUptime che guardano i vostri clienti, quindi dovrebbe somigliarvi e stare sul vostro dominio, come `status.yourcompany.com`. Questa pagina percorre la pagina **Branding** scheda per scheda, poi porta la pagina di stato sul vostro dominio: aggiungete il dominio, aggiungete un record DNS e il certificato SSL gratuito arriva da solo.
 
 :::cards
-- [La pagina Branding](#la-pagina-branding): Logo, titolo, favicon, link, footer, colori e lingue.
+- [La pagina Branding](#la-pagina-branding): Logo, tema, titolo, favicon, link, footer, colori e lingue.
 - [HTML, CSS e JavaScript personalizzati](#html-css-e-javascript-personalizzati): Tutto ciò che le impostazioni integrate non coprono.
 - [Domini personalizzati](#domini-personalizzati): Il vostro nome host, con un certificato gratuito.
 - [La colonna Stato](#leggere-la-colonna-stato-del-dominio): A che punto è ogni dominio sulla strada verso HTTPS.
@@ -15,7 +15,7 @@ Aprite una pagina di stato: la sezione **Branding** del suo menu laterale ha tre
 
 | Pagina | Cosa impostate lì |
 | ---- | ------------------ |
-| **Branding** | Logo e immagine di copertina, titolo e descrizione della pagina, favicon, link dell'intestazione, descrizione della pagina panoramica, riga del copyright e link del footer. Chiusi in **Altre impostazioni**: i colori del grafico della cronologia, le lingue e l'indicizzazione nei motori di ricerca. |
+| **Branding** | Logo e immagine di copertina, il tema (chiaro, scuro o come è impostato il dispositivo di ogni visitatore), titolo e descrizione della pagina, favicon, link dell'intestazione, descrizione della pagina panoramica, riga del copyright e link del footer. Chiusi in **Altre impostazioni**: i colori del grafico della cronologia, le lingue e l'indicizzazione nei motori di ricerca. |
 | **Domini personalizzati** | Il vostro dominio, il suo record DNS e il suo certificato SSL gratuito. |
 | **HTML, CSS e JavaScript** | HTML dell'intestazione, HTML del footer, CSS personalizzato, JavaScript personalizzato. |
 
@@ -25,7 +25,7 @@ Il branding era un tempo diviso tra schermate separate **Branding essenziale**, 
 
 ## La pagina Branding
 
-**Pagine di stato → la vostra pagina → Branding → Branding** (`{id}/branding`). Ogni scheda si salva per conto proprio. Dopo il logo, il titolo e la favicon, le schede seguono la vostra pagina di stato dall'alto in basso: i link dell'intestazione, il testo in cima alla panoramica, poi il footer. Quello che pochi cambiano è chiuso in **Altre impostazioni**, in fondo.
+**Pagine di stato → la vostra pagina → Branding → Branding** (`{id}/branding`). Ogni scheda si salva per conto proprio. Dopo il logo, il tema, il titolo e la favicon, le schede seguono la vostra pagina di stato dall'alto in basso: i link dell'intestazione, il testo in cima alla panoramica, poi il footer. Quello che pochi cambiano è chiuso in **Altre impostazioni**, in fondo.
 
 ### Logo e immagine di copertina
 
@@ -40,14 +40,32 @@ Il logo, l'immagine di copertina e la favicon sono file caricati nel progetto st
 
 La vostra pagina di stato mostra solo immagini del proprio progetto; un'immagine che non può mostrare viene omessa, come se la pagina non ne avesse. La dashboard, l'API e Terraform leggono le immagini della pagina allo stesso modo: un'immagine di un altro progetto torna come nessuna immagine. Le email che la pagina invia (agli iscritti, e agli utenti privati riguardo al loro accesso) mostrano il suo logo allo stesso modo: un logo che la pagina non può mostrare viene omesso anche da esse, invece di comparire come immagine rotta.
 
+### Tema
+
+La scheda **Tema**, subito sotto il logo, decide come appare la pagina ai suoi visitatori. Scegliete una delle sue tre opzioni e viene salvata subito; non c'è un pulsante **Modifica**.
+
+| Opzione | Cosa vedono i visitatori |
+| ------ | ----------------- |
+| **Chiaro** | La pagina chiara, comunque sia impostato il loro dispositivo. Le pagine di stato create prima che l'impostazione esistesse sono su **Chiaro**, quindi hanno l'aspetto di sempre. |
+| **Scuro** | La pagina scura, comunque sia impostato il loro dispositivo. |
+| **Come il dispositivo di ogni visitatore** | Chiara o scura, come è impostato il loro dispositivo, e cambia con esso mentre la pagina è aperta. Un pulsante con il sole o la luna nel footer della pagina permette al visitatore di cambiarla, e il suo browser ricorda la scelta. |
+
+Sulla pagina scura il logo poggia su uno sfondo chiaro, così anche un logo pensato per una pagina bianca resta ben visibile.
+
+Una pagina di stato creata da ora in poi parte con **Come il dispositivo di ogni visitatore**. Tramite l'API e Terraform il campo è `theme`, con uno dei valori `Light`, `Dark` o `System` (**Come il dispositivo di ogni visitatore**), scritti esattamente così; qualsiasi altro valore viene rifiutato. Una configurazione Terraform che non imposta alcun `theme` riceve `Light`, quindi una configurazione scritta prima dell'impostazione non pianifica mai una modifica a una pagina che gestisce.
+
+Il tema è nell'HTML della pagina, quindi la pagina viene disegnata con esso fin dall'inizio: una pagina scura non lampeggia di bianco durante il caricamento, e il browser adegua le sue barre di scorrimento, i campi dei moduli e, sui telefoni, la barra degli indirizzi. Ogni parte della pagina lo segue, compresa la pagina di accesso di una pagina di stato privata. Le barre di uptime mantengono i colori che avete scelto. Sulla pagina scura, il testo in un colore di stato prende una tonalità più chiara di quel colore dove il colore stesso sarebbe difficile da leggere, e una barra troppo scura per essere vista riceve un bordo più chiaro.
+
+Il vostro CSS e il vostro HTML personalizzati si applicano in entrambi i temi; [HTML, CSS e JavaScript personalizzati](#html-css-e-javascript-personalizzati) spiega come dare stile a quello scuro.
+
 ### Titolo, descrizione e favicon
 
-- **Titolo e descrizione**: la scheda indica che viene usato anche per la SEO. **Modifica** apre **Titolo della pagina** (segnaposto `Please enter page title here.`) e **Descrizione della pagina**. Motori di ricerca e anteprime dei link li mostrano, quindi scriveteli per un cliente, non per il vostro team.
+- **Titolo e descrizione**: il nome della pagina nella scheda del browser e nelle email agli iscritti, e la descrizione che mostrano i motori di ricerca. **Modifica** apre **Titolo della pagina** (segnaposto `e.g., Acme Status`) e **Descrizione della pagina**. Motori di ricerca e anteprime dei link li mostrano, quindi scriveteli per un cliente, non per il vostro team.
 - **Favicon**: **Edit Favicon** apre il caricamento **Favicon**: la piccola icona nella scheda del browser.
 
 ### Link dell'intestazione
 
-La tabella **Link intestazione** contiene i link nell'intestazione della pagina di stato, come il vostro sito, la vostra documentazione o un portale di supporto. Ogni link ha un **Titolo** e un **Collegamento** (un URL, segnaposto `https://link.com`), e li riordinate trascinandoli. Senza link, la tabella dice **Nessun link nell'intestazione per questa pagina di stato**, con **Crea: Pagina di stato Intestazione Link** sotto.
+La tabella **Link intestazione** contiene i link nell'intestazione della pagina di stato, come il vostro sito, la vostra documentazione o un portale di supporto. Ogni link ha un **Titolo** e un **Collegamento** (un URL, segnaposto `https://link.com`), e li riordinate trascinandoli. Senza link, la tabella dice a cosa servono, con **Aggiungi: Link intestazione** sotto.
 
 ### Descrizione della pagina panoramica
 
@@ -56,7 +74,7 @@ La tabella **Link intestazione** contiene i link nell'intestazione della pagina 
 ### Footer
 
 - **Informazioni sul copyright**: **Edit Copyright** apre un campo, **Informazioni sul copyright**, con il segnaposto `Acme, Inc.`.
-- **Link del footer**: la stessa coppia **Titolo** e **Collegamento** dei link dell'intestazione, ordinati trascinandoli. Senza link, dice «Nessun link a piè di pagina per questa pagina di stato.»
+- **Link del footer**: la stessa coppia **Titolo** e **Collegamento** dei link dell'intestazione, ordinati trascinandoli e aggiunti con **Aggiungi: Link del footer**.
 
 I link dell'intestazione servono alla navigazione; quelli del footer alle clausole, come note legali, privacy e termini.
 
@@ -64,7 +82,7 @@ I link dell'intestazione servono alla navigazione; quelli del footer alle clauso
 
 L'ultima sezione della pagina è chiusa in **Altre impostazioni**, perché pochi cambiano ciò che contiene. Chiusa, la sua intestazione nomina le sue quattro sezioni (**Colore predefinito della barra**, **Regole per il colore delle barre**, **Lingue** e **Indicizzazione nei motori di ricerca**) e mostra ciascuna di quelle che differiscono da come parte una nuova pagina di stato: un colore predefinito della barra diverso dal verde con cui parte ogni pagina, regole di colore delle barre diverse da quelle consigliate, una lingua predefinita diversa dall'inglese, un elenco di lingue più corto o l'indicizzazione disattivata. Fateci clic per aprirla: è un'unica scheda, con le sue sezioni una sotto l'altra, ciascuna con il proprio titolo, separate da divisori.
 
-**Colori del grafico della cronologia.** Sono le uniche impostazioni di colore integrate di una pagina di stato. Ogni barra della cronologia uptime è un giorno.
+**Colori del grafico della cronologia.** Oltre al **Tema**, sono le uniche impostazioni di colore integrate di una pagina di stato. Ogni barra della cronologia uptime è un giorno.
 
 - **Colore predefinito della barra**: **Edit Default Bar Color** apre il selettore **Colore predefinito della barra**. È il colore di un giorno a cui non corrisponde alcuna regola per il colore delle barre. Ogni nuova pagina di stato parte con il verde.
 - **Regole per il colore delle barre**: una tabella ordinata di regole che ordinate trascinandole. Ogni regola ha **Quando la % di uptime è maggiore o uguale a** e **Quindi, usa questo colore della barra**; le colonne della tabella dicono `When Uptime Percent >=` e `Then, Bar Color is`. Le regole vengono controllate dall'alto, e la prima raggiunta dall'uptime di un giorno ne stabilisce il colore, quindi tenete le percentuali più alte sopra quelle più basse: una regola sotto un'altra con percentuale uguale o inferiore non colora mai un giorno. Il colore di una nuova regola è già scelto, uno che le altre regole non usano ancora; scegliete invece quello che volete.
@@ -112,8 +130,8 @@ Un tempo erano due schede a sé, **Percentuale di uptime complessiva** e **Stati
 
 | Scheda | Colonna | Cosa contiene |
 | ---- | ------ | ------------- |
-| **HTML intestazione** | `headerHTML` | HTML aggiunto all'intestazione della pagina (segnaposto `Insert Custom HTML here.`). |
-| **HTML del footer** | `footerHTML` | HTML aggiunto al footer della pagina. |
+| **HTML intestazione** | `headerHTML` | HTML mostrato al posto dell'intestazione della pagina, con il logo e i link dell'intestazione (segnaposto `Insert Custom HTML here.`). |
+| **HTML del footer** | `footerHTML` | HTML mostrato al posto del footer della pagina, con i suoi link e i selettori di lingua e tema. |
 | **CSS personalizzato** | `customCSS` | Stili per tutta la pagina (segnaposto `Insert Custom CSS here.`). |
 | **JavaScript personalizzato** | `customJavaScript` | Uno script che la pagina esegue (segnaposto `Insert Custom JavaScript here.`). |
 
@@ -122,7 +140,9 @@ Un tempo erano due schede a sé, **Percentuale di uptime complessiva** e **Stati
 
 Su OneUptime Cloud, aggiungerne o modificarne uno richiede il piano **Growth**. Svuotarli funziona con ogni piano, quindi il codice personalizzato aggiunto durante una prova si può sempre rimuovere.
 
-**Non c'è un selettore di tema.** Le pagine di stato di OneUptime non hanno un'impostazione di tema o di colore del marchio: le uniche impostazioni di colore integrate, ovunque, sono **Colore predefinito della barra** e le regole di colore delle barre del grafico della cronologia, in **Altre impostazioni** nella pagina **Branding**. Caratteri, colori di sfondo, colori di accento e ritocchi del layout passano tutti da **CSS personalizzato**. Se stavate cercando un campo «colore del marchio», questa è la risposta: non esiste, e questa casella è il modo per farlo.
+**Non c'è un selettore del colore del marchio.** Oltre al **Tema**, che rende la pagina chiara o scura, le uniche impostazioni di colore integrate, ovunque, sono **Colore predefinito della barra** e le regole di colore delle barre del grafico della cronologia, in **Altre impostazioni** nella pagina **Branding**. Caratteri, colori di sfondo, colori di accento e ritocchi del layout passano tutti da **CSS personalizzato**. Se stavate cercando un campo «colore del marchio», questa è la risposta: non esiste, e questa casella è il modo per farlo.
+
+**Codice personalizzato nel tema scuro.** Il vostro CSS e il vostro HTML personalizzati si applicano in entrambi i temi. Finché la pagina è scura, il suo elemento `<html>` ha la classe `dark`, quindi una regola CSS che inizia con `html.dark` dà stile solo al tema scuro: `html.dark .my-banner { background: #1e293b; }`. Una regola senza di essa si applica in entrambi, quindi un colore di sfondo o del testo impostato per la pagina chiara resta anche su quella scura: controllate il vostro CSS personalizzato in entrambi i temi. Se la pagina ha CSS personalizzato o HTML personalizzato nell'intestazione o nel footer, la scheda **Tema** lo dice sotto le sue opzioni.
 
 > [!WARNING]
 > Il JavaScript personalizzato viene eseguito nei browser dei vostri visitatori, su una pagina che si apre proprio quando si pensa che qualcosa sia rotto. Mantenetelo piccolo, ospitate voi stessi ciò che carica quando potete, e provatelo prima di farci affidamento.
@@ -153,7 +173,7 @@ flowchart TB
 
 ### Prima di iniziare
 
-- **Il dominio padre deve essere verificato.** L'elenco **Dominio** mostra solo i domini verificati in **Impostazioni del progetto → Domini**, dove dimostrate con un record TXT che un dominio è vostro. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
+- **Il dominio padre deve essere verificato.** L'elenco **Dominio** mostra solo i domini verificati in **Impostazioni del progetto → Avanzato → Domini**, dove dimostrate con un record TXT che un dominio è vostro. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
 - **La vostra installazione ha bisogno di un record CNAME per le pagine di stato.** OneUptime Cloud ne ha uno. In un'installazione self-hosted, impostatelo su un nome host che punta al vostro server OneUptime (un record A), e assicuratevi che il server risponda sulla porta 80, dove Let's Encrypt lo verifica. Senza di esso, la scheda e la finestra di dialogo **Configurazione DNS** dicono «Custom Domains not enabled for this OneUptime installation» invece di mostrare un record.
 
 :::tabs

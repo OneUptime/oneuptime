@@ -4,6 +4,7 @@ import RunnerIdentity from "../Utils/RunnerIdentity";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
+import { getSameServerRedirectCheck } from "Common/Utils/SameServerRedirect";
 
 export type ClaimedJobStepType =
   | "Bash"
@@ -50,12 +51,19 @@ export interface ClaimedJob {
   trigger?: string | null | undefined;
 }
 
+/*
+ * Every request through this client carries this Runner's key, so a
+ * redirect is followed only while it stays on the server it was sent to
+ * (SameServerRedirect): an HTTP client hands a redirected request's
+ * headers, and a 307 or 308's body, to wherever the redirect points.
+ */
 const http: AxiosInstance = axios.create({
   baseURL: RUNNER_INGEST_URL.toString(),
   timeout: 30_000,
   validateStatus: () => {
     return true;
   },
+  beforeRedirect: getSameServerRedirectCheck(RUNNER_INGEST_URL.toString()),
 });
 
 /*

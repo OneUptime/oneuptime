@@ -40,7 +40,6 @@ import {
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import ChartCard from "../../../Components/TelemetryResource/ChartCard";
@@ -50,7 +49,7 @@ import DatabaseServerUnscopedBanner from "../../../Components/DatabaseServer/Dat
 import DatabaseCallingServicesCard from "../../../Components/DatabaseServer/DatabaseCallingServicesCard";
 import DatabaseEngineMetricsSection from "../../../Components/DatabaseServer/DatabaseEngineMetricsSection";
 import DatabaseRuntimeSection from "../../../Components/DatabaseServer/DatabaseRuntimeSection";
-import { getDatabaseRunsOnRoute } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";
+import { DatabaseRunsOnLink } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";
 import { DATABASE_METRIC_DESCRIPTIONS } from "../../../Components/DatabaseServer/DatabaseMetricDescriptions";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
@@ -555,8 +554,6 @@ const DatabaseServerOverview: FunctionComponent<
     r.lastSeenAt,
   );
   const hasQueries: boolean = m.total > 0;
-  // The cluster / host page, when the database runs on one.
-  const runsOnRoute: Route | null = getDatabaseRunsOnRoute(r);
 
   const populate: (page: PageMap) => Route = (page: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
@@ -677,50 +674,6 @@ const DatabaseServerOverview: FunctionComponent<
     </div>
   );
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Traces",
-      description: "The queries applications send this database",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_TRACES),
-      icon: IconProp.Workflow,
-    },
-    {
-      title: "Logs",
-      description: "Engine logs, query samples and pod / container logs",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_LOGS),
-      icon: IconProp.Terminal,
-    },
-    {
-      title: "Metrics",
-      description: "Every engine and client metric for this database",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-    {
-      title: "Endpoints",
-      description: "The host:port names this database is matched by",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_ENDPOINTS),
-      icon: IconProp.Link,
-    },
-    {
-      title: "Owners",
-      description: "Who is responsible for this database",
-      to: populate(PageMap.DATABASE_SERVER_VIEW_OWNERS),
-      icon: IconProp.Team,
-    },
-  ];
-  if (runsOnRoute) {
-    quickLinks.unshift({
-      title: runsOn,
-      description:
-        platform === DatabaseRuntimePlatform.Kubernetes
-          ? "The Kubernetes cluster this database runs on"
-          : "The container host this database runs on",
-      to: runsOnRoute,
-      icon: IconProp.Cube,
-    });
-  }
-
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "Engine (db.system.name)", value: r.dbSystem },
     { label: "Version", value: r.dbVersion },
@@ -733,7 +686,14 @@ const DatabaseServerOverview: FunctionComponent<
       value: formattedEndpoints.join(", ") || undefined,
       mono: true,
     },
-    { label: "Runs on", value: platform ? runsOn : undefined },
+    {
+      label: "Runs on",
+      value: platform ? runsOn : undefined,
+      // Linked to the cluster or host it runs on, as in the Runtime card.
+      element: (
+        <DatabaseRunsOnLink source={r} className="text-sm text-indigo-600" />
+      ),
+    },
     { label: "Workload", value: workload || undefined, mono: true },
     {
       label: "Engine metrics",
@@ -823,7 +783,6 @@ const DatabaseServerOverview: FunctionComponent<
             }
           />
         }
-        quickLinks={quickLinks}
         detailRows={detailRows}
         labels={r.labels}
       />

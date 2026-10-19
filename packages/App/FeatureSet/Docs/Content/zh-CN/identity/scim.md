@@ -14,7 +14,7 @@ SCIM（System for Cross-domain Identity Management）会自动为人员预配和
 
 ## 工作原理
 
-每当您分配、更改或取消分配某人时，您的身份提供商都会使用 Bearer 令牌进行身份验证，调用 OneUptime 的 SCIM 端点。请求更改的内容取决于连接所在的位置：
+每当您分配、更改或取消分配某人时，您的身份提供商都会调用 OneUptime 的 SCIM 端点，并使用连接的 Bearer 令牌进行身份验证，或者使用通过连接的 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据) 获取的访问令牌进行身份验证。请求更改的内容取决于连接所在的位置：
 
 ```mermaid title="SCIM 在 OneUptime 中更改的内容"
 flowchart TB
@@ -57,7 +57,7 @@ SCIM 和 [SSO](/docs/identity/sso) 是相互独立的：SCIM 决定谁在项目�
 3. **配置您的身份提供商**
 
    - 使用对话框中的 **SCIM Base URL**。在 OneUptime Cloud 上，它是 `https://oneuptime.com/identity/scim/v2/<scim-id>`；自托管部署会显示其自己的主机
-   - 使用对话框中的 **Bearer Token** 配置 Bearer 令牌身份验证
+   - 使用对话框中的 **Bearer Token** 配置 Bearer 令牌身份验证。如果您的身份提供商改为要求 OAuth 2.0 客户端凭据，请使用同一对话框中的 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据)
    - 映射用户属性（电子邮件为必填项）。[连接您的身份提供商](#连接您的身份提供商) 中提供了 Microsoft Entra ID 和 Okta 的详细信息
 :::
 
@@ -77,6 +77,18 @@ sequenceDiagram
 ```
 
 已经有 OneUptime 账号的人，在 OneUptime Cloud 上接受邀请后即可加入（请参阅 [常见问题](#常见问题)）。通过连接默认团队之外的团队授予的访问权限不受影响。
+
+### OAuth 2.0 客户端凭据
+
+有些身份提供商不保存 Bearer 令牌，而是要求提供 OAuth 2.0 客户端凭据。每个连接，无论属于项目还是状态页面，都在显示其 **SCIM Base URL** 的同一个对话框中、**OAuth 2.0 Client Credentials** 下方提供这些凭据：
+
+- **Token Endpoint**：您的身份提供商获取访问令牌的地址。所有连接都相同：在 OneUptime Cloud 上为 `https://oneuptime.com/identity/scim/oauth/token`。
+- **Client ID**：连接的 ID。
+- **Client Secret**：点击 **Make Client Secret**，并立即复制密钥。OneUptime 只保存其哈希值，无法再次显示它。密钥的有效期为一年。
+
+您的身份提供商把客户端 ID 和密钥发送到令牌端点，获得一个有效期为一小时的访问令牌。连接的 Bearer 令牌会继续同时有效。
+
+要替换密钥，请点击 **Make New Client Secret**。之前的密钥会一直有效，直到过期或您点击 **Delete Previous Secret** 为止，因此可以在不中断预配的情况下把新密钥交给您的身份提供商：等它开始使用新密钥后，再删除旧密钥。密钥过期或被删除时，用它签发的访问令牌会立即失效。可以更改连接 Bearer 令牌的人，也可以创建和删除其密钥：对于项目，是项目所有者；对于状态页面，是可以编辑其单点登录的人。
 
 ## 状态页面 SCIM
 
@@ -98,7 +110,7 @@ sequenceDiagram
 3. **配置您的身份提供商**
 
    - 使用对话框中的 **SCIM Base URL**。在 OneUptime Cloud 上，它是 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
-   - 使用显示的令牌配置 Bearer 令牌身份验证
+   - 使用显示的令牌配置 Bearer 令牌身份验证，或者使用同一对话框中的 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据)
    - 映射用户属性（电子邮件为必填项）
 :::
 
@@ -132,6 +144,8 @@ Microsoft Entra ID 提供带有 SCIM 预配的企业级身份管理。您需要�
 - 拥有 Premium P1 或 P2 许可证的 Microsoft Entra ID 租户（自动预配需要）。
 - OneUptime Cloud 上使用 **Scale** 或更高套餐的 OneUptime 项目。
 - Microsoft Entra ID 和 OneUptime 的管理员访问权限。
+
+Microsoft Entra 应用程序库中的 OneUptime 应用用于单点登录。要进行预配，即使您已经为 SSO 从应用程序库添加了 OneUptime，也请按下面的步骤创建您自己的应用程序。
 
 :::steps
 #### 为 Entra ID 创建 SCIM 连接
@@ -209,6 +223,8 @@ Okta 提供支持 SCIM 的灵活身份管理。您需要：
 - OneUptime Cloud 上使用 **Scale** 或更高套餐的 OneUptime 项目。
 - Okta 和 OneUptime 的管理员访问权限。
 
+在 OneUptime Cloud 上，如果 Okta Integration Network 中列出了 OneUptime，请从那里添加（请参阅 [SSO](/docs/identity/sso)）：它自带 OneUptime 的 SCIM 设置和属性映射，并要求填写连接的 ID 和 Bearer 令牌。
+
 :::steps
 #### 为 Okta 创建 SCIM 连接
 
@@ -228,18 +244,18 @@ Okta 提供支持 SCIM 的灵活身份管理。您需要：
 在 Okta Admin Console 中前往 **Applications** > **Applications**：
 
 - 如果您已经在 OneUptime 中使用 Okta 进行 SSO，请打开该应用程序。
-- 否则，点击 **Create App Integration**，选择 **SAML 2.0**，将其命名为 "OneUptime"，并完成 SAML 设置（请参阅 [SSO](/docs/identity/sso)）。
+- 否则，如果 Okta Integration Network 中列出了 OneUptime，请从那里添加（**Browse App Catalog**，搜索 OneUptime，**Add Integration**），或者点击 **Create App Integration**，选择 **SAML 2.0**，将其命名为 "OneUptime"，并完成 SAML 设置（请参阅 [SSO](/docs/identity/sso)）。
 
 #### 在 Okta 中开启 SCIM 预配
 
 1. 前往您的 OneUptime 应用程序的 **General** 选项卡
-2. 在 **App Settings** 部分点击 **Edit**，在 **Provisioning** 下选择 **SCIM**，然后点击 **Save**
-3. 会出现一个新的 **Provisioning** 选项卡
+2. 在 **App Settings** 部分点击 **Edit**。对于从 Okta Integration Network 添加的应用程序，将 **OneUptime SCIM Connection ID** 设为 **SCIM Base URL** 的最后一部分，即 `<scim-id>`。对于您自己创建的应用程序，在 **Provisioning** 下选择 **SCIM**。点击 **Save**
+3. 应用程序现在有了 **Provisioning** 选项卡
 
 #### 将 Okta 连接到 OneUptime
 
 1. 在 **Provisioning** 选项卡上点击 **Integration**，然后点击 **Configure API Integration**，并勾选 **Enable API integration**
-2. 配置以下内容：
+2. 对于从 Okta Integration Network 添加的应用程序，将 OneUptime 的 **Bearer Token** 作为 **API Token** 输入。对于您自己创建的应用程序，配置以下内容：
    - **SCIM connector base URL**：OneUptime 的 **SCIM Base URL**（例如 `https://oneuptime.com/identity/scim/v2/<scim-id>`）
    - **Unique identifier field for users**：`userName`
    - **Supported provisioning actions**：Import New Users and Profile Updates、Push New Users、Push Profile Updates，如果使用基于组的预配，还有 Push Groups
@@ -290,7 +306,7 @@ OneUptime 的 SCIM 实现遵循 SCIM v2.0 规范，可与任何兼容的身份�
 | 设置 | 值 |
 | --- | --- |
 | SCIM Base URL | OneUptime 的 **SCIM Base URL**：项目为 `https://oneuptime.com/identity/scim/v2/<scim-id>`，状态页面为 `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` |
-| 身份验证 | HTTP Bearer 令牌 |
+| 身份验证 | HTTP Bearer 令牌，或 [OAuth 2.0 客户端凭据](#oauth-20-客户端凭据) |
 | 唯一用户标识符 | `userName`，必须是有效的电子邮件地址 |
 | 操作 | 在项目 SCIM 和状态页面 SCIM 中，对 Users 执行 GET、POST、PUT、PATCH 和 DELETE。Groups 仅在项目 SCIM 中受支持。 |
 
@@ -309,6 +325,8 @@ OneUptime 的 SCIM 实现遵循 SCIM v2.0 规范，可与任何兼容的身份�
 | `/Groups/{id}`           | GET, PUT, PATCH, DELETE | 管理单个组（仅限项目 SCIM）               |
 | `/Bulk`                  | POST                    | 在一个请求中执行多个操作                  |
 
+[OAuth 2.0 客户端凭据](#oauth-20-客户端凭据) 的令牌端点不在基础 URL 之下：在 OneUptime Cloud 上，所有连接的令牌端点都是 `https://oneuptime.com/identity/scim/oauth/token`。它接受 `client_credentials` 授权类型，客户端 ID 和密钥可以通过 HTTP Basic 身份验证发送，也可以放在表单中发送；它返回一个有效期为一小时的访问令牌（`expires_in` 为 `3600`）。
+
 `/ServiceProviderConfig` 报告的内容：
 
 | 功能 | 是否支持 |
@@ -316,10 +334,10 @@ OneUptime 的 SCIM 实现遵循 SCIM v2.0 规范，可与任何兼容的身份�
 | PATCH | 是 |
 | Bulk | 是，每个请求最多 1,000 个操作和 1 MB |
 | Filter | 是，最多 200 个结果 |
-| 排序 | 是 |
+| 排序 | 否 |
 | 更改密码 | 否 |
 | ETag | 否 |
-| 身份验证 | HTTP Bearer 令牌 |
+| 身份验证 | HTTP Bearer 令牌，或 OAuth 2.0 访问令牌 |
 
 您的身份提供商创建的组会成为项目中同名的团队；如果已有同名团队，则使用该团队，而不是新建团队。
 
@@ -370,7 +388,7 @@ OneUptime 的 SCIM 实现遵循 SCIM v2.0 规范，可与任何兼容的身份�
 在 OneUptime Cloud 上，只有当项目处于 **Scale** 或更高套餐时，SCIM 预配才能完全工作。低于该套餐时（Scale 试用期结束或套餐降级后），项目的 SCIM 连接以及其状态页面的 SCIM 连接只会移除人员，因此任何离开的人仍会失去访问权限：
 
 - **仍然有效：** 停用用户（在设置为移除其停用人员的连接上，将 `active` 设为 `false`）、删除用户、从组中移除成员（Entra ID 对 `members` 执行以成员为值的 `Remove`，Okta 对 `members[value eq "..."]` 执行 `remove`，或者用组中已有成员的一部分替换成员）、删除组，以及仅由 `DELETE` 组成的 `Bulk` 请求。查询也会得到响应——列出和筛选用户和组，这是身份提供商在移除某人之前会做的——但低于该套餐时，查询永远不会创建任何人。
-- **会被拒绝：** 创建用户或组、重新激活用户（对连接会重新放回其某个团队的人，将 `active` 设为 `true`）、把某人添加到其不在的组，以及仅更改用户的电子邮件或姓名，或组的名称。添加某人的请求会被整体拒绝，即使它同时移除人员也是如此，因为 SCIM 的 `PATCH` 要么全部生效，要么全不生效。拒绝结果是带有 SCIM 格式错误的 `402`，您的身份提供商会显示它：`SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.` 每次拒绝也会记录在连接的 SCIM 日志中。
+- **会被拒绝：** 创建用户或组、重新激活用户（对连接会重新放回其某个团队的人，将 `active` 设为 `true`）、把某人添加到其不在的组，以及仅更改用户的电子邮件或姓名，或组的名称。添加某人的请求会被整体拒绝，即使它同时移除人员也是如此，因为 SCIM 的 `PATCH` 要么全部生效，要么全不生效。拒绝结果是带有 SCIM 格式错误的 `402`，您的身份提供商会显示它：`SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and Invoices > Billing and they work fully again.` 每次拒绝也会记录在连接的 SCIM 日志中。
 - **同时更改个人资料的移除**——发送新电子邮件或新姓名的停用，或者在移除成员的同时重命名组的组更新——会通过，而电子邮件、姓名或组名保持不变。身份提供商会重新发送它们发现不同的内容，因此被拒绝过一次的更改会随它们之后的请求再次到来，而移除永远不必等待套餐。在不会移除其停用人员的连接上（自动取消预配已关闭，或改为推送组）进行的停用不会移除任何人，因此随之发送的新电子邮件或新姓名会作为单独的更改被拒绝。
 - **不做任何更改的请求会照常得到响应**——Okta 对已在连接所有团队中的人按原样 `PUT` 用户并将 `active` 设为 `true`；把某人添加到其已在的组；以不同大小写重新发送的电子邮件；OneUptime 不存储的属性，例如职位或部门。状态页面私有用户要么在页面上，要么根本不存在，因此将 `active` 设为 `true` 永远不会改变这样的用户。
 
@@ -431,8 +449,8 @@ Entra ID 按自己的计划进行预配：首次同步最长可能需要 40 分�
 :::details SCIM 能否更改用户的电子邮件地址或姓名？
 OneUptime 账号的电子邮件地址是此人登录其所属的每个项目时使用的地址，也是密码重置链接的发送地址。因此：
 
-- **OneUptime Cloud**：SCIM 从不更改电子邮件地址。会更改电子邮件地址的请求将被拒绝，并返回类型为 `mutability` 的 SCIM `400` 错误，该请求中的任何内容都不会生效；您的身份提供商会显示原因。请让用户在自己的 OneUptime 个人资料中自行更改地址。如果请求中提交的地址与账号现有地址相同，则不属于更改，请求会成功。
-- **自托管**：只有当用户已加入此项目、不属于任何其他项目且不是 OneUptime 管理员时，SCIM 才会更改其电子邮件地址。任何其他更改都会以同样的方式被拒绝。
+- **OneUptime Cloud**：SCIM 从不更改电子邮件地址。会更改电子邮件地址的请求仍会成功：连接会保存您的身份提供商发送的地址，并在响应中返回它，而账号保留其登录所用的地址。连接的 SCIM 日志会注明该更改未被应用。请让用户在自己的 OneUptime 个人资料中自行更改地址。
+- **自托管**：只有当用户已加入此项目、不属于任何其他项目且不是 OneUptime 管理员时，SCIM 才会更改其电子邮件地址。对于其他所有人，与 OneUptime Cloud 上一样，连接保存新地址，账号保留自己的地址。
 
 姓名在任何地方都遵循相同的规则：只有当用户已加入此项目、不属于任何其他项目且不是 OneUptime 管理员时，SCIM 才会更新其姓名。对于其他所有人，姓名保持不变，请求的其余部分仍会成功。
 :::

@@ -12,10 +12,10 @@ Overvåk en vCenter Server, eller en frittstående ESXi-vert, uten å installere
 
 ```mermaid
 flowchart TB
-    OU["OneUptime"] -->|"samle inn nå, med noen minutters mellomrom"| P["Sonden din"]
-    P -->|"HTTPS 443, skrivebeskyttet vSphere-API"| VC["vCenter Server eller ESXi-vert"]
-    P -->|"metrikker, slik VMware-agenten sender dem"| OU
-    OU --> V["VMware-sider, monitorer, varsler og AI"]
+    OU["OneUptime"] -->|"samle inn<br/>nå, med noen<br/>minutters<br/>mellomrom"| P["Sonden din"]
+    P -->|"HTTPS 443, skrivebeskyttet<br/>vSphere-API"| VC["vCenter Server<br/>eller ESXi-vert"]
+    P -->|"metrikker,<br/>slik VMware-<br/>agenten<br/>sender dem"| OU
+    OU --> V["VMware-sider,<br/>monitorer, varsler og AI"]
 ```
 
 Med noen minutters mellomrom logger sonden på vCenter med kontoen du lagret, leser inventaret, ytelsestellerne og vSAN-statistikken, og sender dem til OneUptime. De kommer nøyaktig slik VMware-agentens gjør, så hver VMware-side, hver [VMware-monitor](/docs/monitor/vmware-monitor), hver varselmal og OneUptime AI leser dem på samme måte. Sonden beholder vCenter-økten sin mellom innsamlingene, så vCenters hendelseslogg ikke fylles med pålogginger.

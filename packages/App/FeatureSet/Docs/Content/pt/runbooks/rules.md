@@ -9,7 +9,7 @@ As regras de runbook iniciam runbooks automaticamente quando um **incidente**, u
 As três páginas editam o mesmo tipo de regra, filtrado para as regras daquele produto.
 
 :::cards
-- [Criar uma regra de runbook](#criar-uma-regra-de-runbook): Quatro etapas: um nome, condições e os runbooks a iniciar.
+- [Criar uma regra de runbook](#criar-uma-regra-de-runbook): Três etapas: condições e depois os runbooks a iniciar, que dão nome à regra.
 - [Condições](#condições): Cada critério e operador que uma regra pode usar.
 - [Semântica de correspondência](#semântica-de-correspondência): Várias regras, condições de monitor e regras de rótulos.
 - [Exemplos](#exemplos): Três regras para copiar.
@@ -19,15 +19,15 @@ As três páginas editam o mesmo tipo de regra, filtrado para as regras daquele 
 
 ```mermaid title="De um novo incidente a runbooks iniciados"
 flowchart TB
-    created["Incidente, alerta ou evento criado"] --> labels["As regras de rótulos adicionam seus rótulos"]
-    labels --> rules["Regras de runbook habilitadas desse produto"]
-    rules --> match{"As condições correspondem?"}
-    match -->|"não"| nothing["A regra não inicia nada"]
-    match -->|"sim"| union["Runbooks de todas as regras correspondentes, cada um uma vez"]
-    union --> runnable{"Runbook ligado e com etapas?"}
-    runnable -->|"não"| skipped["Esse runbook é ignorado"]
-    runnable -->|"sim"| execution["Execução criada e colocada na fila"]
-    execution --> attached["Mostrada na página Runbooks do evento"]
+    created["Incidente, alerta<br/>ou evento criado"] --> labels["As regras de rótulos<br/>adicionam seus rótulos"]
+    labels --> rules["Regras de runbook<br/>habilitadas<br/>desse produto"]
+    rules --> match{"As condições<br/>correspondem?"}
+    match -->|"não"| nothing["A regra não<br/>inicia nada"]
+    match -->|"sim"| union["Runbooks de<br/>todas as regras<br/>correspondentes,<br/>cada um uma vez"]
+    union --> runnable{"Runbook ligado<br/>e com etapas?"}
+    runnable -->|"não"| skipped["Esse runbook<br/>é ignorado"]
+    runnable -->|"sim"| execution["Execução criada e<br/>colocada na fila"]
+    execution --> attached["Mostrada na página<br/>Runbooks do evento"]
 ```
 
 Quando uma regra dispara, para cada runbook que ela indica:
@@ -51,27 +51,23 @@ Você vê todas as execuções, iniciadas por regras ou não, em **Runbooks → 
 
 Em **Incidentes**, **Alertas** ou **Manutenção programada**, abra **Regras → Regras de runbook** e clique em **Criar: Runbook Rule**.
 
-### Dar um nome à regra
-
-Em **Informações básicas**, informe um **Nome**, como "Iniciar failover de BD para incidentes de banco de dados", e, se quiser, uma **Descrição**.
-
 ### Adicionar condições
 
-Em **Critérios de Correspondência**, clique em **Adicionar condição**, escolha um critério e um operador e digite ou escolha o valor. Adicione mais condições se precisar e escolha **Corresponder a todas** ou **Corresponder a qualquer**. Não adicione nenhuma para iniciar os runbooks em todo evento novo desse tipo.
+Em **Corresponder**, **Aplica-se a** começa em todo evento novo desse tipo, por exemplo **Todos os incidentes**, e a regra inicia seus runbooks em cada um. Para restringi-la, escolha a outra resposta, por exemplo **Somente os incidentes que atendem às condições**, depois escolha um critério e um operador e digite ou escolha o valor. Clique em **Adicionar condição** para mais condições e escolha **Corresponder a todas** ou **Corresponder a qualquer**.
 
 ### Escolher os runbooks
 
-Em **Runbooks**, escolha um ou mais **Runbooks para iniciar** e clique em **Criar: Runbook Rule**. A regra fica ativa assim que é criada e aparece na lista com o status **Habilitado**.
+Em **Runbooks**, escolha um ou mais **Runbooks para iniciar**. O **Nome** da regra os acompanha, como "Iniciar Database failover", até você digitar um próprio, e uma **Descrição** fica em **Mais campos**. Clique em **Criar: Runbook Rule**. A regra fica ativa assim que é criada e aparece na lista com o status **Habilitado**.
 :::
 
 ## Anatomia de uma regra
 
 | Campo | Finalidade |
 | --- | --- |
-| **Nome** | Um rótulo curto e claro para a regra. |
-| **Descrição** | Contexto opcional para a equipe. |
+| **Nome** | Acompanha os runbooks que inicia, como "Iniciar Database failover", até você digitar um próprio. |
+| **Descrição** | Contexto opcional para a equipe, em **Mais campos**. |
 | **Habilitado** | Ligado em uma regra nova. Desligue-o no formulário de edição da regra para suspendê-la sem excluí-la. |
-| **Condições** | O que a regra compara, na etapa **Critérios de Correspondência**. Deixe vazio para corresponder a todo evento do seu tipo. |
+| **Condições** | O que a regra compara, na etapa **Corresponder**. Uma regra sem condições, por exemplo em **Todos os incidentes**, corresponde a todo evento do seu tipo. |
 | **Runbooks para iniciar** | Um ou mais runbooks lançados quando a regra dispara. |
 
 ## Condições

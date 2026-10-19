@@ -13,15 +13,15 @@
 
 ```mermaid title="Runner と OneUptime の間でネットワークを通るもの"
 flowchart TB
-    subgraph yours["自社インフラ"]
-        direction LR
-        runner["Runner コンテナ"]
-        targets["ホスト、クラスター、内部サービス"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker がステップをキューに追加"]
         ingest["Runner API"]
+    end
+    subgraph yours["自社インフラ"]
+        direction LR
+        runner["Runner コンテナ"]
+        targets["ホスト、クラスター、内部サービス"]
     end
     worker --> ingest
     runner -->|"送信 HTTPS、Runner の ID とキー"| ingest

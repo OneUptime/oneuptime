@@ -13,15 +13,15 @@ En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten sj�
 
 ```mermaid title="Vad som går över nätverket mellan en Runner och OneUptime"
 flowchart TB
-    subgraph yours["Din infrastruktur"]
-        direction LR
-        runner["Runner-container"]
-        targets["Värdar, kluster, interna tjänster"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Workern köar steget"]
         ingest["Runner-API"]
+    end
+    subgraph yours["Din infrastruktur"]
+        direction LR
+        runner["Runner-container"]
+        targets["Värdar, kluster, interna tjänster"]
     end
     worker --> ingest
     runner -->|"Utgående HTTPS, Runner-ID och nyckel"| ingest
@@ -133,10 +133,10 @@ Två tidsgränser gäller för varje steg som körs på en Runner:
 
 | Tidsgräns | Standard | Vad den styr |
 | --- | --- | --- |
-| **Claim timeout** | 2 minuter | Hur länge Workern väntar på att den valda Runnern tar jobbet. Om Runnern inte tar det i tid misslyckas steget på grund av tidsgräns, och runbooket fortsätter (eller stoppar, beroende på **Fortsätt vid fel**). |
-| **Execution timeout** | 30 sekunder | Hur länge Runnern låter steget köra innan den stoppar det. Bash får `SIGKILL`; JavaScripts sandlåda rivs. |
+| **Tidsgräns för övertagande** | 2 minuter | Hur länge Workern väntar på att den valda Runnern tar jobbet. Om Runnern inte tar det i tid misslyckas steget på grund av tidsgräns, och runbooket fortsätter (eller stoppar, beroende på **Fortsätt vid fel**). |
+| **Tidsgräns för körning** | 30 sekunder | Hur länge Runnern låter steget köra innan den stoppar det. Bash får `SIGKILL`; JavaScripts sandlåda rivs. |
 
-Båda kan ställas in per steg. Öppna **Runbooks › ditt runbook › Steg**, fäll ut steget och ange **Execution timeout** och **Claim timeout** (i sekunder) i dess inställningar. Lämna ett fält tomt för att använda standarden. Var och en accepterar 1 sekund till 1 timme; värden utanför det intervallet begränsas när steget körs.
+Båda kan ställas in per steg. Öppna **Runbooks › ditt runbook › Steg**, fäll ut steget och ange **Tidsgräns för körning** och **Tidsgräns för övertagande** (i sekunder) i dess inställningar. Lämna ett fält tomt för att använda standarden. Var och en accepterar 1 sekund till 1 timme; värden utanför det intervallet begränsas när steget körs.
 
 Workerns sammanlagda väntefönster är `claim timeout + execution timeout + a few seconds`. Välj värden som passar steget.
 

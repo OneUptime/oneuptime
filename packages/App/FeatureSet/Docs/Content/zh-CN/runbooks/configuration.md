@@ -14,24 +14,18 @@
 ```mermaid title="哪些步骤在哪里运行"
 flowchart TB
     subgraph ou["OneUptime"]
-        direction LR
         worker["Worker"]
-        http["HTTP request 步骤"]
-        ai["AI 步骤"]
+        onworker["HTTP request 步骤<br/>AI 步骤"]
     end
     subgraph yours["你的基础设施"]
-        direction LR
         runner["Runner"]
-        scripts["JavaScript 和 Bash 步骤"]
-        remote["SSH 和 Kubernetes 步骤"]
+        onrunner["JavaScript 和 Bash 步骤<br/>SSH 和 Kubernetes 步骤"]
     end
     person["人员"]
-    worker --> http
-    worker --> ai
-    worker -->|"Manual 步骤和审批"| person
-    worker -->|"为步骤的 Runner 放入作业"| runner
-    runner --> scripts
-    runner --> remote
+    worker --> onworker
+    worker -->|"Manual<br/>步骤和审批"| person
+    worker --->|"为步骤的<br/>Runner<br/>放入作业"| runner
+    runner --> onrunner
 ```
 
 | 步骤类型 | 运行位置 | 方式 |

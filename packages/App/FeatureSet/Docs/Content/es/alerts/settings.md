@@ -6,7 +6,7 @@ La configuración de las alertas está dentro de **Alertas**, no en **Ajustes de
 - [Las reglas por las que pasa una nueva alerta](#las-reglas-por-las-que-pasa-una-nueva-alerta): En orden, y qué hace cada una.
 - [Reglas de guardia](#reglas-de-guardia): Avisa a las personas adecuadas sin elegir una política cada vez.
 - [Reglas de recordatorio](#reglas-de-recordatorio): Recuerda a los propietarios mientras una alerta sigue abierta.
-- [Ajustes](#ajustes): Plantillas de notas, campos personalizados, mediciones y numeración.
+- [Ajustes](#ajustes): Plantillas de notas, campos personalizados, mediciones, pertenencia a episodios y numeración.
 :::
 
 ## Dónde están los ajustes de las alertas
@@ -23,7 +23,7 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. Las seccione
 | **Reglas de etiquetas**       | Añade etiquetas a las alertas y los episodios que coinciden.                                   |
 | **Reglas de recordatorio**    | Recuerda a los propietarios a intervalos mientras una alerta está abierta.                     |
 
-La sección **Ajustes** contiene **Estado de la alerta** y **Gravedad de la alerta**, que se tratan en [Estados y severidades de alertas](/docs/alerts/states-and-severities), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones** y **Numeración**, que se tratan más abajo.
+La sección **Ajustes** contiene **Estado de la alerta** y **Gravedad de la alerta**, que se tratan en [Estados y severidades de alertas](/docs/alerts/states-and-severities), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Pertenencia a episodios** y **Numeración**, que se tratan más abajo.
 
 Otras dos secciones actúan sobre las alertas. **Alertas → IA → Ajustes** decide lo que OneUptime AI hace por su cuenta: **Investigar las alertas nuevas**, activado en los proyectos nuevos, y **Corregir automáticamente las alertas nuevas**, desactivado hasta que lo actives. Consulta [AI SRE](/docs/ai/ai-sre). **Alertas → Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican alertas y episodios en canales, y su pestaña **Resumen**. Consulta [Slack](/docs/workspace-connections/slack).
 
@@ -77,17 +77,13 @@ Con dos o más condiciones, elige **Coincidir con todas**, donde deben cumplirse
 **Alertas → Reglas → Reglas de guardia** automatiza los avisos. Cada regla que coincide añade sus políticas a la nueva alerta, y la alerta las ejecuta junto con las políticas que ya tenía, cada una una sola vez.
 
 :::steps
-### Nombrar la regla
-
-Haz clic en **Crear Regla de guardia de alertas**. En **Información básica**, dale un **Nombre**, como "Notificar al equipo de base de datos ante cualquier alerta de BD", y una **Descripción** si quieres.
-
 ### Elegir las alertas
 
-En **Criterios de coincidencia**, añade las condiciones que debe cumplir una alerta. Déjalas vacías para que coincida con todas las alertas nuevas.
+Haz clic en **Crear Regla de guardia de alertas**. En **Coincidencia**, **Todas las alertas**, donde empieza una regla nueva, coincide con todas las alertas nuevas. Para acotarla, elige **Solo las alertas que cumplen las condiciones** y añade las condiciones que debe cumplir una alerta.
 
 ### Elegir las políticas
 
-En **Políticas de guardia**, elige las **Políticas de guardia** que ejecuta la regla y después crea la regla.
+En **Políticas de guardia**, elige las **Políticas de guardia** que activa la regla. Su **Nombre** las sigue, como "Avisar a Platform on-call", hasta que escribas uno propio, y una **Descripción** espera en **Más campos**. Después crea la regla.
 :::
 
 Una gravedad no avisa a nadie por sí sola: una regla de guardia que coincide con **Gravedades de alerta** es la forma de configurar "avisar al equipo de base de datos por cada alerta de gravedad Alta". Para ver lo que se ejecutó para una alerta, abre su página **Ejecuciones de guardia**. Después se localiza a cada persona como la haya configurado en **Ajustes de usuario → Reglas de guardia**, en la pestaña **Alertas**; consulta [Reglas de escalado](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ Las **Reglas del propietario** añaden usuarios y equipos propietarios a las ale
 
 ## Reglas de privacidad y de runbook
 
-Las **Reglas de privacidad** hacen privadas las alertas nuevas que coinciden, antes de que se ejecute nada más: solo sus propietarios y los administradores y propietarios del proyecto pueden verlas. Una regla tiene un paso **Información básica** y un paso **Criterios de coincidencia**, y hace privada cada alerta con la que coincide. Consulta [Alertas privadas](/docs/alerts/index#alertas-privadas).
+Las **Reglas de privacidad** hacen privadas las alertas nuevas que coinciden, antes de que se ejecute nada más: solo sus propietarios y los administradores y propietarios del proyecto pueden verlas. Una regla tiene dos pasos: **Coincidencia**, las alertas que hace privadas, y luego **Nombre**, ya rellenado como "Hacer privadas las alertas". Consulta [Alertas privadas](/docs/alerts/index#alertas-privadas).
 
 Las **Reglas de runbook** ponen en marcha un runbook cuando coincide una alerta nueva, salvo que la alerta se haya creado resuelta. Consulta [Reglas de runbook](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ Las **Reglas de runbook** ponen en marcha un runbook cuando coincide una alerta 
 **Alertas → Reglas → Reglas de recordatorio** recuerda a los propietarios de una alerta mientras sigue abierta. Cada alerta nueva recibe la primera regla que coincide con ella, de arriba abajo en la lista.
 
 :::steps
-### Nombrar la regla de recordatorio
-
-Haz clic en **Crear Regla de recordatorio de alertas**. En **Información de la regla**, dale un **Nombre**, como "Recordatorios de alertas críticas".
-
 ### Elegir de qué alertas recordar
 
-En **Criterios de coincidencia**, elige las **Gravedades de alerta** y las **Etiquetas** a las que se aplica. Déjalas vacías para recordar todas las alertas.
+Haz clic en **Crear Regla de recordatorio de alertas**. En **Coincidencia**, deja marcado **Todas las alertas** para recordar todas las alertas, o elige **Solo las alertas que cumplen las condiciones** y luego las **Gravedades de alerta** y las **Etiquetas** a las que se aplica.
 
 ### Fijar el intervalo
 
-En **Ajustes de recordatorios**, fija el **Intervalo de recordatorio (minutos)**, cada cuánto se recuerda a los propietarios, y **Dejar de recordar cuando**: **Resuelto**, el valor por defecto, o **Reconocido**. Después crea la regla.
+En **Recordatorios**, fija el **Intervalo de recordatorio (minutos)**, cada cuánto se recuerda a los propietarios, y **Dejar de recordar cuando**: **Resuelto**, el valor por defecto, o **Reconocido**. Su **Nombre** sigue a ambos, por ejemplo "Recordar cada 30 minutos hasta que se resuelva", hasta que escribas uno propio. Después crea la regla.
 :::
 
 Los propietarios reciben cada recordatorio como **Recordatorio de alerta**, que está activado por correo electrónico por defecto. La regla de una alerta se vuelve a comprobar cuando cambian su gravedad o sus etiquetas. Para detener los recordatorios de una alerta, desactiva **Enviar recordatorios** en su página **Ajustes**; se guarda en el momento en que lo cambias.
@@ -141,6 +133,10 @@ Los propietarios reciben cada recordatorio como **Recordatorio de alerta**, que 
 ### Mediciones
 
 **Alertas → Ajustes → Mediciones** mide cuánto tardan las cosas en cada alerta. Elige **Tiempo hasta el reconocimiento** o **Tiempo hasta la resolución**, o dos momentos propios, como cuando **Se crea la alerta** y cuando entra en un estado que elijas. Cada medición se muestra en la página de la alerta y se representa en gráficos como `oneuptime.alert.measurement.<key>`. Consulta [Mediciones](/docs/incidents/settings#mediciones), que funciona igual para las alertas.
+
+### Pertenencia a episodios
+
+**Alertas → Ajustes → Pertenencia a episodios** decide si una alerta puede estar en más de un episodio. Activa **Una alerta solo puede estar en un episodio** y una alerta que está en un episodio no se añade a ningún otro, ni desde el panel ni con la API, un flujo de trabajo o una regla de agrupación, hasta que se quita de ese episodio. Está desactivado hasta que lo actives, y solo los Project Owners y los Project Admins pueden cambiarlo. Activarlo no saca ninguna alerta de un episodio. Consulta [Un solo episodio por incidente](/docs/incidents/episodes#un-solo-episodio-por-incidente), que funciona igual para las alertas.
 
 ### Numeración
 

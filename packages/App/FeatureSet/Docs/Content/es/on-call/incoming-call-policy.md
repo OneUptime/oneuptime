@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Una cuenta de Twilio, con su Account SID y su Auth Token | Los números y las llamadas de la política funcionan con ella, y Twilio se los cobra. |
 | El plan **Growth**, en OneUptime Cloud | Un proyecto lo necesita para tener su propia configuración de Twilio. |
-| Un servidor de OneUptime al que Twilio pueda llegar, si lo alojas tú | Twilio envía cada llamada a `https://<your host>/notification/incoming-call/voice`. |
+| Un servidor de OneUptime al que Twilio pueda llegar, si lo alojas tú | Twilio envía cada llamada a `https://<your host>/notification/incoming-call/voice`, y cómo terminó cada timbrado a `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** activado en el proyecto | El número de cada persona se verifica con un código enviado por SMS. |
 | Un número verificado para cada persona | Una regla solo hace sonar a quienes añadieron y verificaron un número para llamadas entrantes en el proyecto. |
 
@@ -49,7 +49,7 @@ Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de notificaciones
 
 ### Crea la política
 
-Ve a **Guardia** > **Políticas de llamadas entrantes** y haz clic en **Crear Política de llamadas entrantes**. Ponle un **Nombre**, por ejemplo «Línea de soporte», y, si quieres, una **Descripción** y **Etiquetas**. Después ábrela desde la lista.
+Ve a **Guardia** > **Políticas de llamadas entrantes** y haz clic en **Crear Política de llamadas entrantes**. Ponle un **Nombre**, por ejemplo «Línea de soporte»; la **Descripción** y las **Etiquetas** son opcionales, en **Más campos**. La política nueva se abre en su **Vista general**.
 
 ### Elige la cuenta de Twilio
 
@@ -78,27 +78,27 @@ Cuando los tres pasos están hechos, la tarjeta pasa a ser **Números de teléfo
 2. OneUptime hace sonar a la persona que nombra la primera regla de escalado: esa persona, o quien esté de guardia en ese momento en la programación de guardia de la regla, sustituciones de usuario incluidas. Su teléfono muestra el número de la política como llamante.
 3. Si contesta dentro de la **Duración del timbre** de la regla, se pasa la llamada, y el registro de llamadas guarda quién contestó.
 4. Si no, quien llama oye «Connecting you to the next available engineer.», y suena la persona de la siguiente regla.
-5. Después de la última regla, la política vuelve a empezar por la primera si **Repetir política si nadie responde** está activado, tantas veces como indique **Veces de repetición de la política**. Si no, quien llama oye el **Mensaje de sin respuesta**, y la llamada termina.
+5. Después de la última regla, decide la **Política de repetición** de la política: **Volver a sonar desde la primera regla** hace sonar cada regla de nuevo, tantas veces más como indique, y **Terminar la llamada** no. Después, quien llama oye el **Mensaje de sin respuesta**, y la llamada termina.
 
 ```mermaid title="Las peticiones detrás de una llamada"
 sequenceDiagram
     participant Caller as Quien llama
     participant Twilio
     participant OneUptime
-    participant Engineer as Persona de guardia
-    Caller->>Twilio: Marca el número de la política
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Saludo, y después hacer sonar a la persona de la primera regla
-    Twilio->>Engineer: Suena durante la duración del timbre de la regla
-    Note over Twilio,Engineer: Nadie contesta a tiempo
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Hacer sonar a la persona de la siguiente regla
-    Twilio->>Engineer: Hace sonar a la siguiente persona
+    participant Engineer as Persona<br/>de guardia
+    Caller->>Twilio: Marca el número<br/>de la política
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Saludo, y<br/>después hacer<br/>sonar a la<br/>persona de la<br/>primera regla
+    Twilio->>Engineer: Suena durante<br/>la duración<br/>del timbre<br/>de la regla
+    Note over Twilio,Engineer: Nadie contesta<br/>a tiempo
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Hacer sonar a<br/>la persona de la<br/>siguiente regla
+    Twilio->>Engineer: Hace sonar a<br/>la siguiente<br/>persona
     Engineer-->>Twilio: Contesta
     Twilio-->>Caller: Pasa la llamada
 ```
 
-Una regla se salta, sin hacer sonar a nadie, cuando ahora mismo no hay nadie a quien llamar para ella: su programación no tiene a nadie de guardia, la persona no tiene un número verificado para llamadas entrantes en este proyecto o ya no es miembro del proyecto. Cuando ninguna regla tiene a alguien a quien hacer sonar, quien llama oye el **Mensaje de nadie disponible**. Una política desactivada responde a cada llamada con «Sorry, this service is currently disabled.» y cuelga.
+Una regla se salta, sin hacer sonar a nadie, cuando ahora mismo no hay nadie a quien llamar para ella: su programación no tiene a nadie de guardia, la persona no tiene un número verificado para llamadas entrantes en este proyecto o ya no es miembro del proyecto. Cuando ninguna regla tiene a alguien a quien hacer sonar, quien llama oye el **Mensaje de nadie disponible**. Con **Contestar llamadas** desactivado, una política responde a cada llamada con «Sorry, this service is currently disabled.» y cuelga.
 
 OneUptime comprueba la firma de Twilio en cada petición con el Auth Token de la configuración de Twilio, y rechaza la petición que no puede verificar.
 
@@ -165,18 +165,21 @@ Los números para llamadas entrantes se verifican por SMS, así que primero el p
 
 ## Mensajes de voz y ajustes de la política
 
-Abre la política y elige **Ajustes** en **Avanzado** en su menú lateral. **Editar mensajes** en la tarjeta **Mensajes de voz** cambia lo que oyen quienes llaman; **Editar ajustes de la política** en la tarjeta **Ajustes de la política** cambia el resto.
+Abre la política y elige **Ajustes** en **Avanzado** en su menú lateral. Tiene tres tarjetas:
+
+- **Contestar llamadas**: **Contestar las llamadas a los números de esta política** se guarda en cuanto lo cambias. Desactivado, quienes llaman oyen que la línea no está disponible y no suena nadie; sus números, reglas y registros de llamadas se conservan. Desactivarlo pide confirmación antes, con **Dejar de contestar llamadas**. Mientras está desactivado, la **Vista general** de la política lo indica, con **Volver a contestar llamadas** para volver a activarlo.
+- **Política de repetición**: qué pasa cuando nadie contesta después de la última regla. **Editar** pregunta **Si nadie contesta después de la última regla**: **Terminar la llamada**, o **Volver a sonar desde la primera regla** y **¿Cuántas veces más?**.
+- **Mensajes de voz**: lo que oyen quienes llaman. **Editar mensajes** los cambia.
 
 | Ajuste | Qué hace | En una política nueva |
 | --- | --- | --- |
-| **Mensaje de bienvenida** | Se lee cuando se contesta la llamada, antes de que suene la primera persona. | "Please wait while we connect you to the on-call engineer." |
-| **Mensaje de sin respuesta** | Se lee cuando se han probado todas las reglas y nadie ha contestado. | "No one is available. Please try again later." |
-| **Mensaje de nadie disponible** | Se lee cuando ninguna regla tiene a alguien a quien hacer sonar. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Habilitado** | Una política desactivada rechaza todas las llamadas. | Activado |
-| **Repetir política si nadie responde** | Después de la última regla, volver a empezar por la primera. | Desactivado |
-| **Veces de repetición de la política** | Cuántas veces volver a empezar. | 1 |
+| **Mensaje de bienvenida** | Se lee cuando alguien llama, antes de que suene nadie. | "Please wait while we connect you to the on-call engineer." |
+| **Mensaje de sin respuesta** | Se lee cuando todas las reglas han sonado y nadie ha contestado, antes de que termine la llamada. | "No one is available. Please try again later." |
+| **Mensaje de nadie disponible** | Se lee cuando no se puede llamar a nadie, por ejemplo cuando nadie está de guardia. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Contestar las llamadas a los números de esta política** | Desactivado, cada persona que llama oye "Sorry, this service is currently disabled." y la llamada termina. | Activado |
+| **Si nadie contesta después de la última regla** | **Terminar la llamada**, o **Volver a sonar desde la primera regla**. | **Terminar la llamada** |
 
-Twilio lee los mensajes con una voz sintética, así que escríbelos como quieras que suenen.
+Twilio lee los mensajes con una voz sintética, así que escríbelos como quieras que suenen. Un mensaje que dejes vacío se lee con las palabras de OneUptime, que la tarjeta muestra en su lugar.
 
 ## Registros de llamadas
 
@@ -188,7 +191,7 @@ Cada llamada aparece en la página **Registros de llamadas** de la política, en
 | **Completado** | Alguien contestó y se pasó la llamada. |
 | **Sin respuesta** | Se probaron todas las reglas de escalado y nadie contestó. Quien llamó oyó tu **Mensaje de sin respuesta**. |
 | **El llamante colgó** | Quien llamaba colgó mientras sonaba el teléfono de una persona. |
-| **Fallido** | No se pudo hacer sonar a nadie: ninguna regla de escalado tenía a una persona de guardia con un número verificado para llamadas entrantes (quien llamó oyó tu **Mensaje de nadie disponible**), o la política está desactivada. |
+| **Fallido** | No se pudo hacer sonar a nadie: ninguna regla de escalado tenía a una persona de guardia con un número verificado para llamadas entrantes (quien llamó oyó tu **Mensaje de nadie disponible**), o **Contestar llamadas** está desactivado. |
 
 ## Llamadas perdidas
 
@@ -257,7 +260,7 @@ Una regla creada mediante la API sin `escalateAfterSeconds` suena durante 20 seg
 :::
 
 :::details La llamada se contesta, pero no suena a nadie
-El registro de llamadas dice **Fallido**. Comprueba que la política está **Habilitado**, que la programación de guardia de cada regla tiene a alguien de guardia ahora mismo y que las personas a las que hacen sonar las reglas tienen un número verificado en **Ajustes de usuario** > **Política de llamadas entrantes** > **Números de teléfono entrantes**, en este proyecto. Las reglas solo hacen sonar a miembros del proyecto.
+El registro de llamadas dice **Fallido**. Comprueba que **Contestar llamadas** está activado en los **Ajustes** de la política, que la programación de guardia de cada regla tiene a alguien de guardia ahora mismo y que las personas a las que hacen sonar las reglas tienen un número verificado en **Ajustes de usuario** > **Política de llamadas entrantes** > **Números de teléfono entrantes**, en este proyecto. Las reglas solo hacen sonar a miembros del proyecto.
 :::
 
 :::details Las llamadas acaban en el buzón de voz

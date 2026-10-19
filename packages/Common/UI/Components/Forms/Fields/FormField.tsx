@@ -39,6 +39,7 @@ import GenericObject from "../../../../Types/GenericObject";
 import { JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Typeof from "../../../../Types/Typeof";
+import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
 import React, { ReactElement, ReactNode, useEffect, useId } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
@@ -105,6 +106,8 @@ export interface ComponentProps<T extends GenericObject> {
   disableAutofocus?: boolean;
   submitForm?: (() => void) | undefined;
   setFormValues?: ((values: FormValues<T>) => void) | undefined;
+  // What an entity dropdown searches through (BasicForm's modelAPI).
+  modelAPI?: typeof ModelAPI | undefined;
 }
 
 const FormField: <T extends GenericObject>(
@@ -471,9 +474,15 @@ const FormField: <T extends GenericObject>(
         props.field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&
         props.field.selectByAccessControlProps
       ) {
+        /*
+         * The description reaches FieldLabel inside an element here, and
+         * FieldLabel looks up only a string: so it is looked up now, or it
+         * stayed English in every language beside a translated link (an
+         * on-call rule's On-Call Duty Policies).
+         */
         return (
           <span>
-            {fieldDescription}
+            {translateValue(fieldDescription)}
             <Link
               onClick={() => {
                 setShowMultiSelectCheckboxCategoryModal(true);
@@ -682,6 +691,7 @@ const FormField: <T extends GenericObject>(
                   FormFieldSchemaType.MultiSelectDropdown
                 }
                 modelType={props.field.dropdownModal.type}
+                modelAPI={props.modelAPI}
                 labelField={props.field.dropdownModal.labelField}
                 valueField={props.field.dropdownModal.valueField}
                 query={props.field.dropdownModal.query}
@@ -756,8 +766,10 @@ const FormField: <T extends GenericObject>(
               tabIndex={0}
               dataTestId={props.field.dataTestId}
               singleColumn={props.field.cardSelectSingleColumn}
+              maxColumns={props.field.cardSelectMaxColumns}
               searchable={props.field.cardSelectSearchable}
               searchPlaceholder={props.field.cardSelectSearchPlaceholder}
+              searchHint={props.field.cardSelectSearchHint}
               catalog={props.field.cardSelectCatalog}
               onChange={(value: string) => {
                 onChange(value);
@@ -867,12 +879,24 @@ const FormField: <T extends GenericObject>(
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);
               }}
+              /*
+               * Each answer in the reader's language, with its one line
+               * under it when it has one - a choice of modes reads as plain
+               * answers (a reminder rule's Resolved / Acknowledged).
+               */
               options={
                 props.field.radioButtonOptions?.map(
                   (option: BasicRadioButtonOption) => {
                     return {
-                      label: option.title,
+                      label: translateString(option.title) || option.title,
                       value: option.value,
+                      ...(option.description
+                        ? {
+                            description:
+                              translateString(option.description) ||
+                              option.description,
+                          }
+                        : {}),
                     };
                   },
                 ) || []

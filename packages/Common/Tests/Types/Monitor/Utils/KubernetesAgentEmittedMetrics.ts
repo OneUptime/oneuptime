@@ -6,24 +6,29 @@ import path from "path";
  * The metric names the kubernetes-agent chart's collectors actually send,
  * for tests that pin OneUptime's Kubernetes metric names to them.
  *
- * Nothing in the chart renames a metric (tests/metric-names_test.yaml
- * asserts that on the rendered collector configs), so what reaches ingest
- * is exactly what the upstream receivers emit. These lists are those
- * receivers' default-enabled metrics — plus the ones the chart's own
- * receiver config adds — copied from each receiver's metadata.yaml at
- * the collector version the chart pins:
+ * The chart renames one thing (tests/metric-names_test.yaml asserts that on
+ * the rendered collector configs): kubelet CPU, which the kubeletstats
+ * receiver stopped sending as k8s.node.cpu.utilization,
+ * k8s.pod.cpu.utilization and container.cpu.utilization in collector
+ * 0.125.0. The node collector's transform/cpu-utilization sends them again
+ * from the receiver's *.cpu.usage, and sends no container.cpu.usage. Apart
+ * from that, what reaches ingest is exactly what the upstream receivers
+ * emit. These lists are those receivers' default-enabled metrics — plus the
+ * ones the chart's own receiver config adds — copied from each receiver's
+ * metadata.yaml at the collector version the chart pins:
  *
- *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.96.0/receiver/k8sclusterreceiver/metadata.yaml
- *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.96.0/receiver/kubeletstatsreceiver/metadata.yaml
+ *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/k8sclusterreceiver/metadata.yaml
+ *   https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.161.0/receiver/kubeletstatsreceiver/metadata.yaml
  *
  * They go stale the moment the chart moves to another collector, which is
  * why AGENT_COLLECTOR_IMAGE_TAG is checked against values.yaml: bumping the
  * image fails the tests until someone re-reads those two files and updates
  * this one. Receivers do rename metrics between versions (the
- * semantic-conventions work moved several k8s.* names), so that re-read is
- * the point.
+ * semantic-conventions work moved several k8s.* names, and the CPU rename
+ * above is one), so that re-read is the point. At 0.161.0 both lists are
+ * what they were at 0.96.0.
  */
-export const AGENT_COLLECTOR_IMAGE_TAG: string = "0.96.0";
+export const AGENT_COLLECTOR_IMAGE_TAG: string = "0.161.0";
 
 /*
  * k8s_cluster — the agent Deployment's receiver
@@ -85,7 +90,11 @@ export const K8S_CLUSTER_RECEIVER_METRICS: ReadonlyArray<string> = [
   "k8s.node.allocatable_storage",
 ];
 
-// kubeletstats — the agent DaemonSet's receiver (templates/configmap-daemonset.yaml).
+/*
+ * kubeletstats — the agent DaemonSet's receiver
+ * (templates/configmap-daemonset.yaml). The three *.cpu.utilization are the
+ * chart's (transform/cpu-utilization, see above).
+ */
 export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "k8s.node.cpu.utilization",
   "k8s.node.cpu.time",
@@ -125,10 +134,11 @@ export const KUBELETSTATS_RECEIVER_METRICS: ReadonlyArray<string> = [
   "container.filesystem.capacity",
   "container.filesystem.usage",
   /*
-   * Off upstream; the chart always turns them on, with no flag, because
-   * k8s-high-cpu and the Kubernetes dashboard template read them. The
-   * chart's tests/kubeletstats-cpu-usage_test.yaml pins that on the
-   * rendered DaemonSet config.
+   * On upstream at 0.161.0 (off at 0.96.0); the chart turns them on all
+   * the same, with no flag, because k8s-high-cpu and the Kubernetes
+   * dashboard template read them. The chart's
+   * tests/kubeletstats-cpu-usage_test.yaml pins that on the rendered
+   * DaemonSet config.
    */
   "k8s.node.cpu.usage",
   "k8s.pod.cpu.usage",

@@ -20,6 +20,7 @@ flowchart TB
 - [Eine Eskalationsregel hinzufügen](#eine-eskalationsregel-hinzufügen): Die nächste Stufe hinzufügen, Schritt für Schritt.
 - [Wie die Stufen Personen alarmieren](#wie-die-stufen-personen-alarmieren): Zeiten, Wiederholungen und wie jede Person erreicht wird.
 - [Die nächste Person in der Rotation](#zur-nächsten-person-in-der-rotation-eskalieren): Das Backup der Person in Bereitschaft aus derselben Rotation alarmieren.
+- [Eine Alarmierung weitergeben](#eine-alarmierung-weitergeben): Sie können eine Alarmierung nicht übernehmen? Geben Sie sie sofort an die nächste Stufe weiter.
 - [API und Terraform](#regeln-mit-der-api-oder-terraform-anlegen): Richtlinien und Regeln als Code anlegen.
 :::
 
@@ -74,11 +75,11 @@ Klicken Sie auf **Regel erstellen**. Die Regel wird unter den anderen angefügt,
 
 ## Wie die Stufen Personen alarmieren
 
-Erreicht ein Vorfall oder eine Warnung die Richtlinie, alarmiert **Level 1** seine Empfänger sofort. Bestätigt niemand innerhalb der Wartezeit, wird **Level 2** alarmiert, und so weiter die Liste hinunter. Ist die Wartezeit der letzten Stufe ohne Bestätigung verstrichen, beginnt die Richtlinie wieder bei **Level 1**, wenn ihre **Wiederholungsrichtlinie** (unter den Regeln) eine Wiederholung vorsieht, so oft wie dort erlaubt, und hört sonst auf. Wird der Vorfall oder die Warnung bestätigt oder behoben, endet die Alarmierung auf jeder Stufe.
+Erreicht ein Vorfall oder eine Warnung die Richtlinie, alarmiert **Level 1** seine Empfänger sofort. Bestätigt niemand innerhalb der Wartezeit, wird **Level 2** alarmiert, und so weiter die Liste hinunter. Ist die Wartezeit der letzten Stufe ohne Bestätigung verstrichen, beginnt die Richtlinie wieder bei **Level 1**, wenn ihre **Wiederholungsrichtlinie** (unter den Regeln) eine Wiederholung vorsieht, so oft wie dort erlaubt, und hört sonst auf. Wird der Vorfall oder die Warnung bestätigt oder behoben, endet die Alarmierung auf jeder Stufe. Wer alarmiert wird und die Alarmierung nicht übernehmen kann, kann sie weitergeben, und die nächste Stufe wird ohne Wartezeit alarmiert: siehe [Eine Alarmierung weitergeben](#eine-alarmierung-weitergeben).
 
 Ein Vorfall, eine Warnung oder eine Episode, die bereits bestätigt oder behoben erstellt wird – also nachträglich erfasst –, führt keine ihrer Richtlinien aus: Niemand wird alarmiert, und ihr Feed vermerkt das und nennt die Richtlinien. Siehe [Bereits bestätigt oder behoben gemeldet](/docs/incidents/declaring-incidents#bereits-bestätigt-oder-behoben-gemeldet).
 
-Um eine Richtlinie zu wiederholen, klicken Sie auf der Karte **Wiederholungsrichtlinie** auf **Bearbeiten**, schalten **Wiederholen, wenn niemand bestätigt** ein und legen die **Anzahl der Wiederholungen** fest.
+Um eine Richtlinie zu wiederholen, klicken Sie auf der Karte **Wiederholungsrichtlinie** auf **Bearbeiten**, wählen **Erneut bei Level 1 beginnen** und legen **Wie oft noch?** fest.
 
 ### Die Eskalationsübersicht
 
@@ -162,6 +163,45 @@ Die Nachricht des Laufs in Slack und Microsoft Teams, der Feed des Vorfalls und 
 
 > [!TIP]
 > Ein Plan genügt: Es gibt keinen zweiten Backup-Plan, den Sie mit dem ersten abgleichen müssen, und die Abwesenheiten, die seine Personen eintragen, gelten für beide Stufen.
+
+## Eine Alarmierung weitergeben
+
+Wer alarmiert wird und die Alarmierung nicht übernehmen kann, weil er schläft, im Flugzeug sitzt oder schon an einem anderen Vorfall arbeitet, kann sie weitergeben, statt sie auslaufen zu lassen. Die Richtlinie alarmiert dann sofort ihre nächste Stufe, ohne das **Eskalieren nach (in Minuten)** der Stufe abzuwarten, und die Person wird dazu nicht mehr alarmiert.
+
+```mermaid title="Eine weitergegebene Alarmierung bringt die Richtlinie sofort zur nächsten Stufe"
+flowchart TB
+    page["Level 1 alarmiert Alex"] --> take{"Kann Alex<br/>übernehmen?"}
+    take -->|"Ja"| ack["Alex bestätigt:<br/>Alarmierung endet"]
+    take -->|"Nein"| pass["Alex gibt sie weiter"]
+    pass --> others{"Wird auf Level 1<br/>noch jemand alarmiert?"}
+    others -->|"Ja"| wait["Die Richtlinie wartet<br/>wie bisher auf sie"]
+    others -->|"Nein"| next["Level 2 wird<br/>jetzt alarmiert"]
+```
+
+Jede Alarmierung lässt sich dort weitergeben, wo sie Sie erreicht hat:
+
+| Wo | So geben Sie sie weiter |
+| --- | --- |
+| E-Mail | Die Schaltfläche **Pass it on**, dann **Pass it on** auf der Seite, die sie öffnet |
+| SMS und WhatsApp | Der Link in der Nachricht öffnet die Bestätigungsseite, auf der auch **Pass it on** steht |
+| Telegram, Slack und Microsoft Teams | Der Link "Can't take it? Pass it on", dann **Pass it on** auf der Seite, die er öffnet |
+| Anruf | Drücken Sie die 2. Der Anruf sagt danach, was geschehen ist |
+| Push-Benachrichtigung | Tippen Sie darauf: Der Vorfall, die Warnung oder die Episode öffnet sich in der OneUptime On-Call App, mit **Pass it on** darunter |
+| OneUptime | **Weitergeben** oben im Vorfall, in der Warnung oder in der Episode, nach den Statusschaltflächen |
+
+Jeder Weg außer dem Anruf fragt nach, bevor er etwas tut, und sagt, was geschehen wird, etwa „Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.“; bei einem Anruf ist das Drücken der 2 die Antwort. Nur die alarmierte Person kann ihre Alarmierung weitergeben: Die Schaltfläche in OneUptime sieht nur sie, und der Link in einer Nachricht gibt nur die Alarmierung weiter, um die es darin geht, nur für die Person, an die sie ging, und nur 7 Tage lang.
+
+Was danach geschieht, hängt davon ab, wer sonst noch alarmiert wird:
+
+- Andere auf derselben Stufe werden noch alarmiert: Die Richtlinie wartet wie bisher auf sie. Sie geht weiter, wenn die Wartezeit der Stufe abläuft, oder sobald auch der Letzte von ihnen die Alarmierung weitergibt.
+- Auf der Stufe ist sonst niemand mehr übrig: Die nächste Stufe wird sofort alarmiert.
+- Es war die letzte Stufe: Sieht die **Wiederholungsrichtlinie** eine Wiederholung vor, beginnt die Richtlinie sofort wieder bei **Level 1**. Sonst endet die Alarmierung, und jemand muss sich darum kümmern.
+
+Eine Alarmierung weiterzugeben bestätigt sie nicht: Der Vorfall oder die Warnung wartet weiter darauf, dass jemand bestätigt, und wer sie weitergegeben hat, kann sie trotzdem selbst bestätigen. Dieser Lauf alarmiert die Person dazu nicht mehr: Eine spätere Stufe oder eine Wiederholung, die sie nennt, übergeht sie. Haben alle, die er alarmiert hat, weitergegeben und ist niemand mehr zu alarmieren, endet die Alarmierung, und der Feed des Vorfalls vermerkt das.
+
+Eine Alarmierung, die ein Workflow direkt an Personen sendet, hat keine Stufen: Wenn Sie sie weitergeben, werden Sie nicht mehr alarmiert, und sobald alle, die sie alarmiert hat, sie weitergegeben haben, endet die Alarmierung.
+
+Jedes Weitergeben wird festgehalten. Die **Zeitachse der Ausführung** des Laufs markiert die Zeile der Person mit **Weitergegeben**, der Feed des Vorfalls sagt „Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.“, die Nachricht des Laufs in Slack und Microsoft Teams sagt, dass die Person sie weitergegeben hat, und ihre **Bereitschaftsprotokolle** zeigen die Alarmierung als **Weitergegeben**.
 
 ## Regeln bearbeiten, umsortieren und löschen
 

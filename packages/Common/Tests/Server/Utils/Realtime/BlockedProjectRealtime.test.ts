@@ -32,6 +32,7 @@ import RealtimeReaders, {
 } from "../../../../Server/Utils/Realtime/RealtimeReaders";
 import User from "../../../../Models/DatabaseModels/User";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import JsonWebTokenPurpose from "../../../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
   UserGlobalAccessPermission,
@@ -91,6 +92,7 @@ const socketOf: (isMasterAdmin: boolean) => RealtimeHandshakeSocket = (
       name: "Mia Member",
       isMasterAdmin: isMasterAdmin,
       sessionId: "b2000000-0000-4000-8000-000000000002",
+      purpose: JsonWebTokenPurpose.UserSession,
     },
     15 * 60,
   );
@@ -118,6 +120,8 @@ beforeEach(() => {
     .spyOn(GlobalConfigService, "getRequireSsoForLogin")
     .mockResolvedValue(false);
   jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  // A session that says master admin is one whose person still is one.
+  jest.spyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
   jest
     .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
     .mockResolvedValue(GLOBAL_PERMISSION);

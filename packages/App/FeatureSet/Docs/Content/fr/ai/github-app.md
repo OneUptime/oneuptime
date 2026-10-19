@@ -108,7 +108,7 @@ Chaque commande qui lance du travail est une exécution complète de l'agent : u
 
 Les commandes GitHub sont du travail d'IA en dehors des incidents et des alertes, donc aucune limite quotidienne de tâches de correction ne s'y applique ; les limites quotidiennes d'IA propres au projet s'appliquent, quand le projet en fixe. La seule autre limite est celle qui régit déjà les [Tâches de correction](/docs/ai/ai-agent) :
 
-- **Le plafond de pull requests ouvertes** (**Nombre max de demandes de tirage de correctifs ouvertes**, sur la page **Paramètres** du dépôt). Il n'y a pas de plafond tant que vous n'en fixez pas, et 0 bloque les pull requests de correctif IA sur ce dépôt. Les relectures et les révisions en sont exemptées : aucune n'ajoute de pull request à votre file de relecture.
+- **Le plafond de pull requests ouvertes** (**Nombre max de demandes de tirage de correctifs ouvertes**, sur la page **Paramètres** du dépôt). **Demandes de tirage de correctifs IA** est sur **Aucune limite** tant que vous ne choisissez pas **Une limite**, ou **Aucun**, qui bloque les pull requests de correctif IA sur ce dépôt. Les relectures et les révisions en sont exemptées : aucune n'ajoute de pull request à votre file de relecture.
 
 Une seule exécution d'un même type est active à la fois par issue ou pull request. Demander deux fois vous indique qu'elle travaille déjà ; demander une relecture pendant qu'une révision tourne lance les deux, puisque ce sont des demandes différentes.
 

@@ -13,12 +13,12 @@ OneUptime pages people on their phones through the **OneUptime On-Call** mobile 
 
 ```mermaid title="How a push reaches a phone or a browser"
 flowchart TB
-    Server["Your OneUptime server"]
-    Relay["OneUptime push relay"]
+    Server["Your OneUptime<br/>server"]
+    Relay["OneUptime<br/>push relay"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["OneUptime On-Call app"]
+    Phone["OneUptime<br/>On-Call app"]
     PushService["The browser's<br/>push service"]
     Browser["Browser"]
     Server -->|"no EXPO_ACCESS_TOKEN"| Relay
@@ -28,7 +28,7 @@ flowchart TB
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -44,6 +44,7 @@ No Expo credentials are required on the server when using the official mobile ap
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Where mobile pushes go while `EXPO_ACCESS_TOKEN` is unset. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Empty | Sends mobile pushes to Expo directly, with your Expo project's token. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Empty | Relays mobile pushes for other OneUptime servers, with this server's `EXPO_ACCESS_TOKEN`. Empty means off, unless `BILLING_ENABLED` is `true`. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Empty | The public half of the key pair browsers subscribe with. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Empty | The private half, which signs every web push. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | A contact address the browser push services can reach you on. |
@@ -81,6 +82,8 @@ expo:
 | Mobile app or browser → OneUptime | Your OneUptime hostname | HTTPS / TCP 443 | Sign in, register the device and open notification links. |
 
 If you change `PUSH_NOTIFICATION_RELAY_URL`, allow its destination hostname and configured port. A custom relay must implement OneUptime's relay API. These defaults and the switch between relay and direct delivery are defined in [OneUptime's configuration](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) and [push service](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Direct Expo requests use the endpoint documented in [Expo's sending guide](https://docs.expo.dev/push-notifications/sending-notifications/). OneUptime reads delivery receipts from the relay at the same address with `/receipts` in place of `/send`. A relay without that route still delivers pushes; a device whose app was removed is then noticed only when a later push to it is refused.
+
+A self-hosted OneUptime server relays pushes for other servers only with `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` and its own `EXPO_ACCESS_TOKEN`; without the setting it answers 404 at that address. Turn it on only on the server your other OneUptime servers send through, and let only those servers reach that address.
 
 For web push, allow the actual subscription endpoint hosts for the browsers your team uses. OneUptime accepts `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` and `push.apple.com`, including their subdomains. Typical examples include `updates.push.services.mozilla.com` and `web.push.apple.com`. The [browser's push subscription](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) supplies the destination; allowing only Expo or OneUptime's relay does not enable web push.
 
@@ -121,7 +124,7 @@ flowchart TB
 
 Four things must all be true for a page to override silent mode. If any one is missing, the page is still delivered - just quietly.
 
-1. **The responder turned it on for that device.** Stored per device, off by default, in `UserPush.isCriticalAlertEnabled`. A responder's phone and their tablet are separate decisions.
+1. **The responder turned it on for that device.** Stored per device, off by default, in `UserPush.isCriticalAlertEnabled`. A responder's phone and their tablet are separate decisions. Versions of the app newer than 1.6.0 report it again each time they are opened, as off while the phone's own settings do not allow critical alerts, so the device list shows what the phone will really do.
 2. **The on-call rule that sent the page asks for it.** Under **User Settings > On-Call Rules**, every rule that notifies a phone is set to Critical alert, the default, or Standard, which follows the phone's sound settings - so a responder can be woken for a critical incident and paged quietly for a minor one. Stored per rule in `UserNotificationRule.pushNotificationLevel`.
 3. **The server marks the page critical.** It sends the APNs critical sound payload plus `interruptionLevel: critical` for iOS, and targets a critical notification channel for Android: `oncall_critical`, or the chosen alarm's own channel (see [Choosing the alarm sound](#choosing-the-alarm-sound)).
 4. **The operating system allows it**, which is where the two platforms differ.
@@ -192,7 +195,7 @@ A push rule can send its page again until somebody acknowledges it. Under **User
 - **iOS**: confirm the build carries Apple's critical alerts entitlement (see above), and that Critical Alerts is allowed under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: confirm the app has Do Not Disturb access under Settings > Notifications > Do Not Disturb access
 - **Android**: if you chose an alarm sound, its own notification channel must be allowed to override Do Not Disturb too; the app's Alarm sound screen says when it is not
-- The settings screen states which of these is missing; it reads the current state back from the OS rather than trusting what the app last requested
+- The settings screen states which of these is missing; it reads the current state back from the OS rather than trusting what the app last requested, and tells the server what it finds
 
 ### Pushes marked "not delivered"
 

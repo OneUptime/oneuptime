@@ -17,11 +17,11 @@ Een deel van wat je schrijft, is voor je klanten — de update die om 02:14 op d
 flowchart TB
     subgraph write["Wat je schrijft"]
         direction LR
-        public["Openbare notitie"]
+        public["Openbare<br/>notitie"]
         private["Privénotitie"]
     end
-    public --> page["Statuspagina en abonnees"]
-    public --> owners["Eigenaren van het incident"]
+    public --> page["Statuspagina<br/>en abonnees"]
+    public --> owners["Eigenaren<br/>van het<br/>incident"]
     private --> owners
     public --> feed["Incidentfeed"]
     private --> feed
@@ -44,7 +44,7 @@ De twee soorten notities lijken in het dashboard op elkaar en gedragen zich heel
 | Bijlagen bereikbaar voor | Bezoekers van de statuspagina, via een route van de statuspagina    | Alleen de geauthenticeerde dashboard-API                        |
 | Meldt eigenaren          | Ja                                                                  | Ja                                                              |
 
-**Wat "privé" werkelijk betekent.** Het betekent "niet gepubliceerd op de statuspagina" — niet "beperkt tot een kleinere groep mensen". De ingebouwde rollen die een incident kunnen lezen, lezen beide soorten notities, dus wie het incident kan lezen, kan meestal ook de privénotities lezen; in een aangepaste rol zijn het aparte machtigingen, **Read Incident Status Page Note** en **Read Incident Internal Note**. Moet je beperken wie een incident überhaupt kan zien, gebruik dan de vlag **Privé-incident** (`isPrivate`) op het incident zelf, die het incident voor elke statuspagina verbergt en het beperkt tot de gebruikers die eigenaar zijn, de leden van de teams die eigenaar zijn, en projectbeheerders en projecteigenaren.
+**Wat "privé" werkelijk betekent.** Het betekent "niet gepubliceerd op de statuspagina" — niet "beperkt tot een kleinere groep mensen". De ingebouwde rollen die een incident kunnen lezen, lezen beide soorten notities, dus wie het incident kan lezen, kan meestal ook de privénotities lezen; in een aangepaste rol zijn het aparte machtigingen, **Read Incident Status Page Note** en **Read Incident Internal Note**. Moet je beperken wie een incident überhaupt kan zien, gebruik dan de vlag **Privé-incident** (`isPrivate`) op het incident zelf, die het incident voor elke statuspagina verbergt en het beperkt tot de gebruikers die eigenaar zijn, de leden van de teams die eigenaar zijn, en projectbeheerders en projecteigenaren. Een privé-incident krijgt helemaal geen openbare notities: zie [Privé-incidenten krijgen alleen privénotities](#privé-incidenten-krijgen-alleen-privénotities).
 
 **Eigenaren zien beide.** De taak die eigenaren meldingen stuurt, vraagt openbare en privénotities samen op. Een privénotitie is privé voor je abonnees, niet voor de mensen die reageren.
 
@@ -86,7 +86,7 @@ Dezelfde editor opent in een dialoogvenster vanuit **Add Public Note** in het me
 | **Posted now**                     | Wanneer de notitie zegt geplaatst te zijn: het moment dat je haar plaatst, tenzij je hier een eerder tijdstip kiest, in je huidige tijdzone.   |
 | **Notify status page subscribers** | Selectievakje. Standaard aan, tenzij het incident werd gemeld zonder abonnees op de hoogte te stellen — dan begint het uit. Zet het uit om stil te publiceren. |
 
-**Stille incidenten blijven stil.** Werd een incident gemeld met **Statuspagina-abonnees op de hoogte stellen** uit (of als privé-incident), dan hebben de abonnees er nooit iets over gehoord, dus een openbare notitie hoort niet het eerste te zijn wat ze horen. Op zo'n incident begint het selectievakje uit, met een regel eronder die uitlegt waarom. Je kunt het nog steeds aanvinken om abonnees over die notitie te informeren. Notities die zonder expliciete keuze worden geplaatst, volgen dezelfde regel: notities uit Slack en Microsoft Teams, workflows, en API-verzoeken die `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` weglaten. Een expliciete `true` of `false` blijft altijd behouden. Openbare notities op [gepland-onderhoudsevenementen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen) en [incidentepisodes](/docs/status-pages/subscribers#incidentepisoden) volgen een vergelijkbare regel, gebaseerd op of het evenement of de episode zelf bij het aanmaken abonnees een melding stuurde; een episode privé maken heeft daar geen invloed op.
+**Stille incidenten blijven stil.** Werd een incident gemeld met **Statuspagina-abonnees op de hoogte stellen** uit (of als privé-incident), dan hebben de abonnees er nooit iets over gehoord, dus een openbare notitie hoort niet het eerste te zijn wat ze horen. Op zo'n incident begint het selectievakje uit, met een regel eronder die uitlegt waarom. Je kunt het nog steeds aanvinken om abonnees over die notitie te informeren. Notities die zonder expliciete keuze worden geplaatst, volgen dezelfde regel: notities uit Slack en Microsoft Teams, workflows, en API-verzoeken die `shouldStatusPageSubscribersBeNotifiedOnNoteCreated` weglaten. Een expliciete `true` of `false` blijft altijd behouden. Openbare notities op [gepland-onderhoudsevenementen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen) en [incidentepisodes](/docs/status-pages/subscribers#incidentepisoden) volgen een vergelijkbare regel, gebaseerd op of het evenement of de episode zelf bij het aanmaken abonnees een melding stuurde. Een privé-incident of privé-episode krijgt helemaal geen openbare notities.
 
 **Zie wie de notitie bereikt.** Zolang **Notify status page subscribers** aangevinkt is, noemt een regel **Will notify** eronder de statuspagina's waar de notitie naartoe gaat, met per kanaal een aantal abonnees "tot", en de pagina's die de monitoren van het incident tonen maar geen bericht krijgen, met de reden. Krijgt niemand bericht, dan toont hij niets, tenzij het incident verborgen is voor statuspagina's of het bereik van statuspagina's van het incident de reden is. Hij volgt het bereik van statuspagina's van het incident, dus een notitie op een incident dat tot twee locatiepagina's is beperkt, zegt dat ze die twee bereikt. Zie [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience).
 
@@ -95,7 +95,7 @@ Dezelfde editor opent in een dialoogvenster vanuit **Add Public Note** in het me
 > [!TIP]
 > **De plaatsingstijd is het echte tijdstempel van de notitie.** Statuspagina's sorteren en tonen openbare notities op `postedAt`, niet op wanneer je ze typte — dus als je de statuspagina bijwerkt met een update die je 40 minuten geleden verstuurde, kies dan **Posted now** en stel in wanneer het echt gebeurde. Komt een notitie via de API (`/api/incident-public-note`) zonder tijdstip binnen, dan stempelt OneUptime de huidige tijd.
 
-Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdown met haar bijlagen en, in haar kop, hoe het met haar melding aan abonnees staat. **Search notes…** vindt notities op wat ze zeggen, en de feed kan met de nieuwste of de oudste eerst worden gelezen.
+Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdown met haar bijlagen en, in haar kop, hoe het met haar melding aan abonnees staat. **Search notes…** vindt notities op wat ze zeggen, en de feed kan met de nieuwste of de oudste eerst worden gelezen. Links naar andere sites en naar bijlagen openen in een nieuw tabblad. Regels die met `>` beginnen, worden als citaat getoond; begin het met een eigen regel, `> [!NOTE]`, `> [!TIP]` of `> [!WARNING]`, om het in plaats daarvan als opvallend kader te tonen.
 
 ## Een privénotitie plaatsen
 
@@ -104,6 +104,17 @@ Elke notitie toont wie haar schreef, haar plaatsingstijd, de weergegeven Markdow
 Geen plaatsingstijd, geen selectievakje voor abonnees — de notitie wordt gestempeld wanneer ze wordt aangemaakt.
 
 Beide soorten notities worden geschreven in de Markdown-editor, die lijstitems nest met **Inspringing vergroten** en **Inspringing verkleinen** — of Tab en Shift+Tab — en de lijsten, links en opmaak behoudt van wat je plakt uit Word, Google Docs of een andere OneUptime-pagina. Ctrl+Z maakt een inspringing ongedaan, en in de visuele modus ook de blokken en plakbewerkingen die de editor invoegde, in volgorde met wat je typte. Een codeblok dat je uit een notitie kopieert, wordt weer geplakt als codeblok, en een woord dat je eruit kopieert als inline code. Zie [Een incident melden](/docs/incidents/declaring-incidents#stap-1-incidentdetails).
+
+## Privé-incidenten krijgen alleen privénotities
+
+Een privé-incident staat op geen enkele statuspagina en stuurt geen enkele abonnee een melding (zie [Een incident van de statuspagina houden](/docs/incidents/states-and-severities#een-incident-van-de-statuspagina-houden)), dus een openbare notitie erbij zou niemand bereiken voor wie ze geschreven is. OneUptime biedt er geen aan:
+
+- **De pagina met openbare notities** zegt "Dit incident is privé, dus er kunnen geen openbare notities aan worden toegevoegd. Gebruik een privénotitie." waar het invoerveld stond, met een knop **Privénotitie toevoegen** die de privénotities opent. **Add Public Note** in het menu **Acties** van de feed is vergrendeld en zegt hetzelfde.
+- **Bij het wijzigen van de status** vouwt het dialoogvenster een privénotitie onder **Privénotitie toevoegen** in plaats van de openbare, en vraagt niets over abonnees. De bulkactie **Status wijzigen** voegt haar notitie als privénotitie toe aan elk privé-incident dat ze verplaatst, en stuurt niemand een melding over die incidenten.
+- **In Slack en Microsoft Teams** slaat een 📣 of 📢 op een bericht in het kanaal het bericht op als privénotitie, en de bevestiging zegt waarom.
+- **Via de API, workflows en OneUptime AI** wordt een openbare notitie erbij geweigerd met dezelfde zin, en een statuswijziging die met zo'n notitie wordt verstuurd, wordt in zijn geheel geweigerd, dus de status verandert niet. De herinneringen voor openbare notities van een SLA-regel wachten tot het weer openbaar is; de privéherinneringen worden gewoon geplaatst.
+
+Openbare notities die zijn geplaatst voordat het incident privé werd, blijven. Je kunt ze nog steeds lezen, bewerken en verwijderen, maar niets biedt aan abonnees erover te informeren. Maak het incident weer openbaar, dan verschijnen ze weer op de statuspagina's en kunnen er nieuwe openbare notities worden toegevoegd. Incidentepisodes werken op dezelfde manier.
 
 ## Bijlagen bij notities
 
@@ -153,7 +164,7 @@ Je beheert ze onder **Incidenten → Instellingen → Notitie-sjablonen** — de
 
 ## Notities plaatsen vanuit Slack of Microsoft Teams
 
-Heb je een werkruimte gekoppeld, dan hoeven responders het kanaal nooit te verlaten. Zowel Slack als Microsoft Teams biedt een actie om een notitie toe te voegen die een dialoogvenster opent met een vervolgkeuzelijst **Note Type** — **Public Note** (geplaatst op de statuspagina) of **Private Note** (alleen zichtbaar voor teamleden) — en een tekstvak **Note**, en die het resultaat rechtstreeks op het incident schrijft.
+Heb je een werkruimte gekoppeld, dan hoeven responders het kanaal nooit te verlaten. Zowel Slack als Microsoft Teams biedt een actie om een notitie toe te voegen die een dialoogvenster opent met een vervolgkeuzelijst **Note Type** — **Public Note** (geplaatst op de statuspagina) of **Private Note** (alleen zichtbaar voor teamleden) — en een tekstvak **Note**, en die het resultaat rechtstreeks op het incident schrijft. Bij een privé-incident vraagt het niet om een **Note Type** en voegt het een privénotitie toe: zie [Privé-incidenten krijgen alleen privénotities](#privé-incidenten-krijgen-alleen-privénotities).
 
 Drie details die het weten waard zijn:
 
@@ -259,11 +270,11 @@ Feeditems worden geschreven door de incidentservice zelf, door beide notitieserv
 
 - **Het incident zelf** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. Een item `IncidentUpdated` legt vast wat een bewerking veranderde: de titel, de beschrijving, de hoofdoorzaak, de herstelnotities, de labels, de ernst, de monitoren en de status die erop werd gezet, en de statuspagina's die aan het bereik van het incident werden toegevoegd of eruit werden verwijderd. Het heeft een regel voor elke waarde die veranderde en geen voor een waarde die ongewijzigd werd opgeslagen, dus een kaart opslaan zonder dat er iets is veranderd, of een API-client of een workflow die het incident terugschrijft zoals het is, voegt helemaal geen item toe. Tekst die hetzelfde leest, is hetzelfde (regeleinden en de spaties eromheen daargelaten), en labels zijn dezelfde set in elke volgorde; een waarde die werd gewist, leest als verwijderd, en alle labels eraf halen als "All labels removed.". De items **Alert updated** van een waarschuwing werken op dezelfde manier.
 - **Notities en verslagen** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. Een item `PostmortemNote` wordt geschreven wanneer de notitie van het postmortem verandert, niet elke keer dat het postmortem wordt opgeslagen.
-- **Personen** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
+- **Personen** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved` en `ChannelMemberAdded`, getoond als **Kanaallid toegevoegd**, voor iemand die vanaf de pagina van het incident aan zijn Slack-kanaal is toegevoegd. Zie [Wie er in het kanaal van een record zit](/docs/workspace-connections/slack#wie-er-in-het-kanaal-van-een-record-zit).
 - **Gekoppelde waarschuwingen** — `AlertLinked` en `AlertUnlinked`, getoond als **Waarschuwing gekoppeld** en **Waarschuwing ontkoppeld**.
 - **Meldingen** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
-- **Videogesprekken** — `VideoCallStarted` en `VideoCallFailed`: een gesprek dat voor het incident is gestart, met de deelnamelink, of de reden waarom een provider er geen kon starten. Zie [Videogesprekken](/docs/workspace-connections/video-calls).
+- **Videogesprekken** — `VideoCallStarted`, `VideoCallFailed`, `VideoCallTranscriptAdded` en `VideoCallSummary`: een gesprek dat voor het incident is gestart, met de deelnamelink, de reden waarom een provider er geen kon starten, de transcriptie van een gesprek, door iemand toegevoegd of bij de provider gelezen, of wat OneUptime AI erin heeft gelezen, wat ook in de kanalen van het incident wordt geplaatst. Zie [Videogesprekken](/docs/workspace-connections/video-calls).
 
 Elk type krijgt zijn eigen pictogram, zodat je een lange feed kunt doorlopen en de statuswijzigingen uit het geklets kunt pikken. Door AI gegenereerde analyses van de hoofdoorzaak worden apart gemarkeerd en in een beperkte Markdown-modus weergegeven. Het item **Incident aangemaakt**, het item dat een nieuwe titel vastlegt en de items voor het toetreden tot of verlaten van een episode tonen een titel precies zoals hij is getypt: ze escapen `\`, `[`, `]`, `*`, `_`, `~`, backticks en \< erin, zodat een titel geen afbeelding, ruwe HTML, Slack-vermelding zoals \<!here\>, link waarvan de tekst verbergt waar hij heen gaat, of vette, cursieve of codetekst kan worden. Een adres in een titel verschijnt nog steeds als link naar datzelfde adres.
 

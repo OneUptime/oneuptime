@@ -1,0 +1,17 @@
+{
+  "_comment": "The Amazon EKS add-on delivery option every new version of the Kubernetes agent's AWS Marketplace container product gets (Catalog API, AddDeliveryOptions with EksAddOnDeliveryOptionDetails; automation/aws_catalog.py). AWS publishes each version as Limited, in the EKS add-on catalog of the seller account's ap-northeast-2 (Seoul) clusters only, until it has been tested there on every compatibleKubernetesVersions entry and made public (aws_catalog.py --edition aws-eks-addon go-public). addOnName, addOnType and namespace can never change once a version has them. AWS prefixes addOnName with the seller alias in editions.json: {addOnName} below is that full name. EKS fills clusterName in with the cluster's name at install (${AWS_EKS_CLUSTER_NAME}). Description: at most 1,000 characters; usage instructions: at most 4,000.",
+  "title": "Amazon EKS add-on",
+  "addOnName": "kubernetes-agent",
+  "addOnType": "monitoring",
+  "namespace": "oneuptime-agent",
+  "compatibleKubernetesVersions": ["1.34", "1.35", "1.36", "1.37"],
+  "supportedArchitectures": ["amd64", "arm64"],
+  "environmentOverrideParameters": [
+    {
+      "Key": "clusterName",
+      "Value": "${AWS_EKS_CLUSTER_NAME}"
+    }
+  ],
+  "description": "The OneUptime Kubernetes agent, installed and upgraded by Amazon EKS. It sends your cluster's metrics, Kubernetes events and pod logs to OneUptime over OpenTelemetry, with eBPF the traces and request metrics of every pod with no code changes, and runs read-only kubectl for OneUptime AI's incident investigations. This product extends the functionality of OneUptime, and without it this product has very limited utility: it needs a OneUptime project, on OneUptime Cloud (also on AWS Marketplace) or on your own OneUptime, and an ongoing internet connection to it. Guide: https://oneuptime.com/docs/telemetry/kubernetes-agent#install-as-an-amazon-eks-add-on",
+  "usageInstructions": "Before you install:\n1. Create an ingestion key in OneUptime, under Project Settings > Telemetry & APM > Ingestion Keys.\n2. Create the add-on's namespace and a Secret that holds the key:\n   kubectl create namespace oneuptime-agent\n   kubectl create secret generic oneuptime-ingestion-key --namespace oneuptime-agent --from-literal=api-key=<ingestion key>\n\nThen add the add-on in the Amazon EKS console (your cluster > Add-ons > Get more add-ons), or:\n   aws eks create-addon --cluster-name <cluster> --addon-name {addOnName}\n\nBy default it sends to OneUptime Cloud (https://oneuptime.com), and the cluster appears in OneUptime under its EKS name within a few minutes. Set configuration values to change that:\n- Your own OneUptime: {\"oneuptime\": {\"url\": \"https://oneuptime.example.com\"}}\n- Another Secret: {\"oneuptime\": {\"existingSecretName\": \"my-secret\"}}\n- A cluster that runs only on Fargate: {\"preset\": \"eks-fargate\"}\n- No eBPF traces (the eBPF pod runs privileged): {\"ebpf\": {\"enabled\": false}}\n\nThis product requires an ongoing internet connection to your OneUptime, over HTTPS.\n\nGuide: https://oneuptime.com/docs/telemetry/kubernetes-agent#install-as-an-amazon-eks-add-on\nSupport: https://oneuptime.com/support"
+}

@@ -55,7 +55,7 @@ flowchart TB
     probe -->|Yes| groups["Run each metric group"]
     groups --> group{"Group collected?"}
     group -->|Yes| metrics["Metrics reported"]
-    group -->|No| issue["Metrics absent, issue noted"]
+    group -->|No| issue["Metrics absent,<br/>issue noted"]
     metrics --> criteria["Criteria evaluated"]
     issue --> criteria
 ```
@@ -168,7 +168,7 @@ Pick the **Database Type**, then fill in the host, port, database name and the m
 
 ### Choose what to collect
 
-Leave every group under **Metric Groups** on unless you have a reason to turn one off — see [Metric groups](#metric-groups).
+Every group under **Metric Groups**, in **More fields**, starts on. Leave them on unless you have a reason to turn one off — see [Metric groups](#metric-groups).
 
 ### Test the connection
 
@@ -191,13 +191,14 @@ Select the **Probes** that can reach the database and a **Monitoring Interval**,
 | **Host** | The database host reachable from the probe (for example `db.internal`). |
 | **Port** | The database port. |
 | **Database Name** | The database to connect to. Database-scoped metrics (size, cache hit ratio, temp spill) are reported for this database; server-scoped metrics (connections, uptime, replication) are reported for the whole server — except on Azure SQL Database, where connections are counted for the monitored database only. |
-| **Use Windows Integrated Authentication** | Microsoft SQL Server only. Authenticate with the identity of the probe process instead of a username and password. See [Windows Integrated Authentication](/docs/monitor/sql-monitor#windows-integrated-authentication) on the SQL Query Monitor page — the setup is identical. |
+| **Authentication** | Microsoft SQL Server only: **Username and password**, the default, or **Windows Integrated Authentication**, which signs in as the probe process. See [Windows Integrated Authentication](/docs/monitor/sql-monitor#windows-integrated-authentication) on the SQL Query Monitor page — the setup is identical. |
 | **Username** | The monitoring user. Required unless you use Windows Integrated Authentication. |
 | **Password** | The password. Reference a [Monitor Secret](/docs/monitor/monitor-secrets) with `{{monitorSecrets.name}}` rather than typing it in plain text (see [Using a Monitor Secret](#using-a-monitor-secret-for-the-password)). |
 | **Use SSL/TLS** | Connect over TLS. When enabled you can turn off **Verify server certificate** for a self-signed certificate. |
-| **Metric Groups** | Which groups to run: Connections, Activity, Throughput, Locks and Blocking, Storage, Replication and Maintenance. All are on by default; see [Metric groups](#metric-groups). The monitor's details list them as **Collected Metric Groups**. |
 
 ### More fields
+
+**Metric Groups** waits here: which groups to run, out of Connections, Activity, Throughput, Locks and Blocking, Storage, Replication and Maintenance. All are on by default; see [Metric groups](#metric-groups). The monitor's details list them as **Collected Metric Groups**.
 
 | Field | Default | Maximum | What it limits |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL measures them only when `track_io_timing` is on, and it is off by def
 :::
 
 :::details Metric Groups Failed is above 0 on every check
-A group cannot be collected on any check, so the same collection issue repeats. The monitor's summary names the group, the reason and the `GRANT` that fixes it. Run the grant, or, if you cannot get it, turn that group off under **Metric Groups** so the issue stops recurring.
+A group cannot be collected on any check, so the same collection issue repeats. The monitor's summary names the group, the reason and the `GRANT` that fixes it. Run the grant, or, if you cannot get it, turn that group off under **More fields → Metric Groups** so the issue stops recurring.
 :::
 
 ## Next steps

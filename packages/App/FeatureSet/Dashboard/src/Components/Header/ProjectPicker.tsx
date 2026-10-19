@@ -1,17 +1,15 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
-import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONValue } from "Common/Types/JSON";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Field from "Common/UI/Components/Forms/Types/Field";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectPicker from "Common/UI/Components/Header/ProjectPicker/ProjectPicker";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
-import Toggle from "Common/UI/Components/Toggle/Toggle";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { getCreateProjectFormFields } from "Common/UI/Components/Project/CreateProjectFormFields";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
-import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import Analytics, { PurchaseData } from "Common/Utils/Analytics";
@@ -26,6 +24,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -42,19 +41,36 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [showModal, setShowModal] = useState<boolean>(false);
 
-  const [initialValues, setInitialValues] = useState<any>({});
-
   const [canCreateProject, setCanCreateProject] = useState<boolean>(true);
 
-  useEffect(() => {
-    // check if promocode exists in localstorage and if it does, add it to initialValues.
+  /*
+   * A promo code that came with the sign-up link (Accounts keeps it from
+   * ?promoCode=) is filled in each time the dialog opens. It can be edited
+   * or cleared: it used to be locked, so a code that no longer applied
+   * stopped every project from being created until the browser forgot it.
+   */
+  const initialValues: FormValues<Project> = useMemo(() => {
+    if (!showModal) {
+      return {};
+    }
+
     const promoCode: JSONValue = LocalStorage.getItem("promoCode");
 
-    if (promoCode) {
-      setInitialValues({
-        paymentProviderPromoCode: promoCode,
-      });
-    }
+    return promoCode
+      ? ({
+          paymentProviderPromoCode: promoCode.toString(),
+        } as FormValues<Project>)
+      : {};
+  }, [showModal]);
+
+  // Name, plan and promo code (CreateProjectFormFields); the name alone without billing.
+  const fields: Array<Field<Project>> = useMemo(() => {
+    return getCreateProjectFormFields({
+      isBillingEnabled: BILLING_ENABLED,
+      plans: BILLING_ENABLED
+        ? SubscriptionPlan.getSubscriptionPlans(getAllEnvVars())
+        : [],
+    });
   }, []);
 
   useEffect(() => {
@@ -71,32 +87,6 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         setCanCreateProject(true);
       });
   }, []);
-
-  useEffect(() => {
-    refreshFields();
-  }, [initialValues]);
-
-  const getFooter: GetReactElementFunction = (): ReactElement => {
-    if (!BILLING_ENABLED) {
-      return <></>;
-    }
-
-    return (
-      <Toggle
-        title="Yearly Plan"
-        value={isSubscriptionPlanYearly}
-        description="(Save 20%)"
-        onChange={(value: boolean) => {
-          setIsSubscriptionPlanYearly(value);
-        }}
-      />
-    );
-  };
-
-  const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
-    useState<boolean>(true);
-
-  const [fields, setFields] = useState<Array<Field<Project>>>([]);
 
   useEffect(() => {
     if (props.showProjectModal) {
@@ -140,109 +130,6 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.projects]);
 
-  useEffect(() => {
-    refreshFields();
-  }, [isSubscriptionPlanYearly]);
-
-  const refreshFields: VoidFunction = (): void => {
-    let formFields: Array<Field<Project>> = [
-      {
-        field: {
-          name: true,
-        },
-        validation: {
-          minLength: 4,
-        },
-        fieldType: FormFieldSchemaType.Text,
-        placeholder: "My Project",
-        description: "Pick a friendly name.",
-        title: "Project Name",
-        required: true,
-        stepId: BILLING_ENABLED ? "basic" : undefined,
-      },
-    ];
-
-    if (BILLING_ENABLED) {
-      formFields = [
-        ...formFields,
-        {
-          field: {
-            paymentProviderPlanId: true,
-          },
-          stepId: "plan",
-          validation: {
-            minLength: 6,
-          },
-          footerElement: getFooter(),
-          fieldType: FormFieldSchemaType.OptionChooserButton,
-          radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
-            getAllEnvVars(),
-          ).map((plan: SubscriptionPlan): RadioButton => {
-            let description: string = plan.isCustomPricing()
-              ? `Our sales team will contact you soon.`
-              : `Billed ${isSubscriptionPlanYearly ? "yearly" : "monthly"}. ${
-                  plan.getTrialPeriod() > 0
-                    ? `Free ${plan.getTrialPeriod()} days trial.`
-                    : ""
-                }`;
-
-            if (
-              isSubscriptionPlanYearly &&
-              plan.getYearlySubscriptionAmountInUSD() === 0
-            ) {
-              description = "This plan is free, forever. ";
-            }
-
-            if (
-              !isSubscriptionPlanYearly &&
-              plan.getMonthlySubscriptionAmountInUSD() === 0
-            ) {
-              description = "This plan is free, forever. ";
-            }
-
-            return {
-              value: isSubscriptionPlanYearly
-                ? plan.getYearlyPlanId()
-                : plan.getMonthlyPlanId(),
-              title: plan.getName(),
-              description: description,
-              sideTitle: plan.isCustomPricing()
-                ? "Custom Price"
-                : isSubscriptionPlanYearly
-                  ? "$" +
-                    plan.getYearlySubscriptionAmountInUSD().toString() +
-                    "/mo billed yearly"
-                  : "$" + plan.getMonthlySubscriptionAmountInUSD().toString(),
-              sideDescription: plan.isCustomPricing()
-                ? ""
-                : isSubscriptionPlanYearly
-                  ? `~ $${
-                      plan.getYearlySubscriptionAmountInUSD() * 12
-                    } per user / year`
-                  : `/month per user`,
-            };
-          }),
-          title: "Please select a plan.",
-          required: true,
-        },
-        {
-          field: {
-            paymentProviderPromoCode: true,
-          },
-          fieldType: FormFieldSchemaType.Text,
-          placeholder: "Promo Code (Optional)",
-          description: "If you have a coupon code, enter it here.",
-          title: "Promo Code",
-          required: false,
-          stepId: "plan",
-          disabled: Boolean(initialValues.paymentProviderPromoCode),
-        },
-      ];
-    }
-
-    setFields(formFields);
-  };
-
   return (
     <>
       {props.projects.length !== 0 && (
@@ -266,7 +153,8 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
           initialValues={initialValues}
           name="Create New Project"
           title="Create New Project"
-          description="Please create a new OneUptime project to get started."
+          description="A project holds your monitors, incidents, status pages and team."
+          modalWidth={BILLING_ENABLED ? ModalWidth.Medium : ModalWidth.Normal}
           onClose={() => {
             setShowModal(false);
             props.onProjectModalClose();
@@ -349,24 +237,12 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
           }}
           formProps={{
             name: "Create New Project",
-            steps: BILLING_ENABLED
-              ? [
-                  {
-                    title: "Basic",
-                    id: "basic",
-                  },
-                  {
-                    title: "Select Plan",
-                    id: "plan",
-                  },
-                ]
-              : undefined,
             saveRequestOptions: {
               isMultiTenantRequest: true, // because this is a tenant request, we do not have to include the header in the request
             },
             modelType: Project,
             id: "create-project-from",
-            fields: [...fields],
+            fields: fields,
             formType: FormType.Create,
           }}
         />

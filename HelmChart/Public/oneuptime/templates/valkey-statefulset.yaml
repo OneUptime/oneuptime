@@ -50,7 +50,7 @@ spec:
       {{- end }}
       containers:
       - name: valkey
-        image: "{{ $valkey.image.repository }}:{{ $valkey.image.tag }}"
+        image: {{ include "oneuptime.imageReference" (dict "Values" $.Values "Key" "valkey" "Default" (printf "%s:%s" $valkey.image.repository (toString $valkey.image.tag))) | quote }}
         imagePullPolicy: {{ $valkey.image.pullPolicy }}
         {{- if $valkey.master.containerSecurityContext }}
         securityContext:

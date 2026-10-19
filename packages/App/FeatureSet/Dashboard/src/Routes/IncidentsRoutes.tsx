@@ -78,10 +78,6 @@ import IncidentSettingsGroupingRules from "../Pages/Incidents/Settings/IncidentG
 
 import IncidentSettingsOnCallRules from "../Pages/Incidents/Settings/IncidentOnCallRules";
 
-// Integrations Pages
-import IncidentIntegrationsHuntress from "../Pages/Incidents/Integrations/Huntress";
-import IncidentIntegrationsHuntressView from "../Pages/Incidents/Integrations/HuntressView";
-
 import IncidentSettingsOwnerRules from "../Pages/Incidents/Settings/IncidentOwnerRules";
 import IncidentSettingsRunbookRules from "../Pages/Incidents/Settings/IncidentRunbookRules";
 
@@ -98,6 +94,8 @@ import IncidentSettingsRoles from "../Pages/Incidents/Settings/IncidentRoles";
 import IncidentSettingsMeasurements from "../Pages/Incidents/Settings/IncidentMeasurements";
 
 import IncidentSettingsLinkedAlerts from "../Pages/Incidents/Settings/IncidentLinkedAlertsSettings";
+
+import IncidentSettingsEpisodeMembership from "../Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
 
 import IncidentSettingsNumbering from "../Pages/Incidents/Settings/IncidentNumbering";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
@@ -144,7 +142,6 @@ import IncidentEpisodeViewMembers from "../Pages/Incidents/EpisodeView/Members";
 
 import IncidentEpisodeCreate from "../Pages/Incidents/EpisodeCreate";
 
-import IncidentEpisodeDocs from "../Pages/Incidents/EpisodeDocs";
 import IncidentLabelRule from "Common/Models/DatabaseModels/IncidentLabelRule";
 import IncidentEpisodeLabelRule from "Common/Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
@@ -159,6 +156,8 @@ import MovedFormPageRedirect from "../Components/FormBuilder/MovedFormPageRedire
 import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
 import {
   MOVED_AI_SECTION_PATHS,
+  MOVED_EPISODE_DOCS_PATH,
+  MOVED_HUNTRESS_PATHS,
   MOVED_INCIDENT_FORM_PATHS,
 } from "./MovedPagePaths";
 
@@ -233,6 +232,33 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MOVED_AI_SECTION_PATHS.aiAutoRemediationRules}
         element={<MovedPageRedirect pageMap={PageMap.INCIDENTS_SETTINGS_AI} />}
+      />
+
+      {/*
+       * Huntress connections became workflows with a Huntress trigger, each
+       * keeping its connection's id: the old list forwards to Workflows,
+       * and a connection's page to its workflow - outside the layout, so
+       * the side menu never flashes on the way.
+       */}
+      <PageRoute
+        path={MOVED_HUNTRESS_PATHS.connections}
+        element={<MovedPageRedirect pageMap={PageMap.WORKFLOWS} />}
+      />
+      <PageRoute
+        path={MOVED_HUNTRESS_PATHS.connectionView}
+        element={<MovedPageRedirect pageMap={PageMap.WORKFLOW_VIEW} />}
+      />
+
+      {/*
+       * Episodes > Documentation was a manual drawn in the product; the docs
+       * are the one place for it now, linked from the episode list (View
+       * Documentation). Its old URL forwards to that list - outside the
+       * layout, so the side menu never flashes on the way, and ahead of
+       * episodes/:id, which would take "documentation" for an episode id.
+       */}
+      <PageRoute
+        path={MOVED_EPISODE_DOCS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.INCIDENT_EPISODES} />}
       />
 
       <PageRoute
@@ -693,41 +719,27 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={
+            IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] ||
+            ""
+          }
+          element={
+            <IncidentSettingsEpisodeMembership
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBERING] || ""}
           element={
             <IncidentSettingsNumbering
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBERING] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS] || ""
-          }
-          element={
-            <IncidentIntegrationsHuntress
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
-          path={
-            IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW] ||
-            ""
-          }
-          element={
-            <IncidentIntegrationsHuntressView
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW] as Route
               }
             />
           }
@@ -792,16 +804,6 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
             <IncidentEpisodeCreate
               {...props}
               pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_CREATE] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS] || ""}
-          element={
-            <IncidentEpisodeDocs
-              {...props}
-              pageRoute={RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route}
             />
           }
         />

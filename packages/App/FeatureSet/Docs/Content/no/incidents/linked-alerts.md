@@ -84,7 +84,7 @@ Hver rad har **Vis varsel** for å åpne varselet og **Koble fra** for å fjerne
 
 ## Knytt hendelser fra et varsel
 
-Varselets side speiler hendelsens. Åpne et varsel, og velg **Tilknyttede hendelser** i seksjonen **Grunnleggende** i sidemenyen. Tabellen viser hver hendelse varselet er knyttet til, med hendelsesnummer, tittel og gjeldende tilstand, og når og av hvem den ble knyttet til.
+Varselets side speiler hendelsens. Åpne et varsel, og velg **Tilknyttede hendelser** i seksjonen **Undersøkelse** i sidemenyen. Tabellen viser hver hendelse varselet er knyttet til, med hendelsesnummer, tittel og gjeldende tilstand, og når og av hvem den ble knyttet til.
 
 - **Knytt til hendelsen** knytter dette varselet til en eksisterende hendelse. Nedtrekkslisten fungerer som den på hendelsens side: de nyeste hendelsene først, hver med nummeret sitt — som `INC-42: Checkout is down` — og når du skriver, søkes det i alle hendelser etter tittel.
 - **Vis hendelse** åpner en tilknyttet hendelse.
@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Deg
     participant OneUptime
     participant Alerts as Varsler
-    You->>OneUptime: Erklær hendelse, med opptil 50 varsler
-    OneUptime->>OneUptime: Kontroller hvert varsel og tillatelsene dine
-    OneUptime->>OneUptime: Opprett hendelsen, og kjør personvernreglene
+    You->>OneUptime: Erklær hendelse, med<br/>opptil 50 varsler
+    OneUptime->>OneUptime: Kontroller hvert varsel<br/>og tillatelsene dine
+    OneUptime->>OneUptime: Opprett hendelsen, og<br/>kjør personvernreglene
     OneUptime->>Alerts: Knytt til hvert varsel
-    OneUptime-->>You: Den nye hendelsen, med varslene allerede tilknyttet
-    OneUptime->>Alerts: Bekreft dem i bakgrunnen, hvis boksen er avkrysset
+    OneUptime-->>You: Den nye hendelsen, med<br/>varslene allerede tilknyttet
+    OneUptime->>Alerts: Bekreft dem i bakgrunnen,<br/>hvis boksen er avkrysset
 ```
 
 Når du sender, kontrollerer serveren varslene før den oppretter noe: høyst 50 av dem, hvert et varsel i dette prosjektet som du har lov til å se, og du må ha lov til å knytte varsler til hendelser. Feiler en kontroll, avvises forespørselen, og ingen hendelse opprettes — så en feil varsel-ID bruker aldri opp et hendelsesnummer. Når hendelsen finnes — og når personvernreglene har kjørt, slik at tilknyttingene vet om den er privat — knyttes hvert varsel til før forespørselen returnerer, så hendelsens side **Tilknyttede varsler** allerede viser dem. Feiler en enkelt tilknytting — fordi varselet ble slettet et øyeblikk før, for eksempel — erklæres hendelsen likevel, og de andre varslene knyttes likevel til.
@@ -164,7 +164,7 @@ La den være avkrysset, og når hendelsen er erklært og varslene er tilknyttet:
 
 - **Bekreftes varslene som deg.** Hvert varsel går til varseltilstanden din **Bekreftet**, som om du selv hadde klikket på **Bekreft** på det: varselets **Tilstandstidslinje** og feed nevner deg, varselets eiere får beskjed, og endringen publiseres i varselets Slack- og Microsoft Teams-kanaler som enhver annen tilstandsendring for et varsel. Årsaken lyder "Acknowledged because Incident INC-42 was declared from this alert." — eller, for en privat hendelse, "Acknowledged because a private incident was declared from this alert.", slik at en privat hendelse aldri nevnes der varselets publikum kan lese det.
 - **Stopper deres egen eskalering fra vakten innen omtrent ett minutt.** Det neste eskaleringstrinnet ser et bekreftet varsel og stopper. Tilkallinger som allerede er sendt, kalles ikke tilbake.
-- **Stopper påminnelser bare hvis påminnelsesregelen sier det.** Et varsels påminnelser stopper ved bekreftelse bare når påminnelsesregelen har **Stop Reminders When** satt til **Bekreftet**; ellers fortsetter de til varselet er løst.
+- **Stopper påminnelser bare hvis påminnelsesregelen sier det.** Et varsels påminnelser stopper ved bekreftelse bare når påminnelsesregelen har **Stopp påminnelser når** satt til **Bekreftet**; ellers fortsetter de til varselet er løst.
 - **Fortsetter en varselepisode å eskalere.** Hører et varsel til en episode som tilkaller via sin egen vaktpolicy, fortsetter episoden å eskalere til selve episoden er bekreftet.
 - **Lar varsler som allerede er bekreftet eller løst, være i fred.** Som overalt ellers sammenlignes tilstander etter rekkefølgen, så et varsel i en egen tilstand etter **Bekreftet** teller som bekreftet, og ingenting flyttes noen gang bakover.
 
@@ -306,7 +306,7 @@ Begge feedenes dialoger **Filtrer etter hendelsestype**, i menyen **⋯** for hv
 
 To prosjektbrytere lar hendelsen ta de tilknyttede varslene med seg. Begge er slått på i nye prosjekter. Et prosjekt som ble opprettet før de var slått på som standard, beholder innstillingen det hadde, og den er slått av med mindre noen slo dem på. De har sin egen innstillingsside, **Hendelser → Innstillinger → Tilknyttede varsler**, der hver er en bryter på kortet **Tilknyttede varsler** som lagres så snart du slår den om. Bare Project Owners og Project Admins kan endre dem; for alle andre er bryterne låst og sier hvilken tillatelse de krever:
 
-- **Bekreft tilknyttede varsler når hendelsen bekreftes** — når hendelsen når den bekreftede tilstanden din, går hvert tilknyttet varsel som ikke er bekreftet ennå, til varseltilstanden din **Bekreftet**. Det er dette som stopper vaktens eskaleringer for de varslene: det neste eskaleringstrinnet ser et bekreftet varsel og stopper innen omtrent ett minutt. Tilkallinger som allerede er sendt, kalles ikke tilbake. Påminnelser for varsler stopper også når varselets påminnelsesregel har **Stop Reminders When** satt til **Bekreftet**; ellers fortsetter de til varselet er løst.
+- **Bekreft tilknyttede varsler når hendelsen bekreftes** — når hendelsen når den bekreftede tilstanden din, går hvert tilknyttet varsel som ikke er bekreftet ennå, til varseltilstanden din **Bekreftet**. Det er dette som stopper vaktens eskaleringer for de varslene: det neste eskaleringstrinnet ser et bekreftet varsel og stopper innen omtrent ett minutt. Tilkallinger som allerede er sendt, kalles ikke tilbake. Påminnelser for varsler stopper også når varselets påminnelsesregel har **Stopp påminnelser når** satt til **Bekreftet**; ellers fortsetter de til varselet er løst.
 - **Løs tilknyttede varsler når hendelsen løses** — når hendelsen når den løste tilstanden din, går hvert tilknyttet varsel som ikke er løst ennå, til varseltilstanden din **Løst**, unntatt et varsel som fortsatt er knyttet til en annen hendelse som ikke er løst. Det varselet blir stående åpent for den andre hendelsen — bekreftet, hvis bekreftelsesbryteren også er slått på — og løses når den siste av hendelsene er løst.
 
 Med begge bryterne slått av endrer tilknytting ingenting ved tilstanden til et varsel. Et tilknyttet varsel blir værende der det er til noen flytter det, vaktpolicyen fortsetter å eskalere, og påminnelsene fortsetter å komme. Det eneste unntaket er å erklære en hendelse fra varsler med skjemaets boks avkrysset, noe som bekrefter dem mens du erklærer — se [Bekreft varslene mens du erklærer](#bekreft-varslene-mens-du-erklærer).

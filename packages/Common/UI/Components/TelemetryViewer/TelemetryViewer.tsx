@@ -123,7 +123,18 @@ export interface TelemetryViewerProps<T> {
   timedOutFacets?: Array<string> | undefined;
   facetError?: TelemetryLoadError | undefined;
   onRetryFacets?: (() => void) | undefined;
+  /*
+   * A facet value that is not filtering was clicked: add its chip. Called
+   * only for such a value - a click on a checked or excluded value takes its
+   * chips off through onRemoveFilter instead - so an explorer only ever adds
+   * here, and adding a chip it already has should change nothing.
+   */
   onFacetInclude?: ((facetKey: string, value: string) => void) | undefined;
+  /*
+   * Leave a facet value's rows out, dropping an include of it. Only an
+   * explorer whose list, chart and counts can all leave a value out passes
+   * this: without it the facet rows carry no exclude button.
+   */
   onFacetExclude?: ((facetKey: string, value: string) => void) | undefined;
   /*
    * Called (debounced) when the user types in a server-searchable facet's
@@ -465,8 +476,9 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             onIncludeFilter={(key: string, value: string) => {
               props.onFacetInclude?.(key, value);
             }}
-            onExcludeFilter={(key: string, value: string) => {
-              props.onFacetExclude?.(key, value);
+            onExcludeFilter={props.onFacetExclude}
+            onRemoveFilter={(key: string, value: string) => {
+              props.onRemoveFilter?.(key, value);
             }}
             onFacetSearchChange={props.onFacetSearchChange}
             onlyShowValuesInScope={onlyShowFacetValuesInScope}

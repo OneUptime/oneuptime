@@ -103,19 +103,23 @@ const generateId: GenerateIdFunction = (): string => {
   return `simulated-${generatedIdCounter}`;
 };
 
-type BuildSimulatedGraphFunction = (templateId: string) => SimulatedGraph;
+type BuildSimulatedGraphFunction = (
+  templateId: string,
+  builtGraph?: JSONObject | undefined,
+) => SimulatedGraph;
 
 /*
  * Built through buildGraphForTemplate, the path the create wizard takes, so
  * the simulation runs the graph a user actually gets — not the spec behind it.
+ * Or, for a workflow made some other way (a Huntress connection moved to a
+ * workflow), the graph that was built for it.
  */
 const buildSimulatedGraph: BuildSimulatedGraphFunction = (
   templateId: string,
+  builtGraph?: JSONObject | undefined,
 ): SimulatedGraph => {
-  const graph: JSONObject | null = buildGraphForTemplate(
-    templateId,
-    generateId,
-  );
+  const graph: JSONObject | null =
+    builtGraph || buildGraphForTemplate(templateId, generateId);
 
   if (!graph) {
     throw new Error(`There is no template ${templateId}.`);
@@ -312,6 +316,12 @@ export interface Scenario {
    * Page step pages. Laid over what the template set.
    */
   settings?: Dictionary<JSONObject> | undefined;
+  /*
+   * A graph built some other way than from the template, such as a Huntress
+   * connection's (Templates.buildHuntressIncidentWorkflowGraph with its
+   * settings): run in place of the template's. templateId still names it.
+   */
+  graph?: JSONObject | undefined;
 }
 
 export interface SimulationTrace {
@@ -588,11 +598,14 @@ export type RunTemplateFunction = (
 export const runTemplate: RunTemplateFunction = async (
   scenario: Scenario,
 ): Promise<SimulationTrace> => {
-  if (!getWorkflowTemplate(scenario.templateId)) {
+  if (!scenario.graph && !getWorkflowTemplate(scenario.templateId)) {
     throw new Error(`There is no template ${scenario.templateId}.`);
   }
 
-  const graph: SimulatedGraph = buildSimulatedGraph(scenario.templateId);
+  const graph: SimulatedGraph = buildSimulatedGraph(
+    scenario.templateId,
+    scenario.graph,
+  );
 
   for (const componentId of Object.keys(scenario.editCode || {})) {
     const node: SimulatedNode | undefined = graph.nodes[componentId];

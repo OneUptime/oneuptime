@@ -468,7 +468,7 @@ describe("runScan — what an ICMP-only sweep uploads", () => {
     await runScan(makeIcmpOnlyScan());
 
     expect(fetchCalls()[0]!.body["statusMessage"]).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 2 answered ping.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 2 answered ping.",
     );
   });
 
@@ -541,7 +541,7 @@ describe("runScan — what an ICMP-only sweep uploads", () => {
       },
     ]);
     expect(body["statusMessage"]).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 2 answered ping. " +
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 2 answered ping. " +
         "Reverse DNS lookups failed for 1 of 2 hosts; " +
         "hover the (i) beside an unnamed host for the reason, and rescan to try again.",
     );
@@ -578,7 +578,7 @@ describe("runScan — what an ICMP-only sweep uploads", () => {
     const message: string = fetchCalls()[0]!.body["statusMessage"] as string;
     expect(message).toContain("Nothing answered ICMP ping.");
     expect(message).toContain(
-      "turn Check SNMP on if you expect managed devices",
+      "switch the scan to SNMP if you expect managed devices",
     );
     expect(message).not.toContain("Nothing answered SNMP on port");
     expect(fetchCalls()[0]!.body["discoveredDevices"]).toEqual([]);
@@ -655,7 +655,7 @@ describe("runScan — an ICMP-only sweep that could not run", () => {
   const NO_ICMP_AVAILABLE: string =
     "This scan checks ICMP only, but this probe could not send ICMP echo requests at all, so it has no way to find anything. " +
     "The probe needs the ping binary and the NET_RAW capability - OneUptime's own compose file and Helm chart grant both, so this usually means a hardened runtime dropped the capability, or a custom probe image left iputils-ping out. " +
-    "Create the scan with Check SNMP on if this probe cannot be given ICMP. " +
+    "Edit the scan and pick SNMP if this probe cannot be given ICMP at all. " +
     "Ping reported: Error: ICMP ping is not usable: ping: socket: Operation not permitted";
 
   test("reports success:false with the sweep's own message", async () => {
@@ -692,7 +692,7 @@ describe("runScan — an ICMP-only sweep that could not run", () => {
     const stored: string = message.substring(0, 500);
     expect(stored).toContain("NET_RAW");
     expect(stored).toContain("ping binary");
-    expect(stored).toContain("Check SNMP on");
+    expect(stored).toContain("pick SNMP if this probe cannot be given ICMP");
   });
 
   test("does not throw, so the rest of the batch still runs", async () => {

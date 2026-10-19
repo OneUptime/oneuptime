@@ -1333,7 +1333,7 @@ const ResourceAiAgentPage: FunctionComponent<ComponentProps> = (
       },
     },
     resetAgent: {
-      isOffered: hasAgent && canResetResourceAiAgent(),
+      isOffered: hasAgent && canResetResourceAiAgent(descriptor),
       onClick: (): void => {
         setConfirmationError("");
         setIsConfirmingReset(true);

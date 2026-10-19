@@ -7,6 +7,7 @@
 - [ワンクリックで接続する](#ワンクリックで接続する): Zoom、Google Meet、Microsoft Teams に、サインインするだけで接続します。
 - [プロバイダー](#プロバイダー): 自分のアプリのサービス ID、常設の会議リンク、Slack のハドル。
 - [手動で通話を開始する](#手動で通話を開始する): インシデントやアラートのページから開始します。
+- [通話の文字起こし](#通話の文字起こし): インシデントの通話で話された内容と、そこから OneUptime AI が読み取る根本原因。
 :::
 
 ## しくみ
@@ -63,11 +64,13 @@ OneUptime Cloud では、Zoom、Google Meet、Microsoft Teams の接続はワン
 
 | プロバイダー | サインインに使うもの | OneUptime ができること |
 | --- | --- | --- |
-| Zoom | Zoom ユーザー。Basic (無料) ユーザーがホストの会議は 40 分で終了します。 | そのユーザーの会議の作成 (`meeting:write:meeting`) と、そのユーザーが誰かの読み取り (`user:read:user`)。 |
+| Zoom | Zoom ユーザー。Basic (無料) ユーザーがホストの会議は 40 分で終了します。 | そのユーザーの会議の作成 (`meeting:write:meeting`) と、そのユーザーが誰かの読み取り (`user:read:user`)。 [通話の文字起こし](#通話の文字起こし) のために、そのユーザーの会議のクラウド録画の文字起こしの読み取り (`cloud_recording:read:list_recording_files`、 `cloud_recording:read:meeting_transcript`)。 |
 | Google Meet | Google Meet を使える Google アカウント。 | そのアカウントとしての Meet スペースの作成 (`meetings.space.created`) と、そのメールアドレスの読み取り。 |
 | Microsoft Teams | Microsoft Teams を使える職場または学校のアカウント。個人の Microsoft アカウントでは Teams の会議を作成できません。 | そのアカウントとしてのオンライン会議の作成 (委任されたアクセス許可 `OnlineMeetings.ReadWrite`) と、サインイン状態の維持 (`offline_access`)。 |
 
 サインインで作成した接続にも、誰が待つかを決める設定があります。Google Meet では **Who can join**、Microsoft Teams では **Who skips the lobby** です。接続の行の **編集** で変更します。
+
+OneUptime が通話の文字起こしを読み取るようになる前にサインインした Zoom の接続は、これまでどおり通話を開始しますが、もう一度サインインするまで文字起こしは読み取れません。行の **Reconnect** で、Zoom に文字起こしの権限を求めます。
 
 ### サインイン状態を保つ
 
@@ -97,6 +100,54 @@ Microsoft 365 の組織によっては、アプリを承認できるのは管理
 
 通話の開始と削除には、インシデント (またはアラート) を操作する権限が必要です。 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member**、またはカスタムロールの **Create Incident Video Call** と **Delete Incident Video Call** です。インシデントを読める人は全員、その通話を見られます。
 
+## 通話の文字起こし
+
+対応者が通話で話す内容、つまり何を確認し、何を疑い、何を決めたかは、インシデントがどう対応されたかの最良の記録ですが、通話が終わると失われます。インシデントの通話は文字起こしを保持し、OneUptime AI はそれを読んで通話が指し示す根本原因を探します。読み取った内容は、対応者が使うまでインシデントには反映されません。
+
+:::steps
+### 通話の後で文字起こしを取得する
+
+インシデントの **ビデオ通話** カードで、 **Zoom から取得** または **Google Meet から取得** が、OneUptime がそこで開始した会議の文字起こしを読み取ります。それ以外の通話では、 **文字起こしを追加** で会議ツールが保存したファイル (`.vtt`、 `.srt`、 `.txt`、最大 5 MB) または貼り付けた文字起こしを追加します。[すべての通話を録画して文字起こしする](#すべての通話を録画して文字起こしする) ようにしている場合は、通話が終わると OneUptime が自動で取得します。
+
+### OneUptime AI が読み取る
+
+1〜2 分以内に、インシデントの **AI 調査** カードに **提案された根本原因** が **未確認** の印付きで表示され、その根拠となる文字起こしの行が時刻と話者付きで引用されます。その下には、折りたたまれて、通話で話されたその他の内容があります。発見事項 ( **通話で確認済み** と **仮説** の 2 つのリスト)、試したこと、決定事項、フォローアップ、未解決の質問です。読み取った内容はインシデントのフィードにも投稿され、そこからインシデントの Slack と Microsoft Teams のチャネルにも届きます。
+
+### 使うか、却下する
+
+**根本原因として使用** は、提案を引用ごと根本原因のエディターで開きます。必要な箇所を変更して保存すると、あなた自身の編集としてインシデントの根本原因になり、フィードに記録されます。 **閉じる** は提案を脇に置き、 **元に戻す** で元に戻します。
+:::
+
+OneUptime AI は、通話で原因が挙げられた場合にのみ、そう述べている行とともに原因を提案し、それらの行を文字起こしのとおりに引用します。通話で原因がはっきりしなかった場合、カードは推測する代わりに **根本原因を提案できるほどの内容が通話で話されませんでした** と表示します。
+
+### すべての通話を録画して文字起こしする
+
+通話の録画や文字起こしの取得を誰も覚えておく必要がないように、 **プロジェクト設定** > **ワークスペース** > **ビデオ通話** で **インシデント通話を録画して文字起こしする** をオンにします。オンの間は次のようになります。
+
+- OneUptime は、自身が開始するインシデントの会議ごとに、Zoom にはクラウドへの録画を、Google Meet には文字起こしを依頼します。通話を投稿するメッセージには、誰かが参加する前にそのことが書かれています。
+- 通話が終わると、 **Zoom から取得** と同じように OneUptime が自動で文字起こしを取得し、OneUptime AI がそれを読み取ります。それまでは、 **ビデオ通話** カードに待機中であることが表示されます。
+- OneUptime AI が読み取った内容は、インシデントのフィードと、その Slack と Microsoft Teams のチャネルに届きます。未確認の印が付いた提案された根本原因、続いて確認されたこと、試したこと、決まったこと、フォローアップ、未解決の質問です。
+- 文字起こしが届く前にインシデントが解決した場合、自動のポストモーテムの下書きは、通話で話された内容を読み取れるよう文字起こしを待ちます。Zoom または Google Meet が文字起こしを準備している間は最大 6 時間、まだその兆しがない場合は 1 時間です。
+
+この設定は人を録画するため、既定ではオフです。これらの通話の参加者全員に、録画または文字起こしされていることが表示されるので、組織で許可されていることを確認してください。Zoom が文字起こしを保持するのは、アカウントが音声文字起こしをオンにしてクラウドに録画する場合だけで、Google Meet では文字起こしのある Google Workspace のエディションの場合だけです。Microsoft Teams の通話、Slack のハドル、会議リンクは録画されず、アラートの通話も録画されません。それらの文字起こしは手動で追加してください。
+
+### 各プロバイダーが保持するもの
+
+| 通話 | 文字起こしの取得方法 | 必要なもの |
+| --- | --- | --- |
+| Zoom | **Zoom から取得** | 音声文字起こしをオンにしてクラウドに録画された会議、または AI Companion の会議の要約がオンの会議。接続には文字起こしのスコープが必要で ( [Zoom](#zoom) を参照)、それ以前にサインインした接続には **Reconnect** が必要です。Zoom は会議の後に文字起こしを準備し、通常は会議の長さの 2 倍以内に完了します。 |
+| Google Meet | **Google Meet から取得** | 通話中にオンにした文字起こし (文字起こしのある Google Workspace のエディション)。ほかに設定するものはありません。OneUptime は自身が作成した会議の文字起こしを読み取ります。Google はアプリが読める状態で文字起こしを 30 日間保持します。 |
+| Microsoft Teams | **文字起こしを追加** | Microsoft は、OneUptime が作成する方法で作成された会議の文字起こしを、どのアプリにも読ませません。Teams で会議の要約を開き、次に文字起こしを開いて、 `.vtt` ファイルとしてダウンロードしてください。 |
+| 会議リンクまたは Slack のハドル | **文字起こしを追加** | 会議ツール、またはハドルのメモが保持する文字起こし。 |
+
+### 誰が何をできるか
+
+文字起こしの取得、追加、置き換え、削除、再読み込み、および提案の却下には、インシデントの通話を開始する権限が必要です。 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member**、またはカスタムロールの **Create Incident Video Call** です。 **根本原因として使用** には、インシデントの根本原因を編集する権限が必要です。インシデントを読める人は全員、その通話の文字起こしと、OneUptime AI がそこから読み取った内容を見られます。
+
+### OneUptime AI が読み取るもの
+
+文字起こしの読み取りは、調査と同じく AI の作業です。プロジェクトで AI がオンの間だけ実行され、プロジェクトの AI 使用量と 1 日の上限に含まれます ( [コスト管理](/docs/ai/ai-sre#コスト管理) を参照)。長い文字起こしは分割して読み取られます。AI がオフの場合、文字起こしは保持され、カードには読み取られなかったことが表示されます。文字起こしを削除すると、OneUptime AI がそこから読み取った内容も削除されますが、インシデントの根本原因は保持されます。AI によるポストモーテムの下書きも、インシデントの通話で話された内容を読み取ります ( [ポストモーテム](/docs/incidents/postmortems) を参照)。
+
 ## プロバイダー
 
 このセクションでは、自分のアプリのサービス ID でプロバイダーを接続する方法を説明します。Zoom の Server-to-Server OAuth アプリ、Google のサービスアカウント、Microsoft Entra のアプリ登録です。サービス ID は人に依存しないので、誰が退職しても動作し続けます。代わりにサインインで接続するには、[ワンクリックで接続する](#ワンクリックで接続する) を参照してください。
@@ -113,7 +164,7 @@ OneUptime は、Zoom の **Server-to-Server OAuth** アプリを通じてイン�
 
 :::steps
 1. [Zoom App Marketplace](https://marketplace.zoom.us/) で **Develop** > **Build App** を選び、 **Server-to-Server OAuth** アプリを作成します。作成には、Zoom アカウントの管理者、または Server-to-Server OAuth アプリを許可するロールが必要です。
-2. アプリの **Scopes** ページで **meeting:write:meeting:admin** (ユーザーの会議を作成する) を追加します。詳細なスコープが導入される前に作成したアプリでは、代わりに **meeting:write:admin** を使えます。
+2. アプリの **Scopes** ページで **meeting:write:meeting:admin** (ユーザーの会議を作成する) を追加します。詳細なスコープが導入される前に作成したアプリでは、代わりに **meeting:write:admin** を使えます。OneUptime に [通話の文字起こし](#通話の文字起こし) も読み取らせるには、 **cloud_recording:read:list_recording_files:admin** と **cloud_recording:read:meeting_transcript:admin** (詳細なスコープが導入される前に作成したアプリでは **recording:read:admin** ) を追加します。
 3. **Activate** をクリックしてアプリを有効にし、 **App Credentials** ページの **Account ID**、 **Client ID**、 **Client secret** を接続フォームにコピーします。
 4. **Meeting host** を入力します。ライセンス付きの Zoom ユーザーのメールアドレスで、メンバーが退職しても会議が動作し続けるように、incidents@example.com のようなサービスアカウントが理想的です。Basic (無料) ユーザーがホストの会議は 40 分で終了します。
 5. ホストは参加することのないサービスアカウントなので、対応者はホストを待たずに参加します。Zoom アカウントの **Waiting room** の設定がオンでロックされていないことを確認してください。ロックされていると誰も入室できません。
@@ -215,7 +266,7 @@ OneUptime Cloud には、ワンクリック接続用の独自の Zoom、Google�
 | Google Meet | `https://<host>/api/video-call-oauth/google-meet/callback` | `GOOGLE_MEET_APP_CLIENT_ID`, `GOOGLE_MEET_APP_CLIENT_SECRET` | `googleMeetApp.clientId`, `googleMeetApp.clientSecret` |
 | Microsoft Teams | `https://<host>/api/video-call-oauth/microsoft-teams/callback` | `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET` | `microsoftTeamsMeetingsApp.clientId`, `microsoftTeamsMeetingsApp.clientSecret` |
 
-- **Zoom**: [Zoom App Marketplace](https://marketplace.zoom.us/) で **Develop** > **Build App** を選び、ユーザーが管理する **General App** を作成します。 **Basic Information** で、 **Development** と **Production** の両方のタブと OAuth の許可リストにリダイレクト URI を OAuth Redirect URL として追加し、 **Production** タブで **Deauthorization Notification** のエンドポイント URL を `https://<host>/api/video-call-oauth/zoom/events` に設定します。 **Scopes** で `meeting:write:meeting` と `user:read:user` を追加します。 **Features** > **Access** の **Secret Token** が `ZOOM_APP_WEBHOOK_SECRET_TOKEN` です。 **Development** の認証情報は自分の Zoom アカウントのユーザーにしか使えません。 **Production** の認証情報は、Zoom がアプリを審査して公開すると、誰でも使えるようになります。
+- **Zoom**: [Zoom App Marketplace](https://marketplace.zoom.us/) で **Develop** > **Build App** を選び、ユーザーが管理する **General App** を作成します。 **Basic Information** で、 **Development** と **Production** の両方のタブと OAuth の許可リストにリダイレクト URI を OAuth Redirect URL として追加し、 **Production** タブで **Deauthorization Notification** のエンドポイント URL を `https://<host>/api/video-call-oauth/zoom/events` に設定します。 **Scopes** で `meeting:write:meeting` と `user:read:user` を追加します。[通話の文字起こし](#通話の文字起こし) を読み取らせるには、 `cloud_recording:read:list_recording_files` と `cloud_recording:read:meeting_transcript` も追加します。 **Features** > **Access** の **Secret Token** が `ZOOM_APP_WEBHOOK_SECRET_TOKEN` です。 **Development** の認証情報は自分の Zoom アカウントのユーザーにしか使えません。 **Production** の認証情報は、Zoom がアプリを審査して公開すると、誰でも使えるようになります。
 - **Google Meet**: [Google Cloud コンソール](https://console.cloud.google.com/) で **Google Meet REST API** を有効にし、OAuth の同意画面 ( **Google Auth Platform** ) をスコープ `openid`、 `email`、 `https://www.googleapis.com/auth/meetings.space.created` で設定し、リダイレクト URI を指定して **Web application** タイプの OAuth クライアントを作成します。アプリは本番環境に公開してください。テストのままのアプリは 7 日後にサインインを失います。Google は Meet のスコープを求めるアプリを審査します。審査が終わるまで、サインインの前に警告が表示されます。
 - **Microsoft Teams**: [Microsoft Entra 管理センター](https://entra.microsoft.com/) で **Accounts in any organizational directory** 向けのアプリを登録し、リダイレクト URI を **Web** のリダイレクト URI として追加し、Microsoft Graph の委任されたアクセス許可 `openid`、 `profile`、 `email`、 `offline_access`、 `OnlineMeetings.ReadWrite` を追加して、クライアントシークレットを作成します。Microsoft Teams ボットの登録 (`MICROSOFT_TEAMS_APP_CLIENT_ID`) ではなく、専用の登録を使ってください。アプリに確認済みの発行元がない間は、ほとんどの組織で管理者の同意が必要です。
 
@@ -237,6 +288,18 @@ OneUptime Cloud には、ワンクリック接続用の独自の Zoom、Google�
 
 :::details 参加者がロビーや待機室で待たされる
 接続の行の **編集** で **Who can join** (Google Meet) または **Who skips the lobby** (Microsoft Teams) を変更します。Zoom では、アカウントの **Waiting room** の設定がオンでロックされていないことを確認してください。
+:::
+
+:::details Zoom から取得で文字起こしが見つからない
+Zoom が文字起こしを保持するのは、音声文字起こしをオンにしてクラウドに録画された会議か、AI Companion の会議の要約がオンの会議だけで、会議の終了後に準備されます。どちらに当たるかはカードに表示されます。後でもう一度試すか、インシデントの会議でどちらかをオンにしてください。それまでは、 **文字起こしを追加** で保存しておいた文字起こしを追加できます。
+:::
+
+:::details ビデオ通話カードが文字起こしを待ったままになる
+OneUptime は通話の終了後、数分おきに Zoom または Google Meet に文字起こしを問い合わせます。通話から時間がたつほど間隔を空け、通話の開始から 3 日間続けます。文字起こしは、プロバイダーが準備を終えてから数分で届きます。Zoom の準備には通話の長さのおよそ 2 倍までかかります。 **Zoom から取得** はすぐに問い合わせます。プロバイダーが文字起こしを保持していない場合は、カードにそう表示されます。Zoom アカウントが音声文字起こしをオンにしてクラウドに録画しているか、Google Workspace のエディションに文字起こしがあるかを確認してください。
+:::
+
+:::details OneUptime AI が文字起こしを読み取れなかった
+理由はカードに表示されます。プロジェクトで AI がオフになっている、プロジェクトが AI の 1 日の上限に達した、または AI プロバイダーが拒否した、のいずれかです。解決したら、カードの **再試行** で再び読み取ります。
 :::
 
 ## 次のステップ

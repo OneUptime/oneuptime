@@ -112,7 +112,7 @@ const NO_RECORD_HOSTS: Array<string> = [
 ];
 
 const CUSTOMER_HEADLINE: string =
-  "Swept 15 hosts with ICMP ping only (Check SNMP is off for this scan): 12 answered ping.";
+  "Swept 15 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 12 answered ping.";
 
 const FAILED_LOOKUPS_SENTENCE: string =
   "Reverse DNS lookups failed for 2 of 12 hosts; " +

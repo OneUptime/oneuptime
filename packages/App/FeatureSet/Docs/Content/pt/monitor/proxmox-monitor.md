@@ -19,14 +19,14 @@ Um monitor de Proxmox está vinculado a um cluster. A cada minuto, ele executa s
 flowchart TB
     subgraph site["Sua rede"]
         direction LR
-        pve["API do Proxmox VE"] --> agent["Agente Proxmox do OneUptime"]
+        pve["API do Proxmox VE"] --> agent["Agente Proxmox<br/>do OneUptime"]
     end
-    agent -->|"métricas pve via OTLP"| oneuptime["OneUptime"]
+    agent -->|"métricas<br/>pve via OTLP"| oneuptime["OneUptime"]
     native["Envio nativo do<br/>Proxmox VE 9"] -.->|"alternativa"| oneuptime
     oneuptime -->|"primeiros dados"| registered["Cluster registrado"]
     oneuptime --> monitor["Monitor de Proxmox"]
-    monitor -->|"a cada minuto"| criteria{"Critérios atendidos?"}
-    criteria -->|"sim"| incident["Incidente ou alerta"]
+    monitor -->|"a cada minuto"| criteria{"Critérios<br/>atendidos?"}
+    criteria -->|"sim"| incident["Incidente<br/>ou alerta"]
     criteria -->|"não"| online["Monitor online"]
 ```
 
@@ -222,7 +222,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | Campo | O que faz |
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
-| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam corresponder) ou **Any Value** (basta um). |
+| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam corresponder, na janela inteira) ou **Any Value** (basta um). |
 | **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
 | **Threshold** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece em condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |

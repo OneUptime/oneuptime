@@ -158,6 +158,11 @@
                 "includeTimestampLabel": {
                     "type": "boolean"
                 },
+                "spreadReplicasAcrossNodes": {
+                    "type": "boolean",
+                    "description": "Spread each stateless service's replicas across nodes with a soft topology spread constraint, unless topologySpreadConstraints are set for it.",
+                    "default": true
+                },
                 "replicaCount": {
                     "type": "integer",
                     "minimum": 1
@@ -388,6 +393,21 @@
                         "array",
                         "null"
                     ]
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "sysctlTuning": {
                     "type": "object",
@@ -985,6 +1005,16 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "serviceAccount": {
+                    "type": "object",
+                    "description": "The service account the ClickHouse pods run as; create false runs them as the namespace's default one.",
+                    "properties": {
+                        "create": {
+                            "type": "boolean"
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
@@ -1181,6 +1211,15 @@
                 },
                 "affinity": {
                     "type": "object"
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "podSecurityContext": {
                     "type": "object"
@@ -1620,6 +1659,45 @@
                 },
                 "restartPolicy": {
                     "type": "string"
+                },
+                "overrides": {
+                  "type": "object",
+                  "description": "Image references that replace the ones the chart builds, by image (app, nginx, probe, runner, home, test, postgres, clickhouse, clickhouseKeeper, valkey, pgbouncer, vllm, kubectl): a full reference, or {registry, repository, tag | digest}.",
+                  "additionalProperties": {
+                    "oneOf": [
+                      {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "registry": {
+                            "type": "string"
+                          },
+                          "repository": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "tag": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "digest": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "repository"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
                 }
             },
             "additionalProperties": false
@@ -1944,6 +2022,12 @@
                 "relayUrl": {
                     "type": [
                         "string",
+                        "null"
+                    ]
+                },
+                "relayServerEnabled": {
+                    "type": [
+                        "boolean",
                         "null"
                     ]
                 }
@@ -2356,6 +2440,21 @@
                                 "null"
                             ]
                         },
+                        "affinity": {
+                            "type": [
+                                "object",
+                                "null"
+                            ]
+                        },
+                        "topologySpreadConstraints": {
+                            "type": [
+                                "array",
+                                "null"
+                            ],
+                            "items": {
+                                "type": "object"
+                            }
+                        },
                         "additionalContainers": {
                             "type": "array"
                         },
@@ -2485,6 +2584,21 @@
                 "nodeSelector": {
                     "type": "object"
                 },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
+                },
                 "podSecurityContext": {
                     "type": "object"
                 },
@@ -2594,6 +2708,15 @@
                 "array",
                 "null"
             ]
+        },
+        "topologySpreadConstraints": {
+            "type": [
+                "array",
+                "null"
+            ],
+            "items": {
+                "type": "object"
+            }
         },
         "telemetryWaitForAsyncInsert": {
             "type": "boolean"
@@ -3245,6 +3368,21 @@
                         "null"
                     ]
                 },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
+                },
                 "containerSecurityContext": {
                     "type": "object"
                 },
@@ -3491,6 +3629,21 @@
                         "null"
                     ]
                 },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
+                },
                 "containerSecurityContext": {
                     "type": "object"
                 },
@@ -3708,6 +3861,21 @@
                         "array",
                         "null"
                     ]
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -3972,6 +4140,21 @@
                         "array",
                         "null"
                     ]
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "containerSecurityContext": {
                     "type": "object"
@@ -4453,6 +4636,40 @@
                         }
                     },
                     "additionalProperties": false
+                },
+                "vercel": {
+                    "type": "object",
+                    "properties": {
+                        "clientId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "clientSecret": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "clientSecretKey": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "clientSecretKey"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false
@@ -4623,6 +4840,21 @@
                         "array",
                         "null"
                     ]
+                },
+                "affinity": {
+                    "type": [
+                        "object",
+                        "null"
+                    ]
+                },
+                "topologySpreadConstraints": {
+                    "type": [
+                        "array",
+                        "null"
+                    ],
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "keda": {
                     "type": "object",
@@ -5044,6 +5276,91 @@
                 "array",
                 "null"
             ]
+        },
+        "serviceAccount": {
+            "type": "object",
+            "description": "The Kubernetes service account the OneUptime app and worker pods run as (IAM roles for service accounts on Amazon EKS).",
+            "properties": {
+                "create": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "annotations": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            },
+            "additionalProperties": false
+        },
+        "enterpriseMarketplace": {
+            "type": "object",
+            "description": "Billing this Enterprise installation through the cloud marketplace it was bought on, by the user-hour. Set by the marketplace editions of the chart.",
+            "properties": {
+                "provider": {
+                    "type": [
+                        "string",
+                        "null"
+                    ],
+                    "enum": [
+                        "",
+                        "aws",
+                        "azure",
+                        "google-cloud",
+                        null
+                    ]
+                },
+                "aws": {
+                    "type": "object",
+                    "properties": {
+                        "region": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "googleCloud": {
+                    "type": "object",
+                    "properties": {
+                        "serviceName": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "reportingSecret": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "additionalProperties": false
+        },
+        "testHook": {
+            "type": "object",
+            "description": "The helm test hook pod.",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            },
+            "additionalProperties": false
         }
     },
     "additionalProperties": false

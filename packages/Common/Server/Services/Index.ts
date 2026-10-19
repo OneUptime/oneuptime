@@ -207,6 +207,8 @@ import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
 import UserOnCallCalendarFeedService from "./UserOnCallCalendarFeedService";
 import OnCallDutyPolicyScheduleCalendarFeedService from "./OnCallDutyPolicyScheduleCalendarFeedService";
 import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService";
+// The team's calendar link for scheduled maintenance
+import ScheduledMaintenanceCalendarFeedService from "./ScheduledMaintenanceCalendarFeedService";
 import UserOnCallShiftReminderService from "./UserOnCallShiftReminderService";
 import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogService";
 // On-Call Duty
@@ -247,6 +249,8 @@ import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
 import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
 import MarketplaceUsageReportService from "./MarketplaceUsageReportService";
 import MarketplaceChargeService from "./MarketplaceChargeService";
+import VercelMarketplaceInstallationService from "./VercelMarketplaceInstallationService";
+import VercelMarketplaceConnectionService from "./VercelMarketplaceConnectionService";
 import RecommendationDismissalService from "./RecommendationDismissalService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
@@ -307,6 +311,9 @@ import StatusPageSubscriberNotificationTemplateStatusPageService from "./StatusP
 import TeamMemberService from "./TeamMemberService";
 import TeamMemberCustomFieldService from "./TeamMemberCustomFieldService";
 import TeamPermissionService from "./TeamPermissionService";
+import CustomRoleService from "./CustomRoleService";
+import CustomRolePermissionService from "./CustomRolePermissionService";
+import TeamCustomRoleService from "./TeamCustomRoleService";
 import TeamComplianceSettingService from "./TeamComplianceSettingService";
 // Team
 import TeamService from "./TeamService";
@@ -320,6 +327,7 @@ import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
 import UserSessionService from "./UserSessionService";
 import UserProjectSsoConsentService from "./UserProjectSsoConsentService";
+import UserProjectSsoIdentityService from "./UserProjectSsoIdentityService";
 import UserTotpAuthService from "./UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "./UserTwoFactorBackupCodeService";
 import UserWebAuthnService from "./UserWebAuthnService";
@@ -365,8 +373,6 @@ import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
-import HuntressConnectionService from "./HuntressConnectionService";
-import HuntressIncidentReportService from "./HuntressIncidentReportService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityCaseService from "./SecurityCaseService";
@@ -454,6 +460,7 @@ import NetworkFlowService from "./NetworkFlowService";
 
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import ProjectSCIMLogService from "./ProjectSCIMLogService";
+import ProjectSCIMUserService from "./ProjectSCIMUserService";
 import StatusPageSCIMLogService from "./StatusPageSCIMLogService";
 import DeletedProjectService from "./DeletedProjectService";
 import CodeRepositoryService from "./CodeRepositoryService";
@@ -508,6 +515,8 @@ const services: Array<BaseService> = [
   MarketplaceSubscriptionService,
   MarketplaceUsageReportService,
   MarketplaceChargeService,
+  VercelMarketplaceInstallationService,
+  VercelMarketplaceConnectionService,
 
   ResellerService,
   ResellerPlanService,
@@ -760,12 +769,16 @@ const services: Array<BaseService> = [
   TeamMemberService,
   TeamMemberCustomFieldService,
   TeamPermissionService,
+  CustomRoleService,
+  CustomRolePermissionService,
+  TeamCustomRoleService,
   TeamComplianceSettingService,
   TeamService,
 
   UserService,
   UserSessionService,
   UserProjectSsoConsentService,
+  UserProjectSsoIdentityService,
   UserCallService,
   UserEmailService,
   UserNotificationRuleService,
@@ -807,6 +820,7 @@ const services: Array<BaseService> = [
   UserOnCallCalendarFeedService,
   OnCallDutyPolicyScheduleCalendarFeedService,
   ProjectOnCallCalendarFeedService,
+  ScheduledMaintenanceCalendarFeedService,
   UserOnCallShiftReminderService,
   UserOnCallShiftReminderLogService,
   OnCallDutyPolicyScheduleLayerService,
@@ -848,8 +862,6 @@ const services: Array<BaseService> = [
   DetectionRuleService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
-  HuntressConnectionService,
-  HuntressIncidentReportService,
   ThreatIntelFeedService,
   SecurityCaseService,
   SecurityCaseFeedService,
@@ -928,6 +940,7 @@ const services: Array<BaseService> = [
   WorkspaceUserNotificationService,
 
   ProjectSCIMLogService,
+  ProjectSCIMUserService,
   StatusPageSCIMLogService,
 
   // Session replay control tables (the recordings themselves are in ClickHouse).

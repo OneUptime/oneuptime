@@ -253,7 +253,7 @@ const Users: FunctionComponent<PageComponentProps> = (
       {isPushGroupsManaged && (
         <Banner
           title="Users are managed by SCIM Push Groups"
-          description="Invite or remove users from your identity provider or disable Push Groups in Settings > SCIM to manage them here."
+          description="Invite or remove users from your identity provider or disable Push Groups in Project Settings > Security > SCIM to manage them here."
         />
       )}
 
@@ -472,7 +472,6 @@ const Users: FunctionComponent<PageComponentProps> = (
           modelType={TeamMember}
           name="Invite New User"
           title="Invite New User"
-          description="Invite new user to this project."
           onClose={() => {
             setShowInviteUserModal(false);
           }}
@@ -511,7 +510,7 @@ const Users: FunctionComponent<PageComponentProps> = (
                 },
                 title: "Email",
                 description:
-                  "Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to team you have selected.",
+                  "We email them an invitation to the team you pick.",
                 fieldType: FormFieldSchemaType.Email,
                 required: true,
                 placeholder: "member@company.com",
@@ -526,7 +525,7 @@ const Users: FunctionComponent<PageComponentProps> = (
                 },
                 title: "Name",
                 description:
-                  "This email is not registered on OneUptime yet. Enter the name of the user you would like to invite — we will use it to set up their new account.",
+                  "They have no OneUptime account yet. It is set up with this name.",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
                 placeholder: "John Smith",
@@ -566,7 +565,7 @@ const Users: FunctionComponent<PageComponentProps> = (
       {showScimErrorModal && (
         <ConfirmModal
           title="Users are managed by SCIM Push Groups"
-          description="Team membership is being managed by your identity provider. Disable Push Groups in Settings > SCIM if you need to invite or promote users from OneUptime."
+          description="Your identity provider manages team membership. Turn off Push Groups in Project Settings > Security > SCIM to invite people here."
           onSubmit={() => {
             setShowScimErrorModal(false);
           }}

@@ -57,14 +57,14 @@ Ouvrez une politique depuis la liste. Son menu latéral contient tout ce qui la 
 
 ## Répéter une politique
 
-Quand l'attente du dernier niveau se termine sans que personne ne prenne en compte, une politique s'arrête, sauf si elle se répète. Pour la répéter, ouvrez la page **Règles d'escalade** de la politique, cliquez sur **Modifier** sur la carte **Politique de répétition** sous les règles, et remplissez **Modifier la politique de répétition** :
+Quand l'attente du dernier niveau se termine sans que personne ne prenne en compte, une politique s'arrête, sauf si elle se répète. Pour choisir, ouvrez la page **Règles d'escalade** de la politique et cliquez sur **Modifier** sur la carte **Politique de répétition** sous les règles. **Modifier la politique de répétition** demande **Si personne ne prend en compte après le dernier niveau** :
 
-| Champ | Ce qu'il fait | Pour une nouvelle politique |
-| --- | --- | --- |
-| **Repeat if no one acknowledges** | Relance la politique depuis **Level 1** après son dernier niveau. Tant qu'il est désactivé, la politique s'exécute une seule fois. | Désactivé |
-| **Nombre de répétitions** | Combien de fois encore la politique recommence. | 0 |
+| Réponse | Ce qu'elle fait |
+| --- | --- |
+| **Arrêter les alertes** | Personne n'est alerté de nouveau : la politique s'exécute une seule fois. Une nouvelle politique commence avec cette réponse. |
+| **Recommencer depuis Level 1** | Chaque niveau est alerté de nouveau, dans l'ordre. **Combien de fois de plus ?** indique combien de fois : 1 ou plus. |
 
-Avec l'interrupteur activé et trois répétitions, une politique parcourt ses niveaux quatre fois au total. **Policy at a glance** sur la **Vue d'ensemble** dit la même chose en toutes lettres.
+Une politique qui recommence trois fois de plus parcourt ses niveaux quatre fois au total. La ligne **Après le dernier niveau** de la carte dit ce que fait la politique, et **Policy at a glance** sur la **Vue d'ensemble** dit la même chose en toutes lettres.
 
 ## Journaux d'exécution
 
@@ -94,7 +94,7 @@ Vous trouvez les journaux d'exécution à trois endroits :
 
 - dans les propres **Journaux d'exécution** de la politique, sous **Journaux** ;
 - dans **Astreinte → Avancé → Journaux d'exécution**, pour toutes les politiques, où les appels directs venus des workflows et du chat apparaissent comme **Appel direct** ;
-- sur la page **Exécutions d'astreinte** d'un incident, et dans **Exécutions d'astreinte** d'une alerte.
+- sur la page **Exécutions d'astreinte** d'un incident ou d'une alerte.
 
 Chaque ligne montre ce qui a déclenché l'exécution, quand, son **Statut** et qui l'a prise en compte. **View Timeline** ouvre sa **Chronologie d'exécution** : chaque règle d'escalade, qui elle a alerté, par quel planning, et comment chaque alerte s'est terminée. Un planning où personne n'est d'astreinte affiche **No one was on call** au lieu d'une personne. Sur OneUptime Cloud, les journaux d'exécution nécessitent l'offre **Growth**.
 
@@ -119,9 +119,11 @@ Les politiques d'astreinte sont la ressource `/api/on-call-duty-policy`, et la r
 | --- | --- |
 | **Nom** | `name` |
 | **Description** | `description` |
-| **Repeat if no one acknowledges** | `repeatPolicyIfNoOneAcknowledges` |
-| **Nombre de répétitions** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Si personne ne prend en compte après le dernier niveau** | `repeatPolicyIfNoOneAcknowledges` |
+| **Combien de fois de plus ?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | Archivée | `isArchived` |
+
+`repeatPolicyIfNoOneAcknowledges` vaut `false` pour **Arrêter les alertes** et `true` pour **Recommencer depuis Level 1**. À `true` avec `repeatPolicyIfNoOneAcknowledgesNoOfTimes` à `0`, une politique ne se répète jamais, et le tableau de bord l'affiche comme **Arrêter les alertes**.
 
 Pour créer une politique avec son premier niveau en une seule requête, voir [Créer des règles avec l'API ou Terraform](/docs/on-call/escalation-rules#créer-des-règles-avec-lapi-ou-terraform).
 

@@ -14,15 +14,15 @@
 ```mermaid title="یک پوش چگونه به گوشی یا مرورگر می‌رسد"
 flowchart TB
     Server["سرور OneUptime شما"]
-    Relay["رلهٔ پوش OneUptime"]
+    Relay["رلهٔ پوش<br/>OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["برنامهٔ OneUptime On-Call"]
+    Phone["برنامهٔ<br/>OneUptime On-Call"]
     PushService["سرویس پوشِ<br/>مرورگر"]
     Browser["مرورگر"]
     Server -->|"بدون EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN تنظیم شده"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>تنظیم شده"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
@@ -44,6 +44,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | تا وقتی `EXPO_ACCESS_TOKEN` تنظیم نشده، پوش‌های موبایل به کجا می‌روند. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | خالی | پوش‌های موبایل را با توکن پروژهٔ Expo شما مستقیم به Expo می‌فرستد. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | خالی | پوش‌های موبایل سرورهای دیگر OneUptime را با `EXPO_ACCESS_TOKEN` همین سرور رله می‌کند. خالی یعنی خاموش، مگر اینکه `BILLING_ENABLED` برابر `true` باشد. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | خالی | نیمهٔ عمومی جفت‌کلیدی که مرورگرها با آن مشترک می‌شوند. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | خالی | نیمهٔ خصوصی، که هر پوش وب را امضا می‌کند. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | نشانی تماسی که سرویس‌های پوش مرورگرها می‌توانند با آن به شما برسند. |
@@ -81,6 +82,8 @@ expo:
 | برنامهٔ موبایل یا مرورگر → OneUptime | نام میزبان OneUptime شما | HTTPS / TCP 443 | ورود، ثبت دستگاه و باز کردن پیوندهای اعلان. |
 
 اگر `PUSH_NOTIFICATION_RELAY_URL` را تغییر دهید، نام میزبان مقصد و پورت پیکربندی‌شدهٔ آن را مجاز کنید. یک رلهٔ سفارشی باید API رلهٔ OneUptime را پیاده‌سازی کند. این پیش‌فرض‌ها و جابه‌جایی میان رله و تحویل مستقیم در [پیکربندی OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) و [سرویس پوش](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) تعریف شده‌اند. درخواست‌های مستقیم به Expo از نقطهٔ پایانی‌ای استفاده می‌کنند که در [راهنمای ارسال Expo](https://docs.expo.dev/push-notifications/sending-notifications/) آمده است. ‏OneUptime رسیدهای تحویل را از رله در همان نشانی، با `/receipts` به‌جای `/send`، می‌خواند. رله‌ای که این مسیر را ندارد همچنان پوش‌ها را تحویل می‌دهد؛ در آن صورت دستگاهی که برنامه‌اش حذف شده، فقط وقتی شناخته می‌شود که پوش بعدی به آن رد شود.
+
+یک سرور خودمیزبان OneUptime فقط با `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` و `EXPO_ACCESS_TOKEN` خودش پوش‌های سرورهای دیگر را رله می‌کند؛ بدون این تنظیم، در آن نشانی با 404 پاسخ می‌دهد. آن را فقط روی سروری روشن کنید که سرورهای دیگر OneUptime شما از طریق آن می‌فرستند، و فقط به همان سرورها اجازه دهید به آن نشانی برسند.
 
 برای Web Push، میزبان‌های واقعی نقطه‌های پایانی اشتراک را برای مرورگرهایی که تیم شما به کار می‌برد مجاز کنید. ‏OneUptime ‏`fcm.googleapis.com`، `android.googleapis.com`، `push.services.mozilla.com`، `notify.windows.com` و `push.apple.com` را همراه با زیردامنه‌هایشان می‌پذیرد. نمونه‌های رایج `updates.push.services.mozilla.com` و `web.push.apple.com` هستند. [اشتراک پوش مرورگر](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) مقصد را تعیین می‌کند؛ مجاز کردن فقط Expo یا رلهٔ OneUptime، Web Push را فعال نمی‌کند.
 
@@ -121,7 +124,7 @@ flowchart TB
 
 برای اینکه یک فراخوان حالت بی‌صدا را نادیده بگیرد، هر چهار چیز باید برقرار باشند. اگر حتی یکی نباشد، فراخوان باز هم تحویل می‌شود - فقط بی‌صدا.
 
-1. **فرد کشیک آن را برای آن دستگاه روشن کرده است.** برای هر دستگاه جدا، به‌طور پیش‌فرض خاموش، در `UserPush.isCriticalAlertEnabled` ذخیره می‌شود. گوشی و تبلت یک نفر تصمیم‌های جداگانه‌اند.
+1. **فرد کشیک آن را برای آن دستگاه روشن کرده است.** برای هر دستگاه جدا، به‌طور پیش‌فرض خاموش، در `UserPush.isCriticalAlertEnabled` ذخیره می‌شود. گوشی و تبلت یک نفر تصمیم‌های جداگانه‌اند. نسخه‌های برنامه پس از 1.6.0 هر بار که باز شوند آن را دوباره گزارش می‌کنند، و تا وقتی تنظیمات خود گوشی هشدارهای بحرانی را اجازه ندهند آن را خاموش گزارش می‌کنند، تا فهرست دستگاه‌ها همان کاری را نشان دهد که گوشی واقعاً انجام می‌دهد.
 2. **قاعدهٔ کشیکی که فراخوان را فرستاده آن را می‌خواهد.** در **تنظیمات کاربر** > **قواعد آنکال**، هر قاعده‌ای که به یک گوشی اعلان می‌دهد روی «هشدار بحرانی»، که پیش‌فرض است، یا روی «عادی» تنظیم شده که از تنظیمات صدای گوشی پیروی می‌کند - تا فرد کشیک برای یک رخداد بحرانی بیدار شود و برای رخدادی جزئی بی‌صدا باخبر شود. برای هر قاعده در `UserNotificationRule.pushNotificationLevel` ذخیره می‌شود.
 3. **سرور فراخوان را بحرانی علامت می‌زند.** برای iOS، محمولهٔ صدای بحرانی APNs به‌علاوهٔ `interruptionLevel: critical` را می‌فرستد، و برای Android یک کانال اعلان بحرانی را هدف می‌گیرد: `oncall_critical`، یا کانال خودِ زنگ هشدارِ انتخاب‌شده ([انتخاب صدای زنگ هشدار](#انتخاب-صدای-زنگ-هشدار) را ببینید).
 4. **سیستم‌عامل اجازه می‌دهد**، و همین‌جاست که دو پلتفرم با هم فرق دارند.
@@ -192,7 +195,7 @@ EXPO_IOS_CRITICAL_ALERTS_ENTITLEMENT=true npx expo prebuild
 - ‏**iOS**: مطمئن شوید بیلد مجوز هشدار بحرانی Apple را دارد (بالا را ببینید)، و Critical Alerts زیر iOS Settings > Notifications > OneUptime On-Call مجاز است
 - ‏**Android**: مطمئن شوید برنامه زیر Settings > Notifications > Do Not Disturb access دسترسی مزاحم نشوید دارد
 - ‏**Android**: اگر صدای زنگ هشداری انتخاب کرده‌اید، کانال اعلانِ خودِ آن هم باید اجازه داشته باشد مزاحم نشوید را نادیده بگیرد؛ اگر چنین نباشد، صفحهٔ Alarm sound برنامه آن را می‌گوید
-- صفحهٔ تنظیمات می‌گوید کدام‌یک از این‌ها کم است؛ وضعیت فعلی را از سیستم‌عامل می‌خواند، نه اینکه به آخرین درخواست برنامه اعتماد کند
+- صفحهٔ تنظیمات می‌گوید کدام‌یک از این‌ها کم است؛ وضعیت فعلی را از سیستم‌عامل می‌خواند، نه اینکه به آخرین درخواست برنامه اعتماد کند، و آنچه را می‌یابد به سرور می‌گوید
 
 ### پوش‌هایی که «تحویل‌نشده» علامت خورده‌اند
 

@@ -114,6 +114,23 @@ export default class ZoomMeetingClient {
     const token: ZoomAccessToken = data.token;
     const startTime: Date = request.startTime || new Date();
 
+    const settings: JSONObject = {
+      join_before_host: true,
+      // 0: participants may join at any time before the host.
+      jbh_time: 0,
+      waiting_room: false,
+    };
+
+    /*
+     * Recorded to the cloud from the start, which also starts when people
+     * join before the host. The audio transcript among the recording's
+     * files is the Zoom account's own recording setting; Zoom leaves a
+     * meeting unrecorded on an account that cannot record to the cloud.
+     */
+    if (request.recordAndTranscribe) {
+      settings["auto_recording"] = "cloud";
+    }
+
     const body: JSONObject = {
       topic: ZoomMeetingClient.truncate(
         request.title || "Incident call",
@@ -123,12 +140,7 @@ export default class ZoomMeetingClient {
       start_time: ZoomMeetingClient.formatStartTime(startTime),
       duration: 60,
       timezone: "UTC",
-      settings: {
-        join_before_host: true,
-        // 0: participants may join at any time before the host.
-        jbh_time: 0,
-        waiting_room: false,
-      },
+      settings: settings,
     };
 
     if (request.description) {
@@ -331,7 +343,7 @@ export default class ZoomMeetingClient {
     ) {
       if (host.isSignIn) {
         return new BadDataException(
-          `Zoom no longer has the user ${host.label} that OneUptime signed in as. Reconnect Zoom in Project Settings > Video Calls. (${summary})`,
+          `Zoom no longer has the user ${host.label} that OneUptime signed in as. Reconnect Zoom in Project Settings > Workspace > Video Calls. (${summary})`,
         );
       }
 
@@ -346,7 +358,7 @@ export default class ZoomMeetingClient {
     ) {
       if (host.isSignIn) {
         return new BadDataException(
-          `Zoom no longer accepts OneUptime's sign-in for ${host.label}. Reconnect Zoom in Project Settings > Video Calls. (${summary})`,
+          `Zoom no longer accepts OneUptime's sign-in for ${host.label}. Reconnect Zoom in Project Settings > Workspace > Video Calls. (${summary})`,
         );
       }
 

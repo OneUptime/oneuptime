@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **La sonde se connecte vers l'extérieur.** Chaque requête part de la sonde vers `ONEUPTIME_URL` en HTTPS. Rien ne doit joindre la sonde depuis l'extérieur de votre réseau.
 - **Elle ne vérifie que ses propres moniteurs.** La sonde demande à OneUptime les moniteurs auxquels elle est ajoutée, vérifie chacun quand il est dû et renvoie le résultat. OneUptime décide d'après les résultats si le statut d'un moniteur change.
-- **OneUptime surveille qu'elle tourne.** Chaque requête de la sonde compte comme un signe de vie, et la sonde en envoie au moins une par minute. Après environ trois minutes sans aucune, la sonde affiche **Déconnecté**, et ses propriétaires sont prévenus. Une sonde sans propriétaire prévient les propriétaires du projet.
+- **OneUptime surveille qu'elle tourne.** Chaque requête de la sonde compte comme un signe de vie, et la sonde en envoie au moins une par minute. Après environ trois minutes sans aucune, la sonde affiche **Déconnecté**, et ses propriétaires sont prévenus. Une sonde sans propriétaire prévient les propriétaires du projet. Pour être alerté comme pour toute panne, avec un seul incident jusqu'à son retour, ajoutez un [moniteur d'état des sondes](/docs/monitor/probe-status-monitor) : **Surveiller cette sonde**, sur la page de la sonde, en crée un.
 
 ## Avant de commencer
 
@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Créer la sonde
 
-Ouvrez **Moniteurs → Paramètres → Sondes** et cliquez sur **Créer : Sonde**. Donnez-lui un **Nom** et une **Description** : les deux sont obligatoires. **Plus de champs** contient le **Logo de la sonde**, **Activer automatiquement la surveillance sur les nouveaux moniteurs**, qui choisit cette sonde pour chaque nouveau moniteur que vous créez, et les **Étiquettes**.
+Ouvrez **Moniteurs → Paramètres → Sondes** et cliquez sur **Créer : Sonde**. Donnez-lui un **Nom** et une **Description** : les deux sont obligatoires. **Plus de champs** contient le **Logo de la sonde**, **Ajouter aux nouveaux moniteurs**, qui fait démarrer chaque nouveau moniteur avec cette sonde sélectionnée, et les **Étiquettes**.
 
 ### Copier son ID et sa clé
 

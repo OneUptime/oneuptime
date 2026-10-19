@@ -6,7 +6,7 @@ Konfigurasjonen av varsler ligger under **Varsler**, ikke i **Prosjektinnstillin
 - [Reglene et nytt varsel går gjennom](#reglene-et-nytt-varsel-går-gjennom): I rekkefølge, og hva hver av dem gjør.
 - [Vaktregler](#vaktregler): Tilkall de riktige personene uten å velge en policy hver gang.
 - [Påminnelsesregler](#påminnelsesregler): Minn eiere på varselet så lenge det er åpent.
-- [Innstillinger](#innstillinger): Notatmaler, egendefinerte felt, målinger og nummerering.
+- [Innstillinger](#innstillinger): Notatmaler, egendefinerte felt, målinger, medlemskap i episoder og nummerering.
 :::
 
 ## Hvor varselinnstillingene ligger
@@ -23,7 +23,7 @@ Konfigurasjonen av varsler ligger under **Varsler**, ikke i **Prosjektinnstillin
 | **Etikettregler**     | Legger til etiketter på samsvarende varsler og episoder.                                       |
 | **Reminder Rules**    | Minner eiere på med et intervall så lenge et varsel er åpent.                                  |
 
-Seksjonen **Innstillinger** inneholder **Varselsstatus** og **Varselsalvor**, som er beskrevet på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger** og **Nummerering**, som er beskrevet nedenfor.
+Seksjonen **Innstillinger** inneholder **Varselsstatus** og **Varselsalvor**, som er beskrevet på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder** og **Nummerering**, som er beskrevet nedenfor.
 
 To andre seksjoner virker på varsler. **Varsler → KI → Innstillinger** avgjør hva OneUptime AI gjør på egen hånd: **Undersøk nye varsler**, slått på for nye prosjekter, og **Rett nye varsler automatisk**, slått av til du slår det på. Se [AI SRE](/docs/ai/ai-sre). **Varsler → Arbeidsområde** inneholder Slack- og Microsoft Teams-reglene som legger ut varsler og episoder i kanaler, og fanen **Summary**. Se [Slack](/docs/workspace-connections/slack).
 
@@ -77,17 +77,13 @@ Med to eller flere betingelser velger du **Samsvar med alle**, der hver må stem
 **Varsler → Regler → Vaktregler** gjør tilkalling automatisk. Hver samsvarende regel legger til policyene sine på det nye varselet, og varselet kjører dem sammen med policyene det allerede hadde, hver én gang.
 
 :::steps
-### Gi regelen et navn
-
-Klikk på **Opprett Alert On-Call Rule**. Under **Grunnleggende informasjon** gir du den et **Navn**, for eksempel "Tilkall databaseteamet for ethvert DB-varsel", og en **Beskrivelse** hvis du vil.
-
 ### Velg varslene
 
-Under **Treffkriterier** legger du til betingelsene et varsel må oppfylle. La dem stå tomme for å samsvare med hvert nytt varsel.
+Klikk på **Opprett Alert On-Call Rule**. Under **Treff** samsvarer **Alle varsler**, som en ny regel starter på, med hvert nytt varsel. For å snevre inn regelen velger du **Bare varsler som oppfyller betingelsene** og legger til betingelsene et varsel må oppfylle.
 
 ### Velg policyene
 
-Under **Vaktretningslinjer** velger du **Vaktpolicyer** regelen kjører, og oppretter deretter regelen.
+Under **Vaktretningslinjer** velger du **Vaktpolicyer** regelen tilkaller. **Navn** følger dem, for eksempel "Tilkall Platform on-call", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Opprett deretter regelen.
 :::
 
 En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer på **Varsel Alvorligheter**, er måten å sette opp "tilkall databaseteamet for hvert High-varsel" på. For å se hva som kjørte for ett varsel, åpner du siden **Vaktutførelser**. Hver person nås deretter på den måten de har satt opp under **Brukerinnstillinger → Vaktregler** på fanen **Varsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer p
 
 ## Personvern- og runbook-regler
 
-**Personvernregler** gjør nye varsler som samsvarer, private før noe annet kjører: Bare eierne deres og prosjektets administratorer og eiere kan se dem. En regel har et trinn **Grunnleggende informasjon** og et trinn **Treffkriterier**, og gjør hvert varsel den samsvarer med, privat. Se [Private varsler](/docs/alerts/index#private-varsler).
+**Personvernregler** gjør nye varsler som samsvarer, private før noe annet kjører: Bare eierne deres og prosjektets administratorer og eiere kan se dem. En regel har to trinn: **Treff**, varslene den gjør private, og deretter **Navn**, allerede fylt ut som "Gjør varsler private". Se [Private varsler](/docs/alerts/index#private-varsler).
 
 **Runbook-regler** starter en runbook når et nytt varsel samsvarer, med mindre varselet ble opprettet løst. Se [Runbook-regler](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ En alvorlighetsgrad tilkaller ingen på egen hånd: En vaktregel som samsvarer p
 **Varsler → Regler → Reminder Rules** minner et varsels eiere på det så lenge det er åpent. Hvert nytt varsel får den første regelen som samsvarer, ovenfra og ned i listen.
 
 :::steps
-### Gi påminnelsesregelen et navn
-
-Klikk på **Opprett Alert Reminder Rule**. Under **Rule Info** gir du den et **Navn**, for eksempel "Critical Alert Reminders".
-
 ### Velg hvilke varsler det skal minnes om
 
-Under **Treffkriterier** velger du **Varsel Alvorligheter** og **Etiketter** den gjelder for. La dem stå tomme for å minne om hvert varsel.
+Klikk på **Opprett Alert Reminder Rule**. Under **Treff** lar du **Alle varsler** være valgt for å minne om hvert varsel, eller du velger **Bare varsler som oppfyller betingelsene** og deretter **Varsel Alvorligheter** og **Etiketter** den gjelder for.
 
 ### Angi intervallet
 
-Under **Reminder Settings** angir du **Reminder Interval (minutes)**, hvor ofte eierne minnes på, og **Stop Reminders When**: **Løst**, standarden, eller **Bekreftet**. Opprett deretter regelen.
+Under **Påminnelser** angir du **Påminnelsesintervall (minutter)**, hvor ofte eierne minnes på, og **Stopp påminnelser når**: **Løst**, standarden, eller **Bekreftet**. **Navn** følger begge, for eksempel "Påminn hver 30 minutter til løst", til du skriver inn ditt eget. Opprett deretter regelen.
 :::
 
 Eiere får hver påminnelse som **Alert reminder**, som er slått på via e-post som standard. Et varsels regel samsvares på nytt når alvorlighetsgraden eller etikettene endres. For å stoppe påminnelsene for ett varsel slår du av **Send påminnelser** på siden **Innstillinger**; den lagrer i det øyeblikket du slår den om.
@@ -141,6 +133,10 @@ Eiere får hver påminnelse som **Alert reminder**, som er slått på via e-post
 ### Målinger
 
 **Varsler → Innstillinger → Målinger** måler hvor lang tid ting tar for hvert varsel. Velg **Tid til bekreftelse** eller **Tid til løsning**, eller to egne tidspunkter, for eksempel når **Varselet blir opprettet**, og når det går inn i en tilstand du velger. Hver måling vises på varselets side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måte for varsler.
+
+### Medlemskap i episoder
+
+**Varsler → Innstillinger → Medlemskap i episoder** avgjør om et varsel kan være i mer enn én episode. Slå på **Et varsel kan bare være i én episode**, så blir et varsel som er i en episode, ikke lagt til i noen annen, verken fra dashbordet eller via API-et, en arbeidsflyt eller en grupperingsregel, før det er tatt ut av den episoden. Bryteren er slått av til du slår den på, og bare Project Owners og Project Admins kan endre den. Å slå den på tar ikke noe varsel ut av en episode. Se [Én episode per hendelse](/docs/incidents/episodes#én-episode-per-hendelse), som fungerer på samme måte for varsler.
 
 ### Nummerering
 

@@ -236,6 +236,10 @@ const PROVIDER_CONSOLES: Array<string> = [
   "Scopes",
   "meeting:write:meeting:admin",
   "meeting:write:admin",
+  // The scopes that let a Server-to-Server OAuth app read call transcripts.
+  "cloud_recording:read:list_recording_files:admin",
+  "cloud_recording:read:meeting_transcript:admin",
+  "recording:read:admin",
   "Activate",
   "Account ID",
   "Client ID",
@@ -381,6 +385,15 @@ const TEMPLATE_LABELS: Record<string, Record<string, TemplateLabel>> = {
       template: "Use your own {{provider}} app",
       values: { provider: "Zoom" },
     },
+    // The Video Call card's button that asks the provider for a call's transcript.
+    "Get from Zoom": {
+      template: "Get from {{provider}}",
+      values: { provider: "Zoom" },
+    },
+    "Get from Google Meet": {
+      template: "Get from {{provider}}",
+      values: { provider: "Google Meet" },
+    },
   },
 };
 
@@ -443,6 +456,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
+    // A private incident or episode takes private notes only.
+    "Add Note on a private incident or episode.",
     "Where you are answered.",
     "If your Slack account is not connected.",
     // What OneUptime AI answers in Slack: the rule's two halves.
@@ -468,6 +483,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Your on-call.",
     "What is open.",
     "Its buttons.",
+    // Who is in a record's channel, and adding people to it.
+    "Who may add people.",
+    "Who can be added.",
+    "What it records.",
+    "Taking someone out.",
     // What OneUptime reads from Slack, and why.
     "Messages addressed to OneUptime.",
     "Messages you save as notes.",
@@ -491,6 +511,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "What a form may name.",
     "Which records.",
     "What Change State offers.",
+    // A private incident takes private notes only.
+    "Add Note on a private incident.",
     "Where the person is answered.",
     "If their account is not connected.",
     // Paging someone from Microsoft Teams.
@@ -631,7 +653,8 @@ const NUMBERS: Record<string, Array<string>> = {
    */
   [SLACK]: ["7", "15", "80", "40"],
   [TEAMS]: ["7", "15", "50", "30"],
-  [VIDEO]: ["40", "30"],
+  // And the largest transcript file Add transcript takes, in MB.
+  [VIDEO]: ["40", "30", "5"],
   [BUILDING]: ["50", "100", "500", "20000", "10000", "512", "128"],
   [SHARING]: ["429", "503"],
 };

@@ -9,7 +9,7 @@ Runbook-Regeln starten Runbooks automatisch, wenn ein **Vorfall**, eine **Warnun
 Alle drei Seiten bearbeiten dieselbe Art von Regel, gefiltert auf die Regeln dieses Produkts.
 
 :::cards
-- [Eine Runbook-Regel erstellen](#eine-runbook-regel-erstellen): Vier Schritte: ein Name, Bedingungen und die zu startenden Runbooks.
+- [Eine Runbook-Regel erstellen](#eine-runbook-regel-erstellen): Drei Schritte: Bedingungen, dann die zu startenden Runbooks, nach denen die Regel benannt wird.
 - [Bedingungen](#bedingungen): Jedes Kriterium und jeder Operator, den eine Regel nutzen kann.
 - [Abgleichslogik](#abgleichslogik): Mehrere Regeln, Monitor-Bedingungen und Beschriftungsregeln.
 - [Beispiele](#beispiele): Drei Regeln zum Übernehmen.
@@ -19,15 +19,15 @@ Alle drei Seiten bearbeiten dieselbe Art von Regel, gefiltert auf die Regeln die
 
 ```mermaid title="Von einem neuen Vorfall zu gestarteten Runbooks"
 flowchart TB
-    created["Vorfall, Warnung oder Ereignis entsteht"] --> labels["Beschriftungsregeln fügen ihre Beschriftungen hinzu"]
-    labels --> rules["Aktivierte Runbook-Regeln dieses Produkts"]
-    rules --> match{"Bedingungen erfüllt?"}
-    match -->|"nein"| nothing["Regel startet nichts"]
-    match -->|"ja"| union["Runbooks aller passenden Regeln, jedes einmal"]
-    union --> runnable{"Runbook eingeschaltet und mit Schritten?"}
-    runnable -->|"nein"| skipped["Dieses Runbook wird übersprungen"]
-    runnable -->|"ja"| execution["Ausführung erstellt und eingereiht"]
-    execution --> attached["Auf der Runbooks-Seite des Ereignisses angezeigt"]
+    created["Vorfall, Warnung<br/>oder Ereignis<br/>entsteht"] --> labels["Beschriftungsregeln<br/>fügen ihre<br/>Beschriftungen hinzu"]
+    labels --> rules["Aktivierte<br/>Runbook-Regeln<br/>dieses Produkts"]
+    rules --> match{"Bedingungen<br/>erfüllt?"}
+    match -->|"nein"| nothing["Regel startet<br/>nichts"]
+    match -->|"ja"| union["Runbooks aller<br/>passenden Regeln,<br/>jedes einmal"]
+    union --> runnable{"Runbook<br/>eingeschaltet und<br/>mit Schritten?"}
+    runnable -->|"nein"| skipped["Dieses Runbook<br/>wird übersprungen"]
+    runnable -->|"ja"| execution["Ausführung<br/>erstellt und<br/>eingereiht"]
+    execution --> attached["Auf der<br/>Runbooks-Seite<br/>des Ereignisses<br/>angezeigt"]
 ```
 
 Wenn eine Regel greift, geschieht für jedes Runbook, das sie nennt, Folgendes:
@@ -51,27 +51,23 @@ Jeden Lauf, ob von einer Regel ausgelöst oder nicht, sehen Sie unter **Runbooks
 
 Öffnen Sie in **Vorfälle**, **Warnungen** oder **Geplante Wartung** den Punkt **Regeln → Runbook-Regeln** und klicken Sie auf **Runbook-Regel erstellen**.
 
-### Die Regel benennen
-
-Geben Sie unter **Grundinformationen** einen **Name** ein, etwa „DB-Failover für Datenbankvorfälle starten“, und optional eine **Beschreibung**.
-
 ### Bedingungen hinzufügen
 
-Klicken Sie unter **Übereinstimmungskriterien** auf **Bedingung hinzufügen**, wählen Sie ein Kriterium und einen Operator und geben Sie den Wert ein oder wählen Sie ihn aus. Fügen Sie bei Bedarf weitere Bedingungen hinzu und wählen Sie **Alle müssen zutreffen** oder **Eine muss zutreffen**. Fügen Sie keine hinzu, um die Runbooks für jedes neue Ereignis dieser Art zu starten.
+Unter **Übereinstimmung** steht **Gilt für** bei einer neuen Regel auf allen neuen Ereignissen dieser Art, etwa **Alle Vorfälle**, und die Regel startet ihre Runbooks für jedes davon. Um sie einzugrenzen, wählen Sie die andere Antwort, etwa **Nur Vorfälle, die den Bedingungen entsprechen**, dann ein Kriterium und einen Operator, und geben den Wert ein oder wählen ihn aus. Klicken Sie für weitere Bedingungen auf **Bedingung hinzufügen** und wählen Sie **Alle müssen zutreffen** oder **Eine muss zutreffen**.
 
 ### Die Runbooks wählen
 
-Wählen Sie unter **Runbooks** ein oder mehrere **Zu startende Runbooks** und klicken Sie dann auf **Runbook-Regel erstellen**. Die Regel ist ab dem Erstellen aktiv und erscheint in der Liste mit dem Status **Aktiviert**.
+Wählen Sie unter **Runbooks** ein oder mehrere **Zu startende Runbooks**. Der **Name** der Regel folgt ihnen, etwa „Database failover starten“, bis Sie einen eigenen eingeben, und eine **Beschreibung** wartet unter **Weitere Felder**. Klicken Sie dann auf **Runbook-Regel erstellen**. Die Regel ist ab dem Erstellen aktiv und erscheint in der Liste mit dem Status **Aktiviert**.
 :::
 
 ## Aufbau einer Regel
 
 | Feld | Zweck |
 | --- | --- |
-| **Name** | Eine kurze, verständliche Bezeichnung für die Regel. |
-| **Beschreibung** | Optionaler Kontext für Teammitglieder. |
+| **Name** | Nach den Runbooks benannt, die sie startet, etwa „Database failover starten“, bis Sie einen eigenen eingeben. |
+| **Beschreibung** | Optionaler Kontext für Teammitglieder, unter **Weitere Felder**. |
 | **Aktiviert** | An für eine neue Regel. Schalten Sie es im Bearbeitungsformular der Regel aus, um sie auszusetzen, ohne sie zu löschen. |
-| **Bedingungen** | Was die Regel abgleicht, im Schritt **Übereinstimmungskriterien**. Lassen Sie sie leer, um jedes Ereignis ihres Typs abzugleichen. |
+| **Bedingungen** | Was die Regel abgleicht, im Schritt **Übereinstimmung**. Eine Regel ohne Bedingungen, etwa auf **Alle Vorfälle**, trifft auf jedes Ereignis ihres Typs zu. |
 | **Zu startende Runbooks** | Ein oder mehrere Runbooks, die starten, wenn die Regel greift. |
 
 ## Bedingungen

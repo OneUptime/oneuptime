@@ -79,6 +79,15 @@ const GENERATED_LOCAL_PART_PATTERN: RegExp = new RegExp(
   "i",
 );
 
+/*
+ * The address of "Name <address>". What is between the brackets holds no "<"
+ * either, so a match tried from each "<" reads only up to the next one: a
+ * recipient that whoever sends the email writes is read in time in line with
+ * its length. Where several "<" open before a ">", the address is what
+ * follows the last of them.
+ */
+const ANGLE_BRACKETED_ADDRESS: RegExp = /<([^<>]+)>/;
+
 export enum IncomingEmailRecipientKind {
   Generated = "Generated",
   Custom = "Custom",
@@ -267,8 +276,9 @@ export default class IncomingEmailMonitorAddress {
       return null;
     }
 
-    const bracketed: RegExpMatchArray | null =
-      data.emailAddress.match(/<([^>]+)>/);
+    const bracketed: RegExpMatchArray | null = data.emailAddress.match(
+      ANGLE_BRACKETED_ADDRESS,
+    );
 
     const address: string = (
       bracketed && bracketed[1] ? bracketed[1] : data.emailAddress

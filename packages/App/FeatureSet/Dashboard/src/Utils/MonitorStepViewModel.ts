@@ -9,6 +9,7 @@ import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupM
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import { MonitorStepProbeStatusMonitorUtil } from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
 import MonitorStepLlmMonitor, {
   LlmBadAnswerRule,
   MonitorStepLlmMonitorUtil,
@@ -73,6 +74,8 @@ export enum MonitorStepViewValueType {
   TelemetryServices = "TelemetryServices",
   // Value is a single network device id string, resolved the same way.
   NetworkDevice = "NetworkDevice",
+  // Value is an array of probe id strings, resolved to the probes' names.
+  Probes = "Probes",
 }
 
 export type MonitorStepViewValue =
@@ -485,6 +488,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getStorageArrayRows(data);
       case MonitorType.IoTDevice:
         return MonitorStepViewModel.getIoTRows(data);
+      case MonitorType.ProbeStatus:
+        return MonitorStepViewModel.getProbeStatusRows(data);
       default:
         // Manual, Server, Incoming Request/Email, Profiles: no step config.
         return [];
@@ -1499,6 +1504,28 @@ export default class MonitorStepViewModel {
         valueType: MonitorStepViewValueType.NetworkDevice,
         value: toText(data.networkDeviceMonitor?.networkDeviceId),
         placeholder: "No network device selected",
+      },
+    ]);
+  }
+
+  /*
+   * Kept even when empty, like the device above: a Probe Status monitor
+   * watching nothing is the one thing about it worth saying.
+   */
+  private static getProbeStatusRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    return compact([
+      {
+        key: "probeIds",
+        title: "Probes to Watch",
+        description:
+          "This monitor goes offline when one of these probes disconnects.",
+        valueType: MonitorStepViewValueType.Probes,
+        value: MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(
+          data.probeStatusMonitor?.probeIds,
+        ),
+        placeholder: "No probes picked",
       },
     ]);
   }

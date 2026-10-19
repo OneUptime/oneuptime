@@ -21,13 +21,13 @@ Un moniteur Docker Swarm est lié à un cluster. Chaque minute, il exécute sa r
 flowchart TB
     subgraph cluster["Votre cluster Swarm"]
         direction LR
-        manager["Agent sur un manager"]
-        others["Collecteurs sur les autres nœuds"]
+        manager["Agent sur<br/>un manager"]
+        others["Collecteurs sur<br/>les autres nœuds"]
     end
-    manager -->|"métriques et inventaire"| oneuptime["OneUptime"]
+    manager -->|"métriques et<br/>inventaire"| oneuptime["OneUptime"]
     others -->|"métriques"| oneuptime
-    oneuptime -->|"premières données"| registered["Cluster enregistré"]
-    oneuptime --> monitor["Moniteur Docker Swarm"]
+    oneuptime -->|"premières<br/>données"| registered["Cluster enregistré"]
+    oneuptime --> monitor["Moniteur<br/>Docker Swarm"]
     monitor -->|"chaque minute"| criteria{"Critères remplis ?"}
     criteria -->|"oui"| incident["Incident ou alerte"]
     criteria -->|"non"| online["Moniteur en ligne"]
@@ -148,7 +148,7 @@ Un critère compare l'une des requêtes ou formules du moniteur à un seuil. Les
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Métrique** | La requête ou la formule à vérifier, par son nom de variable. |
-| **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre) ou **Any Value** (une seule suffit). |
+| **Agrégation** | Comment les valeurs de la fenêtre deviennent une seule réponse : **Moyenne**, **Somme**, **Maximum Value**, **Minimum Value**, **All Values** (chaque valeur doit correspondre, sur toute la fenêtre) ou **Any Value** (une seule suffit). |
 | **Condition** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** ou **Égal à** – ou une condition d'anomalie : **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
 | **Threshold** | La valeur de comparaison. Une liste d'unités se trouve à côté quand la métrique a une unité. Non affiché pour les conditions d'anomalie. |
 | **Sensibilité** | Conditions d'anomalie uniquement. **Faible** (4σ), **Moyen** (3σ, la valeur par défaut) ou **Élevé** (2σ). |

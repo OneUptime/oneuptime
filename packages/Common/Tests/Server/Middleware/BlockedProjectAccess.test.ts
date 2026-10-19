@@ -243,6 +243,8 @@ beforeEach(() => {
   getJestSpyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(UserService, "updateLastActive").mockResolvedValue(undefined);
   getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
+  // A session that says master admin is one whose person still is one.
+  getJestSpyOn(UserService, "isUserMasterAdmin").mockResolvedValue(true);
   getJestSpyOn(GlobalConfigService, "getRequireSsoForLogin").mockResolvedValue(
     false,
   );

@@ -1,4 +1,5 @@
 import ObjectID from "../../../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../../Types/Date";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import AIRunType from "../../../../Types/AI/AIRunType";
@@ -63,6 +64,17 @@ export const INVESTIGATION_THREAD_FEATURE: string =
 
 // The report is our own output, but a pathological one must not crowd out the thread.
 export const MAX_THREAD_REPORT_CHARS: number = 24_000;
+
+/*
+ * Told to the model when some of the subject's linked clusters or
+ * resources are left out of a turn because the person asking may not view
+ * them (InvestigationThread.buildTurnContext): it names none of them, and
+ * lets the answer say why a command cannot run for this person.
+ */
+export const INFRASTRUCTURE_OUT_OF_VIEW_SECTION: string = [
+  "# Infrastructure out of view",
+  "Some of the infrastructure linked to this conversation is left out of it because the person asking may not view it in OneUptime, so you cannot run commands on it for them. If they ask about it, tell them so, and that someone who may view it can ask instead.",
+].join("\n");
 
 export interface InvestigationThreadSubjectDetails {
   // "Incident #42" / "Alert #7" (or just the noun when unnumbered).
@@ -528,11 +540,22 @@ export default class InvestigationThread {
    * data every turn, so a responder who asks after the report landed (or
    * after a cluster came online) gets an AI that knows it. Enrichment
    * failures degrade to less context, never a failed turn.
+   *
+   * The commands are the person asking's: `props` are theirs (the one who
+   * asked, or who decided on a paused answer), and the read-only kubectl
+   * and infrastructure commands reach only the linked clusters and
+   * resources they may view themselves - a read limited to some labels or
+   * to owned ones, or blocked for a label, leaves the rest out of the
+   * turn, its tools and what it is told about them. The thread is a
+   * terminal they steer, so it reaches no further than their own read;
+   * the autonomous investigation's report stays shared with everyone who
+   * can see the subject, as before.
    */
   public static async buildTurnContext(data: {
     projectId: ObjectID;
     subject: InvestigationThreadSubject;
     aiRunId: ObjectID;
+    props: DatabaseCommonInteractionProps;
   }): Promise<InvestigationThreadTurnContext> {
     const subjectNoun: string = data.subject.type;
 
@@ -583,6 +606,29 @@ export default class InvestigationThread {
         `AI: could not resolve infrastructure access for the ${subjectNoun} thread; continuing with OneUptime data only: ${error}`,
       );
     }
+
+    /*
+     * Only what the person asking may view: the commands below run for
+     * them. Each check fails closed (nothing offered) on its own.
+     */
+    const linkedCount: number =
+      clusterStatuses.length + resourceStatuses.length;
+
+    clusterStatuses =
+      await KubernetesClusterAiAccessService.getStatusesViewableBy({
+        props: data.props,
+        projectId: data.projectId,
+        statuses: clusterStatuses,
+      });
+
+    resourceStatuses = await ResourceAiAccessService.getStatusesViewableBy({
+      props: data.props,
+      projectId: data.projectId,
+      statuses: resourceStatuses,
+    });
+
+    const isAnyLinkedInfrastructureWithheld: boolean =
+      clusterStatuses.length + resourceStatuses.length < linkedCount;
 
     // One pager for the turn, so read_tool_output reads every toolkit's output.
     const outputPager: ToolOutputPager = new ToolOutputPager();
@@ -642,6 +688,10 @@ export default class InvestigationThread {
 
     if (resourceSection) {
       sections.push(resourceSection);
+    }
+
+    if (isAnyLinkedInfrastructureWithheld) {
+      sections.push(INFRASTRUCTURE_OUT_OF_VIEW_SECTION);
     }
 
     return {

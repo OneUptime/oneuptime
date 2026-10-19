@@ -25,8 +25,10 @@ Les modifications s'enregistrent automatiquement. Une pastille dans la barre d'o
 
 | Pour ajouter           | Cliquez sur                                                 | Panneau qui s'ouvre           |
 | ---------------------- | ----------------------------------------------------------- | ----------------------------- |
-| Le déclencheur         | Le bloc d'espace réservé en pointillés                      | **Add Trigger**               |
+| Le déclencheur         | Le bloc d'espace réservé en pointillés, ou **Ajouter un déclencheur** dans la barre d'outils | **Ajouter un déclencheur**    |
 | Tout autre bloc        | **Ajouter un composant**, dans la barre d'outils au-dessus du canevas | **Ajouter un composant** |
+
+Le bouton de la barre d'outils affiche **Ajouter un déclencheur** tant que le workflow n'a pas de déclencheur, puis **Ajouter un composant** dès qu'il en a un.
 
 Les deux panneaux s'ouvrent sur les blocs que la plupart des workflows utilisent, sous **Popular**, suivis des autres blocs intégrés. Sous **Ressources OneUptime**, cliquez sur une ressource comme **Incident** pour voir ce que vous pouvez en faire ; **Parcourir toutes les ressources** les liste toutes. Ou cherchez : tapez quelques mots, comme `create incident`, et la meilleure correspondance vient en premier. Appuyez sur `/` pour aller au champ de recherche, sur les flèches pour parcourir les résultats et sur **Entrée** pour ajouter le bloc en surbrillance. Un clic sur un bloc l'ajoute.
 
@@ -55,7 +57,7 @@ Faites glisser depuis un point au bas d'un bloc jusqu'au point en haut du bloc s
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Rien n'est relié, l'exécution s'arrête"])
+    check -->|"No"| ends(["Rien n'est relié,<br/>l'exécution s'arrête"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```
@@ -127,7 +129,7 @@ Une chose lui échappe : savoir si un nom de variable existe. Les paramètres d'
 Le plus rapide pour prendre le canevas en main est un workflow de deux blocs que vous lancez à la main :
 
 :::steps
-1. Cliquez sur le bloc d'espace réservé en pointillés, puis sur **Manuel** dans le panneau **Add Trigger**.
+1. Cliquez sur le bloc d'espace réservé en pointillés, puis sur **Manuel** dans le panneau **Ajouter un déclencheur**.
 2. Cliquez sur **Ajouter un composant**, puis sur **Journal** sous **Popular**. Le nouveau bloc se place sous le déclencheur. Reliez le point **Execute** du déclencheur au point d'entrée du bloc Log, en dessous.
 3. Cliquez sur le bloc Log, qui affiche **Click to set up**, et tapez `Hello from ` dans sa **Value**. Cliquez sur **{ }**, puis sur **JSON** sous **Manuel**. Le paramètre affiche **Manual › JSON** et enregistre `{{local.components.manual-1.returnValues.value}}`. `manual-1` est l'**Identifiant** du déclencheur, affiché sur le bloc déclencheur. Cliquez sur **Enregistrer**.
 4. De retour dans le **Constructeur**, cliquez sur **Exécuter le flux de travail**, mettez `{ "name": "Ada" }` dans le champ **JSON**, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le workflow est toujours désactivé, et il n'a pas besoin d'être activé : une exécution que vous lancez vous-même est une **Exécution de test**.

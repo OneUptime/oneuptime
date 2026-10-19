@@ -4253,7 +4253,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       );
       await expect(notice).toHaveAttribute("role", "alert");
       await expect(notice).toContainText(
-        "AI is turned off for this project. Turn it on in Project Settings → AI Features, then ask again.",
+        "AI is turned off for this project. Turn it on in Project Settings → AI → AI Features, then ask again.",
       );
       // A line with a red mark: it was a red box.
       expect(await frameLook(notice)).toEqual(NO_FRAME);
@@ -9593,6 +9593,292 @@ test.describe("the feed, as a timeline", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Links and quotes in a note
+ * ---------------------------------------------------------------------------
+ *
+ * A customer's feedback: a link in a note - the file a saved Slack message
+ * carried, an attachment - took over the OneUptime tab, and quoted text
+ * showed an amber exclamation mark, as if it were a warning.
+ * ?feed=links-and-quotes adds a private note saved from a Slack message to
+ * incident #1042's feed: a quote, the message's file, a callout, links to
+ * another incident and to the docs, and the note's attachment. Here each
+ * link is opened, and the quote and the callout are measured, in a real
+ * browser with the real Markdown parser.
+ */
+const SLACK_FILE_URL: string =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const NOTE_ATTACHMENT_PATH: string = `/api/incident-internal-note/attachment/${PROJECT_ID}/${uuid("91000000", 1)}/${uuid("92000000", 1)}`;
+const QUOTED_WORDS: string = "They said the payment provider is degraded";
+
+function savedNote(page: Page): Locator {
+  return feedEntry(card(page, "Incident Feed"), QUOTED_WORDS);
+}
+
+async function computedStyleOf(
+  locator: Locator,
+  properties: Array<string>,
+): Promise<Record<string, string>> {
+  return await locator.evaluate(
+    (element: Element, names: Array<string>): Record<string, string> => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      const values: Record<string, string> = {};
+      for (const name of names) {
+        values[name] = style.getPropertyValue(name);
+      }
+      return values;
+    },
+    properties,
+  );
+}
+
+test.describe("links and quotes in a note", () => {
+  test("the file a saved Slack message carried opens in a new tab, and the incident stays open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route("https://acme.slack.com/**", async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "image.png",
+        });
+      });
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const fileLink: Locator = savedNote(page).getByRole("link", {
+      name: "image.png",
+    });
+
+    await expect(fileLink).toHaveAttribute("href", SLACK_FILE_URL);
+    await expect(fileLink).toHaveAttribute("target", "_blank");
+    await expect(fileLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(fileLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      fileLink.click(),
+    ]);
+    await tab.waitForLoadState();
+
+    expect(tab.url()).toBe(SLACK_FILE_URL);
+    // Cut loose from the page that opened it.
+    expect(
+      await tab.evaluate((): boolean => {
+        return window.opener === null;
+      }),
+    ).toBe(true);
+
+    // The incident is still open, where it was.
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      INCIDENT_PAGE.pageTitle,
+    );
+    await tab.close();
+  });
+
+  test("the note's attachment opens in a new tab once the session is refreshed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route(`**${NOTE_ATTACHMENT_PATH}`, async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "runbook",
+        });
+      });
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const attachment: Locator = savedNote(page).getByRole("link", {
+      name: "runbook.pdf",
+    });
+
+    await expect(attachment).toHaveAttribute("href", NOTE_ATTACHMENT_PATH);
+    await expect(attachment).toHaveAttribute("target", "_blank");
+    await expect(attachment).toHaveAttribute("rel", "noopener noreferrer");
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      attachment.click(),
+    ]);
+    await tab.waitForURL(`**${NOTE_ATTACHMENT_PATH}`);
+
+    expect(new URL(tab.url()).pathname).toBe(NOTE_ATTACHMENT_PATH);
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PATH);
+    expect((await apiRequestsTo(page, "/identity/refresh-token")).length).toBe(
+      1,
+    );
+    await tab.close();
+  });
+
+  test("a link to another incident stays in the tab; one to the docs opens a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const otherIncident: Locator = savedNote(page).getByRole("link", {
+      name: "Incident #1036",
+    });
+    const docs: Locator = savedNote(page).getByRole("link", {
+      name: "failover runbook",
+    });
+
+    await expect(docs).toHaveAttribute("target", "_blank");
+    await expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+
+    await expect(otherIncident).not.toHaveAttribute("target", /.*/);
+    await expect(otherIncident).not.toHaveAttribute("rel", /.*/);
+    await expect(otherIncident).not.toHaveAttribute("aria-description", /.*/);
+
+    let openedTabs: number = 0;
+    page.context().on("page", () => {
+      openedTabs += 1;
+    });
+
+    await Promise.all([
+      page.waitForURL(`**${incidentPath(1036)}`),
+      otherIncident.click(),
+    ]);
+
+    expect(openedTabs).toBe(0);
+    expect(page.context().pages()).toHaveLength(1);
+  });
+
+  test("quoted text is a quote: a grey bar and lighter text, with no icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const quote: Locator = savedNote(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    await expect(quote).toBeVisible();
+    await expect(quote.locator("svg")).toHaveCount(0);
+    await expect(quote).not.toHaveAttribute("role", /.*/);
+
+    expect(
+      await computedStyleOf(quote, [
+        "border-left-width",
+        "border-left-style",
+        "border-left-color",
+        "border-top-width",
+        "background-color",
+        "padding-left",
+      ]),
+    ).toEqual({
+      "border-left-width": "3px",
+      "border-left-style": "solid",
+      // border-gray-300, as the editor draws a quote.
+      "border-left-color": "rgb(209, 213, 219)",
+      "border-top-width": "0px",
+      "background-color": "rgba(0, 0, 0, 0)",
+      "padding-left": "12px",
+    });
+    // text-gray-600: lighter than the note's own text-gray-700.
+    expect(await computedStyleOf(quote.locator("p"), ["color"])).toEqual({
+      color: "rgb(75, 85, 99)",
+    });
+
+    await screenshotElement(savedNote(page), "feed-note-links-and-quotes");
+    await expectNoHorizontalOverflow(page);
+
+    // In text read right to left, the bar is on the side it starts from.
+    await quote.evaluate((element: Element): void => {
+      element.setAttribute("dir", "rtl");
+    });
+    expect(
+      await computedStyleOf(quote, [
+        "border-right-width",
+        "border-left-width",
+        "padding-right",
+      ]),
+    ).toEqual({
+      "border-right-width": "3px",
+      "border-left-width": "0px",
+      "padding-right": "12px",
+    });
+  });
+
+  test("a callout the note asked for is a panel with its sign", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes");
+
+    const callout: Locator = savedNote(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    await expect(callout).toBeVisible();
+    await expect(callout).toHaveAttribute("data-callout", "warning");
+    expect(await plainText(callout)).toBe(
+      "Do not restart the primary. Fail over to the replica first.",
+    );
+    await expect(callout.locator("svg")).toBeVisible();
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      // bg-amber-50 and border-amber-200.
+      "background-color": "rgb(255, 251, 235)",
+      "border-top-color": "rgb(253, 230, 138)",
+    });
+  });
+
+  test("in the dark theme the quote and the callout take the theme's colours", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "feed=links-and-quotes&theme=dark");
+
+    const quote: Locator = savedNote(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    expect(await computedStyleOf(quote, ["border-left-color"])).toEqual({
+      // --ou-border-strong in the dark theme.
+      "border-left-color": "rgb(100, 116, 139)",
+    });
+    expect(await computedStyleOf(quote.locator("p"), ["color"])).toEqual({
+      // --ou-text-muted in the dark theme.
+      color: "rgb(203, 213, 225)",
+    });
+
+    const callout: Locator = savedNote(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      "background-color": "rgba(120, 53, 15, 0.32)",
+      "border-top-color": "rgba(251, 191, 36, 0.42)",
+    });
+    expect(await computedStyleOf(callout.locator("svg"), ["color"])).toEqual({
+      color: "rgb(251, 191, 36)",
+    });
+
+    await screenshotElement(savedNote(page), "feed-note-links-and-quotes-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Open in Slack / Open in Microsoft Teams
  * ---------------------------------------------------------------------------
  *
@@ -9639,10 +9925,12 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await expect(slack).toHaveAttribute("target", "_blank");
     await expect(slack).toHaveAttribute("rel", "noopener noreferrer");
 
-    // Pointing at the button names the channel.
+    // Pointing at the button names the channel (the card names it too).
     await slack.hover();
     await expect(
-      page.getByText("#incident-1042-checkout-latency"),
+      page
+        .locator("[data-tippy-root]")
+        .getByText("#incident-1042-checkout-latency"),
     ).toBeVisible();
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat");
@@ -9797,6 +10085,870 @@ test.describe("Open in Slack / Microsoft Teams", () => {
     await expectNoHorizontalOverflow(page);
     await page.mouse.move(0, 0);
     await screenshotElement(hero(page), "incident-hero-open-in-chat-mobile");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Pass it on
+ * ---------------------------------------------------------------------------
+ *
+ * The person an on-call policy is paging about a record, who cannot take
+ * it, passes the page on from its header: the policy pages its next
+ * escalation rule at once instead of waiting. Only they see the button
+ * (?paged= picks the records the viewer is paged about; ?passOn= what
+ * passing on does). It asks first, saying what passing on will do, and then
+ * says what it did, or why there was nothing to pass on.
+ */
+
+function passOnButton(page: Page): Locator {
+  return heroActions(page).getByRole("button", { name: "Pass it on" });
+}
+
+function passOnDialog(page: Page): Locator {
+  return page.getByRole("dialog");
+}
+
+async function dialogLines(page: Page, testId: string): Promise<Array<string>> {
+  return (
+    await passOnDialog(page).getByTestId(testId).locator("p").allInnerTexts()
+  ).map((line: string): string => {
+    return line.trim();
+  });
+}
+
+test.describe("Pass it on", () => {
+  test("somebody the policy is not paging sees no button, and the page asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created");
+
+    await expect(passOnButton(page)).toHaveCount(0);
+
+    const requests: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+    );
+    expect(requests).not.toHaveLength(0);
+    expect(requests[0]!.method).toBe("GET");
+  });
+
+  test("the person being paged passes it on: asked first, then told what it did", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    // After the state buttons it is the alternative to.
+    const button: Locator = passOnButton(page);
+    await expect(button).toBeVisible();
+    const order: Array<string> = (
+      await heroActions(page).getByRole("button").allInnerTexts()
+    ).map((text: string): string => {
+      return text.trim();
+    });
+    expect(order).toContain("Acknowledge");
+    expect(order.indexOf("Pass it on")).toBeGreaterThan(
+      order.indexOf("Acknowledge"),
+    );
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on");
+
+    await button.click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-ask");
+
+    // Nothing is passed on until they say so.
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(0);
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "You passed it on",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Escalation rule 2 of 3 (Level 2) is paging Sam Lee and Priya Patel now.",
+      "You won't be paged about it again.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-done");
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(passOnDialog(page)).toHaveCount(0);
+
+    // No longer paged about it: the button is gone.
+    await expect(passOnButton(page)).toHaveCount(0);
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("Cancel passes nothing on", async ({ page }: { page: Page }) => {
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-close-button").click();
+
+    await expect(passOnDialog(page)).toHaveCount(0);
+    await expect(passOnButton(page)).toBeVisible();
+    expect(
+      (
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/incident/${INCIDENT_ID}`,
+        )
+      ).filter((request: RecordedApiRequest): boolean => {
+        return request.method === "POST";
+      }),
+    ).toHaveLength(0);
+  });
+
+  test("others on the rule are still paged: who, and when the policy moves on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=others",
+    );
+
+    await passOnButton(page).click();
+
+    const lines: Array<string> = await dialogLines(page, "pass-on-preview");
+    expect(lines[1]).toContain(
+      "Bob Smith is still being paged. If nobody acknowledges by ",
+    );
+    expect(lines[1]).toContain(", escalation rule 2 of 3 (Level 2) is next.");
+    // Twenty minutes away, today: the time alone, with no date in front of it.
+    expect(lines[1]).toContain("by 6:40 PM ");
+    expect(lines[1]).not.toContain("2026");
+    await expect(passOnDialog(page).getByTestId("pass-on-warning")).toHaveCount(
+      0,
+    );
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-others");
+  });
+
+  test("nobody left to page: the dialog warns about it first, before and after", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=stopped",
+    );
+
+    await passOnButton(page).click();
+
+    const asked: Locator = passOnDialog(page).getByTestId("pass-on-warning");
+    await expect(asked).toHaveText(
+      "Nobody else is left to page: paging stops, and somebody needs to take it.",
+    );
+    await expect(asked).toHaveAttribute("role", "alert");
+    // The warning, then the one line about the reader.
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+    ]);
+    const warningBox: { y: number } | null = await asked.boundingBox();
+    const lineBox: { y: number } | null = await passOnDialog(page)
+      .getByTestId("pass-on-preview")
+      .locator("p")
+      .first()
+      .boundingBox();
+    expect(warningBox!.y).toBeLessThan(lineBox!.y);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-stopped-ask");
+
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "You passed it on",
+    );
+    await expect(passOnDialog(page).getByTestId("pass-on-warning")).toHaveText(
+      "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "You won't be paged about it again.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-stopped-done");
+  });
+
+  test("nobody left to page, in the dark theme and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=stopped&theme=dark",
+    );
+
+    await passOnButton(page).click();
+    await expect(
+      passOnDialog(page).getByTestId("pass-on-warning"),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      passOnDialog(page),
+      "pass-on-dialog-stopped-ask-dark-mobile",
+    );
+  });
+
+  test("two policies paging about the same record: each line names its policy", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=two",
+    );
+
+    await passOnButton(page).click();
+
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "You won't be paged about it again.",
+      "Checkout on-call: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+      "Payments escalation: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+    ]);
+  });
+
+  test("somebody acknowledged it meanwhile: it says so, and nothing is passed on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=acknowledged",
+    );
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    // Why, in a few words: not the button's "Pass it on", an instruction.
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Already acknowledged",
+    );
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "Sam Lee acknowledged it already, so there is nothing to pass on.",
+    ]);
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-acknowledged");
+  });
+
+  test("a failed request keeps the question open, with an error", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&fail=pass-on",
+    );
+
+    await passOnButton(page).click();
+    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    await expect(
+      passOnDialog(page).getByText("Could not pass it on. Please try again."),
+    ).toBeVisible();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+  });
+
+  test("when the server cannot say, there is no button and nothing breaks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&fail=pass-on-read",
+    );
+
+    await expect(passOnButton(page)).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  for (const passOnPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${passOnPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(
+        page,
+        passOnPage.eventPage,
+        `paged=${passOnPage.recordType}&state=created`,
+      );
+
+      await expect(passOnButton(page)).toBeVisible();
+      expect(
+        await apiRequestsTo(
+          page,
+          `/on-call-page/pass-on/${passOnPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("scheduled maintenance pages nobody, so it never asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "paged=incident");
+
+    await expect(passOnButton(page)).toHaveCount(0);
+    expect(
+      (await fixture(page)).apiRequests.filter(
+        (request: RecordedApiRequest): boolean => {
+          return request.url.includes("/on-call-page/pass-on/");
+        },
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("a phone shows the button and the dialog without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
+
+    await expect(passOnButton(page)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on-mobile");
+
+    await passOnButton(page).click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "pass-on-dialog-mobile", { fullPage: false });
+  });
+
+  test("in the dark theme", async ({ page }: { page: Page }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&theme=dark",
+    );
+
+    await page.mouse.move(0, 0);
+    await screenshotElement(hero(page), "incident-hero-pass-on-dark");
+    await passOnButton(page).click();
+    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+      "Pass it on?",
+    );
+    await screenshotElement(passOnDialog(page), "pass-on-dialog-ask-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The record's channel card: who is in its channel, Join channel, Add people
+ * ---------------------------------------------------------------------------
+ *
+ * The customer: "if all users leave a private channel, can someone re-enter
+ * or invite others without requiring assistance from a Slack workspace
+ * admin?" A record with a channel of its own shows a card beside its call:
+ * the channel, the people in it, and - for somebody who may edit the record -
+ * Join channel and Add people, which have the OneUptime app invite them.
+ * The fixture answers GET /workspace-channel-members (?members=) and POST
+ * .../add; Maya Chen is the viewer.
+ */
+
+const MAYA_ID: string = uuid("80000000", 1);
+const SAM_ID: string = uuid("80000000", 2);
+const ALEX_ID: string = uuid("80000000", 4);
+
+function channelCard(page: Page): Locator {
+  return page.getByTestId("record-channel-members-card");
+}
+
+async function channelAdds(
+  page: Page,
+): Promise<Array<Record<string, unknown>>> {
+  return page.evaluate((): Array<Record<string, unknown>> => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __eventOverviewFixture: {
+              channelAdds: Array<Record<string, unknown>>;
+            };
+          }
+        ).__eventOverviewFixture.channelAdds,
+      ),
+    ) as Array<Record<string, unknown>>;
+  });
+}
+
+test.describe("the record's channel card", () => {
+  test("no channel of its own: no card, and nothing asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    await expect(channelCard(page)).toHaveCount(0);
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(0);
+  });
+
+  test("an incident's Slack channel: who is in it, and Join channel for a viewer who is not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Jordan Patel",
+      "Priya from Support",
+      "Sam Rivera",
+    ]);
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel · 3 people",
+    );
+    await expect(card.getByTestId("record-channel-name")).toHaveAttribute(
+      "href",
+      SLACK_CHANNEL_URL,
+    );
+    await expect(card.getByTestId("record-channel-not-in")).toHaveText(
+      "You're not in this channel.",
+    );
+    await expect(card.getByTestId("record-channel-join")).toBeVisible();
+    await expect(card.getByTestId("record-channel-add-people")).toBeVisible();
+    expect(
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      ),
+    ).toHaveLength(1);
+
+    await screenshotElement(card, "incident-channel-card");
+  });
+
+  test("everybody left the private channel: Join channel lets the viewer back in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=empty");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-nobody")).toHaveText(
+      "Nobody is in this channel.",
+    );
+    await screenshotElement(card, "incident-channel-card-empty");
+
+    await card.getByTestId("record-channel-join").click();
+
+    await expect(card.getByTestId("record-channel-join-result")).toContainText(
+      "You're in the channel now.",
+    );
+    await expect(card.getByTestId("record-channel-person-you")).toBeVisible();
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [MAYA_ID], teamIds: [] },
+    ]);
+
+    await screenshotElement(card, "incident-channel-card-joined");
+  });
+
+  test("Add people adds a person at once, and says who Slack does not know", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=empty");
+
+    const card: Locator = channelCard(page);
+    await card.getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await expect(dialog.getByRole("option").first()).toBeVisible();
+
+    await dialog.getByRole("option", { name: /Sam Rivera/ }).click();
+    await expect(card.getByTestId("record-channel-person-name")).toHaveText([
+      "Sam Rivera",
+    ]);
+    await expect(
+      dialog.getByRole("option", { name: /Sam Rivera/ }),
+    ).toHaveCount(0);
+    // Said where the pick was made, too.
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Sam Rivera.",
+    );
+
+    await dialog.getByRole("option", { name: /Alex Kim/ }).click();
+    await expect(dialog.getByRole("alert")).toContainText(
+      "OneUptime can't find Alex Kim in Slack",
+    );
+
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [SAM_ID], teamIds: [] },
+      { channelId: "C0ACME0001", userIds: [ALEX_ID], teamIds: [] },
+    ]);
+
+    await screenshotElement(
+      page.locator("body"),
+      "incident-channel-card-add-people",
+    );
+  });
+
+  test("without permission to edit the incident: who to ask, and no buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=readonly");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-ask")).toHaveText(
+      "You're not in this channel. Ask someone who can edit this incident to add you.",
+    );
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+    await expect(card.getByTestId("record-channel-add-people")).toHaveCount(0);
+  });
+
+  test("a channel the OneUptime app was removed from says so, and how to let it back in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=unreachable");
+
+    await expect(
+      channelCard(page).getByTestId("record-channel-state"),
+    ).toContainText("/invite @OneUptime");
+    await expectNoErrorStates(page);
+  });
+
+  test("a Microsoft Teams channel says who can open it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-teams-note")).toHaveText(
+      "Everyone in Checkout SRE can open the channel.",
+    );
+    await expect(card.getByTestId("record-channel-add-people")).toHaveCount(0);
+    await expect(page.getByText("Microsoft Teams Channel")).toBeVisible();
+  });
+
+  test("a private Microsoft Teams channel says it is private once, then who adds people", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=teams&teamsPrivate=1");
+
+    const card: Locator = channelCard(page);
+    await expect(card.getByTestId("record-channel-meta")).toHaveText(
+      "Private channel",
+    );
+    await expect(card.getByTestId("record-channel-teams-note")).toHaveText(
+      "Only its members can open it. Its owners add people in Microsoft Teams.",
+    );
+  });
+
+  for (const channelPage of [
+    { eventPage: ALERT_PAGE, recordType: "alert" },
+    {
+      eventPage: SCHEDULED_MAINTENANCE_PAGE,
+      recordType: "scheduled-maintenance",
+    },
+    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
+    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  ]) {
+    test(`the ${channelPage.recordType} page has it too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, channelPage.eventPage, "channels=slack");
+
+      await expect(
+        channelCard(page).getByTestId("record-channel-person-name"),
+      ).toHaveText(["Jordan Patel", "Priya from Support", "Sam Rivera"]);
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-members/${channelPage.recordType}/${
+            new URL(page.url()).pathname.split("/").pop() || ""
+          }`,
+        ),
+      ).not.toHaveLength(0);
+    });
+  }
+
+  test("a phone shows the card without sideways scrolling", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack,slack2,teams");
+
+    await expect(channelCard(page).getByTestId("record-channel")).toHaveCount(
+      3,
+    );
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(channelCard(page), "incident-channel-card-mobile");
+  });
+
+  /*
+   * The UI review's polish: the buttons in the narrow column, what each pick
+   * in Add people came to, the card's own words when a read fails, the next
+   * step when Slack was taken off the project, and the keyboard after a join.
+   */
+  test("in the narrow column of a 1280px screen, Join channel and Add people each fill a row; on a phone they share one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const actions: Locator = channelCard(page).getByTestId(
+      "record-channel-actions",
+    );
+    const join: Locator = actions.getByTestId("record-channel-join");
+    const addPeople: Locator = actions.getByTestId("record-channel-add-people");
+
+    await expect(addPeople).toBeVisible();
+
+    const row: { x: number; width: number } | null =
+      await actions.boundingBox();
+    const joinBox: { x: number; y: number; width: number } | null =
+      await join.boundingBox();
+    const addBox: { x: number; y: number; width: number } | null =
+      await addPeople.boundingBox();
+
+    // Stacked, each as wide as the column - not two ragged ends.
+    expect(addBox!.y).toBeGreaterThan(joinBox!.y);
+    expect(Math.abs(joinBox!.x - row!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.x - row!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(joinBox!.width - row!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(addBox!.width - row!.width)).toBeLessThanOrEqual(1);
+    await screenshotElement(channelCard(page), "incident-channel-card-1280");
+
+    // A phone's full-width card has room for both, side by side.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(async () => {
+      const phoneJoin: { y: number } | null = await join.boundingBox();
+      const phoneAdd: { y: number } | null = await addPeople.boundingBox();
+
+      expect(Math.abs(phoneJoin!.y - phoneAdd!.y)).toBeLessThanOrEqual(1);
+    }).toPass();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("the video call card above it reads in lines in that column, its button under the words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const empty: Locator = page.getByTestId("event-video-calls-empty");
+    const title: Locator = empty.getByText("No call yet");
+    const start: Locator = empty.getByTestId("event-video-call-start");
+
+    await expect(start).toBeVisible();
+
+    // Before, a row with the button beside it left the words a word a line.
+    const titleBox: { height: number; y: number } | null =
+      await title.boundingBox();
+    const startBox: { y: number } | null = await start.boundingBox();
+    const lineHeight: number = await title.evaluate(
+      (element: Element): number => {
+        return parseFloat(window.getComputedStyle(element).lineHeight);
+      },
+    );
+
+    expect(titleBox!.height).toBeLessThan(lineHeight * 1.5);
+    expect(startBox!.y).toBeGreaterThan(titleBox!.y + titleBox!.height);
+  });
+
+  test("a team picked in Add people: how many were added, and everyone Slack does not know, in one sentence", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1400 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=slack&members=empty&unknown=alex,jordan",
+    );
+
+    await channelCard(page).getByTestId("record-channel-add-people").click();
+
+    const dialog: Locator = page.getByRole("dialog", { name: "Add people" });
+    await dialog.getByRole("option", { name: /Checkout SRE/ }).click();
+
+    await expect(dialog.getByTestId("people-search-notice-done")).toHaveText(
+      "Added 2 people from Checkout SRE.",
+    );
+    await expect(dialog.getByRole("alert")).toHaveText(
+      "OneUptime can't find Jordan Patel and Alex Kim in Slack: their accounts aren't connected, and no Slack account has their email address. Ask them to connect Slack in User Settings.",
+    );
+    expect(await channelAdds(page)).toEqual([
+      { channelId: "C0ACME0001", userIds: [], teamIds: [uuid("81000000", 1)] },
+    ]);
+    await screenshotElement(dialog, "incident-channel-card-add-team");
+  });
+
+  test("a read that fails is said in the card's own words, with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&fail=channel-members");
+
+    const box: Locator = channelCard(page).getByTestId(
+      "record-channel-read-error",
+    );
+
+    await expect(box.getByRole("alert")).toHaveText(
+      "Could not read who is in this channel. Slack could not be reached.",
+    );
+    await expect(channelCard(page).getByText("Refresh?")).toHaveCount(0);
+
+    const reads: number = (
+      await apiRequestsTo(
+        page,
+        `/workspace-channel-members/incident/${INCIDENT_ID}`,
+      )
+    ).length;
+
+    await box.getByRole("button", { name: "Try again" }).click();
+
+    await expect(async () => {
+      expect(
+        await apiRequestsTo(
+          page,
+          `/workspace-channel-members/incident/${INCIDENT_ID}`,
+        ),
+      ).toHaveLength(reads + 1);
+    }).toPass();
+  });
+
+  test("Slack taken off the project: Connect Slack goes to the project's Slack settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "channels=slack&members=not-connected",
+    );
+
+    const state: Locator = channelCard(page).getByTestId(
+      "record-channel-state",
+    );
+
+    await expect(state).toContainText("Slack isn't connected to this project.");
+    await expect(
+      state.getByRole("link", { name: "Connect Slack" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/slack-integration`,
+    );
+  });
+
+  test("the command that lets the app back in reads as a command", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack&members=unreachable");
+
+    const command: Locator = channelCard(page).locator("code");
+
+    await expect(command).toHaveText("/invite @OneUptime");
+    await expect(command).toHaveAttribute("dir", "ltr");
+  });
+
+  test("Join channel from the keyboard leaves focus on Open in Slack, the next step", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "channels=slack");
+
+    const card: Locator = channelCard(page);
+
+    await card.getByTestId("record-channel-join").focus();
+    await page.keyboard.press("Enter");
+
+    const open: Locator = card.getByTestId("record-channel-open-after-join");
+
+    await expect(open).toBeFocused();
+    await expect(open).toHaveAttribute("href", SLACK_CHANNEL_URL);
+    await expect(card.getByTestId("record-channel-join")).toHaveCount(0);
+
+    await page.keyboard.press("Tab");
+    await expect(card.getByTestId("record-channel-add-people")).toBeFocused();
   });
 });
 
@@ -10449,5 +11601,1052 @@ test.describe("the linked infrastructure, and the follow-up check (?linked=)", (
     });
     await page.mouse.move(0, 0);
     await screenshotElement(feed, "incident-feed-followup");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A private incident or episode takes no public notes
+ * ---------------------------------------------------------------------------
+ *
+ * ?private=1 makes incident #1042 and incident episode #12 private: on no
+ * status page and told to no subscriber, so a public note on them would reach
+ * nobody it was written for (Common/Types/StatusPage/PrivateRecordPublicNotes).
+ * The incident's state change dialogs fold a private note and ask nothing
+ * about subscribers, and both feeds' "Add Public Note" is locked with the
+ * reason - the sentence the server refuses one with.
+ */
+const PRIVATE_INCIDENT_REFUSAL: string =
+  "This incident is private, so public notes cannot be added to it. Use a private note.";
+const PRIVATE_EPISODE_REFUSAL: string =
+  "This episode is private, so public notes cannot be added to it. Use a private note.";
+
+async function openFeedActions(page: Page, feed: string): Promise<Locator> {
+  await card(page, feed).getByTestId("feed-actions-button").click();
+  const menu: Locator = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
+// The tooltip a locked menu item shows on hover, saying why it is locked.
+function tooltipSaying(page: Page, text: string): Locator {
+  return page.locator("[data-tippy-root]").filter({ hasText: text });
+}
+
+test.describe("a private incident or episode (?private=1)", () => {
+  test("Acknowledge on a private incident folds a private note, asks nothing about subscribers, and sends the note as a private one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=created&private=1");
+    await expect(hero(page)).toContainText("Private");
+
+    await heroActions(page)
+      .getByRole("button", { name: "Acknowledge" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Acknowledge Incident",
+    });
+    await expect(dialog).toBeVisible();
+    // A confirm: no subscribers to ask about, and the private note folded.
+    await expect(dialog.getByRole("checkbox")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toHaveCount(0);
+    const noteFold: Locator = dialog.getByRole("button", {
+      name: "Add a private note",
+    });
+    await expect(noteFold).toHaveAttribute("aria-expanded", "false");
+    expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(512);
+    await page.mouse.move(0, 0);
+    await screenshotElement(dialog, "incident-private-acknowledge-dialog");
+
+    await noteFold.click();
+    await expect(dialog).toContainText(
+      "Post a private note about this state change.",
+    );
+    await dialog.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.type("Paged the database team.");
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Acknowledge", exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentStateTimeline";
+      },
+    );
+    expect(creates).toHaveLength(1);
+    // A private note, never a public one, and nobody notified.
+    expect(String(creates[0]?.miscDataProps?.["privateNote"])).toContain(
+      "Paged the database team.",
+    );
+    expect(creates[0]?.miscDataProps?.["publicNote"]).toBeUndefined();
+    expect(creates[0]?.data?.["shouldStatusPageSubscribersBeNotified"]).toBe(
+      false,
+    );
+    await expectNoErrorStates(page);
+  });
+
+  test("Resolve on an incident that is not private still asks about subscribers and folds a public note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    await page.locator("#incident-resolve-btn").click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Resolve Incident",
+    });
+    await expect(
+      dialog.getByRole("checkbox", { name: "Notify Status Page Subscribers" }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "Add a public note" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Add a private note" }),
+    ).toHaveCount(0);
+  });
+
+  test("the private incident's feed locks Add Public Note with why, and Add Private Note opens the private composer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    const addPublic: Locator = menu.getByRole("menuitem", {
+      name: "Add Public Note",
+      exact: true,
+    });
+    await expect(addPublic).toHaveAttribute("aria-disabled", "true");
+    await expect(addPublic).toHaveAccessibleDescription(
+      PRIVATE_INCIDENT_REFUSAL,
+    );
+
+    // Hovered, it says why; pressed, it opens nothing.
+    await addPublic.hover();
+    await expect(tooltipSaying(page, PRIVATE_INCIDENT_REFUSAL)).toBeVisible();
+    await addPublic.click({ force: true });
+    await expect(
+      page.getByRole("dialog", { name: "Add Public Note" }),
+    ).toHaveCount(0);
+
+    if (!(await menu.isVisible())) {
+      await openFeedActions(page, INCIDENT_PAGE.feed);
+    }
+    const addPrivate: Locator = page.getByRole("menuitem", {
+      name: "Add Private Note",
+      exact: true,
+    });
+    await expect(addPrivate).not.toHaveAttribute("aria-disabled", "true");
+    await addPrivate.click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Add Private Note",
+    });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("note-audience")).toContainText(
+      "Only your team can see this",
+    );
+    expect(
+      (await fixture(page)).creates.filter((write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentPublicNote";
+      }),
+    ).toEqual([]);
+  });
+
+  test("the private episode's feed locks Add Public Note in the episode's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_EPISODE_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(
+      page,
+      INCIDENT_EPISODE_PAGE.feed,
+    );
+    const addPublic: Locator = menu.getByRole("menuitem", {
+      name: "Add Public Note",
+      exact: true,
+    });
+    await expect(addPublic).toHaveAttribute("aria-disabled", "true");
+    await expect(addPublic).toHaveAccessibleDescription(
+      PRIVATE_EPISODE_REFUSAL,
+    );
+    await expect(
+      menu.getByRole("menuitem", { name: "Add Private Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("an incident that is not private offers Add Public Note as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    await expect(
+      menu.getByRole("menuitem", { name: "Add Public Note", exact: true }),
+    ).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  test("screenshots of the private incident's locked Add Public Note", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "private=1");
+
+    const menu: Locator = await openFeedActions(page, INCIDENT_PAGE.feed);
+    await menu
+      .getByRole("menuitem", { name: "Add Public Note", exact: true })
+      .hover();
+    const tooltip: Locator = tooltipSaying(page, PRIVATE_INCIDENT_REFUSAL);
+    await expect(tooltip).toBeVisible();
+
+    // The Actions button, its menu and the tooltip beside it, in one shot.
+    const boxes: Array<Box> = [
+      await documentBox(
+        card(page, INCIDENT_PAGE.feed).getByTestId("feed-actions-button"),
+      ),
+      await documentBox(menu),
+      await documentBox(tooltip),
+    ];
+    const left: number = Math.min(
+      ...boxes.map((box: Box): number => {
+        return box.x;
+      }),
+    );
+    const top: number = Math.min(
+      ...boxes.map((box: Box): number => {
+        return box.y;
+      }),
+    );
+    const right: number = Math.max(
+      ...boxes.map((box: Box): number => {
+        return box.x + box.width;
+      }),
+    );
+    const bottom: number = Math.max(
+      ...boxes.map((box: Box): number => {
+        return box.y + box.height;
+      }),
+    );
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "incident-private-feed-add-public-note-locked-synthetic.png",
+      ),
+      fullPage: true,
+      clip: {
+        x: Math.max(0, left - 16),
+        y: Math.max(0, top - 16),
+        width: right - left + 32,
+        height: bottom - top + 32,
+      },
+    });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * An incident call's transcript (?calls=, ?transcriptFetch=) - issue #4875
+ * ---------------------------------------------------------------------------
+ *
+ * Incident #1042's Zoom meeting keeps its transcript: read from Zoom, or
+ * added by a person (a Microsoft Teams meeting's, which Microsoft lets no
+ * app read). OneUptime AI reads it and suggests the root cause on the AI
+ * card - marked as a suggestion, resting on quoted lines - and nothing
+ * reaches the incident until a person uses it.
+ */
+test.describe("an incident call's transcript (?calls=)", () => {
+  const ZOOM_CALL_ID: string = uuid("88000000", 1);
+
+  function callsCard(page: Page): Locator {
+    return page.getByTestId("event-video-calls-card");
+  }
+
+  function callSummary(page: Page): Locator {
+    return page.getByTestId("call-summary");
+  }
+
+  // The Incident Feed card (the tests below name the Video Call card "card").
+  function incidentFeed(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByRole("heading", {
+        level: 2,
+        name: "Incident Feed",
+        exact: true,
+      }),
+    });
+  }
+
+  async function transcriptRequests(
+    page: Page,
+    method: string,
+    route: string,
+  ): Promise<Array<RecordedApiRequest>> {
+    return (
+      await apiRequestsTo(page, `/incident-video-call/${ZOOM_CALL_ID}/${route}`)
+    ).filter((request: RecordedApiRequest): boolean => {
+      return request.method === method;
+    });
+  }
+
+  test("Get from Zoom reads the transcript, and what OneUptime AI suggests appears on the AI card without a reload", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=zoom");
+
+    const card: Locator = callsCard(page);
+    // Nothing read yet: the AI card says nothing about the call.
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+    await expect(
+      card.getByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toBeVisible();
+
+    await card.getByRole("button", { name: "Get from Zoom" }).click();
+
+    await expect(card.getByTestId("call-transcript-reading")).toHaveText(
+      "OneUptime AI is reading it…",
+    );
+    await expect(card.getByTestId("call-transcript-facts")).toContainText(
+      "11 minutes · 3 speakers · Read from Zoom",
+    );
+    await expect(page.getByTestId("call-summary-reading")).toBeVisible();
+
+    // The page looks again while it reads.
+    await expect(card.getByTestId("call-transcript-read")).toContainText(
+      "OneUptime AI suggested a root cause. Review it",
+      { timeout: 30000 },
+    );
+    expect(
+      await transcriptRequests(page, "POST", "transcript/from-provider"),
+    ).toHaveLength(1);
+
+    // The feed says who added it, as it says who did anything else.
+    const added: Locator = feedEntry(incidentFeed(page), "transcript");
+    await expect(added).toHaveAttribute(
+      "data-event-type",
+      "VideoCallTranscriptAdded",
+    );
+    expect(await plainText(added.getByTestId("feed-entry-lead"))).toBe(
+      "Maya Chen added the call's transcript from Zoom: 11 minutes, 3 speakers, 12 remarks.",
+    );
+
+    await card.getByTestId("call-transcript-review").click();
+
+    await expect(callSummary(page)).toBeFocused();
+    await expect(callSummary(page)).toBeInViewport();
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
+    await expectNoErrorStates(page);
+  });
+
+  test("when Zoom has no transcript to give, the card says why and what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * One short sentence of the card's own for each answer, in the reader's
+     * language; what Zoom said - scope names and all - behind Show details.
+     */
+    const answers: Array<{
+      mode: string;
+      text: string;
+      zoomSaid: string;
+      docs: boolean;
+    }> = [
+      {
+        mode: "not-ready",
+        text: "Zoom is still preparing this meeting's transcript. Try again in a few minutes.",
+        zoomSaid: "It is usually ready within twice the length of the call.",
+        docs: false,
+      },
+      {
+        mode: "permission",
+        text: "The Zoom connection is not allowed to read transcripts yet.",
+        zoomSaid: "cloud_recording:read:list_recording_files:admin",
+        docs: true,
+      },
+      {
+        mode: "not-transcribed",
+        text: "Zoom kept no transcript of this meeting. Add it yourself, or turn transcripts on for the next call.",
+        zoomSaid: "Audio transcript on",
+        docs: true,
+      },
+    ];
+
+    for (const answer of answers) {
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        `calls=zoom&transcriptFetch=${answer.mode}`,
+      );
+
+      const card: Locator = callsCard(page);
+      await card.getByRole("button", { name: "Get from Zoom" }).click();
+
+      const outcome: Locator = card.getByTestId("call-transcript-outcome");
+      await expect(
+        outcome.getByTestId("call-transcript-outcome-headline"),
+      ).toHaveText(answer.text);
+      await expect(outcome).not.toContainText(answer.zoomSaid);
+
+      const toggle: Locator = outcome.getByRole("button", {
+        name: "Show details",
+      });
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await toggle.click();
+      await expect(
+        outcome.getByTestId("call-transcript-outcome-details"),
+      ).toContainText(answer.zoomSaid);
+      await expect(
+        outcome.getByRole("button", { name: "Hide details" }),
+      ).toHaveAttribute("aria-expanded", "true");
+
+      const docs: Locator = outcome.getByRole("link", {
+        name: "How to set it up",
+      });
+
+      if (answer.docs) {
+        await expect(docs).toHaveAttribute(
+          "href",
+          /\/docs\/workspace-connections\/video-calls#call-transcripts$/,
+        );
+        await expect(docs).toHaveAttribute("target", "_blank");
+        await expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+      } else {
+        await expect(docs).toHaveCount(0);
+      }
+
+      // Nothing was added: the transcript is still to get.
+      await expect(card.getByTestId("call-transcript-facts")).toHaveCount(0);
+
+      await outcome.getByRole("button", { name: "Dismiss" }).click();
+      await expect(outcome).toHaveCount(0);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "calls=zoom&transcriptFetch=permission",
+    );
+    await callsCard(page)
+      .getByRole("button", { name: "Get from Zoom" })
+      .click();
+    await expect(
+      callsCard(page).getByTestId("call-transcript-outcome"),
+    ).toBeVisible();
+    await callsCard(page).getByRole("button", { name: "Show details" }).click();
+    await expect(
+      callsCard(page).getByTestId("call-transcript-outcome-details"),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("a Microsoft Teams meeting's transcript is added by hand, and read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=teams");
+
+    const card: Locator = callsCard(page);
+    await expect(card.getByTestId("call-transcript-get")).toHaveCount(0);
+
+    await card.getByRole("button", { name: "Add transcript" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Add the call's transcript",
+    });
+    await expect(dialog).toContainText(
+      "In Microsoft Teams, open the meeting's Recap, then Transcript, and download it as a .vtt file.",
+    );
+    await expect(
+      dialog.getByRole("button", { name: "Add transcript" }),
+    ).toBeDisabled();
+
+    const text: string =
+      "[00:00:05] Priya Shah: Checkout is timing out.\n[00:12:03] Sam Lee: The pool maxes at 50.";
+    await dialog.getByTestId("add-call-transcript-text").fill(text);
+    await dialog.getByRole("button", { name: "Add transcript" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    const [added] = await transcriptRequests(page, "POST", "transcript");
+    expect(added?.body).toEqual({ text });
+
+    await expect(card.getByTestId("call-transcript-facts")).toContainText(
+      "12 minutes · 2 speakers · Added by Maya Chen 1 minute ago",
+    );
+    expect(
+      await plainText(
+        feedEntry(incidentFeed(page), "transcript").getByTestId(
+          "feed-entry-lead",
+        ),
+      ),
+    ).toBe(
+      "Maya Chen added a transcript of the Microsoft Teams meeting: 12 minutes, 2 speakers, 2 remarks.",
+    );
+    await expect(card.getByTestId("call-transcript-read")).toBeVisible({
+      timeout: 30000,
+    });
+  });
+
+  test("the suggested root cause: marked Not confirmed, resting on the call's lines in the order they were said", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await expect(section).toContainText("From the incident's call");
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+    );
+    await expect(section).toContainText(
+      "Said on the call: someone found or confirmed it.",
+    );
+
+    const quotes: Locator = section.getByTestId("call-summary-quote");
+    await expect(quotes).toHaveCount(3);
+    expect(
+      await quotes.evaluateAll(
+        (items: Array<Element>): Array<string | null> => {
+          return items.map((item: Element): string | null => {
+            return item.getAttribute("data-line");
+          });
+        },
+      ),
+    ).toEqual(["6", "10", "11"]);
+    await expect(quotes.first()).toContainText("00:04:03 · Sam Rivera");
+
+    // Nothing reached the incident by being suggested.
+    expect(
+      (await fixture(page)).updates.filter((write: RecordedWrite): boolean => {
+        return write.modelName === "Incident";
+      }),
+    ).toEqual([]);
+
+    // The rest of what the call said is folded under it.
+    const details: Locator = section.getByTestId("call-summary-details");
+    await expect(details).not.toHaveAttribute("open", "");
+    await details.locator("summary").click();
+
+    // What the call confirmed, then the hypotheses: two lists, no tags.
+    const confirmed: Locator = details.getByTestId("call-summary-confirmed");
+    const hypotheses: Locator = details.getByTestId("call-summary-hypotheses");
+    await expect(confirmed.getByRole("heading", { level: 5 })).toHaveText(
+      "Confirmed on the call",
+    );
+    await expect(confirmed.getByTestId("call-summary-point")).toHaveText([
+      "The orders database itself was healthy. 00:00:31",
+      "Requests waited about two seconds in pg.pool.connect. 00:01:12",
+    ]);
+    await expect(hypotheses.getByRole("heading", { level: 5 })).toHaveText(
+      "Hypotheses",
+    );
+    await expect(hypotheses.getByTestId("call-summary-point")).toHaveText([
+      "A cold cache may have added to it. 00:05:02",
+    ]);
+    expect(
+      (await confirmed.boundingBox())!.y < (await hypotheses.boundingBox())!.y,
+    ).toBe(true);
+    await expect(details.getByTestId("call-summary-actions")).toContainText(
+      "Add an alert on database pool usage. (Jordan Patel)",
+    );
+  });
+
+  test("View transcript starts on the quoted lines, highlighted", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    await callSummary(page)
+      .getByRole("button", { name: "View transcript" })
+      .click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Transcript of the Zoom meeting",
+    });
+    const lines: Locator = dialog.getByTestId("call-transcript-line");
+    await expect(lines).toHaveCount(12);
+    await expect(
+      dialog.getByTestId("call-transcript-highlight-legend"),
+    ).toBeVisible();
+    await expect(dialog.locator("[data-highlighted='true']")).toHaveCount(3);
+    await expect(lines.nth(5)).toHaveAttribute("data-highlighted", "true");
+
+    await dialog.getByTestId("call-transcript-search").fill("rollback");
+    await expect(lines).toHaveCount(1);
+    await expect(lines.first()).toContainText(
+      "Rollback done, p95 is back under 300 milliseconds.",
+    );
+  });
+
+  test("Use as root cause: the editor shows the suggestion as written, nothing is saved until the person saves it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await section.getByRole("button", { name: "Use as root cause" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Use as root cause",
+    });
+    const editor: Locator = dialog.locator('[contenteditable="true"]').first();
+
+    // It opens in the editor, named for what it holds - not on its Bold button.
+    await expect(editor).toBeFocused();
+    await expect(
+      dialog.getByRole("textbox", { name: "Root Cause" }),
+    ).toBeVisible();
+
+    // An identifier stays as written: code, never italic.
+    await expect(editor.locator("code").first()).toHaveText("DB_POOL_MAX=10");
+    await expect(editor.locator("em")).toHaveCount(0);
+    await expect(editor.locator("blockquote")).toHaveCount(3);
+    await expect(editor.locator("blockquote").first()).toContainText(
+      "00:04:03 · Sam Rivera: The new release has DB_POOL_MAX=10, it was 40 before.",
+    );
+
+    // It replaces the incident's root cause, which it shows.
+    await expect(dialog).toContainText(
+      "It replaces the incident's current root cause. Show it",
+    );
+
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(
+      await transcriptRequests(page, "POST", "root-cause-suggestion"),
+    ).toEqual([]);
+
+    await section.getByRole("button", { name: "Use as root cause" }).click();
+    await page
+      .getByRole("dialog", { name: "Use as root cause" })
+      .getByRole("button", { name: "Save as root cause" })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "Use as root cause" }),
+    ).toHaveCount(0);
+
+    const [decision] = await transcriptRequests(
+      page,
+      "POST",
+      "root-cause-suggestion",
+    );
+    expect(decision?.body["decision"]).toBe("Accepted");
+    expect(String(decision?.body["rootCause"])).toContain(
+      "shipped with `DB_POOL_MAX=10` instead of 40",
+    );
+    expect(String(decision?.body["rootCause"])).toContain(
+      "> 00:04:03 · Sam Rivera: The new release has `DB_POOL_MAX=10`, it was 40 before.",
+    );
+
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Used as root cause",
+    );
+    await expect(
+      section.getByRole("link", { name: "View root cause" }),
+    ).toBeVisible();
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read"),
+    ).toContainText("Used as the incident's root cause.");
+  });
+
+  test("a save the server refuses keeps the dialog open and says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript&fail=suggestion");
+
+    await callSummary(page)
+      .getByRole("button", { name: "Use as root cause" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Use as root cause",
+    });
+    await dialog.getByRole("button", { name: "Save as root cause" }).click();
+
+    await expect(dialog).toContainText(
+      "You do not have permission to edit this incident's root cause.",
+    );
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
+  });
+
+  test("Dismiss sets the suggestion aside, and Undo brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const section: Locator = callSummary(page);
+    await section.getByRole("button", { name: "Dismiss" }).click();
+
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Dismissed",
+    );
+    await expect(section).toContainText("Maya Chen dismissed it 1 minute ago");
+    // Set aside: its one sentence stays, its quotes and its basis go.
+    await expect(section.getByTestId("call-summary-quote")).toHaveCount(0);
+    await expect(section.getByTestId("call-summary-basis")).toHaveCount(0);
+    await expect(
+      section.getByTestId("call-summary-root-cause-text"),
+    ).toBeVisible();
+
+    await section.getByRole("button", { name: "Undo" }).click();
+    await expect(section.getByTestId("call-summary-status")).toHaveText(
+      "Not confirmed",
+    );
+    await expect(section.getByTestId("call-summary-quote")).toHaveCount(3);
+
+    expect(
+      (await transcriptRequests(page, "POST", "root-cause-suggestion")).map(
+        (request: RecordedApiRequest): unknown => {
+          return request.body["decision"];
+        },
+      ),
+    ).toEqual(["Dismissed", "Suggested"]);
+  });
+
+  test("a decision already made: who used it, or dismissed it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=accepted");
+    await expect(callSummary(page)).toContainText(
+      "Jordan Patel used it as the incident's root cause",
+    );
+    await expect(
+      callSummary(page).getByRole("button", { name: "Use as root cause" }),
+    ).toHaveCount(0);
+
+    await openReady(page, INCIDENT_PAGE, "calls=dismissed");
+    await expect(callSummary(page)).toContainText("Jordan Patel dismissed it");
+    await expect(
+      callSummary(page).getByRole("button", { name: "Undo" }),
+    ).toBeVisible();
+  });
+
+  test("a call that did not settle the cause suggests none, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=not-enough");
+
+    const section: Locator = callSummary(page);
+    await expect(section.getByTestId("call-summary-not-enough")).toContainText(
+      "Not enough was said on the call to suggest a root cause",
+    );
+    await expect(section.getByTestId("call-summary-root-cause")).toHaveCount(0);
+    await expect(section.getByTestId("call-summary-details")).toHaveAttribute(
+      "open",
+      "",
+    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read"),
+    ).toContainText("not enough was said to suggest a root cause");
+  });
+
+  test("a reading that failed, or stopped part-way, is offered again from either card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=failed");
+
+    await expect(page.getByTestId("call-summary-failed")).toContainText(
+      "This project reached its daily AI token limit.",
+    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read-failed"),
+    ).toContainText("OneUptime AI could not read it.");
+
+    await page.getByTestId("call-summary-read-again").click();
+    await expect(page.getByTestId("call-summary-reading")).toBeVisible();
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed", { timeout: 30000 });
+    expect(await transcriptRequests(page, "POST", "call-summary")).toHaveLength(
+      1,
+    );
+
+    await openReady(page, INCIDENT_PAGE, "calls=stuck");
+    await expect(page.getByTestId("call-summary-failed")).toContainText(
+      "Reading the transcript took too long",
+    );
+    await expect(
+      callsCard(page).getByTestId("call-transcript-read-failed"),
+    ).toContainText("OneUptime AI took too long to read it.");
+  });
+
+  test("AI off for the project: the card says so, and the AI card says nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=skipped");
+
+    const skipped: Locator = callsCard(page).getByTestId(
+      "call-transcript-read-skipped",
+    );
+    await expect(skipped).toHaveText(
+      "AI is off for this project, so OneUptime AI did not read it. Open AI Features",
+    );
+    await expect(
+      skipped.getByRole("link", { name: "Open AI Features" }),
+    ).toHaveAttribute(
+      "href",
+      "/dashboard/10000000-0000-4000-8000-000000000001/settings/ai-features",
+    );
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+  });
+
+  /*
+   * Record and transcribe incident calls (Project Settings > Workspace >
+   * Video Calls): OneUptime gets the call's transcript by itself once the
+   * call is over, and what OneUptime AI read in it is the incident's next
+   * feed item.
+   */
+  test("while OneUptime waits to get Zoom's transcript by itself, the card says so, and Get and Add stay", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=waiting");
+
+    const card: Locator = callsCard(page);
+
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveText(
+      "OneUptime gets it from Zoom once the call is over, and OneUptime AI reads it.",
+    );
+    // Not the line for a call nobody waits on.
+    await expect(
+      card.getByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toHaveCount(0);
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: "Add transcript" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  test("once OneUptime stopped waiting, the card says what Zoom answered, with how to set it up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=fetch-stopped");
+
+    const card: Locator = callsCard(page);
+    const stopped: Locator = card.getByTestId("call-transcript-fetch-stopped");
+
+    await expect(stopped).toHaveAttribute("data-reason", "NotTranscribed");
+    await expect(stopped).toContainText(
+      "Zoom kept no transcript of this meeting. Add it yourself, or turn transcripts on for the next call.",
+    );
+    await expect(
+      stopped.getByRole("link", { name: "How to set it up" }),
+    ).toHaveAttribute("target", "_blank");
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveCount(0);
+    // Get and Add are still there, to try again or add it by hand.
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expectNoErrorStates(page);
+  });
+
+  test("what OneUptime AI read in the call is OneUptime AI's note in the incident's feed, the cause marked as a suggestion", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=summary");
+
+    const entry: Locator = feedEntry(
+      incidentFeed(page),
+      "OneUptime AI read the transcript of the Zoom meeting",
+    );
+
+    await expect(entry).toHaveCount(1);
+    await expect(entry).toHaveAttribute("data-event-type", "VideoCallSummary");
+    // Nobody's name on it: it is OneUptime AI's.
+    await expect(entry.getByTestId("feed-entry-author")).toHaveCount(0);
+
+    const body: Locator = entry.getByTestId("feed-entry-body");
+
+    await expect(body).toHaveAttribute("data-note", "true");
+    await expect(body).toContainText("Suggested root cause (not confirmed):");
+    await expect(body).toContainText(
+      "Stated on the call. Use it as the incident's root cause, or dismiss it, on the incident's page.",
+    );
+
+    for (const part of [
+      "Confirmed on the call",
+      "Hypotheses",
+      "What was tried",
+      "Decisions",
+      "Follow-ups",
+      "Open questions",
+    ]) {
+      await expect(body.getByText(part, { exact: true })).toBeVisible();
+    }
+
+    await expect(body).toContainText(
+      "Add an alert on database pool usage. (Jordan Patel)",
+    );
+    // A name with underscores reads as written, never as emphasis.
+    await expect(body).toContainText("Why the release changed DB_POOL_MAX.");
+    await expect(
+      body.locator("em, strong").filter({ hasText: "POOL" }),
+    ).toHaveCount(0);
+    await screenshotElement(entry, "feed-call-summary");
+    // And the AI card shows the same reading, for Use as root cause.
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
+    await expectNoErrorStates(page);
+  });
+
+  test("removing the transcript asks first and keeps the incident's root cause", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+
+    const card: Locator = callsCard(page);
+    await card.getByTestId("call-transcript-menu-button").click();
+    await page.getByRole("menuitem", { name: "Remove transcript" }).click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Remove the transcript?",
+    });
+    await expect(dialog).toContainText("The incident's root cause is kept.");
+    await dialog.getByRole("button", { name: "Remove" }).click();
+    await expect(dialog).toHaveCount(0);
+
+    expect(await transcriptRequests(page, "DELETE", "transcript")).toHaveLength(
+      1,
+    );
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+  });
+
+  test("two calls: each named for its own, the earlier one's transcript on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=two");
+
+    await expect(callSummary(page)).toContainText("From the Zoom meeting");
+
+    const rows: Locator = callsCard(page).getByTestId("event-video-call");
+    await expect(rows).toHaveCount(2);
+    await expect(
+      rows.nth(1).getByRole("button", { name: "Add transcript" }),
+    ).toBeVisible();
+  });
+
+  test("on a phone and in the dark theme, both cards fit and read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+    await page.mouse.move(0, 0);
+    await screenshotElement(callsCard(page), "incident-call-transcript-card");
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary",
+    );
+
+    await openReady(page, INCIDENT_PAGE, "calls=transcript&theme=dark");
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      callsCard(page),
+      "incident-call-transcript-card-dark",
+    );
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary-dark",
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openReady(page, INCIDENT_PAGE, "calls=transcript");
+    await expectNoHorizontalOverflow(page);
+
+    /*
+     * The heading shares its line with the menu's mark alone, and View
+     * transcript has a row of its own under the reading, as wide as the
+     * card on a phone; Copy link and Remove go under Join call together.
+     */
+    const heading: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-heading"),
+    );
+    const menu: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-menu-button"),
+    );
+    const read: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-read"),
+    );
+    const view: Box = await documentBox(
+      callsCard(page).getByTestId("call-transcript-view"),
+    );
+    expect(
+      Math.abs(menu.y + menu.height / 2 - (heading.y + heading.height / 2)),
+    ).toBeLessThanOrEqual(2);
+    expect(view.y).toBeGreaterThanOrEqual(read.y + read.height);
+    expect(view.width).toBeGreaterThan(menu.x - heading.x);
+
+    const join: Box = await documentBox(
+      callsCard(page).getByTestId("event-video-call-join"),
+    );
+    const secondary: Box = await documentBox(
+      callsCard(page).getByTestId("event-video-call-secondary-actions"),
+    );
+    expect(secondary.y).toBeGreaterThanOrEqual(join.y + join.height);
+
+    await screenshotElement(
+      page.getByTestId("call-summaries"),
+      "incident-call-summary-mobile",
+    );
   });
 });

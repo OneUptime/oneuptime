@@ -9,7 +9,7 @@ Runbook rules start runbooks automatically when an **incident**, **alert**, or *
 All three pages edit the same kind of rule, filtered to the rules for that product.
 
 :::cards
-- [Create a runbook rule](#create-a-runbook-rule): Four steps: a name, conditions and the runbooks to start.
+- [Create a runbook rule](#create-a-runbook-rule): Three steps: conditions, then the runbooks to start, which name the rule.
 - [Conditions](#conditions): Every criterion and operator a rule can use.
 - [Matching semantics](#matching-semantics): Several rules, monitor conditions and label rules.
 - [Examples](#examples): Three rules to copy.
@@ -19,15 +19,15 @@ All three pages edit the same kind of rule, filtered to the rules for that produ
 
 ```mermaid title="From a new incident to started runbooks"
 flowchart TB
-    created["Incident, alert or event created"] --> labels["Label rules add their labels"]
-    labels --> rules["Enabled runbook rules of that product"]
+    created["Incident, alert<br/>or event created"] --> labels["Label rules add<br/>their labels"]
+    labels --> rules["Enabled runbook<br/>rules of that product"]
     rules --> match{"Conditions match?"}
     match -->|no| nothing["Rule starts nothing"]
-    match -->|yes| union["Runbooks of every matching rule, each once"]
-    union --> runnable{"Runbook switched on and has steps?"}
-    runnable -->|no| skipped["That runbook is skipped"]
-    runnable -->|yes| execution["Execution created and queued"]
-    execution --> attached["Shown on the event's Runbooks page"]
+    match -->|yes| union["Runbooks of<br/>every matching<br/>rule, each once"]
+    union --> runnable{"Runbook switched<br/>on and has steps?"}
+    runnable -->|no| skipped["That runbook<br/>is skipped"]
+    runnable -->|yes| execution["Execution created<br/>and queued"]
+    execution --> attached["Shown on the event's<br/>Runbooks page"]
 ```
 
 When a rule fires, for each runbook it names:
@@ -51,27 +51,23 @@ You can see every run, rule-triggered or not, under **Runbooks → Executions**,
 
 In **Incidents**, **Alerts** or **Scheduled Maintenance**, open **Rules → Runbook Rules**, then click **Create Runbook Rule**.
 
-### Name the rule
-
-On **Basic Info**, enter a **Name**, such as "Start DB failover for database incidents", and optionally a **Description**.
-
 ### Add conditions
 
-On **Match Criteria**, click **Add condition**, pick a criterion and an operator, and enter or pick the value. Add more conditions if you need them, and choose **Match all** or **Match any**. Add none to start the runbooks for every new event of this kind.
+On **Match**, **Applies to** starts on every new event of this kind, such as **All incidents**, and the rule starts its runbooks for each one. To narrow it down, pick the other answer, such as **Only incidents that match conditions**, then pick a criterion and an operator, and enter or pick the value. Click **Add condition** for more conditions, and choose **Match all** or **Match any**.
 
 ### Pick the runbooks
 
-On **Runbooks**, choose one or more **Runbooks to Start**, then click **Create Runbook Rule**. The rule is on as soon as it is created, and it appears in the list with the status **Enabled**.
+On **Runbooks**, choose one or more **Runbooks to Start**. The rule's **Name** follows them, such as "Start Database failover", until you type your own, and a **Description** waits under **More fields**. Click **Create Runbook Rule**. The rule is on as soon as it is created, and it appears in the list with the status **Enabled**.
 :::
 
 ## Anatomy of a rule
 
 | Field | Purpose |
 | --- | --- |
-| **Name** | A short, human label for the rule. |
-| **Description** | Optional context for teammates. |
+| **Name** | Named after the runbooks it starts, such as "Start Database failover", until you type your own. |
+| **Description** | Optional context for teammates, under **More fields**. |
 | **Enabled** | On for a new rule. Switch it off on the rule's edit form to suspend it without deleting it. |
-| **Conditions** | What the rule matches, on the **Match Criteria** step. Leave it empty to match every event of its type. |
+| **Conditions** | What the rule matches, on the **Match** step. A rule without any, such as one on **All incidents**, matches every event of its type. |
 | **Runbooks to Start** | One or more runbooks to launch when the rule fires. |
 
 ## Conditions

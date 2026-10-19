@@ -10,7 +10,7 @@ import ts from "typescript";
  * credits, can only be added to by a project owner or someone with Manage
  * Billing. Every message that said one ran low used to tell its reader to
  * recharge ("Your SMS balance is low. Please recharge your SMS balance in
- * Project Settings > Notification Settings.", "Insufficient AI balance.
+ * Project Settings > Notifications > Notification Settings.", "Insufficient AI balance.
  * Please recharge...", "Please enable auto recharge or recharge manually"),
  * and the AI agent pages linked a project admin - who may not - to AI
  * Credits. They now name who can, from one wording
@@ -323,21 +323,30 @@ describe("a status page visitor is never sent to project settings", () => {
     expect(offenders).toEqual([]);
   });
 
-  test("the subscribe confirmation SMS, when not sent, is only logged", () => {
+  test("the texts about a subscription itself, when not sent, are only logged", () => {
     const source: string = read(
       "Common/Server/Services/StatusPageSubscriberService.ts",
     );
-    const at: number = source.indexOf(
-      "message: `You have been subscribed to ${statusPageName}.",
-    );
+
+    /*
+     * The link that confirms a sign-up by text, and the "you have been
+     * subscribed" text, both go out through sendText.
+     */
+    const at: number = source.indexOf("private sendText(");
 
     expect(at).toBeGreaterThan(-1);
+    expect(source).toContain("getConfirmSubscriptionTextMessage({");
+    expect(source).toContain("getYouHaveSubscribedTextMessage({");
+
+    // sendText's is the one SMS the service sends.
+    expect(source.split("SmsService.sendSms(").length - 1).toBe(1);
 
     const send: string = source.slice(
-      source.lastIndexOf("SmsService.sendSms(", at),
-      source.indexOf("});", at),
+      source.indexOf("SmsService.sendSms(", at),
+      source.indexOf("});", source.indexOf(".catch(", at)),
     );
 
+    expect(send).toContain("SmsService.sendSms(");
     expect(send).not.toContain("failIfNotSent");
     expect(send).toContain(".catch((err: Error) => {");
     expect(send).toContain("logger.error(err,");

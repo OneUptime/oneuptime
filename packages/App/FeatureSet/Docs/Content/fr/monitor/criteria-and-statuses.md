@@ -15,14 +15,14 @@ Les critères d'un moniteur décident de ce que signifie chaque vérification : 
 
 ```mermaid title="Comment chaque vérification est jugée"
 flowchart TB
-    R["Le résultat<br/>d'une vérification"] --> C1{"Premier critère :<br/>ses filtres concordent ?"}
+    R["Le résultat<br/>d'une vérification"] --> C1{"Premier<br/>critère :<br/>ses filtres<br/>concordent ?"}
     C1 -->|"Oui"| A["Ce critère agit"]
-    C1 -->|"Non"| C2{"Critère suivant :<br/>ses filtres concordent ?"}
+    C1 -->|"Non"| C2{"Critère<br/>suivant :<br/>ses filtres<br/>concordent ?"}
     C2 -->|"Oui"| A
-    C2 -->|"Aucun n'a correspondu"| D["Le moniteur passe à son<br/>état par défaut"]
-    A --> S["Change le statut"]
-    A --> I["Déclare un incident"]
-    A --> L["Crée une alerte"]
+    C2 -->|"Aucun n'a<br/>correspondu"| D["Le moniteur<br/>passe à son<br/>état par<br/>défaut"]
+    A --> S["Change<br/>le statut"]
+    A --> I["Déclare un<br/>incident"]
+    A --> L["Crée une<br/>alerte"]
 ```
 
 L'ordre fait partie de la règle. Un nouveau moniteur liste ses critères du pire au meilleur : hors ligne, puis un avertissement quand son type en a un (un certificat ou un domaine qui expire bientôt), puis en ligne. Un critère sain et large, comme **Is Online** réglé sur **Vrai**, correspond à presque toutes les vérifications ; il vient donc en dernier : placé au-dessus des autres, il correspondrait le premier à chaque fois et les autres n'agiraient jamais.
@@ -47,7 +47,7 @@ Ouvrez un critère : il a un nom et trois sections, chacune se repliant en un r�
 
 Un filtre lit une donnée de la vérification et la compare : un **Type de filtre** (ce qui est lu, comme **Code de statut de la réponse**), une **Condition de filtre** (comment comparer, comme **Supérieur à**) et une **Valeur**. Les moniteurs qui comparent des métriques, comme les moniteurs Kubernetes et de métriques, demandent plutôt une **Condition** et un **Threshold**. Chaque type de moniteur propose ses propres types de filtre, listés sur sa page, par exemple [Surveillance de site web](/docs/monitor/website-monitor#critères-de-surveillance).
 
-À partir de deux filtres, la **Condition de correspondance** apparaît en dessous : **Tous** signifie que chaque filtre doit correspondre, **Tout** qu'un seul suffit. Un nouveau critère commence sur **Tous**.
+À partir de deux filtres, la **Condition de correspondance** apparaît en dessous : **Tous** signifie que chaque filtre doit correspondre, **Au moins un** qu'un seul suffit. Un nouveau critère commence sur **Tous**.
 
 Les filtres qui mesurent chaque vérification, comme **Is Online**, **Code de statut de la réponse** et **Temps de réponse (en ms)**, proposent **Évaluer ce critère sur une période donnée**. Il juge une fenêtre de vérifications récentes au lieu de la dernière seule, et commence sur les 5 dernières minutes avec **All Values**, qui ne correspond qu'une fois que chaque vérification de la fenêtre a correspondu. Voir [Évaluer sur une période](/docs/monitor/website-monitor#évaluer-sur-une-période).
 

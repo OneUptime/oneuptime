@@ -13,6 +13,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import PublicMessageRateLimit from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import SSRFProtection from "../../../Server/Utils/SSRFProtection";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
@@ -67,7 +68,7 @@ jest.mock("../../../Server/Utils/Logger");
 
 const SUBSCRIBE_ROUTE: string = "/status-page/subscribe/:statusPageId";
 const UPDATE_SUBSCRIPTION_ROUTE: string =
-  "/status-page/update-subscription/:statusPageId/:subscriberId";
+  "/status-page/update-subscription/:statusPageId/:subscriberId/:token";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "6a000000-0000-4000-8000-000000000001",
@@ -76,6 +77,8 @@ const PAGE_ID: ObjectID = new ObjectID("6a000000-0000-4000-8000-000000000002");
 const SUBSCRIBER_ID: ObjectID = new ObjectID(
   "6a000000-0000-4000-8000-000000000003",
 );
+// The subscription's own token, which its manage link carries.
+const TOKEN: string = "6c".repeat(32);
 
 type BeforeCreate = (
   createBy: CreateBy<StatusPageSubscriber>,
@@ -125,6 +128,15 @@ describe("StatusPageAPI - who may sign up on a status page that takes only its p
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Every request here is within the limits on what a public route may
+     * send its contacts (PublicMessageRateLimit), which
+     * StatusPageSubscriberMessageLimits.test.ts holds.
+     */
+    jest
+      .spyOn(PublicMessageRateLimit, "assertMaySend")
+      .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
 
     created = [];
     signedInEmail = null;
@@ -191,6 +203,7 @@ describe("StatusPageAPI - who may sign up on a status page that takes only its p
         row.id = SUBSCRIBER_ID;
         row.statusPageId = PAGE_ID;
         row.projectId = PROJECT_ID;
+        row.unsubscribeToken = TOKEN;
         return Promise.resolve(row);
       });
 
@@ -242,7 +255,7 @@ describe("StatusPageAPI - who may sign up on a status page that takes only its p
       params: {
         statusPageId: PAGE_ID.toString(),
         ...(data.subscriberId
-          ? { subscriberId: data.subscriberId.toString() }
+          ? { subscriberId: data.subscriberId.toString(), token: TOKEN }
           : {}),
       },
       body: { data: data.body },

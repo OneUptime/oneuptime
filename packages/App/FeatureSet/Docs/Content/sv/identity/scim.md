@@ -14,16 +14,16 @@ SCIM (System for Cross-domain Identity Management) etablerar och avetablerar per
 
 ## Så fungerar det
 
-Din identitetsleverantör anropar OneUptimes SCIM-slutpunkt, autentiserad med en bearer-token, varje gång du tilldelar, ändrar eller tar bort tilldelningen av någon. Vad förfrågan ändrar beror på var anslutningen finns:
+Din identitetsleverantör anropar OneUptimes SCIM-slutpunkt varje gång du tilldelar, ändrar eller tar bort tilldelningen av någon, autentiserad med anslutningens bearer-token eller med en åtkomsttoken som den hämtar med anslutningens [klientautentiseringsuppgifter för OAuth 2.0](#klientautentiseringsuppgifter-för-oauth-20). Vad förfrågan ändrar beror på var anslutningen finns:
 
 ```mermaid title="Vad SCIM ändrar i OneUptime"
 flowchart TB
-    IdP["Din identitetsleverantör"] -->|"SCIM-förfrågningar,<br/>bearer-token"| P["Projektets SCIM-anslutning"]
-    IdP -->|"SCIM-förfrågningar,<br/>bearer-token"| S["Statussidans SCIM-anslutning"]
+    IdP["Din identitetsleverantör"] -->|"SCIM-förfrågningar,<br/>bearer-token"| P["Projektets<br/>SCIM-anslutning"]
+    IdP -->|"SCIM-förfrågningar,<br/>bearer-token"| S["Statussidans<br/>SCIM-anslutning"]
     P --> Q{"Push-grupper påslagna?"}
-    Q -->|"Nej"| T["Användare går med i och lämnar<br/>standardteamen"]
-    Q -->|"Ja"| G["Grupper blir team,<br/>medlemskapet följer dem"]
-    S --> U["Privata användare läggs till<br/>och tas bort"]
+    Q -->|"Nej"| T["Användare går<br/>med i och lämnar<br/>standardteamen"]
+    Q -->|"Ja"| G["Grupper blir team,<br/>medlemskapet<br/>följer dem"]
+    S --> U["Privata användare<br/>läggs till<br/>och tas bort"]
 ```
 
 SCIM-integrationen ger följande fördelar:
@@ -57,7 +57,7 @@ Endast en projektägare kan lägga till eller ändra ett projekts SCIM-anslutnin
 3. **Konfigurera din identitetsleverantör**
 
    - Använd **SCIM Base URL** från dialogen. På OneUptime Cloud är den `https://oneuptime.com/identity/scim/v2/<scim-id>`; en självhostad installation visar sin egen värd
-   - Konfigurera autentisering med bearer-token med **Bearer Token** från dialogen
+   - Konfigurera autentisering med bearer-token med **Bearer Token** från dialogen. Om din identitetsleverantör i stället frågar efter klientautentiseringsuppgifter för OAuth 2.0 använder du [klientautentiseringsuppgifterna för OAuth 2.0](#klientautentiseringsuppgifter-för-oauth-20) från samma dialog
    - Mappa användarattributen (e-post krävs). [Konfigurera din identitetsleverantör](#konfigurera-din-identitetsleverantör) har detaljerna för Microsoft Entra ID och Okta
 :::
 
@@ -69,14 +69,26 @@ För att se URL:erna igen väljer du **Visa SCIM-URL:er** på anslutningens rad.
 sequenceDiagram
     participant IdP as Identitetsleverantör
     participant O as OneUptime
-    IdP->>O: Skapa användaren, när du tilldelar hen
-    Note over O: Läggs till i standardteamen.<br/>På OneUptime Cloud bjuds ett befintligt<br/>konto in i stället
-    IdP->>O: Uppdatera användaren, när profilen ändras
-    IdP->>O: Ta bort eller inaktivera, när du tar bort tilldelningen
+    IdP->>O: Skapa användaren,<br/>när du tilldelar hen
+    Note over O: Läggs till i standardteamen.<br/>På OneUptime Cloud<br/>bjuds ett befintligt<br/>konto in i stället
+    IdP->>O: Uppdatera användaren,<br/>när profilen ändras
+    IdP->>O: Ta bort eller inaktivera,<br/>när du tar bort tilldelningen
     Note over O: Borttagen från standardteamen
 ```
 
 En person som redan hade ett OneUptime-konto går med när hen accepterar inbjudan på OneUptime Cloud (se [vanliga frågor](#vanliga-frågor)). Åtkomst som ges via andra team än anslutningens standardteam påverkas inte.
+
+### Klientautentiseringsuppgifter för OAuth 2.0
+
+Vissa identitetsleverantörer sparar inte någon bearer-token utan frågar i stället efter klientautentiseringsuppgifter för OAuth 2.0. Varje anslutning, för ett projekt eller för en statussida, har dem i samma dialog som sin **SCIM Base URL**, under **OAuth 2.0 Client Credentials**:
+
+- **Token Endpoint**: där din identitetsleverantör hämtar sina åtkomsttoken. Den är densamma för alla anslutningar: `https://oneuptime.com/identity/scim/oauth/token` på OneUptime Cloud.
+- **Client ID**: anslutningens ID.
+- **Client Secret**: klicka på **Make Client Secret** och kopiera hemligheten direkt. OneUptime sparar bara en hash av den och kan inte visa den igen. Den gäller i ett år.
+
+Din identitetsleverantör skickar klient-ID:t och hemligheten till tokenslutpunkten och får en åtkomsttoken som gäller i en timme. Anslutningens bearer-token fortsätter att fungera vid sidan av.
+
+Klicka på **Make New Client Secret** för att ersätta en hemlighet. Den föregående hemligheten fortsätter att fungera tills den går ut eller du klickar på **Delete Previous Secret**, så att din identitetsleverantör kan få den nya utan avbrott i etableringen: ta bort den gamla när leverantören använder den nya. En hemlighet som går ut eller tas bort avslutar genast de åtkomsttoken som har utfärdats med den. De som får ändra en anslutnings bearer-token får skapa och ta bort dess hemligheter: en projektägare, eller för en statussida, den som får redigera statussidans enkla inloggning.
 
 ## SCIM för statussidor
 
@@ -98,7 +110,7 @@ Med SCIM för statussidor etablerar och avetablerar identitetsleverantörer stat
 3. **Konfigurera din identitetsleverantör**
 
    - Använd **SCIM Base URL** från dialogen. På OneUptime Cloud är den `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
-   - Konfigurera autentisering med bearer-token med den token som visas
+   - Konfigurera autentisering med bearer-token med den token som visas, eller använd [klientautentiseringsuppgifterna för OAuth 2.0](#klientautentiseringsuppgifter-för-oauth-20) från samma dialog
    - Mappa användarattributen (e-post krävs)
 :::
 
@@ -132,6 +144,8 @@ Microsoft Entra ID ger identitetshantering i företagsklass med SCIM-etablering.
 - En klientorganisation i Microsoft Entra ID med en Premium P1- eller P2-licens (krävs för automatisk etablering).
 - Ett OneUptime-projekt på planen **Scale** eller högre på OneUptime Cloud.
 - Administratörsåtkomst till både Microsoft Entra ID och OneUptime.
+
+OneUptime-appen i Microsoft Entra-programgalleriet är till för enkel inloggning. För etablering skapar du ett eget program enligt nedan, även om du har lagt till OneUptime från galleriet för SSO.
 
 :::steps
 #### Skapa SCIM-anslutningen för Entra ID
@@ -209,6 +223,8 @@ Okta ger flexibel identitetshantering med stöd för SCIM. Du behöver:
 - Ett OneUptime-projekt på planen **Scale** eller högre på OneUptime Cloud.
 - Administratörsåtkomst till både Okta och OneUptime.
 
+På OneUptime Cloud lägger du till OneUptime från Okta Integration Network om det finns där (se [SSO](/docs/identity/sso)): programmet har redan OneUptimes SCIM-inställningar och attributmappningar, och frågar efter anslutningens ID och bearer-token.
+
 :::steps
 #### Skapa SCIM-anslutningen för Okta
 
@@ -228,18 +244,18 @@ Okta ger flexibel identitetshantering med stöd för SCIM. Du behöver:
 Gå till **Applications** > **Applications** i Okta Admin Console:
 
 - Använder du redan Okta för SSO i OneUptime öppnar du det programmet.
-- Annars klickar du på **Create App Integration**, väljer **SAML 2.0**, ger det namnet "OneUptime" och slutför SAML-konfigurationen (se [SSO](/docs/identity/sso)).
+- Annars lägger du till OneUptime från Okta Integration Network om det finns där (**Browse App Catalog**, sök efter OneUptime, **Add Integration**), eller klickar på **Create App Integration**, väljer **SAML 2.0**, ger programmet namnet "OneUptime" och slutför SAML-konfigurationen (se [SSO](/docs/identity/sso)).
 
 #### Slå på SCIM-etablering i Okta
 
 1. Gå till fliken **General** i ditt OneUptime-program
-2. Klicka på **Edit** i avsnittet **App Settings**, välj **SCIM** under **Provisioning** och klicka på **Save**
-3. En ny flik **Provisioning** visas
+2. Klicka på **Edit** i avsnittet **App Settings**. För programmet från Okta Integration Network ställer du in **OneUptime SCIM Connection ID** på den sista delen av **SCIM Base URL**, `<scim-id>`. För ditt eget program väljer du **SCIM** under **Provisioning**. Klicka på **Save**
+3. Programmet har nu en flik **Provisioning**
 
 #### Anslut Okta till OneUptime
 
 1. Klicka på **Integration** på fliken **Provisioning**, sedan på **Configure API Integration**, och markera **Enable API integration**
-2. Konfigurera följande:
+2. För programmet från Okta Integration Network anger du **Bearer Token** från OneUptime som **API Token**. För ditt eget program konfigurerar du följande:
    - **SCIM connector base URL**: **SCIM Base URL** från OneUptime (t.ex. `https://oneuptime.com/identity/scim/v2/<scim-id>`)
    - **Unique identifier field for users**: `userName`
    - **Supported provisioning actions**: Import New Users and Profile Updates, Push New Users, Push Profile Updates och, om du använder gruppbaserad etablering, Push Groups
@@ -290,7 +306,7 @@ OneUptimes SCIM-implementering följer SCIM v2.0-specifikationen och fungerar me
 | Inställning | Värde |
 | --- | --- |
 | SCIM Base URL | **SCIM Base URL** från OneUptime: `https://oneuptime.com/identity/scim/v2/<scim-id>` för ett projekt, eller `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` för en statussida |
-| Autentisering | HTTP-bearer-token |
+| Autentisering | HTTP-bearer-token, eller [klientautentiseringsuppgifter för OAuth 2.0](#klientautentiseringsuppgifter-för-oauth-20) |
 | Unik användaridentifierare | `userName`, som måste vara en giltig e-postadress |
 | Åtgärder | GET, POST, PUT, PATCH och DELETE för Users, i projekt-SCIM och SCIM för statussidor. Groups stöds endast i projekt-SCIM. |
 
@@ -309,6 +325,8 @@ Sökvägarna är relativa till anslutningens **SCIM Base URL**.
 | `/Groups/{id}`           | GET, PUT, PATCH, DELETE | Hantera enskilda grupper (endast projekt-SCIM)       |
 | `/Bulk`                  | POST                    | Flera åtgärder i en förfrågan                        |
 
+Tokenslutpunkten för [klientautentiseringsuppgifter för OAuth 2.0](#klientautentiseringsuppgifter-för-oauth-20) ligger inte under bas-URL:en: den är `https://oneuptime.com/identity/scim/oauth/token` för alla anslutningar på OneUptime Cloud. Den tar emot grant-typen `client_credentials`, med klient-ID:t och hemligheten skickade med HTTP Basic-autentisering eller i formuläret, och svarar med en åtkomsttoken som gäller i en timme (`expires_in` på `3600`).
+
 Vad `/ServiceProviderConfig` rapporterar:
 
 | Funktion | Stöds |
@@ -316,10 +334,10 @@ Vad `/ServiceProviderConfig` rapporterar:
 | PATCH | Ja |
 | Bulk | Ja, upp till 1 000 åtgärder och 1 MB per förfrågan |
 | Filter | Ja, upp till 200 resultat |
-| Sortering | Ja |
+| Sortering | Nej |
 | Ändra lösenord | Nej |
 | ETag | Nej |
-| Autentisering | HTTP-bearer-token |
+| Autentisering | HTTP-bearer-token, eller en åtkomsttoken för OAuth 2.0 |
 
 En grupp som din identitetsleverantör skapar blir ett team med samma namn i projektet; ett team som redan har det namnet används i stället för ett nytt.
 
@@ -370,7 +388,7 @@ På OneUptime Cloud kräver SCIM planen **Scale**. En självhostad installation 
 På OneUptime Cloud fungerar SCIM-etablering bara fullt ut så länge projektet har **Scale** eller högre. Under den — efter att en Scale-provperiod har slutat eller planen har sänkts — tar projektets SCIM-anslutningar, och statussidornas, bara bort personer, så att alla som slutar fortfarande förlorar sin åtkomst:
 
 - **Fungerar fortfarande:** att inaktivera en användare (`active` satt till `false`, på en anslutning som är inställd på att ta bort de personer den inaktiverar), att ta bort en användare, att ta bort medlemmar ur en grupp (Entra ID:s `Remove` på `members` med medlemmarna som värde, Oktas `remove` på `members[value eq "..."]`, eller att ersätta medlemmarna med några av dem gruppen redan har), att ta bort en grupp, och en `Bulk`-förfrågan som bara består av `DELETE`. Uppslag besvaras också — att lista och filtrera användare och grupper, vilket identitetsleverantörer gör innan de tar bort någon — men under planen skapar ett uppslag aldrig någon.
-- **Avvisas:** att skapa en användare eller en grupp, att återaktivera en användare (`active` satt till `true` för någon som anslutningen skulle lägga tillbaka i ett av sina team), att lägga till någon i en grupp som hen inte är med i, och att bara ändra en användares e-postadress eller namn eller en grupps namn. En förfrågan som lägger till någon avvisas i sin helhet, även när den samtidigt tar bort personer, eftersom en SCIM-`PATCH` är allt eller inget. Avvisningen är en `402` med ett fel i SCIM-format, som din identitetsleverantör visar: `SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.` Varje avvisning finns också i anslutningens SCIM-loggar.
+- **Avvisas:** att skapa en användare eller en grupp, att återaktivera en användare (`active` satt till `true` för någon som anslutningen skulle lägga tillbaka i ett av sina team), att lägga till någon i en grupp som hen inte är med i, och att bara ändra en användares e-postadress eller namn eller en grupps namn. En förfrågan som lägger till någon avvisas i sin helhet, även när den samtidigt tar bort personer, eftersom en SCIM-`PATCH` är allt eller inget. Avvisningen är en `402` med ett fel i SCIM-format, som din identitetsleverantör visar: `SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and Invoices > Billing and they work fully again.` Varje avvisning finns också i anslutningens SCIM-loggar.
 - **En borttagning som också ändrar en profil** — en inaktivering som skickar en ny e-postadress eller ett nytt namn, eller en gruppuppdatering som tar bort medlemmar och byter namn på gruppen — går igenom och lämnar e-postadressen, namnet eller gruppnamnet som det var. Identitetsleverantörer skickar igen det de ser skiljer sig, så en ändring som avvisats en gång kommer tillbaka med deras senare förfrågningar, och en borttagning väntar aldrig på planen. En inaktivering på en anslutning som inte tar bort de personer den inaktiverar (automatisk avetablering avstängd, eller grupper som pushas i stället) tar inte bort någon, så en ny e-postadress eller ett nytt namn som skickas med den avvisas som en egen ändring.
 - **En förfrågan som inte ändrar något besvaras som vanligt** — Oktas `PUT` av en användare som den är, med `active` satt till `true`, för någon som redan finns i alla anslutningens team; att lägga till någon i en grupp som hen redan är med i; en e-postadress som skickas igen med andra stora och små bokstäver; attribut som OneUptime inte lagrar, till exempel en titel eller en avdelning. En statussidas privata användare finns på sidan eller inte alls, så `active` satt till `true` ändrar aldrig en sådan användare.
 
@@ -431,8 +449,8 @@ Användare som SCIM själv skapar och användare som är medlemmar i ditt projek
 :::details Kan SCIM ändra en användares e-postadress eller namn?
 E-postadressen för ett OneUptime-konto är det personen loggar in med i alla projekt hen tillhör, och dit länkar för återställning av lösenord skickas. Därför:
 
-- **OneUptime Cloud**: SCIM ändrar aldrig en e-postadress. En förfrågan som skulle ändra en avvisas med ett SCIM-fel `400` av typen `mutability`, och ingenting i förfrågan tillämpas; din identitetsleverantör visar orsaken. Be användaren att själv ändra adressen från sin egen OneUptime-profil. En förfrågan som upprepar adressen som kontot redan har är ingen ändring och lyckas.
-- **Självhostad**: SCIM ändrar e-postadressen endast för en användare som har gått med i det här projektet, inte tillhör något annat projekt och inte är OneUptime-administratör. Alla andra ändringar avvisas på samma sätt.
+- **OneUptime Cloud**: SCIM ändrar aldrig en e-postadress. En förfrågan som skulle ändra en lyckas ändå: anslutningen behåller adressen som din identitetsleverantör skickade och svarar med den, medan kontot behåller adressen som det loggar in med. Anslutningens SCIM-loggar visar att ändringen inte tillämpades. Be användaren att själv ändra adressen från sin egen OneUptime-profil.
+- **Självhostad**: SCIM ändrar e-postadressen endast för en användare som har gått med i det här projektet, inte tillhör något annat projekt och inte är OneUptime-administratör. För alla andra behåller anslutningen den nya adressen och kontot sin egen, som på OneUptime Cloud.
 
 Namn följer samma regel överallt: SCIM uppdaterar namnet endast för en användare som har gått med i det här projektet, inte tillhör något annat projekt och inte är OneUptime-administratör. För alla andra lämnas namnet som det är, och resten av förfrågan lyckas ändå.
 :::

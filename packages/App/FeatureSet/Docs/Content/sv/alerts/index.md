@@ -56,11 +56,11 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 | Avsnitt           | Vad du gör där                                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Varningar**     | **Alla varningar** och **Aktiva varningar**, där det röda märket räknar larmen som inte är lösta ännu.                     |
-| **Episoder**      | **Alla episoder**, **Aktiva episoder** och **Dokumentation**, en sida i instrumentpanelen om gruppering.                   |
+| **Episoder** | **Alla episoder** och **Aktiva episoder**: relaterade larm samlade i ett problem att arbeta med. |
 | **AI**            | **Insikter**, **Loggar** och **Inställningar**: vad OneUptime AI har lärt sig av dina larm, allt den har gjort och vad den får göra. |
 | **Arbetsyta**     | **Slack** och **Microsoft Teams**, beroende på vad projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har någon av dem. |
 | **Regler**        | **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **Reminder Rules**. |
-| **Inställningar** | **Varningsstatus**, **Varningsallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Numrering**.         |
+| **Inställningar** | **Varningsstatus**, **Varningsallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering**.         |
 
 **Varningar** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnar sig självt när du är på en av dess sidor. Konfigurationen av larm finns här, inte i **Projektinställningar**.
 
@@ -129,19 +129,20 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 | Avsnitt i sidomenyn  | Sidor                                                                                                       |
 | -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Grundläggande**    | **Översikt**, **Beskrivning**, **Rotorsak**, **Åtgärd**, **Runbooks**, **Tillståndstidslinje**, **Ägare**, **Länkade incidenter** |
-| **Beredskap**        | **Jourexekveringar**: vilka jourpolicyer som kördes för larmet, och hur var och en gick                     |
-| **Loggar**           | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om larmet, och allt AI har gjort för det |
-| **Larmanteckningar** | **Privata anteckningar**                                                                                    |
+| **Översikt** | **Översikt** och **Tillståndstidslinje** |
+| **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärd**, **Runbooks**, **Länkade incidenter** |
+| **Team** | **Jourexekveringar** och **Ägare**: vem som larmades för larmet, och vem som äger det |
+| **Aviseringar**           | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om larmet, och allt AI har gjort för det |
+| **Anteckningar** | **Privata anteckningar**                                                                                    |
 | **Utvecklare**       | **Terraform**, **API** och **AI-assistenter**: larmet hanterat från kod                                     |
-| **Avancerad**        | **Anpassade fält**, **Granskningsloggar**, **Inställningar**, **Ta bort varning**                           |
+| **Avancerad** | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort varning** |
 
-**Grundläggande** och **Larmanteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
+**Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
 - **Översikt** — tre rutor med hur lång tid det tog att bekräfta och lösa larmet, och dess **Varaktighet**. Kortet **AI Investigation** står överst på sidan med **Ask OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Larmdetaljer**, larmets mätningar och dess **Berörda resurser**.
 - **Tillståndstidslinje** — varje tillstånd larmet har varit i, när och hur länge. Se [Tillståndstidslinjen](/docs/alerts/states-and-severities#tillståndstidslinjen).
 - **Länkade incidenter** — incidenterna som larmet är en del av, med **Länka incident** och **Deklarera incident**.
-- **Inställningar** — **Vem kan se det här larmet** med reglaget **Privat larm**, och **Reminders** med **Skicka påminnelser**. Varje reglage sparar i samma ögonblick som du slår om det.
+- **Inställningar** — **Vem kan se det här larmet** med reglaget **Privat larm**, och **Påminnelser** med **Skicka påminnelser**. Varje reglage sparar i samma ögonblick som du slår om det.
 
 ## Privata larm
 

@@ -95,7 +95,7 @@ Una vez verificado, el panel es accesible tanto en tu dominio personalizado como
 Haz clic en **Crear Dominio del panel**. El cuadro de diálogo es una sola página:
 
 - **Subdominio**: solo la etiqueta, con el texto de ejemplo `dashboard (leave blank for root)`. Introduce solo `dashboard`, no el nombre de host completo. Déjalo vacío o introduce `@` para usar el dominio raíz (apex).
-- **Dominio**: los dominios verificados en **Ajustes del proyecto → Dominios**, donde demuestras con un registro TXT que un dominio es tuyo. Un dominio que no has verificado no aparece en la lista, porque se rechazaría. El enlace **Añadir un dominio** junto al campo abre esa página en una pestaña nueva.
+- **Dominio**: los dominios verificados en **Ajustes del proyecto → Avanzado → Dominios**, donde demuestras con un registro TXT que un dominio es tuyo. Un dominio que no has verificado no aparece en la lista, porque se rechazaría. El enlace **Añadir un dominio** junto al campo abre esa página en una pestaña nueva.
 - **Más campos**: plegado. Mientras está plegado, su encabezado indica qué certificado usará el dominio: "Emitimos un certificado SSL gratuito para este dominio y lo renovamos automáticamente." Ábrelo solo para usar un certificado propio (consulta más abajo).
 
 Haz clic en **Crear Dominio del panel**. El cuadro de diálogo se cierra y se abre la **Configuración de DNS** del nuevo dominio. El nombre completo de un dominio queda fijado al añadirlo, así que **Editar** solo cambia su certificado. Para usar otro subdominio, añade ese dominio y elimina el anterior.

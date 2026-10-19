@@ -19,9 +19,9 @@ En Proxmox-monitor er knyttet til én klynge. Hvert minutt kjører den spørring
 flowchart TB
     subgraph site["Nettverket ditt"]
         direction LR
-        pve["Proxmox VE-API"] --> agent["OneUptimes Proxmox-agent"]
+        pve["Proxmox VE-API"] --> agent["OneUptimes<br/>Proxmox-agent"]
     end
-    agent -->|"pve-metrikker over OTLP"| oneuptime["OneUptime"]
+    agent -->|"pve-metrikker<br/>over OTLP"| oneuptime["OneUptime"]
     native["Innebygd push i<br/>Proxmox VE 9"] -.->|"alternativ"| oneuptime
     oneuptime -->|"første data"| registered["Klynge registrert"]
     oneuptime --> monitor["Proxmox-monitor"]
@@ -222,7 +222,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | Felt | Hva det gjør |
 | --- | --- |
 | **Metrikk** | Spørringen eller formelen som kontrolleres, etter variabelnavnet. |
-| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare) eller **Any Value** (én er nok). |
+| **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Verdien det sammenlignes med. En liste over enheter står ved siden av når metrikken har en enhet. Vises ikke for avviksbetingelser. |
 | **Følsomhet** | Bare avviksbetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |

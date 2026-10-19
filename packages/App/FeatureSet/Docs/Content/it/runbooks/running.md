@@ -19,15 +19,15 @@ stateDiagram-v2
     state "Completato" as Completed
     state "Non riuscito" as Failed
     state "Annullato" as Cancelled
-    [*] --> Scheduled: esecuzione avviata
-    Scheduled --> Running: un Worker la prende in carico
-    Running --> WaitingForManualStep: passaggio Manual o approvazione
-    WaitingForManualStep --> Scheduled: completato, approvato o saltato
-    Running --> Completed: tutti i passaggi fatti
-    Running --> Failed: un passaggio fallisce
-    Scheduled --> Cancelled: Annulla esecuzione
-    Running --> Cancelled: Annulla esecuzione
-    WaitingForManualStep --> Cancelled: Annulla esecuzione
+    [*] --> Scheduled: esecuzione<br/>avviata
+    Scheduled --> Running: un Worker<br/>la prende<br/>in carico
+    Running --> WaitingForManualStep: passaggio<br/>Manual o<br/>approvazione
+    WaitingForManualStep --> Scheduled: completato,<br/>approvato<br/>o saltato
+    Running --> Completed: tutti i<br/>passaggi fatti
+    Running --> Failed: un passaggio<br/>fallisce
+    Scheduled --> Cancelled: Annulla<br/>esecuzione
+    Running --> Cancelled: Annulla<br/>esecuzione
+    WaitingForManualStep --> Cancelled: Annulla<br/>esecuzione
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
@@ -118,7 +118,7 @@ Un'esecuzione è un record unico e immutabile. Per eseguire di nuovo il runbook,
 
 | Dove | Cosa elenca |
 | --- | --- |
-| Le **Esecuzioni** di un runbook | Tutte le esecuzioni di quel runbook, con filtri per stato e data di inizio, e una colonna **Attivato da**. |
+| Le **Registri → Esecuzioni** di un runbook | Tutte le esecuzioni di quel runbook, con filtri per stato e data di inizio, e una colonna **Attivato da**. |
 | **Runbook → Esecuzioni** | Tutte le esecuzioni di tutti i runbook del progetto. |
 | La pagina **Runbook** di un incidente, un avviso o un evento | Le esecuzioni collegate. Anche la panoramica dell'evento le mostra, appena ce n'è qualcuna. |
 
@@ -129,7 +129,7 @@ Il tuo ruolo legge i runbook ma non li esegue: il pulsante dice «Non hai l'auto
 :::
 
 :::details L'avvio di un'esecuzione fallisce con "Runbook is disabled" o "Runbook has no steps to run"
-L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua pagina **Impostazioni**, oppure il runbook non ha passaggi salvati. Attiva l'interruttore, oppure aggiungi passaggi e fai clic su **Save Steps**.
+L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua pagina **Impostazioni**, oppure il runbook non ha passaggi salvati. Attiva l'interruttore, oppure aggiungi passaggi e fai clic su **Save Steps**. La sua **Panoramica** dice quale, con **Attiva il runbook** o **Aggiungi passaggi**.
 :::
 
 :::details Un passaggio è fallito perché gli manca un Runner o una credenziale

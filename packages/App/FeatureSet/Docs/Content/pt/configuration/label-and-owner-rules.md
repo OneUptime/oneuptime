@@ -40,7 +40,7 @@ Abra a página **Regras de Rótulos** ou **Regras de proprietário** do produto 
 
 ### Escolher com o que a regra corresponde
 
-Na etapa **Corresponder**, clique em **Adicionar condição** para cada condição que o recurso precisa cumprir. Com duas ou mais, escolha **Corresponder a todas** ou **Corresponder a qualquer**. Uma regra sem condições corresponde a qualquer recurso novo.
+Na etapa **Corresponder**, **Aplica-se a** começa em qualquer recurso novo, por exemplo **Todos os hosts** numa regra de hosts. Para restringi-la, escolha **Somente os hosts que atendem às condições** e preencha a condição que se abre; clique em **Adicionar condição** para cada outra condição que o recurso precisa cumprir. Com duas ou mais, escolha **Corresponder a todas** ou **Corresponder a qualquer**.
 
 ### Escolher o que a regra adiciona
 

@@ -50,12 +50,12 @@ En cada comprobación, una sonda:
 
 ```mermaid title="Una comprobación, y el único paso que puede dejar el monitor sin conexión"
 flowchart TB
-    connect["Conectarse a la base de datos"] --> probe{"¿Consulta de prueba OK?"}
+    connect["Conectarse a la<br/>base de datos"] --> probe{"¿Consulta de prueba OK?"}
     probe -->|"No"| offline["Monitor sin conexión"]
-    probe -->|"Sí"| groups["Ejecutar cada grupo de métricas"]
+    probe -->|"Sí"| groups["Ejecutar cada<br/>grupo de métricas"]
     groups --> group{"¿Grupo recopilado?"}
     group -->|"Sí"| metrics["Métricas informadas"]
-    group -->|"No"| issue["Métricas ausentes, problema anotado"]
+    group -->|"No"| issue["Métricas ausentes,<br/>problema anotado"]
     metrics --> criteria["Criterios evaluados"]
     issue --> criteria
 ```
@@ -168,7 +168,7 @@ Elige el **Tipo de base de datos** y rellena el host, el puerto, el nombre de la
 
 ### Elegir qué recopilar
 
-Deja activados todos los grupos de **Grupos de métricas** salvo que tengas un motivo para desactivar alguno —consulta [Grupos de métricas](#grupos-de-métricas).
+Todos los grupos de **Grupos de métricas**, en **Más campos**, empiezan activados. Déjalos así salvo que tengas un motivo para desactivar alguno —consulta [Grupos de métricas](#grupos-de-métricas).
 
 ### Probar la conexión
 
@@ -191,13 +191,14 @@ Selecciona las **Sondas** que pueden llegar a la base de datos y un **Intervalo 
 | **Host** | El host de la base de datos accesible desde la sonda (por ejemplo `db.internal`). |
 | **Puerto** | El puerto de la base de datos. |
 | **Nombre de la base de datos** | La base de datos a la que conectarse. Las métricas de ámbito de base de datos (tamaño, tasa de aciertos de caché, volcado a archivos temporales) se informan para esta base de datos; las de ámbito de servidor (conexiones, tiempo de actividad, replicación), para todo el servidor, salvo en Azure SQL Database, donde las conexiones solo se cuentan para la base de datos monitoreada. |
-| **Usar la autenticación integrada de Windows** | Solo Microsoft SQL Server. Autentica con la identidad del proceso de la sonda en lugar de con un nombre de usuario y una contraseña. Consulta [Autenticación integrada de Windows](/docs/monitor/sql-monitor#autenticación-integrada-de-windows) en la página del monitor de consultas SQL: la configuración es idéntica. |
+| **Autenticación** | Solo Microsoft SQL Server: **Usuario y contraseña**, la opción predeterminada, o **Autenticación integrada de Windows**, que inicia sesión como el proceso de la sonda. Consulta [Autenticación integrada de Windows](/docs/monitor/sql-monitor#autenticación-integrada-de-windows) en la página del monitor de consultas SQL: la configuración es idéntica. |
 | **Nombre de usuario** | El usuario de monitoreo. Obligatorio salvo que uses la autenticación integrada de Windows. |
 | **Contraseña** | La contraseña. Haz referencia a un [secreto de monitor](/docs/monitor/monitor-secrets) con `{{monitorSecrets.name}}` en lugar de escribirla en texto plano (consulta [Usar un secreto de monitor](#usar-un-secreto-de-monitor-para-la-contraseña)). |
 | **Usar SSL/TLS** | Conectarse mediante TLS. Si está activado, puedes desactivar **Verificar el certificado del servidor** para un certificado autofirmado. |
-| **Grupos de métricas** | Qué grupos ejecutar: Conexiones, Actividad, Rendimiento, Locks and Blocking, Almacenamiento, Replicación y Mantenimiento. Todos están activados de forma predeterminada; consulta [Grupos de métricas](#grupos-de-métricas). Los detalles del monitor los muestran como **Grupos de métricas recopilados**. |
 
 ### Más campos
+
+**Grupos de métricas** está aquí: qué grupos ejecutar, entre Conexiones, Actividad, Rendimiento, Locks and Blocking, Almacenamiento, Replicación y Mantenimiento. Todos están activados de forma predeterminada; consulta [Grupos de métricas](#grupos-de-métricas). Los detalles del monitor los muestran como **Grupos de métricas recopilados**.
 
 | Campo | Predeterminado | Máximo | Qué limita |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL solo los mide cuando `track_io_timing` está activado, y está desact
 :::
 
 :::details Metric Groups Failed está por encima de 0 en cada comprobación
-Hay un grupo que no se puede recopilar en ninguna comprobación, así que el mismo problema de recopilación se repite. El resumen del monitor nombra el grupo, el motivo y el `GRANT` que lo corrige. Concede el permiso o, si no puedes conseguirlo, desactiva ese grupo en **Grupos de métricas** para que el problema deje de repetirse.
+Hay un grupo que no se puede recopilar en ninguna comprobación, así que el mismo problema de recopilación se repite. El resumen del monitor nombra el grupo, el motivo y el `GRANT` que lo corrige. Concede el permiso o, si no puedes conseguirlo, desactiva ese grupo en **Más campos → Grupos de métricas** para que el problema deje de repetirse.
 :::
 
 ## Próximos pasos

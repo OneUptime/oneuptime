@@ -66,6 +66,8 @@ import * as PublicStatusPageTools from "../../Tools/PublicStatusPageTools";
 import { generateAllTools } from "../../Tools/ToolGenerator";
 import { McpToolInfo } from "../../Types/McpTypes";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import McpDelegationToken, {
   McpDelegationClaims,
 } from "Common/Server/Utils/Mcp/McpDelegationToken";
@@ -1060,6 +1062,74 @@ describe("MCP OAuth, end to end", () => {
       expect(response.headers.get("www-authenticate")).toBeNull();
       expect(api.calls).toEqual([]);
     });
+
+    /*
+     * Nor is a sign-in rule that could not be read taken for one that is
+     * off: the call is not made, whatever the client's grant was approved
+     * under, and the same token works once the rule reads again.
+     */
+    it("answers 500, not a challenge, and makes no call, when the instance's Require SSO for Login cannot be read", async () => {
+      const connected: ConnectedClient = await connect();
+
+      (
+        jest.spyOn(
+          GlobalConfigService,
+          "getRequireSsoForLogin",
+        ) as unknown as jest.Mock
+      ).mockImplementationOnce(async (): Promise<never> => {
+        throw new Error("connection terminated unexpectedly");
+      });
+
+      const response: HttpResult = await harness.callTool(
+        "list_incidents",
+        {},
+        OAuthTestHarness.bearer(connected.accessToken),
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("www-authenticate")).toBeNull();
+      expect(api.calls).toEqual([]);
+
+      expect(
+        (
+          await harness.callTool(
+            "list_incidents",
+            {},
+            OAuthTestHarness.bearer(connected.accessToken),
+          )
+        ).status,
+      ).toBe(200);
+    });
+
+    it("answers 500, not a challenge, and makes no call, when the provider a project requires cannot be read", async () => {
+      harness.setProjectSso(project, { required: true });
+      harness.signIn(member, {
+        cookies: harness.projectSsoCookie(member, project, {
+          ssoProviderType: SsoProviderType.ProjectSSO,
+        }),
+      });
+
+      const connected: ConnectedClient = await connect();
+
+      (
+        jest.spyOn(
+          ProjectService,
+          "getRequireSsoWithSsoProviderId",
+        ) as unknown as jest.Mock
+      ).mockImplementationOnce(async (): Promise<never> => {
+        throw new Error("connection terminated unexpectedly");
+      });
+
+      const response: HttpResult = await harness.callTool(
+        "list_incidents",
+        {},
+        OAuthTestHarness.bearer(connected.accessToken),
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("www-authenticate")).toBeNull();
+      expect(api.calls).toEqual([]);
+    });
   });
 
   describe("what ends a connection, on the very next call", () => {
@@ -1112,6 +1182,49 @@ describe("MCP OAuth, end to end", () => {
       harness.setGlobalSsoRequired(true);
 
       expectUnauthorized(await callAsClient());
+    });
+
+    /*
+     * A master admin is not held to the instance's Require SSO, so their
+     * client was connected without an SSO sign-in. Once another master
+     * admin removes the access, they are held to it like every member -
+     * from their client's very next call, not a minute later.
+     */
+    it("the instance requires SSO, and a master admin who connected without it has their master admin access removed", async () => {
+      const admin: TestMember = harness.addMember({ isMasterAdmin: true });
+
+      harness.addMembership(admin, project);
+      harness.setGlobalSsoRequired(true);
+
+      const adminClient: ConnectedClient = await connect({ member: admin });
+
+      const callAsAdminClient: () => Promise<HttpResult> =
+        (): Promise<HttpResult> => {
+          return harness.callTool(
+            "list_incidents",
+            {},
+            OAuthTestHarness.bearer(adminClient.accessToken),
+          );
+        };
+
+      expect((await callAsAdminClient()).status).toBe(200);
+
+      const callsWhileAMasterAdmin: number = api.calls.length;
+      expect(callsWhileAMasterAdmin).toBeGreaterThan(0);
+
+      harness.setMasterAdmin(admin, false);
+
+      expectUnauthorized(await callAsAdminClient());
+      expect(api.calls).toHaveLength(callsWhileAMasterAdmin);
+
+      // Their own client, refreshed, is held to it too.
+      const refresh: HttpResult = await harness.refresh(
+        adminClient.clientId,
+        adminClient.refreshToken,
+      );
+
+      expect(refresh.status).toBe(400);
+      expect(refresh.json.error).toBe("invalid_grant");
     });
 
     it("someone presses Disconnect", async () => {

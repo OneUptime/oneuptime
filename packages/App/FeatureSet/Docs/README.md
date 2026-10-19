@@ -243,16 +243,34 @@ flowchart LR
 ```
 ````
 
-- The article column is narrow (about 46rem). Lay out anything longer than
-  a chain of four or five nodes top to bottom (`flowchart TB`), grouping
-  side-by-side parts in a `subgraph` with `direction LR`; a wide `LR` chart
-  scrolls sideways.
+- The article column gives a diagram 590px at 1280px wide. A diagram is
+  drawn at the size Mermaid lays it out, in the middle of the column; one
+  wider is drawn smaller to fit, down to 3/4 of its size (its 16px labels
+  as small as a callout's 12px label), and one wider than 786px scrolls
+  sideways. Aim for 590px in every language: the final pass of the overhaul
+  measured every diagram in a browser and redrew the 85 that scrolled.
+- Lay out anything longer than a chain of four or five nodes top to bottom
+  (`flowchart TB`). A node with many children stands them in a row in
+  `TB`: put three or more side by side only when their labels are short,
+  and fan out four or more left to right (`flowchart LR`), where they stack.
+- Break a label with `<br/>` before it passes about 185px (26 Latin or 13
+  Chinese, Japanese or Korean characters); Mermaid breaks a longer line
+  again inside its node. Break a translation where its own language breaks
+  a line, never inside a code span, a path or an event name, and never a
+  subgraph's title, which is drawn on one line.
+- A `subgraph` with no edges inside stands its nodes in one row. To set
+  five of them out in two rows, give it `direction LR` and chain each row
+  with invisible links: `a ~~~ b ~~~ c`, then `d ~~~ e` (Incidents
+  Overview's "Five ways in").
 - Quote labels that contain punctuation: `A["Probe (US East)"]`.
 - Use `flowchart` for flows and architecture, `sequenceDiagram` for requests
   between systems, `stateDiagram-v2` for lifecycles.
 - Keep node ids in English and translate only the labels.
 - Every diagram in every language is parsed by the tests; one that does not
-  parse fails them.
+  parse fails them. The offline Diagrams suite (`packages/E2E`, `npm run
+  test-diagrams-ui`) draws every English and German diagram in Chromium and
+  fails on one that would scroll sideways; measure a translation you change
+  the same way.
 
 ### Code
 

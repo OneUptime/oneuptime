@@ -67,24 +67,22 @@ Les **Règles de runbook** démarrent un runbook quand un nouvel événement cor
 **Maintenance planifiée → Règles → Reminder Rules** rappelle l'événement à ses propriétaires jusqu'à ce que les travaux soient validés. Chaque événement reçoit la première règle qui lui correspond, du haut de la liste vers le bas.
 
 :::steps
-### Nommer la règle de rappel
-
-Cliquez sur **Créer : Règle de rappel des maintenances planifiées**. Dans **Rule Info**, donnez-lui un **Nom**, par exemple « Rappels d'événements de maintenance », et une **Description** si vous le souhaitez.
-
 ### Choisir les événements concernés
 
-Dans **Critères de correspondance**, choisissez les **Étiquettes** auxquelles elle s'applique. Laissez-les vides pour faire des rappels sur chaque événement.
+Cliquez sur **Créer : Règle de rappel des maintenances planifiées**. Dans **Correspondance**, laissez **Tous les événements de maintenance planifiée** sélectionné pour faire des rappels sur chaque événement, ou choisissez **Uniquement les événements de maintenance planifiée qui correspondent aux conditions** puis les **Étiquettes** auxquelles elle s'applique.
 
 ### Régler l'intervalle
 
-Dans **Reminder Settings**, réglez **Reminder Interval (minutes)**, la fréquence des rappels aux propriétaires, puis créez la règle.
+Dans **Rappels**, réglez **Intervalle de rappel (minutes)**, la fréquence des rappels aux propriétaires, et choisissez quand les envoyer sous **Rappels aux propriétaires**. Son **Nom** suit les deux, par exemple « Rappel toutes les 30 minutes pendant son déroulement », jusqu'à ce que vous saisissiez le vôtre, et une **Description** attend sous **Plus de champs**. Créez ensuite la règle.
 :::
 
-| Paramètre                            | Valeur de départ                       | Ce qu'il fait                                                                        |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Reminder Interval (minutes)**      | Obligatoire                            | La fréquence des rappels aux propriétaires.                                          |
-| **Stop Reminders When**              | **Remind until event is Completed**    | Ou **Stop when event starts (Ongoing)**, pour arrêter dès que les travaux ont commencé. |
-| **Remind While Event is Scheduled**  | Désactivé                              | Désactivé, les rappels commencent quand l'événement commence ; activé, ils partent aussi avant. |
+| Réponse | Quand les propriétaires reçoivent des rappels |
+| --- | --- |
+| **Pendant son déroulement** | Du début de l'événement jusqu'à sa fin. Une nouvelle règle commence par cette réponse. |
+| **Avant le début** | De la planification de l'événement jusqu'à son début. |
+| **Avant le début et pendant son déroulement** | De la planification de l'événement jusqu'à sa fin. |
+
+Une règle enregistrée via l'API ou Terraform qui attend le début de l'événement et s'arrête à ce moment-là n'envoie jamais de rappel : la liste la signale par **N'envoie jamais de rappel**, et son formulaire vous demande de choisir une réponse.
 
 Les propriétaires reçoivent chaque rappel comme **Rappel de maintenance**, activé par e-mail pour chaque nouveau membre. Enregistrer, modifier ou supprimer une règle de rappel réattribue une règle à chaque événement qui n'est pas achevé. Pour arrêter les rappels d'un événement, désactivez **Envoyer des rappels** sur sa page **Paramètres** ; il enregistre dès que vous le basculez.
 
@@ -125,7 +123,7 @@ Chaque modèle de maintenance a des déclencheurs et des actions de workflow, no
 | **Scheduled Maintenance Member**  | Crée, modifie et supprime des événements avec leurs notes, chronologies d'état et propriétaires, ainsi que les deux types de modèles. |
 | **Scheduled Maintenance Admin**   | Tout ce que fait un membre, et en plus crée, modifie et supprime des états de maintenance.          |
 
-Les règles, champs personnalisés et mesures requièrent **Project Owner** ou **Project Admin**, ou un rôle personnalisé avec l'autorisation propre à cette page, comme **Create Scheduled Maintenance Owner Rule**. **Project Member** travaille avec les événements et les modèles, comme **Scheduled Maintenance Member**. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
+Les règles, champs personnalisés et mesures requièrent **Project Owner** ou **Project Admin**, ou un rôle personnalisé avec l'autorisation propre à cette page, comme **Create Scheduled Maintenance Owner Rule**. Les règles de runbook acceptent aussi **Runbook Admin**. **Project Member** travaille avec les événements et les modèles, comme **Scheduled Maintenance Member**. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 
 ## Dépannage
 
@@ -134,7 +132,7 @@ Ouvrez la règle et vérifiez ses conditions : chaque condition remplie doit êt
 :::
 
 :::details Les propriétaires n'ont reçu aucun rappel
-Vérifiez qu'une règle de rappel correspond aux étiquettes de l'événement, que **Envoyer des rappels** de l'événement est activé et que **Rappel de maintenance** est activé dans les paramètres de notification des propriétaires. Sans **Remind While Event is Scheduled**, les rappels ne commencent qu'une fois l'événement commencé.
+Vérifiez qu'une règle de rappel correspond aux étiquettes de l'événement, que **Envoyer des rappels** de l'événement est activé et que **Rappel de maintenance** est activé dans les paramètres de notification des propriétaires. Une règle réglée sur **Pendant son déroulement** n'envoie rien avant le début de l'événement.
 :::
 
 ## Prochaines étapes

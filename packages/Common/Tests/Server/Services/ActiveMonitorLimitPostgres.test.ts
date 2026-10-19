@@ -18,6 +18,10 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import {
+  generateIdWithLetters,
+  spellingsOf,
+} from "../TestingUtils/IdSpellings";
+import {
   afterAll,
   afterEach,
   beforeAll,
@@ -315,10 +319,15 @@ describePostgres(
       }
     }
 
-    // A monitor made as OneUptime's engines make one: root, in the project.
+    /*
+     * A monitor made as OneUptime's engines make one: root, in the project
+     * - named by `namedAs`, another spelling of its id (IdSpellings), when
+     * given.
+     */
     async function createMonitor(
       monitorType: MonitorType,
       name: string,
+      namedAs?: ObjectID | undefined,
     ): Promise<Monitor> {
       const monitor: Monitor = new Monitor();
       monitor.name = name;
@@ -326,7 +335,7 @@ describePostgres(
 
       return await MonitorService.create({
         data: monitor,
-        props: { isRoot: true, tenantId: projectId },
+        props: { isRoot: true, tenantId: namedAs || projectId },
       });
     }
 
@@ -407,16 +416,26 @@ describePostgres(
         });
     }
 
+    /*
+     * `count` creates at once, each held once it has passed its checks
+     * until all have; with `namedAs`, create `index` names the project by
+     * `namedAs[index]`.
+     */
     async function createAtOnce(
       monitorType: MonitorType,
       count: number,
+      namedAs?: Array<ObjectID> | undefined,
     ): Promise<{ created: number; refusals: Array<string> }> {
       holdCreatesUntilAllPassedTheirChecks(count);
 
       const results: Array<PromiseSettledResult<Monitor>> =
         await Promise.allSettled(
           Array.from({ length: count }, (_value: unknown, index: number) => {
-            return createMonitor(monitorType, `Racing monitor ${index}`);
+            return createMonitor(
+              monitorType,
+              `Racing monitor ${index}`,
+              namedAs?.[index],
+            );
           }),
         );
 
@@ -451,7 +470,7 @@ describePostgres(
 
         for (const refusal of outcome.refusals) {
           expect(refusal).toBe(
-            "This project has reached its plan's limit of 5 active monitors, so no more can be added. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
+            "This project has reached its plan's limit of 5 active monitors, so no more can be added. Delete monitors you no longer need, or change the plan in Project Settings > Billing and Invoices > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
           );
         }
 
@@ -471,6 +490,23 @@ describePostgres(
           "This project has reached the Free plan's limit of 10 active monitors",
         );
         expect(await activeMonitorsInTable()).toBe(10);
+      }, 120000);
+
+      test("of twelve creates that each name the project by another spelling of its id, exactly one is added", async () => {
+        projectId = generateIdWithLetters();
+        await insertProject({ plan: "growth", activeMonitorsLimit: 5 });
+        await insertMonitors(4, { monitorType: MonitorType.IncomingRequest });
+
+        const outcome: { created: number; refusals: Array<string> } =
+          await createAtOnce(
+            MonitorType.IncomingRequest,
+            RACING_CREATES,
+            spellingsOf(projectId),
+          );
+
+        expect(outcome.created).toBe(1);
+        expect(outcome.refusals).toHaveLength(RACING_CREATES - 1);
+        expect(await activeMonitorsInTable()).toBe(5);
       }, 120000);
 
       test("a project with no limit is held to nothing: every create is added", async () => {
@@ -503,7 +539,7 @@ describePostgres(
         await expect(
           createMonitor(MonitorType.IncomingRequest, "One too many"),
         ).rejects.toThrow(
-          "This project has 7 active monitors and its plan includes 5, so no more can be added until it has fewer than 5. All of its monitors keep running. Delete monitors you no longer need, or change the plan in Project Settings > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
+          "This project has 7 active monitors and its plan includes 5, so no more can be added until it has fewer than 5. All of its monitors keep running. Delete monitors you no longer need, or change the plan in Project Settings > Billing and Invoices > Billing. Manual monitors do not count towards the limit; monitors that are turned off or archived do.",
         );
 
         const manual: Monitor = await createMonitor(

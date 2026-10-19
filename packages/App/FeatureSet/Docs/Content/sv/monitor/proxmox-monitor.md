@@ -19,9 +19,9 @@ En Proxmox-monitor är knuten till ett kluster. Varje minut kör den sin fråga 
 flowchart TB
     subgraph site["Ditt nätverk"]
         direction LR
-        pve["Proxmox VE-API"] --> agent["OneUptimes Proxmox-agent"]
+        pve["Proxmox VE-API"] --> agent["OneUptimes<br/>Proxmox-agent"]
     end
-    agent -->|"pve-mått över OTLP"| oneuptime["OneUptime"]
+    agent -->|"pve-mått<br/>över OTLP"| oneuptime["OneUptime"]
     native["Inbyggd push i<br/>Proxmox VE 9"] -.->|"alternativ"| oneuptime
     oneuptime -->|"första data"| registered["Kluster registrerat"]
     oneuptime --> monitor["Proxmox-monitor"]
@@ -222,7 +222,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | Fält | Vad det gör |
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
-| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha) eller **Any Value** (ett räcker). |
+| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
 | **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** – eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Värdet att jämföra med. En lista med enheter står bredvid när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Bara avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |

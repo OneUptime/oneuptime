@@ -13,15 +13,15 @@
 
 ```mermaid title="Runner와 OneUptime 사이에서 네트워크를 오가는 것"
 flowchart TB
-    subgraph yours["자체 인프라"]
-        direction LR
-        runner["Runner 컨테이너"]
-        targets["호스트, 클러스터, 내부 서비스"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker가 단계를 큐에 넣음"]
         ingest["Runner API"]
+    end
+    subgraph yours["자체 인프라"]
+        direction LR
+        runner["Runner 컨테이너"]
+        targets["호스트, 클러스터, 내부 서비스"]
     end
     worker --> ingest
     runner -->|"아웃바운드 HTTPS, Runner ID와 키"| ingest
@@ -133,10 +133,10 @@ Runner에서 실행되는 모든 단계에는 두 가지 타임아웃이 적용�
 
 | 타임아웃 | 기본값 | 제어하는 것 |
 | --- | --- | --- |
-| **Claim timeout** | 2분 | Worker가 선택한 Runner가 작업을 가져가기를 기다리는 시간입니다. Runner가 제시간에 가져가지 않으면 단계는 시간 초과로 실패하고, Runbook은 계속 진행합니다(**실패 시 계속**에 따라 멈출 수도 있습니다). |
-| **Execution timeout** | 30초 | Runner가 단계를 멈추기 전까지 실행하게 두는 시간입니다. Bash에는 `SIGKILL`이 보내지고, JavaScript 샌드박스는 정리됩니다. |
+| **가져가기 제한 시간** | 2분 | Worker가 선택한 Runner가 작업을 가져가기를 기다리는 시간입니다. Runner가 제시간에 가져가지 않으면 단계는 시간 초과로 실패하고, Runbook은 계속 진행합니다(**실패 시 계속**에 따라 멈출 수도 있습니다). |
+| **실행 제한 시간** | 30초 | Runner가 단계를 멈추기 전까지 실행하게 두는 시간입니다. Bash에는 `SIGKILL`이 보내지고, JavaScript 샌드박스는 정리됩니다. |
 
-둘 다 단계마다 설정할 수 있습니다. **Runbooks › 해당 Runbook › 단계**를 열고 단계를 펼친 다음, 설정에서 **Execution timeout**과 **Claim timeout**(초 단위)을 지정하세요. 기본값을 쓰려면 비워 둡니다. 각각 1초에서 1시간까지 받으며, 범위를 벗어난 값은 단계가 실행될 때 범위 안으로 조정됩니다.
+둘 다 단계마다 설정할 수 있습니다. **Runbooks › 해당 Runbook › 단계**를 열고 단계를 펼친 다음, 설정에서 **실행 제한 시간**과 **가져가기 제한 시간**(초 단위)을 지정하세요. 기본값을 쓰려면 비워 둡니다. 각각 1초에서 1시간까지 받으며, 범위를 벗어난 값은 단계가 실행될 때 범위 안으로 조정됩니다.
 
 Worker의 전체 대기 시간은 `claim timeout + execution timeout + a few seconds`입니다. 단계에 맞는 값을 고르세요.
 

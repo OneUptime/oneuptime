@@ -64,10 +64,10 @@ Fate clic su **Crea regola personalizzata** sotto i modelli, o su **Crea regola 
 
 #### Restringere il campo
 
-In **Quali avvisi**, aggiungete condizioni su monitor, gravità, etichette, titoli e descrizioni. Lasciatelo vuoto per raggruppare ogni nuovo avviso. Poi fate clic su **Crea regola di raggruppamento degli avvisi**.
+In **Quali avvisi**, **Tutti gli avvisi**, da cui parte una nuova regola, raggruppa ogni nuovo avviso. Per restringerla, scegliete **Solo gli avvisi che soddisfano le condizioni** e aggiungete condizioni su monitor, gravità, etichette, titoli e descrizioni. Poi fate clic su **Crea regola di raggruppamento degli avvisi**.
 :::
 
-Tutto il resto che una regola può fare è compresso sotto **Altri campi**, alla fine del passaggio **Raggruppamento**, in tre gruppi. Da compresso, la sua intestazione nomina ciò che contiene e mostra come chip ogni impostazione usata dalla regola, così modificare una regola non nasconde mai ciò che fa.
+Tutto il resto che una regola può fare è compresso sotto **Altri campi**, alla fine del passaggio **Raggruppamento**, in tre gruppi. Da compresso, la sua intestazione nomina ciò che contiene e dice il valore di ogni impostazione usata dalla regola, così modificare una regola non nasconde mai ciò che fa.
 
 | Gruppo                             | Impostazioni                                                                                               |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco m
 
 | Sezione del menu laterale | Pagine                                                                      |
 | ------------------------- | --------------------------------------------------------------------------- |
-| **Base**                  | **Panoramica**, **Descrizione**, **Causa principale**, **Note di rimedio**  |
-| **Proprietà**             | **Proprietari**                                                             |
-| **Cronologia**            | **Cronologia stato**                                                        |
-| **Avvisi**                | **Avvisi dei membri**                                                       |
-| **Note episodio**         | **Note private**                                                            |
-| **Sviluppatori**          | **Terraform**, **API**, **Assistenti IA**                                   |
-| **Avanzato**              | **Registri di audit**, **Elimina episodio**                                 |
+| **Panoramica** | **Panoramica**, **Cronologia stato** |
+| **Indagine** | **Descrizione**, **Causa principale**, **Note di rimedio** |
+| **Team** | **Proprietari** |
+| **Avvisi** | **Avvisi dei membri** |
+| **Note** | **Note private** |
+| **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
+| **Avanzato** | **Registri di audit**, **Elimina episodio** |
 
-**Proprietà**, **Sviluppatori** e **Avanzato** partono compresse. La **Panoramica** si apre con **Alerts in this episode**, poi il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Move episode to** nel menu **⋯**.
+**Sviluppatori** e **Avanzato** partono compresse. La **Panoramica** si apre con **Alerts in this episode**, poi il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Move episode to** nel menu **⋯**.
 
 **Avvisi → Episodi attivi** elenca gli episodi non ancora risolti, e il badge accanto li conta.
 

@@ -2839,6 +2839,41 @@ describe("Reset agent", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * The route asks both: one of the admin set, and an edit of THIS
+   * resource. One of the admin set who may edit no Docker host at all is
+   * not offered what the server would refuse.
+   */
+  test("is not offered to the admin set without an edit of Docker hosts", async () => {
+    grant([
+      ...BASE_PERMISSIONS,
+      Permission.EditAutoRemediationRule,
+      Permission.ReadDockerHost,
+    ]);
+    openAgentPage();
+
+    expect(await findText("Docker AI agent")).toBeInTheDocument();
+    const menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection"]);
+    expect(
+      within(menu).queryByTestId(RESET_ACTION_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("is offered to the admin set with an edit of Docker hosts", async () => {
+    grant([
+      ...BASE_PERMISSIONS,
+      Permission.EditAutoRemediationRule,
+      Permission.ReadDockerHost,
+      Permission.EditDockerHost,
+    ]);
+    openAgentPage();
+
+    expect(await findText("Docker AI agent")).toBeInTheDocument();
+    const menu: HTMLElement = await openAgentActions();
+    expect(actionLabels(menu)).toEqual(["Test connection", "Reset agent"]);
+  });
+
   test("backing out of the dialog resets nothing, and focus goes back to the ⋯", async () => {
     grant(ADMIN_PERMISSIONS);
     openAgentPage();

@@ -54,13 +54,20 @@ describe("MailService.sendMail's timeout", () => {
       data: Record<string, unknown>;
     };
 
-    expect(request.options).toEqual({ timeout: 1234 });
+    /*
+     * The request carries the cluster key, so it follows a redirect only on
+     * its own server (#5021), timeout or not.
+     */
+    expect(request.options).toEqual({
+      timeout: 1234,
+      sameServerRedirectsOnly: true,
+    });
     // How long to wait is not part of the email.
     expect(request.data["timeoutInMs"]).toBeUndefined();
     expect(request.data["toEmail"]).toBe("owner@acme.example");
   });
 
-  test("no timeout given, none set: as every other email", async () => {
+  test("no timeout given, none set: as every other email, still kept to its own server", async () => {
     const post: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
       API,
       "post",
@@ -70,8 +77,16 @@ describe("MailService.sendMail's timeout", () => {
       projectId: ObjectID.generate(),
     });
 
-    expect(
-      (post.mock.calls[0]![0] as { options?: unknown }).options,
-    ).toBeUndefined();
+    const request: {
+      options?: Record<string, unknown>;
+      headers?: Record<string, unknown>;
+    } = post.mock.calls[0]![0] as {
+      options?: Record<string, unknown>;
+      headers?: Record<string, unknown>;
+    };
+
+    expect(request.options).toEqual({ sameServerRedirectsOnly: true });
+    // What the redirect rule protects: the cluster key in the request's headers.
+    expect(Object.keys(request.headers || {})).toContain("clusterkey");
   });
 });

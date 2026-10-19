@@ -75,7 +75,7 @@ Klicken Sie auf **Monitor hinzufügen**. Die Zeile erscheint in der Gruppe und a
 In einer Rastergruppe fragt der Dialog über **Weitere Felder** außerdem nach der Zeile und der Spalte, in die der Monitor kommt; siehe [Listenlayout oder Rasterlayout](#listenlayout-oder-rasterlayout).
 
 > [!TIP]
-> Um mehrere Prüfungen als eine Zeile zu zeigen, fügen Sie eine Monitor-Gruppe hinzu. Ist der Schalter **Monitor-Gruppen** eingeschaltet (**Projekteinstellungen** > **Erweitert** > **Feature-Flags**, der speichert, sobald Sie ihn umlegen), steht unter der Auswahlliste ein Link **Fügen Sie stattdessen eine Monitor-Gruppe hinzu.** Klicken Sie darauf, und aus **Überwachung** wird **Monitor-Gruppe** (**Überwachungsgruppe auswählen**); **Fügen Sie stattdessen einen Monitor hinzu.** schaltet zurück.
+> Um mehrere Prüfungen als eine Zeile zu zeigen, fügen Sie eine [Monitor-Gruppe](/docs/monitor/monitor-groups) hinzu. Ist der Schalter **Monitor-Gruppen** eingeschaltet (**Projekteinstellungen** > **Erweitert** > **Feature-Flags**, der speichert, sobald Sie ihn umlegen), steht unter der Auswahlliste ein Link **Fügen Sie stattdessen eine Monitor-Gruppe hinzu.** Klicken Sie darauf, und aus **Überwachung** wird **Monitor-Gruppe** (**Überwachungsgruppe auswählen**); **Fügen Sie stattdessen einen Monitor hinzu.** schaltet zurück.
 
 ### Mehrere auf einmal hinzufügen
 
@@ -209,23 +209,19 @@ Eine Monitor-Regel fügt der Seite Monitore für Sie hinzu: Beschreiben Sie die 
 :::steps
 ### Monitor-Regeln öffnen
 
-Öffnen Sie die Statusseite, wählen Sie **Monitor-Regeln** im Abschnitt **Ressourcen** ihres Seitenmenüs und klicken Sie auf **Monitorregel für Statusseiten erstellen**.
-
-### Die Regel benennen
-
-Geben Sie unter **Grundinformationen** einen **Name** ein. **Aktiviert** ist standardmäßig an.
+Öffnen Sie die Statusseite, wählen Sie **Monitor-Regeln** im Abschnitt **Ressourcen** ihres Seitenmenüs und klicken Sie auf **Monitor-Regel erstellen**.
 
 ### Sagen, auf welche Monitore sie passt
 
-Füllen Sie unter **Übereinstimmungskriterien** mindestens eines der Felder **Überwachungs-Beschriftungen** (ein Monitor mit einer davon passt), **Überwachungsname** und **Überwachungsbeschreibung** aus. Ein Monitor muss jedes ausgefüllte Kriterium erfüllen. Die beiden Muster nehmen einen regulären Ausdruck ohne Beachtung der Groß-/Kleinschreibung (`^api-.*`) oder einen Platzhalter `*` (`*checkout*`); `.*` passt auf jeden Monitor.
+Fügen Sie unter **Übereinstimmung** mindestens eine Bedingung zu **Überwachungs-Beschriftungen** (ein Monitor mit einer davon passt), **Überwachungsname** oder **Überwachungsbeschreibung** hinzu. Bei zwei oder mehr Bedingungen wählen Sie, ob ein Monitor alle oder nur eine davon erfüllen muss. Die beiden Muster nehmen einen regulären Ausdruck ohne Beachtung der Groß-/Kleinschreibung (`^api-.*`) oder einen Platzhalter `*` (`*checkout*`); `.*` passt auf jeden Monitor.
 
 ### Die Gruppe wählen
 
-Wählen Sie unter **Gruppe** die Option **Monitore zur Gruppe hinzufügen**, oder lassen Sie es leer, um die Monitore ohne Gruppe hinzuzufügen. Es folgen dieselben Anzeigeoptionen wie bei einer Ressource; bei einer Regel beginnt **Verfügbarkeit % anzeigen** eingeschaltet.
+Wählen Sie unter **Gruppe** die Option **Monitore hinzufügen zu**, oder lassen Sie es leer, um die Monitore am Seitenanfang hinzuzufügen. Der **Name** der Regel wird daraus gefüllt, etwa „Monitore zu Website hinzufügen“, bis Sie einen eigenen Namen eingeben. **Weitere Felder** enthält dieselben Anzeigeoptionen wie bei einer Ressource und die **Beschreibung** der Regel; bei einer Regel beginnt **Verfügbarkeit % anzeigen** eingeschaltet.
 
 ### Die Regel speichern
 
-Die Regel läuft sofort gegen jeden bereits vorhandenen Monitor, und die Liste zeigt die Gruppe, der sie Monitore hinzufügt, unter **Fügt Monitore hinzu zu**.
+Die Regel läuft sofort gegen jeden bereits vorhandenen Monitor, und die Liste zeigt die Gruppe, der sie Monitore hinzufügt, unter **Fügt Monitore hinzu zu**. Eine neue Regel ist eingeschaltet: Ihr Schalter **Aktiviert** steht in ihrem Bearbeitungsformular.
 :::
 
 Danach läuft eine Regel für einen Monitor erneut, sobald einer erstellt wird oder sich seine Beschriftungen, sein Name oder seine Beschreibung ändern. Eine Regel entfernt nur die Ressourcen, die sie hinzugefügt hat: Sie auszuschalten oder zu löschen nimmt diese von der Seite, und ein Monitor, den Sie von Hand hinzugefügt haben, wird nie angefasst. Ein Monitor, der schon auf der Seite ist, wird nie ein zweites Mal hinzugefügt.

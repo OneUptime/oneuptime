@@ -22,6 +22,10 @@
     "label": "언어",
     "switchLanguage": "언어 변경"
   },
+  "theme": {
+    "switchToDark": "다크 테마로 전환",
+    "switchToLight": "라이트 테마로 전환"
+  },
   "nav": {
     "overview": "개요",
     "incidents": "사고",
@@ -125,7 +129,27 @@
     "noneDescription": "이 상태 페이지에 게시된 예정된 이벤트가 없습니다.",
     "scheduledAt": "예정 시각: ",
     "report": "예정된 이벤트 보고서",
-    "notFound": "이 상태 페이지에서 예정된 이벤트를 찾을 수 없습니다."
+    "notFound": "이 상태 페이지에서 예정된 이벤트를 찾을 수 없습니다.",
+    "calendar": {
+      "subscribe": "캘린더 구독",
+      "subscribeTitle": "예정된 유지보수 구독",
+      "subscribeDescription": "이 페이지의 예정된 유지보수를 캘린더 앱에서 받아 보세요. 자동으로 최신 상태가 유지됩니다.",
+      "eventTitle": "캘린더에 추가",
+      "eventDescription": "이 유지보수를 캘린더 앱에 추가합니다.",
+      "addToCalendar": "캘린더에 추가",
+      "addHeading": "내 캘린더에 추가",
+      "google": "Google 캘린더",
+      "googleHint": "새 탭에서 Google 캘린더를 엽니다",
+      "device": "Apple 캘린더 / Outlook",
+      "deviceHint": "이 기기의 캘린더 앱을 엽니다",
+      "deviceFileHint": "이 기기의 캘린더 앱에서 열 수 있도록 이벤트를 다운로드합니다",
+      "copyHeading": "또는 링크 복사",
+      "copyHint": "URL로 캘린더를 구독할 수 있는 캘린더 앱에 붙여 넣으세요.",
+      "copy": "링크 복사",
+      "copied": "복사됨!",
+      "done": "완료",
+      "refreshNote": "캘린더 앱은 자체 일정에 따라 변경 사항을 확인하므로 업데이트가 표시되기까지 몇 시간이 걸릴 수 있습니다."
+    }
   },
   "subscribe": {
     "title": "구독",
@@ -161,7 +185,8 @@
       "yourPhoneNumber": "전화번호",
       "placeholder": "+821012345678",
       "managePrompt": "구독 시 사용한 전화번호를 입력해주세요",
-      "manageDescription": "구독 관리 링크를 이 전화번호로 보내드리겠습니다."
+      "manageDescription": "구독 관리 링크를 이 전화번호로 보내드리겠습니다.",
+      "confirmationSent": "이 전화번호로 문자 메시지를 보냈습니다. 메시지의 링크를 열어 구독을 확인하세요."
     },
     "slack": {
       "title": "Slack으로 구독",
@@ -212,11 +237,16 @@
       "saved": "변경 사항이 저장되었습니다.",
       "submit": "구독 업데이트",
       "unsubscribe": "구독 취소",
-      "unsubscribeDescription": "모든 리소스의 구독을 취소하려면 이 옵션을 선택하세요."
+      "unsubscribeDescription": "모든 리소스의 구독을 취소하려면 이 옵션을 선택하세요.",
+      "linkNotValid": "이 구독 관리 링크는 만료되었거나 유효하지 않습니다. 새 링크를 받으려면 '구독' 페이지의 '기존 구독 관리'를 사용하세요.",
+      "getNewLink": "새 링크 받기",
+      "loadFailed": "이 링크를 불러오지 못했습니다. 나중에 다시 시도해 주세요."
     },
     "confirm": {
       "title": "구독 확인",
-      "success": "구독이 확인되었습니다"
+      "success": "구독이 확인되었습니다",
+      "linkNotValid": "이 구독 확인 링크는 만료되었거나 유효하지 않습니다. 링크는 보낸 후 24시간 동안 유효합니다. 새 링크를 받으려면 다시 구독하세요.",
+      "subscribeAgain": "다시 구독"
     },
     "unsubscribe": {
       "title": "구독 취소",
@@ -264,7 +294,8 @@
       "loginPrompt": "{{statusPageName}}을(를) 보려면 로그인해주세요",
       "forgotPassword": "비밀번호를 잊으셨나요?",
       "submit": "로그인",
-      "useSSO": "대신 싱글 사인온(SSO) 사용"
+      "or": "또는",
+      "logInWithSso": "SSO로 로그인"
     },
     "sso": {
       "title": "SSO로 로그인",
@@ -342,5 +373,13 @@
   "{{field}} is required.": "{{field}}은(는) 필수입니다.",
   "{{field}} should match {{matchField}}": "{{field}}은(는) {{matchField}}과(와) 일치해야 합니다",
   "Email is not valid.": "이메일이 유효하지 않습니다.",
-  "Next": "다음"
+  "Next": "다음",
+  "Opens in a new tab": "새 탭에서 열림",
+  "Note": "참고",
+  "Tip": "팁",
+  "Info": "정보",
+  "Important": "중요",
+  "Warning": "경고",
+  "Caution": "주의",
+  "Danger": "위험"
 }

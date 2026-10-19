@@ -71,13 +71,13 @@ El comportamiento de un proveedor global depende de si le adjuntas proyectos:
 
 ```mermaid title="Qué hace un proveedor global al iniciar sesión"
 flowchart TB
-    S["Alguien inicia sesión"] --> A{"¿Proyectos adjuntos?"}
+    S["Alguien<br/>inicia sesión"] --> A{"¿Proyectos<br/>adjuntos?"}
     A -->|"No"| K{"¿Tiene cuenta?"}
-    K -->|"No"| R["Rechazado: invitarlo primero"]
-    K -->|"Sí"| E["Sesión iniciada en sus proyectos"]
-    A -->|"Sí"| D{"¿Nuevo, con el registro<br/>desactivado?"}
+    K -->|"No"| R["Rechazado:<br/>invitarlo primero"]
+    K -->|"Sí"| E["Sesión iniciada<br/>en sus proyectos"]
+    A -->|"Sí"| D{"¿Nuevo, con<br/>el registro<br/>desactivado?"}
     D -->|"Sí"| R
-    D -->|"No"| P["Añadido a los proyectos adjuntos<br/>en los que aún no está"]
+    D -->|"No"| P["Añadido a los<br/>proyectos adjuntos<br/>en los que<br/>aún no está"]
     P --> E
 ```
 
@@ -87,12 +87,14 @@ flowchart TB
 
 Quien ya es miembro de un proyecto adjunto conserva los equipos que tiene allí.
 
-Dos interruptores del proveedor cambian esto. Ambos empiezan desactivados, plegados en **Más campos**:
+Dos preguntas del proveedor cambian esto, plegadas en **Más campos**. Cada una empieza en su primera respuesta:
 
-| Interruptor | Qué hace cuando está activado |
+| Pregunta | Respuestas |
 | --- | --- |
-| **Disable Sign Up with SSO** | Las personas deben estar invitadas a un proyecto antes de poder iniciar sesión con este proveedor, aunque haya proyectos adjuntos. No se crea a nadie nuevo en su primer inicio de sesión. |
-| **Restrict to Attached Projects** | Iniciar sesión con este proveedor cumple la exigencia de SSO solo en los proyectos adjuntos a él, así que quienes ya iniciaron sesión pueden perder el acceso a otros proyectos. Cuando está desactivado, la cumple en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados. |
+| **Personas sin cuenta** | **Obtienen una en su primer inicio de sesión**: se unen a los proyectos adjuntos; si no hay ninguno adjunto, primero deben ser invitadas. **Deben ser invitadas primero**: las personas deben estar invitadas a un proyecto antes de poder iniciar sesión con este proveedor, aunque haya proyectos adjuntos. |
+| **Dónde cuenta este inicio de sesión como SSO** | **Todos los proyectos**: los proyectos que exigen SSO aceptan un inicio de sesión con este proveedor. **Solo los proyectos adjuntos**: iniciar sesión con este proveedor cumple la exigencia de SSO solo en los proyectos adjuntos a él, así que quienes ya iniciaron sesión pueden perder el acceso a otros proyectos. |
+
+Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigencia de SSO en todos los proyectos a los que pertenece la persona, y los proyectos adjuntos solo deciden dónde se añaden los recién llegados.
 
 ## Imponer SSO
 
@@ -134,11 +136,11 @@ Dos cambios sobre quién puede iniciar sesión se comprueban uno tras otro. Si s
 ## Solución de problemas
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La persona aún no tiene cuenta de OneUptime y el proveedor no crea ninguna: o no tiene proyectos adjuntos, o **Disable Sign Up with SSO** está activado. Invítala a un proyecto o adjunta un proyecto al proveedor.
+La persona aún no tiene cuenta de OneUptime y el proveedor no crea ninguna: o no tiene proyectos adjuntos, o **Personas sin cuenta** está en **Deben ser invitadas primero**. Invítala a un proyecto o adjunta un proyecto al proveedor.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** está activado y la persona no es miembro de ningún proyecto adjunto al proveedor. Adjunta uno de sus proyectos o añádela a un proyecto adjunto.
+**Dónde cuenta este inicio de sesión como SSO** está en **Solo los proyectos adjuntos** y la persona no es miembro de ningún proyecto adjunto al proveedor. Adjunta uno de sus proyectos o añádela a un proyecto adjunto.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"
@@ -147,6 +149,14 @@ La persona tiene cuenta, pero no pertenece a ningún proyecto, y el proveedor no
 
 :::details "Issuer URL does not match"
 En un proveedor SAML, el emisor de la respuesta de tu proveedor de identidad no es el **Issuer** guardado en el proveedor. Vuelve a copiarlo de tu proveedor de identidad; ambos deben coincidir exactamente.
+:::
+
+:::details "SAML Audience does not match"
+En un proveedor SAML, la respuesta se creó para otra aplicación: su audience no es el **Issuer (Entity ID)** del proveedor. En tu proveedor de identidad, establece el entity ID de la aplicación en el **Issuer (Entity ID)** de la página del proveedor. "SAML Recipient does not match" y "SAML Destination does not match" significan lo mismo para su URL de respuesta: establécela en la **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Cada respuesta de tu proveedor de identidad inicia sesión una sola vez, y solo durante unos minutos después de emitirse: después se rechaza con "SAML response has expired". Vuelve a iniciar sesión. Si las respuestas siguen caducando, comprueba los relojes de este servidor y de tu proveedor de identidad.
 :::
 
 ## Próximos pasos

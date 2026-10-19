@@ -24,6 +24,11 @@
 
 import { domToMarkdown } from "./MarkdownConverters";
 import {
+  MarkdownCalloutKind,
+  getMarkdownCalloutKind,
+  getMarkdownCalloutKindOfLabel,
+} from "./MarkdownCallouts";
+import {
   TAB_ONLY_BULLET_GLYPHS,
   TEXT_BULLET_GLYPHS,
 } from "./MarkdownListEditing";
@@ -814,6 +819,55 @@ const restoreViewerMarkup: (body: HTMLElement) => void = (
       code.textContent = iso;
       time.parentNode?.insertBefore(code, time);
       time.remove();
+    }
+  }
+  restoreCalloutMarkers(body);
+};
+
+/*
+ * A callout ("> [!WARNING]") is drawn without its marker (MarkdownCallouts),
+ * so a copy of it held a plain quote, and pasted back as one. The viewer
+ * keeps its kind on the blockquote (data-callout), and the marker is written
+ * back on the quote's first line - unless a bold label of its kind already
+ * opens it ("**Note:** ..."), which makes it a callout as it stands.
+ */
+const restoreCalloutMarkers: (body: HTMLElement) => void = (
+  body: HTMLElement,
+): void => {
+  const doc: Document = body.ownerDocument;
+
+  for (const quote of elementsOf(body, "blockquote[data-callout]")) {
+    const kind: MarkdownCalloutKind | null = getMarkdownCalloutKind(
+      quote.getAttribute("data-callout"),
+    );
+
+    if (!kind) {
+      continue;
+    }
+
+    // The text beside the icon, in the <div> the viewer draws it in.
+    const onlyChild: Element | null =
+      quote.children.length === 1 ? quote.firstElementChild : null;
+    const content: Element =
+      onlyChild && tagOf(onlyChild) === "div" ? onlyChild : quote;
+    const firstBlock: Element | null = content.firstElementChild;
+    const marker: Text = doc.createTextNode(`[!${kind.toUpperCase()}]`);
+
+    if (!firstBlock || tagOf(firstBlock) !== "p") {
+      const paragraph: HTMLElement = doc.createElement("p");
+      paragraph.appendChild(marker);
+      content.insertBefore(paragraph, firstBlock);
+      continue;
+    }
+
+    const label: Node | null = firstBlock.firstChild;
+    const opensWithItsLabel: boolean =
+      (tagOf(label) === "strong" || tagOf(label) === "b") &&
+      getMarkdownCalloutKindOfLabel(label?.textContent || "") === kind;
+
+    if (!opensWithItsLabel) {
+      firstBlock.insertBefore(doc.createElement("br"), firstBlock.firstChild);
+      firstBlock.insertBefore(marker, firstBlock.firstChild);
     }
   }
 };

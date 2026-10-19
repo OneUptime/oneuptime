@@ -4,6 +4,7 @@ OneUptime の Kubernetes エージェントは Helm チャートで、クラス�
 
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): Helm で 4 ステップ。
+- [Amazon EKS アドオンとしてインストールする](#amazon-eks-アドオンとしてインストールする): EKS コンソールから、Helm なしで。
 - [設定オプション](#設定オプション): フィルター、サンプリング、コントロールプレーン、サービスメッシュ、コスト、ラベル。
 - [Kubernetes AI エージェント](#kubernetes-ai-エージェント): OneUptime AI 用の読み取り専用の `kubectl` と、許可した場合の修正。
 - [送信量を減らす](#収集するデータ量を減らす): 効果の大きい順に並べた調整手段。
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 **製品 → インフラストラクチャ → Kubernetes → すべてのクラスター** を開きます。数分以内にクラスターが `clusterName` で表示され、ノード、Pod、ワークロードが埋まります。Kubernetes AI エージェントは、クラスターの **AI** の下にある **エージェント** ページに接続済みとして表示されます。
 :::
 
+## Amazon EKS アドオンとしてインストールする
+
+Amazon EKS では、EKS コンソールからエージェントを追加することもできます。EKS コンソールでは、エージェントは AWS Marketplace アドオンの 1 つとして提供されています。料金はかからず、インストール、アップグレード、削除は EKS が代わりに行います。アドオンの実体はこのチャートで、アドオンに必要な形で設定されています:
+
+- 自分の OneUptime の URL を指定しない限り、OneUptime Cloud (`https://oneuptime.com`) に送信します。
+- 取り込みキーは自分で作成した Kubernetes の Secret から読み取り、アドオンの設定からは決して読み取りません。アドオンの設定は EKS で平文のまま表示されるためです。
+- クラスターを EKS でのクラスター名で OneUptime に報告します。
+- `oneuptime-agent` namespace で実行されます。
+
+:::steps
+### 取り込みキーを Secret に格納する
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### アドオンを追加する
+
+EKS コンソールでクラスターを開いて **Add-ons** を選択し、続いて **Get more add-ons** を選択して、AWS Marketplace アドオンの中から OneUptime Kubernetes エージェントを選びます。無料でサブスクライブしてから、アドオンを作成します。AWS CLI で追加することもできます:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### 実行されていることを確認する
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Pod が実行されるとアドオンは `ACTIVE` になり、数分以内にクラスターが EKS でのクラスター名で OneUptime に表示されます。`CreateContainerConfigError` のままの Pod は Secret を見つけられていません。最初のステップのとおりに、`oneuptime-agent` namespace に Secret を作成してください。
+:::
+
+### アドオンの設定値
+
+EKS コンソールの **Optional configuration settings** で設定するか、アドオンの作成時または更新時に `--configuration-values` で設定します。どの値も省略できます:
+
+- `oneuptime.url`: OneUptime のアドレス。既定値は `https://oneuptime.com` です。
+- `oneuptime.existingSecretName`: 取り込みキーを `api-key` として保持している Secret。既定値は `oneuptime-ingestion-key` です。
+- `oneuptime.labels`: このクラスターが送信するすべてのデータに付けるプロジェクトラベル (`{"team": "payments"}` など)。
+- `preset`: Fargate だけで実行されるクラスターでは `eks-fargate`、それ以外では既定値の `standard`。
+- `logs.enabled`、`ebpf.enabled`、`aiAgent.enabled`: Pod のログ、eBPF のトレース、[Kubernetes AI エージェント](#kubernetes-ai-エージェント)。いずれもデフォルトで有効です。
+- `kubeStateMetrics.enabled` と `cost.enabled`: kube-state-metrics と [コストオブザーバビリティ](/docs/telemetry/kubernetes-cost)。いずれもデフォルトで無効です。
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+更新すると設定全体が置き換わり、指定しなかった値は既定値に戻ります。プロファイラー、OneUptime AI による修正、namespace のフィルターなど、チャートのその他の設定には [Helm でのインストール](#エージェントをインストールする) が必要です。クラスターを Helm でのインストールからアドオンに移行するには、先に Helm のリリースをアンインストールしてください。
+
 ## プリセットを選ぶ
 
 `preset` は、プラットフォームで動作する既定値を選びます。Pod のログを `hostPath` 経由でノードから読むか Kubernetes API 経由で読むか、そしてどのワークロードに特権での実行を許すかです。
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## 設定オプション
 
 以下のオプションはすべて Helm の値です。インストール時に設定するか、インストール済みのエージェントに `helm upgrade ... --reset-then-reuse-values --set <value>` で設定します。
+
+### 取り込みキーを Secret に保管する
+
+`--set oneuptime.apiKey` では、キーがリリースの値に保持され、Helm はその値をリビジョンごとに保存します。キーを値に含めないようにするには、エージェントの namespace にある Secret に `api-key` としてキーを格納し、代わりにその Secret の名前を指定します:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+すると、エージェントのすべてのワークロードがその Secret からキーを読み取るようになり、チャートは独自の Secret を作成しなくなります。`oneuptime.apiKey` と `oneuptime.existingSecretName` は、どちらか一方だけを設定してください。チャートは両方の同時指定を拒否します。Secret の作成元は、External Secrets Operator など、Secret を書き込めるものであれば何でもかまいません。
 
 ### namespace によるフィルタリング
 
@@ -455,7 +528,7 @@ BTF 付きの Linux カーネル 5.8 以降が必要で (Debian 11 以降、Ubun
 eBPF が見るのはネットワークの呼び出しであり、コードではありません。そのため、トレースはサービスが処理するリクエストと、その処理中に行う呼び出しから組み立てられます:
 
 - **リクエストとその呼び出しが 1 つのトレースになります**。サービスへの受信リクエストが `<METHOD> <route>` という名前のルートスパンになり、その処理中にサービスが行う HTTP、gRPC、SQL、Redis の呼び出しが子スパンになります (Node.js では、チャートが `ebpf.nodejs.enabled` で有効にする OBI の Node.js エージェントに依存します)。Redis クライアントでよくあるように、並行するリクエストが 1 つの共有接続で送る呼び出しは常に区別できるとは限らないため、その一部は元のリクエストのトレースに入りません。
-- **別のノードのサービスへの呼び出しは新しいトレースを開始します**。ただし、OpenTelemetry SDK や、後述するオプトインのコンテキスト伝播など、トレースコンテキストを引き継ぐものがある場合は別です。両端が同じノードで動いている場合は、OBI が両方を見て自分でつなぎます。
+- **別のノードのサービスへの呼び出しは呼び出し元のトレースに加わります**。これは後述するコンテキスト伝播によるもので、既定でオンです。伝播をオフにすると、そうした呼び出しは新しいトレースを開始します。ただし、OpenTelemetry SDK がトレースコンテキストを引き継ぐ場合は別です。両端が同じノードで動いている場合は、OBI が両方を見て自分でつなぎます。
 - **どのリクエストからも始まっていない処理は単独になります**。Redis をポーリングするキューワーカーや cron ジョブには、その呼び出しが属するリクエストがありません。
 - **データベースサーバーは通常単独になります**。データベースのワイヤプロトコルはトレースコンテキストを運ばないため、呼び出し元が同じノードで動いていない限り、OBI がデータベースサーバー内でコマンドごとに記録するスパンは、スパンが 1 つだけのトレースになります。
 
@@ -502,15 +575,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `networkInterZoneMetrics` | オフ | ネットワークメトリクスのゾーン間版 (カーディナリティが倍増します) |
 | `tcpStats` | オン | ノード単位の TCP のラウンドトリップタイム、接続失敗、再送のカウンター |
 
-サービス間のトレースコンテキストの伝播は既定でオフです。これは OBI が W3C の `traceparent` を挿入し、Pod A から Pod B に渡るリクエストを、どこにも SDK なしで 1 つのトレースとして表示する機能です。`--set ebpf.contextPropagation=true` でオプトインします。エージェントのほかの部分が必要とする以上のカーネルは不要で、これが無効になるようなカーネルバージョンもありません。
+サービス間のトレースコンテキストの伝播は既定でオンです。これは OBI が W3C の `traceparent` を挿入し、Pod A から Pod B に渡るリクエストを、どこにも SDK なしで 1 つのトレースとして表示する機能です。`--set ebpf.contextPropagation=false` でオフにします。エージェントのほかの部分が必要とする以上のカーネルは不要で、これが無効になるようなカーネルバージョンもありません。
 
-これがオフなのは、ヘッダーの挿入が、すでに流れているトラフィックの書き換えを意味するためです。平文の HTTP リクエストはカーネル内でその場で広げられ、TLS と素の TCP には Traffic Control のフックから TCP オプションが追加されます。接続のバイト数の計算が正確に補正されないとストリームがずれ、報告されている症状は、nginx などの L7 プロキシを通る転送が、レスポンスが約 64KB を超えたところでボディの途中で止まり、小さなリクエストは動き続けるというものです。カーネルの古さを理由にこれを除外しないでください。カーネル 5.17 未満では、OBI は範囲を限定したスキャンのプログラムに切り替え、同じようにトラフィックを書き換えます。トレース、RED メトリクス、サービスマップはこれに依存しません。サービスをつなぐには、カーネルでの書き換えなしにユーザー空間で `traceparent` を伝播する OpenTelemetry SDK のほうが安全な選択です。
+ヘッダーの挿入は、すでに流れているトラフィックの書き換えを意味します。平文の HTTP リクエストはカーネル内でその場で広げられ、TLS と素の TCP には Traffic Control のフックから TCP オプションが追加されます。接続のバイト数の計算が正確に補正されないとストリームがずれ、報告されている症状は、nginx などの L7 プロキシを通る転送が、レスポンスが約 64KB を超えたところでボディの途中で止まり、小さなリクエストは動き続けるというものです。カーネルの古さを理由にこれを除外しないでください。カーネル 5.17 未満では、OBI は範囲を限定したスキャンのプログラムに切り替え、同じようにトラフィックを書き換えます。この症状が見られる場合や、サービスメッシュや eBPF ネットワークプラグインのせいで Pod が失敗するようになった場合は、伝播をオフにしてください。トレース、RED メトリクス、サービスマップはこれに依存せず、OpenTelemetry SDK はカーネルでの書き換えなしにユーザー空間で `traceparent` を伝播します。`--reuse-values` でアップグレードしたエージェントはそれまでの値を維持します。以前のチャートではこれがオフで提供されていたため、新しい既定値を適用するには `--reset-then-reuse-values` でアップグレードしてください。
 
 ## Kubernetes AI エージェント
 
 このクラスターでインシデントやアラートが発生すると、OneUptime AI がそれを調査します。チャートの **Kubernetes AI エージェント** は AI に端末を与えます。オンコールのエンジニアと同じように読み取り専用の `kubectl` を実行し (失敗している Pod を describe し、そのイベントを読み、クラッシュしているコンテナのログを追い、ノードの容量を確認します)、実行したすべてのコマンドをインシデントのページに示します。
 
-エージェントは **デフォルトで有効** で、**読み取り専用** です。小さな Deployment が 1 つ (`kubernetes-agent-ai-agent`、Pod のラベルは `component=ai-agent`、イメージは `oneuptime/kubernetes-ai-agent`) で、その ServiceAccount は読み取りしかできません。Collector と同じ `oneuptime.apiKey` と `clusterName` で自身を登録するため、ダッシュボードで設定することはありません。クラスターの **AI エージェント** ページ (Kubernetes → クラスター → AI → エージェント) に 1 分以内に接続済みと表示され、その状態の横にある **⋯** メニューの **接続をテスト** で、エージェント経由で `kubectl version` と `kubectl auth can-i --list` を実行できます。AI がエージェントで行ったことはすべてクラスターの **AI ログ** ページ (AI → ログ) にあり、クラスターについて知っておくべきこと (繰り返し発生する問題とその理由、その大半の背後にあるノードやワークロード、AI が修正したもの) は **AI インサイト** ページ (AI → インサイト) にあります。エージェントには固定版の kubectl (v1.36.4) が同梱されています。これは Runner ではなく、Runbooks → Runners の下に表示されることもありません。OneUptime がエージェントに認証情報を渡すことも、Runbook を実行させることもなく、自動修復ルールのコマンド用 Runner として受け付けられることもありません。
+エージェントは **デフォルトで有効** で、**読み取り専用** です。小さな Deployment が 1 つ (`kubernetes-agent-ai-agent`、Pod のラベルは `component=ai-agent`、イメージは `oneuptime/kubernetes-ai-agent`) で、その ServiceAccount は読み取りしかできません。Collector と同じ `oneuptime.apiKey` と `clusterName` で自身を登録するため、ダッシュボードで設定することはありません。クラスターの **AI エージェント** ページ (Kubernetes → クラスター → AI → エージェント) に 1 分以内に接続済みと表示され、その状態の横にある **⋯** メニューの **接続をテスト** で、エージェント経由で `kubectl version` と `kubectl auth can-i --list` を実行できます。AI がエージェントで行ったことはすべてクラスターの **AI ログ** ページ (AI → ログ) にあり、クラスターについて知っておくべきこと (繰り返し発生する問題とその理由、その大半の背後にあるノードやワークロード、AI が修正したもの) は **AI インサイト** ページ (AI → インサイト) にあります。エージェントには固定版の kubectl (v1.36.5) が同梱されています。これは Runner ではなく、Runbooks → Runners の下に表示されることもありません。OneUptime がエージェントに認証情報を渡すことも、Runbook を実行させることもなく、自動修復ルールのコマンド用 Runner として受け付けられることもありません。
 
 AI エージェントが登場する前にインストールしたエージェントでは、まずチャートのインデックスを更新してからアップグレードしてください (セルフホストの OneUptime では、先に OneUptime をアップグレードします。[エージェントのアップグレード](#エージェントのアップグレード) を参照):
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **自然に解消される拒否** — 以前のエージェントの Pod がまだ報告している (正常にシャットダウンせずに置き換えられた Pod)、またはアップグレード中に古いクラスター内 Runner がまだ終了処理中である場合です。エージェントはサーバーが示す待ち時間のあとに再試行します。
 - **対応が必要な拒否** — `clusterName` が空または長すぎる、あるいはプロジェクトが AI エージェントの上限に達している場合です。ログに変更すべき内容が示されます。エージェントがまったく接続せず、そのログに `Another Kubernetes AI agent for cluster "<name>" is online` とある場合は、2 つのインストールが同じ `clusterName` を共有しています (AI エージェントのページでも警告されます)。すでに接続しているほうが実行中はそれを保持するため、各クラスターに固有の `clusterName` を付けるか、余分なリリースを削除してください。**固定されたサービス名** が付いた取り込みキーではエージェントを登録できません。チャートにはそれが付いていないキーを渡してください。
 
-AI エージェントのページでエージェントの状態の横にある **⋯** メニューの **エージェントをリセット** は、確認後にサーバーにエージェントのキーを忘れさせます (Project Owner、Project Admin、または **Edit Auto Remediation Rule** の権限で実行できます)。Pod は数分以内に自動で再接続します。エージェントの readiness は OneUptime に依存しないため、設定を誤った AI エージェントが `helm upgrade --wait` を失敗させることはありません。失敗させるのは、イメージをプルできない Pod だけです。
+AI エージェントのページでエージェントの状態の横にある **⋯** メニューの **エージェントをリセット** は、確認後にサーバーにエージェントのキーを忘れさせます (Project Owner、Project Admin、または **Edit Auto Remediation Rule** の権限で、編集できるクラスターに対して実行できます)。Pod は数分以内に自動で再接続します。エージェントの readiness は OneUptime に依存しないため、設定を誤った AI エージェントが `helm upgrade --wait` を失敗させることはありません。失敗させるのは、イメージをプルできない Pod だけです。
 
 ## エージェントのアップグレード
 
@@ -866,7 +939,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 効果を測定する
 
-テレメトリの使用量は日単位で集計されるため、1、2 日かけて **プロジェクト設定 → 使用履歴** で推移を確認してください。変更を適用した瞬間には変わりません。一度に 1 つの設定だけを変更し (ログをオフにし、次に間隔を長くし、次に eBPF を削る)、それぞれの効果がわかるようにしてください。すべてを一度に減らすと、頼りにしていたモニターを失うことがあります。
+テレメトリの使用量は日単位で集計されるため、1、2 日かけて **プロジェクト設定 → 請求と請求書 → 使用履歴** で推移を確認してください。変更を適用した瞬間には変わりません。一度に 1 つの設定だけを変更し (ログをオフにし、次に間隔を長くし、次に eBPF を削る)、それぞれの効果がわかるようにしてください。すべてを一度に減らすと、頼りにしていたモニターを失うことがあります。
 
 ## トラブルシューティング
 

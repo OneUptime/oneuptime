@@ -75,11 +75,11 @@ Clique em **Adicionar monitor**. A linha aparece no grupo e na página de status
 Em um grupo em grade, a caixa de diálogo também pede a linha e a coluna em que o monitor fica, acima de **Mais campos**; veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade).
 
 > [!TIP]
-> Para mostrar várias verificações como uma única linha, adicione um grupo de monitores. Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Avançado** > **Sinalizadores de recursos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Add a Monitor Group instead.** Clique nele e **Monitor** vira **Monitor Grupo** (**Selecionar Grupo de Monitores**); **Add a Monitor instead.** volta atrás.
+> Para mostrar várias verificações como uma única linha, adicione um [grupo de monitores](/docs/monitor/monitor-groups). Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Avançado** > **Sinalizadores de recursos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Add a Monitor Group instead.** Clique nele e **Monitor** vira **Monitor Grupo** (**Selecionar Grupo de Monitores**); **Add a Monitor instead.** volta atrás.
 
 ### Adicionar vários de uma vez
 
-**Add Multiple** (também **Add multiple monitors** no menu **More actions**) abre **Add Multiple Monitors**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Add Monitors** adiciona todos. É a forma mais rápida de preencher uma página nova.
+**Add Multiple** (também **Add multiple monitors** no menu **More actions**) abre **Add Multiple Monitors**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Adicionar monitores** adiciona todos. É a forma mais rápida de preencher uma página nova.
 
 A seleção múltipla tem uma aba **Rótulos**: clique em um rótulo e cada monitor que o tem é selecionado de uma vez.
 
@@ -139,14 +139,14 @@ Clique em **Create Status Page Group**. O grupo aparece no navegador, pronto par
 
 Os dois campos são **Nome do Grupo** (`name`) e **Parent Group** (`parentStatusPageGroupId`). As duas seções recolhidas guardam todo o resto:
 
-- **Layout**: seu cabeçalho recolhido diz **List** ou **Grid**. Ela contém **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinha em um grupo em grade.
+- **Layout**: seu cabeçalho recolhido diz **Lista** ou **Grade**. Ela contém **Modo de visualização** e os eixos de uma grade (veja [Layout em lista ou em grade](#layout-em-lista-ou-em-grade)), e se abre sozinha em um grupo em grade.
 - **Mais campos**: as cópias, no nível do grupo, das opções dos recursos:
   - **Descrição do Grupo** (`description`): markdown opcional, mostrado abaixo do cabeçalho. Uma imagem nele é mostrada a todos os visitantes.
   - **Expandir na Página de status por padrão** (`isExpandedByDefault`): ativado por padrão; define se a seção começa aberta ou recolhida para os visitantes.
   - **Mostrar status atual do grupo** (`showCurrentStatus`): ativado por padrão. Mostra um status ao lado do cabeçalho do grupo.
   - **Mostrar % de tempo de atividade** (`showUptimePercent`): desativado por padrão, com **Selecionar Precisão de Disponibilidade** quando está ativado.
 
-Para alterar um grupo, use **Edit Group** no cabeçalho do painel, ou **Edit group** no menu da linha do navegador: **Edit Status Page Group** se abre, com um botão **Salvar alterações**. O cabeçalho do painel mostra etiquetas para as configurações ativadas (**Grid**, **Collapsed by default**, **Uptime %**), para você ver como um grupo está configurado sem abrir o formulário.
+Para alterar um grupo, use **Edit Group** no cabeçalho do painel, ou **Edit group** no menu da linha do navegador: **Edit Status Page Group** se abre, com um botão **Salvar alterações**. O cabeçalho do painel mostra etiquetas para as configurações ativadas (**Grade**, **Collapsed by default**, **Uptime %**), para você ver como um grupo está configurado sem abrir o formulário.
 
 ### Gerenciar um grupo
 
@@ -171,10 +171,10 @@ A seção **Layout** do formulário do grupo define o **Modo de visualização**
 
 | Se você quer… | Escolha |
 | --------------- | ---- |
-| Mostrar uma lista vertical simples de serviços, um por linha | **List** (o padrão) |
-| Mostrar o mesmo serviço em várias regiões ou locatários como uma matriz | **Grid** |
+| Mostrar uma lista vertical simples de serviços, um por linha | **Lista** (o padrão) |
+| Mostrar o mesmo serviço em várias regiões ou locatários como uma matriz | **Grade** |
 
-Escolha **Grid** e aparecem mais quatro campos:
+Escolha **Grade** e aparecem mais quatro campos:
 
 | Campo | O que digitar |
 | ----- | ------------- |
@@ -209,23 +209,19 @@ Uma regra de monitores adiciona monitores à página por você: descreva os moni
 :::steps
 ### Abrir Monitor Rules
 
-Abra a página de status, escolha **Monitor Rules** na seção **Recursos** do menu lateral dela e clique em **Criar: Status Page Monitor Rule**.
-
-### Dar um nome à regra
-
-Em **Informações básicas**, digite um **Nome**. **Habilitado** vem ativado por padrão.
+Abra a página de status, escolha **Monitor Rules** na seção **Recursos** do menu lateral dela e clique em **Criar regra de monitores**.
 
 ### Dizer a quais monitores ela corresponde
 
-Em **Critérios de Correspondência**, preencha pelo menos um entre **Rótulos do Monitor** (corresponde um monitor que tenha qualquer um deles), **Nome do Monitor** e **Descrição do Monitor**. Um monitor precisa passar em cada critério que você preencher. Os dois padrões aceitam uma expressão regular sem diferenciar maiúsculas de minúsculas (`^api-.*`) ou um curinga `*` (`*checkout*`); `.*` corresponde a todos os monitores.
+Em **Corresponder**, adicione pelo menos uma condição sobre **Rótulos do Monitor** (corresponde um monitor que tenha qualquer um deles), **Nome do Monitor** ou **Descrição do Monitor**. Com duas condições ou mais, escolha se um monitor precisa atender a todas ou a apenas uma. Os dois padrões aceitam uma expressão regular sem diferenciar maiúsculas de minúsculas (`^api-.*`) ou um curinga `*` (`*checkout*`); `.*` corresponde a todos os monitores.
 
 ### Escolher o grupo
 
-Em **Grupo**, escolha **Add Monitors To Group**, ou deixe vazio para adicionar os monitores sem grupo. Em seguida vêm as mesmas opções de exibição de um recurso; em uma regra, **Mostrar % de tempo de atividade** começa ativado.
+Em **Grupo**, escolha **Adicionar monitores a**, ou deixe vazio para adicionar os monitores no topo da página. O **Nome** da regra é preenchido a partir dele, por exemplo "Adicionar monitores a Site", até você digitar um nome próprio. **Mais campos** tem as mesmas opções de exibição de um recurso e a **Descrição** da regra; em uma regra, **Mostrar % de tempo de atividade** começa ativado.
 
 ### Salvar a regra
 
-A regra é executada na hora contra cada monitor que já existe, e a lista mostra o grupo a que ela adiciona monitores em **Adds Monitors To**.
+A regra é executada na hora contra cada monitor que já existe, e a lista mostra o grupo a que ela adiciona monitores em **Adds Monitors To**. Uma regra nova vem ativada: a chave **Habilitado** dela fica no formulário de edição.
 :::
 
 Depois disso, uma regra é executada de novo para um monitor sempre que um é criado ou quando seus rótulos, seu nome ou sua descrição mudam. Uma regra remove só os recursos que ela adicionou: desativá-la ou excluí-la tira esses recursos da página, e um monitor que você adicionou à mão nunca é tocado. Um monitor que já está na página nunca é adicionado duas vezes.

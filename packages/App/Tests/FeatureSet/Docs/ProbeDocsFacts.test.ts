@@ -31,6 +31,7 @@ import {
   scanMarkdown,
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
+import { PROBE_ON_NEW_MONITORS_COPY } from "../../../FeatureSet/Dashboard/src/Components/Probe/ProbeOnNewMonitorsCopy";
 import { prose } from "./DocsTranslationChecks";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -834,19 +835,21 @@ describe("the Custom Probes page: creating and installing a probe", () => {
       source.indexOf("actionButtons={[", card),
     );
     const field: (title: string) => string = (title: string): string => {
-      const at: number = form.indexOf(`title: "${title}",`);
+      const at: number = form.indexOf(`title: ${title},`);
 
       expect({ title, found: at >= 0 }).toEqual({ title, found: true });
 
       return form.slice(at, form.indexOf("},", at));
     };
 
-    expect(field("Name")).toContain("required: true");
-    expect(field("Description")).toContain("required: true");
-    expect(field("Probe Logo")).toContain(
+    expect(field('"Name"')).toContain("required: true");
+    expect(field('"Description"')).toContain("required: true");
+    expect(field('"Probe Logo"')).toContain(
       "collapsibleSection: advancedSection",
     );
-    expect(field("Enable monitoring automatically on new monitors")).toContain(
+    // Named as the global probes' switch beside it is ("add ... to new monitors").
+    expect(PROBE_ON_NEW_MONITORS_COPY.switchTitle).toBe("Add to new monitors");
+    expect(field("PROBE_ON_NEW_MONITORS_COPY.switchTitle")).toContain(
       "collapsibleSection: advancedSection",
     );
     expect(form).toMatch(
@@ -854,7 +857,7 @@ describe("the Custom Probes page: creating and installing a probe", () => {
     );
     expect(form).toContain('title: "Custom Probes",');
     expect(install).toContain(
-      "Give it a **Name** and a **Description**: both are required. **More fields** holds the **Probe Logo**, **Enable monitoring automatically on new monitors**, which picks this probe for every new monitor you create, and **Labels**.",
+      "Give it a **Name** and a **Description**: both are required. **More fields** holds the **Probe Logo**, **Add to new monitors**, which starts every new monitor with this probe selected, and **Labels**.",
     );
   });
 

@@ -17,18 +17,18 @@ OneUptime verwendet für seine Teams-Integration einen Azure Bot. Der Verkehr fl
 
 ```mermaid title="Ein Projekt mit Teams verbinden und dann nutzen"
 sequenceDiagram
-    participant B as Browser des Admins
+    participant B as Browser<br/>des Admins
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: Administratorzustimmung erteilen
-    O-->>B: Weiterleitung zu Microsoft
-    B->>E: Zustimmen, dann anmelden
-    E-->>B: Weiterleitung zum Callback der Administratorzustimmung
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: Administrator-<br/>zustimmung<br/>erteilen
+    O-->>B: Weiterleitung<br/>zu Microsoft
+    B->>E: Zustimmen,<br/>dann anmelden
+    E-->>B: Weiterleitung<br/>zum Callback der<br/>Administrator-<br/>zustimmung
     B->>O: Callback
-    O->>E: Ein Microsoft-Graph-Token holen
+    O->>E: Ein Microsoft-<br/>Graph-<br/>Token holen
     Note over O,AB: Sobald verbunden
-    O->>AB: Alarmkarten senden, ausgehendes HTTPS
+    O->>AB: Alarmkarten<br/>senden,<br/>ausgehendes<br/>HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -218,7 +218,7 @@ Die Weiterleitungen der App-Registrierung zu `/api/microsoft-teams/auth` und `/a
 ### Den Bot-Endpunkt aus einer privaten Installation veröffentlichen
 
 ```mermaid title="Den Bot-Endpunkt aus einer privaten Installation veröffentlichen"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Öffentliches Gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime-Ingress"]
     Users["Mitarbeitende im VPN"] --> ING

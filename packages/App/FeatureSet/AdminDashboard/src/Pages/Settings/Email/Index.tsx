@@ -15,6 +15,7 @@ import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
 import {
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+  SMTP_AUTH_TYPE_CHOICES,
   getGlobalSmtpConfigFormFields,
   getSmtpConfigFormSteps,
   showsSmtpOAuthCredentials,
@@ -23,7 +24,7 @@ import {
   showsSmtpUsername,
 } from "Common/UI/Components/SmtpConfig/SmtpConfigFormFields";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import GlobalConfig, {
   EmailServerType,
@@ -44,6 +45,57 @@ const SMTP_HOST_FORM_STEPS: Array<FormStep<GlobalConfig>> =
 
 const SMTP_HOST_FORM_FIELDS: Array<ModelField<GlobalConfig>> =
   getGlobalSmtpConfigFormFields();
+
+// How the instance sends its email: its own mail server first, the default.
+export const EMAIL_SERVER_TYPE_CHOICES: Array<RadioButton> = [
+  {
+    value: EmailServerType.CustomSMTP,
+    title: "Custom SMTP",
+    description: "Send through your own mail server.",
+  },
+  {
+    value: EmailServerType.Sendgrid,
+    title: "SendGrid",
+    description: "Send through your SendGrid account.",
+  },
+];
+
+// The answer a stored value reads as, as the card shows it: "SendGrid", not "Sendgrid".
+export const getEmailServerTypeTitle: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const choice: RadioButton | undefined = EMAIL_SERVER_TYPE_CHOICES.find(
+    (candidate: RadioButton): boolean => {
+      return candidate.value === value;
+    },
+  );
+
+  return choice ? choice.title : value ? String(value) : "";
+};
+
+/*
+ * The sign-in a stored Authentication Type reads as, in the Edit dialog's
+ * words: the card showed the stored English ("Username and Password") in
+ * every language. Never picked, the mail service signs in with the
+ * username and password.
+ */
+export const getSmtpAuthTypeTitle: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  const choice: RadioButton | undefined = SMTP_AUTH_TYPE_CHOICES.find(
+    (candidate: RadioButton): boolean => {
+      return candidate.value === value;
+    },
+  );
+
+  if (choice) {
+    return choice.title;
+  }
+
+  return value
+    ? String(value)
+    : (SMTP_AUTH_TYPE_CHOICES[0] as RadioButton).title;
+};
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -126,12 +178,16 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.email.adminNotificationEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.email.adminNotificationEditButton")}
         formFields={[
           {
             field: {
               adminNotificationEmail: true,
             },
             title: "Admin Notification Email",
+            description:
+              "Where OneUptime writes about this server, such as when a probe goes offline.",
             fieldType: FormFieldSchemaType.Email,
             required: false,
             disableSpellCheck: true,
@@ -162,19 +218,29 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.email.serverEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.email.serverEditButton")}
         onSaveSuccess={() => {
           window.location.reload();
         }}
         formFields={[
+          /*
+           * Two plain answers, each with its line, where a dropdown listed
+           * the enum's names (Sendgrid first) under a description that
+           * only said "Email Server Type" again. The stored values are the
+           * enum's, as before.
+           */
           {
             field: {
               emailServerType: true,
             },
             title: "Email Server Type",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(EmailServerType),
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: EMAIL_SERVER_TYPE_CHOICES,
+            // An instance that never picked one sends through its own server, as this page reads it.
+            defaultValue: EmailServerType.CustomSMTP,
             required: true,
+            hideColumnDescription: true,
           },
         ]}
         modelDetailProps={{
@@ -186,7 +252,19 @@ const Settings: FunctionComponent = (): ReactElement => {
                 emailServerType: true,
               },
               title: "Email Server Type",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: GlobalConfig): ReactElement => {
+                // Never picked: the mail service sends through Custom SMTP.
+                return (
+                  <span>
+                    {t(
+                      getEmailServerTypeTitle(
+                        item.emailServerType || EmailServerType.CustomSMTP,
+                      ),
+                    )}
+                  </span>
+                );
+              },
             },
           ],
           modelId: ObjectID.getZeroObjectID(),
@@ -202,6 +280,8 @@ const Settings: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={t("pages.settings.email.smtpEditButton")}
+          // Titled like the button that opens it, not "Edit Global Config".
+          editModalTitle={t("pages.settings.email.smtpEditButton")}
           formSteps={SMTP_HOST_FORM_STEPS}
           formFields={SMTP_HOST_FORM_FIELDS}
           modelDetailProps={{
@@ -265,7 +345,12 @@ const Settings: FunctionComponent = (): ReactElement => {
                   smtpAuthType: true,
                 },
                 title: "Authentication Type",
-                placeholder: "Username and Password",
+                fieldType: FieldType.Element,
+                getElement: (item: GlobalConfig): ReactElement => {
+                  return (
+                    <span>{t(getSmtpAuthTypeTitle(item.smtpAuthType))}</span>
+                  );
+                },
                 showIf: (item: GlobalConfig): boolean => {
                   return showsSmtpServerFields(
                     item,
@@ -371,15 +456,19 @@ const Settings: FunctionComponent = (): ReactElement => {
           }}
           isEditable={true}
           editButtonText={t("pages.settings.email.sendgridEditButton")}
+          // Titled like the button that opens it, not "Edit Global Config".
+          editModalTitle={t("pages.settings.email.sendgridEditButton")}
           formFields={[
             {
               field: {
                 sendgridApiKey: true,
               },
-              title: "Sendgrid API Key",
+              title: "SendGrid API Key",
               fieldType: FormFieldSchemaType.Text,
               required: true,
-              placeholder: "Sendgrid API Key",
+              placeholder: "SendGrid API Key",
+              // The column's description only said "Sendgrid API Key" again.
+              hideColumnDescription: true,
             },
             {
               field: {
@@ -389,6 +478,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Email,
               required: true,
               placeholder: "email@yourcompany.com",
+              hideColumnDescription: true,
             },
             {
               field: {
@@ -398,6 +488,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FormFieldSchemaType.Text,
               required: true,
               placeholder: "Acme, Inc.",
+              hideColumnDescription: true,
             },
           ]}
           modelDetailProps={{

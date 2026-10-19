@@ -27,8 +27,8 @@ flowchart TB
 
 | 方式 | 最適合 | 範例 |
 | --- | --- | --- |
-| 內建連接 | OneUptime 自己連接的工具。只需填寫表單，無需建置任何東西。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[Huntress](/docs/integrations/huntress)、[安全性事件](/docs/telemetry/security-events) 連接 |
-| 工作流程範本 | 雙向保持同步的工單工具，以及聊天訊息。選擇一個範本並填寫幾項設定即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| 內建連接 | OneUptime 自己連接的工具。只需填寫表單，無需建置任何東西。 | [Slack](/docs/workspace-connections/slack)、[Microsoft Teams](/docs/workspace-connections/microsoft-teams)、[安全性事件](/docs/telemetry/security-events) 連接 |
+| 工作流程範本 | 雙向保持同步的工單工具、監控問題、安全性事件報告，以及聊天訊息。選擇一個範本並填寫幾項設定即可。 | [Jira](/docs/integrations/jira)、[Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)、[Huntress](/docs/integrations/huntress)、[Zabbix](/docs/integrations/zabbix) |
 | Incoming Request 監測器 | 傳送 Webhook 的警示工具。無需工作流程，每條警示對應一個事件，通知待命人員，並在警示恢復時解決。 | [Zabbix](/docs/integrations/zabbix)、[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)、[Grafana](/docs/integrations/grafana) |
 | 你自己建置的工作流程 | 任何帶有 Webhook 或 REST API 的工具，以及你自己的任何邏輯。 | [PagerDuty](/docs/integrations/pagerduty)、[Opsgenie](/docs/integrations/opsgenie)、[ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ flowchart TB
 
 | 工具 | 方向 | 作用 |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | 傳入 | 把 Zabbix 問題轉為事件，並在 Zabbix 恢復時解決它們。 |
+| [Zabbix](/docs/integrations/zabbix) | 雙向 | 把 Zabbix 問題轉為事件或警示，在恢復時解決它們，並從 OneUptime 確認或關閉這些問題。 |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 傳入 | 把 Alertmanager 通知轉為事件。 |
 | [Grafana](/docs/integrations/grafana) | 傳入 | 把 Grafana 警示轉為事件。 |
 | [Datadog](/docs/integrations/datadog) | 傳入 | 把 Datadog 監控警示轉為事件。 |
@@ -89,6 +89,12 @@ flowchart TB
 
 > [!TIP]
 > Slack 和 Microsoft Teams 也有工作流程步驟。事件頻道和待命請使用內建連接；如果只需要在頻道裡發一條訊息，請使用工作流程步驟。
+
+### 託管平台
+
+| 工具 | 方向 | 作用 |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | 傳入 | 從 Vercel Marketplace 新增 OneUptime：為你的 Vercel 專案提供追蹤、日誌、可用性監控和狀態頁。 |
 
 ## 從其他工具移轉
 

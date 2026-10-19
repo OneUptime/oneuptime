@@ -46,20 +46,60 @@ flowchart TB
 
 :::tabs
 @tab Linux
+В Debian и Ubuntu добавьте apt-репозиторий OneUptime и установите агент из него:
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
+echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list
+sudo apt-get update
+sudo apt-get install oneuptime-infrastructure-agent
+```
+
+В RHEL, Rocky Linux, AlmaLinux, Fedora и Amazon Linux добавьте yum-репозиторий OneUptime и установите агент из него. Где нет `dnf`, используйте `yum`, а когда появится запрос, примите ключ подписи OneUptime.
+
+```bash
+sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo
+sudo dnf install oneuptime-infrastructure-agent
+```
+
+В любом другом дистрибутиве используйте скрипт установки:
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab macOS
+Установите агент через Homebrew:
+
+```bash
+brew install oneuptime/tap/oneuptime-infrastructure-agent
+```
+
+Или используйте скрипт установки:
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab Windows
+В **Командной строке** от имени администратора установите агент через winget:
+
+```shell
+winget install --id OneUptime.InfrastructureAgent --exact --scope machine
+```
+
+Затем снова откройте **Командную строку** от имени администратора, чтобы `oneuptime-infrastructure-agent` был в пути.
+
+Без winget скачайте агент сами:
+
 1. Скачайте агент из [последнего релиза на GitHub](https://github.com/OneUptime/oneuptime/releases/latest): `oneuptime-infrastructure-agent_windows_amd64.zip` для x64 или `oneuptime-infrastructure-agent_windows_arm64.zip` для ARM64.
 2. Распакуйте zip-архив. В нём находится `oneuptime-infrastructure-agent.exe`.
 3. Откройте **Командную строку** от имени администратора в папке, куда вы его распаковали.
+
+Чтобы развернуть агент через Intune, Configuration Manager или групповую политику, используйте `oneuptime-infrastructure-agent-amd64.msi` (или `oneuptime-infrastructure-agent-arm64.msi`) из того же релиза. Он устанавливает агент в `C:\Program Files\OneUptimeInfrastructureAgent`, а более новый MSI обновляет его на месте и снова запускает. MSI из более раннего релиза обновить нельзя: сначала один раз удалите его.
 :::
 
-Скрипт установки загружает последний релиз для вашей операционной системы и процессора (x86-64 или ARM64) и помещает исполняемый файл `oneuptime-infrastructure-agent` в `$HOME/bin`. При самостоятельном размещении скрипт отдаётся с вашего собственного URL OneUptime.
+Любой из этих способов устанавливает последний релиз для вашей операционной системы и процессора (x86-64 или ARM64). Репозитории apt и yum содержат пакеты `.deb` и `.rpm`, приложенные к каждому релизу на GitHub и подписанные ключом из `https://packages.oneuptime.com/gpg.key`, а пакеты помещают исполняемый файл в `/usr/bin`. Скрипт установки помещает исполняемый файл `oneuptime-infrastructure-agent` в `$HOME/bin`. При самостоятельном размещении скрипт отдаётся с вашего собственного URL OneUptime.
 
 ### Подключите его к монитору
 
@@ -136,6 +176,23 @@ oneuptime-infrastructure-agent start
 
 Если агент не может писать в эти каталоги, он использует вместо них `~/.oneuptime-infrastructure-agent/`. Переменные окружения `ONEUPTIME_AGENT_CONFIG_PATH` и `ONEUPTIME_AGENT_LOG_PATH` явно задают любой из этих путей.
 
+### Обновление и удаление
+
+Обновляйте агент тем же способом, которым вы его установили:
+
+| Способ установки | Обновление |
+| --- | --- |
+| apt | `sudo apt-get update && sudo apt-get install --only-upgrade oneuptime-infrastructure-agent` |
+| dnf или yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
+| Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
+| winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | Установите более новый MSI. |
+| Скрипт установки | Запустите скрипт установки ещё раз. |
+
+Обновление не перезапускает работающий агент, поэтому после него выполните `restart`. В Windows выполните `stop` перед `winget upgrade` и `start` после: winget не может заменить программу, пока её выполняет служба.
+
+Чтобы удалить агент, сначала выполните `uninstall`, а затем удалите пакет тем инструментом, которым вы его установили, например `sudo apt-get remove oneuptime-infrastructure-agent`.
+
 ## Что сообщает агент
 
 Каждый отчёт содержит имя хоста сервера и:
@@ -211,7 +268,7 @@ oneuptime-infrastructure-agent start
 :::
 
 :::details `sudo` сообщает, что команда не найдена
-Скрипт установки помещает исполняемый файл в `$HOME/bin` пользователя, от имени которого он запускался, и выводит использованный каталог. Запускайте агент по полному пути, например `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. Чтобы вместо этого установить его в каталог из системного пути, передайте скрипту `-b`:
+Пакеты помещают агент в системный путь, поэтому это бывает только со скриптом установки. Скрипт установки помещает исполняемый файл в `$HOME/bin` пользователя, от имени которого он запускался, и выводит использованный каталог. Запускайте агент по полному пути, например `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. Чтобы вместо этого установить его в каталог из системного пути, передайте скрипту `-b`:
 
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin

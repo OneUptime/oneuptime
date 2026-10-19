@@ -241,12 +241,12 @@ OneUptime 本身提供的是最新資料：對層、輪替、覆寫或策略關�
 - 連結依專案區分。外洩的個人連結只會暴露一個專案的班次，而不是你所屬的所有專案。
 - 重新產生連結會讓舊權杖進入 30 天的寬限期（空的行事曆，之後 404）。 **停用連結** 會提供空的行事曆。未知或過期的連結會回傳不帶任何提示的 404。空的行事曆會讓訂閱的應用程式清空副本；404 會讓它們保留副本，這就是停用和重新產生都提供空行事曆的原因。
 - 權杖以雜湊形式儲存；設定頁面上顯示的副本以 `ENCRYPTION_SECRET` 加密。在自行託管的安裝中請把該變數設為真正的密鑰——如果它未設定，或仍是本存放庫附帶的預留值之一（ `secret` ，或 `config.example.env` 設定的 `please-change-this-to-random-value` ），伺服器會在啟動時發出警告。如果之後變更它，由於儲存的副本已無法讀取，頁面會提供 **重新產生連結** ；在你這麼做之前，訂閱源會繼續運作。
-- 訂閱源回應標記為 `Cache-Control: private` ，會被排除在搜尋引擎之外（ `X-Robots-Tag: noindex` ），並依連結和用戶端位址限制速率。
+- 訂閱源回應標記為 `Cache-Control: private` ，會被排除在搜尋引擎之外（ `X-Robots-Tag: noindex` ），並依連結、用戶端位址以及 IPv6 /64（上限為單一位址的十倍）限制速率。
 
 OneUptime 內建的 Nginx 不會把訂閱源請求寫入記錄：
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;
@@ -319,7 +319,7 @@ curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"
 :::
 
 :::details 429 或 "too many requests"
-同一位址後的大量用戶端——辦公室 NAT、VPN 閘道——會共用依位址計算的額度。請調高 `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` ，並檢查 `TRUSTED_PROXY_HOPS` ：它太低時，每個用戶端都會被算成你自己的代理伺服器，所有用戶端共用一份額度。
+同一位址後的大量用戶端——辦公室 NAT、VPN 閘道——會共用依位址計算的額度。同一個 IPv6 /64 中的用戶端還會共用十倍於此的額度。請調高 `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` ，並檢查 `TRUSTED_PROXY_HOPS` ：它太低時，每個用戶端都會被算成你自己的代理伺服器，所有用戶端共用一份額度。
 :::
 
 :::details Apple 行事曆、Thunderbird 或 Outlook 中的憑證錯誤

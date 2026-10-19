@@ -67,7 +67,7 @@ Klik op **Sjabloon toepassen**, kies er een onder **Selecteer sjabloon** in het 
 
 Klik op **Generate with AI**. Het dialoogvenster **Generate Postmortem with AI** biedt een opzet aan onder **Selecteer sjabloon**: **Standard Postmortem**, **Detailed Technical Postmortem** of **Brief Postmortem**, daarna uw eigen postmortem-sjablonen. **Template Preview** toont de opzet, en u kunt die wijzigen voordat u genereert.
 
-Klik onderaan het dialoogvenster op **Generate with AI**. OneUptime AI leest het incident (de beschrijving, de oorzaak en de oplossing, de statustijdlijn, de openbare en privénotities, en de berichten in het Slack- of Microsoft Teams-kanaal) en schrijft het postmortem in uw opzet. Daarna opent de editor met het resultaat.
+Klik onderaan het dialoogvenster op **Generate with AI**. OneUptime AI leest het incident (de beschrijving, de oorzaak en de oplossing, de statustijdlijn, de openbare en privénotities, de berichten in het Slack- of Microsoft Teams-kanaal, en wat er in [de gesprekken](/docs/workspace-connections/video-calls#transcripties-van-gesprekken) is gezegd) en schrijft het postmortem in uw opzet. Daarna opent de editor met het resultaat.
 
 Genereren vereist dat AI voor het project is ingeschakeld, onder **Projectinstellingen → AI → AI Features**, en een LLM-provider: zie [LLM-providers](/docs/ai/llm-provider). Het vereist ook de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident: andere rollen kunnen het postmortem schrijven, maar niet genereren.
 
@@ -78,6 +78,7 @@ Met **Een postmortem opstellen wanneer een incident is opgelost** aan stelt OneU
 - Het vervangt nooit een notitie die al is geschreven.
 - Het schrijft nooit in een postmortem dat al is gepubliceerd, waar het concept ongecontroleerd op de statuspagina zou komen.
 - Het vereist dat AI voor het project is ingeschakeld, en stopt voor die dag zodra het project zijn dagelijkse AI-limieten bereikt. Zie [Automatisch postmortem](/docs/ai/ai-sre#automatisch-postmortem).
+- Is de transcriptie van het gesprek van het incident nog onderweg wanneer het incident wordt opgelost, dan wacht het tot OneUptime AI die heeft gelezen, zodat het concept meeneemt wat er in het gesprek is gezegd: tot zes uur terwijl Zoom of Google Meet de transcriptie maakt. Zie [Elk gesprek opnemen en transcriberen](/docs/workspace-connections/video-calls#elk-gesprek-opnemen-en-transcriberen).
 
 ## Het op uw statuspagina publiceren
 
@@ -152,7 +153,7 @@ Controleer drie dingen: **Publiceren op statuspagina** staat aan, de notitie is 
 :::
 
 :::details Er verscheen geen AI-concept toen het incident werd opgelost
-Het incident had al een notitie, het postmortem was al gepubliceerd, of **Een postmortem opstellen wanneer een incident is opgelost** staat uit. AI moet voor het project zijn ingeschakeld, en het project mag zijn dagelijkse AI-limieten niet hebben bereikt.
+Het incident had al een notitie, het postmortem was al gepubliceerd, of **Een postmortem opstellen wanneer een incident is opgelost** staat uit. AI moet voor het project zijn ingeschakeld, en het project mag zijn dagelijkse AI-limieten niet hebben bereikt. Is de transcriptie van het gesprek van het incident onderweg, dan komt het concept zodra OneUptime AI die heeft gelezen.
 :::
 
 ## Volgende stappen

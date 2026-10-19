@@ -20,6 +20,7 @@ flowchart TB
 - [Adding an escalation rule](#adding-an-escalation-rule): Add the next level, step by step.
 - [How the levels page people](#how-the-levels-page-people): Timing, repeats, and how each person is reached.
 - [The next person in the rotation](#escalating-to-the-next-person-in-the-rotation): Page the on-call person's backup from the same rotation.
+- [Passing a page on](#passing-a-page-on): Can't take a page? Send it to the next level at once.
 - [API and Terraform](#creating-rules-with-the-api-or-terraform): Create policies and rules as code.
 :::
 
@@ -74,11 +75,11 @@ Click **Create Rule**. The rule is added below the others, as the policy's next 
 
 ## How the levels page people
 
-When an incident or alert reaches the policy, **Level 1** pages its responders straight away. If nobody acknowledges within its wait, **Level 2** is paged, and so on down the list. Once the last level's wait has passed with no acknowledgement, the policy starts again from **Level 1** if its **Repeat Policy** (below the rules) says to repeat, as many times as it allows, and otherwise stops. Acknowledging or resolving the incident or alert stops the paging at any level.
+When an incident or alert reaches the policy, **Level 1** pages its responders straight away. If nobody acknowledges within its wait, **Level 2** is paged, and so on down the list. Once the last level's wait has passed with no acknowledgement, the policy starts again from **Level 1** if its **Repeat Policy** (below the rules) says to repeat, as many times as it allows, and otherwise stops. Acknowledging or resolving the incident or alert stops the paging at any level. Somebody paged who cannot take it can pass it on, and the next level is paged without waiting: see [Passing a page on](#passing-a-page-on).
 
 An incident, alert or episode that is created already acknowledged or resolved — recorded after the fact — runs none of its policies: no one is paged, and its feed says so, naming them. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
-To repeat a policy, click **Edit** on the **Repeat Policy** card, turn on **Repeat if no one acknowledges** and set the **Number of times to repeat**.
+To repeat a policy, click **Edit** on the **Repeat Policy** card, choose **Start again from Level 1** and set **How many more times?**.
 
 ### The escalation summary
 
@@ -162,6 +163,45 @@ The run's message in Slack and Microsoft Teams, the incident's feed and the run'
 
 > [!TIP]
 > One schedule is all it takes: there is no second, backup schedule to keep in step with the first, and the time away its people book counts for both levels.
+
+## Passing a page on
+
+Somebody paged who cannot take it, because they are asleep, on a plane or already working another incident, can pass the page on instead of letting it ring out. The policy pages its next level straight away, without waiting out the level's **Escalate after (in minutes)**, and they are not paged about it again.
+
+```mermaid title="Passing a page on moves the policy to its next level at once"
+flowchart TB
+    page["Level 1 pages Alex"] --> take{"Can Alex<br/>take it?"}
+    take -->|Yes| ack["Alex acknowledges:<br/>paging stops"]
+    take -->|No| pass["Alex passes it on"]
+    pass --> others{"Anyone else on<br/>Level 1 still paged?"}
+    others -->|Yes| wait["The policy waits<br/>for them, as before"]
+    others -->|No| next["Level 2 is<br/>paged now"]
+```
+
+Every page can be passed on from where it reached you:
+
+| Where | How to pass it on |
+| --- | --- |
+| Email | The **Pass it on** button, then **Pass it on** on the page it opens |
+| SMS and WhatsApp | The link in the message opens the acknowledge page, which has **Pass it on** too |
+| Telegram, Slack and Microsoft Teams | The "Can't take it? Pass it on" link, then **Pass it on** on the page it opens |
+| Phone call | Press 2. The call then says what happened |
+| Push notification | Tap it: the incident, alert or episode opens in the OneUptime On-Call app, with **Pass it on** under it |
+| OneUptime | **Pass it on** at the top of the incident, alert or episode, after its state buttons |
+
+Every way but the call asks before it does anything, and says what will happen, such as "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting."; on a call, pressing 2 is the answer. Only the person being paged can pass the page on: the button in OneUptime shows only to them, and the link in a message passes on only the page it was sent about, for the person it was sent to, for 7 days.
+
+What happens next depends on who else is being paged:
+
+- Others on the same level are still being paged: the policy waits for them, as before. It moves on when the level's wait runs out, or as soon as the last of them passes it on too.
+- Nobody else on the level is left: the next level is paged straight away.
+- It was the last level: if the **Repeat Policy** says to repeat, the policy starts again from **Level 1** straight away. Otherwise paging stops, and somebody needs to take it.
+
+Passing a page on does not acknowledge it: the incident or alert still waits for somebody to acknowledge it, and whoever passed it on can still acknowledge it themselves. This run does not page them about it again: a later level, or a repeat, that names them passes over them. Once everybody it paged has passed it on and nobody is left to page, paging stops, and the incident's feed says so.
+
+A page a workflow sends to people directly has no levels: passing it on stops paging you, and once everybody it paged has passed it on, paging stops.
+
+Every pass is recorded. The run's **Execution Timeline** marks the person's line **Passed On**, the incident's feed says "Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.", the run's message in Slack and Microsoft Teams says they passed it on, and their **On-Call Logs** show the page as **Passed On**.
 
 ## Editing, reordering and deleting rules
 

@@ -21,7 +21,7 @@ Det finns fem sätt som en incident kommer in i OneUptime på, och alla hamnar p
 | Öppna en från din egen kod, ett skript eller ett annat verktyg | `POST /api/incident`                                                      |
 | Låta folk utanför ditt team rapportera ett problem via en länk | Ett [formulär](/docs/forms/index)                                         |
 
-Alla fem skriver samma modell, så en incident som en sond öppnade ser exakt ut som en som en jourhavande öppnade för hand — bortsett från några administrativa kolumner som servern sätter på de automatiska. Integrationer skriver den också: [Huntress](/docs/integrations/huntress) öppnar en incident för varje incidentrapport som dess SOC skickar.
+Alla fem skriver samma modell, så en incident som en sond öppnade ser exakt ut som en som en jourhavande öppnade för hand — bortsett från några administrativa kolumner som servern sätter på de automatiska. Arbetsflöden skriver den också: arbetsflödet för [Huntress](/docs/integrations/huntress) öppnar en incident för varje incidentrapport som dess SOC skickar.
 
 > [!TIP]
 > Du kan också deklarera en incident från larm: **Deklarera incident** på en larmlista, i ett larms rubrik eller på ett larms sida **Länkade incidenter** öppnar samma guide, förifylld från larmen, och länkar dem till den nya incidenten. En kryssruta på formuläret, ikryssad som standard, bekräftar också larmen, så att de slutar eskalera. Se [Länkade larm](/docs/incidents/linked-alerts).
@@ -116,7 +116,7 @@ Det här steget visas bara när minst ett anpassat incidentfält har **Visa vid 
 
 ### Steg 3 — Jour och roller
 
-- **Jourpolicy** — ett flerval av jourpolicyerna som ska köras när den här incidenten skapas. Det motsvarar `onCallDutyPolicies` på incidenten.
+- **Jourpolicy** — ett flerval av jourpolicyerna som larmas så snart incidenten har deklarerats. Det motsvarar `onCallDutyPolicies` på incidenten.
 - **Tilldela incidentroller** — vem som tar varje roll som ditt projekt definierar, ett kort per roll. En roll med märket **Primär** som du lämnar tom är din: du tar den när incidenten deklareras, och sammanfattningen säger det. En roll för en person säger det när den har en; en roll för flera behåller sin väljare.
 
 Det här är det enda stället där en jourpolicy kopplas direkt till en incident. Allvarlighetsgrader har ingen jourpolicy — allvarlighetsgraden är en etikett, och den påverkar bara larmningen som *matchningskriterium* i en jourregel. Regler som är konfigurerade under **Incidenter → Regler → Jourregler** lägger till sina policyer ovanpå det du väljer här; den slutliga uppsättningen som körs är unionen av båda, utan dubbletter. En incident som deklareras i ett senare tillstånd kör ingen av dem — se [Deklarerad redan bekräftad eller löst](#deklarerad-redan-bekräftad-eller-löst).
@@ -250,14 +250,7 @@ Skapandeanropet gör mer än att skriva en rad:
 flowchart TB
     request["Skapandebegäran"] --> fill["Servern fyller i luckorna"]
     fill --> template["Mall tillämpad, om det finns en"]
-    template --> rules
-    subgraph rules["Regler, i den här ordningen"]
-        direction LR
-        privacy["Sekretess"] --> owner["Ägare"]
-        owner --> label["Etikett"]
-        label --> oncall["Jour"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regler, i den här ordningen:<br/>Sekretess, Ägare, Etikett,<br/>Jour, Runbook"]
     rules --> policies["Jourpolicyer körs"]
     policies --> subscribers["Prenumeranter köas"]
     subscribers --> workflows["Arbetsflöden utlöses"]
@@ -284,10 +277,10 @@ Att välja ett senare **Inledande tillstånd** — på formuläret, via en malls
 
 ```mermaid title="Vad en ny incident sätter igång, efter tillståndet den börjar i"
 flowchart TB
-    start{"Starttillstånd"} -->|"Skapandetillståndet, standarden"| live["Behandlas som ny: larmar jouren"]
-    start -->|"Vid eller efter bekräftad"| acked["Registrerad: larmar ingen"]
-    start -->|"Vid eller efter löst"| over["Registrerad som över"]
-    over --> quiet["Ingen gruppering, runbooks, AI, kanal eller SLA"]
+    start{"Starttillstånd"} -->|"Skapandetillståndet,<br/>standarden"| live["Behandlas<br/>som ny:<br/>larmar jouren"]
+    start -->|"Vid eller<br/>efter bekräftad"| acked["Registrerad:<br/>larmar ingen"]
+    start -->|"Vid eller<br/>efter löst"| over["Registrerad<br/>som över"]
+    over --> quiet["Ingen gruppering,<br/>runbooks, AI,<br/>kanal eller SLA"]
 ```
 
 - **Vid eller efter ditt bekräftade tillstånd** — **Bekräftad**, eller varje tillstånd som står under det i **Incidenter → Inställningar → Incidentstatus** — körs ingen jourpolicy, så ingen larmas. Incidenten nämner fortfarande sina policyer, de du valde och de som jourregler lägger till, och dess flöde säger varför på en rad: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Dess SLA, om en regel ger den en, börjar redan som besvarad. Allt annat nedan körs som för varje ny incident.

@@ -15,13 +15,13 @@ Ein Runbook kann von selbst starten: nach einem Zeitplan oder wenn ein anderes T
 flowchart TB
     subgraph starts["Was den Lauf startet"]
         direction LR
-        schedule["Der Zeitplan: ein Zeitpunkt kommt"]
-        webhook["Der Webhook: ein POST an seine URL"]
+        schedule["Der Zeitplan: ein<br/>Zeitpunkt kommt"]
+        webhook["Der Webhook: ein<br/>POST an seine URL"]
     end
-    schedule --> checks["Das Runbook ist eingeschaltet und hat Schritte"]
+    schedule --> checks["Das Runbook ist<br/>eingeschaltet<br/>und hat Schritte"]
     webhook --> checks
-    checks --> execution["Ausführung, markiert als Schedule oder Webhook"]
-    execution --> worker["Der OneUptime Worker führt die Schritte aus"]
+    checks --> execution["Ausführung, markiert als<br/>Schedule oder Webhook"]
+    execution --> worker["Der OneUptime Worker<br/>führt die Schritte aus"]
 ```
 
 Ein Auslöser startet einen Lauf so, wie **Jetzt ausführen** es tut: Der Lauf ist eine Ausführung der aktuellen Schritte des Runbooks und hängt an keinem Vorfall, keiner Warnung und keinem geplanten Wartungsereignis. Jeder Lauf hält fest, was ihn gestartet hat. Die **Ausführungen** des Runbooks und **Runbooks → Ausführungen** zeigen es unter **Ausgelöst von**, mit dem Zeitpunkt, zu dem ein geplanter Lauf fällig war, oder der Adresse, die den Webhook aufgerufen hat, und beide Listen lassen sich danach filtern.
@@ -35,7 +35,7 @@ Ein Auslöser startet einen Lauf so, wie **Jetzt ausführen** es tut: Der Lauf i
 
 :::steps
 ### Die Seite Auslöser des Runbooks öffnen
-Öffnen Sie das Runbook unter **Runbooks** und klicken Sie in seinem Menü auf **Auslöser**.
+Öffnen Sie das Runbook unter **Runbooks** und klicken Sie in seinem Seitenmenü auf **Einstellungen → Auslöser**. **Einstellungen** ist anfangs eingeklappt: Klicken Sie darauf, um **Auslöser** anzuzeigen.
 
 ### Den Zeitplan einrichten
 Klicken Sie auf **Zeitplan einrichten**. Wählen Sie unter **Wann es läuft** eine Option bei **Wiederholen** und was sie braucht. Der Dialog nennt den Zeitplan in einem Satz, etwa „Läuft an jedem Wochentag um 09:00“, und listet seine nächsten Ausführungen auf, während Sie ihn ändern.
@@ -117,7 +117,7 @@ Die Antwort nennt den gestarteten Lauf: `{"runbookExecutionId": "...", "status":
 | `404` | Unter dieser URL antwortet kein Runbook-Webhook: Die Runbook-ID oder der Schlüssel ist falsch, oder die URL wurde zurückgesetzt. |
 | `405` | Die Anfrage ist ein `GET`. Ein `GET` startet nie einen Lauf, sodass eine Linkvorschau in einer Chat-App ihn nicht versehentlich ausführen kann. |
 | `413` | Der Text ist größer als 64 KB. |
-| `429` | Der Webhook hat in der letzten Minute 30 Läufe gestartet, 10 seiner Läufe laufen noch, oder eine Adresse hat in einer Minute mehr als 120 Aufrufe an Runbook-Webhooks gesendet. Der Header `Retry-After` sagt, wann Sie es erneut versuchen können, wo das möglich ist. |
+| `429` | Der Webhook hat in der letzten Minute 30 Läufe gestartet, 10 seiner Läufe laufen noch, oder eine Adresse hat in einer Minute mehr als 120 Aufrufe an Runbook-Webhooks gesendet, oder die Adressen eines IPv6-/64 zusammen mehr als 1200. Der Header `Retry-After` sagt, wann Sie es erneut versuchen können, wo das möglich ist. |
 | `503` | OneUptime kann Aufrufe gerade nicht zählen. Versuchen Sie es in einer Minute erneut. |
 
 Ein abgelehnter Aufruf startet nichts, und sein Text sagt in einem Satz, warum, etwa "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

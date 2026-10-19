@@ -12,6 +12,15 @@
  * pill as pointing at the chip does.
  */
 
+/*
+ * The row the chips sit in: on the card itself, between the card's header
+ * and the table, with the space the table's header band needs above it. It
+ * used to be a bordered, shadowed box of its own inside the card - a box in
+ * a box, with a divider inside it - that drew more than the table did.
+ */
+export const FACET_FILTER_BAR_CLASS_NAME: string =
+  "-mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-2";
+
 // The pill: shape, border, fill and hover. The colours come from below.
 export const FILTER_CHIP_BOX_CLASSES: string =
   "relative inline-flex rounded-full border transition-all";

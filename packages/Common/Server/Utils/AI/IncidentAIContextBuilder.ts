@@ -19,6 +19,9 @@ import { LLMMessage } from "../LLM/LLMService";
 import PromptText from "../../../Utils/AI/PromptText";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import CallSummaryContext, {
+  IncidentCallForPrompt,
+} from "./CallSummary/CallSummaryContext";
 
 export interface IncidentContextData {
   incident: Incident;
@@ -26,6 +29,11 @@ export interface IncidentContextData {
   internalNotes: Array<IncidentInternalNote>;
   publicNotes: Array<IncidentPublicNote>;
   workspaceMessages: Array<WorkspaceChannelMessage>;
+  /*
+   * The incident's calls that have a transcript, with what OneUptime AI
+   * read in each (CallSummaryContext). Read only when asked for.
+   */
+  calls?: Array<IncidentCallForPrompt> | undefined;
 }
 
 export interface AIGenerationContext {
@@ -40,6 +48,8 @@ export default class IncidentAIContextBuilder {
     incidentId: ObjectID;
     includeWorkspaceMessages?: boolean;
     workspaceMessageLimit?: number;
+    // The incident's call transcripts and what was read in them: for a postmortem.
+    includeCalls?: boolean | undefined;
   }): Promise<IncidentContextData> {
     const incident: Incident | null = await IncidentService.findOneById({
       id: data.incidentId,
@@ -209,13 +219,21 @@ export default class IncidentAIContextBuilder {
       }
     }
 
-    return {
+    const contextData: IncidentContextData = {
       incident,
       stateTimeline,
       internalNotes,
       publicNotes,
       workspaceMessages,
     };
+
+    if (data.includeCalls) {
+      contextData.calls = await CallSummaryContext.readForIncident(
+        data.incidentId,
+      );
+    }
+
+    return contextData;
   }
 
   @CaptureSpan()
@@ -365,6 +383,9 @@ export default class IncidentAIContextBuilder {
       contextText += "\n\n";
     }
 
+    // What was said on the incident's calls, when it has transcripts.
+    contextText += CallSummaryContext.formatForPrompt(contextData.calls || []);
+
     // System prompt for postmortem generation
     let systemPrompt: string;
 
@@ -378,6 +399,7 @@ CRITICAL INSTRUCTIONS:
 - Do NOT add any new sections, headers, or content that is not part of the template
 - Do NOT add introductions, conclusions, or any text outside the template structure
 - If a section in the template has no relevant data, write "No data available" or leave the placeholder text
+- A root cause marked as suggested by AI and not confirmed by a responder is a hypothesis: say so, and never present it as the confirmed cause
 - Be blameless - focus on systemic improvements rather than individual blame
 - Write in a professional, clear, and concise manner
 
@@ -404,6 +426,7 @@ Write in a professional, clear, and concise manner. Use markdown formatting for 
 Grounding rules (important):
 - Use ONLY facts that appear in the provided incident data. Do NOT invent root causes, timelines, metrics, customer impact, or actions the data does not support.
 - If a section needs information the data does not contain, write "Not available in the incident record" instead of guessing.
+- A root cause marked as suggested by AI and not confirmed by a responder is a hypothesis: say so, and never present it as the confirmed cause.
 - Never fabricate numbers or state confidence levels.`;
     }
 

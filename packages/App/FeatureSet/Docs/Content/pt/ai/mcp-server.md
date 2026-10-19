@@ -18,12 +18,12 @@ O servidor MCP faz parte de toda instância do OneUptime, em `/mcp` no mesmo end
 
 ```mermaid title="Como um cliente chega ao seu projeto"
 flowchart TB
-    C["O seu cliente MCP:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP para /mcp"| M["O servidor MCP<br/>do OneUptime"]
+    C["O seu cliente MCP:<br/>Claude,<br/>Cursor,<br/>VS Code"] -->|"HTTP para /mcp"| M["O servidor MCP<br/>do OneUptime"]
     M --> W{"Como o cliente<br/>se identifica?"}
-    W -->|"fez login"| P["Como você, no<br/>projeto escolhido"]
-    W -->|"uma chave de API"| K["Como a chave, no<br/>projeto da chave"]
-    W -->|"nenhum dos dois"| U["Só ferramentas de<br/>páginas de status<br/>públicas"]
-    P --> A["A API do OneUptime,<br/>com exatamente<br/>essas permissões"]
+    W -->|"fez login"| P["Como você, no<br/>projeto<br/>escolhido"]
+    W -->|"uma chave<br/>de API"| K["Como a<br/>chave, no<br/>projeto<br/>da chave"]
+    W -->|"nenhum<br/>dos dois"| U["Só ferramentas de<br/>páginas<br/>de status<br/>públicas"]
+    P --> A["A API do<br/>OneUptime,<br/>com exatamente<br/>essas permissões"]
     K --> A
 ```
 
@@ -39,7 +39,7 @@ O servidor não guarda estado: ele não emite ids de sessão e cada requisição
 - **Manutenção programada**: criar e gerenciar eventos de manutenção.
 - **Telemetria**: consultar logs, métricas, traces, exceções, logs de monitores, eventos de segurança e mais, somente leitura.
 
-Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 27 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. As ferramentas somente leitura levam `readOnlyHint` e as de exclusão levam `destructiveHint`, então um cliente pode executar sozinho as chamadas seguras e perguntar a você antes das destrutivas. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
+Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 27 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. As ferramentas somente leitura levam `readOnlyHint`, toda ferramenta que altera algo leva `destructiveHint` e só as ferramentas de páginas de status públicas levam `openWorldHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
 
 ## Antes de começar
 
@@ -111,7 +111,7 @@ O que um cliente conectado pode fazer:
 
 ### Gerenciar os clientes conectados
 
-Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Connected MCP Clients**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os proprietários e administradores do projeto veem os de todos.
+Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Clientes MCP conectados**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os proprietários e administradores do projeto veem os de todos.
 
 Clique em **Disconnect** para desconectar um cliente. Ele para de funcionar na hora.
 
@@ -195,6 +195,19 @@ A variável de entrada com `"password": true` pede a chave quando o servidor ini
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["Was einen Lauf startet"]
         direction LR
         rule["Runbook-Regel"]
-        manual["Runbook ausführen an einem Ereignis"]
-        runnow["Jetzt ausführen am Runbook"]
+        manual["Runbook<br/>ausführen<br/>an einem<br/>Ereignis"]
+        runnow["Jetzt ausführen<br/>am Runbook"]
     end
-    rule --> execution["Ausführung: eine Momentaufnahme der Schritte"]
+    rule --> execution["Ausführung: eine<br/>Momentaufnahme<br/>der Schritte"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker arbeitet die Schritte der Reihe nach ab"]
-    worker -->|"Manual-Schritt oder Freigabe"| person["Wartet auf eine Person"]
-    worker -->|"HTTP- und KI-Schritte"| onworker["Läuft auf dem Worker"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner in Ihrer Infrastruktur"]
-    person --> record["Status, Ausgabe und Fehler aufgezeichnet"]
+    execution --> worker["OneUptime<br/>Worker<br/>arbeitet<br/>die Schritte<br/>der Reihe<br/>nach ab"]
+    worker -->|"Manual-<br/>Schritt oder<br/>Freigabe"| person["Wartet auf<br/>eine Person"]
+    worker -->|"HTTP- und<br/>KI-Schritte"| onworker["Läuft auf<br/>dem Worker"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner<br/>in Ihrer<br/>Infrastruktur"]
+    person --> record["Status,<br/>Ausgabe<br/>und Fehler<br/>aufgezeichnet"]
     onworker --> record
     runner --> record
-    record --> history["Runbooks-Seite des Ereignisses und Ausführungen des Runbooks"]
+    record --> history["Runbooks-<br/>Seite des<br/>Ereignisses und<br/>Ausführungen<br/>des Runbooks"]
 ```
 
 Jeder Lauf ist eine **Ausführung**. Beim Start werden die Schritte des Runbooks auf sie kopiert, und OneUptime arbeitet sie der Reihe nach ab. Ein Manual-Schritt oder ein Schritt, der eine Freigabe braucht, hält den Lauf an, bis jemand handelt.
@@ -98,6 +98,17 @@ Runbooks finden Sie unter **Produkte**, in der Gruppe **Dashboards & Automatisie
 | **Vorfälle / Warnungen / Geplante Wartung → Regeln → Runbook-Regeln** | Die Regeln anlegen, die Runbooks automatisch starten. |
 | Ein Vorfall, eine Warnung oder ein Wartungsereignis → **Runbooks** | Die angehängten Läufe sehen und mit **Runbook ausführen** einen starten. |
 
+Das Seitenmenü eines Runbooks gliedert seine Seiten so. Nur **Grundlegend** ist anfangs geöffnet: Klicken Sie auf den Titel eines Abschnitts, um ihn zu öffnen. Ein Abschnitt öffnet sich von selbst auf jeder Seite darin.
+
+| Abschnitt | Seiten |
+| --- | --- |
+| **Grundlegend** | **Übersicht**, **Schritte** |
+| **Protokolle** | **Ausführungen** |
+| **Eigentümer** | **Eigentümer** |
+| **Einstellungen** | **Auslöser**, **Einstellungen** |
+| **Entwickler** | **Terraform**, **API**, **KI-Assistenten** |
+| **Erweitert** | **Audit-Protokolle**, **Runbook löschen** |
+
 ## Ein durchgespieltes Beispiel
 
 Angenommen, jeder Vorfall mit „db-primary“ im Titel soll ein fünfstufiges Datenbank-Failover-Runbook starten.
@@ -105,7 +116,7 @@ Angenommen, jeder Vorfall mit „db-primary“ im Titel soll ein fünfstufiges D
 :::steps
 ### Das Runbook erstellen
 
-Klicken Sie unter **Runbooks** auf **Runbook erstellen** und nennen Sie es „DB primary failover“. Öffnen Sie es, gehen Sie zu **Schritte**, fügen Sie diese Schritte hinzu und klicken Sie dann auf **Schritte speichern**:
+Klicken Sie unter **Runbooks** auf **Runbook erstellen** und nennen Sie es „DB primary failover“. Es öffnet sich auf **Schritte**: Fügen Sie diese Schritte hinzu und klicken Sie dann auf **Schritte speichern**:
 
 | # | Typ | Titel |
 | --- | --- | --- |

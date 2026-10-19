@@ -13,7 +13,8 @@
     "confirmPassword": "Bekreft passord",
     "newPassword": "Nytt passord",
     "code": "Kode",
-    "yourCompany": "Ditt firma"
+    "yourCompany": "Ditt firma",
+    "or": "eller"
   },
   "language": {
     "label": "Språk",
@@ -50,7 +51,7 @@
     "subtitle": "Bruk passordet ditt, organisasjonens SSO eller en passnøkkel.",
     "submitButton": "Logg inn",
     "forgotPassword": "Glemt passord?",
-    "useSso": "Bruk enkeltpålogging (SSO) i stedet",
+    "signInWithSso": "Logg inn med SSO",
     "signInWithMicrosoft": "Logg inn med Microsoft",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
@@ -146,7 +147,7 @@
     "title": "Logg inn med SSO",
     "subtitle": "Logg inn med SSO-leverandøren din for å få tilgang til kontoen din.",
     "submitButton": "Logg inn med SSO",
-    "useUsernameInstead": "Bruk brukernavn og passord i stedet.",
+    "signInWithPassword": "Logg inn med passord",
     "noAccountPrompt": "Har du ikke en konto?",
     "registerLink": "Registrer.",
     "selectProjectTitle": "Velg prosjekt",
@@ -239,7 +240,7 @@
     "accessWriteDescription": "Se data og gjøre endringer: bekrefte og løse hendelser og varsler, legge til notater samt opprette, oppdatere eller slette ressurser.",
     "accessReadTitle": "Kun lesetilgang",
     "accessReadDescription": "Se hendelser, varsler, overvåkere, statussider og telemetri. Kan ikke endre noe.",
-    "permissionsNote": "Klienten handler i ditt navn og kan aldri gjøre mer enn det dine egne tillatelser i dette prosjektet tillater. Du kan når som helst koble den fra under Prosjektinnstillinger > MCP-server.",
+    "permissionsNote": "Klienten handler i ditt navn og kan aldri gjøre mer enn det dine egne tillatelser i dette prosjektet tillater. Du kan når som helst koble den fra under Prosjektinnstillinger > KI > MCP-server.",
     "authorizeButton": "Godkjenn",
     "denyButton": "Avbryt",
     "redirecting": "Sender deg tilbake til {{clientName}}...",
@@ -285,7 +286,7 @@
       "bought_from_reseller": "{{name}} – faktureres av en forhandler"
     },
     "nothingToChoose": "Ingen av prosjektene dine kan ta imot dette kjøpet, og du kan ikke opprette prosjekter på denne serveren. Be eieren av prosjektet som kjøpet skal betale for, om å konfigurere kjøpet.",
-    "billingNote": "Abonnementet og forbruket ditt faktureres via {{marketplace}} til prisene på oneuptime.com/pricing. Du kan når som helst endre abonnementet ditt under Prosjektinnstillinger → Fakturering.",
+    "billingNote": "Abonnementet og forbruket ditt faktureres via {{marketplace}} til prisene på oneuptime.com/pricing. Du kan når som helst endre abonnementet ditt under Prosjektinnstillinger → Fakturering og fakturaer → Fakturering.",
     "submitButton": "Konfigurer kjøp",
     "notNowButton": "Ikke nå",
     "redirecting": "Kjøpet ditt er konfigurert. Sender deg til prosjektet ditt…",
@@ -358,5 +359,13 @@
   "Quote": "Sitat",
   "Code Block": "Kodeblokk",
   "Switch to markdown source": "Bytt til Markdown-kilde",
-  "Switch to visual editor": "Bytt til visuell redigering"
+  "Switch to visual editor": "Bytt til visuell redigering",
+  "Opens in a new tab": "Åpnes i en ny fane",
+  "Note": "Merk",
+  "Tip": "Tips",
+  "Info": "Info",
+  "Important": "Viktig",
+  "Warning": "Advarsel",
+  "Caution": "Forsiktig",
+  "Danger": "Fare"
 }

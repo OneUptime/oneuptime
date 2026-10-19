@@ -122,7 +122,7 @@ O novo workflow abre no **Construtor**, desligado.
 
 ### Adicionar o gatilho
 
-Clique no bloco tracejado **Choose what starts this workflow** e depois em **On Create Incident**, em **Popular**, no painel **Add Trigger**.
+Clique no bloco tracejado **Choose what starts this workflow** e depois em **On Create Incident**, em **Popular**, no painel **Adicionar gatilho**.
 
 O gatilho ocupa o lugar do bloco tracejado. O ID que aparece nele, `incident-on-create-1`, é como os blocos seguintes se referem a ele.
 

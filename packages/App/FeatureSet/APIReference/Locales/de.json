@@ -98,7 +98,7 @@
       "title": "Authentifizierung",
       "intro": "Du musst deine Anfragen authentifizieren, um auf Endpunkte in der OneUptime-API zugreifen zu können. In dieser Anleitung schauen wir uns an, wie die Authentifizierung funktioniert. OneUptime bietet eine Möglichkeit zur Authentifizierung deiner API-Anfragen – über einen API-Schlüssel.",
       "generateApiKey": "API-Schlüssel generieren",
-      "generateApiKeyBody": "Gehe zu <strong>Projekteinstellungen</strong> > <strong>API-Schlüssel</strong>. Erstelle einen neuen API-Schlüssel. Hinweis: Neue API-Schlüssel haben keine zugewiesenen Berechtigungen, du musst also eine Berechtigung zuweisen, bevor du ihn verwenden kannst.",
+      "generateApiKeyBody": "Gehe zu <strong>Projekteinstellungen</strong> > <strong>Erweitert</strong> > <strong>API-Schlüssel</strong>. Erstelle einen neuen API-Schlüssel. Hinweis: Neue API-Schlüssel haben keine zugewiesenen Berechtigungen, du musst also eine Berechtigung zuweisen, bevor du ihn verwenden kannst.",
       "readMorePermissions": "Mehr über Berechtigungen lesen",
       "projectId": "Projekt-ID",
       "projectIdBody": "Gehe zu <strong>Projekteinstellungen</strong> > <strong>Projekt</strong>. Dort findest du deine Projekt-ID.",
@@ -132,7 +132,7 @@
       "metaDescription": "Erfahre, wie Berechtigungen mit OneUptime funktionieren",
       "badge": "Anleitung",
       "title": "Berechtigungen",
-      "intro": "Dein API-Token benötigt Berechtigungen, um Ressourcen zu erstellen, zu aktualisieren, zu lesen oder zu löschen. Wenn du keine Berechtigungen für eine Anfrage hast, wird ein <code>4xx</code>-Status als Antwort gesendet. Du kannst Berechtigungen für deinen API-Schlüssel in den Projekteinstellungen > API-Schlüssel verwalten.",
+      "intro": "Dein API-Token benötigt Berechtigungen, um Ressourcen zu erstellen, zu aktualisieren, zu lesen oder zu löschen. Wenn du keine Berechtigungen für eine Anfrage hast, wird ein <code>4xx</code>-Status als Antwort gesendet. Du kannst Berechtigungen für deinen API-Schlüssel in den Projekteinstellungen > Erweitert > API-Schlüssel verwalten.",
       "jumpToCategory": "Zu einer Kategorie springen"
     },
     "errors": {

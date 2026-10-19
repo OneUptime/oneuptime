@@ -518,7 +518,7 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: "OAuth 2.0 Settings",
             description:
-              "How OneUptime asks your identity provider for a token. Changing a setting discards the cached token, so the next run fetches one with the new settings. The client secret and refresh token are never shown - use Update Credentials to replace them.",
+              "How OneUptime gets a token from your identity provider. Secrets are never shown: use Update Credentials to replace them.",
             buttons: isUpdateActionVisible
               ? [
                   {

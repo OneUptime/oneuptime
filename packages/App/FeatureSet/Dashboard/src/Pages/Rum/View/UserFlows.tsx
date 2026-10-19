@@ -531,7 +531,7 @@ const RumApplicationUserFlows: FunctionComponent<
         description={
           <span>
             {translator.translateText(
-              "User flows are drawn from Session Replay recordings: every recorded session contributes the pages it visited, in order. Widen the time range, or make sure the replay recorder is installed on this application.",
+              "User flows come from Session Replay recordings. Widen the time range, or check that the replay recorder is installed.",
             )}
           </span>
         }

@@ -73,11 +73,11 @@ Le comportement d'un fournisseur global dépend des projets que vous lui attache
 flowchart TB
     S["Quelqu'un se connecte"] --> A{"Projets attachés ?"}
     A -->|"Non"| K{"A un compte ?"}
-    K -->|"Non"| R["Refusé : l'inviter d'abord"]
+    K -->|"Non"| R["Refusé :<br/>l'inviter d'abord"]
     K -->|"Oui"| E["Connecté à ses projets"]
     A -->|"Oui"| D{"Nouveau, inscription<br/>désactivée ?"}
     D -->|"Oui"| R
-    D -->|"Non"| P["Ajouté aux projets attachés<br/>dont il ne fait pas encore partie"]
+    D -->|"Non"| P["Ajouté aux<br/>projets attachés<br/>dont il ne fait<br/>pas encore partie"]
     P --> E
 ```
 
@@ -87,12 +87,14 @@ flowchart TB
 
 Une personne déjà membre d'un projet attaché garde les équipes qu'elle y a.
 
-Deux interrupteurs du fournisseur modifient ce comportement. Les deux sont désactivés au départ, repliés sous **Plus de champs** :
+Deux questions du fournisseur modifient ce comportement, repliées sous **Plus de champs**. Chacune part de sa première réponse :
 
-| Interrupteur | Ce qu'il fait lorsqu'il est activé |
+| Question | Réponses |
 | --- | --- |
-| **Disable Sign Up with SSO** | Les personnes doivent être invitées dans un projet avant de pouvoir se connecter avec ce fournisseur, même si des projets sont attachés. Personne n'est créé lors de sa première connexion. |
-| **Restrict to Attached Projects** | Se connecter avec ce fournisseur ne satisfait l'exigence de SSO que dans les projets qui lui sont attachés ; des personnes déjà connectées peuvent donc perdre l'accès à d'autres projets. Lorsqu'il est désactivé, la connexion la satisfait dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés. |
+| **Personnes sans compte** | **En obtiennent un à leur première connexion** : elles rejoignent les projets attachés ; si aucun n'est attaché, elles doivent d'abord être invitées. **Doivent d'abord être invitées** : les personnes doivent être invitées dans un projet avant de pouvoir se connecter avec ce fournisseur, même si des projets sont attachés. |
+| **Où cette connexion compte comme SSO** | **Tous les projets** : les projets qui exigent le SSO acceptent une connexion avec ce fournisseur. **Uniquement les projets attachés** : se connecter avec ce fournisseur ne satisfait l'exigence de SSO que dans les projets qui lui sont attachés ; des personnes déjà connectées peuvent donc perdre l'accès à d'autres projets. |
+
+Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés.
 
 ## Imposer le SSO
 
@@ -134,11 +136,11 @@ Deux modifications de qui peut se connecter sont vérifiées l'une après l'autr
 ## Dépannage
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La personne n'a pas encore de compte OneUptime, et le fournisseur n'en crée pas : soit aucun projet ne lui est attaché, soit **Disable Sign Up with SSO** est activé. Invitez-la dans un projet, ou attachez un projet au fournisseur.
+La personne n'a pas encore de compte OneUptime, et le fournisseur n'en crée pas : soit aucun projet ne lui est attaché, soit **Personnes sans compte** est réglé sur **Doivent d'abord être invitées**. Invitez-la dans un projet, ou attachez un projet au fournisseur.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** est activé, et la personne n'est membre d'aucun projet attaché au fournisseur. Attachez l'un de ses projets, ou ajoutez-la à un projet attaché.
+**Où cette connexion compte comme SSO** est réglé sur **Uniquement les projets attachés**, et la personne n'est membre d'aucun projet attaché au fournisseur. Attachez l'un de ses projets, ou ajoutez-la à un projet attaché.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"
@@ -147,6 +149,14 @@ La personne a un compte mais n'appartient à aucun projet, et le fournisseur n'a
 
 :::details "Issuer URL does not match"
 Pour un fournisseur SAML, l'émetteur figurant dans la réponse de votre fournisseur d'identité n'est pas l'**Issuer** enregistré sur le fournisseur. Copiez-le de nouveau depuis votre fournisseur d'identité ; les deux doivent correspondre exactement.
+:::
+
+:::details "SAML Audience does not match"
+Pour un fournisseur SAML, la réponse a été créée pour une autre application : son audience n'est pas l'**Issuer (Entity ID)** du fournisseur. Dans votre fournisseur d'identité, définissez l'entity ID de l'application sur l'**Issuer (Entity ID)** affiché sur la page du fournisseur. "SAML Recipient does not match" et "SAML Destination does not match" signifient la même chose pour sa reply URL : définissez-la sur l'**ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Chaque réponse de votre fournisseur d'identité ne connecte qu'une seule fois, et seulement dans les minutes qui suivent son émission : ensuite, elle est refusée avec "SAML response has expired". Connectez-vous de nouveau. Si les réponses continuent d'expirer, vérifiez les horloges de ce serveur et de votre fournisseur d'identité.
 :::
 
 ## Étapes suivantes

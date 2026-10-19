@@ -169,7 +169,7 @@ const CARDS: Array<AccountCard> = [
     emptyTitle: "No Slack account added",
     emptyMessage:
       "Connect your Slack account under User Settings > Workspace > Slack, then click 'Add Slack Account'.",
-    errorButton: "Open Slack Integration Settings",
+    errorButton: "Open Slack Settings",
   },
   {
     name: "Microsoft Teams",
@@ -180,8 +180,8 @@ const CARDS: Array<AccountCard> = [
     addButton: "Add Microsoft Teams Account",
     emptyTitle: "No Microsoft Teams account added",
     emptyMessage:
-      "Connect your Microsoft Teams account under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
-    errorButton: "Open Microsoft Teams Integration Settings",
+      "Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
+    errorButton: "Open Microsoft Teams Settings",
   },
 ];
 

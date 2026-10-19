@@ -64,6 +64,8 @@ const Projects: FunctionComponent = (): ReactElement => {
               title: "Name",
               fieldType: FormFieldSchemaType.Text,
               required: true,
+              // Not the column's "Any friendly name of this object", written for the API.
+              hideColumnDescription: true,
             },
           ]}
           modelDetailProps={{

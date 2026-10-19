@@ -1282,7 +1282,7 @@ router.get(
             tokenProvided: true,
             valid: false,
             message:
-              "This ingestion token is unknown or has been revoked. Create or copy a live key from Project Settings > Telemetry Ingestion Keys, then update the recorder snippet.",
+              "This ingestion token is unknown or has been revoked. Create or copy a live key from Project Settings > Telemetry & APM > Ingestion Keys, then update the recorder snippet.",
           },
           { statusCode: new StatusCode(401) },
         );

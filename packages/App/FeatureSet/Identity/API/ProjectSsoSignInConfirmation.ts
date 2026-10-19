@@ -3,6 +3,10 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoConfirmationResult,
   ProjectSsoKind,
 } from "../Utils/ProjectSsoSignInConfirmation";
+import {
+  SSO_NO_ROOM_MESSAGE,
+  SSO_NO_ROOM_TITLE,
+} from "../Utils/SsoTeamMembership";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -193,6 +197,11 @@ router.post(
             title: "No teams added.",
             message:
               "No teams have been added to this SSO config. Please contact your admin and have default teams added.",
+          });
+        case ProjectSsoConfirmationOutcome.NoRoom:
+          return renderPage(req, res, {
+            title: SSO_NO_ROOM_TITLE,
+            message: SSO_NO_ROOM_MESSAGE,
           });
         default:
           return renderPage(req, res, INVALID_LINK_PAGE);

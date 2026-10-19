@@ -1,12 +1,13 @@
 # Trigger del workflow
 
-Un trigger è il primo blocco di un workflow: decide quando il workflow viene eseguito. Ogni workflow ha esattamente un trigger. Puoi scegliere tra cinque tipi.
+Un trigger è il primo blocco di un workflow: decide quando il workflow viene eseguito. Ogni workflow ha esattamente un trigger. Puoi scegliere tra sei tipi.
 
 :::cards
 - [Manuale](#manual): Avvia il workflow dal Costruttore o da un altro workflow.
 - [Pianificazione](#schedule): Eseguilo con una pianificazione ricorrente, scritta come espressione cron.
 - [Webhook](#webhook): Lascia che un altro sistema lo avvii chiamando un URL.
 - [Email in arrivo](#incoming-email): Avvialo con ogni email inviata al suo indirizzo.
+- [Huntress](#huntress): Avvialo per ogni evento che Huntress invia su un rapporto di incidente.
 - [Trigger di eventi OneUptime](#trigger-di-eventi-oneuptime): Reagisci quando un record viene creato, aggiornato o eliminato.
 :::
 
@@ -20,6 +21,7 @@ Per aggiungere il trigger, fai clic sul blocco tratteggiato **Choose what starts
 | Eseguirlo con una pianificazione ricorrente    | **Pianificazione**          |
 | Far inviare dati da un altro sistema           | **Webhook**                 |
 | Avviarlo da un'email                           | **Incoming Email**          |
+| Agire sui rapporti di incidente di Huntress    | **Huntress Incident Report** |
 | Reagire a qualcosa all'interno di OneUptime    | **Evento OneUptime**        |
 
 Un workflow può avere un solo trigger. Se ti servono due modi per avviare la stessa automazione, costruisci la logica condivisa in un workflow con un trigger **Manual** e avvialo da due workflow «involucro» leggeri con un blocco **Execute Workflow**.
@@ -76,12 +78,12 @@ sequenceDiagram
     participant Caller as Il tuo strumento
     participant OneUptime
     participant Runner as Esecutore dei workflow
-    Caller->>OneUptime: GET o POST all'URL del webhook
+    Caller->>OneUptime: GET o POST all'URL<br/>del webhook
     alt Il workflow è attivo
         OneUptime-->>Caller: 200, stato Scheduled
-        OneUptime->>Runner: Mette in coda un'esecuzione con header, query e corpo
-        Runner->>Runner: Esegue i blocchi dopo il trigger
-    else Il workflow è disattivato o archiviato
+        OneUptime->>Runner: Mette in coda<br/>un'esecuzione con<br/>header, query e corpo
+        Runner->>Runner: Esegue i blocchi<br/>dopo il trigger
+    else Il workflow è<br/>disattivato o archiviato
         OneUptime-->>Caller: 400 con il motivo
     end
 ```
@@ -151,6 +153,14 @@ Se l'indirizzo trapela, fai clic su **Reimposta indirizzo** nello stesso punto: 
 > [!NOTE]
 > In un'installazione self-hosted, OneUptime riceve le email tramite un provider di email in entrata configurato dal tuo amministratore — vedi [Email in entrata con SendGrid](/docs/self-hosted/sendgrid-inbound-email). Fino ad allora il trigger non ha un indirizzo, e le sue impostazioni lo dicono.
 
+## Huntress
+
+OneUptime assegna al workflow un URL tutto suo per Huntress, il servizio di rilevamento e risposta gestiti. Huntress vi invia ogni evento su un rapporto di incidente, firmato con il segreto di firma dell'endpoint, e ogni evento avvia il workflow una volta: quando il suo SOC invia un rapporto, quando qualcuno lo commenta e quando viene chiuso.
+
+Ideale per: aprire un incidente per ogni rapporto di incidente di Huntress, avvisare la reperibilità e seguire il rapporto fino alla chiusura. Il modello **Open an incident for each Huntress incident report** fa tutte e tre le cose.
+
+Per collegare Huntress, fai clic sul trigger **Huntress Incident Report** sulla tela: mostra l'URL da dare a Huntress, salva il segreto di firma dell'endpoint e dice quando Huntress ha raggiunto il workflow l'ultima volta. Una richiesta non firmata con quel segreto non avvia nulla, quindi l'URL non è una password. Vedi [Huntress](/docs/integrations/huntress) per la configurazione in Huntress, i valori che il trigger restituisce e le sue impostazioni.
+
 ## Trigger di eventi OneUptime
 
 Quasi tutto in OneUptime — monitor, incidenti, avvisi, eventi di manutenzione pianificata, pagine di stato, policy di reperibilità, team — può avviare un workflow. Ognuno offre fino a quattro trigger:
@@ -196,7 +206,7 @@ Per provare un trigger di evento senza aspettare l'evento, fai clic su **Esegui 
 | **Pagina di stato Iscritto**              | Dare il benvenuto a chi si iscrive a una pagina di stato.                                 |
 | **Policy di reperibilità**                | Sincronizzare le modifiche della policy con un altro sistema di turni.                    |
 
-Nel pannello **Add Trigger** si trovano sotto **OneUptime resources**: fai clic sulla risorsa, poi sul trigger. **Browse all resources** le contiene tutte, e la casella di ricerca trova un trigger da poche parole, come `incident created`.
+Nel pannello **Aggiungi trigger** si trovano sotto **OneUptime resources**: fai clic sulla risorsa, poi sul trigger. **Browse all resources** le contiene tutte, e la casella di ricerca trova un trigger da poche parole, come `incident created`.
 
 ## Prossimi passi
 

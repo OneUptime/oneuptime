@@ -15,13 +15,13 @@ Um runbook pode começar sozinho: segundo um agendamento, ou quando outra ferram
 flowchart TB
     subgraph starts["O que inicia a execução"]
         direction LR
-        schedule["O agendamento: chega um horário"]
-        webhook["O webhook: um POST para a URL dele"]
+        schedule["O agendamento:<br/>chega um horário"]
+        webhook["O webhook: um POST<br/>para a URL dele"]
     end
-    schedule --> checks["O runbook está ativado e tem etapas"]
+    schedule --> checks["O runbook está<br/>ativado e tem etapas"]
     webhook --> checks
-    checks --> execution["Execução, marcada como Schedule ou Webhook"]
-    execution --> worker["O Worker do OneUptime executa as etapas"]
+    checks --> execution["Execução, marcada como<br/>Schedule ou Webhook"]
+    execution --> worker["O Worker do OneUptime<br/>executa as etapas"]
 ```
 
 Um gatilho inicia uma execução como **Run Now** faz: a execução percorre as etapas atuais do runbook e não fica vinculada a nenhum incidente, alerta ou evento de manutenção programada. Cada execução registra o que a iniciou. As **Execuções** do runbook e **Runbooks → Execuções** mostram isso em **Acionado por**, com o horário previsto de uma execução agendada ou o endereço que chamou o webhook, e as duas listas podem ser filtradas por isso.
@@ -35,7 +35,7 @@ Um gatilho inicia uma execução como **Run Now** faz: a execução percorre as 
 
 :::steps
 ### Abrir a página Gatilhos do runbook
-Abra o runbook em **Runbooks** e clique em **Gatilhos** no menu dele.
+Abra o runbook em **Runbooks** e clique em **Configurações → Gatilhos** no menu lateral dele. **Configurações** começa recolhido: clique nele para mostrar **Gatilhos**.
 
 ### Configurar o agendamento
 Clique em **Configurar agendamento**. Em **Quando é executado**, escolha uma opção de **Repetir** e o que ela pede. A caixa de diálogo descreve o agendamento em uma frase, como "É executado em todo dia útil às 09:00", e lista as próximas execuções conforme você o altera.
@@ -117,7 +117,7 @@ A resposta indica a execução iniciada: `{"runbookExecutionId": "...", "status"
 | `404` | Nenhum webhook de runbook responde nesta URL: o ID do runbook ou a chave está errado, ou a URL foi redefinida. |
 | `405` | A solicitação é um `GET`. Um `GET` nunca inicia uma execução, então a pré-visualização de um link em um app de chat não consegue executá-lo por acidente. |
 | `413` | O corpo é maior que 64 KB. |
-| `429` | O webhook iniciou 30 execuções no último minuto, 10 das execuções dele ainda estão em andamento, ou um endereço fez mais de 120 chamadas a webhooks de runbook em um minuto. O cabeçalho `Retry-After` diz quando tentar de novo, quando possível. |
+| `429` | O webhook iniciou 30 execuções no último minuto, 10 das execuções dele ainda estão em andamento, ou um endereço fez mais de 120 chamadas a webhooks de runbook em um minuto, ou os endereços de um mesmo /64 IPv6 mais de 1200 juntos. O cabeçalho `Retry-After` diz quando tentar de novo, quando possível. |
 | `503` | O OneUptime não consegue contar as chamadas agora. Tente de novo em um minuto. |
 
 Uma chamada recusada não inicia nada, e o corpo dela diz o motivo em uma frase, como "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

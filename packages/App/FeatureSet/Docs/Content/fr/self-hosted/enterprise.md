@@ -110,6 +110,8 @@ Une nouvelle installation de l'Enterprise Edition fonctionne en **essai de 14 jo
 
 La licence se gère depuis le **libellé d'édition**, que les administrateurs principaux voient dans l'en-tête du tableau de bord admin et dans le pied de page du Dashboard. Il affiche l'état de la licence, l'utilisation des sièges et, pour les administrateurs principaux, l'ID d'instance.
 
+OneUptime Enterprise acheté sur AWS Marketplace, Microsoft Marketplace ou Google Cloud Marketplace n'a pas besoin de clé de licence : l'abonnement à la place de marché en tient lieu et facture chaque utilisateur à l'heure. Voir [Places de marché cloud](/docs/installation/cloud-marketplaces).
+
 ### Activation en ligne (clé de licence)
 
 :::steps

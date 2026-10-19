@@ -557,6 +557,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SETTINGS_SSO,
             title: "SSO",
             icon: IconProp.Lock,
+            /*
+             * The SAML and the OpenID Connect providers are on one page:
+             * searching for either finds it.
+             */
             keywords: [
               "single sign-on",
               "saml",
@@ -564,13 +568,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "azure ad",
               "entra id",
               "identity provider",
+              "oidc",
+              "openid connect",
+              "oauth",
             ],
-          },
-          {
-            page: PageMap.SETTINGS_OIDC,
-            title: "OIDC",
-            icon: IconProp.Lock,
-            keywords: ["openid connect", "oauth", "single sign-on"],
           },
           {
             page: PageMap.SETTINGS_SCIM,
@@ -737,35 +738,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Active Episodes",
             icon: IconProp.Alert,
           },
-          {
-            page: PageMap.INCIDENT_EPISODE_DOCS,
-            title: "Documentation",
-            icon: IconProp.Book,
-            keywords: ["how episodes work"],
-          },
         ],
       },
       workspaceSection({
         slack: PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams: PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       }),
-      {
-        title: "Integrations",
-        pages: [
-          {
-            page: PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS,
-            title: "Huntress",
-            icon: IconProp.ShieldCheck,
-            keywords: [
-              "edr",
-              "itdr",
-              "mdr",
-              "security incidents",
-              "incident reports",
-            ],
-          },
-        ],
-      },
       {
         title: "Rules",
         pages: [
@@ -858,6 +836,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Link,
           },
           {
+            page: PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
+            title: "Episode Membership",
+            icon: IconProp.SquareStack3D,
+            keywords: [
+              "episode settings",
+              "one episode",
+              "only one episode",
+              "several episodes",
+            ],
+          },
+          {
             page: PageMap.INCIDENTS_SETTINGS_NUMBERING,
             title: "Numbering",
             icon: IconProp.Hashtag,
@@ -909,12 +898,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.UNRESOLVED_ALERT_EPISODES,
             title: "Active Episodes",
             icon: IconProp.ExclaimationCircle,
-          },
-          {
-            page: PageMap.ALERT_EPISODE_DOCS,
-            title: "Documentation",
-            icon: IconProp.Book,
-            keywords: ["how episodes work"],
           },
         ],
       },
@@ -986,6 +969,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["mtta", "time to resolve"],
           },
           {
+            page: PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP,
+            title: "Episode Membership",
+            icon: IconProp.SquareStack,
+            keywords: [
+              "episode settings",
+              "one episode",
+              "only one episode",
+              "several episodes",
+            ],
+          },
+          {
             page: PageMap.ALERTS_SETTINGS_NUMBERING,
             title: "Numbering",
             icon: IconProp.Hashtag,
@@ -1055,7 +1049,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           {
             page: PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE,
             title: "Schedule Timeline",
-            icon: IconProp.ViewColumns,
+            icon: IconProp.Timeline,
             keywords: ["rota", "who is on call", "calendar"],
           },
           {
@@ -2396,6 +2390,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.WORKFLOWS,
             title: "Workflows",
             icon: IconProp.Workflow,
+            // Huntress is set up with a workflow (the Huntress trigger).
+            keywords: ["integrations", "huntress"],
           },
           {
             page: PageMap.WORKFLOWS_VARIABLES,
@@ -2545,9 +2541,30 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      // Roles sits first in the Teams menu's Settings, as the menu draws it.
       {
         title: "Settings",
-        pages: [customFields(PageMap.TEAM_CUSTOM_FIELDS)],
+        pages: [
+          {
+            page: PageMap.TEAM_ROLES,
+            title: "Roles",
+            icon: IconProp.Identification,
+            /*
+             * A role is a named set of permissions, and it now waits in a
+             * folded section: a search for permissions finds it too.
+             */
+            keywords: [
+              "custom roles",
+              "custom role",
+              "create role",
+              "built-in roles",
+              "rbac",
+              "permission sets",
+              "permissions",
+            ],
+          },
+          customFields(PageMap.TEAM_CUSTOM_FIELDS),
+        ],
       },
     ],
   },

@@ -14,16 +14,16 @@ SCIM (System for Cross-domain Identity Management) aprovisiona y desaprovisiona 
 
 ## Cómo funciona
 
-Tu proveedor de identidad llama al endpoint SCIM de OneUptime, autenticado con un token bearer, cada vez que asignas, cambias o retiras a alguien. Lo que cambia la solicitud depende de dónde esté la conexión:
+Tu proveedor de identidad llama al endpoint SCIM de OneUptime cada vez que asignas, cambias o retiras a alguien, autenticado con el token bearer de la conexión o con un token de acceso que obtiene con las [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) de la conexión. Lo que cambia la solicitud depende de dónde esté la conexión:
 
 ```mermaid title="Qué cambia SCIM en OneUptime"
 flowchart TB
-    IdP["Tu proveedor de identidad"] -->|"solicitudes SCIM,<br/>token bearer"| P["Conexión SCIM del proyecto"]
-    IdP -->|"solicitudes SCIM,<br/>token bearer"| S["Conexión SCIM de la página de estado"]
-    P --> Q{"¿Grupos push activados?"}
-    Q -->|"No"| T["Los usuarios entran y salen<br/>de los equipos predeterminados"]
-    Q -->|"Sí"| G["Los grupos se convierten en equipos,<br/>la membresía los sigue"]
-    S --> U["Usuarios privados añadidos<br/>y eliminados"]
+    IdP["Tu proveedor<br/>de identidad"] -->|"solicitudes SCIM,<br/>token bearer"| P["Conexión SCIM<br/>del proyecto"]
+    IdP -->|"solicitudes SCIM,<br/>token bearer"| S["Conexión SCIM de<br/>la página de estado"]
+    P --> Q{"¿Grupos push<br/>activados?"}
+    Q -->|"No"| T["Los usuarios<br/>entran y salen<br/>de los equipos<br/>predeterminados"]
+    Q -->|"Sí"| G["Los grupos se<br/>convierten en equipos,<br/>la membresía los sigue"]
+    S --> U["Usuarios<br/>privados añadidos<br/>y eliminados"]
 ```
 
 La integración de SCIM ofrece estas ventajas:
@@ -57,7 +57,7 @@ Solo un propietario del proyecto puede añadir o cambiar la conexión SCIM de un
 3. **Configurar tu proveedor de identidad**
 
    - Usa la **SCIM Base URL** del cuadro de diálogo. En OneUptime Cloud es `https://oneuptime.com/identity/scim/v2/<scim-id>`; una instalación autoalojada muestra su propio host
-   - Configura la autenticación con token bearer usando el **Bearer Token** del cuadro de diálogo
+   - Configura la autenticación con token bearer usando el **Bearer Token** del cuadro de diálogo. Si tu proveedor de identidad pide en su lugar credenciales de cliente OAuth 2.0, usa las [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) del mismo cuadro de diálogo
    - Asigna los atributos de usuario (el correo es obligatorio). [Configurar tu proveedor de identidad](#configurar-tu-proveedor-de-identidad) tiene los detalles para Microsoft Entra ID y Okta
 :::
 
@@ -69,14 +69,26 @@ Para volver a ver las URL, selecciona **Ver URLs de SCIM** en la fila de la cone
 sequenceDiagram
     participant IdP as Proveedor de identidad
     participant O as OneUptime
-    IdP->>O: Crear el usuario, cuando lo asignas
-    Note over O: Añadido a los equipos predeterminados.<br/>En OneUptime Cloud, una cuenta existente<br/>recibe una invitación en su lugar
-    IdP->>O: Actualizar el usuario, cuando cambia su perfil
-    IdP->>O: Eliminar o desactivar, cuando retiras la asignación
-    Note over O: Quitado de los equipos predeterminados
+    IdP->>O: Crear el usuario,<br/>cuando lo asignas
+    Note over O: Añadido a los equipos<br/>predeterminados.<br/>En OneUptime Cloud,<br/>una cuenta existente<br/>recibe una invitación<br/>en su lugar
+    IdP->>O: Actualizar el usuario,<br/>cuando cambia su perfil
+    IdP->>O: Eliminar o desactivar,<br/>cuando retiras la asignación
+    Note over O: Quitado de los equipos<br/>predeterminados
 ```
 
 Quien ya tenía una cuenta de OneUptime se une cuando acepta la invitación en OneUptime Cloud (consulta las [preguntas frecuentes](#preguntas-frecuentes)). El acceso concedido por equipos ajenos a los equipos predeterminados de la conexión no se toca.
+
+### Credenciales de cliente OAuth 2.0
+
+Algunos proveedores de identidad no guardan un token bearer y piden en su lugar credenciales de cliente OAuth 2.0. Toda conexión, de un proyecto o de una página de estado, las tiene en el mismo cuadro de diálogo que su **SCIM Base URL**, en **OAuth 2.0 Client Credentials**:
+
+- **Token Endpoint**: donde tu proveedor de identidad obtiene sus tokens de acceso. Es el mismo para todas las conexiones: `https://oneuptime.com/identity/scim/oauth/token` en OneUptime Cloud.
+- **Client ID**: el ID de la conexión.
+- **Client Secret**: haz clic en **Make Client Secret** y copia el secreto en ese momento. OneUptime solo guarda un hash del secreto y no puede volver a mostrarlo. Es válido durante un año.
+
+Tu proveedor de identidad envía el ID de cliente y el secreto al endpoint de token, y obtiene un token de acceso que es válido durante una hora. El token bearer de la conexión sigue funcionando junto a él.
+
+Para sustituir un secreto, haz clic en **Make New Client Secret**. El secreto anterior sigue funcionando hasta que caduca o haces clic en **Delete Previous Secret**, así que puedes dar el nuevo a tu proveedor de identidad sin interrumpir el aprovisionamiento: elimina el anterior cuando tu proveedor ya use el nuevo. Un secreto que caduca o se elimina invalida al instante los tokens de acceso emitidos con él. Quienes pueden cambiar el token bearer de una conexión pueden crear y eliminar sus secretos: un propietario del proyecto o, en una página de estado, quien pueda editar su inicio de sesión único.
 
 ## SCIM para páginas de estado
 
@@ -98,7 +110,7 @@ El SCIM de página de estado permite a los proveedores de identidad aprovisionar
 3. **Configurar tu proveedor de identidad**
 
    - Usa la **SCIM Base URL** del cuadro de diálogo. En OneUptime Cloud es `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>`
-   - Configura la autenticación con token bearer usando el token proporcionado
+   - Configura la autenticación con token bearer usando el token proporcionado, o usa las [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) del mismo cuadro de diálogo
    - Asigna los atributos de usuario (el correo es obligatorio)
 :::
 
@@ -132,6 +144,8 @@ Microsoft Entra ID ofrece gestión de identidades de nivel empresarial con aprov
 - Un tenant de Microsoft Entra ID con licencia Premium P1 o P2 (necesaria para el aprovisionamiento automático).
 - Un proyecto de OneUptime en el plan **Scale** o superior en OneUptime Cloud.
 - Acceso de administrador a Microsoft Entra ID y a OneUptime.
+
+La aplicación de OneUptime de la galería de aplicaciones de Microsoft Entra es para el inicio de sesión único. Para el aprovisionamiento, crea tu propia aplicación como se indica a continuación, aunque hayas añadido OneUptime desde la galería para el SSO.
 
 :::steps
 #### Crear la conexión SCIM para Entra ID
@@ -209,6 +223,8 @@ Okta ofrece una gestión de identidades flexible con compatibilidad con SCIM. Ne
 - Un proyecto de OneUptime en el plan **Scale** o superior en OneUptime Cloud.
 - Acceso de administrador a Okta y a OneUptime.
 
+En OneUptime Cloud, si la Okta Integration Network incluye OneUptime, añádelo desde ahí (consulta [SSO](/docs/identity/sso)): ya trae los ajustes SCIM y las asignaciones de atributos de OneUptime, y pide el ID y el token bearer de la conexión.
+
 :::steps
 #### Crear la conexión SCIM para Okta
 
@@ -228,18 +244,18 @@ Okta ofrece una gestión de identidades flexible con compatibilidad con SCIM. Ne
 En la Okta Admin Console, ve a **Applications** > **Applications**:
 
 - Si ya usas Okta para el SSO de OneUptime, abre esa aplicación.
-- Si no, haz clic en **Create App Integration**, selecciona **SAML 2.0**, ponle el nombre "OneUptime" y completa la configuración SAML (consulta [SSO](/docs/identity/sso)).
+- Si no, añade OneUptime desde la Okta Integration Network si lo incluye (**Browse App Catalog**, busca OneUptime, **Add Integration**), o haz clic en **Create App Integration**, selecciona **SAML 2.0**, ponle el nombre "OneUptime" y completa la configuración SAML (consulta [SSO](/docs/identity/sso)).
 
 #### Activar el aprovisionamiento SCIM en Okta
 
 1. En tu aplicación de OneUptime, ve a la pestaña **General**
-2. En la sección **App Settings**, haz clic en **Edit**, selecciona **SCIM** en **Provisioning** y haz clic en **Save**
-3. Aparece una nueva pestaña **Provisioning**
+2. En la sección **App Settings**, haz clic en **Edit**. Para la aplicación de la Okta Integration Network, establece **OneUptime SCIM Connection ID** en la última parte de la **SCIM Base URL**, `<scim-id>`. Para tu propia aplicación, selecciona **SCIM** en **Provisioning**. Haz clic en **Save**
+3. La aplicación ya tiene una pestaña **Provisioning**
 
 #### Conectar Okta con OneUptime
 
 1. En la pestaña **Provisioning**, haz clic en **Integration** y luego en **Configure API Integration**, y marca **Enable API integration**
-2. Configura lo siguiente:
+2. Para la aplicación de la Okta Integration Network, introduce el **Bearer Token** de OneUptime como **API Token**. Para tu propia aplicación, configura lo siguiente:
    - **SCIM connector base URL**: la **SCIM Base URL** de OneUptime (por ejemplo, `https://oneuptime.com/identity/scim/v2/<scim-id>`)
    - **Unique identifier field for users**: `userName`
    - **Supported provisioning actions**: Import New Users and Profile Updates, Push New Users, Push Profile Updates y, si usas aprovisionamiento basado en grupos, Push Groups
@@ -290,7 +306,7 @@ La implementación SCIM de OneUptime sigue la especificación SCIM v2.0 y funcio
 | Ajuste | Valor |
 | --- | --- |
 | SCIM Base URL | La **SCIM Base URL** de OneUptime: `https://oneuptime.com/identity/scim/v2/<scim-id>` para un proyecto, o `https://oneuptime.com/identity/status-page-scim/v2/<scim-id>` para una página de estado |
-| Autenticación | Token HTTP Bearer |
+| Autenticación | Token HTTP Bearer, o [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) |
 | Identificador único de usuario | `userName`, que debe ser una dirección de correo válida |
 | Operaciones | GET, POST, PUT, PATCH y DELETE para Users, en el SCIM de proyecto y de página de estado. Groups solo se admite en el SCIM de proyecto. |
 
@@ -309,6 +325,8 @@ Las rutas son relativas a la **SCIM Base URL** de la conexión.
 | `/Groups/{id}`           | GET, PUT, PATCH, DELETE | Gestionar un grupo (solo SCIM de proyecto)                |
 | `/Bulk`                  | POST                    | Varias operaciones en una sola solicitud                  |
 
+El endpoint de token de las [credenciales de cliente OAuth 2.0](#credenciales-de-cliente-oauth-20) no está bajo la URL base: es `https://oneuptime.com/identity/scim/oauth/token` para todas las conexiones en OneUptime Cloud. Acepta la concesión `client_credentials`, con el ID de cliente y el secreto enviados mediante autenticación HTTP Basic o en el formulario de la solicitud, y responde con un token de acceso que es válido durante una hora (`expires_in` de `3600`).
+
 Lo que informa `/ServiceProviderConfig`:
 
 | Capacidad | Compatible |
@@ -316,10 +334,10 @@ Lo que informa `/ServiceProviderConfig`:
 | PATCH | Sí |
 | Bulk | Sí, hasta 1.000 operaciones y 1 MB por solicitud |
 | Filtro | Sí, hasta 200 resultados |
-| Ordenación | Sí |
+| Ordenación | No |
 | Cambio de contraseña | No |
 | ETag | No |
-| Autenticación | Token HTTP Bearer |
+| Autenticación | Token HTTP Bearer, o un token de acceso OAuth 2.0 |
 
 Un grupo que crea tu proveedor de identidad se convierte en un equipo con el mismo nombre en el proyecto; si ya existe un equipo con ese nombre, se usa en lugar de crear uno nuevo.
 
@@ -370,7 +388,7 @@ En OneUptime Cloud, SCIM necesita el plan **Scale**. Una instalación autoalojad
 En OneUptime Cloud, el aprovisionamiento SCIM solo funciona por completo mientras el proyecto está en **Scale** o superior. Por debajo — cuando termina una prueba de Scale o se baja de plan — las conexiones SCIM del proyecto, y las de sus páginas de estado, solo quitan personas, así que quien se va sigue perdiendo su acceso:
 
 - **Sigue funcionando:** desactivar un usuario (`active` en `false`, en una conexión configurada para quitar a las personas que desactiva), eliminar un usuario, quitar miembros de un grupo (el `Remove` de Entra ID sobre `members` con los miembros como valor, el `remove` de Okta sobre `members[value eq "..."]`, o sustituir los miembros por algunos de los que ya tiene el grupo), eliminar un grupo y una solicitud `Bulk` formada solo por `DELETE`. Las consultas también se responden — listar y filtrar usuarios y grupos, que es lo que hacen los proveedores de identidad antes de quitar a alguien —, pero por debajo del plan una consulta nunca crea a nadie.
-- **Se rechaza:** crear un usuario o un grupo, reactivar un usuario (`active` en `true` para alguien a quien la conexión volvería a añadir a uno de sus equipos), añadir a alguien a un grupo en el que no está, y cambiar solo el correo o el nombre de un usuario o el nombre de un grupo. Una solicitud que añade a alguien se rechaza entera, aunque también quite personas, porque un `PATCH` de SCIM es todo o nada. El rechazo es un `402` con un error en formato SCIM, que tu proveedor de identidad muestra: `SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and they work fully again.` Cada rechazo aparece también en los registros SCIM de la conexión.
+- **Se rechaza:** crear un usuario o un grupo, reactivar un usuario (`active` en `true` para alguien a quien la conexión volvería a añadir a uno de sus equipos), añadir a alguien a un grupo en el que no está, y cambiar solo el correo o el nombre de un usuario o el nombre de un grupo. Una solicitud que añade a alguien se rechaza entera, aunque también quite personas, porque un `PATCH` de SCIM es todo o nada. El rechazo es un `402` con un error en formato SCIM, que tu proveedor de identidad muestra: `SCIM provisioning needs the Scale plan. This project's plan does not include it, so its SCIM connections can only remove people: requests that add or change people or groups are refused. The connections are kept: upgrade the project to Scale in Project Settings > Billing and Invoices > Billing and they work fully again.` Cada rechazo aparece también en los registros SCIM de la conexión.
 - **Una baja que también cambia un perfil** — una desactivación que envía un correo o un nombre nuevo, o una actualización de grupo que quita miembros y cambia el nombre del grupo — se aplica, y deja el correo, el nombre o el nombre del grupo como estaban. Los proveedores de identidad vuelven a enviar lo que ven distinto, así que un cambio rechazado una vez vuelve con sus solicitudes posteriores, y una baja nunca espera al plan. Una desactivación en una conexión que no quita a las personas que desactiva (desaprovisionamiento automático desactivado, o grupos enviados en su lugar) no quita a nadie, así que un correo o un nombre nuevo enviado con ella se rechaza como un cambio por sí solo.
 - **Una solicitud que no cambia nada se responde como siempre** — el `PUT` de Okta de un usuario tal como está, con `active` en `true`, para alguien que ya está en todos los equipos de la conexión; añadir a alguien a un grupo en el que ya está; un correo enviado de nuevo con otras mayúsculas; atributos que OneUptime no guarda, como un cargo o un departamento. El usuario privado de una página de estado está en la página o no está, así que `active` en `true` nunca lo cambia.
 
@@ -431,8 +449,8 @@ Los usuarios que crea el propio SCIM y los usuarios que son miembros de tu proye
 :::details ¿Puede SCIM cambiar la dirección de correo o el nombre de un usuario?
 La dirección de correo electrónico de una cuenta de OneUptime es con la que esa persona inicia sesión en todos los proyectos a los que pertenece, y adonde llegan sus enlaces para restablecer la contraseña. Por eso:
 
-- **OneUptime Cloud**: SCIM nunca cambia una dirección de correo electrónico. Una solicitud que la cambiaría se rechaza con un error SCIM `400` de tipo `mutability` y no se aplica nada de esa solicitud; tu proveedor de identidad muestra el motivo. Pide al usuario que cambie su dirección desde su propio perfil de OneUptime. Una solicitud que repite la dirección que la cuenta ya tiene no es un cambio y se completa correctamente.
-- **Autoalojado**: SCIM cambia la dirección de correo electrónico solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Cualquier otro cambio se rechaza de la misma manera.
+- **OneUptime Cloud**: SCIM nunca cambia una dirección de correo electrónico. Una solicitud que la cambiaría se completa igualmente: la conexión guarda la dirección que envió tu proveedor de identidad y responde con ella, mientras que la cuenta conserva la dirección con la que inicia sesión. Los registros SCIM de la conexión indican que el cambio no se aplicó. Pide al usuario que cambie su dirección desde su propio perfil de OneUptime.
+- **Autoalojado**: SCIM cambia la dirección de correo electrónico solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Para cualquier otro usuario, la conexión guarda la dirección nueva y la cuenta conserva la suya, como en OneUptime Cloud.
 
 Los nombres siguen la misma regla en todos los casos: SCIM actualiza el nombre solo de un usuario que se ha unido a este proyecto, no pertenece a ningún otro proyecto y no es administrador de OneUptime. Para cualquier otro usuario, el nombre se deja como está y el resto de la solicitud se completa igualmente.
 :::

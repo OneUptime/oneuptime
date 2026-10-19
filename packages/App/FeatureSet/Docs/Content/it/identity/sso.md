@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Persona
     participant O as OneUptime
     participant I as Provider di identità
-    U->>O: Accedi con SSO, scelta del progetto
-    O->>I: Richiesta SAML all'URL di accesso
+    U->>O: Accedi con SSO,<br/>scelta del progetto
+    O->>I: Richiesta SAML<br/>all'URL di accesso
     I->>U: Pagina di accesso
     U->>I: Credenziali e MFA
-    I->>O: Asserzione firmata alla Reply URL
-    Note over O: Verifica la firma e l'emittente,<br/>legge l'email dal Name ID
+    I->>O: Asserzione firmata<br/>alla Reply URL
+    Note over O: Verifica la firma<br/>e l'emittente,<br/>legge l'email dal Name ID
     O->>U: Accesso eseguito al progetto
 ```
 
@@ -36,13 +36,21 @@ OneUptime legge solo poche cose dall'asserzione che invia il tuo IdP:
 | --- | --- |
 | Firma | La verifica con il **Certificato pubblico** del provider. La risposta deve essere firmata e non deve essere cifrata. |
 | Issuer | Deve corrispondere esattamente all'**Emittente** del provider. |
+| Audience | Deve essere l'**Identifier (Entity ID)** del provider. Una risposta che il tuo IdP ha creato per un'altra applicazione viene rifiutata. |
+| Recipient e Destination | Devono essere la **Reply URL** del provider, l'indirizzo a cui è stata inviata la risposta. |
+| `NotBefore` e `NotOnOrAfter` | La risposta è accettata solo finché lo consentono, e non oltre 10 minuti dalla sua emissione, con 3 minuti di tolleranza per gli orologi che non coincidono. |
 | Name ID | L'indirizzo email della persona. Deve essere un indirizzo email valido. |
-| `http://schemas.microsoft.com/identity/claims/displayname` | Il nome della persona, usato quando OneUptime crea il suo account. Facoltativo. |
+| Attributi del nome | Il nome della persona, usato quando OneUptime crea il suo account: un nome visualizzato (`displayName`, o `http://schemas.microsoft.com/identity/claims/displayname`), oppure un nome e un cognome (`firstName` e `lastName`, o le attestazioni `givenname` e `surname` che Microsoft Entra ID invia per impostazione predefinita). Facoltativo. |
+| `http://schemas.microsoft.com/identity/claims/objectidentifier` | L'ID oggetto della persona, che Microsoft Entra ID invia per impostazione predefinita. Il primo accesso tramite il provider collega l'account a questo ID, e un accesso successivo che indica l'indirizzo email dell'account con un altro ID oggetto viene rifiutato. Facoltativo. |
+
+Ogni risposta fa accedere una sola volta. Inviata di nuovo, ad esempio tornando indietro nel browser dopo l'accesso, viene rifiutata: accedi di nuovo.
 
 Chi accede per la prima volta entra nei **Team** del provider, che decidono che cosa può fare: vedi [Ruoli e team degli utenti SSO](#ruoli-e-team-degli-utenti-sso).
 
 > [!NOTE]
 > Su OneUptime Cloud, la prima volta che qualcuno accede al progetto con uno dei suoi provider SAML o OIDC, OneUptime gli invia un link via email invece di farlo entrare. La persona lo apre, conferma che il single sign-on del progetto può farla accedere e prosegue con l'accesso. Il link vale 24 ore. Succede una volta per progetto, e di nuovo se la persona lascia il progetto e poi torna. Le installazioni self-hosted fanno accedere subito.
+
+Su OneUptime Cloud, chi entra nel progetto tramite SSO occupa un posto, proprio come una persona che inviti. Se il tuo piano include un numero fisso di posti e sono tutti occupati, le nuove persone non possono entrare tramite SSO finché non si libera un posto.
 
 ## Configurare l'SSO
 
@@ -56,7 +64,7 @@ Ti serve l'autorizzazione ad aggiungere provider SSO — **Project Owner**, **Pr
 
 2. **Creare la configurazione SSO**
 
-   - Fai clic su **Crea: SSO**
+   - Fai clic su **Aggiungi provider SAML**
    - Inserisci un **Nome** per la configurazione SSO (ad esempio "Keycloak SAML" o "Okta SAML")
    - Inserisci l'**URL di accesso** del tuo provider di identità
    - Inserisci l'**Emittente** (Entity ID) del tuo provider di identità
@@ -100,7 +108,7 @@ Keycloak è una diffusa soluzione open source per la gestione delle identità e 
 
 2. **Creare il provider in OneUptime**
 
-   Vai a **Impostazioni del progetto** > **Sicurezza** > **SSO**, fai clic su **Crea: SSO** e compila:
+   Vai a **Impostazioni del progetto** > **Sicurezza** > **SSO**, fai clic su **Aggiungi provider SAML** e compila:
    - **Nome**: un nome descrittivo (ad esempio `my-project-oneuptime`)
    - **URL di accesso** ed **Emittente**: i valori sopra
    - **Certificato pubblico**: il certificato, tra le sue righe `BEGIN CERTIFICATE` ed `END CERTIFICATE`
@@ -126,14 +134,15 @@ Keycloak è una diffusa soluzione open source per la gestione delle identità e 
    In OneUptime, modifica il provider e attiva **Abilitato**, poi apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider. Dovresti arrivare alla pagina di accesso di Keycloak e tornare su OneUptime.
 :::
 @tab Microsoft Entra ID
-Microsoft Entra ID (prima Azure AD / Active Directory) è il servizio di identità cloud di Microsoft. Ti serve un tenant che supporti le applicazioni aziendali con SSO SAML, e l'accesso amministrativo sia a Entra ID sia a OneUptime.
+Microsoft Entra ID (prima Azure AD / Active Directory) è il servizio di identità cloud di Microsoft. Ti serve un tenant che supporti le applicazioni aziendali con SSO SAML, e l'accesso amministrativo sia a Entra ID sia a OneUptime. Su OneUptime Cloud, se la galleria di applicazioni di Microsoft Entra elenca OneUptime, aggiungi l'app da lì: include già le attestazioni che OneUptime legge e i modelli dei suoi URL.
 
 :::steps
 1. **Creare un'applicazione aziendale in Entra ID**
 
    - Accedi al [Microsoft Entra admin center](https://entra.microsoft.com)
-   - Vai a **Identity** > **Applications** > **Enterprise applications**, fai clic su **+ New application** e poi su **+ Create your own application**
-   - Inserisci un nome (ad esempio "OneUptime"), seleziona **Integrate any other application you don't find in the gallery (Non-gallery)** e fai clic su **Create**
+   - Vai a **Identity** > **Applications** > **Enterprise applications** e fai clic su **+ New application**
+   - Dalla galleria: cerca OneUptime, selezionalo e fai clic su **Create**
+   - Altrimenti: fai clic su **+ Create your own application**, inserisci un nome (ad esempio "OneUptime"), seleziona **Integrate any other application you don't find in the gallery (Non-gallery)** e fai clic su **Create**
 
 2. **Copiare i valori SAML di Entra ID**
 
@@ -143,7 +152,7 @@ Microsoft Entra ID (prima Azure AD / Active Directory) è il servizio di identit
 
 3. **Creare il provider in OneUptime**
 
-   Vai a **Impostazioni del progetto** > **Sicurezza** > **SSO**, fai clic su **Crea: SSO** e compila:
+   Vai a **Impostazioni del progetto** > **Sicurezza** > **SSO**, fai clic su **Aggiungi provider SAML** e compila:
    - **Nome**: un nome descrittivo (ad esempio `Azure AD SAML`)
    - **URL di accesso**: la **Login URL**
    - **Emittente**: il **Microsoft Entra Identifier**
@@ -162,10 +171,10 @@ Microsoft Entra ID (prima Azure AD / Active Directory) è il servizio di identit
 
 5. **Inviare l'email come Name ID**
 
-   In **Attributes & Claims**, fai clic su **Edit**:
+   In **Attributes & Claims**, fai clic su **Edit**. L'applicazione della galleria ha già queste impostazioni: controllale.
    - Imposta **Unique User Identifier (Name ID)** sull'indirizzo email dell'utente: `user.mail`, oppure `user.userprincipalname` quando quello è l'indirizzo email
    - Imposta il **Name identifier format** su `Email address`
-   - Facoltativamente, aggiungi un'attestazione chiamata `http://schemas.microsoft.com/identity/claims/displayname` con l'attributo di origine `user.displayname`, così i nuovi account ricevono il nome della persona. OneUptime ignora le altre attestazioni
+   - Mantieni le attestazioni predefinite di Entra ID: i nuovi account ricevono il nome della persona da `givenname` e `surname`, e l'account viene collegato all'ID oggetto della persona, `objectidentifier`. Facoltativamente, aggiungi un'attestazione chiamata `http://schemas.microsoft.com/identity/claims/displayname` con l'attributo di origine `user.displayname`, per dare invece ai nuovi account il nome visualizzato. OneUptime ignora le altre attestazioni
 
 6. **Assegnare utenti e gruppi**
 
@@ -176,13 +185,14 @@ Microsoft Entra ID (prima Azure AD / Active Directory) è il servizio di identit
    In OneUptime, modifica il provider e attiva **Abilitato**, poi apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider. Dovresti arrivare alla pagina di accesso di Microsoft e tornare su OneUptime.
 :::
 @tab Okta
-Okta è una piattaforma di identità molto diffusa con SSO SAML. Ti serve un'organizzazione Okta con accesso amministrativo, e l'accesso amministrativo a OneUptime.
+Okta è una piattaforma di identità molto diffusa con SSO SAML. Ti serve un'organizzazione Okta con accesso amministrativo, e l'accesso amministrativo a OneUptime. Su OneUptime Cloud, se l'Okta Integration Network elenca OneUptime, aggiungi l'app da lì: fa accedere le persone dalla pagina **Accedi con SSO** di OneUptime e dalla loro dashboard di Okta, dà loro un account al primo accesso e chiede due ID invece degli URL di OneUptime.
 
 :::steps
-1. **Creare un'applicazione SAML in Okta**
+1. **Aggiungere OneUptime a Okta**
 
-   - Nella Okta Admin Console, vai a **Applications** > **Applications** e fai clic su **Create App Integration**
-   - Seleziona **SAML 2.0** e fai clic su **Next**, inserisci "OneUptime" come **App name** e fai clic su **Next**
+   - Nella Okta Admin Console, vai a **Applications** > **Applications**
+   - Dall'Okta Integration Network: fai clic su **Browse App Catalog**, cerca OneUptime e fai clic su **Add Integration**. Okta chiede l'**OneUptime Project ID** e l'**OneUptime SSO Provider ID** prima che OneUptime possa mostrarli: per ora inserisci `0` in entrambi, li sostituirai al passaggio 4. Fai clic su **Done** e continua con il passaggio 2
+   - Altrimenti fai clic su **Create App Integration**, seleziona **SAML 2.0** e fai clic su **Next**, inserisci "OneUptime" come **App name** e fai clic su **Next**
    - Okta chiede gli URL di OneUptime prima di mostrare i propri. Per ora inserisci il tuo indirizzo OneUptime (ad esempio `https://oneuptime.com`) come **Single sign-on URL** e come **Audience URI (SP Entity ID)**: li sostituirai entrambi al passaggio 4
    - Imposta **Name ID format** su `EmailAddress` e **Application username** su `Email`
    - Fai clic su **Next**, seleziona **I'm an Okta customer adding an internal app** e fai clic su **Finish**
@@ -195,7 +205,7 @@ Okta è una piattaforma di identità molto diffusa con SSO SAML. Ti serve un'org
 
 3. **Creare il provider in OneUptime**
 
-   Vai a **Impostazioni del progetto** > **Sicurezza** > **SSO**, fai clic su **Crea: SSO** e compila:
+   Vai a **Impostazioni del progetto** > **Sicurezza** > **SSO**, fai clic su **Aggiungi provider SAML** e compila:
    - **Nome**: un nome descrittivo (ad esempio `Okta SAML`)
    - **URL di accesso** ed **Emittente**: i valori di Okta
    - **Certificato pubblico**: il certificato, comprese le righe `BEGIN CERTIFICATE` ed `END CERTIFICATE`
@@ -205,11 +215,16 @@ Okta è una piattaforma di identità molto diffusa con SSO SAML. Ti serve un'org
 
 4. **Dare a Okta gli URL di OneUptime**
 
-   Nella scheda **General** dell'applicazione, fai clic su **Edit** in **SAML Settings** e poi su **Next**, quindi imposta:
+   Per l'applicazione dell'Okta Integration Network, nella scheda **General**, fai clic su **Edit** in **App Settings** e imposta:
+   - **OneUptime Project ID** e **OneUptime SSO Provider ID**: i due ID contenuti nell'**Identifier (Entity ID)** di OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
+
+   Fai clic su **Save** e verifica che **Application username format** sia `Email` nella scheda **Sign On**.
+
+   Per la tua applicazione, nella scheda **General**, fai clic su **Edit** in **SAML Settings** e poi su **Next**, quindi imposta:
    - **Single sign-on URL**: la **Reply URL (Assertion Consumer Service URL)** di OneUptime
    - **Audience URI (SP Entity ID)**: l'**Identifier (Entity ID)** di OneUptime
 
-   Facoltativamente, aggiungi un'istruzione di attributo chiamata `http://schemas.microsoft.com/identity/claims/displayname` con il valore `user.firstName + " " + user.lastName`, così i nuovi account ricevono il nome della persona. Fai clic su **Next**, poi su **Finish**.
+   Facoltativamente, aggiungi le istruzioni di attributo `firstName`, con il valore `user.firstName`, e `lastName`, con il valore `user.lastName`, così i nuovi account ricevono il nome della persona. Fai clic su **Next**, poi su **Finish**.
 
 5. **Assegnare le persone**
 
@@ -237,11 +252,11 @@ Un progetto può anche accedere tramite un provider OpenID Connect, come Google 
 
 :::steps
 1. Registra presso il tuo provider di identità un'app (un client OIDC) che possa usare il flusso authorization code con PKCE, e copia il suo **URL dell'emittente**, il **Client ID** e il **Client Secret**.
-2. In OneUptime, vai a **Impostazioni del progetto** > **Sicurezza** > **OIDC** e fai clic su **Crea: OIDC**.
+2. In OneUptime, vai a **Impostazioni del progetto** > **Sicurezza** > **SSO**. Sotto i provider SAML, fai clic su **Aggiungi provider OIDC**.
 3. Inserisci un **Nome** (ciò che le persone vedono nella pagina di accesso), l'**URL dell'emittente**, il **Client ID** e il **Client Secret**. In alternativa puoi incollare l'URL di discovery del provider in **URL dell'emittente**.
 4. Nel passaggio **Accesso**, **Team** parte dal team dei membri del progetto: chi accede per la prima volta entra in questi team. Tutto il resto è già compilato sotto **Altri campi**: l'**URL di discovery** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Ambiti** (`openid email profile`), i nomi delle attestazioni `email` e `name`, e una descrizione ("Sign in with" seguito dal nome). Modificali solo se il tuo provider lo richiede. Sono accettati solo i team in cui potresti invitare qualcuno: un team che dà più accesso di quello che hai viene indicato sotto **Team**.
 5. Salva. Si apre la finestra **OIDC Configuration** con la **Redirect URI**: aggiungila agli URI di reindirizzamento consentiti della tua app. Un nuovo provider parte disattivato, quindi poi modificalo e attiva **Abilitato**.
-6. Usa il link della scheda **Test OpenID Connect (OIDC)** per accedere tramite il provider prima di richiedere l'SSO per il progetto.
+6. Apri il link della scheda **Test Single Sign On (SSO)** e scegli il provider, per accedere tramite esso prima di richiedere l'SSO per il progetto.
 :::
 
 ## Ruoli e team degli utenti SSO
@@ -301,14 +316,14 @@ Dove né il progetto né il server richiedono l'SSO, disattivare un provider blo
 
 ## Provider rimasti sotto il piano Scale
 
-Un provider SAML o OIDC che un progetto ha ancora continua a far accedere le persone dopo la fine di una prova di Scale o il passaggio a un piano inferiore. Per questo, sotto Scale, le pagine **SSO** e **OIDC** elencano i provider del progetto sotto l'offerta (**Provider SAML ancora configurati**, **Provider OIDC ancora configurati**):
+Un provider SAML o OIDC che un progetto ha ancora continua a far accedere le persone dopo la fine di una prova di Scale o il passaggio a un piano inferiore. Per questo, sotto Scale, la pagina **SSO** elenca i provider del progetto sotto l'offerta (**Provider SAML ancora configurati**, **Provider OIDC ancora configurati**):
 
 - **Disattiva** ferma subito un provider. OneUptime chiede prima conferma.
 - **Elimina** lo rimuove.
 
 Aggiungere un provider, modificarne uno o riattivarlo richiede **Scale**. Chi può fare cosa resta come con Scale: disattivare un provider richiede l'autorizzazione a modificarlo, eliminarlo quella a eliminarlo.
 
-Finché il progetto richiede ancora l'SSO, anche le sue pagine **SSO** e **OIDC** mostrano **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare l'ultimo provider. Fino ad allora l'ultimo provider con cui le persone possono accedere non può essere disattivato né eliminato, così nessuno resta escluso dal progetto.
+Finché il progetto richiede ancora l'SSO, anche la sua pagina **SSO** mostra **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare l'ultimo provider. Fino ad allora l'ultimo provider con cui le persone possono accedere non può essere disattivato né eliminato, così nessuno resta escluso dal progetto.
 
 Le pagine **SSO** e **OIDC** di una pagina di stato elencano allo stesso modo i suoi provider. Finché la pagina di stato richiede ancora l'SSO, entrambe le pagine mostrano anche **Richiedi l'SSO per l'accesso**: disattivalo prima di disattivare i suoi provider, altrimenti i suoi utenti privati non potranno più accedere.
 
@@ -324,6 +339,26 @@ La persona non è ancora nel progetto e il provider non ha **Team** in cui aggiu
 
 :::details "Issuer URL does not match"
 L'emittente nell'asserzione del tuo IdP non è l'**Emittente** del provider. Copialo di nuovo dal tuo IdP — l'URL del realm di Keycloak, il **Microsoft Entra Identifier** o l'Identity Provider Issuer di Okta — in modo che i due coincidano esattamente.
+:::
+
+:::details "SAML Audience does not match"
+La risposta è stata creata per un'altra applicazione: la sua audience non è l'**Identifier (Entity ID)** di questo provider. Nel tuo IdP, imposta l'entity ID dell'applicazione sull'**Identifier (Entity ID)** di **Visualizza configurazione SSO**: il **Client ID** in Keycloak, l'**Identifier (Entity ID)** in Entra ID, l'**Audience URI (SP Entity ID)** in Okta. Un IdP configurato con il solo indirizzo di OneUptime come entity ID, ad esempio `https://oneuptime.com`, continua a funzionare.
+:::
+
+:::details "SAML Recipient does not match"
+La risposta è stata inviata per un altro indirizzo: il suo recipient non è la **Reply URL** di questo provider. Nel tuo IdP, imposta la reply URL dell'applicazione sulla **Reply URL (Assertion Consumer Service URL)** di **Visualizza configurazione SSO**: la **Assertion Consumer Service POST Binding URL** in Keycloak, la **Reply URL (Assertion Consumer Service URL)** in Entra ID, la **Single sign-on URL** in Okta. "SAML Destination does not match" ha la stessa causa e la stessa soluzione.
+:::
+
+:::details "SAML response has expired"
+La risposta è arrivata a OneUptime più tardi di quanto consenta il tuo IdP, o più di 10 minuti dopo la sua emissione: accedi di nuovo. Se continua a succedere, l'orologio del tuo IdP o del server OneUptime è sbagliato; OneUptime ammette al massimo 3 minuti di differenza tra i due. "SAML response is not valid yet" è lo stesso problema al contrario.
+:::
+
+:::details "SAML response was already used"
+Ogni risposta del tuo IdP fa accedere una sola volta. Tornare indietro nel browser dopo l'accesso, o ricaricare la pagina attraverso cui ti ha mandato il tuo IdP, invia di nuovo la stessa risposta: accedi di nuovo, da OneUptime o dal tuo IdP.
+:::
+
+:::details "This account is linked to someone else."
+Microsoft Entra ID ha fatto accedere qualcuno con l'indirizzo email di un account collegato, tramite questo provider, a un altro ID oggetto: ora l'indirizzo appartiene a un'altra persona in Entra ID, oppure l'account Entra ID della persona è stato ricreato. OneUptime rifiuta l'accesso, così chi avrà in seguito quell'indirizzo non può usare l'account. Se l'account è davvero di quella persona, rimuovila dal progetto e aggiungila di nuovo: il suo accesso successivo collegherà l'account al suo nuovo ID oggetto.
 :::
 
 :::details L'accesso non riesce con un errore di firma o di certificato

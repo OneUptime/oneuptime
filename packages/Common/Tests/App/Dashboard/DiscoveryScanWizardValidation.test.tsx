@@ -176,6 +176,11 @@ type CapturedTableProps = {
    */
   userPreferencesKey?: string | undefined;
   disableColumnCustomization?: boolean | undefined;
+  /*
+   * What Start New Scan opens with: the scan method a new scan starts on
+   * (ICMP), there from the form's first render.
+   */
+  createInitialValues?: Record<string, unknown> | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -191,6 +196,14 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 });
 
 import DiscoveryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery";
+import {
+  DISCOVERY_SCAN_METHOD_FIELD_DESCRIPTION,
+  DISCOVERY_SCAN_METHOD_FIELD_TITLE,
+  DISCOVERY_SCAN_METHOD_OPTIONS,
+  DiscoveryScanMethod,
+  NEW_DISCOVERY_SCAN_FORM_VALUES,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/DiscoveryScanMethod";
+import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
 /*
  * The reveal chain the SNMP step used to declare as showIf callbacks on nine
  * flat fields now lives inside SnmpConfigListEditor, which builds it out of
@@ -2070,7 +2083,7 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
    * nothing at all. The wizard deadlocks on the very step whose error message
    * this issue is named after, which is strictly worse than the bug.
    */
-  test("the method toggle sits on the scan-target step, never on the step it hides", async () => {
+  test("the method sits on the scan-target step, never on the step it hides", async () => {
     await renderPage();
 
     const field: CapturedFormField = fieldNamed("isSnmpEnabled");
@@ -2085,69 +2098,110 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
    * from the other side: an operator who cannot see the control cannot turn
    * SNMP back on, and the step stays gone.
    */
-  test("the method toggle is never hidden by anything", async () => {
+  test("the method is never hidden by anything", async () => {
     await renderPage();
 
     expect(fieldNamed("isSnmpEnabled").showIf).toBeUndefined();
   });
 
   /*
-   * The entire product as it stood before this change. An operator who never
-   * touches the toggle must still get the ping + SNMP scan they have always
-   * got, and the FIELD's default is what puts `isSnmpEnabled: true` in the
-   * submitted body — the column default only speaks for a row the form never
-   * mentioned the column on.
+   * What an operator who never touches the method gets. Someone who
+   * starts a scan sees two cards, ICMP (ping) and SNMP, with ICMP picked:
+   * "ICMP selected by default ... If ICMP takes fewer options because it
+   * doesn't take SNMP credentials, we should probably prefer that as the
+   * default" (the maintainer). The table's create values say false, so an
+   * untouched wizard posts `isSnmpEnabled: false` - the column's own default
+   * (true, SNMP) only speaks for a row the form never mentioned the column
+   * on, such as an API call.
+   *
+   * And the FIELD has no default: one would fill the Edit dialog too,
+   * wherever a scan arrived without the column, and saving would quietly
+   * turn it into a ping sweep (DiscoveryScanMethodEditDialog renders that
+   * case).
    */
-  test("the method toggle defaults to on, so an untouched wizard still creates an SNMP scan", async () => {
+  test("a new scan starts on ICMP from the create form's values, and the field adds no default of its own", async () => {
     await renderPage();
 
-    expect(fieldNamed("isSnmpEnabled").defaultValue).toBe(true);
+    expect(capturedTableProps?.createInitialValues).toEqual({
+      isSnmpEnabled: false,
+    });
+    expect(capturedTableProps?.createInitialValues).toBe(
+      NEW_DISCOVERY_SCAN_FORM_VALUES,
+    );
+    expect(fieldNamed("isSnmpEnabled").defaultValue).toBeUndefined();
   });
 
   /*
-   * FieldLabel appends "(Optional)" to every non-required field, and "Check
-   * SNMP on hosts that answer (Optional)" reads as though the question may be
-   * left unanswered — a toggle is always answered, one way or the other.
+   * Two cards rather than a switch, drawn by a CustomComponent so the form
+   * value stays the boolean every rule here reads. FieldLabel appends
+   * "(Optional)" to every non-required field, and a choice between two cards
+   * is always answered.
    */
-  test("the method is asked as a toggle that does not read as optional", async () => {
+  test("the method is asked as a choice of two cards that does not read as optional", async () => {
     await renderPage();
 
     const field: CapturedFormField = fieldNamed("isSnmpEnabled");
 
-    expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+    expect(field.getCustomElement).toBeDefined();
+    expect(field.title).toBe("Scan method");
+    expect(field.title).toBe(DISCOVERY_SCAN_METHOD_FIELD_TITLE);
     expect(field.required).toBe(false);
     expect(field.hideOptionalLabel).toBe(true);
-    /*
-     * No "What to check" heading any more: on a step of three questions
-     * the toggle's own words are enough.
-     */
     expect(field.sectionTitle).toBeUndefined();
   });
 
   /*
-   * The section header opens with what the scan ALREADY does. Without that
-   * sentence, "Check SNMP on hosts that answer" reads as the whole question —
-   * an operator who turns it off has no way to know a ping sweep still happens
-   * and still finds things, which is the entire feature #3445 adds.
+   * The line under the label says the one thing the cards do not: the choice
+   * is not final. Set, too, so the form does not fall back to the column's
+   * description - an API reader's sentence about "turning it off".
    */
-  test("the toggle says the ping sweep happens either way, before asking about SNMP", async () => {
+  test("the line under the label says the choice can be changed, and nothing about a switch", async () => {
     await renderPage();
 
-    const sectionDescription: string =
-      fieldNamed("isSnmpEnabled").description || "";
+    const description: string = fieldNamed("isSnmpEnabled").description || "";
+
+    expect(description).toBe("You can change this at any time.");
+    expect(description).toBe(DISCOVERY_SCAN_METHOD_FIELD_DESCRIPTION);
+    expect(description).not.toMatch(/turn (it|this) (on|off)/i);
+  });
+
+  /*
+   * Each card says what it does in one line, in the maintainer's terms: ICMP
+   * finds what answers and needs nothing else; SNMP also reads each device's
+   * name and vendor and needs credentials. Name and vendor, NOT model: the
+   * sweep reads the SNMP system group (sysName / sysDescr / sysObjectId), and
+   * a device's model arrives later from the ENTITY-MIB poll.
+   */
+  test("the two cards are ICMP (ping) and SNMP, ICMP first, a line each", async () => {
+    await renderPage();
 
     expect(
-      sectionDescription.indexOf(
-        "Every scan pings each address in the range to find what is alive",
-      ),
-    ).toBe(0);
-    /*
-     * Name and vendor, NOT model: the sweep reads the SNMP system group
-     * (sysName / sysDescr / sysObjectId), and a device's model arrives later
-     * from the ENTITY-MIB poll. Promising it here would have the wizard
-     * describe something the scan does not do.
-     */
-    expect(sectionDescription).toContain("name and vendor");
+      DISCOVERY_SCAN_METHOD_OPTIONS.map((option: CardSelectOption) => {
+        return [option.value, option.title];
+      }),
+    ).toEqual([
+      [DiscoveryScanMethod.Icmp, "ICMP (ping)"],
+      [DiscoveryScanMethod.Snmp, "SNMP"],
+    ]);
+
+    const [icmp, snmp] = DISCOVERY_SCAN_METHOD_OPTIONS as [
+      CardSelectOption,
+      CardSelectOption,
+    ];
+
+    expect(icmp.description).toContain("answer ping");
+    expect(icmp.description).toContain("No credentials needed");
+    expect(snmp.description).toContain("name and vendor");
+    expect(snmp.description).toContain("Needs SNMP credentials");
+    expect(snmp.description).not.toContain("model");
+
+    for (const option of DISCOVERY_SCAN_METHOD_OPTIONS) {
+      expect({
+        card: option.title,
+        isOneLine: option.description.length <= 80,
+      }).toEqual({ card: option.title, isOneLine: true });
+    }
   });
 
   /*
@@ -2171,14 +2225,14 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
    * without a heading of its own fails here rather than quietly reading as
    * one more thing the probe sends.
    */
-  test("the toggle is the last question on screen, and precedes every field it gates", async () => {
+  test("the method is the last question on screen, and precedes every field it gates", async () => {
     await renderPage();
 
     const declared: Array<string> = (capturedTableProps?.formFields || []).map(
       fieldKeyOf,
     );
 
-    // Target, probe, the toggle - then the More fields fold.
+    // Target, probe, the method - then the More fields fold.
     expect(declared.indexOf("isSnmpEnabled")).toBe(2);
     expect(fieldNamed(declared[3]!).collapsibleSection).toBeDefined();
 
@@ -2193,34 +2247,32 @@ describe("The scan method decides whether the wizard asks about SNMP", () => {
   });
 
   /*
-   * The copy IS the feature here, and it has two halves. An ICMP-only scan
-   * finds addresses and nothing else — no name, no model, no vendor — but what
-   * it imports is NOT inert: discovery brings every host in as a probe-polled
-   * device, so the scan's own probe pings it on a schedule from the moment it
-   * lands. An operator told only the first half reads an inventory-less device
-   * page as a broken import; an operator told neither assumes an ICMP-only
-   * scan leaves them with nothing being watched at all.
+   * The old switch's five lines of help are gone from the form: what an ICMP
+   * scan imports (devices pinged by the scan's probe) and that SNMP
+   * credentials can be added later are the Network Device guide's to say,
+   * and the field says it in no more than a line.
    */
-  test("the toggle says what an ICMP-only scan does and does not give you", async () => {
+  test("no description on the scan-target step runs past one line", async () => {
     await renderPage();
 
-    const description: string = fieldNamed("isSnmpEnabled").description || "";
+    const onScreen: Array<CapturedFormField> = (
+      capturedTableProps?.formFields || []
+    ).filter((field: CapturedFormField): boolean => {
+      return field.stepId === STEP_SCAN_TARGET && !field.collapsibleSection;
+    });
 
-    expect(description).toContain("ICMP-only");
-    expect(description).toContain("no credentials are asked for");
-    /*
-     * Ping-first import: there is no ping-only special case in discovery any
-     * more, so the toggle has to name what the operator actually ends up with
-     * — a device pinged by the probe that ran the scan — rather than pointing
-     * at a monitor they would have to create by hand to get anything watched.
-     */
-    expect(description).toContain("pinged by the scan's probe");
-    /*
-     * And the way out of an inventory-less device. Credentials are additive
-     * rather than a choice the scan locked in, so turning SNMP off here is
-     * never a decision the operator has to re-run a scan to undo.
-     */
-    expect(description).toContain("add SNMP credentials later");
+    expect(onScreen.map(fieldKeyOf)).toEqual([
+      "cidr",
+      "probe",
+      "isSnmpEnabled",
+    ]);
+
+    for (const field of onScreen) {
+      expect({
+        field: fieldKeyOf(field),
+        isOneLine: (field.description || "").length <= 110,
+      }).toEqual({ field: fieldKeyOf(field), isOneLine: true });
+    }
   });
 
   test("the SNMP step is removed for a scan that will send no SNMP", async () => {
@@ -2637,39 +2689,22 @@ describe("Short device names are asked on the Scan Target step (issue #3678)", (
   });
 
   /*
-   * The copy is where the three consequences that are not obvious from the
-   * title live, and each would otherwise be discovered afterwards: that the
-   * full name survives, that no rescan is needed, and that name-pattern rules
-   * written for full names stop matching.
+   * One line: what it does, by example, and that the full name is not lost.
+   * The rest - no rescan is needed, devices already imported keep their
+   * names, and label or owner rules written against full names stop matching
+   * - is in the Network Device guide, under its warning (NetworkScanMethodDocs
+   * in App's docs suites holds the guide to it).
    */
-  test("the description shows the short form and says the full DNS name is kept", async () => {
+  test("the description shows the short form and says the full name is kept as the DNS Name", async () => {
     await renderPage();
 
     const description: string = fieldNamed(KEY).description || "";
 
     expect(description).toContain("'core-sw-01'");
     expect(description).toContain("'core-sw-01.corp.example.com'");
-    expect(description).toContain("The full DNS name is kept on the device");
+    expect(description).toContain("The full name is kept");
     expect(description).toContain("DNS Name");
-  });
-
-  test("the description says it applies to Review Results without a rescan", async () => {
-    await renderPage();
-
-    const description: string = fieldNamed(KEY).description || "";
-
-    expect(description).toContain("no rescan is needed");
-    expect(description).toContain("Review Results");
-    expect(description).toContain("Devices already imported keep their names");
-  });
-
-  test("the description warns that name patterns written for full names stop matching", async () => {
-    await renderPage();
-
-    const description: string = fieldNamed(KEY).description || "";
-
-    expect(description).toContain("Label and owner rules");
-    expect(description).toContain("will not match the new short names");
+    expect(description.length).toBeLessThanOrEqual(110);
   });
 
   /*
@@ -2828,79 +2863,50 @@ describe("NetBIOS name lookup is asked on the Scan Target step (issue #3677)", (
   });
 
   /*
-   * The copy is the only place the operator learns what turning this on puts
-   * on their network, and each clause answers a question that would otherwise
-   * be asked after an alert fired or a name failed to appear.
+   * One line, and the two things to know before leaving it on: what it puts
+   * on the wire (a question to each host SNMP did not name, over UDP 137) and
+   * when to turn it off. The limits the probe enforces whatever this says
+   * (private addresses only, never from a global probe), the firewall rule it
+   * needs and that the name it finds wins over DNS are in the Network Device
+   * guide's NetBIOS section and the Device names heading above the switch.
    */
-  test("the description says it is best-effort, which hosts answer, that every host SNMP did not name is asked, and that the name beats DNS (issue #4518)", async () => {
+  test("the description says which hosts are asked, on which port, and when to turn it off", async () => {
     await renderPage();
 
     const description: string = fieldNamed(KEY).description || "";
 
-    expect(description).toContain("Best-effort");
-    expect(description).toContain("Windows and Samba");
-    expect(description).toContain("each host that has no SNMP name");
-    // Hosts reverse DNS named are asked too now: the old wording would lie.
-    expect(description).not.toContain("no SNMP name and no reverse-DNS name");
-    // The name is the host's own, its Windows computer name, and it wins.
-    expect(description).toContain("reports for itself");
-    expect(description).toContain("its Windows computer name");
-    expect(description).toContain("ahead of the host's reverse-DNS name");
-  });
-
-  test("the description names the port, and the firewall rule it needs", async () => {
-    await renderPage();
-
-    const description: string = fieldNamed(KEY).description || "";
-
+    expect(description).toContain("hosts with no SNMP name");
+    // Hosts reverse DNS named are asked too: the old wording would lie.
+    expect(description).not.toContain("no reverse-DNS name");
+    expect(description).toContain("Windows name");
     expect(description).toContain("UDP 137");
-    expect(description).toContain("Hosts must allow UDP 137 from the probe");
-  });
-
-  /*
-   * The limits the PROBE enforces whatever this toggle says (private and CGNAT
-   * IPv4 only; never from a probe registered with REGISTER_PROBE_KEY). Said
-   * here so an operator on a global probe does not turn it on, see no names,
-   * and read that as a broken feature.
-   */
-  test("the description states the private-address and global-probe limits", async () => {
-    await renderPage();
-
-    const description: string = fieldNamed(KEY).description || "";
-
-    expect(description).toContain("Only private addresses are asked");
-    expect(description).toContain("global probes never send these queries");
-  });
-
-  test("the description says when to turn it off", async () => {
-    await renderPage();
-
-    expect(fieldNamed(KEY).description || "").toContain(
-      "Turn this off if your intrusion detection system flags NetBIOS queries",
-    );
+    expect(description).toContain("Turn it off if your intrusion detection");
+    expect(description.length).toBeLessThanOrEqual(120);
   });
 
   /*
    * The "Device names" heading explains how a host is named, in order — the
    * one naming rule's order (DeviceNameRule): the device's own names first,
-   * SNMP then NetBIOS, then the reverse-DNS name, then the address (#4518).
+   * SNMP then NetBIOS (its Windows name), then the reverse-DNS name, then
+   * the address (#4518) - in one sentence.
    */
   test("the Device names section describes the naming order: own names, then DNS, then the address", async () => {
     await renderPage();
 
     const sectionDescription: string = fieldNamed(KEY).sectionDescription || "";
 
-    const ownName: number = sectionDescription.indexOf("its own name first");
-    const snmp: number = sectionDescription.indexOf("SNMP");
-    const netbios: number = sectionDescription.indexOf("NetBIOS name");
+    const snmp: number = sectionDescription.indexOf("SNMP name");
+    const netbios: number = sectionDescription.indexOf(
+      "Windows (NetBIOS) name",
+    );
     const reverseDns: number = sectionDescription.indexOf("reverse-DNS name");
     const address: number = sectionDescription.indexOf("its address");
 
-    expect(ownName).toBeGreaterThan(-1);
-    expect(snmp).toBeGreaterThan(ownName);
+    expect(snmp).toBeGreaterThan(-1);
     expect(netbios).toBeGreaterThan(snmp);
     expect(reverseDns).toBeGreaterThan(netbios);
     expect(address).toBeGreaterThan(reverseDns);
+    expect(sectionDescription.length).toBeLessThanOrEqual(120);
   });
 });
 
@@ -3345,16 +3351,20 @@ describe("long status messages wrap inside their own column (issue #3585)", () =
 
   test("the scan explanation has a wider cap than the compact result count", async () => {
     await renderPage();
+    /*
+     * Each column's own cap, with the floor every wrapping column keeps
+     * (min-w-[10rem]) so it is never squeezed to a word or two a line.
+     */
     expect(
       getTableCellContentClassName<NetworkDeviceDiscoveryScan>(
         tableColumnFor("Scan"),
       ),
-    ).toBe("max-w-sm");
+    ).toBe("max-w-sm min-w-[10rem] [&>*]:align-top");
     expect(
       getTableCellContentClassName<NetworkDeviceDiscoveryScan>(
         tableColumnFor("Responded Hosts"),
       ),
-    ).toBe("max-w-xs");
+    ).toBe("max-w-xs min-w-[10rem] [&>*]:align-top");
   });
 
   test.each(["Started", "Scan Target"])(

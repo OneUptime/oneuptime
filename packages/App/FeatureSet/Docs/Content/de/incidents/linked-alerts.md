@@ -84,7 +84,7 @@ Jede Zeile hat **Warnung anzeigen**, um die Warnung zu öffnen, und **Verknüpfu
 
 ## Vorfälle von einer Warnung aus verknüpfen
 
-Die Warnungsseite spiegelt die Vorfallseite. Öffnen Sie eine Warnung und wählen Sie **Verknüpfte Vorfälle** im Abschnitt **Grundlegend** ihres Seitenmenüs. Die Tabelle listet jeden Vorfall, mit dem die Warnung verknüpft ist, mit Vorfallnummer, Titel und aktuellem Status, und wann und von wem sie verknüpft wurde.
+Die Warnungsseite spiegelt die Vorfallseite. Öffnen Sie eine Warnung und wählen Sie **Verknüpfte Vorfälle** im Abschnitt **Untersuchung** ihres Seitenmenüs. Die Tabelle listet jeden Vorfall, mit dem die Warnung verknüpft ist, mit Vorfallnummer, Titel und aktuellem Status, und wann und von wem sie verknüpft wurde.
 
 - **Vorfall verknüpfen** verknüpft diese Warnung mit einem bestehenden Vorfall. Sein Dropdown funktioniert wie auf der Vorfallseite: die neuesten Vorfälle zuerst, jeder mit seiner Nummer – etwa `INC-42: Checkout is down` –, und Tippen durchsucht alle Vorfälle nach Titel.
 - **Vorfall anzeigen** öffnet einen verknüpften Vorfall.
@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Sie
     participant OneUptime
     participant Alerts as Warnungen
-    You->>OneUptime: Vorfall melden, mit bis zu 50 Warnungen
-    OneUptime->>OneUptime: Jede Warnung und Ihre Berechtigungen prüfen
-    OneUptime->>OneUptime: Den Vorfall anlegen und seine Datenschutzregeln ausführen
+    You->>OneUptime: Vorfall melden, mit<br/>bis zu 50 Warnungen
+    OneUptime->>OneUptime: Jede Warnung und Ihre<br/>Berechtigungen prüfen
+    OneUptime->>OneUptime: Den Vorfall anlegen und<br/>seine Datenschutzregeln<br/>ausführen
     OneUptime->>Alerts: Jede Warnung verknüpfen
-    OneUptime-->>You: Der neue Vorfall, Warnungen bereits verknüpft
-    OneUptime->>Alerts: Im Hintergrund bestätigen, wenn das Kästchen angehakt ist
+    OneUptime-->>You: Der neue Vorfall,<br/>Warnungen<br/>bereits verknüpft
+    OneUptime->>Alerts: Im Hintergrund<br/>bestätigen, wenn das<br/>Kästchen angehakt ist
 ```
 
 Beim Absenden prüft der Server die Warnungen, bevor er irgendetwas anlegt: höchstens 50, jede eine Warnung in diesem Projekt, die Sie sehen dürfen, und Sie müssen Warnungen mit Vorfällen verknüpfen dürfen. Schlägt eine Prüfung fehl, wird die Anfrage abgelehnt und kein Vorfall angelegt – eine falsche Warnungs-ID verbraucht also nie eine Vorfallnummer. Sobald der Vorfall existiert – und seine Datenschutzregeln gelaufen sind, damit die Verknüpfungen wissen, ob er privat ist –, wird jede Warnung verknüpft, bevor die Anfrage zurückkehrt, sodass die Seite **Verknüpfte Warnungen** des Vorfalls sie bereits listet. Schlägt eine einzelne Verknüpfung fehl – etwa, weil die Warnung einen Moment zuvor gelöscht wurde –, wird der Vorfall trotzdem gemeldet, und die anderen Warnungen werden trotzdem verknüpft.

@@ -95,7 +95,7 @@ Once verified, the dashboard is reachable on both your custom domain and the ori
 Click **Create Dashboard Domain**. The dialog is one page:
 
 - **Subdomain**: the label only, placeholder `dashboard (leave blank for root)`. Enter just `dashboard`, not the whole hostname. Leave it blank or enter `@` to use the root/apex domain.
-- **Domain**: the domains verified under **Project Settings → Domains**, where you prove you own a domain with a TXT record. A domain you have not verified is not listed, because it would be refused. The **Add a domain** link beside the field opens that page in a new tab.
+- **Domain**: the domains verified under **Project Settings → Advanced → Domains**, where you prove you own a domain with a TXT record. A domain you have not verified is not listed, because it would be refused. The **Add a domain** link beside the field opens that page in a new tab.
 - **More fields**: folded. While folded, its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own (see below).
 
 Click **Create Dashboard Domain**. The dialog closes and the new domain's **DNS Setup** opens. A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different subdomain, add that domain and delete the old one.

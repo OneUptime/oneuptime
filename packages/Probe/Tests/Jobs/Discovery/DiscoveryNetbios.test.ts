@@ -2063,7 +2063,7 @@ describe("netbiosOutcome.error — a rejection that carries no text says 'unknow
     );
 
     expect(statusMessage).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 2 answered ping. " +
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 2 answered ping. " +
         "NetBIOS lookups failed on this probe (unknown error).",
     );
     expect(statusMessage).not.toContain("(Error)");
@@ -2461,7 +2461,7 @@ describe("SubnetScanner.attachNetbiosNames — the recount when it throws after 
     expect(loggedLines(logger.debug)).toMatch(/, 1 named by NetBIOS/);
     // The reason is quoted without its trailing period, so no "..).".
     expect(body?.["statusMessage"]).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 3 answered ping. " +
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 3 answered ping. " +
         "NetBIOS lookups failed on this probe (name table corrupted).",
     );
   });

@@ -126,10 +126,11 @@ const MessageQueueOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         {
           field: { messageQueueNamePattern: true },
           title: "Queue Name",
+          description: "Leave empty to match any name.",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
-            "Case-insensitive regexes, each matched against the queue's name, description or messaging system. Discovered queues are named after their destination, so ^orders\\. matches every queue whose name starts with orders. — match the broker with the messaging system pattern.",
+            "Case-insensitive regexes. Discovered queues are named after their destination, so ^orders\\. matches every queue starting with orders.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "^orders\\.",
@@ -147,7 +148,7 @@ const MessageQueueOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           title: "Messaging System",
           stepId: "match-criteria",
           description:
-            "Matched against the OpenTelemetry messaging.system value (kafka, rabbitmq, aws_sqs, servicebus, ...) and its display name (Apache Kafka, RabbitMQ, Amazon SQS, Azure Service Bus, ...). ^kafka$ matches every Kafka topic.",
+            "Matched against the messaging.system value (kafka, rabbitmq, aws_sqs, ...) and its display name. ^kafka$ matches every Kafka topic.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "^kafka$",

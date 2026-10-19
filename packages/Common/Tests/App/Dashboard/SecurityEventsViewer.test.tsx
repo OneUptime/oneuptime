@@ -756,6 +756,213 @@ describe("the facet sidebar", () => {
       [`!severityName`, OcsfSeverity.Low],
     ]);
   });
+
+  /*
+   * The shared sidebar reads the `!` key: the excluded value is drawn as
+   * excluded (the checkbox's mixed state, struck through in red) rather than
+   * as a value nobody picked, and a click on it - row or pressed button -
+   * takes the exclusion off, as a click on a checked value takes the include
+   * off.
+   */
+  test("an excluded value reads as excluded, and a click on its row takes the exclusion off", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Low");
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Low}`,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeInstanceOf(NotEqual);
+    });
+
+    const excluded: HTMLElement = within(facetSection("Severity")).getByRole(
+      "checkbox",
+      { name: new RegExp(`^${OcsfSeverity.Low}`) },
+    );
+    expect(excluded).toHaveAttribute("aria-checked", "mixed");
+    expect(
+      within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Low}`,
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(excluded);
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeUndefined();
+    });
+    expect(urlParams().get("filters")).toBeNull();
+    expect(
+      within(facetSection("Severity")).getByRole("checkbox", {
+        name: OcsfSeverity.Low,
+      }),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("the pressed exclude button takes the exclusion off too", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Low");
+    });
+
+    const exclude: () => HTMLElement = (): HTMLElement => {
+      return within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Low}`,
+      });
+    };
+
+    fireEvent.click(exclude());
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeInstanceOf(NotEqual);
+    });
+
+    fireEvent.click(exclude());
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeUndefined();
+    });
+    expect(exclude()).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("excluding a checked value swaps the include for the exclusion", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Critical");
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByText(OcsfSeverity.Critical),
+    );
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBe(OcsfSeverity.Critical);
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Critical}`,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeInstanceOf(NotEqual);
+    });
+    expect(JSON.parse(urlParams().get("filters") as string)).toEqual([
+      [`!severityName`, OcsfSeverity.Critical],
+    ]);
+  });
+
+  test("an excluded value the counts leave out keeps its row, so it can be cleared there", async () => {
+    // Counted the way the server counts: an excluded severity has no rows.
+    aggregateMock.mockImplementation(
+      async (data: {
+        aggregateBy: AggregateBy<SecurityEvent>;
+      }): Promise<AggregatedResult> => {
+        const groupBy: Record<string, boolean> =
+          (data.aggregateBy.groupBy as unknown as Record<string, boolean>) ||
+          {};
+        const facetKey: string | undefined = Object.keys(groupBy)[0];
+        const query: Record<string, unknown> = data.aggregateBy
+          .query as unknown as Record<string, unknown>;
+        const excludesLow: boolean = query["severityName"] instanceof NotEqual;
+
+        if (
+          data.aggregateBy.aggregationInterval === "Total" &&
+          facetKey === "severityName"
+        ) {
+          return {
+            data: [
+              { timestamp: NOW, value: 4, severityName: OcsfSeverity.Critical },
+              ...(excludesLow
+                ? []
+                : [
+                    {
+                      timestamp: NOW,
+                      value: 9,
+                      severityName: OcsfSeverity.Low,
+                    },
+                  ]),
+            ],
+          } as unknown as AggregatedResult;
+        }
+
+        return { data: [] } as unknown as AggregatedResult;
+      },
+    );
+
+    renderViewer();
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Low");
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByRole("button", {
+        name: `Exclude ${OcsfSeverity.Low}`,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeInstanceOf(NotEqual);
+    });
+    await waitFor(() => {
+      expect(
+        within(facetSection("Severity")).getByRole("checkbox", {
+          name: new RegExp(`^${OcsfSeverity.Low}`),
+        }),
+      ).toHaveAttribute("aria-checked", "mixed");
+    });
+
+    fireEvent.click(
+      within(facetSection("Severity")).getByRole("checkbox", {
+        name: new RegExp(`^${OcsfSeverity.Low}`),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(listQuery()["severityName"]).toBeUndefined();
+    });
+  });
+
+  test("REGRESSION: a checked value unchecks from its row and the chip goes with it", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(facetSection("Severity")).toHaveTextContent("Critical");
+    });
+
+    const critical: () => HTMLElement = (): HTMLElement => {
+      return within(facetSection("Severity")).getByRole("checkbox", {
+        name: OcsfSeverity.Critical,
+      });
+    };
+
+    fireEvent.click(critical());
+    await waitFor(() => {
+      expect(critical()).toHaveAttribute("aria-checked", "true");
+    });
+    expect(
+      screen.getByTitle(`Remove Severity: ${OcsfSeverity.Critical}`),
+    ).toBeInTheDocument();
+
+    fireEvent.click(critical());
+    await waitFor(() => {
+      expect(critical()).toHaveAttribute("aria-checked", "false");
+    });
+    expect(listQuery()["severityName"]).toBeUndefined();
+    expect(
+      screen.queryByTitle(`Remove Severity: ${OcsfSeverity.Critical}`),
+    ).toBeNull();
+  });
 });
 
 describe("the search bar", () => {
@@ -1151,6 +1358,40 @@ describe("opening an event", () => {
     await waitFor(() => {
       expect(listQuery()["className"]).toBe("Authentication");
     });
+  });
+
+  /*
+   * "Filter by" is an add. It went through the sidebar's old toggle, so a
+   * second press on a value already applied took the filter off again.
+   */
+  test("REGRESSION: pressing the drawer's Filter by again keeps the filter", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    fireEvent.click(rows()[0]!);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter by Event Class" }),
+    );
+    await waitFor(() => {
+      expect(listQuery()["className"]).toBe("Authentication");
+    });
+
+    const before: number = listCalls().length;
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Filter by Event Class" }),
+    );
+
+    // Nothing changed, so nothing is read again, and the filter is still on.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(listCalls().length).toBe(before);
+    expect(listQuery()["className"]).toBe("Authentication");
+    expect(JSON.parse(urlParams().get("filters") as string)).toEqual([
+      ["className", "Authentication"],
+    ]);
   });
 
   test("the highlight follows the event across a refresh, not the row object", async () => {

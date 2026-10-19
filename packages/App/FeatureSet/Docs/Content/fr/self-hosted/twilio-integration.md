@@ -63,11 +63,11 @@ sequenceDiagram
     participant O as OneUptime
     participant T as Twilio
     participant P as Téléphone de l'intervenant
-    O->>T: Envoie un SMS ou lance un appel
+    O->>T: Envoie un SMS ou<br/>lance un appel
     T->>P: SMS ou appel vocal
-    T-->>O: Callback du statut de livraison du SMS
+    T-->>O: Callback du statut<br/>de livraison du SMS
     P->>T: Appuie sur 1 pour acquitter
-    T-->>O: Callback de la saisie au clavier
+    T-->>O: Callback de la<br/>saisie au clavier
 ```
 
 Un déploiement privé a besoin de la résolution DNS et d'un accès HTTPS sortant sur TCP 443 vers Twilio pour soumettre les SMS et les appels. Twilio recommande d'autoriser le HTTPS sortant vers `*.twilio.com`, car ses adresses d'API sont dynamiques ; voir [les adresses IP de Twilio](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Appliquez cela au trafic sortant de la charge de travail de l'application OneUptime, y compris les NetworkPolicies Kubernetes et les pare-feu externes.

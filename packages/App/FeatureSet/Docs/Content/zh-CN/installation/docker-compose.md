@@ -1,6 +1,6 @@
 # Docker Compose
 
-使用 Docker Compose 在一台 Linux 服务器上运行一个完整、免费的 OneUptime 实例。本页带你从一台全新的服务器走到一个运行中的实例，然后介绍 HTTPS、生产环境加固、备份、更新和卸载。
+使用 Docker Compose 在一台 Linux 服务器上运行一个完整、免费的 OneUptime 实例。本页带你从一台全新的服务器走到一个运行中的实例，然后介绍 HTTPS、生产环境加固、备份、更新和卸载。如果要开发 OneUptime 本身的代码，请参阅 [本地开发](/docs/installation/local-development)。
 
 :::cards
 - [安装 OneUptime](#安装-oneuptime): 从全新服务器到第一个账号，共六步。
@@ -16,7 +16,7 @@ Docker Compose 把 OneUptime 的每个部分作为容器运行在你的服务器
 ```mermaid title="Docker Compose 部署"
 flowchart TB
     Users["用户和代理"]
-    Proxy["你的反向代理（可选）"]
+    Proxy["你的反向代理<br/>（可选）"]
     Targets["你监控的站点"]
     subgraph Server["你的服务器"]
         Ingress["ingress"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|结果| Ingress
     Runner -->|任务| Ingress
     Probe -->|检查| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | 服务 | 镜像 | 作用 |
@@ -82,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | 仪表板、API、遥测数据接收和 Let's Encrypt 验证。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | 当 OneUptime 管理证书时为实例提供 HTTPS，并为自定义域名上的状态页面和仪表板提供 HTTPS。 |
-| 5400 | `postgres` | 在 `docker-compose.yml` 中设置 | 让 `npm run backup` 能访问 PostgreSQL。不要向互联网开放。 |
+| 5400 | `postgres` | 在 `docker-compose.yml` 中设置 | 让 `npm run backup` 和 `restore.sh` 从服务器本机访问 PostgreSQL。它只发布在 `127.0.0.1` 上。 |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 探针自身的服务器。服务器之外不需要访问它。 |
 | 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runner 自身的服务器。服务器之外不需要访问它。 |
 
@@ -139,7 +141,7 @@ grep -c "please-change-this" config.env
 | `ONEUPTIME_RUNNER_KEY` | 内置的 Runner。 |
 
 > [!IMPORTANT]
-> 请在首次启动前设置这些密钥，并在之后保持不变。PostgreSQL 只在创建数据库时采用密码，而之后更改 `ENCRYPTION_SECRET` 会让所有用旧密钥加密的值都无法读取。
+> 请在首次启动前设置这些密钥，并在之后保持不变。PostgreSQL 只在创建数据库时采用密码，而之后更改 `ENCRYPTION_SECRET` 会让所有用旧密钥加密的值都无法读取。如果首次启动时 `DATABASE_PASSWORD` 仍是占位值，`npm start` 会在 PostgreSQL 创建数据库之前为它设置一个随机值。
 
 ### 启动 OneUptime
 
@@ -175,6 +177,8 @@ npm start
 | **自定义域名上的状态页面** | 无需额外设置即可工作 | 你的代理也必须为这些域名提供服务 |
 
 如果你把状态页面或仪表板放在自定义域名上，让 OneUptime 处理 TLS 是更简单的方案：ingress 会自己申请并提供这些域名的证书。
+
+设置 `HTTP_PROTOCOL=https` 后，OneUptime 会生成 HTTPS 链接，把登录 Cookie 留在 HTTPS 上，并告诉浏览器只通过 HTTPS 访问你的 `HOST`。浏览器会在一年内、在这个名称的所有端口上遵守这一点；所以如果 `HOST` 将来需要重新通过普通 HTTP 应答，请提前一段时间把 `HSTS_MAX_AGE_SECONDS=0` 写进 `config.env`：浏览器会在下次访问时忘掉这条规则。
 
 ### 让 OneUptime 获取证书
 
@@ -300,6 +304,8 @@ server {
 证书路径是 Certbot 存放 Let's Encrypt 证书的位置；如果你的证书来自其他地方，请使用它自己的路径。使用 `sudo nginx -t && sudo systemctl reload nginx` 检查文件并重新加载 Nginx。
 :::
 
+两者都会发送 `X-Forwarded-Proto`，它告诉 OneUptime 访问者是通过 HTTPS 来的。其他任何代理也必须发送它，否则你自定义域名上的状态页面和仪表板的登录 Cookie 不会被留在 HTTPS 上。
+
 #### 通过代理打开你的实例
 
 打开 `https://oneuptime.example.com`。你应该会看到 OneUptime 的登录页面，使用的是你的代理的证书。
@@ -314,15 +320,28 @@ Docker Compose 在一台服务器上为每个服务只运行一个副本，适�
 
 | 方面 | 要做的事 |
 | --- | --- |
-| **密钥** | `config.env` 中没有任何值仍是 `please-change-this-to-random-value` 占位值。请参阅 [生成随机密钥](#生成随机密钥)。 |
+| **密钥** | `config.env` 中没有任何值仍是 `please-change-this-to-random-value` 占位值。请参阅 [生成随机密钥](#生成随机密钥)。对于以占位值 `DATABASE_PASSWORD` 启动过的安装，请参阅 [更改数据库密码](#更改数据库密码)。 |
 | **HTTPS** | 人们通过 HTTPS 访问 OneUptime，并且已设置 `HTTP_PROTOCOL=https`。请参阅 [设置 HTTPS](#设置-https)。 |
 | **注册** | 团队成员都有账号后，在 Admin Dashboard 的 **设置 > 认证** 下关闭 **允许注册**。 |
-| **防火墙** | 只有端口 80 和 443（以及 SSH）对互联网开放。PostgreSQL 为了备份发布在端口 5400 上：请用云服务商的防火墙关闭它，因为 `ufw` 规则不适用于 Docker 发布的端口。 |
+| **防火墙** | 只有端口 80 和 443（以及 SSH）对互联网开放。OneUptime 只在 `127.0.0.1` 上发布 PostgreSQL 的端口 5400。你自己发布的其他端口，请用云服务商的防火墙关闭：`ufw` 规则不适用于 Docker 发布的端口。 |
 | **备份** | 每天备份 PostgreSQL，并把副本移出服务器。请参阅 [备份与恢复](#备份与恢复)。 |
 | **电子邮件** | 已在 Admin Dashboard 的 **设置 > 通知 > 电子邮件** 下设置邮件服务器，以便 OneUptime 发送邀请和通知。请参阅 [SMTP](/docs/emails/smtp)。 |
 | **磁盘** | 持续关注剩余空间。ClickHouse 会随保留的遥测数据增长（请参阅 [规模与容量规划](/docs/installation/sizing)）；每个容器的日志上限为 1000 MB。 |
 | **更新** | 至少每周更新一次 OneUptime。新版本发布频繁。请参阅 [更新 OneUptime](#更新-oneuptime)。 |
 | **高可用性** | 如果需要，请迁移到 Kubernetes 上的 [Helm chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime)。 |
+
+### 更改数据库密码
+
+PostgreSQL 会一直使用创建时的密码，所以只更改 `config.env` 中的 `DATABASE_PASSWORD` 会让 OneUptime 无法连接自己的数据库。要为以占位值启动过的安装设置专属密码，请同时在 PostgreSQL 和 `config.env` 中更改它，然后重新启动 OneUptime：
+
+```bash
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+npm start
+```
+
+如果你设置了 `DATABASE_BACKUP_PASSWORD` 和 `DATABASE_RESTORE_PASSWORD`，也请为它们填入新值。
 
 ## 备份与恢复
 
@@ -344,6 +363,25 @@ npm run backup
 ### 把备份复制到服务器之外
 
 与数据库位于同一块磁盘上的备份，无法在这块磁盘损坏后幸存。
+:::
+
+只有服务器本机能访问 PostgreSQL：它在 `127.0.0.1` 的端口 5400 上应答。要从另一台机器备份它，请在那台机器上打开一条 SSH 隧道，然后连接那台机器自己的端口 5400：
+
+```bash
+ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
+```
+
+:::details 在私有网络地址上发布 PostgreSQL
+如果私有网络中的某个工具必须不经隧道访问 PostgreSQL，请同时把它发布在服务器在该网络中的地址上，并使用单独的端口。在 `docker-compose.yml` 旁边创建 `docker-compose.override.yml`；`npm start` 和 `npm run update` 会读取它：
+
+```yaml title="docker-compose.override.yml"
+services:
+  postgres:
+    ports:
+      - "10.0.0.5:5401:5432"
+```
+
+把 `10.0.0.5` 换成服务器自己的私有地址，绝不要使用公网地址，并先为 PostgreSQL 设置专属密码（请参阅 [更改数据库密码](#更改数据库密码)）。然后运行 `npm start`，PostgreSQL 也会在该地址的端口 5401 上应答。
 :::
 
 ClickHouse 把遥测数据保存在 Docker 卷 `oneuptime_clickhouse` 中，没有任何脚本会备份它。如果需要保留这些遥测数据，请使用 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) 等 ClickHouse 工具备份该卷，或在 OneUptime 停止时复制它。

@@ -21,7 +21,7 @@ Un incident entre dans OneUptime de cinq façons, et toutes aboutissent au même
 | En ouvrir un depuis votre propre code, un script ou un autre outil | `POST /api/incident`                                                       |
 | Laisser des personnes extérieures à votre équipe signaler un problème via un lien | Un [formulaire](/docs/forms/index)                                   |
 
-Les cinq écrivent le même modèle, si bien qu'un incident ouvert par une sonde ressemble exactement à celui qu'un intervenant a ouvert à la main — à quelques colonnes de suivi près, que le serveur renseigne sur les incidents automatiques. Les intégrations l'écrivent aussi : [Huntress](/docs/integrations/huntress) ouvre un incident pour chaque rapport d'incident que son SOC envoie.
+Les cinq écrivent le même modèle, si bien qu'un incident ouvert par une sonde ressemble exactement à celui qu'un intervenant a ouvert à la main — à quelques colonnes de suivi près, que le serveur renseigne sur les incidents automatiques. Les workflows l'écrivent aussi : le workflow [Huntress](/docs/integrations/huntress) ouvre un incident pour chaque rapport d'incident que son SOC envoie.
 
 > [!TIP]
 > Vous pouvez aussi déclarer un incident à partir d'alertes : **Déclarer un incident** dans une liste d'alertes, dans l'en-tête d'une alerte ou sur la page **Incidents liés** d'une alerte ouvre le même assistant, prérempli à partir des alertes, et les lie au nouvel incident. Une case du formulaire, cochée par défaut, prend aussi les alertes en compte, pour qu'elles cessent d'escalader. Voir [Alertes liées](/docs/incidents/linked-alerts).
@@ -116,7 +116,7 @@ Cette étape n'apparaît que lorsqu'au moins un champ personnalisé d'incident a
 
 ### Étape 3 — Astreinte et rôles
 
-- **Politique d'astreinte** — une sélection multiple des politiques d'astreinte à exécuter à la création de cet incident. Elle correspond à `onCallDutyPolicies` sur l'incident.
+- **Politique d'astreinte** — une sélection multiple des politiques d'astreinte à déclencher dès que l'incident est déclaré. Elle correspond à `onCallDutyPolicies` sur l'incident.
 - **Attribuer les rôles de l'incident** — qui prend chaque rôle que votre projet définit, une carte par rôle. Un rôle marqué **Principal** que vous laissez vide vous revient : vous le prenez quand l'incident est déclaré, et le récapitulatif le dit. Un rôle tenu par une seule personne l'indique dès qu'il en a une ; un rôle qui en accepte plusieurs garde son sélecteur.
 
 C'est le seul endroit où une politique d'astreinte est rattachée directement à un incident. Les gravités ne portent pas de politique d'astreinte — la gravité est une étiquette, et elle n'influe sur les alertes que comme *critère de correspondance* dans une règle d'astreinte. Les règles configurées dans **Incidents → Règles → Règles d'astreinte** ajoutent leurs politiques à ce que vous choisissez ici ; l'ensemble final exécuté est l'union sans doublons des deux. Un incident déclaré dans un état ultérieur n'en exécute aucune — voir [Déclaré déjà pris en compte ou résolu](#déclaré-déjà-pris-en-compte-ou-résolu).
@@ -250,14 +250,7 @@ L'appel de création fait plus qu'écrire une ligne :
 flowchart TB
     request["Requête de création"] --> fill["Le serveur comble les vides"]
     fill --> template["Modèle appliqué, le cas échéant"]
-    template --> rules
-    subgraph rules["Règles, dans cet ordre"]
-        direction LR
-        privacy["Confidentialité"] --> owner["Propriétaire"]
-        owner --> label["Étiquette"]
-        label --> oncall["Astreinte"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Règles, dans cet ordre:<br/>Confidentialité, Propriétaire, Étiquette,<br/>Astreinte, Runbook"]
     rules --> policies["Les politiques d'astreinte s'exécutent"]
     policies --> subscribers["Abonnés mis en file d'attente"]
     subscribers --> workflows["Les workflows se déclenchent"]
@@ -284,10 +277,10 @@ Choisir un **État initial** ultérieur — dans le formulaire, via l'**État in
 
 ```mermaid title="Ce que déclenche un nouvel incident, selon l'état dans lequel il démarre"
 flowchart TB
-    start{"État de départ"} -->|"État de création, par défaut"| live["Traité comme nouveau : alerte l'astreinte"]
-    start -->|"Pris en compte ou au-delà"| acked["Consigné : n'alerte personne"]
-    start -->|"Résolu ou au-delà"| over["Consigné comme terminé"]
-    over --> quiet["Ni regroupement, ni runbooks, ni IA, ni canal, ni SLA"]
+    start{"État de départ"} -->|"État de<br/>création,<br/>par défaut"| live["Traité comme<br/>nouveau<br/>: alerte<br/>l'astreinte"]
+    start -->|"Pris en compte<br/>ou au-delà"| acked["Consigné<br/>: n'alerte<br/>personne"]
+    start -->|"Résolu ou<br/>au-delà"| over["Consigné<br/>comme terminé"]
+    over --> quiet["Ni regroupement,<br/>ni runbooks,<br/>ni IA,<br/>ni canal, ni SLA"]
 ```
 
 - **À votre état pris en compte ou au-delà** — **Pris en compte**, ou tout état placé en dessous dans **Incidents → Paramètres → État de l'incident** — aucune politique d'astreinte ne s'exécute, personne n'est donc alerté. L'incident liste toujours ses politiques, celles que vous avez choisies et celles qu'ajoutent les règles d'astreinte, et son fil d'activité dit pourquoi en une ligne : _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Son SLA, si une règle lui en donne un, démarre en étant déjà marqué comme répondu. Tout le reste ci-dessous s'exécute comme pour n'importe quel nouvel incident.

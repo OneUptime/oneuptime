@@ -10,7 +10,7 @@ Send OneUptime's email through your own mail server. A project adds SMTP configs
 flowchart TB
     SP["A status page's email"] --> Q{"Custom SMTP Config<br/>picked for the page?"}
     Q -->|"Yes"| P["The project's SMTP config"]
-    Q -->|"No"| D["OneUptime's own mail server"]
+    Q -->|"No"| D["OneUptime's<br/>own mail server"]
     E["All other OneUptime email"] --> D
 ```
 
@@ -61,7 +61,7 @@ These are the settings under **More fields**:
 | Field                   | What it does                                                                                                                                                                                                                              |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Transport**           | `SMTP` (the default), or `Microsoft Graph` for a Microsoft 365 tenant that has SMTP AUTH turned off. Picking Microsoft Graph hides the hostname, port, username and password, and shows the OAuth fields.                                 |
-| **Require TLS**         | On for a new project config. Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted. |
+| **Require TLS**         | On for a new project config. Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted. When it is off, mail on other ports is encrypted only if the server offers it. |
 | **Authentication Type** | `Username and Password` (the default), `OAuth`, or `None` for a relay that needs no sign-in.                                                                                                                                              |
 | **OAuth fields**        | **OAuth Provider Type**, **OAuth Client ID**, **OAuth Client Secret**, **OAuth Token URL** and **OAuth Scope**, shown once OAuth or Microsoft Graph is picked.                                                                            |
 | **Description**         | A note for your team (project configs only).                                                                                                                                                                                              |

@@ -123,7 +123,7 @@ Um Elemente zu archivieren, wählen Sie sie in **Alle Elemente** aus und archivi
 
 ## Beziehungen und Topologie
 
-OneUptime verknüpft Elemente mit gerichteten Beziehungen, sobald es sie beobachtet. **Inventar → Topologiekarte** zeichnet sie, und die Seite **Verbindungen** eines Elements listet seine eigenen auf.
+OneUptime verknüpft Elemente mit gerichteten Beziehungen, sobald es sie beobachtet. **Inventar → Topologiekarte** zeichnet sie, und die Seite **Verbindungen** eines Elements listet seine eigenen auf. Siehe [Topologie](/docs/telemetry/topology).
 
 | Beziehung | Zum Beispiel |
 | --- | --- |

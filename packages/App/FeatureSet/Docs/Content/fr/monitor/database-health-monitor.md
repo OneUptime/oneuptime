@@ -50,12 +50,12 @@ Chaque base de données qu'utilisent vos applications, clusters et hôtes — ce
 
 ```mermaid title="Une vérification, et la seule étape qui peut mettre le moniteur hors ligne"
 flowchart TB
-    connect["Se connecter à la base"] --> probe{"Requête de test OK ?"}
-    probe -->|"Non"| offline["Moniteur hors ligne"]
-    probe -->|"Oui"| groups["Exécuter chaque groupe de métriques"]
+    connect["Se connecter<br/>à la base"] --> probe{"Requête de<br/>test OK ?"}
+    probe -->|"Non"| offline["Moniteur<br/>hors ligne"]
+    probe -->|"Oui"| groups["Exécuter<br/>chaque groupe<br/>de métriques"]
     groups --> group{"Groupe collecté ?"}
-    group -->|"Oui"| metrics["Métriques remontées"]
-    group -->|"Non"| issue["Métriques absentes, problème noté"]
+    group -->|"Oui"| metrics["Métriques<br/>remontées"]
+    group -->|"Non"| issue["Métriques<br/>absentes,<br/>problème noté"]
     metrics --> criteria["Critères évalués"]
     issue --> criteria
 ```
@@ -168,7 +168,7 @@ Choisissez le **Type de base de données**, puis renseignez l'hôte, le port, le
 
 ### Choisir ce qui est collecté
 
-Laissez chaque groupe de **Groupes de métriques** activé, sauf si vous avez une raison d'en désactiver un — voir [Groupes de métriques](#groupes-de-métriques).
+Chaque groupe de **Groupes de métriques**, dans **Plus de champs**, est activé au départ. Laissez-les activés, sauf si vous avez une raison d'en désactiver un — voir [Groupes de métriques](#groupes-de-métriques).
 
 ### Tester la connexion
 
@@ -191,13 +191,14 @@ Sélectionnez les **Sondes** qui peuvent joindre la base et un **Intervalle de s
 | **Hôte** | L'hôte de la base joignable depuis la sonde (par exemple `db.internal`). |
 | **Port** | Le port de la base. |
 | **Nom de la base de données** | La base à laquelle se connecter. Les métriques propres à la base (taille, taux de succès du cache, débordement temporaire) sont remontées pour cette base ; les métriques propres au serveur (connexions, temps de fonctionnement, réplication) pour l'ensemble du serveur — sauf sur Azure SQL Database, où les connexions ne sont comptées que pour la base surveillée. |
-| **Use Windows Integrated Authentication** | Microsoft SQL Server uniquement. S'authentifier avec l'identité du processus de la sonde au lieu d'un nom d'utilisateur et d'un mot de passe. Voir [Authentification Windows intégrée](/docs/monitor/sql-monitor#authentification-windows-intégrée) sur la page du moniteur de requête SQL — la configuration est identique. |
+| **Authentification** | Microsoft SQL Server uniquement : **Nom d'utilisateur et mot de passe**, par défaut, ou **Windows Integrated Authentication**, qui se connecte avec l'identité du processus de la sonde. Voir [Authentification Windows intégrée](/docs/monitor/sql-monitor#authentification-windows-intégrée) sur la page du moniteur de requête SQL — la configuration est identique. |
 | **Nom d'utilisateur** | L'utilisateur de surveillance. Obligatoire, sauf si vous utilisez l'authentification Windows intégrée. |
 | **Mot de passe** | Le mot de passe. Faites référence à un [secret de moniteur](/docs/monitor/monitor-secrets) avec `{{monitorSecrets.name}}` au lieu de le saisir en clair (voir [Utiliser un secret de moniteur](#utiliser-un-secret-de-moniteur-pour-le-mot-de-passe)). |
 | **Use SSL/TLS** | Se connecter via TLS. Une fois activé, vous pouvez désactiver **Verify server certificate** pour un certificat auto-signé. |
-| **Groupes de métriques** | Les groupes à exécuter : Connexions, Activité, Throughput, Locks and Blocking, Stockage, Replication et Maintenance. Tous sont activés par défaut ; voir [Groupes de métriques](#groupes-de-métriques). Les détails du moniteur les listent sous **Groupes de métriques collectés**. |
 
 ### Champs supplémentaires
+
+**Groupes de métriques** se trouve ici : les groupes à exécuter, parmi Connexions, Activité, Throughput, Locks and Blocking, Stockage, Replication et Maintenance. Tous sont activés par défaut ; voir [Groupes de métriques](#groupes-de-métriques). Les détails du moniteur les listent sous **Groupes de métriques collectés**.
 
 | Champ | Par défaut | Maximum | Ce qu'il limite |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL ne les mesure que lorsque `track_io_timing` est activé, et il est d�
 :::
 
 :::details Metric Groups Failed est au-dessus de 0 à chaque vérification
-Un groupe ne peut être collecté à aucune vérification, donc le même problème de collecte se répète. Le résumé du moniteur nomme le groupe, la raison et le `GRANT` qui le corrige. Exécutez ce droit ou, si vous ne pouvez pas l'obtenir, désactivez ce groupe dans **Groupes de métriques** pour que le problème cesse de se répéter.
+Un groupe ne peut être collecté à aucune vérification, donc le même problème de collecte se répète. Le résumé du moniteur nomme le groupe, la raison et le `GRANT` qui le corrige. Exécutez ce droit ou, si vous ne pouvez pas l'obtenir, désactivez ce groupe dans **Plus de champs → Groupes de métriques** pour que le problème cesse de se répéter.
 :::
 
 ## Étapes suivantes

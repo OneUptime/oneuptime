@@ -223,14 +223,14 @@ Un cambio de estado puede notificar a los suscriptores de tu página de estado, 
 
 ```mermaid title="¿Llega un cambio de estado a los suscriptores?"
 flowchart TB
-    change["Cambio de estado guardado"] --> box{"¿Casilla Notificar activada?"}
+    change["Cambio de<br/>estado guardado"] --> box{"¿Casilla Notificar<br/>activada?"}
     box -->|No| skipped["Omitido"]
     box -->|Sí| note{"¿Con una nota pública?"}
     note -->|Sí| carried["La nota es el mensaje"]
     note -->|No| queued["Fila en cola"]
     queued --> gates{"¿Supera cada barrera?"}
-    gates -->|No| reason["Omitido, motivo registrado"]
-    gates -->|Sí| sent["Suscriptores notificados"]
+    gates -->|No| reason["Omitido, motivo<br/>registrado"]
+    gates -->|Sí| sent["Suscriptores<br/>notificados"]
 ```
 
 La notificación se solicita por fila de cronología con **Notificar a suscriptores de la página de estado** (`shouldStatusPageSubscribersBeNotified`), la casilla del diálogo de cambio de estado y del formulario manual de la cronología. En el diálogo de cambio de estado empieza desactivada cuando el incidente se declaró sin notificar a los suscriptores. La misma casilla decide también si la nota pública del diálogo notifica a alguien. Cuando está desactivada, la fila se guarda con un estado omitido y una explicación. Cuando está activada, la fila se pone en cola y una tarea en segundo plano la recoge: la tarea se ejecuta cada minuto, así que la entrega es rápida pero no instantánea.
@@ -249,6 +249,8 @@ La notificación se solicita por fila de cronología con **Notificar a suscripto
 
 **Publicar la nota necesita su propio permiso.** Cambiar el estado y publicar una nota pública son permisos distintos (**Create Incident State Timeline** y **Create Incident Status Page Note** en un rol personalizado; los roles predefinidos de incidente y de proyecto tienen ambos). Cambiar el estado no requiere permiso para editar el incidente: consulta [Cambiar un estado](/docs/permissions/index#cambiar-un-estado). A quien puede cambiar el estado de un incidente pero no publicar notas públicas no se le ofrece **Añadir una nota pública** en el diálogo ni en la acción masiva **Cambiar estado**. Un cambio de estado que envíe con una nota por la API se rechaza entero, con un mensaje que dice que el estado no se cambió y por qué, para que nunca se registre un cambio como comunicado por una nota que nunca se publicó. Sin la nota, el cambio se aplica. Las alertas, los episodios de alerta y los episodios de incidente ofrecen en su lugar una nota privada con un cambio de estado (**Añadir una nota privada**), y funciona igual: publicarla requiere el permiso propio de la nota (**Create Alert Internal Note**, **Create Alert Episode Internal Note** o **Create Incident Episode Internal Note** en un rol personalizado; los roles predefinidos de alerta, de incidente y de proyecto los tienen), y un cambio de estado enviado con una nota privada por alguien sin ese permiso se rechaza entero, así que el estado no cambia.
 
+**El cambio de estado de un incidente privado lleva una nota privada.** Un incidente privado no admite notas públicas, así que su diálogo de cambio de estado pliega **Añadir una nota privada** en lugar de **Añadir una nota pública**, no pregunta por los suscriptores y ofrece la nota a quien pueda publicar una nota privada en él. La acción masiva **Cambiar estado** añade su nota como nota privada a cada incidente privado que mueve y no avisa a nadie de ellos. Un cambio de estado enviado a través de la API con una nota pública en un incidente privado se rechaza entero: «The state was not changed: it comes with a public note, and this incident is private, so public notes cannot be added to it. Post the note as a private note, or leave it out.»
+
 **Enviado significa enviado a cada suscriptor.** La tarea espera cada mensaje y lo cuenta como enviado o fallido, por página de estado y canal, y el mensaje de estado de la fila lista esos recuentos. Un solo mensaje fallido, o un envío que se quedó sin tiempo o se interrumpió, deja la fila como **Fallido**. Consulta [Suscriptores y anuncios](/docs/status-pages/subscribers#comprobar-lo-que-se-envió).
 
 Para saber quién recibe estos mensajes y cómo se eligen las plantillas, consulta [Suscriptores y anuncios](/docs/status-pages/subscribers).
@@ -262,7 +264,7 @@ Cuatro cosas distintas deciden si un incidente aparece siquiera en una página p
 - **La página está al alcance del incidente.** La página lista uno de los monitores del incidente y, si el incidente está limitado a algunas páginas de estado, es una de ellas. Una página con **Mostrar solo incidentes limitados a esta página** activado solo muestra los incidentes limitados a ella. Consulta [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience).
 - **El estado actual está por encima del estado resuelto.** Esto es lo que retira un incidente de la sección activa: la consulta de la página de estado obtiene los incidentes cuyo estado actual está por encima de tu estado resuelto, así que el estado resuelto y cualquier estado posterior retiran el incidente. No archivas ni cierras nada: lo resuelves, y pasa al historial.
 
-**Los incidentes privados nunca aparecen.** Activar **Incidente privado** oculta el incidente en todas las páginas de estado, independientemente de los interruptores anteriores, y lo restringe a sus propietarios más los administradores y propietarios del proyecto. Nada de él llega tampoco a un suscriptor de la página de estado: ni su creación, ni sus cambios de estado, ni sus notas públicas, ni su post mortem. Las imágenes de su descripción, su post mortem, sus campos personalizados y sus notas públicas no son visibles para todo el mundo mientras es privado.
+**Los incidentes privados nunca aparecen.** Activar **Incidente privado** oculta el incidente en todas las páginas de estado, independientemente de los interruptores anteriores, y lo restringe a sus propietarios más los administradores y propietarios del proyecto. Nada de él llega tampoco a un suscriptor de la página de estado: ni su creación, ni sus cambios de estado, ni sus notas públicas, ni su post mortem. Las imágenes de su descripción, su post mortem, sus campos personalizados y sus notas públicas no son visibles para todo el mundo mientras es privado. Tampoco admite notas públicas: consulta [Los incidentes privados solo admiten notas privadas](/docs/incidents/notes-owners-and-feed#los-incidentes-privados-solo-admiten-notas-privadas).
 
 Los dos interruptores se mantienen sincronizados, así que la página **Ajustes** del incidente siempre muestra lo que hacen las páginas de estado:
 

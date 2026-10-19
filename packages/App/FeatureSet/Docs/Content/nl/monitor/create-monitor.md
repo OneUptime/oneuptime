@@ -19,7 +19,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**. Het formulier opent op de ee
 De eerste vraag is het **Monitortype**: wat wilt u bewaken?
 
 - De zes types die het vaakst worden gemaakt staan bovenaan: **Website**, **API**, **Ping**, **Poort**, **SSL Certificate** en **Incoming Request**, voor heartbeats van cronjobs en webhooks.
-- **Meer monitortypen** toont alle andere types onder hun categorie, zoals **Infrastructuur** (Kubernetes, Docker, host) en **Telemetrie** (logboeken, metrieken, traces). **Manual**, een monitor waarvan u de status zelf instelt, staat onder **Overig**.
+- **Meer monitortypen** toont alle andere types onder hun categorie, zoals **Infrastructuur** (Kubernetes, Docker, host) en **Telemetrie** (logboeken, metrieken, traces). **Manual**, een monitor waarvan u de status zelf instelt, en **Sondestatus**, die u laat weten wanneer een probe de verbinding verliest, staan onder **Overig**.
 - Of typ in het zoekvak. Het kent de woorden die u al gebruikt, zoals `k8s`, `postgres`, `heartbeat` of `tls`, en **Enter** kiest de eerste treffer.
 
 Het gekozen type krimpt tot één regel. Klik op **Wijzigen** om een ander te kiezen; druk tijdens het kiezen op **Escape** om het type te houden dat u had.
@@ -70,7 +70,7 @@ flowchart TB
     end
 ```
 
-Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de standaardcriteria, lossen zichzelf op zodra hun criterium niet meer overeenkomt. Een monitor die door meer dan één sonde wordt gecontroleerd, verandert pas wanneer zijn sondes het eens zijn: standaard moet elke ingeschakelde en verbonden sonde tot hetzelfde resultaat komen. Om minder te eisen, stelt u **Sonde-overeenstemming** in op de pagina **Configuratie → Sondes en interval** van de monitor.
+Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de standaardcriteria, lossen zichzelf op zodra hun criterium niet meer overeenkomt. Een monitor die door meer dan één sonde wordt gecontroleerd, verandert pas wanneer zijn sondes het eens zijn: standaard moet elke ingeschakelde en verbonden sonde tot hetzelfde resultaat komen. Om minder te eisen, stelt u **Sonde-overeenstemming** in op de pagina **Configuratie → Sondes en interval** van de monitor. Alles wat een criterium kan bevatten, en de statussen die een monitor kan tonen, vindt u in [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses).
 
 ## Sondes en interval
 
@@ -101,6 +101,8 @@ Elk monitortype heeft een eigen pagina met zijn instellingen, zijn standaardcrit
 :::cards
 - [Website-monitor](/docs/monitor/website-monitor): Controleren of een pagina laadt, en wat die antwoordt.
 - [API-monitor](/docs/monitor/api-monitor): Een endpoint aanroepen met een methode, headers en een body.
+- [Monitorcriteria en statussen](/docs/monitor/criteria-and-statuses): Wat de status van elke monitor bepaalt.
 - [Monitorsjablonen](/docs/monitor/monitor-templates): Veel monitoren maken vanuit één configuratie en ze gelijk houden.
+- [Monitorgroepen](/docs/monitor/monitor-groups): Meerdere monitoren tot één status samenvoegen.
 - [Incidenten](/docs/incidents/index): Wat er gebeurt nadat een monitor een incident meldt.
 :::

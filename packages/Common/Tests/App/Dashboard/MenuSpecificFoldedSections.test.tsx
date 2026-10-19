@@ -463,26 +463,39 @@ describe("other resource pages that fold a section of their own", () => {
     expect(isExpanded("Branding")).toBe(false);
   });
 
-  test("an alert: who it paged folds with its logs", async () => {
+  /*
+   * An alert's menu has an incident's sections, and they fold the same
+   * way: what the alert is and who works on it stay open, its logs fold.
+   */
+  test("an alert: its sections fold as an incident's do", async () => {
     goTo(viewRoute(PageMap.ALERT_VIEW));
     await renderMenu(<AlertViewSideMenu modelId={new ObjectID(MODEL_ID)} />);
 
     expect(sectionStates()).toEqual([
-      { title: "Basic", expanded: true },
-      { title: "On Call", expanded: false },
-      { title: "Logs", expanded: false },
-      { title: "Alert Notes", expanded: true },
+      { title: "Overview", expanded: true },
+      { title: "Investigation", expanded: true },
+      { title: "Team", expanded: true },
+      { title: "Notifications", expanded: false },
+      { title: "Notes", expanded: true },
       { title: "Developer", expanded: false },
       { title: "Advanced", expanded: false },
     ]);
   });
 
-  test("an alert's On Call Executions page opens On Call", async () => {
+  test("an alert's On-Call Executions page is under Team, as an incident's is", async () => {
     goTo(viewRoute(PageMap.ALERT_VIEW_ON_CALL_POLICY_EXECUTION_LOGS));
     await renderMenu(<AlertViewSideMenu modelId={new ObjectID(MODEL_ID)} />);
 
-    expect(isExpanded("On Call")).toBe(true);
-    expect(activeLinkTitles()).toEqual(["On Call Executions"]);
+    expect(isExpanded("Team")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["On-Call Executions"]);
+  });
+
+  test("an alert's Notification Logs page opens Notifications", async () => {
+    goTo(viewRoute(PageMap.ALERT_VIEW_NOTIFICATION_LOGS));
+    await renderMenu(<AlertViewSideMenu modelId={new ObjectID(MODEL_ID)} />);
+
+    expect(isExpanded("Notifications")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Notification Logs"]);
   });
 
   test("a Ceph cluster: its cluster log folds, its storage stays open", async () => {

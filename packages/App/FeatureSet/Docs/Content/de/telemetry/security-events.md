@@ -211,7 +211,7 @@ Ein Feld ist entweder ein Kurzname (`severity`, `class`, `category`, `activity`,
 
 ### Facetten
 
-Die Seitenleiste zählt die Ereignisse des Zeitfensters nach **Quelle**, **Schweregrad**, **Ereignisklasse**, **Kategorie**, **Aktivität**, **Status**, **Anbieter**, **Produkt**, **Erkennungsregel**, **Quellbenutzer** und **Quell-Host**. Klicken Sie auf einen Wert, um nur seine Ereignisse zu behalten, oder auf das Minus daneben, um sie auszuschließen. Das Diagramm und jede Zählung beschreiben genau die Ereignisse in der Liste.
+Die Seitenleiste zählt die Ereignisse des Zeitfensters nach **Quelle**, **Schweregrad**, **Ereignisklasse**, **Kategorie**, **Aktivität**, **Status**, **Anbieter**, **Produkt**, **Erkennungsregel**, **Quellbenutzer** und **Quell-Host**. Klicken Sie auf einen Wert, um nur seine Ereignisse zu behalten, oder auf das Minus daneben, um sie auszuschließen. Ein erneuter Klick macht das rückgängig. Das Diagramm und jede Zählung beschreiben genau die Ereignisse in der Liste.
 
 ### Korrelieren
 
@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Öffnen Sie **Produkte → Sicherheitsereignisse → Erkennungsregeln** und klicken Sie auf **Erkennungsregel erstellen**.
-2. Füllen Sie unter **Grundinformationen** das Feld **Name** aus, und lassen Sie **Aktiviert** eingeschaltet.
-3. Fügen Sie unter **Sigma-Regel** das YAML der Regel in **Sigma-Regel (YAML)** ein. Es wird beim Speichern geparst, sodass ein Fehler im Formular erscheint.
-4. Legen Sie unter **Auswertung** fest, wie oft sie läuft und wie viele Treffer sie braucht; siehe [Auswertungseinstellungen](#auswertungseinstellungen).
-5. Lassen Sie unter **Security Cases** die Option **Open a Case on Match** eingeschaltet, um die Treffer der Regel nach dem Wert, nach dem sie gruppiert, zu Fällen zusammenzufassen.
-6. Wählen Sie unter **Bei Treffer**, was ein Treffer sonst noch bewirkt: **Bei Treffer Warnung erstellen** (an), **Bei Treffer Vorfall erstellen** (aus) und **Bei Treffer Erkennungsbefund schreiben** (an), mit optionalem **Warnungsschweregrad** und **Vorfallsschweregrad**.
+2. Fügen Sie unter **Sigma-Regel** das YAML der Regel in **Sigma-Regel (YAML)** ein. Es wird beim Speichern geparst, sodass ein Fehler im Formular erscheint.
+3. Der **Name** füllt sich aus dem `title` der Regel: Überschreiben Sie ihn, um die Regel anders zu nennen. Eine neue Regel läuft; **Aktiviert** steht in ihrem Bearbeitungsformular.
+4. Lassen Sie unter **Bei Treffer** die Option **Open a Case on Match** eingeschaltet, um die Treffer der Regel nach dem Wert, nach dem sie gruppiert, zu Fällen zusammenzufassen.
+5. Wählen Sie unter **Warnungen und Vorfälle**, was ein Treffer sonst noch auslöst: **Warnung erstellen** (Standard), **Vorfall melden**, **Beide** oder **Keines von beiden**, mit optionalem **Warnungsschweregrad** oder **Vorfallsschweregrad**.
+6. **Weitere Felder** enthält die **Beschreibung**, **Bei Treffer Erkennungsbefund schreiben** (an) und wie Treffer gezählt werden; siehe [Auswertungseinstellungen](#auswertungseinstellungen).
 :::
 
 Eine erste Regel, die auf fehlgeschlagene Anmeldungen von außerhalb von `10.x.x.x` passt:
@@ -372,11 +372,11 @@ Prüfen Sie, dass sie **Aktiviert** ist, und lesen Sie **Zuletzt ausgewertet** u
 :::
 
 :::details Eine Regel hat gepasst, aber keine Warnung geöffnet
-**Bei Treffer Warnung erstellen** ist aus, oder eine Warnung für dieselbe Regel und denselben Gruppenwert ist noch offen, und spätere Treffer fließen in sie ein. Ein Projekt braucht mindestens einen Warnungsschweregrad, damit Regeln Warnungen öffnen.
+**Warnungen und Vorfälle** steht auf **Vorfall melden** oder **Keines von beiden**, oder eine Warnung für dieselbe Regel und denselben Gruppenwert ist noch offen, und spätere Treffer fließen in sie ein. Ein Projekt braucht mindestens einen Warnungsschweregrad, damit Regeln Warnungen öffnen.
 :::
 
 :::details Eine Regel öffnet zu viele Warnungen
-Jeder Wert von **Nach Feld gruppieren** bekommt seine eigene Warnung: Gruppieren Sie nach etwas Gröberem, heben Sie den Schwellenwert an oder fügen Sie eine eindeutige Zählung hinzu. Geht es Ihnen um die Rate statt um jeden Treffer, schalten Sie **Bei Treffer Warnung erstellen** aus und setzen Sie einen Monitor auf die Befunde der Regel.
+Jeder Wert von **Nach Feld gruppieren** bekommt seine eigene Warnung: Gruppieren Sie nach etwas Gröberem, heben Sie den Schwellenwert an oder fügen Sie eine eindeutige Zählung hinzu. Geht es Ihnen um die Rate statt um jeden Treffer, stellen Sie **Warnungen und Vorfälle** auf **Keines von beiden** und setzen Sie einen Monitor auf die Befunde der Regel.
 :::
 
 ## Nächste Schritte

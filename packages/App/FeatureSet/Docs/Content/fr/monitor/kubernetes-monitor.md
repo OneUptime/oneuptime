@@ -14,7 +14,7 @@ Un moniteur Kubernetes alerte sur les métriques que l'agent Kubernetes de OneUp
 L'agent envoie les métriques du cluster à OneUptime via OTLP, chacune marquée du nom du cluster (`k8s.cluster.name`, le `clusterName` du chart). Les premières données d'un nouveau nom enregistrent le cluster sous **Kubernetes**, et dès lors le cluster peut être choisi dans un moniteur Kubernetes. Chaque minute, le moniteur interroge ces métriques sur sa **Plage temporelle**, les agrège et compare le résultat à ses critères.
 
 ```mermaid title="Des métriques du cluster à l'incident"
-flowchart LR
+flowchart TB
     agent["Agent Kubernetes"] -->|"Métriques OTLP"| metrics["Métriques du cluster"]
     metrics --> monitor["Moniteur Kubernetes"]
     monitor -->|"Critères remplis"| incident["Alerte ou incident"]
@@ -107,7 +107,7 @@ Ces moniteurs évaluent toujours la **Metric Value** – la valeur de la requêt
 | Somme | Somme de toutes les valeurs |
 | Maximum Value | Valeur la plus élevée de la fenêtre de temps |
 | Minimum Value | Valeur la plus basse de la fenêtre de temps |
-| All Values | Toutes les valeurs doivent correspondre au critère |
+| All Values | Toutes les valeurs doivent correspondre au critère et couvrir toute la fenêtre de temps |
 | Any Value | Au moins une valeur doit correspondre |
 
 ### Conditions

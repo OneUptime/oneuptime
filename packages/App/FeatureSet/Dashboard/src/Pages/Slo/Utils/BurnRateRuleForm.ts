@@ -20,6 +20,18 @@ import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import type { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
+import {
+  BURN_RATE_DECLARES_ANSWERS,
+  BURN_RATE_DECLARES_COPY,
+  BURN_RATE_DECLARES_FIELD_KEY,
+  BURN_RATE_DECLARES_FIELD_TITLE,
+  BURN_RATE_DECLARES_REQUIRED,
+  BurnRateDeclares,
+  getBurnRateDeclares,
+  getValuesForBurnRateDeclares,
+  isBurnRateDeclares,
+} from "./BurnRateDeclares";
 import {
   translateTemplate,
   translationKey,
@@ -127,17 +139,9 @@ export const willDeclareIncident: ReadsBurnRateOutputFlagFunction = (
 /*
  * A rule that declares nothing is rejected by
  * ServiceLevelObjectiveBurnRateRuleService.onBeforeCreate/onBeforeUpdate.
- * Mirrored here for the same reason the window and threshold validators are:
- * the server's rejection only surfaces after a failed round-trip that
- * re-renders the raw exception, and "turn the alert off, forget to turn the
- * incident on" is the obvious way into it.
- *
- * Both toggles live on ONE form step on purpose. Form validation only runs for
- * the step being left (Validation.validate skips every field whose stepId is
- * not the current one), so a validator that has to see both flags could not
- * span two steps: turning the alert off would fail the step the user was
- * leaving, before they ever reached the incident toggle they were on their way
- * to.
+ * The form asks one question with three answers now (BurnRateDeclares), none
+ * of which declares nothing, so this only speaks for a form whose two
+ * columns were both off when it opened - a rule written that way by hand.
  */
 export type ValidateBurnRateOutputsFunction = (
   value: FormValues<ServiceLevelObjectiveBurnRateRule>,
@@ -147,7 +151,7 @@ export const validateBurnRateOutputs: ValidateBurnRateOutputsFunction = (
   value: FormValues<ServiceLevelObjectiveBurnRateRule>,
 ): string | null => {
   if (!willCreateAlert(value) && !willDeclareIncident(value)) {
-    return "This rule would do nothing. Turn on Create Alert, Declare Incident, or both.";
+    return BURN_RATE_DECLARES_REQUIRED;
   }
 
   return null;
@@ -308,6 +312,22 @@ export const BURN_RATE_TEMPLATE_VARIABLES_MARKDOWN_TABLE: string = [
  */
 export const BURN_RATE_TEMPLATE_VARIABLES_DESCRIPTION: string =
   "When the rule fires, these variables are filled in with the SLO's values at that moment.";
+
+/*
+ * When it fires: the three answers, each with its line.
+ */
+export const getBurnRateDeclaresChoices: () => Array<RadioButton> =
+  (): Array<RadioButton> => {
+    return BURN_RATE_DECLARES_ANSWERS.map(
+      (declares: BurnRateDeclares): RadioButton => {
+        return {
+          value: declares,
+          title: BURN_RATE_DECLARES_COPY[declares].title,
+          description: BURN_RATE_DECLARES_COPY[declares].description,
+        };
+      },
+    );
+  };
 
 /*
  * Each output has one step, matching the monitor form: title and severity
@@ -489,8 +509,14 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     fieldType: FormFieldSchemaType.Text,
     required: true,
     placeholder: "Fast burn",
+    // The column's "Name of this burn rate rule" only says the title again.
+    hideColumnDescription: true,
     stepId: "rule",
   },
+  /*
+   * A new rule starts enabled (the column's default), so the switch is on
+   * the Edit form only, as on every rule form (RuleEnabledField).
+   */
   {
     field: {
       isEnabled: true,
@@ -498,12 +524,9 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     title: "Enabled",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
-    description: "Enable or disable this burn rate rule.",
-    /*
-     * The column default. Without it the toggle renders OFF on a
-     * create form while the row is in fact written enabled — the
-     * form would be telling the user the opposite of what it does.
-     */
+    description: "Off stops this rule from firing. Its history is kept.",
+    doNotShowWhenCreating: true,
+    // The column default, should a form ever open without a stored value.
     defaultValue: true,
     stepId: "rule",
   },
@@ -564,7 +587,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Re-fire Suppression (Minutes)",
     description:
-      "Quiet period after an alert or incident resolves before this rule may declare that same record again. Each output is suppressed independently. Defaults to the long window.",
+      "How long after an alert or incident resolves before this rule may open another. Defaults to the long window.",
     fieldType: FormFieldSchemaType.Number,
     required: false,
     placeholder: "60",
@@ -574,31 +597,64 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     stepId: "burn-window",
   },
   /*
-   * Both toggles, on one step, before any per-output step. The validator that
-   * forbids a rule with no output has to see both values in one pass, and a
-   * step is the unit validation runs over.
-   *
-   * It hangs off the ALERT toggle, and only off that one. Validation hands a
-   * customValidation the whole form's values, so one attachment covers both
-   * flags — but it only runs a field's validators when that field has a value
-   * (Validation.validate's `name in entries` gate). `shouldCreateAlert` always
-   * does, because its defaultValue is written into the form values on open;
-   * `shouldCreateIncident` has no default, so an untouched incident toggle
-   * never validates anything. Attaching to both would just render the same
-   * sentence twice under two adjacent toggles.
+   * When it fires: one choice of three (BurnRateDeclares) where Create
+   * Alert and Declare Incident were two switches that could both be off.
+   * Form-only: it starts on the answer the rule's two columns make (Create an
+   * alert for a new rule), and a pick writes both columns, which are
+   * registered just below, unseen, so the form loads and saves them.
    */
+  {
+    overrideField: {
+      shouldCreateAlert: true,
+    },
+    overrideFieldKey: BURN_RATE_DECLARES_FIELD_KEY,
+    formOnly: true,
+    title: BURN_RATE_DECLARES_FIELD_TITLE,
+    fieldType: FormFieldSchemaType.RadioButton,
+    radioButtonOptions: getBurnRateDeclaresChoices(),
+    required: true,
+    // Each answer says what it opens; the column's sentence is half of it.
+    hideColumnDescription: true,
+    dataTestId: "burn-rate-declares",
+    getDefaultValue: (
+      values: FormValues<ServiceLevelObjectiveBurnRateRule>,
+    ): string => {
+      return getBurnRateDeclares(values) || "";
+    },
+    onChange: (
+      value: unknown,
+      currentValues: FormValues<ServiceLevelObjectiveBurnRateRule>,
+      setNewFormValues: (
+        values: FormValues<ServiceLevelObjectiveBurnRateRule>,
+      ) => void,
+    ): void => {
+      if (!isBurnRateDeclares(value)) {
+        return;
+      }
+
+      setNewFormValues(
+        getValuesForBurnRateDeclares({
+          values: currentValues,
+          declares: value,
+        }),
+      );
+    },
+    customValidation: validateBurnRateOutputs,
+    stepId: "declares",
+  },
   {
     field: {
       shouldCreateAlert: true,
     },
     title: "Create Alert",
-    description:
-      "Raise an Alert when this rule fires. A rule must create an alert, declare an incident, or both.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
-    // The column default, so the toggle shows what the row will hold.
+    // The column default: a new rule raises an alert.
     defaultValue: true,
-    customValidation: validateBurnRateOutputs,
+    hideColumnDescription: true,
+    showIf: (): boolean => {
+      return false;
+    },
     stepId: "declares",
   },
   {
@@ -606,10 +662,12 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
       shouldCreateIncident: true,
     },
     title: "Declare Incident",
-    description:
-      "Declare an Incident when this rule fires. Burn rate incidents are never published to status pages and never notify subscribers.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
+    hideColumnDescription: true,
+    showIf: (): boolean => {
+      return false;
+    },
     stepId: "declares",
   },
   /*
@@ -625,7 +683,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Add SLO Owners as Owners",
     description:
-      "Also add this SLO's owners - its owner users and the members of its owner teams - as owners of every alert and incident this rule creates. SLO owners are already notified when the SLO's status changes, so turning this on can notify them twice.",
+      "Add this SLO's owners as owners of every alert and incident this rule creates. They may be notified twice.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     stepId: "declares",
@@ -746,7 +804,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Auto Resolve Alert",
     description:
-      "Resolve the alert automatically when the burn rate over the long window drops back below the threshold. Turn this off to keep the alert open until someone resolves it - the rule will not raise another alert while it is open.",
+      "Resolve the alert when the long window's burn rate drops below the threshold.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     /*
@@ -899,7 +957,7 @@ export const BURN_RATE_RULE_FORM_FIELDS: Array<
     },
     title: "Auto Resolve Incident",
     description:
-      "Resolve the incident automatically when the burn rate over the long window drops back below the threshold. Turn this off to keep the incident open until someone resolves it - the rule will not declare another incident while it is open.",
+      "Resolve the incident when the long window's burn rate drops below the threshold.",
     fieldType: FormFieldSchemaType.Toggle,
     required: false,
     // TRUE, as on the alert toggle above.

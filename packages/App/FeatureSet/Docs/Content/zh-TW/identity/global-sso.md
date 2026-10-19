@@ -87,12 +87,14 @@ flowchart TB
 
 已經是某個附加專案成員的人，會保留其在該專案中的團隊。
 
-提供者上的兩個開關會改變這個行為。兩者預設都是關閉狀態，並收合在 **更多欄位** 中：
+提供者上的兩個問題會改變這個行為。兩者都收合在 **更多欄位** 中，並從第一個答案開始：
 
-| 開關 | 開啟時的作用 |
+| 問題 | 答案 |
 | --- | --- |
-| **Disable Sign Up with SSO** | 即使已附加專案，人員也必須先被邀請加入某個專案，才能使用此提供者登入。首次登入時不會建立新使用者。 |
-| **Restrict to Attached Projects** | 使用此提供者登入只會在附加到它的專案中滿足 SSO 要求，因此已經登入的人可能會失去對其他專案的存取權限。關閉時，它會在此人所屬的每個專案中滿足要求，附加專案只決定新來的人被加入到哪裡。 |
+| **沒有帳戶的人** | **首次登入時獲得帳戶**：他們會加入附加的專案；若沒有附加的專案，則必須先被邀請。**必須先被邀請**：即使已附加專案，人員也必須先被邀請加入某個專案，才能使用此提供者登入。 |
+| **此登入在哪裡算作 SSO** | **每個專案**：要求 SSO 的專案接受透過此提供者的登入。**僅限附加的專案**：使用此提供者登入只會在附加到它的專案中滿足 SSO 要求，因此已經登入的人可能會失去對其他專案的存取權限。 |
+
+選擇 **每個專案** 時，使用此提供者登入會在此人所屬的每個專案中滿足 SSO 要求，附加專案只決定新來的人被加入到哪裡。
 
 ## 強制使用 SSO
 
@@ -134,11 +136,11 @@ flowchart TB
 ## 疑難排解
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-此人還沒有 OneUptime 帳戶，而提供者也不會建立帳戶：要麼沒有專案附加到它，要麼 **Disable Sign Up with SSO** 已開啟。請邀請此人加入某個專案，或把一個專案附加到該提供者。
+此人還沒有 OneUptime 帳戶，而提供者也不會建立帳戶：要麼沒有專案附加到它，要麼 **沒有帳戶的人** 設為 **必須先被邀請**。請邀請此人加入某個專案，或把一個專案附加到該提供者。
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** 已開啟，而此人不是任何附加到該提供者之專案的成員。請附加此人的某個專案，或把此人加入某個附加專案。
+**此登入在哪裡算作 SSO** 設為 **僅限附加的專案**，而此人不是任何附加到該提供者之專案的成員。請附加此人的某個專案，或把此人加入某個附加專案。
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"
@@ -147,6 +149,14 @@ flowchart TB
 
 :::details "Issuer URL does not match"
 對於 SAML 提供者，身分提供者回應中的簽發者不是提供者上儲存的 **Issuer**。請從身分提供者重新複製；兩者必須完全一致。
+:::
+
+:::details "SAML Audience does not match"
+對於 SAML 提供者，回應的 audience 不是提供者的 **Issuer (Entity ID)**：您的身分提供者是為其他應用程式建立這個回應的。請在身分提供者中將應用程式的 entity ID 設為提供者頁面上的 **Issuer (Entity ID)**。"SAML Recipient does not match" 和 "SAML Destination does not match" 對其 reply URL 的意思相同：請將其設為 **ACS URL (Assertion Consumer Service / Reply URL)**。
+:::
+
+:::details "SAML response was already used"
+您的身分提供者的每個回應只能登入一次，而且只在簽發後幾分鐘內有效：之後會以 "SAML response has expired" 被拒絕。請重新登入。如果回應不斷過期，請檢查本伺服器和您的身分提供者的時鐘。
 :::
 
 ## 後續步驟

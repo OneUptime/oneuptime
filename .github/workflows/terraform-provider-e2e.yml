@@ -11,9 +11,14 @@ name: Terraform Provider E2E Tests
 # release.yml passes its run id as release_run_id, and that gives every release
 # run a group of its own. A pull request's group stays "<workflow name>-<PR
 # number>", the group cancel-closed-pr-runs.yml joins to stop it.
-# Tests/Ops/ReleaseE2ePipeline.test.js and CancelClosedPrRuns.test.js hold both.
+#
+# The nightly run has a group of its own too. github.event.schedule, the cron
+# line that started it, is set on scheduled runs only, so a push to master that
+# lands while the nightly run is going neither cancels it nor is cancelled by it.
+# Tests/Ops/ReleaseE2ePipeline.test.js holds the release and nightly groups, and
+# CancelClosedPrRuns.test.js the pull request's.
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.release_run_id || github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ inputs.release_run_id || github.event.pull_request.number || github.event.schedule || github.ref }}
   cancel-in-progress: true
 
 
@@ -27,6 +32,11 @@ on:
       - main
       - master
       - develop
+  # Nightly, on master. HashiCorp asks the providers it lists as Partner for
+  # tests that run nightly as a GitHub Action, and it gives master a run on
+  # the days nothing merges.
+  schedule:
+    - cron: "43 2 * * *"
   workflow_dispatch:
   # Lets the release pipeline invoke this workflow as a gate (release.yml
   # `uses:` this workflow). Nothing below may rely on pull_request-only context.
@@ -470,6 +480,25 @@ jobs:
           TF_CLI: tofu
           TF_E2E_PROVIDER_MIRROR: ${{ runner.temp }}/terraform-e2e-pinned/provider-mirror
         run: ./packages/E2E/Terraform/e2e-tests/scripts/run-tests.sh
+
+      # The provider's acceptance tests, written with HashiCorp's
+      # terraform-plugin-testing: the harness HashiCorp asks the providers it
+      # lists as Partner to pass. They create, update, import and destroy the
+      # core resources (Scripts/TerraformProvider/StaticFiles/acceptance_test.go)
+      # in the test project the suites above used, through the Terraform
+      # installed above, so nothing is downloaded. go test skips them unless
+      # TF_ACC is set: the unit-test step above and the release's own go test
+      # leave them out.
+      - name: Run provider acceptance tests
+        working-directory: Terraform/terraform-provider-oneuptime
+        env:
+          TF_ACC: "1"
+          TF_ACC_TERRAFORM_PATH: /usr/local/bin/terraform
+        run: |
+          set -euo pipefail
+          # ONEUPTIME_URL and ONEUPTIME_API_KEY, from "Set up test account".
+          source ../../packages/E2E/Terraform/e2e-tests/test-env.sh
+          go test ./internal/provider -run '^TestAcc' -count=1 -v -timeout 60m
 
       # Coverage ratchet: the suite must exercise at least as many provider
       # resource types as the checked-in baseline. run-tests.sh already

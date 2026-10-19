@@ -16,21 +16,21 @@ Un runbook es un procedimiento de respuesta reutilizable: una lista ordenada de 
 flowchart TB
     subgraph triggers["Qué inicia una ejecución"]
         direction LR
-        rule["Regla de runbook"]
-        manual["Ejecutar runbook en un evento"]
-        runnow["Ejecutar ahora en el runbook"]
+        rule["Regla de<br/>runbook"]
+        manual["Ejecutar<br/>runbook en<br/>un evento"]
+        runnow["Ejecutar<br/>ahora en<br/>el runbook"]
     end
-    rule --> execution["Ejecución: una instantánea de los pasos"]
+    rule --> execution["Ejecución: una<br/>instantánea<br/>de los pasos"]
     manual --> execution
     runnow --> execution
-    execution --> worker["El Worker de OneUptime recorre los pasos en orden"]
-    worker -->|"Paso Manual o aprobación"| person["Espera a una persona"]
-    worker -->|"Pasos HTTP y de IA"| onworker["Se ejecuta en el Worker"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner en tu infraestructura"]
-    person --> record["Estado, salida y errores registrados"]
+    execution --> worker["El Worker<br/>de OneUptime<br/>recorre<br/>los pasos<br/>en orden"]
+    worker -->|"Paso Manual<br/>o aprobación"| person["Espera a<br/>una persona"]
+    worker -->|"Pasos HTTP<br/>y de IA"| onworker["Se ejecuta<br/>en el Worker"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner en tu<br/>infraestructura"]
+    person --> record["Estado,<br/>salida y<br/>errores<br/>registrados"]
     onworker --> record
     runner --> record
-    record --> history["Página Runbooks del evento y Ejecuciones del runbook"]
+    record --> history["Página<br/>Runbooks<br/>del evento y<br/>Ejecuciones<br/>del runbook"]
 ```
 
 Cada ejecución de un runbook es una **ejecución**. Al empezar, los pasos del runbook se copian en ella y OneUptime los recorre en orden. Un paso Manual, o un paso que necesita aprobación, pausa la ejecución hasta que alguien actúa.
@@ -98,6 +98,17 @@ Runbooks está en **Productos**, en el grupo **Paneles y automatización**.
 | **Incidentes / Alertas / Mantenimiento programado → Reglas → Reglas de runbook** | Crear las reglas que inician runbooks automáticamente. |
 | Un incidente, una alerta o un evento de mantenimiento → **Runbooks** | Ver las ejecuciones unidas a él, y hacer clic en **Ejecutar runbook** para iniciar una. |
 
+El menú lateral de un runbook agrupa sus páginas así. Solo **Básico** empieza abierta: haz clic en el título de una sección para abrirla. Una sección se abre sola en cualquier página que contenga.
+
+| Sección | Páginas |
+| --- | --- |
+| **Básico** | **Vista general**, **Pasos** |
+| **Registros** | **Ejecuciones** |
+| **Propietarios** | **Propietarios** |
+| **Ajustes** | **Desencadenantes**, **Ajustes** |
+| **Desarrolladores** | **Terraform**, **API**, **Asistentes de IA** |
+| **Avanzado** | **Registros de auditoría**, **Eliminar runbook** |
+
 ## Un ejemplo completo
 
 Supongamos que quieres que cada incidente con «db-primary» en el título inicie un runbook de failover de base de datos de cinco pasos.
@@ -105,7 +116,7 @@ Supongamos que quieres que cada incidente con «db-primary» en el título inici
 :::steps
 ### Crear el runbook
 
-En **Runbooks**, haz clic en **Crear Runbook** y llámalo «DB primary failover». Ábrelo, ve a **Pasos**, añade estos pasos y haz clic en **Guardar pasos**:
+En **Runbooks**, haz clic en **Crear Runbook** y llámalo «DB primary failover». Se abre en **Pasos**: añade estos pasos y haz clic en **Guardar pasos**:
 
 | # | Tipo | Título |
 | --- | --- | --- |

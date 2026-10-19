@@ -20,8 +20,8 @@ flowchart TB
         public["Public note"]
         private["Private note"]
     end
-    public --> page["Status page and subscribers"]
-    public --> owners["Incident owners"]
+    public --> page["Status<br/>page and<br/>subscribers"]
+    public --> owners["Incident<br/>owners"]
     private --> owners
     public --> feed["Incident Feed"]
     private --> feed
@@ -44,7 +44,7 @@ The two note types look similar in the dashboard and behave very differently.
 | Attachments reachable by | Status page visitors, through a status page route                   | Only the authenticated dashboard API                            |
 | Notifies owners          | Yes                                                                 | Yes                                                             |
 
-**What "private" actually means.** It means "not published to the status page" — not "restricted to a smaller group of people". The built-in roles that can read an incident read both kinds of note, so anyone who can read the incident can usually read its private notes; in a custom role they are separate permissions, **Read Incident Status Page Note** and **Read Incident Internal Note**. If you need to restrict who can see an incident at all, use the **Private Incident** flag (`isPrivate`) on the incident itself, which hides the incident from every status page and limits it to the incident's owner users, the members of its owner teams, and project admins and owners.
+**What "private" actually means.** It means "not published to the status page" — not "restricted to a smaller group of people". The built-in roles that can read an incident read both kinds of note, so anyone who can read the incident can usually read its private notes; in a custom role they are separate permissions, **Read Incident Status Page Note** and **Read Incident Internal Note**. If you need to restrict who can see an incident at all, use the **Private Incident** flag (`isPrivate`) on the incident itself, which hides the incident from every status page and limits it to the incident's owner users, the members of its owner teams, and project admins and owners. A private incident takes no public notes at all: see [Private incidents take private notes only](#private-incidents-take-private-notes-only).
 
 **Owners see both.** The owner notification job queries public and private notes together. A private note is private from your subscribers, not from the people responding.
 
@@ -86,7 +86,7 @@ The same composer opens in a dialog from **Add Public Note** in the **Actions** 
 | **Posted now**                     | When the note says it was posted: the moment you post it, unless you choose an earlier time here, in your current timezone.                   |
 | **Notify status page subscribers** | Checkbox. On by default, unless the incident was declared without notifying subscribers — then it starts off. Turn it off to publish quietly. |
 
-**Quiet incidents stay quiet.** If an incident was declared with **Notify Status Page Subscribers** turned off (or as a private incident), its subscribers were never told about it, so a public note should not be the first thing they hear. On such an incident the checkbox starts off, with a line under it explaining why. You can still tick it to notify subscribers about that note. Notes posted without an explicit choice follow the same rule: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Public notes on [scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events) and [incident episodes](/docs/status-pages/subscribers#incident-episodes) follow a similar rule, based on whether the event or episode itself notified subscribers when it was created; making an episode private does not affect it.
+**Quiet incidents stay quiet.** If an incident was declared with **Notify Status Page Subscribers** turned off (or as a private incident), its subscribers were never told about it, so a public note should not be the first thing they hear. On such an incident the checkbox starts off, with a line under it explaining why. You can still tick it to notify subscribers about that note. Notes posted without an explicit choice follow the same rule: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Public notes on [scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events) and [incident episodes](/docs/status-pages/subscribers#incident-episodes) follow a similar rule, based on whether the event or episode itself notified subscribers when it was created. A private incident or episode takes no public notes at all.
 
 **See who the note will reach.** While **Notify status page subscribers** is ticked, a **Will notify** line under it lists the status pages the note will go to, with an "up to" subscriber count per channel, and the pages that list the incident's monitors but will not be told, with the reason. When nobody will be told it shows nothing, unless the incident is hidden from status pages or its status page scope is the reason. It follows the incident's status page scope, so a note on an incident limited to two site pages says it will reach those two. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 
@@ -95,7 +95,7 @@ The same composer opens in a dialog from **Add Public Note** in the **Actions** 
 > [!TIP]
 > **The posting time is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, choose **Posted now** and set when it actually happened. If a note arrives through the API (`/api/incident-public-note`) without one, OneUptime stamps the current time.
 
-Each note shows who wrote it, its posting time, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first.
+Each note shows who wrote it, its posting time, the rendered Markdown with its attachments and, in its header, where its subscriber notification stands. **Search notes…** finds notes by what they say, and the feed can be read newest or oldest first. Links to other sites and to attachments open in a new tab. Lines that start with `>` show as a quote; a quote whose first line is just `> [!NOTE]`, `> [!TIP]` or `> [!WARNING]` shows as a callout instead.
 
 ## Posting a private note
 
@@ -104,6 +104,17 @@ Each note shows who wrote it, its posting time, the rendered Markdown with its a
 No posting time, no subscriber checkbox — the note is stamped when it is created.
 
 Both kinds of note are written in the Markdown editor, which nests list items with **Indent** and **Outdent** — or Tab and Shift+Tab — and keeps the lists, links and formatting of what you paste from Word, Google Docs or another OneUptime page. Ctrl+Z takes back an indent or an outdent, and in visual mode the blocks and pastes the editor put in too, in order with your typing. A code block copied from a note pastes back as a code block, and a word copied out of one as inline code. See [Declaring an Incident](/docs/incidents/declaring-incidents#step-1-incident-details).
+
+## Private incidents take private notes only
+
+A private incident is on no status page and tells no subscriber (see [Keeping an incident off the status page](/docs/incidents/states-and-severities#keeping-an-incident-off-the-status-page)), so a public note on it would reach nobody it was written for. OneUptime does not offer one:
+
+- **Its public notes page** says "This incident is private, so public notes cannot be added to it. Use a private note." where the composer was, with an **Add Private Note** button that opens its private notes. **Add Public Note** in the feed's **Actions** menu is locked, and says the same.
+- **Changing its state** folds a private note under **Add a private note** in the dialog, in place of the public one, and does not ask about subscribers. The **Change State** bulk action adds its note to each private incident it moves as a private note, and notifies nobody about them.
+- **In Slack and Microsoft Teams**, a 📣 or 📢 on a message in its channel saves the message as a private note, and the confirmation says why.
+- **Through the API, workflows and OneUptime AI**, a public note on it is refused with the same sentence, and a state change sent with one is refused whole, so the state does not change. An SLA rule's public note reminders wait until it is public again; its private reminders are posted as usual.
+
+Public notes posted before the incident was made private stay. You can still read, edit and delete them, but nothing offers to tell subscribers about them. Make the incident public again, and they show on its status pages again, and new public notes can be added. Incident episodes work the same way.
 
 ## Attachments on notes
 
@@ -153,7 +164,7 @@ You manage them at **Incidents → Settings → Note Templates** — the card is
 
 ## Posting notes from Slack or Microsoft Teams
 
-If you've connected a workspace, responders never have to leave the channel. Both Slack and Microsoft Teams expose an add-note action that opens a modal with a **Note Type** dropdown — **Public Note** (posted on the status page) or **Private Note** (only visible to team members) — and a **Note** text box, and writes the result straight onto the incident.
+If you've connected a workspace, responders never have to leave the channel. Both Slack and Microsoft Teams expose an add-note action that opens a modal with a **Note Type** dropdown — **Public Note** (posted on the status page) or **Private Note** (only visible to team members) — and a **Note** text box, and writes the result straight onto the incident. On a private incident it asks for no **Note Type** and adds a private note: see [Private incidents take private notes only](#private-incidents-take-private-notes-only).
 
 Three details worth knowing:
 
@@ -259,11 +270,11 @@ Feed items are written by the incident service itself, by both note services, by
 
 - **The incident itself** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. An `IncidentUpdated` entry records what an edit changed: the title, description, root cause, remediation notes, labels, severity, monitors and the status put on them, and the status pages added to or removed from the incident's scope. It has a line for each value that changed and none for a value saved as it was, so saving a card with nothing changed, or an API client or a workflow writing the incident back as it is, adds no entry at all. Text that reads the same is the same (line endings and the spaces around it aside), and labels are the same set in any order; a value that was cleared reads as removed, and taking every label off as "All labels removed.". An alert's **Alert updated** entries work the same way.
 - **Notes and write-ups** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. A `PostmortemNote` item is written when the postmortem's note changes, not every time the postmortem is saved.
-- **People** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
+- **People** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`, and `ChannelMemberAdded`, shown as **Channel Member Added**, for someone added to the incident's Slack channel from its page. See [Who is in a record's channel](/docs/workspace-connections/slack#who-is-in-a-records-channel).
 - **Linked alerts** — `AlertLinked` and `AlertUnlinked`, shown as **Alert Linked** and **Alert Unlinked**.
 - **Notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
-- **Video calls** — `VideoCallStarted` and `VideoCallFailed`: a call started for the incident, with its join link, or the reason a provider could not start one. See [Video Calls](/docs/workspace-connections/video-calls).
+- **Video calls** — `VideoCallStarted`, `VideoCallFailed`, `VideoCallTranscriptAdded` and `VideoCallSummary`: a call started for the incident, with its join link, the reason a provider could not start one, a call's transcript, added by someone or read from its provider, or what OneUptime AI read in it, which is posted to the incident's channels too. See [Video Calls](/docs/workspace-connections/video-calls).
 
 Each type gets its own icon, so you can scan a long feed and pick out the state changes from the chatter. AI-generated root cause analysis is marked distinctly and rendered in a restricted Markdown mode. The **Incident Created** item, the item that records a new title and the items for joining or leaving an episode show a title exactly as typed: they escape `\`, `[`, `]`, `*`, `_`, `~`, backticks and \< in it, so a title cannot become an image, raw HTML, a Slack mention such as \<!here\>, a link whose text hides where it goes, or bold, italic or code. An address in a title still shows as a link to that same address.
 

@@ -148,6 +148,10 @@ Volver a iniciar sesión envía un enlace nuevo: revisa también tu carpeta de s
 En el segundo paso del inicio de sesión, elige **¿Perdió el acceso a su aplicación de autenticación?** y escribe uno de tus códigos de respaldo. Luego abre **Seguridad → Autenticación de dos factores** y añade tu aplicación nueva. Sin códigos de respaldo, pide a un administrador de tu instalación de OneUptime que restablezca la autenticación de dos factores de tu cuenta.
 :::
 
+:::details Al iniciar sesión me pide esperar antes de probar otro código
+Después de cinco códigos incorrectos seguidos, cada código siguiente espera antes de comprobarse: un minuto, luego dos, luego cuatro, y así sucesivamente, hasta una hora. OneUptime cuenta los códigos incorrectos de tu cuenta desde dondequiera que se escriban, te envía un correo cuando empiezan las esperas y vuelve a contar desde cero cuando aciertas un código. Espera e inténtalo de nuevo, inicia sesión con una llave de seguridad o elige **¿Perdió el acceso a su aplicación de autenticación?** y escribe un código de respaldo. Si no escribiste esos códigos, alguien conoce tu contraseña: restablécela con **¿Olvidó su contraseña?** en la página de inicio de sesión, lo que también termina la espera.
+:::
+
 :::details Las horas del panel tienen una hora de diferencia
 El panel muestra las horas en la **Zona horaria** de tu perfil, no en la de tu ordenador. Revísala en **Perfil de usuario → Vista general**.
 :::

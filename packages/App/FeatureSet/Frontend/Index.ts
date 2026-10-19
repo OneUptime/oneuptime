@@ -32,6 +32,10 @@ import {
   isStatusPagePreviewPath,
 } from "Common/Types/StatusPage/SearchEngineIndexing";
 import {
+  getStatusPageThemeHead,
+  STATUS_PAGE_THEME_FALLBACK,
+} from "Common/Types/StatusPage/StatusPageTheme";
+import {
   getPublicDashboardData,
   handlePublicDashboardLlmsTxt,
   PublicDashboardData,
@@ -47,6 +51,7 @@ import { getProductBrandingViewVariables } from "Common/Server/Utils/ProductBran
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import { getBrandedDashboardManifest } from "./BrandedManifest";
+import StatusPageMaintenanceCalendarFeed from "Common/Server/Utils/StatusPage/StatusPageMaintenanceCalendarFeed";
 import fsp from "fs/promises";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -145,6 +150,8 @@ const StatusPageFrontendConfig: FrontendConfig = {
         rssFeedPath: rssFeedPath,
         isSearchEngineIndexingEnabled:
           statusPageData.isSearchEngineIndexingEnabled,
+        // The page's theme, applied before its first paint.
+        statusPageTheme: getStatusPageThemeHead(statusPageData.theme),
       };
     }
 
@@ -172,6 +179,11 @@ const StatusPageFrontendConfig: FrontendConfig = {
         "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
       rssFeedPath: rssFeedPath,
       isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled,
+      /*
+       * No page to read a theme from: the light page every status page
+       * starts from. The app reads the page's own theme once it loads.
+       */
+      statusPageTheme: getStatusPageThemeHead(STATUS_PAGE_THEME_FALLBACK),
     };
   },
 };
@@ -571,6 +583,19 @@ const registerDashboardRootPwaFiles: () => void = (): void => {
 const init: PromiseVoidFunction = async (): Promise<void> => {
   app.get("/rss", handleRSS);
   app.get("/status-page/:statusPageId/rss", handleRSS);
+
+  /*
+   * A status page's maintenance calendar, beside its RSS feed: on the page's
+   * own domain and on its address under OneUptime, ?event=<id> for one
+   * event as a file. Served in this process, with the request's own
+   * cookies and address, so who may read it is decided exactly as for the
+   * page (StatusPageMaintenanceCalendarFeed).
+   */
+  app.get(
+    ["/maintenance.ics", "/status-page/:statusPageId/maintenance.ics"],
+    StatusPageMaintenanceCalendarFeed.getRateLimitMiddleware(),
+    StatusPageMaintenanceCalendarFeed.getHandler(),
+  );
 
   /*
    * llms.txt routes (machine-readable entry point for AI agents). The root

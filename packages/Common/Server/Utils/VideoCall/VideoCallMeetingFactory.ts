@@ -115,7 +115,7 @@ export default class VideoCallMeetingFactory {
 
     if (!data.oauth) {
       throw new BadDataException(
-        `This ${title} connection has no sign-in to start a call with. Reconnect ${title} in Project Settings > Video Calls.`,
+        `This ${title} connection has no sign-in to start a call with. Reconnect ${title} in Project Settings > Workspace > Video Calls.`,
       );
     }
 
@@ -146,6 +146,7 @@ export default class VideoCallMeetingFactory {
           http,
           accessToken: token.accessToken,
           accessType: read("accessType"),
+          transcribe: data.request.recordAndTranscribe,
           owner: { label, isSignIn: true },
         });
 

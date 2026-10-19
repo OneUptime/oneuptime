@@ -64,10 +64,10 @@ Klicken Sie unter den Vorlagen auf **Eigene Regel erstellen** oder, sobald Sie R
 
 #### Eingrenzen
 
-Fügen Sie unter **Welche Warnungen** Bedingungen zu Monitoren, Schweregraden, Beschriftungen, Titeln und Beschreibungen hinzu. Lassen Sie es leer, um jede neue Warnung zu gruppieren. Klicken Sie dann auf **Gruppierungsregel für Warnungen erstellen**.
+Unter **Welche Warnungen** gruppiert **Alle Warnungen**, womit eine neue Regel beginnt, jede neue Warnung. Um sie einzugrenzen, wählen Sie **Nur Warnungen, die den Bedingungen entsprechen** und fügen Bedingungen zu Monitoren, Schweregraden, Beschriftungen, Titeln und Beschreibungen hinzu. Klicken Sie dann auf **Gruppierungsregel für Warnungen erstellen**.
 :::
 
-Alles Weitere, was eine Regel kann, ist unter **Weitere Felder** am Ende des Schritts **Gruppierung** eingeklappt, in drei Gruppen. Eingeklappt nennt seine Kopfzeile, was er enthält, und zeigt jede Einstellung, die die Regel nutzt, als Chip, sodass beim Bearbeiten einer Regel nie verborgen bleibt, was sie tut.
+Alles Weitere, was eine Regel kann, ist unter **Weitere Felder** am Ende des Schritts **Gruppierung** eingeklappt, in drei Gruppen. Eingeklappt nennt seine Kopfzeile, was er enthält, und sagt, worauf jede Einstellung steht, die die Regel nutzt, sodass beim Bearbeiten einer Regel nie verborgen bleibt, was sie tut.
 
 | Gruppe                                | Einstellungen                                                                                              |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ Eine Episode, die Sie erstellen, hat keine Gruppierungsregel, deshalb zeigt die 
 
 | Bereich im Seitenmenü | Seiten                                                                         |
 | --------------------- | ------------------------------------------------------------------------------ |
-| **Grundlegend**       | **Übersicht**, **Beschreibung**, **Grundursache**, **Behebungs-Notizen**       |
-| **Eigentümerschaft**  | **Eigentümer**                                                                 |
-| **Zeitachse**         | **Zustands-Zeitachse**                                                         |
-| **Warnungen**         | **Mitglieder-Warnungen**                                                       |
-| **Episodennotizen**   | **Private Notizen**                                                            |
-| **Entwickler**        | **Terraform**, **API**, **KI-Assistenten**                                     |
-| **Erweitert**         | **Audit-Protokolle**, **Episode löschen**                                      |
+| **Übersicht** | **Übersicht**, **Zustands-Zeitachse** |
+| **Untersuchung** | **Beschreibung**, **Grundursache**, **Behebungs-Notizen** |
+| **Team** | **Eigentümer** |
+| **Warnungen** | **Mitglieder-Warnungen** |
+| **Notizen** | **Private Notizen** |
+| **Entwickler** | **Terraform**, **API**, **KI-Assistenten** |
+| **Erweitert** | **Audit-Protokolle**, **Episode löschen** |
 
-**Eigentümerschaft**, **Entwickler** und **Erweitert** sind zunächst eingeklappt. Die **Übersicht** beginnt mit **Warnungen in dieser Episode**, dann folgt der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Move episode to** im Menü **⋯**.
+**Entwickler** und **Erweitert** sind zunächst eingeklappt. Die **Übersicht** beginnt mit **Warnungen in dieser Episode**, dann folgt der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Move episode to** im Menü **⋯**.
 
 **Warnungen → Aktive Episoden** listet die Episoden, die noch nicht behoben sind, und das Abzeichen daneben zählt sie.
 

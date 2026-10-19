@@ -4,6 +4,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { RuleCriteriaSubject } from "Common/Types/Rules/RuleCriteriaSubject";
 import {
   FoldedSectionItem,
   foldedSectionItem,
@@ -64,9 +65,9 @@ import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemed
  * can be narrowed by rules - Investigation rules and Auto remediation rules,
  * folded under More settings with the limits. With no rule, every one is.
  *
- * Project Settings → AI Features has a More settings fold of its own, with
- * the project's daily limits on everything OneUptime AI does - a ceiling
- * above the incident and alert limits (see the end of this file).
+ * Project Settings → AI → AI Features has a More settings fold of its own, with
+ * the project's daily limits on everything OneUptime AI does - a ceiling above
+ * the incident and alert limits (see the end of this file).
  *
  * Kept free of React so the pages and App/Tests read these exact strings.
  * Every sentence is wrapped in translationKey() so npm run i18n:extract
@@ -81,6 +82,18 @@ export enum AiLane {
   Incident = "Incident",
   Alert = "Alert",
 }
+
+/*
+ * What a lane's investigation and remediation rules apply to: "All
+ * incidents" or "Only incidents that match conditions" (RuleCriteriaSubject).
+ * One table of rules holds both lanes, so the page names them.
+ */
+export const AI_LANE_RULE_CRITERIA_SUBJECTS: Readonly<
+  Record<AiLane, RuleCriteriaSubject>
+> = {
+  [AiLane.Incident]: RuleCriteriaSubject.Incidents,
+  [AiLane.Alert]: RuleCriteriaSubject.Alerts,
+};
 
 // The Project columns behind the incident and alert pages' switches.
 export type AiLaneSwitchColumn =
@@ -132,7 +145,7 @@ const CODE_FIX_TITLE: string = translationKey(
   "Open a fix pull request when an investigation finds a code change",
 );
 const CODE_FIX_DESCRIPTION: string = translationKey(
-  "When an investigation is confident the cause is in your code, OneUptime AI opens a pull request with the fix for your team to review. Nothing is merged automatically.",
+  "When an investigation finds the cause in your code, OneUptime AI opens a pull request with the fix for review. Nothing is merged.",
 );
 const CODE_FIX_NOTE: string = translationKey(
   "Needs a repository connected through the GitHub App and a Runner that can fix code.",
@@ -141,7 +154,7 @@ const TELEMETRY_FIX_TITLE: string = translationKey(
   "Open a pull request that adds missing telemetry",
 );
 const TELEMETRY_FIX_DESCRIPTION: string = translationKey(
-  "When an investigation cannot find the cause because logs, traces or metrics are missing, OneUptime AI opens a pull request that adds them, for your team to review.",
+  "When missing logs, traces or metrics stop an investigation, OneUptime AI opens a pull request that adds them, for review.",
 );
 const GITHUB_APP_NOTE: string = translationKey(
   "Needs a repository connected through the GitHub App.",
@@ -228,14 +241,14 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Incident,
       title: translationKey("Fix new incidents automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new incident through the AI agent on the cluster or host it affects, and can open pull requests for your team to review. Whether a fix waits for someone to approve it is up to that agent's settings.",
+        "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host. That agent's settings decide if a fix waits for approval.",
       ),
     }),
     {
       column: "enableAutomaticPostmortemDraft",
       title: translationKey("Draft a postmortem when an incident resolves"),
       description: translationKey(
-        "OneUptime AI writes a draft from the incident's timeline and telemetry for your team to review. It never replaces a postmortem that already exists.",
+        "OneUptime AI drafts a postmortem from the incident's timeline and telemetry for review. It never replaces an existing one.",
       ),
     },
   ],
@@ -251,7 +264,7 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Alert,
       title: translationKey("Fix new alerts automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new alert through the AI agent on the cluster or host it affects, and can open pull requests for your team to review. Whether a fix waits for someone to approve it is up to that agent's settings.",
+        "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host. That agent's settings decide if a fix waits for approval.",
       ),
     }),
   ],
@@ -715,7 +728,7 @@ export const AI_INSIGHTS_SWITCHES: Array<
     column: "enableAiInsights",
     title: translationKey("Watch telemetry for problems"),
     description: translationKey(
-      "Every 15 minutes, OneUptime checks your logs, exceptions, traces and metrics for spikes, new errors, slowdowns and drift, and files what it finds as an insight. With an LLM provider, OneUptime AI also triages each new insight.",
+      "Every 15 minutes, OneUptime looks for spikes, new errors, slowdowns and drift in your telemetry and files each one as an insight.",
     ),
   },
   {
@@ -732,7 +745,7 @@ export const AI_INSIGHTS_SWITCHES: Array<
     column: "autoArchiveNonActionableExceptions",
     title: translationKey("Archive exceptions that are expected"),
     description: translationKey(
-      "When OneUptime AI finds that an exception is expected, such as a refused sign-in or a plan limit, it archives it so it stops showing as unresolved. You can bring it back from the Archived tab.",
+      "OneUptime AI archives exceptions that are expected, such as a refused sign-in, so they stop showing as unresolved.",
     ),
   },
 ];
@@ -750,7 +763,7 @@ export const AiInsightsSettingsCopy: {
 export const AI_INSIGHTS_SWITCHES_TEST_ID: string = "ai-insights-switches";
 
 /*
- * Project Settings → AI Features: Enable AI, the project's one AI switch.
+ * Project Settings → AI → AI Features: Enable AI, the project's one AI switch.
  * Turning it off stops every AI feature at once, so it asks first.
  */
 export type EnableAiColumn = "enableAi";
@@ -780,19 +793,19 @@ export const EnableAiCopy: {
    * page, off until a project turns it on.
    */
   switchDescription: translationKey(
-    "The master switch. When off, every AI feature in this project stops: Ask AI, investigations, postmortem drafts, auto-remediation and AI commands on Runners.",
+    "The master switch for every AI feature in this project: Ask AI, investigations, postmortem drafts, auto-remediation and more.",
   ),
   turnOffConfirmTitle: translationKey("Turn off AI for this project?"),
   turnOffConfirmDescription: translationKey(
-    "Every AI feature in this project stops at once: Ask AI, investigations, postmortem drafts, fix pull requests, insight triage, auto-remediation and AI commands on Runners. Each one keeps its own setting, so turning AI back on brings back what was on.",
+    "Every AI feature in this project stops at once. Each keeps its own setting, so turning AI back on brings back what was on.",
   ),
   turnOffConfirmButton: translationKey("Turn off AI"),
   whoCanTurnOn: translationKey(
-    "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI Features.",
+    "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
   ),
 };
 
-// The data-testid of the Enable AI switch on Project Settings → AI Features.
+// The data-testid of the Enable AI switch on Project Settings → AI → AI Features.
 export const ENABLE_AI_SWITCH_TEST_ID: string = "enable-ai-switch";
 
 // The data-testid of the Enable AI switch in the notice on the other pages.
@@ -810,7 +823,7 @@ export enum ProjectAiNoticeContext {
   Incidents = "Incidents",
   Alerts = "Alerts",
   Insights = "Insights",
-  // Project Settings → AI Features, where Enable AI is the page itself.
+  // Project Settings → AI → AI Features, where Enable AI is the page itself.
   AiFeatures = "AiFeatures",
   /*
    * The AI Insights page of a cluster, a resource, or the Incidents' and
@@ -1024,10 +1037,10 @@ export const PROJECT_AI_PROVIDER_NOTICE_TEST_ID: string =
   "project-ai-provider-notice";
 
 /*
- * Project Settings → AI Features → More settings: the project's own daily
- * limits on OneUptime AI (Common/Types/AI/ProjectAiDailyLimits). "Just like
- * we have more settings for the incident AI page ... daily token limit or
- * daily spend limit (if it is SaaS)" - the maintainer.
+ * Project Settings → AI → AI Features → More settings: the project's own daily
+ * limits on OneUptime AI (Common/Types/AI/ProjectAiDailyLimits). "Just like we
+ * have more settings for the incident AI page ... daily token limit or daily
+ * spend limit (if it is SaaS)" - the maintainer.
  *
  * One card, Daily limits: the token limit everywhere, and the spend limit
  * only where AI is billed (BILLING_ENABLED), since only there is anything

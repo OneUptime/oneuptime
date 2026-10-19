@@ -21,7 +21,7 @@ sequenceDiagram
     actor U as 사용자
     participant O as OneUptime
     participant I as ID 공급자
-    U->>O: SSO로 로그인, 프로젝트 선택
+    U->>O: SSO로 로그인,<br/>프로젝트 선택
     O->>I: 로그인 URL로 SAML 요청
     I->>U: 로그인 페이지
     U->>I: 자격 증명과 MFA
@@ -36,13 +36,21 @@ OneUptime은 IdP가 보내는 어설션에서 몇 가지만 읽습니다.
 | --- | --- |
 | 서명 | 공급자의 **공개 인증서**와 대조합니다. 응답은 서명되어 있어야 하며 암호화되어 있으면 안 됩니다. |
 | Issuer | 공급자의 **발급자**와 정확히 일치해야 합니다. |
+| Audience | 공급자의 **Identifier (Entity ID)** 값이어야 합니다. IdP가 다른 애플리케이션용으로 만든 응답은 거부됩니다. |
+| Recipient 및 Destination | 공급자의 **Reply URL**, 곧 응답을 보낸 주소여야 합니다. |
+| `NotBefore` 및 `NotOnOrAfter` | 응답은 이 값들이 허용하는 동안에만, 그리고 발급 후 10분 이내에만 받아들여지며, 서로 맞지 않는 시계를 위해 3분의 여유가 있습니다. |
 | Name ID | 그 사람의 이메일 주소입니다. 유효한 이메일 주소여야 합니다. |
-| `http://schemas.microsoft.com/identity/claims/displayname` | 그 사람의 이름으로, OneUptime이 계정을 만들 때 사용합니다. 선택 사항입니다. |
+| 이름 특성 | 그 사람의 이름으로, OneUptime이 계정을 만들 때 사용합니다. 표시 이름(`displayName` 또는 `http://schemas.microsoft.com/identity/claims/displayname`)이나 이름과 성(`firstName`과 `lastName`, 또는 Microsoft Entra ID가 기본으로 보내는 `givenname` 및 `surname` 클레임)입니다. 선택 사항입니다. |
+| `http://schemas.microsoft.com/identity/claims/objectidentifier` | 그 사람의 개체 ID로, Microsoft Entra ID가 기본으로 보냅니다. 공급자를 통한 첫 로그인에서 계정이 이 개체 ID에 연결되며, 이후 계정의 이메일 주소를 다른 개체 ID와 함께 보내는 로그인은 거부됩니다. 선택 사항입니다. |
+
+각 응답으로는 한 번만 로그인할 수 있습니다. 로그인한 뒤 브라우저에서 뒤로 가는 등으로 다시 보낸 응답은 거부됩니다. 다시 로그인하세요.
 
 처음 로그인하는 사람은 공급자의 **팀**에 합류하며, 이 팀이 그 사람이 할 수 있는 일을 결정합니다. [SSO 사용자의 역할과 팀](#sso-사용자의-역할과-팀)을 참고하세요.
 
 > [!NOTE]
 > OneUptime Cloud에서는 누군가가 프로젝트의 SAML 또는 OIDC 공급자로 그 프로젝트에 처음 로그인할 때, OneUptime이 바로 로그인시키는 대신 이메일로 링크를 보냅니다. 그 사람은 링크를 열어 프로젝트의 SSO(Single Sign-On)가 자신을 로그인시켜도 된다고 확인한 뒤 로그인을 계속합니다. 링크는 24시간 동안 유효합니다. 이 과정은 프로젝트마다 한 번 진행되며, 프로젝트를 떠났다가 돌아오면 다시 진행됩니다. 자체 호스팅 설치에서는 바로 로그인됩니다.
+
+OneUptime Cloud에서는 SSO로 프로젝트에 참여한 사람도 초대한 사람과 마찬가지로 좌석을 사용합니다. 플랜의 좌석 수가 정해져 있고 모두 사용 중이면, 좌석이 빌 때까지 새로운 사람은 SSO로 참여할 수 없습니다.
 
 ## SSO 설정
 
@@ -56,7 +64,7 @@ SSO 공급자를 추가할 권한(**Project Owner**, **Project Admin** 또는 **
 
 2. **SSO 구성 만들기**
 
-   - **SSO 만들기**를 클릭합니다
+   - **SAML 공급자 추가**를 클릭합니다
    - SSO 구성의 **이름**을 입력합니다(예: "Keycloak SAML" 또는 "Okta SAML")
    - ID 공급자의 **로그인 URL**을 입력합니다
    - ID 공급자의 **발급자**(엔티티 ID)를 입력합니다
@@ -100,7 +108,7 @@ Keycloak은 널리 쓰이는 오픈 소스 ID 및 액세스 관리 솔루션입�
 
 2. **OneUptime에서 공급자 만들기**
 
-   **프로젝트 설정** > **보안** > **SSO**로 이동하여 **SSO 만들기**를 클릭하고 다음을 입력합니다.
+   **프로젝트 설정** > **보안** > **SSO**로 이동하여 **SAML 공급자 추가**를 클릭하고 다음을 입력합니다.
    - **이름**: 알아보기 쉬운 이름(예: `my-project-oneuptime`)
    - **로그인 URL**과 **발급자**: 위의 값
    - **공개 인증서**: 전용 `BEGIN CERTIFICATE` 줄과 `END CERTIFICATE` 줄 사이에 넣은 인증서
@@ -126,14 +134,15 @@ Keycloak은 널리 쓰이는 오픈 소스 ID 및 액세스 관리 솔루션입�
    OneUptime에서 공급자를 편집하여 **활성화됨**을 켠 다음, **Test Single Sign On (SSO)** 카드의 링크를 열고 공급자를 고릅니다. Keycloak 로그인 페이지로 이동했다가 OneUptime으로 돌아와야 합니다.
 :::
 @tab Microsoft Entra ID
-Microsoft Entra ID(이전 이름 Azure AD / Active Directory)는 Microsoft의 클라우드 ID 서비스입니다. SAML SSO를 사용하는 엔터프라이즈 애플리케이션을 지원하는 테넌트와 Entra ID, OneUptime 모두에 대한 관리자 액세스가 필요합니다.
+Microsoft Entra ID(이전 이름 Azure AD / Active Directory)는 Microsoft의 클라우드 ID 서비스입니다. SAML SSO를 사용하는 엔터프라이즈 애플리케이션을 지원하는 테넌트와 Entra ID, OneUptime 모두에 대한 관리자 액세스가 필요합니다. OneUptime Cloud에서는 Microsoft Entra 애플리케이션 갤러리에 OneUptime이 있으면 그곳에서 추가하세요. OneUptime이 읽는 클레임과 OneUptime URL의 패턴이 미리 설정되어 있습니다.
 
 :::steps
 1. **Entra ID에서 엔터프라이즈 애플리케이션 만들기**
 
    - [Microsoft Entra admin center](https://entra.microsoft.com)에 로그인합니다
-   - **Identity** > **Applications** > **Enterprise applications**로 이동하여 **+ New application**을 클릭한 다음 **+ Create your own application**을 클릭합니다
-   - 이름(예: "OneUptime")을 입력하고 **Integrate any other application you don't find in the gallery (Non-gallery)** 옵션을 선택한 다음 **Create**를 클릭합니다
+   - **Identity** > **Applications** > **Enterprise applications**로 이동하여 **+ New application**을 클릭합니다
+   - 갤러리에서 추가하는 경우: OneUptime을 검색하여 선택하고 **Create**를 클릭합니다
+   - 그 밖의 경우: **+ Create your own application**을 클릭하고, 이름(예: "OneUptime")을 입력한 다음 **Integrate any other application you don't find in the gallery (Non-gallery)** 옵션을 선택하고 **Create**를 클릭합니다
 
 2. **Entra ID의 SAML 값 복사**
 
@@ -143,7 +152,7 @@ Microsoft Entra ID(이전 이름 Azure AD / Active Directory)는 Microsoft의 �
 
 3. **OneUptime에서 공급자 만들기**
 
-   **프로젝트 설정** > **보안** > **SSO**로 이동하여 **SSO 만들기**를 클릭하고 다음을 입력합니다.
+   **프로젝트 설정** > **보안** > **SSO**로 이동하여 **SAML 공급자 추가**를 클릭하고 다음을 입력합니다.
    - **이름**: 알아보기 쉬운 이름(예: `Azure AD SAML`)
    - **로그인 URL**: **Login URL**
    - **발급자**: **Microsoft Entra Identifier**
@@ -162,10 +171,10 @@ Microsoft Entra ID(이전 이름 Azure AD / Active Directory)는 Microsoft의 �
 
 5. **이메일을 Name ID로 보내기**
 
-   **Attributes & Claims**에서 **Edit**를 클릭합니다.
+   **Attributes & Claims**에서 **Edit**를 클릭합니다. 갤러리에서 추가한 애플리케이션에는 아래 항목이 이미 설정되어 있으니 확인만 하세요.
    - **Unique User Identifier (Name ID)** 항목을 사용자의 이메일 주소로 설정합니다. `user.mail`이나, 이메일 주소인 경우 `user.userprincipalname`을 사용합니다
    - **Name identifier format**을 `Email address`로 설정합니다
-   - 선택적으로, 이름이 `http://schemas.microsoft.com/identity/claims/displayname`이고 원본 특성이 `user.displayname`인 클레임을 추가하면 새 계정에 그 사람의 이름이 들어갑니다. OneUptime은 다른 클레임을 무시합니다
+   - Entra ID의 기본 클레임은 그대로 두세요. 새 계정은 `givenname`과 `surname`에서 그 사람의 이름을 가져오고, 계정은 그 사람의 개체 ID인 `objectidentifier`에 연결됩니다. 선택적으로, 이름이 `http://schemas.microsoft.com/identity/claims/displayname`이고 원본 특성이 `user.displayname`인 클레임을 추가하면 새 계정에 대신 표시 이름이 들어갑니다. OneUptime은 다른 클레임을 무시합니다
 
 6. **사용자와 그룹 할당**
 
@@ -176,13 +185,14 @@ Microsoft Entra ID(이전 이름 Azure AD / Active Directory)는 Microsoft의 �
    OneUptime에서 공급자를 편집하여 **활성화됨**을 켠 다음, **Test Single Sign On (SSO)** 카드의 링크를 열고 공급자를 고릅니다. Microsoft 로그인 페이지로 이동했다가 OneUptime으로 돌아와야 합니다.
 :::
 @tab Okta
-Okta는 SAML SSO를 지원하는 널리 쓰이는 ID 플랫폼입니다. 관리자 액세스가 있는 Okta 조직과 OneUptime에 대한 관리자 액세스가 필요합니다.
+Okta는 SAML SSO를 지원하는 널리 쓰이는 ID 플랫폼입니다. 관리자 액세스가 있는 Okta 조직과 OneUptime에 대한 관리자 액세스가 필요합니다. OneUptime Cloud에서는 Okta Integration Network에 OneUptime이 있으면 그곳에서 추가하세요. 이 애플리케이션을 쓰면 OneUptime의 **SSO로 로그인** 페이지와 Okta 대시보드 모두에서 로그인할 수 있고, 처음 로그인할 때 계정이 만들어지며, OneUptime의 URL 대신 ID 두 개만 입력하면 됩니다.
 
 :::steps
-1. **Okta에서 SAML 애플리케이션 만들기**
+1. **Okta에 OneUptime 추가**
 
-   - Okta Admin Console에서 **Applications** > **Applications**로 이동하여 **Create App Integration**을 클릭합니다
-   - **SAML 2.0**을 선택하고 **Next**를 클릭한 다음, **App name**에 "OneUptime"을 입력하고 **Next**를 클릭합니다
+   - Okta Admin Console에서 **Applications** > **Applications**로 이동합니다
+   - Okta Integration Network에서 추가하는 경우: **Browse App Catalog**를 클릭하고 OneUptime을 검색한 다음 **Add Integration**을 클릭합니다. Okta는 **OneUptime Project ID**와 **OneUptime SSO Provider ID**를 묻지만, 이 시점에는 아직 OneUptime에서 이 값을 확인할 수 없습니다. 우선 둘 다 `0`을 입력하세요. 4단계에서 바꿉니다. **Done**을 클릭하고 2단계로 넘어갑니다
+   - 그 밖의 경우: **Create App Integration**을 클릭하고 **SAML 2.0**을 선택한 다음 **Next**를 클릭하고, **App name**에 "OneUptime"을 입력한 다음 **Next**를 클릭합니다
    - Okta는 자신의 URL을 보여 주기 전에 OneUptime의 URL을 묻습니다. 우선 OneUptime 주소(예: `https://oneuptime.com`)를 **Single sign-on URL** 필드와 **Audience URI (SP Entity ID)** 필드에 입력하세요. 두 값 모두 4단계에서 바꿉니다
    - **Name ID format**을 `EmailAddress`로, **Application username**을 `Email`로 설정합니다
    - **Next**를 클릭하고 **I'm an Okta customer adding an internal app**을 선택한 다음 **Finish**를 클릭합니다
@@ -195,7 +205,7 @@ Okta는 SAML SSO를 지원하는 널리 쓰이는 ID 플랫폼입니다. 관리�
 
 3. **OneUptime에서 공급자 만들기**
 
-   **프로젝트 설정** > **보안** > **SSO**로 이동하여 **SSO 만들기**를 클릭하고 다음을 입력합니다.
+   **프로젝트 설정** > **보안** > **SSO**로 이동하여 **SAML 공급자 추가**를 클릭하고 다음을 입력합니다.
    - **이름**: 알아보기 쉬운 이름(예: `Okta SAML`)
    - **로그인 URL**과 **발급자**: Okta의 값
    - **공개 인증서**: `BEGIN CERTIFICATE` 줄과 `END CERTIFICATE` 줄을 포함한 인증서
@@ -205,11 +215,16 @@ Okta는 SAML SSO를 지원하는 널리 쓰이는 ID 플랫폼입니다. 관리�
 
 4. **Okta에 OneUptime의 URL 넘겨주기**
 
-   애플리케이션의 **General** 탭에서 **SAML Settings**의 **Edit**와 **Next**를 클릭한 다음 다음을 설정합니다.
+   Okta Integration Network에서 추가한 애플리케이션이라면 **General** 탭의 **App Settings**에서 **Edit**를 클릭하고 다음을 설정합니다.
+   - **OneUptime Project ID**와 **OneUptime SSO Provider ID**: OneUptime의 **Identifier (Entity ID)** 값인 `https://oneuptime.com/<project-id>/<provider-id>`에 들어 있는 두 ID
+
+   **Save**를 클릭하고, **Sign On** 탭에서 **Application username format**이 `Email`인지 확인합니다.
+
+   직접 만든 애플리케이션이라면 **General** 탭에서 **SAML Settings**의 **Edit**와 **Next**를 클릭한 다음 다음을 설정합니다.
    - **Single sign-on URL**: OneUptime의 **Reply URL (Assertion Consumer Service URL)** 값
    - **Audience URI (SP Entity ID)**: OneUptime의 **Identifier (Entity ID)** 값
 
-   선택적으로, 이름이 `http://schemas.microsoft.com/identity/claims/displayname`이고 값이 `user.firstName + " " + user.lastName`인 attribute statement를 추가하면 새 계정에 그 사람의 이름이 들어갑니다. **Next**를 클릭한 다음 **Finish**를 클릭합니다.
+   선택적으로, 이름이 `firstName`이고 값이 `user.firstName`인 attribute statement와 이름이 `lastName`이고 값이 `user.lastName`인 attribute statement를 추가하면 새 계정에 그 사람의 이름이 들어갑니다. **Next**를 클릭한 다음 **Finish**를 클릭합니다.
 
 5. **사람 할당**
 
@@ -237,11 +252,11 @@ OneUptime의 SSO는 SAML 2.0을 사용하며 규격을 준수하는 모든 ID �
 
 :::steps
 1. ID 공급자에 PKCE를 사용하는 인증 코드 흐름을 쓸 수 있는 앱(OIDC 클라이언트)을 등록하고, 그 앱의 **발급자 URL**, **클라이언트 ID**, **클라이언트 시크릿**을 복사합니다.
-2. OneUptime에서 **프로젝트 설정** > **보안** > **OIDC**로 이동하여 **OIDC 만들기**를 클릭합니다.
+2. OneUptime에서 **프로젝트 설정** > **보안** > **SSO**로 이동하여 SAML 공급자 아래의 **OIDC 공급자 추가**를 클릭합니다.
 3. **이름**(로그인 페이지에 표시되는 이름), **발급자 URL**, **클라이언트 ID**, **클라이언트 시크릿**을 입력합니다. **발급자 URL**에 공급자의 검색 URL을 붙여 넣어도 됩니다.
 4. **로그인** 단계에서 **팀**은 프로젝트의 멤버 팀으로 시작합니다. 처음 로그인하는 사람은 이 팀에 합류합니다. 나머지는 **추가 필드**에 이미 채워져 있습니다. **검색 URL**(발급자 뒤에 `/.well-known/openid-configuration`을 붙인 값), **범위**(`openid email profile`), `email`과 `name` 클레임 이름, 설명("Sign in with"와 이름)입니다. 공급자에서 필요한 경우에만 변경하세요. 내가 다른 사람을 초대할 수 있는 팀만 허용됩니다. 내가 가진 것보다 더 많은 액세스 권한을 주는 팀은 **팀** 아래에 표시됩니다.
 5. 저장합니다. **OIDC Configuration** 대화 상자가 열리고 **Redirect URI**가 표시됩니다. 이 값을 앱의 허용된 리디렉션 URI에 추가하세요. 새 공급자는 꺼진 상태로 시작하므로, 그다음 공급자를 편집하여 **활성화됨**을 켭니다.
-6. 프로젝트에 SSO를 필수로 지정하기 전에 **Test OpenID Connect (OIDC)** 카드의 링크로 공급자를 통해 로그인해 보세요.
+6. 프로젝트에 SSO를 필수로 지정하기 전에 **Test Single Sign On (SSO)** 카드의 링크를 열고 공급자를 골라 그 공급자로 로그인해 보세요.
 :::
 
 ## SSO 사용자의 역할과 팀
@@ -301,14 +316,14 @@ SAML 또는 OIDC 공급자를 끄거나 삭제하면 그 공급자로 이루어�
 
 ## Scale 플랜 미만에 남은 공급자
 
-프로젝트에 남아 있는 SAML 또는 OIDC 공급자는 Scale 체험 기간이 끝나거나 플랜이 낮아진 뒤에도 계속 사람을 로그인시킵니다. 그래서 Scale 미만에서는 **SSO** 페이지와 **OIDC** 페이지의 업그레이드 안내 아래에 프로젝트의 공급자가 나열됩니다(**아직 설정되어 있는 SAML 공급자**, **아직 설정되어 있는 OIDC 공급자**).
+프로젝트에 남아 있는 SAML 또는 OIDC 공급자는 Scale 체험 기간이 끝나거나 플랜이 낮아진 뒤에도 계속 사람을 로그인시킵니다. 그래서 Scale 미만에서는 **SSO** 페이지의 업그레이드 안내 아래에 프로젝트의 공급자가 나열됩니다(**아직 설정되어 있는 SAML 공급자**, **아직 설정되어 있는 OIDC 공급자**).
 
 - **끄기**는 공급자를 즉시 멈춥니다. OneUptime이 먼저 확인을 요청합니다.
 - **삭제**는 공급자를 삭제합니다.
 
 공급자를 추가하거나 변경하거나 다시 켜려면 **Scale**이 필요합니다. 각 작업을 할 수 있는 사람은 Scale에서와 같습니다. 공급자를 끄려면 편집 권한이, 삭제하려면 삭제 권한이 필요합니다.
 
-프로젝트에서 아직 SSO가 필수인 동안에는 **SSO** 페이지와 **OIDC** 페이지에 **로그인에 SSO 필수**도 표시됩니다. 마지막 공급자를 끄기 전에 이것을 끄세요. 그때까지는 사람이 로그인할 수 있는 마지막 공급자를 끄거나 삭제할 수 없으므로, 아무도 프로젝트에서 차단되지 않습니다.
+프로젝트에서 아직 SSO가 필수인 동안에는 **SSO** 페이지에 **로그인에 SSO 필수**도 표시됩니다. 마지막 공급자를 끄기 전에 이것을 끄세요. 그때까지는 사람이 로그인할 수 있는 마지막 공급자를 끄거나 삭제할 수 없으므로, 아무도 프로젝트에서 차단되지 않습니다.
 
 상태 페이지의 **SSO** 페이지와 **OIDC** 페이지도 같은 방식으로 상태 페이지 자체의 공급자를 나열합니다. 상태 페이지에서 아직 SSO가 필수인 동안에는 두 페이지 모두 **로그인에 SSO 필수**도 표시합니다. 공급자를 끄기 전에 이것을 끄세요. 그렇지 않으면 상태 페이지의 비공개 사용자가 아예 로그인할 수 없습니다.
 
@@ -324,6 +339,26 @@ SAML 또는 OIDC 공급자를 끄거나 삭제하면 그 공급자로 이루어�
 
 :::details "Issuer URL does not match"
 IdP 어설션의 발급자가 공급자의 **발급자**와 다릅니다. IdP에서 다시 복사하세요(Keycloak 렐름 URL, **Microsoft Entra Identifier** 또는 Okta의 Identity Provider Issuer). 두 값이 정확히 일치해야 합니다.
+:::
+
+:::details "SAML Audience does not match"
+응답의 audience가 이 공급자의 **Identifier (Entity ID)** 값이 아닙니다. IdP가 다른 애플리케이션용으로 응답을 만들었습니다. IdP에서 애플리케이션의 entity ID를 **SSO 구성 보기**의 **Identifier (Entity ID)** 값으로 설정하세요. Keycloak에서는 **Client ID**, Entra ID에서는 **Identifier (Entity ID)** 항목, Okta에서는 **Audience URI (SP Entity ID)** 항목입니다. OneUptime 주소만(예: `https://oneuptime.com`) entity ID로 설정된 IdP는 계속 작동합니다.
+:::
+
+:::details "SAML Recipient does not match"
+응답의 recipient가 이 공급자의 **Reply URL**이 아닙니다. 응답이 다른 주소로 보내졌습니다. IdP에서 애플리케이션의 reply URL을 **SSO 구성 보기**의 **Reply URL (Assertion Consumer Service URL)** 값으로 설정하세요. Keycloak에서는 **Assertion Consumer Service POST Binding URL**, Entra ID에서는 **Reply URL (Assertion Consumer Service URL)** 항목, Okta에서는 **Single sign-on URL** 항목입니다. "SAML Destination does not match"도 원인과 해결 방법이 같습니다.
+:::
+
+:::details "SAML response has expired"
+응답이 IdP가 허용하는 것보다 늦게, 또는 발급 후 10분이 넘어서 OneUptime에 도착했습니다. 다시 로그인하세요. 계속 반복된다면 IdP나 OneUptime 서버의 시계가 틀린 것입니다. OneUptime은 둘 사이에 3분까지의 차이를 허용합니다. "SAML response is not valid yet"은 같은 문제가 반대 방향으로 생긴 것입니다.
+:::
+
+:::details "SAML response was already used"
+IdP의 각 응답으로는 한 번만 로그인할 수 있습니다. 로그인한 뒤 브라우저에서 뒤로 가거나, IdP가 거쳐 보낸 페이지를 새로 고치면 같은 응답이 다시 전송됩니다. OneUptime에서 또는 IdP에서 다시 로그인하세요.
+:::
+
+:::details "This account is linked to someone else."
+Microsoft Entra ID가 이 공급자를 통해 다른 개체 ID에 연결된 계정의 이메일 주소로 누군가를 로그인시켰습니다. 지금은 Entra ID에서 다른 사람이 그 주소를 쓰고 있거나, 그 사람의 Entra ID 계정이 다시 만들어진 경우입니다. OneUptime은 이 로그인을 거부하므로, 다음에 그 주소를 갖게 된 사람은 그 계정을 사용할 수 없습니다. 계정이 그 사람의 것이라면 그 사람을 프로젝트에서 제거했다가 다시 추가하세요. 다음 로그인 때 계정이 그 사람의 새 개체 ID에 연결됩니다.
 :::
 
 :::details 서명 또는 인증서 오류로 로그인에 실패함

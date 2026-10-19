@@ -100,6 +100,17 @@ published apps and the workspace, tenant and accounts that own them, and say how
 the live apps once it is released, how the Slack Marketplace and Microsoft Partner Center submissions work, and
 what customers must do after a permission change.
 
+### GitHub App releases
+
+OneUptime Cloud's GitHub Apps (OneUptime for oneuptime.com, OneUptime Test for test.oneuptime.com) are configured on
+GitHub, not in this repository: merging code changes none of their settings. Before changing what the code needs
+from an app - a token permission, a webhook event, the install or sign-in callback, the webhook route - or the app's
+GitHub Marketplace listing, read
+[the GitHub App guide](packages/Common/Server/Utils/CodeRepository/GitHub/RELEASING.md). It names the apps and the
+organization that owns them, lists every setting the code depends on and what breaks without it, and says in which
+order to change the app and the code, how to test end to end on test.oneuptime.com, where publisher verification
+stands, and what the GitHub Marketplace listing holds and how to change it.
+
 ### Cloud marketplace listings
 
 OneUptime Cloud is sold on AWS Marketplace, Microsoft Marketplace (Azure) and Google Cloud Marketplace through
@@ -108,6 +119,33 @@ Microsoft. Before changing that code, its settings, the marketplace usage prices
 [the cloud marketplace guide](packages/Common/Server/Utils/Marketplace/RELEASING.md). It explains how a purchase is billed,
 the URLs and settings each marketplace is configured with, and which steps (seller registration, tax and banking,
 publishing) only a maintainer may do.
+
+OneUptime Cloud is also a native integration on the Vercel Marketplace (`packages/Common/Server/Utils/Marketplace/Vercel`:
+the provider API Vercel calls, sign-in from Vercel, webhooks, monitors of connected projects, Vercel invoices) with its
+log drain in the Telemetry service. Before changing that code, the resources' secrets or plans, or anything in Vercel's
+Integration Console, read [the Vercel Marketplace guide](packages/Common/Server/Utils/Marketplace/VERCEL_RELEASING.md).
+
+Self-hosted OneUptime Enterprise is sold on the same three marketplaces as a Kubernetes application, billed per
+user-hour: the usage job in `ee/Server/Marketplace`, the marketplace license in `ee/Server/License`, the reporters in
+`packages/Common/Server/Utils/Marketplace/SelfHosted`, the chart editions and their release automation in
+`HelmChart/Marketplace`, and `.github/workflows/marketplace-release.yml`. Before changing
+any of these, the `enterpriseMarketplace` chart values, or anything in those listings, read
+[the self-hosted marketplace guide](packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md). It explains
+how an installation is billed and licensed, how each edition is built, pushed, tested and submitted, and which steps
+only a maintainer may do.
+
+### Infrastructure agent package managers
+
+Each release publishes the infrastructure agent (`agents/InfrastructureAgent`) to apt and yum (packages.oneuptime.com,
+the GitHub Pages site of `OneUptime/packages`), Homebrew (`OneUptime/homebrew-tap`) and winget (`microsoft/winget-pkgs`).
+Before changing the agent's `.goreleaser.yaml`, `Scripts/PackageManagers`, or the `publish-infrastructure-agent-*` jobs in
+`.github/workflows/release.yml`, read [the package manager guide](Scripts/PackageManagers/README.md). It says how a
+release gets to each package manager, which repositories, keys and secrets each needs, and how to test a change
+(`Tests/Ops/package-repository-e2e.sh` installs from a repository the scripts build, as the docs say).
+
+To check or follow up on a release of the agent (a winget pull request, the Pages deploy, the signing key), read
+[agents/InfrastructureAgent/RELEASING.md](agents/InfrastructureAgent/RELEASING.md). The "Infrastructure Agent Release
+Status" workflow checks every place after each release and every day; its run summary is the release's record.
 
 ### Commit frequently
 

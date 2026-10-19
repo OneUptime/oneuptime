@@ -26,6 +26,10 @@ import WhatsAppTemplateMessages, {
   WhatsAppTemplateIds,
   WhatsAppTemplateLanguage,
 } from "Common/Types/WhatsApp/WhatsAppTemplates";
+import {
+  TemplatePlaceholder,
+  findTemplatePlaceholders,
+} from "Common/Utils/TemplatePlaceholders";
 import { useTranslation } from "react-i18next";
 
 /*
@@ -52,16 +56,18 @@ type ExtractTemplateVariables = (template: string) => Array<string>;
 const extractTemplateVariables: ExtractTemplateVariables = (
   template: string,
 ): Array<string> => {
-  const matches: RegExpMatchArray | null = template.match(/\{\{(.*?)\}\}/g);
+  const placeholders: Array<TemplatePlaceholder> =
+    findTemplatePlaceholders(template);
 
-  if (!matches) {
+  if (placeholders.length === 0) {
     return [];
   }
 
   const uniqueVariables: Set<string> = new Set<string>();
 
-  for (const match of matches) {
-    const variable: string = match.replace("{{", "").replace("}}", "").trim();
+  for (const placeholder of placeholders) {
+    // What stands between the braces: the text without its "{{" and "}}".
+    const variable: string = placeholder.inner.trim();
 
     if (variable) {
       uniqueVariables.add(variable);
@@ -208,7 +214,7 @@ const buildWhatsAppSetupMarkdown: BuildWhatsAppSetupMarkdown = (): string => {
     "### Required WhatsApp Templates",
     templateSummaryTable,
     "### Template Bodies",
-    "> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
+    "> [!NOTE]\n> Copy the exact template body below-including punctuation and spacing-when creating each template inside Meta. The variables list shows every placeholder that must be configured in WhatsApp Manager.",
     templateBodies,
   ]
     .filter(Boolean)
@@ -254,6 +260,8 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
         }}
         isEditable={true}
         editButtonText={t("pages.settings.whatsapp.metaEditButton")}
+        // Titled like the button that opens it, not "Edit Global Config".
+        editModalTitle={t("pages.settings.whatsapp.metaEditButton")}
         /*
          * One page: the access token and the phone number ID, which is all
          * a message is sent with, and the rest folded under Advanced. It was

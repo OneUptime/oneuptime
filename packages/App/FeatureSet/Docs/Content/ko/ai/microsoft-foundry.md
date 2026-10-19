@@ -16,12 +16,12 @@ OneUptime은 사용자의 브라우저가 아니라 OneUptime 서버에서 HTTPS
 ```mermaid title="OneUptime의 AI 요청이 가는 곳"
 flowchart TB
     subgraph OU["OneUptime 서버"]
-        F["AI 조사, 메모, 포스트모템, 수정 작업"]
+        F["AI 조사, 메모,<br/>포스트모템, 수정 작업"]
     end
     subgraph AZ["사용자의 Azure 구독"]
         R["Foundry 리소스 contoso-ai"]
-        V1["OpenAI v1 API: /openai/v1/chat/completions"]
-        AN["Anthropic API: /anthropic/v1/messages"]
+        V1["OpenAI v1 API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic API:<br/>/anthropic/v1/messages"]
         D1["배포 gpt-5.1"]
         D2["배포 claude-sonnet-5-5"]
     end
@@ -111,20 +111,20 @@ az cognitiveservices account keys list \
 
 **프로젝트 설정** > **AI** > **LLM 공급자**로 이동해 **LLM 제공자 만들기**를 클릭합니다.
 
-### 공급자 이름 정하기
+### 공급자 고르기
 
-**기본 정보**에서 **이름**(예: `Azure gpt-5.1`)을 입력하고, 원하면 **설명**도 입력합니다. **다음**을 클릭합니다.
+**공급자**에서 **LLM 제공자**로 **Azure OpenAI / Microsoft Foundry**를 고르고 **다음**을 클릭해 **연결**로 넘어갑니다.
 
-### 공급자 설정 채우기
+### 연결 채우기
 
 | 필드 | 입력할 값 |
 | --- | --- |
-| **LLM 제공자** | **Azure OpenAI / Microsoft Foundry** |
 | **API 키** | 리소스의 **KEY 1** 또는 **KEY 2** |
-| **모델 이름** | Foundry에 표시된 그대로의 배포 이름. 예: `gpt-5.1` |
 | **기본 URL** | 리소스 엔드포인트에 `/openai/v1`을 붙인 값. 예: `https://contoso-ai.openai.azure.com/openai/v1`. Claude의 경우: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **모델 이름** | Foundry에 표시된 그대로의 배포 이름. 예: `gpt-5.1` |
+| **이름** | 처음에는 공급자 이름입니다. 어떤 배포인지 알 수 있는 이름을 붙입니다. 예: `Azure gpt-5.1` |
 
-**추가 필드** 아래의 **기본값으로 설정**은 켜져 있습니다. AI 기능은 프로젝트의 기본 공급자를 사용합니다. **LLM 제공자 만들기**를 클릭합니다.
+**추가 필드**에는 **설명**과 켜져 있는 **기본값으로 설정**이 있습니다. AI 기능은 프로젝트의 기본 공급자를 사용합니다. **LLM 제공자 만들기**를 클릭합니다.
 
 ### 연결 테스트하기
 

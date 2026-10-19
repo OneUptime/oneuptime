@@ -21,15 +21,15 @@ Een Docker Swarm-monitor is aan één cluster gebonden. Elke minuut voert hij zi
 flowchart TB
     subgraph cluster["Uw Swarm-cluster"]
         direction LR
-        manager["Agent op een manager"]
-        others["Collectors op andere nodes"]
+        manager["Agent op<br/>een manager"]
+        others["Collectors op<br/>andere nodes"]
     end
-    manager -->|"metrieken en inventaris"| oneuptime["OneUptime"]
+    manager -->|"metrieken en<br/>inventaris"| oneuptime["OneUptime"]
     others -->|"metrieken"| oneuptime
-    oneuptime -->|"eerste gegevens"| registered["Cluster geregistreerd"]
-    oneuptime --> monitor["Docker Swarm-monitor"]
+    oneuptime -->|"eerste<br/>gegevens"| registered["Cluster<br/>geregistreerd"]
+    oneuptime --> monitor["Docker<br/>Swarm-monitor"]
     monitor -->|"elke minuut"| criteria{"Criteria voldaan?"}
-    criteria -->|"ja"| incident["Incident of waarschuwing"]
+    criteria -->|"ja"| incident["Incident of<br/>waarschuwing"]
     criteria -->|"nee"| online["Monitor online"]
 ```
 
@@ -148,7 +148,7 @@ Een criterium vergelijkt een van de query's of formules van de monitor met een d
 | Veld | Wat het doet |
 | --- | --- |
 | **Metriek** | De query of formule die wordt gecontroleerd, op naam van de variabele. |
-| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen) of **Any Value** (één is genoeg). |
+| **Aggregatie** | Hoe de waarden in het venster één antwoord worden: **Gemiddelde**, **Som**, **Maximum Value**, **Minimum Value**, **All Values** (elke waarde moet overeenkomen, over het hele venster) of **Any Value** (één is genoeg). |
 | **Voorwaarde** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** of **Gelijk aan** – of een anomalievoorwaarde: **Anomalously High**, **Anomalously Low** of **Anomalous**. |
 | **Threshold** | De waarde waarmee wordt vergeleken. Ernaast staat een lijst met eenheden als de metriek een eenheid heeft. Niet getoond bij anomalievoorwaarden. |
 | **Gevoeligheid** | Alleen bij anomalievoorwaarden. **Laag** (4σ), **Gemiddeld** (3σ, de standaard) of **Hoog** (2σ). |

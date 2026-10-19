@@ -982,8 +982,8 @@ describe("the Kubernetes agent page, against the setup guide and the chart", () 
       "`ebpf.dropUnlinkedClientCalls=true`",
       "It is off by default",
     );
-    expect(at(chartValues, "ebpf.contextPropagation")).toBe(false);
-    lineWith(KUBERNETES_PAGE, "`traceparent`", "is off by default");
+    expect(at(chartValues, "ebpf.contextPropagation")).toBe(true);
+    lineWith(KUBERNETES_PAGE, "`traceparent`", "is on by default");
     expect(at(chartValues, "ebpf.excludeOtelInstrumentedServices")).toBe(true);
     expect(page).toContain(
       "(`ebpf.excludeOtelInstrumentedServices=true`, OBI's default)",

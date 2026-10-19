@@ -11,10 +11,10 @@ flowchart TB
         layers["Lager och rotationer"]
         overrides["Användaråsidosättningar"]
     end
-    layers --> shifts["Vem som har jour, och när"]
+    layers --> shifts["Vem som har<br/>jour, och när"]
     overrides --> shifts
-    shifts --> timeline["Tidslinje för jourscheman"]
-    shifts --> paging["Eskaleringsregler larmar dem"]
+    shifts --> timeline["Tidslinje för<br/>jourscheman"]
+    shifts --> paging["Eskaleringsregler<br/>larmar dem"]
     shifts --> feeds["Kalenderflöden"]
 ```
 
@@ -42,7 +42,7 @@ Under rutnätet visar **On call this week** (**On call this month** i månadsvyn
 
 ## Ändra period och tidszon
 
-- Växla mellan **Week** och **Month**, bläddra med pilarna och gå tillbaka med **Today**.
+- Växla mellan **Vecka** och **Månad**, bläddra med pilarna och gå tillbaka med **Idag**.
 - Tider visas i din egen tidszon. Tidszonsknappen öppnar **View timeline in timezone**, som visar tidslinjen i vilken annan zon som helst utan att ändra när någon har jour: varje schema lämnar fortfarande över i sin egen tidszon.
 - Tidslinjen täcker 180 dagar bakåt och 365 dagar framåt.
 

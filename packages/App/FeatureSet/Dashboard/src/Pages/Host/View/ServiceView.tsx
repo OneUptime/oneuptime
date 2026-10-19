@@ -979,7 +979,7 @@ const HostServiceView: FunctionComponent<
       <Card
         title="No service metrics in range"
         description={translator.translateTemplate(
-          'No "{{serviceName}}" samples were found on this host during the selected time window. Pick a wider time range, or verify the OTel collector\'s windows_service receiver is enabled on this host — the Documentation tab has setup steps.',
+          'No "{{serviceName}}" samples in this time range. Pick a wider range, or check the collector\'s windows_service receiver: see the Documentation tab.',
           { serviceName: serviceName },
         )}
       >

@@ -41,13 +41,76 @@ image:
   ##   and core monitoring is never affected.
   ## Please contact sales@oneuptime.com for a license.
   type: community-edition
+
+  ## Image references that replace the ones this chart builds, by image:
+  ## app, nginx, probe, runner, home, test, postgres, clickhouse,
+  ## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. Each is either a full
+  ## reference, or {registry, repository, tag | digest} (registry optional).
+  ## The marketplace editions of this chart point them at the marketplace's own
+  ## registry; on Microsoft Marketplace, global.azure.images does the same.
+  ## Leave empty to use the references the chart builds from the values above.
+  # overrides:
+  #   app: registry.example.com/oneuptime/app:enterprise-14.0.0
+  #   nginx:
+  #     registry: registry.example.com
+  #     repository: oneuptime/nginx
+  #     tag: enterprise-14.0.0
+  overrides: {}
   
   restartPolicy: Always
 # imagePullSecrets:
 #   - name: MyCustomSecretNameWithDockerCredentials
 
-# Important: You do need to set this to a long random values if you're using OneUptime in production.
-# Please set this to string.
+# The Kubernetes service account the OneUptime app and worker pods run as.
+# Empty runs them as the namespace's default service account. On Amazon EKS
+# the AWS Marketplace edition runs them as a service account with an IAM role
+# (IAM roles for service accounts): that role is how the installation bills
+# its users through AWS Marketplace.
+serviceAccount:
+  # Create the service account, named `name` (or "<release>-oneuptime").
+  create: false
+  # The service account to run as: an existing one, or the name of the one created.
+  name: ""
+  # Annotations of the created service account, for example
+  # eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/oneuptime
+  annotations: {}
+
+# Billing this OneUptime Enterprise installation through the cloud marketplace
+# it was bought on - AWS Marketplace (Amazon EKS), Microsoft Marketplace (AKS)
+# or Google Cloud Marketplace (GKE) - by the user-hour. The marketplace
+# editions of this chart set it; leave `provider` empty anywhere else. Every 15
+# minutes the installation notes how many users it has and reports each hour
+# to the marketplace; the marketplace accepting the reports is also what
+# licenses the Enterprise features, with no license key.
+enterpriseMarketplace:
+  # "" (not bought on a marketplace), "aws", "azure" or "google-cloud".
+  provider: ""
+  aws:
+    # The AWS Region, for a pod EKS does not tell it (EKS sets AWS_REGION on
+    # pods whose service account has an IAM role).
+    region: ""
+  # On Microsoft Marketplace the extension's identity, plan and resource come
+  # from global.azure.identity.clientId, global.azure.marketplace.planId and
+  # global.azure.extension.resourceId, which Azure fills in at install.
+  googleCloud:
+    # The Service Control service of OneUptime's Google Cloud Marketplace listing.
+    serviceName: ""
+    # The Secret Google Cloud Marketplace created for this deployment (its
+    # reporting secret, with consumer-id, entitlement-id and reporting-key).
+    reportingSecret: ""
+
+# The `helm test` hook pod (templates/tests/test.yaml).
+testHook:
+  enabled: true
+
+# Leave these empty and the chart generates a long random value for each on
+# install, into the `<release>-secrets` Secret, and keeps it across upgrades.
+# If you set one, make it a long random string.
+#
+# oneuptimeSecret is the cluster key OneUptime's own services present to each
+# other. OneUptime refuses a value its repository ships ("secret", or a
+# "please-change-this-..." placeholder) from every caller. The in-cluster
+# Runner does not hold it: it registers with its own key (runner.key below).
 oneuptimeSecret:
 registerProbeKey:
 encryptionSecret:
@@ -93,6 +156,15 @@ deployment:
     type: RollingUpdate
   # Dynamic timestamp label to force updates
   includeTimestampLabel: true
+  # Spread each service's replicas across nodes, so a node going away (drained
+  # by a node-pool upgrade or a scale-down, or failing) cannot take every
+  # replica of a service with it. A soft rule: pods still schedule when only
+  # one node has room, so it never blocks a rollout. Covers app, home, nginx,
+  # worker, runner, telemetry-writer, every probe, test-server and pgbouncer,
+  # unless topologySpreadConstraints are set for them (see the chart-wide
+  # topologySpreadConstraints below). It only helps services that run more
+  # than one replica; pair it with podDisruptionBudget.enabled.
+  spreadReplicasAcrossNodes: true
 
 metalLb:
   enabled: false
@@ -147,6 +219,10 @@ nginx:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -375,6 +451,12 @@ postgresOperator:
 
 clickhouse:
   enabled: true
+  # The service account the ClickHouse pods run as. Set create to false to run
+  # them as the namespace's default service account instead, for a platform
+  # that does not let a chart create service accounts (the Google Cloud
+  # Marketplace edition).
+  serviceAccount:
+    create: true
   auth:
     username: oneuptime
     # Will be auto-generated if not provided
@@ -912,6 +994,9 @@ pgbouncer:
   nodeSelector: {}
   tolerations: []
   affinity: {}
+  # Spread rules for pgbouncer only. Like its affinity, this never inherits the
+  # chart-wide list; left empty, deployment.spreadReplicasAcrossNodes applies.
+  topologySpreadConstraints: []
   # Optional: override global security contexts just for the pgbouncer pod/container
   podSecurityContext: {}
   containerSecurityContext: {}
@@ -1156,6 +1241,13 @@ expo:
 # Push notification relay URL for self-hosted instances without Expo credentials
 pushNotification:
   relayUrl: https://oneuptime.com/api/notification/push-relay/send
+  # Whether this server relays mobile pushes for other OneUptime servers
+  # (/api/notification/push-relay), sending what they ask with its
+  # expo.accessToken. Leave it unset: it is then on only where billing is on
+  # (OneUptime's cloud). Set it to true only if your other OneUptime servers
+  # send their pushes through this one (their pushNotification.relayUrl);
+  # expo.accessToken alone sends this server's own pushes and relays nothing.
+  relayServerEnabled:
 
 incidents:
   disableAutomaticCreation: false
@@ -1493,6 +1585,10 @@ probes:
     nodeSelector: {}
     podSecurityContext: {}
     hostAliases: []
+    # Affinity and topology spread for this service only. Each replaces the
+    # chart-wide value (they are not merged).
+    affinity: {}
+    topologySpreadConstraints: []
     containerSecurityContext: {}
     # Extra env / volumes for this service only. A non-empty list REPLACES the
     # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -1581,6 +1677,10 @@ testServer:
     http: 3800
   resources: {}
   nodeSelector: {}
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   podSecurityContext: {}
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
@@ -1614,6 +1714,26 @@ affinity:
 tolerations:
 nodeSelector:
 hostAliases:
+# Chart-wide topology spread constraints, for app, home, nginx, worker, runner,
+# telemetry-writer, every probe and test-server. A service's own
+# <service>.topologySpreadConstraints replaces this list (they are not merged).
+# When neither is set, deployment.spreadReplicasAcrossNodes spreads each
+# service across nodes.
+#
+# A constraint without a labelSelector is scoped to each service's own pods
+# (app: <release>-<service>) and, on Kubernetes 1.27+, counted per rollout
+# (matchLabelKeys: [pod-template-hash]), so one entry here spreads every
+# service on its own. For example, to spread across zones as well on a
+# multi-zone cluster (this list replaces the default, so keep the node rule):
+#
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: kubernetes.io/hostname
+#     whenUnsatisfiable: ScheduleAnyway
+#   - maxSkew: 1
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: ScheduleAnyway
+topologySpreadConstraints: []
 
 # Chart-wide escape hatches, applied to every OneUptime workload the chart runs:
 # app, worker, every probe, runner, home, telemetry-writer, nginx, pgbouncer,
@@ -1870,6 +1990,10 @@ home:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -1945,6 +2069,10 @@ app:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2040,6 +2168,10 @@ worker:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2177,6 +2309,10 @@ telemetryWriter:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2187,8 +2323,9 @@ telemetryWriter:
 # AI Agent Configuration
 # Runs the OneUptime AI Agent within your Kubernetes cluster.
 # The in-cluster OneUptime Runner. It serves the AI code-fix capability for
-# every project in this deployment; it registers itself automatically (no
-# credentials needed) and idles cheaply when no LLM provider is configured.
+# every project in this deployment; it registers itself automatically with its
+# key (runner.key below, which the chart gives the app as well) and idles
+# cheaply when no LLM provider is configured.
 # Customers who want runbook steps executed inside their OWN network install
 # their own project-scoped Runner instead — see Runner/README.md.
 # Set enabled to false to not run it.
@@ -2211,7 +2348,8 @@ runner:
   # in-cluster Runner auto-registers itself using the key below)
   id:
   # Runner Key (optional — auto-generated and stored in the release
-  # secrets when not provided)
+  # secrets when not provided). The app is given the same key, and lets the
+  # Runner register as this installation's shared Runner with it.
   key:
   # Reference a Secret you manage for ONEUPTIME_RUNNER_KEY, instead of the value
   # the chart generates into `<release>-secrets`. The key is the Runner's identity
@@ -2229,6 +2367,10 @@ runner:
   nodeSelector: {}
   podSecurityContext: {}
   hostAliases: []
+  # Affinity and topology spread for this service only. Each replaces the
+  # chart-wide value (they are not merged).
+  affinity: {}
+  topologySpreadConstraints: []
   containerSecurityContext: {}
   # Extra env / volumes for this service only. A non-empty list REPLACES the
   # chart-wide extraEnv/extraVolumes/extraVolumeMounts (they are not merged).
@@ -2545,8 +2687,9 @@ microsoftSignInApp:
   #   clientSecretKey: clientSecret
 
 # Cloud marketplaces: sell OneUptime Cloud on AWS Marketplace, Microsoft
-# Marketplace (Azure) and Google Cloud Marketplace. Used only where billing is
-# enabled; a marketplace is offered only when all of its settings are set.
+# Marketplace (Azure), Google Cloud Marketplace and Vercel Marketplace. Used
+# only where billing is enabled; a marketplace is offered only when all of its
+# settings are set.
 # What each value is and where it comes from:
 # packages/Common/Server/Utils/Marketplace/RELEASING.md in the repository.
 cloudMarketplace:
@@ -2589,6 +2732,18 @@ cloudMarketplace:
     # existingSecret:
     #   name: "google-cloud-marketplace-secret"
     #   serviceAccountKeyKey: serviceAccountKey
+  # Vercel Marketplace native integration (Integration Console). Base URL:
+  # https://<host>/api/marketplace/vercel. Redirect Login URL:
+  # https://<host>/identity/vercel/sso. Webhook URL:
+  # https://<host>/api/marketplace/vercel/webhook. Log drain endpoint:
+  # https://<host>/telemetry/vercel/v1/logs.
+  vercel:
+    # The integration's client ID (oac_...) and client secret.
+    clientId:
+    clientSecret:
+    # existingSecret:
+    #   name: "vercel-marketplace-secret"
+    #   clientSecretKey: clientSecret
 
 # Inbound Email Configuration
 # Required for Incoming Email Monitor feature
@@ -2599,7 +2754,11 @@ inboundEmail:
   # The domain configured for inbound email (e.g., inbound.yourdomain.com)
   # Required for the Incoming Email Monitor feature to work
   domain:
-  # Optional webhook secret for validating incoming webhooks from the email provider
+  # Required once domain is set: a long random value of your own (openssl rand
+  # -hex 32 makes one), which the Destination URL in SendGrid's Inbound Parse
+  # settings ends with: https://<your OneUptime host>/incoming-email/sendgrid/<this value>.
+  # While it is empty, OneUptime refuses every email SendGrid delivers, and
+  # helm install / helm upgrade say so.
   webhookSecret:
 
 # BullMQ Queue Dashboard (Bull Board)
@@ -2681,9 +2840,18 @@ cloudnative-pg:
 # The operator is cluster-scoped and installs its CRDs via pre-install/pre-upgrade
 # Helm hooks. Full operator values: https://github.com/Altinity/clickhouse-operator/tree/master/deploy/helm/clickhouse-operator
 altinity-clickhouse-operator:
-  # The operator manages ClickHouse using its own "clickhouse_operator" user. Override
-  # these for production (the password is otherwise a well-known default).
+  # The operator manages ClickHouse with a user of its own, "clickhouse_operator".
+  # This chart renders that user's credentials Secret itself (secret.create stays
+  # false), under the name the operator reads it by: the operator chart's own
+  # Secret would give every installation the same password.
+  #
+  # Leave password empty to have the chart generate a random one on install and
+  # keep it on upgrade; an installation whose Secret already holds a password keeps
+  # that one. Set it to a long random value of your own to change it (then restart
+  # the operator: see HelmChart/Docs/Clickhouse.md), or when the chart is rendered
+  # with `helm template` (as Argo CD does), which cannot look up the stored one and
+  # would make a new one on every render.
   secret:
-    create: true
+    create: false
     username: clickhouse_operator
-    password: clickhouse_operator_password
+    password: ""

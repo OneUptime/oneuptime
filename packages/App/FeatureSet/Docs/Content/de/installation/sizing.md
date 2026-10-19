@@ -30,9 +30,9 @@ OneUptime braucht in der Produktion drei Datenspeicher. Jeder wächst mit etwas 
 
 ```mermaid title="Womit jeder Datenspeicher wächst"
 flowchart TB
-    Tel["Logs, Metriken, Traces"] -->|"Ingest-Rate × Aufbewahrung"| CH[("ClickHouse")]
-    State["Monitore, Vorfälle, Benutzer"] -->|"Anzahl der Objekte und Verlauf"| PG[("PostgreSQL")]
-    Work["Warteschlangen, Cache, Sitzungen"] -->|"Warteschlangentiefe"| VK[("Valkey")]
+    Tel["Logs, Metriken,<br/>Traces"] -->|"Ingest-Rate ×<br/>Aufbewahrung"| CH[("ClickHouse")]
+    State["Monitore,<br/>Vorfälle,<br/>Benutzer"] -->|"Anzahl der<br/>Objekte<br/>und Verlauf"| PG[("PostgreSQL")]
+    Work["Warteschlangen,<br/>Cache, Sitzungen"] -->|"Warteschlangentiefe"| VK[("Valkey")]
 ```
 
 | Datenspeicher | Was er speichert | Was seine Größe bestimmt |

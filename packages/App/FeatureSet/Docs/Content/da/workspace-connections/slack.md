@@ -5,6 +5,7 @@ Forbind OneUptime med Slack for at slå hændelser, advarsler, episoder, planlag
 :::cards
 - [Forbind Slack](#forbind-slack): Installér OneUptime i dit workspace, og knyt derefter din egen konto.
 - [Notifikationsregler](#notifikationsregler): Bestem, hvilke begivenheder der slås op hvor, og hvilke der får deres egen kanal.
+- [Hvem der er i en posts kanal](#hvem-der-er-i-en-posts-kanal): Se, hvem der er i den, deltag, og tilføj personer, fra postens side.
 - [Kommandoen /oneuptime](#kommandoen-oneuptime): Erklær hændelser, planlæg vedligeholdelse, se hvem der har vagt, og spørg AI.
 - [Vagt-brugergrupper](#vagt-brugergrupper): Hold en brugergruppe lig med dem, der har vagt, og tilkald den.
 - [Handl på hændelser, advarsler og begivenheder fra Slack](#handl-på-hændelser-advarsler-og-begivenheder-fra-slack): Knapperne i OneUptimes beskeder.
@@ -71,7 +72,7 @@ At oprette en regel går gennem fire trin:
 | Trin | Hvad du angiver |
 | --- | --- |
 | **Grundlæggende** | **Regelnavn** og **Regelbeskrivelse**. |
-| **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. Uden betingelser gælder reglen for hver begivenhed. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
+| **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. En ny regel gælder for hver begivenhed, for eksempel **Alle hændelser**. For at indsnævre den vælger du **Kun hændelser, der opfylder betingelserne** og tilføjer betingelserne. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
 | **Destination** | Hvor den slår op: **Skriv i eksisterende kanaler** med kanalnavnene, **Opret en kanal for hver hændelse** (eller advarsel, episode, begivenhed, monitor eller vagtpolitik) med hvem der kommer med i den, eller begge dele. Under trinnet siger **Hvad reglen gør** det i sætninger, ligesom reglens kort. |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
 
@@ -88,6 +89,20 @@ En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kana
 En kanal forbliver læsbar: hver begivenhed slås op én gang, og postens første tilstand står i den besked, der annoncerer posten, ikke i en besked for sig. En kørsel af en vagtpolitik er én besked, der redigeres, efterhånden som kørslen eskalerer: hvem der blev tilkaldt, hvor ofte og hvordan, hvem der ikke blev det og hvorfor, og hvem der bekræftede. En ny besked slås kun op, når nogen skal handle: en eskaleringsregel nåede ingen, eller kørslen sluttede, uden at nogen bekræftede. En person, hvis Slack-konto ikke er forbundet med OneUptime, kan ikke tilføjes til en kanal; OneUptime siger det én gang pr. kanal, i én besked, der nævner dem alle og redigeres, når listen vokser. Send dem beskedens link **Connect Slack account**, så de kan forbinde deres konto i ét trin. At postens ejere eller statussidens abonnenter har fået besked, står i dens feed i OneUptime.
 
 **Projektindstillinger** > **Arbejdsområde** > **Slack** viser de kanaler, OneUptime kan se, med **Send test** ved siden af hver. OneUptime melder sig selv ind i en offentlig kanal første gang, den slår op der. En privat kanal vises, og kan modtage opslag, først når OneUptime-appen er inviteret ind i den i Slack.
+
+## Hvem der er i en posts kanal
+
+En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen Slack-kanal har kortet **Slack-kanal** på sin side i OneUptime. Kortet viser kanalen, som et link, der åbner den i Slack, om den er privat, og hvem der er i den, dig først. Fra kortet, uden en Slack-administrator:
+
+- **Deltag i kanal** tilføjer dig, når du ikke er i kanalen.
+- **Tilføj personer** åbner en liste over projektets personer og teams: vælg en person for at tilføje personen, eller et team for at tilføje alle i det.
+
+OneUptime-appen tilføjer dem, ligesom den tilføjer personerne i en regels kanal. Appen bliver i de kanaler, den opretter, så det virker også for en privat kanal, som alle har forladt.
+
+- **Hvem der må tilføje personer.** Den, der må redigere posten: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member** for en hændelse, eller **Edit Incident** i en brugerdefineret rolle, og den samme tilladelse for en advarsel, en episode eller en begivenhed (for eksempel **Edit Alert**). Alle andre ser, hvem der er i kanalen, og hvordan de kommer ind.
+- **Hvem der kan tilføjes.** En person, OneUptime kan finde i Slack: via den Slack-konto, personen har forbundet, eller ellers via den e-mailadresse, Slack har for personen. Kortet nævner dem, det ikke kunne tilføje, og hvorfor, for eksempel en gæst, som Slack holder uden for kanalen.
+- **Hvad der registreres.** Hvem der blev tilføjet, og af hvem, i postens feed (**Kanalmedlem tilføjet**) og under **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** på fanen **Arbejdsområde**.
+- **At fjerne nogen.** OneUptime tilføjer kun: fjern nogen fra kanalen i Slack.
 
 ## Test en regel
 
@@ -128,7 +143,7 @@ Reagér på en besked i kanalen for en hændelse, advarsel, episode eller planla
 | Reaktion | Gemt som |
 | --- | --- |
 | 📌 En knappenål-emoji, eller Slacks egen **Pin to channel** | En privat note, som kun dit team ser |
-| 📢 En megafon- eller højttaler-emoji | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. |
+| 📢 En megafon- eller højttaler-emoji | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. På en privat hændelse en privat note, og bekræftelsen siger hvorfor. |
 
 Noten bevarer beskeden, som Slack viste den: dens formatering, links og kode, de personer og kanaler, den nævner, ved navn, og dens filer og billeder som links til dem. En offentlig note udelader filerne og billederne, da de kun åbner for dit team.
 
@@ -242,6 +257,7 @@ Knapperne i OneUptimes Slack-beskeder handler også som dig: som den OneUptime-k
 - **Hvem der må bruge dem.** De personer, der må lave den samme ændring i OneUptime. At bekræfte, løse eller ændre tilstanden for en hændelse kræver rettighed til at ændre dens tilstand: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** og **Incident Member**, eller **Create Incident State Timeline** i en brugerdefineret rolle. En advarsel, en episode eller en planlagt vedligeholdelsesbegivenhed kræver den samme rettighed for sin egen type (**Create Alert State Timeline**, for eksempel), og en note kræver rettighed til at slå den type note op. Alle andre får det at vide, og intet ændres.
 - **Hvilke poster.** Dem, du må læse, ligesom i OneUptime: med en rolle, der er begrænset til nogle etiketter, de hændelser, advarsler, episoder og begivenheder, der har dem. En knap på enhver anden post, eller på en fra et andet projekt, besvares med, at posten "was not found in this project, or you do not have access to it.", og intet ændres. På OneUptime Cloud afvises en ændring, som projektets plan ikke omfatter, med den plan, den kræver.
 - **Hvad Change State tilbyder.** De tilstande, du må læse, som posten må gå videre til, i projektets rækkefølge: ingen før den tilstand, den er i, for en episode som for en hændelse, en advarsel eller en planlagt vedligeholdelsesbegivenhed, da en tilstandsændring aldrig flytter en post op igen i sin liste (se [Rækkefølgen er en reel begrænsning, ikke en visningspræference](/docs/incidents/states-and-severities#rækkefølgen-er-en-reel-begrænsning-ikke-en-visningspræference)). Når du ikke må læse nogen, får du at vide "No incident states are available to you in this project. Ask a project admin for access to them."; når posten er i den sidste tilstand, den kan nå, får du at vide "There is no later state to move this incident to." Ingen af dem åbner en tom formular.
+- **Add Note på en privat hændelse eller episode.** En privat hændelse eller episode tager ingen offentlige noter, så dens formular spørger ikke om notetype og tilføjer en privat note. En formular, der blev åbnet, før den blev gjort privat, tilføjer også en privat note og siger det. Se [Private hændelser tager kun private noter](/docs/incidents/notes-owners-and-feed#private-hændelser-tager-kun-private-noter).
 - **Hvor du får svar.** Under beskeden med knappen, i en besked kun du kan se; i en direkte besked kun hvis Slack afviser det. En knap, der trykkes for sent, fortæller, hvem der kom først, og hvornår, for eksempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Hvis din Slack-konto ikke er forbundet.** Svaret beder dig forbinde den, med en knap **Connect Slack account**. Knappen åbner dine egne Slack-indstillinger i OneUptime og forbinder din konto i ét trin, efter at du har logget ind i OneUptime, hvis det er nødvendigt. Derefter gør OneUptime færdigt, hvad du trykkede på, som dig, og svarer under den samme besked; for en knap, der åbner en formular, eller en kommando beder det dig trykke på den eller køre den igen. Knappen virker én gang, i 30 minutter, og kun for den Slack-konto, der trykkede på den: logget ind i Slack som en anden forbinder den intet.
 
@@ -259,8 +275,8 @@ OneUptime læser kun det fra Slack, som disse funktioner har brug for, med de ti
 
 - **Beskeder til OneUptime.** En besked, der nævner den med @, en, du sender den i en direkte besked, og dine svar i en samtale med den, sammen med de tidligere beskeder i den tråd eller direkte besked, så OneUptime AI kan svare. Slack sender den også de andre beskeder i de kanaler og gruppebeskeder, den er med i; OneUptime hverken svarer på dem eller gemmer dem.
 - **Beskeder, du gemmer som noter.** En besked, du reagerer på med 📌 eller 📢, eller fastgør, i kanalen for en hændelse, advarsel, episode eller planlagt vedligeholdelsesbegivenhed, gemt som en note på den post med forfatterens navn.
-- **Navne på kanaler og personer.** De kanaler, den kan slå op i, så du kan vælge dem, og personers navne, for at vise, hvem der skrev eller gjorde noget.
-- **E-mailadresser.** Den e-mailadresse, Slack har for en person, for at matche personens Slack-konto med personens OneUptime-konto, når personen ikke selv har forbundet den: for at tilkalde personen eller sætte personen i en vagt-brugergruppe.
+- **Navne på kanaler og personer.** De kanaler, den kan slå op i, så du kan vælge dem, personers navne, for at vise, hvem der skrev eller gjorde noget, og hvem der er i en posts egen kanal, læst, når postens side viser det.
+- **E-mailadresser.** Den e-mailadresse, Slack har for en person, for at matche personens Slack-konto med personens OneUptime-konto, når personen ikke selv har forbundet den: for at tilkalde personen, sætte personen i en vagt-brugergruppe eller tilføje personen til en posts kanal.
 - **Brugergrupper.** Dit arbejdsområdes brugergrupper, så du kan vælge en til en vagtplan, og personerne i en, du forbinder, for at holde den lig med dem, der har vagt.
 
 Det, OneUptime gemmer af det — arbejdsområdets navn, dets kanaler, de Slack-konti, folk forbinder, noterne og brugergrupperne — gemmes sammen med dit projekt. [Privatlivspolitikken](https://oneuptime.com/legal/privacy) beskriver, hvordan OneUptime håndterer dine data.
@@ -272,7 +288,11 @@ Tjek reglens betingelser med **Testregel**: hvis testen ankommer, passede reglen
 :::
 
 :::details Nogen mangler i en regels kanal
-Reglens kort siger under **Derefter**, hvem reglen inviterer. Hver slags person kommer med, efterhånden som de kommer med i posten: de tilkaldte, når de tilkaldes, hændelseslederen, når den tildeles, en ejer, når den tilføjes, og dem, der allerede var på posten, da kanalen blev oprettet. En person, hvis Slack-konto ikke er forbundet med OneUptime, kan ikke tilføjes; OneUptime nævner personen i kanalen med et link til at forbinde sin konto.
+Reglens kort siger under **Derefter**, hvem reglen inviterer. Hver slags person kommer med, efterhånden som de kommer med i posten: de tilkaldte, når de tilkaldes, hændelseslederen, når den tildeles, en ejer, når den tilføjes, og dem, der allerede var på posten, da kanalen blev oprettet. En person, hvis Slack-konto ikke er forbundet med OneUptime, kan ikke tilføjes; OneUptime nævner personen i kanalen med et link til at forbinde sin konto. Vil du tilføje nogen med det samme, så tryk på **Tilføj personer** på postens kort **Slack-kanal**: Det finder også personer via den e-mailadresse, Slack har for dem.
+:::
+
+:::details Alle har forladt en privat kanal
+Åbn hændelsen, advarslen, episoden eller begivenheden i OneUptime, og tryk på **Deltag i kanal** på dens kort **Slack-kanal**, derefter på **Tilføj personer** for at hente de andre tilbage. Det kræver tilladelse til at redigere posten, ikke en Slack-administrator: OneUptime-appen er stadig i kanalen og tilføjer dem. Siger kortet, at OneUptime ikke kan se kanalen, er kanalen slettet, eller appen er fjernet fra den: En person i kanalen kan tilføje appen igen ved at skrive `/invite @OneUptime`.
 :::
 
 :::details Slack blev ikke forbundet

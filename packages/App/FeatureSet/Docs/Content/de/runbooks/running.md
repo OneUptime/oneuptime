@@ -20,14 +20,14 @@ stateDiagram-v2
     state "Fehlgeschlagen" as Failed
     state "Abgebrochen" as Cancelled
     [*] --> Scheduled: Lauf gestartet
-    Scheduled --> Running: ein Worker übernimmt ihn
-    Running --> WaitingForManualStep: Manual-Schritt oder Freigabe
-    WaitingForManualStep --> Scheduled: abgeschlossen, genehmigt oder übersprungen
-    Running --> Completed: alle Schritte erledigt
-    Running --> Failed: ein Schritt schlägt fehl
-    Scheduled --> Cancelled: Ausführung abbrechen
-    Running --> Cancelled: Ausführung abbrechen
-    WaitingForManualStep --> Cancelled: Ausführung abbrechen
+    Scheduled --> Running: ein Worker<br/>übernimmt ihn
+    Running --> WaitingForManualStep: Manual-Schritt<br/>oder Freigabe
+    WaitingForManualStep --> Scheduled: abgeschlossen,<br/>genehmigt oder<br/>übersprungen
+    Running --> Completed: alle Schritte<br/>erledigt
+    Running --> Failed: ein Schritt<br/>schlägt fehl
+    Scheduled --> Cancelled: Ausführung<br/>abbrechen
+    Running --> Cancelled: Ausführung<br/>abbrechen
+    WaitingForManualStep --> Cancelled: Ausführung<br/>abbrechen
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
@@ -118,7 +118,7 @@ Eine Ausführung ist ein einmaliger, unveränderlicher Datensatz. Um das Runbook
 
 | Wo | Was es auflistet |
 | --- | --- |
-| **Ausführungen** eines Runbooks | Jeden Lauf dieses Runbooks, mit Filtern für Status und Startdatum und einer Spalte **Ausgelöst von**. |
+| **Protokolle → Ausführungen** eines Runbooks | Jeden Lauf dieses Runbooks, mit Filtern für Status und Startdatum und einer Spalte **Ausgelöst von**. |
 | **Runbooks → Ausführungen** | Jeden Lauf jedes Runbooks im Projekt. |
 | **Runbooks** eines Vorfalls, einer Warnung oder eines Ereignisses | Die angehängten Läufe. Die Übersicht des Ereignisses zeigt sie ebenfalls, sobald es welche gibt. |
 
@@ -129,7 +129,7 @@ Ihre Rolle liest Runbooks, führt sie aber nicht aus: Der Button sagt „Sie hab
 :::
 
 :::details Der Start eines Laufs schlägt mit "Runbook is disabled" oder "Runbook has no steps to run" fehl
-Der Schalter **Dieses Runbook ausführen** des Runbooks ist auf seiner Seite **Einstellungen** aus, oder es hat keine gespeicherten Schritte. Schalten Sie den Schalter ein, oder fügen Sie Schritte hinzu und klicken Sie auf **Schritte speichern**.
+Der Schalter **Dieses Runbook ausführen** des Runbooks ist auf seiner Seite **Einstellungen** aus, oder es hat keine gespeicherten Schritte. Schalten Sie den Schalter ein, oder fügen Sie Schritte hinzu und klicken Sie auf **Schritte speichern**. Seine **Übersicht** zeigt, was fehlt, mit **Runbook einschalten** oder **Schritte hinzufügen**.
 :::
 
 :::details Ein Schritt ist fehlgeschlagen, weil ihm ein Runner oder Anmeldedaten fehlen

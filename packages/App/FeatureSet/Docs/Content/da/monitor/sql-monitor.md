@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant D as Din database
-    O->>P: Monitorindstillinger, hemmeligheder løst op
-    P->>D: Din forespørgsel, skrivebeskyttet
+    O->>P: Monitorindstillinger,<br/>hemmeligheder løst op
+    P->>D: Din forespørgsel,<br/>skrivebeskyttet
     D-->>P: Op til Max Rows + 1 rækker
-    P->>O: Antal rækker, skalar, første række, tid, fejl
+    P->>O: Antal rækker, skalar,<br/>første række, tid, fejl
     O->>O: Evaluér kriterierne
 ```
 
@@ -139,7 +139,7 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 | **Vært** | Den databasevært, sonden kan nå (for eksempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasenavn** | Den database, forespørgslen køres mod. |
-| **Use Windows Integrated Authentication** | Kun Microsoft SQL Server. Godkend med den konto, sonden kører som, i stedet for med et SQL-brugernavn og en adgangskode. Se [Integreret Windows-godkendelse](#integreret-windows-godkendelse). |
+| **Godkendelse** | Kun Microsoft SQL Server: **Brugernavn og adgangskode**, standardvalget, eller **Windows Integrated Authentication**, som logger på med den konto, sonden kører som. Se [Integreret Windows-godkendelse](#integreret-windows-godkendelse). |
 | **Brugernavn** | En skrivebeskyttet databasebruger med færrest mulige rettigheder. |
 | **Adgangskode** | Databasens adgangskode. Vi anbefaler kraftigt at henvise til en [monitorhemmelighed](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for at skrive adgangskoden som ren tekst (se [Brug en monitorhemmelighed til adgangskoden](#brug-en-monitorhemmelighed-til-adgangskoden)). |
 | **SQL Query** | Den skrivebeskyttede forespørgsel, der skal køres (se [Skriv forespørgslen](#skriv-forespørgslen)). |
@@ -157,7 +157,7 @@ En værdi over maksimum sænkes til maksimum.
 
 ### Integreret Windows-godkendelse
 
-For Microsoft SQL Server skal du slå **Use Windows Integrated Authentication** til for at åbne en betroet forbindelse med sondeprocessens identitet. Felterne Brugernavn og Adgangskode ignoreres i denne tilstand og sendes ikke videre til driveren. Fordi sonden har brug for en identitet, som dit domæne har tillid til, skal du bruge en selvhostet sonde til denne godkendelsestilstand.
+For Microsoft SQL Server skal du vælge **Windows Integrated Authentication** under **Godkendelse** for at åbne en betroet forbindelse med sondeprocessens identitet. Formularen skjuler så **Brugernavn** og **Adgangskode**, og ingen af dem sendes videre til driveren. Fordi sonden har brug for en identitet, som dit domæne har tillid til, skal du bruge en selvhostet sonde til denne godkendelsestilstand.
 
 | Sonden kører på | Hvad du skal sætte op |
 |---|---|

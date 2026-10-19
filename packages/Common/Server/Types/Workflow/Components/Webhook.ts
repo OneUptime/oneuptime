@@ -4,6 +4,7 @@ import {
   NextFunction,
 } from "../../../Utils/Express";
 import Response from "../../../Utils/Response";
+import ClusterKeyAuthorization from "../../../Middleware/ClusterKeyAuthorization";
 import { RunOptions, RunReturnType } from "../ComponentCode";
 import TriggerCode, { ExecuteWorkflowType, InitProps } from "../TriggerCode";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -15,6 +16,19 @@ import WebhookComponents from "../../../../Types/Workflow/Components/Webhook";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import WorkflowService from "../../../Services/WorkflowService";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
+
+/*
+ * A workflow whose trigger checks the signature of every request (the
+ * Huntress trigger) is only ever started through its own URL, which checks
+ * it. Its webhook secret key is the last part of that URL too, so this
+ * route, which checks no signature, refuses it.
+ */
+export const SIGNED_WEBHOOK_TRIGGER_IDS: Array<string> = [
+  ComponentID.HuntressIncidentReport,
+];
+
+export const SIGNED_WEBHOOK_WORKFLOW_MESSAGE: string =
+  "This workflow starts from Huntress, which signs its requests. Send them to the URL its Huntress trigger shows.";
 
 export default class WebhookTrigger extends TriggerCode {
   public constructor() {
@@ -97,6 +111,7 @@ export default class WebhookTrigger extends TriggerCode {
       },
       select: {
         _id: true,
+        triggerId: true,
       },
       props: {
         isRoot: true,
@@ -109,10 +124,23 @@ export default class WebhookTrigger extends TriggerCode {
       );
     }
 
+    if (
+      workflow.triggerId &&
+      SIGNED_WEBHOOK_TRIGGER_IDS.includes(workflow.triggerId)
+    ) {
+      throw new BadDataException(SIGNED_WEBHOOK_WORKFLOW_MESSAGE);
+    }
+
     const executeWorkflow: ExecuteWorkflowType = {
       workflowId: new ObjectID(workflow._id),
       returnValues: {
-        "request-headers": req.headers,
+        /*
+         * Every header the caller sent but the two OneUptime's own services
+         * prove themselves with: a run's values are the project's to read.
+         */
+        "request-headers": ClusterKeyAuthorization.withoutClusterKeyHeaders(
+          req.headers,
+        ),
         "request-params": req.query,
         "request-body": req.body,
       },

@@ -98,10 +98,10 @@
       "title": "Autenticazione",
       "intro": "Dovrai autenticare le tue richieste per accedere a qualsiasi endpoint dell'API OneUptime. In questa guida vedremo come funziona l'autenticazione. OneUptime offre un modo per autenticare le tue richieste API: tramite una chiave API.",
       "generateApiKey": "Genera una chiave API",
-      "generateApiKeyBody": "Vai a <strong>Impostazioni progetto</strong> > <strong>Chiavi API</strong>. Crea una nuova chiave API. Nota: le nuove chiavi API non hanno autorizzazioni assegnate, quindi dovrai assegnare un'autorizzazione prima di poterle utilizzare.",
+      "generateApiKeyBody": "Vai a <strong>Impostazioni del progetto</strong> > <strong>Avanzato</strong> > <strong>Chiavi API</strong>. Crea una nuova chiave API. Nota: le nuove chiavi API non hanno autorizzazioni assegnate, quindi dovrai assegnare un'autorizzazione prima di poterle utilizzare.",
       "readMorePermissions": "Scopri di più sulle autorizzazioni",
       "projectId": "ID Progetto",
-      "projectIdBody": "Vai a <strong>Impostazioni progetto</strong> > <strong>Progetto</strong>. Dovresti vedere lì il tuo ID Progetto.",
+      "projectIdBody": "Vai a <strong>Impostazioni del progetto</strong> > <strong>Progetto</strong>. Dovresti vedere lì il tuo ID Progetto.",
       "authWithApiKey": "Autenticazione con chiave API",
       "authWithApiKeyBody": "Puoi utilizzare la chiave API OneUptime nell'intestazione della richiesta quando effettui una richiesta. Puoi utilizzare l'intestazione <code>ApiKey</code> con la tua chiave API quando effettui una richiesta.",
       "exampleApiRequest": "Esempio di richiesta con chiave API",
@@ -132,7 +132,7 @@
       "metaDescription": "Scopri come funzionano le autorizzazioni con OneUptime",
       "badge": "Guida",
       "title": "Autorizzazioni",
-      "intro": "Il tuo token API necessita di autorizzazioni per creare, aggiornare, leggere o eliminare qualsiasi risorsa. Se non disponi delle autorizzazioni per effettuare una richiesta, verrà restituito uno stato <code>4xx</code> come risposta. Puoi gestire le autorizzazioni per la tua chiave API in Impostazioni progetto > Chiavi API.",
+      "intro": "Il tuo token API necessita di autorizzazioni per creare, aggiornare, leggere o eliminare qualsiasi risorsa. Se non disponi delle autorizzazioni per effettuare una richiesta, verrà restituito uno stato <code>4xx</code> come risposta. Puoi gestire le autorizzazioni per la tua chiave API in Impostazioni del progetto > Avanzato > Chiavi API.",
       "jumpToCategory": "Vai a una categoria"
     },
     "errors": {

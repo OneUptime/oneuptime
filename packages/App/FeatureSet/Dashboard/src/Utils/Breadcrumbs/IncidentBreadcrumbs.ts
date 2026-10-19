@@ -262,12 +262,6 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Episode",
       "Audit Logs",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_EPISODE_DOCS, [
-      "Project",
-      "Incidents",
-      "Episodes",
-      "Documentation",
-    ]),
 
     // Incident Settings (Product-level)
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_ROLES, [
@@ -282,16 +276,6 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Numbering",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS, [
-      "Project",
-      "Incidents",
-      "Integrations",
-      "Huntress",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW,
-      ["Project", "Incidents", "Integrations", "Huntress", "View Connection"],
-    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_STATE, [
       "Project",
       "Incidents",
@@ -359,6 +343,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Linked Alerts",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
+      ["Project", "Incidents", "Settings", "Episode Membership"],
+    ),
 
     /*
      * The trail names the side-menu section a page actually lives in —

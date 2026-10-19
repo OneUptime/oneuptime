@@ -3,17 +3,32 @@ import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import { StyledDayEvent, layoutDayEvents } from "./CalendarDayLayout";
+import {
+  CalendarEventAppearance,
+  getSoftEventStyle,
+  SOFT_EVENT_CLASS_NAME,
+} from "./CalendarEventTone";
+import {
+  CalendarToolbarStatusContext,
+  ConnectedCalendarToolbar,
+} from "./CalendarToolbar";
 import moment from "moment-timezone";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   Calendar,
+  Components,
   Culture,
+  DateHeaderProps,
   DateLocalizer,
   DateRange,
   DayLayoutFunction,
+  EventProps,
   EventPropGetter,
   Formats,
+  Messages,
   momentLocalizer,
   View,
 } from "react-big-calendar";
@@ -57,21 +72,13 @@ calendarLocalizer.getTotalMin = (start: Date, end: Date): number => {
  * next day has nothing of it to show (see CalendarDayLayout), so it gets its
  * end time here instead, "7:26 PM – 12:00 AM".
  */
-export const formatEventTimeRangeStart: (
+const formatTimeRangeStart: (
   range: DateRange,
-  culture?: Culture,
-  local?: DateLocalizer,
+  formatTime: (date: Date) => string,
 ) => string = (
   range: DateRange,
-  culture?: Culture,
-  local?: DateLocalizer,
+  formatTime: (date: Date) => string,
 ): string => {
-  const formatTime: (date: Date) => string = (date: Date): string => {
-    return local
-      ? local.format(date, "LT", culture)
-      : moment(date).format("LT");
-  };
-
   const followingMidnight: moment.Moment = moment(range.start)
     .startOf("day")
     .add(1, "day");
@@ -84,8 +91,118 @@ export const formatEventTimeRangeStart: (
   return `${formatTime(range.start)} – `;
 };
 
+export const formatEventTimeRangeStart: (
+  range: DateRange,
+  culture?: Culture,
+  local?: DateLocalizer,
+) => string = (
+  range: DateRange,
+  culture?: Culture,
+  local?: DateLocalizer,
+): string => {
+  return formatTimeRangeStart(range, (date: Date): string => {
+    return local
+      ? local.format(date, "LT", culture)
+      : moment(date).format("LT");
+  });
+};
+
 const CALENDAR_FORMATS: Formats = {
   eventTimeRangeStartFormat: formatEventTimeRangeStart,
+};
+
+const ENGLISH_LANGUAGE: string = "en";
+
+/*
+ * The dates and times the views write - the month's and the week's titles,
+ * the day names, the hours down the side, an event's times - in the
+ * reader's language. English keeps react-big-calendar's own wording (the
+ * moment localizer's). Another language gets the browser's (Intl), always
+ * on the Gregorian calendar the grid is laid out in and with the digits of
+ * the grid's day numbers: Persian would otherwise name the month of its own
+ * calendar above a Gregorian grid.
+ */
+export const getCalendarFormats: (language: string | undefined) => Formats = (
+  language: string | undefined,
+): Formats => {
+  const code: string = (language || ENGLISH_LANGUAGE).trim();
+
+  if (
+    !code ||
+    code === ENGLISH_LANGUAGE ||
+    code.startsWith(`${ENGLISH_LANGUAGE}-`)
+  ) {
+    return CALENDAR_FORMATS;
+  }
+
+  const formatter: (
+    options: Intl.DateTimeFormatOptions,
+  ) => (date: Date) => string = (
+    options: Intl.DateTimeFormatOptions,
+  ): ((date: Date) => string) => {
+    let format: Intl.DateTimeFormat;
+
+    try {
+      format = new Intl.DateTimeFormat(code, {
+        calendar: "gregory",
+        numberingSystem: "latn",
+        ...options,
+      } as Intl.DateTimeFormatOptions);
+    } catch {
+      // A language Intl does not know: English, as the grid would be.
+      format = new Intl.DateTimeFormat(ENGLISH_LANGUAGE, options);
+    }
+
+    return (date: Date): string => {
+      return format.format(date);
+    };
+  };
+
+  const between: (
+    first: (date: Date) => string,
+  ) => (range: DateRange) => string = (
+    first: (date: Date) => string,
+  ): ((range: DateRange) => string) => {
+    return (range: DateRange): string => {
+      return `${first(range.start)} – ${first(range.end)}`;
+    };
+  };
+
+  // Two-digit hours: a German or Japanese grid says 00:00 and 08:00.
+  const time: (date: Date) => string = formatter({
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return {
+    weekdayFormat: formatter({ weekday: "short" }),
+    dayFormat: formatter({ weekday: "short", day: "2-digit" }),
+    dayHeaderFormat: formatter({
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    }),
+    monthHeaderFormat: formatter({ month: "long", year: "numeric" }),
+    dayRangeHeaderFormat: between(formatter({ month: "long", day: "numeric" })),
+    agendaHeaderFormat: between(
+      formatter({ year: "numeric", month: "numeric", day: "numeric" }),
+    ),
+    agendaDateFormat: formatter({
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }),
+    agendaTimeFormat: time,
+    agendaTimeRangeFormat: between(time),
+    timeGutterFormat: time,
+    eventTimeRangeFormat: between(time),
+    eventTimeRangeStartFormat: (range: DateRange): string => {
+      return formatTimeRangeStart(range, time);
+    },
+    eventTimeRangeEndFormat: (range: DateRange): string => {
+      return ` – ${time(range.end)}`;
+    },
+  };
 };
 
 const dayLayoutAlgorithm: DayLayoutFunction<CalendarEvent> = (
@@ -127,6 +244,35 @@ export interface ComponentProps {
    */
   getNow?: (() => Date) | undefined;
   onRangeChange: (startAndEndTime: StartAndEndTime) => void;
+  /*
+   * The views the toolbar offers, in its order. Defaults to month, week, day
+   * and agenda.
+   */
+  views?: Array<DefaultCalendarView> | undefined;
+  // A click on an event's block.
+  onEventClick?: ((event: CalendarEvent) => void) | undefined;
+  /*
+   * What an event's block shows instead of its title: an element a keyboard
+   * reaches, such as a link to the event. react-big-calendar draws the block
+   * itself as a div no keyboard can focus.
+   */
+  renderEventContent?: ((event: CalendarEvent) => ReactElement) | undefined;
+  /*
+   * Something beside a day's number in the month view - a button that
+   * schedules something on that day. Null for a day without one.
+   */
+  renderDayAction?: ((date: Date) => ReactElement | null) | undefined;
+  /*
+   * How the blocks are painted (CalendarEventTone): solid in their colour,
+   * as people are on the on-call schedules (the default), or soft - a pale
+   * wash with a stripe of the colour - for colours that are states.
+   */
+  eventAppearance?: CalendarEventAppearance | undefined;
+  /*
+   * Drawn in the toolbar after the period's name: what the calendar is
+   * doing, such as "Loading events..." while a period is read.
+   */
+  toolbarStatus?: ReactElement | undefined;
 }
 
 export enum DefaultCalendarView {
@@ -138,9 +284,125 @@ export enum DefaultCalendarView {
 
 const CALENDAR_VIEWS: View[] = ["month", "week", "day", "agenda"];
 
+/*
+ * The toolbar's words and the "+2 more" of a full month cell, in the
+ * reader's language. react-big-calendar writes them in English otherwise.
+ */
+export const getCalendarMessages: (
+  translator: Translator,
+) => Messages<CalendarEvent> = (
+  translator: Translator,
+): Messages<CalendarEvent> => {
+  return {
+    today: translator.translateText("Today"),
+    previous: translator.translateText("Back"),
+    next: translator.translateText("Next"),
+    month: translator.translateText("Month"),
+    week: translator.translateText("Week"),
+    day: translator.translateText("Day"),
+    agenda: translator.translateText("Agenda"),
+    date: translator.translateText("Date"),
+    time: translator.translateText("Time"),
+    event: translator.translateText("Event"),
+    allDay: translator.translateText("All day"),
+    noEventsInRange: translator.translateText(
+      "There are no events in this range.",
+    ),
+    showMore: (count: number): string => {
+      return translator.translatePlural(
+        { one: "+{{count}} more", other: "+{{count}} more" },
+        count,
+      );
+    },
+  };
+};
+
 const CalendarElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  const messages: Messages<CalendarEvent> = useMemo(() => {
+    return getCalendarMessages(translator);
+  }, [translator]);
+
+  const formats: Formats = useMemo(() => {
+    return getCalendarFormats(translator.language);
+  }, [translator.language]);
+
+  /*
+   * The pieces a caller replaces: an event's content, and the header of a
+   * month view's day. Rebuilt only when the caller's renderers change, so
+   * react-big-calendar does not remount every cell on each render.
+   */
+  const components: Components<CalendarEvent> = useMemo(() => {
+    /*
+     * The toolbar is always the product's own (CalendarToolbar). It is one
+     * component for the calendar's life, and reads what to say beside the
+     * period from a context: a new component whenever that changed would
+     * remount the toolbar, and take the focus off the arrow a keyboard just
+     * pressed.
+     */
+    const replaced: Components<CalendarEvent> = {
+      toolbar: ConnectedCalendarToolbar,
+    };
+
+    const renderEventContent:
+      | ((event: CalendarEvent) => ReactElement)
+      | undefined = props.renderEventContent;
+
+    if (renderEventContent) {
+      replaced.event = (eventProps: EventProps<CalendarEvent>) => {
+        return renderEventContent(eventProps.event);
+      };
+    }
+
+    const renderDayAction: ((date: Date) => ReactElement | null) | undefined =
+      props.renderDayAction;
+
+    if (renderDayAction) {
+      replaced.month = {
+        dateHeader: (headerProps: DateHeaderProps) => {
+          const action: ReactElement | null = headerProps.isOffRange
+            ? null
+            : renderDayAction(headerProps.date);
+
+          /*
+           * The day's number is react-big-calendar's own button (it opens
+           * the day), at the cell's right edge as before; the action sits
+           * at its left.
+           */
+          return (
+            <div className="oneuptime-calendar-date-header">
+              {action}
+              {headerProps.drilldownView ? (
+                <button
+                  type="button"
+                  className="rbc-button-link"
+                  onClick={headerProps.onDrillDown}
+                >
+                  {headerProps.label}
+                </button>
+              ) : (
+                <span>{headerProps.label}</span>
+              )}
+            </div>
+          );
+        },
+      };
+    }
+
+    return replaced;
+  }, [props.renderEventContent, props.renderDayAction]);
+
+  const views: Array<View> = useMemo(() => {
+    return props.views && props.views.length > 0
+      ? props.views.map((view: DefaultCalendarView): View => {
+          return view as View;
+        })
+      : CALENDAR_VIEWS;
+  }, [props.views]);
+
   const { defaultDate } = useMemo(() => {
     return {
       defaultDate: props.defaultDate || OneUptimeDate.getCurrentDate(),
@@ -189,6 +451,22 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
     const backgroundColor: string =
       event.color?.toString() || Blue500.toString();
 
+    if (props.eventAppearance === CalendarEventAppearance.Soft) {
+      const softStyle: React.CSSProperties = {
+        ...getSoftEventStyle(backgroundColor),
+        borderRadius: "0.375rem",
+        border: "0px",
+        display: "block",
+      };
+
+      return {
+        style: softStyle,
+        className: className
+          ? `${className} ${SOFT_EVENT_CLASS_NAME}`
+          : SOFT_EVENT_CLASS_NAME,
+      };
+    }
+
     const computedTextColor: string =
       event.textColor?.toString() ||
       (Color.shouldUseDarkText(new Color(backgroundColor))
@@ -235,36 +513,47 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         hasAllDayEvents ? "" : " oneuptime-calendar--no-all-day"
       }`}
     >
-      <Calendar
-        defaultDate={defaultDate}
-        events={props.events}
-        backgroundEvents={props.backgroundEvents || []}
-        localizer={calendarLocalizer}
-        formats={CALENDAR_FORMATS}
-        dayLayoutAlgorithm={dayLayoutAlgorithm}
-        {...(props.getNow ? { getNow: props.getNow } : {})}
-        showMultiDayTimes
-        views={CALENDAR_VIEWS}
-        defaultView={props.defaultCalendarView || "week"}
-        eventPropGetter={eventStyleGetter}
-        tooltipAccessor={eventTooltipGetter}
-        popup
-        onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
-          if (Array.isArray(range)) {
-            return props.onRangeChange({
-              startTime: range[0] as Date,
-              endTime: OneUptimeDate.getEndOfDay(
-                range[range.length - 1] as Date,
-              ),
-            });
-          }
+      <CalendarToolbarStatusContext.Provider value={props.toolbarStatus}>
+        <Calendar
+          defaultDate={defaultDate}
+          events={props.events}
+          backgroundEvents={props.backgroundEvents || []}
+          localizer={calendarLocalizer}
+          formats={formats}
+          dayLayoutAlgorithm={dayLayoutAlgorithm}
+          {...(props.getNow ? { getNow: props.getNow } : {})}
+          {...(props.onEventClick
+            ? {
+                onSelectEvent: (event: CalendarEvent): void => {
+                  props.onEventClick?.(event);
+                },
+              }
+            : {})}
+          components={components}
+          messages={messages}
+          showMultiDayTimes
+          views={views}
+          defaultView={props.defaultCalendarView || "week"}
+          eventPropGetter={eventStyleGetter}
+          tooltipAccessor={eventTooltipGetter}
+          popup
+          onRangeChange={(range: Date[] | { start: Date; end: Date }) => {
+            if (Array.isArray(range)) {
+              return props.onRangeChange({
+                startTime: range[0] as Date,
+                endTime: OneUptimeDate.getEndOfDay(
+                  range[range.length - 1] as Date,
+                ),
+              });
+            }
 
-          props.onRangeChange({
-            startTime: range.start,
-            endTime: range.end,
-          });
-        }}
-      />
+            props.onRangeChange({
+              startTime: range.start,
+              endTime: range.end,
+            });
+          }}
+        />
+      </CalendarToolbarStatusContext.Provider>
     </div>
   );
 };

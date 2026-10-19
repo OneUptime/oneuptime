@@ -2,11 +2,13 @@ import {
   DEFAULT_NODE_HEIGHT,
   NEW_NODE_HEIGHT_ESTIMATE,
   WORKFLOW_NODE_WIDTH,
+  WorkflowCanvasNode,
   WorkflowCanvasRect,
   WorkflowCanvasSize,
   WorkflowCanvasViewport,
   getNewWorkflowNodePosition,
   getViewportToRevealNode,
+  getViewportToRevealTrigger,
   isWorkflowNodeInView,
 } from "../../../../UI/Components/Workflow/NodePlacement";
 import { ComponentType, NodeType } from "../../../../Types/Workflow/Component";
@@ -522,5 +524,140 @@ describe("Workflow node reveal: where the canvas moves to", () => {
     });
 
     expect(viewport).toEqual({ x: 10, y: 20, zoom: 1 });
+  });
+});
+
+/*
+ * A workflow too big to fit at the smallest zoom - the Huntress template on
+ * a laptop - is fitted on its middle, with the trigger above the top edge:
+ * once the canvas has opened, it moves just far enough to bring the trigger
+ * in, at the fit's zoom. One that fits is left as fitted.
+ */
+describe("Workflow canvas on open: the trigger in view", () => {
+  /*
+   * The Huntress template fitted at React Flow's smallest zoom, 0.5, on a
+   * 1250 x 500 canvas: its middle shows, and its trigger (x 100, y 100) is
+   * drawn at y = 100 * 0.5 - 210 = -160.
+   */
+  const FITTED: WorkflowCanvasViewport = { x: 677, y: -210, zoom: 0.5 };
+  const LAPTOP: WorkflowCanvasSize = { width: 1250, height: 500 };
+
+  const trigger: WorkflowCanvasNode = {
+    position: { x: 100, y: 100 },
+    width: WORKFLOW_NODE_WIDTH,
+    height: 184,
+    isTrigger: true,
+  };
+
+  const step: (x: number, y: number) => WorkflowCanvasNode = (
+    x: number,
+    y: number,
+  ): WorkflowCanvasNode => {
+    return {
+      position: { x, y },
+      width: WORKFLOW_NODE_WIDTH,
+      height: 200,
+      isTrigger: false,
+    };
+  };
+
+  test("a trigger above the top edge comes down to the top margin, at the same zoom and across", () => {
+    expect(
+      getViewportToRevealTrigger({
+        nodes: [step(18, 300), trigger, step(-1050, 540)],
+        viewport: FITTED,
+        canvasSize: LAPTOP,
+      }),
+    ).toEqual({ x: 677, y: -26, zoom: 0.5 });
+  });
+
+  test("once moved, the trigger is in view - all of it, by its measured height", () => {
+    const moved: WorkflowCanvasViewport = getViewportToRevealTrigger({
+      nodes: [trigger],
+      viewport: FITTED,
+      canvasSize: LAPTOP,
+    }) as WorkflowCanvasViewport;
+
+    expect(
+      isWorkflowNodeInView({
+        position: trigger.position,
+        width: trigger.width as number,
+        height: trigger.height as number,
+        viewport: moved,
+        canvasSize: LAPTOP,
+      }),
+    ).toBe(true);
+  });
+
+  test("a workflow that fits, its trigger in view, stays as it was fitted", () => {
+    expect(
+      getViewportToRevealTrigger({
+        nodes: [trigger, step(100, 400)],
+        viewport: { x: 200, y: 20, zoom: 1 },
+        canvasSize: { width: 1250, height: 900 },
+      }),
+    ).toBeNull();
+  });
+
+  test("the trigger is found wherever it is in the list, and only the trigger is brought in", () => {
+    // A step far below would pull the view down; the trigger is what counts.
+    expect(
+      getViewportToRevealTrigger({
+        nodes: [step(100, 5000), step(100, -4000), trigger],
+        viewport: FITTED,
+        canvasSize: LAPTOP,
+      }),
+    ).toEqual({ x: 677, y: -26, zoom: 0.5 });
+  });
+
+  test("a trigger off to the side comes in from that side", () => {
+    // Drawn from x = 2600 * 0.5 = 1300 to 1428; it may end at 1250 - 24 = 1226.
+    expect(
+      getViewportToRevealTrigger({
+        nodes: [{ ...trigger, position: { x: 2600, y: 100 } }],
+        viewport: { x: 0, y: 0, zoom: 0.5 },
+        canvasSize: LAPTOP,
+      }),
+    ).toEqual({ x: -202, y: 0, zoom: 0.5 });
+  });
+
+  test("no trigger, or a canvas not measured yet: nothing moves", () => {
+    expect(
+      getViewportToRevealTrigger({
+        nodes: [step(100, 100), step(100, 5000)],
+        viewport: FITTED,
+        canvasSize: LAPTOP,
+      }),
+    ).toBeNull();
+    expect(
+      getViewportToRevealTrigger({
+        nodes: [],
+        viewport: FITTED,
+        canvasSize: LAPTOP,
+      }),
+    ).toBeNull();
+    expect(
+      getViewportToRevealTrigger({
+        nodes: [trigger],
+        viewport: FITTED,
+        canvasSize: { width: 0, height: 0 },
+      }),
+    ).toBeNull();
+  });
+
+  test("a trigger not measured yet is taken at a new step's size", () => {
+    expect(
+      getViewportToRevealTrigger({
+        nodes: [{ ...trigger, width: null, height: null }],
+        viewport: FITTED,
+        canvasSize: LAPTOP,
+      }),
+    ).toEqual(
+      getViewportToRevealNode({
+        position: trigger.position,
+        viewport: FITTED,
+        canvasSize: LAPTOP,
+      }),
+    );
   });
 });

@@ -68,7 +68,7 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
 > = {
   [ProjectBalanceType.SmsOrCall]: {
     forPeopleWhoMayAdd: translationKey(
-      "It tries again within an hour. Check the payment method in Project Settings > Billing, or recharge the balance now.",
+      "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or recharge the balance now.",
     ),
     forEveryoneElse: translationKey(
       "It tries again within an hour. A project owner or someone with Manage Billing can recharge the balance.",
@@ -76,7 +76,7 @@ export const AUTO_RECHARGE_FAILED_DESCRIPTIONS: Readonly<
   },
   [ProjectBalanceType.AI]: {
     forPeopleWhoMayAdd: translationKey(
-      "It tries again within an hour. Check the payment method in Project Settings > Billing, or add AI credits now.",
+      "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add AI credits now.",
     ),
     forEveryoneElse: translationKey(
       "It tries again within an hour. A project owner or someone with Manage Billing can add AI credits.",
@@ -144,3 +144,57 @@ export const WHO_CAN_ADD_AI_CREDITS: string = translationKey(
 export const ADD_AI_CREDITS_STEP: string = translationKey(
   "Add AI credits to this project.",
 );
+
+/*
+ * THE AUTO RECHARGE CARD, ONE FOR BOTH BALANCES (AutoRechargeCard).
+ *
+ * Each balance's page drew its own Auto Recharge card: a switch and two
+ * amounts, all three always shown - "Auto Recharge by (in USD): 20 USD"
+ * under a switch that was off - with the SMS balance's switch row titled
+ * "Auto Recharge Balance by (in USD)", and 500 offered twice. The card now
+ * says in one line what Auto Recharge does: "Off", or "Adds 20 USD
+ * whenever the balance falls to 10 USD." Its Edit dialog asks for the
+ * amounts only once Auto Recharge is on. The three columns of each balance
+ * (PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS) and what they hold are unchanged.
+ */
+export const AUTO_RECHARGE_CARD_TITLE: string = translationKey("Auto Recharge");
+
+export const AUTO_RECHARGE_CARD_DESCRIPTION: string = translationKey(
+  "Adds to the balance automatically when it runs low.",
+);
+
+export const AUTO_RECHARGE_SWITCH_DESCRIPTION: string = translationKey(
+  "Adds the amount you pick whenever the balance runs low.",
+);
+
+export const AUTO_RECHARGE_AMOUNT_TITLE: string =
+  translationKey("Amount to add");
+
+export const AUTO_RECHARGE_THRESHOLD_TITLE: string = translationKey(
+  "When the balance falls to",
+);
+
+// What the card says while Auto Recharge is on, and while it is off.
+export const AUTO_RECHARGE_ON_TEMPLATE: string = translationKey(
+  "Adds {{amount}} USD whenever the balance falls to {{threshold}} USD.",
+);
+
+export const AUTO_RECHARGE_OFF: string = translationKey("Off");
+
+// The amounts both dropdowns offer, in USD, each once.
+export const AUTO_RECHARGE_AMOUNTS_IN_USD: ReadonlyArray<number> = [
+  10, 20, 25, 50, 75, 100, 200, 500, 1000,
+];
+
+/*
+ * The Recharge dialog's one field: how much, in USD, with the limits the
+ * recharge routes hold it to (20 to 1,000) said where they apply.
+ */
+export const RECHARGE_AMOUNT_TITLE: string = translationKey("Amount (USD)");
+
+export const RECHARGE_AMOUNT_DESCRIPTION: string = translationKey(
+  "Between 20 and 1,000 USD, charged now.",
+);
+
+// The Current Balance card's one row.
+export const CURRENT_BALANCE_ROW_TITLE: string = translationKey("Balance");

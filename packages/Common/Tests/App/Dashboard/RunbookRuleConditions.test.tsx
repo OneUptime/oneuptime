@@ -45,10 +45,19 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 interface EntityDropdownStubProps {
   ariaLabel?: string | undefined;
   dataTestId?: string | undefined;
+  error?: string | undefined;
   modelType?: unknown;
   isMultiSelect?: boolean | undefined;
   value?: unknown;
-  onChange?: ((value: Array<string> | string | null) => void) | undefined;
+  onChange?:
+    | ((
+        value: Array<string> | string | null,
+        change?: {
+          selectedOptions: Array<{ label: string; value: string }>;
+          previousOptions: Array<{ label: string; value: string }>;
+        },
+      ) => void)
+    | undefined;
 }
 
 const mockEntityDropdowns: Record<string, EntityDropdownStubProps> = {};
@@ -142,6 +151,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import RunbookRulesTable, {
+  getRunbookRuleAppliesTo,
   getRunbookRuleDocumentation,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runbook/RunbookRulesTable";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
@@ -159,6 +169,7 @@ import {
 } from "../../../Types/Rules/RuleCriteria";
 import { getRunbookRuleCriteriaFields } from "../../../Types/Runbook/RunbookRuleCriteria";
 import RunbookRuleTriggerEntity from "../../../Types/Runbook/RunbookRuleTriggerEntity";
+import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
@@ -230,8 +241,16 @@ function mockRenderEntityDropdown(
               type="button"
               aria-label={`${props.ariaLabel || testId}: ${option.label}`}
               onClick={(): void => {
+                /*
+                 * As the real dropdown does, it says what the pick changed
+                 * by name: a rule's name follows its runbooks by it.
+                 */
                 props.onChange?.(
                   props.isMultiSelect ? [option.value] : option.value,
+                  {
+                    selectedOptions: [option],
+                    previousOptions: [],
+                  },
                 );
               }}
             >
@@ -240,6 +259,8 @@ function mockRenderEntityDropdown(
           );
         },
       )}
+      {/* The real dropdown says what is wrong with the field under it. */}
+      {props.error ? <p role="alert">{props.error}</p> : <></>}
     </div>
   );
 }
@@ -250,12 +271,17 @@ interface TriggerCase {
   trigger: RunbookRuleTriggerEntity;
   entityLabel: string;
   criteria: Array<string>;
+  // What the rule applies to, as its form asks it.
+  all: string;
+  matching: string;
 }
 
 const TRIGGERS: Array<TriggerCase> = [
   {
     trigger: RunbookRuleTriggerEntity.Incident,
     entityLabel: "incident",
+    all: "All incidents",
+    matching: "Only incidents that match conditions",
     criteria: [
       "Monitors",
       "Incident Severities",
@@ -270,6 +296,8 @@ const TRIGGERS: Array<TriggerCase> = [
   {
     trigger: RunbookRuleTriggerEntity.Alert,
     entityLabel: "alert",
+    all: "All alerts",
+    matching: "Only alerts that match conditions",
     criteria: [
       "Monitors",
       "Alert Severities",
@@ -284,6 +312,8 @@ const TRIGGERS: Array<TriggerCase> = [
   {
     trigger: RunbookRuleTriggerEntity.ScheduledMaintenance,
     entityLabel: "scheduled maintenance event",
+    all: "All scheduled maintenance events",
+    matching: "Only scheduled maintenance events that match conditions",
     criteria: [
       "Monitors",
       "Event Labels",
@@ -321,21 +351,34 @@ function matchCriteriaFields(props: Props): Array<Field<RunbookRule>> {
 async function renderCreateForm(trigger: TriggerCase): Promise<void> {
   const props: Props = tableProps(trigger);
 
+  /*
+   * The fields the table hands its Create dialog: the ones not marked for
+   * the Edit form only (ModelTable leaves those out of a create form).
+   */
+  const createFields: Fields<RunbookRule> = (
+    props["formFields"] as Fields<RunbookRule>
+  ).filter((field: Field<RunbookRule>): boolean => {
+    return !field.doNotShowWhenCreating;
+  });
+
   render(
     <ModelForm<RunbookRule>
       modelType={RunbookRule}
       id="runbook-rule-form"
       name="Runbook Rule"
-      fields={props["formFields"] as Fields<RunbookRule>}
+      fields={createFields}
       steps={props["formSteps"] as Array<FormStep<RunbookRule>>}
+      // As the table hands its form what its rules are about.
+      ruleCriteriaSubject={
+        props["ruleCriteriaSubject"] as RuleCriteriaSubject | undefined
+      }
       formType={FormType.Create}
-      initialValues={{ name: "Start the failover runbook", isEnabled: true }}
+      initialValues={{ isEnabled: true }}
       submitButtonText="Create Runbook Rule"
     />,
   );
 
-  const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-  await user.click(await screen.findByRole("button", { name: /Next/i }));
+  // The form opens on what the rule matches: no name is asked first.
   await screen.findByTestId("rule-criteria-builder");
 }
 
@@ -357,7 +400,16 @@ async function addCondition(
   value: string,
 ): Promise<void> {
   const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Add condition" }));
+
+  if (index === 0) {
+    // "Only ... that match conditions" opens the first one.
+    await user.click(
+      screen.getByRole("radio", { name: /^Only .+ that match conditions$/ }),
+    );
+  } else {
+    await user.click(screen.getByRole("button", { name: "Add condition" }));
+  }
+
   await selectOption(`Criteria for condition ${index + 1}`, criterion);
   await user.click(
     screen.getByRole("button", {
@@ -396,11 +448,40 @@ afterEach(() => {
 
 describe("Create New Runbook Rule - Match Criteria", () => {
   test.each(TRIGGERS)(
+    "the $trigger table's rules ask '$all' or '$matching', starting on '$all'",
+    async (trigger: TriggerCase) => {
+      expect(tableProps(trigger)["ruleCriteriaSubject"]).toBe(
+        getRunbookRuleAppliesTo(trigger.trigger),
+      );
+
+      await renderCreateForm(trigger);
+
+      expect(screen.getByRole("radio", { name: trigger.all })).toBeChecked();
+      expect(
+        screen.getByRole("radio", { name: trigger.matching }),
+      ).not.toBeChecked();
+      expect(screen.queryByTestId("rule-criteria-row-0")).toBeNull();
+    },
+  );
+
+  test("a rule that starts runbooks for every incident is saved with no conditions", async () => {
+    await renderCreateForm(TRIGGERS[0]!);
+
+    const rule: RunbookRule = await pickRunbookAndCreate();
+
+    expect(rule.criteria).toEqual({
+      schemaVersion: 1,
+      filterCondition: "All",
+      filters: [],
+    });
+  });
+
+  test.each(TRIGGERS)(
     "the $trigger Criteria dropdown lists what the other $entityLabel rules match on",
     async (trigger: TriggerCase) => {
       await renderCreateForm(trigger);
       const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
-      await user.click(screen.getByRole("button", { name: "Add condition" }));
+      await user.click(screen.getByRole("radio", { name: trigger.matching }));
 
       const menu: HTMLElement = await openMenu("Criteria for condition 1");
       const options: Array<string> = within(menu)
@@ -538,7 +619,9 @@ describe("Create New Runbook Rule - Match Criteria", () => {
     await renderCreateForm(TRIGGERS[0]!);
     const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Add condition" }));
+    await user.click(
+      screen.getByRole("radio", { name: TRIGGERS[0]!.matching }),
+    );
     await selectOption("Criteria for condition 1", "Monitor Name");
     expect(screen.getByTestId("rule-criteria-row-0")).toHaveTextContent(
       "Contains",
@@ -554,6 +637,118 @@ describe("Create New Runbook Rule - Match Criteria", () => {
         value: "checkout",
       },
     ]);
+  });
+});
+
+/*
+ * The form's second step: the runbooks the rule starts, and the rule's name
+ * filled in from them - as the on-call, SLA and reminder rules of the same
+ * menus ask it (Dashboard Utils/Form/EventRuleForm).
+ */
+describe("Create New Runbook Rule - Runbooks", () => {
+  async function goToRunbooksStep(): Promise<void> {
+    await renderCreateForm(TRIGGERS[0]!);
+
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+    await screen.findByRole("button", { name: "entity-dropdown: DB failover" });
+  }
+
+  function nameInput(): HTMLInputElement {
+    return screen.getByRole("textbox", { name: /^Name/ }) as HTMLInputElement;
+  }
+
+  test.each(TRIGGERS)(
+    "the $trigger rule opens on Match, with no name asked before it",
+    async (trigger: TriggerCase) => {
+      await renderCreateForm(trigger);
+
+      expect(screen.getByTestId("rule-criteria-builder")).toBeInTheDocument();
+      expect(screen.queryByRole("textbox", { name: /^Name/ })).toBeNull();
+      expect(
+        screen.queryByRole("textbox", { name: /^Description/ }),
+      ).toBeNull();
+    },
+  );
+
+  test("the rule is named after the runbook it starts, and saved with that name", async () => {
+    await goToRunbooksStep();
+
+    // Nothing picked yet: the name waits for the runbooks.
+    expect(nameInput().value).toBe("");
+
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "entity-dropdown: DB failover" }),
+    );
+
+    await waitFor(() => {
+      expect(nameInput().value).toBe("Start DB failover");
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Create Runbook Rule" }),
+    );
+
+    await waitFor(() => {
+      expect(submittedRule).not.toBeNull();
+    });
+
+    expect(submittedRule!.name).toBe("Start DB failover");
+    expect(
+      (submittedRule!.runbooks || []).map((runbook: Runbook): string => {
+        return String(runbook._id || runbook.id?.toString() || "");
+      }),
+    ).toEqual([RUNBOOK_ID]);
+  });
+
+  test("a name typed by hand is kept when the runbooks are picked", async () => {
+    await goToRunbooksStep();
+
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    await user.type(nameInput(), "Fail over the primary");
+    await user.click(
+      screen.getByRole("button", { name: "entity-dropdown: DB failover" }),
+    );
+
+    // The pick is stored, and the typed name stands.
+    await waitFor(() => {
+      expect(mockEntityDropdowns["entity-dropdown"]?.value).toBeDefined();
+    });
+    expect(nameInput().value).toBe("Fail over the primary");
+
+    await user.click(
+      screen.getByRole("button", { name: "Create Runbook Rule" }),
+    );
+
+    await waitFor(() => {
+      expect(submittedRule).not.toBeNull();
+    });
+    expect(submittedRule!.name).toBe("Fail over the primary");
+  });
+
+  test("a new rule starts on: the create form has no Enabled switch, and the description waits under More fields", async () => {
+    await goToRunbooksStep();
+
+    expect(screen.queryByRole("switch", { name: /Enabled/ })).toBeNull();
+    // Folded: the description box is not on the step until it is opened.
+    expect(screen.queryByRole("textbox", { name: /^Description/ })).toBeNull();
+    expect(screen.getByText("More fields")).toBeInTheDocument();
+  });
+
+  test("a rule must start at least one runbook", async () => {
+    await goToRunbooksStep();
+
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
+    await user.type(nameInput(), "Start nothing");
+    await user.click(
+      screen.getByRole("button", { name: "Create Runbook Rule" }),
+    );
+
+    expect(
+      await screen.findByText("Runbooks to Start is required."),
+    ).toBeInTheDocument();
+    expect(submittedRule).toBeNull();
   });
 });
 
@@ -598,7 +793,7 @@ describe("the runbook rule form's criteria", () => {
     },
   );
 
-  test("the match criteria are all on the Match Criteria step", () => {
+  test("the match criteria are all on the Match step, the form's first", () => {
     const props: Props = tableProps(TRIGGERS[0]!);
     const steps: Array<FormStep<RunbookRule>> = props["formSteps"] as Array<
       FormStep<RunbookRule>
@@ -608,7 +803,8 @@ describe("the runbook rule form's criteria", () => {
       steps.map((step: FormStep<RunbookRule>): string => {
         return step.title;
       }),
-    ).toEqual(["Basic Info", "Match Criteria", "Runbooks"]);
+    ).toEqual(["Match", "Runbooks"]);
+    expect(steps[0]!.id).toBe(MATCH_CRITERIA_STEP_ID);
     expect(
       matchCriteriaFields(props).every((field: Field<RunbookRule>) => {
         return field.stepId === MATCH_CRITERIA_STEP_ID && !field.required;

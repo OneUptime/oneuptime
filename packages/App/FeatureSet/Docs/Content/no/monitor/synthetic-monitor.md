@@ -19,14 +19,14 @@ sequenceDiagram
     participant P as Sonde
     participant B as Nettleser
     participant A as Webappen din
-    O->>P: Skript, hemmeligheter fylt inn
-    loop Hver nettleser og skjermstørrelse
+    O->>P: Skript,<br/>hemmeligheter<br/>fylt inn
+    loop Hver nettleser og<br/>skjermstørrelse
         P->>B: Kjør skriptet
-        B->>A: Last sider, klikk, skriv
+        B->>A: Last sider,<br/>klikk, skriv
         A-->>B: Sider
-        B-->>P: Resultat, skjermbilder, logger
+        B-->>P: Resultat,<br/>skjermbilder,<br/>logger
     end
-    P->>O: Ett svar per kjøring
+    P->>O: Ett svar<br/>per kjøring
     O->>O: Evaluer kriteriene
 ```
 
@@ -56,7 +56,7 @@ Skriv skriptet ditt i redigeringsprogrammet **Playwright Code**. Start fra [ekse
 
 ### Velg nettlesere og skjermstørrelser
 
-Kryss av for nettleserne under **Nettlesertype** og størrelsene under **Skjermtype**. Skriptet kjører én gang for hver kombinasjon, så to nettlesere og tre størrelser gir seks kjøringer per kontroll. Under **Flere felt** prøver **Antall nye forsøk ved feil** en mislykket kjøring på nytt opptil 5 ganger.
+En ny monitor starter med **Chromium** under **Nettlesertype** og **Desktop** under **Skjermtype**; kryss av for flere for å dekke mer. Skriptet kjører én gang for hver kombinasjon, så to nettlesere og tre størrelser gir seks kjøringer per kontroll, og det trenger minst én nettleser og én størrelse. Under **Flere felt** prøver **Antall nye forsøk ved feil** en mislykket kjøring på nytt opptil 5 ganger.
 
 ### Test det
 

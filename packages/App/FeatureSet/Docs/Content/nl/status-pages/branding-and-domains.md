@@ -3,7 +3,7 @@
 Uw statuspagina is het enige scherm van OneUptime waar uw klanten naar kijken, dus het moet eruitzien als het uwe en op uw eigen domein staan, zoals `status.yourcompany.com`. Deze pagina loopt de pagina **Huisstijl** kaart voor kaart door en zet daarna de statuspagina op uw domein: voeg het domein toe, voeg één DNS-record toe, en het gratis SSL-certificaat volgt vanzelf.
 
 :::cards
-- [De pagina Huisstijl](#de-pagina-huisstijl): Logo, titel, favicon, links, footer, kleuren en talen.
+- [De pagina Huisstijl](#de-pagina-huisstijl): Logo, thema, titel, favicon, links, footer, kleuren en talen.
 - [Aangepaste HTML, CSS en JavaScript](#aangepaste-html-css-en-javascript): Alles wat de ingebouwde instellingen niet dekken.
 - [Aangepaste domeinen](#aangepaste-domeinen): Uw eigen hostnaam, met een gratis certificaat.
 - [De kolom Status](#de-kolom-status-van-het-domein-lezen): Hoe ver elk domein op weg is naar HTTPS.
@@ -15,7 +15,7 @@ Open een statuspagina: de sectie **Huisstijl** van het zijmenu heeft drie items:
 
 | Pagina | Wat u daar instelt |
 | ---- | ------------------ |
-| **Huisstijl** | Logo en omslagafbeelding, paginatitel en -beschrijving, favicon, koptekstlinks, de beschrijving van de overzichtspagina, de copyrightregel en de footerlinks. Ingeklapt onder **Meer instellingen**: de kleuren van de geschiedenisgrafiek, de talen en de indexering door zoekmachines. |
+| **Huisstijl** | Logo en omslagafbeelding, het thema (licht, donker, of zoals het apparaat van elke bezoeker is ingesteld), paginatitel en -beschrijving, favicon, koptekstlinks, de beschrijving van de overzichtspagina, de copyrightregel en de footerlinks. Ingeklapt onder **Meer instellingen**: de kleuren van de geschiedenisgrafiek, de talen en de indexering door zoekmachines. |
 | **Aangepaste domeinen** | Uw eigen domein, het DNS-record ervan en het gratis SSL-certificaat ervan. |
 | **HTML, CSS & JavaScript** | Koptekst-HTML, footer-HTML, aangepaste CSS, aangepaste JavaScript. |
 
@@ -25,7 +25,7 @@ De huisstijl was vroeger verdeeld over aparte schermen **Basishuisstijl**, **Kop
 
 ## De pagina Huisstijl
 
-**Statuspagina's → uw pagina → Huisstijl → Huisstijl** (`{id}/branding`). Elke kaart wordt apart opgeslagen. Na het logo, de titel en de favicon volgen de kaarten uw statuspagina van boven naar beneden: de links in de koptekst, de tekst bovenaan het overzicht, en dan de footer. Wat weinig mensen wijzigen, staat ingeklapt onder **Meer instellingen**, onderaan.
+**Statuspagina's → uw pagina → Huisstijl → Huisstijl** (`{id}/branding`). Elke kaart wordt apart opgeslagen. Na het logo, het thema, de titel en de favicon volgen de kaarten uw statuspagina van boven naar beneden: de links in de koptekst, de tekst bovenaan het overzicht, en dan de footer. Wat weinig mensen wijzigen, staat ingeklapt onder **Meer instellingen**, onderaan.
 
 ### Logo en omslagafbeelding
 
@@ -40,14 +40,32 @@ Het logo, de omslagafbeelding en de favicon zijn bestanden die in het eigen proj
 
 Uw statuspagina toont alleen afbeeldingen van haar eigen project; een afbeelding die ze niet kan tonen, wordt weggelaten, alsof de pagina er geen had. Het dashboard, de API en Terraform lezen de afbeeldingen van de pagina op dezelfde manier: een afbeelding van een ander project komt terug als helemaal geen afbeelding. De e-mails die de pagina stuurt (aan abonnees, en aan privégebruikers over hun aanmelding) tonen haar logo op dezelfde manier: een logo dat de pagina niet kan tonen, wordt ook daaruit weggelaten in plaats van als kapotte afbeelding te verschijnen.
 
+### Thema
+
+De kaart **Thema**, direct onder het logo, bepaalt hoe de pagina er voor haar bezoekers uitziet. Kies een van de drie keuzes en die wordt meteen opgeslagen; er is geen knop **Bewerken**.
+
+| Keuze | Wat bezoekers zien |
+| ------ | ----------------- |
+| **Licht** | De lichte pagina, hoe hun apparaat ook is ingesteld. Statuspagina's die gemaakt zijn voordat de instelling bestond, staan op **Licht**, dus ze zien eruit zoals altijd. |
+| **Donker** | De donkere pagina, hoe hun apparaat ook is ingesteld. |
+| **Zoals het apparaat van elke bezoeker** | Licht of donker, zoals hun apparaat is ingesteld, en de pagina wisselt mee met het apparaat zolang ze open is. Met een knop met een zon of een maan in de footer van de pagina kan een bezoeker wisselen, en hun browser onthoudt de keuze. |
+
+Op de donkere pagina staat het logo op een lichte achtergrond, zodat ook een logo dat gemaakt is voor een witte pagina goed zichtbaar blijft.
+
+Een statuspagina die vanaf nu wordt gemaakt, begint met **Zoals het apparaat van elke bezoeker**. Via de API en Terraform heet het veld `theme`, met een van de waarden `Light`, `Dark` of `System` (**Zoals het apparaat van elke bezoeker**), precies zo geschreven; elke andere waarde wordt geweigerd. Een Terraform-configuratie die geen `theme` instelt, krijgt `Light`, zodat een configuratie die vóór de instelling is geschreven nooit een wijziging plant op een pagina die ze beheert.
+
+Het thema staat in de HTML van de pagina, dus de pagina wordt er vanaf het begin in getekend: een donkere pagina flitst niet wit tijdens het laden, en de browser stemt zijn schuifbalken, zijn formuliervelden en, op telefoons, zijn adresbalk erop af. Elk deel van de pagina volgt het, de aanmeldpagina van een privé-statuspagina inbegrepen. De uptimebalken houden de kleuren die u hebt gekozen. Op de donkere pagina krijgt tekst in een statuskleur een lichtere tint van die kleur waar de kleur zelf moeilijk leesbaar zou zijn, en een balk die te donker is om te zien, krijgt een lichtere rand.
+
+Uw aangepaste CSS en HTML gelden in beide thema's; [Aangepaste HTML, CSS en JavaScript](#aangepaste-html-css-en-javascript) legt uit hoe u het donkere thema opmaakt.
+
 ### Titel, beschrijving en favicon
 
-- **Titel en beschrijving**: de kaart vermeldt dat dit ook voor SEO wordt gebruikt. **Bewerken** opent **Paginatitel** (plaatshouder `Please enter page title here.`) en **Paginabeschrijving**. Zoekmachines en linkvoorbeelden tonen deze teksten, dus schrijf ze voor een klant, niet voor uw team.
+- **Titel en beschrijving**: de naam van de pagina in het browsertabblad en in e-mails aan abonnees, en de beschrijving die zoekmachines tonen. **Bewerken** opent **Paginatitel** (plaatshouder `e.g., Acme Status`) en **Paginabeschrijving**. Zoekmachines en linkvoorbeelden tonen deze teksten, dus schrijf ze voor een klant, niet voor uw team.
 - **Favicon**: **Edit Favicon** opent de upload **Favicon**: het kleine pictogram in het browsertabblad.
 
 ### Koptekstlinks
 
-De tabel **Koptekstkoppelingen** bevat de links in de koptekst van de statuspagina, zoals uw website, uw documentatie of een supportportaal. Elke link heeft een **Titel** en een **Koppeling** (een URL, plaatshouder `https://link.com`), en u herschikt ze door te slepen. Zonder links zegt de tabel **Geen statuskoptekstlink voor deze statuspagina**, met **Statuspagina Kop Link aanmaken** eronder.
+De tabel **Koptekstkoppelingen** bevat de links in de koptekst van de statuspagina, zoals uw website, uw documentatie of een supportportaal. Elke link heeft een **Titel** en een **Koppeling** (een URL, plaatshouder `https://link.com`), en u herschikt ze door te slepen. Zonder links zegt de tabel waarvoor ze dienen, met **Koptekstkoppeling toevoegen** eronder.
 
 ### Beschrijving van de overzichtspagina
 
@@ -56,7 +74,7 @@ De tabel **Koptekstkoppelingen** bevat de links in de koptekst van de statuspagi
 ### Footer
 
 - **Copyrightinformatie**: **Edit Copyright** opent één veld, **Copyrightinformatie**, met de plaatshouder `Acme, Inc.`.
-- **Footerlinks**: hetzelfde paar **Titel** en **Koppeling** als bij de koptekstlinks, herschikt door te slepen. Zonder links staat er "Geen statusvoettekstlink voor deze statuspagina."
+- **Footerlinks**: hetzelfde paar **Titel** en **Koppeling** als bij de koptekstlinks, herschikt door te slepen en toegevoegd met **Footerlink toevoegen**.
 
 Koptekstlinks zijn voor navigatie; footerlinks zijn voor de kleine lettertjes, zoals juridische informatie, privacy en voorwaarden.
 
@@ -64,7 +82,7 @@ Koptekstlinks zijn voor navigatie; footerlinks zijn voor de kleine lettertjes, z
 
 De laatste sectie van de pagina staat ingeklapt onder **Meer instellingen**, omdat weinig mensen ooit wijzigen wat erin staat. Ingeklapt noemt de kop de vier secties (**Standaard balkkleur**, **Regels voor balkkleuren**, **Talen** en **Indexering door zoekmachines**) en toont hij elke sectie die afwijkt van hoe een nieuwe statuspagina begint: een andere standaard balkkleur dan het groen waarmee elke pagina begint, andere regels voor balkkleuren dan de aanbevolen, een andere standaardtaal dan Engels, een kortere lijst talen, of indexering door zoekmachines die uit staat. Klik erop om hem te openen: het is één kaart, met de secties onder elkaar, elk met een eigen titel, gescheiden door scheidingslijnen.
 
-**Kleuren van de geschiedenisgrafiek.** Dit zijn de enige ingebouwde kleurinstellingen van een statuspagina. Elke balk van de uptimegeschiedenis is een dag.
+**Kleuren van de geschiedenisgrafiek.** Naast het **Thema** zijn dit de enige ingebouwde kleurinstellingen van een statuspagina. Elke balk van de uptimegeschiedenis is een dag.
 
 - **Standaard balkkleur**: **Edit Default Bar Color** opent de kiezer **Standaard balkkleur**. Het is de kleur van een dag waarop geen balkkleurregel past. Elke nieuwe statuspagina begint met groen.
 - **Regels voor balkkleuren**: een geordende tabel met regels die u door te slepen sorteert. Elke regel heeft **Wanneer uptime % groter is dan of gelijk is aan** en **Gebruik dan deze balkkleur**; de kolommen van de tabel heten `When Uptime Percent >=` en `Then, Bar Color is`. De regels worden van boven naar beneden gecontroleerd, en de eerste die de uptime van een dag bereikt, bepaalt de kleur; houd hogere percentages dus boven lagere: een regel onder een regel met hetzelfde of een lager percentage kleurt nooit een dag. De kleur van een nieuwe regel is al gekozen, een die de andere regels nog niet gebruiken; kies in plaats daarvan de kleur die u wilt.
@@ -112,8 +130,8 @@ Vroeger waren dit twee eigen kaarten, **Totaal uptimepercentage** en **Downtime-
 
 | Kaart | Kolom | Wat het bevat |
 | ---- | ------ | ------------- |
-| **Koptekst-HTML** | `headerHTML` | HTML die aan de koptekst van de pagina wordt toegevoegd (plaatshouder `Insert Custom HTML here.`). |
-| **Footer-HTML** | `footerHTML` | HTML die aan de footer van de pagina wordt toegevoegd. |
+| **Koptekst-HTML** | `headerHTML` | HTML die in plaats van de koptekst van de pagina wordt getoond, met het logo en de koptekstlinks (plaatshouder `Insert Custom HTML here.`). |
+| **Footer-HTML** | `footerHTML` | HTML die in plaats van de footer van de pagina wordt getoond, met de links en de keuzes voor taal en thema. |
 | **Aangepaste CSS** | `customCSS` | Stijlen voor de hele pagina (plaatshouder `Insert Custom CSS here.`). |
 | **Aangepaste JavaScript** | `customJavaScript` | Een script dat de pagina uitvoert (plaatshouder `Insert Custom JavaScript here.`). |
 
@@ -122,7 +140,9 @@ Vroeger waren dit twee eigen kaarten, **Totaal uptimepercentage** en **Downtime-
 
 Op OneUptime Cloud vereist het toevoegen of wijzigen van een ervan het plan **Growth**. Een ervan leegmaken werkt in elk plan, dus aangepaste code die tijdens een proefperiode is toegevoegd, kan altijd worden verwijderd.
 
-**Er is geen themakiezer.** Statuspagina's van OneUptime hebben geen instelling voor een thema of een merkkleur: de enige ingebouwde kleurinstellingen, waar dan ook, zijn **Standaard balkkleur** en de regels voor de balkkleuren van de geschiedenisgrafiek, onder **Meer instellingen** op de pagina **Huisstijl**. Lettertypen, achtergrondkleuren, accentkleuren en aanpassingen aan de opmaak lopen allemaal via **Aangepaste CSS**. Zocht u een veld voor een "merkkleur", dan is dit het antwoord: dat bestaat niet, en dit vak is de manier om het te doen.
+**Er is geen kiezer voor een merkkleur.** Naast het **Thema**, dat de pagina licht of donker maakt, zijn de enige ingebouwde kleurinstellingen, waar dan ook, **Standaard balkkleur** en de regels voor de balkkleuren van de geschiedenisgrafiek, onder **Meer instellingen** op de pagina **Huisstijl**. Lettertypen, achtergrondkleuren, accentkleuren en aanpassingen aan de opmaak lopen allemaal via **Aangepaste CSS**. Zocht u een veld voor een "merkkleur", dan is dit het antwoord: dat bestaat niet, en dit vak is de manier om het te doen.
+
+**Aangepaste code in het donkere thema.** Uw aangepaste CSS en HTML gelden in beide thema's. Zolang de pagina donker is, heeft haar `<html>`-element de klasse `dark`, dus een CSS-regel die begint met `html.dark` maakt alleen het donkere thema op: `html.dark .my-banner { background: #1e293b; }`. Een regel zonder dat geldt in beide, dus een achtergrond- of tekstkleur die u voor de lichte pagina instelt, blijft ook op de donkere staan: controleer uw aangepaste CSS in beide thema's. Heeft de pagina aangepaste CSS of HTML in de koptekst of de footer, dan zegt de kaart **Thema** dat onder haar keuzes.
 
 > [!WARNING]
 > Aangepaste JavaScript draait in de browsers van uw bezoekers, op een pagina die mensen juist openen wanneer ze denken dat er iets stuk is. Houd het klein, host wat het laadt waar mogelijk zelf, en test het voordat u erop vertrouwt.
@@ -153,7 +173,7 @@ flowchart TB
 
 ### Voordat u begint
 
-- **Het bovenliggende domein moet geverifieerd zijn.** De keuzelijst **Domein** toont alleen de domeinen die zijn geverifieerd onder **Projectinstellingen → Domeinen**, waar u met een TXT-record bewijst dat een domein van u is. De link **Domein toevoegen** naast het veld opent die pagina in een nieuw tabblad.
+- **Het bovenliggende domein moet geverifieerd zijn.** De keuzelijst **Domein** toont alleen de domeinen die zijn geverifieerd onder **Projectinstellingen → Geavanceerd → Domeinen**, waar u met een TXT-record bewijst dat een domein van u is. De link **Domein toevoegen** naast het veld opent die pagina in een nieuw tabblad.
 - **Uw installatie heeft een statuspagina-CNAME-record nodig.** OneUptime Cloud heeft er een. Stel het bij een zelfgehoste installatie in op een hostnaam die naar uw OneUptime-server wijst (een A-record), en zorg dat de server antwoordt op poort 80, waar Let's Encrypt hem controleert. Zonder dat record zeggen de kaart en het dialoogvenster **DNS-instelling** "Custom Domains not enabled for this OneUptime installation" in plaats van een record te tonen.
 
 :::tabs

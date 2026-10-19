@@ -4,6 +4,8 @@ import Icon from "../Icon/Icon";
 import Loader, { LoaderType } from "../Loader/Loader";
 import ModalBody from "./ModalBody";
 import { CardSurface, CardSurfaceContext } from "../Card/CardSurface";
+import { DetailValueContext } from "../Detail/DetailValueContext";
+import { TableCellContext } from "../Table/TableCellContext";
 import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -591,11 +593,16 @@ const Modal: FunctionComponent<ComponentProps> = (
                 >
                   {translatedTitle}
                 </h3>
+                {/*
+                 * text-pretty: a description that runs onto a second line
+                 * takes a few words with it, never leaves one alone there
+                 * ("... status pages and / team.").
+                 */}
                 {translatedDescription && (
                   <p
                     id={descriptionId}
                     data-testid="modal-description"
-                    className="mt-0.5 text-sm leading-5 text-gray-500"
+                    className="mt-0.5 text-pretty text-sm leading-5 text-gray-500"
                   >
                     {translatedDescription}
                   </p>
@@ -639,10 +646,17 @@ const Modal: FunctionComponent<ComponentProps> = (
                   {!props.isBodyLoading ? (
                     /*
                      * A dialog is a surface of its own: a card drawn in it is
-                     * never a section of the card it was opened from.
+                     * never a section of the card it was opened from, nor is
+                     * what it draws a value of the detail card it was opened
+                     * from (DetailValueContext), nor a cell of the table it
+                     * was opened from (TableCellContext).
                      */
                     <CardSurfaceContext.Provider value={CardSurface.Page}>
-                      {props.children}
+                      <DetailValueContext.Provider value={false}>
+                        <TableCellContext.Provider value={false}>
+                          {props.children}
+                        </TableCellContext.Provider>
+                      </DetailValueContext.Provider>
                     </CardSurfaceContext.Provider>
                   ) : (
                     <div className="modal-body flex justify-center py-16">

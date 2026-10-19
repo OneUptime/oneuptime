@@ -1,4 +1,5 @@
 import Logo from "../Logo/Logo";
+import LogoPlate from "../Logo/LogoPlate";
 import Link from "Common/Types/Link";
 import UILink from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -74,7 +75,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
     <div className="mt-5 flex items-start justify-between gap-4">
       <div className="flex min-h-[3rem] items-center">
         {props.logo && (
-          <div id="status-page-logo" className="flex">
+          <LogoPlate id="status-page-logo" className="flex">
             <Logo
               file={props.logo}
               alt={props.logoAltText}
@@ -85,7 +86,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                 height: "50px",
               }}
             />
-          </div>
+          </LogoPlate>
         )}
       </div>
 

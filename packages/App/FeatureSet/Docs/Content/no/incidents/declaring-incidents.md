@@ -21,7 +21,7 @@ Det er fem måter en hendelse kommer inn i OneUptime på, og alle ender på samm
 | Åpne en fra din egen kode, et skript eller et annet verktøy  | `POST /api/incident`                                                        |
 | La folk utenfor teamet ditt melde et problem via en lenke    | Et [skjema](/docs/forms/index)                                              |
 
-Alle fem skriver den samme modellen, så en hendelse som en probe åpnet, ser nøyaktig ut som en som en vakthavende åpnet for hånd — bortsett fra noen få administrative kolonner serveren setter på de automatiske. Integrasjoner skriver den også: [Huntress](/docs/integrations/huntress) åpner én hendelse for hver hendelsesrapport som SOC-en sender.
+Alle fem skriver den samme modellen, så en hendelse som en probe åpnet, ser nøyaktig ut som en som en vakthavende åpnet for hånd — bortsett fra noen få administrative kolonner serveren setter på de automatiske. Arbeidsflyter skriver den også: [Huntress](/docs/integrations/huntress)-arbeidsflyten åpner én hendelse for hver hendelsesrapport som SOC-en sender.
 
 > [!TIP]
 > Du kan også erklære en hendelse fra varsler: **Erklær hendelse** på en varselliste, i overskriften til et varsel eller på siden **Tilknyttede hendelser** til et varsel åpner den samme veiviseren, forhåndsutfylt fra varslene, og knytter dem til den nye hendelsen. En avkrysningsboks på skjemaet, avkrysset som standard, bekrefter også varslene, slik at de slutter å eskalere. Se [Koblede varsler](/docs/incidents/linked-alerts).
@@ -116,7 +116,7 @@ Dette trinnet vises bare når minst ett egendefinert hendelsesfelt har **Vis ved
 
 ### Trinn 3 — Vakt og roller
 
-- **Vaktpolicy** — et flervalg av vaktpolicyene som skal kjøres når denne hendelsen opprettes. Det tilsvarer `onCallDutyPolicies` på hendelsen.
+- **Vaktpolicy** — et flervalg av vaktretningslinjene som tilkalles så snart hendelsen er erklært. Det tilsvarer `onCallDutyPolicies` på hendelsen.
 - **Tildel hendelsesroller** — hvem som tar hver rolle prosjektet ditt definerer, ett kort per rolle. En rolle med merket **Primær** som du lar stå tom, er din: du tar den når hendelsen erklæres, og sammendraget sier det. En rolle for én person sier det når den har en; en rolle for flere beholder velgeren sin.
 
 Dette er det eneste stedet der en vaktpolicy knyttes direkte til en hendelse. Alvorlighetsgrader har ingen vaktpolicy — alvorlighetsgraden er en etikett, og den påvirker bare tilkalling som *treffkriterium* i en vaktregel. Regler som er satt opp under **Hendelser → Regler → Vaktregler**, legger policyene sine til på toppen av det du velger her; det endelige settet som kjører, er foreningen av begge uten duplikater. En hendelse som erklæres i en senere tilstand, kjører ingen av dem — se [Erklært allerede bekreftet eller løst](#erklært-allerede-bekreftet-eller-løst).
@@ -250,14 +250,7 @@ Opprettelseskallet gjør mer enn å skrive en rad:
 flowchart TB
     request["Opprettelsesforespørsel"] --> fill["Serveren fyller hullene"]
     fill --> template["Mal brukt, hvis det finnes en"]
-    template --> rules
-    subgraph rules["Regler, i denne rekkefølgen"]
-        direction LR
-        privacy["Personvern"] --> owner["Eier"]
-        owner --> label["Etikett"]
-        label --> oncall["Vakt"]
-        oncall --> runbook["Runbook"]
-    end
+    template --> rules["Regler, i denne rekkefølgen:<br/>Personvern, Eier, Etikett,<br/>Vakt, Runbook"]
     rules --> policies["Vaktpolicyer kjøres"]
     policies --> subscribers["Abonnenter satt i kø"]
     subscribers --> workflows["Arbeidsflyter utløses"]
@@ -284,10 +277,10 @@ Derfra er hendelsen live: den teller med i merket **Aktive hendelser** i sidemen
 
 ```mermaid title="Hva en ny hendelse setter i gang, etter tilstanden den starter i"
 flowchart TB
-    start{"Starttilstand"} -->|"Opprettelsestilstanden, standarden"| live["Behandlet som ny: tilkaller vakten"]
-    start -->|"Ved eller etter bekreftet"| acked["Registrert: tilkaller ingen"]
-    start -->|"Ved eller etter løst"| over["Registrert som over"]
-    over --> quiet["Ingen gruppering, runbooks, KI, kanal eller SLA"]
+    start{"Starttilstand"} -->|"Opprettelsestilstanden,<br/>standarden"| live["Behandlet<br/>som ny:<br/>tilkaller<br/>vakten"]
+    start -->|"Ved eller<br/>etter bekreftet"| acked["Registrert:<br/>tilkaller ingen"]
+    start -->|"Ved eller<br/>etter løst"| over["Registrert<br/>som over"]
+    over --> quiet["Ingen gruppering,<br/>runbooks, KI,<br/>kanal eller SLA"]
 ```
 
 - **Ved eller etter den bekreftede tilstanden din** — **Bekreftet**, eller enhver tilstand som står under den i **Hendelser → Innstillinger → Hendelsesstatus** — kjører ingen vaktpolicy, så ingen tilkalles. Hendelsen nevner fortsatt policyene sine, dem du valgte og dem vaktregler legger til, og feeden sier hvorfor på én linje: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ SLA-en, hvis en regel gir den en, starter allerede som besvart. Alt annet nedenfor kjører som for enhver ny hendelse.

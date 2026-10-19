@@ -28,7 +28,7 @@ De eerste keer dat u inlogt, toont OneUptime **Geen projecten**. Klik op **Nieuw
 
 ### Een naam geven
 
-Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime Cloud kiest u in de volgende stap een abonnement.
+Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime Cloud kiest u daaronder ook een abonnement: Free is al gekozen, en de betaalde abonnementen beginnen met een gratis proefperiode.
 
 ### Het project aanmaken
 
@@ -68,7 +68,7 @@ Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikb
 
 ### Het bij elk incident activeren
 
-Open **Incidenten** vanuit het menu **Producten**, klap **Regels** open in het zijmenu en kies **Bereikbaarheidsregels**. Klik op **Incident On-Call Rule aanmaken**, voer een **Naam** in en klik op **Volgende**. Laat **Overeenkomstcriteria** leeg, zodat de regel bij elk incident past, en klik op **Volgende**. Kies uw beleid onder **Bereikbaarheidsbeleid** en klik op **Incident On-Call Rule aanmaken**.
+Open **Incidenten** vanuit het menu **Producten**, klap **Regels** open in het zijmenu en kies **Bereikbaarheidsregels**. Klik op **Incident On-Call Rule aanmaken**, voer een **Naam** in en klik op **Volgende**. Laat bij **Overeenkomstcriteria** de keuze **Alle incidenten** staan, zodat de regel bij elk incident past, en klik op **Volgende**. Kies uw beleid onder **Bereikbaarheidsbeleid** en klik op **Incident On-Call Rule aanmaken**.
 
 ### Kiezen hoe u bereikt wordt
 
@@ -85,15 +85,15 @@ Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](
 :::steps
 ### De statuspagina aanmaken
 
-Klik in de checklist op **Publiceer een statuspagina**, of open **Statuspagina's** vanuit het menu **Producten**. Klik op **Statuspagina maken**, voer een **Naam** in, bijvoorbeeld `Acme Status`, en klik op **Statuspagina maken**.
+Klik in de checklist op **Publiceer een statuspagina**, of open **Statuspagina's** vanuit het menu **Producten**. Klik op **Statuspagina maken**, voer een **Naam** in, bijvoorbeeld `Acme Status`, en klik op **Statuspagina maken**. De nieuwe pagina opent op het **Overzicht**.
 
 ### Uw monitor toevoegen
 
-Open de nieuwe statuspagina. Kies in het zijmenu, onder **Middelen**, het item **Monitoren**; in projecten met monitorgroepen ingeschakeld heet het **Middelen**. Klik op **Monitor toevoegen**, kies uw websitemonitor en klik op **Monitor toevoegen**. De rij toont bezoekers de naam van de monitor; wijzig die desgewenst onder **Weergavenaam**.
+Klik op **Monitoren toevoegen** in het **Overzicht**, of kies in het zijmenu van de pagina, onder **Middelen**, het item **Monitoren**; in projecten met monitorgroepen ingeschakeld heet het **Middelen**. Klik op **Monitor toevoegen**, kies uw websitemonitor en klik op **Monitor toevoegen**. De rij toont bezoekers de naam van de monitor; wijzig die desgewenst onder **Weergavenaam**.
 
 ### De pagina openen
 
-Kies **Overzicht** in het zijmenu. De kaart **Status Page Preview URL** linkt naar uw statuspagina: open die, en uw website staat erop als operationeel.
+Kies **Overzicht** in het zijmenu. De kaart **Link naar de statuspagina** linkt naar uw statuspagina: open die, en uw website staat erop als operationeel.
 :::
 
 Een nieuwe statuspagina is openbaar: iedereen met het adres kan haar openen. Hoe u haar uw eigen domein, logo en kleuren geeft, leest u in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).

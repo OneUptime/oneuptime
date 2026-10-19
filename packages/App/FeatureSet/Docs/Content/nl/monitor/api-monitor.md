@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sonde
     participant A as Uw API
     participant O as OneUptime
-    P->>A: Aanvraag met uw methode, headers en body
+    P->>A: Aanvraag met uw<br/>methode, headers en body
     A-->>P: Statuscode, headers en body
-    Note over P: Probeert een fout, een 4xx of 5xx,<br/>of een antwoord trager dan 10 s opnieuw
+    Note over P: Probeert een fout,<br/>een 4xx of 5xx,<br/>of een antwoord trager<br/>dan 10 s opnieuw
     P->>O: Resultaat van de controle
-    O->>O: De criteria controleren, van boven naar beneden
+    O->>O: De criteria controleren,<br/>van boven naar beneden
 ```
 
 Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en kan uw API dus niet als offline markeren.
@@ -167,7 +167,7 @@ Een JSON-antwoord wordt in zijn compacte vorm gecontroleerd, zonder spaties tuss
 
 **Criteria toevoegen** voegt een criterium toe dat al naar zijn filter is genoemd, bijvoorbeeld _Response Time (in ms) is above 3000_. De naam verandert mee met de filters totdat u zelf een naam typt. Een beschrijving is optioneel: om er een toe te voegen, opent u de **Instellingen** van het criterium.
 
-Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten overeenkomen of dat **Elke** afzonderlijke filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident melden, of meerdere daarvan.
+Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** moeten overeenkomen of dat **Minstens één** filter volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident melden, of meerdere daarvan.
 
 ### Standaardcriteria
 

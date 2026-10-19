@@ -27,8 +27,8 @@ En tovejsintegration som Jira eller Dynamics 365 bruger begge retninger: ét wor
 
 | Måde | Bedst til | Eksempler |
 | --- | --- | --- |
-| En indbygget forbindelse | Værktøjer, som OneUptime selv forbinder til. Du udfylder en formular, og der er intet at bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), forbindelserne til [Sikkerhedshændelser](/docs/telemetry/security-events) |
-| En workflowskabelon | Sagsværktøjer, holdt i takt begge veje, og chatbeskeder. Du vælger en skabelon og udfylder nogle få indstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| En indbygget forbindelse | Værktøjer, som OneUptime selv forbinder til. Du udfylder en formular, og der er intet at bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), forbindelserne til [Sikkerhedshændelser](/docs/telemetry/security-events) |
+| En workflowskabelon | Sagsværktøjer, holdt i takt begge veje, overvågningsproblemer, sikkerhedshændelsesrapporter og chatbeskeder. Du vælger en skabelon og udfylder nogle få indstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
 | En Incoming Request-monitor | Alarmeringsværktøjer, der sender en webhook. Du får én hændelse pr. alarm, sendt til vagten og løst, når alarmen er overstået, uden workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Et workflow, du selv bygger | Ethvert værktøj med en webhook eller et REST API, og al din egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 
 | Værktøj | Retning | Hvad det gør |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Indgående | Gør Zabbix-problemer til hændelser og løser dem, når Zabbix er kommet sig. |
+| [Zabbix](/docs/integrations/zabbix) | Begge | Gør Zabbix-problemer til hændelser eller advarsler, løser dem, når de er kommet sig, og kvitterer for eller lukker problemerne fra OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Indgående | Gør Alertmanager-notifikationer til hændelser. |
 | [Grafana](/docs/integrations/grafana) | Indgående | Gør Grafana-alarmer til hændelser. |
 | [Datadog](/docs/integrations/datadog) | Indgående | Gør alarmer fra Datadog-monitorer til hændelser. |
@@ -89,6 +89,12 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 
 > [!TIP]
 > Slack og Microsoft Teams har også workflowtrin. Brug den indbyggede forbindelse til hændelseskanaler og vagter, og et workflowtrin, når du kun har brug for en besked i en kanal.
+
+### Hostingplatforme
+
+| Værktøj | Retning | Hvad det gør |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Indgående | Tilføj OneUptime fra Vercel Marketplace: traces, logs, oppetidsmonitorer og en statusside til dine Vercel-projekter. |
 
 ## Skift fra et andet værktøj
 

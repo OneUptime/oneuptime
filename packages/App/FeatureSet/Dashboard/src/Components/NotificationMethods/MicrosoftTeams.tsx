@@ -168,7 +168,7 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
           ],
         }}
         noItemsMessage={
-          "No Microsoft Teams account added. Connect your Microsoft Teams account under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'."
+          "No Microsoft Teams account added. Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'."
         }
         showRefreshButton={true}
         filters={[]}
@@ -197,7 +197,7 @@ const MicrosoftTeams: () => JSX.Element = (): ReactElement => {
         <ConfirmModal
           title={`Could not add Microsoft Teams`}
           description={addError}
-          submitButtonText={"Open Microsoft Teams Integration Settings"}
+          submitButtonText={"Open Microsoft Teams Settings"}
           closeButtonText={"Close"}
           onClose={() => {
             setAddError("");

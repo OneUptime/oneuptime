@@ -20,6 +20,15 @@ import {
 import useFacetSearchExemptions, {
   FacetSearchExemptions,
 } from "../useFacetSearchExemptions";
+import {
+  FacetSectionSelection,
+  FacetSelections,
+  buildFacetSelections,
+  getFacetChipsToClear,
+  getFacetSectionSelection,
+  getSelectedValuesByKey,
+  withSelectedFacetValues,
+} from "../FacetSelection";
 import TelemetryLoadErrorMessage from "./TelemetryLoadErrorMessage";
 import {
   TelemetryLoadError,
@@ -35,8 +44,18 @@ export interface TelemetryFacetSidebarProps {
   isLoading: boolean;
   // Declarative facet config — ordering, titles, colors, display maps.
   facetConfigs: Array<FacetConfig>;
+  // An unchecked value was clicked: keep only its rows.
   onIncludeFilter: (facetKey: string, value: string) => void;
-  onExcludeFilter: (facetKey: string, value: string) => void;
+  /*
+   * Leave a value's rows out (and drop an include of it). Absent where the
+   * explorer cannot exclude: the rows then carry no exclude button.
+   */
+  onExcludeFilter?: ((facetKey: string, value: string) => void) | undefined;
+  /*
+   * Take one chip off - the chip's own x. A click on a checked or excluded
+   * value takes off the chips that put it there, through this.
+   */
+  onRemoveFilter: (facetKey: string, value: string) => void;
   activeFilters?: Array<ActiveFilter> | undefined;
   headerLabel?: string | undefined;
   /*
@@ -94,35 +113,20 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
     return copy;
   }, [props.facetConfigs]);
 
-  const activeValuesByKey: Record<string, Set<string>> = useMemo(() => {
-    const map: Record<string, Set<string>> = {};
-
-    const add: (key: string, value: string) => void = (
-      key: string,
-      value: string,
-    ): void => {
-      if (!map[key]) {
-        map[key] = new Set<string>();
-      }
-      map[key]!.add(value);
-    };
-
-    if (props.activeFilters) {
-      for (const filter of props.activeFilters) {
-        add(filter.facetKey, filter.value);
-        /*
-         * Attribute-backed facets store chips as `attributes.<key>` while
-         * the facet config is keyed by the raw attribute key — index both
-         * so the facet row shows its selected state.
-         */
-        if (filter.facetKey.startsWith("attributes.")) {
-          add(filter.facetKey.substring("attributes.".length), filter.value);
-        }
-      }
-    }
-
-    return map;
+  /*
+   * What each value is doing - checked, excluded or set by the page - read
+   * from the chips, and so which chips a click on it takes off (see
+   * FacetSelection). Attribute-backed facets store their chips as
+   * `attributes.<key>` in the search grammar, so `/api/\*` lights `/api/*`.
+   */
+  const selections: FacetSelections = useMemo(() => {
+    return buildFacetSelections(props.activeFilters);
   }, [props.activeFilters]);
+
+  // Every value that is filtering, per facet: a facet in use never folds away.
+  const activeValuesByKey: Record<string, Set<string>> = useMemo(() => {
+    return getSelectedValuesByKey(selections);
+  }, [selections]);
 
   const configsByKey: Map<string, FacetConfig> = useMemo(() => {
     return new Map<string, FacetConfig>(
@@ -260,7 +264,17 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
       {!hasNothingToListYet && (
         <div id={facetListId} className="flex-1 overflow-y-auto">
           {visibleConfigs.map((config: FacetConfig) => {
-            const values: Array<FacetValue> = facetData[config.key] || [];
+            /*
+             * A value that is filtering keeps its row even when the answer
+             * left it out (an excluded value counts nothing), so it can
+             * always be clicked off where it was clicked on.
+             */
+            const values: Array<FacetValue> = withSelectedFacetValues(
+              facetData[config.key] || [],
+              selections.get(config.key),
+            );
+            const sectionSelection: FacetSectionSelection =
+              getFacetSectionSelection(selections, config.key);
 
             const onSearchChange: ((text: string) => void) | undefined =
               config.serverSearchable
@@ -275,9 +289,20 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
                 values={values}
                 onIncludeValue={props.onIncludeFilter}
                 onExcludeValue={props.onExcludeFilter}
+                onClearValue={(facetKey: string, value: string) => {
+                  for (const chip of getFacetChipsToClear(
+                    selections,
+                    facetKey,
+                    value,
+                  )) {
+                    props.onRemoveFilter(chip.facetKey, chip.value);
+                  }
+                }}
                 valueDisplayMap={config.valueDisplayMap}
                 valueColorMap={config.valueColorMap}
-                activeValues={activeValuesByKey[config.key]}
+                activeValues={sectionSelection.includedValues}
+                excludedValues={sectionSelection.excludedValues}
+                lockedValues={sectionSelection.lockedValues}
                 onSearchChange={onSearchChange}
                 icon={config.icon}
                 searchText={facetSearch.searchTextByKey[config.key] ?? ""}

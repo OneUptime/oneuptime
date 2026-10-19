@@ -1,0 +1,109 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "oneuptime",
+  "version": "1.0.0",
+  "description": "Work with your OneUptime project from ChatGPT: investigate and respond to incidents and alerts, check monitors and status pages, and query logs, metrics and traces.",
+  "author": {
+    "name": "OneUptime",
+    "email": "support@oneuptime.com",
+    "url": "https://oneuptime.com"
+  },
+  "homepage": "https://oneuptime.com/docs/ai/mcp-server",
+  "repository": "https://github.com/OneUptime/oneuptime",
+  "license": "Apache-2.0",
+  "keywords": [
+    "incident management",
+    "monitoring",
+    "status page",
+    "on-call",
+    "observability",
+    "alerts",
+    "logs"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "OneUptime",
+        "shortDescription": "Incidents, monitors and alerts",
+        "longDescription": "OneUptime is an open-source observability and incident management platform. Connect your OneUptime project to ChatGPT to investigate and respond to incidents, check monitors and status pages, and query telemetry, with your own permissions.\n\nWhat you can do:\n- See open incidents and alerts with their severity, state and timeline, and acknowledge or resolve them.\n- Add internal notes to incidents and alerts, or post a public note to your status page.\n- Find monitors that are down or degraded, and create or change monitors, on-call policies, teams and labels.\n- Manage status pages, announcements and scheduled maintenance.\n- Query logs, metrics, traces, exceptions and other telemetry, read-only.\n- Read public OneUptime status pages.\n\nWho it is for: on-call engineers, SREs and support teams who use OneUptime Cloud.\n\nHow it works: you sign in with your OneUptime account and choose the project ChatGPT may work in, with read-only or read-and-write access. ChatGPT can do only what your role in that project allows, and it asks you before every change. You can disconnect it at any time in OneUptime under Project Settings, AI, MCP Server.\n\nRequirements and limits: a OneUptime Cloud account on the Growth plan or higher. A connection works with one project at a time. Billing and account settings are not available through the plugin.",
+        "developerName": "OneUptime",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Investigate incidents and alerts",
+          "Acknowledge and resolve incidents",
+          "Check monitors and status pages",
+          "Query logs, metrics and traces",
+          "Post status page updates"
+        ],
+        "websiteURL": "https://oneuptime.com",
+        "supportURL": "https://oneuptime.com/support",
+        "privacyPolicyURL": "https://oneuptime.com/legal/privacy",
+        "termsOfServiceURL": "https://oneuptime.com/legal/terms",
+        "defaultPrompt": [
+          "What incidents are open in OneUptime right now?",
+          "Which of my monitors are down or degraded?",
+          "Summarize this week's incidents by severity."
+        ],
+        "composerIcon": "./assets/composer-icon.png",
+        "logo": "./assets/logo.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "List the incidents that are still open",
+              "prompt": "Which incidents in my OneUptime project are still open?",
+              "tools_triggered": "list_incident_states, list_incidents",
+              "expected_behavior": "Lists the demo project's incidents whose current state is not a resolved state, with each incident's title, severity and current state. Nothing is changed."
+            },
+            {
+              "description": "Find the monitors that are not operational",
+              "prompt": "Which of my monitors are down or degraded right now?",
+              "tools_triggered": "list_monitor_statuses, list_monitors",
+              "expected_behavior": "Lists the monitors whose current status is not Operational, with each monitor's name and status, or says that every monitor is operational. Nothing is changed."
+            },
+            {
+              "description": "Acknowledge an incident and add an internal note, asking before each change",
+              "prompt": "Acknowledge the most recent open incident and add an internal note saying that we are investigating.",
+              "tools_triggered": "list_incidents, acknowledge_incident, add_incident_note",
+              "expected_behavior": "Finds the most recent incident that is not resolved, asks for approval before each change, moves it to the Acknowledged state (or reports that it already is), and adds an internal note that only the team can see. The incident's timeline in OneUptime shows both."
+            },
+            {
+              "description": "Summarize recent incidents by severity",
+              "prompt": "Summarize the incidents from the last 30 days by severity.",
+              "tools_triggered": "list_incident_severities, list_incidents",
+              "expected_behavior": "Groups the incidents created in the last 30 days by severity, with a count and the incident titles for each severity, using a time-range filter. Nothing is changed."
+            },
+            {
+              "description": "Read the project's public status page",
+              "prompt": "What does my project's public status page show right now?",
+              "tools_triggered": "list_status_pages, get_public_status_page_overview",
+              "expected_behavior": "Finds the demo project's status page and reports its overall status, the resources it lists, and any active incidents, announcements or scheduled maintenance. Nothing is changed."
+            }
+          ],
+          "negative": [
+            {
+              "description": "A request that has nothing to do with OneUptime",
+              "prompt": "What's the weather in London today?",
+              "expected_behavior": "Calls no OneUptime tool: the request has nothing to do with the connected project."
+            },
+            {
+              "description": "Billing is not available through the plugin",
+              "prompt": "Upgrade my OneUptime plan and pay the outstanding invoice.",
+              "expected_behavior": "Changes nothing and explains that plans and invoices are managed in OneUptime under Project Settings, Billing and Invoices: the plugin has no billing tools."
+            },
+            {
+              "description": "Data outside the connected project",
+              "prompt": "Show me the incidents of every company that uses OneUptime.",
+              "expected_behavior": "Explains that it can only see the one project the user connected, with the user's own permissions, and does not try to reach any other project."
+            }
+          ]
+        },
+        "commerce": false
+      },
+      "publication": {
+        "release_notes": "First release: work with the incidents, alerts, monitors, status pages, on-call policies and telemetry of your OneUptime project from ChatGPT."
+      }
+    }
+  }
+}

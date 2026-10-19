@@ -18,10 +18,12 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import PublicMessageRateLimit from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import SSRFProtection from "../../../Server/Utils/SSRFProtection";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE } from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { mockRouter } from "./Helpers";
 import {
@@ -78,7 +80,7 @@ jest.mock("../../../Server/Utils/Logger");
 
 const SUBSCRIBE_ROUTE: string = "/status-page/subscribe/:statusPageId";
 const UPDATE_SUBSCRIPTION_ROUTE: string =
-  "/status-page/update-subscription/:statusPageId/:subscriberId";
+  "/status-page/update-subscription/:statusPageId/:subscriberId/:token";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "7a000000-0000-4000-8000-000000000001",
@@ -90,6 +92,8 @@ const OTHER_PAGE_ID: ObjectID = new ObjectID(
 const SUBSCRIBER_ID: ObjectID = new ObjectID(
   "7a000000-0000-4000-8000-000000000004",
 );
+// The subscription's own token, which its manage link carries.
+const TOKEN: string = "7c".repeat(32);
 
 // The page's resources: a monitor's, a monitor group's, an archived monitor's.
 const SHOWN_MONITOR_RESOURCE: string = "7b000000-0000-4000-8000-000000000001";
@@ -183,6 +187,15 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
+    /*
+     * Every request here is within the limits on what a public route may
+     * send its contacts (PublicMessageRateLimit), which
+     * StatusPageSubscriberMessageLimits.test.ts holds.
+     */
+    jest
+      .spyOn(PublicMessageRateLimit, "assertMaySend")
+      .mockResolvedValue({ giveBack: async (): Promise<void> => {} });
+
     resourceLookups = [];
     heldResourceIds = [];
     allowSubscribersToChooseResources = true;
@@ -262,6 +275,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         row.id = SUBSCRIBER_ID;
         row.statusPageId = PAGE_ID;
         row.projectId = PROJECT_ID;
+        row.unsubscribeToken = TOKEN;
         return Promise.resolve(row);
       });
 
@@ -363,7 +377,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       params: {
         statusPageId: (data.statusPageId || PAGE_ID).toString(),
         ...(data.subscriberId
-          ? { subscriberId: data.subscriberId.toString() }
+          ? { subscriberId: data.subscriberId.toString(), token: TOKEN }
           : {}),
       },
       body: { data: data.body },
@@ -643,7 +657,9 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
         nextFunction,
       );
 
-      expect((thrown() as Error).message).toBe("Subscriber not found");
+      expect((thrown() as Error).message).toBe(
+        MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE,
+      );
       expect(resourceLookups).toEqual([]);
       expect(
         StatusPageSubscriberService.updateFromManageSubscriptionPage,

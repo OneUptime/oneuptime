@@ -22,10 +22,10 @@ flowchart TB
         device["Dispositivo"] --> gateway["Gateway o<br/>SDK OpenTelemetry"]
         device2["Dispositivo"] --> mqtt["MQTT di OneUptime"]
     end
-    gateway -->|"metriche IoT via OTLP"| oneuptime["OneUptime"]
+    gateway -->|"metriche<br/>IoT via OTLP"| oneuptime["OneUptime"]
     mqtt --> oneuptime
     oneuptime -->|"primi dati"| registered["Flotta registrata"]
-    oneuptime --> monitor["Monitor dispositivi IoT"]
+    oneuptime --> monitor["Monitor<br/>dispositivi IoT"]
     monitor -->|"ogni minuto,<br/>per dispositivo"| criteria{"Criteri<br/>soddisfatti?"}
     criteria -->|"sì"| incident["Incidente o<br/>avviso per quel<br/>dispositivo"]
     criteria -->|"no"| online["Monitor online"]
@@ -144,7 +144,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | --- | --- |
 | **Tipo di filtro** | Sempre **Metric Value**, l'unico controllo che questo monitor offre. |
 | **Select Metric Variable** | La query o la formula da controllare, tramite il nome della sua variabile. |
-| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere) o **Any Value** (ne basta uno). |
+| **Aggregazione** | Come i valori della finestra diventano un'unica risposta: **Media**, **Somma**, **Maximum Value**, **Minimum Value**, **All Values** (ogni valore deve corrispondere, su tutta la finestra) o **Any Value** (ne basta uno). |
 | **Condizione** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** o **Uguale a** — oppure una condizione di anomalia: **Anomalously High**, **Anomalously Low** o **Anomalous**. |
 | **Threshold** | Il valore con cui confrontare. Accanto c'è un elenco di unità quando la metrica ha un'unità. Non mostrato per le condizioni di anomalia. |
 | **Sensibilità** | Solo condizioni di anomalia. **Bassa** (4σ), **Media** (3σ, il predefinito) o **Alta** (2σ). |

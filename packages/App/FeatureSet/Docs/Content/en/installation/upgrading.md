@@ -659,7 +659,7 @@ API, SSO, or the Slack and Microsoft Teams apps.
   an email when a plan change stops them, and the
   owners of projects that were already below these plans get one email
   after this upgrade saying what stopped and how to turn it back on.
-  **Project Settings** > **Billing** names how many a lower plan stops or
+  **Project Settings** > **Billing and Invoices** > **Billing** names how many a lower plan stops or
   limits. People signing in, MCP clients connected by signing in, telemetry
   ingestion keys, probe keys and agent keys are not affected, and
   self-hosted installs (no plans) see no change. See
@@ -975,6 +975,37 @@ API, SSO, or the Slack and Microsoft Teams apps.
   See
   [Records a request names](/docs/api-reference/api-reference#records-a-request-names)
   and [Users, Teams & Permissions](/docs/permissions/index).
+- **Adding and removing owners keeps to the `Owned` scope.** A permission to
+  add and remove a resource's owners - such as `MonitorAdmin`,
+  `MonitorMember` or `ProjectMember`, given to a team directly or through a
+  custom role - that is scoped to `Owned` now adds and removes them only on
+  the resources its people or their teams own, however many more they may
+  read. It used to reach the owners of every resource they could read.
+  Owners are still read through the resource, and permissions over the
+  whole project, API keys and workflow steps add and remove any owner. Give
+  someone who manages the owners of resources they do not own that
+  permission over the whole project, or restricted to labels. See
+  [Users, Teams & Permissions](/docs/permissions/index).
+- **The `Owned` scope narrows every resource with owners.** Monitor groups,
+  on-call schedules, alert and incident episodes, incoming call policies,
+  incident and maintenance templates, probes, Runners and AI agents have
+  owners too, and a permission scoped to `Owned` - such as `MonitorAdmin`,
+  `OnCallMember` or `ProjectMember` - now changes and deletes only the ones
+  its people or their teams own, and adds and removes owners only on those.
+  What belongs to one goes with it: a schedule's layers, the people in them
+  and its shared calendar link, an incoming call policy's escalation rules, an
+  episode's notes, state changes and role members, and the monitors in a
+  monitor group. Incidents and alerts are added to an episode, one or many at
+  a time, only where the person or their team owns them. Monitor groups,
+  episodes and incoming call policies are also read only where owned; probes,
+  Runners, AI agents, on-call schedules and templates are still read in full,
+  so they can be picked - all but a Runner's key, which shows only where
+  owned. Someone who creates one of them with a permission scoped to
+  `Owned` is made its owner; one that nobody owns is changed only by a
+  permission over the whole project, so make your teams the owners of the ones
+  they look after - an episode a grouping rule opens takes the rule's episode
+  owners. See
+  [Users, Teams & Permissions](/docs/permissions/index).
 - **Every grant and scope narrows what it reaches, and a read by ID of a
   record you may not read answers `404`.** The same rule now holds in the
   places it did not yet reach:
@@ -1296,6 +1327,174 @@ API, SSO, or the Slack and Microsoft Teams apps.
   record by its number or name as well as its ID, and sends the JSON typed
   for a trigger as JSON: a Manual trigger's **JSON** arrives as an object,
   so a later step reads a field of it without a **Text to JSON** step.
+- **Sign-in cookies stay on HTTPS, and an HTTPS installation tells browsers
+  to stay there.** OneUptime set its cookies without `Secure`, so a browser
+  that signed in over HTTPS still sent its session with any plain-HTTP
+  request to the same address. Now every cookie OneUptime sets while the
+  browser is on HTTPS is `Secure`, and an installation with
+  `HTTP_PROTOCOL=https` sends `Strict-Transport-Security` for its `HOST`: a
+  browser that has seen it reaches that name over HTTPS only, on every port,
+  for a year (`HSTS_MAX_AGE_SECONDS`, which `config.example.env` now lists;
+  `0` makes browsers forget it). Status pages and dashboards on custom
+  domains get `Secure` cookies whenever they are served over HTTPS, and no
+  `Strict-Transport-Security`. A browser's cookies from before the upgrade
+  are replaced as its session renews, or at its next sign-in. With
+  `HTTP_PROTOCOL=https`, people have to sign in over HTTPS: a sign-in over
+  plain HTTP to `HOST` no longer keeps them signed in. Behind your own proxy,
+  check that it sends `X-Forwarded-Proto`, as Caddy and the Nginx example in
+  [Set up HTTPS](/docs/installation/docker-compose#set-up-https) do. An
+  installation served over plain HTTP (`HTTP_PROTOCOL=http`) sees no change.
+- **OneUptime refuses a placeholder `ONEUPTIME_SECRET`.** OneUptime's own
+  services prove to each other that a call comes from one of them with
+  `ONEUPTIME_SECRET`, and a value the repository ships for it is now refused
+  from every caller: unset, `secret`, or a placeholder from
+  `config.example.env` (they all contain `please-change-this`). An
+  installation that kept one needs no change for its app and workers: they
+  call each other with a key derived from the installation's own token
+  signing key instead. `npm start` and `npm run update` now give
+  `ONEUPTIME_SECRET` a random value in `config.env` when it still holds a
+  placeholder. If you start the containers another way, or set
+  `oneuptimeSecret` to a placeholder in Helm, and a script of yours calls
+  OneUptime with `ONEUPTIME_SECRET`, give it a long random value, as
+  [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows. An installation that set its own `ONEUPTIME_SECRET` sees no change.
+- **OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to
+  the routes that take it.** Those routes read it from the `clusterkey`
+  request header alone. A request whose URL carries it is refused, and a body
+  is read for it only by the in-cluster Runner's registration, so a Runner of
+  an earlier release still registers while the app logs that it should be
+  updated. The routes that nothing in OneUptime called are removed: the queue
+  statistics and failed jobs (`GET .../queue/stats`, `GET .../queue/size`,
+  `GET .../queue/failed`) and the pending monitors
+  (`GET /monitor/pending-count/...`, `GET /monitor/pending-list/...`). The
+  support bundle in the Admin Dashboard shows the queues. A script of yours
+  that calls a route with `ONEUPTIME_SECRET` sends it in the `clusterkey`
+  header now, and if it ever put it in a URL, change `ONEUPTIME_SECRET` on the
+  app and the Runner. An installation's own services need no change, during a
+  rolling upgrade too.
+- **PostgreSQL answers only on the server itself, and a new install starts
+  with a database password of its own.** `docker-compose.yml` published
+  PostgreSQL's port 5400 on every address of the server. It is now published
+  on `127.0.0.1` only, where `npm run backup` and `restore.sh` reach it as
+  before, and the development stack publishes its PostgreSQL, ClickHouse and
+  Valkey ports the same way. Anything on another machine that connected to
+  port 5400 now needs an SSH tunnel, or a private address published as
+  [Back up and restore](/docs/installation/docker-compose#back-up-and-restore)
+  shows. On a new install, `npm start` replaces a `DATABASE_PASSWORD` still at
+  its `config.example.env` placeholder with a random value
+  before PostgreSQL creates its database. An installation whose database
+  already exists keeps its password, and `npm start` warns while that is the
+  placeholder:
+  [Change the database password](/docs/installation/docker-compose#change-the-database-password)
+  shows how to change it. If you commented out the port line in
+  `docker-compose.yml`, `git pull` stops at that file: run
+  `git checkout docker-compose.yml`, then pull again. Helm installs see no
+  change.
+- **The bundled Runner no longer runs a repository's commands, and holds only
+  what it needs.** The Runner that Docker Compose (its `runner` service) and the
+  Helm chart (`runner.enabled`) start serves AI code fixes for every project
+  without a Runner of its own. It no longer runs a code repository's setup,
+  build and test commands, and its code agent has no command tool: the fix is
+  written, the pull request opens with its verification shown as skipped, and
+  your repository's own CI checks the change. It also starts with only its
+  OneUptime URL, its key and its telemetry settings instead of the app's whole
+  environment; settings you gave it through `runner.extraEnv` or a Compose
+  override stay. To have fixes built and tested before the pull request opens,
+  [run a Runner of your own](/docs/ai/ai-agent#run-a-runner-of-your-own): it
+  verifies them as before. Runners you installed yourself see no change.
+- **Wrong two-factor codes are counted for the account, wherever they come
+  from.** Once a sign-in's password is right, every wrong authenticator code
+  is counted for that account, from whatever address or network it is
+  entered: after five in a row, each next code waits before it is checked,
+  one minute at first and twice as long after each wrong code, up to an
+  hour. Backup codes have a count of their own, so wrong authenticator codes
+  never hold them, and a security key is never held. The account's owner is
+  emailed when the waits begin, at most once a day. A sign-in that gets its
+  code right, a new password, or a master admin's reset of two-factor
+  authentication ends the wait, and wrong codes are forgotten a day after
+  the last one. Someone who gets their code right within five tries sees no
+  change. See [Your Account](/docs/introduction/your-account).
+- **A global probe and the bundled Runner no longer authenticate with a key
+  the repository ships.** A global probe runs the monitors of every project on
+  the installation, and the bundled Runner serves AI code fixes for every
+  project, so the keys they present must be the installation's own, never a
+  value that is public in the OneUptime repository. `REGISTER_PROBE_KEY` (which
+  registers a global probe), a global probe's own key (`GLOBAL_PROBE_1_KEY`,
+  `GLOBAL_PROBE_2_KEY`) and the Runner's `ONEUPTIME_RUNNER_KEY` are now refused
+  when unset, `secret`, or a placeholder from `config.example.env` (they all
+  contain `please-change-this`). `npm start` and `npm run update` give each of
+  these a random value in `config.env` when it still holds a placeholder, and
+  the bundled probe re-registers under its new key without losing its monitors.
+  The Helm chart already generates random values for all of them. If you start
+  the containers another way, or run a global probe or the in-cluster Runner
+  with one of these keys set to a placeholder, set it to a long random value,
+  as [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows: until then that probe or Runner cannot register. Custom probes and
+  Runners you installed yourself, which already have their own keys, and an
+  installation that set its own keys, see no change.
+- **Probes, Runners, the infrastructure agent and OneUptime's own services
+  follow redirects only on the server they call.** A request that carries one
+  of their keys follows a redirect to the same address, or to that address
+  moved from `http` to `https`, and nowhere else: a redirect to another server
+  fails the request, with an error that names that server. If your OneUptime
+  address redirects to another host name, such as an old domain to a new one,
+  set `ONEUPTIME_URL` on your probes and Runners, and the infrastructure
+  agent's `--oneuptime-url`, to the address it redirects to. An address that
+  answers directly, or only moves from `http` to `https`, sees no change.
+- **The bundled ClickHouse and Valkey get passwords of their own.** When
+  `CLICKHOUSE_PASSWORD` or `VALKEY_PASSWORD` in `config.env` is still the
+  `config.example.env` placeholder, `npm start` and `npm run update` now give
+  it a random value, on an existing install too. That is done only while
+  `CLICKHOUSE_HOST` or `VALKEY_HOST` names the ClickHouse or Valkey that Docker
+  Compose runs: both take their password each time they start, so the same
+  start recreates them with the new one, and ClickHouse keeps its data. A tool
+  of your own that signs in to either needs the new value from `config.env`. A
+  placeholder for a ClickHouse or cache you run elsewhere is left as it is, and
+  `npm start` says so. At startup, the app now also warns when
+  `REGISTER_PROBE_KEY` is unset or a value the repository ships, or a datastore
+  password is one. A probe's, a Runner's or an AI agent's key can no longer be
+  set to such a value, and a Runner of yours that has one stops connecting
+  until you reset its key in the dashboard and give the Runner the new one.
+  With Helm and the Altinity operator (`clickhouseOperator.altinity.enabled`),
+  a new install gives the operator's own ClickHouse user a random password
+  instead of the one its chart ships to every installation. An existing install
+  keeps its password, and `helm upgrade` says how to change it.
+- **Incoming email needs a webhook secret of your own.** Once
+  `INBOUND_EMAIL_DOMAIN` is set, OneUptime takes an email from SendGrid only
+  when the webhook URL ends with `INBOUND_EMAIL_WEBHOOK_SECRET`. While that is
+  empty, or a placeholder from the setup guide, every email is refused with
+  `503` and none reaches an Incoming Email Monitor or a workflow; the app says
+  so at startup, and so does `helm upgrade`. If the Destination URL in
+  SendGrid's Inbound Parse settings already ends with a long random value of
+  your own, set `INBOUND_EMAIL_WEBHOOK_SECRET` to that value; otherwise first
+  make that URL end with a new one, then set the secret to the same value, as
+  [Configure OneUptime](/docs/self-hosted/sendgrid-inbound-email#configure-oneuptime)
+  shows. With Docker Compose, set it in `config.env` and run `npm start`; with
+  Helm, set `inboundEmail.webhookSecret` and run `helm upgrade`. SendGrid
+  retries a refused email for up to three days, so the emails sent meanwhile
+  arrive once it is set. An installation that set its own secret sees no
+  change.
+- **The bundled Runner registers with its own key, and holds no
+  `ONEUPTIME_SECRET`.** The Runner that Docker Compose (its `runner` service)
+  and the Helm chart (`runner.enabled`) start now registers with its
+  `ONEUPTIME_RUNNER_KEY`, which the app is given too, so its container no longer
+  holds `ONEUPTIME_SECRET`, the key OneUptime's own services call each other
+  with. `npm run update` and `helm upgrade` set this up. If you start the
+  containers another way, give the app the Runner's `ONEUPTIME_RUNNER_KEY`, set
+  `ONEUPTIME_RUNNER_SHARED` to `true` on the Runner, and take `ONEUPTIME_SECRET`
+  out of its environment. A Runner of an earlier release, or one that is still
+  given `ONEUPTIME_SECRET`, keeps registering with it, and the app logs that it
+  should be updated.
+- **Wrong probe and Runner keys are counted.** One address may send only ten
+  different wrong keys for one probe, Runner or AI agent in a quarter of an
+  hour, and only ten different wrong values of `REGISTER_PROBE_KEY` or of the
+  bundled Runner's `ONEUPTIME_RUNNER_KEY`. After that, its requests for that
+  probe, Runner or agent, or its registrations, are answered with `429` until
+  the quarter of an hour ends, the right key included. A probe or Runner that
+  still sends the key it had before a reset sends one wrong key however often it
+  calls, so it is never refused for it. Keys sent from a private network
+  address, which is where the bundled probes and Runner call from, are not
+  counted at all, so nothing sent beside them can get them refused.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
@@ -1308,7 +1507,7 @@ A workflow's Find, Create, Update and Delete steps, and its On Create, On Update
 
 What changes for an existing workflow:
 
-- A step that granted a team or an API key a permission a Project Admin doesn't hold — **Project Owner**, billing or project deletion, or any permission outside a Project Admin's — is refused, and so is a step that adds someone to a team with more permissions than a Project Admin, such as the owners' team.
+- A step that creates, changes or deletes a team, a team member, a team permission, a custom role or an API key permission is refused, whatever it would grant, **Project Owner** and **Project Admin** included: workflow steps don't change who has access to the project. A person who manages the project's teams and API keys makes those changes.
 - A step that edited or deleted a feed entry, wrote a notification log, set a value OneUptime keeps for itself (a verified CNAME, a team's protection switches, the primary incident role, notified and reminder fields, who is on call now, an SLO's results, a private user's password reset token…) or moved a record to another parent is refused. The list is on that page.
 - A **Create One Incident** step that declared from a template by sending `createdIncidentTemplateId` is refused. Pick the template under the step's **Incident Template** setting instead, and take `createdIncidentTemplateId` out of its **JSON Object**. The step then declares the incident from the template the way the dashboard does — everything the step sets wins, a state included — adds the template's owners, and records the template. The run log of a step still sending the column points to the setting. See [Declaring an incident from a template](/docs/workflows/components#declaring-an-incident-from-a-template).
 - A step that selects who created a probe or an AI agent is refused.
@@ -1469,7 +1668,7 @@ have the commands.
 
 ### Enable AI is the only AI switch
 
-**Project Settings → AI Features** had three switches. **Enable
+**Project Settings → AI → AI Features** had three switches. **Enable
 Auto-Remediation** and **Enable AI Command Execution (for Runners)** are gone:
 auto-remediation and AI commands on Runners run whenever **Enable AI** is on.
 Turning **Enable AI** off stops them along with every other AI feature,
@@ -1566,7 +1765,7 @@ new pages, so bookmarks keep working.
 
 ### The AI Logs get an index for the daily AI limits
 
-A project's daily AI limits (**Project Settings → AI Features → More
+A project's daily AI limits (**Project Settings → AI → AI Features → More
 settings**) and the incident and alert daily token limits add up the day's AI
 Logs before every AI call. Until now that read every AI Log the project had
 ever written, and a self-hosted install keeps them all. The upgrade adds an

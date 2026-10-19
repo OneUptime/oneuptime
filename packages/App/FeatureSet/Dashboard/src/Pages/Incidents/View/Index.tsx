@@ -83,6 +83,8 @@ import {
   EventStatusFact,
 } from "../../../Components/EventView/EventStatusPanel";
 import EventVideoCallsCard from "../../../Components/VideoCall/EventVideoCallsCard";
+import CallSummarySection from "../../../Components/AI/CallSummary/CallSummarySection";
+import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import useEventVideoCalls, {
   EventVideoCallsState,
   VideoCallEventKind,
@@ -91,6 +93,11 @@ import { getJoinVideoCallAction } from "../../../Components/VideoCall/JoinVideoC
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
+import usePassOnPage, {
+  PassOnPageControls,
+} from "../../../Components/OnCallPolicy/PassOn/usePassOnPage";
+import { OnCallPageRecordType } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
@@ -441,6 +448,14 @@ const IncidentView: FunctionComponent<
     recordId: modelId,
     // A rule's channel arrives a moment after a new incident is created.
     recordStartedAt: incidentStartedAt,
+  });
+
+  // "Pass it on", for somebody an on-call policy is paging about it.
+  const passOn: PassOnPageControls = usePassOnPage({
+    recordType: OnCallPageRecordType.Incident,
+    recordId: modelId,
+    // Passing it on is a new feed entry.
+    onPassedOn: refreshFeed,
   });
 
   const fetchData: (options: FetchDataOptions) => Promise<void> = async (
@@ -992,6 +1007,7 @@ const IncidentView: FunctionComponent<
           }
           facts={headerFacts}
           secondaryActions={[
+            ...passOn.actions,
             ...getJoinVideoCallActions(videoCalls),
             ...getOpenInChatActions(channelLinks),
           ]}
@@ -1002,8 +1018,11 @@ const IncidentView: FunctionComponent<
             refreshData();
             // The state change is a new feed entry.
             refreshFeed();
+            // Acknowledging it ends the reader's own page, if they had one.
+            passOn.refresh();
           }}
         />
+        {passOn.dialog}
       </div>
 
       <EventStatBar
@@ -1083,6 +1102,19 @@ const IncidentView: FunctionComponent<
                   subjectType="incident"
                   subjectId={modelId}
                   investigationStage={slot.investigationStage}
+                />
+              );
+            }}
+            renderCallSummaries={() => {
+              return (
+                <CallSummarySection
+                  incidentId={modelId}
+                  calls={videoCalls.calls as Array<IncidentVideoCall>}
+                  onChanged={() => {
+                    videoCalls.refresh();
+                    // A root cause used from the call is a new feed entry.
+                    refreshFeed();
+                  }}
                 />
               );
             }}
@@ -1253,6 +1285,7 @@ const IncidentView: FunctionComponent<
             notifyStatusPageSubscribersByDefault={
               notifyStatusPageSubscribersByDefault
             }
+            isPrivate={isPrivate}
           />
         </div>
 
@@ -1269,6 +1302,18 @@ const IncidentView: FunctionComponent<
               // A started call is a new feed entry.
               refreshFeed();
             }}
+          />
+
+          {/*
+           * Who is in the incident's own channel, beside its call: where its
+           * responders talk. Only for an incident with a channel of its own.
+           */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.Incident}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={refreshFeed}
           />
 
           {/* Incident View  */}
@@ -1306,7 +1351,7 @@ const IncidentView: FunctionComponent<
                   incidentSeverity: true,
                 },
                 title: "Incident Severity",
-                description: "What type of incident is this?",
+                description: "How serious is it?",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: IncidentSeverity,

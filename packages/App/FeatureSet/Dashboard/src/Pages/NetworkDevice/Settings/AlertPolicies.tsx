@@ -280,17 +280,17 @@ const AlertPolicyScopeEditor: FunctionComponent<AlertPolicyScopeEditorProps> = (
  * a sentence that had lost its grammar.
  */
 export const RECOMMENDED_POLICY_EMPTY_STATE: string = translationKey(
-  "One policy alerts on many devices: the ones you have and the ones you add later. The recommended policy opens an incident when a device stops answering or a port goes down, and an alert when a port is saturated, logs errors, or its SNMP readings fail. A device without SNMP credentials is only pinged, so only the stops-answering check can fire on it.",
+  "One policy covers every device, including ones added later. The recommended one opens an incident when a device stops answering or a port goes down.",
 );
 
 export const RECOMMENDED_POLICY_CONFIRM: string = translationKey(
-  'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan. You can narrow the policy to some devices afterwards.',
+  'This adds the "Alert on every device" policy and its monitor template: one monitor per device, each counted towards your plan.',
 );
 
 export const RECOMMENDED_POLICY_CONFIRM_COUNTED: PluralTemplate = {
-  one: 'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitor today. You can narrow the policy to some devices afterwards.',
+  one: 'This adds the "Alert on every device" policy and its monitor template: up to {{count}} monitor today, one per device, each counted towards your plan.',
   other:
-    'This adds the "Alert on every device" policy, and the "Network device alert pack (recommended)" monitor template it uses if the project does not have it yet. It covers devices added later too, and adds one monitor per covered device, each counted towards your plan: up to {{count}} monitors today. You can narrow the policy to some devices afterwards.',
+    'This adds the "Alert on every device" policy and its monitor template: up to {{count}} monitors today, one per device, each counted towards your plan.',
 };
 
 export interface RecommendedPolicyEmptyStateProps {
@@ -570,7 +570,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
            * that the monitors go with the policy before they click it.
            */
           description:
-            "Alert on many devices at once. A policy adds one monitor to every device it covers, including devices added later, and each monitor counts towards your plan. Turning a policy off stands its monitors down; deleting one deletes them.",
+            "A policy adds one monitor to every device it covers, and each monitor counts towards your plan. Deleting a policy deletes its monitors.",
         }}
         helpContent={{
           title: "How Alert Policies Work",
@@ -794,13 +794,13 @@ const NetworkAlertPoliciesPage: FunctionComponent<
                   stepId: "template",
                   sectionTitle: "What every covered device is alerted on",
                   sectionDescription:
-                    "Every matching device gets a monitor cloned from this template, and is re-synced from it when the template changes.",
+                    "Every device in scope gets a monitor made from this template, kept in step with it.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   fetchDropdownOptions: fetchNetworkDeviceMonitorTemplates,
                   required: true,
                   placeholder: "Select a Network Device template",
                   description:
-                    "Only Network Device monitor templates are listed. A template can back one policy, and cannot also be selected by an auto-import rule — the save is refused with the reason if it is.",
+                    "A template can back one policy, and cannot also be used by an auto import rule.",
                 },
               ]
             : []),
@@ -811,7 +811,7 @@ const NetworkAlertPoliciesPage: FunctionComponent<
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             description:
-              "Which devices this policy covers. Leave every picker empty to cover every device in the project — the widest scope, and the one that provisions the most monitors.",
+              "Leave every picker empty to cover every device in the project.",
             getCustomElement: (
               values: FormValues<NetworkAlertPolicy>,
               elementProps: CustomElementProps,

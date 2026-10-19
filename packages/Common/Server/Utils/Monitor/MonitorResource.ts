@@ -9,6 +9,7 @@ import ServerException from "../../../Types/Exception/ServerException";
 import logger from "../Logger";
 import MonitorCriteriaEvaluator from "./MonitorCriteriaEvaluator";
 import { CriteriaFilterMatchHistoryReads } from "./Criteria/CriteriaFilterMatchHistory";
+import CriteriaInEffect from "./CriteriaInEffect";
 import MonitorLogUtil from "./MonitorLogUtil";
 import MonitorMetricUtil from "./MonitorMetricUtil";
 import DataToProcess from "./DataToProcess";
@@ -78,6 +79,7 @@ import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceV
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { toStorableJson } from "../Database/PostgresStorableValue";
+import ProbeReportIdentity from "../Probe/ProbeReportIdentity";
 
 import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 interface ProbeAgreementResult {
@@ -88,6 +90,19 @@ interface ProbeAgreementResult {
   agreedCriteriaId: string | null;
   agreedRootCause: string | null;
   agreedProbeNames: Array<string>;
+}
+
+export interface MonitorResourceOptions {
+  /*
+   * The probe that reported this check result, as it authenticated to probe
+   * ingest (ProcessProbeIngest). Its result is its own (ProbeReportIdentity)
+   * and is taken only for a monitor probes check, from a probe assigned to
+   * it: anything else is refused before the monitor's stored probe results,
+   * metrics, logs or criteria are touched. Results OneUptime builds itself -
+   * a trap or a device poll fanned out to the monitors watching a device,
+   * a heartbeat, a telemetry evaluation - pass none.
+   */
+  reportingProbeId?: ObjectID | undefined;
 }
 
 export default class MonitorResourceUtil {
@@ -119,7 +134,22 @@ export default class MonitorResourceUtil {
   @CaptureSpan()
   public static async monitorResource(
     dataToProcess: DataToProcess,
+    options?: MonitorResourceOptions | undefined,
   ): Promise<ProbeApiIngestResponse> {
+    const reportingProbeId: ObjectID | undefined = options?.reportingProbeId;
+
+    /*
+     * A probe's check result names the probe it is from, and that is the
+     * probe that reported it - checked before anything reads the id below
+     * (the MonitorProbe row it is stored under, probe agreement).
+     */
+    if (reportingProbeId) {
+      ProbeReportIdentity.bindResultToSender(
+        dataToProcess as ProbeMonitorResponse,
+        reportingProbeId,
+      );
+    }
+
     let response: ProbeApiIngestResponse = {
       monitorId: dataToProcess.monitorId,
       criteriaMetId: undefined,
@@ -243,6 +273,29 @@ export default class MonitorResourceUtil {
     }
 
     dataToProcess.projectId = monitor.projectId;
+
+    /*
+     * Probes check only the monitor types probes run (isProbableMonitor),
+     * and only the monitors they are assigned to - the assignment is held
+     * below, once the monitor's probe rows are read. A probe's result for any
+     * other monitor - a heartbeat, an incoming request, a telemetry or
+     * network device monitor - is no check that probe ran, and would
+     * otherwise be judged against that monitor's criteria and stored as its
+     * last request.
+     */
+    if (
+      reportingProbeId &&
+      !(
+        monitor.monitorType &&
+        MonitorTypeHelper.isProbableMonitor(monitor.monitorType)
+      )
+    ) {
+      logger.debug(
+        `${dataToProcess.monitorId.toString()} - Probe ${reportingProbeId.toString()} reported a check result for a monitor probes do not check. Refused.`,
+      );
+
+      throw new BadDataException(ExceptionMessages.ProbeNotAssignedToMonitor);
+    }
 
     /*
      * Archived first: an archived monitor is out of service whatever its
@@ -436,16 +489,24 @@ export default class MonitorResourceUtil {
             },
           });
 
+          /*
+           * The probe the result is from must be one of this monitor's own:
+           * its result is stored under that probe's row and nowhere else.
+           * Ids compared as Postgres compares uuids, whatever their case.
+           */
+          const resultProbeId: string = (dataToProcess as ProbeMonitorResponse)
+            .probeId!.toString()
+            .toLowerCase();
+
           const monitorProbe: MonitorProbe | undefined =
             monitorProbesForMonitor.find((mp: MonitorProbe) => {
-              return (
-                mp.probeId?.toString() ===
-                (dataToProcess as ProbeMonitorResponse).probeId!.toString()
-              );
+              return mp.probeId?.toString().toLowerCase() === resultProbeId;
             });
 
           if (!monitorProbe) {
-            throw new BadDataException("Probe is not assigned to this monitor");
+            throw new BadDataException(
+              ExceptionMessages.ProbeNotAssignedToMonitor,
+            );
           }
 
           probeName = monitorProbe.probe?.name || undefined;
@@ -837,6 +898,12 @@ export default class MonitorResourceUtil {
          */
         recordMatchHistory: true,
         matchHistoryReads: matchHistoryReads,
+        /*
+         * What this monitor's criteria have already opened, read only if an
+         * "All Values" metric series is waiting for a full window: a series
+         * whose alert is open keeps being judged on its data points.
+         */
+        criteriaInEffect: CriteriaInEffect.forMonitor(monitor),
       });
 
       // Check probe agreement for probe-based monitors

@@ -18,16 +18,16 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant B as Navigateur
-    participant A as Votre application web
-    O->>P: Script, secrets remplis
-    loop Chaque navigateur et taille d'écran
-        P->>B: Exécuter le script
-        B->>A: Charger des pages, cliquer, saisir
+    participant A as Votre<br/>application web
+    O->>P: Script,<br/>secrets remplis
+    loop Chaque<br/>navigateur et<br/>taille d'écran
+        P->>B: Exécuter<br/>le script
+        B->>A: Charger<br/>des pages,<br/>cliquer, saisir
         A-->>B: Pages
-        B-->>P: Résultat, captures, journaux
+        B-->>P: Résultat,<br/>captures,<br/>journaux
     end
-    P->>O: Une réponse par exécution
-    O->>O: Évaluer les critères
+    P->>O: Une réponse<br/>par exécution
+    O->>O: Évaluer les<br/>critères
 ```
 
 | Type d'écran | Fenêtre d'affichage |
@@ -56,7 +56,7 @@ Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Sous **Type de m
 
 ### Choisir navigateurs et tailles d'écran
 
-Cochez les navigateurs sous **Type de navigateur** et les tailles sous **Type d'écran**. Le script s'exécute une fois pour chaque combinaison : deux navigateurs et trois tailles font donc six exécutions par vérification. Sous **Plus de champs**, **Nombre de tentatives en cas d'erreur** relance une exécution échouée jusqu'à 5 fois.
+Un nouveau moniteur commence avec **Chromium** sous **Type de navigateur** et **Ordinateur** sous **Type d'écran** ; cochez-en d'autres pour en couvrir davantage. Le script s'exécute une fois pour chaque combinaison : deux navigateurs et trois tailles font donc six exécutions par vérification, et il lui faut au moins un navigateur et une taille. Sous **Plus de champs**, **Nombre de tentatives en cas d'erreur** relance une exécution échouée jusqu'à 5 fois.
 
 ### Le tester
 

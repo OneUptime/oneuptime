@@ -17,18 +17,18 @@ OneUptime gebruikt een Azure Bot voor de Teams-integratie. Het verkeer gaat twee
 
 ```mermaid title="Een project met Teams verbinden en het daarna gebruiken"
 sequenceDiagram
-    participant B as Browser van de beheerder
+    participant B as Browser van<br/>de beheerder
     participant O as OneUptime
-    participant E as Microsoft Entra ID
-    participant AB as Azure Bot Service
-    B->>O: Beheerderstoestemming verlenen
-    O-->>B: Doorverwijzing naar Microsoft
-    B->>E: Toestemming geven en aanmelden
-    E-->>B: Doorverwijzing naar de callback van de beheerderstoestemming
+    participant E as Microsoft<br/>Entra ID
+    participant AB as Azure Bot<br/>Service
+    B->>O: Beheerders-<br/>toestemming<br/>verlenen
+    O-->>B: Doorverwijzing<br/>naar Microsoft
+    B->>E: Toestemming<br/>geven en<br/>aanmelden
+    E-->>B: Doorverwijzing<br/>naar de<br/>callback van<br/>de beheerders-<br/>toestemming
     B->>O: Callback
-    O->>E: Een Microsoft Graph-token ophalen
-    Note over O,AB: Eenmaal verbonden
-    O->>AB: Waarschuwingskaarten plaatsen, uitgaand HTTPS
+    O->>E: Een Microsoft<br/>Graph-token<br/>ophalen
+    Note over O,AB: Eenmaal<br/>verbonden
+    O->>AB: Waarschuwings-<br/>kaarten<br/>plaatsen,<br/>uitgaand HTTPS
     AB->>O: POST /api/microsoft-bot/messages
 ```
 
@@ -218,7 +218,7 @@ De doorverwijzingen van de app-registratie naar `/api/microsoft-teams/auth` en `
 ### Het bot-endpoint publiceren vanuit een privé-implementatie
 
 ```mermaid title="Het bot-endpoint publiceren vanuit een privé-implementatie"
-flowchart LR
+flowchart TB
     Azure["Azure Bot Service"] -->|HTTPS 443| GW["Openbare gateway"]
     GW -->|"POST /api/microsoft-bot/messages"| ING["OneUptime-ingress"]
     Users["Medewerkers op de VPN"] --> ING

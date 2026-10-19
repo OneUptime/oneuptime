@@ -19,14 +19,14 @@ Proxmox 모니터는 클러스터 하나에 연결됩니다. 매분 그 클러�
 flowchart TB
     subgraph site["사용자의 네트워크"]
         direction LR
-        pve["Proxmox VE API"] --> agent["OneUptime Proxmox 에이전트"]
+        pve["Proxmox VE API"] --> agent["OneUptime Proxmox<br/>에이전트"]
     end
-    agent -->|"OTLP로 pve 메트릭"| oneuptime["OneUptime"]
+    agent -->|"OTLP로<br/>pve 메트릭"| oneuptime["OneUptime"]
     native["Proxmox VE 9<br/>기본 푸시"] -.->|"대안"| oneuptime
     oneuptime -->|"첫 데이터"| registered["클러스터 등록됨"]
     oneuptime --> monitor["Proxmox 모니터"]
     monitor -->|"매분"| criteria{"기준 충족?"}
-    criteria -->|"예"| incident["인시던트 또는 알림"]
+    criteria -->|"예"| incident["인시던트<br/>또는 알림"]
     criteria -->|"아니요"| online["모니터 온라인"]
 ```
 
@@ -222,7 +222,7 @@ CPU와 메모리 계열은 각 게스트에 대해서도 `qemu/*`와 `lxc/*` ID�
 | 필드 | 하는 일 |
 | --- | --- |
 | **메트릭** | 확인할 쿼리나 수식(변수 이름으로 지정). |
-| **집계** | 기간 안의 값을 하나의 답으로 만드는 방식: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(모든 값이 일치해야 함), **Any Value**(하나면 충분). |
+| **집계** | 기간 안의 값을 하나의 답으로 만드는 방식: **평균**, **합계**, **Maximum Value**, **Minimum Value**, **All Values**(기간 전체에서 모든 값이 일치해야 함), **Any Value**(하나면 충분). |
 | **조건** | **보다 큼**, **보다 작음**, **이상**, **이하**, **같음**, 또는 이상 조건 **Anomalously High**, **Anomalously Low**, **Anomalous**. |
 | **Threshold** | 비교할 값. 메트릭에 단위가 있으면 옆에 단위 목록이 있습니다. 이상 조건에서는 표시되지 않습니다. |
 | **민감도** | 이상 조건 전용. **낮음**(4σ), **중간**(3σ, 기본값), **높음**(2σ). |

@@ -85,19 +85,25 @@ SHELL ["/bin/bash", "-c"]
 # kubectl is only supported within one minor of the API server, and each
 # release is built with the Go of its day, so a stale pin means version-skew
 # warnings on every "Test access" and a block of Go stdlib CVEs in image
-# scans that no rebuild fixes. v1.36.4 (go1.26.5) covers 1.35-1.37 servers.
+# scans that no rebuild fixes. v1.36.5 (go1.26.8) covers 1.35-1.37 servers.
 # Bump KUBECTL_VERSION and both digests together, at least once per
-# Kubernetes minor release (dl.k8s.io publishes kubectl.sha256 next to each
+# Kubernetes minor release and whenever a patch release clears findings an
+# image scan reports in it (dl.k8s.io publishes kubectl.sha256 next to each
 # binary: https://dl.k8s.io/release/<version>/bin/linux/<arch>/kubectl.sha256).
+#
+# The command policy's comments and tests (packages/Common/Utils/
+# AiRemediation) name v1.36.4, the binary its kubectl behaviours were checked
+# with. kubectl's own code is the same in v1.36.5 but for `kubectl cp`, which
+# the policy refuses; re-check them when a bump changes more than that.
 #
 # kubectl 1.33+ reads a kuberc preferences file (aliases, default flags).
 # KubectlExecutor switches it off for every AI command (KUBERC=off,
 # KUBECTL_KUBERC=false, an empty private HOME) and the argv guard refuses
 # --kuberc, so a preferences file can never rewrite an approved argv.
 ARG TARGETARCH
-ARG KUBECTL_VERSION=v1.36.4
-ARG KUBECTL_SHA256_AMD64=8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
-ARG KUBECTL_SHA256_ARM64=0ecf44450ee6063bf19dd166a103ee6df4a9034455c2abce626e6eea657d73fb
+ARG KUBECTL_VERSION=v1.36.5
+ARG KUBECTL_SHA256_AMD64=33bc88a24c3b09cf55bfd59e6ca977881b61fc3f25ab65bc80c65b430248648e
+ARG KUBECTL_SHA256_ARM64=88fc1aca8fd0c1b44fe379f67c39bd6858bdfc50241dc55775f84d0f5b31da3a
 RUN set -euo pipefail \
   && arch="${TARGETARCH:-amd64}" \
   && case "${arch}" in \
@@ -155,6 +161,8 @@ LABEL org.opencontainers.image.version="${APP_VERSION}"
 # above). Without this, ts-node/register redoes it on every container start.
 # See App/Dockerfile.tpl for the full rationale.
 ENV TS_NODE_TRANSPILE_ONLY=1
-#Run the app
-CMD [ "npm", "start" ]
+# Run the app: package.json's start script, through sh instead of npm, so npm
+# is not a second Node.js process beside the runner. tini stays PID 1 and reaps
+# the commands it runs. See App/Dockerfile.tpl for why.
+CMD [ "sh", "-c", "export NODE_OPTIONS=\"--max-old-space-size=8096${NODE_OPTIONS:+ $NODE_OPTIONS}\" && exec node --no-node-snapshot --require ts-node/register Index.ts" ]
 {{ end }}

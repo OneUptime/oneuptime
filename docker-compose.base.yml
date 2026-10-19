@@ -3,6 +3,10 @@ x-common-variables: &common-variables
   PROVISION_SSL: ${PROVISION_SSL}
 
   HTTP_PROTOCOL: ${HTTP_PROTOCOL}
+  # With HTTP_PROTOCOL=https, browsers are told to reach HOST over HTTPS only
+  # (Strict-Transport-Security) for this many seconds. Empty means one year;
+  # 0 makes browsers forget the rule at their next HTTPS visit.
+  HSTS_MAX_AGE_SECONDS: ${HSTS_MAX_AGE_SECONDS:-}
 
   STATUS_PAGE_CNAME_RECORD: ${STATUS_PAGE_CNAME_RECORD}
   DASHBOARD_CNAME_RECORD: ${DASHBOARD_CNAME_RECORD}
@@ -72,6 +76,21 @@ x-common-variables: &common-variables
   # Sign in with Microsoft: the public client id (see config.example.env).
   MICROSOFT_SIGN_IN_CLIENT_ID: ${MICROSOFT_SIGN_IN_CLIENT_ID:-}
 
+# The environment of the shared Runner (the `runner` service below). It serves
+# AI code fixes for every project that has no Runner of its own, so it holds
+# ONLY what it needs: its OneUptime URL, its key and its telemetry settings,
+# never the server's own settings and no cluster key (ONEUPTIME_SECRET). It
+# registers with ONEUPTIME_RUNNER_KEY, which the `app` service is given too,
+# and its LLM calls are mediated by the server. This is deliberately NOT a
+# merge of common-runtime-variables; the SharedRunnerMinimalEnv ops test holds
+# the list minimal.
+x-common-runner-variables: &common-runner-variables
+  LOG_LEVEL: ${LOG_LEVEL}
+  NODE_ENV: ${ENVIRONMENT}
+  BILLING_ENABLED: ${BILLING_ENABLED}
+  OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+  OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+
 x-common-runtime-variables: &common-runtime-variables
   <<: *common-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
@@ -90,6 +109,7 @@ x-common-runtime-variables: &common-runtime-variables
 
   EXPO_ACCESS_TOKEN: ${EXPO_ACCESS_TOKEN}
   PUSH_NOTIFICATION_RELAY_URL: ${PUSH_NOTIFICATION_RELAY_URL}
+  PUSH_NOTIFICATION_RELAY_SERVER_ENABLED: ${PUSH_NOTIFICATION_RELAY_SERVER_ENABLED}
 
   DATABASE_PORT: ${DATABASE_PORT}
   DATABASE_USERNAME: ${DATABASE_USERNAME}
@@ -237,8 +257,8 @@ x-common-runtime-variables: &common-runtime-variables
   # Sign in with Microsoft: the app's secret (see config.example.env).
   MICROSOFT_SIGN_IN_CLIENT_SECRET: ${MICROSOFT_SIGN_IN_CLIENT_SECRET:-}
 
-  # Cloud marketplaces: AWS, Microsoft and Google Cloud Marketplace (see
-  # config.example.env). OneUptime Cloud only; empty everywhere else.
+  # Cloud marketplaces: AWS, Microsoft, Google Cloud and Vercel Marketplace
+  # (see config.example.env). OneUptime Cloud only; empty everywhere else.
   AWS_MARKETPLACE_ACCESS_KEY_ID: ${AWS_MARKETPLACE_ACCESS_KEY_ID:-}
   AWS_MARKETPLACE_SECRET_ACCESS_KEY: ${AWS_MARKETPLACE_SECRET_ACCESS_KEY:-}
   AWS_MARKETPLACE_PRODUCT_CODE: ${AWS_MARKETPLACE_PRODUCT_CODE:-}
@@ -253,6 +273,8 @@ x-common-runtime-variables: &common-runtime-variables
   GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL: ${GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL:-}
   GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE: ${GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE:-}
   GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE: ${GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE:-}
+  VERCEL_MARKETPLACE_CLIENT_ID: ${VERCEL_MARKETPLACE_CLIENT_ID:-}
+  VERCEL_MARKETPLACE_CLIENT_SECRET: ${VERCEL_MARKETPLACE_CLIENT_SECRET:-}
 
   # Inbound Email Configuration (for Incoming Email Monitor)
   INBOUND_EMAIL_PROVIDER: ${INBOUND_EMAIL_PROVIDER}
@@ -418,6 +440,9 @@ services:
       TELEMETRY_WRITER_MAX_BODY_BYTES: ${TELEMETRY_WRITER_MAX_BODY_BYTES}
       TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS: ${TELEMETRY_WRITER_MAX_INFLIGHT_REQUESTS}
       REGISTER_PROBE_KEY: ${REGISTER_PROBE_KEY}
+      # The shared Runner's key (the `runner` service below): the app lets the
+      # Runner register as the installation's shared Runner with it.
+      ONEUPTIME_RUNNER_KEY: ${ONEUPTIME_RUNNER_KEY}
       # MQTT ingest for IoT devices. MQTT-over-WebSocket rides the
       # ingress at /mqtt out of the box; the raw TCP listener stays
       # internal to the compose network unless an operator publishes
@@ -583,7 +608,13 @@ services:
     restart: always
     network_mode: host
     environment:
-      <<: *common-runtime-variables
+      # The shared Runner's own minimal environment — deliberately NOT
+      # common-runtime-variables, so the server's secrets are never in this
+      # container. See x-common-runner-variables above.
+      <<: *common-runner-variables
+      # The installation's shared Runner: it registers with its own key, which
+      # the `app` service holds too, and needs no cluster key.
+      ONEUPTIME_RUNNER_SHARED: "true"
       ONEUPTIME_RUNNER_KEY: ${ONEUPTIME_RUNNER_KEY}
       ONEUPTIME_URL: ${ONEUPTIME_RUNNER_ONEUPTIME_URL}
       # The in-cluster Runner serves code fixes for every project; customer

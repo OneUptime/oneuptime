@@ -7,10 +7,13 @@ import ChannelVerification, {
   VerifiableChannelFields,
 } from "../../../Server/Utils/ChannelVerification";
 import VerificationCode from "../../../Server/Utils/VerificationCode";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
 import DatabaseService from "../../../Server/Services/DatabaseService";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
@@ -151,9 +154,21 @@ const verify: (
 describe("ChannelVerification", () => {
   let service: FakeChannelService;
 
+  /*
+   * Whether a row's owner is a member of the row's project, asked of the
+   * database (ProjectMembership.isMember). Members by default, as every
+   * person verifying their own number in the dashboard is; the membership
+   * block below turns it off.
+   */
+  let isMember: SpyInstance<typeof ProjectMembership.isMember>;
+
   beforeEach(() => {
+    jest.restoreAllMocks();
     service = new FakeChannelService();
     service.row = buildLiveRow();
+    isMember = jest
+      .spyOn(ProjectMembership, "isMember")
+      .mockResolvedValue(true);
   });
 
   describe("issueCode", () => {
@@ -386,6 +401,82 @@ describe("ChannelVerification", () => {
       expect((await verify(service, "123456")).outcome).toBe(
         ChannelVerificationOutcome.AlreadyVerified,
       );
+    });
+
+    /*
+     * A row is only ever verified for a member of its project. Somebody who
+     * is not one - who left, or who added the row to a project that was never
+     * theirs - holds the right code for their own phone, and is still
+     * answered as if the row did not exist.
+     */
+    describe("project membership", () => {
+      it("asks whether the row's owner is a member of the row's project", async () => {
+        await verify(service, "123456");
+
+        expect(isMember).toHaveBeenCalledTimes(1);
+        expect(isMember.mock.calls[0]![0].projectId.toString()).toBe(
+          PROJECT_ID.toString(),
+        );
+        expect(isMember.mock.calls[0]![0].userId.toString()).toBe(
+          OWNER_ID.toString(),
+        );
+      });
+
+      it("refuses the right code from an owner who is not a member, and verifies nothing", async () => {
+        isMember.mockResolvedValue(false);
+
+        const result: ChannelVerificationResult = await verify(
+          service,
+          "123456",
+        );
+
+        expect(result.outcome).toBe(
+          ChannelVerificationOutcome.NotProjectMember,
+        );
+        expect(result.itemId).toBeUndefined();
+        expect(result.projectId).toBeUndefined();
+        expect(service.row?.isVerified).toBe(false);
+        expect(service.updateCalls).toEqual([]);
+      });
+
+      it("spends no attempt for an owner who is not a member", async () => {
+        isMember.mockResolvedValue(false);
+
+        await verify(service, "654321");
+
+        expect(service.incrementCalls).toBe(0);
+        expect(service.row?.verificationFailedAttempts).toBe(0);
+      });
+
+      it("refuses a row that names no project as one whose owner is a member of none", async () => {
+        service.row = buildLiveRow({ projectId: undefined });
+
+        const result: ChannelVerificationResult = await verify(
+          service,
+          "123456",
+        );
+
+        expect(result.outcome).toBe(
+          ChannelVerificationOutcome.NotProjectMember,
+        );
+        expect(isMember).not.toHaveBeenCalled();
+        expect(service.row?.isVerified).toBe(false);
+      });
+
+      it("asks nobody's membership for a caller who does not own the row", async () => {
+        await verify(service, "123456", OTHER_USER_ID);
+
+        expect(isMember).not.toHaveBeenCalled();
+      });
+
+      it("says nothing about the row - not even that it is verified - to an owner who is not a member", async () => {
+        service.row = buildLiveRow({ isVerified: true });
+        isMember.mockResolvedValue(false);
+
+        expect((await verify(service, "123456")).outcome).toBe(
+          ChannelVerificationOutcome.NotProjectMember,
+        );
+      });
     });
 
     describe("expiry", () => {
@@ -643,6 +734,68 @@ describe("ChannelVerification", () => {
           ChannelVerificationOutcome.NotOwner,
         ).message,
       ).toBe("Invalid user ID");
+    });
+
+    it("answers a row of a project its owner is not a member of as a missing row", () => {
+      expect(
+        ChannelVerification.getFailureException(
+          ChannelVerificationOutcome.NotProjectMember,
+        ),
+      ).toEqual(
+        ChannelVerification.getFailureException(
+          ChannelVerificationOutcome.NotFound,
+        ),
+      );
+    });
+  });
+
+  describe("isOwnerProjectMember", () => {
+    it("is the database's answer for the row's project and owner", async () => {
+      expect(
+        await ChannelVerification.isOwnerProjectMember(buildLiveRow()),
+      ).toBe(true);
+
+      isMember.mockResolvedValue(false);
+
+      expect(
+        await ChannelVerification.isOwnerProjectMember(buildLiveRow()),
+      ).toBe(false);
+    });
+
+    it("is false, without asking, for a row with no project or no owner", async () => {
+      expect(
+        await ChannelVerification.isOwnerProjectMember(
+          buildLiveRow({ projectId: undefined }),
+        ),
+      ).toBe(false);
+      expect(
+        await ChannelVerification.isOwnerProjectMember(
+          buildLiveRow({ userId: undefined }),
+        ),
+      ).toBe(false);
+      expect(isMember).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("assertOwnerIsProjectMember", () => {
+    it("lets a member's row through", async () => {
+      await expect(
+        ChannelVerification.assertOwnerIsProjectMember({
+          item: buildLiveRow(),
+          itemId: ITEM_ID,
+        }),
+      ).resolves.toBeUndefined();
+    });
+
+    it("refuses anybody else's row in the words a missing row is refused with", async () => {
+      isMember.mockResolvedValue(false);
+
+      await expect(
+        ChannelVerification.assertOwnerIsProjectMember({
+          item: buildLiveRow(),
+          itemId: ITEM_ID,
+        }),
+      ).rejects.toThrow(new BadDataException("Item not found"));
     });
   });
 

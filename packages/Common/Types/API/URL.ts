@@ -7,6 +7,7 @@ import Typeof from "../Typeof";
 import Hostname from "./Hostname";
 import Protocol from "./Protocol";
 import Route from "./Route";
+import { refusedValue } from "../../Utils/RefusedValue";
 import { FindOperator } from "typeorm";
 
 /*
@@ -90,7 +91,7 @@ export default class URL extends DatabaseProperty {
 
     if (!URL.isValidOpaqueValue(value)) {
       throw new BadDataException(
-        "Phone number " + v + " is not in valid format.",
+        "Phone number " + refusedValue(v) + " is not in valid format.",
       );
     }
 
@@ -349,7 +350,7 @@ export default class URL extends DatabaseProperty {
 
     if (hasAuthorityMarker || isDangerousInAnHref) {
       throw new BadDataException(
-        "URL scheme " + scheme + ": is not supported.",
+        "URL scheme " + refusedValue(scheme) + ": is not supported.",
       );
     }
   }
@@ -624,7 +625,7 @@ export default class URL extends DatabaseProperty {
 
       if (value instanceof URL && value.isMalformed()) {
         throw new BadDataException(
-          "URL " + value.toString() + " is not in valid format.",
+          "URL " + refusedValue(value.toString()) + " is not in valid format.",
         );
       }
 

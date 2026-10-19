@@ -11,6 +11,7 @@ import AwsMarketplaceAPI, {
 import {
   MarketplaceActivationError,
   MarketplaceUsageRecord,
+  MarketplaceUsageResult,
 } from "../../../../Server/Utils/Marketplace/MarketplaceAdapter";
 import MarketplaceApiError from "../../../../Server/Utils/Marketplace/MarketplaceApiError";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -39,10 +40,15 @@ const agreement: (overrides?: Partial<AwsAgreement>) => AwsAgreement = (
   };
 };
 
+// Partial<T> under exactOptionalPropertyTypes forbids an explicit undefined.
+type SubscriptionOverrides = {
+  [K in keyof MarketplaceSubscription]?: MarketplaceSubscription[K] | undefined;
+};
+
 const purchase: (
-  overrides?: Partial<MarketplaceSubscription>,
+  overrides?: SubscriptionOverrides,
 ) => MarketplaceSubscription = (
-  overrides?: Partial<MarketplaceSubscription>,
+  overrides?: SubscriptionOverrides,
 ): MarketplaceSubscription => {
   return Object.assign(new MarketplaceSubscription(), {
     marketplace: CloudMarketplace.AWS,
@@ -158,7 +164,7 @@ describe("AwsMarketplaceAdapter", () => {
   });
 
   describe("reportUsage", () => {
-    it("meters the record against the license, stamped with the period's end", async () => {
+    it("meters the record against the license, stamped in the hour it covers", async () => {
       api.batchMeterUsage.mockResolvedValue([
         { status: "Success", meteringRecordId: "mr-1" },
       ]);
@@ -176,19 +182,107 @@ describe("AwsMarketplaceAdapter", () => {
           licenseArn: LICENSE_ARN,
           dimension: "usage_units",
           quantity: 2200,
-          timestamp: USAGE_RECORD.periodEnd,
+          // The 09:00 - 10:00 report, in the 09:00 hour - not at 10:00.
+          timestamp: new Date("2026-10-16T09:59:00.000Z"),
         },
       ]);
     });
 
-    it("counts a record AWS already has as sent", async () => {
+    /*
+     * AWS bills the first record of a license's dimension in each hour, and
+     * refuses any other as a DuplicateRecord. Stamped with its period's end,
+     * the 09:00 - 10:00 report sat in the 10:00 hour - the hour every final
+     * report sent before 11:00 is in - so a project's last partial hour was
+     * refused, unbilled.
+     */
+    it("stamps a final report in an hour of its own, after the hourly report before it", async () => {
+      api.batchMeterUsage.mockResolvedValue([
+        { status: "Success", meteringRecordId: "mr-1" },
+      ]);
+
+      await adapter.reportUsage(purchase(), USAGE_RECORD);
+      await adapter.reportUsage(purchase(), {
+        ...USAGE_RECORD,
+        reportId: "report-2",
+        quantity: 640,
+        periodStart: new Date("2026-10-16T10:00:00.000Z"),
+        periodEnd: new Date("2026-10-16T10:25:13.000Z"),
+      });
+
+      const hours: Array<number> = api.batchMeterUsage.mock.calls.map(
+        (call: Array<unknown>): number => {
+          const timestamp: Date = (call[0] as Array<AwsUsageRecord>)[0]!
+            .timestamp;
+          return new Date(timestamp).setUTCMinutes(0, 0, 0);
+        },
+      );
+
+      expect(hours).toEqual([
+        Date.UTC(2026, 9, 16, 9),
+        Date.UTC(2026, 9, 16, 10),
+      ]);
+      // Stamped inside its own period, before the license could end.
+      expect(
+        (api.batchMeterUsage.mock.calls[1]![0] as Array<AwsUsageRecord>)[0]!
+          .timestamp,
+      ).toEqual(new Date("2026-10-16T10:24:13.000Z"));
+    });
+
+    it("stamps a report sent again exactly where it was the first time", async () => {
+      api.batchMeterUsage.mockResolvedValue([
+        { status: "Success", meteringRecordId: "mr-1" },
+      ]);
+
+      await adapter.reportUsage(purchase(), USAGE_RECORD);
+      await adapter.reportUsage(purchase(), USAGE_RECORD);
+
+      expect(api.batchMeterUsage.mock.calls[1]![0]).toEqual(
+        api.batchMeterUsage.mock.calls[0]![0],
+      );
+    });
+
+    it("says AWS keeps one record per license and hour", () => {
+      expect(adapter.keepsOneReportPerHour).toBe(true);
+    });
+
+    /*
+     * AWS answers the same record sent again as it did the first time, so a
+     * report whose answer was lost counts as sent when AWS says Success.
+     */
+    it("counts the same record sent again as sent: AWS answers it Success", async () => {
+      api.batchMeterUsage.mockResolvedValue([
+        { status: "Success", meteringRecordId: "mr-1" },
+      ]);
+
+      await adapter.reportUsage(purchase(), USAGE_RECORD);
+      await expect(
+        adapter.reportUsage(purchase(), USAGE_RECORD),
+      ).resolves.toEqual({ outcome: "accepted", externalReportId: "mr-1" });
+    });
+
+    /*
+     * DuplicateRecord is AWS saying it already metered a record with another
+     * quantity for this license, dimension and hour - and bills that one.
+     * This report is lost, so it is refused, and the reporter marks it Failed
+     * and logs it as not billed, rather than counting it as sent.
+     */
+    it("refuses a record AWS answers DuplicateRecord: another record of the hour was billed instead", async () => {
       api.batchMeterUsage.mockResolvedValue([
         { status: "DuplicateRecord", meteringRecordId: null },
       ]);
 
-      await expect(
-        adapter.reportUsage(purchase(), USAGE_RECORD),
-      ).resolves.toEqual({ outcome: "accepted", externalReportId: undefined });
+      const result: MarketplaceUsageResult = await adapter.reportUsage(
+        purchase(),
+        USAGE_RECORD,
+      );
+
+      expect(result).toEqual({
+        outcome: "rejected",
+        error:
+          "AWS already billed another record for this license in this hour (DuplicateRecord).",
+      });
+      // The buyer is still subscribed: nothing to read back.
+      expect(result.isPurchaseInactive).toBeUndefined();
     });
 
     it("says the purchase is inactive when AWS says the buyer is not subscribed", async () => {

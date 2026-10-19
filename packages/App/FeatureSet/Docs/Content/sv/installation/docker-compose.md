@@ -1,6 +1,6 @@
 # Docker Compose
 
-Kör en komplett, kostnadsfri OneUptime-instans på en enda Linux-server med Docker Compose. Den här sidan tar dig från en ny server till en körande instans och tar sedan upp HTTPS, härdning för produktion, säkerhetskopior, uppdateringar och borttagning.
+Kör en komplett, kostnadsfri OneUptime-instans på en enda Linux-server med Docker Compose. Den här sidan tar dig från en ny server till en körande instans och tar sedan upp HTTPS, härdning för produktion, säkerhetskopior, uppdateringar och borttagning. Vill du i stället arbeta med OneUptimes egen kod, se [Lokal utveckling](/docs/installation/local-development).
 
 :::cards
 - [Installera OneUptime](#installera-oneuptime): Från en ny server till ditt första konto i sex steg.
@@ -16,8 +16,8 @@ Docker Compose kör varje del av OneUptime som en container på din server. All 
 ```mermaid title="Installationen med Docker Compose"
 flowchart TB
     Users["Användare och agenter"]
-    Proxy["Din omvända proxy, valfri"]
-    Targets["Webbplatser du övervakar"]
+    Proxy["Din omvända<br/>proxy, valfri"]
+    Targets["Webbplatser<br/>du övervakar"]
     subgraph Server["Din server"]
         Ingress["ingress"]
         App["app"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|resultat| Ingress
     Runner -->|jobb| Ingress
     Probe -->|kontroller| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | Tjänst | Image | Vad den gör |
@@ -82,7 +84,7 @@ Du behöver också:
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | Dashboarden, API:t, inläsning av telemetri och validering hos Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS för din instans när OneUptime hanterar certifikatet, och för statussidor och dashboards på egna domäner. |
-| 5400 | `postgres` | Anges i `docker-compose.yml` | Låter `npm run backup` nå PostgreSQL. Håll den stängd mot internet. |
+| 5400 | `postgres` | Anges i `docker-compose.yml` | Låter `npm run backup` och `restore.sh` nå PostgreSQL från själva servern. Den är bara publicerad på `127.0.0.1`. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Probens egen server. Inget utanför servern behöver den. |
 | 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runnerns egen server. Inget utanför servern behöver den. |
 
@@ -139,7 +141,7 @@ Det sista kommandot skriver ut `0`: Ingen platshållare är kvar. Loopen använd
 | `ONEUPTIME_RUNNER_KEY` | Den medföljande Runnern. |
 
 > [!IMPORTANT]
-> Ange hemligheterna före första starten och behåll dem sedan. PostgreSQL tar bara sitt lösenord när den skapar sin databas, och om du ändrar `ENCRYPTION_SECRET` senare blir varje värde som krypterats med det gamla oläsligt.
+> Ange hemligheterna före första starten och behåll dem sedan. PostgreSQL tar bara sitt lösenord när den skapar sin databas, och om du ändrar `ENCRYPTION_SECRET` senare blir varje värde som krypterats med det gamla oläsligt. Är `DATABASE_PASSWORD` fortfarande platshållaren vid första starten ger `npm start` den ett slumpmässigt värde innan PostgreSQL skapar sin databas.
 
 ### Starta OneUptime
 
@@ -175,6 +177,8 @@ OneUptime levererar vanlig HTTP tills du väljer ett av två sätt att lägga ti
 | **Statussidor på egna domäner** | Fungerar utan extra konfiguration | Din proxy måste också betjäna de domänerna |
 
 Om du lägger statussidor eller dashboards på egna domäner är det enklast att låta OneUptime hantera TLS: Ingressen beställer och levererar själv certifikaten för de domänerna.
+
+Med `HTTP_PROTOCOL=https` bygger OneUptime HTTPS-länkar, håller inloggningscookies på HTTPS och ber webbläsare att bara nå din `HOST` över HTTPS. En webbläsare håller sig till det i ett år, på alla portar för det namnet, så om `HOST` någon gång måste svara över vanlig HTTP igen sätter du `HSTS_MAX_AGE_SECONDS=0` i `config.env` en tid innan: Webbläsare glömmer regeln vid sitt nästa besök.
 
 ### Låt OneUptime hämta ett certifikat
 
@@ -300,6 +304,8 @@ server {
 Certifikatsökvägarna är där Certbot lägger ett certifikat från Let's Encrypt; använd sökvägarna till ditt eget certifikat om det kommer från något annat håll. Kontrollera filen och läs in Nginx igen med `sudo nginx -t && sudo systemctl reload nginx`.
 :::
 
+Båda skickar `X-Forwarded-Proto`, som talar om för OneUptime att en besökare kom över HTTPS. Alla andra proxyer måste också skicka den, annars hålls inte inloggningscookies för statussidor och dashboards på dina egna domäner på HTTPS.
+
 #### Öppna din instans genom proxyn
 
 Öppna `https://oneuptime.example.com`. Du bör se OneUptimes inloggningssida, levererad med din proxys certifikat.
@@ -314,15 +320,28 @@ Docker Compose kör en kopia av varje tjänst på en enda server, vilket passar 
 
 | Område | Vad du gör |
 | --- | --- |
-| **Hemligheter** | Inget värde i `config.env` är fortfarande en platshållare `please-change-this-to-random-value`. Se [Generera slumpmässiga hemligheter](#generera-slumpmässiga-hemligheter). |
+| **Hemligheter** | Inget värde i `config.env` är fortfarande en platshållare `please-change-this-to-random-value`. Se [Generera slumpmässiga hemligheter](#generera-slumpmässiga-hemligheter), och [Byt databasens lösenord](#byt-databasens-lösenord) för en installation som startade med platshållaren i `DATABASE_PASSWORD`. |
 | **HTTPS** | Folk når OneUptime över HTTPS och `HTTP_PROTOCOL=https` är angivet. Se [Konfigurera HTTPS](#konfigurera-https). |
 | **Registreringar** | När ditt team har konton stänger du av **Tillåt registrering** under **Inställningar > Autentisering** i Admin Dashboard. |
-| **Brandvägg** | Bara portarna 80 och 443 (och SSH) är öppna mot internet. PostgreSQL är publicerad på port 5400 för säkerhetskopior: stäng den med din molnleverantörs brandvägg, eftersom `ufw`-regler inte gäller portar som Docker publicerar. |
+| **Brandvägg** | Bara portarna 80 och 443 (och SSH) är öppna mot internet. OneUptime publicerar PostgreSQLs port 5400 bara på `127.0.0.1`. Stäng varje annan port du publicerar med din molnleverantörs brandvägg: `ufw`-regler gäller inte portar som Docker publicerar. |
 | **Säkerhetskopior** | PostgreSQL säkerhetskopieras varje dag och kopiorna lämnar servern. Se [Säkerhetskopiera och återställ](#säkerhetskopiera-och-återställ). |
 | **E-post** | En e-postserver är konfigurerad under **Inställningar > Notifieringar > E-post** i Admin Dashboard, så att OneUptime kan skicka inbjudningar och aviseringar. Se [SMTP](/docs/emails/smtp). |
 | **Disk** | Det lediga utrymmet övervakas. ClickHouse växer med den telemetri du behåller (se [Dimensionering och kapacitetsplanering](/docs/installation/sizing)); varje containers logg är begränsad till 1000 MB. |
 | **Uppdateringar** | OneUptime uppdateras minst en gång i veckan. Nya releaser kommer ofta. Se [Uppdatera OneUptime](#uppdatera-oneuptime). |
 | **Hög tillgänglighet** | Om du behöver det byter du till [Helm-charten](https://artifacthub.io/packages/helm/oneuptime/oneuptime) på Kubernetes. |
+
+### Byt databasens lösenord
+
+PostgreSQL behåller lösenordet den skapades med, så om du bara ändrar `DATABASE_PASSWORD` i `config.env` stänger du ute OneUptime från dess databas. För att ge en installation som startade med platshållaren ett eget lösenord ändrar du det i PostgreSQL och i `config.env` samtidigt och startar sedan OneUptime igen:
+
+```bash
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+npm start
+```
+
+Om du har angett `DATABASE_BACKUP_PASSWORD` och `DATABASE_RESTORE_PASSWORD`, ge dem också det nya värdet.
 
 ## Säkerhetskopiera och återställ
 
@@ -344,6 +363,25 @@ Det frågar efter ditt sudo-lösenord och skriver `Backups/db-<day of the month>
 ### Kopiera säkerhetskopiorna från servern
 
 En säkerhetskopia på samma disk som databasen överlever inte att den disken går förlorad.
+:::
+
+Bara servern själv når PostgreSQL: den svarar på port 5400 på `127.0.0.1`. För att säkerhetskopiera den från en annan maskin öppnar du en SSH-tunnel från den maskinen och ansluter sedan till dess egen port 5400:
+
+```bash
+ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
+```
+
+:::details Publicera PostgreSQL på en adress i ett privat nätverk
+Om ett verktyg i ditt privata nätverk måste nå PostgreSQL utan tunnel, publicera den även på serverns adress i det nätverket, på en egen port. Skapa `docker-compose.override.yml` bredvid `docker-compose.yml`; `npm start` och `npm run update` läser den:
+
+```yaml title="docker-compose.override.yml"
+services:
+  postgres:
+    ports:
+      - "10.0.0.5:5401:5432"
+```
+
+Använd serverns egen privata adress i stället för `10.0.0.5`, aldrig en offentlig, och ge först PostgreSQL ett eget lösenord (se [Byt databasens lösenord](#byt-databasens-lösenord)). Kör sedan `npm start`, så svarar PostgreSQL även på port 5401 på den adressen.
 :::
 
 ClickHouse håller din telemetri i Docker-volymen `oneuptime_clickhouse`, och inget skript säkerhetskopierar den. Om du behöver behålla den telemetrin säkerhetskopierar du volymen med ett ClickHouse-verktyg som [clickhouse-backup](https://github.com/Altinity/clickhouse-backup), eller kopierar den medan OneUptime är stoppat.

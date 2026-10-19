@@ -14,7 +14,7 @@ Kubernetes 監測器依據 OneUptime Kubernetes 代理程式從叢集傳送的�
 代理程式透過 OTLP 把叢集的指標傳送到 OneUptime，每一筆都帶有叢集名稱（`k8s.cluster.name`，也就是 chart 的 `clusterName`）。來自新名稱的第一批資料會把叢集註冊到 **Kubernetes** 下，此後就能在 Kubernetes 監測器中選擇該叢集。監測器每分鐘在其 **時間範圍** 內查詢這些指標、加以彙總，並把結果與條件比較。
 
 ```mermaid title="從叢集指標到事件"
-flowchart LR
+flowchart TB
     agent["Kubernetes 代理程式"] -->|"OTLP 指標"| metrics["叢集指標"]
     metrics --> monitor["Kubernetes 監測器"]
     monitor -->|"符合條件"| incident["警示或事件"]
@@ -107,7 +107,7 @@ flowchart LR
 | 總和 | 所有值的總和 |
 | Maximum Value | 時間視窗內的最高值 |
 | Minimum Value | 時間視窗內的最低值 |
-| All Values | 所有值都必須符合條件 |
+| All Values | 所有值都必須符合條件，並且要涵蓋整個時間視窗 |
 | Any Value | 至少有一個值符合即可 |
 
 ### 條件類型

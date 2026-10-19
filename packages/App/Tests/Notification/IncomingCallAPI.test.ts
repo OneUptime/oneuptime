@@ -1329,6 +1329,75 @@ describe("incoming call dial-status routing", () => {
     expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
   });
 
+  /*
+   * The pair is read the way the policy's Settings page reads it
+   * (getIncomingCallPolicyRepeatsAllowed): the switch on with the number left
+   * at 0 rings the rules again once, and the switch off never does, whatever
+   * number is stored.
+   */
+  test("a number left at 0 still rings the rules again once, as Settings says", async () => {
+    policyService.findOneById.mockResolvedValue(
+      makePolicy({ repeat: true, repeatTimes: 0 }),
+    );
+    ruleService.findOneBy
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(makeRule({ order: 1, userId: USER_1 }));
+
+    await invokeDialStatus();
+
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: {
+        currentEscalationRuleOrder: 1,
+        repeatCount: 1,
+        status: IncomingCallStatus.Escalated,
+      },
+      props: { isRoot: true },
+    });
+    expect(provider.generateEscalationResponse).toHaveBeenCalled();
+  });
+
+  test("a number left at 0 rings the rules again only once", async () => {
+    logService.findOneById.mockResolvedValue(
+      makeCallLog({ routingPhone: SECOND_NUMBER, repeatCount: 1 }),
+    );
+    policyService.findOneById.mockResolvedValue(
+      makePolicy({ repeat: true, repeatTimes: 0 }),
+    );
+    ruleService.findOneBy.mockResolvedValue(null);
+
+    await invokeDialStatus();
+
+    expect(ruleService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
+    expect(provider.generateHangupResponse).toHaveBeenCalledWith(
+      "Nobody answered",
+    );
+  });
+
+  test("with the switch off, a stored number never rings the rules again", async () => {
+    policyService.findOneById.mockResolvedValue(
+      makePolicy({ repeat: false, repeatTimes: 3 }),
+    );
+    ruleService.findOneBy.mockResolvedValue(null);
+
+    await invokeDialStatus();
+
+    expect(ruleService.findOneBy).toHaveBeenCalledTimes(1);
+    expect(logService.updateOneById).toHaveBeenCalledWith({
+      id: CALL_LOG_ID,
+      data: {
+        status: IncomingCallStatus.NoAnswer,
+        endedAt: expect.any(Date),
+      },
+      props: { isRoot: true },
+    });
+    expect(provider.generateEscalationResponse).not.toHaveBeenCalled();
+    expect(provider.generateHangupResponse).toHaveBeenCalledWith(
+      "Nobody answered",
+    );
+  });
+
   test("keeps legacy callbacks working when the call log predates child rows", async () => {
     logService.findOneById.mockResolvedValue(
       makeCallLog({ routingPhone: PRIMARY_NUMBER }),

@@ -1,5 +1,11 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
 import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
+import SamlAssertionOneTimeUse, {
+  SamlProviderKind,
+} from "../Utils/SamlAssertionOneTimeUse";
+import SamlServiceProviders, {
+  SamlServiceProvider,
+} from "../Utils/SamlServiceProvider";
 import ProjectSsoSignInConfirmation, {
   PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_ERROR,
   PROJECT_SSO_ADMIN_SIGN_IN_REFUSED_MESSAGE,
@@ -9,13 +15,23 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoKind,
 } from "../Utils/ProjectSsoSignInConfirmation";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
+import ProjectSsoIdentityBinding, {
+  PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
+  PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
+  PROJECT_SSO_IDENTITY_MISMATCH_TITLE,
+} from "../Utils/ProjectSsoIdentityBinding";
+import SsoTeamMembership, {
+  SSO_NO_ROOM_ERROR,
+  SSO_NO_ROOM_MESSAGE,
+  SSO_NO_ROOM_TITLE,
+  SsoTeamMembershipOutcome,
+} from "../Utils/SsoTeamMembership";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
@@ -24,7 +40,6 @@ import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
-import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import ProjectSSOService from "Common/Server/Services/ProjectSsoService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
@@ -262,14 +277,17 @@ router.get(
 
       const isMobileRequest: boolean = req.query["mobile"] === "true";
 
+      // The same Entity ID and Reply URL the response is held to.
+      const serviceProvider: SamlServiceProvider =
+        SamlServiceProviders.forProjectSso({
+          projectId: projectSSO.projectId!,
+          projectSsoId: projectSSO.id!,
+        });
+
       const samlRequestUrl: URL = SSOUtil.createSAMLRequestUrl({
-        acsUrl: URL.fromString(
-          `${HttpProtocol}${Host}/identity/idp-login/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`,
-        ),
+        acsUrl: URL.fromString(serviceProvider.replyUrl),
         signOnUrl: projectSSO.signOnURL!,
-        issuerUrl: URL.fromString(
-          `${HttpProtocol}${Host}/${projectSSO.projectId?.toString()}/${projectSSO.id?.toString()}`,
-        ),
+        issuerUrl: URL.fromString(serviceProvider.entityId),
       });
 
       if (isMobileRequest) {
@@ -319,6 +337,52 @@ router.post(
   },
 );
 
+/*
+ * The answer to a sign-in through a project's SAML provider that names the
+ * account's address but another person (ProjectSsoIdentityBinding): the page
+ * that says so, or the mobile app's deep link. Logged for the project's
+ * admins, without either person's object ID.
+ */
+const refuseSignInAsAnotherPerson: (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  isMobileRequest: boolean;
+  projectSsoId: ObjectID;
+  userId: ObjectID;
+}) => void = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  isMobileRequest: boolean;
+  projectSsoId: ObjectID;
+  userId: ObjectID;
+}): void => {
+  logger.warn(
+    `Refused a SAML sign-in through project SSO ${data.projectSsoId.toString()}: the identity provider named the address of user ${data.userId.toString()} with an object ID other than the one the account is bound to.`,
+    getLogAttributesFromRequest(data.req as RequestLike),
+  );
+
+  if (
+    respondToMobileSsoFailure({
+      res: data.res,
+      isMobileRequest: data.isMobileRequest,
+      error: PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
+      errorDescription: PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
+    })
+  ) {
+    return;
+  }
+
+  Response.render(
+    data.req,
+    data.res,
+    "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+    {
+      title: PROJECT_SSO_IDENTITY_MISMATCH_TITLE,
+      message: PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
+    },
+  );
+};
+
 type LoginUserWithSsoFunction = (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -344,6 +408,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       "base64",
     ).toString();
 
+    let verifiedSaml: VerifiedSamlResponse;
     let issuerUrl: string = "";
     let email: Email | null = null;
     let fullName: Name | null = null;
@@ -371,6 +436,7 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         isEnabled: true,
       },
       select: {
+        _id: true,
         signOnURL: true,
         issuerURL: true,
         publicCertificate: true,
@@ -424,11 +490,16 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
        * Verify the signature AND extract the identity from the SAME
        * cryptographically verified assertion. This single call defends against
        * XML Signature Wrapping - see SSOUtil.getSamlResponseFromXML and
-       * GitHub issues #2949 and #2981.
+       * GitHub issues #2949 and #2981 - and refuses a response made for
+       * anything but this provider, or outside its time.
        */
-      const verifiedSaml: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+      verifiedSaml = SSOUtil.getSamlResponseFromXML(
         samlResponse,
         projectSSO.publicCertificate,
+        SamlServiceProviders.forProjectSso({
+          projectId: req.params["projectId"],
+          projectSsoId: req.params["projectSsoId"],
+        }),
       );
 
       issuerUrl = verifiedSaml.issuerUrl;
@@ -454,6 +525,26 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         res,
         new BadRequestException("Issuer URL does not match"),
       );
+    }
+
+    /*
+     * One sign-in per response: a response posted again - kept from an
+     * earlier sign-in, or sent twice - is refused before anyone is looked
+     * up, created or signed in. Remembered under the provider the lookup
+     * found, not under the Reply URL's spelling of its id, so no other way
+     * of writing that URL starts a second record.
+     */
+    try {
+      await SamlAssertionOneTimeUse.claim({
+        providerKind: SamlProviderKind.ProjectSso,
+        providerId: projectSSO.id!,
+        assertion: verifiedSaml,
+      });
+    } catch (err: unknown) {
+      if (err instanceof Exception) {
+        return Response.sendErrorResponse(req, res, err);
+      }
+      return Response.sendErrorResponse(req, res, new ServerException());
     }
 
     // Check if he already belongs to the project, If he does - then log in.
@@ -555,6 +646,29 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       );
     }
 
+    /*
+     * Through this provider the account is bound to another person: whoever
+     * holds its address in the identity provider now is not who signed it
+     * in before. Refused before anything is emailed, provisioned or signed
+     * in. See ../Utils/ProjectSsoIdentityBinding.ts.
+     */
+    if (
+      !isNewUser &&
+      (await ProjectSsoIdentityBinding.isBoundToAnotherPerson({
+        projectSsoId: projectSSO.id!,
+        userId: alreadySavedUser.id!,
+        objectId: verifiedSaml.objectId,
+      }))
+    ) {
+      return refuseSignInAsAnotherPerson({
+        req,
+        res,
+        isMobileRequest,
+        projectSsoId: projectSSO.id!,
+        userId: alreadySavedUser.id!,
+      });
+    }
+
     if (ProjectSsoSignInConfirmation.isRequired()) {
       /*
        * Hosted service: this project's IdP may sign an account in only once
@@ -646,26 +760,59 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
         );
       }
 
-      for (const team of projectSSO.teams) {
-        // add user to team
-        let teamMember: TeamMember = new TeamMember();
-        teamMember.projectId = new ObjectID(req.params["projectId"] as string);
-        teamMember.userId = alreadySavedUser.id!;
-        teamMember.hasAcceptedInvitation = true;
-        teamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-        teamMember.teamId = team.id!;
+      /*
+       * They take a seat like anyone invited: a project with no room for
+       * one more person adds them nowhere, and they are told so.
+       */
+      if (
+        (await SsoTeamMembership.addToTeams({
+          projectId: new ObjectID(req.params["projectId"] as string),
+          userId: alreadySavedUser.id!,
+          teams: projectSSO.teams,
+        })) === SsoTeamMembershipOutcome.NoRoom
+      ) {
+        if (
+          respondToMobileSsoFailure({
+            res,
+            isMobileRequest,
+            error: SSO_NO_ROOM_ERROR,
+            errorDescription: SSO_NO_ROOM_MESSAGE,
+          })
+        ) {
+          return;
+        }
 
-        teamMember = await TeamMemberService.create({
-          data: teamMember,
-          props: {
-            isRoot: true,
-            ignoreHooks: true,
+        return Response.render(
+          req,
+          res,
+          "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+          {
+            title: SSO_NO_ROOM_TITLE,
+            message: SSO_NO_ROOM_MESSAGE,
           },
-        });
+        );
       }
     }
 
     const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
+
+    // The sign-in is going through: bind the account to the person, the first time.
+    if (
+      !(await ProjectSsoIdentityBinding.bindOrRefuse({
+        projectId: projectId,
+        projectSsoId: projectSSO.id!,
+        userId: alreadySavedUser.id!,
+        objectId: verifiedSaml.objectId,
+      }))
+    ) {
+      return refuseSignInAsAnotherPerson({
+        req,
+        res,
+        isMobileRequest,
+        projectSsoId: projectSSO.id!,
+        userId: alreadySavedUser.id!,
+      });
+    }
 
     alreadySavedUser.email = email;
 

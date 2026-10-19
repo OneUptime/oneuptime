@@ -64,10 +64,10 @@ Cliquez sur **Créer une règle personnalisée** sous les modèles, ou sur **Cr�
 
 #### Restreindre
 
-Sous **Quelles alertes**, ajoutez des conditions sur les moniteurs, les gravités, les étiquettes, les titres et les descriptions. Laissez vide pour regrouper chaque nouvelle alerte. Cliquez ensuite sur **Créer une règle de regroupement d'alertes**.
+Sous **Quelles alertes**, **Toutes les alertes**, où démarre une nouvelle règle, regroupe chaque nouvelle alerte. Pour la restreindre, choisissez **Uniquement les alertes qui correspondent aux conditions** et ajoutez des conditions sur les moniteurs, les gravités, les étiquettes, les titres et les descriptions. Cliquez ensuite sur **Créer une règle de regroupement d'alertes**.
 :::
 
-Tout ce qu'une règle peut faire d'autre est replié sous **Plus de champs**, à la fin de l'étape **Regroupement**, en trois groupes. Replié, son en-tête nomme ce qu'il contient et affiche sous forme de puce chaque paramètre que la règle utilise, si bien que modifier une règle ne masque jamais ce qu'elle fait.
+Tout ce qu'une règle peut faire d'autre est replié sous **Plus de champs**, à la fin de l'étape **Regroupement**, en trois groupes. Replié, son en-tête nomme ce qu'il contient et indique la valeur de chaque paramètre que la règle utilise, si bien que modifier une règle ne masque jamais ce qu'elle fait.
 
 | Groupe                          | Paramètres                                                                                                 |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ Un épisode que vous créez n'a pas de règle de regroupement : la liste affiche
 
 | Section du menu latéral | Pages                                                                       |
 | ----------------------- | --------------------------------------------------------------------------- |
-| **Basique**             | **Vue d'ensemble**, **Description**, **Cause racine**, **Notes de remédiation** |
-| **Propriété**           | **Propriétaires**                                                           |
-| **Chronologie**         | **Chronologie d'état**                                                      |
-| **Alertes**             | **Alertes des membres**                                                     |
-| **Notes de l'épisode**  | **Notes privées**                                                           |
-| **Développeurs**        | **Terraform**, **API**, **Assistants IA**                                   |
-| **Avancé**              | **Journaux d'audit**, **Supprimer l'épisode**                               |
+| **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie d'état** |
+| **Investigation** | **Description**, **Cause racine**, **Notes de remédiation** |
+| **Équipe** | **Propriétaires** |
+| **Alertes** | **Alertes des membres** |
+| **Notes** | **Notes privées** |
+| **Développeurs** | **Terraform**, **API**, **Assistants IA** |
+| **Avancé** | **Journaux d'audit**, **Supprimer l'épisode** |
 
-**Propriété**, **Développeurs** et **Avancé** commencent repliées. La **Vue d'ensemble** s'ouvre sur **Alertes de cet épisode**, puis le **Flux de l'épisode**, à côté de la carte **Détails de l'épisode** : son numéro, son état, sa gravité, son nombre d'alertes, sa règle de regroupement et ses politiques d'astreinte. Son en-tête propose **Prendre en compte** et **Résoudre**, et **Move episode to** dans le menu **⋯**.
+**Développeurs** et **Avancé** commencent repliées. La **Vue d'ensemble** s'ouvre sur **Alertes de cet épisode**, puis le **Flux de l'épisode**, à côté de la carte **Détails de l'épisode** : son numéro, son état, sa gravité, son nombre d'alertes, sa règle de regroupement et ses politiques d'astreinte. Son en-tête propose **Prendre en compte** et **Résoudre**, et **Move episode to** dans le menu **⋯**.
 
 **Alertes → Épisodes actifs** liste les épisodes pas encore résolus, et le badge à côté les compte.
 

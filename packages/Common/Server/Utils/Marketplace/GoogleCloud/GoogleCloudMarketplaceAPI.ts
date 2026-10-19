@@ -32,6 +32,12 @@ const SERVICE_CONTROL_API_BASE_URL: string =
   "https://servicecontrol.googleapis.com/v1";
 const CLOUD_PLATFORM_SCOPE: string =
   "https://www.googleapis.com/auth/cloud-platform";
+
+/*
+ * A provider, account or entitlement ID as it may stand in a Procurement API
+ * path or filter: letters, digits, "-" and "_", the way Google writes them.
+ */
+const GOOGLE_RESOURCE_ID: RegExp = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const DEFAULT_TOKEN_URI: string = "https://oauth2.googleapis.com/token";
 const TOKEN_LIFETIME_IN_SECONDS: number = 3600;
 const TOKEN_EXPIRY_SLACK_IN_SECONDS: number = 120;
@@ -173,15 +179,35 @@ export default class GoogleCloudMarketplaceAPI {
     return null;
   }
 
+  /*
+   * An ID put into a Procurement API path or filter, checked first. The IDs
+   * come from Google - a signed Pub/Sub push, the buyer's signed token, the
+   * API's own answers - and are still held to the shape of Google's IDs
+   * here, so no value can send a request to another path of the API than the
+   * resource it names. Not retryable: a redelivered message carries the same
+   * ID.
+   */
+  public static pathId(kind: string, id: string): string {
+    if (!GOOGLE_RESOURCE_ID.test(id)) {
+      throw new MarketplaceApiError({
+        message: `Not a Google Cloud Marketplace ${kind} ID.`,
+        status: null,
+        isRetryable: false,
+      });
+    }
+
+    return encodeURIComponent(id);
+  }
+
   public static getAccountName(providerId: string, accountId: string): string {
-    return `providers/${providerId}/accounts/${accountId}`;
+    return `providers/${GoogleCloudMarketplaceAPI.pathId("provider", providerId)}/accounts/${GoogleCloudMarketplaceAPI.pathId("account", accountId)}`;
   }
 
   public static getEntitlementName(
     providerId: string,
     entitlementId: string,
   ): string {
-    return `providers/${providerId}/entitlements/${entitlementId}`;
+    return `providers/${GoogleCloudMarketplaceAPI.pathId("provider", providerId)}/entitlements/${GoogleCloudMarketplaceAPI.pathId("entitlement", entitlementId)}`;
   }
 
   // The last segment of a resource name ("providers/x/accounts/ID" -> "ID").
@@ -297,7 +323,7 @@ export default class GoogleCloudMarketplaceAPI {
     // A buyer has a handful of orders; the page bound only stops a runaway loop.
     for (let page: number = 0; page < 20; page++) {
       const params: URLSearchParams = new URLSearchParams({
-        filter: `account=${accountId}`,
+        filter: `account=${GoogleCloudMarketplaceAPI.pathId("account", accountId)}`,
       });
 
       if (pageToken) {
@@ -306,7 +332,7 @@ export default class GoogleCloudMarketplaceAPI {
 
       const body: Record<string, unknown> = await this.call(
         "GET",
-        `${PROCUREMENT_API_BASE_URL}/providers/${this.providerId}/entitlements?${params.toString()}`,
+        `${PROCUREMENT_API_BASE_URL}/providers/${GoogleCloudMarketplaceAPI.pathId("provider", this.providerId)}/entitlements?${params.toString()}`,
       );
 
       const rawEntitlements: unknown = body["entitlements"];

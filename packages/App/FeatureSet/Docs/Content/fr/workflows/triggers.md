@@ -1,12 +1,13 @@
 # Déclencheurs de workflow
 
-Un déclencheur est le premier bloc d'un workflow : il décide quand le workflow s'exécute. Chaque workflow a exactement un déclencheur. Vous avez le choix entre cinq types.
+Un déclencheur est le premier bloc d'un workflow : il décide quand le workflow s'exécute. Chaque workflow a exactement un déclencheur. Vous avez le choix entre six types.
 
 :::cards
 - [Manuel](#manual): Démarrez le workflow depuis le Constructeur, ou depuis un autre workflow.
 - [Planification](#schedule): Exécutez-le selon une planification récurrente, écrite sous forme d'expression cron.
 - [Webhook](#webhook): Laissez un autre système le démarrer en appelant une URL.
 - [E-mail entrant](#incoming-email): Démarrez-le à chaque e-mail envoyé à sa propre adresse.
+- [Huntress](#huntress): Démarrez-le pour chaque événement que Huntress envoie à propos d'un rapport d'incident.
 - [Déclencheurs d'événements OneUptime](#déclencheurs-dévénements-oneuptime): Réagissez quand un enregistrement est créé, modifié ou supprimé.
 :::
 
@@ -20,6 +21,7 @@ Pour ajouter le déclencheur, cliquez sur le bloc en pointillés **Choisissez ce
 | L'exécuter selon une planification récurrente | **Planification**           |
 | Qu'un autre système y envoie des données      | **Webhook**                 |
 | Le démarrer à partir d'un e-mail              | **Incoming Email**          |
+| Agir sur les rapports d'incident Huntress     | **Huntress Incident Report** |
 | Réagir à quelque chose dans OneUptime         | **Événement OneUptime**     |
 
 Un workflow ne peut avoir qu'un seul déclencheur. S'il vous faut deux façons de démarrer la même automatisation, construisez la logique commune dans un workflow avec un déclencheur **Manuel**, et démarrez-la depuis deux workflows « enveloppes » légers avec un bloc **Execute Workflow**.
@@ -75,13 +77,13 @@ L'URL accepte à la fois `GET` et `POST`. L'appelant reçoit un accusé de réce
 sequenceDiagram
     participant Caller as Votre outil
     participant OneUptime
-    participant Runner as Moteur d'exécution des workflows
-    Caller->>OneUptime: GET ou POST vers l'URL du webhook
+    participant Runner as Moteur d'exécution<br/>des workflows
+    Caller->>OneUptime: GET ou POST vers<br/>l'URL du webhook
     alt Le workflow est activé
         OneUptime-->>Caller: 200, statut Scheduled
-        OneUptime->>Runner: Met en file une exécution avec en-têtes, requête et corps
-        Runner->>Runner: Exécute les blocs qui suivent le déclencheur
-    else Le workflow est désactivé ou archivé
+        OneUptime->>Runner: Met en file une<br/>exécution avec en-têtes,<br/>requête et corps
+        Runner->>Runner: Exécute les blocs qui<br/>suivent le déclencheur
+    else Le workflow est<br/>désactivé ou archivé
         OneUptime-->>Caller: 400 avec la raison
     end
 ```
@@ -151,6 +153,14 @@ Si l'adresse fuite, cliquez sur **Réinitialiser l'adresse** au même endroit : 
 > [!NOTE]
 > Sur une installation auto-hébergée, OneUptime reçoit les e-mails via un fournisseur d'e-mails entrants que votre administrateur configure — voir [E-mails entrants SendGrid](/docs/self-hosted/sendgrid-inbound-email). D'ici là, le déclencheur n'a pas d'adresse, et ses paramètres l'indiquent.
 
+## Huntress
+
+OneUptime donne au workflow une URL qui lui est propre pour Huntress, le service de détection et de réponse managées. Huntress y envoie chaque événement concernant un rapport d'incident, signé avec le secret de signature du point de terminaison, et chaque événement démarre le workflow une fois : quand son SOC envoie un rapport, quand quelqu'un le commente et quand il est clos.
+
+Idéal pour : ouvrir un incident pour chaque rapport d'incident Huntress, alerter l'astreinte et suivre le rapport jusqu'à sa clôture. Le modèle **Open an incident for each Huntress incident report** fait les trois.
+
+Pour connecter Huntress, cliquez sur le déclencheur **Huntress Incident Report** sur le canevas : il affiche l'URL à donner à Huntress, enregistre le secret de signature du point de terminaison et indique quand Huntress a joint le workflow pour la dernière fois. Une requête qui n'est pas signée avec ce secret ne démarre rien : l'URL n'est donc pas un mot de passe. Voir [Huntress](/docs/integrations/huntress) pour la configuration dans Huntress, les valeurs que renvoie le déclencheur et ses paramètres.
+
 ## Déclencheurs d'événements OneUptime
 
 Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, événements de maintenance planifiée, pages de statut, politiques d'astreinte, équipes — peut déclencher un workflow. Chacun propose jusqu'à quatre déclencheurs :
@@ -196,7 +206,7 @@ Pour tester un déclencheur d'événement sans attendre l'événement, cliquez s
 | **Abonné à la page de statut**             | Souhaiter la bienvenue à quelqu'un qui s'abonne à une page de statut.                       |
 | **Politique d'astreinte**                  | Synchroniser les modifications de politique avec un autre système de planning.              |
 
-Dans le panneau **Add Trigger**, ils se trouvent sous **Ressources OneUptime** : cliquez sur la ressource, puis sur le déclencheur. **Parcourir toutes les ressources** les contient tous, et le champ de recherche trouve un déclencheur à partir de quelques mots, comme `incident created`.
+Dans le panneau **Ajouter un déclencheur**, ils se trouvent sous **Ressources OneUptime** : cliquez sur la ressource, puis sur le déclencheur. **Parcourir toutes les ressources** les contient tous, et le champ de recherche trouve un déclencheur à partir de quelques mots, comme `incident created`.
 
 ## Étapes suivantes
 

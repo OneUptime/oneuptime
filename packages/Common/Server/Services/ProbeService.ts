@@ -10,7 +10,7 @@ import Model, {
 } from "../../Models/DatabaseModels/Probe";
 import ProbeOwnerUser from "../../Models/DatabaseModels/ProbeOwnerUser";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ProbeOwnerTeam from "../../Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -29,13 +29,16 @@ import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import UpdateBy from "../Types/Database/UpdateBy";
 import MonitorService from "./MonitorService";
+import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import FileService from "./FileService";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import QueryHelper from "../Types/Database/QueryHelper";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
-import { IsBillingEnabled } from "../EnvironmentConfig";
+import { IsBillingEnabled, isShippedSecretValue } from "../EnvironmentConfig";
+import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
+import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
@@ -123,6 +126,17 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The auth cache entry of a probe: one per probe, whatever case its id is
+   * written in. Postgres reads a uuid in any case, so a probe authenticates
+   * with its id upper-cased too - and an entry per spelling would be one
+   * that rotating or deleting the probe (which writes the revocation
+   * sentinel under the id as stored, lower-cased) never reaches.
+   */
+  private getAuthCacheKey(probeId: ObjectID): string {
+    return probeId.toString().toLowerCase();
+  }
+
+  /*
    * Verifies a probeId/probeKey pair, serving repeat verifications from
    * cache. This runs on EVERY authenticated probe request (heartbeats,
    * monitor list fetches, result ingest), so it must stay responsive even
@@ -144,6 +158,9 @@ export class Service extends ProjectReferencesService<Model> {
    *   the stale window if the invalidation write itself fails: a REVOKED
    *   key can then still authenticate for at most
    *   PROBE_AUTH_KEY_HASH_CACHE_TTL_IN_SECONDS.
+   * - A probe has one entry, whatever case its id arrives in
+   *   (getAuthCacheKey), so that sentinel is the entry every spelling of
+   *   the id reads.
    * - Any cache failure (Redis down, slow, timeout) falls back to the
    *   database check — never open.
    */
@@ -159,15 +176,29 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("probeKey is required");
     }
 
+    /*
+     * A key this repository ships never authenticates a probe: a probe
+     * whose key is unset, "secret" or a config.example.env placeholder
+     * (EnvironmentConfig.isShippedSecretValue) is refused, whether or not a
+     * row with that key exists. This is the one check every authenticated
+     * probe request passes through, so the rule holds on every probe-ingest
+     * route at once. A real probe's key is a long random value
+     * (ObjectID.generate on create, REGISTER_PROBE_KEY-gated registration,
+     * or the Helm/Compose generated GLOBAL_PROBE_n_KEY), never a shipped
+     * value, so this never refuses one.
+     */
+    if (isShippedSecretValue(data.probeKey)) {
+      return false;
+    }
+
     const presentedKeyHash: string = this.hashProbeKey(data.probeKey);
+
+    const cacheKey: string = this.getAuthCacheKey(data.probeId);
 
     try {
       const cachedKeyHash: string | null = await this.boundedCacheOperation(
         "Probe auth cache read",
-        GlobalCache.getString(
-          PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE,
-          data.probeId.toString(),
-        ),
+        GlobalCache.getString(PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE, cacheKey),
       );
 
       if (cachedKeyHash && cachedKeyHash === presentedKeyHash) {
@@ -215,10 +246,7 @@ export class Service extends ProjectReferencesService<Model> {
        */
       const currentCacheValue: string | null = await this.boundedCacheOperation(
         "Probe auth cache pre-write read",
-        GlobalCache.getString(
-          PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE,
-          data.probeId.toString(),
-        ),
+        GlobalCache.getString(PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE, cacheKey),
       );
 
       if (
@@ -229,7 +257,7 @@ export class Service extends ProjectReferencesService<Model> {
           "Probe auth cache write",
           GlobalCache.setString(
             PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE,
-            data.probeId.toString(),
+            cacheKey,
             presentedKeyHash,
             {
               expiresInSeconds: PROBE_AUTH_KEY_HASH_CACHE_TTL_IN_SECONDS,
@@ -248,6 +276,66 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return true;
+  }
+
+  /*
+   * Whether a probe with this id exists. Asked only for a key that did not
+   * match it, so that a wrong key is counted only for a probe there is
+   * (WrongComponentKeyLimit): an id no probe has can never be let in,
+   * whatever key comes with it.
+   */
+  public async hasProbeWithId(probeId: ObjectID): Promise<boolean> {
+    const probe: Model | null = await this.findOneBy({
+      query: {
+        _id: probeId.toString(),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(probe);
+  }
+
+  /*
+   * The global probe a probe registering under a key no global probe holds
+   * takes over (Telemetry/API/ProbeIngest/Register), or null: among the
+   * global probes of its name, the one that already holds the key, else the
+   * one whose key is a value this repository ships (ShippedKeyTakeover). That
+   * is a bundled probe that ran on the config.example.env key and came back
+   * under the random key npm start gave it: it keeps its id, so the monitors
+   * assigned to it keep running. A global probe whose key is the
+   * installation's own is never taken over by its name.
+   */
+  @CaptureSpan()
+  public async findGlobalProbeToTakeOver(data: {
+    name: string;
+    presentedKey: string;
+  }): Promise<Model | null> {
+    const sameNamedGlobalProbes: Array<Model> = await this.findBy({
+      query: {
+        name: data.name,
+        isGlobalProbe: true,
+      },
+      select: {
+        _id: true,
+        key: true,
+        lastAlive: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return ShippedKeyTakeover.pickRowToTakeOver({
+      rows: sameNamedGlobalProbes,
+      presentedKey: data.presentedKey,
+    });
   }
 
   /*
@@ -270,7 +358,7 @@ export class Service extends ProjectReferencesService<Model> {
           "Probe auth cache invalidation",
           GlobalCache.setString(
             PROBE_AUTH_KEY_HASH_CACHE_NAMESPACE,
-            probeId.toString(),
+            this.getAuthCacheKey(probeId),
             PROBE_AUTH_KEY_REVOKED_SENTINEL,
             {
               expiresInSeconds: PROBE_AUTH_KEY_HASH_CACHE_TTL_IN_SECONDS,
@@ -431,6 +519,9 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
+
+    // Never a value this repository ships, whoever writes it (ComponentKeyWrite).
+    ComponentKeyWrite.assertCreatedKey(createBy.data.key, "a probe");
 
     if (!createBy.data.probeVersion) {
       createBy.data.probeVersion = new Version("1.0.0");
@@ -607,6 +698,9 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
 
+    // A key it writes is never a value this repository ships (ComponentKeyWrite).
+    ComponentKeyWrite.assertUpdatedKey(updateBy.data, "a probe");
+
     const carryForward: any = {
       probesToNotifyOwners: [],
     };
@@ -667,6 +761,16 @@ export class Service extends ProjectReferencesService<Model> {
       onUpdate.carryForward.probesToNotifyOwners.length > 0
     ) {
       for (const probe of onUpdate.carryForward.probesToNotifyOwners) {
+        /*
+         * The Probe Status monitors watching this probe first: they are
+         * what opens the incident and pages on-call for the outage, so they
+         * hear of it with the flip, not on the next minute's sweep. Never
+         * throws, so the notifications below go out as they always did.
+         */
+        await ProbeStatusMonitorEvaluator.evaluateMonitorsWatchingProbe(
+          probe.id!,
+        );
+
         await MonitorService.refreshProbeStatus(probe.id!);
 
         await this.notifyOwnersOnStatusChange({

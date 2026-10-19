@@ -48,6 +48,71 @@ describe("VideoCallMessages", () => {
       );
     });
 
+    /*
+     * Record and transcribe incident calls: the call says it is recorded
+     * before anyone joins, in every channel it is posted to.
+     */
+    test("a recorded Zoom meeting says, before the join link, that it is recorded and transcribed", () => {
+      const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
+        announcement({ recordsAndTranscribes: true }),
+      ).toString();
+
+      expect(markdown).toBe(
+        `📞 A **Zoom meeting** was started for [Incident INC-42](${EVENT_LINK}).
+
+⏺️ Zoom records and transcribes this call. OneUptime adds its transcript to the incident once the call is over.
+
+**[Join the call](https://us02web.zoom.us/j/123?pwd=abc)**`,
+      );
+    });
+
+    test("a transcribed Google Meet says it is transcribed", () => {
+      const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
+        announcement({
+          provider: VideoCallProvider.GoogleMeet,
+          joinUrl: "https://meet.google.com/abc-defg-hij",
+          recordsAndTranscribes: true,
+          startedByPerson: true,
+        }),
+      ).toString();
+
+      expect(markdown).toContain(
+        "⏺️ Google Meet transcribes this call. OneUptime adds its transcript to the incident once the call is over.",
+      );
+      expect(markdown.indexOf("transcribes this call")).toBeLessThan(
+        markdown.indexOf("[Join the call]"),
+      );
+    });
+
+    test.each([
+      ["a Zoom meeting nobody asked to record", VideoCallProvider.Zoom, false],
+      [
+        "a Microsoft Teams meeting, which is never recorded",
+        VideoCallProvider.MicrosoftTeams,
+        true,
+      ],
+      ["a Slack huddle", VideoCallProvider.SlackHuddle, true],
+      ["a meeting link", VideoCallProvider.CustomLink, true],
+    ])(
+      "%s says nothing about recording",
+      (
+        _name: string,
+        provider: VideoCallProvider,
+        recordsAndTranscribes: boolean,
+      ) => {
+        const notice: unknown = VideoCallMessages.getRecordingNotice(
+          announcement({ provider, recordsAndTranscribes }),
+        );
+
+        expect(notice).toBeNull();
+        expect(
+          VideoCallMessages.getStartedFeedMarkdown(
+            announcement({ provider, recordsAndTranscribes }),
+          ).toString(),
+        ).not.toContain("⏺️");
+      },
+    );
+
     test("a person's call reads on from their name", () => {
       const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
         announcement({

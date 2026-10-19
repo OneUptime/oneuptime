@@ -42,6 +42,7 @@ import {
   isTypedValueFacetKind,
 } from "./FilterChipDropdownTypes";
 import { ResourceOwnerEntry } from "./OwnerEntry";
+import { FACET_FILTER_BAR_CLASS_NAME } from "./FilterChipStyles";
 import {
   FacetConflictMap,
   FacetSelectionState,
@@ -117,6 +118,13 @@ export interface UseResourceOwnersOptions {
    * Alert Severity, Incident State). Rendered after Owner + Labels.
    */
   extraFacets?: Array<ResourceFacet> | undefined;
+  /**
+   * Drawn at the right end of the bar, after Clear all: a control that
+   * changes how the records below are shown rather than which ones - the
+   * List | Calendar switch of the scheduled maintenance events. The card's
+   * header has no room for it beside the search and the Create button.
+   */
+  filterBarEnd?: ReactElement | undefined;
   /**
    * When set, the current facet selections are mirrored into the URL query
    * string under this key (typically the table's `saveFilterProps.tableId`).
@@ -1481,9 +1489,19 @@ const useResourceOwners: <TResource extends BaseModel>(
         return isFacetActive(f, facetSelections[f.key], facetOperators[f.key]);
       }).length;
 
+    /*
+     * The chips sit on the card itself, in a row between the card's header
+     * and the table, as a list's filters do in GitHub and Linear. They used
+     * to sit in a bordered, shadowed box of their own inside the card - a
+     * box in a box, with a divider inside it - which drew more than the
+     * table's own header did.
+     */
     return (
-      <div className="-mt-1 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
-        <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-semibold text-gray-500">
+      <div
+        className={FACET_FILTER_BAR_CLASS_NAME}
+        data-testid="facet-filter-bar"
+      >
+        <span className="inline-flex items-center gap-1.5 pr-1 text-xs font-medium text-gray-500">
           <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
           {translator.translateText("Filter")}
           {activeCount > 0 && (
@@ -1492,10 +1510,6 @@ const useResourceOwners: <TResource extends BaseModel>(
             </span>
           )}
         </span>
-        <span
-          aria-hidden="true"
-          className="max-sm:hidden h-5 w-px bg-gray-200 sm:inline-block"
-        />
 
         {showOwnerFacet && (
           <FilterChipDropdown
@@ -1671,9 +1685,18 @@ const useResourceOwners: <TResource extends BaseModel>(
             {translator.translateText("Clear all")}
           </button>
         )}
+        {options.filterBarEnd ? (
+          <div
+            className={`flex items-center ${hasActiveFilters ? "" : "ml-auto"}`}
+            data-testid="filter-bar-end"
+          >
+            {options.filterBarEnd}
+          </div>
+        ) : null}
       </div>
     );
   }, [
+    options.filterBarEnd,
     loadOwners,
     resolveOwners,
     loadLabelsForChip,

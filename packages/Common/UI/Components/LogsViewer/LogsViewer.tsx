@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -124,6 +125,15 @@ export interface ComponentProps {
   onRetryFacets?: (() => void) | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  /*
+   * What the list shows when it comes back empty while nothing narrows it -
+   * no filter chip the reader added, no search typed: the Logs page's way
+   * in for a project that may not be sending logs yet (its setup guide).
+   * A list a filter or a search emptied keeps noLogsMessage, and a page
+   * that leaves this unset (a service's or an incident's logs) is
+   * unchanged.
+   */
+  emptyContentWhenUnfiltered?: ReactNode | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
   getSpanRoute?: (spanId: string, log: Log) => Route | URL | undefined;
   /*
@@ -177,8 +187,18 @@ export interface ComponentProps {
   onHistogramTimeRangeSelect?: (startTime: Date, endTime: Date) => void;
   facetData?: FacetData;
   facetLoading?: boolean;
+  /*
+   * A facet value that is not filtering was clicked: add its chip. A click
+   * on a checked value takes its chip off through onRemoveFilter instead,
+   * so adding a chip that is already there should change nothing.
+   */
   onFacetInclude?: (facetKey: string, value: string) => void;
-  onFacetExclude?: (facetKey: string, value: string) => void;
+  /*
+   * Leave a facet value's rows out. Only a host whose list, chart and
+   * counts can all leave a value out passes this: without it the facet rows
+   * carry no exclude button.
+   */
+  onFacetExclude?: ((facetKey: string, value: string) => void) | undefined;
   /*
    * Debounced search emit for resource facets (serviceId / hostId / etc.).
    * Parent updates state and re-fetches facets so the result includes
@@ -247,6 +267,20 @@ const severityWeight: Record<string, number> = {
   debug: 2,
   trace: 1,
 };
+
+/**
+ * Whether the reader narrowed the list: a filter chip of their own (the
+ * chips a page pins are passed apart, as baseActiveFilters) or a search in
+ * the bar. Only an unnarrowed empty list shows emptyContentWhenUnfiltered.
+ */
+export function isNarrowedByReader(data: {
+  activeFilters: Array<ActiveFilter> | undefined;
+  searchQuery: string;
+}): boolean {
+  return (
+    (data.activeFilters || []).length > 0 || data.searchQuery.trim().length > 0
+  );
+}
 
 /*
  * Exported so the window it reports can be unit-tested directly - rendering the
@@ -1371,7 +1405,8 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               kubernetesClusterMap={kubernetesClusterMap}
               entityNameMap={entityNameMap}
               onIncludeFilter={props.onFacetInclude || (() => {})}
-              onExcludeFilter={props.onFacetExclude || (() => {})}
+              onExcludeFilter={props.onFacetExclude}
+              onRemoveFilter={props.onRemoveFilter || (() => {})}
               activeFilters={props.activeFilters}
               savedViews={props.savedViews}
               selectedSavedViewId={props.selectedSavedViewId}
@@ -1414,6 +1449,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                   emptyMessage={
                     props.noLogsMessage ||
                     getEmptyMessageWithTimeRange(props.timeRange)
+                  }
+                  emptyContent={
+                    isNarrowedByReader({
+                      activeFilters: props.activeFilters,
+                      searchQuery: searchQuery,
+                    })
+                      ? undefined
+                      : props.emptyContentWhenUnfiltered
                   }
                   onRowClick={(_log: Log, rowId: string) => {
                     setSelectedLogId((currentSelected: string | null) => {

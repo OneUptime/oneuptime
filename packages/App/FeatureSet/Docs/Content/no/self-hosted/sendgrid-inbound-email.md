@@ -17,12 +17,12 @@ Denne veiledningen forklarer hvordan du setter opp SendGrid Inbound Parse til å
 
 ```mermaid title="Slik når en e-post frem til en monitor"
 sequenceDiagram
-    participant Sender as Avsendende e-postserver
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as Avsendende<br/>e-postserver
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: E-post til monitorens adresse (MX-posten din)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Knytte adressen til en monitor eller en arbeidsflyt
+    Sender->>SendGrid: E-post til<br/>monitorens<br/>adresse<br/>(MX-posten din)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Knytte<br/>adressen til en<br/>monitor eller<br/>en arbeidsflyt
     OneUptime-->>SendGrid: 200 OK
 ```
 
@@ -49,7 +49,7 @@ Med Inbound Parse er det SendGrid som oppretter forbindelsen til OneUptime. Det 
 
 Publiser DNS for vertsnavnet til webhooken, og lever et sertifikat som offentlige klienter stoler på. En privat OneUptime-installasjon kan nøye seg med å eksponere webhook-stien gjennom en offentlig omvendt proxy eller gateway som når OneUptime internt. Bevar stien, hemmeligheten, innholdstypen og multipart-forespørselens body, og slipp POST-en gjennom uten interaktiv pålogging eller nettleserutfordring. OneUptime-serveren trenger ikke en innkommende SMTP-lytter. Se [SendGrids oppsett av Inbound Parse](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook).
 
-Sett `INBOUND_EMAIL_WEBHOOK_SECRET` til en sterk tilfeldig verdi, og erstatt `YOUR_SECRET` i URL-en med den verdien. Ruten krever det siste stisegmentet. OneUptime kontrollerer verdien når hemmeligheten er satt; en tom variabel slår av kontrollen. Hold den fullstendige URL-en og monitorenes e-postadresser hemmelige, også i proxylogger. OneUptime validerer foreløpig verken SendGrids signerte Inbound Parse-hoder eller OAuth-tokener. Trenger du de mekanismene, setter du opp en gateway som validerer dem før den videresender til OneUptime, etter [SendGrids dokumentasjon om webhook-sikkerhet](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
+Sett `INBOUND_EMAIL_WEBHOOK_SECRET` til en sterk tilfeldig verdi, og erstatt `YOUR_SECRET` i URL-en med den verdien. Ruten krever det siste stisegmentet, og OneUptime tar bare imot en e-post når det segmentet er hemmeligheten. Inntil hemmeligheten er satt, avvises hver e-post med `503`, som SendGrid prøver på nytt i opptil tre dager. Hold den fullstendige URL-en og monitorenes e-postadresser hemmelige, også i proxylogger. OneUptime validerer foreløpig verken SendGrids signerte Inbound Parse-hoder eller OAuth-tokener. Trenger du de mekanismene, setter du opp en gateway som validerer dem før den videresender til den fullstendige URL-en, etter [SendGrids dokumentasjon om webhook-sikkerhet](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
 
 SendGrid tilbyr ikke en pålitelig liste over statiske kilde-IP-er for Inbound Parse. SendGrids IP-er for sending av e-post og adressene som slås opp for `mx.sendgrid.net`, er ikke en tillatelsesliste for webhooks. Følg [SendGrids veiledning om brannmurer](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) i stedet for å låse et gjeldende DNS-resultat.
 
@@ -114,6 +114,8 @@ inboundEmail:
 ```
 :::
 
+`INBOUND_EMAIL_WEBHOOK_SECRET` er påkrevd: OneUptime avviser hver e-post så lenge den er tom eller fortsatt en plassholder fra denne siden. `openssl rand -hex 32` lager en lang tilfeldig verdi.
+
 Ta dem deretter i bruk: Kjør `npm run start` på Docker Compose, som gjenoppretter containerne med de nye verdiene, eller oppgrader Helm-releasen på Kubernetes.
 
 ### Opprett en Incoming Email-monitor
@@ -133,7 +135,7 @@ Send en e-post til monitorens adresse, med et emne som samsvarer med kriteriene.
 | --- | --- | --- | --- | --- |
 | `INBOUND_EMAIL_PROVIDER` | `inboundEmail.provider` | Leverandøren av innkommende e-post. SendGrid er den eneste. | Nei | `SendGrid` |
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Underdomenet som er satt opp for innkommende e-post. Innkommende e-post er av til det er satt. | Ja | Tom |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemmelighet som sammenlignes med det siste segmentet i webhook-URL-en: `/incoming-email/sendgrid/YOUR_SECRET`. Sett den for offentlige endepunkter; en tom verdi slår av valideringen. | Anbefalt | Tom |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Hemmelighet som det siste segmentet i webhook-URL-en må samsvare med: `/incoming-email/sendgrid/YOUR_SECRET`. Hver e-post avvises så lenge den er tom eller en plassholder. | Ja | Tom |
 
 Hva en Incoming Email-monitor kan se etter – emnet, avsenderen, innholdet, mottakeren og om en e-post kom frem i tide – står i [Tilgjengelige filtertyper](/docs/monitor/incoming-email-monitor#tilgjengelige-filtertyper).
 
@@ -149,6 +151,7 @@ Hva en Incoming Email-monitor kan se etter – emnet, avsenderen, innholdet, mot
 1. **Kontroller den offentlige webhook-ruten:** Den fullstendige URL-en, inkludert hemmeligheten, må nå OneUptime fra internett. URL-en uten det siste hemmelige segmentet samsvarer ikke med ruten.
 2. **Kontroller brannmurreglene:** Tillat HTTPS POST-forespørsler til webhook-stien uten påloggingsomdirigeringer eller nettleserutfordringer, og ikke bruk SendGrids IP-er for sending av e-post som tillatelsesliste for webhookens kilde.
 3. **Kontroller SSL-sertifikatet:** Bruk et gyldig, offentlig klarert sertifikat for vertsnavnet til webhooken, og ta med sertifikatkjeden.
+4. **Kontroller webhook-hemmeligheten:** Destination URL må slutte med verdien av `INBOUND_EMAIL_WEBHOOK_SECRET`. Så lenge variabelen er tom eller en plassholder, avvises hver e-post med `503`, og loggen til tjenesten `app` sier det når den starter; en e-post sendt til en URL som slutter med noe annet, avvises med `403`.
 :::
 
 :::details Monitoren oppretter ikke varsler
@@ -164,7 +167,7 @@ Hva en Incoming Email-monitor kan se etter – emnet, avsenderen, innholdet, mot
 ## Beste praksis for sikkerhet
 
 1. **Bruk HTTPS:** Bruk alltid HTTPS for webhook-endepunktet ditt
-2. **Webhook-hemmelighet:** Sett `INBOUND_EMAIL_WEBHOOK_SECRET`, og ta den med i webhook-URL-en (f.eks. `/incoming-email/sendgrid/your-secret`) som ekstra validering
+2. **Webhook-hemmelighet:** Bruk en lang tilfeldig verdi som er din egen, til `INBOUND_EMAIL_WEBHOOK_SECRET`, på slutten av webhook-URL-en (f.eks. `/incoming-email/sendgrid/your-secret`): det er den som skiller SendGrids e-poster fra alle andres
 3. **Domenebekreftelse:** Bekreft domenet ditt i SendGrid for bedre e-postsikkerhet
 4. **Begrens tilgangen:** Opprett bare monitorer for klarerte e-postkilder
 5. **Overvåk logger:** Gå jevnlig gjennom loggene for innkommende e-post for mistenkelig aktivitet

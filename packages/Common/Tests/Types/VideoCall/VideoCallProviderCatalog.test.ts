@@ -5,6 +5,12 @@ import {
   VideoCallConnectionField,
   VideoCallProviderCatalog,
   VideoCallProviderDefinition,
+  ZOOM_CLASSIC_RECORDING_SCOPE,
+  ZOOM_MEETING_SCOPE,
+  ZOOM_MEETING_TRANSCRIPT_SCOPE,
+  ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE,
+  ZOOM_OAUTH_RECORDING_FILES_SCOPE,
+  ZOOM_RECORDING_FILES_SCOPE,
   getVideoCallProviderDefinition,
   isConnectableVideoCallProvider,
 } from "../../../Types/VideoCall/VideoCallProviderCatalog";
@@ -138,5 +144,53 @@ describe("VideoCallProviderCatalog", () => {
     expect(steps(VideoCallProvider.MicrosoftTeams)).toContain(
       "Grant-CsApplicationAccessPolicy",
     );
+  });
+
+  /*
+   * Reading a call's transcript (issue #4875) needs two more Zoom scopes,
+   * optional: the Zoom setup guide names them on the Scopes step, granular
+   * and classic, and nothing more is asked of Google or Microsoft.
+   */
+  test("the Zoom guide names the optional transcript scopes on its Scopes step", () => {
+    const zoom: VideoCallProviderDefinition = getVideoCallProviderDefinition(
+      VideoCallProvider.Zoom,
+    )!;
+    const scopesStep: string | undefined = zoom.setupSteps.find(
+      (step: string): boolean => {
+        return step.includes(ZOOM_MEETING_SCOPE);
+      },
+    );
+
+    expect(scopesStep).toBeDefined();
+
+    for (const scope of [
+      ZOOM_RECORDING_FILES_SCOPE,
+      ZOOM_MEETING_TRANSCRIPT_SCOPE,
+      ZOOM_CLASSIC_RECORDING_SCOPE,
+    ]) {
+      expect(scopesStep).toContain(`**${scope}**`);
+    }
+
+    expect(ZOOM_RECORDING_FILES_SCOPE).toBe(
+      "cloud_recording:read:list_recording_files:admin",
+    );
+    expect(ZOOM_MEETING_TRANSCRIPT_SCOPE).toBe(
+      "cloud_recording:read:meeting_transcript:admin",
+    );
+    expect(ZOOM_OAUTH_RECORDING_FILES_SCOPE).toBe(
+      "cloud_recording:read:list_recording_files",
+    );
+    expect(ZOOM_OAUTH_MEETING_TRANSCRIPT_SCOPE).toBe(
+      "cloud_recording:read:meeting_transcript",
+    );
+
+    for (const provider of [
+      VideoCallProvider.GoogleMeet,
+      VideoCallProvider.MicrosoftTeams,
+    ]) {
+      expect(
+        getVideoCallProviderDefinition(provider)!.setupSteps.join("\n"),
+      ).not.toMatch(/transcript/i);
+    }
   });
 });

@@ -14,7 +14,7 @@ Kubernetes モニターは、OneUptime の Kubernetes エージェントがク�
 エージェントはクラスターのメトリクスを OTLP で OneUptime に送信し、それぞれにクラスター名（`k8s.cluster.name`、チャートの `clusterName`）を付けます。新しい名前からの最初のデータでクラスターが **Kubernetes** に登録され、それ以降、Kubernetes モニターでそのクラスターを選べるようになります。モニターは毎分、自身の **時間範囲** にわたってそれらのメトリクスを照会し、集計して、結果を条件と比較します。
 
 ```mermaid title="クラスターのメトリクスからインシデントまで"
-flowchart LR
+flowchart TB
     agent["Kubernetes エージェント"] -->|"OTLP メトリクス"| metrics["クラスターのメトリクス"]
     metrics --> monitor["Kubernetes モニター"]
     monitor -->|"条件を満たす"| incident["アラートまたは<br/>インシデント"]
@@ -107,7 +107,7 @@ flowchart LR
 | 合計 | すべての値の合計 |
 | Maximum Value | 期間内の最大値 |
 | Minimum Value | 期間内の最小値 |
-| All Values | すべての値が条件に一致する必要がある |
+| All Values | すべての値が条件に一致し、期間全体をカバーする必要がある |
 | Any Value | 少なくとも 1 つの値が一致すればよい |
 
 ### 条件の種類

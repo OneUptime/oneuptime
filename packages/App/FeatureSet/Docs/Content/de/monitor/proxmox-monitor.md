@@ -19,14 +19,14 @@ Ein Proxmox-Monitor ist an einen Cluster gebunden. Jede Minute führt er seine A
 flowchart TB
     subgraph site["Ihr Netzwerk"]
         direction LR
-        pve["Proxmox-VE-API"] --> agent["OneUptime-Proxmox-Agent"]
+        pve["Proxmox-VE-API"] --> agent["OneUptime-<br/>Proxmox-Agent"]
     end
-    agent -->|"pve-Metriken über OTLP"| oneuptime["OneUptime"]
-    native["Native Übertragung von<br/>Proxmox VE 9"] -.->|"Alternative"| oneuptime
-    oneuptime -->|"erste Daten"| registered["Cluster registriert"]
+    agent -->|"pve-Metriken<br/>über OTLP"| oneuptime["OneUptime"]
+    native["Native<br/>Übertragung von<br/>Proxmox VE 9"] -.->|"Alternative"| oneuptime
+    oneuptime -->|"erste Daten"| registered["Cluster<br/>registriert"]
     oneuptime --> monitor["Proxmox-Monitor"]
     monitor -->|"jede Minute"| criteria{"Kriterien erfüllt?"}
-    criteria -->|"ja"| incident["Vorfall oder Warnung"]
+    criteria -->|"ja"| incident["Vorfall<br/>oder Warnung"]
     criteria -->|"nein"| online["Monitor online"]
 ```
 
@@ -222,7 +222,7 @@ Ein Kriterium vergleicht eine der Abfragen oder Formeln des Monitors mit einem S
 | Feld | Was es tut |
 | --- | --- |
 | **Metrik** | Die zu prüfende Abfrage oder Formel, anhand ihres Variablennamens. |
-| **Aggregation** | Wie die Werte im Zeitfenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen) oder **Any Value** (einer genügt). |
+| **Aggregation** | Wie die Werte im Zeitfenster zu einer Antwort werden: **Durchschnitt**, **Summe**, **Maximum Value**, **Minimum Value**, **All Values** (jeder Wert muss zutreffen, im ganzen Zeitfenster) oder **Any Value** (einer genügt). |
 | **Bedingung** | **Größer als**, **Kleiner als**, **Größer als oder gleich**, **Kleiner als oder gleich** oder **Gleich** – oder eine Anomaliebedingung: **Anomalously High**, **Anomalously Low** oder **Anomalous**. |
 | **Schwellenwert** | Der Vergleichswert. Daneben steht eine Einheitenliste, wenn die Metrik eine Einheit hat. Wird bei Anomaliebedingungen nicht angezeigt. |
 | **Empfindlichkeit** | Nur bei Anomaliebedingungen. **Niedrig** (4σ), **Mittel** (3σ, der Standard) oder **Hoch** (2σ). |

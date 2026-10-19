@@ -27,8 +27,8 @@ Uma integração bidirecional, como Jira ou Dynamics 365, usa os dois sentidos: 
 
 | Forma | Ideal para | Exemplos |
 | --- | --- | --- |
-| Uma conexão integrada | Ferramentas às quais o OneUptime se conecta sozinho. Você preenche um formulário e não há nada a montar. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), as conexões de [Eventos de segurança](/docs/telemetry/security-events) |
-| Um modelo de workflow | Ferramentas de tickets, sincronizadas nos dois sentidos, e mensagens de chat. Você escolhe um modelo e preenche algumas configurações. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| Uma conexão integrada | Ferramentas às quais o OneUptime se conecta sozinho. Você preenche um formulário e não há nada a montar. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), as conexões de [Eventos de segurança](/docs/telemetry/security-events) |
+| Um modelo de workflow | Ferramentas de tickets, sincronizadas nos dois sentidos, problemas de monitoramento, relatórios de incidentes de segurança e mensagens de chat. Você escolhe um modelo e preenche algumas configurações. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
 | Um monitor Incoming Request | Ferramentas de alerta que enviam um webhook. Você recebe um incidente por alerta, encaminhado ao plantão e resolvido quando o alerta se recupera, sem workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Um workflow que você monta | Qualquer ferramenta com um webhook ou uma API REST, e qualquer lógica sua. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 
 | Ferramenta | Sentido | O que faz |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | De entrada | Transforma os problemas do Zabbix em incidentes e os resolve quando o Zabbix se recupera. |
+| [Zabbix](/docs/integrations/zabbix) | Ambos | Transforma os problemas do Zabbix em incidentes ou alertas, os resolve na recuperação e reconhece ou fecha os problemas a partir do OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | De entrada | Transforma as notificações do Alertmanager em incidentes. |
 | [Grafana](/docs/integrations/grafana) | De entrada | Transforma os alertas do Grafana em incidentes. |
 | [Datadog](/docs/integrations/datadog) | De entrada | Transforma os alertas dos monitores do Datadog em incidentes. |
@@ -89,6 +89,12 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 
 > [!TIP]
 > O Slack e o Microsoft Teams também têm etapas de workflow. Use a conexão integrada para os canais de incidente e o plantão, e uma etapa de workflow quando você só precisa de uma mensagem em um canal.
+
+### Plataformas de hospedagem
+
+| Ferramenta | Sentido | O que faz |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | De entrada | Adicione o OneUptime pelo Vercel Marketplace: traces, logs, monitores de disponibilidade e uma página de status para seus projetos da Vercel. |
 
 ## Migrar de outra ferramenta
 

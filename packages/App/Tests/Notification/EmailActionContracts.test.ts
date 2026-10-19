@@ -52,7 +52,9 @@ const DESTINATION_KEYS: ReadonlyArray<string> = [
   "acknowledgeAlertLink",
   "acknowledgeIncidentEpisodeLink",
   "acknowledgeAlertEpisodeLink",
+  "passOnLink",
   "twoFactorAuthUrl",
+  "forgotPasswordUrl",
   "capacityPageLink",
   "healthPageLink",
 ];
@@ -209,7 +211,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
   [
     "AIAgentConnectionStatusChange",
     "viewAIAgentsLink",
-    "View AI Agents",
+    "View Tasks",
     "viewAIAgentsLink",
   ],
   [
@@ -217,30 +219,6 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "viewAIAgentLink",
     "View on Dashboard",
     "viewAIAgentLink",
-  ],
-  [
-    "AcknowledgeAlert",
-    "acknowledgeAlertLink",
-    "Acknowledge Alert",
-    "acknowledgeAlertLink",
-  ],
-  [
-    "AcknowledgeAlertEpisode",
-    "acknowledgeAlertEpisodeLink",
-    "Acknowledge Alert Episode",
-    "acknowledgeAlertEpisodeLink",
-  ],
-  [
-    "AcknowledgeIncident",
-    "acknowledgeIncidentLink",
-    "Acknowledge Incident",
-    "acknowledgeIncidentLink",
-  ],
-  [
-    "AcknowledgeIncidentEpisode",
-    "acknowledgeIncidentEpisodeLink",
-    "Acknowledge Incident Episode",
-    "acknowledgeIncidentEpisodeLink",
   ],
   [
     "AlertEpisodeOwnerAdded",
@@ -537,6 +515,7 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "Manage two factor authentication",
     null,
   ],
+  ["TwoFactorWrongCodes", "forgotPasswordUrl", "Reset your password", null],
   [
     "UserAddedToOnCallPolicy",
     "onCallPolicyViewLink",
@@ -598,6 +577,62 @@ describe("the primary and copyable actions have independent destinations", () =>
     },
   );
 });
+
+/*
+ * The four page-out emails: Acknowledge, with its link to copy, and - for
+ * somebody who cannot take the page - "Pass it on" under it, a second,
+ * quieter button (OnCallPagePassOn). An email sent without a pass-on link
+ * has Acknowledge alone.
+ */
+const PAGE_OUT_CONTRACTS: Array<[string, DestinationKey, string]> = [
+  ["AcknowledgeAlert", "acknowledgeAlertLink", "Acknowledge Alert"],
+  [
+    "AcknowledgeAlertEpisode",
+    "acknowledgeAlertEpisodeLink",
+    "Acknowledge Alert Episode",
+  ],
+  ["AcknowledgeIncident", "acknowledgeIncidentLink", "Acknowledge Incident"],
+  [
+    "AcknowledgeIncidentEpisode",
+    "acknowledgeIncidentEpisodeLink",
+    "Acknowledge Incident Episode",
+  ],
+];
+
+describe.each(PAGE_OUT_CONTRACTS)(
+  "%s",
+  (template: string, key: DestinationKey, label: string) => {
+    test("acknowledges first, then offers passing the page on", () => {
+      expectNavigation(
+        render(template),
+        [action(key, label), action("passOnLink", "Pass it on")],
+        [copyable(key)],
+      );
+    });
+
+    test("passing on is the quieter, secondary button", () => {
+      const passOn: Anchor | undefined = anchors(render(template)).find(
+        (anchor: Anchor): boolean => {
+          return anchor.text === "Pass it on";
+        },
+      );
+
+      expect(passOn).toBeDefined();
+      expect(render(template)).toContain("#f1f5f9");
+    });
+
+    test.each([undefined, "", null])(
+      "keeps Acknowledge alone when the pass-on link is %s",
+      (passOnLink: unknown) => {
+        expectNavigation(
+          render(template, { passOnLink }),
+          [action(key, label)],
+          [copyable(key)],
+        );
+      },
+    );
+  },
+);
 
 /*
  * The note/state-only notices offer a copyable link rather than a button.

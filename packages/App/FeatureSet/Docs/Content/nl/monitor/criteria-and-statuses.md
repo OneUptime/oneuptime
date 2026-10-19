@@ -15,14 +15,14 @@ Telkens wanneer een monitor wordt gecontroleerd, beoordelen zijn criteria het re
 
 ```mermaid title="Hoe elke controle wordt beoordeeld"
 flowchart TB
-    R["Het resultaat<br/>van een controle"] --> C1{"Eerste criterium:<br/>komen de filters overeen?"}
-    C1 -->|"Ja"| A["Dat criterium handelt"]
-    C1 -->|"Nee"| C2{"Volgende criterium:<br/>komen de filters overeen?"}
+    R["Het resultaat<br/>van een controle"] --> C1{"Eerste<br/>criterium:<br/>komen de<br/>filters overeen?"}
+    C1 -->|"Ja"| A["Dat criterium<br/>handelt"]
+    C1 -->|"Nee"| C2{"Volgende<br/>criterium:<br/>komen de<br/>filters overeen?"}
     C2 -->|"Ja"| A
-    C2 -->|"Geen enkele kwam overeen"| D["De monitor gaat naar<br/>zijn standaardstatus"]
-    A --> S["Wijzigt de status"]
-    A --> I["Meldt een incident"]
-    A --> L["Maakt een waarschuwing"]
+    C2 -->|"Geen enkele<br/>kwam overeen"| D["De monitor<br/>gaat naar<br/>zijn standaardstatus"]
+    A --> S["Wijzigt<br/>de status"]
+    A --> I["Meldt een<br/>incident"]
+    A --> L["Maakt een<br/>waarschuwing"]
 ```
 
 De volgorde hoort bij de regel. Een nieuwe monitor zet zijn criteria van slechtste naar beste: offline, dan een waarschuwing als zijn type er een heeft (een certificaat of een domein dat binnenkort verloopt), dan online. Een breed gezond criterium, zoals **Is Online** op **Waar**, komt overeen met bijna elke controle, dus het staat als laatste: boven de andere zou het elke keer als eerste overeenkomen en zouden de andere nooit handelen.
@@ -47,7 +47,7 @@ Open een criterium: het heeft een naam en drie secties, die elk inklappen tot ee
 
 Een filter leest één gegeven uit de controle en vergelijkt het: een **Filtertype** (wat er wordt gelezen, zoals **Reactiestatuscode**), een **Filtervoorwaarde** (hoe er wordt vergeleken, zoals **Groter dan**) en een **Waarde**. Monitoren die metrieken vergelijken, zoals Kubernetes- en metriekmonitoren, vragen in plaats daarvan om een **Voorwaarde** en een **Threshold**. Elk monitortype biedt zijn eigen filtertypen, vermeld op zijn pagina, bijvoorbeeld [Website-monitor](/docs/monitor/website-monitor#bewakingscriteria).
 
-Vanaf twee filters verschijnt eronder de **Overeenkomstvoorwaarde**: **Alle** betekent dat elk filter moet overeenkomen, **Elke** dat er één genoeg is. Een nieuw criterium begint op **Alle**.
+Vanaf twee filters verschijnt eronder de **Overeenkomstvoorwaarde**: **Alle** betekent dat elk filter moet overeenkomen, **Minstens één** dat er één genoeg is. Een nieuw criterium begint op **Alle**.
 
 Filters die elke controle meten, zoals **Is Online**, **Reactiestatuscode** en **Reactietijd (in ms)**, bieden **Evalueer deze criteria over een bepaalde periode**. Dat beoordeelt een venster van recente controles in plaats van alleen de laatste, en begint op de laatste 5 minuten met **All Values**, dat pas overeenkomt als elke controle in het venster overeenkwam. Zie [Evalueren over een periode](/docs/monitor/website-monitor#over-een-periode-evalueren).
 

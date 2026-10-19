@@ -231,7 +231,7 @@ describe("the suite reads the docs it claims to", () => {
     ["ja", "**Runbook → Runbook エージェント** に行き"],
     ["ru", "**Настройки → ИИ → Агенты ИИ**"],
     ["en", "under **Runbooks → Runners**"],
-    ["en", "Project Settings → AI Features"],
+    ["en", "Project Settings → AI → AI Features"],
   ])(
     "the %s pattern leaves a current sentence alone",
     (language: string, sentence: string) => {

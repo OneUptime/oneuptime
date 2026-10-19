@@ -392,13 +392,40 @@ describe("Security Events monitor step form", () => {
 });
 
 describe("Detection rule incident form fields", () => {
+  /*
+   * The rule's On Match step is the shared one (SecurityMatchActionFields):
+   * one choice writes the alert and incident columns, and each severity
+   * shows while its column says the match raises it - an incident only
+   * when its column is true, as the evaluator reads it.
+   */
   test("the incident toggle and severity dropdown exist and chain", () => {
-    const source: string = stripComments(detectionRulesSource);
+    const page: string = stripComments(detectionRulesSource);
+    const fields: string = stripComments(
+      readDashboardSource(
+        "Components",
+        "SecurityEvents",
+        "SecurityMatchActionFields.ts",
+      ),
+    );
+    const raises: string = stripComments(
+      readDashboardSource(
+        "Components",
+        "SecurityEvents",
+        "SecurityMatchRaises.ts",
+      ),
+    );
 
-    expect(source).toContain("shouldCreateIncident: true");
-    expect(source).toContain("incidentSeverity: true");
-    expect(source).toContain("model.shouldCreateIncident === true");
-    expect(source).toContain("model.shouldCreateAlert === true");
+    expect(page).toContain("...getSecurityMatchActionFields<DetectionRule>(");
+    expect(fields).toContain("shouldCreateIncident: true");
+    expect(fields).toContain("incidentSeverity: true");
+    expect(fields).toContain("return raisesIncident(values);");
+    expect(fields).toContain("return raisesAlert(values);");
+    expect(raises).toContain(
+      'return asValues(values)["shouldCreateIncident"] === true;',
+    );
+    expect(raises).toContain(
+      'return asValues(values)["shouldCreateAlert"] !== false;',
+    );
   });
 
   test("createInitialValues mirrors the DB defaults so showIf sees booleans", () => {

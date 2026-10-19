@@ -24,7 +24,7 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 configure({ asyncUtilTimeout: 15000 });
 
 /*
- * Project Settings > Video Calls, rendered for real - the provider gallery,
+ * Project Settings > Workspace > Video Calls, rendered for real - the provider gallery,
  * the connections table (a real ModelTable), and the connection form with
  * its setup guide and test meeting - with only the API, the permissions and
  * the signed-in user stubbed.
@@ -93,6 +93,10 @@ jest.mock("react-i18next", () => {
 });
 
 import VideoCallsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/VideoCalls";
+import CallRecordingSwitchCopy, {
+  CALL_RECORDING_SWITCH_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/CallRecordingSwitchCopy";
+import Project from "../../../Models/DatabaseModels/Project";
 import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
@@ -269,6 +273,19 @@ beforeEach(() => {
       {},
     );
   }) as never);
+
+  // The project, as Record and transcribe incident calls reads it: never set.
+  jest.spyOn(ModelAPI, "getItem").mockImplementation((async (args: {
+    modelType: { new (): BaseModel };
+  }) => {
+    if (args.modelType !== Project) {
+      return null;
+    }
+
+    const project: Project = new Project();
+    project._id = PROJECT_ID;
+    return project;
+  }) as never);
 });
 
 afterEach(() => {
@@ -369,6 +386,40 @@ describe("the page", () => {
         "video-call-provider-count-GoogleMeet",
       ),
     ).toBeNull();
+  });
+});
+
+describe("Call transcripts", () => {
+  test("ends the page: the project's one switch for recording incident calls, after the connections, off", async () => {
+    await renderPage();
+
+    const control: HTMLElement = await screen.findByTestId(
+      CALL_RECORDING_SWITCH_TEST_ID,
+    );
+
+    expect(control).toHaveAttribute("aria-checked", "false");
+    expect(
+      screen.getByRole("switch", {
+        name: CallRecordingSwitchCopy.switchTitle,
+      }),
+    ).toBe(control);
+
+    // Under the connections it records the calls of.
+    const connectionsTitle: HTMLElement = screen.getByText("Connections");
+
+    expect(
+      connectionsTitle.compareDocumentPosition(control) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // The current project's switch, and nothing else of it.
+    const read: { modelType: unknown; id: { toString: () => string } } = (
+      ModelAPI.getItem as unknown as jest.Mock
+    ).mock.calls.find((call: Array<unknown>) => {
+      return (call[0] as { modelType: unknown }).modelType === Project;
+    })![0] as { modelType: unknown; id: { toString: () => string } };
+
+    expect(read.id.toString()).toBe(PROJECT_ID);
   });
 });
 

@@ -1,6 +1,6 @@
-# Selling OneUptime Cloud on AWS Marketplace, Microsoft Marketplace and Google
-# Cloud Marketplace, and Sign in with Microsoft, which Microsoft Marketplace
-# requires.
+# Selling OneUptime Cloud on AWS Marketplace, Microsoft Marketplace, Google
+# Cloud Marketplace and Vercel Marketplace, and Sign in with Microsoft, which
+# Microsoft Marketplace requires.
 #
 # The marketplaces' landing pages, webhooks and events are answered by the
 # app, and the hourly usage report and daily sync run in the worker - so every
@@ -45,6 +45,11 @@ tests:
           content:
             name: GOOGLE_CLOUD_MARKETPLACE_SERVICE_ACCOUNT_KEY
             value: ""
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VERCEL_MARKETPLACE_CLIENT_SECRET
+            value: ""
 
   - it: passes every marketplace value to the app
     templates:
@@ -69,6 +74,8 @@ tests:
       cloudMarketplace.googleCloud.pubSubServiceAccountEmail: push@example.iam.gserviceaccount.com
       cloudMarketplace.googleCloud.signupAudience: oneuptime.com
       cloudMarketplace.googleCloud.pubSubAudience: https://oneuptime.com/api/marketplace/google-cloud/events
+      cloudMarketplace.vercel.clientId: oac_example
+      cloudMarketplace.vercel.clientSecret: vercel-secret
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -150,6 +157,16 @@ tests:
           content:
             name: GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE
             value: https://oneuptime.com/api/marketplace/google-cloud/events
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VERCEL_MARKETPLACE_CLIENT_ID
+            value: oac_example
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VERCEL_MARKETPLACE_CLIENT_SECRET
+            value: vercel-secret
 
   - it: passes them to the worker, which reports usage and syncs purchases
     templates:
@@ -161,6 +178,7 @@ tests:
       worker.enabled: true
       cloudMarketplace.aws.accessKeyId: AKIAEXAMPLE
       cloudMarketplace.googleCloud.providerId: oneuptime-public
+      cloudMarketplace.vercel.clientId: oac_example
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -172,6 +190,11 @@ tests:
           content:
             name: GOOGLE_CLOUD_MARKETPLACE_PROVIDER_ID
             value: oneuptime-public
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VERCEL_MARKETPLACE_CLIENT_ID
+            value: oac_example
 
   - it: reads the secrets from existing secrets when they are named
     templates:
@@ -194,6 +217,9 @@ tests:
       cloudMarketplace.googleCloud.existingSecret:
         name: google-cloud-marketplace
         serviceAccountKeyKey: serviceAccountKey
+      cloudMarketplace.vercel.existingSecret:
+        name: vercel-marketplace
+        clientSecretKey: clientSecret
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
@@ -243,3 +269,11 @@ tests:
               secretKeyRef:
                 name: google-cloud-marketplace
                 key: serviceAccountKey
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: VERCEL_MARKETPLACE_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: vercel-marketplace
+                key: clientSecret

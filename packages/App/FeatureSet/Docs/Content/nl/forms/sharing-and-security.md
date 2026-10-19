@@ -54,11 +54,11 @@ Een afbeelding in de beschrijving of het bedankbericht van het formulier wordt g
 sequenceDiagram
     participant V as Browser van de bezoeker
     participant O as OneUptime
-    V->>O: Het formulier openen, vanaf zijn eigen pagina
+    V->>O: Het formulier openen,<br/>vanaf zijn eigen pagina
     O-->>V: Vragen, sjablonen en huisstijl
     V->>O: De antwoorden verzenden
-    O->>O: Elke controle hieronder, op volgorde
-    O-->>V: Het nummer van wat er is aangemaakt
+    O->>O: Elke controle<br/>hieronder, op volgorde
+    O-->>V: Het nummer van wat<br/>er is aangemaakt
 ```
 
 Elk verzoek doorloopt deze controles, in deze volgorde:
@@ -110,7 +110,7 @@ Een formulier openen en verzenden worden per netwerkadres beperkt, en verzenden 
 - **Verzenden, per adres** — per formulier vanaf één adres, en per adres over alle formulieren. Boven een van beide ziet de inzender "Te veel meldingen vanaf je netwerk. Wacht een paar minuten en probeer het opnieuw." Iedereen achter één adres — een kantoornetwerk, een VPN-gateway — deelt deze limieten, en elke inzending telt, ook een die daarna wordt geweigerd om een verkeerd antwoord.
 - **Verzenden, per formulier** — hoeveel records één formulier in een uur mag aanmaken, vanaf alle adressen samen, zodat zelfs inzendingen vanaf veel adressen tegelijk je maar een beperkt aantal keren per uur kunnen oproepen. Alleen een inzending die elke andere controle doorstond, telt, vlak voordat haar record wordt aangemaakt. Daarboven ziet iedereen "Dit formulier ontvangt op dit moment te veel inzendingen. Probeer het later opnieuw." tot het venster voorbij is. **Link opnieuw instellen** start de nieuwe link met een vers tegoed.
 
-Elke limiet antwoordt `429` met een header `Retry-After`, in seconden, en de pagina vertelt de inzender wanneer hij het opnieuw kan proberen. De vensters zijn vast, niet glijdend. Als de snelheidsbegrenzer niet bereikbaar is, worden inzendingen geweigerd in plaats van ongeteld doorgelaten: de API antwoordt `503`, en de inzender ziet "Inzendingen kunnen op dit moment niet worden geaccepteerd. Probeer het over een paar minuten opnieuw."
+Elke limiet antwoordt `429` met een header `Retry-After`, in seconden, en de pagina vertelt de inzender wanneer hij het opnieuw kan proberen. De vensters zijn vast, niet glijdend. Elke limiet per adres telt ook de adressen van één IPv6-/64 samen, met tien keer zijn getal. Als de snelheidsbegrenzer niet bereikbaar is, worden inzendingen geweigerd in plaats van ongeteld doorgelaten: de API antwoordt `503`, en de inzender ziet "Inzendingen kunnen op dit moment niet worden geaccepteerd. Probeer het over een paar minuten opnieuw."
 
 Op een zelf gehoste installatie wijzigen deze omgevingsvariabelen van de OneUptime-app de limieten:
 

@@ -1,6 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import CreateBy from "../Types/Database/CreateBy";
+import CreateLimit from "../Types/Database/CreateLimit";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -10,6 +11,7 @@ import JSONWebToken from "../Utils/JsonWebToken";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService, { CurrentPlan } from "./ProjectService";
@@ -28,6 +30,7 @@ import { Green } from "../../Types/BrandColors";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -107,6 +110,11 @@ import {
   getAllowedEmailDomainsProblem,
   normalizeAllowedEmailDomains,
 } from "../../Types/StatusPage/SubscriberRestrictions";
+import {
+  getStatusPageThemeProblem,
+  NEW_STATUS_PAGE_THEME,
+  STATUS_PAGE_THEME_COLUMN,
+} from "../../Types/StatusPage/StatusPageTheme";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
@@ -130,6 +138,10 @@ import StatusPageReportScheduleUtil, {
 } from "../../Utils/StatusPage/ReportSchedule";
 import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 import StatusPageHistoryChartBarColorRuleService from "./StatusPageHistoryChartBarColorRuleService";
+import {
+  DEFAULT_SUBSCRIBER_EMAIL_FOOTER_TEXT,
+  getSubscriberEmailFooterText,
+} from "../../Types/StatusPage/SubscriberEmailFooter";
 import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import Color from "../../Types/Color";
 import {
@@ -246,7 +258,8 @@ export const INCIDENT_COUNT_STATUS_PAGE_SELECT: Select<StatusPage> = {
  * Refuses a status page write holding a value no reader of it can use
  * (checkCreateBeforeReferences, checkUpdateBeforeReferences), and writes
  * the Allowed Email Domains it holds the way every reader reads them: one
- * valid domain a line, lower-cased, or nothing.
+ * valid domain a line, lower-cased, or nothing. A theme is Light, Dark or
+ * System, spelled exactly so (Types/StatusPage/StatusPageTheme), or nothing.
  */
 export const assertStatusPageWriteValues: (
   data: Record<string, unknown>,
@@ -258,6 +271,14 @@ export const assertStatusPageWriteValues: (
 
   if (sessionLengthProblem) {
     throw new BadDataException(sessionLengthProblem);
+  }
+
+  const themeProblem: string | null = getStatusPageThemeProblem(
+    data[STATUS_PAGE_THEME_COLUMN],
+  );
+
+  if (themeProblem) {
+    throw new BadDataException(themeProblem);
   }
 
   if (data[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN] !== undefined) {
@@ -275,6 +296,24 @@ export const assertStatusPageWriteValues: (
       );
   }
 };
+
+/*
+ * THE FREE PLAN'S LIMIT ON STATUS PAGES (AllowedStatusPageCountInFreePlan).
+ *
+ * Asked twice: early, in onBeforeCreate, and again with the INSERT, in its
+ * own transaction under the limit's lock in the project (getCreateLimit,
+ * ProjectCountLimit), so status pages created at the same moment cannot all
+ * pass. The lock's name, what it counts - every status page of the project,
+ * as the early check counts them - and the refusal both checks give.
+ */
+export const FREE_PLAN_STATUS_PAGE_LIMIT_NAME: string =
+  "free-plan-status-pages";
+
+export const STATUS_PAGE_COUNT_STATEMENT: string =
+  'SELECT COUNT(*)::int AS "count" FROM "StatusPage" WHERE "projectId" = $1 AND "deletedAt" IS NULL';
+
+export const FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE: string =
+  "You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.";
 
 export class Service extends ProjectReferencesService<StatusPage> {
   /*
@@ -506,18 +545,16 @@ export class Service extends ProjectReferencesService<StatusPage> {
     return statusPage?.isArchived === true;
   }
 
+  /*
+   * The line subscriber emails end with, by the rule the dashboard's Email
+   * Footer card reads too (Types/StatusPage/SubscriberEmailFooter).
+   */
   public static getDefaultEmailFooterText(): string {
-    return "This is an automated email sent to you because you are subscribed to this Status Page.";
+    return DEFAULT_SUBSCRIBER_EMAIL_FOOTER_TEXT;
   }
 
   public static getSubscriberEmailFooterText(statusPage: StatusPage): string {
-    if (
-      statusPage.enableCustomSubscriberEmailNotificationFooterText &&
-      statusPage.subscriberEmailNotificationFooterText
-    ) {
-      return statusPage.subscriberEmailNotificationFooterText;
-    }
-    return this.getDefaultEmailFooterText();
+    return getSubscriberEmailFooterText(statusPage);
   }
 
   /*
@@ -586,9 +623,7 @@ export class Service extends ProjectReferencesService<StatusPage> {
         });
 
         if (statusPageCount.toNumber() >= AllowedStatusPageCountInFreePlan) {
-          throw new BadDataException(
-            `You have reached the maximum allowed status page limit for the free plan. Please upgrade your plan to add more status pages.`,
-          );
+          throw new BadDataException(FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE);
         }
       }
     }
@@ -620,6 +655,17 @@ export class Service extends ProjectReferencesService<StatusPage> {
 
     if (!createBy.data.defaultBarColor) {
       createBy.data.defaultBarColor = Green;
+    }
+
+    /*
+     * A page made from now on follows each visitor's device, light or dark,
+     * unless its create names a theme. The column's default stays Light: it
+     * is what the pages made before the setting were given, and what the
+     * Terraform provider sends for a configuration that names no theme
+     * (StatusPage.theme).
+     */
+    if (createBy.data.theme === undefined || createBy.data.theme === null) {
+      createBy.data.theme = NEW_STATUS_PAGE_THEME;
     }
 
     /*
@@ -667,6 +713,40 @@ export class Service extends ProjectReferencesService<StatusPage> {
       createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * The Free plan's limit on status pages, decided again with the INSERT:
+   * counted in the INSERT's own transaction, under the limit's lock in the
+   * project, so status pages created at the same moment - each of which
+   * passed the early count in onBeforeCreate - cannot all be added. Every
+   * create is asked, one that skips its hooks too. Null on a plan with no
+   * such limit, and without billing.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<StatusPage>,
+  ): Promise<CreateLimit | null> {
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    if (!IsBillingEnabled || !projectId) {
+      return null;
+    }
+
+    const currentPlan: CurrentPlan =
+      await ProjectService.getCurrentPlan(projectId);
+
+    if (currentPlan.plan !== PlanType.Free) {
+      return null;
+    }
+
+    return ProjectCountLimit.getCreateLimit({
+      limitName: FREE_PLAN_STATUS_PAGE_LIMIT_NAME,
+      projectId: projectId,
+      allowed: AllowedStatusPageCountInFreePlan,
+      statement: STATUS_PAGE_COUNT_STATEMENT,
+      parameters: [projectId.toString()],
+      refusal: FREE_PLAN_STATUS_PAGE_LIMIT_MESSAGE,
+    });
   }
 
   /*
@@ -1229,7 +1309,10 @@ export class Service extends ProjectReferencesService<StatusPage> {
       return null;
     }
 
-    const decoded: JSONWebTokenData = JSONWebToken.decode(token as string);
+    const decoded: JSONWebTokenData = JSONWebToken.decode(
+      token as string,
+      JsonWebTokenPurpose.StatusPageSession,
+    );
 
     if (
       decoded.statusPageId?.toString() !== statusPageId.toString() ||

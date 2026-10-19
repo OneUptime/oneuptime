@@ -14,7 +14,7 @@ OneUptime waarschuwt mensen op hun telefoon via de mobiele app **OneUptime On-Ca
 ```mermaid title="Hoe een push een telefoon of browser bereikt"
 flowchart TB
     Server["Uw OneUptime-server"]
-    Relay["Push-relay van OneUptime"]
+    Relay["Push-relay<br/>van OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
@@ -22,13 +22,13 @@ flowchart TB
     PushService["De pushdienst<br/>van de browser"]
     Browser["Browser"]
     Server -->|"geen EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN ingesteld"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>ingesteld"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -44,6 +44,7 @@ Met de officiële mobiele app en de standaardrelay heeft de server geen Expo-inl
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Waar mobiele pushes heen gaan zolang `EXPO_ACCESS_TOKEN` niet is ingesteld. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Leeg | Stuurt mobiele pushes rechtstreeks naar Expo, met het token van uw Expo-project. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Leeg | Stuurt mobiele pushes van andere OneUptime-servers door, met het `EXPO_ACCESS_TOKEN` van deze server. Leeg betekent uit, tenzij `BILLING_ENABLED` `true` is. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Leeg | De openbare helft van het sleutelpaar waarmee browsers zich abonneren. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Leeg | De privéhelft, die elke Web Push ondertekent. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | Een contactadres waarop de pushdiensten van browsers u kunnen bereiken. |
@@ -81,6 +82,8 @@ expo:
 | Mobiele app of browser → OneUptime | Uw OneUptime-hostnaam | HTTPS / TCP 443 | Aanmelden, het apparaat registreren en meldingslinks openen. |
 
 Als u `PUSH_NOTIFICATION_RELAY_URL` wijzigt, sta dan de hostnaam van de bestemming en de ingestelde poort toe. Een eigen relay moet de relay-API van OneUptime implementeren. Deze standaardwaarden en de keuze tussen relay en rechtstreekse aflevering zijn vastgelegd in [de configuratie van OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) en [de pushservice](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Rechtstreekse verzoeken aan Expo gebruiken het eindpunt dat in [de verzendhandleiding van Expo](https://docs.expo.dev/push-notifications/sending-notifications/) staat. OneUptime leest afleverbewijzen bij de relay op hetzelfde adres, met `/receipts` in plaats van `/send`. Een relay zonder die route levert pushes nog steeds af; een apparaat waarvan de app is verwijderd, valt dan pas op wanneer een latere push ernaar wordt geweigerd.
+
+Een zelf gehoste OneUptime-server stuurt pushes van andere servers alleen door met `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` en een eigen `EXPO_ACCESS_TOKEN`; zonder deze instelling antwoordt hij op dat adres met 404. Zet de instelling alleen aan op de server waarlangs uw andere OneUptime-servers versturen, en laat alleen die servers dat adres bereiken.
 
 Sta voor Web Push de werkelijke hosts van de abonnementseindpunten toe voor de browsers die uw team gebruikt. OneUptime accepteert `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` en `push.apple.com`, inclusief hun subdomeinen. Typische voorbeelden zijn `updates.push.services.mozilla.com` en `web.push.apple.com`. Het [pushabonnement van de browser](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) levert de bestemming; alleen Expo of de relay van OneUptime toestaan maakt Web Push niet mogelijk.
 
@@ -121,7 +124,7 @@ flowchart TB
 
 Om de stille modus te doorbreken, moeten vier dingen allemaal waar zijn. Ontbreekt er één, dan wordt de melding toch afgeleverd – alleen stil.
 
-1. **De persoon heeft het voor dat apparaat aangezet.** Per apparaat opgeslagen, standaard uit, in `UserPush.isCriticalAlertEnabled`. De telefoon en de tablet van iemand zijn afzonderlijke keuzes.
+1. **De persoon heeft het voor dat apparaat aangezet.** Per apparaat opgeslagen, standaard uit, in `UserPush.isCriticalAlertEnabled`. De telefoon en de tablet van iemand zijn afzonderlijke keuzes. Versies van de app nieuwer dan 1.6.0 melden het opnieuw telkens wanneer ze worden geopend, als uit zolang de instellingen van de telefoon zelf geen kritieke meldingen toestaan, zodat de apparatenlijst toont wat de telefoon echt zal doen.
 2. **De bereikbaarheidsregel die de melding stuurde, vraagt erom.** Onder **Gebruikersinstellingen > Bereikbaarheidsregels** staat elke regel die een telefoon waarschuwt op ‘Kritieke waarschuwing’, de standaard, of op ‘Normaal’, dat de geluidsinstellingen van de telefoon volgt – zo kan iemand gewekt worden voor een kritiek incident en stil gewaarschuwd voor een klein incident. Per regel opgeslagen in `UserNotificationRule.pushNotificationLevel`.
 3. **De server markeert de melding als kritiek.** Hij stuurt de kritieke geluidspayload van APNs plus `interruptionLevel: critical` voor iOS, en richt zich voor Android op een kritiek meldingskanaal: `oncall_critical`, of het eigen kanaal van het gekozen alarm (zie [Het alarmgeluid kiezen](#het-alarmgeluid-kiezen)).
 4. **Het besturingssysteem staat het toe**, en daar verschillen de twee platforms.
@@ -192,7 +195,7 @@ Een pushregel kan zijn melding opnieuw sturen tot iemand die bevestigt. Stel **H
 - **iOS**: controleer of de build de entitlement voor kritieke meldingen van Apple draagt (zie hierboven), en of Critical Alerts is toegestaan onder iOS Settings > Notifications > OneUptime On-Call
 - **Android**: controleer of de app toegang tot Niet storen heeft onder Settings > Notifications > Do Not Disturb access
 - **Android**: als u een alarmgeluid hebt gekozen, moet ook het eigen meldingskanaal van dat geluid Niet storen mogen doorbreken; het scherm Alarm sound van de app zegt wanneer dat niet zo is
-- Het instellingenscherm zegt welke hiervan ontbreekt; het leest de huidige status terug van het besturingssysteem in plaats van te vertrouwen op wat de app het laatst heeft gevraagd
+- Het instellingenscherm zegt welke hiervan ontbreekt; het leest de huidige status terug van het besturingssysteem in plaats van te vertrouwen op wat de app het laatst heeft gevraagd, en vertelt de server wat het aantreft
 
 ### Pushes gemarkeerd als "niet afgeleverd"
 

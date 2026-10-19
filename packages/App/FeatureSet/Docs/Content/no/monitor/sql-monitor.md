@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonde
     participant D as Databasen din
-    O->>P: Monitorinnstillinger, hemmeligheter løst opp
-    P->>D: Spørringen din, skrivebeskyttet
+    O->>P: Monitorinnstillinger,<br/>hemmeligheter løst opp
+    P->>D: Spørringen din,<br/>skrivebeskyttet
     D-->>P: Opptil Max Rows + 1 rader
-    P->>O: Antall rader, skalar, første rad, tid, feil
+    P->>O: Antall rader, skalar,<br/>første rad, tid, feil
     O->>O: Evaluer kriteriene
 ```
 
@@ -139,7 +139,7 @@ Velg **Sonder** som når databasen, og et **Overvåkingsintervall**, og klikk de
 | **Vert** | Databaseverten sonden kan nå (for eksempel `db.internal`). |
 | **Port** | Databaseporten. |
 | **Databasenavn** | Databasen spørringen skal kjøres mot. |
-| **Use Windows Integrated Authentication** | Bare Microsoft SQL Server. Autentiser med kontoen sonden kjører som, i stedet for med et SQL-brukernavn og -passord. Se [Integrert Windows-autentisering](#integrert-windows-autentisering). |
+| **Autentisering** | Bare Microsoft SQL Server: **Brukernavn og passord**, standardvalget, eller **Windows Integrated Authentication**, som logger på med kontoen sonden kjører som. Se [Integrert Windows-autentisering](#integrert-windows-autentisering). |
 | **Brukernavn** | En skrivebeskyttet databasebruker med minst mulig rettigheter. |
 | **Passord** | Databasepassordet. Vi anbefaler sterkt å henvise til en [overvåkingshemmelighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for å skrive passordet inn som ren tekst (se [Bruk en overvåkingshemmelighet for passordet](#bruk-en-overvåkingshemmelighet-for-passordet)). |
 | **SQL Query** | Den skrivebeskyttede spørringen som skal kjøres (se [Skriv spørringen](#skriv-spørringen)). |
@@ -157,7 +157,7 @@ En verdi over maksimum senkes til maksimum.
 
 ### Integrert Windows-autentisering
 
-For Microsoft SQL Server slår du på **Use Windows Integrated Authentication** for å åpne en klarert tilkobling med identiteten til sondeprosessen. Feltene Brukernavn og Passord ignoreres i denne modusen og sendes ikke videre til driveren. Fordi sonden trenger en identitet som domenet ditt stoler på, bør du bruke en selvhostet sonde for denne autentiseringsmodusen.
+For Microsoft SQL Server velger du **Windows Integrated Authentication** under **Autentisering** for å åpne en klarert tilkobling med identiteten til sondeprosessen. Skjemaet skjuler da **Brukernavn** og **Passord**, og ingen av dem sendes videre til driveren. Fordi sonden trenger en identitet som domenet ditt stoler på, bør du bruke en selvhostet sonde for denne autentiseringsmodusen.
 
 | Sonden kjører på | Hva du må sette opp |
 |---|---|

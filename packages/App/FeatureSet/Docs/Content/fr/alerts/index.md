@@ -56,11 +56,11 @@ Ouvrez **Alertes** depuis le menu **Produits** de la barre supérieure. La liste
 | Section               | Ce que vous y faites                                                                                                      |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Alertes**           | **Toutes les alertes** et **Alertes actives**, dont le badge rouge compte les alertes pas encore résolues.                  |
-| **Épisodes**          | **Tous les épisodes**, **Épisodes actifs** et **Documentation**, une page du tableau de bord sur le regroupement.          |
+| **Épisodes** | **Tous les épisodes** et **Épisodes actifs** : les alertes liées, regroupées en un seul problème à traiter. |
 | **IA**                | **Analyses**, **Journaux** et **Paramètres** : ce que OneUptime AI a appris de vos alertes, tout ce qu'il a fait et ce qu'il a le droit de faire. |
 | **Espace de travail** | **Slack** et **Microsoft Teams**, selon ce que le projet a connecté, ou **Connecter Slack ou Teams** s'il n'a ni l'un ni l'autre. |
 | **Règles**            | **Règles de regroupement**, **Règles d'astreinte**, **Règles de propriétaire**, **Règles de runbook**, **Règles de confidentialité**, **Règles d'étiquettes**, **Reminder Rules**. |
-| **Paramètres**        | **État de l'alerte**, **Gravité de l'alerte**, **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Numérotation**. |
+| **Paramètres**        | **État de l'alerte**, **Gravité de l'alerte**, **Modèles de notes**, **Champs personnalisés**, **Mesures**, **Appartenance aux épisodes**, **Numérotation**. |
 
 **Alertes** et **Épisodes** sont ouvertes ; **IA**, **Espace de travail**, **Règles**, **Paramètres** et **Développeurs** commencent repliées, et une section s'ouvre d'elle-même quand vous êtes sur l'une de ses pages. La configuration des alertes se trouve ici, pas dans les **Paramètres du projet**.
 
@@ -129,19 +129,20 @@ Pendant que vous la traitez, consignez ce que vous apprenez dans les **Notes pri
 
 | Section du menu latéral | Pages                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Basique**             | **Vue d'ensemble**, **Description**, **Cause racine**, **Remédiation**, **Runbooks**, **Chronologie d'état**, **Propriétaires**, **Incidents liés** |
-| **Astreinte**           | **Exécutions d'astreinte** : quelles politiques d'astreinte se sont exécutées pour l'alerte, et comment chacune s'est déroulée |
-| **Journaux**            | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'alerte, et tout ce que l'IA a fait pour elle |
-| **Notes d'alerte**      | **Notes privées**                                                                                            |
+| **Vue d'ensemble** | **Vue d'ensemble** et **Chronologie d'état** |
+| **Investigation** | **Description**, **Cause racine**, **Remédiation**, **Runbooks**, **Incidents liés** |
+| **Équipe** | **Exécutions d'astreinte** et **Propriétaires** : qui a été alerté pour l'alerte, et qui en est propriétaire |
+| **Notifications**            | **Journaux de notification** et **Journaux IA** : chaque message envoyé au sujet de l'alerte, et tout ce que l'IA a fait pour elle |
+| **Notes**      | **Notes privées**                                                                                            |
 | **Développeurs**        | **Terraform**, **API** et **Assistants IA** : l'alerte gérée depuis du code                                  |
-| **Avancé**              | **Champs personnalisés**, **Journaux d'audit**, **Paramètres**, **Supprimer l'alerte**                       |
+| **Avancé** | **Champs personnalisés**, **Paramètres**, **Journaux d'audit**, **Supprimer l'alerte** |
 
-**Basique** et **Notes d'alerte** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
+**Vue d'ensemble**, **Investigation**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 
 - **Vue d'ensemble** — trois tuiles indiquant le temps qu'il a fallu pour prendre en compte et résoudre l'alerte, et sa **Durée**. La carte **Investigation IA** ouvre la page, avec **Ask OneUptime AI** en bas, et le **Fil d'activité de l'alerte** consigne tout ce qui est arrivé à l'alerte. À côté se trouvent la carte **Détails de l'alerte**, les mesures de l'alerte et ses **Ressources affectées**.
 - **Chronologie d'état** — chaque état dans lequel l'alerte a été, quand et pendant combien de temps. Voir [La chronologie d'état](/docs/alerts/states-and-severities#la-chronologie-détat).
 - **Incidents liés** — les incidents dont cette alerte fait partie, avec **Lier l'incident** et **Déclarer un incident**.
-- **Paramètres** — **Qui peut voir cette alerte**, avec l'interrupteur **Alerte privée**, et **Reminders**, avec **Envoyer des rappels**. Chaque interrupteur enregistre dès que vous le basculez.
+- **Paramètres** — **Qui peut voir cette alerte**, avec l'interrupteur **Alerte privée**, et **Rappels**, avec **Envoyer des rappels**. Chaque interrupteur enregistre dès que vous le basculez.
 
 ## Alertes privées
 

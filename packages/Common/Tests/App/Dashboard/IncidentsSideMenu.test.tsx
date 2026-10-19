@@ -101,7 +101,6 @@ describe("Incidents side menu", () => {
         "Episodes",
         "AI",
         "Workspace",
-        "Integrations",
         "Rules",
         "Settings",
         "Developer",
@@ -110,8 +109,7 @@ describe("Incidents side menu", () => {
 
     /*
      * The maintainer's picture of this menu: Overview and Episodes open, and
-     * AI, Workspace, Rules and Settings folded down to their titles - and
-     * Integrations (Huntress), set up once, folded too.
+     * AI, Workspace, Rules and Settings folded down to their titles.
      */
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
       await renderIncidentsMenu();
@@ -120,7 +118,6 @@ describe("Incidents side menu", () => {
       expect(isExpanded("Episodes")).toBe(true);
       expect(isExpanded("AI")).toBe(false);
       expect(isExpanded("Workspace")).toBe(false);
-      expect(isExpanded("Integrations")).toBe(false);
       expect(isExpanded("Rules")).toBe(false);
       expect(isExpanded("Settings")).toBe(false);
       expect(isExpanded("Developer")).toBe(false);
@@ -178,6 +175,11 @@ describe("Incidents side menu", () => {
       ]);
     });
 
+    /*
+     * Episodes holds the two lists and nothing else: its "Documentation"
+     * page, a manual drawn in the product, gave way to the docs, which the
+     * episode list links to.
+     */
     test("the overview, episode and workspace sections are unchanged by the move", async () => {
       await renderIncidentsMenu();
 
@@ -194,10 +196,6 @@ describe("Incidents side menu", () => {
         {
           title: "Active Episodes",
           href: routeFor(PageMap.UNRESOLVED_INCIDENT_EPISODES),
-        },
-        {
-          title: "Documentation",
-          href: routeFor(PageMap.INCIDENT_EPISODE_DOCS),
         },
       ]);
 
@@ -500,6 +498,11 @@ describe("Incidents side menu", () => {
           title: "Linked Alerts",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS),
         },
+        // Whether an incident can be in only one episode.
+        {
+          title: "Episode Membership",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP),
+        },
         /*
          * How numbers look and which comes next, on a page named for them.
          * It was More Settings, then Number Prefix.
@@ -569,6 +572,46 @@ describe("Incidents side menu", () => {
 
       expect(isExpanded("Settings")).toBe(true);
       expect(isExpanded("Rules")).toBe(false);
+    });
+
+    test("lists Episode Membership at settings/episode-membership, apart from the Episodes section's own pages", async () => {
+      await renderIncidentsMenu();
+
+      const episodes: Array<MenuLink> = linksIn("Settings").filter(
+        (link: MenuLink): boolean => {
+          return link.title === "Episode Membership";
+        },
+      );
+
+      expect(episodes).toEqual([
+        {
+          title: "Episode Membership",
+          href: `/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`,
+        },
+      ]);
+      // Named apart from the Episodes section, so no two say the same.
+      expect(
+        linksIn("Settings").map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).not.toContain("Episodes");
+      // The Episodes section still lists the episodes, not the setting.
+      expect(
+        linksIn("Episodes").map((link: MenuLink): string => {
+          return link.href;
+        }),
+      ).not.toContain(
+        `/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`,
+      );
+    });
+
+    test("opens itself on the Episode Membership page, and marks only it", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`);
+      await renderIncidentsMenu();
+
+      expect(isExpanded("Settings")).toBe(true);
+      expect(isExpanded("Rules")).toBe(false);
+      expect(activeLinkTitles()).toEqual(["Episode Membership"]);
     });
 
     test("does not hold the AI settings page or the auto-remediation rules, which are in AI", async () => {
@@ -767,47 +810,28 @@ describe("Incidents side menu", () => {
 
       expect(mobileSummaryText()).toContain("Settings / Linked Alerts");
     });
+
+    test("names the Settings section on the Episode Membership page", async () => {
+      goTo(`/dashboard/${PROJECT_ID}/incidents/settings/episode-membership`);
+      await renderIncidentsMenu();
+
+      expect(mobileSummaryText()).toContain("Settings / Episode Membership");
+    });
   });
 
   /*
-   * Integrations: the tools that open incidents here, Huntress first. Set
-   * up once and rarely revisited, so folded like Rules, opening itself on
-   * its own pages.
+   * Huntress had a section of its own here, Integrations. It is set up with
+   * a workflow now, like every other tool OneUptime connects to, so the menu
+   * names no tool: Workflows is where they are.
    */
-  describe("the Integrations section", () => {
-    test("holds Huntress, to the Huntress page", async () => {
+  describe("tools that open incidents", () => {
+    test("have no section of their own: no Integrations, no Huntress", async () => {
       await renderIncidentsMenu();
 
-      expect(linksIn("Integrations")).toEqual([
-        {
-          title: "Huntress",
-          href: routeFor(PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS),
-        },
-      ]);
-    });
-
-    test("starts collapsed, with its link still reachable", async () => {
-      await renderIncidentsMenu();
-
-      expect(isExpanded("Integrations")).toBe(false);
-      expect(linksIn("Integrations")).toHaveLength(1);
-    });
-
-    test("opens itself on the Huntress page, and on a connection's page", async () => {
-      goTo(routeFor(PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS));
-      await renderIncidentsMenu();
-
-      expect(isExpanded("Integrations")).toBe(true);
-      expect(activeLinkTitles()).toContain("Huntress");
-
-      cleanup();
-
-      goTo(
-        `/dashboard/${PROJECT_ID}/incidents/integrations/huntress/6d1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b`,
-      );
-      await renderIncidentsMenu();
-
-      expect(isExpanded("Integrations")).toBe(true);
+      expect(sectionTitlesInOrder()).not.toContain("Integrations");
+      expect(
+        screen.queryByRole("link", { name: /huntress/i }),
+      ).not.toBeInTheDocument();
     });
   });
 });

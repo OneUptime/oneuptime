@@ -29,6 +29,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # looks, because operator and receiver schemas move between releases.
 COLLECTOR_IMAGE="otel/opentelemetry-collector-contrib:0.161.0"
 
+# The same image at the tag the Kubernetes agent chart pinned before this one
+# (its image.tag), which `helm upgrade --reuse-values` keeps: see the
+# Kubernetes agent section below. Not a pin of its own, so it is written from
+# COLLECTOR_IMAGE (ContainerImageHardening.test.js holds every pin to one
+# version).
+REUSE_VALUES_COLLECTOR_IMAGE="${COLLECTOR_IMAGE%:*}:0.96.0"
+
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
@@ -155,6 +162,9 @@ ENV_ARGS=(
 
 failures=0
 
+# The collector `validate` runs; one section below sets another for a while.
+VALIDATE_IMAGE="${COLLECTOR_IMAGE}"
+
 validate() {
   local label="$1"
   local config="$2"
@@ -169,7 +179,7 @@ validate() {
     "$@" \
     "${STUB_MOUNTS[@]}" \
     -v "$(dirname "${config}")":/validate:ro \
-    "${COLLECTOR_IMAGE}" \
+    "${VALIDATE_IMAGE}" \
     validate --config "/validate/$(basename "${config}")"; then
     echo "    ok"
   else
@@ -338,6 +348,65 @@ fs.writeFileSync(out, config);
 validate "kubernetes-agent / collector Deployment, ebpf.dropUnlinkedClientCalls=true" \
   "${WORK_DIR}/k8s-deployment-client-calls.yaml"
 
+# The collector a `helm upgrade --reuse-values` keeps. That upgrade renders the
+# new chart with the previous release's values, image.tag included, so a
+# release from before 0.161.0 runs this chart's configs on 0.96.0 (NOTES.txt
+# warns about it, templates/_stale-defaults.tpl). A key 0.96.0 does not know
+# would stop its agent, so both configs are validated there too, rendered for
+# that tag (the chart writes the few newer keys only for a collector that has
+# them: kubernetes-agent.collectorAtLeast). 0.96.0's k8sobjects receiver asks
+# the API server for its resources while `validate` builds it, which nothing
+# here can answer, so the Deployment config goes without that receiver (and
+# the events pipeline it alone feeds); the chart writes it the same for every
+# collector.
+echo "==> rendering kubernetes-agent chart for ${REUSE_VALUES_COLLECTOR_IMAGE}"
+helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+  --set clusterName=validate-only \
+  --set oneuptime.url=https://oneuptime.example.com \
+  --set oneuptime.apiKey=validate-only \
+  --set logs.enabled=true \
+  --set logs.mode=daemonset \
+  --set image.tag="${REUSE_VALUES_COLLECTOR_IMAGE##*:}" \
+  >"${WORK_DIR}/kubernetes-agent-reuse-values.rendered.yaml"
+node -e '
+const fs = require("fs");
+const path = require("path");
+const yaml = require("js-yaml");
+
+const [rendered, outDir] = process.argv.slice(1);
+const docs = yaml.loadAll(fs.readFileSync(rendered, "utf8"));
+for (const role of ["deployment", "daemonset"]) {
+  const configMap = docs.find((doc) => {
+    return doc && doc.kind === "ConfigMap" && doc.metadata.name === `validate-kubernetes-agent-${role}`;
+  });
+  if (!configMap) {
+    throw new Error(`${rendered}: no ${role} collector ConfigMap`);
+  }
+  const config = yaml.load(configMap.data["otel-collector-config.yaml"]);
+  if (role === "deployment") {
+    if (!config.receivers.k8sobjects) {
+      throw new Error(`${rendered}: the Deployment config has no k8sobjects receiver to set aside`);
+    }
+    delete config.receivers.k8sobjects;
+    for (const [name, pipeline] of Object.entries(config.service.pipelines)) {
+      pipeline.receivers = pipeline.receivers.filter((receiver) => {
+        return receiver !== "k8sobjects";
+      });
+      if (pipeline.receivers.length === 0) {
+        delete config.service.pipelines[name];
+      }
+    }
+  }
+  fs.writeFileSync(path.join(outDir, `k8s-reuse-values-${role}.yaml`), yaml.dump(config));
+}
+' "${WORK_DIR}/kubernetes-agent-reuse-values.rendered.yaml" "${WORK_DIR}"
+VALIDATE_IMAGE="${REUSE_VALUES_COLLECTOR_IMAGE}"
+validate "kubernetes-agent / collector DaemonSet on ${REUSE_VALUES_COLLECTOR_IMAGE}" \
+  "${WORK_DIR}/k8s-reuse-values-daemonset.yaml"
+validate "kubernetes-agent / collector Deployment on ${REUSE_VALUES_COLLECTOR_IMAGE}, without k8sobjects" \
+  "${WORK_DIR}/k8s-reuse-values-deployment.yaml"
+VALIDATE_IMAGE="${COLLECTOR_IMAGE}"
+
 # The VMware config lists the receiver's optional metrics in a comment and
 # tells users to enable any of them "the same way", and OneUptime's VMware
 # metric catalog asks for three of them (vcenter.host.memory.active /
@@ -457,4 +526,4 @@ if [ "${failures}" -ne 0 ]; then
 fi
 
 echo
-echo "all collector configs validated against ${COLLECTOR_IMAGE}"
+echo "all collector configs validated against ${COLLECTOR_IMAGE}, and the Kubernetes agent's against ${REUSE_VALUES_COLLECTOR_IMAGE} too"

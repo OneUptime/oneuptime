@@ -17,12 +17,12 @@
 
 ```mermaid title="یک ایمیل چگونه به یک مانیتور می‌رسد"
 sequenceDiagram
-    participant Sender as سرور ایمیل فرستنده
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as سرور ایمیل<br/>فرستنده
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: ایمیل به نشانی مانیتور (از راه رکورد MX شما)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: تطبیق نشانی با یک مانیتور یا یک گردش‌کار
+    Sender->>SendGrid: ایمیل به نشانی<br/>مانیتور (از راه<br/>رکورد MX شما)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: تطبیق نشانی<br/>با یک مانیتور<br/>یا یک گردش‌کار
     OneUptime-->>SendGrid: HTTP 200 OK
 ```
 
@@ -49,7 +49,7 @@ sequenceDiagram
 
 ‏DNS نام میزبان وب‌هوک را منتشر کنید و گواهی‌ای ارائه دهید که کلاینت‌های عمومی به آن اعتماد دارند. یک استقرار خصوصی OneUptime می‌تواند فقط مسیر وب‌هوک را از راه یک پراکسی معکوس یا دروازهٔ عمومی که از داخل به OneUptime می‌رسد در دسترس بگذارد. مسیر، راز، نوع محتوا و بدنهٔ چندبخشی درخواست را دست‌نخورده نگه دارید، و بگذارید POST بدون ورود تعاملی یا چالش مرورگر عبور کند. سرور OneUptime به شنوندهٔ SMTP ورودی نیاز ندارد. [راه‌اندازی Inbound Parse در SendGrid](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook) را ببینید.
 
-`INBOUND_EMAIL_WEBHOOK_SECRET` را روی یک مقدار تصادفی قوی بگذارید و `YOUR_SECRET` را در URL با همان مقدار جایگزین کنید. مسیر به آخرین بخش مسیر نیاز دارد. وقتی راز پیکربندی شده باشد، OneUptime مقدار آن را بررسی می‌کند؛ خالی گذاشتن متغیر این بررسی را خاموش می‌کند. URL کامل و نشانی‌های ایمیل مانیتورها را محرمانه نگه دارید، از جمله در لاگ‌های پراکسی. ‏OneUptime در حال حاضر سرآیندهای امضاشدهٔ Inbound Parse در SendGrid یا توکن‌های OAuth را اعتبارسنجی نمی‌کند. اگر به این سازوکارها نیاز دارید، طبق [مستندات امنیت وب‌هوک SendGrid](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) دروازه‌ای پیکربندی کنید که پیش از فرستادن به OneUptime آن‌ها را اعتبارسنجی کند.
+`INBOUND_EMAIL_WEBHOOK_SECRET` را روی یک مقدار تصادفی قوی بگذارید و `YOUR_SECRET` را در URL با همان مقدار جایگزین کنید. مسیر به آخرین بخش مسیر نیاز دارد، و OneUptime ایمیلی را تنها وقتی می‌پذیرد که آن بخش همان راز باشد. تا وقتی راز تنظیم نشده، هر ایمیل با `503` رد می‌شود و SendGrid تا سه روز دوباره تلاش می‌کند. URL کامل و نشانی‌های ایمیل مانیتورها را محرمانه نگه دارید، از جمله در لاگ‌های پراکسی. ‏OneUptime در حال حاضر سرآیندهای امضاشدهٔ Inbound Parse در SendGrid یا توکن‌های OAuth را اعتبارسنجی نمی‌کند. اگر به این سازوکارها نیاز دارید، طبق [مستندات امنیت وب‌هوک SendGrid](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) دروازه‌ای پیکربندی کنید که پیش از فرستادن به URL کامل آن‌ها را اعتبارسنجی کند.
 
 ‏SendGrid فهرست قابل اتکایی از IPهای مبدأ ثابت برای Inbound Parse ارائه نمی‌دهد. IPهای ارسال ایمیل آن و نشانی‌هایی که برای `mx.sendgrid.net` به دست می‌آیند، فهرست مجاز وب‌هوک نیستند. به‌جای ثابت کردن یک نتیجهٔ DNS فعلی، [راهنمای دیوار آتش SendGrid](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) را دنبال کنید.
 
@@ -114,6 +114,8 @@ inboundEmail:
 ```
 :::
 
+`INBOUND_EMAIL_WEBHOOK_SECRET` الزامی است: تا وقتی خالی است یا هنوز یکی از جای‌نگهدارهای همین صفحه است، OneUptime هر ایمیل را رد می‌کند. `openssl rand -hex 32` یک مقدار تصادفی بلند می‌سازد.
+
 سپس آن‌ها را اعمال کنید: در Docker Compose دستور `npm run start` را اجرا کنید، که کانتینرها را با مقدارهای تازه دوباره می‌سازد، یا در Kubernetes نسخهٔ Helm را ارتقا دهید.
 
 ### یک مانیتور Incoming Email بسازید
@@ -133,7 +135,7 @@ inboundEmail:
 | --- | --- | --- | --- | --- |
 | `INBOUND_EMAIL_PROVIDER` | `inboundEmail.provider` | ارائه‌دهندهٔ ایمیل ورودی. SendGrid تنها گزینه است. | خیر | `SendGrid` |
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | زیردامنهٔ پیکربندی‌شده برای ایمیل‌های ورودی. تا وقتی تنظیم نشود، ایمیل ورودی خاموش است. | بله | خالی |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | رازی که با آخرین بخش URL وب‌هوک مقایسه می‌شود: `/incoming-email/sendgrid/YOUR_SECRET`. آن را برای نقطه‌های پایانی عمومی پیکربندی کنید؛ مقدار خالی اعتبارسنجی را خاموش می‌کند. | توصیه‌شده | خالی |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | رازی که آخرین بخش URL وب‌هوک باید با آن یکی باشد: `/incoming-email/sendgrid/YOUR_SECRET`. تا وقتی خالی یا جای‌نگهدار است، هر ایمیل رد می‌شود. | بله | خالی |
 
 اینکه یک مانیتور Incoming Email بر چه چیزهایی می‌تواند تطبیق دهد - موضوع، فرستنده، متن، گیرنده، و اینکه آیا ایمیلی به‌موقع رسیده است - در [انواع فیلتر موجود](/docs/monitor/incoming-email-monitor#نوعهای-فیلتر-در-دسترس) آمده است.
 
@@ -149,6 +151,7 @@ inboundEmail:
 1. **مسیر عمومی وب‌هوک را بررسی کنید:** URL کامل، همراه با رازش، باید از اینترنت به OneUptime برسد. URL بدون آخرین بخش رازش با مسیر جور نیست.
 2. **قواعد دیوار آتش را بررسی کنید:** درخواست‌های HTTPS POST به مسیر وب‌هوک را بدون تغییر مسیر به صفحهٔ ورود یا چالش مرورگر مجاز کنید، و IPهای ارسال ایمیل SendGrid را به‌عنوان فهرست مجاز مبدأ وب‌هوک به کار نبرید.
 3. **گواهی SSL را بررسی کنید:** برای نام میزبان وب‌هوک از یک گواهی معتبر و مورد اعتماد عموم استفاده کنید و زنجیرهٔ گواهی آن را هم بگنجانید.
+4. **راز وب‌هوک را بررسی کنید:** پایان Destination URL باید مقدار `INBOUND_EMAIL_WEBHOOK_SECRET` باشد. تا وقتی این متغیر خالی یا جای‌نگهدار است، هر ایمیل با `503` رد می‌شود و لاگ سرویس `app` هنگام شروع به کار این را می‌گوید؛ ایمیلی که به نشانی‌ای با پایانی دیگر فرستاده شود، با `403` رد می‌شود.
 :::
 
 :::details مانیتور هشدار نمی‌سازد
@@ -164,7 +167,7 @@ inboundEmail:
 ## بهترین شیوه‌های امنیتی
 
 1. **از HTTPS استفاده کنید:** همیشه برای نقطهٔ پایانی وب‌هوک خود از HTTPS استفاده کنید
-2. **راز وب‌هوک:** `INBOUND_EMAIL_WEBHOOK_SECRET` را پیکربندی کنید و برای اعتبارسنجی بیشتر آن را در URL وب‌هوک خود بگنجانید (برای نمونه، `/incoming-email/sendgrid/your-secret`)
+2. **راز وب‌هوک:** برای `INBOUND_EMAIL_WEBHOOK_SECRET` یک مقدار تصادفی بلند و از آنِ خودتان در انتهای URL وب‌هوک به کار ببرید (برای نمونه، `/incoming-email/sendgrid/your-secret`): همین است که ایمیل‌های SendGrid را از ایمیل‌های دیگران جدا می‌کند
 3. **تأیید دامنه:** برای امنیت بهتر ایمیل، دامنهٔ خود را در SendGrid تأیید کنید
 4. **دسترسی را محدود کنید:** فقط برای منابع ایمیل مورد اعتماد مانیتور بسازید
 5. **لاگ‌ها را پایش کنید:** لاگ‌های ایمیل ورودی را به‌طور منظم برای فعالیت مشکوک مرور کنید

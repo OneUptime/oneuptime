@@ -21,9 +21,9 @@ stateDiagram-v2
     state "キャンセル済み" as Cancelled
     [*] --> Scheduled: 実行を開始
     Scheduled --> Running: Worker が取得
-    Running --> WaitingForManualStep: 手動ステップまたは承認
-    WaitingForManualStep --> Scheduled: 完了、承認、スキップ
-    Running --> Completed: すべてのステップが完了
+    Running --> WaitingForManualStep: 手動ステッ<br/>プまたは承認
+    WaitingForManualStep --> Scheduled: 完了、承認、<br/>スキップ
+    Running --> Completed: すべての<br/>ステップが完了
     Running --> Failed: ステップが失敗
     Scheduled --> Cancelled: 実行をキャンセル
     Running --> Cancelled: 実行をキャンセル
@@ -118,7 +118,7 @@ Runbook の実行は次の 5 つの方法で作成されます。
 
 | 場所 | 表示される内容 |
 | --- | --- |
-| Runbook の **実行** | その Runbook のすべての実行。ステータスと開始日のフィルター、 **トリガー元** 列があります。 |
+| Runbook の **ログ → 実行** | その Runbook のすべての実行。ステータスと開始日のフィルター、 **トリガー元** 列があります。 |
 | **Runbook → 実行** | プロジェクト内のすべての Runbook のすべての実行。 |
 | インシデント、アラート、イベントの **Runbook** ページ | それに関連付けられた実行。実行があれば、イベントの概要にも表示されます。 |
 
@@ -129,7 +129,7 @@ Runbook の実行は次の 5 つの方法で作成されます。
 :::
 
 :::details 実行の開始が「Runbook is disabled」または「Runbook has no steps to run」で失敗する
-Runbook の **設定** ページで **この Runbook を実行** スイッチがオフになっているか、保存済みのステップがありません。スイッチをオンにするかステップを追加し、 **ステップを保存** をクリックします。
+Runbook の **設定** ページで **この Runbook を実行** スイッチがオフになっているか、保存済みのステップがありません。スイッチをオンにするかステップを追加し、 **ステップを保存** をクリックします。Runbook の **概要** にどちらかが表示され、 **Runbook をオンにする** または **ステップを追加** で解決できます。
 :::
 
 :::details Runner または認証情報がないためにステップが失敗した

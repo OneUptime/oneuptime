@@ -5,6 +5,7 @@ Koppel OneUptime aan Slack om incidenten, waarschuwingen, episodes, gepland onde
 :::cards
 - [Slack koppelen](#slack-koppelen): Installeer OneUptime in je workspace en koppel daarna je eigen account.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
+- [Wie er in het kanaal van een record zit](#wie-er-in-het-kanaal-van-een-record-zit): Zie wie erin zit, neem deel en voeg mensen toe, vanaf de pagina van het record.
 - [Het commando /oneuptime](#het-commando-oneuptime): Meld incidenten, plan onderhoud, zie wie er dienst heeft en stel vragen aan AI.
 - [Gebruikersgroepen voor bereikbaarheid](#gebruikersgroepen-voor-bereikbaarheid): Houd een gebruikersgroep gelijk aan wie er dienst heeft, en roep die op.
 - [Handelen op incidenten, waarschuwingen en gebeurtenissen vanuit Slack](#handelen-op-incidenten-waarschuwingen-en-gebeurtenissen-vanuit-slack): De knoppen in de berichten van OneUptime.
@@ -71,7 +72,7 @@ Een regel aanmaken gaat in vier stappen:
 | Stap | Wat je instelt |
 | --- | --- |
 | **Basis** | **Regelnaam** en **Regelbeschrijving**. |
-| **Voorwaarden** | Voor welke gebeurtenissen de regel geldt, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Ze worden gecontroleerd wanneer een gebeurtenis wordt aangemaakt en opnieuw bij elke update die OneUptime erover plaatst, dus een regel voor bevestigde incidenten werkt zodra een incident wordt bevestigd. Zonder voorwaarden geldt de regel voor elke gebeurtenis. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
+| **Voorwaarden** | Voor welke gebeurtenissen de regel geldt, bijvoorbeeld op ernst, status, label, monitor of woorden in de titel. Ze worden gecontroleerd wanneer een gebeurtenis wordt aangemaakt en opnieuw bij elke update die OneUptime erover plaatst, dus een regel voor bevestigde incidenten werkt zodra een incident wordt bevestigd. Een nieuwe regel geldt voor elke gebeurtenis, bijvoorbeeld **Alle incidenten**. Om de regel in te perken, kies **Alleen incidenten die aan de voorwaarden voldoen** en voeg de voorwaarden toe. Met twee of meer bepaalt **Overeenkomstvoorwaarde** of ze allemaal moeten kloppen, of één ervan. |
 | **Bestemming** | Waar hij plaatst: **In bestaande kanalen plaatsen** met de kanaalnamen, **Een kanaal aanmaken voor elk incident** (of waarschuwing, episode, evenement, monitor of bereikbaarheidsbeleid) met wie er lid van wordt, of allebei. Onder de stap zegt **Wat deze regel doet** het in zinnen, zoals de kaart van de regel. |
 | **Video Call** | Alleen incidenten en waarschuwingen: start voor elk een gesprek. Zie [Videogesprekken](/docs/workspace-connections/video-calls). |
 
@@ -88,6 +89,20 @@ Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een ei
 Een kanaal blijft leesbaar: elke gebeurtenis wordt één keer geplaatst, en de eerste status van een record staat in het bericht dat het record aankondigt, niet in een eigen bericht. Een uitvoering van een bereikbaarheidsbeleid is één bericht dat wordt bewerkt terwijl de uitvoering escaleert: wie werd opgeroepen, hoe vaak en hoe, wie niet en waarom, en wie bevestigde. Een nieuw bericht wordt alleen geplaatst als iemand moet handelen: een escalatieregel bereikte niemand, of de uitvoering eindigde zonder dat iemand bevestigde. Iemand van wie het Slack-account niet met OneUptime is verbonden, kan niet aan een kanaal worden toegevoegd; OneUptime zegt dat één keer per kanaal, in één bericht dat hen allemaal noemt en wordt bewerkt als de lijst groeit. Stuur ze de link **Connect Slack account** uit dat bericht, zodat ze hun account in één stap koppelen. Dat de eigenaren van het record of de abonnees van de statuspagina bericht kregen, blijft in zijn feed in OneUptime staan.
 
 **Projectinstellingen** > **Werkruimte** > **Slack** toont de kanalen die OneUptime kan zien, met **Test verzenden** naast elk kanaal. OneUptime treedt zelf toe tot een openbaar kanaal de eerste keer dat het daar plaatst. Een privékanaal wordt pas getoond, en kan pas berichten ontvangen, nadat de app van OneUptime er in Slack voor is uitgenodigd.
+
+## Wie er in het kanaal van een record zit
+
+Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen Slack-kanaal heeft een kaart **Slack-kanaal** op zijn pagina in OneUptime. De kaart toont het kanaal, als link die het in Slack opent, of het privé is en wie erin zit, jij eerst. Vanaf de kaart, zonder Slack-beheerder:
+
+- **Deelnemen aan kanaal** voegt jou toe, als je niet in het kanaal zit.
+- **Mensen toevoegen** opent een lijst van de mensen en teams van het project: kies iemand om die toe te voegen, of een team om iedereen erin toe te voegen.
+
+De app van OneUptime voegt ze toe, zoals hij de mensen van het kanaal van een regel toevoegt. De app blijft in de kanalen die hij aanmaakt, dus dit werkt ook voor een privékanaal dat iedereen heeft verlaten.
+
+- **Wie mensen mag toevoegen.** Wie het record mag bewerken: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** en **Incident Member** voor een incident, of **Edit Incident** in een aangepaste rol, en dezelfde toestemming voor een waarschuwing, een episode of een gebeurtenis (bijvoorbeeld **Edit Alert**). Ieder ander ziet wie er in het kanaal zit, en hoe je erin komt.
+- **Wie kan worden toegevoegd.** Iemand die OneUptime in Slack vindt: via het Slack-account dat diegene heeft gekoppeld, of anders via het e-mailadres dat Slack van diegene heeft. De kaart noemt wie hij niet kon toevoegen, en waarom, zoals een gast die Slack buiten het kanaal houdt.
+- **Wat wordt vastgelegd.** Wie is toegevoegd, en door wie, in de feed van het record (**Kanaallid toegevoegd**) en in **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**, op het tabblad **Werkruimte**.
+- **Iemand eruit halen.** OneUptime voegt alleen toe: haal iemand in Slack uit het kanaal.
 
 ## Een regel testen
 
@@ -128,7 +143,7 @@ Reageer op een bericht in het kanaal van een incident, waarschuwing, episode of 
 | Reactie | Opgeslagen als |
 | --- | --- |
 | 📌 Een punaise-emoji, of Slacks eigen **Pin to channel** | Een privénotitie, alleen zichtbaar voor je team |
-| 📢 Een megafoon- of luidspreker-emoji | Een openbare notitie, getoond op de statuspagina. Alleen incidenten en geplande onderhoudsgebeurtenissen. |
+| 📢 Een megafoon- of luidspreker-emoji | Een openbare notitie, getoond op de statuspagina. Alleen incidenten en geplande onderhoudsgebeurtenissen. Bij een privé-incident een privénotitie, en de bevestiging zegt waarom. |
 
 De notitie houdt het bericht zoals Slack het liet zien: de opmaak, links en code, de personen en kanalen die het noemt bij naam, en de bestanden en afbeeldingen als links ernaar. Een openbare notitie laat de bestanden en afbeeldingen weg, omdat die alleen voor je team opengaan.
 
@@ -242,6 +257,7 @@ De knoppen in de Slack-berichten van OneUptime handelen ook als jou: als het One
 - **Wie ze mag gebruiken.** De mensen die dezelfde wijziging in OneUptime mogen maken. Een incident bevestigen, oplossen of de status ervan wijzigen vereist rechten om de status te wijzigen: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** en **Incident Member**, of **Create Incident State Timeline** in een aangepaste rol. Een waarschuwing, een episode of een geplande onderhoudsgebeurtenis vereist dezelfde rechten voor het eigen soort (**Create Alert State Timeline**, bijvoorbeeld), en een notitie vereist rechten om dat soort notitie te plaatsen. Ieder ander krijgt dat te horen, en er verandert niets.
 - **Welke records.** Die je mag lezen, net als in OneUptime: met een rol die tot enkele labels beperkt is, de incidenten, waarschuwingen, episodes en gebeurtenissen met die labels. Een knop op een ander record, of op een uit een ander project, krijgt als antwoord dat het record "was not found in this project, or you do not have access to it.", en er verandert niets. Op OneUptime Cloud wordt een wijziging die het abonnement van het project niet omvat, geweigerd met het abonnement dat ervoor nodig is.
 - **Wat Change State aanbiedt.** De statussen die je mag lezen en waarnaar het record als volgende mag gaan, in de volgorde van het project: geen enkele vóór de status waarin het staat, voor een episode net als voor een incident, een waarschuwing of een geplande onderhoudsgebeurtenis, omdat een statuswijziging een record nooit terug omhoog in zijn lijst zet (zie [De volgorde is een echte beperking, geen weergavevoorkeur](/docs/incidents/states-and-severities#de-volgorde-is-een-echte-beperking-geen-weergavevoorkeur)). Als je er geen enkele mag lezen, krijg je te horen "No incident states are available to you in this project. Ask a project admin for access to them."; als het record in de laatste status staat die het kan bereiken, krijg je te horen "There is no later state to move this incident to." Geen van beide opent een leeg formulier.
+- **Add Note bij een privé-incident of privé-episode.** Een privé-incident of privé-episode krijgt geen openbare notities, dus het formulier vraagt niet om een notitietype en voegt een privénotitie toe. Een formulier dat werd geopend voordat het privé werd, voegt ook een privénotitie toe, en zegt dat. Zie [Privé-incidenten krijgen alleen privénotities](/docs/incidents/notes-owners-and-feed#privé-incidenten-krijgen-alleen-privénotities).
 - **Waar je antwoord krijgt.** Onder het bericht met de knop, in een bericht dat alleen jij ziet; alleen als Slack dat weigert, in een direct bericht. Een knop die te laat wordt ingedrukt, zegt wie je voor was, en wanneer, zoals "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Als je Slack-account niet gekoppeld is.** Het antwoord vraagt je het te koppelen, met een knop **Connect Slack account**. De knop opent je eigen Slack-instellingen in OneUptime en koppelt je account in één stap, nadat je zo nodig bij OneUptime bent ingelogd. Daarna maakt OneUptime af wat je indrukte, als jou, en antwoordt onder hetzelfde bericht; bij een knop die een formulier opent, of een opdracht, vraagt het je die opnieuw in te drukken of te geven. De knop werkt één keer, 30 minuten lang, en alleen voor het Slack-account dat hem indrukte: ingelogd in Slack als iemand anders koppelt hij niets.
 
@@ -259,8 +275,8 @@ OneUptime leest uit Slack alleen wat deze functies nodig hebben, met de rechten 
 
 - **Berichten aan OneUptime.** Een bericht dat het met @ noemt, een bericht dat je het in een direct bericht stuurt en je antwoorden in een gesprek ermee, samen met de eerdere berichten van die thread of dat directe bericht, zodat OneUptime AI kan antwoorden. Slack stuurt het ook de andere berichten van de kanalen en groepsberichten waarin het zit; OneUptime beantwoordt die niet en bewaart ze niet.
 - **Berichten die je als notitie opslaat.** Een bericht waarop je met 📌 of 📢 reageert, of dat je vastmaakt, in het kanaal van een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis, opgeslagen als notitie bij dat record met de naam van de schrijver.
-- **Namen van kanalen en mensen.** De kanalen waarin het kan plaatsen, zodat je ze kunt kiezen, en de namen van mensen, om te laten zien wie iets schreef of deed.
-- **E-mailadressen.** Het e-mailadres dat Slack van iemand heeft, om diens Slack-account aan diens OneUptime-account te koppelen als diegene het niet zelf heeft gekoppeld: om diegene op te roepen, of in een gebruikersgroep voor bereikbaarheid te zetten.
+- **Namen van kanalen en mensen.** De kanalen waarin het kan plaatsen, zodat je ze kunt kiezen, de namen van mensen, om te laten zien wie iets schreef of deed, en wie er in het eigen kanaal van een record zit, gelezen als de pagina van het record dat toont.
+- **E-mailadressen.** Het e-mailadres dat Slack van iemand heeft, om diens Slack-account aan diens OneUptime-account te koppelen als diegene het niet zelf heeft gekoppeld: om diegene op te roepen, in een gebruikersgroep voor bereikbaarheid te zetten of aan het kanaal van een record toe te voegen.
 - **Gebruikersgroepen.** De gebruikersgroepen van je werkruimte, om er een te kiezen voor een bereikbaarheidsschema, en de mensen in een groep die je koppelt, om die gelijk te houden aan wie er dienst heeft.
 
 Wat OneUptime ervan bewaart — de naam van de werkruimte, de kanalen, de Slack-accounts die mensen koppelen, de notities en de gebruikersgroepen — wordt bij je project opgeslagen. Het [Privacybeleid](https://oneuptime.com/legal/privacy) beschrijft hoe OneUptime met je gegevens omgaat.
@@ -272,7 +288,11 @@ Controleer de voorwaarden van de regel met **Testregel**: komt de test aan, dan 
 :::
 
 :::details Iemand ontbreekt in het kanaal van een regel
-De kaart van de regel zegt onder **Daarna** wie de regel uitnodigt. Elk soort persoon wordt lid zodra die bij het record komt: de opgeroepen mensen zodra ze worden opgeroepen, de Incident Commander zodra die wordt toegewezen, een eigenaar zodra die wordt toegevoegd, en wie al bij het record hoorde toen het kanaal werd aangemaakt. Iemand van wie het Slack-account niet aan OneUptime is gekoppeld, kan niet worden toegevoegd; OneUptime noemt die persoon in het kanaal, met een link om het account te koppelen.
+De kaart van de regel zegt onder **Daarna** wie de regel uitnodigt. Elk soort persoon wordt lid zodra die bij het record komt: de opgeroepen mensen zodra ze worden opgeroepen, de Incident Commander zodra die wordt toegewezen, een eigenaar zodra die wordt toegevoegd, en wie al bij het record hoorde toen het kanaal werd aangemaakt. Iemand van wie het Slack-account niet aan OneUptime is gekoppeld, kan niet worden toegevoegd; OneUptime noemt die persoon in het kanaal, met een link om het account te koppelen. Om iemand nu toe te voegen, druk je op **Mensen toevoegen** op de kaart **Slack-kanaal** van het record: die vindt mensen ook via het e-mailadres dat Slack van ze heeft.
+:::
+
+:::details Iedereen heeft een privékanaal verlaten
+Open het incident, de waarschuwing, de episode of de gebeurtenis in OneUptime en druk op **Deelnemen aan kanaal** op de kaart **Slack-kanaal**, en daarna op **Mensen toevoegen** om de anderen terug te halen. Daarvoor is toestemming nodig om het record te bewerken, geen Slack-beheerder: de app van OneUptime zit nog in het kanaal en voegt ze toe. Zegt de kaart dat OneUptime het kanaal niet kan zien, dan is het kanaal verwijderd of de app eruit gehaald: iemand in het kanaal kan de app terugzetten door `/invite @OneUptime` te typen.
 :::
 
 :::details Slack is niet gekoppeld

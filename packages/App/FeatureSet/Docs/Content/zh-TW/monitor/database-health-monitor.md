@@ -168,7 +168,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ### 選擇要收集的內容
 
-除非有理由關閉某個群組，否則請讓 **Metric Groups** 下的所有群組保持開啟——請參閱[指標群組](#指標群組)。
+**更多欄位** 中 **Metric Groups** 下的所有群組一開始都是開啟的。除非有理由關閉某個群組，否則請讓它們保持開啟——請參閱[指標群組](#指標群組)。
 
 ### 測試連線
 
@@ -191,13 +191,14 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **主機** | 探測器可以連到的資料庫主機（例如 `db.internal`）。 |
 | **連接埠** | 資料庫連接埠。 |
 | **資料庫名稱** | 要連線的資料庫。資料庫範圍的指標（大小、快取命中率、溢出到暫存檔）會針對這個資料庫回報；伺服器範圍的指標（連線、運作時間、複寫）會針對整個伺服器回報——Azure SQL Database 除外，在那裡只計算受監控資料庫的連線。 |
-| **Use Windows Integrated Authentication** | 僅限 Microsoft SQL Server。使用探測器處理程序的身分進行驗證，而不是使用者名稱和密碼。請參閱 SQL Query 監測器頁面上的 [Windows 整合式驗證](/docs/monitor/sql-monitor#windows-整合式驗證)——設定方式完全相同。 |
+| **驗證** | 僅限 Microsoft SQL Server：預設的 **使用者名稱與密碼**，或以探測器處理程序身分登入的 **Windows Integrated Authentication**。請參閱 SQL Query 監測器頁面上的 [Windows 整合式驗證](/docs/monitor/sql-monitor#windows-整合式驗證)——設定方式完全相同。 |
 | **使用者名稱** | 監控使用者。除非使用 Windows 整合式驗證，否則為必填。 |
 | **密碼** | 密碼。請用 `{{monitorSecrets.name}}` 參照[監測器密鑰](/docs/monitor/monitor-secrets)，而不是以純文字輸入（請參閱[使用監測器密鑰](#用監測器密鑰保存密碼)）。 |
 | **Use SSL/TLS** | 透過 TLS 連線。啟用後，對於自我簽署憑證，可以關閉 **Verify server certificate**。 |
-| **Metric Groups** | 要執行的群組：Connections、活動、Throughput、Locks and Blocking、儲存空間、Replication 和維護。預設全部開啟；請參閱[指標群組](#指標群組)。監測器的詳細資料會將它們列為 **Collected Metric Groups**。 |
 
 ### 更多欄位
+
+**Metric Groups** 也在這裡：從 Connections、活動、Throughput、Locks and Blocking、儲存空間、Replication 和維護中選擇要執行的群組。預設全部開啟；請參閱[指標群組](#指標群組)。監測器的詳細資料會將它們列為 **Collected Metric Groups**。
 
 | 欄位 | 預設值 | 最大值 | 限制的內容 |
 |---|---|---|---|
@@ -443,7 +444,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 :::
 
 :::details 每次檢查 Metric Groups Failed 都大於 0
-有一個群組在任何檢查中都無法收集，所以同一個收集問題不斷重複。監測器摘要會寫明群組、原因以及修正它的 `GRANT`。請執行這個授權；如果取得不了權限，就在 **Metric Groups** 中關閉該群組，讓問題不再重複出現。
+有一個群組在任何檢查中都無法收集，所以同一個收集問題不斷重複。監測器摘要會寫明群組、原因以及修正它的 `GRANT`。請執行這個授權；如果取得不了權限，就在 **更多欄位 → Metric Groups** 中關閉該群組，讓問題不再重複出現。
 :::
 
 ## 後續步驟

@@ -21,13 +21,13 @@ sequenceDiagram
     actor U as ユーザー
     participant O as OneUptime
     participant I as アイデンティティプロバイダー
-    U->>O: SSOでログイン、プロジェクトを選択
-    O->>I: サインオン URL への SAML リクエスト
+    U->>O: SSOでログイン、<br/>プロジェクトを選択
+    O->>I: サインオン URL への<br/>SAML リクエスト
     I->>U: サインインページ
     U->>I: 認証情報と MFA
-    I->>O: 署名付きアサーションを応答 URL へ
-    Note over O: 署名と発行者を確認し、<br/>Name ID からメールアドレスを読み取る
-    O->>U: プロジェクトにサインイン済み
+    I->>O: 署名付きアサーションを<br/>応答 URL へ
+    Note over O: 署名と発行者を確認し、<br/>Name ID から<br/>メールアドレスを読み取る
+    O->>U: プロジェクトに<br/>サインイン済み
 ```
 
 OneUptime は、IdP が送信するアサーションから次のものだけを読み取ります。
@@ -36,13 +36,21 @@ OneUptime は、IdP が送信するアサーションから次のものだけを
 | --- | --- |
 | 署名 | プロバイダーの **公開証明書** と照合します。レスポンスは署名されている必要があり、暗号化されていてはいけません。 |
 | Issuer | プロバイダーの **発行者** と完全に一致する必要があります。 |
+| Audience | プロバイダーの **識別子（エンティティ ID）** である必要があります。IdP が別のアプリケーション向けに作成したレスポンスは拒否されます。 |
+| Recipient と Destination | プロバイダーの **応答 URL**、つまりレスポンスの送信先アドレスである必要があります。 |
+| `NotBefore` と `NotOnOrAfter` | レスポンスは、これらが許す間だけ、かつ発行から 10 分以内に限って受け付けられます。ずれている時計のために 3 分の猶予があります。 |
 | Name ID | その人のメールアドレスです。有効なメールアドレスである必要があります。 |
-| `http://schemas.microsoft.com/identity/claims/displayname` | その人の名前で、OneUptime がアカウントを作成するときに使います。省略可能です。 |
+| 名前の属性 | その人の名前で、OneUptime がアカウントを作成するときに使います。表示名（`displayName` または `http://schemas.microsoft.com/identity/claims/displayname`）か、名と姓（`firstName` と `lastName`、または Microsoft Entra ID がデフォルトで送る `givenname` と `surname` のクレーム）です。省略可能です。 |
+| `http://schemas.microsoft.com/identity/claims/objectidentifier` | その人のオブジェクト ID で、Microsoft Entra ID がデフォルトで送ります。プロバイダーを通じた最初のサインインでアカウントがこの ID に紐付けられ、その後、アカウントのメールアドレスを別のオブジェクト ID とともに示すサインインは拒否されます。省略可能です。 |
+
+各レスポンスでサインインできるのは 1 回だけです。サインイン後にブラウザーで戻るなどして再送されたレスポンスは拒否されます。もう一度サインインしてください。
 
 初めてサインインした人はプロバイダーの **チーム** に参加し、そのチームによってできることが決まります。[SSO ユーザーのロールとチーム](#sso-ユーザーのロールとチーム) をご覧ください。
 
 > [!NOTE]
 > OneUptime Cloud では、プロジェクトの SAML または OIDC プロバイダーで初めてそのプロジェクトにサインインする人に対して、OneUptime はサインインさせる代わりにリンクをメールで送ります。その人はリンクを開き、プロジェクトのシングルサインオンによるサインインを確認してから、サインインを続けます。リンクの有効期間は 24 時間です。これはプロジェクトごとに 1 回行われ、プロジェクトを離れて戻ってきたときにも再度行われます。セルフホスト環境では、すぐにサインインします。
+
+OneUptime Cloud では、SSO でプロジェクトに参加した人も、招待した人と同じようにシートを使います。プランのシート数が決まっていて、すべて使用中の場合、シートが空くまで新しい人は SSO で参加できません。
 
 ## SSO の設定
 
@@ -56,7 +64,7 @@ SSO プロバイダーを追加する権限（**Project Owner**、**Project Admi
 
 2. **SSO 設定を作成する**
 
-   - **SSOを作成** をクリックします
+   - **SAML プロバイダーを追加** をクリックします
    - SSO 設定の **名前** を入力します（例: "Keycloak SAML" または "Okta SAML"）
    - アイデンティティプロバイダーの **サインオン URL** を入力します
    - アイデンティティプロバイダーの **発行者**（エンティティ ID）を入力します
@@ -100,7 +108,7 @@ Keycloak は、人気のあるオープンソースの ID およびアクセス�
 
 2. **OneUptime でプロバイダーを作成する**
 
-   **プロジェクト設定** > **セキュリティ** > **SSO** に移動し、**SSOを作成** をクリックして次のように入力します。
+   **プロジェクト設定** > **セキュリティ** > **SSO** に移動し、**SAML プロバイダーを追加** をクリックして次のように入力します。
    - **名前**: わかりやすい名前（例: `my-project-oneuptime`）
    - **サインオン URL** と **発行者**: 上の値
    - **公開証明書**: 専用の `BEGIN CERTIFICATE` 行と `END CERTIFICATE` 行で挟んだ証明書
@@ -126,14 +134,15 @@ Keycloak は、人気のあるオープンソースの ID およびアクセス�
    OneUptime でプロバイダーを編集して **有効** をオンにし、**シングルサインオン（SSO）をテスト** カードのリンクを開いてプロバイダーを選びます。Keycloak のサインインページに移動し、OneUptime に戻れば成功です。
 :::
 @tab Microsoft Entra ID
-Microsoft Entra ID（旧称 Azure AD / Active Directory）は、Microsoft のクラウド ID サービスです。SAML SSO のエンタープライズアプリケーションに対応したテナントと、Entra ID と OneUptime の両方への管理者アクセスが必要です。
+Microsoft Entra ID（旧称 Azure AD / Active Directory）は、Microsoft のクラウド ID サービスです。SAML SSO のエンタープライズアプリケーションに対応したテナントと、Entra ID と OneUptime の両方への管理者アクセスが必要です。OneUptime Cloud では、Microsoft Entra アプリケーション ギャラリーに OneUptime が掲載されていれば、そこから追加してください。OneUptime が読み取るクレームと、OneUptime の URL のパターンがあらかじめ設定されています。
 
 :::steps
 1. **Entra ID でエンタープライズアプリケーションを作成する**
 
    - [Microsoft Entra admin center](https://entra.microsoft.com) にサインインします
-   - **Identity** > **Applications** > **Enterprise applications** に移動し、**+ New application**、続いて **+ Create your own application** をクリックします
-   - 名前（例: "OneUptime"）を入力し、**Integrate any other application you don't find in the gallery (Non-gallery)** を選んで **Create** をクリックします
+   - **Identity** > **Applications** > **Enterprise applications** に移動し、**+ New application** をクリックします
+   - ギャラリーから追加する場合: OneUptime を検索して選び、**Create** をクリックします
+   - それ以外の場合: **+ Create your own application** をクリックし、名前（例: "OneUptime"）を入力し、**Integrate any other application you don't find in the gallery (Non-gallery)** を選んで **Create** をクリックします
 
 2. **Entra ID の SAML の値をコピーする**
 
@@ -143,7 +152,7 @@ Microsoft Entra ID（旧称 Azure AD / Active Directory）は、Microsoft のク
 
 3. **OneUptime でプロバイダーを作成する**
 
-   **プロジェクト設定** > **セキュリティ** > **SSO** に移動し、**SSOを作成** をクリックして次のように入力します。
+   **プロジェクト設定** > **セキュリティ** > **SSO** に移動し、**SAML プロバイダーを追加** をクリックして次のように入力します。
    - **名前**: わかりやすい名前（例: `Azure AD SAML`）
    - **サインオン URL**: **Login URL**
    - **発行者**: **Microsoft Entra Identifier**
@@ -162,10 +171,10 @@ Microsoft Entra ID（旧称 Azure AD / Active Directory）は、Microsoft のク
 
 5. **メールアドレスを Name ID として送る**
 
-   **Attributes & Claims** で **Edit** をクリックします。
+   **Attributes & Claims** で **Edit** をクリックします。ギャラリーから追加したアプリケーションでは、次の項目がすでに設定されているので、確認してください。
    - **Unique User Identifier (Name ID)** をユーザーのメールアドレスに設定します。`user.mail`、またはメールアドレスになっている場合は `user.userprincipalname` です
    - **Name identifier format** を `Email address` に設定します
-   - 必要に応じて、名前が `http://schemas.microsoft.com/identity/claims/displayname` でソース属性が `user.displayname` のクレームを追加すると、新しいアカウントにその人の名前が入ります。OneUptime はそれ以外のクレームを無視します
+   - Entra ID のデフォルトのクレームはそのまま残します。新しいアカウントには `givenname` と `surname` からその人の名前が入り、アカウントはその人のオブジェクト ID（`objectidentifier`）に紐付けられます。必要に応じて、名前が `http://schemas.microsoft.com/identity/claims/displayname` でソース属性が `user.displayname` のクレームを追加すると、代わりに表示名が新しいアカウントの名前になります。OneUptime はそれ以外のクレームを無視します
 
 6. **ユーザーとグループを割り当てる**
 
@@ -176,13 +185,14 @@ Microsoft Entra ID（旧称 Azure AD / Active Directory）は、Microsoft のク
    OneUptime でプロバイダーを編集して **有効** をオンにし、**シングルサインオン（SSO）をテスト** カードのリンクを開いてプロバイダーを選びます。Microsoft のサインインページに移動し、OneUptime に戻れば成功です。
 :::
 @tab Okta
-Okta は、SAML SSO を備えた広く使われている ID プラットフォームです。管理者アクセスのある Okta の組織と、OneUptime への管理者アクセスが必要です。
+Okta は、SAML SSO を備えた広く使われている ID プラットフォームです。管理者アクセスのある Okta の組織と、OneUptime への管理者アクセスが必要です。OneUptime Cloud では、Okta Integration Network に OneUptime が掲載されていれば、そこから追加してください。このアプリでは、OneUptime の **SSOでログイン** ページからも Okta ダッシュボードからもサインインでき、初めてサインインしたときにアカウントが作成されます。また、OneUptime の URL の代わりに 2 つの ID を入力します。
 
 :::steps
-1. **Okta で SAML アプリケーションを作成する**
+1. **Okta に OneUptime を追加する**
 
-   - Okta Admin Console で **Applications** > **Applications** に移動し、**Create App Integration** をクリックします
-   - **SAML 2.0** を選んで **Next** をクリックし、**App name** に "OneUptime" と入力して **Next** をクリックします
+   - Okta Admin Console で **Applications** > **Applications** に移動します
+   - Okta Integration Network から追加する場合: **Browse App Catalog** をクリックし、OneUptime を検索して **Add Integration** をクリックします。Okta は **OneUptime Project ID** と **OneUptime SSO Provider ID** を求めますが、この時点ではまだ OneUptime で確認できません。ひとまずどちらにも `0` を入力してください。ステップ 4 で置き換えます。**Done** をクリックし、ステップ 2 に進みます
+   - それ以外の場合は、**Create App Integration** をクリックし、**SAML 2.0** を選んで **Next** をクリックし、**App name** に "OneUptime" と入力して **Next** をクリックします
    - Okta は自分の URL を表示する前に OneUptime の URL を求めます。ひとまず OneUptime のアドレス（例: `https://oneuptime.com`）を **Single sign-on URL** と **Audience URI (SP Entity ID)** に入力してください。どちらもステップ 4 で置き換えます
    - **Name ID format** を `EmailAddress` に、**Application username** を `Email` に設定します
    - **Next** をクリックし、**I'm an Okta customer adding an internal app** を選んで **Finish** をクリックします
@@ -195,7 +205,7 @@ Okta は、SAML SSO を備えた広く使われている ID プラットフォ�
 
 3. **OneUptime でプロバイダーを作成する**
 
-   **プロジェクト設定** > **セキュリティ** > **SSO** に移動し、**SSOを作成** をクリックして次のように入力します。
+   **プロジェクト設定** > **セキュリティ** > **SSO** に移動し、**SAML プロバイダーを追加** をクリックして次のように入力します。
    - **名前**: わかりやすい名前（例: `Okta SAML`）
    - **サインオン URL** と **発行者**: Okta の値
    - **公開証明書**: `BEGIN CERTIFICATE` 行と `END CERTIFICATE` 行を含む証明書
@@ -205,11 +215,16 @@ Okta は、SAML SSO を備えた広く使われている ID プラットフォ�
 
 4. **OneUptime の URL を Okta に渡す**
 
-   アプリケーションの **General** タブで、**SAML Settings** の **Edit** と **Next** をクリックし、次のように設定します。
+   Okta Integration Network から追加したアプリケーションでは、**General** タブの **App Settings** で **Edit** をクリックし、次のように設定します。
+   - **OneUptime Project ID** と **OneUptime SSO Provider ID**: OneUptime の **識別子（エンティティ ID）** `https://oneuptime.com/<project-id>/<provider-id>` に含まれる 2 つの ID
+
+   **Save** をクリックし、**Sign On** タブで **Application username format** が `Email` になっていることを確認します。
+
+   独自に作成したアプリケーションでは、**General** タブで **SAML Settings** の **Edit** と **Next** をクリックし、次のように設定します。
    - **Single sign-on URL**: OneUptime の **応答 URL（Assertion Consumer Service URL）**
    - **Audience URI (SP Entity ID)**: OneUptime の **識別子（エンティティ ID）**
 
-   必要に応じて、名前が `http://schemas.microsoft.com/identity/claims/displayname` で値が `user.firstName + " " + user.lastName` の attribute statement を追加すると、新しいアカウントにその人の名前が入ります。**Next**、続いて **Finish** をクリックします。
+   必要に応じて、名前が `firstName` で値が `user.firstName` の attribute statement と、名前が `lastName` で値が `user.lastName` の attribute statement を追加すると、新しいアカウントにその人の名前が入ります。**Next**、続いて **Finish** をクリックします。
 
 5. **ユーザーを割り当てる**
 
@@ -237,11 +252,11 @@ OneUptime の SSO は SAML 2.0 を使い、準拠したあらゆるアイデン�
 
 :::steps
 1. アイデンティティプロバイダーに、PKCE 付きの認可コードフローを使えるアプリ（OIDC クライアント）を登録し、その **発行者 URL**、**クライアント ID**、**クライアントシークレット** をコピーします。
-2. OneUptime で **プロジェクト設定** > **セキュリティ** > **OIDC** に移動し、**OIDCを作成** をクリックします。
+2. OneUptime で **プロジェクト設定** > **セキュリティ** > **SSO** に移動し、SAML プロバイダーの下にある **OIDC プロバイダーを追加** をクリックします。
 3. **名前**（サインインページに表示されます）、**発行者 URL**、**クライアント ID**、**クライアントシークレット** を入力します。**発行者 URL** には、プロバイダーのディスカバリ URL を貼り付けることもできます。
 4. **サインイン** ステップでは、**チーム** にプロジェクトのメンバーチームが最初から入っています。初めてサインインした人はこれらのチームに参加します。それ以外は **その他の項目** に入力済みです: **ディスカバリ URL**（発行者の後に `/.well-known/openid-configuration` を付けたもの）、**スコープ**（`openid email profile`）、`email` と `name` のクレーム名、説明（「Sign in with」と名前）。プロバイダーが必要とする場合にのみ変更してください。受け付けられるのは、自分が誰かを招待できるチームだけです。自分より多くのアクセス権を与えるチームは **チーム** の下に表示されます。
 5. 保存します。**OIDC の設定** ダイアログが開き、**リダイレクト URI** が表示されます。これをアプリの許可されたリダイレクト URI に追加してください。新しいプロバイダーはオフの状態で作成されるので、その後プロバイダーを編集して **有効** をオンにします。
-6. プロジェクトで SSO を必須にする前に、**OpenID Connect（OIDC）をテスト** カードのリンクを使ってプロバイダーでサインインしてみてください。
+6. プロジェクトで SSO を必須にする前に、**シングルサインオン（SSO）をテスト** カードのリンクを開いてプロバイダーを選び、そのプロバイダーでサインインしてみてください。
 :::
 
 ## SSO ユーザーのロールとチーム
@@ -301,14 +316,14 @@ SAML または OIDC プロバイダーをオフにするか削除すると、そ
 
 ## Scale プラン未満に残ったプロバイダー
 
-プロジェクトに残っている SAML または OIDC プロバイダーは、Scale の試用期間が終わったりプランが下がったりした後も、人をサインインさせ続けます。そのため Scale 未満では、**SSO** ページと **OIDC** ページに、アップグレード案内の下にプロジェクトのプロバイダーが一覧表示されます（**まだ設定されている SAML プロバイダー**、**まだ設定されている OIDC プロバイダー**）。
+プロジェクトに残っている SAML または OIDC プロバイダーは、Scale の試用期間が終わったりプランが下がったりした後も、人をサインインさせ続けます。そのため Scale 未満では、**SSO** ページに、アップグレード案内の下にプロジェクトのプロバイダーが一覧表示されます（**まだ設定されている SAML プロバイダー**、**まだ設定されている OIDC プロバイダー**）。
 
 - **オフにする** は、プロバイダーをすぐに止めます。OneUptime は事前に確認します。
 - **削除** は、プロバイダーを削除します。
 
 プロバイダーの追加、変更、再びオンにするには **Scale** が必要です。それぞれを行える人は Scale のときと同じです。プロバイダーをオフにするにはその編集権限が、削除するにはその削除権限が必要です。
 
-プロジェクトでまだ SSO が必須の間は、**SSO** ページと **OIDC** ページに **ログインに SSO を必須にする** も表示されます。最後のプロバイダーをオフにする前に、これをオフにしてください。それまでは、人がサインインできる最後のプロバイダーはオフにすることも削除することもできないので、誰もプロジェクトから締め出されません。
+プロジェクトでまだ SSO が必須の間は、**SSO** ページに **ログインに SSO を必須にする** も表示されます。最後のプロバイダーをオフにする前に、これをオフにしてください。それまでは、人がサインインできる最後のプロバイダーはオフにすることも削除することもできないので、誰もプロジェクトから締め出されません。
 
 ステータスページの **SSO** ページと **OIDC** ページにも、同じようにそのステータスページ自身のプロバイダーが一覧表示されます。ステータスページでまだ SSO が必須の間は、両方のページに **ログインに SSO を必須にする** も表示されます。プロバイダーをオフにする前にこれをオフにしてください。そうしないと、そのステータスページのプライベートユーザーはまったくサインインできなくなります。
 
@@ -324,6 +339,26 @@ SAML または OIDC プロバイダーをオフにするか削除すると、そ
 
 :::details "Issuer URL does not match"
 IdP のアサーションに含まれる発行者が、プロバイダーの **発行者** と一致していません。IdP から（Keycloak のレルム URL、**Microsoft Entra Identifier**、Okta の Identity Provider Issuer を）コピーし直して、2 つが完全に一致するようにしてください。
+:::
+
+:::details "SAML Audience does not match"
+レスポンスの audience が、このプロバイダーの **識別子（エンティティ ID）** ではありません。IdP が別のアプリケーション向けにレスポンスを作成しています。IdP で、アプリケーションの entity ID を **SSO 設定を表示** の **識別子（エンティティ ID）** に設定してください（Keycloak では **Client ID**、Entra ID では **Identifier (Entity ID)**、Okta では **Audience URI (SP Entity ID)**）。OneUptime のアドレスだけ（`https://oneuptime.com` など）を entity ID として設定した IdP は、そのまま使えます。
+:::
+
+:::details "SAML Recipient does not match"
+レスポンスの recipient が、このプロバイダーの **応答 URL** ではありません。レスポンスは別のアドレス宛てに送られています。IdP で、アプリケーションの reply URL を **SSO 設定を表示** の **応答 URL（Assertion Consumer Service URL）** に設定してください（Keycloak では **Assertion Consumer Service POST Binding URL**、Entra ID では **Reply URL (Assertion Consumer Service URL)**、Okta では **Single sign-on URL**）。"SAML Destination does not match" も原因と対処は同じです。
+:::
+
+:::details "SAML response has expired"
+レスポンスが OneUptime に届いたのが、IdP が許すより遅いか、発行から 10 分より後でした。もう一度サインインしてください。何度も起きる場合は、IdP か OneUptime サーバーの時計がずれています。OneUptime が許すずれは 3 分までです。"SAML response is not valid yet" は、同じ問題が逆向きに起きたものです。
+:::
+
+:::details "SAML response was already used"
+IdP の各レスポンスでサインインできるのは 1 回だけです。サインイン後にブラウザーで戻ったり、IdP に経由させられたページを再読み込みしたりすると、同じレスポンスが再送されます。OneUptime から、または IdP から、もう一度サインインしてください。
+:::
+
+:::details "This account is linked to someone else."
+Microsoft Entra ID が、このプロバイダーを通じて別のオブジェクト ID に紐付けられているアカウントのメールアドレスで、誰かをサインインさせました。そのアドレスを現在は Entra ID で別の人が使っているか、その人の Entra ID アカウントが作り直されています。OneUptime はこのサインインを拒否するので、次にそのアドレスを持つことになった人がアカウントを使うことはできません。アカウントがその人のものであれば、その人をプロジェクトから削除してから追加し直してください。次のサインインで、アカウントがその人の新しいオブジェクト ID に紐付けられます。
 :::
 
 :::details 署名または証明書のエラーでサインインに失敗する

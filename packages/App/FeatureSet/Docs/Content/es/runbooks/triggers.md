@@ -15,13 +15,13 @@ Un runbook puede iniciarse solo: según una programación, o cuando otra herrami
 flowchart TB
     subgraph starts["Qué inicia la ejecución"]
         direction LR
-        schedule["La programación: llega una hora"]
-        webhook["El webhook: un POST a su URL"]
+        schedule["La programación:<br/>llega una hora"]
+        webhook["El webhook: un<br/>POST a su URL"]
     end
-    schedule --> checks["El runbook está activado y tiene pasos"]
+    schedule --> checks["El runbook está<br/>activado y tiene pasos"]
     webhook --> checks
-    checks --> execution["Ejecución, marcada como Schedule o Webhook"]
-    execution --> worker["El Worker de OneUptime ejecuta los pasos"]
+    checks --> execution["Ejecución, marcada<br/>como Schedule o Webhook"]
+    execution --> worker["El Worker de OneUptime<br/>ejecuta los pasos"]
 ```
 
 Un desencadenante inicia una ejecución como lo hace **Ejecutar ahora**: la ejecución recorre los pasos actuales del runbook y no está vinculada a ningún incidente, alerta ni evento de mantenimiento programado. Cada ejecución registra qué la inició. Las **Ejecuciones** del runbook y **Runbooks → Ejecuciones** lo muestran en **Activado por**, con la hora en que vencía una ejecución programada o la dirección que llamó al webhook, y ambas listas se pueden filtrar por ello.
@@ -35,7 +35,7 @@ Un desencadenante inicia una ejecución como lo hace **Ejecutar ahora**: la ejec
 
 :::steps
 ### Abrir la página Desencadenantes del runbook
-Abre el runbook desde **Runbooks** y haz clic en **Desencadenantes** en su menú.
+Abre el runbook desde **Runbooks** y haz clic en **Ajustes → Desencadenantes** en su menú lateral. **Ajustes** empieza plegado: haz clic en él para mostrar **Desencadenantes**.
 
 ### Configurar la programación
 Haz clic en **Configurar programación**. En **Cuándo se ejecuta**, elige una opción de **Repetir** y lo que necesita. El cuadro de diálogo dice la programación en una frase, como «Se ejecuta cada día laborable a las 09:00», y enumera sus próximas ejecuciones a medida que la cambias.
@@ -117,7 +117,7 @@ La respuesta nombra la ejecución que inició: `{"runbookExecutionId": "...", "s
 | `404` | Ningún webhook de runbook responde en esta URL: el ID del runbook o la clave es incorrecto, o la URL se restableció. |
 | `405` | La solicitud es un `GET`. Un `GET` nunca inicia una ejecución, así que la vista previa de un enlace en una app de chat no puede ejecutarlo por accidente. |
 | `413` | El cuerpo supera los 64 KB. |
-| `429` | El webhook inició 30 ejecuciones en el último minuto, 10 de sus ejecuciones siguen en curso, o una dirección hizo más de 120 llamadas a webhooks de runbook en un minuto. El encabezado `Retry-After` dice cuándo volver a intentarlo, cuando es posible. |
+| `429` | El webhook inició 30 ejecuciones en el último minuto, 10 de sus ejecuciones siguen en curso, o una dirección hizo más de 120 llamadas a webhooks de runbook en un minuto, o las direcciones de un mismo /64 de IPv6 hicieron más de 1200 juntas. El encabezado `Retry-After` dice cuándo volver a intentarlo, cuando es posible. |
 | `503` | OneUptime no puede contar las llamadas ahora mismo. Vuelve a intentarlo en un minuto. |
 
 Una llamada rechazada no inicia nada, y su cuerpo dice el motivo en una frase, como "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

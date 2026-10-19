@@ -65,10 +65,15 @@ const entitlement: (
   };
 };
 
+// Partial<T> under exactOptionalPropertyTypes forbids an explicit undefined.
+type SubscriptionOverrides = {
+  [K in keyof MarketplaceSubscription]?: MarketplaceSubscription[K] | undefined;
+};
+
 const purchase: (
-  overrides?: Partial<MarketplaceSubscription>,
+  overrides?: SubscriptionOverrides,
 ) => MarketplaceSubscription = (
-  overrides?: Partial<MarketplaceSubscription>,
+  overrides?: SubscriptionOverrides,
 ): MarketplaceSubscription => {
   return Object.assign(new MarketplaceSubscription(), {
     marketplace: CloudMarketplace.GoogleCloud,
@@ -388,6 +393,10 @@ describe("GoogleCloudMarketplaceAdapter", () => {
   });
 
   describe("reportUsage", () => {
+    it("says Google Cloud counts reports by their ID, not one per hour", () => {
+      expect(adapter.keepsOneReportPerHour).toBe(false);
+    });
+
     it("checks, then reports, the record as one operation keyed by the report's ID", async () => {
       api.checkUsage.mockResolvedValue([]);
       api.reportUsage.mockResolvedValue([]);

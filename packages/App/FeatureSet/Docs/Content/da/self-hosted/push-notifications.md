@@ -13,12 +13,12 @@ OneUptime alarmerer folk på telefonen via mobilappen **OneUptime On-Call** og i
 
 ```mermaid title="Sådan når et push frem til en telefon eller en browser"
 flowchart TB
-    Server["Din OneUptime-server"]
-    Relay["OneUptimes push-relay"]
+    Server["Din OneUptime-<br/>server"]
+    Relay["OneUptimes<br/>push-relay"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["Appen OneUptime On-Call"]
+    Phone["Appen OneUptime<br/>On-Call"]
     PushService["Browserens<br/>push-tjeneste"]
     Browser["Browser"]
     Server -->|"intet EXPO_ACCESS_TOKEN"| Relay
@@ -28,7 +28,7 @@ flowchart TB
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -44,6 +44,7 @@ Med den officielle mobilapp og standardrelayet behøver serveren ingen Expo-logi
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Hvor mobile pushes sendes hen, så længe `EXPO_ACCESS_TOKEN` ikke er sat. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Tom | Sender mobile pushes direkte til Expo med dit Expo-projekts token. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Tom | Videresender mobile pushes for andre OneUptime-servere med denne servers `EXPO_ACCESS_TOKEN`. Tom betyder slået fra, medmindre `BILLING_ENABLED` er `true`. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Tom | Den offentlige halvdel af nøgleparret, som browsere abonnerer med. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Tom | Den private halvdel, der signerer hvert Web Push. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | En kontaktadresse, som browsernes push-tjenester kan nå dig på. |
@@ -81,6 +82,8 @@ expo:
 | Mobilapp eller browser → OneUptime | Dit OneUptime-værtsnavn | HTTPS / TCP 443 | Logge ind, registrere enheden og åbne notifikationslinks. |
 
 Hvis du ændrer `PUSH_NOTIFICATION_RELAY_URL`, så tillad dens destinationsværtsnavn og den konfigurerede port. Et eget relay skal implementere OneUptimes relay-API. Disse standarder og skiftet mellem relay og direkte levering er defineret i [OneUptimes konfiguration](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) og [push-tjenesten](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Direkte Expo-forespørgsler bruger det endpoint, der er dokumenteret i [Expos vejledning om afsendelse](https://docs.expo.dev/push-notifications/sending-notifications/). OneUptime læser leveringskvitteringer fra relayet på den samme adresse med `/receipts` i stedet for `/send`. Et relay uden den rute leverer stadig pushes; en enhed, hvis app er fjernet, opdages så først, når et senere push til den bliver afvist.
+
+En selvhostet OneUptime-server videresender kun pushes for andre servere med `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` og sit eget `EXPO_ACCESS_TOKEN`; uden indstillingen svarer den 404 på den adresse. Slå den kun til på den server, som dine andre OneUptime-servere sender gennem, og lad kun de servere nå den adresse.
 
 Til Web Push skal du tillade de faktiske værter for abonnements-endpoints for de browsere, dit team bruger. OneUptime accepterer `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` og `push.apple.com`, inklusive deres underdomæner. Typiske eksempler er `updates.push.services.mozilla.com` og `web.push.apple.com`. [Browserens push-abonnement](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) leverer destinationen; at tillade kun Expo eller OneUptimes relay muliggør ikke Web Push.
 
@@ -121,7 +124,7 @@ flowchart TB
 
 Fire ting skal alle være opfyldt, før en alarm tilsidesætter lydløs tilstand. Mangler blot én, leveres alarmen stadig – bare lydløst.
 
-1. **Personen har slået det til for den enhed.** Gemt pr. enhed, slået fra som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon og tablet er separate valg.
+1. **Personen har slået det til for den enhed.** Gemt pr. enhed, slået fra som standard, i `UserPush.isCriticalAlertEnabled`. En persons telefon og tablet er separate valg. Versioner af appen nyere end 1.6.0 rapporterer det igen, hver gang de åbnes, som slået fra, mens telefonens egne indstillinger ikke tillader kritiske alarmer, så enhedslisten viser, hvad telefonen faktisk vil gøre.
 2. **Den vagtregel, der sendte alarmen, beder om det.** Under **Brugerindstillinger > Vagtregler** står hver regel, der giver besked til en telefon, på ”Kritisk advarsel”, som er standard, eller på ”Normal”, der følger telefonens lydindstillinger – så en person kan blive vækket af en kritisk hændelse og få besked lydløst om en mindre. Gemt pr. regel i `UserNotificationRule.pushNotificationLevel`.
 3. **Serveren markerer alarmen som kritisk.** Den sender APNs' kritiske lyd-payload plus `interruptionLevel: critical` til iOS og bruger en kritisk notifikationskanal til Android: `oncall_critical` eller den valgte alarms egen kanal (se [Valg af alarmlyd](#valg-af-alarmlyd)).
 4. **Operativsystemet tillader det**, og det er her, de to platforme adskiller sig.
@@ -192,7 +195,7 @@ En push-regel kan sende sin alarm igen, indtil nogen bekræfter den. Under **Bru
 - **iOS**: Bekræft, at buildet bærer Apples entitlement til kritiske alarmer (se ovenfor), og at Critical Alerts er tilladt under iOS Settings > Notifications > OneUptime On-Call
 - **Android**: Bekræft, at appen har adgang til Forstyr ikke under Settings > Notifications > Do Not Disturb access
 - **Android**: Hvis du har valgt en alarmlyd, skal dens egen notifikationskanal også have lov til at tilsidesætte Forstyr ikke; appens skærm Alarm sound siger det, når den ikke har det
-- Indstillingsskærmen siger, hvilken af disse der mangler; den læser den aktuelle tilstand tilbage fra operativsystemet i stedet for at stole på, hvad appen sidst bad om
+- Indstillingsskærmen siger, hvilken af disse der mangler; den læser den aktuelle tilstand tilbage fra operativsystemet i stedet for at stole på, hvad appen sidst bad om, og fortæller serveren, hvad den finder
 
 ### Pushes markeret "ikke leveret"
 

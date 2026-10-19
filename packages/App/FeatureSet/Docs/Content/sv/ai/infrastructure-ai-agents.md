@@ -234,7 +234,7 @@ Frågetext i utdata normaliseras (varje sträng- och talliteral blir `?`), så a
 
 ## Så fungerar åtgärder
 
-Åtgärder är avslagna tills du slår på dem, och det kräver två inställningar på agenten: `ONEUPTIME_AI_FIXES` satt till ett annat läge än `off` (se [Vad AI får göra, satt av agenten](#vad-ai-får-göra-satt-av-agenten)) och `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skrivåtkomst på agenten](#skrivåtkomst-på-agenten)). Den ena utan den andra ändrar ingenting. En agent som är äldre än `ONEUPTIME_AI_FIXES` tar i stället **Åtgärder** från resursens AI-agentsida. Åtgärder kräver också att AI är aktiverat för projektet (**Aktivera AI** under Projektinställningar → AI Features), vilket det är om ingen har stängt av det.
+Åtgärder är avslagna tills du slår på dem, och det kräver två inställningar på agenten: `ONEUPTIME_AI_FIXES` satt till ett annat läge än `off` (se [Vad AI får göra, satt av agenten](#vad-ai-får-göra-satt-av-agenten)) och `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skrivåtkomst på agenten](#skrivåtkomst-på-agenten)). Den ena utan den andra ändrar ingenting. En agent som är äldre än `ONEUPTIME_AI_FIXES` tar i stället **Åtgärder** från resursens AI-agentsida. Åtgärder kräver också att AI är aktiverat för projektet (**Aktivera AI** under Projektinställningar → AI → AI Features), vilket det är om ingen har stängt av det.
 
 ### Åtgärdslägen
 
@@ -350,7 +350,7 @@ En giltig post per resurs: `docker stop web` (Docker och Podman), `docker servic
 
 ### Vem som får ändra den
 
-Så länge agenten sätter utredning och åtgärder ändras de där den körs, oavsett vem du är, och det som följer gäller bara listan över tillåtna kommandon. För en agent som är äldre än de här inställningarna och lämnar dem åt AI-agentens sida: att slå på åtgärder (varje byte bort från **Av**, även till **Be om godkännande**) och att lätta på dem (byta till **Automatiskt** eller **Hoppa över godkännande**, eller lägga till en post i listan) kräver en Project Owner, en Project Admin eller behörigheten **Edit Auto Remediation Rule**, samma personer som får skapa en helautomatisk åtgärdsregel. **Återställ agenten** kräver samma personer. Att skärpa (**Av**, ett mindre självständigt läge, att ta bort poster ur listan) och **Investigate**-reglaget är öppna för alla som får redigera resursen, och det gäller även **Testa anslutningen**.
+Så länge agenten sätter utredning och åtgärder ändras de där den körs, oavsett vem du är, och det som följer gäller bara listan över tillåtna kommandon. För en agent som är äldre än de här inställningarna och lämnar dem åt AI-agentens sida: att slå på åtgärder (varje byte bort från **Av**, även till **Be om godkännande**) och att lätta på dem (byta till **Automatiskt** eller **Hoppa över godkännande**, eller lägga till en post i listan) kräver en Project Owner, en Project Admin eller behörigheten **Edit Auto Remediation Rule**, samma personer som får skapa en helautomatisk åtgärdsregel. **Återställ agenten** kräver samma personer. Att skärpa (**Av**, ett mindre självständigt läge, att ta bort poster ur listan) och **Investigate**-reglaget är öppna för alla som får redigera resursen, och det gäller även **Testa anslutningen** och att godkänna en åtgärd som OneUptime AI föreslår för den. Allt detta kräver behörighet att redigera just den resursen: en behörighet som är begränsad till vissa etiketter, eller till de resurser som du eller dina team äger, når bara de resurserna, och en blockeringspost med etiketter tar bort de resurser som bär dem.
 
 ## Skrivåtkomst på agenten
 

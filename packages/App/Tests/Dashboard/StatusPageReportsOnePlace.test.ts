@@ -550,6 +550,7 @@ describe("translations", () => {
     "Later reports follow it at the same time of day. Pick the 1st of a month to send on the 1st of every month.",
     "Report Timezone",
     "Reporting period",
+    "For a monthly report sent in August, the previous whole calendar period is Jul 1 to Jul 31. A rolling number of days ends when the email is sent.",
     ...REPORT_PERIOD_TYPE_OPTIONS.map((option: { label: string }) => {
       return option.label;
     }),
@@ -607,6 +608,81 @@ describe("translations", () => {
       expect(translations[StatusPageReportsCopy.previewTimezone]).toEqual(
         expect.stringContaining("{{timezone}}"),
       );
+    },
+  );
+});
+
+/*
+ * The Reporting period is two plain answers, each with one line saying what
+ * it covers: "The previous whole calendar period" ("A monthly report sent
+ * in August covers July 1 to July 31.") and "A rolling number of days"
+ * ("Ends when the report is sent, as many days back as you choose."). It
+ * was a dropdown under one description that explained both, which once
+ * named them by words the dropdown never showed.
+ */
+describe("the reporting period's choices", () => {
+  test("are a choice in the schedule dialog, each answer with its own line, and no description above them", () => {
+    const form: string = readSource(path.join(DASHBOARD_SRC, FORM_FILE));
+    const field: string = form.slice(
+      form.indexOf('title: "Reporting period",'),
+      form.indexOf("reportDataInDays: true"),
+    );
+
+    expect(field).toContain("fieldType: FormFieldSchemaType.RadioButton,");
+    expect(field).toContain(
+      "radioButtonOptions: REPORT_PERIOD_TYPE_OPTIONS.map(",
+    );
+    expect(field).toContain("description: option.description,");
+    expect(field).toContain("hideColumnDescription: true,");
+    // No sentence above the answers: each says its own.
+    expect(field).not.toContain('description: "');
+    expect(field).toContain("collapsibleSection: MORE_FIELDS,");
+  });
+
+  test("say what each covers, in the order the column's values are", () => {
+    expect(
+      REPORT_PERIOD_TYPE_OPTIONS.map(
+        (option: {
+          value: StatusPageReportPeriodType;
+          label: string;
+          description: string;
+        }): Array<string> => {
+          return [option.value, option.label, option.description];
+        },
+      ),
+    ).toEqual([
+      [
+        StatusPageReportPeriodType.PreviousCalendarPeriod,
+        "The previous whole calendar period",
+        "A monthly report sent in August covers July 1 to July 31.",
+      ],
+      [
+        StatusPageReportPeriodType.Rolling,
+        "A rolling number of days",
+        "Ends when the report is sent, as many days back as you choose.",
+      ],
+    ]);
+  });
+
+  test.each(OTHER_LOCALES)(
+    "%s words each answer and its line, keeping the month's first and last day",
+    (locale: string) => {
+      const translations: Record<string, unknown> = readLocale(locale);
+
+      for (const option of REPORT_PERIOD_TYPE_OPTIONS) {
+        for (const text of [option.label, option.description]) {
+          expect([text, typeof translations[text]]).toEqual([text, "string"]);
+          expect([text, translations[text]]).not.toEqual([text, text]);
+        }
+      }
+
+      // The example's dates survive translation (in Persian digits too).
+      const example: string = translations[
+        (REPORT_PERIOD_TYPE_OPTIONS[0] as { description: string }).description
+      ] as string;
+
+      expect(example).toMatch(/31|۳۱/);
+      expect(example).toMatch(/1|۱/);
     },
   );
 });

@@ -17,7 +17,6 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -36,9 +35,15 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import useFirstRecordWatch, {
+  FirstRecordWatch,
+} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import {
+  FIRST_RUN_GUIDE_DESCRIPTION,
+  getFirstRunEmptyState,
+  getFirstRunTopContent,
+} from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
@@ -94,8 +99,6 @@ const ENGINE_METRICS_STATUS_COLORS: Record<DatabaseEngineMetricsStatus, Color> =
 const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
   // Below 2xl: Discovered from, Labels and Owners start hidden.
   const isWideTable: boolean = useDatabaseWideTable();
-  const [count, setCount] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
   /*
    * Bumped whenever the summary strip above the table must re-count: at
    * once after what changes its project-wide counts (a create, an
@@ -116,6 +119,13 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       return token + 1;
     });
   };
+
+  // The first database arriving while the page is open is counted above too.
+  const firstRecordWatch: FirstRecordWatch =
+    useFirstRecordWatch<DatabaseServer>({
+      modelType: DatabaseServer,
+      onFirstRecord: refreshSummary,
+    });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<DatabaseServer>({ modelType: DatabaseServer });
@@ -226,26 +236,16 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
     extraFacets: databaseExtraFacets,
   });
 
-  useEffect(() => {
-    /*
-     * Count first: the setup guide below the table is shown only while the
-     * project has no database at all, archived ones included.
-     */
-    ModelAPI.count({
-      modelType: DatabaseServer,
-      query: {},
-    })
-      .then(setCount)
-      .catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
-  }, []);
-
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (firstRecordWatch.error) {
+    return (
+      <ErrorMessage
+        message={firstRecordWatch.error}
+        onRefreshClick={firstRecordWatch.retry}
+      />
+    );
   }
 
-  if (count === null) {
+  if (firstRecordWatch.isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -254,11 +254,19 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       <DatabaseServerSummaryStrip refreshToken={summaryRefreshToken} />
       <ModelTable<DatabaseServer>
         modelType={DatabaseServer}
+        refreshToggle={firstRecordWatch.refreshToken}
         id="database-servers-table"
         userPreferencesKey="database-servers-table"
         isCreateable={true}
-        topContent={filterBar}
-        emptyState={facetEmptyState}
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: firstRecordWatch.count,
+        })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+          isAddedByHand: true,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -294,9 +302,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
           return Promise.resolve(item);
         }}
         onCreateSuccess={(item: DatabaseServer): Promise<DatabaseServer> => {
-          setCount((currentCount: number | null): number => {
-            return (currentCount || 0) + 1;
-          });
+          firstRecordWatch.onRecordCreated();
           refreshSummary();
           return Promise.resolve(item);
         }}
@@ -323,7 +329,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Databases",
           description:
-            "Every database server this project runs or talks to — discovered from the queries in your application traces, database workloads on your Kubernetes clusters and Docker / Podman hosts, and the OneUptime Database Agent — or added by hand.",
+            "Every database server this project uses, discovered from your traces, containers and the Database Agent, or added by hand.",
         }}
         formSteps={[
           { title: "Connection", id: "connection" },
@@ -627,10 +633,10 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
-      {count === 0 && (
+      {firstRecordWatch.count === 0 && (
         <DatabaseDocumentationCard
           title="Getting Started with Databases"
-          description="No databases yet. Databases appear here on their own as soon as your instrumented applications query them, or when OneUptime finds one on a monitored Kubernetes cluster or Docker / Podman host. Add one by hand above, or connect engine metrics with the Database Agent using the guide below."
+          description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
       {labelBulkActionModals}

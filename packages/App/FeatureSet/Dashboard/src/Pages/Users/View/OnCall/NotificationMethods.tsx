@@ -807,7 +807,7 @@ const UserViewNotificationMethods: FunctionComponent<
           />
         ) : (
           translator.translateText(
-            "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notification Settings.",
+            "Channels that are off in this project are not offered. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings → Notifications → Notification Settings.",
           )
         )}
       </span>
@@ -1029,7 +1029,7 @@ const UserViewNotificationMethods: FunctionComponent<
                 )
           }
           description={translator.translateTemplate(
-            "A verification code is sent to the address or device you enter. {{name}} has to enter that code before this method can notify them — you cannot verify it for them.",
+            "A verification code is sent to the address or number you enter. {{name}} has to enter that code; you cannot verify it for them.",
             { name: firstName },
           )}
           isLoading={isSaving}

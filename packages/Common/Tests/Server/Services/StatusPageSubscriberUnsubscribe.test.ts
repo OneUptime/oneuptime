@@ -683,15 +683,31 @@ describe("StatusPageSubscriberService.getUnsubscribeLink", () => {
     expect(error).toHaveBeenCalled();
   });
 
-  test("the manage link is still the Update Subscription page", () => {
+  test("the manage link is the Update Subscription page, with the subscription's token", () => {
     expect(
       StatusPageSubscriberService.getManageSubscriptionLink(
         URL.fromString(STATUS_PAGE_URL),
-        SUBSCRIBER_ID,
+        subscriberRow(),
       ).toString(),
     ).toBe(
+      `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}-${TOKEN}`,
+    );
+  });
+
+  test("a subscriber without a token gets a manage link to the expired link page, and it is logged", () => {
+    const error: jest.SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {});
+
+    const link: string = StatusPageSubscriberService.getManageSubscriptionLink(
+      URL.fromString(STATUS_PAGE_URL),
+      subscriberRow({ unsubscribeToken: null }),
+    ).toString();
+
+    expect(link).toBe(
       `${STATUS_PAGE_URL}/update-subscription/${SUBSCRIBER_ID.toString()}`,
     );
+    expect(error).toHaveBeenCalled();
   });
 });
 
@@ -1114,6 +1130,166 @@ describe("opening an unsubscribe link (GET) changes nothing", () => {
     await StatusPageSubscriberService.getUnsubscribeLinkDetails(linkData());
 
     expect(timingSafeEqual).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * The manage page (Update Subscription) reads and changes a subscription
+ * through the same credential as the unsubscribe page: its link carries the
+ * subscription's token, and the subscriber id alone - which every project
+ * member who may read subscribers sees, and every log keeps - opens nothing.
+ */
+describe("opening a manage link reads the subscription only with its token", () => {
+  test("a good link reads the subscription's contact and choices, never its token", async () => {
+    const subscriber: StatusPageSubscriber | null =
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData());
+
+    expect(subscriber).not.toBeNull();
+    expect(subscriber!.id!.toString()).toBe(SUBSCRIBER_ID.toString());
+    expect(subscriber!.subscriberEmail?.toString()).toBe("site03-all@acme.com");
+    expect(subscriber!.unsubscribeToken).toBeUndefined();
+    expect(JSON.stringify(subscriber)).not.toContain(TOKEN);
+
+    // Reading changes nothing.
+    expect(query).not.toHaveBeenCalled();
+    expect(StatusPageSubscriberService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  test("looks the subscriber up by id and its own status page, never by the token", async () => {
+    await StatusPageSubscriberService.findSubscriberForManagePage(linkData());
+
+    const read: { query: JSONObject; select: JSONObject; props: JSONObject } = (
+      StatusPageSubscriberService.findOneBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as {
+      query: JSONObject;
+      select: JSONObject;
+      props: JSONObject;
+    };
+
+    expect(Object.keys(read.query).sort()).toEqual(["_id", "statusPageId"]);
+    expect(read.query["_id"]).toBe(SUBSCRIBER_ID.toString());
+    expect(read.query["statusPageId"]?.toString()).toBe(
+      STATUS_PAGE_ID.toString(),
+    );
+
+    // What the manage page shows, and the token, read only to compare it.
+    for (const column of [
+      "_id",
+      "statusPageId",
+      "unsubscribeToken",
+      "isUnsubscribed",
+      "subscriberEmail",
+      "subscriberPhone",
+      "slackWorkspaceName",
+      "statusPageResources",
+      "isSubscribedToAllResources",
+      "statusPageEventTypes",
+      "isSubscribedToAllEventTypes",
+    ]) {
+      expect([column, read.select[column]]).toEqual([column, true]);
+    }
+
+    // Never a webhook URL: the manage page does not show one.
+    expect(read.select["slackIncomingWebhookUrl"]).toBeUndefined();
+    expect(read.select["microsoftTeamsIncomingWebhookUrl"]).toBeUndefined();
+    expect(read.select["subscriberWebhook"]).toBeUndefined();
+  });
+
+  test("the subscriber id alone, a wrong token, a deleted subscriber and another page's link all read nothing", async () => {
+    const answers: Array<StatusPageSubscriber | null> = [];
+
+    for (const token of ["", WRONG_TOKEN, TOKEN.slice(0, 32)]) {
+      answers.push(
+        await StatusPageSubscriberService.findSubscriberForManagePage(
+          linkData(token),
+        ),
+      );
+    }
+
+    answers.push(
+      await StatusPageSubscriberService.findSubscriberForManagePage({
+        ...linkData(),
+        token: undefined as unknown as string,
+      }),
+    );
+
+    storedSubscriber = subscriberRow({ statusPageId: OTHER_STATUS_PAGE_ID });
+    answers.push(
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData()),
+    );
+
+    storedSubscriber = null;
+    answers.push(
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData()),
+    );
+
+    expect(answers).toEqual([null, null, null, null, null, null]);
+  });
+
+  test("a subscriber that has no token yet is not opened by any link", async () => {
+    storedSubscriber = subscriberRow({ unsubscribeToken: null });
+
+    expect(
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData()),
+    ).toBeNull();
+    expect(
+      await StatusPageSubscriberService.findSubscriberForManagePage(
+        linkData("0".repeat(64)),
+      ),
+    ).toBeNull();
+  });
+
+  test("a token whose case a mail client changed still opens it", async () => {
+    expect(
+      await StatusPageSubscriberService.findSubscriberForManagePage(
+        linkData(TOKEN.toUpperCase()),
+      ),
+    ).not.toBeNull();
+  });
+
+  test("a malformed link is refused without a lookup", async () => {
+    expect(
+      await StatusPageSubscriberService.findSubscriberForManagePage({
+        statusPageId: "not-a-uuid",
+        subscriberId: "' OR 1=1 --",
+        token: TOKEN,
+      }),
+    ).toBeNull();
+    expect(
+      await StatusPageSubscriberService.findSubscriberForManagePage({
+        statusPageId: STATUS_PAGE_ID.toString(),
+        subscriberId: `${SUBSCRIBER_ID.toString()}-${TOKEN}`,
+        token: TOKEN,
+      }),
+    ).toBeNull();
+    expect(StatusPageSubscriberService.findOneBy).not.toHaveBeenCalled();
+  });
+
+  test("the token is compared in constant time, even when there is no subscriber or no token", async () => {
+    const timingSafeEqual: jest.SpyInstance = jest.spyOn(
+      crypto,
+      "timingSafeEqual",
+    );
+
+    await StatusPageSubscriberService.findSubscriberForManagePage(
+      linkData(WRONG_TOKEN),
+    );
+    await StatusPageSubscriberService.findSubscriberForManagePage(linkData(""));
+    storedSubscriber = null;
+    await StatusPageSubscriberService.findSubscriberForManagePage(linkData());
+
+    expect(timingSafeEqual).toHaveBeenCalledTimes(3);
+  });
+
+  test("the unsubscribe page's link opens the manage page: one credential for both", async () => {
+    const details: StatusPageSubscriberUnsubscribeDetails =
+      await StatusPageSubscriberService.getUnsubscribeLinkDetails(linkData());
+    storedSubscriber = subscriberRow();
+    const subscriber: StatusPageSubscriber | null =
+      await StatusPageSubscriberService.findSubscriberForManagePage(linkData());
+
+    expect(details.state).toBe(StatusPageSubscriberUnsubscribeState.Subscribed);
+    expect(subscriber).not.toBeNull();
   });
 });
 
@@ -1580,16 +1756,23 @@ describe("Unsubscribed At follows Is Unsubscribed on every other write", () => {
   });
 
   test("subscribing again clears the date", async () => {
-    const findBy: jest.SpyInstance = jest.spyOn(
-      StatusPageSubscriberService,
-      "findBy",
-    );
+    /*
+     * The rows are read, with the update's own query, to hold their page to
+     * one subscription per contact (a cancelled one turned back on is
+     * asked about its contact); none of these was cancelled.
+     */
+    const findBy: jest.SpyInstance = jest
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockResolvedValue([subscriberRow()] as never);
 
     const onUpdate: OnUpdate<StatusPageSubscriber> = await hooks.onBeforeUpdate(
       updateBy({ isUnsubscribed: false }),
     );
 
-    expect(findBy).not.toHaveBeenCalled();
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(
+      (findBy.mock.calls[0]![0] as unknown as { query: JSONObject }).query,
+    ).toEqual({ statusPageId: STATUS_PAGE_ID });
 
     await hooks.onUpdateSuccess(onUpdate, [SUBSCRIBER_ID]);
 

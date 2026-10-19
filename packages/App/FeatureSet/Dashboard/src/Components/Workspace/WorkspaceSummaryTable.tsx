@@ -27,6 +27,7 @@ import NotificationRuleCondition, {
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleConditions from "./NotificationRuleForm/NotificationRuleConditions";
+import { NOTIFICATION_RULE_CONDITIONS_TITLES } from "./NotificationRuleForm/NotificationRuleCopy";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
@@ -542,7 +543,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Send First Report At",
             description:
-              "Later summaries follow it at the same time of day. Leave it empty to start at 09:00 in the summary's timezone, at the start of the next week, day or month.",
+              "Later summaries go out at the same time of day. Leave empty for 09:00 at the start of the next period.",
             fieldType: FormFieldSchemaType.DateTime,
             required: false,
             stepId: "schedule",
@@ -679,8 +680,17 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             field: {
               filters: true,
             },
-            title: "Filter Conditions",
-            description: `Only include ${typeLabel.toLowerCase()}s that match these conditions. Leave empty to include all.`,
+            /*
+             * Which records the summary includes, asked as a workspace
+             * rule's conditions are: "All incidents" or "Only incidents that
+             * match conditions" (NotificationRuleConditions), under the
+             * rule form's own heading. It said "Leave empty to include
+             * all." over an Add Condition button.
+             */
+            title: NOTIFICATION_RULE_CONDITIONS_TITLES[eventType],
+            sectionTitle: NOTIFICATION_RULE_CONDITIONS_TITLES[eventType],
+            customElementDrawsOwnLabel: true,
+            hideOptionalLabel: true,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             stepId: "filters",
@@ -891,7 +901,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Send Test Summary Now`}
           error={testError}
-          description={`This will send the "${testSummary.name}" summary to ${getWorkspaceTypeDisplayName(props.workspaceType)} right now. The summary will include data from the last ${testSummary.numberOfDaysOfData || 7} days. This will not affect the regular schedule.`}
+          description={`Send the "${testSummary.name}" summary to ${getWorkspaceTypeDisplayName(props.workspaceType)} now, with the last ${testSummary.numberOfDaysOfData || 7} days of data. The regular schedule is not affected.`}
           submitButtonText={"Send Now"}
           onClose={() => {
             setShowTestModal(false);

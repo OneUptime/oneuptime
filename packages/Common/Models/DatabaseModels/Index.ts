@@ -154,8 +154,6 @@ import SecurityEventConnection from "./SecurityEventConnection";
 import SecurityEventConnectionRun from "./SecurityEventConnectionRun";
 import ToolImportRun from "./ToolImportRun";
 import ToolImportRecord from "./ToolImportRecord";
-import HuntressConnection from "./HuntressConnection";
-import HuntressIncidentReport from "./HuntressIncidentReport";
 import ThreatIntelFeed from "./ThreatIntelFeed";
 import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
@@ -214,6 +212,8 @@ import OnCallDutyPolicyScheduleOwnerUser from "./OnCallDutyPolicyScheduleOwnerUs
 import UserOnCallCalendarFeed from "./UserOnCallCalendarFeed";
 import OnCallDutyPolicyScheduleCalendarFeed from "./OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "./ProjectOnCallCalendarFeed";
+// The team's calendar link for scheduled maintenance
+import ScheduledMaintenanceCalendarFeed from "./ScheduledMaintenanceCalendarFeed";
 import UserOnCallShiftReminder from "./UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "./UserOnCallShiftReminderLog";
 
@@ -324,11 +324,15 @@ import TeamCustomField from "./TeamCustomField";
 import TeamMember from "./TeamMember";
 import TeamMemberCustomField from "./TeamMemberCustomField";
 import TeamPermission from "./TeamPermission";
+import CustomRole from "./CustomRole";
+import CustomRolePermission from "./CustomRolePermission";
+import TeamCustomRole from "./TeamCustomRole";
 import TeamComplianceSetting from "./TeamComplianceSetting";
 import UsageBilling from "./TelemetryUsageBilling";
 import User from "./User";
 import UserSession from "./UserSession";
 import UserProjectSsoConsent from "./UserProjectSsoConsent";
+import UserProjectSsoIdentity from "./UserProjectSsoIdentity";
 import UserCall from "./UserCall";
 // Notification Methods
 import UserEmail from "./UserEmail";
@@ -523,11 +527,14 @@ import ServiceFeed from "./ServiceFeed";
 import MetricType from "./MetricType";
 import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
+import ProjectSCIMUser from "./ProjectSCIMUser";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import DeletedProject from "./DeletedProject";
 import MarketplaceSubscription from "./MarketplaceSubscription";
 import MarketplaceUsageReport from "./MarketplaceUsageReport";
 import MarketplaceCharge from "./MarketplaceCharge";
+import VercelMarketplaceInstallation from "./VercelMarketplaceInstallation";
+import VercelMarketplaceConnection from "./VercelMarketplaceConnection";
 import UserNotificationEmailRollupItem from "./UserNotificationEmailRollupItem";
 import UserNotificationEmailRollupBatch from "./UserNotificationEmailRollupBatch";
 import UserNotificationEmailRollupSetting from "./UserNotificationEmailRollupSetting";
@@ -549,6 +556,9 @@ const AllModelTypes: Array<{
   TeamMember,
   TeamMemberCustomField,
   TeamPermission,
+  CustomRole,
+  CustomRolePermission,
+  TeamCustomRole,
   TeamComplianceSetting,
   ApiKey,
   Label,
@@ -563,8 +573,6 @@ const AllModelTypes: Array<{
   SecurityEventConnectionRun,
   ToolImportRun,
   ToolImportRecord,
-  HuntressConnection,
-  HuntressIncidentReport,
   ThreatIntelFeed,
   SecurityCase,
   SecurityCaseFeed,
@@ -874,6 +882,7 @@ const AllModelTypes: Array<{
   OnCallDutyPolicyScheduleOwnerUser,
   OnCallDutyPolicyScheduleCalendarFeed,
   ProjectOnCallCalendarFeed,
+  ScheduledMaintenanceCalendarFeed,
   UserOnCallCalendarFeed,
   UserOnCallShiftReminder,
   UserOnCallShiftReminderLog,
@@ -926,6 +935,7 @@ const AllModelTypes: Array<{
 
   UserSession,
   UserProjectSsoConsent,
+  UserProjectSsoIdentity,
   UserTotpAuth,
   UserTwoFactorBackupCode,
   UserWebAuthn,
@@ -975,6 +985,7 @@ const AllModelTypes: Array<{
 
   ProjectSCIM,
   ProjectSCIMLog,
+  ProjectSCIMUser,
   StatusPageSCIMLog,
 
   KubernetesCluster,
@@ -1082,6 +1093,8 @@ const AllModelTypes: Array<{
   MarketplaceSubscription,
   MarketplaceUsageReport,
   MarketplaceCharge,
+  VercelMarketplaceInstallation,
+  VercelMarketplaceConnection,
   UserNotificationEmailRollupItem,
   UserNotificationEmailRollupBatch,
   UserNotificationEmailRollupSetting,

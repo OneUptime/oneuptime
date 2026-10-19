@@ -391,15 +391,11 @@ export default class AIAgentGitHubAPI {
   ): Promise<AuthorizedGitHubRun | null> {
     const data: JSONObject = req.body;
 
+    // Answered there when it proves no agent (400), or after too many wrong keys (429).
     const aiAgent: CodeFixAgentIdentity | null =
-      await CodeFixAgentAuth.resolveAgentIdentity(data);
+      await CodeFixAgentAuth.authenticate(req, res);
 
     if (!aiAgent) {
-      Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid AI Agent ID or AI Agent Key"),
-      );
       return null;
     }
 

@@ -22,6 +22,10 @@
     "label": "Lingua",
     "switchLanguage": "Cambia lingua"
   },
+  "theme": {
+    "switchToDark": "Passa al tema scuro",
+    "switchToLight": "Passa al tema chiaro"
+  },
   "nav": {
     "overview": "Panoramica",
     "incidents": "Incidenti",
@@ -125,7 +129,27 @@
     "noneDescription": "Nessun evento pianificato pubblicato per questa pagina di stato.",
     "scheduledAt": "Pianificato per ",
     "report": "Rapporto evento pianificato",
-    "notFound": "Nessun evento pianificato trovato per questa pagina di stato."
+    "notFound": "Nessun evento pianificato trovato per questa pagina di stato.",
+    "calendar": {
+      "subscribe": "Iscriviti al calendario",
+      "subscribeTitle": "Iscriviti alle manutenzioni programmate",
+      "subscribeDescription": "Ricevi le manutenzioni programmate di questa pagina nella tua app di calendario. Si aggiorna da sola.",
+      "eventTitle": "Aggiungi al calendario",
+      "eventDescription": "Aggiungi questa manutenzione alla tua app di calendario.",
+      "addToCalendar": "Aggiungi al calendario",
+      "addHeading": "Aggiungi al tuo calendario",
+      "google": "Google Calendar",
+      "googleHint": "Apre Google Calendar in una nuova scheda",
+      "device": "Calendario Apple / Outlook",
+      "deviceHint": "Apre l'app di calendario di questo dispositivo",
+      "deviceFileHint": "Scarica la manutenzione per l'app di calendario di questo dispositivo",
+      "copyHeading": "Oppure copia il link",
+      "copyHint": "Incollalo in qualsiasi app di calendario che possa iscriversi a un calendario tramite URL.",
+      "copy": "Copia link",
+      "copied": "Copiato!",
+      "done": "Fatto",
+      "refreshNote": "Le app di calendario controllano le modifiche con i propri tempi, quindi un aggiornamento può richiedere qualche ora per comparire."
+    }
   },
   "subscribe": {
     "title": "Iscriviti",
@@ -161,7 +185,8 @@
       "yourPhoneNumber": "Il tuo numero di telefono",
       "placeholder": "+393123456789",
       "managePrompt": "Inserisci il numero di telefono con cui ti sei iscritto",
-      "manageDescription": "Ti invieremo un link per gestire l'iscrizione a questo numero di telefono."
+      "manageDescription": "Ti invieremo un link per gestire l'iscrizione a questo numero di telefono.",
+      "confirmationSent": "Abbiamo inviato un SMS a questo numero di telefono. Apri il link che contiene per confermare l'iscrizione."
     },
     "slack": {
       "title": "Iscriviti via Slack",
@@ -212,11 +237,16 @@
       "saved": "Le tue modifiche sono state salvate.",
       "submit": "Aggiorna iscrizione",
       "unsubscribe": "Annulla iscrizione",
-      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse."
+      "unsubscribeDescription": "Seleziona questa opzione se desideri annullare l'iscrizione a tutte le risorse.",
+      "linkNotValid": "Questo link per gestire la tua iscrizione è scaduto o non è valido. Per riceverne uno nuovo, usa «Gestisci iscrizione esistente» nella pagina «Iscriviti».",
+      "getNewLink": "Ricevi un nuovo link",
+      "loadFailed": "Impossibile caricare questo link. Riprova più tardi."
     },
     "confirm": {
       "title": "Conferma iscrizione",
-      "success": "Iscrizione confermata con successo"
+      "success": "Iscrizione confermata con successo",
+      "linkNotValid": "Questo link per confermare la tua iscrizione è scaduto o non è valido. Un link funziona per 24 ore dall'invio. Per riceverne uno nuovo, iscriviti di nuovo.",
+      "subscribeAgain": "Iscriviti di nuovo"
     },
     "unsubscribe": {
       "title": "Annulla iscrizione",
@@ -264,7 +294,8 @@
       "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
       "forgotPassword": "Password dimenticata?",
       "submit": "Accedi",
-      "useSSO": "Usa il Single Sign-On (SSO) invece"
+      "or": "oppure",
+      "logInWithSso": "Accedi con SSO"
     },
     "sso": {
       "title": "Accedi con SSO",
@@ -342,5 +373,13 @@
   "{{field}} is required.": "{{field}} è obbligatorio.",
   "{{field}} should match {{matchField}}": "{{field}} deve corrispondere a {{matchField}}",
   "Email is not valid.": "L'email non è valida.",
-  "Next": "Avanti"
+  "Next": "Avanti",
+  "Opens in a new tab": "Si apre in una nuova scheda",
+  "Note": "Nota",
+  "Tip": "Suggerimento",
+  "Info": "Info",
+  "Important": "Importante",
+  "Warning": "Avviso",
+  "Caution": "Attenzione",
+  "Danger": "Pericolo"
 }

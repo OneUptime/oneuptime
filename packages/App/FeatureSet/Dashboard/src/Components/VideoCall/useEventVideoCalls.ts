@@ -3,6 +3,11 @@ import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  CallSummaryStatus,
+  isCallSummaryStale,
+} from "Common/Types/VideoCall/CallSummary";
+import { CallTranscriptFetchStatus } from "Common/Types/VideoCall/CallTranscriptAutoFetch";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { useCallback, useEffect, useState } from "react";
@@ -30,6 +35,95 @@ export interface EventVideoCallsState {
 
 // More than a responder would ever want on one page.
 const MAX_CALLS: number = 20;
+
+/*
+ * What an incident's calls also carry (issue #4875): whether each can be
+ * read from its provider, its transcript's description (never the
+ * transcript itself, which the transcript dialog reads on its own), what
+ * OneUptime AI read in it, for the AI Investigation card, and whether
+ * OneUptime is getting the transcript by itself.
+ */
+export const INCIDENT_CALL_TRANSCRIPT_SELECT: {
+  videoCallConnectionId: true;
+  externalMeetingId: true;
+  transcriptSource: true;
+  transcriptInfo: true;
+  transcriptAddedAt: true;
+  transcriptAddedByUser: { _id: true; name: true; email: true };
+  callSummary: true;
+  callSummaryStatus: true;
+  callSummaryStatusMessage: true;
+  callSummaryUpdatedAt: true;
+  rootCauseSuggestionStatus: true;
+  rootCauseSuggestionReviewedAt: true;
+  rootCauseSuggestionReviewedByUser: { _id: true; name: true; email: true };
+  transcriptFetchStatus: true;
+  transcriptFetchReason: true;
+} = {
+  videoCallConnectionId: true,
+  externalMeetingId: true,
+  transcriptSource: true,
+  transcriptInfo: true,
+  transcriptAddedAt: true,
+  transcriptAddedByUser: { _id: true, name: true, email: true },
+  callSummary: true,
+  callSummaryStatus: true,
+  callSummaryStatusMessage: true,
+  callSummaryUpdatedAt: true,
+  rootCauseSuggestionStatus: true,
+  rootCauseSuggestionReviewedAt: true,
+  rootCauseSuggestionReviewedByUser: { _id: true, name: true, email: true },
+  transcriptFetchStatus: true,
+  transcriptFetchReason: true,
+};
+
+/*
+ * While OneUptime AI reads a call's transcript the page looks again this
+ * often, so the summary appears without a reload. A reading that has gone
+ * on for too long (isCallSummaryStale) is no longer waited on: the page
+ * offers to read it again instead.
+ */
+export const CALL_SUMMARY_POLL_INTERVAL_MS: number = 4000;
+
+export function isAnyCallBeingRead(
+  calls: Array<EventVideoCall>,
+  now: Date,
+): boolean {
+  return calls.some((call: EventVideoCall): boolean => {
+    const incidentCall: IncidentVideoCall = call as IncidentVideoCall;
+
+    return (
+      incidentCall.callSummaryStatus === CallSummaryStatus.Pending &&
+      !isCallSummaryStale({
+        status: incidentCall.callSummaryStatus,
+        updatedAt: incidentCall.callSummaryUpdatedAt,
+        now,
+      })
+    );
+  });
+}
+
+/*
+ * While OneUptime waits to get a call's transcript by itself, the page
+ * looks again this often - the call may end, and its transcript come in,
+ * while the page is open - so the transcript and what OneUptime AI read in
+ * it appear without a reload. A transcript comes minutes after a call, so
+ * once a minute is plenty.
+ */
+export const CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS: number = 60 * 1000;
+
+export function isAnyCallWaitingForTranscript(
+  calls: Array<EventVideoCall>,
+): boolean {
+  return calls.some((call: EventVideoCall): boolean => {
+    const incidentCall: IncidentVideoCall = call as IncidentVideoCall;
+
+    return (
+      incidentCall.transcriptFetchStatus ===
+        CallTranscriptFetchStatus.Waiting && !incidentCall.transcriptAddedAt
+    );
+  });
+}
 
 export async function fetchEventVideoCalls(data: {
   kind: VideoCallEventKind;
@@ -59,7 +153,7 @@ export async function fetchEventVideoCalls(data: {
     const result: ListResult<IncidentVideoCall> = await ModelAPI.getList({
       modelType: IncidentVideoCall,
       query: { incidentId: data.eventId },
-      select,
+      select: { ...select, ...INCIDENT_CALL_TRANSCRIPT_SELECT },
       sort: { createdAt: SortOrder.Descending },
       skip: 0,
       limit: MAX_CALLS,
@@ -214,6 +308,50 @@ export default function useEventVideoCalls(data: {
       clearTimeout(timer);
     };
   }, [recheckDelay, eventKey, attempt]);
+
+  /*
+   * While OneUptime AI reads a transcript, look again until it is done.
+   * Each look sets up the next one when it starts, not when its answer
+   * comes: a look that fails keeps what is on screen without changing it,
+   * and must not end the looking.
+   */
+  const isReading: boolean =
+    !isLoading && !error && isAnyCallBeingRead(calls, new Date());
+
+  useEffect(() => {
+    if (!isReading) {
+      return;
+    }
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      refresh();
+    }, CALL_SUMMARY_POLL_INTERVAL_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isReading, refreshCounter]);
+
+  /*
+   * While OneUptime waits to get a call's transcript by itself, look again
+   * now and then; a reading in progress looks more often (above).
+   */
+  const isWaitingForTranscript: boolean =
+    !isLoading && !error && !isReading && isAnyCallWaitingForTranscript(calls);
+
+  useEffect(() => {
+    if (!isWaitingForTranscript) {
+      return;
+    }
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      refresh();
+    }, CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isWaitingForTranscript, refreshCounter]);
 
   return { calls, hasLoaded: !isLoading, error, refresh };
 }

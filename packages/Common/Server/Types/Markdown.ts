@@ -191,8 +191,9 @@ interface HeldBackMarkdown {
 // Puts back what was held back: as it was written, or escaped for HTML.
 type PutBackFunction = (value: string, escape: boolean) => string;
 
+// Each fence run is taken whole, as the pattern took it first anyway (see FENCE_LINE_PATTERN in FeedMarkdown).
 const FENCE_OPEN: RegExp =
-  /^(?:[ \t>]|(?:[-*+]|\d{1,9}[.)])[ \t])*(?:(`{3,})[^`]*|(~{3,}).*)$/;
+  /^(?:[ \t>]|(?:[-*+]|\d{1,9}[.)])[ \t])*(?:(`{3,}(?!`))[^`]*|(~{3,}(?!~)).*)$/;
 const FENCE_CLOSE: RegExp = /^[ \t>]*(`{3,}|~{3,})[ \t]*$/;
 
 const ESCAPE_OR_BACKTICK_RUN: RegExp = /\\([!-/:-@[-`{-~])|`+/g;

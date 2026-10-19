@@ -40,7 +40,7 @@ Abre la página **Reglas de etiquetas** o **Reglas del propietario** del product
 
 ### Elegir con qué coincide la regla
 
-En el paso **Coincidencia**, haz clic en **Añadir condición** por cada condición que deba cumplir el recurso. Con dos o más, elige **Coincidir con todas** o **Coincidir con cualquiera**. Una regla sin condiciones coincide con cualquier recurso nuevo.
+En el paso **Coincidencia**, **Se aplica a** empieza en cualquier recurso nuevo, por ejemplo **Todos los hosts** en una regla de hosts. Para acotarla, elige **Solo los hosts que cumplen las condiciones** y rellena la condición que se abre; haz clic en **Añadir condición** por cada otra condición que deba cumplir el recurso. Con dos o más, elige **Coincidir con todas** o **Coincidir con cualquiera**.
 
 ### Elegir qué añade la regla
 

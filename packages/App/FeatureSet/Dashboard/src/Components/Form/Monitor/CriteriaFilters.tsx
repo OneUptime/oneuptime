@@ -134,7 +134,7 @@ const CriteriaFilters: FunctionComponent<ComponentProps> = (
           description={
             isMetricOnly
               ? `At least one alert rule is required. If you don't need rules, you can delete the entire criteria instead.`
-              : `We need at least one filter for this criteria. We cant delete one remaining filter. If you don't need filters, please feel free to delete criteria instead.`
+              : `A criteria needs at least one filter. To remove them all, delete the criteria instead.`
           }
           title={
             isMetricOnly

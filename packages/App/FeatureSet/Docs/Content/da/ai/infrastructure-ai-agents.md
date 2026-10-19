@@ -234,7 +234,7 @@ Forespørgselstekst i outputtet normaliseres (hver streng- og tal-literal bliver
 
 ## Sådan fungerer rettelser
 
-Rettelser er slået fra, indtil du slår dem til, og det kræver to indstillinger på agenten: `ONEUPTIME_AI_FIXES` sat til en anden tilstand end `off` (se [Hvad AI må gøre, sat af agenten](#hvad-ai-må-gøre-sat-af-agenten)) og `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skriveadgang på agenten](#skriveadgang-på-agenten)). Den ene alene ændrer intet. En agent, der er ældre end `ONEUPTIME_AI_FIXES`, tager i stedet **Rettelser** fra ressourcens AI-agent-side. Rettelser kræver også, at AI er slået til for projektet (**Aktivér AI** under Projektindstillinger → AI Features), hvilket den er, medmindre nogen har slået den fra.
+Rettelser er slået fra, indtil du slår dem til, og det kræver to indstillinger på agenten: `ONEUPTIME_AI_FIXES` sat til en anden tilstand end `off` (se [Hvad AI må gøre, sat af agenten](#hvad-ai-må-gøre-sat-af-agenten)) og `ONEUPTIME_AI_ALLOW_WRITES=true` (se [Skriveadgang på agenten](#skriveadgang-på-agenten)). Den ene alene ændrer intet. En agent, der er ældre end `ONEUPTIME_AI_FIXES`, tager i stedet **Rettelser** fra ressourcens AI-agent-side. Rettelser kræver også, at AI er slået til for projektet (**Aktivér AI** under Projektindstillinger → AI → AI Features), hvilket den er, medmindre nogen har slået den fra.
 
 ### Rettelsestilstande
 
@@ -350,7 +350,7 @@ I tilstanden **Automatisk** lader ressourcens **Tilladte kommandoer** på AI-age
 
 ### Hvem der må ændre den
 
-Så længe agenten sætter undersøgelse og rettelser, ændres de der, hvor den kører, uanset hvem du er, og det følgende gælder kun listen over tilladte kommandoer. For en agent, der er ældre end disse indstillinger og overlader dem til AI-agentens side: at slå rettelser til (ethvert skift væk fra **Fra**, også til **Bed om godkendelse**) og at løsne dem (skifte til **Automatisk** eller **Spring godkendelse over** eller tilføje en post til listen) kræver en Project Owner, en Project Admin eller tilladelsen **Edit Auto Remediation Rule**, de samme personer, der må oprette en fuldautomatisk afhjælpningsregel. **Nulstil agent** kræver de samme personer. At stramme op (**Fra**, en mindre autonom tilstand, at fjerne poster fra listen) og **Investigate**-kontakten er åbne for alle, der må redigere ressourcen, og det samme gælder **Test forbindelse**.
+Så længe agenten sætter undersøgelse og rettelser, ændres de der, hvor den kører, uanset hvem du er, og det følgende gælder kun listen over tilladte kommandoer. For en agent, der er ældre end disse indstillinger og overlader dem til AI-agentens side: at slå rettelser til (ethvert skift væk fra **Fra**, også til **Bed om godkendelse**) og at løsne dem (skifte til **Automatisk** eller **Spring godkendelse over** eller tilføje en post til listen) kræver en Project Owner, en Project Admin eller tilladelsen **Edit Auto Remediation Rule**, de samme personer, der må oprette en fuldautomatisk afhjælpningsregel. **Nulstil agent** kræver de samme personer. At stramme op (**Fra**, en mindre autonom tilstand, at fjerne poster fra listen) og **Investigate**-kontakten er åbne for alle, der må redigere ressourcen, og det samme gælder **Test forbindelse** og at godkende en rettelse, som OneUptime AI foreslår til den. Alt dette kræver tilladelse til at redigere netop den ressource: en tilladelse, der er begrænset til bestemte labels eller til de ressourcer, som du eller dine teams ejer, når kun de ressourcer, og en blokeringspost med labels fjerner de ressourcer, der bærer dem.
 
 ## Skriveadgang på agenten
 

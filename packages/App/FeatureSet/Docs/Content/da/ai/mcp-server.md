@@ -19,10 +19,10 @@ MCP-serveren er en del af hver OneUptime-instans, på `/mcp` på samme adresse s
 ```mermaid title="Sådan når en klient dit projekt"
 flowchart TB
     C["Din MCP-klient:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP til /mcp"| M["OneUptimes<br/>MCP-server"]
-    M --> W{"Hvordan identificerer<br/>klienten sig?"}
-    W -->|"den loggede ind"| P["Som dig, i det<br/>projekt, du valgte"]
+    M --> W{"Hvordan<br/>identificerer<br/>klienten sig?"}
+    W -->|"den loggede ind"| P["Som dig, i det<br/>projekt,<br/>du valgte"]
     W -->|"en API-nøgle"| K["Som nøglen, i<br/>nøglens projekt"]
-    W -->|"ingen af delene"| U["Kun værktøjer til<br/>offentlige statussider"]
+    W -->|"ingen af<br/>delene"| U["Kun værktøjer til<br/>offentlige<br/>statussider"]
     P --> A["OneUptimes API,<br/>med præcis de<br/>tilladelser"]
     K --> A
 ```
@@ -39,7 +39,7 @@ Serveren er tilstandsløs: den udsteder ingen sessions-id'er, og hver anmodning 
 - **Planlagt vedligeholdelse**: opret og administrer vedligeholdelseshændelser.
 - **Telemetri**: forespørg logs, metrikker, spor, undtagelser, monitorlogs, sikkerhedshændelser og mere, kun læsning.
 
-Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 27 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. Skrivebeskyttede værktøjer har `readOnlyHint`, og sletteværktøjer har `destructiveHint`, så en klient selv kan køre sikre kald og spørge dig før destruktive. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
+Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 27 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. Skrivebeskyttede værktøjer har `readOnlyHint`, alle værktøjer, der ændrer noget, har `destructiveHint`, og kun værktøjerne til offentlige statussider har `openWorldHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
 
 ## Før du begynder
 
@@ -111,7 +111,7 @@ Hvad en forbundet klient kan:
 
 ### Administrer forbundne klienter
 
-Hver klient, der er forbundet ved login, står under **Projektindstillinger → AI → MCP-server** under **Connected MCP Clients**, med hvem der forbandt den, hvad den må, og hvornår den sidst blev brugt. Du ser de klienter, du har forbundet; projektets ejere og administratorer ser alles.
+Hver klient, der er forbundet ved login, står under **Projektindstillinger → AI → MCP-server** under **Forbundne MCP-klienter**, med hvem der forbandt den, hvad den må, og hvornår den sidst blev brugt. Du ser de klienter, du har forbundet; projektets ejere og administratorer ser alles.
 
 Klik på **Disconnect** for at logge en klient ud. Den holder op med at virke med det samme.
 
@@ -195,6 +195,19 @@ Inputvariablen med `"password": true` spørger efter nøglen, når serveren star
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

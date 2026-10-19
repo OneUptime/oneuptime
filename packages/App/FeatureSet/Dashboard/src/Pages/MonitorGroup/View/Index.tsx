@@ -26,6 +26,18 @@ import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
+import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
+import MonitorGroupMonitorsCopy, {
+  ADD_MONITORS_QUERY_PARAM,
+} from "../../../Components/MonitorGroup/MonitorGroupMonitorsCopy";
+import NoMonitorsStatus from "../../../Components/MonitorGroup/NoMonitorsStatus";
 import React, {
   Fragment,
   FunctionComponent,
@@ -54,6 +66,13 @@ const MonitorGroupView: FunctionComponent<
 
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * How many monitors the group holds. A new group holds none, and its
+   * Overview then says so, with Add Monitors, instead of an uptime bar for a
+   * group with nothing in it.
+   */
+  const [monitorCount, setMonitorCount] = useState<number | null>(null);
 
   const getUptimePercent: () => ReactElement = (): ReactElement => {
     if (isLoading) {
@@ -93,6 +112,14 @@ const MonitorGroupView: FunctionComponent<
   const getCurrentStatusBubble: () => ReactElement = (): ReactElement => {
     if (isLoading) {
       return <></>;
+    }
+
+    /*
+     * A group with no monitors has no status to show: it used to read
+     * Operational, in green, beside the card that asks for its monitors.
+     */
+    if (monitorCount === 0) {
+      return <NoMonitorsStatus />;
     }
 
     return (
@@ -150,6 +177,13 @@ const MonitorGroupView: FunctionComponent<
         },
       );
 
+      const groupMonitorCount: number = await ModelAPI.count({
+        modelType: MonitorGroupResource,
+        query: {
+          monitorGroupId: modelId,
+        },
+      });
+
       const currentStatus: MonitorStatus | null =
         await ModelAPI.post<MonitorStatus>({
           modelType: MonitorStatus,
@@ -159,6 +193,7 @@ const MonitorGroupView: FunctionComponent<
             .addRoute(`/${modelId.toString()}`),
         });
 
+      setMonitorCount(groupMonitorCount);
       setCurrentGroupStatus(currentStatus);
       setStatusTimelines(statusTimelines.data);
       setDowntimeMonitorStatues(
@@ -181,6 +216,12 @@ const MonitorGroupView: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  // Whether the reader may put monitors in the group (Add Monitors).
+  const canAddMonitors: boolean = PermissionGate.check(
+    new MonitorGroupResource(),
+    ModelAction.Create,
+  ).isAllowed;
+
   return (
     <Fragment>
       {/* MonitorGroup View  */}
@@ -191,11 +232,16 @@ const MonitorGroupView: FunctionComponent<
         }}
         isEditable={true}
         formFields={[
+          /*
+           * Named as the create form names them: Name and Description.
+           * They were "Group Name" and "Group Description" here, and
+           * "Monitor Group Name" on the card.
+           */
           {
             field: {
               name: true,
             },
-            title: "Group Name",
+            title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Monitor Group Name",
@@ -207,7 +253,7 @@ const MonitorGroupView: FunctionComponent<
             field: {
               description: true,
             },
-            title: "Group Description",
+            title: "Description",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder: "Description",
@@ -230,7 +276,7 @@ const MonitorGroupView: FunctionComponent<
               field: {
                 name: true,
               },
-              title: "Monitor Group Name",
+              title: "Name",
             },
             {
               field: {
@@ -266,21 +312,67 @@ const MonitorGroupView: FunctionComponent<
         }}
       />
 
-      <Card
-        title="Uptime Graph"
-        description="This group's status over the last 90 days, one bar per day."
-        rightElement={getUptimePercent()}
-      >
-        <MonitorUptimeGraph
-          error={error}
-          items={statusTimelines}
-          startDate={OneUptimeDate.getSomeDaysAgo(90)}
-          endDate={OneUptimeDate.getCurrentDate()}
-          isLoading={isLoading}
-          defaultBarColor={Green}
-          downtimeMonitorStatuses={downTimeMonitorStatues}
-        />
-      </Card>
+      {monitorCount === 0 ? (
+        /*
+         * The one thing to do with a new group: put its monitors in it.
+         * Add Monitors opens the group's Monitors page with its picker open.
+         */
+        <Card title={MonitorGroupMonitorsCopy.emptyGroupCardTitle}>
+          <EmptyState
+            id="monitor-group-no-monitors"
+            icon={IconProp.AltGlobe}
+            title={MonitorGroupMonitorsCopy.emptyTitle}
+            description={MonitorGroupMonitorsCopy.emptyDescription}
+            paddingClassName="py-8"
+            footer={
+              /*
+               * Only for whoever may put a monitor in a group: the page Add
+               * Monitors opens would refuse anyone else. Button keeps a
+               * dialog footer's left margin (md:ml-3), which would push it
+               * off the centre here, so its wrapper clears it.
+               */
+              canAddMonitors ? (
+                <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                  <Button
+                    title={MonitorGroupMonitorsCopy.addButton}
+                    icon={IconProp.Add}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    dataTestId="monitor-group-add-monitors"
+                    onClick={() => {
+                      Navigation.navigate(
+                        RouteUtil.populateRouteParams(
+                          RouteMap[
+                            PageMap.MONITOR_GROUP_VIEW_MONITORS
+                          ] as Route,
+                          { modelId: modelId },
+                        ).addQueryParams({
+                          [ADD_MONITORS_QUERY_PARAM]: "true",
+                        }),
+                      );
+                    }}
+                  />
+                </div>
+              ) : undefined
+            }
+          />
+        </Card>
+      ) : (
+        <Card
+          title="Uptime Graph"
+          description="This group's status over the last 90 days, one bar per day."
+          rightElement={getUptimePercent()}
+        >
+          <MonitorUptimeGraph
+            error={error}
+            items={statusTimelines}
+            startDate={OneUptimeDate.getSomeDaysAgo(90)}
+            endDate={OneUptimeDate.getCurrentDate()}
+            isLoading={isLoading}
+            defaultBarColor={Green}
+            downtimeMonitorStatuses={downTimeMonitorStatues}
+          />
+        </Card>
+      )}
     </Fragment>
   );
 };

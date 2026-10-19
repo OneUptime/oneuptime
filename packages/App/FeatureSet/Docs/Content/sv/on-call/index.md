@@ -99,7 +99,7 @@ När du har jour för en policy visar klockan uppe till höger det. Klicka på d
 :::
 
 :::details Någon larmades på fel kanal, eller inte alls
-Öppna **Jourtjänst → Beredskap** och klicka på **Coverage** på personens rad. Den visar metoderna personen har verifierat och varje allvarlighetsgrad som hen saknar regel för. Bara personen själv kan åtgärda det, under **Användarinställningar**: skicka en påminnelse om inställningarna från samma sida. Se [Beredskap och rapporter](/docs/on-call/readiness).
+Öppna **Jourtjänst → Beredskap** och klicka på **Coverage** på personens rad. Den visar metoderna personen har verifierat och varje allvarlighetsgrad som hen saknar regel för. Bara personen själv kan åtgärda det, under **Användarinställningar**: skicka en påminnelse om inställningarna från samma sida. Se [Beredskap och rapporter](/docs/on-call/readiness). På OneUptime Cloud kan en telefon som blockerar okända uppringare tysta ett larm: lägg till [OneUptimes nummer](/docs/on-call/phone-number-whitelist) i dess lista över tillåtna.
 :::
 
 :::details En person på semester larmas fortfarande

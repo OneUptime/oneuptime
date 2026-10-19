@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | En Twilio-konto med dens Account SID og Auth Token | Politikkens numre og opkald kører på den, og Twilio fakturerer dem til den. |
 | Planen **Growth** på OneUptime Cloud | Et projekt skal have den for at få sin egen Twilio-konfiguration. |
-| En OneUptime-server, som Twilio kan nå, hvis du selv hoster den | Twilio sender hvert opkald til `https://<your host>/notification/incoming-call/voice`. |
+| En OneUptime-server, som Twilio kan nå, hvis du selv hoster den | Twilio sender hvert opkald til `https://<your host>/notification/incoming-call/voice` og udfaldet af hver opringning til `https://<your host>/notification/incoming-call/dial-status/...`. |
 | **SMS** slået til i projektet | Hver ingeniørs nummer bekræftes med en kode, der sendes via SMS. |
 | Et bekræftet nummer for hver ingeniør | En regel ringer kun til personer, der har tilføjet og bekræftet et nummer til indgående opkald i projektet. |
 
@@ -49,7 +49,7 @@ Gå til **Projektindstillinger** > **Notifikationer** > **Notifikationsindstilli
 
 ### Opret politikken
 
-Gå til **Vagtordning** > **Indgående opkaldspolitikker**, og klik på **Opret Indgående opkaldspolitik**. Giv den et **Navn**, fx "Supportlinje", og eventuelt en **Beskrivelse** og **Etiketter**. Åbn den derefter fra listen.
+Gå til **Vagtordning** > **Indgående opkaldspolitikker**, og klik på **Opret Indgående opkaldspolitik**. Giv den et **Navn**, fx "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfri, under **Flere felter**. Den nye politik åbner på sin **Oversigt**.
 
 ### Vælg Twilio-kontoen
 
@@ -78,7 +78,7 @@ Når alle tre trin er færdige, bliver kortet til **Phone Numbers & Twilio Confi
 2. OneUptime ringer til den person, den første eskaleringsregel nævner: den person, eller den, der har vagt i reglens vagtplan i det øjeblik, brugeroverrides medregnet. Personens telefon viser politikkens nummer som opkalder.
 3. Svarer personen inden for reglens **Ringetid**, stilles opkalderen igennem, og opkaldsloggen registrerer, hvem der svarede.
 4. Hvis ikke, hører opkalderen "Connecting you to the next available engineer.", og der ringes til næste regels person.
-5. Efter den sidste regel starter politikken forfra fra den første regel, hvis **Gentag politik hvis ingen svarer** er slået til, så mange gange som **Antal gentagelser af politik** siger. Ellers hører opkalderen **Besked ved intet svar**, og opkaldet slutter.
+5. Efter den sidste regel bestemmer politikkens **Gentagelsespolitik**: **Ring igen fra den første regel** ringer hver regel op igen, så mange gange mere, som den siger, og **Afslut opkaldet** gør ikke. Derefter hører opkalderen **Besked ved intet svar**, og opkaldet slutter.
 
 ```mermaid title="Forespørgslerne bag ét opkald"
 sequenceDiagram
@@ -86,19 +86,19 @@ sequenceDiagram
     participant Twilio
     participant OneUptime
     participant Engineer as Ingeniør
-    Caller->>Twilio: Ringer til politikkens nummer
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Velkomst, ring derefter til første regels person
-    Twilio->>Engineer: Ringer i reglens ringetid
-    Note over Twilio,Engineer: Ingen svarer i tide
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Ring til næste regels person
-    Twilio->>Engineer: Ringer til næste person
+    Caller->>Twilio: Ringer til<br/>politikkens<br/>nummer
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Velkomst,<br/>ring derefter<br/>til første<br/>regels person
+    Twilio->>Engineer: Ringer i<br/>reglens ringetid
+    Note over Twilio,Engineer: Ingen svarer<br/>i tide
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Ring til næste<br/>regels person
+    Twilio->>Engineer: Ringer til<br/>næste person
     Engineer-->>Twilio: Svarer
-    Twilio-->>Caller: Stiller opkalderen igennem
+    Twilio-->>Caller: Stiller<br/>opkalderen<br/>igennem
 ```
 
-En regel springes over, uden at der ringes til nogen, når der lige nu ikke er nogen at ringe til for den: dens vagtplan har ingen på vagt, personen har intet bekræftet nummer til indgående opkald i dette projekt, eller personen er ikke længere medlem af projektet. Når ingen regel har nogen at ringe til, hører opkalderen **Besked ved ingen tilgængelige**. En deaktiveret politik besvarer hvert opkald med "Sorry, this service is currently disabled." og lægger på.
+En regel springes over, uden at der ringes til nogen, når der lige nu ikke er nogen at ringe til for den: dens vagtplan har ingen på vagt, personen har intet bekræftet nummer til indgående opkald i dette projekt, eller personen er ikke længere medlem af projektet. Når ingen regel har nogen at ringe til, hører opkalderen **Besked ved ingen tilgængelige**. Med **Besvar opkald** slået fra besvarer en politik hvert opkald med "Sorry, this service is currently disabled." og lægger på.
 
 OneUptime kontrollerer Twilios signatur på hver forespørgsel med Twilio-konfigurationens Auth Token og afviser en forespørgsel, den ikke kan verificere.
 
@@ -165,18 +165,21 @@ Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være sl
 
 ## Talebeskeder og politikindstillinger
 
-Åbn politikken, og vælg **Indstillinger** under **Avanceret** i dens sidemenu. **Edit Messages** på kortet **Talebeskeder** ændrer, hvad opkaldere hører; **Edit Policy Settings** på kortet **Politikindstillinger** ændrer resten.
+Åbn politikken, og vælg **Indstillinger** under **Avanceret** i dens sidemenu. Siden har tre kort:
+
+- **Besvar opkald**: **Besvar opkald til denne politiks numre** gemmes, så snart du slår den om. Slået fra hører opkaldere, at linjen ikke er tilgængelig, og ingen bliver ringet op; dens numre, regler og opkaldslogs bevares. Før den slås fra, spørger siden først, med **Stop med at besvare opkald**. Så længe den er slået fra, siger politikkens **Oversigt** det, med **Besvar opkald igen** til at slå den til igen.
+- **Gentagelsespolitik**: hvad der sker, når ingen svarer efter den sidste regel. **Rediger** spørger **Hvis ingen svarer efter den sidste regel**: **Afslut opkaldet**, eller **Ring igen fra den første regel** og **Hvor mange gange mere?**.
+- **Talebeskeder**: hvad opkaldere hører. **Rediger beskeder** ændrer dem.
 
 | Indstilling | Hvad den gør | For en ny politik |
 | --- | --- | --- |
-| **Velkomstbesked** | Læses op, når opkaldet besvares, før der ringes til den første person. | "Please wait while we connect you to the on-call engineer." |
-| **Besked ved intet svar** | Læses op, når alle regler er prøvet, og ingen svarede. | "No one is available. Please try again later." |
-| **Besked ved ingen tilgængelige** | Læses op, når ingen regel har nogen at ringe til. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Aktiveret** | En deaktiveret politik afviser alle opkald. | Til |
-| **Gentag politik hvis ingen svarer** | Starter forfra fra den første regel efter den sidste. | Fra |
-| **Antal gentagelser af politik** | Hvor mange gange der startes forfra. | 1 |
+| **Velkomstbesked** | Læses op, når nogen ringer, før nogen ringes op. | "Please wait while we connect you to the on-call engineer." |
+| **Besked ved intet svar** | Læses op, når hver regel har ringet, og ingen har svaret, før opkaldet slutter. | "No one is available. Please try again later." |
+| **Besked ved ingen tilgængelige** | Læses op, når ingen kan ringes op, fx når ingen har vagt. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Besvar opkald til denne politiks numre** | Slået fra hører hver opkalder "Sorry, this service is currently disabled.", og opkaldet slutter. | Til |
+| **Hvis ingen svarer efter den sidste regel** | **Afslut opkaldet**, eller **Ring igen fra den første regel**. | **Afslut opkaldet** |
 
-Twilio læser beskederne op med en tekst-til-tale-stemme, så skriv dem, som du vil have dem til at lyde.
+Twilio læser beskederne op med en tekst-til-tale-stemme, så skriv dem, som du vil have dem til at lyde. En besked, der er efterladt tom, læses op med OneUptimes egne ord, som kortet viser i stedet.
 
 ## Opkaldslogs
 
@@ -188,7 +191,7 @@ Hvert opkald står på politikkens side **Opkaldslogs** under **Protokoller** i 
 | **Fuldført** | Nogen svarede, og opkalderen blev stillet igennem. |
 | **Intet svar** | Alle eskaleringsregler blev prøvet, og ingen svarede. Opkalderen hørte din **Besked ved intet svar**. |
 | **Caller Hung Up** | Opkalderen lagde på, mens en ingeniørs telefon ringede. |
-| **Mislykkedes** | Der kunne ikke ringes til nogen: ingen eskaleringsregel havde en bruger på vagt med et bekræftet nummer til indgående opkald (opkalderen hørte din **Besked ved ingen tilgængelige**), eller politikken er deaktiveret. |
+| **Mislykkedes** | Der kunne ikke ringes til nogen: ingen eskaleringsregel havde en bruger på vagt med et bekræftet nummer til indgående opkald (opkalderen hørte din **Besked ved ingen tilgængelige**), eller **Besvar opkald** er slået fra. |
 
 ## Ubesvarede opkald
 
@@ -257,7 +260,7 @@ En regel, der oprettes via API'et uden `escalateAfterSeconds`, ringer i 20 sekun
 :::
 
 :::details Opkaldet besvares, men der ringes ikke til nogen
-Opkaldsloggen siger **Mislykkedes**. Tjek, at politikken er **Aktiveret**, at hver regels vagtplan har nogen på vagt lige nu, og at de personer, reglerne ringer til, har et bekræftet nummer under **Brugerindstillinger** > **Indgående opkaldspolitik** > **Indgående telefonnumre** i dette projekt. Regler ringer kun til projektets medlemmer.
+Opkaldsloggen siger **Mislykkedes**. Tjek, at **Besvar opkald** er slået til under politikkens **Indstillinger**, at hver regels vagtplan har nogen på vagt lige nu, og at de personer, reglerne ringer til, har et bekræftet nummer under **Brugerindstillinger** > **Indgående opkaldspolitik** > **Indgående telefonnumre** i dette projekt. Regler ringer kun til projektets medlemmer.
 :::
 
 :::details Opkald ender på telefonsvareren

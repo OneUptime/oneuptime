@@ -41,6 +41,12 @@ export default class Cookie {
     const cookieOptions: CookieSetOptions = {
       httpOnly: options?.httpOnly || false,
       path: options?.path ? options.path.toString() : "/",
+      /*
+       * A page on HTTPS keeps what it writes on HTTPS: the browser never
+       * sends a Secure cookie over plain HTTP. A page on plain HTTP cannot
+       * keep a Secure cookie at all, so it writes the cookie as before.
+       */
+      secure: Cookie.isPageOnHttps(),
     };
 
     if (options?.maxAgeInDays) {
@@ -50,6 +56,12 @@ export default class Cookie {
     }
 
     cookies.set(key, value as string, cookieOptions);
+  }
+
+  public static isPageOnHttps(): boolean {
+    return (
+      typeof window !== "undefined" && window.location?.protocol === "https:"
+    );
   }
 
   public static getItem(cookieName: CookieName): JSONValue {

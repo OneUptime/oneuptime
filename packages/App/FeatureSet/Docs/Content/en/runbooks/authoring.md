@@ -25,11 +25,11 @@ Open **Products → Runbooks**. Runbooks is in the **Dashboards & Automation** g
 
 ### Create the runbook
 
-Click **Create Runbook**, enter a **Name** and, optionally, a **Description** of what the runbook is for. Under **More fields** are the **Enabled** switch, on by default, and **Labels**. The new runbook appears in the list: open it.
+Click **Create Runbook**, enter a **Name** and, optionally, a **Description** of what the runbook is for. Under **More fields** are the **Enabled** switch, on by default, and **Labels**. The new runbook opens on its **Steps** page.
 
 ### Add steps
 
-Go to **Steps**. Under **Start your runbook**, pick the type of the first step; below the last step, **Add another step** offers the same seven types. Each step opens with its **Title**, its **Description** (Markdown, shown to the responder) and the settings of its type. Once the runbook has a step, **Add Step**, at the top of the card, adds a Manual step.
+Under **Start your runbook**, pick the type of the first step; below the last step, **Add another step** offers the same seven types. Each step opens with its **Title**, its **Description** (Markdown, shown to the responder) and the settings of its type. Once the runbook has a step, **Add Step**, at the top of the card, adds a Manual step.
 
 ### Put the steps in order
 
@@ -190,7 +190,7 @@ AI steps are metered and billed like any other AI feature. The step fails, with 
 flowchart TB
     run["Automated step runs"] --> ok{"Succeeded?"}
     ok -->|yes| approval{"Require approval on?"}
-    approval -->|yes| wait["Run waits for a person to approve"]
+    approval -->|yes| wait["Run waits for a<br/>person to approve"]
     approval -->|no| next["Next step runs"]
     wait --> next
     ok -->|no| cont{"Continue on failure on?"}

@@ -1,7 +1,9 @@
 import CookieUtil from "../../../Server/Utils/Cookie";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import { JSONObject } from "../../../Types/JSON";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import JSONWebTokenData from "../../../Types/JsonWebTokenData";
+import JsonWebTokenPurpose from "../../../Types/JsonWebTokenPurpose";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -37,7 +39,10 @@ describe("CookieUtil.getSSOToken - SSO provider discriminator", () => {
     expect(typeof token).toBe("string");
     expect(token.length).toBeGreaterThan(0);
 
-    const decoded: JSONWebTokenData = JSONWebToken.decode(token);
+    const decoded: JSONWebTokenData = JSONWebToken.decode(
+      token,
+      JsonWebTokenPurpose.SsoSignIn,
+    );
 
     expect(decoded.userId?.toString()).toBe(user.id!.toString());
     expect(decoded.projectId?.toString()).toBe(projectId.toString());
@@ -110,6 +115,27 @@ describe("CookieUtil.getSSOToken - SSO provider discriminator", () => {
     // No discriminator was provided, so neither field should carry a value.
     expect(payload["ssoProviderId"]).toBeUndefined();
     expect(payload["ssoProviderType"]).toBeUndefined();
+  });
+
+  test("says it is an SSO sign-in, names no session, and is read as no session", () => {
+    const user: User = buildUser();
+
+    for (const providerType of Object.values(SsoProviderType)) {
+      const token: string = CookieUtil.getSSOToken({
+        user,
+        projectId: ObjectID.generate(),
+        ssoProviderId: ObjectID.generate(),
+        ssoProviderType: providerType,
+      });
+
+      const payload: JSONObject = JSONWebToken.decodeJsonPayload(token);
+
+      expect(payload["purpose"]).toBe(JsonWebTokenPurpose.SsoSignIn);
+      expect(payload["sessionId"]).toBeUndefined();
+      expect(() => {
+        return JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession);
+      }).toThrow(BadDataException);
+    }
   });
 
   test("ssoProviderId without ssoProviderType still records the provider id", () => {

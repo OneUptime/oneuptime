@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["Hvad starter en kørsel"]
         direction LR
         rule["Runbook-regel"]
-        manual["Kør runbook på en begivenhed"]
-        runnow["Run Now på runbooket"]
+        manual["Kør runbook på<br/>en begivenhed"]
+        runnow["Run Now på<br/>runbooket"]
     end
-    rule --> execution["Udførelse: et øjebliksbillede af trinnene"]
+    rule --> execution["Udførelse: et<br/>øjebliksbillede<br/>af trinnene"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker tager trinnene i rækkefølge"]
-    worker -->|"Manual-trin eller godkendelse"| person["Venter på en person"]
-    worker -->|"HTTP- og AI-trin"| onworker["Kører på Workeren"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner i din infrastruktur"]
-    person --> record["Status, output og fejl registreret"]
+    execution --> worker["OneUptime Worker<br/>tager trinnene<br/>i rækkefølge"]
+    worker -->|"Manual-trin<br/>eller godkendelse"| person["Venter på<br/>en person"]
+    worker -->|"HTTP- og<br/>AI-trin"| onworker["Kører på Workeren"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner i din<br/>infrastruktur"]
+    person --> record["Status, output og<br/>fejl registreret"]
     onworker --> record
     runner --> record
-    record --> history["Begivenhedens Runbooks-side og runbookets Udførelser"]
+    record --> history["Begivenhedens<br/>Runbooks-side<br/>og runbookets<br/>Udførelser"]
 ```
 
 Hver kørsel er en **udførelse**. Når den starter, kopieres runbookets trin over på den, og OneUptime arbejder sig igennem dem i rækkefølge. Et Manual-trin, eller et trin der kræver godkendelse, sætter kørslen på pause, indtil nogen handler.
@@ -98,6 +98,17 @@ Runbooks ligger under **Produkter**, i gruppen **Dashboards og automatisering**.
 | **Hændelser / Advarsler / Planlagt vedligeholdelse → Regler → Runbook-regler** | Opret de regler, der starter runbooks automatisk. |
 | En hændelse, advarsel eller vedligeholdelsesbegivenhed → **Runbooks** | Se de kørsler, der er knyttet til den, og klik på **Kør runbook** for at starte en. |
 
+Et runbooks egen sidemenu grupperer dets sider sådan. Kun **Grundlæggende** er åbent fra start: klik på en sektions titel for at åbne den. En sektion åbner af sig selv på enhver side i den.
+
+| Sektion | Sider |
+| --- | --- |
+| **Grundlæggende** | **Oversigt**, **Trin** |
+| **Protokoller** | **Udførelser** |
+| **Ejere** | **Ejere** |
+| **Indstillinger** | **Udløsere**, **Indstillinger** |
+| **Udvikler** | **Terraform**, **API**, **AI-assistenter** |
+| **Avanceret** | **Auditlogs**, **Slet runbook** |
+
 ## Et gennemgået eksempel
 
 Antag, at hver hændelse med "db-primary" i titlen skal starte et database-failover-runbook med fem trin.
@@ -105,7 +116,7 @@ Antag, at hver hændelse med "db-primary" i titlen skal starte et database-failo
 :::steps
 ### Opret runbooket
 
-Under **Runbooks** klikker du på **Opret Runbook** og kalder det "DB primary failover". Åbn det, gå til **Trin**, tilføj disse trin, og klik så på **Save Steps**:
+Under **Runbooks** klikker du på **Opret Runbook** og kalder det "DB primary failover". Det åbner på **Trin**: tilføj disse trin, og klik så på **Save Steps**:
 
 | # | Type | Titel |
 | --- | --- | --- |

@@ -6,6 +6,7 @@ import {
   SSO_ROUTERS,
   SsoRouterEntry,
 } from "../../../FeatureSet/Identity/SsoRouters";
+import SamlServiceProviders from "../../../FeatureSet/Identity/Utils/SamlServiceProvider";
 import ProjectSsoSignInConfirmation, {
   ProjectSsoKind,
 } from "../../../FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation";
@@ -64,6 +65,9 @@ jest.mock("../../../FeatureSet/Identity/API/Reseller", () => {
 });
 jest.mock("../../../FeatureSet/Identity/API/MicrosoftSignIn", () => {
   return { __esModule: true, default: { coreRouter: "microsoft-sign-in" } };
+});
+jest.mock("../../../FeatureSet/Identity/API/VercelSignIn", () => {
+  return { __esModule: true, default: { coreRouter: "vercel-sign-in" } };
 });
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
@@ -392,7 +396,15 @@ describe("the URLs the product hands out are all served", () => {
       prints: [{ head: "idp-login", parameters: 2 }],
     },
     {
-      file: ["FeatureSet", "Dashboard", "src", "Pages", "Settings", "OIDC.tsx"],
+      // A project's OIDC providers, drawn on its SSO page.
+      file: [
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Components",
+        "Sso",
+        "ProjectOidcProviders.tsx",
+      ],
       prints: [{ head: "oidc-callback", parameters: 2 }],
     },
     {
@@ -482,9 +494,56 @@ describe("the URLs the product hands out are all served", () => {
   );
 
   /*
+   * The Reply URL each SAML router hands an identity provider - in its
+   * AuthnRequest, and as what a response's Recipient must name. The routers
+   * take it from SamlServiceProviders (SamlSignInRoutesGuard.test.ts holds
+   * them to that), so it is read from there, as it is built.
+   */
+  const SAML_REPLY_URLS: Record<string, () => string> = {
+    "SSO.ts": (): string => {
+      return SamlServiceProviders.forProjectSso({
+        projectId: "11111111-1111-4111-8111-111111111111",
+        projectSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
+    "GlobalSSO.ts": (): string => {
+      return SamlServiceProviders.forGlobalSso({
+        globalSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
+    "StatusPageSSO.ts": (): string => {
+      return SamlServiceProviders.forStatusPageSso({
+        statusPageId: "11111111-1111-4111-8111-111111111111",
+        statusPageSsoId: "22222222-2222-4222-8222-222222222222",
+      }).replyUrl;
+    },
+  };
+
+  // The shape of the path of a built URL after its /identity/.
+  const shapeAfterIdentity: (url: string) => PathShape = (
+    url: string,
+  ): PathShape => {
+    const marker: string = "/identity/";
+    const at: number = url.indexOf(marker);
+
+    expect({ url, underIdentity: at >= 0 }).toEqual({
+      url,
+      underIdentity: true,
+    });
+
+    const segments: Array<string> = url
+      .substring(at + marker.length)
+      .split("/")
+      .filter(Boolean);
+
+    return { head: segments[0]!, parameters: segments.length - 1 };
+  };
+
+  /*
    * What the routers themselves hand an identity provider: the ACS URL in a
-   * SAML AuthnRequest and the redirect URI of an OIDC authorization request,
-   * both built as `${HttpProtocol}${Host}/identity/<path>`.
+   * SAML AuthnRequest (from SamlServiceProviders, above) and the redirect URI
+   * of an OIDC authorization request, built as
+   * `${HttpProtocol}${Host}/identity/<path>`.
    */
   test.each([
     ["SSO.ts", { head: "idp-login", parameters: 2 }, "POST"],
@@ -505,11 +564,21 @@ describe("the URLs the product hands out are all served", () => {
     "%s sends identity providers back to a route it serves",
     (file: string, callback: PathShape, method: string) => {
       const source: string = readAppFile("FeatureSet", "Identity", "API", file);
-      const identityPaths: Array<PathShape> = [
-        ...source.matchAll(/\/identity(\/[^`"'\s]*)/g),
-      ].flatMap((match: RegExpMatchArray): Array<PathShape> => {
-        return findBuiltPaths(match[1]!, [callback.head]);
-      });
+      const samlReplyUrl: (() => string) | undefined = SAML_REPLY_URLS[file];
+
+      if (samlReplyUrl) {
+        expect(source).toContain(
+          "acsUrl: URL.fromString(serviceProvider.replyUrl)",
+        );
+      }
+
+      const identityPaths: Array<PathShape> = samlReplyUrl
+        ? [shapeAfterIdentity(samlReplyUrl())]
+        : [...source.matchAll(/\/identity(\/[^`"'\s]*)/g)].flatMap(
+            (match: RegExpMatchArray): Array<PathShape> => {
+              return findBuiltPaths(match[1]!, [callback.head]);
+            },
+          );
 
       expect(identityPaths).toContainEqual(callback);
       expect(isServed(callback, method)).toBe(true);
@@ -598,7 +667,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       },
     ),
   )(
-    "at /api/identity and /, after authentication, reseller and Sign in with Microsoft, before ee's routers and status page authentication (%s)",
+    "at /api/identity and /, after authentication, reseller, Sign in with Microsoft and sign-in from Vercel, before ee's routers and status page authentication (%s)",
     async (_label: string, state: EditionStateCase) => {
       const fake: FakeEnterpriseModule | null = state.apply();
 
@@ -615,6 +684,10 @@ describe("the Identity feature set mounts the SSO routers", () => {
           paths: IDENTITY_PREFIXES,
           router: { coreRouter: "microsoft-sign-in" },
         },
+        {
+          paths: IDENTITY_PREFIXES,
+          router: { coreRouter: "vercel-sign-in" },
+        },
         ...SSO_MOUNTS(),
         ...(state.isLoaded
           ? [{ paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER }]
@@ -627,7 +700,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
 
       // The very same router instances, not copies.
       SSO_ROUTERS.forEach((entry: SsoRouterEntry, index: number): void => {
-        expect(mounted[3 + index]!.router).toBe(entry.router);
+        expect(mounted[4 + index]!.router).toBe(entry.router);
       });
     },
   );
@@ -643,6 +716,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       { coreRouter: "authentication" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
+      { coreRouter: "vercel-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),

@@ -6,7 +6,7 @@ De configuratie van waarschuwingen staat binnen **Waarschuwingen**, niet in **Pr
 - [De regels die een nieuwe waarschuwing doorloopt](#de-regels-die-een-nieuwe-waarschuwing-doorloopt): Op volgorde, en wat elk doet.
 - [Bereikbaarheidsregels](#bereikbaarheidsregels): De juiste mensen oproepen zonder elke keer een beleid te kiezen.
 - [Herinneringsregels](#herinneringsregels): Eigenaren herinneren zolang een waarschuwing open blijft.
-- [Instellingen](#instellingen): Notitie-sjablonen, aangepaste velden, metingen en nummering.
+- [Instellingen](#instellingen): Notitie-sjablonen, aangepaste velden, metingen, lidmaatschap van episodes en nummering.
 :::
 
 ## Waar de instellingen voor waarschuwingen staan
@@ -23,7 +23,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De secti
 | **Labelregels**             | Voegt labels toe aan overeenkomende waarschuwingen en episodes.                                |
 | **Reminder Rules**          | Herinnert eigenaren met een interval zolang een waarschuwing open is.                          |
 
-De sectie **Instellingen** bevat **Status waarschuwing** en **Ernst van waarschuwing**, beschreven op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen** en **Nummering**, hieronder beschreven.
+De sectie **Instellingen** bevat **Status waarschuwing** en **Ernst van waarschuwing**, beschreven op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes** en **Nummering**, hieronder beschreven.
 
 Nog twee secties werken op waarschuwingen. **Waarschuwingen → AI → Instellingen** bepaalt wat OneUptime AI zelf doet: **Nieuwe waarschuwingen onderzoeken**, aan voor nieuwe projecten, en **Nieuwe waarschuwingen automatisch herstellen**, uit tot je het aanzet. Zie [AI SRE](/docs/ai/ai-sre). **Waarschuwingen → Werkruimte** bevat de Slack- en Microsoft Teams-regels die waarschuwingen en episodes in kanalen plaatsen, en het tabblad **Summary**. Zie [Slack](/docs/workspace-connections/slack).
 
@@ -77,17 +77,13 @@ Met twee of meer voorwaarden kies je **Voldoet aan alle**, waarbij elke voorwaar
 **Waarschuwingen → Regels → Bereikbaarheidsregels** maakt oproepen automatisch. Elke overeenkomende regel voegt haar beleid toe aan de nieuwe waarschuwing, en de waarschuwing voert het uit samen met het beleid dat ze al had, elk één keer.
 
 :::steps
-### De regel een naam geven
-
-Klik op **Alert On-Call Rule aanmaken**. Geef haar bij **Basisinformatie** een **Naam**, zoals "Roep het databaseteam op bij elke DB-waarschuwing", en een **Beschrijving** als je wilt.
-
 ### De waarschuwingen kiezen
 
-Voeg bij **Overeenkomstcriteria** de voorwaarden toe waaraan een waarschuwing moet voldoen. Laat ze leeg om op elke nieuwe waarschuwing overeen te komen.
+Klik op **Alert On-Call Rule aanmaken**. Bij **Overeenkomst** komt **Alle waarschuwingen**, waar een nieuwe regel mee begint, overeen met elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg de voorwaarden toe waaraan een waarschuwing moet voldoen.
 
 ### Het beleid kiezen
 
-Kies bij **Bereikbaarheidsbeleid** het **Bereikbaarheidsbeleid** dat de regel uitvoert en maak daarna de regel aan.
+Kies bij **Bereikbaarheidsbeleid** het **Bereikbaarheidsbeleid** dat de regel oproept. De **Naam** volgt dat, zoals "Platform on-call oproepen", totdat je zelf een naam typt, en een **Beschrijving** wacht onder **Meer velden**. Maak daarna de regel aan.
 :::
 
 Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **Waarschuwing Ernsten** matcht, is de manier om "roep het databaseteam op bij elke High-waarschuwing" in te stellen. Om te zien wat er voor één waarschuwing draaide, open je haar pagina **Bereikbaarheidsuitvoeringen**. Elke persoon wordt daarna bereikt zoals die het heeft ingesteld onder **Gebruikersinstellingen → Bereikbaarheidsregels**, op het tabblad **Waarschuwingen**; zie [Escalatieregels](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **
 
 ## Privacy- en runbook-regels
 
-**Privacyregels** maken overeenkomende nieuwe waarschuwingen privé, voordat er iets anders draait: alleen hun eigenaren en de beheerders en eigenaren van het project kunnen ze zien. Een regel heeft een stap **Basisinformatie** en een stap **Overeenkomstcriteria**, en maakt elke waarschuwing waarop ze overeenkomt privé. Zie [Privéwaarschuwingen](/docs/alerts/index#privéwaarschuwingen).
+**Privacyregels** maken overeenkomende nieuwe waarschuwingen privé, voordat er iets anders draait: alleen hun eigenaren en de beheerders en eigenaren van het project kunnen ze zien. Een regel heeft twee stappen: **Overeenkomst**, de waarschuwingen die ze privé maakt, en dan **Naam**, al ingevuld als "Waarschuwingen privé maken". Zie [Privéwaarschuwingen](/docs/alerts/index#privéwaarschuwingen).
 
 **Runbook-regels** starten een runbook wanneer een nieuwe waarschuwing overeenkomt, tenzij de waarschuwing opgelost werd aangemaakt. Zie [Runbook-regels](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ Een ernstniveau roept op zichzelf niemand op: een bereikbaarheidsregel die op **
 **Waarschuwingen → Regels → Reminder Rules** herinnert de eigenaren van een waarschuwing zolang ze open blijft. Elke nieuwe waarschuwing krijgt de eerste regel die overeenkomt, van boven naar beneden in de lijst.
 
 :::steps
-### De herinneringsregel een naam geven
-
-Klik op **Alert Reminder Rule aanmaken**. Geef haar bij **Rule Info** een **Naam**, zoals "Critical Alert Reminders".
-
 ### Kiezen voor welke waarschuwingen je herinnert
 
-Kies bij **Overeenkomstcriteria** de **Waarschuwing Ernsten** en **Labels** waarvoor ze geldt. Laat ze leeg om voor elke waarschuwing te herinneren.
+Klik op **Alert Reminder Rule aanmaken**. Laat bij **Overeenkomst** de keuze **Alle waarschuwingen** staan om voor elke waarschuwing te herinneren, of kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en dan de **Waarschuwing Ernsten** en **Labels** waarvoor ze geldt.
 
 ### Het interval instellen
 
-Stel bij **Reminder Settings** het **Reminder Interval (minutes)** in, hoe vaak eigenaren worden herinnerd, en **Stop Reminders When**: **Opgelost**, de standaard, of **Bevestigd**. Maak daarna de regel aan.
+Stel bij **Herinneringen** het **Herinneringsinterval (minuten)** in, hoe vaak eigenaren worden herinnerd, en **Herinneringen stoppen wanneer**: **Opgelost**, de standaard, of **Bevestigd**. De **Naam** volgt beide, zoals "Elke 30 minuten herinneren tot opgelost", totdat je zelf een naam typt. Maak daarna de regel aan.
 :::
 
 Eigenaren krijgen elke herinnering als **Alert reminder**, dat standaard per e-mail aan staat. De regel van een waarschuwing wordt opnieuw gematcht wanneer haar ernst of labels veranderen. Om de herinneringen voor één waarschuwing te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat wordt opgeslagen zodra je de schakelaar omzet.
@@ -141,6 +133,10 @@ Eigenaren krijgen elke herinnering als **Alert reminder**, dat standaard per e-m
 ### Metingen
 
 **Waarschuwingen → Instellingen → Metingen** meet hoe lang dingen duren bij elke waarschuwing. Kies **Tijd tot bevestiging** of **Tijd tot oplossing**, of twee eigen momenten, zoals wanneer **De waarschuwing wordt aangemaakt** en wanneer ze een status binnengaat die je kiest. Elke meting wordt op de pagina van de waarschuwing getoond en in grafieken weergegeven als `oneuptime.alert.measurement.<key>`. Zie [Metingen](/docs/incidents/settings#metingen), wat voor waarschuwingen op dezelfde manier werkt.
+
+### Lidmaatschap van episodes
+
+**Waarschuwingen → Instellingen → Lidmaatschap van episodes** bepaalt of een waarschuwing in meer dan één episode kan zitten. Zet **Een waarschuwing kan maar in één episode zitten** aan, en een waarschuwing die in een episode zit, wordt aan geen andere toegevoegd, niet vanuit het dashboard en niet via de API, een workflow of een groeperingsregel, totdat ze uit die episode is gehaald. De schakelaar staat uit tot je hem aanzet, en alleen Project Owners en Project Admins kunnen hem wijzigen. Aanzetten haalt geen enkele waarschuwing uit een episode. Zie [Eén episode per incident](/docs/incidents/episodes#eén-episode-per-incident), wat voor waarschuwingen op dezelfde manier werkt.
 
 ### Nummering
 

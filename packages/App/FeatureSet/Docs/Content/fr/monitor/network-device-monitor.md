@@ -502,7 +502,7 @@ Au lieu d'ajouter les équipements un par un, balayez une plage d'adresses depui
 flowchart TB
     Scan["Analyse de découverte<br/>sur une sonde"]
     Ping["Pinguer chaque adresse<br/>de la plage"]
-    Check{"Vérifier SNMP sur les<br/>hôtes qui répondent ?"}
+    Check{"Méthode d'analyse ?"}
     Read["Lire le nom et le constructeur<br/>de chaque hôte par SNMP"]
     Found["Hôtes trouvés"]
     Review["Review Results :<br/>choisir et importer"]
@@ -510,8 +510,8 @@ flowchart TB
     Devices["Équipements, interrogés<br/>par la sonde de l'analyse"]
     Scan --> Ping
     Ping --> Check
-    Check -->|"Activé"| Read
-    Check -->|"Désactivé"| Found
+    Check -->|"SNMP"| Read
+    Check -->|"ICMP"| Found
     Read --> Found
     Found --> Review
     Found --> Rules
@@ -524,13 +524,13 @@ flowchart TB
 Allez dans **Réseau → Découverte** et cliquez sur **Lancer l'analyse**. **Découvrir des équipements** dans la **Vue d'ensemble** du Réseau ouvre le même formulaire.
 
 ### Dire quoi analyser
-À l'étape **Cible de l'analyse**, saisissez la plage, vérifiez la **Sonde** et décidez s'il faut **Vérifier SNMP sur les hôtes qui répondent**.
+Saisissez la plage dans **Cible de l'analyse**, vérifiez la **Sonde** et choisissez la **Méthode d'analyse** : **ICMP (ping)**, par laquelle commence une nouvelle analyse, ou **SNMP**.
 
 ### Ajouter les identifiants à essayer
-Avec SNMP activé, l'étape **Identifiants SNMP** demande les jeux d'identifiants à essayer. Avec SNMP désactivé, il n'y a pas de deuxième étape : l'analyse est une [analyse par ping seulement](#analyses-par-ping-seulement), et **Lancer l'analyse** est sur la première page.
+Seule une analyse SNMP demande des identifiants : choisir **SNMP** ajoute l'étape **Identifiants SNMP**, avec les jeux d'identifiants à essayer. Une [analyse ICMP](#analyses-icmp) n'a pas de deuxième étape, et **Lancer l'analyse** est sur la première page.
 
 ### Lancer l'analyse
-Cliquez sur **Lancer l'analyse**. La sonde balaie la plage et indique combien d'hôtes elle a analysés et combien ont répondu : combien ont répondu au SNMP, ou, pour une analyse par ping seulement, combien ont répondu au ping.
+Cliquez sur **Lancer l'analyse**. La sonde balaie la plage et indique combien d'hôtes elle a analysés et combien ont répondu : combien ont répondu au SNMP, ou, pour une analyse ICMP, combien ont répondu au ping.
 
 ### Importer ce qu'elle a trouvé
 Cliquez sur **Review Results** sur l'analyse, choisissez les hôtes à importer et cliquez sur **Suivant**. Choisissez à quelle fréquence ils sont vérifiés et si chacun reçoit un moniteur, puis importez-les ; voir [Importer ce qu'une analyse a trouvé](#importer-ce-quune-analyse-a-trouvé).
@@ -540,8 +540,8 @@ Cliquez sur **Review Results** sur l'analyse, choisissez les hôtes à importer 
 | --- | --- | --- |
 | Cible de l'analyse | Les adresses à analyser, en [notation CIDR ou par plages d'octets](#notation-de-la-cible-danalyse). | Oui |
 | Sonde | La sonde qui exécute le balayage. Elle doit joindre la plage directement. Un projet avec exactement une sonde personnalisée commence sur celle-ci. Un projet sans sonde à lui en est averti, avec **Ajouter une sonde** à côté du champ. | Oui |
-| Vérifier SNMP sur les hôtes qui répondent | Une analyse pingue d'abord la plage ; ceci décide si les hôtes qui répondent sont ensuite interrogés par SNMP sur leur nom et leur constructeur. Désactivez-le pour une [analyse par ping seulement](#analyses-par-ping-seulement). Choisi à la création de l'analyse et figé ensuite. Activé par défaut. | Non |
-| Identifiants à essayer | La deuxième étape : les jeux d'identifiants à essayer, dans l'ordre. Chaque hôte est interrogé avec chaque jeu jusqu'à ce que l'un réponde ; ajoutez donc un jeu par groupe d'équipements qui partagent une version et une communauté ou un utilisateur v3. **Ajouter d'autres identifiants** en ajoute un. | Quand la vérification SNMP est activée |
+| Méthode d'analyse | **ICMP (ping)** pingue chaque adresse de la plage et liste ce qui répond, sans identifiants : une [analyse ICMP](#analyses-icmp). **SNMP** pingue aussi, puis demande à chaque hôte qui répond son nom et son constructeur. Une nouvelle analyse commence par **ICMP (ping)** ; **Modifier** le change plus tard, et l'analyse est relancée. | Oui |
+| Identifiants à essayer | La deuxième étape d'une analyse SNMP : les jeux d'identifiants à essayer, dans l'ordre. Chaque hôte est interrogé avec chaque jeu jusqu'à ce que l'un réponde ; ajoutez donc un jeu par groupe d'équipements qui partagent une version et une communauté ou un utilisateur v3. **Ajouter d'autres identifiants** en ajoute un. | Quand la méthode est SNMP |
 
 Repliés sous **Plus de champs** à la première étape, pour les analyses qui en ont besoin :
 
@@ -587,7 +587,7 @@ Les plages d'octets existent pour les réseaux qui n'ont pas la forme de blocs C
 Chaque hôte qu'une analyse trouve est importé comme équipement interrogé par sonde, avec la sonde de l'analyse assignée et l'interrogation activée, si bien qu'il a un statut dès sa première interrogation. Ce qui diffère d'un hôte à l'autre, c'est ce qui l'accompagne :
 
 - Les hôtes qui ont répondu au SNMP sont importés avec l'adresse qui a répondu comme nom d'hôte, le nom choisi comme ci-dessous et les identifiants qui ont répondu ; une analyse v3 importe donc des équipements prêts à être interrogés en v3 qui commencent aussitôt à collecter interfaces et inventaire.
-- Les hôtes qui ont répondu au ping mais pas au SNMP — chaque hôte qu'une [analyse par ping seulement](#analyses-par-ping-seulement) trouve, et les hôtes qu'une analyse SNMP n'a pas pu identifier — sont importés sans identifiants. La sonde les pingue selon leur calendrier ; ajoutez des identifiants plus tard, sur l'équipement ou comme profil sur lui ou sur son site, et la même sonde commence aussi à les interroger.
+- Les hôtes qui ont répondu au ping mais pas au SNMP — chaque hôte qu'une [analyse ICMP](#analyses-icmp) trouve, et les hôtes qu'une analyse SNMP n'a pas pu identifier — sont importés sans identifiants. La sonde les pingue selon leur calendrier ; ajoutez des identifiants plus tard, sur l'équipement ou comme profil sur lui ou sur son site, et la même sonde commence aussi à les interroger.
 
 Un hôte déjà enregistré comme équipement est marqué **Déjà ajouté** et n'est jamais importé deux fois. L'interrogation donne un statut à chaque équipement importé ; pour être prévenu quand l'un d'eux tombe, donnez-lui un moniteur : choisissez **Un moniteur par équipement** à l'import, ou laissez une [politique d'alerte](#politiques-dalerte) en donner un à chaque équipement qu'elle couvre.
 
@@ -657,7 +657,7 @@ Un nom ne fait jamais que s'améliorer : un équipement garde son nom quand son 
 
 Revoir chaque analyse à la main ne passe pas l'échelle au-delà des premiers sous-réseaux. **Réseau → Règles → Règles d'import automatique** est l'endroit où vous écrivez l'import une fois pour toutes : une règle dit quels hôtes découverts elle revendique (une plage d'IP, et des motifs facultatifs de nom système, de description et de `sysObjectID`) et, en option, quel modèle de moniteur et quel [modèle de collecte d'OID](#modèles-de-collecte-doid) reçoivent les équipements qu'elle importe. Une règle marquée comme exclusion ne revendique rien et oppose son veto aux autres : c'est ainsi qu'on écarte imprimantes et téléphones d'une règle de sous-réseau large.
 
-Dans une règle, **Vérifier toutes les** fixe à quelle fréquence la sonde de l'analyse interroge chaque équipement que la règle importe, comme **Vérifier toutes les** quand vous importez depuis **Review Results** ; laissé vide, c'est toutes les 5 minutes. Une règle qui importe aussi les hôtes qui n'ont répondu qu'au ping leur donne aussi son modèle de moniteur : la sonde les pingue, donc les vérifications du modèle sur la disponibilité d'un équipement et sur les traps qu'il envoie fonctionnent pour eux tout de suite, et ses vérifications qui lisent un parcours SNMP dès que l'équipement a des identifiants.
+Dans une règle, **Vérifier toutes les** fixe à quelle fréquence la sonde de l'analyse interroge chaque équipement que la règle importe, comme **Vérifier toutes les** quand vous importez depuis **Review Results** ; laissé vide, c'est toutes les 5 minutes. Une règle avec **Inclure les hôtes en ping uniquement** activé importe aussi les hôtes qui n'ont répondu qu'au ping, dont chaque hôte qu'une [analyse ICMP](#analyses-icmp) trouve, et leur donne aussi son modèle de moniteur : la sonde les pingue, donc les vérifications du modèle sur la disponibilité d'un équipement et sur les traps qu'il envoie fonctionnent pour eux tout de suite, et ses vérifications qui lisent un parcours SNMP dès que l'équipement a des identifiants.
 
 Les règles n'ont pas de calendrier propre et n'en ont pas besoin. Les règles activées s'exécutent d'elles-mêmes sur les résultats de chaque analyse à mesure qu'ils arrivent, y compris les résultats partiels qu'un long balayage téléverse en cours de route, si bien que les hôtes sont importés dans la minute qui suit leur découverte plutôt qu'à la fin de la plage. Activez **Repeat this scan** sur une analyse de découverte et le duo devient un dispositif permanent : l'analyse rebalaie sa plage à votre intervalle, et chaque nouvel hôte qu'elle trouve est importé sans que personne n'appuie sur rien.
 
@@ -672,23 +672,23 @@ Les grands parcs s'importent par lots cadencés. Créer un équipement ou un mon
 
 Les équipements et les moniteurs sont des tâches distinctes avec des limites distinctes : une règle qui reçoit un modèle de moniteur après l'import de ses équipements ne crée aucun équipement, seulement des moniteurs, et son rapport le dit.
 
-### Analyses par ping seulement
+### Analyses ICMP
 
-Désactivez **Vérifier SNMP sur les hôtes qui répondent** et l'analyse devient un simple balayage ICMP : elle pingue chaque adresse de la plage, indique celles qui ont répondu, et n'envoie aucun paquet SNMP. L'étape Identifiants SNMP disparaît du formulaire, qui tient alors sur une page avec **Lancer l'analyse**, et aucune version, communauté ni identifiant v3 n'est demandé ni enregistré sur l'analyse.
+Avec **ICMP (ping)** comme **Méthode d'analyse**, celle d'une nouvelle analyse, l'analyse est un simple balayage ICMP : elle pingue chaque adresse de la plage, indique celles qui ont répondu, et n'envoie aucun paquet SNMP. Le formulaire n'a pas d'étape Identifiants SNMP, il tient donc sur une page avec **Lancer l'analyse**, et aucune version, communauté ni identifiant v3 n'est demandé ni enregistré sur l'analyse.
 
-Le choix se fait à la création de l'analyse et ne peut pas être changé : une analyse créée en ping seulement le reste, y compris à chaque exécution d'une analyse répétée. Pour analyser la même plage autrement, créez une deuxième analyse.
+Vous pouvez changer la méthode plus tard, avec **Modifier** sur l'analyse. Une méthode changée relance l'analyse : les hôtes trouvés par sa dernière exécution sont effacés, et les équipements déjà importés restent tels quels.
 
 Utilisez-en une quand :
 
-- Vous n'avez pas d'identifiants SNMP pour la plage : un labo, un réseau locataire, un sous-réseau dont vous avez hérité. Une analyse par ping seulement vous dit ce qui est vivant là-bas sans que vous ayez d'abord à deviner une communauté.
+- Vous n'avez pas d'identifiants SNMP pour la plage : un labo, un réseau locataire, un sous-réseau dont vous avez hérité. Une analyse ICMP vous dit ce qui est vivant là-bas sans que vous ayez d'abord à deviner une communauté.
 - Vous voulez un inventaire plutôt qu'une vérification d'identité : ce qui répond sur cette plage, pas de quel modèle il s'agit. C'est aussi la plus rapide des deux, car elle saute la sonde SNMP et son délai par hôte pour les hôtes qui répondent au ping mais ne vous parleront pas en SNMP.
 
 Deux choses à savoir avant d'en lancer une :
 
-- La sonde a besoin d'un environnement d'exécution qui autorise l'ICMP. Le balayage exécute le `ping` du système d'exploitation, le conteneur de la sonde a donc besoin de la capacité `NET_RAW` et du binaire. Les déploiements de OneUptime ont les deux : `docker-compose.base.yml` et le `probeContainerSecurityContext` du chart Helm ajoutent `NET_RAW`, et l'image de la sonde installe `iputils-ping`. Un échec ici signifie en général qu'un `securityContext` Kubernetes durci a retiré `NET_RAW`, ou qu'une image de sonde personnalisée a omis `ping`. Une analyse par ping seulement n'a alors plus rien à essayer : elle échoue avec un message qui le dit, plutôt que de rapporter une plage vide. Si le ping cesse de fonctionner en cours de route, l'analyse garde les hôtes déjà confirmés et indique que la plage n'a pas été entièrement vérifiée.
+- La sonde a besoin d'un environnement d'exécution qui autorise l'ICMP. Le balayage exécute le `ping` du système d'exploitation, le conteneur de la sonde a donc besoin de la capacité `NET_RAW` et du binaire. Les déploiements de OneUptime ont les deux : `docker-compose.base.yml` et le `probeContainerSecurityContext` du chart Helm ajoutent `NET_RAW`, et l'image de la sonde installe `iputils-ping`. Un échec ici signifie en général qu'un `securityContext` Kubernetes durci a retiré `NET_RAW`, ou qu'une image de sonde personnalisée a omis `ping`. Une analyse ICMP n'a alors plus rien à essayer : elle échoue avec un message qui le dit, plutôt que de rapporter une plage vide. Si le ping cesse de fonctionner en cours de route, l'analyse garde les hôtes déjà confirmés et indique que la plage n'a pas été entièrement vérifiée.
 - Tout ce qu'elle trouve est importé comme équipement interrogé par sonde sans identifiants, pingué par la sonde de l'analyse dès sa première interrogation. Ajoutez des identifiants, sur l'équipement ou comme profil sur lui ou sur son site, dès que vous les avez, et la sonde commence aussi à interroger l'équipement.
 
-Une analyse par ping seulement ne trouve que les hôtes qui répondent à l'écho ICMP. Les hôtes qui rejettent le ping (les hôtes Windows par défaut, et souvent les VLAN de gestion) lui restent invisibles même quand ils répondent au SNMP. Une analyse SNMP couvre ce cas : quand sa passe de ping ne trouve aucun répondant SNMP, elle revient interroger les adresses silencieuses par SNMP aussi. Si vous attendez des équipements gérés dans une plage et qu'une analyse par ping seulement revient vide, analysez-la à nouveau avec **Vérifier SNMP sur les hôtes qui répondent** activé.
+Une analyse ICMP ne trouve que les hôtes qui répondent à l'écho ICMP. Les hôtes qui rejettent le ping (les hôtes Windows par défaut, et souvent les VLAN de gestion) lui restent invisibles même quand ils répondent au SNMP. Une analyse SNMP couvre ce cas : quand sa passe de ping ne trouve aucun répondant SNMP, elle revient interroger les adresses silencieuses par SNMP aussi. Si vous attendez des équipements gérés dans une plage et qu'une analyse ICMP revient vide, passez sa **Méthode d'analyse** à **SNMP**.
 
 ## Alertes
 

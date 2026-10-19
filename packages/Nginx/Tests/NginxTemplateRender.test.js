@@ -432,7 +432,7 @@ test(
     const rendered = render(baseEnvironment());
 
     const locationHeader =
-      "location ~ ^/api/on-call-calendar/(user|schedule|project)/ {";
+      "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {";
 
     assert.equal(rendered.split(locationHeader).length - 1, 3);
     assert.equal((rendered.match(/^\s*access_log off;/gm) || []).length, 3);
@@ -572,7 +572,7 @@ test(
       "proxy_set_header Host $host;",
       "proxy_set_header X-Real-IP $remote_addr;",
       "proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;",
-      "proxy_set_header X-Forwarded-Proto $scheme;",
+      "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
       "proxy_http_version 1.1;",
       "proxy_set_header Connection $connection_upgrade;",
       "proxy_pass $backend_app;",
@@ -674,6 +674,7 @@ function startUpstream(name) {
         url: request.url,
         host: request.headers.host,
         forwardedFor: request.headers["x-forwarded-for"] || null,
+        forwardedProto: request.headers["x-forwarded-proto"] || null,
       }),
     );
   });
@@ -733,7 +734,7 @@ function wait(milliseconds) {
 }
 
 /** GET a path through the ingress under a given Host; resolves with the upstream's own account of it. */
-function getThroughIngress(port, requestPath, host) {
+function getThroughIngress(port, requestPath, host, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const request = http.request(
       {
@@ -741,7 +742,7 @@ function getThroughIngress(port, requestPath, host) {
         port,
         path: requestPath,
         method: "GET",
-        headers: { Host: host },
+        headers: { ...extraHeaders, Host: host },
         agent: false,
       },
       (response) => {
@@ -1281,6 +1282,188 @@ for (const billingEnabled of [true, false]) {
 
           assert.equal(response.answer?.upstream, "app", uri);
           assert.equal(response.answer.url, upstreamUrl, uri);
+        }
+      });
+    },
+  );
+}
+
+/*
+ * The scheme the visitor used, as the app is told it (X-Forwarded-Proto
+ * $visitor_scheme). The app marks a visitor's cookies Secure when it says
+ * https (Common/Server/Utils/RequestTransport.ts), so it has to be https
+ * whenever the visitor really used it - TLS ended here, or at a proxy in
+ * front that said so - and nothing a caller sends may turn it into http.
+ */
+const VISITOR_SCHEME_MAP_LINES = [
+  "map $http_x_forwarded_proto $visitor_scheme {",
+  "    default                   $scheme;",
+  '    "~*^\\s*https\\s*(,|$)"   https;',
+  "}",
+];
+
+test(
+  "the visitor's scheme map survives rendering unmangled",
+  { skip: hasEnvsubst ? false : "envsubst not on PATH" },
+  () => {
+    const rendered = render(baseEnvironment());
+
+    assert.ok(
+      rendered.includes(VISITOR_SCHEME_MAP_LINES.join("\n")),
+      "the $visitor_scheme map must render exactly as written",
+    );
+
+    const forwardedProtoLines = rendered
+      .split("\n")
+      .filter((line) => {
+        return /^\s*proxy_set_header X-Forwarded-Proto /.test(line);
+      })
+      .map((line) => {
+        return line.trim();
+      });
+
+    assert.ok(forwardedProtoLines.length > 60);
+    assert.deepEqual([...new Set(forwardedProtoLines)].sort(), [
+      "proxy_set_header X-Forwarded-Proto $forwarded_proto;",
+      "proxy_set_header X-Forwarded-Proto $visitor_scheme;",
+    ]);
+  },
+);
+
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx tells the app the scheme the visitor used (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        const claims = [
+          [undefined, "http"],
+          ["http", "http"],
+          ["https", "https"],
+          ["HTTPS", "https"],
+          ["https, http", "https"],
+          ["http, https", "http"],
+          ["httpsx", "http"],
+        ];
+
+        // The primary ingress, where sign-ins set the session's cookies.
+        for (const uri of [
+          "/identity/login",
+          "/api/user/refresh",
+          "/dashboard/",
+          "/accounts/login",
+          "/status-page-identity-api/login/x",
+        ]) {
+          for (const [claim, expected] of claims) {
+            const response = await getThroughIngress(
+              port,
+              uri,
+              "localhost",
+              claim === undefined ? {} : { "X-Forwarded-Proto": claim },
+            );
+
+            assert.equal(
+              response.answer?.forwardedProto,
+              expected,
+              `${uri} with X-Forwarded-Proto ${claim}: ${response.body}`,
+            );
+          }
+        }
+
+        // A status page's custom domain, on the status-page server.
+        for (const [claim, expected] of claims) {
+          const response = await getThroughIngress(
+            port,
+            "/status-page-identity-api/login/x",
+            "status.customer.com",
+            claim === undefined ? {} : { "X-Forwarded-Proto": claim },
+          );
+
+          assert.equal(
+            response.answer?.forwardedProto,
+            expected,
+            `status page with X-Forwarded-Proto ${claim}: ${response.body}`,
+          );
+        }
+
+        // /notification passes on what the proxy in front said, for Twilio.
+        for (const [claim, expected] of [
+          [undefined, "http"],
+          ["http", "http"],
+          ["https", "https"],
+        ]) {
+          const response = await getThroughIngress(
+            port,
+            "/notification/call/x",
+            "localhost",
+            claim === undefined ? {} : { "X-Forwarded-Proto": claim },
+          );
+
+          assert.equal(response.answer?.forwardedProto, expected);
+        }
+      });
+    },
+  );
+}
+
+/*
+ * The app knows its own address (HOST, oneuptime.example.com in these
+ * renders) by the Host this ingress passes on: an installation with
+ * HTTP_PROTOCOL=https keeps HOST's cookies Secure, and tells browsers to stay
+ * on HTTPS for it, by that Host alone. So a real nginx must hand the app the
+ * Host the browser asked for on every sign-in address - in nginx's own
+ * spelling, lower case and without a port - and a custom domain must reach
+ * the app as itself, whatever X-Forwarded-Host a caller adds.
+ */
+for (const billingEnabled of [true, false]) {
+  test(
+    `a real nginx hands the app the Host the browser asked for on the sign-in addresses (BILLING_ENABLED=${billingEnabled})`,
+    { skip: runningNginxSkipReason, timeout: 60000 },
+    async () => {
+      await withRunningIngress(billingEnabled, async ({ port }) => {
+        for (const requestedHost of [
+          "oneuptime.example.com",
+          "OneUptime.Example.COM",
+          "oneuptime.example.com:80",
+        ]) {
+          for (const uri of [
+            "/identity/login",
+            "/identity/refresh-token",
+            "/api/identity/login",
+            "/accounts/login",
+            "/dashboard/",
+            "/status-page-api/x",
+            "/status-page-identity-api/login/x",
+            "/public-dashboard-api/x",
+          ]) {
+            const response = await getThroughIngress(port, uri, requestedHost, {
+              "X-Forwarded-Host": "status.customer.com",
+            });
+
+            assert.equal(response.answer?.upstream, "app", response.body);
+            assert.equal(
+              response.answer?.host,
+              "oneuptime.example.com",
+              `${uri} under Host ${requestedHost}: ${response.body}`,
+            );
+          }
+        }
+
+        // A custom domain reaches the app as itself, never as HOST.
+        for (const uri of [
+          "/status-page-identity-api/login/x",
+          "/status-page-api/x",
+          "/public-dashboard-api/x",
+        ]) {
+          const response = await getThroughIngress(
+            port,
+            uri,
+            "status.customer.com",
+            { "X-Forwarded-Host": "oneuptime.example.com" },
+          );
+
+          assert.equal(response.answer?.upstream, "app", response.body);
+          assert.equal(response.answer?.host, "status.customer.com");
         }
       });
     },

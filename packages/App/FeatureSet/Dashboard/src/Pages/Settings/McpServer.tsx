@@ -1,11 +1,11 @@
 import PageComponentProps from "../PageComponentProps";
 import UserElement from "../../Components/User/User";
+import McpServerCard from "../../Components/Mcp/McpServerCard";
 import {
   getMcpAccessLabel,
   getMcpClientHost,
 } from "../../Utils/McpClientAuthorization";
 import Card from "Common/UI/Components/Card/Card";
-import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Link from "Common/UI/Components/Link/Link";
 import {
   DeleteConfirmation,
@@ -59,65 +59,7 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <div>
-      <Card
-        title="MCP Server"
-        description={
-          <div className="space-y-4 w-full mt-3">
-            <p>
-              {translator.translateText(
-                "OneUptime ships a built-in Model Context Protocol (MCP) server, so AI agents like Claude, Cursor, and GitHub Copilot can operate OneUptime directly: investigate and resolve incidents and alerts, query logs, metrics, traces and exceptions, manage monitors and status pages, and post public status updates.",
-              )}
-            </p>
-            <p>
-              {translator.translateText(
-                "The server speaks streamable HTTP and is stateless, so it works behind load balancers with no session setup. Connect any MCP client to:",
-              )}
-            </p>
-            <CodeBlock language="text" code={mcpUrl} />
-          </div>
-        }
-      />
-
-      <Card
-        title="Authentication"
-        description={
-          <div className="space-y-4 w-full mt-3">
-            <p>
-              {translator.translateText(
-                "There are two ways for an MCP client to authenticate.",
-              )}
-            </p>
-            <p>
-              <strong>
-                {translator.translateText("Sign in with OneUptime.")}
-              </strong>{" "}
-              {translator.translateText(
-                "Add the server URL to your MCP client with no credentials. The first time it needs your data, the client opens a OneUptime page where you sign in, choose this project and decide whether the client may only read or may also make changes. The client then acts as you, with your permissions in this project and never more, and nothing has to be copied into a configuration file. Clients connected this way are listed below, where you can disconnect them.",
-              )}
-            </p>
-            <p>
-              <strong>{translator.translateText("API key.")}</strong>{" "}
-              <TranslatedSentence
-                template="For an agent that runs unattended, send a OneUptime API key in the {{apiKeyHeader}} header (or {{bearerHeader}}). The key determines which project the agent operates on and what it may do. Create a scoped API key with least-privilege permissions in {{apiKeysLink}}. Never give an AI agent a master API key — it would grant instance-wide admin access across all projects."
-                slots={{
-                  apiKeyHeader: <code>x-api-key</code>,
-                  bearerHeader: <code>Authorization: Bearer</code>,
-                  apiKeysLink: (
-                    <Link to={apiKeysRoute} className="underline">
-                      {translator.translateText("Project Settings → API Keys")}
-                    </Link>
-                  ),
-                }}
-              />
-            </p>
-            <p>
-              {translator.translateText(
-                "Either way, project IDs are inferred automatically, so agents never need to know them.",
-              )}
-            </p>
-          </div>
-        }
-      />
+      <McpServerCard mcpUrl={mcpUrl} apiKeysRoute={apiKeysRoute} />
 
       {/*
        * The MCP clients members have connected by signing in. A member sees
@@ -155,11 +97,11 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
             title: "Disconnect MCP Client",
             description: item.name
               ? translator.translateTemplate(
-                  'Disconnect "{{name}}"? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.',
+                  'Disconnect "{{name}}"? It is signed out at once and must connect again to work here. Nothing it created is deleted.',
                   { name: item.name },
                 )
               : translator.translateTemplate(
-                  "Disconnect this MCP client? It is signed out immediately and has to be connected again before it can work with this project. Nothing it created is deleted.",
+                  "Disconnect this MCP client? It is signed out at once and must connect again to work here. Nothing it created is deleted.",
                 ),
             submitButtonText: "Disconnect",
           };
@@ -322,161 +264,54 @@ const McpServerPage: FunctionComponent<PageComponentProps> = (
         ]}
       />
 
-      <Card
-        title="Connect Claude Code"
-        description={
-          <div className="space-y-2 w-full mt-3">
-            <p>
-              <TranslatedSentence
-                template="Add the server, then run {{command}} inside Claude Code and choose OneUptime to sign in:"
-                slots={{ command: <code>/mcp</code> }}
-              />
-            </p>
-            <CodeBlock
-              language="bash"
-              code={`claude mcp add --transport http oneuptime ${mcpUrl}`}
-            />
-            <p>
+      {/*
+       * Plain words, one line each where they fit: "full create/read/
+       * update/delete tools", "annotated so MCP clients can auto-approve
+       * them" and "in a single tool call" were the protocol's words, not
+       * the reader's.
+       */}
+      <Card title="What agents can do">
+        <div className="space-y-4 text-sm text-gray-600">
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
               {translator.translateText(
-                "Or connect with an API key instead of signing in:",
+                "Incident response: acknowledge and resolve incidents and alerts, add notes and post status page updates.",
               )}
-            </p>
-            <CodeBlock
-              language="bash"
-              code={`claude mcp add --transport http oneuptime ${mcpUrl} --header "x-api-key: your-api-key-here"`}
+            </li>
+            <li>
+              {translator.translateText(
+                "Investigation: search logs, metrics, traces, exceptions and monitor results over a time range.",
+              )}
+            </li>
+            <li>
+              {translator.translateText(
+                "Management: create, change and delete incidents, alerts, monitors, status pages, on-call policies, teams, labels and more.",
+              )}
+            </li>
+            <li>
+              {translator.translateText(
+                "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.",
+              )}
+            </li>
+          </ul>
+          <p>
+            <TranslatedSentence
+              template="See the {{docsLink}} for every tool."
+              slots={{
+                docsLink: (
+                  <Link
+                    to={Route.fromString("/docs/ai/mcp-server")}
+                    openInNewTab={true}
+                    className="underline"
+                  >
+                    {translator.translateText("MCP server documentation")}
+                  </Link>
+                ),
+              }}
             />
-          </div>
-        }
-      />
-
-      <Card
-        title="Connect Claude Desktop"
-        description={
-          <div className="space-y-2 w-full mt-3">
-            <p>
-              <TranslatedSentence
-                template="In Claude, open {{connectorsMenu}}, choose {{addConnector}} and enter the server URL above. Claude asks you to sign in to OneUptime the first time it needs your data."
-                slots={{
-                  connectorsMenu: (
-                    <strong>
-                      {translator.translateText("Customize → Connectors")}
-                    </strong>
-                  ),
-                  addConnector: (
-                    <strong>
-                      {translator.translateText("Add custom connector")}
-                    </strong>
-                  ),
-                }}
-              />
-            </p>
-            <p>
-              <TranslatedSentence
-                template="To use an API key instead, add this to {{file}}:"
-                slots={{ file: <code>claude_desktop_config.json</code> }}
-              />
-            </p>
-            <CodeBlock
-              language="json"
-              code={`{
-  "mcpServers": {
-    "oneuptime": {
-      "transport": "streamable-http",
-      "url": "${mcpUrl}",
-      "headers": {
-        "x-api-key": "your-api-key-here"
-      }
-    }
-  }
-}`}
-            />
-          </div>
-        }
-      />
-
-      <Card
-        title="Connect VS Code or Cursor"
-        description={
-          <div className="space-y-2 w-full mt-3">
-            <p>
-              <TranslatedSentence
-                template="Add this to {{file}} (VS Code) or your MCP configuration (Cursor). The editor opens OneUptime for you to sign in:"
-                slots={{ file: <code>.vscode/mcp.json</code> }}
-              />
-            </p>
-            <CodeBlock
-              language="json"
-              code={`{
-  "servers": {
-    "oneuptime": {
-      "type": "http",
-      "url": "${mcpUrl}"
-    }
-  }
-}`}
-            />
-            <p>
-              <TranslatedSentence
-                template="To use an API key instead, add {{headers}} beside the URL."
-                slots={{
-                  headers: (
-                    <code>
-                      &quot;headers&quot;: {"{"} &quot;x-api-key&quot;:
-                      &quot;your-api-key-here&quot; {"}"}
-                    </code>
-                  ),
-                }}
-              />
-            </p>
-          </div>
-        }
-      />
-
-      <Card
-        title="What agents can do"
-        description={
-          <div className="space-y-4 w-full mt-3">
-            <ul className="list-disc pl-5 space-y-1">
-              <li>
-                {translator.translateText(
-                  "Incident response: acknowledge and resolve incidents and alerts, add internal notes, and post public status-page updates in a single tool call.",
-                )}
-              </li>
-              <li>
-                {translator.translateText(
-                  "Investigation: query logs, metrics, traces, exceptions, and monitor probe results with time-range filters.",
-                )}
-              </li>
-              <li>
-                {translator.translateText(
-                  "Management: full create/read/update/delete tools for incidents, alerts, monitors, status pages, on-call policies, scheduled maintenance, teams, labels, and more.",
-                )}
-              </li>
-              <li>
-                {translator.translateText(
-                  "Safety: read-only tools are annotated so MCP clients can auto-approve them, while destructive tools (like deletes) require explicit confirmation. A client connected by sign-in can also be limited to read-only access when it is authorized.",
-                )}
-              </li>
-            </ul>
-            <p>
-              <TranslatedSentence
-                template="See the {{docsLink}} for the full tool catalog and query syntax."
-                slots={{
-                  docsLink: (
-                    <Link
-                      to={Route.fromString("/docs/ai/mcp-server")}
-                      openInNewTab={true}
-                      className="underline"
-                    >
-                      {translator.translateText("MCP server documentation")}
-                    </Link>
-                  ),
-                }}
-              />
-            </p>
-          </div>
-        }
-      />
+          </p>
+        </div>
+      </Card>
     </div>
   );
 };

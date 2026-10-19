@@ -33,6 +33,12 @@ export interface ComponentProps {
   isPlanLeftover?: boolean | undefined;
   // The project, already read with requireSsoForLogin: no second read.
   initialProject?: Project | undefined;
+  /*
+   * Whether the SSO page draws its test link above the card: it does once
+   * the project has a provider to try (ProjectSignInTestCard). Without it
+   * the card leaves out the line pointing at the link. Drawn by default.
+   */
+  isTestLinkShown?: boolean | undefined;
 }
 
 export const getRequireSsoForLoginConfirmation: (
@@ -62,7 +68,7 @@ const RequireSsoForLoginCard: FunctionComponent<ComponentProps> = (
       column={REQUIRE_SSO_FOR_LOGIN_SWITCH_COLUMN}
       cardTitle={RequireSsoForLoginSwitchCopy.cardTitle}
       cardDescription={
-        props.isPlanLeftover
+        props.isPlanLeftover || props.isTestLinkShown === false
           ? undefined
           : RequireSsoForLoginSwitchCopy.cardDescription
       }

@@ -161,6 +161,25 @@ const ALERT_DYNAMICS_IDS: Array<string> = ids(
   }),
 );
 
+/* The Zabbix templates, split the same way. */
+const ZABBIX_TEMPLATES: Array<WorkflowTemplate> = ALL_TEMPLATES.filter(
+  (candidate: WorkflowTemplate) => {
+    return candidate.category === WorkflowTemplateCategory.Zabbix;
+  },
+);
+
+const INCIDENT_ZABBIX_IDS: Array<string> = ids(
+  ZABBIX_TEMPLATES.filter((candidate: WorkflowTemplate) => {
+    return candidate.subcategory === "Incidents";
+  }),
+);
+
+const ALERT_ZABBIX_IDS: Array<string> = ids(
+  ZABBIX_TEMPLATES.filter((candidate: WorkflowTemplate) => {
+    return candidate.subcategory === "Alerts";
+  }),
+);
+
 describe("the picker's views", () => {
   test("Recommended comes first, then every category in the catalog's order, then All templates", () => {
     expect(
@@ -505,15 +524,55 @@ describe("what a search matches", () => {
     expect(new Set(searchIds("jira"))).toEqual(new Set(ids(JIRA_TEMPLATES)));
   });
 
-  test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones, then the six Dynamics 365 ones - and last the one that pages about a new alert", () => {
+  test("a search for alert finds the alert templates: the two Alerts ones, then the eight Jira ones, then the six Dynamics 365 ones, then the three Zabbix ones - and last the one that pages about a new alert", () => {
     expect(searchIds("alert")).toEqual([
       ...ids(getTemplatesInView(WorkflowTemplateCategory.Alerts)),
       ...ALERT_JIRA_IDS,
       ...ALERT_DYNAMICS_IDS,
+      ...ALERT_ZABBIX_IDS,
       // Its page opens an alert, which its description says: found, after the templates named for alerts.
       "webhook-page-users",
     ]);
     expect(ALERT_DYNAMICS_IDS).toHaveLength(6);
+    expect(ALERT_ZABBIX_IDS).toHaveLength(3);
+  });
+
+  test("a search for zabbix finds the six Zabbix templates and nothing else, the incident ones first", () => {
+    expect(ZABBIX_TEMPLATES).toHaveLength(6);
+    expect(searchIds("zabbix")).toEqual([
+      ...INCIDENT_ZABBIX_IDS,
+      ...ALERT_ZABBIX_IDS,
+    ]);
+  });
+
+  test("a search for incident never brings back an alert-only Zabbix template, and finds every incident one", () => {
+    const results: Array<string> = searchIds("incident");
+
+    for (const alertZabbixId of ALERT_ZABBIX_IDS) {
+      expect(results).not.toContain(alertZabbixId);
+    }
+
+    for (const incidentZabbixId of INCIDENT_ZABBIX_IDS) {
+      expect(results).toContain(incidentZabbixId);
+    }
+  });
+
+  test("searching for what Zabbix calls it finds the workflow Zabbix sends its problems to first", () => {
+    expect(searchIds("zabbix problem")[0]).toBe(
+      "zabbix-declare-incident-from-problem",
+    );
+    expect(searchIds("zabbix alert")[0]).toBe(
+      "zabbix-create-alert-from-problem",
+    );
+    expect(searchIds("acknowledge zabbix")).toEqual([
+      "zabbix-update-problem-on-incident-state",
+      "zabbix-update-problem-on-alert-state",
+    ]);
+    // The two named for notes come first; the ones whose description says notes follow.
+    expect(searchIds("zabbix notes").slice(0, 2)).toEqual([
+      "zabbix-message-from-incident-private-note",
+      "zabbix-message-from-alert-private-note",
+    ]);
   });
 
   /*
@@ -551,10 +610,14 @@ describe("what a search matches", () => {
   test("a search for what is paged finds the template that pages it", () => {
     expect(searchIds("page team")).toEqual(["incident-severity-page"]);
     expect(searchIds("page someone")).toEqual(["webhook-page-users"]);
-    // Both page for critical incidents; the one named for it comes first.
+    /*
+     * Both page for critical incidents; the one named for it comes first.
+     * Huntress's pages on-call for critical reports too, after them.
+     */
     expect(searchIds("on call critical")).toEqual([
       "incident-critical-page-on-call",
       "incident-severity-page",
+      "huntress-incident-report-to-incident",
     ]);
     expect(searchIds("severity").slice(0, 2)).toEqual([
       "incident-severity-slack",

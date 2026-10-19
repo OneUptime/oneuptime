@@ -50,7 +50,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 // What labels do, said on every form whose resource they decide access to.
 export const LABELS_FORM_FIELD_DESCRIPTION: string = translationKey(
-  "Labels group related resources so you can filter by them. A team whose permissions are restricted to labels only sees resources that carry one of its labels.",
+  "Labels group resources so you can filter by them, and can limit what a team sees.",
 );
 
 export interface LabelsFormFieldOptions<TEntity>

@@ -1,12 +1,13 @@
 # 工作流程觸發器
 
-觸發器是工作流程的第一個區塊——它決定工作流程何時執行。每個工作流程恰好有一個觸發器。你可以從五種類型中選擇。
+觸發器是工作流程的第一個區塊——它決定工作流程何時執行。每個工作流程恰好有一個觸發器。你可以從六種類型中選擇。
 
 :::cards
 - [手動](#manual): 從建構器或另一個工作流程啟動工作流程。
 - [排程](#schedule): 依照以 cron 運算式寫成的週期排程執行它。
 - [Webhook](#webhook): 讓另一個系統透過呼叫一個 URL 來啟動它。
 - [收到的電子郵件](#incoming-email): 每封寄到它專屬地址的電子郵件都會啟動它。
+- [Huntress](#huntress): Huntress 每送來一個關於事件報告的事件，就啟動它一次。
 - [OneUptime 事件觸發器](#oneuptime-事件觸發器): 在記錄被建立、更新或刪除時做出反應。
 :::
 
@@ -20,6 +21,7 @@
 | 依週期排程執行                                 | **排程**                    |
 | 讓另一個系統把資料送進來                       | **Webhook**                 |
 | 從一封電子郵件開始                             | **Incoming Email**          |
+| 處理 Huntress 的事件報告                       | **Huntress Incident Report** |
 | 對 OneUptime 中的事做出反應                    | **OneUptime 事件**          |
 
 一個工作流程只能有一個觸發器。如果你需要兩種方式來啟動同一段自動化，就把共用的邏輯建構在一個帶有 **Manual** 觸發器的工作流程中，再從兩個很精簡的「包裝」工作流程用 **Execute Workflow** 區塊啟動它。
@@ -76,10 +78,10 @@ sequenceDiagram
     participant Caller as 你的工具
     participant OneUptime
     participant Runner as 工作流程執行器
-    Caller->>OneUptime: 對 Webhook URL 發出 GET 或 POST
+    Caller->>OneUptime: 對 Webhook URL<br/>發出 GET 或 POST
     alt 工作流程已開啟
         OneUptime-->>Caller: 200，狀態 Scheduled
-        OneUptime->>Runner: 將帶有標頭、查詢參數和內文的執行加入佇列
+        OneUptime->>Runner: 將帶有標頭、查詢參數和<br/>內文的執行加入佇列
         Runner->>Runner: 執行觸發器之後的區塊
     else 工作流程已關閉或已封存
         OneUptime-->>Caller: 400 及原因
@@ -151,6 +153,14 @@ OneUptime 會給工作流程一個專屬的電子郵件地址。每封寄到這�
 > [!NOTE]
 > 在自行託管的安裝上，OneUptime 會透過管理員設定的傳入郵件服務供應商接收郵件——請參閱 [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email)。在那之前，觸發器沒有地址，它的設定會說明這一點。
 
+## Huntress
+
+OneUptime 會為工作流程提供一個專用於 Huntress（託管偵測與回應服務）的 URL。Huntress 會把每個關於事件報告的事件送到這裡，並用該端點的簽署密鑰簽署；每個事件都會啟動一次工作流程：在其 SOC 送出報告時、有人留言時，以及報告關閉時。
+
+適用於：為每份 Huntress 事件報告建立一個事件、呼叫待命人員，並追蹤報告直到關閉。**Open an incident for each Huntress incident report** 範本會完成這三件事。
+
+要連接 Huntress，點選畫布上的 **Huntress Incident Report** 觸發器：它會顯示要提供給 Huntress 的 URL，儲存端點的簽署密鑰，並顯示 Huntress 最近一次到達工作流程的時間。未用該密鑰簽署的請求不會啟動任何內容，因此這個 URL 不是密碼。有關在 Huntress 中的設定、觸發器傳回的值及其設定，請參閱 [Huntress](/docs/integrations/huntress)。
+
 ## OneUptime 事件觸發器
 
 OneUptime 中幾乎所有東西——監測器、事件、警示、排定的維護、狀態頁面、待命策略、團隊——都可以啟動工作流程。每一種最多提供四種觸發器：
@@ -196,7 +206,7 @@ flowchart TB
 | **狀態頁面 訂閱者**                       | 歡迎訂閱狀態頁面的人。                                                                    |
 | **待命策略**                              | 把策略的變更同步到另一個待命系統。                                                        |
 
-在 **Add Trigger** 面板中，它們位於 **OneUptime resources** 底下：先點選資源，再點選觸發器。**Browse all resources** 列出所有資源，搜尋方塊可以用幾個字詞找到觸發器，例如 `incident created`。
+在 **新增觸發器** 面板中，它們位於 **OneUptime resources** 底下：先點選資源，再點選觸發器。**Browse all resources** 列出所有資源，搜尋方塊可以用幾個字詞找到觸發器，例如 `incident created`。
 
 ## 後續步驟
 

@@ -278,7 +278,6 @@ import {
 import {
   expectEveryUnsubscribeLinkToCarryAToken,
   fakeGetUnsubscribeLink,
-  smsManageLinkFor,
   unsubscribeLinkFor,
   withUnsubscribeToken,
 } from "../Fixtures/UnsubscribeLinkFixtures";
@@ -391,8 +390,8 @@ const UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
-// An SMS from this public page carries the manage link (see smsManageLinkFor).
-const SMS_UNSUBSCRIBE_URL: string = smsManageLinkFor(
+// An SMS carries the same token link as every other message, on a public page too.
+const SMS_UNSUBSCRIBE_URL: string = unsubscribeLinkFor(
   STATUS_PAGE_URL,
   SUBSCRIBER_ID,
 );
@@ -1877,7 +1876,7 @@ describe("IncidentPublicNote custom templates, in each channel's format", () => 
         ),
       ).toEqual(html);
       expect(variablesCompiledInto(EMAIL_SUBJECT_TEMPLATE)).toEqual(plainText);
-      // An SMS from this public page carries the manage link (see smsManageLinkFor).
+      // An SMS carries the same token link as every other message, on a public page too.
       expect(
         variablesCompiledInto(
           bodies[StatusPageSubscriberNotificationMethod.SMS]!,
@@ -2298,7 +2297,7 @@ describe("IncidentPublicNote custom template variable values", () => {
           } else if (name === "note" && channel === "sms") {
             value = NOTE_TEXT;
           } else if (name === "unsubscribeUrl" && channel === "sms") {
-            // An SMS from this public page carries the manage link.
+            // An SMS carries the same token link as every other message, on a public page too.
             value = SMS_UNSUBSCRIBE_URL;
           }
 

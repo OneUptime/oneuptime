@@ -14,7 +14,7 @@ En Kubernetes-monitor varnar på de mätvärden som OneUptimes Kubernetes-agent 
 Agenten skickar klustrets mätvärden till OneUptime över OTLP, vart och ett märkt med klustrets namn (`k8s.cluster.name`, chartets `clusterName`). De första data från ett nytt namn registrerar klustret under **Kubernetes**, och från och med då kan klustret väljas i en Kubernetes-monitor. Varje minut frågar monitorn efter de mätvärdena över sitt **Tidsintervall**, aggregerar dem och jämför resultatet med sina kriterier.
 
 ```mermaid title="Från klustermått till en incident"
-flowchart LR
+flowchart TB
     agent["Kubernetes-agent"] -->|"OTLP-mått"| metrics["Klustermått"]
     metrics --> monitor["Kubernetes-monitor"]
     monitor -->|"Kriterier uppfyllda"| incident["Varning eller incident"]
@@ -107,7 +107,7 @@ De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfi
 | Summa | Summan av alla värden |
 | Maximum Value | Högsta värdet i tidsfönstret |
 | Minimum Value | Lägsta värdet i tidsfönstret |
-| All Values | Alla värden måste matcha kriteriet |
+| All Values | Alla värden måste matcha kriteriet och täcka hela tidsfönstret |
 | Any Value | Minst ett värde måste matcha |
 
 ### Villkor

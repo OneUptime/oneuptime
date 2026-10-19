@@ -241,12 +241,12 @@ De feed toont de rotatie **zoals die nu is ingesteld**, ook voor dagen in het ve
 - Links zijn per project. Een uitgelekte persoonlijke link stelt de diensten van één project bloot, niet van elk project waarvan je lid bent.
 - Een link opnieuw genereren zet het oude token in een respijtperiode van 30 dagen (lege agenda, daarna 404). **Link uitschakelen** levert een lege agenda. Een onbekende of verlopen link geeft een kale 404 zonder hint. Lege agenda's laten geabonneerde apps hun kopie leegmaken; een 404 laat ze die bewaren, daarom leveren uitschakelen en opnieuw genereren lege agenda's.
 - Tokens worden gehasht opgeslagen; de kopie op de instellingenpagina is versleuteld met `ENCRYPTION_SECRET`. Stel die variabele op een zelfgehoste installatie in op een echt geheim — de server waarschuwt bij het opstarten wanneer hij niet is ingesteld of nog een van de plaatshouders is die deze repository meelevert (`secret`, of de `please-change-this-to-random-value` die `config.example.env` instelt). Wijzig je hem later, dan biedt de pagina **Link opnieuw genereren** aan, omdat de opgeslagen kopie niet meer kan worden gelezen; de feed blijft werken tot je dat doet.
-- Feedantwoorden zijn gemarkeerd met `Cache-Control: private`, worden uitgesloten van zoekmachines (`X-Robots-Tag: noindex`) en hebben een snelheidslimiet per link en per clientadres.
+- Feedantwoorden zijn gemarkeerd met `Cache-Control: private`, worden uitgesloten van zoekmachines (`X-Robots-Tag: noindex`) en hebben een snelheidslimiet per link en per clientadres, en per IPv6-/64 met tien keer de limieten van een adres.
 
 De eigen Nginx van OneUptime houdt feedverzoeken uit zijn logboeken:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;
@@ -319,7 +319,7 @@ Ofwel `DISABLE_ON_CALL_CALENDAR_FEED` is ingesteld, ofwel de server heeft het dr
 :::
 
 :::details 429 of "too many requests"
-Veel clients achter één adres — een kantoor-NAT, een VPN-gateway — delen het budget per adres. Verhoog `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` en controleer `TRUSTED_PROXY_HOPS`: is die te laag, dan wordt elke client aan je eigen proxy toegeschreven en delen ze allemaal één budget.
+Veel clients achter één adres — een kantoor-NAT, een VPN-gateway — delen het budget per adres. De clients van één IPv6-/64 delen ook tien keer dat budget. Verhoog `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` en controleer `TRUSTED_PROXY_HOPS`: is die te laag, dan wordt elke client aan je eigen proxy toegeschreven en delen ze allemaal één budget.
 :::
 
 :::details Certificaatfouten in Apple Agenda, Thunderbird of Outlook

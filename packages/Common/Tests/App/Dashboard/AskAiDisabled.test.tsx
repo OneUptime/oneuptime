@@ -264,8 +264,13 @@ describe("Ask AI on a project whose AI is switched off", () => {
 
     await openAskAi();
 
+    // A button that says what it opens; the description says the switch.
+    expect(screen.getByText("Open AI Features")).toBeInTheDocument();
+    expect(screen.queryByText(/Go to Project Settings/)).toBeNull();
     expect(
-      screen.getByText("Go to Project Settings > AI Features"),
+      screen.getByText(
+        /A project owner can turn it back on with the Enable AI toggle/,
+      ),
     ).toBeInTheDocument();
     /*
      * AI Features, not AI Credits: the credits page is in the menu only when

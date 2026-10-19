@@ -77,17 +77,42 @@ const TOKEN_SIGNERS: Array<string> = [
   "packages/Common/Server/Utils/Mcp/McpOAuthSignedToken.ts",
   "packages/App/FeatureSet/Identity/Utils/VerificationEmailResendToken.ts",
   "packages/App/FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation.ts",
+  /*
+   * The cluster key an installation whose ONEUPTIME_SECRET is a shipped
+   * value presents between its own services is derived from it.
+   */
+  "packages/Common/Server/Middleware/ClusterKeyAuthorization.ts",
 ];
 
 /*
  * The modules that use the JWT library. JsonWebToken signs and checks
- * OneUptime's own tokens; the other two sign assertions for Google with a
- * service account's own private key (RS256), and check none.
+ * OneUptime's own tokens.
  */
-const JWT_LIBRARY_USERS: Array<string> = [
-  "packages/Common/Server/Utils/JsonWebToken.ts",
+const JSON_WEB_TOKEN: string = "packages/Common/Server/Utils/JsonWebToken.ts";
+
+/*
+ * These sign assertions for Google with a service account's own private key
+ * (RS256), and check none.
+ */
+const GOOGLE_ASSERTION_SIGNERS: Array<string> = [
   "packages/Common/Server/Utils/VideoCall/Providers/GoogleMeetClient.ts",
   "packages/Common/Server/Utils/SecurityEvent/Connectors/GoogleSecOps/GoogleSecOpsClient.ts",
+  "packages/Common/Server/Utils/Marketplace/GoogleCloud/GoogleCloudMarketplaceAPI.ts",
+];
+
+/*
+ * These check tokens a vendor signed (Microsoft Entra ID, Google Cloud
+ * Marketplace, Google's Pub/Sub pushes) with the keys the vendor publishes,
+ * RS256 only, and sign none.
+ */
+const VENDOR_TOKEN_VERIFIERS: Array<string> = [
+  "packages/Common/Server/Utils/Marketplace/RemoteJwtVerifier.ts",
+];
+
+const JWT_LIBRARY_USERS: Array<string> = [
+  JSON_WEB_TOKEN,
+  ...GOOGLE_ASSERTION_SIGNERS,
+  ...VENDOR_TOKEN_VERIFIERS,
 ];
 
 const ENCRYPTION_SECRET_IDENTIFIER: RegExp = /\bEncryptionSecret\b/;
@@ -213,7 +238,7 @@ describe("what a request presents is signed with TokenSigningKey", () => {
   });
 
   test("the Google clients sign with a private key, and verify nothing", () => {
-    for (const relativePath of JWT_LIBRARY_USERS.slice(1)) {
+    for (const relativePath of GOOGLE_ASSERTION_SIGNERS) {
       const code: string = codeOf(relativePath);
 
       expect({ relativePath, rs256: code.includes('"RS256"') }).toEqual({
@@ -225,6 +250,25 @@ describe("what a request presents is signed with TokenSigningKey", () => {
         verifies: false,
       });
       expect(code).not.toMatch(TOKEN_SIGNING_KEY_USE);
+    }
+  });
+
+  test("the vendor token verifiers check RS256 tokens with the vendor's keys, and sign nothing", () => {
+    for (const relativePath of VENDOR_TOKEN_VERIFIERS) {
+      const code: string = codeOf(relativePath);
+
+      // The token never chooses its algorithm: "alg: none" and HMAC-with-the-public-key start there.
+      expect({
+        relativePath,
+        rs256Only: code.includes('algorithms: ["RS256"]'),
+      }).toEqual({ relativePath, rs256Only: true });
+      expect({ relativePath, signs: code.includes("jwt.sign(") }).toEqual({
+        relativePath,
+        signs: false,
+      });
+      expect(code.match(JWT_VERIFY_CALL)).toHaveLength(1);
+      expect(code).not.toMatch(TOKEN_SIGNING_KEY_USE);
+      expect(code).not.toMatch(ENCRYPTION_SECRET_IDENTIFIER);
     }
   });
 });

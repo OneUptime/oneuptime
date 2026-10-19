@@ -20,6 +20,13 @@ import {
   getAllVMwareMetricCategories,
   getAllVMwareMetrics,
 } from "Common/Types/Monitor/VMwareMetricCatalog";
+import { VMWARE_TEMPLATE_CATEGORIES } from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
+import {
+  AlertTemplateCategory,
+  AlertTemplateGroup,
+  getAlertTemplatesInDrawnOrder,
+  groupAlertTemplates,
+} from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateGroups";
 
 /*
  * The VMware monitor form is three React components plus one branch in
@@ -64,6 +71,17 @@ const stepFormSource: string = readSource(
 const templatePickerSource: string = readSource(
   "VMwareMonitor",
   "VMwareTemplatePicker.tsx",
+);
+
+// Anything that is not part of a word: the source split into its words.
+const NOT_A_WORD_CHARACTER: RegExp = /[^A-Za-z0-9_]+/;
+
+/*
+ * The picker's source as whole words, so a word like "Node" is caught but
+ * React's "ReactNode" (the children's type) is not.
+ */
+const templatePickerWords: Set<string> = new Set(
+  templatePickerSource.split(NOT_A_WORD_CHARACTER),
 );
 const metricPickerSource: string = readSource(
   "VMwareMonitor",
@@ -301,47 +319,78 @@ describe("VMwareTemplatePicker", () => {
     expect(allTemplates.length).toBeGreaterThan(0);
   });
 
-  test("renders every template through its category block", () => {
-    /*
-     * The picker filters templates by `t.category === cat.category` over a
-     * hard-coded category list. A template whose category is missing from
-     * that list is silently never offered — so every category that any
-     * template uses must appear in the list.
-     */
-    const categoriesInUse: Set<VMwareAlertTemplateCategory> = new Set(
-      allTemplates.map((template: VMwareAlertTemplate) => {
-        return template.category;
-      }),
+  /*
+   * The shared AlertTemplatePicker lists the catalog under the type's
+   * headings (VMWARE_TEMPLATE_CATEGORIES). A template whose category has no
+   * heading is still offered, after the named ones - but under its raw
+   * category value, so every category in use must have a heading.
+   */
+  test("the picker is the shared one, over the whole catalog and its headings", () => {
+    expect(templatePickerSource).toContain(
+      "<AlertTemplatePicker<VMwareAlertTemplate>",
+    );
+    expect(templatePickerSource).toContain(
+      "templates={getAllVMwareAlertTemplates()}",
+    );
+    expect(templatePickerSource).toContain(
+      "categories={VMWARE_TEMPLATE_CATEGORIES}",
+    );
+  });
+
+  test("every category a template uses has a heading", () => {
+    const headed: Set<string> = new Set(
+      VMWARE_TEMPLATE_CATEGORIES.map(
+        (category: AlertTemplateCategory): string => {
+          return category.category;
+        },
+      ),
     );
 
-    for (const category of categoriesInUse) {
-      expect(templatePickerSource).toContain(`category: "${category}",`);
+    for (const template of allTemplates) {
+      expect({
+        template: template.id,
+        headed: headed.has(template.category),
+      }).toEqual({ template: template.id, headed: true });
     }
   });
 
   test.each(getAllVMwareAlertTemplates())(
     "$name is reachable from the picker",
     (template: VMwareAlertTemplate) => {
-      expect(templatePickerSource).toContain(
-        `category: "${template.category}",`,
-      );
-      expect(templatePickerSource).toContain("getAllVMwareAlertTemplates()");
-      expect(templatePickerSource).toContain(
-        "return t.category === cat.category;",
-      );
+      const groups: Array<AlertTemplateGroup<VMwareAlertTemplate>> =
+        groupAlertTemplates(allTemplates, VMWARE_TEMPLATE_CATEGORIES);
+      const listed: Array<VMwareAlertTemplate> =
+        getAlertTemplatesInDrawnOrder(groups);
+
+      expect(
+        listed.filter((candidate: VMwareAlertTemplate): boolean => {
+          return candidate.id === template.id;
+        }),
+      ).toHaveLength(1);
+
+      const group: AlertTemplateGroup<VMwareAlertTemplate> = groups.find(
+        (candidate: AlertTemplateGroup<VMwareAlertTemplate>): boolean => {
+          return candidate.templates.includes(template);
+        },
+      )!;
+
+      expect(group.category).toBe(template.category);
+      expect(group.icon).toBeDefined();
     },
   );
 
   test("the picker lists no category that has no templates", () => {
-    const listed: Array<string> = [
-      ...templatePickerSource.matchAll(/category: "([^"]+)",/g),
-    ].map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
-    const categoriesInUse: Set<string> = new Set(
-      allTemplates.map((template: VMwareAlertTemplate): string => {
-        return template.category;
-      }),
+    const listed: Array<string> = VMWARE_TEMPLATE_CATEGORIES.map(
+      (category: AlertTemplateCategory): string => {
+        return category.category;
+      },
+    );
+    const categoriesInUse: Set<VMwareAlertTemplateCategory> = new Set(
+      allTemplates.map(
+        (template: VMwareAlertTemplate): VMwareAlertTemplateCategory => {
+          return template.category;
+        },
+      ),
     );
 
     expect(new Set(listed)).toEqual(categoriesInUse);
@@ -349,12 +398,24 @@ describe("VMwareTemplatePicker", () => {
   });
 
   test("uses vSphere vocabulary, not Proxmox's", () => {
+    const labels: string = VMWARE_TEMPLATE_CATEGORIES.map(
+      (category: AlertTemplateCategory): string => {
+        return category.label;
+      },
+    ).join(" | ");
+
     for (const word of ["Proxmox", "pve", "Guest", "Node", "LXC", "QEMU"]) {
-      expect(templatePickerSource).not.toContain(word);
+      expect(labels).not.toContain(word);
+      expect({ word, inPicker: templatePickerWords.has(word) }).toEqual({
+        word,
+        inPicker: false,
+      });
     }
-    expect(templatePickerSource).toContain("ESXi Host");
-    expect(templatePickerSource).toContain("Datastore");
-    expect(templatePickerSource).toContain("vSAN");
+    // The split does see the picker's words.
+    expect(templatePickerWords.has("VMWARE_TEMPLATE_CATEGORIES")).toBe(true);
+    expect(labels).toContain("ESXi Host");
+    expect(labels).toContain("Datastore");
+    expect(labels).toContain("vSAN");
   });
 });
 

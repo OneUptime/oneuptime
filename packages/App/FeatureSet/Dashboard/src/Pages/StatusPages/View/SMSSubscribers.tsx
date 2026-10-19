@@ -5,6 +5,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
+import SubscriberContactKey from "Common/Types/StatusPage/SubscriberContactKey";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
@@ -18,7 +19,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ProjectUtil from "Common/UI/Utils/Project";
-import Pill from "Common/UI/Components/Pill/Pill";
 import ProgressBar, {
   ProgressBarSize,
 } from "Common/UI/Components/ProgressBar/ProgressBar";
@@ -32,6 +32,15 @@ import SubscriberChannelOffPanel from "../../../Components/StatusPage/Subscriber
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import SubscriberUnsubscribeCopy from "../../../Components/StatusPage/SubscriberUnsubscribeCopy";
 import TeamAddedSubscribersUnsubscribedNotice from "../../../Components/StatusPage/TeamAddedSubscribersUnsubscribedNotice";
+import { SubscriberFormCopy } from "../../../Components/StatusPage/SubscriberFormChoices";
+import SubscriberStatusPill from "../../../Components/StatusPage/SubscriberStatusPill";
+import {
+  getSubscriberInternalNoteField,
+  getSubscriberStatusFields,
+  getSubscriberWelcomeField,
+} from "../../../Components/StatusPage/SubscriberFormFields";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
@@ -169,15 +178,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         return t.length > 0;
       });
 
+    /*
+     * One number once, however it is written: a status page takes each line
+     * once (SubscriberContactKey), so "+1 415 555 0100" after
+     * "+14155550100" would only be refused as already subscribed.
+     */
     const seen: Set<string> = new Set<string>();
     const valid: Array<string> = [];
     const invalid: Array<string> = [];
 
     for (const token of tokens) {
-      if (seen.has(token)) {
+      const line: string = SubscriberContactKey.forPhone(token) || token;
+
+      if (seen.has(line)) {
         continue;
       }
-      seen.add(token);
+      seen.add(line);
 
       try {
         new Phone(token);
@@ -300,6 +316,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       return; // don't do anything if loading
     }
 
+    /*
+     * The number, its Status on Edit, and under More fields the welcome
+     * text and the internal note (SubscriberFormFields.tsx).
+     */
+    const moreFields: FormFieldCollapsibleSection<StatusPageSubscriber> =
+      getAdvancedFormSection<StatusPageSubscriber>();
+
     const formFields: Array<ModelField<StatusPageSubscriber>> = [
       {
         field: {
@@ -312,35 +335,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         required: true,
         placeholder: "+11234567890",
       },
-      {
-        field: {
-          sendYouHaveSubscribedMessage: true,
-        },
-        title: "Send Subscription SMS",
-        description:
-          'Send "You have subscribed to this status page" SMS to this subscriber?',
-        fieldType: FormFieldSchemaType.Toggle,
-        stepId: "subscriber-info",
-        required: false,
-        doNotShowWhenEditing: true,
-        /*
-         * Off on purpose, though the column defaults to on: someone an admin
-         * adds is sent a "you have subscribed" message only when the admin
-         * asks for one (CreateFormDefaultsGuard lists why).
-         */
-        defaultValue: false,
-      },
-      {
-        field: {
-          isUnsubscribed: true,
-        },
-        title: "Unsubscribe",
-        description: "Unsubscribe this phone number from the status page.",
-        fieldType: FormFieldSchemaType.Toggle,
-        stepId: "subscriber-info",
-        required: false,
-        doNotShowWhenCreating: true,
-      },
+      ...getSubscriberStatusFields({ isEmail: false, isPhone: true }),
     ];
 
     if (allowSubscribersToChooseResources) {
@@ -402,18 +397,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       });
     }
 
-    // add internal note field
-    formFields.push({
-      field: {
-        internalNote: true,
-      },
-      title: "Internal Note",
-      stepId: "internal-info",
-      description:
-        "Internal note for the subscriber. This is for internal use only and is visible only to the team members.",
-      fieldType: FormFieldSchemaType.Markdown,
-      required: false,
-    });
+    formFields.push(getSubscriberWelcomeField(moreFields));
+    formFields.push(getSubscriberInternalNoteField(moreFields));
 
     setFormFields(formFields);
   }, [isLoading]);
@@ -457,6 +442,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             isViewable={false}
             selectMoreFields={{
               subscriberPhone: true,
+              isSubscriptionConfirmed: true,
+              /*
+               * The Status reads when the link to confirm was sent, so it
+               * is read whether or not the viewer shows Subscribed At.
+               */
+              createdAt: true,
             }}
             query={{
               statusPageId: modelId,
@@ -475,6 +466,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               return Promise.resolve(item);
             }}
             refreshToggle={refreshToggle}
+            singularName="Subscriber"
+            pluralName="Subscribers"
+            createVerb="Add"
             cardProps={{
               title: "SMS Subscribers",
               description:
@@ -490,26 +484,26 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 },
               ],
             }}
-            noItemsMessage={"No subscribers found."}
             formFields={formFields}
             showRefreshButton={true}
             viewPageRoute={Navigation.getCurrentRoute()}
             /*
              * Who gets the updates, then - when this page lets subscribers
              * choose - what they hear about, as the bulk add form asks it.
+             * Without that choice the form is one page.
              */
             formSteps={
               allowSubscribersToChooseResources ||
               allowSubscribersToChooseEventTypes
                 ? [
+                    /*
+                     * SUBSCRIBER_INFO_STEP_ID, written out: the form
+                     * scanners of the guard tests read literal ids.
+                     */
                     { title: "Subscriber Info", id: "subscriber-info" },
                     { title: "Notifications", id: "notifications" },
-                    { title: "Internal Info", id: "internal-info" },
                   ]
-                : [
-                    { title: "Subscriber Info", id: "subscriber-info" },
-                    { title: "Internal Info", id: "internal-info" },
-                  ]
+                : undefined
             }
             filters={[
               {
@@ -556,10 +550,18 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 title: "Status",
                 type: FieldType.Text,
                 getElement: (item: StatusPageSubscriber): ReactElement => {
-                  if (item["isUnsubscribed"]) {
-                    return <Pill color={Red} text={"Unsubscribed"} />;
-                  }
-                  return <Pill color={Green} text={"Subscribed"} />;
+                  /*
+                   * Someone who signed up by SMS on the status page awaits
+                   * the link texted to them, while it works.
+                   */
+                  return (
+                    <SubscriberStatusPill
+                      subscriber={item}
+                      awaitingConfirmationDescription={
+                        SubscriberFormCopy.awaitingTextConfirmationDescription
+                      }
+                    />
+                  );
                 },
               },
               {
@@ -618,9 +620,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   {
                     field: { sendYouHaveSubscribedMessage: true },
                     stepId: "subscriber-info",
-                    title: "Send Subscription SMS",
-                    description:
-                      'Send "You have subscribed to this status page" SMS to the subscribers.',
+                    title: SubscriberFormCopy.welcomeTitle,
+                    description: SubscriberFormCopy.welcomeDescription,
                     fieldType: FormFieldSchemaType.Toggle,
                     required: false,
                   },

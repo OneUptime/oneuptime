@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as NTP-server
     Note over P: T1: sonde verstuurt
     P->>S: Clientverzoek
-    Note over S: T2: server ontvangt, T3: server antwoordt
-    S-->>P: Antwoord: stratum, schrikkelsecondeaanduiding, referentie, T2, T3
+    Note over S: T2: server ontvangt,<br/>T3: server antwoordt
+    S-->>P: Antwoord: stratum,<br/>schrikkelsecondeaanduiding,<br/>referentie, T2, T3
     Note over P: T4: sonde ontvangt
 ```
 
@@ -106,7 +106,7 @@ Criteria bepalen wanneer de server als online, verminderd of offline telt, en of
 | **NTP Response Time (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | Van het verzoek tot het antwoord. |
 | **NTP Root Dispersion (in ms)** | **Groter dan**, **Kleiner dan**, **Groter dan of gelijk aan**, **Kleiner dan of gelijk aan** | De eigen schatting van de server van zijn maximale fout. |
 
-Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of ze **Alle** moeten overeenkomen of dat **Elke** afzonderlijke volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident verklaren, of een combinatie daarvan.
+Bij twee of meer filters bepaalt **Overeenkomstvoorwaarde** of ze **Alle** moeten overeenkomen of dat **Minstens één** volstaat. De **Acties** van een criterium bepalen wat het doet: de monitorstatus wijzigen, een waarschuwing maken, een incident verklaren, of een combinatie daarvan.
 
 ### Standaardcriteria
 

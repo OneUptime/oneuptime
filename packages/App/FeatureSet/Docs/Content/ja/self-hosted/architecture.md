@@ -5,30 +5,31 @@
 ```mermaid title="セルフホストの OneUptime"
 flowchart TB
     People["利用者とブラウザ"]
-    Senders["テレメトリーの送信元:<br/>OpenTelemetry、Fluent Bit、<br/>syslog、エージェント"]
+    Senders["テレメトリーの<br/>送信元:<br/>OpenTelemetry、<br/>Fluent Bit、<br/>syslog、<br/>エージェント"]
     Targets["監視対象:<br/>内部と公開"]
     subgraph Install["あなたのネットワーク"]
         direction TB
         Ingress["Ingress<br/>(Nginx、TLS)"]
-        App["アプリ<br/>ダッシュボード、ステータスページ、<br/>API、取り込み、バックグラウンドジョブ"]
-        Probe["プローブ"]
+        App["アプリ<br/>ダッシュボード、<br/>ステータスページ、<br/>API、取り込み、<br/>バックグラウンドジョブ"]
         Runner["Runner"]
+        Probe["プローブ"]
         subgraph Data["データストア"]
             direction LR
             Postgres[("PostgreSQL<br/>設定<br/>と状態")]
-            ClickHouse[("ClickHouse<br/>ログ、メトリクス、<br/>トレース")]
+            ClickHouse[("ClickHouse<br/>ログ、<br/>メトリクス、<br/>トレース")]
             Valkey[("Valkey<br/>キャッシュと<br/>キュー")]
         end
     end
     People -->|"HTTPS"| Ingress
     Senders -->|"OTLP, HTTPS"| Ingress
     Ingress --> App
-    Probe -->|"作業の取得、<br/>結果の送信"| App
     Runner -->|"ジョブの取得、<br/>結果の送信"| App
-    Probe -->|"HTTP、TCP、ping、<br/>DNS、SNMP"| Targets
+    Probe -->|"作業の取得、<br/>結果の送信"| App
+    Probe -->|"HTTP、<br/>TCP、ping、<br/>DNS、SNMP"| Targets
     App --> Postgres
     App --> ClickHouse
     App --> Valkey
+    Targets ~~~ Probe
 ```
 
 ## この図が示すこと

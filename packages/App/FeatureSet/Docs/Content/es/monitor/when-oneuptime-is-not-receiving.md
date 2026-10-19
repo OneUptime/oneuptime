@@ -11,7 +11,7 @@ Cada proceso de OneUptime que recibe datos registra cada 30 segundos que está r
 - Puesta al día: mientras la cola de datos pendientes de procesar lleva más de un minuto de atraso, el tiempo desde los datos más antiguos que aún esperan en ella.
 
 ```mermaid title="El tiempo que OneUptime deja fuera"
-flowchart LR
+flowchart TB
     receiving["Recibiendo"] -->|"sin registro durante 90 segundos"| down["Sin recepción"]
     down -->|"un proceso vuelve a registrar"| grace["Reconexión durante 2 minutos"]
     grace --> again["Recibiendo"]

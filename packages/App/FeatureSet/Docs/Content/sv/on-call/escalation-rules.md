@@ -20,6 +20,7 @@ flowchart TB
 - [Lägg till en eskaleringsregel](#lägg-till-en-eskaleringsregel): Lägg till nästa nivå, steg för steg.
 - [Så larmar nivåerna personer](#så-larmar-nivåerna-personer): Tider, upprepningar och hur varje person nås.
 - [Nästa person i rotationen](#eskalera-till-nästa-person-i-rotationen): Larma backupen för den som har jour, från samma rotation.
+- [Skicka ett larm vidare](#skicka-ett-larm-vidare): Kan du inte ta ett larm? Skicka det direkt vidare till nästa nivå.
 - [API och Terraform](#skapa-regler-med-apiet-eller-terraform): Skapa policyer och regler som kod.
 :::
 
@@ -74,11 +75,11 @@ Klicka på **Create Rule**. Regeln läggs till under de andra, som policyns näs
 
 ## Så larmar nivåerna personer
 
-När en incident eller ett larm når policyn larmar **Level 1** sina mottagare direkt. Om ingen bekräftar inom väntetiden larmas **Level 2**, och så vidare nedåt i listan. När den sista nivåns väntetid har gått utan bekräftelse börjar policyn om från **Level 1** om dess **Upprepningspolicy** (under reglerna) säger att den ska upprepas, så många gånger som den tillåter, och annars slutar den. Att bekräfta eller lösa incidenten eller larmet stoppar larmandet på vilken nivå som helst.
+När en incident eller ett larm når policyn larmar **Level 1** sina mottagare direkt. Om ingen bekräftar inom väntetiden larmas **Level 2**, och så vidare nedåt i listan. När den sista nivåns väntetid har gått utan bekräftelse börjar policyn om från **Level 1** om dess **Upprepningspolicy** (under reglerna) säger att den ska upprepas, så många gånger som den tillåter, och annars slutar den. Att bekräfta eller lösa incidenten eller larmet stoppar larmandet på vilken nivå som helst. Den som larmas och inte kan ta det kan skicka larmet vidare, och nästa nivå larmas utan att vänta: se [Skicka ett larm vidare](#skicka-ett-larm-vidare).
 
 En incident, ett larm eller en episod som skapas redan bekräftad eller löst — registrerad i efterhand — kör ingen av sina policyer: ingen larmas, och dess feed säger det och nämner dem vid namn. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 
-För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningspolicy**, slår på **Repeat if no one acknowledges** och anger **Number of times to repeat**.
+För att upprepa en policy klickar du på **Redigera** på kortet **Upprepningspolicy**, väljer **Börja om från Level 1** och anger **Hur många gånger till?**.
 
 ### Eskaleringsöversikten
 
@@ -162,6 +163,45 @@ Körningens meddelande i Slack och Microsoft Teams, incidentens feed och **Tidsl
 
 > [!TIP]
 > Ett schema räcker: det finns inget andra backupschema att hålla i takt med det första, och den frånvaro som dess personer bokar gäller för båda nivåerna.
+
+## Skicka ett larm vidare
+
+Den som larmas och inte kan ta det, för att hen sover, sitter på ett flyg eller redan arbetar med en annan incident, kan skicka larmet vidare i stället för att låta det ringa ut. Policyn larmar då nästa nivå direkt, utan att vänta ut nivåns **Eskalera efter (i minuter)**, och hen larmas inte om det igen.
+
+```mermaid title="Ett larm som skickas vidare flyttar policyn direkt till nästa nivå"
+flowchart TB
+    page["Level 1 larmar Alex"] --> take{"Kan Alex<br/>ta det?"}
+    take -->|"Ja"| ack["Alex bekräftar:<br/>larmandet stoppar"]
+    take -->|"Nej"| pass["Alex skickar det vidare"]
+    pass --> others{"Larmas någon annan<br/>på Level 1 fortfarande?"}
+    others -->|"Ja"| wait["Policyn väntar på<br/>dem, som förut"]
+    others -->|"Nej"| next["Level 2 larmas<br/>nu"]
+```
+
+Varje larm kan skickas vidare därifrån det nådde dig:
+
+| Var | Så skickar du det vidare |
+| --- | --- |
+| E-post | Knappen **Pass it on**, sedan **Pass it on** på sidan den öppnar |
+| SMS och WhatsApp | Länken i meddelandet öppnar bekräftelsesidan, som också har **Pass it on** |
+| Telegram, Slack och Microsoft Teams | Länken "Can't take it? Pass it on", sedan **Pass it on** på sidan den öppnar |
+| Telefonsamtal | Tryck 2. Samtalet säger sedan vad som hände |
+| Pushnotis | Tryck på den: incidenten, larmet eller episoden öppnas i OneUptime On-Call-appen, med **Pass it on** under sig |
+| OneUptime | **Skicka vidare** högst upp i incidenten, larmet eller episoden, efter dess tillståndsknappar |
+
+Alla vägar utom samtalet frågar innan de gör något och säger vad som kommer att hända, till exempel "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting."; i ett samtal är det svaret att trycka 2. Bara den som larmas kan skicka sitt larm vidare: knappen i OneUptime visas bara för hen, och länken i ett meddelande skickar bara vidare det larm den skickades om, för den person den skickades till, i 7 dagar.
+
+Vad som händer sedan beror på vilka andra som larmas:
+
+- Andra på samma nivå larmas fortfarande: policyn väntar på dem, som förut. Den går vidare när nivåns väntetid går ut, eller så snart den sista av dem också skickar larmet vidare.
+- Ingen annan finns kvar på nivån: nästa nivå larmas direkt.
+- Det var den sista nivån: om **Upprepningspolicy** säger att den ska upprepas börjar policyn om från **Level 1** direkt. Annars stoppar larmandet, och någon måste ta hand om det.
+
+Att skicka ett larm vidare bekräftar det inte: incidenten eller larmet väntar fortfarande på att någon bekräftar, och den som skickade det vidare kan fortfarande bekräfta själv. Den här körningen larmar inte hen om det igen: en senare nivå, eller en upprepning, som nämner hen hoppar över hen. När alla som den larmade har skickat det vidare och ingen finns kvar att larma stoppar larmandet, och incidentens feed säger det.
+
+Ett larm som ett arbetsflöde skickar direkt till personer har inga nivåer: skickar du det vidare larmas du inte mer, och när alla som det larmade har skickat det vidare stoppar larmandet.
+
+Varje gång ett larm skickas vidare registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Skickat vidare**, incidentens feed säger "Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.", körningens meddelande i Slack och Microsoft Teams säger att hen skickade det vidare, och hens **Jourloggar** visar larmet som **Skickat vidare**.
 
 ## Redigera, ändra ordning på och ta bort regler
 

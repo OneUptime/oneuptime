@@ -20,14 +20,14 @@ stateDiagram-v2
     state "Failed" as Failed
     state "Cancelled" as Cancelled
     [*] --> Scheduled: run started
-    Scheduled --> Running: a Worker picks it up
-    Running --> WaitingForManualStep: Manual step or approval
-    WaitingForManualStep --> Scheduled: completed, approved or skipped
+    Scheduled --> Running: a Worker<br/>picks it up
+    Running --> WaitingForManualStep: Manual step<br/>or approval
+    WaitingForManualStep --> Scheduled: completed,<br/>approved<br/>or skipped
     Running --> Completed: every step done
     Running --> Failed: a step fails
-    Scheduled --> Cancelled: Cancel Execution
-    Running --> Cancelled: Cancel Execution
-    WaitingForManualStep --> Cancelled: Cancel Execution
+    Scheduled --> Cancelled: Cancel<br/>Execution
+    Running --> Cancelled: Cancel<br/>Execution
+    WaitingForManualStep --> Cancelled: Cancel<br/>Execution
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
@@ -118,7 +118,7 @@ An execution is a one-shot, immutable record. To run the runbook again, click **
 
 | Where | What it lists |
 | --- | --- |
-| A runbook's **Executions** | Every run of that runbook, with filters for status and start date, and a **Triggered by** column. |
+| A runbook's **Logs → Executions** | Every run of that runbook, with filters for status and start date, and a **Triggered by** column. |
 | **Runbooks → Executions** | Every run of every runbook in the project. |
 | An incident's, alert's or event's **Runbooks** | The runs attached to it. The event's overview shows them too, once there are any. |
 
@@ -129,7 +129,7 @@ Your role reads runbooks but does not run them: the button says "You do not have
 :::
 
 :::details Starting a run fails with "Runbook is disabled" or "Runbook has no steps to run"
-The runbook's **Run this runbook** switch is off, on its **Settings** page, or it has no saved steps. Turn the switch on, or add steps and click **Save Steps**.
+The runbook's **Run this runbook** switch is off, on its **Settings** page, or it has no saved steps. Turn the switch on, or add steps and click **Save Steps**. Its **Overview** says which, with **Turn on runbook** or **Add Steps**.
 :::
 
 :::details A step failed because it is missing a Runner or a credential

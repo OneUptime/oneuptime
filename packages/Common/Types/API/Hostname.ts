@@ -4,6 +4,7 @@ import { JSONObject, ObjectType } from "../JSON";
 import Port from "../Port";
 import Typeof from "../Typeof";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
+import { refusedValue } from "../../Utils/RefusedValue";
 import IP from "../IP/IP";
 import { FindOperator } from "typeorm";
 
@@ -65,7 +66,7 @@ export default class Hostname extends DatabaseProperty {
       this._route = value;
     } else {
       throw new BadDataException(
-        "Hostname " + value + " is not in valid format.",
+        "Hostname " + refusedValue(value) + " is not in valid format.",
       );
     }
   }

@@ -47,7 +47,6 @@ import FilterChipDropdown, {
 } from "../../../Components/ResourceOwners/FilterChipDropdown";
 import {
   HOST_NAME_ATTR,
-  MIN_OTELCOL_CONTRIB_VERSION,
   SYSTEMD_UNIT_STATE_METRIC_NAME,
   SystemdMetricDatapoint,
   SystemdStateMeta,
@@ -581,7 +580,7 @@ const HostSystemdUnits: FunctionComponent<
    */
   const noItemsMessage: string =
     rows.length === 0
-      ? `No systemd unit metrics in the last ${UNIT_LOOKBACK_MINUTES} minutes. Unit state comes from the "systemd" receiver (alpha, Linux-only), which needs otelcol-contrib ${MIN_OTELCOL_CONTRIB_VERSION} or newer. Make sure this host runs a native collector with systemd added to the metrics pipeline, alongside resourcedetection — without it the samples never attach to a host. See the Documentation tab for setup steps.`
+      ? `No systemd unit metrics in the last ${UNIT_LOOKBACK_MINUTES} minutes. Add the systemd receiver to your collector: see the Documentation tab.`
       : "No units match the current filters.";
 
   /*

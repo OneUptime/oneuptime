@@ -52,12 +52,12 @@ Una imagen en la descripción o el mensaje de agradecimiento del formulario se m
 
 ```mermaid title="Abrir un formulario y enviarlo"
 sequenceDiagram
-    participant V as Navegador de la persona visitante
+    participant V as Navegador de la<br/>persona visitante
     participant O as OneUptime
-    V->>O: Abrir el formulario, desde su propia página
+    V->>O: Abrir el formulario,<br/>desde su propia página
     O-->>V: Preguntas, plantillas y marca
     V->>O: Enviar las respuestas
-    O->>O: Cada comprobación de abajo, en orden
+    O->>O: Cada comprobación<br/>de abajo, en orden
     O-->>V: El número de lo que se creó
 ```
 
@@ -110,7 +110,7 @@ Abrir un formulario y enviarlo están limitados por dirección de red, y enviar 
 - **Enviar, por dirección** — por formulario desde una dirección, y por dirección en todos los formularios. Superado cualquiera de los dos, el remitente ve "Se han enviado demasiados informes desde tu red. Espera unos minutos y vuelve a intentarlo." Todos los que están detrás de una misma dirección — una red de oficina, una puerta de enlace VPN — comparten estos límites, y cada envío cuenta, incluso uno que luego se rechaza por una respuesta incorrecta.
 - **Enviar, por formulario** — cuántos registros puede crear un formulario en una hora, desde todas las direcciones juntas, así que incluso los envíos desde muchas direcciones a la vez solo pueden avisarte un número limitado de veces por hora. Solo cuenta un envío que superó todas las demás comprobaciones, justo antes de crearse su registro. Superado, todos ven "Este formulario está recibiendo demasiados envíos en este momento. Vuelve a intentarlo más tarde." hasta que termina la ventana. **Restablecer enlace** empieza el enlace nuevo con una cuota nueva.
 
-Cada límite responde `429` con una cabecera `Retry-After`, en segundos, y la página le dice al remitente cuándo volver a intentarlo. Las ventanas son fijas, no móviles. Si no se puede contactar con el limitador de frecuencia, los envíos se rechazan en lugar de dejarlos pasar sin contar: la API responde `503`, y el remitente ve "No se pueden aceptar envíos en este momento. Vuelve a intentarlo en unos minutos."
+Cada límite responde `429` con una cabecera `Retry-After`, en segundos, y la página le dice al remitente cuándo volver a intentarlo. Las ventanas son fijas, no móviles. Cada límite por dirección cuenta además juntas las direcciones de un mismo /64 de IPv6, con diez veces su número. Si no se puede contactar con el limitador de frecuencia, los envíos se rechazan en lugar de dejarlos pasar sin contar: la API responde `503`, y el remitente ve "No se pueden aceptar envíos en este momento. Vuelve a intentarlo en unos minutos."
 
 En una instalación autoalojada, estas variables de entorno de la app de OneUptime cambian los límites:
 

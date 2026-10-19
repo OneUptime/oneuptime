@@ -20,10 +20,10 @@ El servidor MCP forma parte de cada instancia de OneUptime, en `/mcp` en la mism
 flowchart TB
     C["Tu cliente MCP:<br/>Claude, Cursor,<br/>VS Code"] -->|"HTTP a /mcp"| M["El servidor MCP<br/>de OneUptime"]
     M --> W{"¿Cómo se<br/>identifica<br/>el cliente?"}
-    W -->|"inició sesión"| P["Como tú, en el<br/>proyecto que elegiste"]
-    W -->|"una clave de API"| K["Como la clave, en<br/>el proyecto de la clave"]
-    W -->|"ninguna de las dos"| U["Solo herramientas<br/>de páginas de<br/>estado públicas"]
-    P --> A["La API de OneUptime,<br/>con exactamente<br/>esos permisos"]
+    W -->|"inició sesión"| P["Como tú, en el<br/>proyecto<br/>que elegiste"]
+    W -->|"una clave<br/>de API"| K["Como la<br/>clave, en<br/>el proyecto<br/>de la clave"]
+    W -->|"ninguna<br/>de las dos"| U["Solo herramientas<br/>de páginas de<br/>estado públicas"]
+    P --> A["La API de<br/>OneUptime,<br/>con exactamente<br/>esos permisos"]
     K --> A
 ```
 
@@ -39,7 +39,7 @@ El servidor no tiene estado: no emite ids de sesión y cada petición es indepen
 - **Mantenimiento programado**: crear y gestionar eventos de mantenimiento.
 - **Telemetría**: consultar logs, métricas, trazas, excepciones, logs de monitores, eventos de seguridad y más, solo lectura.
 
-Hay herramientas de crear, obtener, listar, actualizar, eliminar y contar para 27 tipos de registro, herramientas de listar y contar para 9 tipos de telemetría, y herramientas pensadas para la respuesta a incidentes. Las herramientas de solo lectura llevan `readOnlyHint` y las de eliminación llevan `destructiveHint`, así que un cliente puede ejecutar por su cuenta las llamadas seguras y preguntarte antes de las destructivas. Una llamada a herramienta fallida vuelve como resultado de la herramienta (`isError: true`) con un `statusCode`, los detalles y una sugerencia, no como un error del protocolo MCP, así que el agente puede leer el fallo y corregirse.
+Hay herramientas de crear, obtener, listar, actualizar, eliminar y contar para 27 tipos de registro, herramientas de listar y contar para 9 tipos de telemetría, y herramientas pensadas para la respuesta a incidentes. Las herramientas de solo lectura llevan `readOnlyHint`, toda herramienta que cambia algo lleva `destructiveHint` y solo las herramientas de páginas de estado públicas llevan `openWorldHint`, así que un cliente puede ejecutar por su cuenta las llamadas de solo lectura y preguntarte antes de cualquier cambio. Una llamada a herramienta fallida vuelve como resultado de la herramienta (`isError: true`) con un `statusCode`, los detalles y una sugerencia, no como un error del protocolo MCP, así que el agente puede leer el fallo y corregirse.
 
 ## Antes de empezar
 
@@ -195,6 +195,19 @@ La variable de entrada con `"password": true` pide la clave cuando arranca el se
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

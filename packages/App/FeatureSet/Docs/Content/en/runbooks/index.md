@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["What starts a run"]
         direction LR
         rule["Runbook rule"]
-        manual["Run Runbook on an event"]
-        runnow["Run Now on the runbook"]
+        manual["Run Runbook<br/>on an event"]
+        runnow["Run Now on<br/>the runbook"]
     end
-    rule --> execution["Execution: a snapshot of the steps"]
+    rule --> execution["Execution:<br/>a snapshot<br/>of the steps"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker takes the steps in order"]
-    worker -->|"Manual step or approval"| person["Waits for a person"]
-    worker -->|"HTTP and AI steps"| onworker["Runs on the Worker"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["Runner in your infrastructure"]
-    person --> record["Status, output and errors recorded"]
+    execution --> worker["OneUptime<br/>Worker takes the<br/>steps in order"]
+    worker -->|"Manual step<br/>or approval"| person["Waits for<br/>a person"]
+    worker -->|"HTTP and<br/>AI steps"| onworker["Runs on<br/>the Worker"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["Runner in your<br/>infrastructure"]
+    person --> record["Status, output<br/>and errors<br/>recorded"]
     onworker --> record
     runner --> record
-    record --> history["The event's Runbooks page and the runbook's Executions"]
+    record --> history["The event's<br/>Runbooks<br/>page and the<br/>runbook's<br/>Executions"]
 ```
 
 Every run is an **execution**. When it starts, the runbook's steps are copied onto it, and OneUptime works through them in order. A Manual step, or a step that needs approval, pauses the run until someone acts on it.
@@ -98,6 +98,17 @@ Runbooks is under **Products**, in the **Dashboards & Automation** group.
 | **Incidents / Alerts / Scheduled Maintenance → Rules → Runbook Rules** | Create the rules that start runbooks automatically. |
 | An incident, alert or maintenance event → **Runbooks** | See the runs attached to it, and click **Run Runbook** to start one. |
 
+A runbook's own side menu groups its pages like this. Only **Basic** starts open: click a section's title to open it. A section opens by itself on any page inside it.
+
+| Section | Pages |
+| --- | --- |
+| **Basic** | **Overview**, **Steps** |
+| **Logs** | **Executions** |
+| **Owners** | **Owners** |
+| **Settings** | **Triggers**, **Settings** |
+| **Developer** | **Terraform**, **API**, **AI Assistants** |
+| **Advanced** | **Audit Logs**, **Delete Runbook** |
+
 ## A worked example
 
 Suppose you want every incident with "db-primary" in its title to start a five-step database failover runbook.
@@ -105,7 +116,7 @@ Suppose you want every incident with "db-primary" in its title to start a five-s
 :::steps
 ### Create the runbook
 
-Under **Runbooks**, click **Create Runbook** and name it "DB primary failover". Open it, go to **Steps** and add these steps, then click **Save Steps**:
+Under **Runbooks**, click **Create Runbook** and name it "DB primary failover". It opens on its **Steps**: add these steps, then click **Save Steps**:
 
 | # | Type | Title |
 | --- | --- | --- |

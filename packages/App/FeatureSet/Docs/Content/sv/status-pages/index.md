@@ -5,7 +5,7 @@ En statussida är det offentliga ansiktet för allt du övervakar: en enda URL s
 När något går sönder klockan 2 på natten är statussidan det första din supportkö hänvisar till. Det är också därifrån dina prenumeranter aviseras, så det lönar sig att sätta upp den innan du behöver den, inte mitt under driftstoppet.
 
 :::cards
-- [Skapa en statussida](#skapa-en-statussida): Två fält för att komma igång, allt annat efteråt.
+- [Skapa en statussida](#skapa-en-statussida): Ett namn för att komma igång, allt annat efteråt.
 - [Välj vad den visar](#välja-vad-som-visas-på-sidan): Incidenter, episoder, meddelanden, underhåll och upptid, på ett kort.
 - [Bestäm vem som får se den](#begränsa-vem-som-kan-se-sidan): Alla med länken, bara personer som loggar in eller alla med lösenordet.
 - [Arkivera en statussida](#arkivera-en-statussida): Ta en sida offline utan att ta bort den.
@@ -29,11 +29,11 @@ flowchart TB
 
 Statussidor finns under **Statussidor** i menyn **Produkter** i det översta fältet, bland de viktigaste. Allt på den här sidan gäller per statussida: ett projekt kan ha hur många som helst — en offentlig för kunder, en privat för en intern publik, en per region för en viss marknad.
 
-Sidan visar monitorerna du lägger på den som resurser. Incidenter och schemalagt underhåll når sidan via de monitorerna, och meddelanden publiceras direkt på den. Besökare läser sidan, och prenumeranter aviseras om varje ändring i de kanaler de har valt.
+Sidan visar monitorerna du lägger på den som resurser, och incidenter når sidan via de monitorerna. [Planerade underhållshändelser](/docs/scheduled-maintenance/index) och meddelanden når den direkt: var och en anger de statussidor den visas på. Besökare läser sidan, och prenumeranter aviseras om varje ändring i de kanaler de har valt.
 
 ## I korthet
 
-- **Skapas med två fält.** En ny statussida frågar bara efter **Namn** och **Beskrivning**. Resurser, varumärke och domäner ställer du in efteråt.
+- **Skapas med ett namn.** En ny statussida frågar bara efter sitt **Namn**; **Beskrivning** och **Etiketter** väntar under **Fler fält**. Resurser, varumärke och domäner ställer du in efteråt.
 - **Resurser är det besökarna ser.** Varje rad på sidan är en **Statussida Resurs**: en monitor (eller monitorgrupp) med eget visningsnamn, egen knappbeskrivning och egna upptidsval. Grupper delar upp en lång sida i sektioner och kan kapslas.
 - **En förhandsgransknings-URL från första dagen.** Varje statussida får en förhandsgranskningslänk, så att du kan se den innan det finns en anpassad domän.
 - **Rutterna för besökare beror på inställningar.** Incidenter, episoder, meddelanden och schemalagda händelser visas bara så länge deras reglage i **Vad din statussida visar** (under **Avancerade inställningar**) är på, och prenumerationssidan bara så länge **Visa prenumerantsida** är på.
@@ -61,13 +61,13 @@ Sidan visar monitorerna du lägger på den som resurser. Incidenter och schemala
 
 ### Ge sidan ett namn
 
-Fyll i **Namn** (obligatoriskt, minst två tecken) i fönstret **Skapa ny: Statussida** och, om du vill, **Beskrivning**, och klicka på **Skapa statussida**.
+Fyll i **Namn** (obligatoriskt, minst två tecken) i fönstret **Skapa ny: Statussida**, och klicka på **Skapa statussida**. **Beskrivning** och **Etiketter** är valfria, under **Fler fält**.
 
-Det är hela formuläret. Listan du kommer tillbaka till visar **Namn**, **Beskrivning**, **Etiketter** och **Ägare**, och kan filtreras på **Statussidans ID**, **Namn** och **Beskrivning**.
+Det är hela formuläret. Listan **Statussidor** visar **Namn**, **Beskrivning**, **Etiketter** och **Ägare**, och kan filtreras på **Statussidans ID**, **Namn** och **Beskrivning**.
 
 ### Öppna den nya sidan
 
-Öppna den nya sidan så hamnar du på dess skärm **Översikt**, som har två kort: **Status Page Preview URL**, med en länk till själva sidan, och **Detaljer för statussida**, där du kan redigera namnet, beskrivningen och etiketterna du just angav. När projektet har anpassade fält för statussidor följer ett kort **Anpassade fält**.
+Den nya sidan öppnas på sin skärm **Översikt**. Tills sidan har en resurs börjar skärmen med **Inget på den här statussidan ännu** och **Lägg till monitorer**, som öppnar dess skärm **Resurser**. Sedan kommer två kort: **Länk till statussidan**, med länken till själva sidan och **Kopiera länk**, och **Detaljer för statussida**, där du kan redigera namnet, beskrivningen och etiketterna du just angav. När projektet har anpassade fält för statussidor följer ett kort **Anpassade fält**.
 :::
 
 En sida som skapas med API:et eller med Terraform omfattas av samma abonnemang som inställningarna nedan. På OneUptime Cloud avvisas skapandet av en sida med en påslagen inställning som ditt abonnemang inte omfattar (till exempel privat, en dold lista, anpassad HTML, CSS eller JavaScript, e-postrapporter, prenumeranter via SMS, Slack, Microsoft Teams eller webhook, en IP-tillåtelselista) med `402 Payment Required`, och meddelandet nämner abonnemanget. Varje inställnings abonnemang anges vid inställningen nedan. Inställningar som står kvar på standard, som det här formuläret lämnar dem, fungerar på alla abonnemang.
@@ -87,7 +87,7 @@ När du har öppnat en statussida är dess egen vänstermeny indelad i nio sekti
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Meddelanden**, **Ägare**. |
 | **Resurser** | En enda skärm **Resurser** (grupperna till vänster, den valda gruppens monitorer till höger) och **Monitor Rules**. |
-| **Prenumeranter** | **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **MS Teams-prenumeranter**, **Webhook-prenumeranter**, **Prenumerantinställningar**. |
+| **Prenumeranter** | **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter**, **Webhook-prenumeranter**, **Prenumerantinställningar**. |
 | **Aviseringsloggar** | **Aviseringsloggar**: vad som har skickats till prenumeranterna. |
 | **Varumärke** | **Varumärke** (logotyp, titel, favicon, länkar, sidfot, färger och språk, på en sida), **Anpassade domäner**, **HTML, CSS och JavaScript**. |
 | **Säkerhet** | **Åtkomst** (vem som får se sidan), **Privata användare**, **SSO**, **OIDC**, **SCIM**. |
@@ -115,7 +115,7 @@ Den offentliga sidan är en egen applikation, med en liten uppsättning rutter:
 - `/announcements` och `/announcements/:id`.
 - `/scheduled-events` och `/scheduled-events/:id`.
 - `/subscribe/email`, `/subscribe/sms`, `/subscribe/slack`, `/subscribe/microsoft-teams`, `/subscribe/webhooks`.
-- `/confirm-subscription/:id`, `/update-subscription/:id` och `/unsubscribe/:token`: länkarna i meddelandena prenumeranterna får.
+- `/confirm-subscription/:id`, `/update-subscription/:token` och `/unsubscribe/:token`: länkarna i meddelandena prenumeranterna får.
 - `/rss`: flödet.
 - `/login`, `/sso` och `/master-password`: bara relevanta på en privat sida.
 
@@ -163,11 +163,11 @@ Om sidan visar ett objekt **Prenumerera** (**Visa prenumerantsida**, `showSubscr
 
 Under kortet finns **Exportera Statussida som JSON**, som laddar ned statussidans egna inställningar till en fil du kan importera igen, och **Archive status page** (se [Arkivera en statussida](#arkivera-en-statussida)). Den totala upptidsprocenten och driftstoppsstatusarna var tidigare två egna kort här, vart och ett bakom en knapp **Redigera**; nu är de rader på kortet.
 
-**Var färgerna finns.** Upptidsstaplarnas färger finns inte här: **Standardfärg för stapel** och färgreglerna för staplarna finns under **Fler inställningar** i **Statussidor → din sida → Varumärke → Varumärke**. Det finns ingen inställning för tema eller varumärkesfärg någonstans; allt utöver de kontrollerna gör du med **Anpassad CSS**.
+**Var färgerna finns.** Upptidsstaplarnas färger finns inte här: **Standardfärg för stapel** och färgreglerna för staplarna finns under **Fler inställningar** i **Statussidor → din sida → Varumärke → Varumärke**. Sidans **Tema** (ljust, mörkt eller som varje besökares enhet är inställd) är ett kort högt upp på samma sida. Det finns ingen inställning för varumärkesfärg; allt utöver de kontrollerna gör du med **Anpassad CSS**.
 
 ## Förhandsgranska innan du går live
 
-Skärmen **Översikt** för varje statussida har ett kort **Status Page Preview URL** med en direktlänk till sidan. Använd den medan du fortfarande lägger till resurser och innan det finns en anpassad domän.
+Skärmen **Översikt** för varje statussida har ett kort **Länk till statussidan** med en direktlänk till sidan och **Kopiera länk** bredvid. Använd den medan du fortfarande lägger till resurser och innan det finns en anpassad domän.
 
 Bakom kulisserna har varje offentlig rutt en förhandsgranskningstvilling under `/status-page/{statusPageId}/...`: en förhandsgranskad översikt, en förhandsgranskad incidentlista, en förhandsgranskad prenumerationssida och så vidare. En URL eller skärmbild från instrumentpanelens förhandsgranskning stämmer därför inte med det en kund ser när en anpassad domän är kopplad, så kontrollera alla länkar du klistrar in i en runbook eller ett e-postmeddelande.
 
@@ -195,11 +195,11 @@ Lägg till personerna som får logga in under **Statussidor → din sida → Sä
 
 ### SSO och OIDC
 
-För en privat sida som är kopplad till din identitetsleverantör ställer **Statussidor → din sida → Säkerhet → SSO** in SAML: du anger inloggnings-URL:en, utfärdaren och x509-certifikatet, och signerings- och digest-metoderna fylls i under **Fler fält**. **Statussidor → din sida → Säkerhet → OIDC** ställer in OpenID Connect: du anger utfärdaren, klient-ID:t och hemligheten, och discovery-URL:en, scopes och claim-namnen fylls i under **Fler fält**. **SCIM** skapar privata användare automatiskt från IdP:n. På OneUptime Cloud kräver alla tre abonnemanget Scale eller högre. I en egendriftad installation ingår SSO och OIDC i alla utgåvor, och SCIM kräver [Enterprise Edition](/docs/self-hosted/enterprise).
+För en privat sida som är kopplad till din identitetsleverantör ställer **Statussidor → din sida → Säkerhet → SSO** in SAML: **Lägg till SSO-leverantör** frågar efter inloggnings-URL:en, utfärdaren och x509-certifikatet, och signerings- och digest-metoderna fylls i under **Fler fält**. **Statussidor → din sida → Säkerhet → OIDC** ställer in OpenID Connect: **Lägg till OIDC-leverantör** frågar efter utfärdaren, klient-ID:t och hemligheten, och discovery-URL:en, scopes och claim-namnen fylls i under **Fler fält**. När en sida har en leverantör länkar kortet **Testa inloggning** under listan till sidans inloggning, så att du kan prova den. **SCIM** skapar privata användare automatiskt från IdP:n. På OneUptime Cloud kräver alla tre abonnemanget Scale eller högre. I en egendriftad installation ingår SSO och OIDC i alla utgåvor, och SCIM kräver [Enterprise Edition](/docs/self-hosted/enterprise).
 
 Att stänga av eller ta bort en statussidas SSO- eller OIDC-leverantör loggar ut de privata användare som den loggade in: deras sessioner upphör vid nästa begäran, och att slå på leverantören igen återställer dem inte; de loggar in via den på nytt. Ett nytt certifikat eller en ny klienthemlighet, andra URL:er eller ett nytt namn håller alla inloggade. På en sida som kräver SSO stänger det ute alla att stänga av dess sista leverantör, tills du slår på en igen eller stänger av **Kräv SSO för inloggning**; för att byta till en annan leverantör ställer du in och testar den nya innan du stänger av den gamla.
 
-Under leverantörerna innehåller kortet **SSO-inställningar** reglaget **Kräv SSO för inloggning** (`requireSsoForLogin`, av som standard), som sparas så fort du slår om det. Att slå på det ber först om bekräftelse, eftersom privata användare därefter inte kan logga in med e-post och lösenord: bara personerna som din SSO- eller OIDC-leverantör släpper in kan se sidan. Testa SSO med länken på den skärmen innan du slår på det. Det spelar bara roll så länge **Bara personer som loggar in** är valet, och skärmen **Åtkomst** visar det som **SSO krävs** under det valet. Medan det är på loggas även en privat användare som loggade in med e-post och lösenord ut vid nästa begäran: bara sessioner som en SSO- eller OIDC-leverantör startade räknas. På OneUptime Cloud kräver det abonnemanget **Scale** att slå på det, och att stänga av det fungerar på alla abonnemang. En sida som fortfarande kräver SSO efter att en provperiod med Scale har tagit slut, eller efter ett byte till ett lägre abonnemang, fortsätter med det tills någon stänger av det: dess sidor **SSO** och **OIDC** visar reglaget för det under abonnemangserbjudandet.
+Under leverantörerna innehåller kortet **SSO-inställningar** reglaget **Kräv SSO för inloggning** (`requireSsoForLogin`, av som standard), som sparas så fort du slår om det. Att slå på det ber först om bekräftelse, eftersom privata användare därefter inte kan logga in med e-post och lösenord: bara personerna som din SSO- eller OIDC-leverantör släpper in kan se sidan. Prova länken på kortet **Testa inloggning** ovanför innan du slår på det. Det spelar bara roll så länge **Bara personer som loggar in** är valet, och skärmen **Åtkomst** visar det som **SSO krävs** under det valet. Medan det är på loggas även en privat användare som loggade in med e-post och lösenord ut vid nästa begäran: bara sessioner som en SSO- eller OIDC-leverantör startade räknas. På OneUptime Cloud kräver det abonnemanget **Scale** att slå på det, och att stänga av det fungerar på alla abonnemang. En sida som fortfarande kräver SSO efter att en provperiod med Scale har tagit slut, eller efter ett byte till ett lägre abonnemang, fortsätter med det tills någon stänger av det: dess sidor **SSO** och **OIDC** visar reglaget för det under abonnemangserbjudandet.
 
 ### Läsarsessioner
 
@@ -213,11 +213,13 @@ Under **Fler inställningar** på **Åtkomst** begränsar sektionen **IP-tillåt
 
 ## Den inbäddbara brickan och RSS-flödet
 
-Två sätt att visa status någon annanstans än på själva sidan.
+Tre sätt att visa status någon annanstans än på själva sidan.
 
-**Inbäddad statusbricka.** Under **Statussidor → din sida → Avancerad → Inbäddad status** slår du på **Aktivera inbäddad statusbricka** (`enableEmbeddedOverallStatus`, av som standard) och klickar sedan på **Generera om token** på kortet **Säkerhetstoken** för att ge brickan dess token (`embeddedOverallStatusToken`). Brickan levereras från `/api/status-page/badge/<status-page-id>?token=<token>`, och skärmen visar den i **Märkesförhandsgranskning** med kodsnuttar att kopiera, så att du kan lägga in den aktuella övergripande statusen i din dokumentation, i sidfoten i din app eller på en marknadsföringssida.
+**Inbäddad statusbricka.** Under **Statussidor → din sida → Avancerad → Inbäddad status** slår du på **Aktivera inbäddad statusbricka** (`enableEmbeddedOverallStatus`, av som standard). Första gången du slår på den får brickan sin token (`embeddedOverallStatusToken`), och kortet **Bädda in brickan** visar brickan, levererad från `/api/status-page/badge/<status-page-id>?token=<token>`, med dess **HTML** och dess **Markdown, med länk till statussidan** att kopiera, så att du kan lägga in den aktuella övergripande statusen i din dokumentation, i sidfoten i din app eller på en marknadsföringssida. Token finns på kortet **Säkerhetstoken** under **Fler inställningar**, med **Generera om token** för när länken har delats för brett.
 
 **RSS-flöde.** Varje statussida levererar `/rss`: ett flöde med titeln "{sidtitel} Updates", med den **Sidtitel** som anges under **Varumärke**, eller sidans namn om den inte har någon, och vars poster börjar med `Incident: `, `Announcement: ` och `Scheduled Maintenance: `. Användbart för den som hellre hämtar dina uppdateringar till en flödesläsare eller en chattbot än prenumererar via e-post.
+
+**Underhållskalender.** Varje statussida levererar också `/maintenance.ics`: det schemalagda underhåll den visar, som en kalender som Google Kalender, Apple Kalender eller Outlook kan prenumerera på. Besökare lägger till den med **Prenumerera på kalender** på sidans sida **Planerade händelser**, och en enskild händelse med **Lägg till i kalender** på händelsens egen sida. En privat sidas kalender är tom, eftersom en kalenderapp inte kan logga in. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
 
 Om du hellre hämtar data själv bygger statussidan på offentliga lässlutpunkter för översikten, incidenterna, de schemalagda underhållshändelserna, meddelandena och episoderna: se [Offentligt API](/docs/status-pages/public-api).
 

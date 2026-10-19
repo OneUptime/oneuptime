@@ -19,15 +19,15 @@ sequenceDiagram
     participant P as Probe
     participant B as Browser
     participant A as Your web app
-    O->>P: Script, secrets filled in
-    loop Each browser and screen size
+    O->>P: Script, secrets<br/>filled in
+    loop Each browser<br/>and screen size
         P->>B: Run the script
-        B->>A: Load pages, click, type
+        B->>A: Load pages,<br/>click, type
         A-->>B: Pages
-        B-->>P: Result, screenshots, logs
+        B-->>P: Result,<br/>screenshots, logs
     end
-    P->>O: One response per run
-    O->>O: Evaluate the criteria
+    P->>O: One response<br/>per run
+    O->>O: Evaluate<br/>the criteria
 ```
 
 | Screen Type | Viewport |
@@ -56,7 +56,7 @@ Write your script in the **Playwright Code** editor. Start from the [example bel
 
 ### Pick browsers and screen sizes
 
-Tick the browsers under **Browser Type** and the sizes under **Screen Type**. The script runs once for each combination, so two browsers and three sizes make six runs per check. Under **More fields**, **Retry Count on Error** retries a failed run up to 5 times.
+A new monitor starts with **Chromium** under **Browser Type** and **Desktop** under **Screen Type**; tick more to run in more. The script runs once for each combination, so two browsers and three sizes make six runs per check, and it needs at least one of each. Under **More fields**, **Retry Count on Error** retries a failed run up to 5 times.
 
 ### Test it
 

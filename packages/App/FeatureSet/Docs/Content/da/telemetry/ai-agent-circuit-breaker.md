@@ -125,7 +125,7 @@ Gem først endpointets token et sted, hvor workflowet kan bruge det uden at vise
 
 ### Tilføj udløseren
 
-Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Alert** i panelet **Add Trigger**. Klik på udløseren: **Fields to pass on** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
+Klik på den stiplede blok **Choose what starts this workflow**, og vælg **On Create Alert** i panelet **Tilføj trigger**. Klik på udløseren: **Fields to pass on** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
 
 ### Tjek titlen
 

@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 29820,
-    "untranslated": 17201
+    "keys": 30977,
+    "untranslated": 16755
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "Agenda",
     "Agent",
     "App",
     "Budget",
@@ -16,11 +17,13 @@
     "Filter:",
     "Filter: {{expression}}",
     "Gateway",
+    "ICMP (ping)",
     "Incident {{number}}: {{title}}",
     "Information",
     "Null",
     "Offline",
     "Peer",
+    "Plan",
     "Precision",
     "Problem",
     "Revision",
@@ -39,6 +42,7 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{count}} incident",
     "{{count}} process",
     "{{count}} rotation",
     "{{tokens}} tokens"

@@ -19,12 +19,11 @@ import {
 } from "../../Types/AI/ProjectAiDailyLimits";
 
 /*
- * What a project's AI has used today, against its own daily AI limits -
- * the line under Project Settings → AI Features → More settings ("At most
- * 200,000 tokens a day. Used today: 45,210 tokens."). Somebody choosing a
- * limit needs to know what a day of their AI costs, and somebody whose AI
- * stopped needs to see why, so usage is answered whether or not a limit is
- * set.
+ * What a project's AI has used today, against its own daily AI limits - the
+ * line under Project Settings → AI → AI Features → More settings ("At most
+ * 200,000 tokens a day. Used today: 45,210 tokens."). Somebody choosing a limit
+ * needs to know what a day of their AI costs, and somebody whose AI stopped
+ * needs to see why, so usage is answered whether or not a limit is set.
  *
  * The figures are sums of the project's AI Logs, so the caller must be able
  * to read those: an authenticated member of the project (or a project API

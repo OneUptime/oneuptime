@@ -1,9 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import {
   SQL_MONITOR_MORE_FIELDS,
   getMonitorOptionsMoreFieldsItems,
@@ -20,12 +17,14 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import Link from "Common/UI/Components/Link/Link";
-import URL from "Common/Types/API/URL";
-import { DOCS_URL } from "Common/UI/Config";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import DatabaseAuthenticationField from "../DatabaseAuthenticationField";
+import DatabasePasswordField from "../DatabasePasswordField";
+import {
+  DatabaseAuthentication,
+  getDatabaseAuthentication,
+  isDatabaseAuthenticationOffered,
+  usesWindowsIntegratedAuthentication,
+} from "../../../../Utils/Form/Monitor/DatabaseAuthenticationChoice";
 
 export interface ComponentProps {
   monitorStepSqlMonitor: MonitorStepSqlMonitor;
@@ -35,8 +34,6 @@ export interface ComponentProps {
 const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   const databaseTypeOptions: Array<DropdownOption> =
     SqlDatabaseTypeUtil.getSupportedDatabaseTypes().map(
       (type: SqlDatabaseType) => {
@@ -44,21 +41,31 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
       },
     );
 
+  /*
+   * How the probe signs in: a username and a password, or (SQL Server only)
+   * Windows Integrated Authentication. The credentials are asked for only
+   * when they are used.
+   */
+  const authentication: DatabaseAuthentication = getDatabaseAuthentication({
+    databaseType: props.monitorStepSqlMonitor.databaseType,
+    useWindowsIntegratedAuthentication:
+      props.monitorStepSqlMonitor.useWindowsIntegratedAuthentication,
+  });
+
   const useWindowsIntegratedAuthentication: boolean =
-    props.monitorStepSqlMonitor.databaseType ===
-      SqlDatabaseType.MicrosoftSqlServer &&
-    Boolean(props.monitorStepSqlMonitor.useWindowsIntegratedAuthentication);
+    usesWindowsIntegratedAuthentication(authentication);
 
   return (
     <div className="space-y-5">
       <div>
         <FieldLabelElement
           title="Database Type"
-          description="The database engine to connect to. PostgreSQL, MySQL, and Microsoft SQL Server are supported."
+          description="The database engine to connect to."
           required={true}
         />
         <Dropdown
           options={databaseTypeOptions}
+          isClearable={false}
           initialValue={databaseTypeOptions.find((option: DropdownOption) => {
             return option.value === props.monitorStepSqlMonitor.databaseType;
           })}
@@ -69,7 +76,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
               databaseType: databaseType,
               port: SqlDatabaseTypeUtil.getDefaultPort(databaseType),
               useWindowsIntegratedAuthentication:
-                databaseType === SqlDatabaseType.MicrosoftSqlServer
+                isDatabaseAuthenticationOffered(databaseType)
                   ? props.monitorStepSqlMonitor
                       .useWindowsIntegratedAuthentication
                   : false,
@@ -78,30 +85,15 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      {props.monitorStepSqlMonitor.databaseType ===
-        SqlDatabaseType.MicrosoftSqlServer && (
-        <div>
-          <Toggle
-            title="Use Windows Integrated Authentication"
-            description="Authenticate as the account running the probe (SSPI on Windows or Kerberos on Linux/macOS). Username and password are ignored."
-            initialValue={useWindowsIntegratedAuthentication}
-            onChange={(value: boolean) => {
-              props.onChange({
-                ...props.monitorStepSqlMonitor,
-                useWindowsIntegratedAuthentication: value,
-              });
-            }}
-          />
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <FieldLabelElement
-            title="Host"
-            description="Database host reachable from the probe (e.g. db.internal)"
-            required={true}
-          />
+      {/*
+       * Host and Port on one line from the sm width, the port a quarter of
+       * it. Neither needs a line of help: the placeholder shows a host, and
+       * the card says the probe must reach the database. A line under Host
+       * alone pushed its box below Port's.
+       */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="sm:col-span-3">
+          <FieldLabelElement title="Host" required={true} />
           <Input
             initialValue={props.monitorStepSqlMonitor.host}
             placeholder="db.internal"
@@ -115,11 +107,7 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <FieldLabelElement
-            title="Port"
-            description="Database port"
-            required={true}
-          />
+          <FieldLabelElement title="Port" required={true} />
           <Input
             initialValue={
               props.monitorStepSqlMonitor.port?.toString() || "5432"
@@ -136,96 +124,75 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      <div
-        className={`grid gap-4 ${
-          useWindowsIntegratedAuthentication ? "grid-cols-1" : "grid-cols-2"
-        }`}
-      >
-        <div>
-          <FieldLabelElement
-            title="Database Name"
-            description="The database to run the query against"
-            required={true}
-          />
-          <Input
-            initialValue={props.monitorStepSqlMonitor.databaseName}
-            placeholder="orders"
-            onChange={(value: string) => {
-              props.onChange({
-                ...props.monitorStepSqlMonitor,
-                databaseName: value,
-              });
-            }}
-          />
-        </div>
-
-        {!useWindowsIntegratedAuthentication && (
-          <div>
-            <FieldLabelElement
-              title="Username"
-              description="Use a read-only, least-privilege database user."
-              required={false}
-            />
-            <Input
-              initialValue={props.monitorStepSqlMonitor.username}
-              placeholder="readonly_user"
-              onChange={(value: string) => {
-                props.onChange({
-                  ...props.monitorStepSqlMonitor,
-                  username: value,
-                });
-              }}
-            />
-          </div>
-        )}
+      <div>
+        <FieldLabelElement
+          title="Database Name"
+          description="The database to run the query against."
+          required={true}
+        />
+        <Input
+          initialValue={props.monitorStepSqlMonitor.databaseName}
+          placeholder="orders"
+          onChange={(value: string) => {
+            props.onChange({
+              ...props.monitorStepSqlMonitor,
+              databaseName: value,
+            });
+          }}
+        />
       </div>
+
+      {isDatabaseAuthenticationOffered(
+        props.monitorStepSqlMonitor.databaseType,
+      ) && (
+        <DatabaseAuthenticationField
+          value={authentication}
+          onChange={(value: DatabaseAuthentication) => {
+            props.onChange({
+              ...props.monitorStepSqlMonitor,
+              useWindowsIntegratedAuthentication:
+                usesWindowsIntegratedAuthentication(value),
+            });
+          }}
+        />
+      )}
 
       {!useWindowsIntegratedAuthentication && (
         <div>
           <FieldLabelElement
-            title="Password"
-            description={
-              <p>
-                <TranslatedSentence
-                  template="Database password. We recommend referencing a monitor secret with {{secret}} instead of typing the password here, so it stays encrypted at rest."
-                  slots={{
-                    secret: (
-                      <code className="bg-gray-100 px-1 rounded">
-                        {"{{monitorSecrets.name}}"}
-                      </code>
-                    ),
-                  }}
-                />{" "}
-                <Link
-                  className="underline"
-                  openInNewTab={true}
-                  to={URL.fromString(
-                    DOCS_URL.toString() + "/monitor/monitor-secrets",
-                  )}
-                >
-                  {translator.translateText("Learn more about secrets.")}
-                </Link>
-              </p>
-            }
+            title="Username"
+            description="Use a read-only, least-privilege database user."
             required={false}
           />
           <Input
-            initialValue={props.monitorStepSqlMonitor.password}
-            placeholder="{{monitorSecrets.dbPassword}}"
+            initialValue={props.monitorStepSqlMonitor.username}
+            placeholder="readonly_user"
             onChange={(value: string) => {
               props.onChange({
                 ...props.monitorStepSqlMonitor,
-                password: value,
+                username: value,
               });
             }}
           />
         </div>
       )}
 
+      {!useWindowsIntegratedAuthentication && (
+        <DatabasePasswordField
+          initialValue={props.monitorStepSqlMonitor.password}
+          onChange={(value: string) => {
+            props.onChange({
+              ...props.monitorStepSqlMonitor,
+              password: value,
+            });
+          }}
+        />
+      )}
+
       <div>
         <FieldLabelElement
           title="SQL Query"
-          description="A single read-only query (SELECT / WITH). Writes are blocked — the probe runs it read-only and against a least-privilege database user. Example: SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED' AND created_at > NOW() - INTERVAL '5 minutes'"
+          description="One SELECT or WITH query. The probe runs it read-only, so writes are blocked."
           required={true}
         />
         <TextArea
@@ -277,7 +244,6 @@ const SqlMonitorStepForm: FunctionComponent<ComponentProps> = (
        */}
       <FoldedSection
         title={MORE_FIELDS_SECTION_TITLE}
-        icon={MORE_SECTION_ICON}
         items={getMonitorOptionsMoreFieldsItems(
           props.monitorStepSqlMonitor,
           SQL_MONITOR_MORE_FIELDS,

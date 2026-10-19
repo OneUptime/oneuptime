@@ -180,7 +180,7 @@ Elk item van `monitor_steps` is één ding om te controleren:
 
 ### Instellingen per monitortype
 
-Monitortypen waarbij meer in te stellen is dan een adres, bewaren hun instellingen (een logquery, een databaseverbinding, een cluster om te bewaken) in een eigen attribuut, als ruwe JSON geschreven met `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor` en `iot_monitor`.
+Monitortypen waarbij meer in te stellen is dan een adres, bewaren hun instellingen (een logquery, een databaseverbinding, een cluster om te bewaken) in een eigen attribuut, als ruwe JSON geschreven met `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` en `probe_status_monitor`.
 
 Hun JSON is dezelfde als die van het dashboard, met sleutels in camelCase. Een ID daarin schrijf je zoals de API hem schrijft: `{ _type = "ObjectID", value = "..." }`. Een Logs-monitor die de fouten van één service telt:
 

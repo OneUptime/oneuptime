@@ -241,12 +241,12 @@ Feeden viser rotasjonen **slik den er satt opp nå**, også for tidligere dager:
 - Lenker er per prosjekt. En lekket personlig lenke avslører vaktene i ett prosjekt, ikke i alle prosjektene du er med i.
 - Å generere en lenke på nytt flytter det gamle tokenet inn i en karensperiode på 30 dager (tom kalender, deretter 404). **Deaktiver lenke** leverer en tom kalender. En ukjent eller utløpt lenke gir en ren 404 uten hint. Tomme kalendere får abonnerte apper til å tømme kopien sin; en 404 får dem til å beholde den, og derfor leverer deaktivering og ny generering tomme kalendere.
 - Tokener lagres hashet; kopien som vises på innstillingssiden, er kryptert med `ENCRYPTION_SECRET`. Sett den variabelen til en ekte hemmelighet på en selvdriftet installasjon — serveren advarer ved oppstart når den ikke er satt eller fortsatt er en av plassholderne dette repositoriet leverer (`secret`, eller `please-change-this-to-random-value` som `config.example.env` setter). Endrer du den senere, tilbyr siden **Generer lenke på nytt**, fordi den lagrede kopien ikke lenger kan leses; feeden fortsetter å fungere til du gjør det.
-- Feedsvar er merket `Cache-Control: private`, utelukkes fra søkemotorer (`X-Robots-Tag: noindex`) og har en hastighetsgrense per lenke og per klientadresse.
+- Feedsvar er merket `Cache-Control: private`, utelukkes fra søkemotorer (`X-Robots-Tag: noindex`) og har en hastighetsgrense per lenke og per klientadresse, og per IPv6-/64 med ti ganger grensene til en adresse.
 
 OneUptimes egen Nginx holder feedforespørsler utenfor loggene sine:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;
@@ -319,7 +319,7 @@ Enten er `DISABLE_ON_CALL_CALENDAR_FEED` satt, eller serveren er opptatt: høyst
 :::
 
 :::details 429 eller "too many requests"
-Mange klienter bak én adresse — en kontor-NAT, en VPN-gateway — deler budsjettet per adresse. Øk `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW`, og sjekk `TRUSTED_PROXY_HOPS`: når den er for lav, tilskrives hver klient din egen proxy, og alle deler ett budsjett.
+Mange klienter bak én adresse — en kontor-NAT, en VPN-gateway — deler budsjettet per adresse. Klientene i ett IPv6-/64 deler også ti ganger det budsjettet. Øk `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW`, og sjekk `TRUSTED_PROXY_HOPS`: når den er for lav, tilskrives hver klient din egen proxy, og alle deler ett budsjett.
 :::
 
 :::details Sertifikatfeil i Apple Kalender, Thunderbird eller Outlook

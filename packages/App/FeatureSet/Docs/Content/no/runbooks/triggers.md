@@ -15,13 +15,13 @@ Et runbook kan starte av seg selv: etter en tidsplan, eller når et annet verkt�
 flowchart TB
     subgraph starts["Hva som starter kjøringen"]
         direction LR
-        schedule["Tidsplanen: et tidspunkt kommer"]
-        webhook["Webhooken: en POST til URL-en dens"]
+        schedule["Tidsplanen: et<br/>tidspunkt kommer"]
+        webhook["Webhooken: en POST<br/>til URL-en dens"]
     end
-    schedule --> checks["Runbooket er slått på og har trinn"]
+    schedule --> checks["Runbooket er slått<br/>på og har trinn"]
     webhook --> checks
-    checks --> execution["Kjøring, merket Schedule eller Webhook"]
-    execution --> worker["OneUptime Worker kjører trinnene"]
+    checks --> execution["Kjøring, merket<br/>Schedule eller Webhook"]
+    execution --> worker["OneUptime Worker<br/>kjører trinnene"]
 ```
 
 En utløser starter en kjøring slik **Run Now** gjør: kjøringen går gjennom runbookets nåværende trinn og er ikke knyttet til noen hendelse, noe varsel eller noen planlagt vedlikeholdshendelse. Hver kjøring registrerer hva som startet den. Runbookets **Kjøringer** og **Runbooks → Kjøringer** viser det under **Utløst av**, med når en planlagt kjøring skulle skje, eller adressen som kalte webhooken, og begge listene kan filtreres på det.
@@ -35,7 +35,7 @@ En utløser starter en kjøring slik **Run Now** gjør: kjøringen går gjennom 
 
 :::steps
 ### Åpne runbookets side Utløsere
-Åpne runbooket fra **Runbooks**, og klikk på **Utløsere** i menyen.
+Åpne runbooket fra **Runbooks**, og klikk på **Innstillinger → Utløsere** i sidemenyen. **Innstillinger** starter sammenslått: klikk på den for å vise **Utløsere**.
 
 ### Sett opp tidsplanen
 Klikk på **Sett opp tidsplan**. Under **Når den kjører** velger du et alternativ under **Gjenta** og det det trenger. Dialogen sier tidsplanen i én setning, som "Kjører hver hverdag kl. 09:00", og viser de neste kjøringene mens du endrer den.
@@ -117,7 +117,7 @@ Svaret navngir kjøringen det startet: `{"runbookExecutionId": "...", "status": 
 | `404` | Ingen runbook-webhook svarer på denne URL-en: runbook-ID-en eller nøkkelen er feil, eller URL-en ble tilbakestilt. |
 | `405` | Forespørselen er en `GET`. En `GET` starter aldri en kjøring, så en forhåndsvisning av en lenke i en chatteapp kan ikke kjøre den ved et uhell. |
 | `413` | Innholdet er større enn 64 KB. |
-| `429` | Webhooken startet 30 kjøringer det siste minuttet, 10 av kjøringene dens pågår fortsatt, eller én adresse gjorde mer enn 120 kall til runbook-webhooks i løpet av et minutt. Headeren `Retry-After` sier når du kan prøve igjen, der det er mulig. |
+| `429` | Webhooken startet 30 kjøringer det siste minuttet, 10 av kjøringene dens pågår fortsatt, eller én adresse gjorde mer enn 120 kall til runbook-webhooks i løpet av et minutt, eller adressene i ett IPv6-/64 til sammen mer enn 1200. Headeren `Retry-After` sier når du kan prøve igjen, der det er mulig. |
 | `503` | OneUptime kan ikke telle kall akkurat nå. Prøv igjen om et minutt. |
 
 Et avvist kall starter ingenting, og innholdet sier hvorfor i én setning, som "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

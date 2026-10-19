@@ -41,6 +41,21 @@ import URL from "../API/URL";
  * leads to (see StatusPageSubscriberAPI's old GET route); the page then says
  * the link has expired instead of offering to unsubscribe.
  *
+ * THE MANAGE LINK CARRIES THE SAME CREDENTIAL
+ *
+ *   {statusPageUrl}/update-subscription/{subscriberId}-{token}
+ *
+ * The subscriber's manage page (Update Subscription) reads the subscription's
+ * contact and choices, changes them and cancels the subscription, so it asks
+ * for exactly what the unsubscribe page asks for: the subscription's token.
+ * The subscriber id alone is not a secret - every project member who may read
+ * subscribers sees it, read-only roles included, and every log that names a
+ * subscription keeps it - so a link keyed by the id alone let anyone who could
+ * read about a subscription change it. Every link that opens one of the two
+ * pages is sent only to the subscription's own contact, and every copy of a
+ * message that is kept for others to read has its token redacted
+ * (redactCredentials).
+ *
  * Browser-safe: the status page app, the server and the workers all use this
  * file, so they agree on the link, the credential and the answers.
  */
@@ -59,6 +74,16 @@ export enum StatusPageSubscriberUnsubscribeState {
    */
   Invalid = "Invalid",
 }
+
+/*
+ * What the manage page's API answers for every link that does not open a
+ * subscription: a wrong or missing token, a subscriber that does not exist or
+ * was deleted, one on another status page, a malformed link. One answer for
+ * all of them, as the unsubscribe API gives, so it cannot be used to find out
+ * which subscriptions exist. The status page shows its own words for it.
+ */
+export const MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE: string =
+  "This link to manage the subscription has expired or is not valid. To get a new one, use Manage Existing Subscription on the status page's Subscribe page.";
 
 // Which kind of subscription a link belongs to, so the page can name it.
 export enum StatusPageSubscriberUnsubscribeChannel {
@@ -128,13 +153,27 @@ const CREDENTIAL_PATTERN: RegExp = new RegExp(
 );
 
 /*
- * An unsubscribe link's credential anywhere in a text: the route segment, the
- * subscriber id, and the 64 hex characters of its token. No lookahead after
- * the token, so a token that some template runs straight into more text is
- * still caught.
+ * A subscription link's credential anywhere in a text: the route segment of
+ * the unsubscribe page or of the manage page, the subscriber id, and the 64
+ * hex characters of its token. No lookahead after the token, so a token that
+ * some template runs straight into more text is still caught. Linear: the two
+ * route segments are literals and everything after them has a fixed length.
  */
 const LINK_TOKEN_PATTERN: RegExp = new RegExp(
-  `(/unsubscribe/${UUID_PATTERN})-[0-9a-fA-F]{64}`,
+  `(/(?:unsubscribe|update-subscription)/${UUID_PATTERN})-[0-9a-fA-F]{64}`,
+  "g",
+);
+
+/*
+ * The code of a link that confirms a subscription, anywhere in a text: the
+ * route segment of the Confirm Subscription page, the subscriber id, and the
+ * code in its verification-token query - 32 hex characters
+ * (StatusPageSubscriberConfirmationCode), or the six digits of a code minted
+ * before. Linear for the same reasons: the route segment and the query's
+ * name are literals, and the code is at most 64 characters of one class.
+ */
+const CONFIRMATION_CODE_PATTERN: RegExp = new RegExp(
+  `(/confirm-subscription/${UUID_PATTERN}\\?verification-token=)[0-9a-fA-F]{1,64}`,
   "g",
 );
 
@@ -146,6 +185,14 @@ export default class StatusPageSubscriberUnsubscribe {
    * as a token-bearing route.
    */
   public static readonly PAGE_ROUTE_SEGMENT: string = "unsubscribe";
+
+  /*
+   * The route segment of the subscriber's manage page (Update Subscription),
+   * whose link carries the same credential. SensitiveUrlToken lists it as a
+   * token-bearing route too.
+   */
+  public static readonly MANAGE_PAGE_ROUTE_SEGMENT: string =
+    "update-subscription";
 
   /*
    * 32 random bytes as lowercase hex (StatusPageSubscriberUnsubscribeToken
@@ -162,27 +209,36 @@ export default class StatusPageSubscriberUnsubscribe {
   }
 
   /*
-   * The text with the token of every unsubscribe link in it replaced by
-   * "[redacted]": ".../unsubscribe/{id}-[redacted]".
+   * The text with the token of every unsubscribe link and every manage link
+   * in it replaced by "[redacted]": ".../unsubscribe/{id}-[redacted]",
+   * ".../update-subscription/{id}-[redacted]" - and the code of every link
+   * that confirms a subscription, which a visitor who signs up by text is
+   * sent: ".../confirm-subscription/{id}?verification-token=[redacted]".
    *
    * For any copy of a message that is kept where people other than its
    * recipient can read it. The token is the whole of what lets the link's
-   * holder cancel the subscription without signing in, on a private status
-   * page too, so it may only ever leave the server inside the message to the
+   * holder cancel or change the subscription, on a private status page too,
+   * so it may only ever leave the server inside the message to the
    * subscription's own contact. An SMS is the case in point: the SMS log keeps
    * its text, and project members who may not touch subscribers (Viewer, and
    * any role with Read SMS Log) can read that log. The id is kept, so the log
-   * still says which subscription the message went to.
+   * still says which subscription the message went to - and the id alone
+   * opens neither page.
    */
   public static redactCredentials(text: string): string {
     if (!text || typeof text !== "string") {
       return text;
     }
 
-    return text.replace(
-      LINK_TOKEN_PATTERN,
-      `$1-${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
-    );
+    return text
+      .replace(
+        LINK_TOKEN_PATTERN,
+        `$1-${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
+      )
+      .replace(
+        CONFIRMATION_CODE_PATTERN,
+        `$1${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
+      );
   }
 
   /*
@@ -232,10 +288,16 @@ export default class StatusPageSubscriberUnsubscribe {
   }
 
   /*
-   * The link that goes into every subscriber notification. Without a token -
-   * which only a subscription created around the migration could lack - the
-   * link still leads somewhere useful: the page that says the link is out of
-   * date and what to do instead.
+   * The link that goes into every subscriber notification - on every channel,
+   * an SMS included, and on public and private status pages alike. Without a
+   * token - which only a subscription created around the migration could
+   * lack - the link still leads somewhere useful: the page that says the link
+   * is out of date and what to do instead.
+   *
+   * An SMS from a public status page used to carry the shorter manage link,
+   * keyed by the subscriber id alone, to save the characters. Once the manage
+   * page asks for the token too, that link is the longer of the two, and the
+   * unsubscribe page offers the manage page on a public status page anyway.
    */
   public static buildLink(data: {
     statusPageUrl: URL | string;
@@ -253,57 +315,29 @@ export default class StatusPageSubscriberUnsubscribe {
   }
 
   /*
-   * The link an SMS to this subscriber carries where every other message
-   * carries its unsubscribe link (unsubscribeUrl, from buildLink).
+   * The subscriber's manage page, where a subscriber chooses which resources
+   * and event types they hear about, or cancels: what the "manage your
+   * subscription" message a visitor asks for from the Subscribe page links to.
+   * It carries the same credential as the unsubscribe link, and the page and
+   * its API ask for the token (see THE MANAGE LINK CARRIES THE SAME
+   * CREDENTIAL above). On a private status page the page also needs a
+   * signed-in visitor, since it shows the page's resources.
    *
-   * On a public status page an SMS keeps the subscriber's manage page,
-   * {statusPageUrl}/update-subscription/{subscriberId}, as it always had.
-   * That page works there without signing in, and is 57 characters shorter
-   * than the token link - and an SMS is billed by the 160-character segment,
-   * so the token link would push most default subscriber texts into another
-   * segment, at a cost to every SMS subscriber on every notification, for
-   * nothing the manage page does not already do. Opening either link changes
-   * nothing by itself.
-   *
-   * On a private status page (or when it is not known whether the page is
-   * public) the manage page needs a signed-in visitor, so the SMS carries the
-   * unsubscribe link, the only way its recipient can stop the texts.
-   *
-   * Email, Slack, Microsoft Teams and webhooks carry the unsubscribe link on
-   * every page: length costs nothing there, and its confirmation page is
-   * what keeps mail scanners from unsubscribing anyone.
-   */
-  public static buildSmsLink(data: {
-    isPublicStatusPage: boolean | null | undefined;
-    statusPageUrl: URL | string;
-    subscriberId: { toString(): string } | string;
-    unsubscribeUrl: URL | string;
-  }): string {
-    if (data.isPublicStatusPage === true) {
-      return StatusPageSubscriberUnsubscribe.buildManageSubscriptionLink({
-        statusPageUrl: data.statusPageUrl,
-        subscriberId: data.subscriberId,
-      }).toString();
-    }
-
-    return data.unsubscribeUrl.toString();
-  }
-
-  /*
-   * The subscriber's manage page, where a subscriber on a public status page
-   * (or a signed-in one on a private page) chooses which resources and event
-   * types they hear about. It is keyed by the subscriber id alone and is still
-   * what the "manage your subscription" email links to, and what an SMS from
-   * a public status page carries (see buildSmsLink); every other
-   * notification links to the unsubscribe page instead, which offers this one
-   * on public pages.
+   * Without a token the link leads to the manage page's "this link has
+   * expired" state, which says how to get a new one.
    */
   public static buildManageSubscriptionLink(data: {
     statusPageUrl: URL | string;
     subscriberId: { toString(): string } | string;
+    unsubscribeToken?: string | null | undefined;
   }): URL {
     return URL.fromString(data.statusPageUrl.toString()).addRoute(
-      `/update-subscription/${data.subscriberId.toString()}`,
+      `/${StatusPageSubscriberUnsubscribe.MANAGE_PAGE_ROUTE_SEGMENT}/${StatusPageSubscriberUnsubscribe.buildCredential(
+        {
+          subscriberId: data.subscriberId,
+          unsubscribeToken: data.unsubscribeToken,
+        },
+      )}`,
     );
   }
 

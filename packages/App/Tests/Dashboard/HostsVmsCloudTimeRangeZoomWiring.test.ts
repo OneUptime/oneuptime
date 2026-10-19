@@ -385,7 +385,7 @@ describe.each([
     const charts: string = between(
       source,
       "const charts: ReactElement = (",
-      "const quickLinks",
+      "const detailRows",
     );
 
     expect(countOf(charts, "<ChartCard ")).toBe(2);

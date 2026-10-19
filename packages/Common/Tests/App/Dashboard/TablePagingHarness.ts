@@ -14,7 +14,11 @@ import { settle } from "./HostTooltipHarness";
  * Every helper expects jest fake timers.
  */
 
-// One column of every row on screen, top to bottom.
+/*
+ * One column of every row on screen, top to bottom, as a sighted reader
+ * sees it: a screen reader's words (sr-only) are left out, so an empty
+ * value reads as its dash, not "—Not set".
+ */
 export function columnTexts(
   tableId: string,
   columnIndex: number = 0,
@@ -27,9 +31,19 @@ export function columnTexts(
 
   return Array.from(body.querySelectorAll("tr")).map(
     (row: HTMLTableRowElement): string => {
-      return (
-        row.querySelectorAll("td")[columnIndex]?.textContent || ""
-      ).trim();
+      const cell: Element | undefined = row.querySelectorAll("td")[columnIndex];
+
+      if (!cell) {
+        return "";
+      }
+
+      const copy: Element = cell.cloneNode(true) as Element;
+
+      for (const hidden of Array.from(copy.querySelectorAll(".sr-only"))) {
+        hidden.remove();
+      }
+
+      return (copy.textContent || "").trim();
     },
   );
 }

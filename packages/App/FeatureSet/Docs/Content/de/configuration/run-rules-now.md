@@ -8,8 +8,8 @@ flowchart TB
     E --> M{"Trifft die Regel zu?"}
     M -->|"Nein"| K["Bleibt, wie sie ist"]
     M -->|"Ja"| H{"Hat sie schon, was<br/>die Regel hinzufügt?"}
-    H -->|"Ja"| A["Als bereits angewendet gezählt"]
-    H -->|"Nein"| C["Beschriftungen oder Eigentümer<br/>hinzugefügt oder privat gemacht"]
+    H -->|"Ja"| A["Als bereits<br/>angewendet gezählt"]
+    H -->|"Nein"| C["Beschriftungen<br/>oder Eigentümer<br/>hinzugefügt oder<br/>privat gemacht"]
 ```
 
 ## Welche Regeln sich ausführen lassen

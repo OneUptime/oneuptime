@@ -1,6 +1,8 @@
 import ConnectCallbackUtil, {
   CONNECT_ERROR_QUERY_PARAM,
+  CONNECT_NOTICE_QUERY_PARAM,
   ConnectCallbackError,
+  ConnectProviderNotice,
   ConnectProvider,
   ConnectStartPage,
   VideoCallConnectProviders,
@@ -294,10 +296,12 @@ export const getConnectReturnPath: (data: {
   projectId: string;
   provider: string | null | undefined;
   error: string | null | undefined;
+  notice?: string | null | undefined;
 }) => string = (data: {
   projectId: string;
   provider: string | null | undefined;
   error: string | null | undefined;
+  notice?: string | null | undefined;
 }): string => {
   const projectPath: string = `/dashboard/${data.projectId}`;
   const provider: ConnectProvider | null = ConnectCallbackUtil.readProvider(
@@ -325,6 +329,16 @@ export const getConnectReturnPath: (data: {
 
   if (code) {
     query.set(CONNECT_ERROR_QUERY_PARAM, code);
+  }
+
+  // A notice the provider's own redirect brought: only one of its own.
+  const notice: ConnectProviderNotice | null = ConnectCallbackUtil.readNotice(
+    provider,
+    data.notice,
+  );
+
+  if (notice) {
+    query.set(CONNECT_NOTICE_QUERY_PARAM, notice);
   }
 
   const queryString: string = query.toString();

@@ -4,6 +4,7 @@ OneUptime Kubernetes-agenten er et Helm-chart, der indsamler din klynges metrikk
 
 :::cards
 - [Installer agenten](#installer-agenten): Fire trin med Helm.
+- [Installer som Amazon EKS-tilføjelse](#installer-som-amazon-eks-tilføjelse): Fra EKS-konsollen, uden Helm.
 - [Konfigurationsmuligheder](#konfigurationsmuligheder): Filtre, sampling, kontrolplan, service mesh, omkostninger og etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivebeskyttet `kubectl` til OneUptime AI og rettelser, når du tillader dem.
 - [Send mindre](#reducering-af-den-indsamlede-datamængde): Håndtagene, i rækkefølge efter effekt.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Åbn **Produkter → Infrastruktur → Kubernetes → Alle klynger**. Klyngen vises under sit `clusterName` inden for nogle få minutter, og dens noder, pods og workloads udfyldes. Kubernetes-AI-agenten vises som forbundet på klyngens side **Agent** under **AI**.
 :::
 
+## Installer som Amazon EKS-tilføjelse
+
+På Amazon EKS kan du også tilføje agenten fra EKS-konsollen, hvor den er en af tilføjelserne fra AWS Marketplace. Den koster intet, og EKS installerer, opgraderer og fjerner den for dig. Tilføjelsen er dette chart, sat op på den måde, en tilføjelse kræver:
+
+- Den sender til OneUptime Cloud, `https://oneuptime.com`, medmindre du giver den URL'en til din egen OneUptime.
+- Den læser indtagelsesnøglen fra en Kubernetes-Secret, du opretter, aldrig fra tilføjelsens konfiguration, som EKS viser i klartekst.
+- Den rapporterer klyngen til OneUptime under dens EKS-navn.
+- Den kører i namespacet `oneuptime-agent`.
+
+:::steps
+### Læg din indtagelsesnøgle i en Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### Tilføj tilføjelsen
+
+Åbn din klynge i EKS-konsollen, klik på **Add-ons** og derefter på **Get more add-ons**, og vælg OneUptime Kubernetes-agenten blandt tilføjelserne fra AWS Marketplace. Abonnér på den, hvilket er gratis, og opret den. Eller med AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Kontrollér, at tilføjelsen kører
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Tilføjelsen er `ACTIVE`, så snart dens pods kører, og klyngen vises i OneUptime under sit EKS-navn inden for nogle få minutter. En pod, der bliver hængende i `CreateContainerConfigError`, kan ikke finde sin Secret: opret den som i første trin, i namespacet `oneuptime-agent`.
+:::
+
+### Tilføjelsens konfigurationsværdier
+
+Sæt dem under **Optional configuration settings** i EKS-konsollen, eller med `--configuration-values`, når du opretter eller opdaterer tilføjelsen. Alle er valgfrie:
+
+- `oneuptime.url`: adressen på din OneUptime. Standarden er `https://oneuptime.com`.
+- `oneuptime.existingSecretName`: den Secret, der indeholder indtagelsesnøglen under `api-key`. Standarden er `oneuptime-ingestion-key`.
+- `oneuptime.labels`: projektetiketter for alt, hvad denne klynge sender, såsom `{"team": "payments"}`.
+- `preset`: `eks-fargate` for en klynge, der kun kører på Fargate, ellers `standard`, som er standarden.
+- `logs.enabled`, `ebpf.enabled` og `aiAgent.enabled`: pod-logs, eBPF-traces og [Kubernetes-AI-agenten](#kubernetes-ai-agent), alle tre slået til som standard.
+- `kubeStateMetrics.enabled` og `cost.enabled`: kube-state-metrics og [omkostningsobservability](/docs/telemetry/kubernetes-cost), begge slået fra som standard.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+En opdatering erstatter hele konfigurationen: en værdi, du udelader, går tilbage til sin standard. Resten af chartets indstillinger, såsom profileren, OneUptime AI's rettelser og namespace-filtre, kræver [Helm-installationen](#installer-agenten). For at flytte en klynge fra Helm-installationen til tilføjelsen skal du først afinstallere Helm-releasen.
+
 ## Vælg et preset
 
 `preset` vælger de standarder, der virker på din platform: om pod-logs læses fra noden gennem `hostPath` eller gennem Kubernetes-API'et, og hvilke workloads der må køre privilegeret.
@@ -169,6 +225,23 @@ Er du i tvivl, så start med `standard`. Hvis installationen fejler med en Pod S
 ## Konfigurationsmuligheder
 
 Hver mulighed nedenfor er en Helm-værdi. Sæt den ved installationen, eller på en installeret agent med `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### Opbevar indtagelsesnøglen i en Secret
+
+`--set oneuptime.apiKey` holder nøglen i releasens værdier, som Helm gemmer med hver revision. For at holde den ude af dem skal du lægge nøglen i en Secret i agentens namespace, under `api-key`, og i stedet angive den Secret:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+Alle agentens workloads læser derefter nøglen fra den Secret, og chartet opretter ingen egen Secret. Sæt `oneuptime.apiKey` eller `oneuptime.existingSecretName`, ikke begge: chartet afviser de to sammen. Den Secret kan komme fra alt, der skriver Secrets, såsom External Secrets Operator.
 
 ### Namespace-filtrering
 
@@ -455,7 +528,7 @@ Det kræver Linux-kerne 5.8 eller nyere med BTF (standard på Debian 11+, Ubuntu
 eBPF ser netværkskald, ikke din kode, så et trace bygges ud fra de requests, en tjeneste håndterer, og de kald, den foretager, mens den håndterer dem:
 
 - **En request og dens kald udgør ét trace.** Requesten ind i en tjeneste er rod-spannet, navngivet `<METHOD> <route>`, og de HTTP-, gRPC-, SQL- og Redis-kald, tjenesten foretager, mens den håndterer den, er dens børn. (For Node.js afhænger det af OBI's Node.js-agent, som chartet slår til med `ebpf.nodejs.enabled`.) Kald, som samtidige requests sender ned ad én delt forbindelse, typisk for Redis-klienter, kan ikke altid skelnes, så nogle af dem placeres ikke i deres requests trace.
-- **Et kald til en tjeneste på en anden node starter et nyt trace**, medmindre noget bærer trace-konteksten over: et OpenTelemetry-SDK eller den frivillige kontekstpropagering, der er beskrevet nedenfor. Når begge ender kører på den samme node, ser OBI begge og forbinder dem selv.
+- **Et kald til en tjeneste på en anden node slutter sig til kalderens trace** gennem kontekstpropagering, som er slået til som standard og beskrevet nedenfor. Med den slået fra starter et sådant kald et nyt trace, medmindre et OpenTelemetry-SDK bærer trace-konteksten over. Når begge ender kører på den samme node, ser OBI begge og forbinder dem selv.
 - **Arbejde, som ingen request startede, står alene.** En kø-worker, der poller Redis, eller et cron-job har ingen request, som dets kald kan høre til.
 - **Databaseservere står som regel alene.** Databasers wire-protokoller bærer ingen trace-kontekst, så medmindre kalderen kører på samme node, er det span, OBI registrerer inde i en databaseserver for hver kommando, et trace med ét span.
 
@@ -502,15 +575,15 @@ Alle er slået til som standard undtagen én. Slå enhver fra med `--set ebpf.fe
 | `networkInterZoneMetrics` | fra | Varianten af netværksmetrikkerne på tværs af zoner (fordobler deres kardinalitet) |
 | `tcpStats` | til | Tællere for TCP-round-trip-tid, mislykkede forbindelser og retransmissioner pr. node |
 
-Propagering af trace-kontekst på tværs af tjenester, hvor OBI indsætter en W3C-`traceparent`, så en request fra pod A til pod B vises som ét trace uden SDK nogen steder, er slået fra som standard. Slå den til med `--set ebpf.contextPropagation=true`. Den kræver ingen kerne ud over det, resten af agenten kræver, og ingen kerneversion gør den virkningsløs.
+Propagering af trace-kontekst på tværs af tjenester, hvor OBI indsætter en W3C-`traceparent`, så en request fra pod A til pod B vises som ét trace uden SDK nogen steder, er slået til som standard. Slå den fra med `--set ebpf.contextPropagation=false`. Den kræver ingen kerne ud over det, resten af agenten kræver, og ingen kerneversion gør den virkningsløs.
 
-Den er slået fra, fordi indsættelse af headeren betyder omskrivning af trafik, der allerede er undervejs: HTTP-requests i klartekst udvides på stedet i kernen, mens TLS og rå TCP får tilføjet en TCP-option fra en Traffic Control-hook. Hvis forbindelsens byteregnskab ikke korrigeres nøjagtigt, kommer strømmen ud af takt; det rapporterede symptom er overførsler gennem en L7-proxy såsom nginx, der hænger midt i bodyen, når svaret passerer omkring 64KB, mens små requests bliver ved med at virke. Udelukk det ikke ud fra kernens alder: under kerne 5.17 falder OBI tilbage til programmer med begrænset scanning og omskriver trafikken på samme måde. Traces, RED-metrikker og servicekortet afhænger ikke af den; til at forbinde på tværs af tjenester propagerer et OpenTelemetry-SDK `traceparent` i userspace, uden omskrivning i kernen, og er det sikreste valg.
+Indsættelse af headeren betyder omskrivning af trafik, der allerede er undervejs: HTTP-requests i klartekst udvides på stedet i kernen, mens TLS og rå TCP får tilføjet en TCP-option fra en Traffic Control-hook. Hvis forbindelsens byteregnskab ikke korrigeres nøjagtigt, kommer strømmen ud af takt; det rapporterede symptom er overførsler gennem en L7-proxy såsom nginx, der hænger midt i bodyen, når svaret passerer omkring 64KB, mens små requests bliver ved med at virke. Udelukk det ikke ud fra kernens alder: under kerne 5.17 falder OBI tilbage til programmer med begrænset scanning og omskriver trafikken på samme måde. Hvis du ser det, eller hvis et service mesh eller et eBPF-netværksplugin begynder at få pods til at fejle, så slå propageringen fra: traces, RED-metrikker og servicekortet afhænger ikke af den, og et OpenTelemetry-SDK propagerer `traceparent` i userspace, uden omskrivning i kernen. En agent, der er opgraderet med `--reuse-values`, beholder den værdi, den havde, og tidligere charts leverede den slået fra: opgrader med `--reset-then-reuse-values` for at få den nye standard.
 
 ## Kubernetes-AI-agent
 
 Når en hændelse eller advarsel rejses på denne klynge, undersøger OneUptime AI den. **Kubernetes-AI-agenten** i chartet giver den en terminal: den kører skrivebeskyttet `kubectl`, som en vagthavende ingeniør ville (beskriver den fejlende pod, læser dens hændelser, følger den crashende containers logs, kontrollerer nodekapacitet), og angiver hver kommando på hændelsessiden.
 
-Agenten er **slået til som standard** og **skrivebeskyttet**: et lille Deployment (`kubernetes-agent-ai-agent`, pod-etiket `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`), hvis ServiceAccount kun må læse. Den registrerer sig med samme `oneuptime.apiKey` og `clusterName`, som collectoren bruger, så der er intet at sætte op i dashboardet: klyngens side **AI-agent** (Kubernetes → klynge → AI → Agent) viser den som forbundet inden for et minut, og **Test forbindelse**, i menuen **⋯** ved siden af den status, kører `kubectl version` og `kubectl auth can-i --list` gennem den. Alt, hvad AI gjorde med den, står på klyngens side **AI-logs** (AI → Logs), og det, der er værd at vide om klyngen — de problemer, der bliver ved med at vende tilbage, og hvorfor, den node eller workload, der står bag de fleste af dem, hvad AI rettede — på siden **AI Insights** (AI → Insights). Agenten leveres med et fastlåst kubectl (v1.36.4). Den er ikke en Runner og vises aldrig under Runbooks → Runners: OneUptime giver den aldrig legitimationsoplysninger, kører aldrig runbooks på den, og den accepteres aldrig som kommando-Runner for en regel for automatisk afhjælpning.
+Agenten er **slået til som standard** og **skrivebeskyttet**: et lille Deployment (`kubernetes-agent-ai-agent`, pod-etiket `component=ai-agent`, image `oneuptime/kubernetes-ai-agent`), hvis ServiceAccount kun må læse. Den registrerer sig med samme `oneuptime.apiKey` og `clusterName`, som collectoren bruger, så der er intet at sætte op i dashboardet: klyngens side **AI-agent** (Kubernetes → klynge → AI → Agent) viser den som forbundet inden for et minut, og **Test forbindelse**, i menuen **⋯** ved siden af den status, kører `kubectl version` og `kubectl auth can-i --list` gennem den. Alt, hvad AI gjorde med den, står på klyngens side **AI-logs** (AI → Logs), og det, der er værd at vide om klyngen — de problemer, der bliver ved med at vende tilbage, og hvorfor, den node eller workload, der står bag de fleste af dem, hvad AI rettede — på siden **AI Insights** (AI → Insights). Agenten leveres med et fastlåst kubectl (v1.36.5). Den er ikke en Runner og vises aldrig under Runbooks → Runners: OneUptime giver den aldrig legitimationsoplysninger, kører aldrig runbooks på den, og den accepteres aldrig som kommando-Runner for en regel for automatisk afhjælpning.
 
 På en agent, der blev installeret, før AI-agenten fandtes, skal du først opdatere dit chart-indeks og derefter opgradere (på en selvhostet OneUptime skal du opgradere OneUptime først — se [Opgradering af agenten](#opgradering-af-agenten)):
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **En afvisning, der løser sig selv** — en tidligere agent-pod, der stadig melder sig (en pod, der blev erstattet uden en ren nedlukning), eller den gamle Runner i klyngen, der stadig lukker ned under en opgradering. Agenten prøver igen efter den ventetid, serveren angiver.
 - **En afvisning, der kræver dig** — et tomt eller for langt `clusterName` eller et projekt, der har nået sin grænse for AI-agenter; loggen nævner, hvad der skal ændres. Hvis en agent aldrig forbinder, og dens log siger `Another Kubernetes AI agent for cluster "<name>" is online`, deler to installationer ét `clusterName` (AI-agentsiden advarer også om det): den, der allerede er forbundet, beholder det, så længe den kører, så giv hver klynge sit eget `clusterName`, eller fjern den ekstra release. En indtagelsesnøgle med et **Pinned Service Name** kan ikke registrere agenten — giv chartet en nøgle uden.
 
-**Nulstil agent**, i menuen **⋯** ved siden af agentens status på AI-agentsiden, får serveren til at glemme agentens nøgle, når du bekræfter det (en Project Owner, en Project Admin eller **Edit Auto Remediation Rule** må gøre det); poden forbinder igen af sig selv inden for nogle få minutter. Agentens parathed afhænger ikke af OneUptime, så en fejlkonfigureret AI-agent får aldrig `helm upgrade --wait` til at fejle — kun en pod, der ikke kan hente sit image, gør.
+**Nulstil agent**, i menuen **⋯** ved siden af agentens status på AI-agentsiden, får serveren til at glemme agentens nøgle, når du bekræfter det (en Project Owner, en Project Admin eller **Edit Auto Remediation Rule** må gøre det på et cluster, som de må redigere); poden forbinder igen af sig selv inden for nogle få minutter. Agentens parathed afhænger ikke af OneUptime, så en fejlkonfigureret AI-agent får aldrig `helm upgrade --wait` til at fejle — kun en pod, der ikke kan hente sit image, gør.
 
 ## Opgradering af agenten
 
@@ -866,7 +939,7 @@ Stram yderligere op efter behov: hæv `minSeverity` til `ERROR`, føj `metrics` 
 
 ### Mål effekten
 
-Telemetriforbrug tælles pr. dag, så kontrollér udviklingen under **Projektindstillinger → Brugshistorik** over en dag eller to: den rykker sig ikke i det øjeblik, du anvender en ændring. Skift én indstilling ad gangen (logs fra, derefter intervallet op, derefter eBPF begrænset), så du kan se, hvad hver enkelt gjorde, i stedet for at skrue alt ned på én gang og miste en monitor, du var afhængig af.
+Telemetriforbrug tælles pr. dag, så kontrollér udviklingen under **Projektindstillinger → Fakturering og fakturaer → Brugshistorik** over en dag eller to: den rykker sig ikke i det øjeblik, du anvender en ændring. Skift én indstilling ad gangen (logs fra, derefter intervallet op, derefter eBPF begrænset), så du kan se, hvad hver enkelt gjorde, i stedet for at skrue alt ned på én gang og miste en monitor, du var afhængig af.
 
 ## Fejlfinding
 

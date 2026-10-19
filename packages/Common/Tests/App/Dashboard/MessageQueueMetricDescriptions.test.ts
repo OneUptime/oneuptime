@@ -89,14 +89,39 @@ describe("the queue Overview's descriptions", () => {
   });
 
   test("each tile carries its own text", () => {
+    /*
+     * Read inside the tiles array: the last tile ends where the array does.
+     * Read to the next `title:` anywhere, it ran into whatever card the page
+     * drew next - and failed once the Explore telemetry links went (#4979).
+     */
+    const tiles: string = between(
+      OVERVIEW,
+      "const tiles: Array<ResourceOverviewTile> = [",
+      "];",
+    );
+    const titles: Array<string> = [
+      "Published",
+      "Consumed",
+      "Errors",
+      "p95 processing time",
+    ];
+    // The four tiles, in order, and no other.
+    expect(tiles.match(/title: "[^"]*",/g)).toEqual(
+      titles.map((title: string): string => {
+        return `title: "${title}",`;
+      }),
+    );
+
     for (const [title, key] of [
       ["Published", "published"],
       ["Consumed", "consumed"],
       ["Errors", "errors"],
       ["p95 processing time", "p95Processing"],
     ] as Array<[string, MessageQueueMetric]>) {
-      // From the tile's title to the next tile's.
-      const tile: string = between(OVERVIEW, `title: "${title}",`, "title:");
+      // From the tile's title to the next tile's, or to the array's end.
+      const start: number = tiles.indexOf(`title: "${title}",`);
+      const next: number = tiles.indexOf("title:", start + 1);
+      const tile: string = tiles.slice(start, next === -1 ? undefined : next);
       expect(tile).toContain(
         `description: MESSAGE_QUEUE_METRIC_DESCRIPTIONS.${key},`,
       );
@@ -169,18 +194,12 @@ describe("the queue Overview's descriptions", () => {
     );
 
     // A receive that returned nothing is in no part of a row, the count too.
-    expect(TEXT.consumers).toContain(
-      "Receives that returned nothing are left out;",
-    );
-    expect(TEXT.consumers).not.toContain("left out of the time");
+    expect(TEXT.consumers).toContain("messages taken");
     expect(QUERIES).toContain(
       '[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new IncludesNone(["0"]),',
     );
 
     // An SQS receive that returned messages is counted, once per batch...
-    expect(TEXT.consumers).toContain(
-      "an SQS receive that returned messages counts once per batch",
-    );
     expect(QUERIES).toContain(
       "[MESSAGE_QUEUE_BATCH_MESSAGE_COUNT_ATTRIBUTE]: new GreaterThan<number>(0),",
     );
@@ -191,7 +210,6 @@ describe("the queue Overview's descriptions", () => {
     expect(combine).toContain("calls: consumed,");
 
     // ...and never in the time, which is its consumer spans' alone.
-    expect(TEXT.consumers).toContain("never in the time");
     expect(combine).toContain(
       "p95DurationMs: handled > 0 ? finiteOrNull(data.consume.p95Ms.get(id)) : null,",
     );
@@ -233,7 +251,7 @@ describe("the queue Overview's descriptions", () => {
 
   test("the broker health text matches how the section reads its metrics", () => {
     expect(TEXT.brokerHealth).toContain(
-      "Levels show their latest value, counts per interval their newest whole interval, and running totals a rate per second",
+      "backlog, consumer lag, dead letters and message age",
     );
     // A per-period count keeps whole intervals only; a counter is a rate.
     expect(QUERIES).toContain(

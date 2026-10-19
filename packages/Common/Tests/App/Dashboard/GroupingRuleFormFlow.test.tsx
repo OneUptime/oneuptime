@@ -539,8 +539,9 @@ describe("creating a grouping rule", () => {
 
     await goToStep("Which Incidents");
     expect(submitButton()).toHaveTextContent("Create Incident Grouping Rule");
-    // No conditions: the rule applies to every new incident.
-    expect(screen.getByTestId("rule-criteria-empty")).toBeInTheDocument();
+    // No conditions: the rule applies to every new incident, and says so.
+    expect(screen.getByRole("radio", { name: "All incidents" })).toBeChecked();
+    expect(screen.queryByTestId("rule-criteria-row-0")).not.toBeInTheDocument();
 
     await clickSubmit();
     await waitForSave();
@@ -1100,8 +1101,9 @@ describe("editing an existing grouping rule", () => {
 
     /*
      * Folded on an edit form too, and nothing the rule does is hidden: each
-     * setting it uses is a chip that says what it is set to, and every set
-     * one is listed whatever the order.
+     * setting it uses says what it is set to, and every set one is listed
+     * whatever the order. The set ones take two of the line's four places,
+     * so two unset names fill the rest and the others are counted.
      */
     await waitFor(() => {
       expect(foldedChips()).toEqual([
@@ -1115,10 +1117,8 @@ describe("editing an existing grouping rule", () => {
       "Episode Owners",
       "Episode Role Assignments",
       "Reopen recently resolved episodes: 45 minutes",
-      "Wait before resolving an episode",
-      "Resolve quiet episodes",
     ]);
-    expect(foldedMore()).toBe("5 more");
+    expect(foldedMore()).toBe("7 more");
 
     // Opened, the settings are there as the rule has them.
     await openMoreFields();
@@ -1169,10 +1169,12 @@ describe("editing an existing grouping rule", () => {
         "Show Episodes on Status Page: On",
       ]);
     });
-    // The two left unset are named too: nothing is counted away.
+    /*
+     * Every set one is named; the line has no place left for the two left
+     * unset, so they are counted.
+     */
     expect(foldedItems()).toEqual([
       "On-Call Duty Policies: 1",
-      "Episode Owners",
       "Episode Role Assignments: 1",
       "Reopen recently resolved episodes: 1 day",
       "Wait before resolving an episode: 1 minute",
@@ -1181,9 +1183,8 @@ describe("editing an existing grouping rule", () => {
       "Episode Title Template: {{monitorName}} storm",
       "Episode Description Template",
       "Show Episodes on Status Page: On",
-      "Episode Labels",
     ]);
-    expect(foldedMore()).toBeNull();
+    expect(foldedMore()).toBe("2 more");
     expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
   });
 

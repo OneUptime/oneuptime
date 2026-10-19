@@ -149,12 +149,12 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 
 在 OneUptime Cloud 上，项目的 API 密钥仅在项目处于 **Growth** 或更高套餐时可用，而它的 SCIM 连接（项目自己的以及其状态页面的）仅在处于 **Scale** 或更高套餐时才能完全工作。当项目降到该套餐以下时：
 
-- 使用项目某个 API 密钥发出的每个请求，无论请求什么，都会被拒绝并返回 `402 Payment Required`：REST API，以及所有用 API 密钥调用它的东西——Terraform、`oneuptime` CLI、用 API 密钥连接的 MCP 客户端、在请求标头中发送密钥的工作流，以及你自己的脚本。消息会指明套餐：`API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and they work again.`
+- 使用项目某个 API 密钥发出的每个请求，无论请求什么，都会被拒绝并返回 `402 Payment Required`：REST API，以及所有用 API 密钥调用它的东西——Terraform、`oneuptime` CLI、用 API 密钥连接的 MCP 客户端、在请求标头中发送密钥的工作流，以及你自己的脚本。消息会指明套餐：`API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
 - 它的 SCIM 连接只能移除人员。停用和删除人员以及把他们移出组仍然有效，因此离开的人仍会失去访问权限；每个会添加或更改人员或组的 SCIM 请求都会以 SCIM 错误格式返回 `402` 并被拒绝，以便你的身份提供商显示原因（[低于 Scale 套餐时](/docs/identity/scim#低于-scale-套餐时)）。
 
 不会删除或关闭任何内容。密钥和连接都会保留，项目一回到该套餐，它们就会原样完全恢复工作：无需创建新密钥，也无需在身份提供商中重新设置任何内容。套餐变更会在一分钟内生效。
 
-低于 **Growth** 时，**项目设置** > **API 密钥** 会列出项目仍有的密钥并说明它们已停止工作，因此在任何套餐上都可以删除（吊销）其中任何一个。创建或更改密钥需要 **Growth**。**项目设置** > **账单** 会针对你可以选择的每个套餐，说明较低套餐会停止多少个 API 密钥、限制多少个 SCIM 连接，以及项目的套餐已停止了什么；当套餐变更使它们停止时，项目所有者会收到一封电子邮件。在此机制开始时项目就已低于这些套餐的所有者，会收到一封电子邮件，说明哪些已停止以及如何重新启用。
+低于 **Growth** 时，**项目设置** > **高级** > **API 密钥** 会列出项目仍有的密钥并说明它们已停止工作，因此在任何套餐上都可以删除（吊销）其中任何一个。创建或更改密钥需要 **Growth**。**项目设置** > **账单和发票** > **账单** 会针对你可以选择的每个套餐，说明较低套餐会停止多少个 API 密钥、限制多少个 SCIM 连接，以及项目的套餐已停止了什么；当套餐变更使它们停止时，项目所有者会收到一封电子邮件。在此机制开始时项目就已低于这些套餐的所有者，会收到一封电子邮件，说明哪些已停止以及如何重新启用。
 
 只有项目的 API 密钥和 SCIM 连接受影响。人员不受影响：登录仪表板以及通过登录连接的 MCP 客户端照常工作。遥测摄取密钥、探针密钥和代理密钥不是 API 密钥，会继续工作。自托管安装没有套餐，因此对它们没有任何变化。
 
@@ -200,7 +200,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 所有者
 
-资源的所有者——监视器、值班策略、仪表板以及其他任何有所有者的资源的用户和团队所有者记录——也以同样的方式通过其所拥有的资源读取：列出、读取、添加和移除它们，需要在该资源的标签和所有者范围内读取该资源的权限；对于你无权读取的资源，其所有者记录会被当作不存在来响应。
+资源的所有者——监视器、值班策略、仪表板以及其他任何有所有者的资源的用户和团队所有者记录——也以同样的方式通过其所拥有的资源读取：列出、读取、添加和移除它们，需要在该资源的标签和所有者范围内读取该资源的权限；对于你无权读取的资源，其所有者记录会被当作不存在来响应。添加和移除它们同样遵循允许此操作的权限的范围：`Owned` 范围的权限只触及你或你的某个团队拥有的资源的所有者，向其他任何资源添加所有者都会被拒绝，并返回说明原因的 `422`。
 
 #### 写入所列出或指定的记录
 

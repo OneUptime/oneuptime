@@ -19,9 +19,12 @@ import {
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaModelTable";
 import {
   getRuleCriteriaSummaryText,
-  RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING,
   RULE_CRITERIA_SUMMARY_MATCHES_NOTHING,
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaSummary";
+import IncidentOnCallRule from "../../../../Models/DatabaseModels/IncidentOnCallRule";
+import HostLabelRule from "../../../../Models/DatabaseModels/HostLabelRule";
+import RunbookRule from "../../../../Models/DatabaseModels/RunbookRule";
+import { RuleCriteriaSubject } from "../../../../Types/Rules/RuleCriteriaSubject";
 import FieldType from "../../../../UI/Components/Types/FieldType";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -201,15 +204,13 @@ describe("rule criteria table integration", () => {
       getRuleCriteriaSummaryText({ fields: FORM_FIELDS, item: legacyRule }),
     ).toBe("Monitor Name matches pattern “^api”");
 
+    // A rule no model names: the form's own answer without a noun.
     expect(
       getRuleCriteriaSummaryText({
         fields: FORM_FIELDS,
         item: new ExampleRule(),
       }),
-    ).toBe(RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING);
-    expect(RULE_CRITERIA_SUMMARY_MATCHES_EVERYTHING).toBe(
-      "Matches everything (no conditions)",
-    );
+    ).toBe("Everything");
 
     const malformedRule: ExampleRule = new ExampleRule();
     malformedRule.criteria = { broken: true } as never;
@@ -327,11 +328,12 @@ More details stay here.
   test("normalizes every static rule help document through the shared behavior", () => {
     /*
      * A form with a Match Criteria step: written on the page, or the shared
-     * label and owner rule form's Match step (Dashboard Utils/Form/
-     * ResourceRuleForm).
+     * Match step of the label and owner rule forms (Dashboard Utils/Form/
+     * ResourceRuleForm) and of the on-call, privacy, SLA, reminder and
+     * runbook rule forms (Utils/Form/EventRuleForm).
      */
     const matchCriteriaForm: RegExp =
-      /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner)RuleFormSteps</;
+      /id\s*:\s*["']match-criteria["']|formSteps=\{get(?:Label|Owner|OnCall|Privacy|Sla|Reminder|Runbook)RuleFormSteps</;
     const staticRuleFormFiles: Array<string> = listTypescriptReactFiles(
       DASHBOARD_SOURCE_ROOT,
     ).filter((filePath: string): boolean => {
@@ -398,10 +400,52 @@ describe("the help panel's Match Criteria section", () => {
       "**Patterns** — Matches pattern or Does not match pattern.",
       "**Address ranges** — Is in or Is not in",
       "**Lists** — Has any of, Has all of or Has none of the selected values.",
-      "A rule with no conditions applies to everything.",
+      // The choice, named as the form names it.
+      "Choose what the rule applies to:",
+      "**Everything** — the rule applies to every one, with no conditions to fill in. A new rule starts here.",
+      "**Only what matches conditions** — add one or more conditions to narrow the rule down.",
+      "With two or more conditions, choose how they are combined:",
     ]) {
       expect(body).toContain(line);
     }
+    expect(body).not.toContain("applies to everything");
+  });
+
+  /*
+   * Each answer says what it does for the rule, in the words of someone
+   * setting one up: the first one that no condition is needed - the point
+   * people missed - and the second what to do next. They said what the rule
+   * stores ("the rule has no conditions").
+   */
+  test("says what each answer does, not what the rule stores", () => {
+    const body: string = getRuleCriteriaHelpSectionBody({
+      fields: [NAME_FIELD],
+      subject: RuleCriteriaSubject.Hosts,
+    });
+
+    expect(body).toContain(
+      "**All hosts** — the rule applies to every one, with no conditions to fill in.",
+    );
+    expect(body).toContain(
+      "**Only hosts that match conditions** — add one or more conditions to narrow the rule down.",
+    );
+    expect(body).not.toContain("the rule has no conditions");
+    expect(body).not.toContain("the rule has one or more conditions");
+  });
+
+  test("names the choice for the rule's records", () => {
+    const body: string = getRuleCriteriaHelpSectionBody({
+      fields: [NAME_FIELD],
+      subject: RuleCriteriaSubject.Incidents,
+    });
+
+    expect(body).toContain(
+      "**All incidents** — the rule applies to every one, with no conditions to fill in. A new rule starts here.",
+    );
+    expect(body).toContain(
+      "**Only incidents that match conditions** — add one or more conditions to narrow the rule down.",
+    );
+    expect(body).not.toContain("**Everything**");
   });
 
   test("only names the operators the page's fields offer", () => {
@@ -438,6 +482,60 @@ describe("the help panel's Match Criteria section", () => {
 
     expect(body).toContain("needs at least one condition");
     expect(body).not.toContain("applies to everything");
+    // No "All ..." to choose: the rule needs a condition.
+    expect(body).not.toContain("Choose what the rule applies to");
+    expect(body).toContain(
+      "Add one or more conditions, then choose how they are combined:",
+    );
+  });
+
+  test("the table names its model's records in the section", () => {
+    const configuration: RuleCriteriaTableConfiguration<HostLabelRule> =
+      getRuleCriteriaTableConfiguration({
+        model: new HostLabelRule(),
+        formFields: FORM_FIELDS as never,
+        columns: COLUMNS as never,
+        filters: FILTERS as never,
+        helpContent: {
+          title: "Host label rules",
+          markdown: "### Match Criteria\n\nOld text.",
+        },
+      });
+
+    expect(configuration.helpContent?.markdown).toContain("**All hosts**");
+    expect(configuration.helpContent?.markdown).toContain(
+      "**Only hosts that match conditions**",
+    );
+  });
+
+  test("a table of several kinds of record names the ones it lists", () => {
+    const configuration: RuleCriteriaTableConfiguration<RunbookRule> =
+      getRuleCriteriaTableConfiguration({
+        model: new RunbookRule(),
+        formFields: FORM_FIELDS as never,
+        columns: COLUMNS as never,
+        filters: FILTERS as never,
+        subject: RuleCriteriaSubject.Alerts,
+        helpContent: {
+          title: "Runbook rules",
+          markdown: "### Match Criteria\n\nOld text.",
+        },
+      });
+
+    expect(configuration.helpContent?.markdown).toContain("**All alerts**");
+
+    const summaryColumn: Column<RunbookRule> | undefined =
+      configuration.columns.find((column: Column<RunbookRule>): boolean => {
+        return column.id === "rule-criteria";
+      });
+    const rule: RunbookRule = new RunbookRule();
+    rule.criteria = {
+      schemaVersion: 1,
+      filterCondition: FilterCondition.All,
+      filters: [],
+    };
+
+    expect(summaryColumn?.getExportValue?.(rule)).toBe("All alerts");
   });
 
   test("the table writes the section for its own model and fields", () => {
@@ -462,6 +560,67 @@ describe("the help panel's Match Criteria section", () => {
 });
 
 describe("the rule summary", () => {
+  test("says a rule with no conditions applies to all of its records, as its form's choice does", () => {
+    const onCallRule: IncidentOnCallRule = new IncidentOnCallRule();
+    onCallRule.criteria = {
+      schemaVersion: 1,
+      filterCondition: FilterCondition.All,
+      filters: [],
+    };
+
+    expect(
+      getRuleCriteriaSummaryText({
+        fields: FORM_FIELDS as never,
+        item: onCallRule,
+      }),
+    ).toBe("All incidents");
+
+    // A rule saved before conditions existed, with none of its old columns.
+    expect(
+      getRuleCriteriaSummaryText({
+        fields: FORM_FIELDS as never,
+        item: new HostLabelRule(),
+      }),
+    ).toBe("All hosts");
+
+    // A table of several kinds of record says which.
+    expect(
+      getRuleCriteriaSummaryText({
+        fields: FORM_FIELDS as never,
+        item: new RunbookRule(),
+        subject: RuleCriteriaSubject.ScheduledMaintenanceEvents,
+      }),
+    ).toBe("All scheduled maintenance events");
+    expect(
+      getRuleCriteriaSummaryText({
+        fields: FORM_FIELDS as never,
+        item: new RunbookRule(),
+      }),
+    ).toBe("Everything");
+  });
+
+  test("still lists the conditions of a rule that has some", () => {
+    const onCallRule: IncidentOnCallRule = new IncidentOnCallRule();
+    onCallRule.criteria = {
+      schemaVersion: 1,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          field: "monitorNamePattern",
+          operator: RuleCriteriaOperator.Contains,
+          value: "api",
+        },
+      ],
+    };
+
+    expect(
+      getRuleCriteriaSummaryText({
+        fields: FORM_FIELDS as never,
+        item: onCallRule,
+      }),
+    ).toBe("Monitor Name contains “api”");
+  });
+
   test("says a rule that needs a condition matches nothing without one", () => {
     expect(
       getRuleCriteriaSummaryText({

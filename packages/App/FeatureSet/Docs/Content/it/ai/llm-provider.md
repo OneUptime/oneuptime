@@ -38,7 +38,7 @@ Su **OneUptime Cloud**, ogni progetto può usare il provider globale senza alcun
 
 Per usare invece le tue chiavi API o un modello specifico, aggiungi un tuo provider, come descritto sotto: non ti viene addebitata l'IA che gira sul tuo provider.
 
-Il provider LLM globale è pagato con i crediti IA del progetto. Per limitare quanto l'IA può spendere ogni giorno, imposta un **Limite giornaliero di spesa IA (USD)** in **Impostazioni del progetto → AI Features → Altre impostazioni**; un **Limite giornaliero di token IA** nello stesso punto limita i token su qualsiasi provider, compreso il tuo. Vedi [i limiti giornalieri del progetto](/docs/ai/ai-sre#i-limiti-giornalieri-del-progetto-stesso).
+Il provider LLM globale è pagato con i crediti IA del progetto. Per limitare quanto l'IA può spendere ogni giorno, imposta un **Limite giornaliero di spesa IA (USD)** in **Impostazioni del progetto → IA → AI Features → Altre impostazioni**; un **Limite giornaliero di token IA** nello stesso punto limita i token su qualsiasi provider, compreso il tuo. Vedi [i limiti giornalieri del progetto](/docs/ai/ai-sre#i-limiti-giornalieri-del-progetto-stesso).
 
 OneUptime Cloud può raggiungere solo endpoint LLM su internet pubblico. Non può collegarsi a un modello nella tua rete privata, come un server Ollama o vLLM self-hosted. Per usare un modello che esegui tu stesso, ospita OneUptime su una rete che può raggiungerlo, oppure esponi il modello su un endpoint pubblico: vedi [Scegliere un URL di base per un modello self-hosted](#scegliere-un-url-di-base-per-un-modello-self-hosted).
 
@@ -93,19 +93,19 @@ La sincronizzazione è dichiarativa: cambia una variabile e il provider si adegu
 
 Vai in **Impostazioni del progetto → IA → Provider LLM** (la sezione **IA** del menu laterale parte chiusa) e fai clic su **Crea: Provider LLM**.
 
-### Dai un nome al provider
+### Scegli il provider
 
-In **Informazioni di base**, dagli un **Nome** che dica cos'è, come "Production OpenAI" o "Local Ollama", e facoltativamente una **Descrizione**.
+In **Provider**, scegli il tuo **Provider LLM**: una scheda per OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama e qualsiasi server compatibile con OpenAI, ognuna con una riga che dice cos'è.
 
-### Compila le impostazioni del provider
+### Collegalo
 
-In **Impostazioni del fornitore**:
+In **Connessione**, il modulo chiede solo ciò che quel provider usa, con il suo aiuto sotto ogni campo:
 
-- **Provider LLM**: il tipo di provider (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama o OpenAI Compatible)
-- **Chiave API**: la tua chiave API (necessaria per OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; facoltativa per Ollama e i server compatibili con OpenAI)
-- **Nome modello**: il modello da usare, come `gpt-5.1`, `claude-sonnet-5-5` o `llama3.1`
-- **URL di base**: l'endpoint, necessario per Azure OpenAI, Ollama e OpenAI Compatible; facoltativo per gli altri, per sostituire il loro predefinito
-- **Altri campi**, chiusi sotto i campi precedenti: **Imposta come predefinito**, attivo per un nuovo provider perché le funzionalità di IA usano solo il provider predefinito del progetto, e **Parametri aggiuntivi**, un oggetto JSON facoltativo di parametri extra inviati al provider con ogni richiesta (per esempio `{"temperature": 0.2}`)
+- **Chiave API**: la tua chiave API, necessaria per OpenAI, Azure OpenAI, Anthropic, Groq e Mistral e facoltativa per un server compatibile con OpenAI; per Ollama non viene chiesta
+- **URL di base**: l'endpoint, necessario per Azure OpenAI, Ollama e OpenAI Compatible; per gli altri, solo per passare da un proxy o da un gateway
+- **Nome modello**: il modello da usare, come `gpt-5.1`, `claude-sonnet-5-5` o `llama3.1`. Se lo lasci vuoto, OneUptime usa il modello predefinito del provider, tranne su un server compatibile con OpenAI, che ne richiede uno
+- **Nome**: il nome del provider finché non ne scrivi uno tuo, come "Production OpenAI" o "Local Ollama"
+- **Altri campi**, chiusi sotto i campi precedenti: una **Descrizione**, **Imposta come predefinito**, attivo per un nuovo provider perché le funzionalità di IA usano solo il provider predefinito del progetto, e **Parametri aggiuntivi**, un oggetto JSON facoltativo di parametri extra inviati al provider con ogni richiesta (per esempio `{"temperature": 0.2}`)
 
 **Chi può vedere un provider.** I provider LLM di un progetto li leggono solo i membri che possono leggere le impostazioni del progetto: **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** e **Read LLM**. La **Chiave API** e i **Parametri aggiuntivi** di un provider li leggono solo i proprietari e gli amministratori del progetto, perché i parametri vengono inviati al provider con ogni richiesta e possono contenere un token o un header proprio come la chiave. Gli altri membri vedono se ci sono parametri salvati, non quali. I membri che possono modificare un provider possono comunque sostituirne la chiave API o i parametri senza leggerli: nel modulo di modifica quei campi partono vuoti, e lasciarne uno vuoto mantiene il valore salvato. Per rimuovere i parametri, salva `{}`. Solo i proprietari e gli amministratori del progetto possono cambiare l'**URL di base** di un provider, perché la sua chiave API e i suoi parametri aggiuntivi vengono inviati a quell'indirizzo; gli altri membri che possono modificare un provider possono cambiare tutto il resto. Chiunque possa leggere un provider ne può leggere l'**URL di base**, quindi non metterci mai una chiave, un token o una password: usa la **Chiave API**. L'elenco **Fornitori LLM globali** nella stessa pagina, i provider condivisi su cui un progetto ripiega, mostra nome, descrizione e prezzo a chiunque abbia effettuato l'accesso, e nient'altro.
 

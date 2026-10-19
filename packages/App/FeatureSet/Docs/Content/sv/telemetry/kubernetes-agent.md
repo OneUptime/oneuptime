@@ -4,6 +4,7 @@ OneUptime Kubernetes-agenten är ett Helm-chart som samlar in klustrets mätvär
 
 :::cards
 - [Installera agenten](#installera-agenten): Fyra steg med Helm.
+- [Installera som Amazon EKS-tillägg](#installera-som-amazon-eks-tillägg): Från EKS-konsolen, utan Helm.
 - [Konfigurationsalternativ](#konfigurationsalternativ): Filter, sampling, kontrollplan, service mesh, kostnader och etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivskyddad `kubectl` för OneUptime AI, och åtgärder när du tillåter dem.
 - [Skicka mindre](#minska-mängden-data-som-samlas-in): Spakarna, i ordning efter effekt.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Öppna **Produkter → Infrastruktur → Kubernetes → Alla kluster**. Klustret visas under sitt `clusterName` inom några minuter, och dess noder, poddar och arbetsbelastningar fylls i. Kubernetes-AI-agenten visas som ansluten på klustrets sida **Agent**, under **AI**.
 :::
 
+## Installera som Amazon EKS-tillägg
+
+På Amazon EKS kan du också lägga till agenten från EKS-konsolen, där den är ett av tilläggen från AWS Marketplace. Den kostar ingenting, och EKS installerar, uppgraderar och tar bort den åt dig. Tillägget är det här chartet, konfigurerat på det sätt som ett tillägg kräver:
+
+- Det skickar till OneUptime Cloud, `https://oneuptime.com`, om du inte ger det URL:en till din egen OneUptime.
+- Det läser intagningsnyckeln från en Kubernetes-Secret som du skapar, aldrig från tilläggets konfiguration, som EKS visar i klartext.
+- Det rapporterar klustret till OneUptime under dess EKS-namn.
+- Det körs i namespacet `oneuptime-agent`.
+
+:::steps
+### Lägg din intagningsnyckel i en Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### Lägg till tillägget
+
+Öppna ditt kluster i EKS-konsolen, klicka på **Add-ons** och sedan på **Get more add-ons**, och välj OneUptime Kubernetes-agenten bland tilläggen från AWS Marketplace. Prenumerera på den, vilket är gratis, och skapa den. Eller med AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Kontrollera att tillägget körs
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Tillägget är `ACTIVE` så snart dess poddar körs, och klustret visas i OneUptime under sitt EKS-namn inom några minuter. En podd som blir kvar i `CreateContainerConfigError` hittar inte sin Secret: skapa den som i det första steget, i namespacet `oneuptime-agent`.
+:::
+
+### Tilläggets konfigurationsvärden
+
+Sätt dem under **Optional configuration settings** i EKS-konsolen, eller med `--configuration-values` när du skapar eller uppdaterar tillägget. Alla är valfria:
+
+- `oneuptime.url`: adressen till din OneUptime. Standardvärdet är `https://oneuptime.com`.
+- `oneuptime.existingSecretName`: den Secret som innehåller intagningsnyckeln under `api-key`. Standardvärdet är `oneuptime-ingestion-key`.
+- `oneuptime.labels`: projektetiketter för allt som det här klustret skickar, till exempel `{"team": "payments"}`.
+- `preset`: `eks-fargate` för ett kluster som bara körs på Fargate, annars `standard`, som är standardvärdet.
+- `logs.enabled`, `ebpf.enabled` och `aiAgent.enabled`: poddloggar, eBPF-spår och [Kubernetes-AI-agenten](#kubernetes-ai-agent), alla tre på som standard.
+- `kubeStateMetrics.enabled` och `cost.enabled`: kube-state-metrics och [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), båda avstängda som standard.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+En uppdatering ersätter hela konfigurationen: ett värde som du utelämnar återgår till sitt standardvärde. Resten av chartets inställningar, som profileraren, OneUptime AI:s åtgärder och namespace-filter, kräver [Helm-installationen](#installera-agenten). För att flytta ett kluster från Helm-installationen till tillägget avinstallerar du först Helm-releasen.
+
 ## Välj ett preset
 
 `preset` väljer de standardvärden som fungerar på din plattform: om poddloggar läses från noden via `hostPath` eller via Kubernetes-API:t, och vilka arbetsbelastningar som får köras privilegierade.
@@ -169,6 +225,23 @@ Om du är osäker, börja med `standard`. Om installationen misslyckas med ett P
 ## Konfigurationsalternativ
 
 Varje alternativ nedan är ett Helm-värde. Sätt det vid installationen, eller på en installerad agent med `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### Förvara intagningsnyckeln i en Secret
+
+`--set oneuptime.apiKey` håller nyckeln i releasens värden, som Helm lagrar med varje revision. För att hålla den utanför dem lägger du nyckeln i en Secret i agentens namespace, under `api-key`, och anger i stället den Secret som innehåller nyckeln:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+Alla agentens arbetsbelastningar läser då nyckeln från den Secret du angav, och chartet skapar ingen egen Secret. Sätt `oneuptime.apiKey` eller `oneuptime.existingSecretName`, inte båda: chartet nekar de två tillsammans. Din Secret kan komma från vad som helst som skriver Secrets, till exempel External Secrets Operator.
 
 ### Filtrering efter namespace
 
@@ -455,7 +528,7 @@ Det kräver Linux-kärna 5.8 eller senare med BTF (standard på Debian 11+, Ubun
 eBPF ser nätverksanrop, inte din kod, så ett spår byggs av de förfrågningar som en tjänst hanterar och de anrop den gör medan den hanterar dem:
 
 - **En förfrågan och dess anrop bildar ett spår.** Förfrågan in till en tjänst är rotspannet, med namnet `<METHOD> <route>`, och de HTTP-, gRPC-, SQL- och Redis-anrop som tjänsten gör medan den hanterar den är dess barn. (För Node.js bygger detta på OBI:s Node.js-agent, som chartet slår på med `ebpf.nodejs.enabled`.) Anrop som samtidiga förfrågningar skickar över en delad anslutning, typiskt för Redis-klienter, kan inte alltid skiljas åt, så en del av dem placeras inte i sin förfrågans spår.
-- **Ett anrop till en tjänst på en annan nod startar ett nytt spår**, om inte något bär spårkontexten vidare: en OpenTelemetry SDK, eller den valfria kontextspridning som beskrivs nedan. När båda ändarna körs på samma nod ser OBI båda och länkar dem själv.
+- **Ett anrop till en tjänst på en annan nod ansluter till anroparens spår** genom kontextspridning, som är på som standard och beskrivs nedan. Med den avstängd startar ett sådant anrop ett nytt spår, om inte en OpenTelemetry SDK bär spårkontexten vidare. När båda ändarna körs på samma nod ser OBI båda och länkar dem själv.
 - **Arbete som ingen förfrågan startade står ensamt.** En köarbetare som pollar Redis, eller ett cron-jobb, har ingen förfrågan som dess anrop kan höra till.
 - **Databasservrar står oftast ensamma.** Databasernas trådprotokoll bär ingen spårkontext, så om inte anroparen körs på samma nod blir det span som OBI registrerar inuti en databasserver för varje kommando ett spår med ett enda span.
 
@@ -502,15 +575,15 @@ Alla är på som standard utom en. Stäng av vilken som helst med `--set ebpf.fe
 | `networkInterZoneMetrics` | av | Varianten av nätverksmätvärdena mellan zoner (fördubblar deras kardinalitet) |
 | `tcpStats` | på | TCP-tur och retur-tid, misslyckade anslutningar och omsändningsräknare på nodnivå |
 
-Spridning av spårkontext mellan tjänster, där OBI injicerar en W3C-`traceparent` så att en förfrågan som går från podd A till podd B visas som ett spår utan någon SDK någonstans, är avstängd som standard. Välj den med `--set ebpf.contextPropagation=true`. Den kräver ingen kärna utöver det som resten av agenten kräver, och ingen kärnversion gör den verkningslös.
+Spridning av spårkontext mellan tjänster, där OBI injicerar en W3C-`traceparent` så att en förfrågan som går från podd A till podd B visas som ett spår utan någon SDK någonstans, är på som standard. Stäng av den med `--set ebpf.contextPropagation=false`. Den kräver ingen kärna utöver det som resten av agenten kräver, och ingen kärnversion gör den verkningslös.
 
-Den är avstängd eftersom att injicera huvudet innebär att skriva om trafik som redan är på väg: HTTP-förfrågningar i klartext breddas på plats i kärnan, medan TLS och rå TCP får ett TCP-alternativ tillagt från en Traffic Control-krok. Om anslutningens bytebokföring inte korrigeras exakt hamnar strömmen ur takt; det rapporterade symptomet är att överföringar genom en L7-proxy som nginx hänger mitt i kroppen när svaret passerar ungefär 64KB, medan små förfrågningar fortsätter att fungera. Uteslut inte detta utifrån kärnans ålder: under kärna 5.17 faller OBI tillbaka på program med begränsad skanning och skriver om trafik på samma sätt. Spår, RED-mätvärden och tjänstekartan är inte beroende av den; för att länka ihop tjänster sprider en OpenTelemetry SDK `traceparent` i användarutrymmet, utan omskrivning i kärnan, och är det säkrare valet.
+Att injicera huvudet innebär att skriva om trafik som redan är på väg: HTTP-förfrågningar i klartext breddas på plats i kärnan, medan TLS och rå TCP får ett TCP-alternativ tillagt från en Traffic Control-krok. Om anslutningens bytebokföring inte korrigeras exakt hamnar strömmen ur takt; det rapporterade symptomet är att överföringar genom en L7-proxy som nginx hänger mitt i kroppen när svaret passerar ungefär 64KB, medan små förfrågningar fortsätter att fungera. Uteslut inte detta utifrån kärnans ålder: under kärna 5.17 faller OBI tillbaka på program med begränsad skanning och skriver om trafik på samma sätt. Om du ser det här symptomet, eller om ett service mesh eller ett eBPF-nätverksplugin börjar få poddar att fallera, stäng av spridningen: spår, RED-mätvärden och tjänstekartan är inte beroende av den, och en OpenTelemetry SDK sprider `traceparent` i användarutrymmet, utan omskrivning i kärnan. En agent som har uppgraderats med `--reuse-values` behåller det värde den hade, och tidigare chartversioner levererades med spridningen avstängd: uppgradera med `--reset-then-reuse-values` för att få det nya standardvärdet.
 
 ## Kubernetes-AI-agent
 
 När en incident eller ett larm uppstår på det här klustret undersöker OneUptime AI det. **Kubernetes-AI-agenten** i chartet ger den en terminal: den kör skrivskyddad `kubectl` som en jourhavande ingenjör skulle göra (beskriver den felande podden, läser dess händelser, följer loggarna från containern som kraschar, kontrollerar nodkapaciteten) och citerar varje kommando på incidentsidan.
 
-Agenten är **på som standard** och **skrivskyddad**: en liten Deployment (`kubernetes-agent-ai-agent`, poddetiketten `component=ai-agent`, imagen `oneuptime/kubernetes-ai-agent`) vars ServiceAccount bara får läsa. Den registrerar sig med samma `oneuptime.apiKey` och `clusterName` som collectorn använder, så det finns inget att ställa in i instrumentpanelen: klustrets sida **AI-agent** (Kubernetes → kluster → AI → Agent) visar den som ansluten inom en minut, och **Testa anslutningen**, i menyn **⋯** bredvid den statusen, kör `kubectl version` och `kubectl auth can-i --list` genom den. Allt AI har gjort med den finns på klustrets sida **AI-loggar** (AI → Loggar), och det som är värt att veta om klustret — de problem som hela tiden återkommer och varför, noden eller arbetsbelastningen bakom de flesta av dem, vad AI har åtgärdat — på sidan **AI Insights** (AI → Insights). Agenten levereras med en låst kubectl (v1.36.4). Den är ingen Runner och visas aldrig under Runbooks → Runners: OneUptime ger den aldrig inloggningsuppgifter, kör aldrig runbooks på den, och den godtas aldrig som kommando-Runner för en regel för automatisk åtgärd.
+Agenten är **på som standard** och **skrivskyddad**: en liten Deployment (`kubernetes-agent-ai-agent`, poddetiketten `component=ai-agent`, imagen `oneuptime/kubernetes-ai-agent`) vars ServiceAccount bara får läsa. Den registrerar sig med samma `oneuptime.apiKey` och `clusterName` som collectorn använder, så det finns inget att ställa in i instrumentpanelen: klustrets sida **AI-agent** (Kubernetes → kluster → AI → Agent) visar den som ansluten inom en minut, och **Testa anslutningen**, i menyn **⋯** bredvid den statusen, kör `kubectl version` och `kubectl auth can-i --list` genom den. Allt AI har gjort med den finns på klustrets sida **AI-loggar** (AI → Loggar), och det som är värt att veta om klustret — de problem som hela tiden återkommer och varför, noden eller arbetsbelastningen bakom de flesta av dem, vad AI har åtgärdat — på sidan **AI Insights** (AI → Insights). Agenten levereras med en låst kubectl (v1.36.5). Den är ingen Runner och visas aldrig under Runbooks → Runners: OneUptime ger den aldrig inloggningsuppgifter, kör aldrig runbooks på den, och den godtas aldrig som kommando-Runner för en regel för automatisk åtgärd.
 
 På en agent som installerades innan AI-agenten fanns uppdaterar du först ditt chart-index och uppgraderar sedan (på en självhostad OneUptime uppgraderar du OneUptime först — se [Uppgradera agenten](#uppgradera-agenten)):
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **Ett avslag som försvinner av sig självt** — en tidigare agentpodd som fortfarande rapporterar in (en podd som ersattes utan en ren avstängning), eller den gamla Runnern i klustret som fortfarande stängs av under en uppgradering. Agenten försöker igen efter den väntetid som servern anger.
 - **Ett avslag som kräver dig** — ett tomt eller för långt `clusterName`, eller ett projekt som har nått sin gräns för AI-agenter; loggen anger vad som ska ändras. Om en agent aldrig ansluter och dess logg säger `Another Kubernetes AI agent for cluster "<name>" is online` delar två installationer samma `clusterName` (AI-agentsidan varnar också för det): den som redan är ansluten behåller det så länge den körs, så ge varje kluster ett eget `clusterName` eller ta bort den extra releasen. En intagningsnyckel med ett **Pinned Service Name** kan inte registrera agenten — ge chartet en nyckel utan.
 
-**Återställ agenten**, i menyn **⋯** bredvid agentens status på AI-agentsidan, får servern att glömma agentens nyckel när du bekräftar (en projektägare, en projektadministratör eller **Edit Auto Remediation Rule** får göra det); podden ansluter igen av sig själv inom några minuter. Agentens beredskap beror inte på OneUptime, så en felkonfigurerad AI-agent får aldrig `helm upgrade --wait` att misslyckas — bara en podd som inte kan hämta sin image gör det.
+**Återställ agenten**, i menyn **⋯** bredvid agentens status på AI-agentsidan, får servern att glömma agentens nyckel när du bekräftar (en projektägare, en projektadministratör eller **Edit Auto Remediation Rule** får göra det på ett kluster som de får redigera); podden ansluter igen av sig själv inom några minuter. Agentens beredskap beror inte på OneUptime, så en felkonfigurerad AI-agent får aldrig `helm upgrade --wait` att misslyckas — bara en podd som inte kan hämta sin image gör det.
 
 ## Uppgradera agenten
 
@@ -866,7 +939,7 @@ Strama åt ytterligare efter behov: höj `minSeverity` till `ERROR`, lägg till 
 
 ### Mät effekten
 
-Telemetrianvändning räknas per dag, så kontrollera trenden under **Projektinställningar → Användningshistorik** under en dag eller två: den rör sig inte i samma ögonblick som du tillämpar en ändring. Ändra en inställning i taget (loggar av, sedan intervallet upp, sedan eBPF trimmat) så att du kan se vad var och en gjorde, i stället för att skruva ned allt på en gång och förlora en monitor du förlitade dig på.
+Telemetrianvändning räknas per dag, så kontrollera trenden under **Projektinställningar → Fakturering och fakturor → Användningshistorik** under en dag eller två: den rör sig inte i samma ögonblick som du tillämpar en ändring. Ändra en inställning i taget (loggar av, sedan intervallet upp, sedan eBPF trimmat) så att du kan se vad var och en gjorde, i stället för att skruva ned allt på en gång och förlora en monitor du förlitade dig på.
 
 ## Felsökning
 

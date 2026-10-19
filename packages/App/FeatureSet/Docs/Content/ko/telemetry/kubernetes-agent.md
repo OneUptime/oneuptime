@@ -4,6 +4,7 @@ OneUptime Kubernetes 에이전트는 Helm 차트로, 클러스터의 메트릭, 
 
 :::cards
 - [에이전트 설치](#에이전트-설치): Helm으로 네 단계.
+- [Amazon EKS 추가 기능으로 설치](#amazon-eks-추가-기능으로-설치): Helm 없이 EKS 콘솔에서.
 - [구성 옵션](#구성-옵션): 필터, 샘플링, 컨트롤 플레인, 서비스 메시, 비용, 레이블.
 - [Kubernetes AI 에이전트](#kubernetes-ai-에이전트): OneUptime AI를 위한 읽기 전용 `kubectl`과, 허용할 때의 수정.
 - [전송량 줄이기](#수집하는-데이터양-줄이기): 효과가 큰 순서로 정리한 조정 수단.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 **제품 → 인프라 → Kubernetes → 모든 클러스터**를 엽니다. 몇 분 안에 클러스터가 `clusterName`으로 나타나고 노드, Pod, 워크로드가 채워집니다. Kubernetes AI 에이전트는 클러스터의 **AI** 아래 **에이전트** 페이지에 연결됨으로 표시됩니다.
 :::
 
+## Amazon EKS 추가 기능으로 설치
+
+Amazon EKS에서는 에이전트를 EKS 콘솔에서 추가할 수도 있습니다. EKS 콘솔에서 에이전트는 AWS Marketplace 추가 기능 중 하나로 제공됩니다. 비용은 들지 않으며, 설치, 업그레이드, 제거는 EKS가 대신 처리합니다. 이 추가 기능은 이 차트를 추가 기능에 필요한 방식으로 구성한 것입니다:
+
+- 직접 운영하는 OneUptime의 URL을 지정하지 않으면 OneUptime Cloud(`https://oneuptime.com`)로 데이터를 보냅니다.
+- 수집 키는 직접 만든 Kubernetes Secret에서 읽으며, EKS가 일반 텍스트로 표시하는 추가 기능 구성에서는 절대 읽지 않습니다.
+- 클러스터를 EKS 클러스터 이름으로 OneUptime에 보고합니다.
+- `oneuptime-agent` 네임스페이스에서 실행됩니다.
+
+:::steps
+### 수집 키를 Secret에 저장
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### 추가 기능 추가
+
+EKS 콘솔에서 클러스터를 열고 **Add-ons** 탭을 선택한 뒤 **Get more add-ons** 버튼을 선택하고, AWS Marketplace 추가 기능 중에서 OneUptime Kubernetes 에이전트를 고르세요. 무료로 구독한 다음 추가 기능을 생성하세요. AWS CLI로 추가할 수도 있습니다:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### 실행 중인지 확인
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Pod가 실행되면 추가 기능은 `ACTIVE` 상태가 되고, 몇 분 안에 클러스터가 EKS 클러스터 이름으로 OneUptime에 나타납니다. `CreateContainerConfigError` 상태에 머무는 Pod는 Secret을 찾지 못하는 것입니다. 첫 번째 단계처럼 `oneuptime-agent` 네임스페이스에 Secret을 만드세요.
+:::
+
+### 추가 기능 구성 값
+
+EKS 콘솔의 **Optional configuration settings** 섹션에서 설정하거나, 추가 기능을 생성하거나 업데이트할 때 `--configuration-values`로 설정하세요. 모두 선택 사항입니다:
+
+- `oneuptime.url`: OneUptime의 주소. 기본값은 `https://oneuptime.com`입니다.
+- `oneuptime.existingSecretName`: 수집 키를 `api-key` 항목에 담고 있는 Secret. 기본값은 `oneuptime-ingestion-key`입니다.
+- `oneuptime.labels`: 이 클러스터가 보내는 모든 데이터에 붙는 프로젝트 레이블(예: `{"team": "payments"}`).
+- `preset`: Fargate에서만 실행되는 클러스터에는 `eks-fargate`, 그 밖에는 기본값인 `standard`.
+- `logs.enabled`, `ebpf.enabled`, `aiAgent.enabled`: Pod 로그, eBPF 트레이스, [Kubernetes AI 에이전트](#kubernetes-ai-에이전트). 모두 기본적으로 켜져 있습니다.
+- `kubeStateMetrics.enabled`, `cost.enabled`: kube-state-metrics와 [비용 옵저버빌리티](/docs/telemetry/kubernetes-cost). 모두 기본적으로 꺼져 있습니다.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+업데이트는 구성 전체를 교체하므로, 지정하지 않은 값은 기본값으로 돌아갑니다. 프로파일러, OneUptime AI의 수정, 네임스페이스 필터 등 차트의 나머지 설정에는 [Helm 설치](#에이전트-설치)가 필요합니다. 클러스터를 Helm 설치에서 추가 기능으로 옮기려면 먼저 Helm 릴리스를 제거하세요.
+
 ## 프리셋 선택
 
 `preset`은 플랫폼에서 작동하는 기본값을 고릅니다. Pod 로그를 `hostPath`를 통해 노드에서 읽을지 Kubernetes API를 통해 읽을지, 그리고 어떤 워크로드가 privileged로 실행될 수 있는지입니다.
@@ -169,6 +225,23 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 ## 구성 옵션
 
 아래 옵션은 모두 Helm 값입니다. 설치할 때 설정하거나, 설치된 에이전트에서는 `helm upgrade ... --reset-then-reuse-values --set <value>`로 설정하세요.
+
+### 수집 키를 Secret에 보관
+
+`--set oneuptime.apiKey`는 키를 릴리스의 값에 남기며, Helm은 이 값을 리비전마다 저장합니다. 키를 값에 남기지 않으려면 에이전트의 네임스페이스에 있는 Secret에 `api-key` 항목으로 키를 넣고, 대신 그 Secret의 이름을 지정하세요:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+그러면 모든 에이전트 워크로드가 그 Secret에서 키를 읽고, 차트는 자체 Secret을 만들지 않습니다. `oneuptime.apiKey`와 `oneuptime.existingSecretName` 중 하나만 설정하고 둘 다 설정하지는 마세요. 둘을 함께 설정하면 차트가 거부합니다. Secret은 External Secrets Operator처럼 Secret을 생성하는 도구라면 무엇으로든 만들 수 있습니다.
 
 ### 네임스페이스 필터링
 
@@ -455,7 +528,7 @@ BTF가 있는 Linux 커널 5.8 이상이 필요하며(Debian 11+, Ubuntu 20.10+,
 eBPF는 코드가 아니라 네트워크 호출을 보므로, 트레이스는 서비스가 처리하는 요청과 그 처리 중에 하는 호출로 만들어집니다:
 
 - **요청과 그 호출이 하나의 트레이스가 됩니다.** 서비스로 들어오는 요청이 `<METHOD> <route>`라는 이름의 루트 스팬이 되고, 서비스가 그 요청을 처리하는 동안 하는 HTTP, gRPC, SQL, Redis 호출이 자식 스팬이 됩니다. (Node.js에서는 차트가 `ebpf.nodejs.enabled`로 켜는 OBI의 Node.js 에이전트에 의존합니다.) Redis 클라이언트에서 흔하듯 동시 요청이 하나의 공유 연결로 보내는 호출은 항상 구분할 수 있는 것은 아니므로, 그중 일부는 해당 요청의 트레이스에 들어가지 않습니다.
-- **다른 노드의 서비스에 대한 호출은 새 트레이스를 시작합니다.** 단, OpenTelemetry SDK나 아래에서 설명하는 옵트인 컨텍스트 전파처럼 트레이스 컨텍스트를 전달하는 것이 있으면 예외입니다. 양쪽 끝이 같은 노드에서 실행되면 OBI가 둘 다 보고 직접 연결합니다.
+- **다른 노드의 서비스에 대한 호출은 호출하는 쪽의 트레이스에 합류합니다.** 아래에서 설명하는 컨텍스트 전파 덕분이며, 이 기능은 기본적으로 켜져 있습니다. 이 기능이 꺼져 있으면 그런 호출은 새 트레이스를 시작합니다. 단, OpenTelemetry SDK가 트레이스 컨텍스트를 전달하면 예외입니다. 양쪽 끝이 같은 노드에서 실행되면 OBI가 둘 다 보고 직접 연결합니다.
 - **어떤 요청에서도 시작되지 않은 작업은 단독입니다.** Redis를 폴링하는 큐 워커나 cron 작업에는 그 호출이 속할 요청이 없습니다.
 - **데이터베이스 서버는 보통 단독입니다.** 데이터베이스 와이어 프로토콜은 트레이스 컨텍스트를 전달하지 않으므로, 호출자가 같은 노드에서 실행되지 않는 한 OBI가 데이터베이스 서버 안에서 명령마다 기록하는 스팬은 스팬 하나짜리 트레이스가 됩니다.
 
@@ -502,15 +575,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `networkInterZoneMetrics` | 꺼짐 | 네트워크 메트릭의 영역 간 변형(카디널리티가 두 배가 됨) |
 | `tcpStats` | 켜짐 | 노드 수준 TCP 왕복 시간, 연결 실패, 재전송 카운터 |
 
-서비스 간 트레이스 컨텍스트 전파는 기본적으로 꺼져 있습니다. OBI가 W3C `traceparent`를 삽입해, Pod A에서 Pod B로 넘어가는 요청을 어디에도 SDK 없이 하나의 트레이스로 보여 주는 기능입니다. `--set ebpf.contextPropagation=true`로 옵트인하세요. 에이전트의 나머지 부분에 필요한 것 이상의 커널은 필요 없으며, 이 기능을 무력화하는 커널 버전도 없습니다.
+서비스 간 트레이스 컨텍스트 전파는 기본적으로 켜져 있습니다. OBI가 W3C `traceparent`를 삽입해, Pod A에서 Pod B로 넘어가는 요청을 어디에도 SDK 없이 하나의 트레이스로 보여 주는 기능입니다. 끄려면 `--set ebpf.contextPropagation=false`를 사용하세요. 에이전트의 나머지 부분에 필요한 것 이상의 커널은 필요 없으며, 이 기능을 무력화하는 커널 버전도 없습니다.
 
-이 기능이 꺼져 있는 이유는 헤더를 삽입하려면 이미 전송 중인 트래픽을 다시 써야 하기 때문입니다. 일반 텍스트 HTTP 요청은 커널 안에서 그 자리에서 늘어나고, TLS와 원시 TCP에는 Traffic Control 훅에서 TCP 옵션이 덧붙습니다. 연결의 바이트 계산이 정확히 보정되지 않으면 스트림이 어긋나며, 보고된 증상은 nginx 같은 L7 프록시를 거치는 전송이 응답이 약 64KB를 넘는 시점에 본문 중간에서 멈추고 작은 요청은 계속 작동하는 것입니다. 커널이 오래되었다는 이유로 이 가능성을 배제하지 마세요. 커널 5.17 미만에서 OBI는 범위가 제한된 스캔 프로그램으로 전환해 똑같이 트래픽을 다시 씁니다. 트레이스, RED 메트릭, 서비스 맵은 이 기능에 의존하지 않습니다. 서비스 간 연결에는 커널에서 다시 쓰지 않고 사용자 공간에서 `traceparent`를 전파하는 OpenTelemetry SDK가 더 안전한 선택입니다.
+헤더를 삽입하려면 이미 전송 중인 트래픽을 다시 써야 합니다. 일반 텍스트 HTTP 요청은 커널 안에서 그 자리에서 늘어나고, TLS와 원시 TCP에는 Traffic Control 훅에서 TCP 옵션이 덧붙습니다. 연결의 바이트 계산이 정확히 보정되지 않으면 스트림이 어긋나며, 보고된 증상은 nginx 같은 L7 프록시를 거치는 전송이 응답이 약 64KB를 넘는 시점에 본문 중간에서 멈추고 작은 요청은 계속 작동하는 것입니다. 커널이 오래되었다는 이유로 이 가능성을 배제하지 마세요. 커널 5.17 미만에서 OBI는 범위가 제한된 스캔 프로그램으로 전환해 똑같이 트래픽을 다시 씁니다. 이 증상이 보이거나, 서비스 메시나 eBPF 네트워크 플러그인 때문에 Pod가 실패하기 시작하면 전파를 끄세요. 트레이스, RED 메트릭, 서비스 맵은 이 기능에 의존하지 않으며, OpenTelemetry SDK는 커널에서 다시 쓰지 않고 사용자 공간에서 `traceparent`를 전파합니다. `--reuse-values`로 업그레이드한 에이전트는 기존 값을 그대로 유지하는데, 이전 차트는 이 기능을 끈 상태로 제공했습니다. 새 기본값을 적용하려면 `--reset-then-reuse-values`로 업그레이드하세요.
 
 ## Kubernetes AI 에이전트
 
 이 클러스터에서 인시던트나 알림이 발생하면 OneUptime AI가 조사합니다. 차트의 **Kubernetes AI 에이전트**는 AI에게 터미널을 줍니다. 온콜 엔지니어처럼 읽기 전용 `kubectl`을 실행하고(실패하는 Pod를 describe하고, 이벤트를 읽고, 크래시하는 컨테이너의 로그를 tail하고, 노드 용량을 확인), 실행한 모든 명령을 인시던트 페이지에 인용합니다.
 
-에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI Insights** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.4)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, 자동 수정 규칙의 명령 Runner로도 받아들이지 않습니다.
+에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI Insights** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.5)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, 자동 수정 규칙의 명령 Runner로도 받아들이지 않습니다.
 
 AI 에이전트가 생기기 전에 설치한 에이전트에서는 먼저 차트 인덱스를 새로 고친 다음 업그레이드하세요(자체 호스팅 OneUptime에서는 OneUptime을 먼저 업그레이드하세요. [에이전트 업그레이드](#에이전트-업그레이드) 참조):
 
@@ -602,7 +675,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **저절로 해소되는 거부** — 이전 에이전트 Pod가 아직 보고하고 있거나(정상 종료 없이 교체된 Pod), 업그레이드 중에 이전 클러스터 내 Runner가 아직 종료되고 있는 경우입니다. 에이전트는 서버가 알려 주는 대기 시간 뒤에 다시 시도합니다.
 - **조치가 필요한 거부** — `clusterName`이 비어 있거나 너무 긴 경우, 또는 프로젝트가 AI 에이전트 한도에 도달한 경우입니다. 로그에 바꿀 내용이 나옵니다. 에이전트가 전혀 연결되지 않고 로그에 `Another Kubernetes AI agent for cluster "<name>" is online`이 나오면 두 설치가 하나의 `clusterName`을 공유하는 것입니다(AI 에이전트 페이지에서도 경고합니다). 이미 연결된 쪽이 실행되는 동안 계속 유지하므로, 클러스터마다 고유한 `clusterName`을 주거나 여분의 릴리스를 제거하세요. **Pinned Service Name**이 있는 수집 키로는 에이전트를 등록할 수 없습니다. 차트에는 그것이 없는 키를 주세요.
 
-AI 에이전트 페이지에서 에이전트 상태 옆 **⋯** 메뉴의 **에이전트 재설정**은 확인 후 서버가 에이전트의 키를 잊게 합니다(Project Owner, Project Admin, 또는 **Edit Auto Remediation Rule** 권한이 있으면 할 수 있습니다). Pod는 몇 분 안에 스스로 다시 연결합니다. 에이전트의 준비 상태는 OneUptime에 의존하지 않으므로, 잘못 구성된 AI 에이전트가 `helm upgrade --wait`를 실패시키는 일은 없습니다. 실패시키는 것은 이미지를 가져올 수 없는 Pod뿐입니다.
+AI 에이전트 페이지에서 에이전트 상태 옆 **⋯** 메뉴의 **에이전트 재설정**은 확인 후 서버가 에이전트의 키를 잊게 합니다(Project Owner, Project Admin, 또는 **Edit Auto Remediation Rule** 권한이 있으면 편집할 수 있는 클러스터에서 할 수 있습니다). Pod는 몇 분 안에 스스로 다시 연결합니다. 에이전트의 준비 상태는 OneUptime에 의존하지 않으므로, 잘못 구성된 AI 에이전트가 `helm upgrade --wait`를 실패시키는 일은 없습니다. 실패시키는 것은 이미지를 가져올 수 없는 Pod뿐입니다.
 
 ## 에이전트 업그레이드
 
@@ -866,7 +939,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 효과 측정
 
-텔레메트리 사용량은 하루 단위로 집계되므로 하루나 이틀에 걸쳐 **프로젝트 설정 → 사용 기록**에서 추세를 확인하세요. 변경을 적용하는 순간 바로 바뀌지 않습니다. 각 설정이 무엇을 했는지 알 수 있도록 한 번에 하나씩 바꾸세요(로그 끄기, 다음에 간격 늘리기, 다음에 eBPF 줄이기). 모든 것을 한꺼번에 줄이면 의지하던 모니터를 잃을 수 있습니다.
+텔레메트리 사용량은 하루 단위로 집계되므로 하루나 이틀에 걸쳐 **프로젝트 설정 → 결제 및 청구서 → 사용 기록**에서 추세를 확인하세요. 변경을 적용하는 순간 바로 바뀌지 않습니다. 각 설정이 무엇을 했는지 알 수 있도록 한 번에 하나씩 바꾸세요(로그 끄기, 다음에 간격 늘리기, 다음에 eBPF 줄이기). 모든 것을 한꺼번에 줄이면 의지하던 모니터를 잃을 수 있습니다.
 
 ## 문제 해결
 

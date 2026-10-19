@@ -38,7 +38,7 @@ flowchart TB
 
 如果想改用你自己的 API 金鑰或某個特定模型，請依下文新增你自己的提供者：在你自己的提供者上執行的 AI 不會向你收費。
 
-全域 LLM 提供者的費用從專案的 AI 額度中支付。要限制 AI 每天能花費的金額，請在 **專案設定 → AI Features → 更多設定** 下設定 **每日 AI 支出限制 (USD)**；那裡的 **每日 AI Token 限制** 會限制任何提供者上的權杖，包括你自己的提供者。請參閱 [專案自身的每日限制](/docs/ai/ai-sre#專案自身的每日限制)。
+全域 LLM 提供者的費用從專案的 AI 額度中支付。要限制 AI 每天能花費的金額，請在 **專案設定 → 人工智慧 → AI Features → 更多設定** 下設定 **每日 AI 支出限制 (USD)**；那裡的 **每日 AI Token 限制** 會限制任何提供者上的權杖，包括你自己的提供者。請參閱 [專案自身的每日限制](/docs/ai/ai-sre#專案自身的每日限制)。
 
 OneUptime Cloud 只能連到公用網際網路上的 LLM 端點。它無法連線到你私人網路中的模型，例如自行託管的 Ollama 或 vLLM 伺服器。要使用你自己執行的模型，請在能夠連到該模型的網路中自行託管 OneUptime，或把模型發布到公用端點：請參閱 [為自行託管的模型選擇基底 URL](#為自行託管的模型選擇基底-url)。
 
@@ -93,19 +93,19 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=gpt-5.1
 
 前往 **專案設定 → 人工智慧 → LLM 提供商**（側邊選單的 **人工智慧** 區段預設是收合的），然後點選 **建立LLM 提供商**。
 
-### 為提供者命名
+### 選擇提供者
 
-在 **基本資訊** 中，為它取一個能說明用途的 **名稱**，例如 "Production OpenAI" 或 "Local Ollama"，也可以填寫 **描述**。
+在 **提供者** 中選擇你的 **LLM 提供商**：OpenAI、Anthropic、Azure OpenAI / Microsoft Foundry、Groq、Mistral、Ollama 和任何 OpenAI 相容伺服器各有一張卡片，每張都用一行說明它是什麼。
 
-### 填寫提供者的設定
+### 建立連線
 
-在 **供應商設定** 中：
+在 **連線** 中，表單只詢問該提供者用到的內容，每個欄位下方都有對應的說明：
 
-- **LLM 提供商**：提供者的類型（OpenAI、Azure OpenAI / Microsoft Foundry、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
-- **API 金鑰**：你的 API 金鑰（OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需；Ollama 和 OpenAI 相容伺服器選填）
-- **模型名稱**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`
-- **基底 URL**：端點，Azure OpenAI、Ollama 和 OpenAI Compatible 必需；其他提供者選填，用於覆寫其預設值
-- **更多欄位**，收合在上述欄位下方：**設為預設**，新提供者預設開啟，因為 AI 功能只使用專案的預設提供者；以及 **其他參數**，一個選填的 JSON 物件，其中的額外參數會隨每個請求傳送給提供者（例如 `{"temperature": 0.2}`）
+- **API 金鑰**：你的 API 金鑰，OpenAI、Azure OpenAI、Anthropic、Groq 和 Mistral 必需，OpenAI 相容伺服器選填；Ollama 不需要填寫
+- **基底 URL**：端點，Azure OpenAI、Ollama 和 OpenAI Compatible 必需；其他提供者僅在經由代理或閘道時填寫
+- **模型名稱**：要使用的模型，例如 `gpt-5.1`、`claude-sonnet-5-5` 或 `llama3.1`。留空時，OneUptime 使用提供者的預設模型；OpenAI 相容伺服器除外，它必須填寫
+- **名稱**：在你輸入自己的名稱之前，沿用提供者的名稱，例如 "Production OpenAI" 或 "Local Ollama"
+- **更多欄位**，收合在上述欄位下方：**描述**；**設為預設**，新提供者預設開啟，因為 AI 功能只使用專案的預設提供者；以及 **其他參數**，一個選填的 JSON 物件，其中的額外參數會隨每個請求傳送給提供者（例如 `{"temperature": 0.2}`）
 
 **誰可以看到提供者。** 專案的 LLM 提供者只有能讀取專案設定的成員才能讀取：**Project Owner**、**Project Admin**、**Project Member**、**Viewer**、**Settings Admin**、**Settings Member**、**Settings Viewer** 和 **Read LLM**。提供者的 **API 金鑰** 和 **其他參數** 只有專案的擁有者和管理員才能讀取，因為參數會隨每個請求傳送給提供者，而且可能像金鑰一樣帶有權杖或標頭。其他成員只能看到是否儲存了參數，而看不到參數內容。可以編輯提供者的成員仍然可以在不讀取的情況下替換其 API 金鑰或參數：在編輯表單中這些欄位一開始是空的，留空則保留已儲存的值。要刪除參數，請儲存 `{}`。只有專案的擁有者和管理員才能修改提供者的 **基底 URL**，因為它的 API 金鑰和其他參數會被傳送到該位址；其他可以編輯提供者的成員可以修改其餘所有內容。任何能讀取提供者的人都能讀取它的 **基底 URL**，所以絕不要在其中放入金鑰、權杖或密碼：請使用 **API 金鑰**。同一頁面上的 **全域 LLM 供應商** 清單（專案改用的共用提供者）會向任何已登入的人顯示它們的名稱、描述和價格，此外不顯示任何資訊。
 

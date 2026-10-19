@@ -18,9 +18,9 @@ sequenceDiagram
     participant P as प्रोब
     participant A as आपका API
     participant O as OneUptime
-    P->>A: आपके मेथड, हेडर और बॉडी के साथ अनुरोध
+    P->>A: आपके मेथड, हेडर और<br/>बॉडी के साथ अनुरोध
     A-->>P: स्टेटस कोड, हेडर और बॉडी
-    Note over P: विफलता, 4xx या 5xx,<br/>या 10 s से धीमे जवाब को दोहराता है
+    Note over P: विफलता, 4xx या 5xx,<br/>या 10 s से धीमे<br/>जवाब को दोहराता है
     P->>O: जांच का परिणाम
     O->>O: मानदंड ऊपर से नीचे जांचें
 ```

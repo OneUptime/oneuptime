@@ -90,6 +90,8 @@ import Select from "Common/Types/BaseDatabase/Select";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
+import { TelemetryFirstStepsSignal } from "../Telemetry/TelemetryFirstSteps";
 import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
 import useResultTotal, {
   ResultTotalListAnswer,
@@ -186,6 +188,13 @@ export interface ComponentProps {
   sessionIds?: Array<string> | undefined;
   showFilters?: boolean | undefined;
   noLogsMessage?: string | undefined;
+  /*
+   * The Logs page's explorer: an empty list that no filter or search
+   * narrows offers the setup guide and a longer range instead of "try
+   * adjusting filters" (Telemetry/TelemetryFirstSteps). Embeds leave it
+   * unset and keep their noLogsMessage.
+   */
+  offersSetupWhenEmpty?: boolean | undefined;
   logQuery?: Query<Log> | undefined;
   /*
    * Entity scope with attribute fallback (contract C4): compiles server-side
@@ -806,6 +815,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [appliedFacetFilters, setAppliedFacetFilters] = useState<
     Map<string, Set<string>>
   >(initialUrlState?.facetFilters || new Map());
+
+  /*
+   * The chips as the last chip edit left them, ahead of the render that
+   * shows it. A click on a checked facet value takes off every chip that
+   * lit it, one call each, in the same tick: each call has to start from
+   * the one before it, not from the render both were made in.
+   */
+  const appliedFacetFiltersRef: React.MutableRefObject<
+    Map<string, Set<string>>
+  > = useRef<Map<string, Set<string>>>(appliedFacetFilters);
+  appliedFacetFiltersRef.current = appliedFacetFilters;
 
   // Time range state — single source of truth for histogram, facets, and log query
   const [timeRange, setTimeRange] =
@@ -2142,6 +2162,19 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [filterOptions, disableLiveMode, props.onTimeRangeChange],
   );
 
+  /*
+   * What an empty, unnarrowed list shows on the Logs page: the setup guide
+   * and, on a short range, the past week. Embedded viewers (a service's or a
+   * host's logs) keep the plain empty message.
+   */
+  const firstSteps: ReactElement | undefined = props.offersSetupWhenEmpty ? (
+    <TelemetryFirstStepsEmptyState
+      signal={TelemetryFirstStepsSignal.Logs}
+      timeRange={timeRange}
+      onTimeRangeChange={handleTimeRangeChange}
+    />
+  ) : undefined;
+
   const rebuildFilterOptionsFromFacets: (
     facets: Map<string, Set<string>>,
   ) => Query<Log> = useCallback(
@@ -2166,55 +2199,59 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     [props, timeRange],
   );
 
+  /*
+   * Add a chip: a facet value clicked in the sidebar, or a `key:value` picked
+   * in the search bar. Adding one that is already there changes nothing. It
+   * used to toggle, so picking `severity:error` in the search bar while an
+   * Error chip was applied took the chip off; the sidebar now takes a
+   * checked value off through handleRemoveFilter, the chip's own x.
+   */
   const handleFacetInclude: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string): void => {
-        const nextFilters: Map<string, Set<string>> = new Map(
-          Array.from(appliedFacetFilters.entries()).map(
-            ([k, v]: [string, Set<string>]) => {
-              return [k, new Set(v)] as [string, Set<string>];
-            },
-          ),
-        );
+        const current: Map<
+          string,
+          Set<string>
+        > = appliedFacetFiltersRef.current;
 
-        const currentValues: Set<string> | undefined =
-          nextFilters.get(facetKey);
-
-        if (currentValues && currentValues.has(value)) {
-          // Toggle off: remove this value
-          currentValues.delete(value);
-
-          if (currentValues.size === 0) {
-            nextFilters.delete(facetKey);
-          }
-        } else if (currentValues) {
-          // Add value to the existing set
-          currentValues.add(value);
-        } else {
-          nextFilters.set(facetKey, new Set([value]));
+        if (current.get(facetKey)?.has(value)) {
+          return;
         }
 
+        const nextFilters: Map<string, Set<string>> = new Map(
+          Array.from(current.entries()).map(([k, v]: [string, Set<string>]) => {
+            return [k, new Set(v)] as [string, Set<string>];
+          }),
+        );
+
+        nextFilters.set(
+          facetKey,
+          new Set([...Array.from(nextFilters.get(facetKey) || []), value]),
+        );
+
+        appliedFacetFiltersRef.current = nextFilters;
         setAppliedFacetFilters(nextFilters);
         setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
         setPage(1);
         disableLiveMode();
       },
-      [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
+      [disableLiveMode, rebuildFilterOptionsFromFacets],
     );
 
-  const handleFacetExclude: (_facetKey: string, _value: string) => void =
-    useCallback((_facetKey: string, _value: string): void => {
-      /*
-       * Exclusion filters are not yet supported in the Query type.
-       * This is a placeholder for future NOT-filter support.
-       */
-    }, []);
+  /*
+   * No exclude for logs: the list could leave a value out, but the chart
+   * and the facet counts beside it are read through endpoints that take
+   * only values to keep (severityTexts, serviceIds, resourceFilters), so an
+   * exclusion would draw bars and counts for rows the list no longer shows.
+   * Without a handler the sidebar shows no exclude button at all; typing
+   * `-severity:debug` still leaves rows out of the list.
+   */
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
     useCallback(
       (facetKey: string, value: string): void => {
         const nextFilters: Map<string, Set<string>> = new Map(
-          Array.from(appliedFacetFilters.entries()).map(
+          Array.from(appliedFacetFiltersRef.current.entries()).map(
             ([k, v]: [string, Set<string>]) => {
               return [k, new Set(v)] as [string, Set<string>];
             },
@@ -2234,15 +2271,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           nextFilters.delete(facetKey);
         }
 
+        appliedFacetFiltersRef.current = nextFilters;
         setAppliedFacetFilters(nextFilters);
         setFilterOptions(rebuildFilterOptionsFromFacets(nextFilters));
         setPage(1);
         disableLiveMode();
       },
-      [appliedFacetFilters, disableLiveMode, rebuildFilterOptionsFromFacets],
+      [disableLiveMode, rebuildFilterOptionsFromFacets],
     );
 
   const handleClearAllFilters: () => void = useCallback((): void => {
+    appliedFacetFiltersRef.current = new Map();
     setAppliedFacetFilters(new Map());
     const base: Query<Log> = buildBaseQuery(props);
     const dateRange: InBetween<Date> =
@@ -2941,6 +2980,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           logs={logs}
           showFilters={props.showFilters}
           noLogsMessage={props.noLogsMessage}
+          emptyContentWhenUnfiltered={firstSteps}
           totalCount={totalCount}
           hasMore={resultTotalListAnswer?.page.hasMore}
           resultTotal={resultTotal}
@@ -2969,7 +3009,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           facetData={facetData}
           facetLoading={facetLoading || awaitsInitialSavedView}
           onFacetInclude={handleFacetInclude}
-          onFacetExclude={handleFacetExclude}
           onFacetSearchChange={(facetKey: string, text: string) => {
             setFacetSearchText(
               (prev: Record<string, string>): Record<string, string> => {

@@ -8,8 +8,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
 import StatusPageUtil from "../../Utils/StatusPage";
 import {
+  canRenderStatusPageCustomHtml,
   canUseStatusPageCustomizations,
   getPermittedStatusPageCustomization,
+  releaseCredentialsBeforeCustomCode,
 } from "../../Utils/StatusPageCustomizations";
 import Banner from "../Banner/Banner";
 import Footer from "../Footer/Footer";
@@ -32,6 +34,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -40,6 +43,8 @@ import { useTranslation } from "react-i18next";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import { applyStatusPageLanguageSettings } from "../../Utils/i18n";
+import StatusPageThemeUtil from "../../Utils/StatusPageTheme";
+import { parseStatusPageTheme } from "Common/Types/StatusPage/StatusPageTheme";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -85,6 +90,52 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     allowStatusPageCustomizations: allowStatusPageCustomizations,
     isPreview: props.isPreview,
   });
+
+  /*
+   * Pages shown on their own, without the page's header, navigation and
+   * footer: the sign-in pages, and the unsubscribe page, which a subscriber
+   * of a private status page reaches without signing in and which must show
+   * them nothing of the page but its name and logo.
+   */
+  const isShownOnItsOwn: boolean =
+    Navigation.getCurrentRoute().toString().includes("login") ||
+    Navigation.getCurrentRoute().toString().includes("forgot-password") ||
+    Navigation.getCurrentRoute().toString().includes("reset-password") ||
+    Navigation.getCurrentRoute().toString().includes("sso") ||
+    Navigation.getCurrentRoute().toString().includes("forbidden") ||
+    Navigation.getCurrentRoute().toString().includes("master-password") ||
+    Navigation.getCurrentRoute().toString().includes("/unsubscribe");
+
+  /*
+   * The page's custom header and footer HTML, where it may show: never on a
+   * page that works with a credential from a link (a subscription's manage
+   * page), since custom HTML can run script (canRenderStatusPageCustomHtml).
+   */
+  const canRenderCustomHtml: boolean = canRenderStatusPageCustomHtml({
+    context: {
+      allowStatusPageCustomizations: allowStatusPageCustomizations,
+      isPreview: props.isPreview,
+    },
+    pathname: Navigation.getCurrentRoute().toString(),
+  });
+
+  const showsCustomHtml: boolean =
+    !isShownOnItsOwn &&
+    canRenderCustomHtml &&
+    Boolean(headerHtml || footerHtml);
+
+  /*
+   * Before that HTML is in the page - before any script it carries can run -
+   * the tab lets go of the credential a link left with it: leaving the manage
+   * page for the rest of the page drops it (releaseCredentialsBeforeCustomCode).
+   * A layout effect, so it runs in the same task as the render that adds the
+   * HTML, ahead of any of its handlers.
+   */
+  useLayoutEffect(() => {
+    if (showsCustomHtml) {
+      releaseCredentialsBeforeCustomCode();
+    }
+  }, [showsCustomHtml]);
 
   useEffect(() => {
     if (!loginCode || !statusPageId || loginCodeExchangeStarted.current) {
@@ -226,6 +277,12 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
       setStatusPage(statusPage);
 
+      /*
+       * The page's theme, from its settings: what the server sent the page's
+       * HTML in when it could read them, and the light page otherwise.
+       */
+      StatusPageThemeUtil.setPageTheme(parseStatusPageTheme(statusPage.theme));
+
       // Apply language settings (default language + enabled languages).
       applyStatusPageLanguageSettings({
         defaultLanguage: statusPage.defaultLanguage || null,
@@ -282,21 +339,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     );
   }
 
-  /*
-   * Pages shown on their own, without the page's header, navigation and
-   * footer: the sign-in pages, and the unsubscribe page, which a subscriber
-   * of a private status page reaches without signing in and which must show
-   * them nothing of the page but its name and logo.
-   */
-  if (
-    Navigation.getCurrentRoute().toString().includes("login") ||
-    Navigation.getCurrentRoute().toString().includes("forgot-password") ||
-    Navigation.getCurrentRoute().toString().includes("reset-password") ||
-    Navigation.getCurrentRoute().toString().includes("sso") ||
-    Navigation.getCurrentRoute().toString().includes("forbidden") ||
-    Navigation.getCurrentRoute().toString().includes("master-password") ||
-    Navigation.getCurrentRoute().toString().includes("/unsubscribe")
-  ) {
+  if (isShownOnItsOwn) {
     return <div className="flex min-h-screen flex-col">{props.children}</div>;
   }
 
@@ -351,7 +394,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
           className="flex grow flex-col"
         >
           <>
-            {!canRenderCustomizations || !headerHtml ? (
+            {!canRenderCustomHtml || !headerHtml ? (
               <Header
                 logo={logo}
                 logoAltText={
@@ -406,7 +449,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             >
               {props.children}
             </main>
-            {!canRenderCustomizations || !footerHtml ? (
+            {!canRenderCustomHtml || !footerHtml ? (
               <Footer
                 hidePoweredByOneUptimeBranding={hidePoweredByOneUptimeBranding}
                 enabledLanguages={statusPage?.enabledLanguages || null}

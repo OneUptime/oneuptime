@@ -1079,9 +1079,20 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
       expect(getRepository).not.toHaveBeenCalled();
     });
 
-    it("still answers an API key with the hook's 400", async () => {
-      await expect(
-        UserOnCallShiftReminderService.create({
+    it("still refuses an API key - a key has no account of its own - and now before the hook", async () => {
+      /*
+       * A shift reminder is a person's own: only the Current User grant
+       * lets anyone create one, and a key carrying it names no person. That
+       * is refused before the hook runs now, with the words the create's
+       * final check used to refuse it with after the hook (CreatePermission
+       * .checkCreateInMemberProject), where the hook used to answer first
+       * (400 "userId is required"). Still not the 401 an expired session
+       * gets.
+       */
+      let caught: unknown = undefined;
+
+      try {
+        await UserOnCallShiftReminderService.create({
           data: new UserOnCallShiftReminder(),
           props: {
             userType: UserType.API,
@@ -1090,10 +1101,16 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
               Permission.CurrentUser,
             ]),
           },
-        }),
-      ).rejects.toThrow(new BadDataException("userId is required"));
+        });
+      } catch (error) {
+        caught = error;
+      }
 
-      expect(onBeforeCreate).toHaveBeenCalledTimes(1);
+      expect(caught).toBeInstanceOf(NotAuthorizedException);
+      expect((caught as NotAuthorizedException).message).toBe(
+        "A user session is required to create On-Call Shift Reminder.",
+      );
+      expect(onBeforeCreate).not.toHaveBeenCalled();
       expect(getRepository).not.toHaveBeenCalled();
     });
   });
@@ -1193,9 +1210,17 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
       expect(getRepository).not.toHaveBeenCalled();
     });
 
-    it("still answers an API key that names no owner with the hook's 400", async () => {
-      await expect(
-        UserNotificationRuleService.create({
+    it("still refuses an API key that names no owner - and now before the hook", async () => {
+      /*
+       * A key holding only the Current User grant names no person to own
+       * the rule: refused before the hook now (CreatePermission
+       * .checkCreateInMemberProject), where the hook used to answer first
+       * (400 "A notification rule must belong to a user.").
+       */
+      let caught: unknown = undefined;
+
+      try {
+        await UserNotificationRuleService.create({
           data: new UserNotificationRule(),
           props: {
             userType: UserType.API,
@@ -1204,10 +1229,16 @@ describe("hook refusals an anonymous caller used to get are now 401s", () => {
               Permission.CurrentUser,
             ]),
           },
-        }),
-      ).rejects.toThrow("A notification rule must belong to a user.");
+        });
+      } catch (error) {
+        caught = error;
+      }
 
-      expect(onBeforeCreate).toHaveBeenCalledTimes(1);
+      expect(caught).toBeInstanceOf(NotAuthorizedException);
+      expect((caught as NotAuthorizedException).message).toBe(
+        "A user session is required to create Notification Rule.",
+      );
+      expect(onBeforeCreate).not.toHaveBeenCalled();
       expect(getRepository).not.toHaveBeenCalled();
     });
   });

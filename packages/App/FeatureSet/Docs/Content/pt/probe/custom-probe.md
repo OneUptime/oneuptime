@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **A sonda se conecta para fora.** Cada requisição vai da sonda para `ONEUPTIME_URL` por HTTPS. Nada precisa alcançar a sonda de fora da sua rede.
 - **Ela verifica só os próprios monitores.** A sonda pede ao OneUptime os monitores aos quais foi adicionada, verifica cada um quando chega a hora e devolve o resultado. O OneUptime decide pelos resultados se o status de um monitor muda.
-- **O OneUptime acompanha se ela está rodando.** Cada requisição da sonda conta como sinal de vida, e a sonda envia pelo menos uma por minuto. Depois de cerca de três minutos sem nenhuma, a sonda mostra **Desconectado** e seus proprietários são avisados. Uma sonda sem proprietários avisa os proprietários do projeto.
+- **O OneUptime acompanha se ela está rodando.** Cada requisição da sonda conta como sinal de vida, e a sonda envia pelo menos uma por minuto. Depois de cerca de três minutos sem nenhuma, a sonda mostra **Desconectado** e seus proprietários são avisados. Uma sonda sem proprietários avisa os proprietários do projeto. Para ser acionado como em qualquer interrupção, com um único incidente até ela voltar, adicione um [monitor de status de sondas](/docs/monitor/probe-status-monitor): **Monitorar esta sonda**, na página da sonda, cria um.
 
 ## Antes de começar
 
@@ -38,7 +38,7 @@ sequenceDiagram
 :::steps
 ### Criar a sonda
 
-Abra **Monitores → Configurações → Sondas** e clique em **Criar: Sonda**. Dê a ela um **Nome** e uma **Descrição**: ambos são obrigatórios. **Mais campos** contém o **Logotipo da sonda**, **Habilitar monitoramento automaticamente em novos monitores**, que escolhe esta sonda para cada novo monitor que você criar, e os **Rótulos**.
+Abra **Monitores → Configurações → Sondas** e clique em **Criar: Sonda**. Dê a ela um **Nome** e uma **Descrição**: ambos são obrigatórios. **Mais campos** contém o **Logotipo da sonda**, **Adicionar aos novos monitores**, que faz cada novo monitor começar com esta sonda selecionada, e os **Rótulos**.
 
 ### Copiar o ID e a chave
 

@@ -241,12 +241,12 @@ Flödet visar rotationen **som den är inställd nu**, även för tidigare dagar
 - Länkar är per projekt. En läckt personlig länk avslöjar ett projekts pass, inte alla projekt du tillhör.
 - Att skapa en länk på nytt flyttar den gamla token till en frist på 30 dagar (tom kalender, sedan 404). **Inaktivera länk** levererar en tom kalender. En okänd eller utgången länk ger en ren 404 utan ledtråd. Tomma kalendrar får prenumererande appar att tömma sin kopia; en 404 får dem att behålla den, och därför levererar inaktivering och ny länk tomma kalendrar.
 - Token lagras hashade; kopian som visas på inställningssidan är krypterad med `ENCRYPTION_SECRET`. Ställ in den variabeln på en riktig hemlighet i en egen installation — servern varnar vid start när den inte är inställd eller fortfarande är en av platshållarna som det här kodförrådet levererar (`secret`, eller den `please-change-this-to-random-value` som `config.example.env` anger). Om du ändrar den senare erbjuder sidan **Skapa länken på nytt**, eftersom den lagrade kopian inte längre kan läsas; flödet fortsätter att fungera tills du gör det.
-- Flödessvar är märkta `Cache-Control: private`, utesluts från sökmotorer (`X-Robots-Tag: noindex`) och har en hastighetsgräns per länk och per klientadress.
+- Flödessvar är märkta `Cache-Control: private`, utesluts från sökmotorer (`X-Robots-Tag: noindex`) och har en hastighetsgräns per länk och per klientadress, och per IPv6-/64 med tio gånger en adress gränser.
 
 OneUptimes egen Nginx håller flödesförfrågningar borta från sina loggar:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;
@@ -319,7 +319,7 @@ Antingen är `DISABLE_ON_CALL_CALENDAR_FEED` inställd, eller så är servern up
 :::
 
 :::details 429 eller "too many requests"
-Många klienter bakom en adress — ett kontors-NAT, en VPN-gateway — delar budgeten per adress. Höj `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` och kontrollera `TRUSTED_PROXY_HOPS`: när den är för låg tillskrivs varje klient din egen proxy, och alla delar en budget.
+Många klienter bakom en adress — ett kontors-NAT, en VPN-gateway — delar budgeten per adress. Klienterna i ett IPv6-/64 delar också tio gånger den budgeten. Höj `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` och kontrollera `TRUSTED_PROXY_HOPS`: när den är för låg tillskrivs varje klient din egen proxy, och alla delar en budget.
 :::
 
 :::details Certifikatfel i Apple Kalender, Thunderbird eller Outlook

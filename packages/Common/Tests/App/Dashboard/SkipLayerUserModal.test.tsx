@@ -179,7 +179,7 @@ const PEOPLE: Record<string, { name: string; email: string }> = {
 
 // The description: what the fields do not say, true whoever covers.
 const DESCRIPTION: string =
-  "This applies to every on-call policy. When it ends, they are back in their usual place in the rotation. To end it early, delete it under On-Call Duty > Advanced > User Overrides.";
+  "This applies to every on-call policy. To end it early, delete it under On-Call Duty > Advanced > User Overrides.";
 
 // The dialog opens at 12:34 on 3 March 2026, UTC.
 const NOW: Date = OneUptimeDate.fromString("2026-03-03T12:34:00.000Z");

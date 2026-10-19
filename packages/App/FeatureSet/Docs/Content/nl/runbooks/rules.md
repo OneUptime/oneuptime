@@ -9,7 +9,7 @@ Runbook-regels starten runbooks automatisch wanneer een **incident**, een **waar
 Alle drie de pagina's bewerken hetzelfde soort regel, gefilterd op de regels van dat product.
 
 :::cards
-- [Een runbook-regel maken](#een-runbook-regel-maken): Vier stappen: een naam, voorwaarden en de te starten runbooks.
+- [Een runbook-regel maken](#een-runbook-regel-maken): Drie stappen: voorwaarden, daarna de te starten runbooks, waarnaar de regel wordt genoemd.
 - [Voorwaarden](#voorwaarden): Elk criterium en elke operator die een regel kan gebruiken.
 - [Matchlogica](#matchlogica): Meerdere regels, monitorvoorwaarden en labelregels.
 - [Voorbeelden](#voorbeelden): Drie regels om over te nemen.
@@ -19,15 +19,15 @@ Alle drie de pagina's bewerken hetzelfde soort regel, gefilterd op de regels van
 
 ```mermaid title="Van een nieuw incident naar gestarte runbooks"
 flowchart TB
-    created["Incident, waarschuwing of evenement ontstaat"] --> labels["Labelregels voegen hun labels toe"]
-    labels --> rules["Ingeschakelde runbook-regels van dat product"]
-    rules --> match{"Voldoen de voorwaarden?"}
-    match -->|"nee"| nothing["De regel start niets"]
-    match -->|"ja"| union["Runbooks van alle overeenkomende regels, elk één keer"]
-    union --> runnable{"Runbook ingeschakeld en met stappen?"}
-    runnable -->|"nee"| skipped["Dat runbook wordt overgeslagen"]
-    runnable -->|"ja"| execution["Uitvoering gemaakt en in de wachtrij gezet"]
-    execution --> attached["Getoond op de Runbooks-pagina van het evenement"]
+    created["Incident,<br/>waarschuwing of<br/>evenement ontstaat"] --> labels["Labelregels voegen<br/>hun labels toe"]
+    labels --> rules["Ingeschakelde<br/>runbook-regels<br/>van dat product"]
+    rules --> match{"Voldoen de<br/>voorwaarden?"}
+    match -->|"nee"| nothing["De regel<br/>start niets"]
+    match -->|"ja"| union["Runbooks van alle<br/>overeenkomende<br/>regels,<br/>elk één keer"]
+    union --> runnable{"Runbook<br/>ingeschakeld<br/>en met stappen?"}
+    runnable -->|"nee"| skipped["Dat runbook wordt<br/>overgeslagen"]
+    runnable -->|"ja"| execution["Uitvoering<br/>gemaakt en in de<br/>wachtrij gezet"]
+    execution --> attached["Getoond op de<br/>Runbooks-pagina<br/>van het evenement"]
 ```
 
 Wanneer een regel afgaat, gebeurt voor elk runbook dat hij noemt het volgende:
@@ -51,27 +51,23 @@ Elke uitvoering, door een regel gestart of niet, ziet u onder **Runbooks → Uit
 
 Open in **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** de pagina **Regels → Runbook-regels** en klik op **Runbook Rule aanmaken**.
 
-### De regel een naam geven
-
-Voer onder **Basisinformatie** een **Naam** in, zoals "DB-failover starten voor database-incidenten", en eventueel een **Beschrijving**.
-
 ### Voorwaarden toevoegen
 
-Klik onder **Overeenkomstcriteria** op **Voorwaarde toevoegen**, kies een criterium en een operator en voer de waarde in of kies die. Voeg zo nodig meer voorwaarden toe en kies **Voldoet aan alle** of **Voldoet aan één**. Voeg er geen toe om de runbooks bij elk nieuw evenement van deze soort te starten.
+Onder **Overeenkomst** begint **Geldt voor** bij elk nieuw evenement van deze soort, bijvoorbeeld **Alle incidenten**, en de regel start zijn runbooks voor elk ervan. Om de regel in te perken, kies het andere antwoord, bijvoorbeeld **Alleen incidenten die aan de voorwaarden voldoen**, kies dan een criterium en een operator en voer de waarde in of kies die. Klik op **Voorwaarde toevoegen** voor meer voorwaarden en kies **Voldoet aan alle** of **Voldoet aan één**.
 
 ### De runbooks kiezen
 
-Kies onder **Runbooks** een of meer **Te starten runbooks** en klik op **Runbook Rule aanmaken**. De regel is actief zodra hij is gemaakt en verschijnt in de lijst met de status **Ingeschakeld**.
+Kies onder **Runbooks** een of meer **Te starten runbooks**. De **Naam** van de regel volgt ze, zoals "Database failover starten", totdat je zelf een naam typt, en een **Beschrijving** wacht onder **Meer velden**. Klik op **Runbook Rule aanmaken**. De regel is actief zodra hij is gemaakt en verschijnt in de lijst met de status **Ingeschakeld**.
 :::
 
 ## Opbouw van een regel
 
 | Veld | Doel |
 | --- | --- |
-| **Naam** | Een korte, duidelijke naam voor de regel. |
-| **Beschrijving** | Optionele context voor teamgenoten. |
+| **Naam** | Genoemd naar de runbooks die de regel start, zoals "Database failover starten", totdat je zelf een naam typt. |
+| **Beschrijving** | Optionele context voor teamgenoten, onder **Meer velden**. |
 | **Ingeschakeld** | Aan voor een nieuwe regel. Zet het uit in het bewerkformulier van de regel om haar te pauzeren zonder haar te verwijderen. |
-| **Voorwaarden** | Waarop de regel matcht, in de stap **Overeenkomstcriteria**. Laat leeg om bij elk evenement van haar type te matchen. |
+| **Voorwaarden** | Waarop de regel matcht, in de stap **Overeenkomst**. Een regel zonder voorwaarden, bijvoorbeeld op **Alle incidenten**, matcht bij elk evenement van haar type. |
 | **Te starten runbooks** | Een of meer runbooks die starten wanneer de regel afgaat. |
 
 ## Voorwaarden

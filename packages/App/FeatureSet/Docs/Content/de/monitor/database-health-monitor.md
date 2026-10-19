@@ -50,12 +50,12 @@ Bei jeder Prüfung macht eine Sonde Folgendes:
 
 ```mermaid title="Eine Prüfung, und der einzige Schritt, der den Monitor offline nehmen kann"
 flowchart TB
-    connect["Mit der Datenbank verbinden"] --> probe{"Testabfrage OK?"}
+    connect["Mit der Datenbank<br/>verbinden"] --> probe{"Testabfrage OK?"}
     probe -->|"Nein"| offline["Monitor offline"]
-    probe -->|"Ja"| groups["Jede Metrikgruppe ausführen"]
+    probe -->|"Ja"| groups["Jede Metrikgruppe<br/>ausführen"]
     groups --> group{"Gruppe erfasst?"}
     group -->|"Ja"| metrics["Metriken gemeldet"]
-    group -->|"Nein"| issue["Metriken fehlen, Problem vermerkt"]
+    group -->|"Nein"| issue["Metriken fehlen,<br/>Problem vermerkt"]
     metrics --> criteria["Kriterien ausgewertet"]
     issue --> criteria
 ```
@@ -168,7 +168,7 @@ Wählen Sie den **Datenbanktyp** und füllen Sie dann Host, Port, Datenbankname 
 
 ### Auswählen, was erfasst wird
 
-Lassen Sie jede Gruppe unter **Metrikgruppen** eingeschaltet, sofern Sie keinen Grund haben, eine auszuschalten — siehe [Metrikgruppen](#metrikgruppen).
+Jede Gruppe unter **Metrikgruppen**, in **Weitere Felder**, ist anfangs eingeschaltet. Lassen Sie sie eingeschaltet, sofern Sie keinen Grund haben, eine auszuschalten — siehe [Metrikgruppen](#metrikgruppen).
 
 ### Die Verbindung testen
 
@@ -191,13 +191,14 @@ Wählen Sie die **Sonden**, die die Datenbank erreichen, und ein **Überwachungs
 | **Host** | Der von der Sonde erreichbare Datenbank-Host (zum Beispiel `db.internal`). |
 | **Port** | Der Port der Datenbank. |
 | **Datenbankname** | Die Datenbank, mit der verbunden wird. Datenbankbezogene Metriken (Größe, Cache-Trefferquote, Auslagerung in temporäre Dateien) werden für diese Datenbank gemeldet; serverbezogene Metriken (Verbindungen, Betriebszeit, Replikation) für den ganzen Server — außer auf Azure SQL Database, wo Verbindungen nur für die überwachte Datenbank gezählt werden. |
-| **Integrierte Windows-Authentifizierung verwenden** | Nur Microsoft SQL Server. Mit der Identität des Sondenprozesses statt mit Benutzername und Passwort authentifizieren. Siehe [Integrierte Windows-Authentifizierung](/docs/monitor/sql-monitor#integrierte-windows-authentifizierung) auf der Seite zum SQL-Abfrage-Monitor — die Einrichtung ist identisch. |
+| **Authentifizierung** | Nur Microsoft SQL Server: **Benutzername und Passwort**, die Voreinstellung, oder **Integrierte Windows-Authentifizierung**, die sich als Sondenprozess anmeldet. Siehe [Integrierte Windows-Authentifizierung](/docs/monitor/sql-monitor#integrierte-windows-authentifizierung) auf der Seite zum SQL-Abfrage-Monitor — die Einrichtung ist identisch. |
 | **Benutzername** | Der Überwachungsbenutzer. Erforderlich, es sei denn, Sie nutzen die integrierte Windows-Authentifizierung. |
 | **Passwort** | Das Passwort. Verweisen Sie mit `{{monitorSecrets.name}}` auf ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets), statt es im Klartext einzutippen (siehe [Ein Monitor-Geheimnis verwenden](#ein-monitor-geheimnis-für-das-passwort-verwenden)). |
 | **SSL/TLS verwenden** | Über TLS verbinden. Wenn aktiviert, können Sie **Serverzertifikat verifizieren** für ein selbstsigniertes Zertifikat ausschalten. |
-| **Metrikgruppen** | Welche Gruppen laufen: Verbindungen, Aktivität, Durchsatz, Locks and Blocking, Speicher, Replikation und Wartung. Alle sind standardmäßig eingeschaltet; siehe [Metrikgruppen](#metrikgruppen). Die Details des Monitors führen sie als **Erfasste Metrikgruppen** auf. |
 
 ### Weitere Felder
+
+**Metrikgruppen** finden Sie hier: welche Gruppen laufen, aus Verbindungen, Aktivität, Durchsatz, Locks and Blocking, Speicher, Replikation und Wartung. Alle sind standardmäßig eingeschaltet; siehe [Metrikgruppen](#metrikgruppen). Die Details des Monitors führen sie als **Erfasste Metrikgruppen** auf.
 
 | Feld | Standard | Maximum | Was es begrenzt |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL misst sie nur, wenn `track_io_timing` eingeschaltet ist, und das ist 
 :::
 
 :::details Metric Groups Failed liegt bei jeder Prüfung über 0
-Eine Gruppe kann bei keiner Prüfung erfasst werden, daher wiederholt sich dasselbe Erfassungsproblem. Die Zusammenfassung des Monitors nennt die Gruppe, den Grund und den `GRANT`, der es behebt. Führen Sie die Berechtigung aus oder schalten Sie, wenn Sie sie nicht bekommen, diese Gruppe unter **Metrikgruppen** aus, damit sich das Problem nicht mehr wiederholt.
+Eine Gruppe kann bei keiner Prüfung erfasst werden, daher wiederholt sich dasselbe Erfassungsproblem. Die Zusammenfassung des Monitors nennt die Gruppe, den Grund und den `GRANT`, der es behebt. Führen Sie die Berechtigung aus oder schalten Sie, wenn Sie sie nicht bekommen, diese Gruppe unter **Weitere Felder → Metrikgruppen** aus, damit sich das Problem nicht mehr wiederholt.
 :::
 
 ## Nächste Schritte

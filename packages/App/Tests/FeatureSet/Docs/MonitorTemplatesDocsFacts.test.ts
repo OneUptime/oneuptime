@@ -560,7 +560,7 @@ describe("the template's page", () => {
 
     // Unlinking leaves the monitor's settings as they are.
     expect(view).toContain(
-      "The monitor keeps its current criteria, interval, and other settings",
+      "keeps its settings but no longer gets updates from this template",
     );
     expect(page).toContain(
       "**Unlink from Template** disconnects a monitor; it keeps its settings.",

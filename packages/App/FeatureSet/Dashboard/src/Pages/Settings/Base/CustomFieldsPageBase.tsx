@@ -467,6 +467,12 @@ const CustomFieldsPageBase: (
       validation: {
         minLength: 2,
       },
+      /*
+       * Not the column's "Any friendly name of this object" (or its
+       * description's "Friendly description of this custom field that will
+       * help you remember"), written for the API.
+       */
+      hideColumnDescription: true,
     },
     {
       field: {
@@ -476,6 +482,7 @@ const CustomFieldsPageBase: (
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "This label is for all the internal services.",
+      hideColumnDescription: true,
     },
     {
       field: {

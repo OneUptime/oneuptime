@@ -1,6 +1,6 @@
 # Docker Compose
 
-Docker Compose を使って、完全で無料の OneUptime インスタンスを 1 台の Linux サーバーで動かします。このページでは、新しいサーバーからインスタンスが動き出すまでを案内し、続いて HTTPS、本番向けの強化、バックアップ、アップデート、削除について説明します。
+Docker Compose を使って、完全で無料の OneUptime インスタンスを 1 台の Linux サーバーで動かします。このページでは、新しいサーバーからインスタンスが動き出すまでを案内し、続いて HTTPS、本番向けの強化、バックアップ、アップデート、削除について説明します。OneUptime 自体のコードを開発する場合は、 [ローカル開発](/docs/installation/local-development) を参照してください。
 
 :::cards
 - [OneUptime をインストールする](#oneuptime-をインストールする): 新しいサーバーから最初のアカウントまで 6 ステップ。
@@ -15,8 +15,8 @@ Docker Compose は OneUptime の各部分をサーバー上のコンテナーと
 
 ```mermaid title="Docker Compose によるデプロイ"
 flowchart TB
-    Users["ユーザーとエージェント"]
-    Proxy["独自のリバースプロキシ (任意)"]
+    Users["ユーザーと<br/>エージェント"]
+    Proxy["独自の<br/>リバースプロキシ<br/>(任意)"]
     Targets["監視対象のサイト"]
     subgraph Server["あなたのサーバー"]
         Ingress["ingress"]
@@ -40,6 +40,8 @@ flowchart TB
     Probe -->|結果| Ingress
     Runner -->|ジョブ| Ingress
     Probe -->|チェック| Targets
+    Data ~~~ Probe
+    Data ~~~ Runner
 ```
 
 | サービス | イメージ | 役割 |
@@ -82,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | ダッシュボード、API、テレメトリの取り込み、Let's Encrypt の検証。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | OneUptime が証明書を管理する場合のインスタンスの HTTPS、およびカスタムドメインのステータスページとダッシュボード。 |
-| 5400 | `postgres` | `docker-compose.yml` で設定 | `npm run backup` が PostgreSQL に到達するためのもの。インターネットには閉じておいてください。 |
+| 5400 | `postgres` | `docker-compose.yml` で設定 | `npm run backup` と `restore.sh` がサーバー自身から PostgreSQL に到達するためのもの。`127.0.0.1` だけで公開されます。 |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | プローブ自身のサーバー。サーバーの外からは必要ありません。 |
 | 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runner 自身のサーバー。サーバーの外からは必要ありません。 |
 
@@ -139,7 +141,7 @@ grep -c "please-change-this" config.env
 | `ONEUPTIME_RUNNER_KEY` | 同梱の Runner。 |
 
 > [!IMPORTANT]
-> シークレットは最初の起動前に設定し、その後は変えないでください。PostgreSQL はデータベースを作成するときにしかパスワードを受け取りません。また、あとから `ENCRYPTION_SECRET` を変えると、古い値で暗号化されたものはすべて読めなくなります。
+> シークレットは最初の起動前に設定し、その後は変えないでください。PostgreSQL はデータベースを作成するときにしかパスワードを受け取りません。また、あとから `ENCRYPTION_SECRET` を変えると、古い値で暗号化されたものはすべて読めなくなります。最初の起動時に `DATABASE_PASSWORD` がまだプレースホルダーのままなら、PostgreSQL がデータベースを作成する前に `npm start` がランダムな値を設定します。
 
 ### OneUptime を起動する
 
@@ -175,6 +177,8 @@ OneUptime は、HTTPS を追加する 2 つの方法のどちらかを選ぶま�
 | **カスタムドメインのステータスページ** | 追加の設定なしで動作します | プロキシがそのドメインも提供する必要があります |
 
 ステータスページやダッシュボードをカスタムドメインに置く場合は、OneUptime に TLS を任せるほうが簡単です。ingress がそれらのドメインの証明書を自分で注文し、提供します。
+
+`HTTP_PROTOCOL=https` を設定すると、OneUptime は HTTPS のリンクを作り、サインイン用の Cookie を HTTPS 上に保ち、ブラウザーに `HOST` へは HTTPS でだけアクセスするよう伝えます。ブラウザーはその名前のすべてのポートについて、一年間これを守ります。そのため、いつか `HOST` が再び通常の HTTP で応答する必要がある場合は、しばらく前に `HSTS_MAX_AGE_SECONDS=0` を `config.env` に設定してください。ブラウザーは次回のアクセス時にこのルールを忘れます。
 
 ### OneUptime に証明書を取得させる
 
@@ -300,6 +304,8 @@ server {
 証明書のパスは、Certbot が Let's Encrypt 証明書を置く場所です。証明書をほかから入手した場合は、そのパスを使ってください。`sudo nginx -t && sudo systemctl reload nginx` でファイルを確認し、Nginx を再読み込みします。
 :::
 
+どちらも `X-Forwarded-Proto` を送ります。これは、訪問者が HTTPS で来たことを OneUptime に伝えます。ほかのプロキシを使う場合もこれを送る必要があります。送らないと、カスタムドメイン上のステータスページとダッシュボードのサインイン用 Cookie が HTTPS 上に保たれません。
+
 #### プロキシ経由でインスタンスを開く
 
 `https://oneuptime.example.com` を開きます。プロキシの証明書で提供された OneUptime のサインインページが表示されるはずです。
@@ -314,15 +320,28 @@ Docker Compose は 1 台のサーバーで各サービスを 1 つずつ実行�
 
 | 項目 | やること |
 | --- | --- |
-| **シークレット** | `config.env` に `please-change-this-to-random-value` のプレースホルダーが残っていない。 [ランダムなシークレットを生成する](#ランダムなシークレットを生成する) を参照してください。 |
+| **シークレット** | `config.env` に `please-change-this-to-random-value` のプレースホルダーが残っていない。 [ランダムなシークレットを生成する](#ランダムなシークレットを生成する) を参照してください。プレースホルダーの `DATABASE_PASSWORD` のまま起動したインストールは [データベースのパスワードを変更する](#データベースのパスワードを変更する) を参照してください。 |
 | **HTTPS** | OneUptime に HTTPS でアクセスでき、`HTTP_PROTOCOL=https` が設定されている。 [HTTPS を設定する](#https-を設定する) を参照してください。 |
 | **サインアップ** | チームのアカウントがそろったら、Admin Dashboard の **設定 > 認証** で **サインアップを許可** をオフにする。 |
-| **ファイアウォール** | インターネットに開いているのはポート 80 と 443 (と SSH) だけ。PostgreSQL はバックアップのためにポート 5400 で公開されています。`ufw` のルールは Docker が公開するポートには適用されないため、クラウドプロバイダーのファイアウォールで閉じてください。 |
+| **ファイアウォール** | インターネットに開いているのはポート 80 と 443 (と SSH) だけ。OneUptime は PostgreSQL のポート 5400 を `127.0.0.1` だけで公開します。自分で公開するほかのポートは、クラウドプロバイダーのファイアウォールで閉じてください。`ufw` のルールは Docker が公開するポートには適用されません。 |
 | **バックアップ** | PostgreSQL を毎日バックアップし、コピーをサーバーの外に置く。 [バックアップと復元](#バックアップと復元) を参照してください。 |
 | **メール** | OneUptime が招待と通知を送れるよう、Admin Dashboard の **設定 > 通知 > メール** でメールサーバーを設定する。 [SMTP](/docs/emails/smtp) を参照してください。 |
 | **ディスク** | 空き容量を監視する。ClickHouse は保持するテレメトリに応じて大きくなります ( [サイジングとキャパシティプランニング](/docs/installation/sizing) を参照)。各コンテナーのログは 1000 MB が上限です。 |
 | **アップデート** | OneUptime を少なくとも週に 1 回アップデートする。リリースは頻繁に出ます。 [OneUptime をアップデートする](#oneuptime-をアップデートする) を参照してください。 |
 | **高可用性** | 必要なら、Kubernetes の [Helm チャート](https://artifacthub.io/packages/helm/oneuptime/oneuptime) に移行する。 |
+
+### データベースのパスワードを変更する
+
+PostgreSQL は作成されたときのパスワードを保ち続けるため、`config.env` の `DATABASE_PASSWORD` だけを変えると、OneUptime は自分のデータベースに接続できなくなります。プレースホルダーのまま起動したインストールに専用のパスワードを設定するには、PostgreSQL と `config.env` の両方で同時に変更してから、OneUptime をもう一度起動します。
+
+```bash
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+npm start
+```
+
+`DATABASE_BACKUP_PASSWORD` と `DATABASE_RESTORE_PASSWORD` を設定している場合は、それらにも新しい値を設定してください。
 
 ## バックアップと復元
 
@@ -344,6 +363,25 @@ sudo のパスワードを求められ、`Backups/db-<day of the month>.backup` 
 ### バックアップをサーバーの外にコピーする
 
 データベースと同じディスクにあるバックアップは、そのディスクが失われると一緒に失われます。
+:::
+
+PostgreSQL に到達できるのはサーバー自身だけで、`127.0.0.1` のポート 5400 で応答します。別のマシンからバックアップするには、そのマシンから SSH トンネルを開き、そのマシン自身のポート 5400 に接続します。
+
+```bash
+ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
+```
+
+:::details PostgreSQL をプライベートネットワークのアドレスで公開する
+プライベートネットワーク上のツールがトンネルなしで PostgreSQL に到達する必要がある場合は、そのネットワークでのサーバーのアドレスでも、別のポートで公開します。`docker-compose.yml` の隣に `docker-compose.override.yml` を作成します。`npm start` と `npm run update` はこのファイルを読み込みます。
+
+```yaml title="docker-compose.override.yml"
+services:
+  postgres:
+    ports:
+      - "10.0.0.5:5401:5432"
+```
+
+`10.0.0.5` の代わりにサーバー自身のプライベートアドレスを指定し、パブリックなアドレスは決して使わないでください。また、先に PostgreSQL に専用のパスワードを設定してください ([データベースのパスワードを変更する](#データベースのパスワードを変更する) を参照)。そのあと `npm start` を実行すると、PostgreSQL はそのアドレスのポート 5401 でも応答します。
 :::
 
 ClickHouse はテレメトリを Docker ボリューム `oneuptime_clickhouse` に保存しており、これをバックアップするスクリプトはありません。そのテレメトリを残す必要がある場合は、[clickhouse-backup](https://github.com/Altinity/clickhouse-backup) などの ClickHouse ツールでボリュームをバックアップするか、OneUptime を停止してからコピーしてください。

@@ -105,15 +105,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             resolvedAt: null,
           } as any,
         },
-        {
-          link: {
-            title: "Documentation",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENT_EPISODE_DOCS] as Route,
-            ),
-          },
-          icon: IconProp.Book,
-        },
       ],
     },
     /*
@@ -157,26 +148,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
     ...(workspaceSection ? [workspaceSection] : []),
-    /*
-     * Tools that open incidents on their own: Huntress, whose incident
-     * reports page on-call here. Set up once, so folded to its title until
-     * opened, and open by itself on its pages.
-     */
-    {
-      title: "Integrations",
-      defaultCollapsed: true,
-      items: [
-        {
-          link: {
-            title: "Huntress",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS] as Route,
-            ),
-          },
-          icon: IconProp.ShieldCheck,
-        },
-      ],
-    },
     /*
      * Every "when an incident looks like X, do Y" page lives here. Collapsed by
      * default because these are set up once and rarely revisited, and left
@@ -350,6 +321,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Link,
+        },
+        /*
+         * Whether an incident can be in only one episode. Its own page,
+         * findable by name like Linked Alerts - not "Episodes", the
+         * section above that lists them.
+         */
+        {
+          link: {
+            title: "Episode Membership",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP] as Route,
+            ),
+          },
+          icon: IconProp.SquareStack3D,
         },
         /*
          * How incident and episode numbers look (the INC- in INC-42) and

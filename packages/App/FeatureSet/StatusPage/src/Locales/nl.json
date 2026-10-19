@@ -22,6 +22,10 @@
     "label": "Taal",
     "switchLanguage": "Taal wijzigen"
   },
+  "theme": {
+    "switchToDark": "Overschakelen naar donker thema",
+    "switchToLight": "Overschakelen naar licht thema"
+  },
   "nav": {
     "overview": "Overzicht",
     "incidents": "Incidenten",
@@ -125,7 +129,27 @@
     "noneDescription": "Geen geplande gebeurtenissen geplaatst voor deze statuspagina.",
     "scheduledAt": "Gepland voor ",
     "report": "Rapport geplande gebeurtenis",
-    "notFound": "Geen geplande gebeurtenis gevonden voor deze statuspagina."
+    "notFound": "Geen geplande gebeurtenis gevonden voor deze statuspagina.",
+    "calendar": {
+      "subscribe": "Abonneren op agenda",
+      "subscribeTitle": "Abonneren op gepland onderhoud",
+      "subscribeDescription": "Krijg het geplande onderhoud van deze pagina in uw agenda-app. Het blijft vanzelf up-to-date.",
+      "eventTitle": "Toevoegen aan agenda",
+      "eventDescription": "Voeg dit onderhoud toe aan uw agenda-app.",
+      "addToCalendar": "Toevoegen aan agenda",
+      "addHeading": "Toevoegen aan uw agenda",
+      "google": "Google Agenda",
+      "googleHint": "Opent Google Agenda in een nieuw tabblad",
+      "device": "Apple Agenda / Outlook",
+      "deviceHint": "Opent de agenda-app op dit apparaat",
+      "deviceFileHint": "Downloadt het onderhoud voor de agenda-app op dit apparaat",
+      "copyHeading": "Of kopieer de link",
+      "copyHint": "Plak hem in een agenda-app die zich via een URL op een agenda kan abonneren.",
+      "copy": "Link kopiëren",
+      "copied": "Gekopieerd!",
+      "done": "Klaar",
+      "refreshNote": "Agenda-apps controleren op hun eigen moment op wijzigingen, dus het kan een paar uur duren voordat een update verschijnt."
+    }
   },
   "subscribe": {
     "title": "Abonneren",
@@ -161,7 +185,8 @@
       "yourPhoneNumber": "Uw telefoonnummer",
       "placeholder": "+31612345678",
       "managePrompt": "Voer het telefoonnummer in waarmee u bent geabonneerd",
-      "manageDescription": "We sturen u een link om uw abonnement te beheren naar dit telefoonnummer."
+      "manageDescription": "We sturen u een link om uw abonnement te beheren naar dit telefoonnummer.",
+      "confirmationSent": "We hebben een sms naar dit telefoonnummer gestuurd. Open de link erin om uw abonnement te bevestigen."
     },
     "slack": {
       "title": "Abonneren via Slack",
@@ -212,11 +237,16 @@
       "saved": "Uw wijzigingen zijn opgeslagen.",
       "submit": "Abonnement bijwerken",
       "unsubscribe": "Afmelden",
-      "unsubscribeDescription": "Selecteer dit als u zich wilt afmelden van alle bronnen."
+      "unsubscribeDescription": "Selecteer dit als u zich wilt afmelden van alle bronnen.",
+      "linkNotValid": "Deze link om uw abonnement te beheren is verlopen of ongeldig. Gebruik ‘Bestaand abonnement beheren’ op de pagina ‘Abonneren’ om een nieuwe te krijgen.",
+      "getNewLink": "Nieuwe link aanvragen",
+      "loadFailed": "Deze link kon niet worden geladen. Probeer het later opnieuw."
     },
     "confirm": {
       "title": "Abonnement bevestigen",
-      "success": "Abonnement succesvol bevestigd"
+      "success": "Abonnement succesvol bevestigd",
+      "linkNotValid": "Deze link om uw abonnement te bevestigen is verlopen of ongeldig. Een link werkt 24 uur nadat hij is verzonden. Abonneer opnieuw om een nieuwe te krijgen.",
+      "subscribeAgain": "Opnieuw abonneren"
     },
     "unsubscribe": {
       "title": "Afmelden",
@@ -264,7 +294,8 @@
       "loginPrompt": "Log alstublieft in om {{statusPageName}} te bekijken",
       "forgotPassword": "Wachtwoord vergeten?",
       "submit": "Inloggen",
-      "useSSO": "Gebruik in plaats daarvan eenmalige aanmelding (SSO)"
+      "or": "of",
+      "logInWithSso": "Inloggen met SSO"
     },
     "sso": {
       "title": "Inloggen met SSO",
@@ -342,5 +373,13 @@
   "{{field}} is required.": "{{field}} is verplicht.",
   "{{field}} should match {{matchField}}": "{{field}} moet overeenkomen met {{matchField}}",
   "Email is not valid.": "E-mailadres is ongeldig.",
-  "Next": "Volgende"
+  "Next": "Volgende",
+  "Opens in a new tab": "Opent in een nieuw tabblad",
+  "Note": "Opmerking",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Belangrijk",
+  "Warning": "Waarschuwing",
+  "Caution": "Let op",
+  "Danger": "Gevaar"
 }

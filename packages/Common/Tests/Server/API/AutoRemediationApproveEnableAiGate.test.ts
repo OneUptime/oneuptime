@@ -181,7 +181,7 @@ const DISMISS_ROUTE: string = "/auto-remediation/dismiss";
 
 // What the approve route answers, word for word, while the project has AI off.
 const AI_DISABLED_REFUSAL: string =
-  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.";
+  "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -468,6 +468,7 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
   let clusterStatusSpy: jest.SpyInstance;
   let resourceStatusSpy: jest.SpyInstance;
   let mayChangeSpy: jest.SpyInstance;
+  let mayChangeClusterSpy: jest.SpyInstance;
   let incidentFeedSpy: jest.SpyInstance;
   let alertFeedSpy: jest.SpyInstance;
 
@@ -551,6 +552,10 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
       .spyOn(ResourceAiAccessService, "assertCallerMayChangeResource")
       .mockResolvedValue(undefined);
 
+    mayChangeClusterSpy = jest
+      .spyOn(KubernetesClusterAiAccessService, "assertCallerMayChangeCluster")
+      .mockResolvedValue(undefined);
+
     incidentFeedSpy = jest
       .spyOn(IncidentFeedService, "createIncidentFeedItem")
       .mockResolvedValue(undefined as never);
@@ -584,6 +589,7 @@ describe("POST /auto-remediation/approve — Enable AI is the one project gate",
     expect(clusterStatusSpy).not.toHaveBeenCalled();
     expect(resourceStatusSpy).not.toHaveBeenCalled();
     expect(mayChangeSpy).not.toHaveBeenCalled();
+    expect(mayChangeClusterSpy).not.toHaveBeenCalled();
   }
 
   // Claimed Suggested -> Approved, handed to the executor, and announced.

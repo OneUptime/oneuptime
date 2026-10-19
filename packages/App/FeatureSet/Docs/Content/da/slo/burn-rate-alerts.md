@@ -79,7 +79,7 @@ Du skal have tilladelse til at oprette SLO-forbrugsrateregler.
 
 ### Giv reglen et navn
 
-Under **Rule** angiver du et **Navn**, som "Fast burn". **Aktiveret** er slået til.
+Under **Rule** angiver du et **Navn**, som "Fast burn". En ny regel er slået til; vil du senere stoppe den i at udløses, slår du **Aktiveret** fra på dens redigeringsformular.
 
 ### Angiv forbrugsvinduet
 
@@ -87,7 +87,7 @@ Under **Burn Window** angiver du **Burn Rate Threshold** (for eksempel `14.4`), 
 
 ### Vælg, hvad den erklærer
 
-Under **What It Declares** slår du **Opret advarsel**, **Erklær hændelse** eller begge til. **Add SLO Owners as Owners** gør også SLO'ets ejere til ejere af alt, hvad reglen opretter.
+Under **What It Declares** svarer du på **Når den udløses**: **Opret en advarsel**, standardvalget, **Erklær en hændelse** eller **Begge**. **Add SLO Owners as Owners** gør også SLO'ets ejere til ejere af alt, hvad reglen opretter.
 
 ### Beskriv advarslen og hændelsen
 
@@ -103,18 +103,18 @@ OneUptime tjekker en regels tal, når du gemmer den:
 | **Long Window (Minutes)** | Længere end det korte vindue. |
 | **Re-fire Suppression (Minutes)** | 0 eller mere. Tom betyder det lange vindues længde. |
 
-En regel skal oprette en advarsel, erklære en hændelse eller begge: en regel med begge slået fra afvises, fordi den ville blive tjekket ved hver evaluering uden nogensinde at erklære noget.
+Hvert svar på **Når den udløses** åbner noget. API'et afviser en regel, der hverken ville oprette en advarsel eller erklære en hændelse, fordi den ville blive tjekket ved hver evaluering uden nogensinde at erklære noget.
 
 Regeltabellen viser for hver regel tærsklen, vinduerne og undertrykkelsen, hvad den erklærer (og om advarslen eller hændelsen kun løses manuelt eller er privat), alvorsgraderne, vagtpolitikkerne, ejerne og etiketterne.
 
 > [!TIP]
-> Et godt udgangspunkt: behold de to standardregler, send reglen for hurtigt forbrug til den vagtpolitik, der tilkalder folk, med høj alvor, og lad reglen for langsomt forbrug udløse en advarsel med lavere alvor til arbejdstiden. Arbejder dit team med hændelser, så slå **Erklær hændelse** til på reglen for hurtigt forbrug, og slå **Opret advarsel** fra der, hvis du helst ikke vil have begge.
+> Et godt udgangspunkt: behold de to standardregler, send reglen for hurtigt forbrug til den vagtpolitik, der tilkalder folk, med høj alvor, og lad reglen for langsomt forbrug udløse en advarsel med lavere alvor til arbejdstiden. Arbejder dit team med hændelser, så vælg **Erklær en hændelse** for reglen for hurtigt forbrug, eller **Begge** for også at få en advarsel.
 
 ## Hvad en regel erklærer
 
-|  | **Opret advarsel** | **Erklær hændelse** |
+|  | **Advarsel** | **Hændelse** |
 | --- | --- | --- |
-| Fra start | Til | Fra |
+| Åbnes af | **Opret en advarsel**, standardvalget, eller **Begge** | **Erklær en hændelse** eller **Begge** |
 | Hvad det er | Det lette signal: havner på advarselslisten. | Det tunge signal: får et hændelsesnummer og starter hele responsforløbet. |
 | Titel og beskrivelse | Egne, eller standardteksten | Egne, eller standardteksten |
 | Alvor | **Advarselsalvor**: projektets højeste, hvis tom | **Hændelsesalvor**: projektets højeste, hvis tom |
@@ -195,7 +195,7 @@ Etiketter, ejerteams og vagtpolitikker skal høre til SLO'ets projekt.
 
 Nogle ændringer løser altid det, en regel har åbnet, uanset hvad dens indstillinger for automatisk løsning siger, så intet bliver ved med at eskalere for en regel, der ikke længere kan begrunde det:
 
-- at slå **Opret advarsel** eller **Erklær hændelse** fra lukker det, det output havde åbnet;
+- at ændre **Når den udløses**, så advarslen eller hændelsen udelades, lukker det, det output havde åbnet;
 - at slå reglen fra eller slette den;
 - at slå SLO'ets evaluering fra, arkivere SLO'et eller slette det;
 - at SLO'et skifter til **Sat på pause** eller **Misconfigured**, fordi det så ikke måler noget;

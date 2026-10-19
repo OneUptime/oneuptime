@@ -64,10 +64,10 @@ Haz clic en **Crear regla personalizada** debajo de las plantillas, o en **Crear
 
 #### Acotarla
 
-En **Qué alertas**, añade condiciones sobre monitores, gravedades, etiquetas, títulos y descripciones. Déjalo vacío para agrupar todas las alertas nuevas. Después haz clic en **Crear regla de agrupación de alertas**.
+En **Qué alertas**, **Todas las alertas**, donde empieza una regla nueva, agrupa todas las alertas nuevas. Para acotarla, elige **Solo las alertas que cumplen las condiciones** y añade condiciones sobre monitores, gravedades, etiquetas, títulos y descripciones. Después haz clic en **Crear regla de agrupación de alertas**.
 :::
 
-Todo lo demás que puede hacer una regla está plegado en **Más campos**, al final del paso **Agrupación**, en tres grupos. Plegado, su encabezado nombra lo que contiene y muestra como una ficha cada ajuste que usa la regla, así que editar una regla nunca oculta lo que hace.
+Todo lo demás que puede hacer una regla está plegado en **Más campos**, al final del paso **Agrupación**, en tres grupos. Plegado, su encabezado nombra lo que contiene y dice el valor de cada ajuste que usa la regla, así que editar una regla nunca oculta lo que hace.
 
 | Grupo                            | Ajustes                                                                                                    |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ Un episodio que creas tú no tiene regla de agrupación, así que la lista muest
 
 | Sección del menú lateral | Páginas                                                                     |
 | ------------------------ | --------------------------------------------------------------------------- |
-| **Básico**               | **Vista general**, **Descripción**, **Causa raíz**, **Notas de remediación** |
-| **Propiedad**            | **Propietarios**                                                            |
-| **Cronología**           | **Cronología de estados**                                                   |
-| **Alertas**              | **Alertas miembro**                                                         |
-| **Notas del episodio**   | **Notas privadas**                                                          |
-| **Desarrolladores**      | **Terraform**, **API**, **Asistentes de IA**                                |
-| **Avanzado**             | **Registros de auditoría**, **Eliminar episodio**                           |
+| **Vista general** | **Vista general**, **Cronología de estados** |
+| **Investigación** | **Descripción**, **Causa raíz**, **Notas de remediación** |
+| **Equipo** | **Propietarios** |
+| **Alertas** | **Alertas miembro** |
+| **Notas** | **Notas privadas** |
+| **Desarrolladores** | **Terraform**, **API**, **Asistentes de IA** |
+| **Avanzado** | **Registros de auditoría**, **Eliminar episodio** |
 
-**Propiedad**, **Desarrolladores** y **Avanzado** empiezan plegadas. La **Vista general** empieza con **Alertas de este episodio**, después el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Move episode to** en el menú **⋯**.
+**Desarrolladores** y **Avanzado** empiezan plegadas. La **Vista general** empieza con **Alertas de este episodio**, después el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Move episode to** en el menú **⋯**.
 
 **Alertas → Episodios activos** muestra los episodios que aún no se han resuelto, y la insignia a su lado los cuenta.
 

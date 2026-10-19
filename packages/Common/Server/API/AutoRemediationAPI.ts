@@ -29,6 +29,7 @@ import {
   isKubernetesAgentRunnerPosture,
   parseKubernetesRunnerPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { getKubernetesAiPlanApprovalEditRefusal } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 /*
  * Approving starts a runbook execution, so reading the suggestion is not
  * authority enough — the caller must hold a permission from
@@ -88,9 +89,10 @@ const router: ExpressRouter = Express.getRouter();
  * concurrent approvals can never double-start a runbook.
  *
  * Approving an AI command plan is held to the approver: what it lets run
- * must be what they may do - start runbooks, change the resources the plan
- * changes and, for a command that runs with a credential OneUptime AI
- * picked, read runbook credentials (AiRemediationCredentialUse).
+ * must be what they may do - start runbooks, change the Kubernetes
+ * clusters and the resources the plan changes and, for a command that runs
+ * with a credential OneUptime AI picked, read runbook credentials
+ * (AiRemediationCredentialUse).
  */
 
 async function getLoggedInProps(
@@ -700,6 +702,60 @@ async function assertResourceCommandsStillRunnable(data: {
 }
 
 /*
+ * Approving a kubectl command runs it on its cluster, through the cluster's
+ * Kubernetes AI agent or the Runner bound to it, so the approver must be
+ * someone who may edit that cluster — decided for the cluster's own row,
+ * as an update of it would be: a grant limited to other labels or to
+ * clusters they do not own does not reach it, and a block on one of its
+ * labels takes it away (KubernetesClusterAiAccessService
+ * .assertCallerMayChangeCluster) — not merely someone who may start
+ * runbooks in the project. Each cluster is checked once, however many
+ * commands target it. Called after assertKubectlCommandsStillRunnable,
+ * which has already refused a kubectl command with no cluster, or a
+ * cluster no longer in the project; a command naming no valid cluster is
+ * refused here too, never let through.
+ */
+async function assertApproverMayChangeClusters(data: {
+  plan: AiRemediationCommandPlan;
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+}): Promise<void> {
+  const checked: Set<string> = new Set<string>();
+
+  for (const command of data.plan.commands) {
+    if (command.stepType !== RunbookStepType.Kubectl) {
+      continue;
+    }
+
+    if (
+      !command.kubernetesClusterId ||
+      !ObjectID.isValidUUID(command.kubernetesClusterId)
+    ) {
+      throw new BadDataException(
+        `Command ${command.sequence} is a kubectl command with no cluster, so this plan cannot be run. Dismiss it and let a new suggestion be composed.`,
+      );
+    }
+
+    const key: string = command.kubernetesClusterId.toLowerCase();
+
+    if (checked.has(key)) {
+      continue;
+    }
+
+    checked.add(key);
+
+    await KubernetesClusterAiAccessService.assertCallerMayChangeCluster({
+      props: data.props,
+      projectId: data.projectId,
+      clusterId: new ObjectID(command.kubernetesClusterId),
+      refusal: getKubernetesAiPlanApprovalEditRefusal(
+        command.kubernetesClusterNameSnapshot,
+      ),
+    });
+  }
+}
+
+/*
  * Approving a resource command runs it on the resource as root, so the
  * approver must be someone who may edit that resource — its update ACL,
  * label-scoped blocks included — not merely someone who may start runbooks
@@ -886,7 +942,7 @@ router.post(
 
         if (!project || project.enableAi === false) {
           throw new BadDataException(
-            "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI Features, or dismiss the suggestion.",
+            "AI is disabled for this project, so this plan cannot be run. Re-enable it in Project Settings → AI → AI Features, or dismiss the suggestion.",
           );
         }
 
@@ -1011,10 +1067,17 @@ router.post(
         });
 
         /*
-         * And the approver may change every resource the plan changes: the
-         * plan runs as root on the resource, so this is where the
-         * resource's own edit ACL (with its label scope) applies.
+         * And the approver may change every cluster and every resource the
+         * plan changes: its commands run on them as OneUptime, so this is
+         * where each one's own edit ACL (with its label and owner scope)
+         * applies.
          */
+        await assertApproverMayChangeClusters({
+          plan,
+          props,
+          projectId: suggestion.projectId,
+        });
+
         await assertApproverMayChangeResources({
           plan,
           props,

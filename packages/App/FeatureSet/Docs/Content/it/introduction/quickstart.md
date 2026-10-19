@@ -28,7 +28,7 @@ Al primo accesso, OneUptime mostra **Nessun progetto**. Fai clic su **Crea nuovo
 
 ### Dargli un nome
 
-Inserisci un **Nome del progetto**, per esempio il nome della tua azienda. Su OneUptime Cloud, il passaggio successivo ti chiede di scegliere un piano.
+Inserisci un **Nome del progetto**, per esempio il nome della tua azienda. Su OneUptime Cloud, scegli anche un piano subito sotto: Free è già selezionato, e i piani a pagamento iniziano con una prova gratuita.
 
 ### Crearlo
 
@@ -68,7 +68,7 @@ Nell'elenco, fai clic su **Configura una policy di reperibilità**, oppure apri 
 
 ### Attivarla per ogni incidente
 
-Apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**. Fai clic su **Crea: Incident On-Call Rule**, inserisci un **Nome** e fai clic su **Avanti**. Lascia vuoti i **Criteri di corrispondenza**, così la regola vale per ogni incidente, e fai clic su **Avanti**. Scegli la tua policy in **Policy di reperibilità** e fai clic su **Crea: Incident On-Call Rule**.
+Apri **Incidenti** dal menu **Prodotti**, espandi **Regole** nel menu laterale e scegli **Regole di reperibilità**. Fai clic su **Crea: Incident On-Call Rule**, inserisci un **Nome** e fai clic su **Avanti**. In **Criteri di corrispondenza**, lascia selezionato **Tutti gli incidenti**, così la regola vale per ogni incidente, e fai clic su **Avanti**. Scegli la tua policy in **Policy di reperibilità** e fai clic su **Crea: Incident On-Call Rule**.
 
 ### Scegliere come essere raggiunto
 
@@ -85,15 +85,15 @@ Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalati
 :::steps
 ### Creare la pagina di stato
 
-Nell'elenco, fai clic su **Pubblica una pagina di stato**, oppure apri **Pagine di stato** dal menu **Prodotti**. Fai clic su **Crea pagina di stato**, inserisci un **Nome**, per esempio `Acme Status`, e fai clic su **Crea pagina di stato**.
+Nell'elenco, fai clic su **Pubblica una pagina di stato**, oppure apri **Pagine di stato** dal menu **Prodotti**. Fai clic su **Crea pagina di stato**, inserisci un **Nome**, per esempio `Acme Status`, e fai clic su **Crea pagina di stato**. La nuova pagina si apre sulla sua **Panoramica**.
 
 ### Aggiungere il tuo monitor
 
-Apri la nuova pagina di stato. Nel suo menu laterale, in **Risorse**, scegli **Monitor**; nei progetti con i gruppi di monitor attivati si chiama **Risorse**. Fai clic su **Aggiungi monitor**, scegli il monitor del tuo sito web e fai clic su **Aggiungi monitor**. La riga mostra ai visitatori il nome del monitor; cambialo in **Nome visualizzato**, se vuoi.
+Fai clic su **Aggiungi monitor** nella **Panoramica** oppure, nel menu laterale della pagina, in **Risorse**, scegli **Monitor**; nei progetti con i gruppi di monitor attivati si chiama **Risorse**. Fai clic su **Aggiungi monitor**, scegli il monitor del tuo sito web e fai clic su **Aggiungi monitor**. La riga mostra ai visitatori il nome del monitor; cambialo in **Nome visualizzato**, se vuoi.
 
 ### Aprire la pagina
 
-Scegli **Panoramica** nel menu laterale. La scheda **Status Page Preview URL** porta alla tua pagina di stato: aprila, e il tuo sito web risulta operativo.
+Scegli **Panoramica** nel menu laterale. La scheda **Link della pagina di stato** porta alla tua pagina di stato: aprila, e il tuo sito web risulta operativo.
 :::
 
 Una nuova pagina di stato è pubblica: chiunque abbia il suo indirizzo può aprirla. Per darle il tuo dominio, il tuo logo e i tuoi colori, vedi [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).

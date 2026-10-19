@@ -7,6 +7,7 @@
 - [一鍵連接](#一鍵連接): 只要登入即可連接 Zoom、Google Meet 或 Microsoft Teams。
 - [服務供應商](#服務供應商): 您自己應用程式的服務身分、固定的會議連結或 Slack huddle。
 - [手動開始通話](#手動開始通話): 從事件或警示的頁面開始。
+- [通話逐字稿](#通話逐字稿): 事件通話中說了什麼，以及 OneUptime AI 從中讀出的根本原因。
 :::
 
 ## 運作方式
@@ -63,11 +64,13 @@ flowchart TB
 
 | 服務供應商 | 用於登入的帳戶 | OneUptime 可以做什麼 |
 | --- | --- | --- |
-| Zoom | 一個 Zoom 使用者。由 Basic（免費）使用者主持的會議會在 40 分鐘後結束。 | 為該使用者建立會議（ `meeting:write:meeting` ）並讀取其身分（ `user:read:user` ）。 |
+| Zoom | 一個 Zoom 使用者。由 Basic（免費）使用者主持的會議會在 40 分鐘後結束。 | 為該使用者建立會議（ `meeting:write:meeting` ）並讀取其身分（ `user:read:user` ）。為了 [通話逐字稿](#通話逐字稿)，讀取其會議雲端錄製的逐字稿（ `cloud_recording:read:list_recording_files`、 `cloud_recording:read:meeting_transcript` ）。 |
 | Google Meet | 一個可以使用 Google Meet 的 Google 帳戶。 | 以該帳戶建立 Meet 空間（ `meetings.space.created` ）並讀取其電子郵件地址。 |
 | Microsoft Teams | 一個擁有 Microsoft Teams 的公司或學校帳戶。個人 Microsoft 帳戶無法建立 Teams 會議。 | 以該帳戶建立線上會議（委派權限 `OnlineMeetings.ReadWrite` ）並維持登入（ `offline_access` ）。 |
 
 透過登入建立的連線仍然有決定誰需要等待的設定：Google Meet 的 **Who can join** 和 Microsoft Teams 的 **Who skips the lobby**。在連線所在列使用 **編輯** 變更它們。
+
+在 OneUptime 讀取通話逐字稿之前登入的 Zoom 連線會像以前一樣開始通話，但在重新登入之前無法讀取通話的逐字稿：其所在列的 **Reconnect** 會向 Zoom 要求逐字稿權限。
 
 ### 維持登入
 
@@ -97,6 +100,54 @@ OneUptime 會加密保存登入的重新整理權杖，並至少每週更新一�
 
 開始和移除通話需要處理事件（或警示）的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 或 **Incident Member**，或自訂角色中的 **Create Incident Video Call** 和 **Delete Incident Video Call**。能讀取該事件的每個人都能看到它的通話。
 
+## 通話逐字稿
+
+回應者在通話中說的話，他們檢查了什麼、懷疑什麼、決定了什麼，是事件如何處理的最佳紀錄，而通話一結束它就消失了。事件的通話會保留其逐字稿，OneUptime AI 會讀取它，找出通話所指向的根本原因。在回應者採用之前，它讀出的任何內容都不會進入事件。
+
+:::steps
+### 通話結束後取得逐字稿
+
+在事件的 **Video Call** 卡片上， **從 Zoom 取得** 或 **從 Google Meet 取得** 會讀取 OneUptime 在那裡開始的會議的逐字稿。對於其他任何通話， **新增逐字稿** 接受會議工具儲存的檔案（ `.vtt`、 `.srt` 或 `.txt`，最大 5 MB），或貼上的逐字稿。如果 [每次通話都錄製並轉錄](#錄製並轉錄每次通話)，OneUptime 會在通話結束後自行取得逐字稿。
+
+### OneUptime AI 讀取它
+
+一兩分鐘內，事件的 **AI Investigation** 卡片會顯示 **建議的根本原因** ，標記為 **未確認** ，並附上它所依據的逐字稿行，引用時帶有時間和發言者。下方摺疊著通話中說過的其餘內容：發現（分為 **已在通話中確認** 和 **假設** 兩個清單），然後是嘗試過的做法、決定、後續事項和待解決的問題。它讀出的內容也會發布到事件的動態中，再從那裡發布到事件的 Slack 和 Microsoft Teams 頻道。
+
+### 採用或駁回
+
+**用作根本原因** 會在根本原因的編輯器中開啟該建議，連同引用一起。修改需要的內容後儲存：它會作為您自己的編輯成為事件的根本原因，並記錄在其動態中。 **關閉** 會把建議擱置， **復原** 會把它復原。
+:::
+
+只有當通話中指出了原因時，OneUptime AI 才會提出原因，並附上說出它的那些行，且按逐字稿中的原樣引用這些行。如果通話沒有確定原因，卡片會顯示 **通話中討論的內容不足以提出根本原因** ，而不是猜測。
+
+### 錄製並轉錄每次通話
+
+為了讓任何人都不必記得錄製通話或取得逐字稿，請在 **專案設定** > **工作區** > **Video Calls** 中開啟 **錄製並轉錄事件通話**。開啟期間：
+
+- 對於 OneUptime 開始的每場事件會議，它都會要求 Zoom 將會議錄製到雲端，並要求 Google Meet 進行轉錄。發布該通話的訊息會在任何人加入之前說明這一點。
+- 通話結束後，OneUptime 會像 **從 Zoom 取得** 那樣自行取得逐字稿，然後由 OneUptime AI 讀取。在此之前， **Video Call** 卡片會顯示正在等待。
+- OneUptime AI 讀出的內容會傳送到事件的動態及其 Slack 和 Microsoft Teams 頻道：標記為未確認的建議根本原因，然後是已確認、已嘗試和已決定的內容、後續事項以及待解決的問題。
+- 如果事件在逐字稿送達之前就已解決，自動事後分析草稿會等待逐字稿，以便讀取通話中說過的內容：在 Zoom 或 Google Meet 準備逐字稿期間最多等待六小時，如果還沒有任何逐字稿的跡象，則等待一小時。
+
+此功能預設為關閉，因為它會錄製人員：這些通話中的每個人都會看到自己正在被錄製或轉錄，因此請確認您的組織允許這樣做。只有當帳戶在開啟音訊逐字稿的情況下錄製到雲端時，Zoom 才會保留逐字稿；Google Meet 也只在支援逐字稿的 Google Workspace 版本上保留逐字稿。Microsoft Teams 通話、Slack huddle 和會議連結不會被錄製，警示的通話也不會：請手動新增它們的逐字稿。
+
+### 各提供者保留的內容
+
+| 通話 | 如何取得逐字稿 | 需要什麼 |
+| --- | --- | --- |
+| Zoom | **從 Zoom 取得** | 會議錄製到雲端且開啟了音訊逐字稿，或開啟了 AI Companion 的會議摘要。連線需要逐字稿的權限範圍（參見 [Zoom](#zoom)），在此之前登入的連線需要 **Reconnect** 。Zoom 會在會議結束後準備逐字稿，通常在會議時長的兩倍以內完成。 |
+| Google Meet | **從 Google Meet 取得** | 通話中開啟的逐字稿，所用的 Google Workspace 版本需支援逐字稿。無需其他設定：OneUptime 會讀取它所建立會議的逐字稿。Google 會將逐字稿保留 30 天供應用程式讀取。 |
+| Microsoft Teams | **新增逐字稿** | Microsoft 不允許任何應用程式讀取以 OneUptime 的方式建立的會議的逐字稿。在 Teams 中，開啟會議的回顧，再開啟其逐字稿，並將其下載為 `.vtt` 檔案。 |
+| 會議連結或 Slack huddle | **新增逐字稿** | 會議工具或 huddle 筆記中保存的逐字稿。 |
+
+### 誰可以做什麼
+
+取得、新增、取代和移除逐字稿，讓它重新被讀取，以及駁回建議，都需要開始事件通話的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 或 **Incident Member**，或自訂角色中的 **Create Incident Video Call**。 **用作根本原因** 需要編輯事件根本原因的權限。能讀取該事件的每個人都能看到其通話的逐字稿，以及 OneUptime AI 從中讀取的內容。
+
+### OneUptime AI 讀取什麼
+
+讀取逐字稿和調查一樣是 AI 工作：只在專案開啟 AI 時執行，並計入專案的 AI 用量和每日限額（參見 [成本控制](/docs/ai/ai-sre#成本控制)）。較長的逐字稿會分段讀取。關閉 AI 時，逐字稿會保留，卡片會說明它未被讀取。移除逐字稿會移除 OneUptime AI 從中讀取的內容，並保留事件的根本原因。AI 產生的事後分析草稿也會讀取事件通話中說過的內容（參見 [事後分析](/docs/incidents/postmortems)）。
+
 ## 服務供應商
 
 本節介紹如何使用您自己應用程式的服務身分連接服務供應商：Zoom 的 Server-to-Server OAuth 應用程式、Google 服務帳戶、Microsoft Entra 應用程式註冊。服務身分從不依賴於某個人，因此無論誰離職都能繼續運作。若要改為透過登入連接，請參閱 [一鍵連接](#一鍵連接)。
@@ -113,7 +164,7 @@ OneUptime 透過 Zoom **Server-to-Server OAuth** 應用程式為每個事件建�
 
 :::steps
 1. 在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，選擇 **Develop** > **Build App**，建立一個 **Server-to-Server OAuth** 應用程式。建立它需要 Zoom 帳戶管理員，或允許 Server-to-Server OAuth 應用程式的角色。
-2. 在應用程式的 **Scopes** 頁面，新增 **meeting:write:meeting:admin** （為使用者建立會議）。在細部權限範圍出現之前建立的應用程式可以改用 **meeting:write:admin**。
+2. 在應用程式的 **Scopes** 頁面，新增 **meeting:write:meeting:admin** （為使用者建立會議）。在細部權限範圍出現之前建立的應用程式可以改用 **meeting:write:admin**。要讓 OneUptime 也讀取 [通話逐字稿](#通話逐字稿)，請新增 **cloud_recording:read:list_recording_files:admin** 和 **cloud_recording:read:meeting_transcript:admin** （在細部權限範圍出現之前建立的應用程式使用 **recording:read:admin** ）。
 3. 按一下 **Activate** 啟用應用程式，然後將其 **App Credentials** 頁面上的 **Account ID**、 **Client ID** 和 **Client secret** 複製到連線表單中。
 4. 填寫 **Meeting host**：一個已授權 Zoom 使用者的電子郵件，最好是 incidents@example.com 之類的服務帳戶，這樣有人離職後會議仍能正常進行。由 Basic（免費）使用者主持的會議會在 40 分鐘後結束。
 5. 由於主持人是一個永遠不會加入的服務帳戶，應變人員不必等待主持人即可加入。請確認您 Zoom 帳戶的 **Waiting room** 設定沒有被鎖定為開啟，否則誰都無法進入。
@@ -215,7 +266,7 @@ OneUptime Cloud 擁有自己的 Zoom、Google 和 Microsoft 應用程式，用�
 | Google Meet | `https://<host>/api/video-call-oauth/google-meet/callback` | `GOOGLE_MEET_APP_CLIENT_ID`, `GOOGLE_MEET_APP_CLIENT_SECRET` | `googleMeetApp.clientId`, `googleMeetApp.clientSecret` |
 | Microsoft Teams | `https://<host>/api/video-call-oauth/microsoft-teams/callback` | `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET` | `microsoftTeamsMeetingsApp.clientId`, `microsoftTeamsMeetingsApp.clientSecret` |
 
-- **Zoom**：在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，選擇 **Develop** > **Build App**，建立一個由使用者管理的 **General App**。在 **Basic Information** 下，將重新導向 URI 作為 OAuth Redirect URL 新增到 **Development** 和 **Production** 兩個分頁以及 OAuth 允許清單中，並在 **Production** 分頁上將 **Deauthorization Notification** 端點 URL 設定為 `https://<host>/api/video-call-oauth/zoom/events`。在 **Scopes** 下新增 `meeting:write:meeting` 和 `user:read:user`。 **Features** > **Access** 下的 **Secret Token** 就是 `ZOOM_APP_WEBHOOK_SECRET_TOKEN`。 **Development** 認證資訊僅適用於您自己 Zoom 帳戶中的使用者； **Production** 認證資訊在 Zoom 審查並發布應用程式後對所有人有效。
+- **Zoom**：在 [Zoom App Marketplace](https://marketplace.zoom.us/) 中，選擇 **Develop** > **Build App**，建立一個由使用者管理的 **General App**。在 **Basic Information** 下，將重新導向 URI 作為 OAuth Redirect URL 新增到 **Development** 和 **Production** 兩個分頁以及 OAuth 允許清單中，並在 **Production** 分頁上將 **Deauthorization Notification** 端點 URL 設定為 `https://<host>/api/video-call-oauth/zoom/events`。在 **Scopes** 下新增 `meeting:write:meeting` 和 `user:read:user`。要讓它讀取 [通話逐字稿](#通話逐字稿)，還需新增 `cloud_recording:read:list_recording_files` 和 `cloud_recording:read:meeting_transcript`。 **Features** > **Access** 下的 **Secret Token** 就是 `ZOOM_APP_WEBHOOK_SECRET_TOKEN`。 **Development** 認證資訊僅適用於您自己 Zoom 帳戶中的使用者； **Production** 認證資訊在 Zoom 審查並發布應用程式後對所有人有效。
 - **Google Meet**：在 [Google Cloud 主控台](https://console.cloud.google.com/) 中啟用 **Google Meet REST API**，使用權限範圍 `openid`、 `email` 和 `https://www.googleapis.com/auth/meetings.space.created` 設定 OAuth 同意畫面（ **Google Auth Platform** ），並使用重新導向 URI 建立一個 **Web application** 類型的 OAuth 用戶端。將應用程式發布到正式環境：停留在測試狀態的應用程式會在七天後失去其登入。Google 會審查要求 Meet 權限範圍的應用程式；在審查完成之前，使用者在登入前會看到一則警告。
 - **Microsoft Teams**：在 [Microsoft Entra 系統管理中心](https://entra.microsoft.com/) 中，為 **Accounts in any organizational directory** 註冊一個應用程式，將重新導向 URI 新增為 **Web** 重新導向 URI，新增 Microsoft Graph 委派權限 `openid`、 `profile`、 `email`、 `offline_access` 和 `OnlineMeetings.ReadWrite`，並建立一個用戶端密碼。請使用獨立的註冊，而不是 Microsoft Teams 機器人的註冊（ `MICROSOFT_TEAMS_APP_CLIENT_ID` ）。在應用程式擁有經過驗證的發行者之前，大多數組織都需要管理員對其表示同意。
 
@@ -237,6 +288,18 @@ OneUptime Cloud 擁有自己的 Zoom、Google 和 Microsoft 應用程式，用�
 
 :::details 有人在大廳或等候室中等待
 在連線所在列使用 **編輯** 變更 **Who can join** （Google Meet）或 **Who skips the lobby** （Microsoft Teams）。對於 Zoom，請確認帳戶的 **Waiting room** 設定沒有被鎖定為開啟。
+:::
+
+:::details 從 Zoom 取得找不到逐字稿
+Zoom 只會為錄製到雲端且開啟了音訊逐字稿的會議，或開啟了 AI Companion 會議摘要的會議保留逐字稿，並在會議結束後準備它。卡片會說明是哪種情況：稍後再試，或為您的事件會議開啟其中一項。在此期間， **新增逐字稿** 可以接受您儲存的逐字稿。
+:::
+
+:::details Video Call 卡片仍在等待逐字稿
+通話結束後，OneUptime 每隔幾分鐘向 Zoom 或 Google Meet 要求一次逐字稿，通話結束越久，要求間隔越長，並持續到通話開始後三天。服務供應商準備好逐字稿後，逐字稿會在幾分鐘內送達，而 Zoom 最多需要大約通話時長兩倍的時間來準備。 **從 Zoom 取得** 會立即要求。如果服務供應商沒有保留逐字稿，卡片會說明這一點：請檢查 Zoom 帳戶是否在開啟音訊逐字稿的情況下錄製到雲端，或者您的 Google Workspace 版本是否支援逐字稿。
+:::
+
+:::details OneUptime AI 無法讀取逐字稿
+卡片會說明原因：專案已關閉 AI、專案已達到每日 AI 限額，或 AI 提供者拒絕了要求。解決後，卡片上的 **再試一次** 會重新讀取它。
 :::
 
 ## 後續步驟

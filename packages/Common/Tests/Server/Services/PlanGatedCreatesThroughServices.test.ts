@@ -17,6 +17,7 @@ import Permission, {
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
+import { useInMemoryLimitTransactions } from "../TestingUtils/LimitTransactionsInMemory";
 import {
   afterAll,
   afterEach,
@@ -278,6 +279,20 @@ beforeEach(() => {
   stubRepository(StatusPageService as never);
   stubRepository(DashboardService as never);
   stubRepository(FormService as never);
+
+  /*
+   * On the Free plan, a status page or dashboard is inserted in its limit's
+   * own transaction (getCreateLimit), which counts none yet either.
+   */
+  useInMemoryLimitTransactions({
+    count: (): number => {
+      return 0;
+    },
+    save: async (_tableName: string, row: unknown): Promise<never> => {
+      saved.push(row as Record<string, unknown>);
+      throw new Error(REACHED_SAVE);
+    },
+  });
 });
 
 afterEach(() => {

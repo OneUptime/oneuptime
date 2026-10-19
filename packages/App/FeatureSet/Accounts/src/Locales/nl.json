@@ -13,7 +13,8 @@
     "confirmPassword": "Wachtwoord bevestigen",
     "newPassword": "Nieuw wachtwoord",
     "code": "Code",
-    "yourCompany": "Uw bedrijf"
+    "yourCompany": "Uw bedrijf",
+    "or": "of"
   },
   "language": {
     "label": "Taal",
@@ -50,7 +51,7 @@
     "subtitle": "Gebruik je wachtwoord, de SSO van je organisatie of een passkey.",
     "submitButton": "Inloggen",
     "forgotPassword": "Wachtwoord vergeten?",
-    "useSso": "Gebruik in plaats daarvan single sign-on (SSO)",
+    "signInWithSso": "Inloggen met SSO",
     "signInWithMicrosoft": "Inloggen met Microsoft",
     "noAccountPrompt": "Hebt u geen account?",
     "registerLink": "Registreren.",
@@ -146,7 +147,7 @@
     "title": "Inloggen met SSO",
     "subtitle": "Log in met uw SSO-provider om toegang te krijgen tot uw account.",
     "submitButton": "Inloggen met SSO",
-    "useUsernameInstead": "Gebruik in plaats daarvan gebruikersnaam en wachtwoord.",
+    "signInWithPassword": "Inloggen met wachtwoord",
     "noAccountPrompt": "Hebt u geen account?",
     "registerLink": "Registreren.",
     "selectProjectTitle": "Project selecteren",
@@ -239,7 +240,7 @@
     "accessWriteDescription": "Gegevens bekijken en wijzigingen aanbrengen: incidenten en waarschuwingen bevestigen en oplossen, notities toevoegen en resources aanmaken, bijwerken of verwijderen.",
     "accessReadTitle": "Alleen lezen",
     "accessReadDescription": "Incidenten, waarschuwingen, monitoren, statuspagina's en telemetrie bekijken. Kan niets wijzigen.",
-    "permissionsNote": "De client handelt namens u en kan nooit meer doen dan uw eigen machtigingen in dit project toestaan. U kunt de client op elk moment loskoppelen via Projectinstellingen > MCP-server.",
+    "permissionsNote": "De client handelt namens u en kan nooit meer doen dan uw eigen machtigingen in dit project toestaan. U kunt de client op elk moment loskoppelen via Projectinstellingen > AI > MCP-server.",
     "authorizeButton": "Autoriseren",
     "denyButton": "Annuleren",
     "redirecting": "U wordt teruggestuurd naar {{clientName}}...",
@@ -285,7 +286,7 @@
       "bought_from_reseller": "{{name}} – wordt gefactureerd door een reseller"
     },
     "nothingToChoose": "Geen van uw projecten kan deze aankoop overnemen, en u kunt op deze server geen projecten maken. Vraag de eigenaar van het project dat met deze aankoop moet worden betaald om de aankoop in te stellen.",
-    "billingNote": "Uw abonnement en gebruik worden via {{marketplace}} gefactureerd tegen de prijzen op oneuptime.com/pricing. U kunt uw abonnement op elk moment wijzigen via Projectinstellingen → Facturering.",
+    "billingNote": "Uw abonnement en gebruik worden via {{marketplace}} gefactureerd tegen de prijzen op oneuptime.com/pricing. U kunt uw abonnement op elk moment wijzigen via Projectinstellingen → Facturering en facturen → Facturering.",
     "submitButton": "Aankoop instellen",
     "notNowButton": "Niet nu",
     "redirecting": "Uw aankoop is ingesteld. U wordt naar uw project gebracht…",
@@ -358,5 +359,13 @@
   "Quote": "Citaat",
   "Code Block": "Codeblok",
   "Switch to markdown source": "Naar Markdown-bron wisselen",
-  "Switch to visual editor": "Naar visuele editor wisselen"
+  "Switch to visual editor": "Naar visuele editor wisselen",
+  "Opens in a new tab": "Opent in een nieuw tabblad",
+  "Note": "Opmerking",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Belangrijk",
+  "Warning": "Waarschuwing",
+  "Caution": "Let op",
+  "Danger": "Gevaar"
 }

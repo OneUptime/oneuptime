@@ -5,6 +5,9 @@ import AIComponents from "./Components/AI";
 import ConditionComponents from "./Components/Condition";
 import DiscordComponents from "./Components/Discord";
 import EmailComponents from "./Components/Email";
+import HuntressComponents, {
+  HUNTRESS_COMPONENT_CATEGORY,
+} from "./Components/Huntress";
 import IncomingEmailComponents from "./Components/IncomingEmail";
 import IRCComponents from "./Components/IRC";
 import JsonComponents from "./Components/JSON";
@@ -42,6 +45,7 @@ const components: Array<ComponentMetadata> = [
   ...EmailComponents,
   ...WebhookComponents,
   ...IncomingEmailComponents,
+  ...HuntressComponents,
   ...WorkflowComponents,
   ...ManualComponents,
   ...MicrosoftTeamsComponents,
@@ -131,6 +135,12 @@ export const Categories: Array<ComponentCategory> = [
     name: "Email",
     description: "Receive email to start a workflow, and send email from one.",
     icon: IconProp.Email,
+  },
+  {
+    name: HUNTRESS_COMPONENT_CATEGORY,
+    description:
+      "Start a workflow from Huntress incident reports: new ones, comments and closes.",
+    icon: IconProp.ShieldCheck,
   },
   {
     name: "Utils",

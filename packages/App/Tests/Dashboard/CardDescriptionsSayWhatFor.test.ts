@@ -139,7 +139,7 @@ const LIST_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/Monitor/View/Probes.tsx",
-    "Probes that check this resource. Only these probes monitor it - adding one here is what puts a probe to work on this resource.",
+    "The probes that check this monitor. Add one to check it from another location.",
   ],
   [
     "Pages/MonitorGroup/View/Monitors.tsx",
@@ -244,7 +244,7 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/Teams/View/Members.tsx",
-    "Add and remove this team's members in your identity provider. To change them here instead, turn off Push Groups in Settings > SCIM.",
+    "Add and remove this team's members in your identity provider. To change them here instead, turn off Push Groups in Project Settings > Security > SCIM.",
   ],
   [
     "Pages/Monitor/View/Criteria.tsx",
@@ -338,19 +338,19 @@ const SHARED_DESCRIPTIONS: Array<[string, string]> = [
   [
     "Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview.tsx",
     // The schedule's Layers page.
-    "A combined preview of who is on call and when, after all layers and priorities are applied. Restriction windows are resolved in this schedule's timezone — {{timezone}}.",
+    "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
   ],
   [
     "Components/OnCallPolicy/OnCallScheduleLayer/FinalPreview.tsx",
-    "A combined preview of who is on call and when, after all layers and priorities are applied. Shown in your local timezone — {{timezone}}.",
+    "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
   ],
   [
     "Components/OnCallPolicy/OnCallScheduleLayer/LayersPreview.tsx",
-    "A combined preview of who is on call and when, after all layers and priorities are applied. Restriction windows are resolved in this schedule's timezone — {{timezone}}.",
+    "Who is on call and when, with every layer applied. Times are in this schedule's timezone, {{timezone}}.",
   ],
   [
     "Components/OnCallPolicy/OnCallScheduleLayer/LayersPreview.tsx",
-    "A combined preview of who is on call and when, after all layers and priorities are applied. Shown in your local timezone — {{timezone}}.",
+    "Who is on call and when, with every layer applied. Times are in your timezone, {{timezone}}.",
   ],
 ];
 

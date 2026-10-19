@@ -28,14 +28,14 @@ stateDiagram-v2
     state "Executed" as Executed
     state "Erro" as Failed
     state "Timeout" as TimedOut
-    [*] --> Scheduled: o gatilho dispara
-    Scheduled --> Running: um executor a pega
-    Scheduled --> Failed: ninguém a pegou em 5 minutos
+    [*] --> Scheduled: o gatilho<br/>dispara
+    Scheduled --> Running: um executor<br/>a pega
+    Scheduled --> Failed: ninguém<br/>a pegou<br/>em 5 minutos
     Running --> Waiting: um bloco Sleep
-    Waiting --> Running: o tempo acabou
-    Running --> Executed: chegou ao fim
-    Running --> Failed: um bloco parou a execução
-    Running --> TimedOut: o tempo esgotou
+    Waiting --> Running: o tempo<br/>acabou
+    Running --> Executed: chegou<br/>ao fim
+    Running --> Failed: um bloco<br/>parou a<br/>execução
+    Running --> TimedOut: o tempo<br/>esgotou
     Executed --> [*]
     Failed --> [*]
     TimedOut --> [*]

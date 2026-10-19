@@ -19,14 +19,14 @@ En Proxmox-monitor er knyttet til én klynge. Hvert minut kører den sin foresp�
 flowchart TB
     subgraph site["Dit netværk"]
         direction LR
-        pve["Proxmox VE-API"] --> agent["OneUptimes Proxmox-agent"]
+        pve["Proxmox VE-API"] --> agent["OneUptimes<br/>Proxmox-agent"]
     end
-    agent -->|"pve-metrikker over OTLP"| oneuptime["OneUptime"]
+    agent -->|"pve-metrikker<br/>over OTLP"| oneuptime["OneUptime"]
     native["Indbygget push i<br/>Proxmox VE 9"] -.->|"alternativ"| oneuptime
     oneuptime -->|"første data"| registered["Klynge registreret"]
     oneuptime --> monitor["Proxmox-monitor"]
     monitor -->|"hvert minut"| criteria{"Kriterier opfyldt?"}
-    criteria -->|"ja"| incident["Hændelse eller advarsel"]
+    criteria -->|"ja"| incident["Hændelse<br/>eller advarsel"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 
@@ -222,7 +222,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | Felt | Hvad det gør |
 | --- | --- |
 | **Metrik** | Den forespørgsel eller formel, der kontrolleres, efter dens variabelnavn. |
-| **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche) eller **Any Value** (én er nok). |
+| **Aggregering** | Hvordan værdierne i vinduet bliver til ét svar: **Gennemsnit**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver værdi skal matche, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** eller **Lig med** – eller en anomalibetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Den værdi, der sammenlignes med. En liste over enheder står ved siden af, når metrikken har en enhed. Vises ikke for anomalibetingelser. |
 | **Følsomhed** | Kun anomalibetingelser. **Lav** (4σ), **Mellem** (3σ, standard) eller **Høj** (2σ). |

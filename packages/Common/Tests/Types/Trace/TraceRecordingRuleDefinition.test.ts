@@ -38,7 +38,29 @@ describe("TraceRecordingRuleDefinitionUtil", () => {
   });
 
   describe("getSpanKindOptions", () => {
-    test("includes an 'Any' option with an empty value", () => {
+    /*
+     * "All", not "Any": the Dashboard draws a bare "Any" as a monitor
+     * criteria's Match Condition ("one or more" in Korean, "at least one"
+     * in French, Dutch and Persian), which is not what an open filter means.
+     */
+    test("starts with All, the option that filters on no kind", () => {
+      const options: Array<{ value: string; label: string }> =
+        TraceRecordingRuleDefinitionUtil.getSpanKindOptions();
+
+      expect(options[0]).toEqual({ value: "", label: "All" });
+      expect(
+        options.filter((o: { value: string }): boolean => {
+          return o.value === "";
+        }),
+      ).toHaveLength(1);
+      expect(
+        options.map((o: { label: string }): string => {
+          return o.label;
+        }),
+      ).not.toContain("Any");
+    });
+
+    test("includes the no-filter option with an empty value", () => {
       const options: Array<{ value: string; label: string }> =
         TraceRecordingRuleDefinitionUtil.getSpanKindOptions();
 

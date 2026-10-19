@@ -19,15 +19,15 @@ sequenceDiagram
     participant P as Sonde
     participant B as Browser
     participant A as Ihre Web-App
-    O->>P: Skript, Geheimnisse eingesetzt
-    loop Jeder Browser und jede Bildschirmgröße
-        P->>B: Das Skript ausführen
-        B->>A: Seiten laden, klicken, tippen
+    O->>P: Skript,<br/>Geheimnisse<br/>eingesetzt
+    loop Jeder Browser<br/>und jede<br/>Bildschirmgröße
+        P->>B: Das Skript<br/>ausführen
+        B->>A: Seiten laden,<br/>klicken, tippen
         A-->>B: Seiten
-        B-->>P: Ergebnis, Screenshots, Protokolle
+        B-->>P: Ergebnis,<br/>Screenshots,<br/>Protokolle
     end
-    P->>O: Eine Antwort pro Lauf
-    O->>O: Die Kriterien prüfen
+    P->>O: Eine Antwort<br/>pro Lauf
+    O->>O: Die Kriterien<br/>prüfen
 ```
 
 | Bildschirmtyp | Viewport |
@@ -56,7 +56,7 @@ Schreiben Sie Ihr Skript im Editor **Playwright-Code**. Beginnen Sie mit dem [Be
 
 ### Browser und Bildschirmgrößen wählen
 
-Kreuzen Sie die Browser unter **Browser-Typ** und die Größen unter **Bildschirmtyp** an. Das Skript läuft einmal für jede Kombination, zwei Browser und drei Größen ergeben also sechs Läufe pro Prüfung. Unter **Weitere Felder** wiederholt **Anzahl der Wiederholungen bei Fehler** einen fehlgeschlagenen Lauf bis zu 5-mal.
+Ein neuer Monitor beginnt mit **Chromium** unter **Browser-Typ** und **Desktop** unter **Bildschirmtyp**; kreuzen Sie weitere an, um mehr abzudecken. Das Skript läuft einmal für jede Kombination, zwei Browser und drei Größen ergeben also sechs Läufe pro Prüfung, und es braucht mindestens einen Browser und eine Größe. Unter **Weitere Felder** wiederholt **Anzahl der Wiederholungen bei Fehler** einen fehlgeschlagenen Lauf bis zu 5-mal.
 
 ### Es testen
 

@@ -51,6 +51,7 @@ import NotesSection from "../components/NotesSection";
 import RootCauseCard from "../components/RootCauseCard";
 import MarkdownContent from "../components/MarkdownContent";
 import { useHaptics } from "../hooks/useHaptics";
+import { usePassOnAction, type PassOnControls } from "../hooks/usePassOnAction";
 import type { IncidentItem, IncidentState, NamedEntity } from "../api/types";
 
 type Props = NativeStackScreenProps<IncidentsStackParamList, "IncidentDetail">;
@@ -95,6 +96,18 @@ export default function IncidentDetailScreen({
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
+  // "Pass it on", for the person an on-call policy is paging about it.
+  const passOn: PassOnControls = usePassOnAction({
+    projectId,
+    recordType: "incident",
+    recordId: incidentId,
+    recordLabel: "incident",
+    // Passing it on is news on the feed and the state timeline.
+    onPassedOn: () => {
+      return Promise.allSettled([refetchFeed(), refetchTimeline()]);
+    },
+  });
+
   const { refreshing, onRefresh } = useRefresh(async () => {
     await Promise.allSettled([
       refetchIncident(),
@@ -102,6 +115,7 @@ export default function IncidentDetailScreen({
       refetchTimeline(),
       refetchFeed(),
       refetchNotes(),
+      passOn.refetch(),
     ]);
   });
 
@@ -303,6 +317,10 @@ export default function IncidentDetailScreen({
       },
     });
   }
+  // Somebody being paged about it who cannot take it hands it on.
+  if (!isResolved && !isAcknowledged && passOn.action) {
+    actions.push(passOn.action);
+  }
 
   const stage: ResponseStage = getResponseStage(isResolved, isAcknowledged);
   const guidanceMessage: string =
@@ -365,7 +383,7 @@ export default function IncidentDetailScreen({
         {actions.length > 0 ? (
           <ResponseActions
             actions={actions}
-            busy={changingState}
+            busy={changingState || passOn.passingOn}
             style={{ marginBottom: 0 }}
           />
         ) : null}

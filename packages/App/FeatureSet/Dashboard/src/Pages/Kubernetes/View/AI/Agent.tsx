@@ -748,7 +748,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         title: "Runner",
         stepId: "runner-and-credential",
         description:
-          "The Runner OneUptime AI uses to run kubectl on this cluster. Only Runners with “Runs AI Remediation Commands” on are listed. Leave it empty to use the cluster's Kubernetes AI agent.",
+          "The Runner OneUptime AI uses for kubectl on this cluster. Leave empty to use the cluster's Kubernetes AI agent.",
         fieldType: FormFieldSchemaType.Dropdown,
         required: false,
         placeholder: "None — use the Kubernetes AI agent",
@@ -762,7 +762,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         stepId: "runner-and-credential",
         description: props.hasAiAgent
           ? translator.translateTemplate(
-              "Bound now: {{runner}}. Unbinding moves this cluster to its Kubernetes AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
+              "Bound now: {{runner}}. Unbinding moves this cluster to its Kubernetes AI agent. Choosing a Runner needs: {{permissions}}.",
               {
                 runner:
                   saved.aiAccessRunnerName ||
@@ -771,7 +771,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               },
             )
           : translator.translateTemplate(
-              "Bound now: {{runner}}. Unbinding stops OneUptime AI from running kubectl on this cluster until it has an AI agent. Choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
+              "Bound now: {{runner}}. Unbinding stops AI from running kubectl here until there is an AI agent. Choosing a Runner needs: {{permissions}}.",
               {
                 runner:
                   saved.aiAccessRunnerName ||
@@ -808,7 +808,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         title: "Unbind the Kubernetes credential",
         stepId: "runner-and-credential",
         description: translator.translateTemplate(
-          "Bound now: {{credential}}. A Runner outside the cluster cannot reach it without one. Choosing a credential needs permission to read Runner credentials (one of: {{permissions}}).",
+          "Bound now: {{credential}}. A Runner outside the cluster needs one to reach it. Choosing a credential needs: {{permissions}}.",
           {
             credential:
               saved.aiAccessCredentialName ||
@@ -1669,7 +1669,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
       return (
         <ConfirmModal
           title="Reset the AI agent?"
-          description="This revokes the agent's key. The agent in your cluster registers again on its own within a few minutes. Use it if the agent moved or its key may have leaked."
+          description="This revokes the agent's key; the agent registers again on its own within minutes. Use it if the key may have leaked."
           submitButtonText="Reset agent"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isActing}
@@ -1712,7 +1712,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             status.credentialName
               ? writeAccess
                 ? translator.translateTemplate(
-                    'AI stops using Runner "{{runner}}" and credential "{{credential}}" and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent\'s access ({{writeAccess}}).',
+                    'AI stops using Runner "{{runner}}" and credential "{{credential}}" and uses this cluster\'s AI agent, with its access ({{writeAccess}}).',
                     {
                       runner: status.runner?.name || "",
                       credential: status.credentialName,
@@ -1720,7 +1720,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                     },
                   )
                 : translator.translateTemplate(
-                    'AI stops using Runner "{{runner}}" and credential "{{credential}}" and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent\'s access.',
+                    'AI stops using Runner "{{runner}}" and credential "{{credential}}" and uses this cluster\'s AI agent and its access.',
                     {
                       runner: status.runner?.name || "",
                       credential: status.credentialName,
@@ -1728,14 +1728,14 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                   )
               : writeAccess
                 ? translator.translateTemplate(
-                    'AI stops using Runner "{{runner}}" and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent\'s access ({{writeAccess}}).',
+                    'AI stops using Runner "{{runner}}" and uses this cluster\'s AI agent, with its access ({{writeAccess}}).',
                     {
                       runner: status.runner?.name || "",
                       writeAccess: writeAccess,
                     },
                   )
                 : translator.translateTemplate(
-                    'AI stops using Runner "{{runner}}" and runs kubectl through the Kubernetes AI agent in this cluster. What fixes may change is then set by the agent\'s access.',
+                    'AI stops using Runner "{{runner}}" and uses this cluster\'s AI agent and its access.',
                     { runner: status.runner?.name || "" },
                   )
           }

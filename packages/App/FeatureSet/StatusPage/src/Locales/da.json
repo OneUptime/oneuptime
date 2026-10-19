@@ -22,6 +22,10 @@
     "label": "Sprog",
     "switchLanguage": "Skift sprog"
   },
+  "theme": {
+    "switchToDark": "Skift til mørkt tema",
+    "switchToLight": "Skift til lyst tema"
+  },
   "nav": {
     "overview": "Oversigt",
     "incidents": "Hændelser",
@@ -125,7 +129,27 @@
     "noneDescription": "Der er ikke offentliggjort nogen planlagte hændelser for denne statusside.",
     "scheduledAt": "Planlagt til ",
     "report": "Rapport for planlagt hændelse",
-    "notFound": "Der blev ikke fundet nogen planlagt hændelse for denne statusside."
+    "notFound": "Der blev ikke fundet nogen planlagt hændelse for denne statusside.",
+    "calendar": {
+      "subscribe": "Abonner på kalender",
+      "subscribeTitle": "Abonner på planlagt vedligeholdelse",
+      "subscribeDescription": "Få denne sides planlagte vedligeholdelse i din kalenderapp. Den holder sig selv opdateret.",
+      "eventTitle": "Føj til kalender",
+      "eventDescription": "Føj denne vedligeholdelse til din kalenderapp.",
+      "addToCalendar": "Føj til kalender",
+      "addHeading": "Føj til din kalender",
+      "google": "Google Kalender",
+      "googleHint": "Åbner Google Kalender i en ny fane",
+      "device": "Apple Kalender / Outlook",
+      "deviceHint": "Åbner kalenderappen på denne enhed",
+      "deviceFileHint": "Henter vedligeholdelsen til kalenderappen på denne enhed",
+      "copyHeading": "Eller kopiér linket",
+      "copyHint": "Indsæt det i en hvilken som helst kalenderapp, der kan abonnere på en kalender via URL.",
+      "copy": "Kopiér link",
+      "copied": "Kopieret!",
+      "done": "Færdig",
+      "refreshNote": "Kalenderapps tjekker for ændringer efter deres egen plan, så det kan tage et par timer, før en opdatering vises."
+    }
   },
   "subscribe": {
     "title": "Abonner",
@@ -161,7 +185,8 @@
       "yourPhoneNumber": "Dit telefonnummer",
       "placeholder": "+4512345678",
       "managePrompt": "Indtast venligst det telefonnummer, du har abonneret med",
-      "manageDescription": "Vi sender dig et administrationslink til dette telefonnummer."
+      "manageDescription": "Vi sender dig et administrationslink til dette telefonnummer.",
+      "confirmationSent": "Vi har sendt en sms til dette telefonnummer. Åbn linket i den for at bekræfte dit abonnement."
     },
     "slack": {
       "title": "Abonner via Slack",
@@ -212,11 +237,16 @@
       "saved": "Dine ændringer er blevet gemt.",
       "submit": "Opdater abonnement",
       "unsubscribe": "Afmeld",
-      "unsubscribeDescription": "Vælg dette, hvis du vil afmelde dig alle ressourcer."
+      "unsubscribeDescription": "Vælg dette, hvis du vil afmelde dig alle ressourcer.",
+      "linkNotValid": "Dette link til at administrere dit abonnement er udløbet eller ugyldigt. Brug »Administrer eksisterende abonnement« på siden »Abonner« for at få et nyt.",
+      "getNewLink": "Få et nyt link",
+      "loadFailed": "Vi kunne ikke indlæse dette link. Prøv igen senere."
     },
     "confirm": {
       "title": "Bekræft abonnement",
-      "success": "Abonnement bekræftet"
+      "success": "Abonnement bekræftet",
+      "linkNotValid": "Dette link til at bekræfte dit abonnement er udløbet eller ugyldigt. Et link virker i 24 timer, efter det er sendt. Abonner igen for at få et nyt.",
+      "subscribeAgain": "Abonner igen"
     },
     "unsubscribe": {
       "title": "Afmeld",
@@ -264,7 +294,8 @@
       "loginPrompt": "Log venligst ind for at se {{statusPageName}}",
       "forgotPassword": "Glemt adgangskode?",
       "submit": "Log ind",
-      "useSSO": "Brug single sign-on (SSO) i stedet"
+      "or": "eller",
+      "logInWithSso": "Log ind med SSO"
     },
     "sso": {
       "title": "Log ind med SSO",
@@ -342,5 +373,13 @@
   "{{field}} is required.": "{{field}} er påkrævet.",
   "{{field}} should match {{matchField}}": "{{field}} skal matche {{matchField}}",
   "Email is not valid.": "E-mailen er ugyldig.",
-  "Next": "Næste"
+  "Next": "Næste",
+  "Opens in a new tab": "Åbner i en ny fane",
+  "Note": "Bemærk",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Vigtigt",
+  "Warning": "Advarsel",
+  "Caution": "Forsigtig",
+  "Danger": "Fare"
 }

@@ -18,7 +18,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * something.
  */
 
-const mockForgetBlockedStatus: jest.Mock = jest.fn();
+const mockForgetAccountStanding: jest.Mock = jest.fn();
 const mockForgetTeamIdsForUser: jest.Mock = jest.fn();
 const mockForgetProjectSignInRules: jest.Mock = jest.fn();
 const mockForgetInstanceSignInRules: jest.Mock = jest.fn();
@@ -27,8 +27,8 @@ jest.mock("../../../../Server/Services/UserService", () => {
   return {
     __esModule: true,
     default: {
-      forgetBlockedStatus: (...args: Array<unknown>): unknown => {
-        return mockForgetBlockedStatus(...args);
+      forgetAccountStanding: (...args: Array<unknown>): unknown => {
+        return mockForgetAccountStanding(...args);
       },
     },
   };
@@ -169,7 +169,7 @@ describe("RealtimeAccessChanges", () => {
     forgetUser = jest.spyOn(RealtimeReaders, "forgetUser");
     endWhere = jest.spyOn(RealtimeSessions, "endWhere");
     jest.spyOn(logger, "debug").mockImplementation((): void => {});
-    mockForgetBlockedStatus.mockReset();
+    mockForgetAccountStanding.mockReset();
     mockForgetTeamIdsForUser.mockReset();
     mockForgetProjectSignInRules.mockReset();
     mockForgetInstanceSignInRules.mockReset();
@@ -226,7 +226,9 @@ describe("RealtimeAccessChanges", () => {
         userId: USER,
       });
 
-      expect(mockForgetBlockedStatus).toHaveBeenCalledWith(new ObjectID(USER));
+      expect(mockForgetAccountStanding).toHaveBeenCalledWith(
+        new ObjectID(USER),
+      );
       expect(forgetUser).toHaveBeenCalledWith(USER);
       expect(client.changesPublished()).toHaveLength(1);
     });
@@ -293,7 +295,7 @@ describe("RealtimeAccessChanges", () => {
         userId: USER,
       });
 
-      expect(mockForgetBlockedStatus).toHaveBeenCalled();
+      expect(mockForgetAccountStanding).toHaveBeenCalled();
       expect(client.published).toEqual([]);
     });
 
@@ -373,7 +375,7 @@ describe("RealtimeAccessChanges", () => {
     });
 
     test("a step that fails here is logged, not thrown", () => {
-      mockForgetBlockedStatus.mockImplementation(() => {
+      mockForgetAccountStanding.mockImplementation(() => {
         throw new Error("cache unavailable");
       });
 
@@ -545,7 +547,7 @@ describe("RealtimeAccessChanges", () => {
 
       expect(endWhere).not.toHaveBeenCalled();
       expect(forgetUser).not.toHaveBeenCalled();
-      expect(mockForgetBlockedStatus).not.toHaveBeenCalled();
+      expect(mockForgetAccountStanding).not.toHaveBeenCalled();
       expect(mockForgetProjectSignInRules).not.toHaveBeenCalled();
     });
 

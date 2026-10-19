@@ -35,6 +35,13 @@ export interface VMwareAlertTemplateArgs {
 export interface VMwareAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. The picker and a resource's
+   * Recommendations list show it on the card; `description` (how it is
+   * computed, and its caveats) is shown once a template is picked.
+   */
+  summary: string;
   description: string;
   category: VMwareAlertTemplateCategory;
   severity: VMwareAlertTemplateSeverity;
@@ -288,6 +295,7 @@ export function buildVMwareMultiQueryMonitorConfig(args: {
 interface ThresholdTemplateSpec {
   id: string;
   name: string;
+  summary: string;
   description: string;
   category: VMwareAlertTemplateCategory;
   severity: VMwareAlertTemplateSeverity;
@@ -319,6 +327,7 @@ function buildThresholdTemplate(
   return {
     id: spec.id,
     name: spec.name,
+    summary: spec.summary,
     description: spec.description,
     category: spec.category,
     severity: spec.severity,
@@ -363,6 +372,7 @@ function buildThresholdTemplate(
 const hostCpuSaturationTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-host-cpu-saturation",
   name: "Host CPU Saturation",
+  summary: "An ESXi host's CPU stays above 90% for 5 minutes.",
   description:
     "Alert when an ESXi host's CPU utilization stays above 90% for 5 minutes (vcenter.host.cpu.utilization, one incident per host). A saturated host degrades every VM scheduled on it and shows up as CPU ready time inside the guests.",
   category: "Host",
@@ -395,6 +405,7 @@ const hostMemorySaturationTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-host-memory-saturation",
     name: "Host Memory Saturation",
+    summary: "An ESXi host's memory stays above 90% for 5 minutes.",
     description:
       "Alert when an ESXi host's memory utilization stays above 90% for 5 minutes (vcenter.host.memory.utilization, one incident per host). Beyond this point the host starts reclaiming memory from its VMs through ballooning, compression and finally host swapping.",
     category: "Host",
@@ -422,6 +433,7 @@ const hostDiskLatencyHighTemplate: VMwareAlertTemplate = buildThresholdTemplate(
   {
     id: "vmware-host-disk-latency-high",
     name: "Host Disk Latency High",
+    summary: "An ESXi host's disk latency passes 50 ms for 5 minutes.",
     description:
       "Alert when the highest disk latency an ESXi host sees exceeds 50 ms for 5 minutes (vcenter.host.disk.latency.max, one incident per host). Storage latency at the host level hits every VM whose disks live on the affected path. Requires vCenter performance counter level 3.",
     category: "Host",
@@ -454,6 +466,7 @@ const hostNetworkPacketErrorsTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-host-network-packet-errors",
     name: "Host Network Packet Errors",
+    summary: "An ESXi host's network cards report packet errors.",
     description:
       "Alert when an ESXi host's physical NICs report any packet errors for 5 minutes (vcenter.host.network.packet.error.rate > 0, one incident per host). Packet errors are almost always a failing cable, SFP or switch port — they do not fix themselves.",
     category: "Host",
@@ -481,6 +494,7 @@ const hostNetworkPacketDropsTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-host-network-packet-drops",
     name: "Host Network Packet Drops",
+    summary: "An ESXi host's network cards drop packets.",
     description:
       "Alert when an ESXi host's physical NICs drop packets for 5 minutes (vcenter.host.network.packet.drop.rate > 0, one incident per host). Sustained drops mean an oversubscribed uplink or a NIC whose ring buffers are overflowing.",
     category: "Host",
@@ -509,6 +523,7 @@ const hostNetworkPacketDropsTemplate: VMwareAlertTemplate =
 const vmCpuSaturationTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vm-cpu-saturation",
   name: "VM CPU Saturation",
+  summary: "A VM stays above 90% of its CPU for 15 minutes.",
   description:
     "Alert when a virtual machine's CPU utilization stays above 90% of its vCPUs for 15 minutes (vcenter.vm.cpu.utilization, one incident per VM). Deliberately slower than the host template: a VM is entitled to spend the vCPUs it was given, so only a VM that never comes down is worth a page. Only powered-on VMs report this metric.",
   category: "Virtual Machine",
@@ -544,6 +559,7 @@ const vmCpuReadyContentionTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-vm-cpu-ready-contention",
     name: "VM CPU Ready Contention",
+    summary: "A VM waits for a free CPU core more than 10% of the time.",
     description:
       "Alert when a virtual machine's CPU ready time exceeds 10% for 5 minutes (vcenter.vm.cpu.readiness, one incident per VM). CPU ready is time the VM wanted to run but the host had no physical core for it — the definitive signal of an oversubscribed host, and invisible from inside the guest.",
     category: "Virtual Machine",
@@ -574,6 +590,7 @@ const vmCpuReadyContentionTemplate: VMwareAlertTemplate =
 const vmMemorySaturationTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vm-memory-saturation",
   name: "VM Memory Saturation",
+  summary: "A VM uses more than 90% of its memory for 5 minutes.",
   description:
     "Alert when a virtual machine's memory utilization stays above 90% of its configured memory for 5 minutes (vcenter.vm.memory.utilization, one incident per VM). The guest is about to start paging internally.",
   category: "Virtual Machine",
@@ -600,6 +617,7 @@ const vmMemorySaturationTemplate: VMwareAlertTemplate = buildThresholdTemplate({
 const vmMemoryBallooningTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vm-memory-ballooning",
   name: "VM Memory Ballooning",
+  summary: "The host is taking memory back from a VM.",
   description:
     "Alert when the balloon driver is reclaiming memory from a virtual machine for 5 minutes (vcenter.vm.memory.ballooned > 0, one incident per VM). Ballooning means the ESXi host is short of memory and is taking it back from this guest — the first stage of host memory pressure.",
   category: "Virtual Machine",
@@ -626,6 +644,7 @@ const vmMemoryBallooningTemplate: VMwareAlertTemplate = buildThresholdTemplate({
 const vmMemorySwappingTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vm-memory-swapping",
   name: "VM Memory Swapping",
+  summary: "The host swaps a VM's memory to disk.",
   description:
     "Alert when a virtual machine's memory is being swapped to disk by the ESXi host for 5 minutes (vcenter.vm.memory.swapped > 0, one incident per VM). Host-level swapping is the last resort after ballooning and compression: the guest is paying disk latency for RAM and does not know it.",
   category: "Virtual Machine",
@@ -652,6 +671,7 @@ const vmMemorySwappingTemplate: VMwareAlertTemplate = buildThresholdTemplate({
 const vmDiskLatencyHighTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vm-disk-latency-high",
   name: "VM Disk Latency High",
+  summary: "A VM's disk latency passes 50 ms for 5 minutes.",
   description:
     "Alert when the highest disk latency a virtual machine sees exceeds 50 ms for 5 minutes (vcenter.vm.disk.latency.max, one incident per VM). Applications inside the guest time out on I/O long before the datastore looks full.",
   category: "Virtual Machine",
@@ -679,6 +699,7 @@ const vmDiskLatencyHighTemplate: VMwareAlertTemplate = buildThresholdTemplate({
 const vmDiskUsageHighTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vm-disk-usage-high",
   name: "VM Disk Usage High",
+  summary: "A VM has used more than 90% of its provisioned storage.",
   description:
     "Alert when a virtual machine has committed more than 90% of its provisioned storage on the datastore for 5 minutes (vcenter.vm.disk.utilization, one incident per VM). A thin-provisioned VM at 90% is about to claim its full provisioned size from the datastore.",
   category: "Virtual Machine",
@@ -708,6 +729,7 @@ const datastoreCapacityWarningTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-datastore-capacity-warning",
     name: "Datastore Capacity Warning",
+    summary: "A datastore is more than 80% full.",
     description:
       "Alert when a datastore is more than 80% full for 5 minutes (vcenter.datastore.disk.utilization, one incident per datastore). Early warning — thin-provisioned VMs and snapshots can consume the remaining 20% quickly.",
     category: "Datastore",
@@ -735,6 +757,7 @@ const datastoreCapacityCriticalTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-datastore-capacity-critical",
     name: "Datastore Capacity Critical",
+    summary: "A datastore is more than 90% full.",
     description:
       "Alert when a datastore is more than 90% full for 5 minutes (vcenter.datastore.disk.utilization, one incident per datastore). A datastore that fills up pauses every VM with a disk on it — this is an outage in waiting.",
     category: "Datastore",
@@ -764,6 +787,8 @@ const clusterHostNotEffectiveTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-cluster-host-not-effective",
     name: "Cluster Host Not Effective",
+    summary:
+      "A cluster host is in maintenance, disconnected or not responding.",
     description:
       "Alert when a cluster has one or more hosts that are not effective for 5 minutes (vcenter.cluster.host.count filtered to effective = false, one incident per cluster). A host stops being effective when it enters maintenance mode, disconnects or becomes unresponsive — the cluster is running with less capacity than it was sized for, and HA may not be able to restart VMs if another host fails.",
     category: "Cluster",
@@ -798,6 +823,7 @@ const datacenterHostsUnhealthyTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-datacenter-hosts-unhealthy",
     name: "Datacenter Hosts Unhealthy",
+    summary: "A datacenter has an ESXi host in red (critical) status.",
     description:
       "Alert when a datacenter has one or more ESXi hosts in the red (critical) status for 5 minutes (vcenter.datacenter.host.count filtered to status = red, one incident per datacenter). Red is vCenter's own overall-status roll-up: a triggered critical alarm on the host — hardware sensor failure, lost storage path, HA agent error.",
     category: "Datacenter",
@@ -826,6 +852,7 @@ const datacenterHostsDegradedTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-datacenter-hosts-degraded",
     name: "Datacenter Hosts Degraded",
+    summary: "A datacenter has an ESXi host in yellow (warning) status.",
     description:
       "Alert when a datacenter has one or more ESXi hosts in the yellow (warning) status for 5 minutes (vcenter.datacenter.host.count filtered to status = yellow, one incident per datacenter). Yellow means a warning-level alarm is triggered on the host — typically a resource threshold or a non-fatal hardware sensor.",
     category: "Datacenter",
@@ -854,6 +881,7 @@ const datacenterHostsPoweredOffTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-datacenter-hosts-powered-off",
     name: "Datacenter Hosts Powered Off",
+    summary: "A datacenter has an ESXi host that is powered off.",
     description:
       "Alert when a datacenter has one or more ESXi hosts reported as powered off for 5 minutes (vcenter.datacenter.host.count filtered to power_state = off, one incident per datacenter). A host powered off outside a planned maintenance window has usually crashed, lost power, or been fenced by DPM.",
     category: "Datacenter",
@@ -882,6 +910,7 @@ const datacenterVmsUnhealthyTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-datacenter-vms-unhealthy",
     name: "Datacenter VMs Unhealthy",
+    summary: "A datacenter has a VM in red (critical) status.",
     description:
       "Alert when a datacenter has one or more virtual machines in the red (critical) status for 5 minutes (vcenter.datacenter.vm.count filtered to status = red, one incident per datacenter). Red on a VM means a critical alarm is triggered on it — a failed HA restart, a lost datastore, VMware Tools heartbeat lost, or a VM-level hardware issue.",
     category: "Datacenter",
@@ -910,6 +939,7 @@ const datacenterClustersUnhealthyTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-datacenter-clusters-unhealthy",
     name: "Datacenter Clusters Unhealthy",
+    summary: "A datacenter has a cluster in red (critical) status.",
     description:
       "Alert when a datacenter has one or more clusters in the red (critical) status for 5 minutes (vcenter.datacenter.cluster.count filtered to status = red, one incident per datacenter). A red cluster means a cluster-level critical alarm — vSphere HA failover resources insufficient, HA master election failed, or vSAN health critical.",
     category: "Datacenter",
@@ -939,6 +969,7 @@ const datacenterClustersUnhealthyTemplate: VMwareAlertTemplate =
 const vsanLatencyHighTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vsan-latency-high",
   name: "vSAN Latency High",
+  summary: "vSAN latency passes 20 ms for 5 minutes. vSAN clusters only.",
   description:
     "Alert when a cluster's average vSAN latency exceeds 20 ms for 5 minutes (vcenter.cluster.vsan.latency.avg > 20 000 µs, one incident per cluster). Every VM on the vSAN datastore feels this as slow disk. Only vSAN-enabled clusters emit the metric, so this monitor is silent elsewhere.",
   category: "vSAN",
@@ -971,6 +1002,7 @@ const vsanLatencyHighTemplate: VMwareAlertTemplate = buildThresholdTemplate({
 const vsanCongestionTemplate: VMwareAlertTemplate = buildThresholdTemplate({
   id: "vmware-vsan-congestion",
   name: "vSAN Congestion",
+  summary: "vSAN reports congestion. vSAN clusters only.",
   description:
     "Alert when a cluster's vSAN layer reports any congestion for 5 minutes (vcenter.cluster.vsan.congestions > 0, one incident per cluster). Congestion is vSAN's own back-pressure signal: a disk group cannot keep up and client I/O is being throttled. Only vSAN-enabled clusters emit the metric.",
   category: "vSAN",
@@ -1000,6 +1032,7 @@ const resourcePoolMemorySwappedTemplate: VMwareAlertTemplate =
   buildThresholdTemplate({
     id: "vmware-resource-pool-memory-swapped",
     name: "Resource Pool Memory Swapped",
+    summary: "The host swaps memory of VMs in a resource pool to disk.",
     description:
       "Alert when the VMs in a resource pool are being host-swapped for 5 minutes (vcenter.resource_pool.memory.swapped > 0, one incident per resource pool, identified by its inventory path). Swapping inside a pool usually means the pool's memory limit or its shares are too low for what it is running.",
     category: "Cluster",

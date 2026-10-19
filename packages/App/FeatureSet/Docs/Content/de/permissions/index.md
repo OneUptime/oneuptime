@@ -12,14 +12,14 @@ Alles in OneUptime liegt innerhalb eines **Projekts**. Wer darin was tun darf, e
 ```mermaid title="Wie eine Person und ein API-Schlüssel Zugriff erhalten"
 flowchart TB
     User["Ein Benutzer<br/>(ein Konto)"]
-    Key["Ein API-Schlüssel"]
     subgraph Project["Ein Projekt"]
         direction TB
+        Key["Ein API-<br/>Schlüssel"]
         Team["Team"]
-        Allow["Erlaubt-Berechtigungen,<br/>jeweils mit Geltungsbereich:<br/>Alle, Eigene oder Labels"]
-        Block["Sperr-Berechtigungen,<br/>die immer gewinnen"]
-        KeyRules["Die eigenen Erlaubt- und<br/>Sperr-Berechtigungen des Schlüssels"]
-        Resources["Monitore, Vorfälle,<br/>Statusseiten und mehr"]
+        Allow["Erlaubt-<br/>Berechtigungen,<br/>jeweils mit<br/>Geltungsbereich:<br/>Alle, Eigene<br/>oder Labels"]
+        Block["Sperr-<br/>Berechtigungen,<br/>die immer<br/>gewinnen"]
+        KeyRules["Die eigenen<br/>Erlaubt- und<br/>Sperr-<br/>Berechtigungen<br/>des Schlüssels"]
+        Resources["Monitore,<br/>Vorfälle,<br/>Statusseiten<br/>und mehr"]
     end
     User -->|"Mitglied von"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"erreichen"| Resources
     KeyRules -->|"erreichen"| Resources
     Block -.->|"nehmen weg"| Resources
+    Allow ~~~ Block
 ```
 
 | Begriff | Bedeutung |
@@ -37,6 +38,7 @@ flowchart TB
 | Team | Eine benannte Gruppe innerhalb eines Projekts, die Berechtigungen trägt. |
 | Teammitglied | Ein Benutzer, der in ein Team eingeladen wurde und angenommen hat. |
 | Berechtigung | Eine einzelne Fähigkeit, z. B. `CreateProjectMonitor`, oder eine Rolle, die viele bündelt, z. B. `MonitorAdmin`. |
+| Benutzerdefinierte Rolle | Eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben. |
 | Geltungsbereich | Wie weit eine Erlaubt-Berechtigung reicht: alle Ressourcen, nur eigene oder nur gelabelte. |
 | Eigentümer | Ein Benutzer oder Team, der bzw. das für eine konkrete Ressource verantwortlich ist. |
 | Label | Eine Markierung an Ressourcen, mit der Berechtigungen eingeschränkt und Ressourcen organisiert werden. |
@@ -57,6 +59,7 @@ Ein Benutzer ist „in" einem Projekt, sobald er Mitglied **mindestens eines Tea
 - Einladungen erzeugen ein ausstehendes Teammitglied. Der Benutzer zählt erst als Projektmitglied — und erhält erst dann irgendeine Berechtigung —, **nachdem er die Einladung angenommen hat.**
 - **Benutzer einladen** beginnt mit dem Mitglieder-Team des Projekts: dem Team, das `ProjectMember` für das ganze Projekt hält, also **Members**, sofern Sie es nicht umbenannt haben. Wählen Sie ein anderes Team, um der Person mehr oder weniger Zugriff zu geben. Es ist nichts vorausgewählt, wenn Sie selbst nicht in dieses Team einladen dürften — wer jemanden einlädt, gibt ihm die Berechtigungen des Teams weiter, und Sie können nur Berechtigungen weitergeben, die Sie selbst haben — oder wenn das Projekt kein solches Team hat. Das Admin-Dashboard beginnt mit demselben Team, wo immer ein Instanzadministrator jemanden zu einem Projekt hinzufügt: **Benutzer einladen** bei einem Projekt, **Zu Projekt hinzufügen** bei einem Benutzer und bei mehreren Benutzern zugleich, sowie die Projekte, die einem [globalen SSO-Anbieter](/docs/identity/global-sso) zugeordnet sind.
 - Wird ein Benutzer aus allen Teams eines Projekts entfernt, verliert er den Zugriff darauf, ab seiner nächsten Anfrage — auch während er angemeldet ist. Sein Konto und seine anderen Projekte sind nicht betroffen. Er wird aus den Bereitschaftsplänen, Eskalationsregeln und Vertretungen des Projekts genommen, aus den Rollen seiner offenen Vorfälle und Episoden und aus den Eigentümern seiner Ressourcen; gelöste Vorfälle behalten den Nachweis, wer sie besaß und leitete.
+- Wird einer Person auf einer selbst gehosteten Installation im Admin-Dashboard der Master-Admin-Zugriff entzogen, verliert sie ihn ab ihrer nächsten Anfrage — auch während sie angemeldet ist. Sie bleibt angemeldet und behält die Projekte, in denen sie Mitglied ist.
 - Wer ein Projekt verlässt, erhält keine Benachrichtigungen mehr daraus. Seine eigenen Benachrichtigungsmethoden, -regeln und -einstellungen für das Projekt werden mit dem letzten Team entfernt — E-Mail, SMS, Anruf, WhatsApp, Telegram, Push, Webhook, Slack und Microsoft Teams, die E-Mail-Zusammenfassung samt noch nicht versendeter E-Mail, die Nummer für eingehende Anrufe und die Schicht-Erinnerungen —, sodass ein erneuter Beitritt mit den Standardwerten beginnt. Wo die Person danach noch genannt wird, etwa als Benutzer, den eine Regel für eingehende Anrufe anruft, oder als Besitzer eines gelösten Vorfalls, wird sie nicht mehr benachrichtigt: Im Namen eines Projekts wird nichts an jemanden gesendet, der kein Mitglied ist, und eine ausstehende Einladung ist noch keine Mitgliedschaft. Diese Stellen zeigen **Kein Mitglied mehr** neben dem Namen, damit Sie jemand anderen eintragen können. Wer eingeladen ist und noch nicht angenommen hat, erscheint stattdessen mit **Einladung noch nicht angenommen**. Leitet eine Vertretung die Benachrichtigungen einer Person an jemanden weiter, der das Projekt verlassen hat, wird stattdessen die vertretene Person benachrichtigt. Mit dem Verlassen werden auch die MCP-Clients getrennt, die die Person mit dem Projekt verbunden hat, und ihr persönlicher Link zum Bereitschaftskalender zeigt ab dann einen leeren Kalender. Auf OneUptime Cloud bestätigt jemand, der über das Single Sign-On des Projekts zurückkommt, es erneut aus seinem Postfach.
 - Wenn Ihr Projekt SSO erzwingt und ein Benutzer sich noch nicht über den Identity Provider authentifiziert hat, gilt er als nicht autorisierter SSO-Benutzer und sieht nichts, bis er es tut. Siehe [SSO](/docs/identity/sso).
 - Mit eingerichtetem SCIM kann Ihr Identity Provider Benutzer und deren Teamzugehörigkeiten automatisch anlegen, aktualisieren und entfernen. Siehe [SCIM](/docs/identity/scim).
@@ -132,6 +135,24 @@ Es sind zugleich die Schlüssel, die Sie beim Anlegen von API-Schlüsseln verwen
 
 Die vollständige Liste steht in der [Berechtigungsreferenz](/docs/permissions/reference).
 
+### Benutzerdefinierte Rollen
+
+Eine benutzerdefinierte Rolle ist eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben: etwa ein „Vorfallbearbeiter“ aus `IncidentMember`, `AlertMember` und `OnCallViewer` oder eine „Teamleitung“. Jedes Team, dem Sie sie geben, erhält dieselben Berechtigungen, und Sie ändern sie für alle diese Teams an einer Stelle. In OneUptime Cloud brauchen benutzerdefinierte Rollen den Scale-Tarif, wie das Ändern der Berechtigungen eines Teams.
+
+:::steps
+1. Öffnen Sie **Teams** im Menü **Produkte** unter **Einstellungen**. Klappen Sie **Einstellungen** im Seitenmenü auf, wählen Sie **Rollen** und klicken Sie auf **Benutzerdefinierte Rolle erstellen**.
+2. Geben Sie ihren **Name** ein und wählen Sie unter **Berechtigungen** die vordefinierten Rollen, die sie bündelt, für jede Ressource im Projekt. Die Beschreibung liegt unter **Weitere Felder**.
+3. Legen Sie die Rolle an. Sie öffnet sich auf ihrer Seite, wo **Rolle hinzufügen** eine weitere vordefinierte Rolle hinzufügt und **Berechtigung hinzufügen** (im Menü **⋯** der Karte) eine einzelne Berechtigung, jeweils mit Geltungsbereich und Beschriftungen, wie bei einem Team.
+4. Klicken Sie unter **Teams mit dieser Rolle** auf **Einem Team geben**. Auch die Seite **Berechtigungen** eines Teams hat **Benutzerdefinierte Rolle hinzufügen**, und **Team erstellen** bietet unter **Zugriff** die benutzerdefinierten Rollen an, die Sie vergeben könnten.
+:::
+
+- Die Mitglieder eines Teams erhalten jede Berechtigung seiner benutzerdefinierten Rollen, mit demselben Geltungsbereich und denselben Beschriftungen, genau so, als hätte das Team sie selbst. Eine Sperre auf dem Team gewinnt weiterhin.
+- Eine Rolle bleibt mit den Teams verbunden, die sie haben: Eine Änderung an ihr erreicht sie alle sofort, und die Seite der Rolle sagt, wie viele Teams und Personen das sind. **Entfernen** nimmt einem Team die Rolle. Das Löschen der Rolle nimmt ihre Berechtigungen jedem Team, das sie hat; die Teams behalten ihre Mitglieder und ihre anderen Rollen und Berechtigungen.
+- In eine Rolle aufnehmen und einem Team als Rolle geben können Sie nur, was Sie dem Team auch direkt geben könnten: Eine Rolle mit einer Berechtigung, die Sie nicht im selben oder einem weiteren Geltungsbereich haben, wird abgelehnt, und die Ablehnung nennt die Berechtigung. Eine Rolle enthält nie `ProjectOwner`, und **Owners** und **Admin** bekommen nie eine.
+- Die Seite **Berechtigungen** eines Teams zeigt seine benutzerdefinierten Rollen über seinen eigenen Berechtigungen. Was eine Rolle gibt, ändern Sie auf der Seite der Rolle, nicht auf der des Teams.
+- API-Schlüssel bekommen keine benutzerdefinierten Rollen. Ein Schlüssel dient einer einzigen Integration, also geben Sie ihm auf seiner eigenen Seite genau die Berechtigungen, die er braucht.
+- Die vordefinierten Rollen stehen unter **Vordefinierte Rollen** unten auf der Seite **Rollen**.
+
 ### Erlauben und sperren
 
 Jedes Team hat zwei Listen:
@@ -171,11 +192,11 @@ Jede Erlaubt-Berechtigung wird mit einem Geltungsbereich vergeben, den Sie beim 
 
 | Geltungsbereich | Bedeutung |
 | --- | --- |
-| Alle Ressourcen im Projekt | Die Voreinstellung. Die Berechtigung gilt für jede passende Ressource. |
-| Im Besitz dieses Teams oder seiner Mitglieder | Die Berechtigung gilt nur für Ressourcen, bei denen dieses Team oder der handelnde Benutzer als Eigentümer eingetragen ist. |
-| Nach Labels einschränken (fortgeschritten) | Die Berechtigung gilt nur für Ressourcen, die mindestens eines der gewählten Labels tragen. |
+| Alle Ressourcen im Projekt | Die Voreinstellung, und was die meisten Teams brauchen. Die Berechtigung gilt für jede passende Ressource. |
+| Nur Ressourcen, die ihnen gehören | Die Berechtigung gilt nur für Ressourcen, die der handelnden Person oder einem ihrer Teams gehören. |
+| Nur Ressourcen mit bestimmten Beschriftungen | Die Berechtigung gilt nur für Ressourcen, die mindestens eine der gewählten Beschriftungen tragen. |
 
-**Eigene** ist der einfachste Weg zu einem Modell nach dem Motto „Ihr kümmert euch um eure eigenen Dienste": Geben Sie einem Team `MonitorAdmin` mit Geltungsbereich „Eigene" und machen Sie dieses Team zum Eigentümer der Monitore, für die es zuständig ist. Eingegrenzt werden nur Ressourcen, die überhaupt Eigentümer haben können — Monitore, Vorfälle, Dashboards, Services und Ähnliches. Projektkonfiguration (Vorfallzustände, Labels, die Teams selbst) hat keine Eigentümer, dort verhält sich eine „Eigene"-Rolle also ganz normal.
+**Eigene** ist der einfachste Weg zu einem Modell nach dem Motto „Ihr kümmert euch um eure eigenen Dienste": Geben Sie einem Team `MonitorAdmin` mit Geltungsbereich „Eigene" und machen Sie dieses Team zum Eigentümer der Monitore, für die es zuständig ist. Eingegrenzt wird jede Ressource, die Eigentümer haben kann — Monitore, Vorfälle, Dashboards, Services, Monitor-Gruppen, Bereitschaftspläne und Ähnliches — samt dem, was zu ihr gehört, etwa den Ebenen eines Bereitschaftsplans. Sonden, Runner, KI-Agenten, Bereitschaftspläne sowie Vorfall- und Wartungsvorlagen sind das, womit andere Ressourcen eingerichtet werden: Eine Berechtigung mit Geltungsbereich „Eigene" liest sie deshalb weiterhin alle, und Sie können jede davon auswählen; ändern und löschen kann sie nur die, die Ihnen oder Ihren Teams gehören. Den Schlüssel eines Runners, mit dem jeder, der ihn hat, als dieser Runner auftreten kann, sieht sie nur bei den Runnern, die Ihnen oder Ihren Teams gehören. Projektkonfiguration (Vorfallzustände, Labels, die Teams selbst) hat keine Eigentümer, dort verhält sich eine „Eigene"-Rolle also ganz normal.
 
 **Labels** ist die manuellere Variante derselben Idee: Ressourcen markieren und Berechtigungen auf diese Markierungen beschränken.
 
@@ -196,7 +217,7 @@ Eigentümer erfüllen zwei Aufgaben:
 
 Eigentümerschaft allein gewährt nichts. Eigentümer eines Monitors zu sein erlaubt dessen Bearbeitung nur dann, wenn eines Ihrer Teams zusätzlich eine Monitor-Berechtigung hält. Eigentümerschaft grenzt Zugriff ein; sie erweitert ihn nie.
 
-Wer eine Ressource besitzt, wird über die Ressource gelesen. Die Eigentümer eines Monitors oder einer anderen Ressource werden nur von jemandem aufgelistet, gelesen, hinzugefügt und entfernt, der diese Ressource lesen darf, und eine Berechtigung nur für Eigentümer erreicht die Eigentümer keiner Ressource, die Sie nicht lesen dürfen.
+Wer eine Ressource besitzt, wird über die Ressource gelesen. Die Eigentümer eines Monitors oder einer anderen Ressource werden nur von jemandem aufgelistet, gelesen, hinzugefügt und entfernt, der diese Ressource lesen darf, und eine Berechtigung nur für Eigentümer erreicht die Eigentümer keiner Ressource, die Sie nicht lesen dürfen. Auch das Hinzufügen und Entfernen von Eigentümern hält sich an den Geltungsbereich der Berechtigung, die es erlaubt: Mit Geltungsbereich `Owned` erreicht sie nur die Ressourcen, die Ihnen oder einem Ihrer Teams bereits gehören, wie viele weitere Sie auch lesen dürfen — einen Monitor lesen zu dürfen, erlaubt Ihnen also nicht, sich zu seinem Eigentümer zu machen. Ein Eigentümer wird hinzugefügt oder entfernt, aber nie auf eine andere Ressource verschoben.
 
 ## Labels
 
@@ -302,7 +323,7 @@ Aufgelöste Berechtigungen werden pro Benutzer und Projekt zwischengespeichert u
 
 **Ein Team, das nur zuschaut.** Legen Sie das Team mit **Betrachter** unter **Zugriff** an. Nur für einige Bereiche wählen Sie **Berechtigungen später wählen** und fügen die bereichsbezogenen `*Viewer`-Rollen hinzu, die es sehen soll.
 
-**Bereitschaftsingenieure, die ihre eigenen Dienste betreuen.** Geben Sie dem Team `MonitorAdmin`, `IncidentMember` und `OnCallMember` mit Geltungsbereich **Eigene** und tragen Sie das Team als Eigentümer der Monitore ein, die es betreibt.
+**Bereitschaftsingenieure, die ihre eigenen Dienste betreuen.** Geben Sie dem Team `MonitorAdmin`, `IncidentMember` und `OnCallMember` mit Geltungsbereich **Eigene** und tragen Sie das Team als Eigentümer der Monitore, Bereitschaftsrichtlinien und Bereitschaftspläne ein, die es betreibt. Was seine Personen mit diesen Berechtigungen anlegen, gehört ihnen bereits.
 
 **Externe von der Produktion fernhalten.** Geben Sie dem Team die nötigen Rollen im Geltungsbereich **Alle** und fügen Sie dann eine **Sperr-Berechtigung** (unter **Weitere Einstellungen** auf der Seite Berechtigungen des Teams) für die sensiblen Fähigkeiten hinzu, eingeschränkt auf das Label `Production`.
 

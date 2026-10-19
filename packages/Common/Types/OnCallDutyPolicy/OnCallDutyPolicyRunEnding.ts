@@ -15,6 +15,15 @@
 export const ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE: string =
   "Execution completed.";
 
+/*
+ * A run that ended because everybody it paged passed the page on
+ * (OnCallPagePassOn): nobody was left to page, and nobody took it. Its Slack
+ * and Microsoft Teams message says nobody could take the record, and its
+ * feed says why paging stopped.
+ */
+export const ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE: string =
+  "Execution completed: everybody it paged passed it on.";
+
 // How the message of a run that stopped because its record was handled starts.
 export const ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START: string =
   "Execution completed because ";

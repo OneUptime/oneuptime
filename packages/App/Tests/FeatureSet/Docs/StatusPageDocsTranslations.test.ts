@@ -232,6 +232,15 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
       english: "Scheduled Maintenance Events",
       key: "overview.scheduledMaintenanceEvents",
     },
+    // The maintenance calendar's buttons, on Scheduled Events and an event's page.
+    {
+      english: "Subscribe to calendar",
+      key: "scheduledEvents.calendar.subscribe",
+    },
+    {
+      english: "Add to calendar",
+      key: "scheduledEvents.calendar.addToCalendar",
+    },
   ],
   [SUBSCRIBERS]: [
     { english: "Subscribe", key: "nav.subscribe" },
@@ -287,12 +296,25 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
     { english: "Preferences", key: "subscribe.preferences.title" },
     { english: "Update Subscription", key: "subscribe.update.title" },
     { english: "Update Subscription", key: "subscribe.update.submit" },
+    // The manage page's way on from a link that has expired.
+    { english: "Get a new link", key: "subscribe.update.getNewLink" },
     { english: "Unsubscribe", key: "subscribe.update.unsubscribe" },
     { english: "Unsubscribe", key: "subscribe.unsubscribe.confirmButton" },
     { english: "Confirm Subscription", key: "subscribe.confirm.title" },
+    // The confirm page's way on from a link that has expired.
+    {
+      english: "Subscribe again",
+      key: "subscribe.confirm.subscribeAgain",
+    },
     { english: "Active Announcements", key: "announcements.active" },
     { english: "Past Announcements", key: "announcements.past" },
     { english: "Announced at", key: "announcements.announcedAt" },
+    // A calendar instead of a subscription, from the Scheduled Events page.
+    { english: "Scheduled Events", key: "nav.scheduledEvents" },
+    {
+      english: "Subscribe to calendar",
+      key: "scheduledEvents.calendar.subscribe",
+    },
   ],
 };
 
@@ -313,7 +335,9 @@ const ALSO_ON_THE_DASHBOARD: Record<string, Array<string>> = {
 const STATUS_PAGE_APP_MESSAGES: Record<string, Array<string>> = {
   [SUBSCRIBERS]: [
     "subscribe.subscribedSuccessfully",
+    "subscribe.sms.confirmationSent",
     "subscribe.confirm.success",
+    "subscribe.confirm.linkNotValid",
     "subscribe.unsubscribe.confirmPrompt",
     "subscribe.update.saved",
     "subscribe.preferences.summary.everything",
@@ -398,7 +422,7 @@ const HELD_ELSEWHERE: Array<string> = [
  */
 const PROSE: Record<string, Array<string>> = {
   [OVERVIEW]: [
-    "Created with two fields.",
+    "Created with a name.",
     "Resources are what visitors see.",
     "A preview URL from day one.",
     "Visitor-facing routes are gated by settings.",
@@ -427,11 +451,17 @@ const PROSE: Record<string, Array<string>> = {
     "Sends nothing to its subscribers.",
     "Leaves the Status Pages list.",
     "Keeps everything.",
+    "Maintenance calendar.",
   ],
   [SUBSCRIBERS]: [
-    "public",
     "Status",
     "One switch is not enough.",
+    "A calendar instead.",
+    "One subscription per contact.",
+    "What your team sends counts too.",
+    "Signups by SMS confirm too.",
+    "A confirmation link works for 24 hours.",
+    "Signing up again.",
     "A monitor group stands for every monitor in it.",
     "A subscriber chooses among its own page's resources.",
     "Unconfirmed means silent.",

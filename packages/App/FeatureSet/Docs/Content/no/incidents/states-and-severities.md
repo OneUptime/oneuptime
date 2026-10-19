@@ -223,14 +223,14 @@ En tilstandsendring kan gi abonnentene på statussiden din beskjed, men den går
 
 ```mermaid title="Når en tilstandsendring frem til abonnentene?"
 flowchart TB
-    change["Tilstandsendring lagret"] --> box{"Varselboksen slått på?"}
+    change["Tilstandsendring<br/>lagret"] --> box{"Varselboksen<br/>slått på?"}
     box -->|Nei| skipped["Hoppet over"]
-    box -->|Ja| note{"Offentlig notat med?"}
-    note -->|Ja| carried["Notatet er meldingen"]
+    box -->|Ja| note{"Offentlig<br/>notat med?"}
+    note -->|Ja| carried["Notatet er<br/>meldingen"]
     note -->|Nei| queued["Rad satt i kø"]
-    queued --> gates{"Gjennom alle portene?"}
-    gates -->|Nei| reason["Hoppet over, årsak registrert"]
-    gates -->|Ja| sent["Abonnentene har fått beskjed"]
+    queued --> gates{"Gjennom alle<br/>portene?"}
+    gates -->|Nei| reason["Hoppet<br/>over, årsak<br/>registrert"]
+    gates -->|Ja| sent["Abonnentene<br/>har fått<br/>beskjed"]
 ```
 
 Varsling bestilles per tidslinjerad med **Varsle statussideabonnenter** (`shouldStatusPageSubscribersBeNotified`), avkrysningsboksen i dialogen for tilstandsendringer og på det manuelle tidslinjeskjemaet. I dialogen for tilstandsendringer starter den slått av når hendelsen ble erklært uten å gi abonnentene beskjed. Den samme avkrysningsboksen avgjør også om dialogens offentlige notat gir noen beskjed. Når den er slått av, lagres raden med status hoppet over og en forklaring. Når den er slått på, settes raden i kø, og en bakgrunnsjobb plukker den opp — jobben kjører hvert minutt, så leveringen er rask, men ikke umiddelbar.
@@ -249,6 +249,8 @@ Varsling bestilles per tidslinjerad med **Varsle statussideabonnenter** (`should
 
 **Å publisere notatet krever sin egen tillatelse.** Å endre tilstanden og å publisere et offentlig notat er separate tillatelser (**Create Incident State Timeline** og **Create Incident Status Page Note** i en egendefinert rolle; de innebygde hendelses- og prosjektrollene har begge). Å endre tilstanden krever ingen tillatelse til å redigere hendelsen: se [Endre en tilstand](/docs/permissions/index#endre-en-tilstand). Noen som kan endre tilstanden til en hendelse, men ikke publisere offentlige notater, får ikke tilbudt **Legg til et offentlig notat** i dialogen eller i massehandlingen **Endre tilstand**. En tilstandsendring de sender med et notat via API-et, avvises i sin helhet med en melding som sier at tilstanden ikke ble endret, og hvorfor, slik at en endring aldri registreres som meddelt av et notat som aldri ble publisert. Utelat notatet, så går endringen gjennom. Varsler, varselepisoder og hendelsesepisoder tilbyr i stedet et privat notat med en tilstandsendring (**Legg til et privat notat**), og det fungerer på samme måte: å publisere det krever notatets egen tillatelse (**Create Alert Internal Note**, **Create Alert Episode Internal Note** eller **Create Incident Episode Internal Note** i en egendefinert rolle; de innebygde varsel-, hendelses- og prosjektrollene har dem), og en tilstandsendring som sendes med et privat notat av noen uten den tillatelsen, avvises i sin helhet, så tilstanden ikke endres.
 
+**En privat hendelses tilstandsendring bærer et privat notat.** En privat hendelse tar ingen offentlige notater, så dialogen for tilstandsendring bretter inn **Legg til et privat notat** i stedet for **Legg til et offentlig notat**, spør ikke om abonnenter og tilbyr notatet til den som kan publisere et privat notat på den. Massehandlingen **Endre tilstand** legger notatet sitt til som et privat notat på hver private hendelse den flytter, og gir ingen beskjed om dem. En tilstandsendring sendt gjennom API-et med et offentlig notat på en privat hendelse avvises i sin helhet: "The state was not changed: it comes with a public note, and this incident is private, so public notes cannot be added to it. Post the note as a private note, or leave it out."
+
 **Sendt betyr at hver abonnent fikk den sendt.** Jobben venter på hver melding og teller den som sendt eller feilet, per statusside og kanal, og radens statusmelding nevner de tallene. Én feilet melding, eller en sending som gikk tom for tid eller ble avbrutt, gjør raden til **Mislyktes**. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#sjekk-hva-som-ble-sendt).
 
 For hvem som mottar dem, og hvordan malene velges, se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers).
@@ -262,7 +264,7 @@ Fire separate ting avgjør om en hendelse i det hele tatt står på en offentlig
 - **Siden er innenfor hendelsens rekkevidde.** Siden viser en av hendelsens monitorer og er, hvis hendelsen er begrenset til noen statussider, en av dem. En side med **Vis bare hendelser som er begrenset til denne siden** slått på viser bare hendelsene som er begrenset til den. Se [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience).
 - **Den gjeldende tilstanden står over den løste tilstanden.** Det er dette som fjerner en hendelse fra den aktive delen: statussidens spørring henter hendelser der den gjeldende tilstanden står over den løste tilstanden din, så den løste tilstanden og enhver senere tilstand tar hendelsen bort. Du arkiverer eller lukker ingenting — du løser den, og den går over i historikken.
 
-**Private hendelser vises aldri.** Å slå på **Privat hendelse** skjuler hendelsen for alle statussider, uansett bryterne ovenfor, og begrenser den til eierne pluss prosjektadministratorer og prosjekteiere. Ingenting om den når heller en abonnent på en statusside: ikke opprettelsen, ikke tilstandsendringene, ikke de offentlige notatene og ikke etteranalysen. Bildene i beskrivelsen, etteranalysen, de egendefinerte feltene og de offentlige notatene kan ikke ses av alle mens den er privat.
+**Private hendelser vises aldri.** Å slå på **Privat hendelse** skjuler hendelsen for alle statussider, uansett bryterne ovenfor, og begrenser den til eierne pluss prosjektadministratorer og prosjekteiere. Ingenting om den når heller en abonnent på en statusside: ikke opprettelsen, ikke tilstandsendringene, ikke de offentlige notatene og ikke etteranalysen. Bildene i beskrivelsen, etteranalysen, de egendefinerte feltene og de offentlige notatene kan ikke ses av alle mens den er privat. Den tar heller ingen offentlige notater: se [Private hendelser tar bare private notater](/docs/incidents/notes-owners-and-feed#private-hendelser-tar-bare-private-notater).
 
 De to bryterne holdes i takt, så hendelsens side **Innstillinger** alltid viser hva statussidene gjør:
 

@@ -388,9 +388,9 @@ describe("AI_DISABLED_MESSAGE", () => {
    * The Enable AI switch lives on the always-visible Project Settings → AI
    * Features page now; AI Credits is hidden on self-hosted installs.
    */
-  it("points at Project Settings → AI Features, never AI Credits", () => {
+  it("points at Project Settings → AI → AI Features, never AI Credits", () => {
     expect(AI_DISABLED_MESSAGE).toBe(
-      "AI features are disabled for this project. Enable them in Project Settings → AI Features.",
+      "AI features are disabled for this project. Enable them in Project Settings → AI → AI Features.",
     );
     expect(AI_DISABLED_MESSAGE).not.toContain("AI Credits");
   });

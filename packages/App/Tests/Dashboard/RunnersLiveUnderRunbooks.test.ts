@@ -182,7 +182,7 @@ describe("the sweep reads the code it claims to", () => {
   test.each([
     "Create one under Runbooks → Runners.",
     "Assign it under Runbooks → Runner Credentials.",
-    "Project Settings → AI Features",
+    "Project Settings → AI → AI Features",
     "getRunnerScopeSettings(runner)",
     "const settings: RunnerWriteScopeSettings = load();",
   ])("and leaves %s alone", (sentence: string) => {
@@ -343,6 +343,62 @@ describe("the messages people act on name Runbooks", () => {
     expect(steps).toContain(
       '<strong> {translator.translateText("Runbooks › Runners")} </strong>',
     );
+  });
+
+  test("the step editor's empty credential picker points at the Credentials page under Runners", () => {
+    const steps: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Pages",
+      "Runbook",
+      "View",
+      "Steps.tsx",
+    ).replace(/\s+/g, " ");
+
+    /*
+     * Credentials moved under Runners in the Runbooks menu; the picker
+     * still sent people to a Settings page that no longer lists them.
+     */
+    expect(steps).toContain(
+      'translator.translateText( "Runbooks › Runners › Credentials", )',
+    );
+    expect(steps).not.toContain("Settings › Credentials");
+  });
+
+  test("the step editor calls a Runner a Runner, never an agent", () => {
+    const steps: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Pages",
+      "Runbook",
+      "View",
+      "Steps.tsx",
+    );
+
+    expect(steps).toContain('placeholder="Select a Runner"');
+    expect(steps).toContain('"Unknown Runner ({{id}})"');
+    expect(steps).toContain(
+      'description: "Run a shell command on one of your Runners.",',
+    );
+    expect(steps).toContain(
+      'description: "Run JavaScript on one of your Runners and use what it returns.",',
+    );
+
+    for (const retired of [
+      "Select an agent",
+      "Unknown agent",
+      "on the agent.",
+      "sandboxed JS snippet",
+    ]) {
+      expect({ retired, found: steps.includes(retired) }).toEqual({
+        retired,
+        found: false,
+      });
+    }
   });
 
   test("a Runner started without credentials is told where to create them", () => {

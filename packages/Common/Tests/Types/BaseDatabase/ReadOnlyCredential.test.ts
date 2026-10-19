@@ -340,6 +340,23 @@ const POSTGRES_WRITE_ENTRY_POINTS: Array<WriteEntryPoint> = [
   },
   {
     /*
+     * Asked before a create's hooks run: a row a person adds for themselves
+     * goes into a project they are a member of.
+     */
+    name: "checkCreateInMemberProject",
+    spyOnUnderlying: (): jest.SpyInstance<any, any> => {
+      return getJestSpyOn(CreatePermission, "checkCreateInMemberProject");
+    },
+    call: async (props: DatabaseCommonInteractionProps): Promise<unknown> => {
+      return ModelPermission.checkCreateInMemberProject(
+        Label,
+        newLabel(),
+        props,
+      );
+    },
+  },
+  {
+    /*
      * Asked before a create's hooks run, and again after them: a record
      * read through another one goes only under a parent its creator may read.
      */
@@ -873,6 +890,7 @@ const PERMISSION_LAYERS: Array<PermissionLayer> = [
     target: ModelPermission as unknown as Record<string, unknown>,
     readOnlyMethods: ["checkReadQueryPermission"],
     expectedWriteMethods: [
+      "checkCreateInMemberProject",
       "checkCreateParentPermission",
       "checkCreatePermissions",
       "checkCreateScopePermission",

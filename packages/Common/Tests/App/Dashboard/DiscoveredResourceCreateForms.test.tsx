@@ -537,7 +537,7 @@ interface IdentityPage {
 }
 
 const HOST_DISPLAY_NAME_HELP: string =
-  "Starts as the host name, the way discovered hosts are named. Type a name of your own to show it instead. Telemetry is still matched by the host name.";
+  "Starts as the host name. Type your own name to show instead; telemetry is still matched by the host name.";
 
 const IDENTITY_PAGES: Array<IdentityPage> = [
   {
@@ -582,7 +582,7 @@ const IDENTITY_PAGES: Array<IdentityPage> = [
     identityPlaceholder: "production-us-east-1",
     displayNamePlaceholder: "Production US East",
     displayNameHelp:
-      "Starts as the cluster name, the way discovered clusters are named. Type a name of your own to show it instead. Telemetry is still matched by the cluster name.",
+      "Starts as the cluster name. Type your own name to show instead; telemetry is still matched by the cluster name.",
     submitButtonText: "Create Kubernetes Cluster",
   },
   {
@@ -594,7 +594,7 @@ const IDENTITY_PAGES: Array<IdentityPage> = [
     identityPlaceholder: "storefront-web",
     displayNamePlaceholder: "Storefront",
     displayNameHelp:
-      "Starts as the app name, the way discovered applications are named. Type a name of your own to show it instead. Telemetry is still matched by the app name.",
+      "Starts as the app name. Type your own name to show instead; telemetry is still matched by the app name.",
     submitButtonText: "Create RUM Application",
   },
   {
@@ -606,7 +606,7 @@ const IDENTITY_PAGES: Array<IdentityPage> = [
     identityPlaceholder: "checkout-handler",
     displayNamePlaceholder: "Checkout handler",
     displayNameHelp:
-      "Starts as the function name, the way discovered functions are named. Type a name of your own to show it instead. Telemetry is still matched by the function name.",
+      "Starts as the function name. Type your own name to show instead; telemetry is still matched by the function name.",
     submitButtonText: "Create Serverless Function",
   },
 ];

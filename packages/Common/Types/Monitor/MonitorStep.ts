@@ -23,6 +23,29 @@ import MonitorType from "./MonitorType";
 import BrowserType from "./SyntheticMonitors//BrowserType";
 import ScreenSizeType from "./SyntheticMonitors/ScreenSizeType";
 import { FindOperator } from "typeorm";
+
+/*
+ * What a new Synthetic monitor runs its script in: one browser at one screen
+ * size. A Synthetic step runs once for each browser and screen size picked,
+ * and with none picked it runs nothing at all - the probe loops over both
+ * lists - while the form asked for them with every box empty. Chromium on a
+ * desktop screen is what most people want first; more is a tick away.
+ */
+export const SYNTHETIC_MONITOR_DEFAULT_BROWSER_TYPES: Array<BrowserType> = [
+  BrowserType.Chromium,
+];
+export const SYNTHETIC_MONITOR_DEFAULT_SCREEN_SIZE_TYPES: Array<ScreenSizeType> =
+  [ScreenSizeType.Desktop];
+
+/*
+ * Why a Synthetic step cannot be saved without a browser or a screen size:
+ * it would run nothing. The Dashboard translates these (the same words are
+ * keys in its locale files: Utils/Form/Monitor/SyntheticMonitorCopy.ts).
+ */
+export const SYNTHETIC_MONITOR_BROWSER_REQUIRED_MESSAGE: string =
+  "Pick at least one browser to run the script in.";
+export const SYNTHETIC_MONITOR_SCREEN_SIZE_REQUIRED_MESSAGE: string =
+  "Pick at least one screen size to run the script at.";
 import MonitorStepTraceMonitor, {
   MonitorStepTraceMonitorUtil,
 } from "./MonitorStepTraceMonitor";
@@ -60,6 +83,9 @@ import SqlDatabaseType from "./SqlDatabaseType";
 import MonitorStepExternalStatusPageMonitor, {
   MonitorStepExternalStatusPageMonitorUtil,
 } from "./MonitorStepExternalStatusPageMonitor";
+import MonitorStepProbeStatusMonitor, {
+  MonitorStepProbeStatusMonitorUtil,
+} from "./MonitorStepProbeStatusMonitor";
 import MonitorStepKubernetesMonitor, {
   MonitorStepKubernetesMonitorUtil,
 } from "./MonitorStepKubernetesMonitor";
@@ -260,6 +286,9 @@ export interface MonitorStepType {
 
   // IoT monitor
   iotMonitor?: MonitorStepIoTMonitor | undefined;
+
+  // Probe Status monitor: the probes it watches.
+  probeStatusMonitor?: MonitorStepProbeStatusMonitor | undefined;
 }
 
 export default class MonitorStep extends DatabaseProperty {
@@ -312,6 +341,7 @@ export default class MonitorStep extends DatabaseProperty {
       cephMonitor: undefined,
       storageArrayMonitor: undefined,
       iotMonitor: undefined,
+      probeStatusMonitor: undefined,
     };
   }
 
@@ -341,8 +371,19 @@ export default class MonitorStep extends DatabaseProperty {
       requestHeaders: undefined,
       requestBody: undefined,
       customCode: undefined,
-      screenSizeTypes: undefined,
-      browserTypes: undefined,
+      /*
+       * A new Synthetic monitor starts in Chromium at a desktop size, so
+       * its script runs somewhere (see SYNTHETIC_MONITOR_DEFAULT_BROWSER_TYPES).
+       * Every other type has neither.
+       */
+      screenSizeTypes:
+        arg.monitorType === MonitorType.SyntheticMonitor
+          ? [...SYNTHETIC_MONITOR_DEFAULT_SCREEN_SIZE_TYPES]
+          : undefined,
+      browserTypes:
+        arg.monitorType === MonitorType.SyntheticMonitor
+          ? [...SYNTHETIC_MONITOR_DEFAULT_BROWSER_TYPES]
+          : undefined,
       retryCountOnError: undefined,
       requestTimeoutInMs: undefined,
       retryCount: undefined,
@@ -406,6 +447,16 @@ export default class MonitorStep extends DatabaseProperty {
       cephMonitor: undefined,
       storageArrayMonitor: undefined,
       iotMonitor: undefined,
+      /*
+       * Seeded like databaseMonitor: a monitor saved before anyone opens
+       * the probe picker still carries a config, so the step reads as "no
+       * probes picked yet" (a validation error naming the field) rather than
+       * as a step with no config at all.
+       */
+      probeStatusMonitor:
+        arg.monitorType === MonitorType.ProbeStatus
+          ? MonitorStepProbeStatusMonitorUtil.getDefault()
+          : undefined,
     };
 
     return monitorStep;
@@ -703,6 +754,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setProbeStatusMonitor(
+    probeStatusMonitor: MonitorStepProbeStatusMonitor,
+  ): MonitorStep {
+    this.data!.probeStatusMonitor = probeStatusMonitor;
+    return this;
+  }
+
   public setKubernetesMonitor(
     kubernetesMonitor: MonitorStepKubernetesMonitor,
   ): MonitorStep {
@@ -813,6 +871,7 @@ export default class MonitorStep extends DatabaseProperty {
         cephMonitor: undefined,
         storageArrayMonitor: undefined,
         iotMonitor: undefined,
+        probeStatusMonitor: undefined,
       },
     };
   }
@@ -856,6 +915,24 @@ export default class MonitorStep extends DatabaseProperty {
         return "Custom Code is required";
       }
       return "Playwright code is required.";
+    }
+
+    /*
+     * A Synthetic step runs its script once per browser and screen size
+     * picked, so with either list empty it runs nothing and never fails -
+     * a monitor that looks healthy forever.
+     */
+    if (monitorType === MonitorType.SyntheticMonitor) {
+      if (!value.data.browserTypes || value.data.browserTypes.length === 0) {
+        return SYNTHETIC_MONITOR_BROWSER_REQUIRED_MESSAGE;
+      }
+
+      if (
+        !value.data.screenSizeTypes ||
+        value.data.screenSizeTypes.length === 0
+      ) {
+        return SYNTHETIC_MONITOR_SCREEN_SIZE_REQUIRED_MESSAGE;
+      }
     }
 
     if (!value.data.monitorCriteria) {
@@ -1147,6 +1224,21 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    /*
+     * A Probe Status monitor needs only to know which probes to watch.
+     * Whether this project may watch them is the server's question
+     * (MonitorStepsProjectValidator): this check runs in the browser too.
+     */
+    if (monitorType === MonitorType.ProbeStatus) {
+      if (
+        MonitorStepProbeStatusMonitorUtil.normalizeProbeIds(
+          value.data.probeStatusMonitor?.probeIds,
+        ).length === 0
+      ) {
+        return "Pick at least one probe to watch";
+      }
+    }
+
     return null;
   }
 
@@ -1278,6 +1370,11 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           iotMonitor: this.data.iotMonitor
             ? MonitorStepIoTMonitorUtil.toJSON(this.data.iotMonitor)
+            : undefined,
+          probeStatusMonitor: this.data.probeStatusMonitor
+            ? MonitorStepProbeStatusMonitorUtil.toJSON(
+                this.data.probeStatusMonitor,
+              )
             : undefined,
         },
       });
@@ -1507,6 +1604,17 @@ export default class MonitorStep extends DatabaseProperty {
       iotMonitor: json["iotMonitor"]
         ? (json["iotMonitor"] as JSONObject)
         : undefined,
+      /*
+       * Normalized on the way in: each probe once, and nothing that is not
+       * an id, whoever wrote the step (the API, a template, Terraform).
+       */
+      probeStatusMonitor: json["probeStatusMonitor"]
+        ? MonitorStepProbeStatusMonitorUtil.toJSON(
+            MonitorStepProbeStatusMonitorUtil.fromJSON(
+              json["probeStatusMonitor"] as JSONObject,
+            ),
+          )
+        : undefined,
     }) as any;
 
     return monitorStep;
@@ -1568,6 +1676,7 @@ export default class MonitorStep extends DatabaseProperty {
         cephMonitor: Zod.any().optional(),
         storageArrayMonitor: Zod.any().optional(),
         iotMonitor: Zod.any().optional(),
+        probeStatusMonitor: Zod.any().optional(),
       }).openapi({
         type: "object",
         example: {

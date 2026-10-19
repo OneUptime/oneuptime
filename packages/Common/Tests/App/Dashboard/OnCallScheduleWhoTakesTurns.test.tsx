@@ -317,7 +317,7 @@ async function openCreateForm(): Promise<HTMLElement> {
 
   const modal: HTMLElement = await screen.findByTestId("modal");
 
-  await within(modal).findByPlaceholderText("Schedule Name");
+  await within(modal).findByPlaceholderText("e.g., Platform primary");
 
   /*
    * BasicForm fills in the fields' defaults in an effect of its own, once
@@ -349,9 +349,12 @@ function currentTimezoneLabel(): string {
 }
 
 function typeName(modal: HTMLElement, name: string): void {
-  fireEvent.change(within(modal).getByPlaceholderText("Schedule Name"), {
-    target: { value: name },
-  });
+  fireEvent.change(
+    within(modal).getByPlaceholderText("e.g., Platform primary"),
+    {
+      target: { value: name },
+    },
+  );
 }
 
 async function pick(name: string): Promise<void> {

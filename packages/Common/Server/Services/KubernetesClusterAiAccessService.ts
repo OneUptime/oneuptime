@@ -9,8 +9,12 @@ import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner, {
   RunnerConnectionStatus,
 } from "../../Models/DatabaseModels/Runner";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
+import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import OneUptimeDate from "../../Types/Date";
@@ -54,6 +58,7 @@ import {
 import { KubernetesClusterFeedEventType } from "../../Models/DatabaseModels/KubernetesClusterFeed";
 import { Blue500, Green500, Yellow500 } from "../../Types/BrandColors";
 import QueryHelper from "../Types/Database/QueryHelper";
+import { isShippedSecretValue } from "../EnvironmentConfig";
 import AIService from "./AIService";
 import AlertService from "./AlertService";
 import IncidentService from "./IncidentService";
@@ -910,7 +915,7 @@ class KubernetesClusterAiAccessServiceClass {
         code: "project_ai_disabled",
         title: "AI is disabled for this project",
         description: "OneUptime AI is switched off at the project level.",
-        nextStep: "Enable AI under Project Settings → AI Features.",
+        nextStep: "Enable AI under Project Settings → AI → AI Features.",
         blocks: "both",
       });
     }
@@ -2187,8 +2192,13 @@ class KubernetesClusterAiAccessServiceClass {
     projectId: ObjectID;
     previousRunnerKey?: string | undefined;
   }): Promise<AgentRunnerReKeyAdmission> {
+    /*
+     * A key this repository ships proves nothing, though a row from before
+     * the rule that keeps such keys out (ComponentKeyWrite) may hold one.
+     */
     const provesContinuity: boolean = Boolean(
       data.previousRunnerKey &&
+        !isShippedSecretValue(data.previousRunnerKey) &&
         data.runner.key &&
         this.isSameSecret(data.previousRunnerKey, data.runner.key),
     );
@@ -2566,6 +2576,177 @@ class KubernetesClusterAiAccessServiceClass {
     }
 
     return crypto.timingSafeEqual(presentedBuffer, currentBuffer);
+  }
+
+  /*
+   * ------------------------------------------------------------------
+   * Who may act on a cluster
+   * ------------------------------------------------------------------
+   */
+
+  /*
+   * Throws `refusal` unless the caller may EDIT this cluster, decided for
+   * its own row exactly as an update of it through the API would be
+   * (DatabaseService.findOneUpdatableById): the update permissions, a
+   * team's block on the whole table or on a label the cluster carries, a
+   * grant limited to labels the cluster does not carry, a grant limited to
+   * the clusters the caller or their teams own, a credential issued for
+   * reading only, and a cluster the caller may not read at all. Holding an
+   * edit permission somewhere in the project is not enough: an edit grant
+   * limited to "staging" does not reach the "production" cluster, and a
+   * block for "production" takes it away.
+   *
+   * Asked before every action on one cluster that only someone who may
+   * edit it may cause, outside that update: its AI access test (which
+   * spends its Runner and records Last verified on it), resetting its
+   * Kubernetes AI agent, and approving an AI plan whose kubectl commands
+   * change it. ResourceAiAccessService.assertCallerMayChangeResource holds
+   * the infrastructure resources to the same rule. A cluster that is not in
+   * the project is refused like one the caller may not edit. Root and
+   * master admins are not gated.
+   */
+  @CaptureSpan()
+  public async assertCallerMayChangeCluster(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    clusterId: ObjectID;
+    refusal: string;
+  }): Promise<void> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return;
+    }
+
+    /*
+     * The caller's permissions are read for the cluster's own project: the
+     * permission layer reads the rows of props.tenantId.
+     */
+    const callerProps: DatabaseCommonInteractionProps = {
+      ...data.props,
+      tenantId: data.projectId,
+      isMultiTenantRequest: false,
+    };
+
+    let cluster: KubernetesCluster | null = null;
+
+    try {
+      cluster = await KubernetesClusterService.findOneUpdatableById({
+        id: data.clusterId,
+        select: { _id: true, projectId: true },
+        props: callerProps,
+      });
+    } catch (error) {
+      // Whatever the reason the update would be refused, one refusal.
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof NotAuthenticatedException ||
+        error instanceof NotFoundException
+      ) {
+        throw new NotAuthorizedException(data.refusal);
+      }
+
+      throw error;
+    }
+
+    if (
+      !cluster ||
+      !cluster.projectId ||
+      cluster.projectId.toString() !== data.projectId.toString()
+    ) {
+      throw new NotAuthorizedException(data.refusal);
+    }
+  }
+
+  /*
+   * The statuses of the clusters the caller may VIEW, in the order given:
+   * decided by the model layer under the caller's own props, pinned to the
+   * project - exactly a read of the cluster through the API, so a read
+   * limited to some labels or to owned clusters reaches only those, and a
+   * block on a label a cluster carries takes it away. Root and master
+   * admins view every one.
+   *
+   * For an incident's or alert's shared AI conversation, where the person
+   * asking steers what OneUptime AI runs: its read-only kubectl reaches
+   * only the linked clusters that person may view
+   * (InvestigationThread.buildTurnContext), never one their own read does
+   * not cover. A caller the read refuses outright views none, and any
+   * other failure is answered the same way (logged): this decides what
+   * runs for the caller, so it fails closed.
+   */
+  @CaptureSpan()
+  public async getStatusesViewableBy(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    statuses: Array<KubernetesClusterAiAccessStatus>;
+  }): Promise<Array<KubernetesClusterAiAccessStatus>> {
+    if (data.statuses.length === 0) {
+      return [];
+    }
+
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return data.statuses;
+    }
+
+    const clusterIds: Array<string> = Array.from(
+      new Set(
+        data.statuses
+          .map((status: KubernetesClusterAiAccessStatus): string => {
+            return (status.clusterId || "").toLowerCase();
+          })
+          .filter((clusterId: string): boolean => {
+            return ObjectID.isValidUUID(clusterId);
+          }),
+      ),
+    );
+
+    if (clusterIds.length === 0) {
+      return [];
+    }
+
+    let viewable: Set<string> = new Set<string>();
+
+    try {
+      const clusters: Array<KubernetesCluster> =
+        await KubernetesClusterService.findBy({
+          query: {
+            _id: QueryHelper.any(clusterIds),
+            projectId: data.projectId,
+          },
+          select: { _id: true },
+          limit: clusterIds.length,
+          skip: 0,
+          props: {
+            ...data.props,
+            tenantId: data.projectId,
+            isMultiTenantRequest: false,
+          },
+        });
+
+      viewable = new Set<string>(
+        clusters
+          .map((cluster: KubernetesCluster): string => {
+            return cluster.id?.toString().toLowerCase() || "";
+          })
+          .filter(Boolean),
+      );
+    } catch (error) {
+      if (
+        !(error instanceof NotAuthorizedException) &&
+        !(error instanceof NotAuthenticatedException) &&
+        !(error instanceof NotFoundException)
+      ) {
+        logger.error(
+          `KubernetesClusterAiAccess: could not check which clusters the caller may view; offering none: ${error}`,
+        );
+      }
+
+      return [];
+    }
+
+    return data.statuses.filter(
+      (status: KubernetesClusterAiAccessStatus): boolean => {
+        return viewable.has((status.clusterId || "").toLowerCase());
+      },
+    );
   }
 
   /*

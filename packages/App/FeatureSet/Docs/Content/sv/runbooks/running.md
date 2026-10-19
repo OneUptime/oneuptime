@@ -19,15 +19,15 @@ stateDiagram-v2
     state "Slutförd" as Completed
     state "Misslyckades" as Failed
     state "Avbruten" as Cancelled
-    [*] --> Scheduled: körning startad
-    Scheduled --> Running: en Worker tar den
-    Running --> WaitingForManualStep: Manual-steg eller godkännande
-    WaitingForManualStep --> Scheduled: slutfört, godkänt eller överhoppat
+    [*] --> Scheduled: körning<br/>startad
+    Scheduled --> Running: en Worker<br/>tar den
+    Running --> WaitingForManualStep: Manual-steg<br/>eller godkännande
+    WaitingForManualStep --> Scheduled: slutfört,<br/>godkänt eller<br/>överhoppat
     Running --> Completed: alla steg klara
-    Running --> Failed: ett steg misslyckas
-    Scheduled --> Cancelled: Avbryt körning
-    Running --> Cancelled: Avbryt körning
-    WaitingForManualStep --> Cancelled: Avbryt körning
+    Running --> Failed: ett steg<br/>misslyckas
+    Scheduled --> Cancelled: Avbryt<br/>körning
+    Running --> Cancelled: Avbryt<br/>körning
+    WaitingForManualStep --> Cancelled: Avbryt<br/>körning
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
@@ -118,7 +118,7 @@ En körning är en engångspost som inte ändras. Klicka på **Kör igen** på e
 
 | Var | Vad den visar |
 | --- | --- |
-| Ett runbooks **Körningar** | Alla körningar av det runbooket, med filter för status och startdatum och en kolumn **Utlöst av**. |
+| Ett runbooks **Loggar → Körningar** | Alla körningar av det runbooket, med filter för status och startdatum och en kolumn **Utlöst av**. |
 | **Runbooks → Körningar** | Alla körningar av alla runbooks i projektet. |
 | Sidan **Runbooks** för en incident, ett larm eller en händelse | De körningar som är kopplade till den. Händelsens översikt visar dem också så snart det finns några. |
 
@@ -129,7 +129,7 @@ Din roll läser runbooks men kör dem inte: knappen säger "Du har inte behörig
 :::
 
 :::details Att starta en körning misslyckas med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Inställningar**, eller så har det inga sparade steg. Slå på brytaren, eller lägg till steg, och klicka på **Save Steps**.
+Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Inställningar**, eller så har det inga sparade steg. Slå på brytaren, eller lägg till steg, och klicka på **Save Steps**. Dess **Översikt** säger vilket, med **Slå på runbook** eller **Lägg till steg**.
 :::
 
 :::details Ett steg misslyckades för att det saknar en Runner eller en autentiseringsuppgift

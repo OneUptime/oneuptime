@@ -89,18 +89,7 @@ export default class OnTriggerBaseModel<
 
   @CaptureSpan()
   public override async init(props: InitProps): Promise<void> {
-    props.router.get(
-      `/model/:projectId/${this.modelId}/${this.type}`,
-      ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          await this.initTrigger(req, res, props);
-        } catch (err) {
-          return next(err);
-        }
-      },
-    );
-
+    // DatabaseService.onTriggerWorkflow posts here for every record event.
     props.router.post(
       `/model/:projectId/${this.modelId}/${this.type}`,
       ClusterKeyAuthorization.isAuthorizedServiceMiddleware,

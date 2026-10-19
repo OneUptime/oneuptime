@@ -74,6 +74,7 @@ import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 // Cloud marketplaces (AWS, Microsoft, Google Cloud): hourly usage, daily status sync.
 import "./Jobs/Marketplace/ReportMarketplaceUsage";
 import "./Jobs/Marketplace/SyncMarketplacePurchases";
+import "./Jobs/Marketplace/BillVercelMarketplace";
 
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";
@@ -182,6 +183,7 @@ import "./Jobs/WorkspaceUserGroup/SyncUserGroups";
 
 // Video calls: keep the sign-ins of connections made by signing in from expiring
 import "./Jobs/VideoCall/KeepVideoCallSignInsAlive";
+import "./Jobs/VideoCall/GetIncidentCallTranscripts";
 
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
@@ -233,6 +235,9 @@ import "./Jobs/ToolImport/SweepStaleToolImports";
 // Probes
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
+
+// Probe Status monitors: one incident when a probe a project watches goes offline.
+import "./Jobs/ProbeStatusMonitor/CheckProbeStatus";
 
 /*
  * Packet captures: fail the ones no probe will finish, and delete them with

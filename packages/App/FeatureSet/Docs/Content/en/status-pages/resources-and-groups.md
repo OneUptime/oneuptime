@@ -75,7 +75,7 @@ Click **Add Monitor**. The row appears in the group, and on the status page.
 In a grid group, the dialog also asks for the row and the column the monitor goes in, above **More fields**; see [List layout vs grid layout](#list-layout-vs-grid-layout).
 
 > [!TIP]
-> To show several checks as one row, add a monitor group. With the **Monitor Groups** switch on (**Project Settings** > **Advanced** > **Feature Flags**, which saves as soon as you flip it), a link under the dropdown reads **Add a Monitor Group instead.** Click it and **Monitor** becomes **Monitor Group** (**Select Monitor Group**); **Add a Monitor instead.** switches back.
+> To show several checks as one row, add a [monitor group](/docs/monitor/monitor-groups). With the **Monitor Groups** switch on (**Project Settings** > **Advanced** > **Feature Flags**, which saves as soon as you flip it), a link under the dropdown reads **Add a Monitor Group instead.** Click it and **Monitor** becomes **Monitor Group** (**Select Monitor Group**); **Add a Monitor instead.** switches back.
 
 ### Adding several at once
 
@@ -209,23 +209,19 @@ A monitor rule adds monitors to the page for you: describe the monitors once, an
 :::steps
 ### Open Monitor Rules
 
-Open the status page, pick **Monitor Rules** in the **Resources** section of its side menu, and click **Create Status Page Monitor Rule**.
-
-### Name the rule
-
-On **Basic Info**, enter a **Name**. **Enabled** is on by default.
+Open the status page, pick **Monitor Rules** in the **Resources** section of its side menu, and click **Create Monitor Rule**.
 
 ### Say which monitors it matches
 
-On **Match Criteria**, fill in at least one of **Monitor Labels** (a monitor carrying any one of them matches), **Monitor Name** and **Monitor Description**. A monitor has to pass every criterion you fill in. The two patterns take a case-insensitive regular expression (`^api-.*`) or a `*` wildcard (`*checkout*`); `.*` matches every monitor.
+On **Match**, add at least one condition on **Monitor Labels** (a monitor carrying any one of them matches), **Monitor Name** or **Monitor Description**. With two conditions or more, choose whether a monitor has to match all of them or any one. The two patterns take a case-insensitive regular expression (`^api-.*`) or a `*` wildcard (`*checkout*`); `.*` matches every monitor.
 
 ### Pick the group
 
-On **Group**, choose **Add Monitors To Group**, or leave it empty to add the monitors in no group. The same display options as a resource follow; on a rule, **Show Uptime %** starts on.
+On **Group**, choose **Add Monitors To**, or leave it empty to add the monitors at the top of the page. The rule's **Name** is filled in from it, such as "Add monitors to Website", until you type a name of your own. **More fields** holds the same display options as a resource, and the rule's **Description**; on a rule, **Show Uptime %** starts on.
 
 ### Save the rule
 
-The rule runs at once against every monitor that already exists, and the list shows the group it adds monitors to under **Adds Monitors To**.
+The rule runs at once against every monitor that already exists, and the list shows the group it adds monitors to under **Adds Monitors To**. A new rule is on: its **Enabled** switch is on its edit form.
 :::
 
 After that, a rule runs again for a monitor whenever one is created or its labels, name or description change. A rule removes only the resources it added: turning it off or deleting it takes those off the page, and a monitor you added by hand is never touched. A monitor already on the page is never added twice.

@@ -16,16 +16,16 @@ OneUptime は、利用者のブラウザーからではなく、OneUptime サー
 ```mermaid title="OneUptime の AI リクエストの行き先"
 flowchart TB
     subgraph OU["OneUptime サーバー"]
-        F["AI 調査、メモ、ポストモーテム、修正タスク"]
+        F["AI 調査、メモ、<br/>ポストモーテム、修正タスク"]
     end
     subgraph AZ["お使いの Azure サブスクリプション"]
-        R["Foundry リソース contoso-ai"]
-        V1["OpenAI v1 API: /openai/v1/chat/completions"]
-        AN["Anthropic API: /anthropic/v1/messages"]
+        R["Foundry リソース<br/>contoso-ai"]
+        V1["OpenAI v1 API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic API:<br/>/anthropic/v1/messages"]
         D1["デプロイ gpt-5.1"]
         D2["デプロイ claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API キー"| R
+    F -->|"HTTPS +<br/>API キー"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```
@@ -111,20 +111,20 @@ az cognitiveservices account keys list \
 
 **プロジェクト設定** > **AI** > **LLM プロバイダー** に移動し、**LLM プロバイダーを作成** をクリックします。
 
-### プロバイダーに名前を付ける
+### プロバイダーを選ぶ
 
-**基本情報** で **名前**（例: `Azure gpt-5.1`）を入力し、必要なら **説明** も入力します。**次へ** をクリックします。
+**プロバイダー** で **LLM プロバイダー** に **Azure OpenAI / Microsoft Foundry** を選び、**次へ** をクリックして **接続** に進みます。
 
-### プロバイダー設定を入力する
+### 接続を入力する
 
 | 項目 | 入力する値 |
 | --- | --- |
-| **LLM プロバイダー** | **Azure OpenAI / Microsoft Foundry** |
 | **API キー** | リソースの **KEY 1** または **KEY 2** |
-| **モデル名** | Foundry に表示されるとおりのデプロイ名（例: `gpt-5.1`） |
 | **ベース URL** | リソースのエンドポイントに `/openai/v1` を付けたもの（例: `https://contoso-ai.openai.azure.com/openai/v1`）。Claude の場合: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **モデル名** | Foundry に表示されるとおりのデプロイ名（例: `gpt-5.1`） |
+| **名前** | 最初はプロバイダー名です。どのデプロイかわかる名前を付けます（例: `Azure gpt-5.1`） |
 
-**その他の項目** にある **デフォルトに設定** はオンになっています。AI 機能はプロジェクトのデフォルト プロバイダーを使います。**LLM プロバイダーを作成** をクリックします。
+**その他の項目** には **説明** と、オンになっている **デフォルトに設定** があります。AI 機能はプロジェクトのデフォルト プロバイダーを使います。**LLM プロバイダーを作成** をクリックします。
 
 ### 接続をテストする
 

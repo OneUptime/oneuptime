@@ -72,6 +72,8 @@ import AlertSettingsLabelRules from "../Pages/Alerts/Settings/AlertLabelRules";
 
 import AlertSettingsMeasurements from "../Pages/Alerts/Settings/AlertMeasurements";
 
+import AlertSettingsEpisodeMembership from "../Pages/Alerts/Settings/AlertEpisodeMembershipSettings";
+
 import AlertSettingsNumbering from "../Pages/Alerts/Settings/AlertNumbering";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
 import {
@@ -112,7 +114,6 @@ import EpisodeViewDelete from "../Pages/Alerts/EpisodeView/Delete";
 
 import EpisodeViewAuditLogs from "../Pages/Alerts/EpisodeView/AuditLogs";
 
-import AlertEpisodeDocs from "../Pages/Alerts/EpisodeDocs";
 import AlertLabelRule from "Common/Models/DatabaseModels/AlertLabelRule";
 import AlertEpisodeLabelRule from "Common/Models/DatabaseModels/AlertEpisodeLabelRule";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
@@ -124,14 +125,27 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
 import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
 import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
-import { MOVED_AI_SECTION_PATHS } from "./MovedPagePaths";
+import {
+  MOVED_AI_SECTION_PATHS,
+  MOVED_EPISODE_DOCS_PATH,
+} from "./MovedPagePaths";
 
 const AlertsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   let hideSideMenu: boolean = false;
 
+  /*
+   * A create page fills the width, as Declare Incident and Create Episode
+   * do under Incidents: the menu would only squeeze the form.
+   */
   if (Navigation.isOnThisPage(RouteMap[PageMap.ALERT_CREATE] as Route)) {
+    hideSideMenu = true;
+  }
+
+  if (
+    Navigation.isOnThisPage(RouteMap[PageMap.ALERT_EPISODE_CREATE] as Route)
+  ) {
     hideSideMenu = true;
   }
 
@@ -177,6 +191,18 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MOVED_AI_SECTION_PATHS.aiAutoRemediationRules}
         element={<MovedPageRedirect pageMap={PageMap.ALERTS_SETTINGS_AI} />}
+      />
+
+      {/*
+       * Episodes > Documentation was a manual drawn in the product; the docs
+       * are the one place for it now, linked from the episode list (View
+       * Documentation). Its old URL forwards to that list - outside the
+       * layout, so the side menu never flashes on the way, and ahead of
+       * episodes/:id, which would take "documentation" for an episode id.
+       */}
+      <PageRoute
+        path={MOVED_EPISODE_DOCS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.ALERT_EPISODES} />}
       />
 
       <PageRoute
@@ -498,6 +524,20 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={
+            AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP] || ""
+          }
+          element={
+            <AlertSettingsEpisodeMembership
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
           path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBERING] || ""}
           element={
             <AlertSettingsNumbering
@@ -564,16 +604,6 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <UnresolvedEpisodes
               {...props}
               pageRoute={RouteMap[PageMap.UNRESOLVED_ALERT_EPISODES] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS] || ""}
-          element={
-            <AlertEpisodeDocs
-              {...props}
-              pageRoute={RouteMap[PageMap.ALERT_EPISODE_DOCS] as Route}
             />
           }
         />

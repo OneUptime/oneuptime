@@ -14,18 +14,30 @@
  * with hostnames, ids and names replaced. Each one is signed at run time with a
  * generated key.
  *
+ * Each document is also what the provider would send OneUptime today: a
+ * response for one project's SAML provider, sent to its Reply URL, valid for
+ * the few minutes after it was issued (15 January 2026, 09:12:33 UTC). The
+ * tests read them at that moment (ISSUED_JUST_NOW), and the last section
+ * shows the same documents refused at any other provider and once their time
+ * is up - which, for a response kept until today, it is.
+ *
  * These tests also pin a behaviour worth being explicit about: the email
- * always comes from `<NameID>`, but the display name is only ever read from the
- * Microsoft `displayname` claim. Providers that send a name under a different
- * attribute name (Okta's `firstName`/`lastName`, Auth0's and OneLogin's
- * `.../claims/name`, Shibboleth's `displayName`) yield a null name and the user
- * is created from the email alone. That is the current contract, and the
+ * always comes from `<NameID>`, and the name - only ever used to name an
+ * account created at a first sign-in - from the attributes SSO.ts lists
+ * (SAML_DISPLAY_NAME_ATTRIBUTES and after): the Microsoft `displayname`
+ * claim, Okta's `firstName`/`lastName`, Auth0's `.../claims/name`,
+ * OneLogin's `User.FirstName`, the `givenName` object identifier Keycloak
+ * sends. A provider that sends none of them (Google Workspace, PingOne here)
+ * yields a null name and the user is created from the email alone. The
  * per-vendor expectations below state it plainly rather than leaving it
- * untested.
+ * untested; SamlNameAttributes.test.ts holds the order.
  */
 import SSOUtil, {
+  SAML_AUDIENCE_MISMATCH_MESSAGE,
+  SAML_RESPONSE_EXPIRED_MESSAGE,
   VerifiedSamlResponse,
 } from "../../../FeatureSet/Identity/Utils/SSO";
+import { SamlServiceProvider } from "../../../FeatureSet/Identity/Utils/SamlServiceProvider";
 import {
   SamlKeyPair,
   generateRsaKeyPair,
@@ -47,10 +59,39 @@ beforeAll(() => {
   unrelatedKeys = generateRsaKeyPair();
 });
 
-const ACS_URL: string =
-  "https://oneuptime.example.com/identity/sso-callback/6570b1d3e2f4a5c6d7e8f901/6570b1d3e2f4a5c6d7e8f902";
-const AUDIENCE: string =
-  "https://oneuptime.example.com/identity/sso/6570b1d3e2f4a5c6d7e8f902";
+const PROJECT_ID: string = "6570b1d3-e2f4-4a5c-8d7e-8f9016570b1d";
+const PROJECT_SSO_ID: string = "6570b1d3-e2f4-4a5c-8d7e-8f9026570b1d";
+
+// The project SAML provider these responses were made for.
+const ACS_URL: string = `https://oneuptime.example.com/identity/idp-login/${PROJECT_ID}/${PROJECT_SSO_ID}`;
+const AUDIENCE: string = `https://oneuptime.example.com/${PROJECT_ID}/${PROJECT_SSO_ID}`;
+
+const SERVICE_PROVIDER: SamlServiceProvider = {
+  entityId: AUDIENCE,
+  replyUrl: ACS_URL,
+  serverAddress: "https://oneuptime.example.com",
+};
+
+// Seven seconds after every document below was issued.
+const ISSUED_JUST_NOW: Date = new Date("2026-01-15T09:12:40.000Z");
+
+function verify(xml: string, certificate: string): VerifiedSamlResponse {
+  return SSOUtil.getSamlResponseFromXML(
+    xml,
+    certificate,
+    SERVICE_PROVIDER,
+    ISSUED_JUST_NOW,
+  );
+}
+
+function isValid(xml: string, certificate: string): boolean {
+  return SSOUtil.isSignatureValid(
+    xml,
+    certificate,
+    SERVICE_PROVIDER,
+    ISSUED_JUST_NOW,
+  );
+}
 const MS_DISPLAY_NAME_CLAIM: string =
   "http://schemas.microsoft.com/identity/claims/displayname";
 
@@ -158,7 +199,7 @@ interface ProviderCase {
   vendor: string;
   document: () => string;
   expectedEmail: string;
-  // Only Entra ID and ADFS send the Microsoft displayname claim.
+  // What the name attributes each provider sends give (see the top).
   expectedName: string | null;
 }
 
@@ -167,7 +208,7 @@ const providers: Array<ProviderCase> = [
     vendor: "Okta",
     document: oktaResponse,
     expectedEmail: "isaac.brock@example.com",
-    expectedName: null,
+    expectedName: "Isaac Brock",
   },
   {
     vendor: "Microsoft Entra ID",
@@ -191,19 +232,19 @@ const providers: Array<ProviderCase> = [
     vendor: "Auth0",
     document: auth0Response,
     expectedEmail: "jane@example.com",
-    expectedName: null,
+    expectedName: "Jane Smith",
   },
   {
     vendor: "Keycloak",
     document: keycloakResponse,
     expectedEmail: "jdoe@example.com",
-    expectedName: null,
+    expectedName: "John",
   },
   {
     vendor: "OneLogin",
     document: oneLoginResponse,
     expectedEmail: "maria.garcia@example.com",
-    expectedName: null,
+    expectedName: "Maria",
   },
   {
     vendor: "PingOne",
@@ -223,10 +264,7 @@ describe("SSOUtil - assertion-signed responses from real providers", () => {
         idpKeys.privateKey,
       );
 
-      const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-        xml,
-        idpKeys.publicKey,
-      );
+      const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
       expect(result.email.toString()).toBe(providerCase.expectedEmail);
 
@@ -247,7 +285,7 @@ describe("SSOUtil - assertion-signed responses from real providers", () => {
         idpKeys.privateKey,
       );
 
-      expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
+      expect(isValid(xml, idpKeys.publicKey)).toBe(true);
     },
   );
 });
@@ -262,10 +300,7 @@ describe("SSOUtil - response-signed documents from real providers", () => {
         idpKeys.privateKey,
       );
 
-      const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-        xml,
-        idpKeys.publicKey,
-      );
+      const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
       expect(result.email.toString()).toBe(providerCase.expectedEmail);
     },
@@ -286,10 +321,7 @@ describe("SSOUtil - signature placed where real providers put it", () => {
         idpKeys.privateKey,
       );
 
-      const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-        xml,
-        idpKeys.publicKey,
-      );
+      const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
       expect(result.email.toString()).toBe(providerCase.expectedEmail);
     },
@@ -314,10 +346,7 @@ describe("SSOUtil - the base64 payload the ACS actually receives", () => {
       const posted: string = toBase64(signed);
       const decoded: string = Buffer.from(posted, "base64").toString();
 
-      const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-        decoded,
-        idpKeys.publicKey,
-      );
+      const result: VerifiedSamlResponse = verify(decoded, idpKeys.publicKey);
 
       expect(result.email.toString()).toBe(providerCase.expectedEmail);
     },
@@ -334,11 +363,9 @@ describe("SSOUtil - real documents are still held to the security rules", () => 
         idpKeys.privateKey,
       );
 
-      expect(SSOUtil.isSignatureValid(xml, unrelatedKeys.publicKey)).toBe(
-        false,
-      );
+      expect(isValid(xml, unrelatedKeys.publicKey)).toBe(false);
       expect(() => {
-        return SSOUtil.getSamlResponseFromXML(xml, unrelatedKeys.publicKey);
+        return verify(xml, unrelatedKeys.publicKey);
       }).toThrow();
     },
   );
@@ -358,16 +385,14 @@ describe("SSOUtil - real documents are still held to the security rules", () => 
       );
 
       expect(tampered).not.toBe(xml);
-      expect(SSOUtil.isSignatureValid(tampered, idpKeys.publicKey)).toBe(false);
+      expect(isValid(tampered, idpKeys.publicKey)).toBe(false);
     },
   );
 
   test("rejects an unsigned response that is otherwise a valid Okta document", () => {
-    expect(SSOUtil.isSignatureValid(oktaResponse(), idpKeys.publicKey)).toBe(
-      false,
-    );
+    expect(isValid(oktaResponse(), idpKeys.publicKey)).toBe(false);
     expect(() => {
-      return SSOUtil.getSamlResponseFromXML(oktaResponse(), idpKeys.publicKey);
+      return verify(oktaResponse(), idpKeys.publicKey);
     }).toThrow();
   });
 });
@@ -390,7 +415,7 @@ describe("SSOUtil - NameID shapes seen in the wild", () => {
       );
 
       expect(() => {
-        return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+        return verify(xml, idpKeys.publicKey);
       }).toThrow(/^SAML response did not include a valid email address$/);
 
       /*
@@ -398,7 +423,7 @@ describe("SSOUtil - NameID shapes seen in the wild", () => {
        * sound: it runs the whole extraction and answers "is this document
        * usable", not "does the cryptography check out".
        */
-      expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(false);
+      expect(isValid(xml, idpKeys.publicKey)).toBe(false);
     },
   );
 
@@ -409,10 +434,7 @@ describe("SSOUtil - NameID shapes seen in the wild", () => {
       idpKeys.privateKey,
     );
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("chen.wei@example.com");
   });
@@ -428,10 +450,7 @@ describe("SSOUtil - provider formatting quirks", () => {
 
     expect(xml).toContain("\n");
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     // Whitespace around the NameID text must not leak into the address.
     expect(result.email.toString()).toBe("sam.carter@example.com");
@@ -447,9 +466,9 @@ describe("SSOUtil - provider formatting quirks", () => {
 
     expect(xml).toContain("<?xml");
 
-    expect(
-      SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey).email.toString(),
-    ).toBe("isaac.brock@example.com");
+    expect(verify(xml, idpKeys.publicKey).email.toString()).toBe(
+      "isaac.brock@example.com",
+    );
   });
 
   test("a document with no XML declaration is handled", () => {
@@ -461,9 +480,9 @@ describe("SSOUtil - provider formatting quirks", () => {
 
     expect(xml.startsWith("<?xml")).toBe(false);
 
-    expect(
-      SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey).email.toString(),
-    ).toBe("maria.garcia@example.com");
+    expect(verify(xml, idpKeys.publicKey).email.toString()).toBe(
+      "maria.garcia@example.com",
+    );
   });
 
   test("a multi-valued attribute alongside the identity does not confuse extraction", () => {
@@ -476,9 +495,9 @@ describe("SSOUtil - provider formatting quirks", () => {
     // memberOf carries two AttributeValues in this document.
     expect(xml).toContain("On-Call");
 
-    expect(
-      SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey).email.toString(),
-    ).toBe("maria.garcia@example.com");
+    expect(verify(xml, idpKeys.publicKey).email.toString()).toBe(
+      "maria.garcia@example.com",
+    );
   });
 
   test("the default-namespace layout Entra ID uses is handled", () => {
@@ -493,12 +512,90 @@ describe("SSOUtil - provider formatting quirks", () => {
       '<Assertion xmlns="urn:oasis:names:tc:SAML:2.0:assertion"',
     );
 
-    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
-      xml,
-      idpKeys.publicKey,
-    );
+    const result: VerifiedSamlResponse = verify(xml, idpKeys.publicKey);
 
     expect(result.email.toString()).toBe("abe.lincoln@contoso.com");
     expect(result.name?.toString()).toBe("Abe Lincoln");
   });
+});
+
+describe("SSOUtil - real responses are good for their provider, for a few minutes", () => {
+  /*
+   * Every one of these providers puts the Entity ID it was given in the
+   * Audience and the Reply URL in the Recipient, so each is refused at a
+   * provider it was not made for: here, another project's provider on the
+   * same server.
+   */
+  test.each(providers)(
+    "refuses a $vendor response at another project's provider",
+    (providerCase: ProviderCase) => {
+      const xml: string = signElement(
+        providerCase.document(),
+        "Assertion",
+        idpKeys.privateKey,
+      );
+
+      const otherProjectProvider: SamlServiceProvider = {
+        entityId:
+          "https://oneuptime.example.com/7c0ffee0-0000-4000-8000-000000000001/7c0ffee0-0000-4000-8000-000000000002",
+        replyUrl:
+          "https://oneuptime.example.com/identity/idp-login/7c0ffee0-0000-4000-8000-000000000001/7c0ffee0-0000-4000-8000-000000000002",
+        serverAddress: "https://oneuptime.example.com",
+      };
+
+      expect(() => {
+        return SSOUtil.getSamlResponseFromXML(
+          xml,
+          idpKeys.publicKey,
+          otherProjectProvider,
+          ISSUED_JUST_NOW,
+        );
+      }).toThrow(SAML_AUDIENCE_MISMATCH_MESSAGE);
+    },
+  );
+
+  /*
+   * Half an hour later every one of them is over: the providers that state
+   * an hour (Auth0's lifetime, Entra ID's and AD FS's conditions) are still
+   * held to the ten minutes after issue that OneUptime accepts.
+   */
+  test.each(providers)(
+    "refuses a $vendor response half an hour after it was issued",
+    (providerCase: ProviderCase) => {
+      const xml: string = signElement(
+        providerCase.document(),
+        "Assertion",
+        idpKeys.privateKey,
+      );
+
+      expect(() => {
+        return SSOUtil.getSamlResponseFromXML(
+          xml,
+          idpKeys.publicKey,
+          SERVICE_PROVIDER,
+          new Date("2026-01-15T09:42:40.000Z"),
+        );
+      }).toThrow(SAML_RESPONSE_EXPIRED_MESSAGE);
+    },
+  );
+
+  // The same documents, read at the time this test runs: long over.
+  test.each(providers)(
+    "refuses a $vendor response kept until today",
+    (providerCase: ProviderCase) => {
+      const xml: string = signElement(
+        providerCase.document(),
+        "Assertion",
+        idpKeys.privateKey,
+      );
+
+      expect(() => {
+        return SSOUtil.getSamlResponseFromXML(
+          xml,
+          idpKeys.publicKey,
+          SERVICE_PROVIDER,
+        );
+      }).toThrow(SAML_RESPONSE_EXPIRED_MESSAGE);
+    },
+  );
 });

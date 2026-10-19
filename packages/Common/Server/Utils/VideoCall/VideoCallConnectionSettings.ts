@@ -45,7 +45,12 @@ const TENANT_DOMAIN_REGEX: RegExp =
 // A Zoom user is named by email or by its user id.
 const ZOOM_USER_ID_REGEX: RegExp = /^[A-Za-z0-9_-]{6,64}$/;
 
-const SIMPLE_EMAIL_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/*
+ * Each run is length-bounded to the sizes RFC 5321 allows and anchored, so a
+ * value of any length is read once end to end before Email.isValid confirms
+ * it.
+ */
+const SIMPLE_EMAIL_REGEX: RegExp = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{1,63}$/;
 
 export default class VideoCallConnectionSettingsUtil {
   /*

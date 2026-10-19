@@ -23,10 +23,10 @@ Les fonctionnalités d'IA utilisent le fournisseur par défaut du projet. Un pro
 
 ```mermaid title="Quel fournisseur une fonctionnalité d'IA utilise"
 flowchart TB
-    F["Une fonctionnalité d'IA<br/>a besoin d'un modèle"] --> D{"Le projet a-t-il<br/>un fournisseur<br/>par défaut ?"}
-    D -->|"oui"| P["Le fournisseur<br/>par défaut du projet"]
-    D -->|"non"| G{"Y a-t-il un<br/>fournisseur global ?"}
-    G -->|"oui"| GP["Le fournisseur global :<br/>crédits IA sur<br/>OneUptime Cloud"]
+    F["Une fonctionnalité d'IA<br/>a besoin<br/>d'un modèle"] --> D{"Le projet a-t-il<br/>un fournisseur<br/>par défaut ?"}
+    D -->|"oui"| P["Le fournisseur<br/>par défaut<br/>du projet"]
+    D -->|"non"| G{"Y a-t-il un<br/>fournisseur<br/>global ?"}
+    G -->|"oui"| GP["Le fournisseur<br/>global :<br/>crédits IA sur<br/>OneUptime Cloud"]
     G -->|"non"| N["Rien ne s'exécute,<br/>et les pages d'IA<br/>signalent qu'un<br/>fournisseur manque"]
 ```
 
@@ -38,7 +38,7 @@ Sur **OneUptime Cloud**, chaque projet peut utiliser le fournisseur global sans 
 
 Pour utiliser plutôt vos propres clés API ou un modèle particulier, ajoutez votre propre fournisseur, comme ci-dessous : l'IA qui s'exécute sur votre propre fournisseur ne vous est pas facturée.
 
-Le fournisseur LLM global est payé sur les crédits IA du projet. Pour plafonner ce que l'IA peut dépenser chaque jour, définissez une **Limite quotidienne de dépenses IA (USD)** sous **Paramètres du projet → Fonctionnalités IA → Plus de paramètres** ; une **Limite quotidienne de jetons IA** au même endroit plafonne les jetons sur n'importe quel fournisseur, le vôtre compris. Voir [les limites quotidiennes propres au projet](/docs/ai/ai-sre#les-limites-quotidiennes-propres-au-projet).
+Le fournisseur LLM global est payé sur les crédits IA du projet. Pour plafonner ce que l'IA peut dépenser chaque jour, définissez une **Limite quotidienne de dépenses IA (USD)** sous **Paramètres du projet → IA → Fonctionnalités IA → Plus de paramètres** ; une **Limite quotidienne de jetons IA** au même endroit plafonne les jetons sur n'importe quel fournisseur, le vôtre compris. Voir [les limites quotidiennes propres au projet](/docs/ai/ai-sre#les-limites-quotidiennes-propres-au-projet).
 
 OneUptime Cloud ne peut joindre que des points de terminaison LLM sur l'internet public. Il ne peut pas se connecter à un modèle sur votre réseau privé, comme un serveur Ollama ou vLLM auto-hébergé. Pour utiliser un modèle que vous exécutez vous-même, auto-hébergez OneUptime sur un réseau qui peut le joindre, ou exposez le modèle sur un point de terminaison public : voir [Choisir une URL de base pour un modèle auto-hébergé](#choisir-une-url-de-base-pour-un-modèle-auto-hébergé).
 
@@ -93,19 +93,19 @@ La synchronisation est déclarative : modifiez une variable et le fournisseur su
 
 Allez dans **Paramètres du projet → IA → Fournisseurs LLM** (la section **IA** du menu latéral est repliée au départ) et cliquez sur **Créer : Fournisseur LLM**.
 
-### Nommer le fournisseur
+### Choisir le fournisseur
 
-Dans **Informations de base**, donnez-lui un **Nom** qui dit ce qu'il est, comme "Production OpenAI" ou "Local Ollama", et éventuellement une **Description**.
+Dans **Fournisseur**, choisissez votre **Fournisseur LLM** : une carte pour OpenAI, Anthropic, Azure OpenAI / Microsoft Foundry, Groq, Mistral, Ollama et tout serveur compatible OpenAI, chacune disant en une ligne ce qu'il est.
 
-### Renseigner les paramètres du fournisseur
+### Le connecter
 
-Dans **Paramètres du fournisseur** :
+Dans **Connexion**, le formulaire ne demande que ce que ce fournisseur utilise, avec sa propre aide sous chaque champ :
 
-- **Fournisseur LLM** : le type de fournisseur (OpenAI, Azure OpenAI / Microsoft Foundry, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
-- **Clé API** : votre clé API (requise pour OpenAI, Azure OpenAI, Anthropic, Groq et Mistral ; facultative pour Ollama et les serveurs compatibles OpenAI)
-- **Nom du modèle** : le modèle à utiliser, comme `gpt-5.1`, `claude-sonnet-5-5` ou `llama3.1`
-- **URL de base** : le point de terminaison, requis pour Azure OpenAI, Ollama et OpenAI Compatible ; facultatif pour les autres, pour remplacer leur valeur par défaut
-- **Plus de champs**, replié sous les champs ci-dessus : **Définir par défaut**, activé pour un nouveau fournisseur parce que les fonctionnalités d'IA n'utilisent que le fournisseur par défaut du projet, et **Paramètres supplémentaires**, un objet JSON facultatif de paramètres en plus envoyés au fournisseur avec chaque requête (par exemple `{"temperature": 0.2}`)
+- **Clé API** : votre clé API, requise pour OpenAI, Azure OpenAI, Anthropic, Groq et Mistral et facultative pour un serveur compatible OpenAI ; elle n'est pas demandée pour Ollama
+- **URL de base** : le point de terminaison, requis pour Azure OpenAI, Ollama et OpenAI Compatible ; pour les autres, seulement pour passer par un proxy ou une passerelle
+- **Nom du modèle** : le modèle à utiliser, comme `gpt-5.1`, `claude-sonnet-5-5` ou `llama3.1`. Laissé vide, OneUptime utilise le modèle par défaut du fournisseur, sauf sur un serveur compatible OpenAI, qui en exige un
+- **Nom** : le nom du fournisseur, jusqu'à ce que vous saisissiez le vôtre, comme "Production OpenAI" ou "Local Ollama"
+- **Plus de champs**, replié sous les champs ci-dessus : une **Description**, **Définir par défaut**, activé pour un nouveau fournisseur parce que les fonctionnalités d'IA n'utilisent que le fournisseur par défaut du projet, et **Paramètres supplémentaires**, un objet JSON facultatif de paramètres en plus envoyés au fournisseur avec chaque requête (par exemple `{"temperature": 0.2}`)
 
 **Qui peut voir un fournisseur.** Les fournisseurs LLM d'un projet ne sont lus que par ses membres qui peuvent lire les paramètres du projet : **Project Owner**, **Project Admin**, **Project Member**, **Viewer**, **Settings Admin**, **Settings Member**, **Settings Viewer** et **Read LLM**. La **Clé API** et les **Paramètres supplémentaires** d'un fournisseur ne sont lus que par les propriétaires et les administrateurs du projet, car les paramètres sont envoyés au fournisseur avec chaque requête et peuvent contenir un jeton ou un en-tête, tout comme la clé. Les autres membres voient si des paramètres sont enregistrés, pas lesquels. Les membres qui peuvent modifier un fournisseur peuvent toujours remplacer sa clé API ou ses paramètres sans les lire : dans le formulaire de modification, ces champs sont vides au départ, et en laisser un vide conserve la valeur enregistrée. Pour supprimer les paramètres, enregistrez `{}`. Seuls les propriétaires et les administrateurs du projet peuvent changer l'**URL de base** d'un fournisseur, car sa clé API et ses paramètres supplémentaires sont envoyés à cette adresse ; les autres membres qui peuvent modifier un fournisseur peuvent changer tout le reste. Quiconque peut lire un fournisseur peut lire son **URL de base**, alors n'y mettez jamais de clé, de jeton ou de mot de passe : utilisez la **Clé API**. La liste **Fournisseurs LLM globaux** sur la même page, les fournisseurs partagés sur lesquels un projet se rabat, affiche leur nom, leur description et leur prix à toute personne connectée, et rien d'autre à leur sujet.
 

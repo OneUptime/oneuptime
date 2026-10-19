@@ -8,7 +8,7 @@ Envoyez les e-mails de OneUptime par votre propre serveur de messagerie. Un proj
 
 ```mermaid title="Quel serveur de messagerie envoie quoi"
 flowchart TB
-    SP["E-mail d'une page de statut"] --> Q{"Configuration SMTP personnalisée<br/>choisie pour la page ?"}
+    SP["E-mail d'une<br/>page de statut"] --> Q{"Configuration<br/>SMTP personnalisée<br/>choisie pour la page ?"}
     Q -->|"Oui"| P["La configuration SMTP<br/>du projet"]
     Q -->|"Non"| D["Le serveur de messagerie<br/>de OneUptime"]
     E["Tous les autres e-mails<br/>de OneUptime"] --> D
@@ -61,7 +61,7 @@ Voici les paramètres sous **Plus de champs** :
 | Champ | Ce qu'il fait |
 | --- | --- |
 | **Transport** | `SMTP` (par défaut), ou `Microsoft Graph` pour un locataire Microsoft 365 où SMTP AUTH est désactivé. Choisir Microsoft Graph masque le nom d'hôte, le port, le nom d'utilisateur et le mot de passe, et affiche les champs OAuth. |
-| **Exiger TLS** | Activé pour une nouvelle configuration de projet. Les e-mails ne sont envoyés que par une connexion chiffrée avec un certificat valide. Lorsque cette option est désactivée, les e-mails ne sont chiffrés que si le serveur le propose, et le certificat n'est pas vérifié. Le port 465 est toujours chiffré. |
+| **Exiger TLS** | Activé pour une nouvelle configuration de projet. N'envoyer des e-mails que via une connexion chiffrée avec un certificat valide. Lorsque cette option est désactivée, le certificat n'est pas vérifié. Le port 465 est toujours chiffré. Lorsque cette option est désactivée, les e-mails sur les autres ports ne sont chiffrés que si le serveur le propose. |
 | **Type d'authentification** | `Username and Password` (par défaut), `OAuth`, ou `None` pour un relais qui ne demande pas de connexion. |
 | **Champs OAuth** | **Type de fournisseur OAuth**, **ID client OAuth**, **Secret client OAuth**, **URL du jeton OAuth** et **Portée OAuth**, affichés dès qu'OAuth ou Microsoft Graph est choisi. |
 | **Description** | Une note pour votre équipe (configurations de projet uniquement). |
@@ -83,10 +83,10 @@ sequenceDiagram
     participant O as OneUptime
     participant T as URL du jeton
     participant M as Serveur de messagerie
-    O->>T: Demander un jeton d'accès
+    O->>T: Demander un<br/>jeton d'accès
     T-->>O: Jeton d'accès
-    Note over O: Mis en cache et renouvelé<br/>avant son expiration
-    O->>M: Se connecter avec le jeton
+    Note over O: Mis en cache<br/>et renouvelé<br/>avant son expiration
+    O->>M: Se connecter<br/>avec le jeton
     O->>M: Envoyer l'e-mail
 ```
 

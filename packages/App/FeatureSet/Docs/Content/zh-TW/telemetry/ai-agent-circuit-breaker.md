@@ -125,7 +125,7 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 新增觸發器
 
-按一下虛線框 **Choose what starts this workflow** ，在 **Add Trigger** 面板中選擇 **On Create Alert** 。按一下觸發器： **Fields to pass on** 一開始就帶有標題，所以按一下 **新增欄位** ，勾選描述，然後按一下 **儲存** 。區塊上的 ID `alert-on-create-1` 是後續區塊參照它的方式。
+按一下虛線框 **Choose what starts this workflow** ，在 **新增觸發器** 面板中選擇 **On Create Alert** 。按一下觸發器： **Fields to pass on** 一開始就帶有標題，所以按一下 **新增欄位** ，勾選描述，然後按一下 **儲存** 。區塊上的 ID `alert-on-create-1` 是後續區塊參照它的方式。
 
 ### 檢查標題
 

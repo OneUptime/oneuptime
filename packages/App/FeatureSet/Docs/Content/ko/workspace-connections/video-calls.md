@@ -7,6 +7,7 @@
 - [한 번의 클릭으로 연결하기](#한-번의-클릭으로-연결하기): Zoom, Google Meet, Microsoft Teams 에 로그인만으로 연결합니다.
 - [제공자](#제공자): 자체 앱의 서비스 ID, 고정 회의 링크, 또는 Slack 허들.
 - [수동으로 통화 시작하기](#수동으로-통화-시작하기): 인시던트나 경고의 페이지에서 시작합니다.
+- [통화 녹취록](#통화-녹취록): 인시던트 통화에서 오간 말과, OneUptime AI 가 그 안에서 읽어 내는 근본 원인.
 :::
 
 ## 작동 방식
@@ -63,11 +64,13 @@ OneUptime Cloud 에서는 Zoom, Google Meet, Microsoft Teams 연결이 한 번�
 
 | 제공자 | 로그인에 사용할 계정 | OneUptime 이 할 수 있는 일 |
 | --- | --- | --- |
-| Zoom | Zoom 사용자. Basic (무료) 사용자가 호스트인 회의는 40분 후 종료됩니다. | 그 사용자의 회의 만들기 (`meeting:write:meeting`) 와 사용자가 누구인지 읽기 (`user:read:user`). |
+| Zoom | Zoom 사용자. Basic (무료) 사용자가 호스트인 회의는 40분 후 종료됩니다. | 그 사용자의 회의 만들기 (`meeting:write:meeting`) 와 사용자가 누구인지 읽기 (`user:read:user`). [통화 녹취록](#통화-녹취록) 을 위해 그 사용자 회의의 클라우드 녹화 녹취록 읽기 (`cloud_recording:read:list_recording_files`, `cloud_recording:read:meeting_transcript`). |
 | Google Meet | Google Meet 을 사용할 수 있는 Google 계정. | 그 계정으로 Meet 공간 만들기 (`meetings.space.created`) 와 이메일 주소 읽기. |
 | Microsoft Teams | Microsoft Teams 를 쓰는 회사 또는 학교 계정. 개인 Microsoft 계정으로는 Teams 회의를 만들 수 없습니다. | 그 계정으로 온라인 회의 만들기 (위임된 권한 `OnlineMeetings.ReadWrite`) 와 로그인 상태 유지 (`offline_access`). |
 
 로그인으로 만든 연결에도 누가 기다릴지 정하는 설정이 있습니다. Google Meet 은 **Who can join**, Microsoft Teams 는 **Who skips the lobby** 입니다. 연결 행의 **편집** 로 변경합니다.
+
+OneUptime 이 통화 녹취록을 읽기 전에 로그인한 Zoom 연결은 전처럼 통화를 시작하지만, 다시 로그인할 때까지 녹취록은 읽을 수 없습니다. 행의 **Reconnect** 가 Zoom 에 녹취록 권한을 요청합니다.
 
 ### 로그인 상태 유지
 
@@ -97,6 +100,54 @@ OneUptime 은 로그인의 새로 고침 토큰을 암호화해 보관하고 최
 
 통화를 시작하고 제거하려면 인시던트 (또는 경고) 를 다룰 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member**, 또는 사용자 지정 역할의 **Create Incident Video Call** 과 **Delete Incident Video Call** 입니다. 인시던트를 읽을 수 있는 모든 사람이 그 통화를 볼 수 있습니다.
 
+## 통화 녹취록
+
+대응자가 통화에서 하는 말, 즉 무엇을 확인했고 무엇을 의심하며 무엇을 결정했는지는 인시던트를 어떻게 처리했는지에 대한 가장 좋은 기록이지만, 통화가 끝나면 사라집니다. 인시던트의 통화는 녹취록을 보관하고, OneUptime AI 는 그것을 읽어 통화가 가리키는 근본 원인을 찾습니다. 읽은 내용은 대응자가 사용하기 전까지 인시던트에 반영되지 않습니다.
+
+:::steps
+### 통화 후에 녹취록 가져오기
+
+인시던트의 **Video Call** 카드에서 **Zoom에서 가져오기** 또는 **Google Meet에서 가져오기** 가 OneUptime 이 그곳에서 시작한 회의의 녹취록을 읽습니다. 다른 통화에서는 **녹취록 추가** 가 회의 도구가 저장한 파일 (`.vtt`, `.srt` 또는 `.txt`, 최대 5 MB) 이나 붙여 넣은 녹취록을 받습니다. [모든 통화를 녹화하고 녹취하도록](#모든-통화를-녹화하고-녹취하기) 해 두면, 통화가 끝난 뒤 OneUptime 이 녹취록을 직접 가져옵니다.
+
+### OneUptime AI 가 읽기
+
+1~2분 안에 인시던트의 **AI Investigation** 카드에 **제안된 근본 원인** 가 **확인되지 않음** 표시와 함께 나타나고, 근거가 된 녹취록 줄이 시각과 화자와 함께 인용됩니다. 그 아래에는 통화에서 나온 나머지 내용이 접힌 채로 있습니다. 발견 사항 ( **통화에서 확인됨** 목록과 **가설** 목록), 시도한 것, 결정, 후속 조치, 미해결 질문입니다. 읽은 내용은 인시던트의 피드에도 게시되고, 거기서 인시던트의 Slack 및 Microsoft Teams 채널로 전달됩니다.
+
+### 사용하거나 기각하기
+
+**근본 원인으로 사용** 는 제안을 인용과 함께 근본 원인 편집기에서 엽니다. 필요한 부분을 고치고 저장하면, 본인의 편집으로 인시던트의 근본 원인이 되고 피드에 기록됩니다. **닫기** 는 제안을 제쳐 두고, **실행 취소** 는 다시 되돌립니다.
+:::
+
+OneUptime AI 는 통화에서 원인이 언급된 경우에만, 그렇게 말한 줄과 함께 원인을 제안하고, 그 줄을 녹취록에 있는 그대로 인용합니다. 통화에서 원인이 정리되지 않았으면, 카드는 추측하는 대신 **근본 원인을 제안할 만큼 통화에서 충분히 논의되지 않았습니다** 라고 표시합니다.
+
+### 모든 통화를 녹화하고 녹취하기
+
+누구도 통화 녹화나 녹취록 가져오기를 기억할 필요가 없도록 **프로젝트 설정** > **워크스페이스** > **Video Calls** 에서 **인시던트 통화 녹화 및 녹취** 를 켭니다. 켜져 있는 동안에는 다음과 같이 동작합니다.
+
+- OneUptime 은 자신이 시작하는 인시던트 회의마다 Zoom 에는 클라우드 녹화를, Google Meet 에는 녹취를 요청합니다. 통화를 게시하는 메시지가 누군가 참여하기 전에 이 사실을 알립니다.
+- 통화가 끝나면 OneUptime 이 **Zoom에서 가져오기** 처럼 녹취록을 직접 가져오고, OneUptime AI 가 그것을 읽습니다. 그때까지 **Video Call** 카드에는 기다리는 중이라고 표시됩니다.
+- OneUptime AI 가 읽은 내용은 인시던트의 피드와 그 Slack 및 Microsoft Teams 채널로 갑니다. 확인되지 않았다고 표시된 제안 근본 원인, 이어서 확인된 것, 시도한 것, 결정된 것, 후속 조치, 미해결 질문입니다.
+- 녹취록이 도착하기 전에 인시던트가 해결되면, 자동 포스트모템 초안은 통화에서 오간 말을 반영할 수 있도록 녹취록을 기다립니다. Zoom 이나 Google Meet 이 녹취록을 준비하는 동안은 최대 6시간, 아직 녹취록이 생길 기미가 없으면 1시간입니다.
+
+이 설정은 사람을 녹화하므로 기본적으로 꺼져 있습니다. 해당 통화의 모든 참여자에게 녹화 또는 녹취 중이라는 사실이 표시되므로, 조직에서 이를 허용하는지 확인하세요. Zoom 은 계정이 오디오 녹취록을 켜고 클라우드에 녹화할 때만 녹취록을 보관하고, Google Meet 은 녹취록이 있는 Google Workspace 버전에서만 보관합니다. Microsoft Teams 통화, Slack 허들, 회의 링크는 녹화되지 않으며, 경고 통화도 녹화되지 않습니다. 이들의 녹취록은 직접 추가하세요.
+
+### 각 제공자가 보관하는 것
+
+| 통화 | 녹취록을 얻는 방법 | 필요한 것 |
+| --- | --- | --- |
+| Zoom | **Zoom에서 가져오기** | 오디오 녹취록을 켜고 클라우드에 녹화한 회의, 또는 AI Companion 의 회의 요약을 켠 회의. 연결에는 녹취록 스코프가 필요하며 ( [Zoom](#zoom) 참조), 그 이전에 로그인한 연결에는 **Reconnect** 가 필요합니다. Zoom 은 회의가 끝난 뒤 녹취록을 준비하며, 보통 회의 길이의 두 배 이내에 끝납니다. |
+| Google Meet | **Google Meet에서 가져오기** | 통화에서 켠 녹취록 (녹취록이 있는 Google Workspace 버전). 그 밖에 설정할 것은 없습니다. OneUptime 은 자신이 만든 회의의 녹취록을 읽습니다. Google 은 앱이 읽을 수 있도록 녹취록을 30일 동안 보관합니다. |
+| Microsoft Teams | **녹취록 추가** | Microsoft 는 OneUptime 이 만드는 방식으로 만든 회의의 녹취록을 어떤 앱도 읽지 못하게 합니다. Teams 에서 회의 요약을 열고, 녹취록을 연 다음 `.vtt` 파일로 다운로드하세요. |
+| 회의 링크 또는 Slack 허들 | **녹취록 추가** | 회의 도구나 허들 메모가 보관하는 녹취록. |
+
+### 누가 무엇을 할 수 있는지
+
+녹취록을 가져오기, 추가, 바꾸기, 제거, 다시 읽히기와 제안 기각에는 인시던트의 통화를 시작할 권한이 필요합니다. **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin**, **Incident Member**, 또는 사용자 지정 역할의 **Create Incident Video Call** 입니다. **근본 원인으로 사용** 에는 인시던트의 근본 원인을 편집할 권한이 필요합니다. 인시던트를 읽을 수 있는 모든 사람이 그 통화의 녹취록과 OneUptime AI 가 그 안에서 읽은 내용을 볼 수 있습니다.
+
+### OneUptime AI 가 읽는 것
+
+녹취록을 읽는 것은 조사와 같은 AI 작업입니다. 프로젝트에서 AI 가 켜져 있을 때만 실행되고, 프로젝트의 AI 사용량과 일일 한도에 포함됩니다 ( [비용 관리](/docs/ai/ai-sre#비용-관리) 참조). 긴 녹취록은 나누어 읽습니다. AI 가 꺼져 있으면 녹취록은 보관되고 카드에 읽지 않았다고 표시됩니다. 녹취록을 제거하면 OneUptime AI 가 그 안에서 읽은 내용도 제거되지만, 인시던트의 근본 원인은 유지됩니다. AI 포스트모템 초안도 인시던트의 통화에서 오간 말을 읽습니다 ( [포스트모템](/docs/incidents/postmortems) 참조).
+
 ## 제공자
 
 이 섹션은 자체 앱의 서비스 ID 로 제공자를 연결하는 방법을 다룹니다. Zoom 의 Server-to-Server OAuth 앱, Google 서비스 계정, Microsoft Entra 앱 등록입니다. 서비스 ID 는 사람에게 의존하지 않으므로 누가 퇴사하든 계속 작동합니다. 대신 로그인으로 연결하려면 [한 번의 클릭으로 연결하기](#한-번의-클릭으로-연결하기) 를 참조하세요.
@@ -113,7 +164,7 @@ OneUptime 은 Zoom **Server-to-Server OAuth** 앱을 통해 인시던트마다 Z
 
 :::steps
 1. [Zoom App Marketplace](https://marketplace.zoom.us/) 에서 **Develop** > **Build App** 을 선택하고 **Server-to-Server OAuth** 앱을 만듭니다. 만들려면 Zoom 계정 관리자나 Server-to-Server OAuth 앱을 허용하는 역할이 필요합니다.
-2. 앱의 **Scopes** 페이지에서 **meeting:write:meeting:admin** (사용자의 회의 만들기) 을 추가합니다. 세분화된 스코프 이전에 만든 앱은 대신 **meeting:write:admin** 을 사용할 수 있습니다.
+2. 앱의 **Scopes** 페이지에서 **meeting:write:meeting:admin** (사용자의 회의 만들기) 을 추가합니다. 세분화된 스코프 이전에 만든 앱은 대신 **meeting:write:admin** 을 사용할 수 있습니다. OneUptime 이 [통화 녹취록](#통화-녹취록) 도 읽게 하려면 **cloud_recording:read:list_recording_files:admin** 과 **cloud_recording:read:meeting_transcript:admin** 을 추가합니다 (세분화된 스코프 이전에 만든 앱은 **recording:read:admin** ).
 3. **Activate** 를 클릭해 앱을 활성화한 다음, **App Credentials** 페이지의 **Account ID**, **Client ID**, **Client secret** 을 연결 양식에 복사합니다.
 4. **Meeting host** 를 입력합니다. 라이선스가 있는 Zoom 사용자의 이메일이며, 사람이 퇴사해도 회의가 계속 작동하도록 incidents@example.com 같은 서비스 계정이 이상적입니다. Basic (무료) 사용자가 호스트인 회의는 40분 후 종료됩니다.
 5. 호스트는 절대 참여하지 않는 서비스 계정이므로, 대응자는 호스트를 기다리지 않고 참여합니다. Zoom 계정의 **Waiting room** 설정이 켜진 채로 잠겨 있지 않은지 확인하세요. 잠겨 있으면 아무도 들어갈 수 없습니다.
@@ -215,7 +266,7 @@ OneUptime Cloud 에는 한 번의 클릭 연결을 위한 자체 Zoom, Google, M
 | Google Meet | `https://<host>/api/video-call-oauth/google-meet/callback` | `GOOGLE_MEET_APP_CLIENT_ID`, `GOOGLE_MEET_APP_CLIENT_SECRET` | `googleMeetApp.clientId`, `googleMeetApp.clientSecret` |
 | Microsoft Teams | `https://<host>/api/video-call-oauth/microsoft-teams/callback` | `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET` | `microsoftTeamsMeetingsApp.clientId`, `microsoftTeamsMeetingsApp.clientSecret` |
 
-- **Zoom**: [Zoom App Marketplace](https://marketplace.zoom.us/) 에서 **Develop** > **Build App** 을 선택하고 사용자가 관리하는 **General App** 을 만듭니다. **Basic Information** 에서 **Development** 와 **Production** 탭 모두와 OAuth 허용 목록에 리디렉션 URI 를 OAuth Redirect URL 로 추가하고, **Production** 탭에서 **Deauthorization Notification** 엔드포인트 URL 을 `https://<host>/api/video-call-oauth/zoom/events` 로 설정합니다. **Scopes** 에서 `meeting:write:meeting` 과 `user:read:user` 를 추가합니다. **Features** > **Access** 의 **Secret Token** 이 `ZOOM_APP_WEBHOOK_SECRET_TOKEN` 입니다. **Development** 자격 증명은 자신의 Zoom 계정 사용자에게만 작동하고, **Production** 자격 증명은 Zoom 이 앱을 검토하고 게시하면 모든 사람에게 작동합니다.
+- **Zoom**: [Zoom App Marketplace](https://marketplace.zoom.us/) 에서 **Develop** > **Build App** 을 선택하고 사용자가 관리하는 **General App** 을 만듭니다. **Basic Information** 에서 **Development** 와 **Production** 탭 모두와 OAuth 허용 목록에 리디렉션 URI 를 OAuth Redirect URL 로 추가하고, **Production** 탭에서 **Deauthorization Notification** 엔드포인트 URL 을 `https://<host>/api/video-call-oauth/zoom/events` 로 설정합니다. **Scopes** 에서 `meeting:write:meeting` 과 `user:read:user` 를 추가합니다. [통화 녹취록](#통화-녹취록) 을 읽게 하려면 `cloud_recording:read:list_recording_files` 와 `cloud_recording:read:meeting_transcript` 도 추가합니다. **Features** > **Access** 의 **Secret Token** 이 `ZOOM_APP_WEBHOOK_SECRET_TOKEN` 입니다. **Development** 자격 증명은 자신의 Zoom 계정 사용자에게만 작동하고, **Production** 자격 증명은 Zoom 이 앱을 검토하고 게시하면 모든 사람에게 작동합니다.
 - **Google Meet**: [Google Cloud 콘솔](https://console.cloud.google.com/) 에서 **Google Meet REST API** 를 사용 설정하고, 스코프 `openid`, `email`, `https://www.googleapis.com/auth/meetings.space.created` 로 OAuth 동의 화면 ( **Google Auth Platform** ) 을 구성한 다음, 리디렉션 URI 로 **Web application** 유형의 OAuth 클라이언트를 만듭니다. 앱을 프로덕션에 게시하세요. 테스트 상태로 둔 앱은 7일 후 로그인을 잃습니다. Google 은 Meet 스코프를 요청하는 앱을 검토하며, 검토가 끝날 때까지 사람들은 로그인 전에 경고를 봅니다.
 - **Microsoft Teams**: [Microsoft Entra 관리 센터](https://entra.microsoft.com/) 에서 **Accounts in any organizational directory** 용 앱을 등록하고, 리디렉션 URI 를 **Web** 리디렉션 URI 로 추가하고, Microsoft Graph 위임 권한 `openid`, `profile`, `email`, `offline_access`, `OnlineMeetings.ReadWrite` 를 추가한 다음, 클라이언트 시크릿을 만듭니다. Microsoft Teams 봇의 등록 (`MICROSOFT_TEAMS_APP_CLIENT_ID`) 이 아닌 별도의 등록을 사용하세요. 앱에 확인된 게시자가 없는 동안에는 대부분의 조직에서 관리자의 동의가 필요합니다.
 
@@ -237,6 +288,18 @@ OneUptime Cloud 에는 한 번의 클릭 연결을 위한 자체 Zoom, Google, M
 
 :::details 사람들이 로비나 대기실에서 기다림
 연결 행의 **편집** 로 **Who can join** (Google Meet) 또는 **Who skips the lobby** (Microsoft Teams) 를 변경하세요. Zoom 의 경우 계정의 **Waiting room** 설정이 켜진 채로 잠겨 있지 않은지 확인하세요.
+:::
+
+:::details Zoom에서 가져오기가 녹취록을 찾지 못함
+Zoom 은 오디오 녹취록을 켜고 클라우드에 녹화한 회의나, AI Companion 의 회의 요약을 켠 회의의 녹취록만 보관하며, 회의가 끝난 뒤 준비합니다. 어느 경우인지는 카드에 표시됩니다. 나중에 다시 시도하거나, 인시던트 회의에서 둘 중 하나를 켜세요. 그동안에는 **녹취록 추가** 로 저장해 둔 녹취록을 추가할 수 있습니다.
+:::
+
+:::details Video Call 카드가 계속 녹취록을 기다림
+통화가 끝나면 OneUptime 은 몇 분마다 Zoom 이나 Google Meet 에 녹취록을 요청하며, 통화가 오래될수록 간격을 늘려 통화가 시작된 뒤 3일 동안 계속합니다. 녹취록은 제공자가 준비를 마친 뒤 몇 분 안에 들어오며, Zoom 은 준비하는 데 통화 길이의 약 두 배까지 걸립니다. **Zoom에서 가져오기** 는 즉시 요청합니다. 제공자가 녹취록을 보관하지 않으면 카드에 그렇게 표시됩니다. Zoom 계정이 오디오 녹취록을 켜고 클라우드에 녹화하는지, 또는 사용하는 Google Workspace 버전에 녹취록이 있는지 확인하세요.
+:::
+
+:::details OneUptime AI 가 녹취록을 읽지 못함
+이유는 카드에 표시됩니다. 프로젝트에서 AI 가 꺼져 있거나, 프로젝트가 AI 일일 한도에 도달했거나, AI 제공자가 거부한 경우입니다. 해결한 뒤 카드의 **다시 시도** 으로 다시 읽습니다.
 :::
 
 ## 다음 단계

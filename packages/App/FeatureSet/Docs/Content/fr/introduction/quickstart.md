@@ -28,7 +28,7 @@ Dans OneUptime, tout se trouve dans un projet : vos moniteurs, incidents, politi
 
 ### Lui donner un nom
 
-Saisissez un **Nom du projet**, par exemple le nom de votre entreprise. Sur OneUptime Cloud, l'étape suivante vous demande de choisir un forfait.
+Saisissez un **Nom du projet**, par exemple le nom de votre entreprise. Sur OneUptime Cloud, choisissez aussi un forfait juste en dessous : Free est déjà sélectionné, et les forfaits payants commencent par un essai gratuit.
 
 ### Le créer
 
@@ -68,7 +68,7 @@ Dans la liste de vérification, cliquez sur **Configurez une politique d'astrein
 
 ### La déclencher pour chaque incident
 
-Ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte**. Cliquez sur **Créer : Règle d'astreinte des incidents**, saisissez un **Nom** et cliquez sur **Suivant**. Laissez **Critères de correspondance** vide, pour que la règle s'applique à chaque incident, et cliquez sur **Suivant**. Choisissez votre politique sous **Politiques d'astreinte** et cliquez sur **Créer : Règle d'astreinte des incidents**.
+Ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte**. Cliquez sur **Créer : Règle d'astreinte des incidents**, saisissez un **Nom** et cliquez sur **Suivant**. Dans **Critères de correspondance**, laissez **Tous les incidents** sélectionné, pour que la règle s'applique à chaque incident, et cliquez sur **Suivant**. Choisissez votre politique sous **Politiques d'astreinte** et cliquez sur **Créer : Règle d'astreinte des incidents**.
 
 ### Choisir comment vous êtes joint
 
@@ -85,15 +85,15 @@ Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, con
 :::steps
 ### Créer la page de statut
 
-Dans la liste de vérification, cliquez sur **Publiez une page de statut**, ou ouvrez **Pages de statut** depuis le menu **Produits**. Cliquez sur **Créer une page de statut**, saisissez un **Nom**, par exemple `Acme Status`, et cliquez sur **Créer une page de statut**.
+Dans la liste de vérification, cliquez sur **Publiez une page de statut**, ou ouvrez **Pages de statut** depuis le menu **Produits**. Cliquez sur **Créer une page de statut**, saisissez un **Nom**, par exemple `Acme Status`, et cliquez sur **Créer une page de statut**. La nouvelle page s'ouvre sur sa **Vue d'ensemble**.
 
 ### Ajouter votre moniteur
 
-Ouvrez la nouvelle page de statut. Dans son menu latéral, sous **Ressources**, choisissez **Moniteurs** ; l'entrée s'appelle **Ressources** dans les projets où les groupes de moniteurs sont activés. Cliquez sur **Ajouter un moniteur**, choisissez votre moniteur de site web et cliquez sur **Ajouter un moniteur**. La ligne montre aux visiteurs le nom du moniteur ; modifiez-le sous **Nom d'affichage** si vous le souhaitez.
+Cliquez sur **Ajouter des moniteurs** dans la **Vue d'ensemble**, ou, dans le menu latéral de la page, sous **Ressources**, choisissez **Moniteurs** ; l'entrée s'appelle **Ressources** dans les projets où les groupes de moniteurs sont activés. Cliquez sur **Ajouter un moniteur**, choisissez votre moniteur de site web et cliquez sur **Ajouter un moniteur**. La ligne montre aux visiteurs le nom du moniteur ; modifiez-le sous **Nom d'affichage** si vous le souhaitez.
 
 ### Ouvrir la page
 
-Choisissez **Vue d'ensemble** dans le menu latéral. La carte **Status Page Preview URL** pointe vers votre page de statut : ouvrez-la, et votre site web y apparaît comme opérationnel.
+Choisissez **Vue d'ensemble** dans le menu latéral. La carte **Lien de la page de statut** pointe vers votre page de statut : ouvrez-la, et votre site web y apparaît comme opérationnel.
 :::
 
 Une nouvelle page de statut est publique : toute personne disposant de son adresse peut l'ouvrir. Pour lui donner votre propre domaine, votre logo et vos couleurs, consultez [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains).

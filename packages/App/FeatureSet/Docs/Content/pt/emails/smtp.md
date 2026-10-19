@@ -8,7 +8,7 @@ Envie o e-mail do OneUptime pelo seu próprio servidor de e-mail. Um projeto adi
 
 ```mermaid title="Qual servidor de e-mail envia o quê"
 flowchart TB
-    SP["E-mail de uma página de status"] --> Q{"Configuração SMTP personalizada<br/>escolhida para a página?"}
+    SP["E-mail de uma<br/>página de status"] --> Q{"Configuração SMTP<br/>personalizada<br/>escolhida para a página?"}
     Q -->|"Sim"| P["A configuração SMTP<br/>do projeto"]
     Q -->|"Não"| D["O servidor de e-mail<br/>do OneUptime"]
     E["Todos os outros e-mails<br/>do OneUptime"] --> D
@@ -61,7 +61,7 @@ Estas são as configurações em **Mais campos**:
 | Campo | O que faz |
 | --- | --- |
 | **Transporte** | `SMTP` (o padrão), ou `Microsoft Graph` para um locatário do Microsoft 365 com o SMTP AUTH desligado. Escolher Microsoft Graph oculta o nome do host, a porta, o nome de usuário e a senha, e mostra os campos de OAuth. |
-| **Exigir TLS** | Ligado numa configuração de projeto nova. O e-mail é enviado apenas por uma conexão criptografada com um certificado válido. Quando esta opção está desativada, o e-mail só é criptografado se o servidor oferecer, e o certificado não é verificado. A porta 465 é sempre criptografada. |
+| **Exigir TLS** | Ligado numa configuração de projeto nova. Enviar e-mails só por uma conexão criptografada com certificado válido. Quando esta opção está desativada, o certificado não é verificado. A porta 465 é sempre criptografada. Quando esta opção está desativada, o e-mail em outras portas só é criptografado se o servidor oferecer. |
 | **Tipo de autenticação** | `Username and Password` (o padrão), `OAuth`, ou `None` para um relay que não exige login. |
 | **Campos de OAuth** | **Tipo de provedor OAuth**, **OAuth Client ID**, **OAuth Client Secret**, **URL do token OAuth** e **Escopo OAuth**, mostrados quando OAuth ou Microsoft Graph é escolhido. |
 | **Descrição** | Uma nota para a sua equipe (só em configurações de projeto). |
@@ -85,7 +85,7 @@ sequenceDiagram
     participant M as Servidor de e-mail
     O->>T: Pede um token de acesso
     T-->>O: Token de acesso
-    Note over O: Guardado em cache e renovado<br/>antes de expirar
+    Note over O: Guardado em<br/>cache e renovado<br/>antes de expirar
     O->>M: Faz login com o token
     O->>M: Envia o e-mail
 ```

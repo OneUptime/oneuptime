@@ -427,6 +427,66 @@ describe("on a phone", () => {
   });
 
   /*
+   * A page named like its section - a monitor's or a monitor group's
+   * Overview, under Overview - read "Overview / Overview" on the button.
+   */
+  test("a page named like its section is named once on the button", async () => {
+    await renderAt(
+      "/m/1",
+      <SideMenu>
+        <SideMenuSection title="Overview">
+          {item("Overview", "/m/1")}
+          {item("Monitors", "/m/1/monitors")}
+        </SideMenuSection>
+      </SideMenu>,
+    );
+
+    const button: HTMLElement = screen.getByTestId("mobile-sidemenu-toggle");
+    expect(button.textContent).toContain("Overview");
+    expect(button.textContent).not.toContain("Overview / Overview");
+    expect(button.textContent).not.toContain("/");
+  });
+
+  test("any other page keeps its section before its name", async () => {
+    await renderAt(
+      "/m/1/monitors",
+      <SideMenu>
+        <SideMenuSection title="Overview">
+          {item("Overview", "/m/1")}
+          {item("Monitors", "/m/1/monitors")}
+        </SideMenuSection>
+      </SideMenu>,
+    );
+
+    expect(screen.getByTestId("mobile-sidemenu-toggle").textContent).toContain(
+      "Overview / Monitors",
+    );
+  });
+
+  /*
+   * A <button> centres its text, so "Navigate to" sat off-centre above the
+   * page's name, the two lines starting at different edges. They share one
+   * start-aligned block; the browser suite (CustomRoles) measures the edges.
+   */
+  test("the button's two lines, Navigate to and where you are, start at one edge", async () => {
+    await renderAt("/w/1/settings", workflowMenu());
+
+    const button: HTMLElement = screen.getByTestId("mobile-sidemenu-toggle");
+    const label: HTMLElement = screen.getByText("Navigate to");
+    const where: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "Advanced / Settings",
+    });
+    const lines: HTMLElement | null = label.parentElement;
+
+    expect(lines).not.toBeNull();
+    expect(lines).toBe(where.parentElement);
+    expect(button).toContainElement(lines);
+    // text-start, not text-left: the side the lines start on, in either direction.
+    expect(lines).toHaveClass("text-start");
+  });
+
+  /*
    * The phone menu closes when a page is picked. A tap on a section's header
    * used to close it too (the handler sits on the whole <nav>), so a folded
    * section could never be opened on a phone.

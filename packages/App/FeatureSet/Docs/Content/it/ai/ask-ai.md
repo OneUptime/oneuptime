@@ -15,11 +15,11 @@ Chiedi all'IA risponde solo con ciò che restituiscono i suoi strumenti: esegue 
 
 ```mermaid title="Da una domanda a una risposta citata"
 flowchart TB
-    Q["La tua domanda, con<br/>la pagina in cui sei"] --> A["Chiedi all'IA"]
-    A -->|"strumenti di lettura"| D["I dati del progetto,<br/>interrogati in<br/>tempo reale"]
+    Q["La tua<br/>domanda, con<br/>la pagina<br/>in cui sei"] --> A["Chiedi all'IA"]
+    A -->|"strumenti<br/>di lettura"| D["I dati del<br/>progetto,<br/>interrogati in<br/>tempo reale"]
     D --> R["Una risposta con<br/>una citazione per<br/>affermazione"]
     A -->|"un'azione"| M{"La modalità di<br/>autorizzazione"}
-    M -->|"Ask to act"| C["Una scheda di<br/>approvazione: consenti<br/>o salti"]
+    M -->|"Ask to act"| C["Una scheda di<br/>approvazione:<br/>consenti<br/>o salti"]
     M -->|"Auto-run"| X["Viene eseguita,<br/>a tuo nome"]
     C -->|"consentita"| X
 ```
@@ -99,7 +99,7 @@ Ogni azione di Chiedi all'IA è fatta a tuo nome: fa la stessa modifica che fa l
 - **Il piano Growth, su OneUptime Cloud.** Un progetto con un piano inferiore vede che l'IA non è inclusa nel suo piano, con un link a **Impostazioni del progetto → Fatturazione e fatture → Fatturazione**.
 - **L'IA attiva per il progetto.** **Abilita IA**, in **Impostazioni del progetto → IA → AI Features**, spegne ogni funzione IA del progetto, Chiedi all'IA compresa. È attiva a meno che qualcuno non l'abbia spenta.
 
-Chiedi all'IA conta nei limiti giornalieri di IA del progetto quando il progetto li imposta (Impostazioni del progetto → AI Features → Altre impostazioni): quando uno viene raggiunto, Chiedi all'IA mostra una frase che dice quale limite è stato raggiunto, che OneUptime AI riparte a mezzanotte UTC e chi può alzare o rimuovere il limite. I proprietari del progetto ricevono un'email la prima volta che un limite viene raggiunto ogni giorno. I limiti giornalieri di incidenti e avvisi non fermano mai Chiedi all'IA. Vedi [i limiti giornalieri del progetto](/docs/ai/ai-sre#i-limiti-giornalieri-del-progetto-stesso).
+Chiedi all'IA conta nei limiti giornalieri di IA del progetto quando il progetto li imposta (Impostazioni del progetto → IA → AI Features → Altre impostazioni): quando uno viene raggiunto, Chiedi all'IA mostra una frase che dice quale limite è stato raggiunto, che OneUptime AI riparte a mezzanotte UTC e chi può alzare o rimuovere il limite. I proprietari del progetto ricevono un'email la prima volta che un limite viene raggiunto ogni giorno. I limiti giornalieri di incidenti e avvisi non fermano mai Chiedi all'IA. Vedi [i limiti giornalieri del progetto](/docs/ai/ai-sre#i-limiti-giornalieri-del-progetto-stesso).
 
 ## Risoluzione dei problemi
 

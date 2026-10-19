@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### Arbetsflöden
 
-Formulär har de genererade arbetsflödeskomponenterna: **On Create Form**, **On Update Form** och så vidare. Använd **On Create Incident** eller **On Create Scheduled Maintenance** för att agera på det som ett formulär har skapat.
+Formulär har de genererade arbetsflödeskomponenterna: **On Create Form**, **On Update Form** och så vidare. Använd **On Create Incident** eller **On Create Scheduled Maintenance Event** för att agera på det som ett formulär har skapat.
 
 ### Den offentliga sidans egna slutpunkter
 

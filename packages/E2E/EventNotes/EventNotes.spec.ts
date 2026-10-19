@@ -19,7 +19,8 @@ import path from "path";
  * errors or on any request the fixture does not model.
  */
 
-const PORT: string = "4223";
+// The fixture server's port (playwright.event-notes-ui.config.ts).
+const PORT: string = process.env["EVENT_NOTES_FIXTURE_PORT"] || "4223";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 
@@ -1682,5 +1683,551 @@ test.describe("screenshots", () => {
     await composer.getByTestId("note-template-menu-button").click();
     await expect(page.getByTestId("note-template-menu")).toBeVisible();
     await screenshot(page, "incident-public-notes-composer");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A private incident or episode takes no public notes
+ * ---------------------------------------------------------------------------
+ *
+ * It is on no status page and tells no subscriber, so a public note on it
+ * would reach nobody it was written for (Common/Types/StatusPage/
+ * PrivateRecordPublicNotes). Its Public Notes page says so where the
+ * composer was, with the way to its private notes; the public notes it
+ * already has stay, to read and edit, with nothing that tells subscribers.
+ */
+
+test.describe("a private incident or episode", () => {
+  const INCIDENT_EPISODE_PUBLIC: NotesPage = notesPage(
+    "incident-episode-public-notes",
+  );
+
+  test("the incident's public notes page takes no new public note, says why, and leads to its private notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+
+    const lock: Locator = page.getByTestId("note-composer-private-event");
+    await expect(lock).toContainText(
+      "This incident is private, so public notes cannot be added to it. Use a private note.",
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(page.getByTestId("notes-description")).toHaveText(
+      "Customer-facing updates about this incident. While it is private, no status page shows them.",
+    );
+
+    // The public notes it already has are still there, to read.
+    await expect(cards(page).first()).toContainText(INCIDENT_PUBLIC.firstNote);
+
+    await lock.getByRole("link", { name: "Add Private Note" }).click();
+    await page.waitForURL((url: URL): boolean => {
+      return url.pathname === INCIDENT_PRIVATE.path;
+    });
+    expect(new URL(page.url()).searchParams.get("compose")).toBe("1");
+
+    // One click: the private notes, their composer open, the cursor in it.
+    const composer: Locator = page.getByTestId("note-composer");
+    await expect(composer).toBeVisible();
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(composer.getByTestId("note-audience")).toHaveText(
+      "Private·Only your team can see this",
+    );
+    await expect(composer.locator('[contenteditable="true"]')).toBeFocused();
+    await expect(cards(page).first()).toContainText(INCIDENT_PRIVATE.firstNote);
+    expect((await fixture(page)).creates).toEqual([]);
+
+    await page.keyboard.type("Rolled back the 14:02 deploy.");
+    await composer.getByTestId("note-submit").click();
+    await expect(cards(page).first()).toContainText(
+      "Rolled back the 14:02 deploy.",
+    );
+    expect(
+      (await fixture(page)).creates.map((entry: RecordedWrite) => {
+        return entry.modelName;
+      }),
+    ).toEqual(["IncidentInternalNote"]);
+  });
+
+  test("a public note it already has is edited without asking to tell subscribers", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const noteCard: Locator = card(page, "rotating it now");
+
+    await openActions(noteCard);
+    await page.getByRole("menuitem", { name: "Edit note" }).click();
+
+    const composer: Locator = noteCard.getByTestId("note-edit-composer");
+    await expect(composer).toBeVisible();
+    await expect(composer.getByTestId("note-notify-checkbox")).toHaveCount(0);
+    // Still a public note, but no status page shows it while it is private.
+    await expect(composer.getByTestId("note-audience")).toHaveText(
+      "Public·Not shown while this incident is private",
+    );
+
+    await composer.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type(" Rotation complete.");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(noteCard.getByTestId("note-edit-composer")).toHaveCount(0);
+    await expect(noteCard.getByTestId("note-body")).toContainText(
+      "Rotation complete.",
+    );
+
+    const update: RecordedWrite = (await fixture(page)).updates.find(
+      (entry: RecordedWrite) => {
+        return entry.modelName === "IncidentPublicNote";
+      },
+    )!;
+    expect(String(update.data!["note"])).toContain("Rotation complete.");
+    expect(update.miscDataProps?.["notifySubscribersOfUpdate"]).not.toBe(true);
+  });
+
+  test("a public note's notification is not offered to be sent again, nor retried", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const sent: Locator = card(page, "Monitoring.").getByTestId(
+      "note-notification-status",
+    );
+    await expect(sent).toHaveText("Subscribers notified");
+
+    await sent.click();
+    await expect(
+      page.getByRole("button", { name: "Resend notification" }),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    // A failed one still says what happened, and offers no Retry.
+    const failed: Locator = card(page, "rotating it now").getByTestId(
+      "note-notification-status",
+    );
+    await expect(failed).toHaveText("Notification failed");
+
+    await failed.click();
+    await expect(
+      page.getByText("1,284 subscribers were not notified."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Retry notification" }),
+    ).toHaveCount(0);
+
+    expect((await fixture(page)).updates).toEqual([]);
+  });
+
+  test("a public note it already has is deleted without claiming to leave a status page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    const noteCard: Locator = card(page, "rotating it now");
+
+    await openActions(noteCard);
+    await page.getByRole("menuitem", { name: "Delete note" }).click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Delete this public note?",
+    });
+    // On no status page while the incident is private: none to leave.
+    await expect(dialog).toContainText(
+      "The note will be permanently deleted. This cannot be undone.",
+    );
+    await expect(dialog).not.toContainText("status page");
+    await dialog.getByRole("button", { name: "Delete note" }).click();
+
+    await expect(card(page, "rotating it now")).toHaveCount(0);
+    expect((await fixture(page)).deletes).toEqual([
+      {
+        modelName: "IncidentPublicNote",
+        id: uuid("70000000", 2),
+      },
+    ]);
+  });
+
+  test("its private notes are written as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PRIVATE, "private=1");
+    const composer: Locator = await openComposer(page);
+
+    await page.keyboard.type("Rolled back the 14:02 deploy.");
+    await composer.getByTestId("note-submit").click();
+
+    await expect(cards(page).first()).toContainText(
+      "Rolled back the 14:02 deploy.",
+    );
+    expect(
+      (await fixture(page)).creates.map((entry: RecordedWrite) => {
+        return entry.modelName;
+      }),
+    ).toEqual(["IncidentInternalNote"]);
+  });
+
+  test("the episode's public notes page says the same for the episode", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_EPISODE_PUBLIC, "private=1");
+
+    await expect(page.getByTestId("note-composer-private-event")).toContainText(
+      "This episode is private, so public notes cannot be added to it. Use a private note.",
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toHaveCount(0);
+    await expect(page.getByTestId("notes-description")).toHaveText(
+      "Customer-facing updates about this episode. While it is private, no status page shows them.",
+    );
+    await expect(cards(page).first()).toContainText(
+      INCIDENT_EPISODE_PUBLIC.firstNote,
+    );
+  });
+
+  test("an incident that is not private takes public notes as always", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC);
+
+    await expect(page.getByTestId("note-composer-private-event")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("note-composer-prompt")).toBeVisible();
+  });
+
+  test("screenshots of the private incident's and episode's public notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    await screenshot(page, "incident-public-notes-private-incident");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, INCIDENT_PUBLIC, "private=1");
+    await screenshot(page, "incident-public-notes-private-incident-phone");
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, INCIDENT_EPISODE_PUBLIC, "private=1");
+    await screenshot(page, "incident-episode-public-notes-private-episode");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Links and quotes in a note
+ * ---------------------------------------------------------------------------
+ *
+ * A customer's feedback: a link in a note - the file a saved Slack message
+ * carried - took over the OneUptime tab, and quoted text showed an amber
+ * exclamation mark, as if it were a warning. ?notes=links-and-quotes puts a
+ * note like that on top of incident #1042's private notes: a quote, the
+ * message's file, a callout, a link to alert #311's notes, one to the docs
+ * and a link long enough to wrap on a phone. The feed draws the same note
+ * through the same viewer (packages/E2E/EventOverview, ?feed=).
+ */
+
+const SLACK_FILE_URL: string =
+  "https://acme.slack.com/files/U0123ABCD/F0123ABCD/image.png";
+const QUOTED_WORDS: string = "They said the payment provider is degraded";
+const LONG_LINK: string =
+  "https://grafana.acme-commerce.example/d/checkout-api-latency-overview/checkout-api-latency?orgId=1&from=now-6h&to=now&var-region=eu-west-1";
+
+function savedNote(page: Page): Locator {
+  return card(page, QUOTED_WORDS);
+}
+
+function noteBody(page: Page): Locator {
+  return savedNote(page).getByTestId("note-body");
+}
+
+async function openSavedNote(page: Page, query: string = ""): Promise<void> {
+  await open(
+    page,
+    INCIDENT_PRIVATE,
+    ["notes=links-and-quotes", query].filter(Boolean).join("&"),
+  );
+  await expect(savedNote(page)).toBeVisible();
+}
+
+async function computedStyleOf(
+  locator: Locator,
+  properties: Array<string>,
+): Promise<Record<string, string>> {
+  return await locator.evaluate(
+    (element: Element, names: Array<string>): Record<string, string> => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(element);
+      const values: Record<string, string> = {};
+      for (const name of names) {
+        values[name] = style.getPropertyValue(name);
+      }
+      return values;
+    },
+    properties,
+  );
+}
+
+async function screenshotNote(page: Page, name: string): Promise<void> {
+  await fs.mkdir(SCREENSHOTS, { recursive: true });
+  await page.mouse.move(0, 0);
+  await savedNote(page).screenshot({
+    path: path.join(SCREENSHOTS, `${name}-synthetic.png`),
+  });
+}
+
+test.describe("links and quotes in a note", () => {
+  test("the file a saved Slack message carried opens in a new tab, and the notes stay open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page
+      .context()
+      .route("https://acme.slack.com/**", async (route: PlaywrightRoute) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/plain",
+          body: "image.png",
+        });
+      });
+    await openSavedNote(page);
+
+    const fileLink: Locator = noteBody(page).getByRole("link", {
+      name: "image.png",
+    });
+
+    await expect(fileLink).toHaveAttribute("href", SLACK_FILE_URL);
+    await expect(fileLink).toHaveAttribute("target", "_blank");
+    await expect(fileLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(fileLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    const [tab] = await Promise.all([
+      page.context().waitForEvent("page"),
+      fileLink.click(),
+    ]);
+    await tab.waitForLoadState();
+
+    expect(tab.url()).toBe(SLACK_FILE_URL);
+    // Cut loose from the page that opened it.
+    expect(
+      await tab.evaluate((): boolean => {
+        return window.opener === null;
+      }),
+    ).toBe(true);
+
+    // The notes are still open, where they were.
+    expect(new URL(page.url()).pathname).toBe(INCIDENT_PRIVATE.path);
+    await expect(savedNote(page)).toBeVisible();
+    await tab.close();
+  });
+
+  test("a link to another page of the dashboard stays in the tab; one to the docs opens a new one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const alertLink: Locator = noteBody(page).getByRole("link", {
+      name: "ALT-311",
+    });
+    const docsLink: Locator = noteBody(page).getByRole("link", {
+      name: "failover runbook",
+    });
+
+    await expect(docsLink).toHaveAttribute("target", "_blank");
+    await expect(docsLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(docsLink).toHaveAttribute(
+      "aria-description",
+      "Opens in a new tab",
+    );
+
+    await expect(alertLink).not.toHaveAttribute("target", /.*/);
+    await expect(alertLink).not.toHaveAttribute("rel", /.*/);
+    await expect(alertLink).not.toHaveAttribute("aria-description", /.*/);
+
+    let openedTabs: number = 0;
+    page.context().on("page", () => {
+      openedTabs += 1;
+    });
+
+    await Promise.all([
+      page.waitForURL(`**${ALERT_PRIVATE.path}`),
+      alertLink.click(),
+    ]);
+    await expect(page.getByTestId("event-notes")).toBeVisible({
+      timeout: 30000,
+    });
+
+    expect(openedTabs).toBe(0);
+    expect(page.context().pages()).toHaveLength(1);
+  });
+
+  test("quoted text is a quote: a grey bar and lighter text, with no icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const quote: Locator = noteBody(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    await expect(quote).toBeVisible();
+    await expect(quote.locator("svg")).toHaveCount(0);
+    await expect(quote).not.toHaveAttribute("role", /.*/);
+
+    expect(
+      await computedStyleOf(quote, [
+        "border-left-width",
+        "border-left-color",
+        "border-top-width",
+        "background-color",
+        "padding-left",
+      ]),
+    ).toEqual({
+      "border-left-width": "3px",
+      // border-gray-300, as the editor the note is written in draws a quote.
+      "border-left-color": "rgb(209, 213, 219)",
+      "border-top-width": "0px",
+      "background-color": "rgba(0, 0, 0, 0)",
+      "padding-left": "12px",
+    });
+    // text-gray-600: a shade lighter than the note's own words (gray-700).
+    expect(await colorOf(quote.locator("p"))).toBe("rgb(75, 85, 99)");
+    expect(
+      await colorOf(
+        noteBody(page).locator("p").filter({ hasText: "It started with" }),
+      ),
+    ).toBe("rgb(55, 65, 81)");
+  });
+
+  test("a callout the note asked for is a panel with its sign, its marker not shown", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page);
+
+    const callout: Locator = noteBody(page).getByRole("note", {
+      name: "Warning",
+    });
+
+    await expect(callout).toBeVisible();
+    await expect(callout).toHaveAttribute("data-callout", "warning");
+    await expect(callout.locator("svg")).toBeVisible();
+    await expect(callout).toContainText(
+      "Do not restart the primary. Fail over to the replica first.",
+    );
+    await expect(noteBody(page)).not.toContainText("[!WARNING]");
+    expect(
+      await computedStyleOf(callout, ["background-color", "border-top-color"]),
+    ).toEqual({
+      // bg-amber-50 and border-amber-200.
+      "background-color": "rgb(255, 251, 235)",
+      "border-top-color": "rgb(253, 230, 138)",
+    });
+
+    await screenshotNote(page, "incident-private-notes-links-and-quotes");
+  });
+
+  test("in the dark theme the quote and the callout take the theme's colours", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSavedNote(page, "theme=dark");
+
+    const quote: Locator = noteBody(page)
+      .locator("blockquote")
+      .filter({ hasText: QUOTED_WORDS });
+
+    expect(await computedStyleOf(quote, ["border-left-color"])).toEqual({
+      "border-left-color": "rgb(100, 116, 139)",
+    });
+    expect(await colorOf(quote.locator("p"))).toBe("rgb(203, 213, 225)");
+    expect(
+      await computedStyleOf(
+        noteBody(page).getByRole("note", { name: "Warning" }),
+        ["background-color"],
+      ),
+    ).toEqual({ "background-color": "rgba(120, 53, 15, 0.32)" });
+
+    await screenshotNote(page, "incident-private-notes-links-and-quotes-dark");
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("a long link wraps inside its note instead of running past its edge", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openSavedNote(page);
+
+      const body: Locator = noteBody(page);
+      const longLink: Locator = body.getByRole("link", {
+        name: LONG_LINK,
+        exact: true,
+      });
+      // The paragraph the link is in: the width the note's text may take.
+      const paragraph: Locator = body.locator("p").filter({
+        has: page.getByRole("link", { name: LONG_LINK, exact: true }),
+      });
+
+      await longLink.scrollIntoViewIfNeeded();
+
+      const paragraphBox: Box = await boxOf(paragraph);
+      const lineRights: Array<number> = await longLink.evaluate(
+        (element: Element): Array<number> => {
+          return Array.from(element.getClientRects()).map(
+            (rect: DOMRect): number => {
+              return rect.right;
+            },
+          );
+        },
+      );
+
+      // Several lines, every one of them inside the note's text.
+      expect(lineRights.length).toBeGreaterThan(2);
+      for (const right of lineRights) {
+        expect(right).toBeLessThanOrEqual(
+          paragraphBox.x + paragraphBox.width + 0.5,
+        );
+      }
+      expect(
+        await paragraph.evaluate((element: Element): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+      ).toBeLessThanOrEqual(0);
+      expect(
+        await page.evaluate((): number => {
+          return (
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth
+          );
+        }),
+      ).toBeLessThanOrEqual(0);
+
+      await screenshotNote(
+        page,
+        "incident-private-notes-links-and-quotes-mobile",
+      );
+    });
   });
 });

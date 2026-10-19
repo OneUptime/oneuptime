@@ -498,7 +498,7 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
         <ConfirmModal
           title="Delete Case"
           description={translator.translateTemplate(
-            "{{case}} is deleted, with its detections, notes, timeline and playbook runs. This cannot be undone. To keep the record, close the case with a verdict instead.",
+            "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
             {
               case: `${securityCase.caseNumberWithPrefix || ""} ${
                 securityCase.title || ""

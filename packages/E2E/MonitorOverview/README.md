@@ -40,6 +40,7 @@ One monitor per supported type, each on its own id (`70000000-0000-4000-8000-000
 | `kubernetes`       | 7   | Production cluster (eu-west-1) | two criteria steps, evaluated every minute                      |
 | `network-device`   | 8   | Core switch sw-core-01         | device `85000000-…-000000000001`, no owners                     |
 | `manual`           | 9   | Payment provider               | no steps                                                        |
+| `probe-status`     | 10  | Probe health                   | watches Frankfurt and Singapore; offline: Singapore went silent |
 
 - **Status history** comes from one list of status changes per monitor. The same list feeds
   the `MonitorStatusTimeline` rows and `GET /monitor/uptime-summary/:id`, which the fixture
@@ -83,16 +84,17 @@ another monitor lands on a plain, healthy one.
 
 | Parameter        | Values                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?type=`         | `api` (default), `website`, `ssl`, `incoming-request`, `incoming-email`, `server`, `kubernetes`, `network-device`, `manual`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `?type=`         | `api` (default), `website`, `ssl`, `incoming-request`, `incoming-email`, `server`, `kubernetes`, `network-device`, `manual`, `probe-status`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `?state=`        | comma separated. The status: `operational` (default), `offline` (for 12 minutes), `degraded` (for 25 minutes). Plus any of: `disabled`, `maintenance`, `no-probes`, `probes-off`, `disconnected` (every probe), `one-disconnected` (Singapore went offline 3 days ago, and its last result and next check stayed there; the other two probes report on time), `stale` (last results 38 minutes old; for `kubernetes`, the worker still stamps the monitor every minute but the newest evaluation in `MonitorLog` is 14 minutes old), `awaiting` (created 2 minutes ago, nothing received). `disabled,probes-off` is a disabled monitor whose probes are all switched off. |
 | `?history=`      | `full` (default, created in March), `new` (created 12 days ago), `flapping` (an outage every 6h40m for three months)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `?role=`         | `owner` (default, ProjectOwner), `viewer`, `monitor-viewer`, `read-project-monitor`. Reads of a model the role cannot read are refused the way the API refuses them, and so is a select that names a column the role cannot read (the secret keys).                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `?fail=`         | comma separated: `uptime-summary` (the first request fails), `incidents` (every Incident list), `probes` (every MonitorProbe list), `monitor` (the first overview read of the Monitor row; the layout's and header's reads succeed), `refresh-status` (every request)                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `?fail=`         | comma separated: `uptime-summary` (the first request fails), `incidents` (every Incident list), `probes` (every MonitorProbe list), `monitor` (the first overview read of the Monitor row; the layout's and header's reads succeed), `refresh-status` (every request), `change-status` (every status event a manual monitor's Change status sends)                                                                                                                                                                                                                                                                                                                        |
 | `?nav=1`         | links to every fixture monitor in the header, to move between monitors on the same, still-mounted route                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `?billing=`      | `true` sets `BILLING_ENABLED` (handled by server.js): the page then reads the plan's limit on active monitors                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `?monitorLimit=` | the project's limit on active monitors, as `GET /monitor/active-monitor-limit` answers it: `none` (default, no limit), `under` (499 of a plan's 500), `at` (500 of 500), `over` (2,881 of 500), `free-at` (10 of the Free plan's 10), `fail` (the request fails). Asked only with `?billing=true`                                                                                                                                                                                                                                                                                                                                                                         |
 | `?plan=`         | `free` puts the project on the Free plan (with `?billing=true`): Create Monitor shows its pricing card                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `?theme=`        | `dark` adds `html.dark`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `?probes=`       | the probes the Probe Status picker finds (`ProbeUtil.getAllProbes`): `custom` (default, the workspace's three probes), `self-hosted` (no custom probe, one global probe, as an installation's bundled probe), `both`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ## What the spec covers
 
@@ -129,6 +131,19 @@ another monitor lands on a plain, healthy one.
   on the fifth); the recorded requests (tenant header, `timezone=UTC`, the probe query, the
   timeline's limit and sort, the evaluation log limit, the open-work filters); moving to
   another monitor through a header link; a hero call to action.
+- **The hero's actions**: Refresh is an icon button with its tooltip ("Refresh now. This page
+  also refreshes every minute.") and "Refreshed at 12:00" beside it, re-reads the page and runs
+  no check; Refresh and a manual monitor's ⋯ keep to the top right, on the badges' line, at
+  1440, 1280, 1024, 768, 640 and 390px (the time left out below 1280px, so at 1024px the text
+  keeps at least 60% of the hero's row); the pulse sits under them from lg and after the text
+  below it; the call to action ("Turn monitoring on", free and locked, and "Check probes")
+  starts where the headline does at 1440, 1024, 768 and 390px. A manual monitor's ⋯ lists
+  "Change status to" Degraded and Offline in their colours; picking Offline asks, records a
+  status event (no `startsAt`), says "Status changed to Offline." in a status region, gives
+  the focus back to the ⋯, and the hero turns Offline; Escape and Cancel change nothing; the
+  keyboard alone works; a viewer finds the statuses locked with the reason;
+  `fail=change-status` keeps the dialog open with the reason; the menu and dialog fit 390px;
+  dark mode.
 - **Monitoring Logs**: the incoming email monitor's Email column (subject over sender, "Scheduled
   check"), View Summary on an email row and on a scheduled check, the table inside the card at
   1280px and 1440px (View Summary never pushed off it), no sideways scroll at 390px, and the
@@ -140,6 +155,19 @@ another monitor lands on a plain, healthy one.
   in the card's body), 768px
   (2 x 2 stat bar, one column, card titles not squeezed), 1280px (two thirds and one third),
   the Response time plot at least 150px tall at 390, 768 and 1440px, and dark mode.
+
+`ProbeStatusMonitor.spec.ts` covers the Probe Status monitor (issue #2733): its overview
+every probe connected (Operational, a latest result of 2 of 2 connected, what it watches,
+evaluated every minute) and with a probe disconnected (Offline, the hero naming that probe,
+listed first with how long it went without a heartbeat, the incident it opened), before its
+first evaluation (no empty Summary card), at 390px and in dark mode; View Summary on its
+Monitoring Logs listing the probes
+that evaluation found; and Create Monitor: found by searching for probe, under Other; a new
+monitor starting on the project's own probes, and Create sending them with no interval; a
+self-hosted install with no probe of its own starting on its global probe; on OneUptime
+Cloud, nothing picked and saving saying to pick one; Monitor this probe's link watching that
+probe alone, named after it; the probes step at 390px. With `?state=no-probes` the monitor
+watches no probe and is never evaluated: its overview says Not set up, with Pick probes.
 
 `AdvancedMenuSection.spec.ts`, the monitor's side menu, where only a real browser can show
 it: the Advanced section starts folded on the overview with its rows hidden (visibility:
@@ -162,6 +190,15 @@ Next; Probes & Interval opens on Every 5 Minutes; Create Monitor sends the type,
 interval, address and picked probe. A Manual monitor is created from its one step, with no
 interval.
 
+On the criteria step Host and Port share a line, their boxes level and the port a quarter of
+it, and the fields are plain choices: SQL Server's **Authentication** offers
+Username and password (picked) or Windows Integrated Authentication, each with its one line
+under its label and the radio on the label's line, and the second takes the username and
+password away and is what the create sends; a Synthetic monitor starts on Chromium at
+Desktop, and with no browser picked Next says so by the button and goes nowhere; Retries on
+Failure and Request Timeout say what they are in one line, and the retry rule waits in the
+(i) by the title, wrapped inside the window.
+
 At the plan's limit on active monitors (`?billing=true&monitorLimit=`), a notice above the
 form says which limit, how many active monitors the project has, what to do (with the plan
 a click away) and what counts; past the limit it says the monitors keep running and when the
@@ -179,9 +216,13 @@ model, and on any request the network fence had to abort.
 `window.__monitorOverviewFixture` holds `getItemRequests`, `listRequests` (analytics lists
 carry `analytics: true`), `countRequests`, `aggregateRequests`, `apiRequests` (with
 `headers`), `updates`, `creates` (Create Monitor's create: the monitor's JSON and its misc
-data, such as the probes picked) and `unhandled`, plus `monitors` (id, name and secret key
-per type). A create is answered with the id `70000000-0000-4000-8000-000000000100`, whose
-page is a stub (`data-page="created-monitor"`). The workspace runs its own three probes and
+data, such as the probes picked; and a manual monitor's status events) and `unhandled`,
+plus `monitors` (id, name and secret key per type). A monitor create is answered with the
+id `70000000-0000-4000-8000-000000000100`, whose page is a stub
+(`data-page="created-monitor"`). A status event is recorded the way the server records one:
+refused for a role that may not create one and for the status the monitor already has;
+otherwise the open event ends, the new one starts now, and the monitor's current status, its
+uptime segments and its feed move with it. The workspace runs its own three probes and
 no global ones (`/probe/global-probes` answers an empty list), and has no on-call policies,
 incident roles, team members or telemetry services.
 

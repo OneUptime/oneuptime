@@ -16,16 +16,16 @@ OneUptime llama a tu recurso de Foundry por HTTPS desde el servidor de OneUptime
 ```mermaid title="Adónde van las solicitudes de IA de OneUptime"
 flowchart TB
     subgraph OU["Servidor de OneUptime"]
-        F["Investigaciones de IA, notas, postmortems, tareas de corrección"]
+        F["Investigaciones de IA,<br/>notas, postmortems,<br/>tareas de corrección"]
     end
     subgraph AZ["Tu suscripción de Azure"]
-        R["Recurso de Foundry contoso-ai"]
-        V1["API OpenAI v1: /openai/v1/chat/completions"]
-        AN["API de Anthropic: /anthropic/v1/messages"]
+        R["Recurso de<br/>Foundry contoso-ai"]
+        V1["API OpenAI v1:<br/>/openai/v1/chat/completions"]
+        AN["API de Anthropic:<br/>/anthropic/v1/messages"]
         D1["Despliegue gpt-5.1"]
-        D2["Despliegue claude-sonnet-5-5"]
+        D2["Despliegue<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + clave de API"| R
+    F -->|"HTTPS +<br/>clave de API"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```
@@ -111,20 +111,20 @@ Con `--custom-domain contoso-ai`, el punto de conexión del recurso es `https://
 
 Ve a **Ajustes del proyecto** > **IA** > **Proveedores de LLM** y haz clic en **Crear Proveedor de LLM**.
 
-### Ponerle nombre al proveedor
+### Elegir el proveedor
 
-En **Información básica**, escribe un **Nombre**, como `Azure gpt-5.1`, y, si quieres, una **Descripción**. Haz clic en **Siguiente**.
+En **Proveedor**, elige **Azure OpenAI / Microsoft Foundry** como **Proveedor de LLM** y haz clic en **Siguiente** para pasar a **Conexión**.
 
-### Completar los ajustes del proveedor
+### Completar la conexión
 
 | Campo | Qué escribir |
 | --- | --- |
-| **Proveedor de LLM** | **Azure OpenAI / Microsoft Foundry** |
 | **Clave de API** | **KEY 1** o **KEY 2** del recurso |
-| **Nombre del modelo** | El nombre del despliegue, exactamente como lo muestra Foundry, como `gpt-5.1` |
 | **URL base** | El punto de conexión del recurso con `/openai/v1`, como `https://contoso-ai.openai.azure.com/openai/v1`. Para Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Nombre del modelo** | El nombre del despliegue, exactamente como lo muestra Foundry, como `gpt-5.1` |
+| **Nombre** | Al principio, el nombre del proveedor: dale uno que diga qué despliegue es, como `Azure gpt-5.1` |
 
-**Establecer como predeterminado**, en **Más campos**, está activado: las funciones de IA usan el proveedor predeterminado del proyecto. Haz clic en **Crear Proveedor de LLM**.
+**Más campos** contiene una **Descripción** y **Establecer como predeterminado**, que está activado: las funciones de IA usan el proveedor predeterminado del proyecto. Haz clic en **Crear Proveedor de LLM**.
 
 ### Probar la conexión
 

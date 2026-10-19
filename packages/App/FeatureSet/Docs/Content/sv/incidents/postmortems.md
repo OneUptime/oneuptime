@@ -67,7 +67,7 @@ Klicka på **Tillämpa mall**, välj en under **Välj mall** i dialogen **Tillä
 
 Klicka på **Generate with AI**. Dialogen **Generate Postmortem with AI** erbjuder en disposition under **Välj mall**: **Standard Postmortem**, **Detailed Technical Postmortem** eller **Brief Postmortem**, och sedan dina egna mallar för efteranalys. **Template Preview** visar dispositionen, och du kan ändra den innan du genererar.
 
-Klicka på **Generate with AI** längst ned i dialogen. OneUptime AI läser incidenten (dess beskrivning, grundorsak och åtgärd, dess statustidslinje, dess offentliga och privata anteckningar och meddelandena i dess Slack- eller Microsoft Teams-kanal) och skriver efteranalysen enligt din disposition. Sedan öppnas redigeraren med resultatet.
+Klicka på **Generate with AI** längst ned i dialogen. OneUptime AI läser incidenten (dess beskrivning, grundorsak och åtgärd, dess statustidslinje, dess offentliga och privata anteckningar, meddelandena i dess Slack- eller Microsoft Teams-kanal och vad som sades i [dess samtal](/docs/workspace-connections/video-calls#transkriptioner-av-samtal)) och skriver efteranalysen enligt din disposition. Sedan öppnas redigeraren med resultatet.
 
 Att generera kräver att AI är påslaget för projektet, under **Projektinställningar → AI → AI Features**, och en LLM-leverantör: se [LLM-leverantörer](/docs/ai/llm-provider). Det kräver också rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident: andra roller kan skriva efteranalysen men inte generera den.
 
@@ -78,6 +78,7 @@ Med **Skriv ett utkast till efteranalys när en incident är löst** påslaget s
 - Den ersätter aldrig en anteckning som redan är skriven.
 - Den skriver aldrig i en efteranalys som redan är publicerad, där utkastet skulle nå statussidan ogranskat.
 - Den kräver att AI är påslaget för projektet, och stannar för dagen så snart projektet når sina dagliga AI-gränser. Se [Automatisk efteranalys](/docs/ai/ai-sre#automatisk-efteranalys).
+- Om transkriptionen av incidentens samtal fortfarande är på väg när incidenten löses väntar den tills OneUptime AI har läst transkriptionen, så att utkastet tar med vad som sades i samtalet: upp till sex timmar medan Zoom eller Google Meet tar fram transkriptionen. Se [Spela in och transkribera varje samtal](/docs/workspace-connections/video-calls#spela-in-och-transkribera-varje-samtal).
 
 ## Publicera den på din statussida
 
@@ -152,7 +153,7 @@ Kontrollera tre saker: **Publicera på statussidan** är påslaget, anteckningen
 :::
 
 :::details Inget AI-utkast dök upp när incidenten löstes
-Incidenten hade redan en anteckning, efteranalysen var redan publicerad, eller så är **Skriv ett utkast till efteranalys när en incident är löst** avstängt. AI måste vara påslaget för projektet, och projektet får inte ha nått sina dagliga AI-gränser.
+Incidenten hade redan en anteckning, efteranalysen var redan publicerad, eller så är **Skriv ett utkast till efteranalys när en incident är löst** avstängt. AI måste vara påslaget för projektet, och projektet får inte ha nått sina dagliga AI-gränser. När incidentens samtal har en transkription på väg kommer utkastet först när OneUptime AI har läst den.
 :::
 
 ## Nästa steg

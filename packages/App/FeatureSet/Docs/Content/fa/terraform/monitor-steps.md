@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### تنظیمات هر نوع مانیتور
 
-نوع‌های مانیتوری که چیزی بیش از یک نشانی برای تعیین دارند، تنظیماتشان (یک کوئری لاگ، یک اتصال پایگاه داده، یک کلاستر برای پایش) را در ویژگی خودشان نگه می‌دارند، به‌صورت JSON خام که با `jsonencode()` نوشته می‌شود: `log_monitor`، `trace_monitor`، `llm_monitor`، `metric_monitor`، `exception_monitor`، `profile_monitor`، `dns_monitor`، `domain_monitor`، `dnssec_monitor`، `sql_monitor`، `database_monitor`، `external_status_page_monitor`، `network_device_monitor`، `kubernetes_monitor`، `docker_monitor`، `docker_swarm_monitor`، `host_monitor`، `podman_monitor`، `proxmox_monitor`، `vmware_monitor`، `ceph_monitor`، `storage_array_monitor` و `iot_monitor`.
+نوع‌های مانیتوری که چیزی بیش از یک نشانی برای تعیین دارند، تنظیماتشان (یک کوئری لاگ، یک اتصال پایگاه داده، یک کلاستر برای پایش) را در ویژگی خودشان نگه می‌دارند، به‌صورت JSON خام که با `jsonencode()` نوشته می‌شود: `log_monitor`، `trace_monitor`، `llm_monitor`، `metric_monitor`، `exception_monitor`، `profile_monitor`، `dns_monitor`، `domain_monitor`، `dnssec_monitor`، `sql_monitor`، `database_monitor`، `external_status_page_monitor`، `network_device_monitor`، `kubernetes_monitor`، `docker_monitor`، `docker_swarm_monitor`، `host_monitor`، `podman_monitor`، `proxmox_monitor`، `vmware_monitor`، `ceph_monitor`، `storage_array_monitor`، `iot_monitor` و `probe_status_monitor`.
 
 JSON آن‌ها همان JSON داشبورد است، با کلیدهای camelCase. یک ID در آن همان‌طور نوشته می‌شود که API می‌نویسد: `{ _type = "ObjectID", value = "..." }`. یک مانیتور Logs که خطاهای یک سرویس را می‌شمارد:
 

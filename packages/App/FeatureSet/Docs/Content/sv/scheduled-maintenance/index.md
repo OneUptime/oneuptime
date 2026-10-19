@@ -63,6 +63,8 @@ Meddelanden beskrivs på [Prenumeranter och meddelanden](/docs/status-pages/subs
 
 Listan visar **Nummer för schemalagt underhåll**, **Titel**, **Nuvarande tillstånd**, **Berörda resurser**, **Visas på statussida**, **Börjar den**, **Varaktighet**, **Slutar den**, **Etiketter** och **Ägare**. Markera händelser för att hantera flera samtidigt: **Ändra tillstånd**, **Add Labels**, **Remove Labels**, **Add Owner**, **Remove Owner** eller **Ta bort**.
 
+**Lista** och **Kalender**, längst till höger i listans filterfält, visar samma händelser som en tabell eller på en månad, en vecka eller en dag. Se [Underhållskalender](/docs/scheduled-maintenance/calendar).
+
 ## Vad en händelse påverkar
 
 Medan en händelse pågår behandlar OneUptime avbrottet den planerar som väntat:
@@ -80,13 +82,14 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 
 | Avsnitt i sidomenyn | Sidor                                                                                       |
 | ----------------- | --------------------------------------------------------------------------------------------- |
-| **Grundläggande** | **Översikt**, **Beskrivning**, **Ägare**, **Tillståndstidslinje**, **Runbooks**                |
-| **Loggar**        | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om händelsen, och vad AI har gjort för den |
+| **Översikt** | **Översikt**, **Tillståndstidslinje**, **Beskrivning**, **Runbooks** |
+| **Team** | **Ägare** |
+| **Aviseringar**        | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om händelsen, och vad AI har gjort för den |
 | **Anteckningar**  | **Privata anteckningar** och **Offentliga anteckningar**                                       |
 | **Utvecklare**    | **Terraform**, **API** och **AI-assistenter**: händelsen styrd från kod                        |
 | **Avancerad**     | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort händelse**             |
 
-**Grundläggande** och **Anteckningar** är öppna; de andra avsnitten förblir hopfällda tills du klickar på dem.
+**Översikt**, **Team** och **Anteckningar** är öppna; de andra avsnitten förblir hopfällda tills du klickar på dem.
 
 - **Översikt** — sidhuvudet visar händelsens nummer, titel och tillstånd, hur länge det är kvar tills den börjar eller hur länge den har pågått, och knapparna som flyttar den vidare. Under det visar **Börjar**, **Slutar** och **Varaktighet** det planerade fönstret i din tidszon. **Schemalagd Underhåll Flöde** registrerar allt som har hänt med händelsen, bredvid korten **Maintenance Details** och **Berörda resurser**, och korten **Mätningar** och **Anpassade fält** när ditt projekt har några.
 - **Tillståndstidslinje** — varje tillstånd händelsen har varit i, när och hur länge. Se [Underhållsstatusar](/docs/scheduled-maintenance/states#tillståndstidslinjen).

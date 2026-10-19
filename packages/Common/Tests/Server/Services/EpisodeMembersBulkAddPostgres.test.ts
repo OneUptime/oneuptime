@@ -17,7 +17,11 @@ import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Entities from "../../../Models/DatabaseModels/Index";
 import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisodeMember";
+import AlertEpisodeMember from "../../../Models/DatabaseModels/AlertEpisodeMember";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import CreateScopeException from "../../../Server/Types/Database/Permissions/CreateScopeException";
 import {
   ALERT_IDS_TO_ADD_KEY,
   ALERT_NOT_FOUND_REASON,
@@ -25,6 +29,11 @@ import {
   INCIDENT_IDS_TO_ADD_KEY,
   INCIDENT_NOT_FOUND_REASON,
 } from "../../../Types/Episode/EpisodeMembersAdd";
+import {
+  ALERT_SINGLE_MEMBERSHIP,
+  EpisodeSingleMembershipKind,
+  INCIDENT_SINGLE_MEMBERSHIP,
+} from "../../../Types/Episode/EpisodeSingleMembership";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
@@ -51,6 +60,12 @@ import { DataSource } from "typeorm";
  *     holds them as founding members (its "created" notification covers
  *     them), and names them in one entry after "Episode Created". One the
  *     person cannot see refuses the whole create: no episode, no number.
+ *   - Each is added only as the person may add it as a member of their own:
+ *     a person who reads every one but whose permission to add them is
+ *     scoped to Owned adds only the ones they own - another team's is not
+ *     added, and says why, and an episode created with one is not created.
+ *     An episode's state changes move what it holds: who may put one in an
+ *     episode is who may add it as a member of their own.
  *
  * Opt in with RUN_POSTGRES_EPISODE_MEMBERS_BULK_ADD_TESTS=true against a
  * database the registered migrations have been applied to, e.g.
@@ -96,9 +111,21 @@ interface Kind {
   notFoundReason: string;
   episodeRefusal: string;
   newEpisodeRefusal: string;
+  // Reads every one: Incident Viewer, Alert Viewer.
+  viewerPermission: Permission;
+  // Adds them to episodes and changes them: Incident Member, Alert Member.
+  memberPermission: Permission;
+  // The table of the people who own one, and its key column.
+  ownerUserTable: "IncidentOwnerUser" | "AlertOwnerUser";
+  // What adding one the person does not own is refused with.
+  ownedRefusal: string;
   ownerEngine: AnyService;
   labelEngine: AnyService;
   onCallEngine: AnyService;
+  // One episode per record (EpisodeSingleMembership): the switch and words.
+  singleMembership: EpisodeSingleMembershipKind;
+  memberModel: { new (): DatabaseBaseModel };
+  episodePrefix: string;
 }
 
 const KINDS: Array<Kind> = [
@@ -124,10 +151,18 @@ const KINDS: Array<Kind> = [
       "The episode to add the incidents to does not exist in this project, or you do not have access to it.",
     newEpisodeRefusal:
       "Some of the incidents to add to the episode do not exist in this project, or you do not have access to them.",
+    viewerPermission: Permission.IncidentViewer,
+    memberPermission: Permission.IncidentMember,
+    ownerUserTable: "IncidentOwnerUser",
+    ownedRefusal:
+      "Your access lets you create Incident Episode Members only for the Incidents you or your teams own.",
     ownerEngine: IncidentEpisodeOwnerRuleEngineService as unknown as AnyService,
     labelEngine: IncidentEpisodeLabelRuleEngineService as unknown as AnyService,
     onCallEngine:
       IncidentEpisodeOnCallRuleEngineService as unknown as AnyService,
+    singleMembership: INCIDENT_SINGLE_MEMBERSHIP,
+    memberModel: IncidentEpisodeMember,
+    episodePrefix: "IE-",
   },
   {
     name: "Alert",
@@ -151,9 +186,17 @@ const KINDS: Array<Kind> = [
       "The episode to add the alerts to does not exist in this project, or you do not have access to it.",
     newEpisodeRefusal:
       "Some of the alerts to add to the episode do not exist in this project, or you do not have access to them.",
+    viewerPermission: Permission.AlertViewer,
+    memberPermission: Permission.AlertMember,
+    ownerUserTable: "AlertOwnerUser",
+    ownedRefusal:
+      "Your access lets you create Alert Episode Members only for the Alerts you or your teams own.",
     ownerEngine: AlertEpisodeOwnerRuleEngineService as unknown as AnyService,
     labelEngine: AlertEpisodeLabelRuleEngineService as unknown as AnyService,
     onCallEngine: AlertEpisodeOnCallRuleEngineService as unknown as AnyService,
+    singleMembership: ALERT_SINGLE_MEMBERSHIP,
+    memberModel: AlertEpisodeMember,
+    episodePrefix: "AE-",
   },
 ];
 
@@ -202,6 +245,39 @@ function userProps(
             isBlockPermission: false,
           },
         ],
+      },
+    },
+  };
+}
+
+/*
+ * A person whose team holds `rows`, each at its scope: a grant over the
+ * whole project beside one scoped to Owned, say.
+ */
+function scopedProps(
+  projectId: ObjectID,
+  userId: ObjectID,
+  rows: Array<{ permission: Permission; scope: PermissionScope }>,
+): DatabaseCommonInteractionProps {
+  return {
+    tenantId: projectId,
+    userId: userId,
+    userType: UserType.User,
+    userTenantAccessPermission: {
+      [projectId.toString()]: {
+        projectId: projectId,
+        _type: "UserTenantAccessPermission",
+        permissions: rows.map(
+          (row: { permission: Permission; scope: PermissionScope }) => {
+            return {
+              _type: "UserPermission",
+              permission: row.permission,
+              labelIds: [],
+              isBlockPermission: false,
+              scope: row.scope,
+            };
+          },
+        ),
       },
     },
   };
@@ -937,6 +1013,441 @@ describePostgres(
         expect(counterAfter[0]!["counter"]).toEqual(
           counterBefore[0]!["counter"],
         );
+      });
+
+      /*
+       * A person who reads every one, and whose permissions to add them to
+       * episodes - and to change them - are scoped to Owned: the shape of
+       * "everyone sees everything, each team looks after its own". They add
+       * the ones they or their teams own, as they would one by one through
+       * the member's own route.
+       */
+      describe("a person whose permission to add them is scoped to Owned", () => {
+        // The person owns `recordId`.
+        async function own(s: Seeded, recordId: ObjectID): Promise<void> {
+          await database.query(
+            `INSERT INTO "${kind.ownerUserTable}" ("_id","projectId","${kind.recordIdColumn}","userId","version") VALUES ($1,$2,$3,$4,1)`,
+            [
+              ObjectID.generate().toString(),
+              s.projectId.toString(),
+              recordId.toString(),
+              personId.toString(),
+            ],
+          );
+        }
+
+        function readsEveryOneChangesTheirOwn(
+          s: Seeded,
+        ): DatabaseCommonInteractionProps {
+          return scopedProps(s.projectId, personId, [
+            { permission: kind.viewerPermission, scope: PermissionScope.All },
+            {
+              permission: kind.memberPermission,
+              scope: PermissionScope.Owned,
+            },
+          ]);
+        }
+
+        test(`adds the ${kind.plural} they own; another team's is not added, and says why`, async () => {
+          const s: Seeded = await seed(kind);
+          await own(s, s.minorRecordId);
+
+          const result: EpisodeMembersAddResult = await add(
+            kind,
+            s.episodeId,
+            [s.criticalRecordId.toString(), s.minorRecordId.toString()],
+            readsEveryOneChangesTheirOwn(s),
+          );
+
+          expect(result).toEqual({
+            added: [s.minorRecordId.toString()],
+            alreadyInEpisode: [],
+            notAdded: [
+              { id: s.criticalRecordId.toString(), reason: kind.ownedRefusal },
+            ],
+          });
+
+          expect(
+            (await membersOf(kind, s.episodeId)).map(
+              (member: MemberRow): string => {
+                return member.recordId;
+              },
+            ),
+          ).toEqual([s.alreadyRecordId.toString(), s.minorRecordId.toString()]);
+          expect(await recordEpisodeId(kind, s.criticalRecordId)).toBeNull();
+
+          // The episode's side names the one added, and only it.
+          expect(await episodeFeed(kind, s.episodeId)).toEqual([
+            `**${kind.name} ${await numberOf(kind, s.minorRecordId)}** added to episode: ${MINOR_TITLE}`,
+          ]);
+        });
+
+        test(`none they own: nothing is added, and nothing about the episode is written`, async () => {
+          const s: Seeded = await seed(kind);
+
+          const result: EpisodeMembersAddResult = await add(
+            kind,
+            s.episodeId,
+            [s.criticalRecordId.toString(), s.minorRecordId.toString()],
+            readsEveryOneChangesTheirOwn(s),
+          );
+
+          expect(result.added).toEqual([]);
+          expect(result.notAdded).toEqual([
+            { id: s.criticalRecordId.toString(), reason: kind.ownedRefusal },
+            { id: s.minorRecordId.toString(), reason: kind.ownedRefusal },
+          ]);
+          expect(await membersOf(kind, s.episodeId)).toHaveLength(1);
+          expect(await episodeFeed(kind, s.episodeId)).toEqual([]);
+          expect(postedMarkdown()).toEqual([]);
+
+          const episode: {
+            count: number;
+            lastAddedAt: Date | null;
+            severityId: string | null;
+          } = await episodeRow(kind, s.episodeId);
+          expect(episode.count).toBe(1);
+          expect(episode.lastAddedAt).toBeNull();
+          expect(episode.severityId).toBe(s.minorSeverityId.toString());
+        });
+
+        test(`an episode created with another team's ${kind.name.toLowerCase()} is not created, and uses no number`, async () => {
+          const s: Seeded = await seed(kind);
+          await own(s, s.minorRecordId);
+
+          const counterBefore: Array<Record<string, number | null>> =
+            await database.query(
+              `SELECT "${kind.counterColumn}" AS "counter" FROM "Project" WHERE "_id" = $1`,
+              [s.projectId.toString()],
+            );
+
+          const episode: DatabaseBaseModel = new kind.episodeModel();
+          episode.setColumnValue("projectId", s.projectId);
+          episode.setColumnValue("title", "Checkout and payments");
+
+          const error: Error = await refusalOf(
+            kind.episodeService["create"]!({
+              data: episode,
+              props: readsEveryOneChangesTheirOwn(s),
+              miscDataProps: {
+                [kind.idsToAddKey]: [
+                  s.minorRecordId.toString(),
+                  s.criticalRecordId.toString(),
+                ],
+              },
+            }),
+          );
+
+          expect(error).toBeInstanceOf(CreateScopeException);
+          expect(error.message).toBe(kind.ownedRefusal);
+
+          const episodes: Array<{ count: string }> = await database.query(
+            `SELECT COUNT(*) AS "count" FROM "${kind.name}Episode" WHERE "projectId" = $1`,
+            [s.projectId.toString()],
+          );
+          expect(Number(episodes[0]!.count)).toBe(2);
+
+          const counterAfter: Array<Record<string, number | null>> =
+            await database.query(
+              `SELECT "${kind.counterColumn}" AS "counter" FROM "Project" WHERE "_id" = $1`,
+              [s.projectId.toString()],
+            );
+          expect(counterAfter[0]!["counter"]).toEqual(
+            counterBefore[0]!["counter"],
+          );
+          expect(await recordEpisodeId(kind, s.criticalRecordId)).toBeNull();
+          expect(await recordEpisodeId(kind, s.minorRecordId)).toBeNull();
+        });
+
+        test(`an episode created with only the ${kind.plural} they own is created with them, and is theirs`, async () => {
+          const s: Seeded = await seed(kind);
+          await own(s, s.minorRecordId);
+
+          const episode: DatabaseBaseModel = new kind.episodeModel();
+          episode.setColumnValue("projectId", s.projectId);
+          episode.setColumnValue("title", "Checkout slowness");
+
+          const created: DatabaseBaseModel = (await kind.episodeService[
+            "create"
+          ]!({
+            data: episode,
+            props: readsEveryOneChangesTheirOwn(s),
+            miscDataProps: {
+              [kind.idsToAddKey]: [s.minorRecordId.toString()],
+            },
+          })) as DatabaseBaseModel;
+
+          const createdId: ObjectID = new ObjectID(created._id!.toString());
+
+          expect(
+            (await membersOf(kind, createdId)).map(
+              (member: MemberRow): string => {
+                return member.recordId;
+              },
+            ),
+          ).toEqual([s.minorRecordId.toString()]);
+
+          // Created under a grant scoped to Owned: its creator owns it.
+          const owners: Array<{ userId: string }> = await database.query(
+            `SELECT "userId" FROM "${kind.name}EpisodeOwnerUser" WHERE "${kind.episodeIdColumn}" = $1`,
+            [createdId.toString()],
+          );
+          expect(
+            owners.map((owner: { userId: string }): string => {
+              return owner.userId;
+            }),
+          ).toEqual([personId.toString()]);
+        }, 60_000);
+
+        test(`with the same permissions over the whole project, they add every ${kind.name.toLowerCase()} they read`, async () => {
+          const s: Seeded = await seed(kind);
+
+          const result: EpisodeMembersAddResult = await add(
+            kind,
+            s.episodeId,
+            [s.criticalRecordId.toString(), s.minorRecordId.toString()],
+            scopedProps(s.projectId, personId, [
+              { permission: kind.viewerPermission, scope: PermissionScope.All },
+              {
+                permission: kind.memberPermission,
+                scope: PermissionScope.All,
+              },
+            ]),
+          );
+
+          expect(result).toEqual({
+            added: [s.criticalRecordId.toString(), s.minorRecordId.toString()],
+            alreadyInEpisode: [],
+            notAdded: [],
+          });
+        });
+      });
+
+      /*
+       * A project that allows an incident (or alert) in only one episode
+       * (EpisodeSingleMembership): the switch is the project's own column,
+       * read by the member services against the real rows.
+       */
+      describe("one episode per record", () => {
+        async function setSwitch(
+          projectId: ObjectID,
+          isOn: boolean,
+        ): Promise<void> {
+          await database.query(
+            `UPDATE "Project" SET "${kind.singleMembership.column}" = $1 WHERE "_id" = $2`,
+            [isOn, projectId.toString()],
+          );
+        }
+
+        // Another episode of the seeded project, the person can see, numbered.
+        async function insertEpisodeLike(
+          s: Seeded,
+          title: string,
+          number: number,
+        ): Promise<ObjectID> {
+          const k: string = kind.name;
+          const lower: string = k.toLowerCase();
+          const episodeId: string = ObjectID.generate().toString();
+          await database.query(
+            `INSERT INTO "${k}Episode" ("_id","projectId","title","current${k}StateId","${lower}SeverityId","isPrivate","${kind.countColumn}","episodeNumber","episodeNumberWithPrefix","version") SELECT $1, "projectId", $2, "current${k}StateId", "${lower}SeverityId", false, 0, $3, $4, 1 FROM "${k}Episode" WHERE "_id" = $5`,
+            [
+              episodeId,
+              title,
+              number,
+              `${kind.episodePrefix}${number}`,
+              s.episodeId.toString(),
+            ],
+          );
+          return new ObjectID(episodeId);
+        }
+
+        async function numberEpisode(
+          episodeId: ObjectID,
+          number: number,
+        ): Promise<void> {
+          await database.query(
+            `UPDATE "${kind.name}Episode" SET "episodeNumber" = $1, "episodeNumberWithPrefix" = $2 WHERE "_id" = $3`,
+            [number, `${kind.episodePrefix}${number}`, episodeId.toString()],
+          );
+        }
+
+        function memberIdsOf(rows: Array<MemberRow>): Array<string> {
+          return rows.map((member: MemberRow): string => {
+            return member.recordId;
+          });
+        }
+
+        test(`switch on: one in another episode is not added, and stays where it is; the rest are`, async () => {
+          const s: Seeded = await seed(kind);
+          await setSwitch(s.projectId, true);
+          const second: ObjectID = await insertEpisodeLike(s, "Second", 8);
+
+          const result: EpisodeMembersAddResult = await add(
+            kind,
+            second,
+            [s.alreadyRecordId.toString(), s.minorRecordId.toString()],
+            userProps(s.projectId, personId, Permission.ProjectMember),
+          );
+
+          expect(result).toEqual({
+            added: [s.minorRecordId.toString()],
+            alreadyInEpisode: [],
+            notAdded: [
+              {
+                id: s.alreadyRecordId.toString(),
+                reason: kind.singleMembership.inAnotherEpisodeReason,
+              },
+            ],
+          });
+          expect(memberIdsOf(await membersOf(kind, second))).toEqual([
+            s.minorRecordId.toString(),
+          ]);
+          expect(memberIdsOf(await membersOf(kind, s.episodeId))).toEqual([
+            s.alreadyRecordId.toString(),
+          ]);
+          // Its episode is not moved to the one it was refused from.
+          expect(await recordEpisodeId(kind, s.alreadyRecordId)).not.toBe(
+            second.toString(),
+          );
+          // The one added names its new episode, as always.
+          expect(await recordEpisodeId(kind, s.minorRecordId)).toBe(
+            second.toString(),
+          );
+        });
+
+        test(`switch off: the same add puts it in both episodes, as always`, async () => {
+          const s: Seeded = await seed(kind);
+          const second: ObjectID = await insertEpisodeLike(s, "Second", 8);
+
+          const result: EpisodeMembersAddResult = await add(
+            kind,
+            second,
+            [s.alreadyRecordId.toString()],
+            userProps(s.projectId, personId, Permission.ProjectMember),
+          );
+
+          expect(result.added).toEqual([s.alreadyRecordId.toString()]);
+          expect(memberIdsOf(await membersOf(kind, second))).toEqual([
+            s.alreadyRecordId.toString(),
+          ]);
+          expect(memberIdsOf(await membersOf(kind, s.episodeId))).toEqual([
+            s.alreadyRecordId.toString(),
+          ]);
+        });
+
+        test(`switch on: a member created on its own is refused, naming the ${kind.name.toLowerCase()} and the episode it is in`, async () => {
+          const s: Seeded = await seed(kind);
+          await setSwitch(s.projectId, true);
+          await numberEpisode(s.episodeId, 7);
+          const second: ObjectID = await insertEpisodeLike(s, "Second", 8);
+
+          const member: DatabaseBaseModel = new kind.memberModel();
+          member.setColumnValue("projectId", s.projectId);
+          member.setColumnValue(kind.episodeIdColumn, second);
+          member.setColumnValue(kind.recordIdColumn, s.alreadyRecordId);
+          member.setColumnValue("addedBy", "api");
+
+          const error: Error = await refusalOf(
+            kind.memberService["create"]!({
+              data: member,
+              props: userProps(s.projectId, personId, Permission.ProjectMember),
+            }),
+          );
+
+          const label: string = await numberOf(kind, s.alreadyRecordId);
+
+          expect(error).toBeInstanceOf(BadDataException);
+          expect(error.message).toBe(
+            `${kind.name} ${label} is already in episode ${kind.episodePrefix}7, and ${kind.singleMembership.rule}. Remove it from episode ${kind.episodePrefix}7 first, or turn this off in ${kind.singleMembership.settingLocation}.`,
+          );
+          expect(await membersOf(kind, second)).toEqual([]);
+        });
+
+        test(`switch on: an episode created with one that is in an episode is not created`, async () => {
+          const s: Seeded = await seed(kind);
+          await setSwitch(s.projectId, true);
+
+          const before: Array<{ count: string }> = await database.query(
+            `SELECT COUNT(*) AS "count" FROM "${kind.name}Episode" WHERE "projectId" = $1`,
+            [s.projectId.toString()],
+          );
+
+          const episode: DatabaseBaseModel = new kind.episodeModel();
+          episode.setColumnValue("projectId", s.projectId);
+          episode.setColumnValue("title", "Checkout outage");
+
+          const error: Error = await refusalOf(
+            kind.episodeService["create"]!({
+              data: episode,
+              props: userProps(s.projectId, personId, Permission.ProjectMember),
+              miscDataProps: {
+                [kind.idsToAddKey]: [
+                  s.minorRecordId.toString(),
+                  s.alreadyRecordId.toString(),
+                ],
+              },
+            }),
+          );
+
+          const label: string = await numberOf(kind, s.alreadyRecordId);
+
+          expect(error.message).toBe(
+            `${kind.name} ${label} is already in an episode, and ${kind.singleMembership.rule}. Leave it out, or remove it from its episode first.`,
+          );
+
+          const after: Array<{ count: string }> = await database.query(
+            `SELECT COUNT(*) AS "count" FROM "${kind.name}Episode" WHERE "projectId" = $1`,
+            [s.projectId.toString()],
+          );
+          expect(Number(after[0]!.count)).toBe(Number(before[0]!.count));
+        });
+
+        test(`turning it on takes nobody out: one in two episodes stays in both, and only a third is refused`, async () => {
+          const s: Seeded = await seed(kind);
+          const second: ObjectID = await insertEpisodeLike(s, "Second", 8);
+          const third: ObjectID = await insertEpisodeLike(s, "Third", 9);
+          const props: DatabaseCommonInteractionProps = userProps(
+            s.projectId,
+            personId,
+            Permission.ProjectMember,
+          );
+
+          // Before the switch: in two episodes.
+          expect(
+            (await add(kind, second, [s.alreadyRecordId.toString()], props))
+              .added,
+          ).toEqual([s.alreadyRecordId.toString()]);
+
+          await setSwitch(s.projectId, true);
+
+          expect(memberIdsOf(await membersOf(kind, s.episodeId))).toEqual([
+            s.alreadyRecordId.toString(),
+          ]);
+          expect(memberIdsOf(await membersOf(kind, second))).toEqual([
+            s.alreadyRecordId.toString(),
+          ]);
+
+          // In either already: left as it is.
+          expect(
+            await add(kind, s.episodeId, [s.alreadyRecordId.toString()], props),
+          ).toEqual({
+            added: [],
+            alreadyInEpisode: [s.alreadyRecordId.toString()],
+            notAdded: [],
+          });
+
+          // A third: refused.
+          expect(
+            (await add(kind, third, [s.alreadyRecordId.toString()], props))
+              .notAdded,
+          ).toEqual([
+            {
+              id: s.alreadyRecordId.toString(),
+              reason: kind.singleMembership.inAnotherEpisodeReason,
+            },
+          ]);
+          expect(await membersOf(kind, third)).toEqual([]);
+        });
       });
     });
   },

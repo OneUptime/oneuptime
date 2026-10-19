@@ -86,7 +86,7 @@ export const MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION: string = translationKey(
  * yours.
  */
 export const TEAMS_CONSENT_COMPLETED_DESCRIPTION: string = translationKey(
-  "Admin consent is granted for your Microsoft 365 organization. OneUptime posts what your notification rules send to your teams' channels. Each member connects their own Microsoft Teams account to act as themselves.",
+  "Consent is granted for your Microsoft 365 organization, so OneUptime can post to your teams' channels.",
 );
 
 export const YOUR_TEAMS_ACCOUNT_CONNECTED_TITLE: string = translationKey(
@@ -812,7 +812,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
             description={
               isAdminConsentCompleted
                 ? TEAMS_CONSENT_COMPLETED_DESCRIPTION
-                : "Grant tenant-wide admin consent for the OneUptime Microsoft Teams app. This step is required to enable application permissions (e.g., posting to channels) without per-user consent. You must be a Microsoft 365 admin."
+                : "A Microsoft 365 admin grants the OneUptime app consent for your whole organization, so it can post to channels."
             }
             buttons={
               isAdminConsentCompleted
@@ -916,6 +916,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
                 text={`
 ##### Installation Steps:
 
+> [!WARNING]
 > **Do not skip this because a "OneUptime" app is already in your tenant.**
 > Only the package downloaded from this page carries this deployment's bot id (\`${MicrosoftTeamsAppClientId}\`). The OneUptime app in the Microsoft Teams store points at OneUptime Cloud's bot, so Teams will accept it, show it in **Manage team → Apps**, and then refuse every message this deployment sends with *"The bot is not part of the conversation roster."* If a OneUptime app is already installed and you did not upload it from this page, remove it first.
 

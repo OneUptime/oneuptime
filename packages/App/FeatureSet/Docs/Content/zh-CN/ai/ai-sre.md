@@ -67,7 +67,7 @@ flowchart TB
 
 **AI Investigation** 卡片以一段对话结尾——**Ask OneUptime AI**——能看到该事件或警报的所有人都共享这段对话。无论上方发生了什么，它都是同一张卡片：在报告下方您可以追问，而当没有运行自动调查（或调查在报告前停止）时，第一个建议是 **What is the root cause?** ，它会让 OneUptime AI 按需进行调查。
 
-- **追问** ——"哪些 Pod 占用内存最多？"、"这开始之前刚刚改了什么？"、"还有别的受影响吗？"。OneUptime AI 会在其报告的基础上查询新数据（并在有访问权限的地方运行只读的 kubectl 或基础设施命令），并为每一项断言注明出处。
+- **追问** ——"哪些 Pod 占用内存最多？"、"这开始之前刚刚改了什么？"、"还有别的受影响吗？"。OneUptime AI 会在其报告的基础上查询新数据（并在有访问权限的地方，对您有权查看的集群和资源运行只读的 kubectl 或基础设施命令），并为每一项断言注明出处。
 - **让它执行操作** ——"确认此事件"、"发布一条状态更新，说明我们正在调查"、"呼叫数据库值班人员"、"提高严重程度"。它使用与询问 AI 相同的操作，并且始终 **以您自己的权限** 执行，因此它永远无法做到超出您能做的事。
 - **选择它的执行方式** ——使用消息框中的开关，开关旁会说明所选模式的含义：_Auto-run_ （默认——对明确的请求立即执行）、_Ask to act_ （先显示一张审批卡片，事件中的任何人都可以批准或拒绝）或 _只读_。
 - **一个共享的对话。** 每个问题都会显示提问者，所有人实时看到同一段对话，任何人都可以停止正在生成的回答。回答中的图表和表格会显示给提问的人；其他人看到的是带出处的回答。每个回答都会列出其 **Sources** ，有自己页面的来源（日志、指标、监视器）会打开该页面。较长的对话会在最新消息处打开，上方有一个按钮（例如 **Show 6 earlier messages**）用于加载其余内容。
@@ -180,7 +180,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 当 Kubernetes AI 代理设置调查和修复时，由能够更改集群上 chart 值的人来更改它们；OneUptime 会拒绝在其他地方所做的更改。下面的规则适用于留在 OneUptime 中的内容——kubectl 允许列表以及 Runner 和凭据的绑定——以及设置仍在 OneUptime 中的集群的调查和修复（参见 [AI 可以执行的操作——由代理设置](#ai-可以执行的操作由代理设置)）。
 
-开启修复——从 **关闭** 切换到任何其他模式——以及放宽修复——切换到 **自动** 或 **跳过批准**、编写 kubectl 允许列表、绑定 Runner 或凭据，或从拥有 Kubernetes AI 代理的集群中移除该绑定——需要 Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 权限，也就是可以创建完全自动补救规则的那些人。绑定凭据还需要 **Read Runbook Credential** 权限，除非您是 Project Owner 或 Project Admin。**重置代理** 需要与开启修复相同的人员。收紧修复——**关闭**、改回 **请求批准**、清空允许列表——任何可以编辑该集群的人都能执行。
+开启修复——从 **关闭** 切换到任何其他模式——以及放宽修复——切换到 **自动** 或 **跳过批准**、编写 kubectl 允许列表、绑定 Runner 或凭据，或从拥有 Kubernetes AI 代理的集群中移除该绑定——需要 Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 权限，也就是可以创建完全自动补救规则的那些人。绑定凭据还需要 **Read Runbook Credential** 权限，除非您是 Project Owner 或 Project Admin。**重置代理** 需要与开启修复相同的人员。收紧修复——**关闭**、改回 **请求批准**、清空允许列表——任何可以编辑该集群的人都能执行，**测试连接** 以及批准 OneUptime AI 为该集群提出的修复也是如此。所有这些都需要编辑该集群本身的权限：限制于某些标签、或限制于您或您的团队拥有的集群的权限，只能作用于这些集群，而带标签的阻止条目会取消对带有这些标签的集群的操作。
 
 ### 调查可以运行什么
 
@@ -218,7 +218,7 @@ AI 代理页面上的 **修复** 有四种设置（chart 的 `aiAgent.fixes`：`
 自动模式的允许列表是逐词与解析后的命令进行匹配的，而不是作为自由文本：`*` 只代表恰好一个词（一个镜像、一个名称），绝不代表额外的对象、标志或第二个 `-n`，并且命令使用的每个标志都必须在条目中写出。`kubectl set image deployment/web * -n web` 允许在 `web` 中为 `web` 使用新镜像，仅此而已。条目必须写出其动词——以及 `rollout`、`set` 或 `create` 的子命令——而不能用 `*` 代替，并且在可选的开头 `kubectl` 之后必须多于一个词；违反这些规则的条目，例如 `scale` 或 `kubectl *`，永远无法预先批准任何更改，保存时会被拒绝。
 
 :::details 永远不会运行的命令，以及命令如何被解读
-有些命令 **永远** 不会运行，无论处于何种模式，即使有人批准也不会。命令策略会拒绝它们，并且会执行三次——由服务器的工具、由服务器加入队列的关卡，以及由 AI 代理在启动 `kubectl` 之前：`exec`、`attach`、`cp`、`port-forward`、`proxy`、`debug`、`run`、`edit`、`apply`、`replace`、`diff`、kubectl 插件以及不在其列表中的任何其他动词，任何文件输入（`-f`、`-k`）或读取文件的输出格式（`-o jsonpath-file=`、`-o go-template-file=`、`-o custom-columns-file=`、`--template`，以及没有内联模板的单独 `-o jsonpath`/`go-template`/`custom-columns`），凭据、模拟身份（`--as`、`--as-group`、`--as-uid`、`--as-user-extra`）、集群选择、`--kuberc`、原始 API 和详细日志标志，使用 **任何** 动词操作的 Secret 对象——OneUptime AI 从不读取、更改、删除或创建 Secret，`create secret`、`create token` 和 `set env --resolve` 也随之被拒绝——任何授予 RBAC 的操作（`create role`、`create clusterrole`、`create rolebinding`、`create clusterrolebinding`、`set subject`），`certificate approve`，`set serviceaccount`，带 `--image` 的 `create deployment`、`create cronjob` 或 `create job`（`create job --from=cronjob/…` 仍属于风险较高的更改），`expose --overrides` 或 `--override-type`（覆盖可以让 kubectl 创建 Job、ClusterRoleBinding 或其他任何类型的对象，而不是 Service），不是 JSON 的 `patch` 正文（kubectl 会把它当作 YAML 读取，而 YAML 的标签可以写出任何检查都看不到的字段），更改 Pod 模板的 ServiceAccount、卷或安全设置的补丁（包括主机端口、用户命名空间退出选项 `hostUsers` 和运行时类 `runtimeClassName`），替换 Pod 模板的整个部分而不是在其中设置字段的补丁（strategic-merge 的 `$patch: replace`、设置整个 `containers` 列表的 merge patch，或替换或移除 Pod 规约的 JSON patch）——这会在不提及的情况下丢弃那些设置——通过 `--all` 或选择器而非名称选中的 Namespace 对象上的标签或注解，对 RBAC 对象、CustomResourceDefinitions、APIServices、准入 webhook 配置或准入策略的任何写入——`patch`、`label`、`annotate`、`set`——带 `--all-namespaces` 的写入、`delete --all`，以及删除命名空间、节点、卷、CRD 或集群角色。标志的解析方式与 kubectl 相同，因此被禁止的标志或类型无法躲在另一个后面：组合的短标志会逐个字母拆开（`-As` 会被识别），值可选的标志（`--cascade`、`--dry-run`、`--validate`）永远不会吞掉下一个词，并且除 `-n`/`--namespace`、`--request-timeout` 和 `--match-server-version` 之外的每个标志都必须位于动词之后（以及 `rollout`、`set`、`create`、`auth`、`cluster-info` 和 `top` 的子命令之后），因为 kubectl 会先选定命令再解析标志。AI 代理自带固定版本的 kubectl（v1.36.4）并关闭 kuberc，因此在策略检查之后，kuberc 文件无法再为命令添加默认值或别名。它为每条命令提供一个指向已挂载令牌文件的、用于其自身 ServiceAccount 的私有 kubeconfig，绝不提供令牌的副本。
+有些命令 **永远** 不会运行，无论处于何种模式，即使有人批准也不会。命令策略会拒绝它们，并且会执行三次——由服务器的工具、由服务器加入队列的关卡，以及由 AI 代理在启动 `kubectl` 之前：`exec`、`attach`、`cp`、`port-forward`、`proxy`、`debug`、`run`、`edit`、`apply`、`replace`、`diff`、kubectl 插件以及不在其列表中的任何其他动词，任何文件输入（`-f`、`-k`）或读取文件的输出格式（`-o jsonpath-file=`、`-o go-template-file=`、`-o custom-columns-file=`、`--template`，以及没有内联模板的单独 `-o jsonpath`/`go-template`/`custom-columns`），凭据、模拟身份（`--as`、`--as-group`、`--as-uid`、`--as-user-extra`）、集群选择、`--kuberc`、原始 API 和详细日志标志，使用 **任何** 动词操作的 Secret 对象——OneUptime AI 从不读取、更改、删除或创建 Secret，`create secret`、`create token` 和 `set env --resolve` 也随之被拒绝——任何授予 RBAC 的操作（`create role`、`create clusterrole`、`create rolebinding`、`create clusterrolebinding`、`set subject`），`certificate approve`，`set serviceaccount`，带 `--image` 的 `create deployment`、`create cronjob` 或 `create job`（`create job --from=cronjob/…` 仍属于风险较高的更改），`expose --overrides` 或 `--override-type`（覆盖可以让 kubectl 创建 Job、ClusterRoleBinding 或其他任何类型的对象，而不是 Service），不是 JSON 的 `patch` 正文（kubectl 会把它当作 YAML 读取，而 YAML 的标签可以写出任何检查都看不到的字段），更改 Pod 模板的 ServiceAccount、卷或安全设置的补丁（包括主机端口、用户命名空间退出选项 `hostUsers` 和运行时类 `runtimeClassName`），替换 Pod 模板的整个部分而不是在其中设置字段的补丁（strategic-merge 的 `$patch: replace`、设置整个 `containers` 列表的 merge patch，或替换或移除 Pod 规约的 JSON patch）——这会在不提及的情况下丢弃那些设置——通过 `--all` 或选择器而非名称选中的 Namespace 对象上的标签或注解，对 RBAC 对象、CustomResourceDefinitions、APIServices、准入 webhook 配置或准入策略的任何写入——`patch`、`label`、`annotate`、`set`——带 `--all-namespaces` 的写入、`delete --all`，以及删除命名空间、节点、卷、CRD 或集群角色。标志的解析方式与 kubectl 相同，因此被禁止的标志或类型无法躲在另一个后面：组合的短标志会逐个字母拆开（`-As` 会被识别），值可选的标志（`--cascade`、`--dry-run`、`--validate`）永远不会吞掉下一个词，并且除 `-n`/`--namespace`、`--request-timeout` 和 `--match-server-version` 之外的每个标志都必须位于动词之后（以及 `rollout`、`set`、`create`、`auth`、`cluster-info` 和 `top` 的子命令之后），因为 kubectl 会先选定命令再解析标志。AI 代理自带固定版本的 kubectl（v1.36.5）并关闭 kuberc，因此在策略检查之后，kuberc 文件无法再为命令添加默认值或别名。它为每条命令提供一个指向已挂载令牌文件的、用于其自身 ServiceAccount 的私有 kubeconfig，绝不提供令牌的副本。
 :::
 
 ### AI 代理的 RBAC 限制什么、不限制什么
@@ -294,7 +294,7 @@ chart 的 RBAC 是独立于策略的另一层，它限制的是 AI 代理可以 
 
 自动补救规则会问三个问题：
 
-1. **条件** ——它匹配哪些事件：监视器、严重程度、标签、监视器标签、标题和描述，与项目中其他事件和警报规则的条件相同。没有条件的规则会匹配所有事件。
+1. **条件** ——它匹配哪些事件：新规则默认的 **所有事件**，或按监视器、严重程度、标签、监视器标签、标题和描述筛选的 **仅符合条件的事件**，与项目中其他事件和警报规则的条件相同。
 2. **修复方式** ——**OneUptime AI** 通过受影响的集群或主机上的 AI 代理修复事件；**运行手册** 会运行规则指定的运行手册，每次都以相同方式执行。
 3. **批准** ——**修复前先询问**：在有人一键批准修复之前，什么都不会运行。**无需询问直接修复**：运行手册会立即启动，OneUptime AI 会在 AI 代理设置允许的任何地方无需批准地进行修复——设为请求批准的集群或主机仍然会询问。
 
@@ -363,18 +363,18 @@ AI 设置和自动补救规则以前位于 `…/settings/ai` 和 `…/settings/a
 
 ### 项目自身的每日限制
 
-在表中所有限制之上，项目可以限制 OneUptime AI 一天的用量，无论它在做什么：询问 AI、调查、事后分析草稿、修复拉取请求、洞察分诊、工作流、运行手册，以及 Slack 或 Microsoft Teams 中的提问都一样。这些限制位于 **项目设置 → AI Features**，折叠在 **更多设置** 下的 **每日限制** 部分：
+在表中所有限制之上，项目可以限制 OneUptime AI 一天的用量，无论它在做什么：询问 AI、调查、事后分析草稿、修复拉取请求、洞察分诊、工作流、运行手册，以及 Slack 或 Microsoft Teams 中的提问都一样。这些限制位于 **项目设置 → 人工智能 → AI Features**，折叠在 **更多设置** 下的 **每日限制** 部分：
 
 - **每日 AI Token 限制**：项目的 AI 每天通过任何 LLM 提供商可以使用的最多 token 数。
 - **每日 AI 支出限制 (USD)** ，在 OneUptime Cloud 上：项目的 AI 每天可以花费的最多 AI 积分，以整美元计。只有计入项目 AI 积分的 AI 才算数，因此它永远不会停止在项目自己的 LLM 提供商上运行的 AI。自托管安装不对 AI 计费，因此不提供此项。
 
 未设置（默认）表示 **没有限制**。限制是至少为 1 的整数；要关闭 AI，请使用 **启用 AI**。一天指一个 UTC 日，与事件和警报的限制相同：用量从 UTC 午夜开始计算，并在下一个 UTC 午夜重新计数。折叠时，该部分会说明适用的限制以及 AI 今天的用量，例如"每天最多 200,000 个 token。今天已用：45,210 个 token。"只有项目所有者或拥有 **Manage Billing** 的人可以更改这些限制：也就是可以关闭 AI 的那些人。
 
-一旦达到限制，新的 AI 工作会停止到 UTC 午夜。已在运行的调用会完成，之后的每次调用都会被拒绝，并附上一句话，说明达到了哪项限制、用了多少，以及谁可以在哪里更改："A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings." 询问 AI、**Generate with AI** 按钮、工作流、运行手册步骤，以及 Slack 和 Microsoft Teams 都会用这句话回答，每次被拒绝的调用都会以 **Budget Exceeded** 状态列在 AI 日志（**项目设置 → 人工智能 → AI 日志**）中。自动调查、事后分析草稿和洞察分诊根本不会启动。在此期间创建的事件或警报会在其 AI 调查卡片中说明这一点，并为可以更改限制的人附上指向限制的链接。事件和警报的每日 token 限制在项目自身的限制之下仍然适用：AI 会在先达到的那一项限制处停止。
+一旦达到限制，新的 AI 工作会停止到 UTC 午夜。已在运行的调用会完成，之后的每次调用都会被拒绝，并附上一句话，说明达到了哪项限制、用了多少，以及谁可以在哪里更改："A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings." 询问 AI、**Generate with AI** 按钮、工作流、运行手册步骤，以及 Slack 和 Microsoft Teams 都会用这句话回答，每次被拒绝的调用都会以 **Budget Exceeded** 状态列在 AI 日志（**项目设置 → 人工智能 → AI 日志**）中。自动调查、事后分析草稿和洞察分诊根本不会启动。在此期间创建的事件或警报会在其 AI 调查卡片中说明这一点，并为可以更改限制的人附上指向限制的链接。事件和警报的每日 token 限制在项目自身的限制之下仍然适用：AI 会在先达到的那一项限制处停止。
 
 #### 达到限制时
 
-**项目所有者会收到电子邮件。** 在一个 UTC 日内某项限制第一次让 OneUptime AI 停止时，每位项目所有者都会收到一封电子邮件：哪项限制、项目今天用了多少、何时重置，以及指向 **项目设置 → AI Features** 的链接，他们可以在那里提高或移除该限制。每项限制每天只发一次：token 限制和支出限制各自发送，当天不会再发送更多，无论有多少调用被拒绝。这与所有者收到的计费邮件是同一种邮件，也会像那些邮件一样显示在项目的电子邮件日志中。
+**项目所有者会收到电子邮件。** 在一个 UTC 日内某项限制第一次让 OneUptime AI 停止时，每位项目所有者都会收到一封电子邮件：哪项限制、项目今天用了多少、何时重置，以及指向 **项目设置 → 人工智能 → AI Features** 的链接，他们可以在那里提高或移除该限制。每项限制每天只发一次：token 限制和支出限制各自发送，当天不会再发送更多，无论有多少调用被拒绝。这与所有者收到的计费邮件是同一种邮件，也会像那些邮件一样显示在项目的电子邮件日志中。
 
 **被跳过的事件和警报会在重置后被调查。** 因为达到限制而没有被调查的事件或警报，会在限制不再阻止 AI 时被调查：UTC 午夜之后，或者所有者提高或移除限制后立即进行。前提是它仍处于未解决状态且创建不到一天，并且只调查一次。适用当时的设置，就像对待新事件或警报一样：在启用 AI 或自动调查关闭、没有 LLM 提供商或 AI 积分，或者达到事件或警报的每日 token 限制期间，它会继续等待；严重程度下限和冷却时间仍可能跳过它，此时它的卡片会说明原因。在此期间已解决的记录，或在此期间有人请 OneUptime AI 调查过的记录，不会再次被调查。每五分钟会取出几条，最新的优先，并且只在项目的调查队列中没有其他内容等待时进行，因此新的事件和警报优先；如果再次达到限制，其余的会等待下一次重置。
 
@@ -383,7 +383,7 @@ AI 设置和自动补救规则以前位于 `…/settings/ai` 和 `…/settings/a
 在 OneUptime Cloud 上，使用全局提供商的 OneUptime AI 由项目的 AI 积分支付，位于 **项目设置 → 人工智能 → AI 积分**。积分用完时会发生什么，取决于同一页面上的 **自动充值**：
 
 - **自动充值开启**：第一个发现积分已用完的 AI 调用会添加自动充值所设定的金额，从项目的卡片扣款，然后运行。在同一时刻到达的调用只会扣款一次。在积分低于其阈值时开启自动充值，会立即添加积分，就像短信和通话余额的自动充值那样。
-- **自动充值关闭**：OneUptime AI 停止。每次 AI 调用都会被拒绝，并说明谁可以在哪里添加积分："A project owner or someone with Manage Billing can add AI credits in Project Settings → AI Credits." 每次被拒绝的调用都会以 **Insufficient Balance** 状态列在 AI 日志（**项目设置 → 人工智能 → AI 日志**）中。自动调查和事后分析草稿不会启动，AI 代理页面和 AI 任务页面会显示项目的 AI 积分已用完。
+- **自动充值关闭**：OneUptime AI 停止。每次 AI 调用都会被拒绝，并说明谁可以在哪里添加积分："A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits." 每次被拒绝的调用都会以 **Insufficient Balance** 状态列在 AI 日志（**项目设置 → 人工智能 → AI 日志**）中。自动调查和事后分析草稿不会启动，AI 代理页面和 AI 任务页面会显示项目的 AI 积分已用完。
 - **自动充值无法从卡片扣款** （没有付款方式，或卡片被拒绝）：OneUptime AI 以同样的方式停止，所有者会收到说明充值失败的电子邮件。自动充值会在一小时后再次尝试扣款。手动添加积分或再次保存自动充值会立即重试。在此之前，**AI 积分** 会在顶部向打开它的每个人说明这一点：会请项目所有者或拥有 **Manage Billing** 的人检查付款方式或添加积分，其他人则会被告知谁可以处理。
 
 **项目所有者会收到电子邮件** ，在 OneUptime AI 第一次因积分不足而停止时：当花掉最后积分的调用完成时，或者当某次 AI 调用被拒绝或某次调查被跳过时。邮件会说明该怎么做，并链接到 **AI 积分**。每次积分用完时发送一次；添加积分后，下一次用完时会再发送一封。
@@ -437,7 +437,7 @@ AI 设置和自动补救规则以前位于 `…/settings/ai` 和 `…/settings/a
 - 必须配置 LLM 提供商（项目专用的，或云端的全局提供商）。
 - 调查只会在 **新创建的** 事件和警报上触发——开启开关不会调查历史信号。
 - `baseline_anomaly` 检查需要大约两周的指标历史，其每周各时段基线才会可靠；在此之前，它会报告"insufficient baseline data"，而不是猜测。
-- 在使用全局提供商的 OneUptime Cloud 上，调查会消耗计量的 AI token（参见 **项目设置 → 人工智能 → AI 积分**）。如需不计量的用量，请使用您自己的提供商密钥，或者用每日 AI 支出限制（项目设置 → AI Features → 更多设置）限制 AI 每天可以花费的金额。
+- 在使用全局提供商的 OneUptime Cloud 上，调查会消耗计量的 AI token（参见 **项目设置 → 人工智能 → AI 积分**）。如需不计量的用量，请使用您自己的提供商密钥，或者用每日 AI 支出限制（项目设置 → 人工智能 → AI Features → 更多设置）限制 AI 每天可以花费的金额。
 
 ## 故障排除
 

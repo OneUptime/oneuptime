@@ -9,7 +9,7 @@ Runbook-regler starter runbooks automatisk når en **hendelse**, et **varsel** e
 Alle tre sidene redigerer samme slags regel, filtrert til reglene for det aktuelle produktet.
 
 :::cards
-- [Opprett en runbook-regel](#opprett-en-runbook-regel): Fire trinn: et navn, betingelser og runbookene som skal startes.
+- [Opprett en runbook-regel](#opprett-en-runbook-regel): Tre trinn: betingelser og deretter runbookene som skal startes, som regelen får navn etter.
 - [Betingelser](#betingelser): Hvert kriterium og hver operator en regel kan bruke.
 - [Treffregler](#treffregler): Flere regler, monitorbetingelser og etikettregler.
 - [Eksempler](#eksempler): Tre regler å kopiere.
@@ -19,15 +19,15 @@ Alle tre sidene redigerer samme slags regel, filtrert til reglene for det aktuel
 
 ```mermaid title="Fra en ny hendelse til startede runbooks"
 flowchart TB
-    created["Hendelse, varsel eller begivenhet opprettet"] --> labels["Etikettregler legger til etikettene sine"]
-    labels --> rules["Aktiverte runbook-regler for det produktet"]
+    created["Hendelse, varsel eller<br/>begivenhet opprettet"] --> labels["Etikettregler legger<br/>til etikettene sine"]
+    labels --> rules["Aktiverte<br/>runbook-regler<br/>for det produktet"]
     rules --> match{"Treffer betingelsene?"}
-    match -->|"nei"| nothing["Regelen starter ingenting"]
-    match -->|"ja"| union["Runbooks fra alle regler som treffer, hvert én gang"]
-    union --> runnable{"Runbook slått på og med trinn?"}
-    runnable -->|"nei"| skipped["Det runbooket hoppes over"]
-    runnable -->|"ja"| execution["Kjøring opprettet og satt i kø"]
-    execution --> attached["Vises på begivenhetens Runbooks-side"]
+    match -->|"nei"| nothing["Regelen starter<br/>ingenting"]
+    match -->|"ja"| union["Runbooks fra alle<br/>regler som treffer,<br/>hvert én gang"]
+    union --> runnable{"Runbook slått<br/>på og med trinn?"}
+    runnable -->|"nei"| skipped["Det runbooket<br/>hoppes over"]
+    runnable -->|"ja"| execution["Kjøring opprettet<br/>og satt i kø"]
+    execution --> attached["Vises på begivenhetens<br/>Runbooks-side"]
 ```
 
 Når en regel utløses, skjer dette for hvert runbook den peker på:
@@ -51,27 +51,23 @@ Du ser alle kjøringer, startet av en regel eller ikke, under **Runbooks → Kj�
 
 I **Hendelser**, **Varsler** eller **Planlagt vedlikehold** åpner du **Regler → Runbook-regler** og klikker **Opprett Runbook Rule**.
 
-### Gi regelen et navn
-
-Under **Grunnleggende informasjon** skriver du inn et **Navn**, for eksempel "Start DB-failover ved databasehendelser", og eventuelt en **Beskrivelse**.
-
 ### Legg til betingelser
 
-Under **Treffkriterier** klikker du **Legg til betingelse**, velger et kriterium og en operator og skriver inn eller velger verdien. Legg til flere betingelser om du trenger det, og velg **Samsvar med alle** eller **Samsvar med én**. Legg ikke til noen for å starte runbooks ved hver ny begivenhet av denne typen.
+Under **Treff** starter **Gjelder for** på hver ny begivenhet av denne typen, for eksempel **Alle hendelser**, og regelen starter sine runbooks for hver av dem. For å snevre inn regelen velger du det andre svaret, for eksempel **Bare hendelser som oppfyller betingelsene**, og deretter et kriterium og en operator, og du skriver inn eller velger verdien. Klikk **Legg til betingelse** for flere betingelser, og velg **Samsvar med alle** eller **Samsvar med én**.
 
 ### Velg runbooks
 
-Under **Runbooks** velger du ett eller flere **Runbooks å starte** og klikker **Opprett Runbook Rule**. Regelen er aktiv så snart den er opprettet, og vises i listen med statusen **Aktivert**.
+Under **Runbooks** velger du ett eller flere **Runbooks å starte**. Regelens **Navn** følger dem, for eksempel "Kjør Database failover", til du skriver inn ditt eget, og en **Beskrivelse** venter under **Flere felt**. Klikk **Opprett Runbook Rule**. Regelen er aktiv så snart den er opprettet, og vises i listen med statusen **Aktivert**.
 :::
 
 ## Hvordan en regel er bygd opp
 
 | Felt | Formål |
 | --- | --- |
-| **Navn** | En kort, lesbar etikett for regelen. |
-| **Beskrivelse** | Valgfri kontekst for kolleger. |
+| **Navn** | Navngitt etter runbookene den starter, for eksempel "Kjør Database failover", til du skriver inn ditt eget. |
+| **Beskrivelse** | Valgfri kontekst for kolleger, under **Flere felt**. |
 | **Aktivert** | Slått på for en ny regel. Slå den av i regelens redigeringsskjema for å sette den på pause uten å slette den. |
-| **Betingelser** | Hva regelen treffer, i trinnet **Treffkriterier**. La det stå tomt for å treffe hver begivenhet av sin type. |
+| **Betingelser** | Hva regelen treffer, i trinnet **Treff**. En regel uten betingelser, for eksempel på **Alle hendelser**, treffer hver begivenhet av sin type. |
 | **Runbooks å starte** | Ett eller flere runbooks som startes når regelen utløses. |
 
 ## Betingelser

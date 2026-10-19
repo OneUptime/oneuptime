@@ -28,6 +28,7 @@ import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import Service from "../../../Models/DatabaseModels/Service";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
+import Probe from "../../../Models/DatabaseModels/Probe";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -401,6 +402,107 @@ describe("Monitor criteria page — resolved references", () => {
       expect(
         screen.getByText("44444444-4444-4444-8444-444444444444"),
       ).toBeInTheDocument();
+    });
+  });
+});
+
+/*
+ * A Probe Status monitor watches probes; no probe runs it. Its Criteria page
+ * names the probes it watches - the project's own and the global ones, read
+ * as the picker reads them - and its Monitor Details section does not claim
+ * that "the probes check this resource".
+ */
+describe("Monitor criteria page — Probe Status monitors", () => {
+  const FRANKFURT_ID: string = "7c000000-0000-4000-8000-000000000001";
+  const GLOBAL_ID: string = "7c000000-0000-4000-8000-000000000002";
+  const DELETED_ID: string = "7c000000-0000-4000-8000-000000000099";
+
+  beforeEach(() => {
+    getListMock.mockImplementation(
+      (options: {
+        requestOptions?: { overrideRequestUrl?: URL } | undefined;
+      }) => {
+        const isGlobalList: boolean = String(
+          options.requestOptions?.overrideRequestUrl || "",
+        ).includes("/probe/global-probes");
+        const probe: Probe = new Probe();
+
+        probe._id = isGlobalList ? GLOBAL_ID : FRANKFURT_ID;
+        probe.name = isGlobalList
+          ? "Bundled probe"
+          : "Frankfurt (eu-central-1)";
+
+        return Promise.resolve({ data: [probe], count: 1, skip: 0, limit: 1 });
+      },
+    );
+  });
+
+  it("names each probe it watches, the global ones too", async () => {
+    renderStep(
+      MonitorType.ProbeStatus,
+      buildStep({
+        probeStatusMonitor: { probeIds: [FRANKFURT_ID, GLOBAL_ID] },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Probes to Watch")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("monitor-step-details")).toHaveTextContent(
+      "Frankfurt (eu-central-1), Bundled probe",
+    );
+  });
+
+  it("a watched probe that was deleted reads as such, not as an id", async () => {
+    renderStep(
+      MonitorType.ProbeStatus,
+      buildStep({
+        probeStatusMonitor: { probeIds: [FRANKFURT_ID, DELETED_ID] },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("monitor-step-details")).toHaveTextContent(
+        "Frankfurt (eu-central-1), Deleted probe",
+      );
+    });
+
+    expect(
+      screen.getByTestId("monitor-step-details").textContent,
+    ).not.toContain(DELETED_ID);
+  });
+
+  it("says what Monitor Details holds without claiming the probes check it", async () => {
+    renderStep(
+      MonitorType.ProbeStatus,
+      buildStep({ probeStatusMonitor: { probeIds: [FRANKFURT_ID] } }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("monitor-step-details")).toHaveTextContent(
+        "What this monitor watches, and the settings it uses.",
+      );
+    });
+
+    expect(screen.getByTestId("monitor-step-details")).not.toHaveTextContent(
+      "How the probes check this resource",
+    );
+  });
+
+  it("a probe-run monitor still says how its probes check it", async () => {
+    renderStep(
+      MonitorType.API,
+      buildStep({
+        monitorDestination: URL.fromString("https://api.example.com/health"),
+        requestType: HTTPMethod.GET,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("monitor-step-details")).toHaveTextContent(
+        "How the probes check this resource: what they connect to and the settings they use.",
+      );
     });
   });
 });

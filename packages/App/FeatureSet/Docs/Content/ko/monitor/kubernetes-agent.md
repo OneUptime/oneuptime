@@ -19,7 +19,7 @@ flowchart LR
         direction TB
         nodes["모든 Linux 노드:<br/>노드 컬렉터, eBPF"]
         collector["클러스터 컬렉터"]
-        ai["Kubernetes AI 에이전트"]
+        ai["Kubernetes AI<br/>에이전트"]
     end
     nodes -->|"로그, 메트릭,<br/>트레이스"| oneuptime["OneUptime"]
     collector -->|"메트릭, 이벤트"| oneuptime
@@ -221,16 +221,16 @@ OBI는 여러 종류의 신호를 보냅니다. 각각 `--set ebpf.features.<key
 
 ### 서비스 간 트레이스 연결
 
-OBI는 호출을 넘어 트레이스를 이어 갈 수도 있습니다. 파드 A가 HTTP나 gRPC로 파드 B를 호출하면, 어느 앱에도 SDK 없이 B 쪽 스팬이 A의 트레이스에 합류합니다. **이 기능은 기본적으로 꺼져 있습니다.** 아래 경고를 읽은 뒤 `--set ebpf.contextPropagation=true` 로 켜세요.
+OBI는 호출을 넘어 트레이스를 이어 가기도 합니다. 파드 A가 HTTP나 gRPC로 파드 B를 호출하면, 어느 앱에도 SDK 없이 B 쪽 스팬이 A의 트레이스에 합류합니다. **이 기능은 기본적으로 켜져 있습니다.** 이 기능이 없으면 다른 노드의 파드에 대한 호출은 별도의 트레이스를 시작합니다. 같은 노드에서는 OBI가 양쪽 끝을 직접 연결합니다. 아래 경고에서 설명하는 문제가 생기면 `--set ebpf.contextPropagation=false` 로 끄세요.
 
 | 옵션 | 기본값 | 하는 일 |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | 꺼짐 | 나가는 트래픽에 W3C `traceparent` 를 써서 스팬이 서비스 사이에서 연결되게 합니다. |
+| `ebpf.contextPropagation` | 켜짐 | 나가는 트래픽에 W3C `traceparent` 를 써서 스팬이 서비스 사이에서 연결되게 합니다. |
 | `ebpf.contextPropagationMode` | `headers` | 방식: `headers`(HTTP/1.1 요청 헤더, 가장 좁은 범위), `tcp`(Linux Traffic Control을 통한 TCP 옵션), `all`(둘 다). `contextPropagation` 이 켜져 있을 때만 읽습니다. |
 | `ebpf.trackRequestHeaders` | 켜짐 | 커널에서 요청 헤더를 추적해, 받는 쪽이 일반 HTTP 서버에서도 `traceparent` 를 찾게 합니다. `contextPropagation` 이 켜져 있을 때만 효과가 있습니다. |
 
 > [!WARNING]
-> 모든 전파 모드는 이미 전송 중인 트래픽을 바꿉니다. 일반 HTTP에서는 OBI가 헤더가 들어가도록 커널에서 나가는 요청을 넓히고, TLS와 원시 TCP에서는 Traffic Control 훅에서 TCP 옵션을 추가하며 패킷과 체크섬을 다시 씁니다. 그다음 연결의 바이트 계산이 정확히 보정되지 않으면 스트림이 **비동기화됩니다**. nginx 같은 프록시를 거치는 전송은 응답이 약 64 KB를 넘는 순간 중간에 멈추고, 연결이 시간 초과될 때까지 그대로 있습니다. 작은 요청은 계속 동작하므로 애플리케이션이나 프록시의 버그처럼 보입니다. 이 다시 쓰기를 없애 주는 커널 버전은 없습니다. 트레이스, 요청 메트릭, 서비스 맵은 이 기능 없이도 모두 동작하며, 서비스에 넣은 OpenTelemetry SDK는 커널의 다시 쓰기 없이 트레이스를 연결합니다. 켜려면 먼저 운영 환경이 아닌 클러스터에서 시험하고, 프록시를 거치는 대용량 전송을 확인하세요.
+> 모든 전파 모드는 이미 전송 중인 트래픽을 바꿉니다. 일반 HTTP에서는 OBI가 헤더가 들어가도록 커널에서 나가는 요청을 넓히고, TLS와 원시 TCP에서는 Traffic Control 훅에서 TCP 옵션을 추가하며 패킷과 체크섬을 다시 씁니다. 그다음 연결의 바이트 계산이 정확히 보정되지 않으면 스트림이 **비동기화됩니다**. nginx 같은 프록시를 거치는 전송은 응답이 약 64 KB를 넘는 순간 중간에 멈추고, 연결이 시간 초과될 때까지 그대로 있습니다. 작은 요청은 계속 동작하므로 애플리케이션이나 프록시의 버그처럼 보입니다. 이 다시 쓰기를 없애 주는 커널 버전은 없습니다. 에이전트를 설치한 뒤 프록시를 거치는 대용량 전송이 멈추거나, 서비스 메시나 eBPF 네트워크 플러그인 때문에 파드가 실패하기 시작하면 이 기능을 끄세요. 트레이스, 요청 메트릭, 서비스 맵은 이 기능 없이도 모두 동작하며, 서비스에 넣은 OpenTelemetry SDK는 커널의 다시 쓰기 없이 트레이스를 연결합니다. `--reuse-values` 로 업그레이드한 에이전트는 기존 값을 그대로 유지하는데, 이전 차트는 이 기능을 끈 상태로 제공했습니다. 새 기본값을 적용하려면 `--reset-then-reuse-values` 로 업그레이드하세요.
 
 ### 로그와 트레이스 연결
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **OBI는 실행되지만 트레이스가 들어오지 않습니다.** `--set ebpf.printTraces=true` 를 설정하고 OBI의 로그를 다시 읽으세요. 거기에 스팬이 있으면 OneUptime으로의 내보내기가 실패하는 것이니 URL과 수집 키를 확인하세요. 스팬이 없으면 정적으로 링크된 라이브러리처럼 OBI가 읽을 수 없는 TLS 라이브러리로 트래픽이 암호화되었을 수 있습니다.
 :::
 
-:::details 트레이스 연결을 켠 뒤 대용량 전송이 멈춤
-`ebpf.contextPropagation` 이 트래픽을 다시 쓰기 때문입니다. [서비스 간 트레이스 연결](#서비스-간-트레이스-연결)의 경고를 참고하세요. `--set ebpf.contextPropagation=false` 로 끄세요.
+:::details 에이전트를 설치한 뒤 대용량 전송이 멈춤
+기본적으로 켜져 있는 `ebpf.contextPropagation` 이 트래픽을 다시 쓰기 때문입니다. [서비스 간 트레이스 연결](#서비스-간-트레이스-연결)의 경고를 참고하세요. `--set ebpf.contextPropagation=false` 로 끄세요.
 :::
 
 :::details 로그 연결을 켠 뒤 앱이 종료 코드 139로 충돌함

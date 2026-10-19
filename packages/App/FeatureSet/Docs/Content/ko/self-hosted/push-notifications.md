@@ -14,7 +14,7 @@ OneUptime은 휴대폰에서는 **OneUptime On-Call** 모바일 앱을 통해, �
 ```mermaid title="푸시가 휴대폰이나 브라우저에 도달하는 과정"
 flowchart TB
     Server["내 OneUptime 서버"]
-    Relay["OneUptime 푸시 릴레이"]
+    Relay["OneUptime<br/>푸시 릴레이"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
@@ -22,13 +22,13 @@ flowchart TB
     PushService["브라우저의<br/>푸시 서비스"]
     Browser["브라우저"]
     Server -->|"EXPO_ACCESS_TOKEN 없음"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN 설정됨"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>설정됨"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -44,6 +44,7 @@ OneUptime 모바일 앱은 백엔드에 Expo Push 토큰을 등록합니다. 백
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | `EXPO_ACCESS_TOKEN`이 설정되지 않은 동안 모바일 푸시를 보내는 곳. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | 비어 있음 | Expo 프로젝트의 토큰으로 모바일 푸시를 Expo에 직접 보냅니다. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | 비어 있음 | 이 서버의 `EXPO_ACCESS_TOKEN`으로 다른 OneUptime 서버의 모바일 푸시를 릴레이합니다. 비어 있으면 `BILLING_ENABLED`가 `true`일 때만 켜집니다. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | 비어 있음 | 브라우저가 구독할 때 쓰는 키 쌍의 공개 키. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | 비어 있음 | 모든 웹 푸시에 서명하는 비공개 키. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | 브라우저 푸시 서비스가 연락할 수 있는 연락처 주소. |
@@ -81,6 +82,8 @@ expo:
 | 모바일 앱 또는 브라우저 → OneUptime | 내 OneUptime 호스트 이름 | HTTPS / TCP 443 | 로그인, 기기 등록, 알림 링크 열기. |
 
 `PUSH_NOTIFICATION_RELAY_URL`을 바꾸면 그 대상 호스트 이름과 구성한 포트를 허용하세요. 사용자 지정 릴레이는 OneUptime의 릴레이 API를 구현해야 합니다. 이 기본값들과 릴레이와 직접 배달 사이의 전환은 [OneUptime 구성](https://github.com/OneUptime/oneuptime/blob/master/config.example.env)과 [푸시 서비스](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts)에 정의되어 있습니다. Expo로 가는 직접 요청은 [Expo의 전송 가이드](https://docs.expo.dev/push-notifications/sending-notifications/)에 문서화된 엔드포인트를 사용합니다. OneUptime은 `/send` 대신 `/receipts`를 붙인 같은 주소에서 릴레이로부터 배달 수신 확인을 읽습니다. 이 라우트가 없는 릴레이도 푸시는 배달하지만, 그러면 앱이 삭제된 기기는 이후 그 기기로 가는 푸시가 거부될 때에야 알아차리게 됩니다.
+
+자체 호스팅 OneUptime 서버는 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true`와 자신의 `EXPO_ACCESS_TOKEN`이 있을 때만 다른 서버의 푸시를 릴레이합니다. 이 설정이 없으면 그 주소에서 404로 응답합니다. 다른 OneUptime 서버들이 푸시를 보낼 때 거치는 서버에서만 이 설정을 켜고, 그 주소에는 그 서버들만 접근할 수 있게 하세요.
 
 Web Push의 경우 팀이 쓰는 브라우저의 실제 구독 엔드포인트 호스트를 허용하세요. OneUptime은 `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com`, `push.apple.com`을 하위 도메인까지 포함해 허용합니다. 대표적인 예는 `updates.push.services.mozilla.com`과 `web.push.apple.com`입니다. 대상은 [브라우저의 푸시 구독](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription)이 제공하며, Expo나 OneUptime 릴레이만 허용해서는 Web Push가 동작하지 않습니다.
 
@@ -121,7 +124,7 @@ flowchart TB
 
 호출이 무음 모드를 무시하려면 네 가지가 모두 참이어야 합니다. 하나라도 빠지면 호출은 그래도 배달되지만, 조용히 배달됩니다.
 
-1. **담당자가 그 기기에서 켰다.** 기기별로 `UserPush.isCriticalAlertEnabled`에 저장되며 기본값은 꺼짐입니다. 같은 사람의 휴대폰과 태블릿은 따로 결정합니다.
+1. **담당자가 그 기기에서 켰다.** 기기별로 `UserPush.isCriticalAlertEnabled`에 저장되며 기본값은 꺼짐입니다. 같은 사람의 휴대폰과 태블릿은 따로 결정합니다. 1.6.0보다 새로운 버전의 앱은 열 때마다 이를 다시 알리며, 휴대폰 자체 설정이 중요 알림을 허용하지 않는 동안에는 꺼짐으로 알립니다. 그래서 기기 목록에는 휴대폰이 실제로 어떻게 동작할지가 표시됩니다.
 2. **호출을 보낸 온콜 규칙이 그것을 요청한다.** **사용자 설정 > 온콜 규칙**에서 휴대폰에 알리는 모든 규칙은 기본값인 '중요 알림' 또는 휴대폰의 소리 설정을 따르는 '일반'으로 설정됩니다. 그래서 심각한 인시던트에는 담당자를 깨우고, 사소한 인시던트는 조용히 알릴 수 있습니다. 규칙별로 `UserNotificationRule.pushNotificationLevel`에 저장됩니다.
 3. **서버가 호출을 중요로 표시한다.** iOS에는 APNs의 중요 사운드 페이로드와 `interruptionLevel: critical`을 보내고, Android에는 중요 알림 채널을 지정합니다. `oncall_critical` 또는 선택한 알람의 전용 채널입니다([알람 소리 선택하기](#알람-소리-선택하기) 참고).
 4. **운영 체제가 허용한다**, 그리고 바로 여기서 두 플랫폼이 다릅니다.
@@ -192,7 +195,7 @@ Android는 채널을 처음 만들 때 그 설정을 고정하므로, 앱 업데
 - **iOS**: 빌드에 Apple의 중요 알림 권한이 있는지(위 참고), 그리고 iOS Settings > Notifications > OneUptime On-Call에서 Critical Alerts가 허용되어 있는지 확인하세요
 - **Android**: Settings > Notifications > Do Not Disturb access에서 앱에 방해 금지 모드 접근 권한이 있는지 확인하세요
 - **Android**: 알람 소리를 골랐다면 그 소리 전용 알림 채널도 방해 금지 모드를 무시하도록 허용되어야 합니다. 허용되지 않았다면 앱의 Alarm sound 화면이 알려 줍니다
-- 설정 화면은 이 중 무엇이 빠졌는지 알려 줍니다. 앱이 마지막으로 요청한 것을 믿지 않고 OS에서 현재 상태를 다시 읽어 옵니다
+- 설정 화면은 이 중 무엇이 빠졌는지 알려 줍니다. 앱이 마지막으로 요청한 것을 믿지 않고 OS에서 현재 상태를 다시 읽어 옵니다. 읽어 온 상태는 서버에도 알립니다
 
 ### "배달되지 않음"으로 표시된 푸시
 

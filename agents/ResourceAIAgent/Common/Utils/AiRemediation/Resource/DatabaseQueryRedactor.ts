@@ -293,8 +293,6 @@ const REDIS_SECRET_PARAMETER_REGEX: RegExp =
 // An ACL SETUSER rule that sets or removes a password (>pw, <pw) or its hash (#h, !h).
 const ACL_PASSWORD_RULE_REGEX: RegExp = /^[<>#!]/;
 
-const TRAILING_WHITESPACE_REGEX: RegExp = /\s*$/;
-
 const ASCII_WORD_CHAR_REGEX: RegExp = /[A-Za-z0-9_$]/;
 const ASCII_WORD_START_REGEX: RegExp = /[A-Za-z_]/;
 const DIGIT_REGEX: RegExp = /[0-9]/;
@@ -1026,17 +1024,28 @@ const TEXT_ARGUMENT: string = "(?:[^\\s\"'\\]\\\\]|\\\\.)+";
  * and only after a space, "=" or "(": "password authentication failed",
  * PASSWORD EXPIRE and a JSON key "password": ... read as they are (the
  * generic rules mask a credential key's value).
+ *
+ * The white space around an optional "(" after "=" is read one way only -
+ * "=" and white space, then "(" and white space when a "(" is there - since
+ * two runs of white space side by side split a long one in as many ways as
+ * it is long, each of them tried when no quote follows.
  */
 const PASSWORD_PHRASE_REGEX: RegExp =
-  /\b((?:IDENTIFIED\s+(?:WITH\s+[A-Za-z0-9_$]+\s+)?(?:BY|AS)(?:\s+PASSWORD)?)|(?:(?:UN)?ENCRYPTED\s+)?PASSWORD)(\s*=\s*\(?\s*|\s*\(\s*|\s+)('(?:[^'\\\n]|\\.|'')*'?|"(?:[^"\\\n]|\\.|"")*"?)/gi;
+  /\b((?:IDENTIFIED\s+(?:WITH\s+[A-Za-z0-9_$]+\s+)?(?:BY|AS)(?:\s+PASSWORD)?)|(?:(?:UN)?ENCRYPTED\s+)?PASSWORD)(\s*=\s*(?:\(\s*)?|\s*\(\s*|\s+)('(?:[^'\\\n]|\\.|'')*'?|"(?:[^"\\\n]|\\.|"")*"?)/gi;
 
 /*
  * AUTH [username] password where a Redis command starts (a line, a quoted
  * field, a list item, after ": ", "= " or "| "): the rest of the field is
  * masked. `cmd=auth` in CLIENT LIST names the command only and is left.
+ *
+ * A tab is such a start too, with the spaces and tabs after it read up to
+ * the AUTH. When no AUTH follows, the last alternative takes that tab and
+ * the spaces and tabs after it, and they are put back as they were, so the
+ * search goes on after them: tried again from each of their tabs, every try
+ * read the same run up to the same place.
  */
 const REDIS_AUTH_REGEX: RegExp =
-  /(^|[[("'\t)]|[:=|] )([ \t]*)(auth)([ \t]+)((?:[^"\\\]\n]|\\.)+)/gim;
+  /(^|[[("'\t)]|[:=|] )([ \t]*)(auth)([ \t]+)((?:[^"\\\]\n]|\\.)+)|\t[ \t]*/gim;
 
 // HELLO protover AUTH username password (AUTH comes right after protover).
 const REDIS_HELLO_AUTH_REGEX: RegExp = new RegExp(
@@ -1164,16 +1173,26 @@ function maskSecretPhrases(text: string): DatabaseQueryRedaction {
       REDIS_AUTH_REGEX,
       (
         whole: string,
-        lead: string,
-        space: string,
-        auth: string,
-        gap: string,
-        rest: string,
+        lead: string | undefined,
+        space: string | undefined,
+        auth: string | undefined,
+        gap: string | undefined,
+        rest: string | undefined,
       ): string => {
-        const trailingMatch: RegExpExecArray | null =
-          TRAILING_WHITESPACE_REGEX.exec(rest);
-        const trailing: string = trailingMatch ? trailingMatch[0] : "";
-        const words: string = rest.slice(0, rest.length - trailing.length);
+        // Spaces and tabs no AUTH follows, put back as they were.
+        if (
+          lead === undefined ||
+          space === undefined ||
+          auth === undefined ||
+          gap === undefined ||
+          rest === undefined
+        ) {
+          return whole;
+        }
+
+        // trimEnd takes off exactly the white space \s matches, and reads the text once.
+        const words: string = rest.trimEnd();
+        const trailing: string = rest.slice(words.length);
 
         if (!words || isMaskedWord(words)) {
           return whole;

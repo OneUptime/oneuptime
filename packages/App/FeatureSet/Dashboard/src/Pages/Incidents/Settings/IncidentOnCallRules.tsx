@@ -11,56 +11,53 @@ import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule"
 import IncidentEpisodeOnCallRule from "Common/Models/DatabaseModels/IncidentEpisodeOnCallRule";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
+import {
+  getOnCallRuleActionFields,
+  getOnCallRuleFormSteps,
+} from "../../../Utils/Form/EventRuleForm";
 
 const incidentOnCallDocumentation: string = `
 ### How Incident On-Call Rules Work
 
-Incident On-Call Rules let you automatically execute on-call duty policies when an incident is created that matches your criteria — without having to remember to attach the policy by hand or wire it into a template.
+An on-call rule pages on-call policies for every new incident it matches, so nobody has to remember to add the policy by hand.
 
 \`\`\`mermaid
 flowchart TD
     A[New Incident Created] --> B{Match Against On-Call Rules}
-    B -->|Rule Matches| C[Add Rule's On-Call Policies to Incident]
-    B -->|No Match| D[Use Only Manually Attached Policies]
-    C --> E[Execute All Attached Policies]
+    B -->|Rule Matches| C[Add the Rule's On-Call Policies]
+    B -->|No Match| D[Only the Policies Added by Hand]
+    C --> E[Each Policy Pages Its People]
     D --> E
 \`\`\`
 
 ### Match Criteria
 
-A rule matches an incident only when **all** specified criteria pass. Empty criteria are skipped (don't filter on that field).
+The conditions a new incident must meet.
 
-- **Monitors** — incident must come from one of these monitors (any-of)
-- **Incident Severities** — incident must have one of these severities (any-of)
-- **Incident Labels** — incident must carry at least one of these labels (any-of)
-- **Monitor Labels** — at least one of the incident's monitors must carry one of these labels
-- **Incident Title / Description Pattern** — case-insensitive regex match
-- **Monitor Name / Description Pattern** — case-insensitive regex match against any of the incident's monitors
+### What It Does
 
-### Action
+When a rule matches, each of its on-call policies pages its people for the incident. A policy already on the incident is not run twice.
 
-When a rule matches, every on-call duty policy listed on the rule is executed for the incident. Policies are deduped against any policies already attached to the incident, so each policy runs at most once.
+### Several Matching Rules
 
-### Multiple Matching Rules
-
-All matching rules fire — there is no priority or short-circuit. The set of policies that ends up executing is the union of every matching rule's policies, plus any policies attached to the incident manually or via template.
+Every rule that matches runs: there is no order and no first match. Their policies are added to any added by hand or by a template, and each policy runs once.
 `;
 
 const incidentEpisodeOnCallDocumentation: string = `
 ### How Incident Episode On-Call Rules Work
 
-Match an incident episode on creation and execute on-call duty policies automatically. An episode's labels come from the grouping rule that created it, not from its individual incidents.
+An episode on-call rule pages on-call policies for every new incident episode it matches.
 
 ### Match Criteria
 
-- **Incident Severities**, **Episode Labels** — any of the selected values
-- **Episode Title**, **Episode Description** — text, or a regular expression or \`*\` wildcard pattern
+The conditions a new episode must meet.
 
-All matching rules fire — the union of their on-call policies is executed (deduped).
+### What It Does
+
+When a rule matches, each of its on-call policies pages its people for the episode. Every rule that matches runs, and each policy runs once.
 `;
 
 const IncidentRulesTable: FunctionComponent = (): ReactElement => {
@@ -80,12 +77,11 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Incident On-Call Rules",
         description:
-          "Define rules to automatically execute on-call duty policies when matching incidents are created.",
+          "Page on-call policies automatically for new incidents that match.",
       }}
       helpContent={{
         title: "How Incident On-Call Rules Work",
-        description:
-          "Match incidents against criteria and fire on-call policies automatically.",
+        description: "Which new incidents page which on-call policies.",
         markdown: incidentOnCallDocumentation,
       }}
       sortBy="name"
@@ -129,40 +125,8 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
         },
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "On-Call Policies", id: "on-call" },
-      ]}
+      formSteps={getOnCallRuleFormSteps<IncidentOnCallRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Page database team for any DB incident",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder:
-            "Fires the database on-call rotation whenever an incident with the 'database' label is created.",
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          // A rule starts on: the switch is on its edit form only.
-          doNotShowWhenCreating: true,
-          required: false,
-          description: "Enable or disable this rule.",
-        },
         {
           field: { monitors: true },
           title: "Monitors",
@@ -224,6 +188,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
         {
           field: { incidentTitlePattern: true },
           title: "Incident Title",
+          description: "Leave empty to match any title.",
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
@@ -256,22 +221,7 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           placeholder: "production|critical",
         },
-        {
-          field: { onCallDutyPolicies: true },
-          title: "On-Call Duty Policies",
-          stepId: "on-call",
-          sectionTitle: "Policies to Execute",
-          sectionDescription:
-            "When this rule matches, every selected policy is fired. Already-attached policies are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: OnCallDutyPolicy,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: true,
-          placeholder: "Select On-Call Policies",
-        },
+        ...getOnCallRuleActionFields<IncidentOnCallRule>(),
       ]}
       showRefreshButton={true}
     />
@@ -295,11 +245,11 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: "Incident Episode On-Call Rules",
         description:
-          "Auto-execute on-call policies when matching incident episodes are created.",
+          "Page on-call policies automatically for new incident episodes that match.",
       }}
       helpContent={{
         title: "How Incident Episode On-Call Rules Work",
-        description: "Match episodes and fire on-call policies.",
+        description: "Which new episodes page which on-call policies.",
         markdown: incidentEpisodeOnCallDocumentation,
       }}
       sortBy="name"
@@ -334,36 +284,8 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
         },
       ]}
       viewPageRoute={Navigation.getCurrentRoute()}
-      formSteps={[
-        { title: "Basic Info", id: "basic-info" },
-        { title: "Match Criteria", id: "match-criteria", columns: 2 },
-        { title: "On-Call Policies", id: "on-call" },
-      ]}
+      formSteps={getOnCallRuleFormSteps<IncidentEpisodeOnCallRule>()}
       formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          validation: { minLength: 2 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-        },
-        {
-          field: { isEnabled: true },
-          title: "Enabled",
-          stepId: "basic-info",
-          fieldType: FormFieldSchemaType.Toggle,
-          // A rule starts on: the switch is on its edit form only.
-          doNotShowWhenCreating: true,
-          required: false,
-        },
         {
           field: { incidentSeverities: true },
           title: "Incident Severities",
@@ -415,22 +337,7 @@ const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
           required: false,
           placeholder: "timeout|connection refused",
         },
-        {
-          field: { onCallDutyPolicies: true },
-          title: "On-Call Duty Policies",
-          stepId: "on-call",
-          sectionTitle: "Policies to Execute",
-          sectionDescription:
-            "When this rule matches, every selected policy is fired. Already-attached policies are not duplicated.",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: OnCallDutyPolicy,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: true,
-          placeholder: "Select On-Call Policies",
-        },
+        ...getOnCallRuleActionFields<IncidentEpisodeOnCallRule>(),
       ]}
       showRefreshButton={true}
     />

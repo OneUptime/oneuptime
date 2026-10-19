@@ -64,10 +64,10 @@ Clique em **Criar regra personalizada** abaixo dos modelos, ou em **Criar regra 
 
 #### Restringir
 
-Em **Quais alertas**, adicione condições sobre monitores, gravidades, rótulos, títulos e descrições. Deixe vazio para agrupar todo alerta novo. Depois clique em **Criar regra de agrupamento de alertas**.
+Em **Quais alertas**, **Todos os alertas**, onde uma regra nova começa, agrupa todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione condições sobre monitores, gravidades, rótulos, títulos e descrições. Depois clique em **Criar regra de agrupamento de alertas**.
 :::
 
-Todo o resto que uma regra pode fazer fica recolhido em **Mais campos**, no fim da etapa **Agrupamento**, em três grupos. Recolhido, seu cabeçalho nomeia o que contém e mostra como um chip cada configuração que a regra usa, para que editar uma regra nunca esconda o que ela faz.
+Todo o resto que uma regra pode fazer fica recolhido em **Mais campos**, no fim da etapa **Agrupamento**, em três grupos. Recolhido, seu cabeçalho nomeia o que contém e diz o valor de cada configuração que a regra usa, para que editar uma regra nunca esconda o que ela faz.
 
 | Grupo                            | Configurações                                                                                              |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ Um episódio que você cria não tem regra de agrupamento, então a lista mostra
 
 | Seção do menu lateral | Páginas                                                                     |
 | --------------------- | --------------------------------------------------------------------------- |
-| **Básico**            | **Visão geral**, **Descrição**, **Causa raiz**, **Notas de remediação**     |
-| **Propriedade**       | **Proprietários**                                                           |
-| **Linha do tempo**    | **Linha do tempo de estado**                                                |
-| **Alertas**           | **Alertas de membros**                                                      |
-| **Notas do episódio** | **Notas privadas**                                                          |
-| **Desenvolvedores**   | **Terraform**, **API**, **Assistentes de IA**                               |
-| **Avançado**          | **Registros de auditoria**, **Excluir episódio**                            |
+| **Visão geral** | **Visão geral**, **Linha do tempo de estado** |
+| **Investigação** | **Descrição**, **Causa raiz**, **Notas de remediação** |
+| **Equipe** | **Proprietários** |
+| **Alertas** | **Alertas de membros** |
+| **Notas** | **Notas privadas** |
+| **Desenvolvedores** | **Terraform**, **API**, **Assistentes de IA** |
+| **Avançado** | **Registros de auditoria**, **Excluir episódio** |
 
-**Propriedade**, **Desenvolvedores** e **Avançado** começam recolhidas. A **Visão geral** começa com **Alerts in this episode**, depois o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Move episode to** no menu **⋯**.
+**Desenvolvedores** e **Avançado** começam recolhidas. A **Visão geral** começa com **Alerts in this episode**, depois o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Move episode to** no menu **⋯**.
 
 **Alertas → Episódios ativos** lista os episódios que ainda não foram resolvidos, e o selo ao lado os conta.
 

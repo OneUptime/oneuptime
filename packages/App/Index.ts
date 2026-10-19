@@ -37,7 +37,13 @@ import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
 import StartupGate from "Common/Server/Utils/StartupGate";
 import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceReceivingHeartbeat";
-import { RunDatabaseMigrationsOnBoot } from "Common/Server/EnvironmentConfig";
+import {
+  ClusterKeyWarning,
+  DatastorePasswordWarning,
+  InboundEmailWebhookSecretWarning,
+  RegisterProbeKeyWarning,
+  RunDatabaseMigrationsOnBoot,
+} from "Common/Server/EnvironmentConfig";
 import "ejs";
 import OpenAPIUtil from "Common/Server/Utils/OpenAPI";
 /*
@@ -121,6 +127,41 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * and it refuses a token signed with it.
      */
     await InstanceTokenSigningKeyService.loadTokenSigningKey();
+
+    /*
+     * An installation whose ONEUPTIME_SECRET is unset or a value the
+     * repository ships has its services call each other with a cluster key
+     * derived from the key just loaded (ClusterKeyAuthorization), and refuses
+     * the public value from any caller. Said once, with what the in-cluster
+     * Runner needs.
+     */
+    if (ClusterKeyWarning) {
+      logger.warn(ClusterKeyWarning);
+    }
+
+    /*
+     * The other secrets an installation may still hold at a value the
+     * repository ships, said once each: REGISTER_PROBE_KEY, without which
+     * every global probe's registration is refused, and the datastore
+     * passwords, which the app cannot change for a datastore.
+     */
+    if (RegisterProbeKeyWarning) {
+      logger.warn(RegisterProbeKeyWarning);
+    }
+
+    if (DatastorePasswordWarning) {
+      logger.warn(DatastorePasswordWarning);
+    }
+
+    /*
+     * Incoming email turned on (INBOUND_EMAIL_DOMAIN) with no webhook secret
+     * of the installation's own: every email the provider delivers is
+     * refused until there is one, and the provider tells no one. Said once,
+     * with what to set.
+     */
+    if (InboundEmailWebhookSecretWarning) {
+      logger.warn(InboundEmailWebhookSecretWarning);
+    }
 
     // Connect to Redis
     await Redis.connect();

@@ -16,6 +16,11 @@ import {
   RULE_CRITERIA_OPERATOR_LABELS,
   RuleCriteriaCopy,
 } from "../../../../UI/Components/RuleCriteria/RuleCriteriaFields";
+import {
+  RULE_CRITERIA_ANY_SUBJECT_COPY,
+  RULE_CRITERIA_SUBJECT_COPY,
+  RuleCriteriaSubjectCopy,
+} from "../../../../UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 
 /*
  * The conditions builder is drawn in the dashboard, which looks every string
@@ -76,11 +81,23 @@ const readLocale: ReadLocaleFunction = (
 
 const ENGLISH: Record<string, string> = readLocale("en");
 
+/*
+ * "All incidents" / "Only incidents that match conditions", for every kind
+ * of record a rule can be about, and the two without a noun.
+ */
+const APPLIES_TO_STRINGS: Array<string> = [
+  ...Object.values(RULE_CRITERIA_SUBJECT_COPY),
+  RULE_CRITERIA_ANY_SUBJECT_COPY,
+].flatMap((copy: RuleCriteriaSubjectCopy): Array<string> => {
+  return [copy.all, copy.matching];
+});
+
 const BUILDER_STRINGS: Array<string> = Array.from(
   new Set([
     ...Object.values(RuleCriteriaCopy),
     ...Object.values(RULE_CRITERIA_OPERATOR_LABELS),
     ...Object.values(RULE_CRITERIA_ADDRESS_RANGE_OPERATOR_LABELS),
+    ...APPLIES_TO_STRINGS,
     // The form field the builder is, and the step it is on.
     "Conditions",
     "Match Criteria",
@@ -160,9 +177,13 @@ function placeholdersOf(text: string): Array<string> {
 
 describe("the conditions builder in every dashboard language", () => {
   test("the lists are not empty, so the checks below are not vacuous", () => {
-    expect(BUILDER_STRINGS.length).toBeGreaterThanOrEqual(45);
+    expect(BUILDER_STRINGS.length).toBeGreaterThanOrEqual(100);
     expect(BUILDER_STRINGS).toContain("Match all");
     expect(BUILDER_STRINGS).toContain("Is in");
+    expect(BUILDER_STRINGS).toContain("Applies to");
+    expect(APPLIES_TO_STRINGS).toHaveLength(64);
+    expect(BUILDER_STRINGS).toContain("All incidents");
+    expect(BUILDER_STRINGS).toContain("Only incidents that match conditions");
     expect(WRITTEN_CRITERIA_NAMES.length).toBeGreaterThan(80);
     expect(WRITTEN_CRITERIA_NAMES).toContain("Incident Title");
     expect(WRITTEN_CRITERIA_NAMES).toContain("Kubernetes Cluster Name");

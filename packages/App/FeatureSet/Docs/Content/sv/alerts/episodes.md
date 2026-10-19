@@ -64,10 +64,10 @@ Klicka på **Skapa anpassad regel** under mallarna, eller på **Skapa gruppering
 
 #### Avgränsa den
 
-I **Vilka larm** lägger du till villkor för monitorer, allvarlighetsgrader, etiketter, titlar och beskrivningar. Lämna det tomt för att gruppera varje nytt larm. Klicka sedan på **Skapa grupperingsregel för larm**.
+I **Vilka larm** grupperar **Alla varningar**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast varningar som uppfyller villkoren** och lägger till villkor för monitorer, allvarlighetsgrader, etiketter, titlar och beskrivningar. Klicka sedan på **Skapa grupperingsregel för larm**.
 :::
 
-Allt annat som en regel kan göra är hopfällt under **Fler fält** i slutet av steget **Gruppering**, i tre grupper. Hopfälld anger dess rubrik vad den innehåller och visar varje inställning som regeln använder som en etikett, så att redigering av en regel aldrig döljer vad den gör.
+Allt annat som en regel kan göra är hopfällt under **Fler fält** i slutet av steget **Gruppering**, i tre grupper. Hopfälld anger dess rubrik vad den innehåller och visar vad varje inställning som regeln använder är satt till, så att redigering av en regel aldrig döljer vad den gör.
 
 | Grupp                     | Inställningar                                                                                              |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 
 | Avsnitt i sidomenyn    | Sidor                                                                       |
 | ---------------------- | --------------------------------------------------------------------------- |
-| **Grundläggande**      | **Översikt**, **Beskrivning**, **Rotorsak**, **Åtgärdsanteckningar**        |
-| **Ägarskap**           | **Ägare**                                                                   |
-| **Tidslinje**          | **Tillståndstidslinje**                                                     |
-| **Varningar**          | **Medlemsvarningar**                                                        |
-| **Episodanteckningar** | **Privata anteckningar**                                                    |
-| **Utvecklare**         | **Terraform**, **API**, **AI-assistenter**                                  |
-| **Avancerad**          | **Granskningsloggar**, **Ta bort episod**                                   |
+| **Översikt** | **Översikt**, **Tillståndstidslinje** |
+| **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärdsanteckningar** |
+| **Team** | **Ägare** |
+| **Varningar** | **Medlemsvarningar** |
+| **Anteckningar** | **Privata anteckningar** |
+| **Utvecklare** | **Terraform**, **API**, **AI-assistenter** |
+| **Avancerad** | **Granskningsloggar**, **Ta bort episod** |
 
-**Ägarskap**, **Utvecklare** och **Avancerad** börjar hopfällda. **Översikt** inleds med **Alerts in this episode**, sedan **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Move episode to** i menyn **⋯**.
+**Utvecklare** och **Avancerad** börjar hopfällda. **Översikt** inleds med **Alerts in this episode**, sedan **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Move episode to** i menyn **⋯**.
 
 **Varningar → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
 

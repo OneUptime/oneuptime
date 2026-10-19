@@ -48,7 +48,8 @@ import ts from "typescript";
  *     messages, the emails, the Dashboard - names a real page, with its
  *     folded section, and nothing but OneUptime's Dashboard before it;
  *   - every path to the Slack or Microsoft Teams page of Project Settings
- *     goes through its Workspace section;
+ *     goes through its Workspace section (every other Project Settings path
+ *     is held the same way: ProjectSettingsMenuPathsInProductText);
  *   - every translation of such a text names each step as that language's
  *     Dashboard draws it;
  *   - no label beside the Microsoft Teams icon or workspace is the bare
@@ -315,13 +316,22 @@ describe("a written path, as a reader follows it", () => {
     expect(stepsOf(text)).toEqual(steps);
   });
 
-  test("a mention that is not a path is not one, and other Project Settings pages are not held here", () => {
+  test("a mention that is not a path is not one, and every Project Settings path is walked", () => {
+    expect(writtenPaths("Your User Settings are per project.", MENUS)).toEqual(
+      [],
+    );
     expect(
       writtenPaths(
         "Your User Settings are per project. Set SMTP in Project Settings > Notifications > Notification Settings.",
         MENUS,
       ),
-    ).toEqual([]);
+    ).toEqual([
+      expect.objectContaining({
+        menu: PROJECT_SETTINGS,
+        steps: ["Notifications", "Notification Settings"],
+        problems: [],
+      }),
+    ]);
   });
 });
 
@@ -473,7 +483,7 @@ describe("every translation names the path as its language's Dashboard draws it"
     expect(keys).toEqual(
       expect.arrayContaining([
         "No Slack account added. Connect your Slack account under User Settings > Workspace > Slack, then click 'Add Slack Account'.",
-        "No Microsoft Teams account added. Connect your Microsoft Teams account under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
+        "No Microsoft Teams account added. Connect yours under User Settings > Workspace > Microsoft Teams, then click 'Add Microsoft Teams Account'.",
         "{{name}} is on call but isn't in the group: OneUptime can't find them in Slack. They can connect their Slack account in User Settings > Workspace > Slack, or use the same email address in both.",
         "You'll now receive OneUptime notifications in Telegram. You can manage event-level toggles under User Settings → Notification Settings.",
         "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",

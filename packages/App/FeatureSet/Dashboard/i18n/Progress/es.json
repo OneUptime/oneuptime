@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 29820,
-    "untranslated": 3791
+    "keys": 30977,
+    "untranslated": 3715
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -44,6 +44,7 @@
     "AWS Lambda",
     "Active + Clean",
     "Actor",
+    "Agenda",
     "Albania",
     "Alias",
     "Amazon EKS",
@@ -181,6 +182,7 @@
     "Host",
     "Host ",
     "Hosts",
+    "ICMP (ping)",
     "India",
     "Indonesia",
     "Info",
@@ -249,6 +251,7 @@
     "PVE {{version}}",
     "Paraguay",
     "Ping",
+    "Plan",
     "Pod",
     "Podman CLI",
     "Podman Compose",

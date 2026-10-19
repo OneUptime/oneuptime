@@ -110,6 +110,8 @@ Eine neue Installation der Enterprise Edition läuft als **14-tägige Testphase*
 
 Die Lizenz wird über das **Editions-Label** verwaltet, das Master-Admins in der Kopfzeile des Admin-Dashboards und in der Fußzeile des Dashboards sehen. Es zeigt den Lizenzstatus, die Platznutzung und, für Master-Admins, die Instanz-ID.
 
+OneUptime Enterprise, gekauft auf AWS Marketplace, Microsoft Marketplace oder Google Cloud Marketplace, braucht keinen Lizenzschlüssel: Das Marketplace-Abonnement lizenziert es und rechnet jeden Benutzer stundenweise ab. Siehe [Cloud-Marktplätze](/docs/installation/cloud-marketplaces).
+
 ### Online-Aktivierung (Lizenzschlüssel)
 
 :::steps

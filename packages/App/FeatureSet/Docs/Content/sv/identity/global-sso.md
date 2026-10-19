@@ -73,11 +73,11 @@ Hur en global leverantör beter sig beror på om du ansluter några projekt till
 flowchart TB
     S["Någon loggar in"] --> A{"Projekt anslutna?"}
     A -->|"Nej"| K{"Har ett konto?"}
-    K -->|"Nej"| R["Avvisad: bjud in först"]
-    K -->|"Ja"| E["Inloggad i sina projekt"]
-    A -->|"Ja"| D{"Ny, med registrering<br/>avstängd?"}
+    K -->|"Nej"| R["Avvisad:<br/>bjud in först"]
+    K -->|"Ja"| E["Inloggad i<br/>sina projekt"]
+    A -->|"Ja"| D{"Ny, med<br/>registrering<br/>avstängd?"}
     D -->|"Ja"| R
-    D -->|"Nej"| P["Läggs till i anslutna projekt<br/>som personen inte är med i ännu"]
+    D -->|"Nej"| P["Läggs till i<br/>anslutna projekt<br/>som personen inte<br/>är med i ännu"]
     P --> E
 ```
 
@@ -87,12 +87,14 @@ flowchart TB
 
 Den som redan är medlem i ett anslutet projekt behåller sina team där.
 
-Två reglage på leverantören ändrar detta. Båda börjar avstängda, hopfällda under **Fler fält**:
+Två frågor på leverantören ändrar detta, hopfällda under **Fler fält**. Varje fråga börjar på sitt första svar:
 
-| Reglage | Vad det gör när det är påslaget |
+| Fråga | Svar |
 | --- | --- |
-| **Disable Sign Up with SSO** | Personer måste vara inbjudna till ett projekt innan de kan logga in med den här leverantören, även när projekt är anslutna. Ingen ny skapas vid första inloggningen. |
-| **Restrict to Attached Projects** | Inloggning med den här leverantören uppfyller SSO-kravet bara i de projekt som är anslutna till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. När det är avstängt uppfyller inloggningen kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till. |
+| **Personer utan konto** | **Får ett vid sin första inloggning**: de går med i de anslutna projekten; är inget anslutet måste de först bjudas in. **Måste bjudas in först**: personer måste vara inbjudna till ett projekt innan de kan logga in med den här leverantören, även när projekt är anslutna. |
+| **Var den här inloggningen räknas som SSO** | **Alla projekt**: projekt som kräver SSO godtar en inloggning med den här leverantören. **Bara anslutna projekt**: inloggning med den här leverantören uppfyller SSO-kravet bara i de projekt som är anslutna till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. |
+
+Med **Alla projekt** uppfyller inloggning med leverantören SSO-kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till.
 
 ## Kräv SSO
 
@@ -134,11 +136,11 @@ Två ändringar av vem som kan logga in kontrolleras efter varandra. Sparas en a
 ## Felsökning
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Personen har ännu inget OneUptime-konto, och leverantören skapar inget: antingen är inga projekt anslutna till den, eller så är **Disable Sign Up with SSO** påslaget. Bjud in personen till ett projekt, eller anslut ett projekt till leverantören.
+Personen har ännu inget OneUptime-konto, och leverantören skapar inget: antingen är inga projekt anslutna till den, eller så står **Personer utan konto** på **Måste bjudas in först**. Bjud in personen till ett projekt, eller anslut ett projekt till leverantören.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** är påslaget, och personen är inte medlem i något projekt som är anslutet till leverantören. Anslut ett av personens projekt, eller lägg till personen i ett anslutet projekt.
+**Var den här inloggningen räknas som SSO** står på **Bara anslutna projekt**, och personen är inte medlem i något projekt som är anslutet till leverantören. Anslut ett av personens projekt, eller lägg till personen i ett anslutet projekt.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"
@@ -147,6 +149,14 @@ Personen har ett konto men tillhör inget projekt, och leverantören har inget a
 
 :::details "Issuer URL does not match"
 För en SAML-leverantör är utfärdaren i svaret från din identitetsleverantör inte den **Issuer** som är sparad på leverantören. Kopiera den igen från din identitetsleverantör; de två måste matcha exakt.
+:::
+
+:::details "SAML Audience does not match"
+För en SAML-leverantör är svarets audience inte leverantörens **Issuer (Entity ID)**: din identitetsleverantör skapade svaret för ett annat program. Ställ in programmets entity ID i din identitetsleverantör till **Issuer (Entity ID)** på leverantörens sida. "SAML Recipient does not match" och "SAML Destination does not match" betyder detsamma för programmets reply URL: ställ in den till **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Varje svar från din identitetsleverantör loggar in en enda gång, och bara inom några minuter efter att det utfärdades: därefter avvisas det med "SAML response has expired". Logga in igen. Om svaren fortsätter att gå ut, kontrollera klockorna på den här servern och hos din identitetsleverantör.
 :::
 
 ## Nästa steg

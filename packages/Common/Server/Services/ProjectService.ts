@@ -10,6 +10,8 @@ import {
 import AllMeteredPlans from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import PayAsYouGoBillingService from "./PayAsYouGoBillingService";
 import MarketplaceSubscriptionService from "./MarketplaceSubscriptionService";
+import MarketplaceUsageReporter from "../Utils/Marketplace/MarketplaceUsageReporter";
+import VercelMarketplaceResources from "../Utils/Marketplace/Vercel/VercelMarketplaceResources";
 import CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import MarketplaceSubscriptionStatus, {
   MarketplaceSubscriptionStatusUtil,
@@ -176,6 +178,16 @@ export interface CurrentPlan {
    * it; ActiveMonitorLimit (Utils/Billing) holds creates to it.
    */
   activeMonitorsLimit?: number | undefined;
+}
+
+/*
+ * What a project asks of the people who open it at sign-in, as kept for a
+ * minute per server: whether they must have signed in with SSO, and the
+ * one provider (its id) that sign-in must come from, or null for any.
+ */
+interface ProjectSignInRule {
+  requireSsoForLogin: boolean;
+  requireSsoWithSsoProviderId: string | null;
 }
 
 export interface ProjectBalanceAdjustmentResult {
@@ -368,19 +380,28 @@ export class ProjectService extends ProjectReferencesService<Model> {
     10_000,
   );
   /*
-   * Caches the `requireSsoForLogin` flag per project so middleware can skip a
-   * Postgres findOneById on every authenticated request.
+   * Caches each project's sign-in rule - its `requireSsoForLogin` flag and
+   * the `requireSsoWithSsoProviderId` it pins (a string id, or null when
+   * unset) - so middleware can skip a Postgres findOneById on every
+   * authenticated request. Both are one entry, read by one query: neither
+   * is ever kept without the other, so a project's pinned provider is never
+   * forgotten while the rule that requires it is still remembered. Keyed by
+   * the project id in lower case, as every request and every forget names
+   * it, whatever case the request wrote it in.
    */
-  private requireSsoForLoginCache: InMemoryTTLCache<boolean> =
+  private signInRuleCache: InMemoryTTLCache<ProjectSignInRule> =
     new InMemoryTTLCache(10_000);
+
   /*
-   * Caches the `requireSsoWithSsoProviderId` discriminator per project so the
-   * enforce-SSO middleware can require that the SSO token was issued by a
-   * specific provider. Stored as a string id (or null when unset). Populated
-   * alongside `getRequireSsoForLogin` so the common path stays a single query.
+   * One read of a project's sign-in rule in flight per project: a page fires
+   * a burst of requests at once, and a forgotten rule would otherwise turn
+   * the burst into as many identical reads. A read is kept only while it is
+   * still the project's current one: a forget clears the slot, so a read
+   * that was on the wire when the rule changed answers its own callers but
+   * never puts the old rule back.
    */
-  private requireSsoWithSsoProviderIdCache: InMemoryTTLCache<string | null> =
-    new InMemoryTTLCache(10_000);
+  private signInRuleLookups: Map<string, Promise<ProjectSignInRule>> =
+    new Map();
   /*
    * Caches the current billing plan per project. `getCurrentPlan` is hit
    * by `CommonAPI.getDatabaseCommonInteractionProps` on every
@@ -1146,14 +1167,16 @@ export class ProjectService extends ProjectReferencesService<Model> {
    */
   public forgetSignInRules(projectId?: ObjectID): void {
     if (!projectId) {
-      this.requireSsoForLoginCache.clear();
-      this.requireSsoWithSsoProviderIdCache.clear();
+      this.signInRuleCache.clear();
+      this.signInRuleLookups.clear();
       ProjectSsoProviderStanding.forget();
       return;
     }
 
-    this.requireSsoForLoginCache.delete(projectId.toString());
-    this.requireSsoWithSsoProviderIdCache.delete(projectId.toString());
+    const key: string = projectId.toString().toLowerCase();
+
+    this.signInRuleCache.delete(key);
+    this.signInRuleLookups.delete(key);
     ProjectSsoProviderStanding.forget(projectId);
   }
 
@@ -1189,14 +1212,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     /*
      * Any project field could have changed; invalidate the in-process cache
-     * of the SSO flag. Cheap to refetch on the next request.
+     * of the sign-in rules. Cheap to refetch on the next request.
      */
-    if (updateBy.data.requireSsoForLogin !== undefined) {
-      this.requireSsoForLoginCache.clear();
-    }
-
-    if (updateBy.data.requireSsoWithSsoProviderId !== undefined) {
-      this.requireSsoWithSsoProviderIdCache.clear();
+    if (
+      updateBy.data.requireSsoForLogin !== undefined ||
+      updateBy.data.requireSsoWithSsoProviderId !== undefined
+    ) {
+      this.signInRuleCache.clear();
+      this.signInRuleLookups.clear();
     }
 
     this.applyDataResidencyRules(updateBy.data);
@@ -1651,6 +1674,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
     });
 
     await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
+
+    /*
+     * On Vercel the plan is the resource's billing plan, which the team
+     * sees in its Vercel dashboard: it follows a change made here. Never
+     * fails the change - Vercel is told best effort.
+     */
+    if (project.billingMarketplace === CloudMarketplace.Vercel) {
+      try {
+        await VercelMarketplaceResources.onPlanChanged({
+          projectId: project.id!,
+          paymentProviderPlanId: data.paymentProviderPlanId,
+        });
+      } catch (err) {
+        logger.error(err);
+      }
+    }
   }
 
   /*
@@ -3666,60 +3705,86 @@ export class ProjectService extends ProjectReferencesService<Model> {
   /**
    * Returns whether the given project requires SSO for login. Cached for
    * 60s in-process — middleware calls this on every authenticated request.
+   * Throws when the project does not exist, and when it cannot be read.
    */
   @CaptureSpan()
   public async getRequireSsoForLogin(projectId: ObjectID): Promise<boolean> {
-    const key: string = projectId.toString();
-    const cached: boolean | undefined = this.requireSsoForLoginCache.get(key);
-    if (cached !== undefined) {
-      return cached;
-    }
-
-    const project: Model | null = await this.findOneById({
-      id: projectId,
-      select: { requireSsoForLogin: true, requireSsoWithSsoProviderId: true },
-      props: { isRoot: true },
-    });
-
-    if (!project) {
-      // Don't cache "not found" — let the caller decide how to handle it.
-      throw new BadDataException("Project not found");
-    }
-
-    const value: boolean = Boolean(project.requireSsoForLogin);
-    this.requireSsoForLoginCache.set(key, value, 60_000);
-    this.requireSsoWithSsoProviderIdCache.set(
-      key,
-      project.requireSsoWithSsoProviderId
-        ? project.requireSsoWithSsoProviderId.toString()
-        : null,
-      60_000,
-    );
-    return value;
+    return (await this.getSignInRule(projectId)).requireSsoForLogin;
   }
 
   /**
    * Returns the specific SSO provider id a project requires for SSO-enforced
-   * login, or null when any trusted provider is acceptable. Cached for 60s and
-   * populated by `getRequireSsoForLogin`, so the enforce path stays one query.
+   * login, or null when any trusted provider is acceptable. Read with
+   * `getRequireSsoForLogin`, by the same query and kept with it for 60s, so
+   * the enforce path stays one query. Throws when the project does not
+   * exist, and when it cannot be read: null is only ever the project's
+   * answer.
    */
   @CaptureSpan()
   public async getRequireSsoWithSsoProviderId(
     projectId: ObjectID,
   ): Promise<ObjectID | null> {
-    const key: string = projectId.toString();
-    const cached: string | null | undefined =
-      this.requireSsoWithSsoProviderIdCache.get(key);
-    if (cached !== undefined) {
-      return cached ? new ObjectID(cached) : null;
+    const requiredProviderId: string | null = (
+      await this.getSignInRule(projectId)
+    ).requireSsoWithSsoProviderId;
+
+    return requiredProviderId ? new ObjectID(requiredProviderId) : null;
+  }
+
+  /*
+   * A project's sign-in rule, kept for 60s, or read from its row - by one
+   * read for every caller asking at once. A read that fails, or finds no
+   * project, throws to each of them and keeps nothing.
+   */
+  private getSignInRule(projectId: ObjectID): Promise<ProjectSignInRule> {
+    const key: string = projectId.toString().toLowerCase();
+    const cached: ProjectSignInRule | undefined = this.signInRuleCache.get(key);
+
+    if (cached) {
+      return Promise.resolve(cached);
     }
 
-    // Populate both caches via the existing single-query path.
-    await this.getRequireSsoForLogin(projectId);
+    const inFlight: Promise<ProjectSignInRule> | undefined =
+      this.signInRuleLookups.get(key);
 
-    const populated: string | null | undefined =
-      this.requireSsoWithSsoProviderIdCache.get(key);
-    return populated ? new ObjectID(populated) : null;
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const lookup: Promise<ProjectSignInRule> = this.findOneById({
+      id: projectId,
+      select: { requireSsoForLogin: true, requireSsoWithSsoProviderId: true },
+      props: { isRoot: true },
+    })
+      .then((project: Model | null): ProjectSignInRule => {
+        if (!project) {
+          // Don't cache "not found" — let the caller decide how to handle it.
+          throw new BadDataException("Project not found");
+        }
+
+        const rule: ProjectSignInRule = {
+          requireSsoForLogin: Boolean(project.requireSsoForLogin),
+          requireSsoWithSsoProviderId: project.requireSsoWithSsoProviderId
+            ? project.requireSsoWithSsoProviderId.toString()
+            : null,
+        };
+
+        // Only while this read is still the current one (see signInRuleLookups).
+        if (this.signInRuleLookups.get(key) === lookup) {
+          this.signInRuleCache.set(key, rule, 60_000);
+        }
+
+        return rule;
+      })
+      .finally((): void => {
+        if (this.signInRuleLookups.get(key) === lookup) {
+          this.signInRuleLookups.delete(key);
+        }
+      });
+
+    this.signInRuleLookups.set(key, lookup);
+
+    return lookup;
   }
 
   /*
@@ -3917,6 +3982,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
         paymentProviderSubscriptionSeats: true,
         trialEndsAt: true,
         currentActiveMonitorsCount: true,
+        billingMarketplace: true,
         isBlocked: true,
         createdByUserId: true,
         createdByUser: {
@@ -3929,6 +3995,22 @@ export class ProjectService extends ProjectReferencesService<Model> {
         },
       },
     );
+
+    /*
+     * A marketplace bills a project's usage by the hour, after the hour:
+     * what it used since the last hourly report, and the balance top-ups
+     * bought since, are billed now, while the project is still here to be
+     * priced. Once it is gone its purchase is unlinked (onDeleteSuccess), and
+     * nothing would bill that time. The delete never waits on, or fails
+     * because of, a marketplace (reportFinalUsageOfProject).
+     */
+    if (IsBillingEnabled) {
+      for (const project of projects) {
+        if (project.id && project.billingMarketplace) {
+          await MarketplaceUsageReporter.reportFinalUsageOfProject(project.id);
+        }
+      }
+    }
 
     return { deleteBy, carryForward: projects };
   }
@@ -4006,8 +4088,29 @@ export class ProjectService extends ProjectReferencesService<Model> {
       }
 
       /*
+       * A Vercel resource IS its project: deleting the project in OneUptime
+       * deletes the resource on Vercel too, which takes its environment
+       * variables out of the Vercel projects connected to it. One Vercel
+       * deleted itself has ended already, and nothing is sent.
+       */
+      for (const project of onDelete.carryForward) {
+        if (
+          project.id &&
+          deletedProjectIds.has(project.id.toString()) &&
+          project.billingMarketplace === CloudMarketplace.Vercel
+        ) {
+          try {
+            await VercelMarketplaceResources.onProjectDeleted(project.id);
+          } catch (err) {
+            logger.error(err);
+          }
+        }
+      }
+
+      /*
        * A marketplace purchase that paid for a deleted project stops being
-       * reported against it. The purchase itself is the buyer's, on the
+       * reported against it: its last usage was billed before the delete
+       * (onBeforeDelete). The purchase itself is the buyer's, on the
        * marketplace: it is cancelled there, or linked to another project
        * from the marketplace's "manage" link.
        */

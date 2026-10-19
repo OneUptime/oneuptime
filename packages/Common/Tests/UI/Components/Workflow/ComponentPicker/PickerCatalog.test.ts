@@ -164,8 +164,27 @@ describe("what the picker leads with", () => {
     }
   });
 
-  test("every trigger that is not generated is popular, so the trigger picker has no other group", () => {
-    expect(TRIGGERS.otherBuiltInGroups).toEqual([]);
+  test("the other hand-written triggers are an integration's, under its own name, after the popular ones", () => {
+    /*
+     * Every trigger anybody might start from is popular. Huntress's is for
+     * those who use Huntress, so it waits under More triggers, as the
+     * Telegram, IRC and Mattermost steps do under More components.
+     */
+    expect(
+      TRIGGERS.otherBuiltInGroups.map((group: PickerBuiltInGroup): string => {
+        return group.name;
+      }),
+    ).toEqual(["Huntress"]);
+    expect(
+      TRIGGERS.otherBuiltInGroups.flatMap(
+        (group: PickerBuiltInGroup): Array<string> => {
+          return titlesOf(group.components);
+        },
+      ),
+    ).toEqual(["Huntress Incident Report"]);
+    expect(titlesOf(TRIGGERS.popular)).not.toContain(
+      "Huntress Incident Report",
+    );
   });
 });
 

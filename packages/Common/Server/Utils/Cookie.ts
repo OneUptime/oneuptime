@@ -8,6 +8,7 @@ import StatusPagePrivateUser from "../../Models/DatabaseModels/StatusPagePrivate
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CookieName from "../../Types/CookieName";
+import JsonWebTokenPurpose from "../../Types/JsonWebTokenPurpose";
 import SsoProviderType from "../../Types/SSO/SsoProviderType";
 import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
@@ -18,6 +19,7 @@ import {
   DASHBOARD_MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS,
 } from "../../Types/Dashboard/MasterPassword";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import RequestTransport from "./RequestTransport";
 
 export default class CookieUtil {
   // set cookie with express response
@@ -46,6 +48,10 @@ export default class CookieUtil {
    * (e.g. its own Project SSO, or an instance-wide Global SSO). Used by both
    * the cookie flow (web) and the deep-link flow (mobile) so the token shape
    * stays identical.
+   *
+   * It is an SSO sign-in (JsonWebTokenPurpose.SsoSignIn) and never a
+   * session: a project that requires SSO reads it only next to a session of
+   * the same person, which the same sign-in hands out.
    */
   @CaptureSpan()
   public static getSSOToken(data: {
@@ -72,6 +78,7 @@ export default class CookieUtil {
           : undefined,
       },
       expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
   }
 
@@ -105,6 +112,8 @@ export default class CookieUtil {
    * every project the user belongs to (including projects created after login).
    * It carries the `ssoProviderId` / `ssoProviderType` discriminator so a
    * project that pins a specific provider can still be enforced.
+   *
+   * Like the per-project one, it is an SSO sign-in and never a session.
    */
   @CaptureSpan()
   public static getGlobalSSOToken(data: {
@@ -125,6 +134,7 @@ export default class CookieUtil {
         ssoProviderType: data.ssoProviderType.toString(),
       },
       expiresInSeconds: OneUptimeDate.getSecondsInDays(new PositiveNumber(30)),
+      purpose: JsonWebTokenPurpose.SsoSignIn,
     });
   }
 
@@ -243,8 +253,14 @@ export default class CookieUtil {
       );
     }
 
+    /*
+     * What the dashboards read to show a master admin's links and settings
+     * (UserUtil.isMasterAdmin); the server decides from the account itself.
+     * Taken away for everyone else, so a browser that last signed in as a
+     * master admin whose access was removed stops showing them at the
+     * session's next renewal, as the server already has.
+     */
     if (user.isMasterAdmin) {
-      // set user isMasterAdmin cookie
       CookieUtil.setCookie(
         res,
         CookieName.IsMasterAdmin,
@@ -254,6 +270,8 @@ export default class CookieUtil {
           httpOnly: false,
         },
       );
+    } else {
+      CookieUtil.removeCookie(res, CookieName.IsMasterAdmin);
     }
 
     if (user.profilePictureId) {
@@ -301,6 +319,7 @@ export default class CookieUtil {
         sessionId: sessionId,
       },
       expiresInSeconds: accessTokenExpiresInSeconds,
+      purpose: JsonWebTokenPurpose.StatusPageSession,
     });
 
     CookieUtil.setCookie(res, CookieUtil.getUserTokenKey(statusPageId), token, {
@@ -354,6 +373,15 @@ export default class CookieUtil {
     );
   }
 
+  /*
+   * Every cookie the server sets goes through here (a guard test holds the
+   * rest of the code to it), so one rule decides what keeps a cookie on
+   * HTTPS: it is Secure whenever the browser is talking to OneUptime over
+   * HTTPS (RequestTransport.isHttps), and a browser never sends a Secure
+   * cookie over plain HTTP. A caller cannot turn that off; over plain HTTP,
+   * where the browser would drop a Secure cookie, the cookie is left as it
+   * was so a plain-HTTP installation still signs people in.
+   */
   @CaptureSpan()
   public static setCookie(
     res: ExpressResponse,
@@ -366,6 +394,10 @@ export default class CookieUtil {
       sameSite: "lax",
       ...options,
     };
+
+    if (RequestTransport.isHttps(res.req)) {
+      cookieOptions.secure = true;
+    }
 
     res.cookie(name, value, cookieOptions);
   }
@@ -397,12 +429,35 @@ export default class CookieUtil {
 
   // delete cookie with express response
 
+  /*
+   * Clears a cookie with the attributes it was set with: the path (a cookie
+   * set on another path is a different cookie, and survives a clear on "/"),
+   * the SameSite setting, and Secure by the same rule as setCookie.
+   */
   @CaptureSpan()
-  public static removeCookie(res: ExpressResponse, name: string): void {
-    res.clearCookie(name, {
-      path: "/",
-      sameSite: "lax",
-    });
+  public static removeCookie(
+    res: ExpressResponse,
+    name: string,
+    options?: {
+      path?: string | undefined;
+      sameSite?: CookieOptions["sameSite"] | undefined;
+      httpOnly?: boolean | undefined;
+    },
+  ): void {
+    const cookieOptions: CookieOptions = {
+      path: options?.path || "/",
+      sameSite: options?.sameSite || "lax",
+    };
+
+    if (options?.httpOnly !== undefined) {
+      cookieOptions.httpOnly = options.httpOnly;
+    }
+
+    if (RequestTransport.isHttps(res.req)) {
+      cookieOptions.secure = true;
+    }
+
+    res.clearCookie(name, cookieOptions);
   }
 
   @CaptureSpan()

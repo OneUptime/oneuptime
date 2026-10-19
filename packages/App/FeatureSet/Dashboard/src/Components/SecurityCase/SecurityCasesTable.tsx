@@ -297,6 +297,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
             field: { priority: true },
             stepId: "case",
             title: "Priority",
+            description: "How urgent the case is.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
             dropdownOptions:

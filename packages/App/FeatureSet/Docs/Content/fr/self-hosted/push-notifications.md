@@ -13,22 +13,22 @@ OneUptime alerte les personnes sur leur téléphone via l'application mobile **O
 
 ```mermaid title="Comment un push atteint un téléphone ou un navigateur"
 flowchart TB
-    Server["Votre serveur OneUptime"]
-    Relay["Relais push de OneUptime"]
+    Server["Votre serveur<br/>OneUptime"]
+    Relay["Relais push<br/>de OneUptime"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["Application OneUptime On-Call"]
+    Phone["Application<br/>OneUptime On-Call"]
     PushService["Le service push<br/>du navigateur"]
     Browser["Navigateur"]
     Server -->|"pas d'EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"EXPO_ACCESS_TOKEN défini"| Expo
+    Server -->|"EXPO_ACCESS_TOKEN<br/>défini"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -44,6 +44,7 @@ Aucun identifiant Expo n'est nécessaire sur le serveur avec l'application mobil
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | Où vont les push mobiles tant que `EXPO_ACCESS_TOKEN` n'est pas défini. |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | Vide | Envoie les push mobiles directement à Expo, avec le jeton de votre projet Expo. |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | Vide | Relaie les push mobiles d'autres serveurs OneUptime, avec le `EXPO_ACCESS_TOKEN` de ce serveur. Vide signifie désactivé, sauf si `BILLING_ENABLED` vaut `true`. |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | Vide | La moitié publique de la paire de clés avec laquelle les navigateurs s'abonnent. |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | Vide | La moitié privée, qui signe chaque Web Push. |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | Une adresse de contact à laquelle les services push des navigateurs peuvent vous joindre. |
@@ -81,6 +82,8 @@ expo:
 | Application mobile ou navigateur → OneUptime | Votre nom d'hôte OneUptime | HTTPS / TCP 443 | Se connecter, enregistrer l'appareil et ouvrir les liens des notifications. |
 
 Si vous modifiez `PUSH_NOTIFICATION_RELAY_URL`, autorisez son nom d'hôte de destination et le port configuré. Un relais personnalisé doit implémenter l'API de relais de OneUptime. Ces valeurs par défaut et le basculement entre relais et livraison directe sont définis dans [la configuration de OneUptime](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) et dans [le service push](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts). Les requêtes directes à Expo utilisent le point de terminaison documenté dans [le guide d'envoi d'Expo](https://docs.expo.dev/push-notifications/sending-notifications/). OneUptime lit les accusés de livraison auprès du relais à la même adresse, avec `/receipts` à la place de `/send`. Un relais sans cette route livre quand même les push ; un appareil dont l'application a été supprimée n'est alors repéré que lorsqu'un push ultérieur vers lui est refusé.
+
+Un serveur OneUptime auto-hébergé ne relaie les push d'autres serveurs qu'avec `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` et son propre `EXPO_ACCESS_TOKEN` ; sans ce réglage, il répond 404 à cette adresse. Activez-le uniquement sur le serveur par lequel vos autres serveurs OneUptime envoient, et ne laissez que ces serveurs atteindre cette adresse.
 
 Pour le Web Push, autorisez les hôtes réels des points de terminaison d'abonnement des navigateurs qu'utilise votre équipe. OneUptime accepte `fcm.googleapis.com`, `android.googleapis.com`, `push.services.mozilla.com`, `notify.windows.com` et `push.apple.com`, y compris leurs sous-domaines. Des exemples typiques sont `updates.push.services.mozilla.com` et `web.push.apple.com`. L'[abonnement push du navigateur](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) fournit la destination ; n'autoriser qu'Expo ou le relais de OneUptime ne permet pas le Web Push.
 
@@ -121,7 +124,7 @@ flowchart TB
 
 Quatre conditions doivent toutes être remplies pour qu'une alerte outrepasse le mode silencieux. S'il en manque une, l'alerte est quand même livrée – simplement en silence.
 
-1. **La personne l'a activé pour cet appareil.** Enregistré par appareil, désactivé par défaut, dans `UserPush.isCriticalAlertEnabled`. Le téléphone et la tablette d'une même personne sont des décisions distinctes.
+1. **La personne l'a activé pour cet appareil.** Enregistré par appareil, désactivé par défaut, dans `UserPush.isCriticalAlertEnabled`. Le téléphone et la tablette d'une même personne sont des décisions distinctes. Les versions de l'application postérieures à 1.6.0 le signalent de nouveau à chaque ouverture, comme désactivé tant que les réglages du téléphone lui-même n'autorisent pas les alertes critiques, afin que la liste des appareils montre ce que le téléphone fera vraiment.
 2. **La règle d'astreinte qui a envoyé l'alerte le demande.** Sous **Paramètres utilisateur > Règles d'astreinte**, chaque règle qui notifie un téléphone est réglée sur « Alerte critique », la valeur par défaut, ou sur « Standard », qui suit les réglages sonores du téléphone – ainsi une personne peut être réveillée pour un incident critique et prévenue en silence pour un incident mineur. Enregistré par règle dans `UserNotificationRule.pushNotificationLevel`.
 3. **Le serveur marque l'alerte comme critique.** Il envoie la charge utile de son critique d'APNs plus `interruptionLevel: critical` pour iOS, et cible un canal de notification critique pour Android : `oncall_critical`, ou le canal propre à l'alarme choisie (voir [Choisir le son d'alarme](#choisir-le-son-dalarme)).
 4. **Le système d'exploitation l'autorise**, et c'est là que les deux plateformes diffèrent.
@@ -192,7 +195,7 @@ Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en 
 - **iOS** : confirmez que la compilation porte l'entitlement d'alertes critiques d'Apple (voir ci-dessus), et que Critical Alerts est autorisé sous iOS Settings > Notifications > OneUptime On-Call
 - **Android** : confirmez que l'application a l'accès à Ne pas déranger sous Settings > Notifications > Do Not Disturb access
 - **Android** : si vous avez choisi un son d'alarme, le canal de notification propre à ce son doit lui aussi être autorisé à outrepasser Ne pas déranger ; l'écran Alarm sound de l'application indique quand ce n'est pas le cas
-- L'écran de réglages indique lequel de ces éléments manque ; il relit l'état actuel auprès du système plutôt que de se fier à ce que l'application a demandé en dernier
+- L'écran de réglages indique lequel de ces éléments manque ; il relit l'état actuel auprès du système plutôt que de se fier à ce que l'application a demandé en dernier, et indique au serveur ce qu'il trouve
 
 ### Push marqués « non livrés »
 

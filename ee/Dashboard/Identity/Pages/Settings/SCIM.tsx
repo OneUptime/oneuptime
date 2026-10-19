@@ -42,6 +42,7 @@ import {
 } from "../../TightenOnly/TightenOnlyUpdates";
 import { canCurrentUserSaveScimConnections } from "../../ScimSaveAccess";
 import ScimSaveAccessNotice from "../../Components/ScimSaveAccessNotice";
+import ScimOAuthClientCredentials from "../../Components/ScimOAuthClientCredentials";
 
 /*
  * Settings > SCIM: the project's SCIM connections and their logs.
@@ -51,13 +52,16 @@ import ScimSaveAccessNotice from "../../Components/ScimSaveAccessNotice";
  * description wait under Advanced at their defaults (../../ScimFormFields).
  * Once it is saved, the dialog with the SCIM URLs and the bearer token to
  * give the identity provider opens straight away: that is the next thing to
- * do.
+ * do. The same dialog makes the OAuth 2.0 client secret for identity
+ * providers that ask for client credentials instead of a bearer token
+ * (../../Components/ScimOAuthClientCredentials).
  *
  * A connection can change the members of any team, so only someone who
  * could invite people to every team - a project owner - may add one, change
- * one, or see or reset its bearer token (../../ScimSaveAccess; the server
- * lets only a project owner read the token). Everyone else who can see the
- * page is told so instead of being offered what the server would refuse.
+ * one, see or reset its bearer token, or make its client secrets
+ * (../../ScimSaveAccess; the server lets only a project owner read the token
+ * or when the secrets expire). Everyone else who can see the page is told
+ * so instead of being offered what the server would refuse.
  */
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -158,7 +162,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                   title: "SCIM (System for Cross-domain Identity Management)",
                   description:
-                    "SCIM is an open standard for automating the exchange of user identity information between identity domains, or IT systems. Use SCIM to automatically provision and deprovision users from your identity provider.",
+                    "Let your identity provider add and remove the people in this project.",
                 }}
                 documentationLink={Route.fromString("/docs/identity/scim")}
                 noItemsMessage={"No SCIM configuration found."}
@@ -210,8 +214,14 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                   },
                 ]}
                 selectMoreFields={{
-                  // Only a project owner may read the token at all.
-                  ...(canSaveConnections ? { bearerToken: true } : {}),
+                  // Only a project owner may read the token, or when the secrets expire.
+                  ...(canSaveConnections
+                    ? {
+                        bearerToken: true,
+                        oauthClientSecretExpiresAt: true,
+                        oauthPreviousClientSecretExpiresAt: true,
+                      }
+                    : {}),
                   createdAt: true,
                   updatedAt: true,
                   enablePushGroups: true,
@@ -348,6 +358,26 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     </p>
                   </div>
                 )}
+
+                {canSaveConnections && (
+                  <ScimOAuthClientCredentials
+                    key={showSCIMUrlId}
+                    connectionType="project"
+                    connectionId={showSCIMUrlId}
+                    clientSecretExpiresAt={
+                      currentSCIMConfig.oauthClientSecretExpiresAt
+                    }
+                    previousClientSecretExpiresAt={
+                      currentSCIMConfig.oauthPreviousClientSecretExpiresAt
+                    }
+                    canChange={!isReadOnly}
+                    onChange={() => {
+                      setRefresher((value: boolean) => {
+                        return !value;
+                      });
+                    }}
+                  />
+                )}
               </div>
             </div>
           }
@@ -364,7 +394,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
       {showResetModal && (
         <ConfirmModal
           title="Reset Bearer Token"
-          description="Are you sure you want to reset the Bearer Token? You will need to update your identity provider with the new token."
+          description="The current token stops working at once. Update your identity provider with the new token."
           onSubmit={async () => {
             await resetBearerToken();
           }}

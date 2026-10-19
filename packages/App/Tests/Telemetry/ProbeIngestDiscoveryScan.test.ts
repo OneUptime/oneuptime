@@ -228,7 +228,7 @@ describe("POST /probe/discovery-scan/list", () => {
     scan.cidr = "192.168.1.0/24";
     /*
      * An SNMP scan, said out loud on the fixture. The METHOD is a sweep
-     * setting in its own right (issue #3445) — turning Check SNMP off changes
+     * setting in its own right (issue #3445) — switching a scan to ICMP changes
      * what the sweep asks of every address, not merely which credentials it
      * asks with — so it belongs in this guard next to the credentials, and
      * with the column left unset here the assertion below could be satisfied
@@ -479,7 +479,7 @@ describe("POST /probe/discovery-scan/list", () => {
    * An ICMP-only scan is claimed under the same guard, and the two new columns
    * carry the two halves of what it is: the method says SNMP is off, and the
    * credential list is empty because the service clears every SNMP setting
-   * when Check SNMP is switched off (SNMP_CONFIG_COLUMNS in
+   * when a scan is switched to ICMP (SNMP_CONFIG_COLUMNS in
    * NetworkDeviceDiscoveryScanService).
    *
    * Both still have to be GUARDED. The dangerous edit here is the one that
@@ -1026,7 +1026,7 @@ describe("POST /probe/discovery-scan/list", () => {
 
     /*
      * An ICMP-only scan alongside it: the service clears every SNMP setting
-     * when Check SNMP is switched off, so this row genuinely has no list, and
+     * when a scan is switched to ICMP, so this row genuinely has no list, and
      * it must leave with no key rather than an empty array. `resolve` reads an
      * empty list and an absent one the same way, but a key on the wire is a
      * statement about credentials that a ping-only scan has no business
@@ -2076,7 +2076,7 @@ describe('POST /probe/discovery-scan/result — what "responded" counts, per sca
     const { next } = await reportResult(makeScan(false), {
       scannedHostCount: 254,
       statusMessage:
-        "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 0 answered ping.",
+        "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 0 answered ping.",
       discoveredDevices: [],
     });
 
@@ -2377,7 +2377,7 @@ describe('POST /probe/discovery-scan/result — what "responded" counts, per sca
    */
   test("an ICMP-only status message is stored verbatim", async () => {
     const message: string =
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 0 answered ping. Nothing answered ICMP ping. Check that this probe can reach the range and that ICMP echo is permitted to it.";
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 0 answered ping. Nothing answered ICMP ping. Check that this probe can reach the range and that ICMP echo is permitted to it.";
 
     await reportResult(makeScan(false), {
       statusMessage: message,
@@ -2446,13 +2446,13 @@ describe('POST /probe/discovery-scan/result — what "responded" counts, per sca
       makeScan(false, { isRecurring: true, rescanIntervalInMinutes: 5 }),
       {
         statusMessage:
-          "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 4 answered ping.",
+          "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 4 answered ping.",
         discoveredDevices: pingOnlyHosts(),
       },
     );
 
     expect(writtenData()["statusMessage"]).toBe(
-      "Swept 254 hosts with ICMP ping only (Check SNMP is off for this scan): 4 answered ping. Rescan interval is below the 15-minute minimum; rescanning every 15 minutes instead.",
+      "Swept 254 hosts with ICMP ping only (Scan method is ICMP, so no SNMP): 4 answered ping. Rescan interval is below the 15-minute minimum; rescanning every 15 minutes instead.",
     );
   });
 

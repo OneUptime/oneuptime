@@ -56,6 +56,14 @@ Indtast et **Navn** — og en **Beskrivelse** under **Flere felter**, hvis du vi
 ### I dashboardet
 
 :::steps
+1. Åbn monitoren. Klik øverst til højre i dens oversigt, ved siden af **Opdater**, på **More actions** (⋯).
+2. Vælg den nye status under **Skift status til**.
+3. Klik på **Skift status**. Den nye status begynder nu og vises med det samme på monitoren og på hver statusside, der viser den.
+:::
+
+En ændring, der begyndte tidligere, registreres i stedet på monitorens statustidslinje:
+
+:::steps
 1. Åbn monitoren, og klik på **Statustidslinje** i dens sidemenu.
 2. Klik på **Opret Monitor Status Begivenhed**.
 3. Vælg **Monitorstatus**. **Begynder den** er nu; angiv et tidligere tidspunkt, hvis ændringen skete tidligere.

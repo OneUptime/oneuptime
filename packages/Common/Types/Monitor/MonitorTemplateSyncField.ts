@@ -144,6 +144,11 @@ export default class MonitorTemplateSyncFieldUtil {
       add("externalStatusPageMonitor.retries", "Status page retries");
     }
 
+    // The probes each monitor made from a Probe Status template watches.
+    if (monitorType === MonitorType.ProbeStatus) {
+      add("probeStatusMonitor.probeIds", "Probes to watch");
+    }
+
     const infrastructure: Partial<
       Record<MonitorType, [string, string, string]>
     > = {

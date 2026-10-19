@@ -33,11 +33,11 @@ Abra o SLO e vá para **Monitores**.
 
 ### Escolher os monitores
 
-Clique em **Add Monitors** e escolha monitores do projeto. Só aparecem os monitores que ainda não estão associados.
+Clique em **Adicionar monitores** e escolha monitores do projeto. Só aparecem os monitores que ainda não estão associados.
 
 ### Salvar a lista
 
-Clique em **Add Monitors**. Os monitores aparecem na lista com a origem **Manual** e contam para o SLI a partir da avaliação seguinte.
+Clique em **Adicionar monitores**. Os monitores aparecem na lista com a origem **Manual** e contam para o SLI a partir da avaliação seguinte.
 :::
 
 Para tirar um monitor do SLO, clique em **Remover** na linha dele. O monitor em si não muda; ele só deixa de contar para o SLI e o orçamento de erros do SLO.
@@ -114,7 +114,7 @@ As regras se ressincronizam a cada salvamento, então **Run Now** serve para col
 
 Enquanto pelo menos uma regra estiver habilitada, são as regras que gerenciam os monitores do SLO:
 
-- não é possível adicionar monitores à mão: **Add Monitors** fica desativado, e um banner diz **This SLO's monitors are managed by its monitor rules**, com um link **Manage Monitor Rules**;
+- não é possível adicionar monitores à mão: **Adicionar monitores** fica desativado, e um banner diz **This SLO's monitors are managed by its monitor rules**, com um link **Manage Monitor Rules**;
 - os monitores que uma regra associou não podem ser removidos à mão, porque a regra os associaria de novo: o botão **Remover** deles fica bloqueado e a dica explica o motivo;
 - os monitores associados à mão antes de as regras serem ligadas ainda podem ser removidos.
 
@@ -144,7 +144,7 @@ Cada associação e desassociação, e cada regra criada, editada ou excluída, 
 
 ## Solução de problemas
 
-:::details Add Monitors está desativado
+:::details Adicionar monitores está desativado
 Pelo menos uma das regras de monitor do SLO está habilitada, então são as regras que gerenciam os monitores dele. Mude as regras, ou desligue todas para escolher os monitores à mão.
 :::
 

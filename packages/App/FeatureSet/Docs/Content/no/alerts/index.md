@@ -56,11 +56,11 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 | Seksjon           | Hva du gjør der                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Varsler**       | **Alle varsler** og **Aktive varsler**, der det røde merket teller varslene som ikke er løst ennå.                          |
-| **Episoder**      | **Alle episoder**, **Aktive episoder** og **Dokumentasjon**, en side i dashbordet om gruppering.                           |
+| **Episoder** | **Alle episoder** og **Aktive episoder**: relaterte varsler samlet i ett problem å jobbe med. |
 | **KI**            | **Innsikt**, **Logger** og **Innstillinger**: hva OneUptime AI har lært av varslene dine, alt den har gjort, og hva den har lov til. |
 | **Arbeidsområde** | **Slack** og **Microsoft Teams**, avhengig av hva prosjektet har koblet til, eller **Koble til Slack eller Teams** når det ikke har noen av dem. |
 | **Regler**        | **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **Reminder Rules**. |
-| **Innstillinger** | **Varselsstatus**, **Varselsalvor**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Nummerering**.               |
+| **Innstillinger** | **Varselsstatus**, **Varselsalvor**, **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder**, **Nummerering**.               |
 
 **Varsler** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** starter sammenfoldet, og en seksjon åpner seg selv når du er på en av sidene i den. Konfigurasjonen av varsler ligger her, ikke i **Prosjektinnstillinger**.
 
@@ -129,19 +129,20 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 
 | Seksjon i sidemenyen | Sider                                                                                                       |
 | -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Grunnleggende**    | **Oversikt**, **Beskrivelse**, **Rotårsak**, **Utbedring**, **Runbooks**, **Tilstandstidslinje**, **Eiere**, **Tilknyttede hendelser** |
-| **Vakt**             | **Vaktutførelser**: hvilke vaktpolicyer som kjørte for varselet, og hvordan hver av dem gikk                |
-| **Logger**           | **Varsellogger** og **AI-logger**: hver melding som er sendt om varselet, og alt AI har gjort for det      |
-| **Varselnotater**    | **Private notater**                                                                                         |
+| **Oversikt** | **Oversikt** og **Tilstandstidslinje** |
+| **Undersøkelse** | **Beskrivelse**, **Rotårsak**, **Utbedring**, **Runbooks**, **Tilknyttede hendelser** |
+| **Team** | **Vaktutførelser** og **Eiere**: hvem som ble tilkalt for varselet, og hvem som eier det |
+| **Varsler**           | **Varsellogger** og **AI-logger**: hver melding som er sendt om varselet, og alt AI har gjort for det      |
+| **Notater**    | **Private notater**                                                                                         |
 | **Utvikler**         | **Terraform**, **API** og **AI-assistenter**: varselet styrt fra kode                                       |
-| **Avansert**         | **Egendefinerte felt**, **Revisjonslogger**, **Innstillinger**, **Slett varsel**                            |
+| **Avansert** | **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger**, **Slett varsel** |
 
-**Grunnleggende** og **Varselnotater** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.
+**Oversikt**, **Undersøkelse**, **Team** og **Notater** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.
 
 - **Oversikt** — tre ruter med hvor lang tid det tok å bekrefte og løse varselet, og **Varighet**. Kortet **AI Investigation** står øverst på siden med **Ask OneUptime AI** nederst, og **Varsel Feed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Varseldetaljer**, varselets målinger og **Berørte ressurser**.
 - **Tilstandstidslinje** — hver tilstand varselet har vært i, når og hvor lenge. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hendelser** — hendelsene varselet er en del av, med **Knytt til hendelsen** og **Erklær hendelse**.
-- **Innstillinger** — **Hvem kan se dette varselet** med bryteren **Privat varsel**, og **Reminders** med **Send påminnelser**. Hver bryter lagrer i det øyeblikket du slår den om.
+- **Innstillinger** — **Hvem kan se dette varselet** med bryteren **Privat varsel**, og **Påminnelser** med **Send påminnelser**. Hver bryter lagrer i det øyeblikket du slår den om.
 
 ## Private varsler
 

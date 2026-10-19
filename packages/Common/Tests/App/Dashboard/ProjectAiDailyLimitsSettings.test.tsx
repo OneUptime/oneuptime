@@ -83,7 +83,7 @@ jest.mock("../../../UI/Config", () => {
 });
 
 /*
- * Project Settings → AI Features → More settings, rendered for real with
+ * Project Settings → AI → AI Features → More settings, rendered for real with
  * the network and the permission snapshot stubbed: "Just like we have more
  * settings for the incident AI page ... daily token limit or daily spend
  * limit (if it is SaaS)."
@@ -356,7 +356,7 @@ function usageRequests(): Array<{ url: string; headers: unknown }> {
     });
 }
 
-describe("More settings on Project Settings → AI Features", () => {
+describe("More settings on Project Settings → AI → AI Features", () => {
   test("is folded under Enable AI, and names its one card, Daily limits", async () => {
     openAiFeaturesPage();
 

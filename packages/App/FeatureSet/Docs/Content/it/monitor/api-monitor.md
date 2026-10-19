@@ -18,11 +18,11 @@ sequenceDiagram
     participant P as Sonda
     participant A as La vostra API
     participant O as OneUptime
-    P->>A: Richiesta con il vostro metodo, intestazioni e corpo
-    A-->>P: Codice di stato, intestazioni e corpo
-    Note over P: Ritenta un errore, un 4xx o 5xx,<br/>o una risposta più lenta di 10 s
+    P->>A: Richiesta con il vostro<br/>metodo, intestazioni e corpo
+    A-->>P: Codice di stato,<br/>intestazioni e corpo
+    Note over P: Ritenta un errore,<br/>un 4xx o 5xx,<br/>o una risposta<br/>più lenta di 10 s
     P->>O: Risultato del controllo
-    O->>O: Controllare i criteri, dall'alto verso il basso
+    O->>O: Controllare i criteri,<br/>dall'alto verso il basso
 ```
 
 Una sonda che ha perso la propria connessione di rete non riporta alcun risultato, quindi non può segnare la vostra API come offline.

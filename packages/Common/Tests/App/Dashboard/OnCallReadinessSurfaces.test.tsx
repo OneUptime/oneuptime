@@ -1327,7 +1327,10 @@ describe("ResponderReadinessCard", () => {
       expect(
         await screen.findByText(/No one is on this policy yet/),
       ).toBeInTheDocument();
-      expect(screen.getByText("Escalation")).toBeInTheDocument();
+      // It names the page the people are added on, as the side menu does.
+      expect(screen.getByText("Escalation Rules")).toBeInTheDocument();
+      const theWordTab: RegExp = /\btab\b/;
+      expect(document.body).not.toHaveTextContent(theWordTab);
     });
   });
 

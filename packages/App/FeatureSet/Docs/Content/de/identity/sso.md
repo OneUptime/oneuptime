@@ -21,12 +21,12 @@ sequenceDiagram
     actor U as Person
     participant O as OneUptime
     participant I as Identitätsanbieter
-    U->>O: Mit SSO anmelden, Projekt wählen
-    O->>I: SAML-Anfrage an die Anmelde-URL
+    U->>O: Mit SSO anmelden,<br/>Projekt wählen
+    O->>I: SAML-Anfrage an<br/>die Anmelde-URL
     I->>U: Anmeldeseite
     U->>I: Zugangsdaten und MFA
-    I->>O: Signierte Assertion an die Antwort-URL
-    Note over O: Prüft Signatur und Aussteller,<br/>liest die E-Mail aus der Name ID
+    I->>O: Signierte Assertion<br/>an die Antwort-URL
+    Note over O: Prüft Signatur und Aussteller,<br/>liest die E-Mail<br/>aus der Name ID
     O->>U: Im Projekt angemeldet
 ```
 
@@ -36,13 +36,21 @@ OneUptime liest nur wenige Dinge aus der Assertion, die Ihr IdP sendet:
 | --- | --- |
 | Signatur | Prüft sie gegen das **Öffentliches Zertifikat** des Anbieters. Die Antwort muss signiert und darf nicht verschlüsselt sein. |
 | Issuer | Muss genau dem **Aussteller** des Anbieters entsprechen. |
+| Audience | Muss die **Kennung (Entity ID)** des Anbieters sein. Eine Antwort, die Ihr IdP für eine andere Anwendung erstellt hat, wird abgelehnt. |
+| Recipient und Destination | Müssen die **Antwort-URL** des Anbieters sein, die Adresse, an die die Antwort gesendet wurde. |
+| `NotBefore` und `NotOnOrAfter` | Die Antwort wird nur angenommen, solange diese es erlauben, und höchstens 10 Minuten nach ihrer Ausstellung, mit 3 Minuten Spielraum für Uhren, die voneinander abweichen. |
 | Name ID | Die E-Mail-Adresse der Person. Sie muss eine gültige E-Mail-Adresse sein. |
-| `http://schemas.microsoft.com/identity/claims/displayname` | Der Name der Person, wenn OneUptime ihr Konto anlegt. Optional. |
+| Namensattribute | Der Name der Person, wenn OneUptime ihr Konto anlegt: ein Anzeigename (`displayName` oder `http://schemas.microsoft.com/identity/claims/displayname`) oder ein Vor- und Nachname (`firstName` und `lastName` oder die Claims `givenname` und `surname`, die Microsoft Entra ID standardmäßig sendet). Optional. |
+| `http://schemas.microsoft.com/identity/claims/objectidentifier` | Die Objekt-ID der Person, die Microsoft Entra ID standardmäßig sendet. Die erste Anmeldung über den Anbieter verknüpft das Konto mit ihr, und eine spätere Anmeldung, die die E-Mail-Adresse des Kontos mit einer anderen Objekt-ID nennt, wird abgelehnt. Optional. |
+
+Jede Antwort gilt für genau eine Anmeldung. Wird sie erneut gesendet, etwa weil Sie nach der Anmeldung im Browser zurückgehen, wird sie abgelehnt: Melden Sie sich erneut an.
 
 Wer sich zum ersten Mal anmeldet, kommt in die **Teams** des Anbieters, und diese bestimmen, was die Person tun darf: siehe [Rollen und Teams für SSO-Benutzer](#rollen-und-teams-für-sso-benutzer).
 
 > [!NOTE]
 > Auf OneUptime Cloud meldet OneUptime jemanden, der sich zum ersten Mal mit einem SAML- oder OIDC-Anbieter des Projekts anmeldet, nicht sofort an, sondern schickt ihm einen Link per E-Mail. Die Person öffnet ihn, bestätigt, dass das Single Sign-On des Projekts sie anmelden darf, und setzt die Anmeldung fort. Der Link gilt 24 Stunden. Das geschieht einmal pro Projekt und erneut, wenn jemand das Projekt verlässt und zurückkommt. Selbst gehostete Installationen melden Personen sofort an.
+
+Auf OneUptime Cloud belegt jemand, der über SSO in das Projekt kommt, einen Platz, genau wie jemand, den Sie einladen. Enthält Ihr Plan eine feste Anzahl an Plätzen und sind alle belegt, können neue Personen erst über SSO beitreten, wenn ein Platz frei wird.
 
 ## SSO einrichten
 
@@ -56,7 +64,7 @@ Sie brauchen die Berechtigung, SSO-Anbieter hinzuzufügen – **Project Owner**,
 
 2. **SSO-Konfiguration erstellen**
 
-   - Klicken Sie auf **SSO erstellen**
+   - Klicken Sie auf **SAML-Anbieter hinzufügen**
    - Geben Sie einen **Name** für die SSO-Konfiguration ein (z. B. "Keycloak SAML" oder "Okta SAML")
    - Geben Sie die **Anmelde-URL** Ihres Identitätsanbieters ein
    - Geben Sie den **Aussteller** (Entity ID) Ihres Identitätsanbieters ein
@@ -100,7 +108,7 @@ Keycloak ist eine verbreitete Open-Source-Lösung für Identitäts- und Zugriffs
 
 2. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `my-project-oneuptime`)
    - **Anmelde-URL** und **Aussteller**: die Werte oben
    - **Öffentliches Zertifikat**: das Zertifikat, zwischen seinen eigenen Zeilen `BEGIN CERTIFICATE` und `END CERTIFICATE`
@@ -126,14 +134,15 @@ Keycloak ist eine verbreitete Open-Source-Lösung für Identitäts- und Zugriffs
    Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter. Sie sollten zur Keycloak-Anmeldeseite und zurück zu OneUptime geleitet werden.
 :::
 @tab Microsoft Entra ID
-Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitätsdienst von Microsoft. Sie brauchen einen Tenant, der Unternehmensanwendungen mit SAML-SSO unterstützt, sowie Administratorzugriff auf Entra ID und OneUptime.
+Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitätsdienst von Microsoft. Sie brauchen einen Tenant, der Unternehmensanwendungen mit SAML-SSO unterstützt, sowie Administratorzugriff auf Entra ID und OneUptime. Führt der Microsoft-Entra-Anwendungskatalog OneUptime auf, fügen Sie die App auf OneUptime Cloud von dort hinzu: Sie bringt die Claims, die OneUptime liest, und die Muster der URLs von OneUptime schon mit.
 
 :::steps
 1. **Eine Unternehmensanwendung in Entra ID anlegen**
 
    - Melden Sie sich im [Microsoft Entra admin center](https://entra.microsoft.com) an
-   - Gehen Sie zu **Identity** > **Applications** > **Enterprise applications**, klicken Sie auf **+ New application** und dann auf **+ Create your own application**
-   - Geben Sie einen Namen ein (z. B. "OneUptime"), wählen Sie **Integrate any other application you don't find in the gallery (Non-gallery)** und klicken Sie auf **Create**
+   - Gehen Sie zu **Identity** > **Applications** > **Enterprise applications** und klicken Sie auf **+ New application**
+   - Aus dem Katalog: Suchen Sie nach OneUptime, wählen Sie es aus und klicken Sie auf **Create**
+   - Andernfalls: Klicken Sie auf **+ Create your own application**, geben Sie einen Namen ein (z. B. "OneUptime"), wählen Sie **Integrate any other application you don't find in the gallery (Non-gallery)** und klicken Sie auf **Create**
 
 2. **Die SAML-Werte von Entra ID kopieren**
 
@@ -143,7 +152,7 @@ Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitä
 
 3. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `Azure AD SAML`)
    - **Anmelde-URL**: die **Login URL**
    - **Aussteller**: den **Microsoft Entra Identifier**
@@ -162,10 +171,10 @@ Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitä
 
 5. **Die E-Mail als Name ID senden**
 
-   Klicken Sie unter **Attributes & Claims** auf **Edit**:
+   Klicken Sie unter **Attributes & Claims** auf **Edit**. Bei der Anwendung aus dem Katalog ist das schon eingerichtet: Prüfen Sie es.
    - Setzen Sie **Unique User Identifier (Name ID)** auf die E-Mail-Adresse des Benutzers: `user.mail`, oder `user.userprincipalname`, wo das die E-Mail-Adresse ist
    - Setzen Sie das **Name identifier format** auf `Email address`
-   - Fügen Sie optional einen Claim namens `http://schemas.microsoft.com/identity/claims/displayname` mit dem Quellattribut `user.displayname` hinzu, damit neue Konten den Namen der Person erhalten. Die übrigen Claims ignoriert OneUptime
+   - Behalten Sie die Standard-Claims von Entra ID: Neue Konten erhalten den Namen der Person aus `givenname` und `surname`, und das Konto wird mit der Objekt-ID der Person verknüpft, `objectidentifier`. Fügen Sie optional einen Claim namens `http://schemas.microsoft.com/identity/claims/displayname` mit dem Quellattribut `user.displayname` hinzu, damit neue Konten stattdessen den Anzeigenamen erhalten. Die übrigen Claims ignoriert OneUptime
 
 6. **Benutzer und Gruppen zuweisen**
 
@@ -176,13 +185,14 @@ Microsoft Entra ID (früher Azure AD / Active Directory) ist der Cloud-Identitä
    Bearbeiten Sie den Anbieter in OneUptime und schalten Sie **Aktiviert** ein, öffnen Sie dann den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter. Sie sollten zur Microsoft-Anmeldeseite und zurück zu OneUptime geleitet werden.
 :::
 @tab Okta
-Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen eine Okta-Organisation mit Administratorzugriff sowie Administratorzugriff auf OneUptime.
+Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen eine Okta-Organisation mit Administratorzugriff sowie Administratorzugriff auf OneUptime. Führt das Okta Integration Network OneUptime auf, fügen Sie die App auf OneUptime Cloud von dort hinzu: Sie meldet Personen über die OneUptime-Seite **Mit SSO anmelden** und über ihr Okta-Dashboard an, gibt ihnen bei der ersten Anmeldung ein Konto und fragt statt nach den URLs von OneUptime nach zwei IDs.
 
 :::steps
-1. **Eine SAML-Anwendung in Okta anlegen**
+1. **OneUptime zu Okta hinzufügen**
 
-   - Gehen Sie in der Okta Admin Console zu **Applications** > **Applications** und klicken Sie auf **Create App Integration**
-   - Wählen Sie **SAML 2.0** und klicken Sie auf **Next**, geben Sie "OneUptime" als **App name** ein und klicken Sie auf **Next**
+   - Gehen Sie in der Okta Admin Console zu **Applications** > **Applications**
+   - Aus dem Okta Integration Network: Klicken Sie auf **Browse App Catalog**, suchen Sie nach OneUptime und klicken Sie auf **Add Integration**. Okta fragt nach der **OneUptime Project ID** und der **OneUptime SSO Provider ID**, bevor OneUptime sie zeigen kann: Geben Sie vorerst in beide `0` ein; Sie ersetzen sie in Schritt 4. Klicken Sie auf **Done** und machen Sie mit Schritt 2 weiter
+   - Andernfalls: Klicken Sie auf **Create App Integration**, wählen Sie **SAML 2.0** und klicken Sie auf **Next**, geben Sie "OneUptime" als **App name** ein und klicken Sie auf **Next**
    - Okta fragt nach den URLs von OneUptime, bevor es seine eigenen zeigt. Geben Sie vorerst Ihre OneUptime-Adresse (zum Beispiel `https://oneuptime.com`) als **Single sign-on URL** und als **Audience URI (SP Entity ID)** ein: Beide ersetzen Sie in Schritt 4
    - Setzen Sie **Name ID format** auf `EmailAddress` und **Application username** auf `Email`
    - Klicken Sie auf **Next**, wählen Sie **I'm an Okta customer adding an internal app** und klicken Sie auf **Finish**
@@ -195,7 +205,7 @@ Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen e
 
 3. **Den Anbieter in OneUptime anlegen**
 
-   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SSO erstellen** und füllen Sie aus:
+   Gehen Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**, klicken Sie auf **SAML-Anbieter hinzufügen** und füllen Sie aus:
    - **Name**: ein aussagekräftiger Name (z. B. `Okta SAML`)
    - **Anmelde-URL** und **Aussteller**: die Werte von Okta
    - **Öffentliches Zertifikat**: das Zertifikat, einschließlich der Zeilen `BEGIN CERTIFICATE` und `END CERTIFICATE`
@@ -205,11 +215,16 @@ Okta ist eine weit verbreitete Identitätsplattform mit SAML-SSO. Sie brauchen e
 
 4. **Okta die URLs von OneUptime geben**
 
-   Klicken Sie auf dem Tab **General** der Anwendung unter **SAML Settings** auf **Edit** und dann auf **Next** und setzen Sie:
+   Klicken Sie bei der Anwendung aus dem Okta Integration Network auf dem Tab **General** unter **App Settings** auf **Edit** und setzen Sie:
+   - **OneUptime Project ID** und **OneUptime SSO Provider ID**: die beiden IDs in der **Kennung (Entity ID)** aus OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
+
+   Klicken Sie auf **Save** und prüfen Sie auf dem Tab **Sign On**, dass **Application username format** auf `Email` steht.
+
+   Klicken Sie bei Ihrer eigenen Anwendung auf dem Tab **General** unter **SAML Settings** auf **Edit** und dann auf **Next** und setzen Sie:
    - **Single sign-on URL**: die **Antwort-URL (Assertion Consumer Service URL)** aus OneUptime
    - **Audience URI (SP Entity ID)**: die **Kennung (Entity ID)** aus OneUptime
 
-   Fügen Sie optional ein Attribute Statement namens `http://schemas.microsoft.com/identity/claims/displayname` mit dem Wert `user.firstName + " " + user.lastName` hinzu, damit neue Konten den Namen der Person erhalten. Klicken Sie auf **Next** und dann auf **Finish**.
+   Fügen Sie optional die Attribute Statements `firstName` mit dem Wert `user.firstName` und `lastName` mit dem Wert `user.lastName` hinzu, damit neue Konten den Namen der Person erhalten. Klicken Sie auf **Next** und dann auf **Finish**.
 
 5. **Personen zuweisen**
 
@@ -237,11 +252,11 @@ Ein Projekt kann sich auch über einen OpenID-Connect-Anbieter anmelden, etwa Go
 
 :::steps
 1. Registrieren Sie bei Ihrem Identitätsanbieter eine App (einen OIDC-Client), die den Authorization Code Flow mit PKCE nutzen darf, und kopieren Sie ihre **Aussteller-URL**, **Client-ID** und **Client-Secret**.
-2. Gehen Sie in OneUptime zu **Projekteinstellungen** > **Sicherheit** > **OIDC** und klicken Sie auf **OIDC erstellen**.
+2. Gehen Sie in OneUptime zu **Projekteinstellungen** > **Sicherheit** > **SSO**. Klicken Sie unter den SAML-Anbietern auf **OIDC-Anbieter hinzufügen**.
 3. Geben Sie einen **Name** (das, was Personen auf der Anmeldeseite sehen), die **Aussteller-URL**, die **Client-ID** und das **Client-Secret** ein. Sie können stattdessen auch die Discovery-URL des Anbieters in **Aussteller-URL** einfügen.
 4. Im Schritt **Anmeldung** beginnt **Teams** mit dem Mitglieder-Team Ihres Projekts: Wer sich zum ersten Mal anmeldet, kommt in diese Teams. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Discovery-URL** (der Aussteller, gefolgt von `/.well-known/openid-configuration`), die **Geltungsbereiche** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung ("Sign in with" und der Name). Ändern Sie sie nur, wenn Ihr Anbieter es verlangt. Angenommen werden nur Teams, in die Sie selbst jemanden einladen könnten: Ein Team, das mehr Zugriff gibt, als Sie haben, wird unter **Teams** genannt.
 5. Speichern Sie. Der Dialog **OIDC-Konfiguration** öffnet sich mit der **Weiterleitungs-URI**: Fügen Sie sie den erlaubten Weiterleitungs-URIs Ihrer App hinzu. Ein neuer Anbieter ist zunächst ausgeschaltet; bearbeiten Sie ihn deshalb danach und schalten Sie **Aktiviert** ein.
-6. Melden Sie sich über den Link in der Karte **OpenID Connect (OIDC) testen** mit dem Anbieter an, bevor Sie für das Projekt SSO verlangen.
+6. Öffnen Sie den Link in der Karte **Single Sign-On (SSO) testen** und wählen Sie den Anbieter, um sich darüber anzumelden, bevor Sie für das Projekt SSO verlangen.
 :::
 
 ## Rollen und Teams für SSO-Benutzer
@@ -301,14 +316,14 @@ Wo weder das Projekt noch der Server SSO verlangt, stoppt das Ausschalten eines 
 
 ## Anbieter unterhalb des Plans Scale
 
-Ein SAML- oder OIDC-Anbieter, den ein Projekt noch hat, meldet weiter Personen an, nachdem eine Scale-Testphase endet oder der Plan herabgestuft wird. Deshalb listen die Seiten **SSO** und **OIDC** unterhalb von Scale die Anbieter des Projekts unter dem Upgrade-Angebot auf (**Noch eingerichtete SAML-Anbieter**, **Noch eingerichtete OIDC-Anbieter**):
+Ein SAML- oder OIDC-Anbieter, den ein Projekt noch hat, meldet weiter Personen an, nachdem eine Scale-Testphase endet oder der Plan herabgestuft wird. Deshalb listet die Seite **SSO** unterhalb von Scale die Anbieter des Projekts unter dem Upgrade-Angebot auf (**Noch eingerichtete SAML-Anbieter**, **Noch eingerichtete OIDC-Anbieter**):
 
 - **Ausschalten** stoppt einen Anbieter sofort. OneUptime fragt vorher nach.
 - **Löschen** entfernt ihn.
 
 Einen Anbieter hinzuzufügen, zu ändern oder wieder einzuschalten erfordert **Scale**. Wer was tun darf, ist dasselbe wie mit Scale: Zum Ausschalten eines Anbieters braucht man die Berechtigung, ihn zu bearbeiten, zum Löschen die Berechtigung, ihn zu löschen.
 
-Solange das Projekt noch SSO verlangt, zeigen seine Seiten **SSO** und **OIDC** auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie den letzten Anbieter ausschalten. Bis dahin lässt sich der letzte Anbieter, mit dem sich Personen anmelden können, weder ausschalten noch löschen, damit niemand aus dem Projekt ausgesperrt wird.
+Solange das Projekt noch SSO verlangt, zeigt seine Seite **SSO** auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie den letzten Anbieter ausschalten. Bis dahin lässt sich der letzte Anbieter, mit dem sich Personen anmelden können, weder ausschalten noch löschen, damit niemand aus dem Projekt ausgesperrt wird.
 
 Die Seiten **SSO** und **OIDC** einer Statusseite listen deren eigene Anbieter auf dieselbe Weise auf. Solange die Statusseite noch SSO verlangt, zeigen beide Seiten auch **SSO für die Anmeldung erzwingen**: Schalten Sie es aus, bevor Sie ihre Anbieter ausschalten, sonst können sich ihre privaten Benutzer überhaupt nicht mehr anmelden.
 
@@ -324,6 +339,26 @@ Die Person ist noch nicht im Projekt, und der Anbieter hat keine **Teams**, in d
 
 :::details "Issuer URL does not match"
 Der Issuer in der Assertion Ihres IdP ist nicht der **Aussteller** des Anbieters. Kopieren Sie ihn erneut aus Ihrem IdP – die Realm-URL von Keycloak, den **Microsoft Entra Identifier** oder den Identity Provider Issuer von Okta –, damit beide genau übereinstimmen.
+:::
+
+:::details "SAML Audience does not match"
+Die Audience der Antwort ist nicht die **Kennung (Entity ID)** dieses Anbieters; Ihr IdP hat sie für eine andere Anwendung erstellt. Setzen Sie in Ihrem IdP die Entity ID der Anwendung auf die **Kennung (Entity ID)** aus **SSO-Konfiguration anzeigen** – die **Client ID** in Keycloak, die **Identifier (Entity ID)** in Entra ID, die **Audience URI (SP Entity ID)** in Okta. Ein IdP, der mit der Adresse von OneUptime allein als Entity ID eingerichtet wurde, etwa `https://oneuptime.com`, funktioniert weiter.
+:::
+
+:::details "SAML Recipient does not match"
+Der Recipient der Antwort ist nicht die **Antwort-URL** dieses Anbieters; die Antwort wurde für eine andere Adresse gesendet. Setzen Sie in Ihrem IdP die Antwort-URL der Anwendung auf die **Antwort-URL (Assertion Consumer Service URL)** aus **SSO-Konfiguration anzeigen** – die **Assertion Consumer Service POST Binding URL** in Keycloak, die **Reply URL (Assertion Consumer Service URL)** in Entra ID, die **Single sign-on URL** in Okta. "SAML Destination does not match" hat dieselbe Ursache und dieselbe Lösung.
+:::
+
+:::details "SAML response has expired"
+Die Antwort hat OneUptime später erreicht, als Ihr IdP erlaubt, oder mehr als 10 Minuten nach ihrer Ausstellung: Melden Sie sich erneut an. Passiert das immer wieder, geht die Uhr Ihres IdP oder des OneUptime-Servers falsch; OneUptime erlaubt, dass sie 3 Minuten auseinanderliegen. "SAML response is not valid yet" ist dasselbe Problem in umgekehrter Richtung.
+:::
+
+:::details "SAML response was already used"
+Jede Antwort Ihres IdP gilt für genau eine Anmeldung. Wenn Sie nach der Anmeldung im Browser zurückgehen oder die Seite neu laden, über die Ihr IdP Sie weitergeleitet hat, wird dieselbe Antwort erneut gesendet: Melden Sie sich erneut an, über OneUptime oder über Ihren IdP.
+:::
+
+:::details "This account is linked to someone else."
+Microsoft Entra ID hat jemanden mit der E-Mail-Adresse eines Kontos angemeldet, das über diesen Anbieter mit einer anderen Objekt-ID verknüpft ist: Die Adresse gehört in Entra ID jetzt einer anderen Person, oder das Entra-ID-Konto der Person wurde neu angelegt. OneUptime lehnt die Anmeldung ab, damit niemand, der die Adresse als Nächstes erhält, das Konto nutzen kann. Gehört das Konto dieser Person, entfernen Sie sie aus dem Projekt und fügen Sie sie wieder hinzu: Bei ihrer nächsten Anmeldung wird das Konto mit ihrer neuen Objekt-ID verknüpft.
 :::
 
 :::details Die Anmeldung scheitert mit einem Signatur- oder Zertifikatsfehler

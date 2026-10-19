@@ -25,8 +25,10 @@ import LogMonitorCriteria from "./Criteria/LogMonitorCriteria";
 import SecurityEventsMonitorCriteria from "./Criteria/SecurityEventsMonitorCriteria";
 import LlmMonitorCriteria from "./Criteria/LlmMonitorCriteria";
 import MetricMonitorCriteria, {
+  IsCriteriaInEffect,
   MetricSeriesEvaluationResult,
 } from "./Criteria/MetricMonitorCriteria";
+import CriteriaInEffect from "./CriteriaInEffect";
 import TraceMonitorCriteria from "./Criteria/TraceMonitorCriteria";
 import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
 import ProfileMonitorCriteria from "./Criteria/ProfileMonitorCriteria";
@@ -40,6 +42,7 @@ import NtpMonitorUtil from "../../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
 import SqlMonitorCriteria from "./Criteria/SqlMonitorCriteria";
 import DatabaseMonitorCriteria from "./Criteria/DatabaseMonitorCriteria";
 import ExternalStatusPageMonitorCriteria from "./Criteria/ExternalStatusPageMonitorCriteria";
+import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
 import MonitorCriteriaMessageBuilder from "./MonitorCriteriaMessageBuilder";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
@@ -307,6 +310,16 @@ export default class MonitorCriteriaEvaluator {
      * not passed.
      */
     matchHistoryReads?: CriteriaFilterMatchHistoryReads | undefined;
+    /*
+     * Which criteria are already in effect for which series - their alert
+     * or incident is open, or the monitor has their status. An "All Values"
+     * metric criteria that is not in effect for a series waits for the
+     * series' data to cover the time range before it matches; one that is
+     * keeps being judged on its data points. MonitorResource hands one that
+     * reads the monitor's open alerts and incidents; without one, none
+     * counts as open.
+     */
+    criteriaInEffect?: CriteriaInEffect | undefined;
   }): Promise<ProbeApiIngestResponse> {
     const criteria: MonitorCriteria | undefined =
       input.monitorStep.data?.monitorCriteria;
@@ -317,6 +330,12 @@ export default class MonitorCriteriaEvaluator {
 
     const matchHistoryReads: CriteriaFilterMatchHistoryReads =
       input.matchHistoryReads || new CriteriaFilterMatchHistoryReads();
+
+    const criteriaInEffect: CriteriaInEffect =
+      input.criteriaInEffect ||
+      new CriteriaInEffect({
+        monitor: input.monitor,
+      });
 
     /*
      * A check that just arrived is judged, up front, for every filter that
@@ -450,6 +469,7 @@ export default class MonitorCriteriaEvaluator {
           criteriaInstance: criteriaInstance,
           criteriaResult: criteriaResult,
           matchHistory: matchHistory,
+          criteriaInEffect: criteriaInEffect,
         });
 
       if (!criteriaResult.message) {
@@ -487,6 +507,7 @@ export default class MonitorCriteriaEvaluator {
           monitor: input.monitor,
           monitorStep: input.monitorStep,
           criteriaInstance,
+          criteriaInEffect: criteriaInEffect,
         });
 
       /*
@@ -896,6 +917,7 @@ ${contextBlock}
     monitor: Monitor;
     monitorStep: MonitorStep;
     criteriaInstance: MonitorCriteriaInstance;
+    criteriaInEffect?: CriteriaInEffect | undefined;
   }): Promise<Array<PerSeriesCriteriaMatch>> {
     /*
      * Incoming Request / webhook monitors fan out per payload-derived key
@@ -1087,6 +1109,10 @@ ${contextBlock}
           dataToProcess: input.dataToProcess,
           criteriaFilter,
           monitorStep: input.monitorStep,
+          isInEffect: MonitorCriteriaEvaluator.getIsInEffect({
+            criteriaInEffect: input.criteriaInEffect,
+            criteriaInstance: input.criteriaInstance,
+          }),
         });
 
       for (const evaluation of evaluations) {
@@ -1166,6 +1192,7 @@ ${contextBlock}
     criteriaInstance: MonitorCriteriaInstance;
     criteriaResult: MonitorEvaluationCriteriaResult;
     matchHistory?: MatchHistoryContext | undefined;
+    criteriaInEffect?: CriteriaInEffect | undefined;
   }): Promise<string | null> {
     return MonitorCriteriaEvaluator.isMonitorInstanceCriteriaFiltersMet({
       dataToProcess: input.dataToProcess,
@@ -1175,7 +1202,33 @@ ${contextBlock}
       criteriaInstance: input.criteriaInstance,
       criteriaResult: input.criteriaResult,
       matchHistory: input.matchHistory,
+      criteriaInEffect: input.criteriaInEffect,
     });
+  }
+
+  /*
+   * Asks criteriaInEffect whether this criteria is in effect for a series.
+   * Undefined - nothing in effect - without a reader or a criteria.
+   */
+  private static getIsInEffect(input: {
+    criteriaInEffect: CriteriaInEffect | undefined;
+    criteriaInstance: MonitorCriteriaInstance | undefined;
+  }): IsCriteriaInEffect | undefined {
+    const criteriaInEffect: CriteriaInEffect | undefined =
+      input.criteriaInEffect;
+    const criteriaInstance: MonitorCriteriaInstance | undefined =
+      input.criteriaInstance;
+
+    if (!criteriaInEffect || !criteriaInstance) {
+      return undefined;
+    }
+
+    return (seriesFingerprint: string | undefined): Promise<boolean> => {
+      return criteriaInEffect.isInEffect({
+        criteriaInstance: criteriaInstance,
+        seriesFingerprint: seriesFingerprint,
+      });
+    };
   }
 
   private static async isMonitorInstanceCriteriaFiltersMet(input: {
@@ -1191,6 +1244,7 @@ ${contextBlock}
      * whose monitor types keep none.
      */
     matchHistory?: MatchHistoryContext | undefined;
+    criteriaInEffect?: CriteriaInEffect | undefined;
   }): Promise<string | null> {
     const filterCondition: FilterCondition =
       input.criteriaInstance.data?.filterCondition || FilterCondition.All;
@@ -1236,6 +1290,7 @@ ${contextBlock}
             probeApiIngestResponse: input.probeApiIngestResponse,
             criteriaInstance: input.criteriaInstance,
             criteriaFilter: criteriaFilter,
+            criteriaInEffect: input.criteriaInEffect,
           });
       }
 
@@ -1337,6 +1392,7 @@ ${contextBlock}
     probeApiIngestResponse: ProbeApiIngestResponse;
     criteriaInstance?: MonitorCriteriaInstance | undefined;
     criteriaFilter: CriteriaFilter;
+    criteriaInEffect?: CriteriaInEffect | undefined;
   }): Promise<string | null> {
     if (input.criteriaFilter.checkOn === CheckOn.JavaScriptExpression) {
       let storageMap: JSONObject = {};
@@ -1619,6 +1675,10 @@ ${contextBlock}
           dataToProcess: input.dataToProcess,
           criteriaFilter: input.criteriaFilter,
           monitorStep: input.monitorStep,
+          isInEffect: MonitorCriteriaEvaluator.getIsInEffect({
+            criteriaInEffect: input.criteriaInEffect,
+            criteriaInstance: input.criteriaInstance,
+          }),
         });
 
       if (metricMonitorResult) {
@@ -1764,6 +1824,19 @@ ${contextBlock}
 
       if (externalStatusPageResult) {
         return externalStatusPageResult;
+      }
+    }
+
+    if (input.monitor.monitorType === MonitorType.ProbeStatus) {
+      const probeStatusResult: string | null =
+        await ProbeStatusMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: input.dataToProcess,
+          criteriaFilter: input.criteriaFilter,
+          monitoringInterval: input.monitor.monitoringInterval,
+        });
+
+      if (probeStatusResult) {
+        return probeStatusResult;
       }
     }
 

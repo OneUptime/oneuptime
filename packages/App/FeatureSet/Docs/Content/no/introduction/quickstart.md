@@ -28,7 +28,7 @@ Første gang du logger inn, viser OneUptime **Ingen prosjekter**. Klikk på **Op
 
 ### Gi det et navn
 
-Skriv inn et **Prosjektnavn**, for eksempel navnet på bedriften din. På OneUptime Cloud ber neste steg deg velge en plan.
+Skriv inn et **Prosjektnavn**, for eksempel navnet på bedriften din. På OneUptime Cloud velger du også en plan rett under: Free er allerede valgt, og de betalte planene starter med en gratis prøveperiode.
 
 ### Opprett det
 
@@ -68,7 +68,7 @@ Klikk på **Sett opp en vaktpolicy** i sjekklisten, eller åpne **Vakttjeneste**
 
 ### Utløs den for hver hendelse
 
-Åpne **Hendelser** fra menyen **Produkter**, utvid **Regler** i sidemenyen, og velg **Vaktregler**. Klikk på **Opprett Incident On-Call Rule**, skriv inn et **Navn**, og klikk på **Neste**. La **Treffkriterier** stå tomt, så regelen gjelder alle hendelser, og klikk på **Neste**. Velg policyen din under **Vaktpolicyer**, og klikk på **Opprett Incident On-Call Rule**.
+Åpne **Hendelser** fra menyen **Produkter**, utvid **Regler** i sidemenyen, og velg **Vaktregler**. Klikk på **Opprett Incident On-Call Rule**, skriv inn et **Navn**, og klikk på **Neste**. La **Alle hendelser** være valgt under **Treffkriterier**, så regelen gjelder alle hendelser, og klikk på **Neste**. Velg policyen din under **Vaktpolicyer**, og klikk på **Opprett Incident On-Call Rule**.
 
 ### Velg hvordan du nås
 
@@ -85,15 +85,15 @@ Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-
 :::steps
 ### Opprett statussiden
 
-Klikk på **Publiser en statusside** i sjekklisten, eller åpne **Statussider** fra menyen **Produkter**. Klikk på **Opprett statusside**, skriv inn et **Navn**, for eksempel `Acme Status`, og klikk på **Opprett statusside**.
+Klikk på **Publiser en statusside** i sjekklisten, eller åpne **Statussider** fra menyen **Produkter**. Klikk på **Opprett statusside**, skriv inn et **Navn**, for eksempel `Acme Status`, og klikk på **Opprett statusside**. Den nye siden åpnes på sin **Oversikt**.
 
 ### Legg til monitoren din
 
-Åpne den nye statussiden. I sidemenyen, under **Ressurser**, velger du **Monitorer**; i prosjekter med monitorgrupper slått på heter punktet **Ressurser**. Klikk på **Legg til monitor**, velg nettstedsmonitoren din, og klikk på **Legg til monitor**. Raden viser monitorens navn til besøkende; endre det under **Visningsnavn** om du vil.
+Klikk på **Legg til monitorer** på **Oversikt**, eller velg **Monitorer** under **Ressurser** i sidemenyen til siden; i prosjekter med monitorgrupper slått på heter punktet **Ressurser**. Klikk på **Legg til monitor**, velg nettstedsmonitoren din, og klikk på **Legg til monitor**. Raden viser monitorens navn til besøkende; endre det under **Visningsnavn** om du vil.
 
 ### Åpne siden
 
-Velg **Oversikt** i sidemenyen. Kortet **Status Page Preview URL** lenker til statussiden din: åpne den, og nettstedet ditt vises som i drift.
+Velg **Oversikt** i sidemenyen. Kortet **Lenke til statussiden** lenker til statussiden din: åpne den, og nettstedet ditt vises som i drift.
 :::
 
 En ny statusside er offentlig: alle med adressen kan åpne den. Se [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains) for å gi den ditt eget domene, logo og farger.

@@ -241,12 +241,12 @@ OneUptime 本身提供的是最新数据：对层、轮换、替班或策略关�
 - 链接按项目划分。泄露的个人链接只会暴露一个项目的班次，而不是你所属的所有项目。
 - 重新生成链接会让旧令牌进入 30 天的宽限期（空日历，之后 404）。 **禁用链接** 会提供空日历。未知或过期的链接返回不带任何提示的 404。空日历会让订阅的应用清空副本；404 会让它们保留副本，这就是禁用和重新生成都提供空日历的原因。
 - 令牌以哈希形式存储；设置页面上显示的副本用 `ENCRYPTION_SECRET` 加密。在自托管安装中请把该变量设为真正的密钥——如果它未设置，或仍是本仓库附带的占位值之一（ `secret` ，或 `config.example.env` 设置的 `please-change-this-to-random-value` ），服务器会在启动时发出警告。如果之后更改它，由于存储的副本已无法读取，页面会提供 **重新生成链接** ；在你这样做之前，订阅源会继续工作。
-- 订阅源响应标记为 `Cache-Control: private` ，被排除在搜索引擎之外（ `X-Robots-Tag: noindex` ），并按链接和客户端地址限速。
+- 订阅源响应标记为 `Cache-Control: private` ，被排除在搜索引擎之外（ `X-Robots-Tag: noindex` ），并按链接、客户端地址以及 IPv6 /64（上限为单个地址的十倍）限速。
 
 OneUptime 自带的 Nginx 不会把订阅源请求写入日志：
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;
@@ -319,7 +319,7 @@ curl -I "https://<your host>/api/on-call-calendar/user/<token>/shifts.ics"
 :::
 
 :::details 429 或 "too many requests"
-同一地址后的大量客户端——办公室 NAT、VPN 网关——共用按地址的额度。请调高 `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` ，并检查 `TRUSTED_PROXY_HOPS` ：它太低时，每个客户端都会被算作你自己的代理，所有客户端共用一份额度。
+同一地址后的大量客户端——办公室 NAT、VPN 网关——共用按地址的额度。同一个 IPv6 /64 中的客户端还会共用十倍于此的额度。请调高 `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW` ，并检查 `TRUSTED_PROXY_HOPS` ：它太低时，每个客户端都会被算作你自己的代理，所有客户端共用一份额度。
 :::
 
 :::details Apple 日历、Thunderbird 或 Outlook 中的证书错误

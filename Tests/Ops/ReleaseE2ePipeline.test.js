@@ -28,7 +28,9 @@
  * they used to wait for the Helm chart test and, through it, a 35-minute
  * Terraform provider dry run. That is checked here against the compose files
  * themselves, because a job that started before one of its images was pushed
- * would not fail - it would test the previous push's image.
+ * would not fail - it would test the previous push's image. In
+ * test-release.yaml they wait for those images' builds, not their merges, and
+ * run the amd64 tags the builds push (TestReleaseE2eImages.test.js).
  *
  * The SaaS and self-hosted suites run as shards (E2E_SHARD, see
  * packages/E2E/Sharding/Sharding.ts). packages/E2E's `npm run test-sharding`
@@ -207,6 +209,20 @@ function mergeJobFor(image) {
   return match ? `${match[1]}-docker-image-merge` : null;
 }
 
+/**
+ * The build job of a OneUptime image, from its reference:
+ * oneuptime/app:${APP_TAG} -> app-docker-image-build. null for anything that
+ * is not a OneUptime image built by the workflow.
+ * @param {string} image
+ * @returns {string|null}
+ */
+function buildJobFor(image) {
+  const merge = mergeJobFor(image);
+  return merge
+    ? merge.replace(/-docker-image-merge$/, "-docker-image-build")
+    : null;
+}
+
 // The compose files a job's `docker compose ... up ... -d` boots its stack with.
 function startedStack(job) {
   const start = job.steps.map(commandOf).find((command) => {
@@ -251,6 +267,17 @@ describe("the helpers this suite reads the workflows with", () => {
     );
     expect(mergeJobFor("postgres:15")).toBeNull();
     expect(mergeJobFor("oneuptime/app:release")).toBeNull();
+  });
+
+  test("name the build job of a OneUptime image, and of nothing else", () => {
+    expect(buildJobFor("oneuptime/nginx:${APP_TAG}")).toBe(
+      "nginx-docker-image-build",
+    );
+    expect(buildJobFor("ghcr.io/oneuptime/e2e:${APP_TAG}")).toBe(
+      "e2e-docker-image-build",
+    );
+    expect(buildJobFor("postgres:15")).toBeNull();
+    expect(buildJobFor("oneuptime/app:release")).toBeNull();
   });
 
   test("read the shard counts test-sharding checks", () => {
@@ -495,6 +522,14 @@ test("docker-compose.base.yml hands E2E_SHARD to the e2e container, empty unless
   expect(e2e.environment.E2E_SHARD).toBe("${E2E_SHARD:-}");
 });
 
+/*
+ * Each e2e job waits for the builds of exactly the images its stack runs,
+ * and for no merge, directly or through another job: it runs the -amd64 tags
+ * the builds' amd64 legs push (TestReleaseE2eImages.test.js holds the tags to
+ * Scripts/GHA/build_docker_images.sh). The merges, a few seconds of work each
+ * behind a queue of their own, used to stand between the last build and the
+ * e2e jobs: 34 to 49 minutes on run 38996994440.
+ */
 describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, () => {
   const jobs = readYaml(TEST_RELEASE).jobs;
 
@@ -507,13 +542,13 @@ describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, (
       ...stackImages(startedStack(jobs[name])),
       ...stackImages([E2E_OVERLAY]),
     ];
-    const merges = images.map(mergeJobFor).filter(Boolean).sort();
+    const builds = images.map(buildJobFor).filter(Boolean).sort();
 
     // The suite's own image, and at least the App, really are among them.
-    expect(merges).toContain("e2e-docker-image-merge");
-    expect(merges).toContain("app-docker-image-merge");
-    for (const merge of merges) {
-      expect(jobs[merge]).toBeDefined();
+    expect(builds).toContain("e2e-docker-image-build");
+    expect(builds).toContain("app-docker-image-build");
+    for (const build of builds) {
+      expect(jobs[build]).toBeDefined();
     }
 
     expect(
@@ -522,7 +557,12 @@ describe(`${TEST_RELEASE}: each e2e job waits for exactly the images it runs`, (
           return need !== "read-version";
         })
         .sort(),
-    ).toEqual(merges);
+    ).toEqual(builds);
+    expect(
+      [...ancestorsOf(jobs, name)].filter((job) => {
+        return job.endsWith("-docker-image-merge");
+      }),
+    ).toEqual([]);
   });
 });
 
@@ -733,7 +773,12 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
  * accessible by integration". A repository with immutable releases refuses
  * every upload after publishing.
  *
- * The app jobs are waited for but not required: a failed app build still
+ * The SBOMs, the infrastructure agent and the two apps are built ahead of the
+ * release and kept as artifacts; the publish job itself attaches them, each
+ * in a step before the one that publishes (ReleaseCriticalPath.test.js holds
+ * that). Outside it, only the draft writes the release.
+ *
+ * The app builds are waited for but not required: a failed app build still
  * publishes the release, without that app, rather than leaving a draft
  * behind images and tags that have already gone out. So the publish's `if`
  * is read here the way Actions reads it.
@@ -741,7 +786,7 @@ describe(`${RELEASE}: the release is tagged on the commit the run built`, () => 
 describe(`${RELEASE}: nothing writes the release once it is published`, () => {
   const jobs = readYaml(RELEASE).jobs;
   const PUBLISH = "finalize-github-release";
-  const APP_JOBS = ["mobile-app-android-deploy", "mobile-app-ios-deploy"];
+  const APP_JOBS = ["mobile-app-android-build", "mobile-app-ios-build"];
 
   // A step that creates, fills or edits this repository's GitHub release.
   function writesTheRelease(step) {
@@ -837,19 +882,39 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
     );
   });
 
-  test("finds the jobs that write the release, the app builds among them (the checks below are not vacuous)", () => {
-    expect(writers).toEqual(
-      expect.arrayContaining([
-        "draft-github-release",
-        "generate-sboms",
-        "infrastructure-agent-deploy",
-        ...APP_JOBS,
-      ]),
-    );
+  test("finds the jobs that write the release, and the publish job's own attach steps (the checks below are not vacuous)", () => {
+    expect(writers).toEqual(["draft-github-release"]);
+    expect(
+      jobs[PUBLISH].steps.filter(writesTheRelease).map((step) => {
+        return step.name;
+      }),
+    ).toEqual([
+      "Attach SBOMs to release",
+      "Attach the infrastructure agent to release",
+      "Upload APK to GitHub Release",
+      "Upload IPA to GitHub Release",
+    ]);
   });
 
   test.each(writers)("%s is done before the release is published", (job) => {
     expect(ancestorsOf(jobs, PUBLISH).has(job)).toBe(true);
+  });
+
+  test("the publish job writes the release only before the step that publishes it", () => {
+    const steps = jobs[PUBLISH].steps;
+    const publishing = steps.findIndex((step) => {
+      return /^actions\/github-script@/.test(step.uses || "");
+    });
+
+    expect(publishing).toBe(steps.length - 1);
+    steps.forEach((step, index) => {
+      if (writesTheRelease(step)) {
+        expect({
+          step: step.name,
+          beforeThePublish: index < publishing,
+        }).toEqual({ step: step.name, beforeThePublish: true });
+      }
+    });
   });
 
   describe(`${PUBLISH} publishes the release`, () => {
@@ -861,7 +926,8 @@ describe(`${RELEASE}: nothing writes the release once it is published`, () => {
       expect(needsOf(jobs[PUBLISH])).toEqual(expect.arrayContaining(APP_JOBS));
       expect(required).toEqual(
         expect.arrayContaining([
-          "infrastructure-agent-deploy",
+          "draft-github-release",
+          "infrastructure-agent-build",
           "generate-sboms",
           "helm-chart-deploy",
         ]),
@@ -1001,6 +1067,103 @@ describe(`${TERRAFORM_E2E}: each release run's suite is its own`, () => {
     );
     expect(ownRunGroup("refs/pull/4727/merge", "1", 4727)).not.toEqual(
       ownRunGroup("refs/pull/4728/merge", "1", 4728),
+    );
+  });
+});
+
+/*
+ * HashiCorp asks the providers it lists as Partner for tests that run nightly
+ * as a GitHub Action, so terraform-provider-e2e.yml also runs on a schedule.
+ * The nightly run is master's, and its group is its own, worked out from
+ * github.event.schedule, which GitHub sets on scheduled runs only. In the
+ * group master's pushes share, a merge landing during the three-hour suite
+ * would cancel the nightly run, or the nightly run the merge's.
+ */
+describe(`${TERRAFORM_E2E}: runs every night, in a group of its own`, () => {
+  const suite = readYaml(TERRAFORM_E2E);
+  const schedules = (suite.on && suite.on.schedule) || [];
+
+  // The group of one of the suite's runs on master, for the event's payload.
+  function masterRunGroup(runId, event) {
+    return evaluateExpressions(suite.concurrency.group, {
+      github: {
+        workflow: suite.name,
+        ref: "refs/heads/master",
+        run_id: runId,
+        event,
+      },
+      inputs: {},
+    });
+  }
+
+  test("is scheduled once a day, every day", () => {
+    expect(schedules).toHaveLength(1);
+    const fields = String(schedules[0].cron).trim().split(/\s+/);
+    expect(fields).toHaveLength(5);
+    // One minute of one hour, on every day of every month.
+    expect(fields[0]).toMatch(/^\d+$/);
+    expect(fields[1]).toMatch(/^\d+$/);
+    expect(fields.slice(2)).toEqual(["*", "*", "*"]);
+  });
+
+  test("a nightly run and a push to master never share a group, so neither cancels the other", () => {
+    const nightly = masterRunGroup("1", { schedule: schedules[0].cron });
+
+    expect(nightly).not.toEqual(masterRunGroup("2", {}));
+    expect(nightly).toContain(schedules[0].cron);
+  });
+});
+
+/*
+ * HashiCorp also asks partner providers to pass acceptance tests written with
+ * terraform-plugin-testing. Go skips them unless TF_ACC is set, so the job
+ * that runs them must set it, give them the OneUptime and the project key
+ * the test account step writes to test-env.sh, and point them at the
+ * Terraform the job installed instead of letting them download one. A step
+ * that lost any of that would pass while running nothing.
+ */
+describe(`${TERRAFORM_E2E}: runs the provider's acceptance tests`, () => {
+  const suite = readYaml(TERRAFORM_E2E);
+  const steps = suite.jobs["terraform-e2e-tests"].steps;
+  const names = steps.map((step) => {
+    return step.name;
+  });
+  const acceptance = steps.find((step) => {
+    return step.name === "Run provider acceptance tests";
+  });
+
+  test("in a step of its own", () => {
+    expect(acceptance).toBeDefined();
+  });
+
+  test("with TF_ACC set, and the Terraform the job installed", () => {
+    expect(acceptance.env.TF_ACC).toBe("1");
+    expect(acceptance.env.TF_ACC_TERRAFORM_PATH).toBe(
+      "/usr/local/bin/terraform",
+    );
+    expect(names.indexOf(acceptance.name)).toBeGreaterThan(
+      names.indexOf("Install Terraform and OpenTofu"),
+    );
+  });
+
+  test("against the test project, after the end-to-end suite", () => {
+    expect(acceptance.run).toContain(
+      "source ../../packages/E2E/Terraform/e2e-tests/test-env.sh",
+    );
+    expect(names.indexOf(acceptance.name)).toBeGreaterThan(
+      names.indexOf("Set up test account"),
+    );
+    expect(names.indexOf(acceptance.name)).toBeGreaterThan(
+      names.indexOf("Run OpenTofu E2E tests"),
+    );
+  });
+
+  test("running every acceptance test of the generated provider", () => {
+    expect(acceptance["working-directory"]).toBe(
+      "Terraform/terraform-provider-oneuptime",
+    );
+    expect(acceptance.run).toContain(
+      "go test ./internal/provider -run '^TestAcc'",
     );
   });
 });

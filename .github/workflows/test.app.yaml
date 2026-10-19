@@ -13,6 +13,7 @@ on:
 
 jobs:
   test:
+    name: test (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
     # This job stopped finishing altogether: it ran into the 6h runner ceiling
     # and was killed there, so master had no App test signal at all. The suite
@@ -28,10 +29,21 @@ jobs:
     # checks the whole program once in about a minute rather than 338 times
     # over.
     #
-    # This cap is the tripwire. The suite has room to grow several times over
-    # before it comes close, so if the job ever hits it something has regressed
-    # and it should fail here rather than quietly block the queue for a workday.
+    # This cap is the tripwire: if a shard ever hits it something has
+    # regressed, and it should fail here rather than quietly block the queue
+    # for a workday.
     timeout-minutes: 30
+    strategy:
+      # One slow or broken shard should not hide the results of the others.
+      fail-fast: false
+      # Three shards. In one job the suite had grown to ~1,800 files and 26 of
+      # the job's 30 minutes (jest's own time 1,541 s on master, 2026-10-17),
+      # so the cap was about to fail runs with nothing wrong in them. Setup
+      # takes a minute and a half, so three bring each shard to about ten
+      # minutes for much the same runner time in all. When a shard passes
+      # about 20 minutes, add one here rather than raise the cap.
+      matrix:
+        shard: [1, 2, 3]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       BILLING_PRIVATE_KEY: ${{secrets.TEST_BILLING_PRIVATE_KEY}}
@@ -96,7 +108,7 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/App
-      - run: cd packages/App && npm run test
+      - run: cd packages/App && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
   session-replay-ui:
     name: Session Replay UI
@@ -158,10 +170,19 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in groups balanced
-  # by measured duration, Event Overview (13 to 15.5 minutes) and the
-  # Workflow Builder suite each in a group of their own. Each suite still
-  # runs exactly as before: same config, same browsers, one worker.
+  # own fixture server on its own port - so they run here in six groups
+  # balanced by measured duration. Event Overview and the Workflow Builder
+  # suite fill a group each on their own (20.4 and 19.4 minutes on
+  # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
+  # suites. Setup adds a minute and a half. Each suite still runs exactly as
+  # before: same config, same browsers, one worker.
+  #
+  # The same group has taken a third longer on one run than on the next with
+  # nothing changed but the runner (group 1: about 18 and 24 minutes), so keep
+  # each group near 20 minutes on a slow runner, well under the job's 30. When
+  # one passes about 22, move a suite or add a group. When Event Overview or
+  # the Workflow Builder suite passes it alone, split that suite across two
+  # groups with Playwright's --shard.
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
   # its output paths in the upload step below.
@@ -176,16 +197,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Event Overview runs on its own: with the thirteen shorter suites
-          # that shared its group (about 14 minutes together, now group 5) and
-          # the setup, the group passed the job's 30 minutes.
+          # Event Overview on its own. With the thirteen shorter suites that
+          # once shared its group and the setup, the group passed the job's 30
+          # minutes. Status Page Theme moved to group 6 when this group took
+          # 24.3 minutes.
           - group: 1
             browsers: chromium
             suites: >-
               test-event-overview-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
-          # editor's text layers must line up in both) and Value Picker (the
-          # chip editor's caret handling differs in each).
+          # editor's text layers must line up in both) and Diagrams. Diagrams
+          # and Navigation Search (about 8 minutes together) moved here from
+          # group 3 when the Probe Status specs in Monitor Overview and the
+          # docs' diagrams took group 3 from 25.5 minutes past the job's 30.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -195,28 +219,27 @@ jobs:
               test-alerts-ui
               test-pencil-button-ui
               test-color-picker-ui
-          # Navigation Search runs here since the Workflow Builder suite
-          # gained its field list, Run panel and value availability specs
-          # (about five minutes more in group 2): it keeps each group well
-          # under the job's cap.
+              test-diagrams-ui
+              test-navigation-search-ui
+          # Value Picker also runs in Firefox (the chip editor's caret handling
+          # differs in each). Discovery (about 5 minutes) moved to group 6
+          # when this group took 23.5 minutes.
           - group: 3
             browsers: chromium firefox
             suites: >-
               test-monitor-overview-ui
               test-value-picker-ui
-              test-discovery-ui
               test-event-notes-ui
               test-trace-detail-ui
               test-security-events-empty-states-ui
               test-status-page-search-ui
               test-label-rule-transfer-ui
-              test-diagrams-ui
-              test-navigation-search-ui
               test-list-delete-ui
-          # The Workflow Builder suite runs on its own: it sat in group 2 near
-          # the job's 30 minutes, and its On Create or Update spec would take
-          # that group past them. Its two projects, a laptop and a phone, are
-          # both Chromium.
+          # The Workflow Builder suite on its own: it sat in group 2 near the
+          # job's 30 minutes, and its On Create or Update spec would take that
+          # group past them. Its two projects, a laptop and a phone, are both
+          # Chromium. Calendar Feed moved to group 6 when this group took 23.6
+          # minutes.
           - group: 4
             browsers: chromium
             suites: >-
@@ -224,7 +247,10 @@ jobs:
           # The Chromium-only suites that ran after Event Overview in group 1.
           # Topology is one of them (about 2.5 minutes) since the Workflow
           # Builder suite grew again with its UI review: group 2 had reached
-          # 24.5 of the job's 30 minutes on a slow runner.
+          # 24.5 of the job's 30 minutes on a slow runner. Calendar Feed and
+          # Status Page Theme moved to groups 4 and 1 when this group reached
+          # 28.5 minutes, and its last five suites to group 6 when it took
+          # 25.5.
           - group: 5
             browsers: chromium
             suites: >-
@@ -235,7 +261,6 @@ jobs:
               test-llm-provider-test-ui
               test-custom-field-options-ui
               test-pagination-ui
-              test-calendar-feed-ui
               test-topology-ui
               test-home-overview-ui
               test-security-operations-ui
@@ -243,6 +268,22 @@ jobs:
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
+          # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
+          # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
+          # Discovery from group 3, Status Page Theme from group 1 and Calendar
+          # Feed from group 4. All Chromium.
+          - group: 6
+            browsers: chromium
+            suites: >-
+              test-discovery-ui
+              test-status-page-theme-ui
+              test-calendar-feed-ui
+              test-custom-roles-ui
+              test-sign-in-options-ui
+              test-maintenance-calendar-ui
+              test-detail-cards-ui
+              test-model-tables-ui
+              test-infrastructure-first-run-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -378,4 +419,17 @@ jobs:
             output/playwright/runbook-triggers-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
+            output/playwright/infrastructure-first-run-ui/*.png
+            output/playwright/infrastructure-first-run-ui/test-results
+            output/playwright/custom-roles-ui/*.png
+            output/playwright/custom-roles-ui/test-results
+            output/playwright/sign-in-options-ui/test-results
+            output/playwright/status-page-theme-ui/*.png
+            output/playwright/status-page-theme-ui/test-results
+            output/playwright/maintenance-calendar-ui/*.png
+            output/playwright/maintenance-calendar-ui/test-results
+            output/playwright/detail-cards-ui/*.png
+            output/playwright/detail-cards-ui/test-results
+            output/playwright/model-tables-ui/*.png
+            output/playwright/model-tables-ui/test-results
           retention-days: 7

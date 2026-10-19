@@ -211,7 +211,7 @@ Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity
 
 ### Facetter
 
-Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Händelseklass**, **Category**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detection Rule**, **Källanvändare** och **Källvärd**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Diagrammet och varje räkning beskriver exakt händelserna i listan.
+Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Händelseklass**, **Category**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detection Rule**, **Källanvändare** och **Källvärd**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
 
 ### Korrelera
 
@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Öppna **Produkter → Security Events → Detection Rules** och klicka på **Skapa Detection Rule**.
-2. Ge den ett **Namn** under **Grundläggande information**, och låt **Aktiverad** vara påslaget.
-3. Klistra in regelns YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkas när du sparar, så ett fel visas i formuläret.
-4. Ange under **Utvärdering** hur ofta den körs och hur många träffar den behöver; se [Utvärderingsinställningar](#utvärderingsinställningar).
-5. Låt **Open a Case on Match** vara påslaget under **Security Cases** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
-6. Välj under **Vid träff** vad en träff mer ska göra: **Create Alert on Match** (på), **Create Incident on Match** (av) och **Write Detection Finding on Match** (på), med valfri **Varningsallvar** och **Incidentallvar**.
+2. Klistra in regelns YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkas när du sparar, så ett fel visas i formuläret.
+3. **Namn** fylls i från regelns `title`: skriv över det för att kalla regeln något annat. En ny regel körs; **Aktiverad** finns i dess redigeringsformulär.
+4. Låt **Open a Case on Match** vara påslaget under **Vid träff** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
+5. Välj under **Varningar och incidenter** vad en träff mer ska utlösa: **Skapa ett larm** (standard), **Deklarera en incident**, **Båda** eller **Ingetdera**, med valfri **Varningsallvar** eller **Incidentallvar**.
+6. **Fler fält** innehåller **Beskrivning**, **Write Detection Finding on Match** (på) och hur träffar räknas; se [Utvärderingsinställningar](#utvärderingsinställningar).
 :::
 
 En första regel, som träffar misslyckade inloggningar utanför `10.x.x.x`:
@@ -372,11 +372,11 @@ Kontrollera att den är **Aktiverad**, och läs **Last Evaluated** och **Last Er
 :::
 
 :::details En regel träffade, men inget larm öppnades
-**Create Alert on Match** är avstängt, eller ett larm för samma regel och gruppvärde är fortfarande öppet, och senare träffar slås ihop med det. Ett projekt behöver minst en larmallvarlighetsgrad för att regler ska kunna öppna larm.
+**Varningar och incidenter** är satt till **Deklarera en incident** eller **Ingetdera**, eller ett larm för samma regel och gruppvärde är fortfarande öppet, och senare träffar slås ihop med det. Ett projekt behöver minst en larmallvarlighetsgrad för att regler ska kunna öppna larm.
 :::
 
 :::details En regel öppnar för många larm
-Varje värde i **Group By Field** får ett eget larm: gruppera efter något grövre, höj tröskeln eller lägg till ett Distinct Count Field. Bryr du dig om takten snarare än om varje träff, stänger du av **Create Alert on Match** och sätter en monitor på regelns fynd.
+Varje värde i **Group By Field** får ett eget larm: gruppera efter något grövre, höj tröskeln eller lägg till ett Distinct Count Field. Bryr du dig om takten snarare än om varje träff, sätter du **Varningar och incidenter** till **Ingetdera** och sätter en monitor på regelns fynd.
 :::
 
 ## Nästa steg

@@ -67,11 +67,22 @@ const SOURCES: Record<string, string> = {
   ssoApi: `${IDENTITY}/API/SSO.ts`,
   oidcApi: `${IDENTITY}/API/OIDC.ts`,
   ssoUtil: `${IDENTITY}/Utils/SSO.ts`,
+  ssoOneTimeUse: `${IDENTITY}/Utils/SamlAssertionOneTimeUse.ts`,
+  ssoServiceProvider: `${IDENTITY}/Utils/SamlServiceProvider.ts`,
+  globalSsoApi: `${IDENTITY}/API/GlobalSSO.ts`,
+  statusPageSsoApi: `${IDENTITY}/API/StatusPageSSO.ts`,
   oidcUtil: `${IDENTITY}/Utils/OIDC.ts`,
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
+  ssoIdentityBinding: `${IDENTITY}/Utils/ProjectSsoIdentityBinding.ts`,
   ssoConsent: "packages/Common/Server/Services/UserProjectSsoConsentService.ts",
   projectSsoPage: `${DASHBOARD}/Pages/Settings/SSO.tsx`,
-  projectOidcPage: `${DASHBOARD}/Pages/Settings/OIDC.tsx`,
+  // On the SSO page, under its SAML providers.
+  projectOidcProviders: `${DASHBOARD}/Components/Sso/ProjectOidcProviders.tsx`,
+  // What the SSO page calls its providers, and its test link's card.
+  projectSsoCopy: `${DASHBOARD}/Components/Sso/ProjectSsoCopy.ts`,
+  projectSignInTestCard: `${DASHBOARD}/Components/Sso/ProjectSignInTestCard.tsx`,
+  movedPagePaths: `${DASHBOARD}/Routes/MovedPagePaths.ts`,
+  settingsRoutes: `${DASHBOARD}/Routes/SettingsRoutes.tsx`,
   providerPickPage: `${DASHBOARD}/Pages/Onboarding/SSO.tsx`,
   dashboardRoutes: `${DASHBOARD}/Utils/RouteMap.ts`,
   settingsSideMenu: `${DASHBOARD}/Pages/Settings/SideMenu.tsx`,
@@ -103,6 +114,10 @@ const EE_SOURCES: Record<string, string> = {
   scimApi: "ee/Server/Identity/API/SCIM.ts",
   statusPageScimApi: "ee/Server/Identity/API/StatusPageSCIM.ts",
   scimUtils: "ee/Server/Identity/Utils/SCIMUtils.ts",
+  scimOAuth: "ee/Server/Identity/Utils/SCIMOAuth.ts",
+  scimOAuthToken: "ee/Server/Identity/API/SCIMOAuthToken.ts",
+  scimClientCredentials:
+    "ee/Dashboard/Identity/Components/ScimOAuthClientCredentials.tsx",
   projectScimPage: "ee/Dashboard/Identity/Pages/Settings/SCIM.tsx",
   statusPageScimPage: "ee/Dashboard/Identity/Pages/StatusPages/SCIM.tsx",
   projectScimLogs:
@@ -114,13 +129,16 @@ const EE_SOURCES: Record<string, string> = {
 // A role's level: the last word of its title.
 const ROLE_LEVEL: RegExp = / (Admin|Member|Viewer)$/;
 
-// The test link of a project's SSO and OIDC pages: the project's /sso page.
+// The test link of a project's SSO page: the project's /sso page.
 const SSO_TEST_LINK: RegExp =
-  /const testUrl: string = `\$\{DASHBOARD_URL\.toString\(\)\}\/\$\{ProjectUtil\.getCurrentProjectId\(\)\?\.toString\(\)\}\/sso`;/;
+  /return `\$\{DASHBOARD_URL\.toString\(\)\}\/\$\{projectId\.toString\(\)\}\/sso`;/;
 
-// The global provider's two switches, both in the form's More fields section.
-const GLOBAL_SWITCHES_FOLDED: RegExp =
-  /withGlobalAccessSwitches\s*\?\s*\[\s*getSsoProviderDisableSignUpField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderRestrictToAttachedProjectsField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,/;
+/*
+ * The global provider's two questions, both in the form's More fields
+ * section, each followed by the column it writes, registered unseen.
+ */
+const GLOBAL_QUESTIONS_FOLDED: RegExp =
+  /withGlobalAccessSwitches\s*\?\s*\[\s*getSsoProviderSignUpChoiceField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderSignUpColumnField<TEntity>\(\{[^}]*\}\),\s*getSsoProviderReachChoiceField<TEntity>\(\{[^}]*collapsibleSection: advancedSection,\s*\}\),\s*getSsoProviderReachColumnField<TEntity>\(/;
 
 // A SCIM page opens the dialog with its URLs once a connection is created.
 const SCIM_DIALOG_ON_CREATE: RegExp =
@@ -501,7 +519,10 @@ describe("the SSO guide", () => {
   });
 
   it("quotes the messages the SAML sign-in answers with, as the server words them", () => {
-    const server: string = readSource("ssoApi") + readSource("ssoUtil");
+    const server: string =
+      readSource("ssoApi") +
+      readSource("ssoUtil") +
+      readSource("ssoOneTimeUse");
     const page: string = english(SSO);
 
     for (const message of [
@@ -510,6 +531,10 @@ describe("the SSO guide", () => {
       "Issuer URL does not match",
       "Encrypted SAML Responses are not supported",
       "SAML response did not include a valid email address",
+      "SAML Audience does not match",
+      "SAML Recipient does not match",
+      "SAML response has expired",
+      "SAML response was already used",
     ]) {
       expect({ message, sent: server.includes(`"${message}`) }).toEqual({
         message,
@@ -548,12 +573,109 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("reads the name from the claim the guide names", () => {
-    expect(readSource("ssoUtil")).toContain(
-      '"http://schemas.microsoft.com/identity/claims/displayname"',
+  /*
+   * Who a response is for and when it may be used: the rows of the table of
+   * what OneUptime reads, held to SSOUtil (SamlResponseConditions.test.ts
+   * runs every rule) and to the one-time use the Reply URLs claim.
+   */
+  it("says what a SAML response is held to, as the server holds it", () => {
+    expect(SSOUtil.MAX_ASSERTION_AGE_IN_MS).toBe(10 * 60 * 1000);
+    expect(SSOUtil.CLOCK_SKEW_IN_MS).toBe(3 * 60 * 1000);
+
+    const util: string = readSource("ssoUtil");
+
+    expect(util).toContain("SSOUtil.assertAudienceIsThisProvider(");
+    expect(util).toContain("SSOUtil.getBearerConfirmationsForThisProvider(");
+    expect(util).toContain("SSOUtil.assertDestinationIsThisProvider(");
+    expect(util).toContain('"NotOnOrAfter"');
+    expect(util).toContain('"NotBefore"');
+
+    const page: string = english(SSO);
+
+    for (const row of [
+      "| Audience | Must be the provider's **Identifier (Entity ID)**. A response your IdP made for another application is refused. |",
+      "| Recipient and Destination | Must be the provider's **Reply URL**, the address the response was sent to. |",
+      "| `NotBefore` and `NotOnOrAfter` | The response is accepted only while they allow it, and no later than 10 minutes after it was issued, with 3 minutes of leeway for clocks that disagree. |",
+    ]) {
+      expect({ row, stated: page.includes(row) }).toEqual({
+        row,
+        stated: true,
+      });
+    }
+  });
+
+  it("says each response signs someone in once, at every SAML Reply URL", () => {
+    for (const key of ["ssoApi", "globalSsoApi", "statusPageSsoApi"]) {
+      expect({
+        key,
+        claims: readSource(key).includes("SamlAssertionOneTimeUse.claim("),
+      }).toEqual({ key, claims: true });
+    }
+
+    expect(readSource("ssoOneTimeUse")).toContain(
+      "GlobalCache.setStringIfNotExists(",
     );
     expect(english(SSO)).toContain(
-      "| `http://schemas.microsoft.com/identity/claims/displayname` | The person's name, used when OneUptime creates their account. Optional. |",
+      "Each response signs someone in once. Sent again, for example by going back in the browser after signing in, it is refused: sign in again.",
+    );
+    expect(english(GLOBAL_SSO)).toContain(
+      "Each response from your identity provider signs someone in once, and only within minutes of being issued",
+    );
+  });
+
+  it("says an identity provider that names OneUptime's address alone as the entity ID keeps working", () => {
+    // The Entity ID the screens showed before May 2024, still accepted.
+    expect(readSource("ssoServiceProvider")).toContain(
+      "serverAddress: SamlServiceProviders.getServerAddress(),",
+    );
+    expect(readSource("ssoUtil")).toContain("serviceProvider.serverAddress,");
+    expect(english(SSO)).toContain(
+      "An IdP set up with OneUptime's address alone as the entity ID, such as `https://oneuptime.com`, keeps working.",
+    );
+  });
+
+  it("reads the name from the attributes the guide names", () => {
+    const util: string = readSource("ssoUtil");
+
+    for (const attribute of [
+      '"displayName"',
+      '"http://schemas.microsoft.com/identity/claims/displayname"',
+      '"firstName"',
+      '"lastName"',
+      '"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"',
+      '"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"',
+    ]) {
+      expect({ attribute, read: util.includes(attribute) }).toEqual({
+        attribute,
+        read: true,
+      });
+    }
+
+    expect(english(SSO)).toContain(
+      "| Name attributes | The person's name, used when OneUptime creates their account: a display name (`displayName`, or `http://schemas.microsoft.com/identity/claims/displayname`), or a first and last name (`firstName` and `lastName`, or the `givenname` and `surname` claims Microsoft Entra ID sends by default). Optional. |",
+    );
+  });
+
+  it("says a sign-in is linked to the object ID Microsoft Entra ID sends, and a later one as someone else is refused", () => {
+    expect(readSource("ssoUtil")).toContain(
+      '"http://schemas.microsoft.com/identity/claims/objectidentifier"',
+    );
+
+    const api: string = readSource("ssoApi");
+
+    expect(api).toContain("ProjectSsoIdentityBinding.isBoundToAnotherPerson(");
+    expect(api).toContain("ProjectSsoIdentityBinding.bindOrRefuse(");
+    expect(readSource("ssoIdentityBinding")).toContain(
+      'PROJECT_SSO_IDENTITY_MISMATCH_TITLE: string =\n  "This account is linked to someone else.";',
+    );
+
+    const page: string = english(SSO);
+
+    expect(page).toContain(
+      "| `http://schemas.microsoft.com/identity/claims/objectidentifier` | The person's object ID, which Microsoft Entra ID sends by default. The first sign-in through the provider links the account to it, and a later sign-in that names the account's email address with another object ID is refused. Optional. |",
+    );
+    expect(page).toContain(
+      ':::details "This account is linked to someone else."',
     );
   });
 
@@ -639,10 +761,37 @@ describe("the SSO guide", () => {
     }
   });
 
+  /*
+   * The project's SSO page names its two lists for what they hold, as a
+   * status page's lists do: Add SAML Provider and Add OIDC Provider, where
+   * they read Create SSO and Create OIDC after the models.
+   */
+  it("names the SSO page's buttons as the page draws them", () => {
+    const copy: string = readSource("projectSsoCopy");
+    const page: string = readSource("projectSsoPage");
+    const oidc: string = readSource("projectOidcProviders");
+
+    for (const [source, key, noun, button] of [
+      [page, "samlProvider", "SAML Provider", "Add SAML Provider"],
+      [oidc, "oidcProvider", "OIDC Provider", "Add OIDC Provider"],
+    ] as Array<[string, string, string, string]>) {
+      expect(copy).toContain(`${key}: translationKey("${noun}")`);
+      expect(source).toContain(`singularName={ProjectSsoCopy.${key}}`);
+      expect(source).toContain('createVerb="Add"');
+      expect({ button, named: english(SSO).includes(`**${button}**`) }).toEqual(
+        { button, named: true },
+      );
+    }
+
+    expect(english(SSO)).not.toContain("**Create SSO**");
+    expect(english(SSO)).not.toContain("**Create OIDC**");
+    expect(readSource("modelTable")).toContain(
+      'Add: translationKey("Add {{itemName}}")',
+    );
+  });
+
   it("names the create buttons after the models", () => {
     for (const [model, page] of [
-      [new ProjectSSO(), SSO],
-      [new ProjectOIDC(), SSO],
       [new ProjectSCIM(), SCIM],
       [new GlobalSSO(), GLOBAL_SSO],
       [new GlobalOIDC(), GLOBAL_SSO],
@@ -664,12 +813,20 @@ describe("the SSO guide", () => {
   });
 
   it("says the test link opens the project's providers, one of which you pick", () => {
-    for (const key of ["projectSsoPage", "projectOidcPage"]) {
-      expect({
-        key,
-        link: SSO_TEST_LINK.test(readSource(key)),
-      }).toEqual({ key, link: true });
-    }
+    // One link, on the SSO page, for its SAML and OIDC providers alike.
+    expect(SSO_TEST_LINK.test(readSource("projectSignInTestCard"))).toBe(true);
+    expect(readSource("projectSsoPage")).toContain("<ProjectSignInTestCard");
+    expect(readSource("projectOidcProviders")).not.toContain("testUrl");
+    // The card the docs name.
+    expect(readSource("projectSsoCopy")).toContain(
+      'testTitle: translationKey("Test Single Sign On (SSO)")',
+    );
+    expect(readSource("projectSignInTestCard")).toContain(
+      "<Card title={ProjectSsoCopy.testTitle}>",
+    );
+    expect(english(SSO)).toContain(
+      "6. Open the link in the **Test Single Sign On (SSO)** card and pick the provider, to sign in through it before you require SSO for the project.",
+    );
 
     expect(readSource("dashboardRoutes")).toContain(
       "[PageMap.PROJECT_SSO]: new Route(`/dashboard/${RouteParams.ProjectID}/sso`)",
@@ -697,8 +854,9 @@ describe("the SSO guide", () => {
 
     const settingsPage: string = readSource("projectSsoPage");
 
+    expect(settingsPage.indexOf("<ProjectSignInTestCard")).toBeGreaterThan(0);
     expect(settingsPage.indexOf("<RequireSsoForLoginCard")).toBeGreaterThan(
-      settingsPage.indexOf("title={`Test Single Sign On (SSO)`}"),
+      settingsPage.indexOf("<ProjectSignInTestCard"),
     );
 
     const page: string = english(SSO);
@@ -756,29 +914,47 @@ describe("the SSO guide", () => {
     }
   });
 
-  it("finds SSO, OIDC and SCIM under Security, in a project's settings and on a status page", () => {
-    for (const [key, heading] of [
-      ["settingsSideMenu", 'title: "Security",'],
-      ["statusPageSideMenu", '<SideMenuSection title="Security">'],
-    ] as Array<[string, string]>) {
-      const menu: string = readSource(key);
-      const start: number = menu.indexOf(heading);
+  it("finds SSO, OIDC and SCIM under Security on a status page, and SSO and SCIM in a project's settings", () => {
+    const status: string = readSource("statusPageSideMenu");
+    const statusSecurity: string = status.slice(
+      status.indexOf('<SideMenuSection title="Security">'),
+    );
+    const sso: number = statusSecurity.indexOf('title: "SSO"');
+    const oidc: number = statusSecurity.indexOf('title: "OIDC"');
+    const scim: number = statusSecurity.indexOf('title: "SCIM"');
 
-      expect({ key, section: start >= 0 }).toEqual({ key, section: true });
+    expect(status).toContain('<SideMenuSection title="Security">');
+    expect(sso >= 0 && sso < oidc && oidc < scim).toBe(true);
 
-      const security: string = menu.slice(start);
-      const sso: number = security.indexOf('title: "SSO"');
-      const oidc: number = security.indexOf('title: "OIDC"');
-      const scim: number = security.indexOf('title: "SCIM"');
+    /*
+     * A project's OpenID Connect providers are on its SSO page, under the
+     * SAML ones; the old OIDC address forwards there.
+     */
+    const settings: string = readSource("settingsSideMenu");
+    const settingsSecurity: string = settings.slice(
+      settings.indexOf('title: "Security",'),
+    );
+    const projectSso: number = settingsSecurity.indexOf('title: "SSO"');
+    const projectScim: number = settingsSecurity.indexOf('title: "SCIM"');
 
-      expect({ key, inOrder: sso >= 0 && sso < oidc && oidc < scim }).toEqual({
-        key,
-        inOrder: true,
-      });
-    }
+    expect(settings).toContain('title: "Security",');
+    expect(projectSso >= 0 && projectSso < projectScim).toBe(true);
+    expect(settingsSecurity.slice(0, projectScim)).not.toContain(
+      'title: "OIDC"',
+    );
+    expect(readSource("projectSsoPage")).toContain("<ProjectOidcProviders");
+    expect(readSource("movedPagePaths")).toContain(
+      'export const MOVED_OIDC_SETTINGS_PATH: string = "oidc";',
+    );
+    expect(readSource("settingsRoutes")).toMatch(
+      /path=\{MOVED_OIDC_SETTINGS_PATH\}\s*element=\{<MovedPageRedirect pageMap=\{PageMap\.SETTINGS_SSO\} \/>\}/,
+    );
 
     expect(english(SSO)).toContain(
       "Navigate to **Project Settings** > **Security** > **SSO**",
+    );
+    expect(english(SSO)).toContain(
+      "2. In OneUptime, go to **Project Settings** > **Security** > **SSO**. Under the SAML providers, click **Add OIDC Provider**.",
     );
     expect(english(SCIM)).toContain("Navigate to **Security** > **SCIM**");
   });
@@ -927,7 +1103,12 @@ describe("the Global SSO guide", () => {
     );
   });
 
-  it("says both switches start off, folded under More fields", () => {
+  /*
+   * "Disable Sign Up with SSO" and "Restrict to Attached Projects" were two
+   * switches; the form asks them as two questions, each starting on its
+   * first answer - off, as the columns start - written into those columns.
+   */
+  it("says both questions start on their first answer, folded under More fields", () => {
     for (const model of [new GlobalSSO(), new GlobalOIDC()]) {
       for (const column of [
         "disableSignUpWithSso",
@@ -948,55 +1129,78 @@ describe("the Global SSO guide", () => {
     for (const key of ["samlFields", "oidcFields"]) {
       expect({
         key,
-        folded: GLOBAL_SWITCHES_FOLDED.test(readSource(key)),
+        folded: GLOBAL_QUESTIONS_FOLDED.test(readSource(key)),
       }).toEqual({ key, folded: true });
     }
 
     expect(english(GLOBAL_SSO)).toContain(
-      "Two switches on the provider change this. Both start off, folded under **More fields**:",
+      "Two questions on the provider change this, folded under **More fields**. Each starts on its first answer:",
     );
   });
 
-  it("says what each switch does in the words the form gives it", () => {
+  it("names each question and its answers in the words the form gives them, the first answer first", () => {
     const fields: string = readSource("providerFields");
     const page: string = english(GLOBAL_SSO);
-    const disable: string = translationKeyText(
+
+    const signUp: string = translationKeyText(
       fields,
-      "SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION",
+      "SSO_GLOBAL_SIGN_UP_TITLE",
     );
-    const restrict: string = translationKeyText(
-      fields,
-      "SSO_GLOBAL_RESTRICT_DESCRIPTION",
-    );
-    const [, disableRow] = tableRow(page, "**Disable Sign Up with SSO**") as [
-      string,
-      string,
-    ];
-    const [, restrictRow] = tableRow(
-      page,
-      "**Restrict to Attached Projects**",
-    ) as [string, string];
+    const reach: string = translationKeyText(fields, "SSO_GLOBAL_REACH_TITLE");
 
-    // "When on, ..." is the table's column heading.
-    expect(disable.startsWith("When on, ")).toBe(true);
-    expect(restrict.startsWith("When on, ")).toBe(true);
+    // The answers, in the order the form offers them: off first.
+    const answersOf: (constant: string) => Array<string> = (
+      constant: string,
+    ): Array<string> => {
+      const start: number = fields.indexOf(`export const ${constant}`);
+      const block: string = fields.slice(start, fields.indexOf("];", start));
 
-    const sentence: (text: string) => string = (text: string): string => {
-      const rest: string = text.slice("When on, ".length);
-
-      return rest.charAt(0).toUpperCase() + rest.slice(1);
+      return [...block.matchAll(/title: translationKey\("([^"]+)"\)/g)].map(
+        (match: RegExpMatchArray): string => {
+          return match[1] as string;
+        },
+      );
     };
 
-    expect(restrictRow).toBe(sentence(restrict));
+    const signUpAnswers: Array<string> = answersOf(
+      "SSO_GLOBAL_SIGN_UP_CHOICES",
+    );
+    const reachAnswers: Array<string> = answersOf("SSO_GLOBAL_REACH_CHOICES");
 
-    // The table adds that it holds even when projects are attached.
-    const [firstSentence, secondSentence] = sentence(disable).split(". ") as [
-      string,
-      string,
-    ];
+    expect(signUpAnswers).toEqual([
+      "Get one on their first sign-in",
+      "Must be invited first",
+    ]);
+    expect(reachAnswers).toEqual(["Every project", "Attached projects only"]);
 
-    expect(disableRow).toBe(
-      `${firstSentence}, even when projects are attached. ${secondSentence}`,
+    const [, signUpRow] = tableRow(page, `**${signUp}**`) as [string, string];
+    const [, reachRow] = tableRow(page, `**${reach}**`) as [string, string];
+
+    for (const [row, answers] of [
+      [signUpRow, signUpAnswers],
+      [reachRow, reachAnswers],
+    ] as Array<[string, Array<string>]>) {
+      expect(row.indexOf(`**${answers[0]}**:`)).toBe(0);
+      expect(row.indexOf(`**${answers[1]}**:`)).toBeGreaterThan(0);
+    }
+
+    // What restricting does, as the restriction always said it.
+    expect(reachRow).toContain(
+      "signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others.",
+    );
+    // A newcomer gets an account only when there is a project to put them in.
+    expect(signUpRow).toContain(
+      "with none attached, they must be invited first",
+    );
+    expect(readSource("globalSsoApi")).toContain(
+      "Boolean(globalSso.disableSignUpWithSso) || isDefaultAllMode;",
+    );
+
+    // The troubleshooting names the answer that turns people away.
+    expect(page).toContain(`**${signUp}** is set to **${signUpAnswers[1]}**`);
+    expect(page).toContain(`**${reach}** is set to **${reachAnswers[1]}**`);
+    expect(page).not.toMatch(
+      /Disable Sign Up with SSO|Restrict to Attached Projects/,
     );
   });
 });
@@ -1160,10 +1364,12 @@ describe("the SCIM guide", () => {
       "Yes, up to 1,000 operations and 1 MB per request",
     );
     expect(tableRow(page, "Filter")[1]).toBe("Yes, up to 200 results");
-    expect(tableRow(page, "Sort")[1]).toBe("Yes");
+    expect(tableRow(page, "Sort")[1]).toBe("No");
     expect(tableRow(page, "Change password")[1]).toBe("No");
     expect(tableRow(page, "ETag")[1]).toBe("No");
-    expect(tableRow(page, "Authentication")[1]).toBe("HTTP Bearer token");
+    expect(tableRow(page, "Authentication")[1]).toBe(
+      "HTTP Bearer token, or an OAuth 2.0 access token",
+    );
 
     if (!hasEe()) {
       return;
@@ -1179,12 +1385,59 @@ describe("the SCIM guide", () => {
     expect(body).toMatch(
       /bulk: \{\s*supported: true,\s*maxOperations: 1000,\s*maxPayloadSize: 1048576,/,
     );
-    expect(body).toMatch(/filter: \{\s*supported: true,\s*maxResults: 200,/);
+    expect(body).toMatch(
+      /filter: \{\s*supported: true,\s*maxResults: SCIM_MAX_PAGE_SIZE,/,
+    );
+    expect(config).toContain("export const SCIM_MAX_PAGE_SIZE: number = 200;");
     expect(body).toMatch(/changePassword: \{\s*supported: false,/);
-    expect(body).toMatch(/sort: \{\s*supported: true,/);
+    expect(body).toMatch(/sort: \{\s*supported: false,/);
     expect(body).toMatch(/etag: \{\s*supported: false,/);
     expect(config).toMatch(
-      /authenticationSchemes: \[\s*\{\s*type: "httpbearer",/,
+      /authenticationSchemes: \[\s*\{\s*type: "httpbearer",[\s\S]*?\},\s*\{\s*type: "oauthbearertoken",/,
+    );
+  });
+
+  it("gives the token endpoint of OAuth 2.0 client credentials, its grant, and how long tokens and secrets work", () => {
+    const page: string = english(SCIM);
+
+    expect(page).toContain(
+      "it is `https://oneuptime.com/identity/scim/oauth/token` for every connection on OneUptime Cloud. It takes the `client_credentials` grant, with the client ID and secret sent with HTTP Basic authentication or in the form, and answers an access token that works for an hour (`expires_in` of `3600`).",
+    );
+    expect(page).toContain(
+      "- **Token Endpoint**: where your identity provider gets its access tokens. It is the same for every connection: `https://oneuptime.com/identity/scim/oauth/token` on OneUptime Cloud.",
+    );
+    expect(page).toContain(
+      "OneUptime keeps only a hash of it and cannot show it again. It works for a year.",
+    );
+    expect(page).toContain(
+      "The secret before it keeps working until it expires or you click **Delete Previous Secret**",
+    );
+
+    expect(readSource("serviceRoutes")).toContain(
+      'export const IdentityRoute: Route = new Route("/identity");',
+    );
+
+    if (!hasEe()) {
+      return;
+    }
+
+    expect(readEe("scimOAuthToken")).toContain(
+      'export const SCIM_TOKEN_ROUTE: string = "/scim/oauth/token";',
+    );
+    expect(readEe("scimOAuthToken")).toContain(
+      'const GRANT_TYPE_CLIENT_CREDENTIALS: string = "client_credentials";',
+    );
+
+    const oauth: string = readEe("scimOAuth");
+
+    expect(oauth).toContain(
+      "export const SCIM_ACCESS_TOKEN_EXPIRES_IN_SECONDS: number = 60 * 60;",
+    );
+    expect(oauth).toContain(
+      "export const SCIM_CLIENT_SECRET_LIFETIME_IN_DAYS: number = 365;",
+    );
+    expect(readEe("scimClientCredentials")).toContain(
+      "`${IDENTITY_URL.toString()}/scim/oauth/token`",
     );
   });
 });

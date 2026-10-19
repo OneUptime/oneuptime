@@ -15,13 +15,13 @@ Runbook は自動で開始できます。スケジュールに従って、また
 flowchart TB
     subgraph starts["実行を開始するもの"]
         direction LR
-        schedule["スケジュール: 時刻になる"]
+        schedule["スケジュール:<br/>時刻になる"]
         webhook["Webhook: URL への POST"]
     end
-    schedule --> checks["Runbook がオンでステップがある"]
+    schedule --> checks["Runbook がオンで<br/>ステップがある"]
     webhook --> checks
-    checks --> execution["Schedule または Webhook と記録された実行"]
-    execution --> worker["OneUptime Worker がステップを実行"]
+    checks --> execution["Schedule または<br/>Webhook と<br/>記録された実行"]
+    execution --> worker["OneUptime Worker が<br/>ステップを実行"]
 ```
 
 トリガーは **今すぐ実行** と同じように実行を開始します。実行は Runbook の現在のステップを対象にし、インシデント、アラート、定期メンテナンスイベントのどれにも関連付けられません。各実行は何が開始したかを記録します。Runbook の **実行** と **Runbook → 実行** は、それを **トリガー元** に表示し、スケジュール実行の予定時刻や Webhook を呼び出したアドレスも示します。どちらの一覧もそれで絞り込めます。
@@ -35,7 +35,7 @@ flowchart TB
 
 :::steps
 ### Runbook のトリガーページを開く
-**Runbook** から Runbook を開き、メニューの **トリガー** をクリックします。
+**Runbook** から Runbook を開き、サイドメニューの **設定 → トリガー** をクリックします。 **設定** は最初は折りたたまれているので、クリックして **トリガー** を表示します。
 
 ### スケジュールを設定する
 **スケジュールを設定** をクリックします。 **実行タイミング** で **繰り返し** を選び、必要な項目を指定します。ダイアログは「平日の毎日 09:00 に実行」のように 1 文でスケジュールを示し、変更に合わせて次回の実行を一覧表示します。
@@ -117,7 +117,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 | `404` | この URL に応答する Runbook の Webhook がありません。Runbook の ID かキーが間違っているか、URL がリセットされています。 |
 | `405` | リクエストが `GET` です。 `GET` では実行は開始されないため、チャットアプリのリンクプレビューが誤って実行することはありません。 |
 | `413` | 本文が 64 KB を超えています。 |
-| `429` | Webhook が直近 1 分間に 30 回の実行を開始した、その実行のうち 10 回がまだ進行中である、または 1 つのアドレスが 1 分間に Runbook の Webhook を 120 回を超えて呼び出しました。可能な場合は `Retry-After` ヘッダーが再試行のタイミングを示します。 |
+| `429` | Webhook が直近 1 分間に 30 回の実行を開始した、その実行のうち 10 回がまだ進行中である、または 1 つのアドレスが 1 分間に Runbook の Webhook を 120 回を超えて呼び出したか、1 つの IPv6 /64 のアドレスが合わせて 1200 回を超えて呼び出しました。可能な場合は `Retry-After` ヘッダーが再試行のタイミングを示します。 |
 | `503` | OneUptime が現在、呼び出しを数えられません。1 分後に再試行してください。 |
 
 拒否された呼び出しは何も開始せず、本文が理由を 1 文で示します。例: "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

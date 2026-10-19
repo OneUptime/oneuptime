@@ -35,7 +35,11 @@ import ConnectCallbackNotice, {
   ConnectCallbackNoticeState,
   useConnectCallbackNotice,
 } from "../../Components/Workspace/ConnectCallbackNotice";
-import { ConnectProvider } from "Common/Types/Workspace/ConnectCallback";
+import ConnectCallbackUtil, {
+  CONNECT_NOTICE_QUERY_PARAM,
+  ConnectProviderNotice,
+  ConnectProvider,
+} from "Common/Types/Workspace/ConnectCallback";
 import {
   GITHUB_INSTALLATION_CHOICE_QUERY_PARAM,
   GitHubInstallationChoice,
@@ -60,6 +64,13 @@ const CodeRepositoryPage: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [showGitHubConnectedBanner, setShowGitHubConnectedBanner] =
+    useState<boolean>(false);
+  /*
+   * The app was installed on GitHub itself - from its Marketplace listing or
+   * its page - and GitHub sent the browser back here (?notice=). Nothing is
+   * connected yet: the notice offers to connect the installation.
+   */
+  const [showGitHubInstalledNotice, setShowGitHubInstalledNotice] =
     useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -219,6 +230,11 @@ const CodeRepositoryPage: FunctionComponent<
     const choiceToken: string | null = urlParams.get(
       GITHUB_INSTALLATION_CHOICE_QUERY_PARAM,
     );
+    const installedOnGitHub: boolean =
+      ConnectCallbackUtil.readNotice(
+        ConnectProvider.GitHub,
+        urlParams.get(CONNECT_NOTICE_QUERY_PARAM),
+      ) === ConnectProviderNotice.GitHubInstalled;
 
     if (installationId) {
       setShowGitHubConnectedBanner(true);
@@ -229,7 +245,11 @@ const CodeRepositoryPage: FunctionComponent<
       void loadInstallationChoice(choiceToken);
     }
 
-    if (installationId || choiceToken) {
+    if (installedOnGitHub) {
+      setShowGitHubInstalledNotice(true);
+    }
+
+    if (installationId || choiceToken || installedOnGitHub) {
       // Clean up the URL
       const newUrl: string = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
@@ -323,6 +343,40 @@ const CodeRepositoryPage: FunctionComponent<
         />
       )}
 
+      {/*
+       * Only for someone who may connect it: anyone else sees the card's own
+       * sentence for what connecting needs.
+       */}
+      {showGitHubInstalledNotice && !connectLock.isLocked && (
+        <Alert
+          type={AlertType.INFO}
+          dataTestId="github-installed-notice"
+          strongTitle="The GitHub App is installed"
+          title={
+            <TranslatedSentence
+              template="{{connectInstallation}} to import its repositories into this project."
+              slots={{
+                connectInstallation: (
+                  <button
+                    type="button"
+                    className="font-medium underline"
+                    onClick={() => {
+                      setShowGitHubInstalledNotice(false);
+                      void handleConnectExistingInstallation();
+                    }}
+                  >
+                    {translator.translateText("Connect the installation")}
+                  </button>
+                ),
+              }}
+            />
+          }
+          onClose={() => {
+            setShowGitHubInstalledNotice(false);
+          }}
+        />
+      )}
+
       <ConnectCallbackNotice state={connectCallback} />
 
       {/* Connect Repository Card */}
@@ -331,7 +385,7 @@ const CodeRepositoryPage: FunctionComponent<
         description={
           <span>
             <TranslatedSentence
-              template="Install the GitHub App and all repositories in the installation are imported automatically — no need to pick them one at a time. They stay in sync as repositories are added to or removed from the installation. Connected repositories are what the {{aiAgent}} opens fix pull requests against."
+              template="Install the GitHub App to import every repository in the installation and keep them in sync. The {{aiAgent}} opens fix pull requests against them."
               slots={{
                 aiAgent: (
                   <Link to={aiAgentsRoute} className="underline">

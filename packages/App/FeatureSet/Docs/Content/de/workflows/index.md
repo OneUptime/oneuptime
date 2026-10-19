@@ -122,7 +122,7 @@ Der neue Workflow öffnet sich im **Editor**, ausgeschaltet.
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und dann im Bereich **Add Trigger** unter **Beliebt** auf **On Create Incident**.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und dann im Bereich **Auslöser hinzufügen** unter **Beliebt** auf **On Create Incident**.
 
 Der Trigger nimmt den Platz des gestrichelten Bausteins ein. Die ID darauf, `incident-on-create-1`, ist der Name, mit dem spätere Bausteine auf ihn verweisen.
 

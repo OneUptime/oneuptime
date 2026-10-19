@@ -217,7 +217,7 @@ export function buildInstallationCheckRows(
     detail:
       originCount > 0
         ? `${status.allowedOrigins.join(", ")}. A request must also pass the ingestion key's own allowed origins; if the two lists disagree, uploads are refused as origin-not-allowed and counted below.`
-        : "Two allowlists compose: the ingestion key's allowed origins (Project Settings > Telemetry Ingestion Keys) are checked first, then this application's. With this list empty, only the key's list protects the project from a copied key. Fine for getting started; list your domains before production.",
+        : "Two allowlists compose: the ingestion key's allowed origins (Project Settings > Telemetry & APM > Ingestion Keys) are checked first, then this application's. With this list empty, only the key's list protects the project from a copied key. Fine for getting started; list your domains before production.",
     action:
       originCount > 0
         ? { label: "Check the ingestion key's origins", to: ingestionKeysRoute }

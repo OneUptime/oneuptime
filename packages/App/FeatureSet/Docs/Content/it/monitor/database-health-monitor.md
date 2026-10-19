@@ -52,10 +52,10 @@ A ogni controllo, una sonda:
 flowchart TB
     connect["Connessione al database"] --> probe{"Query di prova OK?"}
     probe -->|"No"| offline["Monitor offline"]
-    probe -->|"Sì"| groups["Esegui ogni gruppo di metriche"]
+    probe -->|"Sì"| groups["Esegui ogni<br/>gruppo di metriche"]
     groups --> group{"Gruppo raccolto?"}
     group -->|"Sì"| metrics["Metriche riportate"]
-    group -->|"No"| issue["Metriche assenti, problema annotato"]
+    group -->|"No"| issue["Metriche assenti,<br/>problema annotato"]
     metrics --> criteria["Criteri valutati"]
     issue --> criteria
 ```
@@ -168,7 +168,7 @@ Scegli il **Database Type**, poi compila host, porta, nome del database e le cre
 
 ### Scegli cosa raccogliere
 
-Lascia attivo ogni gruppo in **Metric Groups**, a meno che tu non abbia un motivo per disattivarne uno — vedi [Gruppi di metriche](#gruppi-di-metriche).
+Ogni gruppo in **Metric Groups**, sotto **Altri campi**, parte attivo. Lasciali attivi, a meno che tu non abbia un motivo per disattivarne uno — vedi [Gruppi di metriche](#gruppi-di-metriche).
 
 ### Testa la connessione
 
@@ -191,13 +191,14 @@ Seleziona le **Sonde** che raggiungono il database e un **Intervallo di monitora
 | **Host** | L'host del database raggiungibile dalla sonda (ad esempio `db.internal`). |
 | **Porta** | La porta del database. |
 | **Nome del database** | Il database a cui connettersi. Le metriche a livello di database (dimensione, cache hit ratio, scritture su file temporanei) vengono riportate per questo database; quelle a livello di server (connessioni, uptime, replica) per l'intero server, tranne su Azure SQL Database, dove le connessioni vengono contate solo per il database monitorato. |
-| **Use Windows Integrated Authentication** | Solo Microsoft SQL Server. Autentica con l'identità del processo della sonda invece che con nome utente e password. Vedi [Autenticazione integrata di Windows](/docs/monitor/sql-monitor#autenticazione-integrata-di-windows) nella pagina del monitor SQL Query: la configurazione è identica. |
+| **Autenticazione** | Solo Microsoft SQL Server: **Nome utente e password**, l'impostazione predefinita, oppure **Windows Integrated Authentication**, che accede come il processo della sonda. Vedi [Autenticazione integrata di Windows](/docs/monitor/sql-monitor#autenticazione-integrata-di-windows) nella pagina del monitor SQL Query: la configurazione è identica. |
 | **Nome utente** | L'utente di monitoraggio. Obbligatorio, a meno che tu non usi l'autenticazione integrata di Windows. |
 | **Password** | La password. Fai riferimento a un [segreto del monitor](/docs/monitor/monitor-secrets) con `{{monitorSecrets.name}}` invece di digitarla in chiaro (vedi [Usare un segreto del monitor](#usare-un-segreto-del-monitor-per-la-password)). |
 | **Use SSL/TLS** | Connessione tramite TLS. Quando è attivo puoi disattivare **Verify server certificate** per un certificato autofirmato. |
-| **Metric Groups** | Quali gruppi eseguire: Connections, Attività, Throughput, Locks and Blocking, Archiviazione, Replication e Manutenzione. Sono tutti attivi per impostazione predefinita; vedi [Gruppi di metriche](#gruppi-di-metriche). I dettagli del monitor li elencano come **Collected Metric Groups**. |
 
 ### Altri campi
+
+**Metric Groups** si trova qui: quali gruppi eseguire, tra Connections, Attività, Throughput, Locks and Blocking, Archiviazione, Replication e Manutenzione. Sono tutti attivi per impostazione predefinita; vedi [Gruppi di metriche](#gruppi-di-metriche). I dettagli del monitor li elencano come **Collected Metric Groups**.
 
 | Campo | Predefinito | Massimo | Cosa limita |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL li misura solo quando `track_io_timing` è attivo, e per impostazione
 :::
 
 :::details Metric Groups Failed è sopra 0 a ogni controllo
-Un gruppo non può essere raccolto in nessun controllo, quindi lo stesso problema di raccolta si ripete. Il riepilogo del monitor indica il gruppo, il motivo e il `GRANT` che lo risolve. Esegui il permesso oppure, se non riesci a ottenerlo, disattiva quel gruppo in **Metric Groups** perché il problema smetta di ripetersi.
+Un gruppo non può essere raccolto in nessun controllo, quindi lo stesso problema di raccolta si ripete. Il riepilogo del monitor indica il gruppo, il motivo e il `GRANT` che lo risolve. Esegui il permesso oppure, se non riesci a ottenerlo, disattiva quel gruppo in **Altri campi → Metric Groups** perché il problema smetta di ripetersi.
 :::
 
 ## Passaggi successivi

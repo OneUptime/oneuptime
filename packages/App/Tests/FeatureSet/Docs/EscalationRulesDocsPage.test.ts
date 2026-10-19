@@ -56,6 +56,8 @@ const SIDE_MENU_FILE: string =
   "App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutyPolicy/SideMenu.tsx";
 const REPEAT_POLICY_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/RepeatPolicy.tsx";
+const REPEAT_CHOICE_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/RepeatChoice/RepeatChoice.ts";
 
 // The rule card's buttons: Add in its header, the rest on each rule.
 const RULE_BUTTONS: Array<string> = [
@@ -214,11 +216,27 @@ describe("the Escalation Rules docs page", () => {
     }
   });
 
-  it("names the Repeat Policy card below the rules as the dashboard titles it", () => {
+  it("names the Repeat Policy card below the rules, and its answer that repeats, as the dashboard titles them", () => {
+    const choices: string = readRepoFile(REPEAT_CHOICE_FILE);
+    const onCallCopy: string = choices.slice(
+      choices.indexOf("export const ON_CALL_POLICY_REPEAT"),
+      choices.indexOf("export const INCOMING_CALL_POLICY_REPEAT"),
+    );
+
     expect(readRepoFile(REPEAT_POLICY_FILE)).toContain(
-      'translateText("Repeat Policy")',
+      "config={ON_CALL_POLICY_REPEAT}",
+    );
+    expect(onCallCopy).toContain('cardTitle: translationKey("Repeat Policy")');
+    expect(onCallCopy).toContain(
+      'title: translationKey("Start again from Level 1")',
+    );
+    expect(onCallCopy).toContain(
+      'timesTitle: translationKey("How many more times?")',
     );
     expect(PAGE).toContain("its **Repeat Policy** (below the rules)");
+    expect(PAGE).toContain(
+      "To repeat a policy, click **Edit** on the **Repeat Policy** card, choose **Start again from Level 1** and set **How many more times?**.",
+    );
   });
 
   it("states the wait the dialog starts with", () => {
@@ -393,10 +411,14 @@ const TIMELINE_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable.tsx";
 const EXECUTION_TIMELINE: string = "Execution Timeline";
 
-// Where the sections are, in every language: the English page's outline.
+/*
+ * Where the sections are, in every language: the English page's outline.
+ * Passing a page on (PassOnDocs.test.ts) sits between the rotation and the
+ * editing sections.
+ */
 const LEVELS_SECTION: number = 2;
 const NEXT_IN_ROTATION_SECTION: number = 3;
-const API_SECTION: number = 5;
+const API_SECTION: number = 6;
 
 // A schedule the section's example names, and the run message it quotes.
 const EXAMPLE_SCHEDULE: string = "Payments primary";

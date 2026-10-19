@@ -64,10 +64,10 @@ Klik op **Aangepaste regel maken** onder de sjablonen, of op **Groeperingsregel 
 
 #### Afbakenen
 
-Voeg bij **Welke waarschuwingen** voorwaarden toe op monitors, ernstniveaus, labels, titels en beschrijvingen. Laat het leeg om elke nieuwe waarschuwing te groeperen. Klik daarna op **Groeperingsregel voor waarschuwingen maken**.
+Bij **Welke waarschuwingen** groepeert **Alle waarschuwingen**, waar een nieuwe regel mee begint, elke nieuwe waarschuwing. Om de regel in te perken, kies **Alleen waarschuwingen die aan de voorwaarden voldoen** en voeg voorwaarden toe op monitors, ernstniveaus, labels, titels en beschrijvingen. Klik daarna op **Groeperingsregel voor waarschuwingen maken**.
 :::
 
-Al het andere wat een regel kan doen, staat ingeklapt onder **Meer velden** aan het einde van de stap **Groepering**, in drie groepen. Ingeklapt noemt de kop wat erin staat en toont elke instelling die de regel gebruikt als chip, zodat het bewerken van een regel nooit verbergt wat ze doet.
+Al het andere wat een regel kan doen, staat ingeklapt onder **Meer velden** aan het einde van de stap **Groepering**, in drie groepen. Ingeklapt noemt de kop wat erin staat en zegt waarop elke instelling staat die de regel gebruikt, zodat het bewerken van een regel nooit verbergt wat ze doet.
 
 | Groep                                | Instellingen                                                                                               |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
@@ -150,15 +150,15 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 
 | Sectie in het zijmenu | Pagina's                                                                    |
 | --------------------- | --------------------------------------------------------------------------- |
-| **Basis**             | **Overzicht**, **Beschrijving**, **Hoofdoorzaak**, **Herstelnotities**      |
-| **Eigendom**          | **Eigenaren**                                                               |
-| **Tijdlijn**          | **Statustijdlijn**                                                          |
-| **Waarschuwingen**    | **Lidwaarschuwingen**                                                       |
-| **Episodenotities**   | **Privénotities**                                                           |
-| **Ontwikkelaars**     | **Terraform**, **API**, **AI-assistenten**                                  |
-| **Geavanceerd**       | **Auditlogboeken**, **Episode verwijderen**                                 |
+| **Overzicht** | **Overzicht**, **Statustijdlijn** |
+| **Onderzoek** | **Beschrijving**, **Hoofdoorzaak**, **Herstelnotities** |
+| **Team** | **Eigenaren** |
+| **Waarschuwingen** | **Lidwaarschuwingen** |
+| **Notities** | **Privénotities** |
+| **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten** |
+| **Geavanceerd** | **Auditlogboeken**, **Episode verwijderen** |
 
-**Eigendom**, **Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Het **Overzicht** opent met **Alerts in this episode**, dan de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Move episode to** in het menu **⋯**.
+**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Het **Overzicht** opent met **Alerts in this episode**, dan de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Move episode to** in het menu **⋯**.
 
 **Waarschuwingen → Actieve episodes** toont de episodes die nog niet zijn opgelost, en de badge ernaast telt ze.
 

@@ -24,7 +24,7 @@ import { PROJECT_ID, goTo } from "./SideMenuHarness";
 configure({ asyncUtilTimeout: 15000 });
 
 /*
- * The one-click Connect on Project Settings > Video Calls, for a server that
+ * The one-click Connect on Project Settings > Workspace > Video Calls, for a server that
  * has its own Zoom and Google apps but no Microsoft one (MICROSOFT_TEAMS_
  * MEETINGS_APP_CLIENT_ID unset).
  *

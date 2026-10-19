@@ -180,7 +180,7 @@ resource "oneuptime_monitor" "website" {
 
 ### 모니터 유형별 설정
 
-주소 말고도 설정할 것이 있는 모니터 유형은 그 설정(로그 쿼리, 데이터베이스 연결, 감시할 클러스터 등)을 자체 속성에 `jsonencode()`로 쓴 원시 JSON으로 둡니다: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`.
+주소 말고도 설정할 것이 있는 모니터 유형은 그 설정(로그 쿼리, 데이터베이스 연결, 감시할 클러스터 등)을 자체 속성에 `jsonencode()`로 쓴 원시 JSON으로 둡니다: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`, `probe_status_monitor`.
 
 그 JSON은 대시보드의 것과 같으며 키는 camelCase입니다. 그 안의 ID는 API가 쓰는 대로 `{ _type = "ObjectID", value = "..." }`로 씁니다. 서비스 하나의 오류를 세는 Logs 모니터의 예입니다.
 

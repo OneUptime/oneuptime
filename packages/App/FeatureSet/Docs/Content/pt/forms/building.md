@@ -12,12 +12,12 @@ A página **Construir** de um formulário é onde você decide o que ele pergunt
 ## Para onde vai cada resposta
 
 ```mermaid title="Para onde vai cada tipo de resposta"
-flowchart TB
-    answer["Uma resposta enviada"] --> kind{"O que a pergunta é"}
-    kind -->|"Um campo do registro"| field["Esse campo do novo<br/>incidente ou evento"]
-    kind -->|"Um campo personalizado"| custom["O valor desse<br/>campo personalizado"]
-    kind -->|"Uma pergunta própria<br/>do formulário"| note["Uma linha da<br/>nota privada"]
-    kind -->|"Seu nome, seu e-mail"| who["Quem enviou,<br/>na nota privada"]
+flowchart LR
+    answer["Uma resposta<br/>enviada"]
+    answer -->|"Um campo<br/>do registro"| field["Esse campo do novo<br/>incidente<br/>ou evento"]
+    answer -->|"Um campo<br/>personalizado"| custom["O valor desse<br/>campo personalizado"]
+    answer -->|"Uma pergunta<br/>própria<br/>do formulário"| note["Uma linha da<br/>nota privada"]
+    answer -->|"Seu nome,<br/>seu e-mail"| who["Quem enviou,<br/>na nota privada"]
 ```
 
 Cada resposta também fica guardada com o envio, na página **Envios** do formulário. Um campo que o formulário não pergunta, ou que fica vazio, é preenchido pelas [configurações Ao enviar](/docs/forms/on-submit) do formulário.

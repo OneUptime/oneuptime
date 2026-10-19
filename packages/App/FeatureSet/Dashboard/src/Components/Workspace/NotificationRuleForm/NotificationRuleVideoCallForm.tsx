@@ -142,7 +142,7 @@ const NotificationRuleVideoCallForm: FunctionComponent<ComponentProps> = (
           { eventNoun },
         )}
         description={translator.translateTemplate(
-          "When this rule fires, start one call for the {{eventNoun}} and post its Join button wherever this rule posts, in the {{eventNoun}}'s feed and on its page.",
+          "When this rule fires, start a call and post its Join button wherever the rule posts and on the {{eventNoun}}'s page.",
           { eventNoun },
         )}
         value={isOn}

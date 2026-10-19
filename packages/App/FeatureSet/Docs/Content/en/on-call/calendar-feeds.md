@@ -241,12 +241,12 @@ The feed shows the rotation **as it is configured now**, including for past days
 - Links are per project. A leaked personal link exposes one project's shifts, not every project you belong to.
 - Regenerating a link moves the old token into a 30-day grace period (empty calendar, then 404). **Disable link** serves an empty calendar. An unknown or expired link returns a plain 404 with no hint. Empty calendars make subscribed apps clear their copy; a 404 makes them keep it, which is why disabling and regenerating serve empty calendars.
 - Tokens are stored hashed; the copy shown on the settings page is encrypted with `ENCRYPTION_SECRET`. Set that variable to a real secret on a self-hosted install — the server warns at start-up when it is unset or still one of the placeholders this repository ships (`secret`, or the `please-change-this-to-random-value` that `config.example.env` sets). If you change it later, the page offers **Regenerate link** because the stored copy can no longer be read; the feed keeps working until you do.
-- Feed responses are marked `Cache-Control: private`, are excluded from search engines (`X-Robots-Tag: noindex`) and are rate limited per link and per client address.
+- Feed responses are marked `Cache-Control: private`, are excluded from search engines (`X-Robots-Tag: noindex`) and are rate limited per link and per client address, and per IPv6 /64 at ten times an address's limits.
 
 OneUptime's own Nginx keeps feed requests out of its logs:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/on-call-calendar/(user|schedule|project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;
@@ -319,7 +319,7 @@ Either `DISABLE_ON_CALL_CALENDAR_FEED` is set, or the server is busy: at most a 
 :::
 
 :::details 429 or "too many requests"
-Many clients behind one address — an office NAT, a VPN gateway — share the per-address budget. Raise `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW`, and check `TRUSTED_PROXY_HOPS`: when it is too low every client is attributed to your own proxy and they all share one budget.
+Many clients behind one address — an office NAT, a VPN gateway — share the per-address budget. The clients of one IPv6 /64 share ten times it as well. Raise `ON_CALL_CALENDAR_FEED_RATE_LIMIT_PER_IP_PER_WINDOW`, and check `TRUSTED_PROXY_HOPS`: when it is too low every client is attributed to your own proxy and they all share one budget.
 :::
 
 :::details Certificate errors in Apple Calendar, Thunderbird or Outlook

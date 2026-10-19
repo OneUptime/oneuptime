@@ -76,6 +76,7 @@ import TelegramLogAPI from "./TelegramLogAPI";
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import MarketplaceAPI from "Common/Server/API/MarketplaceAPI";
+import VercelMarketplaceProviderAPI from "Common/Server/API/VercelMarketplaceProviderAPI";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
@@ -85,10 +86,7 @@ import StatusPageAPI from "Common/Server/API/StatusPageAPI";
 import WorkspaceNotificationRuleAPI from "Common/Server/API/WorkspaceNotificationRuleAPI";
 import WorkspaceUserGroupAPI from "Common/Server/API/WorkspaceUserGroupAPI";
 import VideoCallConnectionAPI from "Common/Server/API/VideoCallConnectionAPI";
-import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
-import IncidentVideoCallService, {
-  Service as IncidentVideoCallServiceType,
-} from "Common/Server/Services/IncidentVideoCallService";
+import IncidentVideoCallAPI from "Common/Server/API/IncidentVideoCallAPI";
 import AlertVideoCall from "Common/Models/DatabaseModels/AlertVideoCall";
 import AlertVideoCallService, {
   Service as AlertVideoCallServiceType,
@@ -585,11 +583,6 @@ import DetectionRuleService, {
   Service as DetectionRuleServiceType,
 } from "Common/Server/Services/DetectionRuleService";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
-import HuntressConnectionAPI from "Common/Server/API/HuntressConnectionAPI";
-import HuntressIncidentReportService, {
-  Service as HuntressIncidentReportServiceType,
-} from "Common/Server/Services/HuntressIncidentReportService";
-import HuntressIncidentReport from "Common/Models/DatabaseModels/HuntressIncidentReport";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
@@ -1001,6 +994,9 @@ import OnCallDutyPolicyScheduleCalendarFeedService, {
 import ProjectOnCallCalendarFeedService, {
   Service as ProjectOnCallCalendarFeedServiceType,
 } from "Common/Server/Services/ProjectOnCallCalendarFeedService";
+import ScheduledMaintenanceCalendarFeedService, {
+  Service as ScheduledMaintenanceCalendarFeedServiceType,
+} from "Common/Server/Services/ScheduledMaintenanceCalendarFeedService";
 import UserOnCallShiftReminderService, {
   Service as UserOnCallShiftReminderServiceType,
 } from "Common/Server/Services/UserOnCallShiftReminderService";
@@ -1040,6 +1036,12 @@ import MarketplaceUsageReportService, {
 import MarketplaceChargeService, {
   Service as MarketplaceChargeServiceType,
 } from "Common/Server/Services/MarketplaceChargeService";
+import VercelMarketplaceInstallationService, {
+  Service as VercelMarketplaceInstallationServiceType,
+} from "Common/Server/Services/VercelMarketplaceInstallationService";
+import VercelMarketplaceConnectionService, {
+  Service as VercelMarketplaceConnectionServiceType,
+} from "Common/Server/Services/VercelMarketplaceConnectionService";
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceType,
 } from "Common/Server/Services/CodeRepositoryService";
@@ -1140,6 +1142,15 @@ import TeamMemberCustomFieldService, {
 import TeamPermissionService, {
   Service as TeamPermissionServiceType,
 } from "Common/Server/Services/TeamPermissionService";
+import CustomRoleService, {
+  Service as CustomRoleServiceType,
+} from "Common/Server/Services/CustomRoleService";
+import CustomRolePermissionService, {
+  Service as CustomRolePermissionServiceType,
+} from "Common/Server/Services/CustomRolePermissionService";
+import TeamCustomRoleService, {
+  Service as TeamCustomRoleServiceType,
+} from "Common/Server/Services/TeamCustomRoleService";
 import TeamComplianceSettingService, {
   TeamComplianceSettingService as TeamComplianceSettingServiceType,
 } from "Common/Server/Services/TeamComplianceSettingService";
@@ -1481,6 +1492,7 @@ import UserOnCallCalendarFeed from "Common/Models/DatabaseModels/UserOnCallCalen
 import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import OnCallDutyPolicyScheduleCalendarFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "Common/Models/DatabaseModels/ProjectOnCallCalendarFeed";
+import ScheduledMaintenanceCalendarFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceCalendarFeed";
 import UserOnCallShiftReminder from "Common/Models/DatabaseModels/UserOnCallShiftReminder";
 import UserOnCallShiftReminderLog from "Common/Models/DatabaseModels/UserOnCallShiftReminderLog";
 import UserNotificationEmailRollupItem from "Common/Models/DatabaseModels/UserNotificationEmailRollupItem";
@@ -1496,6 +1508,8 @@ import DeletedProject from "Common/Models/DatabaseModels/DeletedProject";
 import MarketplaceSubscription from "Common/Models/DatabaseModels/MarketplaceSubscription";
 import MarketplaceUsageReport from "Common/Models/DatabaseModels/MarketplaceUsageReport";
 import MarketplaceCharge from "Common/Models/DatabaseModels/MarketplaceCharge";
+import VercelMarketplaceInstallation from "Common/Models/DatabaseModels/VercelMarketplaceInstallation";
+import VercelMarketplaceConnection from "Common/Models/DatabaseModels/VercelMarketplaceConnection";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -1527,6 +1541,9 @@ import StatusPageOIDC from "Common/Models/DatabaseModels/StatusPageOidc";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
+import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -1697,8 +1714,11 @@ import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
+import ScheduledMaintenanceCalendarAPI from "Common/Server/API/ScheduledMaintenanceCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
+import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
+import OnCallPagePassOnAPI from "Common/Server/API/OnCallPagePassOnAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
@@ -3762,6 +3782,30 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CustomRole, CustomRoleServiceType>(
+        CustomRole,
+        CustomRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CustomRolePermission, CustomRolePermissionServiceType>(
+        CustomRolePermission,
+        CustomRolePermissionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<TeamCustomRole, TeamCustomRoleServiceType>(
+        TeamCustomRole,
+        TeamCustomRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<TeamComplianceSetting, TeamComplianceSettingServiceType>(
         TeamComplianceSetting,
         TeamComplianceSettingService,
@@ -3894,19 +3938,6 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityPlaybookRunAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new HuntressConnectionAPI().getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<HuntressIncidentReport, HuntressIncidentReportServiceType>(
-        HuntressIncidentReport,
-        HuntressIncidentReportService,
-      ).getRouter(),
     );
 
     app.use(
@@ -5248,6 +5279,19 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallCalendarAPI);
 
     /*
+     * The team's calendar link for scheduled maintenance: the public
+     * capability route (/scheduled-maintenance-calendar/project/:token/...,
+     * no UserMiddleware - the token in the path is the credential) and the
+     * session routes the Subscribe dialog uses (/project-feed/*). Its CRUD
+     * router below serves the link's on / off switch; the token columns
+     * have read [] so CRUD never returns one.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      ScheduledMaintenanceCalendarAPI,
+    );
+
+    /*
      * The schedule timeline: every schedule the caller can read, side by
      * side over a week or a month (/on-call-schedule-timeline). Session-only;
      * it reads through the same schedule-level shift cache as the feeds.
@@ -5260,6 +5304,21 @@ const BaseAPIFeatureSet: FeatureSet = {
      * record is read with the caller's own permissions first.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelLinkAPI);
+
+    /*
+     * Who is in a record's own channel, and adding people to it from its
+     * page (/workspace-channel-members/<record type>/<id>, .../add). The
+     * record is read with the caller's own permissions first; adding
+     * needs permission to edit it.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
+
+    /*
+     * "Can't take it? Pass it on" for the signed-in person's own pages about
+     * a record (/on-call-page/pass-on/<record type>/<id>), from a record's
+     * page in the Dashboard and from the mobile app.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallPagePassOnAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5304,6 +5363,17 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(
         ProjectOnCallCalendarFeed,
         ProjectOnCallCalendarFeedService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ScheduledMaintenanceCalendarFeed,
+        ScheduledMaintenanceCalendarFeedServiceType
+      >(
+        ScheduledMaintenanceCalendarFeed,
+        ScheduledMaintenanceCalendarFeedService,
       ).getRouter(),
     );
 
@@ -5396,12 +5466,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new VideoCallConnectionAPI().getRouter(),
     );
+    /*
+     * Incident calls, with their transcripts and what OneUptime AI read in
+     * them (IncidentVideoCallAPI).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentVideoCall, IncidentVideoCallServiceType>(
-        IncidentVideoCall,
-        IncidentVideoCallService,
-      ).getRouter(),
+      new IncidentVideoCallAPI().getRouter(),
     );
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5480,6 +5551,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new MarketplaceAPI().getRouter(),
+    );
+    /*
+     * Vercel Marketplace: the provider API Vercel calls when a team installs
+     * OneUptime and adds, changes or deletes a resource, and its webhooks
+     * (OneUptime Cloud only - see VercelMarketplaceProviderAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new VercelMarketplaceProviderAPI().getRouter(),
     );
     /*
      * Enterprise API routers from the Enterprise Edition module (ee/): the
@@ -5763,6 +5843,27 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MarketplaceCharge, MarketplaceChargeServiceType>(
         MarketplaceCharge,
         MarketplaceChargeService,
+      ).getRouter(),
+    );
+    // Vercel Marketplace installations and their connected Vercel projects: master admin only too.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        VercelMarketplaceInstallation,
+        VercelMarketplaceInstallationServiceType
+      >(
+        VercelMarketplaceInstallation,
+        VercelMarketplaceInstallationService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        VercelMarketplaceConnection,
+        VercelMarketplaceConnectionServiceType
+      >(
+        VercelMarketplaceConnection,
+        VercelMarketplaceConnectionService,
       ).getRouter(),
     );
 

@@ -67,7 +67,7 @@ Fate clic su **Applica modello**, sceglietene uno in **Seleziona modello** nel d
 
 Fate clic su **Generate with AI**. Il dialogo **Generate Postmortem with AI** propone una traccia in **Seleziona modello**: **Standard Postmortem**, **Detailed Technical Postmortem** o **Brief Postmortem**, poi i vostri modelli di post-mortem. **Template Preview** mostra la traccia, e potete modificarla prima di generare.
 
-Fate clic su **Generate with AI** in fondo al dialogo. OneUptime AI legge l'incidente (la sua descrizione, la causa principale e la correzione, la cronologia degli stati, le note pubbliche e private, e i messaggi del suo canale Slack o Microsoft Teams) e scrive il post-mortem secondo la vostra traccia. Poi l'editor si apre con il risultato.
+Fate clic su **Generate with AI** in fondo al dialogo. OneUptime AI legge l'incidente (la sua descrizione, la causa principale e la correzione, la cronologia degli stati, le note pubbliche e private, i messaggi del suo canale Slack o Microsoft Teams, e ciò che si è detto nelle [sue chiamate](/docs/workspace-connections/video-calls#trascrizioni-delle-chiamate)) e scrive il post-mortem secondo la vostra traccia. Poi l'editor si apre con il risultato.
 
 La generazione richiede che l'IA sia attiva per il progetto, in **Impostazioni del progetto → IA → AI Features**, e un provider LLM: vedere [Provider LLM](/docs/ai/llm-provider). Richiede anche il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident: gli altri ruoli possono scrivere il post-mortem, ma non generarlo.
 
@@ -78,6 +78,7 @@ Con **Scrivi una bozza di post-mortem quando un incidente viene risolto** attivo
 - Non sostituisce mai una nota già scritta.
 - Non scrive mai in un post-mortem già pubblicato, dove la bozza arriverebbe sulla pagina di stato senza revisione.
 - Richiede che l'IA sia attiva per il progetto, e si ferma per la giornata non appena il progetto raggiunge i suoi limiti giornalieri di IA. Vedere [Post-mortem automatico](/docs/ai/ai-sre#post-mortem-automatico).
+- Se la trascrizione della chiamata dell'incidente è ancora in arrivo quando l'incidente viene risolto, attende che OneUptime AI la legga, così che la bozza tenga conto di ciò che si è detto nella chiamata: fino a sei ore mentre Zoom o Google Meet prepara la trascrizione. Vedere [Registrare e trascrivere ogni chiamata](/docs/workspace-connections/video-calls#registrare-e-trascrivere-ogni-chiamata).
 
 ## Pubblicarlo sulla vostra pagina di stato
 
@@ -152,7 +153,7 @@ Controllate tre cose: **Pubblica nella pagina di stato** è attivo, la nota non 
 :::
 
 :::details Non è comparsa alcuna bozza dell'IA quando l'incidente è stato risolto
-L'incidente aveva già una nota, il post-mortem era già pubblicato, oppure **Scrivi una bozza di post-mortem quando un incidente viene risolto** è disattivato. L'IA deve essere attiva per il progetto, e il progetto non deve aver raggiunto i suoi limiti giornalieri di IA.
+L'incidente aveva già una nota, il post-mortem era già pubblicato, oppure **Scrivi una bozza di post-mortem quando un incidente viene risolto** è disattivato. L'IA deve essere attiva per il progetto, e il progetto non deve aver raggiunto i suoi limiti giornalieri di IA. Se la trascrizione della chiamata dell'incidente è in arrivo, la bozza arriva una volta che OneUptime AI l'ha letta.
 :::
 
 ## Passaggi successivi

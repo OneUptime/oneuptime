@@ -221,16 +221,16 @@ OBI skickar flera typer av signaler. Var och en kan stängas av med `--set ebpf.
 
 ### Länka spår mellan tjänster
 
-OBI kan också föra spåret vidare genom ett anrop: när podd A anropar podd B över HTTP eller gRPC ansluter spannet på B:s sida till A:s spår, utan SDK i någon av apparna. **Det här är avstängt som standard.** Slå på det med `--set ebpf.contextPropagation=true`, efter att du har läst varningen nedan.
+OBI för också spåret vidare genom ett anrop: när podd A anropar podd B över HTTP eller gRPC ansluter spannet på B:s sida till A:s spår, utan SDK i någon av apparna. **Det här är på som standard.** Utan det startar ett anrop till en podd på en annan nod ett eget spår; på samma nod länkar OBI ihop de båda ändarna själv. Stäng av det med `--set ebpf.contextPropagation=false` om du stöter på problemet som beskrivs i varningen nedan.
 
 | Inställning | Standard | Vad den gör |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | av | Skriver en W3C-`traceparent` i utgående trafik, så att spans länkas mellan tjänster. |
+| `ebpf.contextPropagation` | på | Skriver en W3C-`traceparent` i utgående trafik, så att spans länkas mellan tjänster. |
 | `ebpf.contextPropagationMode` | `headers` | Hur: `headers` (HTTP/1.1-förfrågningshuvuden, det smalaste), `tcp` (ett TCP-alternativ, via Linux Traffic Control) eller `all` (båda). Läses bara när `contextPropagation` är på. |
 | `ebpf.trackRequestHeaders` | på | Spårar förfrågningshuvuden i kärnan, så att mottagarsidan hittar `traceparent` även på vanliga HTTP-servrar. Har bara verkan när `contextPropagation` är på. |
 
 > [!WARNING]
-> Varje propageringsläge ändrar trafik som redan är på väg. För vanlig HTTP gör OBI den utgående förfrågan större i kärnan så att huvudet får plats; för TLS och rå TCP lägger det till ett TCP-alternativ från en Traffic Control-hook och skriver om paketet och dess kontrollsumma. Om anslutningens byteräkning sedan inte korrigeras exakt **desynkroniseras** strömmen: överföringar genom en proxy som nginx hänger sig halvvägs, så snart ett svar passerar ungefär 64 KB, tills anslutningen får timeout. Små förfrågningar fortsätter att fungera, så det ser ut som en bugg i applikationen eller proxyn. Ingen kärnversion får omskrivningen att försvinna. Spår, förfrågningsmätvärden och tjänstekartan fungerar alla utan den; en OpenTelemetry-SDK i dina tjänster länkar spår helt utan omskrivning i kärnan. Om du slår på den, prova den först i ett kluster som inte är produktion, och kontrollera stora överföringar genom din proxy.
+> Varje propageringsläge ändrar trafik som redan är på väg. För vanlig HTTP gör OBI den utgående förfrågan större i kärnan så att huvudet får plats; för TLS och rå TCP lägger det till ett TCP-alternativ från en Traffic Control-hook och skriver om paketet och dess kontrollsumma. Om anslutningens byteräkning sedan inte korrigeras exakt **desynkroniseras** strömmen: överföringar genom en proxy som nginx hänger sig halvvägs, så snart ett svar passerar ungefär 64 KB, tills anslutningen får timeout. Små förfrågningar fortsätter att fungera, så det ser ut som en bugg i applikationen eller proxyn. Ingen kärnversion får omskrivningen att försvinna. Om stora överföringar genom din proxy hänger sig efter att du har installerat agenten, eller om ett service mesh eller ett eBPF-nätverksplugin börjar få poddar att fallera, stäng av propageringen: spår, förfrågningsmätvärden och tjänstekartan fungerar alla utan den, och en OpenTelemetry-SDK i dina tjänster länkar spår helt utan omskrivning i kärnan. En agent som har uppgraderats med `--reuse-values` behåller det värde den hade, och tidigare chartversioner levererades med propageringen avstängd: uppgradera med `--reset-then-reuse-values` för att få det nya standardvärdet.
 
 ### Länka loggar till spår
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **OBI körs, men inga spår kommer in.** Sätt `--set ebpf.printTraces=true` och läs OBI:s logg igen. Spans där betyder att exporten till OneUptime misslyckas: kontrollera URL:en och intagningsnyckeln. Inga spans där kan betyda att trafiken krypteras av ett TLS-bibliotek som OBI inte kan läsa, som ett statiskt länkat.
 :::
 
-:::details Stora överföringar hänger sig efter att spårlänkning slagits på
-Det är `ebpf.contextPropagation` som skriver om trafiken: se varningen i [Länka spår mellan tjänster](#länka-spår-mellan-tjänster). Stäng av det med `--set ebpf.contextPropagation=false`.
+:::details Stora överföringar hänger sig efter att agenten installerats
+Det är `ebpf.contextPropagation`, på som standard, som skriver om trafiken: se varningen i [Länka spår mellan tjänster](#länka-spår-mellan-tjänster). Stäng av det med `--set ebpf.contextPropagation=false`.
 :::
 
 :::details Appar kraschar med slutkod 139 efter att logglänkning slagits på

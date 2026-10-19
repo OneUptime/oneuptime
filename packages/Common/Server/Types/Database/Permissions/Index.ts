@@ -259,6 +259,32 @@ export default class ModelPermission {
     }
   }
 
+  /*
+   * A row a person adds for themselves - a model of a project that only the
+   * CurrentUser grant lets them create - goes into a project they are a
+   * member of (CreatePermission.checkCreateInMemberProject). Asked by
+   * DatabaseService before the create's hooks run, on what the caller sent,
+   * and again with the rest of checkCreatePermissions on the record as it
+   * is written.
+   */
+  public static checkCreateInMemberProject<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    data: TBaseModel | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    DatabaseCommonInteractionPropsUtil.assertCredentialCanWrite(props);
+
+    try {
+      return CreatePermission.checkCreateInMemberProject(
+        modelType,
+        data,
+        props,
+      );
+    } catch (error) {
+      throw ModelPermission.toAnonymousRefusal(error, props);
+    }
+  }
+
   @CaptureSpan()
   public static checkCreatePermissions<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },

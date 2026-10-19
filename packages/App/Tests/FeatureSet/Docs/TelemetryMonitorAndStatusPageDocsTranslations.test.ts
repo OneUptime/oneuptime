@@ -360,13 +360,13 @@ interface MessageLabel {
   key: string;
 }
 
-// Empty tables' messages, which the page quotes without their full stop.
+/*
+ * Empty tables' messages, which the page quotes without their full stop.
+ * The header and footer link tables no longer have one of their own: empty,
+ * they say what the links are for, with Add Header Link or Add Footer Link.
+ */
 const MESSAGES: Record<string, Array<MessageLabel>> = {
   [BRANDING_AND_DOMAINS]: [
-    {
-      english: "No status header link for this status page",
-      key: "No status header link for this status page.",
-    },
     {
       english: "No custom domains found",
       key: "No custom domains found.",
@@ -376,16 +376,14 @@ const MESSAGES: Record<string, Array<MessageLabel>> = {
 
 /*
  * Sentences the Branding page quotes in plain text, which the Dashboard
- * translates: what DNS Setup says once the record is found, what the folded
- * More fields of a new domain says about its certificate, and the empty
- * Footer Links table. A translation quotes each as its language's Dashboard
- * words it.
+ * translates: what DNS Setup says once the record is found, and what the
+ * folded More fields of a new domain says about its certificate. A
+ * translation quotes each as its language's Dashboard words it.
  */
 const QUOTED_SENTENCES: Record<string, Array<string>> = {
   [BRANDING_AND_DOMAINS]: [
     CustomDomainCopy.dnsSetupVerified,
     CustomDomainCopy.advancedSummaryFreeCertificate,
-    "No status footer link for this status page.",
   ],
 };
 
@@ -403,7 +401,16 @@ const RECIPE_FILTER: Array<string> = ["Status", "Unset"];
  * Bold words that are Dashboard labels by coincidence but are prose where the
  * English page uses them, which a translation words as its language needs.
  */
-const PROSE: Record<string, Array<string>> = {};
+const PROSE: Record<string, Array<string>> = {
+  [BRANDING_AND_DOMAINS]: [
+    /*
+     * One of the screens the Branding page replaced. The Email Footer
+     * dialog on Subscriber Settings asks for a "Footer" now, so the word is
+     * a Dashboard label too, but here it names the old screen.
+     */
+    "Footer",
+  ],
+};
 
 /*
  * The bold leads of the pages' own lists and sentences, and names of screens
@@ -432,6 +439,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Then the criteria's aggregation.",
     "Criteria from top to bottom.",
     "No data is not zero.",
+    "All Values needs the whole time range.",
     "OneUptime's own downtime is not silence.",
     "one alert (or incident) per breaching host",
     "one alert for the whole monitor",
@@ -479,14 +487,14 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // The screens the Branding page replaced, which no longer exist.
     "Essential Branding",
     "Header",
-    "Footer",
     "Overview Page",
     // A card that is now a row of another card.
     "Overall Uptime Percent",
     "History chart colors.",
     "Languages.",
     "Search Engine Indexing.",
-    "There is no theme picker.",
+    "There is no brand-color picker.",
+    "Custom code in the dark theme.",
     "Add the domain",
     "Add its CNAME record",
     "The free SSL certificate is issued automatically",

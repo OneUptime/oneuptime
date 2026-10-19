@@ -12,12 +12,12 @@ Op de pagina **Bouwen** van een formulier bepaal je wat het vraagt en hoe de pag
 ## Waar elk antwoord naartoe gaat
 
 ```mermaid title="Waar elk soort antwoord naartoe gaat"
-flowchart TB
-    answer["Een ingezonden antwoord"] --> kind{"Wat de vraag is"}
-    kind -->|"Een veld van het record"| field["Dat veld van het nieuwe<br/>incident of de gebeurtenis"]
-    kind -->|"Een aangepast veld"| custom["De waarde van dat<br/>aangepaste veld"]
-    kind -->|"Een eigen vraag<br/>van het formulier"| note["Een regel in de<br/>privénotitie"]
-    kind -->|"Je naam, je e-mail"| who["Wie het inzond,<br/>in de privénotitie"]
+flowchart LR
+    answer["Een ingezonden<br/>antwoord"]
+    answer -->|"Een veld van<br/>het record"| field["Dat veld van<br/>het nieuwe<br/>incident of<br/>de gebeurtenis"]
+    answer -->|"Een aangepast veld"| custom["De waarde van dat<br/>aangepaste veld"]
+    answer -->|"Een eigen vraag<br/>van het<br/>formulier"| note["Een regel in de<br/>privénotitie"]
+    answer -->|"Je naam,<br/>je e-mail"| who["Wie het inzond,<br/>in de privénotitie"]
 ```
 
 Elk antwoord wordt ook bij de inzending bewaard, op de pagina **Inzendingen** van het formulier. Een veld dat het formulier niet vraagt, of dat leeg blijft, wordt ingevuld vanuit de [instellingen Bij verzenden](/docs/forms/on-submit) van het formulier.

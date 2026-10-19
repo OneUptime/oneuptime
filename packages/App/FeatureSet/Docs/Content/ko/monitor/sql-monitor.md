@@ -20,10 +20,10 @@ sequenceDiagram
     participant O as OneUptime
     participant P as 프로브
     participant D as 여러분의 데이터베이스
-    O->>P: 시크릿을 해석한 모니터 설정
+    O->>P: 시크릿을 해석한<br/>모니터 설정
     P->>D: 읽기 전용 쿼리
     D-->>P: 최대 Max Rows + 1개 행
-    P->>O: 행 수, 스칼라, 첫 행, 시간, 오류
+    P->>O: 행 수, 스칼라,<br/>첫 행, 시간, 오류
     O->>O: 기준 평가
 ```
 
@@ -139,7 +139,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 | **호스트** | 프로브가 접근할 수 있는 데이터베이스 호스트(예: `db.internal`). |
 | **포트** | 데이터베이스 포트. |
 | **데이터베이스 이름** | 쿼리를 실행할 데이터베이스. |
-| **Use Windows Integrated Authentication** | Microsoft SQL Server 전용. SQL 사용자 이름과 비밀번호 대신 프로브를 실행하는 계정으로 인증합니다. [Windows 통합 인증](#windows-통합-인증)을 참고하세요. |
+| **인증** | Microsoft SQL Server 전용: 기본값인 **사용자 이름과 비밀번호**, 또는 프로브를 실행하는 계정으로 로그인하는 **Windows Integrated Authentication**. [Windows 통합 인증](#windows-통합-인증)을 참고하세요. |
 | **사용자 이름** | 최소 권한의 읽기 전용 데이터베이스 사용자. |
 | **비밀번호** | 데이터베이스 비밀번호. 비밀번호를 일반 텍스트로 입력하지 말고 `{{monitorSecrets.name}}` 으로 [모니터 시크릿](/docs/monitor/monitor-secrets)을 참조할 것을 강력히 권장합니다([비밀번호에 모니터 시크릿 사용](#비밀번호에-모니터-시크릿-사용) 참고). |
 | **SQL Query** | 실행할 읽기 전용 쿼리([쿼리 작성](#쿼리-작성) 참고). |
@@ -157,7 +157,7 @@ ALTER ROLE db_datareader ADD MEMBER oneuptime_ro;
 
 ### Windows 통합 인증
 
-Microsoft SQL Server에서 **Use Windows Integrated Authentication** 을 켜면 프로브 프로세스의 ID로 신뢰할 수 있는 연결을 엽니다. 이 모드에서는 사용자 이름과 비밀번호 필드가 무시되며 드라이버로 전달되지 않습니다. 프로브에 도메인이 신뢰하는 ID가 필요하므로, 이 인증 모드에는 자체 호스팅 프로브를 사용하세요.
+Microsoft SQL Server의 경우 **인증**에서 **Windows Integrated Authentication**을 선택하면 프로브 프로세스의 ID로 신뢰할 수 있는 연결을 엽니다. 그러면 양식에서 **사용자 이름**과 **비밀번호**가 숨겨지며, 둘 다 드라이버로 전달되지 않습니다. 프로브에 도메인이 신뢰하는 ID가 필요하므로, 이 인증 모드에는 자체 호스팅 프로브를 사용하세요.
 
 | 프로브 실행 환경 | 설정할 내용 |
 |---|---|

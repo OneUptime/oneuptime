@@ -364,11 +364,15 @@ describe("the time window's words", () => {
 describe("the monitor form's values", () => {
   const SERVICE: string = "6f1e2d3c-4b5a-4968-8776-655443322110";
 
-  test("the problems are offered in display order, by the chip's word", () => {
+  test("the problems are offered in display order, by the chip's word, each saying what it means", () => {
     expect(getLlmIssueOptions()).toEqual(
       LlmAnswerIssueUtil.getAllIssues().map(
         (issue: LlmAnswerIssue): DropdownOption => {
-          return { label: LLM_ISSUE_STYLES[issue].title, value: issue };
+          return {
+            label: LLM_ISSUE_STYLES[issue].title,
+            value: issue,
+            description: LLM_ISSUE_STYLES[issue].description,
+          };
         },
       ),
     );

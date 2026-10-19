@@ -1283,6 +1283,27 @@ describe("SecurityEventConnectionFormModal (poll interval bounds)", () => {
       expect(onSaved).toHaveBeenCalledTimes(1);
     },
   );
+
+  test("Open Cases From says what a threshold opens, and leaves Never to its own choice", async () => {
+    await openPollingStep();
+
+    /*
+     * The Never choice reads "Never - import as events only" in the
+     * dropdown itself, so the field's description does not explain it
+     * again: its old closing "Never imports them as events only." read
+     * as if the setting never imported anything.
+     */
+    expect(
+      screen.getByText(
+        "Alerts at or above this severity open security cases, grouped by user, host or address.",
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("Never imports them as events only.", {
+        exact: false,
+      }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("SecurityEventConnectionFormModal (Google SecOps)", () => {

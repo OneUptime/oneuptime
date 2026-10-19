@@ -2,6 +2,7 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import IconProp from "../../../Types/Icon/IconProp";
 import StatusPageGroupNestingLayoutUtil from "../../../Utils/StatusPage/GroupNestingLayout";
+import { getStatusTextProps } from "../../Utils/StatusColorStyle";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -212,9 +213,9 @@ const ResourceGroupSection: FunctionComponent<ComponentProps> = (
               />
               <span
                 className={StatusPageGroupNestingLayoutUtil.getRollupLabelClassName()}
-                style={
-                  props.rollupColor ? { color: props.rollupColor } : undefined
-                }
+                {...(props.rollupColor
+                  ? getStatusTextProps(props.rollupColor)
+                  : {})}
               >
                 {props.rollupLabel}
               </span>

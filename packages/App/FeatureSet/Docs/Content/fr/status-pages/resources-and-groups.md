@@ -75,7 +75,7 @@ Cliquez sur **Ajouter un moniteur**. La ligne apparaît dans le groupe, et sur l
 Dans un groupe en grille, la boîte de dialogue demande aussi la ligne et la colonne où va le moniteur, au-dessus de **Plus de champs** ; voir [Disposition en liste ou en grille](#disposition-en-liste-ou-en-grille).
 
 > [!TIP]
-> Pour afficher plusieurs vérifications sur une seule ligne, ajoutez un groupe de moniteurs. Avec le commutateur **Groupes de moniteurs** activé (**Paramètres du projet** > **Avancé** > **Drapeaux de fonctionnalités**, qui s'enregistre dès que vous le basculez), un lien sous la liste déroulante indique **Ajoutez plutôt un groupe de moniteurs.** Cliquez dessus et **Moniteur** devient **Groupe de moniteurs** (**Sélectionner le groupe de moniteurs**) ; **Ajoutez plutôt un moniteur.** revient en arrière.
+> Pour afficher plusieurs vérifications sur une seule ligne, ajoutez un [groupe de moniteurs](/docs/monitor/monitor-groups). Avec le commutateur **Groupes de moniteurs** activé (**Paramètres du projet** > **Avancé** > **Drapeaux de fonctionnalités**, qui s'enregistre dès que vous le basculez), un lien sous la liste déroulante indique **Ajoutez plutôt un groupe de moniteurs.** Cliquez dessus et **Moniteur** devient **Groupe de moniteurs** (**Sélectionner le groupe de moniteurs**) ; **Ajoutez plutôt un moniteur.** revient en arrière.
 
 ### En ajouter plusieurs à la fois
 
@@ -209,23 +209,19 @@ Une règle de moniteurs ajoute des moniteurs à la page pour vous : décrivez le
 :::steps
 ### Ouvrir Règles de moniteurs
 
-Ouvrez la page de statut, choisissez **Règles de moniteurs** dans la section **Ressources** de son menu latéral, et cliquez sur **Créer : Règle de moniteurs de la page de statut**.
-
-### Nommer la règle
-
-Sous **Informations de base**, saisissez un **Nom**. **Activé** est activé par défaut.
+Ouvrez la page de statut, choisissez **Règles de moniteurs** dans la section **Ressources** de son menu latéral, et cliquez sur **Créer une règle de moniteurs**.
 
 ### Indiquer à quels moniteurs elle s'applique
 
-Sous **Critères de correspondance**, renseignez au moins l'un des champs **Étiquettes du moniteur** (un moniteur portant l'une d'elles correspond), **Nom du moniteur** et **Description du moniteur**. Un moniteur doit satisfaire chaque critère renseigné. Les deux motifs acceptent une expression régulière insensible à la casse (`^api-.*`) ou un joker `*` (`*checkout*`) ; `.*` correspond à tous les moniteurs.
+Sous **Correspondance**, ajoutez au moins une condition sur **Étiquettes du moniteur** (un moniteur portant l'une d'elles correspond), **Nom du moniteur** ou **Description du moniteur**. Avec deux conditions ou plus, choisissez si un moniteur doit les remplir toutes ou une seule. Les deux motifs acceptent une expression régulière insensible à la casse (`^api-.*`) ou un joker `*` (`*checkout*`) ; `.*` correspond à tous les moniteurs.
 
 ### Choisir le groupe
 
-Sous **Groupe**, choisissez **Ajouter des moniteurs au groupe**, ou laissez vide pour ajouter les moniteurs sans groupe. Les mêmes options d'affichage qu'une ressource suivent ; sur une règle, **Afficher le % de disponibilité** commence activé.
+Sous **Groupe**, choisissez **Ajouter les moniteurs à**, ou laissez vide pour ajouter les moniteurs en haut de la page. Le **Nom** de la règle en est tiré, par exemple « Ajouter des moniteurs à Site web », jusqu'à ce que vous saisissiez votre propre nom. **Plus de champs** contient les mêmes options d'affichage qu'une ressource, et la **Description** de la règle ; sur une règle, **Afficher le % de disponibilité** commence activé.
 
 ### Enregistrer la règle
 
-La règle s'exécute immédiatement sur chaque moniteur existant, et la liste montre le groupe auquel elle ajoute des moniteurs sous **Ajoute des moniteurs à**.
+La règle s'exécute immédiatement sur chaque moniteur existant, et la liste montre le groupe auquel elle ajoute des moniteurs sous **Ajoute des moniteurs à**. Une nouvelle règle est active : son interrupteur **Activé** se trouve dans son formulaire de modification.
 :::
 
 Ensuite, une règle s'exécute de nouveau pour un moniteur chaque fois qu'un moniteur est créé ou que ses étiquettes, son nom ou sa description changent. Une règle ne retire que les ressources qu'elle a ajoutées : la désactiver ou la supprimer les retire de la page, et un moniteur que vous avez ajouté à la main n'est jamais touché. Un moniteur déjà sur la page n'est jamais ajouté deux fois.

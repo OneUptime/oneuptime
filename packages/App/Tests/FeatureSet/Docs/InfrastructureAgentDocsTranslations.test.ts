@@ -170,10 +170,16 @@ const PERMISSIONS: Record<string, Array<string>> = {
 
 /*
  * Labels of another product's console, which the page names as that
- * console does: the Proxmox web UI, the vSphere Client, the FlashArray GUI
- * and Azure's role names.
+ * console does: the Amazon EKS console, the Proxmox web UI, the vSphere
+ * Client, the FlashArray GUI and Azure's role names.
  */
 const OTHER_CONSOLES: Record<string, Array<string>> = {
+  // The Amazon EKS console, where the agent is an add-on.
+  [KUBERNETES]: [
+    "Add-ons",
+    "Get more add-ons",
+    "Optional configuration settings",
+  ],
   [PROXMOX]: [
     "Add",
     "Privilege Separation",
@@ -301,7 +307,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "The scheduler",
     "the controller manager",
     "A request and its calls form one trace.",
-    "A call to a service on another node starts a new trace",
+    "A call to a service on another node joins the caller's trace",
     "Work that no request started stands alone.",
     "Database servers usually stand alone.",
     "on by default",

@@ -502,7 +502,7 @@ In plaats van apparaten een voor een toe te voegen, scan je een adresbereik vana
 flowchart TB
     Scan["Discovery-scan<br/>op een sonde"]
     Ping["Elk adres in het<br/>bereik pingen"]
-    Check{"SNMP controleren op<br/>hosts die antwoorden?"}
+    Check{"Scanmethode?"}
     Read["Naam en leverancier van<br/>elke host via SNMP lezen"]
     Found["Gevonden hosts"]
     Review["Review Results:<br/>kiezen en importeren"]
@@ -510,8 +510,8 @@ flowchart TB
     Devices["Apparaten, gepolld door<br/>de sonde van de scan"]
     Scan --> Ping
     Ping --> Check
-    Check -->|"Aan"| Read
-    Check -->|"Uit"| Found
+    Check -->|"SNMP"| Read
+    Check -->|"ICMP"| Found
     Read --> Found
     Found --> Review
     Found --> Rules
@@ -524,13 +524,13 @@ flowchart TB
 Ga naar **Netwerk → Discovery** en klik op **Scan starten**. **Discover Devices** op het Netwerk-**Overzicht** opent hetzelfde formulier.
 
 ### Zeggen wat er gescand moet worden
-Typ in de stap **Scandoel** het bereik, controleer de **Sonde** en beslis of je **Check SNMP on hosts that answer** gebruikt.
+Typ het bereik in **Scandoel**, controleer de **Sonde** en kies de **Scanmethode**: **ICMP (ping)**, waarmee een nieuwe scan begint, of **SNMP**.
 
 ### Inloggegevens toevoegen om te proberen
-Met SNMP aan vraagt de stap **SNMP-inloggegevens** om de sets inloggegevens die geprobeerd moeten worden. Met SNMP uit is er geen tweede stap: de scan is een [scan met alleen ping](#scans-met-alleen-ping), en **Scan starten** staat op de eerste pagina.
+Alleen een SNMP-scan vraagt om inloggegevens: kies je **SNMP**, dan komt de stap **SNMP-inloggegevens** erbij, met de sets inloggegevens die geprobeerd moeten worden. Een [ICMP-scan](#icmp-scans) heeft geen tweede stap, en **Scan starten** staat op de eerste pagina.
 
 ### De scan starten
-Klik op **Scan starten**. De sonde scant het bereik en meldt hoeveel hosts ze heeft gescand en hoeveel er antwoordden: hoeveel er op SNMP antwoordden, of, bij een scan met alleen ping, hoeveel er op ping antwoordden.
+Klik op **Scan starten**. De sonde scant het bereik en meldt hoeveel hosts ze heeft gescand en hoeveel er antwoordden: hoeveel er op SNMP antwoordden, of, bij een ICMP-scan, hoeveel er op ping antwoordden.
 
 ### Importeren wat er gevonden is
 Klik op **Review Results** bij de scan, kies de hosts om te importeren en klik op **Volgende**. Kies hoe vaak ze worden gecontroleerd en of elk een monitor krijgt, en importeer ze dan; zie [Importeren wat een scan heeft gevonden](#importeren-wat-een-scan-heeft-gevonden).
@@ -540,8 +540,8 @@ Klik op **Review Results** bij de scan, kies de hosts om te importeren en klik o
 | --- | --- | --- |
 | Scandoel | De adressen om te scannen, in [CIDR- of octetbereiknotatie](#notatie-van-het-scandoel). | Ja |
 | Sonde | De sonde die de scan uitvoert. Ze moet het bereik rechtstreeks bereiken. Een project met precies één eigen sonde begint met die sonde. Een project zonder eigen sonde ziet dat, met **Een sonde toevoegen** naast het veld. | Ja |
-| Check SNMP on hosts that answer | Een scan pingt eerst het bereik; dit bepaalt of de hosts die antwoorden daarna via SNMP om hun naam en leverancier worden gevraagd. Zet het uit voor een [scan met alleen ping](#scans-met-alleen-ping). Gekozen bij het aanmaken van de scan en daarna vast. Standaard aan. | Nee |
-| Te proberen inloggegevens | De tweede stap: de sets inloggegevens om te proberen, op volgorde. Elke host wordt met elke set gevraagd tot er één antwoordt, dus voeg één set toe per groep apparaten die een versie en community of v3-gebruiker delen. **Meer inloggegevens toevoegen** voegt er een toe. | Als SNMP controleren aan staat |
+| Scanmethode | **ICMP (ping)** pingt elk adres in het bereik en toont wat antwoordt, zonder inloggegevens: een [ICMP-scan](#icmp-scans). **SNMP** pingt ook en vraagt daarna elke host die antwoordt om zijn naam en leverancier. Een nieuwe scan begint met **ICMP (ping)**; **Bewerken** wijzigt dit later, en de scan wordt opnieuw uitgevoerd. | Ja |
+| Te proberen inloggegevens | De tweede stap van een SNMP-scan: de sets inloggegevens om te proberen, op volgorde. Elke host wordt met elke set gevraagd tot er één antwoordt, dus voeg één set toe per groep apparaten die een versie en community of v3-gebruiker delen. **Meer inloggegevens toevoegen** voegt er een toe. | Als de methode SNMP is |
 
 Ingeklapt onder **Meer velden** in de eerste stap, voor de scans die ze nodig hebben:
 
@@ -587,7 +587,7 @@ Octetbereiken bestaan voor netwerken die niet de vorm van CIDR-blokken hebben. `
 Elke host die een scan vindt, wordt geïmporteerd als door een sonde gepold apparaat, met de sonde van de scan toegewezen en pollen aan, zodat het vanaf zijn eerste poll een status heeft. Wat tussen hosts verschilt, is wat ze meebrengen:
 
 - Hosts die op SNMP antwoordden, worden geïmporteerd met het adres dat antwoordde als hostnaam, de naam zoals hieronder gekozen, en de inloggegevens die antwoordden, dus een v3-scan importeert apparaten die klaar zijn voor een v3-walk en meteen interfaces en inventaris beginnen te verzamelen.
-- Hosts die op ping antwoordden maar niet op SNMP — elke host die een [scan met alleen ping](#scans-met-alleen-ping) vindt, en de hosts die een SNMP-scan niet kon identificeren — worden zonder inloggegevens geïmporteerd. De sonde pingt ze volgens hun schema; voeg later inloggegevens toe, op het apparaat of als profiel erop of op zijn locatie, en dezelfde sonde begint ze ook te walken.
+- Hosts die op ping antwoordden maar niet op SNMP — elke host die een [ICMP-scan](#icmp-scans) vindt, en de hosts die een SNMP-scan niet kon identificeren — worden zonder inloggegevens geïmporteerd. De sonde pingt ze volgens hun schema; voeg later inloggegevens toe, op het apparaat of als profiel erop of op zijn locatie, en dezelfde sonde begint ze ook te walken.
 
 Een host die al als apparaat geregistreerd is, is gemarkeerd als **Al toegevoegd** en wordt nooit twee keer geïmporteerd. Pollen geeft elk geïmporteerd apparaat een status; om te horen wanneer er een uitvalt, geef je het een monitor: kies **Een monitor per apparaat** bij het importeren, of laat een [waarschuwingsbeleid](#waarschuwingsbeleid) er een geven aan elk apparaat dat het dekt.
 
@@ -657,7 +657,7 @@ Een naam wordt alleen verbeterd: een apparaat houdt zijn naam als zijn DNS-recor
 
 Elke scan met de hand beoordelen schaalt niet voorbij de eerste paar subnetten. **Netwerk → Regels → Auto Import Rules** is waar je de import één keer vastlegt: een regel zegt welke ontdekte hosts hij claimt (een IP-bereik, en optionele patronen voor systeemnaam, beschrijving en `sysObjectID`) en, optioneel, welk monitorsjabloon en welke [OID Collection Template](#oid-collection-templates) de apparaten krijgen die hij importeert. Een regel die als uitsluiting is gemarkeerd, claimt niets en spreekt een veto uit over de andere: zo worden printers en telefoons uit een brede subnetregel gehaald.
 
-In een regel bepaalt **Controleer elke** hoe vaak de sonde van de scan elk apparaat pollt dat de regel importeert, net als **Controleer elke** bij het importeren vanuit **Review Results**; leeg is het elke 5 minuten. Een regel die ook hosts importeert die alleen op ping antwoordden, geeft ook hun zijn monitorsjabloon: de sonde pingt ze, dus de controles van het sjabloon op of een apparaat bereikbaar is en op de traps die het stuurt, werken meteen voor ze, en zijn controles die een SNMP-walk lezen zodra het apparaat inloggegevens heeft.
+In een regel bepaalt **Controleer elke** hoe vaak de sonde van de scan elk apparaat pollt dat de regel importeert, net als **Controleer elke** bij het importeren vanuit **Review Results**; leeg is het elke 5 minuten. Een regel met **Include Ping-Only Hosts** aan importeert ook hosts die alleen op ping antwoordden, waaronder elke host die een [ICMP-scan](#icmp-scans) vindt, en geeft ook hun zijn monitorsjabloon: de sonde pingt ze, dus de controles van het sjabloon op of een apparaat bereikbaar is en op de traps die het stuurt, werken meteen voor ze, en zijn controles die een SNMP-walk lezen zodra het apparaat inloggegevens heeft.
 
 Regels hebben geen eigen schema en hebben er ook geen nodig. Ingeschakelde regels draaien vanzelf tegen de resultaten van elke scan zodra die binnenkomen, inclusief de deelresultaten die een lange scan uploadt terwijl hij nog loopt, dus hosts worden binnen een minuut na het vinden geïmporteerd in plaats van aan het einde van het bereik. Zet **Repeat this scan** aan op een discovery-scan en het paar wordt een vaste afspraak: de scan scant zijn bereik opnieuw met jouw interval, en elke nieuwe host die hij vindt, wordt geïmporteerd zonder dat iemand ergens op drukt.
 
@@ -672,23 +672,23 @@ Grote omgevingen worden in gedoseerde batches geïmporteerd. Een apparaat of mon
 
 Apparaten en monitors zijn apart werk met aparte limieten: een regel die een monitorsjabloon krijgt nadat zijn apparaten zijn geïmporteerd, maakt helemaal geen apparaten, alleen monitors, en zijn rapport zegt dat.
 
-### Scans met alleen ping
+### ICMP-scans
 
-Zet **Check SNMP on hosts that answer** uit en de scan is een gewone ICMP-scan: hij pingt elk adres in het bereik, meldt welke antwoordden en stuurt helemaal geen SNMP-pakket. De stap SNMP-inloggegevens verdwijnt uit het formulier, dat daardoor één pagina is met **Scan starten** erop, en er wordt geen versie, community string of v3-inloggegeven gevraagd of op de scan opgeslagen.
+Met **ICMP (ping)** als **Scanmethode**, waarmee een nieuwe scan begint, is een scan een gewone ICMP-scan: hij pingt elk adres in het bereik, meldt welke antwoordden en stuurt helemaal geen SNMP-pakket. Het formulier heeft geen stap SNMP-inloggegevens, dus het is één pagina met **Scan starten** erop, en er wordt geen versie, community string of v3-inloggegeven gevraagd of op de scan opgeslagen.
 
-De keuze wordt gemaakt bij het aanmaken van de scan en kan niet worden gewijzigd: een scan die met alleen ping is gemaakt, blijft alleen ping, ook bij elke run van een herhaalde scan. Om hetzelfde bereik op de andere manier te scannen, maak je een tweede scan.
+Je kunt de methode later wijzigen via **Bewerken** van de scan. Een gewijzigde methode voert de scan opnieuw uit: de hosts die de laatste run vond, worden gewist, en apparaten die je al hebt geïmporteerd, blijven zoals ze zijn.
 
 Grijp naar zo'n scan als:
 
-- Je geen SNMP-inloggegevens hebt voor het bereik: een lab, een netwerk van een tenant, een subnet dat je hebt geërfd. Een scan met alleen ping vertelt je wat daar leeft zonder dat je eerst een community string hoeft te raden.
+- Je geen SNMP-inloggegevens hebt voor het bereik: een lab, een netwerk van een tenant, een subnet dat je hebt geërfd. Een ICMP-scan vertelt je wat daar leeft zonder dat je eerst een community string hoeft te raden.
 - Je een inventarisscan wilt in plaats van een identiteitscontrole: wat antwoordt er in dit bereik, niet welk model het is. Hij is ook de snelste van de twee, omdat hij de SNMP-controle en de time-out per host overslaat bij hosts die op ping antwoorden maar geen SNMP met je willen praten.
 
 Twee dingen om te weten voordat je er een uitvoert:
 
-- De sonde heeft een runtime nodig die ICMP toestaat. De scan voert de `ping` van het besturingssysteem uit, dus de container van de sonde heeft de capability `NET_RAW` en het programma nodig. De eigen deployments van OneUptime hebben beide: `docker-compose.base.yml` en de `probeContainerSecurityContext` van de Helm-chart voegen `NET_RAW` toe, en het sonde-image installeert `iputils-ping`. Een fout hier betekent meestal dat een geharde Kubernetes-`securityContext` `NET_RAW` heeft laten vallen, of dat een eigen sonde-image `ping` heeft weggelaten. Een scan met alleen ping heeft dan niets meer om te proberen, dus hij mislukt met een melding die dat zegt, in plaats van een leeg bereik te melden. Als ping halverwege stopt met werken, houdt de scan de hosts die hij al heeft bevestigd en zegt hij dat het bereik niet volledig is gecontroleerd.
+- De sonde heeft een runtime nodig die ICMP toestaat. De scan voert de `ping` van het besturingssysteem uit, dus de container van de sonde heeft de capability `NET_RAW` en het programma nodig. De eigen deployments van OneUptime hebben beide: `docker-compose.base.yml` en de `probeContainerSecurityContext` van de Helm-chart voegen `NET_RAW` toe, en het sonde-image installeert `iputils-ping`. Een fout hier betekent meestal dat een geharde Kubernetes-`securityContext` `NET_RAW` heeft laten vallen, of dat een eigen sonde-image `ping` heeft weggelaten. Een ICMP-scan heeft dan niets meer om te proberen, dus hij mislukt met een melding die dat zegt, in plaats van een leeg bereik te melden. Als ping halverwege stopt met werken, houdt de scan de hosts die hij al heeft bevestigd en zegt hij dat het bereik niet volledig is gecontroleerd.
 - Alles wat hij vindt, wordt geïmporteerd als door een sonde gepold apparaat zonder inloggegevens, dat vanaf zijn eerste poll door de sonde van de scan wordt gepingd. Voeg inloggegevens toe, op het apparaat of als profiel erop of op zijn locatie, wanneer je ze hebt, en de sonde begint het apparaat ook te walken.
 
-Een scan met alleen ping vindt alleen hosts die op ICMP-echo antwoorden. Hosts die ping laten vallen (Windows-hosts standaard, en vaak beheer-VLAN's) blijven er onzichtbaar voor, ook als ze op SNMP antwoorden. Een SNMP-scan dekt dat geval: als zijn pingronde helemaal geen SNMP-responder vindt, gaat hij terug en vraagt hij ook de stille adressen via SNMP. Dus als je beheerde apparaten in een bereik verwacht en een scan met alleen ping leeg terugkomt, scan het dan opnieuw met **Check SNMP on hosts that answer** aan.
+Een ICMP-scan vindt alleen hosts die op ICMP-echo antwoorden. Hosts die ping laten vallen (Windows-hosts standaard, en vaak beheer-VLAN's) blijven er onzichtbaar voor, ook als ze op SNMP antwoorden. Een SNMP-scan dekt dat geval: als zijn pingronde helemaal geen SNMP-responder vindt, gaat hij terug en vraagt hij ook de stille adressen via SNMP. Dus als je beheerde apparaten in een bereik verwacht en een ICMP-scan leeg terugkomt, zet de **Scanmethode** dan op **SNMP**.
 
 ## Waarschuwingen
 

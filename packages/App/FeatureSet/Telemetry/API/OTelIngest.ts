@@ -13,8 +13,6 @@ import OtelTracesIngestService from "../Services/OtelTracesIngestService";
 import OtelMetricsIngestService from "../Services/OtelMetricsIngestService";
 import OtelLogsIngestService from "../Services/OtelLogsIngestService";
 import OtelProfilesIngestService from "../Services/OtelProfilesIngestService";
-import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
-import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import { JSONObject } from "Common/Types/JSON";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
@@ -241,7 +239,7 @@ router.get(
             tokenProvided: true,
             valid: false,
             message:
-              "This ingestion token is unknown or has been revoked. Create or copy a live key from Project Settings > Telemetry Ingestion Keys, then re-deploy the agent with it.",
+              "This ingestion token is unknown or has been revoked. Create or copy a live key from Project Settings > Telemetry & APM > Ingestion Keys, then re-deploy the agent with it.",
           },
           { statusCode: new StatusCode(401) },
         );
@@ -283,8 +281,8 @@ router.get(
             ...keyDiagnostics,
             message:
               policy.isEnabled === false
-                ? "This ingestion key has been disabled. Re-enable it, or create a new key, in Project Settings > Telemetry Ingestion Keys."
-                : "This ingestion key has expired. Extend its expiry, or create a new key, in Project Settings > Telemetry Ingestion Keys.",
+                ? "This ingestion key has been disabled. Re-enable it, or create a new key, in Project Settings > Telemetry & APM > Ingestion Keys."
+                : "This ingestion key has expired. Extend its expiry, or create a new key, in Project Settings > Telemetry & APM > Ingestion Keys.",
           },
           { statusCode: new StatusCode(401) },
         );
@@ -305,91 +303,6 @@ router.get(
         message: isBrowserKey
           ? "Ingestion token is valid, but it is a BROWSER ingestion key. It is accepted only from a browser, only from one of its allowed origins, and only for OTLP traces, logs and metrics and session replay. Use a server ingestion key in a collector, an agent, or any backend service."
           : "Ingestion token is valid.",
-      });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-// Queue stats endpoint
-router.get(
-  "/otlp/queue/stats",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      const stats: {
-        waiting: number;
-        active: number;
-        completed: number;
-        failed: number;
-        delayed: number;
-        total: number;
-      } = await TelemetryQueueService.getQueueStats();
-      return Response.sendJsonObjectResponse(req, res, stats);
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-// Queue size endpoint
-router.get(
-  "/otlp/queue/size",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      const size: number = await TelemetryQueueService.getQueueSize();
-      return Response.sendJsonObjectResponse(req, res, { size });
-    } catch (err) {
-      return next(err);
-    }
-  },
-);
-
-// Queue failed jobs endpoint
-router.get(
-  "/otlp/queue/failed",
-  ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-  async (
-    req: ExpressRequest,
-    res: ExpressResponse,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      // Parse pagination parameters from query string
-      const start: number = parseInt(req.query["start"] as string) || 0;
-      const end: number = parseInt(req.query["end"] as string) || 100;
-
-      const failedJobs: Array<{
-        id: string;
-        name: string;
-        data: JSONObject;
-        failedReason: string;
-        stackTrace?: string;
-        processedOn: Date | null;
-        finishedOn: Date | null;
-        attemptsMade: number;
-      }> = await TelemetryQueueService.getFailedJobs({
-        start,
-        end,
-      });
-
-      return Response.sendJsonObjectResponse(req, res, {
-        failedJobs,
-        pagination: {
-          start,
-          end,
-          count: failedJobs.length,
-        },
       });
     } catch (err) {
       return next(err);

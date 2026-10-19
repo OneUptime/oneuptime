@@ -149,12 +149,12 @@ Invalid ID for "currentIncidentStateId" in the query: "resolved". An ID is a UUI
 
 在 OneUptime Cloud 上，專案的 API 金鑰僅在專案處於 **Growth** 以上時可用，而它的 SCIM 連線（專案自己的以及其狀態頁面的）僅在處於 **Scale** 以上時才能完全運作。當專案降到該方案以下時：
 
-- 使用專案某把 API 金鑰送出的每個請求，無論要求什麼，都會被拒絕並傳回 `402 Payment Required`：REST API，以及所有用 API 金鑰呼叫它的東西——Terraform、`oneuptime` CLI、用 API 金鑰連線的 MCP 用戶端、在請求標頭中傳送金鑰的工作流程，以及你自己的指令碼。訊息會指明方案：`API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and they work again.`
+- 使用專案某把 API 金鑰送出的每個請求，無論要求什麼，都會被拒絕並傳回 `402 Payment Required`：REST API，以及所有用 API 金鑰呼叫它的東西——Terraform、`oneuptime` CLI、用 API 金鑰連線的 MCP 用戶端、在請求標頭中傳送金鑰的工作流程，以及你自己的指令碼。訊息會指明方案：`API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
 - 它的 SCIM 連線只能移除人員。停用和刪除人員以及把他們移出群組仍然有效，因此離開的人仍會失去存取權；每個會新增或變更人員或群組的 SCIM 請求都會以 SCIM 錯誤格式傳回 `402` 並被拒絕，以便你的身分提供者顯示原因（[低於 Scale 方案時](/docs/identity/scim#低於-scale-方案時)）。
 
 不會刪除或關閉任何內容。金鑰和連線都會保留，專案一回到該方案，它們就會原樣完全恢復運作：不需要建立新金鑰，也不需要在身分提供者中重新設定任何內容。方案變更會在一分鐘內生效。
 
-低於 **Growth** 時，**專案設定** > **API 金鑰** 會列出專案仍有的金鑰並說明它們已停止運作，因此在任何方案上都可以刪除（撤銷）其中任何一把。建立或變更金鑰需要 **Growth**。**專案設定** > **帳單** 會針對你可以選擇的每個方案，說明較低方案會停止多少把 API 金鑰、限制多少個 SCIM 連線，以及專案的方案已停止了什麼；當方案變更使它們停止時，專案擁有者會收到一封電子郵件。在此機制開始時專案就已低於這些方案的擁有者，會收到一封電子郵件，說明哪些已停止以及如何重新啟用。
+低於 **Growth** 時，**專案設定** > **進階** > **API 金鑰** 會列出專案仍有的金鑰並說明它們已停止運作，因此在任何方案上都可以刪除（撤銷）其中任何一把。建立或變更金鑰需要 **Growth**。**專案設定** > **帳單與發票** > **帳單** 會針對你可以選擇的每個方案，說明較低方案會停止多少把 API 金鑰、限制多少個 SCIM 連線，以及專案的方案已停止了什麼；當方案變更使它們停止時，專案擁有者會收到一封電子郵件。在此機制開始時專案就已低於這些方案的擁有者，會收到一封電子郵件，說明哪些已停止以及如何重新啟用。
 
 只有專案的 API 金鑰和 SCIM 連線受影響。人員不受影響：登入儀表板以及透過登入連線的 MCP 用戶端照常運作。遙測擷取金鑰、探針金鑰和代理程式金鑰不是 API 金鑰，會繼續運作。自行託管的安裝沒有方案，因此對它們沒有任何變化。
 
@@ -200,7 +200,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 擁有者
 
-資源的擁有者——監測器、待命策略、儀表板以及其他任何有擁有者之資源的使用者和團隊擁有者記錄——也以同樣的方式透過其所擁有的資源讀取：列出、讀取、新增和移除它們，需要在該資源的標籤和擁有者範圍內讀取該資源的權限；對於你無權讀取的資源，其擁有者記錄會被當作不存在來回應。
+資源的擁有者——監測器、待命策略、儀表板以及其他任何有擁有者之資源的使用者和團隊擁有者記錄——也以同樣的方式透過其所擁有的資源讀取：列出、讀取、新增和移除它們，需要在該資源的標籤和擁有者範圍內讀取該資源的權限；對於你無權讀取的資源，其擁有者記錄會被當作不存在來回應。新增和移除它們同樣遵循允許此操作的權限的範圍：`Owned` 範圍的權限只觸及你或你的某個團隊擁有的資源的擁有者，向其他任何資源新增擁有者都會被拒絕，並傳回說明原因的 `422`。
 
 #### 寫入所列出或指定的記錄
 

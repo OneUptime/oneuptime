@@ -146,7 +146,7 @@ describe("what the email says", () => {
       [
         "This project has reached its daily AI token limit: 201,234 of 200,000 tokens used today. OneUptime AI is paused until 00:00 UTC on Oct 6, 2026, when the day&#39;s count starts again.",
         "Incidents and alerts that are not investigated while it is paused are investigated after the reset, if they are still open.",
-        `To raise or remove the limit, go to Project Settings → AI Features → More settings: <br/> <a href="${link}">${link}</a>`,
+        `To raise or remove the limit, go to Project Settings → AI → AI Features → More settings: <br/> <a href="${link}">${link}</a>`,
         "Project owners get this email once a day for each limit, the first time it is reached.",
       ].join(" <br/> <br/> "),
     );
@@ -174,7 +174,7 @@ describe("what the email says", () => {
     expect(html).not.toContain("<a ");
     expect(html).not.toContain("settings/ai-features");
     expect(html).toContain(
-      "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI Features → More settings.",
+      "A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     );
   });
 
@@ -188,7 +188,7 @@ describe("what the email says", () => {
 
     expect(html).not.toContain("<a ");
     expect(html).toContain(
-      "To raise or remove the limit, go to Project Settings → AI Features → More settings.",
+      "To raise or remove the limit, go to Project Settings → AI → AI Features → More settings.",
     );
   });
 

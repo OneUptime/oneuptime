@@ -27,8 +27,8 @@ En toveisintegrasjon, som Jira eller Dynamics 365, bruker begge retningene: én 
 
 | Måte | Best for | Eksempler |
 | --- | --- | --- |
-| En innebygd tilkobling | Verktøy OneUptime kobler seg til selv. Du fyller ut et skjema, og det er ingenting å bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), tilkoblingene for [Sikkerhetshendelser](/docs/telemetry/security-events) |
-| En arbeidsflytmal | Saksverktøy, holdt i takt begge veier, og chatmeldinger. Du velger en mal og fyller ut noen få innstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| En innebygd tilkobling | Verktøy OneUptime kobler seg til selv. Du fyller ut et skjema, og det er ingenting å bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), tilkoblingene for [Sikkerhetshendelser](/docs/telemetry/security-events) |
+| En arbeidsflytmal | Saksverktøy, holdt i takt begge veier, overvåkingsproblemer, sikkerhetshendelsesrapporter og chatmeldinger. Du velger en mal og fyller ut noen få innstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
 | En Incoming Request-monitor | Varslingsverktøy som sender en webhook. Du får én hendelse per varsel, sendt til vakten og løst når varselet er over, uten arbeidsflyt. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | En arbeidsflyt du bygger selv | Alle verktøy med en webhook eller et REST API, og all logikk du trenger selv. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ Start fra toppen av tabellen: jo høyere en måte står, jo mindre er det å ved
 
 | Verktøy | Retning | Hva det gjør |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Innkommende | Gjør Zabbix-problemer om til hendelser og løser dem når Zabbix er gjenopprettet. |
+| [Zabbix](/docs/integrations/zabbix) | Begge | Gjør Zabbix-problemer om til hendelser eller varsler, løser dem når de er gjenopprettet, og kvitterer for eller lukker problemene fra OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Innkommende | Gjør varsler fra Alertmanager om til hendelser. |
 | [Grafana](/docs/integrations/grafana) | Innkommende | Gjør Grafana-varsler om til hendelser. |
 | [Datadog](/docs/integrations/datadog) | Innkommende | Gjør varsler fra Datadog-monitorer om til hendelser. |
@@ -89,6 +89,12 @@ Start fra toppen av tabellen: jo høyere en måte står, jo mindre er det å ved
 
 > [!TIP]
 > Slack og Microsoft Teams har også arbeidsflyttrinn. Bruk den innebygde tilkoblingen for hendelseskanaler og vakter, og et arbeidsflyttrinn når du bare trenger en melding i en kanal.
+
+### Hostingplattformer
+
+| Verktøy | Retning | Hva det gjør |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Innkommende | Legg til OneUptime fra Vercel Marketplace: traces, logger, oppetidsmonitorer og en statusside for Vercel-prosjektene dine. |
 
 ## Bytt fra et annet verktøy
 

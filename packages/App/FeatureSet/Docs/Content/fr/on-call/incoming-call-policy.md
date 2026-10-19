@@ -4,16 +4,16 @@ Une politique d'appels entrants donne à votre équipe un numéro de téléphone
 
 ```mermaid title="D'un appel téléphonique à la personne d'astreinte"
 flowchart TB
-    caller["L'appelant compose le numéro de la politique"] --> twilio["Twilio reçoit l'appel"]
-    twilio --> greeting["OneUptime diffuse le message d'accueil"]
-    greeting --> ring["Faire sonner la personne de la règle suivante"]
+    caller["L'appelant compose le<br/>numéro de la politique"] --> twilio["Twilio reçoit l'appel"]
+    twilio --> greeting["OneUptime diffuse<br/>le message d'accueil"]
+    greeting --> ring["Faire sonner la personne<br/>de la règle suivante"]
     ring --> answered{"Décroché<br/>à temps ?"}
-    answered -->|"Oui"| connected["L'appelant est mis en relation"]
+    answered -->|"Oui"| connected["L'appelant est<br/>mis en relation"]
     answered -->|"Non"| more{"Une autre règle ?"}
     more -->|"Oui"| ring
     more -->|"Non"| repeat{"Répéter la politique ?"}
     repeat -->|"Oui"| ring
-    repeat -->|"Non"| missed["Message en cas de non-réponse,<br/>puis raccrochage"]
+    repeat -->|"Non"| missed["Message en cas<br/>de non-réponse,<br/>puis raccrochage"]
 ```
 
 :::cards
@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- |
 | Un compte Twilio, avec son Account SID et son Auth Token | Les numéros et les appels de la politique passent par lui, et Twilio les lui facture. |
 | L'offre **Growth**, sur OneUptime Cloud | Un projet en a besoin pour sa propre configuration Twilio. |
-| Un serveur OneUptime que Twilio peut joindre, si vous l'hébergez vous-même | Twilio envoie chaque appel à `https://<your host>/notification/incoming-call/voice`. |
+| Un serveur OneUptime que Twilio peut joindre, si vous l'hébergez vous-même | Twilio envoie chaque appel à `https://<your host>/notification/incoming-call/voice`, et l'issue de chaque sonnerie à `https://<your host>/notification/incoming-call/dial-status/...`. |
 | Les **SMS** activés dans le projet | Le numéro de chaque personne est vérifié par un code envoyé par SMS. |
 | Un numéro vérifié pour chaque personne | Une règle ne fait sonner que les personnes qui ont ajouté et vérifié un numéro pour les appels entrants dans le projet. |
 
@@ -49,7 +49,7 @@ Allez dans **Paramètres du projet** > **Notifications** > **Paramètres de noti
 
 ### Créer la politique
 
-Allez dans **Astreinte** > **Politiques d'appels entrants** et cliquez sur **Créer : Politique d'appels entrants**. Donnez-lui un **Nom**, par exemple « Ligne d'assistance », et éventuellement une **Description** et des **Étiquettes**. Ouvrez-la ensuite depuis la liste.
+Allez dans **Astreinte** > **Politiques d'appels entrants** et cliquez sur **Créer : Politique d'appels entrants**. Donnez-lui un **Nom**, par exemple « Ligne d'assistance » ; la **Description** et les **Étiquettes** sont facultatives, sous **Plus de champs**. La nouvelle politique s'ouvre sur sa **Vue d'ensemble**.
 
 ### Choisir le compte Twilio
 
@@ -78,27 +78,27 @@ Une fois les trois étapes terminées, la carte devient **Phone Numbers & Twilio
 2. OneUptime fait sonner la personne nommée par la première règle d'escalade : cette personne, ou celle qui est d'astreinte à ce moment dans le planning d'astreinte de la règle, remplacements d'utilisateurs compris. Son téléphone affiche le numéro de la politique comme appelant.
 3. Si elle décroche dans la **Durée de sonnerie** de la règle, l'appelant est mis en relation, et le journal d'appels enregistre qui a répondu.
 4. Sinon, l'appelant entend « Connecting you to the next available engineer. », et la personne de la règle suivante sonne.
-5. Après la dernière règle, la politique recommence à la première si **Répéter la politique si personne ne répond** est activé, autant de fois que l'indique **Nombre de répétitions de la politique**. Sinon, l'appelant entend le **Message en cas de non-réponse**, et l'appel se termine.
+5. Après la dernière règle, la **Politique de répétition** de la politique décide : **Sonner de nouveau depuis la première règle** fait sonner chaque règle de nouveau, autant de fois de plus qu'elle l'indique, et **Terminer l'appel** non. Ensuite, l'appelant entend le **Message en cas de non-réponse**, et l'appel se termine.
 
 ```mermaid title="Les requêtes derrière un appel"
 sequenceDiagram
     participant Caller as Appelant
     participant Twilio
     participant OneUptime
-    participant Engineer as Personne d'astreinte
-    Caller->>Twilio: Compose le numéro de la politique
-    Twilio->>OneUptime: POST /notification/incoming-call/voice
-    OneUptime-->>Twilio: Message d'accueil, puis faire sonner la personne de la première règle
-    Twilio->>Engineer: Sonne pendant la durée de sonnerie de la règle
-    Note over Twilio,Engineer: Personne ne décroche à temps
-    Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...
-    OneUptime-->>Twilio: Faire sonner la personne de la règle suivante
-    Twilio->>Engineer: Fait sonner la personne suivante
+    participant Engineer as Personne<br/>d'astreinte
+    Caller->>Twilio: Compose le<br/>numéro de<br/>la politique
+    Twilio->>OneUptime: POST …/voice
+    OneUptime-->>Twilio: Message<br/>d'accueil, puis<br/>faire sonner la<br/>personne de la<br/>première règle
+    Twilio->>Engineer: Sonne pendant<br/>la durée<br/>de sonnerie<br/>de la règle
+    Note over Twilio,Engineer: Personne ne<br/>décroche à temps
+    Twilio->>OneUptime: POST …/dial-status
+    OneUptime-->>Twilio: Faire sonner la<br/>personne de la<br/>règle suivante
+    Twilio->>Engineer: Fait sonner<br/>la personne<br/>suivante
     Engineer-->>Twilio: Décroche
-    Twilio-->>Caller: Met l'appelant en relation
+    Twilio-->>Caller: Met l'appelant<br/>en relation
 ```
 
-Une règle est ignorée, sans rien faire sonner, quand personne ne peut être appelé pour elle à ce moment : son planning n'a personne d'astreinte, la personne n'a pas de numéro vérifié pour les appels entrants dans ce projet, ou elle n'est plus membre du projet. Quand aucune règle n'a quelqu'un à faire sonner, l'appelant entend le **Message lorsque personne n'est disponible**. Une politique désactivée répond à chaque appel par « Sorry, this service is currently disabled. » et raccroche.
+Une règle est ignorée, sans rien faire sonner, quand personne ne peut être appelé pour elle à ce moment : son planning n'a personne d'astreinte, la personne n'a pas de numéro vérifié pour les appels entrants dans ce projet, ou elle n'est plus membre du projet. Quand aucune règle n'a quelqu'un à faire sonner, l'appelant entend le **Message lorsque personne n'est disponible**. Avec **Répondre aux appels** désactivé, une politique répond à chaque appel par « Sorry, this service is currently disabled. » et raccroche.
 
 OneUptime vérifie la signature de Twilio sur chaque requête avec l'Auth Token de la configuration Twilio, et refuse une requête qu'il ne peut pas vérifier.
 
@@ -165,18 +165,21 @@ Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doiv
 
 ## Messages vocaux et paramètres de la politique
 
-Ouvrez la politique et choisissez **Paramètres** sous **Avancé** dans son menu latéral. **Modifier les messages** sur la carte **Messages vocaux** change ce qu'entendent les appelants ; **Modifier les paramètres de la politique** sur la carte **Paramètres de la politique** change le reste.
+Ouvrez la politique et choisissez **Paramètres** sous **Avancé** dans son menu latéral. La page a trois cartes :
+
+- **Répondre aux appels** : **Répondre aux appels vers les numéros de cette politique** s'enregistre dès que vous le basculez. Désactivé, les appelants entendent que la ligne n'est pas disponible et personne ne sonne ; ses numéros, ses règles et ses journaux d'appels sont conservés. Le désactiver demande d'abord confirmation, avec **Ne plus répondre aux appels**. Tant qu'il est désactivé, la **Vue d'ensemble** de la politique l'indique, avec **Répondre à nouveau aux appels** pour le réactiver.
+- **Politique de répétition** : ce qui se passe quand personne ne répond après la dernière règle. **Modifier** demande **Si personne ne répond après la dernière règle** : **Terminer l'appel**, ou **Sonner de nouveau depuis la première règle** et **Combien de fois de plus ?**.
+- **Messages vocaux** : ce qu'entendent les appelants. **Modifier les messages** les change.
 
 | Paramètre | Ce qu'il fait | Pour une nouvelle politique |
 | --- | --- | --- |
-| **Message d'accueil** | Lu quand l'appel est pris, avant que la première personne sonne. | "Please wait while we connect you to the on-call engineer." |
-| **Message en cas de non-réponse** | Lu quand toutes les règles ont été essayées et que personne n'a décroché. | "No one is available. Please try again later." |
-| **Message lorsque personne n'est disponible** | Lu quand aucune règle n'a quelqu'un à faire sonner. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
-| **Activé** | Une politique désactivée refuse tous les appels. | Activé |
-| **Répéter la politique si personne ne répond** | Après la dernière règle, recommencer à la première. | Désactivé |
-| **Nombre de répétitions de la politique** | Combien de fois recommencer. | 1 |
+| **Message d'accueil** | Lu quand quelqu'un appelle, avant que quiconque ne sonne. | "Please wait while we connect you to the on-call engineer." |
+| **Message en cas de non-réponse** | Lu quand chaque règle a sonné et que personne n'a répondu, avant la fin de l'appel. | "No one is available. Please try again later." |
+| **Message lorsque personne n'est disponible** | Lu quand personne ne peut être appelé, par exemple quand personne n'est d'astreinte. | "We are sorry, but no on-call engineer is currently available. Please try again later or contact support." |
+| **Répondre aux appels vers les numéros de cette politique** | Désactivé, chaque appelant entend "Sorry, this service is currently disabled." et l'appel se termine. | Activé |
+| **Si personne ne répond après la dernière règle** | **Terminer l'appel**, ou **Sonner de nouveau depuis la première règle**. | **Terminer l'appel** |
 
-Twilio lit les messages avec une voix de synthèse : écrivez-les comme vous voulez qu'ils sonnent.
+Twilio lit les messages avec une voix de synthèse : écrivez-les comme vous voulez qu'ils sonnent. Un message laissé vide est lu avec les mots de OneUptime, que la carte affiche à sa place.
 
 ## Journaux d'appels
 
@@ -188,7 +191,7 @@ Chaque appel figure sur la page **Journaux d'appels** de la politique, sous **Jo
 | **Achevé** | Quelqu'un a décroché, et l'appelant a été mis en relation. |
 | **Pas de réponse** | Toutes les règles d'escalade ont été essayées et personne n'a décroché. L'appelant a entendu votre **Message en cas de non-réponse**. |
 | **L'appelant a raccroché** | L'appelant a raccroché pendant que le téléphone d'une personne sonnait. |
-| **Échec** | Personne n'a pu sonner : aucune règle d'escalade n'avait une personne d'astreinte avec un numéro vérifié pour les appels entrants (l'appelant a entendu votre **Message lorsque personne n'est disponible**), ou la politique est désactivée. |
+| **Échec** | Personne n'a pu sonner : aucune règle d'escalade n'avait une personne d'astreinte avec un numéro vérifié pour les appels entrants (l'appelant a entendu votre **Message lorsque personne n'est disponible**), ou **Répondre aux appels** est désactivé. |
 
 ## Appels manqués
 
@@ -257,7 +260,7 @@ Une règle créée via l'API sans `escalateAfterSeconds` sonne pendant 20 second
 :::
 
 :::details L'appel est pris, mais personne ne sonne
-Le journal d'appels indique **Échec**. Vérifiez que la politique est **Activé**, que le planning d'astreinte de chaque règle a quelqu'un d'astreinte en ce moment, et que les personnes que les règles font sonner ont un numéro vérifié sous **Paramètres utilisateur** > **Politique d'appels entrants** > **Numéros de téléphone entrants**, dans ce projet. Les règles ne font sonner que des membres du projet.
+Le journal d'appels indique **Échec**. Vérifiez que **Répondre aux appels** est activé dans les **Paramètres** de la politique, que le planning d'astreinte de chaque règle a quelqu'un d'astreinte en ce moment, et que les personnes que les règles font sonner ont un numéro vérifié sous **Paramètres utilisateur** > **Politique d'appels entrants** > **Numéros de téléphone entrants**, dans ce projet. Les règles ne font sonner que des membres du projet.
 :::
 
 :::details Les appels aboutissent sur une messagerie vocale

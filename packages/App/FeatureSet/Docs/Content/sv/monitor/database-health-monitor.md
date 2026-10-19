@@ -55,7 +55,7 @@ flowchart TB
     probe -->|"Ja"| groups["Kör varje mätvärdesgrupp"]
     groups --> group{"Grupp insamlad?"}
     group -->|"Ja"| metrics["Mätvärden rapporterade"]
-    group -->|"Nej"| issue["Mätvärden saknas, problem noterat"]
+    group -->|"Nej"| issue["Mätvärden saknas,<br/>problem noterat"]
     metrics --> criteria["Kriterier utvärderade"]
     issue --> criteria
 ```
@@ -168,7 +168,7 @@ Välj **Database Type** och fyll sedan i värd, port, databasnamn och övervakni
 
 ### Välj vad som ska samlas in
 
-Låt alla grupper under **Metric Groups** vara påslagna, om du inte har ett skäl att stänga av någon — se [Mätvärdesgrupper](#mätvärdesgrupper).
+Alla grupper under **Metric Groups**, i **Fler fält**, är påslagna från början. Låt dem vara påslagna, om du inte har ett skäl att stänga av någon — se [Mätvärdesgrupper](#mätvärdesgrupper).
 
 ### Testa anslutningen
 
@@ -191,13 +191,14 @@ Välj de **Sonder** som kan nå databasen och ett **Övervakningsintervall**, oc
 | **Värd** | Databasvärden som kan nås från proben (till exempel `db.internal`). |
 | **Port** | Databasens port. |
 | **Databasnamn** | Databasen som det ansluts till. Mätvärden på databasnivå (storlek, träffkvot i cachen, utskrivning till temporära filer) rapporteras för den här databasen; mätvärden på servernivå (anslutningar, drifttid, replikering) för hela servern — utom på Azure SQL Database, där anslutningar bara räknas för den övervakade databasen. |
-| **Use Windows Integrated Authentication** | Bara Microsoft SQL Server. Autentisera med probeprocessens identitet i stället för ett användarnamn och lösenord. Se [Integrerad Windows-autentisering](/docs/monitor/sql-monitor#integrerad-windows-autentisering) på sidan om SQL Query-monitorn — inställningen är densamma. |
+| **Autentisering** | Bara Microsoft SQL Server: **Användarnamn och lösenord**, standardvalet, eller **Windows Integrated Authentication**, som loggar in som probeprocessen. Se [Integrerad Windows-autentisering](/docs/monitor/sql-monitor#integrerad-windows-autentisering) på sidan om SQL Query-monitorn — inställningen är densamma. |
 | **Användarnamn** | Övervakningsanvändaren. Krävs, om du inte använder integrerad Windows-autentisering. |
 | **Lösenord** | Lösenordet. Hänvisa till en [monitorhemlighet](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stället för att skriva det i klartext (se [Använd en monitorhemlighet](#använd-en-monitorhemlighet-för-lösenordet)). |
 | **Use SSL/TLS** | Anslut via TLS. När det är påslaget kan du stänga av **Verify server certificate** för ett självsignerat certifikat. |
-| **Metric Groups** | Vilka grupper som körs: Connections, Aktivitet, Throughput, Locks and Blocking, Lagring, Replication och Underhåll. Alla är påslagna som standard; se [Mätvärdesgrupper](#mätvärdesgrupper). Monitorns detaljer visar dem som **Collected Metric Groups**. |
 
 ### Fler fält
+
+**Metric Groups** finns här: vilka grupper som körs, bland Connections, Aktivitet, Throughput, Locks and Blocking, Lagring, Replication och Underhåll. Alla är påslagna som standard; se [Mätvärdesgrupper](#mätvärdesgrupper). Monitorns detaljer visar dem som **Collected Metric Groups**.
 
 | Fält | Standard | Max | Vad det begränsar |
 |---|---|---|---|
@@ -443,7 +444,7 @@ PostgreSQL mäter dem bara när `track_io_timing` är påslaget, och det är avs
 :::
 
 :::details Metric Groups Failed ligger över 0 vid varje kontroll
-En grupp kan inte samlas in vid någon kontroll, så samma insamlingsproblem upprepas. Monitorns sammanfattning anger gruppen, orsaken och den `GRANT` som åtgärdar det. Kör behörigheten, eller stäng av gruppen under **Metric Groups** om du inte kan få den, så att problemet slutar upprepas.
+En grupp kan inte samlas in vid någon kontroll, så samma insamlingsproblem upprepas. Monitorns sammanfattning anger gruppen, orsaken och den `GRANT` som åtgärdar det. Kör behörigheten, eller stäng av gruppen under **Fler fält → Metric Groups** om du inte kan få den, så att problemet slutar upprepas.
 :::
 
 ## Nästa steg

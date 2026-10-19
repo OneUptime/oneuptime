@@ -79,7 +79,7 @@ Apri lo SLO, vai a **Burn Rate Rules** e fai clic su **Crea: SLO Burn Rate Rule*
 
 ### Dare un nome alla regola
 
-In **Rule**, inserisci un **Nome**, come «Fast burn». **Abilitato** è attivo.
+In **Rule**, inserisci un **Nome**, come «Fast burn». Una nuova regola è attiva; per non farla più scattare in seguito, disattiva **Abilitato** nel suo modulo di modifica.
 
 ### Impostare la finestra di consumo
 
@@ -87,7 +87,7 @@ In **Burn Window**, imposta la **Burn Rate Threshold** (per esempio `14.4`), la 
 
 ### Scegliere cosa dichiara
 
-In **What It Declares**, attiva **Crea avviso**, **Dichiara incidente** o entrambi. **Add SLO Owners as Owners** rende anche i proprietari dello SLO proprietari di tutto ciò che la regola crea.
+In **What It Declares**, rispondi a **Quando scatta**: **Crea un avviso**, la scelta predefinita, **Dichiara un incidente** o **Entrambi**. **Add SLO Owners as Owners** rende anche i proprietari dello SLO proprietari di tutto ciò che la regola crea.
 
 ### Descrivere l'avviso e l'incidente
 
@@ -103,18 +103,18 @@ OneUptime controlla i numeri di una regola quando la salvi:
 | **Long Window (Minutes)** | Più lunga della finestra breve. |
 | **Re-fire Suppression (Minutes)** | 0 o più. Vuoto significa la durata della finestra lunga. |
 
-Una regola deve creare un avviso, dichiarare un incidente o entrambi: una regola con entrambi disattivati viene rifiutata, perché verrebbe controllata a ogni valutazione senza dichiarare mai nulla.
+Ogni risposta a **Quando scatta** apre qualcosa. L'API rifiuta una regola che non creerebbe alcun avviso né dichiarerebbe alcun incidente, perché verrebbe controllata a ogni valutazione senza dichiarare mai nulla.
 
 La tabella delle regole mostra per ogni regola la soglia, le finestre e la soppressione, cosa dichiara (e se l'avviso o l'incidente si risolve solo a mano, o è privato), le gravità, le politiche di reperibilità, i proprietari e le etichette.
 
 > [!TIP]
-> Un buon punto di partenza: tieni le due regole predefinite, manda la regola di consumo rapido alla tua politica di reperibilità che avvisa, con gravità alta, e lascia che la regola di consumo lento generi un avviso di gravità più bassa per l'orario di lavoro. Se il tuo team gestisce tutto con gli incidenti, attiva **Dichiara incidente** sulla regola di consumo rapido, e disattiva lì **Crea avviso** se preferisci non riceverli entrambi.
+> Un buon punto di partenza: tieni le due regole predefinite, manda la regola di consumo rapido alla tua politica di reperibilità che avvisa, con gravità alta, e lascia che la regola di consumo lento generi un avviso di gravità più bassa per l'orario di lavoro. Se il tuo team gestisce tutto con gli incidenti, scegli **Dichiara un incidente** per la regola di consumo rapido, o **Entrambi** per ricevere anche un avviso.
 
 ## Cosa dichiara una regola
 
-|  | **Crea avviso** | **Dichiara incidente** |
+|  | **Avviso** | **Incidente** |
 | --- | --- | --- |
-| All'inizio | Attivo | Disattivato |
+| Aperto da | **Crea un avviso**, la scelta predefinita, o **Entrambi** | **Dichiara un incidente** o **Entrambi** |
 | Cos'è | Il segnale leggero: finisce nell'elenco degli avvisi. | Il segnale pesante: prende un numero di incidente e avvia tutto il flusso di risposta. |
 | Titolo e descrizione | I propri, o il testo predefinito | I propri, o il testo predefinito |
 | Gravità | **Gravità avviso**: la più alta del progetto se vuota | **Gravità incidente**: la più alta del progetto se vuota |
@@ -195,7 +195,7 @@ Etichette, team proprietari e politiche di reperibilità devono appartenere al p
 
 Alcune modifiche risolvono sempre ciò che una regola ha aperto, qualunque cosa dicano le sue impostazioni di risoluzione automatica, così niente continua a scalare per una regola che non può più giustificarlo:
 
-- disattivare **Crea avviso** o **Dichiara incidente** chiude ciò che quell'uscita aveva aperto;
+- cambiare **Quando scatta** per togliere l'avviso o l'incidente chiude ciò che quell'uscita aveva aperto;
 - disattivare la regola o eliminarla;
 - disattivare la valutazione dello SLO, archiviare lo SLO o eliminarlo;
 - il passaggio dello SLO a **In pausa** o **Misconfigured**, perché allora non misura nulla;

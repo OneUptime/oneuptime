@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["실행을 시작하는 것"]
         direction LR
         rule["Runbook 규칙"]
-        manual["이벤트에서 런북 실행"]
-        runnow["Runbook에서 Run Now"]
+        manual["이벤트에서<br/>런북 실행"]
+        runnow["Runbook에서<br/>Run Now"]
     end
-    rule --> execution["실행: 단계의 스냅샷"]
+    rule --> execution["실행: 단계의<br/>스냅샷"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker가 단계를 순서대로 처리"]
-    worker -->|"Manual 단계 또는 승인"| person["사람을 기다림"]
+    execution --> worker["OneUptime<br/>Worker가 단계를<br/>순서대로 처리"]
+    worker -->|"Manual 단계<br/>또는 승인"| person["사람을 기다림"]
     worker -->|"HTTP와 AI 단계"| onworker["Worker에서 실행"]
-    worker -->|"JavaScript, Bash, SSH, Kubernetes"| runner["자체 인프라의 Runner"]
-    person --> record["상태, 출력, 오류 기록"]
+    worker -->|"JavaScript,<br/>Bash, SSH,<br/>Kubernetes"| runner["자체 인프라의<br/>Runner"]
+    person --> record["상태, 출력,<br/>오류 기록"]
     onworker --> record
     runner --> record
-    record --> history["이벤트의 런북 페이지와 Runbook의 실행 목록"]
+    record --> history["이벤트의 런북<br/>페이지와 Runbook의<br/>실행 목록"]
 ```
 
 Runbook을 실행할 때마다 **실행**이 만들어집니다. 실행이 시작되면 Runbook의 단계가 복사되고, OneUptime이 단계를 순서대로 처리합니다. Manual 단계나 승인이 필요한 단계는 누군가 조치할 때까지 실행을 일시 중지합니다.
@@ -98,6 +98,17 @@ Runbook은 **제품**의 **대시보드 및 자동화** 그룹에 있습니다.
 | **인시던트 / 알림 / 예정된 유지 관리 → 규칙 → Runbook 규칙** | Runbook을 자동으로 시작하는 규칙을 만듭니다. |
 | 인시던트, 알림 또는 유지 관리 이벤트 → **런북** | 연결된 실행을 보고, **런북 실행**을 클릭해 새로 시작합니다. |
 
+Runbook 자체의 사이드 메뉴는 페이지를 다음과 같이 묶습니다. 처음에는 **기본**만 열려 있습니다. 섹션 제목을 클릭하면 열립니다. 섹션 안의 어느 페이지에서든 그 섹션은 저절로 열립니다.
+
+| 섹션 | 페이지 |
+| --- | --- |
+| **기본** | **개요**, **단계** |
+| **로그** | **실행** |
+| **소유자** | **소유자** |
+| **설정** | **트리거**, **설정** |
+| **개발자** | **Terraform**, **API**, **AI 어시스턴트** |
+| **고급** | **감사 로그**, **런북 삭제** |
+
 ## 따라 해 보는 예
 
 제목에 "db-primary"가 들어간 모든 인시던트에서 5단계 데이터베이스 페일오버 Runbook을 시작하려고 한다고 합시다.
@@ -105,7 +116,7 @@ Runbook은 **제품**의 **대시보드 및 자동화** 그룹에 있습니다.
 :::steps
 ### Runbook 만들기
 
-**런북**에서 **런북 만들기**를 클릭하고 이름을 "DB primary failover"로 지정합니다. Runbook을 열고 **단계**로 이동해 다음 단계를 추가한 다음 **Save Steps**를 클릭합니다.
+**런북**에서 **런북 만들기**를 클릭하고 이름을 "DB primary failover"로 지정합니다. Runbook은 **단계**에서 열리므로 다음 단계를 추가한 다음 **Save Steps**를 클릭합니다.
 
 | # | 유형 | 제목 |
 | --- | --- | --- |

@@ -26,7 +26,7 @@ Båda typerna gäller för hela projektet. Du hittar dem i SLO-listans sidomeny,
 
 ### Välj vad regeln matchar
 
-I steget **Matcha** klickar du på **Lägg till villkor** för varje villkor som ett SLO måste uppfylla (se [Matchningskriterier](#matchningskriterier)). Med två eller fler väljer du **Matcha alla** eller **Matcha något**. En regel utan villkor matchar varje nytt SLO.
+I steget **Matcha** börjar **Gäller för** på **Alla SLO:er**, varje nytt SLO. För att snäva in regeln väljer du **Endast SLO:er som uppfyller villkoren** och fyller i villkoret som öppnas (se [Matchningskriterier](#matchningskriterier)); klicka på **Lägg till villkor** för varje annat villkor som ett SLO måste uppfylla. Med två eller fler väljer du **Matcha alla** eller **Matcha något**.
 
 ### Välj vad regeln lägger till
 

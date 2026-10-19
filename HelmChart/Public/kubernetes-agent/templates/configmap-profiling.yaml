@@ -60,10 +60,10 @@ data:
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
 
     exporters:
-      # Direct to OneUptime — bypassing the in-cluster collector
-      # because that collector is on v0.96.0 which predates the OTLP
-      # profiles signal. The profiler image is v0.152.0 and knows how
-      # to serialize profiles natively.
+      # Direct to OneUptime — bypassing the in-cluster collector, which
+      # has no profiles pipeline (and on 0.96.0, which a --reuse-values
+      # upgrade keeps, predates the OTLP profiles signal). The profiler
+      # image is v0.152.0 and knows how to serialize profiles natively.
       #
       # Override profiles_endpoint explicitly: the OTLP profiles signal
       # is still in development upstream, so otlphttp builds URLs

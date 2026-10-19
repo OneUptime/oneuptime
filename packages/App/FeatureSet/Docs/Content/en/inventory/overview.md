@@ -123,7 +123,7 @@ To archive items, select them in **All Items** and archive them in one go, or op
 
 ## Relationships and topology
 
-OneUptime links items with directed relationships as it observes them. **Inventory → Topology Map** draws them, and an item's **Connections** page lists its own.
+OneUptime links items with directed relationships as it observes them. **Inventory → Topology Map** draws them, and an item's **Connections** page lists its own. See [Topology](/docs/telemetry/topology).
 
 | Relationship | For example |
 | --- | --- |

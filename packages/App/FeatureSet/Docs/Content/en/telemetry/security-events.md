@@ -211,7 +211,7 @@ A field is either a short name (`severity`, `class`, `category`, `activity`, `st
 
 ### Facets
 
-The sidebar counts the window's events by **Source**, **Severity**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User** and **Principal Host**. Click a value to keep only its events, or the minus beside it to leave them out. The chart and every count describe exactly the events in the list.
+The sidebar counts the window's events by **Source**, **Severity**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User** and **Principal Host**. Click a value to keep only its events, or the minus beside it to leave them out. Click it again to undo. The chart and every count describe exactly the events in the list.
 
 ### Correlate
 
@@ -234,11 +234,11 @@ flowchart TB
 
 :::steps
 1. Open **Products → Security Events → Detection Rules** and click **Create Detection Rule**.
-2. In **Basic Info**, give it a **Name**, and keep **Enabled** on.
-3. In **Sigma Rule**, paste the rule's YAML into **Sigma Rule (YAML)**. It is parsed when you save, so a mistake shows in the form.
-4. In **Evaluation**, set how often it runs and how many matches it takes; see [Evaluation settings](#evaluation-settings).
-5. In **Security Cases**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
-6. In **On Match**, choose what else a match does: **Create Alert on Match** (on), **Create Incident on Match** (off) and **Write Detection Finding on Match** (on), with an optional **Alert Severity** and **Incident Severity**.
+2. In **Sigma Rule**, paste the rule's YAML into **Sigma Rule (YAML)**. It is parsed when you save, so a mistake shows in the form.
+3. The **Name** fills in from the rule's `title`: type over it to call the rule something else. A new rule runs; **Enabled** is on its edit form.
+4. In **On Match**, keep **Open a Case on Match** on to group its matches into cases, by the value the rule groups by.
+5. Under **Alerts and Incidents**, choose what else a match raises: **Create an alert** (the default), **Declare an incident**, **Both** or **Neither**, with an optional **Alert Severity** or **Incident Severity**.
+6. **More fields** holds the **Description**, **Write Detection Finding on Match** (on) and how matches are counted; see [Evaluation settings](#evaluation-settings).
 :::
 
 A first rule, which matches failed logons from outside `10.x.x.x`:
@@ -372,11 +372,11 @@ Check that it is **Enabled**, and read **Last Evaluated** and **Last Error** in 
 :::
 
 :::details A rule matched, but no alert opened
-**Create Alert on Match** is off, or an alert for the same rule and group value is still open, and later matches are folded into it. A project needs at least one alert severity for rules to open alerts.
+**Alerts and Incidents** is set to **Declare an incident** or **Neither**, or an alert for the same rule and group value is still open, and later matches are folded into it. A project needs at least one alert severity for rules to open alerts.
 :::
 
 :::details A rule opens too many alerts
-Each value of the **Group By Field** gets its own alert: group by something coarser, raise the threshold, or add a Distinct Count Field. To care about the rate rather than each match, turn **Create Alert on Match** off and put a monitor on the rule's findings.
+Each value of the **Group By Field** gets its own alert: group by something coarser, raise the threshold, or add a Distinct Count Field. To care about the rate rather than each match, set **Alerts and Incidents** to **Neither** and put a monitor on the rule's findings.
 :::
 
 ## Next steps

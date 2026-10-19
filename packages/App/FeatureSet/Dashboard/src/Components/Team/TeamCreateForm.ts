@@ -62,6 +62,8 @@ export const getTeamCreateFormFields: (
       validation: {
         minLength: 2,
       },
+      // Not the column's "Any friendly name of this object", written for the API.
+      hideColumnDescription: true,
     },
     /*
      * Not a column of the team: the page adds the role once the team exists
@@ -83,6 +85,7 @@ export const getTeamCreateFormFields: (
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: "Team Description",
+      hideColumnDescription: true,
       collapsibleSection: advanced,
     },
   ];
@@ -101,12 +104,15 @@ export const getTeamCreateFormFields: (
  */
 export const getNewTeamPage: (data: {
   role: Permission | null;
+  // A custom role picked under Access: the team can do something too.
+  customRoleId?: string | null | undefined;
   wasAccessAsked: boolean;
 }) => PageMap = (data: {
   role: Permission | null;
+  customRoleId?: string | null | undefined;
   wasAccessAsked: boolean;
 }): PageMap => {
-  if (!data.role && data.wasAccessAsked) {
+  if (!data.role && !data.customRoleId && data.wasAccessAsked) {
     return PageMap.TEAM_VIEW_PERMISSIONS;
   }
 

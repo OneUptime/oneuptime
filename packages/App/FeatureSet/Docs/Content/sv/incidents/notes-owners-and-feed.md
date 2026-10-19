@@ -17,10 +17,10 @@ En del av det du skriver är för dina kunder — uppdateringen som går ut på 
 flowchart TB
     subgraph write["Det du skriver"]
         direction LR
-        public["Offentlig anteckning"]
+        public["Offentlig<br/>anteckning"]
         private["Privat anteckning"]
     end
-    public --> page["Statussida och prenumeranter"]
+    public --> page["Statussida och<br/>prenumeranter"]
     public --> owners["Incidentens ägare"]
     private --> owners
     public --> feed["Incident Flöde"]
@@ -44,7 +44,7 @@ De två sorternas anteckningar ser likadana ut i instrumentpanelen och beter sig
 | Bilagor nåbara för       | Statussidans besökare, via en väg på statussidan                    | Bara det autentiserade instrumentpanels-API:t                   |
 | Meddelar ägare           | Ja                                                                  | Ja                                                              |
 
-**Vad "privat" faktiskt betyder.** Det betyder "inte publicerad på statussidan" — inte "begränsad till en mindre grupp personer". De inbyggda rollerna som kan läsa en incident läser båda sorternas anteckningar, så alla som kan läsa incidenten kan oftast också läsa dess privata anteckningar; i en anpassad roll är det separata behörigheter, **Read Incident Status Page Note** och **Read Incident Internal Note**. Måste du begränsa vem som över huvud taget kan se en incident använder du flaggan **Privat incident** (`isPrivate`) på själva incidenten, som döljer incidenten för alla statussidor och begränsar den till användarna som äger den, medlemmarna i teamen som äger den, och projektadministratörer och projektägare.
+**Vad "privat" faktiskt betyder.** Det betyder "inte publicerad på statussidan" — inte "begränsad till en mindre grupp personer". De inbyggda rollerna som kan läsa en incident läser båda sorternas anteckningar, så alla som kan läsa incidenten kan oftast också läsa dess privata anteckningar; i en anpassad roll är det separata behörigheter, **Read Incident Status Page Note** och **Read Incident Internal Note**. Måste du begränsa vem som över huvud taget kan se en incident använder du flaggan **Privat incident** (`isPrivate`) på själva incidenten, som döljer incidenten för alla statussidor och begränsar den till användarna som äger den, medlemmarna i teamen som äger den, och projektadministratörer och projektägare. En privat incident tar inga offentliga anteckningar alls: se [Privata incidenter tar bara privata anteckningar](#privata-incidenter-tar-bara-privata-anteckningar).
 
 **Ägarna ser båda.** Jobbet som meddelar ägarna hämtar offentliga och privata anteckningar tillsammans. En privat anteckning är privat för dina prenumeranter, inte för de som ingriper.
 
@@ -86,7 +86,7 @@ Samma redigerare öppnas i en dialog från **Add Public Note** i menyn **Åtgär
 | **Posted now**                     | När anteckningen säger att den publicerades: ögonblicket då du publicerar den, om du inte väljer en tidigare tidpunkt här, i din aktuella tidszon. |
 | **Notify status page subscribers** | Kryssruta. Påslagen som standard, om inte incidenten deklarerades utan att meddela prenumeranterna — då börjar den avstängd. Stäng av den för att publicera tyst. |
 
-**Tysta incidenter förblir tysta.** Deklarerades en incident med **Meddela statussideprenumeranter** avstängt (eller som en privat incident) har dess prenumeranter aldrig fått veta om den, så en offentlig anteckning bör inte vara det första de hör. På en sådan incident börjar kryssrutan avstängd, med en rad under som förklarar varför. Du kan fortfarande kryssa i den för att meddela prenumeranterna om den anteckningen. Anteckningar som publiceras utan ett uttryckligt val följer samma regel: anteckningar från Slack och Microsoft Teams, arbetsflöden och API-begäranden som utelämnar `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Ett uttryckligt `true` eller `false` behålls alltid. Offentliga anteckningar på [schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser) och [incidentepisoder](/docs/status-pages/subscribers#incidentepisoder) följer en liknande regel, baserad på om händelsen eller episoden själv meddelade prenumeranterna när den skapades; att göra en episod privat påverkar det inte.
+**Tysta incidenter förblir tysta.** Deklarerades en incident med **Meddela statussideprenumeranter** avstängt (eller som en privat incident) har dess prenumeranter aldrig fått veta om den, så en offentlig anteckning bör inte vara det första de hör. På en sådan incident börjar kryssrutan avstängd, med en rad under som förklarar varför. Du kan fortfarande kryssa i den för att meddela prenumeranterna om den anteckningen. Anteckningar som publiceras utan ett uttryckligt val följer samma regel: anteckningar från Slack och Microsoft Teams, arbetsflöden och API-begäranden som utelämnar `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Ett uttryckligt `true` eller `false` behålls alltid. Offentliga anteckningar på [schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser) och [incidentepisoder](/docs/status-pages/subscribers#incidentepisoder) följer en liknande regel, baserad på om händelsen eller episoden själv meddelade prenumeranterna när den skapades. En privat incident eller episod tar inga offentliga anteckningar alls.
 
 **Se vem anteckningen når.** Medan **Notify status page subscribers** är ikryssad visar en rad **Will notify** under den statussidorna som anteckningen går till, med ett "upp till"-antal prenumeranter per kanal, och sidorna som visar incidentens monitorer men inte får besked, med orsaken. Får ingen besked visar den ingenting, om inte incidenten är dold för statussidor eller dess statussideomfång är orsaken. Den följer incidentens statussideomfång, så en anteckning på en incident som är begränsad till två platssidor säger att den når de två. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience).
 
@@ -95,7 +95,7 @@ Samma redigerare öppnas i en dialog från **Add Public Note** i menyn **Åtgär
 > [!TIP]
 > **Publiceringstiden är anteckningens verkliga tidsstämpel.** Statussidor sorterar och visar offentliga anteckningar efter `postedAt`, inte efter när du skrev dem — så om du uppdaterar statussidan med en uppdatering som du skickade för 40 minuter sedan väljer du **Posted now** och anger när det faktiskt hände. Kommer en anteckning in via API:t (`/api/incident-public-note`) utan en tidpunkt stämplar OneUptime aktuell tid.
 
-Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna Markdown-texten med dess bilagor och, i dess rubrik, hur det står till med aviseringen till prenumeranterna. **Search notes…** hittar anteckningar utifrån vad de säger, och flödet kan läsas med de senaste eller de äldsta först.
+Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna Markdown-texten med dess bilagor och, i dess rubrik, hur det står till med aviseringen till prenumeranterna. **Search notes…** hittar anteckningar utifrån vad de säger, och flödet kan läsas med de senaste eller de äldsta först. Länkar till andra webbplatser och till bilagor öppnas i en ny flik. Rader som börjar med `>` visas som ett citat; inled det med en egen rad, `> [!NOTE]`, `> [!TIP]` eller `> [!WARNING]`, för att i stället visa det som en framhävd ruta.
 
 ## Publicera en privat anteckning
 
@@ -104,6 +104,17 @@ Varje anteckning visar vem som skrev den, dess publiceringstid, den återgivna M
 Ingen publiceringstid, ingen kryssruta för prenumeranter — anteckningen stämplas när den skapas.
 
 Båda sorternas anteckningar skrivs i Markdown-redigeraren, som kapslar listpunkter med **Öka indrag** och **Minska indrag** — eller Tab och Shift+Tab — och behåller listorna, länkarna och formateringen i det du klistrar in från Word, Google Docs eller en annan OneUptime-sida. Ctrl+Z ångrar ett indrag, och i visuellt läge även blocken och inklistringarna som redigeraren infogade, i ordning med det du skrev. Ett kodblock som kopieras från en anteckning klistras in igen som ett kodblock, och ett ord som kopieras ut ur ett som inline-kod. Se [Deklarera en incident](/docs/incidents/declaring-incidents#steg-1-incidentdetaljer).
+
+## Privata incidenter tar bara privata anteckningar
+
+En privat incident finns inte på någon statussida och meddelar inga prenumeranter (se [Håll en incident borta från statussidan](/docs/incidents/states-and-severities#håll-en-incident-borta-från-statussidan)), så en offentlig anteckning på den skulle inte nå någon av dem den skrevs för. OneUptime erbjuder därför ingen:
+
+- **Sidan med offentliga anteckningar** säger "Den här incidenten är privat, så det går inte att lägga till offentliga anteckningar på den. Använd en privat anteckning." där redigeraren fanns, med knappen **Lägg till privat anteckning** som öppnar dess privata anteckningar. **Add Public Note** i flödets meny **Åtgärder** är låst och säger samma sak.
+- **När dess tillstånd ändras** fäller dialogrutan in en privat anteckning under **Lägg till en privat anteckning** i stället för den offentliga, och frågar inte om prenumeranter. Massåtgärden **Ändra tillstånd** lägger till sin anteckning som en privat anteckning på varje privat incident den flyttar, och meddelar ingen om dem.
+- **I Slack och Microsoft Teams** sparar en 📣 eller 📢 på ett meddelande i dess kanal meddelandet som en privat anteckning, och bekräftelsen säger varför.
+- **Via API:et, arbetsflöden och OneUptime AI** avvisas en offentlig anteckning på den med samma mening, och en tillståndsändring som skickas med en sådan avvisas helt, så tillståndet ändras inte. En SLA-regels påminnelser om offentliga anteckningar väntar tills den är offentlig igen; dess privata påminnelser publiceras som vanligt.
+
+Offentliga anteckningar som publicerades innan incidenten gjordes privat finns kvar. Du kan fortfarande läsa, redigera och ta bort dem, men inget erbjuder att meddela prenumeranter om dem. Gör incidenten offentlig igen, så visas de på dess statussidor igen och nya offentliga anteckningar kan läggas till. Incidentepisoder fungerar på samma sätt.
 
 ## Bilagor på anteckningar
 
@@ -153,7 +164,7 @@ Du hanterar dem under **Incidenter → Inställningar → Anteckningsmallar** �
 
 ## Publicera anteckningar från Slack eller Microsoft Teams
 
-Har du anslutit en arbetsyta behöver de som ingriper aldrig lämna kanalen. Både Slack och Microsoft Teams erbjuder en åtgärd för att lägga till en anteckning som öppnar en dialog med en rullgardinsmeny **Note Type** — **Public Note** (publicerad på statussidan) eller **Private Note** (bara synlig för teammedlemmar) — och en textruta **Note**, och som skriver resultatet direkt på incidenten.
+Har du anslutit en arbetsyta behöver de som ingriper aldrig lämna kanalen. Både Slack och Microsoft Teams erbjuder en åtgärd för att lägga till en anteckning som öppnar en dialog med en rullgardinsmeny **Note Type** — **Public Note** (publicerad på statussidan) eller **Private Note** (bara synlig för teammedlemmar) — och en textruta **Note**, och som skriver resultatet direkt på incidenten. På en privat incident frågar den inte efter **Note Type** och lägger till en privat anteckning: se [Privata incidenter tar bara privata anteckningar](#privata-incidenter-tar-bara-privata-anteckningar).
 
 Tre detaljer som är värda att känna till:
 
@@ -259,11 +270,11 @@ Flödesposter skrivs av själva incidenttjänsten, av båda anteckningstjänster
 
 - **Själva incidenten** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. En post `IncidentUpdated` registrerar vad en redigering ändrade: titeln, beskrivningen, rotorsaken, åtgärdsanteckningarna, etiketterna, allvarlighetsgraden, monitorerna och statusen som sattes på dem, och statussidorna som lades till i eller togs bort från incidentens omfång. Den har en rad för varje värde som ändrades och ingen för ett värde som sparades som det var, så att spara ett kort utan ändringar, eller en API-klient eller ett arbetsflöde som skriver tillbaka incidenten som den är, lägger inte till någon post alls. Text som läses likadant är densamma (radbrytningar och blankstegen runt den undantagna), och etiketter är samma uppsättning i vilken ordning som helst; ett värde som rensades läses som borttaget, och att ta bort alla etiketter som "All labels removed.". Ett larms poster **Alert updated** fungerar på samma sätt.
 - **Anteckningar och rapporter** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. En post `PostmortemNote` skrivs när efteranalysens anteckning ändras, inte varje gång efteranalysen sparas.
-- **Personer** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
+- **Personer** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved` och `ChannelMemberAdded`, som visas som **Kanalmedlem tillagd**, för någon som lagts till i incidentens Slack-kanal från dess sida. Se [Vem som är i en posts kanal](/docs/workspace-connections/slack#vem-som-är-i-en-posts-kanal).
 - **Länkade larm** — `AlertLinked` och `AlertUnlinked`, som visas som **Larm länkat** och **Larm avlänkat**.
 - **Aviseringar** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatisering** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
-- **Videosamtal** — `VideoCallStarted` och `VideoCallFailed`: ett samtal som startades för incidenten, med dess anslutningslänk, eller orsaken till att en leverantör inte kunde starta ett. Se [Videosamtal](/docs/workspace-connections/video-calls).
+- **Videosamtal** — `VideoCallStarted`, `VideoCallFailed`, `VideoCallTranscriptAdded` och `VideoCallSummary`: ett samtal som startades för incidenten, med dess anslutningslänk, orsaken till att en leverantör inte kunde starta ett, ett samtals transkription, tillagd av någon eller läst från leverantören, eller det OneUptime AI läste i den, som också publiceras i incidentens kanaler. Se [Videosamtal](/docs/workspace-connections/video-calls).
 
 Varje typ får sin egen ikon, så att du kan skumma ett långt flöde och plocka ut tillståndsändringarna ur pratet. AI-genererad analys av rotorsaken markeras särskilt och återges i ett begränsat Markdown-läge. Posten **Incident skapad**, posten som registrerar en ny titel och posterna för att gå in i eller lämna en episod visar en titel exakt som den skrevs: de escapar `\`, `[`, `]`, `*`, `_`, `~`, backticks och \< i den, så att en titel inte kan bli en bild, rå HTML, ett Slack-omnämnande som \<!here\>, en länk vars text döljer vart den går, eller fetstil, kursiv eller kod. En adress i en titel visas fortfarande som en länk till samma adress.
 

@@ -22,6 +22,11 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "View Runbook",
       "Steps",
     ]),
+    /*
+     * A runbook's pages are named by their own titles, never by the side
+     * menu section that holds them (Executions is under Logs, Triggers and
+     * Settings under Settings), as on every record's page in the product.
+     */
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_EXECUTIONS, [
       "Project",
       "Runbooks",
@@ -46,6 +51,19 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "Runbooks",
       "View Runbook",
       "Settings",
+    ]),
+    // Every page of a runbook's menu has its trail, these two included.
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_OWNERS, [
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Runbooks",
+      "View Runbook",
+      "Audit Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOK_VIEW_DELETE, [
       "Project",

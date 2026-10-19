@@ -15,13 +15,13 @@ Un runbook può avviarsi da solo: secondo una pianificazione, o quando un altro 
 flowchart TB
     subgraph starts["Cosa avvia l'esecuzione"]
         direction LR
-        schedule["La pianificazione: arriva un orario"]
-        webhook["Il webhook: un POST al suo URL"]
+        schedule["La pianificazione:<br/>arriva un orario"]
+        webhook["Il webhook: un<br/>POST al suo URL"]
     end
-    schedule --> checks["Il runbook è attivo e ha dei passaggi"]
+    schedule --> checks["Il runbook è attivo<br/>e ha dei passaggi"]
     webhook --> checks
-    checks --> execution["Esecuzione, contrassegnata Schedule o Webhook"]
-    execution --> worker["Il Worker di OneUptime esegue i passaggi"]
+    checks --> execution["Esecuzione, contrassegnata<br/>Schedule o Webhook"]
+    execution --> worker["Il Worker di OneUptime<br/>esegue i passaggi"]
 ```
 
 Un trigger avvia un'esecuzione come fa **Run Now**: l'esecuzione riguarda i passaggi attuali del runbook e non è collegata ad alcun incidente, avviso o evento di manutenzione pianificata. Ogni esecuzione registra cosa l'ha avviata. Le **Esecuzioni** del runbook e **Runbook → Esecuzioni** lo mostrano sotto **Attivato da**, con l'orario previsto di un'esecuzione pianificata o l'indirizzo che ha chiamato il webhook, ed entrambi gli elenchi si possono filtrare in base a questo.
@@ -35,7 +35,7 @@ Un trigger avvia un'esecuzione come fa **Run Now**: l'esecuzione riguarda i pass
 
 :::steps
 ### Aprire la pagina Trigger del runbook
-Apri il runbook da **Runbook** e fai clic su **Trigger** nel suo menu.
+Apri il runbook da **Runbook** e fai clic su **Impostazioni → Trigger** nel suo menu laterale. **Impostazioni** è inizialmente compresso: fai clic su di esso per mostrare **Trigger**.
 
 ### Configurare la pianificazione
 Fai clic su **Imposta pianificazione**. In **Quando viene eseguito**, scegli un'opzione di **Ripeti** e ciò che richiede. La finestra di dialogo descrive la pianificazione in una frase, come «Viene eseguito ogni giorno feriale alle 09:00», ed elenca le prossime esecuzioni mentre la modifichi.
@@ -117,7 +117,7 @@ La risposta indica l'esecuzione avviata: `{"runbookExecutionId": "...", "status"
 | `404` | Nessun webhook di runbook risponde a questo URL: l'ID del runbook o la chiave è errato, oppure l'URL è stato reimpostato. |
 | `405` | La richiesta è un `GET`. Un `GET` non avvia mai un'esecuzione, così l'anteprima di un link in un'app di chat non può eseguirlo per sbaglio. |
 | `413` | Il corpo supera i 64 KB. |
-| `429` | Il webhook ha avviato 30 esecuzioni nell'ultimo minuto, 10 delle sue esecuzioni sono ancora in corso, oppure un indirizzo ha fatto più di 120 chiamate ai webhook dei runbook in un minuto. L'intestazione `Retry-After` indica quando riprovare, quando possibile. |
+| `429` | Il webhook ha avviato 30 esecuzioni nell'ultimo minuto, 10 delle sue esecuzioni sono ancora in corso, oppure un indirizzo ha fatto più di 120 chiamate ai webhook dei runbook in un minuto, oppure gli indirizzi di uno stesso /64 IPv6 più di 1200 insieme. L'intestazione `Retry-After` indica quando riprovare, quando possibile. |
 | `503` | OneUptime non riesce a contare le chiamate in questo momento. Riprova tra un minuto. |
 
 Una chiamata rifiutata non avvia nulla, e il suo corpo spiega il motivo in una frase, ad esempio "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

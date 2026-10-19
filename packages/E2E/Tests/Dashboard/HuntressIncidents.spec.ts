@@ -8,8 +8,14 @@ import {
   test,
 } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import ObjectID from "Common/Types/ObjectID";
 import StandardWebhookSignature from "Common/Server/Utils/Webhook/StandardWebhookSignature";
-import crypto from "crypto";
+import { HuntressTriggerSetting } from "Common/Types/Workflow/HuntressTrigger";
+import {
+  HUNTRESS_TEMPLATE_OPTIONS,
+  HUNTRESS_TRIGGER_COMPONENT_ID,
+  buildHuntressIncidentWorkflowGraph,
+} from "Common/Types/Workflow/Templates";
 import {
   gotoProjectPage,
   registerAndCreateProject,
@@ -33,17 +39,21 @@ import {
 } from "./Helpers/MonitorAlerting";
 
 /*
- * Huntress incident reports, end to end:
+ * Huntress incident reports, end to end, as a workflow:
  *
- *   Huntress (a signed webhook) -> api -> one incident -> on-call -> user paged
- *   -> a comment becomes a note -> closing the report resolves the incident
+ *   Huntress (a signed webhook) -> the workflow's Huntress trigger -> one
+ *   incident -> on-call -> user paged -> a comment becomes a note -> closing
+ *   the report resolves the incident
  *
- * The spec plays Huntress: it signs each delivery the way Huntress's webhook
- * service (Svix) does, with the endpoint's signing secret, and posts it to
- * the connection's URL. Everything else is the real stack - the webhook
- * route, the incident it opens, the on-call policy it executes, the user it
- * pages - and the connection's page in the dashboard, which shows what came
- * in and what was done with it. No call leaves the deployment under test.
+ * The workflow is the one "Open an incident for each Huntress incident
+ * report" creates, with the on-call policy picked as the Builder saves it.
+ * The spec plays Huntress: it signs each delivery the way Huntress's
+ * webhook service (Svix) does, with the endpoint's signing secret, and
+ * posts it to the trigger's URL. Everything else is the real stack - the
+ * trigger's route, the workflow run, the incident it opens, the on-call
+ * policy it executes, the user it pages - and the trigger's panel in the
+ * Builder, where the signing secret is saved and Huntress is seen arriving.
+ * No call leaves the deployment under test.
  *
  * Each run gets a fresh user and project, so report ids can repeat between
  * runs without colliding.
@@ -60,8 +70,8 @@ test.skip(({ browserName }: { browserName: string }): boolean => {
 }, "The webhook flow is API and worker driven; the chromium run covers it.");
 
 /*
- * On-call execution logs are a Growth feature when billing is enabled, so
- * the billing-mode run creates its project on Growth.
+ * Workflows, and on-call execution logs, are Growth features when billing
+ * is enabled, so the billing-mode run creates its project on Growth.
  */
 const PREFERRED_PLAN_NAME: string = "Growth";
 
@@ -69,13 +79,22 @@ const INCIDENT_TIMEOUT_MS: number = 120000;
 const ON_CALL_TIMEOUT_MS: number = 120000;
 const RESOLVE_TIMEOUT_MS: number = 120000;
 
-// A secret as Huntress shows it under View Signing Secret.
-const SIGNING_SECRET: string = `whsec_${crypto.randomBytes(24).toString("base64")}`;
+// A secret as Huntress shows it under View Signing Secret: whsec_ and base64.
+const SIGNING_SECRET: string = `whsec_${Buffer.from(
+  "huntress-e2e-signing-secret",
+).toString("base64")}`;
+
+// How many deliveries were posted, for each one's own svix-id.
+let deliveriesPosted: number = 0;
 
 const REPORT_ID: number = 1234;
 const SKIPPED_REPORT_ID: number = 5678;
 const ORGANIZATION_NAME: string = "Acme Corp";
 const COMMENT: string = "We isolated the host and are reimaging it.";
+const INCIDENT_TITLE: string =
+  "Huntress: Incident on DESKTOP-E2E01 (Acme Corp)";
+const SKIPPED_INCIDENT_TITLE: string =
+  "Huntress: Incident on LAPTOP-E2E02 (Acme Corp)";
 
 const SERVER: { timeout: number } = { timeout: 30000 };
 
@@ -117,11 +136,13 @@ interface SharedContext {
   mostSevereSeverityId: string;
   resolvedIncidentStateId: string;
   onCallDutyPolicyId: string;
-  connectionId: string;
+  workflowId: string;
+  secretKey: string;
+  graph: JSONish;
   incidentId: string;
 }
 
-test.describe("Huntress incident report -> incident -> on-call -> resolved", () => {
+test.describe("Huntress incident report -> workflow -> incident -> on-call -> resolved", () => {
   const ctx: SharedContext = {
     page: undefined as unknown as Page,
     projectId: "",
@@ -129,12 +150,14 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
     mostSevereSeverityId: "",
     resolvedIncidentStateId: "",
     onCallDutyPolicyId: "",
-    connectionId: "",
+    workflowId: "",
+    secretKey: "",
+    graph: {},
     incidentId: "",
   };
 
-  const webhookUrl: () => string = (): string => {
-    return urlFor(`/api/huntress/webhook/${ctx.connectionId}`);
+  const triggerUrl: () => string = (): string => {
+    return urlFor(`/workflow/huntress/${ctx.secretKey}`);
   };
 
   // Posts a delivery the way Huntress does: the raw JSON, signed.
@@ -148,8 +171,11 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
     signed?: boolean | undefined;
   }): Promise<Delivery> => {
     const raw: string = JSON.stringify(data.body);
+    deliveriesPosted++;
+
+    // Each event its own id, as Huntress gives them; a resent one keeps its own.
     const messageId: string =
-      data.messageId || `msg_${crypto.randomBytes(12).toString("hex")}`;
+      data.messageId || `msg_huntress_e2e_${deliveriesPosted}`;
     const timestamp: string = String(Math.floor(Date.now() / 1000));
 
     const headers: Record<string, string> = {
@@ -167,7 +193,7 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
       });
     }
 
-    const response: APIResponse = await ctx.page.request.post(webhookUrl(), {
+    const response: APIResponse = await ctx.page.request.post(triggerUrl(), {
       headers,
       data: raw,
     });
@@ -190,6 +216,69 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
       query: { title },
       select: { _id: true, title: true },
     });
+  };
+
+  // The workflow's runs that are over, however each ended.
+  const finishedRuns: () => Promise<Array<JSONish>> = async (): Promise<
+    Array<JSONish>
+  > => {
+    const runs: Array<JSONish> = await listItems({
+      page: ctx.page,
+      projectId: ctx.projectId,
+      path: "/api/workflow-log",
+      query: { workflowId: ctx.workflowId },
+      select: { _id: true, workflowStatus: true },
+      limit: 100,
+    });
+
+    return runs.filter((run: JSONish): boolean => {
+      return ["Success", "Error", "Timeout"].includes(
+        String(run["workflowStatus"]),
+      );
+    });
+  };
+
+  const waitForFinishedRuns: (count: number) => Promise<void> = async (
+    count: number,
+  ): Promise<void> => {
+    await pollUntil<Array<JSONish>>({
+      page: ctx.page,
+      description: `${count} finished run(s) of the Huntress workflow`,
+      timeoutMs: INCIDENT_TIMEOUT_MS,
+      check: async (): Promise<Array<JSONish> | null> => {
+        const runs: Array<JSONish> = await finishedRuns();
+        return runs.length >= count ? runs : null;
+      },
+    });
+  };
+
+  // Opens the Builder and the Huntress trigger's settings, on its panel.
+  const openTrigger: (ready: string) => Promise<Locator> = async (
+    ready: string,
+  ): Promise<Locator> => {
+    const card: Locator = ctx.page.locator(".react-flow__node", {
+      hasText: HUNTRESS_TRIGGER_COMPONENT_ID,
+    });
+
+    await gotoProjectPage({
+      page: ctx.page,
+      projectId: ctx.projectId,
+      url: urlFor(
+        `/dashboard/${ctx.projectId}/workflows/${ctx.workflowId}/builder`,
+      ),
+      ready: card,
+    });
+
+    await card.click();
+
+    const section: Locator = ctx.page.getByTestId(
+      "workflow-component-section-huntress",
+    );
+
+    await expect(section).toBeVisible(SERVER);
+    await expect(ctx.page.getByTestId(ready)).toBeVisible(SERVER);
+
+    return section;
   };
 
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
@@ -236,46 +325,81 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
       policyName: "E2E Huntress On-Call",
     });
 
-    const connection: JSONish = await createItem({
+    /*
+     * The template's graph, with the policy picked as the Builder saves it -
+     * what "Use this template", then picking who to page, leaves.
+     */
+    ctx.graph = buildHuntressIncidentWorkflowGraph(
+      {
+        ...HUNTRESS_TEMPLATE_OPTIONS,
+        onCallPolicyIds: [ctx.onCallDutyPolicyId],
+      },
+      (): string => {
+        return ObjectID.generate().toString();
+      },
+    );
+
+    const workflow: JSONish = await createItem({
       page: ctx.page,
       projectId: ctx.projectId,
-      path: "/api/huntress-connection",
+      path: "/api/workflow",
       item: {
         projectId: ctx.projectId,
-        name: "Huntress",
-        pageOnCallFor: "high",
-        resolveIncidentWhenReportCloses: true,
-        onCallDutyPolicies: [{ _id: ctx.onCallDutyPolicyId }],
+        name: "Huntress incident reports",
+        graph: ctx.graph,
       },
     });
 
-    ctx.connectionId = toId(connection["_id"]);
+    ctx.workflowId = toId(workflow["_id"]);
 
-    expect(ctx.connectionId).not.toBe("");
+    /*
+     * What the Dashboard reads of it. The trigger the server saves from the
+     * graph (triggerId) is the runner's own column, which the API never
+     * returns - a select of it is refused outright - and the trigger's URL
+     * answers 404 for a workflow whose trigger is not Huntress's: the 401
+     * below, for a delivery before the signing secret is saved, is the
+     * proof that it was saved.
+     */
+    const saved: JSONish = await getItem({
+      page: ctx.page,
+      projectId: ctx.projectId,
+      path: "/api/workflow",
+      id: ctx.workflowId,
+      select: {
+        _id: true,
+        webhookSecretKey: true,
+        isEnabled: true,
+      },
+    });
+
+    ctx.secretKey = String(saved["webhookSecretKey"] || "");
+
+    expect(ctx.secretKey).not.toBe("");
+    // New workflows start off.
+    expect(Boolean(saved["isEnabled"])).toBe(false);
   });
 
   test.afterAll(async () => {
     await ctx.page.close();
   });
 
-  test("the connection's page walks the setup in Huntress, with its URL", async () => {
-    const setup: Locator = ctx.page.getByTestId("huntress-setup");
+  test("the Builder opens the Huntress trigger on its panel: the URL for Huntress, and the steps in Huntress", async () => {
+    const section: Locator = await openTrigger("huntress-trigger-setup");
 
-    await gotoProjectPage({
-      page: ctx.page,
-      projectId: ctx.projectId,
-      url: urlFor(
-        `/dashboard/${ctx.projectId}/incidents/integrations/huntress/${ctx.connectionId}`,
-      ),
-      ready: setup,
-    });
-
-    await expect(
-      ctx.page.getByTestId("huntress-connection-state"),
-    ).toHaveAttribute("data-state", "needs-signing-secret", SERVER);
-    await expect(ctx.page.getByTestId("huntress-webhook-url")).toContainText(
-      `/api/huntress/webhook/${ctx.connectionId}`,
+    await expect(section.getByTestId("huntress-trigger-state")).toHaveAttribute(
+      "data-state",
+      "needs-signing-secret",
+      SERVER,
     );
+    await expect(section.getByTestId("huntress-trigger-url")).toContainText(
+      `/workflow/huntress/${ctx.secretKey}`,
+    );
+    await expect(
+      section.getByTestId("huntress-trigger-step-endpoint"),
+    ).toContainText("Add a webhook endpoint in Huntress");
+    await expect(
+      section.getByTestId("huntress-trigger-signing-secret-button"),
+    ).toContainText("Save Signing Secret");
   });
 
   test("refuses every delivery until the signing secret is saved", async () => {
@@ -283,40 +407,55 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
 
     expect(refused.status).toBe(401);
     expect(String(refused.body["message"])).toContain(
-      "no signing secret is saved for this connection yet",
+      "no signing secret is saved for this workflow yet",
     );
-    expect(
-      await incidentsTitled("Huntress: Incident on DESKTOP-E2E01 (Acme Corp)"),
-    ).toHaveLength(0);
+    expect(await incidentsTitled(INCIDENT_TITLE)).toHaveLength(0);
   });
 
-  test("the signing secret is saved from the page, and never read back", async () => {
-    await ctx.page.getByTestId("huntress-signing-secret-button").click();
+  test("the signing secret is saved from the trigger's panel, and never read back", async () => {
+    const section: Locator = ctx.page.getByTestId(
+      "workflow-component-section-huntress",
+    );
 
-    const dialog: Locator = ctx.page.getByTestId("modal");
+    await section.getByTestId("huntress-trigger-signing-secret-button").click();
+
+    /*
+     * The secret's own dialog, over the trigger's settings - which are a
+     * dialog too, and hold this one, so "the modal with the secret's field"
+     * is both. It goes by its title, as the offline Builder spec finds it
+     * (WorkflowBuilder/WorkflowBuilderHuntressTrigger.spec.ts).
+     */
+    const dialog: Locator = ctx.page.getByRole("dialog", {
+      name: /Signing Secret$/,
+    });
+
+    await expect(dialog).toContainText("View Signing Secret");
 
     await dialog.getByPlaceholder("whsec_…").fill(SIGNING_SECRET);
     await dialog.getByTestId("modal-footer-submit-button").click();
 
     await expect(dialog).toBeHidden(SERVER);
     await expect(
-      ctx.page.getByTestId("huntress-signing-secret-saved"),
+      section.getByTestId("huntress-trigger-signing-secret-saved"),
     ).toBeVisible(SERVER);
-    await expect(
-      ctx.page.getByTestId("huntress-connection-state"),
-    ).toHaveAttribute("data-state", "waiting", SERVER);
+    // The refusal the missing secret left is cleared with it.
+    await expect(section.getByTestId("huntress-trigger-state")).toHaveAttribute(
+      "data-state",
+      "waiting",
+      SERVER,
+    );
 
-    // The connection says that a secret is set, and never what it is.
-    const connection: JSONish = await getItem({
+    // The workflow says that a secret is set, and never what it is.
+    const workflow: JSONish = await getItem({
       page: ctx.page,
       projectId: ctx.projectId,
-      path: "/api/huntress-connection",
-      id: ctx.connectionId,
-      select: { _id: true, isSigningSecretSet: true },
+      path: "/api/workflow",
+      id: ctx.workflowId,
+      select: { _id: true, isWebhookSigningSecretSet: true },
     });
 
-    expect(connection["isSigningSecretSet"]).toBe(true);
-    expect(connection["signingSecret"]).toBeUndefined();
+    expect(workflow["isWebhookSigningSecretSet"]).toBe(true);
+    expect(workflow["webhookSigningSecret"]).toBeUndefined();
 
     /*
      * Asking for the secret by name is refused outright: its read list is
@@ -324,21 +463,39 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
      * read rather than leaving it out.
      */
     const asked: APIResponse = await ctx.page.request.post(
-      urlFor(`/api/huntress-connection/${ctx.connectionId}/get-item`),
+      urlFor(`/api/workflow/${ctx.workflowId}/get-item`),
       {
         headers: {
           "content-type": "application/json",
           tenantid: ctx.projectId,
           projectid: ctx.projectId,
         },
-        data: { select: { _id: true, signingSecret: true } },
+        data: { select: { _id: true, webhookSigningSecret: true } },
       },
     );
     const askedText: string = await asked.text();
 
     expect(asked.status(), askedText).toBe(422);
-    expect(askedText).toContain("signingSecret");
+    expect(askedText).toContain("webhookSigningSecret");
     expect(askedText).not.toContain(SIGNING_SECRET);
+  });
+
+  test("a workflow that is off refuses Huntress's reports, so Huntress sends them again", async () => {
+    const refused: Delivery = await deliver({ body: reportBody() });
+
+    expect(refused.status).toBe(503);
+    expect(String(refused.body["message"])).toContain(
+      "A request arrived while this workflow is off",
+    );
+    expect(await incidentsTitled(INCIDENT_TITLE)).toHaveLength(0);
+
+    await requestJson({
+      page: ctx.page,
+      projectId: ctx.projectId,
+      path: `/api/workflow/${ctx.workflowId}`,
+      method: "put",
+      body: { data: { isEnabled: true } },
+    });
   });
 
   test("refuses a delivery that is not signed", async () => {
@@ -353,14 +510,27 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
   test("a critical report opens one incident at the most severe severity, and pages on-call", async () => {
     test.setTimeout(400000);
 
-    const messageId: string = "msg_e2e_created";
-    const delivery: Delivery = await deliver({ body: reportBody(), messageId });
+    const delivery: Delivery = await deliver({
+      body: reportBody(),
+      messageId: "msg_e2e_created",
+    });
 
     expect(delivery.status, JSON.stringify(delivery.body)).toBe(200);
-    expect(delivery.body["action"]).toBe("incident-opened");
-    expect(delivery.body["outcome"]).toBe("IncidentOpened");
+    expect(delivery.body["event"]).toBe("created");
+    expect(delivery.body["status"]).toBe("Scheduled");
 
-    ctx.incidentId = String(delivery.body["incidentId"]);
+    const incidents: Array<JSONish> = await pollUntil<Array<JSONish>>({
+      page: ctx.page,
+      description: "the incident the Huntress report opens",
+      timeoutMs: INCIDENT_TIMEOUT_MS,
+      check: async (): Promise<Array<JSONish> | null> => {
+        const rows: Array<JSONish> = await incidentsTitled(INCIDENT_TITLE);
+        return rows.length > 0 ? rows : null;
+      },
+    });
+
+    expect(incidents).toHaveLength(1);
+    ctx.incidentId = toId(incidents[0]!["_id"]);
 
     const incident: JSONish = await getItem({
       page: ctx.page,
@@ -372,34 +542,25 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
         title: true,
         description: true,
         incidentSeverityId: true,
-        isCreatedAutomatically: true,
         isVisibleOnStatusPage: true,
+        customFields: true,
         labels: { _id: true, name: true },
-        onCallDutyPolicies: { _id: true },
       },
     });
 
-    expect(incident["title"]).toBe(
-      "Huntress: Incident on DESKTOP-E2E01 (Acme Corp)",
-    );
     expect(String(incident["description"])).toContain(
       "https://huntress.io/org/4/incident_reports/1234",
     );
     expect(toId(incident["incidentSeverityId"])).toBe(ctx.mostSevereSeverityId);
-    expect(incident["isCreatedAutomatically"]).toBe(true);
     expect(incident["isVisibleOnStatusPage"]).toBe(false);
+    expect((incident["customFields"] as JSONish)["huntressReportId"]).toBe(
+      "1234",
+    );
     expect(
       ((incident["labels"] as Array<JSONish>) || []).map((label: JSONish) => {
         return label["name"];
       }),
     ).toContain(ORGANIZATION_NAME);
-    expect(
-      ((incident["onCallDutyPolicies"] as Array<JSONish>) || []).map(
-        (policy: JSONish) => {
-          return toId(policy["_id"]);
-        },
-      ),
-    ).toContain(ctx.onCallDutyPolicyId);
 
     const executionLog: JSONish = await waitForOnCallExecution({
       page: ctx.page,
@@ -420,24 +581,26 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
     expect(toId(paged["alertSentToUserId"])).toBe(ctx.user.userId);
   });
 
-  test("the same delivery again, or the report sent again, opens nothing more", async () => {
+  test("the same delivery again starts nothing, and the report sent again opens no other incident", async () => {
     const again: Delivery = await deliver({
       body: reportBody(),
       messageId: "msg_e2e_created",
     });
 
     expect(again.status).toBe(200);
-    expect(again.body["action"]).toBe("duplicate");
-    expect(String(again.body["incidentId"])).toBe(ctx.incidentId);
+    expect(again.body["duplicate"]).toBe(true);
 
+    const runsBefore: number = (await finishedRuns()).length;
+
+    // A new delivery of the same report: a run, which finds its incident.
     const resent: Delivery = await deliver({ body: reportBody() });
 
     expect(resent.status).toBe(200);
-    expect(String(resent.body["incidentId"])).toBe(ctx.incidentId);
+    expect(resent.body["status"]).toBe("Scheduled");
 
-    expect(
-      await incidentsTitled("Huntress: Incident on DESKTOP-E2E01 (Acme Corp)"),
-    ).toHaveLength(1);
+    await waitForFinishedRuns(runsBefore + 1);
+
+    expect(await incidentsTitled(INCIDENT_TITLE)).toHaveLength(1);
   });
 
   test("a comment in Huntress becomes a private note on the incident", async () => {
@@ -449,7 +612,7 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
     });
 
     expect(delivery.status).toBe(200);
-    expect(delivery.body["action"]).toBe("note-added");
+    expect(delivery.body["event"]).toBe("comment-added");
 
     const notes: Array<JSONish> = await pollUntil<Array<JSONish>>({
       page: ctx.page,
@@ -464,7 +627,11 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
           select: { _id: true, note: true },
         });
 
-        return rows.length > 0 ? rows : null;
+        return rows.some((row: JSONish): boolean => {
+          return String(row["note"]).includes(COMMENT);
+        })
+          ? rows
+          : null;
       },
     });
 
@@ -488,8 +655,7 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
     });
 
     expect(delivery.status).toBe(200);
-    expect(delivery.body["action"]).toBe("incident-resolved");
-    expect(delivery.body["outcome"]).toBe("IncidentResolved");
+    expect(delivery.body["event"]).toBe("closed");
 
     await waitForIncidentState({
       page: ctx.page,
@@ -502,13 +668,35 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
     });
   });
 
-  test("a report from an organization the connection does not watch opens nothing", async () => {
+  test("a report from an organization the trigger leaves out starts nothing", async () => {
+    // Only These Organizations, as the trigger's settings save it in the graph.
+    const nodes: Array<JSONish> = (ctx.graph["nodes"] as Array<JSONish>).map(
+      (node: JSONish): JSONish => {
+        const data: JSONish = node["data"] as JSONish;
+
+        if (data["id"] !== HUNTRESS_TRIGGER_COMPONENT_ID) {
+          return node;
+        }
+
+        return {
+          ...node,
+          data: {
+            ...data,
+            arguments: {
+              ...(data["arguments"] as JSONish),
+              [HuntressTriggerSetting.Organizations]: "Globex",
+            },
+          },
+        };
+      },
+    );
+
     await requestJson({
       page: ctx.page,
       projectId: ctx.projectId,
-      path: `/api/huntress-connection/${ctx.connectionId}`,
+      path: `/api/workflow/${ctx.workflowId}`,
       method: "put",
-      body: { data: { watchedOrganizations: "Globex" } },
+      body: { data: { graph: { ...ctx.graph, nodes } } },
     });
 
     const delivery: Delivery = await deliver({
@@ -520,41 +708,23 @@ test.describe("Huntress incident report -> incident -> on-call -> resolved", () 
     });
 
     expect(delivery.status).toBe(200);
-    expect(delivery.body["action"]).toBe("skipped");
-    expect(delivery.body["outcome"]).toBe("OrganizationNotWatched");
-    expect(delivery.body["incidentId"]).toBeNull();
-    expect(
-      await incidentsTitled("Huntress: Incident on LAPTOP-E2E02 (Acme Corp)"),
-    ).toHaveLength(0);
+    expect(delivery.body["skipped"]).toBe(true);
+    expect(await incidentsTitled(SKIPPED_INCIDENT_TITLE)).toHaveLength(0);
   });
 
-  test("the connection's page shows it receiving, and what was done with each report", async () => {
-    const status: Locator = ctx.page.getByTestId("huntress-connection-status");
+  test("the trigger's panel shows Huntress reaching it", async () => {
+    const section: Locator = await openTrigger("huntress-trigger-status");
 
-    await gotoProjectPage({
-      page: ctx.page,
-      projectId: ctx.projectId,
-      url: urlFor(
-        `/dashboard/${ctx.projectId}/incidents/integrations/huntress/${ctx.connectionId}`,
-      ),
-      ready: status,
-    });
-
-    await expect(
-      ctx.page.getByTestId("huntress-connection-state"),
-    ).toHaveAttribute("data-state", "receiving", SERVER);
-    await expect(status).toContainText("Receiving reports");
-
-    await expect(ctx.page.getByText("Incident resolved").first()).toBeVisible(
+    await expect(section.getByTestId("huntress-trigger-state")).toHaveAttribute(
+      "data-state",
+      "receiving",
       SERVER,
     );
+    await expect(section.getByTestId("huntress-trigger-status")).toContainText(
+      "Receiving reports",
+    );
     await expect(
-      ctx.page.getByText("Skipped: organization not watched").first(),
-    ).toBeVisible(SERVER);
-    await expect(
-      ctx.page.getByTestId("huntress-report-headline").filter({
-        hasText: "DESKTOP-E2E01",
-      }),
-    ).toBeVisible(SERVER);
+      section.getByTestId("huntress-trigger-last-error"),
+    ).toHaveCount(0);
   });
 });

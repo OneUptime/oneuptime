@@ -1,9 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import {
   EXTERNAL_STATUS_PAGE_MONITOR_MORE_FIELDS,
   getMonitorOptionsMoreFieldsItems,
@@ -85,7 +82,6 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
        */}
       <FoldedSection
         title={MORE_FIELDS_SECTION_TITLE}
-        icon={MORE_SECTION_ICON}
         items={getMonitorOptionsMoreFieldsItems(
           props.monitorStepExternalStatusPageMonitor,
           EXTERNAL_STATUS_PAGE_MONITOR_MORE_FIELDS,
@@ -96,7 +92,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
           <div>
             <FieldLabelElement
               title="Component Group Filter (Optional)"
-              description="Scope to a specific component group, e.g. 'APIs'. Incidents and component statuses outside this group are ignored. Supported for Atlassian Statuspage and incident.io."
+              description="Only watch one component group, e.g. 'APIs'. Works with Atlassian Statuspage and incident.io."
               required={false}
             />
             <Input

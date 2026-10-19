@@ -360,12 +360,13 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Workflow/RunRecordSearchPostgres.test.ts --forceExit
 
-      # Clones the migrated HuntressConnection and HuntressIncidentReport tables
-      # into an isolated schema: the signing secret is written encrypted and a
-      # new one clears the last refusal, and of two deliveries racing to claim
-      # one Huntress report the unique index lets exactly one through - what
-      # "one incident per report" rests on.
-      - name: Test Huntress connections and report claims on migrated Postgres
+      # Clones the migrated Workflow, Incident and legacy Huntress connection
+      # tables into an isolated schema: a workflow's signing secret is written
+      # encrypted and a new one clears the last refusal, the Huntress webhook
+      # finds a workflow by its key and keeps what each request did, and every
+      # Huntress connection made before becomes the workflow that does what it
+      # did - answering at its old address, with its old secret.
+      - name: Test Huntress workflows and the move of Huntress connections on migrated Postgres
         working-directory: packages/Common
         env:
           RUN_POSTGRES_HUNTRESS_TESTS: "true"
@@ -906,6 +907,47 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ActiveMonitorLimitPostgres.test.ts --forceExit
 
+      # Clones every migrated table into an isolated schema and holds a
+      # project's other plan limits through the real services: its seats
+      # (a plan's seat limit and the Free plan's one person, for invitations
+      # and first SSO sign-ins alike) and the Free plan's status pages,
+      # subscribers, dashboards and escalation rules. Twelve creates made
+      # at the same moment add exactly as many records as the limit has
+      # room for (each INSERT is counted again in its own transaction under
+      # a per-project advisory lock). Billing is turned on inside the suite.
+      - name: Test a project's plan limits on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PLAN_LIMIT_TESTS: "true"
+          PLAN_LIMIT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PLAN_LIMIT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PLAN_LIMIT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProjectPlanLimitsPostgres.test.ts --forceExit
+
+      # Clones every migrated table into an isolated schema and holds a status
+      # page to each contact once, however it is written, through the real
+      # subscriber service: twelve creates of one phone number written
+      # twelve ways (or of one webhook), held until every one has passed the
+      # early check, leave one subscriber - the check is made again in the
+      # INSERT's transaction under the page's lock, or the
+      # project's on the Free plan - and the SQL that reads a stored
+      # number's line finds what SubscriberContactKey says it should. A
+      # confirmation link opened by twelve requests at once confirms once and
+      # sends one welcome, and a cancelled subscription is not turned back on
+      # where its contact is taken.
+      - name: Test one subscriber per contact per status page on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SUBSCRIBER_CONTACT_TESTS: "true"
+          SUBSCRIBER_CONTACT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SUBSCRIBER_CONTACT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SUBSCRIBER_CONTACT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPageSubscriberContactPostgres.test.ts --forceExit
+
       # Clones the migrated McpOAuthClient / McpOAuthGrant / McpOAuthToken
       # tables into an isolated schema and rebuilds the token -> grant foreign
       # key from the migrated definition. Of several requests racing to claim
@@ -1020,6 +1062,23 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PermissionBlockDeletionPostgres.test.ts
+          --forceExit
+
+      # Custom roles end to end: roles, their permissions and the teams given
+      # them written through the real services, every team's copies kept by
+      # the real sync, the grant ceiling, the cascades the migrations
+      # declared, and a member's permissions through a role compared with
+      # the same permissions given directly.
+      - name: Test custom roles on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CUSTOM_ROLE_TESTS: "true"
+          CUSTOM_ROLE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CUSTOM_ROLE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CUSTOM_ROLE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CustomRolesPostgres.test.ts
           --forceExit
 
       - name: Test project data residency on migrated Postgres
@@ -1369,6 +1428,49 @@ jobs:
           Tests/Server/API/RecordScopeCrudPostgres.test.ts
           --forceExit
 
+      # Clones the migrated team, custom role, API key, label, Kubernetes
+      # cluster (labels and owners) and Docker host tables into an isolated
+      # schema and presses a cluster's Test connection and Reset agent, and a
+      # Docker host's Reset agent, through the routes and the real user
+      # middleware: an edit of clusters limited to labels, to owned clusters
+      # or blocked for a label reaches only the clusters it covers - through
+      # a custom role too - and approving a plan's kubectl commands is held
+      # to the same rule. An incident's AI conversation runs its read-only
+      # commands only on the linked clusters and Docker hosts the person
+      # asking may view.
+      - name: Test who may act on one Kubernetes cluster on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_KUBERNETES_EDIT_SCOPE_TESTS: "true"
+          KUBERNETES_EDIT_SCOPE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          KUBERNETES_EDIT_SCOPE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          KUBERNETES_EDIT_SCOPE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/KubernetesClusterEditScopePostgres.test.ts
+          --forceExit
+
+      # Clones the migrated team, custom role, API key, monitor (owners,
+      # status timeline, tests), status page (owners, announcements and
+      # templates) tables, and those of every other kind with owners of its
+      # own, into an isolated schema and deletes through the routes, the real
+      # user middleware and MonitorService's hooks as a member whose grants
+      # are scoped to Owned: by id and by query, they delete only what they
+      # or their team own - through a custom role too - never make themselves
+      # an owner of a monitor they may not read, and the records of a monitor
+      # or a status page keep to the owned ones.
+      - name: Test what a member limited to owned records deletes on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OWNED_RECORDS_DELETE_TESTS: "true"
+          OWNED_RECORDS_DELETE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OWNED_RECORDS_DELETE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OWNED_RECORDS_DELETE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/OwnedRecordsDeletePostgres.test.ts
+          --forceExit
+
       # Clones the migrated team, label, monitor, on-call policy, severity,
       # status, incident and workspace connection tables into an isolated
       # schema and opens Slack's and Teams' New Incident forms and the Execute
@@ -1407,6 +1509,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Workspace/WorkspaceMemberActionsPostgres.test.ts
+          --forceExit
+
+      # Clones the migrated chat account link, workspace connection, Slack and
+      # Microsoft Teams notification method and on-call rule tables into an
+      # isolated schema: a sign-in's link names no creator, a person's create
+      # is refused, the one-time cleanup removes every link a person wrote and
+      # only the methods and rules made from them, and a Slack press finds the
+      # member among Slack links only.
+      - name: Test that only a sign-in connects a chat account, on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_WORKSPACE_USER_LINK_TESTS: "true"
+          WORKSPACE_USER_LINK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          WORKSPACE_USER_LINK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          WORKSPACE_USER_LINK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/WorkspaceUserAuthTokenLinksPostgres.test.ts
           --forceExit
 
       - name: Test workflow OAuth variables on migrated Postgres
@@ -1573,15 +1693,88 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/StateTimelineRowsKeptPostgres.test.ts --forceExit
 
-      # The Enterprise half: GET /team/compliance-status/:teamId end to end -
-      # rules written through the real settings service, members' notification
-      # rules and methods seeded as rows, and every query the ee status service
-      # builds run by Postgres. ee's jest resolves Common and App from their
-      # own installs, so both are installed first.
+      # Clones the migrated MonitorTest table into an isolated schema and runs
+      # the write a probe's monitor test result makes: keyed on the test and
+      # the probe that reported it, so only the probe the test was handed to
+      # writes it, step after step, and a probe that learned another
+      # project's test id writes nothing.
+      - name: Test monitor test results are written only by their probe on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_TEST_PROBE_RESPONSE_TESTS: "true"
+          MONITOR_TEST_PROBE_RESPONSE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_TEST_PROBE_RESPONSE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_TEST_PROBE_RESPONSE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorTestProbeResponsePostgres.test.ts --forceExit
+
+      # An installation that ran its bundled probes and in-cluster Runner on
+      # the keys the repository ships, upgraded: a row holding a shipped key
+      # is refused though the database matches it, and a probe or the Runner
+      # coming back under its new key takes over the row it ran as (the
+      # global probe of its name, the global agent) - never one whose key is
+      # the installation's own. Clones the migrated Probe, AIAgent and Runner
+      # tables into an isolated schema.
+      - name: Test the upgrade from shipped probe and Runner keys on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SHIPPED_KEY_UPGRADE_TESTS: "true"
+          SHIPPED_KEY_UPGRADE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SHIPPED_KEY_UPGRADE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SHIPPED_KEY_UPGRADE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # App installs serve the suites below: the probe ones (App) and the
+      # Enterprise one, whose jest resolves Common and App from their own
+      # installs.
       - name: Install App for the Enterprise Postgres suite
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/App
+
+      # A probe reports only as itself, end to end: HTTP requests to the probe
+      # ingest routes on a real Express app, the probe-auth middleware checking
+      # keys against Postgres, the queue worker and MonitorResource writing
+      # the MonitorProbe and MonitorTest rows. A result is stored only as the
+      # probe's that sent it, for a monitor it checks or a test handed to it;
+      # one that names another probe, or is for another project's monitor or
+      # test, changes nothing. Clones the migrated tables it touches into an
+      # isolated schema.
+      - name: Test that a probe reports only as itself on migrated Postgres
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROBE_INGEST_IDENTITY_TESTS: "true"
+          PROBE_INGEST_IDENTITY_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_INGEST_IDENTITY_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_INGEST_IDENTITY_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ProbeIngestReportsAsItselfPostgres.test.ts --forceExit
+
+      # A bundled global probe upgraded from the key the repository ships, end
+      # to end: HTTP requests to the probe registration, heartbeat and
+      # monitor list routes on a real Express app. The probe comes back under
+      # its new key with its own id and is handed its monitors; the shipped
+      # key is refused; a same-named probe with a key of its own keeps its
+      # row. Clones the migrated tables it touches into an isolated schema.
+      - name: Test a bundled probe upgraded from a shipped key on migrated Postgres
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROBE_SHIPPED_KEY_UPGRADE_TESTS: "true"
+          PROBE_SHIPPED_KEY_UPGRADE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_SHIPPED_KEY_UPGRADE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_SHIPPED_KEY_UPGRADE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ProbeShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # The Enterprise half: GET /team/compliance-status/:teamId end to end -
+      # rules written through the real settings service, members' notification
+      # rules and methods seeded as rows, and every query the ee status service
+      # builds run by Postgres.
       - name: Install ee for the Enterprise Postgres suite
         uses: ./.github/actions/npm-install
         with:

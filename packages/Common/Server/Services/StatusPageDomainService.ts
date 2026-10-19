@@ -159,7 +159,7 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
 
     if (!domain?.isVerified) {
       throw new BadDataException(
-        "This domain is not verified. Please verify it by going to Settings > Domains",
+        "This domain is not verified. Please verify it in Project Settings > Advanced > Domains.",
       );
     }
 

@@ -1,0 +1,713 @@
+# Spreading each stateless service's replicas across nodes, and the
+# per-service affinity / topologySpreadConstraints that override the
+# chart-wide values.
+#
+# The scheduler's own spreading is a weak preference that loses to "this node
+# already has the image", so two replicas of a service can end up on one node,
+# and a node-pool upgrade that drains that node takes the service down with it.
+# deployment.spreadReplicasAcrossNodes (on by default) gives every stateless
+# service a soft rule that spreads its replicas across nodes; it never blocks
+# scheduling, so it is safe on a single-node cluster.
+#
+# A constraint without a labelSelector is scoped to the service's own pods and,
+# on Kubernetes 1.27+, counted per rollout revision. The chart rolls these pods
+# on every upgrade; counted together with the old pods, the second new pod can
+# join the first on the node that already pulled the new image.
+suite: topology spread constraints
+release:
+  name: oneuptime
+  namespace: oneuptime
+capabilities:
+  majorVersion: 1
+  minorVersion: 30
+tests:
+  - it: spreads the app's replicas across nodes by default, counted per rollout
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-app
+              matchLabelKeys:
+                - pod-template-hash
+
+  - it: scopes the default rule to each service's own pods
+    templates:
+      - templates/home.yaml
+      - templates/nginx.yaml
+      - templates/worker.yaml
+      - templates/runner.yaml
+      - templates/telemetry-writer.yaml
+      - templates/probe.yaml
+      - templates/test-server.yaml
+      - templates/pgbouncer.yaml
+    set:
+      home:
+        enabled: true
+      worker:
+        enabled: true
+      telemetryWriter:
+        enabled: true
+      testServer:
+        enabled: true
+      pgbouncer:
+        enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            app: oneuptime-home
+        template: templates/home.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            app: oneuptime-nginx
+        template: templates/nginx.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            app: oneuptime-worker
+        template: templates/worker.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            app: oneuptime-runner
+        template: templates/runner.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            app: oneuptime-telemetry-writer
+        template: templates/telemetry-writer.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            app: oneuptime-probe-one
+        template: templates/probe.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            app: oneuptime-test-server
+        template: templates/test-server.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-pgbouncer
+              matchLabelKeys:
+                - pod-template-hash
+        template: templates/pgbouncer.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: leaves out matchLabelKeys before Kubernetes 1.27
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    capabilities:
+      majorVersion: 1
+      minorVersion: 26
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-app
+
+  - it: renders no spread rule when spreadReplicasAcrossNodes is off
+    templates:
+      - templates/app.yaml
+      - templates/pgbouncer.yaml
+    set:
+      deployment:
+        spreadReplicasAcrossNodes: false
+      pgbouncer:
+        enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.topologySpreadConstraints
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - notExists:
+          path: spec.template.spec.topologySpreadConstraints
+        template: templates/pgbouncer.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: scopes a chart-wide constraint without a labelSelector to each service, in the same render
+    templates:
+      - templates/app.yaml
+      - templates/home.yaml
+      - templates/probe.yaml
+    set:
+      home:
+        enabled: true
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: topology.kubernetes.io/zone
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-app
+              matchLabelKeys:
+                - pod-template-hash
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      # app renders first; its selector must not leak into the list home reads.
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: topology.kubernetes.io/zone
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-home
+              matchLabelKeys:
+                - pod-template-hash
+        template: templates/home.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+          value:
+            app: oneuptime-probe-one
+        template: templates/probe.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: keeps a constraint's own labelSelector exactly as written
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              appname: oneuptime
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 2
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  appname: oneuptime
+
+  - it: keeps a constraint's own matchLabelKeys and fills in only the labelSelector
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          matchLabelKeys: []
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              matchLabelKeys: []
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-app
+
+  - it: lets a service's own list replace the chart-wide one for that service only
+    templates:
+      - templates/app.yaml
+      - templates/worker.yaml
+    set:
+      worker:
+        enabled: true
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+      app:
+        topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: DoNotSchedule
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-app
+              matchLabelKeys:
+                - pod-template-hash
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: topology.kubernetes.io/zone
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-worker
+              matchLabelKeys:
+                - pod-template-hash
+        template: templates/worker.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: still renders the chart-wide list when spreadReplicasAcrossNodes is off
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      deployment:
+        spreadReplicasAcrossNodes: false
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: topology.kubernetes.io/zone
+
+  - it: never gives pgbouncer the chart-wide list, as with its other placement settings
+    templates:
+      - templates/pgbouncer.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      pgbouncer:
+        enabled: true
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-pgbouncer
+              matchLabelKeys:
+                - pod-template-hash
+
+  - it: uses the own lists of pgbouncer, a probe and the test server
+    templates:
+      - templates/pgbouncer.yaml
+      - templates/probe.yaml
+      - templates/test-server.yaml
+    set:
+      pgbouncer:
+        enabled: true
+        topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+      probes:
+        one:
+          topologySpreadConstraints:
+            - maxSkew: 3
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+      testServer:
+        enabled: true
+        topologySpreadConstraints:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: DoNotSchedule
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: topology.kubernetes.io/zone
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-pgbouncer
+              matchLabelKeys:
+                - pod-template-hash
+        template: templates/pgbouncer.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 3
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-probe-one
+              matchLabelKeys:
+                - pod-template-hash
+        template: templates/probe.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints
+          value:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app: oneuptime-test-server
+              matchLabelKeys:
+                - pod-template-hash
+        template: templates/test-server.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: renders no affinity when none is set
+    templates:
+      - templates/app.yaml
+      - templates/probe.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.affinity
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - notExists:
+          path: spec.template.spec.affinity
+        template: templates/probe.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: gives every service the chart-wide affinity when it sets none of its own
+    templates:
+      - templates/app.yaml
+      - templates/home.yaml
+      - templates/nginx.yaml
+      - templates/worker.yaml
+      - templates/runner.yaml
+      - templates/telemetry-writer.yaml
+      - templates/probe.yaml
+      - templates/test-server.yaml
+    set:
+      home:
+        enabled: true
+      worker:
+        enabled: true
+      telemetryWriter:
+        enabled: true
+      testServer:
+        enabled: true
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    appname: oneuptime
+                matchLabelKeys:
+                  - app
+    asserts:
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        appname: oneuptime
+                    matchLabelKeys:
+                      - app
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        appname: oneuptime
+                    matchLabelKeys:
+                      - app
+        template: templates/home.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        appname: oneuptime
+                    matchLabelKeys:
+                      - app
+        template: templates/nginx.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        appname: oneuptime
+                    matchLabelKeys:
+                      - app
+        template: templates/worker.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        appname: oneuptime
+                    matchLabelKeys:
+                      - app
+        template: templates/runner.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        appname: oneuptime
+                    matchLabelKeys:
+                      - app
+        template: templates/telemetry-writer.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        appname: oneuptime
+                    matchLabelKeys:
+                      - app
+        template: templates/probe.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity
+          value:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    topologyKey: kubernetes.io/hostname
+                    labelSelector:
+                      matchLabels:
+                        appname: oneuptime
+                    matchLabelKeys:
+                      - app
+        template: templates/test-server.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: lets a service's own affinity replace the chart-wide one for that service only
+    templates:
+      - templates/app.yaml
+      - templates/home.yaml
+      - templates/probe.yaml
+      - templates/test-server.yaml
+    set:
+      home:
+        enabled: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: pool
+                    operator: In
+                    values:
+                      - chart-wide
+      app:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: pool
+                      operator: In
+                      values:
+                        - app
+      probes:
+        one:
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: pool
+                        operator: In
+                        values:
+                          - probe
+      testServer:
+        enabled: true
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: pool
+                      operator: In
+                      values:
+                        - test-server
+    asserts:
+      - equal:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values
+          value:
+            - app
+        template: templates/app.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values
+          value:
+            - chart-wide
+        template: templates/home.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values
+          value:
+            - probe
+        template: templates/probe.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values
+          value:
+            - test-server
+        template: templates/test-server.yaml
+        documentSelector:
+          path: kind
+          value: Deployment

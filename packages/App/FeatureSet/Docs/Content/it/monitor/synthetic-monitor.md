@@ -18,16 +18,16 @@ sequenceDiagram
     participant O as OneUptime
     participant P as Sonda
     participant B as Browser
-    participant A as La vostra app web
-    O->>P: Script, segreti inseriti
-    loop Ogni browser e dimensione dello schermo
-        P->>B: Eseguire lo script
-        B->>A: Caricare pagine, fare clic, digitare
+    participant A as La vostra<br/>app web
+    O->>P: Script, segreti<br/>inseriti
+    loop Ogni browser<br/>e dimensione<br/>dello schermo
+        P->>B: Eseguire<br/>lo script
+        B->>A: Caricare<br/>pagine, fare<br/>clic, digitare
         A-->>B: Pagine
-        B-->>P: Risultato, screenshot, log
+        B-->>P: Risultato,<br/>screenshot, log
     end
-    P->>O: Una risposta per esecuzione
-    O->>O: Valutare i criteri
+    P->>O: Una risposta<br/>per esecuzione
+    O->>O: Valutare<br/>i criteri
 ```
 
 | Tipo di schermo | Viewport |
@@ -56,7 +56,7 @@ Scrivete lo script nell'editor **Playwright Code**. Partite dall'[esempio qui so
 
 ### Scegliere browser e dimensioni dello schermo
 
-Spuntate i browser in **Tipo di browser** e le dimensioni in **Tipo di schermo**. Lo script viene eseguito una volta per ogni combinazione, quindi due browser e tre dimensioni fanno sei esecuzioni per controllo. In **Altri campi**, **Numero di tentativi in caso di errore** ripete un'esecuzione fallita fino a 5 volte.
+Un nuovo monitor parte con **Chromium** in **Tipo di browser** e **Desktop** in **Tipo di schermo**; spuntatene altri per coprirne di più. Lo script viene eseguito una volta per ogni combinazione, quindi due browser e tre dimensioni fanno sei esecuzioni per controllo, e serve almeno un browser e una dimensione. In **Altri campi**, **Numero di tentativi in caso di errore** ripete un'esecuzione fallita fino a 5 volte.
 
 ### Testarlo
 

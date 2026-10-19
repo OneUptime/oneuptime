@@ -398,6 +398,9 @@ describe("scheduled maintenance feed icons", () => {
         IconProp.PhoneArrowUpRight,
       [ScheduledMaintenanceFeedEventType.OwnerRuleExecuted]: IconProp.UserGroup,
       [ScheduledMaintenanceFeedEventType.LabelRuleExecuted]: IconProp.Tag,
+      // Somebody added to the event's own chat channel, from its page.
+      [ScheduledMaintenanceFeedEventType.ChannelMemberAdded]:
+        IconProp.ChatBubbleLeftRight,
     });
   });
 

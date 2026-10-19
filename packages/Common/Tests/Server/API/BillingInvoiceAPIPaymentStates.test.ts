@@ -78,7 +78,7 @@ const CLIENT_SECRET: string = "pi_stale_card_invoice_secret_abc";
 const PENDING_PAYMENTS_MESSAGE: string =
   "Invoices with pending payments waiting to clear cannot be paid, voided, or marked uncollectible.";
 const UPDATE_PAYMENT_METHOD_SUFFIX: string =
-  " Please update your payment method in Project Settings > Billing and try again.";
+  " Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.";
 
 type StripeLikeErrorFunction = (data: {
   type: string;

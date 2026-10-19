@@ -12,14 +12,14 @@ I **proprietari** sono un concetto a parte. Un proprietario è chi è responsabi
 ```mermaid title="Come ottengono accesso una persona e una chiave API"
 flowchart TB
     User["Un utente<br/>(un account)"]
-    Key["Una chiave API"]
     subgraph Project["Un progetto"]
         direction TB
+        Key["Una chiave API"]
         Team["Team"]
-        Allow["Autorizzazioni concesse,<br/>ciascuna con un ambito:<br/>Tutti, Possedute o Etichette"]
-        Block["Autorizzazioni bloccate,<br/>che vincono sempre"]
-        KeyRules["Le autorizzazioni concesse<br/>e bloccate della chiave"]
-        Resources["Monitor, incidenti,<br/>pagine di stato e altro"]
+        Allow["Autorizzazioni<br/>concesse,<br/>ciascuna con<br/>un ambito:<br/>Tutti, Possedute<br/>o Etichette"]
+        Block["Autorizzazioni<br/>bloccate,<br/>che vincono<br/>sempre"]
+        KeyRules["Le autorizzazioni<br/>concesse<br/>e bloccate<br/>della chiave"]
+        Resources["Monitor,<br/>incidenti,<br/>pagine di<br/>stato e altro"]
     end
     User -->|"membro di"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"raggiungono"| Resources
     KeyRules -->|"raggiungono"| Resources
     Block -.->|"tolgono"| Resources
+    Allow ~~~ Block
 ```
 
 | Concetto | Che cos'è |
@@ -37,6 +38,7 @@ flowchart TB
 | Team | Un gruppo con nome all'interno di un progetto che porta le autorizzazioni. |
 | Membro del team | Un utente invitato in un team che ha accettato. |
 | Autorizzazione | Una singola capacità, ad es. `CreateProjectMonitor`, o un ruolo che ne raggruppa molte, ad es. `MonitorAdmin`. |
+| Ruolo personalizzato | Un insieme di autorizzazioni a cui date un nome una volta e che assegnate ai team. |
 | Ambito | Fin dove arriva un'autorizzazione concessa: tutte le risorse, solo quelle possedute o solo quelle etichettate. |
 | Proprietario | Un utente o un team indicato come responsabile di una risorsa specifica. |
 | Etichetta | Un'etichetta che mettete sulle risorse, usata per restringere le autorizzazioni e per organizzare. |
@@ -57,6 +59,7 @@ Un utente è «in» un progetto quando è membro di **almeno un team** al suo in
 - Gli inviti creano un membro del team in attesa. L'utente conta come membro del progetto — e ottiene una qualsiasi autorizzazione — **solo dopo aver accettato l'invito.**
 - **Invita utente** parte dal team dei membri del progetto: il team che detiene `ProjectMember` per l'intero progetto, cioè **Members** se non l'avete rinominato. Scegliete un altro team per dare alla persona più o meno accesso. Non è selezionato nulla quando voi stessi non potreste invitare in quel team — invitare qualcuno gli trasmette le autorizzazioni del team, e potete trasmettere solo autorizzazioni che detenete — o quando il progetto non ha un team del genere. La dashboard di amministrazione parte dallo stesso team ovunque un amministratore dell'istanza aggiunga qualcuno a un progetto: **Invita utente** su un progetto, **Aggiungi al progetto** su un utente e su più utenti insieme, e i progetti collegati a un [provider SSO globale](/docs/identity/global-sso).
 - Rimuovere un utente da tutti i team di un progetto gli toglie l'accesso a quel progetto, dalla sua richiesta successiva, anche mentre ha effettuato l'accesso. Il suo account e i suoi altri progetti non ne risentono. Viene tolto dai turni di reperibilità, dalle regole di escalation e dalle sostituzioni del progetto, dai ruoli dei suoi incidenti ed episodi aperti e dai proprietari delle sue risorse; gli incidenti risolti conservano la traccia di chi li possedeva e li ha gestiti.
+- In un'installazione self-hosted, togliere a qualcuno l'accesso da amministratore principale nell'Admin Dashboard glielo toglie dalla sua richiesta successiva, anche mentre ha effettuato l'accesso. Resta connesso e conserva i progetti di cui è membro.
 - Chi lascia un progetto smette di riceverne le notifiche. I suoi metodi, regole e impostazioni di notifica per il progetto vengono rimossi insieme all'ultimo team — email, SMS, chiamata, WhatsApp, Telegram, push, webhook, Slack e Microsoft Teams, il riepilogo email e l'email non ancora inviata, il numero per le chiamate in arrivo e i promemoria dei turni —, quindi chi rientra riparte dalle impostazioni predefinite. Ciò che lo nomina ancora, come l'utente chiamato da una regola delle chiamate in arrivo o un proprietario mantenuto su un incidente risolto, non lo notifica più: nulla viene inviato per conto di un progetto a chi non ne è membro, e un invito in sospeso non è ancora un'appartenenza. Questi punti mostrano **Non è più membro** accanto al nome, così potete mettere qualcun altro. Chi è stato invitato e non ha ancora accettato mostra invece **Invito non ancora accettato**. Se una sostituzione inoltra le chiamate di qualcuno a una persona che ha lasciato il progetto, viene chiamata invece la persona che la sostituzione copre. Lasciare il progetto scollega anche i client MCP che la persona aveva collegato al progetto, e il suo link personale al calendario di reperibilità mostra da quel momento un calendario vuoto. Su OneUptime Cloud, chi ritorna tramite il single sign-on del progetto lo conferma di nuovo dalla propria casella di posta.
 - Se il progetto impone l'SSO e un utente non si è ancora autenticato tramite l'identity provider, viene trattato come utente SSO non autorizzato e non vede nulla finché non lo fa. Vedi [SSO](/docs/identity/sso).
 - Con SCIM configurato, l'identity provider può creare, aggiornare e rimuovere automaticamente utenti e loro appartenenze ai team. Vedi [SCIM](/docs/identity/scim).
@@ -132,6 +135,24 @@ Sono anche le chiavi da usare quando create chiavi API, e quelle che si aspettan
 
 L'elenco completo è nel [Riferimento delle autorizzazioni](/docs/permissions/reference).
 
+### Ruoli personalizzati
+
+Un ruolo personalizzato è un insieme di autorizzazioni a cui date un nome una volta e che assegnate ai team: per esempio un «Gestore degli incidenti» fatto di `IncidentMember`, `AlertMember` e `OnCallViewer`, oppure un «Responsabile del team». Ogni team a cui lo assegnate riceve le stesse autorizzazioni, e le modificate per tutti quei team in un unico punto. Su OneUptime Cloud, i ruoli personalizzati richiedono il piano Scale, come la modifica delle autorizzazioni di un team.
+
+:::steps
+1. Aprite **Team** dal menu **Prodotti**, sotto **Impostazioni**. Espandete **Impostazioni** nel menu laterale, scegliete **Ruoli** e fate clic su **Crea: Ruolo personalizzato**.
+2. Scrivete il suo **Nome** e scegliete sotto **Autorizzazioni** i ruoli integrati che raggruppa, per ogni risorsa del progetto. La descrizione è sotto **Altri campi**.
+3. Create il ruolo. Si apre sulla sua pagina, dove **Aggiungi ruolo** aggiunge un altro ruolo integrato e **Aggiungi autorizzazione** (nel menu **⋯** della scheda) una singola autorizzazione, ciascuna con un ambito ed etichette, come su un team.
+4. Fate clic su **Assegna a un team** sotto **Team con questo ruolo**. Anche la pagina **Autorizzazioni** di un team ha **Aggiungi ruolo personalizzato**, e **Crea team** offre sotto **Accesso** i ruoli personalizzati che potreste assegnare.
+:::
+
+- I membri di un team ricevono ogni autorizzazione dei suoi ruoli personalizzati, con lo stesso ambito e le stesse etichette, esattamente come se il team le avesse direttamente. Un blocco sul team vince comunque.
+- Un ruolo resta collegato ai team che lo hanno: una sua modifica li raggiunge tutti subito, e la pagina del ruolo dice quanti team e persone sono. **Rimuovi** toglie il ruolo a un team. Eliminare il ruolo stesso toglie le sue autorizzazioni a ogni team che lo ha; i team mantengono i loro membri e gli altri ruoli e autorizzazioni.
+- Potete mettere in un ruolo, e assegnare come ruolo a un team, solo ciò che potreste dare direttamente al team: un ruolo con un'autorizzazione che non avete con un ambito uguale o più ampio viene rifiutato, e il rifiuto nomina l'autorizzazione. Un ruolo non contiene mai `ProjectOwner`, e **Owners** e **Admin** non ne ricevono mai uno.
+- La pagina **Autorizzazioni** di un team elenca i suoi ruoli personalizzati sopra le sue autorizzazioni. Ciò che un ruolo dà si modifica sulla pagina del ruolo, non su quella del team.
+- Le chiavi API non accettano ruoli personalizzati. Una chiave serve una sola integrazione, quindi datele esattamente le autorizzazioni di cui ha bisogno sulla sua pagina.
+- I ruoli integrati sono elencati sotto **Ruoli integrati**, in fondo alla pagina **Ruoli**.
+
 ### Concedere e bloccare
 
 Ogni team ha due elenchi:
@@ -171,11 +192,11 @@ Ogni autorizzazione concessa ha un ambito, scelto sotto **Ambito** quando la agg
 
 | Ambito | Significato |
 | --- | --- |
-| Tutte le risorse del progetto | Il valore predefinito. L'autorizzazione si applica a ogni risorsa corrispondente. |
-| Possedute da questo team o dai suoi membri | L'autorizzazione si applica solo alle risorse di cui questo team, o l'utente che agisce, è indicato come proprietario. |
-| Limita per etichette (avanzato) | L'autorizzazione si applica solo alle risorse che portano almeno una delle etichette selezionate. |
+| Tutte le risorse nel progetto | Il valore predefinito, e ciò che serve alla maggior parte dei team. L'autorizzazione si applica a ogni risorsa corrispondente. |
+| Solo le risorse di loro proprietà | L'autorizzazione si applica solo alle risorse di proprietà della persona che agisce o di uno dei suoi team. |
+| Solo le risorse con determinate etichette | L'autorizzazione si applica solo alle risorse che portano almeno una delle etichette scelte. |
 
-**Possedute** è il modo più semplice di costruire un modello «ognuno si occupa dei propri servizi»: date a un team `MonitorAdmin` con ambito Possedute, poi rendete quel team proprietario dei monitor di cui è responsabile. Restringe solo le risorse che possono davvero avere proprietari — monitor, incidenti, dashboard, servizi e simili. La configurazione del progetto (stati degli incidenti, etichette, i team stessi) non ha proprietari, quindi lì un ruolo con ambito Possedute si comporta normalmente.
+**Possedute** è il modo più semplice di costruire un modello «ognuno si occupa dei propri servizi»: date a un team `MonitorAdmin` con ambito Possedute, poi rendete quel team proprietario dei monitor di cui è responsabile. Restringe ogni risorsa che può avere proprietari — monitor, incidenti, dashboard, servizi, gruppi di monitor, pianificazioni di reperibilità e simili — e ciò che le appartiene, come i livelli di una pianificazione. Sonde, Runner, agenti IA, pianificazioni di reperibilità e modelli di incidenti e di manutenzione sono ciò con cui si configurano altre risorse, quindi un'autorizzazione con ambito Possedute continua a leggerli tutti e potete sceglierne uno qualsiasi; modifica ed elimina solo quelli di cui voi o i vostri team siete proprietari. La chiave di un Runner, che permette a chiunque la possieda di agire come quel Runner, si vede solo sui Runner di cui voi o i vostri team siete proprietari. La configurazione del progetto (stati degli incidenti, etichette, i team stessi) non ha proprietari, quindi lì un ruolo con ambito Possedute si comporta normalmente.
 
 **Etichette** è la versione più manuale della stessa idea: etichettate le risorse, poi concedete autorizzazioni limitate a quelle etichette.
 
@@ -196,7 +217,7 @@ I proprietari svolgono due compiti:
 
 La proprietà da sola non concede nulla. Essere proprietari di un monitor non vi permette di modificarlo a meno che un vostro team non detenga anche un'autorizzazione sui monitor. La proprietà restringe l'accesso; non lo amplia mai.
 
-Chi possiede una risorsa si legge attraverso la risorsa. I proprietari di un monitor o di qualsiasi altra risorsa vengono elencati, letti, aggiunti e rimossi solo da chi può leggere quella risorsa, e un'autorizzazione sui soli proprietari non raggiunge i proprietari di nessuna risorsa che non potete leggere.
+Chi possiede una risorsa si legge attraverso la risorsa. I proprietari di un monitor o di qualsiasi altra risorsa vengono elencati, letti, aggiunti e rimossi solo da chi può leggere quella risorsa, e un'autorizzazione sui soli proprietari non raggiunge i proprietari di nessuna risorsa che non potete leggere. Anche l'aggiunta e la rimozione dei proprietari seguono l'ambito dell'autorizzazione che le consente: con l'ambito `Owned` raggiunge solo le risorse di cui voi o uno dei vostri team siete già proprietari, per quante altre ne possiate leggere, quindi poter leggere un monitor non vi permette di farvene proprietari. Un proprietario si aggiunge o si rimuove, ma non si sposta mai su un'altra risorsa.
 
 ## Etichette
 
@@ -302,7 +323,7 @@ Le autorizzazioni risolte vengono memorizzate nella cache per utente e progetto,
 
 **Un team che si limita a osservare.** Create il team con **Visualizzatore** sotto **Accesso**. Solo per alcune aree, scegliete **Scegli le autorizzazioni più tardi** e aggiungete i ruoli `*Viewer` per area che deve vedere.
 
-**Ingegneri di reperibilità che gestiscono i propri servizi.** Date al team `MonitorAdmin`, `IncidentMember` e `OnCallMember` con ambito **Possedute**, poi aggiungete il team come proprietario dei monitor che gestisce.
+**Ingegneri di reperibilità che gestiscono i propri servizi.** Date al team `MonitorAdmin`, `IncidentMember` e `OnCallMember` con ambito **Possedute**, poi aggiungete il team come proprietario dei monitor, delle policy di reperibilità e delle pianificazioni che gestisce. Ciò che le sue persone creano con queste autorizzazioni è già loro.
 
 **Collaboratori esterni tenuti lontani dalla produzione.** Date al team i ruoli di cui ha bisogno con ambito **Tutti**, poi aggiungete un'**autorizzazione bloccata** (sotto **Altre impostazioni** nella pagina Autorizzazioni del team) per le capacità sensibili, limitata all'etichetta `Production`.
 

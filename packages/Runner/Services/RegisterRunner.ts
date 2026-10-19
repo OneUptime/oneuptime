@@ -1,4 +1,5 @@
 import {
+  IS_CLUSTER_SCOPED,
   IS_KUBERNETES_AGENT_MODE,
   KUBERNETES_AGENT_CLUSTER_NAME,
   KUBERNETES_AGENT_INGESTION_KEY,
@@ -11,6 +12,7 @@ import {
   RUNNER_VERSION,
 } from "../Config";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
+import RunnerAPIRequest from "../Utils/RunnerAPIRequest";
 import KubernetesPosture from "../Utils/KubernetesPosture";
 import {
   KubernetesRunnerPosture,
@@ -21,7 +23,10 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
-import { HasClusterKey } from "Common/Server/EnvironmentConfig";
+import {
+  HasClusterKey,
+  isShippedSecretValue,
+} from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
@@ -70,6 +75,69 @@ export class RegistrationRefusedError extends Error {
       this.statusCode === 403 &&
       !isTransientKubernetesAgentRegistrationRefusal(this.reason)
     );
+  }
+}
+
+/*
+ * Said once by the shared Runner whose deployment still gives it a cluster
+ * key (ONEUPTIME_SECRET), as docker-compose.yml and the Helm chart of
+ * earlier releases do. The Runner registers with its own key and needs
+ * none; it still sends that key, so it registers with an app that does not
+ * hold the Runner's key yet, until its deployment is updated.
+ */
+export const CLUSTER_KEY_IN_RUNNER_ENVIRONMENT_MESSAGE: string =
+  "This shared Runner's environment holds ONEUPTIME_SECRET, the key OneUptime's own services call each other with. The Runner registers with its own ONEUPTIME_RUNNER_KEY and does not need it: it sends it only so that an app without the Runner's key still lets it register. Use the docker-compose.yml or the Helm chart of the release the OneUptime app runs: they give the app ONEUPTIME_RUNNER_KEY and take ONEUPTIME_SECRET out of the Runner.";
+
+/*
+ * Thrown, before any request, by the in-cluster Runner whose
+ * ONEUPTIME_RUNNER_KEY - the key it registers and authenticates with as the
+ * global agent every project shares - is a value the OneUptime repository
+ * ships: the server refuses that value as an agent key (AIAgentAPI,
+ * CodeFixAgentAuth, SharedRunnerKeyAuthorization), so it is never sent.
+ * Retrying cannot help until an operator sets a random ONEUPTIME_RUNNER_KEY
+ * and restarts the Runner, so the retry loop says so once and keeps the
+ * container up.
+ */
+export const SHIPPED_RUNNER_KEY_RUNNER_MESSAGE: string =
+  'This in-cluster Runner cannot register: its ONEUPTIME_RUNNER_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value as a Runner key, so nothing is sent. Set ONEUPTIME_RUNNER_KEY to the same long random value on this Runner and the OneUptime app, then restart them: with Docker Compose, npm start and npm run update put one in config.env; the Helm chart generates one unless runner.key is set.';
+
+/*
+ * Thrown, before any request, by a Runner a project created (Runbooks >
+ * Runners) whose ONEUPTIME_RUNNER_KEY is a value the OneUptime repository
+ * ships: the server refuses that value as a Runner key wherever one is
+ * presented (RunnerService.findByIdAndKey), and never stores one as a
+ * Runner's key, so it is never sent. Only a new key from the dashboard and a
+ * restart help, so the retry loop says so once and keeps the container up.
+ */
+export const SHIPPED_PROJECT_RUNNER_KEY_MESSAGE: string =
+  'This Runner cannot connect: its ONEUPTIME_RUNNER_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value as a Runner key, so nothing is sent. In Runbooks > Runners, open this Runner, reset its key, set the new key as ONEUPTIME_RUNNER_KEY on this Runner, then restart it.';
+
+/*
+ * A setting of the Runner's own that holds a value the repository ships, so
+ * the Runner sends nothing: only an operator setting it and restarting the
+ * Runner helps. The retry loop treats every such error alike - its slowest
+ * interval, and what to do said once - and names the setting.
+ */
+export class ShippedSecretSettingError extends Error {
+  public readonly setting: string;
+
+  public constructor(message: string, setting: string) {
+    super(message);
+    this.setting = setting;
+  }
+}
+
+export class ShippedRunnerKeyError extends ShippedSecretSettingError {
+  public constructor() {
+    super(SHIPPED_RUNNER_KEY_RUNNER_MESSAGE, "ONEUPTIME_RUNNER_KEY");
+    this.name = "ShippedRunnerKeyError";
+  }
+}
+
+export class ShippedProjectRunnerKeyError extends ShippedSecretSettingError {
+  public constructor() {
+    super(SHIPPED_PROJECT_RUNNER_KEY_MESSAGE, "ONEUPTIME_RUNNER_KEY");
+    this.name = "ShippedProjectRunnerKeyError";
   }
 }
 
@@ -258,6 +326,15 @@ export default class Register {
       Register.baseRetryIntervalInSeconds *
       Math.pow(2, Math.max(0, data.attempt - 1));
 
+    /*
+     * Nothing changes until an operator sets ONEUPTIME_RUNNER_KEY and
+     * restarts the Runner, so the slowest interval: the attempts send
+     * nothing.
+     */
+    if (data.error instanceof ShippedSecretSettingError) {
+      return Register.maxRetryIntervalInSeconds;
+    }
+
     if (!data.isKubernetesAgent) {
       return Math.min(doubling, Register.maxRetryIntervalInSeconds);
     }
@@ -344,9 +421,10 @@ export default class Register {
           data.maxAttempts !== null && attempt >= data.maxAttempts;
 
         const needsOperator: boolean =
-          IS_KUBERNETES_AGENT_MODE &&
-          error instanceof RegistrationRefusedError &&
-          error.needsOperator();
+          error instanceof ShippedSecretSettingError ||
+          (IS_KUBERNETES_AGENT_MODE &&
+            error instanceof RegistrationRefusedError &&
+            error.needsOperator());
 
         if (
           needsOperator &&
@@ -375,11 +453,14 @@ export default class Register {
          * next log line. Only a request that got no answer at all is
          * waiting for the server to become reachable.
          */
-        const retryNote: string = needsOperator
-          ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
-          : error instanceof RegistrationRefusedError
-            ? "the Runner keeps retrying; the reason the server gave is logged below."
-            : "the Runner keeps retrying until the server is reachable.";
+        const retryNote: string =
+          error instanceof ShippedSecretSettingError
+            ? `nothing is sent until an operator sets ${error.setting}; what to do is logged below (and only once).`
+            : needsOperator
+              ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
+              : error instanceof RegistrationRefusedError
+                ? "the Runner keeps retrying; the reason the server gave is logged below."
+                : "the Runner keeps retrying until the server is reachable.";
 
         logger.error(
           isLastAttempt
@@ -457,7 +538,7 @@ export default class Register {
     switch (data.statusCode) {
       case 401:
         explanation =
-          "The server rejected the ingestion key — check oneuptime.apiKey on the Kubernetes agent chart (it must be a server telemetry ingestion key from Project Settings > Telemetry Ingestion Keys).";
+          "The server rejected the ingestion key — check oneuptime.apiKey on the Kubernetes agent chart (it must be a server telemetry ingestion key from Project Settings > Telemetry & APM > Ingestion Keys).";
         break;
       case 403:
         explanation = Register.describeKubernetesAgentForbidden({
@@ -612,6 +693,7 @@ export default class Register {
       headers: {
         "x-oneuptime-token": KUBERNETES_AGENT_INGESTION_KEY || "",
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!result.isSuccess()) {
@@ -690,6 +772,31 @@ export default class Register {
     } as LogAttributes);
   }
 
+  /*
+   * Whether this Runner's deployment gives it a cluster key it may send:
+   * set, and not a value the repository ships. Said once, when it does: the
+   * Runner needs none.
+   */
+  public static holdsClusterKey(): boolean {
+    if (
+      !HasClusterKey ||
+      ClusterKeyAuthorization.isConfiguredClusterKeyShipped()
+    ) {
+      return false;
+    }
+
+    if (!Register.saidClusterKeyInEnvironment) {
+      Register.saidClusterKeyInEnvironment = true;
+      logger.warn(CLUSTER_KEY_IN_RUNNER_ENVIRONMENT_MESSAGE, {
+        runnerName: RUNNER_NAME,
+      } as LogAttributes);
+    }
+
+    return true;
+  }
+
+  private static saidClusterKeyInEnvironment: boolean = false;
+
   private static async _registerRunner(
     options: { shouldContinue?: (() => boolean) | undefined } = {},
   ): Promise<void> {
@@ -698,8 +805,17 @@ export default class Register {
       return;
     }
 
-    if (HasClusterKey) {
-      // Clustered mode: Auto-register and get ID from server
+    if (IS_CLUSTER_SCOPED) {
+      /*
+       * The shared Runner: it auto-registers as the installation's global
+       * agent and is given its id - with its own key, which the app holds
+       * too. A value the repository ships is refused there as an agent key
+       * wherever one is presented, so it is never sent.
+       */
+      if (isShippedSecretValue(RUNNER_KEY)) {
+        throw new ShippedRunnerKeyError();
+      }
+
       const aiAgentRegistrationUrl: URL = URL.fromString(
         ONEUPTIME_BASE_URL.toString(),
       ).addRoute("/api/ai-agent/register");
@@ -711,15 +827,34 @@ export default class Register {
         runnerName: RUNNER_NAME,
       } as LogAttributes);
 
-      const result: HTTPResponse<JSONObject> = await API.post({
-        url: aiAgentRegistrationUrl,
-        data: {
-          aiAgentKey: RUNNER_KEY,
-          runnerName: RUNNER_NAME,
-          aiAgentDescription: RUNNER_DESCRIPTION,
-          clusterKey: ClusterKeyAuthorization.getClusterKey(),
-        },
-      });
+      const registration: JSONObject = {
+        aiAgentKey: RUNNER_KEY,
+        runnerName: RUNNER_NAME,
+        aiAgentDescription: RUNNER_DESCRIPTION,
+      };
+
+      /*
+       * Its key proves who it is. A Runner whose deployment still gives it a
+       * cluster key it may send - docker-compose.yml or a Helm chart of an
+       * earlier release - also sends that, in the clusterkey header, never
+       * in the URL or the body, so it registers with an app that does not
+       * hold its key yet, a release behind included. A value the repository
+       * ships is never sent: the Runner registers with its own key alone.
+       */
+      const result: HTTPResponse<JSONObject> = Register.holdsClusterKey()
+        ? await API.post({
+            url: aiAgentRegistrationUrl,
+            data: registration,
+            headers: {
+              ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+            },
+            options: RunnerAPIRequest.getDefaultRequestOptions(),
+          })
+        : await API.post({
+            url: aiAgentRegistrationUrl,
+            data: registration,
+            options: RunnerAPIRequest.getDefaultRequestOptions(),
+          });
 
       if (!result.isSuccess()) {
         logger.error(
@@ -769,8 +904,16 @@ export default class Register {
        */
       if (!RUNNER_ID) {
         throw new Error(
-          "ONEUPTIME_RUNNER_ID must be set for a project-scoped Runner (create one in Runbooks > Runners), or a cluster key for the in-cluster Runner. The Runner keeps retrying until one is provided.",
+          "ONEUPTIME_RUNNER_ID must be set for a project-scoped Runner (create one in Runbooks > Runners); only the installation's shared Runner, with ONEUPTIME_RUNNER_SHARED=true, registers without one. The Runner keeps retrying until one is provided.",
         );
+      }
+
+      /*
+       * Nor does it present a key the repository ships: the server refuses
+       * that value as a Runner key, so it is never sent.
+       */
+      if (isShippedSecretValue(RUNNER_KEY)) {
+        throw new ShippedProjectRunnerKeyError();
       }
 
       const heartbeatUrl: URL = URL.fromString(
@@ -793,6 +936,7 @@ export default class Register {
           agentKey: RUNNER_KEY.toString(),
           agentVersion: RUNNER_VERSION,
         },
+        options: RunnerAPIRequest.getDefaultRequestOptions(),
       });
 
       if (result.isSuccess()) {
@@ -841,6 +985,7 @@ export default class Register {
             aiAgentId: RUNNER_ID.toString(),
             aiAgentKey: RUNNER_KEY.toString(),
           },
+          options: RunnerAPIRequest.getDefaultRequestOptions(),
         });
 
         if (!legacyResult.isSuccess()) {

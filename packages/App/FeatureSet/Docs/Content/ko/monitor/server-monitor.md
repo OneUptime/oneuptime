@@ -46,20 +46,60 @@ flowchart TB
 
 :::tabs
 @tab Linux
+Debian과 Ubuntu에서는 OneUptime apt 저장소를 추가하고 그 저장소에서 에이전트를 설치합니다.
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
+echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list
+sudo apt-get update
+sudo apt-get install oneuptime-infrastructure-agent
+```
+
+RHEL, Rocky Linux, AlmaLinux, Fedora, Amazon Linux에서는 OneUptime yum 저장소를 추가하고 그 저장소에서 에이전트를 설치합니다. `dnf`가 없는 곳에서는 `yum`을 사용하고, 물어보면 OneUptime 서명 키를 수락하세요.
+
+```bash
+sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo
+sudo dnf install oneuptime-infrastructure-agent
+```
+
+그 밖의 배포판에서는 설치 스크립트를 사용합니다.
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab macOS
+Homebrew로 에이전트를 설치합니다.
+
+```bash
+brew install oneuptime/tap/oneuptime-infrastructure-agent
+```
+
+또는 설치 스크립트를 사용합니다.
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab Windows
+관리자 권한으로 연 **명령 프롬프트** 에서 winget으로 에이전트를 설치합니다.
+
+```shell
+winget install --id OneUptime.InfrastructureAgent --exact --scope machine
+```
+
+그런 다음 **명령 프롬프트** 를 관리자 권한으로 다시 열면 `oneuptime-infrastructure-agent`가 경로에 있습니다.
+
+winget 없이 설치하려면 에이전트를 직접 내려받습니다.
+
 1. [최신 GitHub 릴리스](https://github.com/OneUptime/oneuptime/releases/latest)에서 에이전트를 내려받습니다. x64는 `oneuptime-infrastructure-agent_windows_amd64.zip`, ARM64는 `oneuptime-infrastructure-agent_windows_arm64.zip`입니다.
 2. zip 파일의 압축을 풉니다. 안에 `oneuptime-infrastructure-agent.exe`가 있습니다.
 3. 압축을 푼 폴더에서 **명령 프롬프트** 를 관리자 권한으로 엽니다.
+
+Intune, Configuration Manager 또는 그룹 정책으로 에이전트를 배포하려면 같은 릴리스의 `oneuptime-infrastructure-agent-amd64.msi`(또는 `oneuptime-infrastructure-agent-arm64.msi`)를 사용합니다. 에이전트는 `C:\Program Files\OneUptimeInfrastructureAgent`에 설치되며, 새 MSI는 그 자리에서 업그레이드하고 에이전트를 다시 시작합니다. 이전 릴리스의 MSI는 업그레이드할 수 없으므로 먼저 한 번 제거하세요.
 :::
 
-설치 스크립트는 사용 중인 운영 체제와 프로세서(x86-64 또는 ARM64)에 맞는 최신 릴리스를 내려받아 `oneuptime-infrastructure-agent` 바이너리를 `$HOME/bin`에 둡니다. 자체 호스팅에서는 스크립트가 사용자의 OneUptime URL에서 제공됩니다.
+어느 방법이든 사용 중인 운영 체제와 프로세서(x86-64 또는 ARM64)에 맞는 최신 릴리스를 설치합니다. apt와 yum 저장소에는 각 GitHub 릴리스에 첨부된 `.deb`와 `.rpm` 패키지가 `https://packages.oneuptime.com/gpg.key`의 키로 서명되어 있고, 패키지는 바이너리를 `/usr/bin`에 둡니다. 설치 스크립트는 `oneuptime-infrastructure-agent` 바이너리를 `$HOME/bin`에 둡니다. 자체 호스팅에서는 스크립트가 사용자의 OneUptime URL에서 제공됩니다.
 
 ### 모니터에 연결
 
@@ -136,6 +176,23 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 
 에이전트가 이 디렉터리에 쓸 수 없으면 대신 `~/.oneuptime-infrastructure-agent/`를 사용합니다. 환경 변수 `ONEUPTIME_AGENT_CONFIG_PATH`와 `ONEUPTIME_AGENT_LOG_PATH`로 각 경로를 명시적으로 지정할 수 있습니다.
 
+### 업그레이드와 제거
+
+에이전트는 설치한 방법과 같은 방법으로 업그레이드합니다.
+
+| 설치 방법 | 업그레이드 |
+| --- | --- |
+| apt | `sudo apt-get update && sudo apt-get install --only-upgrade oneuptime-infrastructure-agent` |
+| dnf 또는 yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
+| Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
+| winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | 새 MSI를 설치합니다. |
+| 설치 스크립트 | 설치 스크립트를 다시 실행합니다. |
+
+업그레이드해도 실행 중인 에이전트는 다시 시작되지 않으므로, 그 뒤에 `restart`를 실행하세요. Windows에서는 `winget upgrade` 전에 `stop`을, 후에 `start`를 실행합니다. 서비스가 프로그램을 실행하는 동안에는 winget이 프로그램을 바꿀 수 없습니다.
+
+에이전트를 제거하려면 먼저 `uninstall`을 실행한 다음, 설치에 사용한 도구로 패키지를 제거합니다. 예: `sudo apt-get remove oneuptime-infrastructure-agent`.
+
 ## 에이전트가 보고하는 내용
 
 모든 보고서에는 서버의 호스트 이름과 다음 내용이 들어 있습니다.
@@ -211,7 +268,7 @@ Linux와 macOS에서는 `sudo`로, Windows에서는 관리자 권한의 **명령
 :::
 
 :::details `sudo`가 명령을 찾을 수 없다고 함
-설치 스크립트는 실행한 사용자의 `$HOME/bin`에 바이너리를 두고, 사용한 디렉터리를 출력합니다. `sudo /root/bin/oneuptime-infrastructure-agent configure ...`처럼 전체 경로로 에이전트를 실행하세요. 대신 시스템 경로에 있는 디렉터리에 설치하려면 스크립트에 `-b`를 넘깁니다.
+패키지는 에이전트를 시스템 경로에 두므로, 이 문제는 설치 스크립트를 사용한 경우에만 생깁니다. 설치 스크립트는 실행한 사용자의 `$HOME/bin`에 바이너리를 두고, 사용한 디렉터리를 출력합니다. `sudo /root/bin/oneuptime-infrastructure-agent configure ...`처럼 전체 경로로 에이전트를 실행하세요. 대신 시스템 경로에 있는 디렉터리에 설치하려면 스크립트에 `-b`를 넘깁니다.
 
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin

@@ -19,15 +19,15 @@ stateDiagram-v2
     state "Concluído" as Completed
     state "Falhou" as Failed
     state "Cancelado" as Cancelled
-    [*] --> Scheduled: execução iniciada
-    Scheduled --> Running: um Worker a assume
-    Running --> WaitingForManualStep: etapa Manual ou aprovação
-    WaitingForManualStep --> Scheduled: concluída, aprovada ou pulada
-    Running --> Completed: todas as etapas feitas
+    [*] --> Scheduled: execução<br/>iniciada
+    Scheduled --> Running: um Worker<br/>a assume
+    Running --> WaitingForManualStep: etapa Manual<br/>ou aprovação
+    WaitingForManualStep --> Scheduled: concluída,<br/>aprovada<br/>ou pulada
+    Running --> Completed: todas as<br/>etapas feitas
     Running --> Failed: uma etapa falha
-    Scheduled --> Cancelled: Cancelar execução
-    Running --> Cancelled: Cancelar execução
-    WaitingForManualStep --> Cancelled: Cancelar execução
+    Scheduled --> Cancelled: Cancelar<br/>execução
+    Running --> Cancelled: Cancelar<br/>execução
+    WaitingForManualStep --> Cancelled: Cancelar<br/>execução
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
@@ -118,7 +118,7 @@ Uma execução é um registro único e imutável. Para executar o runbook de nov
 
 | Onde | O que lista |
 | --- | --- |
-| As **Execuções** de um runbook | Todas as execuções desse runbook, com filtros por status e data de início, e uma coluna **Acionado por**. |
+| As **Registros → Execuções** de um runbook | Todas as execuções desse runbook, com filtros por status e data de início, e uma coluna **Acionado por**. |
 | **Runbooks → Execuções** | Todas as execuções de todos os runbooks do projeto. |
 | A página **Runbooks** de um incidente, alerta ou evento | As execuções ligadas a ele. A visão geral do evento também as mostra, assim que houver alguma. |
 
@@ -129,7 +129,7 @@ Sua função lê runbooks, mas não os executa: o botão diz "Você não tem per
 :::
 
 :::details Iniciar uma execução falha com "Runbook is disabled" ou "Runbook has no steps to run"
-O interruptor **Executar este runbook** do runbook está desligado, na página **Configurações** dele, ou ele não tem etapas salvas. Ligue o interruptor, ou adicione etapas e clique em **Save Steps**.
+O interruptor **Executar este runbook** do runbook está desligado, na página **Configurações** dele, ou ele não tem etapas salvas. Ligue o interruptor, ou adicione etapas e clique em **Save Steps**. A **Visão geral** dele diz qual, com **Ligar o runbook** ou **Adicionar etapas**.
 :::
 
 :::details Uma etapa falhou porque falta um Runner ou uma credencial

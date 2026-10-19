@@ -54,11 +54,11 @@ Ein Bild in der Beschreibung oder der Dankesnachricht des Formulars wird allen g
 sequenceDiagram
     participant V as Browser der besuchenden Person
     participant O as OneUptime
-    V->>O: Formular öffnen, von seiner eigenen Seite
+    V->>O: Formular öffnen, von<br/>seiner eigenen Seite
     O-->>V: Fragen, Vorlagen und Branding
     V->>O: Die Antworten einreichen
-    O->>O: Jede Prüfung unten, in Reihenfolge
-    O-->>V: Die Nummer dessen, was erstellt wurde
+    O->>O: Jede Prüfung unten,<br/>in Reihenfolge
+    O-->>V: Die Nummer dessen,<br/>was erstellt wurde
 ```
 
 Jede Anfrage besteht diese Prüfungen, in dieser Reihenfolge:
@@ -110,7 +110,7 @@ Das Öffnen und das Einreichen eines Formulars sind pro Netzwerkadresse begrenzt
 - **Einreichen, pro Adresse** — pro Formular von einer Adresse und pro Adresse über alle Formulare. Ist eines davon überschritten, sieht die einreichende Person "Zu viele Meldungen aus Ihrem Netzwerk. Bitte warten Sie einige Minuten und versuchen Sie es dann erneut." Alle hinter einer Adresse — einem Büronetz, einem VPN-Gateway — teilen sich diese Grenzen, und jede Einreichung zählt, auch eine, die danach wegen einer falschen Antwort abgelehnt wird.
 - **Einreichen, pro Formular** — wie viele Datensätze ein Formular in einer Stunde erstellen darf, von allen Adressen zusammen, sodass selbst Einreichungen von vielen Adressen zugleich Sie nur begrenzt oft pro Stunde alarmieren können. Nur eine Einreichung, die jede andere Prüfung bestanden hat, zählt, unmittelbar bevor ihr Datensatz erstellt wird. Ist sie überschritten, sehen alle "Dieses Formular erhält gerade zu viele Einsendungen. Bitte versuchen Sie es später erneut.", bis das Zeitfenster vorbei ist. **Link zurücksetzen** beginnt den neuen Link mit einem frischen Kontingent.
 
-Jede Grenze antwortet mit `429` und einem Header `Retry-After` in Sekunden, und die Seite sagt der einreichenden Person, wann sie es erneut versuchen kann. Die Zeitfenster sind fest, nicht gleitend. Ist die Ratenbegrenzung nicht erreichbar, werden Einreichungen abgelehnt, statt ungezählt durchgelassen zu werden: Die API antwortet mit `503`, und die einreichende Person sieht "Einsendungen können derzeit nicht angenommen werden. Bitte versuchen Sie es in einigen Minuten erneut."
+Jede Grenze antwortet mit `429` und einem Header `Retry-After` in Sekunden, und die Seite sagt der einreichenden Person, wann sie es erneut versuchen kann. Die Zeitfenster sind fest, nicht gleitend. Jede Grenze pro Adresse zählt außerdem die Adressen eines IPv6-/64 zusammen, mit dem Zehnfachen ihres Werts. Ist die Ratenbegrenzung nicht erreichbar, werden Einreichungen abgelehnt, statt ungezählt durchgelassen zu werden: Die API antwortet mit `503`, und die einreichende Person sieht "Einsendungen können derzeit nicht angenommen werden. Bitte versuchen Sie es in einigen Minuten erneut."
 
 Auf einer selbst gehosteten Installation ändern diese Umgebungsvariablen der OneUptime-App die Grenzen:
 

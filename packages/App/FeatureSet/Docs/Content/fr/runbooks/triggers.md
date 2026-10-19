@@ -15,13 +15,13 @@ Un runbook peut démarrer de lui-même : selon une planification, ou quand un au
 flowchart TB
     subgraph starts["Ce qui démarre l'exécution"]
         direction LR
-        schedule["La planification : une heure arrive"]
-        webhook["Le webhook : un POST vers son URL"]
+        schedule["La planification<br/>: une heure arrive"]
+        webhook["Le webhook : un<br/>POST vers son URL"]
     end
-    schedule --> checks["Le runbook est activé et a des étapes"]
+    schedule --> checks["Le runbook est activé<br/>et a des étapes"]
     webhook --> checks
-    checks --> execution["Exécution, marquée Schedule ou Webhook"]
-    execution --> worker["Le Worker OneUptime exécute les étapes"]
+    checks --> execution["Exécution, marquée<br/>Schedule ou Webhook"]
+    execution --> worker["Le Worker OneUptime<br/>exécute les étapes"]
 ```
 
 Un déclencheur démarre une exécution comme le fait **Run Now** : l'exécution porte sur les étapes actuelles du runbook et n'est rattachée à aucun incident, aucune alerte ni aucun événement de maintenance planifiée. Chaque exécution enregistre ce qui l'a démarrée. Les **Exécutions** du runbook et **Runbooks → Exécutions** l'affichent sous **Déclenché par**, avec l'heure prévue d'une exécution planifiée ou l'adresse qui a appelé le webhook, et les deux listes peuvent être filtrées sur ce critère.
@@ -35,7 +35,7 @@ Un déclencheur démarre une exécution comme le fait **Run Now** : l'exécution
 
 :::steps
 ### Ouvrir la page Déclencheurs du runbook
-Ouvrez le runbook depuis **Runbooks** et cliquez sur **Déclencheurs** dans son menu.
+Ouvrez le runbook depuis **Runbooks** et cliquez sur **Paramètres → Déclencheurs** dans son menu latéral. **Paramètres** est replié au départ : cliquez dessus pour afficher **Déclencheurs**.
 
 ### Configurer la planification
 Cliquez sur **Configurer la planification**. Sous **Quand il s'exécute**, choisissez une option de **Répéter** et ce qu'elle demande. La boîte de dialogue énonce la planification en une phrase, comme « S'exécute chaque jour de semaine à 09:00 », et liste ses prochaines exécutions au fil de vos modifications.
@@ -117,7 +117,7 @@ La réponse nomme l'exécution démarrée : `{"runbookExecutionId": "...", "stat
 | `404` | Aucun webhook de runbook ne répond à cette URL : l'ID du runbook ou la clé est erroné, ou l'URL a été réinitialisée. |
 | `405` | La requête est un `GET`. Un `GET` ne démarre jamais d'exécution, si bien qu'un aperçu de lien dans une messagerie ne peut pas l'exécuter par accident. |
 | `413` | Le corps dépasse 64 Ko. |
-| `429` | Le webhook a démarré 30 exécutions dans la dernière minute, 10 de ses exécutions sont encore en cours, ou une adresse a fait plus de 120 appels aux webhooks de runbook en une minute. L'en-tête `Retry-After` indique quand réessayer, quand c'est possible. |
+| `429` | Le webhook a démarré 30 exécutions dans la dernière minute, 10 de ses exécutions sont encore en cours, ou une adresse a fait plus de 120 appels aux webhooks de runbook en une minute, ou les adresses d'un même /64 IPv6 plus de 1200 ensemble. L'en-tête `Retry-After` indique quand réessayer, quand c'est possible. |
 | `503` | OneUptime ne peut pas compter les appels pour le moment. Réessayez dans une minute. |
 
 Un appel refusé ne démarre rien, et son corps dit pourquoi en une phrase, par exemple "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

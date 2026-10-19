@@ -19,15 +19,15 @@ stateDiagram-v2
     state "Completado" as Completed
     state "Fallido" as Failed
     state "Cancelado" as Cancelled
-    [*] --> Scheduled: ejecución iniciada
-    Scheduled --> Running: un Worker la toma
-    Running --> WaitingForManualStep: paso Manual o aprobación
-    WaitingForManualStep --> Scheduled: completado, aprobado u omitido
-    Running --> Completed: todos los pasos hechos
+    [*] --> Scheduled: ejecución<br/>iniciada
+    Scheduled --> Running: un Worker<br/>la toma
+    Running --> WaitingForManualStep: paso Manual<br/>o aprobación
+    WaitingForManualStep --> Scheduled: completado,<br/>aprobado<br/>u omitido
+    Running --> Completed: todos los<br/>pasos hechos
     Running --> Failed: un paso falla
-    Scheduled --> Cancelled: Cancelar ejecución
-    Running --> Cancelled: Cancelar ejecución
-    WaitingForManualStep --> Cancelled: Cancelar ejecución
+    Scheduled --> Cancelled: Cancelar<br/>ejecución
+    Running --> Cancelled: Cancelar<br/>ejecución
+    WaitingForManualStep --> Cancelled: Cancelar<br/>ejecución
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
@@ -118,7 +118,7 @@ Una ejecución es un registro único e inmutable. Para volver a ejecutar el runb
 
 | Dónde | Qué muestra |
 | --- | --- |
-| Las **Ejecuciones** de un runbook | Todas las ejecuciones de ese runbook, con filtros por estado y fecha de inicio, y una columna **Activado por**. |
+| Las **Registros → Ejecuciones** de un runbook | Todas las ejecuciones de ese runbook, con filtros por estado y fecha de inicio, y una columna **Activado por**. |
 | **Runbooks → Ejecuciones** | Todas las ejecuciones de todos los runbooks del proyecto. |
 | La página **Runbooks** de un incidente, una alerta o un evento | Las ejecuciones unidas a él. La vista general del evento también las muestra, en cuanto hay alguna. |
 
@@ -129,7 +129,7 @@ Tu rol lee runbooks pero no los ejecuta: el botón dice «No tienes permiso para
 :::
 
 :::details Iniciar una ejecución falla con "Runbook is disabled" o "Runbook has no steps to run"
-El interruptor **Ejecutar este runbook** del runbook está desactivado, en su página **Ajustes**, o no tiene pasos guardados. Activa el interruptor, o añade pasos y haz clic en **Guardar pasos**.
+El interruptor **Ejecutar este runbook** del runbook está desactivado, en su página **Ajustes**, o no tiene pasos guardados. Activa el interruptor, o añade pasos y haz clic en **Guardar pasos**. Su **Vista general** dice cuál, con **Activar el runbook** o **Añadir pasos**.
 :::
 
 :::details Un paso falló porque le falta un Runner o una credencial

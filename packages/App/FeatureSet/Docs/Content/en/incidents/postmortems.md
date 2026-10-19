@@ -67,7 +67,7 @@ Click **Apply Template**, pick one under **Select Template** in the **Apply Post
 
 Click **Generate with AI**. The **Generate Postmortem with AI** dialog offers an outline under **Select Template**: **Standard Postmortem**, **Detailed Technical Postmortem** or **Brief Postmortem**, then your own postmortem templates. **Template Preview** shows the outline, and you can change it before you generate.
 
-Click **Generate with AI** at the bottom of the dialog. OneUptime AI reads the incident (its description, root cause and remediation, its state timeline, its public and private notes, and the messages in its Slack or Microsoft Teams channel) and writes the postmortem in your outline. The editor then opens on it.
+Click **Generate with AI** at the bottom of the dialog. OneUptime AI reads the incident (its description, root cause and remediation, its state timeline, its public and private notes, the messages in its Slack or Microsoft Teams channel, and what was said on [its calls](/docs/workspace-connections/video-calls#call-transcripts)) and writes the postmortem in your outline. The editor then opens on it.
 
 Generating needs AI turned on for the project, under **Project Settings → AI → AI Features**, and an LLM provider: see [LLM Providers](/docs/ai/llm-provider). It also takes the Project Owner or Project Admin role, or a custom role with the Edit Incident permission: other roles can write the postmortem, but not generate it.
 
@@ -78,6 +78,7 @@ With **Draft a postmortem when an incident resolves** on, OneUptime AI drafts th
 - It never replaces a note that is already written.
 - It never writes into a postmortem that is already published, where the draft would reach the status page unreviewed.
 - It needs AI turned on for the project, and stops for the day once the project reaches its daily AI limits. See [Auto-postmortem](/docs/ai/ai-sre#auto-postmortem).
+- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while Zoom or Google Meet prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).
 
 ## Publish it on your status page
 
@@ -152,7 +153,7 @@ Check three things: **Publish on Status Page** is on, the note is not empty, and
 :::
 
 :::details No AI draft appeared when the incident resolved
-The incident already had a note, the postmortem was already published, or **Draft a postmortem when an incident resolves** is off. AI must be on for the project, and the project must not have reached its daily AI limits.
+The incident already had a note, the postmortem was already published, or **Draft a postmortem when an incident resolves** is off. AI must be on for the project, and the project must not have reached its daily AI limits. When the incident's call has a transcript on its way, the draft comes once OneUptime AI has read it.
 :::
 
 ## Next steps

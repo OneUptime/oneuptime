@@ -2,6 +2,7 @@ import { SUPPORTED_DOCS_LANGUAGE_CODES } from "Common/Types/Docs/DocsLanguage";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import LlmType from "Common/Types/LLM/LlmType";
+import { LLM_PROVIDER_TYPE_COPY } from "Common/UI/Components/AI/LlmProviderFormCopy";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import API from "Common/Utils/API";
 import LLMService, {
@@ -41,9 +42,20 @@ const PAGE: string = "ai/llm-provider.md";
 const STARTUP_SYNC: string =
   "App/FeatureSet/Workers/StartupMigrations/SeedGlobalLlmProviderFromEnv.ts";
 
-// The form Project Settings > AI > LLM Providers creates a provider with.
+/*
+ * The form Project Settings > AI > LLM Providers creates a provider with:
+ * the shared one, which a provider's own page and the Admin Dashboard's
+ * Global LLM Providers draw too.
+ */
 const PROVIDER_FORM: string =
-  "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviders.tsx";
+  "Common/UI/Components/AI/LlmProviderFormFields.tsx";
+
+// The pages that draw it.
+const PROVIDER_FORM_PAGES: Array<string> = [
+  "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviders.tsx",
+  "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviderView.tsx",
+  "App/FeatureSet/AdminDashboard/src/Pages/Settings/LlmProviders/Index.tsx",
+];
 
 // Where Project Settings > AI > LLM Providers comes from.
 const SETTINGS_LAYOUT: string =
@@ -367,15 +379,21 @@ describe("every LLM provider guide calls the provider field what the form calls 
     expect(fieldTitle).toBe("LLM Provider");
   });
 
+  /*
+   * The field is the form's first step now, a card per provider, which the
+   * guide's step names in bold rather than as one bullet among the fields.
+   */
   test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
-    "%s lists the field under the dashboard's name for it",
+    "%s names the field as the dashboard draws it",
     (language: string) => {
       const label: string = dashboardLabel(language, fieldTitle);
+      const markdown: string = readPage(language);
 
       expect({
         label,
-        listed: hasBulletFor(readPage(language), label),
-      }).toEqual({ label, listed: true });
+        named: markdown.includes(`**${label}**`),
+        listedAsField: hasBulletFor(markdown, label),
+      }).toEqual({ label, named: true, listedAsField: false });
     },
   );
 
@@ -420,17 +438,24 @@ describe("every LLM provider guide calls the provider field what the form calls 
 });
 
 describe("every LLM provider guide says what is under More fields", () => {
-  test("the form folds Set as Default and Additional Parameters under More fields", () => {
+  const FOLDED: Array<string> = [
+    "description",
+    "isDefault",
+    "additionalParams",
+  ];
+
+  test("the form folds Description, Set as Default and Additional Parameters under More fields", () => {
+    expect(formFieldTitle("description")).toBe("Description");
     expect(formFieldTitle("isDefault")).toBe("Set as Default");
     expect(formFieldTitle("additionalParams")).toBe("Additional Parameters");
 
-    for (const field of ["isDefault", "additionalParams"]) {
+    for (const field of FOLDED) {
       expect(formField(field)).toContain("collapsibleSection: advancedSection");
     }
   });
 
   test.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
-    "%s names the fold and both fields as the dashboard draws them",
+    "%s names the fold and its fields as the dashboard draws them",
     (language: string) => {
       const fold: string = dashboardLabel(language, MORE_FIELDS_SECTION_TITLE);
       const bullet: string | undefined = readPage(language)
@@ -441,7 +466,7 @@ describe("every LLM provider guide says what is under More fields", () => {
 
       expect({ fold, bullet }).toEqual({ fold, bullet: expect.any(String) });
 
-      for (const field of ["isDefault", "additionalParams"]) {
+      for (const field of FOLDED) {
         expect(bullet).toContain(
           `**${dashboardLabel(language, formFieldTitle(field))}**`,
         );
@@ -717,46 +742,42 @@ describe("every LLM provider guide says what OneUptime does with a current Claud
 
 describe("every LLM provider form suggests the Anthropic model OneUptime defaults to", () => {
   /*
-   * The Model Name field's placeholder and description give an example per
+   * The Model Name field's placeholder and description gave an example per
    * provider. They said claude-sonnet-5 after the default had moved on, and
    * the forms in the Dashboard (create and edit) and the Admin Dashboard
-   * (global providers) each carry their own copy.
+   * (global providers) each carried their own copy.
+   *
+   * Now the three draw one form, whose Model Name names the picked
+   * provider's default from LlmProviderFormCopy (held to LLMService in
+   * Common's LlmProviderFormCopyFacts), and no field writes a model of its
+   * own.
    */
-  const MODEL_NAME_FORMS: Array<string> = [
-    PROVIDER_FORM,
-    "App/FeatureSet/Dashboard/src/Pages/Settings/LlmProviderView.tsx",
-    "App/FeatureSet/AdminDashboard/src/Pages/Settings/LlmProviders/Index.tsx",
-  ];
-
   const CLAUDE_MODEL_ID: RegExp = /claude-[a-z0-9.-]*[a-z0-9]/g;
 
-  // The Model Name field of a form, from its key to the next field's.
-  function modelNameField(file: string): string {
-    const form: string = fs.readFileSync(
+  test.each(PROVIDER_FORM_PAGES)("%s draws the shared form", (file: string) => {
+    const page: string = fs.readFileSync(
       path.join(PACKAGES_ROOT, file),
       "utf8",
     );
-    const start: number = form.search(/field: \{\s*modelName: true,/);
-    const next: number = form.indexOf("field: {", start + 1);
 
-    return start === -1
-      ? ""
-      : form.slice(start, next === -1 ? undefined : next);
-  }
+    expect(page).toMatch(
+      /formFields=\{get(?:Project|Global)LlmProviderFormFields\(/,
+    );
+    expect(page.match(CLAUDE_MODEL_ID) || []).toEqual([]);
+  });
 
-  test.each(MODEL_NAME_FORMS)("%s", (file: string) => {
-    const field: string = modelNameField(file);
+  test("the shared form names no model of its own", () => {
+    expect(formField("modelName")).not.toMatch(CLAUDE_MODEL_ID);
+    expect(formField("modelName")).not.toContain("placeholder:");
+    expect(formField("modelName")).toContain(
+      '{ model: copy?.defaultModel || "" }',
+    );
+  });
 
-    expect(field).toContain("placeholder:");
-    expect(field).toContain("description:");
-
-    const suggested: Array<string> = [
-      ...new Set(field.match(CLAUDE_MODEL_ID) || []),
-    ];
-
-    // One Claude model, named in both the placeholder and the description.
-    expect(suggested).toEqual([LLMService.ANTHROPIC_DEFAULT_MODEL]);
-    expect(field.split(LLMService.ANTHROPIC_DEFAULT_MODEL).length - 1).toBe(2);
+  test("the Anthropic model it names is the one LLMService asks for", () => {
+    expect(LLM_PROVIDER_TYPE_COPY[LlmType.Anthropic].defaultModel).toBe(
+      LLMService.ANTHROPIC_DEFAULT_MODEL,
+    );
   });
 });
 

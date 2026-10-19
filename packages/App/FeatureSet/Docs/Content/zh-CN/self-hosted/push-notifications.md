@@ -13,22 +13,22 @@ OneUptime 通过 **OneUptime On-Call** 移动应用在手机上呼叫人员，�
 
 ```mermaid title="推送如何到达手机或浏览器"
 flowchart TB
-    Server["你的 OneUptime 服务器"]
-    Relay["OneUptime 推送中继"]
+    Server["你的 OneUptime<br/>服务器"]
+    Relay["OneUptime<br/>推送中继"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
     Phone["OneUptime On-Call 应用"]
     PushService["浏览器的<br/>推送服务"]
     Browser["浏览器"]
-    Server -->|"未设置 EXPO_ACCESS_TOKEN"| Relay
-    Server -->|"已设置 EXPO_ACCESS_TOKEN"| Expo
+    Server -->|"未设置<br/>EXPO_ACCESS_TOKEN"| Relay
+    Server -->|"已设置<br/>EXPO_ACCESS_TOKEN"| Expo
     Relay --> Expo
     Expo --> APNs
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -44,6 +44,7 @@ Web 推送通知仍然使用 VAPID 密钥和 Web Push 协议。
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | 在未设置 `EXPO_ACCESS_TOKEN` 时，移动推送发往的地址。 |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | 空 | 使用你的 Expo 项目令牌，把移动推送直接发送给 Expo。 |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | 空 | 用本服务器的 `EXPO_ACCESS_TOKEN`，为其他 OneUptime 服务器中继移动推送。为空时，仅在 `BILLING_ENABLED` 为 `true` 时开启。 |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | 空 | 浏览器订阅时使用的密钥对的公钥部分。 |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | 空 | 私钥部分，用于为每条 Web 推送签名。 |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | 浏览器推送服务可以联系到你的联系地址。 |
@@ -81,6 +82,8 @@ expo:
 | 移动应用或浏览器 → OneUptime | 你的 OneUptime 主机名 | HTTPS / TCP 443 | 登录、注册设备并打开通知链接。 |
 
 如果你更改了 `PUSH_NOTIFICATION_RELAY_URL`，请允许其目标主机名和配置的端口。自定义中继必须实现 OneUptime 的中继 API。这些默认值以及中继与直接投递之间的切换，定义在 [OneUptime 的配置](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) 和 [推送服务](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) 中。直接发给 Expo 的请求使用 [Expo 发送指南](https://docs.expo.dev/push-notifications/sending-notifications/) 中记录的端点。OneUptime 在同一地址把 `/send` 换成 `/receipts`，从中继读取投递回执。没有该路由的中继仍会投递推送；但这时，应用已被删除的设备只有在之后发往它的推送被拒绝时才会被发现。
+
+自托管的 OneUptime 服务器只有设置了 `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` 并拥有自己的 `EXPO_ACCESS_TOKEN`，才会为其他服务器中继推送；没有这项设置时，它在该地址返回 404。只在您其他 OneUptime 服务器发送时经过的那台服务器上开启，并只让那些服务器访问该地址。
 
 对于 Web Push，请允许你的团队所用浏览器的实际订阅端点主机。OneUptime 接受 `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com` 和 `push.apple.com`，包括它们的子域名。典型的例子有 `updates.push.services.mozilla.com` 和 `web.push.apple.com`。目标由 [浏览器的推送订阅](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) 提供；只允许 Expo 或 OneUptime 的中继并不能启用 Web Push。
 
@@ -121,7 +124,7 @@ flowchart TB
 
 呼叫要穿透静音模式，必须同时满足四个条件。只要缺少任何一个，呼叫仍会投递——只是静默投递。
 
-1. **值班人员在该设备上开启了它。** 按设备存储在 `UserPush.isCriticalAlertEnabled` 中，默认关闭。同一个人的手机和平板是分别决定的。
+1. **值班人员在该设备上开启了它。** 按设备存储在 `UserPush.isCriticalAlertEnabled` 中，默认关闭。同一个人的手机和平板是分别决定的。1.6.0 之后版本的应用每次打开时都会重新上报它；只要手机自身的设置不允许关键提醒，就上报为关闭，因此设备列表显示的就是手机实际会怎么做。
 2. **发送呼叫的值班规则要求这样做。** 在 **用户设置 > 值班规则** 中，每条通知手机的规则都设为默认的“重要警报”，或设为遵循手机声音设置的“普通”——这样值班人员可以在严重事件时被叫醒，而轻微事件只是静默通知。按规则存储在 `UserNotificationRule.pushNotificationLevel` 中。
 3. **服务器把呼叫标记为关键。** 它为 iOS 发送 APNs 的关键声音负载以及 `interruptionLevel: critical`，并为 Android 指定一个关键通知渠道：`oncall_critical`，或所选警报声自己的渠道（见 [选择警报声](#选择警报声)）。
 4. **操作系统允许它**，这正是两个平台的不同之处。
@@ -192,7 +195,7 @@ Android 会在渠道首次创建时冻结其设置，因此无法通过应用更
 - **iOS**：确认构建带有 Apple 的关键提醒权限（见上文），并且已在 iOS Settings > Notifications > OneUptime On-Call 下允许 Critical Alerts
 - **Android**：确认应用在 Settings > Notifications > Do Not Disturb access 下拥有勿扰访问权限
 - **Android**：如果你选择了警报声，它自己的通知渠道也必须被允许绕过勿扰模式；不允许时，应用的 Alarm sound 页面会说明
-- 设置页面会说明缺少的是哪一项；它会从操作系统读回当前状态，而不是相信应用上一次请求的内容
+- 设置页面会说明缺少的是哪一项；它会从操作系统读回当前状态，而不是相信应用上一次请求的内容，并把读到的状态告诉服务器
 
 ### 标记为"未投递"的推送
 

@@ -47,6 +47,7 @@ import ConnectCallback, {
 } from "./ConnectCallback";
 import {
   ConnectCallbackError,
+  ConnectProviderNotice,
   ConnectProvider,
 } from "../../Types/Workspace/ConnectCallback";
 
@@ -321,17 +322,40 @@ export default class GitHubAPI {
       ConnectCallback.route({
         provider: ConnectProvider.GitHub,
         /*
-         * "Redirect on update": once an installation is changed on GitHub
-         * itself, GitHub sends the browser here with no state of ours. There
-         * is nothing to connect - the installation webhooks keep the
-         * repositories in sync - so the browser goes to Code Repositories,
-         * with nothing to refuse.
+         * GitHub's redirects that OneUptime did not start, with no state of
+         * ours, go to Code Repositories with nothing to refuse:
+         *
+         *  - "Redirect on update", once an installation is changed on GitHub
+         *    itself. There is nothing to connect: the installation webhooks
+         *    keep the repositories in sync.
+         *  - An install made on GitHub itself, from the app's Marketplace
+         *    listing or its page. Nothing in it says which project the
+         *    installation is for, so nothing is connected and its code is
+         *    left unused: the page says the app is installed and offers
+         *    "Connect an existing installation", which signs the person in
+         *    and checks they administer it.
          */
         isProviderRedirect: (req: ExpressRequest): boolean => {
-          return (
-            !req.query["state"] &&
-            req.query["setup_action"]?.toString() === "update"
-          );
+          const setupAction: string | undefined =
+            req.query["setup_action"]?.toString();
+
+          if (setupAction === "update") {
+            return !req.query["state"];
+          }
+
+          /*
+           * GitHub sends an install it started with no state parameter at
+           * all. One that is there but empty, or anything else, is a state
+           * of ours that went wrong, and is refused as one.
+           */
+          return setupAction === "install" && req.query["state"] === undefined;
+        },
+        noticeOfProviderRedirect: (
+          req: ExpressRequest,
+        ): ConnectProviderNotice | null => {
+          return req.query["setup_action"]?.toString() === "install"
+            ? ConnectProviderNotice.GitHubInstalled
+            : null;
         },
         spendState: (
           req: ExpressRequest,

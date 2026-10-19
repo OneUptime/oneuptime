@@ -16,16 +16,16 @@ OneUptime anropar din Foundry-resurs över HTTPS från OneUptime-servern, aldrig
 ```mermaid title="Vart OneUptimes AI-begäranden går"
 flowchart TB
     subgraph OU["OneUptime-server"]
-        F["AI-utredningar, anteckningar, postmortems, åtgärdsuppgifter"]
+        F["AI-utredningar,<br/>anteckningar, postmortems,<br/>åtgärdsuppgifter"]
     end
     subgraph AZ["Din Azure-prenumeration"]
         R["Foundry-resurs contoso-ai"]
-        V1["OpenAI v1-API: /openai/v1/chat/completions"]
-        AN["Anthropic-API: /anthropic/v1/messages"]
+        V1["OpenAI v1-API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic-API:<br/>/anthropic/v1/messages"]
         D1["Distribution gpt-5.1"]
-        D2["Distribution claude-sonnet-5-5"]
+        D2["Distribution<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API-nyckel"| R
+    F -->|"HTTPS +<br/>API-nyckel"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```
@@ -111,20 +111,20 @@ Med `--custom-domain contoso-ai` är resursens slutpunkt `https://contoso-ai.ope
 
 Gå till **Projektinställningar** > **AI** > **LLM-leverantörer** och klicka på **Skapa LLM-leverantör**.
 
-### Namnge leverantören
+### Välj leverantören
 
-Under **Grundläggande information** anger du ett **Namn**, till exempel `Azure gpt-5.1`, och om du vill en **Beskrivning**. Klicka på **Nästa**.
+Under **Leverantör** väljer du **Azure OpenAI / Microsoft Foundry** som **LLM-leverantör** och klickar på **Nästa** för att gå vidare till **Anslutning**.
 
-### Fyll i leverantörsinställningarna
+### Fyll i anslutningen
 
 | Fält | Det här anger du |
 | --- | --- |
-| **LLM-leverantör** | **Azure OpenAI / Microsoft Foundry** |
 | **API-nyckel** | Resursens **KEY 1** eller **KEY 2** |
-| **Modellnamn** | Distributionens namn, exakt som Foundry visar det, till exempel `gpt-5.1` |
 | **Bas-URL** | Resursens slutpunkt med `/openai/v1`, till exempel `https://contoso-ai.openai.azure.com/openai/v1`. För Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modellnamn** | Distributionens namn, exakt som Foundry visar det, till exempel `gpt-5.1` |
+| **Namn** | Först leverantörens namn: ge den ett som säger vilken distribution det är, till exempel `Azure gpt-5.1` |
 
-**Ange som standard**, under **Fler fält**, är påslaget: AI-funktioner använder projektets standardleverantör. Klicka på **Skapa LLM-leverantör**.
+**Fler fält** innehåller en **Beskrivning** och **Ange som standard**, som är påslaget: AI-funktioner använder projektets standardleverantör. Klicka på **Skapa LLM-leverantör**.
 
 ### Testa anslutningen
 

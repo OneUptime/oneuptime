@@ -231,12 +231,12 @@ A state change can notify your status page subscribers, but it goes through seve
 flowchart TB
     change["State change saved"] --> box{"Notify box on?"}
     box -->|No| skipped["Skipped"]
-    box -->|Yes| note{"Public note with it?"}
-    note -->|Yes| carried["The note is the message"]
+    box -->|Yes| note{"Public note<br/>with it?"}
+    note -->|Yes| carried["The note is<br/>the message"]
     note -->|No| queued["Row queued"]
     queued --> gates{"Clears every gate?"}
-    gates -->|No| reason["Skipped, reason recorded"]
-    gates -->|Yes| sent["Subscribers notified"]
+    gates -->|No| reason["Skipped,<br/>reason recorded"]
+    gates -->|Yes| sent["Subscribers<br/>notified"]
 ```
 
 Notification is requested per timeline row by **Notify Status Page Subscribers** (`shouldStatusPageSubscribersBeNotified`), the checkbox on the state-change modal and on the manual timeline form. On the state-change modal it starts off when the incident was declared without notifying subscribers. The same checkbox also decides whether the modal's public note notifies anyone. When it is off, the row is stored with a skipped status and an explanation. When it is on, the row is queued and a background job picks it up — the job runs every minute, so delivery is quick but not instantaneous.
@@ -255,6 +255,8 @@ Notification is requested per timeline row by **Notify Status Page Subscribers**
 
 **Posting the note needs its own permission.** Changing the state and posting a public note are separate permissions (**Create Incident State Timeline** and **Create Incident Status Page Note** in a custom role; the built-in incident and project roles have both). Changing the state takes no permission to edit the incident: see [Changing a state](/docs/permissions/index#changing-a-state). Someone who may change an incident's state but not post public notes is not offered **Add a public note** in the modal or in the **Change State** bulk action. A state change they send with a note through the API is refused whole, with a message that says the state was not changed and why, so a change is never recorded as told by a note that was never posted. Leave the note out and the change goes through. Alerts, alert episodes and incident episodes offer a private note with a state change instead (**Add a private note**), and it works the same way: posting it needs the note's own permission (**Create Alert Internal Note**, **Create Alert Episode Internal Note** or **Create Incident Episode Internal Note** in a custom role; the built-in alert, incident and project roles have them), and a state change sent with a private note by someone without it is refused whole, so the state is not changed.
 
+**A private incident's state change carries a private note.** A private incident takes no public notes, so its state change dialog folds **Add a private note** in place of **Add a public note**, does not ask about subscribers, and offers the note to whoever may post a private note on it. The **Change State** bulk action adds its note to each private incident it moves as a private note, and notifies nobody about them. A state change sent through the API with a public note on a private incident is refused whole: "The state was not changed: it comes with a public note, and this incident is private, so public notes cannot be added to it. Post the note as a private note, or leave it out."
+
 **Sent means every subscriber was sent it.** The job waits for each message and counts it sent or failed, per status page and channel, and the row's status message lists those counts. One failed message, or a send that ran out of time or was interrupted, makes the row **Failed**. See [Checking what was sent](/docs/status-pages/subscribers#checking-what-was-sent).
 
 For who receives these and how the templates are chosen, see [Subscribers & Announcements](/docs/status-pages/subscribers).
@@ -268,7 +270,7 @@ Four separate things decide whether an incident is on a public page at all, and 
 - **The page is in the incident's reach.** The page lists one of the incident's monitors and, if the incident is limited to some status pages, is one of them. A page with **Only Show Incidents Scoped to This Page** on shows only the incidents limited to it. See [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience).
 - **The current state sits above the resolved state.** This is what removes an incident from the active section: the status page query fetches incidents whose current state is above your resolved state, so the resolved state and any state after it take the incident off. You do not archive or close anything — you resolve it, and it moves into history.
 
-**Private incidents never appear.** Turning on **Private Incident** hides the incident from every status page, regardless of the toggles above, and restricts it to its owners plus project admins and owners. Nothing about it reaches a status page subscriber either: not its creation, its state changes, its public notes or its postmortem. The images in its description, postmortem, custom fields and public notes are not viewable by everyone while it is private.
+**Private incidents never appear.** Turning on **Private Incident** hides the incident from every status page, regardless of the toggles above, and restricts it to its owners plus project admins and owners. Nothing about it reaches a status page subscriber either: not its creation, its state changes, its public notes or its postmortem. The images in its description, postmortem, custom fields and public notes are not viewable by everyone while it is private. It takes no public notes either: see [Private incidents take private notes only](/docs/incidents/notes-owners-and-feed#private-incidents-take-private-notes-only).
 
 The two switches are kept in step, so the incident's **Settings** page always shows what status pages do:
 

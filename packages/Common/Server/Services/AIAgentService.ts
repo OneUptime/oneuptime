@@ -9,7 +9,7 @@ import Model, {
 } from "../../Models/DatabaseModels/AIAgent";
 import AIAgentOwnerUser from "../../Models/DatabaseModels/AIAgentOwnerUser";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import AIAgentOwnerTeam from "../../Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -38,6 +38,8 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
+import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -148,6 +150,9 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
+
+    // Never a value this repository ships, whoever writes it (ComponentKeyWrite).
+    ComponentKeyWrite.assertCreatedKey(createBy.data.key, "an AI agent");
 
     if (!createBy.data.aiAgentVersion) {
       createBy.data.aiAgentVersion = new Version("1.0.0");
@@ -275,6 +280,9 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    // A key it writes is never a value this repository ships (ComponentKeyWrite).
+    ComponentKeyWrite.assertUpdatedKey(updateBy.data, "an AI agent");
 
     const carryForward: any = {
       aiAgentsToNotifyOwners: [],
@@ -423,7 +431,7 @@ export class Service extends ProjectReferencesService<Model> {
             timezones: user.timezone ? [user.timezone] : [],
           }),
           viewAIAgentsLink: (
-            await this.getLinkInDashboard(aiAgent.projectId!, aiAgent.id!)
+            await this.getLinkInDashboard(aiAgent.projectId!)
           ).toString(),
         };
 
@@ -505,16 +513,80 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Where an AI agent's emails, pushes and messages send its owners: the
+   * project's Tasks page, whose readiness card says which agent is online.
+   * They linked to an AI Agents page under Project Settings, which was
+   * retired when Runners replaced the agent container, so the link opened
+   * nothing.
+   */
   @CaptureSpan()
-  public async getLinkInDashboard(
-    projectId: ObjectID,
-    aiAgentId: ObjectID,
-  ): Promise<URL> {
+  public async getLinkInDashboard(projectId: ObjectID): Promise<URL> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/settings/ai-agents/${aiAgentId.toString()}`,
+      `/${projectId.toString()}/ai/agents`,
     );
+  }
+
+  /*
+   * Whether an AI agent with this id exists. Asked only for a key that did
+   * not match it, so that a wrong key is counted only for an agent there is
+   * (WrongComponentKeyLimit): an id no agent has can never be let in,
+   * whatever key comes with it.
+   */
+  @CaptureSpan()
+  public async hasAIAgentWithId(aiAgentId: ObjectID): Promise<boolean> {
+    const aiAgent: Model | null = await this.findOneBy({
+      query: {
+        _id: aiAgentId.toString(),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(aiAgent);
+  }
+
+  /*
+   * The global AI agent the in-cluster Runner registering under a key no
+   * global agent holds takes over (API/AIAgentAPI, /register), or null: the
+   * global agent that already holds the key, else the one whose key is a
+   * value this repository ships (ShippedKeyTakeover). That is the agent of a
+   * Runner that ran on the config.example.env ONEUPTIME_RUNNER_KEY and came
+   * back under the random key npm start gave it: it stays the one global
+   * agent, rather than a second one appearing beside an agent that can never
+   * report in again. A global agent whose key is the installation's own is
+   * never taken over.
+   */
+  @CaptureSpan()
+  public async findGlobalAIAgentToTakeOver(data: {
+    presentedKey: string;
+  }): Promise<Model | null> {
+    const globalAIAgents: Array<Model> = await this.findBy({
+      query: {
+        isGlobalAIAgent: true,
+      },
+      select: {
+        _id: true,
+        key: true,
+        lastAlive: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return ShippedKeyTakeover.pickRowToTakeOver({
+      rows: globalAIAgents,
+      presentedKey: data.presentedKey,
+    });
   }
 
   @CaptureSpan()

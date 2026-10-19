@@ -68,6 +68,7 @@ import ScheduledMaintenanceReminderRule from "Common/Models/DatabaseModels/Sched
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BaseModelComponent from "Common/Types/Workflow/Components/BaseModel";
 import ComponentMetadata from "Common/Types/Workflow/Component";
@@ -681,13 +682,15 @@ describe("an event's own menu, as the overview draws it", () => {
     expect(menuTable(pages)).toEqual(eventMenu());
   });
 
-  it("says Basic and Notes are open and the rest start folded", () => {
+  it("says Overview, Team and Notes are open and the rest start folded", () => {
+    // The incident page's sections, as an incident's and an alert's menus have them.
     expect(openSections(eventMenu(), EVENT_MENU_SOURCE)).toEqual([
-      "Basic",
+      "Overview",
+      "Team",
       "Notes",
     ]);
     expect(pages).toContain(
-      "**Basic** and **Notes** are open; the other sections start folded until you click them.",
+      "**Overview**, **Team** and **Notes** are open; the other sections start folded until you click them.",
     );
   });
 
@@ -3156,50 +3159,66 @@ describe("reminder rules", () => {
   const rule: ScheduledMaintenanceReminderRule =
     new ScheduledMaintenanceReminderRule();
 
-  it("walk Rule Info, Match Criteria and Reminder Settings, with the fields the steps name", () => {
-    expect(REMINDER_RULES_PAGE).toContain(
-      'id: "rule-info",\n              title: "Rule Info",',
-    );
-    expect(REMINDER_RULES_PAGE).toContain(
-      'id: "match-criteria",\n              title: "Match Criteria",',
-    );
-    expect(REMINDER_RULES_PAGE).toContain(
-      'id: "reminder-settings",\n              title: "Reminder Settings",',
+  it("walk Match and Reminders, with the fields the steps name", () => {
+    const form: string = readDashboardSource("Utils/Form/EventRuleForm.ts");
+    const fields: string = readDashboardSource(
+      "Components/Reminders/MaintenanceReminderRuleFields.tsx",
     );
 
-    for (const [title, step] of [
-      ["Name", "rule-info"],
-      ["Description", "rule-info"],
-      ["Labels", "match-criteria"],
-      ["Reminder Interval (minutes)", "reminder-settings"],
-      ["Stop Reminders When", "reminder-settings"],
-      ["Remind While Event is Scheduled", "reminder-settings"],
-    ] as Array<[string, string]>) {
-      expect({
-        title,
-        step: stepOf(
-          fieldObject(
-            REMINDER_RULES_PAGE.slice(
-              REMINDER_RULES_PAGE.indexOf("formFields={["),
-            ),
-            title,
+    expect(REMINDER_RULES_PAGE).toContain(
+      "formSteps={getReminderRuleFormSteps<ScheduledMaintenanceReminderRule>()}",
+    );
+    expect(REMINDER_RULES_PAGE).toContain(
+      "...getMaintenanceReminderRuleActionFields()",
+    );
+    expect(form).toContain('{ title: "Match", id: "match-criteria" },');
+    expect(form).toContain('{ title: "Reminders", id: "reminder-settings" },');
+
+    expect(
+      stepOf(
+        fieldObject(
+          REMINDER_RULES_PAGE.slice(
+            REMINDER_RULES_PAGE.indexOf("formFields={["),
           ),
+          "Labels",
         ),
-      }).toEqual({ title, step });
+      ),
+    ).toBe("match-criteria");
+
+    for (const title of [
+      "Reminder Interval (minutes)",
+      "Name",
+      "Description",
+    ]) {
+      expect({ title, step: stepOf(fieldObject(fields, title)) }).toEqual({
+        title,
+        step: "reminder-settings",
+      });
     }
+
+    // The one choice, Remind Owners, on the same step.
+    expect(fields).toContain("title: MAINTENANCE_REMINDER_TIMING_FIELD_TITLE,");
+    expect(
+      readDashboardSource("Components/Reminders/MaintenanceReminderTiming.ts"),
+    ).toContain('translationKey("Remind Owners")');
 
     expect(`Create ${rule.singularName}`).toBe(
       "Create Scheduled Maintenance Reminder Rule",
     );
-    expect(REMINDER_RULES_PAGE).toContain(
-      'placeholder: "Maintenance Event Reminders",',
+    expect(reminders).toContain(
+      "Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All scheduled maintenance events** picked",
     );
     expect(reminders).toContain(
-      'Click **Create Scheduled Maintenance Reminder Rule**. On **Rule Info**, give it a **Name**, such as "Maintenance Event Reminders", and a **Description** if you like.',
+      'pick when to remind them under **Remind Owners**. Its **Name** follows both, such as "Remind every 30 minutes while it is in progress"',
     );
+    expect(reminders).not.toContain("**Rule Info**");
   });
 
-  it("start with the defaults the table gives", () => {
+  it("name the three answers of Remind Owners, the columns' defaults first", () => {
+    const timing: string = readDashboardSource(
+      "Components/Reminders/MaintenanceReminderTiming.ts",
+    );
+
     expect(
       rule.getTableColumnMetadata("stopRemindersOnState").defaultValue,
     ).toBe(ScheduledMaintenanceReminderStopState.Completed);
@@ -3207,28 +3226,49 @@ describe("reminder rules", () => {
       rule.getTableColumnMetadata("remindWhileScheduled").defaultValue,
     ).toBe(false);
     expect(rule.getTableColumnMetadata("isEnabled").defaultValue).toBe(true);
-    expect(REMINDER_RULES_PAGE).toContain(
-      'value: ScheduledMaintenanceReminderStopState.Ongoing,\n                label: "Stop when event starts (Ongoing)",',
+    // A new rule's answer is the pair the columns start as.
+    expect(timing).toContain(
+      "[MaintenanceReminderTiming.WhileInProgress]: {\n    remindWhileScheduled: false,\n    stopRemindersOnState: ScheduledMaintenanceReminderStopState.Completed,",
     );
-    expect(REMINDER_RULES_PAGE).toContain(
-      'value: ScheduledMaintenanceReminderStopState.Completed,\n                label: "Remind until event is Completed",',
+    expect(timing).toContain(
+      "export const DEFAULT_MAINTENANCE_REMINDER_TIMING: MaintenanceReminderTiming =\n  MaintenanceReminderTiming.WhileInProgress;",
+    );
+
+    const answers: Array<[string, string]> = [
+      ["While it is in progress", "From when the event starts until it ends."],
+      ["Before it starts", "From when the event is scheduled until it starts."],
+      [
+        "Before it starts and while it is in progress",
+        "From when the event is scheduled until it ends.",
+      ],
+    ];
+
+    expect(firstColumn(reminders)).toEqual(
+      answers.map(([answer]: [string, string]): string => {
+        return `**${answer}**`;
+      }),
+    );
+
+    for (const [answer, description] of answers) {
+      expect(timing).toContain(`title: translationKey("${answer}"),`);
+      expect(timing).toContain(`"${description}"`);
+      expect(reminders).toContain(`| **${answer}** | ${description}`);
+    }
+
+    // The list marks such a rule, as it marks a label rule that adds nothing.
+    expect(reminders).toContain(
+      "never sends a reminder: the list marks it **Never reminds**, and its form asks you to pick one.",
+    );
+    expect(timing).toContain(
+      'export const MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT: string =\n  translationKey("Never reminds");',
     );
     expect(
-      fieldObject(
-        REMINDER_RULES_PAGE.slice(REMINDER_RULES_PAGE.indexOf("formFields={[")),
-        "Reminder Interval (minutes)",
+      readDashboardSource(
+        "Components/Reminders/MaintenanceReminderTimingText.tsx",
       ),
-    ).toContain("required: true");
-    expect(firstColumn(reminders)).toEqual([
-      "**Reminder Interval (minutes)**",
-      "**Stop Reminders When**",
-      "**Remind While Event is Scheduled**",
-    ]);
-    expect(reminders).toContain(
-      "| **Stop Reminders When**              | **Remind until event is Completed**    | Or **Stop when event starts (Ongoing)**, to stop once the work has begun.",
-    );
-    expect(reminders).toContain(
-      "| **Remind While Event is Scheduled**  | Off ",
+    ).toContain("text={MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT}");
+    expect(timing).toContain(
+      '"This rule never sends a reminder: it waits for the event to start and stops when it starts. Pick when to remind."',
     );
   });
 
@@ -3588,6 +3628,33 @@ describe("who can change maintenance", () => {
     ).toContain(Permission.CreateScheduledMaintenanceOwnerRule);
     expect(who).toContain(
       "Rules, custom fields and measurements take **Project Owner** or **Project Admin**, or a custom role with that page's own permission, such as **Create Scheduled Maintenance Owner Rule**.",
+    );
+  });
+
+  /*
+   * Maintenance runbook rules are rows of the one RunbookRule model that
+   * incidents and alerts share (triggerEntity ScheduledMaintenance), and it
+   * lets the Runbook Admin role change them too - the roles table used to
+   * leave that out.
+   */
+  it("lets Runbook Admin change runbook rules as well, and says so", () => {
+    const runbookRule: RunbookRule = new RunbookRule();
+
+    expect(rolesOf(runbookRule.getCreatePermissions())).toEqual([
+      "Project Owner",
+      "Project Admin",
+      "Runbook Admin",
+    ]);
+    expect(changes(runbookRule, Permission.RunbookAdmin)).toBe(true);
+    // The maintenance roles do not reach them.
+    expect(changes(runbookRule, Permission.ScheduledMaintenanceAdmin)).toBe(
+      false,
+    );
+    expect(PermissionHelper.getTitle(Permission.RunbookAdmin)).toBe(
+      "Runbook Admin",
+    );
+    expect(who).toContain(
+      "such as **Create Scheduled Maintenance Owner Rule**. Runbook rules also take **Runbook Admin**.",
     );
   });
 

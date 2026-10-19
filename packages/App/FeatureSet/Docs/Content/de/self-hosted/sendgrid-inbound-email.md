@@ -17,12 +17,12 @@ Diese Anleitung erklärt, wie Sie SendGrid Inbound Parse so einrichten, dass ein
 
 ```mermaid title="Wie eine E-Mail einen Monitor erreicht"
 sequenceDiagram
-    participant Sender as Sendender Mailserver
-    participant SendGrid as SendGrid Inbound Parse
+    participant Sender as Sendender<br/>Mailserver
+    participant SendGrid as SendGrid<br/>Inbound Parse
     participant OneUptime as OneUptime
-    Sender->>SendGrid: E-Mail an die Adresse des Monitors (Ihr MX-Eintrag)
-    SendGrid->>OneUptime: POST /incoming-email/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Adresse einem Monitor oder Workflow zuordnen
+    Sender->>SendGrid: E-Mail an die<br/>Adresse des<br/>Monitors (Ihr<br/>MX-Eintrag)
+    SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
+    OneUptime->>OneUptime: Adresse einem<br/>Monitor oder<br/>Workflow zuordnen
     OneUptime-->>SendGrid: 200 OK
 ```
 
@@ -49,7 +49,7 @@ Bei Inbound Parse baut SendGrid die Verbindung zu OneUptime auf. Es reicht nicht
 
 Veröffentlichen Sie DNS für den Webhook-Hostnamen und liefern Sie ein Zertifikat aus, dem öffentliche Clients vertrauen. Eine private OneUptime-Bereitstellung kann nur den Webhook-Pfad über einen öffentlichen Reverse Proxy oder ein Gateway freigeben, das OneUptime intern erreicht. Erhalten Sie Pfad, Secret, Content-Type und den Multipart-Request-Body, und lassen Sie den POST ohne interaktive Anmeldung oder Browser-Challenge durch. Der OneUptime-Server braucht keinen eingehenden SMTP-Listener. Siehe [die Einrichtung von Inbound Parse bei SendGrid](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook).
 
-Setzen Sie `INBOUND_EMAIL_WEBHOOK_SECRET` auf einen starken Zufallswert und ersetzen Sie `YOUR_SECRET` in der URL durch diesen Wert. Die Route verlangt das letzte Pfadsegment. OneUptime prüft dessen Wert, wenn das Secret konfiguriert ist; eine leere Variable schaltet diese Prüfung ab. Halten Sie die vollständige URL und die E-Mail-Adressen der Monitore geheim, auch in Proxy-Logs. OneUptime prüft derzeit weder die signierten Inbound-Parse-Header von SendGrid noch OAuth-Tokens. Wenn Sie diese Mechanismen brauchen, konfigurieren Sie ein Gateway, das sie vor der Weiterleitung an OneUptime prüft, gemäß [der Dokumentation von SendGrid zur Webhook-Sicherheit](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
+Setzen Sie `INBOUND_EMAIL_WEBHOOK_SECRET` auf einen starken Zufallswert und ersetzen Sie `YOUR_SECRET` in der URL durch diesen Wert. Die Route verlangt das letzte Pfadsegment, und OneUptime nimmt eine E-Mail nur an, wenn dieses Segment das Secret ist. Solange das Secret nicht gesetzt ist, wird jede E-Mail mit `503` abgelehnt, was SendGrid bis zu drei Tage lang erneut versucht. Halten Sie die vollständige URL und die E-Mail-Adressen der Monitore geheim, auch in Proxy-Logs. OneUptime prüft derzeit weder die signierten Inbound-Parse-Header von SendGrid noch OAuth-Tokens. Wenn Sie diese Mechanismen brauchen, konfigurieren Sie ein Gateway, das sie vor der Weiterleitung an die vollständige URL prüft, gemäß [der Dokumentation von SendGrid zur Webhook-Sicherheit](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks).
 
 SendGrid stellt für Inbound Parse keine verlässliche Liste statischer Quell-IPs bereit. Die IPs, von denen SendGrid E-Mails versendet, und die für `mx.sendgrid.net` aufgelösten Adressen sind keine Allowlist für Webhooks. Folgen Sie [den Firewall-Hinweisen von SendGrid](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs), statt ein aktuelles DNS-Ergebnis festzuschreiben.
 
@@ -114,6 +114,8 @@ inboundEmail:
 ```
 :::
 
+`INBOUND_EMAIL_WEBHOOK_SECRET` ist erforderlich: OneUptime lehnt jede E-Mail ab, solange es leer oder noch ein Platzhalter von dieser Seite ist. `openssl rand -hex 32` erzeugt einen langen Zufallswert.
+
 Wenden Sie sie dann an: Führen Sie unter Docker Compose `npm run start` aus, was die Container mit den neuen Werten neu erstellt, oder aktualisieren Sie unter Kubernetes das Helm-Release.
 
 ### Einen Incoming-Email-Monitor erstellen
@@ -133,7 +135,7 @@ Senden Sie eine E-Mail an die Adresse des Monitors, mit einem Betreff, der zu se
 | --- | --- | --- | --- | --- |
 | `INBOUND_EMAIL_PROVIDER` | `inboundEmail.provider` | Der Anbieter für eingehende E-Mails. SendGrid ist der einzige. | Nein | `SendGrid` |
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | Die für eingehende E-Mails konfigurierte Subdomain. Eingehende E-Mails sind aus, bis sie gesetzt ist. | Ja | Leer |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Secret, das mit dem letzten Segment der Webhook-URL verglichen wird: `/incoming-email/sendgrid/YOUR_SECRET`. Konfigurieren Sie es für öffentliche Endpunkte; ein leerer Wert schaltet die Prüfung ab. | Empfohlen | Leer |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Secret, dem das letzte Segment der Webhook-URL entsprechen muss: `/incoming-email/sendgrid/YOUR_SECRET`. Jede E-Mail wird abgelehnt, solange es leer oder ein Platzhalter ist. | Ja | Leer |
 
 Worauf ein Incoming-Email-Monitor prüfen kann – den Betreff, den Absender, den Text, den Empfänger und ob eine E-Mail rechtzeitig eingetroffen ist –, steht unter [Verfügbare Filtertypen](/docs/monitor/incoming-email-monitor#verfügbare-filtertypen).
 
@@ -149,6 +151,7 @@ Worauf ein Incoming-Email-Monitor prüfen kann – den Betreff, den Absender, de
 1. **Die öffentliche Webhook-Route prüfen:** Die vollständige URL samt Secret muss OneUptime aus dem Internet erreichen. Die URL ohne ihr letztes Secret-Segment passt nicht zur Route.
 2. **Firewall-Regeln prüfen:** Erlauben Sie HTTPS-POST-Anfragen an den Webhook-Pfad ohne Anmeldeweiterleitungen oder Browser-Challenges, und verwenden Sie die Versand-IPs von SendGrid nicht als Quell-Allowlist für Webhooks.
 3. **Das SSL-Zertifikat prüfen:** Verwenden Sie für den Webhook-Hostnamen ein gültiges, öffentlich vertrauenswürdiges Zertifikat und liefern Sie seine Zertifikatskette mit.
+4. **Das Webhook-Secret prüfen:** Die Destination URL muss mit dem Wert von `INBOUND_EMAIL_WEBHOOK_SECRET` enden. Solange die Variable leer oder ein Platzhalter ist, wird jede E-Mail mit `503` abgelehnt, und das Log des Dienstes `app` sagt es beim Start; eine E-Mail an eine URL, die mit etwas anderem endet, wird mit `403` abgelehnt.
 :::
 
 :::details Der Monitor erstellt keine Alarme
@@ -164,7 +167,7 @@ Worauf ein Incoming-Email-Monitor prüfen kann – den Betreff, den Absender, de
 ## Bewährte Sicherheitspraktiken
 
 1. **HTTPS verwenden:** Verwenden Sie für Ihren Webhook-Endpunkt immer HTTPS
-2. **Webhook-Secret:** Konfigurieren Sie `INBOUND_EMAIL_WEBHOOK_SECRET` und nehmen Sie es in Ihre Webhook-URL auf (z. B. `/incoming-email/sendgrid/your-secret`), als zusätzliche Prüfung
+2. **Webhook-Secret:** Verwenden Sie für `INBOUND_EMAIL_WEBHOOK_SECRET` einen langen Zufallswert, der nur Ihnen gehört, am Ende Ihrer Webhook-URL (z. B. `/incoming-email/sendgrid/your-secret`): Daran unterscheidet OneUptime die E-Mails von SendGrid von denen aller anderen
 3. **Domain-Verifizierung:** Verifizieren Sie Ihre Domain in SendGrid für mehr E-Mail-Sicherheit
 4. **Zugriff beschränken:** Erstellen Sie Monitore nur für vertrauenswürdige E-Mail-Quellen
 5. **Logs überwachen:** Prüfen Sie die Logs eingehender E-Mails regelmäßig auf verdächtige Aktivität

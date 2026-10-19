@@ -12,14 +12,14 @@ Alt i OneUptime lever inde i et **projekt**. Hvem der må hvad i det projekt, af
 ```mermaid title="Sådan får en person og en API-nøgle adgang"
 flowchart TB
     User["En bruger<br/>(én konto)"]
-    Key["En API-nøgle"]
     subgraph Project["Et projekt"]
         direction TB
+        Key["En API-nøgle"]
         Team["Team"]
-        Allow["Tilladte tilladelser,<br/>hver med et omfang:<br/>Alle, Ejede eller Labels"]
-        Block["Blokerede tilladelser,<br/>der altid vinder"]
-        KeyRules["Nøglens egne tilladte<br/>og blokerede tilladelser"]
-        Resources["Monitorer, hændelser,<br/>statussider og mere"]
+        Allow["Tilladte<br/>tilladelser,<br/>hver med<br/>et omfang:<br/>Alle, Ejede<br/>eller Labels"]
+        Block["Blokerede<br/>tilladelser,<br/>der altid vinder"]
+        KeyRules["Nøglens egne<br/>tilladte<br/>og blokerede<br/>tilladelser"]
+        Resources["Monitorer,<br/>hændelser,<br/>statussider<br/>og mere"]
     end
     User -->|"medlem af"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"når"| Resources
     KeyRules -->|"når"| Resources
     Block -.->|"fjerner"| Resources
+    Allow ~~~ Block
 ```
 
 | Begreb | Hvad det er |
@@ -37,6 +38,7 @@ flowchart TB
 | Team | En navngivet gruppe i et projekt, der bærer tilladelser. |
 | Teammedlem | En bruger, der er inviteret til et team og har accepteret. |
 | Tilladelse | Én enkelt evne, f.eks. `CreateProjectMonitor`, eller en rolle, der samler mange, f.eks. `MonitorAdmin`. |
+| Brugerdefineret rolle | Et sæt tilladelser, du navngiver én gang og giver til teams. |
 | Omfang | Hvor langt en tilladt rettighed rækker: alle ressourcer, kun ejede eller kun mærkede. |
 | Ejer | En bruger eller et team, der er markeret som ansvarlig for én bestemt ressource. |
 | Label | Et mærke, du sætter på ressourcer, brugt til at begrænse tilladelser og til at organisere. |
@@ -57,6 +59,7 @@ En bruger er "i" et projekt, når vedkommende er medlem af **mindst ét team** i
 - Invitationer opretter et afventende teammedlem. Brugeren tæller først som projektmedlem — og får først nogen tilladelse — **efter at have accepteret invitationen.**
 - **Inviter bruger** starter på projektets medlemsteam: det team, der har `ProjectMember` for hele projektet, altså **Members**, medmindre du har omdøbt det. Vælg et andet team for at give personen mere eller mindre adgang. Intet er valgt, når du ikke selv ville kunne invitere til det team — at invitere nogen giver dem teamets tilladelser, og du kan kun give tilladelser videre, som du selv har — eller når projektet ikke har et sådant team. Administratordashboardet starter på det samme team, overalt hvor en administrator af instansen føjer nogen til et projekt: **Inviter bruger** på et projekt, **Føj til projekt** på en bruger og på flere brugere på én gang, og de projekter, der er knyttet til en [global SSO-udbyder](/docs/identity/global-sso).
 - Fjernes en bruger fra alle teams i et projekt, mistes adgangen til projektet fra brugerens næste forespørgsel — også mens brugeren er logget ind. Kontoen og brugerens andre projekter berøres ikke. Brugeren fjernes fra projektets vagtplaner, eskaleringsregler og overrides, fra rollerne i dets åbne hændelser og episoder og fra ejerne af dets ressourcer; løste hændelser beholder oplysningen om, hvem der ejede og ledte dem.
+- På en selvhostet installation mister en person, hvis adgang som hovedadministrator fjernes i Admin Dashboard, den fra sin næste forespørgsel — også mens personen er logget ind. Personen forbliver logget ind og beholder de projekter, vedkommende er medlem af.
 - Den, der forlader et projekt, får ikke længere dets notifikationer. Personens egne notifikationsmetoder, -regler og -indstillinger for projektet fjernes sammen med det sidste team — e-mail, SMS, opkald, WhatsApp, Telegram, push, webhook, Slack og Microsoft Teams, e-mailopsamlingen og den endnu ikke sendte e-mail, nummeret til indgående opkald og vagtpåmindelserne —, så en ny tilmelding starter fra standardindstillingerne. Det, der stadig nævner personen, som brugeren en regel for indgående opkald ringer til eller en ejer, der bevares på en løst hændelse, sender ikke længere noget til personen: intet sendes på et projekts vegne til nogen, der ikke er medlem, og en afventende invitation er endnu ikke et medlemskab. Disse steder viser **Ikke længere medlem** ved siden af navnet, så du kan sætte en anden ind. Den, der er inviteret og endnu ikke har accepteret, viser i stedet **Invitation endnu ikke accepteret**. Hvis en override sender nogens kald videre til en person, der har forladt projektet, bliver den person, overriden dækker, kaldt i stedet. At forlade projektet afbryder også de MCP-klienter, personen har forbundet til projektet, og personens personlige link til vagtkalenderen viser derefter en tom kalender. På OneUptime Cloud bekræfter en, der vender tilbage via projektets single sign-on, det igen fra sin mailboks.
 - Hvis projektet kræver SSO, og en bruger endnu ikke har godkendt sig via identitetsudbyderen, behandles vedkommende som uautoriseret SSO-bruger og ser intet, før det sker. Se [SSO](/docs/identity/sso).
 - Med SCIM opsat kan din identitetsudbyder automatisk oprette, opdatere og fjerne brugere og deres teammedlemskaber. Se [SCIM](/docs/identity/scim).
@@ -132,6 +135,24 @@ Det er også de nøgler, du bruger, når du opretter API-nøgler, og dem, API'et
 
 Den fulde liste står i [Tilladelsesreferencen](/docs/permissions/reference).
 
+### Brugerdefinerede roller
+
+En brugerdefineret rolle er et sæt tilladelser, du navngiver én gang og giver til teams: fx en "Hændelsesansvarlig" med `IncidentMember`, `AlertMember` og `OnCallViewer` eller en "Teamleder". Hvert team, du giver den, får de samme tilladelser, og du ændrer dem for alle de teams ét sted. På OneUptime Cloud kræver brugerdefinerede roller Scale-planen, ligesom det at ændre et teams tilladelser.
+
+:::steps
+1. Åbn **Teams** i menuen **Produkter** under **Indstillinger**. Fold **Indstillinger** ud i sidemenuen, vælg **Roller**, og klik på **Opret Brugerdefineret rolle**.
+2. Skriv dens **Navn**, og vælg under **Tilladelser** de indbyggede roller, den samler, for hver ressource i projektet. Beskrivelsen ligger under **Flere felter**.
+3. Opret rollen. Den åbner på sin side, hvor **Tilføj rolle** tilføjer endnu en indbygget rolle og **Tilføj tilladelse** (i menuen **⋯** på kortet) en enkelt tilladelse, hver med et omfang og etiketter, som på et team.
+4. Klik på **Giv til et team** under **Teams med denne rolle**. Et teams side **Tilladelser** har også **Tilføj brugerdefineret rolle**, og **Opret team** tilbyder under **Adgang** de brugerdefinerede roller, du kunne give.
+:::
+
+- Et teams medlemmer får hver tilladelse fra teamets brugerdefinerede roller, med samme omfang og samme etiketter, præcis som hvis teamet selv havde dem. En blokering på teamet vinder stadig.
+- En rolle forbliver knyttet til de teams, der har den: en ændring af den når dem alle med det samme, og rollens side fortæller, hvor mange teams og personer det er. **Fjern** tager rollen fra ét team. Sletter du selve rollen, mister hvert team, der har den, dens tilladelser; teamene beholder deres medlemmer og deres andre roller og tilladelser.
+- Du kan kun lægge i en rolle, og give et team som rolle, hvad du kunne give teamet direkte: en rolle med en tilladelse, du ikke har med samme eller et bredere omfang, afvises, og afvisningen nævner tilladelsen. En rolle indeholder aldrig `ProjectOwner`, og **Owners** og **Admin** får aldrig en.
+- Et teams side **Tilladelser** viser dets brugerdefinerede roller over dets egne tilladelser. Hvad en rolle giver, ændres på rollens side, ikke på teamets.
+- API-nøgler tager ikke brugerdefinerede roller. En nøgle tjener én integration, så giv den præcis de tilladelser, den har brug for, på dens egen side.
+- De indbyggede roller står under **Indbyggede roller** nederst på siden **Roller**.
+
 ### Tillad og blokér
 
 Hvert team har to lister:
@@ -171,11 +192,11 @@ Hver tilladt rettighed gives med et omfang, valgt under **Omfang**, når du tilf
 
 | Omfang | Betydning |
 | --- | --- |
-| Alle ressourcer i projektet | Standarden. Tilladelsen gælder for alle matchende ressourcer. |
-| Ejet af dette team eller dets medlemmer | Tilladelsen gælder kun for ressourcer, hvor dette team eller den handlende bruger står som ejer. |
-| Begræns efter labels (avanceret) | Tilladelsen gælder kun for ressourcer, der bærer mindst ét af de valgte labels. |
+| Alle ressourcer i projektet | Standarden, og hvad de fleste teams har brug for. Tilladelsen gælder for alle matchende ressourcer. |
+| Kun ressourcer, de ejer | Tilladelsen gælder kun for ressourcer, som den handlende person eller et af vedkommendes teams ejer. |
+| Kun ressourcer med bestemte etiketter | Tilladelsen gælder kun for ressourcer, der bærer mindst én af de valgte etiketter. |
 
-**Ejede** er den enkleste måde at bygge en model på, hvor "I passer på jeres egne tjenester": giv et team `MonitorAdmin` med omfanget Ejede, og gør så teamet til ejer af de monitorer, det har ansvaret for. Det indsnævrer kun ressourcer, der faktisk kan have ejere — monitorer, hændelser, dashboards, tjenester og lignende. Projektkonfiguration (hændelsestilstande, labels, teamsene selv) har ingen ejer, så en rolle med omfanget Ejede opfører sig normalt der.
+**Ejede** er den enkleste måde at bygge en model på, hvor "I passer på jeres egne tjenester": giv et team `MonitorAdmin` med omfanget Ejede, og gør så teamet til ejer af de monitorer, det har ansvaret for. Det indsnævrer alle ressourcer, der kan have ejere — monitorer, hændelser, dashboards, tjenester, monitorgrupper, vagtplaner og lignende — og det, der hører til dem, såsom en vagtplans lag. Sonder, Runnere, AI-agenter, vagtplaner samt hændelses- og vedligeholdelsesskabeloner er det, andre ressourcer sættes op med, så en tilladelse med omfanget Ejede læser stadig dem alle, og du kan vælge enhver af dem; den ændrer og sletter kun dem, du eller dine teams ejer. En Runners nøgle, som lader den, der har den, optræde som Runneren, vises kun på de Runnere, du eller dine teams ejer. Projektkonfiguration (hændelsestilstande, labels, teamsene selv) har ingen ejer, så en rolle med omfanget Ejede opfører sig normalt der.
 
 **Labels** er den mere manuelle udgave af samme idé: mærk ressourcer, og giv så tilladelser begrænset til de mærker.
 
@@ -196,7 +217,7 @@ Ejere har to opgaver:
 
 Ejerskab i sig selv giver ingenting. At eje en monitor giver ikke ret til at redigere den, medmindre et af dine teams også har en monitortilladelse. Ejerskab indsnævrer adgang; det udvider den aldrig.
 
-Hvem der ejer en ressource, læses gennem ressourcen. Ejerne af en monitor eller af en anden ressource vises, læses, tilføjes og fjernes kun af en, der må læse ressourcen, og en tilladelse til ejere alene når ikke ejerne af en ressource, du ikke må læse.
+Hvem der ejer en ressource, læses gennem ressourcen. Ejerne af en monitor eller af en anden ressource vises, læses, tilføjes og fjernes kun af en, der må læse ressourcen, og en tilladelse til ejere alene når ikke ejerne af en ressource, du ikke må læse. Tilføjelse og fjernelse af ejere holder sig også til omfanget af den tilladelse, der giver lov til det: med omfanget `Owned` når den kun de ressourcer, som du eller et af dine teams allerede ejer, uanset hvor mange flere du må læse, så at du må læse en monitor, giver dig ikke lov til at gøre dig selv til dens ejer. En ejer tilføjes eller fjernes, men flyttes aldrig til en anden ressource.
 
 ## Labels
 
@@ -302,7 +323,7 @@ Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlems
 
 **Et team, der kun kigger med.** Opret teamet med **Seer** under **Adgang**. For kun nogle områder vælger du **Vælg tilladelser senere** og tilføjer de områdespecifikke `*Viewer`-roller, teamet skal se.
 
-**Vagtingeniører, der passer deres egne tjenester.** Giv teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Ejede**, og tilføj så teamet som ejer af de monitorer, det driver.
+**Vagtingeniører, der passer deres egne tjenester.** Giv teamet `MonitorAdmin`, `IncidentMember` og `OnCallMember` med omfanget **Ejede**, og tilføj så teamet som ejer af de monitorer, vagtpolitikker og vagtplaner, det driver. Hvad dets folk opretter med disse tilladelser, ejer de allerede.
 
 **Konsulenter holdt væk fra produktion.** Giv teamet de roller, det har brug for, med omfanget **Alle**, og tilføj så en **blokeret tilladelse** (under **Yderligere indstillinger** på teamets side Tilladelser) for de følsomme evner, begrænset til labelet `Production`.
 

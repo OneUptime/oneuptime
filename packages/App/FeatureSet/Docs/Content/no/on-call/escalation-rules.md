@@ -20,6 +20,7 @@ flowchart TB
 - [Legg til en eskaleringsregel](#legg-til-en-eskaleringsregel): Legg til neste nivå, steg for steg.
 - [Slik varsler nivåene folk](#slik-varsler-nivåene-folk): Tidsbruk, gjentakelser og hvordan hver person nås.
 - [Neste person i rotasjonen](#eskaler-til-neste-person-i-rotasjonen): Varsle backupen til den som har vakt, fra samme rotasjon.
+- [Send en varsling videre](#send-en-varsling-videre): Kan du ikke ta en varsling? Send den straks videre til neste nivå.
 - [API og Terraform](#opprett-regler-med-api-et-eller-terraform): Opprett retningslinjer og regler som kode.
 :::
 
@@ -74,11 +75,11 @@ Klikk på **Create Rule**. Regelen legges til under de andre, som neste nivå i 
 
 ## Slik varsler nivåene folk
 
-Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottakerne sine med en gang. Bekrefter ingen innen ventetiden, varsles **Level 2**, og så videre nedover listen. Når ventetiden for det siste nivået har gått uten bekreftelse, starter retningslinjen på nytt fra **Level 1** hvis **Gjentakelsesretningslinje** (under reglene) sier at den skal gjentas, så mange ganger som den tillater, og ellers stopper den. Å bekrefte eller løse hendelsen eller varselet stopper varslingen på et hvilket som helst nivå.
+Når en hendelse eller et varsel når retningslinjen, varsler **Level 1** mottakerne sine med en gang. Bekrefter ingen innen ventetiden, varsles **Level 2**, og så videre nedover listen. Når ventetiden for det siste nivået har gått uten bekreftelse, starter retningslinjen på nytt fra **Level 1** hvis **Gjentakelsesretningslinje** (under reglene) sier at den skal gjentas, så mange ganger som den tillater, og ellers stopper den. Å bekrefte eller løse hendelsen eller varselet stopper varslingen på et hvilket som helst nivå. Den som blir varslet og ikke kan ta det, kan sende varslingen videre, og neste nivå varsles uten å vente: se [Send en varsling videre](#send-en-varsling-videre).
 
 En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av retningslinjene sine: ingen varsles, og feeden sier det og nevner dem ved navn. Se [Erklært allerede bekreftet eller løst](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst).
 
-For å gjenta en retningslinje klikker du på **Rediger** på kortet **Gjentakelsesretningslinje**, slår på **Repeat if no one acknowledges** og angir **Number of times to repeat**.
+For å gjenta en retningslinje klikker du på **Rediger** på kortet **Gjentakelsesretningslinje**, velger **Start på nytt fra Level 1** og angir **Hvor mange ganger til?**.
 
 ### Eskaleringsoversikten
 
@@ -162,6 +163,45 @@ Kjøringens melding i Slack og Microsoft Teams, hendelsens feed og **Tidslinje f
 
 > [!TIP]
 > Én vaktplan er nok: det finnes ingen annen backup-vaktplan å holde i takt med den første, og fraværet som personene i den registrerer, gjelder for begge nivåene.
+
+## Send en varsling videre
+
+Den som blir varslet og ikke kan ta det, fordi vedkommende sover, sitter på et fly eller allerede jobber med en annen hendelse, kan sende varslingen videre i stedet for å la den ringe ut. Retningslinjen varsler da neste nivå med en gang, uten å vente ut nivåets **Eskaler etter (i minutter)**, og vedkommende blir ikke varslet om det igjen.
+
+```mermaid title="En varsling sendt videre flytter retningslinjen straks til neste nivå"
+flowchart TB
+    page["Level 1 varsler Alex"] --> take{"Kan Alex<br/>ta den?"}
+    take -->|"Ja"| ack["Alex bekrefter:<br/>varslingen stopper"]
+    take -->|"Nei"| pass["Alex sender den videre"]
+    pass --> others{"Varsles andre på<br/>Level 1 fortsatt?"}
+    others -->|"Ja"| wait["Retningslinjen venter<br/>på dem som før"]
+    others -->|"Nei"| next["Level 2 varsles<br/>nå"]
+```
+
+Hver varsling kan sendes videre fra der den nådde deg:
+
+| Hvor | Slik sender du den videre |
+| --- | --- |
+| E-post | Knappen **Pass it on**, deretter **Pass it on** på siden den åpner |
+| SMS og WhatsApp | Lenken i meldingen åpner bekreftelsessiden, som også har **Pass it on** |
+| Telegram, Slack og Microsoft Teams | Lenken "Can't take it? Pass it on", deretter **Pass it on** på siden den åpner |
+| Anrop | Trykk 2. Anropet sier deretter hva som skjedde |
+| Push-varsel | Trykk på det: hendelsen, varselet eller episoden åpnes i OneUptime On-Call-appen, med **Pass it on** under seg |
+| OneUptime | **Send videre** øverst i hendelsen, varselet eller episoden, etter tilstandsknappene |
+
+Alle veier unntatt anropet spør før de gjør noe, og sier hva som vil skje, for eksempel "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting."; i et anrop er det å trykke 2 svaret. Bare den som blir varslet, kan sende varslingen sin videre: knappen i OneUptime vises bare for vedkommende, og lenken i en melding sender bare videre den varslingen den ble sendt om, for den personen den ble sendt til, i 7 dager.
+
+Hva som skjer videre, avhenger av hvem andre som blir varslet:
+
+- Andre på samme nivå blir fortsatt varslet: retningslinjen venter på dem som før. Den går videre når nivåets ventetid løper ut, eller så snart den siste av dem også sender varslingen videre.
+- Det er ingen andre igjen på nivået: neste nivå varsles med en gang.
+- Det var det siste nivået: hvis **Gjentakelsesretningslinje** sier at den skal gjentas, starter retningslinjen på nytt fra **Level 1** med en gang. Ellers stopper varslingen, og noen må ta seg av det.
+
+Å sende en varsling videre bekrefter den ikke: hendelsen eller varselet venter fortsatt på at noen bekrefter, og den som sendte den videre, kan fortsatt bekrefte selv. Denne kjøringen varsler ikke vedkommende om det igjen: et senere nivå, eller en gjentakelse, som nevner vedkommende, hopper over vedkommende. Når alle den varslet har sendt den videre, og det ikke er noen igjen å varsle, stopper varslingen, og hendelsens feed sier det.
+
+En varsling som en arbeidsflyt sender direkte til personer, har ingen nivåer: sender du den videre, blir du ikke varslet mer, og når alle den varslet har sendt den videre, stopper varslingen.
+
+Hver gang en varsling sendes videre, blir det registrert. Kjøringens **Tidslinje for utførelsen** merker personens linje **Sendt videre**, hendelsens feed sier "Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.", kjøringens melding i Slack og Microsoft Teams sier at vedkommende sendte den videre, og vedkommendes **Vaktlogger** viser varslingen som **Sendt videre**.
 
 ## Rediger, endre rekkefølge på og slett regler
 

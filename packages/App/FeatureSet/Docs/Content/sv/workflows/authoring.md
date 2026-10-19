@@ -25,8 +25,10 @@ Varje arbetsflöde har exakt en **utlösare** högst upp. Allt annat är en **ko
 
 | För att lägga till     | Klicka på                                                      | Panel som öppnas              |
 | ---------------------- | -------------------------------------------------------------- | ----------------------------- |
-| Utlösaren              | Det streckade platshållarblocket                               | **Add Trigger**               |
+| Utlösaren              | Det streckade platshållarblocket, eller **Lägg till utlösare** i verktygsfältet | **Lägg till utlösare**        |
 | Vilket annat block som helst | **Lägg till komponent**, i verktygsfältet ovanför arbetsytan | **Lägg till komponent**     |
+
+Knappen i verktygsfältet heter **Lägg till utlösare** så länge arbetsflödet saknar en utlösare, och **Lägg till komponent** så snart det har en.
 
 Båda panelerna öppnas på de block som de flesta arbetsflöden använder, under **Popular**, följt av resten av de inbyggda blocken. Under **OneUptime resources** klickar du på en resurs som **Incident** för att se vad du kan göra med den; **Browse all resources** visar alla. Eller sök: skriv några ord, som `create incident`, så kommer den bästa träffen först. Tryck på `/` för att hoppa till sökfältet, på piltangenterna för att gå igenom resultaten och på **Enter** för att lägga till det markerade blocket. Ett klick på ett block lägger till det.
 
@@ -55,7 +57,7 @@ Dra från en punkt längst ned på ett block ned till punkten högst upp på nä
 flowchart TB
     hook["Webhook"] -->|"Out"| check{"If / Else"}
     check -->|"Yes"| post["API Post (JSON)"]
-    check -->|"No"| ends(["Inget är kopplat, så körningen slutar"])
+    check -->|"No"| ends(["Inget är kopplat,<br/>så körningen slutar"])
     post -->|"Success"| slack["Send Message to Slack"]
     post -->|"Error"| log["Log"]
 ```
@@ -127,7 +129,7 @@ En sak kan den inte kontrollera: om ett variabelnamn finns. Ett blocks inställn
 Det snabbaste sättet att lära känna arbetsytan är ett arbetsflöde med två block som du startar manuellt:
 
 :::steps
-1. Klicka på det streckade platshållarblocket och klicka sedan på **Manual** i panelen **Add Trigger**.
+1. Klicka på det streckade platshållarblocket och klicka sedan på **Manual** i panelen **Lägg till utlösare**.
 2. Klicka på **Lägg till komponent** och klicka sedan på **Logg** under **Popular**. Det nya blocket hamnar under utlösaren. Koppla utlösarens punkt **Execute** ned till Log-blockets ingångspunkt.
 3. Klicka på Log-blocket, där det står **Click to set up**, och skriv `Hello from ` i dess **Value**. Klicka på **{ }** och klicka sedan på **JSON** under **Manual**. Inställningen visar **Manual › JSON** och sparar `{{local.components.manual-1.returnValues.value}}`. `manual-1` är utlösarens **Identifier**, som visas på utlösarblocket. Klicka på **Spara**.
 4. Tillbaka i **Byggare** klickar du på **Kör arbetsflöde**, skriver `{ "name": "Ada" }` i fältet **JSON**, klickar på **Kör arbetsflödet manuellt** och bekräftar med **Kör**. Arbetsflödet är fortfarande avstängt, och det behöver inte vara påslaget: en körning som du startar själv är en **Testkörning**.

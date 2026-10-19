@@ -16,16 +16,16 @@ OneUptime kalder din Foundry-ressource over HTTPS fra OneUptime-serveren, aldrig
 ```mermaid title="Hvor OneUptimes AI-anmodninger går hen"
 flowchart TB
     subgraph OU["OneUptime-server"]
-        F["AI-undersøgelser, noter, postmortems, rettelsesopgaver"]
+        F["AI-undersøgelser,<br/>noter, postmortems,<br/>rettelsesopgaver"]
     end
     subgraph AZ["Dit Azure-abonnement"]
-        R["Foundry-ressource contoso-ai"]
-        V1["OpenAI v1-API: /openai/v1/chat/completions"]
-        AN["Anthropic-API: /anthropic/v1/messages"]
+        R["Foundry-ressource<br/>contoso-ai"]
+        V1["OpenAI v1-API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic-API:<br/>/anthropic/v1/messages"]
         D1["Udrulning gpt-5.1"]
-        D2["Udrulning claude-sonnet-5-5"]
+        D2["Udrulning<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API-nøgle"| R
+    F -->|"HTTPS +<br/>API-nøgle"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```
@@ -111,20 +111,20 @@ Med `--custom-domain contoso-ai` er ressourcens slutpunkt `https://contoso-ai.op
 
 Gå til **Projektindstillinger** > **AI** > **LLM-udbydere**, og klik på **Opret LLM-udbyder**.
 
-### Navngiv udbyderen
+### Vælg udbyderen
 
-Under **Grundlæggende oplysninger** skal du indtaste et **Navn**, f.eks. `Azure gpt-5.1`, og eventuelt en **Beskrivelse**. Klik på **Næste**.
+Under **Udbyder** vælger du **Azure OpenAI / Microsoft Foundry** som **LLM-udbyder** og klikker på **Næste** for at gå videre til **Forbindelse**.
 
-### Udfyld udbyderindstillingerne
+### Udfyld forbindelsen
 
 | Felt | Hvad du indtaster |
 | --- | --- |
-| **LLM-udbyder** | **Azure OpenAI / Microsoft Foundry** |
 | **API-nøgle** | Ressourcens **KEY 1** eller **KEY 2** |
-| **Modelnavn** | Udrulningens navn, præcis som Foundry viser det, f.eks. `gpt-5.1` |
 | **Basis-URL** | Ressourcens slutpunkt med `/openai/v1`, f.eks. `https://contoso-ai.openai.azure.com/openai/v1`. For Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modelnavn** | Udrulningens navn, præcis som Foundry viser det, f.eks. `gpt-5.1` |
+| **Navn** | Først udbyderens navn: giv den et, der siger, hvilken udrulning det er, f.eks. `Azure gpt-5.1` |
 
-**Indstil som standard** under **Flere felter** er slået til: AI-funktioner bruger projektets standardudbyder. Klik på **Opret LLM-udbyder**.
+**Flere felter** rummer en **Beskrivelse** og **Indstil som standard**, som er slået til: AI-funktioner bruger projektets standardudbyder. Klik på **Opret LLM-udbyder**.
 
 ### Test forbindelsen
 

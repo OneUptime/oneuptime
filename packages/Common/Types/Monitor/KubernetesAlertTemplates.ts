@@ -34,6 +34,13 @@ export interface KubernetesAlertTemplateArgs {
 export interface KubernetesAlertTemplate {
   id: string;
   name: string;
+  /*
+   * One plain sentence: when the template fires, with its threshold and
+   * window, without metric names. The picker and a resource's
+   * Recommendations list show it on the card; `description` (how it is
+   * computed, and its caveats) is shown once a template is picked.
+   */
+  summary: string;
   description: string;
   category: KubernetesAlertTemplateCategory;
   severity: KubernetesAlertTemplateSeverity;
@@ -360,6 +367,7 @@ export function buildKubernetesRatioMonitorConfig(args: {
 const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
   id: "k8s-crashloopbackoff",
   name: "CrashLoopBackOff Detection",
+  summary: "A container restarted more than 5 times in its current pod.",
   /*
    * No backticks in here. `template.description` is rendered as raw JSX
    * text on the recommendation card
@@ -441,6 +449,7 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
 const podPendingTemplate: KubernetesAlertTemplate = {
   id: "k8s-pod-pending",
   name: "Pod Stuck in Pending",
+  summary: "A pod stays in Pending for 15 minutes instead of starting.",
   description:
     "Alert when pods remain in Pending phase, indicating scheduling or resource issues.",
   category: "Scheduling",
@@ -550,6 +559,7 @@ const podPendingTemplate: KubernetesAlertTemplate = {
 const nodeNotReadyTemplate: KubernetesAlertTemplate = {
   id: "k8s-node-not-ready",
   name: "Node Not Ready",
+  summary: "A node reports NotReady.",
   description:
     "Alert when a node condition transitions to NotReady, indicating node health issues.",
   category: "Node",
@@ -599,6 +609,7 @@ const nodeNotReadyTemplate: KubernetesAlertTemplate = {
 const highCpuTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-cpu",
   name: "High Node CPU Utilization",
+  summary: "A node uses more than 90% of its allocatable CPU.",
   description:
     "Alert when a node's average CPU usage exceeds 90% of its allocatable CPU. Computed per node as k8s.node.cpu.usage ÷ k8s.node.allocatable_cpu × 100 — both are cores, so this is a true percentage (the raw k8s.node.cpu.utilization metric is a misnamed cores gauge, not a percent).",
   category: "Node",
@@ -653,6 +664,7 @@ const highCpuTemplate: KubernetesAlertTemplate = {
 const highMemoryTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-memory",
   name: "High Node Memory Utilization",
+  summary: "A node uses more than 85% of its allocatable memory.",
   description:
     "Alert when a node's average memory usage exceeds 85% of its allocatable memory. Computed per node as k8s.node.memory.usage ÷ k8s.node.allocatable_memory × 100 — both are bytes, so this is a true percentage (the raw k8s.node.memory.usage metric is bytes, not a percent).",
   category: "Node",
@@ -707,6 +719,7 @@ const highMemoryTemplate: KubernetesAlertTemplate = {
 const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
   id: "k8s-deployment-replica-mismatch",
   name: "Deployment Replica Mismatch",
+  summary: "A deployment runs fewer replicas than desired for 15 minutes.",
   description:
     "Alert when a deployment has fewer available replicas than desired for fifteen minutes. Computed per deployment as k8s.deployment.desired - k8s.deployment.available, the two replica counts the agent's k8s_cluster receiver reports — it has no unavailable-replicas series.",
   category: "Workload",
@@ -717,8 +730,8 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
     return buildKubernetesMonitorStep({
       /*
        * A formula, because there is nothing to read directly. The
-       * k8s_cluster receiver the agent chart runs (collector 0.96.0, no
-       * metric renaming anywhere in the chart) reports a Deployment as
+       * k8s_cluster receiver the agent chart runs (collector 0.161.0; the
+       * chart renames none of its metrics) reports a Deployment as
        * `k8s.deployment.desired` (spec.replicas) and
        * `k8s.deployment.available` (status.availableReplicas) — there is no
        * `k8s.deployment.unavailable_replicas`, which is what this template
@@ -803,6 +816,7 @@ const deploymentReplicaMismatchTemplate: KubernetesAlertTemplate = {
 const jobFailuresTemplate: KubernetesAlertTemplate = {
   id: "k8s-job-failures",
   name: "Job Failures",
+  summary: "A job has failed pods.",
   description: "Alert when Kubernetes jobs fail.",
   category: "Workload",
   severity: "Warning",
@@ -855,6 +869,8 @@ const jobFailuresTemplate: KubernetesAlertTemplate = {
 const etcdNoLeaderTemplate: KubernetesAlertTemplate = {
   id: "k8s-etcd-no-leader",
   name: "etcd No Leader",
+  summary:
+    "etcd has no leader. Needs control plane metrics, so not on EKS, GKE or AKS.",
   /*
    * The requirement leads, deliberately: the card truncates long
    * descriptions, and a user who one-clicks this on a managed cluster gets
@@ -911,6 +927,8 @@ const etcdNoLeaderTemplate: KubernetesAlertTemplate = {
 const apiServerThrottlingTemplate: KubernetesAlertTemplate = {
   id: "k8s-apiserver-throttling",
   name: "API Server Request Saturation",
+  summary:
+    "The API server holds 200 or more requests at once. Needs control plane metrics.",
   description:
     "Alert when the Kubernetes API server holds 200 or more concurrent in-flight requests for the whole window — the state in which it starts rejecting requests with 429. Requires the agent's control-plane scrape: set controlPlane.enabled and point controlPlane.apiServer.endpoints at an API server address the collector pod can actually reach (the chart's default, localhost:6443, is the collector's own loopback and scrapes nothing).",
   category: "ControlPlane",
@@ -1009,6 +1027,8 @@ const apiServerThrottlingTemplate: KubernetesAlertTemplate = {
 const schedulerBacklogTemplate: KubernetesAlertTemplate = {
   id: "k8s-scheduler-backlog",
   name: "Scheduler Backlog",
+  summary:
+    "Pods wait in the scheduler's queue for 5 minutes. Needs control plane metrics.",
   // See etcdNoLeaderTemplate for why the requirement leads and why no backticks.
   description:
     "Requires the agent's control-plane scrape (controlPlane.enabled); managed clusters (EKS / GKE / AKS) do not expose the scheduler's metrics endpoint at all, so on those this monitor will never receive a data point. Alert when the scheduler's pending-pod queue is non-empty in every sample of a five-minute window.",
@@ -1057,6 +1077,7 @@ const schedulerBacklogTemplate: KubernetesAlertTemplate = {
 const highDiskUsageTemplate: KubernetesAlertTemplate = {
   id: "k8s-high-disk-usage",
   name: "High Node Disk Usage",
+  summary: "A node's filesystem is more than 90% full.",
   description:
     "Alert when a node's filesystem is more than 90% full. Computed per node as k8s.node.filesystem.usage / (k8s.node.filesystem.usage + k8s.node.filesystem.available) x 100 — both are bytes from the same kubeletstats node scrape, so this is a true percentage and matches what df reports as Use%.",
   category: "Storage",
@@ -1140,6 +1161,7 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
    */
   id: "k8s-daemonset-unavailable",
   name: "DaemonSet Misscheduled Nodes",
+  summary: "A DaemonSet runs pods on nodes it no longer selects.",
   description:
     "Alert when a DaemonSet is running daemon pods on nodes that no longer match its node selector, affinity or taint tolerations. k8s.daemonset.misscheduled_nodes counts nodes that ARE running the pod but should NOT be — it is not the count of nodes that are missing the pod.",
   category: "Workload",
@@ -1192,6 +1214,7 @@ const daemonSetUnavailableTemplate: KubernetesAlertTemplate = {
 const nodeCpuRequestUtilizationTemplate: KubernetesAlertTemplate = {
   id: "k8s-node-cpu-request-utilization",
   name: "High Node CPU Request Commitment",
+  summary: "Pods on a node request more than 90% of its CPU.",
   description:
     "Alert when a node's committed CPU requests exceed 90% of its allocatable CPU. Derived per node from summed container CPU requests over node allocatable CPU — both collected by default via the k8s_cluster receiver. A near-full node can't schedule new pods even if actual CPU usage is low.",
   category: "Node",
@@ -1239,6 +1262,7 @@ const nodeCpuRequestUtilizationTemplate: KubernetesAlertTemplate = {
 const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
   id: "k8s-node-memory-request-utilization",
   name: "High Node Memory Request Commitment",
+  summary: "Pods on a node request more than 90% of its memory.",
   description:
     "Alert when a node's committed memory requests exceed 90% of its allocatable memory. Derived per node from summed container memory requests over node allocatable memory — both collected by default via the k8s_cluster receiver. A near-full node can't schedule new pods even if actual memory usage is low.",
   category: "Node",
@@ -1309,6 +1333,7 @@ const nodeMemoryRequestUtilizationTemplate: KubernetesAlertTemplate = {
 const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
   id: "k8s-hpa-at-max-replicas",
   name: "HPA Saturated at Max Replicas",
+  summary: "An autoscaler runs at 90% or more of its maximum replicas.",
   description:
     "Alert when a HorizontalPodAutoscaler is running at 90% or more of its maxReplicas. Computed per HPA as k8s.hpa.current_replicas ÷ k8s.hpa.max_replicas × 100. An HPA at its ceiling has no headroom left: load it cannot absorb by scaling turns straight into latency and errors, and a workload that reaches the ceiling and stays there is usually under-resourced per pod rather than genuinely at capacity.",
   category: "Workload",
@@ -1368,6 +1393,7 @@ const hpaAtMaxReplicasTemplate: KubernetesAlertTemplate = {
 const podMemoryLimitSaturationTemplate: KubernetesAlertTemplate = {
   id: "k8s-pod-memory-limit-saturation",
   name: "Pod Memory Saturating Container Limit",
+  summary: "A pod uses more than 90% of its memory limit.",
   description:
     "Alert when a pod is using more than 90% of its container memory limit, read straight from the kubeletstats receiver's own k8s.pod.memory_limit_utilization — which divides the pod's usage by the SUM of its containers' limits, so a pod with a sidecar is measured correctly. Note the kubelet's pod memory figure includes reclaimable page cache, so a file-heavy workload can sit high here without ever being OOMKilled: treat this as approaching the limit, not about to be killed.",
   category: "Workload",
@@ -1445,6 +1471,7 @@ const podMemoryLimitSaturationTemplate: KubernetesAlertTemplate = {
 const podCpuLimitSaturationTemplate: KubernetesAlertTemplate = {
   id: "k8s-pod-cpu-limit-saturation",
   name: "Pod CPU Saturating Container Limit",
+  summary: "A pod uses more than 90% of its CPU limit, so it is throttled.",
   description:
     "Alert when a pod is using more than 90% of its container CPU limit — the point at which the kernel's CFS quota starts throttling it. Read from the kubeletstats receiver's own k8s.pod.cpu_limit_utilization, which divides the pod's CPU by the SUM of its containers' limits, so a pod with a sidecar is not measured against the mean of its containers' limits. A throttled pod gets slower, not louder — behind an HPA that reads CPU, throttling drives the replica count up while every pod stays equally starved.",
   category: "Workload",

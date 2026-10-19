@@ -423,9 +423,15 @@ const MAX_JOB_VALUE_BYTES: number = 32768;
  * Mask the password in `scheme://user:pass@host`. The password class allows `@`
  * (greedy up to the LAST `@` before a `/` or whitespace) so passwords that
  * themselves contain `@` are fully masked rather than leaking the tail.
+ *
+ * The scheme is at most 64 characters (no real one comes close), so a match
+ * tried from every letter of a long run of scheme characters reads at most
+ * that many of them: the text is read in time in line with its length. What
+ * stands before the scheme is never part of the replacement, so the masked
+ * text reads exactly as it did.
  */
 const CONNECTION_STRING_SECRET_PATTERN: RegExp =
-  /([a-z][a-z0-9+.-]*:\/\/[^:@\s/]+):[^\s/]+@/gi;
+  /([a-z][a-z0-9+.-]{0,63}:\/\/[^:@\s/]+):[^\s/]+@/gi;
 
 /*
  * Auth material that the keyword='value' DDL scrubber misses: HTTP auth headers
@@ -436,8 +442,16 @@ const CONNECTION_STRING_SECRET_PATTERN: RegExp =
 const AUTH_HEADER_SECRET_PATTERN: RegExp =
   /\b(authorization|proxy-authorization|x-api-key|x-auth-token|x-functions-key|api[-_]?key|access[-_]?token)\b(\s*[:=]\s*)(bearer\s+|basic\s+|token\s+)?([^\s,;"']+)/gi;
 const BEARER_TOKEN_PATTERN: RegExp = /\b(bearer)\s+[A-Za-z0-9._~+/=-]+/gi;
+/*
+ * A JWT, looked for once per run of the characters it is made of, at the
+ * first place in the run one may begin (the run's start, or just after a "-"
+ * in it - where the word boundary allowed one); the text of the run before
+ * that place is put back ($1). The same tokens are masked as by a search
+ * from every word boundary, while each run is read a bounded number of
+ * times: in time in line with the text's length.
+ */
 const JWT_PATTERN: RegExp =
-  /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
+  /(?<![A-Za-z0-9_-])(?=((?:[A-Za-z0-9_-]*?-)??)eyJ)\1eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
 
 export function scrubSecretsFromText(text: string): string {
   if (!text) {
@@ -465,7 +479,7 @@ export function scrubSecretsFromText(text: string): string {
     .replace(BEARER_TOKEN_PATTERN, (_match: string, scheme: string): string => {
       return `${scheme} ***REDACTED***`;
     })
-    .replace(JWT_PATTERN, "***REDACTED-JWT***");
+    .replace(JWT_PATTERN, "$1***REDACTED-JWT***");
 }
 
 /*

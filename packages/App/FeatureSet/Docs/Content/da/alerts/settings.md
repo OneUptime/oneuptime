@@ -6,7 +6,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 - [De regler, en ny advarsel passerer](#de-regler-en-ny-advarsel-passerer): I rækkefølge, og hvad hver af dem gør.
 - [Vagtregler](#vagtregler): Tilkald de rigtige personer uden at vælge en politik hver gang.
 - [Påmindelsesregler](#påmindelsesregler): Påmind ejere, mens en advarsel forbliver åben.
-- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger og nummerering.
+- [Indstillinger](#indstillinger): Noteskabeloner, brugerdefinerede felter, målinger, medlemskab af episoder og nummerering.
 :::
 
 ## Hvor advarselsindstillingerne ligger
@@ -23,7 +23,7 @@ Konfigurationen af advarsler ligger under **Advarsler**, ikke i **Projektindstil
 | **Etiketregler**      | Tilføjer etiketter til matchende advarsler og episoder.                                        |
 | **Reminder Rules**    | Påminder ejere med et interval, mens en advarsel er åben.                                      |
 
-Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger** og **Nummerering**, som er beskrevet nedenfor.
+Sektionen **Indstillinger** rummer **Advarselsstatus** og **Advarselsalvor**, som er beskrevet på [Advarselstilstande og alvorsgrader](/docs/alerts/states-and-severities), og derefter **Noteskabeloner**, **Brugerdefinerede felter**, **Målinger**, **Medlemskab af episoder** og **Nummerering**, som er beskrevet nedenfor.
 
 To andre sektioner handler på advarsler. **Advarsler → AI → Indstillinger** afgør, hvad OneUptime AI gør af sig selv: **Undersøg nye advarsler**, slået til for nye projekter, og **Ret nye advarsler automatisk**, slået fra, indtil du slår det til. Se [AI SRE](/docs/ai/ai-sre). **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler, og dens fane **Summary**. Se [Slack](/docs/workspace-connections/slack).
 
@@ -77,17 +77,13 @@ Med to eller flere betingelser vælger du **Alle skal matche**, hvor hver skal h
 **Advarsler → Regler → Vagtregler** gør tilkaldelse automatisk. Hver matchende regel tilføjer sine politikker til den nye advarsel, og advarslen kører dem sammen med de politikker, den allerede havde, hver én gang.
 
 :::steps
-### Navngiv reglen
-
-Klik på **Opret Alert On-Call Rule**. Under **Grundlæggende oplysninger** giver du den et **Navn**, for eksempel "Tilkald databaseteamet ved enhver DB-advarsel", og en **Beskrivelse**, hvis du vil.
-
 ### Vælg advarslerne
 
-Under **Matchkriterier** tilføjer du de betingelser, en advarsel skal opfylde. Lad dem være tomme for at matche hver ny advarsel.
+Klik på **Opret Alert On-Call Rule**. Under **Match** matcher **Alle advarsler**, som en ny regel starter på, hver ny advarsel. For at indsnævre reglen vælger du **Kun advarsler, der opfylder betingelserne** og tilføjer de betingelser, en advarsel skal opfylde.
 
 ### Vælg politikkerne
 
-Under **Vagtpolitikker** vælger du de **Vagtpolitikker**, reglen kører, og opretter derefter reglen.
+Under **Vagtpolitikker** vælger du de **Vagtpolitikker**, reglen tilkalder. Dens **Navn** følger dem, for eksempel "Tilkald Platform on-call", indtil du skriver dit eget, og en **Beskrivelse** venter under **Flere felter**. Opret derefter reglen.
 :::
 
 En alvorsgrad tilkalder ingen af sig selv: En vagtregel, der matcher på **Advarsel Alvorligheder**, er måden at sætte "tilkald databaseteamet ved hver High-advarsel" op på. For at se, hvad der kørte for én advarsel, åbner du dens side **Vagtudførelser**. Hver person nås derefter på den måde, de har sat op under **Brugerindstillinger → Vagtregler** på fanen **Advarsler**; se [Eskaleringsregler](/docs/on-call/escalation-rules).
@@ -104,7 +100,7 @@ En alvorsgrad tilkalder ingen af sig selv: En vagtregel, der matcher på **Advar
 
 ## Privatlivs- og runbook-regler
 
-**Privatlivsregler** gør nye advarsler, der matcher, private, før noget andet kører: Kun deres ejere og projektets administratorer og ejere kan se dem. En regel har et trin **Grundlæggende oplysninger** og et trin **Matchkriterier** og gør hver advarsel, den matcher, privat. Se [Private advarsler](/docs/alerts/index#private-advarsler).
+**Privatlivsregler** gør nye advarsler, der matcher, private, før noget andet kører: Kun deres ejere og projektets administratorer og ejere kan se dem. En regel har to trin: **Match**, de advarsler, den gør private, og derefter **Navn**, allerede udfyldt som "Gør advarsler private". Se [Private advarsler](/docs/alerts/index#private-advarsler).
 
 **Runbook-regler** starter en runbook, når en ny advarsel matcher, medmindre advarslen blev oprettet løst. Se [Runbook-regler](/docs/runbooks/rules).
 
@@ -113,17 +109,13 @@ En alvorsgrad tilkalder ingen af sig selv: En vagtregel, der matcher på **Advar
 **Advarsler → Regler → Reminder Rules** påminder en advarsels ejere, mens den forbliver åben. Hver ny advarsel får den første regel, der matcher den, oppefra og ned i listen.
 
 :::steps
-### Navngiv påmindelsesreglen
-
-Klik på **Opret Alert Reminder Rule**. Under **Rule Info** giver du den et **Navn**, for eksempel "Critical Alert Reminders".
-
 ### Vælg, hvilke advarsler der skal påmindes om
 
-Under **Matchkriterier** vælger du de **Advarsel Alvorligheder** og **Etiketter**, den gælder for. Lad dem være tomme for at påminde om hver advarsel.
+Klik på **Opret Alert Reminder Rule**. Under **Match** lader du **Alle advarsler** være valgt for at påminde om hver advarsel, eller du vælger **Kun advarsler, der opfylder betingelserne** og derefter de **Advarsel Alvorligheder** og **Etiketter**, den gælder for.
 
 ### Indstil intervallet
 
-Under **Reminder Settings** indstiller du **Reminder Interval (minutes)**, hvor ofte ejere påmindes, og **Stop Reminders When**: **Løst**, standarden, eller **Bekræftet**. Opret derefter reglen.
+Under **Påmindelser** indstiller du **Påmindelsesinterval (minutter)**, hvor ofte ejere påmindes, og **Stop påmindelser, når**: **Løst**, standarden, eller **Bekræftet**. Dens **Navn** følger begge dele, for eksempel "Påmind hver 30 minutter, indtil løst", indtil du skriver dit eget. Opret derefter reglen.
 :::
 
 Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail som standard. En advarsels regel matches igen, når dens alvorsgrad eller etiketter ændres. For at stoppe påmindelserne for én advarsel slår du **Send påmindelser** fra på dens side **Indstillinger**; den gemmer i det øjeblik, du slår den om.
@@ -141,6 +133,10 @@ Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail
 ### Målinger
 
 **Advarsler → Indstillinger → Målinger** tager tid på, hvor længe ting tager for hver advarsel. Vælg **Tid til bekræftelse** eller **Tid til løsning** eller to tidspunkter efter eget valg, for eksempel når **Advarslen bliver oprettet**, og når den går ind i en tilstand, du vælger. Hver måling vises på advarslens side og i diagrammer som `oneuptime.alert.measurement.<key>`. Se [Målinger](/docs/incidents/settings#målinger), som fungerer på samme måde for advarsler.
+
+### Medlemskab af episoder
+
+**Advarsler → Indstillinger → Medlemskab af episoder** afgør, om en advarsel kan være i mere end én episode. Slå **En advarsel kan kun være i én episode** til, så bliver en advarsel, der er i en episode, ikke føjet til nogen anden, hverken fra dashboardet eller via API'et, en arbejdsgang eller en grupperingsregel, før den er taget ud af den episode. Kontakten er slået fra, indtil du slår den til, og kun Project Owners og Project Admins kan ændre den. At slå den til tager ingen advarsel ud af en episode. Se [Én episode pr. hændelse](/docs/incidents/episodes#én-episode-pr-hændelse), som fungerer på samme måde for advarsler.
 
 ### Nummerering
 

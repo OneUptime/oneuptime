@@ -56,11 +56,11 @@ Open **Alerts** from the **Products** menu in the top bar. The alerts list is at
 | Section       | What you do there                                                                                                         |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **Alerts**    | **All Alerts** and **Active Alerts**, whose red badge counts the alerts that are not resolved yet.                          |
-| **Episodes**  | **All Episodes**, **Active Episodes** and **Documentation**, a page in the dashboard about grouping.                       |
+| **Episodes** | **All Episodes** and **Active Episodes**: related alerts grouped into one problem to work on. |
 | **AI**        | **Insights**, **Logs** and **Settings**: what OneUptime AI learned from your alerts, everything it did, and what it may do. |
 | **Workspace** | **Slack** and **Microsoft Teams**, whichever the project has connected, or **Connect Slack or Teams** when it has neither. |
 | **Rules**     | **Grouping Rules**, **On-Call Rules**, **Owner Rules**, **Runbook Rules**, **Privacy Rules**, **Label Rules**, **Reminder Rules**. |
-| **Settings**  | **Alert State**, **Alert Severity**, **Note Templates**, **Custom Fields**, **Measurements**, **Numbering**.                |
+| **Settings**  | **Alert State**, **Alert Severity**, **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership**, **Numbering**.                |
 
 **Alerts** and **Episodes** are open; **AI**, **Workspace**, **Rules**, **Settings** and **Developer** start folded, and a section opens by itself when you are on one of its pages. Alert configuration lives here, not in **Project Settings**.
 
@@ -129,14 +129,15 @@ While you work it, write down what you learn as **Private Notes**, fill in its *
 
 | Side menu section | Pages                                                                                                          |
 | ----------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Basic**         | **Overview**, **Description**, **Root Cause**, **Remediation**, **Runbooks**, **State Timeline**, **Owners**, **Linked Incidents** |
-| **On Call**       | **On Call Executions**: which on-call policies ran for the alert, and how each one went                      |
-| **Logs**          | **Notification Logs** and **AI Logs**: every message sent about the alert, and everything AI did for it          |
-| **Alert Notes**   | **Private Notes**                                                                                               |
+| **Overview** | **Overview** and **State Timeline** |
+| **Investigation** | **Description**, **Root Cause**, **Remediation**, **Runbooks**, **Linked Incidents** |
+| **Team** | **On-Call Executions** and **Owners**: who was paged for the alert, and who owns it |
+| **Notifications**          | **Notification Logs** and **AI Logs**: every message sent about the alert, and everything AI did for it          |
+| **Notes**   | **Private Notes**                                                                                               |
 | **Developer**     | **Terraform**, **API** and **AI Assistants**: the alert managed from code                                       |
-| **Advanced**      | **Custom Fields**, **Audit Logs**, **Settings**, **Delete Alert**                                               |
+| **Advanced** | **Custom Fields**, **Settings**, **Audit Logs**, **Delete Alert** |
 
-**Basic** and **Alert Notes** are open; the other sections start folded until you click them.
+**Overview**, **Investigation**, **Team** and **Notes** are open; the other sections start folded until you click them.
 
 - **Overview** — three tiles with how long the alert took to be acknowledged and resolved, and its **Duration**. The **AI Investigation** card leads the page, with **Ask OneUptime AI** at its foot, and the **Alert Feed** records everything that happened to the alert. Beside them sit the **Alert Details** card, the alert's measurements and its **Affected Resources**.
 - **State Timeline** — every state the alert has been in, when, and for how long. See [The state timeline](/docs/alerts/states-and-severities#the-state-timeline).
@@ -160,7 +161,7 @@ An episode that a private alert opens is not private, so it never shows the aler
 ## Troubleshooting
 
 :::details Nobody was paged for a new alert
-Open the alert's **On Call Executions** page. When it is empty, the alert had no on-call policy: none was picked on the form or in the monitor's criteria, and no on-call rule matched it. When the alert was created already acknowledged or resolved, its feed says no one was paged, and why.
+Open the alert's **On-Call Executions** page. When it is empty, the alert had no on-call policy: none was picked on the form or in the monitor's criteria, and no on-call rule matched it. When the alert was created already acknowledged or resolved, its feed says no one was paged, and why.
 :::
 
 :::details The monitor keeps failing, but no new alert appears

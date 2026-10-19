@@ -14,7 +14,7 @@ import PromoCodeService from "./PromoCodeService";
 import Stripe from "stripe";
 
 export const PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE: string =
-  "Add a payment method in Project Settings > Billing before using paid monitoring or telemetry. These features have usage charges even on the Free plan. Manual monitors remain free.";
+  "Add a payment method in Project Settings > Billing and Invoices > Billing before using paid monitoring or telemetry. These features have usage charges even on the Free plan. Manual monitors remain free.";
 
 /*
  * Why a project may incur usage charges: a card on file (Free plan), a paid

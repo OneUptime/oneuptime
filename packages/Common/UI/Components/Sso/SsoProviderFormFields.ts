@@ -9,6 +9,7 @@ import Field, { FormFieldCollapsibleSection } from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { FormStep } from "../Forms/Types/FormStep";
 import FormValues from "../Forms/Types/FormValues";
+import type { RadioButton } from "../RadioButtons/GroupRadioButtons";
 import type { ReactElement } from "react";
 
 /*
@@ -38,10 +39,12 @@ import type { ReactElement } from "react";
  *     say under it which picked teams the person could not invite someone
  *     to: the server saves a provider only with teams the person saving it
  *     could grant (Server/Utils/SsoProviderTeamGrant).
- *   - Disable Sign Up with SSO and Restrict to Attached Projects (the
- *     instance-wide providers of the Admin Dashboard): two switches that
- *     start off, as their columns do, always folded under Advanced. While
- *     both are off a newcomer who signs in joins the projects attached to
+ *   - People without an account and Where this sign-in counts as SSO (the
+ *     instance-wide providers of the Admin Dashboard): two plain choices
+ *     written into the Disable Sign Up with SSO and Restrict to Attached
+ *     Projects columns, each starting on its first answer (off, as the
+ *     column does), always folded under Advanced. While both are on their
+ *     first answers a newcomer who signs in joins the projects attached to
  *     the provider, which is what the folded section says.
  *
  * Use each helper with the step (and, for the folded description, the
@@ -102,17 +105,126 @@ export const SSO_GLOBAL_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
   "People who sign in for the first time join the projects you attach.",
 );
 
-export const SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION: string = translationKey(
-  "When on, people must be invited to a project before they can sign in with this provider. Nobody new is created on their first sign-in.",
+/*
+ * THE INSTANCE-WIDE PROVIDER'S TWO QUESTIONS, AS PLAIN CHOICES.
+ *
+ * "Shouldnt this be two buttons ... to make it easier for people to
+ * understand whats going on." (the maintainer, on a switch whose
+ * description explained both of its modes)
+ *
+ * "Disable Sign Up with SSO" and "Restrict to Attached Projects" were two
+ * switches, each with a "When on, ..." sentence that explained both of its
+ * modes - the first one a switch named for turning something off. Each is
+ * now its question with two answers, the default first, one line under
+ * each:
+ *
+ *   People without an account       Get one on their first sign-in (off)
+ *                                   Must be invited first (on)
+ *   Where this sign-in counts       Every project (off)
+ *   as SSO                          Attached projects only (on)
+ *
+ * The first question is only ever about newcomers: someone with an account
+ * signs in either way. And a newcomer gets an account only when there is a
+ * project to put them in - with no project attached, the sign-in routes
+ * turn them away whatever the column says (Identity/API/GlobalSSO,
+ * GlobalOIDC: "default-all" mode) - so the first answer says so.
+ *
+ * The answers are written into the same two boolean columns
+ * (disableSignUpWithSso, restrictToAttachedProjects), which the form loads
+ * and saves unseen: the API, Terraform, the sign-in routes and every
+ * provider already set up read them as before.
+ */
+export const SSO_GLOBAL_SIGN_UP_FIELD_KEY: string = "newPeopleChoice";
+
+export const SSO_GLOBAL_SIGN_UP_TITLE: string = translationKey(
+  "People without an account",
 );
 
-/*
- * Turning it on narrows access for people who are already signed in, which
- * the old wording said in capitals; it still says so.
- */
-export const SSO_GLOBAL_RESTRICT_DESCRIPTION: string = translationKey(
-  "When on, signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added.",
+export const SSO_GLOBAL_SIGN_UP_ANYONE: string = "anyone";
+
+export const SSO_GLOBAL_SIGN_UP_INVITED: string = "invited";
+
+export const SSO_GLOBAL_SIGN_UP_CHOICES: Array<RadioButton> = [
+  {
+    value: SSO_GLOBAL_SIGN_UP_ANYONE,
+    title: translationKey("Get one on their first sign-in"),
+    description: translationKey(
+      "They join the projects attached to this provider. With none attached, they must be invited first.",
+    ),
+  },
+  {
+    value: SSO_GLOBAL_SIGN_UP_INVITED,
+    title: translationKey("Must be invited first"),
+    description: translationKey(
+      "They are turned away until someone invites them to a project.",
+    ),
+  },
+];
+
+export const SSO_GLOBAL_REACH_FIELD_KEY: string = "whereSignInCountsChoice";
+
+export const SSO_GLOBAL_REACH_TITLE: string = translationKey(
+  "Where this sign-in counts as SSO",
 );
+
+export const SSO_GLOBAL_REACH_EVERY_PROJECT: string = "everyProject";
+
+export const SSO_GLOBAL_REACH_ATTACHED_ONLY: string = "attachedOnly";
+
+/*
+ * Restricting narrows access for people who are already signed in, which
+ * the old wording said in capitals; the second answer still says so.
+ */
+export const SSO_GLOBAL_REACH_CHOICES: Array<RadioButton> = [
+  {
+    value: SSO_GLOBAL_REACH_EVERY_PROJECT,
+    title: translationKey("Every project"),
+    description: translationKey(
+      "Projects that require SSO accept a sign-in with this provider.",
+    ),
+  },
+  {
+    value: SSO_GLOBAL_REACH_ATTACHED_ONLY,
+    title: translationKey("Attached projects only"),
+    description: translationKey(
+      "Other projects that require SSO turn it away, even for people already signed in.",
+    ),
+  },
+];
+
+// The answer each column's value reads as: off is the first answer.
+export const getSsoGlobalSignUpAnswer: (values: unknown) => string = (
+  values: unknown,
+): string => {
+  return readSsoFormValue(values, "disableSignUpWithSso") === true
+    ? SSO_GLOBAL_SIGN_UP_INVITED
+    : SSO_GLOBAL_SIGN_UP_ANYONE;
+};
+
+export const getSsoGlobalReachAnswer: (values: unknown) => string = (
+  values: unknown,
+): string => {
+  return readSsoFormValue(values, "restrictToAttachedProjects") === true
+    ? SSO_GLOBAL_REACH_ATTACHED_ONLY
+    : SSO_GLOBAL_REACH_EVERY_PROJECT;
+};
+
+// The answer's title, as a provider's page shows what is set.
+export const getSsoGlobalSignUpAnswerTitle: (values: unknown) => string = (
+  values: unknown,
+): string => {
+  return getSsoGlobalSignUpAnswer(values) === SSO_GLOBAL_SIGN_UP_INVITED
+    ? (SSO_GLOBAL_SIGN_UP_CHOICES[1] as RadioButton).title
+    : (SSO_GLOBAL_SIGN_UP_CHOICES[0] as RadioButton).title;
+};
+
+export const getSsoGlobalReachAnswerTitle: (values: unknown) => string = (
+  values: unknown,
+): string => {
+  return getSsoGlobalReachAnswer(values) === SSO_GLOBAL_REACH_ATTACHED_ONLY
+    ? (SSO_GLOBAL_REACH_CHOICES[1] as RadioButton).title
+    : (SSO_GLOBAL_REACH_CHOICES[0] as RadioButton).title;
+};
 
 export interface SsoProviderFieldOptions {
   // The step the field is on: SSO_PROVIDER_STEP_ID or SSO_SIGN_IN_STEP_ID.
@@ -330,38 +442,137 @@ export const getSsoProviderTeamsField: GetSsoProviderTeamsFieldFunction = <
 };
 
 /*
- * The instance-wide provider's two switches. Each starts off, as its column
- * does, so neither writes a default of its own; they are always folded under
- * the form's Advanced section.
+ * The instance-wide provider's two questions (see SSO_GLOBAL_SIGN_UP_CHOICES
+ * and SSO_GLOBAL_REACH_CHOICES). Each is a form-only choice that starts on
+ * the answer its column holds - off, the first answer, for a new provider,
+ * as the column's default - and writes the column when picked; the column
+ * itself is registered unseen right after it (the *ColumnField helpers),
+ * so the form loads and saves it. Both questions are always folded under
+ * the form's Advanced section:
+ *
+ *   getSsoProviderSignUpChoiceField<GlobalSSO>({
+ *     stepId: "sign-in",
+ *     collapsibleSection: advancedSection,
+ *   }),
+ *   getSsoProviderSignUpColumnField<GlobalSSO>({ stepId: "sign-in" }),
+ *
+ * One field per helper, so Tests/Helpers/FormStepsScan reads each with the
+ * step and section its call names.
  */
-export const getSsoProviderDisableSignUpField: GetSsoProviderFoldedFieldFunction =
+export const getSsoProviderSignUpChoiceField: GetSsoProviderFoldedFieldFunction =
   <TEntity>(
     options: SsoProviderFoldedFieldOptions<TEntity>,
   ): Field<TEntity> => {
     return {
+      // The column stands in for the field's permissions; the value is not sent.
       field: {
         disableSignUpWithSso: true,
       } as unknown as SelectFormFields<TEntity>,
-      title: "Disable Sign Up with SSO",
-      fieldType: FormFieldSchemaType.Toggle,
-      description: SSO_GLOBAL_DISABLE_SIGN_UP_DESCRIPTION,
+      overrideFieldKey: SSO_GLOBAL_SIGN_UP_FIELD_KEY,
+      formOnly: true,
+      title: SSO_GLOBAL_SIGN_UP_TITLE,
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SSO_GLOBAL_SIGN_UP_CHOICES,
+      required: true,
+      dataTestId: "sso-global-sign-up",
+      // Each answer says what it means; the column's sentence is for the API.
+      hideColumnDescription: true,
       stepId: options.stepId,
       collapsibleSection: options.collapsibleSection,
+      getDefaultValue: (values: FormValues<TEntity>): string => {
+        return getSsoGlobalSignUpAnswer(values);
+      },
+      isAtDefault: (values: FormValues<TEntity>): boolean => {
+        return getSsoGlobalSignUpAnswer(values) === SSO_GLOBAL_SIGN_UP_ANYONE;
+      },
+      onChange: (
+        value: unknown,
+        currentValues: FormValues<TEntity>,
+        setNewFormValues: (values: FormValues<TEntity>) => void,
+      ): void => {
+        setNewFormValues({
+          ...(currentValues as Record<string, unknown>),
+          disableSignUpWithSso: value === SSO_GLOBAL_SIGN_UP_INVITED,
+        } as unknown as FormValues<TEntity>);
+      },
     };
   };
 
-export const getSsoProviderRestrictToAttachedProjectsField: GetSsoProviderFoldedFieldFunction =
+// The column People without an account writes: loaded and saved, never on screen.
+export const getSsoProviderSignUpColumnField: GetSsoProviderFieldFunction = <
+  TEntity,
+>(
+  options: SsoProviderFieldOptions,
+): Field<TEntity> => {
+  return {
+    field: {
+      disableSignUpWithSso: true,
+    } as unknown as SelectFormFields<TEntity>,
+    title: "Disable Sign Up with SSO",
+    fieldType: FormFieldSchemaType.Toggle,
+    stepId: options.stepId,
+    showIf: (): boolean => {
+      return false;
+    },
+  };
+};
+
+export const getSsoProviderReachChoiceField: GetSsoProviderFoldedFieldFunction =
   <TEntity>(
     options: SsoProviderFoldedFieldOptions<TEntity>,
   ): Field<TEntity> => {
     return {
+      // The column stands in for the field's permissions; the value is not sent.
       field: {
         restrictToAttachedProjects: true,
       } as unknown as SelectFormFields<TEntity>,
-      title: "Restrict to Attached Projects",
-      fieldType: FormFieldSchemaType.Toggle,
-      description: SSO_GLOBAL_RESTRICT_DESCRIPTION,
+      overrideFieldKey: SSO_GLOBAL_REACH_FIELD_KEY,
+      formOnly: true,
+      title: SSO_GLOBAL_REACH_TITLE,
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SSO_GLOBAL_REACH_CHOICES,
+      required: true,
+      dataTestId: "sso-global-reach",
+      // Each answer says what it means; the column's sentence is for the API.
+      hideColumnDescription: true,
       stepId: options.stepId,
       collapsibleSection: options.collapsibleSection,
+      getDefaultValue: (values: FormValues<TEntity>): string => {
+        return getSsoGlobalReachAnswer(values);
+      },
+      isAtDefault: (values: FormValues<TEntity>): boolean => {
+        return (
+          getSsoGlobalReachAnswer(values) === SSO_GLOBAL_REACH_EVERY_PROJECT
+        );
+      },
+      onChange: (
+        value: unknown,
+        currentValues: FormValues<TEntity>,
+        setNewFormValues: (values: FormValues<TEntity>) => void,
+      ): void => {
+        setNewFormValues({
+          ...(currentValues as Record<string, unknown>),
+          restrictToAttachedProjects: value === SSO_GLOBAL_REACH_ATTACHED_ONLY,
+        } as unknown as FormValues<TEntity>);
+      },
     };
   };
+
+// The column Where this sign-in counts as SSO writes: loaded and saved, never on screen.
+export const getSsoProviderReachColumnField: GetSsoProviderFieldFunction = <
+  TEntity,
+>(
+  options: SsoProviderFieldOptions,
+): Field<TEntity> => {
+  return {
+    field: {
+      restrictToAttachedProjects: true,
+    } as unknown as SelectFormFields<TEntity>,
+    title: "Restrict to Attached Projects",
+    fieldType: FormFieldSchemaType.Toggle,
+    stepId: options.stepId,
+    showIf: (): boolean => {
+      return false;
+    },
+  };
+};

@@ -22,7 +22,9 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
 import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
+import type { FoldedSectionVariant } from "../../FoldedSection/FoldedSectionVariant";
 import type IconProp from "../../../../Types/Icon/IconProp";
+import type { PluralTemplate } from "../../../Utils/TranslateTemplate";
 import { ReactElement, ReactNode } from "react";
 
 export enum FormFieldStyleType {
@@ -104,14 +106,24 @@ export interface FormFieldCollapsibleSection<TEntity> {
    */
   openWhenConfigured?: boolean | undefined;
   /*
-   * Folded, the header lists the fields the section holds by name - "Declared
-   * At · Initial State · Labels" - with the set ones as chips that say what
-   * they are set to. For a section whose title does not say what is in it:
-   * More fields. Left out, a folded header shows only the fields that are
-   * set (FoldedSection).
+   * Folded, the header lists the fields the section holds by name, the set
+   * ones with what they are set to - "More fields · Declared At, Initial
+   * State: Identified, Labels: 2". For a section whose title does not say
+   * what is in it: More fields. Left out, a folded header shows only the
+   * fields that are set (FoldedSection).
    */
   listFieldsWhileFolded?: boolean | undefined;
-  // Drawn in a tile before the title (More fields: IconProp.AdjustmentHorizontal).
+  /*
+   * How the fold is drawn (FoldedSection): "card" when left out - a framed
+   * block with its title, for a section named for what it holds - or "line",
+   * one quiet line that opens the fields in place, for More fields
+   * (getAdvancedFormSection).
+   */
+  variant?: FoldedSectionVariant | undefined;
+  /*
+   * A card's icon, in a tile before its title (the status page's
+   * Preferences: IconProp.Bell). A line has none.
+   */
   icon?: IconProp | undefined;
   /*
    * What the folded fields are set to, in plain words, shown under the
@@ -147,6 +159,13 @@ export default interface Field<TEntity> {
     | undefined;
   cardSelectSingleColumn?: boolean | undefined;
   /*
+   * At most this many cards side by side (CardSelect maxColumns); three
+   * when left out. A choice whose cards carry a line each reads better two
+   * to a row in a dialog, where three columns squeeze every line to a few
+   * words.
+   */
+  cardSelectMaxColumns?: 2 | 3 | undefined;
+  /*
    * Give the card picker a search box, and lay a big catalog out as compact
    * rows with its common choices first and the rest behind a More button,
    * shrinking to the choice made with a Change button (CardSelectCatalog).
@@ -155,6 +174,11 @@ export default interface Field<TEntity> {
    */
   cardSelectSearchable?: boolean | undefined;
   cardSelectSearchPlaceholder?: string | undefined;
+  /*
+   * The line under the search box while nothing is typed (CardSelect
+   * searchHint): worded for monitor types unless the field says otherwise.
+   */
+  cardSelectSearchHint?: PluralTemplate | undefined;
   cardSelectCatalog?: CardSelectCatalog | undefined;
   fetchDropdownOptions?:
     | ((
@@ -379,6 +403,18 @@ export default interface Field<TEntity> {
   dictionaryEnableOperators?: boolean | undefined;
 
   hideOptionalLabel?: boolean | undefined;
+
+  /*
+   * Draw no line under the field's title in place of its column's
+   * description. A field with no description of its own shows its column's
+   * (BasicModelForm), which is written for the API and, on a choice whose
+   * answers each say what they mean, says it all again: a reminder rule's
+   * "Stop Reminders When" had a sentence about both answers above the
+   * answers' own lines. Also for a form-only field, whose column only
+   * stands in for its permissions, and for a column whose description only
+   * says its title again ("Title of this incident" under Title).
+   */
+  hideColumnDescription?: boolean | undefined;
 
   /*
    * Spell check configuration (primarily for Markdown and text fields)

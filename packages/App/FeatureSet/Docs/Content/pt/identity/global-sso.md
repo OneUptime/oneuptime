@@ -73,11 +73,11 @@ O comportamento de um provedor global depende de você anexar projetos a ele ou 
 flowchart TB
     S["Alguém faz login"] --> A{"Projetos anexados?"}
     A -->|"Não"| K{"Tem uma conta?"}
-    K -->|"Não"| R["Recusado: convide primeiro"]
-    K -->|"Sim"| E["Login feito nos projetos dele"]
-    A -->|"Sim"| D{"Novo, com o cadastro<br/>desativado?"}
+    K -->|"Não"| R["Recusado:<br/>convide primeiro"]
+    K -->|"Sim"| E["Login feito nos<br/>projetos dele"]
+    A -->|"Sim"| D{"Novo, com<br/>o cadastro<br/>desativado?"}
     D -->|"Sim"| R
-    D -->|"Não"| P["Adicionado aos projetos anexados<br/>em que ainda não está"]
+    D -->|"Não"| P["Adicionado aos<br/>projetos anexados<br/>em que ainda<br/>não está"]
     P --> E
 ```
 
@@ -87,12 +87,14 @@ flowchart TB
 
 Quem já é membro de um projeto anexado mantém as equipes que tem lá.
 
-Dois interruptores do provedor mudam isso. Os dois começam desligados, recolhidos em **Mais campos**:
+Duas perguntas do provedor mudam isso, recolhidas em **Mais campos**. Cada uma começa na primeira resposta:
 
-| Interruptor | O que faz quando ligado |
+| Pergunta | Respostas |
 | --- | --- |
-| **Disable Sign Up with SSO** | As pessoas precisam ser convidadas para um projeto antes de poderem fazer login com este provedor, mesmo quando há projetos anexados. Ninguém novo é criado no primeiro login. |
-| **Restrict to Attached Projects** | Fazer login com este provedor atende à exigência de SSO apenas nos projetos anexados a ele, então pessoas que já fizeram login podem perder o acesso a outros projetos. Quando desligado, atende à exigência em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados. |
+| **Pessoas sem conta** | **Ganham uma no primeiro login**: elas entram nos projetos anexados; se não houver nenhum anexado, precisam ser convidadas primeiro. **Precisam ser convidadas primeiro**: as pessoas precisam ser convidadas para um projeto antes de poderem fazer login com este provedor, mesmo quando há projetos anexados. |
+| **Onde este login conta como SSO** | **Todos os projetos**: os projetos que exigem SSO aceitam um login com este provedor. **Apenas os projetos anexados**: fazer login com este provedor atende à exigência de SSO apenas nos projetos anexados a ele, então pessoas que já fizeram login podem perder o acesso a outros projetos. |
+
+Com **Todos os projetos**, fazer login com o provedor atende à exigência de SSO em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados.
 
 ## Impor o SSO
 
@@ -134,11 +136,11 @@ Duas alterações sobre quem pode fazer login são verificadas uma depois da out
 ## Solução de problemas
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-A pessoa ainda não tem conta no OneUptime, e o provedor não cria uma: ou não há projetos anexados a ele, ou **Disable Sign Up with SSO** está ligado. Convide-a para um projeto ou anexe um projeto ao provedor.
+A pessoa ainda não tem conta no OneUptime, e o provedor não cria uma: ou não há projetos anexados a ele, ou **Pessoas sem conta** está em **Precisam ser convidadas primeiro**. Convide-a para um projeto ou anexe um projeto ao provedor.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** está ligado, e a pessoa não é membro de nenhum projeto anexado ao provedor. Anexe um dos projetos dela ou adicione-a a um projeto anexado.
+**Onde este login conta como SSO** está em **Apenas os projetos anexados**, e a pessoa não é membro de nenhum projeto anexado ao provedor. Anexe um dos projetos dela ou adicione-a a um projeto anexado.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"
@@ -147,6 +149,14 @@ A pessoa tem conta, mas não pertence a nenhum projeto, e o provedor não tem on
 
 :::details "Issuer URL does not match"
 Em um provedor SAML, o emissor na resposta do seu provedor de identidade não é o **Issuer** salvo no provedor. Copie-o de novo do seu provedor de identidade; os dois precisam corresponder exatamente.
+:::
+
+:::details "SAML Audience does not match"
+Em um provedor SAML, a resposta foi criada para outro aplicativo: a audience dela não é o **Issuer (Entity ID)** do provedor. No seu provedor de identidade, defina o entity ID do aplicativo como o **Issuer (Entity ID)** da página do provedor. "SAML Recipient does not match" e "SAML Destination does not match" significam o mesmo para a reply URL dele: defina-a como a **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Cada resposta do seu provedor de identidade faz o login uma única vez, e só nos minutos seguintes à emissão: depois disso, ela é recusada com "SAML response has expired". Faça o login de novo. Se as respostas continuarem expirando, confira os relógios deste servidor e do seu provedor de identidade.
 :::
 
 ## Próximos passos

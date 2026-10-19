@@ -3,6 +3,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Card from "Common/UI/Components/Card/Card";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
@@ -279,6 +280,11 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
 const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
   props: ResourceOverviewProps,
 ): ReactElement => {
+  /*
+   * The Details rows and the quick links: ruled from edge to edge of their
+   * card, their words where the card's title starts, at every width.
+   */
+  const ruledListClassName: string = useCardRuledListClassName();
   const status: string = (props.status || "").toLowerCase();
   const isConnected: boolean = status === "connected" || status === "active";
   const lastSeenText: string = props.lastSeenAt
@@ -443,13 +449,13 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             : undefined
         }
       >
-        <div className="border-t border-gray-200 divide-y divide-gray-100 -m-6 -mt-2">
+        <div className={ruledListClassName}>
           {props.detailRows.map(
             (row: ResourceOverviewDetailRow, idx: number): ReactElement => {
               return (
                 <div
                   key={`row-${idx}`}
-                  className="px-4 py-3 sm:grid sm:grid-cols-3 sm:gap-4"
+                  className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
                 >
                   <dt className="text-sm font-medium text-gray-500">
                     {row.label}
@@ -477,7 +483,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             title="Explore telemetry"
             description="Drill into the raw signals for this resource."
           >
-            <div className="-m-6 -mt-2 border-t border-gray-200 divide-y divide-gray-100">
+            <div className={ruledListClassName}>
               {props.quickLinks.map(
                 (
                   link: ResourceOverviewQuickLink,
@@ -487,7 +493,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                     <AppLink
                       key={`ql-${idx}`}
                       to={link.to}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 md:px-6"
                     >
                       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 ring-1 ring-inset ring-gray-200">
                         <Icon

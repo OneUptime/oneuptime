@@ -8,6 +8,14 @@ import {
   MCP_SERVER,
 } from "./AiDocsPages";
 import { tables } from "./DocsPageShape";
+import {
+  MCP_CLIENTS,
+  MCP_CLIENT_NAMES,
+  MCP_SIGN_IN_ANSWERS,
+  McpClient,
+  McpConnectSetupStep,
+  getMcpConnectSetup,
+} from "../../../FeatureSet/Dashboard/src/Components/Mcp/McpConnectSetup";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import {
   PACKAGES_DIR,
@@ -831,6 +839,29 @@ describe("GitHub App", () => {
     expect(page).toContain(
       "the repository's trigger label, `oneuptime` unless you changed it",
     );
+
+    // The cap is one choice: no limit, a limit, or none.
+    const limit: string = flat(
+      dashboardSource("Components/CodeRepository/FixPullRequestLimit.ts"),
+    );
+
+    for (const word of [
+      "AI Fix Pull Requests",
+      "No limit",
+      "A limit",
+      "None",
+    ]) {
+      expect(limit).toMatch(
+        new RegExp(`translationKey\\(\\s*"${escapeRegExp(word)}",?\\s*\\)`),
+      );
+    }
+
+    expect(settings).toContain(
+      "overrideFieldKey: FIX_PULL_REQUEST_LIMIT_FIELD_KEY, formOnly: true,",
+    );
+    expect(page).toContain(
+      `${bold("AI Fix Pull Requests")} is ${bold("No limit")} until you choose ${bold("A limit")}, or ${bold("None")}, which blocks AI fix pull requests on that repository.`,
+    );
   });
 
   it("states a run's budget as a fix task's", () => {
@@ -875,38 +906,57 @@ describe("LLM Providers", () => {
     );
   });
 
+  /*
+   * The form a project's provider is created and edited with: the shared
+   * one (Common/UI/Components/AI/LlmProviderFormFields), which the page
+   * draws.
+   */
+  function providerForm(): string {
+    expect(dashboardSource("Pages/Settings/LlmProviders.tsx")).toContain(
+      "formFields={getProjectLlmProviderFormFields()}",
+    );
+
+    return flat(
+      readRepoFile("Common/UI/Components/AI/LlmProviderFormFields.tsx"),
+    );
+  }
+
   it("starts a new provider as the default, in the form and on the server", () => {
     const service: string = flat(
       readRepoFile("Common/Server/Services/LlmProviderService.ts"),
     );
-    const form: string = flat(
-      dashboardSource("Pages/Settings/LlmProviders.tsx"),
-    );
+    const form: string = providerForm();
 
     expect(service).toContain(
       "if (createBy.data.isDefault === undefined) { createBy.data.isDefault = true;",
+    );
+    expect(form).toContain(
+      'field: { isDefault: true, }, title: "Set as Default",',
     );
     expect(form).toContain("defaultValue: true,");
   });
 
   it("walks the create form's two steps by their titles, with each step's fields", () => {
-    const form: string = flat(
-      dashboardSource("Pages/Settings/LlmProviders.tsx"),
-    );
+    const form: string = providerForm();
     const setUp: string = flat(
       englishSection(LLM_PROVIDERS, "## Setting Up an LLM Provider"),
     );
 
     for (const [step, id] of [
-      ["Basic Info", "basic-info"],
-      ["Provider Settings", "provider-settings"],
+      ["Provider", "provider"],
+      ["Connection", "connection"],
     ] as Array<[string, string]>) {
-      expect(form).toContain(`title: "${step}", id: "${id}",`);
+      expect(form).toContain(`{ title: "${step}", id: "${id}" }`);
       expect(setUp).toContain(`On ${bold(step)}`);
     }
 
-    expect(setUp).toContain(`give it a ${bold("Name")} that says what it is`);
-    expect(setUp).toContain(`optionally a ${bold("Description")}`);
+    // The provider is picked first, then named after it.
+    expect(setUp).toContain(`pick your ${bold("LLM Provider")}`);
+    expect(form).toContain("getLlmProviderNameAfterPick");
+    expect(setUp).toContain(
+      `${bold("Name")}: the provider's name until you type your own`,
+    );
+    expect(setUp).toContain(`a ${bold("Description")}`);
   });
 
   it("lists every provider type the form offers, in a table row of its own", () => {
@@ -1097,29 +1147,81 @@ describe("MCP Server", () => {
   });
 
   it("gives the same connect steps as the MCP Server settings page", () => {
-    const settings: string = dashboardSource("Pages/Settings/McpServer.tsx");
+    /*
+     * The page builds every setup from McpConnectSetup, for a client and a
+     * way of signing in; with the cloud's address, each snippet is the
+     * docs' own, word for word.
+     */
     const page: string = englishPage(MCP_SERVER);
+    const cloudUrl: string = "https://oneuptime.com/mcp";
+    const snippets: Array<string> = [];
 
-    expect(settings).toContain(
-      "code={`claude mcp add --transport http oneuptime ${mcpUrl}`}",
-    );
+    for (const client of MCP_CLIENTS) {
+      for (const signIn of MCP_SIGN_IN_ANSWERS) {
+        const setup: McpConnectSetupStep = getMcpConnectSetup({
+          client,
+          signIn,
+          mcpUrl: cloudUrl,
+        });
+
+        if (setup.code) {
+          snippets.push(setup.code.text);
+          expect({
+            client,
+            signIn,
+            inDocs: page.includes(setup.code.text),
+          }).toEqual({
+            client,
+            signIn,
+            inDocs: true,
+          });
+        }
+      }
+    }
+
+    // Every client but Claude Desktop's sign-in (a menu, not a file) has one.
+    expect(snippets).toHaveLength(MCP_CLIENTS.length * 2 - 1);
     expect(page).toContain(
       "claude mcp add --transport http oneuptime https://oneuptime.com/mcp\n",
     );
-    expect(settings).toContain(
-      'code={`claude mcp add --transport http oneuptime ${mcpUrl} --header "x-api-key: your-api-key-here"`}',
-    );
-    expect(page).toContain(
-      'claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-api-key: your-api-key-here"',
-    );
-    expect(settings).toContain(
+
+    // Claude's menu, named on the page as the docs name it.
+    const card: string = dashboardSource("Components/Mcp/McpServerCard.tsx");
+
+    expect(card).toContain(
       'translator.translateText("Customize → Connectors")',
     );
-    expect(settings).toContain(
-      'translator.translateText("Add custom connector")',
-    );
+    expect(card).toContain('translator.translateText("Add custom connector")');
     expect(page).toContain(
       `open ${bold("Customize → Connectors")}, choose ${bold("Add custom connector")}`,
+    );
+  });
+
+  it("names a tab on the page for every client the docs give a setup for", () => {
+    const tabsOf: (heading: string) => Array<string> = (
+      heading: string,
+    ): Array<string> => {
+      return englishSection(MCP_SERVER, heading)
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.startsWith("@tab ");
+        })
+        .map((line: string): string => {
+          return line.slice("@tab ".length);
+        });
+    };
+
+    // Claude Desktop signs in through Claude's own connector menu: "Claude".
+    expect(tabsOf("## Connect a client")).toEqual([
+      MCP_CLIENT_NAMES[McpClient.ClaudeCode],
+      "Claude",
+      MCP_CLIENT_NAMES[McpClient.VsCode],
+      MCP_CLIENT_NAMES[McpClient.Cursor],
+    ]);
+    expect(tabsOf("## Connecting with an API key")).toEqual(
+      MCP_CLIENTS.map((client: McpClient): string => {
+        return MCP_CLIENT_NAMES[client];
+      }),
     );
   });
 
@@ -1217,6 +1319,98 @@ describe("AI SRE and the infrastructure AI agents", () => {
     expect(section).toContain("3. The AI agent, before");
     expect(flat(section)).toContain(
       "Three independent checks keep it read-only: the policy that tiers every command, the server that refuses to enqueue anything else for an investigation, and the AI agent, which re-checks the same policy before spawning kubectl.",
+    );
+  });
+
+  /*
+   * Test connection, Reset agent and approving a fix take an edit of the
+   * very cluster or resource, decided for its own row: the routes ask the
+   * one check per record (assertCallerMayChangeCluster, built on
+   * findOneUpdatableById, and assertCallerMayChangeResource), never the
+   * table half alone (TableHalfWriteGuard in Common holds that).
+   */
+  it("says Test connection, Reset agent and approving a fix take an edit of that very cluster or resource, as the routes decide it", () => {
+    const clusterRoutes: string = readRepoFile(
+      "Common/Server/API/KubernetesClusterAiAccessAPI.ts",
+    );
+    const resourceRoutes: string = readRepoFile(
+      "Common/Server/API/ResourceAiAccessAPI.ts",
+    );
+    const approval: string = readRepoFile(
+      "Common/Server/API/AutoRemediationAPI.ts",
+    );
+    const clusterCheck: string = readRepoFile(
+      "Common/Server/Services/KubernetesClusterAiAccessService.ts",
+    );
+
+    // The test and the reset of a cluster, and the cluster's own row.
+    expect(clusterRoutes).toContain("await assertCanEditCluster({");
+    expect(clusterRoutes).toContain(
+      "await assertCanChangeClusterToResetAgent({",
+    );
+    expect(
+      clusterRoutes.split(
+        "KubernetesClusterAiAccessService.assertCallerMayChangeCluster(",
+      ).length - 1,
+    ).toBe(2);
+    expect(clusterCheck).toContain(
+      "await KubernetesClusterService.findOneUpdatableById({",
+    );
+
+    // The test and the reset of a resource.
+    expect(resourceRoutes).toContain("await assertCanEditResource({");
+    expect(resourceRoutes).toContain(
+      "await assertCanChangeResourceToResetAgent({",
+    );
+
+    // Approving: every cluster and every resource the plan changes.
+    expect(approval).toContain("await assertApproverMayChangeClusters({");
+    expect(approval).toContain("await assertApproverMayChangeResources({");
+
+    const clusterRule: string = flat(
+      englishSection(AI_SRE, "### Who may change it"),
+    );
+    expect(clusterRule).toContain(
+      `is open to anyone who may edit the cluster, and so are ${bold("Test connection")} and approving a fix OneUptime AI proposes for it. All of these take permission to edit that very cluster: a permission limited to some labels, or to the clusters you or your teams own, reaches only those clusters, and a block with labels takes away the clusters that carry them.`,
+    );
+
+    const resourceRule: string = flat(
+      englishSection(INFRASTRUCTURE_AI_AGENTS, "### Who may change it"),
+    );
+    expect(resourceRule).toContain(
+      `are open to anyone who may edit the resource, and so are ${bold("Test connection")} and approving a fix OneUptime AI proposes for it. All of these take permission to edit that very resource: a permission limited to some labels, or to the resources you or your teams own, reaches only those resources, and a block with labels takes away the resources that carry them.`,
+    );
+  });
+
+  /*
+   * The incident's conversation is a terminal the person asking steers: its
+   * read-only kubectl and infrastructure commands reach only the linked
+   * clusters and resources that person may view. The thread keeps those
+   * alone, with the asking person's props (or the deciding person's on a
+   * paused answer), before it builds the turn's tools.
+   */
+  it("says the conversation's commands reach only the clusters and resources the person asking may view, as the thread builds them", () => {
+    const thread: string = flat(
+      readRepoFile("Common/Server/Utils/AI/SRE/InvestigationThread.ts"),
+    );
+    const threadService: string = flat(
+      readRepoFile("Common/Server/Utils/AI/SRE/InvestigationThreadService.ts"),
+    );
+
+    expect(thread).toContain(
+      "await KubernetesClusterAiAccessService.getStatusesViewableBy({ props: data.props,",
+    );
+    expect(thread).toContain(
+      "await ResourceAiAccessService.getStatusesViewableBy({ props: data.props,",
+    );
+    expect(threadService).toContain("props: data.turn.props,");
+
+    const conversation: string = flat(
+      englishSection(AI_SRE, "## Talk to OneUptime AI about the incident"),
+    );
+
+    expect(conversation).toContain(
+      "(and runs read-only kubectl or infrastructure commands where it has access, on the clusters and resources you may view)",
     );
   });
 

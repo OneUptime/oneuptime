@@ -4,6 +4,13 @@ import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy"
 import IncomingCallPolicyEscalationRule from "Common/Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import IncomingCallPolicyPhoneNumber from "Common/Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import IncomingCallStatus from "Common/Types/IncomingCall/IncomingCallStatus";
+import {
+  DEFAULT_INCOMING_CALL_GREETING_MESSAGE,
+  DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE,
+  DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE,
+  INCOMING_CALL_POLICY_OFF_MESSAGE,
+} from "Common/Types/IncomingCall/IncomingCallMessages";
+import { getIncomingCallPolicyRepeatsAllowed } from "Common/Types/IncomingCall/IncomingCallPolicyRepeat";
 import { MISSED_INCOMING_CALL_STATUSES } from "Common/Types/IncomingCall/MissedIncomingCall";
 import {
   MAX_CALL_TWIML_LENGTH,
@@ -163,6 +170,33 @@ describe("the Incoming Call Policy page", () => {
     );
   });
 
+  it("asks a new policy for its name, folds the rest under More fields, and opens it on its Overview", () => {
+    const list: string = readDashboardFile(
+      "Pages/OnCallDuty/IncomingCallPolicies.tsx",
+    );
+    const form: string = readDashboardFile(
+      "Components/IncomingCallPolicy/IncomingCallPolicyCreateForm.ts",
+    );
+    const description: string = form.slice(
+      form.indexOf("description: true"),
+      form.indexOf("getLabelsFormField<IncomingCallPolicy>("),
+    );
+
+    expect(form).toContain('title: "Name"');
+    expect(form).toContain('title: "Description"');
+    expect(description).toContain("collapsibleSection: moreFields");
+    expect(form).toContain(
+      "getLabelsFormField<IncomingCallPolicy>({\n      collapsibleSection: moreFields,",
+    );
+    expect(form).toContain("getAdvancedFormSection<IncomingCallPolicy>()");
+    expect(list).toContain("onCreateSuccess={");
+    expect(list).toContain("PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW");
+
+    expect(page).toContain(
+      'Give it a **Name**, such as "Support Hotline"; a **Description** and **Labels** are optional, under **More fields**. The new policy opens on its **Overview**.',
+    );
+  });
+
   it("walks the policy's Setup card with the card's own words", () => {
     const overview: string = readDashboardFile(
       "Pages/OnCallDuty/IncomingCallPolicy/Index.tsx",
@@ -300,16 +334,20 @@ describe("the Incoming Call Policy page", () => {
     );
 
     expect(page).toContain(
-      "Twilio sends every call to `https://<your host>/notification/incoming-call/voice`.",
+      "Twilio sends every call to `https://<your host>/notification/incoming-call/voice`,",
     );
     expect(page).toContain(
       "OneUptime sets the number's voice webhook to `https://<your host>/notification/incoming-call/voice`, built from `HOST` and `HTTP_PROTOCOL`",
     );
+    /*
+     * The diagram names the two requests by their routes' last parts, so it
+     * fits the docs column between four participants; the text above gives
+     * both paths in full.
+     */
+    expect(page).toContain("Twilio->>OneUptime: POST …/voice");
+    expect(page).toContain("Twilio->>OneUptime: POST …/dial-status");
     expect(page).toContain(
-      "Twilio->>OneUptime: POST /notification/incoming-call/voice",
-    );
-    expect(page).toContain(
-      "Twilio->>OneUptime: POST /notification/incoming-call/dial-status/...",
+      "Twilio sends every call to `https://<your host>/notification/incoming-call/voice`, and how each ring ended to `https://<your host>/notification/incoming-call/dial-status/...`.",
     );
   });
 
@@ -327,19 +365,52 @@ describe("the Incoming Call Policy page", () => {
   });
 
   it("quotes what a caller hears, word for word", () => {
-    for (const phrase of [
-      "Connecting you to the next available engineer.",
-      "Sorry, this service is currently disabled.",
-    ]) {
-      expect({ phrase, inCode: incomingCallRoute.includes(phrase) }).toEqual({
-        phrase,
-        inCode: true,
-      });
-      expect({ phrase, onPage: page.includes(`"${phrase}"`) }).toEqual({
-        phrase,
-        onPage: true,
-      });
-    }
+    // Between two rules: the route's own words.
+    const nextEngineer: string =
+      "Connecting you to the next available engineer.";
+
+    expect(incomingCallRoute).toContain(nextEngineer);
+    expect(page).toContain(`"${nextEngineer}"`);
+
+    // While the policy does not answer calls: the shared words it hangs up with.
+    const offBranch: string = incomingCallRoute.slice(
+      incomingCallRoute.indexOf("if (!policy.isEnabled) {"),
+    );
+
+    expect(incomingCallRoute).toContain("if (!policy.isEnabled) {");
+    expect(
+      offBranch.slice(0, offBranch.indexOf("return res.send(twiml);")),
+    ).toContain("INCOMING_CALL_POLICY_OFF_MESSAGE");
+    expect(page).toContain(`"${INCOMING_CALL_POLICY_OFF_MESSAGE}"`);
+    expect(page).toContain(
+      `A policy with **Answer Calls** off answers every call with "${INCOMING_CALL_POLICY_OFF_MESSAGE}" and hangs up.`,
+    );
+  });
+
+  it("rings the rules again only as the Repeat Policy says, then reads the No Answer Message", () => {
+    // The call handler asks the shared rule how many more times to ring them.
+    expect(incomingCallRoute).toContain(
+      "< getIncomingCallPolicyRepeatsAllowed(policy)",
+    );
+    expect(
+      getIncomingCallPolicyRepeatsAllowed({
+        repeatPolicyIfNoOneAnswers: false,
+        repeatPolicyIfNoOneAnswersTimes: 3,
+      }),
+    ).toBe(0);
+    expect(
+      getIncomingCallPolicyRepeatsAllowed({
+        repeatPolicyIfNoOneAnswers: true,
+        repeatPolicyIfNoOneAnswersTimes: 2,
+      }),
+    ).toBe(2);
+    expect(incomingCallRoute).toContain(
+      "policy.noAnswerMessage || DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE",
+    );
+
+    expect(page).toContain(
+      "5. After the last rule, the policy's **Repeat Policy** decides: **Ring again from the first rule** rings every rule again, as many more times as it says, and **End the call** does not. Then the caller hears the **No Answer Message**, and the call ends.",
+    );
   });
 
   it("gives a new policy's messages and switches as the model sets them", () => {
@@ -374,19 +445,75 @@ describe("the Incoming Call Policy page", () => {
       return value === "true" ? "On" : "Off";
     };
 
-    expect(valueOf("Enabled")).toBe(
+    // The Answer Calls switch is the policy's isEnabled column.
+    expect(
+      readDashboardFile(
+        "Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy.ts",
+      ),
+    ).toContain(
+      'INCOMING_CALL_ANSWER_CALLS_COLUMN: IncomingCallAnswerCallsColumn =\n  "isEnabled";',
+    );
+    expect(valueOf("Answer calls to this policy's numbers")).toBe(
       onOff(columnDefault(policySource, "isEnabled")),
     );
-    expect(valueOf("Repeat Policy If No One Answers")).toBe(
-      onOff(columnDefault(policySource, "repeatPolicyIfNoOneAnswers")),
-    );
-    expect(valueOf("Repeat Policy Times")).toBe(
-      columnDefault(policySource, "repeatPolicyIfNoOneAnswersTimes"),
+
+    // A new policy's pair rings no rule again, so it reads as End the call.
+    expect(
+      getIncomingCallPolicyRepeatsAllowed({
+        repeatPolicyIfNoOneAnswers:
+          columnDefault(policySource, "repeatPolicyIfNoOneAnswers") === "true",
+        repeatPolicyIfNoOneAnswersTimes: Number(
+          columnDefault(policySource, "repeatPolicyIfNoOneAnswersTimes"),
+        ),
+      }),
+    ).toBe(0);
+    expect(valueOf("If nobody answers after the last rule")).toBe(
+      "**End the call**",
     );
 
     // The route falls back to the same greeting when a policy has none.
+    expect(DEFAULT_INCOMING_CALL_GREETING_MESSAGE).toBe(
+      columnDefault(policySource, "greetingMessage"),
+    );
     expect(incomingCallRoute).toContain(
-      `"${columnDefault(policySource, "greetingMessage")}"`,
+      "policy.greetingMessage || DEFAULT_INCOMING_CALL_GREETING_MESSAGE",
+    );
+  });
+
+  it("says an emptied message is read out in OneUptime's words, which the card shows", () => {
+    const copy: string = readDashboardFile(
+      "Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy.ts",
+    );
+
+    // Each message's card row is given the words the route reads instead.
+    for (const constant of [
+      "DEFAULT_INCOMING_CALL_GREETING_MESSAGE",
+      "DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE",
+      "DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE",
+    ]) {
+      expect({
+        constant,
+        inCopy: copy.includes(`defaultMessage: ${constant}`),
+      }).toEqual({
+        constant,
+        inCopy: true,
+      });
+      expect({
+        constant,
+        inRoute: incomingCallRoute.includes(constant),
+      }).toEqual({ constant, inRoute: true });
+    }
+
+    // Shown first, with a quiet Default pill beside them.
+    expect(copy).toContain('defaultPill: translationKey("Default")');
+    expect(DEFAULT_INCOMING_CALL_NO_ANSWER_MESSAGE).toBe(
+      columnDefault(policySource, "noAnswerMessage"),
+    );
+    expect(
+      DEFAULT_INCOMING_CALL_NO_ONE_AVAILABLE_MESSAGE.length,
+    ).toBeGreaterThan(0);
+    expect(page).toContain(
+      "A message left empty is read out in OneUptime's own words, which the card shows in its place.",
     );
   });
 
@@ -395,28 +522,99 @@ describe("the Incoming Call Policy page", () => {
       "Pages/OnCallDuty/IncomingCallPolicy/Settings.tsx",
     );
 
-    expect(settings).toMatch(
-      /editButtonText="Edit Messages"\s*cardProps=\{\{\s*title: "Voice Messages"/,
+    const copy: string = readDashboardFile(
+      "Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy.ts",
     );
-    expect(settings).toMatch(
-      /editButtonText="Edit Policy Settings"\s*cardProps=\{\{\s*title: "Policy Settings"/,
+    const choices: string = readDashboardFile(
+      "Components/OnCallPolicy/RepeatChoice/RepeatChoice.ts",
+    );
+    const incomingRepeat: string = choices.slice(
+      choices.indexOf("export const INCOMING_CALL_POLICY_REPEAT"),
+    );
+    const repeatCard: string = readDashboardFile(
+      "Components/OnCallPolicy/RepeatChoice/RepeatChoiceCard.tsx",
     );
 
-    for (const field of [
-      "Greeting Message",
-      "No Answer Message",
-      "No One Available Message",
-      "Enabled",
-      "Repeat Policy If No One Answers",
-      "Repeat Policy Times",
+    // Three cards, in this order: Answer Calls, Repeat Policy, Voice Messages.
+    const places: Array<number> = [
+      "<ModelSwitchCard<IncomingCallPolicy>",
+      "config={INCOMING_CALL_POLICY_REPEAT}",
+      "editButtonText={IncomingCallVoiceMessagesCopy.editButtonText}",
+    ].map((part: string): number => {
+      return settings.indexOf(part);
+    });
+
+    expect(Math.min(...places)).toBeGreaterThan(0);
+    expect(
+      [...places].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(places);
+
+    for (const fact of [
+      'cardTitle: translationKey("Answer Calls")',
+      'switchTitle: translationKey("Answer calls to this policy\'s numbers")',
+      'turnOffConfirmButton: translationKey("Stop answering calls")',
+      'cardTitle: translationKey("Voice Messages")',
+      'editButtonText: translationKey("Edit Messages")',
+      'title: translationKey("Greeting Message")',
+      'title: translationKey("No Answer Message")',
+      'title: translationKey("No One Available Message")',
     ]) {
-      expect({ field, inCode: settings.includes(`title: "${field}"`) }).toEqual(
-        { field, inCode: true },
-      );
+      expect({ fact, inCode: copy.includes(fact) }).toEqual({
+        fact,
+        inCode: true,
+      });
     }
 
+    for (const fact of [
+      'cardTitle: translationKey("Repeat Policy")',
+      'fieldTitle: translationKey("If nobody answers after the last rule")',
+      'title: translationKey("End the call")',
+      'title: translationKey("Ring again from the first rule")',
+      'timesTitle: translationKey("How many more times?")',
+    ]) {
+      expect({ fact, inCode: incomingRepeat.includes(fact) }).toEqual({
+        fact,
+        inCode: true,
+      });
+    }
+
+    expect(repeatCard).toContain('editButtonText="Edit"');
+    // Turning calls away asks first; turning them back on saves at once.
+    expect(settings).toContain(
+      "getConfirmation={getStopAnsweringCallsConfirmation}",
+    );
+
+    for (const sentence of [
+      "Open the policy and choose **Settings** under **Advanced** in its side menu. It has three cards:",
+      "- **Answer Calls**: **Answer calls to this policy's numbers** saves as soon as you flip it.",
+      "Turning it off asks first, with **Stop answering calls**.",
+      "- **Repeat Policy**: what happens when nobody answers after the last rule. **Edit** asks **If nobody answers after the last rule**: **End the call**, or **Ring again from the first rule** and **How many more times?**.",
+      "- **Voice Messages**: what callers hear. **Edit Messages** changes them.",
+    ]) {
+      expect({ sentence, onPage: page.includes(sentence) }).toEqual({
+        sentence,
+        onPage: true,
+      });
+    }
+  });
+
+  it("says the Overview of a policy that does not answer calls says so, with the button that turns calls on", () => {
+    const copy: string = readDashboardFile(
+      "Components/IncomingCallPolicy/IncomingCallPolicySettingsCopy.ts",
+    );
+    const overview: string = readDashboardFile(
+      "Pages/OnCallDuty/IncomingCallPolicy/Index.tsx",
+    );
+
+    expect(copy).toContain(
+      'startAnsweringButton: translationKey("Start answering calls")',
+    );
+    expect(overview).toContain("<IncomingCallAnswerCallsOffBanner");
+
     expect(page).toContain(
-      "**Edit Messages** on the **Voice Messages** card changes what callers hear; **Edit Policy Settings** on the **Policy Settings** card changes the rest.",
+      "Turning it off asks first, with **Stop answering calls**. While it is off, the policy's **Overview** says so, with **Start answering calls** to turn it back on.",
     );
   });
 

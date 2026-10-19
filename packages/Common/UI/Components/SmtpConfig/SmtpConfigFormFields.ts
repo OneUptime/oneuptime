@@ -4,8 +4,8 @@ import MailTransportType from "../../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
 import SelectFormFields from "../../Types/SelectEntityField";
-import DropdownUtil from "../../Utils/Dropdown";
 import { translationKey } from "../../Utils/TranslateTemplate";
+import type { RadioButton } from "../RadioButtons/GroupRadioButtons";
 import Field, { FormFieldCollapsibleSection } from "../Forms/Types/Field";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import { FormStep } from "../Forms/Types/FormStep";
@@ -179,9 +179,82 @@ export const SMTP_PASSWORD_DESCRIPTION: string = translationKey(
   "The account's password, or the API key your provider gives you for SMTP.",
 );
 
+/*
+ * TRANSPORT, SIGN-IN AND OAUTH GRANT: PLAIN CHOICES.
+ *
+ * "Shouldnt this be two buttons ... to make it easier for people to
+ * understand whats going on." (the maintainer, on a switch whose
+ * description explained both of its modes)
+ *
+ * Transport, Authentication Type and OAuth Provider Type were dropdowns
+ * whose one description named every answer ("SMTP works with most mail
+ * servers. Pick Microsoft Graph if ..."), so a reader had to open the list
+ * and match the names back to the sentence. They are now the answers
+ * themselves, each with one line saying when to pick it, the default
+ * first. The answers keep their names - the values the API, Terraform and
+ * the guides use - and every stored config reads as before.
+ */
 export const SMTP_TRANSPORT_DESCRIPTION: string = translationKey(
-  "SMTP works with most mail servers. Choose Microsoft Graph if your Microsoft 365 tenant has SMTP AUTH turned off: mail then goes through the Graph API with an app that has the Mail.Send permission, and the hostname, port and password are not used.",
+  "How OneUptime sends your mail.",
 );
+
+export const SMTP_TRANSPORT_CHOICES: Array<RadioButton> = [
+  {
+    value: MailTransportType.SMTP,
+    title: translationKey("SMTP"),
+    description: translationKey("Works with most mail servers."),
+  },
+  {
+    value: MailTransportType.MicrosoftGraph,
+    title: translationKey("Microsoft Graph"),
+    description: translationKey(
+      "For a Microsoft 365 tenant with SMTP AUTH turned off.",
+    ),
+  },
+];
+
+export const SMTP_AUTH_TYPE_DESCRIPTION: string = translationKey(
+  "How OneUptime signs in to your mail server.",
+);
+
+export const SMTP_AUTH_TYPE_CHOICES: Array<RadioButton> = [
+  {
+    value: SMTPAuthenticationType.UsernamePassword,
+    title: translationKey("Username and Password"),
+    description: translationKey(
+      "The account's password, or an API key your provider gives you.",
+    ),
+  },
+  {
+    value: SMTPAuthenticationType.OAuth,
+    title: translationKey("OAuth"),
+    description: translationKey(
+      "For Microsoft 365 and Google Workspace, where passwords are often turned off.",
+    ),
+  },
+  {
+    value: SMTPAuthenticationType.None,
+    title: translationKey("None"),
+    description: translationKey("For a relay that needs no sign-in."),
+  },
+];
+
+export const SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION: string = translationKey(
+  "The OAuth grant your provider uses.",
+);
+
+export const SMTP_OAUTH_PROVIDER_TYPE_CHOICES: Array<RadioButton> = [
+  {
+    value: OAuthProviderType.ClientCredentials,
+    title: translationKey("Client Credentials"),
+    description: translationKey("Microsoft 365 and most other providers."),
+  },
+  {
+    value: OAuthProviderType.JWTBearer,
+    title: translationKey("JWT Bearer"),
+    description: translationKey("Google Workspace service accounts."),
+  },
+];
 
 /*
  * What the switch does, from the mail service: on, a connection that is not
@@ -192,7 +265,7 @@ export const SMTP_TRANSPORT_DESCRIPTION: string = translationKey(
  * enable this if you use port 587" was the opposite of the advice now.
  */
 export const SMTP_REQUIRE_TLS_DESCRIPTION: string = translationKey(
-  "Mail is sent only over an encrypted connection with a valid certificate. When this is off, mail is encrypted only if the server offers it, and the certificate is not checked. Port 465 is always encrypted.",
+  "Send mail only over an encrypted connection with a valid certificate. When off, the certificate is not checked. Port 465 is always encrypted.",
 );
 
 export const SMTP_FROM_EMAIL_DESCRIPTION: string = translationKey(
@@ -580,12 +653,12 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       field: { [columns.transportType]: true } as SelectFormFields<TEntity>,
       title: "Transport",
       stepId: "server",
-      fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions:
-        DropdownUtil.getDropdownOptionsFromEnum(MailTransportType),
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SMTP_TRANSPORT_CHOICES,
       required: true,
       defaultValue: MailTransportType.SMTP,
       description: SMTP_TRANSPORT_DESCRIPTION,
+      dataTestId: "smtp-transport",
       collapsibleSection: advancedSection,
     },
     {
@@ -604,14 +677,12 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       field: { [columns.authType]: true } as SelectFormFields<TEntity>,
       title: "Authentication Type",
       stepId: "server",
-      fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-        SMTPAuthenticationType,
-      ),
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SMTP_AUTH_TYPE_CHOICES,
       required: true,
       defaultValue: SMTPAuthenticationType.UsernamePassword,
-      description:
-        "Select the authentication method. Use OAuth for providers like Microsoft 365, Google Workspace, etc.",
+      description: SMTP_AUTH_TYPE_DESCRIPTION,
+      dataTestId: "smtp-auth-type",
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpServerFields(values, columns);
       },
@@ -621,13 +692,12 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       field: { [columns.oauthProviderType]: true } as SelectFormFields<TEntity>,
       title: "OAuth Provider Type",
       stepId: "server",
-      fieldType: FormFieldSchemaType.Dropdown,
-      dropdownOptions:
-        DropdownUtil.getDropdownOptionsFromEnum(OAuthProviderType),
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: SMTP_OAUTH_PROVIDER_TYPE_CHOICES,
       required: true,
       defaultValue: OAuthProviderType.ClientCredentials,
-      description:
-        "Select the OAuth grant type. Use 'Client Credentials' for Microsoft 365 and most providers. Use 'JWT Bearer' for Google Workspace service accounts.",
+      description: SMTP_OAUTH_PROVIDER_TYPE_DESCRIPTION,
+      dataTestId: "smtp-oauth-provider-type",
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthProviderType(values, columns);
       },
@@ -641,7 +711,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       required: true,
       placeholder: "12345678-1234-1234-1234-123456789012",
       description:
-        "Application (Client) ID from your Azure AD app registration (or service account for JWT Bearer).",
+        "Application (Client) ID from your Microsoft Entra ID app registration (or service account for JWT Bearer).",
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);
@@ -656,7 +726,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       required: true,
       placeholder: "Client secret value",
       description:
-        "For Client Credentials: Client secret from your OAuth application. For JWT Bearer (Google): The entire private_key from your service account JSON file (including BEGIN/END markers).",
+        "Your OAuth app's client secret. For Google (JWT Bearer), the whole private_key from the service account's JSON file.",
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);
@@ -672,7 +742,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       placeholder:
         "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
       description:
-        "The OAuth token endpoint URL. For Microsoft 365 (both SMTP+OAuth and Microsoft Graph): https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token. For Google: https://oauth2.googleapis.com/token",
+        "Your provider's OAuth token endpoint. For Google: https://oauth2.googleapis.com/token",
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);
@@ -687,7 +757,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       required: true,
       placeholder: "https://graph.microsoft.com/.default",
       description:
-        "The OAuth scope(s) required. For Microsoft Graph: https://graph.microsoft.com/.default. For Microsoft 365 SMTP+OAuth: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+        "For Microsoft 365 SMTP: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
       disableSpellCheck: true,
       showIf: (values: FormValues<TEntity>): boolean => {
         return showsSmtpOAuthCredentials(values, columns);
@@ -702,8 +772,8 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
             stepId: "server",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
-            description:
-              "Friendly description for this config so you remember what this is about.",
+            // A note for your team: nothing to explain, the placeholder shows one.
+            hideColumnDescription: true,
             placeholder: "Company SMTP server hosted on AWS",
             collapsibleSection: advancedSection,
           },
@@ -726,8 +796,7 @@ export const getSmtpConfigFormFields: GetSmtpConfigFormFieldsFunction = <
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "Company, Inc.",
-      description:
-        "This is the display name your team and customers see, when they receive emails from OneUptime.",
+      description: "The name people see your emails come from.",
       disableSpellCheck: true,
     },
   ];
@@ -747,8 +816,8 @@ export const getProjectSmtpConfigFormFields: () => Array<
       stepId: "server",
       fieldType: FormFieldSchemaType.Text,
       required: true,
-      description:
-        "Friendly name for this config so you remember what this is about.",
+      // The placeholder shows one; "Friendly name for this config ..." said nothing more.
+      hideColumnDescription: true,
       placeholder: "Company SMTP Server",
       validation: {
         minLength: 2,

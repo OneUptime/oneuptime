@@ -35,7 +35,7 @@ flowchart TB
 
 ### Skapa flödet
 
-Klicka på **Skapa Threat Intel Feed** och fyll i dess fem steg: **Grundläggande information**, **TAXII Server**, **Autentisering**, **Security Cases** och **Vid träff**. Fälten finns i tabellen nedan.
+Klicka på **Skapa Threat Intel Feed** och fyll i dess tre steg: **TAXII-server**, **Inloggning** och **Vid träff**. Fälten finns i tabellen nedan.
 
 ### Kontrollera den första hämtningen
 
@@ -48,16 +48,16 @@ Inom en minut eller två visar flödets rad **Last Polled**, och **Last Poll Sum
 | **Collection ID** | Samlingen som publicerar indikatorerna. |
 | **Poll Interval (Minutes)** | Hur ofta nya objekt hämtas: 1 till 1440 minuter, 60 som standard. |
 | **Minimum Confidence** | Indikatorer med lägre STIX-`confidence` hoppas över: 0 till 100, och 0 behåller allt. Indikatorer utan confidence släpps alltid igenom. |
-| **API Token** | En bearer-token, för en samling som kräver en. |
-| **Basic Auth Username** och **Basic Auth Password** | För en samling som använder HTTP Basic-autentisering. Lämna båda och token tomma för en offentlig samling. |
+| **Inloggning** | Hur OneUptime loggar in: **Ingen inloggning** för en offentlig samling, **Bearer-token** för en token från serverns operatör eller **Användarnamn och lösenord** för HTTP Basic-autentisering. |
+| **API Token**, **Basic Auth Username** och **Basic Auth Password** | Efterfrågas bara för den valda inloggningen. |
 | **Open a Case on Match** | På som standard: varje händelse som nämner en indikator öppnar ett [ärende](/docs/telemetry/security-cases) om den, eller läggs till i det öppna ärende som redan handlar om den. |
-| **Create Alert on Match** | På som standard: varje indikator som träffar öppnar ett larm. |
+| **Varningar och incidenter** | **Skapa ett larm** som standard: varje indikator som träffar öppnar ett larm. |
 | **Varningsallvar** | Allvarlighetsgraden för varje larm som det här flödet öppnar. Lämna den tom för att använda varje indikators hotnivå. |
-| **Create Incident on Match** | Av som standard. Incidenter driver joureskalering, SLA:er och statussidor, och larm räcker oftast för indikatorträffar. |
+| **Deklarera en incident** eller **Båda** | Under **Varningar och incidenter**. Incidenter driver joureskalering, SLA:er och statussidor, och larm räcker oftast för indikatorträffar. |
 | **Incidentallvar** | Som **Varningsallvar**, för incidenter. |
 | **Write Detection Finding on Match** | På som standard: varje träff skriver ett fynd i händelseflödet. |
 
-Tokens och lösenord krypteras och visas aldrig igen efter att du har sparat dem. För att ändra dem väljer du **Update Credentials** i flödets rad och sedan **API Token (Bearer)**, **Basic Auth** eller **Anonymous (clear stored credentials)**: ditt val ersätter flödets inloggning, så att spara en token rensar ett sparat lösenord, och tvärtom.
+Tokens och lösenord krypteras och visas aldrig igen efter att du har sparat dem. För att ändra dem väljer du **Update Credentials** i flödets rad och sedan **Bearer-token**, **Användarnamn och lösenord** eller **Ingen inloggning**, som rensar det sparade: ditt val ersätter flödets inloggning, så att spara en token rensar ett sparat lösenord, och tvärtom.
 
 ### Så hämtas ett flöde
 
@@ -143,7 +143,7 @@ Varje minut matchas varje aktiverat flödes aktiva indikatorer mot händelserna 
 ### Vad en träff gör
 
 - Ett larm med titeln `[Threat Intel] <feed name> — <indicator value>`, ett per flöde och värde så länge det är öppet. När det har lösts öppnar nästa träff ett nytt. Larm löses inte automatiskt.
-- En incident, bara med **Create Incident on Match**, deduplicerad på samma sätt.
+- En incident, bara med **Deklarera en incident** eller **Båda** under **Varningar och incidenter**, deduplicerad på samma sätt.
 - Ett Threat Intel-fynd, med **Write Detection Finding on Match**: en händelse `Detection Finding` (OCSF-klass 2004) från produkten `OneUptime Threat Intel`, med indikatorns hotnivå som allvarlighetsgrad och de här attributen:
 
 | Attribut | Värde |
@@ -199,7 +199,7 @@ Matchningen jämför en indikators värde med en händelses observables, inte me
 :::
 
 :::details En träff öppnade inget larm
-**Create Alert on Match** är avstängt, eller ett larm för samma flöde och värde är fortfarande öppet, och senare träffar slås ihop med det. Ett projekt behöver minst en larmallvarlighetsgrad för att ett flöde ska kunna öppna larm.
+**Varningar och incidenter** är satt till **Deklarera en incident** eller **Ingetdera**, eller ett larm för samma flöde och värde är fortfarande öppet, och senare träffar slås ihop med det. Ett projekt behöver minst en larmallvarlighetsgrad för att ett flöde ska kunna öppna larm.
 :::
 
 ## Nästa steg

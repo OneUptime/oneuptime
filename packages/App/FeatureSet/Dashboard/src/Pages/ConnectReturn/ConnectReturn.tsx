@@ -5,6 +5,7 @@ import { getConnectReturnPath } from "../../Utils/Workspace/ConnectCallbackMessa
 import Route from "Common/Types/API/Route";
 import {
   CONNECT_ERROR_QUERY_PARAM,
+  CONNECT_NOTICE_QUERY_PARAM,
   CONNECT_PROVIDER_QUERY_PARAM,
 } from "Common/Types/Workspace/ConnectCallback";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -17,7 +18,8 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
  * server cannot tell which project it was for: its one-use link was unknown,
  * had expired, had been used, or was brought back by another browser - or
  * GitHub sent the browser back on its own, after an installation was changed
- * on GitHub. Nothing in such a redirect may choose a project, so the project
+ * on GitHub or the app was installed there (`?notice=`, passed on for the
+ * page to show). Nothing in such a redirect may choose a project, so the project
  * the person has open is the one it is shown in: this passes the browser on
  * to the provider's page there, with the code the callback answered with,
  * where the page says what happened and its Connect button is right there to
@@ -45,6 +47,7 @@ const ConnectReturn: FunctionComponent<RoutesProps> = (
             CONNECT_PROVIDER_QUERY_PARAM,
           ),
           error: Navigation.getQueryStringByName(CONNECT_ERROR_QUERY_PARAM),
+          notice: Navigation.getQueryStringByName(CONNECT_NOTICE_QUERY_PARAM),
         }),
       ),
       { replace: true },

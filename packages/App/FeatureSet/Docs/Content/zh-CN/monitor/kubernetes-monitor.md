@@ -14,7 +14,7 @@ Kubernetes 监视器根据 OneUptime Kubernetes 代理从集群发送的指标�
 代理通过 OTLP 把集群的指标发送到 OneUptime，每条都带有集群名称（`k8s.cluster.name`，即 chart 的 `clusterName`）。来自新名称的第一批数据会把集群注册到 **Kubernetes** 下，此后就可以在 Kubernetes 监视器中选择该集群。监视器每分钟在其 **时间范围** 内查询这些指标，进行聚合，并把结果与条件进行比较。
 
 ```mermaid title="从集群指标到事件"
-flowchart LR
+flowchart TB
     agent["Kubernetes 代理"] -->|"OTLP 指标"| metrics["集群指标"]
     metrics --> monitor["Kubernetes 监视器"]
     monitor -->|"满足条件"| incident["警报或事件"]
@@ -107,7 +107,7 @@ flowchart LR
 | 总和 | 所有值的总和 |
 | Maximum Value | 时间窗口内的最高值 |
 | Minimum Value | 时间窗口内的最低值 |
-| All Values | 所有值都必须满足条件 |
+| All Values | 所有值都必须满足条件，并且要覆盖整个时间窗口 |
 | Any Value | 至少有一个值满足即可 |
 
 ### 条件类型

@@ -249,7 +249,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 워크플로
 
-양식에는 자동 생성된 워크플로 구성 요소 (**On Create Form**, **On Update Form** 등) 가 있습니다. 양식이 만든 항목에 작업하려면 **On Create Incident** 또는 **On Create Scheduled Maintenance** 를 사용하세요.
+양식에는 자동 생성된 워크플로 구성 요소 (**On Create Form**, **On Update Form** 등) 가 있습니다. 양식이 만든 항목에 작업하려면 **On Create Incident** 또는 **On Create Scheduled Maintenance Event** 를 사용하세요.
 
 ### 공개 페이지 전용 엔드포인트
 

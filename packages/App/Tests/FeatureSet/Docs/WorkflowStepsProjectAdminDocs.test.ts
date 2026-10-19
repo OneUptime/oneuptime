@@ -1,5 +1,9 @@
+import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
+import DatabaseRequestType from "Common/Server/Types/BaseDatabase/DatabaseRequestType";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import WorkflowAccessChangeRefusedException from "Common/Server/Types/Database/Permissions/WorkflowAccessChangeRefusedException";
 import { describeRefusal } from "Common/Server/Types/Workflow/Components/BaseModel/LogComponentError";
+import WorkflowPrincipal from "Common/Server/Utils/Workflow/WorkflowPrincipal";
 import NotAuthorizedException from "Common/Types/Exception/NotAuthorizedException";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -12,6 +16,8 @@ import path from "path";
  * components on the Components page, and the 13 -> 14 upgrade notes, which
  * say plainly what changes for an existing workflow and what does not for the
  * API and Terraform. The refusal they quote is the one the run log writes.
+ * They also say what a step never does though a Project Admin may: change
+ * who has access to the project (WorkflowPrincipal.assertDoesNotChangeAccess).
  */
 
 const CONTENT_DIR: string = path.resolve(
@@ -82,7 +88,9 @@ describe("the Configuration & Safety page says what a step may do", () => {
     expect(text).toContain(
       "**Project Owner**, billing or project-deletion permissions",
     );
-    expect(text).toContain("such as the owners' team");
+    // A step no longer grants what a Project Admin holds: it grants nothing.
+    expect(text).not.toContain("such as the owners' team");
+    expect(text).not.toContain("A step can grant only");
     expect(text).toContain("**Only what your plan includes.**");
     expect(text).toContain("refused with the plan it needs");
     expect(text).toContain("**Nothing OneUptime keeps for itself.**");
@@ -115,10 +123,45 @@ describe("the Configuration & Safety page says what a step may do", () => {
     const written: string = describeRefusal({
       error: new NotAuthorizedException("…"),
       message: "…",
-      stepTitle: "Create One Team Permission",
+      stepTitle: "Find One Probe",
     })!;
 
     expect(text).toContain(`*${written}*`);
+  });
+
+  test("a step changes nobody's access, and the page says who makes those changes", () => {
+    expect(text).toContain("**Not who has access.**");
+    expect(text).toContain(
+      "A step doesn't create, change or delete teams, team members, team permissions, custom roles or API key permissions, even though a Project Admin may.",
+    );
+    // Why: whoever builds a workflow may be someone with less access.
+    expect(text).toContain("that can be a **Project Member**");
+    expect(text).toContain("such as **Project Admin**");
+    expect(text).toContain(
+      "its run log says a person who manages the project's teams and API keys has to make the change",
+    );
+    expect(text).toContain(
+      "Triggers and Find steps on these records still work.",
+    );
+  });
+
+  test("the access refusal it describes is the one the run log writes", () => {
+    const message: string = WorkflowPrincipal.getAccessChangeRefusal(
+      TeamPermission,
+      DatabaseRequestType.Create,
+    );
+    const written: string = describeRefusal({
+      error: new WorkflowAccessChangeRefusedException(message),
+      message: message,
+      stepTitle: "Create One Team Permission",
+    })!;
+
+    expect(written).toContain(
+      "A person who manages the project's teams and API keys has to make this change.",
+    );
+    expect(written).not.toContain(
+      "Workflow steps can do only what a Project Admin of this project can do",
+    );
   });
 
   test("steps that call other systems are not changed", () => {
@@ -160,6 +203,10 @@ describe("the upgrade notes say what changes", () => {
   test("what an existing workflow meets, and how to find what it refused", () => {
     expect(text).toContain("used to act as OneUptime itself");
     expect(text).toContain("What changes for an existing workflow:");
+    expect(text).toContain(
+      "A step that creates, changes or deletes a team, a team member, a team permission, a custom role or an API key permission is refused, whatever it would grant, **Project Owner** and **Project Admin** included: workflow steps don't change who has access to the project.",
+    );
+    expect(text).not.toContain("such as the owners' team");
     expect(text).toContain(
       "look over your workflows' **Runs** for refused steps",
     );
@@ -230,6 +277,19 @@ describe("every language's Configuration page has the section", () => {
 
       const text: string = section(page, headings[at]!);
 
+      // Every point the English section makes, the new one on access included.
+      const bullets: (markdown: string) => number = (
+        markdown: string,
+      ): number => {
+        return markdown.split("\n").filter((line: string): boolean => {
+          return line.startsWith("- **");
+        }).length;
+      };
+
+      expect(bullets(text)).toBe(
+        bullets(section(read("en", CONFIGURATION), HEADING)),
+      );
+      expect(text).toContain("**Project Member**");
       expect(text).toContain("**Project Admin**");
       expect(text).toContain("**Project Owner**");
       expect(text).toContain("**Error**");

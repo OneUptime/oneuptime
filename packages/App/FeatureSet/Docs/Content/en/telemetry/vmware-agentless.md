@@ -12,10 +12,10 @@ Monitor a vCenter Server, or a standalone ESXi host, without installing anything
 
 ```mermaid
 flowchart TB
-    OU["OneUptime"] -->|"collect now, every few minutes"| P["Your probe"]
-    P -->|"HTTPS 443, read-only vSphere API"| VC["vCenter Server or ESXi host"]
-    P -->|"metrics, as the VMware Agent sends them"| OU
-    OU --> V["VMware pages, monitors, alerts and AI"]
+    OU["OneUptime"] -->|"collect<br/>now, every<br/>few minutes"| P["Your probe"]
+    P -->|"HTTPS 443, read-only<br/>vSphere API"| VC["vCenter Server<br/>or ESXi host"]
+    P -->|"metrics,<br/>as the<br/>VMware Agent<br/>sends them"| OU
+    OU --> V["VMware pages,<br/>monitors, alerts and AI"]
 ```
 
 Every few minutes the probe logs in to vCenter with the account you saved, reads the inventory, the performance counters and vSAN statistics, and sends them to OneUptime. They arrive exactly as the VMware Agent's do, so every VMware page, [VMware monitor](/docs/monitor/vmware-monitor), alert template and OneUptime AI reads them the same way. The probe keeps its vCenter session between collections, so vCenter's event log does not fill with logins.

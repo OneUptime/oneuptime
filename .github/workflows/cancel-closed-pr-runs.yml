@@ -57,6 +57,8 @@ jobs:
           - Compile
           - Dependency Audit
           - Enterprise Edition Test
+          - Infrastructure Agent MSI Test
+          - Infrastructure Agent Release Status
           - Infrastructure Agent Test
           - Kubernetes AI Agent Test
           - Kubernetes Agent eBPF E2E

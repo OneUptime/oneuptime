@@ -25,6 +25,32 @@ render is the only place this can be caught before the data is wrong.
 {{- end }}
 
 {{/*
+The Secret the operator created for the ingestion key (oneuptime.existingSecretName),
+or nothing when the chart keeps oneuptime.apiKey in a Secret of its own
+(templates/secret.yaml, which renders only then).
+
+Setting both is refused rather than resolved: a Secret of your own is there to
+keep the key out of the release's values, and a key left in apiKey would stay
+in every revision Helm stores.
+*/}}
+{{- define "kubernetes-agent.existingSecretName" -}}
+{{- $oneuptime := .Values.oneuptime | default dict -}}
+{{- $existing := toString ($oneuptime.existingSecretName | default "") | trim -}}
+{{- if and $existing (toString ($oneuptime.apiKey | default "") | trim) -}}
+{{- fail (printf "oneuptime.apiKey and oneuptime.existingSecretName are both set. Set one of them: to read the ingestion key from the Secret %s, clear apiKey (--set oneuptime.apiKey=\"\")." $existing) -}}
+{{- end -}}
+{{- $existing -}}
+{{- end }}
+
+{{/*
+The Secret every workload reads the ingestion key from, under `api-key`.
+Usage: secretKeyRef: { name: {{ include "kubernetes-agent.apiKeySecretName" . }}, key: api-key }
+*/}}
+{{- define "kubernetes-agent.apiKeySecretName" -}}
+{{- include "kubernetes-agent.existingSecretName" . | default (include "kubernetes-agent.fullname" .) -}}
+{{- end }}
+
+{{/*
 Create a default fully qualified app name.
 */}}
 {{- define "kubernetes-agent.fullname" -}}
@@ -49,12 +75,16 @@ Create chart name and version as used by the chart label.
 
 {{/*
 Common labels
+
+managed-by is written out, as Helm itself would always fill it in ("Helm"):
+Amazon EKS renders this chart as an add-on too (HelmChart/Marketplace), and
+refuses a chart that reads any Release object but .Name and .Namespace.
 */}}
 {{- define "kubernetes-agent.labels" -}}
 helm.sh/chart: {{ include "kubernetes-agent.chart" . }}
 {{ include "kubernetes-agent.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/managed-by: Helm
 app.kubernetes.io/part-of: oneuptime
 {{- end }}
 
@@ -326,8 +356,9 @@ ebpf.dropUnlinkedDatabaseCalls.
     emits; db.system is the older one, kept so an OBI that still emits it is
     covered too.
   - The calls condition adds parent_span_id == SpanID(0x0000000000000000),
-    "no parent" in a form the pinned collector (0.96.0) understands;
-    IsRootSpan() is newer.
+    "no parent" in a form both the pinned collector (0.161.0) and 0.96.0,
+    which a --reuse-values upgrade keeps, understand; IsRootSpan() is newer
+    than 0.96.0.
 */}}
 {{/*
 Whether to drop each kind of unlinked eBPF database span in
@@ -402,8 +433,8 @@ OTTL span condition of `filter/ebpf-unlinked-client`: an OBI CLIENT span with
 no parent that is none of the calls other features read from spans.
 
   - telemetry.distro.name and the "no parent" form as for the database
-    condition above (parent_span_id == SpanID(0x0000000000000000) is what the
-    pinned collector, 0.96.0, understands).
+    condition above (parent_span_id == SpanID(0x0000000000000000) is what
+    both the pinned collector, 0.161.0, and 0.96.0 understand).
   - kind == SPAN_KIND_CLIENT only: PRODUCER and CONSUMER spans are messaging
     and always kept, as are SERVER spans (a request is a trace's root) and
     INTERNAL ones.
@@ -688,6 +719,23 @@ false
 {{- end -}}
 
 {{/*
+Whether the collector the agent runs (image.tag) is at least a given version,
+for the few config keys a release added: the collector refuses a config with
+a key it does not know, and `helm upgrade --reuse-values` keeps the previous
+release's image.tag (0.96.0 on a release from before 0.161.0, see
+_stale-defaults.tpl), so a key newer than the image it renders for would stop
+the agent. The version is read from the front of the tag (`0.161.0`,
+`v0.161.0`, `0.161.0@sha256:...`); a tag that names no version (`latest`, a
+mirror's own name) counts as this chart's default.
+Usage: {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.157.0")) "true" }}
+*/}}
+{{- define "kubernetes-agent.collectorAtLeast" -}}
+{{- $tag := toString ((.root.Values.image | default dict).tag | default "") -}}
+{{- $version := regexFind "^[0-9]+\\.[0-9]+\\.[0-9]+" (trimPrefix "v" $tag) | default (include "kubernetes-agent.defaultCollectorImageTag" .root) -}}
+{{- semverCompare (printf ">=%s" .version) $version -}}
+{{- end -}}
+
+{{/*
 Platform capabilities, derived from the preset.
 
 hostPath is what separates the presets: GKE Autopilot and EKS Fargate reject it,
@@ -841,9 +889,10 @@ cluster-level series carry no namespace at all, and in OTTL
 delete every node metric. The guard also decides the tie-break for
 records we cannot classify: they are KEPT, never dropped.
 
-Metric name matching targets otel-collector-contrib 0.96.0 (see
-.Values.image.tag): `IsMatch` and the `metric` / `datapoint` OTTL
-contexts all exist there. Keep this file in step with that pin.
+Metric name matching is written for the pinned otel-collector-contrib
+(.Values.image.tag, 0.161.0) and for 0.96.0, which a --reuse-values upgrade
+keeps: `IsMatch`, the `metric` / `datapoint` OTTL contexts and paths with no
+context prefix (`name`, not `metric.name`) exist in both. Keep it that way.
 */}}
 
 {{/*

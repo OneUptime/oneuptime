@@ -176,6 +176,13 @@ const OKTA_SSO_LABELS: Array<string> = [
   "Assign to Groups",
   "Done",
   "Audience URI",
+  // The OneUptime app in the Okta Integration Network, and its settings.
+  "Browse App Catalog",
+  "Add Integration",
+  "OneUptime Project ID",
+  "OneUptime SSO Provider ID",
+  "App Settings",
+  "Application username format",
   // The "Other" tab, in any identity provider's terms.
   "Assertion Consumer Service URL / Reply URL",
   "Entity ID / Audience URI",
@@ -219,6 +226,10 @@ const IDENTITY_PROVIDER_LABELS: Record<string, Array<string>> = {
     "Start provisioning",
     "Provisioning logs",
     // Okta.
+    "Browse App Catalog",
+    "Add Integration",
+    "OneUptime SCIM Connection ID",
+    "API Token",
     "Create App Integration",
     "SAML 2.0",
     "General",
@@ -253,6 +264,31 @@ const IDENTITY_PROVIDER_LABELS: Record<string, Array<string>> = {
 };
 
 /*
+ * The OAuth 2.0 client credentials in a SCIM connection's dialog
+ * (ScimOAuthClientCredentials): its field names are JSX text, never looked
+ * up, and its buttons are words no Dashboard locale has, so every language
+ * draws them in English.
+ */
+const SCIM_CLIENT_CREDENTIALS_FILE: string =
+  "ee/Dashboard/Identity/Components/ScimOAuthClientCredentials.tsx";
+
+const SCIM_CLIENT_CREDENTIALS_TEXT: Array<string> = [
+  "OAuth 2.0 Client Credentials",
+  "Token Endpoint",
+  "Client ID",
+  "Client Secret",
+  "Make Client Secret",
+  "Make New Client Secret",
+  "Delete Previous Secret",
+];
+
+const SCIM_CLIENT_CREDENTIALS_BUTTONS: Array<string> = [
+  "Make Client Secret",
+  "Make New Client Secret",
+  "Delete Previous Secret",
+];
+
+/*
  * Bold names the translations keep in English, by page: plans; roles and
  * permissions, as the API, Terraform and the role pickers name them;
  * products; "Admin", the Admin Dashboard in a path; and what the product
@@ -278,6 +314,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Okta",
     "SCIM Base URL",
     "Bearer Token",
+    ...SCIM_CLIENT_CREDENTIALS_TEXT,
   ],
   [IP_ADDRESSES]: ["No IP addresses configured."],
 };
@@ -294,6 +331,7 @@ const PRODUCT_TEXT_IN_ENGLISH: Record<string, Array<string>> = {
     "Okta",
     "SCIM Base URL",
     "Bearer Token",
+    ...SCIM_CLIENT_CREDENTIALS_TEXT,
   ],
   [IP_ADDRESSES]: ["No IP addresses configured."],
 };
@@ -335,6 +373,42 @@ const SOURCE_TEXT: ReadonlyArray<SourceText> = [
     file: "packages/App/FeatureSet/Docs/Utils/Placeholders.ts",
     literal: /return "- No IP addresses configured\.";/,
   },
+  {
+    text: "OAuth 2.0 Client Credentials",
+    file: SCIM_CLIENT_CREDENTIALS_FILE,
+    literal: /\n\s*OAuth 2\.0 Client Credentials:\n/,
+  },
+  {
+    text: "Token Endpoint",
+    file: SCIM_CLIENT_CREDENTIALS_FILE,
+    literal: />Token Endpoint:<\/p>/,
+  },
+  {
+    text: "Client ID",
+    file: SCIM_CLIENT_CREDENTIALS_FILE,
+    literal: />Client ID:<\/p>/,
+  },
+  {
+    text: "Client Secret",
+    file: SCIM_CLIENT_CREDENTIALS_FILE,
+    literal: />Client Secret:<\/p>/,
+  },
+  // Its buttons are looked up, and drawn in English while no locale words them.
+  {
+    text: "Make Client Secret",
+    file: SCIM_CLIENT_CREDENTIALS_FILE,
+    literal: /"Make New Client Secret" : "Make Client Secret"/,
+  },
+  {
+    text: "Make New Client Secret",
+    file: SCIM_CLIENT_CREDENTIALS_FILE,
+    literal: /"Make New Client Secret" : "Make Client Secret"/,
+  },
+  {
+    text: "Delete Previous Secret",
+    file: SCIM_CLIENT_CREDENTIALS_FILE,
+    literal: /title="Delete Previous Secret"/,
+  },
 ];
 
 /*
@@ -373,8 +447,13 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
     "Test this SSO provider",
     "Test this OIDC provider",
     "Attached Projects",
-    "Disable Sign Up with SSO",
-    "Restrict to Attached Projects",
+    // The provider's two questions and their answers (SsoProviderFormFields).
+    "People without an account",
+    "Get one on their first sign-in",
+    "Must be invited first",
+    "Where this sign-in counts as SSO",
+    "Every project",
+    "Attached projects only",
     "Require SSO for Login",
   ],
 };
@@ -489,7 +568,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Give Entra ID OneUptime's URLs",
     "Send the email as the Name ID",
     "Assign users and groups",
-    "Create a SAML application in Okta",
+    "Add OneUptime to Okta",
     "Copy Okta's SAML values",
     "Give Okta OneUptime's URLs",
     "Assign people",
@@ -536,12 +615,24 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     ':::details "Issuer URL does not match"',
     ':::details "Encrypted SAML Responses are not supported"',
     ':::details "SAML response did not include a valid email address"',
+    ':::details "SAML Audience does not match"',
+    ':::details "SAML Recipient does not match"',
+    ':::details "SAML response has expired"',
+    ':::details "SAML response was already used"',
+    ':::details "This account is linked to someone else."',
+    '"SAML Destination does not match"',
+    '"SAML response is not valid yet"',
   ],
   [GLOBAL_SSO]: [
     ':::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"',
     ':::details "This SSO provider does not grant access to any project you are a member of"',
     ':::details "You are not a member of any project on this OneUptime instance"',
     ':::details "Issuer URL does not match"',
+    ':::details "SAML Audience does not match"',
+    ':::details "SAML response was already used"',
+    '"SAML Recipient does not match"',
+    '"SAML Destination does not match"',
+    '"SAML response has expired"',
     '"Another change to who can sign in with SSO is being saved. Try again in a moment."',
     '"The server\'s SSO settings are being changed. Create the project again in a moment."',
   ],
@@ -552,8 +643,8 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
  * with Persian digits as Latin ones and thousands separators dropped.
  */
 const NUMBERS: Record<string, Array<string>> = {
-  [SSO]: ["24", "17", "700016", "404"],
-  [SCIM]: ["14", "30", "40", "200", "1000", "400", "401", "402"],
+  [SSO]: ["24", "17", "700016", "404", "10", "3"],
+  [SCIM]: ["14", "30", "40", "200", "1000", "401", "402"],
 };
 
 const DIALOG_COLON: RegExp = /\s*[:：]\s*$/;
@@ -1005,6 +1096,12 @@ describe("the lists this test keeps", () => {
       "Enabled",
       "More fields",
       "Require SSO for Login",
+      "People without an account",
+      "Get one on their first sign-in",
+      "Must be invited first",
+      "Where this sign-in counts as SSO",
+      "Every project",
+      "Attached projects only",
     ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,
@@ -1019,12 +1116,23 @@ describe("the lists this test keeps", () => {
       "Sign On URL",
       "Attached Projects",
       "Edit Configuration",
-      "Restrict to Attached Projects",
     ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,
         inLocale: undefined,
       });
+    }
+  });
+
+  it("keep the SCIM dialog's client secret buttons out of every Dashboard locale, so they are drawn in English", () => {
+    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+      for (const label of SCIM_CLIENT_CREDENTIALS_BUTTONS) {
+        expect({ language, label, drawn: label }).toEqual({
+          language,
+          label,
+          drawn: flatDashboardLabel(language, label),
+        });
+      }
     }
   });
 

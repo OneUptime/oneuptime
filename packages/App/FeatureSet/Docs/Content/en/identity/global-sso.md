@@ -73,11 +73,11 @@ How a global provider behaves depends on whether you attach any projects to it:
 flowchart TB
     S["Someone signs in"] --> A{"Projects attached?"}
     A -->|"No"| K{"Has an account?"}
-    K -->|"No"| R["Refused: invite them first"]
-    K -->|"Yes"| E["Signed in to their projects"]
+    K -->|"No"| R["Refused: invite<br/>them first"]
+    K -->|"Yes"| E["Signed in to<br/>their projects"]
     A -->|"Yes"| D{"New, with sign-up<br/>disabled?"}
     D -->|"Yes"| R
-    D -->|"No"| P["Added to attached projects<br/>they are not in yet"]
+    D -->|"No"| P["Added to<br/>attached projects<br/>they are not in yet"]
     P --> E
 ```
 
@@ -87,12 +87,14 @@ flowchart TB
 
 Someone who is already a member of an attached project keeps the teams they have there.
 
-Two switches on the provider change this. Both start off, folded under **More fields**:
+Two questions on the provider change this, folded under **More fields**. Each starts on its first answer:
 
-| Switch | What it does when on |
+| Question | Answers |
 | --- | --- |
-| **Disable Sign Up with SSO** | People must be invited to a project before they can sign in with this provider, even when projects are attached. Nobody new is created on their first sign-in. |
-| **Restrict to Attached Projects** | Signing in with this provider meets SSO enforcement only in the projects attached to it, so people already signed in can lose access to other projects. When off, it meets it in every project the person belongs to, and attached projects only decide where newcomers are added. |
+| **People without an account** | **Get one on their first sign-in**: they join the attached projects; with none attached, they must be invited first. **Must be invited first**: they must be invited to a project before they can sign in with this provider, even when projects are attached. |
+| **Where this sign-in counts as SSO** | **Every project**: projects that require SSO accept a sign-in with this provider. **Attached projects only**: signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others. |
+
+With **Every project**, signing in with the provider meets SSO enforcement in every project the person belongs to, and attached projects only decide where newcomers are added.
 
 ## Enforcing SSO
 
@@ -134,11 +136,11 @@ Two changes to who can sign in are checked one after the other. If another one i
 ## Troubleshooting
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-The person has no OneUptime account yet, and the provider does not create one: either no projects are attached to it, or **Disable Sign Up with SSO** is on. Invite them to a project, or attach a project to the provider.
+The person has no OneUptime account yet, and the provider does not create one: either no projects are attached to it, or **People without an account** is set to **Must be invited first**. Invite them to a project, or attach a project to the provider.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
-**Restrict to Attached Projects** is on, and the person is not a member of any project attached to the provider. Attach one of their projects, or add them to an attached project.
+**Where this sign-in counts as SSO** is set to **Attached projects only**, and the person is not a member of any project attached to the provider. Attach one of their projects, or add them to an attached project.
 :::
 
 :::details "You are not a member of any project on this OneUptime instance"
@@ -147,6 +149,14 @@ The person has an account but belongs to no project, and the provider has nothin
 
 :::details "Issuer URL does not match"
 For a SAML provider, the issuer in your identity provider's response is not the **Issuer** saved on the provider. Copy it again from your identity provider; the two must match exactly.
+:::
+
+:::details "SAML Audience does not match"
+For a SAML provider, the response was made for another application: its audience is not the provider's **Issuer (Entity ID)**. In your identity provider, set the application's entity ID to the **Issuer (Entity ID)** on the provider's page. "SAML Recipient does not match" and "SAML Destination does not match" are the same for its reply URL: set it to the **ACS URL (Assertion Consumer Service / Reply URL)**.
+:::
+
+:::details "SAML response was already used"
+Each response from your identity provider signs someone in once, and only within minutes of being issued: after that it is refused with "SAML response has expired". Sign in again. If responses keep expiring, check the clocks of this server and of your identity provider.
 :::
 
 ## Next steps

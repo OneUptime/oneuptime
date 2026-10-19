@@ -22,9 +22,9 @@ flowchart TB
     subgraph cluster["Your Swarm cluster"]
         direction LR
         manager["Agent on a manager"]
-        others["Collectors on other nodes"]
+        others["Collectors on<br/>other nodes"]
     end
-    manager -->|"metrics and inventory"| oneuptime["OneUptime"]
+    manager -->|"metrics and<br/>inventory"| oneuptime["OneUptime"]
     others -->|"metrics"| oneuptime
     oneuptime -->|"first data"| registered["Cluster registered"]
     oneuptime --> monitor["Docker Swarm monitor"]
@@ -148,7 +148,7 @@ A criteria compares one of the monitor's queries or formulas with a threshold. A
 | Field | What it does |
 | --- | --- |
 | **Metric** | The query or formula to check, by its variable name. |
-| **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match) or **Any Value** (one is enough). |
+| **Aggregation** | How the values in the window become one answer: **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (every value must match, over the whole window) or **Any Value** (one is enough). |
 | **Condition** | **Greater Than**, **Less Than**, **Greater Than Or Equal To**, **Less Than Or Equal To** or **Equal To** — or an anomaly condition: **Anomalously High**, **Anomalously Low** or **Anomalous**. |
 | **Threshold** | The value to compare with. A unit list sits beside it when the metric has a unit. Not shown for anomaly conditions. |
 | **Sensitivity** | Anomaly conditions only. **Low** (4σ), **Medium** (3σ, the default) or **High** (2σ). |

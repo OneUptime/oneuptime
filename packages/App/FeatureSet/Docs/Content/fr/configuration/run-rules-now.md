@@ -4,12 +4,12 @@ Les règles d'étiquettes, de propriétaires et de confidentialité s'exécutent
 
 ```mermaid title="Ce que fait une exécution"
 flowchart TB
-    S["Run Now"] --> E["Chaque ressource du projet"]
-    E --> M{"Correspond à la règle ?"}
+    S["Run Now"] --> E["Chaque ressource<br/>du projet"]
+    E --> M{"Correspond<br/>à la règle ?"}
     M -->|"Non"| K["Laissée telle quelle"]
     M -->|"Oui"| H{"A déjà ce que<br/>la règle ajoute ?"}
-    H -->|"Oui"| A["Comptée comme déjà appliquée"]
-    H -->|"Non"| C["Étiquettes ou propriétaires<br/>ajoutés, ou rendue privée"]
+    H -->|"Oui"| A["Comptée comme<br/>déjà appliquée"]
+    H -->|"Non"| C["Étiquettes ou<br/>propriétaires<br/>ajoutés, ou<br/>rendue privée"]
 ```
 
 ## Quelles règles peuvent être exécutées

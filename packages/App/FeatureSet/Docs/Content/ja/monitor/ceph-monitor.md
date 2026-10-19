@@ -22,14 +22,14 @@ flowchart TB
         active["アクティブな mgr"]
         standby["スタンバイの mgr"]
     end
-    active -->|"ポート 9283 のメトリクス"| agent["OneUptime Ceph Agent"]
-    standby -.->|"フェイルオーバー後"| agent
-    agent -->|"OTLP で送る Ceph メトリクス"| oneuptime["OneUptime"]
+    active -->|"ポート 9283 の<br/>メトリクス"| agent["OneUptime Ceph Agent"]
+    standby -.->|"フェイル<br/>オーバー後"| agent
+    agent -->|"OTLP で<br/>送る Ceph<br/>メトリクス"| oneuptime["OneUptime"]
     oneuptime -->|"最初のデータ"| registered["クラスターを登録"]
     oneuptime --> monitor["Ceph モニター"]
     monitor -->|"毎分"| criteria{"条件を満たす?"}
-    criteria -->|"はい"| incident["インシデントまたはアラート"]
-    criteria -->|"いいえ"| online["モニターはオンライン"]
+    criteria -->|"はい"| incident["インシデントまたは<br/>アラート"]
+    criteria -->|"いいえ"| online["モニターは<br/>オンライン"]
 ```
 
 ## 始める前に
@@ -218,7 +218,7 @@ flowchart TB
 | フィールド | 役割 |
 | --- | --- |
 | **メトリクス** | 確認するクエリまたは数式。変数名で指定します。 |
-| **集計** | ウィンドウ内の値を 1 つの答えにまとめる方法: **平均**、**合計**、**Maximum Value**、**Minimum Value**、**All Values**（すべての値が一致する必要がある）、**Any Value**（1 つで十分）。 |
+| **集計** | ウィンドウ内の値を 1 つの答えにまとめる方法: **平均**、**合計**、**Maximum Value**、**Minimum Value**、**All Values**（ウィンドウ全体ですべての値が一致する必要がある）、**Any Value**（1 つで十分）。 |
 | **条件** | **より大きい**、**より小さい**、**以上**、**以下**、**等しい**、または異常の条件 **Anomalously High**、**Anomalously Low**、**Anomalous**。 |
 | **しきい値** | 比較する値。メトリクスに単位があるときは、横に単位のリストが表示されます。異常の条件では表示されません。 |
 | **感度** | 異常の条件のみ。**低**（4σ）、**中**（3σ、デフォルト）、**高**（2σ）。 |

@@ -16,6 +16,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_INVESTIGATION_RULES_TABLE_ID,
+  AI_LANE_RULE_CRITERIA_SUBJECTS,
   AI_LANE_RULES_COPY,
   AiLane,
   AiLaneAdvancedCard,
@@ -60,6 +61,8 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
       isEditable={true}
       isCreateable={true}
       createEditModalWidth={ModalWidth.Large}
+      // "All incidents" or "Only incidents that match conditions".
+      ruleCriteriaSubject={AI_LANE_RULE_CRITERIA_SUBJECTS[props.lane]}
       query={{ triggerEntityType: triggerEntityType }}
       onBeforeCreate={async (item: AIInvestigationRule) => {
         item.triggerEntityType = triggerEntityType;
@@ -203,6 +206,8 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { monitorLabels: true },
           title: "Monitor Labels",
+          description:
+            "Only match incidents and alerts whose monitor has one of these labels.",
           stepId: "match-criteria",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {

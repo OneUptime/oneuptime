@@ -21,15 +21,15 @@ Um monitor de Docker Swarm está vinculado a um cluster. A cada minuto, ele exec
 flowchart TB
     subgraph cluster["Seu cluster Swarm"]
         direction LR
-        manager["Agente em um manager"]
-        others["Coletores nos outros nós"]
+        manager["Agente em<br/>um manager"]
+        others["Coletores nos<br/>outros nós"]
     end
-    manager -->|"métricas e inventário"| oneuptime["OneUptime"]
+    manager -->|"métricas e<br/>inventário"| oneuptime["OneUptime"]
     others -->|"métricas"| oneuptime
     oneuptime -->|"primeiros dados"| registered["Cluster registrado"]
-    oneuptime --> monitor["Monitor de Docker Swarm"]
-    monitor -->|"a cada minuto"| criteria{"Critérios atendidos?"}
-    criteria -->|"sim"| incident["Incidente ou alerta"]
+    oneuptime --> monitor["Monitor de<br/>Docker Swarm"]
+    monitor -->|"a cada minuto"| criteria{"Critérios<br/>atendidos?"}
+    criteria -->|"sim"| incident["Incidente<br/>ou alerta"]
     criteria -->|"não"| online["Monitor online"]
 ```
 
@@ -148,7 +148,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | Campo | O que faz |
 | --- | --- |
 | **Métrica** | A consulta ou fórmula a verificar, pelo nome da variável. |
-| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam corresponder) ou **Any Value** (basta um). |
+| **Agregação** | Como os valores da janela viram uma única resposta: **Média**, **Soma**, **Maximum Value**, **Minimum Value**, **All Values** (todos os valores precisam corresponder, na janela inteira) ou **Any Value** (basta um). |
 | **Condição** | **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** ou **Igual a** – ou uma condição de anomalia: **Anomalously High**, **Anomalously Low** ou **Anomalous**. |
 | **Threshold** | O valor com que comparar. Uma lista de unidades fica ao lado quando a métrica tem unidade. Não aparece em condições de anomalia. |
 | **Sensibilidade** | Só condições de anomalia. **Baixo** (4σ), **Médio** (3σ, o padrão) ou **Alto** (2σ). |

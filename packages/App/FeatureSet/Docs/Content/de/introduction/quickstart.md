@@ -28,7 +28,7 @@ Bei Ihrer ersten Anmeldung zeigt OneUptime **Keine Projekte**. Klicken Sie auf *
 
 ### Einen Namen vergeben
 
-Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneUptime Cloud wählen Sie im nächsten Schritt einen Tarif.
+Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneUptime Cloud wählen Sie darunter auch einen Tarif: Free ist bereits ausgewählt, und die kostenpflichtigen Tarife beginnen mit einer kostenlosen Testphase.
 
 ### Das Projekt anlegen
 
@@ -68,7 +68,7 @@ Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder �
 
 ### Sie für jeden Vorfall auslösen
 
-Öffnen Sie **Vorfälle** im Menü **Produkte**, klappen Sie **Regeln** im Seitenmenü auf und wählen Sie **Bereitschaftsregeln**. Klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, geben Sie einen **Name** ein und klicken Sie auf **Weiter**. Lassen Sie **Übereinstimmungskriterien** leer, damit die Regel auf jeden Vorfall zutrifft, und klicken Sie auf **Weiter**. Wählen Sie Ihre Richtlinie unter **Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**.
+Öffnen Sie **Vorfälle** im Menü **Produkte**, klappen Sie **Regeln** im Seitenmenü auf und wählen Sie **Bereitschaftsregeln**. Klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, geben Sie einen **Name** ein und klicken Sie auf **Weiter**. Lassen Sie unter **Übereinstimmungskriterien** die Auswahl **Alle Vorfälle** stehen, damit die Regel auf jeden Vorfall zutrifft, und klicken Sie auf **Weiter**. Wählen Sie Ihre Richtlinie unter **Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**.
 
 ### Festlegen, wie Sie erreicht werden
 
@@ -85,15 +85,15 @@ Für weitere Stufen, Rotationen und wie lange jede Stufe wartet, siehe [Eskalati
 :::steps
 ### Die Statusseite anlegen
 
-Klicken Sie in der Checkliste auf **Statusseite veröffentlichen**, oder öffnen Sie **Statusseiten** im Menü **Produkte**. Klicken Sie auf **Statusseite erstellen**, geben Sie einen **Name** ein, etwa `Acme Status`, und klicken Sie auf **Statusseite erstellen**.
+Klicken Sie in der Checkliste auf **Statusseite veröffentlichen**, oder öffnen Sie **Statusseiten** im Menü **Produkte**. Klicken Sie auf **Statusseite erstellen**, geben Sie einen **Name** ein, etwa `Acme Status`, und klicken Sie auf **Statusseite erstellen**. Die neue Seite öffnet sich auf ihrer **Übersicht**.
 
 ### Ihren Monitor hinzufügen
 
-Öffnen Sie die neue Statusseite. Wählen Sie in ihrem Seitenmenü unter **Ressourcen** den Eintrag **Monitore**; in Projekten mit eingeschalteten Monitorgruppen heißt er **Ressourcen**. Klicken Sie auf **Monitor hinzufügen**, wählen Sie Ihren Website-Monitor und klicken Sie auf **Monitor hinzufügen**. Die Zeile zeigt Besuchern den Namen des Monitors; ändern Sie ihn bei Bedarf unter **Anzeigename**.
+Klicken Sie in der **Übersicht** auf **Monitore hinzufügen**, oder wählen Sie im Seitenmenü der Seite unter **Ressourcen** den Eintrag **Monitore**; in Projekten mit eingeschalteten Monitorgruppen heißt er **Ressourcen**. Klicken Sie auf **Monitor hinzufügen**, wählen Sie Ihren Website-Monitor und klicken Sie auf **Monitor hinzufügen**. Die Zeile zeigt Besuchern den Namen des Monitors; ändern Sie ihn bei Bedarf unter **Anzeigename**.
 
 ### Die Seite öffnen
 
-Wählen Sie **Übersicht** im Seitenmenü. Die Karte **Vorschau-URL der Statusseite** verlinkt auf Ihre Statusseite: Öffnen Sie sie, und Ihre Website wird als betriebsbereit angezeigt.
+Wählen Sie **Übersicht** im Seitenmenü. Die Karte **Link zur Statusseite** verlinkt auf Ihre Statusseite: Öffnen Sie sie, und Ihre Website wird als betriebsbereit angezeigt.
 :::
 
 Eine neue Statusseite ist öffentlich: Jeder mit ihrer Adresse kann sie öffnen. Wie Sie ihr Ihre eigene Domain, Ihr Logo und Ihre Farben geben, steht unter [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).

@@ -16,10 +16,10 @@ Preguntar a la IA responde solo con lo que devuelven sus herramientas: ejecuta c
 ```mermaid title="De una pregunta a una respuesta con citas"
 flowchart TB
     Q["Tu pregunta, con<br/>la página en la<br/>que estás"] --> A["Preguntar a la IA"]
-    A -->|"herramientas de lectura"| D["Los datos de tu<br/>proyecto, consultados<br/>en directo"]
+    A -->|"herramientas<br/>de lectura"| D["Los datos de tu<br/>proyecto,<br/>consultados<br/>en directo"]
     D --> R["Una respuesta con<br/>una cita por cada<br/>afirmación"]
     A -->|"una acción"| M{"El modo de<br/>permiso"}
-    M -->|"Ask to act"| C["Una tarjeta de<br/>aprobación: permites<br/>u omites"]
+    M -->|"Ask to act"| C["Una tarjeta de<br/>aprobación:<br/>permites<br/>u omites"]
     M -->|"Auto-run"| X["Se ejecuta, en<br/>tu nombre"]
     C -->|"permitida"| X
 ```
@@ -99,7 +99,7 @@ Cada acción que realiza Preguntar a la IA se hace en tu nombre: hace el mismo c
 - **El plan Growth, en OneUptime Cloud.** Un proyecto con un plan inferior ve que la IA no está incluida en su plan, con un enlace a **Ajustes del proyecto → Facturación y facturas → Facturación**.
 - **La IA activada para el proyecto.** **Habilitar IA**, en **Ajustes del proyecto → IA → Funciones de IA**, desactiva todas las funciones de IA del proyecto, Preguntar a la IA incluida. Está activada a menos que alguien la haya desactivado.
 
-Preguntar a la IA cuenta para los límites diarios de IA del propio proyecto cuando el proyecto los define (Ajustes del proyecto → Funciones de IA → Más ajustes): cuando se alcanza uno, Preguntar a la IA muestra una frase que dice qué límite se alcanzó, que OneUptime AI vuelve a empezar a medianoche UTC y quién puede subir o quitar el límite. Los propietarios del proyecto reciben un correo la primera vez que se alcanza un límite cada día. Los límites diarios de incidentes y alertas nunca detienen Preguntar a la IA. Consulta [los límites diarios del propio proyecto](/docs/ai/ai-sre#los-límites-diarios-propios-del-proyecto).
+Preguntar a la IA cuenta para los límites diarios de IA del propio proyecto cuando el proyecto los define (Ajustes del proyecto → IA → Funciones de IA → Más ajustes): cuando se alcanza uno, Preguntar a la IA muestra una frase que dice qué límite se alcanzó, que OneUptime AI vuelve a empezar a medianoche UTC y quién puede subir o quitar el límite. Los propietarios del proyecto reciben un correo la primera vez que se alcanza un límite cada día. Los límites diarios de incidentes y alertas nunca detienen Preguntar a la IA. Consulta [los límites diarios del propio proyecto](/docs/ai/ai-sre#los-límites-diarios-propios-del-proyecto).
 
 ## Solución de problemas
 

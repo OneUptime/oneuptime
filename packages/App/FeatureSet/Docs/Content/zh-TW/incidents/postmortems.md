@@ -67,7 +67,7 @@ flowchart TB
 
 點選 **Generate with AI**。**Generate Postmortem with AI** 對話方塊會在 **選擇範本** 之下提供大綱：**Standard Postmortem**、**Detailed Technical Postmortem** 或 **Brief Postmortem**，然後是您自己的事後分析範本。**Template Preview** 會顯示大綱，您可以在產生之前修改它。
 
-點選對話方塊底部的 **Generate with AI**。OneUptime AI 會讀取事件（它的描述、根本原因和修復、狀態時間軸、公開和私人備註，以及其 Slack 或 Microsoft Teams 頻道中的訊息），並依照您的大綱撰寫事後分析。接著編輯器會開啟並顯示結果。
+點選對話方塊底部的 **Generate with AI**。OneUptime AI 會讀取事件（它的描述、根本原因和修復、狀態時間軸、公開和私人備註、其 Slack 或 Microsoft Teams 頻道中的訊息，以及 [其通話](/docs/workspace-connections/video-calls#通話逐字稿) 中說過的內容），並依照您的大綱撰寫事後分析。接著編輯器會開啟並顯示結果。
 
 產生需要在 **專案設定 → 人工智慧 → AI Features** 之下為專案開啟 AI，並需要一個 LLM 提供者：請參閱 [LLM 提供者](/docs/ai/llm-provider)。它還需要 Project Owner 或 Project Admin 角色，或擁有 Edit Incident 權限的自訂角色：其他角色可以撰寫事後分析，但不能產生。
 
@@ -78,6 +78,7 @@ flowchart TB
 - 它從不取代已經寫好的備註。
 - 它從不寫入已經發布的事後分析，否則草稿會未經審閱就出現在狀態頁面上。
 - 它需要為專案開啟 AI，而且一旦專案達到每日 AI 限額，當天就會停止。請參閱 [自動事後分析](/docs/ai/ai-sre#自動事後分析)。
+- 如果事件解決時其通話的逐字稿仍在途中，它會等待 OneUptime AI 讀取逐字稿，讓草稿納入通話中說過的內容：在 Zoom 或 Google Meet 準備逐字稿期間最多等待六小時。請參閱 [錄製並轉錄每次通話](/docs/workspace-connections/video-calls#錄製並轉錄每次通話)。
 
 ## 發布到狀態頁面
 
@@ -152,7 +153,7 @@ flowchart TB
 :::
 
 :::details 事件解決時沒有出現 AI 草稿
-事件已經有備註、事後分析已經發布，或者 **事件解決後起草事後分析** 是關閉的。專案必須開啟 AI，而且專案不能已達到每日 AI 限額。
+事件已經有備註、事後分析已經發布，或者 **事件解決後起草事後分析** 是關閉的。專案必須開啟 AI，而且專案不能已達到每日 AI 限額。如果事件的通話有逐字稿正在途中，草稿會在 OneUptime AI 讀取逐字稿之後出現。
 :::
 
 ## 後續步驟

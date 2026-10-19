@@ -20,10 +20,10 @@ flowchart TB
         public["Note publique"]
         private["Note privée"]
     end
-    public --> page["Page de statut et abonnés"]
-    public --> owners["Propriétaires de l'incident"]
+    public --> page["Page de<br/>statut et<br/>abonnés"]
+    public --> owners["Propriétaires<br/>de l'incident"]
     private --> owners
-    public --> feed["Fil d'activité de l'incident"]
+    public --> feed["Fil d'activité<br/>de l'incident"]
     private --> feed
 ```
 
@@ -44,7 +44,7 @@ Les deux types de notes se ressemblent dans le tableau de bord et se comportent 
 | Pièces jointes accessibles par | Les visiteurs de la page de statut, via une route de la page de statut | Uniquement l'API authentifiée du tableau de bord           |
 | Notifie les propriétaires     | Oui                                                                 | Oui                                                             |
 
-**Ce que « privée » veut vraiment dire.** Cela veut dire « non publiée sur la page de statut » — pas « réservée à un groupe de personnes plus restreint ». Les rôles intégrés qui peuvent lire un incident lisent les deux types de notes, si bien que quiconque peut lire l'incident peut généralement lire ses notes privées ; dans un rôle personnalisé, ce sont des autorisations distinctes, **Read Incident Status Page Note** et **Read Incident Internal Note**. Si vous devez restreindre qui peut voir un incident tout court, utilisez l'indicateur **Incident privé** (`isPrivate`) sur l'incident lui-même, qui masque l'incident sur toutes les pages de statut et le limite aux utilisateurs propriétaires de l'incident, aux membres de ses équipes propriétaires, et aux administrateurs et propriétaires du projet.
+**Ce que « privée » veut vraiment dire.** Cela veut dire « non publiée sur la page de statut » — pas « réservée à un groupe de personnes plus restreint ». Les rôles intégrés qui peuvent lire un incident lisent les deux types de notes, si bien que quiconque peut lire l'incident peut généralement lire ses notes privées ; dans un rôle personnalisé, ce sont des autorisations distinctes, **Read Incident Status Page Note** et **Read Incident Internal Note**. Si vous devez restreindre qui peut voir un incident tout court, utilisez l'indicateur **Incident privé** (`isPrivate`) sur l'incident lui-même, qui masque l'incident sur toutes les pages de statut et le limite aux utilisateurs propriétaires de l'incident, aux membres de ses équipes propriétaires, et aux administrateurs et propriétaires du projet. Un incident privé n'accepte aucune note publique : voir [Les incidents privés n'acceptent que des notes privées](#les-incidents-privés-nacceptent-que-des-notes-privées).
 
 **Les propriétaires voient les deux.** La tâche de notification des propriétaires interroge les notes publiques et privées ensemble. Une note privée est privée vis-à-vis de vos abonnés, pas des personnes qui interviennent.
 
@@ -86,7 +86,7 @@ Le même éditeur s'ouvre dans une boîte de dialogue depuis **Ajouter une note 
 | **Posted now**                              | L'heure de publication qu'indique la note : le moment où vous la publiez, sauf si vous choisissez ici une heure antérieure, dans votre fuseau horaire actuel. |
 | **Notifier les abonnés à la page de statut** | Case à cocher. Cochée par défaut, sauf si l'incident a été déclaré sans notifier les abonnés — elle démarre alors décochée. Décochez-la pour publier discrètement. |
 
-**Les incidents discrets restent discrets.** Si un incident a été déclaré avec **Notifier les abonnés de la page de statut** désactivé (ou comme incident privé), ses abonnés n'en ont jamais été informés ; une note publique ne devrait donc pas être la première chose qu'ils apprennent. Sur un tel incident, la case démarre décochée, avec une ligne en dessous qui explique pourquoi. Vous pouvez toujours la cocher pour notifier les abonnés de cette note. Les notes publiées sans choix explicite suivent la même règle : les notes Slack et Microsoft Teams, les workflows, et les requêtes d'API qui omettent `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Un `true` ou un `false` explicite est toujours conservé. Les notes publiques des [événements de maintenance planifiée](/docs/status-pages/subscribers#événements-de-maintenance-planifiée) et des [épisodes d'incident](/docs/status-pages/subscribers#épisodes-dincident) suivent une règle semblable, selon que l'événement ou l'épisode lui-même a notifié les abonnés à sa création ; rendre un épisode privé n'y change rien.
+**Les incidents discrets restent discrets.** Si un incident a été déclaré avec **Notifier les abonnés de la page de statut** désactivé (ou comme incident privé), ses abonnés n'en ont jamais été informés ; une note publique ne devrait donc pas être la première chose qu'ils apprennent. Sur un tel incident, la case démarre décochée, avec une ligne en dessous qui explique pourquoi. Vous pouvez toujours la cocher pour notifier les abonnés de cette note. Les notes publiées sans choix explicite suivent la même règle : les notes Slack et Microsoft Teams, les workflows, et les requêtes d'API qui omettent `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. Un `true` ou un `false` explicite est toujours conservé. Les notes publiques des [événements de maintenance planifiée](/docs/status-pages/subscribers#événements-de-maintenance-planifiée) et des [épisodes d'incident](/docs/status-pages/subscribers#épisodes-dincident) suivent une règle semblable, selon que l'événement ou l'épisode lui-même a notifié les abonnés à sa création. Un incident ou un épisode privé n'accepte aucune note publique.
 
 **Voir qui la note atteindra.** Tant que **Notifier les abonnés à la page de statut** est cochée, une ligne **Will notify** en dessous liste les pages de statut que la note atteindra, avec un nombre d'abonnés « jusqu'à » par canal, ainsi que les pages qui listent les moniteurs de l'incident mais ne seront pas prévenues, avec la raison. Quand personne ne sera prévenu, elle n'affiche rien, sauf si l'incident est masqué sur les pages de statut ou si la portée des pages de statut de l'incident en est la raison. Elle suit la portée des pages de statut de l'incident, si bien qu'une note sur un incident limité à deux pages de site indique qu'elle atteindra ces deux-là. Voir [Une page de statut par public](/docs/status-pages/one-status-page-per-audience).
 
@@ -95,7 +95,7 @@ Le même éditeur s'ouvre dans une boîte de dialogue depuis **Ajouter une note 
 > [!TIP]
 > **L'heure de publication est le véritable horodatage de la note.** Les pages de statut trient et affichent les notes publiques par `postedAt`, pas selon le moment où vous les avez tapées — si vous rattrapez sur la page de statut une mise à jour envoyée il y a 40 minutes, choisissez **Posted now** et indiquez quand elle a réellement eu lieu. Si une note arrive par l'API (`/api/incident-public-note`) sans heure, OneUptime y met l'heure actuelle.
 
-Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu avec ses pièces jointes et, dans son en-tête, où en est sa notification aux abonnés. **Search notes…** trouve les notes d'après ce qu'elles disent, et le fil peut se lire du plus récent au plus ancien ou l'inverse.
+Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu avec ses pièces jointes et, dans son en-tête, où en est sa notification aux abonnés. **Search notes…** trouve les notes d'après ce qu'elles disent, et le fil peut se lire du plus récent au plus ancien ou l'inverse. Les liens vers d'autres sites et vers les pièces jointes s'ouvrent dans un nouvel onglet. Les lignes qui commencent par `>` s'affichent comme une citation ; commencez-la par une ligne à part, `> [!NOTE]`, `> [!TIP]` ou `> [!WARNING]`, pour l'afficher plutôt comme un encadré.
 
 ## Publier une note privée
 
@@ -104,6 +104,17 @@ Chaque note montre qui l'a écrite, son heure de publication, le Markdown rendu 
 Pas d'heure de publication, pas de case pour les abonnés — la note est horodatée à sa création.
 
 Les deux types de notes s'écrivent dans l'éditeur Markdown, qui imbrique les éléments de liste avec **Augmenter le retrait** et **Diminuer le retrait** — ou Tab et Maj+Tab — et conserve les listes, les liens et la mise en forme de ce que vous collez depuis Word, Google Docs ou une autre page OneUptime. Ctrl+Z reprend un retrait augmenté ou diminué, et en mode visuel les blocs et les collages que l'éditeur a insérés aussi, dans l'ordre de votre saisie. Un bloc de code copié depuis une note se recolle en bloc de code, et un mot copié depuis un bloc en code en ligne. Voir [Déclarer un incident](/docs/incidents/declaring-incidents#étape-1-détails-de-lincident).
+
+## Les incidents privés n'acceptent que des notes privées
+
+Un incident privé ne figure sur aucune page de statut et ne prévient aucun abonné (voir [Garder un incident hors de la page de statut](/docs/incidents/states-and-severities#garder-un-incident-hors-de-la-page-de-statut)) : une note publique sur lui n'atteindrait donc aucune des personnes pour qui elle a été écrite. OneUptime n'en propose pas :
+
+- **Sa page des notes publiques** affiche « Cet incident est privé : aucune note publique ne peut y être ajoutée. Utilisez une note privée. » à la place de l'éditeur, avec un bouton **Ajouter une note privée** qui ouvre ses notes privées. **Ajouter une note publique** dans le menu **Actions** du fil est verrouillé et dit la même chose.
+- **Pour changer son état**, la boîte de dialogue replie une note privée sous **Ajouter une note privée** à la place de la note publique, et ne demande rien sur les abonnés. L'action groupée **Modifier l'état** ajoute sa note en note privée à chaque incident privé qu'elle déplace, et ne prévient personne à leur sujet.
+- **Dans Slack et Microsoft Teams**, un 📣 ou 📢 sur un message de son canal enregistre le message en note privée, et la confirmation dit pourquoi.
+- **Via l'API, les workflows et OneUptime AI**, une note publique sur lui est refusée avec la même phrase, et un changement d'état envoyé avec une note publique est refusé en bloc : l'état ne change donc pas. Les rappels de notes publiques d'une règle de SLA attendent qu'il redevienne public ; ses rappels privés sont publiés comme d'habitude.
+
+Les notes publiques publiées avant que l'incident devienne privé restent. Vous pouvez toujours les lire, les modifier et les supprimer, mais rien ne propose d'en informer les abonnés. Rendez l'incident de nouveau public : elles réapparaissent sur ses pages de statut, et de nouvelles notes publiques peuvent être ajoutées. Les épisodes d'incident fonctionnent de la même façon.
 
 ## Pièces jointes des notes
 
@@ -153,7 +164,7 @@ Vous les gérez dans **Incidents → Paramètres → Modèles de notes** — la 
 
 ## Publier des notes depuis Slack ou Microsoft Teams
 
-Si vous avez connecté un espace de travail, les intervenants n'ont jamais à quitter le canal. Slack et Microsoft Teams proposent tous deux une action d'ajout de note qui ouvre une boîte de dialogue avec une liste déroulante **Note Type** — **Public Note** (publiée sur la page de statut) ou **Private Note** (visible seulement des membres de l'équipe) — et une zone de texte **Note**, et qui écrit le résultat directement sur l'incident.
+Si vous avez connecté un espace de travail, les intervenants n'ont jamais à quitter le canal. Slack et Microsoft Teams proposent tous deux une action d'ajout de note qui ouvre une boîte de dialogue avec une liste déroulante **Note Type** — **Public Note** (publiée sur la page de statut) ou **Private Note** (visible seulement des membres de l'équipe) — et une zone de texte **Note**, et qui écrit le résultat directement sur l'incident. Sur un incident privé, il ne demande pas de **Note Type** et ajoute une note privée : voir [Les incidents privés n'acceptent que des notes privées](#les-incidents-privés-nacceptent-que-des-notes-privées).
 
 Trois détails à connaître :
 
@@ -259,11 +270,11 @@ Les éléments du fil sont écrits par le service des incidents lui-même, par l
 
 - **L'incident lui-même** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. Une entrée `IncidentUpdated` consigne ce qu'une modification a changé : le titre, la description, la cause racine, les notes de remédiation, les étiquettes, la gravité, les moniteurs et le statut qui leur est appliqué, et les pages de statut ajoutées à la portée de l'incident ou retirées. Elle a une ligne pour chaque valeur qui a changé et aucune pour une valeur enregistrée telle quelle, si bien qu'enregistrer une carte sans rien changer, ou un client d'API ou un workflow qui réécrit l'incident tel qu'il est, n'ajoute aucune entrée. Un texte qui se lit pareil est le même (fins de ligne et espaces autour mis à part), et des étiquettes sont les mêmes si l'ensemble est le même dans n'importe quel ordre ; une valeur effacée se lit comme retirée, et retirer toutes les étiquettes comme « All labels removed. ». Les entrées **Alert updated** d'une alerte fonctionnent de la même façon.
 - **Notes et comptes rendus** — `PublicNote`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. Un élément `PostmortemNote` est écrit quand la note du post-mortem change, pas à chaque enregistrement du post-mortem.
-- **Personnes** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`.
+- **Personnes** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved` et `ChannelMemberAdded`, affiché comme **Membre ajouté au canal**, pour une personne ajoutée au canal Slack de l'incident depuis sa page. Voir [Qui est dans le canal d'un enregistrement](/docs/workspace-connections/slack#qui-est-dans-le-canal-dun-enregistrement).
 - **Alertes liées** — `AlertLinked` et `AlertUnlinked`, affichées comme **Alerte liée** et **Alerte dissociée**.
 - **Notifications** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **Automatisation** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
-- **Appels vidéo** — `VideoCallStarted` et `VideoCallFailed` : un appel démarré pour l'incident, avec son lien pour rejoindre, ou la raison pour laquelle un fournisseur n'a pas pu en démarrer un. Voir [Appels vidéo](/docs/workspace-connections/video-calls).
+- **Appels vidéo** — `VideoCallStarted`, `VideoCallFailed`, `VideoCallTranscriptAdded` et `VideoCallSummary` : un appel démarré pour l'incident, avec son lien pour rejoindre, la raison pour laquelle un fournisseur n'a pas pu en démarrer un, la transcription d'un appel, ajoutée par quelqu'un ou lue chez son fournisseur, ou ce que OneUptime AI y a lu, qui est aussi publié dans les canaux de l'incident. Voir [Appels vidéo](/docs/workspace-connections/video-calls).
 
 Chaque type a sa propre icône, si bien que vous pouvez parcourir un long fil et repérer les changements d'état au milieu du bavardage. L'analyse de cause racine générée par l'IA est marquée distinctement et rendue dans un mode Markdown restreint. L'élément **Incident créé**, l'élément qui consigne un nouveau titre et les éléments d'entrée ou de sortie d'un épisode affichent un titre exactement tel qu'il a été saisi : ils échappent `\`, `[`, `]`, `*`, `_`, `~`, les accents graves et \< dans le titre, si bien qu'un titre ne peut pas devenir une image, du HTML brut, une mention Slack comme \<!here\>, un lien dont le texte cache sa destination, ni du gras, de l'italique ou du code. Une adresse dans un titre s'affiche toujours comme un lien vers cette même adresse.
 

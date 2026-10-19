@@ -21,15 +21,15 @@ En Docker Swarm-monitor är knuten till ett kluster. Varje minut kör den sin fr
 flowchart TB
     subgraph cluster["Ditt Swarm-kluster"]
         direction LR
-        manager["Agent på en manager"]
-        others["Insamlare på andra noder"]
+        manager["Agent på<br/>en manager"]
+        others["Insamlare på<br/>andra noder"]
     end
-    manager -->|"mått och inventering"| oneuptime["OneUptime"]
+    manager -->|"mått och<br/>inventering"| oneuptime["OneUptime"]
     others -->|"mått"| oneuptime
-    oneuptime -->|"första data"| registered["Kluster registrerat"]
-    oneuptime --> monitor["Docker Swarm-monitor"]
-    monitor -->|"varje minut"| criteria{"Kriterier uppfyllda?"}
-    criteria -->|"ja"| incident["Incident eller varning"]
+    oneuptime -->|"första data"| registered["Kluster<br/>registrerat"]
+    oneuptime --> monitor["Docker<br/>Swarm-monitor"]
+    monitor -->|"varje minut"| criteria{"Kriterier<br/>uppfyllda?"}
+    criteria -->|"ja"| incident["Incident<br/>eller varning"]
     criteria -->|"nej"| online["Monitor online"]
 ```
 
@@ -148,7 +148,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med en tröskel. En
 | Fält | Vad det gör |
 | --- | --- |
 | **Mätvärde** | Frågan eller formeln som kontrolleras, efter dess variabelnamn. |
-| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha) eller **Any Value** (ett räcker). |
+| **Aggregering** | Hur värdena i fönstret blir ett svar: **Genomsnitt**, **Summa**, **Maximum Value**, **Minimum Value**, **All Values** (varje värde måste matcha, i hela fönstret) eller **Any Value** (ett räcker). |
 | **Villkor** | **Större än**, **Mindre än**, **Större än eller lika med**, **Mindre än eller lika med** eller **Lika med** – eller ett avvikelsevillkor: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
 | **Threshold** | Värdet att jämföra med. En lista med enheter står bredvid när mätvärdet har en enhet. Visas inte för avvikelsevillkor. |
 | **Känslighet** | Bara avvikelsevillkor. **Låg** (4σ), **Medel** (3σ, standard) eller **Hög** (2σ). |

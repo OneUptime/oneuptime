@@ -404,9 +404,7 @@ describe("Application replay settings page composition", () => {
   });
 
   test("the monthly budget no longer invites typing 0 as a budget (settings-setup-15)", () => {
-    expect(APP_SETTINGS_PAGE).toContain(
-      "0 or blank means no application-level ceiling",
-    );
+    expect(APP_SETTINGS_PAGE).toContain("Leave empty for no limit.");
     expect(APP_SETTINGS_PAGE).not.toMatch(
       /sessionReplayMonthlyBudgetInGB: true \},[\s\S]{0,400}placeholder: "0"/,
     );
@@ -435,7 +433,7 @@ describe("Application replay settings page composition", () => {
     }
 
     expect(APP_SETTINGS_PAGE).toContain(
-      "The session row - counts, signals, device - expires together with its footage",
+      "How long recordings and their session rows are kept",
     );
     expect(PRIVACY_SUMMARY).toContain("expires with it");
   });
@@ -513,25 +511,19 @@ describe("Same-origin trace propagation setting", () => {
     );
   });
 
-  test("the toggle's description says what it sends, where it goes, what it costs, and the redirect caveat", () => {
+  /*
+   * What it links, and when to turn it off. What the headers carry, the
+   * sampling advice and the redirect caveat are on the Session Replay docs
+   * page (What your own requests carry, Redirects to another origin).
+   */
+  test("the toggle's description says what it links, and when to turn it off", () => {
     const description: string = formFieldDescription(
       APP_SETTINGS_PAGE.match(SAME_ORIGIN_FORM_FIELD_PATTERN)?.index ?? 0,
     );
 
     for (const phrase of [
-      "On by default.",
-      "traceparent and a tracestate carrying this session's id",
-      "requests your page makes to its own origin",
-      "no code in your frontend or backend",
-      "before consent",
-      "marked sampled",
-      "ParentBased samplers",
-      "remoteParentSampled",
-      "third parties included",
-      "the visitor id is never sent",
-      "redirects to another origin",
-      "Access-Control-Allow-Headers",
-      "retries a failed body-less fetch GET or HEAD once",
+      "Link requests to your own origin to their backend traces.",
+      "Turn it off if downloads or redirects break",
     ]) {
       expect({ phrase, found: description.includes(phrase) }).toEqual({
         phrase,
@@ -549,23 +541,10 @@ describe("Same-origin trace propagation setting", () => {
    * first hop only. Turning the switch off also leaves an own origin listed
    * in Trace propagation origins getting a traceparent.
    */
-  test("the toggle's description states the retry rule, the first-hop sampling scope and the listed-own-origin caveat", () => {
+  test("the toggle's description never brings back the old retry and sampling advice", () => {
     const description: string = formFieldDescription(
       APP_SETTINGS_PAGE.match(SAME_ORIGIN_FORM_FIELD_PATTERN)?.index ?? 0,
     );
-
-    for (const phrase of [
-      "retries a failed body-less fetch GET or HEAD once; an XMLHttpRequest cannot be retried",
-      "set a remoteParentSampled ratio delegate only on the service(s) your pages call directly, never on the services they call",
-      "ratio decisions differ between language SDKs",
-      "tail sampling in an OpenTelemetry Collector",
-      "take your own origin out of Trace propagation origins if you listed it there",
-    ]) {
-      expect({ phrase, found: description.includes(phrase) }).toEqual({
-        phrase,
-        found: true,
-      });
-    }
 
     expect(description).not.toContain("retries a failed GET once");
     expect(description).not.toContain(
@@ -578,12 +557,10 @@ describe("Same-origin trace propagation setting", () => {
       APP_SETTINGS_PAGE.match(ORIGINS_FORM_FIELD_PATTERN)?.index ?? 0,
     );
 
-    expect(description).toContain("For APIs on OTHER origins than your page");
     expect(description).toContain(
-      "requests to your own origin are linked automatically",
+      "A JSON array of other origins whose requests get a traceparent header",
     );
-    expect(description).toContain("traceparent only, never the session id");
-    expect(description).toContain("Access-Control-Allow-Headers");
+    expect(description).toContain("Their APIs must allow it (CORS).");
     expect(description).not.toContain("Empty (default) never injects");
     expect(APP_SETTINGS_PAGE).not.toContain(
       "None: no traceparent header is injected",

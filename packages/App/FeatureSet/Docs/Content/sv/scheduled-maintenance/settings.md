@@ -67,24 +67,22 @@ En regel matchar bara när varje villkor du fyller i stämmer; ett villkor som l
 **Schemalagt underhåll → Regler → Reminder Rules** påminner en händelses ägare tills arbetet är godkänt. Varje händelse får den första regel som matchar den, uppifrån och ned i listan.
 
 :::steps
-### Namnge påminnelseregeln
-
-Klicka på **Skapa Scheduled Maintenance Reminder Rule**. Under **Rule Info** ger du den ett **Namn**, till exempel "Påminnelser om underhåll", och en **Beskrivning** om du vill.
-
 ### Välj vilka händelser det ska påminnas om
 
-Under **Matchningskriterier** väljer du de **Etiketter** den gäller för. Lämna dem tomma för att påminna om varje händelse.
+Klicka på **Skapa Scheduled Maintenance Reminder Rule**. Under **Matcha** låter du **Alla schemalagda underhållshändelser** vara valt för att påminna om varje händelse, eller väljer **Endast schemalagda underhållshändelser som uppfyller villkoren** och sedan de **Etiketter** den gäller för.
 
 ### Ställ in intervallet
 
-Under **Reminder Settings** ställer du in **Reminder Interval (minutes)**, hur ofta ägarna påminns, och skapar sedan regeln.
+Under **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur ofta ägarna påminns, och väljer under **Påminn ägare** när. Dess **Namn** följer båda, till exempel "Påminn var 30 minuter medan den pågår", tills du skriver ett eget, och en **Beskrivning** väntar under **Fler fält**. Skapa sedan regeln.
 :::
 
-| Inställning                          | Börjar som                             | Vad den gör                                                                          |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Reminder Interval (minutes)**      | Obligatorisk                           | Hur ofta ägarna påminns.                                                             |
-| **Stop Reminders When**              | **Remind until event is Completed**    | Eller **Stop when event starts (Ongoing)**, för att sluta när arbetet har börjat.    |
-| **Remind While Event is Scheduled**  | Av                                     | Av: påminnelserna börjar när händelsen börjar; på: de skickas också före start.      |
+| Svar | När ägarna påminns |
+| --- | --- |
+| **Medan den pågår** | Från att händelsen börjar tills den slutar. En ny regel börjar med det här svaret. |
+| **Innan den börjar** | Från att händelsen schemaläggs tills den börjar. |
+| **Innan den börjar och medan den pågår** | Från att händelsen schemaläggs tills den slutar. |
+
+En regel som sparats via API:et eller Terraform och som väntar tills händelsen börjar och slutar när den börjar skickar aldrig någon påminnelse: listan markerar den med **Påminner aldrig**, och dess formulär ber dig välja ett svar.
 
 Ägarna får varje påminnelse som **Maintenance reminder**, som är påslagen via e-post för varje ny medlem. Att spara, ändra eller ta bort en påminnelseregel matchar varje händelse som inte är slutförd på nytt. För att stoppa påminnelserna för en händelse stänger du av **Skicka påminnelser** på dess sida **Inställningar**; reglaget sparas i samma stund som du slår om det.
 
@@ -125,7 +123,7 @@ Varje underhållsmodell har arbetsflödesutlösare och åtgärder som är namngi
 | **Scheduled Maintenance Member**  | Skapar, ändrar och tar bort händelser med deras anteckningar, tillståndstidslinjer och ägare, och båda slagen av mallar. |
 | **Scheduled Maintenance Admin**   | Allt en medlem gör, och skapar, ändrar och tar dessutom bort underhållstillstånd.                    |
 
-Regler, anpassade fält och mätningar kräver **Project Owner** eller **Project Admin**, eller en anpassad roll med den sidans egen behörighet, till exempel **Create Scheduled Maintenance Owner Rule**. **Project Member** arbetar med händelser och mallar, som **Scheduled Maintenance Member**. Se [Användare, team och behörigheter](/docs/permissions/index).
+Regler, anpassade fält och mätningar kräver **Project Owner** eller **Project Admin**, eller en anpassad roll med den sidans egen behörighet, till exempel **Create Scheduled Maintenance Owner Rule**. Runbook-regler godtar även **Runbook Admin**. **Project Member** arbetar med händelser och mallar, som **Scheduled Maintenance Member**. Se [Användare, team och behörigheter](/docs/permissions/index).
 
 ## Felsökning
 
@@ -134,7 +132,7 @@ Regler, anpassade fält och mätningar kräver **Project Owner** eller **Project
 :::
 
 :::details Ägarna fick ingen påminnelse
-Kontrollera att en påminnelseregel matchar händelsens etiketter, att händelsens **Skicka påminnelser** är påslagen och att **Maintenance reminder** är påslagen i ägarnas aviseringsinställningar. Utan **Remind While Event is Scheduled** börjar påminnelserna först när händelsen börjar.
+Kontrollera att en påminnelseregel matchar händelsens etiketter, att händelsens **Skicka påminnelser** är påslagen och att **Maintenance reminder** är påslagen i ägarnas aviseringsinställningar. En regel med **Medan den pågår** skickar ingenting innan händelsen börjar.
 :::
 
 ## Nästa steg

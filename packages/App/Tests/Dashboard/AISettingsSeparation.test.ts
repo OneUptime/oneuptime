@@ -10,6 +10,10 @@ import {
   isAiLaneRulesCard,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { getSwitchesInDrawnOrder } from "Common/UI/Components/ModelSwitch/ModelSwitchOrder";
+import {
+  PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS,
+  ProjectBalanceType,
+} from "Common/Utils/Project/ProjectBalance";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -150,7 +154,7 @@ function columnsOf(
   );
 }
 
-// The project's AI switch, which lives on Project Settings → AI Features.
+// The project's AI switch, which lives on Project Settings → AI → AI Features.
 const PROJECT_AI_SWITCH_FIELDS: Array<string> = ["enableAi"];
 
 /*
@@ -497,9 +501,29 @@ describe("the project's AI switches", () => {
     ]) {
       expect(credits).not.toContain(field);
     }
-    // What stays: the balance and the recharge settings.
+    /*
+     * What stays: the balance, and the recharge settings - drawn by the
+     * Auto Recharge card both balances share, for the AI balance's columns.
+     */
     expect(credits).toContain("aiCurrentBalanceInUSDCents");
-    expect(credits).toContain("enableAutoRechargeAiBalance");
+    expect(source).toContain("<AutoRechargeCard");
+    expect(source).toContain("balance={ProjectBalanceType.AI}");
+    expect(
+      PROJECT_BALANCE_AUTO_RECHARGE_COLUMNS[ProjectBalanceType.AI],
+    ).toContain("enableAutoRechargeAiBalance");
+
+    const card: string = read(
+      "Components",
+      "ProjectBalance",
+      "AutoRechargeCard.tsx",
+    );
+
+    for (const field of [
+      ...PROJECT_AI_SWITCH_FIELDS,
+      ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
+    ]) {
+      expect(card).not.toContain(field);
+    }
   });
 
   test("no other AI settings page can write them", () => {

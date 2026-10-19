@@ -19,8 +19,8 @@ sequenceDiagram
     participant S as NTP-server
     Note over P: T1: sonden sender
     P->>S: Klientanmodning
-    Note over S: T2: serveren modtager, T3: serveren svarer
-    S-->>P: Svar: stratum, skudsekundindikator, reference, T2, T3
+    Note over S: T2: serveren modtager,<br/>T3: serveren svarer
+    S-->>P: Svar: stratum,<br/>skudsekundindikator,<br/>reference, T2, T3
     Note over P: T4: sonden modtager
 ```
 

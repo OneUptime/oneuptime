@@ -7,6 +7,8 @@ En hendelse er posten teamet ditt jobber ut fra når noe ryker: hva som er berø
 - [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities): Livssyklusen, og hva bekreftelse og løsning gjør.
 - [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed): Oppdateringer til kunder og til teamet ditt, og hvem som får høre om dem.
 - [Koblede varsler](/docs/incidents/linked-alerts): Knytt varslene et avbrudd utløste til hendelsen som forklarer dem.
+- [Episoder](/docs/incidents/episodes): Samle relaterte hendelser, og arbeid med dem som én.
+- [Etteranalyser](/docs/incidents/postmortems): Skriv ned hva som skjedde, og publiser det på statussiden din.
 - [Hendelsesinnstillinger og automatisering](/docs/incidents/settings): Maler, egendefinerte felt, roller, målinger og regler.
 :::
 
@@ -34,12 +36,14 @@ flowchart TB
         monitor["Monitor"]
         api["API"]
         form["Skjema"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Ny hendelse"]
-    incident --> rules["Hendelsesregler kjører"]
-    rules --> oncall["Vaktpolicyer tilkaller"]
-    rules --> owners["Eierne får beskjed"]
-    rules --> pages["Statussider oppdateres"]
+    incident --> rules["Hendelsesregler<br/>kjører"]
+    rules --> oncall["Vaktpolicyer<br/>tilkaller"]
+    rules --> owners["Eierne får<br/>beskjed"]
+    rules --> pages["Statussider<br/>oppdateres"]
     oncall --> feed["Hendelse Feed"]
     owners --> feed
     pages --> feed
@@ -56,7 +60,7 @@ Fem veier fører til det samme objektet:
 - **Via API-et** — `POST /api/incident` med en API-nøkkel. Serveren fyller ut `declaredAt`, opprettelsestilstanden og hendelsesnummeret for deg.
 - **Via et skjema** — noen utenfor teamet ditt fyller ut et skjema du har delt som en lenke, uten en OneUptime-konto. Hendelsen erklæres skjult for statussider, fra skjemaets hendelsesmal hvis det har en. Se [Skjemaer](/docs/forms/index).
 
-Integrasjoner åpner også hendelser: [Huntress](/docs/integrations/huntress) gjør hver hendelsesrapport som SOC-en sender, til én hendelse, som tilkaller vaktpolicyene du velger. Se [Opprette en hendelse](/docs/incidents/declaring-incidents) for gjennomgangen felt for felt.
+Arbeidsflyter åpner også hendelser: [Huntress](/docs/integrations/huntress)-arbeidsflyten gjør hver hendelsesrapport som SOC-en sender, til én hendelse, som tilkaller vaktpolicyen du velger. Se [Opprette en hendelse](/docs/incidents/declaring-incidents) for gjennomgangen felt for felt.
 
 ### 2. De riktige personene får vite det
 
@@ -77,7 +81,7 @@ De som responderer, bekrefter hendelsen, legger til berørte ressurser, knytter 
 
 Et klikk på **Løs** flytter hendelsen til den løste tilstanden, registrerer det i tilstandstidslinjen, stopper varighetsklokken, gir fra seg monitorene den holder, og fjerner hendelsen fra den aktive delen av enhver statusside den ble vist på. Ingenting annet trenger å endres — en statusside viser bare hendelser i en tilstand over den løste tilstanden. Se [Hva løsning gjør](/docs/incidents/states-and-severities#hva-løsning-gjør).
 
-Deretter kan du skrive en etteranalyse og eventuelt publisere den på statussiden.
+Deretter kan du skrive en [etteranalyse](/docs/incidents/postmortems) og eventuelt publisere den på statussiden.
 
 ## Nøkkelbegreper
 
@@ -103,7 +107,7 @@ Når et prosjekt opprettes, oppretter OneUptime nøyaktig tre hendelsestilstande
 
 ```mermaid title="Tilstandene hvert nytt prosjekt starter med"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: erklært
     Identified --> Acknowledged: Bekreft
     Identified --> Resolved: Løs
@@ -156,11 +160,10 @@ Rediger eller legg til alvorlighetsgrader under **Hendelser → Innstillinger �
 | **Episoder**  | Hendelsesepisoder, en egen grupperingsfunksjon med egne sider.                                                                                                            |
 | **KI**        | **Innsikt**, **Logger**, **Innstillinger**: hva OneUptime AI har lært av hendelsene dine og alt den har gjort for dem, og hva den kan gjøre på egen hånd — med reglene for hvilke hendelser den undersøker og retter. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbeidsområde** | Chatarbeidsområdene prosjektet har koblet til: **Slack**, **Microsoft Teams** eller begge, hver med sine varselregler for hendelser. Er ingen av dem koblet til, inneholder den **Koble til Slack eller Teams**, en side som viser begge og hvordan de kobles til. |
-| **Integrasjoner** | Verktøy som selv åpner hendelser: **Huntress**, der hendelsesrapportene blir hendelser som tilkaller vakten. Se [Huntress](/docs/integrations/huntress). |
 | **Regler**    | Regelmotorene: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler**, **Reminder Rules**. |
-| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Målinger**, **Tilknyttede varsler**, **Nummerering**. |
+| **Innstillinger** | **Hendelsesstatus**, **Hendelsesalvor**, **Hendelsesmaler**, **Notatmaler**, **Postmortem-maler**, **Egendefinerte felt**, **Hendelsesroller**, **Målinger**, **Tilknyttede varsler**, **Medlemskap i episoder**, **Nummerering**. |
 
-**Oversikt** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Integrasjoner**, **Regler**, **Innstillinger** og **Utvikler** er brettet sammen som standard, slik at menyen åpner på listene du bruker hver dag. Klikk på tittelen til en seksjon for å brette den ut og finne sidene resten av denne dokumentasjonen viser til; en seksjon åpner seg også av seg selv når du er på en av sidene i den. Konfigurasjonen av hendelser ligger ikke under prosjektinnstillingene; den ligger helt her.
+**Oversikt** og **Episoder** er åpne; **KI**, **Arbeidsområde**, **Regler**, **Innstillinger** og **Utvikler** er brettet sammen som standard, slik at menyen åpner på listene du bruker hver dag. Klikk på tittelen til en seksjon for å brette den ut og finne sidene resten av denne dokumentasjonen viser til; en seksjon åpner seg også av seg selv når du er på en av sidene i den. Konfigurasjonen av hendelser ligger ikke under prosjektinnstillingene; den ligger helt her.
 
 Selve listen over hendelser viser **Hendelsesnummer**, **Tittel**, **Tilstand**, **Alvorlighetsgrad**, **Berørte ressurser**, **Erklært**, **Varighet**, **Etiketter** og **Eiere**, med en massehandling **Endre tilstand** for å lukke flere på én gang.
 
@@ -190,7 +193,7 @@ Hva hver side inneholder:
 - **Roller**, **Vaktutførelser**, **Eiere** — hvem som jobber med den, hvilke policyer som ble kjørt, og hvem som får beskjed.
 - **Varsellogger**, **AI-logger**, **Revisjonslogger** — hva som ble sendt, og hva som ble endret.
 - **Private notater** og **Offentlige notater** — hva teamet ditt og kundene dine fikk vite. Se [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed).
-- **Egendefinerte felt**, **Innstillinger**, **Slett hendelse** — siden **Innstillinger** inneholder **Synlig på statussiden** og **Privat hendelse**, kortet **Statussideomfang** som begrenser hendelsen til noen statussider, og kortet **Reminders**, der bryteren **Send påminnelser** lagres så snart du slår den om og viser når neste påminnelse sendes.
+- **Egendefinerte felt**, **Innstillinger**, **Slett hendelse** — siden **Innstillinger** inneholder **Synlig på statussiden** og **Privat hendelse**, kortet **Statussideomfang** som begrenser hendelsen til noen statussider, og kortet **Påminnelser**, der bryteren **Send påminnelser** lagres så snart du slår den om og viser når neste påminnelse sendes.
 
 ## Slik passer hendelser inn i resten av OneUptime
 

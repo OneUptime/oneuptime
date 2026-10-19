@@ -28,7 +28,7 @@ The first time you sign in, OneUptime shows **No projects**. Click **Create New 
 
 ### Name it
 
-Enter a **Project Name**, such as your company's name. On OneUptime Cloud, the next step asks you to pick a plan.
+Enter a **Project Name**, such as your company's name. On OneUptime Cloud, pick a plan below it as well: Free is already picked, and the paid plans start with a free trial.
 
 ### Create it
 
@@ -68,7 +68,7 @@ In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** f
 
 ### Page it for every incident
 
-Open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**. Click **Create Incident On-Call Rule**, enter a **Name** and click **Next**. Leave **Match Criteria** empty, so the rule matches every incident, and click **Next**. Pick your policy under **On-Call Duty Policies** and click **Create Incident On-Call Rule**.
+Open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**. Click **Create Incident On-Call Rule**, enter a **Name** and click **Next**. On **Match Criteria**, leave **All incidents** picked, so the rule matches every incident, and click **Next**. Pick your policy under **On-Call Duty Policies** and click **Create Incident On-Call Rule**.
 
 ### Choose how you are reached
 
@@ -85,15 +85,15 @@ For more levels, rotations and how long each level waits, see [Escalation Rules]
 :::steps
 ### Create the status page
 
-In the checklist, click **Publish a status page**, or open **Status Pages** from the **Products** menu. Click **Create Status Page**, enter a **Name**, such as `Acme Status`, and click **Create Status Page**.
+In the checklist, click **Publish a status page**, or open **Status Pages** from the **Products** menu. Click **Create Status Page**, enter a **Name**, such as `Acme Status`, and click **Create Status Page**. The new page opens on its **Overview**.
 
 ### Add your monitor
 
-Open the new status page. In its side menu, under **Resources**, choose **Monitors**; it reads **Resources** in projects with monitor groups turned on. Click **Add Monitor**, pick your website monitor and click **Add Monitor**. The row shows the monitor's name to visitors; change it under **Display Name** if you like.
+Click **Add Monitors** on the **Overview**, or, in the page's side menu, under **Resources**, choose **Monitors**; it reads **Resources** in projects with monitor groups turned on. Click **Add Monitor**, pick your website monitor and click **Add Monitor**. The row shows the monitor's name to visitors; change it under **Display Name** if you like.
 
 ### Open the page
 
-Choose **Overview** in the side menu. The **Status Page Preview URL** card links to your status page: open it, and your website is listed as operational.
+Choose **Overview** in the side menu. The **Status Page Link** card links to your status page: open it, and your website is listed as operational.
 :::
 
 A new status page is public: anyone with its address can open it. To give it your own domain, logo and colors, see [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).

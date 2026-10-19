@@ -20,14 +20,14 @@ stateDiagram-v2
     state "Mislykkedes" as Failed
     state "Annulleret" as Cancelled
     [*] --> Scheduled: kørsel startet
-    Scheduled --> Running: en Worker tager den
-    Running --> WaitingForManualStep: Manual-trin eller godkendelse
-    WaitingForManualStep --> Scheduled: fuldført, godkendt eller sprunget over
-    Running --> Completed: alle trin færdige
+    Scheduled --> Running: en Worker<br/>tager den
+    Running --> WaitingForManualStep: Manual-trin<br/>eller godkendelse
+    WaitingForManualStep --> Scheduled: fuldført,<br/>godkendt eller<br/>sprunget over
+    Running --> Completed: alle trin<br/>færdige
     Running --> Failed: et trin fejler
-    Scheduled --> Cancelled: Annuller udførelse
-    Running --> Cancelled: Annuller udførelse
-    WaitingForManualStep --> Cancelled: Annuller udførelse
+    Scheduled --> Cancelled: Annuller<br/>udførelse
+    Running --> Cancelled: Annuller<br/>udførelse
+    WaitingForManualStep --> Cancelled: Annuller<br/>udførelse
     Completed --> [*]
     Failed --> [*]
     Cancelled --> [*]
@@ -118,7 +118,7 @@ En udførelse er en engangs, uforanderlig post. Klik på **Kør igen** på en af
 
 | Hvor | Hvad den viser |
 | --- | --- |
-| Et runbooks **Udførelser** | Alle kørsler af det runbook med filtre for status og startdato og en kolonne **Udløst af**. |
+| Et runbooks **Protokoller → Udførelser** | Alle kørsler af det runbook med filtre for status og startdato og en kolonne **Udløst af**. |
 | **Runbooks → Udførelser** | Alle kørsler af alle runbooks i projektet. |
 | Siden **Runbooks** for en hændelse, advarsel eller begivenhed | De kørsler, der er knyttet til den. Begivenhedens oversigt viser dem også, så snart der er nogen. |
 
@@ -129,7 +129,7 @@ Din rolle læser runbooks, men kører dem ikke: knappen siger "Du har ikke tilla
 :::
 
 :::details Start af en kørsel fejler med "Runbook is disabled" eller "Runbook has no steps to run"
-Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstillinger**, eller det har ingen gemte trin. Slå kontakten til, eller tilføj trin, og klik på **Save Steps**.
+Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstillinger**, eller det har ingen gemte trin. Slå kontakten til, eller tilføj trin, og klik på **Save Steps**. Dets **Oversigt** siger hvilken, med **Slå runbook til** eller **Tilføj trin**.
 :::
 
 :::details Et trin fejlede, fordi det mangler en Runner eller en loginoplysning

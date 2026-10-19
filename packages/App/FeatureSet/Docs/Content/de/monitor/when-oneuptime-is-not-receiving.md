@@ -11,7 +11,7 @@ Jeder OneUptime-Prozess, der Daten entgegennimmt, zeichnet alle 30 Sekunden auf,
 - Aufholen: Solange die Warteschlange der noch zu verarbeitenden Daten mehr als eine Minute im Rückstand ist, die Zeit seit den ältesten Daten, die noch darin warten.
 
 ```mermaid title="Zeit, die OneUptime außen vor lässt"
-flowchart LR
+flowchart TB
     receiving["Empfang"] -->|"90 Sekunden keine Aufzeichnung"| down["Kein Empfang"]
     down -->|"ein Prozess zeichnet wieder auf"| grace["2 Minuten neu verbinden"]
     grace --> again["Empfang"]

@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 29820,
-    "untranslated": 17226
+    "keys": 30977,
+    "untranslated": 16781
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "Agenda",
     "Agent",
     "Alarm",
     "App",
@@ -21,6 +22,7 @@
     "Find",
     "Gateway",
     "Hardware",
+    "ICMP (ping)",
     "Information",
     "Interface",
     "Interfaces",
@@ -29,6 +31,7 @@
     "Offline",
     "Pause",
     "Peer",
+    "Plan",
     "Problem",
     "Reference",
     "Revision",
@@ -38,6 +41,7 @@
     "Status",
     "Stratum",
     "Team",
+    "Tip",
     "Tunnel",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",

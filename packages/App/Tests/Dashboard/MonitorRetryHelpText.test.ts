@@ -9,9 +9,12 @@ import {
   NTP_RETRIES_ON_FAILURE_DESCRIPTION,
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
   REQUEST_TIMEOUT_DESCRIPTION,
+  REQUEST_TIMEOUT_SHORT_DESCRIPTION,
+  RETRIES_ON_FAILURE_DESCRIPTION,
   SSL_RETRIES_ON_FAILURE_DESCRIPTION,
   getRequestTimeoutField,
   getRetriesOnFailureDescription,
+  getRetriesOnFailureField,
 } from "../../FeatureSet/Dashboard/src/Utils/MonitorRetryHelpText";
 import { DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS } from "Common/Types/Monitor/NtpMonitor/NtpMonitorUtil";
 
@@ -112,6 +115,18 @@ const TRANSLATED_TEXT: Array<string> = [
   PROBE_DEFAULT_RETRY_COUNT_LABEL,
   REQUEST_TIMEOUT_DESCRIPTION,
   NTP_REQUEST_TIMEOUT_DESCRIPTION,
+  RETRIES_ON_FAILURE_DESCRIPTION,
+  REQUEST_TIMEOUT_SHORT_DESCRIPTION,
+];
+
+/*
+ * The one line each field shows under its title. The rules above moved into
+ * the (i) beside the title: under the field they ran to four or five lines,
+ * up to about 400 characters for Website and API.
+ */
+const SHORT_DESCRIPTIONS: Array<string> = [
+  RETRIES_ON_FAILURE_DESCRIPTION,
+  REQUEST_TIMEOUT_SHORT_DESCRIPTION,
 ];
 
 /*
@@ -156,6 +171,53 @@ function readMonitorStepForm(): string {
     "utf8",
   );
 }
+
+describe("one line under the field, the rule in its (i)", () => {
+  test("each field says what it is in one short line", () => {
+    for (const description of SHORT_DESCRIPTIONS) {
+      // One line in the form's width, and well inside every description limit.
+      expect(description.length).toBeLessThanOrEqual(80);
+    }
+
+    expect(RETRIES_ON_FAILURE_DESCRIPTION).toBe(
+      "How many times to try again before the check fails. Up to 3.",
+    );
+    expect(REQUEST_TIMEOUT_SHORT_DESCRIPTION).toBe(
+      "How long to wait for each attempt, up to 60 seconds.",
+    );
+  });
+
+  test.each(VARIANT_BY_MONITOR_TYPE)(
+    "$monitorType: the retries field says the line, and keeps its own rule in the (i)",
+    (mapping: { monitorType: MonitorType; description: string }) => {
+      expect(getRetriesOnFailureField(mapping.monitorType)).toEqual({
+        description: RETRIES_ON_FAILURE_DESCRIPTION,
+        tooltip: mapping.description,
+      });
+    },
+  );
+
+  test("the timeout field says the line and keeps its rule, NTP's included, in the (i)", () => {
+    expect(getRequestTimeoutField(MonitorType.Website)).toEqual({
+      description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
+      tooltip: REQUEST_TIMEOUT_DESCRIPTION,
+      defaultSeconds: 60,
+    });
+    expect(getRequestTimeoutField(MonitorType.NTP)).toEqual({
+      description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
+      tooltip: NTP_REQUEST_TIMEOUT_DESCRIPTION,
+      defaultSeconds: DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS / 1000,
+    });
+  });
+
+  test("the line never repeats the rule it stands for", () => {
+    for (const rule of [...DESCRIPTIONS, REQUEST_TIMEOUT_DESCRIPTION]) {
+      for (const description of SHORT_DESCRIPTIONS) {
+        expect(rule).not.toBe(description);
+      }
+    }
+  });
+});
 
 describe("getRetriesOnFailureDescription", () => {
   test.each(VARIANT_BY_MONITOR_TYPE)(
@@ -273,7 +335,8 @@ describe("Request timeout description", () => {
 
   test("NTP says, and starts the field on, the 5 seconds the probe really waits", () => {
     expect(getRequestTimeoutField(MonitorType.NTP)).toEqual({
-      description: NTP_REQUEST_TIMEOUT_DESCRIPTION,
+      description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
+      tooltip: NTP_REQUEST_TIMEOUT_DESCRIPTION,
       defaultSeconds: DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS / 1000,
     });
     expect(DEFAULT_NTP_REQUEST_TIMEOUT_IN_MS).toBe(5000);
@@ -293,7 +356,8 @@ describe("Request timeout description", () => {
     MonitorType.SSLCertificate,
   ])("%s keeps the 60-second timeout field", (monitorType: MonitorType) => {
     expect(getRequestTimeoutField(monitorType)).toEqual({
-      description: REQUEST_TIMEOUT_DESCRIPTION,
+      description: REQUEST_TIMEOUT_SHORT_DESCRIPTION,
+      tooltip: REQUEST_TIMEOUT_DESCRIPTION,
       defaultSeconds: 60,
     });
   });
@@ -307,18 +371,21 @@ describe("Monitor step form", () => {
    */
   const source: string = readMonitorStepForm();
 
-  test("the field's description comes from the helper", () => {
+  test("the retries field's line and (i) come from the helper", () => {
     expect(source).toContain("MonitorRetryHelpText");
     expect(source).toMatch(
-      /getRetriesOnFailureDescription\(\s*props\.monitorType,?\s*\)/,
+      /getRetriesOnFailureField\(\s*props\.monitorType,?\s*\)/,
     );
+    expect(source).toContain("description={retriesOnFailureField.description}");
+    expect(source).toContain("tooltip={retriesOnFailureField.tooltip}");
   });
 
-  test("the timeout field takes its description and default from the helper", () => {
+  test("the timeout field takes its line, (i) and default from the helper", () => {
     expect(source).toMatch(
       /getRequestTimeoutField\(\s*props\.monitorType,?\s*\)/,
     );
     expect(source).toContain("description={requestTimeoutField.description}");
+    expect(source).toContain("tooltip={requestTimeoutField.tooltip}");
     expect(source).toContain("requestTimeoutField.defaultSeconds.toString()");
     expect(source).not.toContain(REQUEST_TIMEOUT_DESCRIPTION);
     expect(source).not.toContain(NTP_REQUEST_TIMEOUT_DESCRIPTION);

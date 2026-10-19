@@ -63,9 +63,9 @@ sequenceDiagram
     participant O as OneUptime
     participant T as Twilio
     participant P as Responder's phone
-    O->>T: Send an SMS or start a call
+    O->>T: Send an SMS or<br/>start a call
     T->>P: SMS or voice call
-    T-->>O: SMS delivery status callback
+    T-->>O: SMS delivery<br/>status callback
     P->>T: Presses 1 to acknowledge
     T-->>O: Keypad input callback
 ```

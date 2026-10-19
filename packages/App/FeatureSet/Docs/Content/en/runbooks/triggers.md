@@ -16,12 +16,12 @@ flowchart TB
     subgraph starts["What starts the run"]
         direction LR
         schedule["The schedule: a time comes"]
-        webhook["The webhook: a POST to its URL"]
+        webhook["The webhook: a<br/>POST to its URL"]
     end
-    schedule --> checks["The runbook is on and has steps"]
+    schedule --> checks["The runbook is<br/>on and has steps"]
     webhook --> checks
-    checks --> execution["Execution, marked Schedule or Webhook"]
-    execution --> worker["OneUptime Worker runs the steps"]
+    checks --> execution["Execution, marked<br/>Schedule or Webhook"]
+    execution --> worker["OneUptime Worker<br/>runs the steps"]
 ```
 
 A trigger starts a run the way **Run Now** does: the run is an execution of the runbook's current steps, not attached to any incident, alert or scheduled maintenance event. Each run records what started it. The runbook's **Executions** and **Runbooks → Executions** show it under **Triggered by**, with when a scheduled run was due, or the address that called the webhook, and both lists can be filtered by it.
@@ -35,7 +35,7 @@ A trigger starts a run the way **Run Now** does: the run is an execution of the 
 
 :::steps
 ### Open the runbook's Triggers page
-Open the runbook from **Runbooks**, and click **Triggers** in its menu.
+Open the runbook from **Runbooks**, and click **Settings → Triggers** in its side menu. **Settings** starts folded: click it to show **Triggers**.
 
 ### Set up the schedule
 Click **Set Up Schedule**. Under **When it runs**, pick a **Repeat** and what it needs. The dialog says the schedule in a sentence, such as "Runs every weekday at 09:00", and lists its next runs, as you change it.
@@ -117,7 +117,7 @@ The answer names the run it started: `{"runbookExecutionId": "...", "status": "S
 | `404` | No runbook webhook answers at this URL: the runbook ID or the key is wrong, or the URL was reset. |
 | `405` | The request is a `GET`. A `GET` never starts a run, so a link preview in a chat app cannot run it by accident. |
 | `413` | The body is larger than 64 KB. |
-| `429` | The webhook started 30 runs in the last minute, 10 of its runs are still going, or one address made more than 120 calls to runbook webhooks in a minute. The `Retry-After` header says when to try again, where it can. |
+| `429` | The webhook started 30 runs in the last minute, 10 of its runs are still going, or one address made more than 120 calls to runbook webhooks in a minute, or the addresses of one IPv6 /64 more than 1200 together. The `Retry-After` header says when to try again, where it can. |
 | `503` | OneUptime cannot count calls right now. Try again in a minute. |
 
 A refused call starts nothing, and its body says why in a sentence, such as "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

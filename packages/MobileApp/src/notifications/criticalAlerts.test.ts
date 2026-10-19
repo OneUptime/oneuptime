@@ -128,6 +128,36 @@ describe("getCriticalAlertStatus on iOS", () => {
     expect(status.availability).toBe(CriticalAlertAvailability.Denied);
   });
 
+  /*
+   * Denied is what the screen shows, but nothing may act on it: the server
+   * is told what the phone does only from a read that worked
+   * (criticalAlertsReport.ts), or one failed read would turn real pages
+   * ordinary until the app is next opened.
+   */
+  test("a thrown permission check is marked uncertain", async () => {
+    jest
+      .spyOn(Notifications, "getPermissionsAsync")
+      .mockRejectedValue(new Error("native module unavailable") as never);
+
+    expect((await getCriticalAlertStatus()).isUncertain).toBe(true);
+  });
+
+  test.each([
+    ["allowed", iosPermissions("granted", true)],
+    ["switched off", iosPermissions("granted", false)],
+    ["never asked", iosPermissions("granted", null)],
+    ["with notifications off", iosPermissions("denied", null)],
+  ])(
+    "an answer from iOS (%s) is certain",
+    async (_name: string, permissions: never) => {
+      jest
+        .spyOn(Notifications, "getPermissionsAsync")
+        .mockResolvedValue(permissions);
+
+      expect((await getCriticalAlertStatus()).isUncertain).toBeFalsy();
+    },
+  );
+
   test("does not consult Android notification channels", async () => {
     const writeSpy: jest.SpyInstance = jest.spyOn(
       Notifications,
@@ -445,6 +475,49 @@ describe("getCriticalAlertStatus on Android", () => {
 
     expect(status.availability).toBe(CriticalAlertAvailability.Denied);
   });
+
+  test("a thrown write and a thrown read are marked uncertain: Android was never asked", async () => {
+    jest
+      .spyOn(Notifications, "setNotificationChannelAsync")
+      .mockRejectedValue(new Error("binder died") as never);
+    jest
+      .spyOn(Notifications, "getNotificationChannelAsync")
+      .mockRejectedValue(new Error("no such channel") as never);
+
+    expect((await getCriticalAlertStatus()).isUncertain).toBe(true);
+  });
+
+  test.each<[string, boolean | "throw", boolean | null | undefined]>([
+    ["the write answered with the bypass", true, undefined],
+    ["the write answered without it", false, undefined],
+    ["the write failed and the stored channel has the bypass", "throw", true],
+    ["the write failed and the stored channel lacks it", "throw", false],
+    ["the write failed and there is no stored channel", "throw", null],
+  ])(
+    "%s: certain",
+    async (
+      _name: string,
+      written: boolean | "throw",
+      stored: boolean | null | undefined,
+    ) => {
+      if (written === "throw") {
+        jest
+          .spyOn(Notifications, "setNotificationChannelAsync")
+          .mockRejectedValue(new Error("binder died") as never);
+        jest
+          .spyOn(Notifications, "getNotificationChannelAsync")
+          .mockResolvedValue(
+            (stored === null ? null : { bypassDnd: stored }) as never,
+          );
+      } else {
+        jest
+          .spyOn(Notifications, "setNotificationChannelAsync")
+          .mockResolvedValue({ bypassDnd: written } as never);
+      }
+
+      expect((await getCriticalAlertStatus()).isUncertain).toBeFalsy();
+    },
+  );
 
   test("a thrown channel write is reported as denied", async () => {
     jest

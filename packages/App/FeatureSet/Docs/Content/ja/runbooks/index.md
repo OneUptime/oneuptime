@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["実行を開始するもの"]
         direction LR
         rule["Runbook ルール"]
-        manual["イベントで Runbook を実行"]
-        runnow["Runbook で今すぐ実行"]
+        manual["イベントで<br/>Runbook を実行"]
+        runnow["Runbook で<br/>今すぐ実行"]
     end
-    rule --> execution["実行: ステップのスナップショット"]
+    rule --> execution["実行: ステップの<br/>スナップショット"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker がステップを順に処理"]
-    worker -->|"手動ステップまたは承認"| person["人の対応を待つ"]
-    worker -->|"HTTP と AI のステップ"| onworker["Worker で実行"]
-    worker -->|"JavaScript、Bash、SSH、Kubernetes"| runner["自社インフラの Runner"]
-    person --> record["ステータス、出力、エラーを記録"]
+    execution --> worker["OneUptime Worker が<br/>ステップを順に処理"]
+    worker -->|"手動ステッ<br/>プまたは承認"| person["人の対応を待つ"]
+    worker -->|"HTTP と<br/>AI のステップ"| onworker["Worker で実行"]
+    worker -->|"JavaScript、<br/>Bash、SSH、<br/>Kubernetes"| runner["自社インフラの<br/>Runner"]
+    person --> record["ステータス、<br/>出力、エラーを記録"]
     onworker --> record
     runner --> record
-    record --> history["イベントの Runbook ページと Runbook の実行一覧"]
+    record --> history["イベントの<br/>Runbook ページと<br/>Runbook の実行一覧"]
 ```
 
 Runbook を実行するたびに **実行** が作成されます。開始時に Runbook のステップがコピーされ、OneUptime はそれを順に処理します。Manual ステップや承認が必要なステップは、誰かが対応するまで実行を一時停止します。
@@ -98,6 +98,17 @@ Runbook は **製品** の **ダッシュボードと自動化** グループに
 | **インシデント / アラート / 定期メンテナンス → ルール → Runbook ルール** | Runbook を自動で開始するルールを作成します。 |
 | インシデント、アラート、メンテナンスイベント → **Runbook** | 関連付けられた実行を確認し、 **Runbook を実行** をクリックして新しく開始します。 |
 
+Runbook 自身のサイドメニューは、ページを次のようにまとめています。最初に開いているのは **基本** だけです。セクションのタイトルをクリックすると開きます。セクション内のどのページでも、そのセクションは自動的に開きます。
+
+| セクション | ページ |
+| --- | --- |
+| **基本** | **概要**、**ステップ** |
+| **ログ** | **実行** |
+| **所有者** | **所有者** |
+| **設定** | **トリガー**、**設定** |
+| **開発者** | **Terraform**、**API**、**AI アシスタント** |
+| **詳細** | **監査ログ**、**Runbook を削除** |
+
 ## 実例
 
 タイトルに「db-primary」を含むインシデントごとに、5 ステップのデータベースフェイルオーバー Runbook を開始したいとします。
@@ -105,7 +116,7 @@ Runbook は **製品** の **ダッシュボードと自動化** グループに
 :::steps
 ### Runbook を作成する
 
-**Runbook** で **Runbookを作成** をクリックし、「DB primary failover」と名前を付けます。開いて **ステップ** に移動し、次のステップを追加して **ステップを保存** をクリックします。
+**Runbook** で **Runbookを作成** をクリックし、「DB primary failover」と名前を付けます。Runbook は **ステップ** で開くので、次のステップを追加して **ステップを保存** をクリックします。
 
 | # | 種類 | タイトル |
 | --- | --- | --- |

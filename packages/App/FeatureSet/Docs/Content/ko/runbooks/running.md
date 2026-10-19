@@ -21,8 +21,8 @@ stateDiagram-v2
     state "취소됨" as Cancelled
     [*] --> Scheduled: 실행 시작됨
     Scheduled --> Running: Worker가 가져감
-    Running --> WaitingForManualStep: Manual 단계 또는 승인
-    WaitingForManualStep --> Scheduled: 완료, 승인 또는 건너뜀
+    Running --> WaitingForManualStep: Manual 단계<br/>또는 승인
+    WaitingForManualStep --> Scheduled: 완료, 승인<br/>또는 건너뜀
     Running --> Completed: 모든 단계 완료
     Running --> Failed: 단계 실패
     Scheduled --> Cancelled: 실행 취소
@@ -118,7 +118,7 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 
 | 위치 | 보여 주는 것 |
 | --- | --- |
-| Runbook의 **실행** | 그 Runbook의 모든 실행. 상태와 시작 날짜 필터, **트리거한 사용자** 열이 있습니다. |
+| Runbook의 **로그 → 실행** | 그 Runbook의 모든 실행. 상태와 시작 날짜 필터, **트리거한 사용자** 열이 있습니다. |
 | **런북 → 실행** | 프로젝트에 있는 모든 Runbook의 모든 실행. |
 | 인시던트, 알림 또는 이벤트의 **런북** 페이지 | 그것에 연결된 실행. 실행이 있으면 이벤트의 개요에도 표시됩니다. |
 
@@ -129,7 +129,7 @@ Runbook 실행은 다음 다섯 가지 방법으로 만들어집니다.
 :::
 
 :::details 실행 시작이 "Runbook is disabled" 또는 "Runbook has no steps to run"으로 실패함
-Runbook의 **설정** 페이지에서 **이 런북 실행** 스위치가 꺼져 있거나, 저장된 단계가 없습니다. 스위치를 켜거나 단계를 추가하고 **Save Steps**를 클릭하세요.
+Runbook의 **설정** 페이지에서 **이 런북 실행** 스위치가 꺼져 있거나, 저장된 단계가 없습니다. 스위치를 켜거나 단계를 추가하고 **Save Steps**를 클릭하세요. Runbook의 **개요**에 원인과 함께 **런북 켜기** 또는 **단계 추가**가 표시됩니다.
 :::
 
 :::details Runner나 자격 증명이 없어서 단계가 실패함

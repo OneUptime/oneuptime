@@ -84,7 +84,7 @@ Chaque ligne a **Voir l'alerte** pour ouvrir l'alerte et **Dissocier** pour supp
 
 ## Lier des incidents depuis une alerte
 
-Le côté alerte est le miroir du côté incident. Ouvrez une alerte et choisissez **Incidents liés** dans la section **Basique** de son menu latéral. Le tableau liste chaque incident auquel l'alerte est liée, avec le numéro, le titre et l'état actuel de l'incident, ainsi que quand et par qui elle a été liée.
+Le côté alerte est le miroir du côté incident. Ouvrez une alerte et choisissez **Incidents liés** dans la section **Investigation** de son menu latéral. Le tableau liste chaque incident auquel l'alerte est liée, avec le numéro, le titre et l'état actuel de l'incident, ainsi que quand et par qui elle a été liée.
 
 - **Lier l'incident** lie cette alerte à un incident existant. Sa liste déroulante fonctionne comme celle du côté incident : les incidents les plus récents en premier, chacun avec son numéro — comme `INC-42: Checkout is down` — et la saisie cherche dans tous les incidents par titre.
 - **Voir l'incident** ouvre un incident lié.
@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Vous
     participant OneUptime
     participant Alerts as Alertes
-    You->>OneUptime: Déclarer un incident, avec jusqu'à 50 alertes
-    OneUptime->>OneUptime: Vérifier chaque alerte et vos autorisations
-    OneUptime->>OneUptime: Créer l'incident et exécuter ses règles de confidentialité
+    You->>OneUptime: Déclarer un incident,<br/>avec jusqu'à 50 alertes
+    OneUptime->>OneUptime: Vérifier chaque alerte<br/>et vos autorisations
+    OneUptime->>OneUptime: Créer l'incident et exécuter<br/>ses règles de confidentialité
     OneUptime->>Alerts: Lier chaque alerte
-    OneUptime-->>You: Le nouvel incident, alertes déjà liées
-    OneUptime->>Alerts: Les prendre en compte en arrière-plan, si la case est cochée
+    OneUptime-->>You: Le nouvel incident,<br/>alertes déjà liées
+    OneUptime->>Alerts: Les prendre en compte<br/>en arrière-plan,<br/>si la case est cochée
 ```
 
 Quand vous envoyez le formulaire, le serveur vérifie les alertes avant de créer quoi que ce soit : 50 au plus, chacune une alerte de ce projet que vous avez le droit de voir, et vous devez avoir le droit de lier des alertes à des incidents. Si une vérification échoue, la requête est rejetée et aucun incident n'est créé — un mauvais identifiant d'alerte ne consomme donc jamais un numéro d'incident. Une fois l'incident créé — et ses règles de confidentialité exécutées, pour que les liens sachent s'il est privé — chaque alerte est liée avant que la requête ne réponde, si bien que la page **Alertes liées** de l'incident les liste déjà. Si un seul lien échoue — parce que l'alerte a été supprimée un instant plus tôt, par exemple — l'incident est tout de même déclaré et les autres alertes sont tout de même liées.
@@ -164,7 +164,7 @@ Laissez-la cochée et, une fois l'incident déclaré et les alertes liées :
 
 - **Les alertes sont prises en compte en votre nom.** Chacune passe dans votre état d'alerte **Pris en compte** comme si vous aviez cliqué vous-même sur **Prendre en compte** : la **Chronologie d'état** et le fil d'activité de l'alerte vous nomment, les propriétaires de l'alerte sont notifiés, et le changement est publié dans les canaux Slack et Microsoft Teams de l'alerte comme tout autre changement d'état d'alerte. La cause indique « Acknowledged because Incident INC-42 was declared from this alert. » — ou, pour un incident privé, « Acknowledged because a private incident was declared from this alert. », pour qu'un incident privé ne soit jamais nommé là où le public de l'alerte peut le lire.
 - **Leur propre escalade d'astreinte s'arrête en une minute environ.** L'étape d'escalade suivante voit une alerte prise en compte et s'arrête. Les alertes déjà parties ne sont pas rappelées.
-- **Les rappels ne s'arrêtent que si la règle de rappel le dit.** Les rappels d'une alerte ne s'arrêtent à la prise en compte que si sa règle de rappel a **Stop Reminders When** réglé sur **Pris en compte** ; sinon ils continuent jusqu'à la résolution de l'alerte.
+- **Les rappels ne s'arrêtent que si la règle de rappel le dit.** Les rappels d'une alerte ne s'arrêtent à la prise en compte que si sa règle de rappel a **Arrêter les rappels quand** réglé sur **Pris en compte** ; sinon ils continuent jusqu'à la résolution de l'alerte.
 - **Un épisode d'alerte continue d'escalader.** Si une alerte appartient à un épisode qui alerte par sa propre politique d'astreinte, l'épisode continue d'escalader jusqu'à ce que l'épisode lui-même soit pris en compte.
 - **Les alertes déjà prises en compte ou résolues sont laissées tranquilles.** Comme partout ailleurs, les états sont comparés selon leur ordre, si bien qu'une alerte dans un état personnalisé situé après **Pris en compte** compte comme prise en compte, et que rien n'est jamais déplacé vers l'arrière.
 
@@ -306,7 +306,7 @@ Les boîtes de dialogue **Filtrer par type d'événement** des deux fils, dans l
 
 Deux interrupteurs de projet permettent à l'incident d'emmener ses alertes liées avec lui. Les deux sont activés pour les nouveaux projets. Un projet créé avant qu'ils ne soient activés par défaut garde le réglage qu'il avait, qui est désactivé sauf si quelqu'un les a activés. Ils ont leur propre page de paramètres, **Incidents → Paramètres → Alertes liées**, où chacun est un interrupteur de la carte **Alertes liées** qui s'enregistre dès que vous le basculez. Seuls les Project Owners et les Project Admins peuvent les changer ; pour tous les autres, les interrupteurs sont verrouillés et indiquent l'autorisation nécessaire :
 
-- **Prendre en compte les alertes liées quand l'incident est pris en compte** — quand l'incident atteint votre état pris en compte, chaque alerte liée qui n'est pas encore prise en compte passe dans votre état d'alerte **Pris en compte**. C'est ce qui arrête les escalades d'astreinte de ces alertes : l'étape d'escalade suivante voit une alerte prise en compte et s'arrête, en une minute environ. Les alertes déjà parties ne sont pas rappelées. Les rappels d'alerte s'arrêtent aussi quand la règle de rappel de l'alerte a **Stop Reminders When** réglé sur **Pris en compte** ; sinon ils continuent jusqu'à la résolution de l'alerte.
+- **Prendre en compte les alertes liées quand l'incident est pris en compte** — quand l'incident atteint votre état pris en compte, chaque alerte liée qui n'est pas encore prise en compte passe dans votre état d'alerte **Pris en compte**. C'est ce qui arrête les escalades d'astreinte de ces alertes : l'étape d'escalade suivante voit une alerte prise en compte et s'arrête, en une minute environ. Les alertes déjà parties ne sont pas rappelées. Les rappels d'alerte s'arrêtent aussi quand la règle de rappel de l'alerte a **Arrêter les rappels quand** réglé sur **Pris en compte** ; sinon ils continuent jusqu'à la résolution de l'alerte.
 - **Résoudre les alertes liées quand l'incident est résolu** — quand l'incident atteint votre état résolu, chaque alerte liée qui n'est pas encore résolue passe dans votre état d'alerte **Résolu**, sauf une alerte encore liée à un autre incident non résolu. Cette alerte reste ouverte pour l'autre incident — prise en compte, si l'interrupteur de prise en compte est aussi activé — et est résolue quand le dernier de ses incidents l'est.
 
 Avec les deux interrupteurs désactivés, la liaison ne change rien à l'état d'une alerte. Une alerte liée reste où elle est jusqu'à ce que quelqu'un la déplace, sa politique d'astreinte continue d'escalader, et ses rappels continuent d'arriver. La seule exception est la déclaration d'un incident à partir d'alertes avec la case du formulaire laissée cochée, qui les prend en compte au moment de déclarer — voir [Prendre les alertes en compte en déclarant](#prendre-les-alertes-en-compte-en-déclarant).

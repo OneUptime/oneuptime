@@ -26,7 +26,7 @@ Begge typene gjelder for hele prosjektet. Du finner dem i sidemenyen til SLO-lis
 
 ### Velg hva regelen treffer
 
-I trinnet **Treff** klikker du på **Legg til betingelse** for hver betingelse et SLO må oppfylle (se [Treffkriterier](#treffkriterier)). Med to eller flere velger du **Samsvar med alle** eller **Samsvar med én**. En regel uten betingelser treffer hvert nye SLO.
+I trinnet **Treff** starter **Gjelder for** på **Alle SLO-er**, hvert nye SLO. For å snevre inn regelen velger du **Bare SLO-er som oppfyller betingelsene** og fyller ut betingelsen som åpnes (se [Treffkriterier](#treffkriterier)); klikk på **Legg til betingelse** for hver annen betingelse et SLO må oppfylle. Med to eller flere velger du **Samsvar med alle** eller **Samsvar med én**.
 
 ### Velg hva regelen legger til
 

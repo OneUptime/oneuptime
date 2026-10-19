@@ -67,7 +67,7 @@ flowchart TB
 
 **Generate with AI**를 클릭합니다. **Generate Postmortem with AI** 대화 상자의 **템플릿 선택**에는 개요로 **Standard Postmortem**, **Detailed Technical Postmortem**, **Brief Postmortem**이 있고, 그 뒤에 직접 만든 포스트모템 템플릿이 나옵니다. **Template Preview**에 개요가 표시되며, 생성하기 전에 바꿀 수 있습니다.
 
-대화 상자 아래쪽의 **Generate with AI**를 클릭합니다. OneUptime AI가 인시던트(설명, 근본 원인과 해결 조치, 상태 타임라인, 공개 메모와 비공개 메모, Slack 또는 Microsoft Teams 채널의 메시지)를 읽고 개요에 맞춰 포스트모템을 씁니다. 그런 다음 그 결과로 편집기가 열립니다.
+대화 상자 아래쪽의 **Generate with AI**를 클릭합니다. OneUptime AI가 인시던트(설명, 근본 원인과 해결 조치, 상태 타임라인, 공개 메모와 비공개 메모, Slack 또는 Microsoft Teams 채널의 메시지, [통화](/docs/workspace-connections/video-calls#통화-녹취록)에서 오간 말)를 읽고 개요에 맞춰 포스트모템을 씁니다. 그런 다음 그 결과로 편집기가 열립니다.
 
 생성하려면 **프로젝트 설정 → AI → AI Features**에서 프로젝트의 AI가 켜져 있어야 하고 LLM 공급자가 있어야 합니다. [LLM 공급자](/docs/ai/llm-provider)를 참고하세요. 또한 Project Owner 또는 Project Admin 역할이나, Edit Incident 권한이 있는 사용자 지정 역할이 필요합니다. 다른 역할은 포스트모템을 쓸 수는 있지만 생성할 수는 없습니다.
 
@@ -78,6 +78,7 @@ flowchart TB
 - 이미 작성된 메모를 바꾸지 않습니다.
 - 이미 게시된 포스트모템에는 쓰지 않습니다. 그렇게 하면 초안이 검토 없이 상태 페이지에 올라가기 때문입니다.
 - 프로젝트의 AI가 켜져 있어야 하며, 프로젝트가 일일 AI 한도에 도달하면 그날은 멈춥니다. [자동 포스트모템](/docs/ai/ai-sre#자동-포스트모템)을 참고하세요.
+- 인시던트가 해결될 때 인시던트 통화의 녹취록이 아직 오는 중이면, 초안이 통화에서 오간 말을 반영하도록 OneUptime AI가 녹취록을 읽을 때까지 기다립니다. Zoom이나 Google Meet이 녹취록을 준비하는 동안은 최대 6시간입니다. [모든 통화를 녹화하고 녹취하기](/docs/workspace-connections/video-calls#모든-통화를-녹화하고-녹취하기)를 참고하세요.
 
 ## 상태 페이지에 게시
 
@@ -152,7 +153,7 @@ flowchart TB
 :::
 
 :::details 인시던트가 해결됐는데 AI 초안이 나타나지 않음
-인시던트에 이미 메모가 있었거나, 포스트모템이 이미 게시되었거나, **인시던트가 해결되면 포스트모템 초안 작성**이 꺼져 있습니다. 프로젝트의 AI가 켜져 있어야 하고, 프로젝트가 일일 AI 한도에 도달하지 않았어야 합니다.
+인시던트에 이미 메모가 있었거나, 포스트모템이 이미 게시되었거나, **인시던트가 해결되면 포스트모템 초안 작성**이 꺼져 있습니다. 프로젝트의 AI가 켜져 있어야 하고, 프로젝트가 일일 AI 한도에 도달하지 않았어야 합니다. 인시던트 통화의 녹취록이 오는 중이면, 초안은 OneUptime AI가 녹취록을 읽은 뒤에 나타납니다.
 :::
 
 ## 다음 단계

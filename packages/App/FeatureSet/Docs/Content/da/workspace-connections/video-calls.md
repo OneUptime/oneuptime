@@ -7,6 +7,7 @@ Giv hver hændelse og hver advarsel sit eget opkald. Når en notifikationsregel 
 - [Forbind med ét klik](#forbind-med-ét-klik): Zoom, Google Meet eller Microsoft Teams, ved at logge ind.
 - [Udbydere](#udbydere): Din egen apps tjenesteidentitet, et fast mødelink eller en Slack-huddle.
 - [Start et opkald manuelt](#start-et-opkald-manuelt): Fra en hændelses eller advarsels side.
+- [Transskriptioner af opkald](#transskriptioner-af-opkald): Hvad der blev sagt i en hændelses opkald, og den grundårsag, OneUptime AI læser i det.
 :::
 
 ## Sådan virker det
@@ -63,11 +64,13 @@ Hvert møde oprettes som den konto, du logger ind med, og som er vært for det. 
 
 | Udbyder | Log ind med | Hvad OneUptime må gøre |
 | --- | --- | --- |
-| Zoom | En Zoom-bruger. Møder med en Basic-bruger (gratis) som vært slutter efter 40 minutter. | Oprette møder for den bruger (`meeting:write:meeting`) og læse, hvem det er (`user:read:user`). |
+| Zoom | En Zoom-bruger. Møder med en Basic-bruger (gratis) som vært slutter efter 40 minutter. | Oprette møder for den bruger (`meeting:write:meeting`) og læse, hvem det er (`user:read:user`). Til [transskriptioner af opkald](#transskriptioner-af-opkald): læse transskriptionerne af cloudoptagelserne af brugerens møder (`cloud_recording:read:list_recording_files`, `cloud_recording:read:meeting_transcript`). |
 | Google Meet | En Google-konto, der kan bruge Google Meet. | Oprette Meet-rum som den konto (`meetings.space.created`) og læse dens e-mailadresse. |
 | Microsoft Teams | En arbejds- eller skolekonto med Microsoft Teams. Personlige Microsoft-konti kan ikke oprette Teams-møder. | Oprette onlinemøder som den konto (den delegerede rettighed `OnlineMeetings.ReadWrite`) og forblive logget ind (`offline_access`). |
 
 En forbindelse, der er lavet ved at logge ind, har stadig de indstillinger, der bestemmer, hvem der venter: **Who can join** for Google Meet og **Who skips the lobby** for Microsoft Teams. Ændr dem med **Rediger** i forbindelsens række.
+
+En Zoom-forbindelse, der blev logget ind, før OneUptime læste transskriptioner af opkald, starter opkald som før, men kan ikke læse deres transskriptioner, før den logges ind igen: **Reconnect** på dens række beder Zoom om tilladelserne til transskriptioner.
 
 ### Forbliv logget ind
 
@@ -97,6 +100,54 @@ For at forbinde med en tjenesteidentitet i stedet for en persons login — en Zo
 
 At starte og fjerne opkald kræver rettighed til at arbejde med hændelser (eller advarsler): **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** eller **Incident Member**, eller **Create Incident Video Call** og **Delete Incident Video Call** i en brugerdefineret rolle. Alle, der kan læse hændelsen, ser dens opkald.
 
+## Transskriptioner af opkald
+
+Det, de ansvarlige siger i et opkald, hvad de har tjekket, hvad de har mistanke om, og hvad de har besluttet, er den bedste optegnelse over, hvordan en hændelse blev håndteret, og det er væk, når opkaldet slutter. En hændelses opkald gemmer sin transskription, og OneUptime AI læser den for at finde den grundårsag, opkaldet peger på. Intet af det, den læser, når hændelsen, før en ansvarlig bruger det.
+
+:::steps
+### Hent transskriptionen efter opkaldet
+
+På hændelsens kort **Video Call** læser **Hent fra Zoom** eller **Hent fra Google Meet** transskriptionen af et møde, som OneUptime startede der. Til ethvert andet opkald tager **Tilføj transskription** den fil, mødeværktøjet gemte (`.vtt`, `.srt` eller `.txt`, op til 5 MB), eller den indsatte transskription. Med [hvert opkald optaget og transskriberet](#optag-og-transskribér-hvert-opkald) henter OneUptime den selv, når opkaldet er slut.
+
+### OneUptime AI læser den
+
+Inden for et minut eller to viser hændelsens kort **AI Investigation** den **Foreslået grundårsag**, markeret **Ikke bekræftet**, med de linjer i transskriptionen, den bygger på, citeret med tid og taler. Herunder, foldet sammen, står resten af det, opkaldet sagde: fund, delt op i **Bekræftet i opkaldet** og **Hypoteser**, derefter hvad der blev prøvet, beslutninger, opfølgninger og åbne spørgsmål. Det, OneUptime AI læste, slås også op i hændelsens feed og derfra i hændelsens Slack- og Microsoft Teams-kanaler.
+
+### Brug den, eller afvis den
+
+**Brug som grundårsag** åbner forslaget med citater og det hele i grundårsagens editor. Ret det, du har brug for, og gem: Det bliver hændelsens grundårsag som din egen ændring, noteret i dens feed. **Luk** lægger forslaget til side, og **Fortryd** henter det tilbage.
+:::
+
+OneUptime AI foreslår kun en årsag, når opkaldet nævner en, med de linjer, der siger det, og citerer de linjer, som transskriptionen har dem. Når opkaldet ikke fik afklaret årsagen, siger kortet **Der blev ikke sagt nok i opkaldet til at foreslå en grundårsag** i stedet for at gætte.
+
+### Optag og transskribér hvert opkald
+
+Så ingen skal huske at optage et opkald eller hente dets transskription, skal du slå **Optag og transskribér hændelsesopkald** til under **Projektindstillinger** > **Arbejdsområde** > **Video Calls**. Mens den er slået til:
+
+- OneUptime beder Zoom om at optage hvert hændelsesmøde, den starter, i skyen og Google Meet om at transskribere det. Beskeden, der slår opkaldet op, siger det, før nogen deltager.
+- Når opkaldet er slut, henter OneUptime selv transskriptionen, som **Hent fra Zoom** ville gøre, og OneUptime AI læser den. Indtil da siger kortet **Video Call**, at det venter.
+- Det, OneUptime AI læste, går til hændelsens feed og dens Slack- og Microsoft Teams-kanaler: den foreslåede grundårsag, markeret som ikke bekræftet, derefter hvad der blev bekræftet, prøvet og besluttet, opfølgningerne og de åbne spørgsmål.
+- Når hændelsen løses, før transskriptionen er kommet, venter det automatiske udkast til postmortem på den, så det læser, hvad der blev sagt i opkaldet: op til seks timer, mens Zoom eller Google Meet forbereder transskriptionen, og en time, når der endnu ikke er tegn på en.
+
+Indstillingen er slået fra som standard, fordi den optager mennesker: alle i de opkald kan se, at de bliver optaget eller transskriberet, så tjek, at jeres organisation tillader det. Zoom gemmer kun en transskription, når kontoen optager i skyen med lydtransskription slået til, og Google Meet kun i en Google Workspace-udgave, der har transskriptioner. Microsoft Teams-opkald, Slack-huddles og mødelinks optages ikke, og det gør advarslers opkald heller ikke: tilføj deres transskriptioner manuelt.
+
+### Hvad hver udbyder gemmer
+
+| Opkald | Hvordan det får sin transskription | Hvad det kræver |
+| --- | --- | --- |
+| Zoom | **Hent fra Zoom** | Et møde optaget i skyen med lydtransskription slået til, eller med AI Companions mødeopsummering slået til. Forbindelsen skal have scopes til transskriptioner (se [Zoom](#zoom)), og en, der blev logget ind før dem, skal bruge **Reconnect**. Zoom forbereder en transskription efter mødet, som regel inden for det dobbelte af mødets længde. |
+| Google Meet | **Hent fra Google Meet** | Transskriptioner slået til i opkaldet, i en Google Workspace-udgave, der har dem. Intet andet at sætte op: OneUptime læser transskriptionerne af de møder, den har oprettet. Google gemmer en transskription, så apps kan læse den, i 30 dage. |
+| Microsoft Teams | **Tilføj transskription** | Microsoft lader ingen app læse transskriptionen af et møde, der er oprettet, som OneUptime opretter dem. I Teams åbner du mødets opsummering, derefter dens transskription, og downloader den som en `.vtt`-fil. |
+| Mødelink eller Slack-huddle | **Tilføj transskription** | Den transskription, mødeværktøjet eller huddlens noter gemmer. |
+
+### Hvem må hvad
+
+At hente, tilføje, erstatte og fjerne en transskription, få den læst igen og afvise et forslag kræver tilladelse til at starte hændelsens opkald: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** eller **Incident Member**, eller **Create Incident Video Call** i en brugerdefineret rolle. **Brug som grundårsag** kræver tilladelse til at redigere hændelsens grundårsag. Alle, der kan læse hændelsen, ser dens opkalds transskriptioner, og hvad OneUptime AI læste i dem.
+
+### Hvad OneUptime AI læser
+
+At læse en transskription er AI-arbejde som en undersøgelse: Det kører kun, mens AI er slået til for projektet, og tæller med i projektets AI-forbrug og daglige grænser (se [Omkostningskontrol](/docs/ai/ai-sre#omkostningsstyring)). En lang transskription læses i dele. Når AI er slået fra, bevares transskriptionen, og kortet siger, at den ikke blev læst. At fjerne en transskription fjerner det, OneUptime AI læste i den, og bevarer hændelsens grundårsag. Et AI-udkast til postmortem læser også, hvad der blev sagt i hændelsens opkald (se [Postmortems](/docs/incidents/postmortems)).
+
 ## Udbydere
 
 Dette afsnit handler om at forbinde en udbyder med din egen apps tjenesteidentitet: en Zoom-app af typen Server-to-Server OAuth, en Google-tjenestekonto, en Microsoft Entra-appregistrering. En tjenesteidentitet afhænger aldrig af en person, så den bliver ved med at virke, uanset hvem der stopper. For at forbinde ved at logge ind i stedet, se [Forbind med ét klik](#forbind-med-ét-klik).
@@ -113,7 +164,7 @@ OneUptime opretter et Zoom-møde for hver hændelse via en Zoom-app af typen **S
 
 :::steps
 1. I [Zoom App Marketplace](https://marketplace.zoom.us/) skal du vælge **Develop** > **Build App** og oprette en app af typen **Server-to-Server OAuth**. At oprette en kræver en administrator af Zoom-kontoen, eller en rolle, der tillader Server-to-Server OAuth-apps.
-2. På appens side **Scopes** skal du tilføje **meeting:write:meeting:admin** (oprette et møde for en bruger). En app, der er oprettet før de detaljerede scopes, kan bruge **meeting:write:admin** i stedet.
+2. På appens side **Scopes** skal du tilføje **meeting:write:meeting:admin** (oprette et møde for en bruger). En app, der er oprettet før de detaljerede scopes, kan bruge **meeting:write:admin** i stedet. For at lade OneUptime læse [transskriptioner af opkald](#transskriptioner-af-opkald) også skal du tilføje **cloud_recording:read:list_recording_files:admin** og **cloud_recording:read:meeting_transcript:admin** (eller **recording:read:admin** i en app, der er oprettet før de detaljerede scopes).
 3. Klik på **Activate** for at aktivere appen, og kopiér derefter **Account ID**, **Client ID** og **Client secret** fra dens side **App Credentials** til forbindelsesformularen.
 4. Angiv **Meeting host**: e-mailen på en licenseret Zoom-bruger, helst en tjenestekonto som incidents@example.com, så møder bliver ved med at virke, når folk stopper. Møder med en Basic-bruger (gratis) som vært slutter efter 40 minutter.
 5. Responders deltager uden at vente på værten, fordi værten er en tjenestekonto, der aldrig deltager. Sørg for, at din Zoom-kontos indstilling **Waiting room** ikke er låst til slået til, ellers kan ingen komme ind.
@@ -215,7 +266,7 @@ Opret én OAuth-app pr. udbyder, og registrér denne omdirigerings-URI på den, 
 | Google Meet | `https://<host>/api/video-call-oauth/google-meet/callback` | `GOOGLE_MEET_APP_CLIENT_ID`, `GOOGLE_MEET_APP_CLIENT_SECRET` | `googleMeetApp.clientId`, `googleMeetApp.clientSecret` |
 | Microsoft Teams | `https://<host>/api/video-call-oauth/microsoft-teams/callback` | `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_MEETINGS_APP_CLIENT_SECRET` | `microsoftTeamsMeetingsApp.clientId`, `microsoftTeamsMeetingsApp.clientSecret` |
 
-- **Zoom**: i [Zoom App Marketplace](https://marketplace.zoom.us/) skal du vælge **Develop** > **Build App** og oprette en **General App**, der administreres af brugere. Under **Basic Information** skal du tilføje omdirigerings-URI'en som OAuth Redirect URL på både fanen **Development** og **Production** og på OAuth-tilladelseslisten, og på fanen **Production** skal du sætte endpoint-URL'en for **Deauthorization Notification** til `https://<host>/api/video-call-oauth/zoom/events`. Under **Scopes** skal du tilføje `meeting:write:meeting` og `user:read:user`. **Secret Token** under **Features** > **Access** er `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. **Development**-legitimationsoplysningerne virker kun for brugere af din egen Zoom-konto; **Production**-legitimationsoplysningerne virker for alle, når Zoom har gennemgået og udgivet appen.
+- **Zoom**: i [Zoom App Marketplace](https://marketplace.zoom.us/) skal du vælge **Develop** > **Build App** og oprette en **General App**, der administreres af brugere. Under **Basic Information** skal du tilføje omdirigerings-URI'en som OAuth Redirect URL på både fanen **Development** og **Production** og på OAuth-tilladelseslisten, og på fanen **Production** skal du sætte endpoint-URL'en for **Deauthorization Notification** til `https://<host>/api/video-call-oauth/zoom/events`. Under **Scopes** skal du tilføje `meeting:write:meeting` og `user:read:user`. For at lade den læse [transskriptioner af opkald](#transskriptioner-af-opkald) skal du også tilføje `cloud_recording:read:list_recording_files` og `cloud_recording:read:meeting_transcript`. **Secret Token** under **Features** > **Access** er `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. **Development**-legitimationsoplysningerne virker kun for brugere af din egen Zoom-konto; **Production**-legitimationsoplysningerne virker for alle, når Zoom har gennemgået og udgivet appen.
 - **Google Meet**: i [Google Cloud-konsollen](https://console.cloud.google.com/) skal du aktivere **Google Meet REST API**, konfigurere OAuth-samtykkeskærmen (**Google Auth Platform**) med scopes `openid`, `email` og `https://www.googleapis.com/auth/meetings.space.created`, og oprette en OAuth-klient af typen **Web application** med omdirigerings-URI'en. Udgiv appen til produktion: en app, der efterlades i test, mister sine logins efter syv dage. Google gennemgår apps, der beder om Meet-scopet; indtil det er sket, ser folk en advarsel, før de logger ind.
 - **Microsoft Teams**: i [Microsoft Entra Administration](https://entra.microsoft.com/) skal du registrere en app til **Accounts in any organizational directory**, tilføje omdirigerings-URI'en som en **Web**-omdirigerings-URI, tilføje de delegerede Microsoft Graph-rettigheder `openid`, `profile`, `email`, `offline_access` og `OnlineMeetings.ReadWrite`, og oprette en klienthemmelighed. Brug en registrering for sig selv, ikke Microsoft Teams-bottens (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Indtil appen har en verificeret udgiver, skal de fleste organisationer have en administrator til at give samtykke til den.
 
@@ -237,6 +288,18 @@ Dens login holdt op med at virke: kontoen fjernede OneUptime, blev slettet eller
 
 :::details Folk venter i en lobby eller et venterum
 Ændr **Who can join** (Google Meet) eller **Who skips the lobby** (Microsoft Teams) med **Rediger** i forbindelsens række. For Zoom skal du sørge for, at kontoens indstilling **Waiting room** ikke er låst til slået til.
+:::
+
+:::details Hent fra Zoom finder ingen transskription
+Zoom gemmer kun en transskription af et møde, der er optaget i skyen med lydtransskription slået til, eller med AI Companions mødeopsummering slået til, og forbereder den, efter at mødet er slut. Kortet siger hvilket: prøv igen senere, eller slå en af dem til for dine hændelsesmøder. Imens tager **Tilføj transskription** en transskription, du har gemt.
+:::
+
+:::details Kortet Video Call venter stadig på en transskription
+Når opkaldet er slut, spørger OneUptime Zoom eller Google Meet efter den med få minutters mellemrum, sjældnere jo ældre opkaldet bliver, i tre dage efter opkaldets start. Transskriptionen kommer få minutter efter, at udbyderen har forberedt den, og Zoom bruger op til omkring det dobbelte af opkaldets længde. **Hent fra Zoom** spørger med det samme. Når udbyderen ikke gemmer nogen transskription, siger kortet det: tjek, at Zoom-kontoen optager i skyen med lydtransskription slået til, eller at jeres Google Workspace-udgave har transskriptioner.
+:::
+
+:::details OneUptime AI kunne ikke læse en transskription
+Kortet siger hvorfor: AI er slået fra for projektet, projektet har nået en daglig AI-grænse, eller AI-udbyderen afviste. Når det er ordnet, læser **Prøv igen** på kortet den igen.
 :::
 
 ## Næste trin

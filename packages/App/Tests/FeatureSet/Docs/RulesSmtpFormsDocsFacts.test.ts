@@ -16,7 +16,12 @@ import DataSourceEgressGuard, {
 import { getTableColumn } from "Common/Types/Database/TableColumn";
 import MailTransportType from "Common/Types/Email/MailTransportType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
+import { getRuleCriteriaSubjectForModel } from "Common/Types/Rules/RuleCriteriaSubject";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import {
+  getRuleCriteriaSubjectCopy,
+  RuleCriteriaSubjectCopy,
+} from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import {
   createTranslator,
   toSentenceTerm,
@@ -88,6 +93,7 @@ const SOURCES: Record<string, string> = {
   emailLogsTable: `${DASHBOARD}/Components/NotificationLogs/EmailLogsTable.tsx`,
   statusPageSideMenu: `${DASHBOARD}/Pages/StatusPages/View/SideMenu.tsx`,
   subscriberSettings: `${DASHBOARD}/Pages/StatusPages/View/SubscriberSettings.tsx`,
+  subscriberChoicesCopy: `${DASHBOARD}/Components/StatusPage/SubscriberChoicesCopy.ts`,
   smtpFormFields: `${COMMON_UI}/SmtpConfig/SmtpConfigFormFields.ts`,
   adminNavBar: `${ADMIN_DASHBOARD}/Components/NavBar/NavBar.tsx`,
   adminSettingsSideMenu: `${ADMIN_DASHBOARD}/Pages/Settings/SideMenu.tsx`,
@@ -487,9 +493,25 @@ describe("Label and Owner Rules, against the Dashboard", () => {
     );
 
     expect(addOwner).not.toBeNull();
-    expect(page).toContain(
-      `On the **Match** step, click **${addCondition}** for each condition`,
+
+    /*
+     * The step asks what the rule applies to before any condition, in the
+     * words of the rule's records: "All hosts" on a host rule. The other
+     * answer opens the first condition; Add condition adds the rest.
+     */
+    const appliesTo: string = translationKeyOf(criteria, "appliesToTitle");
+    const hosts: RuleCriteriaSubjectCopy = getRuleCriteriaSubjectCopy(
+      getRuleCriteriaSubjectForModel("HostLabelRule"),
     );
+
+    expect(hosts.all).toBe("All hosts");
+    expect(page).toContain(
+      `On the **Match** step, **${appliesTo}** starts on every new resource, such as **${hosts.all}** on a host rule.`,
+    );
+    expect(page).toContain(
+      `pick **${hosts.matching}** and fill in the condition that opens; click **${addCondition}** for each other condition the resource must meet.`,
+    );
+    expect(page).not.toContain("A rule with no conditions matches every");
     expect(page).toContain(`choose **${matchAll}** or **${matchAny}**`);
     expect(page).toContain(
       "On the **Labels** step, pick the **Labels to Add**",
@@ -1150,8 +1172,12 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     expect(provider).toContain(
       "Typical scope: https://graph.microsoft.com/.default",
     );
+    // The scope field: Graph's scope as its example, the others under it.
     expect(readSource("smtpFormFields")).toContain(
-      "For Microsoft Graph: https://graph.microsoft.com/.default. For Microsoft 365 SMTP+OAuth: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
+      'placeholder: "https://graph.microsoft.com/.default",',
+    );
+    expect(readSource("smtpFormFields")).toContain(
+      "For Microsoft 365 SMTP: https://outlook.office365.com/.default. For Google: https://mail.google.com/",
     );
 
     expect(page).toContain("**Mail.Send** application permission");
@@ -1173,7 +1199,13 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     expect(readSource("statusPageSideMenu")).toContain(
       'title: "Subscriber Settings",',
     );
-    expect(readSource("subscriberSettings")).toContain('title: "Custom SMTP",');
+    // The Custom SMTP card, under More settings, is titled from its copy.
+    expect(readSource("subscriberSettings")).toContain(
+      "title: SubscriberChoicesCopy.smtpTitle,",
+    );
+    expect(readSource("subscriberChoicesCopy")).toContain(
+      'smtpTitle: translationKey("Custom SMTP"),',
+    );
     expect(page).toContain(
       "A status page picks its SMTP config on its **Subscriber Settings** page, in the **Custom SMTP** card.",
     );

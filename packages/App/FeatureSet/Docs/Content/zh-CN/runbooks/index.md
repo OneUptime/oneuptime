@@ -17,20 +17,20 @@ flowchart TB
     subgraph triggers["启动执行的方式"]
         direction LR
         rule["Runbook 规则"]
-        manual["在事件上运行 Runbook"]
-        runnow["在 Runbook 上点击 Run Now"]
+        manual["在事件上运行<br/>Runbook"]
+        runnow["在 Runbook<br/>上点击 Run Now"]
     end
     rule --> execution["执行：步骤的快照"]
     manual --> execution
     runnow --> execution
-    execution --> worker["OneUptime Worker 按顺序处理步骤"]
-    worker -->|"Manual 步骤或审批"| person["等待人员处理"]
-    worker -->|"HTTP 和 AI 步骤"| onworker["在 Worker 上运行"]
-    worker -->|"JavaScript、Bash、SSH、Kubernetes"| runner["你基础设施中的 Runner"]
-    person --> record["记录状态、输出和错误"]
+    execution --> worker["OneUptime Worker<br/>按顺序处理步骤"]
+    worker -->|"Manual<br/>步骤或审批"| person["等待人员处理"]
+    worker -->|"HTTP 和<br/>AI 步骤"| onworker["在 Worker 上运行"]
+    worker -->|"JavaScript、<br/>Bash、SSH、<br/>Kubernetes"| runner["你基础设施中的<br/>Runner"]
+    person --> record["记录状态、<br/>输出和错误"]
     onworker --> record
     runner --> record
-    record --> history["事件的运行手册页面和 Runbook 的执行列表"]
+    record --> history["事件的<br/>运行手册页面和<br/>Runbook 的执行列表"]
 ```
 
 每次运行 Runbook 都会创建一次 **执行** 。执行开始时，Runbook 的步骤会被复制到其中，OneUptime 按顺序逐一处理。Manual 步骤或需要审批的步骤会暂停执行，直到有人处理。
@@ -98,6 +98,17 @@ Runbook 位于 **产品** 下的 **仪表板与自动化** 分组中。
 | **事件 / 警报 / 计划维护 → 规则 → Runbook 规则** | 创建自动启动 Runbook 的规则。 |
 | 事件、警报或维护事件 → **运行手册** | 查看与之关联的执行，并点击 **运行 Runbook** 启动新的执行。 |
 
+Runbook 自己的侧边菜单按如下方式组织页面。默认只展开**基础**：点击某个部分的标题即可展开。在某个部分的任意页面上，该部分会自动展开。
+
+| 部分 | 页面 |
+| --- | --- |
+| **基础** | **概览**、**步骤** |
+| **日志** | **执行** |
+| **所有者** | **所有者** |
+| **设置** | **触发器**、**设置** |
+| **开发者** | **Terraform**、**API**、**AI 助手** |
+| **高级** | **审计日志**、**删除运行手册** |
+
 ## 完整示例
 
 假设每个标题中含有“db-primary”的事件都应启动一个五步的数据库故障转移 Runbook。
@@ -105,7 +116,7 @@ Runbook 位于 **产品** 下的 **仪表板与自动化** 分组中。
 :::steps
 ### 创建 Runbook
 
-在 **运行手册** 中点击 **创建Runbook** ，将其命名为“DB primary failover”。打开它，进入 **步骤** ，添加以下步骤，然后点击 **Save Steps** ：
+在 **运行手册** 中点击 **创建Runbook** ，将其命名为“DB primary failover”。它会在 **步骤** 打开：添加以下步骤，然后点击 **Save Steps** ：
 
 | # | 类型 | 标题 |
 | --- | --- | --- |

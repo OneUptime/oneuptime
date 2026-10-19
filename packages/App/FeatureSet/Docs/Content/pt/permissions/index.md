@@ -12,14 +12,14 @@ Os **proprietários** são outra ideia. Um proprietário é quem responde por um
 ```mermaid title="Como uma pessoa e uma chave de API recebem acesso"
 flowchart TB
     User["Um usuário<br/>(uma conta)"]
-    Key["Uma chave de API"]
     subgraph Project["Um projeto"]
         direction TB
+        Key["Uma chave<br/>de API"]
         Team["Equipe"]
-        Allow["Permissões concedidas,<br/>cada uma com um escopo:<br/>Todos, Próprios ou Rótulos"]
-        Block["Permissões bloqueadas,<br/>que sempre vencem"]
-        KeyRules["As permissões concedidas<br/>e bloqueadas da chave"]
-        Resources["Monitores, incidentes,<br/>páginas de status e mais"]
+        Allow["Permissões<br/>concedidas,<br/>cada uma com<br/>um escopo:<br/>Todos,<br/>Próprios<br/>ou Rótulos"]
+        Block["Permissões<br/>bloqueadas,<br/>que sempre<br/>vencem"]
+        KeyRules["As permissões<br/>concedidas<br/>e bloqueadas<br/>da chave"]
+        Resources["Monitores,<br/>incidentes,<br/>páginas de<br/>status e mais"]
     end
     User -->|"membro de"| Team
     Team --> Allow
@@ -28,6 +28,7 @@ flowchart TB
     Allow -->|"alcançam"| Resources
     KeyRules -->|"alcançam"| Resources
     Block -.->|"retiram"| Resources
+    Allow ~~~ Block
 ```
 
 | Conceito | O que é |
@@ -37,6 +38,7 @@ flowchart TB
 | Equipe | Um grupo com nome dentro de um projeto que carrega permissões. |
 | Membro da equipe | Um usuário que foi convidado para uma equipe e aceitou. |
 | Permissão | Uma capacidade única, por ex. `CreateProjectMonitor`, ou uma função que agrupa muitas, por ex. `MonitorAdmin`. |
+| Função personalizada | Um conjunto de permissões que você nomeia uma vez e dá a equipes. |
 | Escopo | Até onde vai uma permissão concedida: todos os recursos, só os próprios ou só os rotulados. |
 | Proprietário | Um usuário ou equipe marcado como responsável por um recurso específico. |
 | Rótulo | Uma marca que você coloca nos recursos, usada para restringir permissões e para organizar. |
@@ -57,6 +59,7 @@ Um usuário está «em» um projeto quando é membro de **pelo menos uma equipe*
 - Convites criam um membro de equipe pendente. O usuário só conta como membro do projeto — e só ganha qualquer permissão — **depois de aceitar o convite.**
 - **Convidar Usuário** começa na equipe de membros do projeto: a equipe que tem `ProjectMember` para o projeto inteiro, que é **Members** a menos que você a tenha renomeado. Escolha outra equipe para dar à pessoa mais ou menos acesso. Nada vem escolhido quando você mesmo não poderia convidar para essa equipe — convidar alguém repassa as permissões da equipe, e você só pode repassar permissões que tem — ou quando o projeto não tem uma equipe assim. O painel de administração começa na mesma equipe sempre que um administrador da instância adiciona alguém a um projeto: **Convidar Usuário** em um projeto, **Adicionar ao projeto** em um usuário e em vários usuários de uma vez, e os projetos ligados a um [provedor de SSO global](/docs/identity/global-sso).
 - Remover um usuário de todas as equipes de um projeto retira o acesso dele a esse projeto, a partir da próxima requisição dele — inclusive enquanto ele está conectado. A conta e os outros projetos dele não são afetados. Ele sai das escalas de plantão, das regras de escalonamento e das substituições do projeto, dos papéis dos incidentes e episódios abertos e dos proprietários dos recursos; os incidentes resolvidos guardam o registro de quem foi proprietário deles e os conduziu.
+- Em uma instalação auto-hospedada, remover o acesso de administrador principal de alguém no Admin Dashboard o retira a partir da próxima requisição dessa pessoa — inclusive enquanto ela está conectada. Ela continua conectada e mantém os projetos dos quais é membro.
 - Quem sai de um projeto deixa de receber as notificações dele. Os próprios métodos, regras e configurações de notificação da pessoa para o projeto são removidos com a última equipe — e-mail, SMS, chamada, WhatsApp, Telegram, push, webhook, Slack e Microsoft Teams, o resumo por e-mail e o e-mail ainda não enviado, o número para chamadas recebidas e os lembretes de plantão —, então quem volta começa com os padrões. O que ainda a menciona, como o usuário para quem uma regra de chamadas recebidas liga ou um responsável mantido em um incidente resolvido, não a notifica mais: nada é enviado em nome de um projeto a quem não é membro dele, e um convite pendente ainda não é participação. Esses lugares mostram **Não é mais membro** ao lado do nome, para que você coloque outra pessoa. Quem foi convidado e ainda não aceitou mostra **Convite ainda não aceito** no lugar. Se uma substituição encaminha os chamados de alguém para uma pessoa que saiu, quem é chamado é a pessoa que ela cobre. Sair também desconecta os clientes MCP que a pessoa conectou ao projeto, e o link pessoal do calendário de plantão dela passa a mostrar um calendário vazio. No OneUptime Cloud, quem volta pelo login único (SSO) do projeto confirma-o novamente pelo e-mail.
 - Se o seu projeto exige SSO e um usuário ainda não se autenticou pelo provedor de identidade, ele é tratado como usuário SSO não autorizado e não vê nada até fazê-lo. Veja [SSO](/docs/identity/sso).
 - Com o SCIM configurado, o provedor de identidade pode criar, atualizar e remover usuários e suas participações em equipes automaticamente. Veja [SCIM](/docs/identity/scim).
@@ -132,6 +135,24 @@ Essas também são as chaves que você usa ao criar chaves de API, e as que a AP
 
 A lista completa está na [Referência de permissões](/docs/permissions/reference).
 
+### Funções personalizadas
+
+Uma função personalizada é um conjunto de permissões que você nomeia uma vez e dá a equipes: por exemplo, um «Responsável por incidentes» feito de `IncidentMember`, `AlertMember` e `OnCallViewer`, ou um «Líder de equipe». Cada equipe a que você a dá recebe as mesmas permissões, e você as altera para todas essas equipes em um só lugar. No OneUptime Cloud, as funções personalizadas exigem o plano Scale, como alterar as permissões de uma equipe.
+
+:::steps
+1. Abra **Equipes** no menu **Produtos**, em **Configurações**. Expanda **Configurações** no menu lateral, escolha **Funções** e clique em **Criar: Função personalizada**.
+2. Digite o **Nome** dela e escolha em **Permissões** as funções integradas que ela reúne, para cada recurso do projeto. A descrição fica em **Mais campos**.
+3. Crie a função. Ela abre na sua página, onde **Adicionar função** adiciona outra função integrada e **Adicionar permissão** (no menu **⋯** do cartão) uma permissão avulsa, cada uma com um escopo e rótulos, como em uma equipe.
+4. Clique em **Dar a uma equipe** em **Equipes com esta função**. A página **Permissões** de uma equipe também tem **Adicionar função personalizada**, e **Criar equipe** oferece em **Acesso** as funções personalizadas que você poderia dar.
+:::
+
+- Os membros de uma equipe recebem cada permissão das funções personalizadas dela, com o mesmo escopo e os mesmos rótulos, exatamente como se a equipe as tivesse. Um bloqueio na equipe continua vencendo.
+- Uma função continua ligada às equipes que a têm: uma alteração nela chega a todas na hora, e a página da função diz quantas equipes e pessoas são. **Remover** tira a função de uma equipe. Excluir a própria função tira as permissões dela de cada equipe que a tem; as equipes mantêm seus membros e suas outras funções e permissões.
+- Você só pode pôr em uma função, e dar como função a uma equipe, o que poderia dar à equipe diretamente: uma função com uma permissão que você não tem com o mesmo escopo ou um mais amplo é recusada, e a recusa nomeia a permissão. Uma função nunca contém `ProjectOwner`, e **Owners** e **Admin** nunca recebem uma.
+- A página **Permissões** de uma equipe lista as funções personalizadas dela acima das permissões próprias. O que uma função dá é alterado na página da função, não na da equipe.
+- Chaves de API não recebem funções personalizadas. Uma chave serve a uma única integração, então dê a ela exatamente as permissões de que precisa na página dela.
+- As funções integradas aparecem em **Funções integradas**, no fim da página **Funções**.
+
 ### Permitir e bloquear
 
 Cada equipe tem duas listas:
@@ -171,11 +192,11 @@ Toda permissão concedida tem um escopo, escolhido em **Escopo** quando você a 
 
 | Escopo | Significado |
 | --- | --- |
-| Todos os recursos do projeto | O padrão. A permissão se aplica a todos os recursos correspondentes. |
-| De propriedade desta equipe ou de seus membros | A permissão só se aplica a recursos em que esta equipe, ou o usuário que age, está listado como proprietário. |
-| Restringir por rótulos (avançado) | A permissão só se aplica a recursos que carregam pelo menos um dos rótulos selecionados. |
+| Todos os recursos no projeto | O padrão, e o que a maioria das equipes precisa. A permissão se aplica a todos os recursos correspondentes. |
+| Apenas os recursos que pertencem a eles | A permissão só se aplica a recursos que pertencem à pessoa que age ou a uma das equipes dela. |
+| Apenas os recursos com certos rótulos | A permissão só se aplica a recursos que carregam pelo menos um dos rótulos escolhidos. |
 
-**Próprios** é a forma mais simples de montar um modelo de «cada um cuida dos seus próprios serviços»: dê a uma equipe `MonitorAdmin` com escopo Próprios e depois torne essa equipe proprietária dos monitores pelos quais ela é responsável. Isso só restringe recursos que realmente podem ter proprietários — monitores, incidentes, painéis, serviços e afins. A configuração do projeto (estados de incidentes, rótulos, as próprias equipes) não tem proprietário, então uma função com escopo Próprios se comporta normalmente ali.
+**Próprios** é a forma mais simples de montar um modelo de «cada um cuida dos seus próprios serviços»: dê a uma equipe `MonitorAdmin` com escopo Próprios e depois torne essa equipe proprietária dos monitores pelos quais ela é responsável. Isso restringe todo recurso que pode ter proprietários — monitores, incidentes, painéis, serviços, grupos de monitores, agendamentos de plantão e afins — e o que pertence a eles, como as camadas de um agendamento. Sondas, Runners, agentes de IA, agendamentos de plantão e modelos de incidentes e de manutenção são aquilo com que outros recursos são configurados, então uma permissão com escopo Próprios continua lendo todos eles, e você pode escolher qualquer um; ela só altera e exclui aqueles dos quais você ou suas equipes são proprietários. A chave de um Runner, que permite a quem a tem agir como esse Runner, só aparece nos Runners dos quais você ou suas equipes são proprietários. A configuração do projeto (estados de incidentes, rótulos, as próprias equipes) não tem proprietário, então uma função com escopo Próprios se comporta normalmente ali.
 
 **Rótulos** é a versão mais manual da mesma ideia: marque os recursos e depois conceda permissões restritas a essas marcas.
 
@@ -196,7 +217,7 @@ Os proprietários fazem dois trabalhos:
 
 A propriedade sozinha não concede nada. Ser proprietário de um monitor não permite editá-lo, a menos que uma equipe a que você pertence também tenha uma permissão sobre monitores. A propriedade restringe o acesso; ela nunca o amplia.
 
-Quem é proprietário de um recurso é lido por meio do recurso. Os proprietários de um monitor ou de qualquer outro recurso só são listados, lidos, adicionados e removidos por quem pode ler esse recurso, e uma permissão apenas sobre os proprietários não alcança os proprietários de nenhum recurso que você não pode ler.
+Quem é proprietário de um recurso é lido por meio do recurso. Os proprietários de um monitor ou de qualquer outro recurso só são listados, lidos, adicionados e removidos por quem pode ler esse recurso, e uma permissão apenas sobre os proprietários não alcança os proprietários de nenhum recurso que você não pode ler. Adicionar e remover proprietários também segue o escopo da permissão que o permite: com o escopo `Owned`, ela só alcança os recursos dos quais você ou uma das suas equipes já são proprietários, por mais recursos que você possa ler, então poder ler um monitor não permite que você se torne o proprietário dele. Um proprietário é adicionado ou removido, mas nunca movido para outro recurso.
 
 ## Rótulos
 
@@ -302,7 +323,7 @@ As permissões resolvidas ficam em cache por usuário e projeto, e são atualiza
 
 **Uma equipe que só observa.** Crie a equipe com **Visualizador** em **Acesso**. Para só algumas áreas, escolha **Escolher as permissões depois** e adicione as funções `*Viewer` por área que ela deve ver.
 
-**Engenheiros de plantão que cuidam dos próprios serviços.** Dê à equipe `MonitorAdmin`, `IncidentMember` e `OnCallMember` com escopo **Próprios**, e depois adicione a equipe como proprietária dos monitores que ela opera.
+**Engenheiros de plantão que cuidam dos próprios serviços.** Dê à equipe `MonitorAdmin`, `IncidentMember` e `OnCallMember` com escopo **Próprios**, e depois adicione a equipe como proprietária dos monitores, das políticas de plantão e dos agendamentos que ela opera. O que suas pessoas criam com essas permissões já é delas.
 
 **Prestadores de serviço longe da produção.** Dê à equipe as funções de que ela precisa com escopo **Todos** e depois adicione uma **permissão bloqueada** (em **Mais configurações**, na página Permissões da equipe) para as capacidades sensíveis, restrita ao rótulo `Production`.
 

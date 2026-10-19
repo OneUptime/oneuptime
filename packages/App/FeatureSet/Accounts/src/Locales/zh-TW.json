@@ -13,7 +13,8 @@
     "confirmPassword": "確認密碼",
     "newPassword": "新密碼",
     "code": "代碼",
-    "yourCompany": "您的公司"
+    "yourCompany": "您的公司",
+    "or": "或"
   },
   "language": {
     "label": "語言",
@@ -50,7 +51,7 @@
     "subtitle": "使用密碼、組織的單一登入（SSO）或通行密鑰。",
     "submitButton": "登入",
     "forgotPassword": "忘記密碼？",
-    "useSso": "改用單一登入（SSO）",
+    "signInWithSso": "使用 SSO 登入",
     "signInWithMicrosoft": "使用 Microsoft 登入",
     "noAccountPrompt": "沒有帳號？",
     "registerLink": "註冊。",
@@ -146,7 +147,7 @@
     "title": "使用 SSO 登入",
     "subtitle": "使用您的 SSO 提供者登入以存取您的帳號。",
     "submitButton": "使用 SSO 登入",
-    "useUsernameInstead": "改用使用者名稱與密碼。",
+    "signInWithPassword": "使用密碼登入",
     "noAccountPrompt": "沒有帳號？",
     "registerLink": "註冊。",
     "selectProjectTitle": "選擇專案",
@@ -239,7 +240,7 @@
     "accessWriteDescription": "檢視資料並進行變更：確認和解決事件與警示、新增備註，以及建立、更新或刪除資源。",
     "accessReadTitle": "唯讀",
     "accessReadDescription": "檢視事件、警示、監測器、狀態頁面和遙測資料。無法變更任何內容。",
-    "permissionsNote": "用戶端會以您的身分執行操作，所能做的事絕不會超出您本人在此專案中的權限。您可以隨時前往「專案設定 > MCP 伺服器」中斷它的連線。",
+    "permissionsNote": "用戶端會以您的身分執行操作，所能做的事絕不會超出您本人在此專案中的權限。您可以隨時前往「專案設定 > 人工智慧 > MCP 伺服器」中斷它的連線。",
     "authorizeButton": "授權",
     "denyButton": "取消",
     "redirecting": "正在返回 {{clientName}}...",
@@ -285,7 +286,7 @@
       "bought_from_reseller": "{{name}} – 由經銷商計費"
     },
     "nothingToChoose": "您的專案皆無法使用此購買，且您無法在此伺服器上建立專案。請聯絡此購買所要支付之專案的擁有者，由其完成設定。",
-    "billingNote": "您的方案和使用量將依 oneuptime.com/pricing 上的價格透過 {{marketplace}} 計費。您可以隨時在「專案設定 → 帳單」中變更方案。",
+    "billingNote": "您的方案和使用量將依 oneuptime.com/pricing 上的價格透過 {{marketplace}} 計費。您可以隨時在「專案設定 → 帳單與發票 → 帳單」中變更方案。",
     "submitButton": "設定購買",
     "notNowButton": "暫時不要",
     "redirecting": "購買已設定完成。正在前往您的專案…",
@@ -358,5 +359,13 @@
   "Quote": "引用",
   "Code Block": "程式碼區塊",
   "Switch to markdown source": "切換到 Markdown 原始碼",
-  "Switch to visual editor": "切換到視覺化編輯器"
+  "Switch to visual editor": "切換到視覺化編輯器",
+  "Opens in a new tab": "在新分頁中開啟",
+  "Note": "注意",
+  "Tip": "提示",
+  "Info": "資訊",
+  "Important": "重要",
+  "Warning": "警告",
+  "Caution": "小心",
+  "Danger": "危險"
 }

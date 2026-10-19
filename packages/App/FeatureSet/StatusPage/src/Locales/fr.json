@@ -22,6 +22,10 @@
     "label": "Langue",
     "switchLanguage": "Changer de langue"
   },
+  "theme": {
+    "switchToDark": "Passer au thème sombre",
+    "switchToLight": "Passer au thème clair"
+  },
   "nav": {
     "overview": "Aperçu",
     "incidents": "Incidents",
@@ -125,7 +129,27 @@
     "noneDescription": "Aucun événement planifié publié pour cette page de statut.",
     "scheduledAt": "Planifié pour ",
     "report": "Rapport d'événement planifié",
-    "notFound": "Aucun événement planifié trouvé pour cette page de statut."
+    "notFound": "Aucun événement planifié trouvé pour cette page de statut.",
+    "calendar": {
+      "subscribe": "S'abonner au calendrier",
+      "subscribeTitle": "S'abonner aux maintenances planifiées",
+      "subscribeDescription": "Recevez les maintenances planifiées de cette page dans votre application de calendrier. Elles se mettent à jour d'elles-mêmes.",
+      "eventTitle": "Ajouter au calendrier",
+      "eventDescription": "Ajoutez cette maintenance à votre application de calendrier.",
+      "addToCalendar": "Ajouter au calendrier",
+      "addHeading": "Ajouter à votre calendrier",
+      "google": "Google Agenda",
+      "googleHint": "Ouvre Google Agenda dans un nouvel onglet",
+      "device": "Apple Calendrier / Outlook",
+      "deviceHint": "Ouvre l'application de calendrier de cet appareil",
+      "deviceFileHint": "Télécharge la maintenance pour l'application de calendrier de cet appareil",
+      "copyHeading": "Ou copiez le lien",
+      "copyHint": "Collez-le dans n'importe quelle application de calendrier capable de s'abonner à un calendrier par URL.",
+      "copy": "Copier le lien",
+      "copied": "Copié !",
+      "done": "Terminé",
+      "refreshNote": "Les applications de calendrier vérifient les changements à leur propre rythme : une mise à jour peut mettre quelques heures à apparaître."
+    }
   },
   "subscribe": {
     "title": "S'abonner",
@@ -161,7 +185,8 @@
       "yourPhoneNumber": "Votre numéro de téléphone",
       "placeholder": "+33612345678",
       "managePrompt": "Veuillez saisir le numéro de téléphone avec lequel vous vous êtes abonné",
-      "manageDescription": "Nous vous enverrons un lien de gestion d'abonnement à ce numéro de téléphone."
+      "manageDescription": "Nous vous enverrons un lien de gestion d'abonnement à ce numéro de téléphone.",
+      "confirmationSent": "Nous avons envoyé un SMS à ce numéro de téléphone. Ouvrez le lien qu'il contient pour confirmer votre abonnement."
     },
     "slack": {
       "title": "S'abonner via Slack",
@@ -212,11 +237,16 @@
       "saved": "Vos modifications ont été enregistrées.",
       "submit": "Mettre à jour l'abonnement",
       "unsubscribe": "Se désabonner",
-      "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources."
+      "unsubscribeDescription": "Sélectionnez cette option si vous souhaitez vous désabonner de toutes les ressources.",
+      "linkNotValid": "Ce lien de gestion de votre abonnement a expiré ou n'est pas valide. Pour en obtenir un nouveau, utilisez « Gérer l'abonnement existant » sur la page « S'abonner ».",
+      "getNewLink": "Obtenir un nouveau lien",
+      "loadFailed": "Impossible de charger ce lien. Veuillez réessayer plus tard."
     },
     "confirm": {
       "title": "Confirmer l'abonnement",
-      "success": "Abonnement confirmé avec succès"
+      "success": "Abonnement confirmé avec succès",
+      "linkNotValid": "Ce lien de confirmation de votre abonnement a expiré ou n'est pas valide. Un lien fonctionne pendant 24 heures après son envoi. Pour en obtenir un nouveau, abonnez-vous à nouveau.",
+      "subscribeAgain": "S'abonner à nouveau"
     },
     "unsubscribe": {
       "title": "Se désabonner",
@@ -264,7 +294,8 @@
       "loginPrompt": "Veuillez vous connecter pour voir {{statusPageName}}",
       "forgotPassword": "Mot de passe oublié ?",
       "submit": "Se connecter",
-      "useSSO": "Utiliser l'authentification unique (SSO) à la place"
+      "or": "ou",
+      "logInWithSso": "Se connecter avec SSO"
     },
     "sso": {
       "title": "Se connecter avec SSO",
@@ -342,5 +373,13 @@
   "{{field}} is required.": "{{field}} est obligatoire.",
   "{{field}} should match {{matchField}}": "{{field}} doit correspondre à {{matchField}}",
   "Email is not valid.": "L'e-mail n'est pas valide.",
-  "Next": "Suivant"
+  "Next": "Suivant",
+  "Opens in a new tab": "S'ouvre dans un nouvel onglet",
+  "Note": "Remarque",
+  "Tip": "Astuce",
+  "Info": "Info",
+  "Important": "Important",
+  "Warning": "Avertissement",
+  "Caution": "Attention",
+  "Danger": "Danger"
 }

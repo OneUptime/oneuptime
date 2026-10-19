@@ -6,8 +6,8 @@ import FormFieldSchemaType from "../../../../../UI/Components/Forms/Types/FormFi
 import FormValues from "../../../../../UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
-  MORE_FIELDS_SECTION_ICON,
   MORE_FIELDS_SECTION_TITLE,
+  MORE_FIELDS_SECTION_VARIANT,
   getAdvancedFormSection,
   isFormFieldValueSet,
   isFormSectionConfigured,
@@ -16,7 +16,6 @@ import {
 import Color from "../../../../../Types/Color";
 import { PeoplePickerKind } from "../../../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 import { JSONObject } from "../../../../../Types/JSON";
-import IconProp from "../../../../../Types/Icon/IconProp";
 
 /*
  * "There should be an advanced section, which should be collapsed by
@@ -24,10 +23,10 @@ import IconProp from "../../../../../Types/Icon/IconProp";
  * on the Create Custom Field form.
  *
  * getAdvancedFormSection is the one way a form folds its rarely needed
- * options away, under "More fields": folded on Create and on Edit alike,
- * listing its fields on its header and drawing the set ones as chips that
- * say what they are set to - "set" worked out from the fields themselves
- * unless the form says otherwise. These are the rules behind that "set";
+ * options away, under "More fields": one quiet line, folded on Create and
+ * on Edit alike, listing its fields and saying what the set ones are set
+ * to - "set" worked out from the fields themselves unless the form says
+ * otherwise. These are the rules behind that "set";
  * BasicFormCollapsibleSections draws them.
  */
 
@@ -56,10 +55,12 @@ describe("getAdvancedFormSection", () => {
       title: MORE_FIELDS_SECTION_TITLE,
       openWhenConfigured: false,
       listFieldsWhileFolded: true,
-      icon: MORE_FIELDS_SECTION_ICON,
+      variant: MORE_FIELDS_SECTION_VARIANT,
     });
     expect(MORE_FIELDS_SECTION_TITLE).toBe("More fields");
-    expect(MORE_FIELDS_SECTION_ICON).toBe(IconProp.AdjustmentHorizontal);
+    // One quiet line, not a card: no icon tile to draw.
+    expect(MORE_FIELDS_SECTION_VARIANT).toBe("line");
+    expect(section.icon).toBeUndefined();
     expect(ADVANCED_FORM_SECTION_ID).toBe("advanced");
     // Worked out from its fields unless the form says otherwise.
     expect(section.isConfigured).toBeUndefined();

@@ -13,15 +13,15 @@
 
 ```mermaid title="Runner 與 OneUptime 之間的網路往來"
 flowchart TB
-    subgraph yours["您的基礎架構"]
-        direction LR
-        runner["Runner 容器"]
-        targets["主機、叢集、內部服務"]
-    end
     subgraph cloud["OneUptime"]
         direction LR
         worker["Worker 將步驟放入佇列"]
         ingest["Runner API"]
+    end
+    subgraph yours["您的基礎架構"]
+        direction LR
+        runner["Runner 容器"]
+        targets["主機、叢集、內部服務"]
     end
     worker --> ingest
     runner -->|"對外 HTTPS，Runner ID 和金鑰"| ingest
@@ -133,10 +133,10 @@ Bash 以 `bash -c` 執行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中
 
 | 逾時 | 預設值 | 控制內容 |
 | --- | --- | --- |
-| **Claim timeout** | 2 分鐘 | Worker 等待所選 Runner 認領工作的時間。如果 Runner 沒有及時認領，步驟會因逾時而失敗，Runbook 則繼續進行（或停止，取決於 **失敗時繼續** ）。 |
-| **Execution timeout** | 30 秒 | Runner 在停止步驟之前允許其執行的時間。Bash 會收到 `SIGKILL`；JavaScript 的沙箱會被拆除。 |
+| **領取逾時** | 2 分鐘 | Worker 等待所選 Runner 認領工作的時間。如果 Runner 沒有及時認領，步驟會因逾時而失敗，Runbook 則繼續進行（或停止，取決於 **失敗時繼續** ）。 |
+| **執行逾時** | 30 秒 | Runner 在停止步驟之前允許其執行的時間。Bash 會收到 `SIGKILL`；JavaScript 的沙箱會被拆除。 |
 
-兩者都可以按步驟設定。開啟 **Runbooks › 您的 Runbook › 步驟** ，展開步驟，並在其設定中填寫 **Execution timeout** 和 **Claim timeout** （以秒為單位）。留空則使用預設值。每種逾時都接受 1 秒到 1 小時；超出該範圍的值會在步驟執行時被限制在範圍內。
+兩者都可以按步驟設定。開啟 **Runbooks › 您的 Runbook › 步驟** ，展開步驟，並在其設定中填寫 **執行逾時** 和 **領取逾時** （以秒為單位）。留空則使用預設值。每種逾時都接受 1 秒到 1 小時；超出該範圍的值會在步驟執行時被限制在範圍內。
 
 Worker 的總等待時間是 `claim timeout + execution timeout + a few seconds`。請選擇適合該步驟的值。
 

@@ -13,7 +13,8 @@
     "confirmPassword": "Confirmar contraseña",
     "newPassword": "Nueva contraseña",
     "code": "Código",
-    "yourCompany": "Su empresa"
+    "yourCompany": "Su empresa",
+    "or": "o"
   },
   "language": {
     "label": "Idioma",
@@ -50,7 +51,7 @@
     "subtitle": "Usa tu contraseña, el SSO de tu organización o una clave de acceso.",
     "submitButton": "Iniciar sesión",
     "forgotPassword": "¿Olvidó su contraseña?",
-    "useSso": "Usar inicio de sesión único (SSO) en su lugar",
+    "signInWithSso": "Iniciar sesión con SSO",
     "signInWithMicrosoft": "Iniciar sesión con Microsoft",
     "noAccountPrompt": "¿No tiene una cuenta?",
     "registerLink": "Registrarse.",
@@ -146,7 +147,7 @@
     "title": "Iniciar sesión con SSO",
     "subtitle": "Inicie sesión con su proveedor SSO para acceder a su cuenta.",
     "submitButton": "Iniciar sesión con SSO",
-    "useUsernameInstead": "Usar nombre de usuario y contraseña en su lugar.",
+    "signInWithPassword": "Iniciar sesión con contraseña",
     "noAccountPrompt": "¿No tiene una cuenta?",
     "registerLink": "Registrarse.",
     "selectProjectTitle": "Seleccionar proyecto",
@@ -239,7 +240,7 @@
     "accessWriteDescription": "Ver datos y hacer cambios: reconocer y resolver incidentes y alertas, añadir notas y crear, actualizar o eliminar recursos.",
     "accessReadTitle": "Solo lectura",
     "accessReadDescription": "Ver incidentes, alertas, monitores, páginas de estado y telemetría. No puede cambiar nada.",
-    "permissionsNote": "El cliente actúa en tu nombre y nunca puede ir más allá de tus propios permisos en este proyecto. Puedes desconectarlo en cualquier momento en Ajustes del proyecto > Servidor MCP.",
+    "permissionsNote": "El cliente actúa en tu nombre y nunca puede ir más allá de tus propios permisos en este proyecto. Puedes desconectarlo en cualquier momento en Ajustes del proyecto > IA > Servidor MCP.",
     "authorizeButton": "Autorizar",
     "denyButton": "Cancelar",
     "redirecting": "Te estamos enviando de vuelta a {{clientName}}...",
@@ -285,7 +286,7 @@
       "bought_from_reseller": "{{name}} – lo factura un revendedor"
     },
     "nothingToChoose": "Ninguno de tus proyectos puede recibir esta compra y no puedes crear proyectos en este servidor. Pide al propietario del proyecto que se debe pagar con ella que la configure.",
-    "billingNote": "Tu plan y tu uso se facturan a través de {{marketplace}}, a los precios de oneuptime.com/pricing. Puedes cambiar de plan en cualquier momento en Ajustes del proyecto → Facturación.",
+    "billingNote": "Tu plan y tu uso se facturan a través de {{marketplace}}, a los precios de oneuptime.com/pricing. Puedes cambiar de plan en cualquier momento en Ajustes del proyecto → Facturación y facturas → Facturación.",
     "submitButton": "Configurar compra",
     "notNowButton": "Ahora no",
     "redirecting": "Tu compra está configurada. Te llevamos a tu proyecto…",
@@ -358,5 +359,13 @@
   "Quote": "Cita",
   "Code Block": "Bloque de código",
   "Switch to markdown source": "Cambiar al código fuente Markdown",
-  "Switch to visual editor": "Cambiar al editor visual"
+  "Switch to visual editor": "Cambiar al editor visual",
+  "Opens in a new tab": "Se abre en una pestaña nueva",
+  "Note": "Nota",
+  "Tip": "Consejo",
+  "Info": "Información",
+  "Important": "Importante",
+  "Warning": "Advertencia",
+  "Caution": "Precaución",
+  "Danger": "Peligro"
 }

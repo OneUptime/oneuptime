@@ -27,8 +27,8 @@ En dubbelriktad integration, som Jira eller Dynamics 365, använder båda riktni
 
 | Sätt | Passar bäst för | Exempel |
 | --- | --- | --- |
-| En inbyggd anslutning | Verktyg som OneUptime ansluter till själv. Du fyller i ett formulär, och det finns inget att bygga. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Huntress](/docs/integrations/huntress), anslutningarna för [Säkerhetshändelser](/docs/telemetry/security-events) |
-| En arbetsflödesmall | Ärendeverktyg, synkade åt båda hållen, och chattmeddelanden. Du väljer en mall och fyller i några inställningar. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) |
+| En inbyggd anslutning | Verktyg som OneUptime ansluter till själv. Du fyller i ett formulär, och det finns inget att bygga. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), anslutningarna för [Säkerhetshändelser](/docs/telemetry/security-events) |
+| En arbetsflödesmall | Ärendeverktyg, synkade åt båda hållen, övervakningsproblem, säkerhetsincidentrapporter och chattmeddelanden. Du väljer en mall och fyller i några inställningar. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix) |
 | En Incoming Request-monitor | Larmverktyg som skickar en webhook. Du får en incident per larm, skickad till jouren och löst när larmet återhämtar sig, utan arbetsflöde. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Ett arbetsflöde som du bygger | Alla verktyg med en webhook eller ett REST API, och all egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 
 | Verktyg | Riktning | Vad det gör |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | Inkommande | Gör Zabbix-problem till incidenter och löser dem när Zabbix har återhämtat sig. |
+| [Zabbix](/docs/integrations/zabbix) | Båda | Gör Zabbix-problem till incidenter eller varningar, löser dem när de återhämtat sig, och kvitterar eller stänger problemen från OneUptime. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | Inkommande | Gör aviseringar från Alertmanager till incidenter. |
 | [Grafana](/docs/integrations/grafana) | Inkommande | Gör larm från Grafana till incidenter. |
 | [Datadog](/docs/integrations/datadog) | Inkommande | Gör larm från Datadog-monitorer till incidenter. |
@@ -89,6 +89,12 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 
 > [!TIP]
 > Slack och Microsoft Teams har också arbetsflödessteg. Använd den inbyggda anslutningen för incidentkanaler och jour, och ett arbetsflödessteg när du bara behöver ett meddelande i en kanal.
+
+### Hostingplattformar
+
+| Verktyg | Riktning | Vad det gör |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Inkommande | Lägg till OneUptime från Vercel Marketplace: spår, loggar, drifttidsmonitorer och en statussida för dina Vercel-projekt. |
 
 ## Byt från ett annat verktyg
 

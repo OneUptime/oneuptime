@@ -70,7 +70,7 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
       isLoading={props.isLoading}
       emptyMessage={
         props.emptyMessage ||
-        "Resource details not yet available. Ensure the kubernetes-agent Helm chart has resourceSpecs.enabled set to true and wait for the next data pull (up to 5 minutes)."
+        "No resource details yet. Set resourceSpecs.enabled to true in the kubernetes-agent Helm chart and wait up to 5 minutes."
       }
     />
   );

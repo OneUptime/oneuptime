@@ -265,17 +265,13 @@ describe("RuleRunSummary.describe - truncation", () => {
 
 describe("RuleRunSummary.describeConfirmation", () => {
   it.each([
-    [RuleRunType.MonitorLabelRule, "attach its labels", "monitors"],
+    [RuleRunType.MonitorLabelRule, "Attach this rule's labels", "monitors"],
     [
       RuleRunType.KubernetesClusterOwnerRule,
-      "add its owners",
+      "Add this rule's owners",
       "Kubernetes clusters",
     ],
-    [
-      RuleRunType.AlertPrivacyRule,
-      "make the ones it matches private",
-      "alerts",
-    ],
+    [RuleRunType.AlertPrivacyRule, "this rule matches private", "alerts"],
   ])(
     "%s describes what the run does to which resources",
     (ruleType: RuleRunType, action: string, resources: string) => {
@@ -290,7 +286,7 @@ describe("RuleRunSummary.describeConfirmation", () => {
   it("says a status page sync never touches hand-added monitors", () => {
     expect(
       RuleRunSummary.describeConfirmation(RuleRunType.StatusPageMonitorRule),
-    ).toContain("Monitors added to the page by hand are never touched.");
+    ).toContain("Monitors added by hand are never touched.");
   });
 
   /*
@@ -303,11 +299,9 @@ describe("RuleRunSummary.describeConfirmation", () => {
     );
 
     expect(text).toContain(
-      "Re-evaluate this SLO's enabled monitor rules against every monitor in the project",
+      "Attach the monitors this SLO's enabled rules match",
     );
-    expect(text).toContain(
-      "Monitors attached to the SLO by hand are never touched.",
-    );
+    expect(text).toContain("Monitors attached by hand are never touched.");
     expect(text).not.toContain("status page");
   });
 });
@@ -315,7 +309,7 @@ describe("RuleRunSummary.describeConfirmation", () => {
 describe("RuleRunSummary.describeRunNowCard", () => {
   it("tells a resource rule's view page what Run Now reaches", () => {
     expect(RuleRunSummary.describeRunNowCard(RuleRunType.HostLabelRule)).toBe(
-      "This rule runs automatically only when a host is created. Run it now to apply it to the hosts that already exist in this project.",
+      "This rule runs only when a host is created. Run it now for the hosts that already exist.",
     );
   });
 
@@ -333,7 +327,7 @@ describe("RuleRunSummary.describeRunNowCard", () => {
     );
 
     expect(text).toBe(
-      "Re-sync this SLO's monitors now: attach the monitors its enabled rules match and detach the ones the rules attached that no longer match. Monitors attached by hand are left alone.",
+      "Re-sync this SLO's monitors now with its enabled rules. Monitors attached by hand are left alone.",
     );
     expect(text).not.toContain("is created");
   });
@@ -346,13 +340,13 @@ describe("RuleRunSummary.describeBulkConfirmation", () => {
         ruleType: RuleRunType.HostLabelRule,
         ruleCount: 1,
       }),
-    ).toContain("Run 1 selected rule against the hosts");
+    ).toContain("Run 1 selected rule on the hosts");
     expect(
       RuleRunSummary.describeBulkConfirmation({
         ruleType: RuleRunType.HostLabelRule,
         ruleCount: 4,
       }),
-    ).toContain("Run 4 selected rules against the hosts");
+    ).toContain("Run 4 selected rules on the hosts");
   });
 
   it("warns that a bulk owner run does not notify", () => {

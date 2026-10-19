@@ -15,13 +15,13 @@ Een runbook kan vanzelf starten: volgens een schema, of wanneer een ander hulpmi
 flowchart TB
     subgraph starts["Wat de uitvoering start"]
         direction LR
-        schedule["Het schema: een tijdstip komt"]
-        webhook["De webhook: een POST naar zijn URL"]
+        schedule["Het schema: een<br/>tijdstip komt"]
+        webhook["De webhook: een<br/>POST naar zijn URL"]
     end
-    schedule --> checks["Het runbook staat aan en heeft stappen"]
+    schedule --> checks["Het runbook staat<br/>aan en heeft stappen"]
     webhook --> checks
-    checks --> execution["Uitvoering, gemarkeerd als Schedule of Webhook"]
-    execution --> worker["De OneUptime Worker voert de stappen uit"]
+    checks --> execution["Uitvoering, gemarkeerd<br/>als Schedule of Webhook"]
+    execution --> worker["De OneUptime Worker<br/>voert de stappen uit"]
 ```
 
 Een trigger start een uitvoering zoals **Run Now** dat doet: de uitvoering loopt door de huidige stappen van het runbook en hangt aan geen enkel incident, geen waarschuwing en geen gepland onderhoudsevenement. Elke uitvoering legt vast wat haar startte. De **Uitvoeringen** van het runbook en **Runbooks → Uitvoeringen** tonen dat onder **Geactiveerd door**, met wanneer een geplande uitvoering gepland stond of het adres dat de webhook aanriep, en op beide lijsten kun je erop filteren.
@@ -35,7 +35,7 @@ Een trigger start een uitvoering zoals **Run Now** dat doet: de uitvoering loopt
 
 :::steps
 ### De pagina Triggers van het runbook openen
-Open het runbook via **Runbooks** en klik in het menu op **Triggers**.
+Open het runbook via **Runbooks** en klik in het zijmenu op **Instellingen → Triggers**. **Instellingen** is eerst ingeklapt: klik erop om **Triggers** te tonen.
 
 ### Het schema instellen
 Klik op **Schema instellen**. Kies onder **Wanneer het draait** een optie bij **Herhalen** en wat die nodig heeft. Het dialoogvenster zegt het schema in één zin, zoals "Draait elke werkdag om 09:00", en toont de volgende uitvoeringen terwijl je het wijzigt.
@@ -117,7 +117,7 @@ Het antwoord noemt de gestarte uitvoering: `{"runbookExecutionId": "...", "statu
 | `404` | Op deze URL antwoordt geen runbook-webhook: de runbook-ID of de sleutel klopt niet, of de URL is opnieuw ingesteld. |
 | `405` | Het verzoek is een `GET`. Een `GET` start nooit een uitvoering, dus een linkvoorbeeld in een chat-app kan hem niet per ongeluk uitvoeren. |
 | `413` | De body is groter dan 64 KB. |
-| `429` | De webhook startte 30 uitvoeringen in de laatste minuut, 10 van zijn uitvoeringen lopen nog, of één adres deed meer dan 120 aanroepen naar runbook-webhooks in een minuut. De header `Retry-After` zegt wanneer je het opnieuw kunt proberen, waar dat kan. |
+| `429` | De webhook startte 30 uitvoeringen in de laatste minuut, 10 van zijn uitvoeringen lopen nog, of één adres deed meer dan 120 aanroepen naar runbook-webhooks in een minuut, of de adressen van één IPv6-/64 samen meer dan 1200. De header `Retry-After` zegt wanneer je het opnieuw kunt proberen, waar dat kan. |
 | `503` | OneUptime kan aanroepen nu niet tellen. Probeer het over een minuut opnieuw. |
 
 Een geweigerde aanroep start niets, en de body zegt in één zin waarom, zoals "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

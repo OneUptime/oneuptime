@@ -42,6 +42,14 @@ export const RemindersSwitchCopy: {
   remindersSentTitle: translationKey("Reminders Sent"),
 };
 
+/*
+ * While reminders are on, the matching rule decides how often and until
+ * when: an incident's or an alert's rule stops at Resolved or at
+ * Acknowledged, and a maintenance rule reminds before the event starts,
+ * while it is in progress, or both. So the line under the switch says the
+ * rules decide both, and names no stop of its own - "until the incident is
+ * resolved" was wrong for every rule that stops at Acknowledged.
+ */
 export const REMINDERS_SWITCH_SCOPE_COPY: Record<
   ReminderRuleScope,
   RemindersSwitchScopeCopy
@@ -51,7 +59,7 @@ export const REMINDERS_SWITCH_SCOPE_COPY: Record<
       "Remind this incident's owners while it is still open.",
     ),
     switchOnDescription: translationKey(
-      "Reminders go to the owners as often as the project's reminder rules say, until the incident is resolved.",
+      "Reminders go to the incident's owners as often, and for as long, as the project's reminder rules say.",
     ),
     switchOffDescription: translationKey(
       "No reminders go out for this incident, whatever the project's reminder rules say.",
@@ -62,18 +70,19 @@ export const REMINDERS_SWITCH_SCOPE_COPY: Record<
       "Remind this alert's owners while it is still open.",
     ),
     switchOnDescription: translationKey(
-      "Reminders go to the owners as often as the project's reminder rules say, until the alert is resolved.",
+      "Reminders go to the alert's owners as often, and for as long, as the project's reminder rules say.",
     ),
     switchOffDescription: translationKey(
       "No reminders go out for this alert, whatever the project's reminder rules say.",
     ),
   },
   [ReminderRuleScope.ScheduledMaintenance]: {
+    // The answers a maintenance reminder rule offers (Remind Owners).
     cardDescription: translationKey(
-      "Remind this event's owners until it is completed.",
+      "Remind this event's owners before it starts or while it is in progress.",
     ),
     switchOnDescription: translationKey(
-      "Reminders go to the owners as often as the project's reminder rules say, until the event is completed.",
+      "Reminders go to the event's owners as often, and for as long, as the project's reminder rules say.",
     ),
     switchOffDescription: translationKey(
       "No reminders go out for this event, whatever the project's reminder rules say.",

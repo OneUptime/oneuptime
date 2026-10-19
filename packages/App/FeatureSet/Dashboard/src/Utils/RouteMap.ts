@@ -952,7 +952,6 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_EPISODE_VIEW_MEMBERS]: `episodes/${RouteParams.ModelID}/members`,
   [PageMap.INCIDENT_EPISODE_VIEW_SETTINGS]: `episodes/${RouteParams.ModelID}/settings`,
   [PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]: `episodes/${RouteParams.ModelID}/audit-logs`,
-  [PageMap.INCIDENT_EPISODE_DOCS]: "episodes/documentation",
 
   // Incident Settings
   [PageMap.INCIDENTS_SETTINGS_STATE]: "settings/state",
@@ -982,11 +981,9 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
   [PageMap.INCIDENTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.INCIDENTS_SETTINGS_LINKED_ALERTS]: "settings/linked-alerts",
+  [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]:
+    "settings/episode-membership",
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: "settings/numbering",
-
-  // Integrations that open incidents: Huntress connections.
-  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]: "integrations/huntress",
-  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]: `integrations/huntress/${RouteParams.ModelID}`,
 
   /*
    * The AI section. Settings and Auto Remediation Rules were at settings/ai
@@ -1040,7 +1037,6 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_EPISODE_VIEW_ALERTS]: `episodes/${RouteParams.ModelID}/alerts`,
   [PageMap.ALERT_EPISODE_VIEW_INTERNAL_NOTE]: `episodes/${RouteParams.ModelID}/internal-notes`,
   [PageMap.ALERT_EPISODE_VIEW_REMEDIATION]: `episodes/${RouteParams.ModelID}/remediation`,
-  [PageMap.ALERT_EPISODE_DOCS]: "episodes/documentation",
 
   // Alert Settings
   [PageMap.ALERTS_SETTINGS_STATE]: "settings/state",
@@ -1062,6 +1058,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
+  [PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]: "settings/episode-membership",
   [PageMap.ALERTS_SETTINGS_NUMBERING]: "settings/numbering",
 
   /*
@@ -1167,7 +1164,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DOMAINS]: "domains",
   [PageMap.SETTINGS_FEATURE_FLAGS]: "feature-flags",
   [PageMap.SETTINGS_SSO]: "sso",
-  [PageMap.SETTINGS_OIDC]: "oidc",
   [PageMap.SETTINGS_SCIM]: "scim",
   [PageMap.SETTINGS_BILLING]: "billing",
   [PageMap.SETTINGS_BILLING_INVOICES]: "invoices",
@@ -1191,6 +1187,8 @@ export const UsersRoutePath: Dictionary<string> = {
 
 export const TeamsRoutePath: Dictionary<string> = {
   [PageMap.TEAM_CUSTOM_FIELDS]: "custom-fields",
+  [PageMap.TEAM_ROLES]: "roles",
+  [PageMap.TEAM_ROLE_VIEW]: `roles/${RouteParams.ModelID}`,
 
   [PageMap.TEAM_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.TEAM_VIEW_MEMBERS]: `${RouteParams.ModelID}/members`,
@@ -1259,7 +1257,6 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_AUDIT_LOGS]: `incoming-call-policies/${RouteParams.ModelID}/audit-logs`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_SETTINGS]: `incoming-call-policies/${RouteParams.ModelID}/settings`,
   [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DELETE]: `incoming-call-policies/${RouteParams.ModelID}/delete`,
-  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]: `incoming-call-policies/${RouteParams.ModelID}/docs`,
 };
 
 export const MonitorGroupRoutePath: Dictionary<string> = {
@@ -1810,6 +1807,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_NUMBERING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_NUMBERING]
@@ -1892,12 +1895,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ALERT_EPISODE_VIEW_REMEDIATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERT_EPISODE_VIEW_REMEDIATION]
-    }`,
-  ),
-
-  [PageMap.ALERT_EPISODE_DOCS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/alerts/${
-      AlertsRoutePath[PageMap.ALERT_EPISODE_DOCS]
     }`,
   ),
 
@@ -2046,12 +2043,6 @@ const RouteMap: Dictionary<Route> = {
       IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_SETTINGS]
     }`,
   ),
-  [PageMap.INCIDENT_EPISODE_DOCS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENT_EPISODE_DOCS]
-    }`,
-  ),
-
   [PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_EPISODE_VIEW_AUDIT_LOGS]
@@ -2387,21 +2378,15 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBERING]
-    }`,
-  ),
-
-  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS]
-    }`,
-  ),
-
-  [PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/incidents/${
-      IncidentsRoutePath[PageMap.INCIDENTS_INTEGRATIONS_HUNTRESS_VIEW]
     }`,
   ),
 
@@ -6492,12 +6477,6 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
-      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_INCOMING_CALL_POLICY_VIEW_DOCS]
-    }`,
-  ),
-
   [PageMap.REPORTS]: new Route(`/dashboard/${RouteParams.ProjectID}/reports/`),
 
   [PageMap.ERROR_TRACKER]: new Route(
@@ -6942,6 +6921,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.TEAM_ROLES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_ROLES]
+    }`,
+  ),
+
+  [PageMap.TEAM_ROLE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/teams/${
+      TeamsRoutePath[PageMap.TEAM_ROLE_VIEW]
+    }`,
+  ),
+
   [PageMap.TEAM_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/teams/${
       TeamsRoutePath[PageMap.TEAM_VIEW]
@@ -7127,12 +7118,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_SSO]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_SSO]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_OIDC]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_OIDC]
     }`,
   ),
 

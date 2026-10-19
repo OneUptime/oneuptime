@@ -67,24 +67,22 @@ A rule matches only when every condition you fill in holds; a condition left emp
 **Scheduled Maintenance → Rules → Reminder Rules** reminds an event's owners until the work is signed off. Each event gets the first rule that matches it, from the top of the list down.
 
 :::steps
-### Name the reminder rule
-
-Click **Create Scheduled Maintenance Reminder Rule**. On **Rule Info**, give it a **Name**, such as "Maintenance Event Reminders", and a **Description** if you like.
-
 ### Choose which events to remind about
 
-On **Match Criteria**, pick the **Labels** it applies to. Leave them empty to remind about every event.
+Click **Create Scheduled Maintenance Reminder Rule**. On **Match**, leave **All scheduled maintenance events** picked to remind about every event, or pick **Only scheduled maintenance events that match conditions** and choose the **Labels** it applies to.
 
 ### Set the interval
 
-On **Reminder Settings**, set **Reminder Interval (minutes)**, how often owners are reminded, then create the rule.
+On **Reminders**, set **Reminder Interval (minutes)**, how often owners are reminded, and pick when to remind them under **Remind Owners**. Its **Name** follows both, such as "Remind every 30 minutes while it is in progress", until you type your own, and a **Description** waits under **More fields**. Then create the rule.
 :::
 
-| Setting                              | Starts as                              | What it does                                                                         |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------ |
-| **Reminder Interval (minutes)**      | Required                               | How often the owners are reminded.                                                   |
-| **Stop Reminders When**              | **Remind until event is Completed**    | Or **Stop when event starts (Ongoing)**, to stop once the work has begun.            |
-| **Remind While Event is Scheduled**  | Off                                    | Off, reminders begin once the event starts; on, they go out before it starts too.   |
+| Answer | When owners are reminded |
+| --- | --- |
+| **While it is in progress** | From when the event starts until it ends. A new rule starts with this one. |
+| **Before it starts** | From when the event is scheduled until it starts. |
+| **Before it starts and while it is in progress** | From when the event is scheduled until it ends. |
+
+A rule saved through the API or Terraform that waits for the event to start and stops when it starts never sends a reminder: the list marks it **Never reminds**, and its form asks you to pick one.
 
 Owners get each reminder as **Maintenance reminder**, which is on by email for every new member. Saving, changing or deleting a reminder rule matches every event that is not completed again. To stop the reminders for one event, turn **Send reminders** off on its **Settings** page; it saves the moment you flip it.
 
@@ -125,7 +123,7 @@ Every maintenance model has workflow triggers and actions, named after it: **On 
 | **Scheduled Maintenance Member**  | Creates, changes and deletes events with their notes, state timelines and owners, and both kinds of templates. |
 | **Scheduled Maintenance Admin**   | Everything a member does, and also creates, changes and deletes maintenance states.                  |
 
-Rules, custom fields and measurements take **Project Owner** or **Project Admin**, or a custom role with that page's own permission, such as **Create Scheduled Maintenance Owner Rule**. **Project Member** works with events and templates, like **Scheduled Maintenance Member**. See [Users, Teams & Permissions](/docs/permissions/index).
+Rules, custom fields and measurements take **Project Owner** or **Project Admin**, or a custom role with that page's own permission, such as **Create Scheduled Maintenance Owner Rule**. Runbook rules also take **Runbook Admin**. **Project Member** works with events and templates, like **Scheduled Maintenance Member**. See [Users, Teams & Permissions](/docs/permissions/index).
 
 ## Troubleshooting
 
@@ -134,7 +132,7 @@ Open the rule and check its conditions: every condition you filled in must hold.
 :::
 
 :::details Owners got no reminder
-Check that a reminder rule matches the event's labels, that the event's **Send reminders** is on, and that **Maintenance reminder** is on in the owners' notification settings. Without **Remind While Event is Scheduled**, reminders begin only once the event starts.
+Check that a reminder rule matches the event's labels, that the event's **Send reminders** is on, and that **Maintenance reminder** is on in the owners' notification settings. A rule that reminds **While it is in progress** sends nothing before the event starts.
 :::
 
 ## Next steps

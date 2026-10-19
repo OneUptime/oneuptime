@@ -68,7 +68,7 @@ const ENGLISH: Record<string, unknown> = readLocale("en");
 const CARD_STRINGS: Array<string> = [
   // The Critical Alerts column.
   "Critical Alerts",
-  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
+  "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened.",
   "Rings through silent mode and Do Not Disturb",
   "How to turn on",
   "How to turn on critical alerts on {{deviceName}}",
@@ -89,7 +89,7 @@ const CARD_STRINGS: Array<string> = [
   // The steps.
   "Turn on critical alerts",
   "Critical alerts make on-call pages ring this phone even on silent or in Do Not Disturb. They are turned on in the app, on the phone itself.",
-  "Get push notifications on your phone with the OneUptime On-Call app. Its critical alerts ring on-call pages through silent mode and Do Not Disturb, which a browser can't.",
+  "Get push notifications on your phone with the OneUptime On-Call app. Its critical alerts ring even on silent.",
   "Open {{app}} on this iPhone or iPad and tap {{settings}}.",
   "Open {{app}} on this phone and tap {{settings}}.",
   "Under {{notifications}}, turn on {{criticalAlerts}}.",
@@ -102,13 +102,14 @@ const CARD_STRINGS: Array<string> = [
   "Once it's on, choose the alarm sound for on-call pages under {{alarmSoundPath}}.",
   "To hear it, silence the phone and send it a Test Notification from this list.",
   "If it doesn't turn on",
-  "Tapped Don't Allow? Turn on Critical Alerts in iOS Settings > Notifications > {{app}}, then turn on {{criticalAlerts}} in the app again.",
-  "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.",
+  "Tapped Don't Allow, or iOS didn't ask? Turn on Critical Alerts in iOS Settings > Notifications > {{app}}, then turn on {{criticalAlerts}} in the app again.",
+  "No Critical Alerts switch there? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.",
   "The app still asks for Do Not Disturb access? Allow {{app}} in the phone's Settings > Notifications > Do Not Disturb access, then turn on {{criticalAlerts}} again.",
   // A sent test (its button to the steps is "How to turn on", above).
   "Test Notification Sent",
   "Sent to {{deviceName}} as a critical alert: it rings even when the phone is on silent or in Do Not Disturb, as an on-call page would.",
-  "Sent to {{deviceName}}. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+  "Didn't ring through? Open {{app}} on the phone, tap {{settings}} and check that {{criticalAlerts}} is on.",
+  "Sent to {{deviceName}}. Critical alerts are off on that phone, so it stays quiet on silent or in Do Not Disturb. Turn them on to have on-call pages ring through.",
   "Sent to {{deviceName}}. If it doesn't appear, check that this site may show notifications in that browser, and that Do Not Disturb or Focus is off on the computer.",
 ];
 
@@ -164,13 +165,22 @@ describe("the push devices card's critical alerts, in every language", () => {
 
   /*
    * Sentences the card stopped drawing: a browser's sign-in step, which
-   * did not say which OneUptime to connect the app to, and a note that
-   * said again what the steps' description had just said.
+   * did not say which OneUptime to connect the app to, a note that said
+   * again what the steps' description had just said, the column's (i) from
+   * before it said that the app keeps the column up to date, and from
+   * before it left browsers to their own cell, an ordinary test's words
+   * from before they said why it went ordinary, and the iPhone fixes from
+   * before a phone that iOS does not ask again was sent to iOS Settings.
    */
   test("the sentences the steps no longer draw are gone from every locale", () => {
     const retired: Array<string> = [
       "Sign in with your OneUptime account and allow notifications. Your phone then shows up in this list.",
       "Once it's on, on-call pages ring through silent mode and Do Not Disturb. Choose the alarm they play in the app, under {{alarmSoundPath}}.",
+      "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Turned on from the OneUptime On-Call mobile app; browsers cannot override a device's ringer.",
+      "On-call pages to this device override silent mode and Do Not Disturb, except from on-call rules set to Standard. Set in the OneUptime On-Call mobile app, which updates it here each time it's opened. Browsers can't override a device's ringer.",
+      "Sent to {{deviceName}}. It follows the phone's sound settings, so a phone on silent or in Do Not Disturb stays quiet. Turn on critical alerts to have on-call pages ring through.",
+      "Tapped Don't Allow? Turn on Critical Alerts in iOS Settings > Notifications > {{app}}, then turn on {{criticalAlerts}} in the app again.",
+      "iOS didn't ask? Update {{app}} from the App Store: versions before 1.5.0 cannot receive critical alerts.",
     ];
 
     for (const language of ["en", ...LANGUAGES]) {

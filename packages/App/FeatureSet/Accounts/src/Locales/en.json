@@ -13,7 +13,8 @@
     "confirmPassword": "Confirm Password",
     "newPassword": "New Password",
     "code": "Code",
-    "yourCompany": "Your Company"
+    "yourCompany": "Your Company",
+    "or": "or"
   },
   "language": {
     "label": "Language",
@@ -50,7 +51,7 @@
       "tryAgain": "Try passkey again"
     },
     "forgotPassword": "Forgot password?",
-    "useSso": "Use single sign-on (SSO) instead",
+    "signInWithSso": "Sign in with SSO",
     "signInWithMicrosoft": "Sign in with Microsoft",
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Register.",
@@ -146,7 +147,7 @@
     "title": "Login with SSO",
     "subtitle": "Login with your SSO provider to access your account.",
     "submitButton": "Login with SSO",
-    "useUsernameInstead": "Use username and password instead.",
+    "signInWithPassword": "Sign in with password",
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Register.",
     "selectProjectTitle": "Select Project",
@@ -239,7 +240,7 @@
     "accessWriteDescription": "View data and make changes: acknowledge and resolve incidents and alerts, add notes, and create, update or delete resources.",
     "accessReadTitle": "Read only",
     "accessReadDescription": "View incidents, alerts, monitors, status pages and telemetry. Cannot change anything.",
-    "permissionsNote": "The client acts as you and can never do more than your own permissions in this project allow. You can disconnect it at any time in Project Settings > MCP Server.",
+    "permissionsNote": "The client acts as you and can never do more than your own permissions in this project allow. You can disconnect it at any time in Project Settings > AI > MCP Server.",
     "authorizeButton": "Authorize",
     "denyButton": "Cancel",
     "redirecting": "Sending you back to {{clientName}}...",
@@ -285,7 +286,7 @@
       "bought_from_reseller": "{{name}} – billed by a reseller"
     },
     "nothingToChoose": "None of your projects can take this purchase, and you cannot create projects on this server. Ask the owner of the project it should pay for to set it up.",
-    "billingNote": "Your plan and usage are billed through {{marketplace}}, at the prices on oneuptime.com/pricing. You can change your plan anytime in Project Settings → Billing.",
+    "billingNote": "Your plan and usage are billed through {{marketplace}}, at the prices on oneuptime.com/pricing. You can change your plan anytime in Project Settings → Billing and Invoices → Billing.",
     "submitButton": "Set up purchase",
     "notNowButton": "Not now",
     "redirecting": "Your purchase is set up. Taking you to your project…",
@@ -358,5 +359,13 @@
   "Quote": "Quote",
   "Code Block": "Code Block",
   "Switch to markdown source": "Switch to markdown source",
-  "Switch to visual editor": "Switch to visual editor"
+  "Switch to visual editor": "Switch to visual editor",
+  "Opens in a new tab": "Opens in a new tab",
+  "Note": "Note",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Important",
+  "Warning": "Warning",
+  "Caution": "Caution",
+  "Danger": "Danger"
 }

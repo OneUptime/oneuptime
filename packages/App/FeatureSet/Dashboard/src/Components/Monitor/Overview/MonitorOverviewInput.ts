@@ -15,6 +15,7 @@ import MonitorOverviewProbeUtil, {
   MonitorOverviewProbeSummary,
 } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
 import MonitorStatusHistoryUtil from "Common/Utils/Monitor/MonitorStatusHistoryUtil";
+import ProbeStatusMonitorUtil from "Common/Utils/Monitor/ProbeStatusMonitorUtil";
 import { OverviewSection } from "../../../Utils/OverviewSection";
 import { MonitorOverviewProbeData } from "./MonitorOverviewTypes";
 import {
@@ -419,5 +420,16 @@ export function toPresentationInput(data: {
     latestEvaluationAt: data.evaluation.value?.latestAt,
     evaluationStatus: data.evaluation.status,
     minimumProbeAgreement: toFiniteNumber(monitor.minimumProbeAgreement),
+    /*
+     * A Probe Status monitor's probes, as the newest log row found them:
+     * the same row the Summary card draws, so the hero's "Latest result"
+     * and the card never disagree.
+     */
+    probeStatus:
+      monitor.monitorType === MonitorType.ProbeStatus
+        ? ProbeStatusMonitorUtil.parseResponse(
+            data.evaluation.value?.latestLogBody,
+          ) || undefined
+        : undefined,
   };
 }

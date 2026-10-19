@@ -3,7 +3,7 @@
 Ihre Statusseite ist der eine OneUptime-Bildschirm, den Ihre Kunden ansehen; sie sollte also wie Ihre eigene aussehen und unter Ihrer eigenen Domain erreichbar sein, etwa `status.yourcompany.com`. Diese Seite geht die Seite **Branding** Karte für Karte durch und bringt die Statusseite dann auf Ihre Domain: Domain hinzufügen, einen DNS-Eintrag hinzufügen, und das kostenlose SSL-Zertifikat folgt von selbst.
 
 :::cards
-- [Die Seite Branding](#die-seite-branding): Logo, Titel, Favicon, Links, Fußzeile, Farben und Sprachen.
+- [Die Seite Branding](#die-seite-branding): Logo, Design, Titel, Favicon, Links, Fußzeile, Farben und Sprachen.
 - [Eigenes HTML, CSS und JavaScript](#eigenes-html-css-und-javascript): Alles, was die eingebauten Einstellungen nicht abdecken.
 - [Eigene Domains](#eigene-domains): Ihr eigener Hostname, mit einem kostenlosen Zertifikat.
 - [Die Spalte Status](#die-spalte-status-der-domain-lesen): Wo jede Domain auf ihrem Weg zu HTTPS steht.
@@ -15,7 +15,7 @@ Ihre Statusseite ist der eine OneUptime-Bildschirm, den Ihre Kunden ansehen; sie
 
 | Seite | Was Sie dort festlegen |
 | ---- | ------------------ |
-| **Branding** | Logo und Titelbild, Seitentitel und -beschreibung, Favicon, Header-Links, die Beschreibung der Übersichtsseite, die Copyright-Zeile und die Footer-Links. Eingeklappt unter **Weitere Einstellungen**: die Farben des Verlaufsdiagramms, die Sprachen und die Suchmaschinenindexierung. |
+| **Branding** | Logo und Titelbild, das Design (hell, dunkel oder wie das Gerät jedes Besuchers eingestellt ist), Seitentitel und -beschreibung, Favicon, Header-Links, die Beschreibung der Übersichtsseite, die Copyright-Zeile und die Footer-Links. Eingeklappt unter **Weitere Einstellungen**: die Farben des Verlaufsdiagramms, die Sprachen und die Suchmaschinenindexierung. |
 | **Benutzerdefinierte Domains** | Ihre eigene Domain, ihr DNS-Eintrag und ihr kostenloses SSL-Zertifikat. |
 | **HTML, CSS und JavaScript** | Header-HTML, Footer-HTML, eigenes CSS, eigenes JavaScript. |
 
@@ -25,7 +25,7 @@ Das Branding war früher auf getrennte Bildschirme **Wesentliches Branding**, **
 
 ## Die Seite Branding
 
-**Statusseiten → Ihre Seite → Branding → Branding** (`{id}/branding`). Jede Karte speichert für sich. Nach dem Logo, dem Titel und dem Favicon folgen die Karten Ihrer Statusseite von oben nach unten: die Links des Headers, der Text oben auf der Übersicht, dann die Fußzeile. Was wenige ändern, ist unten unter **Weitere Einstellungen** eingeklappt.
+**Statusseiten → Ihre Seite → Branding → Branding** (`{id}/branding`). Jede Karte speichert für sich. Nach dem Logo, dem Design, dem Titel und dem Favicon folgen die Karten Ihrer Statusseite von oben nach unten: die Links des Headers, der Text oben auf der Übersicht, dann die Fußzeile. Was wenige ändern, ist unten unter **Weitere Einstellungen** eingeklappt.
 
 ### Logo und Titelbild
 
@@ -40,14 +40,32 @@ Das Logo, das Titelbild und das Favicon sind Dateien, die im eigenen Projekt der
 
 Ihre Statusseite zeigt nur Bilder ihres eigenen Projekts; ein Bild, das sie nicht zeigen kann, wird weggelassen, als hätte die Seite keines. Das Dashboard, die API und Terraform lesen die Bilder der Seite genauso: Ein Bild eines anderen Projekts kommt als gar kein Bild zurück. Die E-Mails, die die Seite sendet – an Abonnenten und an private Benutzer zu ihrer Anmeldung –, zeigen ihr Logo genauso: Ein Logo, das die Seite nicht zeigen kann, wird auch darin weggelassen, statt als defektes Bild zu erscheinen.
 
+### Design
+
+Die Karte **Design**, direkt unter dem Logo, legt fest, wie die Seite für ihre Besucher aussieht. Wählen Sie eine ihrer drei Möglichkeiten, und sie wird sofort gespeichert; es gibt keine Schaltfläche **Bearbeiten**.
+
+| Auswahl | Was Besucher sehen |
+| ------ | ----------------- |
+| **Hell** | Die helle Seite, egal wie ihr Gerät eingestellt ist. Statusseiten, die vor dieser Einstellung angelegt wurden, sind **Hell**, sie sehen also aus wie immer. |
+| **Dunkel** | Die dunkle Seite, egal wie ihr Gerät eingestellt ist. |
+| **Wie das Gerät des Besuchers** | Hell oder dunkel, wie ihr Gerät eingestellt ist, und die Seite wechselt mit dem Gerät, solange sie offen ist. Eine Schaltfläche mit Sonne oder Mond in der Fußzeile der Seite lässt Besucher umschalten, und ihr Browser merkt sich die Wahl. |
+
+Auf der dunklen Seite steht das Logo auf einem hellen Hintergrund, sodass auch ein Logo für eine weiße Seite gut zu sehen bleibt.
+
+Eine Statusseite, die ab jetzt angelegt wird, beginnt mit **Wie das Gerät des Besuchers**. Über die API und Terraform heißt das Feld `theme`, mit einem der Werte `Light`, `Dark` oder `System` (**Wie das Gerät des Besuchers**), genau so geschrieben; jeder andere Wert wird abgelehnt. Eine Terraform-Konfiguration, die kein `theme` setzt, bekommt `Light`, sodass eine Konfiguration von vor dieser Einstellung nie eine Änderung an einer Seite plant, die sie verwaltet.
+
+Das Design steht im HTML der Seite, die Seite wird also von Anfang an darin gezeichnet: Eine dunkle Seite blitzt beim Laden nicht weiß auf, und der Browser zeichnet seine Scrollleisten, seine Formularfelder und auf Telefonen seine Adressleiste passend dazu. Jeder Teil der Seite folgt ihm, auch die Anmeldeseite einer privaten Statusseite. Die Verfügbarkeitsbalken behalten die Farben, die Sie gewählt haben. Auf der dunklen Seite bekommt Text in einer Statusfarbe einen helleren Ton dieser Farbe, wo die Farbe selbst schwer zu lesen wäre, und ein Balken, der zu dunkel ist, um ihn zu sehen, bekommt einen helleren Rand.
+
+Ihr eigenes CSS und HTML gilt in beiden Designs; [Eigenes HTML, CSS und JavaScript](#eigenes-html-css-und-javascript) sagt, wie Sie das dunkle gestalten.
+
 ### Titel, Beschreibung und Favicon
 
-- **Titel und Beschreibung** – die Karte merkt an, dass dies auch für SEO verwendet wird. **Bearbeiten** öffnet **Seitentitel** (Platzhalter `Please enter page title here.`) und **Seitenbeschreibung**. Suchmaschinen und Linkvorschauen zeigen diese an; schreiben Sie sie also für einen Kunden, nicht für Ihr Team.
+- **Titel und Beschreibung** – der Name der Seite im Browser-Tab und in E-Mails an Abonnenten sowie die Beschreibung, die Suchmaschinen zeigen. **Bearbeiten** öffnet **Seitentitel** (Platzhalter `e.g., Acme Status`) und **Seitenbeschreibung**. Suchmaschinen und Linkvorschauen zeigen diese an; schreiben Sie sie also für einen Kunden, nicht für Ihr Team.
 - **Favicon** – **Favicon bearbeiten** öffnet den Upload **Favicon**: das kleine Symbol im Browser-Tab.
 
 ### Header-Links
 
-Die Tabelle **Header-Links** enthält die Links im Header der Statusseite, etwa zu Ihrer Website, Ihrer Dokumentation oder einem Support-Portal. Jeder Link hat einen **Titel** und einen **Link** (eine URL, Platzhalter `https://link.com`), und Sie ordnen sie durch Ziehen. Ohne Links sagt die Tabelle **Kein Status-Kopfzeilenlink für diese Statusseite**, mit **Statusseite Kopfzeile Link erstellen** darunter.
+Die Tabelle **Header-Links** enthält die Links im Header der Statusseite, etwa zu Ihrer Website, Ihrer Dokumentation oder einem Support-Portal. Jeder Link hat einen **Titel** und einen **Link** (eine URL, Platzhalter `https://link.com`), und Sie ordnen sie durch Ziehen. Ohne Links sagt die Tabelle, wofür sie da sind, mit **Header-Link hinzufügen** darunter.
 
 ### Beschreibung der Übersichtsseite
 
@@ -56,7 +74,7 @@ Die Tabelle **Header-Links** enthält die Links im Header der Statusseite, etwa 
 ### Fußzeile
 
 - **Copyright-Informationen** – **Copyright bearbeiten** öffnet ein Feld, **Copyright-Informationen**, mit dem Platzhalter `Acme, Inc.`.
-- **Footer-Links** – dasselbe Paar aus **Titel** und **Link** wie bei den Header-Links, durch Ziehen geordnet. Ohne Links steht dort „Kein Status-Fußzeilenlink für diese Statusseite.“
+- **Footer-Links** – dasselbe Paar aus **Titel** und **Link** wie bei den Header-Links, durch Ziehen geordnet und mit **Footer-Link hinzufügen** hinzugefügt.
 
 Header-Links dienen der Navigation; Footer-Links dem Kleingedruckten, etwa Rechtliches, Datenschutz und Nutzungsbedingungen.
 
@@ -64,7 +82,7 @@ Header-Links dienen der Navigation; Footer-Links dem Kleingedruckten, etwa Recht
 
 Der letzte Abschnitt der Seite ist unter **Weitere Einstellungen** eingeklappt, weil nur wenige ändern, was darin ist. Eingeklappt nennt sein Kopf seine vier Abschnitte – **Standard-Balkenfarbe**, **Regeln für Balkenfarben**, **Sprachen** und **Suchmaschinenindexierung** – und zeigt jeden, der von dem abweicht, womit eine neue Statusseite beginnt: eine andere Standard-Balkenfarbe als das Grün, mit dem jede Seite beginnt, andere Balkenfarbenregeln als die empfohlenen, eine andere Standardsprache als Englisch, eine kürzere Liste von Sprachen oder ausgeschaltete Suchmaschinenindexierung. Klicken Sie darauf, um ihn zu öffnen: Es ist eine Karte, ihre Abschnitte untereinander, jeder mit eigenem Titel, durch Trennlinien getrennt.
 
-**Farben des Verlaufsdiagramms.** Das sind die einzigen eingebauten Farbeinstellungen einer Statusseite. Jeder Balken des Verfügbarkeitsverlaufs ist ein Tag.
+**Farben des Verlaufsdiagramms.** Neben dem **Design** sind das die einzigen eingebauten Farbeinstellungen einer Statusseite. Jeder Balken des Verfügbarkeitsverlaufs ist ein Tag.
 
 - **Standard-Balkenfarbe** – **Standard-Balkenfarbe bearbeiten** öffnet die Farbauswahl **Standard-Balkenfarbe**. Es ist die Farbe eines Tages, auf den keine Balkenfarbenregel passt. Jede neue Statusseite beginnt mit Grün.
 - **Regeln für Balkenfarben** – eine geordnete Tabelle von Regeln, die Sie durch Ziehen sortieren. Jede Regel hat **Wenn die Verfügbarkeit in % größer oder gleich ist als** und **Dann diese Balkenfarbe verwenden**; die Spalten der Tabelle lauten `When Uptime Percent >=` und `Then, Bar Color is`. Die Regeln werden von oben geprüft, und die erste, die die Verfügbarkeit eines Tages erreicht, bestimmt seine Farbe; halten Sie höhere Prozentwerte also über niedrigeren: Eine Regel unter einer mit gleichem oder niedrigerem Prozentwert färbt nie einen Tag. Die Farbe einer neuen Regel ist schon gewählt, eine, die die anderen Regeln noch nicht verwenden; wählen Sie stattdessen die gewünschte.
@@ -112,8 +130,8 @@ Sie waren früher zwei eigene Karten, **Gesamtprozentsatz der Verfügbarkeit** u
 
 | Karte | Spalte | Was sie enthält |
 | ---- | ------ | ------------- |
-| **Header-HTML** | `headerHTML` | HTML, das dem Header der Seite hinzugefügt wird (Platzhalter `Insert Custom HTML here.`). |
-| **Footer-HTML** | `footerHTML` | HTML, das der Fußzeile der Seite hinzugefügt wird. |
+| **Header-HTML** | `headerHTML` | HTML, das statt des Headers der Seite angezeigt wird, also statt Logo und Header-Links (Platzhalter `Insert Custom HTML here.`). |
+| **Footer-HTML** | `footerHTML` | HTML, das statt der Fußzeile der Seite angezeigt wird, samt ihren Links und den Umschaltern für Sprache und Design. |
 | **Benutzerdefiniertes CSS** | `customCSS` | Stile für die ganze Seite (Platzhalter `Insert Custom CSS here.`). |
 | **Benutzerdefiniertes JavaScript** | `customJavaScript` | Ein Skript, das die Seite ausführt (Platzhalter `Insert Custom JavaScript here.`). |
 
@@ -122,7 +140,9 @@ Sie waren früher zwei eigene Karten, **Gesamtprozentsatz der Verfügbarkeit** u
 
 In OneUptime Cloud braucht das Hinzufügen oder Ändern eines davon den Tarif **Growth**. Leeren funktioniert in jedem Tarif, sodass eigener Code, den eine Testphase hinzugefügt hat, immer entfernt werden kann.
 
-**Es gibt keine Theme-Auswahl.** OneUptime-Statusseiten haben keine Theme- oder Markenfarben-Einstellung: Die einzigen eingebauten Farbeinstellungen überhaupt sind **Standard-Balkenfarbe** und die Balkenfarbenregeln des Verlaufsdiagramms unter **Weitere Einstellungen** auf der Seite **Branding**. Schriften, Hintergrundfarben, Akzentfarben und Layoutanpassungen gehen alle über **Benutzerdefiniertes CSS**. Wenn Sie ein Feld „Markenfarbe“ gesucht haben, ist das die Antwort: Es gibt keines, und dieses Feld ist der Weg dazu.
+**Es gibt keine Auswahl für eine Markenfarbe.** Neben dem **Design**, das die Seite hell oder dunkel macht, sind die einzigen eingebauten Farbeinstellungen überhaupt **Standard-Balkenfarbe** und die Balkenfarbenregeln des Verlaufsdiagramms unter **Weitere Einstellungen** auf der Seite **Branding**. Schriften, Hintergrundfarben, Akzentfarben und Layoutanpassungen gehen alle über **Benutzerdefiniertes CSS**. Wenn Sie ein Feld „Markenfarbe“ gesucht haben, ist das die Antwort: Es gibt keines, und dieses Feld ist der Weg dazu.
+
+**Eigener Code im dunklen Design.** Ihr eigenes CSS und HTML gilt in beiden Designs. Solange die Seite dunkel ist, hat ihr `<html>`-Element die Klasse `dark`; eine CSS-Regel, die mit `html.dark` beginnt, gestaltet also nur das dunkle Design: `html.dark .my-banner { background: #1e293b; }`. Eine Regel ohne das gilt in beiden; eine Hintergrund- oder Textfarbe, die Sie für die helle Seite setzen, bleibt also auch auf der dunklen: Prüfen Sie Ihr eigenes CSS in beiden Designs. Hat die Seite eigenes CSS oder eigenes HTML im Header oder in der Fußzeile, sagt die Karte **Design** das unter ihren Möglichkeiten.
 
 > [!WARNING]
 > Eigenes JavaScript läuft in den Browsern Ihrer Besucher, auf einer Seite, die man gerade dann öffnet, wenn man glaubt, dass etwas kaputt ist. Halten Sie es klein, hosten Sie, was es lädt, möglichst selbst, und testen Sie es, bevor Sie sich darauf verlassen.
@@ -153,7 +173,7 @@ flowchart TB
 
 ### Bevor Sie anfangen
 
-- **Die übergeordnete Domain muss verifiziert sein.** Die Auswahlliste **Domäne** führt nur die Domains, die unter **Projekteinstellungen → Domänen** verifiziert sind, wo Sie mit einem TXT-Eintrag beweisen, dass eine Domain Ihnen gehört. Der Link **Domain hinzufügen** neben dem Feld öffnet diese Seite in einem neuen Tab.
+- **Die übergeordnete Domain muss verifiziert sein.** Die Auswahlliste **Domäne** führt nur die Domains, die unter **Projekteinstellungen → Erweitert → Domänen** verifiziert sind, wo Sie mit einem TXT-Eintrag beweisen, dass eine Domain Ihnen gehört. Der Link **Domain hinzufügen** neben dem Feld öffnet diese Seite in einem neuen Tab.
 - **Ihre Installation braucht einen CNAME-Eintrag für Statusseiten.** OneUptime Cloud hat einen. Setzen Sie ihn bei einer selbst gehosteten Installation auf einen Hostnamen, der auf Ihren OneUptime-Server zeigt (einen A-Eintrag), und sorgen Sie dafür, dass der Server auf Port 80 antwortet, wo Let's Encrypt ihn prüft. Ohne ihn sagen die Karte und der Dialog **DNS-Einrichtung** „Custom Domains not enabled for this OneUptime installation“, statt einen Eintrag zu zeigen.
 
 :::tabs

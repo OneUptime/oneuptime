@@ -39,7 +39,7 @@ flowchart TB
 - **计划维护**：创建和管理维护事件。
 - **遥测**：查询日志、指标、追踪、异常、监视器日志、安全事件等，只读。
 
-有针对 27 种记录的创建、获取、列出、更新、删除和计数工具，有针对 9 种遥测的列出和计数工具，还有专为事件响应打造的工具。只读工具带有 `readOnlyHint`，删除工具带有 `destructiveHint`，因此客户端可以自行执行安全的调用，并在执行破坏性调用之前询问您。失败的工具调用会作为工具结果（`isError: true`）返回，其中包含 `statusCode`、详细信息和建议，而不是作为 MCP 协议错误返回，因此代理可以读取失败原因并自行纠正。
+有针对 27 种记录的创建、获取、列出、更新、删除和计数工具，有针对 9 种遥测的列出和计数工具，还有专为事件响应打造的工具。只读工具带有 `readOnlyHint`，每个会更改内容的工具都带有 `destructiveHint`，只有公共状态页工具带有 `openWorldHint`，因此客户端可以自行执行只读调用，并在做出任何更改之前询问您。失败的工具调用会作为工具结果（`isError: true`）返回，其中包含 `statusCode`、详细信息和建议，而不是作为 MCP 协议错误返回，因此代理可以读取失败原因并自行纠正。
 
 ## 开始之前
 
@@ -111,7 +111,7 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp
 
 ### 管理已连接的客户端
 
-通过登录连接的每个客户端都列在 **项目设置 → 人工智能 → MCP 服务器** 的 **Connected MCP Clients** 下，并显示是谁连接的、可以做什么以及上次使用的时间。您能看到自己连接的客户端；项目所有者和管理员能看到所有人的客户端。
+通过登录连接的每个客户端都列在 **项目设置 → 人工智能 → MCP 服务器** 的 **已连接的 MCP 客户端** 下，并显示是谁连接的、可以做什么以及上次使用的时间。您能看到自己连接的客户端；项目所有者和管理员能看到所有人的客户端。
 
 点击 **Disconnect** 可让客户端退出登录。它会立即停止工作。
 
@@ -195,6 +195,19 @@ claude mcp add --transport http oneuptime https://oneuptime.com/mcp --header "x-
       "password": true
     }
   ]
+}
+```
+@tab Cursor
+```json
+{
+  "mcpServers": {
+    "oneuptime": {
+      "url": "https://oneuptime.com/mcp",
+      "headers": {
+        "x-api-key": "your-api-key-here"
+      }
+    }
+  }
 }
 ```
 :::

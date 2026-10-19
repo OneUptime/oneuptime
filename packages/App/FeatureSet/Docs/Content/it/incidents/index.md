@@ -7,6 +7,8 @@ Un incidente è il documento su cui lavora il vostro team quando qualcosa si rom
 - [Stati e gravità degli incidenti](/docs/incidents/states-and-severities): Il ciclo di vita, e che cosa fanno il riconoscimento e la risoluzione.
 - [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed): Aggiornamenti per i clienti e per il vostro team, e chi ne viene informato.
 - [Avvisi collegati](/docs/incidents/linked-alerts): Collegate gli avvisi sollevati da un disservizio all'incidente che li spiega.
+- [Episodi](/docs/incidents/episodes): Raggruppate gli incidenti correlati e lavorateci come su uno solo.
+- [Post-mortem](/docs/incidents/postmortems): Scrivete cosa è successo e pubblicatelo sulla vostra pagina di stato.
 - [Impostazioni e automazione degli incidenti](/docs/incidents/settings): Modelli, campi personalizzati, ruoli, misurazioni e regole.
 :::
 
@@ -29,17 +31,19 @@ Potete dichiarare un incidente a mano alle 3 del mattino, oppure lasciare che un
 flowchart TB
     subgraph ways["Cinque vie d'accesso"]
         direction LR
-        wizard["Procedura guidata"]
+        wizard["Procedura<br/>guidata"]
         template["Modello"]
         monitor["Monitor"]
         api["API"]
         form["Modulo"]
+        wizard ~~~ template ~~~ monitor
+        api ~~~ form
     end
     ways --> incident["Nuovo incidente"]
-    incident --> rules["Vengono eseguite le regole degli incidenti"]
-    rules --> oncall["Le policy di reperibilità avvisano"]
-    rules --> owners["I proprietari vengono informati"]
-    rules --> pages["Le pagine di stato vengono aggiornate"]
+    incident --> rules["Vengono eseguite<br/>le regole<br/>degli incidenti"]
+    rules --> oncall["Le policy di<br/>reperibilità<br/>avvisano"]
+    rules --> owners["I proprietari<br/>vengono<br/>informati"]
+    rules --> pages["Le pagine di<br/>stato vengono<br/>aggiornate"]
     oncall --> feed["Incidente Feed"]
     owners --> feed
     pages --> feed
@@ -56,7 +60,7 @@ Cinque strade portano allo stesso oggetto:
 - **Tramite l'API** — `POST /api/incident` con una chiave API. Il server compila per voi `declaredAt`, lo stato di creazione e il numero dell'incidente.
 - **Con un modulo** — qualcuno esterno al vostro team compila un modulo che avete condiviso come link, senza un account OneUptime. L'incidente viene dichiarato nascosto dalle pagine di stato, a partire dal modello di incidente del modulo, se ne ha uno. Vedete [Moduli](/docs/forms/index).
 
-Anche le integrazioni aprono incidenti: [Huntress](/docs/integrations/huntress) trasforma ogni rapporto di incidente inviato dal suo SOC in un incidente, che avvisa le policy di reperibilità che scegliete voi. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per la descrizione campo per campo.
+Anche i workflow aprono incidenti: il workflow di [Huntress](/docs/integrations/huntress) trasforma ogni rapporto di incidente inviato dal suo SOC in un incidente, che avvisa la policy di reperibilità che scegliete voi. Vedete [Dichiarare un incidente](/docs/incidents/declaring-incidents) per la descrizione campo per campo.
 
 ### 2. Le persone giuste vengono informate
 
@@ -77,7 +81,7 @@ I responder riconoscono l'incidente, collegano le risorse interessate, collegano
 
 Fare clic su **Risolvi** porta l'incidente nello stato risolto, ne lascia traccia nella cronologia degli stati, ferma il conteggio della durata, restituisce i monitor che trattiene e toglie l'incidente dalla sezione attiva di qualsiasi pagina di stato su cui era mostrato. Non serve cambiare nient'altro perché ciò accada: una pagina di stato mostra solo gli incidenti in uno stato che si trova sopra lo stato risolto. Vedete [Che cosa fa la risoluzione](/docs/incidents/states-and-severities#che-cosa-fa-la-risoluzione).
 
-Dopodiché potete scrivere un post-mortem e, se volete, pubblicarlo sulla pagina di stato.
+Dopodiché potete scrivere un [post-mortem](/docs/incidents/postmortems) e, se volete, pubblicarlo sulla pagina di stato.
 
 ## Termini chiave
 
@@ -103,7 +107,7 @@ Quando viene creato un progetto, OneUptime crea esattamente tre stati dell'incid
 
 ```mermaid title="Gli stati con cui parte ogni nuovo progetto"
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> Identified: dichiarato
     Identified --> Acknowledged: Riconosci
     Identified --> Resolved: Risolvi
@@ -156,11 +160,10 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore. Il suo menu la
 | **Episodi**          | Gli episodi degli incidenti, una funzione di raggruppamento separata con le proprie pagine.                                                                                |
 | **IA**               | **Informazioni**, **Registri**, **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri incidenti e tutto ciò che ha fatto per loro, e che cosa può fare da sola — con le regole su quali incidenti esamina e corregge. Vedete [AI SRE](/docs/ai/ai-sre). |
 | **Area di lavoro**   | Gli spazi di chat che questo progetto ha collegato: **Slack**, **Microsoft Teams** o entrambi, ciascuno con le sue regole di notifica per gli incidenti. Se nessuno è collegato, contiene **Collega Slack o Teams**, una pagina che mostra entrambi e come collegarli. |
-| **Integrazioni**     | Strumenti che aprono incidenti da soli: **Huntress**, i cui rapporti di incidente diventano incidenti che avvisano la reperibilità. Vedete [Huntress](/docs/integrations/huntress). |
 | **Regole**           | I motori di regole: **Regole di raggruppamento**, **Regole di reperibilità**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole SLA**, **Reminder Rules**. |
-| **Impostazioni**     | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Misurazioni**, **Avvisi collegati**, **Numerazione**. |
+| **Impostazioni**     | **Stato incidente**, **Gravità incidente**, **Modelli di incidenti**, **Modelli di note**, **Modelli post-mortem**, **Campi personalizzati**, **Ruoli incidente**, **Misurazioni**, **Avvisi collegati**, **Appartenenza agli episodi**, **Numerazione**. |
 
-**Panoramica** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Integrazioni**, **Regole**, **Impostazioni** e **Sviluppatori** sono ripiegate per impostazione predefinita, così il menu si apre sugli elenchi che usate ogni giorno. Fate clic sul titolo di una sezione per espanderla e trovare le pagine a cui fa riferimento il resto di questa documentazione; una sezione si apre anche da sola ogni volta che siete su una delle sue pagine. La configurazione degli incidenti non si trova nelle impostazioni del progetto; vive tutta qui.
+**Panoramica** ed **Episodi** sono aperte; **IA**, **Area di lavoro**, **Regole**, **Impostazioni** e **Sviluppatori** sono ripiegate per impostazione predefinita, così il menu si apre sugli elenchi che usate ogni giorno. Fate clic sul titolo di una sezione per espanderla e trovare le pagine a cui fa riferimento il resto di questa documentazione; una sezione si apre anche da sola ogni volta che siete su una delle sue pagine. La configurazione degli incidenti non si trova nelle impostazioni del progetto; vive tutta qui.
 
 L'elenco degli incidenti mostra **Numero dell'incidente**, **Titolo**, **Stato**, **Gravità**, **Risorse interessate**, **Dichiarato**, **Durata**, **Etichette** e **Proprietari**, con un'azione di massa **Cambia stato** per chiuderne diversi in una volta.
 
@@ -190,7 +193,7 @@ Che cosa contiene ciascuna:
 - **Ruoli**, **Esecuzioni di reperibilità**, **Proprietari** — chi ci sta lavorando, quali policy sono scattate e chi viene avvisato.
 - **Registri di notifica**, **Registri IA**, **Registri di audit** — che cosa è stato inviato e che cosa è cambiato.
 - **Note private** e **Note pubbliche** — che cosa è stato detto al vostro team e ai vostri clienti. Vedete [Note, proprietari e feed degli incidenti](/docs/incidents/notes-owners-and-feed).
-- **Campi personalizzati**, **Impostazioni**, **Elimina incidente** — la pagina **Impostazioni** contiene **Visibile sulla pagina di stato** e **Incidente privato**, la scheda **Ambito delle pagine di stato** che limita l'incidente ad alcune pagine di stato, e la scheda **Reminders**, il cui interruttore **Invia promemoria** si salva non appena lo cambiate e mostra quando parte il prossimo promemoria.
+- **Campi personalizzati**, **Impostazioni**, **Elimina incidente** — la pagina **Impostazioni** contiene **Visibile sulla pagina di stato** e **Incidente privato**, la scheda **Ambito delle pagine di stato** che limita l'incidente ad alcune pagine di stato, e la scheda **Promemoria**, il cui interruttore **Invia promemoria** si salva non appena lo cambiate e mostra quando parte il prossimo promemoria.
 
 ## Come si inseriscono gli incidenti nel resto di OneUptime
 

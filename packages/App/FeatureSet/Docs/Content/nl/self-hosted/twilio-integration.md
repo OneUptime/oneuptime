@@ -62,12 +62,12 @@ Versturen werkt met alleen uitgaande toegang. Bezorgupdates, bevestigen met het 
 sequenceDiagram
     participant O as OneUptime
     participant T as Twilio
-    participant P as Telefoon van de responder
-    O->>T: Verstuurt een sms of start een oproep
+    participant P as Telefoon van<br/>de responder
+    O->>T: Verstuurt een sms<br/>of start een oproep
     T->>P: Sms of spraakoproep
-    T-->>O: Callback met de bezorgstatus van de sms
-    P->>T: Drukt op 1 om te bevestigen
-    T-->>O: Callback met de toetsinvoer
+    T-->>O: Callback met de<br/>bezorgstatus van de sms
+    P->>T: Drukt op 1 om<br/>te bevestigen
+    T-->>O: Callback met<br/>de toetsinvoer
 ```
 
 Een privé-installatie heeft DNS-resolutie en uitgaand HTTPS via TCP 443 naar Twilio nodig om sms en oproepen in te dienen. Twilio raadt aan uitgaand HTTPS naar `*.twilio.com` toe te staan, omdat de API-adressen dynamisch zijn; zie [Twilio-IP-adressen](https://help.twilio.com/articles/115015934048-All-About-Twilio-IP-Addresses). Pas dit toe op het uitgaande verkeer van de workload van de OneUptime-applicatie, inclusief Kubernetes-NetworkPolicies en externe firewalls.

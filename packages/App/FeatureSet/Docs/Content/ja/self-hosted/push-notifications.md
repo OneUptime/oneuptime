@@ -13,12 +13,12 @@ OneUptime は、スマートフォンでは **OneUptime On-Call** モバイル�
 
 ```mermaid title="プッシュがスマートフォンやブラウザーに届くまで"
 flowchart TB
-    Server["あなたの OneUptime サーバー"]
-    Relay["OneUptime のプッシュリレー"]
+    Server["あなたの<br/>OneUptime サーバー"]
+    Relay["OneUptime の<br/>プッシュリレー"]
     Expo["Expo Push"]
     APNs["Apple APNs"]
     FCM["Google FCM"]
-    Phone["OneUptime On-Call アプリ"]
+    Phone["OneUptime On-Call<br/>アプリ"]
     PushService["ブラウザーの<br/>プッシュサービス"]
     Browser["ブラウザー"]
     Server -->|"EXPO_ACCESS_TOKEN なし"| Relay
@@ -28,7 +28,7 @@ flowchart TB
     Expo --> FCM
     APNs --> Phone
     FCM --> Phone
-    Server -->|"Web Push (VAPID)"| PushService
+    Server -->|"Web Push<br/>(VAPID)"| PushService
     PushService --> Browser
 ```
 
@@ -44,6 +44,7 @@ Web のプッシュ通知は引き続き VAPID キーと Web Push プロトコ�
 | --- | --- | --- | --- |
 | `PUSH_NOTIFICATION_RELAY_URL` | `pushNotification.relayUrl` | `https://oneuptime.com/api/notification/push-relay/send` | `EXPO_ACCESS_TOKEN` が未設定の間、モバイルのプッシュを送る先。 |
 | `EXPO_ACCESS_TOKEN` | `expo.accessToken` | 空 | Expo プロジェクトのトークンを使い、モバイルのプッシュを Expo に直接送ります。 |
+| `PUSH_NOTIFICATION_RELAY_SERVER_ENABLED` | `pushNotification.relayServerEnabled` | 空 | このサーバーの `EXPO_ACCESS_TOKEN` で、ほかの OneUptime サーバーのモバイルのプッシュをリレーします。空の場合は、`BILLING_ENABLED` が `true` のときだけオンです。 |
 | `VAPID_PUBLIC_KEY` | `vapid.publicKey` | 空 | ブラウザーが購読に使うキーペアの公開側。 |
 | `VAPID_PRIVATE_KEY` | `vapid.privateKey` | 空 | すべての Web Push に署名する秘密側。 |
 | `VAPID_SUBJECT` | `vapid.subject` | `mailto:support@oneuptime.com` | ブラウザーのプッシュサービスがあなたに連絡できる連絡先アドレス。 |
@@ -82,6 +83,8 @@ expo:
 
 `PUSH_NOTIFICATION_RELAY_URL` を変更する場合は、その宛先のホスト名と設定したポートを許可してください。独自のリレーは OneUptime のリレー API を実装する必要があります。これらの既定値と、リレーと直接配信の切り替えは、[OneUptime の設定](https://github.com/OneUptime/oneuptime/blob/master/config.example.env) と [プッシュサービス](https://github.com/OneUptime/oneuptime/blob/master/packages/Common/Server/Services/PushNotificationService.ts) で定義されています。Expo への直接のリクエストは、[Expo の送信ガイド](https://docs.expo.dev/push-notifications/sending-notifications/) に記載されたエンドポイントを使います。OneUptime は、`/send` の代わりに `/receipts` を付けた同じアドレスで、リレーから配信の受領確認を読み取ります。このルートを持たないリレーでもプッシュは配信されますが、その場合、アプリが削除されたデバイスに気づくのは、以後そのデバイスへのプッシュが拒否されたときだけです。
 
+セルフホストの OneUptime サーバーがほかのサーバーのプッシュをリレーするのは、`PUSH_NOTIFICATION_RELAY_SERVER_ENABLED=true` と自身の `EXPO_ACCESS_TOKEN` がある場合だけです。この設定がなければ、そのアドレスに 404 で応答します。ほかの OneUptime サーバーが送信に使うサーバーでだけ有効にし、そのアドレスにはそれらのサーバーだけが届くようにしてください。
+
 Web Push では、チームが使うブラウザーの実際の購読エンドポイントのホストを許可してください。OneUptime は `fcm.googleapis.com`、`android.googleapis.com`、`push.services.mozilla.com`、`notify.windows.com`、`push.apple.com` を、それぞれのサブドメインも含めて受け付けます。典型的な例は `updates.push.services.mozilla.com` と `web.push.apple.com` です。宛先は [ブラウザーのプッシュ購読](https://developer.mozilla.org/en-US/docs/Web/API/PushSubscription) が提供します。Expo や OneUptime のリレーだけを許可しても Web Push は有効になりません。
 
 通知を送信する OneUptime のプロセスから、DNS の名前解決と外向きの TLS を許可してください。そのトラストストアは宛先の証明書を検証できる必要があり、プロキシは対話的な認証なしで API リクエストを通す必要があります。プッシュのプロバイダーが OneUptime サーバーの Webhook を呼び出すことはないため、利用者のデバイスが VPN などのプライベート接続でアクセスできるなら、サーバーはプライベートのままで構いません。リレーや外部のプッシュサービスにアクセスできないサーバーは、これらの通知を配信できません。
@@ -106,9 +109,9 @@ Web Push では、チームが使うブラウザーの実際の購読エンド�
 flowchart TB
     Page["オンコールの呼び出し"]
     Rule{"そのオンコールルールが<br/>「重大アラート」か？"}
-    Device{"このデバイスで Critical On-Call<br/>Alerts がオンか？"}
-    OS{"スマートフォンのシステムが<br/>重大なアラートを許可しているか？"}
-    Loud["サイレントモードとおやすみモードを<br/>越えて音を鳴らす"]
+    Device{"このデバイスで<br/>Critical On-Call<br/>Alerts がオンか？"}
+    OS{"スマートフォンの<br/>システムが<br/>重大なアラートを<br/>許可しているか？"}
+    Loud["サイレントモードと<br/>おやすみモードを<br/>越えて音を鳴らす"]
     Quiet["ほかのプッシュと同じく<br/>静かに配信"]
     Page --> Rule
     Rule -->|"はい"| Device
@@ -121,7 +124,7 @@ flowchart TB
 
 呼び出しがサイレントモードを上書きするには、次の 4 つがすべて満たされている必要があります。1 つでも欠けていれば、呼び出しは配信されますが、静かに届きます。
 
-1. **担当者がそのデバイスでオンにしている。** デバイスごとに `UserPush.isCriticalAlertEnabled` に保存され、既定ではオフです。同じ人のスマートフォンとタブレットは別々に決めます。
+1. **担当者がそのデバイスでオンにしている。** デバイスごとに `UserPush.isCriticalAlertEnabled` に保存され、既定ではオフです。同じ人のスマートフォンとタブレットは別々に決めます。1.6.0 より新しいバージョンのアプリは、開くたびにこれを改めて報告し、スマートフォン自体の設定が重大なアラートを許可していない間はオフとして報告します。そのため、デバイスの一覧にはスマートフォンが実際にどう動くかが表示されます。
 2. **呼び出しを送ったオンコールルールがそれを求めている。** **ユーザー設定 > オンコールルール** で、スマートフォンに通知するルールはそれぞれ、既定の「重大アラート」か、スマートフォンのサウンド設定に従う「通常」に設定されています。これにより、重大なインシデントでは担当者を起こし、軽微なものは静かに知らせることができます。ルールごとに `UserNotificationRule.pushNotificationLevel` に保存されます。
 3. **サーバーが呼び出しを重大とマークする。** iOS には APNs の重大なサウンドのペイロードと `interruptionLevel: critical` を送り、Android には重大な通知チャンネルを指定します。`oncall_critical`、または選ばれたアラーム専用のチャンネルです ([アラーム音を選ぶ](#アラーム音を選ぶ) を参照)。
 4. **オペレーティングシステムが許可している**。ここが 2 つのプラットフォームで異なる点です。
@@ -192,7 +195,7 @@ Android はチャンネルを初めて作成したときにその設定を固定
 - **iOS**: ビルドが Apple の重大なアラートのエンタイトルメントを持っていること (上記参照) と、iOS Settings > Notifications > OneUptime On-Call で Critical Alerts が許可されていることを確認します
 - **Android**: Settings > Notifications > Do Not Disturb access で、アプリにおやすみモードへのアクセスがあることを確認します
 - **Android**: アラーム音を選んだ場合は、その音専用の通知チャンネルにもおやすみモードを上書きする許可が必要です。許可されていなければ、アプリの Alarm sound 画面にそう表示されます
-- 設定画面には、これらのうち何が欠けているかが表示されます。アプリが最後に要求した内容を信用するのではなく、OS から現在の状態を読み取ります
+- 設定画面には、これらのうち何が欠けているかが表示されます。アプリが最後に要求した内容を信用するのではなく、OS から現在の状態を読み取ります。読み取った状態はサーバーにも伝えます
 
 ### 「未配信」と表示されたプッシュ
 

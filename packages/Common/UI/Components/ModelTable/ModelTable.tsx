@@ -52,7 +52,7 @@ import React, { ReactElement, useState } from "react";
  */
 const CREATE_NEW_TEMPLATES: Record<string, string> = {
   Add: translationKey("Add New {{itemName}}"),
-  // Connecting another product makes nothing new: "Connect Huntress".
+  // Connecting another product makes nothing new: "Connect vCenter".
   Connect: translationKey("Connect {{itemName}}"),
   Create: translationKey("Create New {{itemName}}"),
   Declare: translationKey("Declare New {{itemName}}"),
@@ -71,11 +71,20 @@ import {
   getRuleCriteriaTableConfiguration,
   RuleCriteriaTableConfiguration,
 } from "../RuleCriteria/RuleCriteriaModelTable";
+import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 
 export interface ComponentProps<TBaseModel extends BaseModel>
   extends BaseTableProps<TBaseModel> {
   modelAPI?: typeof ModelAPI | undefined;
   enableJsonImportExport?: boolean | undefined;
+  /*
+   * What a table of rules about several kinds of record holds - the AI and
+   * runbook rules, one table per kind (RuleCriteriaSubject): its form asks
+   * "All incidents" or "Only incidents that match conditions", and a rule
+   * with no conditions reads "All incidents" in its Match Criteria column.
+   * Every other rule table is named by its model.
+   */
+  ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
 }
 
 const ModelTable: <TBaseModel extends BaseModel>(
@@ -168,6 +177,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
       filters: props.filters,
       selectMoreFields: props.selectMoreFields,
       helpContent: props.helpContent,
+      subject: props.ruleCriteriaSubject,
     });
 
   if (props.enableJsonImportExport) {
@@ -312,15 +322,23 @@ const ModelTable: <TBaseModel extends BaseModel>(
             return (
               <ModelFormModal<TBaseModel>
                 modelAPI={props.modelAPI}
-                title={translateNamedAction(translator, {
-                  template:
-                    modalType === ModalType.Create
-                      ? CREATE_NEW_TEMPLATES[props.createVerb || "Create"] ||
-                        CREATE_NEW_TEMPLATE
-                      : "Edit {{itemName}}",
-                  itemName: props.singularName || model.singularName || "",
-                  values: { action: translatableTerm(props.createVerb || "") },
-                })}
+                title={
+                  modalType === ModalType.Create && props.createFormTitle
+                    ? props.createFormTitle
+                    : translateNamedAction(translator, {
+                        template:
+                          modalType === ModalType.Create
+                            ? CREATE_NEW_TEMPLATES[
+                                props.createVerb || "Create"
+                              ] || CREATE_NEW_TEMPLATE
+                            : "Edit {{itemName}}",
+                        itemName:
+                          props.singularName || model.singularName || "",
+                        values: {
+                          action: translatableTerm(props.createVerb || ""),
+                        },
+                      })
+                }
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
                 name={
@@ -340,7 +358,8 @@ const ModelTable: <TBaseModel extends BaseModel>(
                 onClose={onClose}
                 submitButtonText={
                   modalType === ModalType.Create
-                    ? translateCreateAction(translator, {
+                    ? props.createFormSubmitButtonText ||
+                      translateCreateAction(translator, {
                         verb: props.createVerb,
                         itemName:
                           props.singularName || model.singularName || "",
@@ -386,6 +405,7 @@ const ModelTable: <TBaseModel extends BaseModel>(
                   // A colour picked for a new row is one no row uses yet.
                   existingItems:
                     modalType === ModalType.Create ? existingItems : undefined,
+                  ruleCriteriaSubject: props.ruleCriteriaSubject,
                 }}
                 modelIdToEdit={modelIdToEdit}
               />

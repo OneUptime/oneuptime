@@ -16,16 +16,16 @@ OneUptime roept uw Foundry-resource via HTTPS aan vanaf de OneUptime-server, noo
 ```mermaid title="Waar de AI-verzoeken van OneUptime heen gaan"
 flowchart TB
     subgraph OU["OneUptime-server"]
-        F["AI-onderzoeken, notities, postmortems, fix-taken"]
+        F["AI-onderzoeken, notities,<br/>postmortems, fix-taken"]
     end
     subgraph AZ["Uw Azure-abonnement"]
-        R["Foundry-resource contoso-ai"]
-        V1["OpenAI v1-API: /openai/v1/chat/completions"]
-        AN["Anthropic-API: /anthropic/v1/messages"]
+        R["Foundry-resource<br/>contoso-ai"]
+        V1["OpenAI v1-API:<br/>/openai/v1/chat/completions"]
+        AN["Anthropic-API:<br/>/anthropic/v1/messages"]
         D1["Implementatie gpt-5.1"]
-        D2["Implementatie claude-sonnet-5-5"]
+        D2["Implementatie<br/>claude-sonnet-5-5"]
     end
-    F -->|"HTTPS + API-sleutel"| R
+    F -->|"HTTPS +<br/>API-sleutel"| R
     R --> V1 --> D1
     R --> AN --> D2
 ```
@@ -111,20 +111,20 @@ Met `--custom-domain contoso-ai` is het eindpunt van de resource `https://contos
 
 Ga naar **Projectinstellingen** > **AI** > **LLM-providers** en klik op **LLM-provider aanmaken**.
 
-### De provider een naam geven
+### De provider kiezen
 
-Voer onder **Basisinformatie** een **Naam** in, zoals `Azure gpt-5.1`, en eventueel een **Beschrijving**. Klik op **Volgende**.
+Kies onder **Provider** **Azure OpenAI / Microsoft Foundry** als **LLM-provider** en klik op **Volgende** om naar **Verbinding** te gaan.
 
-### Providerinstellingen invullen
+### De verbinding invullen
 
 | Veld | Wat u invult |
 | --- | --- |
-| **LLM-provider** | **Azure OpenAI / Microsoft Foundry** |
 | **API-sleutel** | **KEY 1** of **KEY 2** van de resource |
-| **Modelnaam** | De naam van de implementatie, precies zoals Foundry hem toont, zoals `gpt-5.1` |
 | **Basis-URL** | Het eindpunt van de resource met `/openai/v1`, zoals `https://contoso-ai.openai.azure.com/openai/v1`. Voor Claude: `https://contoso-ai.services.ai.azure.com/anthropic` |
+| **Modelnaam** | De naam van de implementatie, precies zoals Foundry hem toont, zoals `gpt-5.1` |
+| **Naam** | Eerst de naam van de provider: geef hem een naam die zegt welke implementatie het is, zoals `Azure gpt-5.1` |
 
-**Instellen als standaard**, onder **Meer velden**, staat aan: AI-functies gebruiken de standaardprovider van het project. Klik op **LLM-provider aanmaken**.
+**Meer velden** bevat een **Beschrijving** en **Instellen als standaard**, dat aan staat: AI-functies gebruiken de standaardprovider van het project. Klik op **LLM-provider aanmaken**.
 
 ### De verbinding testen
 

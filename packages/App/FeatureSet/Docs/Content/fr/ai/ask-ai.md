@@ -16,10 +16,10 @@ Demander à l'IA ne répond qu'avec ce que renvoient ses outils : il exécute de
 ```mermaid title="D'une question à une réponse citée"
 flowchart TB
     Q["Votre question,<br/>avec la page où<br/>vous êtes"] --> A["Demander à l'IA"]
-    A -->|"outils de lecture"| D["Les données de votre<br/>projet, interrogées<br/>en direct"]
+    A -->|"outils de<br/>lecture"| D["Les données<br/>de votre<br/>projet,<br/>interrogées<br/>en direct"]
     D --> R["Une réponse avec<br/>une citation par<br/>affirmation"]
     A -->|"une action"| M{"Le mode<br/>d'autorisation"}
-    M -->|"Ask to act"| C["Une carte<br/>d'approbation : vous<br/>autorisez ou ignorez"]
+    M -->|"Ask to act"| C["Une carte<br/>d'approbation<br/>: vous<br/>autorisez<br/>ou ignorez"]
     M -->|"Auto-run"| X["Elle s'exécute,<br/>en votre nom"]
     C -->|"autorisée"| X
 ```
@@ -99,7 +99,7 @@ Chaque action de Demander à l'IA est faite en votre nom : il fait le même chan
 - **L'offre Growth, sur OneUptime Cloud.** Un projet sur une offre inférieure voit que l'IA n'est pas incluse dans son offre, avec un lien vers **Paramètres du projet → Facturation et factures → Facturation**.
 - **L'IA activée pour le projet.** **Activer l'IA**, sur **Paramètres du projet → IA → Fonctionnalités IA**, coupe toutes les fonctionnalités IA du projet, Demander à l'IA compris. Elle est activée sauf si quelqu'un l'a coupée.
 
-Demander à l'IA compte dans les limites quotidiennes d'IA propres au projet quand le projet les définit (Paramètres du projet → Fonctionnalités IA → Plus de paramètres) : quand l'une est atteinte, Demander à l'IA affiche une phrase qui dit quelle limite est atteinte, que OneUptime AI reprend à minuit UTC et qui peut relever ou supprimer la limite. Les propriétaires du projet reçoivent un e-mail la première fois qu'une limite est atteinte chaque jour. Les limites quotidiennes des incidents et des alertes n'arrêtent jamais Demander à l'IA. Voir [les limites quotidiennes propres au projet](/docs/ai/ai-sre#les-limites-quotidiennes-propres-au-projet).
+Demander à l'IA compte dans les limites quotidiennes d'IA propres au projet quand le projet les définit (Paramètres du projet → IA → Fonctionnalités IA → Plus de paramètres) : quand l'une est atteinte, Demander à l'IA affiche une phrase qui dit quelle limite est atteinte, que OneUptime AI reprend à minuit UTC et qui peut relever ou supprimer la limite. Les propriétaires du projet reçoivent un e-mail la première fois qu'une limite est atteinte chaque jour. Les limites quotidiennes des incidents et des alertes n'arrêtent jamais Demander à l'IA. Voir [les limites quotidiennes propres au projet](/docs/ai/ai-sre#les-limites-quotidiennes-propres-au-projet).
 
 ## Dépannage
 

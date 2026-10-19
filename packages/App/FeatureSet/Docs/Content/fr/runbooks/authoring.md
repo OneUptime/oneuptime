@@ -25,11 +25,11 @@ Ouvrez **Produits → Runbooks**. Runbooks se trouve dans le groupe **Tableaux d
 
 ### Créer le runbook
 
-Cliquez sur **Créer : Runbook**, saisissez un **Nom** et, si vous le souhaitez, une **Description** de l'usage du runbook. Sous **Plus de champs** se trouvent l'interrupteur **Activé**, activé par défaut, et les **Étiquettes**. Le nouveau runbook apparaît dans la liste : ouvrez-le.
+Cliquez sur **Créer : Runbook**, saisissez un **Nom** et, si vous le souhaitez, une **Description** de l'usage du runbook. Sous **Plus de champs** se trouvent l'interrupteur **Activé**, activé par défaut, et les **Étiquettes**. Le nouveau runbook s'ouvre sur sa page **Étapes**.
 
 ### Ajouter des étapes
 
-Allez dans **Étapes**. Sous **Start your runbook**, choisissez le type de la première étape ; sous la dernière étape, **Ajouter une autre étape** propose les mêmes sept types. Chaque étape s'ouvre avec son **Titre**, sa **Description** (en Markdown, affichée à la personne qui intervient) et les réglages de son type. Dès que le runbook a une étape, **Ajouter une étape**, en haut de la carte, ajoute une étape Manual.
+Sous **Start your runbook**, choisissez le type de la première étape ; sous la dernière étape, **Ajouter une autre étape** propose les mêmes sept types. Chaque étape s'ouvre avec son **Titre**, sa **Description** (en Markdown, affichée à la personne qui intervient) et les réglages de son type. Dès que le runbook a une étape, **Ajouter une étape**, en haut de la carte, ajoute une étape Manual.
 
 ### Ordonner les étapes
 
@@ -188,14 +188,14 @@ Les étapes IA sont mesurées et facturées comme toute autre fonctionnalité d'
 
 ```mermaid title="Ce qui se passe après une étape automatisée"
 flowchart TB
-    run["Une étape automatisée s'exécute"] --> ok{"Réussie ?"}
-    ok -->|"oui"| approval{"Exiger une approbation activé ?"}
-    approval -->|"oui"| wait["L'exécution attend l'approbation d'une personne"]
+    run["Une étape<br/>automatisée s'exécute"] --> ok{"Réussie ?"}
+    ok -->|"oui"| approval{"Exiger une<br/>approbation activé ?"}
+    approval -->|"oui"| wait["L'exécution attend<br/>l'approbation<br/>d'une personne"]
     approval -->|"non"| next["L'étape suivante s'exécute"]
     wait --> next
-    ok -->|"non"| cont{"Continuer en cas d'échec activé ?"}
+    ok -->|"non"| cont{"Continuer en cas<br/>d'échec activé ?"}
     cont -->|"oui"| next
-    cont -->|"non"| failed["L'exécution s'arrête en échec"]
+    cont -->|"non"| failed["L'exécution<br/>s'arrête en échec"]
 ```
 
 Par défaut, une étape en échec arrête l'exécution et la marque `Failed`, avec l'erreur de l'étape comme motif. Avec **Continuer en cas d'échec**, l'échec est enregistré et l'étape suivante s'exécute, ce qui convient aux runbooks du type « essayer ces trois choses, puis prévenir ». **Exiger une approbation** s'applique après la réussite d'une étape : l'exécution attend sur cette étape jusqu'à ce que quelqu'un clique sur **Approuver et continuer** ou **Ignorer**.

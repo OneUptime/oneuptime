@@ -12,7 +12,15 @@ import {
   setNavigationRef,
   handleNotificationResponse,
 } from "../notifications/handlers";
-import { registerPushDevice } from "../api/pushDevice";
+import {
+  registerPushDevice,
+  type RegisteredPushDevice,
+} from "../api/pushDevice";
+import {
+  readCriticalAlerts,
+  reportCriticalAlerts,
+  type CriticalAlertsReading,
+} from "../notifications/criticalAlertsReport";
 import { useAuth } from "./useAuth";
 import { useProject } from "./useProject";
 import {
@@ -22,7 +30,6 @@ import {
 } from "./pushTokenUtils";
 import {
   getCriticalAlertSound,
-  getCriticalAlertsEnabled,
   getCriticalAlertVolume,
 } from "../storage/preferences";
 import type { CriticalAlertSoundIdValue } from "../notifications/criticalAlertSounds";
@@ -85,6 +92,11 @@ export function usePushNotifications(navigationRef: unknown): void {
   const lastRegistrationStartedAtRef: React.MutableRefObject<number> =
     useRef<number>(0);
 
+  // Signed in, as the listener below reads it when the app comes back.
+  const isAuthenticatedRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(isAuthenticated);
+  isAuthenticatedRef.current = isAuthenticated;
+
   /*
    * The returns the registration below has seen, to tell a registration
    * brought on by a return apart from one brought on by signing in or by the
@@ -117,6 +129,16 @@ export function usePushNotifications(navigationRef: unknown): void {
           Date.now() - lastRegistrationStartedAtRef.current <
           FOREGROUND_REGISTRATION_INTERVAL_MS
         ) {
+          /*
+           * Too soon to register again, but not to say what changed while
+           * the app was away: critical alerts turned off or back on in iOS
+           * Settings, Do Not Disturb access taken away on Android. Only a
+           * change is sent (reportCriticalAlerts), so switching between apps
+           * sends nothing. A registration says it anyway, below.
+           */
+          if (isAuthenticatedRef.current) {
+            void reportCriticalAlerts();
+          }
           return;
         }
 
@@ -189,6 +211,15 @@ export function usePushNotifications(navigationRef: unknown): void {
               ? "[PushNotifications] No push token on coming back to the app — the device is registered again when one is available"
               : "[PushNotifications] Could not obtain push token after all retries — device will not be registered",
           );
+
+          /*
+           * The phone may still have the token it registered before: what
+           * changed while the app was away is told with that one, as a
+           * return too soon to register again tells it.
+           */
+          if (!cancelled) {
+            await reportCriticalAlerts();
+          }
         }
         return;
       }
@@ -210,8 +241,20 @@ export function usePushNotifications(navigationRef: unknown): void {
        * responder who had critical alerts on would silently lose the override
        * for any project they joined after switching it on, and for every
        * project at all after a reinstall issued a new push token.
+       *
+       * What the phone will really do, not only the switch: on while the
+       * responder has it on AND the phone's system allows it. A device the
+       * phone already has takes it too, so the Dashboard says what the phone
+       * does, and a test from there goes as what a page would.
        */
-      const isCriticalAlertEnabled: boolean = await getCriticalAlertsEnabled();
+      const criticalAlerts: CriticalAlertsReading = await readCriticalAlerts();
+
+      /*
+       * Left out when the OS could not be asked: a device the phone already
+       * has keeps what it holds, and a new one starts off, as before.
+       */
+      const isCriticalAlertEnabled: boolean | undefined =
+        criticalAlerts.isCertain ? criticalAlerts.isEffective : undefined;
 
       // And so are the alarm and volume chosen for those pages.
       const criticalAlertSound: CriticalAlertSoundIdValue =
@@ -221,6 +264,13 @@ export function usePushNotifications(navigationRef: unknown): void {
       // Whether every project was told; until then the old token is told again.
       let everyProjectRegistered: boolean = true;
 
+      /*
+       * Whether every project's device now holds isCriticalAlertEnabled, as
+       * the server answered. An older server does not answer it, and keeps
+       * what a device it already had was created with.
+       */
+      let isHeldByEveryProject: boolean = true;
+
       // Register with each project
       for (const project of projectList) {
         if (cancelled) {
@@ -228,14 +278,24 @@ export function usePushNotifications(navigationRef: unknown): void {
           break;
         }
         try {
-          await registerPushDevice({
-            deviceToken: token,
-            projectId: project._id,
-            isCriticalAlertEnabled: isCriticalAlertEnabled,
-            criticalAlertSound: criticalAlertSound,
-            criticalAlertVolume: criticalAlertVolume,
-            ...(previousToken ? { previousDeviceToken: previousToken } : {}),
-          });
+          const registered: RegisteredPushDevice | undefined =
+            await registerPushDevice({
+              deviceToken: token,
+              projectId: project._id,
+              ...(isCriticalAlertEnabled !== undefined
+                ? { isCriticalAlertEnabled: isCriticalAlertEnabled }
+                : {}),
+              criticalAlertSound: criticalAlertSound,
+              criticalAlertVolume: criticalAlertVolume,
+              ...(previousToken ? { previousDeviceToken: previousToken } : {}),
+            });
+
+          if (
+            isCriticalAlertEnabled === undefined ||
+            registered?.isCriticalAlertEnabled !== isCriticalAlertEnabled
+          ) {
+            isHeldByEveryProject = false;
+          }
         } catch (error: unknown) {
           everyProjectRegistered = false;
           logger.warn(
@@ -248,6 +308,23 @@ export function usePushNotifications(navigationRef: unknown): void {
       if (previousToken && everyProjectRegistered) {
         await previousPushTokenReported();
       }
+
+      if (cancelled) {
+        return;
+      }
+
+      /*
+       * Every device of this phone now holds what it will do - when the
+       * server said so for each project, and that is still so (the switch
+       * may have moved meanwhile). Otherwise the server is told outright,
+       * through the route that writes every device of the phone at once -
+       * once the OS answers (reportCriticalAlerts reads it again).
+       */
+      await reportCriticalAlerts(
+        everyProjectRegistered && isHeldByEveryProject
+          ? { serverHolds: isCriticalAlertEnabled }
+          : { force: true },
+      );
     };
 
     register().catch((error: unknown): void => {

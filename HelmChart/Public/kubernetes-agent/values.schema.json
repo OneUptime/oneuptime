@@ -37,6 +37,10 @@
           "type": "string",
           "description": "Telemetry ingestion key from OneUptime (Project Settings > Telemetry & APM > Ingestion Keys), sent as the x-oneuptime-token header. A project API key (Settings > API Keys) does not work here."
         },
+        "existingSecretName": {
+          "type": "string",
+          "description": "Name of a Secret in the release's namespace that holds the ingestion key under `api-key`. Set it instead of apiKey to keep the key out of the values: every workload reads the key from it, and the chart creates no Secret of its own."
+        },
         "labels": {
           "type": "object",
           "description": "Project Labels auto-attached to every record. Each key/value becomes an `oneuptime.label.<key>=<value>` resource attribute, which the OneUptime ingest pipeline promotes to a project Label.",
@@ -838,7 +842,7 @@
         },
         "contextPropagation": {
           "type": "boolean",
-          "description": "Inject a W3C `traceparent` into outbound traffic so traces span services without SDK changes. **Off by default** — this matches OBI's own default, and it is off because every mode rewrites in-flight traffic: plaintext HTTP is widened in place via `bpf_probe_write_user`, while TLS and raw TCP get a TCP option appended from a Traffic Control hook. A bad rewrite desynchronizes the connection instead of just losing a span — the reported symptom is transfers through an L7 proxy (nginx) hanging mid-body once the response grows past ~64KB. There is no kernel version at which enabling this is inert — below 5.17 OBI falls back to bounded-scan program variants and keeps rewriting traffic, so do not use kernel age to rule the agent out as a suspect. Injection is gated on CAP_SYS_ADMIN and the absence of kernel lockdown, and this DaemonSet runs privileged, so that gate is always open. Opt in on a non-production cluster first."
+          "description": "Inject a W3C `traceparent` into outbound traffic so traces span services without SDK changes. **On by default** (OBI's own default is off): without it, a call to a pod on another node starts a trace of its own, and OBI reads no `traceparent` at all. Every mode rewrites in-flight traffic: plaintext HTTP is widened in place via `bpf_probe_write_user`, while TLS and raw TCP get a TCP option appended from a Traffic Control hook. A bad rewrite desynchronizes the connection instead of just losing a span — the reported symptom is transfers through an L7 proxy (nginx) hanging mid-body once the response grows past ~64KB. Turn it off if you see that, or if a service mesh or eBPF CNI starts failing pods. There is no kernel version at which this is inert — below 5.17 OBI falls back to bounded-scan program variants and keeps rewriting traffic, so do not use kernel age to rule the agent out as a suspect. Injection is gated on CAP_SYS_ADMIN and the absence of kernel lockdown, and this DaemonSet runs privileged, so that gate is always open. A values file without the key counts as off."
         },
         "contextPropagationMode": {
           "type": "string",

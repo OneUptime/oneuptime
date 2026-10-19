@@ -67,7 +67,7 @@ Klik på **Anvend skabelon**, vælg en under **Vælg skabelon** i dialogen **Anv
 
 Klik på **Generate with AI**. Dialogen **Generate Postmortem with AI** tilbyder en disposition under **Vælg skabelon**: **Standard Postmortem**, **Detailed Technical Postmortem** eller **Brief Postmortem**, og derefter dine egne postmortem-skabeloner. **Template Preview** viser dispositionen, og du kan ændre den, før du genererer.
 
-Klik på **Generate with AI** nederst i dialogen. OneUptime AI læser hændelsen (dens beskrivelse, grundårsag og afhjælpning, dens statustidslinje, dens offentlige og private noter og beskederne i dens Slack- eller Microsoft Teams-kanal) og skriver postmortem efter din disposition. Derefter åbner editoren med resultatet.
+Klik på **Generate with AI** nederst i dialogen. OneUptime AI læser hændelsen (dens beskrivelse, grundårsag og afhjælpning, dens statustidslinje, dens offentlige og private noter, beskederne i dens Slack- eller Microsoft Teams-kanal og det, der blev sagt i [dens opkald](/docs/workspace-connections/video-calls#transskriptioner-af-opkald)) og skriver postmortem efter din disposition. Derefter åbner editoren med resultatet.
 
 At generere kræver, at AI er slået til for projektet under **Projektindstillinger → AI → AI Features**, og en LLM-udbyder: se [LLM-udbydere](/docs/ai/llm-provider). Det kræver også rollen Project Owner eller Project Admin, eller en brugerdefineret rolle med tilladelsen Edit Incident: andre roller kan skrive postmortem, men ikke generere den.
 
@@ -78,6 +78,7 @@ Med **Skriv et udkast til en postmortem, når en hændelse er løst** slået til
 - Den erstatter aldrig en note, der allerede er skrevet.
 - Den skriver aldrig i en postmortem, der allerede er offentliggjort, hvor udkastet ville nå statussiden ugennemgået.
 - Den kræver, at AI er slået til for projektet, og stopper resten af dagen, når projektet når sine daglige AI-grænser. Se [Automatisk postmortem](/docs/ai/ai-sre#automatisk-postmortem).
+- Er transskriptionen af hændelsens opkald stadig på vej, når hændelsen løses, venter den, til OneUptime AI har læst den, så udkastet medtager, hvad der blev sagt i opkaldet: op til seks timer, mens Zoom eller Google Meet forbereder transskriptionen. Se [Optag og transskribér hvert opkald](/docs/workspace-connections/video-calls#optag-og-transskribér-hvert-opkald).
 
 ## Offentliggør den på din statusside
 
@@ -152,7 +153,7 @@ Tjek tre ting: **Offentliggør på statussiden** er slået til, noten er ikke to
 :::
 
 :::details Der kom intet AI-udkast, da hændelsen blev løst
-Hændelsen havde allerede en note, postmortem var allerede offentliggjort, eller **Skriv et udkast til en postmortem, når en hændelse er løst** er slået fra. AI skal være slået til for projektet, og projektet må ikke have nået sine daglige AI-grænser.
+Hændelsen havde allerede en note, postmortem var allerede offentliggjort, eller **Skriv et udkast til en postmortem, når en hændelse er løst** er slået fra. AI skal være slået til for projektet, og projektet må ikke have nået sine daglige AI-grænser. Er transskriptionen af hændelsens opkald på vej, kommer udkastet, når OneUptime AI har læst den.
 :::
 
 ## Næste trin

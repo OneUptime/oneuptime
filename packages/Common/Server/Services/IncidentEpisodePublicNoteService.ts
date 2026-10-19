@@ -28,6 +28,8 @@ import SavedChatMessage from "../../Types/Workspace/SavedChatMessage";
 import SavedChatMessageNote, {
   SavedChatMessageNoteKind,
 } from "../Utils/Notes/SavedChatMessageNote";
+import PrivateRecordPublicNoteRule from "../Utils/Notes/PrivateRecordPublicNoteRule";
+import { PrivateRecordKind } from "../../Types/StatusPage/PrivateRecordPublicNotes";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -113,6 +115,20 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * The episode the note is posted on, read once. A private episode takes
+     * no new public notes, as a private incident takes none
+     * (PrivateRecordPublicNoteRule); and a note that does not say whether to
+     * notify subscribers follows the episode (below).
+     */
+    const incidentEpisode: IncidentEpisode | null =
+      await this.getIncidentEpisodeOfNote(createBy.data);
+
+    PrivateRecordPublicNoteRule.assertRecordTakesPublicNotes({
+      kind: PrivateRecordKind.IncidentEpisode,
+      record: incidentEpisode,
+    });
+
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
@@ -124,17 +140,16 @@ export class Service extends ProjectReferencesService<Model> {
      * An explicit true or false is kept as sent.
      */
     if (
-      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+      (createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
         undefined ||
-      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === null
+        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+          null) &&
+      incidentEpisode
     ) {
-      const notifyByDefault: boolean | null =
-        await this.getIncidentEpisodeNotifyDefault(createBy.data);
-
-      if (notifyByDefault !== null) {
-        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
-          notifyByDefault;
-      }
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+        PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode(
+          incidentEpisode,
+        );
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
@@ -159,14 +174,17 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Whether a note on this episode notifies subscribers when nobody said,
-   * or null when the episode cannot be found (the column default applies).
-   * Read as root: posting a note does not require permission to read the
-   * episode, and the answer is only this one flag.
+   * The episode a note is posted on, with the two switches the note's
+   * create reads: whether it is private, and whether it notified
+   * subscribers when it was created. Null when the note names no episode or
+   * it cannot be found: nothing is refused, and the column default decides
+   * whether the note notifies. Read as root - the create has made sure its
+   * caller may read the episode (DatabaseService checkCreateParents) - and
+   * only these two switches.
    */
-  private async getIncidentEpisodeNotifyDefault(
+  private async getIncidentEpisodeOfNote(
     note: Model,
-  ): Promise<boolean | null> {
+  ): Promise<IncidentEpisode | null> {
     const incidentEpisodeId: ObjectID | null | undefined =
       note.incidentEpisodeId || note.incidentEpisode?.id;
 
@@ -182,24 +200,16 @@ export class Service extends ProjectReferencesService<Model> {
       query.projectId = note.projectId;
     }
 
-    const incidentEpisode: IncidentEpisode | null =
-      await IncidentEpisodeService.findOneBy({
-        query: query,
-        select: {
-          shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!incidentEpisode) {
-      return null;
-    }
-
-    return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode(
-      incidentEpisode,
-    );
+    return await IncidentEpisodeService.findOneBy({
+      query: query,
+      select: {
+        isPrivate: true,
+        shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   /*
@@ -405,6 +415,7 @@ ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
     const noteWithAttachments: Model | null = await this.findOneById({
       id: modelId,
       select: {
+        projectId: true,
         attachments: {
           _id: true,
         },
@@ -440,6 +451,7 @@ ${FeedMarkdown.asMarkdown(updatedItem.note)}${attachmentsMarkdown}
 
     return await FileAttachmentMarkdownUtil.buildAttachmentMarkdown({
       modelId,
+      projectId: noteWithAttachments.projectId,
       attachmentIds,
       attachmentApiPath,
     });

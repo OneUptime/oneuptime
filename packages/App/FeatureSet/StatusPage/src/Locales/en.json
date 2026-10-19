@@ -22,6 +22,10 @@
     "label": "Language",
     "switchLanguage": "Switch language"
   },
+  "theme": {
+    "switchToDark": "Switch to dark theme",
+    "switchToLight": "Switch to light theme"
+  },
   "nav": {
     "overview": "Overview",
     "incidents": "Incidents",
@@ -125,7 +129,27 @@
     "noneDescription": "No scheduled events posted for this status page.",
     "scheduledAt": "Scheduled at ",
     "report": "Scheduled Event Report",
-    "notFound": "No scheduled event found for this status page."
+    "notFound": "No scheduled event found for this status page.",
+    "calendar": {
+      "subscribe": "Subscribe to calendar",
+      "subscribeTitle": "Subscribe to scheduled maintenance",
+      "subscribeDescription": "Get this page's scheduled maintenance in your calendar app. It keeps itself up to date.",
+      "eventTitle": "Add to calendar",
+      "eventDescription": "Add this maintenance event to your calendar app.",
+      "addToCalendar": "Add to calendar",
+      "addHeading": "Add to your calendar",
+      "google": "Google Calendar",
+      "googleHint": "Opens Google Calendar in a new tab",
+      "device": "Apple Calendar / Outlook",
+      "deviceHint": "Opens the calendar app on this device",
+      "deviceFileHint": "Downloads the event for the calendar app on this device",
+      "copyHeading": "Or copy the link",
+      "copyHint": "Paste it into any calendar app that can subscribe to a calendar by URL.",
+      "copy": "Copy link",
+      "copied": "Copied!",
+      "done": "Done",
+      "refreshNote": "Calendar apps check for changes on their own schedule, so an update can take a few hours to appear."
+    }
   },
   "subscribe": {
     "title": "Subscribe",
@@ -161,7 +185,8 @@
       "yourPhoneNumber": "Your Phone Number",
       "placeholder": "+11234567890",
       "managePrompt": "Please enter your phone number you have subscribed with",
-      "manageDescription": "We will send you a manage subscription link to this phone number."
+      "manageDescription": "We will send you a manage subscription link to this phone number.",
+      "confirmationSent": "We have sent a text message to this phone number. Open the link in it to confirm your subscription."
     },
     "slack": {
       "title": "Subscribe by Slack",
@@ -212,11 +237,16 @@
       "saved": "Your changes have been saved.",
       "submit": "Update Subscription",
       "unsubscribe": "Unsubscribe",
-      "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources."
+      "unsubscribeDescription": "Please select this if you would like to unsubscribe from all resources.",
+      "linkNotValid": "This link to manage your subscription has expired or is not valid. To get a new one, use Manage Existing Subscription on the Subscribe page.",
+      "getNewLink": "Get a new link",
+      "loadFailed": "We could not load this link. Please try again later."
     },
     "confirm": {
       "title": "Confirm Subscription",
-      "success": "Subscription confirmed successfully"
+      "success": "Subscription confirmed successfully",
+      "linkNotValid": "This link to confirm your subscription has expired or is not valid. A link works for 24 hours after it is sent. To get a new one, subscribe again.",
+      "subscribeAgain": "Subscribe again"
     },
     "unsubscribe": {
       "title": "Unsubscribe",
@@ -264,7 +294,8 @@
       "loginPrompt": "Please login to view {{statusPageName}}",
       "forgotPassword": "Forgot password?",
       "submit": "Login",
-      "useSSO": "Use single sign-on (SSO) instead"
+      "or": "or",
+      "logInWithSso": "Log in with SSO"
     },
     "sso": {
       "title": "Log in with SSO",
@@ -342,5 +373,13 @@
   "{{field}} is required.": "{{field}} is required.",
   "{{field}} should match {{matchField}}": "{{field}} should match {{matchField}}",
   "Email is not valid.": "Email is not valid.",
-  "Next": "Next"
+  "Next": "Next",
+  "Opens in a new tab": "Opens in a new tab",
+  "Note": "Note",
+  "Tip": "Tip",
+  "Info": "Info",
+  "Important": "Important",
+  "Warning": "Warning",
+  "Caution": "Caution",
+  "Danger": "Danger"
 }

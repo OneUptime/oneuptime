@@ -177,7 +177,7 @@ Pipeline rules run **at metric ingest time**, after the OTel data point has been
 
 ### Match Criteria
 
-Add one or more **Filters** to decide which data points the rule fires on:
+A new rule fires on **All data points**. Pick **Only data points that match filters** to decide which ones, with one or more filters:
 
 - **Metric Name** — match on the metric name with conditions like Equal To, Contains, Starts With, Matches Regex, etc.
 - **Attribute** — match on a specific attribute key. Choose Is Present / Is Not Present / Is Empty / Is Not Empty for key-based checks, or Equal To / Contains / Matches Regex (etc.) to compare the attribute value.
@@ -186,8 +186,6 @@ Once a rule has two or more filters, **Match Condition** decides how they are co
 
 - **All** (AND) — the data point must match every filter.
 - **Any** (OR) — the data point matches if at least one filter matches.
-
-If no filters are added, the rule applies to every metric data point.
 
 ### Scope
 
@@ -305,10 +303,16 @@ const MetricPipelineRules: FunctionComponent<
         },
         {
           field: { filters: true },
-          title: "Filters",
+          /*
+           * "All data points" or "Only data points that match filters": the
+           * editor draws that choice under its own "Applies to" label, as
+           * every rule's conditions are asked (RuleAppliesToChoice). Always
+           * answered, so never "(Optional)".
+           */
+          title: "Applies to",
+          customElementDrawsOwnLabel: true,
+          hideOptionalLabel: true,
           stepId: "match",
-          description:
-            "Add filters to decide which metric data points this rule fires on. Leave empty to match every data point.",
           fieldType: FormFieldSchemaType.CustomComponent,
           required: false,
           customValidation: (values: FormValues<MetricPipelineRule>) => {
@@ -344,14 +348,26 @@ const MetricPipelineRules: FunctionComponent<
           // As every All / Any choice is titled (FilterConditionUtil).
           title: "Match Condition",
           stepId: "match",
-          description:
-            "How to combine the filters above. 'All' requires every filter to match (AND). 'Any' requires at least one filter to match (OR).",
+          /*
+           * Each answer says what it matches, so no sentence above them
+           * explains both (the column's, "'All' requires every filter to
+           * match (AND). 'Any' ...", was shown here).
+           */
+          hideColumnDescription: true,
           fieldType: FormFieldSchemaType.RadioButton,
           required: true,
           defaultValue: FilterCondition.All,
           radioButtonOptions: [
-            { title: "All", value: FilterCondition.All },
-            { title: "Any", value: FilterCondition.Any },
+            {
+              title: "All",
+              value: FilterCondition.All,
+              description: "Every filter must match.",
+            },
+            {
+              title: "Any",
+              value: FilterCondition.Any,
+              description: "At least one filter must match.",
+            },
           ],
           showIf: (values: FormValues<MetricPipelineRule>): boolean => {
             return isFilterConditionNeeded(values.filters);
@@ -406,6 +422,12 @@ const MetricPipelineRules: FunctionComponent<
           field: { renameFromKey: true },
           title: "Rename From",
           stepId: "action",
+          /*
+           * Its own line: the column's, written for the API, named the rule
+           * types by their enum names ("For RenameMetric: the existing
+           * metric name. For RenameAttribute: ...").
+           */
+          description: "The current name, exactly as it arrives.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           showIf: (values: FormValues<MetricPipelineRule>): boolean => {
@@ -419,6 +441,7 @@ const MetricPipelineRules: FunctionComponent<
           field: { renameToKey: true },
           title: "Rename To",
           stepId: "action",
+          description: "The name to store it under.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           showIf: (values: FormValues<MetricPipelineRule>): boolean => {
@@ -432,6 +455,8 @@ const MetricPipelineRules: FunctionComponent<
           field: { addAttributeKey: true },
           title: "Attribute Key",
           stepId: "action",
+          description:
+            "The attribute to act on, such as deployment.environment.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           showIf: (values: FormValues<MetricPipelineRule>): boolean => {
@@ -446,6 +471,7 @@ const MetricPipelineRules: FunctionComponent<
           field: { addAttributeValue: true },
           title: "Attribute Value",
           stepId: "action",
+          description: "The value to give it.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           showIf: (values: FormValues<MetricPipelineRule>): boolean => {
@@ -456,7 +482,8 @@ const MetricPipelineRules: FunctionComponent<
           field: { redactReplacement: true },
           title: "Redact Replacement",
           stepId: "action",
-          description: "Literal string to use in place of the original value.",
+          description:
+            "What to write in place of the value. Empty writes [REDACTED].",
           fieldType: FormFieldSchemaType.Text,
           required: false,
           placeholder: "[REDACTED]",

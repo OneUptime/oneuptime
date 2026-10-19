@@ -84,7 +84,7 @@ Cada fila tiene **Ver alerta** para abrir la alerta y **Desvincular** para quita
 
 ## Vincular incidentes desde una alerta
 
-El lado de la alerta refleja el del incidente. Abre una alerta y elige **Incidentes vinculados** en la sección **Básico** de su menú lateral. La tabla lista cada incidente al que está vinculada la alerta, con el número, el título y el estado actual del incidente, y cuándo y quién la vinculó.
+El lado de la alerta refleja el del incidente. Abre una alerta y elige **Incidentes vinculados** en la sección **Investigación** de su menú lateral. La tabla lista cada incidente al que está vinculada la alerta, con el número, el título y el estado actual del incidente, y cuándo y quién la vinculó.
 
 - **Vincular incidente** vincula esta alerta a un incidente existente. Su desplegable funciona como el del lado del incidente: primero los incidentes más recientes, cada uno con su número —como `INC-42: Checkout is down`—, y escribir busca en todos los incidentes por título.
 - **Ver incidente** abre un incidente vinculado.
@@ -144,12 +144,12 @@ sequenceDiagram
     participant You as Tú
     participant OneUptime
     participant Alerts as Alertas
-    You->>OneUptime: Declarar incidente, con hasta 50 alertas
-    OneUptime->>OneUptime: Comprobar cada alerta y tus permisos
-    OneUptime->>OneUptime: Crear el incidente y ejecutar sus reglas de privacidad
+    You->>OneUptime: Declarar incidente,<br/>con hasta 50 alertas
+    OneUptime->>OneUptime: Comprobar cada<br/>alerta y tus permisos
+    OneUptime->>OneUptime: Crear el incidente<br/>y ejecutar sus<br/>reglas de privacidad
     OneUptime->>Alerts: Vincular cada alerta
-    OneUptime-->>You: El nuevo incidente, con las alertas ya vinculadas
-    OneUptime->>Alerts: Reconocerlas en segundo plano, si la casilla está marcada
+    OneUptime-->>You: El nuevo incidente, con<br/>las alertas ya vinculadas
+    OneUptime->>Alerts: Reconocerlas en<br/>segundo plano, si la<br/>casilla está marcada
 ```
 
 Cuando envías, el servidor comprueba las alertas antes de crear nada: como mucho 50, cada una una alerta de este proyecto que tienes permiso para ver, y debes tener permiso para vincular alertas a incidentes. Si alguna comprobación falla, la solicitud se rechaza y no se crea ningún incidente, así que un id de alerta incorrecto nunca gasta un número de incidente. Una vez que existe el incidente —y una vez ejecutadas sus reglas de privacidad, para que los vínculos sepan si es privado—, cada alerta se vincula antes de que la solicitud responda, así que la página **Alertas vinculadas** del incidente ya las lista. Si falla un único vínculo —porque la alerta se eliminó un momento antes, por ejemplo—, el incidente se declara igualmente y las demás alertas se vinculan igualmente.

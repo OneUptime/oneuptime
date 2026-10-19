@@ -535,6 +535,39 @@ describe("a blog sitemap", () => {
   });
 });
 
+describe("the Resellers page in the sitemap", () => {
+  test("is configured once, as a monthly page", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/resellers": { priority: 0.6, changefreq: "monthly" }',
+    );
+    expect(sitemapSource.split('"/resellers"').length - 1).toBe(1);
+  });
+
+  test("is listed in the pages sitemap, with its priority", async () => {
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+    const xml: string = await mod.generatePagesSitemapXml();
+    const entry: string | undefined = elementsOf(xml, "url").find(
+      (element: string): boolean => {
+        return locOf(element) === `${HOME_URL}/resellers`;
+      },
+    );
+
+    expect(REGISTERED_GET_PATHS).toContain("/resellers");
+    expect(entry).toBeDefined();
+    expect(entry).toContain("<priority>0.6</priority>");
+    expect(entry).toContain("<changefreq>monthly</changefreq>");
+    expect(isRedirectPath("/resellers")).toBe(false);
+  });
+});
+
 describe("getPostLastmod", () => {
   test("is a post's own date, as a sitemap writes it", () => {
     expect(getPostLastmod("2026-10-01")).toBe("2026-10-01T00:00:00.000Z");
