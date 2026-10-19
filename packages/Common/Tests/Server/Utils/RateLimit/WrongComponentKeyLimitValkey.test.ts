@@ -405,6 +405,45 @@ describe("a component's wrong keys, on a real Valkey", () => {
     ).toStrictEqual([]);
   });
 
+  test("many different wrong keys at once: exactly ten get past the limit, the set holds one value past it, and the right key after them is refused", async () => {
+    const address: string = ipv4Of(35);
+    const probe: string = componentOf(7);
+
+    const results: Array<WrongKeyRefusal | null> = await Promise.all(
+      Array.from({ length: 40 }, (_unused: unknown, index: number) => {
+        return present({
+          from: address,
+          component: probe,
+          key: `burst-${index}`,
+          isKeyRight: false,
+        });
+      }),
+    );
+
+    expect(
+      results.filter((result: WrongKeyRefusal | null): boolean => {
+        return result === null;
+      }),
+    ).toHaveLength(WRONG_COMPONENT_KEYS_PER_ADDRESS);
+
+    const sets: Array<string> = await client.keys(
+      `probe-key:wrong-keys:{${probe}}:${address}:*`,
+    );
+
+    expect(sets).toHaveLength(1);
+    expect(await client.scard(sets[0]!)).toBe(
+      WRONG_COMPONENT_KEYS_PER_ADDRESS + 1,
+    );
+    expect(
+      await present({
+        from: address,
+        component: probe,
+        key: "right",
+        isKeyRight: true,
+      }),
+    ).not.toBeNull();
+  });
+
   test("the right key writes nothing", async () => {
     const address: string = ipv4Of(33);
 
