@@ -918,6 +918,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [tableColumns, setColumns] = useState<Array<TableColumn<TBaseModel>>>(
     [],
   );
+  /*
+   * Whether serializeToTableColumns has run yet. It runs in an effect, after
+   * the first paint, so until then tableColumns is empty because nothing has
+   * been built, not because every column was denied.
+   */
+  const [hasBuiltColumns, setHasBuiltColumns] = useState<boolean>(false);
 
   /*
    * ---------------------------------------------------------------------
@@ -1844,6 +1850,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     setHeaderButtons();
 
     setColumns(columns);
+    setHasBuiltColumns(true);
   };
 
   const getFilterDropdownItems: PromiseVoidFunction =
@@ -5460,10 +5467,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             >
               {/*
                * A viewer's layout can never empty this out — applyColumnPreference
-               * refuses to return nothing — so zero columns still means exactly
-               * what it always did: every column was denied by permission.
+               * refuses to return nothing — so zero columns, once they have been
+               * built, still means exactly what it always did: every column was
+               * denied by permission. Before they are built, every table drew
+               * this for a frame, and for longer on a page slow to run its
+               * effects, telling viewers who could read every column, master
+               * admins included, that they had no access.
                */}
-              {tableColumns.length === 0 && allColumns.length > 0 ? (
+              {hasBuiltColumns &&
+              tableColumns.length === 0 &&
+              allColumns.length > 0 ? (
                 <div data-testid={`${props.id}-no-access`}>
                   <TableEmptyState
                     {...buildNoAccessState({

@@ -2680,8 +2680,9 @@ microsoftSignInApp:
   #   clientSecretKey: clientSecret
 
 # Cloud marketplaces: sell OneUptime Cloud on AWS Marketplace, Microsoft
-# Marketplace (Azure) and Google Cloud Marketplace. Used only where billing is
-# enabled; a marketplace is offered only when all of its settings are set.
+# Marketplace (Azure), Google Cloud Marketplace and Vercel Marketplace. Used
+# only where billing is enabled; a marketplace is offered only when all of its
+# settings are set.
 # What each value is and where it comes from:
 # packages/Common/Server/Utils/Marketplace/RELEASING.md in the repository.
 cloudMarketplace:
@@ -2724,6 +2725,18 @@ cloudMarketplace:
     # existingSecret:
     #   name: "google-cloud-marketplace-secret"
     #   serviceAccountKeyKey: serviceAccountKey
+  # Vercel Marketplace native integration (Integration Console). Base URL:
+  # https://<host>/api/marketplace/vercel. Redirect Login URL:
+  # https://<host>/identity/vercel/sso. Webhook URL:
+  # https://<host>/api/marketplace/vercel/webhook. Log drain endpoint:
+  # https://<host>/telemetry/vercel/v1/logs.
+  vercel:
+    # The integration's client ID (oac_...) and client secret.
+    clientId:
+    clientSecret:
+    # existingSecret:
+    #   name: "vercel-marketplace-secret"
+    #   clientSecretKey: clientSecret
 
 # Inbound Email Configuration
 # Required for Incoming Email Monitor feature

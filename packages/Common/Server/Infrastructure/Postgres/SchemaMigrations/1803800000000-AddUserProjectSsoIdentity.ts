@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * refused. See the model. A new table: its indexes and foreign keys hold up
  * no writer.
  */
-export class AddUserProjectSsoIdentity1803750000000
+export class AddUserProjectSsoIdentity1803800000000
   implements MigrationInterface
 {
-  public name: string = "AddUserProjectSsoIdentity1803750000000";
+  public name: string = "AddUserProjectSsoIdentity1803800000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

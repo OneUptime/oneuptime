@@ -119,6 +119,11 @@ Microsoft. Before changing that code, its settings, the marketplace usage prices
 the URLs and settings each marketplace is configured with, and which steps (seller registration, tax and banking,
 publishing) only a maintainer may do.
 
+OneUptime Cloud is also a native integration on the Vercel Marketplace (`packages/Common/Server/Utils/Marketplace/Vercel`:
+the provider API Vercel calls, sign-in from Vercel, webhooks, monitors of connected projects, Vercel invoices) with its
+log drain in the Telemetry service. Before changing that code, the resources' secrets or plans, or anything in Vercel's
+Integration Console, read [the Vercel Marketplace guide](packages/Common/Server/Utils/Marketplace/VERCEL_RELEASING.md).
+
 Self-hosted OneUptime Enterprise is sold on the same three marketplaces as a Kubernetes application, billed per
 user-hour: the usage job in `ee/Server/Marketplace`, the marketplace license in `ee/Server/License`, the reporters in
 `packages/Common/Server/Utils/Marketplace/SelfHosted`, the chart editions and their release automation in

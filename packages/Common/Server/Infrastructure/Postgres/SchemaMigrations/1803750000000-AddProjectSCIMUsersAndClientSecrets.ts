@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * (hashed, with when each expires): new nullable columns with no default,
  * which change no row.
  */
-export class AddProjectSCIMUsersAndClientSecrets1803700000000
+export class AddProjectSCIMUsersAndClientSecrets1803750000000
   implements MigrationInterface
 {
-  public name: string = "AddProjectSCIMUsersAndClientSecrets1803700000000";
+  public name: string = "AddProjectSCIMUsersAndClientSecrets1803750000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

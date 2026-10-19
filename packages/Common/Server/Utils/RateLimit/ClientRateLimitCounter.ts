@@ -37,6 +37,24 @@ import {
  * expiry is set only by the request that created it, so a window never
  * slides forward under load. A Redis error or a malformed answer is thrown,
  * for the caller to fail open or closed as its route decides.
+ *
+ * THE DIFFERENT VALUES A CLIENT PRESENTS (countDifferent).
+ *
+ * A limit on guessing counts what a client tries, not how often it asks:
+ * the different wrong keys it presented (WrongClusterKeyLimit). A value it
+ * presented before tries nothing new, so it is not counted again. Each
+ * client's values are kept as a set per window, under its address and, for
+ * an IPv6 client, under its /64 as well, in the order count() counts: a /64
+ * or an address already over its limit is refused before anything is added,
+ * so a refused client adds nothing and no set holds more than one value past
+ * its limit; then the value is added for the address, and only when the
+ * address is within its own limit, for its /64. A client over its limit is
+ * refused whatever it presents, a value it tried before too.
+ *
+ * One Lua script checks and adds, so the check and the add of one request
+ * are one step: a request that arrives with others is checked after the
+ * values of the requests that reached Valkey before it were added, never
+ * before them.
  */
 
 export interface ClientRateLimitCounterSpec<TScope> {
@@ -93,6 +111,51 @@ interface CountedKey<TScope> {
 }
 
 type PipelineResults = Array<[Error | null, unknown]>;
+
+/*
+ * countDifferent's check and add, in one step.
+ *
+ * KEYS[1]: the set of the different values one address presented in a
+ * window; KEYS[2], for an IPv6 address, the set of its /64.
+ *
+ * ARGV[1]: the value to add, or "" to add nothing. ARGV[2]: how many
+ * different values the address may present; ARGV[3]: how many the
+ * addresses of its /64 may, together. ARGV[4]: a set's lifetime, in
+ * seconds, given only by the request that made the set (its TTL is below 0
+ * until then), so a window never slides forward.
+ *
+ * Answers {refusedBy, wentOver}: refusedBy is 0 when the request may go on,
+ * 1 when the address is over its limit and 2 when its /64 is (the set
+ * KEYS[refusedBy]); wentOver is 1 for the request whose new value took that
+ * set over its limit - the first refusal of the window - and 0 for a client
+ * that was over already. The limit of KEYS[n] is ARGV[n + 1].
+ */
+export const DIFFERENT_VALUES_SCRIPT: string = [
+  "if #KEYS > 1 and redis.call('SCARD', KEYS[2]) > tonumber(ARGV[3]) then",
+  "  return {2, 0}",
+  "end",
+  "if redis.call('SCARD', KEYS[1]) > tonumber(ARGV[2]) then",
+  "  return {1, 0}",
+  "end",
+  "if ARGV[1] == '' then",
+  "  return {0, 0}",
+  "end",
+  "for index, key in ipairs(KEYS) do",
+  "  redis.call('SADD', key, ARGV[1])",
+  "  if redis.call('TTL', key) < 0 then",
+  "    redis.call('EXPIRE', key, tonumber(ARGV[4]))",
+  "  end",
+  "  if redis.call('SCARD', key) > tonumber(ARGV[index + 1]) then",
+  "    return {index, 1}",
+  "  end",
+  "end",
+  "return {0, 0}",
+].join("\n");
+
+// What refused a request, as DIFFERENT_VALUES_SCRIPT answers it.
+const NOT_REFUSED: number = 0;
+const REFUSED_BY_ADDRESS: number = 1;
+const REFUSED_BY_NETWORK: number = 2;
 
 export default class ClientRateLimitCounter {
   /*
@@ -207,6 +270,90 @@ export default class ClientRateLimitCounter {
       ttlSeconds: data.ttlSeconds,
       ipv6Network64: network,
     });
+  }
+
+  /*
+   * Checks a client against the different values it presented in the
+   * window, and adds the value this request presents (see THE DIFFERENT
+   * VALUES A CLIENT PRESENTS above). Answers the refusal when the client -
+   * its address, or the addresses of its IPv6 /64 together - has presented
+   * more different values than its limit, the request whose value made it
+   * one too many included; or null when the request may go on. With `value`
+   * null the request is only checked: it adds nothing, and a client over
+   * its limit is refused all the same.
+   */
+  public static async countDifferent<TScope>(data: {
+    redis: ClientType;
+
+    /*
+     * The address the request is attributed to (resolveClientIp), or the
+     * key every caller that cannot be placed shares ("unknown").
+     */
+    clientIp: string;
+
+    // How long each set lives, in seconds: longer than its window.
+    ttlSeconds: number;
+
+    /*
+     * The sets' keys (keyFor, window included) and how many different
+     * values one address, and one /64, may present in the window.
+     */
+    counter: ClientRateLimitCounterSpec<TScope>;
+
+    // The value as the caller keeps it, or null to add nothing.
+    value: string | null;
+  }): Promise<ClientRateLimitRefusal<TScope> | null> {
+    if (data.value !== null && data.value.length === 0) {
+      throw new Error("An empty value cannot be counted as a different one");
+    }
+
+    const client: RateLimitClient = getRateLimitClient(data.clientIp);
+    const network: string | null = client.ipv6Network64;
+    const keys: Array<string> = [data.counter.keyFor(client.address)];
+
+    if (network) {
+      keys.push(data.counter.keyFor(network));
+    }
+
+    const answer: unknown = await data.redis.eval(
+      DIFFERENT_VALUES_SCRIPT,
+      keys.length,
+      ...keys,
+      data.value === null ? "" : data.value,
+      String(data.counter.limit),
+      String(
+        data.counter.ipv6NetworkLimit ??
+          getIpv6NetworkRateLimit(data.counter.limit),
+      ),
+      String(data.ttlSeconds),
+    );
+
+    if (
+      !Array.isArray(answer) ||
+      answer.length !== 2 ||
+      !answer.every((part: unknown): boolean => {
+        return typeof part === "number" && Number.isInteger(part);
+      }) ||
+      ![NOT_REFUSED, REFUSED_BY_ADDRESS, REFUSED_BY_NETWORK].includes(
+        answer[0] as number,
+      ) ||
+      (answer[0] === REFUSED_BY_NETWORK && !network)
+    ) {
+      throw new Error("The different values counter answered something else");
+    }
+
+    const [refusedBy, wentOver] = answer as Array<number>;
+
+    if (refusedBy === NOT_REFUSED) {
+      return null;
+    }
+
+    return {
+      scope: data.counter.scope,
+      ipv6Network64:
+        refusedBy === REFUSED_BY_NETWORK ? network || undefined : undefined,
+      isFirstRefusalInWindow: wentOver === 1,
+    };
   }
 
   /*

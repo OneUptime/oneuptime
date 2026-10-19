@@ -90,6 +90,12 @@ Start fra toppen av tabellen: jo høyere en måte står, jo mindre er det å ved
 > [!TIP]
 > Slack og Microsoft Teams har også arbeidsflyttrinn. Bruk den innebygde tilkoblingen for hendelseskanaler og vakter, og et arbeidsflyttrinn når du bare trenger en melding i en kanal.
 
+### Hostingplattformer
+
+| Verktøy | Retning | Hva det gjør |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Innkommende | Legg til OneUptime fra Vercel Marketplace: traces, logger, oppetidsmonitorer og en statusside for Vercel-prosjektene dine. |
+
 ## Bytt fra et annet verktøy
 
 For å forlate et annet verktøy for vakter, oppetid eller statussider henter du teamet ditt over i stedet for å koble de to sammen. **Prosjektinnstillinger → Importer fra et annet verktøy** leser kontoen din med en API-nøkkel, viser deg hva det fant, og oppretter det du krysser av for. Hvert verktøy har en veiledning:

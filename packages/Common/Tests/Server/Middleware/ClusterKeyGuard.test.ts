@@ -53,10 +53,15 @@ import ts from "typescript";
  *     because only processes that load the installation's token signing key
  *     at boot (App/Index.ts) know the key an installation that kept a shipped
  *     value derives; and the Runner never presents one before checking it
- *     was given a key it may send.
+ *     was given a key it may send;
+ *   - both checks count the different wrong keys a client sends
+ *     (WrongClusterKeyLimit) in one place, after the key is compared and
+ *     before the request is answered as right or wrong, and nothing else
+ *     counts them.
  *
  * App's Tests/ClusterKey/ClusterKeyRoutesOverHttp sends every value this
- * repository ships to every route found here.
+ * repository ships to every route found here, and
+ * Tests/ClusterKey/WrongClusterKeysOverHttp too many different wrong keys.
  */
 
 const CODE_FILE: RegExp = /\.(?:ts|tsx)$/;
@@ -74,6 +79,8 @@ const WEBHOOK_TRIGGER: string =
 const INCOMING_REQUEST_INGEST: string =
   "packages/App/FeatureSet/Telemetry/API/IncomingRequestIngest/IncomingRequest.ts";
 const AI_AGENT_API: string = "packages/Common/Server/API/AIAgentAPI.ts";
+const WRONG_CLUSTER_KEY_LIMIT: string =
+  "packages/Common/Server/Utils/RateLimit/WrongClusterKeyLimit.ts";
 
 const ONEUPTIME_SECRET_READ: RegExp =
   /process\.env(?:\[\s*["'`]ONEUPTIME_SECRET["'`]\s*\]|\.ONEUPTIME_SECRET\b)/;
@@ -815,6 +822,147 @@ describe("the routes that take the cluster key, and who calls them", () => {
     }
 
     expect(handedOn).toEqual([]);
+  });
+});
+
+/*
+ * NOT ONE GUESS AFTER ANOTHER.
+ *
+ * Whichever route a request reaches, and wherever it carries the key, the
+ * check it goes through compares the key, then counts a wrong one for the
+ * client and refuses a client that sent too many - before the request is
+ * answered as right or wrong (WrongClusterKeyLimit). ClusterKeyWrongKeys
+ * drives the rule; this holds every route to the one place it is kept.
+ */
+describe("every check counts the different wrong keys a client sends, in one place", () => {
+  // Calling next, writing to res or answering through Response.
+  const ANSWERS_A_REQUEST: RegExp = /\b(?:next|res)\(|Response\./;
+
+  // The bodies of ClusterKeyAuthorization's methods, comments removed, on one line each.
+  function methodBodies(): Record<string, string> {
+    const sourceFile: ts.SourceFile = ts.createSourceFile(
+      "ClusterKeyAuthorization.ts",
+      codeOf(CLUSTER_KEY_AUTHORIZATION),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+    const bodies: Record<string, string> = {};
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isMethodDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.body
+      ) {
+        bodies[node.name.text] = node.body
+          .getText(sourceFile)
+          .split(/\s+/)
+          .join(" ");
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(sourceFile);
+
+    return bodies;
+  }
+
+  test("both checks hand the request to authorize, and nothing else answers it", () => {
+    const bodies: Record<string, string> = methodBodies();
+
+    for (const check of [
+      "isAuthorizedServiceMiddleware",
+      "isAuthorizedRunnerRegistrationMiddleware",
+    ]) {
+      expect({ check, body: bodies[check] }).toEqual({
+        check,
+        body: expect.stringContaining(
+          "return await ClusterKeyAuthorization.authorize({",
+        ),
+      });
+      expect({
+        check,
+        answers: ANSWERS_A_REQUEST.test(bodies[check]!),
+      }).toEqual({
+        check,
+        answers: false,
+      });
+    }
+  });
+
+  test("authorize compares the key, then asks WrongClusterKeyLimit, before it answers the key as wrong or lets the request through", () => {
+    const authorize: string = methodBodies()["authorize"] || "";
+
+    const compared: number = authorize.indexOf(
+      "const isAccepted: boolean = ClusterKeyAuthorization.isAcceptedClusterKey(presented);",
+    );
+    // Asked for every key it compared, the right one too: never skipped.
+    const asked: number = authorize.indexOf(
+      "const refusal: WrongClusterKeyRefusal | null = await WrongClusterKeyLimit.check({ req: req, wrongKey: isAccepted ? null : ClusterKeyAuthorization.getWrongKeyDigest(presented), });",
+    );
+    const refused: number = authorize.indexOf(
+      "if (refusal) { ClusterKeyAuthorization.setRetryAfter(res, refusal.retryAfterSeconds); return Response.sendErrorResponse(req, res, new TooManyRequestsException(WRONG_CLUSTER_KEYS_MESSAGE)); }",
+    );
+    const answeredWrong: number = authorize.indexOf(
+      "new BadDataException(INVALID_CLUSTER_KEY_MESSAGE)",
+    );
+    const letThrough: number = authorize.indexOf("return next();");
+
+    expect(compared).toBeGreaterThan(-1);
+    expect(asked).toBeGreaterThan(compared);
+    expect(refused).toBeGreaterThan(asked);
+    expect(answeredWrong).toBeGreaterThan(refused);
+    expect(letThrough).toBeGreaterThan(refused);
+
+    // Nothing between the comparison and the question answers the request.
+    expect(authorize.slice(compared, asked)).not.toMatch(
+      /\bnext\(|Response\.send/,
+    );
+
+    // Asked once.
+    expect(authorize.split("WrongClusterKeyLimit.check(")).toHaveLength(2);
+  });
+
+  test("what is counted of a wrong key is its HMAC under the installation's key, and anything that is not text is one value", () => {
+    const digest: string = methodBodies()["getWrongKeyDigest"] || "";
+
+    expect(digest).toContain(
+      'return crypto .createHmac("sha256", ClusterKeyAuthorization.getClusterKey()) .update(presented, "utf8") .digest("hex");',
+    );
+    expect(digest).toContain(
+      'if (typeof presented !== "string") { return NOT_TEXT_WRONG_KEY; }',
+    );
+  });
+
+  test("only ClusterKeyAuthorization asks WrongClusterKeyLimit, from authorize alone", () => {
+    expect(
+      productFilesWhoseCodeMatches(/\bWrongClusterKeyLimit\.check\(/),
+    ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
+    expect(
+      productFilesWhoseCodeMatches(/\bWrongClusterKeyLimit\b/).filter(
+        (relativePath: string): boolean => {
+          return relativePath !== WRONG_CLUSTER_KEY_LIMIT;
+        },
+      ),
+    ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
+
+    const bodies: Record<string, string> = methodBodies();
+
+    expect(
+      Object.keys(bodies).filter((name: string): boolean => {
+        return bodies[name]!.includes("WrongClusterKeyLimit.check(");
+      }),
+    ).toEqual(["authorize"]);
+  });
+
+  test("WrongClusterKeyLimit counts through ClientRateLimitCounter, so a client is its address and its /64", () => {
+    const code: string = codeOf(WRONG_CLUSTER_KEY_LIMIT);
+
+    expect(code).toContain("ClientRateLimitCounter.countDifferent<string>({");
+    expect(code).toContain("value: data.wrongKey,");
+    expect(code).not.toMatch(/\bclusterkey\b/i);
   });
 });
 

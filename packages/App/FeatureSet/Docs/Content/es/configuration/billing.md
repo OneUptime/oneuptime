@@ -66,7 +66,7 @@ Haga clic en **Guardar cambios**. Un plan de pago se factura desde el momento en
 Las claves de API solo funcionan a partir del plan Growth, y por debajo del plan Scale las conexiones SCIM solo quitan personas. Un plan que las detiene dice cuántas antes de que lo elija, y la página **Facturación** muestra **No incluido en este plan** mientras están detenidas. No se elimina nada: vuelven a funcionar con un plan que las incluya.
 
 > [!NOTE]
-> ¿Compró OneUptime a través de un revendedor o de un marketplace en la nube (AWS Marketplace, Microsoft Marketplace o Google Cloud Marketplace)? La página **Facturación** lo indica. Un revendedor cambia su plan por usted, y un marketplace cobra el plan y el uso del proyecto en su factura de la nube.
+> ¿Compró OneUptime a través de un revendedor o de un marketplace en la nube (AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace o Vercel Marketplace)? La página **Facturación** lo indica. Un revendedor cambia su plan por usted, y un marketplace cobra el plan y el uso del proyecto en su factura de la nube.
 
 ## Métodos de pago
 

@@ -21,6 +21,11 @@ enum TelemetryIngestSurface {
   SourceMap = "source-map",
   Syslog = "syslog",
   Fluent = "fluent",
+  /*
+   * Log drains from Vercel (POST /vercel/v1/logs). Server keys only: a
+   * drain is Vercel's servers posting a team's logs, never a page.
+   */
+  VercelLogDrain = "vercel-log-drain",
   Pyroscope = "pyroscope",
   KubernetesCost = "kubernetes-cost",
   ChangeEvents = "change-events",
@@ -109,6 +114,7 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.SourceMap]: "source map upload",
   [TelemetryIngestSurface.Syslog]: "syslog ingest",
   [TelemetryIngestSurface.Fluent]: "Fluentd / Fluent Bit ingest",
+  [TelemetryIngestSurface.VercelLogDrain]: "Vercel log drain ingest",
   [TelemetryIngestSurface.Pyroscope]: "Pyroscope profile ingest",
   [TelemetryIngestSurface.KubernetesCost]: "Kubernetes cost ingest",
   [TelemetryIngestSurface.ChangeEvents]: "change event ingest",

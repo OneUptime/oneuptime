@@ -39,7 +39,7 @@ import ObjectID from "../../../../Types/ObjectID";
  *      strict comparison would leave a key valid for one final millisecond
  *      and, worse, make the boundary untestable and therefore unnoticed.
  *   3. The BROWSER ALLOWLIST is an allowlist. The four surfaces a real browser
- *      agent emits pass; all ten of the others - server and infrastructure
+ *      agent emits pass; all eleven of the others - server and infrastructure
  *      pipes, and the source map upload that a page could otherwise use to
  *      overwrite the maps de-obfuscating everyone else's stack traces - are
  *      refused with a message naming the surface and pointing at a server key.
@@ -137,10 +137,10 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all seventeen surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(17);
+    test("covers all eighteen surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(18);
       expect(BROWSER_ALLOWED).toHaveLength(4);
-      expect(BROWSER_FORBIDDEN).toHaveLength(13);
+      expect(BROWSER_FORBIDDEN).toHaveLength(14);
     });
 
     /*
