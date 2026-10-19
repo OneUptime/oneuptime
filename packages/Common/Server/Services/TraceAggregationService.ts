@@ -189,6 +189,11 @@ export interface ServiceLatencyProfileRequest {
   endTime: Date;
   // Services returned, ranked by span volume (busiest first).
   limit: number;
+  /*
+   * Only these services. primaryEntityId is a key of the projection, so
+   * the narrowed query is still served by it.
+   */
+  serviceIds?: Array<ObjectID> | undefined;
 }
 
 export interface ServiceLatencyProfileRow {
@@ -1653,6 +1658,10 @@ export class TraceAggregationService {
         value: request.endTime,
       }})`,
     );
+
+    TelemetryReadScopeUtil.appendServiceFilter(statement, {
+      serviceIds: request.serviceIds,
+    });
 
     // Ranked by volume: a p99 regression on the busiest services is the one that hurts.
     statement.append(

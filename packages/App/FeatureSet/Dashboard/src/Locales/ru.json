@@ -31228,5 +31228,6 @@
   "Read what a change shipped": "Прочитано содержимое изменения",
   "Read {{count}} recent changes; no suspect": "Прочитано недавних изменений: {{count}}; подозрительных нет",
   "Read {{count}} recent changes; no suspect_one": "Прочитано {{count}} недавнее изменение; не подозрительное",
-  "AI fix": "Исправление ИИ"
+  "AI fix": "Исправление ИИ",
+  "Deploy Regression": "Deploy Regression"
 }

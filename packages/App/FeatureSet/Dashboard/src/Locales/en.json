@@ -31228,5 +31228,6 @@
   "Read what a change shipped": "Read what a change shipped",
   "Read {{count}} recent changes; no suspect": "Read {{count}} recent changes; no suspect",
   "Read {{count}} recent changes; no suspect_one": "Read {{count}} recent change; no suspect",
-  "AI fix": "AI fix"
+  "AI fix": "AI fix",
+  "Deploy Regression": "Deploy Regression"
 }

@@ -31228,5 +31228,6 @@
   "Read what a change shipped": "変更の内容を読み取りました",
   "Read {{count}} recent changes; no suspect": "最近の変更 {{count}} 件を読み取りました。疑わしいものはありません",
   "Read {{count}} recent changes; no suspect_one": "最近の変更 {{count}} 件を読み取りました。疑わしいものはありません",
-  "AI fix": "AI による修正"
+  "AI fix": "AI による修正",
+  "Deploy Regression": "デプロイ後の悪化"
 }

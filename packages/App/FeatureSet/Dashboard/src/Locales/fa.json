@@ -31228,5 +31228,6 @@
   "Read what a change shipped": "محتوای یک تغییر خوانده شد",
   "Read {{count}} recent changes; no suspect": "{{count}} تغییر اخیر خوانده شد؛ هیچ‌کدام مشکوک نیست",
   "Read {{count}} recent changes; no suspect_one": "{{count}} تغییر اخیر خوانده شد؛ مشکوک نیست",
-  "AI fix": "اصلاح هوش مصنوعی"
+  "AI fix": "اصلاح هوش مصنوعی",
+  "Deploy Regression": "Deploy Regression"
 }

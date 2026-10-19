@@ -31228,5 +31228,6 @@
   "Read what a change shipped": "已讀取變更的內容",
   "Read {{count}} recent changes; no suspect": "已讀取 {{count}} 個最近的變更；沒有可疑項目",
   "Read {{count}} recent changes; no suspect_one": "已讀取 {{count}} 個最近的變更；沒有可疑項目",
-  "AI fix": "AI 修復"
+  "AI fix": "AI 修復",
+  "Deploy Regression": "Deploy Regression"
 }

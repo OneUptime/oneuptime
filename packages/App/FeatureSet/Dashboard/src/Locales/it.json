@@ -31228,5 +31228,6 @@
   "Read what a change shipped": "Letto il contenuto di una modifica",
   "Read {{count}} recent changes; no suspect": "Lette {{count}} modifiche recenti; nessuna sospetta",
   "Read {{count}} recent changes; no suspect_one": "Letta {{count}} modifica recente; non sospetta",
-  "AI fix": "Correzione IA"
+  "AI fix": "Correzione IA",
+  "Deploy Regression": "Deploy Regression"
 }

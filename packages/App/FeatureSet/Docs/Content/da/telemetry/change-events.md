@@ -109,6 +109,8 @@ OneUptime afgør ud fra disse tal, hvilken ændring der er mistænkt, ikke ud fr
 
 Når den mistænkte ændring er en Kubernetes-rollout på et cluster, hvor [AI-rettelser](/docs/ai/ai-sre#sådan-fungerer-rettelser) er slået til, ruller OneUptime AI den tilbage først med en `kubectl rollout undo`, som OneUptime bygger ud fra den registrerede ændring. En udrulning, der leverer kode, rulles tilbage gennem sine commits: undersøgelsen nævner den commit eller pull request, der forårsagede problemet, så en [pull request med en rettelse](/docs/ai/ai-sre#automatiske-koderettelser) kan rulle præcis den tilbage.
 
+OneUptime tjekker også hver udrulning af sig selv, uanset om nogen bliver tilkaldt. Når de 30 minutter efter en udrulning er gået, sammenligner den dem med de 30 minutter før efter de samme tærskler, og når tjenesten blev dårligere, nævner en [AI-indsigt](/docs/ai/ai-sre#indsigter-proaktiv-detektion) udrulningen på den tjeneste.
+
 I en undersøgelse og i [Ask AI](/docs/ai/ask-ai) viser `recent_changes` ændringerne i et hvilket som helst tidsvindue, og `get_change_details` viser, hvad en udrulning leverede: commits siden tjenestens forrige udrulning, deres forfattere, pull requests og de filer, de ændrede. Det kræver committen på ændringen og et repository, der er forbundet via [GitHub App](/docs/ai/github-app).
 
 ## Reference
