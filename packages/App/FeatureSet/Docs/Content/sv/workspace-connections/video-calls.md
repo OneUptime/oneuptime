@@ -107,11 +107,11 @@ Det de ansvariga säger i ett samtal, vad de har kontrollerat, vad de misstänke
 :::steps
 ### Hämta transkriptionen efter samtalet
 
-På incidentens kort **Video Call** läser **Hämta från Zoom** eller **Hämta från Google Meet** transkriptionen av ett möte som OneUptime startade där. För alla andra samtal tar **Lägg till transkription** filen som mötesverktyget sparade (`.vtt`, `.srt` eller `.txt`, upp till 5 MB), eller den inklistrade transkriptionen.
+På incidentens kort **Video Call** läser **Hämta från Zoom** eller **Hämta från Google Meet** transkriptionen av ett möte som OneUptime startade där. För alla andra samtal tar **Lägg till transkription** filen som mötesverktyget sparade (`.vtt`, `.srt` eller `.txt`, upp till 5 MB), eller den inklistrade transkriptionen. Om [varje samtal spelas in och transkriberas](#spela-in-och-transkribera-varje-samtal) hämtar OneUptime den själv så snart samtalet är slut.
 
 ### OneUptime AI läser den
 
-Inom en minut eller två visar incidentens kort **AI Investigation** **Föreslagen rotorsak**, markerad **Inte bekräftad**, med de rader i transkriptionen som den bygger på, citerade med tid och talare. Under den, ihopfällt, står resten av det samtalet sa: fynd, uppdelade i **Bekräftat i samtalet** och **Hypoteser**, sedan vad som provades, beslut, uppföljningar och öppna frågor.
+Inom en minut eller två visar incidentens kort **AI Investigation** **Föreslagen rotorsak**, markerad **Inte bekräftad**, med de rader i transkriptionen som den bygger på, citerade med tid och talare. Under den, ihopfällt, står resten av det samtalet sa: fynd, uppdelade i **Bekräftat i samtalet** och **Hypoteser**, sedan vad som provades, beslut, uppföljningar och öppna frågor. Det den läste publiceras också i incidentens flöde, och därifrån i incidentens Slack- och Microsoft Teams-kanaler.
 
 ### Använd den, eller avfärda den
 
@@ -119,6 +119,17 @@ Inom en minut eller två visar incidentens kort **AI Investigation** **Föreslag
 :::
 
 OneUptime AI föreslår bara en orsak när samtalet nämner en, med raderna som säger det, och citerar de raderna som transkriptionen har dem. När samtalet inte redde ut orsaken säger kortet **Det sades inte tillräckligt i samtalet för att föreslå en rotorsak** i stället för att gissa.
+
+### Spela in och transkribera varje samtal
+
+Så att ingen behöver komma ihåg att spela in ett samtal eller hämta dess transkription slår du på **Spela in och transkribera incidentsamtal** i **Projektinställningar** > **Arbetsyta** > **Video Calls**. Medan inställningen är påslagen:
+
+- För varje incidentmöte som OneUptime startar ber den Zoom att spela in mötet i molnet och Google Meet att transkribera det. Meddelandet som publicerar samtalet säger det innan någon ansluter.
+- När samtalet är slut hämtar OneUptime transkriptionen själv, som **Hämta från Zoom** skulle göra, och OneUptime AI läser den. Fram till dess visar kortet **Video Call** att det väntar.
+- Det OneUptime AI läste går till incidentens flöde och dess Slack- och Microsoft Teams-kanaler: den föreslagna rotorsaken, markerad som inte bekräftad, sedan vad som bekräftades, provades och beslutades, uppföljningarna och de öppna frågorna.
+- Om incidenten löses innan transkriptionen har kommit väntar det automatiska utkastet till efteranalys på den, så att det tar med vad som sades i samtalet: upp till sex timmar medan Zoom eller Google Meet tar fram transkriptionen, och en timme när det ännu inte finns något tecken på någon.
+
+Inställningen är avstängd som standard, eftersom den spelar in människor: alla i de samtalen ser att de spelas in eller transkriberas, så kontrollera att din organisation tillåter det. Zoom sparar bara en transkription när kontot spelar in i molnet med ljudtranskription påslagen, och Google Meet bara i en Google Workspace-utgåva som har transkriptioner. Microsoft Teams-samtal, Slack-huddles och möteslänkar spelas inte in, och inte heller samtal för larm: lägg till deras transkriptioner för hand.
 
 ### Vad varje leverantör sparar
 
@@ -281,6 +292,10 @@ Dess inloggning slutade fungera: kontot tog bort OneUptime, togs bort eller stä
 
 :::details Hämta från Zoom hittar ingen transkription
 Zoom sparar bara en transkription av ett möte som spelats in i molnet med ljudtranskription påslagen, eller med AI Companions mötessammanfattning påslagen, och tar fram den efter att mötet har slutat. Kortet säger vilket: försök igen senare, eller slå på ett av dem för dina incidentmöten. Under tiden tar **Lägg till transkription** en transkription som du har sparat.
+:::
+
+:::details Kortet Video Call väntar fortfarande på en transkription
+OneUptime frågar Zoom eller Google Meet efter den med några minuters mellanrum när samtalet är slut, allt mer sällan ju äldre samtalet blir, i tre dagar efter att samtalet startade. Transkriptionen kommer några minuter efter att leverantören har tagit fram den, och Zoom behöver upp till ungefär dubbla samtalstiden. **Hämta från Zoom** frågar direkt. När leverantören inte sparar någon transkription säger kortet det: kontrollera att Zoom-kontot spelar in i molnet med ljudtranskription påslagen, eller att din Google Workspace-utgåva har transkriptioner.
 :::
 
 :::details OneUptime AI kunde inte läsa en transkription

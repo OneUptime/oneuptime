@@ -31014,5 +31014,22 @@
   "See the {{docsLink}} for every tool.": "모든 도구는 {{docsLink}}에서 확인하세요.",
   "Twilio account for SMS and calls": "SMS 및 전화용 Twilio 계정",
   "Up to {{limit}} open at once": "동시에 최대 {{limit}}개",
-  "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다."
+  "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다.",
+  "Call transcripts": "통화 녹취록",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "이 통화에 참여한 모든 사람에게 녹화 중임이 표시됩니다. 조직에서 이를 허용하는지 확인하세요. Zoom은 오디오 녹취록을 켠 클라우드 녹화도 필요합니다.",
+  "Keep what was said on every incident call, without anyone remembering to.": "누가 기억하지 않아도 모든 인시던트 통화에서 나눈 대화를 남깁니다.",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams 통화, Slack 허들, 회의 링크는 녹화되지 않습니다. 녹취록은 직접 추가하세요.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom과 Google Meet는 OneUptime이 시작하는 각 인시던트 통화를 녹화하고 녹취합니다. OneUptime은 녹취록을 추가하고 인시던트 피드에 요약합니다.",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "통화가 끝나면 OneUptime이 {{provider}}에서 가져오고, OneUptime AI가 읽습니다.",
+  "Postmortem Draft Waiting Since": "포스트모템 초안 대기 시작 시각",
+  "Record and Transcribe Incident Calls": "인시던트 통화 녹화 및 녹취",
+  "Record and transcribe incident calls": "인시던트 통화 녹화 및 녹취",
+  "Record and transcribe incident calls?": "인시던트 통화를 녹화하고 녹취할까요?",
+  "Transcript Fetch Checked At": "녹취록 가져오기 확인 시각",
+  "Transcript Fetch Next Attempt At": "녹취록 가져오기 다음 시도 시각",
+  "Transcript Fetch Reason": "녹취록 가져오기 사유",
+  "Transcript Fetch Status": "녹취록 가져오기 상태",
+  "Video Call Summary": "화상 통화 요약",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "아무것도 받지 않습니다. 확인을 위해 보낸 링크가 열리기 전에 만료되었습니다. 다시 가입하게 하거나 직접 다시 추가할 수 있습니다.",
+  "Link Expired": "링크 만료됨"
 }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import {
-  FOLDED_SECTION_MAX_UNSET_ITEMS,
+  FOLDED_SECTION_MAX_ITEMS,
   FOLDED_SECTION_MORE_ITEMS,
   FOLDED_SECTION_OFF,
   FOLDED_SECTION_ON,
@@ -24,7 +24,10 @@ import IconProp from "../../../../Types/Icon/IconProp";
  *
  * What a folded section lists while it is folded: every set item (what is
  * in force must never be hidden) and a few unset names, then how many more.
- * These are the rules behind that list; FoldedSection draws it.
+ * These are the rules behind that list; FoldedSection draws it - for More
+ * fields as one quiet line, so at most four names, the set ones first:
+ * "Can we make this more subtle ... Takes up too much real estate right
+ * now." - the maintainer, on the card it used to be.
  */
 
 function item(
@@ -76,7 +79,7 @@ describe("what a folded section is called", () => {
     }
   });
 
-  test("both wear the same icon: things to adjust", () => {
+  test("More settings' card wears an icon: things to adjust", () => {
     expect(MORE_SECTION_ICON).toBe(IconProp.AdjustmentHorizontal);
   });
 
@@ -124,7 +127,7 @@ describe("getFoldedSectionItemsShown", () => {
 
     const shown: FoldedSectionItemsShown = getFoldedSectionItemsShown(items);
 
-    expect(FOLDED_SECTION_MAX_UNSET_ITEMS).toBe(4);
+    expect(FOLDED_SECTION_MAX_ITEMS).toBe(4);
     expect(keys(shown)).toEqual([
       "Display Name",
       "Description",
@@ -158,8 +161,67 @@ describe("getFoldedSectionItemsShown", () => {
       item("Private", true, "On"),
     ]);
 
-    expect(keys(shown)).toEqual(["A", "B", "C", "D", "Labels", "Private"]);
-    expect(shown.hiddenCount).toBe(3);
+    // The two set ones take two of the four places; A and B have the rest.
+    expect(keys(shown)).toEqual(["A", "B", "Labels", "Private"]);
+    expect(shown.hiddenCount).toBe(5);
+  });
+
+  test("set items take their places first: the unset ones fill the rest", () => {
+    const names: Array<string> = ["A", "B", "C", "D", "E", "F"];
+
+    const withSet: (setCount: number) => FoldedSectionItemsShown = (
+      setCount: number,
+    ): FoldedSectionItemsShown => {
+      return getFoldedSectionItemsShown([
+        ...names.map((title: string): FoldedSectionItem => {
+          return item(title);
+        }),
+        ...Array.from({ length: setCount }, (_: unknown, index: number) => {
+          return item(`Set ${index + 1}`, true, "On");
+        }),
+      ]);
+    };
+
+    // Nothing set: four names, then how many more.
+    expect(keys(withSet(0))).toEqual(["A", "B", "C", "D"]);
+    expect(withSet(0).hiddenCount).toBe(2);
+
+    // One set: three names and it.
+    expect(keys(withSet(1))).toEqual(["A", "B", "C", "Set 1"]);
+    expect(withSet(1).hiddenCount).toBe(3);
+
+    // Three set: one name and them.
+    expect(keys(withSet(3))).toEqual(["A", "Set 1", "Set 2", "Set 3"]);
+    expect(withSet(3).hiddenCount).toBe(5);
+
+    // Four or more set: every one of them, and only how many more besides.
+    expect(keys(withSet(5))).toEqual([
+      "Set 1",
+      "Set 2",
+      "Set 3",
+      "Set 4",
+      "Set 5",
+    ]);
+    expect(withSet(5).hiddenCount).toBe(6);
+  });
+
+  test("still lists the one name left rather than '1 more', set items or not", () => {
+    const shown: FoldedSectionItemsShown = getFoldedSectionItemsShown([
+      item("Labels", true, "2"),
+      item("Private", true, "On"),
+      item("Owners", true, "1"),
+      item("Root Cause", true),
+      item("Description"),
+    ]);
+
+    expect(keys(shown)).toEqual([
+      "Labels",
+      "Private",
+      "Owners",
+      "Root Cause",
+      "Description",
+    ]);
+    expect(shown.hiddenCount).toBe(0);
   });
 
   test("lists every set item even when there are more than the limit", () => {

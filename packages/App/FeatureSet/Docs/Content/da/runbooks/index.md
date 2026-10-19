@@ -98,6 +98,17 @@ Runbooks ligger under **Produkter**, i gruppen **Dashboards og automatisering**.
 | **Hændelser / Advarsler / Planlagt vedligeholdelse → Regler → Runbook-regler** | Opret de regler, der starter runbooks automatisk. |
 | En hændelse, advarsel eller vedligeholdelsesbegivenhed → **Runbooks** | Se de kørsler, der er knyttet til den, og klik på **Kør runbook** for at starte en. |
 
+Et runbooks egen sidemenu grupperer dets sider sådan. Kun **Grundlæggende** er åbent fra start: klik på en sektions titel for at åbne den. En sektion åbner af sig selv på enhver side i den.
+
+| Sektion | Sider |
+| --- | --- |
+| **Grundlæggende** | **Oversigt**, **Trin** |
+| **Protokoller** | **Udførelser** |
+| **Ejere** | **Ejere** |
+| **Indstillinger** | **Udløsere**, **Indstillinger** |
+| **Udvikler** | **Terraform**, **API**, **AI-assistenter** |
+| **Avanceret** | **Auditlogs**, **Slet runbook** |
+
 ## Et gennemgået eksempel
 
 Antag, at hver hændelse med "db-primary" i titlen skal starte et database-failover-runbook med fem trin.

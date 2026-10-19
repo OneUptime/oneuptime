@@ -1,4 +1,5 @@
 import {
+  IS_CLUSTER_SCOPED,
   IS_KUBERNETES_AGENT_MODE,
   KUBERNETES_AGENT_CLUSTER_NAME,
   KUBERNETES_AGENT_INGESTION_KEY,
@@ -78,28 +79,27 @@ export class RegistrationRefusedError extends Error {
 }
 
 /*
- * Thrown, before any request, by the in-cluster Runner whose ONEUPTIME_SECRET
- * is a value the OneUptime repository ships (ClusterKeyAuthorization): the
- * server refuses that value from any caller, and the key the app's own
- * services use instead is derived from the installation's database, which a
- * Runner never reads. Retrying cannot help until an operator sets the same
- * random ONEUPTIME_SECRET on the app and this Runner and restarts them, so
- * the retry loop says so once and keeps the container up.
+ * Said once by the shared Runner whose deployment still gives it a cluster
+ * key (ONEUPTIME_SECRET), as docker-compose.yml and the Helm chart of
+ * earlier releases do. The Runner registers with its own key and needs
+ * none; it still sends that key, so it registers with an app that does not
+ * hold the Runner's key yet, until its deployment is updated.
  */
-export const SHIPPED_CLUSTER_KEY_RUNNER_MESSAGE: string =
-  'This in-cluster Runner cannot register: its ONEUPTIME_SECRET is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value from any caller, so nothing is sent. Set ONEUPTIME_SECRET to the same long random value on the OneUptime app and this Runner, then restart both: with Docker Compose, npm start and npm run update put one in config.env; with Helm, set oneuptimeSecret to one.';
+export const CLUSTER_KEY_IN_RUNNER_ENVIRONMENT_MESSAGE: string =
+  "This shared Runner's environment holds ONEUPTIME_SECRET, the key OneUptime's own services call each other with. The Runner registers with its own ONEUPTIME_RUNNER_KEY and does not need it: it sends it only so that an app without the Runner's key still lets it register. Use the docker-compose.yml or the Helm chart of the release the OneUptime app runs: they give the app ONEUPTIME_RUNNER_KEY and take ONEUPTIME_SECRET out of the Runner.";
 
 /*
  * Thrown, before any request, by the in-cluster Runner whose
  * ONEUPTIME_RUNNER_KEY - the key it registers and authenticates with as the
  * global agent every project shares - is a value the OneUptime repository
  * ships: the server refuses that value as an agent key (AIAgentAPI,
- * CodeFixAgentAuth), so it is never sent. Retrying cannot help until an
- * operator sets a random ONEUPTIME_RUNNER_KEY and restarts the Runner, so
- * the retry loop says so once and keeps the container up.
+ * CodeFixAgentAuth, SharedRunnerKeyAuthorization), so it is never sent.
+ * Retrying cannot help until an operator sets a random ONEUPTIME_RUNNER_KEY
+ * and restarts the Runner, so the retry loop says so once and keeps the
+ * container up.
  */
 export const SHIPPED_RUNNER_KEY_RUNNER_MESSAGE: string =
-  'This in-cluster Runner cannot register: its ONEUPTIME_RUNNER_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value as a Runner key, so nothing is sent. Set ONEUPTIME_RUNNER_KEY to a long random value on this Runner, then restart it: with Docker Compose, npm start and npm run update put one in config.env; the Helm chart generates one unless runner.key is set.';
+  'This in-cluster Runner cannot register: its ONEUPTIME_RUNNER_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value as a Runner key, so nothing is sent. Set ONEUPTIME_RUNNER_KEY to the same long random value on this Runner and the OneUptime app, then restart them: with Docker Compose, npm start and npm run update put one in config.env; the Helm chart generates one unless runner.key is set.';
 
 /*
  * Thrown, before any request, by a Runner a project created (Runbooks >
@@ -124,13 +124,6 @@ export class ShippedSecretSettingError extends Error {
   public constructor(message: string, setting: string) {
     super(message);
     this.setting = setting;
-  }
-}
-
-export class ShippedClusterKeyError extends ShippedSecretSettingError {
-  public constructor() {
-    super(SHIPPED_CLUSTER_KEY_RUNNER_MESSAGE, "ONEUPTIME_SECRET");
-    this.name = "ShippedClusterKeyError";
   }
 }
 
@@ -334,9 +327,9 @@ export default class Register {
       Math.pow(2, Math.max(0, data.attempt - 1));
 
     /*
-     * Nothing changes until an operator sets ONEUPTIME_SECRET (or
-     * ONEUPTIME_RUNNER_KEY) and restarts the Runner, so the slowest
-     * interval: the attempts send nothing.
+     * Nothing changes until an operator sets ONEUPTIME_RUNNER_KEY and
+     * restarts the Runner, so the slowest interval: the attempts send
+     * nothing.
      */
     if (data.error instanceof ShippedSecretSettingError) {
       return Register.maxRetryIntervalInSeconds;
@@ -779,6 +772,31 @@ export default class Register {
     } as LogAttributes);
   }
 
+  /*
+   * Whether this Runner's deployment gives it a cluster key it may send:
+   * set, and not a value the repository ships. Said once, when it does: the
+   * Runner needs none.
+   */
+  public static holdsClusterKey(): boolean {
+    if (
+      !HasClusterKey ||
+      ClusterKeyAuthorization.isConfiguredClusterKeyShipped()
+    ) {
+      return false;
+    }
+
+    if (!Register.saidClusterKeyInEnvironment) {
+      Register.saidClusterKeyInEnvironment = true;
+      logger.warn(CLUSTER_KEY_IN_RUNNER_ENVIRONMENT_MESSAGE, {
+        runnerName: RUNNER_NAME,
+      } as LogAttributes);
+    }
+
+    return true;
+  }
+
+  private static saidClusterKeyInEnvironment: boolean = false;
+
   private static async _registerRunner(
     options: { shouldContinue?: (() => boolean) | undefined } = {},
   ): Promise<void> {
@@ -787,20 +805,12 @@ export default class Register {
       return;
     }
 
-    if (HasClusterKey) {
+    if (IS_CLUSTER_SCOPED) {
       /*
-       * Clustered mode: auto-register and get the ID from the server - with
-       * a cluster key the server can accept. A value the repository ships is
-       * refused there from any caller, so it is never sent.
-       */
-      if (ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) {
-        throw new ShippedClusterKeyError();
-      }
-
-      /*
-       * Nor does it register as the global agent with an agent key the
-       * repository ships: the server refuses that value as an agent key
-       * wherever one is presented, so it is never sent either.
+       * The shared Runner: it auto-registers as the installation's global
+       * agent and is given its id - with its own key, which the app holds
+       * too. A value the repository ships is refused there as an agent key
+       * wherever one is presented, so it is never sent.
        */
       if (isShippedSecretValue(RUNNER_KEY)) {
         throw new ShippedRunnerKeyError();
@@ -817,22 +827,34 @@ export default class Register {
         runnerName: RUNNER_NAME,
       } as LogAttributes);
 
+      const registration: JSONObject = {
+        aiAgentKey: RUNNER_KEY,
+        runnerName: RUNNER_NAME,
+        aiAgentDescription: RUNNER_DESCRIPTION,
+      };
+
       /*
-       * The key in the clusterkey header, never in the URL or the body:
-       * every OneUptime server reads it there, a release behind included.
+       * Its key proves who it is. A Runner whose deployment still gives it a
+       * cluster key it may send - docker-compose.yml or a Helm chart of an
+       * earlier release - also sends that, in the clusterkey header, never
+       * in the URL or the body, so it registers with an app that does not
+       * hold its key yet, a release behind included. A value the repository
+       * ships is never sent: the Runner registers with its own key alone.
        */
-      const result: HTTPResponse<JSONObject> = await API.post({
-        url: aiAgentRegistrationUrl,
-        data: {
-          aiAgentKey: RUNNER_KEY,
-          runnerName: RUNNER_NAME,
-          aiAgentDescription: RUNNER_DESCRIPTION,
-        },
-        headers: {
-          ...ClusterKeyAuthorization.getClusterKeyHeaders(),
-        },
-        options: RunnerAPIRequest.getDefaultRequestOptions(),
-      });
+      const result: HTTPResponse<JSONObject> = Register.holdsClusterKey()
+        ? await API.post({
+            url: aiAgentRegistrationUrl,
+            data: registration,
+            headers: {
+              ...ClusterKeyAuthorization.getClusterKeyHeaders(),
+            },
+            options: RunnerAPIRequest.getDefaultRequestOptions(),
+          })
+        : await API.post({
+            url: aiAgentRegistrationUrl,
+            data: registration,
+            options: RunnerAPIRequest.getDefaultRequestOptions(),
+          });
 
       if (!result.isSuccess()) {
         logger.error(
@@ -882,7 +904,7 @@ export default class Register {
        */
       if (!RUNNER_ID) {
         throw new Error(
-          "ONEUPTIME_RUNNER_ID must be set for a project-scoped Runner (create one in Runbooks > Runners), or a cluster key for the in-cluster Runner. The Runner keeps retrying until one is provided.",
+          "ONEUPTIME_RUNNER_ID must be set for a project-scoped Runner (create one in Runbooks > Runners); only the installation's shared Runner, with ONEUPTIME_RUNNER_SHARED=true, registers without one. The Runner keeps retrying until one is provided.",
         );
       }
 

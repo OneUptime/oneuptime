@@ -68,6 +68,7 @@ heartbeat.
 | `ONEUPTIME_RUNNER_ID` | — | Required for project-scoped Runners (the normal case). |
 | `ONEUPTIME_RUNNER_KEY` | — | Required. Shown once at creation; rotate by resetting it in the dashboard. |
 | `ONEUPTIME_RUNNER_NAME` | — | Optional friendly name. |
+| `ONEUPTIME_RUNNER_SHARED` | unset | Set only on the installation's shared Runner (the `runner` service that OneUptime's Docker Compose file and Helm chart start), which needs no `ONEUPTIME_RUNNER_ID`. Only `true` (any case) turns it on. Never set it on a Runner of your own. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | unset | Local override. Only `false` has an effect: it refuses runbook work on this host even when the dashboard grants it. |
 | `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule. Required (`true`) only for the in-cluster Runner, which has no dashboard row. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | unset | Local override. Only `false` has an effect: it refuses AI remediation command work on this host even when the dashboard grants it. |
@@ -91,7 +92,12 @@ plaintext values.
 
 OneUptime's own deployment runs one in-cluster Runner in *cluster scope* to
 serve the AI code-fix capability for every project. That mode is for the
-platform's own `runner` service and is not available to a customer install.
+platform's own `runner` service and is not available to a customer install:
+the shared Runner registers with its `ONEUPTIME_RUNNER_KEY`, which the
+deployment gives the OneUptime app as well, and holds no `ONEUPTIME_SECRET`.
+A shared Runner of an earlier release, or one whose deployment still gives it
+`ONEUPTIME_SECRET`, registers with that instead, and the app logs that it
+should be updated.
 
 ### AI remediation commands
 

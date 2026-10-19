@@ -221,16 +221,16 @@ OBI stuurt verschillende soorten signalen. Elk kan worden uitgezet met `--set eb
 
 ### Traces tussen services koppelen
 
-OBI kan de trace ook over een aanroep heen meenemen: wanneer pod A pod B aanroept via HTTP of gRPC, sluit de span aan de kant van B aan bij de trace van A, zonder SDK in een van beide apps. **Dit staat standaard uit.** Zet het aan met `--set ebpf.contextPropagation=true`, nadat je de waarschuwing hieronder hebt gelezen.
+OBI neemt de trace ook over een aanroep heen mee: wanneer pod A pod B aanroept via HTTP of gRPC, sluit de span aan de kant van B aan bij de trace van A, zonder SDK in een van beide apps. **Dit staat standaard aan.** Zonder dit start een aanroep naar een pod op een andere node een eigen trace; op dezelfde node koppelt OBI de twee kanten zelf. Zet het uit met `--set ebpf.contextPropagation=false` als je tegen het probleem uit de waarschuwing hieronder aanloopt.
 
 | Optie | Standaard | Wat het doet |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | uit | Schrijft een W3C-`traceparent` in uitgaand verkeer, zodat spans over services heen gekoppeld worden. |
+| `ebpf.contextPropagation` | aan | Schrijft een W3C-`traceparent` in uitgaand verkeer, zodat spans over services heen gekoppeld worden. |
 | `ebpf.contextPropagationMode` | `headers` | Hoe: `headers` (HTTP/1.1-verzoekheaders, het smalst), `tcp` (een TCP-optie, via Linux Traffic Control) of `all` (beide). Wordt alleen gelezen als `contextPropagation` aan staat. |
 | `ebpf.trackRequestHeaders` | aan | Volgt verzoekheaders in de kernel, zodat de ontvangende kant de `traceparent` ook op gewone HTTP-servers vindt. Heeft alleen effect als `contextPropagation` aan staat. |
 
 > [!WARNING]
-> Elke propagatiemodus wijzigt verkeer dat al onderweg is. Voor gewone HTTP vergroot OBI het uitgaande verzoek in de kernel om de header erin te passen; voor TLS en ruwe TCP voegt het een TCP-optie toe vanuit een Traffic Control-hook, waarbij het pakket en zijn checksum worden herschreven. Wordt de bytetelling van de verbinding daarna niet exact gecorrigeerd, dan **raakt de stream uit sync**: overdrachten via een proxy zoals nginx blijven halverwege hangen, zodra een antwoord groter wordt dan ongeveer 64 KB, tot de verbinding een time-out krijgt. Kleine verzoeken blijven werken, dus het lijkt op een bug in de applicatie of de proxy. Geen enkele kernelversie laat de herschrijving verdwijnen. Traces, verzoekmetrieken en de servicemap werken allemaal zonder; een OpenTelemetry-SDK in je services koppelt traces zonder enige herschrijving in de kernel. Zet je het aan, probeer het dan eerst op een cluster dat geen productie is, en controleer grote overdrachten via je proxy.
+> Elke propagatiemodus wijzigt verkeer dat al onderweg is. Voor gewone HTTP vergroot OBI het uitgaande verzoek in de kernel om de header erin te passen; voor TLS en ruwe TCP voegt het een TCP-optie toe vanuit een Traffic Control-hook, waarbij het pakket en zijn checksum worden herschreven. Wordt de bytetelling van de verbinding daarna niet exact gecorrigeerd, dan **raakt de stream uit sync**: overdrachten via een proxy zoals nginx blijven halverwege hangen, zodra een antwoord groter wordt dan ongeveer 64 KB, tot de verbinding een time-out krijgt. Kleine verzoeken blijven werken, dus het lijkt op een bug in de applicatie of de proxy. Geen enkele kernelversie laat de herschrijving verdwijnen. Blijven grote overdrachten via je proxy hangen nadat je de agent hebt geïnstalleerd, of beginnen pods te falen door een service mesh of een eBPF-netwerkplug-in, zet het dan uit: traces, verzoekmetrieken en de servicemap werken allemaal zonder, en een OpenTelemetry-SDK in je services koppelt traces zonder enige herschrijving in de kernel. Een agent die met `--reuse-values` is geüpgraded, behoudt de waarde die hij had, en in eerdere charts stond propagatie standaard uit: upgrade met `--reset-then-reuse-values` om de nieuwe standaardwaarde over te nemen.
 
 ### Logs aan traces koppelen
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **OBI draait, maar er komen geen traces binnen.** Stel `--set ebpf.printTraces=true` in en lees de log van OBI opnieuw. Spans daar betekenen dat de export naar OneUptime mislukt: controleer de URL en de ingestiesleutel. Geen spans daar kan betekenen dat het verkeer versleuteld is door een TLS-bibliotheek die OBI niet kan lezen, zoals een statisch gelinkte.
 :::
 
-:::details Grote overdrachten blijven hangen na het aanzetten van tracekoppeling
-Dat is `ebpf.contextPropagation` dat verkeer herschrijft: zie de waarschuwing in [Traces tussen services koppelen](#traces-tussen-services-koppelen). Zet het uit met `--set ebpf.contextPropagation=false`.
+:::details Grote overdrachten blijven hangen na het installeren van de agent
+Dat is `ebpf.contextPropagation`, dat standaard aan staat en verkeer herschrijft: zie de waarschuwing in [Traces tussen services koppelen](#traces-tussen-services-koppelen). Zet het uit met `--set ebpf.contextPropagation=false`.
 :::
 
 :::details Apps crashen met exitcode 139 na het aanzetten van logkoppeling

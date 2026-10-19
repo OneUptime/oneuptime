@@ -23,7 +23,9 @@
  * "eval" command naming its keys; `failCommand`, `failNextExec` and
  * `answerNextExecWith` apply to it as to a pipeline. Any other script is
  * refused, so a suite never passes against a script the stand-in does not
- * know. The real-Valkey suite runs the script itself.
+ * know. The real-Valkey suite runs the script itself. `stallEvals` holds
+ * every EVAL unanswered, as a connection that stalled with its socket open
+ * does, until `releaseStalledEvals` answers them.
  */
 
 import { DIFFERENT_VALUES_SCRIPT } from "../../../../Server/Utils/RateLimit/ClientRateLimitCounter";
@@ -151,6 +153,12 @@ export default class FakeCounterRedis {
 
   public failNextExec: Error | null = null;
   public answerNextExecWith: unknown = undefined;
+
+  // While true, every EVAL is sent and left unanswered (see the header).
+  public stallEvals: boolean = false;
+
+  // The EVALs left unanswered, each answering as the script would when run.
+  private readonly stalledEvals: Array<() => void> = [];
   public failCommand: ((command: FakeCounterCommand) => Error | null) | null =
     null;
 
@@ -188,6 +196,16 @@ export default class FakeCounterRedis {
     };
 
     this.sent.push([command]);
+
+    if (this.stallEvals) {
+      return await new Promise<unknown>(
+        (resolve: (answer: unknown) => void): void => {
+          this.stalledEvals.push((): void => {
+            resolve(this.runDifferentValues(keys, args));
+          });
+        },
+      );
+    }
 
     if (this.failNextExec) {
       const error: Error = this.failNextExec;
@@ -260,6 +278,17 @@ export default class FakeCounterRedis {
     }
 
     return [0, 0];
+  }
+
+  // Answers every EVAL left unanswered, in the order they were sent.
+  public releaseStalledEvals(): number {
+    const released: Array<() => void> = this.stalledEvals.splice(0);
+
+    for (const release of released) {
+      release();
+    }
+
+    return released.length;
   }
 
   // The values a set holds, in the order they were added.
@@ -336,5 +365,7 @@ export default class FakeCounterRedis {
     this.failNextExec = null;
     this.answerNextExecWith = undefined;
     this.failCommand = null;
+    this.stallEvals = false;
+    this.stalledEvals.length = 0;
   }
 }

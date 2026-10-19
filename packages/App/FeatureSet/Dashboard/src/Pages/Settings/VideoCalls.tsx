@@ -18,6 +18,7 @@ import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -31,6 +32,7 @@ import {
   isVideoCallOAuthAvailable,
   runVideoCallConnectionTest,
 } from "../../Components/VideoCall/VideoCallApi";
+import CallRecordingSwitchCard from "../../Components/VideoCall/CallRecordingSwitchCard";
 import VideoCallConnectNotice from "../../Components/VideoCall/VideoCallConnectNotice";
 import VideoCallConnectionFormModal from "../../Components/VideoCall/VideoCallConnectionFormModal";
 import VideoCallConnectionsTable from "../../Components/VideoCall/VideoCallConnectionsTable";
@@ -47,7 +49,9 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
  * The page answers three questions in order. How does it work (the steps
  * across the top)? Which providers can hold a call (the gallery, where one
  * click starts a connection)? Which connections does this project have, and
- * do they work (the table, with a test that starts a real meeting)?
+ * do they work (the table, with a test that starts a real meeting)? Under
+ * them, one switch: whether incident calls are recorded and transcribed,
+ * and their transcripts added by themselves (CallRecordingSwitchCard).
  *
  * Where this server has a provider's own app (OneUptime Cloud has all
  * three), Connect signs in to the provider (VideoCallOAuthConnectModal) and
@@ -240,6 +244,8 @@ const VideoCallsPage: FunctionComponent<PageComponentProps> = (
           setConnectionCounts(counts);
         }}
       />
+
+      <CallRecordingSwitchCard projectId={ProjectUtil.getCurrentProjectId()!} />
 
       {isChoosingProvider && (
         <Modal

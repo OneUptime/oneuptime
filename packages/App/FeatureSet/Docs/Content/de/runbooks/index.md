@@ -98,6 +98,17 @@ Runbooks finden Sie unter **Produkte**, in der Gruppe **Dashboards & Automatisie
 | **Vorfälle / Warnungen / Geplante Wartung → Regeln → Runbook-Regeln** | Die Regeln anlegen, die Runbooks automatisch starten. |
 | Ein Vorfall, eine Warnung oder ein Wartungsereignis → **Runbooks** | Die angehängten Läufe sehen und mit **Runbook ausführen** einen starten. |
 
+Das Seitenmenü eines Runbooks gliedert seine Seiten so. Nur **Grundlegend** ist anfangs geöffnet: Klicken Sie auf den Titel eines Abschnitts, um ihn zu öffnen. Ein Abschnitt öffnet sich von selbst auf jeder Seite darin.
+
+| Abschnitt | Seiten |
+| --- | --- |
+| **Grundlegend** | **Übersicht**, **Schritte** |
+| **Protokolle** | **Ausführungen** |
+| **Eigentümer** | **Eigentümer** |
+| **Einstellungen** | **Auslöser**, **Einstellungen** |
+| **Entwickler** | **Terraform**, **API**, **KI-Assistenten** |
+| **Erweitert** | **Audit-Protokolle**, **Runbook löschen** |
+
 ## Ein durchgespieltes Beispiel
 
 Angenommen, jeder Vorfall mit „db-primary“ im Titel soll ein fünfstufiges Datenbank-Failover-Runbook starten.

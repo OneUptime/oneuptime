@@ -1,6 +1,7 @@
 import API from "../../Utils/API/API";
 import UiAnalytics from "../../Utils/Analytics";
 import DropdownUtil from "../../Utils/Dropdown";
+import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "../../Utils/Translation";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -152,6 +153,13 @@ export interface BaseComponentProps<T> {
    * The action validates the steps the user skipped (submitAllSteps).
    */
   allowAnyStepNavigation?: boolean | undefined;
+  /*
+   * What the form's entity dropdowns search through (EntityDropdown's
+   * modelAPI). ModelForm hands the API it reads its model with; an Admin
+   * Dashboard form hands AdminModelAPI, which names no project. Unset, the
+   * shared ModelAPI.
+   */
+  modelAPI?: typeof ModelAPI | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject>
@@ -1173,6 +1181,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               setFieldTouched={setFieldTouched}
                               submitForm={submitForm}
                               disableAutofocus={props.disableAutofocus || false}
+                              modelAPI={props.modelAPI}
                               setFormValues={(values: FormValues<T>) => {
                                 refCurrentValue.current = values;
                                 setCurrentValue(refCurrentValue.current);
@@ -1258,6 +1267,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               listFieldsWhileFolded={Boolean(
                                 section.listFieldsWhileFolded,
                               )}
+                              variant={section.variant}
                               icon={section.icon}
                               hasError={group.some(
                                 (field: Field<T>): boolean => {

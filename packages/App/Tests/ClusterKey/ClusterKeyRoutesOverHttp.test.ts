@@ -17,6 +17,10 @@ import {
   setEncryptionSecret,
 } from "Common/Tests/Server/TestingUtils/ShippedEncryptionSecrets";
 import {
+  restoreSharedRunnerKey,
+  setSharedRunnerKey,
+} from "Common/Tests/Server/TestingUtils/SharedRunnerKeys";
+import {
   createExpressApp,
   ExpressApplication,
   ExpressJson,
@@ -316,6 +320,8 @@ interface RunningInstallation {
     shipped: string;
     inUrl: string;
     olderRunner: string;
+    runnerClusterKey: string;
+    runnerKeyNotSet: string;
   };
   routes: Array<RouteUnderTest>;
   // The requests that reached a route nothing called, which is gone.
@@ -373,6 +379,12 @@ async function startInstallation(
   setClusterKey(options.clusterKey);
   // A shipped ENCRYPTION_SECRET: the token signing key is the installation's own.
   setEncryptionSecret("please-change-this-to-random-value");
+  /*
+   * No shared Runner key on these apps: a registration that carries no
+   * cluster key is decided by the Runner's own key, which is driven in
+   * SharedRunnerRegistrationOverHttp.
+   */
+  setSharedRunnerKey(undefined);
 
   let installation: RunningInstallation | null = null;
 
@@ -531,6 +543,10 @@ async function startInstallation(
           shipped: middlewareModule.SHIPPED_CLUSTER_KEY_MESSAGE,
           inUrl: middlewareModule.CLUSTER_KEY_IN_URL_MESSAGE,
           olderRunner: middlewareModule.OLDER_RUNNER_CLUSTER_KEY_MESSAGE,
+          runnerClusterKey: middlewareModule.RUNNER_CLUSTER_KEY_MESSAGE,
+          runnerKeyNotSet: require_(
+            "Common/Server/Middleware/SharedRunnerKeyAuthorization",
+          ).SHARED_RUNNER_KEY_NOT_SET_MESSAGE,
         },
         routes: routesUnderTest(modelTriggerPath),
         removed: removedRequests(modelTriggerPath),
@@ -543,6 +559,7 @@ async function startInstallation(
   } finally {
     restoreClusterKey();
     restoreEncryptionSecret();
+    restoreSharedRunnerKey();
   }
 
   return installation!;
@@ -1002,7 +1019,7 @@ describe.each(SHIPPED_INSTALLATIONS)(
       }
     });
 
-    test("answers a request without a key as before", async () => {
+    test("answers a request without a key as before, and the Runner's registration by the Runner's own key", async () => {
       for (const request of everyRequest(installation)) {
         const result: HttpResult = await send(
           installation,
@@ -1011,10 +1028,19 @@ describe.each(SHIPPED_INSTALLATIONS)(
           {},
         );
 
+        /*
+         * The shared Runner of this release carries no cluster key: its
+         * registration is decided by its own key, which this app was not
+         * given. Refused either way.
+         */
         expect({ ...request, ...result }).toStrictEqual({
           ...request,
           status: 400,
-          body: { message: installation.messages.notFound },
+          body: {
+            message: request.registration
+              ? installation.messages.runnerKeyNotSet
+              : installation.messages.notFound,
+          },
         });
       }
     });
@@ -1112,7 +1138,11 @@ describe("an installation whose operator set ONEUPTIME_SECRET", () => {
           {},
         );
 
-        // Refused as a key in a URL, or as no key at all: never let through.
+        /*
+         * Refused as a key in a URL, or as no key at all - for the Runner's
+         * registration, by the Runner's own key, which the app was not given
+         * here: never let through.
+         */
         expect({ ...request, name, status: result.status }).toStrictEqual({
           ...request,
           name,
@@ -1120,7 +1150,9 @@ describe("an installation whose operator set ONEUPTIME_SECRET", () => {
         });
         expect([
           installation.messages.inUrl,
-          installation.messages.notFound,
+          request.registration
+            ? installation.messages.runnerKeyNotSet
+            : installation.messages.notFound,
         ]).toContain(result.body?.["message"]);
       }
     }
@@ -1409,7 +1441,11 @@ describe("the real handlers behind the routes", () => {
           )
         ).status,
       ).toBe(200);
-      // A Runner of this release: the key in the header.
+      /*
+       * A Runner of an earlier release, or one whose deployment still gives
+       * it ONEUPTIME_SECRET: the key in the header, still let in, and told to
+       * update.
+       */
       mockWarnings.length = 0;
 
       expect(
@@ -1419,7 +1455,8 @@ describe("the real handlers behind the routes", () => {
           })
         ).status,
       ).toBe(200);
-      expect(mockWarnings).toStrictEqual([]);
+      expect(mockWarnings).toStrictEqual([api.messages.runnerClusterKey]);
+      mockWarnings.length = 0;
 
       // A Runner of an earlier release: the key in the body, still let in.
       expect(

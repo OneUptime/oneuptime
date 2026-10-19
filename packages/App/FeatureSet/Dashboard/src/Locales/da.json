@@ -31014,5 +31014,22 @@
   "See the {{docsLink}} for every tool.": "Se {{docsLink}} for alle værktøjer.",
   "Twilio account for SMS and calls": "Twilio-konto til sms og opkald",
   "Up to {{limit}} open at once": "Op til {{limit}} åbne ad gangen",
-  "Gets nothing until they open the link we texted them.": "Får intet, før linket, vi sendte i en sms, åbnes."
+  "Gets nothing until they open the link we texted them.": "Får intet, før linket, vi sendte i en sms, åbnes.",
+  "Call transcripts": "Opkaldstransskriptioner",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Alle i disse opkald kan se, at de optages. Kontrollér, at jeres organisation tillader det. Zoom kræver også optagelse i skyen med lydtransskription slået til.",
+  "Keep what was said on every incident call, without anyone remembering to.": "Gem det, der blev sagt i hvert hændelsesopkald, uden at nogen skal huske det.",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams-opkald, Slack-huddles og mødelinks optages ikke: tilføj deres transskriptioner manuelt.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom og Google Meet optager og transskriberer hvert hændelsesopkald, som OneUptime starter. OneUptime tilføjer transskriptionen og opsummerer den i hændelsens feed.",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime henter den fra {{provider}}, når opkaldet er slut, og OneUptime AI læser den.",
+  "Postmortem Draft Waiting Since": "Postmortem-udkast venter siden",
+  "Record and Transcribe Incident Calls": "Optag og transskribér hændelsesopkald",
+  "Record and transcribe incident calls": "Optag og transskribér hændelsesopkald",
+  "Record and transcribe incident calls?": "Optag og transskribér hændelsesopkald?",
+  "Transcript Fetch Checked At": "Hentning af transskription kontrolleret",
+  "Transcript Fetch Next Attempt At": "Næste forsøg på at hente transskription",
+  "Transcript Fetch Reason": "Årsag ved hentning af transskription",
+  "Transcript Fetch Status": "Status for hentning af transskription",
+  "Video Call Summary": "Opsummering af videoopkald",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Får intet: linket til bekræftelse, vi sendte, udløb, før det blev åbnet. Abonnenten kan tilmelde sig igen, eller du kan tilføje vedkommende igen.",
+  "Link Expired": "Link udløbet"
 }

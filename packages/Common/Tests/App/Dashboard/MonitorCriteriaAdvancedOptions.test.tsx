@@ -191,11 +191,13 @@ describe("hasAlertAdvancedOptions", () => {
 /*
  * The incident's and the alert's More fields (once "Advanced Options"):
  * folded on a new rule and on one being edited, like every More fields
- * section. Folded, the header names the options inside, and shows each one
- * the user chose as a chip with what it is set to - so the choice is never
- * hidden, and the section does not open by itself to show it. Only a choice
- * that differs from what a new rule starts with counts: every default rule
- * turns auto-resolve on, so auto-resolve off is the choice.
+ * section, and drawn like every one of them - one quiet line after the
+ * rule's named folds, not a card. Folded, the line names the options
+ * inside, and each one the user chose with what it is set to, a shade
+ * darker - so the choice is never hidden, and the section does not open by
+ * itself to show it. Only a choice that differs from what a new rule
+ * starts with counts: every default rule turns auto-resolve on, so
+ * auto-resolve off is the choice.
  */
 describe("the incident's More fields", () => {
   test("starts folded on a new monitor's Offline rule, naming its options, none set", () => {
@@ -242,12 +244,48 @@ describe("the incident's More fields", () => {
 
       expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
       expect(setChips(advancedOptions())).toEqual([chip]);
-      // The icon tile is tinted while something inside is set.
+      // What is set is a shade darker than the names around it.
+      expect(
+        advancedOptions().querySelector(
+          "[data-testid='folded-section-item'][data-item-set='true']",
+        ),
+      ).toHaveClass("font-medium", "text-gray-600");
+      // A line has no icon tile, set or not.
       expect(
         advancedOptions().querySelector("[data-testid='folded-section-icon']"),
-      ).toHaveClass("bg-indigo-50");
+      ).toBeNull();
     },
   );
+
+  /*
+   * "Can we make this more subtle, this needs to be done across the project
+   * for more fields. Takes up too much real estate right now." - the
+   * maintainer. The rule's own folds (Description, On-Call, Incident Roles,
+   * Ownership & Labels) are named for what they hold and stay cards; More
+   * fields, after them, is the quiet line.
+   */
+  test("is one quiet line after the rule's named folds, which stay cards", () => {
+    renderIncidentForm(defaultOfflineRule().incident);
+
+    const moreFields: HTMLElement = screen.getByTestId(
+      "criteria-incident-more-fields",
+    );
+
+    expect(moreFields).toHaveAttribute("data-variant", "line");
+    expect(moreFields).toContainElement(advancedOptions());
+    expect(advancedOptions()).toHaveTextContent(
+      /^More fields\s*·\s*Auto Resolve Incident, Show Incident on Status Page, Private Incident, Remediation Notes$/,
+    );
+
+    const named: Array<string | null> = screen
+      .getAllByTestId("folded-section")
+      .map((fold: HTMLElement): string | null => {
+        return fold.getAttribute("data-variant");
+      });
+
+    expect(named.length).toBeGreaterThanOrEqual(3);
+    expect(new Set(named)).toEqual(new Set(["card"]));
+  });
 
   test("opens on a click, and keeps its fields while folded", () => {
     renderIncidentForm(defaultOfflineRule().incident);
@@ -298,11 +336,15 @@ describe("the alert's More fields", () => {
     expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
   });
 
-  test("stays folded when auto-resolve was turned off, the choice a chip", () => {
+  test("stays folded when auto-resolve was turned off, the choice said on its line", () => {
     renderAlertForm(alert({ autoResolveAlert: false }));
 
     expect(advancedOptions()).toHaveAttribute("aria-expanded", "false");
     expect(setChips(advancedOptions())).toEqual(["Auto Resolve Alert: Off"]);
+    expect(screen.getByTestId("criteria-alert-more-fields")).toHaveAttribute(
+      "data-variant",
+      "line",
+    );
   });
 
   test("shows remediation notes as set, without their text", () => {

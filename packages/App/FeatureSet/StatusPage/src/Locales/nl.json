@@ -244,7 +244,9 @@
     },
     "confirm": {
       "title": "Abonnement bevestigen",
-      "success": "Abonnement succesvol bevestigd"
+      "success": "Abonnement succesvol bevestigd",
+      "linkNotValid": "Deze link om uw abonnement te bevestigen is verlopen of ongeldig. Een link werkt 24 uur nadat hij is verzonden. Abonneer opnieuw om een nieuwe te krijgen.",
+      "subscribeAgain": "Opnieuw abonneren"
     },
     "unsubscribe": {
       "title": "Afmelden",

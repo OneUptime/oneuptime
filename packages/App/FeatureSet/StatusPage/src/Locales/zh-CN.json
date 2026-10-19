@@ -244,7 +244,9 @@
     },
     "confirm": {
       "title": "确认订阅",
-      "success": "订阅确认成功"
+      "success": "订阅确认成功",
+      "linkNotValid": "此订阅确认链接已过期或无效。链接在发送后 24 小时内有效。要获取新链接，请重新订阅。",
+      "subscribeAgain": "重新订阅"
     },
     "unsubscribe": {
       "title": "取消订阅",

@@ -9,6 +9,7 @@ import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
@@ -24,36 +25,60 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import PageComponentProps from "../PageComponentProps";
+import {
+  ConfirmationSignUpChannels,
+  LINK_NOT_VALID_STATUS_CODES,
+  getConfirmationSignUpPage,
+} from "./ConfirmationSignUpPage";
 
-const SubscribePage: FunctionComponent<PageComponentProps> = (
-  _props: PageComponentProps,
+export interface ComponentProps extends PageComponentProps {
+  /*
+   * The channels the page offers that confirm by a link, for the way to a
+   * new link when this one has expired or is not valid.
+   */
+  signUpChannels: ConfirmationSignUpChannels;
+}
+
+// What opening the link came to.
+enum ConfirmationState {
+  Confirming = "confirming",
+  Confirmed = "confirmed",
+  // The link confirms nothing: it has expired, or it is not valid.
+  LinkNotValid = "link-not-valid",
+  // Something else went wrong: the server, the network.
+  Failed = "failed",
+}
+
+const ConfirmSubscription: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
   const id: ObjectID = LocalStorage.getItem("statusPageId") as ObjectID;
 
-  const [isLaoding, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [state, setState] = useState<ConfirmationState>(
+    ConfirmationState.Confirming,
+  );
+  const [failure, setFailure] = useState<string>("");
 
   const confirmSubscription: PromiseVoidFunction = async (): Promise<void> => {
+    let statusPageSubscriberId: string = "";
+
     try {
-      setIsLoading(true);
+      statusPageSubscriberId = Navigation.getLastParamAsObjectID().toString();
+    } catch {
+      statusPageSubscriberId = "";
+    }
 
-      const statusPageSubscriberId: string =
-        Navigation.getLastParamAsObjectID().toString();
-      const token: string | null =
-        Navigation.getQueryStringByName("verification-token");
+    const token: string | null =
+      Navigation.getQueryStringByName("verification-token");
 
-      if (!token) {
-        setError("Token is required");
-        return;
-      }
+    // A link with a part missing confirms nothing.
+    if (!token || !statusPageSubscriberId) {
+      setState(ConfirmationState.LinkNotValid);
+      return;
+    }
 
-      if (!statusPageSubscriberId) {
-        setError("Subscriber ID is required");
-        return;
-      }
-
-      // hit the confirm subscription endpoint
+    try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.get({
           url: URL.fromString(STATUS_PAGE_API_URL.toString())
@@ -62,20 +87,25 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
         });
 
       if (response instanceof HTTPErrorResponse) {
+        if (LINK_NOT_VALID_STATUS_CODES.includes(response.statusCode)) {
+          setState(ConfirmationState.LinkNotValid);
+          return;
+        }
+
         throw response;
       }
 
-      setError(t("subscribe.confirm.success"));
+      setState(ConfirmationState.Confirmed);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setFailure(API.getFriendlyMessage(err));
+      setState(ConfirmationState.Failed);
     }
-
-    setIsLoading(false);
   };
 
   useEffect(() => {
     confirmSubscription().catch((error: Error) => {
-      setError(error.message);
+      setFailure(error.message);
+      setState(ConfirmationState.Failed);
     });
   }, []);
 
@@ -84,6 +114,50 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
   }
 
   StatusPageUtil.checkIfUserHasLoggedIn();
+
+  // Where to sign up again for a new link.
+  const signUpPage: PageMap | null = getConfirmationSignUpPage({
+    channels: props.signUpChannels,
+    isPreview: Boolean(StatusPageUtil.isPreviewPage()),
+  });
+
+  const renderBody: () => ReactElement = (): ReactElement => {
+    if (state === ConfirmationState.Confirming) {
+      return <FormSkeleton />;
+    }
+
+    if (state === ConfirmationState.Confirmed) {
+      return <ErrorMessage message={t("subscribe.confirm.success")} />;
+    }
+
+    if (state === ConfirmationState.LinkNotValid) {
+      return (
+        <div data-testid="confirm-subscription-link-not-valid">
+          <ErrorMessage
+            message={t("subscribe.confirm.linkNotValid")}
+            action={
+              signUpPage ? (
+                <Button
+                  title={t("subscribe.confirm.subscribeAgain")}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  dataTestId="confirm-subscription-subscribe-again"
+                  onClick={() => {
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[signUpPage] as Route,
+                      ),
+                    );
+                  }}
+                />
+              ) : undefined
+            }
+          />
+        </div>
+      );
+    }
+
+    return <ErrorMessage message={failure} />;
+  };
 
   return (
     <Page
@@ -107,11 +181,9 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
         },
       ]}
     >
-      {isLaoding ? <FormSkeleton /> : <></>}
-
-      {error ? <ErrorMessage message={error} /> : <></>}
+      {renderBody()}
     </Page>
   );
 };
 
-export default SubscribePage;
+export default ConfirmSubscription;

@@ -4160,4 +4160,49 @@ export default class Project extends TenantModel {
     create: PlanType.Enterprise,
   })
   public storeSystemEventsInAuditLogs?: boolean = undefined;
+
+  /*
+   * Record and transcribe incident calls (Project Settings > Workspace >
+   * Video Calls): one switch for the whole project. While it is on, the
+   * Zoom and Google Meet meetings OneUptime starts for incidents are
+   * recorded and transcribed from the start, and OneUptime gets each one's
+   * transcript once the call is over (CallTranscriptAutoFetch).
+   *
+   * Off by default, and nothing turns it on by itself: it records people,
+   * which an organisation decides once, knowingly. Alert calls are never
+   * recorded - nothing reads their transcripts.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Record and Transcribe Incident Calls",
+    description:
+      "When enabled, OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds each call's transcript to its incident once the call is over. Microsoft Teams calls, Slack huddles and meeting links are not recorded; their transcripts can be added by hand. Off by default.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public recordAndTranscribeIncidentCalls?: boolean = undefined;
 }

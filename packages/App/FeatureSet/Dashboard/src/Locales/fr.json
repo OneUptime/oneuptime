@@ -31014,5 +31014,22 @@
   "See the {{docsLink}} for every tool.": "Tous les outils sont décrits dans la {{docsLink}}.",
   "Twilio account for SMS and calls": "Compte Twilio pour les SMS et les appels",
   "Up to {{limit}} open at once": "Jusqu'à {{limit}} ouvertes en même temps",
-  "Gets nothing until they open the link we texted them.": "Ne reçoit rien tant que le lien envoyé par SMS n'a pas été ouvert."
+  "Gets nothing until they open the link we texted them.": "Ne reçoit rien tant que le lien envoyé par SMS n'a pas été ouvert.",
+  "Call transcripts": "Transcriptions des appels",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Toutes les personnes présentes à ces appels voient qu'ils sont enregistrés. Vérifiez que votre organisation l'autorise. Zoom doit aussi enregistrer dans le cloud avec la transcription audio activée.",
+  "Keep what was said on every incident call, without anyone remembering to.": "Conservez ce qui a été dit lors de chaque appel d'incident, sans que personne ait à y penser.",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Les appels Microsoft Teams, les huddles Slack et les liens de réunion ne sont pas enregistrés : ajoutez leurs transcriptions à la main.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom et Google Meet enregistrent et transcrivent chaque appel d'incident que OneUptime démarre. OneUptime ajoute la transcription et la résume dans le fil d'activité de l'incident.",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime la récupère depuis {{provider}} une fois l'appel terminé, et l'IA de OneUptime la lit.",
+  "Postmortem Draft Waiting Since": "Brouillon de post-mortem en attente depuis",
+  "Record and Transcribe Incident Calls": "Enregistrer et transcrire les appels d'incident",
+  "Record and transcribe incident calls": "Enregistrer et transcrire les appels d'incident",
+  "Record and transcribe incident calls?": "Enregistrer et transcrire les appels d'incident ?",
+  "Transcript Fetch Checked At": "Récupération de la transcription vérifiée le",
+  "Transcript Fetch Next Attempt At": "Prochaine récupération de la transcription le",
+  "Transcript Fetch Reason": "Motif de la récupération de la transcription",
+  "Transcript Fetch Status": "Statut de la récupération de la transcription",
+  "Video Call Summary": "Résumé de l'appel vidéo",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Ne reçoit rien : le lien de confirmation que nous avons envoyé a expiré avant d'être ouvert. La personne peut se réabonner, ou vous pouvez l'ajouter à nouveau.",
+  "Link Expired": "Lien expiré"
 }

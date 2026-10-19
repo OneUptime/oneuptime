@@ -253,13 +253,15 @@ describe("the English upgrade note on the bundled Runner", () => {
 
   it("says what the bundled Runner starts with, as the chart and Compose start it", () => {
     expect(ENGLISH_NOTE).toContain(
-      "It also starts with only its OneUptime URL, its keys and its telemetry settings instead of the app's whole environment",
+      "It also starts with only its OneUptime URL, its key and its telemetry settings instead of the app's whole environment",
     );
 
+    // Its own key, and neither the app's environment nor the cluster key.
     const chart: string = source(
       "HelmChart/Public/oneuptime/templates/runner.yaml",
     );
-    expect(chart).toContain('include "oneuptime.env.oneuptimeSecret"');
+    expect(chart).toContain('include "oneuptime.env.runnerKey"');
+    expect(chart).not.toContain('include "oneuptime.env.oneuptimeSecret"');
     expect(chart).not.toContain('include "oneuptime.env.runtime"');
 
     const compose: string = source("docker-compose.base.yml");

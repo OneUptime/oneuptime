@@ -35,7 +35,7 @@ A trigger starts a run the way **Run Now** does: the run is an execution of the 
 
 :::steps
 ### Open the runbook's Triggers page
-Open the runbook from **Runbooks**, and click **Triggers** in its menu.
+Open the runbook from **Runbooks**, and click **Settings → Triggers** in its side menu. **Settings** starts folded: click it to show **Triggers**.
 
 ### Set up the schedule
 Click **Set Up Schedule**. Under **When it runs**, pick a **Repeat** and what it needs. The dialog says the schedule in a sentence, such as "Runs every weekday at 09:00", and lists its next runs, as you change it.

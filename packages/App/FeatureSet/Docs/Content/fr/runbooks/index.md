@@ -98,6 +98,17 @@ Runbooks se trouve sous **Produits**, dans le groupe **Tableaux de bord et autom
 | **Incidents / Alertes / Maintenance planifiée → Règles → Règles de runbook** | Créer les règles qui lancent des runbooks automatiquement. |
 | Un incident, une alerte ou un événement de maintenance → **Runbooks** | Voir les exécutions qui y sont attachées, et cliquer sur **Exécuter le Runbook** pour en lancer une. |
 
+Le menu latéral d'un runbook regroupe ses pages ainsi. Seule **Basique** est ouverte au départ : cliquez sur le titre d'une section pour l'ouvrir. Une section s'ouvre d'elle-même sur toute page qu'elle contient.
+
+| Section | Pages |
+| --- | --- |
+| **Basique** | **Vue d'ensemble**, **Étapes** |
+| **Journaux** | **Exécutions** |
+| **Propriétaires** | **Propriétaires** |
+| **Paramètres** | **Déclencheurs**, **Paramètres** |
+| **Développeurs** | **Terraform**, **API**, **Assistants IA** |
+| **Avancé** | **Journaux d'audit**, **Supprimer le runbook** |
+
 ## Un exemple complet
 
 Supposons que chaque incident dont le titre contient « db-primary » doive lancer un runbook de bascule de base de données en cinq étapes.

@@ -1128,6 +1128,23 @@ switch (args[0]) {
     expect(result.stdout).toContain(`| Warnings | ❌ ${warning} |`);
   });
 
+  test("reports a warning brew writes as a workflow command, as it does in GitHub Actions, by its message", () => {
+    const result = install({
+      output: [
+        `==> Installing Cask ${PACKAGE}`,
+        "::warning::Calling `postflight` is deprecated! Use `postflight_steps` instead.%0A" +
+          "Please report this issue to the oneuptime/homebrew-tap tap (not Homebrew/* repositories), " +
+          "or even better, submit a PR to fix it:%0A" +
+          `  /opt/homebrew/Library/Taps/oneuptime/homebrew-tap/Casks/${PACKAGE}.rb:36%0A%0A`,
+      ].join("\n"),
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain(
+      "| Warnings | ❌ Calling `postflight` is deprecated! Use `postflight_steps` instead. |",
+    );
+  });
+
   test("fails when brew installed another version", () => {
     const result = install({ installed: `${PACKAGE} ${OLDER}` });
 
@@ -1166,6 +1183,8 @@ describe(WORKFLOW, () => {
     expect(workflow.on.schedule).toHaveLength(1);
     expect(workflow.on.workflow_dispatch.inputs.version.type).toBe("string");
 
+    // Not a release's gate pull request into `release`.
+    expect(workflow.on.pull_request.branches).toEqual(["master"]);
     const paths = workflow.on.pull_request.paths;
     expect(paths).toContain(WORKFLOW);
     for (const job of Object.values(jobs)) {

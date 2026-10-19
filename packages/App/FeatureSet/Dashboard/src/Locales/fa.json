@@ -31014,5 +31014,22 @@
   "See the {{docsLink}} for every tool.": "برای همه ابزارها {{docsLink}} را ببینید.",
   "Twilio account for SMS and calls": "حساب Twilio برای پیامک و تماس",
   "Up to {{limit}} open at once": "حداکثر {{limit}} مورد هم‌زمان باز",
-  "Gets nothing until they open the link we texted them.": "تا پیوندی را که برایش پیامک کرده‌ایم باز نکند، چیزی دریافت نمی‌کند."
+  "Gets nothing until they open the link we texted them.": "تا پیوندی را که برایش پیامک کرده‌ایم باز نکند، چیزی دریافت نمی‌کند.",
+  "Call transcripts": "رونوشت‌های تماس",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "همه حاضران در این تماس‌ها می‌بینند که ضبط می‌شوند. بررسی کنید که سازمان شما این کار را مجاز می‌داند. Zoom همچنین به ضبط در فضای ابری با رونوشت صوتی روشن نیاز دارد.",
+  "Keep what was said on every incident call, without anyone remembering to.": "آنچه در هر تماس حادثه گفته شد را نگه دارید، بی‌آنکه کسی لازم باشد به خاطر بسپارد.",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "تماس‌های Microsoft Teams، هادل‌های Slack و پیوندهای جلسه ضبط نمی‌شوند: رونوشت آن‌ها را دستی اضافه کنید.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom و Google Meet هر تماس حادثه‌ای را که OneUptime آغاز می‌کند ضبط و رونویسی می‌کنند. OneUptime رونوشت را اضافه می‌کند و خلاصه‌ای از آن را در فید حادثه منتشر می‌کند.",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime پس از پایان تماس آن را از {{provider}} می‌گیرد و OneUptime AI آن را می‌خواند.",
+  "Postmortem Draft Waiting Since": "پیش‌نویس گزارش پس از حادثه در انتظار از",
+  "Record and Transcribe Incident Calls": "ضبط و رونویسی تماس‌های حادثه",
+  "Record and transcribe incident calls": "ضبط و رونویسی تماس‌های حادثه",
+  "Record and transcribe incident calls?": "تماس‌های حادثه ضبط و رونویسی شوند؟",
+  "Transcript Fetch Checked At": "زمان بررسی دریافت رونوشت",
+  "Transcript Fetch Next Attempt At": "تلاش بعدی برای دریافت رونوشت",
+  "Transcript Fetch Reason": "دلیل دریافت رونوشت",
+  "Transcript Fetch Status": "وضعیت دریافت رونوشت",
+  "Video Call Summary": "خلاصه تماس تصویری",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "چیزی دریافت نمی‌کند: پیوند تأییدی که برایش فرستادیم پیش از باز شدن منقضی شد. می‌تواند دوباره عضو شود، یا شما می‌توانید دوباره او را اضافه کنید.",
+  "Link Expired": "پیوند منقضی‌شده"
 }

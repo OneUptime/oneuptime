@@ -592,6 +592,30 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   {{- end }}
 {{- end }}
 
+{{/*
+ONEUPTIME_RUNNER_KEY, the shared Runner's key: the Runner registers as the
+installation's shared Runner with it, and the app lets it register with it,
+so the runner and app Deployments read it from the same place - runner.key,
+runner.existingSecret, or the key this chart generates into
+`<release>-secrets` (templates/secrets.yaml, while runner.enabled).
+*/}}
+{{- define "oneuptime.env.runnerKey" }}
+- name: ONEUPTIME_RUNNER_KEY
+  {{- if $.Values.runner.key }}
+  value: {{ $.Values.runner.key | quote }}
+  {{- else if (($.Values.runner.existingSecret).name) }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ ($.Values.runner.existingSecret).name }}
+      key: {{ ($.Values.runner.existingSecret).passwordKey }}
+  {{- else }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ printf "%s-%s" $.Release.Name "secrets" }}
+      key: runner-key
+  {{- end }}
+{{- end }}
+
 {{- define "oneuptime.env.registerProbeKey" }}
 - name: REGISTER_PROBE_KEY
   {{- if $.Values.registerProbeKey }}

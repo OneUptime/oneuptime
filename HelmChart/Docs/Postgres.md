@@ -394,6 +394,21 @@ pgbouncer:
   queryWaitTimeoutSeconds: 30 # below DATABASE_QUERY_TIMEOUT_MS (35 s by default)
 ```
 
+#### Connection lifetime
+
+Every pod replaces each of its Postgres connections once it is 10 minutes old
+(`DATABASE_CONNECTION_MAX_LIFETIME_MS`, `600000` by default; `0` keeps them):
+right away when the connection is idle, otherwise as soon as the statement or
+transaction using it is done - never in the middle of one. Without it, the
+connections a busy pod opens at boot stay open for as long as the pod runs. A
+PgBouncer or Postgres replica added later then only ever gets the connections
+opened after it came up, and the Kubernetes agent's eBPF instrumentation - which
+ties a query to the request that ran it through the connection, and learns a
+connection only when it sees it opened - cannot place the queries of a pod that
+started before the agent attached to it, or that was running when the agent
+restarted. Replacing a connection costs one new connection, once per
+connection every 10 minutes.
+
 ### Transaction mode (real connection reduction)
 
 Session mode caps and reuses connections but does **not** multiplex idle ones —

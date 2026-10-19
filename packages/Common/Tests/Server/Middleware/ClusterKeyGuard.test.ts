@@ -52,8 +52,13 @@ import ts from "typescript";
  *   - only the app's own code (App, Common) and the Runner present the key,
  *     because only processes that load the installation's token signing key
  *     at boot (App/Index.ts) know the key an installation that kept a shipped
- *     value derives; and the Runner never presents one before checking it
- *     was given a key it may send;
+ *     value derives; and the Runner presents one only when its deployment
+ *     gives it a key it may send - it registers with its own key, and sends
+ *     the cluster key only for an app that does not hold the Runner's key
+ *     yet;
+ *   - the Runner's registration hands a request that carries no cluster key
+ *     anywhere to the shared Runner's own key (SharedRunnerKeyAuthorization),
+ *     and nothing else;
  *   - both checks count the different wrong keys a client sends
  *     (WrongClusterKeyLimit) in one place, after the key is compared and
  *     before the request is answered as right or wrong, and nothing else
@@ -81,6 +86,10 @@ const INCOMING_REQUEST_INGEST: string =
 const AI_AGENT_API: string = "packages/Common/Server/API/AIAgentAPI.ts";
 const WRONG_CLUSTER_KEY_LIMIT: string =
   "packages/Common/Server/Utils/RateLimit/WrongClusterKeyLimit.ts";
+const WRONG_KEY_LIMIT: string =
+  "packages/Common/Server/Utils/RateLimit/WrongKeyLimit.ts";
+const SHARED_RUNNER_KEY_AUTHORIZATION: string =
+  "packages/Common/Server/Middleware/SharedRunnerKeyAuthorization.ts";
 
 const ONEUPTIME_SECRET_READ: RegExp =
   /process\.env(?:\[\s*["'`]ONEUPTIME_SECRET["'`]\s*\]|\.ONEUPTIME_SECRET\b)/;
@@ -124,6 +133,8 @@ const TOKEN_SIGNING_KEY_USERS: Array<string> = [
   "packages/Common/Server/Middleware/ClusterKeyAuthorization.ts",
   "packages/Common/Server/Utils/JsonWebToken.ts",
   "packages/Common/Server/Utils/Mcp/McpOAuthSignedToken.ts",
+  // Derives, under a label of its own, the key a wrong component key's digest is made with.
+  "packages/Common/Server/Utils/RateLimit/WrongComponentKeyLimit.ts",
   "packages/Common/Server/Utils/TokenSigningKey.ts",
 ];
 
@@ -604,20 +615,60 @@ describe("only processes that can know the installation's key present it", () =>
     ).toEqual([]);
   });
 
-  test("the Runner checks it was given a key it may send before it presents one", () => {
+  test("the Runner presents it only when its deployment gave it a key it may send", () => {
     const code: string = codeOf(RUNNER_REGISTRATION);
-    const check: number = code.indexOf(
-      "if (ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) {",
-    );
-    const present: number = code.indexOf(
-      "ClusterKeyAuthorization.getClusterKeyHeaders()",
+    const sourceFile: ts.SourceFile = parse(RUNNER_REGISTRATION);
+
+    // What holdsClusterKey says: a key is set, and is not a shipped value.
+    const holds: string =
+      code.split("public static holdsClusterKey(): boolean {")[1] || "";
+
+    // Read as one line, however the condition is wrapped.
+    const condition: string = holds
+      .split("}")[0]!
+      .split(/\s+/)
+      .join(" ")
+      .replace(/\( /g, "(")
+      .replace(/ \)/g, ")");
+
+    expect(condition).toContain(
+      "if (!HasClusterKey || ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) { return false;",
     );
 
-    expect(check).toBeGreaterThan(-1);
-    expect(present).toBeGreaterThan(check);
-    expect(code.slice(check, present)).toContain(
-      "throw new ShippedClusterKeyError();",
-    );
+    // The one presentation sits in the branch holdsClusterKey() decides.
+    const presentations: Array<string> = [];
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isCallExpression(node) &&
+        node.expression.getText(sourceFile) ===
+          "ClusterKeyAuthorization.getClusterKeyHeaders"
+      ) {
+        let branch: ts.Node = node;
+
+        while (
+          branch.parent &&
+          !(
+            ts.isConditionalExpression(branch.parent) &&
+            branch.parent.whenTrue === branch
+          )
+        ) {
+          branch = branch.parent;
+        }
+
+        presentations.push(
+          branch.parent && ts.isConditionalExpression(branch.parent)
+            ? branch.parent.condition.getText(sourceFile)
+            : "outside a branch",
+        );
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(sourceFile);
+
+    expect(presentations).toEqual(["Register.holdsClusterKey()"]);
   });
 });
 
@@ -957,12 +1008,58 @@ describe("every check counts the different wrong keys a client sends, in one pla
     ).toEqual(["authorize"]);
   });
 
-  test("WrongClusterKeyLimit counts through ClientRateLimitCounter, so a client is its address and its /64", () => {
+  test("WrongClusterKeyLimit counts through WrongKeyLimit, which counts through ClientRateLimitCounter, so a client is its address and its /64", () => {
     const code: string = codeOf(WRONG_CLUSTER_KEY_LIMIT);
 
-    expect(code).toContain("ClientRateLimitCounter.countDifferent<string>({");
-    expect(code).toContain("value: data.wrongKey,");
+    expect(code).toContain("const LIMIT: WrongKeyLimit = new WrongKeyLimit({");
+    expect(code).toContain(
+      "return await LIMIT.check({ req: data.req, wrongKey: data.wrongKey });",
+    );
     expect(code).not.toMatch(/\bclusterkey\b/i);
+
+    const core: string = codeOf(WRONG_KEY_LIMIT);
+
+    expect(core).toContain("ClientRateLimitCounter.countDifferent<string>({");
+    expect(core).toContain("value: data.wrongKey,");
+    expect(core).not.toMatch(/\bclusterkey\b/i);
+  });
+
+  test("the Runner's registration hands a request that carries no cluster key anywhere to the Runner's own key, and nothing else", () => {
+    const bodies: Record<string, string> = methodBodies();
+    const registration: string =
+      bodies["isAuthorizedRunnerRegistrationMiddleware"] || "";
+
+    const noKeyAnywhere: number = registration.indexOf(
+      "if (inHeader === undefined && inOlderBody === undefined && !ClusterKeyAuthorization.carriesClusterKeyInUrl(req)) { return await SharedRunnerKeyAuthorization.authorizeRegistration(req, res, next); }",
+    );
+    const withAKey: number = registration.indexOf(
+      "return await ClusterKeyAuthorization.authorize({",
+    );
+
+    expect(noKeyAnywhere).toBeGreaterThan(-1);
+    expect(withAKey).toBeGreaterThan(noKeyAnywhere);
+    expect(
+      registration.split("SharedRunnerKeyAuthorization.authorizeRegistration("),
+    ).toHaveLength(2);
+
+    // No other check, and no other file, hands a request there.
+    expect(
+      Object.keys(bodies).filter((name: string): boolean => {
+        return bodies[name]!.includes("SharedRunnerKeyAuthorization");
+      }),
+    ).toEqual(["isAuthorizedRunnerRegistrationMiddleware"]);
+    expect(
+      productFilesWhoseCodeMatches(
+        /\bSharedRunnerKeyAuthorization\.authorizeRegistration\(/,
+      ),
+    ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
+    expect(
+      productFilesWhoseCodeMatches(/\bSharedRunnerKeyAuthorization\b/).filter(
+        (relativePath: string): boolean => {
+          return relativePath !== SHARED_RUNNER_KEY_AUTHORIZATION;
+        },
+      ),
+    ).toEqual([CLUSTER_KEY_AUTHORIZATION]);
   });
 });
 

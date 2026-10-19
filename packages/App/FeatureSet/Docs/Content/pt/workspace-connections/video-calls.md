@@ -107,11 +107,11 @@ O que os responsáveis dizem numa chamada, o que verificaram, o que suspeitam e 
 :::steps
 ### Obtenha a transcrição depois da chamada
 
-No card **Video Call** do incidente, **Obter do Zoom** ou **Obter do Google Meet** lê a transcrição de uma reunião que o OneUptime iniciou lá. Para qualquer outra chamada, **Adicionar transcrição** recebe o arquivo que a ferramenta de reunião salvou (`.vtt`, `.srt` ou `.txt`, até 5 MB) ou a transcrição colada.
+No card **Video Call** do incidente, **Obter do Zoom** ou **Obter do Google Meet** lê a transcrição de uma reunião que o OneUptime iniciou lá. Para qualquer outra chamada, **Adicionar transcrição** recebe o arquivo que a ferramenta de reunião salvou (`.vtt`, `.srt` ou `.txt`, até 5 MB) ou a transcrição colada. Com [todas as chamadas gravadas e transcritas](#gravar-e-transcrever-todas-as-chamadas), o OneUptime a obtém sozinho quando a chamada termina.
 
 ### A OneUptime AI a lê
 
-Em um ou dois minutos, o card **AI Investigation** do incidente mostra a **Causa raiz sugerida**, marcada como **Não confirmada**, com as linhas da transcrição em que se baseia, citadas com horário e quem falou. Abaixo, recolhido, está o resto do que a chamada disse: as descobertas, separadas em **Confirmado na chamada** e **Hipóteses**, depois o que foi tentado, as decisões, os acompanhamentos e as perguntas em aberto.
+Em um ou dois minutos, o card **AI Investigation** do incidente mostra a **Causa raiz sugerida**, marcada como **Não confirmada**, com as linhas da transcrição em que se baseia, citadas com horário e quem falou. Abaixo, recolhido, está o resto do que a chamada disse: as descobertas, separadas em **Confirmado na chamada** e **Hipóteses**, depois o que foi tentado, as decisões, os acompanhamentos e as perguntas em aberto. O que a OneUptime AI leu também é publicado no feed do incidente e, de lá, nos canais do Slack e do Microsoft Teams dele.
 
 ### Use ou dispense
 
@@ -119,6 +119,17 @@ Em um ou dois minutos, o card **AI Investigation** do incidente mostra a **Causa
 :::
 
 A OneUptime AI só sugere uma causa quando a chamada cita uma, com as linhas que dizem isso, e cita essas linhas como a transcrição as traz. Quando a chamada não esclareceu a causa, o card diz **Não se falou o suficiente na chamada para sugerir uma causa raiz** em vez de adivinhar.
+
+### Gravar e transcrever todas as chamadas
+
+Para que ninguém precise se lembrar de gravar uma chamada nem de obter a transcrição dela, ative **Gravar e transcrever chamadas de incidentes** em **Configurações do projeto** > **Espaço de trabalho** > **Video Calls**. Enquanto a opção estiver ativada:
+
+- O OneUptime pede ao Zoom que grave na nuvem cada reunião de incidente que ele inicia, e ao Google Meet que a transcreva. A mensagem que publica a chamada avisa isso antes que alguém entre.
+- Quando a chamada termina, o OneUptime obtém a transcrição sozinho, como **Obter do Zoom** faria, e a OneUptime AI a lê. Até lá, o card **Video Call** diz que está aguardando.
+- O que a OneUptime AI leu vai para o feed do incidente e para os canais do Slack e do Microsoft Teams dele: a causa raiz sugerida, marcada como não confirmada, depois o que foi confirmado, tentado e decidido, os acompanhamentos e as perguntas em aberto.
+- Quando o incidente é resolvido antes de a transcrição chegar, o rascunho automático do post-mortem espera por ela, para ler o que foi dito na chamada: até seis horas enquanto o Zoom ou o Google Meet prepara a transcrição, e uma hora quando ainda não há sinal dela.
+
+A opção fica desativada por padrão, porque grava pessoas: todos nessas chamadas veem que elas estão sendo gravadas ou transcritas, então verifique se a sua organização permite isso. O Zoom só guarda uma transcrição quando a conta grava na nuvem com a transcrição de áudio ativada, e o Google Meet só numa edição do Google Workspace que tenha transcrições. Chamadas do Microsoft Teams, huddles do Slack e links de reunião não são gravados, e as chamadas de alertas também não: adicione as transcrições delas manualmente.
 
 ### O que cada provedor guarda
 
@@ -281,6 +292,10 @@ Altere **Who can join** (Google Meet) ou **Who skips the lobby** (Microsoft Team
 
 :::details Obter do Zoom não encontra nenhuma transcrição
 O Zoom só guarda a transcrição de uma reunião gravada na nuvem com a transcrição de áudio ativada, ou com o resumo de reunião do AI Companion ativado, e a prepara depois que a reunião termina. O card diz qual é o caso: tente de novo mais tarde, ou ative uma das duas opções para as suas reuniões de incidente. Enquanto isso, **Adicionar transcrição** recebe uma transcrição que você salvou.
+:::
+
+:::details O card Video Call ainda aguarda uma transcrição
+Depois que a chamada termina, o OneUptime pede a transcrição ao Zoom ou ao Google Meet a cada poucos minutos, com menos frequência à medida que a chamada fica mais antiga, por três dias após o início da chamada. A transcrição chega poucos minutos depois que o provedor a prepara, e o Zoom leva até cerca do dobro da duração da chamada. **Obter do Zoom** pede na hora. Quando o provedor não guarda nenhuma transcrição, o card diz isso: verifique se a conta do Zoom grava na nuvem com a transcrição de áudio ativada, ou se a sua edição do Google Workspace tem transcrições.
 :::
 
 :::details A OneUptime AI não conseguiu ler uma transcrição

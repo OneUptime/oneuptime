@@ -39,6 +39,7 @@ import GenericObject from "../../../../Types/GenericObject";
 import { JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Typeof from "../../../../Types/Typeof";
+import ModelAPI from "../../../Utils/ModelAPI/ModelAPI";
 import React, { ReactElement, ReactNode, useEffect, useId } from "react";
 import Radio, { RadioValue } from "../../Radio/Radio";
 import { BasicRadioButtonOption } from "../../RadioButtons/BasicRadioButtons";
@@ -105,6 +106,8 @@ export interface ComponentProps<T extends GenericObject> {
   disableAutofocus?: boolean;
   submitForm?: (() => void) | undefined;
   setFormValues?: ((values: FormValues<T>) => void) | undefined;
+  // What an entity dropdown searches through (BasicForm's modelAPI).
+  modelAPI?: typeof ModelAPI | undefined;
 }
 
 const FormField: <T extends GenericObject>(
@@ -688,6 +691,7 @@ const FormField: <T extends GenericObject>(
                   FormFieldSchemaType.MultiSelectDropdown
                 }
                 modelType={props.field.dropdownModal.type}
+                modelAPI={props.modelAPI}
                 labelField={props.field.dropdownModal.labelField}
                 valueField={props.field.dropdownModal.valueField}
                 query={props.field.dropdownModal.query}

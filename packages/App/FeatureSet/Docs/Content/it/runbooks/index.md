@@ -98,6 +98,17 @@ Runbook si trova in **Prodotti**, nel gruppo **Dashboard e automazione**.
 | **Incidenti / Avvisi / Manutenzione programmata → Regole → Regole di runbook** | Creare le regole che avviano automaticamente i runbook. |
 | Un incidente, un avviso o un evento di manutenzione → **Runbook** | Vedere le esecuzioni collegate e fare clic su **Esegui Runbook** per avviarne una. |
 
+Il menu laterale di un runbook raggruppa le sue pagine così. Solo **Base** è aperta all'inizio: fai clic sul titolo di una sezione per aprirla. Una sezione si apre da sola su qualsiasi sua pagina.
+
+| Sezione | Pagine |
+| --- | --- |
+| **Base** | **Panoramica**, **Passaggi** |
+| **Registri** | **Esecuzioni** |
+| **Proprietari** | **Proprietari** |
+| **Impostazioni** | **Trigger**, **Impostazioni** |
+| **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
+| **Avanzato** | **Registri di audit**, **Elimina runbook** |
+
 ## Un esempio completo
 
 Supponi di voler fare in modo che ogni incidente con «db-primary» nel titolo avvii un runbook di failover del database in cinque passaggi.

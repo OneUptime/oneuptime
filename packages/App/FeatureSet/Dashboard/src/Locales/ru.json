@@ -31014,5 +31014,22 @@
   "See the {{docsLink}} for every tool.": "Список всех инструментов — {{docsLink}}.",
   "Twilio account for SMS and calls": "Аккаунт Twilio для SMS и звонков",
   "Up to {{limit}} open at once": "До {{limit}} открытых одновременно",
-  "Gets nothing until they open the link we texted them.": "Ничего не получает, пока не откроет ссылку из нашего SMS."
+  "Gets nothing until they open the link we texted them.": "Ничего не получает, пока не откроет ссылку из нашего SMS.",
+  "Call transcripts": "Расшифровки звонков",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Все участники этих звонков видят, что они записываются. Убедитесь, что ваша организация это разрешает. Для Zoom также нужна запись в облако с включённой аудиорасшифровкой.",
+  "Keep what was said on every incident call, without anyone remembering to.": "Сохраняйте сказанное на каждом звонке по инциденту, не полагаясь на чью-то память.",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Звонки Microsoft Teams, хаддлы Slack и ссылки на встречи не записываются: добавляйте их расшифровки вручную.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom и Google Meet записывают и расшифровывают каждый звонок по инциденту, который запускает OneUptime. OneUptime добавляет расшифровку и кратко пересказывает её в ленте инцидента.",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime получает её из {{provider}}, когда звонок заканчивается, и OneUptime AI читает её.",
+  "Postmortem Draft Waiting Since": "Черновик постмортема ожидает с",
+  "Record and Transcribe Incident Calls": "Записывать и расшифровывать звонки по инцидентам",
+  "Record and transcribe incident calls": "Записывать и расшифровывать звонки по инцидентам",
+  "Record and transcribe incident calls?": "Записывать и расшифровывать звонки по инцидентам?",
+  "Transcript Fetch Checked At": "Получение расшифровки проверено",
+  "Transcript Fetch Next Attempt At": "Следующая попытка получить расшифровку",
+  "Transcript Fetch Reason": "Причина при получении расшифровки",
+  "Transcript Fetch Status": "Статус получения расшифровки",
+  "Video Call Summary": "Сводка видеозвонка",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Ничего не получает: ссылка для подтверждения, которую мы отправили, истекла до того, как её открыли. Подписчик может подписаться снова, или вы можете добавить его заново.",
+  "Link Expired": "Ссылка истекла"
 }

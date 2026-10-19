@@ -31014,5 +31014,22 @@
   "See the {{docsLink}} for every tool.": "所有工具请参阅 {{docsLink}}。",
   "Twilio account for SMS and calls": "用于短信和电话的 Twilio 账户",
   "Up to {{limit}} open at once": "同时最多 {{limit}} 个",
-  "Gets nothing until they open the link we texted them.": "在打开我们通过短信发送的链接之前，不会收到任何内容。"
+  "Gets nothing until they open the link we texted them.": "在打开我们通过短信发送的链接之前，不会收到任何内容。",
+  "Call transcripts": "通话转录",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "这些通话中的每个人都会看到通话正在被录制。请确认您的组织允许这样做。Zoom 还需要开启音频转录的云端录制。",
+  "Keep what was said on every incident call, without anyone remembering to.": "无需任何人记着去做，即可保留每次事件通话中所说的内容。",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams 通话、Slack huddle 和会议链接不会被录制：请手动添加它们的转录。",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom 和 Google Meet 会录制并转录 OneUptime 发起的每个事件通话。OneUptime 会添加转录，并在事件的信息流中进行总结。",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "通话结束后，OneUptime 会从 {{provider}} 获取它，并由 OneUptime AI 读取。",
+  "Postmortem Draft Waiting Since": "事后分析草稿开始等待时间",
+  "Record and Transcribe Incident Calls": "录制并转录事件通话",
+  "Record and transcribe incident calls": "录制并转录事件通话",
+  "Record and transcribe incident calls?": "录制并转录事件通话？",
+  "Transcript Fetch Checked At": "转录获取检查时间",
+  "Transcript Fetch Next Attempt At": "转录获取下次尝试时间",
+  "Transcript Fetch Reason": "转录获取原因",
+  "Transcript Fetch Status": "转录获取状态",
+  "Video Call Summary": "视频通话摘要",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "不会收到任何内容：我们发送的确认链接在打开前已过期。对方可以重新订阅，你也可以重新添加。",
+  "Link Expired": "链接已过期"
 }

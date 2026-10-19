@@ -35,7 +35,7 @@ Een trigger start een uitvoering zoals **Run Now** dat doet: de uitvoering loopt
 
 :::steps
 ### De pagina Triggers van het runbook openen
-Open het runbook via **Runbooks** en klik in het menu op **Triggers**.
+Open het runbook via **Runbooks** en klik in het zijmenu op **Instellingen → Triggers**. **Instellingen** is eerst ingeklapt: klik erop om **Triggers** te tonen.
 
 ### Het schema instellen
 Klik op **Schema instellen**. Kies onder **Wanneer het draait** een optie bij **Herhalen** en wat die nodig heeft. Het dialoogvenster zegt het schema in één zin, zoals "Draait elke werkdag om 09:00", en toont de volgende uitvoeringen terwijl je het wijzigt.
