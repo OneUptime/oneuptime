@@ -121,6 +121,7 @@ import MaterializeAttributeValuesIndex from "./MaterializeAttributeValuesIndex";
 import RemoveChatAccountLinksNotMadeBySignIn from "./RemoveChatAccountLinksNotMadeBySignIn";
 import RemoveNotificationSettingsOfNonMembers from "./RemoveNotificationSettingsOfNonMembers";
 import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkflows";
+import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
@@ -759,6 +760,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * slot AddAuditLogMcpClientColumns asserts for itself.
    */
   new MoveHuntressConnectionsToWorkflows(),
+  /*
+   * Runbook variables took the place of runbook secrets and of the
+   * credentials runbook steps used: every secret becomes a secret global
+   * variable of the same name, every credential a step names the secret
+   * variables its key, password or kubeconfig went into, and every SSH and
+   * Kubernetes step is rewritten to a script that uses them, doing what it
+   * did. The legacy secrets table and the credentials stay. After
+   * AddRunbookVariable1804050000000; idempotent; no other ordering
+   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new MoveRunbookSecretsAndCredentialsToVariables(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

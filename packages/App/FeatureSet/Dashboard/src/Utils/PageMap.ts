@@ -1200,7 +1200,12 @@ enum PageMap {
   RUNBOOKS_ROOT = "RUNBOOKS_ROOT",
   RUNBOOKS = "RUNBOOKS",
   RUNBOOKS_EXECUTIONS = "RUNBOOKS_EXECUTIONS",
-  RUNBOOKS_SECRETS = "RUNBOOKS_SECRETS",
+  /*
+   * The project's runbook variables (Runbooks > Settings > Global
+   * Variables). Runbook secrets were merged into them; their old address
+   * forwards here (MovedPagePaths).
+   */
+  RUNBOOKS_VARIABLES = "RUNBOOKS_VARIABLES",
   RUNBOOK_VIEW = "RUNBOOK_VIEW",
   RUNBOOK_VIEW_STEPS = "RUNBOOK_VIEW_STEPS",
   RUNBOOK_VIEW_EXECUTIONS = "RUNBOOK_VIEW_EXECUTIONS",
@@ -1209,6 +1214,8 @@ enum PageMap {
   RUNBOOK_VIEW_OWNERS = "RUNBOOK_VIEW_OWNERS",
   RUNBOOK_VIEW_AUDIT_LOGS = "RUNBOOK_VIEW_AUDIT_LOGS",
   RUNBOOK_VIEW_SETTINGS = "RUNBOOK_VIEW_SETTINGS",
+  // A runbook's own variables, in its Settings section.
+  RUNBOOK_VIEW_VARIABLES = "RUNBOOK_VIEW_VARIABLES",
   RUNBOOK_VIEW_DELETE = "RUNBOOK_VIEW_DELETE",
 
   // Runbook Settings (Product-level)

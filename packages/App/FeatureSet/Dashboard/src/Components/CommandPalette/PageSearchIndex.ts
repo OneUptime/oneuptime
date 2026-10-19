@@ -2453,9 +2453,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.RUNBOOKS_RUNNER_CREDENTIALS,
-            title: "Credentials",
+            title: "AI Access",
             icon: IconProp.Key,
-            keywords: ["runner credentials"],
+            keywords: ["runner credentials", "ssh hosts for ai"],
           },
         ],
       },
@@ -2463,10 +2463,15 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Settings",
         pages: [
           {
-            page: PageMap.RUNBOOKS_SECRETS,
-            title: "Secrets",
-            icon: IconProp.Lock,
-            keywords: ["runbook secrets"],
+            page: PageMap.RUNBOOKS_VARIABLES,
+            title: "Global Variables",
+            icon: IconProp.Variable,
+            keywords: [
+              "runbook variables",
+              "runbook secrets",
+              "ssh keys",
+              "kubeconfig",
+            ],
           },
           ownerRules(PageMap.RUNBOOKS_SETTINGS_OWNER_RULES),
           labelRules(PageMap.RUNBOOKS_SETTINGS_LABEL_RULES),
