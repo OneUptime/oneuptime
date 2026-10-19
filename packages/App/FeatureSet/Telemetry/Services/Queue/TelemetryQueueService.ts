@@ -1195,49 +1195,16 @@ export default class TelemetryQueueService {
     }
   }
 
-  public static async getQueueSize(): Promise<number> {
-    return Queue.getQueueSize(QueueName.Telemetry);
-  }
-
   /*
    * Telemetry queue BACKLOG (waiting + delayed) for autoscaling signals.
    * Active jobs are excluded on purpose: telemetry jobs park in the active
    * state for the fan-in writer's flush window while awaiting their
    * ClickHouse ack, so counting them makes a scaler read busy-but-healthy
-   * capacity as demand — see Queue.getQueueBacklogSize. getQueueSize above
+   * capacity as demand — see Queue.getQueueBacklogSize. Queue.getQueueSize
    * stays active-inclusive for the ingest backpressure checks, where
    * in-flight work genuinely counts against capacity.
    */
   public static async getQueueBacklogSize(): Promise<number> {
     return Queue.getQueueBacklogSize(QueueName.Telemetry);
-  }
-
-  public static async getQueueStats(): Promise<{
-    waiting: number;
-    active: number;
-    completed: number;
-    failed: number;
-    delayed: number;
-    total: number;
-  }> {
-    return Queue.getQueueStats(QueueName.Telemetry);
-  }
-
-  public static getFailedJobs(options?: {
-    start?: number;
-    end?: number;
-  }): Promise<
-    Array<{
-      id: string;
-      name: string;
-      data: JSONObject;
-      failedReason: string;
-      stackTrace?: string;
-      processedOn: Date | null;
-      finishedOn: Date | null;
-      attemptsMade: number;
-    }>
-  > {
-    return Queue.getFailedJobs(QueueName.Telemetry, options);
   }
 }

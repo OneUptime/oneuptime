@@ -182,4 +182,5 @@ Les bases de données de OneUptime ont besoin de volumes persistants. Donnez au 
 - [Mise à niveau](/docs/installation/upgrading): Les notes de mise à niveau de chaque version.
 - [Dimensionnement et planification de la capacité](/docs/installation/sizing): Dimensionner les bases de données pour votre télémétrie.
 - [Architecture](/docs/self-hosted/architecture): Ce qui s'exécute dans votre cluster.
+- [Agent Kubernetes](/docs/telemetry/kubernetes-agent#installer-en-tant-que-module-complémentaire-amazon-eks): Gratuit sur AWS Marketplace également, en tant que module complémentaire Amazon EKS, pour les clusters qui envoient leurs données à OneUptime.
 :::

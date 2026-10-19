@@ -33,6 +33,12 @@ spec:
         {{- end }}
         appname: oneuptime
     spec:
+      {{- /*
+      The shared Runner never calls the Kubernetes API (runbooks and AI
+      kubectl commands are off in cluster scope), so its pod carries no
+      ServiceAccount token. The runner-minimal-env chart test holds this.
+      */}}
+      automountServiceAccountToken: false
       {{- if $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
@@ -51,9 +57,10 @@ spec:
       hostAliases:
         {{- toYaml $.Values.hostAliases | nindent 8 }}
       {{- end }}
-      {{- if $.Values.affinity }}
-      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- with ($.Values.runner.affinity | default $.Values.affinity) }}
+      affinity: {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- include "oneuptime.topologySpreadConstraints" (dict "ServiceName" "runner" "Constraints" $.Values.runner.topologySpreadConstraints "Release" $.Release "Values" $.Values "Capabilities" $.Capabilities) | nindent 6 }}
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
@@ -110,7 +117,18 @@ spec:
             - name: ENABLE_PROFILING
               value: {{ $.Values.runner.enableProfiling | quote }}
             {{- end }}
-            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+            {{- /*
+            The shared in-cluster Runner serves AI code fixes for every project
+            that has no Runner of its own, so it holds only what it needs: its
+            OneUptime URL, its keys and its telemetry settings. It reaches the
+            server over HTTP with ONEUPTIME_SECRET (its cluster key) and
+            ONEUPTIME_RUNNER_KEY, and the server mediates its LLM calls, so none
+            of the server's own settings belong in this container. It takes
+            oneuptime.env.oneuptimeSecret (the cluster key alone), never
+            oneuptime.env.runtime (the app's whole environment). The
+            runner-minimal-env chart test holds this.
+            */}}
+            {{- include "oneuptime.env.oneuptimeSecret" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             {{- with (default $.Values.extraEnv $.Values.runner.extraEnv) }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

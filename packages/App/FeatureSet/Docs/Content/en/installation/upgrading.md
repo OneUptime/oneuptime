@@ -1344,6 +1344,123 @@ API, SSO, or the Slack and Microsoft Teams apps.
   check that it sends `X-Forwarded-Proto`, as Caddy and the Nginx example in
   [Set up HTTPS](/docs/installation/docker-compose#set-up-https) do. An
   installation served over plain HTTP (`HTTP_PROTOCOL=http`) sees no change.
+- **OneUptime refuses a placeholder `ONEUPTIME_SECRET`.** OneUptime's own
+  services prove to each other that a call comes from one of them with
+  `ONEUPTIME_SECRET`, and a value the repository ships for it is now refused
+  from every caller: unset, `secret`, or a placeholder from
+  `config.example.env` (they all contain `please-change-this`). An
+  installation that kept one needs no change for its app and workers: they
+  call each other with a key derived from the installation's own token
+  signing key instead. `npm start` and `npm run update` now give
+  `ONEUPTIME_SECRET` a random value in `config.env` when it still holds a
+  placeholder, so the bundled Runner keeps registering. If you start the
+  containers another way, or set `oneuptimeSecret` to a placeholder in Helm,
+  set `ONEUPTIME_SECRET` to a long random value, the same for the app and
+  the Runner, as
+  [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows: until then the Runner logs what to set and does not register. An
+  installation that set its own `ONEUPTIME_SECRET` sees no change.
+- **OneUptime's own services send `ONEUPTIME_SECRET` in a header, and only to
+  the routes that take it.** Those routes read it from the `clusterkey`
+  request header alone. A request whose URL carries it is refused, and a body
+  is read for it only by the in-cluster Runner's registration, so a Runner of
+  an earlier release still registers while the app logs that it should be
+  updated. The routes that nothing in OneUptime called are removed: the queue
+  statistics and failed jobs (`GET .../queue/stats`, `GET .../queue/size`,
+  `GET .../queue/failed`) and the pending monitors
+  (`GET /monitor/pending-count/...`, `GET /monitor/pending-list/...`). The
+  support bundle in the Admin Dashboard shows the queues. A script of yours
+  that calls a route with `ONEUPTIME_SECRET` sends it in the `clusterkey`
+  header now, and if it ever put it in a URL, change `ONEUPTIME_SECRET` on the
+  app and the Runner. An installation's own services need no change, during a
+  rolling upgrade too.
+- **PostgreSQL answers only on the server itself, and a new install starts
+  with a database password of its own.** `docker-compose.yml` published
+  PostgreSQL's port 5400 on every address of the server. It is now published
+  on `127.0.0.1` only, where `npm run backup` and `restore.sh` reach it as
+  before, and the development stack publishes its PostgreSQL, ClickHouse and
+  Valkey ports the same way. Anything on another machine that connected to
+  port 5400 now needs an SSH tunnel, or a private address published as
+  [Back up and restore](/docs/installation/docker-compose#back-up-and-restore)
+  shows. On a new install, `npm start` replaces a `DATABASE_PASSWORD` still at
+  its `config.example.env` placeholder with a random value
+  before PostgreSQL creates its database. An installation whose database
+  already exists keeps its password, and `npm start` warns while that is the
+  placeholder:
+  [Change the database password](/docs/installation/docker-compose#change-the-database-password)
+  shows how to change it. If you commented out the port line in
+  `docker-compose.yml`, `git pull` stops at that file: run
+  `git checkout docker-compose.yml`, then pull again. Helm installs see no
+  change.
+- **The bundled Runner no longer runs a repository's commands, and holds only
+  what it needs.** The Runner that Docker Compose (its `runner` service) and the
+  Helm chart (`runner.enabled`) start serves AI code fixes for every project
+  without a Runner of its own. It no longer runs a code repository's setup,
+  build and test commands, and its code agent has no command tool: the fix is
+  written, the pull request opens with its verification shown as skipped, and
+  your repository's own CI checks the change. It also starts with only its
+  OneUptime URL, its keys and its telemetry settings instead of the app's whole
+  environment; settings you gave it through `runner.extraEnv` or a Compose
+  override stay. To have fixes built and tested before the pull request opens,
+  [run a Runner of your own](/docs/ai/ai-agent#run-a-runner-of-your-own): it
+  verifies them as before. Runners you installed yourself see no change.
+- **Wrong two-factor codes are counted for the account, wherever they come
+  from.** Once a sign-in's password is right, every wrong authenticator code
+  is counted for that account, from whatever address or network it is
+  entered: after five in a row, each next code waits before it is checked,
+  one minute at first and twice as long after each wrong code, up to an
+  hour. Backup codes have a count of their own, so wrong authenticator codes
+  never hold them, and a security key is never held. The account's owner is
+  emailed when the waits begin, at most once a day. A sign-in that gets its
+  code right, a new password, or a master admin's reset of two-factor
+  authentication ends the wait, and wrong codes are forgotten a day after
+  the last one. Someone who gets their code right within five tries sees no
+  change. See [Your Account](/docs/introduction/your-account).
+- **A global probe and the bundled Runner no longer authenticate with a key
+  the repository ships.** A global probe runs the monitors of every project on
+  the installation, and the bundled Runner serves AI code fixes for every
+  project, so the keys they present must be the installation's own, never a
+  value that is public in the OneUptime repository. `REGISTER_PROBE_KEY` (which
+  registers a global probe), a global probe's own key (`GLOBAL_PROBE_1_KEY`,
+  `GLOBAL_PROBE_2_KEY`) and the Runner's `ONEUPTIME_RUNNER_KEY` are now refused
+  when unset, `secret`, or a placeholder from `config.example.env` (they all
+  contain `please-change-this`). `npm start` and `npm run update` give each of
+  these a random value in `config.env` when it still holds a placeholder, and
+  the bundled probe re-registers under its new key without losing its monitors.
+  The Helm chart already generates random values for all of them. If you start
+  the containers another way, or run a global probe or the in-cluster Runner
+  with one of these keys set to a placeholder, set it to a long random value,
+  as [Generate random secrets](/docs/installation/docker-compose#generate-random-secrets)
+  shows: until then that probe or Runner cannot register. Custom probes and
+  Runners you installed yourself, which already have their own keys, and an
+  installation that set its own keys, see no change.
+- **Probes, Runners, the infrastructure agent and OneUptime's own services
+  follow redirects only on the server they call.** A request that carries one
+  of their keys follows a redirect to the same address, or to that address
+  moved from `http` to `https`, and nowhere else: a redirect to another server
+  fails the request, with an error that names that server. If your OneUptime
+  address redirects to another host name, such as an old domain to a new one,
+  set `ONEUPTIME_URL` on your probes and Runners, and the infrastructure
+  agent's `--oneuptime-url`, to the address it redirects to. An address that
+  answers directly, or only moves from `http` to `https`, sees no change.
+- **The bundled ClickHouse and Valkey get passwords of their own.** When
+  `CLICKHOUSE_PASSWORD` or `VALKEY_PASSWORD` in `config.env` is still the
+  `config.example.env` placeholder, `npm start` and `npm run update` now give
+  it a random value, on an existing install too. That is done only while
+  `CLICKHOUSE_HOST` or `VALKEY_HOST` names the ClickHouse or Valkey that Docker
+  Compose runs: both take their password each time they start, so the same
+  start recreates them with the new one, and ClickHouse keeps its data. A tool
+  of your own that signs in to either needs the new value from `config.env`. A
+  placeholder for a ClickHouse or cache you run elsewhere is left as it is, and
+  `npm start` says so. At startup, the app now also warns when
+  `REGISTER_PROBE_KEY` is unset or a value the repository ships, or a datastore
+  password is one. A probe's, a Runner's or an AI agent's key can no longer be
+  set to such a value, and a Runner of yours that has one stops connecting
+  until you reset its key in the dashboard and give the Runner the new one.
+  With Helm and the Altinity operator (`clickhouseOperator.altinity.enabled`),
+  a new install gives the operator's own ClickHouse user a random password
+  instead of the one its chart ships to every installation. An existing install
+  keeps its password, and `helm upgrade` says how to change it.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

@@ -5,6 +5,7 @@ import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import Runner from "Common/Models/DatabaseModels/Runner";
+import { getIpv6NetworkRateLimit } from "Common/Server/Utils/ClientIp";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -2023,7 +2024,7 @@ describe("runbook triggers", () => {
       `is nested more than ${RUNBOOK_INPUTS_MAX_DEPTH} levels deep`,
     );
     expect(TRIGGERS).toContain(
-      `The webhook started ${RUNBOOK_WEBHOOK_RUNS_PER_MINUTE} runs in the last minute, ${RUNBOOK_WEBHOOK_MAX_ACTIVE_RUNS} of its runs are still going, or one address made more than ${RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE} calls to runbook webhooks in a minute.`,
+      `The webhook started ${RUNBOOK_WEBHOOK_RUNS_PER_MINUTE} runs in the last minute, ${RUNBOOK_WEBHOOK_MAX_ACTIVE_RUNS} of its runs are still going, or one address made more than ${RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE} calls to runbook webhooks in a minute, or the addresses of one IPv6 /64 more than ${getIpv6NetworkRateLimit(RUNBOOK_WEBHOOK_CALLS_PER_ADDRESS_PER_MINUTE)} together.`,
     );
     expect(TRIGGERS).toContain(
       `The key is ${RUNBOOK_WEBHOOK_SECRET_KEY_LENGTH} random characters`,

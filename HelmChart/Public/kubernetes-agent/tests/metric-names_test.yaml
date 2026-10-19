@@ -7,12 +7,17 @@
 # chart and alert built on those names watched a series that never arrived.
 #
 # These assertions keep that premise true: neither collector config runs a
-# processor that changes a metric's NAME. The only metric statements the
-# DaemonSet runs set a resource attribute (service.name). If a rename is ever
-# wanted, add it here deliberately and update
+# processor that changes a metric's NAME, with one exception, pinned below.
+# The kubeletstats receiver stopped sending k8s.node.cpu.utilization,
+# k8s.pod.cpu.utilization and container.cpu.utilization (collector 0.125.0),
+# and OneUptime reads them, so the node collector's transform/cpu-utilization
+# sends them again from *.cpu.usage: two copies and one rename, back to the
+# names collector 0.96.0 sent. Every other metric statement sets a resource
+# attribute (service.name). If another rename is ever wanted, add it here
+# deliberately and update
 # packages/Common/Tests/Types/Monitor/Utils/KubernetesAgentEmittedMetrics.ts,
 # which lists the names the Common tests pin to.
-suite: collectors forward receiver metric names unrenamed
+suite: collectors forward receiver metric names, renaming only kubelet CPU
 release:
   name: oneuptime-agent
   namespace: oneuptime
@@ -36,16 +41,20 @@ tests:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "metricstransform"
-      # transform/severity is logs-only; no metric statement runs here.
+      # transform/severity is logs-only, and the only metric statements here
+      # (transform/pod-level-*) work on resource attributes.
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "metric_statements"
+          pattern: "context:\\s*(metric|datapoint)\\b"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "copy_metric\\(|set\\(\\s*(metric\\.)?name\\s*,"
       # A `metrics:` override under k8s_cluster could switch these off.
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "k8s\\.(deployment|statefulset)\\.[a-z_]+:\\s*\\n\\s*enabled:"
 
-  - it: the node collector's metric statements touch resource attributes only
+  - it: the node collector renames only kubelet CPU, back to the names OneUptime reads
     templates:
       - templates/configmap-daemonset.yaml
     set:
@@ -57,12 +66,28 @@ tests:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "metricstransform"
-      # OTTL renames a metric with `set(name, ...)` / `set(metric.name, ...)`
-      # in the metric context; the DaemonSet's transform runs in the
-      # resource context only.
+      # The receiver's own *.cpu.utilization (0.96.0 still sends them) go
+      # first, so the copies never double them...
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/cpu-utilization:\\n    error_mode: ignore\\n    metrics:\\n      metric:\\n        - 'name == \"k8s\\.node\\.cpu\\.utilization\" or name == \"k8s\\.pod\\.cpu\\.utilization\"'\\n"
+      # ...then these five statements are the whole of it: node and pod CPU
+      # copied (the *.cpu.usage originals stay), container CPU renamed.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/cpu-utilization:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: metric\\n        statements:\\n          - copy_metric\\(name=\"k8s\\.node\\.cpu\\.utilization\", description=\"Node CPU utilization\", unit=\"1\"\\) where name == \"k8s\\.node\\.cpu\\.usage\"\\n          - copy_metric\\(name=\"k8s\\.pod\\.cpu\\.utilization\", description=\"Pod CPU utilization\", unit=\"1\"\\) where name == \"k8s\\.pod\\.cpu\\.usage\"\\n          - set\\(description, \"Container CPU utilization\"\\) where name == \"container\\.cpu\\.usage\"\\n          - set\\(unit, \"1\"\\) where name == \"container\\.cpu\\.usage\"\\n          - set\\(name, \"container\\.cpu\\.utilization\"\\) where name == \"container\\.cpu\\.usage\"\\n\\n"
+      # No other metric-context statements, copies or renames anywhere.
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "context:\\s*(metric|datapoint)\\b"
+          pattern: "context:\\s*(metric|datapoint)\\b[\\s\\S]*context:\\s*(metric|datapoint)\\b"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "set\\(\\s*(metric\\.)?name\\s*,"
+          pattern: "copy_metric\\([\\s\\S]*copy_metric\\([\\s\\S]*copy_metric\\("
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "set\\(\\s*(metric\\.)?name\\s*,[\\s\\S]*set\\(\\s*(metric\\.)?name\\s*,"
+      # Ahead of everything that reads a metric's name, the telemetry
+      # filters (filters.metrics) included, filter before transform.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      processors:\\n        - memory_limiter\\n        # In this order: the filter clears the way for the copies\\.\\n        - filter/cpu-utilization\\n        - transform/cpu-utilization\\n(?:        #[^\\n]*\\n)*        - transform/pod-level-mark\\n        - k8sattributes\\n"

@@ -28,7 +28,7 @@ flowchart TB
 | روش | مناسب برای | نمونه‌ها |
 | --- | --- | --- |
 | یک اتصال داخلی | ابزارهایی که OneUptime خودش به آن‌ها وصل می‌شود. یک فرم را پر می‌کنید و چیزی برای ساختن نیست. | [Slack](/docs/workspace-connections/slack)، [Microsoft Teams](/docs/workspace-connections/microsoft-teams)، اتصال‌های [رویدادهای امنیتی](/docs/telemetry/security-events) |
-| یک قالب گردش کاری | ابزارهای تیکت که در هر دو جهت هماهنگ نگه داشته می‌شوند، گزارش‌های حادثه امنیتی و پیام‌های گفتگو. یک قالب برمی‌دارید و چند تنظیم را پر می‌کنید. | [Jira](/docs/integrations/jira)، [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)، [Huntress](/docs/integrations/huntress) |
+| یک قالب گردش کاری | ابزارهای تیکت که در هر دو جهت هماهنگ نگه داشته می‌شوند، مشکل‌های پایش، گزارش‌های حادثه امنیتی و پیام‌های گفتگو. یک قالب برمی‌دارید و چند تنظیم را پر می‌کنید. | [Jira](/docs/integrations/jira)، [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)، [Huntress](/docs/integrations/huntress)، [Zabbix](/docs/integrations/zabbix) |
 | یک مانیتور Incoming Request | ابزارهای هشداردهی که وب‌هوک می‌فرستند. برای هر هشدار یک حادثه می‌گیرید که آنکال را فرا می‌خواند و با بهبود هشدار رفع می‌شود، بدون هیچ گردش کاری. | [Zabbix](/docs/integrations/zabbix)، [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)، [Grafana](/docs/integrations/grafana) |
 | گردش کاری‌ای که خودتان می‌سازید | هر ابزاری که وب‌هوک یا REST API دارد، و هر منطقی از خودتان. | [PagerDuty](/docs/integrations/pagerduty)، [Opsgenie](/docs/integrations/opsgenie)، [ServiceNow](/docs/integrations/servicenow) |
 
@@ -40,7 +40,7 @@ flowchart TB
 
 | ابزار | جهت | کاری که می‌کند |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | ورودی | مشکل‌های Zabbix را به حادثه تبدیل می‌کند، و وقتی Zabbix بهبود را اعلام کند آن‌ها را رفع می‌کند. |
+| [Zabbix](/docs/integrations/zabbix) | هر دو | مشکل‌های Zabbix را به حادثه یا هشدار تبدیل می‌کند، در بهبود آن‌ها را رفع می‌کند، و مشکل‌ها را از OneUptime تأیید یا بسته می‌کند. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | ورودی | اعلان‌های Alertmanager را به حادثه تبدیل می‌کند. |
 | [Grafana](/docs/integrations/grafana) | ورودی | هشدارهای Grafana را به حادثه تبدیل می‌کند. |
 | [Datadog](/docs/integrations/datadog) | ورودی | هشدارهای مانیتورهای Datadog را به حادثه تبدیل می‌کند. |

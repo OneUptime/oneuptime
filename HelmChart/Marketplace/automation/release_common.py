@@ -15,7 +15,9 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 HERE: Path = Path(__file__).resolve().parent
 MARKETPLACE_DIR: Path = HERE.parent
 EDITIONS_FILE: Path = MARKETPLACE_DIR / "editions.json"
-MARKETPLACES: Tuple[str, ...] = ("aws", "azure", "google-cloud")
+# Where the workflow ships: the three listings of OneUptime Enterprise, and the free Kubernetes
+# agent's Amazon EKS add-on, a product of its own on AWS Marketplace.
+MARKETPLACES: Tuple[str, ...] = ("aws", "azure", "google-cloud", "aws-eks-addon")
 VERSION_PATTERN: re.Pattern = re.compile(r"^\d+\.\d+\.\d+$")
 
 # What each edition needs, besides "ready", before anything is pushed or submitted.
@@ -30,6 +32,7 @@ REQUIRED_FIELDS: Dict[str, Tuple[str, ...]] = {
         "bundleRepository",
     ),
     "google-cloud": ("registry", "serviceName"),
+    "aws-eks-addon": ("registry", "productId", "sellerAlias"),
 }
 
 

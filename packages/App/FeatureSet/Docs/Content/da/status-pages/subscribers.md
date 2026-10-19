@@ -78,6 +78,40 @@ Siden **Abonner** har en undermenu med én fane pr. slået-til kanal; med kun é
 
 Indsendelsesknappen hedder **Abonner**. En tilmelding via SMS, Slack, Microsoft Teams eller webhook viser *Du er blevet tilmeldt.* En tilmelding via e-mail siger, at der er sendt et bekræftelseslink, og at man skal tjekke spam-mappen, hvis det ikke kommer (se [Dobbelt bekræftelse på e-mail](#dobbelt-bekræftelse-på-e-mail)). Fanerne **E-mail**, **SMS**, **Slack** og **MS Teams** har også opdelingen **Nyt abonnement** / **Administrer eksisterende abonnement**, så en, der allerede har tilmeldt sig, kan komme tilbage til sine præferencer uden at lede efter en gammel besked.
 
+## Grænser for tilmeldinger og links
+
+Hver tilmelding sender straks sin kontakt en besked, en bekræftelsesmail, en SMS, en Slack- eller Microsoft Teams-besked eller et webhook-kald, og det gør **Send administrationslink** også. For at ingen kan bruge en statusside til at sende beskeder til folk, der ikke har bedt om dem, eller til at drive dit projekts SMS-udgifter op, er begge begrænset for hver besøgendes netværk og for hver kontakt. Grænserne ligger langt over, hvad folk gør: et helt kontor kan tilmelde sig sammen under en hændelse.
+
+| Hvad er begrænset | Grænse |
+| --- | --- |
+| Tilmeldinger fra ét netværk | 60 på 15 minutter |
+| Tilmeldinger og administrationslinks via SMS fra ét netværk, tilsammen | 10 på 15 minutter |
+| Administrationslinks, der bedes om fra ét netværk | 30 på 15 minutter |
+| Tilmeldinger af én e-mailadresse, ét telefonnummer, én Slack- eller Microsoft Teams-kanal eller én webhook, på alle statussider tilsammen | 10 på en time |
+| Administrationslinks til én e-mailadresse eller ét telefonnummer på alle statussider tilsammen, eller til ét Slack- eller Microsoft Teams-arbejdsområdenavn på én statusside | 5 på en time |
+
+Når en grænse er nået, svarer API'et `429` med en `Retry-After`-header i sekunder, og den besøgende får at vide, at der var for mange tilmeldinger eller links fra deres netværk eller til den kontakt, og at de skal prøve igen senere. Intet oprettes eller sendes, og dit projekt mærker intet til det: ingen abonnent tilføjes, og ingen besked sendes eller betales. Grænserne for administrationslinks tæller hver anmodning, uanset om et abonnement passer eller ej, så de kan ikke bruges til at finde ud af, hvem der abonnerer. En e-mailadresse tælles, uanset hvordan den er skrevet, med store bogstaver, med et `+tag` eller, for Gmail, med punktummer, og et telefonnummer, uanset hvordan det er tastet. En tilmelding tager én e-mailadresse: en liste af adresser afvises.
+
+Hver grænse pr. netværk tæller også adresserne i ét IPv6 /64 sammen, med ti gange sit tal. Tidsvinduerne er faste, ikke glidende. Hvis hastighedsbegrænseren ikke kan nås, fortsætter tilmeldinger og administrationslinks via e-mail, Slack, Microsoft Teams og webhook uden at blive talt, og dem via SMS afvises med `503`, indtil den er tilbage, fordi hver SMS koster penge. At ændre eller opsige et abonnement fra dets eget link er aldrig begrænset, og det er det heller ikke, når dit team tilføjer abonnenter på dashboardet eller via API'et.
+
+En privat bruger, der beder om et link til nulstilling af adgangskode på statussidens loginside, er begrænset på samme måde: 5 nulstillingsmails til én adresse på en time, på alle statussider tilsammen, og 30 fra ét netværk på 15 minutter.
+
+På en selvhostet installation ændrer disse miljøvariabler i OneUptime-appen grænserne:
+
+| Variabel | Standard | Hvad den angiver |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | Tidsvinduet for grænserne pr. netværk, i sekunder. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | Tidsvinduet for grænserne pr. kontakt, i sekunder. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Tilmeldinger fra én adresse pr. tidsvindue. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Tilmeldinger og administrationslinks via SMS fra én adresse pr. tidsvindue, tilsammen. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Administrationslinks, der bedes om fra én adresse pr. tidsvindue. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Tilmeldinger af én kontakt pr. tidsvindue. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Administrationslinks til én kontakt pr. tidsvindue. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Nulstillinger af adgangskode for private brugere, der bedes om fra én adresse pr. tidsvindue. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Nulstillingsmails for private brugere til én adresse pr. tidsvindue. |
+
+Hverken `config.env` eller Helm-chartets værdier sender dem videre: tilføj dem selv til miljøet for containeren `app`, med `app.extraEnv`, eller chartets fælles `extraEnv`, i Helm-chartet, eller i en `docker-compose.override.yml` til Docker Compose. `TRUSTED_PROXY_HOPS` bestemmer, hvilken adresse grænserne pr. netværk tæller.
+
 ## Lad abonnenter vælge ressourcer og hændelsestyper
 
 Som standard får en abonnent alt på siden. To kontakter på kortet **Valg for abonnenter** under **Abonnementsindstillinger** ændrer det, og hver gemmes, så snart du slår den om:

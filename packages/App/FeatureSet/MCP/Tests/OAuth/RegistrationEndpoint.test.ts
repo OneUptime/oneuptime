@@ -605,6 +605,55 @@ describe("POST /mcp/oauth/register", () => {
 
       expect(harness.rateLimitKeys()).toHaveLength(0);
     });
+
+    /*
+     * One IPv6 host can register from every address of its /64. Counted per
+     * address alone, each address was a fresh sixty; the /64 is counted as
+     * well, with room for ten addresses.
+     */
+    it("holds a host registering from address after address of one IPv6 /64 to ten addresses' worth", async () => {
+      const hostOf: (index: number, prefix?: string) => string = (
+        index: number,
+        prefix: string = "2001:db8:5:6",
+      ): string => {
+        return `${prefix}::${index.toString(16)}`;
+      };
+
+      let created: number = 0;
+      let refused: HttpResult | undefined = undefined;
+
+      for (let index: number = 1; index <= 610; index++) {
+        const response: HttpResult = await harness.request(REGISTER_PATH, {
+          json: VALID_BODY,
+          // As our Nginx forwards it: the address it saw, last.
+          headers: { "X-Forwarded-For": hostOf(index) },
+        });
+
+        if (response.status === 201) {
+          created++;
+        } else {
+          refused = response;
+        }
+      }
+
+      expect(created).toBe(600);
+      expect(harness.store.count("client")).toBe(600);
+      expect(refused?.status).toBe(429);
+      expect(refused?.json).toEqual({
+        error: "too_many_requests",
+        error_description: "Too many requests. Please try again later.",
+      });
+
+      // Another /64 registers as before.
+      expect(
+        (
+          await harness.request(REGISTER_PATH, {
+            json: VALID_BODY,
+            headers: { "X-Forwarded-For": hostOf(1, "2001:db8:5:7") },
+          })
+        ).status,
+      ).toBe(201);
+    }, 60000);
   });
 
   describe("when OAuth is switched off", () => {

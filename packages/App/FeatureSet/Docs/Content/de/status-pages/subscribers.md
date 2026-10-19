@@ -78,6 +78,40 @@ Die Seite **Abonnieren** hat ein Untermenü mit einem Reiter je aktiviertem Kana
 
 Der Absendeknopf heißt **Abonnieren**. Eine Anmeldung per SMS, Slack, Microsoft Teams oder Webhook zeigt *Sie wurden erfolgreich abonniert.* Eine Anmeldung per E-Mail sagt, dass ein Bestätigungslink verschickt wurde, und dass man den Spam-Ordner prüfen soll, wenn er nicht ankommt (siehe [Double Opt-in per E-Mail](#double-opt-in-per-e-mail)). Die Reiter **E-Mail**, **SMS**, **Slack** und **MS Teams** tragen außerdem die Aufteilung **Neues Abonnement** / **Bestehendes Abonnement verwalten**, sodass jemand, der bereits abonniert hat, zu seinen Einstellungen zurückfindet, ohne eine alte Nachricht suchen zu müssen.
 
+## Grenzen für Anmeldungen und Links
+
+Jede Anmeldung schickt ihrem Kontakt sofort eine Nachricht, eine Bestätigungs-E-Mail, eine SMS, eine Slack- oder Microsoft-Teams-Nachricht oder einen Webhook-Aufruf, und **Verwaltungslink senden** tut das auch. Damit niemand eine Statusseite nutzen kann, um Menschen Nachrichten zu schicken, die nicht darum gebeten haben, oder um die SMS-Kosten Ihres Projekts in die Höhe zu treiben, sind beide für das Netzwerk jedes Besuchers und für jeden Kontakt begrenzt. Die Grenzen liegen weit über dem, was Menschen tun: Ein ganzes Büro kann sich während eines Vorfalls gemeinsam anmelden.
+
+| Was begrenzt ist | Grenze |
+| --- | --- |
+| Anmeldungen aus einem Netzwerk | 60 in 15 Minuten |
+| Anmeldungen und Verwaltungslinks per SMS aus einem Netzwerk, zusammen | 10 in 15 Minuten |
+| Verwaltungslinks, die aus einem Netzwerk angefordert werden | 30 in 15 Minuten |
+| Anmeldungen einer E-Mail-Adresse, einer Telefonnummer, eines Slack- oder Microsoft-Teams-Kanals oder eines Webhooks, auf allen Statusseiten zusammen | 10 in einer Stunde |
+| Verwaltungslinks für eine E-Mail-Adresse oder Telefonnummer auf allen Statusseiten zusammen, oder für einen Slack- oder Microsoft-Teams-Arbeitsbereichsnamen auf einer Statusseite | 5 in einer Stunde |
+
+Ist eine Grenze überschritten, antwortet die API mit `429` und einem Header `Retry-After` in Sekunden, und dem Besucher wird gesagt, dass es zu viele Anmeldungen oder Links aus seinem Netzwerk oder für diesen Kontakt gab und er es später erneut versuchen soll. Nichts wird erstellt oder gesendet, und Ihr Projekt bemerkt nichts davon: Kein Abonnent wird hinzugefügt, und keine Nachricht wird gesendet oder bezahlt. Die Grenzen für Verwaltungslinks zählen jede Anfrage, ob ein Abonnement passt oder nicht, sodass sich damit nicht herausfinden lässt, wer abonniert hat. Eine E-Mail-Adresse wird gezählt, wie auch immer sie geschrieben ist, in Großbuchstaben, mit einem `+tag` oder, bei Gmail, mit Punkten, und eine Telefonnummer, wie auch immer sie eingegeben ist. Eine Anmeldung nimmt eine E-Mail-Adresse: Eine Liste von Adressen wird abgelehnt.
+
+Jede Grenze pro Netzwerk zählt außerdem die Adressen eines IPv6-/64 zusammen, mit dem Zehnfachen ihres Werts. Die Zeitfenster sind fest, nicht gleitend. Ist die Ratenbegrenzung nicht erreichbar, gehen Anmeldungen und Verwaltungslinks per E-Mail, Slack, Microsoft Teams und Webhook ungezählt weiter, und solche per SMS werden mit `503` abgelehnt, bis sie wieder da ist, weil jede SMS bezahlt wird. Ein Abonnement über seinen eigenen Link zu ändern oder zu kündigen, ist nie begrenzt, und ebenso wenig, dass Ihr Team Abonnenten im Dashboard oder über die API hinzufügt.
+
+Ein privater Benutzer, der auf der Anmeldeseite der Statusseite einen Link zum Zurücksetzen des Passworts anfordert, ist genauso begrenzt: 5 Rücksetz-E-Mails an eine Adresse in einer Stunde, auf allen Statusseiten zusammen, und 30 aus einem Netzwerk in 15 Minuten.
+
+Auf einer selbst gehosteten Installation ändern diese Umgebungsvariablen der OneUptime-App die Grenzen:
+
+| Variable | Standard | Was sie festlegt |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | Das Zeitfenster der Grenzen pro Netzwerk, in Sekunden. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | Das Zeitfenster der Grenzen pro Kontakt, in Sekunden. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Anmeldungen von einer Adresse pro Zeitfenster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Anmeldungen und Verwaltungslinks per SMS von einer Adresse pro Zeitfenster, zusammen. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Verwaltungslinks, die von einer Adresse pro Zeitfenster angefordert werden. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Anmeldungen eines Kontakts pro Zeitfenster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Verwaltungslinks für einen Kontakt pro Zeitfenster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Passwort-Zurücksetzungen privater Benutzer, die von einer Adresse pro Zeitfenster angefordert werden. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Rücksetz-E-Mails privater Benutzer an eine Adresse pro Zeitfenster. |
+
+Weder `config.env` noch die Werte des Helm-Charts reichen sie weiter: Fügen Sie sie selbst der Umgebung des Containers `app` hinzu, im Helm-Chart mit `app.extraEnv` oder dem chartweiten `extraEnv`, oder bei Docker Compose in einer `docker-compose.override.yml`. `TRUSTED_PROXY_HOPS` entscheidet, welche Adresse die Grenzen pro Netzwerk zählen.
+
 ## Abonnenten Ressourcen und Ereignistypen wählen lassen
 
 Standardmäßig bekommt ein Abonnent alles auf der Seite. Zwei Schalter in der Karte **Auswahl für Abonnenten** auf **Abonnenten-Einstellungen** ändern das, und jeder speichert in dem Moment, in dem Sie ihn umlegen:

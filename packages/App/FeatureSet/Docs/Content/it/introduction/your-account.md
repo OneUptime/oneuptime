@@ -148,6 +148,10 @@ Accedere di nuovo invia un nuovo link: controlla anche la cartella dello spam. S
 Al secondo passaggio dell'accesso, scegli **Hai perso l'accesso alla tua app di autenticazione?** e inserisci uno dei tuoi codici di backup. Poi apri **Sicurezza → Two-factor authentication** e aggiungi la nuova app. Senza codici di backup, chiedi a un amministratore della tua installazione di OneUptime di reimpostare l'autenticazione a due fattori del tuo account.
 :::
 
+:::details L'accesso mi chiede di aspettare prima di provare un altro codice
+Dopo cinque codici sbagliati di fila, ogni codice successivo attende prima di essere controllato: un minuto, poi due, poi quattro e così via, fino a un'ora. OneUptime conta i codici sbagliati del tuo account da qualunque luogo vengano inseriti, ti invia un'e-mail quando iniziano le attese e ricomincia a contare quando inserisci un codice giusto. Aspetta e riprova, accedi con una chiave di sicurezza, oppure scegli **Hai perso l'accesso alla tua app di autenticazione?** e inserisci un codice di backup. Se non hai inserito tu quei codici, qualcuno conosce la tua password: reimpostala con **Password dimenticata?** nella pagina di accesso, il che pone fine anche all'attesa.
+:::
+
 :::details Gli orari nella dashboard sono sfasati di un'ora
 La dashboard mostra gli orari nel **Fuso orario** del tuo profilo, non in quello del tuo computer. Controllalo in **Profilo utente → Panoramica**.
 :::

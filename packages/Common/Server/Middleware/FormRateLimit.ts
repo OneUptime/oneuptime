@@ -7,6 +7,9 @@ import {
 } from "../Utils/Express";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import resolveTrustedClientIp, { ClientIpRequestLike } from "../Utils/ClientIp";
+import ClientRateLimitCounter, {
+  ClientRateLimitRefusal,
+} from "../Utils/RateLimit/ClientRateLimitCounter";
 import Response from "../Utils/Response";
 import ObjectID from "../../Types/ObjectID";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
@@ -75,6 +78,14 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * Every counter is incremented on each request that reaches it, including
  * one it rejects, so a client that keeps hammering keeps its window pinned
  * rather than being handed a fresh allowance for free.
+ *
+ * For an IPv6 client the first two are kept for its /64 as well, with room
+ * for ten addresses (ClientRateLimitCounter): one host can send from every
+ * address of its /64, and would otherwise take a fresh allowance from each.
+ * The /64 counters count only the requests the address counters let
+ * through, so one address over its own limit never spends the allowance of
+ * the people beside it, and a /64 already over its limit is refused before
+ * anything is counted.
  */
 export enum FormRateLimitScope {
   FormAndIp = "form-and-ip",
@@ -104,6 +115,12 @@ export interface FormRateLimitDecision {
 
   // Which counter rejected, for logs and the message. Unset unless rejected.
   scope?: FormRateLimitScope | undefined;
+
+  /*
+   * The client's IPv6 /64 when the addresses of that /64 together went over
+   * the counter's limit, rather than the client's own address. For logs.
+   */
+  ipv6Network64?: string | undefined;
 
   /*
    * True only on the request that first crossed the line in this window.
@@ -415,44 +432,46 @@ export default class FormRateLimit {
       config.windowSeconds,
     );
 
-    const formAndIpCounterKey: string = `${keyPrefix}fi:${data.formKey}:${data.clientIp}:${windowIndex}`;
-    const ipCounterKey: string = `${keyPrefix}i:${data.clientIp}:${windowIndex}`;
-
     try {
-      const addressCounts: Array<number> =
-        await FormRateLimit.incrementCounters({
-          client,
-          keys: [formAndIpCounterKey, ipCounterKey],
-          windowSeconds: config.windowSeconds,
-        });
-
-      const formAndIpCount: number = addressCounts[0] ?? 0;
-      const ipCount: number = addressCounts[1] ?? 0;
-
       /*
+       * Counted by ClientRateLimitCounter: under the client's address, and
+       * for an IPv6 client under its /64 as well.
+       *
        * The per-form + address counter is reported first when both are over:
        * it is the more specific of the two and the more useful thing to see
        * in a log line.
        */
-      if (formAndIpCount > config.perFormAndIpLimit) {
-        return FormRateLimit.rejected({
-          scope: FormRateLimitScope.FormAndIp,
-          count: formAndIpCount,
-          limit: config.perFormAndIpLimit,
-          windowSeconds: config.windowSeconds,
+      const refusal: ClientRateLimitRefusal<FormRateLimitScope> | null =
+        await ClientRateLimitCounter.count<FormRateLimitScope>({
+          redis: client,
+          clientIp: data.clientIp,
+          ttlSeconds: config.windowSeconds * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: FormRateLimitScope.FormAndIp,
+              keyFor: (clientKey: string): string => {
+                return `${keyPrefix}fi:${data.formKey}:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perFormAndIpLimit,
+            },
+            {
+              scope: FormRateLimitScope.Ip,
+              keyFor: (clientKey: string): string => {
+                return `${keyPrefix}i:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perIpLimit,
+            },
+          ],
         });
+
+      if (!refusal) {
+        return { outcome: FormRateLimitOutcome.Allowed };
       }
 
-      if (ipCount > config.perIpLimit) {
-        return FormRateLimit.rejected({
-          scope: FormRateLimitScope.Ip,
-          count: ipCount,
-          limit: config.perIpLimit,
-          windowSeconds: config.windowSeconds,
-        });
-      }
-
-      return { outcome: FormRateLimitOutcome.Allowed };
+      return FormRateLimit.rejected({
+        refusal: refusal,
+        windowSeconds: config.windowSeconds,
+      });
     } catch (err) {
       /*
        * Throttled for the same reason as the middleware's unavailable
@@ -495,24 +514,27 @@ export default class FormRateLimit {
     )}`;
 
     try {
-      const formCounts: Array<number> = await FormRateLimit.incrementCounters({
-        client,
-        keys: [formCounterKey],
-        windowSeconds: ceiling.windowSeconds,
-      });
-
-      const formCount: number = formCounts[0] ?? 0;
-
-      if (formCount > ceiling.limit) {
-        return FormRateLimit.rejected({
-          scope: FormRateLimitScope.Form,
-          count: formCount,
-          limit: ceiling.limit,
-          windowSeconds: ceiling.windowSeconds,
+      const refusal: ClientRateLimitRefusal<FormRateLimitScope> | null =
+        await ClientRateLimitCounter.countFixed<FormRateLimitScope>({
+          redis: client,
+          ttlSeconds: ceiling.windowSeconds * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: FormRateLimitScope.Form,
+              key: formCounterKey,
+              limit: ceiling.limit,
+            },
+          ],
         });
+
+      if (!refusal) {
+        return { outcome: FormRateLimitOutcome.Allowed };
       }
 
-      return { outcome: FormRateLimitOutcome.Allowed };
+      return FormRateLimit.rejected({
+        refusal: refusal,
+        windowSeconds: ceiling.windowSeconds,
+      });
     } catch (err) {
       if (
         FormRateLimit.shouldLogCounterUnavailable(FormRateLimitBucket.Submit)
@@ -584,61 +606,13 @@ export default class FormRateLimit {
   }
 
   /*
-   * INCR each key in one pipeline and return the new counts, in order.
-   *
-   * The expiry is set only on the write that created a key. Re-issuing
-   * EXPIRE on every increment would slide the window forward for as long as
-   * the load continued, so the counter would never reset and a client that
-   * tripped the limit once could never recover.
+   * The decision for a request a counter refused. Each counter's key expires
+   * only from the request that created it (ClientRateLimitCounter), so a
+   * window never slides forward under load and a client that went over once
+   * recovers when it ends.
    */
-  private static async incrementCounters(data: {
-    client: ClientType;
-    keys: Array<string>;
-    windowSeconds: number;
-  }): Promise<Array<number>> {
-    const pipeline: ReturnType<ClientType["pipeline"]> = data.client.pipeline();
-
-    for (const key of data.keys) {
-      pipeline.incr(key);
-    }
-
-    const pipelineResults: Array<[Error | null, unknown]> | null =
-      (await pipeline.exec()) as Array<[Error | null, unknown]> | null;
-
-    if (!pipelineResults || pipelineResults.length < data.keys.length) {
-      throw new Error("Rate limit pipeline returned no result");
-    }
-
-    const counts: Array<number> = data.keys.map(
-      (_key: string, index: number): number => {
-        return FormRateLimit.readCounterResult(pipelineResults[index]);
-      },
-    );
-
-    const keysToExpire: Array<string> = data.keys.filter(
-      (_key: string, index: number): boolean => {
-        return counts[index] === 1;
-      },
-    );
-
-    if (keysToExpire.length > 0) {
-      const expirePipeline: ReturnType<ClientType["pipeline"]> =
-        data.client.pipeline();
-
-      for (const key of keysToExpire) {
-        expirePipeline.expire(key, data.windowSeconds * TTL_MULTIPLIER);
-      }
-
-      await expirePipeline.exec();
-    }
-
-    return counts;
-  }
-
   private static rejected(data: {
-    scope: FormRateLimitScope;
-    count: number;
-    limit: number;
+    refusal: ClientRateLimitRefusal<FormRateLimitScope>;
     windowSeconds: number;
   }): FormRateLimitDecision {
     return {
@@ -646,29 +620,10 @@ export default class FormRateLimit {
       retryAfterSeconds: FormRateLimit.getSecondsUntilWindowEnd(
         data.windowSeconds,
       ),
-      scope: data.scope,
-      isFirstRejectionInWindow: data.count === data.limit + 1,
+      scope: data.refusal.scope,
+      ipv6Network64: data.refusal.ipv6Network64,
+      isFirstRejectionInWindow: data.refusal.isFirstRefusalInWindow,
     };
-  }
-
-  private static readCounterResult(
-    result: [Error | null, unknown] | undefined,
-  ): number {
-    if (!result) {
-      throw new Error("Rate limit counter returned no result");
-    }
-
-    const [error, value] = result;
-
-    if (error) {
-      throw error;
-    }
-
-    if (typeof value !== "number") {
-      throw new Error("Rate limit counter returned a non-numeric value");
-    }
-
-    return value;
   }
 
   private static getWindowIndex(windowSeconds: number): number {
@@ -737,7 +692,10 @@ export default class FormRateLimit {
 
         if (decision.isFirstRejectionInWindow) {
           logger.warn(
-            `FormRateLimit: rejected ${bucket} request for form ${formKey} from ${clientIp} (${decision.scope} limit)`,
+            `FormRateLimit: rejected ${bucket} request for form ${formKey} from ${clientIp} (${ClientRateLimitCounter.describeLimit(
+              String(decision.scope),
+              decision.ipv6Network64,
+            )})`,
           );
         }
 

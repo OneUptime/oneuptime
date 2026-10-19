@@ -127,6 +127,13 @@ jobs:
       - name: Run Common's relation filter guard with ee/ present
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/Server/Types/Database/RelationFilterKeepsKeyGuard.test.ts --forceExit
+      # Common's guard that a request carrying one of OneUptime's keys keeps
+      # its redirects on the server it was sent to also walks ee/ for
+      # requests whose body or headers name a key. The Common Test job
+      # deletes ee/ first, so only this run reads ee/. It only reads files.
+      - name: Run Common's key-carrying requests guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/Utils/KeyCarryingRequestsGuard.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:

@@ -610,6 +610,94 @@ describe("the category select", () => {
     }
   });
 
+  /*
+   * Zabbix, like Jira: the workflow its problems come to, then the two that
+   * write back to Zabbix, once for incidents and once for alerts, each set
+   * under its own heading. The workflow a team starts with is first in each.
+   */
+  test("Zabbix's six come in two parts, its incident and its alert templates, the workflow Zabbix sends its problems to first in each", () => {
+    renderPicker();
+    showView(WorkflowTemplateCategory.Zabbix);
+
+    expect(selectOptionTexts()).toContain("Zabbix");
+
+    const groups: Array<HTMLElement> =
+      within(getListbox()).getAllByRole("group");
+
+    expect(
+      groups.map((group: HTMLElement): string => {
+        return group.getAttribute("aria-label") || "";
+      }),
+    ).toEqual(["Incidents", "Alerts"]);
+    expect(listedIds(groups[0]!)).toEqual([
+      "zabbix-declare-incident-from-problem",
+      "zabbix-update-problem-on-incident-state",
+      "zabbix-message-from-incident-private-note",
+    ]);
+    expect(listedIds(groups[1]!)).toEqual([
+      "zabbix-create-alert-from-problem",
+      "zabbix-update-problem-on-alert-state",
+      "zabbix-message-from-alert-private-note",
+    ]);
+    expect(within(groups[0]!).getAllByRole("option")[0]).toHaveTextContent(
+      "Declare an incident for each Zabbix problem",
+    );
+  });
+
+  test("the workflow Zabbix sends its problems to says what it needs: the Zabbix URL, and who to page, picked in the Builder", () => {
+    renderPicker();
+    showView(WorkflowTemplateCategory.Zabbix);
+
+    const details: HTMLElement = within(
+      pick("zabbix-declare-incident-from-problem"),
+    ).getByTestId("workflow-template-details");
+
+    expect(
+      within(details).getByTestId("workflow-template-details-settings"),
+    ).toHaveTextContent("Zabbix URL");
+    expect(
+      within(details).getByTestId("workflow-template-details-in-builder"),
+    ).toHaveTextContent(
+      "An on-call policy to page. You pick it in the Builder.",
+    );
+  });
+
+  test("the ones that call Zabbix ask for its URL and its API token, and only the token is secret", () => {
+    renderPicker();
+    showView(WorkflowTemplateCategory.Zabbix);
+
+    const details: HTMLElement = within(
+      pick("zabbix-update-problem-on-alert-state"),
+    ).getByTestId("workflow-template-details");
+    const settings: HTMLElement = within(details).getByTestId(
+      "workflow-template-details-settings",
+    );
+
+    expect(
+      within(settings).getByTestId(
+        "workflow-template-details-setting-zabbixUrl",
+      ),
+    ).toHaveTextContent("Zabbix URL");
+    expect(
+      within(settings).getByTestId(
+        "workflow-template-details-setting-zabbixUrl",
+      ),
+    ).not.toHaveTextContent("Secret");
+    expect(
+      within(settings).getByTestId(
+        "workflow-template-details-setting-zabbixApiToken",
+      ),
+    ).toHaveTextContent("Zabbix API Token");
+    expect(
+      within(settings).getByTestId(
+        "workflow-template-details-setting-zabbixApiToken",
+      ),
+    ).toHaveTextContent("Secret");
+    expect(
+      within(details).queryAllByTestId("workflow-template-details-in-builder"),
+    ).toHaveLength(0);
+  });
+
   test("All templates lists every template exactly once, under its category", () => {
     renderPicker();
     showView(WorkflowTemplateCollection.All);
@@ -1007,8 +1095,11 @@ describe("a picked template's details", () => {
       });
     }
 
-    // The three that page people, and Huntress's: its signing secret and who to page.
-    expect(pickedInBuilder).toBe(4);
+    /*
+     * The three that page people, Huntress's (its signing secret and who to
+     * page), and the two Zabbix sends its problems to (who to page).
+     */
+    expect(pickedInBuilder).toBe(6);
   });
 
   test("every template's details open, with its trigger and every setting it asks for", () => {

@@ -30,7 +30,13 @@
  *
  * Over-redaction is the intended failure mode. Losing a token count from a
  * debug line costs a little context; leaking a bot token costs the workspace.
+ *
+ * Every rule reads a text in time in line with its length: log text is text
+ * anybody can put a header or a field into (LogRedaction.test reads about
+ * 400,000 characters of each rule's worst case).
  */
+
+import { replacePrivateKeyBlocks } from "../../Utils/PrivateKeyBlocks";
 
 export const REDACTED: string = "[REDACTED]";
 
@@ -84,6 +90,27 @@ const SENSITIVE_KEY_FRAGMENTS: Array<string> = [
   "connectionuri",
   "dsn",
   "sslkey",
+  /*
+   * The keys OneUptime's own components present when they call it, in the
+   * headers and bodies of a request a client was making when it failed:
+   *
+   *   - the cluster key its own services present to each other (the
+   *     clusterkey and x-clusterkey headers, and the clusterKey field
+   *     Runners of earlier releases send);
+   *   - a Runner's and an AI agent's key (aiAgentKey, agentKey, x-agent-key,
+   *     previousAgentKey; runnerKey, previousRunnerKey,
+   *     ONEUPTIME_RUNNER_KEY);
+   *   - a probe's key, and the key that registers a global probe (probeKey,
+   *     PROBE_KEY; registerProbeKey, REGISTER_PROBE_KEY);
+   *   - a telemetry ingestion key (x-oneuptime-ingestion-key,
+   *     ONEUPTIME_INGESTION_KEY) and an enterprise licence key (licenseKey).
+   */
+  "clusterkey",
+  "agentkey",
+  "runnerkey",
+  "probekey",
+  "ingestionkey",
+  "licensekey",
 ];
 
 /*
@@ -117,6 +144,10 @@ const NON_SENSITIVE_KEYS: Set<string> = new Set<string>([
   "isauthorized",
   "authorizationurl",
   "authorizationendpoint",
+  // Which ingestion key a request came with: an id, never the key itself.
+  "ingestionkeyid",
+  "telemetryingestionkeyid",
+  "registeredwithingestionkeyid",
 ]);
 
 /*
@@ -232,18 +263,40 @@ export const isSensitiveLogKey: IsSensitiveLogKeyFunction = (
  * fragment list because a couple of the structural fragments (`salt`, `otp`)
  * are too short to match safely against free-form prose.
  */
-const TEXT_SECRET_WORDS: string =
+const OTHER_TEXT_SECRET_WORDS: string =
   "password|passwd|passphrase|secret|token|credential|credentials|authorization|cookie|api[_-]?key|private[_-]?key|access[_-]?key|assertion|attestation|signature|raw[_-]?id|client[_-]?data[_-]?json|authenticator[_-]?data|user[_-]?handle|two[_-]?factor[_-]?secret|code[_-]?verifier";
+
+/*
+ * The names of the keys OneUptime's own components present (see
+ * SENSITIVE_KEY_FRAGMENTS), in text: clusterKey, x-clusterkey, aiAgentKey,
+ * x-agent-key, previousRunnerKey, ONEUPTIME_RUNNER_KEY, registerProbeKey,
+ * PROBE_KEY, x-oneuptime-ingestion-key, licenseKey... Their unquoted values
+ * have a rule of their own (internal-key-value below).
+ */
+const INTERNAL_KEY_WORDS: string =
+  "cluster[_-]?key|agent[_-]?key|runner[_-]?key|probe[_-]?key|ingestion[_-]?key|license[_-]?key";
+
+const TEXT_SECRET_WORDS: string = `${OTHER_TEXT_SECRET_WORDS}|${INTERNAL_KEY_WORDS}`;
 
 // Bounded, so a long non-matching run cannot blow up on backtracking.
 const KEY_PREFIX: string = "[A-Za-z0-9_.-]{0,40}";
 const KEY_SUFFIX: string = "[A-Za-z0-9_.-]{0,40}";
 
-interface StringRedactionRule {
-  name: string;
-  regex: RegExp;
-  replacement: string;
-}
+/*
+ * A rule is a pattern and what replaces each match, or - where one pattern
+ * cannot read a text in time in line with its length - a function that
+ * reads the text itself.
+ */
+type StringRedactionRule =
+  | {
+      name: string;
+      regex: RegExp;
+      replacement: string;
+    }
+  | {
+      name: string;
+      redact: (text: string) => string;
+    };
 
 const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
   {
@@ -285,6 +338,72 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
   },
   {
     /*
+     * JSON string members of JSON text that was stringified again: the
+     * body a client kept as a JSON string, written out with the error that
+     * carries it (JSON.stringify(error) puts its request's body in as
+     * {"data":"{\"probeKey\":\"...\"}"}). Each time a text is stringified
+     * again, the quotes inside it gain backslashes: a member's quotes are
+     * a run of them and a quote. Its value runs to the next quote with a
+     * run of exactly as many backslashes - a quote inside the value has
+     * more - or to the end of the text.
+     *
+     * Linear in the text's length: a run is at most 15 backslashes, the
+     * name is bounded (KEY_PREFIX, KEY_SUFFIX), and every member found
+     * runs to its end, or the text's, before the next is looked for
+     * (LogRedaction.test reads 400,000 characters of each worst case).
+     */
+    name: "escaped-json-string-member",
+    regex: new RegExp(
+      `(?<!\\\\)(\\\\{1,15})"(${KEY_PREFIX}(?:${TEXT_SECRET_WORDS})${KEY_SUFFIX})\\1"(\\s*:\\s*)\\1"[\\s\\S]*?(?:(?<!\\\\)\\1"|$)`,
+      "gi",
+    ),
+    replacement: `$1"$2$1"$3$1"${REDACTED}$1"`,
+  },
+  {
+    // Numeric members of JSON text stringified again: {"data":"{\"password\":1234}"}
+    name: "escaped-json-number-member",
+    regex: new RegExp(
+      `(?<!\\\\)(\\\\{1,15})"(${KEY_PREFIX}(?:${TEXT_SECRET_WORDS})${KEY_SUFFIX})\\1"(\\s*:\\s*)-?\\d+(?:\\.\\d+)?`,
+      "gi",
+    ),
+    replacement: `$1"$2$1"$3$1"${REDACTED}$1"`,
+  },
+  {
+    /*
+     * The keys OneUptime's own components present (INTERNAL_KEY_WORDS), as
+     * they travel. The cluster key goes URI-encoded
+     * (ClusterKeyAuthorization.getClusterKey), which leaves ' ( ) ! * ~ as
+     * they are, and a key an operator sets (ONEUPTIME_RUNNER_KEY, PROBE_KEY,
+     * REGISTER_PROBE_KEY) can hold any character. The rule below ends a
+     * value at ' and ), so it would leave the rest of such a key in the
+     * clear. Here a value is read whole:
+     *
+     *   - double-quoted, to its closing quote, escapes included;
+     *   - single-quoted, as a console prints a string, to the closing quote
+     *     on its line that a delimiter or the end follows - so a value
+     *     printed with a quote inside it falls to the next form;
+     *   - unquoted, to whitespace or a delimiter an encoded key never holds
+     *     (, ; & ] } " and a backslash),
+     *
+     * so a header line (`x-agent-key: ...`), a field (`probeKey=...`,
+     * `PROBE_KEY=...`), a console's `{ agentKey: '...' }` and a raw request
+     * stringified again keep none of it. JSON members are the JSON rules'
+     * above.
+     *
+     * Linear in the text's length: the name's prefix and suffix are bounded
+     * (KEY_PREFIX, KEY_SUFFIX), an unquoted value stops at whitespace and a
+     * quoted one at its closing quote or (single-quoted) its line's end
+     * (LogRedaction.test reads 400,000 characters of each worst case).
+     */
+    name: "internal-key-value",
+    regex: new RegExp(
+      `\\b(${KEY_PREFIX}(?:${INTERNAL_KEY_WORDS})${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\\\r\\n]|\\\\.)*'(?=[\\s,;&)\\]}]|$)|[^\\s,;&\\]}"\\\\]+)`,
+      "gi",
+    ),
+    replacement: `$1$2${REDACTED}`,
+  },
+  {
+    /*
      * Unquoted key/value text: form bodies (`client_secret=abc&...`), query
      * strings, header dumps (`Authorization: Bearer abc`) and prose
      * (`password: hunter2`).
@@ -295,7 +414,7 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
      */
     name: "key-value-text",
     regex: new RegExp(
-      `\\b(${KEY_PREFIX}(?:${TEXT_SECRET_WORDS})${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"[^"]*"|'[^']*'|(?:Bearer|Basic|Token)\\s+[^\\s,;&)\\]}"']+|[^\\s,;&)\\]}"']+)`,
+      `\\b(${KEY_PREFIX}(?:${OTHER_TEXT_SECRET_WORDS})${KEY_SUFFIX})(\\s*[=:]\\s*)(?:"[^"]*"|'[^']*'|(?:Bearer|Basic|Token)\\s+[^\\s,;&)\\]}"']+|[^\\s,;&)\\]}"']+)`,
       "gi",
     ),
     replacement: `$1$2${REDACTED}`,
@@ -317,9 +436,20 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
     replacement: `"$1"$2"${REDACTED}"`,
   },
   {
+    /*
+     * A JWT, looked for once per run of the characters it is made of: at the
+     * first place in the run one may begin (the run's start, or just after a
+     * "-" in it - where the word boundary allowed one), with the text of the
+     * run before that place put back ($1). A later place in the same run has
+     * a shorter first segment and ends no better, so this redacts exactly
+     * the tokens a search from every word boundary did, while each run is
+     * read a bounded number of times - in time in line with the text's
+     * length.
+     */
     name: "jwt",
-    regex: /\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g,
-    replacement: REDACTED,
+    regex:
+      /(?<![A-Za-z0-9_-])(?=((?:[A-Za-z0-9_-]*?-)??)eyJ)\1eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g,
+    replacement: `$1${REDACTED}`,
   },
   {
     name: "slack-token",
@@ -358,15 +488,28 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
     replacement: `$1${REDACTED}`,
   },
   {
+    /*
+     * A PEM private key block, from its BEGIN line to the first END line
+     * after it. Read by PrivateKeyBlocks, in time in line with the text's
+     * length however many BEGIN lines it holds with no END after them.
+     */
     name: "private-key-block",
-    regex:
-      /-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----[\s\S]*?-----END (?:[A-Z0-9]+ )*PRIVATE KEY-----/g,
-    replacement: REDACTED,
+    redact: (text: string): string => {
+      return replacePrivateKeyBlocks(text, REDACTED).text;
+    },
   },
   {
-    // Credentials embedded in a URL: postgres://user:password@host/db
+    /*
+     * Credentials embedded in a URL: postgres://user:password@host/db
+     *
+     * The scheme is bounded (64 characters, far more than any scheme that
+     * carries credentials), so the time this takes grows in line with the
+     * text's length: a scheme can start at every word, and each start reads
+     * no further than that (LogRedaction.test reads 400,000 characters of
+     * the worst cases).
+     */
     name: "url-basic-auth",
-    regex: /\b([a-z][a-z0-9+.-]*:\/\/)([^\s/:@]+):[^\s/@]+@/gi,
+    regex: /\b([a-z][a-z0-9+.-]{0,63}:\/\/)([^\s/:@]+):[^\s/@]+@/gi,
     replacement: `$1$2:${REDACTED}@`,
   },
 ];
@@ -420,6 +563,11 @@ export const redactLogString: RedactLogStringFunction = (
   let redacted: string = value;
 
   for (const rule of STRING_REDACTION_RULES) {
+    if ("redact" in rule) {
+      redacted = rule.redact(redacted);
+      continue;
+    }
+
     /*
      * The rules carry the /g flag and are module-level, so lastIndex has to be
      * reset -- String.replace does that itself, but .test() on the hint regex

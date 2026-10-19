@@ -2450,6 +2450,98 @@ describe(`${SERVER}`, () => {
     expect(page).toContain("| sudo bash -s -- -b /usr/local/bin");
   });
 
+  /*
+   * Each release publishes the agent to apt and yum (packages.oneuptime.com),
+   * Homebrew and winget (Scripts/PackageManagers, release.yml's
+   * publish-infrastructure-agent-* jobs). The page installs from where they
+   * publish, under the names they publish. Tests/Ops/package-repository-e2e.sh
+   * runs the apt and dnf commands against a repository they built.
+   */
+  it("installs from the package managers each release publishes to, by the names they publish under", () => {
+    const release: string = source(
+      "agents/InfrastructureAgent/.goreleaser.yaml",
+    );
+    const build: string = source(
+      "Scripts/PackageManagers/BuildPackageRepository.sh",
+    );
+    const publish: string = source(
+      "Scripts/PackageManagers/PublishPackageRepository.sh",
+    );
+
+    // apt: the suite and component the repository is built with, at the site it is pushed to.
+    expect(publish).toContain(
+      'URL="${PACKAGE_REPOSITORY_URL:-https://packages.oneuptime.com}"',
+    );
+    expect(build).toContain('readonly SUITE="stable"');
+    expect(build).toContain('readonly COMPONENT="main"');
+    expect(build).toContain(
+      'gpg --batch --armor --export "$SIGNING_KEY" >"$REPOSITORY/gpg.key"',
+    );
+    expect(page).toContain(
+      "sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc",
+    );
+    expect(page).toContain(
+      'echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list',
+    );
+
+    // yum and dnf: the .repo file the build writes.
+    expect(build).toContain('cat >"$RPM/oneuptime.repo" <<EOF');
+    expect(page).toContain(
+      "sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo",
+    );
+
+    // The packages are nfpm's, with its default bindir.
+    expect(release).toContain("package_name: oneuptime-infrastructure-agent");
+    expect(release).not.toContain("bindir:");
+    expect(page).toContain("the packages put the binary in `/usr/bin`");
+
+    // Homebrew: GoReleaser's cask, in OneUptime/homebrew-tap, which brew calls oneuptime/tap.
+    expect(release).toContain(
+      "homebrew_casks:\n  - name: oneuptime-infrastructure-agent",
+    );
+    expect(release).toContain(
+      "    repository:\n      owner: OneUptime\n      name: homebrew-tap",
+    );
+    expect(page).toContain(
+      "brew install oneuptime/tap/oneuptime-infrastructure-agent",
+    );
+
+    // winget: the identifier GoReleaser writes the manifests under.
+    expect(release).toContain(
+      "package_identifier: OneUptime.InfrastructureAgent",
+    );
+    expect(page).toContain(
+      "winget install --id OneUptime.InfrastructureAgent --exact --scope machine",
+    );
+  });
+
+  it("names the release's MSIs, where they install the agent, and that a newer one upgrades and restarts it", () => {
+    const build: string = source("agents/InfrastructureAgent/build-msi.sh");
+    const installer: string = source(
+      "agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs",
+    );
+
+    expect(build).toContain('ARCHES=("amd64" "arm64")');
+    expect(build).toContain('MSI_FILE="$OUTPUT_DIR/$APP_NAME-$ARCH.msi"');
+    expect(installer).toContain(
+      "<Directory Id='ProgramFiles64Folder' Name='PFiles'>",
+    );
+    expect(installer).toContain(
+      "<Directory Id='OneUptimeInfrastructureAgent' Name='OneUptimeInfrastructureAgent'>",
+    );
+    expect(installer).toContain("<MajorUpgrade");
+    expect(installer).toContain(
+      "ExeCommand='start oneuptime-infrastructure-agent'",
+    );
+    expect(page).toContain(
+      "`oneuptime-infrastructure-agent-amd64.msi` (or `oneuptime-infrastructure-agent-arm64.msi`)",
+    );
+    expect(page).toContain(
+      "It installs the agent in `C:\\Program Files\\OneUptimeInfrastructureAgent`, and a newer MSI upgrades it in place and starts it again.",
+    );
+    expect(page).toContain("| MSI | Install the newer MSI. |");
+  });
+
   it("the Windows downloads are the release's zip archives", () => {
     const release: string = source(
       "agents/InfrastructureAgent/.goreleaser.yaml",

@@ -7,6 +7,9 @@ import {
 } from "../Utils/Express";
 import logger from "../Utils/Logger";
 import resolveTrustedClientIp, { ClientIpRequestLike } from "../Utils/ClientIp";
+import ClientRateLimitCounter, {
+  ClientRateLimitRefusal,
+} from "../Utils/RateLimit/ClientRateLimitCounter";
 import Response from "../Utils/Response";
 import ObjectID from "../../Types/ObjectID";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
@@ -73,7 +76,11 @@ export enum VerificationCodeRateLimitScope {
   /* One signed-in user, across every row they own. Survives row rotation. */
   User = "user",
 
-  /* One client address, across every account. Survives account rotation. */
+  /*
+   * One client address, across every account. Survives account rotation.
+   * For an IPv6 client its /64 is counted as well, with room for ten
+   * addresses (ClientRateLimitCounter), so it survives address rotation too.
+   */
   Ip = "ip",
 }
 
@@ -91,6 +98,12 @@ export interface VerificationCodeRateLimitDecision {
 
   /* Which counter rejected, for logs. Unset unless rejected. */
   scope?: VerificationCodeRateLimitScope | undefined;
+
+  /*
+   * The client's IPv6 /64 when the addresses of that /64 together went over
+   * the per-address limit, rather than the client's own address. For logs.
+   */
+  ipv6Network64?: string | undefined;
 
   /*
    * True only on the request that first crossed the line in this window, so a
@@ -370,7 +383,10 @@ export default class VerificationCodeRateLimit {
    * Every counter is incremented on every request, INCLUDING a rejected one.
    * That is standard fixed-window behaviour and it is deliberate: a caller
    * who keeps hammering keeps their window pinned rather than being handed a
-   * fresh allowance for free.
+   * fresh allowance for free. The one exception is an IPv6 client's /64
+   * counter: it counts only the requests the other three let through, and a
+   * /64 already over its limit is refused before anything is counted
+   * (ClientRateLimitCounter).
    */
   public static async consume(data: {
     itemKey: string;
@@ -391,108 +407,64 @@ export default class VerificationCodeRateLimit {
     const windowMs: number = config.windowSeconds * 1000;
     const windowIndex: number = Math.floor(Date.now() / windowMs);
 
-    /*
-     * The item counter is keyed on item AND user. Two users cannot own the
-     * same row, so this changes nothing about correctness — but it means a
-     * caller cannot deny a row's real owner their allowance by burning it
-     * against an id they do not own.
-     */
-    const itemCounterKey: string = `${KEY_PREFIX}${data.bucket}:t:${data.userKey}:${data.itemKey}:${windowIndex}`;
-    const userCounterKey: string = `${KEY_PREFIX}${data.bucket}:u:${data.userKey}:${windowIndex}`;
-    const ipCounterKey: string = `${KEY_PREFIX}${data.bucket}:i:${data.clientIp}:${windowIndex}`;
-
     try {
-      const pipelineResults: Array<[Error | null, unknown]> | null =
-        (await client
-          .pipeline()
-          .incr(itemCounterKey)
-          .incr(userCounterKey)
-          .incr(ipCounterKey)
-          .exec()) as Array<[Error | null, unknown]> | null;
-
-      if (!pipelineResults || pipelineResults.length < 3) {
-        throw new Error("Rate limit pipeline returned no result");
-      }
-
-      const itemCount: number = VerificationCodeRateLimit.readCounterResult(
-        pipelineResults[0],
-      );
-      const userCount: number = VerificationCodeRateLimit.readCounterResult(
-        pipelineResults[1],
-      );
-      const ipCount: number = VerificationCodeRateLimit.readCounterResult(
-        pipelineResults[2],
-      );
-
       /*
-       * Set the expiry only on the write that created the key. Re-issuing
-       * EXPIRE on every increment would slide the window forward for as long
-       * as the load continues, so a caller who tripped the limit once could
-       * never recover.
-       */
-      const ttlSeconds: number = config.windowSeconds * TTL_MULTIPLIER;
-      const keysToExpire: Array<string> = [];
-
-      if (itemCount === 1) {
-        keysToExpire.push(itemCounterKey);
-      }
-
-      if (userCount === 1) {
-        keysToExpire.push(userCounterKey);
-      }
-
-      if (ipCount === 1) {
-        keysToExpire.push(ipCounterKey);
-      }
-
-      if (keysToExpire.length > 0) {
-        const expirePipeline: ReturnType<ClientType["pipeline"]> =
-          client.pipeline();
-
-        for (const key of keysToExpire) {
-          expirePipeline.expire(key, ttlSeconds);
-        }
-
-        await expirePipeline.exec();
-      }
-
-      const retryAfterSeconds: number =
-        VerificationCodeRateLimit.getSecondsUntilWindowEnd(
-          config.windowSeconds,
-        );
-
-      /*
+       * Counted by ClientRateLimitCounter, all three in one round trip: the
+       * item and the user as they are, and the client under its address -
+       * and for an IPv6 client under its /64 as well, so rotating through
+       * the addresses of one /64 does not buy a fresh per-address allowance
+       * each time. Each key's expiry is set only by the request that
+       * created it, so a window never slides forward under load.
+       *
+       * The item counter is keyed on item AND user. Two users cannot own the
+       * same row, so this changes nothing about correctness — but it means a
+       * caller cannot deny a row's real owner their allowance by burning it
+       * against an id they do not own.
+       *
        * Reported most specific first, because that is the most useful thing
        * to see in a log line when more than one is over.
        */
-      if (itemCount > config.perItemLimit) {
-        return {
-          outcome: VerificationCodeRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: VerificationCodeRateLimitScope.Item,
-          isFirstRejectionInWindow: itemCount === config.perItemLimit + 1,
-        };
+      const refusal: ClientRateLimitRefusal<VerificationCodeRateLimitScope> | null =
+        await ClientRateLimitCounter.count<VerificationCodeRateLimitScope>({
+          redis: client,
+          clientIp: data.clientIp,
+          ttlSeconds: config.windowSeconds * TTL_MULTIPLIER,
+          fixedCounters: [
+            {
+              scope: VerificationCodeRateLimitScope.Item,
+              key: `${KEY_PREFIX}${data.bucket}:t:${data.userKey}:${data.itemKey}:${windowIndex}`,
+              limit: config.perItemLimit,
+            },
+            {
+              scope: VerificationCodeRateLimitScope.User,
+              key: `${KEY_PREFIX}${data.bucket}:u:${data.userKey}:${windowIndex}`,
+              limit: config.perUserLimit,
+            },
+          ],
+          counters: [
+            {
+              scope: VerificationCodeRateLimitScope.Ip,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}${data.bucket}:i:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perIpLimit,
+            },
+          ],
+        });
+
+      if (!refusal) {
+        return { outcome: VerificationCodeRateLimitOutcome.Allowed };
       }
 
-      if (userCount > config.perUserLimit) {
-        return {
-          outcome: VerificationCodeRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: VerificationCodeRateLimitScope.User,
-          isFirstRejectionInWindow: userCount === config.perUserLimit + 1,
-        };
-      }
-
-      if (ipCount > config.perIpLimit) {
-        return {
-          outcome: VerificationCodeRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: VerificationCodeRateLimitScope.Ip,
-          isFirstRejectionInWindow: ipCount === config.perIpLimit + 1,
-        };
-      }
-
-      return { outcome: VerificationCodeRateLimitOutcome.Allowed };
+      return {
+        outcome: VerificationCodeRateLimitOutcome.RateLimited,
+        retryAfterSeconds: VerificationCodeRateLimit.getSecondsUntilWindowEnd(
+          config.windowSeconds,
+        ),
+        scope: refusal.scope,
+        ipv6Network64: refusal.ipv6Network64,
+        isFirstRejectionInWindow: refusal.isFirstRefusalInWindow,
+      };
     } catch (err) {
       /*
        * Throttled: whatever broke Redis is unlikely to have broken it for one
@@ -508,26 +480,6 @@ export default class VerificationCodeRateLimit {
 
       return { outcome: VerificationCodeRateLimitOutcome.CounterUnavailable };
     }
-  }
-
-  private static readCounterResult(
-    result: [Error | null, unknown] | undefined,
-  ): number {
-    if (!result) {
-      throw new Error("Rate limit counter returned no result");
-    }
-
-    const [error, value] = result;
-
-    if (error) {
-      throw error;
-    }
-
-    if (typeof value !== "number") {
-      throw new Error("Rate limit counter returned a non-numeric value");
-    }
-
-    return value;
   }
 
   /*
@@ -651,7 +603,10 @@ export default class VerificationCodeRateLimit {
 
       if (decision.isFirstRejectionInWindow) {
         logger.warn(
-          `VerificationCodeRateLimit: rejected ${bucket} request for item ${itemKey} from user ${userKey} at ${clientIp} (${decision.scope} limit)`,
+          `VerificationCodeRateLimit: rejected ${bucket} request for item ${itemKey} from user ${userKey} at ${clientIp} (${ClientRateLimitCounter.describeLimit(
+            String(decision.scope),
+            decision.ipv6Network64,
+          )})`,
         );
       }
 

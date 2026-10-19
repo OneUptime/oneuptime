@@ -3,6 +3,9 @@ import CredentialGuard from "../Utils/CredentialGuard";
 import IdentityRateLimit, {
   IdentityRateLimitBucket,
 } from "Common/Server/Middleware/IdentityRateLimit";
+import PublicMessageRateLimit, {
+  PublicMessageKind,
+} from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -633,6 +636,18 @@ router.post(
         });
 
       if (alreadySavedUser) {
+        /*
+         * Each request emails the address a reset link, so it is counted
+         * first, per caller and per address (PublicMessageRateLimit), and
+         * refused when either has had enough - before the token is replaced,
+         * so the link in the latest email still works.
+         */
+        await PublicMessageRateLimit.assertMaySend({
+          req: req,
+          kind: PublicMessageKind.StatusPagePasswordReset,
+          contacts: [PublicMessageRateLimit.forEmail(user.email!)],
+        });
+
         // A bearer secret: from the CSPRNG, never ObjectID's non-crypto fallback.
         const token: string = crypto.randomUUID();
         const hashedToken: string = await HashedString.hashValue(
@@ -692,6 +707,8 @@ router.post(
         `No user is registered with ${user.email?.toString()}`,
       );
     } catch (err) {
+      // A reset refused for its rate limits says when to come back.
+      PublicMessageRateLimit.setRetryAfterFor(res, err);
       return next(err);
     }
   },

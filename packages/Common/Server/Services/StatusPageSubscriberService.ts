@@ -165,6 +165,14 @@ interface UnsubscribedAtCarryForward {
 const statusPageSignUps: WeakSet<Model> = new WeakSet<Model>();
 
 /*
+ * The sign-ups among those whose create has reached onCreateSuccess: the
+ * subscriber is written, and its messages - the one place a sign-up sends
+ * anything - may have gone out. Held the same way, for the length of the
+ * create; a sign-up not in here when its create fails sent nothing.
+ */
+const statusPageSignUpsSending: WeakSet<Model> = new WeakSet<Model>();
+
+/*
  * The updates a visitor makes from the status page's manage subscription
  * page (see updateFromManageSubscriptionPage), held the same way: the very
  * update objects, only for the length of the update. A visitor picks from
@@ -229,6 +237,9 @@ const SUBSCRIBER_CONTACT_COLUMNS: Array<
 interface SubscriberCreateCarryForward {
   statusPage: StatusPage;
   replacedSubscriberIds: Array<ObjectID>;
+
+  // The sign-up being created, when the create is one (createFromStatusPageSignUp).
+  signUp: Model | null;
 }
 
 // How many subscribers the backfill and the token top-up handle per statement.
@@ -339,9 +350,23 @@ export class Service extends ProjectReferencesService<Model> {
    * (StatusPageAPI's subscribe endpoint). The one create that is not the team
    * adding a subscriber: it is created as root, like the rest of that
    * endpoint, and Is Added By Team is left off.
+   *
+   * `onNothingSent` is called when the create is refused or fails before
+   * anything has been sent to the subscriber's contacts - already
+   * subscribed, a check of the page or of a webhook, a value too long, a
+   * failed write - and only then, before the error is thrown on. The
+   * subscribe endpoint gives its contacts their message count back there
+   * (PublicMessageRateLimit).
    */
   @CaptureSpan()
-  public async createFromStatusPageSignUp(data: Model): Promise<Model> {
+  public async createFromStatusPageSignUp(
+    data: Model,
+    options?:
+      | {
+          onNothingSent?: (() => Promise<void>) | undefined;
+        }
+      | undefined,
+  ): Promise<Model> {
     statusPageSignUps.add(data);
 
     try {
@@ -351,8 +376,20 @@ export class Service extends ProjectReferencesService<Model> {
           isRoot: true,
         },
       });
+    } catch (err) {
+      if (!statusPageSignUpsSending.has(data) && options?.onNothingSent) {
+        try {
+          await options.onNothingSent();
+        } catch (onNothingSentError) {
+          // Never in place of the error the sign-up ended with.
+          logger.error(onNothingSentError);
+        }
+      }
+
+      throw err;
     } finally {
       statusPageSignUps.delete(data);
+      statusPageSignUpsSending.delete(data);
     }
   }
 
@@ -846,6 +883,7 @@ export class Service extends ProjectReferencesService<Model> {
     const carryForward: SubscriberCreateCarryForward = {
       statusPage: statuspage,
       replacedSubscriberIds: replacedSubscriberIds,
+      signUp: statusPageSignUps.has(data.data) ? data.data : null,
     };
 
     return { createBy: data, carryForward: carryForward };
@@ -1708,6 +1746,19 @@ export class Service extends ProjectReferencesService<Model> {
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    /*
+     * From here on a sign-up's contacts may be sent its messages: if its
+     * create fails after this, it is not one that sent nothing
+     * (createFromStatusPageSignUp).
+     */
+    const signUp: Model | null | undefined = (
+      onCreate.carryForward as SubscriberCreateCarryForward | undefined
+    )?.signUp;
+
+    if (signUp) {
+      statusPageSignUpsSending.add(signUp);
+    }
+
     // Not the item itself: it carries the unsubscribe token.
     logger.debug(
       `onCreateSuccess called with createdItem ${createdItem.id?.toString()}.`,

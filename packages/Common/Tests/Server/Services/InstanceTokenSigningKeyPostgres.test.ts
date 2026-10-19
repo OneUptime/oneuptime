@@ -32,6 +32,10 @@ import {
   restoreEncryptionSecret,
   setEncryptionSecret,
 } from "../TestingUtils/ShippedEncryptionSecrets";
+import {
+  restoreClusterKey,
+  setClusterKey,
+} from "../TestingUtils/ShippedClusterKeys";
 import jwt from "jsonwebtoken";
 import { DataSource } from "typeorm";
 
@@ -61,6 +65,9 @@ import { DataSource } from "typeorm";
  *     and the table holds one row;
  *   - a session one app process signs is accepted by every other one, and a
  *     session signed with the shipped value is accepted by none;
+ *   - on an installation whose ONEUPTIME_SECRET is a shipped value too, every
+ *     app process presents and accepts one cluster key derived from it
+ *     (ClusterKeyAuthorization), and none accepts the shipped value;
  *   - a damaged row fails the boot;
  *   - deleting the row makes a new key that refuses the old one's tokens;
  *   - an installation whose operator set ENCRYPTION_SECRET never writes it.
@@ -79,11 +86,14 @@ type TokenSigningKeyClass =
   typeof import("../../../Server/Utils/TokenSigningKey").default;
 type JSONWebTokenClass =
   typeof import("../../../Server/Utils/JsonWebToken").default;
+type ClusterKeyAuthorizationClass =
+  typeof import("../../../Server/Middleware/ClusterKeyAuthorization").default;
 
 interface AppProcess {
   service: ServiceClass;
   TokenSigningKey: TokenSigningKeyClass;
   JSONWebToken: JSONWebTokenClass;
+  ClusterKeyAuthorization: ClusterKeyAuthorizationClass;
 }
 
 describePostgres("The installation's token signing key on Postgres", () => {
@@ -98,6 +108,8 @@ describePostgres("The installation's token signing key on Postgres", () => {
     encryptionSecret: string | undefined,
   ): Promise<AppProcess> {
     setEncryptionSecret(encryptionSecret);
+    // As config.example.env ships it, so the cluster key is derived too.
+    setClusterKey("please-change-this-to-random-value");
     jest.resetModules();
 
     const PostgresAppInstance: {
@@ -117,6 +129,9 @@ describePostgres("The installation's token signing key on Postgres", () => {
         .default,
       JSONWebToken: (await import("../../../Server/Utils/JsonWebToken"))
         .default,
+      ClusterKeyAuthorization: (
+        await import("../../../Server/Middleware/ClusterKeyAuthorization")
+      ).default,
     };
   }
 
@@ -199,6 +214,7 @@ describePostgres("The installation's token signing key on Postgres", () => {
 
   afterEach(() => {
     restoreEncryptionSecret();
+    restoreClusterKey();
     jest.restoreAllMocks();
     jest.resetModules();
   });
@@ -285,6 +301,48 @@ describePostgres("The installation's token signing key on Postgres", () => {
         worker: false,
       });
     }
+  });
+
+  test("an API process and a worker that booted from the database present one cluster key, take each other's calls, and refuse the shipped value", async () => {
+    const api: AppProcess = await bootProcess(
+      "please-change-this-to-random-value",
+    );
+    const worker: AppProcess = await bootProcess(
+      "please-change-this-to-random-value",
+    );
+
+    const clusterKey: string = api.ClusterKeyAuthorization.getClusterKey();
+
+    expect(clusterKey).toMatch(HEX_KEY);
+    expect(clusterKey).not.toBe(api.TokenSigningKey.get());
+    expect(worker.ClusterKeyAuthorization.getClusterKey()).toBe(clusterKey);
+    expect(
+      api.ClusterKeyAuthorization.isAcceptedClusterKey(
+        worker.ClusterKeyAuthorization.getClusterKey(),
+      ),
+    ).toBe(true);
+    expect(
+      worker.ClusterKeyAuthorization.isAcceptedClusterKey(clusterKey),
+    ).toBe(true);
+
+    for (const shipped of ["please-change-this-to-random-value", "secret"]) {
+      expect({
+        shipped,
+        api: api.ClusterKeyAuthorization.isAcceptedClusterKey(shipped),
+        worker: worker.ClusterKeyAuthorization.isAcceptedClusterKey(shipped),
+      }).toEqual({ shipped, api: false, worker: false });
+    }
+
+    // A new installation key (the row deleted) makes a new cluster key.
+    await database.query(`DELETE FROM "${schema}"."InstanceTokenSigningKey"`);
+
+    const afterRotation: AppProcess = await bootProcess(
+      "please-change-this-to-random-value",
+    );
+
+    expect(
+      afterRotation.ClusterKeyAuthorization.isAcceptedClusterKey(clusterKey),
+    ).toBe(false);
   });
 
   test("a damaged row fails the boot instead of becoming the signing key", async () => {

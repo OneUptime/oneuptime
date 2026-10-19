@@ -18,12 +18,50 @@ import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
 import {
   HasRegisterProbeKey,
+  IsRegisterProbeKeyShipped,
   RegisterProbeKey,
+  isShippedSecretValue,
 } from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
 
+/*
+ * Said, before any request, by a probe holding a key the OneUptime
+ * repository ships (EnvironmentConfig.isShippedSecretValue): the server
+ * refuses such a key from every probe, so it is never sent, and no retry
+ * helps until an operator sets a random one and restarts the probe.
+ */
+export const SHIPPED_REGISTER_PROBE_KEY_PROBE_MESSAGE: string =
+  'This probe cannot register: its REGISTER_PROBE_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value, so nothing is sent. Set REGISTER_PROBE_KEY to the same long random value on the OneUptime server and this probe, then restart both: with Docker Compose, npm start and npm run update put one in config.env; the Helm chart generates one unless registerProbeKey is set.';
+
+export const SHIPPED_PROBE_KEY_PROBE_MESSAGE: string =
+  'This probe cannot register: its PROBE_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value, so nothing is sent. Give this probe a long random PROBE_KEY (with Docker Compose, its GLOBAL_PROBE_n_KEY in config.env, which npm start and npm run update set), then restart it.';
+
+export class ShippedProbeKeyError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = "ShippedProbeKeyError";
+  }
+}
+
 export default class Register {
+  /*
+   * The refusal for a key of this probe's that the repository ships, or
+   * null: its REGISTER_PROBE_KEY when it registers itself as a global probe,
+   * and its own PROBE_KEY, which every later request presents.
+   */
+  public static getShippedKeyRefusal(): ShippedProbeKeyError | null {
+    if (HasRegisterProbeKey && IsRegisterProbeKeyShipped) {
+      return new ShippedProbeKeyError(SHIPPED_REGISTER_PROBE_KEY_PROBE_MESSAGE);
+    }
+
+    if (isShippedSecretValue(PROBE_KEY)) {
+      return new ShippedProbeKeyError(SHIPPED_PROBE_KEY_PROBE_MESSAGE);
+    }
+
+    return null;
+  }
+
   public static async isPingMonitoringEnabled(): Promise<boolean> {
     // check cache
     const pingMonitoring: string | null = LocalCache.getString(
@@ -106,6 +144,19 @@ export default class Register {
   }
 
   public static async registerProbe(): Promise<void> {
+    /*
+     * A key the repository ships is refused by the server whatever the
+     * attempt, so it is never sent and never retried: the probe says what
+     * to set and stops, as it does for a key that is not set at all.
+     */
+    const shippedKeyRefusal: ShippedProbeKeyError | null =
+      Register.getShippedKeyRefusal();
+
+    if (shippedKeyRefusal) {
+      logger.error(shippedKeyRefusal.message);
+      throw shippedKeyRefusal;
+    }
+
     // register probe with 5 retry and 15 seocnd interval between each retry.
 
     let currentRetry: number = 0;

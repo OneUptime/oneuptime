@@ -58,6 +58,7 @@ import {
 import { KubernetesClusterFeedEventType } from "../../Models/DatabaseModels/KubernetesClusterFeed";
 import { Blue500, Green500, Yellow500 } from "../../Types/BrandColors";
 import QueryHelper from "../Types/Database/QueryHelper";
+import { isShippedSecretValue } from "../EnvironmentConfig";
 import AIService from "./AIService";
 import AlertService from "./AlertService";
 import IncidentService from "./IncidentService";
@@ -2191,8 +2192,13 @@ class KubernetesClusterAiAccessServiceClass {
     projectId: ObjectID;
     previousRunnerKey?: string | undefined;
   }): Promise<AgentRunnerReKeyAdmission> {
+    /*
+     * A key this repository ships proves nothing, though a row from before
+     * the rule that keeps such keys out (ComponentKeyWrite) may hold one.
+     */
     const provesContinuity: boolean = Boolean(
       data.previousRunnerKey &&
+        !isShippedSecretValue(data.previousRunnerKey) &&
         data.runner.key &&
         this.isSameSecret(data.previousRunnerKey, data.runner.key),
     );

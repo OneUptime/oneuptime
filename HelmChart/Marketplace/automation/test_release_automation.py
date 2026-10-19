@@ -22,8 +22,10 @@ from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(1, str(HERE.parent))
 
 import aws_catalog  # noqa: E402
+import build  # noqa: E402
 import ci_setup  # noqa: E402
 import google_cloud_release  # noqa: E402
 import partner_center  # noqa: E402
@@ -52,11 +54,24 @@ READY_GOOGLE = {
     "registry": "us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise",
     "serviceName": "oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog",
 }
+READY_ADDON = {
+    "ready": True,
+    "registry": "709825985650.dkr.ecr.us-east-1.amazonaws.com/hackerbay",
+    "productId": "prod-addon456",
+    "sellerAlias": "oneuptime",
+}
 ALL_VARIABLES = {name: "set" for names in release_plan.REQUIRED_VARIABLES.values() for name in names}
+EVERY = {"aws": True, "azure": True, "google-cloud": True, "aws-eks-addon": True}
+NONE = {name: False for name in EVERY}
 
 
 def ready_editions() -> Dict[str, Any]:
-    return {"aws": dict(READY_AWS), "azure": dict(READY_AZURE), "google-cloud": dict(READY_GOOGLE)}
+    return {
+        "aws": dict(READY_AWS),
+        "azure": dict(READY_AZURE),
+        "google-cloud": dict(READY_GOOGLE),
+        "aws-eks-addon": dict(READY_ADDON),
+    }
 
 
 def run_cli(main: Any, argv: List[str], **patches: Any) -> Dict[str, Any]:
@@ -109,9 +124,11 @@ class ReleaseCommonTest(unittest.TestCase):
         self.assertEqual(release_common.track_of("14.0.66"), "14.0")
 
     def test_marketplaces_list(self) -> None:
-        self.assertEqual(release_common.parse_marketplaces(""), ["aws", "azure", "google-cloud"])
-        self.assertEqual(release_common.parse_marketplaces("all"), ["aws", "azure", "google-cloud"])
+        every = ["aws", "azure", "google-cloud", "aws-eks-addon"]
+        self.assertEqual(release_common.parse_marketplaces(""), every)
+        self.assertEqual(release_common.parse_marketplaces("all"), every)
         self.assertEqual(release_common.parse_marketplaces("google-cloud, aws"), ["aws", "google-cloud"])
+        self.assertEqual(release_common.parse_marketplaces("aws-eks-addon"), ["aws-eks-addon"])
 
         with self.assertRaises(release_common.ReleaseError):
             release_common.parse_marketplaces("aws,gcp")
@@ -190,7 +207,7 @@ class ReleasePlanTest(unittest.TestCase):
         plan = self.plan(event="schedule", dry_run_input="true", marketplaces_input="aws")
         self.assertFalse(plan["dry_run"])
         self.assertTrue(plan["automatic"])
-        self.assertEqual(plan["runs"], {"aws": True, "azure": True, "google-cloud": True})
+        self.assertEqual(plan["runs"], EVERY)
         self.assertEqual(plan["version"], VERSION)
 
     def test_runs_on_nothing_but_the_week_and_by_hand(self) -> None:
@@ -205,7 +222,7 @@ class ReleasePlanTest(unittest.TestCase):
         del variables["MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT"]
 
         plan = self.plan(event="schedule", editions=editions, variables=variables)
-        self.assertEqual(plan["runs"], {"aws": True, "azure": False, "google-cloud": False})
+        self.assertEqual(plan["runs"], dict(EVERY, azure=False, **{"google-cloud": False}))
         self.assertIn("ready", " ".join(plan["skipped"]["azure"]))
         self.assertIn("MARKETPLACE_RELEASE_GOOGLE_SERVICE_ACCOUNT", " ".join(plan["skipped"]["google-cloud"]))
 
@@ -213,7 +230,7 @@ class ReleasePlanTest(unittest.TestCase):
         editions = {name: {"ready": False} for name in release_common.MARKETPLACES}
         plan = self.plan(editions=editions, variables={})
         self.assertTrue(plan["dry_run"])
-        self.assertEqual(plan["runs"], {"aws": True, "azure": True, "google-cloud": True})
+        self.assertEqual(plan["runs"], EVERY)
 
     def test_by_hand_a_real_run_on_a_marketplace_not_set_up_fails(self) -> None:
         editions = ready_editions()
@@ -226,7 +243,7 @@ class ReleasePlanTest(unittest.TestCase):
 
     def test_by_hand_it_releases_only_the_marketplaces_named(self) -> None:
         plan = self.plan(dry_run_input="false", marketplaces_input="azure")
-        self.assertEqual(plan["runs"], {"aws": False, "azure": True, "google-cloud": False})
+        self.assertEqual(plan["runs"], dict(NONE, azure=True))
 
     def test_the_version_is_a_release_number(self) -> None:
         self.assertEqual(self.plan(version=" 14.0.60 ")["version"], "14.0.60")
@@ -256,7 +273,7 @@ class ReleasePlanTest(unittest.TestCase):
 
     def test_azure_go_live_is_azure_only_and_never_a_dry_run(self) -> None:
         plan = self.plan(action="azure-go-live", dry_run_input="true", marketplaces_input="aws")
-        self.assertEqual(plan["runs"], {"aws": False, "azure": True, "google-cloud": False})
+        self.assertEqual(plan["runs"], dict(NONE, azure=True))
         self.assertFalse(plan["dry_run"])
         self.assertEqual(release_plan.outputs_of(plan)["release"], "false")
 
@@ -279,12 +296,15 @@ class ReleasePlanTest(unittest.TestCase):
                 "track": "14.0",
                 "dry_run": "false",
                 "release": "true",
+                "automatic": "true",
                 "aws": "true",
                 "azure": "true",
                 "google_cloud": "false",
+                "aws_eks_addon": "true",
                 "any": "true",
             },
         )
+        self.assertEqual(release_plan.outputs_of(self.plan())["automatic"], "false")
         nothing = self.plan(event="schedule", editions={name: {} for name in release_common.MARKETPLACES})
         self.assertEqual(release_plan.outputs_of(nothing)["any"], "false")
         summary = release_plan.summary_of(plan)
@@ -463,6 +483,393 @@ class AwsCatalogTest(unittest.TestCase):
             self.assertEqual(command[command.index("--region") + 1], "us-east-1")
 
         self.assertIn("AWSMarketplace", calls[0])
+
+
+def addon_images_plan(count: int = 3, version: str = VERSION) -> Dict[str, Any]:
+    return {
+        "marketplace": "aws-eks-addon",
+        "version": version,
+        "images": [
+            {"key": f"image{index}", "target": f"{READY_ADDON['registry']}/image{index}:{version}"}
+            for index in range(count)
+        ],
+    }
+
+
+def addon_product(*versions: Any) -> Dict[str, Any]:
+    """The add-on product as DescribeEntity describes it, given (version, visibility) pairs."""
+    return {
+        "DetailsDocument": {
+            "Versions": [
+                {
+                    "Id": f"version-{title}",
+                    "VersionTitle": title,
+                    "DeliveryOptions": [
+                        {
+                            "Id": f"do-{title}",
+                            "Type": "EksAddOn",
+                            "Visibility": visibility,
+                            "AddOnName": "kubernetes-agent",
+                        }
+                    ],
+                }
+                for title, visibility in versions
+            ]
+        }
+    }
+
+
+class FakeCatalog:
+    """The AWS CLI's marketplace-catalog commands, answered from a product and its change sets."""
+
+    def __init__(self, product: Dict[str, Any], open_change_sets: Optional[List[Dict[str, Any]]] = None) -> None:
+        self.product = product
+        self.open = open_change_sets or []
+        self.calls: List[List[str]] = []
+        self.started: List[Any] = []
+
+    def __call__(self, command: List[str]) -> str:
+        self.calls.append(command)
+        operation = command[2]
+
+        if operation == "describe-entity":
+            return json.dumps(self.product)
+
+        if operation == "list-change-sets":
+            return json.dumps({"ChangeSetSummaryList": self.open})
+
+        if operation == "start-change-set":
+            path = command[command.index("--change-set") + 1].replace("file://", "")
+            self.started.append(json.loads(Path(path).read_text()))
+            return json.dumps({"ChangeSetId": "cs-addon"})
+
+        if operation == "describe-change-set":
+            return json.dumps({"Status": "SUCCEEDED"})
+
+        raise AssertionError(f"Unexpected call {command}")
+
+    def operations(self) -> List[str]:
+        return [command[2] for command in self.calls]
+
+
+class AwsCatalogEksAddonTest(unittest.TestCase):
+    def delivery(self) -> Dict[str, Any]:
+        return aws_catalog.load_json(aws_catalog.EKS_ADDON_DELIVERY_OPTION_FILE)
+
+    def details(self, **overrides: Any) -> Dict[str, Any]:
+        arguments: Dict[str, Any] = {
+            "version": VERSION,
+            "images_plan": addon_images_plan(),
+            "edition": READY_ADDON,
+            "delivery": self.delivery(),
+        }
+        arguments.update(overrides)
+        return aws_catalog.add_addon_version_details(**arguments)
+
+    def cli(self, catalog: FakeCatalog, argv: List[str], editions: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        real = aws_catalog.Catalog
+        return run_cli(
+            aws_catalog.main,
+            argv,
+            load_editions=lambda: editions or ready_editions(),
+            Catalog=lambda: real(catalog),
+            follow=lambda catalog_, change_set_id, wait_minutes: ("succeeded", []),
+        )
+
+    def test_a_version_is_one_eks_add_on_delivery_option_for_testing(self) -> None:
+        details = self.details()
+        self.assertEqual(details["Version"]["VersionTitle"], VERSION)
+        self.assertIn(f"releases/tag/{VERSION}", details["Version"]["ReleaseNotes"])
+        self.assertIn("Kubernetes agent", details["Version"]["ReleaseNotes"])
+
+        [option] = details["DeliveryOptions"]
+        # AWS takes an add-on version as Limited alone, and publishes it for testing first.
+        self.assertEqual(option["Visibility"], "Limited")
+        self.assertEqual(list(option["Details"]), ["EksAddOnDeliveryOptionDetails"])
+        addon = option["Details"]["EksAddOnDeliveryOptionDetails"]
+        self.assertEqual(addon["HelmChartUri"], f"{READY_ADDON['registry']}/kubernetes-agent:{VERSION}")
+        self.assertEqual(addon["ContainerImages"], [entry["target"] for entry in addon_images_plan()["images"]])
+        self.assertEqual(addon["AddOnName"], "kubernetes-agent")
+        self.assertEqual(addon["AddOnVersion"], VERSION)
+        self.assertEqual(addon["AddOnType"], "monitoring")
+        self.assertEqual(addon["Namespace"], "oneuptime-agent")
+        self.assertEqual(addon["SupportedArchitectures"], ["amd64", "arm64"])
+        self.assertEqual(addon["CompatibleKubernetesVersions"], ["1.34", "1.35", "1.36", "1.37"])
+        self.assertEqual(
+            addon["EnvironmentOverrideParameters"], [{"Key": "clusterName", "Value": "${AWS_EKS_CLUSTER_NAME}"}]
+        )
+        # The name buyers type: AWS puts the seller alias before the listing's.
+        self.assertIn("--addon-name oneuptime_kubernetes-agent", addon["UsageInstructions"])
+        self.assertNotIn("{addOnName}", addon["UsageInstructions"])
+        self.assertNotIn("HelmDeliveryOptionDetails", json.dumps(details))
+
+    def test_the_delivery_option_says_what_aws_policy_asks_and_fits_its_limits(self) -> None:
+        delivery = self.delivery()
+        self.assertLessEqual(len(delivery["title"]), aws_catalog.DELIVERY_OPTION_TITLE_LIMIT)
+        self.assertLessEqual(len(delivery["description"]), aws_catalog.DESCRIPTION_LIMIT)
+        self.assertLessEqual(len(delivery["usageInstructions"]), aws_catalog.USAGE_INSTRUCTIONS_LIMIT)
+        # An add-on to another product says so, and so does a product that needs a connection.
+        self.assertIn("extends the functionality of OneUptime", delivery["description"])
+        self.assertIn("very limited utility", delivery["description"])
+        self.assertIn("ongoing internet connection", delivery["usageInstructions"])
+        # Configured with the add-on's values: never Helm, never a key on the command line.
+        self.assertNotIn("--set", delivery["usageInstructions"])
+        self.assertNotIn("helm ", delivery["usageInstructions"])
+        self.assertNotIn("apiKey", delivery["usageInstructions"])
+
+    def test_the_delivery_option_agrees_with_the_add_on_build(self) -> None:
+        delivery = self.delivery()
+        usage: str = delivery["usageInstructions"]
+        self.assertIn(f"--namespace {delivery['namespace']}", usage)
+        self.assertIn(f"kubectl create namespace {delivery['namespace']}", usage)
+        self.assertIn(build.EKS_ADDON_VALUES["oneuptime.existingSecretName"], usage)
+        self.assertIn(build.EKS_ADDON_VALUES["oneuptime.url"], usage)
+        self.assertIn("api-key=", usage)
+
+        # Every value EKS fills in is one the agent chart reads.
+        chart = build.ValuesEditor((build.AGENT_CHART / "values.yaml").read_text())
+
+        for entry in delivery["environmentOverrideParameters"]:
+            chart.get_scalar(entry["Key"].split("."))
+
+        # The configuration values the instructions show are ones the add-on takes.
+        schema = build.load_json(build.EKS_ADDON_DIR / "configuration-schema.json")
+        properties = schema["properties"]
+        self.assertIn("url", properties["oneuptime"]["properties"])
+        self.assertIn("existingSecretName", properties["oneuptime"]["properties"])
+        self.assertIn("eks-fargate", properties["preset"]["enum"])
+        self.assertIn("enabled", properties["ebpf"]["properties"])
+
+    def test_refuses_what_aws_would_refuse(self) -> None:
+        delivery = self.delivery()
+
+        for bad in (
+            dict(delivery, addOnName="kubernetes_agent"),
+            dict(delivery, addOnName="-agent"),
+            dict(delivery, addOnType="apm"),
+            dict(delivery, namespace="OneUptime_Agent"),
+            dict(delivery, compatibleKubernetesVersions=[]),
+            dict(delivery, compatibleKubernetesVersions=["1.35", "1.35"]),
+            dict(delivery, compatibleKubernetesVersions=["v1.35"]),
+            dict(delivery, supportedArchitectures=["amd64"]),
+            dict(delivery, supportedArchitectures=["amd64", "arm64", "s390x"]),
+            dict(delivery, environmentOverrideParameters=[{"Key": "clusterName", "Value": "${CLUSTER}"}]),
+            dict(delivery, environmentOverrideParameters=[{"Key": "a", "Value": "${AWS_REGION}"}] * 2),
+            dict(delivery, title="x" * 73),
+            dict(delivery, description="y" * 1001),
+            dict(delivery, description=" starts with a space"),
+            dict(delivery, usageInstructions="z" * 4001),
+        ):
+            with self.assertRaises(release_common.ReleaseError):
+                self.details(delivery=bad)
+
+        for plan in (
+            dict(addon_images_plan(), marketplace="aws"),
+            addon_images_plan(version="14.0.65"),
+            addon_images_plan(count=51),
+            addon_images_plan(count=0),
+        ):
+            with self.assertRaises(release_common.ReleaseError):
+                self.details(images_plan=plan)
+
+        with self.assertRaises(release_common.ReleaseError):
+            self.details(edition=dict(READY_ADDON, sellerAlias=""))
+
+    def test_the_cli_plans_the_add_on_version_for_its_own_product(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            images = Path(directory) / "images.json"
+            images.write_text(json.dumps(addon_images_plan()))
+            out = Path(directory) / "change-set.json"
+            result = self.cli(
+                FakeCatalog(addon_product()),
+                ["plan", "--edition", "aws-eks-addon", "--images-json", str(images), "--version", VERSION, "--out", str(out)],
+            )
+            self.assertEqual(result["code"], 0)
+            [entry] = json.loads(out.read_text())
+
+        self.assertEqual(entry["ChangeType"], "AddDeliveryOptions")
+        self.assertEqual(entry["Entity"], {"Identifier": "prod-addon456", "Type": "ContainerProduct@1.0"})
+        self.assertTrue(aws_catalog.is_addon_change_set([entry]))
+        self.assertFalse(
+            aws_catalog.is_addon_change_set(
+                [
+                    aws_catalog.change(
+                        "AddDeliveryOptions",
+                        "prod-abc123",
+                        aws_catalog.add_version_details(
+                            version=VERSION,
+                            images_plan=aws_images_plan(),
+                            edition=READY_AWS,
+                            delivery=aws_catalog.load_json(aws_catalog.DELIVERY_OPTION_FILE),
+                            release_notes="",
+                        ),
+                    )
+                ]
+            )
+        )
+
+    def test_shipped_asks_the_add_on_product(self) -> None:
+        catalog = FakeCatalog(addon_product(("14.0.60", "Public"), (VERSION, "Limited")))
+        has_it = self.cli(catalog, ["shipped", "--edition", "aws-eks-addon", "--version", VERSION, "--wait-while-testing"])
+        self.assertEqual((has_it["code"], has_it["outputs"]), (0, "shipped=true\n"))
+        self.assertIn(f"has {VERSION} already as a version of the EKS add-on", has_it["summary"])
+        describe = catalog.calls[0]
+        self.assertEqual(describe[describe.index("--entity-id") + 1], "prod-addon456")
+
+    def test_the_weekly_run_waits_while_a_version_is_in_testing(self) -> None:
+        catalog = FakeCatalog(addon_product(("14.0.60", "Public"), ("14.0.65", "Limited")))
+        waits = self.cli(catalog, ["shipped", "--edition", "aws-eks-addon", "--version", VERSION, "--wait-while-testing"])
+        self.assertEqual((waits["code"], waits["outputs"]), (0, "shipped=true\n"))
+        self.assertIn("version 14.0.65 is in testing (Limited)", waits["summary"])
+        self.assertIn("go-public --version 14.0.65", waits["summary"])
+        self.assertIn(f"Run the workflow by hand to add {VERSION} anyway", waits["summary"])
+
+        # By hand, it ships whatever is in testing.
+        by_hand = self.cli(FakeCatalog(addon_product(("14.0.65", "Limited"))), ["shipped", "--edition", "aws-eks-addon", "--version", VERSION])
+        self.assertEqual((by_hand["code"], by_hand["outputs"], by_hand["summary"]), (0, "shipped=false\n", ""))
+
+    def test_the_weekly_run_waits_while_aws_is_still_publishing_a_version(self) -> None:
+        catalog = FakeCatalog(
+            addon_product(("14.0.60", "Public")),
+            open_change_sets=[{"ChangeSetId": "cs-1", "ChangeSetName": "OneUptime Kubernetes agent 14.0.65", "Status": "APPLYING"}],
+        )
+        waits = self.cli(catalog, ["shipped", "--edition", "aws-eks-addon", "--version", VERSION, "--wait-while-testing"])
+        self.assertEqual(waits["outputs"], "shipped=true\n")
+        self.assertIn('still applying the change set "OneUptime Kubernetes agent 14.0.65" (`cs-1`)', waits["summary"])
+
+        listing = catalog.calls[catalog.operations().index("list-change-sets")]
+        filters = json.loads(listing[listing.index("--filter-list") + 1])
+        self.assertEqual(
+            filters,
+            [
+                {"Name": "EntityId", "ValueList": ["prod-addon456"]},
+                {"Name": "Status", "ValueList": ["PREPARING", "APPLYING"]},
+            ],
+        )
+
+    def test_the_weekly_run_adds_a_version_once_the_last_one_is_public(self) -> None:
+        catalog = FakeCatalog(addon_product(("14.0.60", "Public"), ("14.0.65", "Public")))
+        ships = self.cli(catalog, ["shipped", "--edition", "aws-eks-addon", "--version", VERSION, "--wait-while-testing"])
+        self.assertEqual((ships["code"], ships["outputs"], ships["summary"]), (0, "shipped=false\n", ""))
+
+        # Enterprise versions are public once applied: its weekly check asks nothing more.
+        enterprise = FakeCatalog({"DetailsDocument": {"Versions": []}})
+        self.cli(enterprise, ["shipped", "--version", VERSION])
+        self.assertEqual(enterprise.operations(), ["describe-entity"])
+
+    def test_shipped_needs_the_add_on_product(self) -> None:
+        editions = ready_editions()
+        editions["aws-eks-addon"]["productId"] = ""
+        catalog = FakeCatalog(addon_product())
+        result = self.cli(catalog, ["shipped", "--edition", "aws-eks-addon", "--version", VERSION], editions)
+        self.assertEqual(result["code"], 1)
+        self.assertEqual(catalog.calls, [])
+
+    def test_go_public_makes_the_tested_version_public(self) -> None:
+        catalog = FakeCatalog(addon_product(("14.0.60", "Public"), (VERSION, "Limited")))
+        result = self.cli(catalog, ["go-public", "--version", VERSION])
+        self.assertEqual(result["code"], 0)
+        self.assertEqual(
+            catalog.started,
+            [
+                [
+                    {
+                        "ChangeType": "UpdateDeliveryOptionsVisibility",
+                        "Entity": {"Identifier": "prod-addon456", "Type": "ContainerProduct@1.0"},
+                        "DetailsDocument": {"DeliveryOptions": [{"Id": f"do-{VERSION}", "TargetVisibility": "Public"}]},
+                    }
+                ]
+            ],
+        )
+
+        public = FakeCatalog(addon_product((VERSION, "Public")))
+        self.assertEqual(self.cli(public, ["go-public", "--version", VERSION])["code"], 0)
+        self.assertEqual(public.started, [])
+
+        missing = FakeCatalog(addon_product(("14.0.60", "Public")))
+        self.assertEqual(self.cli(missing, ["go-public", "--version", VERSION])["code"], 1)
+        self.assertEqual(missing.started, [])
+
+    def test_submitting_an_add_on_version_says_how_to_test_it(self) -> None:
+        change = aws_catalog.change("AddDeliveryOptions", "prod-addon456", self.details())
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "change-set.json"
+            path.write_text(json.dumps([change]))
+            catalog = FakeCatalog(addon_product())
+            result = self.cli(catalog, ["submit", "--change-set", str(path), "--name", f"OneUptime Kubernetes agent {VERSION}"])
+
+        self.assertEqual(result["code"], 0)
+        self.assertIn("ap-northeast-2", result["summary"])
+        self.assertIn("`oneuptime_kubernetes-agent`", result["summary"])
+
+        for kubernetes_version in self.delivery()["compatibleKubernetesVersions"]:
+            self.assertIn(kubernetes_version, result["summary"])
+
+        self.assertIn(f"go-public --version {VERSION}", result["summary"])
+
+    def test_the_add_on_repositories_are_its_chart_s_and_one_per_image(self) -> None:
+        names = aws_catalog.repository_names(
+            aws_catalog.load_json(aws_catalog.EKS_ADDON_IMAGES_FILE), aws_catalog.EKS_ADDON_CHART_REPOSITORY
+        )
+        self.assertEqual(names[0], "kubernetes-agent")
+        self.assertIn("kubernetes-ai-agent", names)
+        self.assertEqual(len(names), len(set(names)))
+
+        catalog = FakeCatalog(addon_product())
+        result = self.cli(catalog, ["add-repositories", "--edition", "aws-eks-addon"])
+        self.assertEqual(result["code"], 0)
+        [[entry]] = catalog.started
+        self.assertEqual(entry["ChangeType"], "AddRepositories")
+        self.assertEqual(entry["Entity"]["Identifier"], "prod-addon456")
+        self.assertEqual([repository["RepositoryName"] for repository in entry["DetailsDocument"]["Repositories"]], names)
+
+    def test_the_real_edition_is_not_ready_until_its_product_exists(self) -> None:
+        edition = release_common.load_editions()["aws-eks-addon"]
+        self.assertEqual(edition["registry"], release_common.load_editions()["aws"]["registry"])
+
+        if not edition["productId"]:
+            self.assertFalse(edition["ready"])
+
+
+class ReleasePlanEksAddonTest(unittest.TestCase):
+    def plan(self, **overrides: Any) -> Dict[str, Any]:
+        arguments: Dict[str, Any] = {
+            "event": "schedule",
+            "action": "release",
+            "version": VERSION,
+            "released": True,
+            "marketplaces_input": "",
+            "dry_run_input": "",
+            "variables": dict(ALL_VARIABLES),
+            "editions": ready_editions(),
+        }
+        arguments.update(overrides)
+        return release_plan.make_plan(**arguments)
+
+    def test_the_weekly_run_says_it_waits_for_a_version_in_testing(self) -> None:
+        summary = release_plan.summary_of(self.plan())
+        self.assertIn(
+            "| aws-eks-addon | adds it for testing, once approved, unless it has it already, "
+            "or a version of it is still being published or tested |",
+            summary,
+        )
+        by_hand = release_plan.summary_of(
+            self.plan(event="workflow_dispatch", dry_run_input="false", marketplaces_input="aws-eks-addon")
+        )
+        self.assertIn("| aws-eks-addon | adds it for testing, once approved, unless it has it already |", by_hand)
+
+    def test_the_weekly_run_skips_the_add_on_until_it_is_set_up(self) -> None:
+        editions = ready_editions()
+        editions["aws-eks-addon"] = {"ready": False, "registry": READY_ADDON["registry"], "productId": "", "sellerAlias": "oneuptime"}
+        plan = self.plan(editions=editions)
+        self.assertFalse(plan["runs"]["aws-eks-addon"])
+        self.assertTrue(plan["runs"]["aws"])
+        self.assertIn("productId", " ".join(plan["skipped"]["aws-eks-addon"]))
+
+    def test_the_add_on_signs_in_with_the_aws_role(self) -> None:
+        self.assertEqual(release_plan.REQUIRED_VARIABLES["aws-eks-addon"], ("MARKETPLACE_RELEASE_AWS_ROLE_ARN",))
+        self.assertEqual(release_plan.outputs_of(self.plan())["aws_eks_addon"], "true")
 
 
 class FakeResponse(io.BytesIO):
@@ -792,6 +1199,47 @@ class CiSetupTest(unittest.TestCase):
 
             for action in actions:
                 self.assertNotIn("*", action)
+
+    def test_the_aws_role_adds_add_on_versions_once_the_add_on_product_exists(self) -> None:
+        unchanged = ci_setup.aws_permissions_policy(READY_AWS, dict(READY_ADDON, productId=""))
+        self.assertEqual(unchanged, ci_setup.aws_permissions_policy(READY_AWS))
+        self.assertNotIn("ListChangeSets", json.dumps(unchanged))
+
+        policy = ci_setup.aws_permissions_policy(READY_AWS, READY_ADDON)
+        statements = {statement["Sid"]: statement for statement in policy["Statement"]}
+
+        for sid in ("AddVersionsOnly", "FollowTheChanges"):
+            resources = " ".join(statements[sid]["Resource"])
+            self.assertIn("ContainerProduct/prod-abc123", resources)
+            self.assertIn("ContainerProduct/prod-addon456", resources)
+
+        self.assertEqual(
+            statements["AddVersionsOnly"]["Condition"], {"StringEquals": {"catalog:ChangeType": ["AddDeliveryOptions"]}}
+        )
+        # Both products' repositories are under the seller's one prefix.
+        self.assertEqual(
+            statements["PushToTheProductRepositories"]["Resource"],
+            "arn:aws:ecr:us-east-1:709825985650:repository/hackerbay/*",
+        )
+        self.assertEqual(statements["SeeTheAddOnVersionsOnTheirWay"]["Action"], "aws-marketplace:ListChangeSets")
+        # Making a version public stays the maintainer's.
+        self.assertNotIn("UpdateDeliveryOptionsVisibility", json.dumps(policy))
+
+        elsewhere = ci_setup.aws_permissions_policy(
+            READY_AWS, dict(READY_ADDON, registry="709825985650.dkr.ecr.us-east-1.amazonaws.com/other")
+        )
+        push = [statement for statement in elsewhere["Statement"] if statement["Sid"] == "PushToTheProductRepositories"]
+        self.assertEqual(
+            push[0]["Resource"],
+            [
+                "arn:aws:ecr:us-east-1:709825985650:repository/hackerbay/*",
+                "arn:aws:ecr:us-east-1:709825985650:repository/other/*",
+            ],
+        )
+
+        script = ci_setup.aws_script(READY_AWS, READY_ADDON)
+        self.assertEqual(bash_syntax_problems(script), "")
+        self.assertIn("ContainerProduct/prod-addon456", script)
 
     def test_the_aws_role_needs_the_product_and_its_registry(self) -> None:
         for bad in ({"productId": ""}, {"registry": "123456789012.dkr.ecr.us-east-1.amazonaws.com/x"}, {"registry": "709825985650.dkr.ecr.us-east-1.amazonaws.com"}):

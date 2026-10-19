@@ -23,5 +23,11 @@
     "ready": false,
     "registry": "us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise",
     "serviceName": "oneuptime-enterprise.endpoints.oneuptime-marketplace.cloud.goog"
+  },
+  "aws-eks-addon": {
+    "ready": false,
+    "registry": "709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime",
+    "productId": "",
+    "sellerAlias": "oneuptime"
   }
 }

@@ -182,4 +182,5 @@ OneUptimes databaser skal bruge vedvarende volumener. Giv clusteret en standard-
 - [Opgradering](/docs/installation/upgrading): Opgraderingsnoterne for hver release.
 - [Dimensionering og kapacitetsplanlægning](/docs/installation/sizing): Dimensionér datalagrene til din telemetri.
 - [Arkitektur](/docs/self-hosted/architecture): Hvad der kører i dit cluster.
+- [Kubernetes-agent](/docs/telemetry/kubernetes-agent#installer-som-amazon-eks-tilføjelse): Også gratis på AWS Marketplace, som Amazon EKS-tilføjelse, til clustere, der sender data til OneUptime.
 :::

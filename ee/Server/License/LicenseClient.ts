@@ -185,6 +185,15 @@ export default class LicenseClient {
            */
           version: AppVersion,
         },
+        options: {
+          /*
+           * The key goes to the licence server it is checked with and
+           * nowhere else: a redirect is followed only on that server, so
+           * it can neither send the key to another one nor move it from
+           * https to http.
+           */
+          sameServerRedirectsOnly: true,
+        },
       });
 
     if (!validationResponse.isSuccess()) {

@@ -69,7 +69,7 @@ spec:
             - name: ONEUPTIME_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kubernetes-agent.fullname" . }}
+                  name: {{ include "kubernetes-agent.apiKeySecretName" . }}
                   key: api-key
           resources:
             {{- toYaml .Values.logs.resources | nindent 12 }}

@@ -53,7 +53,7 @@ spec:
             - name: ONEUPTIME_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kubernetes-agent.fullname" . }}
+                  name: {{ include "kubernetes-agent.apiKeySecretName" . }}
                   key: api-key
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName | quote }}

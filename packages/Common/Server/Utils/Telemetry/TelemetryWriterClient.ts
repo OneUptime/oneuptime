@@ -103,6 +103,7 @@ const defaultPost: WriterPostFn = async (args: {
       options: {
         timeout: args.timeoutMs,
         skipAuthRefresh: true,
+        sameServerRedirectsOnly: true,
       },
     });
   } catch (err) {

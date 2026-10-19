@@ -78,6 +78,40 @@ flowchart TB
 
 提交按鈕上寫著 **訂閱**。透過簡訊、Slack、Microsoft Teams 或 Webhook 註冊後會顯示 *您已成功訂閱。* 透過電子郵件註冊後，會提示確認連結已寄出，如果沒有收到請檢查垃圾郵件資料夾（請參閱 [電子郵件的雙重確認](#電子郵件的雙重確認)）。**電子郵件**、**簡訊**、**Slack** 和 **MS Teams** 分頁還有 **新訂閱** / **管理現有訂閱** 的切換，這樣已經訂閱的人不必翻找舊訊息就能回到自己的偏好設定。
 
+## 註冊和連結的限制
+
+每次註冊都會立即向其聯絡方式傳送一則訊息（一封確認郵件、一則簡訊、一則 Slack 或 Microsoft Teams 訊息，或一次 Webhook 呼叫）， **傳送管理連結** 也是如此。為了不讓任何人利用狀態頁向沒有要求過的人傳送訊息，或抬高你專案的簡訊費用，這兩者都依每位訪客的網路和每個聯絡方式加以限制。這些限制遠高於人們實際的使用量：整間辦公室可以在事件期間一起註冊。
+
+| 限制對象 | 限制 |
+| --- | --- |
+| 來自一個網路的註冊 | 15 分鐘內 60 次 |
+| 來自一個網路的簡訊註冊和簡訊管理連結，合計 | 15 分鐘內 10 次 |
+| 從一個網路要求的管理連結 | 15 分鐘內 30 次 |
+| 一個電子郵件地址、電話號碼、Slack 或 Microsoft Teams 頻道或 Webhook 的註冊，所有狀態頁合計 | 1 小時內 10 次 |
+| 一個電子郵件地址或電話號碼的管理連結（所有狀態頁合計），或一個狀態頁上一個 Slack 或 Microsoft Teams 工作區名稱的管理連結 | 1 小時內 5 次 |
+
+超過限制後，API 會以 `429` 回應，並附帶以秒為單位的 `Retry-After` 標頭，訪客會被告知來自其網路或針對該聯絡方式的註冊或連結太多，請稍後再試。不會建立或傳送任何內容，你的專案也看不到任何痕跡：不會新增訂閱者，也不會傳送或支付任何訊息。管理連結的限制會計算每個請求，無論是否比對到訂閱，因此無法用它來查出誰訂閱了。電子郵件地址無論怎麼寫都視為同一個，無論是大寫、帶 `+tag`，還是對於 Gmail 帶點，電話號碼無論怎麼輸入也視為同一個。一次註冊只接受一個電子郵件地址：地址清單會被拒絕。
+
+每項依網路的限制還會把同一個 IPv6 /64 中的位址合併計數，上限為其數值的十倍。時間窗口是固定的，而不是滾動的。如果無法連線到速率限制器，透過電子郵件、Slack、Microsoft Teams 和 Webhook 的註冊和管理連結會不計數地繼續，而透過簡訊的會以 `503` 被拒絕，直到它恢復，因為每則簡訊都要付費。透過訂閱自己的連結變更或取消訂閱永遠不受限制，你的團隊在儀表板上或透過 API 新增訂閱者也不受限制。
+
+在狀態頁的登入頁面上要求重設密碼連結的私人使用者也受到同樣的限制：寄往一個地址的重設郵件在所有狀態頁合計 1 小時內最多 5 封，來自一個網路的在 15 分鐘內最多 30 封。
+
+在自行託管的安裝中，OneUptime 應用程式的以下環境變數用於變更限制：
+
+| 變數 | 預設值 | 設定的內容 |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | 依網路限制的時間窗口，以秒為單位。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | 依聯絡方式限制的時間窗口，以秒為單位。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | 每個窗口內來自一個位址的註冊數。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | 每個窗口內來自一個位址的簡訊註冊和簡訊管理連結合計。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | 每個窗口內從一個位址要求的管理連結數。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | 每個窗口內一個聯絡方式的註冊數。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | 每個窗口內一個聯絡方式的管理連結數。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | 每個窗口內從一個位址要求的私人使用者密碼重設數。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | 每個窗口內寄往一個位址的私人使用者密碼重設郵件數。 |
+
+`config.env` 和 Helm chart 的值都不會傳遞它們：請自行將它們加入 `app` 容器的環境中——在 Helm chart 中使用 `app.extraEnv` 或 chart 層級的 `extraEnv`，對於 Docker Compose 則使用 `docker-compose.override.yml`。 `TRUSTED_PROXY_HOPS` 決定依網路的限制計算的是哪個位址。
+
 ## 讓訂閱者自己挑資源與事件類型
 
 預設情況下，訂閱者會收到頁面上的所有內容。**訂閱者設定** 上 **訂閱者選項** 卡片中的兩個開關可以改變這一點，每個開關切換後立即儲存：

@@ -5,7 +5,6 @@ import ClickhouseDatabase, {
   ClickhouseIngestInstance,
   ClickhouseMigrationInstance,
 } from "../Infrastructure/ClickhouseDatabase";
-import ClusterKeyAuthorization from "../Middleware/ClusterKeyAuthorization";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
 import ExistsBy from "../Types/AnalyticsDatabase/ExistsBy";
 import CreateBy from "../Types/AnalyticsDatabase/CreateBy";
@@ -2937,6 +2936,11 @@ export default class AnalyticsDatabaseService<
     triggerType: DatabaseTriggerType,
   ): Promise<void> {
     if (this.getModel().enableWorkflowOn) {
+      /*
+       * No route takes an analytics record's trigger yet, so nothing here
+       * presents the cluster key: a route that takes it is one of the
+       * cluster-key routes, and its caller presents the key to it alone.
+       */
       API.post({
         url: new URL(
           Protocol.HTTP,
@@ -2949,9 +2953,6 @@ export default class AnalyticsDatabaseService<
         ),
         data: {
           _id: id.toString(),
-        },
-        headers: {
-          ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
       }).catch((error: Error) => {
         logger.error(error, {

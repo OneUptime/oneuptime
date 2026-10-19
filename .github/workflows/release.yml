@@ -2654,6 +2654,21 @@ jobs:
           retention-days: 30
           overwrite: true
 
+      # The Homebrew cask and the winget manifests GoReleaser wrote for this
+      # version (dist/homebrew, dist/winget), for the
+      # publish-infrastructure-agent-* jobs. They are not release assets:
+      # finalize-github-release does not download them.
+      - name: Keep the package manager manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-agent-package-manifests
+          path: |
+            agents/InfrastructureAgent/dist/homebrew
+            agents/InfrastructureAgent/dist/winget
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
+
 
   # The Android release APK.
   # Required secrets setup guide: packages/MobileApp/docs/RELEASE_SIGNING.md
@@ -3056,6 +3071,213 @@ jobs:
                 await sleep(delayMs);
               }
             }
+
+  # Lists this release in the official MCP Registry
+  # (registry.modelcontextprotocol.io), where MCP clients and directories find
+  # OneUptime Cloud's MCP server: packages/App/FeatureSet/MCP/server.json,
+  # com.oneuptime/mcp, at this release's version.
+  # Scripts/MCP/PublishToMcpRegistry.sh skips a version the registry already
+  # has, as Scripts/NPM/PublishAllPackages.sh does on npm, so a re-run
+  # publishes nothing twice.
+  #
+  # It needs finalize-github-release, so the registry hears of a version only
+  # once it is released, and so runs only for `release`, as that job does.
+  #
+  # Only whoever controls oneuptime.com may publish under com.oneuptime:
+  # mcp-publisher proves it by signing with the private key whose public key
+  # is in oneuptime.com's MCPv1 TXT record. GitHub's OIDC token cannot prove
+  # a domain, so the key is a secret of the mcp-registry-publish environment,
+  # which only this job names. It can publish, and overwrite, any entry under
+  # com.oneuptime, and runs with the mcp-publisher pinned below.
+  # Tests/Ops/McpRegistryRelease.test.js holds all of this.
+  publish-mcp-registry:
+    name: Publish to the MCP Registry
+    needs: [read-version, finalize-github-release]
+    runs-on: ubuntu-latest
+    environment: mcp-registry-publish
+    permissions:
+      contents: read
+    env:
+      # The registry's publisher CLI and the sha256 of its linux_amd64 archive,
+      # both from https://github.com/modelcontextprotocol/registry/releases.
+      MCP_PUBLISHER_VERSION: "1.8.1"
+      MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/mcp-publisher"
+          mkdir -p "$install_dir"
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$install_dir/mcp-publisher.tar.gz" \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          echo "${MCP_PUBLISHER_SHA256}  $install_dir/mcp-publisher.tar.gz" | sha256sum --check --strict
+          tar -xzf "$install_dir/mcp-publisher.tar.gz" -C "$install_dir" mcp-publisher
+          echo "$install_dir" >> "$GITHUB_PATH"
+
+      - name: Publish server.json at this release's version
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
+        run: bash ./Scripts/MCP/PublishToMcpRegistry.sh
+
+  # ─── The infrastructure agent in package managers ─────────────────────
+  #
+  # This release's agent, in the package managers fleet tools install from
+  # (Scripts/PackageManagers/README.md):
+  #
+  #   apt and yum  packages.oneuptime.com, the GitHub Pages site of
+  #                OneUptime/packages, signed with the release key
+  #   Homebrew     the cask in OneUptime/homebrew-tap
+  #   winget       a pull request to microsoft/winget-pkgs
+  #
+  # Each needs finalize-github-release: the packages are this run's release
+  # assets and the cask and manifests download them from the release, so
+  # nothing is published before the release is, or for a release that is not
+  # (and so only for `release`, as that job runs). Each skips a version its
+  # package manager already has, so a re-run publishes nothing twice. Each
+  # reads its secrets from the package-managers environment, and while they
+  # are not set it is skipped with a notice: they are one-time setup, and a
+  # release must not fail without them.
+  # Tests/Ops/InfrastructureAgentPackageManagers.test.js holds all of this.
+  publish-infrastructure-agent-apt-yum:
+    name: Publish the infrastructure agent to apt and yum
+    needs: [read-version, infrastructure-agent-build, finalize-github-release]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: package-managers
+    # Two runs at once would each push the site as they cloned it, and the
+    # later push would be refused. One at a time; none cancelled.
+    concurrency:
+      group: infrastructure-agent-package-repository
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Check the publishing secrets
+        id: secrets
+        env:
+          PACKAGE_REPOSITORY_DEPLOY_KEY: ${{ secrets.PACKAGE_REPOSITORY_DEPLOY_KEY }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -n "$PACKAGE_REPOSITORY_DEPLOY_KEY" ] && [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=apt and yum skipped::PACKAGE_REPOSITORY_DEPLOY_KEY or GPG_PRIVATE_KEY is not set, so the infrastructure agent was not published to packages.oneuptime.com. See Scripts/PackageManagers/README.md."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      - name: Download the infrastructure agent
+        if: steps.secrets.outputs.publish == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-infrastructure-agent
+          path: ${{ runner.temp }}/infrastructure-agent
+
+      - name: Install the repository tools
+        if: steps.secrets.outputs.publish == 'true'
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends apt-utils createrepo-c rpm
+
+      - name: Publish to packages.oneuptime.com
+        if: steps.secrets.outputs.publish == 'true'
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          PACKAGES_DIR: ${{ runner.temp }}/infrastructure-agent
+          PACKAGE_REPOSITORY_DEPLOY_KEY: ${{ secrets.PACKAGE_REPOSITORY_DEPLOY_KEY }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: bash ./Scripts/PackageManagers/PublishPackageRepository.sh
+
+  publish-infrastructure-agent-homebrew:
+    name: Publish the infrastructure agent to Homebrew
+    needs: [read-version, infrastructure-agent-build, finalize-github-release]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: package-managers
+    concurrency:
+      group: infrastructure-agent-homebrew-tap
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Check the publishing secret
+        id: secrets
+        env:
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          if [ -n "$HOMEBREW_TAP_DEPLOY_KEY" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Homebrew skipped::HOMEBREW_TAP_DEPLOY_KEY is not set, so the infrastructure agent's cask was not published to OneUptime/homebrew-tap. See Scripts/PackageManagers/README.md."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      - name: Download the package manager manifests
+        if: steps.secrets.outputs.publish == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: infrastructure-agent-package-manifests
+          path: ${{ runner.temp }}/package-manifests
+
+      - name: Publish the cask to OneUptime/homebrew-tap
+        if: steps.secrets.outputs.publish == 'true'
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          CASK_FILE: ${{ runner.temp }}/package-manifests/homebrew/Casks/oneuptime-infrastructure-agent.rb
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: bash ./Scripts/PackageManagers/PublishHomebrewCask.sh
+
+  publish-infrastructure-agent-winget:
+    name: Publish the infrastructure agent to winget
+    needs: [read-version, infrastructure-agent-build, finalize-github-release]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: package-managers
+    permissions:
+      contents: read
+    steps:
+      - name: Check the publishing secret
+        id: secrets
+        env:
+          WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+        run: |
+          if [ -n "$WINGET_GITHUB_TOKEN" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=winget skipped::WINGET_GITHUB_TOKEN is not set, so no pull request was opened to add the infrastructure agent to microsoft/winget-pkgs. See Scripts/PackageManagers/README.md."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.publish == 'true'
+
+      - name: Download the package manager manifests
+        if: steps.secrets.outputs.publish == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: infrastructure-agent-package-manifests
+          path: ${{ runner.temp }}/package-manifests
+
+      - name: Open the pull request to microsoft/winget-pkgs
+        if: steps.secrets.outputs.publish == 'true'
+        env:
+          PACKAGE_VERSION: ${{ needs.read-version.outputs.major_minor }}
+          WINGET_MANIFESTS: ${{ runner.temp }}/package-manifests/winget/manifests/o/OneUptime/InfrastructureAgent/${{ needs.read-version.outputs.major_minor }}
+          WINGET_GITHUB_TOKEN: ${{ secrets.WINGET_GITHUB_TOKEN }}
+          WINGET_FORK_OWNER: ${{ vars.WINGET_FORK_OWNER }}
+        run: bash ./Scripts/PackageManagers/PublishWingetManifests.sh
 
   # Publish Android app to Google Play Store.
   # This job only runs when manually triggered via workflow_dispatch with publish_android_to_store=true.

@@ -15,6 +15,7 @@ import RunnerAPIRequest from "../../Utils/RunnerAPIRequest";
 import RunnerIdentity from "../../Utils/RunnerIdentity";
 import { RUNNER_KEY } from "../../Config";
 import { JSONObject } from "Common/Types/JSON";
+import { RequestOptions } from "Common/Utils/API";
 
 describe("RunnerAPIRequest.getDefaultRequestBody", () => {
   test("carries the credentials under the legacy aiAgent* wire field names", () => {
@@ -34,5 +35,45 @@ describe("RunnerAPIRequest.getDefaultRequestBody", () => {
 
     expect(body["aiAgentId"]).toBe(RunnerIdentity.getRunnerId().toString());
     expect(typeof body["aiAgentId"]).toBe("string");
+  });
+});
+
+/*
+ * Every request the Runner sends to OneUptime carries a key - its own, the
+ * installation's cluster key or the project's ingestion key - so its
+ * redirects stay on the server it was sent to: an HTTP client hands a
+ * redirected request's headers, and a 307 or 308's body, to wherever the
+ * redirect points.
+ */
+describe("RunnerAPIRequest.getDefaultRequestOptions", () => {
+  test("keeps redirects on the server", () => {
+    expect(RunnerAPIRequest.getDefaultRequestOptions()).toEqual({
+      sameServerRedirectsOnly: true,
+    });
+  });
+
+  test("keeps the caller's own options", () => {
+    expect(
+      RunnerAPIRequest.getDefaultRequestOptions({
+        retries: 3,
+        exponentialBackoff: true,
+        retryOnlyOnRetryableErrors: true,
+        timeout: 5000,
+      }),
+    ).toEqual({
+      retries: 3,
+      exponentialBackoff: true,
+      retryOnlyOnRetryableErrors: true,
+      timeout: 5000,
+      sameServerRedirectsOnly: true,
+    });
+  });
+
+  test("cannot be talked out of it by the caller's options", () => {
+    const options: RequestOptions = RunnerAPIRequest.getDefaultRequestOptions({
+      sameServerRedirectsOnly: false,
+    });
+
+    expect(options.sameServerRedirectsOnly).toBe(true);
   });
 });

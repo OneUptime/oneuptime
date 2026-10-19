@@ -1546,30 +1546,93 @@ export default class OAuthTestHarness {
         return null;
       }
 
+      const incr: (key: string) => Promise<number> = async (
+        key: string,
+      ): Promise<number> => {
+        if (this.isRedisFailing) {
+          throw new Error(
+            "READONLY You can't write against a read only replica.",
+          );
+        }
+
+        const bucket: string = key
+          .slice(RATE_LIMIT_KEY_PREFIX.length)
+          .split(":")[0]!;
+
+        const next: number =
+          (this.redisCounters.get(key) ?? this.redisPrefill.get(bucket) ?? 0) +
+          1;
+
+        this.redisCounters.set(key, next);
+
+        return next;
+      };
+
+      const expire: (key: string, seconds: number) => Promise<number> = async (
+        key: string,
+        seconds: number,
+      ): Promise<number> => {
+        this.redisExpiries.push({ key, seconds });
+        return 1;
+      };
+
+      // As Redis answers GET: the count as a string, or null for no key.
+      const get: (key: string) => Promise<string | null> = async (
+        key: string,
+      ): Promise<string | null> => {
+        const count: number | undefined = this.redisCounters.get(key);
+
+        return count === undefined ? null : String(count);
+      };
+
       return {
-        incr: async (key: string): Promise<number> => {
-          if (this.isRedisFailing) {
-            throw new Error(
-              "READONLY You can't write against a read only replica.",
-            );
-          }
+        incr: incr,
+        expire: expire,
+        get: get,
 
-          const bucket: string = key
-            .slice(RATE_LIMIT_KEY_PREFIX.length)
-            .split(":")[0]!;
+        /*
+         * The rate limiter counts through pipelines
+         * (ClientRateLimitCounter): each command runs through the ones
+         * above, and the answer is ioredis's, [error, value] per command.
+         */
+        pipeline: (): unknown => {
+          const commands: Array<() => Promise<unknown>> = [];
 
-          const next: number =
-            (this.redisCounters.get(key) ??
-              this.redisPrefill.get(bucket) ??
-              0) + 1;
+          const pipeline: Record<string, unknown> = {
+            incr: (key: string): unknown => {
+              commands.push((): Promise<unknown> => {
+                return incr(key);
+              });
+              return pipeline;
+            },
+            expire: (key: string, seconds: number): unknown => {
+              commands.push((): Promise<unknown> => {
+                return expire(key, seconds);
+              });
+              return pipeline;
+            },
+            get: (key: string): unknown => {
+              commands.push((): Promise<unknown> => {
+                return get(key);
+              });
+              return pipeline;
+            },
+            exec: async (): Promise<Array<[Error | null, unknown]>> => {
+              const results: Array<[Error | null, unknown]> = [];
 
-          this.redisCounters.set(key, next);
+              for (const command of commands) {
+                try {
+                  results.push([null, await command()]);
+                } catch (error) {
+                  results.push([error as Error, null]);
+                }
+              }
 
-          return next;
-        },
-        expire: async (key: string, seconds: number): Promise<number> => {
-          this.redisExpiries.push({ key, seconds });
-          return 1;
+              return results;
+            },
+          };
+
+          return pipeline;
         },
       };
     });

@@ -548,11 +548,83 @@ export const AirtableApiKey: string = process.env["AIRTABLE_API_KEY"] || "";
 
 export const AirtableBaseId: string = process.env["AIRTABLE_BASE_ID"] || "";
 
+/*
+ * A SHARED SECRET THIS REPOSITORY SHIPS
+ *
+ * The values a key OneUptime's own components share can be left at by an
+ * installation that never set it, all of them public in this repository:
+ *
+ *   - unset or blank;
+ *   - "secret", which the code used to fall back to;
+ *   - any placeholder config.example.env sets. Every one contains
+ *     "please-change-this" ("please-change-this-to-random-value",
+ *     "probe-1-please-change-this-to-random-value", ...), and the README's
+ *     Docker Compose install copies that file as it is.
+ *
+ * Whitespace around the value is ignored, as compose and shells keep it. The
+ * comparison is case-sensitive: these are the exact values anybody would try
+ * first, and any other weak value is the operator's own choice.
+ *
+ * Such a value is never accepted as proof that a caller is one of
+ * OneUptime's own components, whichever key it is. ENCRYPTION_SECRET keeps
+ * its own, older rule above (IsEncryptionSecretInsecure), because which of
+ * its values count decides which key every sign-in token is checked with.
+ */
+export const ShippedSecretFallback: string = "secret";
+
+export const ShippedSecretPlaceholderMark: string = "please-change-this";
+
+export function isShippedSecretValue(
+  value: string | null | undefined,
+): boolean {
+  if (typeof value !== "string") {
+    return true;
+  }
+
+  const trimmed: string = value.trim();
+
+  return (
+    trimmed === "" ||
+    trimmed === ShippedSecretFallback ||
+    trimmed.includes(ShippedSecretPlaceholderMark)
+  );
+}
+
+/*
+ * THE CLUSTER KEY (ONEUPTIME_SECRET)
+ *
+ * OneUptime's own services prove to each other that a call comes from one of
+ * them by presenting this key: the app and worker processes when one asks
+ * another to send an email, an SMS, a call, a WhatsApp or Telegram message
+ * or a webhook, to run a workflow or to write telemetry, and the in-cluster
+ * Runner when it registers to fix code for every project
+ * (ClusterKeyAuthorization). The routes that take it are reachable through
+ * the ingress like any other.
+ *
+ * ClusterKey is the value exactly as the operator set it, read only by
+ * ClusterKeyAuthorization, and only when it is not one this repository ships
+ * (IsClusterKeyShipped). There is no fallback: an installation that left it
+ * unset or at a placeholder has its services use a key of the installation's
+ * own instead, and refuses the public value from any caller.
+ */
 export const ClusterKey: ObjectID = new ObjectID(
-  process.env["ONEUPTIME_SECRET"] || "secret",
+  process.env["ONEUPTIME_SECRET"] || "",
 );
 
+// Whether ONEUPTIME_SECRET is set at all (the Runner's cluster-scoped mode).
 export const HasClusterKey: boolean = Boolean(process.env["ONEUPTIME_SECRET"]);
+
+export const IsClusterKeyShipped: boolean = isShippedSecretValue(
+  process.env["ONEUPTIME_SECRET"],
+);
+
+/*
+ * Said once at boot by the app (App/Index.ts) when ONEUPTIME_SECRET is unset
+ * or a shipped value, or null. The Runner says its own.
+ */
+export const ClusterKeyWarning: string | null = IsClusterKeyShipped
+  ? 'ONEUPTIME_SECRET is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value from any caller. Its own services call each other with a key this installation derives for itself instead, so nothing needs changing for them, but the in-cluster Runner cannot register until ONEUPTIME_SECRET is a long random value, the same on the app and the Runner. npm start and npm run update put one in config.env for Docker Compose; with Helm, set oneuptimeSecret to one.'
+  : null;
 
 export const EnableQueueDashboard: boolean =
   process.env["ENABLE_QUEUE_DASHBOARD"] === "true";
@@ -560,13 +632,50 @@ export const EnableQueueDashboard: boolean =
 export const QueueDashboardSecret: string =
   process.env["QUEUE_DASHBOARD_SECRET"] || "";
 
+/*
+ * THE GLOBAL-PROBE REGISTRATION KEY (REGISTER_PROBE_KEY)
+ *
+ * A global probe belongs to no project and runs the monitors of every
+ * project on the installation. REGISTER_PROBE_KEY is what a probe presents to
+ * become one (Telemetry/API/ProbeIngest/Register). It is the installation's
+ * own secret: the value exactly as the operator set it, and there is no
+ * fallback. An installation that left it unset or at a value this repository
+ * ships (EnvironmentConfig.isShippedSecretValue) registers no global probe at
+ * all: a value public in the repository proves nothing.
+ *
+ * REGISTER_PROBE_KEY is a secret OneUptime's own containers share and that
+ * nothing stored depends on, so Docker Compose gives it a random value at
+ * install (Scripts/Install/ReplacePlaceholderSecrets.js) and the Helm chart
+ * generates one; a probe's own key (PROBE_KEY / GLOBAL_PROBE_n_KEY) is held to
+ * the same bar by ProbeService.verifyProbeKey.
+ */
 export const RegisterProbeKey: ObjectID = new ObjectID(
-  process.env["REGISTER_PROBE_KEY"] || "secret",
+  process.env["REGISTER_PROBE_KEY"] || "",
 );
 
+// Whether REGISTER_PROBE_KEY is set at all (whether this probe auto-registers as global).
 export const HasRegisterProbeKey: boolean = Boolean(
   process.env["REGISTER_PROBE_KEY"],
 );
+
+/*
+ * True when REGISTER_PROBE_KEY is unset or a value this repository ships, so
+ * global-probe registration is refused from every caller. Read by the
+ * registration route, never as a fallback identity.
+ */
+export const IsRegisterProbeKeyShipped: boolean = isShippedSecretValue(
+  process.env["REGISTER_PROBE_KEY"],
+);
+
+/*
+ * Said once at boot by the app (App/Index.ts) when REGISTER_PROBE_KEY is
+ * unset or a value this repository ships, or null: every global probe's
+ * registration is refused until it is the installation's own, and the probe
+ * says so only in its own log.
+ */
+export const RegisterProbeKeyWarning: string | null = IsRegisterProbeKeyShipped
+  ? 'REGISTER_PROBE_KEY is unset or still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env). OneUptime refuses that value, so no probe can register as a global probe until REGISTER_PROBE_KEY is a long random value, the same on the app and on every global probe. npm start and npm run update put one in config.env for Docker Compose; with Helm, leave registerProbeKey empty to have the chart generate one, or set it to one.'
+  : null;
 
 export const AppApiHostname: Hostname = Hostname.fromString(
   `${process.env["SERVER_APP_HOSTNAME"] || "localhost"}:${
@@ -771,6 +880,63 @@ export const ClickhouseUsername: string =
 
 export const ClickhousePassword: string =
   process.env["CLICKHOUSE_PASSWORD"] || "password";
+
+/*
+ * THE DATASTORE PASSWORDS
+ *
+ * config.example.env ships DATABASE_PASSWORD, CLICKHOUSE_PASSWORD and
+ * VALKEY_PASSWORD as placeholders, which are public in this repository. With
+ * Docker Compose, npm start gives the bundled ClickHouse and Valkey random
+ * passwords on any start, and the bundled PostgreSQL one before it creates
+ * its database (Scripts/Install). An installation started another way, or
+ * whose database was created with the placeholder, keeps it until an
+ * operator changes it, which the app cannot do for a datastore. So the app
+ * says, once at boot (App/Index.ts), which of them still holds a value this
+ * repository ships. A blank password is an operator's own choice (a cache
+ * without a password), so only a value that is not blank counts.
+ */
+export const ChangeDatabasePasswordDocsUrl: string =
+  "https://oneuptime.com/docs/installation/docker-compose#change-the-database-password";
+
+export const ShippedDatastorePasswordSettings: Array<string> = (
+  [
+    ["DATABASE_PASSWORD", process.env["DATABASE_PASSWORD"]],
+    ["CLICKHOUSE_PASSWORD", process.env["CLICKHOUSE_PASSWORD"]],
+    // VALKEY_PASSWORD, or the REDIS_PASSWORD it was called before.
+    ["VALKEY_PASSWORD", getCacheEnvVar("PASSWORD")],
+  ] as Array<[string, string | undefined]>
+)
+  .filter((setting: [string, string | undefined]): boolean => {
+    const value: string | undefined = setting[1];
+
+    return (
+      typeof value === "string" &&
+      value.trim() !== "" &&
+      isShippedSecretValue(value)
+    );
+  })
+  .map((setting: [string, string | undefined]): string => {
+    return setting[0];
+  });
+
+// What the app says about `settings`, or null when there are none.
+export function describeShippedDatastorePasswords(
+  settings: Array<string>,
+): string | null {
+  if (settings.length === 0) {
+    return null;
+  }
+
+  const named: string =
+    settings.length === 1
+      ? settings[0]!
+      : `${settings.slice(0, -1).join(", ")} and ${settings[settings.length - 1]}`;
+
+  return `${named} still ${settings.length === 1 ? "holds" : "hold"} a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder from config.example.env), which is public. With Docker Compose, npm start and npm run update give the bundled ClickHouse and Valkey a random password, and ${ChangeDatabasePasswordDocsUrl} shows how to change PostgreSQL's. A datastore OneUptime does not run needs a long random password of its own, set here and on the datastore.`;
+}
+
+export const DatastorePasswordWarning: string | null =
+  describeShippedDatastorePasswords(ShippedDatastorePasswordSettings);
 
 export const ClickhouseDatabase: string =
   process.env["CLICKHOUSE_DATABASE"] || "oneuptime";

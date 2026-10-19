@@ -80,6 +80,63 @@ class FakeRedisClient {
     this.expires.set(key, ttlSeconds);
     return 1;
   }
+
+  // As Redis answers GET: the count as a string, or null for no key.
+  public async get(key: string): Promise<string | null> {
+    const count: number | undefined = this.counters.get(key);
+
+    return count === undefined ? null : String(count);
+  }
+
+  /*
+   * The limiter counts through pipelines (ClientRateLimitCounter): each
+   * command runs through the methods above, and the answer is ioredis's,
+   * [error, value] per command.
+   */
+  public pipeline(): FakePipeline {
+    return new FakePipeline(this);
+  }
+}
+
+class FakePipeline {
+  private commands: Array<() => Promise<unknown>> = [];
+
+  public constructor(private client: FakeRedisClient) {}
+
+  public incr(key: string): FakePipeline {
+    this.commands.push((): Promise<unknown> => {
+      return this.client.incr(key);
+    });
+    return this;
+  }
+
+  public expire(key: string, ttlSeconds: number): FakePipeline {
+    this.commands.push((): Promise<unknown> => {
+      return this.client.expire(key, ttlSeconds);
+    });
+    return this;
+  }
+
+  public get(key: string): FakePipeline {
+    this.commands.push((): Promise<unknown> => {
+      return this.client.get(key);
+    });
+    return this;
+  }
+
+  public async exec(): Promise<Array<[Error | null, unknown]>> {
+    const results: Array<[Error | null, unknown]> = [];
+
+    for (const command of this.commands) {
+      try {
+        results.push([null, await command()]);
+      } catch (error) {
+        results.push([error as Error, null]);
+      }
+    }
+
+    return results;
+  }
 }
 
 let client: FakeRedisClient;

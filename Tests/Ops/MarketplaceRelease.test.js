@@ -3,14 +3,16 @@
 /**
  * .github/workflows/marketplace-release.yml ships OneUptime releases to the AWS Marketplace,
  * Microsoft Marketplace and Google Cloud Marketplace listings of self-hosted OneUptime
- * Enterprise (packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md).
+ * Enterprise, and to the Kubernetes agent's Amazon EKS add-on on AWS Marketplace
+ * (packages/Common/Server/Utils/Marketplace/SELF_HOSTED_RELEASING.md).
  *
  * Nothing at runtime notices most of what makes it safe, so this suite pins it:
  *
  *   - it runs once a week on the newest release (the newest #.#.# tag), once
  *     MARKETPLACE_RELEASES is "enabled", or by hand - where it is a dry run unless asked;
  *   - each push job first asks its marketplace whether it has the release already, and then
- *     pushes nothing, and its publishing job neither runs nor waits for an approval;
+ *     pushes nothing, and its publishing job neither runs nor waits for an approval - and the
+ *     weekly run adds no EKS add-on version while another is still on its way or in testing;
  *   - it holds no secret: every cloud is signed in to with GitHub's OIDC token, which only the
  *     jobs that sign in may ask for, and the token's subject is one of two environments the
  *     one-time setup (HelmChart/Marketplace/automation/ci_setup.py) trusts;
@@ -18,7 +20,7 @@
  *     runs in marketplace-publish, so it waits for a maintainer's approval; the jobs that only
  *     push run in marketplace-push; the rest run in neither;
  *   - no workflow expression is pasted into a script: values reach scripts through env;
- *   - every edition is built from the chart as it was released (the marketplace-edition
+ *   - every edition is built from the charts as they were released (the marketplace-edition
  *     action, given the release's commit), and checked by the marketplace suite first;
  *   - one run at a time, and none cancelled halfway;
  *   - the scripts it runs exist, and crane is pinned by its sha256.
@@ -43,8 +45,18 @@ const workflow = yaml.load(read(WORKFLOW));
 const action = yaml.load(read(EDITION_ACTION));
 const jobs = workflow.jobs;
 
-const PUBLISHING_JOBS = ["aws-publish", "azure-publish", "azure-go-live"];
-const PUSHING_JOBS = ["aws-push", "azure-push", "google-cloud-push"];
+const PUBLISHING_JOBS = [
+  "aws-publish",
+  "azure-publish",
+  "azure-go-live",
+  "aws-eks-addon-publish",
+];
+const PUSHING_JOBS = [
+  "aws-push",
+  "azure-push",
+  "google-cloud-push",
+  "aws-eks-addon-push",
+];
 const SIGNING_IN_JOBS = [...PUSHING_JOBS, ...PUBLISHING_JOBS];
 
 // What a script that publishes, or pushes, runs.
@@ -181,6 +193,13 @@ describe(WORKFLOW, () => {
 
     expect(jobs["aws-publish"].needs).toEqual(["prepare", "aws-push"]);
     expect(jobs["azure-publish"].needs).toEqual(["prepare", "azure-push"]);
+    expect(jobs["aws-eks-addon-publish"].needs).toEqual([
+      "prepare",
+      "aws-eks-addon-push",
+    ]);
+    expect(jobs["aws-eks-addon-push"].if).toContain(
+      "needs.prepare.outputs.aws_eks_addon == 'true'",
+    );
     expect(jobs["azure-go-live"].if).toContain(
       "needs.prepare.outputs.action == 'azure-go-live'",
     );
@@ -195,6 +214,9 @@ describe(WORKFLOW, () => {
     );
     expect(stepOf("google-cloud-push", "shipped").run).toContain(
       'crane digest "${registry}/deployer:${VERSION}"',
+    );
+    expect(stepOf("aws-eks-addon-push", "shipped").run).toContain(
+      'aws_catalog.py shipped --edition aws-eks-addon --version "$VERSION"',
     );
 
     for (const name of PUSHING_JOBS) {
@@ -227,6 +249,80 @@ describe(WORKFLOW, () => {
     expect(jobs["azure-publish"].if).toBe(
       "needs.azure-push.outputs.shipped == 'false'",
     );
+    expect(jobs["aws-eks-addon-publish"].if).toBe(
+      "needs.aws-eks-addon-push.outputs.shipped == 'false'",
+    );
+  });
+
+  // What the add-on's check runs, with a python3 that only says what it was given.
+  function addonCheck(automatic) {
+    const step = stepOf("aws-eks-addon-push", "shipped");
+    const bin = fs.mkdtempSync(path.join(os.tmpdir(), "marketplace-addon-"));
+    fs.writeFileSync(
+      path.join(bin, "python3"),
+      '#!/usr/bin/env bash\nprintf "%s\\n" "$@"\n',
+      { mode: 0o755 },
+    );
+
+    try {
+      const result = spawnSync("bash", ["-c", step.run], {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          VERSION: "14.0.66",
+          AUTOMATIC: automatic,
+        },
+      });
+      expect({ status: result.status, stderr: result.stderr }).toEqual({
+        status: 0,
+        stderr: "",
+      });
+      return result.stdout.split("\n").filter(Boolean);
+    } finally {
+      fs.rmSync(bin, { recursive: true, force: true });
+    }
+  }
+
+  test("the weekly run waits while an EKS add-on version is on its way; a run by hand does not", () => {
+    const step = stepOf("aws-eks-addon-push", "shipped");
+    expect(step.env.AUTOMATIC).toBe("${{ needs.prepare.outputs.automatic }}");
+    expect(jobs.prepare.outputs.automatic).toBe(
+      "${{ steps.plan.outputs.automatic }}",
+    );
+    expect(jobs.prepare.outputs.aws_eks_addon).toBe(
+      "${{ steps.plan.outputs.aws_eks_addon }}",
+    );
+
+    expect(addonCheck("true")).toEqual([
+      "HelmChart/Marketplace/automation/aws_catalog.py",
+      "shipped",
+      "--edition",
+      "aws-eks-addon",
+      "--version",
+      "14.0.66",
+      "--wait-while-testing",
+    ]);
+    expect(addonCheck("false")).toEqual([
+      "HelmChart/Marketplace/automation/aws_catalog.py",
+      "shipped",
+      "--edition",
+      "aws-eks-addon",
+      "--version",
+      "14.0.66",
+    ]);
+  });
+
+  test("adds an EKS add-on version for testing, never public: making it public is by hand", () => {
+    const publish = scriptsOf(jobs["aws-eks-addon-publish"].steps);
+    expect(publish).toContain("aws_catalog.py plan --edition aws-eks-addon");
+    for (const job of Object.values(jobs)) {
+      expect(scriptsOf(job.steps)).not.toContain("go-public");
+    }
+    expect(jobs["dry-run"].strategy.matrix.include).toContainEqual({
+      marketplace: "aws-eks-addon",
+      selected: "aws_eks_addon",
+    });
   });
 
   test("pastes no expression into a script: values reach scripts through env", () => {
@@ -400,13 +496,15 @@ describe(EDITION_ACTION, () => {
     expect(install.run).toContain('--sha256 "$CRANE_SHA256"');
   });
 
-  test("takes the chart as it was released, whole", () => {
+  test("takes the charts as they were released, whole", () => {
     const take = action.runs.steps.find((step) => {
       return step.name === "Take the released chart";
     });
-    expect(take.run).toContain("rm -rf HelmChart/Public/oneuptime");
     expect(take.run).toContain(
-      "git checkout FETCH_HEAD -- HelmChart/Public/oneuptime",
+      "rm -rf HelmChart/Public/oneuptime HelmChart/Public/kubernetes-agent",
+    );
+    expect(take.run).toContain(
+      "git checkout FETCH_HEAD -- HelmChart/Public/oneuptime HelmChart/Public/kubernetes-agent",
     );
     expect(take.run).not.toContain("${{");
   });

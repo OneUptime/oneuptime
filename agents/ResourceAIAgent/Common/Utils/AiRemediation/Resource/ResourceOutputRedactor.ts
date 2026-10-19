@@ -128,9 +128,14 @@ const BLOCK_SCALAR_REGEX: RegExp = /^[|>][+-]?[0-9]*$/;
  * Unquoted keys may contain spaces (describe prints "Image ID:") but never
  * a colon, so "2026-09-22T10:00:00Z" and "http://…" are not keys. The colon
  * must be followed by whitespace or end the line for the same reason.
+ *
+ * An unquoted key runs to the line's first colon and ends on a character
+ * that is not a space or a tab, so the spaces before the colon belong to
+ * the `[ \t]*` after it alone: a line is read once from the start, in time
+ * in line with its length, however many spaces it holds.
  */
 const KEY_VALUE_LINE_REGEX: RegExp =
-  /^(?:"([^"]*)"|'([^']*)'|([^\s"'#:{}[\],][^:"']*?))[ \t]*:(?:[ \t]+|$)/;
+  /^(?:"([^"]*)"|'([^']*)'|([^\s"'#:{}[\],](?:[^:"']*[^:"' \t])?))[ \t]*:(?:[ \t]+|$)/;
 
 /*
  * An unquoted key with whitespace or `=` in it may be free text rather than
@@ -163,8 +168,17 @@ const LOWERCASE_WORD_REGEX: RegExp = /^[a-z]+$/;
 const BASIC_TOKEN_REGEX: RegExp =
   /\b(Basic)[ \t]+([A-Za-z0-9+/]{8,}={0,2})(?![A-Za-z0-9+/=])/g;
 
+/*
+ * A JWT, looked for once per run of the characters it is made of: the match
+ * begins only where such a run begins, the look-ahead settles on the run's
+ * first "eyJ" (the longest first segment - when it is no token, no later one
+ * in the run is), and the text of the run before it comes back as the first
+ * group. The same tokens are masked as by a search from every "eyJ", while
+ * each run is read a bounded number of times: in time in line with the
+ * output's length.
+ */
 const JWT_REGEX: RegExp =
-  /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g;
+  /(?<![A-Za-z0-9_-])(?=([A-Za-z0-9_-]*?)eyJ)\1eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g;
 
 /*
  * PEM private key blocks. A block whose END line was truncated away is
@@ -1057,10 +1071,13 @@ function applyInlineRules(text: string): { text: string; count: number } {
     apply(maskAuthorizationTokens(result, tokenRegex));
   }
 
-  result = result.replace(JWT_REGEX, (): string => {
-    count++;
-    return "[redacted-jwt]";
-  });
+  result = result.replace(
+    JWT_REGEX,
+    (_match: string, runBeforeToken: string): string => {
+      count++;
+      return `${runBeforeToken}[redacted-jwt]`;
+    },
+  );
 
   apply(maskInlineJsonDataObjects(result));
 

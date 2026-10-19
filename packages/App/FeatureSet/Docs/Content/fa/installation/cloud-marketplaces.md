@@ -182,4 +182,5 @@ kubectl get service --namespace <namespace>
 - [ارتقا](/docs/installation/upgrading): یادداشت‌های ارتقای هر انتشار.
 - [تعیین اندازه و برنامه‌ریزی ظرفیت](/docs/installation/sizing): اندازهٔ ذخیره‌گاه‌های داده را برای تله‌متری خود تعیین کنید.
 - [معماری](/docs/self-hosted/architecture): آنچه در خوشهٔ شما اجرا می‌شود.
+- [عامل Kubernetes](/docs/telemetry/kubernetes-agent#نصب-بهصورت-افزونه-amazon-eks): در AWS Marketplace هم رایگان است، به‌صورت افزونهٔ Amazon EKS، برای خوشه‌هایی که به OneUptime داده می‌فرستند.
 :::

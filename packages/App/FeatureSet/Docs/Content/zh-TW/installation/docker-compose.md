@@ -84,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | 儀表板、API、遙測資料接收與 Let's Encrypt 驗證。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | 當 OneUptime 管理憑證時，為執行個體提供 HTTPS，並為自訂網域上的狀態頁面與儀表板提供 HTTPS。 |
-| 5400 | `postgres` | 在 `docker-compose.yml` 中設定 | 讓 `npm run backup` 能連到 PostgreSQL。請勿對網際網路開放。 |
+| 5400 | `postgres` | 在 `docker-compose.yml` 中設定 | 讓 `npm run backup` 和 `restore.sh` 從伺服器本機連到 PostgreSQL。它只發布在 `127.0.0.1` 上。 |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 探針本身的伺服器。伺服器以外不需要連到它。 |
 | 3876 | `runner` | `ONEUPTIME_RUNNER_PORT` | Runner 本身的伺服器。伺服器以外不需要連到它。 |
 
@@ -141,7 +141,7 @@ grep -c "please-change-this" config.env
 | `ONEUPTIME_RUNNER_KEY` | 內建的 Runner。 |
 
 > [!IMPORTANT]
-> 請在第一次啟動前設定這些密鑰，之後保持不變。PostgreSQL 只在建立資料庫時採用密碼，而之後變更 `ENCRYPTION_SECRET` 會讓所有以舊密鑰加密的值都無法讀取。
+> 請在第一次啟動前設定這些密鑰，之後保持不變。PostgreSQL 只在建立資料庫時採用密碼，而之後變更 `ENCRYPTION_SECRET` 會讓所有以舊密鑰加密的值都無法讀取。如果第一次啟動時 `DATABASE_PASSWORD` 仍是預留位置，`npm start` 會在 PostgreSQL 建立資料庫之前為它設定一個隨機值。
 
 ### 啟動 OneUptime
 
@@ -320,15 +320,28 @@ Docker Compose 在一台伺服器上為每個服務只執行一份，適合小�
 
 | 面向 | 要做的事 |
 | --- | --- |
-| **密鑰** | `config.env` 中沒有任何值仍是 `please-change-this-to-random-value` 預留位置。請參閱 [產生隨機密鑰](#產生隨機密鑰)。 |
+| **密鑰** | `config.env` 中沒有任何值仍是 `please-change-this-to-random-value` 預留位置。請參閱 [產生隨機密鑰](#產生隨機密鑰)。對於以預留位置 `DATABASE_PASSWORD` 啟動過的安裝，請參閱 [變更資料庫密碼](#變更資料庫密碼)。 |
 | **HTTPS** | 大家透過 HTTPS 連到 OneUptime，且已設定 `HTTP_PROTOCOL=https`。請參閱 [設定 HTTPS](#設定-https)。 |
 | **註冊** | 團隊成員都有帳號後，在 Admin Dashboard 的 **設定 > 驗證** 下關閉 **允許註冊**。 |
-| **防火牆** | 只有連接埠 80 和 443（以及 SSH）對網際網路開放。PostgreSQL 為了備份而發布在連接埠 5400：請用雲端供應商的防火牆關閉它，因為 `ufw` 規則不適用於 Docker 發布的連接埠。 |
+| **防火牆** | 只有連接埠 80 和 443（以及 SSH）對網際網路開放。OneUptime 只在 `127.0.0.1` 上發布 PostgreSQL 的連接埠 5400。你自己發布的其他連接埠，請用雲端供應商的防火牆關閉：`ufw` 規則不適用於 Docker 發布的連接埠。 |
 | **備份** | 每天備份 PostgreSQL，並把副本移出伺服器。請參閱 [備份與還原](#備份與還原)。 |
 | **電子郵件** | 已在 Admin Dashboard 的 **設定 > 通知 > 電子郵件** 下設定郵件伺服器，讓 OneUptime 能傳送邀請與通知。請參閱 [SMTP](/docs/emails/smtp)。 |
 | **磁碟** | 持續留意剩餘空間。ClickHouse 會隨保留的遙測資料成長（請參閱 [規模與容量規劃](/docs/installation/sizing)）；每個容器的日誌上限為 1000 MB。 |
 | **更新** | 至少每週更新一次 OneUptime。新版本發布頻繁。請參閱 [更新 OneUptime](#更新-oneuptime)。 |
 | **高可用性** | 如果需要，請改用 Kubernetes 上的 [Helm chart](https://artifacthub.io/packages/helm/oneuptime/oneuptime)。 |
+
+### 變更資料庫密碼
+
+PostgreSQL 會一直使用建立時的密碼，所以只變更 `config.env` 中的 `DATABASE_PASSWORD` 會讓 OneUptime 無法連到自己的資料庫。要為以預留位置啟動過的安裝設定專屬密碼，請同時在 PostgreSQL 和 `config.env` 中變更它，然後重新啟動 OneUptime：
+
+```bash
+NEW_PASSWORD=$(openssl rand -hex 32) &&
+  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
+npm start
+```
+
+如果你設定了 `DATABASE_BACKUP_PASSWORD` 和 `DATABASE_RESTORE_PASSWORD`，也請為它們填入新值。
 
 ## 備份與還原
 
@@ -350,6 +363,25 @@ npm run backup
 ### 把備份複製到伺服器以外
 
 與資料庫位於同一顆磁碟上的備份，無法在這顆磁碟損毀後保存下來。
+:::
+
+只有伺服器本機能連到 PostgreSQL：它在 `127.0.0.1` 的連接埠 5400 上回應。要從另一台機器備份它，請在那台機器上開一條 SSH 通道，然後連到那台機器自己的連接埠 5400：
+
+```bash
+ssh -N -L 5400:127.0.0.1:5400 you@oneuptime.example.com
+```
+
+:::details 在私有網路位址上發布 PostgreSQL
+如果私有網路中的某個工具必須不經通道連到 PostgreSQL，請同時把它發布在伺服器於該網路中的位址上，並使用獨立的連接埠。在 `docker-compose.yml` 旁邊建立 `docker-compose.override.yml`；`npm start` 和 `npm run update` 會讀取它：
+
+```yaml title="docker-compose.override.yml"
+services:
+  postgres:
+    ports:
+      - "10.0.0.5:5401:5432"
+```
+
+把 `10.0.0.5` 換成伺服器自己的私有位址，絕不要使用公開位址，並先為 PostgreSQL 設定專屬密碼（請參閱 [變更資料庫密碼](#變更資料庫密碼)）。然後執行 `npm start`，PostgreSQL 也會在該位址的連接埠 5401 上回應。
 :::
 
 ClickHouse 把遙測資料保存在 Docker 磁碟區 `oneuptime_clickhouse` 中，沒有任何指令碼會備份它。如果需要保留這些遙測資料，請使用 [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) 等 ClickHouse 工具備份該磁碟區，或在 OneUptime 停止時複製它。
