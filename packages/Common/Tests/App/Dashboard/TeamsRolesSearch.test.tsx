@@ -307,14 +307,17 @@ describe("the page index places Roles as the Teams menu does", () => {
 });
 
 describe("the palette lists Roles under Teams › Settings", () => {
-  test.each([["roles"], ["Roles"], ["custom roles"], ["custom role"], ["rbac"]])(
-    "'%s' puts Roles first, under Teams › Settings",
-    (query: string) => {
-      openPalette();
+  test.each([
+    ["roles"],
+    ["Roles"],
+    ["custom roles"],
+    ["custom role"],
+    ["rbac"],
+  ])("'%s' puts Roles first, under Teams › Settings", (query: string) => {
+    openPalette();
 
-      expect(rows(query)[0]).toBe("Roles — Teams › Settings");
-    },
-  );
+    expect(rows(query)[0]).toBe("Roles — Teams › Settings");
+  });
 
   test("no row places Roles under Teams alone any more", () => {
     openPalette();

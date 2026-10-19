@@ -16,7 +16,11 @@ import {
 } from "Common/Types/Team/CustomRole";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { drawnActionLabel } from "./DocsDashboardLabels";
-import { menuSections, MenuSection, sectionByTitle } from "./DocsDashboardMenus";
+import {
+  menuSections,
+  MenuSection,
+  sectionByTitle,
+} from "./DocsDashboardMenus";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -349,7 +353,9 @@ describe("where the steps find Roles", () => {
       "1. Open **Teams** from the **Products** menu, under **Settings**. Expand **Settings** in its side menu, choose **Roles**, and click **Create Custom Role**.",
     );
     // The old way there, beside All Teams, is gone.
-    expect(englishSection()).not.toContain("under **Settings**, then **Roles**");
+    expect(englishSection()).not.toContain(
+      "under **Settings**, then **Roles**",
+    );
   });
 
   test.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(

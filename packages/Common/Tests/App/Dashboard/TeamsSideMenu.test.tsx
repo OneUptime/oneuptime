@@ -250,9 +250,10 @@ describe("Teams side menu: Roles in Settings", () => {
       await renderTeamsMenu();
 
       for (const section of EXPECTED_SECTIONS) {
-        expect({ section: section.title, links: linksIn(section.title) }).toEqual(
-          { section: section.title, links: expectedLinks(section) },
-        );
+        expect({
+          section: section.title,
+          links: linksIn(section.title),
+        }).toEqual({ section: section.title, links: expectedLinks(section) });
       }
     });
 
