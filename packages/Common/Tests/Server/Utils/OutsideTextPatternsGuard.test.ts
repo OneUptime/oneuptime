@@ -73,7 +73,7 @@ const FAMILIES: ReadonlyArray<Family> = [
       return (
         pattern.source.includes(":\\/\\/[^\\s]*@") ||
         pattern.source.includes(":\\/\\/\\S*@") ||
-        /\(password\|pwd\)\\s\*\[=:\]/i.test(pattern.source)
+        pattern.source.includes("(password|pwd)\\s*[=:]")
       );
     },
     breaksRule: (): string => {

@@ -17,7 +17,8 @@ import { describe, expect, test } from "@jest/globals";
  * ---------------------------------------------------------------------------
  */
 
-const ROLE_FILE: string = "packages/Common/Utils/Monitor/NetworkDeviceRoleUtil.ts";
+const ROLE_FILE: string =
+  "packages/Common/Utils/Monitor/NetworkDeviceRoleUtil.ts";
 
 const LENGTH: number = 400000;
 
@@ -30,7 +31,10 @@ const repeat: (unit: string, length: number) => string = (
 
 describe("a description is classified in time in line with its length", () => {
   test.each([
-    ["an access point word over and over", repeat("hiveos-ap-", LENGTH) + "hiveos"],
+    [
+      "an access point word over and over",
+      repeat("hiveos-ap-", LENGTH) + "hiveos",
+    ],
     ["word parts that start with ap", "x " + repeat("ap-", LENGTH) + "x"],
     ["one long word after ap", "ap" + repeat("w", LENGTH) + ", hive"],
   ])("%s", (_label: string, sysDescr: string) => {

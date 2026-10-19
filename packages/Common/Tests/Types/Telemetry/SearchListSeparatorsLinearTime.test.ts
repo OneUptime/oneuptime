@@ -43,7 +43,10 @@ describe("a list is read in time in line with its length", () => {
   test.each([
     ["a run of tabs", "(" + repeat("\t", LENGTH) + "a)"],
     ["runs of white space between words", "(" + repeat("a \t ", LENGTH) + ")"],
-    ["white space before OR with none after", "(" + repeat(" ", LENGTH) + "ORx)"],
+    [
+      "white space before OR with none after",
+      "(" + repeat(" ", LENGTH) + "ORx)",
+    ],
   ])("a typed list: %s", (_label: string, value: string) => {
     const startedAt: number = Date.now();
 
@@ -84,8 +87,7 @@ describe("a list is split where it was split before", () => {
   });
 
   test("on forty thousand drawn lists", () => {
-    const mismatches: Array<{ text: string; now: string; before: string }> =
-      [];
+    const mismatches: Array<{ text: string; now: string; before: string }> = [];
     let split: number = 0;
 
     for (const text of generatedTexts(
@@ -165,7 +167,10 @@ describe("an entry a list cannot spell is found as it was found before", () => {
       buildSearchTokenForOperatorValue("k8s.ns", new Includes(["a OR b", "c"])),
     ).toBeNull();
     expect(
-      buildSearchTokenForOperatorValue("k8s.ns", new Includes(["a\tor\tb", "c"])),
+      buildSearchTokenForOperatorValue(
+        "k8s.ns",
+        new Includes(["a\tor\tb", "c"]),
+      ),
     ).toBeNull();
   });
 });

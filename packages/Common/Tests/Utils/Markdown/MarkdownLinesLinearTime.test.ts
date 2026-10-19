@@ -38,9 +38,7 @@ const repeat: (unit: string, length: number) => string = (
   return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
 };
 
-const timeOf: (run: () => unknown) => number = (
-  run: () => unknown,
-): number => {
+const timeOf: (run: () => unknown) => number = (run: () => unknown): number => {
   const startedAt: number = Date.now();
   run();
   return Date.now() - startedAt;
@@ -49,21 +47,24 @@ const timeOf: (run: () => unknown) => number = (
 describe("markdown written outside is read in time in line with its length", () => {
   test.each([
     ["a tilde run and a carriage return", repeat("~", LENGTH) + "\r"],
-    ["a backtick run and a line separator", repeat("`", LENGTH) + LINE_SEPARATOR],
-    ["a tilde run after spaces", "   " + repeat("~", LENGTH) + PARAGRAPH_SEPARATOR],
-  ])(
-    "a feed item's fenced value: %s",
-    (_label: string, value: string) => {
-      let markdown: string = "";
+    [
+      "a backtick run and a line separator",
+      repeat("`", LENGTH) + LINE_SEPARATOR,
+    ],
+    [
+      "a tilde run after spaces",
+      "   " + repeat("~", LENGTH) + PARAGRAPH_SEPARATOR,
+    ],
+  ])("a feed item's fenced value: %s", (_label: string, value: string) => {
+    let markdown: string = "";
 
-      expect(
-        timeOf(() => {
-          markdown = mdText`Output:\n\`\`\`\n${value}\n\`\`\``.toString();
-        }),
-      ).toBeLessThan(2000);
-      expect(markdown).toContain(value.trim().slice(0, 10));
-    },
-  );
+    expect(
+      timeOf(() => {
+        markdown = mdText`Output:\n\`\`\`\n${value}\n\`\`\``.toString();
+      }),
+    ).toBeLessThan(2000);
+    expect(markdown).toContain(value.trim().slice(0, 10));
+  });
 
   test.each([
     ["white space, then a line break", repeat("\t", LENGTH) + "x\n"],
@@ -79,7 +80,10 @@ describe("markdown written outside is read in time in line with its length", () 
 
   test.each([
     ["a tilde fence line", "~~~" + repeat("~", LENGTH) + LINE_SEPARATOR],
-    ["a tilde fence line, then text", "~~~" + repeat("~", LENGTH) + PARAGRAPH_SEPARATOR + "x"],
+    [
+      "a tilde fence line, then text",
+      "~~~" + repeat("~", LENGTH) + PARAGRAPH_SEPARATOR + "x",
+    ],
   ])("untrusted markdown: %s", (_label: string, markdown: string) => {
     expect(
       timeOf(() => {
@@ -89,8 +93,14 @@ describe("markdown written outside is read in time in line with its length", () 
   });
 
   test.each([
-    ["a tilde fence line", "~~~" + repeat("~", LONGEST_READ_LINE - 4) + LINE_SEPARATOR],
-    ["a list's fence line", "- " + repeat("~", LONGEST_READ_LINE - 4) + LINE_SEPARATOR],
+    [
+      "a tilde fence line",
+      "~~~" + repeat("~", LONGEST_READ_LINE - 4) + LINE_SEPARATOR,
+    ],
+    [
+      "a list's fence line",
+      "- " + repeat("~", LONGEST_READ_LINE - 4) + LINE_SEPARATOR,
+    ],
   ])("an email's plain text: %s", (_label: string, line: string) => {
     expect(
       timeOf(() => {

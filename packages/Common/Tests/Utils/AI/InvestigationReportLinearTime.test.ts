@@ -43,9 +43,15 @@ const WORST_CASES: Array<[string, string]> = [
   ["a backtick fence line", "```" + repeat("`", LENGTH) + LINE_SEPARATOR],
   ["a tilde fence line", "  ~~~" + repeat("~", LENGTH) + PARAGRAPH_SEPARATOR],
   ["a heading line", "# " + repeat(" ", LENGTH) + LINE_SEPARATOR],
-  ["a heading line of tabs", "##" + repeat("\t", LENGTH) + LINE_SEPARATOR + "x"],
+  [
+    "a heading line of tabs",
+    "##" + repeat("\t", LENGTH) + LINE_SEPARATOR + "x",
+  ],
   ["a bold label line", "**" + repeat("*", LENGTH) + LINE_SEPARATOR + "x"],
-  ["an underscore label line", "__" + repeat("_", LENGTH) + LINE_SEPARATOR + "x"],
+  [
+    "an underscore label line",
+    "__" + repeat("_", LENGTH) + LINE_SEPARATOR + "x",
+  ],
   ["a bold line of pairs", repeat("**", LENGTH) + LINE_SEPARATOR + "x"],
 ];
 
@@ -64,9 +70,8 @@ describe("a report is read in time in line with its length", () => {
       const report: string = `## Summary\nThe pool was cut [C1].\n\n${line}\n\n## Root cause\nA release [C2].`;
       const startedAt: number = Date.now();
 
-      const parsed: ParsedInvestigationReport = parseInvestigationReport(
-        report,
-      );
+      const parsed: ParsedInvestigationReport =
+        parseInvestigationReport(report);
 
       expect(Date.now() - startedAt).toBeLessThan(2000);
       expect(parsed.isStructured).toBe(true);

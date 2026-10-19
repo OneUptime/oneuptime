@@ -49,7 +49,10 @@ const QUERY_WORST_CASES: Array<[string, string]> = [
     "double quotes that never close",
     "SELECT " + repeat('"\\', LENGTH) + '\n""',
   ],
-  ["semicolons that are not at the end", "SELECT 1" + repeat(";", LENGTH) + "x;"],
+  [
+    "semicolons that are not at the end",
+    "SELECT 1" + repeat(";", LENGTH) + "x;",
+  ],
   ["semicolons inside a literal", "SELECT '" + repeat(";", LENGTH) + "x'"],
 ];
 

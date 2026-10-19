@@ -50,9 +50,7 @@ const repeat: (unit: string, length: number) => string = (
   return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
 };
 
-const timeOf: (run: () => unknown) => number = (
-  run: () => unknown,
-): number => {
+const timeOf: (run: () => unknown) => number = (run: () => unknown): number => {
   const startedAt: number = Date.now();
   run();
   return Date.now() - startedAt;
@@ -199,7 +197,13 @@ describe("placeholders are found as they were", () => {
         ];
       }),
     ).toEqual([
-      ["{{#each local.variables.list}}", "#each local.variables.list", 0, 30, false],
+      [
+        "{{#each local.variables.list}}",
+        "#each local.variables.list",
+        0,
+        30,
+        false,
+      ],
       ["{{ name }}", "name", 30, 40, true],
       ["{{/each}}", "/each", 40, 49, false],
     ]);
@@ -316,8 +320,7 @@ describe("each reader finds exactly what its pattern found", () => {
   const texts: Array<string> = generatedTexts(30000, 1357, ALPHABET, 16);
 
   test("placeholders, found and replaced", () => {
-    const mismatches: Array<{ text: string; now: string; before: string }> =
-      [];
+    const mismatches: Array<{ text: string; now: string; before: string }> = [];
     let found: number = 0;
 
     for (const text of texts) {
@@ -360,8 +363,7 @@ describe("each reader finds exactly what its pattern found", () => {
   });
 
   test("a loop body's names", () => {
-    const mismatches: Array<{ text: string; now: string; before: string }> =
-      [];
+    const mismatches: Array<{ text: string; now: string; before: string }> = [];
 
     for (const text of texts) {
       const before: string = text.replace(
@@ -386,8 +388,7 @@ describe("each reader finds exactly what its pattern found", () => {
   });
 
   test("a loop's opening, searched for from every place", () => {
-    const mismatches: Array<{ text: string; now: string; before: string }> =
-      [];
+    const mismatches: Array<{ text: string; now: string; before: string }> = [];
 
     for (const text of texts.slice(0, 10000)) {
       for (let from: number = 0; from <= text.length; from++) {
@@ -426,8 +427,7 @@ describe("each reader finds exactly what its pattern found", () => {
       "#each": "EACH",
       $1: "DOLLAR",
     };
-    const mismatches: Array<{ text: string; now: string; before: string }> =
-      [];
+    const mismatches: Array<{ text: string; now: string; before: string }> = [];
     let replaced: number = 0;
 
     for (const text of texts) {

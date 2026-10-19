@@ -37,7 +37,10 @@ const slowShapes: (length: number) => Array<[string, string]> = (
   length: number,
 ): Array<[string, string]> => {
   return [
-    ["an rm option holding r, then a digit", "rm -v" + repeat("rm", length - 6) + "0"],
+    [
+      "an rm option holding r, then a digit",
+      "rm -v" + repeat("rm", length - 6) + "0",
+    ],
     ["dd words", repeat("dd ", length)],
     ["curl words", repeat("curl ", length)],
     ["sh -c words", repeat("sh -c ", length)],

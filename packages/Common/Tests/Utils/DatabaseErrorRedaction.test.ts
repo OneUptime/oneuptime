@@ -129,9 +129,9 @@ describe("the credentials are found where they were found before", () => {
   });
 
   test("a password setting, in every way it is written", () => {
-    expect(redactPasswordSettings("Login failed; password=hunter2; host=db")).toBe(
-      "Login failed; password=***; host=db",
-    );
+    expect(
+      redactPasswordSettings("Login failed; password=hunter2; host=db"),
+    ).toBe("Login failed; password=***; host=db");
     expect(redactPasswordSettings("PWD={a;b};Server=db")).toBe(
       "PWD=***;Server=db",
     );

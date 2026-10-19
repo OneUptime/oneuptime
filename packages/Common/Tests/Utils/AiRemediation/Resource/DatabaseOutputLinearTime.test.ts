@@ -41,7 +41,10 @@ const redact: (text: string) => string = (text: string): string => {
 };
 
 const WORST_CASES: Array<[string, string]> = [
-  ["a password phrase, then line breaks", "PASSWORD=" + repeat("\n", LENGTH) + "N"],
+  [
+    "a password phrase, then line breaks",
+    "PASSWORD=" + repeat("\n", LENGTH) + "N",
+  ],
   ["a password phrase, then spaces", "PASSWORD =" + repeat(" ", LENGTH) + "N"],
   ["a run of tabs", repeat("\t", LENGTH) + "'"],
   ["tabs and spaces", repeat("\t ", LENGTH) + "'"],
@@ -77,8 +80,14 @@ describe("database output is redacted in time in line with its length", () => {
 
 describe("the credentials are found where they were found before", () => {
   test.each([
-    ["ALTER USER app PASSWORD = 'hunter2'", "ALTER USER app PASSWORD = '[redacted]'"],
-    ["ALTER USER app PASSWORD =( 'hunter2')", "ALTER USER app PASSWORD =( '[redacted]')"],
+    [
+      "ALTER USER app PASSWORD = 'hunter2'",
+      "ALTER USER app PASSWORD = '[redacted]'",
+    ],
+    [
+      "ALTER USER app PASSWORD =( 'hunter2')",
+      "ALTER USER app PASSWORD =( '[redacted]')",
+    ],
     ["IDENTIFIED BY 'hunter2';", "IDENTIFIED BY '[redacted]';"],
     ["AUTH hunter2", "AUTH [redacted]"],
     ["\t\tAUTH hunter2", "\t\tAUTH [redacted]"],

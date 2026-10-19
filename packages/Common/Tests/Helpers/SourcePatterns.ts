@@ -32,7 +32,11 @@ type NameOfFunction = (node: ts.Node) => string | null;
 const nameOf: NameOfFunction = (node: ts.Node): string | null => {
   const parent: ts.Node | undefined = node.parent;
 
-  if (parent && ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
+  if (
+    parent &&
+    ts.isVariableDeclaration(parent) &&
+    ts.isIdentifier(parent.name)
+  ) {
     return parent.name.text;
   }
 

@@ -142,8 +142,6 @@ describe("the terminators that come off are the ones that came off before", () =
     expect(withoutTrailingStatementTerminators("SELECT ';' ;x")).toBe(
       "SELECT ';' ;x",
     );
-    expect(withoutTrailingStatementTerminators("SELECT $1;")).toBe(
-      "SELECT $1",
-    );
+    expect(withoutTrailingStatementTerminators("SELECT $1;")).toBe("SELECT $1");
   });
 });
