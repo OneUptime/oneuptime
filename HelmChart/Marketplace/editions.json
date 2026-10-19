@@ -27,7 +27,7 @@
   "aws-eks-addon": {
     "ready": false,
     "registry": "709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime",
-    "productId": "",
+    "productId": "prod-stb4grzn53gbw",
     "sellerAlias": "oneuptime"
   }
 }
