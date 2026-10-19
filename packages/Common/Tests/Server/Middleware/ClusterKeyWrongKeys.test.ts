@@ -773,7 +773,10 @@ describe("a cluster key from a private network address is never counted", () => 
   test.each([
     ["the app's own address on its container network", "172.18.0.5"],
     ["a pod's address", "10.42.0.17"],
-    ["a pod's address, as a dual-stack listener reports it", "::ffff:10.42.0.17"],
+    [
+      "a pod's address, as a dual-stack listener reports it",
+      "::ffff:10.42.0.17",
+    ],
     ["the server itself", "127.0.0.1"],
     ["the server itself, over IPv6", "::1"],
   ])(
@@ -869,9 +872,7 @@ describe("a cluster key from a private network address is never counted", () => 
       guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
       guess++
     ) {
-      expect(await present("not-an-address", `guess-${guess}`)).toEqual(
-        WRONG,
-      );
+      expect(await present("not-an-address", `guess-${guess}`)).toEqual(WRONG);
     }
 
     expect(await present("not-an-address", "one-too-many")).toEqual(
@@ -888,9 +889,9 @@ describe("a cluster key from a private network address is never counted", () => 
       guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
       guess++
     ) {
-      expect(await present(`10.0.0.${guess}, ${real}`, `guess-${guess}`)).toEqual(
-        WRONG,
-      );
+      expect(
+        await present(`10.0.0.${guess}, ${real}`, `guess-${guess}`),
+      ).toEqual(WRONG);
     }
 
     expect(await present(`${GATEWAY}, ${real}`, "one-too-many")).toEqual(

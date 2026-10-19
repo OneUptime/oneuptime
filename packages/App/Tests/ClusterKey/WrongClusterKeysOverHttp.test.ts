@@ -774,8 +774,7 @@ describe("OneUptime's own traffic is never refused", () => {
     }
 
     expect(
-      (await post("/api/notification/email/send", from, "one-too-many"))
-        .status,
+      (await post("/api/notification/email/send", from, "one-too-many")).status,
     ).toBe(429);
 
     for (const routeUnderTest of installation.routes) {
