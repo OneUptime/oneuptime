@@ -1,4 +1,5 @@
 import { listProductFiles } from "../../Helpers/CodeScanning";
+import { REPOSITORY_DIRECTORY } from "../../Helpers/TagStripScan";
 import {
   SharedClientCall,
   callKeepsRedirectsOnServer,
@@ -10,6 +11,8 @@ import {
   sharedClientCallsIn,
 } from "../TestingUtils/KeyCarryingRequests";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import ts from "typescript";
 
 /*
@@ -19,8 +22,9 @@ import ts from "typescript";
  * An HTTP client follows a redirect wherever it points and sends the
  * redirected request with the original's headers and, for a 307 or 308, its
  * body. So every request carrying the cluster key, a probe's key (or the key
- * that registers a global probe) or a Runner's key follows a redirect only
- * on its own server (sameServerRedirectsOnly, Common/Utils/SameServerRedirect)
+ * that registers a global probe), a Runner's key or an Enterprise
+ * installation's licence key follows a redirect only on its own server
+ * (sameServerRedirectsOnly, Common/Utils/SameServerRedirect)
  * - read here from the source, across all product code (ee/ too, when it is
  * checked out), comments removed:
  *
@@ -31,7 +35,8 @@ import ts from "typescript";
  *     carries the Runner's key (RunnerClient) checks its redirects the same
  *     way;
  *   - anywhere else, a request whose body or headers name one of the keys
- *     keeps its redirects on its server.
+ *     keeps its redirects on its server, but those the browser sends (it
+ *     follows redirects itself, and they go to OneUptime's own API).
  *
  * ClusterKeyGuard holds the requests that present the cluster key to the
  * same rule, one by one.
@@ -48,7 +53,7 @@ const RUNNER: string = "packages/Runner";
  * headers that carry it.
  */
 const KEY_IN_CODE: RegExp =
-  /\b(?:PROBE_KEY|RegisterProbeKey|RUNNER_KEY|KUBERNETES_AGENT_INGESTION_KEY|getRunnerKey|getDefaultRequestBody|getClusterKeyHeaders|probeKey|registerProbeKey|aiAgentKey|agentKey|previousAgentKey|previousRunnerKey|runnerKey)\b|["'`](?:x-oneuptime-token|x-oneuptime-ingestion-key|x-agent-key|clusterkey|x-clusterkey)["'`]/i;
+  /\b(?:PROBE_KEY|RegisterProbeKey|RUNNER_KEY|KUBERNETES_AGENT_INGESTION_KEY|getRunnerKey|getDefaultRequestBody|getClusterKeyHeaders|probeKey|registerProbeKey|aiAgentKey|agentKey|previousAgentKey|previousRunnerKey|runnerKey|licenseKey)\b|["'`](?:x-oneuptime-token|x-oneuptime-ingestion-key|x-agent-key|clusterkey|x-clusterkey)["'`]/i;
 
 /*
  * Files of the probe and the Runner whose shared-client requests go to
@@ -100,6 +105,20 @@ const KEY_CARRYING_OTHER_CLIENTS: Record<string, string> = {
   "packages/Runner/Services/RunnerClient.ts":
     "getSameServerRedirectCheck(RUNNER_INGEST_URL.toString())",
 };
+
+/*
+ * Requests the browser sends that name a key: a browser follows redirects
+ * itself, and these go to OneUptime's own API, on the page's own server.
+ */
+const BROWSER_REQUESTS_WITH_A_KEY: Record<string, string> = {
+  "ee/AdminDashboard/License/LicenseManager.tsx":
+    "the admin dashboard activating a licence key with OneUptime's own API",
+};
+
+// Whether ee/ is checked out: Common Test runs without it.
+const EE_IS_PRESENT: boolean = fs.existsSync(
+  path.join(REPOSITORY_DIRECTORY, "ee"),
+);
 
 // A request sent through axios itself rather than a client made from it.
 const AXIOS_CALLED_DIRECTLY: RegExp =
@@ -329,7 +348,8 @@ describe("requests anywhere else", () => {
       .filter((relativePath: string): boolean => {
         return (
           !relativePath.startsWith(`${PROBE}/`) &&
-          !relativePath.startsWith(`${RUNNER}/`)
+          !relativePath.startsWith(`${RUNNER}/`) &&
+          !BROWSER_REQUESTS_WITH_A_KEY[relativePath]
         );
       })
       .flatMap(sharedClientCallsIn);
@@ -349,6 +369,43 @@ describe("requests anywhere else", () => {
         })
         .map(placeOfCall),
     ).toEqual([]);
+
+    // An Enterprise installation's licence checks with the licence server, with ee/ checked out.
+    expect(
+      carryingAKey
+        .filter((call: SharedClientCall): boolean => {
+          return call.file.startsWith("ee/Server/License/");
+        })
+        .map((call: SharedClientCall): string => {
+          return call.file;
+        }),
+    ).toEqual(
+      EE_IS_PRESENT
+        ? [
+            "ee/Server/License/Jobs/ReportUserCount.ts",
+            "ee/Server/License/LicenseClient.ts",
+          ]
+        : [],
+    );
+  });
+
+  test("every browser request listed still sends a key, from the browser", () => {
+    for (const relativePath of Object.keys(BROWSER_REQUESTS_WITH_A_KEY)) {
+      // A file under ee/ is there to read only when ee/ is checked out.
+      if (relativePath.startsWith("ee/") && !EE_IS_PRESENT) {
+        continue;
+      }
+
+      expect({
+        relativePath,
+        component: relativePath.endsWith(".tsx"),
+        sendsAKey: sharedClientCallsIn(relativePath).some(
+          (call: SharedClientCall): boolean => {
+            return KEY_IN_CODE.test(bodyAndHeadersOf(call));
+          },
+        ),
+      }).toEqual({ relativePath, component: true, sendsAKey: true });
+    }
   });
 });
 
