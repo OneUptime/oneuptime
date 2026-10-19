@@ -131,6 +131,7 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { useInMemorySubscriberCreates } from "../TestingUtils/SubscriberCreatesInMemory";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -231,6 +232,8 @@ beforeEach(() => {
 
   useInMemoryTable(StatusPageService, pages);
   subscribers = useInMemoryTable(StatusPageSubscriberService, []);
+  // Each new subscriber's INSERT, under its page's lock, into the table.
+  useInMemorySubscriberCreates(subscribers);
 
   /*
    * The statements a change of a subscription writes Unsubscribed At with
@@ -588,14 +591,38 @@ describe("signing up on a status page", () => {
     );
   });
 
-  test("one webhook signed up again and again: ten subscriptions in an hour, then refused", async () => {
+  test("one webhook signed up again and again on one page: one subscription; the rest are told it is subscribed already, and cost it nothing", async () => {
     const { accepted, refusals } = await acceptedOf(100, (index: number) => {
       return signUp(`192.0.2.${(index % 50) + 1}`, {
         subscriberWebhook: "https://victim.example.net/hook",
       });
     });
 
-    // Before these limits: 100 subscriptions, each called on every update.
+    // Before: 100 subscriptions, each called on every update.
+    expect(accepted).toBe(1);
+    expect(subscribers.rows).toHaveLength(1);
+    expect(webhookCalls).toHaveBeenCalledTimes(1);
+    expect(refusals).toHaveLength(99);
+    expect(refusals[0]!.error?.message).toBe(
+      "You are already subscribed to this status page.",
+    );
+    expect(refusals[98]!.error?.message).toBe(
+      "You are already subscribed to this status page.",
+    );
+  });
+
+  test("one webhook signed up on page after page: ten subscriptions in an hour, then refused", async () => {
+    const { accepted, refusals } = await acceptedOf(
+      PAGE_COUNT,
+      (index: number) => {
+        return signUp(
+          `192.0.2.${index + 1}`,
+          { subscriberWebhook: "https://victim.example.net/hook" },
+          pageIdOf(index),
+        );
+      },
+    );
+
     expect(accepted).toBe(10);
     expect(subscribers.rows).toHaveLength(10);
     expect(webhookCalls).toHaveBeenCalledTimes(10);
@@ -605,14 +632,18 @@ describe("signing up on a status page", () => {
     );
   });
 
-  test("one Slack channel and one Microsoft Teams channel: ten each in an hour", async () => {
+  test("one Slack channel and one Microsoft Teams channel, on page after page: ten each in an hour", async () => {
     const slack: { accepted: number; refusals: Array<Answer> } =
       await acceptedOf(12, (index: number) => {
-        return signUp(`192.0.2.${index + 1}`, {
-          slackIncomingWebhookUrl:
-            "https://hooks.slack.com/services/T000/B000/victim",
-          slackWorkspaceName: "Victim",
-        });
+        return signUp(
+          `192.0.2.${index + 1}`,
+          {
+            slackIncomingWebhookUrl:
+              "https://hooks.slack.com/services/T000/B000/victim",
+            slackWorkspaceName: "Victim",
+          },
+          pageIdOf(index),
+        );
       });
 
     expect(slack.accepted).toBe(10);
@@ -624,11 +655,15 @@ describe("signing up on a status page", () => {
 
     const teams: { accepted: number; refusals: Array<Answer> } =
       await acceptedOf(12, (index: number) => {
-        return signUp(`192.0.2.${index + 1}`, {
-          microsoftTeamsIncomingWebhookUrl:
-            "https://victim.webhook.office.com/webhookb2/victim",
-          microsoftTeamsWorkspaceName: "Victim",
-        });
+        return signUp(
+          `192.0.2.${index + 1}`,
+          {
+            microsoftTeamsIncomingWebhookUrl:
+              "https://victim.webhook.office.com/webhookb2/victim",
+            microsoftTeamsWorkspaceName: "Victim",
+          },
+          pageIdOf(index),
+        );
       });
 
     expect(teams.accepted).toBe(10);

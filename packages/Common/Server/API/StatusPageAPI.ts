@@ -67,6 +67,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import ArrayUtil from "../../Utils/Array";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import SubscriberContactSql from "../Utils/StatusPage/SubscriberContactSql";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
@@ -776,17 +777,19 @@ export default class StatusPageAPI extends BaseAPI<
     );
 
     /*
-     * The link in the email that asks a new email subscriber to confirm:
+     * The link in the email, or the text message, that asks a new subscriber
+     * to confirm - an email subscriber, and a visitor who signed up by text:
      * {statusPageUrl}/confirm-subscription/{id}?verification-token={code}.
-     * Until it is opened, the address hears nothing.
+     * Until it is opened, the address or the number hears nothing.
      *
      * The code is the whole of what proves the request came from the
-     * address's own inbox: the subscriber id is no secret, as every project
-     * member who may read subscribers sees it. So only text is taken as the
-     * code. A request without one used to leave the code out of the lookup
-     * altogether - a filter on an undefined value is no filter - and the id
-     * alone confirmed the sign-up. Every link that confirms nothing gets the
-     * same answer.
+     * address's own inbox, or the number's own phone: the subscriber id is
+     * no secret, as every project member who may read subscribers sees it.
+     * So only text is taken as the code. A request without one used to leave
+     * the code out of the lookup altogether - a filter on an undefined value
+     * is no filter - and the id alone confirmed the sign-up. Every link that
+     * confirms nothing gets the same answer. Once confirmed, the subscriber
+     * is told it is subscribed, on its email or by text.
      */
     this.router.get(
       `${new this.entityType()
@@ -844,6 +847,10 @@ export default class StatusPageAPI extends BaseAPI<
           });
 
           await StatusPageSubscriberService.sendYouHaveSubscribedEmail({
+            subscriberId: subscriber.id,
+          });
+
+          await StatusPageSubscriberService.sendYouHaveSubscribedText({
             subscriberId: subscriber.id,
           });
 
@@ -3284,7 +3291,13 @@ export default class StatusPageAPI extends BaseAPI<
         unsubscribeToken: true,
       };
     } else if (phone) {
-      lookupQuery = { subscriberPhone: phone };
+      /*
+       * By the number's line, however it was typed at sign-up
+       * (SubscriberContactSql): the page takes each line once.
+       */
+      lookupQuery = {
+        subscriberPhone: SubscriberContactSql.onPhoneLine(phone),
+      };
       lookupSelect = {
         _id: true,
         subscriberPhone: true,
@@ -3315,10 +3328,12 @@ export default class StatusPageAPI extends BaseAPI<
 
     /*
      * An email or phone number is subscribed at most once per status page,
-     * but several channels of one Slack or Teams workspace can be subscribed
-     * under the same workspace name, so every match gets its own link on its
-     * own webhook. Oldest first, so subscriptions added later under the same
-     * name cannot push an existing one past the limit.
+     * so it is sent one link - that of its oldest subscription, should a
+     * number subscribed under two spellings before the page took each line
+     * once have two. Several channels of one Slack or Teams workspace can be
+     * subscribed under the same workspace name, so every match gets its own
+     * link on its own webhook. Oldest first, so subscriptions added later
+     * under the same name cannot push an existing one past the limit.
      */
     const statusPageSubscribers: Array<StatusPageSubscriber> =
       await StatusPageSubscriberService.findBy({
@@ -3330,7 +3345,8 @@ export default class StatusPageAPI extends BaseAPI<
         sort: {
           createdAt: SortOrder.Ascending,
         },
-        limit: MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST,
+        limit:
+          email || phone ? 1 : MAX_SUBSCRIBERS_PER_MANAGE_SUBSCRIPTION_REQUEST,
         skip: 0,
         props: {
           isRoot: true,

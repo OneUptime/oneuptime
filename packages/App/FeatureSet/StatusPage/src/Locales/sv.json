@@ -185,7 +185,8 @@
       "yourPhoneNumber": "Ditt telefonnummer",
       "placeholder": "+46701234567",
       "managePrompt": "Ange det telefonnummer du prenumererar med",
-      "manageDescription": "Vi skickar en hanteringslänk till det här telefonnumret."
+      "manageDescription": "Vi skickar en hanteringslänk till det här telefonnumret.",
+      "confirmationSent": "Vi har skickat ett sms till det här telefonnumret. Öppna länken i det för att bekräfta din prenumeration."
     },
     "slack": {
       "title": "Prenumerera via Slack",

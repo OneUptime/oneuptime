@@ -11,11 +11,14 @@ import { DataSource, EntityManager } from "typeorm";
  * (DatabaseService.getCreateLimit) - is inserted in a transaction of its
  * own that first takes the limit's lock in the project, counts with that
  * transaction, and only then saves the row (insertWithinCreateLimit,
- * ProjectLimitLock). A suite that drives the whole create with its tables
- * in memory hands this the answers its tables give: the count each
- * statement reads, and where a row the transaction saves goes. Everything
- * the transactions did is recorded, in order: "lock", each statement, and
- * "save <table>".
+ * ProjectLimitLock). So is a status page subscriber that names a contact:
+ * its page is asked, under the page's lock, whether it has that contact
+ * already (StatusPageSubscriberService). A suite that drives the whole
+ * create with its tables in memory hands this the answers its tables give:
+ * the count each statement reads, where a row the transaction saves goes,
+ * and - for a check that reads rows - what a find of a table answers.
+ * Everything the transactions did is recorded, in order: "lock", each
+ * statement, "find <table>" and "save <table>".
  */
 export interface LimitTransactions {
   events: Array<string>;
@@ -28,6 +31,10 @@ export function useInMemoryLimitTransactions(data: {
   count: (statement: string, parameters: Array<unknown>) => number;
   // Saves a row the transaction inserts into the suite's table.
   save: (tableName: string, row: unknown) => Promise<unknown>;
+  // Reads a table, with the options a repository's find is handed.
+  find?:
+    | ((tableName: string, options: unknown) => Promise<Array<unknown>>)
+    | undefined;
 }): LimitTransactions {
   const log: LimitTransactions = { events: [], opened: 0 };
 
@@ -50,6 +57,17 @@ export function useInMemoryLimitTransactions(data: {
         save: async (row: unknown): Promise<unknown> => {
           log.events.push(`save ${tableName}`);
           return await data.save(tableName, row);
+        },
+        find: async (options: unknown): Promise<Array<unknown>> => {
+          log.events.push(`find ${tableName}`);
+
+          if (!data.find) {
+            throw new Error(
+              `LimitTransactionsInMemory: no find for ${tableName}`,
+            );
+          }
+
+          return await data.find(tableName, options);
         },
       };
     },

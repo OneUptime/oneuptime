@@ -185,7 +185,8 @@
       "yourPhoneNumber": "전화번호",
       "placeholder": "+821012345678",
       "managePrompt": "구독 시 사용한 전화번호를 입력해주세요",
-      "manageDescription": "구독 관리 링크를 이 전화번호로 보내드리겠습니다."
+      "manageDescription": "구독 관리 링크를 이 전화번호로 보내드리겠습니다.",
+      "confirmationSent": "이 전화번호로 문자 메시지를 보냈습니다. 메시지의 링크를 열어 구독을 확인하세요."
     },
     "slack": {
       "title": "Slack으로 구독",
