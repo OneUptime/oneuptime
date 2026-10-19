@@ -2,6 +2,7 @@ import ProjectScopedTeamsPicker, {
   resolveProjectIdFromFormValue,
   selectedTeamIdsFromFormValue,
 } from "../GlobalProvider/ProjectScopedTeamsPicker";
+import AdminModelAPI from "../../Utils/ModelAPI";
 import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
@@ -204,6 +205,12 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
         id="bulk-add-users-to-project-form"
         name="Admin > Users > Add to Project"
         hideSubmitButton={true}
+        /*
+         * The project picker searches every project. Through the shared
+         * ModelAPI its search would name the project this browser last
+         * opened in the Dashboard, and the server would list that one only.
+         */
+        modelAPI={AdminModelAPI}
         fields={fields}
         onSubmit={(values: FormValues<BulkAddUsersToProjectFormValues>) => {
           onFormSubmit(values);
