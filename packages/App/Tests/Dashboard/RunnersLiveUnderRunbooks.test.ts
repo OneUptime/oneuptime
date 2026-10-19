@@ -356,9 +356,17 @@ describe("the messages people act on name Runbooks", () => {
       expect(picker).toContain(template);
     }
 
-    expect(picker).toContain(
-      '<strong>{translator.translateText("Runbooks › Runners")}</strong>',
+    /*
+     * Named "Runbooks › Runners", as a link to that page: in a new tab, so
+     * the steps being edited stay as they are.
+     */
+    const flat: string = picker.replace(/\s+/g, " ");
+
+    expect(flat).toContain(
+      '{translator.translateText("Runbooks › Runners")} </Link>',
     );
+    expect(flat).toContain("RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,");
+    expect(flat).toContain("openInNewTab={true}");
   });
 
   test("the step editor's empty credential picker points at the Credentials page under Runners", () => {
