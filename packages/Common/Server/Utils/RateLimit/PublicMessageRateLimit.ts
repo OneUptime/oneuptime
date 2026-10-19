@@ -90,9 +90,8 @@ import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey
  * page - from the dashboard, with an API key or by a workflow - and the
  * people it invites, to its project or to a private status page. Each is
  * sent a message as it is added, from this installation's mail server or
- * SMS sender, so on a shared installation any project anyone can sign up
- * for could otherwise send one to anyone, as often as it liked. These are
- * counted per contact only (assertTeamMaySend, TeamMessageKind): a team
+ * SMS sender, so each contact is sent a bounded number of them an hour,
+ * whichever project names it. These are counted per contact only (assertTeamMaySend, TeamMessageKind): a team
  * adding its own subscribers in bulk, or inviting its colleagues, names
  * each contact once, and is never held back by how many it adds. A
  * subscriber the team adds is counted with the sign-ups of the same

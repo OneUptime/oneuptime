@@ -12,11 +12,9 @@ import {
 /*
  * A NUMBER SIGNED UP ON A STATUS PAGE IS CONFIRMED FROM ITS PHONE.
  *
- * Anyone can type anyone's phone number into a status page's Subscribe
- * page. A sign-up by text used to be subscribed at once: the number was
- * texted that it was subscribed, and then every incident, maintenance event
- * and announcement of the page, until its owner found the unsubscribe link -
- * with nobody ever asking them, and every text paid for by the project.
+ * A sign-up by text used to be subscribed at once: the number was texted
+ * that it was subscribed, and then every incident, maintenance event and
+ * announcement of the page, without its owner having confirmed it.
  *
  * Now a sign-up by text is created unconfirmed, as a sign-up by email is,
  * and the number is texted one message: the link that confirms the

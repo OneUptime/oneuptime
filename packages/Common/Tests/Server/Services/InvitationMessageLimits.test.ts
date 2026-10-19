@@ -14,10 +14,7 @@ import {
  * <project>" with a link to join, and adding a private user to a status page
  * emails them "You have been invited to <status page>" with a link to set a
  * password - each from this installation's mail server unless the page has
- * its own. Nothing counted them, so on a shared installation a project could
- * invite one address, remove the invitation, and invite it again, as often
- * as it liked, in its own words: the project's and the page's names are its
- * own.
+ * its own. Nothing counted them per address.
  *
  * Now each address is counted, invitations to projects and to private status
  * pages together: ten in an hour, then the invitation is refused with 429,
@@ -253,7 +250,7 @@ describe("an invitation to a project", () => {
       .mockResolvedValue(new EmailVerificationToken());
   });
 
-  test("one address invited over and over: ten invitations in an hour, then refused before anything is made", async () => {
+  test("invitations to one address: ten in an hour, then refused before anything is made", async () => {
     const refusals: Array<unknown> = [];
 
     for (let round: number = 0; round < 30; round++) {
@@ -472,7 +469,7 @@ describe("an invitation to a private status page", () => {
       .mockResolvedValue("https://status.acme.com");
   });
 
-  test("one address added and removed over and over: ten invitations in an hour, then refused before anything is written", async () => {
+  test("one address added and removed: ten invitations in an hour, then refused before anything is written", async () => {
     const outcomes: Array<unknown> = await addAndRemove(25);
 
     expect(

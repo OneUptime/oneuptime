@@ -105,12 +105,11 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A private user the team adds - on the dashboard, with an API key, by a
    * workflow or by SCIM - is emailed an invitation to the status page, from
-   * this installation's mail server unless the page has its own. On a
-   * shared installation any project could otherwise invite one address
-   * over and over, so each address is counted
-   * (PublicMessageRateLimit.assertTeamMaySend, with the invitations to
-   * projects): past its limit the create is refused with 429, before
-   * anything is written. The team is never counted, so adding many readers
+   * this installation's mail server unless the page has its own. Each
+   * invited address is counted (PublicMessageRateLimit.assertTeamMaySend,
+   * with the invitations to projects), so one address is sent a bounded
+   * number of invitations an hour, whichever project sends them: past its
+   * limit the create is refused with 429, before anything is written. The team is never counted, so adding many readers
    * at once goes on. Only an invitation that is sent counts: a user who
    * signs in with SSO, or one of a page that takes only SSO, is sent none
    * (onCreateSuccess).

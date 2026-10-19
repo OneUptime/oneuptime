@@ -207,8 +207,8 @@ export const SMS_SIGN_UP_UNAVAILABLE_MESSAGE: string =
 /*
  * The text a visitor who signed up by text message is sent: the link that
  * confirms the subscription, last, so a phone shows it whole, and what to do
- * when it was not them - anyone can type anyone's number into a status
- * page. Nothing else is sent to the number until the link is opened.
+ * when it was not them. Nothing else is sent to the number until the link
+ * is opened.
  */
 export const getConfirmSubscriptionTextMessage: (data: {
   statusPageName: string;
@@ -902,9 +902,8 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * Who confirms first: an email subscriber, unless it was created
      * confirmed already (by the team), and a visitor who signs up by text
-     * message - anyone can type anyone's number into a status page, so the
-     * number's owner opens the link texted to it before it is sent anything
-     * else, as an email address's owner does. The team vouches for the
+     * message: the number's owner opens the link texted to it before it is
+     * sent anything else, as an email address's owner does. The team vouches for the
      * numbers it adds; a Slack, Microsoft Teams or webhook subscriber has
      * nobody to ask.
      */
@@ -2198,11 +2197,11 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A subscriber the team adds - from the dashboard, in bulk, with an API
    * key or by a workflow - is sent a message as it is created on each
-   * contact getContactsMessagedOnCreate names. On a shared installation any
-   * project could otherwise send this installation's messages to anyone, so
-   * each contact is counted (PublicMessageRateLimit.assertTeamMaySend, with
-   * the sign-ups of the same contact): past its limit the create is refused
-   * with 429, before anything is written. The team itself is never counted,
+   * contact getContactsMessagedOnCreate names. Each such contact is
+   * counted (PublicMessageRateLimit.assertTeamMaySend, with the sign-ups of
+   * the same contact), so one contact is sent a bounded number of
+   * subscription messages an hour, whoever adds it: past its limit the
+   * create is refused with 429, before anything is written. The team itself is never counted,
    * so adding many subscribers at once goes on. Here, after every check of
    * the create, so a refused one never counts. A sign-up was counted by its
    * route, against its visitor too.

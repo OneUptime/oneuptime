@@ -376,10 +376,10 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     /*
      * An invitation by email to someone who is not in the project yet is a
      * message to an address the team names, from this installation's mail
-     * server. On a shared installation any project could otherwise invite
-     * one address over and over, so each address is counted
-     * (PublicMessageRateLimit.assertTeamMaySend): past its limit the
-     * invitation is refused with 429. The team is never counted, so inviting
+     * server. Each address is counted (PublicMessageRateLimit.assertTeamMaySend),
+     * so one address is sent a bounded number of invitations an hour,
+     * whichever project sends them: past its limit the invitation is
+     * refused with 429. The team is never counted, so inviting
      * many colleagues at once goes on. Asked before an account is made for
      * the invitee, so a refused invitation leaves nothing behind, and given
      * back when the invitation fails before its email is sent. Someone who

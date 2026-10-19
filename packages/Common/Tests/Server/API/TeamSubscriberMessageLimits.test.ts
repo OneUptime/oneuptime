@@ -15,10 +15,8 @@ import {
  * A subscriber the team adds - Add Subscriber, Add in Bulk, an API key, a
  * workflow - is sent a message as it is created: the email that asks it to
  * confirm, or the "you have been subscribed" message on its channel, from
- * this installation's mail server or SMS sender. Nothing counted them, so on
- * a shared installation any project anyone may sign up for - a free one
- * included - could add and remove one address over and over and send it
- * this installation's messages as often as it liked.
+ * this installation's mail server or SMS sender. Nothing counted them per
+ * contact.
  *
  * Now each contact the create messages is counted, on the same counter as
  * the sign-ups of that contact on every status page: ten in an hour, then
@@ -207,7 +205,7 @@ function accepted(answers: Array<Answer>): number {
   }).length;
 }
 
-describe("the team adding one contact over and over", () => {
+describe("the team messaging one contact", () => {
   test("an address asked to confirm, added and removed fifty times: ten confirmation emails, then refused", async () => {
     const answers: Array<Answer> = await addAndRemove(50, {
       subscriberEmail: ADDRESS,
