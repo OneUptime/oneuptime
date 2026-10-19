@@ -28,7 +28,13 @@ const UUID_SEGMENT: RegExp =
 /* 24-char Mongo/BSON-style object id, which is what OneUptime itself uses. */
 const OBJECT_ID_SEGMENT: RegExp = /^[0-9a-f]{24}$/i;
 
-const EMAIL_SEGMENT: RegExp = /^[^@\s/]+@[^@\s/]+\.[^@\s/]+$/;
+/*
+ * An email-shaped path segment. Each run is length-bounded (a local part, a
+ * domain and a trailing label, the sizes RFC 5321 allows), and anchored, so a
+ * segment of any length is read once from end to end - the recorder runs this
+ * in the browser over whatever URL the page navigated to.
+ */
+const EMAIL_SEGMENT: RegExp = /^[^@\s/]{1,64}@[^@\s/]{1,253}\.[^@\s/]{1,63}$/;
 
 /* 9 or more consecutive digits: card numbers, phone numbers, SSNs. */
 const LONG_DIGIT_SEGMENT: RegExp = /^\d{9,}$/;

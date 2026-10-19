@@ -158,7 +158,11 @@ const RECORD_ID_KEYS: Array<string> = ["_id", "id"];
  * An email address, near enough to tell one from an id or a name: something,
  * an @, a host with a dot. Whether anybody has it is the server's to say.
  */
-const EMAIL_SHAPE: RegExp = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+/*
+ * Each run is length-bounded to the sizes RFC 5321 allows and anchored, so a
+ * who-to-page setting of any length is read once end to end.
+ */
+const EMAIL_SHAPE: RegExp = /^[^\s@,;]{1,64}@[^\s@,;]{1,253}\.[^\s@,;]{1,63}$/;
 
 type CollectFunction = (value: JSONValue | undefined, depth: number) => void;
 

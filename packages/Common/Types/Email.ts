@@ -28,6 +28,35 @@ const nonBusinessEmailDomains: Array<string> = [
   "yandex",
 ];
 
+/*
+ * The longest address worth looking at. RFC 5321 fits a local part of up to
+ * 64 characters and a domain of up to 253 into 254, so nothing longer is a
+ * mailbox. The length is checked before any pattern runs, so the work of
+ * reading a value stays tied to how long one real address can be, never to
+ * how long a caller made the string.
+ */
+export const MAX_EMAIL_ADDRESS_LENGTH: number = 254;
+
+/*
+ * One mailbox, as RFC 5322 writes it: a dot-atom local part (or a quoted
+ * one), an "@", and a domain of dotted labels or a bracketed address literal.
+ *
+ * The pattern is anchored at both ends, so the WHOLE value has to be a single
+ * address. A list ("a@example.com, b@example.com"), a display name with an
+ * address ("Alice <a@example.com>"), a group ("team: a@example.com"), or any
+ * leading or trailing text is therefore not one mailbox and is refused -
+ * rather than read as whichever address sits inside it, which is what a mail
+ * sender would then deliver to.
+ *
+ * Every repeated part stops before the character that ends it - a label
+ * before its dot, the local part before the "@" - and the bracketed literal
+ * is a single bounded run, so the value is read once from left to right and
+ * the time to read it stays in line with its length whatever it holds.
+ */
+const ONE_EMAIL_ADDRESS: RegExp =
+  // eslint-disable-next-line no-control-regex
+  /^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[[a-z0-9:._-]{1,64}\])$/i;
+
 export default class Email extends DatabaseProperty {
   private _email: string = "";
   public get email(): string {
@@ -41,9 +70,23 @@ export default class Email extends DatabaseProperty {
 
     if (Email.isValid(value)) {
       this._email = value;
+      this._isMalformed = false;
     } else {
       throw new BadDataException(`Email ${value} is not in valid format.`);
     }
+  }
+
+  /*
+   * Set only by the lenient read paths (fromDatabase / fromJSON) when a stored
+   * value is not one valid mailbox. Such an Email keeps its raw string so it
+   * still round-trips and still renders, but toDatabase refuses it, so a value
+   * that is not a single address can never be written back or newly created -
+   * only a value already stored before this check existed can carry the flag.
+   * This mirrors how URL keeps a legacy value it can no longer parse.
+   */
+  private _isMalformed: boolean = false;
+  public isMalformed(): boolean {
+    return this._isMalformed;
   }
 
   public constructor(email: string) {
@@ -54,14 +97,30 @@ export default class Email extends DatabaseProperty {
   public static isValid(value: string): boolean {
     // from https://datatracker.ietf.org/doc/html/rfc5322
 
-    const re: RegExp =
-      // eslint-disable-next-line no-control-regex
-      /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/i;
-    const isValid: boolean = re.test(value);
-    if (!isValid) {
+    if (!value || value.length > MAX_EMAIL_ADDRESS_LENGTH) {
       return false;
     }
-    return true;
+
+    return ONE_EMAIL_ADDRESS.test(value);
+  }
+
+  /*
+   * A read-only path: builds an Email from a value already stored, holding it
+   * as-is when it is not one valid mailbox, so a single legacy row cannot fail
+   * the whole query that reads it. Writes stay strict - see toDatabase.
+   */
+  private static fromStoredValueLenient(value: string): Email {
+    const trimmed: string =
+      typeof value === "string" ? value.trim().toLowerCase() : value;
+
+    if (Email.isValid(trimmed)) {
+      return new Email(trimmed);
+    }
+
+    const email: Email = new Email("placeholder@oneuptime.invalid");
+    email._email = trimmed;
+    email._isMalformed = true;
+    return email;
   }
 
   public override toJSON(): JSONObject {
@@ -127,7 +186,13 @@ export default class Email extends DatabaseProperty {
 
   public static override fromJSON(json: JSONObject): Email {
     if (json["_type"] === ObjectType.Email) {
-      return new Email((json["value"] as string) || "");
+      /*
+       * Lenient for the same reason fromDatabase is: this is how a stored
+       * value crosses the wire into the browser. A value that was accepted
+       * before this check existed must still render; the write paths stay
+       * strict, so nothing invalid can be newly stored through here.
+       */
+      return Email.fromStoredValueLenient((json["value"] as string) || "");
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
@@ -162,6 +227,19 @@ export default class Email extends DatabaseProperty {
         value = new Email(value);
       }
 
+      /*
+       * The write side stays strict. Reads tolerate a value stored before the
+       * one-mailbox check, but nothing may persist one: refusing a malformed
+       * value here stops it being written back on an unrelated update, and
+       * stops a client inventing one. A malformed Email only ever comes from
+       * fromDatabase / fromJSON.
+       */
+      if (value instanceof Email && value.isMalformed()) {
+        throw new BadDataException(
+          `Email ${value.toString()} is not in valid format.`,
+        );
+      }
+
       return value.toString();
     }
 
@@ -170,7 +248,7 @@ export default class Email extends DatabaseProperty {
 
   public static override fromDatabase(_value: string): Email | null {
     if (_value) {
-      return new Email(_value);
+      return Email.fromStoredValueLenient(_value);
     }
 
     return null;

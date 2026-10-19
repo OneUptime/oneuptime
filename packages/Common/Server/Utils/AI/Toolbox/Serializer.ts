@@ -49,8 +49,15 @@ type RedactionRule =
  */
 const REDACTION_RULES: Array<RedactionRule> = [
   {
+    /*
+     * A JWT: three base64url segments split by dots, the first a small header.
+     * The header length is bounded tightly (a header is tiny) and the later
+     * segments generously, so scanning a long tool result for a token stays in
+     * line with the result's length rather than growing with its square.
+     */
     name: "jwt",
-    regex: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
+    regex:
+      /eyJ[A-Za-z0-9_-]{10,512}\.[A-Za-z0-9_-]{10,16384}\.[A-Za-z0-9_-]{5,16384}/g,
     replacement: "[redacted-jwt]",
   },
   {
@@ -92,8 +99,13 @@ const REDACTION_RULES: Array<RedactionRule> = [
     replacement: "[redacted-google-api-key]",
   },
   {
+    /*
+     * Each part of the address is length-bounded to the sizes RFC 5321 allows
+     * (local part 64, domain 253, final label 63), so scanning a long tool
+     * result for addresses stays in line with its length.
+     */
     name: "email",
-    regex: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
+    regex: /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g,
     replacement: "[redacted-email]",
   },
   {
