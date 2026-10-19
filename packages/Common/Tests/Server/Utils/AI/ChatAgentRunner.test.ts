@@ -19,7 +19,11 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import AIToolbox, {
   ToolCallOutcome,
 } from "../../../../Server/Utils/AI/Toolbox/Index";
-import { ELIDED_TOOL_RESULT_PREFIX } from "../../../../Server/Utils/AI/Chat/AgentContextCompactor";
+import {
+  CONTEXT_OVERFLOW_SHRINK_FACTOR,
+  ELIDED_TOOL_RESULT_PREFIX,
+  measureContextChars,
+} from "../../../../Server/Utils/AI/Chat/AgentContextCompactor";
 import { LLMMessage } from "../../../../Server/Utils/LLM/LLMService";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import AIConversation from "../../../../Models/DatabaseModels/AIConversation";
@@ -868,7 +872,7 @@ describe("ChatAgentRunner.runTurn — conversation titles", () => {
 });
 
 describe("ChatAgentRunner.runTurn — context overflow", () => {
-  test("a model with a smaller window rejects the transcript; the turn compacts, retries and answers", async () => {
+  test("a model with a smaller window rejects the transcript; the turn compacts, retries and keeps going", async () => {
     const spies: RunnerSpies = installRunnerSpies({ titleCount: 5 });
     const rows: string = "x".repeat(20_000);
     jest.spyOn(AIToolbox, "executeTool").mockResolvedValue({
@@ -883,24 +887,31 @@ describe("ChatAgentRunner.runTurn — context overflow", () => {
       },
     } as ToolCallOutcome as never);
 
-    const script: Array<AILogResponse | Error> = [];
-    for (let index: number = 0; index < 4; index++) {
-      script.push({
+    const toolCall: (index: number) => AILogResponse = (
+      index: number,
+    ): AILogResponse => {
+      return {
         content: "",
         stopReason: "tool_use",
         toolCalls: [{ id: `call-${index}`, name: "query_logs", arguments: {} }],
         llmLog: { totalTokens: 10, costInUSDCents: 1 },
-      } as unknown as AILogResponse);
-    }
-    script.push(
+      } as unknown as AILogResponse;
+    };
+    const script: Array<AILogResponse | Error> = [
+      toolCall(0),
+      toolCall(1),
+      toolCall(2),
+      toolCall(3),
       new BadDataException(
         "OpenAICompatible API error: the model's context length is only 65536 tokens, resulting in a maximum input length of 57344 tokens.",
       ),
+      toolCall(4),
       chatResponse("All good."),
-    );
+    ];
 
     // The loop compacts its transcript in place: snapshot what each call sent.
     const sentToolResults: Array<Array<string>> = [];
+    const sentChars: Array<number> = [];
     spies.executeWithLogging.mockImplementation((async (
       aiRequest: AILogRequest,
     ): Promise<AILogResponse> => {
@@ -913,6 +924,7 @@ describe("ChatAgentRunner.runTurn — context overflow", () => {
             return message.content;
           }),
       );
+      sentChars.push(measureContextChars(aiRequest.messages));
       const next: AILogResponse | Error = script[sentToolResults.length - 1]!;
       if (next instanceof Error) {
         throw next;
@@ -923,7 +935,7 @@ describe("ChatAgentRunner.runTurn — context overflow", () => {
     await ChatAgentRunner.runTurn(buildRequest());
     await flushAsync();
 
-    expect(sentToolResults).toHaveLength(6);
+    expect(sentToolResults).toHaveLength(7);
     // Nothing was elided until the model rejected the transcript.
     expect(
       sentToolResults[4]!.some((content: string) => {
@@ -936,6 +948,17 @@ describe("ChatAgentRunner.runTurn — context overflow", () => {
       true,
     );
     expect(sentToolResults[5]![3]).toContain(rows);
+
+    /*
+     * The lowered budget holds for the rest of the turn: one more 20k result
+     * on top of the retry would exceed it without further elision.
+     */
+    const lowered: number = Math.floor(
+      sentChars[4]! * CONTEXT_OVERFLOW_SHRINK_FACTOR,
+    );
+    expect(sentToolResults[6]).toHaveLength(5);
+    expect(sentToolResults[6]![4]).toContain(rows);
+    expect(sentChars[6]!).toBeLessThanOrEqual(lowered);
 
     const finalized: JSONObject | undefined = findCallWithDataKey(
       spies.messageUpdateOneBy,
