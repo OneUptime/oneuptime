@@ -125,6 +125,7 @@ import IncidentReminderRule from "../../../../Models/DatabaseModels/IncidentRemi
 import NetworkSiteAssignmentRule from "../../../../Models/DatabaseModels/NetworkSiteAssignmentRule";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Permission from "../../../../Types/Permission";
+import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { JSONObject } from "../../../../Types/JSON";
@@ -137,6 +138,9 @@ type Row = {
 };
 
 const SPACE: { keyCode: number; key: string } = { keyCode: 32, key: " " };
+
+// What a locked control says it is missing.
+const PERMISSION_REASON: RegExp = /permission/i;
 const ARROW_UP: { keyCode: number; key: string } = {
   keyCode: 38,
   key: "ArrowUp",
@@ -638,6 +642,61 @@ describe("with a filter or search on", () => {
     await waitForRows(1);
 
     expect(screen.queryByTestId("reorder-off-while-filtered")).toBeNull();
+  });
+});
+
+describe("someone who may not edit the rows", () => {
+  /*
+   * The server refuses their drop, so the rows would jump back: the grips
+   * stay, greyed out, saying why - as the row's Edit button does - and a
+   * drag from the keyboard moves nothing and sends nothing.
+   *
+   * A table keeps its filter in the address (TableFilterUrlState), so the
+   * address is cleared first: these grips are off for the person alone, not
+   * for a filter an earlier test left there.
+   */
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/");
+    PermissionGate.clearPermissionPropsCache();
+  });
+
+  afterEach(() => {
+    PermissionGate.clearPermissionPropsCache();
+  });
+
+  test("cannot drag: every grip is off and says why, and nothing is sent", async () => {
+    permissionsForTest = [Permission.Viewer];
+
+    renderTable();
+    await waitForRows(3);
+
+    const before: Array<string> = rowNames();
+
+    // Not a filter: the line that says dragging is off while filtering is not there.
+    expect(screen.queryByTestId("reorder-off-while-filtered")).toBeNull();
+
+    for (const grip of screen.getAllByTestId("drag-handle")) {
+      expect(grip).toHaveAttribute("aria-disabled", "true");
+      // Why, in the words the row's Edit button would use.
+      expect(grip.getAttribute("title") || "").toMatch(PERMISSION_REASON);
+      expect(grip.getAttribute("title")).not.toBe(REORDER_OFF_WHILE_FILTERED);
+    }
+
+    await moveUp(2, 2);
+
+    expect(updateCalls).toEqual([]);
+    expect(rowNames()).toEqual(before);
+  });
+
+  test("someone who may edit them drags as before", async () => {
+    permissionsForTest = [Permission.ProjectAdmin];
+
+    renderTable();
+    await waitForRows(3);
+
+    for (const grip of screen.getAllByTestId("drag-handle")) {
+      expect(grip).not.toHaveAttribute("aria-disabled");
+    }
   });
 });
 

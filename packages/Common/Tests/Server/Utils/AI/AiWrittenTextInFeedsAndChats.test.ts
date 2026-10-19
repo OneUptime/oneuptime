@@ -8,6 +8,7 @@ import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../Models/DatabaseModels/Project";
 import SlackAPI from "../../../../Server/API/SlackAPI";
 import AIService from "../../../../Server/Services/AIService";
+import AIPostmortemRuleService from "../../../../Server/Services/AIPostmortemRuleService";
 import AlertInternalNoteService from "../../../../Server/Services/AlertInternalNoteService";
 import AlertService from "../../../../Server/Services/AlertService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
@@ -545,6 +546,11 @@ describe("A postmortem OneUptime AI drafts", () => {
     jest
       .spyOn(IncidentVideoCallService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    /*
+     * The project has no postmortem rule, so every resolved incident gets a
+     * draft (PostmortemRules' own tests hold what a rule changes).
+     */
+    jest.spyOn(AIPostmortemRuleService, "findBy").mockResolvedValue([]);
     jest.spyOn(logger, "debug").mockImplementation((): void => {
       return undefined;
     });

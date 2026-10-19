@@ -59,6 +59,12 @@ const EXPECTED: Record<string, ListOrderSettings> = {
     scopeColumns: ["projectId"],
     sortOrder: SortOrder.Ascending,
   },
+  // Postmortem rules: the first that matches a resolved incident decides.
+  AIPostmortemRule: {
+    column: "order",
+    scopeColumns: ["projectId"],
+    sortOrder: SortOrder.Ascending,
+  },
   AlertReminderRule: {
     column: "order",
     scopeColumns: ["projectId"],

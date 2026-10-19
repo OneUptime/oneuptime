@@ -39,6 +39,8 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   "StorageArrayOwnerRule",
   // AddAutomaticRemediationSwitchesAndInvestigationRules
   "AIInvestigationRule",
+  // 1804150000000-AddAIPostmortemRules
+  "AIPostmortemRule",
 ];
 
 type IsCoveredByMigrationFunction = (modelName: string) => boolean;

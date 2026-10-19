@@ -572,12 +572,22 @@ describe("Incidents → AI → Settings", () => {
         expect(
           within(section).getByTestId("collapsible-section-summary"),
         ).toHaveTextContent(
-          "Every incident is investigated, whatever its severity, and every one is fixed while fixing is on. Nothing limits how much OneUptime AI does.",
+          "Every incident is investigated, whatever its severity, fixed while fixing is on, and given a postmortem draft when it resolves. Nothing limits how much OneUptime AI does.",
         );
       },
       { timeout: WAIT_TIMEOUT },
     );
     expect(setChips(advancedHeader())).toEqual([]);
+    // Six cards: four named, the rest counted, as every folded section does.
+    expect(listedNames(advancedHeader())).toEqual([
+      "Investigation rules",
+      "Which incidents are investigated",
+      "Investigation limits",
+      "Auto remediation rules",
+    ]);
+    expect(
+      within(section).getByTestId("folded-section-more"),
+    ).toHaveTextContent("2 more");
   });
 
   test("turning on Fix new incidents automatically saves it and both its pull requests on, in one save", async () => {
@@ -603,6 +613,7 @@ describe("Incidents → AI → Settings", () => {
   test.each([
     ["AIInvestigationRule", "Investigation rules"],
     ["AutoRemediationRule", "Auto remediation rules"],
+    ["AIPostmortemRule", "Postmortem rules"],
   ])(
     "with an enabled %s, folded More settings shows its table as a chip with how many",
     async (modelName: string, title: string) => {
@@ -679,14 +690,32 @@ describe("Incidents → AI → Settings", () => {
         },
         { timeout: WAIT_TIMEOUT },
       );
-      // Its cards and rules tables, by name: one of them a chip.
-      expect(listedNames(advancedHeader())).toEqual([
-        "Investigation rules",
-        "Which incidents are investigated",
-        "Investigation limits",
-        "Auto remediation rules",
-        "Daily limits",
-      ]);
+      /*
+       * Its cards and rules tables, by name - the one that holds a limit
+       * always among them, as a chip - four named and the rest counted.
+       */
+      const isDailyLimit: boolean = Object.keys(values).some(
+        (column: string): boolean => {
+          return column.startsWith("incidentAiDaily");
+        },
+      );
+
+      expect(listedNames(advancedHeader())).toEqual(
+        isDailyLimit
+          ? [
+              "Investigation rules",
+              "Which incidents are investigated",
+              "Investigation limits",
+              "Daily limits",
+            ]
+          : [
+              "Investigation rules",
+              "Which incidents are investigated",
+              "Investigation limits",
+              "Auto remediation rules",
+            ],
+      );
+      expect(advancedHeader()).toHaveTextContent("2 more");
       expect(setChips(advancedHeader())).toHaveLength(1);
       expect(advancedHeader()).not.toHaveTextContent(
         "nothing limits how much OneUptime AI does",
@@ -1035,6 +1064,42 @@ describe("Alerts → AI → Settings", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
+
+    // An alert has no postmortem: five cards, every one named, none of them postmortem rules.
+    expect(listedNames(advancedHeader())).toEqual([
+      "Investigation rules",
+      "Which alerts are investigated",
+      "Investigation limits",
+      "Auto remediation rules",
+      "Daily limits",
+    ]);
+    expect(advancedHeader()).not.toHaveTextContent(/postmortem/i);
+  });
+
+  test("its page has no postmortem rules, and never counts them", async () => {
+    ruleCounts = { AIPostmortemRule: 4 };
+
+    openAlertPage();
+    fireEvent.click(advancedHeader());
+
+    expect(
+      await screen.findByText(
+        "Auto remediation rules",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Postmortem rules")).toBeNull();
+    expect(
+      (
+        ModelAPI.count as unknown as { mock: { calls: Array<Array<unknown>> } }
+      ).mock.calls.some((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType?: { name?: string } }).modelType?.name ===
+          "AIPostmortemRule"
+        );
+      }),
+    ).toBe(false);
   });
 
   test("turning on Fix new alerts automatically saves it and both alert pull requests on, and no incident column", async () => {
