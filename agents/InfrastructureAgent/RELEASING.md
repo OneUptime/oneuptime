@@ -187,7 +187,8 @@ checksums for Apple silicon and Intel.
 - **The Homebrew job fails on a warning.** Homebrew deprecates parts of the
   cask language from time to time, and brew then prints the warning in every
   command that reads the cask. Homebrew 7 deprecated `postflight` and
-  `verified:`, which 14.0.74's cask still uses. Fix the cask in
+  `verified:`, and the casks of 14.0.75 and earlier use `postflight`. Fix the
+  cask in
   `homebrew_casks` in `agents/InfrastructureAgent/.goreleaser.yaml` (its
   `custom_block` is a Go template, so write `{{` as `{{ "{{" }}`). Then
   update `Tests/Ops/InfrastructureAgentPackageManagers.test.js`. The tap
@@ -250,8 +251,11 @@ Before merging a change to `.goreleaser.yaml`, `build-msi.sh`, the `.wxs`,
    and installs from it with the docs' commands. "Infrastructure Agent MSI
    Test" covers the MSI. "Infrastructure Agent Release Status" runs for
    changes to its own scripts.
-3. After the next release, read its status run. It is the first time the
-   change meets the real tap, site and winget.
+3. After the first release that has the change, read its status run. It is
+   the first time the change meets the real tap, site and winget. A release
+   run builds master as it was when the run started, and takes about four
+   hours, so the release published next may not have it yet: 14.0.75
+   was published four hours after the cask's fix was merged, without it.
 
 ## Troubleshooting
 
@@ -282,11 +286,15 @@ change.
   commit `86c7a17`, winget
   [#455758](https://github.com/microsoft/winget-pkgs/pull/455758). The Pages
   deploy waited for runners, so the site served 14.0.74 at 08:58 UTC, 75
-  minutes after the push. It is the first release whose MSI upgrades an installed agent in
-  place. Its cask still used `postflight`, so brew warned about a
-  deprecation. The status workflow's first run, the same morning, found it
-  published everywhere except winget. It installed it on all nine
+  minutes after the push. It is the first release whose MSI upgrades an
+  installed agent in place. Its cask still used `postflight`, so brew warned
+  about a deprecation. The status workflow's first run, the same morning,
+  found it published everywhere except winget. It installed it on all nine
   distributions on x64 and Arm, and failed the Homebrew job on that warning.
-- **The release after 14.0.74** is the first with the cask that Homebrew 7
-  does not warn about (`postflight_steps`), and with the arm64 MSI built as
-  an x64 package, so it installs in `C:\Program Files`.
+- **14.0.75** (19 October 2026, 12:05 UTC): built from master as it was at
+  07:36 UTC, before the cask's fix (#5041) was merged. It is the first with the
+  arm64 MSI built as an x64 package, so it installs in `C:\Program Files`
+  (both MSIs are x64 packages that install per machine). Its cask still uses
+  `postflight`.
+- **14.0.76**: the first built with the cask Homebrew 7 does not warn about
+  (`postflight_steps`). Its release run started at 12:07 UTC on 19 October.
