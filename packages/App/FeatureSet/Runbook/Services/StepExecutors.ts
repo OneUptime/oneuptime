@@ -627,7 +627,7 @@ async function runLegacySshStep(
       success: false,
       output: "",
       errorMessage:
-        "SSH step is missing a credential. Pick one under Runbooks → Runner Credentials.",
+        "SSH step is missing a credential. Open the step and turn it into a script step that signs in with a variable.",
     };
   }
 
@@ -725,7 +725,7 @@ async function runLegacyKubernetesStep(
       success: false,
       output: "",
       errorMessage:
-        "Kubernetes step is missing a credential. Pick one under Runbooks → Runner Credentials.",
+        "Kubernetes step is missing a credential. Open the step and turn it into a kubectl script step.",
     };
   }
 

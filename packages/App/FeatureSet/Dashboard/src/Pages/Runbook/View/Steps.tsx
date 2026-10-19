@@ -29,9 +29,11 @@ import RunnerPicker from "../../../Components/Runner/RunnerPicker";
 import RunbookVariablePicker from "../../../Components/Runbook/Steps/RunbookVariablePicker";
 import RunbookVariableChips from "../../../Components/Runbook/Steps/RunbookVariableChips";
 import SshTargetInput from "../../../Components/Runbook/Steps/SshTargetInput";
+import UnknownVariablesNote from "../../../Components/Runbook/Steps/UnknownVariablesNote";
 import RunbookVariableChoicesLoader, {
   NO_RUNBOOK_VARIABLE_CHOICES,
   RunbookVariableChoices,
+  getUnknownVariableReferences,
 } from "../../../Components/Runbook/Steps/RunbookVariableChoices";
 import {
   KUBECONFIG_TITLE,
@@ -1223,6 +1225,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           onChange={args.onChange}
         />
         <p className="text-xs text-gray-500 mt-1.5">{args.help}</p>
+        <UnknownVariablesNote
+          references={getUnknownVariableReferences(variableChoices, [
+            args.value,
+          ])}
+          dataTestId={`${args.id}-unknown-variables`}
+        />
         <div className="mt-2 flex flex-col gap-2">
           {renderScriptExamples({
             examples: args.examples,
@@ -1247,6 +1255,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     idx: number,
   ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
     return (
+      <>
       <div
         className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
         data-testid={`runbook-step-${idx}-legacy`}
@@ -1276,6 +1285,27 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         </div>
       </div>
+      {renderMoreFields(
+        step,
+        idx,
+        <>
+          {renderDescriptionField(step, idx)}
+          {renderAgentTimeouts({
+            idx,
+            config: step.config as SSHStepConfig,
+            executionDescription: (
+              <>
+                {translator.translateText(
+                  "How long the Runner lets the step run before stopping it.",
+                )}
+              </>
+            ),
+            executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
+          })}
+          {renderFailureToggles(step, idx)}
+        </>,
+      )}
+      </>
     );
   };
 
@@ -1578,6 +1608,13 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               username: target.username,
             });
           }}
+        />
+        <UnknownVariablesNote
+          references={getUnknownVariableReferences(variableChoices, [
+            config.host || "",
+            config.username || "",
+          ])}
+          dataTestId={`runbook-step-${idx}-ssh-target-unknown-variables`}
         />
         <RunbookVariablePicker
           label={SSH_SIGN_IN_TITLE}

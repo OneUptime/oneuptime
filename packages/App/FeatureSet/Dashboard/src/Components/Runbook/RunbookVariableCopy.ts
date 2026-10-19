@@ -27,7 +27,7 @@ export const GLOBAL_VARIABLES_DESCRIPTION: string = translationKey(
 export const RUNBOOK_VARIABLES_TITLE: string = translationKey("Variables");
 
 export const RUNBOOK_VARIABLES_DESCRIPTION: string = translationKey(
-  "Values only this runbook can use. A secret is encrypted and never shown again.",
+  "Values only this runbook's steps can use, beside the project's global variables.",
 );
 
 export const GLOBAL_VARIABLES_EMPTY: string = translationKey(
@@ -49,7 +49,7 @@ export const NAME_DESCRIPTION: string = translationKey(
 export const SECRET_TITLE: string = translationKey("Secret");
 
 export const SECRET_DESCRIPTION: string = translationKey(
-  "Encrypted, never shown again, and hidden in what steps print. Keep keys, passwords, tokens and kubeconfigs secret.",
+  "Encrypted, never shown again, and hidden in what steps print.",
 );
 
 export const VALUE_TITLE: string = translationKey("Value");

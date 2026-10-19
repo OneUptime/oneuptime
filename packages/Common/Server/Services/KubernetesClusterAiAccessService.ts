@@ -1305,7 +1305,7 @@ class KubernetesClusterAiAccessServiceClass {
             : credential.credentialType !== RunbookCredentialType.Kubernetes
               ? `"${credential.name}" is not a Kubernetes credential.`
               : `"${credential.name}" is not assigned to Runner "${runner.name}".`,
-          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Runbooks → Runner Credentials, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
+          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Runbooks → AI Access, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
           blocks: "both",
         });
       } else {

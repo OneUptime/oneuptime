@@ -5,6 +5,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   RunbookVariableReference,
   RunbookVariableScope,
+  findRunbookVariableReferencesIn,
   formatRunbookVariableReference,
   getRunbookVariableReferenceKey,
   parseSingleRunbookVariableReference,
@@ -166,6 +167,37 @@ export function findVariableChoice(
       }) === key
     );
   });
+}
+
+/*
+ * The variables `texts` name that are not the project's - a typo, or one
+ * deleted since - each once, as references: what the step would fail with.
+ * None when the variables could not be read.
+ */
+export function getUnknownVariableReferences(
+  choices: RunbookVariableChoices,
+  texts: Array<string>,
+): Array<string> {
+  if (!choices.isReadable) {
+    return [];
+  }
+
+  const known: Set<string> = new Set<string>(
+    choices.variables.map((choice: RunbookVariableChoice): string => {
+      return getRunbookVariableReferenceKey({
+        scope: choice.scope,
+        name: choice.name,
+      });
+    }),
+  );
+
+  return findRunbookVariableReferencesIn(texts)
+    .filter((reference: RunbookVariableReference): boolean => {
+      return !known.has(getRunbookVariableReferenceKey(reference));
+    })
+    .map((reference: RunbookVariableReference): string => {
+      return formatRunbookVariableReference(reference);
+    });
 }
 
 export enum VariableUseProblem {

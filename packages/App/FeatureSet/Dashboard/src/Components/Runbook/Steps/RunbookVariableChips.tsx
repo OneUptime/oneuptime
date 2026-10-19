@@ -58,19 +58,17 @@ const RunbookVariableChips: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
+      className="flex flex-wrap items-center gap-1.5"
       data-testid={props.dataTestId}
     >
-      <div className="flex items-center gap-1.5 mb-2">
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
         <Icon
           icon={IconProp.Variable}
           size={SizeProp.Smaller}
           className="text-gray-500"
         />
-        <span className="text-xs font-medium text-gray-700">
-          {translator.translateText("Variables — click to copy")}
-        </span>
-      </div>
+        {translator.translateText("Variables — click to copy")}
+      </span>
       <div className="flex flex-wrap gap-1.5">
         {shown.map((choice: RunbookVariableChoice) => {
           const isCopied: boolean = copied === choice.reference;
