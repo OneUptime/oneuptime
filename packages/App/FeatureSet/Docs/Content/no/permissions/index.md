@@ -140,7 +140,7 @@ Hele listen står i [Tillatelsesreferansen](/docs/permissions/reference).
 En egendefinert rolle er et sett tillatelser du gir navn én gang og gir til team: for eksempel en «Hendelsesansvarlig» med `IncidentMember`, `AlertMember` og `OnCallViewer`, eller en «Teamleder». Hvert team du gir den til, får de samme tillatelsene, og du endrer dem for alle disse teamene på ett sted. På OneUptime Cloud krever egendefinerte roller Scale-planen, slik det å endre tillatelsene til et team gjør.
 
 :::steps
-1. Åpne **Team** fra menyen **Produkter**, under **Innstillinger**, deretter **Roller**, og klikk på **Opprett Egendefinert rolle**.
+1. Åpne **Team** fra menyen **Produkter**, under **Innstillinger**. Utvid **Innstillinger** i sidemenyen, velg **Roller**, og klikk på **Opprett Egendefinert rolle**.
 2. Skriv inn **Navn** og velg under **Tillatelser** de innebygde rollene den samler, for hver ressurs i prosjektet. Beskrivelsen ligger under **Flere felt**.
 3. Opprett rollen. Den åpnes på sin side, der **Legg til rolle** legger til enda en innebygd rolle og **Legg til tillatelse** (i menyen **⋯** på kortet) én enkelt tillatelse, hver med omfang og etiketter, som på et team.
 4. Klikk på **Gi til et team** under **Team med denne rollen**. Siden **Tillatelser** til et team har også **Legg til egendefinert rolle**, og **Opprett team** tilbyr under **Tilgang** de egendefinerte rollene du kunne gitt.

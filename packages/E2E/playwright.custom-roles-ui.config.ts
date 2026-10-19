@@ -2,13 +2,14 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 /*
- * Custom roles on the real Teams pages - Teams > Roles, a role's own page, a
- * team's Permissions page and Create Team - in real Chromium, with no
- * backend: CustomRoles/Fixture/server.js bundles the production pages with
- * the app's esbuild config, Tailwind, theme and font, over an in-memory
- * project whose writes it records and answers as the services do. What jsdom
- * cannot show is checked here: the dialogs and pickers as they are drawn,
- * long names wrapping inside their cards, a phone's width, dark mode.
+ * Custom roles on the real Teams pages - Teams > Settings > Roles, a role's
+ * own page, a team's Permissions page and Create Team - in real Chromium,
+ * with no backend: CustomRoles/Fixture/server.js bundles the production
+ * pages with the app's esbuild config, Tailwind, theme and font, over an
+ * in-memory project whose writes it records and answers as the services do.
+ * What jsdom cannot show is checked here: the dialogs and pickers as they
+ * are drawn, long names wrapping inside their cards, a phone's width, dark
+ * mode.
  */
 const port: string = process.env["CUSTOM_ROLES_FIXTURE_PORT"] || "4313";
 
