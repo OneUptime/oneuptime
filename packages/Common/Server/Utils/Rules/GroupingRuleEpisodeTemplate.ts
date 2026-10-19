@@ -36,6 +36,40 @@ export const replaceAllLiterally: ReplaceAllLiterallyFunction = (
   });
 };
 
+/*
+ * A {{...}} the engines clear: "{{", at least one character none of which
+ * is a "}", "}}". Or - in a last alternative, with no group - a "{{" that
+ * starts none: that "{{" and what follows it up to the next "}" (or the end
+ * of the text), given back as it is written.
+ *
+ * The text holds an incident's or alert's own title and description, so it
+ * is read in time in line with its length. Tried alone, the first
+ * alternative read on to the next "}" from every "{{" before it that starts
+ * no placeholder, each try reading the same characters again: on a run of
+ * "{" with no "}" after it, a time that grew with the square of its length.
+ * No "{{" in what the last alternative takes starts a placeholder either:
+ * each would read on to the same "}", or to the same end of the text.
+ */
+const PLACEHOLDER_OR_UNCLOSED: RegExp = /\{\{([^}]+)\}\}|\{\{[^}]*/g;
+
+type ClearPlaceholdersFunction = (text: string) => string;
+
+/*
+ * Clears every {{...}} in `text`, as text.replace(/\{\{[^}]+\}\}/g, "")
+ * cleared them: when the count is filled in, anything else still in braces
+ * goes.
+ */
+export const clearPlaceholders: ClearPlaceholdersFunction = (
+  text: string,
+): string => {
+  return text.replace(
+    PLACEHOLDER_OR_UNCLOSED,
+    (whole: string, inner: string | undefined): string => {
+      return inner === undefined ? whole : "";
+    },
+  );
+};
+
 type ClearPlaceholdersExceptFunction = (text: string, kept: string) => string;
 
 /*
@@ -53,7 +87,7 @@ export const clearPlaceholdersExcept: ClearPlaceholdersExceptFunction = (
   return text
     .split(kept)
     .map((part: string): string => {
-      return part.replace(/\{\{[^}]+\}\}/g, "");
+      return clearPlaceholders(part);
     })
     .join(kept);
 };

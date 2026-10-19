@@ -39,6 +39,7 @@ import { GroupingOptions } from "../../Utils/StartingStage";
 import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import EpisodeGroupingKey from "../Utils/Rules/EpisodeGroupingKey";
 import {
+  clearPlaceholders,
   clearPlaceholdersExcept,
   replaceAllLiterally,
 } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
@@ -1401,7 +1402,7 @@ class IncidentGroupingEngineServiceClass {
     result = result.replace(/\{\{incidentCount\}\}/g, incidentCount.toString());
 
     // Clean up any remaining unknown placeholders
-    result = result.replace(/\{\{[^}]+\}\}/g, "");
+    result = clearPlaceholders(result);
 
     return result;
   }

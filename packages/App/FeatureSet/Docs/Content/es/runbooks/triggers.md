@@ -35,7 +35,7 @@ Un desencadenante inicia una ejecución como lo hace **Ejecutar ahora**: la ejec
 
 :::steps
 ### Abrir la página Desencadenantes del runbook
-Abre el runbook desde **Runbooks** y haz clic en **Desencadenantes** en su menú.
+Abre el runbook desde **Runbooks** y haz clic en **Ajustes → Desencadenantes** en su menú lateral. **Ajustes** empieza plegado: haz clic en él para mostrar **Desencadenantes**.
 
 ### Configurar la programación
 Haz clic en **Configurar programación**. En **Cuándo se ejecuta**, elige una opción de **Repetir** y lo que necesita. El cuadro de diálogo dice la programación en una frase, como «Se ejecuta cada día laborable a las 09:00», y enumera sus próximas ejecuciones a medida que la cambias.

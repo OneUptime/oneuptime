@@ -486,9 +486,12 @@ describe(`${SCRIPTS}: the scripts`, () => {
     expect(scripts.sort()).toEqual([
       "BuildPackageRepository.sh",
       "GitHubDeployKey.sh",
+      "InstallFromHomebrew.sh",
+      "InstallFromPackageRepository.sh",
       "PublishHomebrewCask.sh",
       "PublishPackageRepository.sh",
       "PublishWingetManifests.sh",
+      "ReleaseStatus.sh",
     ]);
   });
 

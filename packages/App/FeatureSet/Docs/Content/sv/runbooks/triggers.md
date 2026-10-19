@@ -35,7 +35,7 @@ En utlösare startar en körning så som **Run Now** gör: körningen går igeno
 
 :::steps
 ### Öppna runbookets sida Utlösare
-Öppna runbooket från **Runbooks** och klicka på **Utlösare** i dess meny.
+Öppna runbooket från **Runbooks** och klicka på **Inställningar → Utlösare** i dess sidomeny. **Inställningar** är hopfälld från början: klicka på den för att visa **Utlösare**.
 
 ### Konfigurera schemat
 Klicka på **Konfigurera schema**. Under **När den körs** väljer du ett alternativ under **Upprepa** och det som det behöver. Dialogrutan säger schemat i en mening, som "Körs varje vardag kl. 09:00", och listar dess nästa körningar medan du ändrar det.

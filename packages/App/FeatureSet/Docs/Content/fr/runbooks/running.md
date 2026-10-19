@@ -118,7 +118,7 @@ Une exécution est un enregistrement unique et immuable. Pour relancer le runboo
 
 | Où | Ce qui est listé |
 | --- | --- |
-| Les **Exécutions** d'un runbook | Toutes les exécutions de ce runbook, avec des filtres par statut et date de début, et une colonne **Déclenché par**. |
+| Les **Journaux → Exécutions** d'un runbook | Toutes les exécutions de ce runbook, avec des filtres par statut et date de début, et une colonne **Déclenché par**. |
 | **Runbooks → Exécutions** | Toutes les exécutions de tous les runbooks du projet. |
 | La page **Runbooks** d'un incident, d'une alerte ou d'un événement | Les exécutions qui y sont attachées. La vue d'ensemble de l'événement les affiche aussi, dès qu'il y en a. |
 

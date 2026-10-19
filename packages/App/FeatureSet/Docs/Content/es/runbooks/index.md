@@ -98,6 +98,17 @@ Runbooks está en **Productos**, en el grupo **Paneles y automatización**.
 | **Incidentes / Alertas / Mantenimiento programado → Reglas → Reglas de runbook** | Crear las reglas que inician runbooks automáticamente. |
 | Un incidente, una alerta o un evento de mantenimiento → **Runbooks** | Ver las ejecuciones unidas a él, y hacer clic en **Ejecutar runbook** para iniciar una. |
 
+El menú lateral de un runbook agrupa sus páginas así. Solo **Básico** empieza abierta: haz clic en el título de una sección para abrirla. Una sección se abre sola en cualquier página que contenga.
+
+| Sección | Páginas |
+| --- | --- |
+| **Básico** | **Vista general**, **Pasos** |
+| **Registros** | **Ejecuciones** |
+| **Propietarios** | **Propietarios** |
+| **Ajustes** | **Desencadenantes**, **Ajustes** |
+| **Desarrolladores** | **Terraform**, **API**, **Asistentes de IA** |
+| **Avanzado** | **Registros de auditoría**, **Eliminar runbook** |
+
 ## Un ejemplo completo
 
 Supongamos que quieres que cada incidente con «db-primary» en el título inicie un runbook de failover de base de datos de cinco pasos.

@@ -6,6 +6,10 @@ import DataSourceTableResult, {
 } from "../../../Types/DataSource/DataSourceTableResult";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONValue } from "../../../Types/JSON";
+import {
+  redactDsns,
+  redactPasswordSettings,
+} from "../../../Utils/DatabaseErrorRedaction";
 
 /*
  * Shared row → chart/table shaping for every SQL-family connector
@@ -359,13 +363,13 @@ export default class SqlResultShaper {
       }
     }
 
-    // DSNs with embedded credentials.
-    message = message.replace(/[a-zA-Z]+:\/\/[^\s]*@[^\s]*/g, "[redacted-dsn]");
-    // Connection-string password pairs.
-    message = message.replace(
-      /(password|pwd)\s*[=:]\s*(\{[^}]*\}|"[^"]*"|'[^']*'|[^;\r\n]+)/gi,
-      "$1=***",
-    );
+    /*
+     * DSNs with embedded credentials, then connection-string password
+     * pairs. The message is whatever the database sent back, so both are
+     * read in time in line with its length (DatabaseErrorRedaction).
+     */
+    message = redactDsns(message, "[redacted-dsn]");
+    message = redactPasswordSettings(message);
 
     return message;
   }

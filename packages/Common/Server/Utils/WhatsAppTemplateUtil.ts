@@ -7,6 +7,10 @@ import WhatsAppTemplateMessages, {
 import WhatsAppMessage, {
   WhatsAppMessagePayload,
 } from "../../Types/WhatsApp/WhatsAppMessage";
+import {
+  TemplatePlaceholder,
+  replaceTemplatePlaceholders,
+} from "../../Utils/TemplatePlaceholders";
 
 const DEFAULT_ACTION_LINK: string = "https://oneuptime.com/dashboard";
 
@@ -202,9 +206,10 @@ function renderTemplateContent(
   variables: Record<string, string>,
   context: string,
 ): string {
-  return templateContent.replace(
-    /\{\{(.*?)\}\}/g,
-    (_match: string, key: string) => {
+  return replaceTemplatePlaceholders(
+    templateContent,
+    (placeholder: TemplatePlaceholder): string => {
+      const key: string = placeholder.inner;
       const value: string | undefined = variables[key];
 
       if (value === undefined) {

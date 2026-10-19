@@ -130,14 +130,28 @@ same tree to S3 behind CloudFront and keep the domain: only
 
 ## Checking a release
 
+[agents/InfrastructureAgent/RELEASING.md](../../agents/InfrastructureAgent/RELEASING.md)
+is the runbook for a release: what each state means, and what to do when a
+release has not reached a package manager. The "Infrastructure Agent Release
+Status" workflow (`.github/workflows/infrastructure-agent-release-status.yml`)
+checks each one after every release and every day, with:
+
+- `ReleaseStatus.sh [<version>]`: where a release has got to in each place,
+  checked against the release itself. It verifies the apt and yum signatures
+  and the SHA-256s the indexes, the cask and the winget manifest give, and
+  reads the winget pull request's labels. It also checks when the signing key
+  and the site's certificate expire. It exits 1 on a problem.
+- `InstallFromPackageRepository.sh <version> <image>...`: the docs' apt and
+  dnf commands, as written, against the live site, in a container of each
+  image.
+- `InstallFromHomebrew.sh <version>`: the docs' brew command on macOS. It
+  fails on anything brew calls deprecated in the cask.
+
+By hand:
+
 ```bash
-# apt
-curl -fsSL https://packages.oneuptime.com/deb/dists/stable/InRelease | head -n 20
-# yum
-curl -fsSL https://packages.oneuptime.com/rpm/repodata/repomd.xml | head -n 5
-# Homebrew
+bash Scripts/PackageManagers/ReleaseStatus.sh
 brew update && brew info oneuptime/tap/oneuptime-infrastructure-agent
-# winget
 winget show --id OneUptime.InfrastructureAgent --versions
 ```
 
@@ -147,6 +161,9 @@ winget show --id OneUptime.InfrastructureAgent --versions
   `Tests/Ops`) reads the GoReleaser config and the jobs, runs
   `PublishHomebrewCask.sh` against a local git repository and
   `PublishWingetManifests.sh` against a fake `gh`.
+- `Tests/Ops/InfrastructureAgentReleaseStatus.test.js` runs
+  `ReleaseStatus.sh` against a fake `gh` and a signed site it writes, and the
+  two install checks against a fake `docker` and `brew`.
 - `Tests/Ops/package-repository-e2e.sh` (Docker) publishes two releases with
   `PublishPackageRepository.sh` and runs the docs page's apt and dnf commands
   against the result on Ubuntu and Rocky Linux 8. The "Ops Config Test"
