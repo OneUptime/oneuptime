@@ -216,7 +216,7 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="Your logs"
-      description="Sign-ins, sudo, Kubernetes audit records, AWS CloudTrail and web attacks are already in the logs you send OneUptime. Turn this on and they become security events - nothing to install."
+      description="Attacks often show up in the logs you already send OneUptime. Nothing to install."
     >
       <div
         id={SECURITY_LOGS_SOURCE_CARD_ID}
@@ -287,7 +287,7 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
           <h3 className="text-sm font-medium text-gray-900">
             {translator.translateText("What OneUptime recognizes")}
           </h3>
-          <ul className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ul className="mt-2 grid grid-cols-1 gap-2 sm:gap-3 md:grid-cols-2 xl:grid-cols-3">
             {SECURITY_LOG_FORMATS.map(
               (format: SecurityLogFormatDefinition): ReactElement => {
                 const found: number = foundByFormat[format.format] || 0;
@@ -310,7 +310,7 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
                           SECURITY_LOG_FORMAT_TEXTS[format.format].title,
                         )}
                       </p>
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="mt-0.5 text-xs text-gray-500 max-sm:hidden">
                         {translator.translateText(
                           SECURITY_LOG_FORMAT_TEXTS[format.format].description,
                         )}

@@ -251,6 +251,14 @@ const SecurityEventDestinationFormModal: FunctionComponent<ComponentProps> = (
       },
     },
     {
+      field: { sendScope: true },
+      title: "What to send",
+      stepId: DESTINATION_SEND_STEP_ID,
+      fieldType: FormFieldSchemaType.RadioButton,
+      radioButtonOptions: getDestinationScopeChoices(),
+      required: true,
+    },
+    {
       field: { name: true },
       title: "Name",
       description: "How this destination appears in the list.",
@@ -258,14 +266,6 @@ const SecurityEventDestinationFormModal: FunctionComponent<ComponentProps> = (
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: "e.g. Google SecOps production",
-    },
-    {
-      field: { sendScope: true },
-      title: "What to send",
-      stepId: DESTINATION_SEND_STEP_ID,
-      fieldType: FormFieldSchemaType.RadioButton,
-      radioButtonOptions: getDestinationScopeChoices(),
-      required: true,
     },
     ...(isEditing
       ? [

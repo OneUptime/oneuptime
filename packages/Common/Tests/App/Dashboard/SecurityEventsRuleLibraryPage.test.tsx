@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -172,6 +173,82 @@ describe("recommended rules in the Rule Library", () => {
       ).toBeNull();
     });
     expect(ModelAPI.getList).toHaveBeenCalledTimes(2);
+  });
+
+  test("Recommended reads beside a rule's title, so the title keeps the card's width", async () => {
+    await renderPage();
+
+    const entry: DetectionRuleLibraryEntry = RECOMMENDED[0]!;
+    const card: HTMLElement = screen.getByTestId(
+      `rule-library-entry-${entry.id}`,
+    );
+    const title: HTMLElement = within(card).getByText(entry.title);
+    const mark: HTMLElement = within(card).getByTestId(
+      `rule-library-recommended-${entry.id}`,
+    );
+
+    // The mark shares the title's line (and wraps under it when the title is long).
+    expect(title.parentElement).toBe(mark.parentElement);
+    expect(mark).toHaveTextContent("Recommended");
+  });
+
+  test("an added rule says Added where its Add Rule button would be; one not added offers Add Rule", async () => {
+    ruleNames = [RECOMMENDED[0]!.title];
+    await renderPage();
+
+    const added: HTMLElement = await screen.findByTestId(
+      `rule-library-entry-${RECOMMENDED[0]!.id}`,
+    );
+    const notAdded: HTMLElement = screen.getByTestId(
+      `rule-library-entry-${RECOMMENDED[1]!.id}`,
+    );
+
+    await waitFor(() => {
+      expect(
+        within(added).getByTestId(`rule-library-added-${RECOMMENDED[0]!.id}`),
+      ).toHaveTextContent("Added");
+    });
+    expect(
+      within(added).queryByRole("button", { name: "Add Rule" }),
+    ).toBeNull();
+    expect(
+      within(added).getByRole("button", { name: "View Rule" }),
+    ).toBeInTheDocument();
+
+    expect(
+      within(notAdded).queryByTestId(
+        `rule-library-added-${RECOMMENDED[1]!.id}`,
+      ),
+    ).toBeNull();
+    expect(
+      within(notAdded).getByRole("button", { name: "Add Rule" }),
+    ).toBeInTheDocument();
+
+    // Added sits in the card's footer, with the buttons, not beside the title.
+    const footer: HTMLElement = within(added).getByRole("button", {
+      name: "View Rule",
+    }).parentElement!;
+
+    expect(
+      within(footer).getByTestId(`rule-library-added-${RECOMMENDED[0]!.id}`),
+    ).toBeInTheDocument();
+  });
+
+  test("the search comes first and the filters under it, in one row a phone scrolls sideways", async () => {
+    await renderPage();
+
+    const search: HTMLElement = screen.getByPlaceholderText("Search rules");
+    const filters: HTMLElement = screen.getByTestId("rule-library-filters");
+
+    expect(
+      search.compareDocumentPosition(filters) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(filters.className).toContain("overflow-x-auto");
+    expect(filters.className).toContain("sm:flex-wrap");
+    for (const button of within(filters).getAllByRole("button")) {
+      expect(button.className).toContain("whitespace-nowrap");
+    }
   });
 
   test("with every recommended rule added there is no button for them", async () => {

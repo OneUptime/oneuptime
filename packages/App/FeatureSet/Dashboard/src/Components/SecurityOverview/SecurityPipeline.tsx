@@ -19,6 +19,12 @@ export const SECURITY_PIPELINE_ID: string = "security-pipeline";
 
 export interface ComponentProps {
   status: SecuritySetupStatus;
+  /*
+   * What the open cases are, when the page knows it ("2 critical · 2
+   * high"): the line under the cases' figure. Left out, it says the cases
+   * wait for a person.
+   */
+  openCasesDetail?: string | undefined;
 }
 
 interface StageFigures {
@@ -35,6 +41,7 @@ export function getStageFigures(
   stage: SecurityPipelineStage,
   status: SecuritySetupStatus,
   translator: Translator,
+  openCasesDetail?: string | undefined,
 ): StageFigures {
   switch (stage.key) {
     case SecurityPipelineStageKey.Sources: {
@@ -52,12 +59,12 @@ export function getStageFigures(
           status.eventsLast24Hours > 0
             ? translator.translatePlural(
                 {
-                  one: "{{count}} event in the last 24 hours",
-                  other: "{{count}} events in the last 24 hours",
+                  one: "{{count}} event in 24 hours",
+                  other: "{{count}} events in 24 hours",
                 },
                 status.eventsLast24Hours,
               )
-            : translator.translateText("No events in the last 24 hours") || "",
+            : translator.translateText("No events in 24 hours") || "",
       };
     }
     case SecurityPipelineStageKey.Detections:
@@ -71,13 +78,10 @@ export function getStageFigures(
             : translator.translateText("Not set up") || "",
         detail:
           status.recommendedRules > 0
-            ? translator.translateTemplate(
-                "{{on}} of {{total}} recommended rules on",
-                {
-                  on: status.recommendedRulesOn,
-                  total: status.recommendedRules,
-                },
-              )
+            ? translator.translateTemplate("{{on}} of {{total}} recommended", {
+                on: status.recommendedRulesOn,
+                total: status.recommendedRules,
+              })
             : "",
       };
     case SecurityPipelineStageKey.Cases:
@@ -91,7 +95,9 @@ export function getStageFigures(
             : translator.translateText("None open") || "",
         detail:
           status.openCases > 0
-            ? translator.translateText("Waiting for a person") || ""
+            ? openCasesDetail ||
+              translator.translateText("Waiting for a person") ||
+              ""
             : translator.translateText("Nothing waiting") || "",
       };
     case SecurityPipelineStageKey.Playbooks:
@@ -138,6 +144,7 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
               stage,
               props.status,
               translator,
+              props.openCasesDetail,
             );
             return (
               <li
@@ -152,24 +159,24 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
                   )}
                   className={
                     !stage.isReady
-                      ? "block h-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm transition-colors hover:border-indigo-300"
+                      ? "block h-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 sm:px-4 shadow-sm transition-colors hover:border-indigo-300"
                       : stage.needsAttention
-                        ? "block h-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 shadow-sm transition-colors hover:border-indigo-300"
-                        : "block h-full rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm transition-colors hover:border-indigo-300"
+                        ? "block h-full rounded-xl border border-red-200 bg-red-50 px-3 py-3 sm:px-4 shadow-sm transition-colors hover:border-indigo-300"
+                        : "block h-full rounded-xl border border-gray-200 bg-white px-3 py-3 sm:px-4 shadow-sm transition-colors hover:border-indigo-300"
                   }
                 >
                   <>
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase text-gray-500 sm:tracking-wide">
                       <Icon icon={stage.icon} className="h-4 w-4" />
                       <span>{translator.translateText(stage.title)}</span>
                     </div>
                     <div
                       className={
                         !stage.isReady
-                          ? "mt-1 text-lg font-semibold text-amber-700"
+                          ? "mt-1 text-base font-semibold text-amber-700 sm:text-lg"
                           : stage.needsAttention
-                            ? "mt-1 text-lg font-semibold text-red-700"
-                            : "mt-1 text-lg font-semibold text-gray-900"
+                            ? "mt-1 text-base font-semibold text-red-700 sm:text-lg"
+                            : "mt-1 text-base font-semibold text-gray-900 sm:text-lg"
                       }
                     >
                       {figures.figure}

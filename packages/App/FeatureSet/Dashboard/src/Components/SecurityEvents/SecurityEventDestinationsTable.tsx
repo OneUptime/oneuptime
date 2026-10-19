@@ -16,12 +16,18 @@ import {
   getSecurityEventDestinationTitle,
 } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationCatalog";
 import { isSecurityEventDestinationScope } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
-import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  formatFeedTimeAgo,
+  getFeedClock,
+} from "Common/UI/Components/Feed/FeedTime";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import TableEmptyState, {
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import PermissionGate, {
   ModelAction,
@@ -41,8 +47,10 @@ export const SECURITY_EVENT_DESTINATIONS_TABLE_ID: string =
   "security-event-destinations-table";
 
 /*
- * What the empty table says: who this is for, what is sent, and one button
- * that opens the form.
+ * What the empty table says, drawn like every other empty table: what is
+ * true now (nothing is sent), which SIEM is supported, and one button that
+ * opens the form. The card above already says who this is for. Whoever may
+ * not add one reads why under the button.
  */
 export const SecurityEventDestinationsEmptyState: FunctionComponent<{
   canCreate: boolean;
@@ -57,39 +65,30 @@ export const SecurityEventDestinationsEmptyState: FunctionComponent<{
   const firstTitle: string = SecurityEventDestinationCatalog[0]?.title || "";
 
   return (
-    <div
-      className="flex flex-col items-center px-4 py-8 text-center"
-      data-testid="security-event-destinations-empty"
-    >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
-        <Icon icon={IconProp.PaperAirplane} className="h-5 w-5" />
-      </div>
-      <p className="mt-3 text-sm font-medium text-gray-900">
-        {translator.translateText("Already use a SIEM?")}
-      </p>
-      <p className="mt-1 max-w-lg text-sm text-gray-600">
-        {translator.translateText(
-          "Send what OneUptime finds to the SIEM your team already works in, as it happens. Google SecOps is supported today.",
-        )}
-      </p>
-      <div className="mt-4 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
-        <Button
-          title={
+    <TableEmptyState
+      kind={TableEmptyStateKind.Empty}
+      icon={IconProp.PaperAirplane}
+      title="Nothing is sent to a SIEM yet"
+      description="Google SecOps is supported today."
+      isCompact={true}
+      dataTestId="security-event-destinations-empty"
+      actions={[
+        {
+          title:
             SecurityEventDestinationCatalog.length === 1
               ? translator.translateTemplate("Send to {{name}}", {
                   name: firstTitle,
                 })
-              : "Send to your SIEM"
-          }
-          icon={IconProp.PaperAirplane}
-          buttonStyle={ButtonStyleType.NORMAL}
-          disabled={!props.canCreate}
-          tooltip={props.canCreate ? undefined : props.createDisabledReason}
-          dataTestId="security-event-destinations-empty-add"
-          onClick={props.onAdd}
-        />
-      </div>
-    </div>
+              : "Send to your SIEM",
+          icon: IconProp.PaperAirplane,
+          disabled: !props.canCreate,
+          tooltip: props.canCreate ? undefined : props.createDisabledReason,
+          dataTestId: "security-event-destinations-empty-add",
+          onClick: props.onAdd,
+        },
+      ]}
+      note={props.canCreate ? undefined : props.createDisabledReason}
+    />
   );
 };
 
@@ -277,32 +276,44 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
             getElement: (item: SecurityEventDestination): ReactElement => {
               const health: SecurityEventDestinationHealth =
                 getSecurityEventDestinationHealth(item);
+              const lastSent: string = item.lastSentAt
+                ? formatFeedTimeAgo(
+                    new Date(item.lastSentAt),
+                    getFeedClock({ language: translator.language }),
+                  ) || ""
+                : "";
 
               return (
-                <Pill
-                  color={getSecurityEventDestinationHealthColor(health)}
-                  text={
-                    translator.translateText(
-                      SECURITY_EVENT_DESTINATION_HEALTH_TEXTS[health].title,
-                    ) || health
-                  }
-                  tooltip={
-                    translator.translateText(
-                      SECURITY_EVENT_DESTINATION_HEALTH_TEXTS[health]
-                        .description,
-                    ) || undefined
-                  }
-                />
+                <div className="flex flex-col items-start gap-1">
+                  <Pill
+                    color={getSecurityEventDestinationHealthColor(health)}
+                    text={
+                      translator.translateText(
+                        SECURITY_EVENT_DESTINATION_HEALTH_TEXTS[health].title,
+                      ) || health
+                    }
+                    tooltip={
+                      translator.translateText(
+                        SECURITY_EVENT_DESTINATION_HEALTH_TEXTS[health]
+                          .description,
+                      ) || undefined
+                    }
+                  />
+                  {lastSent ? (
+                    <span
+                      className="text-xs text-gray-500"
+                      data-testid="security-event-destination-last-sent"
+                    >
+                      {translator.translateTemplate("Last sent {{time}}", {
+                        time: lastSent,
+                      })}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </div>
               );
             },
-          },
-          {
-            field: {
-              lastSentAt: true,
-            },
-            title: "Last Sent",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
           },
         ]}
       />

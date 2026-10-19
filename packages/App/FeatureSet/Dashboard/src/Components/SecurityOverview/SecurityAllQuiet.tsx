@@ -39,7 +39,10 @@ const SecurityAllQuiet: FunctionComponent<ComponentProps> = (
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600">
+          <div
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white text-emerald-600 max-sm:hidden"
+            aria-hidden="true"
+          >
             <Icon icon={IconProp.ShieldCheck} className="h-5 w-5" />
           </div>
           <div>

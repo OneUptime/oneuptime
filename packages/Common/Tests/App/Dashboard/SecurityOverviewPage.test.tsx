@@ -23,7 +23,9 @@ import SecurityCaseApi, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import { SECURITY_ALL_QUIET_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityAllQuiet";
 import { SECURITY_GETTING_STARTED_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityGettingStarted";
-import { SECURITY_PIPELINE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityPipeline";
+import SecurityPipeline, {
+  SECURITY_PIPELINE_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityPipeline";
 import {
   SecuritySetupStatus,
   SecuritySetupTestResult,
@@ -38,6 +40,8 @@ import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
+import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource";
+import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
 import PermissionGate, {
   ModelAction,
   PermissionCheckableModel,
@@ -48,8 +52,9 @@ import type { SpyInstance } from "jest-mock";
 
 /*
  * The Security Overview as a new project meets it and as a working one
- * does: the pipeline across the top, "Get started" until Security is set
- * up (its one click and its test attack), "All quiet" when nothing needs
+ * does: "Get started" alone until Security is set up (its one click, its
+ * test attack, and the main button moving to whatever is next), the
+ * pipeline across the top once it is, "All quiet" when nothing needs
  * anybody, the queue tiles when something does, and the charts only once
  * there is something to chart. SecurityCaseApi is the page's only door to
  * the server, so it is what is stubbed.
@@ -138,6 +143,8 @@ function answerOverview(...answers: Array<SecurityOverview>): void {
 }
 
 beforeEach(() => {
+  // Get started's Dismiss is remembered in the browser, per project.
+  window.localStorage.clear();
   statusAnswers = [status()];
   overviewAnswers = [overview()];
   allowed = (): PermissionGateResult => {
@@ -217,43 +224,42 @@ function routeFor(page: PageMap, modelId?: string): string {
   ).toString();
 }
 
+function actions(): HTMLElement {
+  return screen.getByTestId("security-getting-started-actions");
+}
+
+function buttonTitles(container: HTMLElement): Array<string> {
+  return within(container)
+    .getAllByRole("button")
+    .map((button: HTMLElement): string => {
+      return (button.textContent || "").trim();
+    });
+}
+
+function figures(): HTMLElement {
+  return screen.getByRole("group", { name: "Security operations figures" });
+}
+
+const DISMISS_KEY: string = `security-get-started-dismissed-${PROJECT_ID.toString()}`;
+
 describe("a project that has not set Security up", () => {
-  test("draws the pipeline, every stage but the cases not set up yet, each a link to its page", async () => {
+  test("sees Get started alone: one card, its next step first, and no pipeline telling the same story above it", async () => {
     await renderPage();
 
-    const pipeline: HTMLElement = screen.getByTestId(SECURITY_PIPELINE_ID);
+    const card: HTMLElement = screen.getByTestId(SECURITY_GETTING_STARTED_ID);
 
-    expect(pipeline).toHaveAttribute("aria-label", "How Security works here");
+    expect(screen.queryByTestId(SECURITY_PIPELINE_ID)).toBeNull();
     expect(
-      ["sources", "detections", "cases", "playbooks"].map((key: string) => {
-        return [key, stage(key).getAttribute("data-ready")];
+      within(card).getByRole("heading", {
+        name: "Set up Security in a minute",
       }),
-    ).toEqual([
-      ["sources", "false"],
-      ["detections", "false"],
-      ["cases", "true"],
-      ["playbooks", "false"],
+    ).toBeInTheDocument();
+    // The buttons sit under the sentence that explains them, the main one first.
+    expect(buttonTitles(actions())).toEqual([
+      "Turn on recommended",
+      "Send a test attack",
     ]);
-    expect(stage("sources")).toHaveTextContent("Not set up");
-    expect(stage("sources")).toHaveTextContent(
-      "No events in the last 24 hours",
-    );
-    expect(stage("detections")).toHaveTextContent(
-      "0 of 19 recommended rules on",
-    );
-    expect(stage("cases")).toHaveTextContent("None open");
-    expect(within(stage("sources")).getByRole("link")).toHaveAttribute(
-      "href",
-      routeFor(PageMap.SECURITY_EVENTS_CONNECTIONS),
-    );
-    expect(within(stage("detections")).getByRole("link")).toHaveAttribute(
-      "href",
-      routeFor(PageMap.SECURITY_EVENTS_DETECTION_RULES),
-    );
-    expect(within(stage("playbooks")).getByRole("link")).toHaveAttribute(
-      "href",
-      routeFor(PageMap.SECURITY_PLAYBOOKS),
-    );
+    expect(screen.queryByTestId("security-getting-started-locked")).toBeNull();
   });
 
   test("offers Get started with four steps, none done, and no charts of nothing", async () => {
@@ -261,11 +267,6 @@ describe("a project that has not set Security up", () => {
 
     const card: HTMLElement = screen.getByTestId(SECURITY_GETTING_STARTED_ID);
 
-    expect(
-      within(card).getByRole("heading", {
-        name: "Set up Security in a minute",
-      }),
-    ).toBeInTheDocument();
     expect(card).toHaveTextContent("0 of 4 done");
     expect(
       ["sources", "detections", "responses", "test"].map((key: string) => {
@@ -289,7 +290,7 @@ describe("a project that has not set Security up", () => {
     expect(screen.queryByText("Cases Opened")).toBeNull();
   });
 
-  test("Turn on recommended turns it all on in one call, says what it did and reads the figures again", async () => {
+  test("Turn on recommended turns it all on in one call, says what it did, and hands the main button to the test", async () => {
     const turnOn: SpyInstance<typeof SecurityCaseApi.turnOnRecommended> = jest
       .spyOn(SecurityCaseApi, "turnOnRecommended")
       .mockResolvedValue({
@@ -323,10 +324,14 @@ describe("a project that has not set Security up", () => {
     expect(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).toHaveTextContent(
       "3 of 4 done",
     );
-    expect(stage("detections")).toHaveTextContent("19 rules on");
+    // Nothing is left to turn on: the test is the next step, and the only button.
+    expect(buttonTitles(actions())).toEqual(["Send a test attack"]);
+    expect(screen.queryByTestId("security-turn-on-recommended")).toBeNull();
+    // The card is still the story; the pipeline waits until it is put away.
+    expect(screen.queryByTestId(SECURITY_PIPELINE_ID)).toBeNull();
   });
 
-  test("the test attack names the case it opened and links to it; with every step done the card can be put away", async () => {
+  test("the test attack names the case it opened and links to it; Done puts the card away and the pipeline takes its place", async () => {
     const test: SpyInstance<typeof SecurityCaseApi.runSetupTest> = jest
       .spyOn(SecurityCaseApi, "runSetupTest")
       .mockResolvedValue({
@@ -370,6 +375,9 @@ describe("a project that has not set Security up", () => {
       expect(card).toHaveTextContent("Security is set up");
     });
     expect(card).toHaveTextContent("4 of 4 done");
+    // All done: Done is the one button, and there is nothing to dismiss.
+    expect(buttonTitles(actions())).toEqual(["Done"]);
+    expect(screen.queryByTestId("security-getting-started-dismiss")).toBeNull();
     // The case is open now: the queue shows it, nobody has picked it up.
     expect(
       screen.getByText("open case nobody has picked up"),
@@ -380,6 +388,9 @@ describe("a project that has not set Security up", () => {
     });
 
     expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
+    expect(stage("cases")).toHaveTextContent("1 open case");
+    // Done is for this visit; a project that is set up never shows the card again anyway.
+    expect(window.localStorage.getItem(DISMISS_KEY)).toBeNull();
   });
 
   test("a failed click says why, in the card", async () => {
@@ -399,7 +410,7 @@ describe("a project that has not set Security up", () => {
     ).toBeInTheDocument();
   });
 
-  test("whoever may not add rules sees both buttons locked", async () => {
+  test("whoever may not add rules sees both buttons locked, and is told who can set Security up", async () => {
     allowed = (model: PermissionCheckableModel): PermissionGateResult => {
       return model.singularName === new DetectionRule().singularName
         ? {
@@ -421,9 +432,137 @@ describe("a project that has not set Security up", () => {
 
     expect(turnOnButton).toBeDisabled();
     expect(testButton).toBeDisabled();
+    expect(
+      screen.getByTestId("security-getting-started-locked"),
+    ).toHaveTextContent(
+      "Ask a Project Owner, Project Admin or Security Admin to set Security up.",
+    );
 
     fireEvent.click(turnOnButton);
     expect(turnOn).not.toHaveBeenCalled();
+  });
+
+  test("a Security Member may send the test but not turn things on: the one click is locked, the test is not, and the note says who can", async () => {
+    allowed = (model: PermissionCheckableModel): PermissionGateResult => {
+      return model.singularName === new SecurityLogSource().singularName
+        ? {
+            isAllowed: false,
+            disabledReason: "You need Security Admin to turn on your logs.",
+          }
+        : { isAllowed: true };
+    };
+    await renderPage();
+
+    expect(screen.getByTestId("security-turn-on-recommended")).toBeDisabled();
+    expect(screen.getByTestId("security-run-setup-test")).toBeEnabled();
+    expect(
+      screen.getByTestId("security-getting-started-locked"),
+    ).toBeInTheDocument();
+  });
+
+  test("Dismiss puts the card away for good: the pipeline takes its place, and the next visit opens without it", async () => {
+    answerStatus(status({ logsSourceEnabled: true, enabledRules: 4 }));
+    await renderPage();
+
+    expect(screen.queryByTestId(SECURITY_PIPELINE_ID)).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-getting-started-dismiss"));
+    });
+
+    expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
+    // What is still missing reads on the pipeline now: no playbook responds.
+    expect(stage("sources")).toHaveAttribute("data-ready", "true");
+    expect(stage("playbooks")).toHaveAttribute("data-ready", "false");
+    expect(stage("playbooks")).toHaveTextContent("Not set up");
+    expect(window.localStorage.getItem(DISMISS_KEY)).toBe("true");
+
+    cleanup();
+    await renderPage();
+
+    expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
+    expect(screen.getByTestId(SECURITY_PIPELINE_ID)).toBeInTheDocument();
+  });
+});
+
+describe("the pipeline", () => {
+  function renderPipeline(
+    value: SecuritySetupStatus,
+    openCasesDetail?: string,
+  ): void {
+    render(
+      <MemoryRouter>
+        <SecurityPipeline status={value} openCasesDetail={openCasesDetail} />
+      </MemoryRouter>,
+    );
+  }
+
+  test("marks every stage not set up, the cases ready, each a link to its page", () => {
+    renderPipeline(status());
+
+    const pipeline: HTMLElement = screen.getByTestId(SECURITY_PIPELINE_ID);
+
+    expect(pipeline).toHaveAttribute("aria-label", "How Security works here");
+    expect(
+      ["sources", "detections", "cases", "playbooks"].map((key: string) => {
+        return [key, stage(key).getAttribute("data-ready")];
+      }),
+    ).toEqual([
+      ["sources", "false"],
+      ["detections", "false"],
+      ["cases", "true"],
+      ["playbooks", "false"],
+    ]);
+    expect(stage("sources")).toHaveTextContent("Not set up");
+    expect(stage("sources")).toHaveTextContent("No events in 24 hours");
+    expect(stage("detections")).toHaveTextContent("0 of 19 recommended");
+    expect(stage("cases")).toHaveTextContent("None open");
+    expect(stage("cases")).toHaveTextContent("Nothing waiting");
+    expect(within(stage("sources")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_CONNECTIONS),
+    );
+    expect(within(stage("detections")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_DETECTION_RULES),
+    );
+    expect(within(stage("playbooks")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_PLAYBOOKS),
+    );
+  });
+
+  test("words each figure short enough to sit on one line beside the side menu", () => {
+    renderPipeline(
+      status({
+        ...SET_UP,
+        connections: 1,
+        eventsLast24Hours: 18432,
+        enabledRules: 6,
+        recommendedRulesOn: 3,
+        enabledPlaybooks: 3,
+      }),
+    );
+
+    expect(stage("sources")).toHaveTextContent("2 sources");
+    expect(stage("sources")).toHaveTextContent("18,432 events in 24 hours");
+    expect(stage("detections")).toHaveTextContent("6 rules on");
+    expect(stage("detections")).toHaveTextContent("3 of 19 recommended");
+    expect(stage("detections")).not.toHaveTextContent("recommended rules on");
+    expect(stage("playbooks")).toHaveTextContent("3 playbooks on");
+  });
+
+  test("under the open cases: what the page says about them, or that they wait for a person", () => {
+    renderPipeline(status({ ...SET_UP, openCases: 4 }), "2 critical · 1 high");
+
+    expect(stage("cases")).toHaveTextContent("4 open cases");
+    expect(stage("cases")).toHaveTextContent("2 critical · 1 high");
+    expect(stage("cases")).not.toHaveTextContent("Waiting for a person");
+
+    cleanup();
+    renderPipeline(status({ ...SET_UP, openCases: 4 }));
+
+    expect(stage("cases")).toHaveTextContent("Waiting for a person");
   });
 });
 
@@ -443,13 +582,11 @@ describe("a project with Security set up", () => {
     expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
     expect(screen.queryByText("open case nobody has picked up")).toBeNull();
     expect(stage("sources")).toHaveTextContent("1 source");
-    expect(stage("sources")).toHaveTextContent(
-      "1,234 events in the last 24 hours",
-    );
+    expect(stage("sources")).toHaveTextContent("1,234 events in 24 hours");
     expect(stage("playbooks")).toHaveTextContent("1 playbook on");
   });
 
-  test("something waiting: the queue tiles and the charts, and the cases stage asks for a person", async () => {
+  test("something waiting: the queue tiles and the charts, and the cases stage asks for a person while none is urgent", async () => {
     answerStatus(status({ ...SET_UP, openCases: 3 }));
     answerOverview(
       overview(
@@ -458,6 +595,7 @@ describe("a project with Security set up", () => {
           unassignedOpenCases: 2,
           casesOpenedInWindow: 5,
           detectionsInWindow: 9,
+          openByPriority: { [SecurityCasePriority.Medium]: 3 },
         },
         { myOpenCases: 1, runsWaitingForApproval: 1 },
       ),
@@ -473,13 +611,38 @@ describe("a project with Security set up", () => {
     expect(
       screen.getByText("playbook step waiting for approval"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("group", { name: "Security operations figures" }),
-    ).toBeInTheDocument();
+    expect(figures()).toBeInTheDocument();
     expect(screen.getByText("Cases Opened")).toBeInTheDocument();
     expect(screen.queryByTestId(SECURITY_ALL_QUIET_ID)).toBeNull();
     expect(stage("cases")).toHaveTextContent("3 open cases");
+    // "0 critical · 0 high" would say nothing.
     expect(stage("cases")).toHaveTextContent("Waiting for a person");
+  });
+
+  test("urgent cases read on the pipeline, and the figures below keep to the timings instead of counting the open cases a third time", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 4 }));
+    answerOverview(
+      overview({
+        openCases: 4,
+        unassignedOpenCases: 1,
+        casesOpenedInWindow: 4,
+        openByPriority: {
+          [SecurityCasePriority.Critical]: 2,
+          [SecurityCasePriority.High]: 1,
+          [SecurityCasePriority.Low]: 1,
+        },
+      }),
+    );
+    await renderPage();
+
+    expect(stage("cases")).toHaveTextContent("4 open cases");
+    expect(stage("cases")).toHaveTextContent("2 critical · 1 high");
+    expect(within(figures()).queryByText("Open Cases")).toBeNull();
+    expect(
+      within(figures()).getByText("Mean Time to Acknowledge"),
+    ).toBeVisible();
+    expect(within(figures()).getByText("Mean Time to Contain")).toBeVisible();
+    expect(within(figures()).getByText("Mean Time to Close")).toBeVisible();
   });
 
   test("a SIEM the events are sent to is named under the pipeline", async () => {
@@ -492,11 +655,32 @@ describe("a project with Security set up", () => {
   });
 });
 
-test("a server that cannot answer the set-up figures leaves the pipeline and Get started out, never the page", async () => {
-  answerStatus(new Error("Not found"));
-  await renderPage();
+describe("a server that cannot answer the set-up figures", () => {
+  test("leaves the pipeline and Get started out, never the page", async () => {
+    answerStatus(new Error("Not found"));
+    await renderPage();
 
-  expect(await screen.findByTestId(SECURITY_ALL_QUIET_ID)).toBeInTheDocument();
-  expect(screen.queryByTestId(SECURITY_PIPELINE_ID)).toBeNull();
-  expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
+    expect(
+      await screen.findByTestId(SECURITY_ALL_QUIET_ID),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(SECURITY_PIPELINE_ID)).toBeNull();
+    expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
+  });
+
+  test("still counts the open cases, in the figures, when there is no pipeline to count them", async () => {
+    answerStatus(new Error("Not found"));
+    answerOverview(
+      overview({
+        openCases: 2,
+        unassignedOpenCases: 2,
+        casesOpenedInWindow: 2,
+        openByPriority: { [SecurityCasePriority.High]: 2 },
+      }),
+    );
+    await renderPage();
+
+    expect(screen.queryByTestId(SECURITY_PIPELINE_ID)).toBeNull();
+    expect(within(figures()).getByText("Open Cases")).toBeVisible();
+    expect(figures()).toHaveTextContent("0 critical · 2 high");
+  });
 });

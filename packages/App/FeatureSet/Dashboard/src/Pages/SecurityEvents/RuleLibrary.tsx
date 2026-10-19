@@ -341,8 +341,20 @@ const RuleLibraryPage: FunctionComponent<
         ]}
       >
         <div className="space-y-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap gap-1">
+          <div className="space-y-3">
+            <div className="w-full sm:max-w-sm">
+              <Input
+                placeholder="Search rules"
+                value={search}
+                onChange={(value: string) => {
+                  setSearch(value);
+                }}
+              />
+            </div>
+            <div
+              className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
+              data-testid="rule-library-filters"
+            >
               {(
                 [
                   "",
@@ -358,7 +370,7 @@ const RuleLibraryPage: FunctionComponent<
                     type="button"
                     aria-pressed={isActive}
                     data-testid={`rule-library-category-${item || "all"}`}
-                    className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    className={`inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-indigo-50 text-indigo-700"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -386,15 +398,6 @@ const RuleLibraryPage: FunctionComponent<
                 );
               })}
             </div>
-            <div className="w-full md:w-72">
-              <Input
-                placeholder="Search rules"
-                value={search}
-                onChange={(value: string) => {
-                  setSearch(value);
-                }}
-              />
-            </div>
           </div>
 
           {error ? <ErrorMessage message={error} /> : <></>}
@@ -417,45 +420,35 @@ const RuleLibraryPage: FunctionComponent<
                     className="flex flex-col rounded-lg border border-gray-200 bg-white p-4"
                     data-testid={`rule-library-entry-${view.entry.id}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-2.5">
-                        <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500">
-                          <Icon
-                            icon={CATEGORY_ICONS[view.entry.category]}
-                            className="h-4 w-4"
-                          />
-                        </span>
-                        <div className="min-w-0">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-500">
+                        <Icon
+                          icon={CATEGORY_ICONS[view.entry.category]}
+                          className="h-4 w-4"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <p className="text-sm font-semibold text-gray-900">
                             {view.entry.title}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            {translator.translateText(view.entry.category)}
-                            {" · "}
-                            {view.entry.dataSource}
-                          </p>
+                          {view.isRecommended ? (
+                            <div
+                              className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-0.5 text-xs font-medium text-indigo-700"
+                              data-testid={`rule-library-recommended-${view.entry.id}`}
+                            >
+                              <Icon icon={IconProp.Star} className="h-3 w-3" />
+                              {translator.translateText("Recommended")}
+                            </div>
+                          ) : (
+                            <></>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex flex-shrink-0 flex-col items-end gap-1">
-                        {view.isAdded ? (
-                          <div className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                            <Icon icon={IconProp.Check} className="h-3 w-3" />
-                            {translator.translateText("Added")}
-                          </div>
-                        ) : (
-                          <></>
-                        )}
-                        {view.isRecommended ? (
-                          <div
-                            className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
-                            data-testid={`rule-library-recommended-${view.entry.id}`}
-                          >
-                            <Icon icon={IconProp.Star} className="h-3 w-3" />
-                            {translator.translateText("Recommended")}
-                          </div>
-                        ) : (
-                          <></>
-                        )}
+                        <p className="text-xs text-gray-500">
+                          {translator.translateText(view.entry.category)}
+                          {" · "}
+                          {view.entry.dataSource}
+                        </p>
                       </div>
                     </div>
                     <p className="mt-2 flex-1 text-sm text-gray-600">
@@ -467,7 +460,18 @@ const RuleLibraryPage: FunctionComponent<
                         techniques={tags?.techniques || []}
                       />
                     </div>
-                    <div className="mt-4 flex items-center justify-end gap-2">
+                    <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                      {view.isAdded ? (
+                        <div
+                          className="mr-auto inline-flex items-center gap-1 text-sm font-medium text-emerald-700"
+                          data-testid={`rule-library-added-${view.entry.id}`}
+                        >
+                          <Icon icon={IconProp.Check} className="h-4 w-4" />
+                          {translator.translateText("Added")}
+                        </div>
+                      ) : (
+                        <></>
+                      )}
                       <Button
                         title="View Rule"
                         icon={IconProp.Code}

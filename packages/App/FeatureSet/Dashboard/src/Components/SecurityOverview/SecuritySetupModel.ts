@@ -172,7 +172,7 @@ export function getSecuritySetupSteps(
       key: SecuritySetupStepKey.Responses,
       title: translationKey("Respond automatically"),
       description: translationKey(
-        "A playbook checks every new case against threat intel, counts what its users, hosts and addresses did, and leaves a triage checklist.",
+        "A playbook checks every new case against threat intel, looks up what its users, hosts and addresses did, and leaves a triage checklist.",
       ),
       icon: IconProp.Bolt,
       isDone: status.enabledPlaybooks > 0,

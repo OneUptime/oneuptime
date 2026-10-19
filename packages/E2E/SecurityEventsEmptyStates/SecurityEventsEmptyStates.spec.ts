@@ -1540,9 +1540,10 @@ test.describe("connections: your logs and your SIEM", () => {
     await expect(
       page.getByTestId("security-log-format-ssh-sign-in"),
     ).toContainText("SSH sign-ins");
+    // The card says who it is for; its empty state, what is true now.
     await expect(
       page.getByTestId("security-event-destinations-empty"),
-    ).toContainText("Already use a SIEM?");
+    ).toContainText("Nothing is sent to a SIEM yet");
     await expectNoHorizontalOverflow(page);
     await screenshot(page, "connections-cards-desktop");
   });

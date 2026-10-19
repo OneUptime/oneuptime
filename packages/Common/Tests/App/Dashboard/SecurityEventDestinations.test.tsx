@@ -211,7 +211,7 @@ function sendTestButton(): HTMLElement {
 }
 
 describe("the Send to your SIEM table", () => {
-  test("says who it is for, offers Add destination, and lists name, what is sent, status and last sent", async () => {
+  test("says who it is for, offers Add destination, and lists name, what is sent and how sending goes", async () => {
     await act(async () => {
       render(
         <MemoryRouter>
@@ -237,7 +237,11 @@ describe("the Send to your SIEM table", () => {
       props.columns.map((column: { title: string }) => {
         return column.title;
       }),
-    ).toEqual(["Name", "Sends", "Status", "Last Sent"]);
+      /*
+       * When it last sent reads under its status, not in a column of its own:
+       * with one, the table ran past its card beside the side menu at 1280.
+       */
+    ).toEqual(["Name", "Sends", "Status"]);
     expect(
       (props.actionButtons || []).map((button: { title: string }) => {
         return button.title;
@@ -247,7 +251,7 @@ describe("the Send to your SIEM table", () => {
     expect(props.query).toEqual({ projectId: PROJECT_ID });
   });
 
-  test("its empty state explains the SIEM case and opens the form", async () => {
+  test("its empty state says nothing is sent yet, names the SIEM it supports and opens the form", async () => {
     await act(async () => {
       render(
         <MemoryRouter>
@@ -268,7 +272,12 @@ describe("the Send to your SIEM table", () => {
       "security-event-destinations-empty",
     );
 
-    expect(empty).toHaveTextContent("Already use a SIEM?");
+    // The card already asks who it is for; the empty state says what is true now.
+    expect(empty).toHaveTextContent("Nothing is sent to a SIEM yet");
+    expect(empty).toHaveTextContent("Google SecOps is supported today.");
+    expect(empty).not.toHaveTextContent("Already use a SIEM?");
+    // Drawn like every other empty table.
+    expect(empty).toHaveAttribute("data-empty-state-kind", "empty");
 
     await act(async () => {
       fireEvent.click(
@@ -300,6 +309,74 @@ describe("the Send to your SIEM table", () => {
 
     expect(add.disabled).toBe(true);
     expect(add.tooltip).toBe("Sending to a SIEM takes Security Admin.");
+
+    // The empty state's button is locked too, and says why under it, not only on hover.
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          {capturedTable!.noItemsMessage as ReactElement}
+        </MemoryRouter>,
+      );
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Send to Google SecOps" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByTestId("security-event-destinations-empty-note"),
+    ).toHaveTextContent("Sending to a SIEM takes Security Admin.");
+  });
+
+  test("each row's status says how sending goes, and when it last sent", async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <SecurityEventDestinationsTable />
+        </MemoryRouter>,
+      );
+    });
+
+    const statusColumn: ModelTableProps<BaseModel>["columns"][number] =
+      capturedTable!.columns.find((column: { title: string }) => {
+        return column.title === "Status";
+      })!;
+
+    const sending: SecurityEventDestination = savedDestination();
+    sending.lastAttemptAt = new Date(Date.now() - 2 * 60 * 1000);
+    sending.lastSentAt = new Date(Date.now() - 2 * 60 * 1000);
+
+    const failing: SecurityEventDestination = savedDestination();
+    failing.lastAttemptAt = new Date(Date.now() - 60 * 1000);
+    failing.lastSentAt = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    failing.lastError = "Google SecOps did not accept the events (HTTP 500).";
+
+    const starting: SecurityEventDestination = savedDestination();
+
+    for (const [item, health, lastSent] of [
+      [sending, "Sending", "Last sent 2 minutes ago"],
+      [failing, "Failing", "Last sent 3 hours ago"],
+      [starting, "Starting", null],
+    ] as Array<[SecurityEventDestination, string, string | null]>) {
+      const { unmount } = render(
+        <MemoryRouter>
+          {statusColumn.getElement!(item as unknown as BaseModel)}
+        </MemoryRouter>,
+      );
+
+      expect(screen.getByText(health)).toBeInTheDocument();
+
+      if (lastSent) {
+        expect(
+          screen.getByTestId("security-event-destination-last-sent"),
+        ).toHaveTextContent(lastSent);
+      } else {
+        expect(
+          screen.queryByTestId("security-event-destination-last-sent"),
+        ).toBeNull();
+      }
+
+      unmount();
+    }
   });
 });
 
@@ -361,6 +438,13 @@ describe("adding a Google SecOps destination", () => {
     await next();
     expect(activeStep()).toBe("What to send");
     expect(screen.getByLabelText(/^Name/)).toHaveValue("Google SecOps");
+    // What to send first, then the name it is listed under.
+    expect(
+      screen
+        .getByRole("radio", { name: /Detections only/ })
+        .compareDocumentPosition(screen.getByLabelText(/^Name/)) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     await act(async () => {
       fireEvent.click(

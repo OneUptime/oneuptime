@@ -73,6 +73,12 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuItem> = [
 export interface SecurityEventsTab {
   page: PageMap;
   title: string;
+  /*
+   * The count the menu entry shows, on the tab where those things are: the
+   * runs waiting for an approval are counted beside Playbooks and listed
+   * under Playbook Runs, so that tab carries the number too.
+   */
+  badge?: SecurityEventsMenuBadge | undefined;
 }
 
 /*
@@ -112,7 +118,11 @@ export const SECURITY_EVENTS_TAB_GROUPS: Array<SecurityEventsTabGroup> = [
     menuPage: PageMap.SECURITY_PLAYBOOKS,
     tabs: [
       { page: PageMap.SECURITY_PLAYBOOKS, title: "Playbooks" },
-      { page: PageMap.SECURITY_PLAYBOOK_RUNS, title: "Playbook Runs" },
+      {
+        page: PageMap.SECURITY_PLAYBOOK_RUNS,
+        title: "Playbook Runs",
+        badge: "runsWaitingForApproval",
+      },
     ],
   },
   {

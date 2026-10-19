@@ -4,6 +4,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   SecuritySetupStatus,
   SecuritySetupStep,
+  SecuritySetupStepKey,
   TurnOnRecommendedResult,
   getSecuritySetupSteps,
 } from "./SecuritySetupModel";
@@ -18,14 +19,19 @@ import IconProp from "Common/Types/Icon/IconProp";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
+import LocalStorage from "Common/UI/Utils/LocalStorage";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -37,7 +43,44 @@ export interface ComponentProps {
   // Called after something changed, so the page reads its figures again.
   onChanged: () => void;
   // Hides the card once every step is done and the reader says so.
+  onDone: () => void;
+  // Hides the card for good: the reader does not want it (Dismiss).
   onDismiss: () => void;
+}
+
+function getDismissKey(): string | null {
+  const projectId: string | undefined =
+    ProjectUtil.getCurrentProjectId()?.toString();
+
+  return projectId ? `security-get-started-dismissed-${projectId}` : null;
+}
+
+/*
+ * Whether this person put Get started away for this project, as Home's
+ * checklist remembers it: a team that runs Security without playbooks, say,
+ * is not asked to set them up on every visit. Kept in the browser; a
+ * storage that cannot be read just shows the card again.
+ */
+export function isSecurityGetStartedDismissed(): boolean {
+  try {
+    const key: string | null = getDismissKey();
+
+    return key ? Boolean(LocalStorage.getItem(key)) : false;
+  } catch {
+    return false;
+  }
+}
+
+export function rememberSecurityGetStartedDismissed(): void {
+  try {
+    const key: string | null = getDismissKey();
+
+    if (key) {
+      LocalStorage.setItem(key, true);
+    }
+  } catch {
+    // Not remembered: the card comes back on the next visit.
+  }
 }
 
 /*
@@ -64,13 +107,31 @@ export function getTurnOnRecommendedGate(): PermissionGateResult {
 }
 
 /*
+ * Whether "Turn on recommended" still has something to do: a source, a rule
+ * or a playbook is missing. Once all three are there, the next thing to do
+ * is the test, so it becomes the card's main button.
+ */
+export function needsTurnOnRecommended(
+  steps: Array<SecuritySetupStep>,
+): boolean {
+  return steps.some((step: SecuritySetupStep): boolean => {
+    return step.key !== SecuritySetupStepKey.Test && !step.isDone;
+  });
+}
+
+/*
  * "Get started", for a project that has not set Security up yet: what
  * Security does in two sentences, one click that turns on what most teams
  * need - your logs as a source, the recommended rules, a playbook that
  * enriches every new case - and a harmless test that shows a case open.
- * The steps below say what is done and where to do each by hand. The page
- * keeps the card for the visit once it showed it, so the reader sees each
- * step tick and the test's case appear.
+ *
+ * The buttons sit under the text, where the eye lands after reading it,
+ * and the main one is always the next thing to do: Turn on recommended
+ * until it has nothing left to turn on, then Send a test attack, then Done.
+ * Whoever may not set Security up is told who can, not left with a grey
+ * button. The steps below say what is done and where to do each by hand.
+ * The page keeps the card for the visit once it showed it, so the reader
+ * sees each step tick and the test's case appear.
  */
 const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -88,8 +149,13 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
     return step.isDone;
   }).length;
   const isAllDone: boolean = doneCount === steps.length;
+  const showTurnOn: boolean = needsTurnOnRecommended(steps);
 
   const turnOnGate: PermissionGateResult = getTurnOnRecommendedGate();
+  // The main button is the next step; when it is locked, say who can do it.
+  const isNextStepLocked: boolean = showTurnOn
+    ? !turnOnGate.isAllowed
+    : !test.gate.isAllowed;
 
   const turnOnRecommended: () => Promise<void> = async (): Promise<void> => {
     setIsTurningOn(true);
@@ -120,21 +186,22 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
       aria-labelledby={`${SECURITY_GETTING_STARTED_ID}-title`}
       className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
     >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-start gap-3">
-          <div
-            className={
-              isAllDone
-                ? "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"
-                : "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"
-            }
-          >
-            <Icon
-              icon={isAllDone ? IconProp.CheckCircle : IconProp.ShieldCheck}
-              className="h-5 w-5"
-            />
-          </div>
-          <div>
+      <div className="flex items-start gap-4">
+        <div
+          className={
+            isAllDone
+              ? "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 max-sm:hidden"
+              : "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 max-sm:hidden"
+          }
+          aria-hidden="true"
+        >
+          <Icon
+            icon={isAllDone ? IconProp.CheckCircle : IconProp.ShieldCheck}
+            className="h-5 w-5"
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
             <h2
               id={`${SECURITY_GETTING_STARTED_ID}-title`}
               className="text-base font-semibold text-gray-900"
@@ -143,44 +210,88 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                 ? translator.translateText("Security is set up")
                 : translator.translateText("Set up Security in a minute")}
             </h2>
-            <p className="mt-1 max-w-2xl text-sm text-gray-600">
-              {isAllDone
-                ? translator.translateText(
-                    "OneUptime now watches your sources, opens a case when a rule matches and runs your playbooks on it. Open cases and anything waiting for you show on this page.",
-                  )
-                : translator.translateText(
-                    "OneUptime finds threats in data you already have - your logs and the security tools you use - groups what it finds into cases and responds with playbooks. Turn on what most teams need, then send a test attack to see it work.",
-                  )}
-            </p>
+            {isAllDone ? (
+              <></>
+            ) : (
+              <div className="flex-shrink-0">
+                <Button
+                  title="Dismiss"
+                  buttonStyle={ButtonStyleType.SECONDARY_LINK}
+                  buttonSize={ButtonSize.Small}
+                  dataTestId="security-getting-started-dismiss"
+                  onClick={() => {
+                    rememberSecurityGetStartedDismissed();
+                    props.onDismiss();
+                  }}
+                />
+              </div>
+            )}
           </div>
-        </div>
-        <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
-          {isAllDone ? (
-            <Button
-              title="Done"
-              icon={IconProp.Check}
-              buttonStyle={ButtonStyleType.NORMAL}
-              dataTestId="security-getting-started-done"
-              onClick={props.onDismiss}
-            />
-          ) : (
-            <>
+          <p className="mt-1 max-w-3xl text-sm text-gray-600">
+            {isAllDone
+              ? translator.translateText(
+                  "OneUptime now watches your sources, opens a case when a rule matches and runs your playbooks on it. Open cases and anything waiting for you show on this page.",
+                )
+              : translator.translateText(
+                  "OneUptime finds threats in data you already have - your logs and the security tools you use - groups what it finds into cases and responds with playbooks. Turn on what most teams need, then send a test attack to see it work.",
+                )}
+          </p>
+          <div
+            className="mt-4 flex flex-wrap items-center gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0"
+            data-testid="security-getting-started-actions"
+          >
+            {isAllDone ? (
               <Button
-                title="Turn on recommended"
-                icon={IconProp.CheckCircle}
+                title="Done"
+                icon={IconProp.Check}
                 buttonStyle={ButtonStyleType.PRIMARY}
-                isLoading={isTurningOn}
-                disabled={!turnOnGate.isAllowed || isTurningOn}
-                tooltip={
-                  turnOnGate.isAllowed ? undefined : turnOnGate.disabledReason
-                }
-                dataTestId="security-turn-on-recommended"
-                onClick={() => {
-                  void turnOnRecommended();
-                }}
+                dataTestId="security-getting-started-done"
+                onClick={props.onDone}
               />
-              <SecuritySetupTestButton test={test} />
-            </>
+            ) : (
+              <>
+                {showTurnOn ? (
+                  <Button
+                    title="Turn on recommended"
+                    icon={IconProp.CheckCircle}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    isLoading={isTurningOn}
+                    disabled={!turnOnGate.isAllowed || isTurningOn}
+                    tooltip={
+                      turnOnGate.isAllowed
+                        ? undefined
+                        : turnOnGate.disabledReason
+                    }
+                    dataTestId="security-turn-on-recommended"
+                    onClick={() => {
+                      void turnOnRecommended();
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
+                <SecuritySetupTestButton
+                  test={test}
+                  buttonStyle={
+                    showTurnOn
+                      ? ButtonStyleType.NORMAL
+                      : ButtonStyleType.PRIMARY
+                  }
+                />
+              </>
+            )}
+          </div>
+          {!isAllDone && isNextStepLocked ? (
+            <p
+              className="mt-2 text-sm text-gray-500"
+              data-testid="security-getting-started-locked"
+            >
+              {translator.translateText(
+                "Ask a Project Owner, Project Admin or Security Admin to set Security up.",
+              )}
+            </p>
+          ) : (
+            <></>
           )}
         </div>
       </div>
@@ -220,7 +331,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <div className="mt-5 flex items-center gap-3">
+      <div className="mt-6 flex items-center gap-3">
         <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
           {translator.translateTemplate("{{done}} of {{total}} done", {
             done: doneCount,
@@ -263,7 +374,13 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p
+                    className={
+                      step.isDone
+                        ? "text-sm font-medium text-gray-500"
+                        : "text-sm font-medium text-gray-900"
+                    }
+                  >
                     {translator.translateText(step.title)}
                     <span className="sr-only">
                       {" "}
@@ -272,7 +389,13 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                         : translator.translateText("(to do)")}
                     </span>
                   </p>
-                  <p className="mt-0.5 text-sm text-gray-600">
+                  <p
+                    className={
+                      step.isDone
+                        ? "mt-0.5 text-sm text-gray-500"
+                        : "mt-0.5 text-sm text-gray-600"
+                    }
+                  >
                     {translator.translateText(step.description)}
                   </p>
                 </div>

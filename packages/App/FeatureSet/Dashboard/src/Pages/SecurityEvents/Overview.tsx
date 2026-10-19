@@ -11,7 +11,9 @@ import RankedBars, {
   RankedBarItem,
 } from "../../Components/SecurityOverview/RankedBars";
 import SecurityAllQuiet from "../../Components/SecurityOverview/SecurityAllQuiet";
-import SecurityGettingStarted from "../../Components/SecurityOverview/SecurityGettingStarted";
+import SecurityGettingStarted, {
+  isSecurityGetStartedDismissed,
+} from "../../Components/SecurityOverview/SecurityGettingStarted";
 import SecurityPipeline from "../../Components/SecurityOverview/SecurityPipeline";
 import {
   SecuritySetupStatus,
@@ -196,7 +198,11 @@ const SecurityOverviewPage: FunctionComponent<
       if (statusResult) {
         setStatus(statusResult);
 
-        if (isFirstRead && !isSecuritySetUp(statusResult)) {
+        if (
+          isFirstRead &&
+          !isSecuritySetUp(statusResult) &&
+          !isSecurityGetStartedDismissed()
+        ) {
           setShowGetStarted(true);
         }
       }
@@ -253,6 +259,24 @@ const SecurityOverviewPage: FunctionComponent<
     metrics.detectionsInWindow === 0;
   const needsSomeone: boolean =
     metrics.openCases > 0 || overview.runsWaitingForApproval > 0;
+  /*
+   * The pipeline and Get started tell the same story - sources, rules,
+   * cases, playbooks - so a project being set up sees the card alone, its
+   * one next step first, and the pipeline takes its place once the card is
+   * put away.
+   */
+  const showPipeline: boolean = Boolean(status) && !showGetStarted;
+  // What the open cases are: how many of them are critical, and high.
+  const urgentOpenCases: number =
+    (metrics.openByPriority[SecurityCasePriority.Critical] || 0) +
+    (metrics.openByPriority[SecurityCasePriority.High] || 0);
+  const openCasesDetail: string = translator.translateTemplate(
+    "{{critical}} critical · {{high}} high",
+    {
+      critical: metrics.openByPriority[SecurityCasePriority.Critical] || 0,
+      high: metrics.openByPriority[SecurityCasePriority.High] || 0,
+    },
+  );
 
   const prioritySeries: Array<StackedSeries> = [...SECURITY_CASE_PRIORITIES]
     .reverse()
@@ -355,12 +379,28 @@ const SecurityOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-6">
-      {status ? <SecurityPipeline status={status} /> : <></>}
+      {showPipeline && status ? (
+        <SecurityPipeline
+          status={status}
+          openCasesDetail={
+            /*
+             * "0 critical · 0 high" says nothing: with nothing urgent open,
+             * the stage says the cases wait for a person.
+             */
+            urgentOpenCases > 0 ? openCasesDetail : undefined
+          }
+        />
+      ) : (
+        <></>
+      )}
 
       {status && showGetStarted ? (
         <SecurityGettingStarted
           status={status}
           onChanged={readAgain}
+          onDone={() => {
+            setShowGetStarted(false);
+          }}
           onDismiss={() => {
             setShowGetStarted(false);
           }}
@@ -416,60 +456,75 @@ const SecurityOverviewPage: FunctionComponent<
         <></>
       ) : (
         <>
+          {/*
+           * How fast cases move. The open cases are the pipeline's cases
+           * stage, so the bar counts them only when there is no pipeline.
+           */}
           <EventStatBar
-            columns={4}
+            columns={showPipeline ? 3 : 4}
             ariaLabel={translator.translateText("Security operations figures")}
           >
-            <EventStatTile
-              variant="segment"
-              icon={IconProp.ShieldExclamation}
-              label="Open Cases"
-              value={translator.formatNumber(metrics.openCases)}
-              description={translator.translateTemplate(
-                "{{critical}} critical · {{high}} high",
-                {
-                  critical:
-                    metrics.openByPriority[SecurityCasePriority.Critical] || 0,
-                  high: metrics.openByPriority[SecurityCasePriority.High] || 0,
-                },
-              )}
-            />
-            <EventStatTile
-              variant="segment"
-              icon={IconProp.User}
-              label="Mean Time to Acknowledge"
-              value={formatDurationInMinutes(
-                metrics.meanTimeToAcknowledgeInMinutes,
-              )}
-              description={translator.translateTemplate("Last {{days}} days", {
-                days: overview.caseWindowInDays,
-              })}
-            />
-            <EventStatTile
-              variant="segment"
-              icon={IconProp.ShieldCheck}
-              label="Mean Time to Contain"
-              value={formatDurationInMinutes(
-                metrics.meanTimeToContainInMinutes,
-              )}
-              description={translator.translateTemplate("Last {{days}} days", {
-                days: overview.caseWindowInDays,
-              })}
-            />
-            <EventStatTile
-              variant="segment"
-              icon={IconProp.CheckCircle}
-              label="Mean Time to Close"
-              value={formatDurationInMinutes(metrics.meanTimeToCloseInMinutes)}
-              description={translator.translatePlural(
-                {
-                  one: "{{count}} case closed in {{days}} days",
-                  other: "{{count}} cases closed in {{days}} days",
-                },
-                metrics.casesClosedInWindow,
-                { days: overview.caseWindowInDays },
-              )}
-            />
+            {[
+              ...(showPipeline
+                ? []
+                : [
+                    <EventStatTile
+                      key="open-cases"
+                      variant="segment"
+                      icon={IconProp.ShieldExclamation}
+                      label="Open Cases"
+                      value={translator.formatNumber(metrics.openCases)}
+                      description={openCasesDetail}
+                    />,
+                  ]),
+              <EventStatTile
+                key="acknowledge"
+                variant="segment"
+                icon={IconProp.User}
+                label="Mean Time to Acknowledge"
+                value={formatDurationInMinutes(
+                  metrics.meanTimeToAcknowledgeInMinutes,
+                )}
+                description={translator.translateTemplate(
+                  "Last {{days}} days",
+                  {
+                    days: overview.caseWindowInDays,
+                  },
+                )}
+              />,
+              <EventStatTile
+                key="contain"
+                variant="segment"
+                icon={IconProp.ShieldCheck}
+                label="Mean Time to Contain"
+                value={formatDurationInMinutes(
+                  metrics.meanTimeToContainInMinutes,
+                )}
+                description={translator.translateTemplate(
+                  "Last {{days}} days",
+                  {
+                    days: overview.caseWindowInDays,
+                  },
+                )}
+              />,
+              <EventStatTile
+                key="close"
+                variant="segment"
+                icon={IconProp.CheckCircle}
+                label="Mean Time to Close"
+                value={formatDurationInMinutes(
+                  metrics.meanTimeToCloseInMinutes,
+                )}
+                description={translator.translatePlural(
+                  {
+                    one: "{{count}} case closed in {{days}} days",
+                    other: "{{count}} cases closed in {{days}} days",
+                  },
+                  metrics.casesClosedInWindow,
+                  { days: overview.caseWindowInDays },
+                )}
+              />,
+            ]}
           </EventStatBar>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

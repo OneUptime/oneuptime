@@ -176,6 +176,31 @@ describe("the Security Events menu", () => {
     ]);
   });
 
+  test("puts the menu's count on the tab where those things are: the runs waiting beside Playbooks, on Playbook Runs", () => {
+    const counted: Array<[string, string]> = SECURITY_EVENTS_TAB_GROUPS.flatMap(
+      (group: SecurityEventsTabGroup): Array<SecurityEventsTab> => {
+        return group.tabs;
+      },
+    )
+      .filter((tab: SecurityEventsTab): boolean => {
+        return Boolean(tab.badge);
+      })
+      .map((tab: SecurityEventsTab): [string, string] => {
+        return [tab.title, tab.badge || ""];
+      });
+
+    expect(counted).toEqual([["Playbook Runs", "runsWaitingForApproval"]]);
+
+    // Each tab count repeats its menu entry's, so the number leads somewhere.
+    for (const group of SECURITY_EVENTS_TAB_GROUPS) {
+      for (const tab of group.tabs) {
+        if (tab.badge) {
+          expect(getSecurityEventsMenuItemFor(tab.page)?.badge).toBe(tab.badge);
+        }
+      }
+    }
+  });
+
   test("gives every entry an icon of its own", () => {
     const icons: Array<string> = SECURITY_EVENTS_MENU.map(
       (item: SecurityEventsMenuItem): string => {

@@ -289,15 +289,39 @@ test.describe("the overview", () => {
 
     await expect(stage(page, "sources")).toContainText("2 sources");
     await expect(stage(page, "sources")).toContainText(
-      "18,432 events in the last 24 hours",
+      "18,432 events in 24 hours",
     );
     await expect(stage(page, "detections")).toContainText("6 rules on");
     await expect(stage(page, "detections")).toContainText(
-      "3 of 19 recommended rules on",
+      "3 of 19 recommended",
     );
     await expect(stage(page, "cases")).toContainText("6 open cases");
-    await expect(stage(page, "cases")).toContainText("Waiting for a person");
+    // What the open cases are, which the figures below no longer repeat.
+    await expect(stage(page, "cases")).toContainText("2 critical · 2 high");
     await expect(stage(page, "playbooks")).toContainText("3 playbooks on");
+    await expect(
+      page
+        .getByRole("group", { name: "Security operations figures" })
+        .getByText("Open Cases", { exact: true }),
+    ).toHaveCount(0);
+    // At 1440 beside the side menu, every stage's figures sit on their lines.
+    for (const key of ["sources", "detections", "cases", "playbooks"]) {
+      const lines: number = await stage(page, key).evaluate(
+        (element: Element): number => {
+          const detail: Element | null =
+            element.querySelector("a > div:last-child");
+          if (!detail) {
+            return 0;
+          }
+          const style: CSSStyleDeclaration = getComputedStyle(detail);
+          return Math.round(
+            detail.getBoundingClientRect().height /
+              parseFloat(style.lineHeight),
+          );
+        },
+      );
+      expect(lines, `${key}'s line under its figure`).toBe(1);
+    }
     // Set up, so no Get started; something waits, so no All quiet.
     await expect(gettingStarted(page)).toHaveCount(0);
     await expect(page.getByTestId("security-all-quiet")).toHaveCount(0);
@@ -329,10 +353,12 @@ test.describe("the overview", () => {
       }),
     ).toBeVisible();
     await expect(gettingStarted(page)).toContainText("0 of 4 done");
-    for (const key of ["sources", "detections", "playbooks"]) {
-      await expect(stage(page, key)).toHaveAttribute("data-ready", "false");
-      await expect(stage(page, key)).toContainText("Not set up");
-    }
+    // The card alone tells the story; the pipeline would say it again, in amber.
+    await expect(page.getByTestId("security-pipeline")).toHaveCount(0);
+    // Its buttons sit under its sentence, the main one first.
+    await expect(
+      page.getByTestId("security-getting-started-actions").getByRole("button"),
+    ).toHaveText(["Turn on recommended", "Send a test attack"]);
     // Nothing to chart yet, and no queue of zeros.
     await expect(page.getByText("Cases Opened")).toHaveCount(0);
     await expect(
@@ -345,9 +371,10 @@ test.describe("the overview", () => {
       "Done. 19 detection rules are on, your logs are checked for security events and every new case is enriched.",
     );
     await expect(gettingStarted(page)).toContainText("3 of 4 done");
-    await expect(stage(page, "sources")).toContainText("1 source");
-    await expect(stage(page, "detections")).toContainText("19 rules on");
-    await expect(stage(page, "playbooks")).toContainText("1 playbook on");
+    // Nothing left to turn on: the test attack is the next step, and the main button.
+    await expect(
+      page.getByTestId("security-getting-started-actions").getByRole("button"),
+    ).toHaveText(["Send a test attack"]);
 
     await gettingStarted(page).getByTestId("security-run-setup-test").click();
     const result: Locator = page.getByTestId("security-setup-test-result");
@@ -392,6 +419,60 @@ test.describe("the overview", () => {
     ).toBeVisible({ timeout: 30000 });
   });
 
+  test("Done puts the finished card away and the pipeline takes its place; Dismiss puts it away for good", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await page.getByTestId("security-turn-on-recommended").click();
+    await expect(page.getByTestId("security-turned-on")).toBeVisible();
+    await gettingStarted(page).getByTestId("security-run-setup-test").click();
+    await expect(
+      gettingStarted(page).getByRole("heading", { name: "Security is set up" }),
+    ).toBeVisible();
+
+    await page.getByTestId("security-getting-started-done").click();
+    await expect(gettingStarted(page)).toHaveCount(0);
+    await expect(stage(page, "sources")).toContainText("1 source");
+    await expect(stage(page, "detections")).toContainText("19 rules on");
+    await expect(stage(page, "cases")).toContainText("1 open case");
+    await expect(stage(page, "playbooks")).toContainText("1 playbook on");
+
+    // A project that is not set up, whose people do not want the card.
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await gettingStarted(page)
+      .getByTestId("security-getting-started-dismiss")
+      .click();
+    await expect(gettingStarted(page)).toHaveCount(0);
+    await expect(stage(page, "sources")).toHaveAttribute("data-ready", "false");
+    await expect(stage(page, "sources")).toContainText("Not set up");
+    await screenshot(page, "overview-dismissed");
+
+    // Remembered in the browser: the next visit opens on the pipeline.
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await expect(page.getByTestId("security-pipeline")).toBeVisible();
+    await expect(gettingStarted(page)).toHaveCount(0);
+  });
+
+  test("a viewer is shown who can set Security up, not only grey buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { empty: true, role: "viewer" });
+
+    await expect(
+      page.getByTestId("security-turn-on-recommended"),
+    ).toBeDisabled();
+    await expect(page.getByTestId("security-run-setup-test")).toBeDisabled();
+    await expect(
+      page.getByTestId("security-getting-started-locked"),
+    ).toHaveText(
+      "Ask a Project Owner, Project Admin or Security Admin to set Security up.",
+    );
+  });
+
   test("Get started in the dark theme and on a phone", async ({
     page,
   }: {
@@ -411,6 +492,11 @@ test.describe("the overview", () => {
       await gettingStarted(page).boundingBox();
     expect(turnOn!.width).toBeGreaterThan(card!.width * 0.75);
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    // The main button is on the first screen of a phone, nothing above the card.
+    const turnOnTop: { y: number } | null = await page
+      .getByTestId("security-turn-on-recommended")
+      .boundingBox();
+    expect(turnOnTop!.y).toBeLessThan(844);
     await screenshot(page, "overview-get-started-phone");
   });
 
