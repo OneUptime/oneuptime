@@ -136,7 +136,7 @@ Besides each marketplace's fee, about USD 5 to 7 a month:
 | Cost                       | About                                | Kept down by                                                                                                                        |
 | -------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Marketplace fees           | AWS 20% (public) or 3% (private); 3% | Selling to any sizeable buyer on AWS through a private offer, even at the list price                                                |
-| Azure Container Registry   | USD 5 a month (Basic)                | A daily `acr purge` task keeps each repository's 3 newest releases, by count; Microsoft serves buyers from its own registry         |
+| Azure Container Registry   | USD 5 a month (Basic)                | A daily `acr purge` task keeps each repository's newest release and any from the last 7 days; Microsoft serves buyers its own copy  |
 | Google Artifact Registry   | About USD 1 a month                  | The cleanup policy keeps each image's 3 newest releases, by count, and deletes the rest; Google serves buyers from its own registry |
 | AWS Marketplace's registry | Nothing                              | It is AWS Marketplace's account, not ours                                                                                           |
 | Reporting usage, CI        | Nothing                              | The metering APIs are free; GitHub Actions is free for a public repository                                                          |
@@ -283,9 +283,11 @@ OneUptime's Partner Center account and the HackerBay tenant
    about USD 5 a month). `ci_setup.py azure-registry` creates it in the
    tenant's subscription with what Microsoft needs: its ingestion app may pull
    from it, and `Microsoft.PartnerCenterIngestion` is registered. It also adds
-   a daily ACR task (`acr purge`) that keeps each repository's 3 newest
-   releases, and anything pushed in the last day: Microsoft serves buyers from
-   its own copy, so Basic's 10 GiB is enough. Running the script again
+   a daily ACR task (`acr purge`) that keeps each repository's newest
+   release, and anything pushed in the last 7 days: Microsoft copies a release
+   while it certifies it (up to 2 business days) and serves buyers from its own
+   copy, so ours only holds releases on their way through. Basic's flat price
+   covers 10 GiB, about three releases. Running the script again
    replaces the task, so a changed rule takes effect. Read the script, then
    run it (`az login` first, as an Owner of the subscription):
 
@@ -1052,6 +1054,8 @@ rejection, go-live and price change.
 | 2026-10-18 | GitHub      | Release environments (reviewers simlarsen, nawazdhandala) and variables; releases not enabled yet   | Agent      |
 | 2026-10-18 | Microsoft   | First real run: cpa 1.3.59 wants `clusterArmTemplate`, not the docs' `clusterARMTemplate`; fixed    | Agent      |
 | 2026-10-18 | AWS         | The Kubernetes agent's EKS add-on: edition, release jobs and docs added; no product created yet     | Agent      |
+| 2026-10-19 | AWS         | Product prod-5ijwaqpun3coo and offer offer-nazez256wqin4 released to Limited                        | Maintainer |
+| 2026-10-19 | Microsoft   | The registry's purge keeps each repository's newest release, and any from the last 7 days           | Agent      |
 
 ## Notes for agents driving the browser
 
