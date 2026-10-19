@@ -5,13 +5,22 @@
  *
  * A change is a suspect when its service got measurably worse right after
  * it: more of its spans failing, a slower p99, more exceptions, or
- * exception types first seen in the version it shipped. The thresholds are
+ * exception types that first appeared with it, in the version it shipped.
+ * The thresholds are
  * conservative and fixed, like the AI Insights detectors': a suspect means
  * something moved, not that a number wiggled. This is decided here, by the
  * server, from numbers - never from what a pipeline wrote in a change's
  * title, nor from what the model says - because which change OneUptime
  * calls a suspect must not be steerable by text in telemetry.
  */
+
+import { quotedUntrustedLine } from "./UntrustedText";
+
+/*
+ * The longest an exception's type or a version runs in a reason. Both are
+ * text telemetry sent, and a reason goes into the investigation's prompt.
+ */
+export const MAX_REASON_TEXT_LENGTH: number = 120;
 
 export const CHANGE_IMPACT_THRESHOLDS: {
   // Spans each window needs before its error rate or p99 means anything.
@@ -56,7 +65,10 @@ export interface ChangeWindowStats {
   exceptionCount: number;
 }
 
-// An exception type first seen in the version a change shipped.
+/*
+ * An exception type first seen in the version a change shipped, around the
+ * change (RecentChangesContext reads it).
+ */
 export interface NewExceptionType {
   exceptionType: string;
   message: string;
@@ -74,7 +86,10 @@ export enum ChangeImpactVerdict {
 
 export interface ChangeImpact {
   verdict: ChangeImpactVerdict;
-  // What moved, in words, when the verdict is Suspect.
+  /*
+   * What moved, in words, when the verdict is Suspect. Text telemetry sent
+   * (an exception's type, a version) is quoted, on one line.
+   */
   reasons: Array<string>;
   before?: ChangeWindowStats | undefined;
   after?: ChangeWindowStats | undefined;
@@ -197,14 +212,21 @@ export function assessChangeImpact(data: {
     const names: string = newExceptionTypes
       .slice(0, 3)
       .map((exception: NewExceptionType): string => {
-        return `${exception.exceptionType || "Exception"} (x${exception.occurrenceCount})`;
+        return `${quotedUntrustedLine(
+          exception.exceptionType || "Exception",
+          MAX_REASON_TEXT_LENGTH,
+        )} (x${exception.occurrenceCount})`;
       })
       .join(", ");
 
     reasons.push(
       `${newExceptionTypes.length} exception type${
         newExceptionTypes.length === 1 ? "" : "s"
-      } first seen in ${data.version || "this version"}: ${names}`,
+      } first seen in ${
+        data.version
+          ? quotedUntrustedLine(data.version, MAX_REASON_TEXT_LENGTH)
+          : "this version"
+      }: ${names}`,
     );
   }
 

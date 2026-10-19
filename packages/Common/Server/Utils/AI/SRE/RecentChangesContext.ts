@@ -14,7 +14,6 @@ import OneUptimeDate from "../../../../Types/Date";
 import Dictionary from "../../../../Types/Dictionary";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import PromptText from "../../../../Utils/AI/PromptText";
 import {
   ChangeEventFields,
   describeChangeEventFields,
@@ -33,7 +32,6 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import { LinkedAffectedResourceType } from "../../AffectedResources/LinkedAffectedResources";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import ToolResultSerializer from "../Toolbox/Serializer";
 import {
   ChangeImpact,
   ChangeImpactVerdict,
@@ -46,6 +44,7 @@ import {
   LinkedInfrastructureResource,
   describeRelativeTime,
 } from "./LinkedInfrastructureContext";
+import { quotedUntrustedLine, untrustedLine } from "./UntrustedText";
 
 /*
  * AI SRE - the changes recorded before an incident or alert, for the
@@ -91,6 +90,21 @@ export const MAX_CHANGES_READ: number = 200;
 
 // The window on each side of a change its service's telemetry is read for.
 export const IMPACT_WINDOW_MINUTES: number = 30;
+
+/*
+ * How long before a change an exception type first seen in its version
+ * still counts as the change's: a pipeline records its deploy once the
+ * rollout finished, after the new version's first exceptions. A type the
+ * version raised before that is not news the change brought.
+ */
+export const NEW_EXCEPTION_LEAD_MINUTES: number = 10;
+
+/*
+ * The longest the impact checks take, together. The investigation waits
+ * for them before it starts; a check still reading after this is listed
+ * as not checked rather than holding the run up.
+ */
+export const IMPACT_CHECK_BUDGET_IN_MS: number = 20_000;
 
 /*
  * Changes of one service (or one Deployment) this close together are one
@@ -369,16 +383,10 @@ export function suspectsFirst(
   ];
 }
 
-// Untrusted text on one line, without embedded data or secrets, held to a length.
-function untrusted(text: string, maxLength: number): string {
-  const oneLine: string = text.replace(/\s+/g, " ").trim();
-
-  return PromptText.field(ToolResultSerializer.redact(oneLine).text, {
-    maxLength,
-  });
-}
-
 export default class RecentChangesContext {
+  // IMPACT_CHECK_BUDGET_IN_MS; tests shorten it.
+  public static impactCheckBudgetInMs: number = IMPACT_CHECK_BUDGET_IN_MS;
+
   /*
    * The changes recorded around an incident or an alert, checked. `linked`
    * is what LinkedInfrastructureContext read for it, when it could; null
@@ -576,15 +584,15 @@ export default class RecentChangesContext {
       subjectKind: data.subjectKind,
     })})`;
     const service: string = change.serviceName
-      ? ` - service ${JSON.stringify(untrusted(change.serviceName, 200))}`
+      ? ` - service ${quotedUntrustedLine(change.serviceName, 200)}`
       : "";
     const titles: string = change.titles
       .slice(0, 3)
       .map((title: string): string => {
-        return JSON.stringify(untrusted(title, 200));
+        return quotedUntrustedLine(title, 200);
       })
       .join(" and ");
-    const facts: string = untrusted(
+    const facts: string = untrustedLine(
       describeChangeEventFields(change.fields),
       300,
     );
@@ -703,8 +711,8 @@ export default class RecentChangesContext {
   }
 
   /*
-   * Checks the first MAX_CHECKED_CHANGES changes that name a service and
-   * came before the lookahead; says why the others were not.
+   * Checks the first MAX_CHECKED_CHANGES changes that name a service, all at
+   * once and within IMPACT_CHECK_BUDGET_IN_MS; says why the others were not.
    */
   private static async checkImpact(data: {
     projectId: ObjectID;
@@ -712,7 +720,7 @@ export default class RecentChangesContext {
     lookahead: Date;
     now: Date;
   }): Promise<void> {
-    let checked: number = 0;
+    const toCheck: Array<RecentChange> = [];
 
     for (const change of data.changes) {
       if (!change.serviceId) {
@@ -720,26 +728,70 @@ export default class RecentChangesContext {
         continue;
       }
 
-      if (checked >= MAX_CHECKED_CHANGES) {
+      if (toCheck.length >= MAX_CHECKED_CHANGES) {
         change.notCheckedReason = `only the first ${MAX_CHECKED_CHANGES} changes that name a service are checked`;
         continue;
       }
 
-      checked++;
+      toCheck.push(change);
+    }
 
-      try {
-        change.impact = await RecentChangesContext.readImpact({
-          projectId: data.projectId,
-          serviceId: new ObjectID(change.serviceId),
-          time: change.time,
-          version: change.fields.version,
-          now: data.now,
-        });
-      } catch (error) {
-        logger.debug(
-          `Recent changes: could not check change ${change.id}: ${error}`,
-        );
-        change.notCheckedReason = "its service's telemetry could not be read";
+    if (toCheck.length === 0) {
+      return;
+    }
+
+    // Set once the budget is spent: a check that ends later changes nothing.
+    let isSettled: boolean = false;
+
+    const checks: Promise<void> = Promise.all(
+      toCheck.map(async (change: RecentChange): Promise<void> => {
+        try {
+          const impact: ChangeImpact = await RecentChangesContext.readImpact({
+            projectId: data.projectId,
+            serviceId: new ObjectID(change.serviceId!),
+            time: change.time,
+            version: change.fields.version,
+            now: data.now,
+          });
+
+          if (!isSettled) {
+            change.impact = impact;
+          }
+        } catch (error) {
+          logger.debug(
+            `Recent changes: could not check change ${change.id}: ${error}`,
+          );
+
+          if (!isSettled) {
+            change.notCheckedReason =
+              "its service's telemetry could not be read";
+          }
+        }
+      }),
+    ).then((): void => {
+      // Every check settled.
+    });
+
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+    const budget: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        timer = setTimeout(resolve, RecentChangesContext.impactCheckBudgetInMs);
+      },
+    );
+
+    try {
+      await Promise.race([checks, budget]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      isSettled = true;
+    }
+
+    for (const change of toCheck) {
+      if (!change.impact && !change.notCheckedReason) {
+        change.notCheckedReason =
+          "its service's telemetry took too long to read";
       }
     }
   }
@@ -783,6 +835,11 @@ export default class RecentChangesContext {
         projectId: data.projectId,
         serviceId: data.serviceId,
         version: data.version,
+        firstSeenFrom: OneUptimeDate.addRemoveMinutes(
+          data.time,
+          -NEW_EXCEPTION_LEAD_MINUTES,
+        ),
+        firstSeenTo: afterEnd,
       }),
     ]);
 
@@ -854,11 +911,18 @@ export default class RecentChangesContext {
     };
   }
 
-  // The exception types first seen in the version a change shipped.
+  /*
+   * The exception types first seen in the version a change shipped, around
+   * the change. A type first seen long before it is not one the change
+   * brought: a rollback to that version, or a restart that reports the
+   * version already running, names it too.
+   */
   private static async readNewExceptionTypes(data: {
     projectId: ObjectID;
     serviceId: ObjectID;
     version?: string | undefined;
+    firstSeenFrom: Date;
+    firstSeenTo: Date;
   }): Promise<Array<NewExceptionType>> {
     if (!data.version) {
       return [];
@@ -870,6 +934,7 @@ export default class RecentChangesContext {
           projectId: data.projectId,
           primaryEntityId: data.serviceId,
           firstSeenInRelease: data.version,
+          firstSeenAt: new InBetween(data.firstSeenFrom, data.firstSeenTo),
         } as never,
         select: { exceptionType: true, message: true, occuranceCount: true },
         sort: { occuranceCount: SortOrder.Descending } as never,

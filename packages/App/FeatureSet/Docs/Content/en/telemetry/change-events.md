@@ -103,7 +103,7 @@ For up to four of them that name a service, OneUptime reads the service's teleme
 | Failed spans | The error rate at least doubled and rose by at least one percentage point, over at least 10 failed spans |
 | Latency | The p99 grew at least half as slow again, and by at least 100 ms |
 | Exceptions | At least three times as many a minute, and at least 10 of them |
-| New exceptions | An exception type first seen in the version the change shipped occurred at least 3 times |
+| New exceptions | An exception type first seen in the version the change shipped, between 10 minutes before the change and 30 minutes after it, occurred at least 3 times |
 
 OneUptime decides which change is a suspect from these numbers, not from what a change's title says. The investigation checks a suspect first, says whether it caused the incident, and says whether rolling it back is the fastest safe fix.
 
