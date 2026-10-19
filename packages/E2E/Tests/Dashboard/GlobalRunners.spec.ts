@@ -247,7 +247,10 @@ test.describe("Global Runners", () => {
       await expect(
         headings.filter({ hasText: /^Custom Runners$/ }),
       ).toBeVisible();
-      await expect(page.getByText("Add a Runner of your own.")).toBeVisible();
+      // The project has none yet: one plain line says why to add one.
+      await expect(page.getByTestId("table-empty-state-title")).toHaveText(
+        /^Add a Runner of your own\.?$/,
+      );
       await expect(page.getByText("No Runners yet")).toHaveCount(0);
       // Nobody in a project edits, deletes or creates a global Runner.
       await expect(
