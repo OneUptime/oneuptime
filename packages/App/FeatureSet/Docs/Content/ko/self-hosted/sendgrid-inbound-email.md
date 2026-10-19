@@ -49,7 +49,7 @@ Inbound Parse에서는 SendGrid가 OneUptime으로 연결을 시작합니다. On
 
 웹훅 호스트 이름의 DNS를 공개하고, 공개 클라이언트가 신뢰하는 인증서를 제공하세요. 비공개 OneUptime 배포라면 내부에서 OneUptime에 닿을 수 있는 공개 리버스 프록시나 게이트웨이를 통해 웹훅 경로만 노출할 수 있습니다. 경로, 시크릿, 콘텐츠 유형, multipart 요청 본문을 유지하고, 대화형 로그인이나 브라우저 챌린지 없이 POST가 통과하게 하세요. OneUptime 서버에는 수신용 SMTP 리스너가 필요 없습니다. [SendGrid의 Inbound Parse 설정](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook)을 참고하세요.
 
-`INBOUND_EMAIL_WEBHOOK_SECRET`을 강력한 무작위 값으로 설정하고 URL의 `YOUR_SECRET`을 그 값으로 바꾸세요. 라우트에는 마지막 경로 세그먼트가 필요합니다. 시크릿이 설정되어 있으면 OneUptime이 그 값을 확인하며, 변수를 비워 두면 이 확인이 꺼집니다. 전체 URL과 모니터 이메일 주소는 프록시 로그를 포함해 비공개로 유지하세요. OneUptime은 현재 SendGrid의 서명된 Inbound Parse 헤더나 OAuth 토큰을 검증하지 않습니다. 이런 메커니즘이 필요하다면 [SendGrid의 웹훅 보안 문서](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks)에 따라, OneUptime으로 전달하기 전에 이를 검증하는 게이트웨이를 구성하세요.
+`INBOUND_EMAIL_WEBHOOK_SECRET`을 강력한 무작위 값으로 설정하고 URL의 `YOUR_SECRET`을 그 값으로 바꾸세요. 라우트에는 마지막 경로 세그먼트가 필요하며, OneUptime은 그 세그먼트가 시크릿과 같을 때만 이메일을 받습니다. 시크릿이 설정될 때까지 모든 이메일은 `503`으로 거부되며, SendGrid는 최대 사흘 동안 다시 시도합니다. 전체 URL과 모니터 이메일 주소는 프록시 로그를 포함해 비공개로 유지하세요. OneUptime은 현재 SendGrid의 서명된 Inbound Parse 헤더나 OAuth 토큰을 검증하지 않습니다. 이런 메커니즘이 필요하다면 [SendGrid의 웹훅 보안 문서](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks)에 따라, 전체 URL로 전달하기 전에 이를 검증하는 게이트웨이를 구성하세요.
 
 SendGrid는 Inbound Parse에 대해 믿을 수 있는 고정 출발지 IP 목록을 제공하지 않습니다. SendGrid의 이메일 발송 IP와 `mx.sendgrid.net`에 대해 조회되는 주소는 웹훅 허용 목록이 아닙니다. 현재 DNS 결과를 고정하는 대신 [SendGrid의 방화벽 안내](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs)를 따르세요.
 
@@ -114,6 +114,8 @@ inboundEmail:
 ```
 :::
 
+`INBOUND_EMAIL_WEBHOOK_SECRET`은 필수입니다. 비어 있거나 아직 이 페이지의 자리 표시자인 동안 OneUptime은 모든 이메일을 거부합니다. `openssl rand -hex 32`로 긴 무작위 값을 만들 수 있습니다.
+
 그런 다음 적용하세요. Docker Compose에서는 `npm run start`를 실행하면 새 값으로 컨테이너를 다시 만들고, Kubernetes에서는 Helm 릴리스를 업그레이드합니다.
 
 ### Incoming Email 모니터 만들기
@@ -133,7 +135,7 @@ inboundEmail:
 | --- | --- | --- | --- | --- |
 | `INBOUND_EMAIL_PROVIDER` | `inboundEmail.provider` | 수신 이메일 공급자. SendGrid만 지원합니다. | 아니요 | `SendGrid` |
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | 수신 이메일용으로 설정한 하위 도메인. 설정하기 전까지 수신 이메일은 꺼져 있습니다. | 예 | 비어 있음 |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | 웹훅 URL의 마지막 세그먼트 `/incoming-email/sendgrid/YOUR_SECRET`과 비교하는 시크릿. 공개 엔드포인트에는 설정하세요. 빈 값이면 검증이 꺼집니다. | 권장 | 비어 있음 |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | 웹훅 URL의 마지막 세그먼트 `/incoming-email/sendgrid/YOUR_SECRET`이 일치해야 하는 시크릿. 비어 있거나 자리 표시자인 동안 모든 이메일이 거부됩니다. | 예 | 비어 있음 |
 
 Incoming Email 모니터가 기준으로 삼을 수 있는 것 - 제목, 보낸 사람, 본문, 받는 사람, 그리고 이메일이 제시간에 도착했는지 여부 - 은 [사용 가능한 필터 유형](/docs/monitor/incoming-email-monitor#사용할-수-있는-필터-유형)에 있습니다.
 
@@ -149,6 +151,7 @@ Incoming Email 모니터가 기준으로 삼을 수 있는 것 - 제목, 보낸 
 1. **공개 웹훅 라우트 확인하기:** 시크릿을 포함한 전체 URL이 인터넷에서 OneUptime에 닿아야 합니다. 마지막 시크릿 세그먼트가 없는 URL은 라우트와 일치하지 않습니다.
 2. **방화벽 규칙 확인하기:** 로그인 리디렉션이나 브라우저 챌린지 없이 웹훅 경로로 가는 HTTPS POST 요청을 허용하고, SendGrid의 이메일 발송 IP를 웹훅 출발지 허용 목록으로 쓰지 마세요.
 3. **SSL 인증서 확인하기:** 웹훅 호스트 이름에는 공개적으로 신뢰되는 유효한 인증서를 사용하고 인증서 체인을 포함하세요.
+4. **웹훅 시크릿 확인하기:** Destination URL은 `INBOUND_EMAIL_WEBHOOK_SECRET` 값으로 끝나야 합니다. 변수가 비어 있거나 자리 표시자인 동안 모든 이메일은 `503`으로 거부되며, `app` 서비스 로그가 시작할 때 이를 알려 줍니다. 다른 것으로 끝나는 URL로 보낸 이메일은 `403`으로 거부됩니다.
 :::
 
 :::details 모니터가 알림을 만들지 않음
@@ -164,7 +167,7 @@ Incoming Email 모니터가 기준으로 삼을 수 있는 것 - 제목, 보낸 
 ## 보안 모범 사례
 
 1. **HTTPS 사용:** 웹훅 엔드포인트에는 항상 HTTPS를 사용하세요
-2. **웹훅 시크릿:** `INBOUND_EMAIL_WEBHOOK_SECRET`을 설정하고 추가 검증을 위해 웹훅 URL에 포함하세요(예: `/incoming-email/sendgrid/your-secret`)
+2. **웹훅 시크릿:** `INBOUND_EMAIL_WEBHOOK_SECRET`에는 나만의 긴 무작위 값을 쓰고, 웹훅 URL 끝에 두세요(예: `/incoming-email/sendgrid/your-secret`). 이것이 SendGrid의 이메일을 다른 누구의 이메일과도 구별해 줍니다
 3. **도메인 검증:** 이메일 보안을 높이기 위해 SendGrid에서 도메인을 검증하세요
 4. **접근 제한:** 신뢰할 수 있는 이메일 출처에 대해서만 모니터를 만드세요
 5. **로그 모니터링:** 수신 이메일 로그를 정기적으로 검토해 의심스러운 활동을 찾으세요
