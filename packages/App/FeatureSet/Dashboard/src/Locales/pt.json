@@ -9253,7 +9253,7 @@
   "Content updated. Every workflow that refers to this variable uses the new content from its next run.": "Content updated. Every workflow that refers to this variable uses the new content from its next run.",
   "Content-Security-Policy your site must allow": "Content-Security-Policy your site must allow",
   "Content:": "Content:",
-  "Context": "Contexto",
+  "Context": "Context",
   "Control pod log collection": "Control pod log collection",
   "Control reminder notifications for this alert.": "Control reminder notifications for this alert.",
   "Control reminder notifications for this incident.": "Control reminder notifications for this incident.",
