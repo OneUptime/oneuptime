@@ -3,6 +3,7 @@ import BadDataException from "./Exception/BadDataException";
 import { JSONObject, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm/find-options/FindOperator";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
+import { refusedValue } from "../Utils/RefusedValue";
 
 export default class Domain extends DatabaseProperty {
   /*
@@ -35,7 +36,9 @@ export default class Domain extends DatabaseProperty {
   public set domain(v: string) {
     const isValid: boolean = Domain.isValidDomain(v);
     if (!isValid) {
-      throw new BadDataException("Domain " + v + " is not in valid format.");
+      throw new BadDataException(
+        "Domain " + refusedValue(v) + " is not in valid format.",
+      );
     }
     this._domain = v;
   }

@@ -262,8 +262,15 @@ const TABLE_ROW_PATTERN: RegExp = /^[ \t]*\|/;
 // Nothing but spaces and tabs, or nothing.
 const SPACES_AND_TABS_PATTERN: RegExp = /^[ \t]*$/;
 
-// A line that opens or closes a fenced code block, as CommonMark reads one.
-const FENCE_LINE_PATTERN: RegExp = /^( {0,3})(`{3,}|~{3,})(.*)$/;
+/*
+ * A line that opens or closes a fenced code block, as CommonMark reads one.
+ *
+ * The fence's run is taken whole (nothing of its kind may follow it), as the
+ * pattern took it first anyway: when the rest of the line cannot be read to
+ * its end - a value's line that holds a "\r" or another line separator - every
+ * shorter run was tried in turn, each reading the rest of the line again.
+ */
+const FENCE_LINE_PATTERN: RegExp = /^( {0,3})(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
 
 type RunLengthFunction = (text: string, start: number, end: number) => number;
 

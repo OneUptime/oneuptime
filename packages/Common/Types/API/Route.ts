@@ -3,6 +3,7 @@ import Dictionary from "../Dictionary";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject, ObjectType } from "../JSON";
 import { FindOperator } from "typeorm";
+import { refusedValue } from "../../Utils/RefusedValue";
 
 export default class Route extends DatabaseProperty {
   private static readonly SCHEME_PREFIX: RegExp = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
@@ -20,7 +21,7 @@ export default class Route extends DatabaseProperty {
 
   private static validateRoute(route: string): void {
     if (Route.hasSchemePrefix(route)) {
-      throw new BadDataException(`Invalid route: ${route}`);
+      throw new BadDataException(`Invalid route: ${refusedValue(route)}`);
     }
 
     /*
@@ -33,7 +34,7 @@ export default class Route extends DatabaseProperty {
       /^[a-zA-Z_\d\-!#$%&'()*+,./:;=?@[\]~]*$/;
 
     if (route && !matchRouteCharacters.test(route)) {
-      throw new BadDataException(`Invalid route: ${route}`);
+      throw new BadDataException(`Invalid route: ${refusedValue(route)}`);
     }
   }
 

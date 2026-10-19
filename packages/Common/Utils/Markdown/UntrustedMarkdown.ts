@@ -157,8 +157,14 @@ export const LEXED_TEXT_MAX_LENGTH: number = 1000;
  */
 const FENCE_RUN_PATTERN: RegExp = /`{3,}|~{3,}/;
 
-// A fence run at the very start of a line, and the info string after it.
-const OPENING_FENCE_PATTERN: RegExp = /^(?:(`{3,})[^`]*|(~{3,}).*)$/;
+/*
+ * A fence run at the very start of a line, and the info string after it.
+ * Each run is taken whole, as the pattern took it first anyway: a tilde
+ * fence's line that cannot be read to its end (it holds a line separator
+ * other than "\n") had every shorter run tried in turn, each reading the
+ * rest of the line again.
+ */
+const OPENING_FENCE_PATTERN: RegExp = /^(?:(`{3,}(?!`))[^`]*|(~{3,}(?!~)).*)$/;
 
 // The spaces or tabs between a fence run and its info string.
 const FENCE_INFO_INDENT_PATTERN: RegExp = /^[ \t]*/;

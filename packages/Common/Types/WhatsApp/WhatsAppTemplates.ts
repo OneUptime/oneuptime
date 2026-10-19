@@ -1,3 +1,8 @@
+import {
+  TemplatePlaceholder,
+  replaceTemplatePlaceholders,
+} from "../../Utils/TemplatePlaceholders";
+
 type TemplateIdsMap = {
   readonly AlertCreated: "oneuptime_created_alert";
   readonly AlertEpisodeCreated: "oneuptime_created_alert_episode";
@@ -269,15 +274,20 @@ export function renderWhatsAppTemplate(
     throw new Error(`WhatsApp template ${templateId} is not defined.`);
   }
 
-  return template.replace(/\{\{(.*?)\}\}/g, (_match: string, key: string) => {
-    if (variables[key] === undefined) {
-      throw new Error(
-        `Missing variable "${key}" for WhatsApp template ${templateId}.`,
-      );
-    }
+  return replaceTemplatePlaceholders(
+    template,
+    (placeholder: TemplatePlaceholder): string => {
+      const key: string = placeholder.inner;
 
-    return variables[key] as string;
-  });
+      if (variables[key] === undefined) {
+        throw new Error(
+          `Missing variable "${key}" for WhatsApp template ${templateId}.`,
+        );
+      }
+
+      return variables[key] as string;
+    },
+  );
 }
 
 export default WhatsAppTemplateMessages;

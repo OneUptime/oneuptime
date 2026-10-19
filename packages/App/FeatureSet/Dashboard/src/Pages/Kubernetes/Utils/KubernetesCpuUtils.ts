@@ -72,8 +72,15 @@ export default class KubernetesCpuUtils {
     if (trimmed === "") {
       return 0;
     }
+    /*
+     * A number - digits, digits "." digits, or "." digits - then a unit.
+     * Written so a number reads only one way (as the inventory reads a
+     * memory limit): as "[0-9]*\.?[0-9]+" the digits could be split between
+     * the two runs in as many ways as there are digits, and a long run of
+     * them that did not match - what an agent reported - was tried every way.
+     */
     const match: RegExpMatchArray | null = trimmed.match(
-      /^([0-9]*\.?[0-9]+)\s*([a-zA-Z]*)$/,
+      /^([0-9]+(?:\.[0-9]+)?|\.[0-9]+)\s*([a-zA-Z]*)$/,
     );
     if (!match) {
       const direct: number = Number(trimmed);

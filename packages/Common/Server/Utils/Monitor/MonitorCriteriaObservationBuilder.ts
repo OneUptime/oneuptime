@@ -47,6 +47,7 @@ import MonitorCriteriaMessageFormatter from "./MonitorCriteriaMessageFormatter";
 import MonitorCriteriaDataExtractor from "./MonitorCriteriaDataExtractor";
 import MonitorCriteriaExpectationBuilder from "./MonitorCriteriaExpectationBuilder";
 import ProbeNetworkFailureUtil from "../../../Utils/ProbeNetworkFailureUtil";
+import { collapseLineBreakRuns } from "../../../Utils/LineBreakRuns";
 import MetricMonitorResponse from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
@@ -2071,9 +2072,11 @@ export default class MonitorCriteriaObservationBuilder {
     if (status.remediation) {
       /*
        * A remediation can span lines - Azure SQL Database's names two
-       * statements for two databases - but this is one sentence.
+       * statements for two databases - but this is one sentence. It is what
+       * the probe reported, so each run of white space is read once
+       * (collapseLineBreakRuns).
        */
-      message += ` (${status.remediation.replace(/\s*[\r\n]+\s*/g, " ")})`;
+      message += ` (${collapseLineBreakRuns(status.remediation)})`;
     }
 
     return `${message}.`;
