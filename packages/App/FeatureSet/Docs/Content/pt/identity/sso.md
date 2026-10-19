@@ -40,7 +40,8 @@ O OneUptime lê apenas algumas informações da asserção que seu IdP envia:
 | Recipient e Destination | Precisam ser a **Reply URL** do provedor, o endereço para o qual a resposta foi enviada. |
 | `NotBefore` e `NotOnOrAfter` | A resposta só é aceita enquanto eles permitem, e no máximo 10 minutos depois de emitida, com 3 minutos de folga para relógios que não coincidem. |
 | Name ID | O endereço de email da pessoa. Deve ser um endereço de email válido. |
-| `http://schemas.microsoft.com/identity/claims/displayname` | O nome da pessoa, usado quando o OneUptime cria a conta dela. Opcional. |
+| Atributos de nome | O nome da pessoa, usado quando o OneUptime cria a conta dela: um nome de exibição (`displayName`, ou `http://schemas.microsoft.com/identity/claims/displayname`), ou um nome e um sobrenome (`firstName` e `lastName`, ou as declarações `givenname` e `surname` que o Microsoft Entra ID envia por padrão). Opcional. |
+| `http://schemas.microsoft.com/identity/claims/objectidentifier` | O ID de objeto da pessoa, que o Microsoft Entra ID envia por padrão. O primeiro login pelo provedor vincula a conta a ele, e um login posterior que indique o endereço de email da conta com outro ID de objeto é recusado. Opcional. |
 
 Cada resposta faz o login uma única vez. Enviada de novo, por exemplo ao voltar no navegador depois do login, ela é recusada: faça o login de novo.
 
@@ -133,14 +134,15 @@ O Keycloak é uma solução de código aberto bastante usada para gestão de ide
    No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor. Você deve ser levado à página de login do Keycloak e voltar ao OneUptime.
 :::
 @tab Microsoft Entra ID
-O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identidade em nuvem da Microsoft. Você precisa de um tenant que dê suporte a aplicativos empresariais com SSO SAML, e de acesso de administrador ao Entra ID e ao OneUptime.
+O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identidade em nuvem da Microsoft. Você precisa de um tenant que dê suporte a aplicativos empresariais com SSO SAML, e de acesso de administrador ao Entra ID e ao OneUptime. No OneUptime Cloud, se a galeria de aplicativos do Microsoft Entra listar o OneUptime, adicione-o a partir dela: ele já vem com as declarações que o OneUptime lê e com os padrões das URLs dele.
 
 :::steps
 1. **Criar um aplicativo empresarial no Entra ID**
 
    - Entre no [Microsoft Entra admin center](https://entra.microsoft.com)
-   - Vá para **Identity** > **Applications** > **Enterprise applications**, clique em **+ New application** e depois em **+ Create your own application**
-   - Informe um nome (por exemplo, "OneUptime"), selecione **Integrate any other application you don't find in the gallery (Non-gallery)** e clique em **Create**
+   - Vá para **Identity** > **Applications** > **Enterprise applications** e clique em **+ New application**
+   - Pela galeria: procure o OneUptime, selecione-o e clique em **Create**
+   - Caso contrário: clique em **+ Create your own application**, informe um nome (por exemplo, "OneUptime"), selecione **Integrate any other application you don't find in the gallery (Non-gallery)** e clique em **Create**
 
 2. **Copiar os valores SAML do Entra ID**
 
@@ -169,10 +171,10 @@ O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identi
 
 5. **Enviar o email como Name ID**
 
-   Em **Attributes & Claims**, clique em **Edit**:
+   Em **Attributes & Claims**, clique em **Edit**. O aplicativo da galeria já vem com isto configurado: confira.
    - Defina **Unique User Identifier (Name ID)** como o endereço de email do usuário: `user.mail`, ou `user.userprincipalname` quando esse for o endereço de email
    - Defina o **Name identifier format** como `Email address`
-   - Opcionalmente, adicione uma declaração chamada `http://schemas.microsoft.com/identity/claims/displayname` com o atributo de origem `user.displayname`, para que contas novas recebam o nome da pessoa. O OneUptime ignora as outras declarações
+   - Mantenha as declarações padrão do Entra ID: contas novas recebem o nome da pessoa a partir de `givenname` e `surname`, e a conta é vinculada ao ID de objeto da pessoa, `objectidentifier`. Opcionalmente, adicione uma declaração chamada `http://schemas.microsoft.com/identity/claims/displayname` com o atributo de origem `user.displayname`, para dar às contas novas o nome de exibição em vez disso. O OneUptime ignora as outras declarações
 
 6. **Atribuir usuários e grupos**
 
@@ -183,13 +185,14 @@ O Microsoft Entra ID (antes Azure AD / Active Directory) é o serviço de identi
    No OneUptime, edite o provedor e ative **Habilitado**; depois abra o link do cartão **Test Single Sign On (SSO)** e escolha o provedor. Você deve ser levado à página de login da Microsoft e voltar ao OneUptime.
 :::
 @tab Okta
-O Okta é uma plataforma de identidade muito usada, com SSO SAML. Você precisa de uma organização do Okta com acesso de administrador, e de acesso de administrador ao OneUptime.
+O Okta é uma plataforma de identidade muito usada, com SSO SAML. Você precisa de uma organização do Okta com acesso de administrador, e de acesso de administrador ao OneUptime. No OneUptime Cloud, se a Okta Integration Network listar o OneUptime, adicione-o a partir dela: ele faz o login das pessoas pela página **Login com SSO** do OneUptime e pelo painel do Okta delas, cria uma conta para elas no primeiro login e pede dois IDs em vez das URLs do OneUptime.
 
 :::steps
-1. **Criar um aplicativo SAML no Okta**
+1. **Adicionar o OneUptime ao Okta**
 
-   - No Okta Admin Console, vá para **Applications** > **Applications** e clique em **Create App Integration**
-   - Selecione **SAML 2.0** e clique em **Next**, informe "OneUptime" como **App name** e clique em **Next**
+   - No Okta Admin Console, vá para **Applications** > **Applications**
+   - Pela Okta Integration Network: clique em **Browse App Catalog**, procure o OneUptime e clique em **Add Integration**. O Okta pede o **OneUptime Project ID** e o **OneUptime SSO Provider ID** antes que o OneUptime possa mostrá-los: por enquanto, informe `0` nos dois; você os substitui na etapa 4. Clique em **Done** e continue na etapa 2
+   - Caso contrário, clique em **Create App Integration**, selecione **SAML 2.0** e clique em **Next**, informe "OneUptime" como **App name** e clique em **Next**
    - O Okta pede as URLs do OneUptime antes de mostrar as dele. Por enquanto, informe o endereço do seu OneUptime (por exemplo `https://oneuptime.com`) como **Single sign-on URL** e como **Audience URI (SP Entity ID)**: você substitui as duas na etapa 4
    - Defina **Name ID format** como `EmailAddress` e **Application username** como `Email`
    - Clique em **Next**, selecione **I'm an Okta customer adding an internal app** e clique em **Finish**
@@ -212,11 +215,16 @@ O Okta é uma plataforma de identidade muito usada, com SSO SAML. Você precisa 
 
 4. **Dar ao Okta as URLs do OneUptime**
 
-   Na aba **General** do aplicativo, clique em **Edit** em **SAML Settings** e em **Next**, e defina:
+   Para o aplicativo da Okta Integration Network, na aba **General**, clique em **Edit** em **App Settings** e defina:
+   - **OneUptime Project ID** e **OneUptime SSO Provider ID**: os dois IDs que estão no **Identifier (Entity ID)** do OneUptime, `https://oneuptime.com/<project-id>/<provider-id>`
+
+   Clique em **Save** e confira se **Application username format** é `Email` na aba **Sign On**.
+
+   Para o seu próprio aplicativo, na aba **General**, clique em **Edit** em **SAML Settings** e em **Next**, e defina:
    - **Single sign-on URL**: a **Reply URL (Assertion Consumer Service URL)** do OneUptime
    - **Audience URI (SP Entity ID)**: o **Identifier (Entity ID)** do OneUptime
 
-   Opcionalmente, adicione uma declaração de atributo chamada `http://schemas.microsoft.com/identity/claims/displayname` com o valor `user.firstName + " " + user.lastName`, para que contas novas recebam o nome da pessoa. Clique em **Next** e depois em **Finish**.
+   Opcionalmente, adicione as declarações de atributo `firstName`, com o valor `user.firstName`, e `lastName`, com o valor `user.lastName`, para que contas novas recebam o nome da pessoa. Clique em **Next** e depois em **Finish**.
 
 5. **Atribuir pessoas**
 
@@ -347,6 +355,10 @@ A resposta chegou ao OneUptime mais tarde do que o seu IdP permite, ou mais de 1
 
 :::details "SAML response was already used"
 Cada resposta do seu IdP faz o login uma única vez. Voltar no navegador depois do login, ou recarregar a página pela qual o seu IdP passou você, envia a mesma resposta de novo: faça o login de novo, pelo OneUptime ou pelo seu IdP.
+:::
+
+:::details "This account is linked to someone else."
+O Microsoft Entra ID fez o login de alguém com o endereço de email de uma conta que está vinculada, por meio deste provedor, a outro ID de objeto: outra pessoa tem agora esse endereço no Entra ID, ou a conta do Entra ID da pessoa foi criada de novo. O OneUptime recusa o login, para que quem ficar com o endereço depois não possa usar a conta. Se a conta for dessa pessoa, remova-a do projeto e adicione-a de novo: o próximo login dela vincula a conta ao novo ID de objeto.
 :::
 
 :::details O login falha com um erro de assinatura ou de certificado

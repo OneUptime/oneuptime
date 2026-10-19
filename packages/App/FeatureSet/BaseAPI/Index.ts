@@ -76,6 +76,7 @@ import TelegramLogAPI from "./TelegramLogAPI";
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
 import MarketplaceAPI from "Common/Server/API/MarketplaceAPI";
+import VercelMarketplaceProviderAPI from "Common/Server/API/VercelMarketplaceProviderAPI";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
@@ -1035,6 +1036,12 @@ import MarketplaceUsageReportService, {
 import MarketplaceChargeService, {
   Service as MarketplaceChargeServiceType,
 } from "Common/Server/Services/MarketplaceChargeService";
+import VercelMarketplaceInstallationService, {
+  Service as VercelMarketplaceInstallationServiceType,
+} from "Common/Server/Services/VercelMarketplaceInstallationService";
+import VercelMarketplaceConnectionService, {
+  Service as VercelMarketplaceConnectionServiceType,
+} from "Common/Server/Services/VercelMarketplaceConnectionService";
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceType,
 } from "Common/Server/Services/CodeRepositoryService";
@@ -1501,6 +1508,8 @@ import DeletedProject from "Common/Models/DatabaseModels/DeletedProject";
 import MarketplaceSubscription from "Common/Models/DatabaseModels/MarketplaceSubscription";
 import MarketplaceUsageReport from "Common/Models/DatabaseModels/MarketplaceUsageReport";
 import MarketplaceCharge from "Common/Models/DatabaseModels/MarketplaceCharge";
+import VercelMarketplaceInstallation from "Common/Models/DatabaseModels/VercelMarketplaceInstallation";
+import VercelMarketplaceConnection from "Common/Models/DatabaseModels/VercelMarketplaceConnection";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -5544,6 +5553,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new MarketplaceAPI().getRouter(),
     );
     /*
+     * Vercel Marketplace: the provider API Vercel calls when a team installs
+     * OneUptime and adds, changes or deletes a resource, and its webhooks
+     * (OneUptime Cloud only - see VercelMarketplaceProviderAPI).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new VercelMarketplaceProviderAPI().getRouter(),
+    );
+    /*
      * Enterprise API routers from the Enterprise Edition module (ee/): the
      * license client (activate / refresh), team compliance status, and - only
      * on the hosted oneuptime.com (billing enabled) - the license server with
@@ -5825,6 +5843,27 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MarketplaceCharge, MarketplaceChargeServiceType>(
         MarketplaceCharge,
         MarketplaceChargeService,
+      ).getRouter(),
+    );
+    // Vercel Marketplace installations and their connected Vercel projects: master admin only too.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        VercelMarketplaceInstallation,
+        VercelMarketplaceInstallationServiceType
+      >(
+        VercelMarketplaceInstallation,
+        VercelMarketplaceInstallationService,
+      ).getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        VercelMarketplaceConnection,
+        VercelMarketplaceConnectionServiceType
+      >(
+        VercelMarketplaceConnection,
+        VercelMarketplaceConnectionService,
       ).getRouter(),
     );
 

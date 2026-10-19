@@ -15,6 +15,11 @@ import ProjectSsoSignInConfirmation, {
   ProjectSsoKind,
 } from "../Utils/ProjectSsoSignInConfirmation";
 import { respondToMobileSsoFailure } from "../Utils/MobileSso";
+import ProjectSsoIdentityBinding, {
+  PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
+  PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
+  PROJECT_SSO_IDENTITY_MISMATCH_TITLE,
+} from "../Utils/ProjectSsoIdentityBinding";
 import SsoTeamMembership, {
   SSO_NO_ROOM_ERROR,
   SSO_NO_ROOM_MESSAGE,
@@ -332,6 +337,52 @@ router.post(
   },
 );
 
+/*
+ * The answer to a sign-in through a project's SAML provider that names the
+ * account's address but another person (ProjectSsoIdentityBinding): the page
+ * that says so, or the mobile app's deep link. Logged for the project's
+ * admins, without either person's object ID.
+ */
+const refuseSignInAsAnotherPerson: (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  isMobileRequest: boolean;
+  projectSsoId: ObjectID;
+  userId: ObjectID;
+}) => void = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  isMobileRequest: boolean;
+  projectSsoId: ObjectID;
+  userId: ObjectID;
+}): void => {
+  logger.warn(
+    `Refused a SAML sign-in through project SSO ${data.projectSsoId.toString()}: the identity provider named the address of user ${data.userId.toString()} with an object ID other than the one the account is bound to.`,
+    getLogAttributesFromRequest(data.req as RequestLike),
+  );
+
+  if (
+    respondToMobileSsoFailure({
+      res: data.res,
+      isMobileRequest: data.isMobileRequest,
+      error: PROJECT_SSO_IDENTITY_MISMATCH_ERROR,
+      errorDescription: PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
+    })
+  ) {
+    return;
+  }
+
+  Response.render(
+    data.req,
+    data.res,
+    "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+    {
+      title: PROJECT_SSO_IDENTITY_MISMATCH_TITLE,
+      message: PROJECT_SSO_IDENTITY_MISMATCH_MESSAGE,
+    },
+  );
+};
+
 type LoginUserWithSsoFunction = (
   req: ExpressRequest,
   res: ExpressResponse,
@@ -595,6 +646,29 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       );
     }
 
+    /*
+     * Through this provider the account is bound to another person: whoever
+     * holds its address in the identity provider now is not who signed it
+     * in before. Refused before anything is emailed, provisioned or signed
+     * in. See ../Utils/ProjectSsoIdentityBinding.ts.
+     */
+    if (
+      !isNewUser &&
+      (await ProjectSsoIdentityBinding.isBoundToAnotherPerson({
+        projectSsoId: projectSSO.id!,
+        userId: alreadySavedUser.id!,
+        objectId: verifiedSaml.objectId,
+      }))
+    ) {
+      return refuseSignInAsAnotherPerson({
+        req,
+        res,
+        isMobileRequest,
+        projectSsoId: projectSSO.id!,
+        userId: alreadySavedUser.id!,
+      });
+    }
+
     if (ProjectSsoSignInConfirmation.isRequired()) {
       /*
        * Hosted service: this project's IdP may sign an account in only once
@@ -721,6 +795,24 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     }
 
     const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
+
+    // The sign-in is going through: bind the account to the person, the first time.
+    if (
+      !(await ProjectSsoIdentityBinding.bindOrRefuse({
+        projectId: projectId,
+        projectSsoId: projectSSO.id!,
+        userId: alreadySavedUser.id!,
+        objectId: verifiedSaml.objectId,
+      }))
+    ) {
+      return refuseSignInAsAnotherPerson({
+        req,
+        res,
+        isMobileRequest,
+        projectSsoId: projectSSO.id!,
+        userId: alreadySavedUser.id!,
+      });
+    }
 
     alreadySavedUser.email = email;
 

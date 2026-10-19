@@ -353,8 +353,49 @@ describe("a group PATCH, read as its handler applies it", () => {
     ]);
   });
 
+  /*
+   * Okta renames a pushed group with a replace that has no path and names
+   * the attribute in its value (RFC 7644, section 3.5.2.3). It used to be
+   * left alone, so Okta's renames never reached OneUptime.
+   */
+  test("Okta's rename, a replace with no path, is a rename", () => {
+    expect(
+      planScimGroupPatch([
+        { op: "replace", value: { id: "x", displayName: "Okta rename" } },
+      ]),
+    ).toEqual([{ kind: "rename", displayName: "Okta rename" }]);
+  });
+
+  test("members named in the value of a replace or add with no path are replaced or added", () => {
+    expect(
+      planScimGroupPatch([
+        { op: "replace", value: { members: [{ value: ALICE }] } },
+        { op: "add", value: { members: [{ value: BOB }] } },
+      ]),
+    ).toEqual([
+      { kind: "replaceMembers", members: [{ value: ALICE }] },
+      { kind: "addMembers", members: [{ value: BOB }] },
+    ]);
+  });
+
+  test("one operation with no path can rename and replace members at once", () => {
+    expect(
+      planScimGroupPatch([
+        {
+          op: "Replace",
+          value: { DisplayName: "Platform", members: [{ value: ALICE }] },
+        },
+      ]),
+    ).toEqual([
+      { kind: "rename", displayName: "Platform" },
+      { kind: "replaceMembers", members: [{ value: ALICE }] },
+    ]);
+  });
+
   test.each([
-    [{ op: "replace", value: { id: "x", displayName: "Okta rename" } }],
+    [{ op: "replace", value: { id: "x" } }],
+    [{ op: "replace", value: { displayName: "" } }],
+    [{ op: "remove", value: { displayName: "Okta rename" } }],
     [{ op: "replace", path: "externalId", value: "x" }],
     [{ op: "move", path: "members", value: [] }],
     [{ op: "replace", path: "displayName", value: "" }],
@@ -739,13 +780,23 @@ describe("a group PATCH below the plan", () => {
     expect(
       await judge([
         { op: "replace", path: "externalId", value: "x" },
-        { op: "replace", value: { displayName: "Okta rename" } },
+        { op: "replace", value: { id: "x" } },
       ]),
     ).toEqual({
       verdict: ScimUpdateBelowPlan.NoChange,
       kinds: ["ignored", "ignored"],
       reads: 0,
     });
+  });
+
+  test("Okta's rename, a replace with no path, is refused as any rename is", async () => {
+    expect(
+      (
+        await judge([
+          { op: "replace", value: { id: "x", displayName: "Okta rename" } },
+        ])
+      ).verdict,
+    ).toBe(ScimUpdateBelowPlan.Refused);
   });
 
   test("no operations at all change nothing", async () => {
@@ -922,7 +973,11 @@ describe("the refusal", () => {
   test("is 402 with the reason in the SCIM error format", () => {
     let status: number = 0;
     let sent: unknown = undefined;
+    const headers: Record<string, string> = {};
     const res: OneUptimeResponse = {
+      setHeader: (name: string, value: string): void => {
+        headers[name.toLowerCase()] = value;
+      },
       status: (code: number): OneUptimeResponse => {
         status = code;
         return res;
@@ -946,6 +1001,9 @@ describe("the refusal", () => {
     });
 
     expect(status).toBe(SCIM_BELOW_PLAN_STATUS);
+    expect(headers["content-type"]).toBe(
+      "application/scim+json; charset=utf-8",
+    );
     expect(sent).toEqual({
       schemas: ["urn:ietf:params:scim:api:messages:2.0:Error"],
       status: "402",

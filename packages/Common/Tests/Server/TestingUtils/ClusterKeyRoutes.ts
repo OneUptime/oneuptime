@@ -13,10 +13,11 @@ import ts from "typescript";
  * isAuthorizedRunnerRegistrationMiddleware (a header, or the body field
  * Runners of earlier releases send).
  *
- * The over-HTTP suite in App (Tests/ClusterKey/ClusterKeyRoutesOverHttp.test.ts)
- * holds its own list of routes to this one, so a new route that takes the
- * cluster key is noticed, and sends every value this repository ships to
- * every one of them. ClusterKeyGuard checks every use of a check is such a
+ * The over-HTTP suites in App (Tests/ClusterKey/ClusterKeyRoutesOverHttp.test.ts
+ * and WrongClusterKeysOverHttp.test.ts) hold their own lists of routes to
+ * this one, so a new route that takes the cluster key is noticed: one sends
+ * every value this repository ships to every route, the other too many
+ * different wrong keys. ClusterKeyGuard checks every use of a check is such a
  * route, and that each route is called by OneUptime's own code
  * (CLUSTER_KEY_ROUTE_CALLERS below).
  */

@@ -250,6 +250,21 @@ export const isProtobufContentType: (
   return PROTOBUF_CONTENT_TYPES.includes(mediaType);
 };
 
+/*
+ * The Vercel log drain (/vercel/v1/logs, also under /telemetry) reads its
+ * body raw: the signature it checks is over the bytes Vercel sent, which a
+ * body parser would not give back. Matched on the path's end, so the
+ * Vercel Marketplace provider API under /api/marketplace/vercel/v1/ is
+ * parsed as JSON as usual.
+ */
+export const isVercelLogDrainPath: (path: string) => boolean = (
+  path: string,
+): boolean => {
+  return (
+    path === "/vercel/v1/logs" || path.endsWith("/telemetry/vercel/v1/logs")
+  );
+};
+
 const protobufBodyParserMiddleware: RequestHandler = ExpressRaw({
   type: PROTOBUF_CONTENT_TYPES,
   limit: "50mb",
@@ -269,7 +284,8 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
    */
   if (
     req.path.includes("/otlp/v1/") ||
-    req.path.includes("/session-replay/v1/")
+    req.path.includes("/session-replay/v1/") ||
+    isVercelLogDrainPath(req.path)
   ) {
     return next();
   }
@@ -308,6 +324,7 @@ app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
   if (
     req.path.includes("/otlp/v1/") ||
     req.path.includes("/session-replay/v1/") ||
+    isVercelLogDrainPath(req.path) ||
     headerValueToString(req.headers["content-encoding"])?.includes("gzip")
   ) {
     next();

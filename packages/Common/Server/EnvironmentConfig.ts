@@ -1743,6 +1743,18 @@ export const GoogleCloudMarketplacePubSubAudience: string | null =
   process.env["GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE"] || null;
 
 /*
+ * Vercel Marketplace: OneUptime as a native integration
+ * (Server/Utils/Marketplace/Vercel, VERCEL_RELEASING.md). The integration's
+ * client ID (oac_...) is the audience of every token Vercel signs for
+ * OneUptime; its client secret signs webhooks and drain deliveries and
+ * exchanges sign-in codes.
+ */
+export const VercelMarketplaceClientId: string | null =
+  process.env["VERCEL_MARKETPLACE_CLIENT_ID"] || null;
+export const VercelMarketplaceClientSecret: string | null =
+  process.env["VERCEL_MARKETPLACE_CLIENT_SECRET"] || null;
+
+/*
  * Sign in with Microsoft: a multi-tenant Microsoft Entra app (work, school
  * and personal Microsoft accounts) that lets anyone sign in to OneUptime with
  * their Microsoft account. Microsoft Marketplace requires it of a SaaS offer

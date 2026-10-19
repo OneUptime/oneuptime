@@ -74,6 +74,7 @@ import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 // Cloud marketplaces (AWS, Microsoft, Google Cloud): hourly usage, daily status sync.
 import "./Jobs/Marketplace/ReportMarketplaceUsage";
 import "./Jobs/Marketplace/SyncMarketplacePurchases";
+import "./Jobs/Marketplace/BillVercelMarketplace";
 
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";

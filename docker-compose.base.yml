@@ -257,8 +257,8 @@ x-common-runtime-variables: &common-runtime-variables
   # Sign in with Microsoft: the app's secret (see config.example.env).
   MICROSOFT_SIGN_IN_CLIENT_SECRET: ${MICROSOFT_SIGN_IN_CLIENT_SECRET:-}
 
-  # Cloud marketplaces: AWS, Microsoft and Google Cloud Marketplace (see
-  # config.example.env). OneUptime Cloud only; empty everywhere else.
+  # Cloud marketplaces: AWS, Microsoft, Google Cloud and Vercel Marketplace
+  # (see config.example.env). OneUptime Cloud only; empty everywhere else.
   AWS_MARKETPLACE_ACCESS_KEY_ID: ${AWS_MARKETPLACE_ACCESS_KEY_ID:-}
   AWS_MARKETPLACE_SECRET_ACCESS_KEY: ${AWS_MARKETPLACE_SECRET_ACCESS_KEY:-}
   AWS_MARKETPLACE_PRODUCT_CODE: ${AWS_MARKETPLACE_PRODUCT_CODE:-}
@@ -273,6 +273,8 @@ x-common-runtime-variables: &common-runtime-variables
   GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL: ${GOOGLE_CLOUD_MARKETPLACE_PUBSUB_SERVICE_ACCOUNT_EMAIL:-}
   GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE: ${GOOGLE_CLOUD_MARKETPLACE_SIGNUP_AUDIENCE:-}
   GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE: ${GOOGLE_CLOUD_MARKETPLACE_PUBSUB_AUDIENCE:-}
+  VERCEL_MARKETPLACE_CLIENT_ID: ${VERCEL_MARKETPLACE_CLIENT_ID:-}
+  VERCEL_MARKETPLACE_CLIENT_SECRET: ${VERCEL_MARKETPLACE_CLIENT_SECRET:-}
 
   # Inbound Email Configuration (for Incoming Email Monitor)
   INBOUND_EMAIL_PROVIDER: ${INBOUND_EMAIL_PROVIDER}

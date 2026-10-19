@@ -13,6 +13,7 @@ import {
 } from "@xmldom/xmldom";
 import zlib from "zlib";
 import Name from "Common/Types/Name";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import SamlServiceProviders, {
   SamlServiceProvider,
 } from "./SamlServiceProvider";
@@ -26,6 +27,15 @@ export interface VerifiedSamlResponse {
   issuerUrl: string;
   email: Email;
   name: Name | null;
+
+  /*
+   * The identity provider's immutable ID for the person: Microsoft Entra
+   * ID's object ID (SAML_OBJECT_ID_CLAIM, which it sends by default), in
+   * lower case when it is a GUID. Null when the assertion carries none.
+   * Sign-ins through a project's provider are bound to it
+   * (UserProjectSsoIdentity).
+   */
+  objectId: string | null;
 
   /*
    * The assertion's ID, which the identity provider makes unique to each
@@ -66,6 +76,84 @@ export const SAML_RESPONSE_EXPIRED_MESSAGE: string =
 
 export const SAML_RESPONSE_NOT_YET_VALID_MESSAGE: string =
   "SAML response is not valid yet. Check that the clocks of your identity provider and of this server are right, then sign in again.";
+
+/*
+ * Where an assertion carries the person's name. OneUptime reads it only to
+ * name the account it creates at someone's first sign-in; the email address
+ * always comes from the Name ID. Tried in this order, and the first that
+ * gives a name wins:
+ *
+ *   1. A display name: the Microsoft claim, which Microsoft Entra ID and
+ *      AD FS send when asked, or a displayName attribute.
+ *   2. A given name and a family name, joined: Okta's attribute statements
+ *      (firstName, lastName), the claims Microsoft Entra ID sends by default
+ *      (givenname, surname), OneLogin's, and the LDAP object identifiers
+ *      Shibboleth and others use.
+ *   3. The xmlsoap name claim, unless it is an address: Auth0 sends the
+ *      person's name there, Microsoft Entra ID the user principal name.
+ *
+ * Attribute names are compared without regard to case, as identity provider
+ * admins type them by hand.
+ */
+export const SAML_DISPLAY_NAME_ATTRIBUTES: ReadonlyArray<string> = [
+  "http://schemas.microsoft.com/identity/claims/displayname",
+  "displayName",
+  "urn:oid:2.16.840.1.113730.3.1.241",
+];
+
+export const SAML_GIVEN_NAME_ATTRIBUTES: ReadonlyArray<string> = [
+  "firstName",
+  "givenName",
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+  "User.FirstName",
+  "urn:oid:2.5.4.42",
+];
+
+export const SAML_FAMILY_NAME_ATTRIBUTES: ReadonlyArray<string> = [
+  "lastName",
+  "familyName",
+  "surname",
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+  "User.LastName",
+  "urn:oid:2.5.4.4",
+];
+
+export const SAML_NAME_CLAIM: string =
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name";
+
+/*
+ * Microsoft Entra ID's object ID for the person: immutable, and unique in
+ * the tenant the provider's issuer names. Sent by default. An address can
+ * pass to someone else; this cannot, so it is what a sign-in through a
+ * project's provider is bound to (UserProjectSsoIdentity).
+ */
+export const SAML_OBJECT_ID_CLAIM: string =
+  "http://schemas.microsoft.com/identity/claims/objectidentifier";
+
+// The longest object ID read: an Entra ID object ID is a 36-character GUID.
+export const SAML_OBJECT_ID_MAX_LENGTH: number = ColumnLength.ShortText;
+
+export const SAML_OBJECT_ID_TOO_LONG_MESSAGE: string =
+  "The SAML objectidentifier claim is too long to be an object ID.";
+
+const GUID: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/*
+ * Every attribute read from an assertion - the name's and the object ID - as
+ * compared: in lower case.
+ */
+const SAML_READ_ATTRIBUTES_LOWER_CASE: ReadonlySet<string> = new Set<string>(
+  [
+    ...SAML_DISPLAY_NAME_ATTRIBUTES,
+    ...SAML_GIVEN_NAME_ATTRIBUTES,
+    ...SAML_FAMILY_NAME_ATTRIBUTES,
+    SAML_NAME_CLAIM,
+    SAML_OBJECT_ID_CLAIM,
+  ].map((attributeName: string): string => {
+    return attributeName.toLowerCase();
+  }),
+);
 
 export default class SSOUtil {
   // Namespaces used across the SAML documents we consume.
@@ -129,10 +217,6 @@ export default class SSOUtil {
     "Id",
     "id",
   ];
-
-  // Microsoft display name claim - the only "full name" claim we read today.
-  private static readonly MS_DISPLAY_NAME_CLAIM: string =
-    "http://schemas.microsoft.com/identity/claims/displayname";
 
   /*
    * DOM node types we test for. xmldom exposes these as Node constants, but
@@ -296,6 +380,7 @@ export default class SSOUtil {
     const issuerUrl: string = SSOUtil.getIssuerFromAssertion(assertion);
     const email: Email = SSOUtil.getEmailFromAssertion(assertion);
     const name: Name | null = SSOUtil.getNameFromAssertion(assertion);
+    const objectId: string | null = SSOUtil.getObjectIdFromAssertion(assertion);
 
     const assertionId: string = SSOUtil.getIdAttribute(assertion).trim();
 
@@ -314,6 +399,7 @@ export default class SSOUtil {
       issuerUrl,
       email,
       name,
+      objectId,
       assertionId,
       acceptableUntil,
     };
@@ -1400,9 +1486,11 @@ export default class SSOUtil {
    * failing closed keeps the guarantee even if the extraction point moves
    * again.
    *
-   * Only the values we actually consume are checked, so this adds no rejection
-   * surface beyond what getIssuerFromAssertion / getEmailFromAssertion /
-   * getNameFromAssertion already read.
+   * Only the values we may consume are checked - the Issuer, the Name ID and
+   * the attributes the name and the object ID may be read from - so this
+   * adds no rejection surface beyond what getIssuerFromAssertion /
+   * getEmailFromAssertion / getNameFromAssertion / getObjectIdFromAssertion
+   * read.
    */
   private static assertIdentityValuesArePlainText(assertion: XmlElement): void {
     const issuer: XmlElement | null = SSOUtil.getDirectChildByLocalName(
@@ -1430,11 +1518,28 @@ export default class SSOUtil {
       }
     }
 
+    for (const attributeValue of SSOUtil.getAttributeValueElements(
+      assertion,
+    ).values()) {
+      SSOUtil.assertPlainTextOnly(attributeValue);
+    }
+  }
+
+  /*
+   * The first <AttributeValue> of each attribute read from an assertion
+   * (SAML_READ_ATTRIBUTES_LOWER_CASE), keyed by its attribute name in lower
+   * case. An attribute sent twice counts once, as first sent.
+   */
+  private static getAttributeValueElements(
+    assertion: XmlElement,
+  ): Map<string, XmlElement> {
+    const values: Map<string, XmlElement> = new Map<string, XmlElement>();
+
     const attributeStatement: XmlElement | null =
       SSOUtil.getDirectChildByLocalName(assertion, "AttributeStatement");
 
     if (!attributeStatement) {
-      return;
+      return values;
     }
 
     const attributes: Array<XmlElement> = SSOUtil.toElementArray(
@@ -1442,7 +1547,14 @@ export default class SSOUtil {
     );
 
     for (const attribute of attributes) {
-      if (attribute.getAttribute("Name") !== SSOUtil.MS_DISPLAY_NAME_CLAIM) {
+      const attributeName: string = (attribute.getAttribute("Name") || "")
+        .trim()
+        .toLowerCase();
+
+      if (
+        !SAML_READ_ATTRIBUTES_LOWER_CASE.has(attributeName) ||
+        values.has(attributeName)
+      ) {
         continue;
       }
 
@@ -1450,9 +1562,11 @@ export default class SSOUtil {
         SSOUtil.getDirectChildByLocalName(attribute, "AttributeValue");
 
       if (attributeValue) {
-        SSOUtil.assertPlainTextOnly(attributeValue);
+        values.set(attributeName, attributeValue);
       }
     }
+
+    return values;
   }
 
   // The value of this element's ID / Id / id attribute, or "".
@@ -1686,36 +1800,91 @@ export default class SSOUtil {
     return new Email(emailString);
   }
 
+  /*
+   * The person's name, read as SAML_DISPLAY_NAME_ATTRIBUTES and the lists
+   * after it say, or null when the assertion carries none. Cut to what an
+   * account's name holds (ColumnLength.Name), so a long name still signs
+   * its owner in.
+   */
   private static getNameFromAssertion(assertion: XmlElement): Name | null {
-    const attributeStatement: XmlElement | null =
-      SSOUtil.getDirectChildByLocalName(assertion, "AttributeStatement");
+    const values: Map<string, XmlElement> =
+      SSOUtil.getAttributeValueElements(assertion);
 
-    if (!attributeStatement) {
+    const read: (attributeNames: ReadonlyArray<string>) => string = (
+      attributeNames: ReadonlyArray<string>,
+    ): string => {
+      for (const attributeName of attributeNames) {
+        const attributeValue: XmlElement | undefined = values.get(
+          attributeName.toLowerCase(),
+        );
+
+        if (!attributeValue) {
+          continue;
+        }
+
+        SSOUtil.assertPlainTextOnly(attributeValue);
+
+        const value: string = SSOUtil.getTrimmedText(attributeValue);
+
+        if (value) {
+          return value;
+        }
+      }
+
+      return "";
+    };
+
+    const givenAndFamilyName: string = [
+      read(SAML_GIVEN_NAME_ATTRIBUTES),
+      read(SAML_FAMILY_NAME_ATTRIBUTES),
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const nameClaim: string = read([SAML_NAME_CLAIM]);
+
+    const fullName: string =
+      read(SAML_DISPLAY_NAME_ATTRIBUTES) ||
+      givenAndFamilyName ||
+      (nameClaim.includes("@") ? "" : nameClaim);
+
+    const name: string = fullName.substring(0, ColumnLength.Name).trim();
+
+    return name ? new Name(name) : null;
+  }
+
+  /*
+   * The person's object ID (SAML_OBJECT_ID_CLAIM), or null when the
+   * assertion carries none or an empty one. A GUID is read in lower case,
+   * as Entra ID writes the same object ID in either. Held to plain text like
+   * the Name ID, as a sign-in is refused or let through on it; one too long
+   * to be an object ID refuses the response.
+   */
+  private static getObjectIdFromAssertion(
+    assertion: XmlElement,
+  ): string | null {
+    const attributeValue: XmlElement | undefined =
+      SSOUtil.getAttributeValueElements(assertion).get(
+        SAML_OBJECT_ID_CLAIM.toLowerCase(),
+      );
+
+    if (!attributeValue) {
       return null;
     }
 
-    const attributes: Array<XmlElement> = SSOUtil.toElementArray(
-      attributeStatement.getElementsByTagNameNS("*", "Attribute"),
-    );
+    SSOUtil.assertPlainTextOnly(attributeValue);
 
-    for (const attribute of attributes) {
-      const name: string | null = attribute.getAttribute("Name");
+    const objectId: string = SSOUtil.getTrimmedText(attributeValue);
 
-      if (name === SSOUtil.MS_DISPLAY_NAME_CLAIM) {
-        const attributeValue: XmlElement | null =
-          SSOUtil.getDirectChildByLocalName(attribute, "AttributeValue");
-
-        if (attributeValue) {
-          SSOUtil.assertPlainTextOnly(attributeValue);
-          const fullName: string = SSOUtil.getTrimmedText(attributeValue);
-          if (fullName) {
-            return new Name(fullName);
-          }
-        }
-      }
+    if (!objectId) {
+      return null;
     }
 
-    return null;
+    if (objectId.length > SAML_OBJECT_ID_MAX_LENGTH) {
+      throw new BadRequestException(SAML_OBJECT_ID_TOO_LONG_MESSAGE);
+    }
+
+    return GUID.test(objectId) ? objectId.toLowerCase() : objectId;
   }
 
   // ---- Small DOM helpers -------------------------------------------------

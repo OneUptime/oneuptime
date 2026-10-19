@@ -66,7 +66,7 @@ Klik på **Gem ændringer**. En betalt plan faktureres fra det øjeblik, du skif
 API-nøgler virker kun på Growth-planen eller en højere plan, og under Scale-planen fjerner SCIM-forbindelser kun folk. En plan, der stopper dem, siger hvor mange, før du vælger den, og siden **Fakturering** viser **Ikke inkluderet i dette abonnement**, så længe de er stoppet. Intet slettes: de virker igen på en plan, der omfatter dem.
 
 > [!NOTE]
-> Har du købt OneUptime via en forhandler eller en cloud-markedsplads (AWS Marketplace, Microsoft Marketplace eller Google Cloud Marketplace)? Siden **Fakturering** siger det. En forhandler skifter din plan for dig, og en markedsplads fakturerer projektets plan og forbrug på din cloud-regning.
+> Har du købt OneUptime via en forhandler eller en cloud-markedsplads (AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace eller Vercel Marketplace)? Siden **Fakturering** siger det. En forhandler skifter din plan for dig, og en markedsplads fakturerer projektets plan og forbrug på din cloud-regning.
 
 ## Betalingsmetoder
 

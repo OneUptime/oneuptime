@@ -127,6 +127,11 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     routePath: "/syslog/v1/logs",
     surfaceMember: "Syslog",
   },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/VercelLogDrain.ts`,
+    routePath: "/vercel/v1/logs",
+    surfaceMember: "VercelLogDrain",
+  },
 ];
 
 /*
