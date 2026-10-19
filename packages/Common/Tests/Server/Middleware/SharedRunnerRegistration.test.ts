@@ -24,7 +24,7 @@ import {
   test,
 } from "@jest/globals";
 import crypto from "crypto";
-import type { SpiedFunction } from "jest-mock";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE SHARED RUNNER REGISTERS WITH ITS OWN KEY, AND HOLDS NO CLUSTER KEY.
@@ -91,9 +91,22 @@ jest.mock("../../../Server/Utils/Logger", () => {
 
 type ClusterKeyAuthorizationClass = typeof ClusterKeyAuthorizationType;
 
+// What the app answers or logs, as this copy of the product says it.
+interface Messages {
+  notSet: string;
+  missing: string;
+  shipped: string;
+  wrong: string;
+  tooMany: string;
+  invalidClusterKey: string;
+  clusterKeyInUrl: string;
+  runnerClusterKey: string;
+  olderRunner: string;
+}
+
 interface Installation {
   ClusterKeyAuthorization: ClusterKeyAuthorizationClass;
-  messages: Record<string, string>;
+  messages: Messages;
 }
 
 const OPERATOR_CLUSTER_KEY: string = OPERATOR_CLUSTER_KEYS[0]!.value!;
@@ -263,7 +276,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
   });
 
   test("compares the key in constant time, over digests of the same length", async () => {
-    const compare: SpiedFunction<typeof crypto.timingSafeEqual> = jest.spyOn(
+    const compare: SpyInstance<typeof crypto.timingSafeEqual> = jest.spyOn(
       crypto,
       "timingSafeEqual",
     );
@@ -290,7 +303,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
     ]) {
       expect(
         await register(app, OTHER_CLIENT, withRunnerKey(wrong)),
-      ).toStrictEqual(refusedWith(app.messages.wrong!));
+      ).toStrictEqual(refusedWith(app.messages.wrong));
     }
   });
 
@@ -302,7 +315,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
     ) {
       expect(
         await register(app, CLIENT, withRunnerKey(`guess-${index}`)),
-      ).toStrictEqual(refusedWith(app.messages.wrong!));
+      ).toStrictEqual(refusedWith(app.messages.wrong));
     }
 
     for (const key of ["guess-eleven", "guess-0", OPERATOR_RUNNER_KEY]) {
@@ -336,7 +349,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
     ) {
       expect(
         await register(app, CLIENT, withRunnerKey(`guess-${index}`)),
-      ).toStrictEqual(refusedWith(app.messages.wrong!));
+      ).toStrictEqual(refusedWith(app.messages.wrong));
     }
 
     // Ten wrong ones, and no more: the right key still registers.
@@ -349,7 +362,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
     for (let call: number = 0; call < 200; call++) {
       expect(
         await register(app, CLIENT, withRunnerKey("the-key-before-it-changed")),
-      ).toStrictEqual(refusedWith(app.messages.wrong!));
+      ).toStrictEqual(refusedWith(app.messages.wrong));
     }
 
     expect(
@@ -366,7 +379,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
 
     for (const value of shipped) {
       expect(await register(app, CLIENT, withRunnerKey(value))).toStrictEqual(
-        refusedWith(app.messages.shipped!),
+        refusedWith(app.messages.shipped),
       );
     }
 
@@ -388,7 +401,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
       withRunnerKey({ key: OPERATOR_RUNNER_KEY }),
     ] as Array<FakeRequest>) {
       expect(await register(app, CLIENT, request)).toStrictEqual(
-        refusedWith(app.messages.missing!),
+        refusedWith(app.messages.missing),
       );
     }
 
@@ -402,7 +415,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
       { params: { aiAgentKey: OPERATOR_RUNNER_KEY } },
     ] as Array<FakeRequest>) {
       expect(await register(app, CLIENT, request)).toStrictEqual(
-        refusedWith(app.messages.missing!),
+        refusedWith(app.messages.missing),
       );
     }
   });
@@ -444,7 +457,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
         headers: { clusterkey: "a-wrong-cluster-key" },
         body: { aiAgentKey: OPERATOR_RUNNER_KEY },
       }),
-    ).toStrictEqual(refusedWith(app.messages.invalidClusterKey!));
+    ).toStrictEqual(refusedWith(app.messages.invalidClusterKey));
     expect(
       await register(app, CLIENT, {
         body: {
@@ -452,7 +465,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
           clusterKey: "a-wrong-cluster-key",
         },
       }),
-    ).toStrictEqual(refusedWith(app.messages.invalidClusterKey!));
+    ).toStrictEqual(refusedWith(app.messages.invalidClusterKey));
   });
 
   test("a cluster key in the URL is refused, whatever else the request carries", async () => {
@@ -467,7 +480,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
       },
     ] as Array<FakeRequest>) {
       expect(await register(app, CLIENT, request)).toStrictEqual(
-        refusedWith(app.messages.clusterKeyInUrl!),
+        refusedWith(app.messages.clusterKeyInUrl),
       );
     }
   });
@@ -478,7 +491,7 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
     for (let index: number = 0; index < 50; index++) {
       expect(
         await register(app, CLIENT, withRunnerKey(`guess-${index}`)),
-      ).toStrictEqual(refusedWith(app.messages.wrong!));
+      ).toStrictEqual(refusedWith(app.messages.wrong));
     }
 
     expect(
@@ -506,7 +519,7 @@ describe.each([
       ]) {
         expect(
           await register(app, CLIENT, withRunnerKey(presented)),
-        ).toStrictEqual(refusedWith(app.messages.notSet!));
+        ).toStrictEqual(refusedWith(app.messages.notSet));
       }
 
       expect(redis.sets.size).toBe(0);
