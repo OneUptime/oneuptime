@@ -211,7 +211,7 @@ En kørsel, hvis heartbeat har været tavs i mere end 12 minutter, afsluttes med
 :::
 
 :::details Ingen Runner tager opgaven
-En opgave, der venter mere end 30 minutter, mens ingen Runner med **Kører AI-koderettelser** er forbundet, mislykkes med en besked om at kontrollere Runneren, så den aldrig vises som i gang for evigt. Når en Runner er online, men optaget, venter opgaver i kø på deres tur.
+En opgave, der venter mere end 30 minutter, mens ingen Runner med **Kører AI-koderettelser** er forbundet, mislykkes med en besked om at kontrollere Runneren, så den aldrig vises som i gang for evigt. Når en Runner er online, men optaget, venter opgaver i kø på deres tur. En Runner, der er ældre end Kode, får aldrig en anmodning fra Kode: opdater en Runner, du selv kører, sammen med serveren.
 :::
 
 ## Privatliv

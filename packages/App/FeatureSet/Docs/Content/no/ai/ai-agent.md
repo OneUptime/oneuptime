@@ -211,7 +211,7 @@ En kjøring der heartbeat har vært stille i mer enn 12 minutter, avsluttes med 
 :::
 
 :::details Ingen Runner plukker opp oppgaven
-En oppgave som venter i mer enn 30 minutter mens ingen Runner med **Kjører AI-koderettelser** er tilkoblet, feiler med en melding om å sjekke Runneren, slik at den aldri vises som pågående for alltid. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur.
+En oppgave som venter i mer enn 30 minutter mens ingen Runner med **Kjører AI-koderettelser** er tilkoblet, feiler med en melding om å sjekke Runneren, slik at den aldri vises som pågående for alltid. Når en Runner er tilkoblet, men opptatt, venter oppgaver i kø på tur. En Runner som er eldre enn Kode, får aldri en forespørsel fra Kode: oppdater en Runner du kjører selv, sammen med serveren.
 :::
 
 ## Personvern

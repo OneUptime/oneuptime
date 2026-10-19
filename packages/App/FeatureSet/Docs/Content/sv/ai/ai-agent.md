@@ -211,7 +211,7 @@ En körning vars heartbeat har varit tyst i mer än 12 minuter avslutas med ett 
 :::
 
 :::details Ingen Runner plockar upp uppgiften
-En uppgift som väntar mer än 30 minuter medan ingen Runner med **Kör AI-kodfixar** är ansluten fallerar, med ett meddelande om att kontrollera Runnern, så att den aldrig visas som pågående för alltid. När en Runner är online men upptagen väntar köade uppgifter på sin tur.
+En uppgift som väntar mer än 30 minuter medan ingen Runner med **Kör AI-kodfixar** är ansluten fallerar, med ett meddelande om att kontrollera Runnern, så att den aldrig visas som pågående för alltid. När en Runner är online men upptagen väntar köade uppgifter på sin tur. En Runner som är äldre än Kod får aldrig en begäran från Kod: uppdatera en Runner som du kör själv tillsammans med servern.
 :::
 
 ## Integritet

@@ -211,7 +211,7 @@ Un'esecuzione il cui heartbeat tace da più di 12 minuti viene chiusa con un err
 :::
 
 :::details Nessun Runner prende l'attività
-Un'attività che aspetta più di 30 minuti mentre non è collegato nessun Runner con **Esegue le correzioni di codice AI** fallisce, con un messaggio che invita a controllare il Runner, così non risulta mai in corso per sempre. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno.
+Un'attività che aspetta più di 30 minuti mentre non è collegato nessun Runner con **Esegue le correzioni di codice AI** fallisce, con un messaggio che invita a controllare il Runner, così non risulta mai in corso per sempre. Quando un Runner è online ma occupato, le attività in coda aspettano il loro turno. Un Runner precedente a Codice non riceve mai una richiesta da Codice: aggiorna un Runner che esegui tu insieme al server.
 :::
 
 ## Privacy

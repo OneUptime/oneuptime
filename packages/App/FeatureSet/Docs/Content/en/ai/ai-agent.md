@@ -211,7 +211,7 @@ A run whose heartbeat has been silent for more than 12 minutes is failed with an
 :::
 
 :::details No Runner picks the task up
-A task that waits more than 30 minutes while no Runner with **Runs AI Code Fixes** is connected fails, with a message to check the Runner, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn.
+A task that waits more than 30 minutes while no Runner with **Runs AI Code Fixes** is connected fails, with a message to check the Runner, so it never shows as in progress forever. When a Runner is online but busy, queued tasks wait their turn. A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.
 :::
 
 ## Privacy

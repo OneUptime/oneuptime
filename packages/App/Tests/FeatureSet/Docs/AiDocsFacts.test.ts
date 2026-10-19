@@ -37,6 +37,9 @@ import {
   CODE_TASK_LIMITS,
   CODE_TASK_LOG_WINDOWS_IN_HOURS,
 } from "Common/Types/AI/CodeTask";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "Common/Types/AI/CodeFixTaskType";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import LlmType from "Common/Types/LLM/LlmType";
 import { describe, expect, it } from "@jest/globals";
@@ -752,6 +755,23 @@ describe("Code", () => {
     );
     expect(fails).toContain(
       `A task that waits more than 30 minutes while no Runner with ${bold("Runs AI Code Fixes")} is connected fails`,
+    );
+  });
+
+  it("never hands a request from Code to a Runner older than Code", () => {
+    const claim: string = flat(
+      readRepoFile("Common/Server/Services/AIRunService.ts"),
+    );
+
+    // A Runner that does not say what it supports is one older than Code.
+    expect(claim).toContain(
+      "data.supportedTaskTypes || CodeFixTaskTypeHelper.getTaskTypesForRunnersThatDoNotSay();",
+    );
+    expect(
+      CodeFixTaskTypeHelper.getTaskTypesForRunnersThatDoNotSay(),
+    ).not.toContain(CodeFixTaskType.CodeRequest);
+    expect(flat(englishSection(CODE_PAGE, "## When a fix fails"))).toContain(
+      "A Runner older than Code is never handed a request from Code: update a Runner you run yourself along with the server.",
     );
   });
 

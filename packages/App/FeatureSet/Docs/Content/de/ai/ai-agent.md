@@ -211,7 +211,7 @@ Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird mit einem Fehl
 :::
 
 :::details Kein Runner übernimmt die Aufgabe
-Eine Aufgabe, die länger als 30 Minuten wartet, während kein Runner mit **Führt KI-Codekorrekturen aus** verbunden ist, schlägt mit dem Hinweis fehl, den Runner zu prüfen, sodass sie nie für immer als laufend angezeigt wird. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind.
+Eine Aufgabe, die länger als 30 Minuten wartet, während kein Runner mit **Führt KI-Codekorrekturen aus** verbunden ist, schlägt mit dem Hinweis fehl, den Runner zu prüfen, sodass sie nie für immer als laufend angezeigt wird. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind. Ein Runner, der älter als Code ist, bekommt nie eine Anfrage aus Code: Aktualisieren Sie einen selbst betriebenen Runner zusammen mit dem Server.
 :::
 
 ## Datenschutz

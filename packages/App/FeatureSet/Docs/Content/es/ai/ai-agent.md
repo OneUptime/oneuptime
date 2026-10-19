@@ -211,7 +211,7 @@ Una ejecución cuyo heartbeat lleva más de 12 minutos en silencio se marca como
 :::
 
 :::details Ningún Runner toma la tarea
-Una tarea que espera más de 30 minutos mientras no hay conectado ningún Runner con **Ejecuta correcciones de código con IA** falla, con un mensaje para revisar el Runner, así que nunca aparece en curso para siempre. Cuando un Runner está en línea pero ocupado, las tareas en cola esperan su turno.
+Una tarea que espera más de 30 minutos mientras no hay conectado ningún Runner con **Ejecuta correcciones de código con IA** falla, con un mensaje para revisar el Runner, así que nunca aparece en curso para siempre. Cuando un Runner está en línea pero ocupado, las tareas en cola esperan su turno. Un Runner anterior a Código nunca recibe una petición de Código: actualiza un Runner que ejecutes tú mismo junto con el servidor.
 :::
 
 ## Privacidad

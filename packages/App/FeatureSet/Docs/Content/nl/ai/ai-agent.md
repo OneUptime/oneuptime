@@ -211,7 +211,7 @@ Een run waarvan de heartbeat langer dan 12 minuten stil is, wordt met een fout b
 :::
 
 :::details Geen Runner pakt de taak op
-Een taak die langer dan 30 minuten wacht terwijl er geen Runner met **Voert AI-codecorrecties uit** verbonden is, mislukt met een melding om de Runner te controleren, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt.
+Een taak die langer dan 30 minuten wacht terwijl er geen Runner met **Voert AI-codecorrecties uit** verbonden is, mislukt met een melding om de Runner te controleren, zodat hij nooit eeuwig als bezig wordt getoond. Is een Runner online maar bezet, dan wachten taken in de wachtrij op hun beurt. Een Runner die ouder is dan Code krijgt nooit een verzoek uit Code: werk een Runner die je zelf draait samen met de server bij.
 :::
 
 ## Privacy

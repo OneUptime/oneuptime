@@ -211,7 +211,7 @@ Une exécution dont le heartbeat est silencieux depuis plus de 12 minutes est mi
 :::
 
 :::details Aucun Runner ne prend la tâche
-Une tâche qui attend plus de 30 minutes alors qu'aucun Runner avec **Exécute les corrections de code IA** n'est connecté échoue, avec un message invitant à vérifier le Runner, si bien qu'elle n'apparaît jamais en cours indéfiniment. Quand un Runner est en ligne mais occupé, les tâches en file attendent leur tour.
+Une tâche qui attend plus de 30 minutes alors qu'aucun Runner avec **Exécute les corrections de code IA** n'est connecté échoue, avec un message invitant à vérifier le Runner, si bien qu'elle n'apparaît jamais en cours indéfiniment. Quand un Runner est en ligne mais occupé, les tâches en file attendent leur tour. Un Runner antérieur à Code ne reçoit jamais de demande de Code : mettez à jour un Runner que vous faites tourner vous-même en même temps que le serveur.
 :::
 
 ## Confidentialité

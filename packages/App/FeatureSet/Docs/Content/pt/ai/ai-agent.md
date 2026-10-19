@@ -211,7 +211,7 @@ Uma execução cujo heartbeat está em silêncio há mais de 12 minutos é encer
 :::
 
 :::details Nenhum Runner assume a tarefa
-Uma tarefa que espera mais de 30 minutos enquanto nenhum Runner com **Executa correções de código por IA** está conectado falha, com uma mensagem para verificar o Runner, então ela nunca aparece em andamento para sempre. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas.
+Uma tarefa que espera mais de 30 minutos enquanto nenhum Runner com **Executa correções de código por IA** está conectado falha, com uma mensagem para verificar o Runner, então ela nunca aparece em andamento para sempre. Quando um Runner está online mas ocupado, as tarefas na fila esperam a vez delas. Um Runner anterior a Código nunca recebe um pedido de Código: atualize um Runner que você mesmo executa junto com o servidor.
 :::
 
 ## Privacidade
