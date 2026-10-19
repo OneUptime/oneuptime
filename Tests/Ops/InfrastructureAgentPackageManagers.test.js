@@ -195,15 +195,50 @@ describe(`${GORELEASER}: what the package managers are given`, () => {
     expect(cask.name).toBe("oneuptime-infrastructure-agent");
     expect(cask.binaries).toEqual(["oneuptime-infrastructure-agent"]);
     expect(cask.url.template).toBe(RELEASE_DOWNLOAD);
-    expect(cask.url.verified).toBe("github.com/OneUptime/oneuptime/");
     expect(cask.directory).toBe("Casks");
     expect(cask.skip_upload).toBe(true);
     expect(cask.repository).toEqual(
       expect.objectContaining({ owner: "OneUptime", name: "homebrew-tap" }),
     );
-    // The binary is not notarized: without this, Gatekeeper refuses it.
-    expect(cask.hooks.post.install).toContain(
-      '"com.apple.quarantine", "#{staged_path}/oneuptime-infrastructure-agent"',
+  });
+
+  /*
+   * Homebrew 7 deprecates the `verified:` url parameter and `postflight`
+   * blocks, and every brew command that read a cask with either printed a
+   * warning asking users to report it to the tap. GoReleaser writes
+   * hooks.post.install as `postflight`, and writes each line of its caveats
+   * field as a string of its own in a `caveats do` block, where Ruby keeps
+   * only the last: brew showed only the line about restarting after an
+   * upgrade. So the cask's Ruby is written in custom_block instead.
+   */
+  test("the cask uses nothing Homebrew 7 deprecates, and shows every line of its caveats", () => {
+    expect(cask.url.verified).toBeUndefined();
+    expect(cask.hooks).toBeUndefined();
+    expect(cask.caveats).toBeUndefined();
+    expect(cask.custom_block).not.toMatch(/^\s*postflight do/m);
+    expect(cask.custom_block).toContain("caveats <<~EOS\n");
+    expect(cask.custom_block).toContain(
+      "  sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com\n",
+    );
+    expect(cask.custom_block).toContain(
+      "  sudo oneuptime-infrastructure-agent start\n",
+    );
+  });
+
+  /*
+   * The binary is not notarized, and Homebrew quarantines what a cask
+   * downloads, so without this Gatekeeper refuses to run it. GoReleaser
+   * templates the cask, so the step's {{staged_path}} is written escaped.
+   */
+  test("the cask takes the quarantine off the binary in a postflight step that cannot fail the install", () => {
+    expect(cask.custom_block).toContain(
+      [
+        "postflight_steps do",
+        "  on_macos do",
+        '    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ "{{staged_path}}" }}/oneuptime-infrastructure-agent"], must_succeed: false',
+        "  end",
+        "end",
+      ].join("\n"),
     );
   });
 
