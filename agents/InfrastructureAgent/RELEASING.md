@@ -284,7 +284,9 @@ change.
   deploy waited for runners, so the site served 14.0.74 at 08:58 UTC, 75
   minutes after the push. It is the first release whose MSI upgrades an installed agent in
   place. Its cask still used `postflight`, so brew warned about a
-  deprecation.
+  deprecation. The status workflow's first run, the same morning, found it
+  published everywhere except winget. It installed it on all nine
+  distributions on x64 and Arm, and failed the Homebrew job on that warning.
 - **The release after 14.0.74** is the first with the cask that Homebrew 7
   does not warn about (`postflight_steps`), and with the arm64 MSI built as
   an x64 package, so it installs in `C:\Program Files`.

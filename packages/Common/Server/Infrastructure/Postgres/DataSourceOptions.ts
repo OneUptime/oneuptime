@@ -10,6 +10,7 @@ import {
   DatabaseUsername,
   MaxPostgresConnections,
   PostgresConnectionAcquireTimeoutMs,
+  PostgresConnectionMaxLifetimeMs,
   PostgresLockTimeoutMs,
   PostgresIdleInTransactionTimeoutMs,
   PostgresIdleSessionTimeoutMs,
@@ -103,6 +104,15 @@ const dataSourceOptions: DataSourceOptions = {
     Client: CancelOnTimeoutClient,
     max: MaxPostgresConnections,
     idleTimeoutMillis: PostgresIdleTimeoutMs,
+    /*
+     * Replace every connection once it is PostgresConnectionMaxLifetimeMs
+     * old, so none stays open for the life of the process (see
+     * EnvironmentConfig for why that matters). pg-pool closes an expired
+     * connection when it is idle, never while a query or transaction has it.
+     */
+    ...(PostgresConnectionMaxLifetimeMs > 0
+      ? { maxLifetimeSeconds: PostgresConnectionMaxLifetimeMs / 1000 }
+      : {}),
     connectionTimeoutMillis: PostgresConnectionAcquireTimeoutMs,
     statement_timeout: PostgresStatementTimeoutMs,
     query_timeout: PostgresQueryTimeoutMs,
