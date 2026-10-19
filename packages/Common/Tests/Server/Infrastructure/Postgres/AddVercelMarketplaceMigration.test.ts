@@ -1,3 +1,4 @@
+import { AddIncomingCallLogItemPolicyIndexAndKey1803650000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1803650000000-AddIncomingCallLogItemPolicyIndexAndKey";
 import { AddVercelMarketplace1803700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1803700000000-AddVercelMarketplace";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner } from "typeorm";
@@ -113,8 +114,23 @@ describe("AddVercelMarketplace1803700000000", () => {
     );
   });
 
-  test("is registered, last", () => {
-    const last: unknown = SchemaMigrations[SchemaMigrations.length - 1];
-    expect(last).toBe(AddVercelMarketplace1803700000000);
+  /*
+   * Not "registered last": the next migration to land falsifies that without
+   * going near these tables (SchemaMigrationsOrdering guards the newest
+   * entry). What this one must not do is run before the migration it was
+   * numbered to follow, or twice.
+   */
+  test("is registered once, right after the migration it was numbered to follow", () => {
+    const position: number = SchemaMigrations.indexOf(
+      AddVercelMarketplace1803700000000,
+    );
+
+    expect(position).toBeGreaterThan(0);
+    expect(
+      SchemaMigrations.lastIndexOf(AddVercelMarketplace1803700000000),
+    ).toBe(position);
+    expect(SchemaMigrations[position - 1]).toBe(
+      AddIncomingCallLogItemPolicyIndexAndKey1803650000000,
+    );
   });
 });

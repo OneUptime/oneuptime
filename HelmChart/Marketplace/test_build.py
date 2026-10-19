@@ -10,7 +10,6 @@ runs these, then renders each built edition with helm.
 """
 
 import json
-import os
 import re
 import shutil
 import sys
@@ -386,12 +385,76 @@ class BuildTest(unittest.TestCase):
     def test_aws_writes_every_image_out_in_values_yaml(self) -> None:
         plan = build.build("aws", "1.2.3", self.out)
         values: str = (self.out / "oneuptime" / "values.yaml").read_text()
+        references = build.values_image_references(values)
 
+        # Each one as AWS reads it: a repository, with the registry and tag beside it.
         for entry in plan:
-            self.assertIn(f'"{entry["target"]}"', values)
+            self.assertIn(entry["target"], references)
 
+        editor = build.ValuesEditor(values)
+        self.assertEqual(editor.get_scalar(["image", "overrides", "app", "registry"]), '"709825985650.dkr.ecr.us-east-1.amazonaws.com"')
+        self.assertEqual(editor.get_scalar(["image", "overrides", "app", "repository"]), '"oneuptime/app"')
+        self.assertEqual(editor.get_scalar(["image", "overrides", "app", "tag"]), '"1.2.3"')
         self.assertNotIn("docker.io/library/postgres", values)
         self.assertIn('    repository: "709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime/postgres"', values)
+
+    def test_aws_refused_the_full_reference_form(self) -> None:
+        # 14.0.72's AWS edition named OneUptime's images only as full references in
+        # image.overrides, and AWS refused the version (MISSING_VALUES_IMAGE_REFERENCE) for app,
+        # nginx, probe and runner - the bundled databases have repository and tag fields too.
+        plan = build.build("aws", "14.0.72", self.out)
+        editor = build.ValuesEditor((self.out / "oneuptime" / "values.yaml").read_text())
+        build.reference_values(editor, plan, field_images=True, as_fields=False)
+        references = build.values_image_references(editor.text())
+        refused = sorted(entry["key"] for entry in plan if entry["target"] not in references)
+
+        self.assertEqual(refused, ["app", "nginx", "probe", "runner"])
+
+    def test_refuses_an_aws_edition_from_a_release_before_the_image_form(self) -> None:
+        old_chart: Path = self.out / "old-chart"
+        shutil.copytree(build.PUBLIC_CHART, old_chart)
+        helpers: Path = old_chart / "templates" / "_helpers.tpl"
+        helpers.write_text(helpers.read_text().replace(build.AWS_IMAGE_FORM, "$override.somethingElse"))
+
+        with mock.patch.object(build, "PUBLIC_CHART", old_chart):
+            with self.assertRaises(ValueError) as raised:
+                build.build("aws", "1.2.3", self.out / "edition")
+
+        self.assertIn(build.AWS_PREDATES, str(raised.exception))
+
+    def test_reads_image_references_as_aws_does(self) -> None:
+        values = "\n".join(
+            [
+                "image:",
+                "  overrides:",
+                "    app:",
+                '      registry: "r.example.com"',
+                '      repository: "team/app"',
+                '      tag: "1.0"',
+                "    probe:",
+                "      repository: r.example.com/team/probe  # a comment",
+                "      digest: sha256:abc",
+                "postgresql:",
+                "  image:",
+                "    repository: 'r.example.com/team/postgres'",
+                "    tag: 15-alpine",
+                "    pullPolicy: IfNotPresent",
+                "valkey:",
+                "  image:",
+                "    # repository: not.this/one",
+                "    repository: r.example.com/team/valkey:9",
+            ]
+        )
+
+        self.assertEqual(
+            build.values_image_references(values),
+            {
+                "r.example.com/team/app:1.0",
+                "r.example.com/team/probe@sha256:abc",
+                "r.example.com/team/postgres:15-alpine",
+                "r.example.com/team/valkey:9",
+            },
+        )
 
     def test_azure_lays_out_the_cnab(self) -> None:
         build.build("azure", "1.2.3", self.out)
@@ -565,61 +628,6 @@ def subschemas(schema: Dict[str, Any], path: Tuple[str, ...] = ()) -> List[Tuple
     return found
 
 
-def released_agent_chart_predates_the_add_on() -> bool:
-    """
-    True only where the checkout holds a release's charts - the Marketplace Release workflow's test
-    job sets MARKETPLACE_RELEASED_CHARTS to that release - and the release's Kubernetes agent chart
-    is from before the EKS add-on. Such a release has no add-on to check, and build.py refuses to
-    build one from it, as the marketplace suite's own add-on checks skip it. Anywhere else (this
-    repository's charts) the add-on's tests always run.
-    """
-    if not os.environ.get("MARKETPLACE_RELEASED_CHARTS", "").strip():
-        return False
-
-    values = build.ValuesEditor((build.AGENT_CHART / "values.yaml").read_text())
-
-    try:
-        values.get_scalar(["oneuptime", "existingSecretName"])
-    except KeyError:
-        return True
-
-    return False
-
-
-SKIP_A_RELEASE_FROM_BEFORE_THE_ADD_ON = unittest.skipIf(
-    released_agent_chart_predates_the_add_on(),
-    f"{build.EKS_ADDON_PREDATES}: the charts here are a release's (MARKETPLACE_RELEASED_CHARTS)",
-)
-
-
-class ReleasedChartsTest(unittest.TestCase):
-    """Built on agent charts of its own: the checkout's may itself be a release's, old or new."""
-
-    def agent_chart(self, directory: Path, with_the_add_on: bool) -> Path:
-        chart: Path = directory / ("new" if with_the_add_on else "old")
-        chart.mkdir()
-        # The values key the add-on brought: a key with an empty value, no secret.
-        add_on_key: str = '  existingSecretName: ""\n' if with_the_add_on else ""
-        (chart / "values.yaml").write_text('oneuptime:\n  url: ""\n' + add_on_key)
-        return chart
-
-    def predates(self, chart: Path, released: str) -> bool:
-        with mock.patch.dict(os.environ, {"MARKETPLACE_RELEASED_CHARTS": released}):
-            with mock.patch.object(build, "AGENT_CHART", chart):
-                return released_agent_chart_predates_the_add_on()
-
-    def test_skips_the_add_on_only_for_a_release_from_before_it(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            self.assertTrue(self.predates(self.agent_chart(Path(directory), False), "14.0.72"))
-            self.assertFalse(self.predates(self.agent_chart(Path(directory), True), "14.0.74"))
-
-    def test_never_skips_this_repository_s_charts(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            # An agent chart here that lost the add-on's value fails the add-on's tests.
-            self.assertFalse(self.predates(self.agent_chart(Path(directory), False), ""))
-
-
-@SKIP_A_RELEASE_FROM_BEFORE_THE_ADD_ON
 class EksAddonConfigurationSchemaTest(unittest.TestCase):
     def schema(self) -> Dict[str, Any]:
         return build.load_json(build.EKS_ADDON_DIR / "configuration-schema.json")
@@ -730,7 +738,6 @@ class EksAddonConfigurationSchemaTest(unittest.TestCase):
             self.assertEqual(schema_errors(schema, value), [], value)
 
 
-@SKIP_A_RELEASE_FROM_BEFORE_THE_ADD_ON
 class EksAddonBuildTest(unittest.TestCase):
     def setUp(self) -> None:
         self.out: Path = Path(tempfile.mkdtemp())

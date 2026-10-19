@@ -192,6 +192,32 @@ describe("an email value is text", () => {
       return Email.fromDatabase(["a@example.com"] as unknown as string);
     }).toThrow(BadDataException);
   });
+
+  /*
+   * An Email is not text, but it is an address: copied into a new one - as
+   * UserUtil.getEmail does with the Email local storage gives back - it is
+   * read by its text and checked again.
+   */
+  test("an Email handed to the constructor is read by its text, and checked again", () => {
+    const copy: Email = new Email(
+      new Email(" Ada@Example.com ") as unknown as string,
+    );
+
+    expect(copy).toBeInstanceOf(Email);
+    expect(copy.toString()).toBe("ada@example.com");
+    expect(copy.isMalformed()).toBe(false);
+
+    // A stored value that is not one mailbox still reads, but is no new address.
+    const stored: Email = Email.fromJSON({
+      _type: ObjectType.Email,
+      value: "Ops <ops@example.com>",
+    });
+
+    expect(stored.isMalformed()).toBe(true);
+    expect(() => {
+      return new Email(stored as unknown as string);
+    }).toThrow(BadDataException);
+  });
 });
 
 describe("an email value is bounded in length", () => {
