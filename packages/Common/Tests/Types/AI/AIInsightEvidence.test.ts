@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import AIInsightEvidence, {
+  DeployRegressionInsightEvidence,
   ExceptionInsightEvidence,
   LatencyInsightEvidence,
   LogSpikeInsightEvidence,
@@ -29,6 +30,7 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.ErrorLogSpike]: "logSpike",
   [AIInsightType.TraceLatencyRegression]: "latency",
   [AIInsightType.MetricDrift]: "metricDrift",
+  [AIInsightType.DeployRegression]: "deployRegression",
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
@@ -36,6 +38,7 @@ const ALL_SECTIONS: Array<EvidenceSection> = [
   "logSpike",
   "latency",
   "metricDrift",
+  "deployRegression",
 ];
 
 const setSections: (evidence: AIInsightEvidence) => Array<string> = (
@@ -117,6 +120,34 @@ const metricDriftEvidence: MetricDriftInsightEvidence = {
   priorSampleCount: 10080,
 };
 
+const deployRegressionEvidence: DeployRegressionInsightEvidence = {
+  changeId: "3f2b8c1d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+  changeTime: "2026-10-19T09:30:00.000Z",
+  changeTitle: "Deploy 2.3.1",
+  changeType: "deployment",
+  version: "2.3.1",
+  previousVersion: "2.3.0",
+  commitSha: "1a2b3c4",
+  environment: "production",
+  source: "cli",
+  reasons: ["p99 latency rose from 300 ms to 2.4 s", "a new exception type"],
+  before: {
+    durationMinutes: 30,
+    spanCount: 12000,
+    errorSpanCount: 12,
+    p99Ms: 300,
+    exceptionCount: 3,
+  },
+  after: {
+    durationMinutes: 30,
+    spanCount: 11800,
+    errorSpanCount: 240,
+    p99Ms: 2400,
+    exceptionCount: 95,
+  },
+  newExceptionTypes: [{ exceptionType: "TypeError", occurrenceCount: 80 }],
+};
+
 describe("AIInsightEvidence", () => {
   test("every insight type maps to a known evidence section", () => {
     for (const type of Object.values(AIInsightType)) {
@@ -140,6 +171,7 @@ describe("AIInsightEvidence", () => {
     ["logSpike", { logSpike: logSpikeEvidence }],
     ["latency", { latency: latencyEvidence }],
     ["metricDrift", { metricDrift: metricDriftEvidence }],
+    ["deployRegression", { deployRegression: deployRegressionEvidence }],
   ] as Array<[EvidenceSection, AIInsightEvidence]>)(
     "%s evidence survives a JSON round trip with exactly one section set",
     (section: EvidenceSection, evidence: AIInsightEvidence) => {

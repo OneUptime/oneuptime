@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import ExceptionInstanceService from "../../../../../Server/Services/ExceptionInstanceService";
@@ -312,7 +313,7 @@ describe("DeployRegressionDetector.readWindowStats", () => {
   });
 
   test("reads the projections for the one service, the end's own minute left to the next window", async () => {
-    const facetCounts: jest.SpiedFunction<
+    const facetCounts: SpyInstance<
       typeof TraceAggregationService.getResourceFacetCounts
     > = jest
       .spyOn(TraceAggregationService, "getResourceFacetCounts")
@@ -324,7 +325,7 @@ describe("DeployRegressionDetector.readWindowStats", () => {
           ["2", 64],
         ]),
       });
-    const latency: jest.SpiedFunction<
+    const latency: SpyInstance<
       typeof TraceAggregationService.getServiceLatencyProfile
     > = jest
       .spyOn(TraceAggregationService, "getServiceLatencyProfile")
@@ -334,11 +335,10 @@ describe("DeployRegressionDetector.readWindowStats", () => {
         ],
         isPartial: false,
       });
-    const exceptions: jest.SpiedFunction<
-      typeof ExceptionInstanceService.countBy
-    > = jest
-      .spyOn(ExceptionInstanceService, "countBy")
-      .mockResolvedValue(new PositiveNumber(12));
+    const exceptions: SpyInstance<typeof ExceptionInstanceService.countBy> =
+      jest
+        .spyOn(ExceptionInstanceService, "countBy")
+        .mockResolvedValue(new PositiveNumber(12));
     const start: Date = minutesAgo(45);
     const end: Date = minutesAgo(15);
 
@@ -417,7 +417,7 @@ describe("DeployRegressionDetector.readWindowStats", () => {
 describe("DeployRegressionDetector.detect", () => {
   let rows: Array<JSONObject>;
   let checked: Map<string, string>;
-  let findChanges: jest.SpiedFunction<typeof ChangeEventService.findBy>;
+  let findChanges: SpyInstance<typeof ChangeEventService.findBy>;
   let errorsAfter: number;
   let failingServiceId: string | null;
 
@@ -470,7 +470,10 @@ describe("DeployRegressionDetector.detect", () => {
     jest
       .spyOn(TraceAggregationService, "getResourceFacetCounts")
       .mockImplementation(
-        async (request: { startTime: Date; serviceIds?: Array<ObjectID> }) => {
+        async (request: {
+          startTime: Date;
+          serviceIds?: Array<ObjectID> | undefined;
+        }) => {
           if (
             failingServiceId &&
             String(request.serviceIds?.[0]) === failingServiceId
