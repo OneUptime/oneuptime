@@ -1,5 +1,6 @@
 import BadDataException from "../Exception/BadDataException";
 import MonitorType from "./MonitorType";
+import { refusedValue } from "../../Utils/RefusedValue";
 
 export interface MonitorTemplateSyncField {
   path: string;
@@ -258,7 +259,9 @@ export default class MonitorTemplateSyncFieldUtil {
 
     for (const path of value) {
       if (!allowedFields.has(path)) {
-        throw new BadDataException(`Unsupported do not sync field: ${path}.`);
+        throw new BadDataException(
+          `Unsupported do not sync field: ${refusedValue(path)}.`,
+        );
       }
     }
 

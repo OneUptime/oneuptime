@@ -56,6 +56,13 @@ export const KUBECTL_KILLED_ON_TIMEOUT_PREFIX: string = "Killed (timeout";
  * the model chose and must not overwrite the cluster's "Last error".
  * Matched against kubectl's stderr only, one line at a time: stdout is
  * cluster data (pod logs say "connection refused" all the time).
+ *
+ * A line is whatever a Runner reported, of any length. A message with
+ * something between two phrases ("The connection to the server ... was
+ * refused") is looked for from the first time the first phrase is written
+ * on a line (^ and the m flag, then no earlier one): what follows a later
+ * one on the line follows the first too, and tried from every one of them,
+ * each try read on to the end of the line.
  */
 const KUBECTL_ACCESS_ERROR_PATTERNS: Array<RegExp> = [
   /Error from server \((Forbidden|Unauthorized)\)/,
@@ -64,7 +71,7 @@ const KUBECTL_ACCESS_ERROR_PATTERNS: Array<RegExp> = [
   /You must be logged in to the server/,
   /the server has asked for the client to provide credentials/,
   /Unable to connect to the server/,
-  /The connection to the server .+ was refused/,
+  /^(?:(?!The connection to the server ).)*The connection to the server .+ was refused/m,
   /no configuration has been provided/,
   /connection refused/,
   /no such host/,
@@ -89,7 +96,7 @@ const API_SERVER_ANSWERED_PATTERN: RegExp = /^Error from server\b/;
 
 const API_SERVER_REFUSED_ACCESS_PATTERNS: Array<RegExp> = [
   /^Error from server \((Forbidden|Unauthorized)\)/,
-  / is forbidden: User ".*" cannot /,
+  /^(?:(?! is forbidden: User ").)* is forbidden: User ".*" cannot /m,
   /\(Unauthorized\)/,
   /the server has asked for the client to provide credentials/,
 ];

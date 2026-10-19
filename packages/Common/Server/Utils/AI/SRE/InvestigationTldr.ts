@@ -5,6 +5,9 @@ import AIService, {
 } from "../../../Services/AIService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
+import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
+import { stripBlockMarkers } from "./TldrBlockMarkers";
 
 /*
  * AI SRE — the investigation TL;DR.
@@ -95,6 +98,9 @@ const LEADING_LABEL_LINE_RE: RegExp =
 const LEADING_LABEL_RE: RegExp =
   /^\s*(?:\*{0,2})(tl[;,]?\s?dr|summary)(?:\*{0,2})\s*[:\-–—]\s*/i;
 
+// What a cut TL;DR may not end with, besides white space.
+const CUT_PUNCTUATION_CODES: ReadonlySet<number> = codesOf(".,;:");
+
 /*
  * Markdown inline syntax that must not reach a plain-text renderer.
  *
@@ -127,8 +133,6 @@ const MARKDOWN_STAR_OR_CODE_RE: RegExp = /[*`]+/g;
 const MARKDOWN_UNDERSCORE_EMPHASIS_RE: RegExp =
   /(^|[^\w])_{1,2}([^_]+?)_{1,2}(?=[^\w]|$)/g;
 const MARKDOWN_STRIKETHROUGH_RE: RegExp = /~~([^~]+?)~~/g;
-const MARKDOWN_HEADING_RE: RegExp = /^\s{0,3}#{1,6}\s*/gm;
-const MARKDOWN_QUOTE_OR_BULLET_RE: RegExp = /^\s{0,3}(?:[>\-+*]|\d+[.)])\s+/gm;
 const WHITESPACE_RE: RegExp = /\s+/g;
 
 export default class InvestigationTldr {
@@ -165,19 +169,13 @@ export default class InvestigationTldr {
     }
 
     /*
-     * Block markers can stack ("> ## cause", "- - cause"), and each pass only
-     * matches at the very start of a line, so a single pass leaves the inner
-     * marker behind for the panel to render verbatim. Repeat to a fixed point
-     * — the same idiom as the label loop above.
+     * Block markers can stack ("> ## cause", "- - cause"), and a heading's
+     * or a quote's or bullet's marker is only one at the very start of a
+     * line, so taking each off once leaves the inner marker behind for the
+     * panel to render verbatim. They are taken off to a fixed point
+     * (stripBlockMarkers).
      */
-    let withoutBlockMarkers: string = withoutLabelLines;
-    let previousBlockMarkers: string = "";
-    while (withoutBlockMarkers !== previousBlockMarkers) {
-      previousBlockMarkers = withoutBlockMarkers;
-      withoutBlockMarkers = withoutBlockMarkers
-        .replace(MARKDOWN_HEADING_RE, "")
-        .replace(MARKDOWN_QUOTE_OR_BULLET_RE, "");
-    }
+    const withoutBlockMarkers: string = stripBlockMarkers(withoutLabelLines);
 
     let text: string = withoutBlockMarkers
       .replace(
@@ -224,7 +222,12 @@ export default class InvestigationTldr {
       lastSpaceIndex > MIN_TLDR_CHARS
         ? hardCut.substring(0, lastSpaceIndex)
         : hardCut;
-    const trimmed: string = truncated.replace(/[\s.,;:]+$/, "");
+    const trimmed: string = withoutTrailingRun(
+      truncated,
+      (code: number): boolean => {
+        return isWhiteSpaceCode(code) || CUT_PUNCTUATION_CODES.has(code);
+      },
+    );
 
     /*
      * The floor above was checked against the PRE-truncation text. Cutting at

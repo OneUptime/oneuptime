@@ -11,6 +11,7 @@ import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import dns from "dns";
 import { execFile } from "child_process";
 import MonitorRetry from "../MonitorRetry";
+import { digOutputHasAuthenticatedData } from "../DigOutput";
 
 /*
  * Retries when neither the caller nor the step config sets one: three
@@ -428,9 +429,7 @@ export default class DnsMonitorUtil {
           }
 
           // Check for the AD (Authenticated Data) flag in the response
-          const adFlagPattern: RegExp = /flags:.*\bad\b/i;
-          const hasAdFlag: boolean = adFlagPattern.test(stdout);
-          resolve(hasAdFlag);
+          resolve(digOutputHasAuthenticatedData(stdout));
         },
       );
     });

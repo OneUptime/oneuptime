@@ -5,6 +5,7 @@ import { JSONArray, JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
 import PositiveNumber from "../PositiveNumber";
 import EventInterval from "./EventInterval";
+import { refusedValue } from "../../Utils/RefusedValue";
 import { FindOperator } from "typeorm";
 
 export interface RecurringData extends JSONObject {
@@ -65,7 +66,9 @@ export default class Recurring extends DatabaseProperty {
         );
         break;
       default:
-        throw new BadDataException("Invalid Interval Type: " + intervalType);
+        throw new BadDataException(
+          "Invalid Interval Type: " + refusedValue(intervalType),
+        );
     }
 
     return nextDate;
@@ -99,7 +102,9 @@ export default class Recurring extends DatabaseProperty {
           intervalMillis = intervalCount.toNumber() * 31557600000; // Approximate year in milliseconds
           break;
         default:
-          throw new BadDataException("Invalid Interval Type: " + intervalType);
+          throw new BadDataException(
+            "Invalid Interval Type: " + refusedValue(intervalType),
+          );
       }
 
       const intervalsToAdd: number = Math.ceil(diff / intervalMillis);
@@ -126,7 +131,9 @@ export default class Recurring extends DatabaseProperty {
       case EventInterval.Year:
         return "year";
       default:
-        throw new BadDataException("Invalid Interval Type: " + intervalType);
+        throw new BadDataException(
+          "Invalid Interval Type: " + refusedValue(intervalType),
+        );
     }
   }
 

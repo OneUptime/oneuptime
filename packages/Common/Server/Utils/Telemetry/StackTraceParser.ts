@@ -1,3 +1,15 @@
+import {
+  FrameLineMatch,
+  readCSharpFrameWithFile,
+  readPhpFrame,
+  readPythonFrame,
+  readRubyFrame,
+  readV8EvalFrame,
+  readV8FrameWithParens,
+  readV8FrameWithParensNoColumn,
+  readV8FrameWithoutParens,
+} from "./StackFrameLines";
+
 /**
  * Stack trace parser that transforms raw stack trace strings into structured frames.
  * Supports JavaScript/Node.js, Python, Java, Go, Ruby, C#/.NET, and PHP stack traces.
@@ -6,6 +18,12 @@
  * V8 (Chrome, Edge, Node) writes `at fn (file:line:col)`, while SpiderMonkey
  * (Firefox) and JavaScriptCore (Safari) write `fn@source:line:col`. See
  * parseJavaScript and parseJavaScriptBrowser respectively.
+ *
+ * A trace is whatever an application sent at ingest, so a line can be of
+ * any length and any shape. A frame whose name or file is "the fewest
+ * characters up to" what follows it is read by StackFrameLines, which
+ * reads a line a fixed number of times and finds exactly what the pattern
+ * named above each reader found.
  */
 
 export interface StackFrame {
@@ -300,20 +318,15 @@ export default class StackTraceParser {
   private static parseJavaScript(lines: string[]): StackFrame[] {
     const frames: StackFrame[] = [];
 
-    // Pattern 1: at functionName (filePath:line:col)
-    const patternWithParens: RegExp = /^at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)$/;
-    // Pattern 2: at filePath:line:col
-    const patternWithoutParens: RegExp = /^at\s+(.+?):(\d+):(\d+)$/;
-    // Pattern 3: at functionName (filePath:line)
-    const patternWithParensNoCol: RegExp = /^at\s+(.+?)\s+\((.+?):(\d+)\)$/;
-    // Pattern 4: at eval (eval at functionName (filePath:line:col))
-    const patternEval: RegExp =
-      /^at\s+eval\s+\(eval\s+at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/;
-
+    /*
+     * In this order: at eval (eval at functionName (filePath:line:col)),
+     * at functionName (filePath:line:col), at functionName (filePath:line),
+     * at filePath:line:col.
+     */
     for (const line of lines) {
-      let match: RegExpMatchArray | null = null;
+      let match: FrameLineMatch | null = null;
 
-      match = line.match(patternEval);
+      match = readV8EvalFrame(line);
       if (match) {
         frames.push({
           functionName: `eval at ${match[1]!}`,
@@ -325,7 +338,7 @@ export default class StackTraceParser {
         continue;
       }
 
-      match = line.match(patternWithParens);
+      match = readV8FrameWithParens(line);
       if (match) {
         frames.push({
           functionName: match[1]!,
@@ -337,7 +350,7 @@ export default class StackTraceParser {
         continue;
       }
 
-      match = line.match(patternWithParensNoCol);
+      match = readV8FrameWithParensNoColumn(line);
       if (match) {
         frames.push({
           functionName: match[1]!,
@@ -348,7 +361,7 @@ export default class StackTraceParser {
         continue;
       }
 
-      match = line.match(patternWithoutParens);
+      match = readV8FrameWithoutParens(line);
       if (match) {
         frames.push({
           functionName: "<anonymous>",
@@ -370,11 +383,9 @@ export default class StackTraceParser {
    */
   private static parsePython(lines: string[]): StackFrame[] {
     const frames: StackFrame[] = [];
-    const pattern: RegExp =
-      /^File\s+"(.+?)",\s+line\s+(\d+)(?:,\s+in\s+(.+))?$/;
 
     for (const line of lines) {
-      const match: RegExpMatchArray | null = line.match(pattern);
+      const match: FrameLineMatch | null = readPythonFrame(line);
       if (match) {
         frames.push({
           functionName: match[3] || "<module>",
@@ -492,10 +503,9 @@ export default class StackTraceParser {
    */
   private static parseRuby(lines: string[]): StackFrame[] {
     const frames: StackFrame[] = [];
-    const pattern: RegExp = /^(.+?):(\d+):in\s+[`'](.+?)'$/;
 
     for (const line of lines) {
-      const match: RegExpMatchArray | null = line.match(pattern);
+      const match: FrameLineMatch | null = readRubyFrame(line);
       if (match) {
         frames.push({
           functionName: match[3]!,
@@ -515,26 +525,23 @@ export default class StackTraceParser {
    */
   private static parseCSharp(lines: string[]): StackFrame[] {
     const frames: StackFrame[] = [];
-    // Pattern: at Namespace.Class.Method(params) in /path/to/file.cs:line 42
-    const patternWithFile: RegExp = /^at\s+(.+?)\s+in\s+(.+?):line\s+(\d+)$/;
     // Pattern: at Namespace.Class.Method(params)
     const patternWithoutFile: RegExp = /^at\s+([\w.<>+]+\(.*?\))$/;
 
     for (const line of lines) {
-      let match: RegExpMatchArray | null = null;
-
-      match = line.match(patternWithFile);
-      if (match) {
+      // at Namespace.Class.Method(params) in /path/to/file.cs:line 42
+      const withFile: FrameLineMatch | null = readCSharpFrameWithFile(line);
+      if (withFile) {
         frames.push({
-          functionName: match[1]!,
-          fileName: match[2]!,
-          lineNumber: parseInt(match[3]!, 10),
-          inApp: StackTraceParser.isAppCode(match[1]!),
+          functionName: withFile[1]!,
+          fileName: withFile[2]!,
+          lineNumber: parseInt(withFile[3]!, 10),
+          inApp: StackTraceParser.isAppCode(withFile[1]!),
         });
         continue;
       }
 
-      match = line.match(patternWithoutFile);
+      const match: RegExpMatchArray | null = line.match(patternWithoutFile);
       if (match) {
         frames.push({
           functionName: match[1]!,
@@ -555,8 +562,6 @@ export default class StackTraceParser {
    */
   private static parsePHP(lines: string[]): StackFrame[] {
     const frames: StackFrame[] = [];
-    // Pattern: #0 /path/to/file.php(42): ClassName->method()
-    const pattern: RegExp = /^#\d+\s+(.+?)\((\d+)\):\s+(.+)$/;
     // Pattern: #0 {main}
     const patternMain: RegExp = /^#\d+\s+\{main\}$/;
 
@@ -571,7 +576,8 @@ export default class StackTraceParser {
         continue;
       }
 
-      const match: RegExpMatchArray | null = line.match(pattern);
+      // Pattern: #0 /path/to/file.php(42): ClassName->method()
+      const match: FrameLineMatch | null = readPhpFrame(line);
       if (match) {
         frames.push({
           functionName: match[3]!.replace(/\(\)$/, ""),

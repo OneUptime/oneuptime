@@ -13,6 +13,7 @@ import DnssecMonitorResponse, {
 } from "Common/Types/Monitor/DnssecMonitor/DnssecMonitorResponse";
 import { execFile } from "child_process";
 import MonitorRetry from "../MonitorRetry";
+import { readDigFlagsField } from "../DigOutput";
 
 /*
  * Retries when neither the caller nor the step config sets one: three
@@ -483,13 +484,11 @@ export default class DnssecMonitorUtil {
   private static parseDigOutput(stdout: string): DigResult {
     const statusMatch: RegExpMatchArray | null =
       stdout.match(/status:\s*([A-Z]+)/i);
-    const flagsMatch: RegExpMatchArray | null =
-      stdout.match(/flags:\s*([^;]+);/i);
+    const flagsField: string | null = readDigFlagsField(stdout);
 
     const status: string = statusMatch ? statusMatch[1]!.toUpperCase() : "";
-    const flags: Array<string> = flagsMatch
-      ? flagsMatch[1]!.trim().split(/\s+/).filter(Boolean)
-      : [];
+    const flags: Array<string> =
+      flagsField !== null ? flagsField.trim().split(/\s+/).filter(Boolean) : [];
 
     const answers: Array<string> = [];
     const answerSectionIdx: number = stdout.indexOf(";; ANSWER SECTION:");

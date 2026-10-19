@@ -21,6 +21,7 @@ import {
   DataSourceConnector,
   DataSourceQueryWindow,
 } from "../Types";
+import { withoutTrailingSlashes } from "../../../../Utils/TrailingRuns";
 
 /*
  * Connector for Elasticsearch and OpenSearch clusters. Queries are written
@@ -169,7 +170,7 @@ function getTrimmedBaseUrl(settings: DataSourceConnectionSettings): string {
       "Elasticsearch data source is missing a URL. Set the base URL of the cluster's HTTP endpoint (for example https://elasticsearch.example.com:9200).",
     );
   }
-  return settings.url.trim().replace(/\/+$/, "");
+  return withoutTrailingSlashes(settings.url.trim());
 }
 
 interface BucketAggregation {

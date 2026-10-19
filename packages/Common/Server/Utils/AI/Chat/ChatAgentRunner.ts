@@ -57,6 +57,8 @@ import {
 } from "../../../../Types/AI/AIAgentRunLimits";
 import User from "../../../../Models/DatabaseModels/User";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
+import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
 
 export interface ChatTurnRequest {
   projectId: ObjectID;
@@ -154,6 +156,10 @@ const MAX_SHOWN_SUMMARY_CHARS: number = 300;
 const MAX_TITLE_CHARS: number = 90;
 const MAX_TITLE_SOURCE_CHARS: number = 500;
 const TITLE_MAX_OUTPUT_TOKENS: number = 100;
+
+// The quotes and the punctuation that end a title, with white space.
+const TITLE_QUOTE_CODES: ReadonlySet<number> = codesOf("\"'`“”‘’");
+const TITLE_PUNCTUATION_CODES: ReadonlySet<number> = codesOf(".,;:!?…");
 
 export const OBSERVABILITY_CHAT_FEATURE: string = "Observability Chat";
 export const CHAT_TITLE_FEATURE: string = "Chat Title";
@@ -441,12 +447,23 @@ export function sanitizeGeneratedTitle(raw: string): string {
 
   let title: string = firstLine || "";
 
-  title = title
-    .replace(/^#+\s*/, "")
-    .replace(/^Title:\s*/i, "")
-    .replace(/^["'`“”‘’\s]+/, "")
-    .replace(/["'`“”‘’\s]+$/, "")
-    .replace(/[.,;:!?…\s]+$/, "")
+  /*
+   * The quotes, then the punctuation, that end the title (with white space)
+   * are read once each from its end: the title is what a model wrote.
+   */
+  const unquoted: string = withoutTrailingRun(
+    title
+      .replace(/^#+\s*/, "")
+      .replace(/^Title:\s*/i, "")
+      .replace(/^["'`“”‘’\s]+/, ""),
+    (code: number): boolean => {
+      return TITLE_QUOTE_CODES.has(code) || isWhiteSpaceCode(code);
+    },
+  );
+
+  title = withoutTrailingRun(unquoted, (code: number): boolean => {
+    return TITLE_PUNCTUATION_CODES.has(code) || isWhiteSpaceCode(code);
+  })
     .replace(/\s+/g, " ")
     .trim();
 
