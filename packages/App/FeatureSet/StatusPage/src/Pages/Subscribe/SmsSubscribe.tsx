@@ -271,10 +271,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
              * opened.
              */}
             {isSuccess && (
-              <p
-                className="text-center text-gray-400 mb-20 mt-20"
-                data-testid="sms-subscribe-confirmation-sent"
-              >
+              <p className="text-center text-gray-400 mb-20 mt-20">
                 {" "}
                 {t("subscribe.sms.confirmationSent")}
               </p>

@@ -31012,5 +31012,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Безопасность: клиенты могут запускать инструменты только для чтения без запроса и спрашивают перед всем, что удаляет. Клиент, подключённый через вход, можно ограничить только чтением.",
   "See the {{docsLink}} for every tool.": "Список всех инструментов — {{docsLink}}.",
   "Twilio account for SMS and calls": "Аккаунт Twilio для SMS и звонков",
-  "Up to {{limit}} open at once": "До {{limit}} открытых одновременно"
+  "Up to {{limit}} open at once": "До {{limit}} открытых одновременно",
+  "Gets nothing until they open the link we texted them.": "Ничего не получает, пока не откроет ссылку из нашего SMS."
 }

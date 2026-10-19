@@ -31012,5 +31012,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Veiligheid: clients mogen alleen-lezen tools zonder te vragen uitvoeren en vragen het eerst bij alles wat iets verwijdert. Een client die via aanmelding is verbonden, kan worden beperkt tot alleen-lezen.",
   "See the {{docsLink}} for every tool.": "Zie de {{docsLink}} voor alle tools.",
   "Twilio account for SMS and calls": "Twilio-account voor sms en oproepen",
-  "Up to {{limit}} open at once": "Tot {{limit}} tegelijk open"
+  "Up to {{limit}} open at once": "Tot {{limit}} tegelijk open",
+  "Gets nothing until they open the link we texted them.": "Krijgt niets tot de link die we per sms stuurden is geopend."
 }
