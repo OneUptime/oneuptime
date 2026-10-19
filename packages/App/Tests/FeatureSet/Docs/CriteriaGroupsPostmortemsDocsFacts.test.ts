@@ -29,9 +29,13 @@ import MonitorGroupsSwitchCopy, {
   MONITOR_GROUPS_SWITCH_COLUMN,
 } from "../../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupsSwitchCopy";
 import {
+  AI_LANE_ADVANCED_CARDS,
+  AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_SWITCHES,
   AiLane,
+  AiLaneAdvancedCard,
 } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { POSTMORTEM_RULE_TEMPLATES_TITLE } from "../../../FeatureSet/Dashboard/src/Components/AISettings/PostmortemRulesCopy";
 import { StatusPageDisplaySettingsCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 import MonitorGroupMonitorsCopy from "../../../FeatureSet/Dashboard/src/Components/MonitorGroup/MonitorGroupMonitorsCopy";
 import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/Components/StatusPageSubscribers/SubscriberNotificationResendCopy";
@@ -73,7 +77,16 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 import { POSTMORTEM_WAITS_FOR_PREPARING_TRANSCRIPT_MS } from "Common/Types/VideoCall/CallTranscriptAutoFetch";
 import IncidentMeasurementAnchorType from "Common/Types/Incident/IncidentMeasurementAnchorType";
 import { POSTMORTEM_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
-import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  MORE_FIELDS_SECTION_TITLE,
+  MORE_SETTINGS_SECTION_TITLE,
+} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { RULE_CRITERIA_SUBJECT_COPY } from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
+import { RULE_CRITERIA_FIELDS_BY_MODEL } from "Common/Types/Rules/RuleCriteriaFieldRegistry";
+import RuleCriteriaSubject, {
+  getRuleCriteriaSubjectForModel,
+} from "Common/Types/Rules/RuleCriteriaSubject";
+import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import {
   MeasurementDomain,
   MeasurementPreset,
@@ -531,6 +544,15 @@ const EPISODE_AI_CONTEXT: string = readCommonSource(
 );
 const POSTMORTEM_RUNNER: string = readCommonSource(
   "Server/Utils/AI/SRE/IncidentPostmortemRunner.ts",
+);
+const POSTMORTEM_RULES_PLAN: string = readCommonSource(
+  "Server/Utils/AI/SRE/PostmortemRules.ts",
+);
+const POSTMORTEM_TEMPLATE_PICK: string = readCommonSource(
+  "Server/Utils/AI/SRE/PostmortemTemplatePick.ts",
+);
+const INCIDENT_AI_SETTINGS_PAGE: string = readDashboardSource(
+  "Pages/Incidents/Settings/IncidentAISettings.tsx",
 );
 const INCIDENT_SERVICE: string = readCommonSource(
   "Server/Services/IncidentService.ts",
@@ -2703,6 +2725,154 @@ describe("starting a postmortem from a template or an AI draft", () => {
     ).toBe(6);
     expect(starting).toContain(
       "- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while the provider prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).",
+    );
+  });
+});
+
+/*
+ * Postmortem rules: which resolved incidents OneUptime AI drafts a
+ * postmortem for, and the templates the draft may follow - "rules for these
+ * just like we have investigation rules in more options", the maintainer
+ * asked. The page says what the rules page, the planner
+ * (Common/Server/Utils/AI/SRE/PostmortemRules) and the template pick do.
+ */
+describe("which resolved incidents get a draft, and the template it follows", () => {
+  const postmortems: string = english(POSTMORTEMS);
+  const rules: string = section(
+    postmortems,
+    "#### Choose which incidents get a draft, and its template",
+  );
+  const cardTitle: string =
+    AI_LANE_ADVANCED_CARD_TITLES[AiLane.Incident][
+      AiLaneAdvancedCard.PostmortemRules
+    ];
+
+  it("sits under More settings on the incident AI settings page, by the title the page gives it", () => {
+    expect(cardTitle).toBe("Postmortem rules");
+    expect(MORE_SETTINGS_SECTION_TITLE).toBe("More settings");
+    expect(AI_LANE_ADVANCED_CARDS[AiLane.Incident]).toContain(
+      AiLaneAdvancedCard.PostmortemRules,
+    );
+    // An alert has no postmortem, so the alerts' page has no such rules.
+    expect(AI_LANE_ADVANCED_CARDS[AiLane.Alert]).not.toContain(
+      AiLaneAdvancedCard.PostmortemRules,
+    );
+    expect(INCIDENT_AI_SETTINGS_PAGE).toContain("<AIPostmortemRulesTable");
+    expect(rules).toContain(
+      `With no rule, every resolved incident gets a draft, in OneUptime AI's standard outline. **${cardTitle}**, under **${MORE_SETTINGS_SECTION_TITLE}** on the same page, change that:`,
+    );
+    expect(POSTMORTEM_RULES_PLAN).toContain(
+      "if (rules.length === 0) {\n      return POSTMORTEM_DRAFT_PLAN_WITHOUT_RULES;\n    }",
+    );
+  });
+
+  it("matches as an investigation rule does, with the conditions builder's two answers", () => {
+    const subject: RuleCriteriaSubject | null =
+      getRuleCriteriaSubjectForModel("AIPostmortemRule");
+    const fields: ReadonlyArray<string> =
+      RULE_CRITERIA_FIELDS_BY_MODEL["AIPostmortemRule"] || [];
+
+    expect(subject).toBe(RuleCriteriaSubject.Incidents);
+    expect([...fields]).toEqual([
+      "monitors",
+      "incidentSeverities",
+      "labels",
+      "monitorLabels",
+      "titlePattern",
+      "descriptionPattern",
+    ]);
+
+    // An investigation rule's incident fields, every one of them.
+    for (const field of fields) {
+      expect(RULE_CRITERIA_FIELDS_BY_MODEL["AIInvestigationRule"]).toContain(
+        field,
+      );
+    }
+
+    expect(POSTMORTEM_RULES_PLAN).toContain(
+      "await IncidentAlertRuleMatcher.doesIncidentMatch(",
+    );
+    expect(rules).toContain(
+      `- A rule matches **${RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.Incidents].all}**, or **${RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.Incidents].matching}** on monitors, severities, labels, monitor labels, title and description, as an investigation rule does.`,
+    );
+  });
+
+  it("follows the rule's templates: the standard outline with none, that one with one, the best fit of several, named in the feed", () => {
+    expect(POSTMORTEM_RULE_TEMPLATES_TITLE).toBe("Templates");
+    expect(POSTMORTEM_TEMPLATE_PICK).toContain(
+      "if (templates.length === 0) {\n      return null;\n    }",
+    );
+    expect(POSTMORTEM_TEMPLATE_PICK).toContain(
+      "if (templates.length === 1) {\n      return templates[0]!;\n    }",
+    );
+    expect(POSTMORTEM_TEMPLATE_PICK).toContain(
+      "Answer with the number of the template that fits this incident best",
+    );
+    expect(POSTMORTEM_RUNNER).toContain(
+      "mdText`, following the postmortem template **${template.name",
+    );
+    expect(rules).toContain(
+      `- Its **${POSTMORTEM_RULE_TEMPLATES_TITLE}** are the postmortem templates the draft may follow. With none, the draft follows the standard outline; with one, that template; with several, the one OneUptime AI finds fits the incident best. The draft's post in the feed names the template it followed.`,
+    );
+  });
+
+  it("lets the first enabled rule that matches decide, from the top, and drafts nothing when none does or the rules cannot be read", () => {
+    expect(POSTMORTEM_RULES_PLAN).toContain("isEnabled: true,");
+    expect(POSTMORTEM_RULES_PLAN).toContain(
+      "sort: {\n            order: SortOrder.Ascending,",
+    );
+    expect(POSTMORTEM_RULES_PLAN).toContain(
+      "return {\n      isInScope: false,",
+    );
+    expect(POSTMORTEM_RULES_PLAN).toContain(
+      "if (rules === null) {\n      return null;\n    }",
+    );
+    expect(rules).toContain(
+      "- The first enabled rule that matches the incident decides, from the top of the list: drag a rule to change its place. An incident that no rule matches gets no draft, and so does every incident while the rules cannot be read.",
+    );
+  });
+
+  it("leaves the switch the one way to stop drafts, and Generate with AI every outline", () => {
+    const generate: string = between(
+      INCIDENT_API,
+      "private async generatePostmortemFromAI(",
+      "private async generateNoteFromAI(",
+    );
+
+    expect(generate).not.toContain("PostmortemRules");
+    expect(POSTMORTEM_PAGE).not.toContain("AIPostmortemRule");
+    expect(rules).toContain(
+      "- **Draft a postmortem when an incident resolves** stays the one switch that turns drafts off. Rules decide only the drafts OneUptime AI writes on its own: **Generate with AI** offers every outline, whatever they say.",
+    );
+  });
+
+  it("takes the Project Owner or Project Admin role, and on OneUptime Cloud the Growth plan for templates", () => {
+    const rule: AIPostmortemRule = new AIPostmortemRule();
+
+    for (const permissions of [
+      rule.getCreatePermissions(),
+      rule.getUpdatePermissions(),
+      rule.getDeletePermissions(),
+    ]) {
+      expect(rolesOf(permissions)).toEqual(["Project Owner", "Project Admin"]);
+      expect(customPermissionsOf(permissions)).toEqual([]);
+    }
+
+    expect(new IncidentPostmortemTemplate().getReadBillingPlan()).toBe(
+      PlanType.Growth,
+    );
+    // Below the plan, a rule's templates are not followed.
+    expect(POSTMORTEM_RULES_PLAN).toContain(
+      "if (!(await this.isTemplatePlanMet(data.projectId))) {",
+    );
+    expect(rules).toContain(
+      `- Creating, editing and reordering rules takes the ${listedPlainly(rolesOf(rule.getCreatePermissions()), "or")} role. On OneUptime Cloud, templates need the ${PlanType.Growth} plan: below it, rules still decide which incidents get a draft, and every draft follows the standard outline.`,
+    );
+  });
+
+  it("is a reason the troubleshooting gives when no draft appeared", () => {
+    expect(postmortems).toContain(
+      "The incident already had a note, the postmortem was already published, no postmortem rule matched it, or **Draft a postmortem when an incident resolves** is off.",
     );
   });
 });

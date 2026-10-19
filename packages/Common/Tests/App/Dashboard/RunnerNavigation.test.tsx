@@ -66,8 +66,12 @@ import { getReadinessCheckLink } from "../../../../App/FeatureSet/Dashboard/src/
 import Runner from "../../../Models/DatabaseModels/Runner";
 import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
+import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import Page from "../../../UI/Components/Page/Page";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
@@ -522,9 +526,36 @@ describe("links elsewhere in the dashboard arrive at the Runbooks pages", () => 
 
   /*
    * Code says, above a repository's request box, when no Runner is online to
-   * do the work - with the one link that fixes it.
+   * do the work - with the one link that fixes it, offered to whoever may
+   * set a Runner up (everyone else is told who can).
    */
   describe("Code's notice that no Runner is online", () => {
+    // The reader may create Runners, as the permission snapshot says.
+    function grantCreateRunner(): void {
+      const permissions: Array<Permission> = [
+        Permission.ProjectUser,
+        Permission.CreateRunner,
+      ];
+
+      jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue(permissions);
+      jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
+      jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue({
+        projectId: new ObjectID(PROJECT_ID),
+        userId: ObjectID.generate(),
+        permissions: permissions.map((permission: Permission) => {
+          return {
+            permission: permission,
+            labelIds: [],
+            _type: "UserPermission",
+          };
+        }),
+        _type: "UserTenantAccessPermission",
+      });
+    }
+
     function renderNoAgentNotice(): void {
       render(
         <CodeBlockerNotice
@@ -537,6 +568,7 @@ describe("links elsewhere in the dashboard arrive at the Runbooks pages", () => 
     }
 
     test("its fix sends people to Runbooks → Runners", () => {
+      grantCreateRunner();
       renderNoAgentNotice();
 
       const fix: HTMLElement = screen.getByTestId("code-blocker-fix");

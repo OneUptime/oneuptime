@@ -1,4 +1,4 @@
-import { AddRunbookVariable1804200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804200000000-AddRunbookVariable";
+import { AddRunbookVariable1804250000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804250000000-AddRunbookVariable";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import fs from "fs";
@@ -29,8 +29,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  const migration: AddRunbookVariable1804200000000 =
-    new AddRunbookVariable1804200000000();
+  const migration: AddRunbookVariable1804250000000 =
+    new AddRunbookVariable1804250000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -70,8 +70,8 @@ function tableOf(statement: string): string {
 
 describe("the runbook variables' migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddRunbookVariable1804200000000().name).toBe(
-      "AddRunbookVariable1804200000000",
+    expect(new AddRunbookVariable1804250000000().name).toBe(
+      "AddRunbookVariable1804250000000",
     );
   });
 
@@ -81,17 +81,17 @@ describe("the runbook variables' migration", () => {
 
     expect(
       registered.filter((candidate: MigrationClass) => {
-        return candidate === AddRunbookVariable1804200000000;
+        return candidate === AddRunbookVariable1804250000000;
       }),
     ).toHaveLength(1);
 
     const index: number = registered.indexOf(
-      AddRunbookVariable1804200000000 as MigrationClass,
+      AddRunbookVariable1804250000000 as MigrationClass,
     );
 
     for (let before: number = 0; before < index; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddRunbookVariable1804200000000 as MigrationClass),
+        timestampOf(AddRunbookVariable1804250000000 as MigrationClass),
       );
     }
   });
@@ -104,9 +104,9 @@ describe("the runbook variables' migration", () => {
 
     expect(
       fs.readdirSync(directory).filter((file: string) => {
-        return file.startsWith("1804200000000-");
+        return file.startsWith("1804250000000-");
       }),
-    ).toEqual(["1804200000000-AddRunbookVariable.ts"]);
+    ).toEqual(["1804250000000-AddRunbookVariable.ts"]);
   });
 
   test("makes the two tables, and touches no other table", async () => {

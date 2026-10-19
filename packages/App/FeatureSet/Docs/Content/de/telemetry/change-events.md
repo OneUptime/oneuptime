@@ -13,11 +13,11 @@ OneUptime hält fest, was sich in Ihrem Projekt geändert hat: Deploys, Kubernet
 
 ```mermaid title="Woher Änderungen kommen und wohin sie gehen"
 flowchart LR
-    T["Eine neue service.version<br/>in der Telemetrie"] --> E["Änderungsereignisse"]
+    T["Eine neue<br/>service.version<br/>in der Telemetrie"] --> E["Änderungsereignisse"]
     K["Ein neues ReplicaSet<br/>in Kubernetes"] --> E
     P["Eine Pipeline:<br/>die CLI oder die API"] --> E
     A["Eine Korrektur von<br/>OneUptime AI, ein<br/>Runbook von OneUptime"] --> E
-    E --> C["Markierungen in den<br/>Diagrammen des Dienstes"]
+    E --> C["Markierungen<br/>in den Diagrammen<br/>des Dienstes"]
     E --> I["Untersuchungen<br/>von OneUptime AI"]
 ```
 

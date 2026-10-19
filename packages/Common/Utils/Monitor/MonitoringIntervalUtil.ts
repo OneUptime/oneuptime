@@ -43,6 +43,7 @@
  */
 
 import CronTab from "../CronTab";
+import { withoutTrailingDots, withoutTrailingRun } from "../TrailingRuns";
 
 export enum MonitoringIntervalNormalizationStatus {
   /*
@@ -173,13 +174,15 @@ export default class MonitoringIntervalUtil {
    * "I" to a dotless i and the table would stop matching.
    */
   private static toLookupKey(value: string): string {
-    return value
-      .replace(/[\s\u00a0]+/g, " ")
-      .trim()
-      .replace(/^["']+|["']+$/g, "")
-      .replace(/\.+$/, "")
-      .trim()
-      .toLowerCase();
+    const collapsed: string = value.replace(/[\s\u00a0]+/g, " ").trim();
+    const unquoted: string = withoutTrailingRun(
+      collapsed.replace(/^["']+/, ""),
+      (code: number): boolean => {
+        return code === 0x22 || code === 0x27;
+      },
+    );
+
+    return withoutTrailingDots(unquoted).trim().toLowerCase();
   }
 
   /*

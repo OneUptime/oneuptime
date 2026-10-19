@@ -22,6 +22,7 @@ import {
   DataSourceConnector,
   DataSourceQueryWindow,
 } from "../Types";
+import { withoutTrailingSlashes } from "../../../../Utils/TrailingRuns";
 
 /*
  * Connector for Grafana Loki (and Loki-compatible endpoints such as
@@ -447,7 +448,7 @@ export default class LokiConnector implements DataSourceConnector {
         "Loki data source requires a URL (e.g. http://loki.example.com:3100).",
       );
     }
-    return settings.url.trim().replace(/\/+$/, "");
+    return withoutTrailingSlashes(settings.url.trim());
   }
 
   /*

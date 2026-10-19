@@ -1202,6 +1202,9 @@ import AutoRemediationDecisionService, {
 import AIInvestigationRuleService, {
   Service as AIInvestigationRuleServiceType,
 } from "Common/Server/Services/AIInvestigationRuleService";
+import AIPostmortemRuleService, {
+  Service as AIPostmortemRuleServiceType,
+} from "Common/Server/Services/AIPostmortemRuleService";
 import RunnerAPI from "Common/Server/API/RunnerAPI";
 import RunnerJobService, {
   Service as RunnerJobServiceType,
@@ -1559,6 +1562,7 @@ import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRul
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
 import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
+import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
@@ -4150,6 +4154,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AIInvestigationRule, AIInvestigationRuleServiceType>(
         AIInvestigationRule,
         AIInvestigationRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AIPostmortemRule, AIPostmortemRuleServiceType>(
+        AIPostmortemRule,
+        AIPostmortemRuleService,
       ).getRouter(),
     );
 

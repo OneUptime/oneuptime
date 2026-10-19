@@ -3820,13 +3820,27 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const isReorderBlockedByFilter: boolean =
     isManuallyOrdered && (isSearchActive() || hasFilterApplied(filterData));
 
-  const isDragDisabled: boolean = isReorderBlockedByFilter || isReordering;
+  /*
+   * Someone who may not edit the rows may not put them in another order
+   * either: the server would refuse the drop, and the rows would jump back.
+   * The grips stay where they are, greyed out, and say why - as the row's
+   * Edit button does.
+   */
+  const reorderGate: ActionGate = getActionGate(ModelAction.Update);
 
-  const dragDisabledReason: string | undefined = isReorderBlockedByFilter
-    ? REORDER_OFF_WHILE_FILTERED
-    : isReordering
-      ? REORDER_SAVING
-      : undefined;
+  const isReorderDeniedByPermission: boolean =
+    isManuallyOrdered && (!reorderGate.show || reorderGate.disabled);
+
+  const isDragDisabled: boolean =
+    isReorderDeniedByPermission || isReorderBlockedByFilter || isReordering;
+
+  const dragDisabledReason: string | undefined = isReorderDeniedByPermission
+    ? reorderGate.tooltip
+    : isReorderBlockedByFilter
+      ? REORDER_OFF_WHILE_FILTERED
+      : isReordering
+        ? REORDER_SAVING
+        : undefined;
 
   type OnRowDroppedFunction = (
     id: string,

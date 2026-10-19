@@ -16,6 +16,7 @@ import ServerMonitorResponse, {
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ReceivingSilence from "../ReceivingSilence";
+import { withoutTrailingSlashes } from "../../../../Utils/TrailingRuns";
 
 export default class ServerMonitorCriteria {
   @CaptureSpan()
@@ -134,7 +135,7 @@ export default class ServerMonitorCriteria {
       }
 
       normalized = normalized.replace(/\\/g, "/");
-      normalized = normalized.replace(/\/+$/g, "");
+      normalized = withoutTrailingSlashes(normalized);
 
       if (normalized === "") {
         return "/";

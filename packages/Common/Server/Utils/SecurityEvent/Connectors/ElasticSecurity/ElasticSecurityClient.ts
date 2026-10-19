@@ -11,6 +11,7 @@ import {
   redactLogValue,
 } from "../../../LogRedaction";
 import { ConnectorTransport } from "../Types";
+import { withoutTrailingSlashes } from "../../../../../Utils/TrailingRuns";
 
 /*
  * Minimal Kibana client for the Elastic Security connector.
@@ -169,7 +170,7 @@ export default class ElasticSecurityClient {
    * default space has no prefix.
    */
   public static buildBaseUrl(kibanaUrl: string, space: string): string {
-    const trimmed: string = kibanaUrl.trim().replace(/\/+$/, "");
+    const trimmed: string = withoutTrailingSlashes(kibanaUrl.trim());
     const spaceId: string = space.trim();
 
     if (!spaceId || spaceId === "default") {

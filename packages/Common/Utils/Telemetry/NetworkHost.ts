@@ -1,4 +1,5 @@
 import { canonicalizeEntityValue } from "./EntityKey";
+import { withoutTrailingDots } from "../TrailingRuns";
 
 /*
  * Network-host helpers shared by the dependency discovery job and the trace
@@ -27,7 +28,7 @@ export function normalizeHost(value: string | undefined | null): string | null {
   } else if ((host.match(/:/g) || []).length === 1) {
     host = host.split(":")[0] || "";
   }
-  host = host.replace(/\.+$/, "");
+  host = withoutTrailingDots(host);
   return host.length > 0 ? host : null;
 }
 

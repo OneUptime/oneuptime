@@ -23,6 +23,7 @@ import {
   DataSourceConnector,
   DataSourceQueryWindow,
 } from "../Types";
+import { withoutTrailingSlashes } from "../../../../Utils/TrailingRuns";
 
 /*
  * Connector for Prometheus-compatible HTTP APIs (Prometheus, Thanos,
@@ -67,7 +68,7 @@ export function buildPrometheusApiUrl(
   path: string,
   params: Dictionary<string>,
 ): string {
-  const trimmedBase: string = baseUrl.trim().replace(/\/+$/, "");
+  const trimmedBase: string = withoutTrailingSlashes(baseUrl.trim());
   const normalizedPath: string = path.startsWith("/") ? path : `/${path}`;
 
   const searchParams: URLSearchParams = new URLSearchParams();

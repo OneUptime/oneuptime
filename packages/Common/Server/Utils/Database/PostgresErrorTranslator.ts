@@ -1,3 +1,4 @@
+import { splitCapitalRunsBeforeWords } from "../../../Utils/CapitalRuns";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 
@@ -321,10 +322,10 @@ export default class PostgresErrorTranslator {
    * user without maintaining a lookup table of display names.
    */
   private static humanizeTableName(tableName: string): string {
-    return tableName
-      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-      .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-      .trim();
+    return splitCapitalRunsBeforeWords(
+      tableName.replace(/([a-z0-9])([A-Z])/g, "$1 $2"),
+      " ",
+    ).trim();
   }
 
   /*
