@@ -546,7 +546,7 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
           </button>
 
           {connectLock.isLocked ? (
-            <p
+            <div
               id="connect-github-app-lock"
               className="flex items-center gap-1.5 text-sm text-gray-600"
             >
@@ -555,7 +555,7 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
                 className="h-4 w-4 flex-none text-gray-400"
               />
               <span>{connectLock.reason}</span>
-            </p>
+            </div>
           ) : (
             <p
               data-testid="connect-existing-github-installation"

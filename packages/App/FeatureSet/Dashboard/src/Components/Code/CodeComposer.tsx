@@ -337,7 +337,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
       </div>
 
       {error ? (
-        <p
+        <div
           role="alert"
           data-testid="code-composer-error"
           className="mt-2 flex items-start gap-1.5 text-sm text-red-700"
@@ -347,7 +347,7 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
             className="mt-0.5 h-4 w-4 flex-shrink-0"
           />
           <span>{error}</span>
-        </p>
+        </div>
       ) : (
         <></>
       )}
