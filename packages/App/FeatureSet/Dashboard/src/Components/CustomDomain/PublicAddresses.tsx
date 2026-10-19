@@ -378,11 +378,17 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0 flex-1">
             {address.isLive ? (
-              <Link
-                to={URL.fromString(address.url)}
-                openInNewTab={true}
+              /*
+               * A plain anchor, not Link: the address is opened as stored,
+               * never parsed - a name the URL type refuses (a label past
+               * DNS's 63 characters) must not take the card down.
+               */
+              <a
+                href={address.url}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group flex min-w-0 max-w-full items-center gap-1 text-sm font-medium leading-6 text-gray-900 hover:text-indigo-600"
-                dataTestId={PUBLIC_ADDRESS_TEST_IDS.link}
+                data-testid={PUBLIC_ADDRESS_TEST_IDS.link}
               >
                 {/*
                  * The whole address on hover: a long one is cut short to
@@ -406,7 +412,7 @@ const PublicAddresses: FunctionComponent<ComponentProps> = (
                   {" "}
                   {translator.translateText(PublicAddressCopy.opensInNewTab)}
                 </span>
-              </Link>
+              </a>
             ) : (
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <span

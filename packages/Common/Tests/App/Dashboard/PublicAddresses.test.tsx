@@ -552,7 +552,7 @@ describe.each(KINDS)("the addresses of $name", (kindCase: KindCase) => {
     const link: HTMLElement = within(domainRow).getByRole("link");
 
     // The domain's root, over HTTPS.
-    expect(link).toHaveAttribute("href", "https://status.acme.com/");
+    expect(link).toHaveAttribute("href", "https://status.acme.com");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link.textContent).toBe(
       `status.acme.com ${PublicAddressCopy.opensInNewTab}`,
@@ -1120,6 +1120,60 @@ describe("a long address", () => {
     expect(
       within(oneUptime).getByText(`/status-page/${PARENT_ID}`),
     ).toHaveClass("text-gray-500");
+  });
+});
+
+describe("an address the URL type would refuse", () => {
+  /*
+   * A label past DNS's 63 characters is refused by Common's URL type: the
+   * card used to parse each address into one, and one such name threw and
+   * took the whole card down. The address is now opened and copied as
+   * stored.
+   */
+  test("still shows, opens and copies, and the rest of the list with it", async () => {
+    const label: string = "a".repeat(64);
+    const name: string = `${label}.acme.com`;
+
+    domains = [
+      { id: domainId(1), fullDomain: name, state: "live" },
+      { id: domainId(2), fullDomain: "status.acme.com", state: "live" },
+    ];
+
+    await renderList();
+
+    expect(listed()).toEqual([
+      `live ${name}`,
+      "live status.acme.com",
+      `live ${oneUptimeText(STATUS_PAGE)}`,
+    ]);
+    expect(within(rowFor(name)).getByRole("link")).toHaveAttribute(
+      "href",
+      `https://${name}`,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(rowFor(name)).getByRole("button", {
+          name: `Copy link to ${name}`,
+        }),
+      );
+    });
+    await flush();
+
+    expect(copyMock).toHaveBeenCalledWith(`https://${name}`);
+  });
+
+  test("a live address opens in a new tab without handing the new page this one", async () => {
+    domains = [{ id: domainId(1), fullDomain: "status.acme.com", state: "live" }];
+
+    await renderList();
+
+    const link: HTMLElement = within(rowFor("status.acme.com")).getByRole(
+      "link",
+    );
+
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 });
 

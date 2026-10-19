@@ -617,7 +617,7 @@ describe("where visitors open it", () => {
     );
     expect(within(domainRow).getByRole("link")).toHaveAttribute(
       "href",
-      "https://dashboard.acme.com/",
+      "https://dashboard.acme.com",
     );
 
     await act(async () => {

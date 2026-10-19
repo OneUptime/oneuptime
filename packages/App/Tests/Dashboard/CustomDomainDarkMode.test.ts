@@ -167,6 +167,8 @@ describe("the custom domain components in the dark theme", () => {
         "CustomDomainCopy.ts",
         "CustomDomainDnsSetupModal.tsx",
         "CustomDomainKinds.ts",
+        // The Domain cell: a link once the domain is live.
+        "CustomDomainName.tsx",
         "CustomDomainStatus.tsx",
         "CustomDomainsTable.tsx",
         // Every address a status page or a public dashboard answers at.
