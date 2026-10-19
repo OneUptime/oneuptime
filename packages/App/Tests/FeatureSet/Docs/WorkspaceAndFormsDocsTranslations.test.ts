@@ -280,6 +280,9 @@ const PROVIDER_CONSOLES: Array<string> = [
   "API permissions",
   "application",
   "OnlineMeetings.ReadWrite.All",
+  // The permissions that let an app registration record and transcribe Teams calls.
+  "Calendars.ReadWrite",
+  "OnlineMeetingTranscript.Read.All",
   "Grant admin consent",
   "Certificates & secrets",
   "Value",
@@ -393,6 +396,10 @@ const TEMPLATE_LABELS: Record<string, Record<string, TemplateLabel>> = {
     "Get from Google Meet": {
       template: "Get from {{provider}}",
       values: { provider: "Google Meet" },
+    },
+    "Get from Microsoft Teams": {
+      template: "Get from {{provider}}",
+      values: { provider: "Microsoft Teams" },
     },
   },
 };

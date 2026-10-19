@@ -159,6 +159,7 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
     "buildExecutionContext",
     "describeResourceTarget",
     "describePreviousRounds",
+    "describeRollbackCandidates",
   ].map((inFunction: string): AllowedUntagged => {
     return {
       file: REMEDIATION_RUNNER,

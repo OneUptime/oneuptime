@@ -80,6 +80,8 @@ import InventoryItem, {
   ResourceEntityRef,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/EntityRegistry";
+import TelemetryChangeDetector from "Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector";
+import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import {
   canonicalizeEntityValue,
   keyForDatabaseEndpoint,
@@ -774,6 +776,20 @@ export default abstract class OtelIngestBaseService {
       projectId: data.projectId,
       entities,
       retiredEntities: extraction.retiredEntities,
+    });
+
+    /*
+     * A new service.version, or a Deployment's new ReplicaSet, is a change
+     * worth recording (TelemetryChangeDetector). Fire-and-forget like the
+     * registry above: it answers from an in-process memo in the steady
+     * state and never fails or delays ingest.
+     */
+    TelemetryChangeDetector.observeResource({
+      projectId: data.projectId,
+      metadata,
+      attributes: data.attributes,
+      kubernetesClusterId: data.kubernetesClusterId,
+      observedAt: (data.req as TelemetryRequest).receivedAt,
     });
 
     return metadata;

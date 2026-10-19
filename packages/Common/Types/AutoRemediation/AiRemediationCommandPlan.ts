@@ -141,6 +141,11 @@ export interface AiRemediationCommand {
    */
   rollbackCommand?: string | undefined;
   policyVerdict: AiRemediationCommandPolicyVerdict;
+  /*
+   * The recorded change this command rolls back, when OneUptime built it
+   * from that change (roll_back_change) rather than the model writing it.
+   */
+  rolledBackChangeId?: string | undefined;
   // True when a FullAuto run already executed this inline during planning.
   wasAutoExecuted?: boolean | undefined;
   execution?: AiRemediationCommandExecutionState | undefined;
@@ -375,6 +380,10 @@ export const RESOURCE_BYPASS_MODE_SUMMARY: string =
 
 export const RESOURCE_EVERY_MODE_LIMITS_SUMMARY: string = `In every mode, Bypass approval included: ${RESOURCE_NEVER_RUNS_SUMMARY}; ${RESOURCE_ALWAYS_ASKS_SUMMARY}; the resource's AI agent changes nothing unless it was started with ${RESOURCE_AI_ALLOW_WRITES_ENV}=true, never changes its own protected targets (itself and what it runs in), and with ${RESOURCE_AI_WRITE_TARGETS_ENV} set changes only the targets it names; and ${RESOURCE_UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}.`;
 
+// A change event's id.
+const UUID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export class AiRemediationCommandPlanUtil {
   /*
    * Parse a jsonb column value back into a typed plan. Fail-closed: any
@@ -529,6 +538,11 @@ export class AiRemediationCommandPlanUtil {
             ? obj["rollbackCommand"]
             : undefined,
         policyVerdict: verdict as AiRemediationCommandPolicyVerdict,
+        // Only on a rollback built from a recorded change; absent otherwise.
+        ...(typeof obj["rolledBackChangeId"] === "string" &&
+        UUID_PATTERN.test(obj["rolledBackChangeId"])
+          ? { rolledBackChangeId: obj["rolledBackChangeId"] }
+          : {}),
         wasAutoExecuted: obj["wasAutoExecuted"] === true,
         execution: AiRemediationCommandPlanUtil.parseExecutionState(
           obj["execution"],

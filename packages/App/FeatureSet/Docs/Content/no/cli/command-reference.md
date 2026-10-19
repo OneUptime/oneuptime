@@ -6,7 +6,7 @@ Hver kommando i CLI-en `oneuptime`, med argumentene, alternativene og standardve
 - [Globale alternativer](#globale-alternativer): Alternativene hver kommando tar.
 - [Innlogging og kontekster](#innlogging-og-kontekster): login og context-kommandoene.
 - [Ressurskommandoer](#ressurskommandoer): list, get, create, update, delete og count.
-- [Andre kommandoer](#andre-kommandoer): whoami, resources, version og help.
+- [Andre kommandoer](#andre-kommandoer): deploy, whoami, resources, version og help.
 :::
 
 ## Kommandoene
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>og hver ressurs"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## Globale alternativer
@@ -222,6 +222,31 @@ Hver operasjon er én forespørsel til API-et, med nøkkelen i headeren `APIKey`
 
 ## Andre kommandoer
 
+### `oneuptime deploy`
+
+Registrerer en utrulling, eller en annen endring, fra en pipeline: den tegnes på tjenestens diagrammer og leses av OneUptime AI når den undersøker en hendelse. Den skriver med en telemetri-inntaksnøkkel, ikke en API-nøkkel. Se [Utrullinger og endringer](/docs/telemetry/change-events).
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| Alternativ | Påkrevd | Hva det er | Standard |
+| --- | --- | --- | --- |
+| `--service <name>` | Nei | Tjenesten som ble rullet ut | En endring for hele prosjektet |
+| `--service-version <version>` | Nei | Versjonen som ble rullet ut | |
+| `--previous-version <version>` | Nei | Versjonen den erstattet | |
+| `--commit <sha>` | Nei | Commiten som ble rullet ut | |
+| `--repository <url>` | Nei | Repositoriet commiten ligger i | |
+| `--branch <name>` | Nei | Branchen som ble rullet ut | |
+| `--pull-request <number>` | Nei | Pull requesten som ble rullet ut | |
+| `--environment <name>` | Nei | Miljøet det ble rullet ut til | |
+| `--title <title>` | Nei | Endringens tittel; en annen type enn en utrulling trenger en | `Deploy <version>` |
+| `--description <text>` | Nei | Detaljer om endringen | |
+| `--type <type>` | Nei | Typen endring, for eksempel `config-change` eller `rollback` | `deployment` |
+| `--time <time>` | Nei | Når det skjedde, for eksempel `2026-10-19T10:00:00Z` | Nå |
+| `--attribute <key=value...>` | Nei | Flere attributter, som `key=value`, ett eller flere | |
+| `--ingestion-key <key>` | Nei | En telemetri-inntaksnøkkel til prosjektet | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 Viser URL-en og API-nøkkelen som neste kommando vil bruke, med nøkkelen maskert, og konteksten de kommer fra. Den kaller ikke OneUptime. Se [Sjekk hva CLI-en vil bruke](/docs/cli/authentication#sjekk-hva-cli-en-vil-bruke).
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | API-nøkkelen, når ingen `--api-key`-flagg gir en |
 | `ONEUPTIME_URL` | Adressen til OneUptime-en din, når ingen `--url`-flagg gir en |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Telemetri-inntaksnøkkelen `oneuptime deploy` skriver med, når ingen `--ingestion-key`-flagg gir en |
 | `NO_COLOR` | Satt til en hvilken som helst verdi slår den av farger |
 
 ## Filer

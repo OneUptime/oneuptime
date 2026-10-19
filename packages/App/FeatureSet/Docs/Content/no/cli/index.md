@@ -82,6 +82,7 @@ Listen viser hver type post du kan jobbe med, og kommandoen dens, for eksempel `
 | `oneuptime login <api-key> <instance-url>` | Lagrer en API-nøkkel og en adresse som en kontekst | [Autentisering](/docs/cli/authentication#logg-inn) |
 | `oneuptime context list`, `use`, `current`, `delete` | Lister, bytter, viser og sletter lagrede kontekster | [Autentisering](/docs/cli/authentication#kontekster) |
 | `oneuptime whoami` | Viser URL-en og API-nøkkelen som neste kommando vil bruke | [Autentisering](/docs/cli/authentication#sjekk-hva-cli-en-vil-bruke) |
+| `oneuptime deploy` | Registrerer en utrulling, eller en annen endring, for diagrammer og OneUptime AI | [Utrullinger og endringer](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Jobber med én type post | [Ressursoperasjoner](/docs/cli/resource-operations) |
 | `oneuptime resources` | Lister typene poster med kommandoene deres | [Kommandoreferanse](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Skriver ut CLI-ens versjon | [Kommandoreferanse](/docs/cli/command-reference#oneuptime-version) |

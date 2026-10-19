@@ -12,6 +12,7 @@ import {
   AIPromptOmissions,
   FollowUpCheckActivity,
   LinkedInfrastructureActivity,
+  RecentChangesActivity,
 } from "Common/Types/AI/AIChatTypes";
 import { formatSize } from "Common/Utils/AI/PromptText";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -494,6 +495,38 @@ export function describeLinkedInfrastructure(
 }
 
 /*
+ * What the starting context read about the changes recorded before the
+ * subject, and how many of them its services' telemetry made suspects
+ * (RecentChangesContext on the server, which writes the same in English).
+ */
+export function describeRecentChanges(
+  activity: RecentChangesActivity,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (activity.suspectCount > 0) {
+    return translator.translatePlural(
+      {
+        one: "Found {{count}} suspect among the recent changes",
+        other: "Found {{count}} suspects among the recent changes",
+      },
+      activity.suspectCount,
+    );
+  }
+
+  if (activity.changeCount > 0) {
+    return translator.translatePlural(
+      {
+        one: "Read {{count}} recent change; no suspect",
+        other: "Read {{count}} recent changes; no suspect",
+      },
+      activity.changeCount,
+    );
+  }
+
+  return translator.translateText("No recent changes recorded") as string;
+}
+
+/*
  * Why an investigation checked its incident again (issue #4787): the alert
  * that opened on the incident's infrastructure after the first analysis.
  */
@@ -686,6 +719,19 @@ function buildSteps(
               linkedInfrastructure,
               translator,
             ),
+            status: "done",
+            kind: "log",
+          });
+          break;
+        }
+
+        const recentChanges: RecentChangesActivity | undefined =
+          event.resultSummary?.recentChanges;
+
+        if (recentChanges) {
+          steps.push({
+            key,
+            text: describeRecentChanges(recentChanges, translator),
             status: "done",
             kind: "log",
           });

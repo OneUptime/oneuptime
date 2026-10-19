@@ -78,7 +78,7 @@ Ist **Postmortem entwerfen, wenn ein Vorfall gelöst wird** eingeschaltet, entwi
 - Er ersetzt nie eine Notiz, die schon geschrieben ist.
 - Er schreibt nie in ein Postmortem, das schon veröffentlicht ist, wo der Entwurf ungeprüft auf die Statusseite käme.
 - Er erfordert, dass KI für das Projekt eingeschaltet ist, und hält für den Tag an, sobald das Projekt seine täglichen KI-Limits erreicht. Siehe [Auto-Postmortem](/docs/ai/ai-sre#automatisches-postmortem).
-- Ist das Transkript des Anrufs zum Vorfall noch unterwegs, wenn der Vorfall behoben wird, wartet er, bis OneUptime AI es gelesen hat, damit der Entwurf berücksichtigt, was im Anruf gesagt wurde: bis zu sechs Stunden, während Zoom oder Google Meet das Transkript vorbereitet. Siehe [Jeden Anruf aufzeichnen und transkribieren](/docs/workspace-connections/video-calls#jeden-anruf-aufzeichnen-und-transkribieren).
+- Ist das Transkript des Anrufs zum Vorfall noch unterwegs, wenn der Vorfall behoben wird, wartet er, bis OneUptime AI es gelesen hat, damit der Entwurf berücksichtigt, was im Anruf gesagt wurde: bis zu sechs Stunden, während der Anbieter das Transkript vorbereitet. Siehe [Jeden Anruf aufzeichnen und transkribieren](/docs/workspace-connections/video-calls#jeden-anruf-aufzeichnen-und-transkribieren).
 
 #### Festlegen, welche Vorfälle einen Entwurf erhalten, und mit welcher Vorlage
 

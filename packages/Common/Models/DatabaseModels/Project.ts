@@ -4240,7 +4240,7 @@ export default class Project extends TenantModel {
     defaultValue: false,
     title: "Record and Transcribe Incident Calls",
     description:
-      "When enabled, OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds each call's transcript to its incident once the call is over. Microsoft Teams calls, Slack huddles and meeting links are not recorded; their transcripts can be added by hand. Off by default.",
+      "When enabled, OneUptime asks Zoom, Google Meet and Microsoft Teams to record and transcribe every incident call it starts, and adds each call's transcript to its incident once the call is over. Slack huddles and meeting links are not recorded; their transcripts can be added by hand. Off by default.",
   })
   @Column({
     type: ColumnType.Boolean,

@@ -78,7 +78,7 @@ Med **Skriv ett utkast till efteranalys när en incident är löst** påslaget s
 - Den ersätter aldrig en anteckning som redan är skriven.
 - Den skriver aldrig i en efteranalys som redan är publicerad, där utkastet skulle nå statussidan ogranskat.
 - Den kräver att AI är påslaget för projektet, och stannar för dagen så snart projektet når sina dagliga AI-gränser. Se [Automatisk efteranalys](/docs/ai/ai-sre#automatisk-efteranalys).
-- Om transkriptionen av incidentens samtal fortfarande är på väg när incidenten löses väntar den tills OneUptime AI har läst transkriptionen, så att utkastet tar med vad som sades i samtalet: upp till sex timmar medan Zoom eller Google Meet tar fram transkriptionen. Se [Spela in och transkribera varje samtal](/docs/workspace-connections/video-calls#spela-in-och-transkribera-varje-samtal).
+- Om transkriptionen av incidentens samtal fortfarande är på väg när incidenten löses väntar den tills OneUptime AI har läst transkriptionen, så att utkastet tar med vad som sades i samtalet: upp till sex timmar medan leverantören tar fram transkriptionen. Se [Spela in och transkribera varje samtal](/docs/workspace-connections/video-calls#spela-in-och-transkribera-varje-samtal).
 
 #### Välj vilka incidenter som får ett utkast, och dess mall
 

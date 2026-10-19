@@ -6,7 +6,7 @@
 - [グローバルオプション](#グローバルオプション): すべてのコマンドが受け付けるオプション。
 - [ログインとコンテキスト](#ログインとコンテキスト): login と context のコマンド。
 - [リソースのコマンド](#リソースのコマンド): list、get、create、update、delete、count。
-- [その他のコマンド](#その他のコマンド): whoami、resources、version、help。
+- [その他のコマンド](#その他のコマンド): deploy、whoami、resources、version、help。
 :::
 
 ## コマンドの全体像
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident、monitor<br/>など各リソース"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## グローバルオプション
@@ -222,6 +222,31 @@ CLI は OneUptime と一緒にリリースされるため、`oneuptime resources
 
 ## その他のコマンド
 
+### `oneuptime deploy`
+
+パイプラインから、デプロイやその他の変更を記録します。記録した変更はサービスのグラフに描かれ、OneUptime AI がインシデントを調査するときに読み取ります。書き込みには、API キーではなくテレメトリ取り込みキーを使います。[デプロイと変更](/docs/telemetry/change-events)を参照してください。
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| オプション | 必須 | 内容 | 既定値 |
+| --- | --- | --- | --- |
+| `--service <name>` | いいえ | デプロイされたサービス | プロジェクト全体の変更 |
+| `--service-version <version>` | いいえ | デプロイされたバージョン | |
+| `--previous-version <version>` | いいえ | 置き換えられたバージョン | |
+| `--commit <sha>` | いいえ | デプロイされたコミット | |
+| `--repository <url>` | いいえ | コミットがあるリポジトリ | |
+| `--branch <name>` | いいえ | デプロイされたブランチ | |
+| `--pull-request <number>` | いいえ | デプロイされたプルリクエスト | |
+| `--environment <name>` | いいえ | デプロイ先の環境 | |
+| `--title <title>` | いいえ | 変更のタイトル。デプロイ以外の種類の変更では必須です | `Deploy <version>` |
+| `--description <text>` | いいえ | 変更の詳細 | |
+| `--type <type>` | いいえ | 変更の種類(`config-change` や `rollback` など) | `deployment` |
+| `--time <time>` | いいえ | 発生した日時(`2026-10-19T10:00:00Z` など) | 現在 |
+| `--attribute <key=value...>` | いいえ | 追加の属性。`key=value` の形式で一つ以上 | |
+| `--ingestion-key <key>` | いいえ | プロジェクトのテレメトリ取り込みキー | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 次のコマンドが使う URL と API キー(キーは伏せた形)と、それらの取得元のコンテキストを表示します。OneUptime は呼び出しません。[CLI が使う値を確認する](/docs/cli/authentication#cli-が使う値を確認する)を参照してください。
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | `--api-key` フラグで指定されていないときの API キー |
 | `ONEUPTIME_URL` | `--url` フラグで指定されていないときの OneUptime のアドレス |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | `--ingestion-key` フラグで指定されていないときに `oneuptime deploy` が書き込みに使うテレメトリ取り込みキー |
 | `NO_COLOR` | 任意の値を設定すると色が消えます |
 
 ## ファイル

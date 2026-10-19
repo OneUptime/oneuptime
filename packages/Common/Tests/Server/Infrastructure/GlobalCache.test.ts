@@ -1075,3 +1075,224 @@ describe("GlobalCache.setNumberIfGreater", () => {
     expect(client.eval).not.toHaveBeenCalled();
   });
 });
+
+describe("GlobalCache.swapString", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue("previous-value"),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /*
+   * Read and write in ONE evaluation: a GET then a SET from here would let
+   * two workers both read the same old value, and both report a change
+   * from it.
+   */
+  test("reads the old value and writes the new one, with its TTL, in one evaluation", async () => {
+    const previous: string | null = await GlobalCache.swapString(
+      "ns",
+      "key",
+      "new-value",
+      { expiresInSeconds: 90 },
+    );
+
+    expect(previous).toBe("previous-value");
+    expect(client.eval).toHaveBeenCalledTimes(1);
+    expect(client.get).not.toHaveBeenCalled();
+    expect(client.set).not.toHaveBeenCalled();
+
+    const [script, keyCount, key, value, ttl] = client.eval.mock.calls[0] as [
+      string,
+      number,
+      string,
+      string,
+      string,
+    ];
+
+    expect(script).toContain("redis.call('GET', KEYS[1])");
+    expect(script).toContain(
+      "redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])",
+    );
+    expect(script.indexOf("GET")).toBeLessThan(script.indexOf("SET"));
+    expect(keyCount).toBe(1);
+    expect(key).toBe("ns-key");
+    expect(value).toBe("new-value");
+    expect(ttl).toBe("90");
+  });
+
+  test("defaults the TTL to 30 days", async () => {
+    await GlobalCache.swapString("ns", "key", "v");
+
+    expect(client.eval.mock.calls[0]![4]).toBe(
+      String(OneUptimeDate.getSecondsInDays(30)),
+    );
+  });
+
+  test("a key that held nothing answers null", async () => {
+    for (const reply of [null, undefined, "", false, 0]) {
+      client.eval.mockResolvedValueOnce(reply);
+      await expect(GlobalCache.swapString("ns", "key", "v")).resolves.toBe(
+        null,
+      );
+    }
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(GlobalCache.swapString("ns", "key", "v")).rejects.toThrow(
+      DatabaseNotConnectedException,
+    );
+    expect(client.eval).not.toHaveBeenCalled();
+  });
+});
+
+describe("GlobalCache.setStringIfNotExistsOrExtend", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue(1),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /*
+   * Claim and extend in ONE evaluation: a SET NX that failed, then an
+   * EXPIRE from here, would leave a key that expired in between unclaimed
+   * and unextended.
+   */
+  test("creates the key, or extends the one there, in one evaluation", async () => {
+    await expect(
+      GlobalCache.setStringIfNotExistsOrExtend("ns", "key", "1", {
+        expiresInSeconds: 90,
+      }),
+    ).resolves.toBe(true);
+
+    expect(client.eval).toHaveBeenCalledTimes(1);
+    expect(client.set).not.toHaveBeenCalled();
+    expect(client.expire).not.toHaveBeenCalled();
+
+    const [script, keyCount, key, value, ttl] = client.eval.mock.calls[0] as [
+      string,
+      number,
+      string,
+      string,
+      string,
+    ];
+
+    expect(script).toContain(
+      "redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2], 'NX')",
+    );
+    expect(script).toContain("redis.call('EXPIRE', KEYS[1], ARGV[2])");
+    // The extension runs only when the SET NX did not create the key.
+    expect(script.indexOf("'NX'")).toBeLessThan(script.indexOf("EXPIRE"));
+    expect(script).toContain("then return 1 end");
+    expect(keyCount).toBe(1);
+    expect(key).toBe("ns-key");
+    expect(value).toBe("1");
+    expect(ttl).toBe("90");
+  });
+
+  test("a key that was already there answers false", async () => {
+    client.eval.mockResolvedValueOnce(0);
+
+    await expect(
+      GlobalCache.setStringIfNotExistsOrExtend("ns", "key", "1"),
+    ).resolves.toBe(false);
+  });
+
+  test("anything but a 1 is not a claim", async () => {
+    for (const reply of [null, undefined, "1", "OK", true, 2]) {
+      client.eval.mockResolvedValueOnce(reply);
+      await expect(
+        GlobalCache.setStringIfNotExistsOrExtend("ns", "key", "1"),
+      ).resolves.toBe(false);
+    }
+  });
+
+  test("defaults the TTL to 30 days", async () => {
+    await GlobalCache.setStringIfNotExistsOrExtend("ns", "key", "1");
+
+    expect(client.eval.mock.calls[0]![4]).toBe(
+      String(OneUptimeDate.getSecondsInDays(30)),
+    );
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(
+      GlobalCache.setStringIfNotExistsOrExtend("ns", "key", "1"),
+    ).rejects.toThrow(DatabaseNotConnectedException);
+    expect(client.eval).not.toHaveBeenCalled();
+  });
+});
+
+describe("GlobalCache.extendExpiry", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn(),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("extends the key's expiry", async () => {
+    await expect(
+      GlobalCache.extendExpiry("ns", "key", { expiresInSeconds: 120 }),
+    ).resolves.toBe(true);
+
+    expect(client.expire).toHaveBeenCalledWith("ns-key", 120);
+    expect(client.set).not.toHaveBeenCalled();
+  });
+
+  test("a key that is not there answers false, and is not created", async () => {
+    client.expire.mockResolvedValueOnce(0);
+
+    await expect(
+      GlobalCache.extendExpiry("ns", "key", { expiresInSeconds: 120 }),
+    ).resolves.toBe(false);
+    expect(client.set).not.toHaveBeenCalled();
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(
+      GlobalCache.extendExpiry("ns", "key", { expiresInSeconds: 120 }),
+    ).rejects.toThrow(DatabaseNotConnectedException);
+    expect(client.expire).not.toHaveBeenCalled();
+  });
+});

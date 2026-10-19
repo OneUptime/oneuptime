@@ -66,11 +66,13 @@ Elke vergadering wordt aangemaakt als het account waarmee je je aanmeldt, dat de
 | --- | --- | --- |
 | Zoom | Een Zoom-gebruiker. Vergaderingen met een Basic-gebruiker (gratis) als host eindigen na 40 minuten. | Vergaderingen aanmaken voor die gebruiker (`meeting:write:meeting`) en lezen wie het is (`user:read:user`). Voor [transcripties van gesprekken](#transcripties-van-gesprekken) de transcripties van de cloudopnamen van zijn vergaderingen lezen (`cloud_recording:read:list_recording_files`, `cloud_recording:read:meeting_transcript`). |
 | Google Meet | Een Google-account dat Google Meet mag gebruiken. | Meet-ruimtes aanmaken als dat account (`meetings.space.created`) en het e-mailadres ervan lezen. |
-| Microsoft Teams | Een werk- of schoolaccount met Microsoft Teams. Persoonlijke Microsoft-accounts kunnen geen Teams-vergaderingen aanmaken. | Onlinevergaderingen aanmaken als dat account (het gedelegeerde recht `OnlineMeetings.ReadWrite`) en aangemeld blijven (`offline_access`). |
+| Microsoft Teams | Een werk- of schoolaccount met Microsoft Teams. Persoonlijke Microsoft-accounts kunnen geen Teams-vergaderingen aanmaken. | Onlinevergaderingen aanmaken als dat account (het gedelegeerde recht `OnlineMeetings.ReadWrite`) en aangemeld blijven (`offline_access`). Voor het [opnemen en transcriberen van incidentgesprekken](#elk-gesprek-opnemen-en-transcriberen) de vergaderingen in zijn agenda zetten (`Calendars.ReadWrite`) en hun transcripties lezen (`OnlineMeetingTranscript.Read.All`, dat een beheerder goedkeurt). |
 
 Een koppeling die door aanmelden is gemaakt, heeft nog steeds de instellingen die bepalen wie wacht: **Who can join** voor Google Meet en **Who skips the lobby** voor Microsoft Teams. Wijzig ze met **Bewerken** in de rij van de koppeling.
 
 Een Zoom-verbinding die is aangemeld voordat OneUptime transcripties van gesprekken las, start gesprekken zoals voorheen, maar kan hun transcripties pas lezen als ze opnieuw is aangemeld: **Reconnect** op haar rij vraagt Zoom om de rechten voor transcripties.
+
+Een Microsoft Teams-verbinding die is aangemeld terwijl **Incidentgesprekken opnemen en transcriberen** uit stond, start gesprekken zoals voorheen, zonder opname. Zodra die instelling aan staat, vraagt **Reconnect** op haar rij Microsoft ook om de rechten voor de agenda en voor transcripties.
 
 ### Aangemeld blijven
 
@@ -86,7 +88,7 @@ Een koppeling verwijderen trekt de toegang van OneUptime bij Zoom en Google in z
 
 ### Als Microsoft om een beheerder vraagt
 
-Sommige Microsoft 365-organisaties laten alleen beheerders apps goedkeuren. Als Microsoft zegt dat je goedkeuring van een beheerder nodig hebt, vraag dan een Microsoft 365-beheerder om Microsoft Teams te koppelen, of om OneUptime goed te keuren in het [Microsoft Entra-beheercentrum](https://entra.microsoft.com/) onder **Enterprise applications** > **Admin consent requests**.
+Sommige Microsoft 365-organisaties laten alleen beheerders apps goedkeuren. Als Microsoft zegt dat je goedkeuring van een beheerder nodig hebt, vraag dan een Microsoft 365-beheerder om Microsoft Teams te koppelen, of om OneUptime goed te keuren in het [Microsoft Entra-beheercentrum](https://entra.microsoft.com/) onder **Enterprise applications** > **Admin consent requests**. Een project dat zijn Teams-gesprekken opneemt, heeft deze goedkeuring in elke organisatie één keer nodig: alleen een beheerder kan een app transcripties van vergaderingen laten lezen.
 
 ### In plaats daarvan je eigen app gebruiken
 
@@ -107,7 +109,7 @@ Wat responders in een gesprek zeggen, wat ze hebben gecontroleerd, wat ze vermoe
 :::steps
 ### Haal de transcriptie op na het gesprek
 
-Op de kaart **Video Call** van het incident leest **Ophalen uit Zoom** of **Ophalen uit Google Meet** de transcriptie van een vergadering die OneUptime daar heeft gestart. Voor elk ander gesprek neemt **Transcriptie toevoegen** het bestand dat de vergadertool heeft opgeslagen (`.vtt`, `.srt` of `.txt`, tot 5 MB) of de geplakte transcriptie. Wordt [elk gesprek opgenomen en getranscribeerd](#elk-gesprek-opnemen-en-transcriberen), dan haalt OneUptime de transcriptie zelf op zodra het gesprek voorbij is.
+Op de kaart **Video Call** van het incident leest **Ophalen uit Zoom**, **Ophalen uit Google Meet** of **Ophalen uit Microsoft Teams** de transcriptie van een vergadering die OneUptime daar heeft gestart (bij Microsoft Teams een die het heeft gestart terwijl elk gesprek wordt opgenomen en getranscribeerd). Voor elk ander gesprek neemt **Transcriptie toevoegen** het bestand dat de vergadertool heeft opgeslagen (`.vtt`, `.srt` of `.txt`, tot 5 MB) of de geplakte transcriptie. Wordt [elk gesprek opgenomen en getranscribeerd](#elk-gesprek-opnemen-en-transcriberen), dan haalt OneUptime de transcriptie zelf op zodra het gesprek voorbij is.
 
 ### OneUptime AI leest het
 
@@ -124,12 +126,14 @@ OneUptime AI stelt alleen een oorzaak voor als het gesprek er een noemt, met de 
 
 Om te zorgen dat niemand eraan hoeft te denken een gesprek op te nemen of de transcriptie ervan op te halen, zet u **Incidentgesprekken opnemen en transcriberen** aan in **Projectinstellingen** > **Werkruimte** > **Video Calls**. Zolang dat aan staat:
 
-- OneUptime vraagt Zoom om elke incidentvergadering die het start, in de cloud op te nemen, en Google Meet om die te transcriberen. Het bericht waarmee het gesprek wordt geplaatst, meldt dat voordat iemand deelneemt.
+- OneUptime vraagt Zoom om elke incidentvergadering die het start, in de cloud op te nemen, Google Meet om die te transcriberen, en Microsoft Teams om die automatisch op te nemen en te transcriberen. Het bericht waarmee het gesprek wordt geplaatst, meldt dat voordat iemand deelneemt.
 - Zodra het gesprek voorbij is, haalt OneUptime de transcriptie zelf op, zoals **Ophalen uit Zoom** zou doen, waarna OneUptime AI die leest. Tot dan zegt de kaart **Video Call** dat ze erop wacht.
 - Wat OneUptime AI heeft gelezen, gaat naar de feed van het incident en naar de Slack- en Microsoft Teams-kanalen ervan: de voorgestelde hoofdoorzaak, gemarkeerd als niet bevestigd, dan wat er is bevestigd, geprobeerd en besloten, de vervolgacties en de open vragen.
-- Wordt het incident opgelost voordat de transcriptie binnen is, dan wacht het automatische postmortem-concept erop, zodat het leest wat er in het gesprek is gezegd: tot zes uur terwijl Zoom of Google Meet de transcriptie maakt, en één uur als er nog geen teken van een transcriptie is.
+- Wordt het incident opgelost voordat de transcriptie binnen is, dan wacht het automatische postmortem-concept erop, zodat het leest wat er in het gesprek is gezegd: tot zes uur terwijl de aanbieder de transcriptie maakt, en één uur als er nog geen teken van een transcriptie is.
 
-De instelling staat standaard uit, omdat ze mensen opneemt: iedereen in die gesprekken ziet dat ze worden opgenomen of getranscribeerd, dus controleer of uw organisatie dat toestaat. Zoom bewaart alleen een transcriptie als het account in de cloud opneemt met de audiotranscriptie aan, en Google Meet alleen in een Google Workspace-editie die transcripties heeft. Microsoft Teams-gesprekken, Slack-huddles en vergaderlinks worden niet opgenomen, en gesprekken van waarschuwingen evenmin: voeg hun transcripties handmatig toe.
+De instelling staat standaard uit, omdat ze mensen opneemt: iedereen in die gesprekken ziet dat ze worden opgenomen of getranscribeerd, dus controleer of uw organisatie dat toestaat. Zoom bewaart alleen een transcriptie als het account in de cloud opneemt met de audiotranscriptie aan, en Google Meet alleen in een Google Workspace-editie die transcripties heeft. Slack-huddles en vergaderlinks worden niet opgenomen, en gesprekken van waarschuwingen evenmin: voeg hun transcripties handmatig toe.
+
+Microsoft laat apps alleen de transcripties lezen van Teams-vergaderingen die in een agenda staan, dus plaatst OneUptime elke incidentvergadering in de agenda van de organisator ervan en zet het automatisch opnemen en transcriberen aan in de opties van de vergadering. Daarvoor heeft de verbinding twee extra Microsoft Graph-rechten nodig, `Calendars.ReadWrite` en `OnlineMeetingTranscript.Read.All`: voeg ze toe aan uw appregistratie (zie [Microsoft Teams](#microsoft-teams)), of gebruik **Reconnect** bij een verbinding die door aanmelden is gemaakt. Het Teams-vergaderbeleid van de organisator moet cloudopnamen, transcriptie en automatisch opnemen toestaan, en uw organisatie mag de toegang van apps tot transcripties niet hebben uitgezet. Een gesprek dat OneUptime niet in de agenda kan plaatsen, start toch, zonder opname, en de kaart **Video Call** ervan zegt waarom.
 
 ### Wat elke aanbieder bewaart
 
@@ -137,7 +141,7 @@ De instelling staat standaard uit, omdat ze mensen opneemt: iedereen in die gesp
 | --- | --- | --- |
 | Zoom | **Ophalen uit Zoom** | Een vergadering die in de cloud is opgenomen met de audiotranscriptie aan, of met de vergadersamenvatting van AI Companion aan. De verbinding heeft de scopes voor transcripties nodig (zie [Zoom](#zoom)), en een die daarvoor is aangemeld heeft **Reconnect** nodig. Zoom maakt een transcriptie na de vergadering, meestal binnen twee keer de duur ervan. |
 | Google Meet | **Ophalen uit Google Meet** | Transcripties die in het gesprek zijn aangezet, in een Google Workspace-editie die ze heeft. Verder niets in te stellen: OneUptime leest de transcripties van de vergaderingen die het heeft gemaakt. Google houdt een transcriptie 30 dagen leesbaar voor apps. |
-| Microsoft Teams | **Transcriptie toevoegen** | Microsoft laat geen app de transcriptie lezen van een vergadering die is gemaakt zoals OneUptime ze maakt. Open in Teams de samenvatting van de vergadering, dan de transcriptie, en download die als `.vtt`-bestand. |
+| Microsoft Teams | **Ophalen uit Microsoft Teams** | Een vergadering die OneUptime heeft gestart terwijl [elk gesprek wordt opgenomen en getranscribeerd](#elk-gesprek-opnemen-en-transcriberen): Microsoft laat apps alleen de transcripties lezen van vergaderingen die in een agenda staan, en bewaart een vergadering 60 dagen. Voor elke andere Teams-vergadering **Transcriptie toevoegen**: open in Teams de samenvatting van de vergadering, dan de transcriptie, en download die als `.vtt`-bestand. |
 | Vergaderlink of Slack-huddle | **Transcriptie toevoegen** | De transcriptie die de vergadertool, of de notities van de huddle, bewaren. |
 
 ### Wie wat mag
@@ -198,7 +202,7 @@ OneUptime maakt voor elk incident een Microsoft Teams-vergadering aan met Micros
 
 :::steps
 1. Open in het [Microsoft Entra-beheercentrum](https://entra.microsoft.com/) **App registrations** > **New registration** en registreer een app voor één tenant. Kopieer de **Directory (tenant) ID** en de **Application (client) ID**.
-2. Voeg onder **API permissions** het Microsoft Graph-recht van het type **application** **OnlineMeetings.ReadWrite.All** toe en klik daarna op **Grant admin consent**.
+2. Voeg onder **API permissions** het Microsoft Graph-recht van het type **application** **OnlineMeetings.ReadWrite.All** toe (en, om ook [incidentgesprekken op te nemen en te transcriberen](#elk-gesprek-opnemen-en-transcriberen), **Calendars.ReadWrite** en **OnlineMeetingTranscript.Read.All**) en klik daarna op **Grant admin consent**.
 3. Maak onder **Certificates & secrets** een clientgeheim aan en plak de **Value** ervan, niet de Secret ID, in het koppelingsformulier als het **Client secret**.
 4. Kies de organisator: een Teams-gebruiker met licentie, bij voorkeur een serviceaccount. Kopieer de **Object ID** ervan uit **Users** in het Entra-beheercentrum naar **Organizer object ID**.
 5. Sta de app toe vergaderingen aan te maken voor de organisator met een toegangsbeleid voor toepassingen. Voer in Teams PowerShell, na `Connect-MicrosoftTeams`, de twee onderstaande commando's uit.
@@ -210,6 +214,8 @@ Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "<organ
 ```
 
 Het beleid kan tot 30 minuten nodig hebben om van kracht te worden. Tot dan meldt de test dat de app geen vergaderingen mag aanmaken voor de organisator.
+
+Hetzelfde beleid laat de app de transcripties van de vergaderingen van de organisator lezen. Met `Calendars.ReadWrite` kan een app elke agenda in uw organisatie wijzigen: om dat te beperken tot de agenda van de organisator, verleent u het recht met [RBAC voor toepassingen in Exchange Online](https://learn.microsoft.com/exchange/permissions-exo/application-rbac), met de organisator als bereik, in plaats van onder **API permissions**.
 
 **Who skips the lobby** bepaalt wie meedoet zonder te wachten: met **People in your organization skip the lobby** (de standaard) wacht ieder ander in de lobby tot iemand in de vergadering hem toelaat. Met **Everyone skips the lobby** wacht niemand.
 
@@ -268,7 +274,7 @@ Maak per provider één OAuth-app aan en registreer er deze omleidings-URI in, m
 
 - **Zoom**: kies in de [Zoom App Marketplace](https://marketplace.zoom.us/) **Develop** > **Build App** en maak een **General App** aan, beheerd door gebruikers. Voeg onder **Basic Information** de omleidings-URI toe als OAuth Redirect URL op zowel het tabblad **Development** als **Production** en aan de OAuth-toelatingslijst, en stel op het tabblad **Production** de eindpunt-URL van **Deauthorization Notification** in op `https://<host>/api/video-call-oauth/zoom/events`. Voeg onder **Scopes** `meeting:write:meeting` en `user:read:user` toe. Om het [transcripties van gesprekken](#transcripties-van-gesprekken) te laten lezen, voegt u ook `cloud_recording:read:list_recording_files` en `cloud_recording:read:meeting_transcript` toe. Het **Secret Token** onder **Features** > **Access** is `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. De **Development**-inloggegevens werken alleen voor gebruikers van je eigen Zoom-account; de **Production**-inloggegevens werken voor iedereen zodra Zoom de app heeft beoordeeld en gepubliceerd.
 - **Google Meet**: schakel in de [Google Cloud-console](https://console.cloud.google.com/) de **Google Meet REST API** in, stel het OAuth-toestemmingsscherm in (**Google Auth Platform**) met de scopes `openid`, `email` en `https://www.googleapis.com/auth/meetings.space.created`, en maak een OAuth-client van het type **Web application** aan met de omleidings-URI. Publiceer de app naar productie: een app die in de testfase blijft, verliest zijn aanmeldingen na zeven dagen. Google beoordeelt apps die om de Meet-scope vragen; tot dat is gebeurd, zien mensen een waarschuwing voordat ze zich aanmelden.
-- **Microsoft Teams**: registreer in het [Microsoft Entra-beheercentrum](https://entra.microsoft.com/) een app voor **Accounts in any organizational directory**, voeg de omleidings-URI toe als **Web**-omleidings-URI, voeg de gedelegeerde Microsoft Graph-rechten `openid`, `profile`, `email`, `offline_access` en `OnlineMeetings.ReadWrite` toe, en maak een clientgeheim aan. Gebruik een eigen registratie, niet die van de Microsoft Teams-bot (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Zolang de app geen geverifieerde uitgever heeft, hebben de meeste organisaties een beheerder nodig die er toestemming voor geeft.
+- **Microsoft Teams**: registreer in het [Microsoft Entra-beheercentrum](https://entra.microsoft.com/) een app voor **Accounts in any organizational directory**, voeg de omleidings-URI toe als **Web**-omleidings-URI, voeg de gedelegeerde Microsoft Graph-rechten `openid`, `profile`, `email`, `offline_access` en `OnlineMeetings.ReadWrite` toe (en daarnaast `Calendars.ReadWrite` en `OnlineMeetingTranscript.Read.All`, waar een project dat [zijn gesprekken opneemt en transcribeert](#elk-gesprek-opnemen-en-transcriberen) om vraagt), en maak een clientgeheim aan. Gebruik een eigen registratie, niet die van de Microsoft Teams-bot (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Zolang de app geen geverifieerde uitgever heeft, hebben de meeste organisaties een beheerder nodig die er toestemming voor geeft.
 
 De client-ID's zijn openbaar: ze worden naar het dashboard gestuurd zodat het weet welke providers met één klik koppelen. Houd de geheimen en het geheime webhooktoken geheim. De worker vernieuwt dagelijks de aanmeldingen die aan de beurt zijn, dus hij heeft dezelfde waarden nodig als de app.
 
@@ -295,7 +301,11 @@ Zoom bewaart alleen een transcriptie van een vergadering die in de cloud is opge
 :::
 
 :::details De kaart Video Call wacht nog op een transcriptie
-Zodra het gesprek voorbij is, vraagt OneUptime Zoom of Google Meet er om de paar minuten om, minder vaak naarmate het gesprek ouder wordt, tot drie dagen na het begin van het gesprek. De transcriptie komt binnen enkele minuten nadat de aanbieder die heeft gemaakt, en Zoom doet er tot ongeveer twee keer de duur van het gesprek over. **Ophalen uit Zoom** vraagt er meteen om. Bewaart de aanbieder geen transcriptie, dan zegt de kaart dat: controleer of het Zoom-account in de cloud opneemt met de audiotranscriptie aan, of dat uw Google Workspace-editie transcripties heeft.
+Zodra het gesprek voorbij is, vraagt OneUptime Zoom, Google Meet of Microsoft Teams er om de paar minuten om, minder vaak naarmate het gesprek ouder wordt, tot drie dagen na het begin van het gesprek. De transcriptie komt binnen enkele minuten nadat de aanbieder die heeft gemaakt, en Zoom doet er tot ongeveer twee keer de duur van het gesprek over. **Ophalen uit Zoom** vraagt er meteen om. Bewaart de aanbieder geen transcriptie, dan zegt de kaart dat: controleer of het Zoom-account in de cloud opneemt met de audiotranscriptie aan, of uw Google Workspace-editie transcripties heeft, of dat het Teams-vergaderbeleid van de organisator automatisch opnemen toestaat.
+:::
+
+:::details Een Microsoft Teams-gesprek is niet opgenomen
+OneUptime kon de vergadering niet in de agenda van de organisator ervan plaatsen, dus is het gesprek op de gewone manier gestart, zonder opname, en de kaart **Video Call** zegt waarom. Meestal mist de verbinding `Calendars.ReadWrite` of `OnlineMeetingTranscript.Read.All`: voeg ze toe aan de appregistratie en verleen beheerderstoestemming, of gebruik **Reconnect** bij een verbinding die door aanmelden is gemaakt. Gesprekken die daarna starten, worden opgenomen.
 :::
 
 :::details OneUptime AI kon een transcriptie niet lezen

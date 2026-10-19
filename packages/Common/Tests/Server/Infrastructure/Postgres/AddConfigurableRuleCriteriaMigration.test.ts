@@ -39,7 +39,7 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   "StorageArrayOwnerRule",
   // AddAutomaticRemediationSwitchesAndInvestigationRules
   "AIInvestigationRule",
-  // 1804150000000-AddAIPostmortemRules
+  // 1804200000000-AddAIPostmortemRules
   "AIPostmortemRule",
 ];
 

@@ -2724,7 +2724,7 @@ describe("starting a postmortem from a template or an AI draft", () => {
       POSTMORTEM_WAITS_FOR_PREPARING_TRANSCRIPT_MS / (60 * 60 * 1000),
     ).toBe(6);
     expect(starting).toContain(
-      "- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while Zoom or Google Meet prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).",
+      "- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while the provider prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).",
     );
   });
 });

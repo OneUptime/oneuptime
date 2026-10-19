@@ -4,6 +4,7 @@ import ExceptionSpikeDetector from "./ExceptionSpikeDetector";
 import ErrorLogSpikeDetector from "./ErrorLogSpikeDetector";
 import TraceLatencyRegressionDetector from "./TraceLatencyRegressionDetector";
 import MetricDriftDetector from "./MetricDriftDetector";
+import DeployRegressionDetector from "./DeployRegressionDetector";
 
 /*
  * The detector registry. All five deterministic sensors — no LLM in any of
@@ -22,6 +23,7 @@ export default class InsightDetectors {
       new TraceLatencyRegressionDetector(),
       new ErrorLogSpikeDetector(),
       new MetricDriftDetector(),
+      new DeployRegressionDetector(),
     ];
   }
 }

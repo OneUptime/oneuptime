@@ -14,8 +14,10 @@
 #       is told how to upgrade without --reuse-values;
 #   (b) a release on an older chart's values (chartDefaultsVersion older, or
 #       missing on a chart from before it) is warned, with the collector tag
-#       named when it is not this chart's default, the OBI tag likewise and
-#       ebpf.contextPropagation when it is off (both when eBPF is on), and
+#       named when it is not this chart's default, the OBI tag likewise,
+#       ebpf.contextPropagation when it is off and
+#       ebpf.routes.disabledHarvesters when it is missing (all three when eBPF
+#       is on), and
 #       gets the exact upgrade that fixes it for this release, Helm 3.14+ and
 #       older;
 #   (c) a values file that copies an older chart's defaults is named as the
@@ -84,6 +86,9 @@ tests:
           pattern: "\n\nWARNING: this release did not get this chart's defaults\\.\nIt renders with an older chart's defaults \\(its values have no\nchartDefaultsVersion\\), not with those of this chart, 14\\.0\\.15\\.\n`helm upgrade --reuse-values` does that: it keeps the previous release's\nvalues, the old chart's defaults included\\. So does a values file copied from\nan older chart's values\\.yaml \\(or from `helm get values --all`\\)\\. Either way, a\ndefault this chart added or changed never applies\\.\n"
       - matchRegexRaw:
           pattern: "\nStale here:\n  - image\\.tag is \"0\\.96\\.0\"; this chart's default is \"0\\.161\\.0\"\n    \\(the OpenTelemetry Collector, with security fixes the older one lacks\\)\\.\n    Kept if you set it yourself\\.\n  - ebpf\\.image\\.tag is \"v0\\.9\\.0\"; this chart's default is \"v0\\.14\\.0\"\n    \\(OBI, the eBPF instrumentation\\)\\. Kept if you set it yourself\\.\n"
+      # 14.0.10 had no ebpf.routes.disabledHarvesters, so OBI still harvests Node.js routes.
+      - matchRegexRaw:
+          pattern: "\n  - ebpf\\.routes\\.disabledHarvesters is not set, so OBI reads each Node\\.js\n"
       - matchRegexRaw:
           pattern: "\nAfter --reuse-values, apply this chart's defaults and keep the values you set\n\\(Helm 3\\.14\\+\\):\n  helm repo update\n  helm upgrade my-agent oneuptime/kubernetes-agent -n monitoring --version 14\\.0\\.15 --reset-then-reuse-values\n"
       - matchRegexRaw:
@@ -173,6 +178,42 @@ tests:
           pattern: "\nWARNING: this release did not get this chart's defaults\\.\n"
       - notMatchRegexRaw:
           pattern: "contextPropagation"
+
+  # The charts before this one harvested Node.js routes, and a --reuse-values
+  # upgrade carries no ebpf.routes.disabledHarvesters into this one, which
+  # skips Node.js. Only a missing key is the old default: [] is a choice.
+  - it: names Node.js route harvesting a release from before the key still does, and says the fix keeps a list set on purpose
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.13"
+      ebpf.routes.disabledHarvesters: null
+    asserts:
+      - matchRegexRaw:
+          pattern: "\nStale here:\n  - ebpf\\.routes\\.disabledHarvesters is not set, so OBI reads each Node\\.js\n    app's sources for route names before tracing it, up to 10s an app, one\n    app at a time; this chart skips Node\\.js\\. Kept if you set it yourself\\.\nAfter --reuse-values"
+
+  - it: names no route harvesting when a stale release set the list, even to nothing
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.13"
+      ebpf.routes.disabledHarvesters: []
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "disabledHarvesters"
+
+  - it: names no route harvesting when eBPF is off
+    release:
+      upgrade: true
+    set:
+      chartDefaultsVersion: "14.0.13"
+      ebpf.enabled: false
+      ebpf.routes.disabledHarvesters: null
+    asserts:
+      - matchRegexRaw:
+          pattern: "\nWARNING: this release did not get this chart's defaults\\.\n"
+      - notMatchRegexRaw:
+          pattern: "disabledHarvesters"
 
   - it: names no OBI tag when eBPF is off, but still warns and names the collector tag
     release:

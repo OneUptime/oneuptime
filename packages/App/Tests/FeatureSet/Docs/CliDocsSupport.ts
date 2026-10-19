@@ -37,6 +37,7 @@ export const CLI_PROGRAM_SOURCES: ReadonlyArray<string> = [
   "Commands/ConfigCommands.ts",
   "Commands/UtilityCommands.ts",
   "Commands/ResourceCommands.ts",
+  "Commands/DeployCommands.ts",
 ];
 
 // What Commander adds to every program built with .version() and help on.

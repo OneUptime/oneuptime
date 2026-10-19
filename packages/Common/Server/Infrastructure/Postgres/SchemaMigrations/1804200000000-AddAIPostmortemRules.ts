@@ -16,8 +16,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * drafting as before - with no rule, every resolved incident gets a draft,
  * in OneUptime AI's standard outline.
  */
-export class AddAIPostmortemRules1804150000000 implements MigrationInterface {
-  public name: string = "AddAIPostmortemRules1804150000000";
+export class AddAIPostmortemRules1804200000000 implements MigrationInterface {
+  public name: string = "AddAIPostmortemRules1804200000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

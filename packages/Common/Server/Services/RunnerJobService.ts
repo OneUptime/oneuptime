@@ -20,6 +20,7 @@ import KubectlWriteScope, {
   KubectlWriteScopeRefusal,
 } from "../../Utils/AiRemediation/KubectlWriteScope";
 import ToolResultSerializer from "../Utils/AI/Toolbox/Serializer";
+import OwnChangeRecorder from "../Utils/Telemetry/ChangeDetection/OwnChangeRecorder";
 import {
   KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
   KUBECTL_ALLOW_WRITES_ENV,
@@ -2378,7 +2379,7 @@ export class Service extends DatabaseService<Model> {
       WHERE "_id" = $5::uuid
         AND "assignedAgentId" = $6::uuid
         AND "status" IN ($7, $8)
-      RETURNING "_id";
+      RETURNING "_id", "origin";
     `;
     const rows: Array<JSONObject> = unwrapRows(
       await dataSource.query(sql, [
@@ -2395,6 +2396,15 @@ export class Service extends DatabaseService<Model> {
         redactedErrorMessage,
       ]),
     );
+
+    /*
+     * A fix OneUptime AI ran is a change like a deploy: recorded, so the
+     * investigations that follow it can see it (OwnChangeRecorder). Started
+     * and not awaited - the agent's result never waits for it.
+     */
+    if (rows[0]?.["origin"] === RunnerJobOrigin.AiRemediation) {
+      OwnChangeRecorder.recordAiCommandResult(data.jobId);
+    }
 
     return rows.length > 0;
   }

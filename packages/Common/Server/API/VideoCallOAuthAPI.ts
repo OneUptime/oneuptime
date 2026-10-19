@@ -9,7 +9,10 @@ import Express, {
   ExpressRouter,
   OneUptimeRequest,
 } from "../Utils/Express";
-import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
+import logger, {
+  LogAttributes,
+  getLogAttributesFromRequest,
+} from "../Utils/Logger";
 import Response from "../Utils/Response";
 import {
   VideoCallOAuthApp,
@@ -18,6 +21,7 @@ import {
   VideoCallOAuthGrantRefusal,
 } from "../Utils/VideoCall/OAuth/VideoCallOAuth";
 import VideoCallOAuthApps from "../Utils/VideoCall/OAuth/VideoCallOAuthApps";
+import IncidentCallRecordingSetting from "../Utils/VideoCall/Transcripts/IncidentCallRecordingSetting";
 import ZoomOAuthEvents, {
   ZOOM_DEAUTHORIZED_EVENT,
   ZOOM_SIGNATURE_HEADER,
@@ -73,8 +77,17 @@ import {
  * Zoom also sends events here: someone removing the app from their Zoom
  * account (ZoomOAuthEvents), after which the account's sign-in is deleted
  * from every connection that held it.
+ *
+ * A Microsoft Teams sign-in for a project that records and transcribes its
+ * incident calls asks Microsoft for more (MicrosoftTeamsMeetingsOAuthApp):
+ * the start decides, and its state carries that to the callback
+ * (RECORD_AND_TRANSCRIBE_PAYLOAD_KEY), so the code is exchanged for what was
+ * asked.
  */
 export default class VideoCallOAuthAPI {
+  public static readonly RECORD_AND_TRANSCRIBE_PAYLOAD_KEY: string =
+    "recordAndTranscribe";
+
   // What a connection signed out by the account at Zoom says until it is reconnected.
   public static readonly ZOOM_REMOVED_MESSAGE: string =
     "OneUptime was removed from the Zoom account this connection signed in with, so its sign-in was deleted. Reconnect Zoom in Project Settings > Workspace > Video Calls to start calls again.";
@@ -115,10 +128,16 @@ export default class VideoCallOAuthAPI {
      */
     let grant: VideoCallOAuthGrant;
 
+    // A sign-in that asked for the recording permissions is exchanged for them.
+    const recordAndTranscribe: boolean =
+      record.payload?.[VideoCallOAuthAPI.RECORD_AND_TRANSCRIBE_PAYLOAD_KEY] ===
+      true;
+
     try {
       grant = await app.exchangeCode({
         code,
         redirectUri: VideoCallOAuthApps.getRedirectUri(data.provider),
+        ...(recordAndTranscribe ? { recordAndTranscribe } : {}),
       });
     } catch (error) {
       if (error instanceof VideoCallOAuthGrantRefusal) {
@@ -155,12 +174,48 @@ export default class VideoCallOAuthAPI {
     start: VideoCallConnectStart;
     provider: VideoCallProvider;
     state: string;
+    recordAndTranscribe?: boolean | undefined;
   }): JSONObject {
     return {
       authorizationUrl: data.start.app.getAuthorizationUrl({
         state: data.state,
         redirectUri: VideoCallOAuthApps.getRedirectUri(data.provider),
+        recordAndTranscribe: data.recordAndTranscribe,
       }),
+    };
+  }
+
+  /*
+   * Whether the project records and transcribes its incident calls, which a
+   * Microsoft Teams sign-in asks more of. A project that cannot be read asks
+   * for nothing more: connecting still works.
+   */
+  public static async isRecordingIncidentCalls(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    try {
+      return await IncidentCallRecordingSetting.isOn(projectId);
+    } catch (error) {
+      logger.error(
+        `Could not read whether incident calls are recorded; connecting Microsoft Teams without the recording permissions: ${error}`,
+        { projectId: projectId.toString() } as LogAttributes,
+      );
+      return false;
+    }
+  }
+
+  // A start's state payload, saying whether the sign-in asks for the recording permissions.
+  public static getStartPayload(data: {
+    start: VideoCallConnectStart;
+    recordAndTranscribe: boolean;
+  }): JSONObject | undefined {
+    if (!data.recordAndTranscribe) {
+      return data.start.payload;
+    }
+
+    return {
+      ...(data.start.payload || {}),
+      [VideoCallOAuthAPI.RECORD_AND_TRANSCRIBE_PAYLOAD_KEY]: true,
     };
   }
 
@@ -311,7 +366,10 @@ export default class VideoCallOAuthAPI {
       }),
     );
 
-    // Start connecting Microsoft Teams. As for Zoom.
+    /*
+     * Start connecting Microsoft Teams. As for Zoom, and with the recording
+     * permissions for a project that records its incident calls.
+     */
     router.get(
       "/video-call-oauth/microsoft-teams/authorize-url",
       UserMiddleware.getUserMiddleware,
@@ -323,13 +381,19 @@ export default class VideoCallOAuthAPI {
               provider: VideoCallProvider.MicrosoftTeams,
             });
 
+          const recordAndTranscribe: boolean =
+            await VideoCallOAuthAPI.isRecordingIncidentCalls(start.projectId);
+
           const { state } = await WorkspaceOAuthState.create({
             req,
             res,
             flow: WorkspaceOAuthFlow.VideoCallMicrosoftTeamsConnect,
             projectId: start.projectId,
             userId: start.userId,
-            payload: start.payload,
+            payload: VideoCallOAuthAPI.getStartPayload({
+              start,
+              recordAndTranscribe,
+            }),
           });
 
           return Response.sendJsonObjectResponse(
@@ -339,6 +403,7 @@ export default class VideoCallOAuthAPI {
               start,
               provider: VideoCallProvider.MicrosoftTeams,
               state,
+              recordAndTranscribe,
             }),
           );
         } catch (err) {
