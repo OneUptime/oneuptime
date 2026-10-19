@@ -154,7 +154,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
             </p>
           </div>
         </div>
-        <div className="flex flex-shrink-0 flex-wrap items-center gap-2 lg:justify-end [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+        <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
           {isAllDone ? (
             <Button
               title="Done"

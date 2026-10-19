@@ -185,10 +185,8 @@ const SecurityEventDestinationFormModal: FunctionComponent<ComponentProps> = (
     ...(lockedDefinition
       ? []
       : [{ id: DESTINATION_PROVIDER_STEP_ID, title: "SIEM" }]),
-    {
-      id: DESTINATION_CONNECTION_STEP_ID,
-      title: lockedDefinition ? lockedDefinition.title : "Settings",
-    },
+    // The dialog's title already names the SIEM.
+    { id: DESTINATION_CONNECTION_STEP_ID, title: "Connection" },
     { id: DESTINATION_SEND_STEP_ID, title: "What to send" },
   ];
 

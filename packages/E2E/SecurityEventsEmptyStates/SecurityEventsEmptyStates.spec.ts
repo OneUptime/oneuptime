@@ -1599,7 +1599,7 @@ test.describe("connections: your logs and your SIEM", () => {
     });
     await expect(dialog).toBeVisible();
     await expect(dialog.locator("[aria-current='step']")).toHaveText(
-      "Google SecOps",
+      "Connection",
     );
     await expect(
       dialog.getByText("Instance resource name").first(),

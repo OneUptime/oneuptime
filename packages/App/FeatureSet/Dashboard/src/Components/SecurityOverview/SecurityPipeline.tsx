@@ -185,7 +185,7 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
                 </AppLink>
                 {index < stages.length - 1 ? (
                   <div
-                    className="pointer-events-none absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 text-gray-400 md:block"
+                    className="pointer-events-none absolute -right-3 top-1/2 z-10 max-md:hidden -translate-y-1/2 text-gray-400 md:block"
                     aria-hidden="true"
                   >
                     <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />

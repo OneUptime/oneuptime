@@ -307,11 +307,14 @@ describe("adding a Google SecOps destination", () => {
   test("walks the SIEM's settings, then what to send; nothing is sent to test until the key is pasted", async () => {
     await renderForm();
 
-    // One SIEM today, so no step to pick it: its settings, then what to send.
-    expect(within(progress()).getByText("Google SecOps")).toBeInTheDocument();
+    /*
+     * One SIEM today, so no step to pick it: its connection, then what to
+     * send. The dialog's title names the SIEM.
+     */
+    expect(within(progress()).getByText("Connection")).toBeInTheDocument();
     expect(within(progress()).getByText("What to send")).toBeInTheDocument();
     expect(within(progress()).queryByText("SIEM")).toBeNull();
-    expect(activeStep()).toBe("Google SecOps");
+    expect(activeStep()).toBe("Connection");
     expect(sendTestButton()).toBeDisabled();
     expect(
       screen.getByText("Fill in the settings above to send a test event."),

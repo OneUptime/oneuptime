@@ -223,7 +223,6 @@ export const SecurityEventDestinationTestModal: FunctionComponent<{
       onClose={props.onClose}
       closeButtonText="Close"
       submitButtonText="Send again"
-      submitButtonStyleType={ButtonStyleType.NORMAL}
       isLoading={isSending}
       onSubmit={() => {
         void send();
