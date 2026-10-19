@@ -786,7 +786,9 @@ export default class BackendAPI {
       response.data as unknown as CodeTaskAgentDetails;
 
     if (!data.repository || !data.request) {
-      throw new Error("The server sent no repository or request for this task.");
+      throw new Error(
+        "The server sent no repository or request for this task.",
+      );
     }
 
     return {

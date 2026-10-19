@@ -180,9 +180,10 @@ export default class AIAgentCodeTaskAPI {
             );
           }
 
-          const details: CodeTaskAgentDetails = await CodeTaskAgentBrief.build(
-            { run, repository },
-          );
+          const details: CodeTaskAgentDetails = await CodeTaskAgentBrief.build({
+            run,
+            repository,
+          });
 
           return Response.sendJsonObjectResponse(
             req,

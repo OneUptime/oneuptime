@@ -6,10 +6,7 @@ import TaskLogger from "./TaskLogger";
 import GitCredentials, { GitCredentialHandle } from "./GitCredentials";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "./GitPorcelain";
 import SecretRedactor from "./SecretRedactor";
-import {
-  CodeTaskChanges,
-  CodeTaskFileStatus,
-} from "Common/Types/AI/CodeTask";
+import { CodeTaskChanges, CodeTaskFileStatus } from "Common/Types/AI/CodeTask";
 
 export interface CloneResult {
   workingDirectory: string;

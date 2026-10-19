@@ -52,13 +52,18 @@ export default class CodeTaskStats {
       return stats;
     }
 
-    const query: (sql: string, parameters: Array<unknown>) => Promise<QueryRows> =
-      async (sql: string, parameters: Array<unknown>): Promise<QueryRows> => {
-        return (await AIRunService.getRepository().manager.query(
-          sql,
-          parameters,
-        )) as QueryRows;
-      };
+    const query: (
+      sql: string,
+      parameters: Array<unknown>,
+    ) => Promise<QueryRows> = async (
+      sql: string,
+      parameters: Array<unknown>,
+    ): Promise<QueryRows> => {
+      return (await AIRunService.getRepository().manager.query(
+        sql,
+        parameters,
+      )) as QueryRows;
+    };
 
     const projectId: string = data.projectId.toString();
 
@@ -145,9 +150,7 @@ export default class CodeTaskStats {
       );
 
       if (entry) {
-        entry.openPullRequests = CodeTaskStats.toCount(
-          row["openPullRequests"],
-        );
+        entry.openPullRequests = CodeTaskStats.toCount(row["openPullRequests"]);
       }
     }
 

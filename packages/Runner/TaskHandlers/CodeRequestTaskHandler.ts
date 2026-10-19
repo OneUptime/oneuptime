@@ -102,7 +102,9 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
         token: tokenData.token,
         repositoryUrl: tokenData.repositoryUrl,
         baseBranch:
-          details.workingBranch || details.repository.mainBranchName || undefined,
+          details.workingBranch ||
+          details.repository.mainBranchName ||
+          undefined,
       };
 
       const repositoryManager: RepositoryManager = new RepositoryManager(
@@ -130,8 +132,7 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
         return this.createFailureResult(message, { isError: true });
       }
 
-      const branchName: string =
-        details.workingBranch || details.newBranchName;
+      const branchName: string = details.workingBranch || details.newBranchName;
 
       if (!details.workingBranch) {
         await repositoryManager.createBranch(

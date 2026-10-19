@@ -11,11 +11,9 @@ import { addDeveloperSideMenuSection } from "../DeveloperDocs/DeveloperDocsMenuS
 import { DeveloperDocsScope } from "../DeveloperDocs/DeveloperDocsPages";
 
 /*
- * The one side menu for the Code product. Tasks (/ai/agents) and Code
- * Repositories (/code-repository) are two route trees but one feature: every
- * task runs in a connected repository, and a repository is only there so
- * tasks have somewhere to open pull requests. Both list pages render this
- * menu, so the Products menu can carry a single Tasks item for the pair.
+ * Code's side menu on its first page: the repositories (Code is
+ * repositories first - each repository's page holds its tasks), and the
+ * Developer pages for code repositories (Terraform, API, AI Assistants).
  */
 const CodeSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -24,19 +22,8 @@ const CodeSideMenu: FunctionComponent = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Tasks",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-            ),
-          },
-          icon: IconProp.CPUChip,
-        },
-        {
-          link: {
-            title: "Code Repositories",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CODE_REPOSITORY] as Route,
-            ),
+            title: "Repositories",
+            to: RouteUtil.populateRouteParams(RouteMap[PageMap.CODE] as Route),
           },
           icon: IconProp.Code,
         },

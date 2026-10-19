@@ -159,8 +159,7 @@ export default class AIAgentDataAPI {
 
     if (
       !CodeFixTaskTypeHelper.isCodeRequest(taskType) ||
-      data.run.codeRepositoryId?.toString() !==
-        data.codeRepositoryId.toString()
+      data.run.codeRepositoryId?.toString() !== data.codeRepositoryId.toString()
     ) {
       return false;
     }

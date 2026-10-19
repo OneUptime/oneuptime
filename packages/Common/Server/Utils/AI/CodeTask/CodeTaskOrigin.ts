@@ -173,9 +173,7 @@ export default class CodeTaskOrigin {
       return {
         type: CodeTaskOriginType.Exception,
         label: exception
-          ? CodeTaskOrigin.shorten(
-              CodeTaskOrigin.describeException(exception),
-            )
+          ? CodeTaskOrigin.shorten(CodeTaskOrigin.describeException(exception))
           : "",
         recordId: run.triggeredByTelemetryExceptionId.toString(),
       };
@@ -283,8 +281,7 @@ export default class CodeTaskOrigin {
     title: string | undefined,
   ): string {
     const handle: string =
-      withPrefix ||
-      (plain !== undefined && plain !== null ? `#${plain}` : "");
+      withPrefix || (plain !== undefined && plain !== null ? `#${plain}` : "");
 
     if (!handle) {
       return title || "";

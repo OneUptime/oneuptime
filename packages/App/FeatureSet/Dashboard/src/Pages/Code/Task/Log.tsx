@@ -39,13 +39,22 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Navigation from "Common/UI/Utils/Navigation";
+import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
+import LinkComponent from "Common/UI/Components/Link/Link";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
 const POLL_INTERVAL_MS: number = 5000;
 
 /*
- * The AI task Logs page: everything recorded about one code-fix run, in the
- * order it happened — the page you open when a task did something you did not
- * expect.
+ * A task's Log page in Code: everything recorded about one of its turns (one
+ * code-fix run), in the order it happened - the page you open when a task
+ * did something you did not expect. The conversation shows the same steps
+ * in plain words; this is the verbatim record. Which turn is the `turn`
+ * query parameter (the conversation links each turn's Log); without one,
+ * the task's first turn.
  *
  * Two things are worth knowing about the data:
  *
@@ -459,10 +468,14 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
   );
 };
 
-const AIAgentTaskLogsPage: FunctionComponent<
+const CodeTaskLogPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { id } = useParams();
+  const turnParam: string | null = Navigation.getQueryStringByName("turn");
+  const runId: string =
+    turnParam && ObjectID.isValidUUID(turnParam) ? turnParam : id || "";
 
   const [entries, setEntries] = useState<Array<LogEntry>>([]);
   const [llmCalls, setLlmCalls] = useState<Array<LlmCallLog>>([]);
@@ -478,7 +491,7 @@ const AIAgentTaskLogsPage: FunctionComponent<
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
             url: URL.fromString(APP_API_URL.toString()).addRoute(
-              `/code-fix-run/logs/${id || ""}`,
+              `/code-fix-run/logs/${runId}`,
             ),
             data: {},
             headers: ModelAPI.getCommonHeaders(),
@@ -521,7 +534,7 @@ const AIAgentTaskLogsPage: FunctionComponent<
         }
         setHasLoadedOnce(true);
       }
-    }, [id]);
+    }, [runId]);
 
   useEffect(() => {
     fetchData().catch(() => {
@@ -557,9 +570,25 @@ const AIAgentTaskLogsPage: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  const conversationRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.CODE_TASK_VIEW] as Route,
+    { modelId: new ObjectID(id || "") },
+  );
+
   return (
     <Fragment>
       <div className="space-y-5">
+        <LinkComponent
+          to={conversationRoute}
+          dataTestId="code-task-log-back"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700"
+        >
+          <>
+            <Icon icon={IconProp.ArrowLeft} className="h-4 w-4" />
+            {translator.translateText("Back to the conversation")}
+          </>
+        </LinkComponent>
+
         {!canReadContent ? (
           <Alert
             type={AlertType.INFO}
@@ -619,4 +648,4 @@ const AIAgentTaskLogsPage: FunctionComponent<
   );
 };
 
-export default AIAgentTaskLogsPage;
+export default CodeTaskLogPage;

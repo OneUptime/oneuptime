@@ -120,8 +120,7 @@ export default class CodeTaskOutcomeReader {
       }
 
       const rawPatch: unknown = (entry as JSONObject)["patch"];
-      let patch: string | null =
-        typeof rawPatch === "string" ? rawPatch : null;
+      let patch: string | null = typeof rawPatch === "string" ? rawPatch : null;
       let isPatchTruncated: boolean =
         (entry as JSONObject)["isPatchTruncated"] === true;
 
@@ -243,6 +242,8 @@ export default class CodeTaskOutcomeReader {
   }
 
   private static cut(text: string, max: number): string {
-    return text.length > max ? `${text.substring(0, max)}\n… (truncated)` : text;
+    return text.length > max
+      ? `${text.substring(0, max)}\n… (truncated)`
+      : text;
   }
 }

@@ -16,10 +16,7 @@ import CodeFixTaskContext, {
   getInvestigationCodeFixTaskSnapshot,
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
-import {
-  CodeTaskChanges,
-  CodeTaskOutcome,
-} from "../../Types/AI/CodeTask";
+import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CountBy from "../Types/Database/CountBy";

@@ -252,7 +252,7 @@ function EntryRow(props: {
           entry.taskNumber !== null ? (
             <Link
               to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                RouteMap[PageMap.CODE_TASK_VIEW] as Route,
                 { modelId: entry.id },
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"

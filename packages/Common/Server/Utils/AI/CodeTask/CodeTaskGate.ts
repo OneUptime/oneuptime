@@ -162,9 +162,8 @@ export default class CodeTaskGate {
       };
     }
 
-    const agentCheck: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck(
-      { projectId: data.projectId },
-    );
+    const agentCheck: AIFixReadinessCheck =
+      await CodeFixReadiness.getAgentCheck({ projectId: data.projectId });
 
     if (!agentCheck.ok) {
       return {
@@ -184,8 +183,7 @@ export default class CodeTaskGate {
     canAsk: boolean;
     billingEnabled?: boolean | undefined;
   }): Promise<void> {
-    const blocker: CodeTaskBlocker | null =
-      await CodeTaskGate.getBlocker(data);
+    const blocker: CodeTaskBlocker | null = await CodeTaskGate.getBlocker(data);
 
     if (blocker) {
       throw CodeTaskGate.toException(blocker);
@@ -214,11 +212,12 @@ export default class CodeTaskGate {
     projectId: ObjectID;
     repositoryId: ObjectID;
   }): Promise<boolean> {
-    const reachable: Set<string> =
-      await CodeTaskGate.getReachableRepositoryIds({
+    const reachable: Set<string> = await CodeTaskGate.getReachableRepositoryIds(
+      {
         projectId: data.projectId,
         repositoryIds: [data.repositoryId],
-      });
+      },
+    );
 
     return reachable.has(data.repositoryId.toString());
   }

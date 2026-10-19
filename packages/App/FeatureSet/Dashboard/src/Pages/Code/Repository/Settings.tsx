@@ -22,8 +22,18 @@ import {
   getPickedFixPullRequestLimit,
   getValuesForFixPullRequestLimit,
 } from "../../../Components/CodeRepository/FixPullRequestLimit";
+import LabelsElement from "Common/UI/Components/Label/Labels";
+import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
+import RepositoryConnectionStatus from "../../../Components/CodeRepository/RepositoryConnectionStatus";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
+/*
+ * A repository's settings in Code, on one page: what it is called (name,
+ * description, labels; where its code lives is the GitHub App's to say),
+ * then what AI's work in it uses - the main branch, how many AI pull
+ * requests may be open at once, GitHub commands, and the build and test
+ * commands a change is checked with.
+ */
 const CodeRepositorySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -32,11 +42,106 @@ const CodeRepositorySettings: FunctionComponent<
 
   return (
     <Fragment>
+      <CardModelDetail<CodeRepository>
+        name="Repository > Repository Details"
+        cardProps={{
+          title: "Repository Details",
+          description: "What this repository is called in OneUptime.",
+        }}
+        isEditable={true}
+        formFields={[
+          {
+            field: {
+              name: true,
+            },
+            title: "Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            placeholder: "Repository Name",
+            validation: {
+              minLength: 2,
+            },
+          },
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Description",
+          },
+          getLabelsFormField<CodeRepository>(),
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 2,
+          modelType: CodeRepository,
+          id: "model-detail-code-repository",
+          selectMoreFields: {
+            gitHubAppInstallationId: true,
+          },
+          fields: [
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+            },
+            {
+              field: {
+                organizationName: true,
+              },
+              title: "Organization",
+            },
+            {
+              field: {
+                repositoryName: true,
+              },
+              title: "Repository",
+            },
+            {
+              field: {
+                gitHubAppInstallationId: true,
+              },
+              title: "Connection",
+              fieldType: FieldType.Element,
+              getElement: (item: CodeRepository): ReactElement => {
+                return (
+                  <RepositoryConnectionStatus
+                    gitHubAppInstallationId={item.gitHubAppInstallationId}
+                  />
+                );
+              },
+            },
+            {
+              field: {
+                labels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Labels",
+              fieldType: FieldType.Element,
+              getElement: (item: CodeRepository): ReactElement => {
+                return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                description: true,
+              },
+              title: "Description",
+            },
+          ],
+          modelId: modelId,
+        }}
+      />
+
       <CardModelDetail
         name="Repository Settings"
         cardProps={{
           title: "Repository Settings",
-          description: "Configure settings for your repository.",
+          description: "What AI's work in this repository uses.",
         }}
         isEditable={true}
         editButtonText="Edit Settings"

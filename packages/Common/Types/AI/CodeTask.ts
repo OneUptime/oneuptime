@@ -507,9 +507,8 @@ export class CodeTaskContextInputUtil {
     const seen: Set<string> = new Set<string>();
 
     for (const entry of raw) {
-      const item: CodeTaskContextInput = CodeTaskContextInputUtil.readItem(
-        entry,
-      );
+      const item: CodeTaskContextInput =
+        CodeTaskContextInputUtil.readItem(entry);
       const key: string = CodeTaskContextInputUtil.getKey(item);
 
       if (seen.has(key)) {

@@ -213,17 +213,15 @@ export default class CodeTaskThread {
     }
 
     return (
-      data.pullRequests.find(
-        (pullRequest: AIAgentTaskPullRequest): boolean => {
-          return (
-            (pullRequest.pullRequestState || PullRequestState.Open) ===
-              PullRequestState.Open &&
-            Boolean(pullRequest.headRefName) &&
-            pullRequest.codeRepositoryId?.toString() ===
-              data.codeRepositoryId!.toString()
-          );
-        },
-      ) || null
+      data.pullRequests.find((pullRequest: AIAgentTaskPullRequest): boolean => {
+        return (
+          (pullRequest.pullRequestState || PullRequestState.Open) ===
+            PullRequestState.Open &&
+          Boolean(pullRequest.headRefName) &&
+          pullRequest.codeRepositoryId?.toString() ===
+            data.codeRepositoryId!.toString()
+        );
+      }) || null
     );
   }
 

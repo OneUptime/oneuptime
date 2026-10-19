@@ -386,9 +386,7 @@ export default class CodeTaskContextBuilder {
       label: `Trace ${traceId.substring(0, 8)}…`,
       traceId: traceId,
       snapshot: CodeTaskContextBuilder.capSnapshot(
-        [`Trace ${traceId} (span tree):`, outcome.result.dataForLlm].join(
-          "\n",
-        ),
+        [`Trace ${traceId} (span tree):`, outcome.result.dataForLlm].join("\n"),
       ),
     };
   }

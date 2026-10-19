@@ -248,9 +248,7 @@ export default class InHouseCodeAgent implements CodeAgent {
          * task's conversation, and that answer starts the next turn. Any
          * other tool the model asked for alongside it is not run.
          */
-        const question: string | null = this.readQuestion(
-          completion.toolCalls,
-        );
+        const question: string | null = this.readQuestion(completion.toolCalls);
 
         if (question !== null) {
           await this.reportToolCall(

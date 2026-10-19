@@ -150,10 +150,9 @@ export default class CodeTaskAccess {
     try {
       await ModelPermission.checkUpdatePermissionByModel<CodeRepository>({
         modelType: CodeRepository,
-        fetchModelWithAccessControlIds:
-          async (): Promise<CodeRepository> => {
-            return repository;
-          },
+        fetchModelWithAccessControlIds: async (): Promise<CodeRepository> => {
+          return repository;
+        },
         props: data.props,
       });
 

@@ -62,11 +62,13 @@ export default class CodeTaskPresenter {
       return task.id!;
     });
 
-    const repliesByTask: Map<string, Array<AIRun>> =
-      await CodeTaskThread.getRepliesByTask({
-        projectId: data.projectId,
-        taskIds,
-      });
+    const repliesByTask: Map<
+      string,
+      Array<AIRun>
+    > = await CodeTaskThread.getRepliesByTask({
+      projectId: data.projectId,
+      taskIds,
+    });
 
     const allRunIds: Array<ObjectID> = [...taskIds];
 
@@ -244,14 +246,12 @@ export default class CodeTaskPresenter {
     }
 
     const pullRequest: AIAgentTaskPullRequest | undefined =
-      data.pullRequests.find(
-        (candidate: AIAgentTaskPullRequest): boolean => {
-          return (
-            (candidate.pullRequestState || PullRequestState.Open) ===
-            PullRequestState.Open
-          );
-        },
-      ) || data.pullRequests[0];
+      data.pullRequests.find((candidate: AIAgentTaskPullRequest): boolean => {
+        return (
+          (candidate.pullRequestState || PullRequestState.Open) ===
+          PullRequestState.Open
+        );
+      }) || data.pullRequests[0];
 
     const summary: CodeTaskSummaryJSON = {
       id: data.task.id!.toString(),

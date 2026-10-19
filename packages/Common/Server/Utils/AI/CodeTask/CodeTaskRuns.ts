@@ -1,6 +1,4 @@
-import Semaphore, {
-  SemaphoreMutex,
-} from "../../../Infrastructure/Semaphore";
+import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import AIRunService from "../../../Services/AIRunService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
@@ -301,9 +299,7 @@ export default class CodeTaskRuns {
         task: data.task,
       });
 
-      if (
-        !CodeTaskStateUtil.acceptsReply(CodeTaskStateUtil.fromRun(latest))
-      ) {
+      if (!CodeTaskStateUtil.acceptsReply(CodeTaskStateUtil.fromRun(latest))) {
         throw new BadDataException(CODE_TASK_BUSY_MESSAGE);
       }
 

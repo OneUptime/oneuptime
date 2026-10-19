@@ -68,9 +68,7 @@ export default class CodeTaskAgentBrief {
     const run: AIRun = data.run;
     const projectId: ObjectID = run.projectId!;
 
-    const request: CodeTaskRequest | null = getCodeTaskRequest(
-      run.taskContext,
-    );
+    const request: CodeTaskRequest | null = getCodeTaskRequest(run.taskContext);
 
     if (!request) {
       throw new Error("This task has no request.");
@@ -344,9 +342,8 @@ export default class CodeTaskAgentBrief {
       origin.type === CodeTaskOriginType.GitHubIssue ||
       origin.type === CodeTaskOriginType.GitHubPullRequest
     ) {
-      const github: GitHubTaskContext | null = getGitHubTaskContext(
-        taskContext,
-      );
+      const github: GitHubTaskContext | null =
+        getGitHubTaskContext(taskContext);
 
       lines.push(
         `It came from GitHub ${origin.type === CodeTaskOriginType.GitHubIssue ? "issue" : "pull request"} ${origin.label}.`,
@@ -479,9 +476,12 @@ export default class CodeTaskAgentBrief {
       );
     };
 
-    const total: number = turns.reduce((sum: number, turn: CodeTaskAgentTurn) => {
-      return sum + lengthOf(turn);
-    }, 0);
+    const total: number = turns.reduce(
+      (sum: number, turn: CodeTaskAgentTurn) => {
+        return sum + lengthOf(turn);
+      },
+      0,
+    );
 
     if (total <= MAX_CONVERSATION_LENGTH || turns.length <= 2) {
       return { turns, omitted: 0 };
@@ -579,6 +579,8 @@ export default class CodeTaskAgentBrief {
   }
 
   private static cut(text: string, max: number): string {
-    return text.length > max ? `${text.substring(0, max)}\n… [truncated]` : text;
+    return text.length > max
+      ? `${text.substring(0, max)}\n… [truncated]`
+      : text;
   }
 }

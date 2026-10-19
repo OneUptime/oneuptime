@@ -149,16 +149,21 @@ export default class CodeTaskSteps {
   }): CodeTaskStepJSON {
     const narration: string = data.narration;
 
-    const step: (kind: CodeTaskStepKind, subject: string) => CodeTaskStepJSON =
-      (kind: CodeTaskStepKind, subject: string): CodeTaskStepJSON => {
-        return {
-          sequence: data.sequence,
-          kind,
-          subject: CodeTaskSteps.cut(subject),
-          isError: data.isErrorLine,
-          createdAt: data.createdAt,
-        };
+    const step: (
+      kind: CodeTaskStepKind,
+      subject: string,
+    ) => CodeTaskStepJSON = (
+      kind: CodeTaskStepKind,
+      subject: string,
+    ): CodeTaskStepJSON => {
+      return {
+        sequence: data.sequence,
+        kind,
+        subject: CodeTaskSteps.cut(subject),
+        isError: data.isErrorLine,
+        createdAt: data.createdAt,
       };
+    };
 
     switch (data.toolName) {
       case "read_file":

@@ -15,31 +15,27 @@ export interface ComponentProps {
   modelId: ObjectID;
 }
 
+/*
+ * A repository's menu in Code: its tasks first - that is where AI is asked
+ * and where its work is read - then its settings, its Developer pages and,
+ * apart, removing it.
+ */
 const CodeRepositorySideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <SideMenu>
-      <SideMenuSection title="Basic">
+      <SideMenuSection title="Repository">
         <SideMenuItem
           link={{
-            title: "Overview",
+            title: "Tasks",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.CODE_REPOSITORY_VIEW] as Route,
               { modelId: props.modelId },
             ),
           }}
-          icon={IconProp.Info}
+          icon={IconProp.Sparkles}
         />
-      </SideMenuSection>
-
-      {getDeveloperSideMenuSection({
-        modelType: CodeRepository,
-        scope: DeveloperDocsScope.View,
-        modelId: props.modelId,
-      })}
-
-      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Settings",
@@ -50,6 +46,15 @@ const CodeRepositorySideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Settings}
         />
+      </SideMenuSection>
+
+      {getDeveloperSideMenuSection({
+        modelType: CodeRepository,
+        scope: DeveloperDocsScope.View,
+        modelId: props.modelId,
+      })}
+
+      <SideMenuSection title="Advanced">
         <SideMenuItem
           link={{
             title: "Delete Repository",
