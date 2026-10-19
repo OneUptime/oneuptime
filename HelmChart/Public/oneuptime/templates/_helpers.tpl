@@ -178,7 +178,17 @@ Usage:
     {{- else -}}
       {{- printf "%s:%s" $name (toString $azure.tag) -}}
     {{- end -}}
-  {{- else if $override -}}
+  {{- else if and (kindIs "map" $override) $override.repository -}}
+    {{- /* {registry, repository, tag | digest}: the form AWS Marketplace checks and rewrites */ -}}
+    {{- $name := ternary (printf "%s/%s" $override.registry $override.repository) $override.repository (not (empty $override.registry)) -}}
+    {{- if $override.digest -}}
+      {{- printf "%s@%s" $name $override.digest -}}
+    {{- else if $override.tag -}}
+      {{- printf "%s:%s" $name (toString $override.tag) -}}
+    {{- else -}}
+      {{- $name -}}
+    {{- end -}}
+  {{- else if and $override (kindIs "string" $override) -}}
     {{- $override -}}
   {{- else -}}
     {{- .Default -}}

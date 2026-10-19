@@ -28,11 +28,10 @@ jest.setTimeout(180_000);
  * The multipart reader used by Pyroscope ingest and the SendGrid inbound
  * email webhook.
  *
- * Both routes mount it BEFORE their auth check - Pyroscope before
- * isAuthorizedServiceMiddleware, SendGrid before the webhook secret is
- * verified - and it uses multer's memoryStorage, so every part it accepts
- * is buffered in the process on behalf of a caller who has not proved
- * anything yet.
+ * Pyroscope mounts it BEFORE its auth check (isAuthorizedServiceMiddleware),
+ * and it uses multer's memoryStorage, so every part it accepts is buffered
+ * in the process on behalf of a caller who has not proved anything yet. (The
+ * SendGrid webhook mounts it after its webhook secret is checked.)
  *
  * multer's defaults leave almost all of that unbounded: fileSize, files,
  * fields and parts are all Infinity out of the box, and only fieldSize

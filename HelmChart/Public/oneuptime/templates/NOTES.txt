@@ -93,6 +93,37 @@ kubectl rollout restart deployment/{{ include "oneuptime.altinityOperator.fullna
 A new installation gets a random password of its own. Details: HelmChart/Docs/Clickhouse.md
 {{- end }}
 {{- end }}
+{{- /*
+  Incoming email is on (inboundEmail.domain) with no webhook secret of the
+  installation's own: the app refuses every email SendGrid delivers until
+  there is one (EnvironmentConfig.getUsableInboundEmailWebhookSecret holds the
+  same values to be none: blank, "secret", a config.example.env placeholder,
+  or a placeholder the setup guide prints, in any case).
+*/}}
+{{- if and .Values.inboundEmail .Values.inboundEmail.domain }}
+{{- $inboundEmailSecret := trim (toString (default "" .Values.inboundEmail.webhookSecret)) }}
+{{- $guidePlaceholders := list "your_secret" "your-secret" "replace-with-a-strong-random-secret" }}
+{{- if or (eq $inboundEmailSecret "") (eq $inboundEmailSecret "secret") (contains "please-change-this" $inboundEmailSecret) (has (lower $inboundEmailSecret) $guidePlaceholders) }}
+
+ACTION REQUIRED -- incoming email is refused until inboundEmail.webhookSecret is set.
+
+inboundEmail.domain is set, but inboundEmail.webhookSecret is empty or a
+placeholder, so nothing proves an email was delivered by SendGrid: OneUptime
+refuses every one of them with 503, and none reaches an Incoming Email monitor
+or a workflow. SendGrid retries a refused email for up to three days.
+
+If the Destination URL in SendGrid's Inbound Parse settings already ends with
+a long random value of your own, set inboundEmail.webhookSecret to that value
+and run helm upgrade. Otherwise change that URL first, to end with a new long
+random value (openssl rand -hex 32 makes one):
+
+https://{{ .Values.host }}/incoming-email/sendgrid/<the new value>
+
+then set inboundEmail.webhookSecret to the same value and run helm upgrade.
+In that order the emails sent meanwhile are retried, and arrive once it is
+set. Details: https://oneuptime.com/docs/self-hosted/sendgrid-inbound-email
+{{- end }}
+{{- end }}
 {{- if and (include "oneuptime.kedaOperatorInstalled" .) (not .Values.keda.enabled) }}
 
 The bundled KEDA operator is installed, but this release renders no ScaledObject

@@ -63,6 +63,16 @@ export default class Email extends DatabaseProperty {
     return this._email;
   }
   public set email(value: string) {
+    /*
+     * An Email handed in where its text is expected - a copy, or the address
+     * local storage gives back as an Email - is read by its text, which is
+     * checked below like any other. Nothing else that is not text (a list,
+     * an object from JSON) is read as the text it would turn into.
+     */
+    if ((value as unknown) instanceof Email) {
+      value = (value as unknown as Email).toString();
+    }
+
     if (value && typeof value === "string") {
       value = value.trim();
       value = value.toLowerCase();

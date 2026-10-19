@@ -10,7 +10,10 @@ import ts from "typescript";
  *   - RegisterProbeKeyWarning: REGISTER_PROBE_KEY unset or shipped, so every
  *     global probe's registration is refused;
  *   - DatastorePasswordWarning: a datastore password still at a value the
- *     repository ships, which the app cannot change itself.
+ *     repository ships, which the app cannot change itself;
+ *   - InboundEmailWebhookSecretWarning: incoming email turned on with no
+ *     webhook secret of the installation's own, so every email the provider
+ *     delivers is refused until there is one.
  *
  * Pinned from App/Index.ts, comments removed: each is imported from
  * EnvironmentConfig and logged exactly once, only when it is set, right
@@ -26,6 +29,8 @@ const REGISTER_PROBE_KEY_WARNING: string =
   "if (RegisterProbeKeyWarning) { logger.warn(RegisterProbeKeyWarning); }";
 const DATASTORE_PASSWORD_WARNING: string =
   "if (DatastorePasswordWarning) { logger.warn(DatastorePasswordWarning); }";
+const INBOUND_EMAIL_WEBHOOK_SECRET_WARNING: string =
+  "if (InboundEmailWebhookSecretWarning) { logger.warn(InboundEmailWebhookSecretWarning); }";
 const NEXT_STEP: string = "await Redis.connect();";
 const WHITESPACE: RegExp = /\s+/g;
 
@@ -77,16 +82,18 @@ function importedFromEnvironmentConfig(): Array<string> {
 describe("App/Index.ts says which shipped secrets the installation still holds", () => {
   const index: string = code();
 
-  test.each(["RegisterProbeKeyWarning", "DatastorePasswordWarning"])(
-    "imports %s from EnvironmentConfig",
-    (name: string) => {
-      expect(importedFromEnvironmentConfig()).toContain(name);
-    },
-  );
+  test.each([
+    "RegisterProbeKeyWarning",
+    "DatastorePasswordWarning",
+    "InboundEmailWebhookSecretWarning",
+  ])("imports %s from EnvironmentConfig", (name: string) => {
+    expect(importedFromEnvironmentConfig()).toContain(name);
+  });
 
   test.each([
     ["RegisterProbeKeyWarning", REGISTER_PROBE_KEY_WARNING],
     ["DatastorePasswordWarning", DATASTORE_PASSWORD_WARNING],
+    ["InboundEmailWebhookSecretWarning", INBOUND_EMAIL_WEBHOOK_SECRET_WARNING],
   ])(
     "logs %s exactly once, and only when there is one",
     (name: string, block: string) => {
@@ -99,6 +106,9 @@ describe("App/Index.ts says which shipped secrets the installation still holds",
     const clusterKey: number = index.indexOf(CLUSTER_KEY_WARNING);
     const registerProbeKey: number = index.indexOf(REGISTER_PROBE_KEY_WARNING);
     const datastore: number = index.indexOf(DATASTORE_PASSWORD_WARNING);
+    const inboundEmail: number = index.indexOf(
+      INBOUND_EMAIL_WEBHOOK_SECRET_WARNING,
+    );
     const next: number = index.indexOf(NEXT_STEP);
 
     expect(clusterKey).toBeGreaterThan(-1);
@@ -113,7 +123,14 @@ describe("App/Index.ts says which shipped secrets the installation still holds",
         .trim(),
     ).toBe("");
     expect(
-      index.slice(datastore + DATASTORE_PASSWORD_WARNING.length, next).trim(),
+      index
+        .slice(datastore + DATASTORE_PASSWORD_WARNING.length, inboundEmail)
+        .trim(),
+    ).toBe("");
+    expect(
+      index
+        .slice(inboundEmail + INBOUND_EMAIL_WEBHOOK_SECRET_WARNING.length, next)
+        .trim(),
     ).toBe("");
   });
 });

@@ -1015,8 +1015,13 @@ cost a review round.
   400 ("has no published submission"), not 404, for a target the offer was
   never published to. And `cpa` 1.3.59 reads the ARM template from
   `clusterArmTemplate`, as Microsoft's samples spell it (the docs' table says
-  `clusterARMTemplate`, which it rejects as missing). Not yet: AWS's version
-  change set and Microsoft's publish to preview, until their first success.
+  `clusterARMTemplate`, which it rejects as missing). AWS refused 14.0.72's
+  version (MISSING_VALUES_IMAGE_REFERENCE): it takes an image only as
+  values.yaml spells it out with a repository and its registry and tag beside
+  it, not as a full reference in `image.overrides`; the chart takes that form
+  since 2026-10-19, and `build.py` refuses an AWS edition of an older release.
+  Not yet: AWS's version change set and Microsoft's publish to preview, until
+  their first success.
 - `mpdev verify` does not run in the workflow (it needs a GKE cluster, which
   costs money): Google's review runs the same checks on every version.
 - Microsoft and Google editions install on `linux/amd64` nodes only.
@@ -1056,6 +1061,7 @@ rejection, go-live and price change.
 | 2026-10-18 | AWS         | The Kubernetes agent's EKS add-on: edition, release jobs and docs added; no product created yet     | Agent      |
 | 2026-10-19 | AWS         | Product prod-5ijwaqpun3coo and offer offer-nazez256wqin4 released to Limited                        | Maintainer |
 | 2026-10-19 | Microsoft   | The registry's purge keeps each repository's newest release, and any from the last 7 days           | Agent      |
+| 2026-10-19 | AWS         | AWS refused 14.0.72: MISSING_VALUES_IMAGE_REFERENCE; the chart takes registry, repository and tag   | Agent      |
 
 ## Notes for agents driving the browser
 

@@ -1,7 +1,9 @@
 import InboundEmailProvider, {
+  InboundEmailDelivery,
   InboundEmailProviderConfig,
   ParsedInboundEmail,
 } from "../InboundEmailProvider";
+import SecretKeyComparison from "../../../Utils/SecretKeyComparison";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import EmailAddressList from "../../../../Utils/Email/EmailAddressList";
 import IncomingEmailMonitorAddress, {
@@ -131,25 +133,20 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     );
   }
 
-  public async validateWebhook(data: {
-    headers: Record<string, string>;
-    body: JSONObject | string;
-    pathSecret: string;
-  }): Promise<boolean> {
-    /*
-     * SendGrid Inbound Parse doesn't provide webhook signature verification by default
-     * We validate using a secret in the URL path
-     * URL format: /incoming-email/sendgrid/{webhookSecret}
-     */
-    if (this.config.webhookSecret) {
-      return data.pathSecret === this.config.webhookSecret;
-    }
-
-    /*
-     * If no webhook secret is configured, accept all requests
-     * This is acceptable for SendGrid as the webhook URL itself is a secret
-     */
-    return true;
+  /*
+   * SendGrid posts to the Destination URL the operator gave Inbound Parse,
+   * https://<host>/incoming-email/sendgrid/<secret>, so a delivery is
+   * SendGrid's when the last part of the address it was posted to is the
+   * installation's secret. Compared in constant time: how long a wrong guess
+   * takes to refuse says nothing about how much of it was right.
+   */
+  protected async isFromProvider(
+    data: InboundEmailDelivery & { webhookSecret: string },
+  ): Promise<boolean> {
+    return SecretKeyComparison.timingSafeEqual(
+      data.pathSecret,
+      data.webhookSecret,
+    );
   }
 
   public extractSecretKeyFromEmail(email: string): string | null {

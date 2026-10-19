@@ -211,22 +211,24 @@ describe("UserProjectSsoIdentity model", () => {
   });
 
   test("goes with the provider, the project and the account (the foreign keys cascade)", () => {
-    const relations: Array<{ propertyName: string; onDelete?: string }> =
-      getMetadataArgsStorage()
-        .relations.filter((relation: { target: unknown }) => {
-          return relation.target === UserProjectSsoIdentity;
-        })
-        .map(
-          (relation: {
-            propertyName: string;
-            options: { onDelete?: string };
-          }) => {
-            return {
-              propertyName: relation.propertyName,
-              onDelete: relation.options.onDelete,
-            };
-          },
-        );
+    const relations: Array<{
+      propertyName: string;
+      onDelete?: string | undefined;
+    }> = getMetadataArgsStorage()
+      .relations.filter((relation: { target: unknown }) => {
+        return relation.target === UserProjectSsoIdentity;
+      })
+      .map(
+        (relation: {
+          propertyName: string;
+          options: { onDelete?: string };
+        }) => {
+          return {
+            propertyName: relation.propertyName,
+            onDelete: relation.options.onDelete,
+          };
+        },
+      );
 
     expect(
       relations.sort(
