@@ -10,7 +10,13 @@ import { getCorrelateRouteForEntity } from "../../Components/SecurityCase/Securi
 import RankedBars, {
   RankedBarItem,
 } from "../../Components/SecurityOverview/RankedBars";
+import SecurityAllQuiet from "../../Components/SecurityOverview/SecurityAllQuiet";
 import SecurityGettingStarted from "../../Components/SecurityOverview/SecurityGettingStarted";
+import SecurityPipeline from "../../Components/SecurityOverview/SecurityPipeline";
+import {
+  SecuritySetupStatus,
+  isSecuritySetUp,
+} from "../../Components/SecurityOverview/SecuritySetupModel";
 import StackedDayBars, {
   StackedSeries,
 } from "../../Components/SecurityOverview/StackedDayBars";
@@ -110,40 +116,92 @@ const AttentionTile: FunctionComponent<{
 };
 
 /*
- * How the security operation is doing, and what needs someone now. The top
- * row is the queue: what is yours, what nobody has picked up, what a
- * playbook is waiting on. Then how fast cases are acknowledged, contained
- * and closed over the last 30 days, the trend of cases and detections, and
- * what is driving them - rules, tactics and entities.
+ * Security at a glance, in the order a person reads it.
+ *
+ * Across the top, how Security works in this project: sources, detections,
+ * cases, playbooks, each with its figure and a link to its page. Until all
+ * of it is set up, "Get started" turns it on in one click and sends a test
+ * attack to show a case open. Then what needs someone now - the cases that
+ * are yours, those nobody has picked up, the playbook steps waiting for an
+ * approval - or, when nothing does, "All quiet". The figures and charts
+ * below (how fast cases are acknowledged, contained and closed, the trend
+ * of cases and detections, the rules, tactics and entities behind them)
+ * show once there is something to chart.
  */
 const SecurityOverviewPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [overview, setOverview] = useState<SecurityOverview | null>(null);
+  const [status, setStatus] = useState<SecuritySetupStatus | null>(null);
   const [entities, setEntities] = useState<Array<EntityFindingSummary>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * Get started stays for the visit once it showed, so the reader watches
+   * each step tick and the test's case appear; Done hides it.
+   */
+  const [showGetStarted, setShowGetStarted] = useState<boolean>(false);
+  // Bumped after a change on the page: the figures are read again, quietly.
+  const [readCount, setReadCount] = useState<number>(0);
+
+  const readAgain: () => void = (): void => {
+    setReadCount((count: number): number => {
+      return count + 1;
+    });
+  };
 
   useEffect(() => {
     let isCurrent: boolean = true;
+    const isFirstRead: boolean = readCount === 0;
 
     const load: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: SecurityOverview = await SecurityCaseApi.getOverview();
+      /*
+       * The setup figures are read beside the overview, not after it; a
+       * server that cannot answer them leaves the pipeline and Get started
+       * out, never the page.
+       */
+      const [overviewResult, statusResult] = await Promise.all([
+        SecurityCaseApi.getOverview().then(
+          (result: SecurityOverview): SecurityOverview | Error => {
+            return result;
+          },
+          (err: unknown): Error => {
+            return err instanceof Error ? err : new Error(String(err));
+          },
+        ),
+        SecurityCaseApi.getSetupStatus().then(
+          (result: SecuritySetupStatus): SecuritySetupStatus | null => {
+            return result;
+          },
+          (): null => {
+            return null;
+          },
+        ),
+      ]);
 
-        if (isCurrent) {
-          setOverview(result);
+      if (!isCurrent) {
+        return;
+      }
+
+      if (overviewResult instanceof Error) {
+        // A read again that fails keeps what the page already shows.
+        if (isFirstRead) {
+          setError(overviewResult.message);
         }
-      } catch (err) {
-        if (isCurrent) {
-          setError(err instanceof Error ? err.message : String(err));
+      } else {
+        setOverview(overviewResult);
+      }
+
+      if (statusResult) {
+        setStatus(statusResult);
+
+        if (isFirstRead && !isSecuritySetUp(statusResult)) {
+          setShowGetStarted(true);
         }
       }
 
-      if (isCurrent) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
 
       // Entities come from the events store; a role without events still sees the rest.
       try {
@@ -163,7 +221,7 @@ const SecurityOverviewPage: FunctionComponent<
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [readCount]);
 
   const route: (page: PageMap) => Route = (page: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[page] as Route);
@@ -188,10 +246,13 @@ const SecurityOverviewPage: FunctionComponent<
   }
 
   const metrics: SecurityOverview["metrics"] = overview.metrics;
+  // Nothing to chart yet: no case open, opened or detected in the windows.
   const isEmpty: boolean =
     metrics.openCases === 0 &&
     metrics.casesOpenedInWindow === 0 &&
     metrics.detectionsInWindow === 0;
+  const needsSomeone: boolean =
+    metrics.openCases > 0 || overview.runsWaitingForApproval > 0;
 
   const prioritySeries: Array<StackedSeries> = [...SECURITY_CASE_PRIORITIES]
     .reverse()
@@ -294,195 +355,225 @@ const SecurityOverviewPage: FunctionComponent<
 
   return (
     <div className="space-y-6">
-      {isEmpty ? <SecurityGettingStarted /> : <></>}
+      {status ? <SecurityPipeline status={status} /> : <></>}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <AttentionTile
-          icon={IconProp.User}
-          count={overview.myOpenCases}
-          label={{
-            one: "open case assigned to you",
-            other: "open cases assigned to you",
+      {status && showGetStarted ? (
+        <SecurityGettingStarted
+          status={status}
+          onChanged={readAgain}
+          onDismiss={() => {
+            setShowGetStarted(false);
           }}
-          tone="indigo"
-          to={route(PageMap.SECURITY_CASES)}
         />
-        <AttentionTile
-          icon={IconProp.UserGroup}
-          count={metrics.unassignedOpenCases}
-          label={{
-            one: "open case nobody has picked up",
-            other: "open cases nobody has picked up",
-          }}
-          tone="red"
-          to={route(PageMap.SECURITY_CASES)}
-        />
-        <AttentionTile
-          icon={IconProp.Pause}
-          count={overview.runsWaitingForApproval}
-          label={{
-            one: "playbook step waiting for approval",
-            other: "playbook steps waiting for approval",
-          }}
-          tone="amber"
-          to={route(PageMap.SECURITY_PLAYBOOK_RUNS)}
-        />
-      </div>
-
-      <EventStatBar
-        columns={4}
-        ariaLabel={translator.translateText("Security operations figures")}
-      >
-        <EventStatTile
-          variant="segment"
-          icon={IconProp.ShieldExclamation}
-          label="Open Cases"
-          value={translator.formatNumber(metrics.openCases)}
-          description={translator.translateTemplate(
-            "{{critical}} critical · {{high}} high",
-            {
-              critical:
-                metrics.openByPriority[SecurityCasePriority.Critical] || 0,
-              high: metrics.openByPriority[SecurityCasePriority.High] || 0,
-            },
-          )}
-        />
-        <EventStatTile
-          variant="segment"
-          icon={IconProp.User}
-          label="Mean Time to Acknowledge"
-          value={formatDurationInMinutes(
-            metrics.meanTimeToAcknowledgeInMinutes,
-          )}
-          description={translator.translateTemplate("Last {{days}} days", {
-            days: overview.caseWindowInDays,
-          })}
-        />
-        <EventStatTile
-          variant="segment"
-          icon={IconProp.ShieldCheck}
-          label="Mean Time to Contain"
-          value={formatDurationInMinutes(metrics.meanTimeToContainInMinutes)}
-          description={translator.translateTemplate("Last {{days}} days", {
-            days: overview.caseWindowInDays,
-          })}
-        />
-        <EventStatTile
-          variant="segment"
-          icon={IconProp.CheckCircle}
-          label="Mean Time to Close"
-          value={formatDurationInMinutes(metrics.meanTimeToCloseInMinutes)}
-          description={translator.translatePlural(
-            {
-              one: "{{count}} case closed in {{days}} days",
-              other: "{{count}} cases closed in {{days}} days",
-            },
-            metrics.casesClosedInWindow,
-            { days: overview.caseWindowInDays },
-          )}
-        />
-      </EventStatBar>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card
-          title="Cases Opened"
-          description="New cases each day over the last 30 days, by priority."
-        >
-          <StackedDayBars
-            days={metrics.casesOpenedPerDay}
-            series={prioritySeries}
-            ariaLabel="Cases opened per day, by priority"
-          />
-        </Card>
-        <Card
-          title="Detections"
-          description="New detections each day over the last 14 days, by what raised them."
-        >
-          <StackedDayBars
-            days={metrics.detectionsPerDay}
-            series={sourceSeries}
-            ariaLabel="Detections per day, by source"
-          />
-        </Card>
-      </div>
-
-      {/*
-       * Three across only from xl: beside the side menu a third of the page
-       * is too narrow for a tactic's name. Below that the tactics take the
-       * second row's whole width.
-       */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        <Card
-          title="Open Cases"
-          description="The queue right now, by priority and by where each case stands."
-        >
-          <div className="space-y-5">
-            <RankedBars
-              items={openByPriority}
-              total={Math.max(1, metrics.openCases)}
-              emptyText="No open cases."
-            />
-            <div className="border-t border-gray-100 pt-4">
-              <RankedBars
-                items={openByStatus}
-                total={Math.max(1, metrics.openCases)}
-                emptyText="No open cases."
-              />
-            </div>
-          </div>
-        </Card>
-        <Card
-          title="Verdicts"
-          description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
-        >
-          <RankedBars
-            items={verdicts}
-            total={Math.max(1, metrics.casesClosedInWindow)}
-            emptyText="No case was closed in the last 30 days."
-          />
-        </Card>
-        <div className="md:col-span-2 xl:col-span-1">
-          <Card
-            title="MITRE ATT&CK Tactics"
-            description="The attacker goals behind the cases of the last 30 days."
-          >
-            <RankedBars
-              items={topTactics}
-              emptyText="No case in the last 30 days is mapped to an ATT&CK tactic."
-            />
-          </Card>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card
-          title="Top Detections"
-          description="The rules and sources that raised the most detections in the last 14 days."
-        >
-          <RankedBars
-            items={topRules}
-            emptyText="Nothing was detected in the last 14 days."
-          />
-        </Card>
-        <Card
-          title="Riskiest Entities"
-          description="The users, hosts and addresses named by the most findings in the last 7 days. Open one to see everything it touched."
-        >
-          <RankedBars
-            items={topEntities}
-            emptyText="No findings named an entity in the last 7 days."
-          />
-        </Card>
-      </div>
-
-      {overview.isTruncated ? (
-        <p className="text-xs text-gray-500">
-          {translator.translateText(
-            "This project has more cases and detections than the overview reads at once; its figures are for the most recent of them.",
-          )}
-        </p>
       ) : (
         <></>
+      )}
+
+      {!needsSomeone && !(status && showGetStarted) ? (
+        <SecurityAllQuiet onChanged={readAgain} />
+      ) : (
+        <></>
+      )}
+
+      {needsSomeone ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <AttentionTile
+            icon={IconProp.User}
+            count={overview.myOpenCases}
+            label={{
+              one: "open case assigned to you",
+              other: "open cases assigned to you",
+            }}
+            tone="indigo"
+            to={route(PageMap.SECURITY_CASES)}
+          />
+          <AttentionTile
+            icon={IconProp.UserGroup}
+            count={metrics.unassignedOpenCases}
+            label={{
+              one: "open case nobody has picked up",
+              other: "open cases nobody has picked up",
+            }}
+            tone="red"
+            to={route(PageMap.SECURITY_CASES)}
+          />
+          <AttentionTile
+            icon={IconProp.Pause}
+            count={overview.runsWaitingForApproval}
+            label={{
+              one: "playbook step waiting for approval",
+              other: "playbook steps waiting for approval",
+            }}
+            tone="amber"
+            to={route(PageMap.SECURITY_PLAYBOOK_RUNS)}
+          />
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {isEmpty ? (
+        <></>
+      ) : (
+        <>
+          <EventStatBar
+            columns={4}
+            ariaLabel={translator.translateText("Security operations figures")}
+          >
+            <EventStatTile
+              variant="segment"
+              icon={IconProp.ShieldExclamation}
+              label="Open Cases"
+              value={translator.formatNumber(metrics.openCases)}
+              description={translator.translateTemplate(
+                "{{critical}} critical · {{high}} high",
+                {
+                  critical:
+                    metrics.openByPriority[SecurityCasePriority.Critical] || 0,
+                  high: metrics.openByPriority[SecurityCasePriority.High] || 0,
+                },
+              )}
+            />
+            <EventStatTile
+              variant="segment"
+              icon={IconProp.User}
+              label="Mean Time to Acknowledge"
+              value={formatDurationInMinutes(
+                metrics.meanTimeToAcknowledgeInMinutes,
+              )}
+              description={translator.translateTemplate("Last {{days}} days", {
+                days: overview.caseWindowInDays,
+              })}
+            />
+            <EventStatTile
+              variant="segment"
+              icon={IconProp.ShieldCheck}
+              label="Mean Time to Contain"
+              value={formatDurationInMinutes(
+                metrics.meanTimeToContainInMinutes,
+              )}
+              description={translator.translateTemplate("Last {{days}} days", {
+                days: overview.caseWindowInDays,
+              })}
+            />
+            <EventStatTile
+              variant="segment"
+              icon={IconProp.CheckCircle}
+              label="Mean Time to Close"
+              value={formatDurationInMinutes(metrics.meanTimeToCloseInMinutes)}
+              description={translator.translatePlural(
+                {
+                  one: "{{count}} case closed in {{days}} days",
+                  other: "{{count}} cases closed in {{days}} days",
+                },
+                metrics.casesClosedInWindow,
+                { days: overview.caseWindowInDays },
+              )}
+            />
+          </EventStatBar>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <Card
+              title="Cases Opened"
+              description="New cases each day over the last 30 days, by priority."
+            >
+              <StackedDayBars
+                days={metrics.casesOpenedPerDay}
+                series={prioritySeries}
+                ariaLabel="Cases opened per day, by priority"
+              />
+            </Card>
+            <Card
+              title="Detections"
+              description="New detections each day over the last 14 days, by what raised them."
+            >
+              <StackedDayBars
+                days={metrics.detectionsPerDay}
+                series={sourceSeries}
+                ariaLabel="Detections per day, by source"
+              />
+            </Card>
+          </div>
+
+          {/*
+           * Three across only from xl: beside the side menu a third of the page
+           * is too narrow for a tactic's name. Below that the tactics take the
+           * second row's whole width.
+           */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <Card
+              title="Open Cases"
+              description="The queue right now, by priority and by where each case stands."
+            >
+              <div className="space-y-5">
+                <RankedBars
+                  items={openByPriority}
+                  total={Math.max(1, metrics.openCases)}
+                  emptyText="No open cases."
+                />
+                <div className="border-t border-gray-100 pt-4">
+                  <RankedBars
+                    items={openByStatus}
+                    total={Math.max(1, metrics.openCases)}
+                    emptyText="No open cases."
+                  />
+                </div>
+              </div>
+            </Card>
+            <Card
+              title="Verdicts"
+              description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
+            >
+              <RankedBars
+                items={verdicts}
+                total={Math.max(1, metrics.casesClosedInWindow)}
+                emptyText="No case was closed in the last 30 days."
+              />
+            </Card>
+            <div className="md:col-span-2 xl:col-span-1">
+              <Card
+                title="MITRE ATT&CK Tactics"
+                description="The attacker goals behind the cases of the last 30 days."
+              >
+                <RankedBars
+                  items={topTactics}
+                  emptyText="No case in the last 30 days is mapped to an ATT&CK tactic."
+                />
+              </Card>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card
+              title="Top Detections"
+              description="The rules and sources that raised the most detections in the last 14 days."
+            >
+              <RankedBars
+                items={topRules}
+                emptyText="Nothing was detected in the last 14 days."
+              />
+            </Card>
+            <Card
+              title="Riskiest Entities"
+              description="The users, hosts and addresses named by the most findings in the last 7 days. Open one to see everything it touched."
+            >
+              <RankedBars
+                items={topEntities}
+                emptyText="No findings named an entity in the last 7 days."
+              />
+            </Card>
+          </div>
+
+          {overview.isTruncated ? (
+            <p className="text-xs text-gray-500">
+              {translator.translateText(
+                "This project has more cases and detections than the overview reads at once; its figures are for the most recent of them.",
+              )}
+            </p>
+          ) : (
+            <></>
+          )}
+        </>
       )}
     </div>
   );

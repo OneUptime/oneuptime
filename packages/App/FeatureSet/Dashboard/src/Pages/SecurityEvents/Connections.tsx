@@ -1,12 +1,22 @@
 import PageComponentProps from "../PageComponentProps";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SecurityEventConnectionsTable from "../../Components/SecurityEvents/SecurityEventConnectionsTable";
+import SecurityEventDestinationsTable from "../../Components/SecurityEvents/SecurityEventDestinationsTable";
+import SecurityLogsSourceCard from "../../Components/SecurityEvents/SecurityLogsSourceCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * Security Events > Connections: every managed connector, Google SecOps
- * included, in one list. The table owns its own state, so the page is only
- * the plan gate in front of it.
+ * Security Events > Connections: where security events come from and where
+ * they go, top to bottom.
+ *
+ *   Your logs             the logs the project already sends, read for
+ *                         sign-ins, sudo, Kubernetes audit, CloudTrail and
+ *                         web attacks - one switch
+ *   Your security tools   the security products OneUptime imports from
+ *   Send to your SIEM     the SIEMs OneUptime sends what it finds to
+ *
+ * Each card owns its own state, so the page is only the plan gate in front
+ * of them.
  */
 const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -25,7 +35,13 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  return <SecurityEventConnectionsTable />;
+  return (
+    <div className="space-y-6">
+      <SecurityLogsSourceCard />
+      <SecurityEventConnectionsTable />
+      <SecurityEventDestinationsTable />
+    </div>
+  );
 };
 
 export default SecurityEventsConnectionsPage;

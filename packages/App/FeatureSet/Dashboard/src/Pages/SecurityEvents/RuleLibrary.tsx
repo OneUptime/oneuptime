@@ -5,10 +5,14 @@ import {
   readRuleAttackTags,
 } from "../../Components/SecurityEvents/AttackCoverage";
 import {
+  LibraryRuleFilter,
   LibraryRuleView,
+  RECOMMENDED_FILTER,
   getLibraryRuleViews,
+  getRecommendedRulesNotAdded,
   isLibraryRuleAdded,
 } from "../../Components/SecurityEvents/RuleLibraryUtil";
+import SecurityCaseApi from "../../Components/SecurityCase/SecurityCaseApi";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -149,9 +153,7 @@ const RuleLibraryPage: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const [existing, setExisting] = useState<Array<string>>([]);
-  const [category, setCategory] = useState<DetectionRuleLibraryCategory | "">(
-    "",
-  );
+  const [category, setCategory] = useState<LibraryRuleFilter>("");
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [addingIds, setAddingIds] = useState<Array<string>>([]);
@@ -159,6 +161,9 @@ const RuleLibraryPage: FunctionComponent<
     null,
   );
   const [confirmAddAll, setConfirmAddAll] = useState<boolean>(false);
+  const [isTurningOnRecommended, setIsTurningOnRecommended] =
+    useState<boolean>(false);
+  const [readCount, setReadCount] = useState<number>(0);
 
   const createGate: PermissionGateResult = PermissionGate.check(
     new DetectionRule(),
@@ -189,7 +194,7 @@ const RuleLibraryPage: FunctionComponent<
     };
 
     void load();
-  }, []);
+  }, [readCount]);
 
   const views: Array<LibraryRuleView> = useMemo(() => {
     return getLibraryRuleViews({
@@ -247,6 +252,34 @@ const RuleLibraryPage: FunctionComponent<
     setAddingIds([]);
   };
 
+  /*
+   * The recommended rules in one click, through the same server call as
+   * the Overview's "Turn on recommended": it adds the missing ones and
+   * turns back on any that were turned off.
+   */
+  const turnOnRecommended: () => Promise<void> = async (): Promise<void> => {
+    setError("");
+    setIsTurningOnRecommended(true);
+
+    try {
+      await SecurityCaseApi.turnOnRecommended({
+        logs: false,
+        detections: true,
+        playbook: false,
+      });
+      setReadCount((count: number): number => {
+        return count + 1;
+      });
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsTurningOnRecommended(false);
+  };
+
+  const recommendedNotAdded: Array<DetectionRuleLibraryEntry> =
+    getRecommendedRulesNotAdded(existing);
+
   const notAdded: Array<DetectionRuleLibraryEntry> = views
     .filter((view: LibraryRuleView): boolean => {
       return !view.isAdded;
@@ -259,8 +292,34 @@ const RuleLibraryPage: FunctionComponent<
     <div className="space-y-6">
       <Card
         title="Rule Library"
-        description="Ready-made detections, such as brute force or impossible travel. Adding one creates a detection rule you can change under Detection Rules."
+        description="Ready-made detections, such as brute force or impossible travel. Adding one creates a detection rule you can change under Detection Rules. Start with the recommended ones."
         buttons={[
+          ...(recommendedNotAdded.length > 0
+            ? [
+                {
+                  title: translator.translatePlural(
+                    {
+                      one: "Add {{count}} Recommended Rule",
+                      other: "Add {{count}} Recommended Rules",
+                    },
+                    recommendedNotAdded.length,
+                  ),
+                  icon: IconProp.Star,
+                  buttonStyle: ButtonStyleType.PRIMARY,
+                  isLoading: isTurningOnRecommended,
+                  disabled:
+                    !createGate.isAllowed ||
+                    isTurningOnRecommended ||
+                    addingIds.length > 0,
+                  tooltip: createGate.isAllowed
+                    ? undefined
+                    : createGate.disabledReason,
+                  onClick: () => {
+                    void turnOnRecommended();
+                  },
+                },
+              ]
+            : []),
           {
             title: translator.translatePlural(
               { one: "Add {{count}} Rule", other: "Add All {{count}} Rules" },
@@ -285,10 +344,12 @@ const RuleLibraryPage: FunctionComponent<
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap gap-1">
               {(
-                ["", ...DETECTION_RULE_LIBRARY_CATEGORIES] as Array<
-                  DetectionRuleLibraryCategory | ""
-                >
-              ).map((item: DetectionRuleLibraryCategory | ""): ReactElement => {
+                [
+                  "",
+                  RECOMMENDED_FILTER,
+                  ...DETECTION_RULE_LIBRARY_CATEGORIES,
+                ] as Array<LibraryRuleFilter>
+              ).map((item: LibraryRuleFilter): ReactElement => {
                 const isActive: boolean = item === category;
 
                 return (
@@ -308,13 +369,19 @@ const RuleLibraryPage: FunctionComponent<
                   >
                     {item ? (
                       <Icon
-                        icon={CATEGORY_ICONS[item]}
+                        icon={
+                          item === RECOMMENDED_FILTER
+                            ? IconProp.Star
+                            : CATEGORY_ICONS[item]
+                        }
                         className="h-3.5 w-3.5"
                       />
                     ) : (
                       <></>
                     )}
-                    {translator.translateText(item || "All")}
+                    {item === RECOMMENDED_FILTER
+                      ? translator.translateText("Recommended")
+                      : translator.translateText(item || "All")}
                   </button>
                 );
               })}
@@ -369,14 +436,27 @@ const RuleLibraryPage: FunctionComponent<
                           </p>
                         </div>
                       </div>
-                      {view.isAdded ? (
-                        <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                          <Icon icon={IconProp.Check} className="h-3 w-3" />
-                          {translator.translateText("Added")}
-                        </span>
-                      ) : (
-                        <></>
-                      )}
+                      <div className="flex flex-shrink-0 flex-col items-end gap-1">
+                        {view.isAdded ? (
+                          <div className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            <Icon icon={IconProp.Check} className="h-3 w-3" />
+                            {translator.translateText("Added")}
+                          </div>
+                        ) : (
+                          <></>
+                        )}
+                        {view.isRecommended ? (
+                          <div
+                            className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700"
+                            data-testid={`rule-library-recommended-${view.entry.id}`}
+                          >
+                            <Icon icon={IconProp.Star} className="h-3 w-3" />
+                            {translator.translateText("Recommended")}
+                          </div>
+                        ) : (
+                          <></>
+                        )}
+                      </div>
                     </div>
                     <p className="mt-2 flex-1 text-sm text-gray-600">
                       {view.entry.description}

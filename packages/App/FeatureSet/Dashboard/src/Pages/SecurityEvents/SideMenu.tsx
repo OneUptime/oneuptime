@@ -1,9 +1,10 @@
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import {
   SECURITY_EVENTS_MENU,
   SecurityEventsMenuBadge,
   SecurityEventsMenuItem,
-  SecurityEventsMenuSection,
+  getSecurityEventsMenuItemPages,
 } from "../../Utils/SecurityEventsNavigation";
 import Route from "Common/Types/API/Route";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -11,8 +12,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import SideMenu, {
   SideMenuItemProps,
-  SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
@@ -66,37 +67,50 @@ function getBadgeCount(
   }
 }
 
-const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
-  const sections: Array<SideMenuSectionProps> = SECURITY_EVENTS_MENU.map(
-    (section: SecurityEventsMenuSection): SideMenuSectionProps => {
-      return {
-        title: section.title,
-        defaultCollapsed: section.startsCollapsed || false,
-        items: section.items.map(
-          (item: SecurityEventsMenuItem): SideMenuItemProps => {
-            const count: MenuBadgeCount | undefined = getBadgeCount(item.badge);
+function routeOf(page: PageMap): Route {
+  return RouteUtil.populateRouteParams(RouteMap[page] as Route);
+}
 
-            return {
-              link: {
-                title: item.title,
-                to: RouteUtil.populateRouteParams(RouteMap[item.page] as Route),
-              },
-              icon: item.icon,
-              ...(count
-                ? {
-                    modelType: count.modelType,
-                    countQuery: count.countQuery,
-                    badgeType: count.badgeType,
-                  }
-                : {}),
-            };
-          },
-        ),
+/*
+ * The page of an entry's group the person is on, so the entry stays lit
+ * on its tabs too (Rule Library under Detections, Playbook Runs under
+ * Playbooks).
+ */
+function getActiveRoute(item: SecurityEventsMenuItem): Route | undefined {
+  const activePage: PageMap | undefined = getSecurityEventsMenuItemPages(
+    item,
+  ).find((page: PageMap): boolean => {
+    return Navigation.isOnThisPage(routeOf(page));
+  });
+
+  return activePage ? routeOf(activePage) : undefined;
+}
+
+const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
+  const items: Array<SideMenuItemProps> = SECURITY_EVENTS_MENU.map(
+    (item: SecurityEventsMenuItem): SideMenuItemProps => {
+      const count: MenuBadgeCount | undefined = getBadgeCount(item.badge);
+      const activeRoute: Route | undefined = getActiveRoute(item);
+
+      return {
+        link: {
+          title: item.title,
+          to: routeOf(item.page),
+        },
+        icon: item.icon,
+        ...(activeRoute ? { activeRoute } : {}),
+        ...(count
+          ? {
+              modelType: count.modelType,
+              countQuery: count.countQuery,
+              badgeType: count.badgeType,
+            }
+          : {}),
       };
     },
   );
 
-  return <SideMenu sections={sections} />;
+  return <SideMenu items={items} />;
 };
 
 export default SecurityEventsSideMenu;

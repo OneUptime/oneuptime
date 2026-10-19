@@ -4,23 +4,25 @@ import IconProp from "Common/Types/Icon/IconProp";
 /*
  * The Security Events menu, as data.
  *
- * The product began as an events explorer, and carried its seven
- * destinations as header tabs the way Logs, Traces and Metrics do. It is a
- * security operations product now - cases to work, playbooks that respond,
- * rules and threat intelligence that detect - and fourteen destinations do
- * not fit in a tab bar. So it has a side menu like Incidents and Alerts, the
- * other products people work in, and the menu reads as the work does:
+ * Security reads as one story, left to right, and the menu is that story:
  *
- *   Overview      how the SOC is doing, and the case queue: what was
- *                 detected, grouped by what it is about
- *   Investigate   the raw events, how they connect, and who they involve
- *   Detect        what turns events into cases
- *   Respond       what happens to a case by itself
- *   Sources       where the events come from
+ *   Overview         what needs you now, and setting Security up
+ *   Security Cases   what was found, grouped into things to look into
+ *   Events           every security event, to search and investigate
+ *   Detections       the rules and threat intel that find threats in them
+ *   Playbooks        what responds when a case opens
+ *   Connections      where events come from, and where they are sent
  *
- * Kept free of React so the menu - its order, its titles and the page each
- * entry opens - is pinned in a plain test, and the docs that describe it are
- * held to it.
+ * Six entries, no sections to open or close. The pages that belong
+ * together sit behind one entry as tabs across the top of the page
+ * (SECURITY_EVENTS_TAB_GROUPS): Events with Entities and Correlate,
+ * Detections with the Rule Library, Threat Intel and ATT&CK Coverage,
+ * Playbooks with their runs, Connections with the setup guide. The menu
+ * entry stays lit on every page of its group.
+ *
+ * Kept free of React so the menu - its order, its titles and the pages
+ * each entry stands for - is pinned in a plain test, and the docs that
+ * describe it are held to it.
  */
 
 export type SecurityEventsMenuBadge = "openCases" | "runsWaitingForApproval";
@@ -33,114 +35,91 @@ export interface SecurityEventsMenuItem {
   badge?: SecurityEventsMenuBadge | undefined;
 }
 
-export interface SecurityEventsMenuSection {
+export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuItem> = [
+  {
+    page: PageMap.SECURITY_EVENTS_OVERVIEW,
+    title: "Overview",
+    icon: IconProp.ChartBar,
+  },
+  {
+    page: PageMap.SECURITY_CASES,
+    title: "Security Cases",
+    icon: IconProp.ShieldExclamation,
+    badge: "openCases",
+  },
+  {
+    page: PageMap.SECURITY_EVENTS,
+    title: "Events",
+    icon: IconProp.List,
+  },
+  {
+    page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
+    title: "Detections",
+    icon: IconProp.ShieldCheck,
+  },
+  {
+    page: PageMap.SECURITY_PLAYBOOKS,
+    title: "Playbooks",
+    icon: IconProp.Bolt,
+    badge: "runsWaitingForApproval",
+  },
+  {
+    page: PageMap.SECURITY_EVENTS_CONNECTIONS,
+    title: "Connections",
+    icon: IconProp.Link,
+  },
+];
+
+export interface SecurityEventsTab {
+  page: PageMap;
   title: string;
-  items: Array<SecurityEventsMenuItem>;
-  /*
-   * Folded away until someone opens it, or is on one of its pages: setting
-   * detections and sources up is not what most visits are for.
-   */
-  startsCollapsed?: boolean | undefined;
 }
 
-export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
+/*
+ * Pages behind one menu entry, as tabs: the entry's own page first. A page
+ * is in at most one group.
+ */
+export interface SecurityEventsTabGroup {
+  menuPage: PageMap;
+  tabs: Array<SecurityEventsTab>;
+}
+
+export const SECURITY_EVENTS_TAB_GROUPS: Array<SecurityEventsTabGroup> = [
   {
-    title: "Overview",
-    items: [
-      {
-        page: PageMap.SECURITY_EVENTS_OVERVIEW,
-        title: "Overview",
-        icon: IconProp.ChartBar,
-      },
-      {
-        page: PageMap.SECURITY_CASES,
-        title: "Security Cases",
-        icon: IconProp.ShieldExclamation,
-        badge: "openCases",
-      },
+    menuPage: PageMap.SECURITY_EVENTS,
+    tabs: [
+      { page: PageMap.SECURITY_EVENTS, title: "Events" },
+      { page: PageMap.SECURITY_EVENTS_ENTITIES, title: "Entities" },
+      { page: PageMap.SECURITY_EVENTS_CORRELATE, title: "Correlate" },
     ],
   },
   {
-    title: "Investigate",
-    items: [
-      {
-        page: PageMap.SECURITY_EVENTS,
-        title: "Events",
-        icon: IconProp.List,
-      },
-      {
-        page: PageMap.SECURITY_EVENTS_CORRELATE,
-        title: "Correlate",
-        icon: IconProp.Graph,
-      },
-      {
-        page: PageMap.SECURITY_EVENTS_ENTITIES,
-        title: "Entities",
-        icon: IconProp.Fingerprint,
-      },
-    ],
-  },
-  {
-    title: "Detect",
-    startsCollapsed: true,
-    items: [
+    menuPage: PageMap.SECURITY_EVENTS_DETECTION_RULES,
+    tabs: [
       {
         page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
         title: "Detection Rules",
-        icon: IconProp.ShieldCheck,
       },
-      {
-        page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,
-        title: "Rule Library",
-        icon: IconProp.SquareStack3D,
-      },
+      { page: PageMap.SECURITY_EVENTS_RULE_LIBRARY, title: "Rule Library" },
+      { page: PageMap.SECURITY_EVENTS_THREAT_INTEL, title: "Threat Intel" },
       {
         page: PageMap.SECURITY_EVENTS_ATTACK_COVERAGE,
         title: "ATT&CK Coverage",
-        icon: IconProp.TableCells,
-      },
-      {
-        page: PageMap.SECURITY_EVENTS_THREAT_INTEL,
-        title: "Threat Intel",
-        icon: IconProp.Bug,
-      },
-      {
-        page: PageMap.SECURITY_EVENTS_MONITORS,
-        title: "Monitors",
-        icon: IconProp.AltGlobe,
       },
     ],
   },
   {
-    title: "Respond",
-    items: [
-      {
-        page: PageMap.SECURITY_PLAYBOOKS,
-        title: "Playbooks",
-        icon: IconProp.Bolt,
-      },
-      {
-        page: PageMap.SECURITY_PLAYBOOK_RUNS,
-        title: "Playbook Runs",
-        icon: IconProp.Play,
-        badge: "runsWaitingForApproval",
-      },
+    menuPage: PageMap.SECURITY_PLAYBOOKS,
+    tabs: [
+      { page: PageMap.SECURITY_PLAYBOOKS, title: "Playbooks" },
+      { page: PageMap.SECURITY_PLAYBOOK_RUNS, title: "Playbook Runs" },
     ],
   },
   {
-    title: "Sources",
-    startsCollapsed: true,
-    items: [
-      {
-        page: PageMap.SECURITY_EVENTS_CONNECTIONS,
-        title: "Connections",
-        icon: IconProp.Link,
-      },
-      {
-        page: PageMap.SECURITY_EVENTS_DOCUMENTATION,
-        title: "Setup Guide",
-        icon: IconProp.Book,
-      },
+    menuPage: PageMap.SECURITY_EVENTS_CONNECTIONS,
+    tabs: [
+      { page: PageMap.SECURITY_EVENTS_CONNECTIONS, title: "Connections" },
+      { page: PageMap.SECURITY_EVENTS_DOCUMENTATION, title: "Setup Guide" },
     ],
   },
 ];
@@ -154,16 +133,64 @@ export const SECURITY_EVENTS_DETAIL_PAGES: Array<PageMap> = [
   PageMap.SECURITY_PLAYBOOK_VIEW,
 ];
 
+/*
+ * Old addresses that now open somewhere else. Security Events monitors are
+ * monitors like any other, listed (and filtered by type) under Monitors; a
+ * detection rule already raises an alert, an incident or a case on its own.
+ */
+export const SECURITY_EVENTS_REDIRECTED_PAGES: Array<PageMap> = [
+  PageMap.SECURITY_EVENTS_MONITORS,
+];
+
 // Where the product opens: the overview, not the raw events.
 export const SECURITY_EVENTS_LANDING_PAGE: PageMap =
   PageMap.SECURITY_EVENTS_OVERVIEW;
 
-export function getSecurityEventsMenuItems(): Array<SecurityEventsMenuItem> {
-  return SECURITY_EVENTS_MENU.flatMap(
-    (section: SecurityEventsMenuSection): Array<SecurityEventsMenuItem> => {
-      return section.items;
+export function getSecurityEventsTabGroup(
+  page: PageMap | undefined,
+): SecurityEventsTabGroup | undefined {
+  if (!page) {
+    return undefined;
+  }
+
+  return SECURITY_EVENTS_TAB_GROUPS.find(
+    (group: SecurityEventsTabGroup): boolean => {
+      return group.tabs.some((tab: SecurityEventsTab): boolean => {
+        return tab.page === page;
+      });
     },
   );
+}
+
+// The pages a menu entry stands for: its own, and its group's tabs.
+export function getSecurityEventsMenuItemPages(
+  item: SecurityEventsMenuItem,
+): Array<PageMap> {
+  const group: SecurityEventsTabGroup | undefined =
+    SECURITY_EVENTS_TAB_GROUPS.find((candidate: SecurityEventsTabGroup) => {
+      return candidate.menuPage === item.page;
+    });
+
+  if (!group) {
+    return [item.page];
+  }
+
+  return group.tabs.map((tab: SecurityEventsTab): PageMap => {
+    return tab.page;
+  });
+}
+
+// The menu entry a page sits under, if it is in the menu at all.
+export function getSecurityEventsMenuItemFor(
+  page: PageMap | undefined,
+): SecurityEventsMenuItem | undefined {
+  if (!page) {
+    return undefined;
+  }
+
+  return SECURITY_EVENTS_MENU.find((item: SecurityEventsMenuItem): boolean => {
+    return getSecurityEventsMenuItemPages(item).includes(page);
+  });
 }
 
 const ROOT_SEGMENT: string = "security-events";

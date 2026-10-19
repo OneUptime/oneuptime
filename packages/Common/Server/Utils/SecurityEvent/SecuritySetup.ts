@@ -110,6 +110,8 @@ export interface TurnOnRecommendedResult {
   rulesTurnedOn: number;
   logsTurnedOn: boolean;
   playbookAdded: boolean;
+  // Enrich New Cases was there but switched off, and is on again.
+  playbookTurnedOn: boolean;
 }
 
 export interface SecuritySetupTestResult {
@@ -386,6 +388,7 @@ export default class SecuritySetup {
       rulesTurnedOn: 0,
       logsTurnedOn: false,
       playbookAdded: false,
+      playbookTurnedOn: false,
     };
 
     if (options.logs) {
@@ -459,19 +462,29 @@ export default class SecuritySetup {
       const existing: Array<SecurityPlaybook> =
         await SecurityPlaybookService.findBy({
           query: { projectId },
-          select: { _id: true, name: true },
+          select: { _id: true, name: true, isEnabled: true },
           skip: 0,
           limit: LIMIT_PER_PROJECT,
           props,
         });
 
-      const hasIt: boolean = existing.some(
+      const match: SecurityPlaybook | undefined = existing.find(
         (playbook: SecurityPlaybook): boolean => {
           return normalizeName(playbook.name) === normalizeName(template.title);
         },
       );
 
-      if (!hasIt) {
+      if (match) {
+        // Turned off by someone: "turn on" turns it back on, never a copy.
+        if (match.isEnabled !== true && match.id) {
+          await SecurityPlaybookService.updateOneById({
+            id: match.id,
+            data: { isEnabled: true },
+            props,
+          });
+          result.playbookTurnedOn = true;
+        }
+      } else {
         const playbook: SecurityPlaybook = new SecurityPlaybook();
         playbook.projectId = projectId;
         playbook.name = template.title;
