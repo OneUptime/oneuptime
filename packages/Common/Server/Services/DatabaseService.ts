@@ -5177,6 +5177,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         headers: {
           ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
+        options: {
+          sameServerRedirectsOnly: true,
+        },
       }).catch((error: Error) => {
         logger.error(error, {
           projectId: projectId?.toString(),

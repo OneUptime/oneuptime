@@ -151,12 +151,14 @@ func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 		return
 	}
 
-	client := &http.Client{}
+	// The request carries the secret key, so it follows a redirect only on
+	// the server it was sent to (redirect.go).
+	client := &http.Client{CheckRedirect: sameServerRedirectsOnly}
 
 	if proxyUrl != "" {
 		proxyURL, _ := url.Parse(proxyUrl)
 		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
-		client = &http.Client{Transport: transport}
+		client = &http.Client{Transport: transport, CheckRedirect: sameServerRedirectsOnly}
 		slog.Info("Using proxy to send request:" + proxyUrl)
 	}
 
@@ -192,12 +194,14 @@ func checkIfSecretKeyIsValid(secretKey string, oneuptimeUrl string, proxyUrl str
 
 	// if we have a proxy, we need to use that to make the request
 
-	client := &http.Client{}
+	// The request carries the secret key, so it follows a redirect only on
+	// the server it was sent to (redirect.go).
+	client := &http.Client{CheckRedirect: sameServerRedirectsOnly}
 
 	if proxyUrl != "" {
 		proxyURL, _ := url.Parse(proxyUrl)
 		transport := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
-		client = &http.Client{Transport: transport}
+		client = &http.Client{Transport: transport, CheckRedirect: sameServerRedirectsOnly}
 		slog.Info("Using proxy to send request:" + proxyUrl)
 	}
 

@@ -17,6 +17,10 @@
 #      https://github.com/OneUptime/oneuptime/issues/3121
 #   4. Switching back to chart-managed secrets does not rotate anything.
 #   5. The datastore secrets (valkey / postgres / clickhouse) survive upgrades.
+#   6. The Altinity operator's own ClickHouse user: an installation from before
+#      this chart rendered its credentials keeps the password its operator runs
+#      with, and is told what to do; a password set in values replaces it; a
+#      fresh install gets a random one of its own, kept on upgrade.
 #
 # No container images are pulled: the release is installed without --wait and
 # without hooks, so only the manifests have to apply.
@@ -249,5 +253,76 @@ assert_absent "install does not create encryption-secret" "$KEYS" "encryption-se
 assert_absent "install does not create register-probe-key" "$KEYS" "register-probe-key"
 assert_present "install still creates probe-one" "$KEYS" "probe-one"
 assert_present "install still creates runner-key" "$KEYS" "runner-key"
+
+echo
+echo "=== 7. the Altinity operator's own user keeps or gets a password of the installation's own ==="
+# The Altinity operator manages ClickHouse with a user of its own. Its chart's
+# Secret for that user shipped one password to every installation; this chart
+# now renders that Secret itself, under the same name. helm installs the
+# operator chart's CRDs (its crds/ directory) before anything else, so the
+# ClickHouseInstallation applies without hooks.
+OPERATOR_SECRET="${RELEASE}-altinity-clickhouse-operator"
+OPERATOR_ARGS=(--set clickhouseOperator.altinity.enabled=true)
+SHIPPED_OPERATOR_PASSWORD='clickhouse_operator_password'
+OPERATOR_NOTE="ACTION RECOMMENDED -- the ClickHouse operator's own user"
+
+reset_release() {
+    helm uninstall "$RELEASE" -n "$NAMESPACE" >/dev/null 2>&1 || true
+    kubectl -n "$NAMESPACE" delete secret "$CHART_SECRET" "${RELEASE}-valkey" "${RELEASE}-redis" \
+        "${RELEASE}-postgresql" "${RELEASE}-clickhouse" "${RELEASE}-clickhouse-altinity" "$OPERATOR_SECRET" \
+        --ignore-not-found >/dev/null 2>&1 || true
+}
+
+# An installation from before: the operator chart rendered the Secret, with the
+# password it ships.
+reset_release
+helm install "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${OPERATOR_ARGS[@]}" \
+    --set altinity-clickhouse-operator.secret.create=true \
+    --set "altinity-clickhouse-operator.secret.password=${SHIPPED_OPERATOR_PASSWORD}" >/dev/null
+assert_eq "an installation from before runs its operator with the shipped password" \
+    "$SHIPPED_OPERATOR_PASSWORD" "$(secret_value "$OPERATOR_SECRET" 'password')"
+
+# Upgraded to this chart: the Secret moves to this chart's template, keeps the
+# password the running operator and its ClickHouse users hold, and the upgrade
+# says what to do.
+UPGRADE_OUTPUT=$(helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${OPERATOR_ARGS[@]}" 2>&1)
+assert_eq "the upgrade keeps the password the operator runs with" \
+    "$SHIPPED_OPERATOR_PASSWORD" "$(secret_value "$OPERATOR_SECRET" 'password')"
+assert_eq "and its username" "clickhouse_operator" "$(secret_value "$OPERATOR_SECRET" 'username')"
+assert_present "the upgrade says what to do" "$UPGRADE_OUTPUT" "$OPERATOR_NOTE"
+assert_present "naming the operator's deployment" "$UPGRADE_OUTPUT" \
+    "kubectl rollout restart deployment/${OPERATOR_SECRET} --namespace=${NAMESPACE}"
+assert_present "the Secret is this chart's now" \
+    "$(helm get manifest "$RELEASE" -n "$NAMESPACE")" "# Source: oneuptime/templates/secrets.yaml"
+
+# A password set in values replaces it, and then nothing is said.
+OWN_OPERATOR_PASSWORD='9f3c1a7e5b2d4f6a8c0e1b3d5f7a9c2e'
+UPGRADE_OUTPUT=$(helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${OPERATOR_ARGS[@]}" \
+    --set "altinity-clickhouse-operator.secret.password=${OWN_OPERATOR_PASSWORD}" 2>&1)
+assert_eq "a password set in values replaces it" \
+    "$OWN_OPERATOR_PASSWORD" "$(secret_value "$OPERATOR_SECRET" 'password')"
+assert_absent "and the upgrade says nothing more" "$UPGRADE_OUTPUT" "$OPERATOR_NOTE"
+
+# Left out of values again, the stored one stays.
+helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${OPERATOR_ARGS[@]}" >/dev/null
+assert_eq "a later upgrade keeps it" "$OWN_OPERATOR_PASSWORD" "$(secret_value "$OPERATOR_SECRET" 'password')"
+
+# A fresh install gets a random password of its own, kept on upgrade.
+reset_release
+INSTALL_OUTPUT=$(helm install "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${OPERATOR_ARGS[@]}" 2>&1)
+OPERATOR_0=$(secret_value "$OPERATOR_SECRET" 'password')
+if [ ${#OPERATOR_0} -eq 32 ] && [ "$OPERATOR_0" != "$SHIPPED_OPERATOR_PASSWORD" ]; then
+    pass "a fresh install gives the operator's user a random password (32 chars)"
+else
+    fail "a fresh install should give the operator's user a 32 char random password, got ${#OPERATOR_0} chars"
+fi
+assert_absent "a fresh install is told nothing about it" "$INSTALL_OUTPUT" "$OPERATOR_NOTE"
+assert_present "the operator reads that Secret, by its config" \
+    "$(kubectl -n "$NAMESPACE" get configmap "${OPERATOR_SECRET}-files" -o jsonpath='{.data.config\.yaml}')" \
+    "name: '${OPERATOR_SECRET}'"
+helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${OPERATOR_ARGS[@]}" >/dev/null
+assert_eq "an upgrade keeps the fresh install's password" "$OPERATOR_0" "$(secret_value "$OPERATOR_SECRET" 'password')"
+
+reset_release
 
 harness_report

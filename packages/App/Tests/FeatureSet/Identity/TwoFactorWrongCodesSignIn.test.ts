@@ -18,6 +18,9 @@ import { IDENTITY_COUNTER_UNAVAILABLE_MESSAGE } from "Common/Server/Middleware/I
 import UserService from "Common/Server/Services/UserService";
 import PasswordHash from "Common/Server/Utils/PasswordHash";
 import TotpAuth from "Common/Server/Utils/TotpAuth";
+import PublicMessageRateLimit, {
+  PublicMessageKind,
+} from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import TwoFactorWrongCodes, {
   TwoFactorCodeKind,
 } from "Common/Server/Utils/TwoFactorWrongCodes";
@@ -649,10 +652,19 @@ beforeEach(() => {
 afterEach(async () => {
   jest.restoreAllMocks();
 
-  const patterns: Array<string> = [`identity:rl:*${RUN_PREFIX}*`];
+  const patterns: Array<string> = [
+    `identity:rl:*${RUN_PREFIX}*`,
+    `pubmsg:rl:*${RUN_PREFIX}*`,
+  ];
 
   for (const email of writtenEmails) {
     patterns.push(`identity:rl:*${email}*`);
+    // The verification links an address not verified yet is sent, by its hash.
+    patterns.push(
+      `pubmsg:rl:*:k:${PublicMessageRateLimit.getContactKey(
+        PublicMessageRateLimit.forEmail(email),
+      )}:*`,
+    );
   }
 
   for (const userId of writtenUsers) {
@@ -927,10 +939,33 @@ describe("only somebody with the password moves the count, or learns of it", () 
     ) => {
       const account: Account = await newAccount(options);
 
+      /*
+       * An address not verified yet is mailed a fresh link by each of
+       * these, up to the hour's limit on that address's sign-up emails
+       * (PublicMessageRateLimit); then the sign-in is refused for that.
+       */
+      const answeredBeforeTheLinkLimit: number =
+        options["isEmailVerified"] === false
+          ? PublicMessageRateLimit.getConfig().kinds[
+              PublicMessageKind.SignUpEmail
+            ].perContactLimit
+          : 8;
+
       for (let index: number = 0; index < 8; index++) {
-        expect(
-          (await enterCode(account, account.wrongCode())).errorMessage,
-        ).toBe(message);
+        const result: AttemptResult = await enterCode(
+          account,
+          account.wrongCode(),
+        );
+
+        if (index < answeredBeforeTheLinkLimit) {
+          expect(result.errorMessage).toBe(message);
+          continue;
+        }
+
+        expect((result.nextError as Exception | undefined)?.code).toBe(
+          ExceptionCode.TooManyRequestsException,
+        );
+        expect(result.retryAfter).toMatch(/^[1-9][0-9]*$/);
       }
 
       expect(

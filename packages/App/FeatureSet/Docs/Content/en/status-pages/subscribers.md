@@ -78,6 +78,40 @@ The **Subscribe** page has a sub-menu with one tab per enabled channel; with onl
 
 The submit button reads **Subscribe**. A signup by SMS, Slack, Microsoft Teams or webhook shows *You have been subscribed successfully.* A signup by email says a confirmation link has been sent and to check the spam folder if it does not arrive (see [Email double opt-in](#email-double-opt-in)). The **Email**, **SMS**, **Slack** and **MS Teams** tabs also carry a **New Subscription** / **Manage Existing Subscription** split, so someone who already subscribed can get back to their preferences without hunting for an old message.
 
+## Limits on signups and links
+
+Each signup sends its contact a message at once, a confirmation email, an SMS, a Slack or Microsoft Teams message or a webhook call, and so does **Send Management Link**. So that nobody can use a status page to send messages to people who did not ask for them, or to run up your project's SMS costs, both are limited for each visitor's network and for each contact. The limits sit far above what people do: a whole office can sign up together during an incident.
+
+| What is limited | Limit |
+| --- | --- |
+| Signups from one network | 60 in 15 minutes |
+| Signups and management links by SMS from one network, together | 10 in 15 minutes |
+| Management links asked for from one network | 30 in 15 minutes |
+| Signups of one email address, phone number, Slack or Microsoft Teams channel, or webhook, on all status pages together | 10 in an hour |
+| Management links for one email address or phone number on all status pages together, or for one Slack or Microsoft Teams workspace name on one status page | 5 in an hour |
+
+Past a limit, the API answers `429` with a `Retry-After` header, in seconds, and the visitor is told that there were too many signups or links from their network, or for that contact, and to try again later. Nothing is created or sent, and your project sees nothing of it: no subscriber is added, and no message is sent or paid for. The management link limits count every request, whether or not a subscription matches, so they cannot be used to find out who is subscribed. An email address is counted however it is written, in capitals, with a `+tag` or, for Gmail, with dots, and a phone number however it is typed. A signup takes one email address: a list of addresses is refused.
+
+Each limit per network also counts the addresses of one IPv6 /64 together, at ten times its number. The windows are fixed, not rolling. If the rate limiter cannot be reached, signups and management links by email, Slack, Microsoft Teams and webhook go on uncounted, and those by SMS are refused with `503` until it is back, because each SMS is paid for. Changing or canceling a subscription from its own link is never limited, and neither is your team adding subscribers on the dashboard or through the API.
+
+A private user asking for a password reset link on the status page's sign-in page is limited the same way: 5 reset emails to one address in an hour, on all status pages together, and 30 from one network in 15 minutes.
+
+On a self-hosted installation, these environment variables of the OneUptime app change the limits:
+
+| Variable | Default | What it sets |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | The window of the limits per network, in seconds. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | The window of the limits per contact, in seconds. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Signups from one address per window. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Signups and management links by SMS from one address per window, together. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Management links asked for from one address per window. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Signups of one contact per window. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Management links for one contact per window. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Private user password resets asked for from one address per window. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Private user password reset emails to one address per window. |
+
+Neither `config.env` nor the Helm chart's values pass them on: add them to the environment of the `app` container yourself, with `app.extraEnv`, or the chart-wide `extraEnv`, in the Helm chart, or in a `docker-compose.override.yml` for Docker Compose. `TRUSTED_PROXY_HOPS` decides which address the limits per network count.
+
 ## Letting subscribers choose resources and event types
 
 By default a subscriber gets everything on the page. Two switches in the **Subscriber Choices** card on **Subscriber Settings** change that, each saving the moment you flip it:

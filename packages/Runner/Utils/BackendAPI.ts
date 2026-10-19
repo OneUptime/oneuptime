@@ -354,6 +354,7 @@ export default class BackendAPI {
         ...RunnerAPIRequest.getDefaultRequestBody(),
         exceptionId: exceptionId,
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!response.isSuccess()) {
@@ -408,6 +409,7 @@ export default class BackendAPI {
         ...RunnerAPIRequest.getDefaultRequestBody(),
         exceptionId: exceptionId,
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!response.isSuccess()) {
@@ -461,6 +463,7 @@ export default class BackendAPI {
         ...RunnerAPIRequest.getDefaultRequestBody(),
         taskId: taskId,
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!response.isSuccess()) {
@@ -533,6 +536,7 @@ export default class BackendAPI {
         codeRepositoryId: codeRepositoryId,
         ...(taskId ? { taskId: taskId } : {}),
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!response.isSuccess()) {
@@ -583,11 +587,11 @@ export default class BackendAPI {
         runnerVerificationStatus: options.runnerVerificationStatus,
         runnerVerificationSummary: options.runnerVerificationSummary,
       },
-      options: {
+      options: RunnerAPIRequest.getDefaultRequestOptions({
         retries: RECORD_PULL_REQUEST_RETRIES,
         exponentialBackoff: true,
         retryOnlyOnRetryableErrors: true,
-      },
+      }),
     });
 
     if (!response.isSuccess()) {
@@ -634,6 +638,7 @@ export default class BackendAPI {
         ...(data.tools ? { tools: data.tools as unknown as JSONObject[] } : {}),
         ...(data.maxTokens ? { maxTokens: data.maxTokens } : {}),
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     const responseData: LlmCompletionResponse =
@@ -686,6 +691,7 @@ export default class BackendAPI {
         status: status,
         statusMessage: statusMessage,
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!response.isSuccess()) {
@@ -716,6 +722,7 @@ export default class BackendAPI {
         ...RunnerAPIRequest.getDefaultRequestBody(),
         taskId: taskId,
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!response.isSuccess()) {
@@ -772,6 +779,7 @@ export default class BackendAPI {
          */
         comments: data.comments as unknown as JSONArray,
       },
+      options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
 
     if (!response.isSuccess()) {

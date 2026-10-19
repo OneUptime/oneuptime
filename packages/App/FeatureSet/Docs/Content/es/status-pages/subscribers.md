@@ -78,6 +78,40 @@ La página **Suscribirse** tiene un submenú con una pestaña por cada canal act
 
 El botón de envío dice **Suscribirse**. Un registro por SMS, Slack, Microsoft Teams o webhook muestra *Se ha suscrito correctamente.* Un registro por correo electrónico indica que se ha enviado un enlace de confirmación y que se revise la carpeta de spam si no llega (consulta [Doble confirmación por correo electrónico](#doble-confirmación-por-correo-electrónico)). Las pestañas **Correo electrónico**, **SMS**, **Slack** y **MS Teams** también tienen la división **Nueva suscripción** / **Gestionar suscripción existente**, para que alguien que ya se suscribió pueda volver a sus preferencias sin buscar un mensaje antiguo.
 
+## Límites de registros y enlaces
+
+Cada registro envía a su contacto un mensaje en el acto, un correo de confirmación, un SMS, un mensaje de Slack o de Microsoft Teams o una llamada de webhook, y **Enviar enlace de gestión** también. Para que nadie pueda usar una página de estado para enviar mensajes a personas que no los pidieron, ni para disparar los costos de SMS de tu proyecto, ambos están limitados para la red de cada visitante y para cada contacto. Los límites están muy por encima de lo que hacen las personas: toda una oficina puede registrarse a la vez durante un incidente.
+
+| Qué se limita | Límite |
+| --- | --- |
+| Registros desde una red | 60 en 15 minutos |
+| Registros y enlaces de gestión por SMS desde una red, en conjunto | 10 en 15 minutos |
+| Enlaces de gestión pedidos desde una red | 30 en 15 minutos |
+| Registros de una dirección de correo electrónico, un número de teléfono, un canal de Slack o de Microsoft Teams, o un webhook, en todas las páginas de estado en conjunto | 10 en una hora |
+| Enlaces de gestión para una dirección de correo electrónico o un número de teléfono en todas las páginas de estado en conjunto, o para un nombre de espacio de trabajo de Slack o de Microsoft Teams en una página de estado | 5 en una hora |
+
+Al superar un límite, la API responde `429` con un encabezado `Retry-After`, en segundos, y al visitante se le dice que hubo demasiados registros o enlaces desde su red, o para ese contacto, y que vuelva a intentarlo más tarde. No se crea ni se envía nada, y tu proyecto no nota nada: no se añade ningún suscriptor y no se envía ni se paga ningún mensaje. Los límites de enlaces de gestión cuentan cada solicitud, coincida o no una suscripción, así que no sirven para averiguar quién está suscrito. Una dirección de correo electrónico se cuenta como sea que esté escrita, en mayúsculas, con un `+tag` o, en Gmail, con puntos, y un número de teléfono como sea que se haya tecleado. Un registro admite una dirección de correo electrónico: una lista de direcciones se rechaza.
+
+Cada límite por red también cuenta juntas las direcciones de un mismo IPv6 /64, con diez veces su número. Las ventanas son fijas, no móviles. Si no se puede contactar con el limitador de frecuencia, los registros y enlaces de gestión por correo electrónico, Slack, Microsoft Teams y webhook siguen sin contarse, y los de SMS se rechazan con `503` hasta que vuelva, porque cada SMS se paga. Cambiar o cancelar una suscripción desde su propio enlace nunca se limita, y tampoco que tu equipo añada suscriptores en el panel o a través de la API.
+
+Un usuario privado que pide un enlace para restablecer la contraseña en la página de inicio de sesión de la página de estado se limita igual: 5 correos de restablecimiento a una dirección en una hora, en todas las páginas de estado en conjunto, y 30 desde una red en 15 minutos.
+
+En una instalación autoalojada, estas variables de entorno de la app de OneUptime cambian los límites:
+
+| Variable | Valor predeterminado | Lo que fija |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | La ventana de los límites por red, en segundos. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | La ventana de los límites por contacto, en segundos. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Registros desde una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Registros y enlaces de gestión por SMS desde una dirección por ventana, en conjunto. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Enlaces de gestión pedidos desde una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Registros de un contacto por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Enlaces de gestión para un contacto por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Restablecimientos de contraseña de usuarios privados pedidos desde una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Correos de restablecimiento de contraseña de usuarios privados a una dirección por ventana. |
+
+Ni `config.env` ni los valores del chart de Helm los transmiten: añádelos tú mismo al entorno del contenedor `app`, con `app.extraEnv`, o el `extraEnv` de todo el chart, en el chart de Helm, o en un `docker-compose.override.yml` para Docker Compose. `TRUSTED_PROXY_HOPS` decide qué dirección cuentan los límites por red.
+
 ## Dejar que los suscriptores elijan recursos y tipos de eventos
 
 De forma predeterminada, un suscriptor recibe todo lo de la página. Dos interruptores de la tarjeta **Opciones de los suscriptores** en **Ajustes de suscriptores** cambian eso, y cada uno se guarda en cuanto lo cambias:

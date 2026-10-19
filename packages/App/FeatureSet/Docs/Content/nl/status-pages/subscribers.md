@@ -78,6 +78,40 @@ De pagina **Abonneren** heeft een submenu met één tabblad per ingeschakeld kan
 
 De verzendknop heet **Abonneren**. Een aanmelding via SMS, Slack, Microsoft Teams of webhook toont *U bent succesvol geabonneerd.* Een aanmelding via e-mail meldt dat er een bevestigingslink is verzonden en dat u de spammap moet controleren als die niet aankomt (zie [Dubbele opt-in bij e-mail](#dubbele-opt-in-bij-e-mail)). De tabbladen **E-mail**, **SMS**, **Slack** en **MS Teams** hebben ook de splitsing **Nieuw abonnement** / **Bestaand abonnement beheren**, zodat iemand die al is aangemeld bij zijn voorkeuren kan komen zonder naar een oud bericht te zoeken.
 
+## Limieten voor aanmeldingen en links
+
+Elke aanmelding stuurt haar contact meteen een bericht, een bevestigingsmail, een SMS, een Slack- of Microsoft Teams-bericht of een webhook-aanroep, en **Beheerlink verzenden** doet dat ook. Zodat niemand een statuspagina kan gebruiken om berichten te sturen naar mensen die er niet om hebben gevraagd, of om de SMS-kosten van uw project op te drijven, zijn beide beperkt per netwerk van elke bezoeker en per contact. De limieten liggen ver boven wat mensen doen: een heel kantoor kan zich tijdens een incident samen aanmelden.
+
+| Wat beperkt is | Limiet |
+| --- | --- |
+| Aanmeldingen vanaf één netwerk | 60 in 15 minuten |
+| Aanmeldingen en beheerlinks via SMS vanaf één netwerk, samen | 10 in 15 minuten |
+| Beheerlinks die vanaf één netwerk worden aangevraagd | 30 in 15 minuten |
+| Aanmeldingen van één e-mailadres, telefoonnummer, Slack- of Microsoft Teams-kanaal of webhook, op alle statuspagina's samen | 10 in een uur |
+| Beheerlinks voor één e-mailadres of telefoonnummer op alle statuspagina's samen, of voor één Slack- of Microsoft Teams-werkruimtenaam op één statuspagina | 5 in een uur |
+
+Boven een limiet antwoordt de API `429` met een `Retry-After`-header, in seconden, en krijgt de bezoeker te horen dat er te veel aanmeldingen of links vanaf zijn netwerk, of voor dat contact, zijn geweest en dat hij het later opnieuw moet proberen. Er wordt niets aangemaakt of verzonden, en uw project merkt er niets van: er wordt geen abonnee toegevoegd, en er wordt geen bericht verzonden of betaald. De limieten voor beheerlinks tellen elke aanvraag, of er nu een abonnement overeenkomt of niet, zodat ze niet te gebruiken zijn om uit te vinden wie geabonneerd is. Een e-mailadres wordt geteld hoe het ook geschreven is, in hoofdletters, met een `+tag` of, voor Gmail, met punten, en een telefoonnummer hoe het ook getypt is. Een aanmelding neemt één e-mailadres: een lijst met adressen wordt geweigerd.
+
+Elke limiet per netwerk telt ook de adressen van één IPv6 /64 samen, met tien keer haar getal. De vensters zijn vast, niet glijdend. Als de rate limiter niet bereikbaar is, gaan aanmeldingen en beheerlinks via e-mail, Slack, Microsoft Teams en webhook ongeteld door, en die via SMS worden met `503` geweigerd tot hij terug is, omdat elke SMS betaald wordt. Een abonnement wijzigen of opzeggen via de eigen link is nooit beperkt, en uw team dat abonnees toevoegt in het dashboard of via de API evenmin.
+
+Een privégebruiker die op de aanmeldpagina van de statuspagina een link vraagt om het wachtwoord opnieuw in te stellen, is op dezelfde manier beperkt: 5 resetmails naar één adres in een uur, op alle statuspagina's samen, en 30 vanaf één netwerk in 15 minuten.
+
+Op een zelf gehoste installatie wijzigen deze omgevingsvariabelen van de OneUptime-app de limieten:
+
+| Variabele | Standaard | Wat ze instelt |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | Het venster van de limieten per netwerk, in seconden. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | Het venster van de limieten per contact, in seconden. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Aanmeldingen vanaf één adres per venster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Aanmeldingen en beheerlinks via SMS vanaf één adres per venster, samen. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Beheerlinks die vanaf één adres per venster worden aangevraagd. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Aanmeldingen van één contact per venster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Beheerlinks voor één contact per venster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Wachtwoordresets van privégebruikers die vanaf één adres per venster worden aangevraagd. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Resetmails van privégebruikers naar één adres per venster. |
+
+Noch `config.env` noch de waarden van de Helm-chart geven ze door: voeg ze zelf toe aan de omgeving van de container `app`, met `app.extraEnv`, of de chartbrede `extraEnv`, in de Helm-chart, of in een `docker-compose.override.yml` voor Docker Compose. `TRUSTED_PROXY_HOPS` bepaalt welk adres de limieten per netwerk tellen.
+
 ## Abonnees zelf resources en gebeurtenistypen laten kiezen
 
 Standaard krijgt een abonnee alles op de pagina. Twee schakelaars in de kaart **Keuzes voor abonnees** op **Abonneeinstellingen** veranderen dat, en elk wordt opgeslagen zodra u hem omzet:

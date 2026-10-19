@@ -1,11 +1,12 @@
 /*
  * An in-memory stand-in for the ioredis client, for the commands the rate
- * limits count with (ClientRateLimitCounter): INCR, GET and EXPIRE, sent in
- * pipelines. Each does what Redis does with it - INCR answers the new count,
- * GET the count as a string or null for no key, EXPIRE records the TTL and
- * answers 1 (0 for no key) - and a pipeline answers each command as ioredis
- * does, [error, value] in order, a failed command's error in its place
- * rather than thrown.
+ * limits count with (ClientRateLimitCounter): INCR, DECR, GET and EXPIRE,
+ * sent in pipelines. Each does what Redis does with it - INCR and DECR
+ * answer the new count (a key that is not there counts from 0), GET the
+ * count as a string or null for no key, EXPIRE records the TTL and answers 1
+ * (0 for no key) - and a pipeline answers each command as ioredis does,
+ * [error, value] in order, a failed command's error in its place rather
+ * than thrown.
  *
  * Every pipeline sent is kept, command by command, so a suite can see how
  * many round trips a request cost and which keys it read or counted.
@@ -16,7 +17,7 @@
  * behaviour against a real server.
  */
 
-export type FakeCounterCommandName = "incr" | "get" | "expire";
+export type FakeCounterCommandName = "incr" | "decr" | "get" | "expire";
 
 export interface FakeCounterCommand {
   name: FakeCounterCommandName;
@@ -38,6 +39,17 @@ export class FakeCounterPipeline {
       command: { name: "incr", key: key },
       run: (): unknown => {
         return this.redis.runIncr(key);
+      },
+    });
+
+    return this;
+  }
+
+  public decr(key: string): FakeCounterPipeline {
+    this.commands.push({
+      command: { name: "decr", key: key },
+      run: (): unknown => {
+        return this.redis.runDecr(key);
       },
     });
 
@@ -130,6 +142,12 @@ export default class FakeCounterRedis {
 
   public runIncr(key: string): number {
     const next: number = (this.counters.get(key) || 0) + 1;
+    this.counters.set(key, next);
+    return next;
+  }
+
+  public runDecr(key: string): number {
+    const next: number = (this.counters.get(key) || 0) - 1;
     this.counters.set(key, next);
     return next;
   }

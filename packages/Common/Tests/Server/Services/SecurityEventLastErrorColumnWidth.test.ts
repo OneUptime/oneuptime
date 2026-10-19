@@ -197,11 +197,11 @@ const FLAT_CREDENTIAL_BODY: string = JSON.stringify({
 
 /*
  * The case commit c0f9e0c2db fixed: the credential JSON is a STRING inside
- * the error message, so its key quotes arrive escaped. A purely textual
- * redactor never sees `"client_secret":` in that form and walks straight
- * past it — which is why redactErrorBody decodes the outer JSON before
- * redacting. The test below asserts both halves of that: the raw textual
- * pass really is fooled, and the client's echo is not.
+ * the error message, so its key quotes arrive escaped. redactErrorBody
+ * decodes the outer JSON before redacting, and log redaction now reads
+ * members whose quotes are escaped as well. The tests below assert both:
+ * the raw textual pass takes the credentials out on its own, and so does
+ * the client's echo.
  */
 const NESTED_CREDENTIAL_BODY: string = JSON.stringify({
   error: {
@@ -838,18 +838,22 @@ const REDACTED_ECHO_CASES: Array<RedactedEchoCase> = [
 ];
 
 describe("the echoed body is redacted, which is what replaced the cap", () => {
-  test("a purely textual pass really is fooled by nested credential JSON", () => {
+  test("a purely textual pass takes nested credential JSON out too", () => {
     /*
-     * The premise behind redactErrorBody decoding the outer JSON first
-     * (commit c0f9e0c2db). Inside a JSON string the credential's key quotes
-     * arrive escaped as \" , which no textual rule keyed on `"key":` can
-     * match — so running redactLogString over the raw body leaves the
-     * secret in the clear. If this ever stops being true the decode step
-     * has become redundant, and the case below stops proving anything.
+     * Inside a JSON string the credential's key quotes arrive escaped as
+     * \" . redactErrorBody decodes the outer JSON first (commit c0f9e0c2db)
+     * so the textual rules see them unescaped; log redaction now reads the
+     * escaped members as well, so the raw body loses every credential on
+     * its own. The cases below hold the client's echo to the same property,
+     * whichever of the two takes the credential out.
      */
-    expect(redactLogString(NESTED_CREDENTIAL_BODY)).toContain(
-      LEAKED_CLIENT_SECRET,
-    );
+    const redacted: string = redactLogString(NESTED_CREDENTIAL_BODY);
+
+    for (const secret of LEAKED_SECRETS) {
+      expect(redacted).not.toContain(secret);
+    }
+
+    expect(redacted).toContain(REDACTED);
   });
 
   test.each(REDACTED_ECHO_CASES)(

@@ -12,6 +12,61 @@ Usage:
 {{- end -}}
 
 {{/*
+The name the bundled Altinity operator chart gives its resources (its own
+"altinity-clickhouse-operator.fullname"), worked out from its values: the
+operator reads its credentials Secret by that name (its config.yaml's
+clickhouse.access.secret.name), and this chart renders that Secret.
+*/}}
+{{- define "oneuptime.altinityOperator.fullname" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- if $values.fullnameOverride -}}
+{{- $values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default "altinity-clickhouse-operator" $values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The namespace the bundled Altinity operator runs in, as its chart decides it.
+*/}}
+{{- define "oneuptime.altinityOperator.namespace" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- $values.namespaceOverride | default .Release.Namespace -}}
+{{- end -}}
+
+{{/*
+The password of the operator's own ClickHouse user as values or the cluster
+already hold it: the one set in values, else the one its Secret stores, else
+nothing - and the Secret's template then makes a random one.
+*/}}
+{{- define "oneuptime.altinityOperator.password" -}}
+{{- $values := index .Values "altinity-clickhouse-operator" | default dict -}}
+{{- $secret := $values.secret | default dict -}}
+{{- if $secret.password -}}
+{{- $secret.password -}}
+{{- else -}}
+{{- $stored := ((lookup "v1" "Secret" (include "oneuptime.altinityOperator.namespace" .) (include "oneuptime.altinityOperator.fullname" .)).data) | default dict -}}
+{{- if (index $stored "password") -}}
+{{- index $stored "password" | b64dec -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The password the bundled Altinity operator's chart ships to every
+installation. A value of the installation's own replaces it (secrets.yaml);
+NOTES.txt says so to an installation that still runs with it.
+*/}}
+{{- define "oneuptime.altinityOperator.shippedPassword" -}}
+clickhouse_operator_password
+{{- end -}}
+
+{{/*
 The effective settings for the cache/queue tier, which runs Valkey.
 
 These lived under `redis:` and `externalRedis:` until 13.0.0. Both old keys are

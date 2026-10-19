@@ -598,6 +598,92 @@ describe("counters that are not keyed on the client", () => {
   });
 });
 
+describe("uncountFixed: a request taken back off the counters it was counted under", () => {
+  const counters: Array<FixedRateLimitCounterSpec<Scope>> = [
+    { scope: "user", key: "t:f:contact-a:1", limit: 2 },
+    { scope: "user", key: "t:f:contact-b:1", limit: 2 },
+  ];
+
+  async function countFixed(): Promise<ClientRateLimitRefusal<Scope> | null> {
+    return await ClientRateLimitCounter.countFixed<Scope>({
+      redis: redis as unknown as ClientType,
+      ttlSeconds: TTL_SECONDS,
+      counters: counters,
+    });
+  }
+
+  async function uncountFixed(keys: Array<string>): Promise<void> {
+    await ClientRateLimitCounter.uncountFixed({
+      redis: redis as unknown as ClientType,
+      keys: keys,
+      ttlSeconds: TTL_SECONDS,
+    });
+  }
+
+  test("one count off each key, in one round trip, their expiries left as they were", async () => {
+    await countFixed();
+    await countFixed();
+
+    const sentBefore: number = redis.sent.length;
+
+    await uncountFixed(["t:f:contact-a:1", "t:f:contact-b:1"]);
+
+    expect(redis.sent.length - sentBefore).toBe(1);
+    expect(redis.commandsSent("decr")).toEqual([
+      { name: "decr", key: "t:f:contact-a:1" },
+      { name: "decr", key: "t:f:contact-b:1" },
+    ]);
+    expect(redis.count("t:f:contact-a:1")).toBe(1);
+    expect(redis.count("t:f:contact-b:1")).toBe(1);
+    expect(redis.expiries.get("t:f:contact-a:1")).toEqual([TTL_SECONDS]);
+  });
+
+  test("a counter taken back is counted from where it was: its limit is whole again", async () => {
+    await countFixed();
+    await countFixed();
+    await uncountFixed(["t:f:contact-a:1", "t:f:contact-b:1"]);
+    await uncountFixed(["t:f:contact-a:1", "t:f:contact-b:1"]);
+
+    expect(await countFixed()).toBeNull();
+    expect(await countFixed()).toBeNull();
+    expect(await countFixed()).toEqual({
+      scope: "user",
+      ipv6Network64: undefined,
+      isFirstRefusalInWindow: true,
+    });
+  });
+
+  test("a key Redis no longer holds is given an expiry, so it is not left behind without one", async () => {
+    await uncountFixed(["t:f:lost:1"]);
+
+    expect(redis.count("t:f:lost:1")).toBe(-1);
+    expect(redis.expiries.get("t:f:lost:1")).toEqual([TTL_SECONDS]);
+  });
+
+  test("nothing to take back sends nothing", async () => {
+    await uncountFixed([]);
+
+    expect(redis.sent).toEqual([]);
+  });
+
+  test("a DECR that fails, or an answer that is not one, is an error for the caller to handle", async () => {
+    redis.failCommand = (command: FakeCounterCommand): Error | null => {
+      return command.name === "decr" ? new Error("READONLY replica") : null;
+    };
+
+    await expect(uncountFixed(["t:f:contact-a:1"])).rejects.toThrow(
+      "READONLY replica",
+    );
+
+    redis.failCommand = null;
+    redis.answerNextExecWith = null;
+
+    await expect(uncountFixed(["t:f:contact-a:1"])).rejects.toThrow(
+      "Rate limit pipeline returned no result",
+    );
+  });
+});
+
 describe("a counter that cannot be read is an error for the caller to handle", () => {
   test("a pipeline that fails", async () => {
     redis.failNextExec = new Error("connection reset");

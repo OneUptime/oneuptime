@@ -93,6 +93,8 @@ describe("BackendAPI.recordPullRequest", () => {
       retries: 3,
       exponentialBackoff: true,
       retryOnlyOnRetryableErrors: true,
+      // It carries the Runner's key: its redirects stay on its server.
+      sameServerRedirectsOnly: true,
     });
   });
 

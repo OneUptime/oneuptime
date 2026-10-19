@@ -78,6 +78,40 @@ flowchart TB
 
 提交按钮上写着 **订阅**。通过短信、Slack、Microsoft Teams 或 Webhook 注册后会显示 *您已成功订阅。* 通过电子邮件注册后，会提示确认链接已发送，如果没有收到请检查垃圾邮件文件夹（参见 [电子邮件的双重确认](#电子邮件的双重确认)）。**电子邮件**、**短信**、**Slack** 和 **MS Teams** 选项卡还带有 **新订阅** / **管理现有订阅** 的切换，这样已经订阅的人无需翻找旧消息就能回到自己的偏好设置。
 
+## 注册和链接的限制
+
+每次注册都会立即向其联系方式发送一条消息（一封确认邮件、一条短信、一条 Slack 或 Microsoft Teams 消息，或一次 Webhook 调用）， **发送管理链接** 也是如此。为了不让任何人利用状态页向没有要求过的人发送消息，或抬高你项目的短信费用，这两者都按每个访客的网络和每个联系方式进行限制。这些限制远高于人们实际的使用量：整个办公室可以在事件期间一起注册。
+
+| 限制对象 | 限制 |
+| --- | --- |
+| 来自一个网络的注册 | 15 分钟内 60 次 |
+| 来自一个网络的短信注册和短信管理链接，合计 | 15 分钟内 10 次 |
+| 从一个网络请求的管理链接 | 15 分钟内 30 次 |
+| 一个电子邮件地址、电话号码、Slack 或 Microsoft Teams 频道或 Webhook 的注册，所有状态页合计 | 1 小时内 10 次 |
+| 一个电子邮件地址或电话号码的管理链接（所有状态页合计），或一个状态页上一个 Slack 或 Microsoft Teams 工作区名称的管理链接 | 1 小时内 5 次 |
+
+超过限制后，API 会以 `429` 响应，并附带以秒为单位的 `Retry-After` 标头，访客会被告知来自其网络或针对该联系方式的注册或链接太多，请稍后重试。不会创建或发送任何内容，你的项目也看不到任何痕迹：不会添加订阅者，也不会发送或支付任何消息。管理链接的限制会计算每个请求，无论是否匹配到订阅，因此无法用它来查出谁订阅了。电子邮件地址无论怎么写都按同一个计算，无论是大写、带 `+tag`，还是对于 Gmail 带点，电话号码无论怎么输入也按同一个计算。一次注册只接受一个电子邮件地址：地址列表会被拒绝。
+
+每项按网络的限制还会把同一个 IPv6 /64 中的地址合并计数，上限为其数值的十倍。时间窗口是固定的，而不是滚动的。如果无法连接到速率限制器，通过电子邮件、Slack、Microsoft Teams 和 Webhook 的注册和管理链接会不计数地继续，而通过短信的会以 `503` 被拒绝，直到它恢复，因为每条短信都要付费。通过订阅自己的链接更改或取消订阅永远不受限制，你的团队在仪表板上或通过 API 添加订阅者也不受限制。
+
+在状态页的登录页面上请求重置密码链接的私有用户也受到同样的限制：发往一个地址的重置邮件在所有状态页合计 1 小时内最多 5 封，来自一个网络的在 15 分钟内最多 30 封。
+
+在自托管安装中，OneUptime 应用的以下环境变量用于更改限制：
+
+| 变量 | 默认值 | 设置的内容 |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | 按网络限制的时间窗口，以秒为单位。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | 按联系方式限制的时间窗口，以秒为单位。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | 每个窗口内来自一个地址的注册数。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | 每个窗口内来自一个地址的短信注册和短信管理链接合计。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | 每个窗口内从一个地址请求的管理链接数。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | 每个窗口内一个联系方式的注册数。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | 每个窗口内一个联系方式的管理链接数。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | 每个窗口内从一个地址请求的私有用户密码重置数。 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | 每个窗口内发往一个地址的私有用户密码重置邮件数。 |
+
+`config.env` 和 Helm chart 的值都不会传递它们：请自行将它们添加到 `app` 容器的环境中——在 Helm chart 中使用 `app.extraEnv` 或 chart 级别的 `extraEnv`，对于 Docker Compose 则使用 `docker-compose.override.yml`。 `TRUSTED_PROXY_HOPS` 决定按网络的限制计算的是哪个地址。
+
 ## 让订阅者自己选资源和事件类型
 
 默认情况下，订阅者会收到页面上的所有内容。**订阅者设置** 上 **订阅者选项** 卡片中的两个开关可以改变这一点，每个开关切换后立即保存：

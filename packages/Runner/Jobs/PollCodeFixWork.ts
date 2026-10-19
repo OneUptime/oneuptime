@@ -286,11 +286,11 @@ const sendFinalStatusReport: SendFinalStatusReportFunction = async (data: {
     return await API.post({
       url: data.url,
       data: data.report,
-      options: {
+      options: RunnerAPIRequest.getDefaultRequestOptions({
         retries: FINAL_STATUS_REPORT_RETRIES,
         exponentialBackoff: true,
         retryOnlyOnRetryableErrors: true,
-      },
+      }),
     });
   } catch (error) {
     logger.error(error, data.logAttributes);
@@ -333,6 +333,7 @@ const startTaskProcessingLoop: () => Promise<void> =
         const getPendingTaskResult: HTTPResponse<JSONObject> = await API.post({
           url: getPendingTaskUrl,
           data: RunnerAPIRequest.getDefaultRequestBody(),
+          options: RunnerAPIRequest.getDefaultRequestOptions(),
         });
 
         if (!getPendingTaskResult.isSuccess()) {
@@ -389,6 +390,7 @@ const startTaskProcessingLoop: () => Promise<void> =
               taskId: taskId,
               status: AIAgentTaskStatus.InProgress,
             },
+            options: RunnerAPIRequest.getDefaultRequestOptions(),
           });
 
           if (!inProgressResult.isSuccess()) {
