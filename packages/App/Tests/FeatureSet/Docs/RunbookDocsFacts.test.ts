@@ -1,4 +1,11 @@
 import { readPage } from "./DocsContentSupport";
+import {
+  MenuSection as DashboardMenuSection,
+  developerSection,
+  menuSections,
+  sectionByTitle,
+  startsCollapsed,
+} from "./DocsDashboardMenus";
 import { boldSpans } from "./DocsTranslationChecks";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
@@ -2155,7 +2162,10 @@ describe("runbook triggers", () => {
 
   it("find the page from the runbook's menu, and the dashboard's links on its headings", () => {
     expect(VIEW_SIDE_MENU).toContain('title: "Triggers"');
-    expect(TRIGGERS).toContain("click **Triggers** in its menu");
+    // In the menu's folded Settings section: see "a runbook's own side menu".
+    expect(TRIGGERS).toContain(
+      "click **Settings → Triggers** in its side menu.",
+    );
 
     for (const heading of ["Run on a schedule", "Call the webhook"]) {
       expect(TRIGGERS).toContain(`\n## ${heading}\n`);
@@ -2167,5 +2177,149 @@ describe("runbook triggers", () => {
     expect(TRIGGERS_COPY).toContain(
       '"/docs/runbooks/triggers#call-the-webhook"',
     );
+  });
+});
+
+/*
+ * A runbook's own side menu (Pages/Runbook/View/SideMenu.tsx), as the
+ * overview tables it and the other pages give paths into it. The maintainer
+ * asked for it to show as little as possible: Executions under a folded Logs
+ * section, Triggers under a folded Settings section. So Basic is the only
+ * section open, and a page in another section is named by its path, with the
+ * section that has to be opened first.
+ */
+describe("a runbook's own side menu", () => {
+  const VIEW_MENU_SOURCE: string = readDashboard(
+    "Pages/Runbook/View/SideMenu.tsx",
+  );
+
+  // The menu, its Developer section put where the menu adds it.
+  const viewMenu: Array<DashboardMenuSection> = menuSections(
+    VIEW_MENU_SOURCE,
+    { "{getDeveloperSideMenuSection(": developerSection() },
+  );
+
+  const sectionTitles: Array<string> = viewMenu.map(
+    (menuSection: DashboardMenuSection): string => {
+      return menuSection.title;
+    },
+  );
+
+  const TABLE_HEADER: string = "| Section | Pages |";
+
+  /*
+   * The overview's table of the menu: each row a section, in bold, and its
+   * pages, in bold, in the order the menu draws them.
+   */
+  function overviewMenuTable(): Array<DashboardMenuSection> {
+    const where: string = section(INDEX, "Where runbooks live in the dashboard");
+    const start: number = where.indexOf(TABLE_HEADER);
+
+    expect({ table: TABLE_HEADER, found: start >= 0 }).toEqual({
+      table: TABLE_HEADER,
+      found: true,
+    });
+
+    return tableRows(where.slice(start)).map(
+      (row: Array<string>): DashboardMenuSection => {
+        return {
+          title: boldSpans(row[0] || "")[0] || "",
+          items: boldSpans(row[1] || ""),
+        };
+      },
+    );
+  }
+
+  // Every "X → Y" path on the runbook pages that starts at a section of this menu.
+  function pathsIntoTheMenu(): Array<string> {
+    const paths: Set<string> = new Set();
+
+    for (const markdown of Object.values(PAGES)) {
+      for (const span of boldSpans(markdown)) {
+        const first: string = span.split(" → ")[0] as string;
+
+        if (span.includes(" → ") && sectionTitles.includes(first)) {
+          paths.add(span);
+        }
+      }
+    }
+
+    return Array.from(paths).sort();
+  }
+
+  it("is read with each section and page the menu draws, in order", () => {
+    expect(viewMenu).toEqual([
+      { title: "Basic", items: ["Overview", "Steps"] },
+      { title: "Logs", items: ["Executions"] },
+      { title: "Owners", items: ["Owners"] },
+      { title: "Settings", items: ["Triggers", "Settings"] },
+      { title: "Developer", items: ["Terraform", "API", "AI Assistants"] },
+      { title: "Advanced", items: ["Audit Logs", "Delete Runbook"] },
+    ]);
+  });
+
+  it("is tabled on the overview section by section and page by page", () => {
+    expect(overviewMenuTable()).toEqual(viewMenu);
+  });
+
+  it("starts with only Basic open, as the overview says", () => {
+    const open: Array<string> = sectionTitles.filter(
+      (title: string): boolean => {
+        return !startsCollapsed(VIEW_MENU_SOURCE, title);
+      },
+    );
+
+    expect(open).toEqual(["Basic"]);
+    expect(INDEX).toContain(
+      "Only **Basic** starts open: click a section's title to open it. A section opens by itself on any page inside it.",
+    );
+  });
+
+  it("names the runs and the triggers by the folded sections that hold them", () => {
+    expect(RUNNING).toContain(
+      "| A runbook's **Logs → Executions** | Every run of that runbook,",
+    );
+    expect(TRIGGERS).toContain(
+      "Open the runbook from **Runbooks**, and click **Settings → Triggers** in its side menu. **Settings** starts folded: click it to show **Triggers**.",
+    );
+
+    for (const [sectionTitle, page] of [
+      ["Logs", "Executions"],
+      ["Settings", "Triggers"],
+    ] as Array<[string, string]>) {
+      expect({
+        sectionTitle,
+        pages: sectionByTitle(viewMenu, sectionTitle).items,
+        folded: startsCollapsed(VIEW_MENU_SOURCE, sectionTitle),
+      }).toEqual({
+        sectionTitle,
+        pages: expect.arrayContaining([page]),
+        folded: true,
+      });
+    }
+  });
+
+  it("gives every path into it as the menu has it", () => {
+    const paths: Array<string> = pathsIntoTheMenu();
+
+    expect(paths).toEqual(["Logs → Executions", "Settings → Triggers"]);
+
+    for (const menuPath of paths) {
+      const [sectionTitle, page] = menuPath.split(" → ") as [string, string];
+
+      expect({
+        menuPath,
+        inSection: sectionByTitle(viewMenu, sectionTitle).items.includes(page),
+      }).toEqual({ menuPath, inSection: true });
+    }
+  });
+
+  it("no longer says Executions or Triggers are a click away in the menu", () => {
+    for (const [name, markdown] of Object.entries(PAGES)) {
+      expect({ page: name, says: markdown.includes("in its menu") }).toEqual({
+        page: name,
+        says: false,
+      });
+    }
   });
 });

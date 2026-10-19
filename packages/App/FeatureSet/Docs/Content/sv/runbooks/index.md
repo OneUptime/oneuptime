@@ -98,6 +98,17 @@ Runbooks finns under **Produkter**, i gruppen **Instrumentpaneler och automatise
 | **Incidenter / Varningar / Schemalagt underhåll → Regler → Runbook-regler** | Skapa de regler som startar runbooks automatiskt. |
 | En incident, ett larm eller en underhållshändelse → **Runbooks** | Se de körningar som är kopplade till den och klicka på **Kör Runbook** för att starta en. |
 
+Ett runbooks egen sidomeny grupperar dess sidor så här. Bara **Grundläggande** är öppet från början: klicka på ett avsnitts rubrik för att öppna det. Ett avsnitt öppnas av sig självt på varje sida i det.
+
+| Avsnitt | Sidor |
+| --- | --- |
+| **Grundläggande** | **Översikt**, **Steg** |
+| **Loggar** | **Körningar** |
+| **Ägare** | **Ägare** |
+| **Inställningar** | **Utlösare**, **Inställningar** |
+| **Utvecklare** | **Terraform**, **API**, **AI-assistenter** |
+| **Avancerad** | **Granskningsloggar**, **Radera runbook** |
+
 ## Ett genomgånget exempel
 
 Anta att varje incident med "db-primary" i titeln ska starta ett runbook för databas-failover med fem steg.

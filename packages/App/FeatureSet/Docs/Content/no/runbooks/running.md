@@ -118,7 +118,7 @@ En kjøring er en engangs, uforanderlig post. Klikk **Kjør igjen** på en avslu
 
 | Hvor | Hva den viser |
 | --- | --- |
-| **Kjøringer** for et runbook | Alle kjøringer av det runbooket, med filtre for status og startdato og en kolonne **Utløst av**. |
+| **Logger → Kjøringer** for et runbook | Alle kjøringer av det runbooket, med filtre for status og startdato og en kolonne **Utløst av**. |
 | **Runbooks → Kjøringer** | Alle kjøringer av alle runbooks i prosjektet. |
 | Siden **Runbooks** for en hendelse, et varsel eller en begivenhet | Kjøringene som er knyttet til den. Begivenhetens oversikt viser dem også så snart det finnes noen. |
 
