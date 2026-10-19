@@ -42,7 +42,7 @@ const PREVIOUS_LEAD: string =
   "**Wrong two-factor codes are counted for the account, wherever they come from.**";
 // The note after it (KeyCarryingRedirectsUpgradeDocs).
 const NEXT_LEAD: string =
-  "**Probes, Runners and OneUptime's own services follow redirects only on the server they call.**";
+  "**Probes, Runners, the infrastructure agent and OneUptime's own services follow redirects only on the server they call.**";
 
 const KEYS: Array<string> = [
   "REGISTER_PROBE_KEY",

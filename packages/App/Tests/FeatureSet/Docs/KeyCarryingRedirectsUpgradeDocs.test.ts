@@ -20,8 +20,9 @@ import path from "path";
  *   - what it says a request follows - the same address, or that address
  *     moved from http to https - and refuses - another server, a host name
  *     of another domain - is what SameServerRedirect decides;
- *   - the setting it names is the one the probe and the Runner read their
- *     OneUptime address from;
+ *   - the settings it names are the ones the probe and the Runner, and the
+ *     infrastructure agent, read their OneUptime address from, and the
+ *     agent's requests check their redirects;
  *   - every translation carries it in the English note's place, under a
  *     lead of its own, with the English note's code and no link.
  */
@@ -29,7 +30,7 @@ import path from "path";
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
 
 const NOTE_LEAD: string =
-  "**Probes, Runners and OneUptime's own services follow redirects only on the server they call.**";
+  "**Probes, Runners, the infrastructure agent and OneUptime's own services follow redirects only on the server they call.**";
 // The note before it (ProbeRunnerKeyUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
@@ -42,6 +43,10 @@ const ADDRESS_READERS: Array<string> = [
   "packages/Probe/Config.ts",
   "packages/Runner/Config.ts",
 ];
+
+// The infrastructure agent's own setting for that address, a flag of its configure command.
+const AGENT_ADDRESS_SETTING: string = "--oneuptime-url";
+const AGENT_DIRECTORY: string = "agents/InfrastructureAgent";
 
 const ENGLISH_ITEMS: Array<string> = otherChangesItems("en");
 const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
@@ -107,9 +112,9 @@ describe("the English upgrade note on the redirects of requests that carry a key
     ).toBe(false);
   });
 
-  it("names the setting the probe and the Runner read their OneUptime address from, and who sees no change", () => {
+  it("names the settings the probe, the Runner and the infrastructure agent read their OneUptime address from, and who sees no change", () => {
     expect(ENGLISH_NOTE).toContain(
-      "If your OneUptime address redirects to another host name, such as an old domain to a new one, set `ONEUPTIME_URL` on your probes and Runners to the address it redirects to.",
+      "If your OneUptime address redirects to another host name, such as an old domain to a new one, set `ONEUPTIME_URL` on your probes and Runners, and the infrastructure agent's `--oneuptime-url`, to the address it redirects to.",
     );
     expect(ENGLISH_NOTE).toContain(
       "An address that answers directly, or only moves from `http` to `https`, sees no change.",
@@ -123,12 +128,46 @@ describe("the English upgrade note on the redirects of requests that carry a key
           .includes(`process.env["${ADDRESS_SETTING}"]`),
       }).toEqual({ reader, reads: true });
     }
+
+    // The agent's configure command takes the flag the note names.
+    expect(
+      fs
+        .readFileSync(path.join(REPO_ROOT, AGENT_DIRECTORY, "main.go"), "utf8")
+        .includes(
+          `installFlags.String("${AGENT_ADDRESS_SETTING.replace("--", "")}"`,
+        ),
+    ).toBe(true);
+  });
+
+  it("holds the infrastructure agent to it: every request it sends checks its redirects", () => {
+    const agent: string = fs.readFileSync(
+      path.join(REPO_ROOT, AGENT_DIRECTORY, "agent.go"),
+      "utf8",
+    );
+    const redirect: string = fs.readFileSync(
+      path.join(REPO_ROOT, AGENT_DIRECTORY, "redirect.go"),
+      "utf8",
+    );
+
+    // Its two requests each make a client, and one more behind a proxy.
+    expect(agent.split("&http.Client{").length - 1).toBe(4);
+    expect(
+      agent.split("CheckRedirect: sameServerRedirectsOnly").length - 1,
+    ).toBe(4);
+    expect(redirect).toContain("func sameServerRedirectsOnly(");
   });
 
   it("carries its code and no link", () => {
     // inlineCode lists a text's code spans sorted.
     expect(inlineCode(ENGLISH_NOTE)).toEqual(
-      ["http", "https", ADDRESS_SETTING, "http", "https"].sort(),
+      [
+        "http",
+        "https",
+        ADDRESS_SETTING,
+        AGENT_ADDRESS_SETTING,
+        "http",
+        "https",
+      ].sort(),
     );
     expect(linksOf(ENGLISH_NOTE)).toEqual([]);
   });
