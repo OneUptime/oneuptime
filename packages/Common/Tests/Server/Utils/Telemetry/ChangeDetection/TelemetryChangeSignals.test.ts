@@ -14,6 +14,7 @@ import {
   flattenResourceAttributes,
   hashKeyParts,
   isTrackableVersion,
+  isWorkloadServiceTelemetry,
   kubernetesRolloutScopeKey,
   readResourceAttribute,
   scopedValueKey,
@@ -306,6 +307,78 @@ describe("extractKubernetesRolloutSignal", () => {
         }),
       ),
     ).toBeNull();
+  });
+});
+
+/*
+ * Which service's block may report a rollout as that service's: the
+ * workload's own telemetry, never a collector's view of the cluster.
+ */
+describe("isWorkloadServiceTelemetry", () => {
+  const signal: KubernetesRolloutSignal = {
+    clusterName: "prod-eu",
+    namespace: "web",
+    deploymentName: "api",
+    replicaSetName: "api-7d4f9c",
+  };
+
+  test("an instrumented app's block is the workload's, whatever its service is called", () => {
+    expect(
+      isWorkloadServiceTelemetry({
+        attributes: attributes({
+          "service.name": "checkout",
+          "telemetry.sdk.name": "opentelemetry",
+        }),
+        serviceName: "checkout",
+        signal,
+      }),
+    ).toBe(true);
+  });
+
+  test("a service named after the Deployment is the workload's", () => {
+    for (const serviceName of ["api", " API "]) {
+      expect(
+        isWorkloadServiceTelemetry({
+          attributes: attributes({ "service.name": serviceName }),
+          serviceName,
+          signal,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  test("the Kubernetes agent's view of a pod is not", () => {
+    expect(
+      isWorkloadServiceTelemetry({
+        attributes: attributes({
+          "service.name": "kubernetes-agent-prod-eu",
+          "k8s.deployment.name": "api",
+          "k8s.replicaset.name": "api-7d4f9c",
+        }),
+        serviceName: "kubernetes-agent-prod-eu",
+        signal,
+      }),
+    ).toBe(false);
+  });
+
+  test("a scrape job's service is not", () => {
+    expect(
+      isWorkloadServiceTelemetry({
+        attributes: attributes({ "service.name": "kube-state-metrics" }),
+        serviceName: "kube-state-metrics",
+        signal,
+      }),
+    ).toBe(false);
+  });
+
+  test("an empty SDK name does not count", () => {
+    expect(
+      isWorkloadServiceTelemetry({
+        attributes: attributes({ "telemetry.sdk.name": "  " }),
+        serviceName: "checkout",
+        signal,
+      }),
+    ).toBe(false);
   });
 });
 

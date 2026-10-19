@@ -31,10 +31,11 @@ import ServiceType from "../../../../../Types/Telemetry/ServiceType";
  * old pods, another worker) is nothing new, and only a value new to Redis
  * is a change - recorded once, however many workers see it at once.
  *
- * Redis is replaced by an in-memory store with the same semantics for the
- * three calls the detector makes (SET NX, the atomic swap, INCR with
- * expiry), so "two workers at once" is two detectors sharing that store
- * with their in-process memos cleared between them.
+ * Redis is replaced by an in-memory store with the same semantics, expiry
+ * included, for the calls the detector makes (SET NX, SET NX that extends a
+ * live key, EXPIRE, the atomic swap, INCR with expiry), so "two workers at
+ * once" is two detectors sharing that store with their in-process memos
+ * cleared between them, and "a month later" is the test's clock moved on.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -51,6 +52,7 @@ const NOW: Date = new Date("2026-10-19T10:15:00.000Z");
 
 interface StoredValue {
   value: string;
+  expiresAt: number;
 }
 
 interface Submission {
@@ -67,17 +69,81 @@ function storeKey(namespace: string, key: string): string {
   return `${namespace}-${key}`;
 }
 
+const DAY: number = 24 * 60 * 60 * 1000;
+
+function expiresAt(options?: {
+  expiresInSeconds?: number | undefined;
+}): number {
+  return (
+    now.getTime() + (options?.expiresInSeconds ?? 30 * 24 * 60 * 60) * 1000
+  );
+}
+
+// The key's value while it lives; an expired key is gone, as in Redis.
+function live(full: string): StoredValue | undefined {
+  const stored: StoredValue | undefined = store.get(full);
+
+  if (stored && stored.expiresAt <= now.getTime()) {
+    store.delete(full);
+    return undefined;
+  }
+
+  return stored;
+}
+
+type CacheOptions = { expiresInSeconds?: number | undefined } | undefined;
+
 function mockRedis(): void {
   jest
     .spyOn(GlobalCache, "setStringIfNotExists")
     .mockImplementation(
-      async (namespace: string, key: string, value: string) => {
+      async (
+        namespace: string,
+        key: string,
+        value: string,
+        options?: CacheOptions,
+      ) => {
         cacheCalls.push(`setStringIfNotExists:${namespace}`);
         const full: string = storeKey(namespace, key);
-        if (store.has(full)) {
+        if (live(full)) {
           return false;
         }
-        store.set(full, { value });
+        store.set(full, { value, expiresAt: expiresAt(options) });
+        return true;
+      },
+    );
+
+  jest
+    .spyOn(GlobalCache, "setStringIfNotExistsOrExtend")
+    .mockImplementation(
+      async (
+        namespace: string,
+        key: string,
+        value: string,
+        options?: CacheOptions,
+      ) => {
+        cacheCalls.push(`setStringIfNotExistsOrExtend:${namespace}`);
+        const full: string = storeKey(namespace, key);
+        const stored: StoredValue | undefined = live(full);
+        if (stored) {
+          stored.expiresAt = expiresAt(options);
+          return false;
+        }
+        store.set(full, { value, expiresAt: expiresAt(options) });
+        return true;
+      },
+    );
+
+  jest
+    .spyOn(GlobalCache, "extendExpiry")
+    .mockImplementation(
+      async (namespace: string, key: string, options: CacheOptions) => {
+        cacheCalls.push(`extendExpiry:${namespace}`);
+        const stored: StoredValue | undefined = live(storeKey(namespace, key));
+        if (!stored) {
+          return false;
+        }
+        stored.expiresAt = expiresAt(options);
         return true;
       },
     );
@@ -85,24 +151,35 @@ function mockRedis(): void {
   jest
     .spyOn(GlobalCache, "swapString")
     .mockImplementation(
-      async (namespace: string, key: string, value: string) => {
+      async (
+        namespace: string,
+        key: string,
+        value: string,
+        options?: CacheOptions,
+      ) => {
         cacheCalls.push(`swapString:${namespace}`);
         const full: string = storeKey(namespace, key);
-        const previous: StoredValue | undefined = store.get(full);
-        store.set(full, { value });
+        const previous: StoredValue | undefined = live(full);
+        store.set(full, { value, expiresAt: expiresAt(options) });
         return previous ? previous.value : null;
       },
     );
 
   jest
     .spyOn(GlobalCache, "incrementWithExpiry")
-    .mockImplementation(async (namespace: string, key: string) => {
-      cacheCalls.push(`incrementWithExpiry:${namespace}`);
-      const full: string = storeKey(namespace, key);
-      const count: number = Number(store.get(full)?.value || "0") + 1;
-      store.set(full, { value: String(count) });
-      return count;
-    });
+    .mockImplementation(
+      async (namespace: string, key: string, options: CacheOptions) => {
+        cacheCalls.push(`incrementWithExpiry:${namespace}`);
+        const full: string = storeKey(namespace, key);
+        const stored: StoredValue | undefined = live(full);
+        const count: number = Number(stored?.value || "0") + 1;
+        store.set(full, {
+          value: String(count),
+          expiresAt: stored ? stored.expiresAt : expiresAt(options),
+        });
+        return count;
+      },
+    );
 }
 
 function resource(values: Record<string, string>): JSONArray {
@@ -153,12 +230,13 @@ function version(
   };
 }
 
-// What a pod of the api Deployment reports.
+// What an instrumented pod of the api Deployment reports.
 function rollout(
   replicaSet: string,
   extra: Record<string, string> = {},
 ): Record<string, string> {
   return {
+    "telemetry.sdk.name": "opentelemetry",
     "k8s.cluster.name": "prod-eu",
     "k8s.namespace.name": "web",
     "k8s.deployment.name": "api",
@@ -219,7 +297,7 @@ describe("a service's new version", () => {
     expect(rows()).toEqual([]);
     // Claimed and remembered, so the next version has something to follow.
     expect(cacheCalls).toEqual([
-      `setStringIfNotExists:${CHANGE_DETECTION_SEEN_NAMESPACE}`,
+      `setStringIfNotExistsOrExtend:${CHANGE_DETECTION_SEEN_NAMESPACE}`,
       `swapString:${CHANGE_DETECTION_LATEST_NAMESPACE}`,
     ]);
   });
@@ -506,6 +584,71 @@ describe("a Kubernetes rollout", () => {
     );
   });
 
+  /*
+   * The Kubernetes agent files the pod metrics it reads from the API server
+   * under its own service. Were such a block to claim a new ReplicaSet
+   * first, the rollout would land on the agent, and every rollout in the
+   * cluster would fold into one change there.
+   */
+  test("the Kubernetes agent's own view of a pod files no rollout, and does not claim it", async () => {
+    const agent: TelemetryServiceMetadata = serviceMetadata({
+      serviceName: "kubernetes-agent-prod-eu",
+      primaryEntityId: ObjectID.generate(),
+    });
+    const agentView: (replicaSet: string) => Record<string, string> = (
+      replicaSet: string,
+    ): Record<string, string> => {
+      const attributes: Record<string, string> = rollout(replicaSet, {
+        "service.name": "kubernetes-agent-prod-eu",
+      });
+      delete attributes["telemetry.sdk.name"];
+      return attributes;
+    };
+
+    await observe(agentView("api-1"), {
+      metadata: agent,
+      kubernetesClusterId: CLUSTER_ID,
+    });
+    await observe(rollout("api-1"), { kubernetesClusterId: CLUSTER_ID });
+    await observe(agentView("api-2"), {
+      metadata: agent,
+      kubernetesClusterId: CLUSTER_ID,
+    });
+    expect(rows()).toEqual([]);
+
+    await observe(rollout("api-2"), { kubernetesClusterId: CLUSTER_ID });
+
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]!["primaryEntityId"]).toBe(SERVICE_ID.toString());
+  });
+
+  test("a service named after the Deployment is the workload's own", async () => {
+    const api: TelemetryServiceMetadata = serviceMetadata({
+      serviceName: "api",
+    });
+    const kubeletView: (replicaSet: string) => Record<string, string> = (
+      replicaSet: string,
+    ): Record<string, string> => {
+      const attributes: Record<string, string> = rollout(replicaSet, {
+        "service.name": "api",
+      });
+      delete attributes["telemetry.sdk.name"];
+      return attributes;
+    };
+
+    await observe(kubeletView("api-1"), {
+      metadata: api,
+      kubernetesClusterId: CLUSTER_ID,
+    });
+    await observe(kubeletView("api-2"), {
+      metadata: api,
+      kubernetesClusterId: CLUSTER_ID,
+    });
+
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]!["primaryEntityId"]).toBe(SERVICE_ID.toString());
+  });
+
   test("the same Deployment name in two clusters is two Deployments", async () => {
     await observe(rollout("api-1"), { kubernetesClusterId: CLUSTER_ID });
     await observe(rollout("api-2"), {
@@ -545,7 +688,7 @@ describe("a Kubernetes rollout", () => {
 describe("failures", () => {
   test("a Redis that is down records nothing and never throws into ingest", async () => {
     jest
-      .spyOn(GlobalCache, "setStringIfNotExists")
+      .spyOn(GlobalCache, "setStringIfNotExistsOrExtend")
       .mockRejectedValue(new Error("Cache is not connected"));
 
     await expect(observe(version("1"))).rejects.toThrow(
@@ -580,25 +723,101 @@ describe("failures", () => {
     await expect(observe(version("2"))).rejects.toThrow("ClickHouse is down");
   });
 
-  test("seen values are kept for the days the detector says", async () => {
-    const ttls: Array<number | undefined> = [];
-    jest
-      .spyOn(GlobalCache, "setStringIfNotExists")
-      .mockImplementation(
-        async (
-          _namespace: string,
-          _key: string,
-          _value: string,
-          options?: { expiresInSeconds?: number | undefined },
-        ) => {
-          ttls.push(options?.expiresInSeconds);
-          return true;
-        },
-      );
-
+  test("seen values, and a scope's latest value, are kept for the days the detector says", async () => {
     await observe(version("1"));
+    await observe(version("2"));
 
-    expect(ttls).toEqual([OneUptimeDate.getSecondsInDays(SEEN_TTL_IN_DAYS)]);
+    expect(SEEN_TTL_IN_DAYS).toBe(30);
+    // Two seen versions, the latest version, and this hour's change count.
+    expect(store.size).toBe(4);
+    for (const [key, stored] of store.entries()) {
+      expect(stored.expiresAt).toBe(
+        key.startsWith(`${CHANGE_DETECTION_COUNT_NAMESPACE}-`)
+          ? now.getTime() + 60 * 60 * 1000
+          : now.getTime() + SEEN_TTL_IN_DAYS * DAY,
+      );
+    }
+  });
+});
+
+/*
+ * A value is remembered for SEEN_TTL_IN_DAYS after it was last reported,
+ * not after it was first: a version that runs for months is not "new"
+ * again every month.
+ */
+describe("what is remembered, over time", () => {
+  function later(days: number): void {
+    now = new Date(NOW.getTime() + days * DAY);
+    anotherWorker();
+  }
+
+  test("a canary's version still reported a month on is not a deploy again", async () => {
+    await observe(version("2.3.0"));
+    later(1);
+    await observe(version("2.3.1"));
+    expect(rows()).toHaveLength(1);
+
+    // Both versions keep running, side by side.
+    for (const day of [10, 20, 29, 38, 47]) {
+      later(day);
+      await observe(version("2.3.0"));
+      await observe(version("2.3.1"));
+    }
+
+    expect(rows()).toHaveLength(1);
+  });
+
+  test("a deploy after a month on one version follows that version", async () => {
+    await observe(version("2.3.0"));
+    for (const day of [12, 24, 36, 48]) {
+      later(day);
+      await observe(version("2.3.0"));
+    }
+
+    later(50);
+    await observe(version("2.4.0"));
+
+    expect(rows()).toHaveLength(1);
+    expect(attributesOf(rows()[0]!)["oneuptime.change.previous_version"]).toBe(
+      "2.3.0",
+    );
+  });
+
+  test("a scope's latest value lost from the cache is restored from what it reports", async () => {
+    await observe(version("2.3.0"));
+    for (const key of Array.from(store.keys())) {
+      if (key.startsWith(`${CHANGE_DETECTION_LATEST_NAMESPACE}-`)) {
+        store.delete(key);
+      }
+    }
+
+    later(1);
+    await observe(version("2.3.0"));
+    later(2);
+    await observe(version("2.4.0"));
+
+    expect(rows()).toHaveLength(1);
+    expect(attributesOf(rows()[0]!)["oneuptime.change.previous_version"]).toBe(
+      "2.3.0",
+    );
+  });
+
+  test("a version no longer reported is forgotten after the seen days", async () => {
+    await observe(version("2.3.0"));
+    later(1);
+    await observe(version("2.4.0"));
+
+    // 2.3.0 is last reported on day 0; rolled back to on day 40.
+    later(40);
+    await observe(version("2.4.0"));
+    later(41);
+    await observe(version("2.3.0"));
+
+    expect(
+      rows().map((row: JSONObject) => {
+        return attributesOf(row)["oneuptime.change.previous_version"];
+      }),
+    ).toEqual(["2.3.0", "2.4.0"]);
   });
 });
 

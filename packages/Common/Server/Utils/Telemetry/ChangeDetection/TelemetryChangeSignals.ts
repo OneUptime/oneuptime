@@ -228,6 +228,33 @@ export function extractKubernetesRolloutSignal(
 }
 
 /*
+ * Whether a service's resource block is the workload's own telemetry, so a
+ * rollout it reports is that service's: an instrumented app (its SDK names
+ * itself in telemetry.sdk.name), or a service named after the Deployment
+ * (the Kubernetes agent names a pod's own metrics and logs so).
+ *
+ * A collector's view of the cluster is not. The Kubernetes agent files the
+ * pod metrics it reads from the API server under its own service name
+ * ("kubernetes-agent-<cluster>"), so a rollout such a block reported first
+ * would be filed under the agent - and every other rollout in the cluster
+ * with it.
+ */
+export function isWorkloadServiceTelemetry(data: {
+  attributes: JSONArray | null | undefined;
+  serviceName: string;
+  signal: KubernetesRolloutSignal;
+}): boolean {
+  if (readResourceAttribute(data.attributes, "telemetry.sdk.name")) {
+    return true;
+  }
+
+  return (
+    data.serviceName.trim().toLowerCase() ===
+    data.signal.deploymentName.toLowerCase()
+  );
+}
+
+/*
  * A fixed-length key for a value of any length. The parts come from
  * collector-controlled payloads, so a cache key built from them is hashed
  * rather than concatenated: bounded, and free of the separators it joins.

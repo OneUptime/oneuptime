@@ -21,6 +21,7 @@ import {
   buildServiceVersionChangeEntry,
   extractKubernetesRolloutSignal,
   extractServiceVersionSignal,
+  isWorkloadServiceTelemetry,
   kubernetesRolloutScopeKey,
   readResourceAttribute,
   scopedValueKey,
@@ -44,7 +45,7 @@ import {
  * not a change: telemetry that starts arriving for a service that has run
  * for months is not a deploy.
  *
- * What it does not see: a rollback to a value seen in the last
+ * What it does not see: a rollback to a value reported in the last
  * SEEN_TTL_IN_DAYS (the value is known, so nothing is new - a
  * `kubectl rollout undo` scales an old ReplicaSet back up), and anything a
  * resource does not report. A rollback OneUptime AI runs is recorded where
@@ -54,7 +55,10 @@ import {
  * ingest path never waits for it (observeResource).
  */
 
-// How long a seen value, and a scope's latest value, are remembered.
+/*
+ * How long a value is remembered after it was last reported, and a scope's
+ * latest value with it.
+ */
 export const SEEN_TTL_IN_DAYS: number = 30;
 
 /*
@@ -143,7 +147,21 @@ export default class TelemetryChangeDetector {
     const rolloutSignal: KubernetesRolloutSignal | null =
       extractKubernetesRolloutSignal(data.attributes);
 
-    if (rolloutSignal) {
+    /*
+     * A service's block reports a rollout only when it is the workload's
+     * own telemetry; another would file the rollout under the wrong service
+     * (isWorkloadServiceTelemetry). A block that resolved to no service
+     * reports it as the cluster's.
+     */
+    if (
+      rolloutSignal &&
+      (!isService ||
+        isWorkloadServiceTelemetry({
+          attributes: data.attributes,
+          serviceName: data.metadata.serviceName,
+          signal: rolloutSignal,
+        }))
+    ) {
       writes.push(
         TelemetryChangeDetector.detectKubernetesRollout({
           data,
@@ -273,14 +291,46 @@ export default class TelemetryChangeDetector {
 
     TelemetryChangeDetector.seenMemo.set(valueKey, true);
 
-    const isFirstSighting: boolean = await GlobalCache.setStringIfNotExists(
-      CHANGE_DETECTION_SEEN_NAMESPACE,
-      valueKey,
-      "1",
-      { expiresInSeconds: OneUptimeDate.getSecondsInDays(SEEN_TTL_IN_DAYS) },
-    );
+    const ttl: { expiresInSeconds: number } = {
+      expiresInSeconds: OneUptimeDate.getSecondsInDays(SEEN_TTL_IN_DAYS),
+    };
+
+    /*
+     * A value still reported stays seen: its expiry counts from its last
+     * sighting, not its first. Otherwise a version that has run for
+     * SEEN_TTL_IN_DAYS would be "new" again - and, next to a canary's
+     * version, recorded as a deploy from it.
+     */
+    const isFirstSighting: boolean =
+      await GlobalCache.setStringIfNotExistsOrExtend(
+        CHANGE_DETECTION_SEEN_NAMESPACE,
+        valueKey,
+        "1",
+        ttl,
+      );
 
     if (!isFirstSighting) {
+      /*
+       * And so does the scope's latest value: were it to expire while its
+       * values are still known, the next deploy would find none and be
+       * taken for a baseline. One evicted from the cache is restored from
+       * what the scope reports.
+       */
+      const isExtended: boolean = await GlobalCache.extendExpiry(
+        CHANGE_DETECTION_LATEST_NAMESPACE,
+        data.scopeKey,
+        ttl,
+      );
+
+      if (!isExtended) {
+        await GlobalCache.setStringIfNotExists(
+          CHANGE_DETECTION_LATEST_NAMESPACE,
+          data.scopeKey,
+          data.value,
+          ttl,
+        );
+      }
+
       return null;
     }
 
@@ -288,7 +338,7 @@ export default class TelemetryChangeDetector {
       CHANGE_DETECTION_LATEST_NAMESPACE,
       data.scopeKey,
       data.value,
-      { expiresInSeconds: OneUptimeDate.getSecondsInDays(SEEN_TTL_IN_DAYS) },
+      ttl,
     );
 
     if (!previous || previous === data.value) {
