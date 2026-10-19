@@ -151,6 +151,18 @@ function pageIdOf(index: number): string {
 const PAGE_ID: string = pageIdOf(0);
 const PAGE_COUNT: number = 15;
 
+/*
+ * What a value that is not one mailbox is refused with: by Email itself,
+ * which takes one mailbox, or by the limiter's own one-address check -
+ * either way before anything is created, sent or counted.
+ */
+function oneMailboxRefusals(value: string): Array<string> {
+  return [
+    PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+    `Email ${value} is not in valid format.`,
+  ];
+}
+
 const VISITOR: string = "203.0.113.7";
 const NETWORK_PREFIX: string = "2001:db8:5:6";
 
@@ -683,8 +695,8 @@ describe("signing up on a status page", () => {
       const answer: Answer = await signUp(VISITOR, { subscriberEmail });
 
       expect(answer.error?.code).toBe(ExceptionCode.BadDataException);
-      expect(answer.error?.message).toBe(
-        PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+      expect(oneMailboxRefusals(subscriberEmail)).toContain(
+        answer.error?.message,
       );
     }
 
@@ -700,10 +712,12 @@ describe("signing up on a status page", () => {
     ]) {
       const answer: Answer = await signUp(VISITOR, { subscriberEmail });
 
-      expect([subscriberEmail, answer.error?.message]).toEqual([
+      expect({
         subscriberEmail,
-        PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
-      ]);
+        refused: oneMailboxRefusals(subscriberEmail).includes(
+          answer.error?.message as string,
+        ),
+      }).toEqual({ subscriberEmail, refused: true });
     }
 
     expect(subscribers.rows).toHaveLength(0);
@@ -1144,8 +1158,8 @@ describe("asking for a subscription's manage link", () => {
       subscriberEmail: "a@example.com,b@example.com",
     });
 
-    expect(answer.error?.message).toBe(
-      PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+    expect(oneMailboxRefusals("a@example.com,b@example.com")).toContain(
+      answer.error?.message,
     );
     expect(redis.keys()).toEqual([]);
   });
