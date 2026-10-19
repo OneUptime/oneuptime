@@ -14,6 +14,10 @@ import Errors from "../Utils/Errors";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import UserRegistrationToken from "../Utils/UserRegistrationToken";
+import PublicMessageRateLimit, {
+  PublicMessageSendPermit,
+  TeamMessageKind,
+} from "../Utils/RateLimit/PublicMessageRateLimit";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -370,44 +374,169 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     /*
-     * Set when the member is invited by email: the account the address belongs
-     * to, and whether this invite just created it. The invitation email is sent
-     * once everything below has decided what this membership is.
+     * An invitation by email to someone who is not in the project yet is a
+     * message to an address the team names, from this installation's mail
+     * server. Each address is counted (PublicMessageRateLimit.assertTeamMaySend),
+     * so one address is sent a bounded number of invitations an hour,
+     * whichever project sends them: past its limit the invitation is
+     * refused with 429. The team is never counted, so inviting
+     * many colleagues at once goes on. Asked before an account is made for
+     * the invitee, so a refused invitation leaves nothing behind, and given
+     * back when the invitation fails before its email is sent. Someone who
+     * has joined the project already, added to another of its teams, is told
+     * so rather than invited, and is not counted.
      */
-    let invitedUser: User | null = null;
-    let isNewUser: boolean = false;
+    const invitationPermit: PublicMessageSendPermit | null =
+      invitedEmail &&
+      !createBy.data.hasAcceptedInvitation &&
+      !(
+        userWithInvitedEmail?.id &&
+        (await this.isUserMemberOfProject({
+          projectId: projectId,
+          userId: userWithInvitedEmail.id,
+        }))
+      )
+        ? await PublicMessageRateLimit.assertTeamMaySend({
+            kind: TeamMessageKind.Invitation,
+            contacts: [PublicMessageRateLimit.forEmail(invitedEmail)],
+          })
+        : null;
 
-    if (invitedEmail) {
+    try {
       /*
-       * Optional name supplied on the invite form. Used only to set the name on
-       * a brand-new user, or to backfill an existing user who has no name yet —
-       * we never overwrite a name the user has already set.
+       * Set when the member is invited by email: the account the address belongs
+       * to, and whether this invite just created it. The invitation email is sent
+       * once everything below has decided what this membership is.
        */
-      const nameValue: string | undefined = createBy.miscDataProps?.["name"]
-        ? (createBy.miscDataProps["name"] as string).trim()
-        : undefined;
+      let invitedUser: User | null = null;
+      let isNewUser: boolean = false;
 
-      let user: User | null = userWithInvitedEmail;
-
-      if (!user) {
-        isNewUser = true;
-
-        user = await UserService.createByEmail({
-          email: invitedEmail,
-          name: nameValue ? new Name(nameValue) : undefined,
-          // Record who invited this brand-new user, so it can be surfaced later.
-          createdByUserId: createBy.props.userId,
-          props: {
-            isRoot: true,
-          },
-        });
-      } else if (nameValue) {
+      if (invitedEmail) {
         /*
-         * User already exists. Backfill their name only if they don't have one
-         * yet; if they already have a name, leave it untouched.
+         * Optional name supplied on the invite form. Used only to set the name on
+         * a brand-new user, or to backfill an existing user who has no name yet —
+         * we never overwrite a name the user has already set.
          */
-        const existingUser: User | null = await UserService.findOneById({
-          id: user.id!,
+        const nameValue: string | undefined = createBy.miscDataProps?.["name"]
+          ? (createBy.miscDataProps["name"] as string).trim()
+          : undefined;
+
+        let user: User | null = userWithInvitedEmail;
+
+        if (!user) {
+          isNewUser = true;
+
+          user = await UserService.createByEmail({
+            email: invitedEmail,
+            name: nameValue ? new Name(nameValue) : undefined,
+            // Record who invited this brand-new user, so it can be surfaced later.
+            createdByUserId: createBy.props.userId,
+            props: {
+              isRoot: true,
+            },
+          });
+        } else if (nameValue) {
+          /*
+           * User already exists. Backfill their name only if they don't have one
+           * yet; if they already have a name, leave it untouched.
+           */
+          const existingUser: User | null = await UserService.findOneById({
+            id: user.id!,
+            select: {
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (existingUser && !existingUser.name?.toString()) {
+            await UserService.updateOneById({
+              id: user.id!,
+              data: {
+                name: new Name(nameValue),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+          }
+        }
+
+        RelationIdUtil.stamp(createData, USER_KEYS, user.id!);
+
+        invitedUser = user;
+      }
+
+      /*
+       * Check if this user is already invited. Before the invitation email
+       * below, so a repeated invite fails without mailing anybody or minting a
+       * registration token for a membership that is never created.
+       */
+      const member: TeamMember | null = await this.findOneBy({
+        query: {
+          userId: createBy.data.userId!,
+          teamId: teamId,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+      });
+
+      if (member) {
+        throw new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
+      }
+
+      /*
+       * Acceptance is per project, not per team. Someone who has accepted an
+       * invitation to any team of this project has already agreed to be in it,
+       * so adding them to another of its teams is a change to their teams - the
+       * project admins' call, like changing what a team they are already on may
+       * do - and not a new invitation for them to accept. Without this they were
+       * asked to accept the same project again for every team they were added
+       * to. The permission and SCIM checks above have already run, so this
+       * grants nothing the inviter could not grant to an existing teammate.
+       *
+       * A pending invitee is not a member yet (see isUserMemberOfProject), so a
+       * second team they are invited to stays an invitation, and accepting
+       * either one accepts both (acceptPendingInvitationsInProject).
+       */
+      if (
+        !createBy.data.hasAcceptedInvitation &&
+        createBy.data.userId &&
+        (await this.isUserMemberOfProject({
+          projectId: projectId,
+          userId: createBy.data.userId,
+        }))
+      ) {
+        createBy.data.hasAcceptedInvitation = true;
+      }
+
+      const isInvitationAcceptedOnCreate: boolean = Boolean(
+        createBy.data.hasAcceptedInvitation,
+      );
+
+      /*
+       * The acceptance timestamp is stamped here rather than taken from the
+       * request, so it can never disagree with hasAcceptedInvitation - a row that
+       * says "Member" with no accepted-at date, or an accepted-at date on a row
+       * that is still only invited.
+       */
+      if (isInvitationAcceptedOnCreate) {
+        createBy.data.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+      } else {
+        delete createBy.data.invitationAcceptedAt;
+      }
+
+      if (invitedUser && invitedEmail) {
+        const user: User = invitedUser;
+        const email: Email = invitedEmail;
+
+        const project: Project | null = await ProjectService.findOneById({
+          id: createBy.data.projectId!,
           select: {
             name: true,
           },
@@ -416,178 +545,88 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
           },
         });
 
-        if (existingUser && !existingUser.name?.toString()) {
-          await UserService.updateOneById({
-            id: user.id!,
-            data: {
-              name: new Name(nameValue),
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
+        if (project) {
+          const host: Hostname = await DatabaseConfig.getHost();
+          const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
-      RelationIdUtil.stamp(createData, USER_KEYS, user.id!);
+          /*
+           * "Still has to register", not "we just created the row". Someone
+           * invited to a second project before they ever signed up already has a
+           * user row and still has no password, and used to be sent the sign-in
+           * link — which they could not use, having no password to sign in with.
+           */
+          const needsRegistration: boolean = isNewUser || !user.password;
 
-      invitedUser = user;
-    }
-
-    /*
-     * Check if this user is already invited. Before the invitation email
-     * below, so a repeated invite fails without mailing anybody or minting a
-     * registration token for a membership that is never created.
-     */
-    const member: TeamMember | null = await this.findOneBy({
-      query: {
-        userId: createBy.data.userId!,
-        teamId: teamId,
-      },
-      props: {
-        isRoot: true,
-      },
-      select: {
-        _id: true,
-      },
-    });
-
-    if (member) {
-      throw new BadDataException(Errors.TeamMemberService.ALREADY_INVITED);
-    }
-
-    /*
-     * Acceptance is per project, not per team. Someone who has accepted an
-     * invitation to any team of this project has already agreed to be in it,
-     * so adding them to another of its teams is a change to their teams - the
-     * project admins' call, like changing what a team they are already on may
-     * do - and not a new invitation for them to accept. Without this they were
-     * asked to accept the same project again for every team they were added
-     * to. The permission and SCIM checks above have already run, so this
-     * grants nothing the inviter could not grant to an existing teammate.
-     *
-     * A pending invitee is not a member yet (see isUserMemberOfProject), so a
-     * second team they are invited to stays an invitation, and accepting
-     * either one accepts both (acceptPendingInvitationsInProject).
-     */
-    if (
-      !createBy.data.hasAcceptedInvitation &&
-      createBy.data.userId &&
-      (await this.isUserMemberOfProject({
-        projectId: projectId,
-        userId: createBy.data.userId,
-      }))
-    ) {
-      createBy.data.hasAcceptedInvitation = true;
-    }
-
-    const isInvitationAcceptedOnCreate: boolean = Boolean(
-      createBy.data.hasAcceptedInvitation,
-    );
-
-    /*
-     * The acceptance timestamp is stamped here rather than taken from the
-     * request, so it can never disagree with hasAcceptedInvitation - a row that
-     * says "Member" with no accepted-at date, or an accepted-at date on a row
-     * that is still only invited.
-     */
-    if (isInvitationAcceptedOnCreate) {
-      createBy.data.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
-    } else {
-      delete createBy.data.invitationAcceptedAt;
-    }
-
-    if (invitedUser && invitedEmail) {
-      const user: User = invitedUser;
-      const email: Email = invitedEmail;
-
-      const project: Project | null = await ProjectService.findOneById({
-        id: createBy.data.projectId!,
-        select: {
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      if (project) {
-        const host: Hostname = await DatabaseConfig.getHost();
-        const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
-
-        /*
-         * "Still has to register", not "we just created the row". Someone
-         * invited to a second project before they ever signed up already has a
-         * user row and still has no password, and used to be sent the sign-in
-         * link — which they could not use, having no password to sign in with.
-         */
-        const needsRegistration: boolean = isNewUser || !user.password;
-
-        /*
-         * The token is what lets the recipient claim this account, so it exists
-         * only on the link inside this email and only for someone who has not
-         * registered yet. An already-registered invitee gets the plain link;
-         * they sign in instead, and minting a claim token for an account that
-         * cannot be claimed would just be a spare key lying around.
-         */
-        const registerLink: string = needsRegistration
-          ? (
-              await UserRegistrationToken.generateRegistrationLink({
-                userId: user.id!,
-                email: email,
-              })
-            ).toString()
-          : URL.fromString(
-              new URL(
-                httpProtocol,
-                host,
-                new Route(AccountsRoute.toString()),
-              ).toString(),
-            )
-              .addRoute("/register")
-              .addQueryParam("email", email.toString(), true)
-              .toString();
-
-        MailService.sendMail(
-          {
-            toEmail: email,
-            templateType: EmailTemplateType.InviteMember,
-            vars: {
-              signInLink: URL.fromString(
+          /*
+           * The token is what lets the recipient claim this account, so it exists
+           * only on the link inside this email and only for someone who has not
+           * registered yet. An already-registered invitee gets the plain link;
+           * they sign in instead, and minting a claim token for an account that
+           * cannot be claimed would just be a spare key lying around.
+           */
+          const registerLink: string = needsRegistration
+            ? (
+                await UserRegistrationToken.generateRegistrationLink({
+                  userId: user.id!,
+                  email: email,
+                })
+              ).toString()
+            : URL.fromString(
                 new URL(
                   httpProtocol,
                   host,
                   new Route(AccountsRoute.toString()),
                 ).toString(),
-              ).toString(),
-              registerLink: registerLink,
-              isNewUser: needsRegistration.toString(),
-              /*
-               * An auto-accepted member - accepted by a master admin, or
-               * already in the project through another team - has nothing
-               * left to accept, so the template drops the "sign in to accept
-               * your invitation" framing and tells them they are already in.
-               */
-              isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
-              projectName: project.name!,
-              homeUrl: new URL(httpProtocol, host).toString(),
+              )
+                .addRoute("/register")
+                .addQueryParam("email", email.toString(), true)
+                .toString();
+
+          MailService.sendMail(
+            {
+              toEmail: email,
+              templateType: EmailTemplateType.InviteMember,
+              vars: {
+                signInLink: URL.fromString(
+                  new URL(
+                    httpProtocol,
+                    host,
+                    new Route(AccountsRoute.toString()),
+                  ).toString(),
+                ).toString(),
+                registerLink: registerLink,
+                isNewUser: needsRegistration.toString(),
+                /*
+                 * An auto-accepted member - accepted by a master admin, or
+                 * already in the project through another team - has nothing
+                 * left to accept, so the template drops the "sign in to accept
+                 * your invitation" framing and tells them they are already in.
+                 */
+                isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
+                projectName: project.name!,
+                homeUrl: new URL(httpProtocol, host).toString(),
+              },
+              subject: isInvitationAcceptedOnCreate
+                ? "You have been added to " + project.name
+                : "You have been invited to " + project.name,
+              isSubjectLiteral: true,
             },
-            subject: isInvitationAcceptedOnCreate
-              ? "You have been added to " + project.name
-              : "You have been invited to " + project.name,
-            isSubjectLiteral: true,
-          },
-          {
-            projectId: createBy.data.projectId!,
-            userId: user.id!,
-          },
-        ).catch((err: Error) => {
-          logger.error(err, {
-            projectId: createBy.data.projectId?.toString(),
-            userId: user.id?.toString(),
-          } as LogAttributes);
-        });
+            {
+              projectId: createBy.data.projectId!,
+              userId: user.id!,
+            },
+          ).catch((err: Error) => {
+            logger.error(err, {
+              projectId: createBy.data.projectId?.toString(),
+              userId: user.id?.toString(),
+            } as LogAttributes);
+          });
+        }
       }
+    } catch (err) {
+      // Nothing was sent: the address gets its count back.
+      await invitationPermit?.giveBack();
+      throw err;
     }
 
     return { createBy, carryForward: null };

@@ -393,9 +393,17 @@ describe("the screens", () => {
           file,
           code.includes("getSubscriberWelcomeField(moreFields)"),
         ]).toEqual([file, true]);
+        /*
+         * An SMS subscriber can await the link texted to it: its Status
+         * offers Awaiting Confirmation, as an email subscriber's does.
+         */
         expect([
           file,
-          code.includes("...getSubscriberStatusFields({ isEmail: false }),"),
+          code.includes(
+            file === "SMSSubscribers.tsx"
+              ? "...getSubscriberStatusFields({ isEmail: false, isPhone: true }),"
+              : "...getSubscriberStatusFields({ isEmail: false }),",
+          ),
         ]).toEqual([file, true]);
       }
     }

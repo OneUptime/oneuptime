@@ -185,7 +185,8 @@
       "yourPhoneNumber": "Dit telefonnummer",
       "placeholder": "+4512345678",
       "managePrompt": "Indtast venligst det telefonnummer, du har abonneret med",
-      "manageDescription": "Vi sender dig et administrationslink til dette telefonnummer."
+      "manageDescription": "Vi sender dig et administrationslink til dette telefonnummer.",
+      "confirmationSent": "Vi har sendt en sms til dette telefonnummer. Åbn linket i den for at bekræfte dit abonnement."
     },
     "slack": {
       "title": "Abonner via Slack",

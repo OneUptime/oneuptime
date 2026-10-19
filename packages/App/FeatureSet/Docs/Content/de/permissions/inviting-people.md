@@ -128,6 +128,10 @@ Die Person ist schon in diesem Team, als Mitglied oder mit einer noch nicht ange
 In OneUptime Cloud hat ein Projekt im Free-Tarif Platz für eine Person. Ändern Sie den Tarif und laden Sie dann erneut ein. Siehe [Den Tarif ändern](/docs/configuration/billing#den-tarif-ändern).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+An eine Adresse können 10 Einladungen pro Stunde gesendet werden, zu Projekten und privaten Statusseiten zusammen, egal wer sie sendet. Warten Sie eine Stunde und laden Sie die Person dann erneut ein.
+:::
+
 :::details Die Einladungs-E-Mail kam nicht an, oder ihr Link ist abgelaufen
 Die Einladung hängt nicht an der E-Mail. Bitten Sie die Person, sich mit der eingeladenen Adresse zu registrieren: OneUptime sendet an diese Adresse einen neuen Link, um das Konto fertig anzulegen. Wer schon ein Konto hat, meldet sich an und findet die Einladung vor.
 :::

@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Eine Rolle zu {{role}} hinzufügen",
   "Custom Role Details": "Details der benutzerdefinierten Rolle",
   "Members of these teams can do everything this role allows.": "Mitglieder dieser Teams können alles, was diese Rolle erlaubt.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Benannte Sätze von Berechtigungen, erstellt auf der Seite Rollen. Eine Änderung einer Rolle ändert auch dieses Team.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Benannte Sätze von Berechtigungen, erstellt auf der Seite {{roles}}. Eine Änderung einer Rolle ändert auch dieses Team.",
   "Shown on every team you give the role to.": "Wird bei jedem Team angezeigt, dem Sie die Rolle geben.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "Die vordefinierten Rollen, die sie bündelt, für jede Ressource im Projekt. Einzelne Berechtigungen fügen Sie auf der Seite der Rolle hinzu.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "Die vordefinierten Rollen, die sie bündelt, für jede Ressource im Projekt. Rollen, die Sie selbst nicht haben, werden nicht aufgeführt.",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Sicherheit: Clients dürfen schreibgeschützte Tools ohne Rückfrage ausführen und fragen vor allem nach, was etwas löscht. Ein per Anmeldung verbundener Client kann auf Lesezugriff beschränkt werden.",
   "See the {{docsLink}} for every tool.": "Alle Tools finden Sie in der {{docsLink}}.",
   "Twilio account for SMS and calls": "Twilio-Konto für SMS und Anrufe",
-  "Up to {{limit}} open at once": "Bis zu {{limit}} gleichzeitig offen"
+  "Up to {{limit}} open at once": "Bis zu {{limit}} gleichzeitig offen",
+  "Gets nothing until they open the link we texted them.": "Erhält nichts, bis der Link geöffnet wird, den wir per SMS gesendet haben."
 }

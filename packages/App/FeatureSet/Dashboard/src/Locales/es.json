@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Añadir un rol a {{role}}",
   "Custom Role Details": "Detalles del rol personalizado",
   "Members of these teams can do everything this role allows.": "Los miembros de estos equipos pueden hacer todo lo que permite este rol.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Conjuntos de permisos con nombre, creados en la página Roles. Cambiar un rol también cambia este equipo.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Conjuntos de permisos con nombre, creados en la página {{roles}}. Cambiar un rol también cambia este equipo.",
   "Shown on every team you give the role to.": "Se muestra en cada equipo al que das el rol.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "Los roles predefinidos que agrupa, para cada recurso del proyecto. Añade permisos individuales en la página del rol.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "Los roles predefinidos que agrupa, para cada recurso del proyecto. No se muestran los roles que tú mismo no tienes.",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Seguridad: los clientes pueden ejecutar herramientas de solo lectura sin preguntar, y preguntan antes de cualquier cosa que elimine. Un cliente conectado mediante inicio de sesión se puede limitar a solo lectura.",
   "See the {{docsLink}} for every tool.": "Consulta la {{docsLink}} para ver todas las herramientas.",
   "Twilio account for SMS and calls": "Cuenta de Twilio para SMS y llamadas",
-  "Up to {{limit}} open at once": "Hasta {{limit}} abiertas a la vez"
+  "Up to {{limit}} open at once": "Hasta {{limit}} abiertas a la vez",
+  "Gets nothing until they open the link we texted them.": "No recibe nada hasta que abre el enlace que le enviamos por SMS."
 }

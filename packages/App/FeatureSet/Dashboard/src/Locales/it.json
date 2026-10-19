@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Aggiungi un ruolo a {{role}}",
   "Custom Role Details": "Dettagli del ruolo personalizzato",
   "Members of these teams can do everything this role allows.": "I membri di questi team possono fare tutto ciò che questo ruolo consente.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Insiemi di autorizzazioni con un nome, creati nella pagina Ruoli. Modificare un ruolo modifica anche questo team.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Insiemi di autorizzazioni con un nome, creati nella pagina {{roles}}. Modificare un ruolo modifica anche questo team.",
   "Shown on every team you give the role to.": "Mostrato in ogni team a cui dai il ruolo.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "I ruoli integrati che raggruppa, per ogni risorsa del progetto. Aggiungi singole autorizzazioni nella pagina del ruolo.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "I ruoli integrati che raggruppa, per ogni risorsa del progetto. I ruoli che non hai tu stesso non sono elencati.",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Sicurezza: i client possono eseguire gli strumenti di sola lettura senza chiedere, e chiedono prima di qualsiasi cosa che elimini. Un client connesso tramite accesso può essere limitato alla sola lettura.",
   "See the {{docsLink}} for every tool.": "Consulta la {{docsLink}} per tutti gli strumenti.",
   "Twilio account for SMS and calls": "Account Twilio per SMS e chiamate",
-  "Up to {{limit}} open at once": "Fino a {{limit}} aperte contemporaneamente"
+  "Up to {{limit}} open at once": "Fino a {{limit}} aperte contemporaneamente",
+  "Gets nothing until they open the link we texted them.": "Non riceve nulla finché non apre il link che gli abbiamo inviato via SMS."
 }

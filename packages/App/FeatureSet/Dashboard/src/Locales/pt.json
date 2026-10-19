@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Adicionar uma função a {{role}}",
   "Custom Role Details": "Detalhes da função personalizada",
   "Members of these teams can do everything this role allows.": "Os membros destas equipes podem fazer tudo o que esta função permite.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Conjuntos de permissões com nome, criados na página Funções. Alterar uma função também altera esta equipe.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Conjuntos de permissões com nome, criados na página {{roles}}. Alterar uma função também altera esta equipe.",
   "Shown on every team you give the role to.": "Mostrado em cada equipe a que você dá a função.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "As funções integradas que ela reúne, para cada recurso do projeto. Adicione permissões individuais na página da função.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "As funções integradas que ela reúne, para cada recurso do projeto. As funções que você mesmo não tem não são listadas.",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Segurança: os clientes podem executar ferramentas somente leitura sem perguntar, e perguntam antes de qualquer coisa que exclua. Um cliente conectado por login pode ser limitado a somente leitura.",
   "See the {{docsLink}} for every tool.": "Veja a {{docsLink}} para todas as ferramentas.",
   "Twilio account for SMS and calls": "Conta Twilio para SMS e chamadas",
-  "Up to {{limit}} open at once": "Até {{limit}} abertos ao mesmo tempo"
+  "Up to {{limit}} open at once": "Até {{limit}} abertos ao mesmo tempo",
+  "Gets nothing until they open the link we texted them.": "Não recebe nada até abrir o link que enviamos por SMS."
 }

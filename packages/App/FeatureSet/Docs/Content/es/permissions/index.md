@@ -140,7 +140,7 @@ La lista completa está en la [Referencia de permisos](/docs/permissions/referen
 Un rol personalizado es un conjunto de permisos al que pone nombre una vez y que da a equipos: por ejemplo, una «Respuesta a incidentes» formada por `IncidentMember`, `AlertMember` y `OnCallViewer`, o un «Líder de equipo». Cada equipo al que se lo da recibe los mismos permisos, y usted los cambia para todos esos equipos en un solo lugar. En OneUptime Cloud, los roles personalizados requieren el plan Scale, como cambiar los permisos de un equipo.
 
 :::steps
-1. Abra **Equipos** en el menú **Productos**, en **Ajustes**, luego **Roles**, y haga clic en **Crear Rol personalizado**.
+1. Abra **Equipos** en el menú **Productos**, en **Ajustes**. Despliegue **Ajustes** en el menú lateral, elija **Roles** y haga clic en **Crear Rol personalizado**.
 2. Escriba su **Nombre** y elija en **Permisos** los roles predefinidos que agrupa, para cada recurso del proyecto. La descripción está en **Más campos**.
 3. Cree el rol. Se abre en su página, donde **Añadir rol** añade otro rol predefinido y **Añadir permiso** (en el menú **⋯** de la tarjeta) un permiso suelto, cada uno con un alcance y etiquetas, como en un equipo.
 4. Haga clic en **Dar a un equipo** en **Equipos con este rol**. La página **Permisos** de un equipo también tiene **Añadir rol personalizado**, y **Crear equipo** ofrece en **Acceso** los roles personalizados que usted podría dar.

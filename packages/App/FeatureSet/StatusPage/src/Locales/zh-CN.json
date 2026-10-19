@@ -185,7 +185,8 @@
       "yourPhoneNumber": "您的电话号码",
       "placeholder": "+8613800138000",
       "managePrompt": "请输入您订阅时使用的电话号码",
-      "manageDescription": "我们将把订阅管理链接发送到此电话号码。"
+      "manageDescription": "我们将把订阅管理链接发送到此电话号码。",
+      "confirmationSent": "我们已向此电话号码发送了一条短信。请打开短信中的链接以确认您的订阅。"
     },
     "slack": {
       "title": "通过 Slack 订阅",

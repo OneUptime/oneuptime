@@ -17,8 +17,8 @@ Deze pagina behandelt beide: de vijf abonnementskanalen en hoe bezoekers zich aa
 
 ```mermaid title="Van aanmelding tot bericht"
 flowchart TB
-    V["Een bezoeker meldt zich aan"] --> Q{"Via e-mail?"}
-    Q -->|"Ja"| C["Bevestigt via e-mail"]
+    V["Een bezoeker meldt zich aan"] --> Q{"Via e-mail of SMS?"}
+    Q -->|"Ja"| C["Bevestigt via een link"]
     Q -->|"Nee"| S["Abonnee"]
     C --> S
     E["Incident, onderhoud<br/>of aankondiging"] --> N["Melding"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Bericht met<br/>een afmeldlink"]
 ```
 
-Elke statuspagina heeft haar eigen abonnees. Een bezoeker meldt zich aan op de pagina **Abonneren** van de statuspagina, waar een e-mailadres eerst met een link bevestigt voordat het iets ontvangt, of uw team voegt de bezoeker toe in het dashboard. Vanaf dan meldt elk incident, elke geplande onderhoudsgebeurtenis en elke aankondiging die de pagina bereikt het aan haar abonnees, elk via het kanaal waarmee ze zich hebben aangemeld, en elk bericht bevat de link waarmee het abonnement wordt opgezegd.
+Elke statuspagina heeft haar eigen abonnees. Een bezoeker meldt zich aan op de pagina **Abonneren** van de statuspagina, waar een e-mailadres of telefoonnummer eerst met een link bevestigt voordat het iets ontvangt, of uw team voegt de bezoeker toe in het dashboard. Vanaf dan meldt elk incident, elke geplande onderhoudsgebeurtenis en elke aankondiging die de pagina bereikt het aan haar abonnees, elk via het kanaal waarmee ze zich hebben aangemeld, en elk bericht bevat de link waarmee het abonnement wordt opgezegd.
 
 ## Abonnementskanalen
 
@@ -76,7 +76,7 @@ De pagina **Abonneren** heeft een submenu met één tabblad per ingeschakeld kan
 | **MS Teams** | `/subscribe/microsoft-teams` | **Abonneren via Microsoft Teams** | **Naam Microsoft Teams-werkruimte** en **URL van inkomende Microsoft Teams-webhook**, met het voorbeeld `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **Abonneren via webhook** | **Webhook-URL**, met het voorbeeld `https://example.com/webhook`. Bij elke gebeurtenis op de statuspagina wordt er een JSON-`POST`-verzoek naartoe gestuurd. |
 
-De verzendknop heet **Abonneren**. Een aanmelding via SMS, Slack, Microsoft Teams of webhook toont *U bent succesvol geabonneerd.* Een aanmelding via e-mail meldt dat er een bevestigingslink is verzonden en dat u de spammap moet controleren als die niet aankomt (zie [Dubbele opt-in bij e-mail](#dubbele-opt-in-bij-e-mail)). De tabbladen **E-mail**, **SMS**, **Slack** en **MS Teams** hebben ook de splitsing **Nieuw abonnement** / **Bestaand abonnement beheren**, zodat iemand die al is aangemeld bij zijn voorkeuren kan komen zonder naar een oud bericht te zoeken.
+De verzendknop heet **Abonneren**. Een aanmelding via Slack, Microsoft Teams of webhook toont *U bent succesvol geabonneerd.* Een aanmelding via SMS toont *We hebben een sms naar dit telefoonnummer gestuurd. Open de link erin om uw abonnement te bevestigen.* Een aanmelding via e-mail meldt dat er een bevestigingslink is verzonden en dat u de spammap moet controleren als die niet aankomt (zie [Dubbele opt-in bij e-mail](#dubbele-opt-in-bij-e-mail)). De tabbladen **E-mail**, **SMS**, **Slack** en **MS Teams** hebben ook de splitsing **Nieuw abonnement** / **Bestaand abonnement beheren**, zodat iemand die al is aangemeld bij zijn voorkeuren kan komen zonder naar een oud bericht te zoeken.
 
 ## Limieten voor aanmeldingen en links
 
@@ -90,11 +90,15 @@ Elke aanmelding stuurt haar contact meteen een bericht, een bevestigingsmail, ee
 | Aanmeldingen van één e-mailadres, telefoonnummer, Slack- of Microsoft Teams-kanaal of webhook, op alle statuspagina's samen | 10 in een uur |
 | Beheerlinks voor één e-mailadres of telefoonnummer op alle statuspagina's samen, of voor één Slack- of Microsoft Teams-werkruimtenaam op één statuspagina | 5 in een uur |
 
-Boven een limiet antwoordt de API `429` met een `Retry-After`-header, in seconden, en krijgt de bezoeker te horen dat er te veel aanmeldingen of links vanaf zijn netwerk, of voor dat contact, zijn geweest en dat hij het later opnieuw moet proberen. Er wordt niets aangemaakt of verzonden, en uw project merkt er niets van: er wordt geen abonnee toegevoegd, en er wordt geen bericht verzonden of betaald. De limieten voor beheerlinks tellen elke aanvraag, of er nu een abonnement overeenkomt of niet, zodat ze niet te gebruiken zijn om uit te vinden wie geabonneerd is. Een e-mailadres wordt geteld hoe het ook geschreven is, in hoofdletters, met een `+tag` of, voor Gmail, met punten, en een telefoonnummer hoe het ook getypt is. Een aanmelding neemt één e-mailadres: een lijst met adressen wordt geweigerd.
+Boven een limiet antwoordt de API `429` met een `Retry-After`-header, in seconden, en krijgt de bezoeker te horen dat er te veel aanmeldingen of links vanaf zijn netwerk, of voor dat contact, zijn geweest en dat hij het later opnieuw moet proberen. Er wordt niets aangemaakt of verzonden, en uw project merkt er niets van: er wordt geen abonnee toegevoegd, en er wordt geen bericht verzonden of betaald. De limieten voor beheerlinks tellen elke aanvraag, of er nu een abonnement overeenkomt of niet, zodat ze niet te gebruiken zijn om uit te vinden wie geabonneerd is. Een e-mailadres wordt geteld hoe het ook geschreven is, in hoofdletters, met een `+tag` of, voor Gmail, met punten, en een telefoonnummer hoe het ook getypt is. Een aanmelding noemt één contact, een e-mailadres, een telefoonnummer, een Slack- of Microsoft Teams-kanaal of een webhook: een lijst met adressen, of een tweede contact, wordt geweigerd.
 
-Elke limiet per netwerk telt ook de adressen van één IPv6 /64 samen, met tien keer haar getal. De vensters zijn vast, niet glijdend. Als de rate limiter niet bereikbaar is, gaan aanmeldingen en beheerlinks via e-mail, Slack, Microsoft Teams en webhook ongeteld door, en die via SMS worden met `503` geweigerd tot hij terug is, omdat elke SMS betaald wordt. Een abonnement wijzigen of opzeggen via de eigen link is nooit beperkt, en uw team dat abonnees toevoegt in het dashboard of via de API evenmin.
+Elke limiet per netwerk telt ook de adressen van één IPv6 /64 samen, met tien keer haar getal. De vensters zijn vast, niet glijdend. Als de rate limiter niet bereikbaar is, gaan aanmeldingen en beheerlinks via e-mail, Slack, Microsoft Teams en webhook ongeteld door, en die via SMS worden met `503` geweigerd tot hij terug is, omdat elke SMS betaald wordt. Een abonnement wijzigen of opzeggen via de eigen link is nooit beperkt.
 
-Een privégebruiker die op de aanmeldpagina van de statuspagina een link vraagt om het wachtwoord opnieuw in te stellen, is op dezelfde manier beperkt: 5 resetmails naar één adres in een uur, op alle statuspagina's samen, en 30 vanaf één netwerk in 15 minuten.
+**Eén abonnement per contact.** Een statuspagina neemt elk e-mailadres, telefoonnummer en webhookadres één keer aan, webhooks van Slack en Microsoft Teams inbegrepen. Een e-mailadres is hetzelfde in hoofdletters, een telefoonnummer hoe het ook wordt ingetypt (`+14155550100`, `14155550100` en `0014155550100` zijn één nummer), en een webhookadres of de host nu in hoofdletters staat, met de standaardpoort of een fragment, of met letters in procentcodering. Een bezoeker die een contact opnieuw aanmeldt, hoort dat het al geabonneerd is, en er wordt niets verstuurd. Voegt uw team het opnieuw toe, of wijzigt het een abonnee naar dat contact, dan wordt dat geweigerd, net als het weer aanzetten van een opgezegd abonnement terwijl een ander abonnement dat contact heeft. Abonnees van daarvoor blijven bestaan: waar één nummer onder twee schrijfwijzen is geabonneerd, verwijdert u het abonnement dat u niet nodig hebt.
+
+**Wat uw team verstuurt, telt ook.** Niets beperkt hoe snel uw team abonnees toevoegt, in het dashboard, in bulk, via de API of met een workflow. Maar het bericht dat een toegevoegde abonnee krijgt, de e-mail die om bevestiging vraagt of het bericht dat zegt dat die geabonneerd is, telt mee voor de 10 aanmeldingen per uur van dat contact, en daarboven wordt die toevoeging met `429` geweigerd. Een abonnee die zonder bericht wordt toegevoegd, wordt nooit geteld: **Nu abonneren** voor een e-mailadres, of **Een welkomstbericht sturen** uitgeschakeld voor de andere kanalen. Als de rate limiter niet bereikbaar is, gaan de toevoegingen van uw team ongeteld door.
+
+Een privégebruiker die op de aanmeldpagina van de statuspagina een link vraagt om het wachtwoord opnieuw in te stellen, is op dezelfde manier beperkt: 5 resetmails naar één adres in een uur, op alle statuspagina's samen, en 30 vanaf één netwerk in 15 minuten. Een uitnodiging, voor een privéstatuspagina of voor een project, wordt ook per adres geteld: 10 naar één adres in een uur, beide soorten samen.
 
 Op een zelf gehoste installatie wijzigen deze omgevingsvariabelen van de OneUptime-app de limieten:
 
@@ -109,6 +113,7 @@ Op een zelf gehoste installatie wijzigen deze omgevingsvariabelen van de OneUpti
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Beheerlinks voor één contact per venster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Wachtwoordresets van privégebruikers die vanaf één adres per venster worden aangevraagd. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Resetmails van privégebruikers naar één adres per venster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Uitnodigingen naar één adres per venster, voor privéstatuspagina's en projecten samen. |
 
 Noch `config.env` noch de waarden van de Helm-chart geven ze door: voeg ze zelf toe aan de omgeving van de container `app`, met `app.extraEnv`, of de chartbrede `extraEnv`, in de Helm-chart, of in een `docker-compose.override.yml` voor Docker Compose. `TRUSTED_PROXY_HOPS` bepaalt welk adres de limieten per netwerk tellen.
 
@@ -137,9 +142,11 @@ Handig voor: een pagina die meerdere producten dekt. Een klant die alleen uw API
 
 ## Dubbele opt-in bij e-mail
 
-E-mailabonnees bevestigen altijd. Wanneer een abonnee met een e-mailadres wordt aangemaakt en niet al bevestigd werd aangemaakt, wordt **Is Subscription Confirmed** (`isSubscriptionConfirmed`) op `false` gezet en wordt er een **Subscription Confirmation Token** van zes cijfers gegenereerd. OneUptime mailt dan een bevestigingslink in de vorm `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. De bezoeker komt op een pagina **Abonnement bevestigen** en ziet, zodra die is afgerond, *Abonnement succesvol bevestigd*.
+E-mailabonnees bevestigen altijd. Wanneer een abonnee met een e-mailadres wordt aangemaakt en niet al bevestigd werd aangemaakt, wordt **Is Subscription Confirmed** (`isSubscriptionConfirmed`) op `false` gezet en wordt er een **Subscription Confirmation Token** van 32 willekeurige tekens gegenereerd. OneUptime mailt dan een bevestigingslink in de vorm `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. De bezoeker komt op een pagina **Abonnement bevestigen** en ziet, zodra die is afgerond, *Abonnement succesvol bevestigd*.
 
-Abonnees via SMS, Slack, Microsoft Teams en webhook slaan dit over — ze worden aangemaakt met `isSubscriptionConfirmed` al op `true`. Voegt uw team onder **E-mail-abonnees** een e-mailabonnee toe, dan beslist **Bij het toevoegen**: **Nu abonneren** (de standaard: bevestigd, en er wordt niets verstuurd), **Nu abonneren en het laten weten** (bevestigd, en de e-mail dat ze geabonneerd zijn gaat eruit) of **Eerst om bevestiging vragen** (ze krijgen de bevestigingslink, zoals bij een aanmelding). **In bulk toevoegen** vraagt hetzelfde.
+Abonnees via Slack, Microsoft Teams en webhook slaan dit over, en SMS-abonnees die uw team toevoegt ook — ze worden aangemaakt met `isSubscriptionConfirmed` al op `true`. Voegt uw team onder **E-mail-abonnees** een e-mailabonnee toe, dan beslist **Bij het toevoegen**: **Nu abonneren** (de standaard: bevestigd, en er wordt niets verstuurd), **Nu abonneren en het laten weten** (bevestigd, en de e-mail dat ze geabonneerd zijn gaat eruit) of **Eerst om bevestiging vragen** (ze krijgen de bevestigingslink, zoals bij een aanmelding). **In bulk toevoegen** vraagt hetzelfde.
+
+**Ook aanmeldingen via SMS worden bevestigd.** Een bezoeker die zich via SMS aanmeldt, krijgt één bericht: de bevestigingslink. Er wordt niets anders naar het nummer gestuurd tot de link is geopend, en het openen ervan stuurt per SMS het bericht dat ze geabonneerd zijn, met de link die het abonnement opzegt. Tot dan staat de abonnee op **Wacht op bevestiging**, en het SMS-logboek toont de link met de code vervangen door `[redacted]`. SMS-abonnees van daarvoor zijn al bevestigd.
 
 **Onbevestigd betekent stil.** De query die abonnees voor een melding ophaalt, filtert op `isUnsubscribed: false` en `isSubscriptionConfirmed: true`. Een e-mailadres dat nooit op de link heeft geklikt, blijft in uw lijst **E-mail-abonnees** staan en ontvangt niets. Als iemand zweert dat hij is aangemeld maar niets ontvangt, controleer dan eerst die kolom.
 

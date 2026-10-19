@@ -128,6 +128,10 @@ Owners 團隊始終至少保留一名已加入的成員，因此專案永遠不�
 在 OneUptime Cloud 上，使用 Free 方案的專案只能容納一個人。請變更方案，然後再次邀請。請參閱[變更方案](/docs/configuration/billing#變更方案)。
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+無論由誰寄出，一個地址每小時最多可收到 10 封邀請，專案和私人狀態頁合計。請等待一小時，然後再次邀請。
+:::
+
 :::details 邀請郵件沒有送達，或連結已過期
 邀請並不依賴郵件。請對方用你邀請的地址註冊：OneUptime 會向該地址傳送一個新連結以完成帳戶建立。已有帳戶的人登入後即可看到等待中的邀請。
 :::

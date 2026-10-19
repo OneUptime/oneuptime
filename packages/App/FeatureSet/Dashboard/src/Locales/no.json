@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Legg til en rolle i {{role}}",
   "Custom Role Details": "Detaljer for egendefinert rolle",
   "Members of these teams can do everything this role allows.": "Medlemmer av disse teamene kan gjøre alt denne rollen tillater.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Navngitte sett med tillatelser, laget på siden Roller. Når en rolle endres, endres også dette teamet.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Navngitte sett med tillatelser, laget på siden {{roles}}. Når en rolle endres, endres også dette teamet.",
   "Shown on every team you give the role to.": "Vises på hvert team du gir rollen.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "De innebygde rollene den samler, for hver ressurs i prosjektet. Legg til enkelttillatelser på rollens side.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "De innebygde rollene den samler, for hver ressurs i prosjektet. Roller du ikke har selv, vises ikke.",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Sikkerhet: klienter kan kjøre skrivebeskyttede verktøy uten å spørre, og spør før alt som sletter. En klient koblet til via pålogging kan begrenses til skrivebeskyttet tilgang.",
   "See the {{docsLink}} for every tool.": "Se {{docsLink}} for alle verktøy.",
   "Twilio account for SMS and calls": "Twilio-konto for SMS og anrop",
-  "Up to {{limit}} open at once": "Opptil {{limit}} åpne samtidig"
+  "Up to {{limit}} open at once": "Opptil {{limit}} åpne samtidig",
+  "Gets nothing until they open the link we texted them.": "Får ingenting før lenken vi sendte på SMS åpnes."
 }

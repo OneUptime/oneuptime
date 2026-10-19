@@ -140,7 +140,7 @@ Den fulde liste står i [Tilladelsesreferencen](/docs/permissions/reference).
 En brugerdefineret rolle er et sæt tilladelser, du navngiver én gang og giver til teams: fx en "Hændelsesansvarlig" med `IncidentMember`, `AlertMember` og `OnCallViewer` eller en "Teamleder". Hvert team, du giver den, får de samme tilladelser, og du ændrer dem for alle de teams ét sted. På OneUptime Cloud kræver brugerdefinerede roller Scale-planen, ligesom det at ændre et teams tilladelser.
 
 :::steps
-1. Åbn **Teams** i menuen **Produkter** under **Indstillinger**, derefter **Roller**, og klik på **Opret Brugerdefineret rolle**.
+1. Åbn **Teams** i menuen **Produkter** under **Indstillinger**. Fold **Indstillinger** ud i sidemenuen, vælg **Roller**, og klik på **Opret Brugerdefineret rolle**.
 2. Skriv dens **Navn**, og vælg under **Tilladelser** de indbyggede roller, den samler, for hver ressource i projektet. Beskrivelsen ligger under **Flere felter**.
 3. Opret rollen. Den åbner på sin side, hvor **Tilføj rolle** tilføjer endnu en indbygget rolle og **Tilføj tilladelse** (i menuen **⋯** på kortet) en enkelt tilladelse, hver med et omfang og etiketter, som på et team.
 4. Klik på **Giv til et team** under **Teams med denne rolle**. Et teams side **Tilladelser** har også **Tilføj brugerdefineret rolle**, og **Opret team** tilbyder under **Adgang** de brugerdefinerede roller, du kunne give.

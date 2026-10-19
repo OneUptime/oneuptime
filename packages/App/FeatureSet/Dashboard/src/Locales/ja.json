@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "{{role}} にロールを追加",
   "Custom Role Details": "カスタムロールの詳細",
   "Members of these teams can do everything this role allows.": "これらのチームのメンバーは、このロールで許可されるすべてを行えます。",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "「ロール」ページで作成した、名前付きの権限のセットです。ロールを変更すると、このチームも変わります。",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "「{{roles}}」ページで作成した、名前付きの権限のセットです。ロールを変更すると、このチームも変わります。",
   "Shown on every team you give the role to.": "このロールを付与するすべてのチームに表示されます。",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "このロールにまとめる組み込みロールで、プロジェクト内のすべてのリソースが対象です。個別の権限はロールのページで追加します。",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "このロールにまとめる組み込みロールで、プロジェクト内のすべてのリソースが対象です。ご自身が持っていないロールは表示されません。",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "安全性: クライアントは読み取り専用のツールを確認なしで実行でき、削除を伴う操作の前には確認を求めます。サインインで接続されたクライアントは読み取り専用に制限できます。",
   "See the {{docsLink}} for every tool.": "すべてのツールについては、{{docsLink}} を参照してください。",
   "Twilio account for SMS and calls": "SMS と通話用の Twilio アカウント",
-  "Up to {{limit}} open at once": "同時に最大 {{limit}} 件まで"
+  "Up to {{limit}} open at once": "同時に最大 {{limit}} 件まで",
+  "Gets nothing until they open the link we texted them.": "SMSで送ったリンクが開かれるまで、何も届きません。"
 }
