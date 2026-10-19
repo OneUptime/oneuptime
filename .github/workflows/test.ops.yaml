@@ -144,8 +144,8 @@ jobs:
       # restart / 10 % and 1 % throughout; then each agent's whole metrics
       # pipeline runs against this runner's Docker daemon and a container held
       # to half a core must read about 50 %. container.memory.percent must come
-      # out in "%", its value unchanged. The load container is busybox from
-      # public.ecr.aws, warmed here.
+      # out in "%", its value unchanged, described as a percent of the memory
+      # limit. The load container is busybox from public.ecr.aws, warmed here.
       - name: Warm the image the container CPU behaviour test loads a core with
         run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/busybox:1.37
       - run: bash Tests/Ops/container-agent-cpu-utilization-behaviour.sh
