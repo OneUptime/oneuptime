@@ -98,19 +98,23 @@ function stackImages(composeFiles) {
       services[name] = { ...(services[name] || {}), ...service };
     }
   }
-  return Object.values(services)
-    .filter((service) => {
-      return !service.profiles || service.profiles.length === 0;
-    })
-    .map((service) => {
-      return service.image;
-    })
-    .filter((image) => {
-      return /^(?:ghcr\.io\/)?oneuptime\/[a-z0-9-]+:\$\{APP_TAG\}$/.test(
-        image || "",
-      );
-    })
-    .sort();
+  // Each image once: two services can run the same one (runner, global-runner).
+  return [
+    ...new Set(
+      Object.values(services)
+        .filter((service) => {
+          return !service.profiles || service.profiles.length === 0;
+        })
+        .map((service) => {
+          return service.image;
+        })
+        .filter((image) => {
+          return /^(?:ghcr\.io\/)?oneuptime\/[a-z0-9-]+:\$\{APP_TAG\}$/.test(
+            image || "",
+          );
+        }),
+    ),
+  ].sort();
 }
 
 function imageName(reference) {

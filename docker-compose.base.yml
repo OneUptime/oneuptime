@@ -95,6 +95,13 @@ x-common-runtime-variables: &common-runtime-variables
   <<: *common-variables
   ONEUPTIME_SECRET: ${ONEUPTIME_SECRET}
 
+  # The bundled global Runner's key and how many of it run (the global-runner
+  # service below). The app keeps the global Runner's row from them on every
+  # boot: no key, or GLOBAL_RUNNER_REPLICAS=0, and the row is removed, so no
+  # project lists a global Runner nobody runs.
+  GLOBAL_RUNNER_KEY: ${GLOBAL_RUNNER_KEY}
+  GLOBAL_RUNNER_REPLICAS: ${GLOBAL_RUNNER_REPLICAS:-1}
+
   # Seed a Global LLM Provider from env at startup (e.g. a local Ollama or
   # vLLM server). Set GLOBAL_LLM_PROVIDER_TYPE to enable; unset it to remove
   # the seeded provider on the next restart.
@@ -618,6 +625,40 @@ services:
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_RUNNER}
       ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_RUNNER}
       PORT: ${ONEUPTIME_RUNNER_PORT}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1000m"
+
+  # The bundled global Runner (Common/Types/Runner/BundledGlobalRunner.ts): it
+  # runs the runbook JavaScript steps of every project that uses global
+  # Runners, each in a sandbox of its own that reaches the internet only. It
+  # is the Runner image started with a fixed id and its own key, and holds
+  # nothing else - no cluster key (ONEUPTIME_SECRET), none of the server's
+  # settings - on the oneuptime network, not the host's. Set
+  # GLOBAL_RUNNER_REPLICAS=0 in config.env to turn it off.
+  # Tests/Ops/BundledGlobalRunner.test.js holds this.
+  global-runner:
+    networks:
+      - oneuptime
+    restart: always
+    deploy:
+      replicas: ${GLOBAL_RUNNER_REPLICAS:-1}
+    environment:
+      ONEUPTIME_URL: http://app:${APP_PORT}
+      ONEUPTIME_RUNNER_ID: "00000000-0000-0000-0000-000000000002"
+      ONEUPTIME_RUNNER_KEY: ${GLOBAL_RUNNER_KEY}
+      ONEUPTIME_RUNNER_CONCURRENCY: ${GLOBAL_RUNNER_CONCURRENCY:-4}
+      # The server serves it JavaScript steps only; these say the same here.
+      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "false"
+      ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS: "false"
+      LOG_LEVEL: ${LOG_LEVEL}
+      NODE_ENV: ${ENVIRONMENT}
+      OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT: ${OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT}
+      OPENTELEMETRY_EXPORTER_OTLP_HEADERS: ${OPENTELEMETRY_EXPORTER_OTLP_HEADERS}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_RUNNER}
+      ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_RUNNER}
+      PORT: ${GLOBAL_RUNNER_PORT:-3877}
     logging:
       driver: "json-file"
       options:
