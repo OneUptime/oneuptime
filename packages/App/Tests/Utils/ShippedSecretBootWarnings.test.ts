@@ -86,12 +86,9 @@ describe("App/Index.ts says which shipped secrets the installation still holds",
     "RegisterProbeKeyWarning",
     "DatastorePasswordWarning",
     "InboundEmailWebhookSecretWarning",
-  ])(
-    "imports %s from EnvironmentConfig",
-    (name: string) => {
-      expect(importedFromEnvironmentConfig()).toContain(name);
-    },
-  );
+  ])("imports %s from EnvironmentConfig", (name: string) => {
+    expect(importedFromEnvironmentConfig()).toContain(name);
+  });
 
   test.each([
     ["RegisterProbeKeyWarning", REGISTER_PROBE_KEY_WARNING],
@@ -132,10 +129,7 @@ describe("App/Index.ts says which shipped secrets the installation still holds",
     ).toBe("");
     expect(
       index
-        .slice(
-          inboundEmail + INBOUND_EMAIL_WEBHOOK_SECRET_WARNING.length,
-          next,
-        )
+        .slice(inboundEmail + INBOUND_EMAIL_WEBHOOK_SECRET_WARNING.length, next)
         .trim(),
     ).toBe("");
   });

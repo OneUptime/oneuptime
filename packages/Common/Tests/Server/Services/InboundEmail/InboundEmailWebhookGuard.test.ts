@@ -31,7 +31,8 @@ import ts from "typescript";
  * (ee/ too, when it is checked out).
  */
 
-const ENVIRONMENT_CONFIG: string = "packages/Common/Server/EnvironmentConfig.ts";
+const ENVIRONMENT_CONFIG: string =
+  "packages/Common/Server/EnvironmentConfig.ts";
 const BASE_PROVIDER: string =
   "packages/Common/Server/Services/InboundEmail/InboundEmailProvider.ts";
 const FACTORY: string =
@@ -150,8 +151,7 @@ function classesIn(file: string): Array<ProviderClass> {
     classes.push({
       file: file,
       name: node.name.text,
-      extendsName:
-        extended && ts.isIdentifier(extended) ? extended.text : null,
+      extendsName: extended && ts.isIdentifier(extended) ? extended.text : null,
       members: members,
     });
   });
@@ -304,7 +304,9 @@ describe("every inbound email provider is held to the base class's rule", () => 
 
   const providers: Array<ProviderClass> = PRODUCT_FILES.filter(
     (file: string) => {
-      return file !== BASE_PROVIDER && read(file).includes("InboundEmailProvider");
+      return (
+        file !== BASE_PROVIDER && read(file).includes("InboundEmailProvider")
+      );
     },
   )
     .flatMap(classesIn)

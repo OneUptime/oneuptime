@@ -47,7 +47,10 @@ const NO_SECRET_OF_ITS_OWN: Array<[string, string | undefined]> = [
   ["the guide's example", "your-secret"],
   ["the guide's example, in other case", "Your-Secret"],
   ["the guide's config placeholder", "replace-with-a-strong-random-secret"],
-  ["the guide's config placeholder, padded", "  replace-with-a-strong-random-secret\n"],
+  [
+    "the guide's config placeholder, padded",
+    "  replace-with-a-strong-random-secret\n",
+  ],
 ];
 
 // What a request could end with: anything at all, the secret included.
@@ -84,7 +87,9 @@ class TakesEverythingProvider extends InboundEmailProvider {
     return true;
   }
 
-  public async parseInboundEmail(_rawData: JSONObject): Promise<ParsedInboundEmail> {
+  public async parseInboundEmail(
+    _rawData: JSONObject,
+  ): Promise<ParsedInboundEmail> {
     return { from: "", to: "", subject: "", body: "" };
   }
 
@@ -138,8 +143,9 @@ describe("an installation with no webhook secret of its own", () => {
   );
 
   it("is not asked to compare anything", async () => {
-    const compare: jest.SpiedFunction<typeof SecretKeyComparison.timingSafeEqual> =
-      jest.spyOn(SecretKeyComparison, "timingSafeEqual");
+    const compare: jest.SpiedFunction<
+      typeof SecretKeyComparison.timingSafeEqual
+    > = jest.spyOn(SecretKeyComparison, "timingSafeEqual");
 
     const provider: SendGridInboundProvider = new SendGridInboundProvider({
       inboundDomain: DOMAIN,
@@ -209,8 +215,9 @@ describe("an installation with a secret of its own", () => {
   });
 
   it("compares in constant time, the presented value against the secret", async () => {
-    const compare: jest.SpiedFunction<typeof SecretKeyComparison.timingSafeEqual> =
-      jest.spyOn(SecretKeyComparison, "timingSafeEqual");
+    const compare: jest.SpiedFunction<
+      typeof SecretKeyComparison.timingSafeEqual
+    > = jest.spyOn(SecretKeyComparison, "timingSafeEqual");
 
     await provider.validateWebhook(delivery("guess"));
 

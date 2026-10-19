@@ -318,7 +318,10 @@ const NO_SECRET_OF_ITS_OWN: Array<[string, string | undefined]> = [
   ["the guide's URL placeholder", "YOUR_SECRET"],
   ["the guide's example", "your-secret"],
   ["the guide's config placeholder", "replace-with-a-strong-random-secret"],
-  ["the guide's config placeholder in other case", "Replace-With-A-Strong-Random-Secret"],
+  [
+    "the guide's config placeholder in other case",
+    "Replace-With-A-Strong-Random-Secret",
+  ],
   ["the guide's URL placeholder, padded", "  YOUR_SECRET  "],
 ];
 

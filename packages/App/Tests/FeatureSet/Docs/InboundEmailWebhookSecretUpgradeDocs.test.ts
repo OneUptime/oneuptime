@@ -247,9 +247,7 @@ describe("the note and the setup guide are true to the code", () => {
   });
 
   it("the app says so at startup", () => {
-    expect(
-      source("packages/Common/Server/EnvironmentConfig.ts"),
-    ).toContain(
+    expect(source("packages/Common/Server/EnvironmentConfig.ts")).toContain(
       "export const InboundEmailWebhookSecretWarning: string | null =\n  InboundEmailDomain && !InboundEmailWebhookSecret",
     );
     expect(source("packages/App/Index.ts")).toContain(
