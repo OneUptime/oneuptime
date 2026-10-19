@@ -36,6 +36,13 @@ enum AIInsightType {
    * and entity).
    */
   MetricDrift = "MetricDrift",
+  /*
+   * A service that got measurably worse in the 30 minutes after a recorded
+   * deploy (or another recorded change of it) than in the 30 minutes
+   * before: more failing spans, a slower p99, more exceptions, or exception
+   * types first seen in the version it shipped (ChangeImpact's thresholds).
+   */
+  DeployRegression = "DeployRegression",
 }
 
 export default AIInsightType;

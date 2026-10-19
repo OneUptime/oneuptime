@@ -84,12 +84,31 @@ describe("VideoCallMessages", () => {
       );
     });
 
+    test("a recorded Microsoft Teams meeting says it is recorded and transcribed", () => {
+      const markdown: string = VideoCallMessages.getStartedFeedMarkdown(
+        announcement({
+          provider: VideoCallProvider.MicrosoftTeams,
+          joinUrl:
+            "https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0",
+          recordsAndTranscribes: true,
+        }),
+      ).toString();
+
+      expect(markdown).toBe(
+        `📞 A **Microsoft Teams meeting** was started for [Incident INC-42](${EVENT_LINK}).
+
+⏺️ Microsoft Teams records and transcribes this call. OneUptime adds its transcript to the incident once the call is over.
+
+**[Join the call](https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0)**`,
+      );
+    });
+
     test.each([
       ["a Zoom meeting nobody asked to record", VideoCallProvider.Zoom, false],
       [
-        "a Microsoft Teams meeting, which is never recorded",
+        "a Microsoft Teams meeting that could not be set up to record itself",
         VideoCallProvider.MicrosoftTeams,
-        true,
+        false,
       ],
       ["a Slack huddle", VideoCallProvider.SlackHuddle, true],
       ["a meeting link", VideoCallProvider.CustomLink, true],

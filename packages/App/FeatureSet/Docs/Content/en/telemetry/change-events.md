@@ -109,6 +109,8 @@ OneUptime decides which change is a suspect from these numbers, not from what a 
 
 When the suspect is a Kubernetes rollout on a cluster whose [AI fixes](/docs/ai/ai-sre#how-fixes-work) are on, OneUptime AI rolls it back first, with a `kubectl rollout undo` that OneUptime builds from the recorded change. A deploy that ships code is rolled back through its commits: the investigation names the commit or pull request that broke things, so a [fix pull request](/docs/ai/ai-sre#automatic-code-fixes) can revert exactly that.
 
+OneUptime also checks every deploy on its own, whether or not anything pages. Once the 30 minutes after a deploy have passed, it compares them with the 30 minutes before by the same thresholds, and when the service got worse, an [AI Insight](/docs/ai/ai-sre#insights-proactive-detection) names the deploy on that service.
+
 In an investigation and in [Ask AI](/docs/ai/ask-ai), `recent_changes` lists the changes in any window, and `get_change_details` shows what a deploy shipped: the commits since the service's previous deploy, their authors, the pull requests and the files they touched. That needs the commit on the change and a repository connected through the [GitHub App](/docs/ai/github-app).
 
 ## Reference

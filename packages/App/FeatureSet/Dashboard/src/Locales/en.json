@@ -31010,8 +31010,8 @@
   "Call transcripts": "Call transcripts",
   "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.",
   "Keep what was said on every incident call, without anyone remembering to.": "Keep what was said on every incident call, without anyone remembering to.",
-  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.",
-  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.",
+  "Slack huddles and meeting links are not recorded. Teams needs Calendars.ReadWrite and OnlineMeetingTranscript.Read.All: turn this on, then reconnect.": "Slack huddles and meeting links are not recorded. Teams needs Calendars.ReadWrite and OnlineMeetingTranscript.Read.All: turn this on, then reconnect.",
+  "Zoom, Google Meet and Microsoft Teams record and transcribe each incident call OneUptime starts. OneUptime AI sums it up in the incident's feed.": "Zoom, Google Meet and Microsoft Teams record and transcribe each incident call OneUptime starts. OneUptime AI sums it up in the incident's feed.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.",
   "Postmortem Draft Waiting Since": "Postmortem Draft Waiting Since",
   "Record and Transcribe Incident Calls": "Record and Transcribe Incident Calls",
@@ -31022,6 +31022,7 @@
   "Transcript Fetch Reason": "Transcript Fetch Reason",
   "Transcript Fetch Status": "Transcript Fetch Status",
   "Video Call Summary": "Video Call Summary",
+  "Provider Calendar Event ID": "Provider Calendar Event ID",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.",
   "Link Expired": "Link Expired",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.",
@@ -31227,5 +31228,6 @@
   "Read what a change shipped": "Read what a change shipped",
   "Read {{count}} recent changes; no suspect": "Read {{count}} recent changes; no suspect",
   "Read {{count}} recent changes; no suspect_one": "Read {{count}} recent change; no suspect",
-  "AI fix": "AI fix"
+  "AI fix": "AI fix",
+  "Deploy Regression": "Deploy Regression"
 }

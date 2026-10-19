@@ -227,7 +227,7 @@ chartDefaultsVersion), not with those of this chart, {{ .Chart.Version }}.
 values, the old chart's defaults included. So does a values file copied from
 an older chart's values.yaml (or from `helm get values --all`). Either way, a
 default this chart added or changed never applies.
-{{- if or $defaults.ebpfImageTagStale $defaults.collectorImageTagStale $defaults.contextPropagationStale }}
+{{- if or $defaults.ebpfImageTagStale $defaults.collectorImageTagStale $defaults.contextPropagationStale $defaults.routeHarvestStale }}
 Stale here:
 {{- if $defaults.collectorImageTagStale }}
   - image.tag is {{ $defaults.collectorImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultCollectorImageTag" . | quote }}
@@ -242,6 +242,11 @@ Stale here:
   - ebpf.contextPropagation is off; this chart turns it on by default, so a
     call to a pod on another node joins the caller's trace. Kept if you set
     it yourself.
+{{- end }}
+{{- if $defaults.routeHarvestStale }}
+  - ebpf.routes.disabledHarvesters is not set, so OBI reads each Node.js
+    app's sources for route names before tracing it, up to 10s an app, one
+    app at a time; this chart skips Node.js. Kept if you set it yourself.
 {{- end }}
 {{- end }}
 After --reuse-values, apply this chart's defaults and keep the values you set

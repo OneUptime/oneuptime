@@ -31010,8 +31010,8 @@
   "Call transcripts": "Anruf-Transkripte",
   "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Alle Teilnehmenden dieser Anrufe sehen, dass sie aufgezeichnet werden. Prüfen Sie, ob Ihre Organisation das erlaubt. Zoom braucht außerdem eine Cloud-Aufzeichnung mit aktiviertem Audiotranskript.",
   "Keep what was said on every incident call, without anyone remembering to.": "Halten Sie fest, was in jedem Anruf zu einem Vorfall gesagt wurde, ohne dass jemand daran denken muss.",
-  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft-Teams-Anrufe, Slack-Huddles und Meeting-Links werden nicht aufgezeichnet: Fügen Sie ihre Transkripte von Hand hinzu.",
-  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom und Google Meet zeichnen jeden Vorfallanruf, den OneUptime startet, auf und transkribieren ihn. OneUptime fügt das Transkript hinzu und fasst es im Feed des Vorfalls zusammen.",
+  "Slack huddles and meeting links are not recorded. Teams needs Calendars.ReadWrite and OnlineMeetingTranscript.Read.All: turn this on, then reconnect.": "Slack-Huddles und Meeting-Links werden nicht aufgezeichnet. Teams braucht Calendars.ReadWrite und OnlineMeetingTranscript.Read.All: Aktivieren Sie dies und verbinden Sie dann neu.",
+  "Zoom, Google Meet and Microsoft Teams record and transcribe each incident call OneUptime starts. OneUptime AI sums it up in the incident's feed.": "Zoom, Google Meet und Microsoft Teams zeichnen jeden Vorfallanruf, den OneUptime startet, auf und transkribieren ihn. OneUptime AI fasst ihn im Feed des Vorfalls zusammen.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime holt es von {{provider}}, sobald der Anruf vorbei ist, und OneUptime AI liest es.",
   "Postmortem Draft Waiting Since": "Postmortem-Entwurf wartet seit",
   "Record and Transcribe Incident Calls": "Anrufe zu Vorfällen aufzeichnen und transkribieren",
@@ -31022,6 +31022,7 @@
   "Transcript Fetch Reason": "Grund des Transkriptabrufs",
   "Transcript Fetch Status": "Status des Transkriptabrufs",
   "Video Call Summary": "Zusammenfassung des Videoanrufs",
+  "Provider Calendar Event ID": "Kalenderereignis-ID des Anbieters",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Erhält nichts: Der Bestätigungslink, den wir gesendet haben, ist abgelaufen, bevor er geöffnet wurde. Die Person kann sich erneut anmelden, oder Sie fügen sie erneut hinzu.",
   "Link Expired": "Link abgelaufen",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Dieses Muster verweist auf das zurück, was eine frühere Gruppe gefunden hat, etwa \\1. Muster werden in einer Zeit ausgeführt, die nur mit dem gelesenen Text wächst, und das kann ein Rückverweis nicht. Schreiben Sie das Muster ohne ihn.",
@@ -31227,5 +31228,6 @@
   "Read what a change shipped": "Inhalt einer Änderung gelesen",
   "Read {{count}} recent changes; no suspect": "{{count}} letzte Änderungen gelesen; keine verdächtig",
   "Read {{count}} recent changes; no suspect_one": "{{count}} letzte Änderung gelesen; nicht verdächtig",
-  "AI fix": "KI-Korrektur"
+  "AI fix": "KI-Korrektur",
+  "Deploy Regression": "Deploy Regression"
 }

@@ -31010,8 +31010,8 @@
   "Call transcripts": "Samtaletranskripsjoner",
   "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Alle i disse samtalene ser at de tas opp. Kontroller at organisasjonen deres tillater det. Zoom krever også opptak i skyen med lydtranskripsjon slått på.",
   "Keep what was said on every incident call, without anyone remembering to.": "Ta vare på det som ble sagt i hver hendelsessamtale, uten at noen må huske det.",
-  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams-samtaler, Slack-huddles og møtelenker tas ikke opp: legg til transkripsjonene deres manuelt.",
-  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom og Google Meet tar opp og transkriberer hver hendelsessamtale OneUptime starter. OneUptime legger til transkripsjonen og oppsummerer den i hendelsens feed.",
+  "Slack huddles and meeting links are not recorded. Teams needs Calendars.ReadWrite and OnlineMeetingTranscript.Read.All: turn this on, then reconnect.": "Slack-huddles og møtelenker tas ikke opp. Teams trenger Calendars.ReadWrite og OnlineMeetingTranscript.Read.All: slå dette på, og koble deretter til på nytt.",
+  "Zoom, Google Meet and Microsoft Teams record and transcribe each incident call OneUptime starts. OneUptime AI sums it up in the incident's feed.": "Zoom, Google Meet og Microsoft Teams tar opp og transkriberer hver hendelsessamtale OneUptime starter. OneUptime AI oppsummerer den i hendelsens feed.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime henter den fra {{provider}} når samtalen er over, og OneUptime AI leser den.",
   "Postmortem Draft Waiting Since": "Utkast til etteranalyse venter siden",
   "Record and Transcribe Incident Calls": "Ta opp og transkriber hendelsessamtaler",
@@ -31022,6 +31022,7 @@
   "Transcript Fetch Reason": "Årsak ved henting av transkripsjon",
   "Transcript Fetch Status": "Status for henting av transkripsjon",
   "Video Call Summary": "Sammendrag av videosamtale",
+  "Provider Calendar Event ID": "Leverandørens kalenderhendelses-ID",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Får ingenting: bekreftelseslenken vi sendte, utløp før den ble åpnet. Vedkommende kan melde seg på igjen, eller du kan legge vedkommende til på nytt.",
   "Link Expired": "Lenken er utløpt",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Dette mønsteret viser tilbake til det en tidligere gruppe fant, for eksempel \\1. Mønstre kjøres på en tid som bare vokser med teksten de leser, og det kan ikke en tilbakereferanse. Skriv mønsteret uten den.",
@@ -31227,5 +31228,6 @@
   "Read what a change shipped": "Leste innholdet i en endring",
   "Read {{count}} recent changes; no suspect": "Leste {{count}} nylige endringer; ingen mistenkt",
   "Read {{count}} recent changes; no suspect_one": "Leste {{count}} nylig endring; ikke mistenkt",
-  "AI fix": "AI-retting"
+  "AI fix": "AI-retting",
+  "Deploy Regression": "Deploy Regression"
 }

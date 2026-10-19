@@ -66,11 +66,13 @@ Chaque réunion est créée au nom du compte avec lequel vous vous connectez, qu
 | --- | --- | --- |
 | Zoom | Un utilisateur Zoom. Les réunions dont l'hôte est un utilisateur Basic (gratuit) se terminent au bout de 40 minutes. | Créer des réunions pour cet utilisateur (`meeting:write:meeting`) et lire qui il est (`user:read:user`). Pour les [transcriptions des appels](#transcriptions-des-appels), lire les transcriptions des enregistrements cloud de ses réunions (`cloud_recording:read:list_recording_files`, `cloud_recording:read:meeting_transcript`). |
 | Google Meet | Un compte Google qui peut utiliser Google Meet. | Créer des espaces Meet au nom de ce compte (`meetings.space.created`) et lire son adresse e-mail. |
-| Microsoft Teams | Un compte professionnel ou scolaire avec Microsoft Teams. Les comptes Microsoft personnels ne peuvent pas créer de réunions Teams. | Créer des réunions en ligne au nom de ce compte (l'autorisation déléguée `OnlineMeetings.ReadWrite`) et rester connecté (`offline_access`). |
+| Microsoft Teams | Un compte professionnel ou scolaire avec Microsoft Teams. Les comptes Microsoft personnels ne peuvent pas créer de réunions Teams. | Créer des réunions en ligne au nom de ce compte (l'autorisation déléguée `OnlineMeetings.ReadWrite`) et rester connecté (`offline_access`). Pour [enregistrer et transcrire les appels d'incident](#enregistrer-et-transcrire-chaque-appel), ajouter les réunions à son calendrier (`Calendars.ReadWrite`) et lire leurs transcriptions (`OnlineMeetingTranscript.Read.All`, qu'un administrateur approuve). |
 
 Une connexion faite en se connectant garde les paramètres qui décident qui attend : **Who can join** pour Google Meet et **Who skips the lobby** pour Microsoft Teams. Modifiez-les avec **Modifier** sur la ligne de la connexion.
 
 Une connexion Zoom faite avant que OneUptime lise les transcriptions des appels lance les appels comme avant, mais ne peut lire leurs transcriptions qu'après une nouvelle connexion : **Reconnect** sur sa ligne demande à Zoom les autorisations de transcription.
+
+Une connexion Microsoft Teams faite pendant que l'option **Enregistrer et transcrire les appels d'incident** était désactivée lance les appels comme avant, sans les enregistrer. Une fois l'option activée, **Reconnect** sur sa ligne demande aussi à Microsoft les autorisations de calendrier et de transcription.
 
 ### Rester connecté
 
@@ -86,7 +88,7 @@ Supprimer une connexion retire l'accès de OneUptime chez Zoom et Google dès qu
 
 ### Si Microsoft demande un administrateur
 
-Certaines organisations Microsoft 365 ne laissent que les administrateurs approuver des applications. Si Microsoft dit qu'il vous faut l'approbation d'un administrateur, demandez à un administrateur Microsoft 365 de connecter Microsoft Teams, ou d'approuver OneUptime dans le [centre d'administration Microsoft Entra](https://entra.microsoft.com/) sous **Enterprise applications** > **Admin consent requests**.
+Certaines organisations Microsoft 365 ne laissent que les administrateurs approuver des applications. Si Microsoft dit qu'il vous faut l'approbation d'un administrateur, demandez à un administrateur Microsoft 365 de connecter Microsoft Teams, ou d'approuver OneUptime dans le [centre d'administration Microsoft Entra](https://entra.microsoft.com/) sous **Enterprise applications** > **Admin consent requests**. Un projet qui enregistre ses appels Teams a besoin de cette approbation dans chaque organisation, une seule fois : seul un administrateur peut autoriser une application à lire les transcriptions de réunion.
 
 ### Utiliser plutôt votre propre application
 
@@ -107,7 +109,7 @@ Ce que les intervenants disent pendant un appel, ce qu'ils ont vérifié, ce qu'
 :::steps
 ### Récupérer la transcription après l'appel
 
-Sur la carte **Appel vidéo** de l'incident, **Récupérer depuis Zoom** ou **Récupérer depuis Google Meet** lit la transcription d'une réunion que OneUptime y a lancée. Pour tout autre appel, **Ajouter la transcription** prend le fichier enregistré par l'outil de réunion (`.vtt`, `.srt` ou `.txt`, jusqu'à 5 Mo) ou la transcription collée. Avec [chaque appel enregistré et transcrit](#enregistrer-et-transcrire-chaque-appel), OneUptime la récupère de lui-même une fois l'appel terminé.
+Sur la carte **Appel vidéo** de l'incident, **Récupérer depuis Zoom**, **Récupérer depuis Google Meet** ou **Récupérer depuis Microsoft Teams** lit la transcription d'une réunion que OneUptime y a lancée (pour Microsoft Teams, une réunion lancée pendant que chaque appel est enregistré et transcrit). Pour tout autre appel, **Ajouter la transcription** prend le fichier enregistré par l'outil de réunion (`.vtt`, `.srt` ou `.txt`, jusqu'à 5 Mo) ou la transcription collée. Avec [chaque appel enregistré et transcrit](#enregistrer-et-transcrire-chaque-appel), OneUptime la récupère de lui-même une fois l'appel terminé.
 
 ### L'IA de OneUptime la lit
 
@@ -124,12 +126,14 @@ L'IA de OneUptime ne suggère une cause que si l'appel en nomme une, avec les li
 
 Pour que personne n'ait à penser à enregistrer un appel ou à récupérer sa transcription, activez **Enregistrer et transcrire les appels d'incident** dans **Paramètres du projet** > **Espace de travail** > **Appels vidéo**. Tant que l'option est activée :
 
-- OneUptime demande à Zoom d'enregistrer dans le cloud chaque réunion d'incident qu'il lance, et à Google Meet de la transcrire. Le message qui publie l'appel l'annonce avant que quiconque ne le rejoigne.
+- OneUptime demande à Zoom d'enregistrer dans le cloud chaque réunion d'incident qu'il lance, à Google Meet de la transcrire, et à Microsoft Teams de l'enregistrer et de la transcrire automatiquement. Le message qui publie l'appel l'annonce avant que quiconque ne le rejoigne.
 - Une fois l'appel terminé, OneUptime récupère la transcription de lui-même, comme le ferait **Récupérer depuis Zoom**, et l'IA de OneUptime la lit. D'ici là, la carte **Appel vidéo** indique qu'elle l'attend.
 - Ce que l'IA de OneUptime a lu va dans le fil de l'incident et dans ses canaux Slack et Microsoft Teams : la cause racine suggérée, marquée comme non confirmée, puis ce qui a été confirmé, essayé et décidé, les suivis et les questions ouvertes.
-- Quand l'incident est résolu avant que la transcription n'arrive, le brouillon automatique de post-mortem l'attend, pour reprendre ce qui s'est dit pendant l'appel : jusqu'à six heures pendant que Zoom ou Google Meet prépare la transcription, et une heure quand rien n'en annonce encore une.
+- Quand l'incident est résolu avant que la transcription n'arrive, le brouillon automatique de post-mortem l'attend, pour reprendre ce qui s'est dit pendant l'appel : jusqu'à six heures pendant que le fournisseur prépare la transcription, et une heure quand rien n'en annonce encore une.
 
-L'option est désactivée par défaut, car elle enregistre des personnes : tous les participants à ces appels voient qu'ils sont enregistrés ou transcrits, alors vérifiez que votre organisation l'autorise. Zoom ne garde une transcription que si le compte enregistre dans le cloud avec la transcription audio activée, et Google Meet seulement sur une édition de Google Workspace qui propose les transcriptions. Les appels Microsoft Teams, les huddles Slack et les liens de réunion ne sont pas enregistrés, pas plus que les appels des alertes : ajoutez leurs transcriptions à la main.
+L'option est désactivée par défaut, car elle enregistre des personnes : tous les participants à ces appels voient qu'ils sont enregistrés ou transcrits, alors vérifiez que votre organisation l'autorise. Zoom ne garde une transcription que si le compte enregistre dans le cloud avec la transcription audio activée, et Google Meet seulement sur une édition de Google Workspace qui propose les transcriptions. Les huddles Slack et les liens de réunion ne sont pas enregistrés, pas plus que les appels des alertes : ajoutez leurs transcriptions à la main.
+
+Microsoft ne laisse les applications lire que les transcriptions des réunions Teams inscrites dans un calendrier : OneUptime place donc chaque réunion d'incident dans le calendrier de son organisateur et active l'enregistrement et la transcription automatiques dans les options de la réunion. Pour cela, la connexion a besoin de deux autorisations Microsoft Graph de plus, `Calendars.ReadWrite` et `OnlineMeetingTranscript.Read.All` : ajoutez-les à votre enregistrement d'application (voir [Microsoft Teams](#microsoft-teams)), ou utilisez **Reconnect** sur une connexion faite en se connectant. La stratégie de réunion Teams de l'organisateur doit autoriser l'enregistrement dans le cloud, la transcription et l'enregistrement automatique, et votre organisation ne doit pas avoir désactivé l'accès des applications aux transcriptions. Un appel que OneUptime ne peut pas placer dans le calendrier démarre quand même, sans enregistrement, et sa carte **Appel vidéo** indique pourquoi.
 
 ### Ce que garde chaque fournisseur
 
@@ -137,7 +141,7 @@ L'option est désactivée par défaut, car elle enregistre des personnes : tous 
 | --- | --- | --- |
 | Zoom | **Récupérer depuis Zoom** | Une réunion enregistrée dans le cloud avec sa transcription audio activée, ou avec le résumé de réunion d'AI Companion activé. La connexion a besoin des scopes de transcription (voir [Zoom](#zoom)), et une connexion faite avant eux a besoin de **Reconnect**. Zoom prépare une transcription après la réunion, généralement en moins de deux fois sa durée. |
 | Google Meet | **Récupérer depuis Google Meet** | Les transcriptions activées pendant l'appel, sur une édition de Google Workspace qui les propose. Rien d'autre à configurer : OneUptime lit les transcriptions des réunions qu'il a créées. Google garde une transcription lisible par les applications pendant 30 jours. |
-| Microsoft Teams | **Ajouter la transcription** | Microsoft ne laisse aucune application lire la transcription d'une réunion créée comme OneUptime les crée. Dans Teams, ouvrez le récapitulatif de la réunion, puis sa transcription, et téléchargez-la en fichier `.vtt`. |
+| Microsoft Teams | **Récupérer depuis Microsoft Teams** | Une réunion que OneUptime a lancée pendant que [chaque appel est enregistré et transcrit](#enregistrer-et-transcrire-chaque-appel) : Microsoft ne laisse les applications lire que les transcriptions des réunions inscrites dans un calendrier, et garde une réunion pendant 60 jours. Pour toute autre réunion Teams, **Ajouter la transcription** : dans Teams, ouvrez le récapitulatif de la réunion, puis sa transcription, et téléchargez-la en fichier `.vtt`. |
 | Lien de réunion ou huddle Slack | **Ajouter la transcription** | La transcription que gardent l'outil de réunion ou les notes du huddle. |
 
 ### Qui peut faire quoi
@@ -198,7 +202,7 @@ OneUptime crée une réunion Microsoft Teams pour chaque incident avec Microsoft
 
 :::steps
 1. Dans le [centre d'administration Microsoft Entra](https://entra.microsoft.com/), ouvrez **App registrations** > **New registration** et enregistrez une application à locataire unique. Copiez son **Directory (tenant) ID** et son **Application (client) ID**.
-2. Sous **API permissions**, ajoutez l'autorisation Microsoft Graph de type **application** **OnlineMeetings.ReadWrite.All**, puis cliquez sur **Grant admin consent**.
+2. Sous **API permissions**, ajoutez l'autorisation Microsoft Graph de type **application** **OnlineMeetings.ReadWrite.All** (et, pour aussi [enregistrer et transcrire les appels d'incident](#enregistrer-et-transcrire-chaque-appel), **Calendars.ReadWrite** et **OnlineMeetingTranscript.Read.All**), puis cliquez sur **Grant admin consent**.
 3. Sous **Certificates & secrets**, créez un secret client et collez sa **Value**, pas son Secret ID, dans le formulaire de connexion comme **Secret client**.
 4. Choisissez l'organisateur : un utilisateur Teams sous licence, idéalement un compte de service. Copiez son **Object ID** depuis **Users** dans le centre d'administration Entra vers **Organizer object ID**.
 5. Autorisez l'application à créer des réunions pour l'organisateur avec une stratégie d'accès d'application. Dans Teams PowerShell, après `Connect-MicrosoftTeams`, exécutez les deux commandes ci-dessous.
@@ -210,6 +214,8 @@ Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "<organ
 ```
 
 La stratégie peut mettre jusqu'à 30 minutes à s'appliquer. D'ici là, le test indique que l'application n'est pas autorisée à créer des réunions pour l'organisateur.
+
+La même stratégie permet à l'application de lire les transcriptions des réunions de l'organisateur. `Calendars.ReadWrite` permet à une application de modifier tous les calendriers de votre organisation : pour restreindre cette autorisation au calendrier de l'organisateur, accordez-la avec [RBAC pour les applications dans Exchange Online](https://learn.microsoft.com/exchange/permissions-exo/application-rbac), dans une étendue limitée à l'organisateur, plutôt que sous **API permissions**.
 
 **Who skips the lobby** décide qui rejoint sans attendre : avec **People in your organization skip the lobby** (la valeur par défaut), toute autre personne attend dans la salle d'attente jusqu'à ce que quelqu'un dans la réunion l'admette. Avec **Everyone skips the lobby**, personne n'attend.
 
@@ -268,7 +274,7 @@ Créez une application OAuth par fournisseur et enregistrez-y cette URI de redir
 
 - **Zoom** : dans le [Zoom App Marketplace](https://marketplace.zoom.us/), choisissez **Develop** > **Build App** et créez une **General App**, gérée par les utilisateurs. Sous **Basic Information**, ajoutez l'URI de redirection comme OAuth Redirect URL dans les onglets **Development** et **Production** et dans la liste d'autorisation OAuth, et dans l'onglet **Production** réglez l'URL du point de terminaison **Deauthorization Notification** sur `https://<host>/api/video-call-oauth/zoom/events`. Sous **Scopes**, ajoutez `meeting:write:meeting` et `user:read:user`. Pour qu'elle puisse lire les [transcriptions des appels](#transcriptions-des-appels), ajoutez aussi `cloud_recording:read:list_recording_files` et `cloud_recording:read:meeting_transcript`. Le **Secret Token** sous **Features** > **Access** est `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. Les identifiants **Development** ne fonctionnent que pour les utilisateurs de votre propre compte Zoom ; les identifiants **Production** fonctionnent pour tous une fois que Zoom a examiné et publié l'application.
 - **Google Meet** : dans la [console Google Cloud](https://console.cloud.google.com/), activez la **Google Meet REST API**, configurez l'écran de consentement OAuth (**Google Auth Platform**) avec les scopes `openid`, `email` et `https://www.googleapis.com/auth/meetings.space.created`, et créez un client OAuth de type **Web application** avec l'URI de redirection. Publiez l'application en production : une application laissée en test perd ses connexions au bout de sept jours. Google examine les applications qui demandent le scope Meet ; tant qu'il ne l'a pas fait, les personnes voient un avertissement avant de se connecter.
-- **Microsoft Teams** : dans le [centre d'administration Microsoft Entra](https://entra.microsoft.com/), enregistrez une application pour **Accounts in any organizational directory**, ajoutez l'URI de redirection comme URI de redirection **Web**, ajoutez les autorisations déléguées Microsoft Graph `openid`, `profile`, `email`, `offline_access` et `OnlineMeetings.ReadWrite`, et créez un secret client. Utilisez un enregistrement à part, pas celui du bot Microsoft Teams (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Tant que l'application n'a pas d'éditeur vérifié, la plupart des organisations ont besoin d'un administrateur pour y consentir.
+- **Microsoft Teams** : dans le [centre d'administration Microsoft Entra](https://entra.microsoft.com/), enregistrez une application pour **Accounts in any organizational directory**, ajoutez l'URI de redirection comme URI de redirection **Web**, ajoutez les autorisations déléguées Microsoft Graph `openid`, `profile`, `email`, `offline_access` et `OnlineMeetings.ReadWrite` (ainsi que `Calendars.ReadWrite` et `OnlineMeetingTranscript.Read.All`, que demande un projet qui [enregistre et transcrit ses appels](#enregistrer-et-transcrire-chaque-appel)), et créez un secret client. Utilisez un enregistrement à part, pas celui du bot Microsoft Teams (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Tant que l'application n'a pas d'éditeur vérifié, la plupart des organisations ont besoin d'un administrateur pour y consentir.
 
 Les ID client sont publics : ils sont envoyés au tableau de bord pour qu'il sache quels fournisseurs se connectent en un clic. Gardez secrets les secrets et le jeton secret du webhook. Chaque jour, le worker actualise les connexions qui doivent l'être, il a donc besoin des mêmes valeurs que l'application.
 
@@ -295,7 +301,11 @@ Zoom ne garde une transcription que d'une réunion enregistrée dans le cloud av
 :::
 
 :::details La carte Appel vidéo attend toujours une transcription
-Une fois l'appel terminé, OneUptime la demande à Zoom ou à Google Meet toutes les quelques minutes, de moins en moins souvent à mesure que l'appel vieillit, pendant trois jours après le début de l'appel. La transcription arrive quelques minutes après que le fournisseur l'a préparée, et Zoom met jusqu'à environ deux fois la durée de l'appel. **Récupérer depuis Zoom** la demande tout de suite. Quand le fournisseur ne garde aucune transcription, la carte l'indique : vérifiez que le compte Zoom enregistre dans le cloud avec la transcription audio activée, ou que votre édition de Google Workspace propose les transcriptions.
+Une fois l'appel terminé, OneUptime la demande à Zoom, à Google Meet ou à Microsoft Teams toutes les quelques minutes, de moins en moins souvent à mesure que l'appel vieillit, pendant trois jours après le début de l'appel. La transcription arrive quelques minutes après que le fournisseur l'a préparée, et Zoom met jusqu'à environ deux fois la durée de l'appel. **Récupérer depuis Zoom** la demande tout de suite. Quand le fournisseur ne garde aucune transcription, la carte l'indique : vérifiez que le compte Zoom enregistre dans le cloud avec la transcription audio activée, que votre édition de Google Workspace propose les transcriptions, ou que la stratégie de réunion Teams de l'organisateur autorise l'enregistrement automatique.
+:::
+
+:::details Un appel Microsoft Teams n'a pas été enregistré
+OneUptime n'a pas pu placer la réunion dans le calendrier de son organisateur : il a donc lancé l'appel de la manière habituelle, sans enregistrement, et la carte **Appel vidéo** indique pourquoi. Le plus souvent, il manque à la connexion `Calendars.ReadWrite` ou `OnlineMeetingTranscript.Read.All` : ajoutez-les à l'enregistrement d'application et accordez le consentement administrateur, ou utilisez **Reconnect** sur une connexion faite en se connectant. Les appels lancés ensuite sont enregistrés.
 :::
 
 :::details L'IA de OneUptime n'a pas pu lire une transcription

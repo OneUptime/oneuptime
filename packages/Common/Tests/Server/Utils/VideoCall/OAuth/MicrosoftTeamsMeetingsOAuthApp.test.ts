@@ -1,6 +1,7 @@
 import MicrosoftTeamsMeetingsOAuthApp, {
   MICROSOFT_CONSUMER_TENANT_ID,
   MICROSOFT_ORGANIZATIONS_AUTHORITY,
+  MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES,
   MICROSOFT_TEAMS_MEETINGS_SCOPE,
 } from "../../../../../Server/Utils/VideoCall/OAuth/MicrosoftTeamsMeetingsOAuthApp";
 import {
@@ -213,5 +214,163 @@ describe("MicrosoftTeamsMeetingsOAuthApp", () => {
     expect((error as Error).message).toContain(
       "Reconnect Microsoft Teams in Project Settings > Workspace > Video Calls",
     );
+  });
+});
+
+describe("MicrosoftTeamsMeetingsOAuthApp - a project that records and transcribes its calls", () => {
+  const CALENDAR_SCOPE: string =
+    "https://graph.microsoft.com/Calendars.ReadWrite";
+  const TRANSCRIPT_SCOPE: string =
+    "https://graph.microsoft.com/OnlineMeetingTranscript.Read.All";
+
+  const BASE_SIGN_IN_SCOPES: Array<string> = [
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+    MICROSOFT_TEAMS_MEETINGS_SCOPE,
+  ];
+
+  test("its sign-in also asks to use the account's calendar and read meeting transcripts", () => {
+    const url: URL = new URL(
+      newApp(scriptedFetch([])).getAuthorizationUrl({
+        state: "s",
+        redirectUri: REDIRECT_URI,
+        recordAndTranscribe: true,
+      }),
+    );
+
+    expect(url.searchParams.get("scope")!.split(" ")).toEqual([
+      ...BASE_SIGN_IN_SCOPES,
+      CALENDAR_SCOPE,
+      TRANSCRIPT_SCOPE,
+    ]);
+    expect(MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES).toEqual([
+      CALENDAR_SCOPE,
+      TRANSCRIPT_SCOPE,
+    ]);
+  });
+
+  test("any other project's sign-in asks for nothing more, so anyone with a Teams license can connect", () => {
+    for (const recordAndTranscribe of [false, undefined]) {
+      const url: URL = new URL(
+        newApp(scriptedFetch([])).getAuthorizationUrl({
+          state: "s",
+          redirectUri: REDIRECT_URI,
+          recordAndTranscribe,
+        }),
+      );
+
+      expect(url.searchParams.get("scope")!.split(" ")).toEqual(
+        BASE_SIGN_IN_SCOPES,
+      );
+    }
+  });
+
+  test("the code is exchanged for what the sign-in asked", async () => {
+    const recording: ScriptedFetch = scriptedFetch([
+      { status: 200, body: tokenResponse() },
+    ]);
+    await newApp(recording).exchangeCode({
+      code: "c",
+      redirectUri: REDIRECT_URI,
+      recordAndTranscribe: true,
+    });
+    expect(
+      readFormBody(recording.requests[0]!).get("scope")!.split(" "),
+    ).toEqual([...BASE_SIGN_IN_SCOPES, CALENDAR_SCOPE, TRANSCRIPT_SCOPE]);
+
+    const plain: ScriptedFetch = scriptedFetch([
+      { status: 200, body: tokenResponse() },
+    ]);
+    await newApp(plain).exchangeCode({ code: "c", redirectUri: REDIRECT_URI });
+    expect(readFormBody(plain.requests[0]!).get("scope")!.split(" ")).toEqual(
+      BASE_SIGN_IN_SCOPES,
+    );
+  });
+
+  test("a sign-in granted the meeting permission alone still connects: its calls start, unrecorded", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      {
+        status: 200,
+        body: tokenResponse({ scope: "OnlineMeetings.ReadWrite openid" }),
+      },
+    ]);
+
+    const grant: VideoCallOAuthGrant = await newApp(fetcher).exchangeCode({
+      code: "c",
+      redirectUri: REDIRECT_URI,
+      recordAndTranscribe: true,
+    });
+
+    expect(grant.tokens.scope).toBe("OnlineMeetings.ReadWrite openid");
+  });
+
+  test("a refresh asks again for the recording permissions the sign-in was granted, and never for more", async () => {
+    const cases: Array<[string | undefined, Array<string>]> = [
+      [undefined, []],
+      [`${MICROSOFT_TEAMS_MEETINGS_SCOPE} openid profile email`, []],
+      [
+        "Calendars.ReadWrite OnlineMeetingTranscript.Read.All OnlineMeetings.ReadWrite",
+        [CALENDAR_SCOPE, TRANSCRIPT_SCOPE],
+      ],
+      [
+        `${CALENDAR_SCOPE.toLowerCase()} ${MICROSOFT_TEAMS_MEETINGS_SCOPE}`,
+        [CALENDAR_SCOPE],
+      ],
+    ];
+
+    for (const [scope, recordingScopes] of cases) {
+      const fetcher: ScriptedFetch = scriptedFetch([
+        { status: 200, body: tokenResponse() },
+      ]);
+
+      await newApp(fetcher).refresh({
+        secrets: {
+          refreshToken: "ms-refresh-1",
+          externalAccountId: TENANT_ID,
+          ...(scope ? { scope } : {}),
+        },
+        accountLabel: "incidents@acme.onmicrosoft.com",
+      });
+
+      expect(
+        readFormBody(fetcher.requests[0]!).get("scope")!.split(" "),
+      ).toEqual([
+        "offline_access",
+        MICROSOFT_TEAMS_MEETINGS_SCOPE,
+        ...recordingScopes,
+      ]);
+    }
+  });
+
+  test("reads a permission in a granted scope list bare or as its Graph scope, in any case, and never a longer one", () => {
+    expect(
+      MicrosoftTeamsMeetingsOAuthApp.grants(
+        "openid Calendars.ReadWrite",
+        "Calendars.ReadWrite",
+      ),
+    ).toBe(true);
+    expect(
+      MicrosoftTeamsMeetingsOAuthApp.grants(
+        "https://graph.microsoft.com/onlinemeetingtranscript.read.all",
+        "OnlineMeetingTranscript.Read.All",
+      ),
+    ).toBe(true);
+    expect(
+      MicrosoftTeamsMeetingsOAuthApp.grants(
+        "Calendars.ReadWrite.Shared OnlineMeetingTranscript.Read.Chat",
+        "Calendars.ReadWrite",
+      ),
+    ).toBe(false);
+    expect(
+      MicrosoftTeamsMeetingsOAuthApp.grants(
+        "Calendars.ReadWrite.Shared OnlineMeetingTranscript.Read.Chat",
+        "OnlineMeetingTranscript.Read.All",
+      ),
+    ).toBe(false);
+    expect(
+      MicrosoftTeamsMeetingsOAuthApp.grants(undefined, "Calendars.ReadWrite"),
+    ).toBe(false);
   });
 });

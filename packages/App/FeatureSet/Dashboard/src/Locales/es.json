@@ -31010,8 +31010,8 @@
   "Call transcripts": "Transcripciones de llamadas",
   "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Todos los participantes en estas llamadas ven que se graban. Comprueba que tu organización lo permite. Zoom también necesita la grabación en la nube con la transcripción de audio activada.",
   "Keep what was said on every incident call, without anyone remembering to.": "Conserva lo que se dijo en cada llamada de incidente, sin que nadie tenga que acordarse.",
-  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Las llamadas de Microsoft Teams, las huddles de Slack y los enlaces de reunión no se graban: añade sus transcripciones a mano.",
-  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom y Google Meet graban y transcriben cada llamada de incidente que inicia OneUptime. OneUptime añade la transcripción y la resume en el feed del incidente.",
+  "Slack huddles and meeting links are not recorded. Teams needs Calendars.ReadWrite and OnlineMeetingTranscript.Read.All: turn this on, then reconnect.": "Las huddles de Slack y los enlaces de reunión no se graban. Teams necesita Calendars.ReadWrite y OnlineMeetingTranscript.Read.All: activa esto y luego vuelve a conectar.",
+  "Zoom, Google Meet and Microsoft Teams record and transcribe each incident call OneUptime starts. OneUptime AI sums it up in the incident's feed.": "Zoom, Google Meet y Microsoft Teams graban y transcriben cada llamada de incidente que inicia OneUptime. La IA de OneUptime la resume en el feed del incidente.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime la obtiene de {{provider}} cuando termina la llamada, y la IA de OneUptime la lee.",
   "Postmortem Draft Waiting Since": "Borrador de post mortem en espera desde",
   "Record and Transcribe Incident Calls": "Grabar y transcribir las llamadas de incidentes",
@@ -31022,6 +31022,7 @@
   "Transcript Fetch Reason": "Motivo de la obtención de la transcripción",
   "Transcript Fetch Status": "Estado de la obtención de la transcripción",
   "Video Call Summary": "Resumen de la videollamada",
+  "Provider Calendar Event ID": "ID del evento de calendario del proveedor",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "No recibe nada: el enlace de confirmación que le enviamos caducó antes de que lo abriera. Puede volver a suscribirse, o usted puede añadirlo de nuevo.",
   "Link Expired": "Enlace caducado",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Este patrón remite a lo que encontró un grupo anterior, como \\1. Los patrones se ejecutan en un tiempo que solo crece con el texto que leen, y una referencia inversa no lo permite. Escribe el patrón sin ella.",
@@ -31227,5 +31228,6 @@
   "Read what a change shipped": "Se leyó lo que incluyó un cambio",
   "Read {{count}} recent changes; no suspect": "Se leyeron {{count}} cambios recientes; ninguno sospechoso",
   "Read {{count}} recent changes; no suspect_one": "Se leyó {{count}} cambio reciente; no es sospechoso",
-  "AI fix": "Corrección de IA"
+  "AI fix": "Corrección de IA",
+  "Deploy Regression": "Deploy Regression"
 }

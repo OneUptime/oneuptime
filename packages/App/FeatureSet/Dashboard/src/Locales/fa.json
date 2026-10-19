@@ -31010,8 +31010,8 @@
   "Call transcripts": "رونوشت‌های تماس",
   "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "همه حاضران در این تماس‌ها می‌بینند که ضبط می‌شوند. بررسی کنید که سازمان شما این کار را مجاز می‌داند. Zoom همچنین به ضبط در فضای ابری با رونوشت صوتی روشن نیاز دارد.",
   "Keep what was said on every incident call, without anyone remembering to.": "آنچه در هر تماس حادثه گفته شد را نگه دارید، بی‌آنکه کسی لازم باشد به خاطر بسپارد.",
-  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "تماس‌های Microsoft Teams، هادل‌های Slack و پیوندهای جلسه ضبط نمی‌شوند: رونوشت آن‌ها را دستی اضافه کنید.",
-  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom و Google Meet هر تماس حادثه‌ای را که OneUptime آغاز می‌کند ضبط و رونویسی می‌کنند. OneUptime رونوشت را اضافه می‌کند و خلاصه‌ای از آن را در فید حادثه منتشر می‌کند.",
+  "Slack huddles and meeting links are not recorded. Teams needs Calendars.ReadWrite and OnlineMeetingTranscript.Read.All: turn this on, then reconnect.": "هادل‌های Slack و پیوندهای جلسه ضبط نمی‌شوند. Teams به Calendars.ReadWrite و OnlineMeetingTranscript.Read.All نیاز دارد: این گزینه را روشن کنید، سپس دوباره وصل کنید.",
+  "Zoom, Google Meet and Microsoft Teams record and transcribe each incident call OneUptime starts. OneUptime AI sums it up in the incident's feed.": "Zoom، Google Meet و Microsoft Teams هر تماس حادثه‌ای را که OneUptime آغاز می‌کند ضبط و رونویسی می‌کنند. OneUptime AI خلاصه‌ای از آن را در فید حادثه منتشر می‌کند.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime پس از پایان تماس آن را از {{provider}} می‌گیرد و OneUptime AI آن را می‌خواند.",
   "Postmortem Draft Waiting Since": "پیش‌نویس گزارش پس از حادثه در انتظار از",
   "Record and Transcribe Incident Calls": "ضبط و رونویسی تماس‌های حادثه",
@@ -31022,6 +31022,7 @@
   "Transcript Fetch Reason": "دلیل دریافت رونوشت",
   "Transcript Fetch Status": "وضعیت دریافت رونوشت",
   "Video Call Summary": "خلاصه تماس تصویری",
+  "Provider Calendar Event ID": "شناسه رویداد تقویم ارائه‌دهنده",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "چیزی دریافت نمی‌کند: پیوند تأییدی که برایش فرستادیم پیش از باز شدن منقضی شد. می‌تواند دوباره عضو شود، یا شما می‌توانید دوباره او را اضافه کنید.",
   "Link Expired": "پیوند منقضی‌شده",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "این الگو به چیزی ارجاع می‌دهد که یک گروه قبلی پیدا کرده است، مانند \\1. الگوها در زمانی اجرا می‌شوند که فقط همراه با متنی که می‌خوانند افزایش می‌یابد، و ارجاع به عقب چنین کاری نمی‌کند. الگو را بدون آن بنویسید.",
@@ -31227,5 +31228,6 @@
   "Read what a change shipped": "محتوای یک تغییر خوانده شد",
   "Read {{count}} recent changes; no suspect": "{{count}} تغییر اخیر خوانده شد؛ هیچ‌کدام مشکوک نیست",
   "Read {{count}} recent changes; no suspect_one": "{{count}} تغییر اخیر خوانده شد؛ مشکوک نیست",
-  "AI fix": "اصلاح هوش مصنوعی"
+  "AI fix": "اصلاح هوش مصنوعی",
+  "Deploy Regression": "Deploy Regression"
 }

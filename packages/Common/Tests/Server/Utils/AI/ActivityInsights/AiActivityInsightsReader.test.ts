@@ -837,6 +837,46 @@ describe("AiActivityInsightsReader.read", () => {
     );
   });
 
+  describe("a deploy regression", () => {
+    test("is about the service its fingerprint names, and no other", () => {
+      const serviceId: string = ObjectID.generate().toString();
+      const otherId: string = ObjectID.generate().toString();
+      const changeId: string = ObjectID.generate().toString();
+
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.DeployRegression,
+            fingerprint: `deploy-regression:${serviceId}:${changeId}`,
+          } as never,
+          scopeId: serviceId.toUpperCase(),
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(true);
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.DeployRegression,
+            fingerprint: `deploy-regression:${serviceId}:${changeId}`,
+          } as never,
+          scopeId: otherId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+      // The change's id is not a scope.
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.DeployRegression,
+            fingerprint: `deploy-regression:${serviceId}:${changeId}`,
+          } as never,
+          scopeId: changeId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe("preventive insights", () => {
     function insight(
       overrides: Partial<Record<keyof AIInsight, unknown>>,

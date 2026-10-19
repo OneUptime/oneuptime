@@ -53,7 +53,10 @@ export enum CallTranscriptReading {
 
 export interface CallTranscriptView {
   hasTranscript: boolean;
-  // A Zoom or Google Meet meeting OneUptime started, whose provider can be asked.
+  /*
+   * A meeting OneUptime started whose provider can be asked: Zoom, Google
+   * Meet, or a Microsoft Teams meeting it put on a calendar.
+   */
   canGetFromProvider: boolean;
   /*
    * Where OneUptime stands in getting the transcript by itself (Record and

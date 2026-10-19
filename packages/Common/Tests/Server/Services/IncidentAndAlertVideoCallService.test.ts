@@ -23,6 +23,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
+import { VideoCallTranscriptUnavailableReason } from "../../../Types/VideoCall/VideoCallTranscript";
 import {
   afterEach,
   beforeEach,
@@ -172,6 +173,62 @@ describe("IncidentVideoCallService create", () => {
     expect(data.externalMeetingId).toBe("1");
     expect(data.title).toBe("#1: Down");
     expect(onCreate.carryForward).toEqual({ connectionName: "Incident Zoom" });
+  });
+
+  test("a Teams meeting's calendar event is saved with the call; one a request names never is", async () => {
+    jest
+      .spyOn(ModelPermission, "checkCreatePermissions")
+      .mockImplementation(() => {});
+    jest.spyOn(EventVideoCall, "assertCallerCanSeeEvent").mockResolvedValue();
+    jest
+      .spyOn(EventVideoCall, "getEvent")
+      .mockResolvedValue(event(VideoCallEventType.Incident));
+    const prepare: SpyInstance<typeof EventVideoCall.prepare> = jest
+      .spyOn(EventVideoCall, "prepare")
+      .mockResolvedValueOnce({
+        fields: {
+          provider: VideoCallProvider.MicrosoftTeams,
+          videoCallConnectionId: CONNECTION_ID,
+          joinUrl: "https://teams.microsoft.com/l/meetup-join/x",
+          externalMeetingId: "m-1",
+          externalCalendarEventId: "AAMkAGI2TG93AAA=",
+          title: "#1: Down",
+        },
+        carryForward: {
+          connectionName: "Incident Teams",
+          recordsAndTranscribes: true,
+        },
+      })
+      .mockResolvedValueOnce({
+        fields: {
+          provider: VideoCallProvider.CustomLink,
+          joinUrl: "https://acme.webex.com/meet/war-room",
+        },
+        carryForward: {},
+      });
+
+    const recorded: OnCreate<IncidentVideoCall> = await build().onBeforeCreate({
+      data: call(),
+      props: USER_PROPS,
+    });
+
+    expect(recorded.createBy.data.externalCalendarEventId).toBe(
+      "AAMkAGI2TG93AAA=",
+    );
+
+    const spoofed: IncidentVideoCall = call();
+    spoofed.externalCalendarEventId = "spoofed";
+
+    const pasted: OnCreate<IncidentVideoCall> = await build().onBeforeCreate({
+      data: spoofed,
+      props: { isRoot: true },
+    });
+
+    // The request's own value is never handed to the preparation, nor kept.
+    expect(
+      prepare.mock.calls[1]![0].fields.externalCalendarEventId,
+    ).toBeUndefined();
+    expect(pasted.createBy.data.externalCalendarEventId).toBeUndefined();
   });
 
   test("starts no meeting for a caller who may not create calls", async () => {
@@ -392,6 +449,11 @@ describe("IncidentVideoCallService create", () => {
       jest
         .spyOn(IncidentCallTranscriptFetch, "watchNewCall")
         .mockResolvedValue();
+    const markNotRecorded: SpyInstance<
+      typeof IncidentCallTranscriptFetch.markNotRecorded
+    > = jest
+      .spyOn(IncidentCallTranscriptFetch, "markNotRecorded")
+      .mockResolvedValue();
 
     const created: IncidentVideoCall = call();
     created.provider = VideoCallProvider.Zoom;
@@ -406,6 +468,49 @@ describe("IncidentVideoCallService create", () => {
     );
 
     expect(watch).not.toHaveBeenCalled();
+    expect(markNotRecorded).not.toHaveBeenCalled();
+  });
+
+  test("a Teams call that could not be set up to record itself is not watched, and says why", async () => {
+    jest.spyOn(EventVideoCall, "announce").mockResolvedValue();
+    const watch: SpyInstance<typeof IncidentCallTranscriptFetch.watchNewCall> =
+      jest
+        .spyOn(IncidentCallTranscriptFetch, "watchNewCall")
+        .mockResolvedValue();
+    const markNotRecorded: SpyInstance<
+      typeof IncidentCallTranscriptFetch.markNotRecorded
+    > = jest
+      .spyOn(IncidentCallTranscriptFetch, "markNotRecorded")
+      .mockResolvedValue();
+
+    const created: IncidentVideoCall = call();
+    created.provider = VideoCallProvider.MicrosoftTeams;
+    created.joinUrl = "https://teams.microsoft.com/l/meetup-join/x";
+    created.externalMeetingId = "m-1";
+    created.videoCallConnectionId = CONNECTION_ID;
+
+    await build().onCreateSuccess(
+      {
+        createBy: { data: created, props: USER_PROPS },
+        carryForward: {
+          connectionName: "Incident Teams",
+          recordsAndTranscribes: false,
+          notRecordedReason:
+            VideoCallTranscriptUnavailableReason.PermissionMissing,
+        },
+      },
+      created,
+    );
+
+    // Its message says nothing about recording.
+    expect(EventVideoCall.announce).toHaveBeenCalledWith(
+      expect.objectContaining({ recordsAndTranscribes: false }),
+    );
+    expect(watch).not.toHaveBeenCalled();
+    expect(markNotRecorded).toHaveBeenCalledWith({
+      call: created,
+      reason: VideoCallTranscriptUnavailableReason.PermissionMissing,
+    });
   });
 
   test("shows a person only the calls of incidents they can see", async () => {

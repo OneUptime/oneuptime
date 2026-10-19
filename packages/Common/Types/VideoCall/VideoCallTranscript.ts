@@ -19,7 +19,7 @@ import VideoCallProvider from "./VideoCallProvider";
 
 // Where a call's transcript came from.
 export enum VideoCallTranscriptSource {
-  // Read from Zoom or Google Meet with the call's own connection.
+  // Read from Zoom, Google Meet or Microsoft Teams with the call's own connection.
   Provider = "Provider",
   // A file or text a person (or an API key) added.
   Upload = "Upload",
@@ -110,22 +110,32 @@ export interface VideoCallTranscriptUnavailable {
 }
 
 /*
- * Whether the call's transcript can be read from its provider: a Zoom or
- * Google Meet meeting OneUptime created with one of the project's
- * connections. Microsoft Graph has no transcripts for meetings created the
- * way OneUptime creates them (an online meeting with no calendar event), a
- * Slack huddle has no API at all, and a link of one's own is a meeting
- * OneUptime knows nothing about: their transcripts are added by a person.
+ * Whether the call's transcript can be read from its provider: a meeting
+ * OneUptime created with one of the project's connections - any Zoom or
+ * Google Meet meeting, and a Microsoft Teams meeting it put on its
+ * organizer's calendar. Microsoft Graph has no transcripts for an online
+ * meeting with no calendar event, which is how OneUptime creates a Teams
+ * meeting while Record and transcribe incident calls is off. A Slack
+ * huddle has no API at all, and a link of one's own is a meeting OneUptime
+ * knows nothing about: their transcripts are added by a person.
  */
 export function canReadVideoCallTranscriptFromProvider(call: {
   provider?: VideoCallProvider | string | undefined | null;
   videoCallConnectionId?: unknown;
   externalMeetingId?: string | undefined | null;
+  externalCalendarEventId?: string | undefined | null;
 }): boolean {
-  return (
-    (call.provider === VideoCallProvider.Zoom ||
-      call.provider === VideoCallProvider.GoogleMeet) &&
-    Boolean(call.videoCallConnectionId) &&
-    Boolean(call.externalMeetingId)
-  );
+  if (!call.videoCallConnectionId || !call.externalMeetingId) {
+    return false;
+  }
+
+  switch (call.provider) {
+    case VideoCallProvider.Zoom:
+    case VideoCallProvider.GoogleMeet:
+      return true;
+    case VideoCallProvider.MicrosoftTeams:
+      return Boolean(call.externalCalendarEventId);
+    default:
+      return false;
+  }
 }

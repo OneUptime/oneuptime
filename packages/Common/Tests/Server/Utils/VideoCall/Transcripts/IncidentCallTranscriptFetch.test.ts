@@ -191,8 +191,34 @@ describe("watching a new call", () => {
     },
   );
 
+  test("a Microsoft Teams meeting OneUptime put on its organizer's calendar waits too", async () => {
+    await IncidentCallTranscriptFetch.watchNewCall({
+      id: CALL,
+      projectId: PROJECT,
+      incidentId: INCIDENT,
+      provider: VideoCallProvider.MicrosoftTeams,
+      videoCallConnectionId: CONNECTION,
+      externalMeetingId: "MSpkYzE3Njc0Yy04MWQ5",
+      externalCalendarEventId: "AAMkAGI2TG93AAA=",
+      createdAt: STARTED,
+    });
+
+    expect(writes).toEqual([
+      {
+        transcriptFetchStatus: CallTranscriptFetchStatus.Waiting,
+        transcriptFetchReason: null,
+        transcriptFetchNextAttemptAt: at(10 * MINUTE),
+      },
+    ]);
+  });
+
   test.each([
-    ["a Microsoft Teams meeting", VideoCallProvider.MicrosoftTeams, true, true],
+    [
+      "a Microsoft Teams meeting not on a calendar",
+      VideoCallProvider.MicrosoftTeams,
+      true,
+      true,
+    ],
     ["a Slack huddle", VideoCallProvider.SlackHuddle, false, true],
     ["a meeting link", VideoCallProvider.CustomLink, false, false],
     ["a Zoom meeting with no connection", VideoCallProvider.Zoom, false, true],
@@ -249,6 +275,74 @@ describe("watching a new call", () => {
   });
 });
 
+describe("a call the provider could not be set up to record", () => {
+  test("stops from the start, with why, for its card to say: never asked about", async () => {
+    const now: Date = at(MINUTE);
+
+    await IncidentCallTranscriptFetch.markNotRecorded({
+      call: { id: CALL, projectId: PROJECT, incidentId: INCIDENT },
+      reason: VideoCallTranscriptUnavailableReason.PermissionMissing,
+      now,
+    });
+
+    expect(writes).toEqual([
+      {
+        transcriptFetchStatus: CallTranscriptFetchStatus.Stopped,
+        transcriptFetchReason:
+          VideoCallTranscriptUnavailableReason.PermissionMissing,
+        transcriptFetchCheckedAt: now,
+        transcriptFetchNextAttemptAt: null,
+      },
+    ]);
+  });
+
+  test("is checked now when no time is given", async () => {
+    const before: number = Date.now();
+
+    await IncidentCallTranscriptFetch.markNotRecorded({
+      call: { id: CALL, projectId: PROJECT, incidentId: INCIDENT },
+      reason: VideoCallTranscriptUnavailableReason.NotSupported,
+    });
+
+    const checkedAt: Date = writes[0]![
+      "transcriptFetchCheckedAt"
+    ] as unknown as Date;
+    expect(checkedAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(checkedAt.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  test("a call with no id writes nothing", async () => {
+    await IncidentCallTranscriptFetch.markNotRecorded({
+      call: { id: null, projectId: PROJECT, incidentId: INCIDENT },
+      reason: VideoCallTranscriptUnavailableReason.NotSupported,
+    });
+
+    expect(writes).toEqual([]);
+  });
+
+  test("never throws: the call exists either way", async () => {
+    jest
+      .spyOn(IncidentVideoCallService, "updateOneById")
+      .mockRejectedValue(new Error("database unavailable"));
+
+    await expect(
+      IncidentCallTranscriptFetch.markNotRecorded({
+        call: { id: CALL, projectId: PROJECT, incidentId: INCIDENT },
+        reason: VideoCallTranscriptUnavailableReason.PermissionMissing,
+      }),
+    ).resolves.toBeUndefined();
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Could not record why an incident call is not recorded",
+      ),
+      expect.objectContaining({
+        projectId: PROJECT.toString(),
+        incidentId: INCIDENT.toString(),
+      }),
+    );
+  });
+});
+
 describe("the calls a run asks about", () => {
   test("only Waiting calls that are due, the longest-due first, as root, at most a run's worth", async () => {
     const find: SpyInstance<typeof IncidentVideoCallService.findBy> = jest
@@ -283,6 +377,8 @@ describe("the calls a run asks about", () => {
         provider: true,
         videoCallConnectionId: true,
         externalMeetingId: true,
+        // A Teams call is read only with the calendar event its meeting belongs to.
+        externalCalendarEventId: true,
         createdAt: true,
         transcriptAddedAt: true,
         transcriptFetchNextAttemptAt: true,
@@ -401,7 +497,7 @@ describe("before asking the provider", () => {
     ]);
   });
 
-  test("asks with the call's own connection and meeting, for its project", async () => {
+  test("asks with the call's own connection and meeting, for its project, saying when the call started", async () => {
     await ask(dueCall(), at(HOUR));
 
     expect(read).toHaveBeenCalledWith({
@@ -409,9 +505,30 @@ describe("before asking the provider", () => {
         provider: VideoCallProvider.Zoom,
         videoCallConnectionId: CONNECTION,
         externalMeetingId: "85746065432",
+        externalCalendarEventId: undefined,
+        startedAt: STARTED,
       },
       projectId: PROJECT,
       http: undefined,
+    });
+  });
+
+  test("a Teams call is asked about with the calendar event its meeting belongs to", async () => {
+    await ask(
+      dueCall({
+        provider: VideoCallProvider.MicrosoftTeams,
+        externalMeetingId: "MSpkYzE3Njc0Yy04MWQ5",
+        externalCalendarEventId: "AAMkAGI2TG93AAA=",
+      }),
+      at(HOUR),
+    );
+
+    expect(read.mock.calls[0]![0].call).toEqual({
+      provider: VideoCallProvider.MicrosoftTeams,
+      videoCallConnectionId: CONNECTION,
+      externalMeetingId: "MSpkYzE3Njc0Yy04MWQ5",
+      externalCalendarEventId: "AAMkAGI2TG93AAA=",
+      startedAt: STARTED,
     });
   });
 });
