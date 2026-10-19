@@ -194,9 +194,9 @@ describe("EventVideoCall.prepare", () => {
           });
 
         expect(recordingSetting).toHaveBeenCalledWith(PROJECT_ID);
-        expect(
-          startMeeting.mock.calls[0]![0].request.recordAndTranscribe,
-        ).toBe(true);
+        expect(startMeeting.mock.calls[0]![0].request.recordAndTranscribe).toBe(
+          true,
+        );
         expect(prepared.carryForward.recordsAndTranscribes).toBe(true);
       },
     );
@@ -219,9 +219,9 @@ describe("EventVideoCall.prepare", () => {
             fields: { videoCallConnectionId: CONNECTION_ID },
           });
 
-        expect(
-          startMeeting.mock.calls[0]![0].request.recordAndTranscribe,
-        ).toBe(true);
+        expect(startMeeting.mock.calls[0]![0].request.recordAndTranscribe).toBe(
+          true,
+        );
         expect(prepared.carryForward.recordsAndTranscribes).toBe(false);
       },
     );

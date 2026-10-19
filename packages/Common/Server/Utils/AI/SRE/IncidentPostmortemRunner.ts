@@ -295,7 +295,11 @@ export default class AIIncidentPostmortemRunner {
      * page shows the moment it is written - published unreviewed, and
      * announced to every subscriber (IncidentPostmortemPublication).
      */
-    return incident.showPostmortemOnStatusPage !== true;
+    if (incident.showPostmortemOnStatusPage === true) {
+      return false;
+    }
+
+    return true;
   }
 
   private static async writeDraft(data: {

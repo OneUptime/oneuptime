@@ -13,6 +13,8 @@ import EventVideoCall, {
   VideoCallEvent,
   VideoCallEventType,
 } from "../../../Server/Utils/VideoCall/EventVideoCall";
+import IncidentCallTranscriptFetch from "../../../Server/Utils/VideoCall/Transcripts/IncidentCallTranscriptFetch";
+import { CallTranscriptFetchStatus } from "../../../Types/VideoCall/CallTranscriptAutoFetch";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -354,6 +356,58 @@ describe("IncidentVideoCallService create", () => {
     });
   });
 
+  test("passes on that the call is recorded, and watches it for its transcript", async () => {
+    jest.spyOn(EventVideoCall, "announce").mockResolvedValue();
+    const watch: SpyInstance<typeof IncidentCallTranscriptFetch.watchNewCall> =
+      jest
+        .spyOn(IncidentCallTranscriptFetch, "watchNewCall")
+        .mockResolvedValue();
+
+    const created: IncidentVideoCall = call();
+    created.provider = VideoCallProvider.Zoom;
+    created.joinUrl = "https://zoom.us/j/1";
+    created.externalMeetingId = "1";
+    created.videoCallConnectionId = CONNECTION_ID;
+
+    await build().onCreateSuccess(
+      {
+        createBy: { data: created, props: USER_PROPS },
+        carryForward: {
+          connectionName: "Incident Zoom",
+          recordsAndTranscribes: true,
+        },
+      },
+      created,
+    );
+
+    expect(EventVideoCall.announce).toHaveBeenCalledWith(
+      expect.objectContaining({ recordsAndTranscribes: true }),
+    );
+    expect(watch).toHaveBeenCalledWith(created);
+  });
+
+  test("does not watch a call nobody asked to record", async () => {
+    jest.spyOn(EventVideoCall, "announce").mockResolvedValue();
+    const watch: SpyInstance<typeof IncidentCallTranscriptFetch.watchNewCall> =
+      jest
+        .spyOn(IncidentCallTranscriptFetch, "watchNewCall")
+        .mockResolvedValue();
+
+    const created: IncidentVideoCall = call();
+    created.provider = VideoCallProvider.Zoom;
+    created.joinUrl = "https://zoom.us/j/1";
+
+    await build().onCreateSuccess(
+      {
+        createBy: { data: created, props: USER_PROPS },
+        carryForward: { connectionName: "Incident Zoom" },
+      },
+      created,
+    );
+
+    expect(watch).not.toHaveBeenCalled();
+  });
+
   test("shows a person only the calls of incidents they can see", async () => {
     const onFind: OnFind<IncidentVideoCall> = await build().onBeforeFind({
       query: { projectId: PROJECT_ID },
@@ -374,6 +428,109 @@ describe("IncidentVideoCallService create", () => {
     } as FindBy<IncidentVideoCall>);
 
     expect(onFind.findBy.query).toEqual({ projectId: PROJECT_ID });
+  });
+});
+
+/*
+ * The transcript job takes a call before asking about it, in one UPDATE
+ * that only moves a call still Waiting at the attempt the job read: two
+ * runs of the job can never both take it.
+ */
+describe("IncidentVideoCallService.claimTranscriptFetch", () => {
+  interface RecordedUpdate {
+    set: JSONObject | null;
+    where: Array<{ sql: string; params?: JSONObject | undefined }>;
+  }
+
+  function stubRepository(
+    service: IncidentVideoCallServiceType,
+    affected: number | undefined,
+  ): RecordedUpdate {
+    const recorded: RecordedUpdate = { set: null, where: [] };
+    const builder: Record<string, unknown> = {};
+
+    builder["update"] = (): unknown => {
+      return builder;
+    };
+    builder["set"] = (values: JSONObject): unknown => {
+      recorded.set = values;
+      return builder;
+    };
+    builder["where"] = (sql: string, params?: JSONObject): unknown => {
+      recorded.where.push({ sql, params });
+      return builder;
+    };
+    builder["andWhere"] = builder["where"];
+    builder["execute"] = async (): Promise<{ affected?: number }> => {
+      return affected === undefined ? {} : { affected };
+    };
+
+    jest.spyOn(service, "getRepository").mockReturnValue({
+      createQueryBuilder: (): unknown => {
+        return builder;
+      },
+    } as unknown as ReturnType<typeof service.getRepository>);
+
+    return recorded;
+  }
+
+  const DUE_AT: Date = new Date("2026-10-19T10:10:00.000Z");
+  const NEXT: Date = new Date("2026-10-19T10:20:00.000Z");
+
+  test("moves the next attempt on, only for the call, while Waiting at the attempt read, and not deleted", async () => {
+    const service: IncidentVideoCallServiceType =
+      new IncidentVideoCallServiceType();
+    const recorded: RecordedUpdate = stubRepository(service, 1);
+    const callId: ObjectID = ObjectID.generate();
+
+    const claimed: number = await service.claimTranscriptFetch({
+      callId,
+      dueAt: DUE_AT,
+      nextAttemptAt: NEXT,
+    });
+
+    expect(claimed).toBe(1);
+    expect(recorded.set).toEqual({ transcriptFetchNextAttemptAt: NEXT });
+    expect(recorded.where).toEqual([
+      { sql: '"_id" = :id', params: { id: callId.toString() } },
+      {
+        sql: '"transcriptFetchStatus" = :status',
+        params: { status: CallTranscriptFetchStatus.Waiting },
+      },
+      {
+        sql: '"transcriptFetchNextAttemptAt" = :dueAt',
+        params: { dueAt: DUE_AT },
+      },
+      { sql: '"deletedAt" IS NULL', params: undefined },
+    ]);
+  });
+
+  test("0 when another run took it first, or it stopped waiting", async () => {
+    const service: IncidentVideoCallServiceType =
+      new IncidentVideoCallServiceType();
+    stubRepository(service, 0);
+
+    expect(
+      await service.claimTranscriptFetch({
+        callId: ObjectID.generate(),
+        dueAt: DUE_AT,
+        nextAttemptAt: NEXT,
+      }),
+    ).toBe(0);
+  });
+
+  test("0 when the database says nothing about what it changed", async () => {
+    const service: IncidentVideoCallServiceType =
+      new IncidentVideoCallServiceType();
+    stubRepository(service, undefined);
+
+    expect(
+      await service.claimTranscriptFetch({
+        callId: ObjectID.generate(),
+        dueAt: DUE_AT,
+        nextAttemptAt: NEXT,
+      }),
+    ).toBe(0);
   });
 });
 

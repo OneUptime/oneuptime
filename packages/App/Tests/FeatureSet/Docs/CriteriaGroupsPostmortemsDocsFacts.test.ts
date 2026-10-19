@@ -2661,7 +2661,7 @@ describe("starting a postmortem from a template or an AI draft", () => {
       "if (incident.postmortemNote && incident.postmortemNote.trim().length > 0) {",
     );
     expect(draft).toContain(
-      "return incident.showPostmortemOnStatusPage !== true;",
+      "if (incident.showPostmortemOnStatusPage === true) {",
     );
     // Both the draft on resolve and the draft that waited for its calls check it.
     expect(

@@ -9,9 +9,12 @@ import {
 import { act, renderHook, waitFor } from "@testing-library/react";
 import useEventVideoCalls, {
   CALL_SUMMARY_POLL_INTERVAL_MS,
+  CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS,
   EventVideoCallsState,
   VideoCallEventKind,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/VideoCall/useEventVideoCalls";
+import { CallTranscriptFetchStatus } from "../../../Types/VideoCall/CallTranscriptAutoFetch";
+import { VideoCallTranscriptUnavailableReason } from "../../../Types/VideoCall/VideoCallTranscript";
 import IncidentVideoCall from "../../../Models/DatabaseModels/IncidentVideoCall";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
@@ -155,6 +158,82 @@ describe("looking again while OneUptime AI reads", () => {
 
     await nextLook();
     await nextLook();
+
+    expect(getList).toHaveBeenCalledTimes(1);
+  });
+
+  test("while OneUptime waits to get a transcript, looks again once a minute, then every few seconds as it is read, then stops", async () => {
+    const waiting: IncidentVideoCall = transcriptCall({
+      fetchStatus: CallTranscriptFetchStatus.Waiting,
+    });
+
+    answers = [[waiting], [waiting], [reading()], [suggestedCall()]];
+
+    const { result } = renderCalls();
+
+    await waitFor(() => {
+      expect(result.current.hasLoaded).toBe(true);
+    });
+    expect(getList).toHaveBeenCalledTimes(1);
+
+    // Not every few seconds: a transcript comes minutes after a call.
+    await nextLook();
+    expect(getList).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(
+        CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS - CALL_SUMMARY_POLL_INTERVAL_MS,
+      );
+    });
+    await waitFor(() => {
+      expect(getList).toHaveBeenCalledTimes(2);
+    });
+
+    // The transcript came in, and OneUptime AI reads it.
+    await act(async () => {
+      jest.advanceTimersByTime(CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS);
+    });
+    await waitFor(() => {
+      expect(
+        (result.current.calls[0] as IncidentVideoCall).callSummaryStatus,
+      ).toBe(CallSummaryStatus.Pending);
+    });
+    expect(getList).toHaveBeenCalledTimes(3);
+
+    await nextLook();
+    await waitFor(() => {
+      expect(
+        (result.current.calls[0] as IncidentVideoCall).callSummaryStatus,
+      ).toBe(CallSummaryStatus.Ready);
+    });
+    expect(getList).toHaveBeenCalledTimes(4);
+
+    // Read: nothing more to wait for.
+    await act(async () => {
+      jest.advanceTimersByTime(2 * CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS);
+    });
+    expect(getList).toHaveBeenCalledTimes(4);
+  });
+
+  test("a call OneUptime stopped waiting on is not looked at again", async () => {
+    answers = [
+      [
+        transcriptCall({
+          fetchStatus: CallTranscriptFetchStatus.Stopped,
+          fetchReason: VideoCallTranscriptUnavailableReason.NotTranscribed,
+        }),
+      ],
+    ];
+
+    const { result } = renderCalls();
+
+    await waitFor(() => {
+      expect(result.current.hasLoaded).toBe(true);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(3 * CALL_TRANSCRIPT_WAIT_POLL_INTERVAL_MS);
+    });
 
     expect(getList).toHaveBeenCalledTimes(1);
   });

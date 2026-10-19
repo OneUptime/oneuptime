@@ -200,7 +200,9 @@ describe("ZoomMeetingClient", () => {
       request: { title: "INC-42", recordAndTranscribe: true },
     });
 
-    expect(fetcher.requests[0]!.url).toBe(`${ZOOM_API_BASE_URL}/users/me/meetings`);
+    expect(fetcher.requests[0]!.url).toBe(
+      `${ZOOM_API_BASE_URL}/users/me/meetings`,
+    );
     expect(readJsonBody(fetcher.requests[0]!)["settings"]).toEqual(
       expect.objectContaining({ auto_recording: "cloud" }),
     );
