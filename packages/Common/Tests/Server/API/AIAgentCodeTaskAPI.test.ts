@@ -13,6 +13,7 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import AIRunType from "../../../Types/AI/AIRunType";
@@ -132,17 +133,18 @@ beforeEach(() => {
   storedRepository = repository();
   reachable = true;
 
+  // CodeFixAgentAuth.authenticate runs on what the credential check proves.
   jest
-    .spyOn(CodeFixAgentAuth, "resolveAgentIdentity")
+    .spyOn(CodeFixAgentAuth, "checkCredential")
     .mockImplementation(async (data: JSONObject) => {
       if (data["aiAgentKey"] !== "the-key") {
-        return null;
+        return credentialCheckProving(null);
       }
-      return {
+      return credentialCheckProving({
         id: ObjectID.generate(),
         projectId: agentProjectId,
         source: CodeFixAgentSource.AIAgent,
-      };
+      });
     });
   jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
     return storedRun;

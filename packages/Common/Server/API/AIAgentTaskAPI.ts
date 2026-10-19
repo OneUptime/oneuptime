@@ -83,7 +83,7 @@ export default class AIAgentTaskAPI {
                * before it said is handed only the recipes every Runner has.
                */
               supportedTaskTypes: CodeFixTaskTypeHelper.readSupportedTaskTypes(
-                data["supportedTaskTypes"],
+                (req.body as JSONObject | undefined)?.["supportedTaskTypes"],
               ),
             });
 

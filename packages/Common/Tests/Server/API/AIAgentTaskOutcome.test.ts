@@ -10,6 +10,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import { mockRouter } from "./Helpers";
+import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIAgentTaskStatus from "../../../Types/AI/AIAgentTaskStatus";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
@@ -129,11 +130,13 @@ beforeEach(() => {
   const projectId: ObjectID = ObjectID.generate();
   runId = ObjectID.generate();
 
-  jest.spyOn(CodeFixAgentAuth, "resolveAgentIdentity").mockResolvedValue({
-    id: ObjectID.generate(),
-    projectId: projectId,
-    source: CodeFixAgentSource.Runner,
-  });
+  jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
+    credentialCheckProving({
+      id: ObjectID.generate(),
+      projectId: projectId,
+      source: CodeFixAgentSource.Runner,
+    }),
+  );
   jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
     const run: AIRun = new AIRun();
     run.id = runId;

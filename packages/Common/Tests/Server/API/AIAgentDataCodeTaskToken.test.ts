@@ -15,6 +15,7 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
 import AIAgentTaskPullRequest from "../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
@@ -144,11 +145,13 @@ beforeEach(() => {
   workingPullRequest = null;
   capAllows = true;
 
-  jest.spyOn(CodeFixAgentAuth, "resolveAgentIdentity").mockResolvedValue({
-    id: ObjectID.generate(),
-    projectId: PROJECT_ID,
-    source: CodeFixAgentSource.Runner,
-  });
+  jest.spyOn(CodeFixAgentAuth, "checkCredential").mockResolvedValue(
+    credentialCheckProving({
+      id: ObjectID.generate(),
+      projectId: PROJECT_ID,
+      source: CodeFixAgentSource.Runner,
+    }),
+  );
   jest
     .spyOn(CodeRepositoryService, "findOneById")
     .mockImplementation(async (data: { id: ObjectID }) => {
