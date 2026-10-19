@@ -482,7 +482,8 @@ describe("on a phone", () => {
     expect(lines).not.toBeNull();
     expect(lines).toBe(where.parentElement);
     expect(button).toContainElement(lines);
-    expect(lines).toHaveClass("text-left");
+    // text-start, not text-left: the side the lines start on, in either direction.
+    expect(lines).toHaveClass("text-start");
   });
 
   /*

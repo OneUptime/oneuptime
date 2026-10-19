@@ -578,11 +578,12 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               </div>
             )}
             {/*
-             * text-left: a <button> centres its text, which set "Navigate to"
-             * off-centre above the page's name, the two lines starting at
-             * different edges. Both start at the icon's side.
+             * text-start: a <button> centres its text, which set "Navigate
+             * to" off-centre above the page's name, the two lines starting
+             * at different edges. Both start at the icon's side, in a
+             * right-to-left page too.
              */}
-            <div className="min-w-0 text-left">
+            <div className="min-w-0 text-start">
               <p className="text-xs text-gray-400 font-medium">
                 {translateString("Navigate to")}
               </p>
