@@ -31,7 +31,11 @@ import {
  *    another page's or a confirmed one - and a create that is refused, for
  *    whatever reason, replaces nothing;
  *  - every role that may add subscribers replaces a run-out sign-up, and
- *    is refused, never told to come back later, while its link works.
+ *    is refused, never told to come back later, while its link works;
+ *  - the check made again with the INSERT, under the page's lock, reads
+ *    what the page holds by then: a run-out subscription the team marked
+ *    Subscribed in the meantime holds its contact, and so does the new
+ *    subscription another create made of it first.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -91,12 +95,15 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
   };
 });
 
-import {
+import StatusPageSubscriberService, {
   ALREADY_SUBSCRIBED_MESSAGE,
   CONFIRMATION_LINK_SENT_TO_EMAIL_MESSAGE,
   CONTACT_ALREADY_SUBSCRIBED_MESSAGE,
 } from "../../../Server/Services/StatusPageSubscriberService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
+import PublicMessageRateLimit, {
+  PublicMessageKind,
+} from "../../../Server/Utils/RateLimit/PublicMessageRateLimit";
 import StatusPageSubscriberConfirmationCode from "../../../Server/Utils/StatusPage/StatusPageSubscriberConfirmationCode";
 import Response from "../../../Server/Utils/Response";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -637,6 +644,130 @@ describe("every role that adds subscribers is held to the same day", () => {
       expect(rows[0]!["isAddedByTeam"]).toBe(true);
     },
   );
+});
+
+describe("the INSERT is decided with what the page holds by then", () => {
+  type CreateLimitReader = (createBy: unknown) => Promise<unknown>;
+
+  /*
+   * The create's check made again with its INSERT, under the page's lock
+   * (getCreateLimit): `meanwhile` runs once a create has passed every early
+   * check, right before that one is made.
+   */
+  function beforeTheInsert(meanwhile: () => Promise<void>): void {
+    const service: { getCreateLimit: CreateLimitReader } =
+      StatusPageSubscriberService as unknown as {
+        getCreateLimit: CreateLimitReader;
+      };
+    const original: CreateLimitReader = service.getCreateLimit.bind(
+      StatusPageSubscriberService,
+    );
+
+    jest
+      .spyOn(service, "getCreateLimit")
+      .mockImplementationOnce(async (createBy: unknown): Promise<unknown> => {
+        await meanwhile();
+        return await original(createBy);
+      });
+  }
+
+  // A contact's sign-ups counted in this hour (PublicMessageRateLimit).
+  function signUpsCountedFor(email: string): number {
+    return world.redis.count(
+      PublicMessageRateLimit.getContactCounterKey({
+        counterName: PublicMessageKind.StatusPageSignUp,
+        contact: PublicMessageRateLimit.forEmail(email),
+      }),
+    );
+  }
+
+  test("a run-out sign-up the team marks Subscribed while a new sign-up of its contact is on its way: the new one is refused at its INSERT, and the subscribed one stays", async () => {
+    const runOut: StoredRow = stored({ email: EMAIL, sentAgo: 2 * DAY });
+
+    beforeTheInsert(async (): Promise<void> => {
+      expect(
+        (
+          await teamUpdate(String(runOut["_id"]), {
+            isSubscriptionConfirmed: true,
+          })
+        ).error,
+      ).toBeUndefined();
+    });
+
+    const answer: Answer = await signUp(THE_OWNER, { subscriberEmail: EMAIL });
+
+    expect(answer.error?.message).toBe(ALREADY_SUBSCRIBED_MESSAGE);
+    expect(answer.error?.code).toBe(400);
+    expect(answer.retryAfter).toBeUndefined();
+
+    expect(isStored(runOut)).toBe(true);
+    expect(runOut["isSubscriptionConfirmed"]).toBe(true);
+    expect(rowsOf(world)).toHaveLength(1);
+    expect(world.subscribers.deletes).toEqual([]);
+    expect(messagesSent()).toBe(0);
+    // Nothing was sent to it: the contact's count is given back.
+    expect(signUpsCountedFor(EMAIL)).toBe(0);
+  });
+
+  test("two sign-ups of a contact whose sign-up ran out, the second reaching its INSERT after the first is done: the first replaces it with a new link, the second is told that link was sent", async () => {
+    const runOut: StoredRow = stored({ email: EMAIL, sentAgo: 2 * DAY });
+
+    let first: Answer | undefined;
+
+    // The second passed its early checks with the run-out one still there.
+    beforeTheInsert(async (): Promise<void> => {
+      first = await signUp(SOMEONE_ELSE, { subscriberEmail: EMAIL });
+    });
+
+    const second: Answer = await signUp(THE_OWNER, { subscriberEmail: EMAIL });
+
+    expect(first?.error).toBeUndefined();
+
+    expect(second.error?.message).toBe(CONFIRMATION_LINK_SENT_TO_EMAIL_MESSAGE);
+    expect(second.error?.code).toBe(429);
+    expect(second.retryAfter).toBe(String(DAY / 1000));
+
+    // The first one's subscription, alone, with the one link it sent.
+    expect(isStored(runOut)).toBe(false);
+    expect(world.subscribers.deletes).toEqual([String(runOut["_id"])]);
+
+    const rows: Array<StoredRow> = rowsOf(world);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!["isSubscriptionConfirmed"]).toBe(false);
+    expect(confirmationEmailsSent()).toBe(1);
+    expect(messagesSent()).toBe(1);
+
+    // Only the sign-up that sent the link is counted against the contact.
+    expect(signUpsCountedFor(EMAIL)).toBe(1);
+  });
+
+  test("the team adding a contact whose sign-up ran out, a visitor's sign-up of it reaching its INSERT first: the team is refused, saying the rule", async () => {
+    const runOut: StoredRow = stored({ email: EMAIL, sentAgo: 2 * DAY });
+
+    let visitor: Answer | undefined;
+
+    beforeTheInsert(async (): Promise<void> => {
+      visitor = await signUp(THE_OWNER, { subscriberEmail: EMAIL });
+    });
+
+    const team: Answer = await teamAdd({
+      subscriberEmail: EMAIL,
+      isSubscriptionConfirmed: true,
+    });
+
+    expect(visitor?.error).toBeUndefined();
+
+    expect(team.error?.message).toBe(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+    expect(team.retryAfter).toBeUndefined();
+
+    expect(isStored(runOut)).toBe(false);
+
+    const rows: Array<StoredRow> = rowsOf(world);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!["isAddedByTeam"]).toBe(false);
+    expect(rows[0]!["isSubscriptionConfirmed"]).toBe(false);
+    expect(confirmationEmailsSent()).toBe(1);
+  });
 });
 
 // Changes the page's own settings, as its settings page does.
