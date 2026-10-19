@@ -16,6 +16,7 @@ import {
   DeveloperDocsPageDefinition,
 } from "../../../FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
 import { StatusPageOverviewCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageOverviewCopy";
+import { SubscriberFormCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/SubscriberFormChoices";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import CacheGenerations from "Common/Server/Infrastructure/CacheGenerations";
@@ -75,6 +76,7 @@ const SUBSCRIBER_CHOICES_COPY: string = `${DASHBOARD}/Components/StatusPage/Subs
 const SUBSCRIBER_FORM_CHOICES: string = `${DASHBOARD}/Components/StatusPage/SubscriberFormChoices.ts`;
 const EMAIL_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/EmailSubscribers.tsx`;
 const SMS_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/SMSSubscribers.tsx`;
+const SUBSCRIBER_STATUS_PILL: string = `${DASHBOARD}/Components/StatusPage/SubscriberStatusPill.tsx`;
 
 const STATUS_PAGE_APP: string = "App/FeatureSet/StatusPage/src";
 const VISITOR_ROUTES: string = `${STATUS_PAGE_APP}/Utils/RouteMap.ts`;
@@ -1274,10 +1276,16 @@ describe("Subscribers & Announcements: confirming an email address", () => {
       "await StatusPageSubscriberService.confirmSubscription({",
     );
     expect(service).toMatch(
-      /if \(confirmed === 0\) \{\s*return SubscriptionConfirmationOutcome\.AlreadyConfirmed;\s*\}\s*await this\.sendYouHaveSubscribedEmail\(\{\s*subscriberId: subscriber\.id,\s*\}\);\s*await this\.sendYouHaveSubscribedText\(\{\s*subscriberId: subscriber\.id,\s*\}\);/,
+      /return now\?\.isSubscriptionConfirmed\s*\? SubscriptionConfirmationOutcome\.AlreadyConfirmed\s*: SubscriptionConfirmationOutcome\.NotFound;\s*\}\s*await this\.sendYouHaveSubscribedEmail\(\{\s*subscriberId: subscriber\.id,\s*\}\);\s*await this\.sendYouHaveSubscribedText\(\{\s*subscriberId: subscriber\.id,\s*\}\);/,
     );
     // The SMS subscribers list shows who has not confirmed yet.
-    expect(smsSubscribers).toContain('text={"Awaiting Confirmation"}');
+    expect(smsSubscribers).toContain("<SubscriberStatusPill");
+    expect(smsSubscribers).toContain(
+      "SubscriberFormCopy.awaitingTextConfirmationDescription",
+    );
+    expect(readSource(SUBSCRIBER_STATUS_PILL)).toContain(
+      'text={"Awaiting Confirmation"}',
+    );
     // The SMS log keeps the link with its code redacted.
     expect(
       StatusPageSubscriberUnsubscribe.redactCredentials(
@@ -1304,6 +1312,75 @@ describe("Subscribers & Announcements: confirming an email address", () => {
     );
     expect(optIn).toContain(
       "The query that fetches subscribers for a notification filters on `isUnsubscribed: false` and `isSubscriptionConfirmed: true`.",
+    );
+  });
+});
+
+/*
+ * A link to confirm works for a day after it is sent
+ * (StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS), and holds its
+ * contact on its page only that long (Common:
+ * StatusPageSubscriptionLinkExpiry).
+ */
+describe("Subscribers & Announcements: a confirmation link works for a day", () => {
+  const page: string = englishPage(SUBSCRIBERS);
+  const optIn: string = sectionOf(page, "## Email double opt-in");
+  const service: string = readSource(SUBSCRIBER_SERVICE);
+  const api: string = readSource(STATUS_PAGE_API);
+  const hours: number = StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS;
+  const visitorLocale: {
+    subscribe: { confirm: Record<string, string> };
+  } = JSON.parse(readSource(VISITOR_LOCALE));
+
+  it("says how long, as the code holds it, and the email and the SMS say it too", () => {
+    expect(hours).toBe(24);
+    expect(optIn).toContain(
+      `**A confirmation link works for ${hours} hours.** The email and the SMS say so.`,
+    );
+    expect(
+      readSource("App/FeatureSet/Notification/Templates/ConfirmStatusPageSubscription.hbs"),
+    ).toContain(`This link expires in ${hours} hours.`);
+    expect(service).toContain(
+      "by text message within ${StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS} hours.",
+    );
+  });
+
+  it("says what opening it later shows: the confirm page's own words, Subscribe again and a 400, and Link Expired in the list", () => {
+    expect(optIn).toContain(
+      `Opened later, it confirms nothing: the **${visitorLocale.subscribe.confirm["title"]}** page says *${visitorLocale.subscribe.confirm["linkNotValid"]}* and offers **${visitorLocale.subscribe.confirm["subscribeAgain"]}**, and the API answers \`400\`.`,
+    );
+    expect(service).toContain(
+      "if (StatusPageSubscriberConfirmationCode.hasExpired(subscriber.createdAt)) {\n      return SubscriptionConfirmationOutcome.Expired;",
+    );
+    expect(api).toMatch(
+      /if \(outcome === SubscriptionConfirmationOutcome\.Expired\) \{\s*return Response\.sendErrorResponse\(\s*req,\s*res,\s*new BadDataException\(CONFIRMATION_LINK_EXPIRED_MESSAGE\),/,
+    );
+    expect(optIn).toContain(
+      `The subscriber stays unconfirmed, is sent nothing and shows as **${SubscriberFormCopy.linkExpiredTitle}** in its list, instead of **${SubscriberFormCopy.awaitingConfirmationTitle}**.`,
+    );
+    expect(readSource(SUBSCRIBER_STATUS_PILL)).toContain(
+      "text={SubscriberFormCopy.linkExpiredTitle}",
+    );
+  });
+
+  it("says signing up again while it works sends nothing more and answers 429 with Retry-After, and replaces it once it has expired", () => {
+    expect(service).toContain(
+      "throw new PublicMessageRateLimitException(",
+    );
+    expect(service).toContain(
+      "StatusPageSubscriberConfirmationCode.getSecondsLeft(",
+    );
+    expect(service).toMatch(
+      /isSubscriptionConfirmed: false,\s*createdAt: QueryHelper\.lessThanEqualTo\(\s*new Date\(\s*Date\.now\(\) - StatusPageSubscriberConfirmationCode\.VALID_FOR_MS,/,
+    );
+    expect(optIn).toContain(
+      "**Signing up again.** While the link works, signing the same email address or phone number up again on that status page sends nothing more: the visitor is told a link was already sent, and the API answers `429` with a `Retry-After` header.",
+    );
+    expect(optIn).toContain(
+      "Once the link has expired, the subscription no longer holds its contact: a new signup, or your team adding the contact, replaces it, and a signup gets a new link.",
+    );
+    expect(optIn).toContain(
+      `Links sent before this change work for ${hours} hours after their signup too.`,
     );
   });
 });
