@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "{{role}}에 역할 추가",
   "Custom Role Details": "사용자 정의 역할 세부 정보",
   "Members of these teams can do everything this role allows.": "이 팀들의 구성원은 이 역할이 허용하는 모든 것을 할 수 있습니다.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "역할 페이지에서 만든, 이름이 있는 권한 묶음입니다. 역할을 바꾸면 이 팀도 함께 바뀝니다.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "{{roles}} 페이지에서 만든, 이름이 있는 권한 묶음입니다. 역할을 바꾸면 이 팀도 함께 바뀝니다.",
   "Shown on every team you give the role to.": "이 역할을 부여하는 모든 팀에 표시됩니다.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "이 역할이 묶는 기본 제공 역할로, 프로젝트의 모든 리소스에 적용됩니다. 개별 권한은 역할 페이지에서 추가합니다.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "이 역할이 묶는 기본 제공 역할로, 프로젝트의 모든 리소스에 적용됩니다. 본인에게 없는 역할은 목록에 없습니다.",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "안전: 클라이언트는 읽기 전용 도구를 묻지 않고 실행할 수 있으며, 삭제하는 작업 전에는 확인을 요청합니다. 로그인으로 연결된 클라이언트는 읽기 전용으로 제한할 수 있습니다.",
   "See the {{docsLink}} for every tool.": "모든 도구는 {{docsLink}}에서 확인하세요.",
   "Twilio account for SMS and calls": "SMS 및 전화용 Twilio 계정",
-  "Up to {{limit}} open at once": "동시에 최대 {{limit}}개"
+  "Up to {{limit}} open at once": "동시에 최대 {{limit}}개",
+  "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다."
 }

@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Ajouter un rôle à {{role}}",
   "Custom Role Details": "Détails du rôle personnalisé",
   "Members of these teams can do everything this role allows.": "Les membres de ces équipes peuvent faire tout ce que ce rôle permet.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Des ensembles nommés de permissions, créés sur la page Rôles. Modifier un rôle modifie aussi cette équipe.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Des ensembles nommés de permissions, créés sur la page {{roles}}. Modifier un rôle modifie aussi cette équipe.",
   "Shown on every team you give the role to.": "Affiché sur chaque équipe à qui vous donnez le rôle.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "Les rôles intégrés qu'il regroupe, pour chaque ressource du projet. Ajoutez des permissions individuelles sur la page du rôle.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "Les rôles intégrés qu'il regroupe, pour chaque ressource du projet. Les rôles que vous n'avez pas vous-même ne sont pas listés.",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Sécurité : les clients peuvent exécuter les outils en lecture seule sans demander, et demandent avant tout ce qui supprime. Un client connecté par connexion peut être limité à la lecture seule.",
   "See the {{docsLink}} for every tool.": "Tous les outils sont décrits dans la {{docsLink}}.",
   "Twilio account for SMS and calls": "Compte Twilio pour les SMS et les appels",
-  "Up to {{limit}} open at once": "Jusqu'à {{limit}} ouvertes en même temps"
+  "Up to {{limit}} open at once": "Jusqu'à {{limit}} ouvertes en même temps",
+  "Gets nothing until they open the link we texted them.": "Ne reçoit rien tant que le lien envoyé par SMS n'a pas été ouvert."
 }

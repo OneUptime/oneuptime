@@ -15,6 +15,7 @@ import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavail
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
+import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey";
 
 /*
  * MESSAGES THAT A PUBLIC ROUTE SENDS TO AN ADDRESS ITS CALLER NAMES.
@@ -82,6 +83,24 @@ import Phone from "../../../Types/Phone";
  * was before these limits existed: refusing every sign-up and password reset
  * for as long as Redis is away costs real people more than an email that
  * goes out uncounted for that while.
+ *
+ * MESSAGES THE TEAM SENDS TO A CONTACT IT NAMES
+ *
+ * A project's team names contacts too: the subscribers it adds to a status
+ * page - from the dashboard, with an API key or by a workflow - and the
+ * people it invites, to its project or to a private status page. Each is
+ * sent a message as it is added, from this installation's mail server or
+ * SMS sender, so each contact is sent a bounded number of them an hour,
+ * whichever project names it. These are counted per contact only (assertTeamMaySend, TeamMessageKind): a team
+ * adding its own subscribers in bulk, or inviting its colleagues, names
+ * each contact once, and is never held back by how many it adds. A
+ * subscriber the team adds is counted with the sign-ups of the same
+ * contact - one count of the subscription messages a contact is sent,
+ * whoever subscribed it - and an invitation with the other invitations sent
+ * to that address. Counted right before the send, given back when the
+ * create ends with nothing sent, as above. When the counter cannot be
+ * reached they go out uncounted, text messages too: the team is signed in,
+ * and what it sends it pays for.
  */
 
 export enum PublicMessageKind {
@@ -103,6 +122,27 @@ export enum PublicMessageKind {
    * yet sends.
    */
   SignUpEmail = "sign-up-email",
+}
+
+/*
+ * What the team sends to a contact it names (see MESSAGES THE TEAM SENDS TO
+ * A CONTACT IT NAMES, above): counted per contact only.
+ */
+export enum TeamMessageKind {
+  /*
+   * A subscriber the team adds to a status page: its confirmation email, or
+   * the "you have been subscribed" message on its channel. Counted with the
+   * status page sign-ups of the same contact (PublicMessageKind
+   * .StatusPageSignUp's counter, and its limit).
+   */
+  SubscriberAdded = "subscriber-added",
+
+  /*
+   * An invitation: to a project, for someone not in it yet
+   * (TeamMemberService), or to a private status page
+   * (StatusPagePrivateUserService).
+   */
+  Invitation = "invitation",
 }
 
 // Where a message goes.
@@ -191,6 +231,11 @@ export interface PublicMessageKindConfig {
   perContactLimit: number;
 }
 
+export interface TeamMessageKindConfig {
+  // Messages of this kind one contact may be sent per contact window.
+  perContactLimit: number;
+}
+
 export interface PublicMessageRateLimitConfig {
   // The window of the client counters, in seconds.
   clientWindowSeconds: number;
@@ -205,6 +250,9 @@ export interface PublicMessageRateLimitConfig {
   perClientTextMessageLimit: number;
 
   kinds: Record<PublicMessageKind, PublicMessageKindConfig>;
+
+  // What the team sends, per contact (assertTeamMaySend).
+  teamKinds: Record<TeamMessageKind, TeamMessageKindConfig>;
 }
 
 /*
@@ -269,7 +317,20 @@ const parsePositiveIntFromEnv: (name: string, fallback: number) => number = (
  * Text messages: ten from one address in a quarter of an hour, of every kind
  * together (sign-ups by text and manage links by text). A text is paid for
  * from the project's balance, and nobody needs more.
+ *
+ * A subscriber the team adds: counted with the sign-ups of its contact, so
+ * held to their ten in an hour. A team adds each of its subscribers once.
+ *
+ * Invitations: ten to one address in an hour, to projects and private status
+ * pages together. A person is invited once, perhaps again when the first
+ * invitation is lost; ten is room for a person joining several projects in
+ * one sitting.
  */
+const STATUS_PAGE_SIGN_UPS_PER_CONTACT: number = parsePositiveIntFromEnv(
+  "STATUS_PAGE_SIGN_UPS_PER_CONTACT",
+  10,
+);
+
 const CONFIG: PublicMessageRateLimitConfig = {
   clientWindowSeconds: parsePositiveIntFromEnv("WINDOW_SECONDS", 15 * 60),
   contactWindowSeconds: parsePositiveIntFromEnv(
@@ -286,10 +347,7 @@ const CONFIG: PublicMessageRateLimitConfig = {
         "STATUS_PAGE_SIGN_UPS_PER_IP",
         60,
       ),
-      perContactLimit: parsePositiveIntFromEnv(
-        "STATUS_PAGE_SIGN_UPS_PER_CONTACT",
-        10,
-      ),
+      perContactLimit: STATUS_PAGE_SIGN_UPS_PER_CONTACT,
     },
     [PublicMessageKind.StatusPageManageLink]: {
       perClientLimit: parsePositiveIntFromEnv(
@@ -323,6 +381,24 @@ const CONFIG: PublicMessageRateLimitConfig = {
       perContactLimit: parsePositiveIntFromEnv("SIGN_UP_EMAILS_PER_CONTACT", 5),
     },
   },
+  teamKinds: {
+    // One counter with the sign-ups: their counter, their limit.
+    [TeamMessageKind.SubscriberAdded]: {
+      perContactLimit: STATUS_PAGE_SIGN_UPS_PER_CONTACT,
+    },
+    [TeamMessageKind.Invitation]: {
+      perContactLimit: parsePositiveIntFromEnv("INVITATIONS_PER_CONTACT", 10),
+    },
+  },
+};
+
+/*
+ * The counter a team's message of each kind is counted on: a subscriber the
+ * team adds on its contact's sign-up counter, so the two share one count.
+ */
+const TEAM_MESSAGE_COUNTERS: Record<TeamMessageKind, string> = {
+  [TeamMessageKind.SubscriberAdded]: PublicMessageKind.StatusPageSignUp,
+  [TeamMessageKind.Invitation]: TeamMessageKind.Invitation,
 };
 
 // What a caller refused by its own counters is told, by kind.
@@ -389,6 +465,22 @@ const CONTACT_REFUSALS: Record<
   },
 };
 
+/*
+ * What the team is told when a contact it names has been sent enough of a
+ * kind: what to do instead, as well as when.
+ */
+const TEAM_CONTACT_REFUSALS: Record<
+  TeamMessageKind,
+  (contactName: string) => string
+> = {
+  [TeamMessageKind.SubscriberAdded]: (contactName: string): string => {
+    return `Too many subscription messages were sent to ${contactName} in the last hour. Please try again later, or add it without a message.`;
+  },
+  [TeamMessageKind.Invitation]: (contactName: string): string => {
+    return `Too many invitations were sent to ${contactName} in the last hour. Please try again later.`;
+  },
+};
+
 // What a request that would send a text message is told while Redis is away.
 const TEXT_MESSAGE_UNAVAILABLE_REFUSALS: Record<PublicMessageKind, string> = {
   [PublicMessageKind.StatusPageSignUp]:
@@ -429,14 +521,6 @@ const MAX_EMAIL_ADDRESS_LENGTH: number = 254;
 // Providers whose mailboxes ignore the dots of the local part.
 const DOTS_IGNORED_DOMAINS: Array<string> = ["gmail.com", "googlemail.com"];
 
-const NOT_A_DIGIT: RegExp = /\D/g;
-
-/*
- * How most of the world dials out of its country: a number written after
- * "00" is the number written after "+".
- */
-const INTERNATIONAL_CALL_PREFIX: string = "00";
-
 /*
  * Redis namespace for every counter here, so a SCAN for these keys never
  * shows another limit's, and no other limit shares a count with them.
@@ -475,6 +559,14 @@ export default class PublicMessageRateLimit {
         },
         [PublicMessageKind.SignUpEmail]: {
           ...CONFIG.kinds[PublicMessageKind.SignUpEmail],
+        },
+      },
+      teamKinds: {
+        [TeamMessageKind.SubscriberAdded]: {
+          ...CONFIG.teamKinds[TeamMessageKind.SubscriberAdded],
+        },
+        [TeamMessageKind.Invitation]: {
+          ...CONFIG.teamKinds[TeamMessageKind.Invitation],
         },
       },
     };
@@ -541,29 +633,24 @@ export default class PublicMessageRateLimit {
   }
 
   /*
-   * A phone number as a contact: its digits. A number is stored as it was
-   * typed, so "+1 415 555 0100", "+14155550100" and "0014155550100" are one
-   * phone.
+   * A phone number as a contact: its line (SubscriberContactKey.forPhone). A
+   * number is stored as it was typed, so "+1 415 555 0100", "+14155550100"
+   * and "0014155550100" are one phone.
    */
   public static forPhone(phone: Phone | string): PublicMessageContact {
-    let digits: string = phone.toString().replace(NOT_A_DIGIT, "");
-
-    if (digits.startsWith(INTERNATIONAL_CALL_PREFIX)) {
-      digits = digits.slice(INTERNATIONAL_CALL_PREFIX.length);
-    }
-
     return {
       channel: PublicMessageChannel.TextMessage,
-      canonical: digits,
+      canonical: SubscriberContactKey.forPhone(phone),
     };
   }
 
   /*
    * A Slack or Microsoft Teams incoming webhook, or a subscriber's webhook,
-   * as a contact: the address it is sent to, as WHATWG URL parsing writes
-   * it (scheme and host in lower case, no default port, no credentials, no
-   * fragment). Path and query are kept: they are what tells one channel, or
-   * one user of a shared webhook service, from another.
+   * as a contact: the address it is sent to (SubscriberContactKey.forUrl:
+   * scheme and host in lower case, no default port, no credentials, no
+   * fragment, percent-encoding written one way). Path and query are kept:
+   * they are what tells one channel, or one user of a shared webhook
+   * service, from another.
    */
   public static forWebhook(
     channel:
@@ -572,18 +659,7 @@ export default class PublicMessageRateLimit {
       | PublicMessageChannel.Webhook,
     url: URL | string,
   ): PublicMessageContact {
-    const value: string = url.toString().trim();
-
-    let canonical: string = value.toLowerCase();
-
-    try {
-      const parsed: globalThis.URL = new globalThis.URL(value);
-      canonical = `${parsed.protocol}//${parsed.host}${parsed.pathname}${parsed.search}`;
-    } catch {
-      // Counted as written.
-    }
-
-    return { channel: channel, canonical: canonical };
+    return { channel: channel, canonical: SubscriberContactKey.forUrl(url) };
   }
 
   /*
@@ -626,9 +702,6 @@ export default class PublicMessageRateLimit {
     const kindConfig: PublicMessageKindConfig = CONFIG.kinds[data.kind];
     const clientWindowIndex: number = PublicMessageRateLimit.getWindowIndex(
       CONFIG.clientWindowSeconds,
-    );
-    const contactWindowIndex: number = PublicMessageRateLimit.getWindowIndex(
-      CONFIG.contactWindowSeconds,
     );
 
     const contacts: Array<PublicMessageContact> =
@@ -689,73 +762,12 @@ export default class PublicMessageRateLimit {
         };
       }
 
-      if (contacts.length === 0) {
-        return { outcome: PublicMessageRateLimitOutcome.Allowed };
-      }
-
-      /*
-       * Each contact's counter is known by its place in the request, so the
-       * one that refused can be named.
-       */
-      const contactCounters: Array<FixedRateLimitCounterSpec<number>> =
-        contacts.map(
-          (
-            contact: PublicMessageContact,
-            index: number,
-          ): FixedRateLimitCounterSpec<number> => {
-            return {
-              scope: index,
-              key: `${KEY_PREFIX}${data.kind}:k:${PublicMessageRateLimit.getContactKey(
-                contact,
-              )}:${contactWindowIndex}`,
-              limit: kindConfig.perContactLimit,
-            };
-          },
-        );
-
-      const contactRefusal: ClientRateLimitRefusal<number> | null =
-        await ClientRateLimitCounter.countFixed<number>({
-          redis: client,
-          ttlSeconds: CONFIG.contactWindowSeconds * TTL_MULTIPLIER,
-          counters: contactCounters,
-        });
-
-      if (!contactRefusal) {
-        return {
-          outcome: PublicMessageRateLimitOutcome.Allowed,
-          countedContactKeys: contactCounters.map(
-            (counter: FixedRateLimitCounterSpec<number>): string => {
-              return counter.key;
-            },
-          ),
-        };
-      }
-
-      /*
-       * Refused for one contact: nothing is sent to any of them, so the
-       * others the request names get their count back. The one that
-       * refused keeps it, over its limit until its window ends.
-       */
-      await PublicMessageRateLimit.giveBackContacts({
-        kind: data.kind,
-        keys: contactCounters
-          .filter((counter: FixedRateLimitCounterSpec<number>): boolean => {
-            return counter.scope !== contactRefusal.scope;
-          })
-          .map((counter: FixedRateLimitCounterSpec<number>): string => {
-            return counter.key;
-          }),
+      return await PublicMessageRateLimit.countContacts({
+        client: client,
+        counterName: data.kind,
+        limit: kindConfig.perContactLimit,
+        contacts: contacts,
       });
-
-      return {
-        outcome: PublicMessageRateLimitOutcome.RateLimited,
-        retryAfterSeconds: PublicMessageRateLimit.getSecondsUntilWindowEnd(
-          CONFIG.contactWindowSeconds,
-        ),
-        scope: PublicMessageRateLimitScope.Contact,
-        contact: contacts[contactRefusal.scope],
-        isFirstRejectionInWindow: contactRefusal.isFirstRefusalInWindow,
-      };
     } catch (err) {
       if (PublicMessageRateLimit.shouldLogCounterUnavailable(data.kind)) {
         logger.warn(
@@ -765,6 +777,190 @@ export default class PublicMessageRateLimit {
       }
 
       return { outcome: PublicMessageRateLimitOutcome.CounterUnavailable };
+    }
+  }
+
+  /*
+   * Count one message of `counterName` to each of `contacts` on its
+   * contact's counter, and decide: allowed with the keys it was counted
+   * under, or refused for the first contact over `limit` - and then the
+   * others give their count back, as nothing is sent to any of them; the
+   * one that refused keeps it, over its limit until its window ends.
+   */
+  private static async countContacts(data: {
+    client: ClientType;
+    counterName: string;
+    limit: number;
+    contacts: Array<PublicMessageContact>;
+  }): Promise<PublicMessageRateLimitDecision> {
+    if (data.contacts.length === 0) {
+      return { outcome: PublicMessageRateLimitOutcome.Allowed };
+    }
+
+    const contactWindowIndex: number = PublicMessageRateLimit.getWindowIndex(
+      CONFIG.contactWindowSeconds,
+    );
+
+    /*
+     * Each contact's counter is known by its place in the request, so the
+     * one that refused can be named.
+     */
+    const contactCounters: Array<FixedRateLimitCounterSpec<number>> =
+      data.contacts.map(
+        (
+          contact: PublicMessageContact,
+          index: number,
+        ): FixedRateLimitCounterSpec<number> => {
+          return {
+            scope: index,
+            key: PublicMessageRateLimit.getContactCounterKey({
+              counterName: data.counterName,
+              contact: contact,
+              windowIndex: contactWindowIndex,
+            }),
+            limit: data.limit,
+          };
+        },
+      );
+
+    const contactRefusal: ClientRateLimitRefusal<number> | null =
+      await ClientRateLimitCounter.countFixed<number>({
+        redis: data.client,
+        ttlSeconds: CONFIG.contactWindowSeconds * TTL_MULTIPLIER,
+        counters: contactCounters,
+      });
+
+    if (!contactRefusal) {
+      return {
+        outcome: PublicMessageRateLimitOutcome.Allowed,
+        countedContactKeys: contactCounters.map(
+          (counter: FixedRateLimitCounterSpec<number>): string => {
+            return counter.key;
+          },
+        ),
+      };
+    }
+
+    await PublicMessageRateLimit.giveBackContacts({
+      kind: data.counterName,
+      keys: contactCounters
+        .filter((counter: FixedRateLimitCounterSpec<number>): boolean => {
+          return counter.scope !== contactRefusal.scope;
+        })
+        .map((counter: FixedRateLimitCounterSpec<number>): string => {
+          return counter.key;
+        }),
+    });
+
+    return {
+      outcome: PublicMessageRateLimitOutcome.RateLimited,
+      retryAfterSeconds: PublicMessageRateLimit.getSecondsUntilWindowEnd(
+        CONFIG.contactWindowSeconds,
+      ),
+      scope: PublicMessageRateLimitScope.Contact,
+      contact: data.contacts[contactRefusal.scope],
+      isFirstRejectionInWindow: contactRefusal.isFirstRefusalInWindow,
+    };
+  }
+
+  /*
+   * The key one contact's counter of `counterName` is kept under in a
+   * window: the same key whoever counts on it, so a sign-up and a subscriber
+   * the team adds share their contact's count.
+   */
+  public static getContactCounterKey(data: {
+    counterName: string;
+    contact: PublicMessageContact;
+    windowIndex?: number | undefined;
+  }): string {
+    const windowIndex: number =
+      data.windowIndex ??
+      PublicMessageRateLimit.getWindowIndex(CONFIG.contactWindowSeconds);
+
+    return `${KEY_PREFIX}${data.counterName}:k:${PublicMessageRateLimit.getContactKey(
+      data.contact,
+    )}:${windowIndex}`;
+  }
+
+  /*
+   * For the team, about to send a message of `kind` to each of `contacts` it
+   * named (see MESSAGES THE TEAM SENDS TO A CONTACT IT NAMES, above): counts
+   * it on each contact's counter, and returns a permit when it may go on, or
+   * throws a PublicMessageRateLimitException (429, carrying when to come
+   * back) when a contact has been sent enough. Nothing about the team is
+   * counted, so adding many subscribers, or inviting many people, is never
+   * held back. While the counter cannot be reached it is let through
+   * uncounted, with a throttled warning. Call it right before anything is
+   * sent, after the create's own checks; a create that ends with nothing
+   * sent gives the permit back (PublicMessageSendPermit).
+   */
+  public static async assertTeamMaySend(data: {
+    kind: TeamMessageKind;
+    contacts: Array<PublicMessageContact>;
+  }): Promise<PublicMessageSendPermit> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      PublicMessageRateLimit.warnSentUncounted(data.kind);
+
+      return PublicMessageRateLimit.permitFor({
+        kind: data.kind,
+        keys: [],
+      });
+    }
+
+    let decision: PublicMessageRateLimitDecision;
+
+    try {
+      decision = await PublicMessageRateLimit.countContacts({
+        client: client,
+        counterName: TEAM_MESSAGE_COUNTERS[data.kind],
+        limit: CONFIG.teamKinds[data.kind].perContactLimit,
+        contacts: PublicMessageRateLimit.withoutRepeats(data.contacts),
+      });
+    } catch (err) {
+      if (PublicMessageRateLimit.shouldLogCounterUnavailable(data.kind)) {
+        logger.warn(`PublicMessageRateLimit: counter failed for ${data.kind}`);
+        logger.warn(err);
+      }
+
+      return PublicMessageRateLimit.permitFor({
+        kind: data.kind,
+        keys: [],
+      });
+    }
+
+    if (
+      decision.outcome === PublicMessageRateLimitOutcome.RateLimited &&
+      decision.contact
+    ) {
+      if (decision.isFirstRejectionInWindow) {
+        logger.warn(
+          `PublicMessageRateLimit: refused ${data.kind} (contact, ${decision.contact.channel})`,
+        );
+      }
+
+      throw new PublicMessageRateLimitException(
+        PublicMessageRateLimit.getTeamRefusalMessage({
+          kind: data.kind,
+          channel: decision.contact.channel,
+        }),
+        decision.retryAfterSeconds || 1,
+      );
+    }
+
+    return PublicMessageRateLimit.permitFor({
+      kind: data.kind,
+      keys: decision.countedContactKeys || [],
+    });
+  }
+
+  // A throttled line for a team's send let through uncounted.
+  private static warnSentUncounted(kind: TeamMessageKind): void {
+    if (PublicMessageRateLimit.shouldLogCounterUnavailable(kind)) {
+      logger.warn(
+        `PublicMessageRateLimit: rate limit counter unavailable, sending ${kind} uncounted`,
+      );
     }
   }
 
@@ -849,7 +1045,7 @@ export default class PublicMessageRateLimit {
    * count back, once.
    */
   private static permitFor(data: {
-    kind: PublicMessageKind;
+    kind: PublicMessageKind | TeamMessageKind;
     keys: Array<string>;
   }): PublicMessageSendPermit {
     let isGivenBack: boolean = false;
@@ -878,7 +1074,8 @@ export default class PublicMessageRateLimit {
    * the request ended with.
    */
   private static async giveBackContacts(data: {
-    kind: PublicMessageKind;
+    // What the counts were for, for the log.
+    kind: string;
     keys: Array<string>;
   }): Promise<void> {
     if (data.keys.length === 0) {
@@ -905,6 +1102,17 @@ export default class PublicMessageRateLimit {
         logger.warn(err);
       }
     }
+  }
+
+  /*
+   * The words the team is told when a contact on `channel` has been sent
+   * enough messages of `kind`.
+   */
+  public static getTeamRefusalMessage(data: {
+    kind: TeamMessageKind;
+    channel: PublicMessageChannel;
+  }): string {
+    return TEAM_CONTACT_REFUSALS[data.kind](CONTACT_NAMES[data.channel]);
   }
 
   // The words a refusal is answered with.
@@ -1009,7 +1217,7 @@ export default class PublicMessageRateLimit {
    * lasts. One line per kind per interval makes it visible without burying
    * everything else.
    */
-  private static shouldLogCounterUnavailable(kind: PublicMessageKind): boolean {
+  private static shouldLogCounterUnavailable(kind: string): boolean {
     const now: number = Date.now();
     const lastLoggedAt: number =
       PublicMessageRateLimit.counterUnavailableLastLoggedAt.get(kind) || 0;
@@ -1023,8 +1231,6 @@ export default class PublicMessageRateLimit {
     return true;
   }
 
-  private static counterUnavailableLastLoggedAt: Map<
-    PublicMessageKind,
-    number
-  > = new Map();
+  private static counterUnavailableLastLoggedAt: Map<string, number> =
+    new Map();
 }

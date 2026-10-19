@@ -26,14 +26,16 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * subscriber who exists, it only said whether they had confirmed - beside
  * an "Unsubscribe" switch. Its Edit form now asks for its Status, in the
  * words of the table's Status column: Subscribed, Awaiting Confirmation
- * (email only, and only while they are awaiting it - nothing sends a new
- * link), Unsubscribed. Each writes isUnsubscribed, and an email
+ * (email and SMS, and only while they are awaiting it - nothing sends a new
+ * link), Unsubscribed. Each writes isUnsubscribed, and an email or SMS
  * subscriber's isSubscriptionConfirmed.
  *
- * The other channels confirm nobody (the server marks every SMS, Slack,
- * Microsoft Teams and webhook subscriber confirmed), so their Add forms keep
- * one switch, Send a welcome message, now folded with the internal note
- * under More fields: off, as before, unless somebody turns it on.
+ * A visitor who signs up by SMS on the status page confirms from their
+ * phone, by the link texted to it; an SMS subscriber the team adds is
+ * confirmed at once, and so is every Slack, Microsoft Teams and webhook
+ * subscriber. So those Add forms keep one switch, Send a welcome message,
+ * now folded with the internal note under More fields: off, as before,
+ * unless somebody turns it on.
  *
  * Kept free of React, so App/Tests read these exact strings and rules.
  * Every string is a whole sentence or a whole name, wrapped in
@@ -54,7 +56,10 @@ export enum SubscriberAddChoice {
 // A subscriber's status, as the subscriber tables' Status column says it.
 export enum SubscriberStatusChoice {
   Subscribed = "subscribed",
-  // Only an email subscriber waits for anything.
+  /*
+   * Only an email subscriber, and an SMS subscriber who signed up on the
+   * status page, waits for anything.
+   */
   AwaitingConfirmation = "awaiting-confirmation",
   Unsubscribed = "unsubscribed",
 }
@@ -74,6 +79,7 @@ export const SubscriberFormCopy: {
   subscribedDescription: string;
   awaitingConfirmationTitle: string;
   awaitingConfirmationDescription: string;
+  awaitingTextConfirmationDescription: string;
   unsubscribedTitle: string;
   unsubscribedDescription: string;
   welcomeTitle: string;
@@ -108,6 +114,9 @@ export const SubscriberFormCopy: {
   awaitingConfirmationTitle: translationKey("Awaiting Confirmation"),
   awaitingConfirmationDescription: translationKey(
     "Gets nothing until they click the link we emailed them.",
+  ),
+  awaitingTextConfirmationDescription: translationKey(
+    "Gets nothing until they open the link we texted them.",
   ),
   unsubscribedTitle: translationKey("Unsubscribed"),
   unsubscribedDescription: translationKey("Gets nothing."),
@@ -230,14 +239,20 @@ export const isEmailSubscriberStatusOffered: (
 };
 
 /*
- * An email subscriber's Status: the three the table shows, Awaiting
- * Confirmation only while they are awaiting it (see
- * isEmailSubscriberStatusOffered). Subscribed confirms one who has not
- * clicked the link yet (as turning "Do not send confirmation link" on
- * did); Unsubscribed leaves whether they had confirmed as it is.
+ * The Status of a subscriber who may be awaiting confirmation: the three
+ * the table shows, Awaiting Confirmation only while they are awaiting it
+ * (see isEmailSubscriberStatusOffered), described as the link reaches them.
+ * Subscribed confirms one who has not opened the link yet (as turning "Do
+ * not send confirmation link" on did): the team vouches for them, as for a
+ * subscriber it adds. Unsubscribed leaves whether they had confirmed as it
+ * is.
  */
-export const EMAIL_SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice> =
-  {
+const getConfirmingSubscriberStatus: (
+  awaitingConfirmationDescription: string,
+) => ColumnChoiceConfig<SubscriberStatusChoice> = (
+  awaitingConfirmationDescription: string,
+): ColumnChoiceConfig<SubscriberStatusChoice> => {
+  return {
     key: SUBSCRIBER_STATUS_FIELD_KEY,
     title: SubscriberFormCopy.statusTitle,
     options: [
@@ -249,7 +264,7 @@ export const EMAIL_SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice>
       {
         value: SubscriberStatusChoice.AwaitingConfirmation,
         title: SubscriberFormCopy.awaitingConfirmationTitle,
-        description: SubscriberFormCopy.awaitingConfirmationDescription,
+        description: awaitingConfirmationDescription,
       },
       {
         value: SubscriberStatusChoice.Unsubscribed,
@@ -271,10 +286,26 @@ export const EMAIL_SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice>
     isOptionOffered: isEmailSubscriberStatusOffered,
     dataTestId: "subscriber-status",
   };
+};
+
+// An email subscriber's Status: awaiting the link we emailed them.
+export const EMAIL_SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice> =
+  getConfirmingSubscriberStatus(
+    SubscriberFormCopy.awaitingConfirmationDescription,
+  );
 
 /*
- * An SMS, Slack, Microsoft Teams or webhook subscriber's Status: subscribed
- * or not. Nobody of these channels waits for a confirmation.
+ * An SMS subscriber's Status: one who signed up by SMS on the status page
+ * awaits the link we texted them.
+ */
+export const SMS_SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice> =
+  getConfirmingSubscriberStatus(
+    SubscriberFormCopy.awaitingTextConfirmationDescription,
+  );
+
+/*
+ * A Slack, Microsoft Teams or webhook subscriber's Status: subscribed or
+ * not. Nobody of these channels waits for a confirmation.
  */
 export const SUBSCRIBER_STATUS: ColumnChoiceConfig<SubscriberStatusChoice> = {
   key: SUBSCRIBER_STATUS_FIELD_KEY,

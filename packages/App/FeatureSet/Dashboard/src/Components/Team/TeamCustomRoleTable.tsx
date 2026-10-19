@@ -29,6 +29,7 @@ import {
   ModalTableBulkDefaultActions,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -192,8 +193,28 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
           }}
           cardProps={{
             title: "Custom Roles",
-            description:
-              "Named sets of permissions, made on the Roles page. Changing a role changes this team too.",
+            /*
+             * Roles is a link: the page waits in the Teams menu's folded
+             * Settings section, and a team's own menu has no entry for it,
+             * so the name alone left the reader to find it.
+             */
+            description: (
+              <TranslatedSentence
+                template="Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too."
+                slots={{
+                  roles: (
+                    <AppLink
+                      className="font-medium text-indigo-600 hover:underline"
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.TEAM_ROLES] as Route,
+                      )}
+                    >
+                      {translator.translateText("Roles") || "Roles"}
+                    </AppLink>
+                  ),
+                }}
+              />
+            ),
             buttons: addButton ? [addButton] : [],
           }}
           noItemsMessage="This team has no custom role yet. Add one to give its members everything the role allows."

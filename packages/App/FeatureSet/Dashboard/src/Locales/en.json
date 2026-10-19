@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Add a Role to {{role}}",
   "Custom Role Details": "Custom Role Details",
   "Members of these teams can do everything this role allows.": "Members of these teams can do everything this role allows.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Named sets of permissions, made on the Roles page. Changing a role changes this team too.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.",
   "Shown on every team you give the role to.": "Shown on every team you give the role to.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.",
@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.",
   "See the {{docsLink}} for every tool.": "See the {{docsLink}} for every tool.",
   "Twilio account for SMS and calls": "Twilio account for SMS and calls",
-  "Up to {{limit}} open at once": "Up to {{limit}} open at once"
+  "Up to {{limit}} open at once": "Up to {{limit}} open at once",
+  "Gets nothing until they open the link we texted them.": "Gets nothing until they open the link we texted them."
 }

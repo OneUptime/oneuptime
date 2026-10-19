@@ -177,28 +177,47 @@ homebrew_casks:
     description: Agent that sends a server's metrics to a OneUptime Server / VM monitor
     homepage: https://oneuptime.com/docs/monitor/server-monitor
     license: Apache-2.0
+    # No `verified:`. Homebrew 7 deprecates it, for its own verification.
     url:
       template: "https://github.com/OneUptime/oneuptime/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
-      verified: github.com/OneUptime/oneuptime/
     directory: Casks
     skip_upload: true
     repository:
       owner: OneUptime
       name: homebrew-tap
       branch: main
-    caveats: |
-      Connect the agent to your Server / VM monitor and start it:
-        sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
-        sudo oneuptime-infrastructure-agent start
-      After an upgrade, restart it: sudo oneuptime-infrastructure-agent restart
-    # The binary is not notarized, and Homebrew quarantines what a cask
-    # downloads, so Gatekeeper would refuse to run it.
-    hooks:
-      post:
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/oneuptime-infrastructure-agent"]
-          end
+    # The caveats and the quarantine step, written as Ruby here rather than
+    # in GoReleaser's caveats and hooks fields.
+    #
+    # Caveats: GoReleaser writes each line of its caveats field as a string
+    # of its own in a `caveats do` block, and Ruby keeps only the block's last
+    # one, so brew showed only the line about restarting after an upgrade.
+    # One heredoc keeps every line.
+    #
+    # Quarantine: the binary is not notarized, and Homebrew quarantines what
+    # a cask downloads, so Gatekeeper would refuse to run it. The step takes
+    # the quarantine off once it is installed.
+    #
+    # In Homebrew 7's postflight_steps, not GoReleaser's hooks.post.install:
+    # that writes a `postflight` block, which Homebrew 7 deprecates, so every
+    # brew command that read the cask printed "Calling `postflight` is
+    # deprecated!" and asked users to report it to the tap. A step runs in
+    # Homebrew's sandbox, takes {{staged_path}} in its arguments (written
+    # {{ "{{staged_path}}" }} here, as GoReleaser templates the cask), and does
+    # not fail the install when there is no quarantine to remove (must_succeed).
+    custom_block: |
+      caveats <<~EOS
+        Connect the agent to your Server / VM monitor and start it:
+          sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --oneuptime-url=https://oneuptime.com
+          sudo oneuptime-infrastructure-agent start
+        After an upgrade, restart it: sudo oneuptime-infrastructure-agent restart
+      EOS
+
+      postflight_steps do
+        on_macos do
+          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ "{{staged_path}}" }}/oneuptime-infrastructure-agent"], must_succeed: false
+        end
+      end
 
 # `winget install OneUptime.InfrastructureAgent`: the Windows zips as a
 # portable package, which winget puts on the PATH. The publish job opens the

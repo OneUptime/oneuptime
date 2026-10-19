@@ -48,7 +48,8 @@ import React, {
 } from "react";
 
 /*
- * TEAMS > ROLES: THE PROJECT'S CUSTOM ROLES, AND THE BUILT-IN ONES.
+ * TEAMS > SETTINGS > ROLES: THE PROJECT'S CUSTOM ROLES, AND THE BUILT-IN
+ * ONES.
  *
  * A custom role names a set of permissions once - "Incident Responder",
  * "Team Lead" - so it is given to teams in one step, and changed for every
@@ -123,7 +124,7 @@ const TeamRoles: FunctionComponent<PageComponentProps> = (
       <ModelTable<CustomRole>
         modelType={CustomRole}
         id="custom-roles-table"
-        name="Teams > Roles"
+        name="Teams > Settings > Roles"
         userPreferencesKey="custom-roles-table"
         isDeleteable={true}
         isEditable={false}

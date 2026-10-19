@@ -140,7 +140,7 @@ A lista completa está na [Referência de permissões](/docs/permissions/referen
 Uma função personalizada é um conjunto de permissões que você nomeia uma vez e dá a equipes: por exemplo, um «Responsável por incidentes» feito de `IncidentMember`, `AlertMember` e `OnCallViewer`, ou um «Líder de equipe». Cada equipe a que você a dá recebe as mesmas permissões, e você as altera para todas essas equipes em um só lugar. No OneUptime Cloud, as funções personalizadas exigem o plano Scale, como alterar as permissões de uma equipe.
 
 :::steps
-1. Abra **Equipes** no menu **Produtos**, em **Configurações**, depois **Funções**, e clique em **Criar: Função personalizada**.
+1. Abra **Equipes** no menu **Produtos**, em **Configurações**. Expanda **Configurações** no menu lateral, escolha **Funções** e clique em **Criar: Função personalizada**.
 2. Digite o **Nome** dela e escolha em **Permissões** as funções integradas que ela reúne, para cada recurso do projeto. A descrição fica em **Mais campos**.
 3. Crie a função. Ela abre na sua página, onde **Adicionar função** adiciona outra função integrada e **Adicionar permissão** (no menu **⋯** do cartão) uma permissão avulsa, cada uma com um escopo e rótulos, como em uma equipe.
 4. Clique em **Dar a uma equipe** em **Equipes com esta função**. A página **Permissões** de uma equipe também tem **Adicionar função personalizada**, e **Criar equipe** oferece em **Acesso** as funções personalizadas que você poderia dar.

@@ -464,6 +464,29 @@ describe("on a phone", () => {
   });
 
   /*
+   * A <button> centres its text, so "Navigate to" sat off-centre above the
+   * page's name, the two lines starting at different edges. They share one
+   * start-aligned block; the browser suite (CustomRoles) measures the edges.
+   */
+  test("the button's two lines, Navigate to and where you are, start at one edge", async () => {
+    await renderAt("/w/1/settings", workflowMenu());
+
+    const button: HTMLElement = screen.getByTestId("mobile-sidemenu-toggle");
+    const label: HTMLElement = screen.getByText("Navigate to");
+    const where: HTMLElement = screen.getByRole("heading", {
+      level: 3,
+      name: "Advanced / Settings",
+    });
+    const lines: HTMLElement | null = label.parentElement;
+
+    expect(lines).not.toBeNull();
+    expect(lines).toBe(where.parentElement);
+    expect(button).toContainElement(lines);
+    // text-start, not text-left: the side the lines start on, in either direction.
+    expect(lines).toHaveClass("text-start");
+  });
+
+  /*
    * The phone menu closes when a page is picked. A tap on a section's header
    * used to close it too (the handler sits on the whole <nav>), so a folded
    * section could never be opened on a phone.

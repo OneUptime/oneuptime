@@ -17,8 +17,8 @@ This page covers both: the five subscription channels and how visitors sign up, 
 
 ```mermaid title="From a sign-up to a message"
 flowchart TB
-    V["A visitor signs up"] --> Q{"By email?"}
-    Q -->|"Yes"| C["Confirms by email"]
+    V["A visitor signs up"] --> Q{"By email or SMS?"}
+    Q -->|"Yes"| C["Confirms by a link"]
     Q -->|"No"| S["Subscriber"]
     C --> S
     E["Incident, maintenance<br/>or announcement"] --> N["Notification"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Message with an<br/>unsubscribe link"]
 ```
 
-Each status page keeps its own subscribers. A visitor signs up on the page's **Subscribe** page, where an email address confirms with a link before it hears anything, or your team adds them on the dashboard. From then on, every incident, scheduled maintenance event and announcement that reaches the page notifies its subscribers, each on the channel they signed up with, and every message carries the link that cancels the subscription.
+Each status page keeps its own subscribers. A visitor signs up on the page's **Subscribe** page, where an email address or a phone number confirms with a link before it hears anything, or your team adds them on the dashboard. From then on, every incident, scheduled maintenance event and announcement that reaches the page notifies its subscribers, each on the channel they signed up with, and every message carries the link that cancels the subscription.
 
 ## Subscription channels
 
@@ -76,7 +76,7 @@ The **Subscribe** page has a sub-menu with one tab per enabled channel; with onl
 | **MS Teams** | `/subscribe/microsoft-teams` | **Subscribe by Microsoft Teams** | **Microsoft Teams Workspace Name** and **Microsoft Teams Incoming Webhook URL**, with the placeholder `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **Subscribe by Webhook** | **Webhook URL**, with the placeholder `https://example.com/webhook`. A JSON `POST` request is sent to it on each status page event. |
 
-The submit button reads **Subscribe**. A signup by SMS, Slack, Microsoft Teams or webhook shows *You have been subscribed successfully.* A signup by email says a confirmation link has been sent and to check the spam folder if it does not arrive (see [Email double opt-in](#email-double-opt-in)). The **Email**, **SMS**, **Slack** and **MS Teams** tabs also carry a **New Subscription** / **Manage Existing Subscription** split, so someone who already subscribed can get back to their preferences without hunting for an old message.
+The submit button reads **Subscribe**. A signup by Slack, Microsoft Teams or webhook shows *You have been subscribed successfully.* A signup by SMS shows *We have sent a text message to this phone number. Open the link in it to confirm your subscription.* A signup by email says a confirmation link has been sent and to check the spam folder if it does not arrive (see [Email double opt-in](#email-double-opt-in)). The **Email**, **SMS**, **Slack** and **MS Teams** tabs also carry a **New Subscription** / **Manage Existing Subscription** split, so someone who already subscribed can get back to their preferences without hunting for an old message.
 
 ## Limits on signups and links
 
@@ -90,11 +90,15 @@ Each signup sends its contact a message at once, a confirmation email, an SMS, a
 | Signups of one email address, phone number, Slack or Microsoft Teams channel, or webhook, on all status pages together | 10 in an hour |
 | Management links for one email address or phone number on all status pages together, or for one Slack or Microsoft Teams workspace name on one status page | 5 in an hour |
 
-Past a limit, the API answers `429` with a `Retry-After` header, in seconds, and the visitor is told that there were too many signups or links from their network, or for that contact, and to try again later. Nothing is created or sent, and your project sees nothing of it: no subscriber is added, and no message is sent or paid for. The management link limits count every request, whether or not a subscription matches, so they cannot be used to find out who is subscribed. An email address is counted however it is written, in capitals, with a `+tag` or, for Gmail, with dots, and a phone number however it is typed. A signup takes one email address: a list of addresses is refused.
+Past a limit, the API answers `429` with a `Retry-After` header, in seconds, and the visitor is told that there were too many signups or links from their network, or for that contact, and to try again later. Nothing is created or sent, and your project sees nothing of it: no subscriber is added, and no message is sent or paid for. The management link limits count every request, whether or not a subscription matches, so they cannot be used to find out who is subscribed. An email address is counted however it is written, in capitals, with a `+tag` or, for Gmail, with dots, and a phone number however it is typed. A signup names one contact, an email address, a phone number, a Slack or Microsoft Teams channel or a webhook: a list of addresses, or a second contact, is refused.
 
-Each limit per network also counts the addresses of one IPv6 /64 together, at ten times its number. The windows are fixed, not rolling. If the rate limiter cannot be reached, signups and management links by email, Slack, Microsoft Teams and webhook go on uncounted, and those by SMS are refused with `503` until it is back, because each SMS is paid for. Changing or canceling a subscription from its own link is never limited, and neither is your team adding subscribers on the dashboard or through the API.
+Each limit per network also counts the addresses of one IPv6 /64 together, at ten times its number. The windows are fixed, not rolling. If the rate limiter cannot be reached, signups and management links by email, Slack, Microsoft Teams and webhook go on uncounted, and those by SMS are refused with `503` until it is back, because each SMS is paid for. Changing or canceling a subscription from its own link is never limited.
 
-A private user asking for a password reset link on the status page's sign-in page is limited the same way: 5 reset emails to one address in an hour, on all status pages together, and 30 from one network in 15 minutes.
+**One subscription per contact.** A status page takes each email address, phone number and webhook address once, Slack and Microsoft Teams webhooks included. An email address is the same in capitals, a phone number however it is typed (`+14155550100`, `14155550100` and `0014155550100` are one number), and a webhook address whether its host is in capitals, with its default port or a fragment, or with letters percent-encoded. A visitor who signs a contact up again is told they are subscribed already, and nothing is sent. Your team adding it again, or changing a subscriber to it, is refused, and so is turning a canceled subscription back on while another subscription has its contact. Subscribers from before this are kept: where one number was subscribed under two spellings, delete the one you do not need.
+
+**What your team sends counts too.** Nothing limits how fast your team adds subscribers, on the dashboard, in bulk, through the API or by a workflow. But the message an added subscriber is sent, the email asking it to confirm or the message saying it is subscribed, counts toward that contact's 10 signups in an hour, and past them that add is refused with `429`. A subscriber added without a message is never counted: **Subscribe them now** for an email address, or **Send a welcome message** turned off for the other channels. If the rate limiter cannot be reached, your team's adds go on uncounted.
+
+A private user asking for a password reset link on the status page's sign-in page is limited the same way: 5 reset emails to one address in an hour, on all status pages together, and 30 from one network in 15 minutes. An invitation, to a private status page or to a project, is counted per address too: 10 to one address in an hour, both kinds together.
 
 On a self-hosted installation, these environment variables of the OneUptime app change the limits:
 
@@ -109,6 +113,7 @@ On a self-hosted installation, these environment variables of the OneUptime app 
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Management links for one contact per window. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Private user password resets asked for from one address per window. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Private user password reset emails to one address per window. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitations to one address per window, to private status pages and projects together. |
 
 Neither `config.env` nor the Helm chart's values pass them on: add them to the environment of the `app` container yourself, with `app.extraEnv`, or the chart-wide `extraEnv`, in the Helm chart, or in a `docker-compose.override.yml` for Docker Compose. `TRUSTED_PROXY_HOPS` decides which address the limits per network count.
 
@@ -137,9 +142,11 @@ Good for: a page that covers several products. A customer who only uses your API
 
 ## Email double opt-in
 
-Email subscribers always confirm. When a subscriber is created with an email address and was not created already-confirmed, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) is forced to `false` and a six-digit **Subscription Confirmation Token** is generated. OneUptime then emails a confirmation link shaped like `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. The visitor lands on a **Confirm Subscription** page and, once it goes through, sees *Subscription confirmed successfully*.
+Email subscribers always confirm. When a subscriber is created with an email address and was not created already-confirmed, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) is forced to `false` and a random 32-character **Subscription Confirmation Token** is generated. OneUptime then emails a confirmation link shaped like `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. The visitor lands on a **Confirm Subscription** page and, once it goes through, sees *Subscription confirmed successfully*.
 
-SMS, Slack, Microsoft Teams and webhook subscribers skip this — they are created with `isSubscriptionConfirmed` already set to `true`. When your team adds an email subscriber on **Email Subscribers**, **When you add them** decides: **Subscribe them now** (the default: confirmed, and sent nothing), **Subscribe them now and tell them** (confirmed, and sent the email that says they are subscribed) or **Ask them to confirm first** (sent the confirmation link, like a sign-up). **Add in Bulk** asks the same.
+Slack, Microsoft Teams and webhook subscribers skip this, and so do SMS subscribers your team adds — they are created with `isSubscriptionConfirmed` already set to `true`. When your team adds an email subscriber on **Email Subscribers**, **When you add them** decides: **Subscribe them now** (the default: confirmed, and sent nothing), **Subscribe them now and tell them** (confirmed, and sent the email that says they are subscribed) or **Ask them to confirm first** (sent the confirmation link, like a sign-up). **Add in Bulk** asks the same.
+
+**Signups by SMS confirm too.** A visitor who signs up by SMS is texted one message: the confirmation link. Nothing else is sent to the number until the link is opened, and opening it texts the message that says they are subscribed, with the link that cancels the subscription. Until then the subscriber shows as **Awaiting Confirmation**, and the SMS log shows the link with its code replaced by `[redacted]`. SMS subscribers from before this are confirmed already.
 
 **Unconfirmed means silent.** The query that fetches subscribers for a notification filters on `isUnsubscribed: false` and `isSubscriptionConfirmed: true`. An email address that never clicked the link will sit in your **Email Subscribers** list and receive nothing. If someone swears they are subscribed but hears nothing, check that column first.
 

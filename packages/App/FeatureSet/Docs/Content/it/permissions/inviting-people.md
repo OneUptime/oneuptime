@@ -128,6 +128,10 @@ La persona è già in quel team, come membro o con un invito che non ha accettat
 Su OneUptime Cloud, un progetto con il piano Free ha spazio per una persona. Cambia piano, poi invita di nuovo. Vedi [Cambiare il piano](/docs/configuration/billing#cambiare-il-piano).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+A un indirizzo si possono inviare 10 inviti all'ora, a progetti e pagine di stato private insieme, chiunque li invii. Attendete un'ora, poi invitate di nuovo la persona.
+:::
+
 :::details L'email di invito non è arrivata, o il suo link è scaduto
 L'invito non dipende dall'email. Chiedi alla persona di registrarsi con l'indirizzo invitato: OneUptime invia a quell'indirizzo un nuovo link per completare la creazione dell'account. Chi ha già un account accede e trova l'invito ad aspettarlo.
 :::

@@ -140,7 +140,7 @@ Die vollständige Liste steht in der [Berechtigungsreferenz](/docs/permissions/r
 Eine benutzerdefinierte Rolle ist eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben: etwa ein „Vorfallbearbeiter“ aus `IncidentMember`, `AlertMember` und `OnCallViewer` oder eine „Teamleitung“. Jedes Team, dem Sie sie geben, erhält dieselben Berechtigungen, und Sie ändern sie für alle diese Teams an einer Stelle. In OneUptime Cloud brauchen benutzerdefinierte Rollen den Scale-Tarif, wie das Ändern der Berechtigungen eines Teams.
 
 :::steps
-1. Öffnen Sie **Teams** im Menü **Produkte** unter **Einstellungen**, dann **Rollen**, und klicken Sie auf **Benutzerdefinierte Rolle erstellen**.
+1. Öffnen Sie **Teams** im Menü **Produkte** unter **Einstellungen**. Klappen Sie **Einstellungen** im Seitenmenü auf, wählen Sie **Rollen** und klicken Sie auf **Benutzerdefinierte Rolle erstellen**.
 2. Geben Sie ihren **Name** ein und wählen Sie unter **Berechtigungen** die vordefinierten Rollen, die sie bündelt, für jede Ressource im Projekt. Die Beschreibung liegt unter **Weitere Felder**.
 3. Legen Sie die Rolle an. Sie öffnet sich auf ihrer Seite, wo **Rolle hinzufügen** eine weitere vordefinierte Rolle hinzufügt und **Berechtigung hinzufügen** (im Menü **⋯** der Karte) eine einzelne Berechtigung, jeweils mit Geltungsbereich und Beschriftungen, wie bei einem Team.
 4. Klicken Sie unter **Teams mit dieser Rolle** auf **Einem Team geben**. Auch die Seite **Berechtigungen** eines Teams hat **Benutzerdefinierte Rolle hinzufügen**, und **Team erstellen** bietet unter **Zugriff** die benutzerdefinierten Rollen an, die Sie vergeben könnten.
