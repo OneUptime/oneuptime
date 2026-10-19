@@ -188,6 +188,32 @@ export enum CodeTaskState {
   Stopped = "Stopped",
 }
 
+/*
+ * Why AI cannot start or continue a task in a repository right now, in the
+ * order they are best fixed. The Code pages turn each into one sentence and
+ * the link that fixes it; the server refuses with the same sentence.
+ */
+export enum CodeTaskBlockerType {
+  // The person may read the repository's tasks, not ask in it.
+  NoPermission = "NoPermission",
+  PlanRequired = "PlanRequired",
+  SubscriptionUnpaid = "SubscriptionUnpaid",
+  // Project Settings > AI > AI Features: Enable AI is off.
+  AiDisabled = "AiDisabled",
+  // Not connected through the GitHub App, or the installation is gone.
+  RepositoryNotConnected = "RepositoryNotConnected",
+  NoLlmProvider = "NoLlmProvider",
+  NoAiCredits = "NoAiCredits",
+  DailyLimitReached = "DailyLimitReached",
+  // No Runner with Runs AI Code Fixes is online to do the work.
+  NoAgent = "NoAgent",
+}
+
+export interface CodeTaskBlocker {
+  type: CodeTaskBlockerType;
+  message: string;
+}
+
 export interface CodeTaskStateInput {
   status?: AIRunStatus | undefined;
   needsUserInput?: boolean | undefined;
@@ -220,6 +246,140 @@ export class CodeTaskStateUtil {
   public static acceptsReply(state: CodeTaskState): boolean {
     return state !== CodeTaskState.Working;
   }
+}
+
+/*
+ * What the Code API answers with. The Dashboard reads these and nothing
+ * else of a task: they hold only what the person may see (CodeTaskAccess).
+ */
+
+// Who asked: shown by name.
+export interface CodeTaskPersonJSON {
+  id: string;
+  name: string;
+}
+
+export interface CodeTaskPullRequestJSON {
+  number?: number | undefined;
+  url?: string | undefined;
+  title?: string | undefined;
+  // PullRequestState: "open", "closed" or "merged".
+  state: string;
+  branch?: string | undefined;
+}
+
+// What started a task that nobody asked for in Code.
+export enum CodeTaskOriginType {
+  // A person, in Code.
+  Request = "Request",
+  Exception = "Exception",
+  Incident = "Incident",
+  Alert = "Alert",
+  Trace = "Trace",
+  Service = "Service",
+  Insight = "Insight",
+  GitHubIssue = "GitHubIssue",
+  GitHubPullRequest = "GitHubPullRequest",
+  Unknown = "Unknown",
+}
+
+export interface CodeTaskOriginJSON {
+  type: CodeTaskOriginType;
+  // The record or thread, by name: "TypeError: x is undefined", "#12".
+  label: string;
+  // A OneUptime record to link to.
+  recordId?: string | undefined;
+  // A GitHub issue or pull request to link to.
+  url?: string | undefined;
+}
+
+// One task in a list.
+export interface CodeTaskSummaryJSON {
+  id: string;
+  taskNumber?: number | undefined;
+  title: string;
+  // The recipe of the task's first run (CodeFixTaskType).
+  recipe: string;
+  state: CodeTaskState;
+  // Working, but no Runner has picked the latest turn up yet.
+  isQueued: boolean;
+  createdAt: string;
+  lastActivityAt: string;
+  requestedBy?: CodeTaskPersonJSON | undefined;
+  origin: CodeTaskOriginJSON;
+  pullRequest?: CodeTaskPullRequestJSON | undefined;
+  turnCount: number;
+  codeRepositoryId?: string | undefined;
+}
+
+// A step the AI took, as the conversation shows it.
+export enum CodeTaskStepKind {
+  Read = "Read",
+  Edited = "Edited",
+  Listed = "Listed",
+  Searched = "Searched",
+  Ran = "Ran",
+  PullRequest = "PullRequest",
+  Note = "Note",
+}
+
+export interface CodeTaskStepJSON {
+  sequence: number;
+  kind: CodeTaskStepKind;
+  // The path, pattern or command the step was about; for a Note, its text.
+  subject: string;
+  isError: boolean;
+  createdAt?: string | undefined;
+}
+
+// A context item as the conversation shows it: no snapshot.
+export type CodeTaskContextItemJSON = Omit<CodeTaskContextItem, "snapshot">;
+
+// One turn of a task's conversation: one run.
+export interface CodeTaskTurnJSON {
+  runId: string;
+  recipe: string;
+  status: string;
+  state: CodeTaskState;
+  createdAt: string;
+  startedAt?: string | undefined;
+  completedAt?: string | undefined;
+  requestedBy?: CodeTaskPersonJSON | undefined;
+  // What the person asked (a request from Code).
+  request?:
+    | { message: string; context: Array<CodeTaskContextItemJSON> }
+    | undefined;
+  // What started it, for a turn nobody asked for in Code.
+  origin?: CodeTaskOriginJSON | undefined;
+  steps: Array<CodeTaskStepJSON>;
+  outcome?: CodeTaskOutcome | undefined;
+  // The diff - only for people who may ask AI to change the code.
+  changes?: CodeTaskChanges | undefined;
+  pullRequests: Array<CodeTaskPullRequestJSON>;
+  errorMessage?: string | undefined;
+  needsInput: boolean;
+}
+
+export interface CodeTaskRepositoryJSON {
+  id: string;
+  name: string;
+  description?: string | undefined;
+  organizationName?: string | undefined;
+  repositoryName?: string | undefined;
+  mainBranchName?: string | undefined;
+  repositoryUrl?: string | undefined;
+  // Connected through the GitHub App, so AI can work in it.
+  isConnected: boolean;
+}
+
+export interface CodeRepositoryTaskStatsJSON {
+  // Tasks whose latest turn is queued or running.
+  working: number;
+  // Tasks whose latest turn asked the person a question.
+  waitingForYou: number;
+  openPullRequests: number;
+  taskCount: number;
+  lastActivityAt?: string | undefined;
 }
 
 const TRACE_ID_PATTERN: RegExp = /^[0-9a-f]{16}(?:[0-9a-f]{16})?$/;

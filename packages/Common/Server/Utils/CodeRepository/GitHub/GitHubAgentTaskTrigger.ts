@@ -202,6 +202,8 @@ export default class GitHubAgentTaskTrigger {
     run.codeFixTaskType = data.taskType;
     run.status = AIRunStatus.Queued;
     run.taskContext = { github: github };
+    // The repository the command came from: its task shows there in Code.
+    run.codeRepositoryId = new ObjectID(github.codeRepositoryId);
 
     return AIRunService.create({
       data: run,
