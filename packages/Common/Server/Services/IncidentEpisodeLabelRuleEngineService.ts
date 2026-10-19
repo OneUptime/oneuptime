@@ -29,6 +29,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class IncidentEpisodeLabelRuleEngineServiceClass
   implements RuleRunEngine<IncidentEpisode, IncidentEpisodeLabelRule>
@@ -389,8 +390,7 @@ class IncidentEpisodeLabelRuleEngineServiceClass
     rule: IncidentEpisodeLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in incident episode label rule ${rule.id}: ${pattern}`,

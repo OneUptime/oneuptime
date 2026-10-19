@@ -31032,6 +31032,8 @@
   "Video Call Summary": "Сводка видеозвонка",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Ничего не получает: ссылка для подтверждения, которую мы отправили, истекла до того, как её открыли. Подписчик может подписаться снова, или вы можете добавить его заново.",
   "Link Expired": "Ссылка истекла",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Этот шаблон ссылается на то, что нашла предыдущая группа, например \\1. Шаблоны выполняются за время, которое растёт только вместе с читаемым текстом, а обратная ссылка так не может. Напишите шаблон без неё.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Этот шаблон слишком велик для выполнения. Сократите его или повторяйте его части реже.",
   "4bf92f3577b34da6a3ce929d0e0e4736": "4bf92f3577b34da6a3ce929d0e0e4736",
   "A file or folder in this repository. AI reads it first.": "Файл или папка в этом репозитории. ИИ прочитает их первыми.",
   "A web address, given to AI as a reference.": "Веб-адрес, который ИИ получит как справку.",

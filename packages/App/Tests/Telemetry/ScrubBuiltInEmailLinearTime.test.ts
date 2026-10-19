@@ -1,3 +1,4 @@
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import LogScrubRuleService from "../../FeatureSet/Telemetry/Services/LogScrubRuleService";
 import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
@@ -24,7 +25,7 @@ import { describe, expect, test } from "@jest/globals";
 type GetRegexForPattern = (
   patternType: string,
   customRegex?: string,
-) => RegExp | null;
+) => ScrubRegExp | null;
 
 const LENGTH: number = 400000;
 
@@ -73,20 +74,28 @@ describe.each(ENGINES)("$name built-in email scrub", (engine: Engine) => {
   test.each(WORST_CASES)(
     "reads %s in time in line with its length",
     (_label: string, body: string) => {
-      const regex: RegExp | null = engine.getRegexForPattern(engine.emailType);
+      const regex: ScrubRegExp | null = engine.getRegexForPattern(
+        engine.emailType,
+      );
       expect(regex).not.toBeNull();
 
       const startedAt: number = Date.now();
-      body.replace(regex!, "[REDACTED]");
+      regex!.replace(body, (): string => {
+        return "[REDACTED]";
+      });
       expect(Date.now() - startedAt).toBeLessThan(2000);
     },
   );
 
   test("still finds and replaces a real address", () => {
-    const regex: RegExp | null = engine.getRegexForPattern(engine.emailType);
-    const out: string = "mail to carol.jones@example.co.uk now".replace(
-      regex!,
-      "[REDACTED]",
+    const regex: ScrubRegExp | null = engine.getRegexForPattern(
+      engine.emailType,
+    );
+    const out: string = regex!.replace(
+      "mail to carol.jones@example.co.uk now",
+      (): string => {
+        return "[REDACTED]";
+      },
     );
     expect(out).toContain("[REDACTED]");
     expect(out).not.toContain("carol.jones@example.co.uk");
@@ -95,13 +104,13 @@ describe.each(ENGINES)("$name built-in email scrub", (engine: Engine) => {
 
 describe("LogScrubRuleService.scrubLog with the built-in email rule", () => {
   test("redacts an address in the body in time in line with its length", () => {
-    const regex: RegExp | null = (
+    const regex: ScrubRegExp | null = (
       LogScrubRuleService as unknown as {
         getRegexForPattern: GetRegexForPattern;
       }
     ).getRegexForPattern(LogScrubPatternType.Email);
 
-    const compiledRules: Array<{ rule: unknown; regex: RegExp }> = [
+    const compiledRules: Array<{ rule: unknown; regex: ScrubRegExp }> = [
       {
         rule: {
           patternType: LogScrubPatternType.Email,

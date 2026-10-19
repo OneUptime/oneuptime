@@ -127,6 +127,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 - **Ausnahmen entstehen aus dem bereinigten Datensatz.** Eine Ausnahme aus einem Protokoll entsteht nach dem Bereinigen, und die Regeln, die Span-Ereignisse bereinigen, bereinigen auch die daran aufgezeichneten Ausnahmen.
 - **Auch Session Replays werden bereinigt.** Scrub-Regeln für Protokolle laufen auch über Session-Replay-Aufzeichnungen, hinter der Maskierung, die der Rekorder im Browser vornimmt.
 - **Regeln laufen in der Reihenfolge der Liste.** Jede Regel sieht, was die Regeln davor übrig gelassen haben.
+- **Ein eigenes Muster braucht Zeit im Verhältnis zum Datensatz.** Es behält die Syntax und die Antworten von JavaScript, Lookaheads und Lookbehinds eingeschlossen, wie auch immer es geschrieben ist. Ein Rückverweis wie `\1` kann so nicht laufen: Eine Regel damit wird beim Speichern abgelehnt, ebenso ein Muster, das zu groß zum Ausführen ist. Müsste ein langer Wert immer wieder gelesen werden, um jeden Treffer zu finden, bereinigt die Regel den ganzen Wert.
 
 ## Prüfen, was ein Filter verworfen hat
 
@@ -143,7 +144,7 @@ Sehen Sie sich den Zähler **Verworfen** und die Zeit **Zuletzt verworfen** jede
 :::
 
 :::details Eine eigene Scrub-Regel zeigt Bereinigt nichts
-Ihr Muster ist leer oder kein gültiger regulärer Ausdruck, sie bereinigt also nichts. Bearbeiten Sie die Regel und geben Sie ihr ein Muster, das mindestens ein Zeichen findet.
+Ihr Muster ist leer, kein gültiger regulärer Ausdruck oder kann nicht laufen, etwa weil es einen Rückverweis wie `\1` enthält, sie bereinigt also nichts. Bearbeiten Sie die Regel und geben Sie ihr ein Muster, das mindestens ein Zeichen findet.
 :::
 
 :::details Alte Datensätze zeigen noch die Daten, die eine neue Regel bereinigt

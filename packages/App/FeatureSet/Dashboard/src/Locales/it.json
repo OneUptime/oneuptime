@@ -31032,6 +31032,8 @@
   "Video Call Summary": "Riepilogo della videochiamata",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Non riceve nulla: il link di conferma che gli abbiamo inviato è scaduto prima che lo aprisse. Può iscriversi di nuovo, oppure puoi aggiungerlo di nuovo.",
   "Link Expired": "Link scaduto",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Questo pattern rimanda a ciò che ha trovato un gruppo precedente, come \\1. I pattern vengono eseguiti in un tempo che cresce solo con il testo che leggono, cosa che un riferimento all'indietro non consente. Scrivi il pattern senza di esso.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Questo pattern è troppo grande per essere eseguito. Accorcialo o ripetine le parti meno volte.",
   "4bf92f3577b34da6a3ce929d0e0e4736": "4bf92f3577b34da6a3ce929d0e0e4736",
   "A file or folder in this repository. AI reads it first.": "Un file o una cartella di questo repository. L'IA lo legge per primo.",
   "A web address, given to AI as a reference.": "Un indirizzo web, dato all'IA come riferimento.",

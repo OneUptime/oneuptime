@@ -10,6 +10,7 @@ jest.mock("Common/Server/Utils/PasswordHash", () => {
   };
 });
 
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import OtelTracesIngestService from "../../FeatureSet/Telemetry/Services/OtelTracesIngestService";
 import TraceDropFilterService from "../../FeatureSet/Telemetry/Services/TraceDropFilterService";
 import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
@@ -132,7 +133,7 @@ function request(data: {
   } as unknown as TelemetryRequest;
 }
 
-type CompiledRule = { rule: TraceScrubRule; regex: RegExp };
+type CompiledRule = { rule: TraceScrubRule; regex: ScrubRegExp };
 
 function emailRule(): Array<CompiledRule> {
   const rule: TraceScrubRule = new TraceScrubRule();
@@ -141,13 +142,13 @@ function emailRule(): Array<CompiledRule> {
   rule.fieldsToScrub = TraceScrubField.Attributes;
   rule.scrubAction = TraceScrubAction.Redact;
 
-  const regex: RegExp | null = (
+  const regex: ScrubRegExp | null = (
     TraceScrubRuleService as unknown as {
-      getRegexForPattern: (patternType: string) => RegExp | null;
+      getRegexForPattern: (patternType: string) => ScrubRegExp | null;
     }
   ).getRegexForPattern(TraceScrubPatternType.Email as string);
 
-  return [{ rule: rule, regex: regex as RegExp }];
+  return [{ rule: rule, regex: regex as ScrubRegExp }];
 }
 
 function setup(data?: {

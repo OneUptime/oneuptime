@@ -31032,6 +31032,8 @@
   "Video Call Summary": "화상 통화 요약",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "아무것도 받지 않습니다. 확인을 위해 보낸 링크가 열리기 전에 만료되었습니다. 다시 가입하게 하거나 직접 다시 추가할 수 있습니다.",
   "Link Expired": "링크 만료됨",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "이 패턴은 \\1처럼 앞의 그룹이 일치한 내용을 다시 참조합니다. 패턴은 읽는 텍스트의 길이에 비례하는 시간 안에 실행되는데, 역참조는 그렇게 할 수 없습니다. 역참조 없이 패턴을 작성하세요.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "이 패턴은 너무 커서 실행할 수 없습니다. 패턴을 줄이거나 각 부분의 반복 횟수를 줄이세요.",
   "4bf92f3577b34da6a3ce929d0e0e4736": "4bf92f3577b34da6a3ce929d0e0e4736",
   "A file or folder in this repository. AI reads it first.": "이 저장소의 파일 또는 폴더입니다. AI가 먼저 읽습니다.",
   "A web address, given to AI as a reference.": "AI에게 참고로 전달하는 웹 주소입니다.",

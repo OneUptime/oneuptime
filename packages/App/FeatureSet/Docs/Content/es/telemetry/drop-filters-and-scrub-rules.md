@@ -127,6 +127,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 - **Las excepciones salen de la entrada depurada.** Una excepción encontrada en un registro se crea después de la depuración, y las reglas que depuran los eventos de los spans también depuran las excepciones registradas en ellos.
 - **Las Session Replays también se depuran.** Las reglas de depuración de registros también se ejecutan sobre las grabaciones de Session Replay, además del enmascaramiento que hace la grabadora en el navegador.
 - **Las reglas se ejecutan en el orden de la lista.** Cada regla ve lo que dejaron las reglas anteriores.
+- **Un patrón personalizado tarda en proporción a la entrada.** Conserva la sintaxis y las respuestas de JavaScript, búsquedas anticipadas y retrospectivas incluidas, se escriba como se escriba. Una referencia inversa, como `\1`, no puede ejecutarse así: una regla que la tenga se rechaza al guardarla, igual que un patrón demasiado grande para ejecutarse. Si encontrar cada coincidencia obligara a leer un valor largo una y otra vez, la regla depura el valor entero.
 
 ## Comprobar qué descartó un filtro
 
@@ -143,7 +144,7 @@ Mire el contador **Descartado** y la hora del **Último descarte** de cada filtr
 :::
 
 :::details Una regla de depuración personalizada dice No depura nada
-Su patrón está vacío o no es una expresión regular válida, así que no depura nada. Edite la regla y dele un patrón que coincida con al menos un carácter.
+Su patrón está vacío, no es una expresión regular válida o no puede ejecutarse, por ejemplo porque tiene una referencia inversa como `\1`, así que no depura nada. Edite la regla y dele un patrón que coincida con al menos un carácter.
 :::
 
 :::details Las entradas antiguas siguen mostrando los datos que depura una regla nueva
