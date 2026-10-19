@@ -533,22 +533,22 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * The bundled global Runner is never deleted through the API, a master
    * admin's included (BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE): the server's own
-   * startup sync (root) is the only one that removes it.
+   * startup sync (root) is the only one that removes it. The rows the delete
+   * removes are read as every delete hook reads them, and the delete is held
+   * to them (findRowsAndHoldDeleteToThem), so it removes no row this did not
+   * see.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     if (!deleteBy.props.isRoot) {
-      const rows: Array<Model> = await this.findBy({
-        query: deleteBy.query,
-        select: {
+      const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+        deleteBy,
+        {
           _id: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
+      );
 
       if (Service.includesBundledGlobalRunner(rows)) {
         throw new BadDataException(BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE);

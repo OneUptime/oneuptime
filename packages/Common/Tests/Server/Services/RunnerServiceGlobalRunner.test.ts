@@ -470,14 +470,17 @@ describe("the bundled global Runner is turned off where it runs, never deleted",
     } as unknown as DeleteBy<Runner>;
   }
 
+  // The rows the delete removes, as findRowsAndHoldDeleteToThem reads them.
   function rowsFound(ids: Array<string>): jest.SpyInstance {
-    return jest.spyOn(RunnerService, "findBy").mockResolvedValue(
-      ids.map((id: string): Runner => {
-        const runner: Runner = new Runner();
-        runner._id = id;
-        return runner;
-      }),
-    );
+    return jest
+      .spyOn(RunnerService, "findRowsAndHoldDeleteToThem")
+      .mockResolvedValue(
+        ids.map((id: string): Runner => {
+          const runner: Runner = new Runner();
+          runner._id = id;
+          return runner;
+        }),
+      );
   }
 
   it("refuses a master admin's delete of it, saying how to turn it off", async () => {
@@ -494,21 +497,15 @@ describe("the bundled global Runner is turned off where it runs, never deleted",
     );
   });
 
-  it("reads the rows the delete names as OneUptime, whoever asks", async () => {
-    const findBy: jest.SpyInstance = rowsFound([BUNDLED_GLOBAL_RUNNER_ID]);
+  it("reads the delete's rows as every delete hook does, and holds the delete to them", async () => {
+    const read: jest.SpyInstance = rowsFound([BUNDLED_GLOBAL_RUNNER_ID]);
+    const masterAdminDelete: DeleteBy<Runner> = deleteBy(masterAdminProps());
 
-    await refusal(hooks.onBeforeDelete(deleteBy(masterAdminProps())));
+    await refusal(hooks.onBeforeDelete(masterAdminDelete));
 
-    const args: {
-      query: Record<string, unknown>;
-      props: DatabaseCommonInteractionProps;
-    } = findBy.mock.calls[0]![0] as {
-      query: Record<string, unknown>;
-      props: DatabaseCommonInteractionProps;
-    };
-
-    expect(args.query).toEqual({ _id: BUNDLED_GLOBAL_RUNNER_ID });
-    expect(args.props.isRoot).toBe(true);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(read.mock.calls[0]![0]).toBe(masterAdminDelete);
+    expect(read.mock.calls[0]![1]).toEqual({ _id: true });
   });
 
   it("refuses a bulk delete that takes it along with others", async () => {
@@ -520,12 +517,12 @@ describe("the bundled global Runner is turned off where it runs, never deleted",
   });
 
   it("negative control: the server's own startup sync deletes it, reading nothing first", async () => {
-    const findBy: jest.SpyInstance = rowsFound([BUNDLED_GLOBAL_RUNNER_ID]);
+    const read: jest.SpyInstance = rowsFound([BUNDLED_GLOBAL_RUNNER_ID]);
 
     await expect(hooks.onBeforeDelete(deleteBy(rootProps()))).resolves.toEqual(
       expect.objectContaining({ carryForward: null }),
     );
-    expect(findBy).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
   });
 
   it("negative control: a global Runner a master admin added is deleted as before", async () => {
