@@ -143,6 +143,10 @@ Before changing the agent's `.goreleaser.yaml`, `Scripts/PackageManagers`, or th
 release gets to each package manager, which repositories, keys and secrets each needs, and how to test a change
 (`Tests/Ops/package-repository-e2e.sh` installs from a repository the scripts build, as the docs say).
 
+To check or follow up on a release of the agent (a winget pull request, the Pages deploy, the signing key), read
+[agents/InfrastructureAgent/RELEASING.md](agents/InfrastructureAgent/RELEASING.md). The "Infrastructure Agent Release
+Status" workflow checks every place after each release and every day; its run summary is the release's record.
+
 ### Commit frequently
 
 Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.
