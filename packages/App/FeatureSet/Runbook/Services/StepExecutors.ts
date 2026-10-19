@@ -24,6 +24,9 @@ import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
+import GlobalRunnerChoice from "Common/Server/Utils/Runner/GlobalRunnerChoice";
+import { RunnerChoiceDecision } from "Common/Types/Runner/RunnerChoice";
+import { clampGlobalRunnerExecutionTimeoutInMs } from "Common/Types/Runner/GlobalRunnerWork";
 
 export interface StepRunResult {
   success: boolean;
@@ -88,9 +91,16 @@ function toStepResult(job: RunnerJob): StepRunResult {
 }
 
 /*
- * Bash and JavaScript steps share an identical dispatch path: enqueue a job
- * targeted at a specific agent, poll until the agent reports back. Only the
- * stepType differs — the agent uses it to pick the right local executor.
+ * Bash, JavaScript, SSH and Kubernetes steps share one dispatch path: decide
+ * where the step runs, enqueue a job for it, poll until it reports back.
+ * Only the stepType differs — the Runner uses it to pick the right local
+ * executor.
+ *
+ * Where it runs is the one "global by default" rule (GlobalRunnerChoice): the
+ * Runner the step picked, always, when it picked one of its project's own;
+ * the global Runners - the ones OneUptime runs for every project - when it
+ * picked none and they may run it; otherwise nowhere, and the step fails
+ * saying why and what to do.
  */
 async function dispatchToAgent(args: {
   stepType: RunbookStepType;
@@ -100,20 +110,35 @@ async function dispatchToAgent(args: {
   timeoutInMs: number;
   claimTimeoutInMs: number;
   agentId: string;
-  missingAgentError: string;
   /*
    * Structured instructions for step types that are not a script. Never
    * secret material — the credential is resolved at claim time.
    */
   payload?: JSONObject | undefined;
 }): Promise<StepRunResult> {
-  const agentIdRaw: string = args.agentId.trim();
+  let decision: RunnerChoiceDecision;
 
-  if (!agentIdRaw) {
+  try {
+    decision = await GlobalRunnerChoice.decideForStep({
+      projectId: args.ctx.projectId,
+      stepType: args.stepType,
+      chosenRunnerId: args.agentId,
+    });
+  } catch (err) {
+    logger.error(`${args.stepType} step: could not decide its Runner`);
+    logger.error(err);
     return {
       success: false,
       output: "",
-      errorMessage: args.missingAgentError,
+      errorMessage: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  if (decision.kind === "refused") {
+    return {
+      success: false,
+      output: "",
+      errorMessage: decision.message,
     };
   }
 
@@ -126,16 +151,15 @@ async function dispatchToAgent(args: {
     return { success: true, output: "" };
   }
 
-  let targetAgentId: ObjectID;
-  try {
-    targetAgentId = new ObjectID(agentIdRaw);
-  } catch {
-    return {
-      success: false,
-      output: "",
-      errorMessage: `Invalid agent ID configured on the step: ${agentIdRaw}`,
-    };
-  }
+  const runsOnGlobalRunner: boolean = decision.kind === "global";
+
+  /*
+   * A global Runner runs a step for a few minutes at most, whatever the
+   * step asked for; the wait below is held to the same window.
+   */
+  const executionTimeoutInMs: number = runsOnGlobalRunner
+    ? clampGlobalRunnerExecutionTimeoutInMs(args.timeoutInMs)
+    : args.timeoutInMs;
 
   try {
     /*
@@ -179,9 +203,11 @@ async function dispatchToAgent(args: {
         runbookExecutionId: args.ctx.runbookExecutionId,
         stepId: args.step.id,
         stepType: args.stepType,
-        targetAgentId,
+        ...(decision.kind === "custom"
+          ? { targetAgentId: new ObjectID(decision.runnerId) }
+          : { runsOnGlobalRunner: true }),
         script: args.script,
-        timeoutInMs: args.timeoutInMs,
+        timeoutInMs: executionTimeoutInMs,
         claimTimeoutInMs: args.claimTimeoutInMs,
         ...(args.payload ? { payload: args.payload } : {}),
       });
@@ -191,7 +217,7 @@ async function dispatchToAgent(args: {
     const terminal: RunnerJob = await RunnerJobService.pollUntilTerminal({
       jobId,
       claimTimeoutInMs: args.claimTimeoutInMs,
-      executionTimeoutInMs: args.timeoutInMs,
+      executionTimeoutInMs,
       waitStartedAt,
     });
 
@@ -220,8 +246,6 @@ export async function runJavaScriptStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
-    missingAgentError:
-      "JavaScript step is missing a Runner. Pick one under Runbooks → Runners. JavaScript never runs on the OneUptime Worker.",
   });
 }
 
@@ -328,8 +352,6 @@ export async function runBashStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
-    missingAgentError:
-      "Bash step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }
 
@@ -368,8 +390,6 @@ export async function runSshStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
-    missingAgentError:
-      "SSH step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }
 
@@ -427,7 +447,5 @@ export async function runKubernetesStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
-    missingAgentError:
-      "Kubernetes step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }
