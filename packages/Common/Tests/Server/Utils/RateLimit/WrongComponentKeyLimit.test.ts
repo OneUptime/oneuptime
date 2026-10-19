@@ -690,6 +690,55 @@ describe("REGISTER_PROBE_KEY and the shared Runner's key, counted for the client
     },
   );
 
+  test.each([
+    ["REGISTER_PROBE_KEY", ComponentKeyKind.ProbeRegistration as const],
+    ["the shared Runner's key", ComponentKeyKind.SharedRunner as const],
+  ])(
+    "%s: the right key is never counted, however many registrations carry it, and leaves the client all ten of its wrong keys",
+    async (
+      _label: string,
+      kind: ComponentKeyKind.ProbeRegistration | ComponentKeyKind.SharedRunner,
+    ) => {
+      for (let call: number = 0; call < 1000; call++) {
+        expect(
+          await presentRegistrationKey({
+            from: CLIENT,
+            kind: kind,
+            key: "the-right-key",
+            isKeyRight: true,
+          }),
+        ).toBeNull();
+      }
+
+      expect(redis.sets.size).toBe(0);
+
+      for (
+        let index: number = 0;
+        index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+        index++
+      ) {
+        expect(
+          await presentRegistrationKey({
+            from: CLIENT,
+            kind: kind,
+            key: `guess-${index}`,
+            isKeyRight: false,
+          }),
+        ).toBeNull();
+      }
+
+      // Ten wrong ones, and no more: the right key is still let through.
+      expect(
+        await presentRegistrationKey({
+          from: CLIENT,
+          kind: kind,
+          key: "the-right-key",
+          isKeyRight: true,
+        }),
+      ).toBeNull();
+    },
+  );
+
   test("probes that all hold one old registration key send one value, and are never refused for it", async () => {
     for (let call: number = 0; call < 300; call++) {
       expect(

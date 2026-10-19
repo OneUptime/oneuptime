@@ -320,6 +320,31 @@ describe("an app whose deployment gave it the shared Runner's key", () => {
     ).toStrictEqual(LET_THROUGH);
   });
 
+  test("its right key is never counted: a Runner that registers again and again leaves its address all ten of its wrong keys", async () => {
+    for (let call: number = 0; call < 50; call++) {
+      expect(
+        await register(app, CLIENT, withRunnerKey(OPERATOR_RUNNER_KEY)),
+      ).toStrictEqual(LET_THROUGH);
+    }
+
+    expect(redis.sets.size).toBe(0);
+
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      expect(
+        await register(app, CLIENT, withRunnerKey(`guess-${index}`)),
+      ).toStrictEqual(refusedWith(app.messages.wrong!));
+    }
+
+    // Ten wrong ones, and no more: the right key still registers.
+    expect(
+      await register(app, CLIENT, withRunnerKey(OPERATOR_RUNNER_KEY)),
+    ).toStrictEqual(LET_THROUGH);
+  });
+
   test("a Runner that keeps sending one old key is never refused for it, and registers the moment it has the right one", async () => {
     for (let call: number = 0; call < 200; call++) {
       expect(

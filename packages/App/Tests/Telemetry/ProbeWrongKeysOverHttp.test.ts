@@ -373,22 +373,33 @@ describe("a probe's key, over HTTP", () => {
     ).toBe(200);
   });
 
-  test("the probe's id in another case is the same probe: no new count", async () => {
+  test("the probe's id in any spelling Postgres reads as that id is the same probe: no new count", async () => {
+    const spellings: Array<string> = [
+      PROBE_TWO,
+      PROBE_TWO.toUpperCase(),
+      `{${PROBE_TWO}}`,
+      PROBE_TWO.split("-").join(""),
+    ];
+
     for (
       let index: number = 0;
       index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
       index++
     ) {
-      await heartbeat(
-        CLIENT,
-        index % 2 === 0 ? PROBE_TWO : PROBE_TWO.toUpperCase(),
-        `guess-${index}`,
-      );
+      expect(
+        (
+          await heartbeat(
+            CLIENT,
+            spellings[index % spellings.length]!,
+            `guess-${index}`,
+          )
+        ).status,
+      ).toBe(400);
     }
 
-    expect(
-      (await heartbeat(CLIENT, PROBE_TWO.toUpperCase(), "guess-x")).status,
-    ).toBe(429);
+    for (const spelling of spellings) {
+      expect((await heartbeat(CLIENT, spelling, "guess-x")).status).toBe(429);
+    }
   });
 
   test("a probe that still holds its key from before a reset is never refused for it", async () => {
@@ -493,6 +504,27 @@ describe("REGISTER_PROBE_KEY, over HTTP", () => {
       200,
     );
     expect(running.created).toHaveLength(1);
+  });
+
+  test("the right registration key is never counted: probes that register again and again leave their address all ten of its wrong keys", async () => {
+    for (let call: number = 0; call < 20; call++) {
+      expect((await registerProbe(CLIENT, REGISTER_PROBE_KEY)).status).toBe(
+        200,
+      );
+    }
+
+    expect(redis.sets.size).toBe(0);
+
+    for (
+      let index: number = 0;
+      index < WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      expect((await registerProbe(CLIENT, `guess-${index}`)).status).toBe(400);
+    }
+
+    // Ten wrong ones, and no more: the right key still registers.
+    expect((await registerProbe(CLIENT, REGISTER_PROBE_KEY)).status).toBe(200);
   });
 
   test("probes that all hold one old registration key are never refused for it", async () => {

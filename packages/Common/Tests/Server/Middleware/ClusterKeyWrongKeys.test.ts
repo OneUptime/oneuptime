@@ -13,6 +13,7 @@ import {
   WRONG_CLUSTER_KEYS_PER_ADDRESS,
   WRONG_CLUSTER_KEY_WINDOW_SECONDS,
 } from "../../../Server/Utils/RateLimit/WrongClusterKeyLimit";
+import { WRONG_KEY_COUNT_TIMEOUT_MS } from "../../../Server/Utils/RateLimit/WrongKeyLimit";
 import { getIpv6NetworkRateLimit } from "../../../Server/Utils/ClientIp";
 import { JSONObject } from "../../../Types/JSON";
 import {
@@ -775,4 +776,21 @@ describe("when the count cannot be made, keys are compared as they always were",
 
     expect(await present(address, RIGHT_KEY)).toEqual(LET_THROUGH);
   });
+
+  test(`a count Valkey does not answer is not waited for past ${WRONG_KEY_COUNT_TIMEOUT_MS} ms: the key is compared`, async () => {
+    redis.stallEvals = true;
+
+    const started: number = performance.now();
+
+    expect(await present(address, RIGHT_KEY)).toEqual(LET_THROUGH);
+    expect(await present(address, "guess-1")).toEqual(WRONG);
+
+    const waited: number = performance.now() - started;
+
+    expect(waited).toBeGreaterThanOrEqual(2 * WRONG_KEY_COUNT_TIMEOUT_MS - 100);
+    expect(waited).toBeLessThan(2 * WRONG_KEY_COUNT_TIMEOUT_MS + 3000);
+
+    // The late answers are not lost, nor thrown anywhere.
+    expect(redis.releaseStalledEvals()).toBe(2);
+  }, 20000);
 });
