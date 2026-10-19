@@ -5,6 +5,7 @@ import {
   redactLogValue,
 } from "../../../Server/Utils/LogRedaction";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
+import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -1032,6 +1033,238 @@ describe("the keys' names keep redaction linear", () => {
         LENGTH / 69,
       ),
     ],
+  ])("%s", (_label: string, text: string) => {
+    const startedAt: number = Date.now();
+
+    redactLogString(text);
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+});
+
+/*
+ * A client keeps a request's body as the JSON text it sent, and an error
+ * that carries the request can be written out as JSON text in its turn -
+ * JSON.stringify(error), as the probe's monitoring jobs log a failed fetch.
+ * The body is then a JSON string inside JSON text, its quotes escaped, and
+ * escaped again each time the text is stringified once more. A key in it
+ * is redacted there too, the whole value, and the members around it are
+ * kept.
+ */
+describe("a request body stringified again", () => {
+  const ISSUED_KEY: string = "5f2c1e9a-7b3d-4c8e-9f1a-2b3c4d5e6f70";
+  const OPERATOR_KEY: string = "it's-(runner)-key!*~R7dVk2LmX9pR4tWz8NcB1sHf";
+  const QUOTED_KEY: string = 'a "quoted" key\\with a backslash, and more';
+  const AGENT_ID: string = "2b3c4d5e-6f70-4a81-9b2c-3d4e5f607182";
+
+  // A request that got no answer, as JSON.stringify writes out its error.
+  function failedRequestText(body: JSONObject, space?: number): string {
+    return JSON.stringify(
+      {
+        message: "connect ECONNREFUSED 127.0.0.1:3000",
+        name: "AxiosError",
+        config: {
+          url: "https://oneuptime.example.com/probe-ingest/monitor/list",
+          method: "post",
+          headers: { "Content-Type": "application/json" },
+          data: JSON.stringify(body),
+        },
+        code: "ECONNREFUSED",
+      },
+      null,
+      space,
+    );
+  }
+
+  // The body a failed request's text holds, read back.
+  function bodyIn(text: string): JSONObject {
+    const failure: JSONObject = JSON.parse(text) as JSONObject;
+
+    return JSON.parse(
+      (failure["config"] as JSONObject)["data"] as string,
+    ) as JSONObject;
+  }
+
+  // A text, stringified again this many more times.
+  function stringifiedAgain(text: string, times: number): string {
+    let again: string = text;
+
+    for (let time: number = 0; time < times; time++) {
+      again = JSON.stringify(again);
+    }
+
+    return again;
+  }
+
+  // The same text, read back from that many more stringifications.
+  function parsedBack(text: string, times: number): string {
+    let back: string = text;
+
+    for (let time: number = 0; time < times; time++) {
+      back = JSON.parse(back) as string;
+    }
+
+    return back;
+  }
+
+  const BODIES: Array<[string, (value: string) => JSONObject]> = [
+    [
+      "a probe's",
+      (value: string): JSONObject => {
+        return { probeKey: value, probeId: AGENT_ID, limit: 100 };
+      },
+    ],
+    [
+      "a global probe's registration",
+      (value: string): JSONObject => {
+        return { probeKey: value, registerProbeKey: value, probeName: null };
+      },
+    ],
+    [
+      "a Runner's code-fix call",
+      (value: string): JSONObject => {
+        return { aiAgentKey: value, aiAgentId: AGENT_ID };
+      },
+    ],
+    [
+      "a Runner's runbook call",
+      (value: string): JSONObject => {
+        return { agentId: AGENT_ID, agentKey: value };
+      },
+    ],
+    [
+      "a Kubernetes agent Runner's registration",
+      (value: string): JSONObject => {
+        return { clusterName: "prod", previousRunnerKey: value };
+      },
+    ],
+    [
+      "a licence check",
+      (value: string): JSONObject => {
+        return { licenseKey: value, instanceId: AGENT_ID };
+      },
+    ],
+    [
+      "a sign-in",
+      (value: string): JSONObject => {
+        return { email: "a@example.com", password: value };
+      },
+    ],
+  ];
+
+  it.each(BODIES)(
+    "leaves none of the key in %s body, however many times it was stringified",
+    (_label: string, bodyWith: (value: string) => JSONObject) => {
+      for (const value of [ISSUED_KEY, OPERATOR_KEY, QUOTED_KEY]) {
+        const body: JSONObject = bodyWith(value);
+
+        for (const times of [0, 1, 2]) {
+          for (const space of [undefined, 2]) {
+            const text: string = stringifiedAgain(
+              failedRequestText(body, space),
+              times,
+            );
+            const output: string = redactLogString(text);
+
+            // What the body says once read back: the key is gone, the rest is there.
+            const kept: JSONObject = bodyIn(parsedBack(output, times));
+
+            expect({ times, space, kept }).toEqual({
+              times,
+              space,
+              kept: Object.fromEntries(
+                Object.entries(body).map(
+                  ([name, member]: [string, unknown]): [string, unknown] => {
+                    return [name, member === value ? REDACTED : member];
+                  },
+                ),
+              ),
+            });
+
+            // And no run of the value is left in the text as it was written.
+            expect(keptRunsOf(output, value)).toEqual([]);
+          }
+        }
+      }
+    },
+  );
+
+  it("redacts a number the same way", () => {
+    expect(
+      redactLogString(
+        JSON.stringify({ data: JSON.stringify({ password: 123456 }) }),
+      ),
+    ).toBe(`{"data":"{\\"password\\":\\"${REDACTED}\\"}"}`);
+  });
+
+  it("takes a value whose last character is a backslash whole, the members after it with it", () => {
+    const value: string = `${ISSUED_KEY}\\`;
+    const output: string = redactLogString(
+      failedRequestText({ probeKey: value, probeId: AGENT_ID }),
+    );
+
+    expect(keptRunsOf(output, ISSUED_KEY)).toEqual([]);
+    expect(output).toContain(REDACTED);
+  });
+
+  it("takes a value with no closing quote to the end of the text", () => {
+    expect(redactLogString(`{"data":"{\\"probeKey\\":\\"${ISSUED_KEY}`)).toBe(
+      `{"data":"{\\"probeKey\\":\\"${REDACTED}\\"`,
+    );
+  });
+
+  it("leaves a body stringified again that names no key alone", () => {
+    const text: string = JSON.stringify({
+      config: {
+        url: "https://oneuptime.example.com/probe-ingest/monitor/list",
+        data: JSON.stringify({
+          probeId: AGENT_ID,
+          limit: 100,
+          probeCapabilities: ["networkDevicePing", "snmpTables"],
+        }),
+      },
+    });
+
+    expect(redactLogString(text)).toBe(text);
+  });
+});
+
+/*
+ * Escaped quotes are text anybody can put into a header or a field too: the
+ * rules that read them stay in line with the text's length, about 400,000
+ * characters of each worst case read in well under 2 seconds.
+ */
+describe("a request body stringified again keeps redaction linear", () => {
+  const LENGTH: number = 400000;
+
+  const EVERY_RUN: string = Array.from(
+    { length: 16 },
+    (_unused: unknown, index: number): string => {
+      const run: string = "\\".repeat(index + 1);
+
+      return `${run}"probeKey${run}":${run}"`;
+    },
+  ).join("");
+
+  it.each([
+    ["members over and over", '\\"probeKey\\":\\"'.repeat(LENGTH / 16)],
+    [
+      "a member whose value never closes",
+      `\\"probeKey\\":\\"${"a".repeat(LENGTH)}`,
+    ],
+    [
+      "a member whose value holds only quotes escaped deeper",
+      `\\"probeKey\\":\\"${'\\\\\\"'.repeat(LENGTH / 4)}`,
+    ],
+    ["backslashes", "\\".repeat(LENGTH)],
+    ["backslashes and quotes", '\\\\\\"'.repeat(LENGTH / 4)],
+    ["names with no colon", '\\"probeKey\\"'.repeat(LENGTH / 12)],
+    ["a name and a long run of spaces", `\\"probeKey\\"${" ".repeat(LENGTH)}`],
+    [
+      "members escaped every number of times",
+      EVERY_RUN.repeat(LENGTH / EVERY_RUN.length),
+    ],
+    ["numbers' members over and over", '\\"password\\":1'.repeat(LENGTH / 15)],
   ])("%s", (_label: string, text: string) => {
     const startedAt: number = Date.now();
 

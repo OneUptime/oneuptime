@@ -338,6 +338,38 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
   },
   {
     /*
+     * JSON string members of JSON text that was stringified again: the
+     * body a client kept as a JSON string, written out with the error that
+     * carries it (JSON.stringify(error) puts its request's body in as
+     * {"data":"{\"probeKey\":\"...\"}"}). Each time a text is stringified
+     * again, the quotes inside it gain backslashes: a member's quotes are
+     * a run of them and a quote. Its value runs to the next quote with a
+     * run of exactly as many backslashes - a quote inside the value has
+     * more - or to the end of the text.
+     *
+     * Linear in the text's length: a run is at most 15 backslashes, the
+     * name is bounded (KEY_PREFIX, KEY_SUFFIX), and every member found
+     * runs to its end, or the text's, before the next is looked for
+     * (LogRedaction.test reads 400,000 characters of each worst case).
+     */
+    name: "escaped-json-string-member",
+    regex: new RegExp(
+      `(?<!\\\\)(\\\\{1,15})"(${KEY_PREFIX}(?:${TEXT_SECRET_WORDS})${KEY_SUFFIX})\\1"(\\s*:\\s*)\\1"[\\s\\S]*?(?:(?<!\\\\)\\1"|$)`,
+      "gi",
+    ),
+    replacement: `$1"$2$1"$3$1"${REDACTED}$1"`,
+  },
+  {
+    // Numeric members of JSON text stringified again: {"data":"{\"password\":1234}"}
+    name: "escaped-json-number-member",
+    regex: new RegExp(
+      `(?<!\\\\)(\\\\{1,15})"(${KEY_PREFIX}(?:${TEXT_SECRET_WORDS})${KEY_SUFFIX})\\1"(\\s*:\\s*)-?\\d+(?:\\.\\d+)?`,
+      "gi",
+    ),
+    replacement: `$1"$2$1"$3$1"${REDACTED}$1"`,
+  },
+  {
+    /*
      * The keys OneUptime's own components present (INTERNAL_KEY_WORDS), as
      * they travel. The cluster key goes URI-encoded
      * (ClusterKeyAuthorization.getClusterKey), which leaves ' ( ) ! * ~ as

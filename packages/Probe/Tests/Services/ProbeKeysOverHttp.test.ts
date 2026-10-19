@@ -28,7 +28,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { createServer, IncomingMessage, Server, ServerResponse } from "http";
+import {
+  ClientRequest,
+  createServer,
+  IncomingMessage,
+  request,
+  Server,
+  ServerResponse,
+} from "http";
 import { AddressInfo } from "net";
 import util from "util";
 
@@ -37,6 +44,26 @@ jest.mock("Common/Types/Sleep", () => {
     __esModule: true,
     default: {
       sleep: async (): Promise<void> => {},
+    },
+  };
+});
+
+interface CapturedCronJob {
+  jobName: string;
+  runFunction: () => Promise<void>;
+}
+
+/*
+ * The probe's jobs as BasicCron is handed them, so a test runs the very
+ * function the schedule would, with no scheduler.
+ */
+const mockCapturedCronJobs: Array<CapturedCronJob> = [];
+
+jest.mock("Common/Server/Utils/BasicCron", () => {
+  return {
+    __esModule: true,
+    default: (job: CapturedCronJob): void => {
+      mockCapturedCronJobs.push(job);
     },
   };
 });
@@ -145,6 +172,10 @@ async function closedPortOrigin(): Promise<string> {
 interface Probe {
   Register: AnyModule;
   checkAliveAndReport: () => Promise<void>;
+  // One monitoring worker: fetches the monitors to check, then checks them.
+  FetchListAndProbe: AnyModule;
+  // Schedules the job that fetches and runs the monitor tests people start.
+  initMonitorTestJob: () => void;
   LocalCache: AnyModule;
   logger: AnyModule;
 }
@@ -157,6 +188,8 @@ function startProbe(data: {
   oneuptimeUrl: string;
   probeKey: string;
   registerProbeKey?: string;
+  // The proxy the probe sends its requests through (HTTP_PROXY_URL).
+  httpProxyUrl?: string;
 }): Probe {
   const saved: Record<string, string | undefined> = {
     ONEUPTIME_URL: process.env["ONEUPTIME_URL"],
@@ -164,11 +197,18 @@ function startProbe(data: {
     PROBE_ID: process.env["PROBE_ID"],
     REGISTER_PROBE_KEY: process.env["REGISTER_PROBE_KEY"],
     LOG_LEVEL: process.env["LOG_LEVEL"],
+    HTTP_PROXY_URL: process.env["HTTP_PROXY_URL"],
   };
 
   process.env["ONEUPTIME_URL"] = data.oneuptimeUrl;
   process.env["PROBE_KEY"] = data.probeKey;
   process.env["LOG_LEVEL"] = "DEBUG";
+
+  if (data.httpProxyUrl) {
+    process.env["HTTP_PROXY_URL"] = data.httpProxyUrl;
+  } else {
+    delete process.env["HTTP_PROXY_URL"];
+  }
 
   if (data.registerProbeKey) {
     process.env["REGISTER_PROBE_KEY"] = data.registerProbeKey;
@@ -186,9 +226,16 @@ function startProbe(data: {
       started = {
         Register: require("../../Services/Register").default,
         checkAliveAndReport: require("../../Jobs/Alive").checkAliveAndReport,
+        FetchListAndProbe: require("../../Jobs/Monitor/FetchList")
+          .FetchListAndProbe,
+        initMonitorTestJob: require("../../Jobs/Monitor/FetchMonitorTest")
+          .default,
         LocalCache: require("Common/Server/Infrastructure/LocalCache").default,
         logger: require("Common/Server/Utils/Logger").default,
       };
+
+      // As the probe sets its proxy up when it starts.
+      require("../../Utils/ProxyConfig").default.configure();
       /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
     });
   } finally {
@@ -327,6 +374,117 @@ describe("a request that carries a probe's keys, redirected to another server", 
   });
 });
 
+/*
+ * A forward proxy, as a probe may be told to send its requests through
+ * (HTTP_PROXY_URL): it is asked for an address, forwards the request there
+ * and hands back the answer, a redirect included. It forwards only to the
+ * servers it is given, and keeps every address it is asked for.
+ */
+interface ForwardProxy {
+  http: Server;
+  origin: string;
+  askedFor: Array<string>;
+}
+
+async function startForwardProxy(
+  servers: Array<TestServer>,
+): Promise<ForwardProxy> {
+  const askedFor: Array<string> = [];
+
+  const http: Server = createServer(
+    (req: IncomingMessage, res: ServerResponse) => {
+      askedFor.push(req.url || "");
+
+      const target: TestServer | undefined = servers.find(
+        (candidate: TestServer): boolean => {
+          return (req.url || "").startsWith(`${candidate.origin}/`);
+        },
+      );
+
+      if (!target) {
+        res.writeHead(502);
+        res.end();
+        return;
+      }
+
+      const forwarded: ClientRequest = request(
+        {
+          hostname: "127.0.0.1",
+          port: (target.http.address() as AddressInfo).port,
+          path: (req.url || "").slice(target.origin.length),
+          method: req.method,
+          headers: req.headers,
+        },
+        (answer: IncomingMessage) => {
+          res.writeHead(answer.statusCode || 502, answer.headers);
+          answer.pipe(res);
+        },
+      );
+
+      forwarded.on("error", () => {
+        res.writeHead(502);
+        res.end();
+      });
+
+      req.pipe(forwarded);
+    },
+  );
+
+  await new Promise<void>((resolve: () => void) => {
+    http.listen(0, "127.0.0.1", resolve);
+  });
+
+  return {
+    http: http,
+    origin: `http://127.0.0.1:${(http.address() as AddressInfo).port}`,
+    askedFor: askedFor,
+  };
+}
+
+describe("a request that carries a probe's keys, through the probe's proxy", () => {
+  let proxy: ForwardProxy;
+
+  beforeAll(async () => {
+    proxy = await startForwardProxy([
+      otherServer,
+      redirectingAway,
+      redirectingToItself,
+    ]);
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve: () => void) => {
+      proxy.http.close(() => {
+        resolve();
+      });
+    });
+  });
+
+  afterEach(() => {
+    proxy.askedFor.length = 0;
+  });
+
+  test("a global probe's registration redirected to another server is not sent on, and the proxy is never asked for it", async () => {
+    const probe: Probe = startProbe({
+      oneuptimeUrl: redirectingAway.origin,
+      probeKey: PROBE_KEY,
+      registerProbeKey: REGISTER_PROBE_KEY,
+      httpProxyUrl: proxy.origin,
+    });
+
+    const failure: unknown = await settled(async () => {
+      await probe.Register._registerProbe();
+    });
+
+    expect(failure).not.toBeNull();
+    expect(proxy.askedFor).toEqual([
+      `${redirectingAway.origin}/probe-ingest/register`,
+    ]);
+    expect(pathsOf(redirectingAway)).toEqual(["/probe-ingest/register"]);
+    expect(otherServer.received).toEqual([]);
+  });
+});
+
 describe("a request that carries a probe's keys, redirected on its own server", () => {
   test("a global probe's registration gets there, keys and all", async () => {
     const probe: Probe = startProbe({
@@ -444,6 +602,56 @@ describe.each([
       probe.logger.error(failure);
 
       expect(printed.join("\n")).toContain("/probe-ingest/alive");
+      expectNoKeyIn(probe);
+    });
+
+    /*
+     * The monitoring workers and the monitor-test job log a failed fetch
+     * twice: the error, and the request it was making as JSON text - in
+     * which the body the client sent is a JSON string of its own, its
+     * quotes escaped.
+     */
+    test("logs a failed fetch of the monitors to check without its key, as a monitoring worker logs it", async () => {
+      const probe: Probe = startProbe({
+        oneuptimeUrl: await closedPortOrigin(),
+        probeKey: probeKey,
+      });
+
+      probe.LocalCache.setString("PROBE", "PROBE_ID", PROBE_ID);
+
+      await new probe.FetchListAndProbe("Worker 1").run();
+
+      expect(printed.join("\n")).toContain("Error in fetching monitor list");
+      expect(printed.join("\n")).toContain("/probe-ingest/monitor/list");
+      // The request as JSON text, its body escaped inside it.
+      expect(printed.join("\n")).toContain('\\"probeKey\\":\\"');
+      expectNoKeyIn(probe);
+    });
+
+    test("logs a failed fetch of the monitor tests to run without its key, as the monitor-test job logs it", async () => {
+      const probe: Probe = startProbe({
+        oneuptimeUrl: await closedPortOrigin(),
+        probeKey: probeKey,
+      });
+
+      probe.LocalCache.setString("PROBE", "PROBE_ID", PROBE_ID);
+
+      mockCapturedCronJobs.length = 0;
+      probe.initMonitorTestJob();
+
+      const job: CapturedCronJob | undefined = mockCapturedCronJobs.find(
+        (captured: CapturedCronJob): boolean => {
+          return captured.jobName === "Probe:MonitorTest";
+        },
+      );
+
+      expect(job).toBeDefined();
+
+      await job!.runFunction();
+
+      expect(printed.join("\n")).toContain("API Exception Error");
+      expect(printed.join("\n")).toContain("/probe-ingest/monitor-test/list");
+      expect(printed.join("\n")).toContain('\\"probeKey\\":\\"');
       expectNoKeyIn(probe);
     });
   },
