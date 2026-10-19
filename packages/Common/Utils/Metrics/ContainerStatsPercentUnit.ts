@@ -129,8 +129,9 @@ export default class ContainerStatsPercentUnit {
    * between the two every few seconds - with a database write each time. So a
    * "%" a container stats receiver set stays: the Docker and Podman
    * containers read right, and the Kubernetes pages, which compute their own
-   * CPU percent from the cores, are not affected. Any other unit change goes
-   * through as before.
+   * CPU percent from the cores, are not affected (in the metrics explorer a
+   * Kubernetes series of that name then reads in cores, unscaled - one name
+   * cannot carry both units). Any other unit change goes through as before.
    */
   public static keepsStoredPercentUnit(input: {
     metricName: string;
