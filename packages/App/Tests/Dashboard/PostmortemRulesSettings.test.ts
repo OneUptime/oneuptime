@@ -109,6 +109,10 @@ const ALERT_PAGE: string = "Pages/Alerts/Settings/AlertAISettings.tsx";
 const TABLE: string = "Components/AISettings/AIPostmortemRulesTable.tsx";
 const TEMPLATES_CELL: string =
   "Components/AISettings/PostmortemRuleTemplates.tsx";
+
+// The more button's words, in the reader's plural forms - however prettier wraps the call.
+const MORE_TEMPLATES_PLURAL_CALL: RegExp =
+  /translator\.translatePlural\(\s*POSTMORTEM_RULE_MORE_TEMPLATES,\s*count,?\s*\)/;
 const COPY: string = "Components/AISettings/PostmortemRulesCopy.ts";
 const FORM: string = "Components/AISettings/PostmortemRuleForm.ts";
 
@@ -307,9 +311,8 @@ describe("Postmortem rules under More settings", () => {
     );
     // The list every table draws records with: three, then how many more.
     expect(cell).toContain("<TableColumnListComponent<TemplateItem>");
-    expect(cell).toContain(
-      "translator.translatePlural(POSTMORTEM_RULE_MORE_TEMPLATES, count)",
-    );
+    expect(cell).toContain("getMoreText={(count: number): string =>");
+    expect(cell).toMatch(MORE_TEMPLATES_PLURAL_CALL);
   });
 
   test("below the plan, the rule's Name has no help: the column's description would only repeat it", () => {
