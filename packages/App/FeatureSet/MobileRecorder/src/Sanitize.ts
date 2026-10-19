@@ -23,7 +23,13 @@ const BLOCKED_KEYS: ReadonlySet<string> = new Set<string>([
 const UUID_SEGMENT: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const OBJECT_ID_SEGMENT: RegExp = /^[0-9a-f]{24}$/iu;
-const EMAIL_SEGMENT: RegExp = /^[^@\s/]+@[^@\s/]+\.[^@\s/]+$/u;
+/*
+ * An email-shaped route segment. Each run is length-bounded (a local part, a
+ * domain and a last label, at the sizes RFC 5321 allows) and anchored, so a
+ * segment of any length is read once from end to end - the recorder runs
+ * this on the device over whatever route the app was opened at.
+ */
+const EMAIL_SEGMENT: RegExp = /^[^@\s/]{1,64}@[^@\s/]{1,253}\.[^@\s/]{1,63}$/u;
 const LONG_DIGIT_SEGMENT: RegExp = /^\d{9,}$/u;
 const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_-]{32,}$/u;
 const ABSOLUTE_URL_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9+.-]*:\/\//;
