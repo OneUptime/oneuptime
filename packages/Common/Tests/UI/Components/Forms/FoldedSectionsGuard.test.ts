@@ -33,8 +33,15 @@ import {
  *   2. "More fields" or "More settings" written out instead of the shared
  *      constants, so the name lives in one place (FoldedSectionTitles);
  *   3. a FormFieldCollapsibleSection titled More fields by hand, instead of
- *      getAdvancedFormSection - which is what lists its fields and draws its
- *      icon;
+ *      getAdvancedFormSection - which is what lists its fields and asks
+ *      for the quiet line;
+ *   5. a hand-drawn More fields fold given what only a card has - an icon
+ *      tile, a card look, a page card's elevation or flush body. More
+ *      fields is one quiet line wherever it is drawn (FoldedSectionVariant:
+ *      "Can we make this more subtle, this needs to be done across the
+ *      project for more fields. Takes up too much real estate right now."
+ *      - the maintainer), so such a prop would be ignored - and read as if
+ *      it were not;
  *   4. the old way of showing extra options - an "Advanced: ..." link that
  *      reveals an "Advanced Options" box, a "Show/Hide Advanced Options"
  *      button, a "Show N advanced settings" link, a "Show advanced settings"
@@ -209,7 +216,16 @@ interface FileFindings {
   writtenOutNames: Array<Finding>;
   handBuiltMoreFields: Array<Finding>;
   oldAdvancedToggles: Array<Finding>;
+  cardPropsOnMoreFields: Array<Finding>;
 }
+
+// What only a card fold draws: a More fields line takes none of them.
+const CARD_ONLY_PROPS: ReadonlySet<string> = new Set<string>([
+  "icon",
+  "variant",
+  "isElevated",
+  "isBodyFlush",
+]);
 
 // What one module holds that the rules below are about; `name` as listed.
 function scanSource(name: string, source: string): FileFindings {
@@ -226,6 +242,7 @@ function scanSource(name: string, source: string): FileFindings {
     writtenOutNames: [],
     handBuiltMoreFields: [],
     oldAdvancedToggles: [],
+    cardPropsOnMoreFields: [],
   };
 
   const record: (list: Array<Finding>, node: ts.Node, text: string) => void = (
@@ -240,6 +257,46 @@ function scanSource(name: string, source: string): FileFindings {
     // 1 and 4: a fold drawn with an "Advanced" title, an "Advanced:" link.
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
       const tag: string = node.tagName.getText(sourceFile);
+
+      // 5: a More fields fold given what only a card has.
+      const attributeNames: Array<string> = node.attributes.properties
+        .filter(ts.isJsxAttribute)
+        .map((attribute: ts.JsxAttribute): string => {
+          return attribute.name.getText(sourceFile);
+        });
+
+      const titleAttribute: ts.JsxAttribute | undefined =
+        node.attributes.properties
+          .filter(ts.isJsxAttribute)
+          .find((attribute: ts.JsxAttribute): boolean => {
+            return attribute.name.getText(sourceFile) === "title";
+          });
+
+      const titleExpression: ts.Expression | undefined =
+        titleAttribute?.initializer &&
+        ts.isJsxExpression(titleAttribute.initializer)
+          ? titleAttribute.initializer.expression
+          : undefined;
+
+      const isMoreFieldsFold: boolean =
+        tag === "FoldedSection" &&
+        Boolean(
+          titleExpression &&
+            ts.isIdentifier(titleExpression) &&
+            titleExpression.text === "MORE_FIELDS_SECTION_TITLE",
+        );
+
+      if (isMoreFieldsFold) {
+        for (const attributeName of attributeNames) {
+          if (CARD_ONLY_PROPS.has(attributeName)) {
+            record(
+              findings.cardPropsOnMoreFields,
+              node,
+              `<FoldedSection title={MORE_FIELDS_SECTION_TITLE} ${attributeName}=...>`,
+            );
+          }
+        }
+      }
 
       for (const attribute of node.attributes.properties) {
         if (
@@ -405,6 +462,47 @@ describe("folded sections of rarely needed options", () => {
     ).toEqual([]);
   });
 
+  test("drawn by hand as More fields, take nothing a card has: More fields is one quiet line", () => {
+    expect(
+      all((findings: FileFindings) => {
+        return findings.cardPropsOnMoreFields;
+      }),
+    ).toEqual([]);
+  });
+
+  test("the monitor form's own More fields folds are drawn as the shared fold, with the shared title", () => {
+    const monitorForms: Array<string> = files
+      .map(relative)
+      .filter((file: string): boolean => {
+        return file.startsWith(`${DASHBOARD}/Components/Form/Monitor/`);
+      })
+      .filter((file: string): boolean => {
+        return fs
+          .readFileSync(path.join(REPOSITORY_ROOT, file), "utf8")
+          .includes("title={MORE_FIELDS_SECTION_TITLE}");
+      });
+
+    // The request settings, the criteria, the rules' incidents and alerts.
+    expect(monitorForms.length).toBeGreaterThanOrEqual(10);
+
+    for (const file of monitorForms) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf8",
+      );
+
+      expect({
+        file: file,
+        cardProps: scanSource(file, source).cardPropsOnMoreFields,
+        namesTheTileIcon: source.includes("MORE_SECTION_ICON"),
+      }).toEqual({
+        file: file,
+        cardProps: [],
+        namesTheTileIcon: false,
+      });
+    }
+  });
+
   test("are folds, never an 'Advanced: ...' link, a Show Advanced Options button or a Show advanced settings switch", () => {
     expect(
       all((findings: FileFindings) => {
@@ -558,6 +656,26 @@ describe("the detector", () => {
       "Show advanced settings",
       "Show Advanced Settings",
       '<Toggle title="Hide advanced settings">',
+    ]);
+  });
+
+  test("finds a hand-drawn More fields fold given a card's props, and nothing else", () => {
+    const findings: FileFindings = scanSnippet(`
+      const a = <FoldedSection title={MORE_FIELDS_SECTION_TITLE} icon={MORE_SECTION_ICON} items={items}><div /></FoldedSection>;
+      const b = <FoldedSection title={MORE_FIELDS_SECTION_TITLE} variant="card" isElevated={true}><div /></FoldedSection>;
+      const c = <FoldedSection title={MORE_FIELDS_SECTION_TITLE} items={items} summary={summary} dataTestId="x"><div /></FoldedSection>;
+      const d = <FoldedSection title="Branding" icon={IconProp.Image} isElevated={true}><div /></FoldedSection>;
+      const e = <FoldedSection title={MORE_SETTINGS_SECTION_TITLE} icon={MORE_SECTION_ICON} isBodyFlush={true}><div /></FoldedSection>;
+    `);
+
+    expect(
+      findings.cardPropsOnMoreFields.map((finding: Finding): string => {
+        return finding.text;
+      }),
+    ).toEqual([
+      "<FoldedSection title={MORE_FIELDS_SECTION_TITLE} icon=...>",
+      "<FoldedSection title={MORE_FIELDS_SECTION_TITLE} variant=...>",
+      "<FoldedSection title={MORE_FIELDS_SECTION_TITLE} isElevated=...>",
     ]);
   });
 

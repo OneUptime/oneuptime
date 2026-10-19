@@ -36,10 +36,7 @@ import Input, { InputType } from "Common/UI/Components/Input/Input";
 import { APP_API_URL, DOCS_URL } from "Common/UI/Config";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
-import {
-  MORE_FIELDS_SECTION_TITLE,
-  MORE_SECTION_ICON,
-} from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { getMonitorStepMoreFieldsItems } from "./MonitorMoreFields";
 import Card from "Common/UI/Components/Card/Card";
@@ -1059,7 +1056,6 @@ return {
       {props.monitorType === MonitorType.API && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
-          icon={MORE_SECTION_ICON}
           description="Headers, body, redirect, TLS, timeout and retry settings"
           items={moreFieldsItems}
           defaultCollapsed={!showAdvancedOptionsRequestBodyAndHeaders}
@@ -1324,7 +1320,6 @@ return {
       {props.monitorType === MonitorType.Website && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
-          icon={MORE_SECTION_ICON}
           description="Redirect, TLS, timeout and retry settings"
           items={moreFieldsItems}
           defaultCollapsed={!showDoNotFollowRedirects}
@@ -1502,7 +1497,6 @@ return {
       {props.monitorType === MonitorType.NTP && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
-          icon={MORE_SECTION_ICON}
           description="Port, timeout and retry settings"
           items={moreFieldsItems}
           dataTestId="monitor-step-more-fields"
@@ -1558,7 +1552,6 @@ return {
         props.monitorType === MonitorType.SSLCertificate) && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
-          icon={MORE_SECTION_ICON}
           description="Timeout and retry settings"
           items={moreFieldsItems}
           dataTestId="monitor-step-more-fields"
@@ -2190,7 +2183,6 @@ return {
       {props.monitorType === MonitorType.SyntheticMonitor && (
         <FoldedSection
           title={MORE_FIELDS_SECTION_TITLE}
-          icon={MORE_SECTION_ICON}
           description="Retry settings and more"
           items={moreFieldsItems}
           defaultCollapsed={!showSyntheticMonitorAdvancedOptions}

@@ -3,11 +3,11 @@ import FormFieldSchemaType from "../Types/FormFieldSchemaType";
 import FormValues from "../Types/FormValues";
 import { getPeoplePickerValueKeys } from "../../PeoplePicker/PeoplePickerTypes";
 import Color from "../../../../Types/Color";
-import IconProp from "../../../../Types/Icon/IconProp";
+import { MORE_FIELDS_SECTION_TITLE as FOLDED_MORE_FIELDS_TITLE } from "../../FoldedSection/FoldedSectionTitles";
 import {
-  MORE_FIELDS_SECTION_TITLE as FOLDED_MORE_FIELDS_TITLE,
-  MORE_SECTION_ICON,
-} from "../../FoldedSection/FoldedSectionTitles";
+  FOLDED_SECTION_LINE,
+  FoldedSectionVariant,
+} from "../../FoldedSection/FoldedSectionVariant";
 
 /*
  * "More fields" in a form: the options most people never need, folded under
@@ -39,14 +39,20 @@ import {
  *   ]
  *
  * What the user gets (BasicForm, CollapsibleFormSection, FoldedSection):
+ *   - one quiet line at the end of the form, not a card: a small chevron,
+ *     "More fields" as a link, and what is inside after it - "More fields ·
+ *     Description, Labels". The maintainer, on the card it used to be:
+ *     "Can we make this more subtle, this needs to be done across the
+ *     project for more fields. Takes up too much real estate right now.";
  *   - the section starts folded, on Create and on Edit alike;
- *   - folded, its header lists the fields in it by name ("Declared At ·
- *     Initial State · Labels · Private Incident") and draws each one that
- *     holds a value other than empty or its default as a chip that says
- *     what it is set to ("Labels: 2", "Private Incident: On") - so an Edit
- *     form never hides that something is set, nor what;
+ *   - folded, the line names the fields in it, and each one that holds a
+ *     value other than empty or its default a shade darker with what it is
+ *     set to ("Labels: 2", "Private Incident: On") - so an Edit form never
+ *     hides that something is set, nor what. A few names at most, then how
+ *     many more (FoldedSectionItem);
  *   - with getSummary, a sentence under that line says what its defaults
  *     do ("The key expires a year from today.");
+ *   - open, its fields follow the line as part of the form;
  *   - it opens by itself when a field in it fails validation;
  *   - folded fields keep their values, are skipped by Tab, and are still
  *     submitted.
@@ -64,8 +70,9 @@ export const ADVANCED_FORM_SECTION_ID: string = "advanced";
 // What the section is called in every form (looked up when it is drawn).
 export const MORE_FIELDS_SECTION_TITLE: string = FOLDED_MORE_FIELDS_TITLE;
 
-// The icon in its header's tile: things to adjust.
-export const MORE_FIELDS_SECTION_ICON: IconProp = MORE_SECTION_ICON;
+// How it is drawn in every form: one quiet line (FoldedSectionVariant).
+export const MORE_FIELDS_SECTION_VARIANT: FoldedSectionVariant =
+  FOLDED_SECTION_LINE;
 
 export interface AdvancedFormSectionOptions<TEntity> {
   /*
@@ -105,11 +112,12 @@ export const getAdvancedFormSection: GetAdvancedFormSectionFunction = <TEntity>(
   const section: FormFieldCollapsibleSection<TEntity> = {
     id: options?.id || ADVANCED_FORM_SECTION_ID,
     title: MORE_FIELDS_SECTION_TITLE,
-    // Folded on Edit too: the chips on its header say what is set.
+    // Folded on Edit too: its line says what is set.
     openWhenConfigured: false,
-    // Its title says nothing of what is in it, so its header lists it.
+    // Its title says nothing of what is in it, so its line lists it.
     listFieldsWhileFolded: true,
-    icon: MORE_FIELDS_SECTION_ICON,
+    // One quiet line, not a card: it is the form's least important part.
+    variant: MORE_FIELDS_SECTION_VARIANT,
   };
 
   if (options?.description) {

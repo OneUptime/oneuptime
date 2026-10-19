@@ -22,6 +22,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import type { CodeEditorActions } from "../../CodeEditor/CodeEditor";
 import type { PeoplePickerFieldConfig } from "../../PeoplePicker/PeoplePickerTypes";
 import type { TemplateVariableGroups } from "../../../../Types/Template/TemplateVariable";
+import type { FoldedSectionVariant } from "../../FoldedSection/FoldedSectionVariant";
 import type IconProp from "../../../../Types/Icon/IconProp";
 import type { PluralTemplate } from "../../../Utils/TranslateTemplate";
 import { ReactElement, ReactNode } from "react";
@@ -112,7 +113,17 @@ export interface FormFieldCollapsibleSection<TEntity> {
    * set (FoldedSection).
    */
   listFieldsWhileFolded?: boolean | undefined;
-  // Drawn in a tile before the title (More fields: IconProp.AdjustmentHorizontal).
+  /*
+   * How the fold is drawn (FoldedSection): "card" when left out - a framed
+   * block with its title, for a section named for what it holds - or "line",
+   * one quiet line that opens the fields in place, for More fields
+   * (getAdvancedFormSection).
+   */
+  variant?: FoldedSectionVariant | undefined;
+  /*
+   * A card's icon, in a tile before its title (the status page's
+   * Preferences: IconProp.Bell). A line has none.
+   */
   icon?: IconProp | undefined;
   /*
    * What the folded fields are set to, in plain words, shown under the

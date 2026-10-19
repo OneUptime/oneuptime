@@ -197,6 +197,16 @@ describe("folded sections in the dark theme", () => {
         // The divider above each section, and a section list's lighter row rules.
         "divide-gray-200",
         "divide-gray-100",
+        /*
+         * More fields' line: the title a quiet link that darkens on hover,
+         * its chevron, the dot after it, the names in grey and the set ones
+         * a shade darker.
+         */
+        "text-indigo-600",
+        "group-hover:text-indigo-800",
+        "text-indigo-500",
+        "group-hover:text-indigo-700",
+        "text-gray-700",
       ]),
     );
 

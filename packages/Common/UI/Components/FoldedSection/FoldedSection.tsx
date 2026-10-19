@@ -7,6 +7,11 @@ import {
   FoldedSectionItemsShown,
   getFoldedSectionItemsShown,
 } from "./FoldedSectionItem";
+import {
+  FOLDED_SECTION_LINE,
+  FoldedSectionVariant,
+  getFoldedSectionVariant,
+} from "./FoldedSectionVariant";
 import React, {
   Fragment,
   FunctionComponent,
@@ -19,26 +24,40 @@ import React, {
 
 /*
  * A fold: options most people never need, out of the way until someone
- * opens them - a form's "More fields" (Forms/Utils/AdvancedFormSection), a
- * page's "More settings" (AdvancedPageSection), and every other folded
- * section a form draws (CollapsibleFormSection).
+ * opens them - a form's "More fields" (Forms/Utils/AdvancedFormSection,
+ * MoreFieldsSection), a page's "More settings" (AdvancedPageSection), and
+ * every other folded section a form draws (CollapsibleFormSection).
  *
  * Folded, its header says what is inside without being opened:
  *   - the fields or cards it holds, by name, a few of them and how many
- *     more ("Declared At · Initial State · Labels · Private Incident");
- *   - the ones that are set, as chips with what they are set to ("Labels:
- *     2", "Private Incident: On"), so nothing in force is hidden;
+ *     more;
+ *   - the ones that are set, with what they are set to ("Labels: 2",
+ *     "Private Incident: On"), so nothing in force is hidden;
  *   - what its defaults do, in a sentence, where the section says so ("The
  *     key expires a year from today.").
- * Open, it shows its description under the title instead, and the fields.
+ * Open, it shows its description instead, and the fields.
  *
- * The header is a real button: Tab reaches it, Enter and Space open it,
- * aria-expanded says which way it is, and the line of what is inside is its
- * description for a screen reader. Folded, the body stays mounted (fields
- * keep what was typed) but is invisible, so nothing in it can be tabbed to
- * or read out. It works the same in the dark theme (Theme.css remaps every
- * colour class used here) and at phone width (the lines wrap; the chevron
- * keeps its place).
+ * It is drawn one of two ways (FoldedSectionVariant):
+ *   - a card (the default): a framed block, its title beside an icon tile,
+ *     what is inside as pills under it, the set ones as indigo chips, and a
+ *     chevron at its end - a page's More settings, among the page's cards,
+ *     and a form's sections named for what they hold;
+ *   - a line: no frame, no tile, no pills - a small chevron, the title as a
+ *     quiet link, and what is inside after it, the set ones a shade darker:
+ *     "More fields · Description, Labels: 2". Open, the fields follow the
+ *     line as part of the form. Every form's More fields: the maintainer,
+ *     on the card it was - "Can we make this more subtle, this needs to be
+ *     done across the project for more fields. Takes up too much real
+ *     estate right now."
+ *
+ * Either way the header is a real button: Tab reaches it, Enter and Space
+ * open it, aria-expanded says which way it is, its name is the title alone,
+ * and what is inside is its description for a screen reader. Folded, the
+ * body stays mounted (fields keep what was typed) but is invisible, so
+ * nothing in it can be tabbed to or read out. It works the same in the dark
+ * theme (Theme.css remaps every colour class used here), at phone width
+ * (the lines wrap; the chevron keeps its place) and right to left (the
+ * line's chevron points left while it is folded).
  */
 
 export const FOLDED_SECTION_TEST_ID: string = "folded-section";
@@ -46,7 +65,12 @@ export const FOLDED_SECTION_TEST_ID: string = "folded-section";
 export interface ComponentProps {
   // English; looked up when drawn.
   title: string;
-  // Drawn in a tile before the title: what kind of section it is.
+  /*
+   * "card" when left out: a framed block. "line": one quiet line. A fold
+   * titled More fields is always the line (FoldedSectionVariant).
+   */
+  variant?: FoldedSectionVariant | undefined;
+  // Drawn in a tile before the title: what kind of section it is (cards only).
   icon?: IconProp | undefined;
   // Under the title while open.
   description?: string | ReactElement | undefined;
@@ -197,6 +221,240 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const variant: FoldedSectionVariant = getFoldedSectionVariant({
+    title: props.title,
+    variant: props.variant,
+  });
+
+  if (variant === FOLDED_SECTION_LINE) {
+    /*
+     * What is inside, as words: the names in grey, and each one that is
+     * set as its name and value a shade darker ("Labels: 2"), so what is in
+     * force still stands out without a chip.
+     */
+    const renderLineItem: (item: FoldedSectionItem) => ReactElement = (
+      item: FoldedSectionItem,
+    ): ReactElement => {
+      const title: string = translate(item.title);
+
+      if (!item.isSet) {
+        return (
+          <span
+            data-testid="folded-section-item"
+            data-item-key={item.key}
+            data-item-set="false"
+          >
+            {title}
+          </span>
+        );
+      }
+
+      const value: string | undefined = item.value
+        ? item.translateValue
+          ? translate(item.value)
+          : item.value
+        : undefined;
+
+      return (
+        <span
+          data-testid="folded-section-item"
+          data-item-key={item.key}
+          data-item-set="true"
+          className="font-medium text-gray-700"
+        >
+          {title}
+          {value ? `: ${value}` : ""}
+        </span>
+      );
+    };
+
+    // What the folded line lists after its title, in order.
+    const lineEntries: Array<ReactElement> = [];
+
+    if (showContents) {
+      for (const item of shown) {
+        lineEntries.push(renderLineItem(item));
+      }
+
+      if (hiddenCount > 0) {
+        lineEntries.push(
+          <span data-testid="folded-section-more">
+            {translator.translatePlural(
+              { one: "{{count}} more", other: "{{count}} more" },
+              hiddenCount,
+            )}
+          </span>,
+        );
+      }
+    }
+
+    if (showBadge) {
+      lineEntries.push(
+        <span
+          className="font-medium text-gray-700"
+          data-testid="folded-section-badge"
+        >
+          {translate(props.badge || "")}
+        </span>,
+      );
+    }
+
+    const showAfterTitle: boolean =
+      showContents || showBadge || showDescription;
+
+    return (
+      <div
+        className={`min-w-0 ${props.className || ""}`}
+        data-testid={props.dataTestId || FOLDED_SECTION_TEST_ID}
+        data-collapsed={isCollapsed ? "true" : "false"}
+        data-variant={variant}
+      >
+        {/*
+         * One button holds the whole line - the chevron, the title, what is
+         * inside and the sentences under them - so a click on anything it
+         * says opens it. It is as wide as what it says, not the form: the
+         * empty space beside it is not a control.
+         */}
+        <button
+          type="button"
+          className="group -mx-1 inline-flex max-w-full items-start gap-1 rounded-md px-1 py-0.5 text-start text-sm leading-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          onClick={toggle}
+          aria-expanded={!isCollapsed}
+          aria-controls={bodyId}
+          aria-labelledby={titleId}
+          aria-describedby={
+            describedBy.length > 0 ? describedBy.join(" ") : undefined
+          }
+          data-testid="folded-section-header"
+        >
+          {/*
+           * Points at the line's end - the way it opens - and turns down
+           * once it is open; in a right-to-left page it points left.
+           */}
+          <span
+            aria-hidden="true"
+            className="flex h-6 flex-none items-center text-indigo-500 transition-colors duration-150 group-hover:text-indigo-700"
+            data-testid="folded-section-chevron"
+          >
+            <Icon
+              icon={IconProp.ChevronRight}
+              className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${
+                isCollapsed ? "rtl:rotate-180" : "rotate-90"
+              }`}
+            />
+          </span>
+
+          <span className="min-w-0">
+            <span className="block break-words">
+              {/*
+               * The title keeps the dot after it on its line; the list may
+               * wrap onto the next, under the title.
+               */}
+              <span className="whitespace-nowrap">
+                <span
+                  id={titleId}
+                  className="font-medium text-indigo-600 transition-colors duration-150 group-hover:text-indigo-800"
+                  data-testid="folded-section-title"
+                >
+                  {translate(props.title)}
+                </span>
+
+                {showAfterTitle ? (
+                  <span
+                    aria-hidden="true"
+                    className="pe-0.5 ps-1.5 text-gray-400"
+                  >
+                    ·
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </span>
+
+              {showAfterTitle ? " " : ""}
+
+              {showContents || showBadge ? (
+                <span
+                  id={contentsId}
+                  className="text-gray-500"
+                  data-testid="folded-section-contents"
+                >
+                  {lineEntries.map(
+                    (entry: ReactElement, index: number): ReactElement => {
+                      /*
+                       * Each entry wraps to the next line whole - "Initial
+                       * State: Identified," or "3 more" is never cut in two
+                       * - unless it is longer than a line by itself.
+                       */
+                      return (
+                        <Fragment key={index}>
+                          {index > 0 ? " " : ""}
+                          <span className="inline-block max-w-full">
+                            {entry}
+                            {index < lineEntries.length - 1 ? "," : ""}
+                          </span>
+                        </Fragment>
+                      );
+                    },
+                  )}
+                </span>
+              ) : (
+                <></>
+              )}
+
+              {showDescription ? (
+                <span
+                  id={descriptionId}
+                  className="text-gray-500"
+                  data-testid="folded-section-description"
+                >
+                  {typeof props.description === "string"
+                    ? translate(props.description)
+                    : props.description}
+                </span>
+              ) : (
+                <></>
+              )}
+            </span>
+
+            {showSummary ? (
+              <span
+                id={summaryId}
+                className="block break-words text-sm leading-5 text-gray-500"
+                data-testid="collapsible-section-summary"
+              >
+                {typeof props.summary === "string"
+                  ? translate(props.summary)
+                  : props.summary}
+              </span>
+            ) : (
+              <></>
+            )}
+          </span>
+        </button>
+
+        {/*
+         * Open, the fields follow the line as part of the form - no frame,
+         * no padding of their own - and nothing clips them (an input's
+         * focus ring reaches past its edge). Folded, they are out of sight
+         * and reach (invisible: no tab stops, nothing read out) but
+         * mounted, so they keep what was typed.
+         */}
+        <div
+          id={bodyId}
+          className={`duration-150 ease-in-out motion-reduce:transition-none ${
+            isCollapsed
+              ? "max-h-0 overflow-hidden opacity-0 invisible transition-all"
+              : "opacity-100 transition-opacity"
+          }`}
+          data-testid="folded-section-body"
+        >
+          <div className="pt-3">{props.children}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`border border-gray-200 bg-white transition-colors duration-150 ${
@@ -204,6 +462,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
       } ${props.className || ""}`}
       data-testid={props.dataTestId || FOLDED_SECTION_TEST_ID}
       data-collapsed={isCollapsed ? "true" : "false"}
+      data-variant={variant}
     >
       <button
         type="button"

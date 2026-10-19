@@ -110,6 +110,24 @@ function setChips(): Array<string> {
     });
 }
 
+// The element a folded header draws for a set field, by what it reads.
+function setItem(text: string): HTMLElement {
+  const item: HTMLElement | undefined = screen
+    .queryAllByTestId("folded-section-item")
+    .find((candidate: HTMLElement): boolean => {
+      return (
+        candidate.getAttribute("data-item-set") === "true" &&
+        candidate.textContent === text
+      );
+    });
+
+  if (!item) {
+    throw new Error(`No set item reads "${text}".`);
+  }
+
+  return item;
+}
+
 // Every name a folded header lists, set or not.
 function listedNames(): Array<string> {
   return screen
@@ -334,11 +352,10 @@ describe("BasicForm collapsible sections", () => {
  * advanced section in the form should be called something better ... show
  * what things are inside it when collapsed (small summary of things)."
  *
- * A More fields section (getAdvancedFormSection) is folded on Create and on
- * Edit alike, names the fields it holds on its folded header, draws each
- * one that is set as a chip that says what it is set to - worked out from
- * its own fields - and still opens by itself when a field in it fails
- * validation.
+ * A More fields section (getAdvancedFormSection) is one quiet line, folded
+ * on Create and on Edit alike: it names the fields it holds after its
+ * title, says what each one that is set is set to - worked out from its own
+ * fields - and still opens by itself when a field in it fails validation.
  */
 describe("BasicForm Advanced sections", () => {
   afterEach(() => {
@@ -396,10 +413,15 @@ describe("BasicForm Advanced sections", () => {
     expect(screen.queryByText("Configured")).toBeNull();
     // Read out with the header.
     expect(description(header)).toBe("Show on Create, Auto Resolve, Note");
-    // A tile with the More fields icon, grey while nothing is set.
-    expect(screen.getByTestId("folded-section-icon")).toHaveClass(
-      "bg-gray-100",
+    // One quiet line: its names after its title, no frame, no tile.
+    expect(header).toHaveTextContent(
+      /^More fields\s*·\s*Show on Create, Auto Resolve, Note$/,
     );
+    expect(screen.getByTestId("folded-section")).toHaveAttribute(
+      "data-variant",
+      "line",
+    );
+    expect(screen.queryByTestId("folded-section-icon")).toBeNull();
   });
 
   test("stays folded on an Edit form that has something set, and shows it as a chip", async () => {
@@ -421,9 +443,12 @@ describe("BasicForm Advanced sections", () => {
       "Auto Resolve",
       "Note",
     ]);
-    expect(screen.getByTestId("folded-section-icon")).toHaveClass(
-      "bg-indigo-50",
+    // What is set is a shade darker than the names around it.
+    expect(setItem("Show on Create: On")).toHaveClass(
+      "font-medium",
+      "text-gray-700",
     );
+    expect(screen.queryByTestId("folded-section-icon")).toBeNull();
     expect(screen.queryByText("Configured")).toBeNull();
   });
 
@@ -556,6 +581,66 @@ describe("BasicForm Advanced sections", () => {
     expect(description(header)).toBe(
       "Show on Create, Auto Resolve, Note The note is left out of the message.",
     );
+  });
+
+  /*
+   * "Can we make this more subtle ... Takes up too much real estate right
+   * now." - the maintainer, on the More fields card. A form's More fields is
+   * one quiet line; a section beside it that is named for what it holds
+   * stays a card. Open, the fields follow the line as part of the form.
+   */
+  test("is one quiet line beside a named section's card, and opens its fields in place", async () => {
+    const named: FormFieldCollapsibleSection<JSONObject> = {
+      id: "notifications",
+      title: "Subscriber Notifications",
+      getSummary: (): Array<string> => {
+        return ["Subscribers are told when it starts."];
+      },
+    };
+
+    const { user }: RenderFormResult = renderForm({
+      fields: [
+        {
+          field: { name: true },
+          title: "Name",
+          fieldType: FormFieldSchemaType.Text,
+          dataTestId: "field-name",
+        },
+        {
+          field: { notify: true },
+          title: "Notify",
+          fieldType: FormFieldSchemaType.Toggle,
+          collapsibleSection: named,
+        },
+        ...ADVANCED_FIELDS.slice(2),
+      ],
+      initialValues: { name: "Region" },
+    });
+
+    const moreFields: HTMLElement = await advancedButton();
+    const folds: Array<HTMLElement> = screen.getAllByTestId("folded-section");
+
+    expect(
+      folds.map((fold: HTMLElement): string | null => {
+        return fold.getAttribute("data-variant");
+      }),
+    ).toEqual(["card", "line"]);
+    expect(folds[1]).toContainElement(moreFields);
+    // The line's fold has no frame of its own; the card has its border.
+    expect(folds[1]!.className).not.toMatch(/\bborder\b/);
+    expect(folds[0]).toHaveClass("border");
+
+    await user.click(moreFields);
+
+    expect(moreFields).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByTestId("note")).toBeVisible();
+
+    // The fields sit straight under the line: no padded, bordered box.
+    const body: HTMLElement = document.getElementById(
+      moreFields.getAttribute("aria-controls")!,
+    )!;
+    expect((body.firstElementChild as HTMLElement).className).toBe("pt-3");
+    expect(body).toContainElement(screen.getByTestId("note"));
   });
 
   test("opens by itself when a field in it fails validation", async () => {
@@ -744,7 +829,11 @@ describe("BasicForm section summaries", () => {
     expect(listedNames()).toEqual(["Reminder: 1 day"]);
     expect(screen.queryByTestId("collapsible-section-summary")).toBeNull();
     expect(screen.queryByText("Configured")).toBeNull();
-    // Only More fields wears the icon tile.
+    // Named for what it holds, it is a card - without an icon it names none.
+    expect(screen.getByTestId("folded-section")).toHaveAttribute(
+      "data-variant",
+      "card",
+    );
     expect(screen.queryByTestId("folded-section-icon")).toBeNull();
   });
 
@@ -898,8 +987,8 @@ describe("BasicForm More fields with a custom element that keeps its value elsew
     expect(setChips()).toEqual([
       "Reopen recently resolved episodes: 30 minutes",
     ]);
-    expect(screen.getByTestId("folded-section-icon")).toHaveClass(
-      "bg-indigo-50",
+    expect(setItem("Reopen recently resolved episodes: 30 minutes")).toHaveClass(
+      "text-gray-700",
     );
 
     /*
