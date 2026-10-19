@@ -250,7 +250,7 @@ describe("the phone menu folds the products like the desktop menu", () => {
     expect(
       within(dialog).getByRole("button", { name: "Code" }),
     ).toHaveAttribute("aria-expanded", "true");
-    expect(within(dialog).getByRole("option", { name: /Tasks/ })).toBeVisible();
+    expect(within(dialog).getByRole("option", { name: /^Code/ })).toBeVisible();
   });
 
   test("a section opened in the desktop menu is open on the phone", () => {

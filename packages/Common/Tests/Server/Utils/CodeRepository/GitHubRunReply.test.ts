@@ -358,14 +358,14 @@ describe("GitHubRunReply", () => {
   // =========================================================================
 
   describe("buildRunUrl / buildProjectRunsUrl", () => {
-    test("a run's page lives underneath its project's runs page", () => {
+    test("a run's page is its task's conversation, inside Code", () => {
       const runsUrl: string = GitHubRunReply.buildProjectRunsUrl(projectId);
       const runUrl: string = GitHubRunReply.buildRunUrl({
         projectId: projectId,
         aiRunId: aiRunId,
       });
 
-      expect(runUrl).toBe(`${runsUrl}/${aiRunId.toString()}`);
+      expect(runUrl).toBe(`${runsUrl}/tasks/${aiRunId.toString()}`);
     });
 
     test("both URLs are rooted at the dashboard and scoped to the project", () => {
@@ -387,7 +387,7 @@ describe("GitHubRunReply", () => {
 
     /*
      * A template that lost an interpolation still returns a plausible-looking
-     * string — and a comment linking ".../undefined/ai/agents" is a dead link
+     * string — and a comment linking ".../undefined/code" is a dead link
      * posted into someone else's repository. Asserted on the path only, so
      * this does not depend on how the host is configured.
      */
@@ -403,10 +403,11 @@ describe("GitHubRunReply", () => {
         projectId,
       ).substring(dashboard.length);
 
+      // The task's conversation in Code, and Code itself.
       expect(runPath).toBe(
-        `/${projectId.toString()}/ai/agents/${aiRunId.toString()}`,
+        `/${projectId.toString()}/code/tasks/${aiRunId.toString()}`,
       );
-      expect(runsPath).toBe(`/${projectId.toString()}/ai/agents`);
+      expect(runsPath).toBe(`/${projectId.toString()}/code`);
       expect(runPath).not.toContain("undefined");
       expect(runPath).not.toContain("[object Object]");
     });

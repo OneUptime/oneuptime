@@ -6,7 +6,7 @@
 - [全局选项](#全局选项): 每条命令都接受的选项。
 - [登录与上下文](#登录与上下文): login 和 context 命令。
 - [资源命令](#资源命令): list、get、create、update、delete 和 count。
-- [其他命令](#其他命令): whoami、resources、version 和 help。
+- [其他命令](#其他命令): deploy、whoami、resources、version 和 help。
 :::
 
 ## 命令总览
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident、monitor<br/>等每种资源"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## 全局选项
@@ -222,6 +222,31 @@ CLI 与 OneUptime 一同发布，因此 `oneuptime resources` 列出的是你所
 
 ## 其他命令
 
+### `oneuptime deploy`
+
+从流水线记录一次部署或其他变更：它会绘制在服务的图表上，OneUptime AI 调查事件时也会读取它。它使用遥测摄取密钥写入，而不是 API 密钥。参见 [部署与变更](/docs/telemetry/change-events)。
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| 选项 | 必需 | 说明 | 默认值 |
+| --- | --- | --- | --- |
+| `--service <name>` | 否 | 被部署的服务 | 作用于整个项目的变更 |
+| `--service-version <version>` | 否 | 部署的版本 | |
+| `--previous-version <version>` | 否 | 它所替换的版本 | |
+| `--commit <sha>` | 否 | 部署的提交 | |
+| `--repository <url>` | 否 | 该提交所在的仓库 | |
+| `--branch <name>` | 否 | 部署的分支 | |
+| `--pull-request <number>` | 否 | 部署的拉取请求 | |
+| `--environment <name>` | 否 | 部署到的环境 | |
+| `--title <title>` | 否 | 变更的标题；部署以外的其他类型需要提供 | `Deploy <version>` |
+| `--description <text>` | 否 | 变更的详细信息 | |
+| `--type <type>` | 否 | 变更的类型，例如 `config-change` 或 `rollback` | `deployment` |
+| `--time <time>` | 否 | 变更发生的时间，例如 `2026-10-19T10:00:00Z` | 现在 |
+| `--attribute <key=value...>` | 否 | 更多属性，形式为 `key=value`，一个或多个 | |
+| `--ingestion-key <key>` | 否 | 项目的遥测摄取密钥 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 显示下一条命令将使用的 URL 和 API 密钥（密钥已隐藏部分），以及它们来自的上下文。它不调用 OneUptime。参见 [检查 CLI 将使用什么](/docs/cli/authentication#检查-cli-将使用什么)。
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | 没有 `--api-key` 标志提供密钥时使用的 API 密钥 |
 | `ONEUPTIME_URL` | 没有 `--url` 标志提供地址时使用的 OneUptime 地址 |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 没有 `--ingestion-key` 标志提供密钥时，`oneuptime deploy` 写入所用的遥测摄取密钥 |
 | `NO_COLOR` | 设为任意值即关闭颜色 |
 
 ## 文件

@@ -136,8 +136,9 @@ ${recordingNotice}
 
   /*
    * What a recorded call says before anyone joins: that the provider records
-   * and transcribes it (Zoom) or transcribes it (Google Meet), and what
-   * becomes of the transcript. Null for a call that is not recorded.
+   * and transcribes it (Zoom, Microsoft Teams) or transcribes it (Google
+   * Meet), and what becomes of the transcript. Null for a call that is not
+   * recorded.
    */
   public static getRecordingNotice(
     announcement: VideoCallAnnouncement,
@@ -152,6 +153,10 @@ ${recordingNotice}
 
     if (announcement.provider === VideoCallProvider.GoogleMeet) {
       return mdText`⏺️ Google Meet transcribes this call. OneUptime adds its transcript to the ${announcement.eventNoun.toLowerCase()} once the call is over.`;
+    }
+
+    if (announcement.provider === VideoCallProvider.MicrosoftTeams) {
+      return mdText`⏺️ Microsoft Teams records and transcribes this call. OneUptime adds its transcript to the ${announcement.eventNoun.toLowerCase()} once the call is over.`;
     }
 
     return null;

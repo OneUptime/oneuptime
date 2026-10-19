@@ -82,6 +82,7 @@ La lista muestra cada tipo de registro con el que puede trabajar, y su comando, 
 | `oneuptime login <api-key> <instance-url>` | Guarda una clave de API y una dirección como contexto | [Autenticación](/docs/cli/authentication#iniciar-sesión) |
 | `oneuptime context list`, `use`, `current`, `delete` | Lista, cambia, muestra y elimina contextos guardados | [Autenticación](/docs/cli/authentication#contextos) |
 | `oneuptime whoami` | Muestra la URL y la clave de API que usará el siguiente comando | [Autenticación](/docs/cli/authentication#comprobar-qué-usará-la-cli) |
+| `oneuptime deploy` | Registra un despliegue, u otro cambio, para los gráficos y OneUptime AI | [Despliegues y cambios](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Trabaja con un tipo de registro | [Operaciones de recursos](/docs/cli/resource-operations) |
 | `oneuptime resources` | Lista los tipos de registro, con sus comandos | [Referencia de comandos](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Imprime la versión de la CLI | [Referencia de comandos](/docs/cli/command-reference#oneuptime-version) |

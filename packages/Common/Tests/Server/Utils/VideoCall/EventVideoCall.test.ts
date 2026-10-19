@@ -15,6 +15,7 @@ import VideoCallConnectionService from "../../../../Server/Services/VideoCallCon
 import WorkspaceNotificationRuleService from "../../../../Server/Services/WorkspaceNotificationRuleService";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import EventVideoCall, {
+  RECORDABLE_VIDEO_CALL_PROVIDERS,
   VideoCallEvent,
   VideoCallEventType,
   VideoCallFieldTarget,
@@ -26,7 +27,9 @@ import URL from "../../../../Types/API/URL";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import VideoCallMeeting from "../../../../Types/VideoCall/VideoCallMeeting";
 import VideoCallProvider from "../../../../Types/VideoCall/VideoCallProvider";
+import { VideoCallTranscriptUnavailableReason } from "../../../../Types/VideoCall/VideoCallTranscript";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import {
   afterEach,
@@ -157,6 +160,7 @@ describe("EventVideoCall.prepare", () => {
   describe("Record and transcribe incident calls", () => {
     function startsA(
       provider: VideoCallProvider,
+      extra: Partial<VideoCallMeeting> = {},
     ): SpyInstance<typeof VideoCallConnectionService.startMeeting> {
       return jest
         .spyOn(VideoCallConnectionService, "startMeeting")
@@ -173,12 +177,25 @@ describe("EventVideoCall.prepare", () => {
                     : "https://zoom.us/j/1?pwd=x",
             externalMeetingId:
               provider === VideoCallProvider.CustomLink ? undefined : "m-1",
+            ...extra,
           },
           connection: connection("Connection"),
         });
     }
 
-    test.each([[VideoCallProvider.Zoom], [VideoCallProvider.GoogleMeet]])(
+    test("the providers OneUptime asks to record and transcribe", () => {
+      expect(RECORDABLE_VIDEO_CALL_PROVIDERS).toEqual([
+        VideoCallProvider.Zoom,
+        VideoCallProvider.GoogleMeet,
+        VideoCallProvider.MicrosoftTeams,
+      ]);
+    });
+
+    test.each([
+      [VideoCallProvider.Zoom],
+      [VideoCallProvider.GoogleMeet],
+      [VideoCallProvider.MicrosoftTeams],
+    ])(
       "on: asks %s to record and transcribe an incident's call, and says so after",
       async (provider: VideoCallProvider) => {
         recordingSetting.mockResolvedValue(true);
@@ -201,10 +218,7 @@ describe("EventVideoCall.prepare", () => {
       },
     );
 
-    test.each([
-      [VideoCallProvider.MicrosoftTeams],
-      [VideoCallProvider.CustomLink],
-    ])(
+    test.each([[VideoCallProvider.CustomLink]])(
       "on: a %s call is asked the same, but is not said to be recorded - its provider cannot be asked",
       async (provider: VideoCallProvider) => {
         recordingSetting.mockResolvedValue(true);
@@ -225,6 +239,123 @@ describe("EventVideoCall.prepare", () => {
         expect(prepared.carryForward.recordsAndTranscribes).toBe(false);
       },
     );
+
+    test("on: a Teams meeting on its organizer's calendar keeps its calendar event with the call", async () => {
+      recordingSetting.mockResolvedValue(true);
+      startsA(VideoCallProvider.MicrosoftTeams, {
+        externalCalendarEventId: "AAMkAGI2TG93AAA=",
+      });
+
+      const prepared: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+        await EventVideoCall.prepare({
+          event: makeEvent(),
+          isServerWrite: false,
+          fields: { videoCallConnectionId: CONNECTION_ID },
+        });
+
+      expect(prepared.fields.externalCalendarEventId).toBe("AAMkAGI2TG93AAA=");
+      expect(prepared.fields.externalMeetingId).toBe("m-1");
+      expect(prepared.carryForward).toEqual({
+        connectionName: "Connection",
+        recordsAndTranscribes: true,
+        notRecordedReason: undefined,
+      });
+    });
+
+    test("on: a Teams meeting that could not be set up to record itself starts all the same, unrecorded, saying why", async () => {
+      recordingSetting.mockResolvedValue(true);
+      const warnLog: SpyInstance<typeof logger.warn> = jest
+        .spyOn(logger, "warn")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+      startsA(VideoCallProvider.MicrosoftTeams, {
+        notRecorded: {
+          reason: VideoCallTranscriptUnavailableReason.PermissionMissing,
+          message:
+            "Microsoft Graph did not let the app put the meeting on the organizer's calendar.",
+        },
+      });
+
+      const prepared: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+        await EventVideoCall.prepare({
+          event: makeEvent(),
+          isServerWrite: true,
+          fields: { videoCallConnectionId: CONNECTION_ID },
+        });
+
+      expect(prepared.fields.joinUrl).toBe(
+        "https://teams.microsoft.com/l/meetup-join/x",
+      );
+      expect(prepared.fields.externalCalendarEventId).toBeUndefined();
+      expect(prepared.carryForward).toEqual({
+        connectionName: "Connection",
+        recordsAndTranscribes: false,
+        notRecordedReason:
+          VideoCallTranscriptUnavailableReason.PermissionMissing,
+      });
+      expect(warnLog).toHaveBeenCalledWith(
+        "The incident's MicrosoftTeams call started without being recorded: Microsoft Graph did not let the app put the meeting on the organizer's calendar.",
+        {
+          projectId: PROJECT_ID.toString(),
+          incidentId: INCIDENT_ID.toString(),
+        },
+      );
+    });
+
+    test("off: nothing is said about recording, whatever the meeting carries", async () => {
+      const warnLog: SpyInstance<typeof logger.warn> = jest.spyOn(
+        logger,
+        "warn",
+      );
+      startsA(VideoCallProvider.MicrosoftTeams, {
+        notRecorded: {
+          reason: VideoCallTranscriptUnavailableReason.NotSupported,
+          message: "Not asked.",
+        },
+      });
+
+      const prepared: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+        await EventVideoCall.prepare({
+          event: makeEvent(),
+          isServerWrite: false,
+          fields: { videoCallConnectionId: CONNECTION_ID },
+        });
+
+      expect(prepared.carryForward.recordsAndTranscribes).toBe(false);
+      expect(prepared.carryForward.notRecordedReason).toBeUndefined();
+      expect(warnLog).not.toHaveBeenCalled();
+    });
+
+    test("a calendar event is OneUptime's to say: never a request's, nor a server write's", async () => {
+      startsA(VideoCallProvider.MicrosoftTeams);
+
+      const fromConnection: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+        await EventVideoCall.prepare({
+          event: makeEvent(),
+          isServerWrite: true,
+          fields: {
+            videoCallConnectionId: CONNECTION_ID,
+            externalCalendarEventId: "spoofed",
+          },
+        });
+
+      expect(fromConnection.fields.externalCalendarEventId).toBeUndefined();
+
+      for (const isServerWrite of [false, true]) {
+        const pasted: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+          await EventVideoCall.prepare({
+            event: makeEvent(),
+            isServerWrite,
+            fields: {
+              joinUrl: "https://acme.webex.com/meet/war-room",
+              externalCalendarEventId: "spoofed",
+            },
+          });
+
+        expect(pasted.fields.externalCalendarEventId).toBeUndefined();
+      }
+    });
 
     test("never records an alert's call, and does not even read the switch", async () => {
       recordingSetting.mockResolvedValue(true);
@@ -582,6 +713,7 @@ describe("EventVideoCall.applyFields", () => {
       provider: VideoCallProvider.Zoom,
       joinUrl: "https://old.example.com",
       externalMeetingId: "old",
+      externalCalendarEventId: "old-event",
       workspaceNotificationRuleId: RULE_ID,
     };
 
@@ -599,7 +731,26 @@ describe("EventVideoCall.applyFields", () => {
       title: "War room",
     });
     expect(Object.keys(target)).not.toContain("externalMeetingId");
+    expect(Object.keys(target)).not.toContain("externalCalendarEventId");
     expect(Object.keys(target)).not.toContain("workspaceNotificationRuleId");
+  });
+
+  test("sets a Teams meeting's calendar event", () => {
+    const target: VideoCallFieldTarget = {};
+
+    EventVideoCall.applyFields(target, {
+      provider: VideoCallProvider.MicrosoftTeams,
+      joinUrl: "https://teams.microsoft.com/l/meetup-join/x",
+      externalMeetingId: "m-1",
+      externalCalendarEventId: "AAMkAGI2TG93AAA=",
+    });
+
+    expect(target).toEqual({
+      provider: VideoCallProvider.MicrosoftTeams,
+      joinUrl: "https://teams.microsoft.com/l/meetup-join/x",
+      externalMeetingId: "m-1",
+      externalCalendarEventId: "AAMkAGI2TG93AAA=",
+    });
   });
 });
 

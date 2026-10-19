@@ -27,7 +27,7 @@ import fs from "fs";
 import path from "path";
 
 /*
- * What the Slack, Microsoft Teams and Code Repositories pages say when a
+ * What the Slack, Microsoft Teams and Code pages say when a
  * connection comes back to them unmade (`?error=` and a code). Each code
  * reads as the page's own sentence, in the reader's language; anything else
  * reads as "could not finish" and is never shown as itself; the sentences are
@@ -341,10 +341,10 @@ describe("the connect-return page", () => {
         provider: "github",
         error: null,
       }),
-    ).toBe(`/dashboard/${PROJECT_ID}/code-repository`);
+    ).toBe(`/dashboard/${PROJECT_ID}/code`);
   });
 
-  test("an install made on GitHub itself tells Code Repositories the app is installed", () => {
+  test("an install made on GitHub itself tells Code the app is installed", () => {
     expect(
       getConnectReturnPath({
         projectId: PROJECT_ID,
@@ -352,7 +352,7 @@ describe("the connect-return page", () => {
         error: null,
         notice: "github-installed",
       }),
-    ).toBe(`/dashboard/${PROJECT_ID}/code-repository?notice=github-installed`);
+    ).toBe(`/dashboard/${PROJECT_ID}/code?notice=github-installed`);
   });
 
   test.each([
@@ -401,7 +401,7 @@ describe("the connect-return page", () => {
       });
 
       expect(target).toBe(
-        `/dashboard/${PROJECT_ID}/code-repository?error=could-not-finish`,
+        `/dashboard/${PROJECT_ID}/code?error=could-not-finish`,
       );
     },
   );
@@ -494,8 +494,8 @@ describe("the pages the callbacks send the browser to are the Dashboard's", () =
           PageMap.USER_SETTINGS_MICROSOFT_TEAMS_INTEGRATION,
       },
       [ConnectProvider.GitHub]: {
-        [ConnectStartPage.ProjectSettings]: PageMap.CODE_REPOSITORY,
-        [ConnectStartPage.UserSettings]: PageMap.CODE_REPOSITORY,
+        [ConnectStartPage.ProjectSettings]: PageMap.CODE,
+        [ConnectStartPage.UserSettings]: PageMap.CODE,
       },
       // A project's video calls live in its settings only.
       [ConnectProvider.Zoom]: {
@@ -548,7 +548,7 @@ describe("the pages answer through the one notice", () => {
       provider: "ConnectProvider.MicrosoftTeams",
     },
     {
-      file: "Pages/CodeRepository/CodeRepository.tsx",
+      file: "Components/Code/GitHubConnect.tsx",
       provider: "ConnectProvider.GitHub",
     },
   ];

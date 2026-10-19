@@ -96,7 +96,7 @@ Gehen Sie zu **Runbooks → Runbook-Agents** und legen Sie einen neuen Agenten a
 | **Beschreibung** | **Runner** | Optional. Ein Satz dazu, was dieser Host erreicht. |
 | **Beschriftungen** | **Runner** (unter **Weitere Felder**) | Optional. |
 | **Führt Runbooks aus** | **Fähigkeiten** | Standardmäßig an. Lässt diesen Runner Runbook-Schritte übernehmen. |
-| **Führt KI-Codekorrekturen aus** | **Fähigkeiten** | Standardmäßig aus. Lässt ihn Pull Requests mit KI-Codekorrekturen öffnen; siehe [Fix Tasks](/docs/ai/ai-agent). |
+| **Führt KI-Codekorrekturen aus** | **Fähigkeiten** | Standardmäßig aus. Lässt ihn Pull Requests mit KI-Codekorrekturen öffnen; siehe [Code](/docs/ai/ai-agent). |
 | **Führt KI-Behebungsbefehle aus** | **Fähigkeiten** | Standardmäßig aus. Lässt die automatische KI-Behebung richtliniengeprüfte Befehle auf ihm ausführen. Es für einen Runner einzuschalten, der SSH-Anmeldedaten hält, erfordert die Berechtigung, Runbook-Anmeldedaten zu lesen; siehe [Runner, die die Befehle von OneUptime AI ausführen](/docs/runbooks/credentials#runner-die-die-befehle-von-oneuptime-ai-ausführen). |
 
 Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig.

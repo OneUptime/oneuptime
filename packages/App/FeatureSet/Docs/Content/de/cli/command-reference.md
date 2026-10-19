@@ -6,7 +6,7 @@ Jeder Befehl der CLI `oneuptime`, mit seinen Argumenten, Optionen und Standardwe
 - [Globale Optionen](#globale-optionen): Die Optionen, die jeder Befehl nimmt.
 - [Anmeldung und Kontexte](#anmeldung-und-kontexte): login und die context-Befehle.
 - [Ressourcenbefehle](#ressourcenbefehle): list, get, create, update, delete und count.
-- [Weitere Befehle](#weitere-befehle): whoami, resources, version und help.
+- [Weitere Befehle](#weitere-befehle): deploy, whoami, resources, version und help.
 :::
 
 ## Die Befehle
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident, monitor<br/>und jede Ressource"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## Globale Optionen
@@ -222,6 +222,31 @@ Jede Operation ist eine Anfrage an die API, mit dem Schlüssel im Header `APIKey
 
 ## Weitere Befehle
 
+### `oneuptime deploy`
+
+Zeichnet einen Deploy oder eine andere Änderung aus einer Pipeline auf: Sie wird in die Diagramme des Dienstes eingezeichnet und von OneUptime AI gelesen, wenn es einen Vorfall untersucht. Der Befehl schreibt mit einem Telemetrie-Ingestion-Schlüssel, nicht mit einem API-Schlüssel. Siehe [Deploys und Änderungen](/docs/telemetry/change-events).
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| Option | Erforderlich | Was es ist | Standard |
+| --- | --- | --- | --- |
+| `--service <name>` | Nein | Der Dienst, der deployt wurde | Eine Änderung für das ganze Projekt |
+| `--service-version <version>` | Nein | Die deployte Version | |
+| `--previous-version <version>` | Nein | Die Version, die sie ersetzt hat | |
+| `--commit <sha>` | Nein | Der deployte Commit | |
+| `--repository <url>` | Nein | Das Repository, in dem der Commit liegt | |
+| `--branch <name>` | Nein | Der deployte Branch | |
+| `--pull-request <number>` | Nein | Der deployte Pull Request | |
+| `--environment <name>` | Nein | Die Umgebung, in die deployt wurde | |
+| `--title <title>` | Nein | Der Titel der Änderung; eine andere Art als ein Deploy braucht einen | `Deploy <version>` |
+| `--description <text>` | Nein | Details der Änderung | |
+| `--type <type>` | Nein | Die Art der Änderung, etwa `config-change` oder `rollback` | `deployment` |
+| `--time <time>` | Nein | Wann sie geschah, etwa `2026-10-19T10:00:00Z` | Jetzt |
+| `--attribute <key=value...>` | Nein | Weitere Attribute, als `key=value`, eines oder mehrere | |
+| `--ingestion-key <key>` | Nein | Ein Telemetrie-Ingestion-Schlüssel des Projekts | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 Zeigt die URL und den API-Schlüssel, die der nächste Befehl verwendet, mit maskiertem Schlüssel, und den Kontext, aus dem sie stammen. Es ruft OneUptime nicht auf. Siehe [Prüfen, was die CLI verwenden wird](/docs/cli/authentication#prüfen-was-die-cli-verwenden-wird).
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | Der API-Schlüssel, wenn kein Flag `--api-key` einen angibt |
 | `ONEUPTIME_URL` | Die Adresse Ihrer OneUptime-Instanz, wenn kein Flag `--url` eine angibt |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Der Telemetrie-Ingestion-Schlüssel, mit dem `oneuptime deploy` schreibt, wenn kein Flag `--ingestion-key` einen angibt |
 | `NO_COLOR` | Auf einen beliebigen Wert gesetzt, schaltet sie Farben aus |
 
 ## Dateien

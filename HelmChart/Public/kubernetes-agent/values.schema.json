@@ -881,6 +881,17 @@
               "type": "string",
               "enum": ["", "heuristic", "low-cardinality", "wildcard", "path", "unset"],
               "description": "Route for a path no pattern matches. '' keeps OBI's default (heuristic)."
+            },
+            "disabledHarvesters": {
+              "type": ["array", "null"],
+              "items": { "type": "string", "enum": ["", "dotnet", "go", "java", "nodejs", "php", "python", "ruby"] },
+              "uniqueItems": true,
+              "description": "Languages OBI does not harvest route templates for (OBI's discovery.disabled_route_harvesters). Harvesting holds up tracing each new process, one process at a time, for up to harvestTimeout; the Node.js harvester regex-scans every source file of the app and runs out of time on large apps, so it is skipped by default. [] harvests every language, as does `--set ebpf.routes.disabledHarvesters={}` (blank entries are dropped) and null (a values file from before this key)."
+            },
+            "harvestTimeout": {
+              "type": ["string", "null"],
+              "pattern": "^$|^([1-9][0-9]*|[1-9][0-9]*\\.[0-9]+|0\\.[0-9]*[1-9][0-9]*)(ns|us|ms|s|m|h)$",
+              "description": "How long OBI waits for one process's routes before it traces the process without them (OBI's discovery.route_harvester_timeout): a positive duration such as '2s' or '500ms'. '' keeps OBI's 10s. OBI refuses to start on 0."
             }
           },
           "additionalProperties": false
@@ -889,6 +900,16 @@
           "type": ["array", "null"],
           "items": { "type": "string", "minLength": 1 },
           "description": "Span attributes OBI exports in addition to the chart's fixed set (OBI's defaults plus service.peer.name), e.g. 'http.request.body.size', 'http.response.body.size', 'obi.http.response.observed', 'db.query.text' (raw query text, may carry personal data). Rendered into OBI's attributes.select.traces.include; entries are trimmed, blanks and repeats dropped, and '*' is ignored. null (a values file from before this key) means none."
+        },
+        "bufferSizes": {
+          "type": ["object", "null"],
+          "properties": {
+            "postgres": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 },
+            "mysql": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 },
+            "mssql": { "type": ["integer", "null"], "minimum": 0, "maximum": 65535 }
+          },
+          "additionalProperties": false,
+          "description": "Bytes of each PostgreSQL, MySQL or SQL Server request (and, separately, each response) OBI copies to read it: OBI's ebpf.buffer_sizes. 0 keeps OBI's small fixed capture, which stops db.query.text at about 250 characters and can miss a long statement sent with bound parameters. 4096 covers most ORM statements; a buffer costs agent CPU and memory in proportion to database traffic. At most 65535. null (a values file from before this key) means 0."
         },
         "dropDatabaseServerSpans": {
           "type": "boolean",

@@ -10,7 +10,7 @@ import ConnectCallbackUtil, {
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * What the Slack, Microsoft Teams and Code Repositories pages say when a
+ * What the Slack, Microsoft Teams and Code pages say when a
  * connection comes back unmade.
  *
  * A connect callback sends the browser back to the page the connection was
@@ -97,7 +97,7 @@ const NOT_CONFIGURED: Record<ConnectProvider, string> = {
 
 /*
  * A plan refusal, where the page has no sentence of its own naming the plan
- * (Code Repositories has: GitHubConnectLock).
+ * (Code has: GitHubConnectLock).
  */
 const PLAN_REQUIRED: string = translationKey(
   "Your project's plan does not include this. Please upgrade the plan and try again.",

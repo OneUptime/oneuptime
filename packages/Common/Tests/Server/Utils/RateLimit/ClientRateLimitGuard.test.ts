@@ -67,6 +67,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "certificate orders for the instance's ACME account",
   "packages/Common/Server/Utils/TwoFactorWrongCodes.ts":
     "wrong two factor codes per account, wherever they come from",
+  "packages/Common/Server/Utils/Telemetry/ChangeDetection/TelemetryChangeDetector.ts":
+    "deploys and rollouts recorded per service or workload and hour",
 };
 
 /*

@@ -160,7 +160,6 @@ import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
-import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -238,7 +237,6 @@ import NetworkDevicesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/N
 import NetworkDevicesArchived from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Archived";
 import MonitorGroupsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/MonitorGroup/MonitorGroups";
 import RunbooksPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runbooks";
-import CodeRepositoryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/CodeRepository/CodeRepository";
 import MonitorProbesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorProbes";
 import MonitorsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Monitors";
 import ArchivedMonitorsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/ArchivedMonitors";
@@ -430,7 +428,6 @@ const LISTS: Array<ListCase> = [
   plain("Archived Inventory", InventoryArchived, InventoryItem),
   plain("Monitor Groups", MonitorGroupsPage, MonitorGroup),
   plain("Runbooks", RunbooksPage, Runbook),
-  plain("Code Repositories", CodeRepositoryPage, CodeRepository),
   plain("Custom Probes", MonitorProbesPage, Probe, "probes-table"),
   plain("Incidents", IncidentsPage, Incident),
   plain("Alerts", AlertsPage, Alert),

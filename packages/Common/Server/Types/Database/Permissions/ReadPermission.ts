@@ -48,7 +48,7 @@ export interface LabelledReferences {
  * Plain id columns, by "<table>.<column>", that name a record carrying no
  * labels although their names do not say which: a project's single sign-on
  * provider, an ingestion key, the instance, a digest batch, the discovery
- * import a retry tries again.
+ * import a retry tries again, the AI run that opened a code task.
  */
 export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
   new Set<string>([
@@ -59,6 +59,7 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "GlobalConfig.instanceId",
     "UserNotificationEmailRollupItem.rollupBatchId",
     "NetworkDeviceDiscoveryImport.retryOfImportId",
+    "AIRun.codeTaskId",
   ]);
 
 // Worked out once per model class: the columns do not change.

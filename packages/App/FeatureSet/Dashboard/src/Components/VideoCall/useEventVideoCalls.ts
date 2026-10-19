@@ -46,6 +46,7 @@ const MAX_CALLS: number = 20;
 export const INCIDENT_CALL_TRANSCRIPT_SELECT: {
   videoCallConnectionId: true;
   externalMeetingId: true;
+  externalCalendarEventId: true;
   transcriptSource: true;
   transcriptInfo: true;
   transcriptAddedAt: true;
@@ -62,6 +63,7 @@ export const INCIDENT_CALL_TRANSCRIPT_SELECT: {
 } = {
   videoCallConnectionId: true,
   externalMeetingId: true,
+  externalCalendarEventId: true,
   transcriptSource: true,
   transcriptInfo: true,
   transcriptAddedAt: true,

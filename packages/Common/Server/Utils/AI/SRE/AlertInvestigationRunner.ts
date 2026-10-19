@@ -50,6 +50,7 @@ import NetworkTransceiverContext from "./NetworkTransceiverContext";
 import LinkedInfrastructureContext, {
   LinkedInfrastructure,
 } from "./LinkedInfrastructureContext";
+import RecentChangesContext, { RecentChanges } from "./RecentChangesContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -220,12 +221,13 @@ export default class AIAlertInvestigationRunner {
        * clusters, databases, services - and the other alerts on it.
        * Enrichment only: a read that fails leaves the context as it was.
        */
+      let linked: LinkedInfrastructure | null = null;
+
       try {
-        const linked: LinkedInfrastructure | null =
-          await LinkedInfrastructureContext.readForAlert({
-            projectId,
-            alertId,
-          });
+        linked = await LinkedInfrastructureContext.readForAlert({
+          projectId,
+          alertId,
+        });
         const linkedNote: AIRunEventResultSummary | null =
           LinkedInfrastructureContext.buildActivityNote(linked);
 
@@ -238,6 +240,35 @@ export default class AIAlertInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not read the linked infrastructure of alert ${alertId.toString()}; investigating it without it: ${error}`,
+        );
+      }
+
+      /*
+       * The changes recorded before the alert - deploys, rollouts, config
+       * changes, OneUptime's own fixes - and which of them its services'
+       * telemetry makes suspects (RecentChangesContext). Enrichment only: a
+       * read that fails leaves the context as it was.
+       */
+      try {
+        const recentChanges: RecentChanges | null =
+          await RecentChangesContext.read({
+            projectId,
+            subjectKind: "alert",
+            subjectId: alertId,
+            linked,
+          });
+        const changesNote: AIRunEventResultSummary | null =
+          RecentChangesContext.buildActivityNote(recentChanges);
+
+        contextSummary +=
+          RecentChangesContext.buildContextSection(recentChanges);
+
+        if (changesNote) {
+          contextNotes.push(changesNote);
+        }
+      } catch (error) {
+        logger.error(
+          `AI: could not read the recent changes of alert ${alertId.toString()}; investigating it without them: ${error}`,
         );
       }
 

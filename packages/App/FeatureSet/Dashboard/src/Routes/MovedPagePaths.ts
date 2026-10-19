@@ -100,3 +100,46 @@ export const MOVED_EPISODE_DOCS_PATH: string = "episodes/documentation";
  * keeping its id. Relative to …/on-call-duty/.
  */
 export const MOVED_INCOMING_CALL_POLICY_DOCS_PATH: string = `incoming-call-policies/${RouteParams.ModelID}/docs`;
+
+/*
+ * Tasks became Code: the repositories first, each repository's tasks inside
+ * it, and a task's page its conversation (…/code). The two old products'
+ * addresses forward there. Relative to the project's dashboard
+ * (…/dashboard/:projectId/).
+ */
+export const MOVED_CODE_ROOT_PATHS: { tasks: string; repositories: string } = {
+  tasks: "ai/agents",
+  repositories: "code-repository",
+};
+
+/*
+ * The old Tasks pages, relative to …/ai/agents/: a task's Overview, Logs,
+ * Pull Requests and Delete pages. They forward to its conversation (its
+ * Logs to its Log page), keeping its id; the list forwards to Code.
+ */
+export const MOVED_TASK_PATHS: {
+  view: string;
+  logs: string;
+  pullRequests: string;
+  delete: string;
+} = {
+  view: `${RouteParams.ModelID}`,
+  logs: `${RouteParams.ModelID}/logs`,
+  pullRequests: `${RouteParams.ModelID}/pull-requests`,
+  delete: `${RouteParams.ModelID}/delete`,
+};
+
+/*
+ * The old Code Repositories pages, relative to …/code-repository/: a
+ * repository's Overview, Settings and Delete pages, keeping its id. The
+ * list forwards to Code.
+ */
+export const MOVED_REPOSITORY_PATHS: {
+  view: string;
+  settings: string;
+  delete: string;
+} = {
+  view: `${RouteParams.ModelID}`,
+  settings: `${RouteParams.ModelID}/settings`,
+  delete: `${RouteParams.ModelID}/delete`,
+};

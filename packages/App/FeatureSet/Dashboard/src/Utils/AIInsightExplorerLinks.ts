@@ -49,12 +49,15 @@ import {
  *  - TraceLatencyRegressionDetector.LATENCY_RECENT_WINDOW_HOURS,
  *  - MetricDriftDetector's week-over-week comparison (both weeks, so the
  *    drift is visible on the chart rather than just the drifted level),
- *  - the exception detectors' 24-hour novelty/baseline window.
+ *  - the exception detectors' 24-hour novelty/baseline window,
+ *  - DeployRegressionDetector: the windows before and after the deploy,
+ *    which it checks 30 to 90 minutes after the deploy.
  */
 export const ERROR_LOG_SPIKE_DEFAULT_WINDOW_MINUTES: number = 60;
 export const LATENCY_REGRESSION_WINDOW_MINUTES: number = 60;
 export const METRIC_DRIFT_WINDOW_MINUTES: number = 14 * 24 * 60;
 export const EXCEPTION_INSIGHT_WINDOW_MINUTES: number = 24 * 60;
+export const DEPLOY_REGRESSION_WINDOW_MINUTES: number = 2 * 60;
 
 /*
  * The severities ErrorLogSpikeDetector counts
@@ -185,6 +188,9 @@ export const getInsightDetectionWindow: GetInsightDetectionWindowFunction =
         break;
       case AIInsightType.TraceLatencyRegression:
         windowMinutes = LATENCY_REGRESSION_WINDOW_MINUTES;
+        break;
+      case AIInsightType.DeployRegression:
+        windowMinutes = DEPLOY_REGRESSION_WINDOW_MINUTES;
         break;
       case AIInsightType.MetricDrift:
         windowMinutes = METRIC_DRIFT_WINDOW_MINUTES;
@@ -413,7 +419,9 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
         };
       }
 
-      case AIInsightType.TraceLatencyRegression: {
+      // A deploy regression is proven or disproven in its service's spans too.
+      case AIInsightType.TraceLatencyRegression:
+      case AIInsightType.DeployRegression: {
         const window: InsightDetectionWindow | null = getInsightDetectionWindow(
           {
             insightType: input.insightType,

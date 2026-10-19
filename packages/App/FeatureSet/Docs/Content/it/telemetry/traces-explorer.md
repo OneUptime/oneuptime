@@ -89,7 +89,7 @@ Fate clic su uno span in qualsiasi vista per aprirne il pannello, con schede per
 Una traccia grande carica 500 span alla volta. Fate clic sul pulsante in fondo alla traccia per caricarne altri, o tutti.
 
 > [!TIP]
-> **Fix performance with AI** cerca nella traccia uno schema di prestazioni noto: una query N+1, uno span che occupa la maggior parte del tempo, o chiamate fatte una dopo l'altra che potrebbero procedere in parallelo. Quando ne trova uno, avvia un'attività di IA che apre una pull request per correggerlo. Vedere [Attività di correzione](/docs/ai/ai-agent).
+> **Fix performance with AI** cerca nella traccia uno schema di prestazioni noto: una query N+1, uno span che occupa la maggior parte del tempo, o chiamate fatte una dopo l'altra che potrebbero procedere in parallelo. Quando ne trova uno, avvia un'attività di IA che apre una pull request per correggerlo. Vedere [Codice](/docs/ai/ai-agent).
 
 ## Rappresentare gli span in grafici
 

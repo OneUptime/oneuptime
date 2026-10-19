@@ -22,6 +22,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
+import { CodeTaskOutcomeReport } from "Common/Types/AI/CodeTask";
 import ObjectID from "Common/Types/ObjectID";
 import Sleep from "Common/Types/Sleep";
 
@@ -82,6 +83,12 @@ export interface TaskOutcome {
    * them for the server to record.
    */
   unrecordedPullRequests?: Array<UnrecordedPullRequest> | undefined;
+  /*
+   * What a request from Code ended with (TaskResult.outcome): sent with the
+   * Completed status, which the server keeps on the run for the task's
+   * conversation. A server that predates it ignores it.
+   */
+  outcome?: CodeTaskOutcomeReport | undefined;
 }
 
 type ExecuteTaskFunction = (task: PendingTask) => Promise<TaskOutcome>;
@@ -195,6 +202,7 @@ export const executeTask: ExecuteTaskFunction = async (
 
     return {
       status: AIAgentTaskStatus.Completed,
+      ...(result.outcome ? { outcome: result.outcome } : {}),
       ...(result.pullRequestUrls && result.pullRequestUrls.length > 0
         ? { pullRequestUrls: result.pullRequestUrls }
         : {}),
@@ -261,8 +269,27 @@ export const buildTaskOutcomeReport: BuildTaskOutcomeReportFunction = (data: {
             .unrecordedPullRequests as unknown as JSONArray,
         }
       : {}),
+    ...(data.outcome.outcome
+      ? { outcome: data.outcome.outcome as unknown as JSONObject }
+      : {}),
   };
 };
+
+type BuildPendingTaskRequestFunction = () => JSONObject;
+
+/*
+ * The request that asks for work: this Runner's credentials, and the
+ * recipes it has a handler for. A server hands it only those - so a
+ * request from Code is never given to a Runner that cannot do it - and a
+ * server that predates the list ignores it.
+ */
+export const buildPendingTaskRequest: BuildPendingTaskRequestFunction =
+  (): JSONObject => {
+    return {
+      ...RunnerAPIRequest.getDefaultRequestBody(),
+      supportedTaskTypes: getTaskHandlerRegistry().getRegisteredTaskTypes(),
+    };
+  };
 
 type SendFinalStatusReportFunction = (data: {
   url: URL;
@@ -332,7 +359,7 @@ const startTaskProcessingLoop: () => Promise<void> =
         /* Fetch one scheduled task */
         const getPendingTaskResult: HTTPResponse<JSONObject> = await API.post({
           url: getPendingTaskUrl,
-          data: RunnerAPIRequest.getDefaultRequestBody(),
+          data: buildPendingTaskRequest(),
           options: RunnerAPIRequest.getDefaultRequestOptions(),
         });
 

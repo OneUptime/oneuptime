@@ -16,17 +16,17 @@ import path from "path";
  * Connecting a GitHub App installation, as the self-hosted GitHub guide
  * tells it in every language:
  *
- *  - it starts from Code Repositories in OneUptime, not from the app's page
- *    on GitHub, and the old Step 10 (pick repositories from a list after
- *    installing) is gone - repositories are imported;
+ *  - it starts from Code in OneUptime, not from the app's page on GitHub,
+ *    and the old Step 10 (pick repositories from a list after installing)
+ *    is gone - repositories are imported;
  *  - it needs permission to add code repositories: the guide names every
- *    permission the Code Repositories create list grants it with, read here
- *    from the model;
+ *    permission the code repositories' create list grants it with, read
+ *    here from the model;
  *  - the link works once, for 15 minutes, in the browser that started it.
  *
- * The English guide's troubleshooting quotes what Code Repositories says when
- * GitHub sends the browser back unconnected, word for word, read here from
- * the page's own sentences - and the start's permission refusal from the
+ * The English guide's troubleshooting quotes what Code says when GitHub
+ * sends the browser back unconnected, word for word, read here from the
+ * page's own sentences - and the start's permission refusal from the
  * server's constant.
  */
 
@@ -138,13 +138,16 @@ describe("the self-hosted GitHub guide, in every language", () => {
     }
   });
 
-  test("the connect step names the Code Repositories card's button", () => {
+  test("the connect step names Code's button", () => {
     const english: string = readGuide("en");
 
-    expect(english).toContain(
-      "Navigate to **Products** > **Tasks** > **Code Repositories**",
-    );
-    expect(english).toContain("Click **Connect with GitHub App**");
+    expect(
+      readSource(
+        "App/FeatureSet/Dashboard/src/Components/Code/GitHubConnect.tsx",
+      ),
+    ).toContain('translator.translateText("Connect GitHub")');
+    expect(english).toContain("Navigate to **Products** > **Code**");
+    expect(english).toContain("Click **Connect GitHub**");
     expect(english).not.toContain(
       "Select the repositories you want to connect from the list",
     );
@@ -152,15 +155,15 @@ describe("the self-hosted GitHub guide, in every language", () => {
 
   /*
    * Installing again on an account that has the app opens the installation's
-   * settings on GitHub, whose Save sends nobody back: Code Repositories has a
-   * link of its own for it, which signs in to GitHub instead.
+   * settings on GitHub, whose Save sends nobody back: Code has a link of
+   * its own for it, which signs in to GitHub instead.
    */
   test("sends an account that already has the app to Connect an existing installation, not to GitHub's Save", () => {
     const english: string = readGuide("en");
 
     expect(
       readSource(
-        "App/FeatureSet/Dashboard/src/Pages/CodeRepository/CodeRepository.tsx",
+        "App/FeatureSet/Dashboard/src/Components/Code/GitHubConnect.tsx",
       ),
     ).toContain('"Connect an existing installation"');
     expect(readSource("Common/Server/API/GitHubAPI.ts")).toContain(
@@ -192,9 +195,9 @@ describe("the self-hosted GitHub guide, in every language", () => {
 
 describe("the English guide's troubleshooting", () => {
   /*
-   * GitHub sends the browser back to Code Repositories with a code, and the
-   * page says the sentence for it (ConnectCallbackMessage): the guide quotes
-   * the first sentence of each, as the page words it.
+   * GitHub sends the browser back to Code with a code, and the page says
+   * the sentence for it (ConnectCallbackMessage): the guide quotes the
+   * first sentence of each, as the page words it.
    */
   test.each([
     ConnectCallbackError.LinkInvalid,
@@ -205,7 +208,7 @@ describe("the English guide's troubleshooting", () => {
     ConnectCallbackError.NotConfigured,
     ConnectCallbackError.CouldNotFinish,
   ])(
-    "quotes what Code Repositories says for %s, as the page words it",
+    "quotes what Code says for %s, as the page words it",
     (code: ConnectCallbackError) => {
       const message: string = getConnectCallbackMessageKey(
         ConnectProvider.GitHub,

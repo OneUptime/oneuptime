@@ -113,9 +113,9 @@ flowchart TB
 | --- | --- |
 | **Fix this exception with AI** | 修正根本原因。用 **Fix with AI** 啟動它。 |
 | **Generate Regression Test** | 新增一個測試，在缺陷修正之前它會一直失敗。 |
-| **Improve Error Handling** | 針對預期內的錯誤：更早驗證輸入，讓使用者資料不出現在訊息中，並把錯誤標記為已處理。 |
+| **改善錯誤處理** | 針對預期內的錯誤：更早驗證輸入，讓使用者資料不出現在訊息中，並把錯誤標記為已處理。 |
 
-AI 首先需要三樣東西：一個 LLM 提供者、一個透過 GitHub App 連線的 GitHub 存放庫，以及一個上線並執行任務的 AI 代理程式。頁面會逐一檢查，並連結到缺少的部分。例外處於已解決或已封存狀態時，這些任務會暫停。請參閱 [修正任務](/docs/ai/ai-agent)。
+AI 首先需要三樣東西：一個 LLM 提供者、一個透過 GitHub App 連線的 GitHub 存放庫，以及一個上線並執行任務的 AI 代理程式。頁面會逐一檢查，並連結到缺少的部分。例外處於已解決或已封存狀態時，這些任務會暫停。請參閱 [程式碼](/docs/ai/ai-agent)。
 
 ## 例外洞察
 
@@ -140,6 +140,6 @@ AI 首先需要三樣東西：一個 LLM 提供者、一個透過 GitHub App 連
 :::cards
 - [例外狀況監控](/docs/monitor/exceptions-monitor): 在例外激增時收到警示。
 - [原始碼對應](/docs/telemetry/source-maps): 為瀏覽器程式碼提供可讀的堆疊追蹤。
-- [修正任務](/docs/ai/ai-agent): AI 如何修正程式碼並開啟 pull request。
+- [程式碼](/docs/ai/ai-agent): AI 如何修正程式碼並開啟 pull request。
 - [追蹤瀏覽器](/docs/telemetry/traces-explorer): 檢視例外發生時所在的請求。
 :::

@@ -82,6 +82,7 @@ L'elenco mostra ogni tipo di record con cui puoi lavorare, e il suo comando, com
 | `oneuptime login <api-key> <instance-url>` | Salva una chiave API e un indirizzo come contesto | [Autenticazione](/docs/cli/authentication#accedere) |
 | `oneuptime context list`, `use`, `current`, `delete` | Elenca, cambia, mostra ed elimina i contesti salvati | [Autenticazione](/docs/cli/authentication#contesti) |
 | `oneuptime whoami` | Mostra l'URL e la chiave API che userà il prossimo comando | [Autenticazione](/docs/cli/authentication#verificare-che-cosa-userà-la-cli) |
+| `oneuptime deploy` | Registra un deploy, o un'altra modifica, per i grafici e OneUptime AI | [Deploy e modifiche](/docs/telemetry/change-events) |
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Lavora con un tipo di record | [Operazioni sulle risorse](/docs/cli/resource-operations) |
 | `oneuptime resources` | Elenca i tipi di record, con i loro comandi | [Riferimento dei comandi](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Stampa la versione della CLI | [Riferimento dei comandi](/docs/cli/command-reference#oneuptime-version) |

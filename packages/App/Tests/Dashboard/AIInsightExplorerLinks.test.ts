@@ -154,6 +154,11 @@ describe("getInsightDetectionWindow", () => {
         insightType: AIInsightType.ExceptionSpike,
         expectedStart: "2026-08-13T10:00:00.000Z",
       },
+      // Both windows of the deploy, checked 30 to 90 minutes after it.
+      {
+        insightType: AIInsightType.DeployRegression,
+        expectedStart: "2026-08-14T08:00:00.000Z",
+      },
     ];
 
     for (const testCase of cases) {
@@ -428,6 +433,32 @@ describe("buildInsightInvestigationLink — TraceLatencyRegression", () => {
     expect(query.get("search")).toBe("@resource.service.name:checkout");
     expect(query.get("filters")).toBeNull();
     expect(link!.dropped).toEqual([]);
+  });
+});
+
+describe("buildInsightInvestigationLink — DeployRegression", () => {
+  test("routes to the traces explorer with the service, over both windows of the deploy", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.DeployRegression,
+          serviceName: "checkout",
+          serviceId: SERVICE_ID,
+        }),
+      );
+
+    expect(link).not.toBeNull();
+    expect(link!.target).toBe("traces");
+    expect(link!.label).toBe("Investigate in Traces");
+    expect(pathOf(link!.route)).toContain("/traces");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+    expect(query.get("start")).toBe("2026-08-14T08:00:00.000Z");
+    expect(query.get("end")).toBe("2026-08-14T10:00:00.000Z");
   });
 });
 
@@ -736,7 +767,8 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
             break;
           }
 
-          case AIInsightType.TraceLatencyRegression: {
+          case AIInsightType.TraceLatencyRegression:
+          case AIInsightType.DeployRegression: {
             /*
              * The traces grammar carries the value in `search`, escaped
              * where a character would otherwise read as an operator, and

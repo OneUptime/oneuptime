@@ -23,6 +23,7 @@ ebpf:
   excludeExePaths: "*/sh,*/bash,*/dash,*/busybox,*/sleep,*/grep,*/awk,*/sed,*/ps,*/cat,*/find,*/runc,*/containerd*,*/dockerd,*/kubelet,*/kube-proxy,*/coredns,*/etcd,*/otelcol*,*/ebpf-instrument,*/obi,*/linkerd2-proxy,*/envoy,*/istio-pilot-agent,*/pilot-agent,*/cilium-agent,*/cilium-operator,*/cilium-envoy,*/calico-node,*/kube-router,*/firefox,*/firefox-bin,*/headless_shell,*/chrome,*/chromium,*/webkit,*/clickhouse"
   features:
     hostMetrics: true
+  bufferSizes: null
   dropDatabaseServerSpans: null
   dropNodeInspectorMetrics: null
   dropUnlinkedDatabaseCalls: null

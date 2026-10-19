@@ -96,7 +96,7 @@ Gå till **Runbooks → Runbook-agenter** och skapa en ny agent. Klicka på **Sk
 | **Beskrivning** | **Runner** | Valfritt. En mening om vad den här värden kan nå. |
 | **Etiketter** | **Runner** (under **Fler fält**) | Valfritt. |
 | **Kör Runbooks** | **Funktioner** | Påslaget som standard. Låter den här Runnern ta runbook-steg. |
-| **Kör AI-kodfixar** | **Funktioner** | Avstängt som standard. Låter den öppna pull requests med AI-kodfixar; se [Fix Tasks](/docs/ai/ai-agent). |
+| **Kör AI-kodfixar** | **Funktioner** | Avstängt som standard. Låter den öppna pull requests med AI-kodfixar; se [Kod](/docs/ai/ai-agent). |
 | **Kör AI-åtgärdskommandon** | **Funktioner** | Avstängt som standard. Låter automatisk AI-åtgärd köra policykontrollerade kommandon på den. Att slå på det för en Runner som har SSH-autentiseringsuppgifter kräver behörighet att läsa runbook-autentiseringsuppgifter; se [Runners som kör OneUptime AI:s kommandon](/docs/runbooks/credentials#runners-som-kör-oneuptime-ais-kommandon). |
 
 En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om.

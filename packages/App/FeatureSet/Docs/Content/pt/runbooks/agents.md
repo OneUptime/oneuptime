@@ -96,7 +96,7 @@ Vá para **Runbooks → Agentes de runbook** e crie um novo agente. Clique em **
 | **Descrição** | **Runner** | Opcional. Uma frase sobre o que este host alcança. |
 | **Rótulos** | **Runner** (em **Mais campos**) | Opcional. |
 | **Executa runbooks** | **Capacidades** | Ligado por padrão. Permite que este Runner assuma etapas de runbook. |
-| **Executa correções de código por IA** | **Capacidades** | Desligado por padrão. Permite que ele abra pull requests de correção de código por IA; consulte [Fix Tasks](/docs/ai/ai-agent). |
+| **Executa correções de código por IA** | **Capacidades** | Desligado por padrão. Permite que ele abra pull requests de correção de código por IA; consulte [Código](/docs/ai/ai-agent). |
 | **Executa comandos de remediação por IA** | **Capacidades** | Desligado por padrão. Permite que a remediação automática por IA execute nele comandos verificados por uma política. Ligá-lo em um Runner que tem credenciais SSH exige permissão para ler as credenciais de runbook; consulte [Runners que executam os comandos do OneUptime AI](/docs/runbooks/credentials#runners-que-executam-os-comandos-do-oneuptime-ai). |
 
 Um Runner aplica uma mudança nas suas capacidades no próximo heartbeat; não é preciso reiniciá-lo.

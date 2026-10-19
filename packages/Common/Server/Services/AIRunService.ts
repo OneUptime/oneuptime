@@ -11,10 +11,12 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext, {
+  getCodeTaskRequest,
   getGitHubTaskContext,
   getInvestigationCodeFixTaskSnapshot,
   InvestigationCodeFixTaskContext,
 } from "../../Types/AI/CodeFixTaskContext";
+import { CodeTaskChanges, CodeTaskOutcome } from "../../Types/AI/CodeTask";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CountBy from "../Types/Database/CountBy";
@@ -56,6 +58,15 @@ export interface AIRunTransitionSet {
    * the run the moment it is terminal — see update-task-status.
    */
   taskContext?: CodeFixTaskContext | undefined;
+  /*
+   * What a code task's turn ended with, written in the same transition that
+   * makes it Completed, so the conversation never shows a finished turn
+   * without its reply (see update-task-status and CodeTaskOutcomeReader).
+   * jsonb columns without a transformer: stored as they are.
+   */
+  taskOutcome?: CodeTaskOutcome | undefined;
+  codeChanges?: CodeTaskChanges | undefined;
+  needsUserInput?: boolean | undefined;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -208,14 +219,27 @@ export class Service extends DatabaseService<Model> {
      * serves all projects by design.
      */
     projectId?: ObjectID | undefined;
+    /*
+     * The recipes the claiming Runner has a handler for (its request's
+     * supportedTaskTypes). Null for a Runner that does not say: it is only
+     * handed the recipes every Runner has had, so a request from Code waits
+     * for a Runner that can do it instead of failing in one that cannot.
+     */
+    supportedTaskTypes?: Array<CodeFixTaskType> | null | undefined;
   }): Promise<Model | null> {
     const maxClaimAttempts: number = 5;
+
+    // A null recipe is FixException (rows created before recipes existed).
+    const claimableTaskTypes: Array<CodeFixTaskType> =
+      data.supportedTaskTypes ||
+      CodeFixTaskTypeHelper.getTaskTypesForRunnersThatDoNotSay();
 
     for (let attempt: number = 0; attempt < maxClaimAttempts; attempt++) {
       const run: Model | null = await this.findOneBy({
         query: {
           runType: AIRunType.CodeFix,
           status: AIRunStatus.Queued,
+          codeFixTaskType: QueryHelper.inOrNull(claimableTaskTypes),
           ...(data.projectId ? { projectId: data.projectId } : {}),
         },
         sort: {
@@ -230,6 +254,7 @@ export class Service extends DatabaseService<Model> {
           attemptCount: true,
           codeFixTaskType: true,
           taskContext: true,
+          codeRepositoryId: true,
         },
         props: {
           isRoot: true,
@@ -303,6 +328,19 @@ export class Service extends DatabaseService<Model> {
            */
           missingContextMessage =
             "Queued FixFromIncident run has no complete pinned investigation analysis snapshot.";
+        }
+      } else if (CodeFixTaskTypeHelper.isCodeRequest(run.codeFixTaskType)) {
+        /*
+         * A request from Code is the person's words and the repository they
+         * asked in: without either there is nothing to do, and nowhere to do
+         * it (the repository may have been removed from the project).
+         */
+        if (!getCodeTaskRequest(run.taskContext)) {
+          missingContextMessage =
+            "Queued request has no request in its task context.";
+        } else if (!run.codeRepositoryId) {
+          missingContextMessage =
+            "The repository this request was made in is no longer connected to the project.";
         }
       } else if (CodeFixTaskTypeHelper.isGitHubTaskType(run.codeFixTaskType)) {
         /*
@@ -477,13 +515,17 @@ export class Service extends DatabaseService<Model> {
    *
    * CodeFix only, on purpose: chat turns and investigations share this table
    * but are not tasks, and numbering them would advance the counter on every
-   * Ask-AI message — the AI Tasks list would then read #7, #31, #244.
+   * Ask-AI message — a repository's tasks in Code would then read #7,
+   * #31, #244.
    *
    * Best-effort. The counter needs Redis (Semaphore) and a second write; a
    * blip there must not lose a fix run, because the number is a display
    * convenience and the run itself is the work. On failure the run is created
    * with a null taskNumber, which the list renders as "-" and the detail page
    * hides — the run stays fully usable, just uncitable.
+   *
+   * A reply in a code task's conversation (codeTaskId set) is a turn of a
+   * task that already has its number, so it takes none.
    */
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
@@ -491,7 +533,11 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId || undefined;
 
-    if (createBy.data.runType === AIRunType.CodeFix && projectId) {
+    if (
+      createBy.data.runType === AIRunType.CodeFix &&
+      projectId &&
+      !createBy.data.codeTaskId
+    ) {
       try {
         createBy.data.taskNumber =
           await ProjectService.incrementAndGetAIRunCounter(projectId);

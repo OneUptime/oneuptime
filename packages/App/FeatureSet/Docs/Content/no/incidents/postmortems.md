@@ -78,7 +78,7 @@ Med **Skriv utkast til etteranalyse når en hendelse er løst** slått på skriv
 - Den erstatter aldri et notat som allerede er skrevet.
 - Den skriver aldri i en etteranalyse som allerede er publisert, der utkastet ville nå statussiden uten gjennomgang.
 - Den krever at KI er slått på for prosjektet, og stopper for dagen så snart prosjektet når de daglige KI-grensene sine. Se [Automatisk etteranalyse](/docs/ai/ai-sre#automatisk-etteranalyse).
-- Er transkripsjonen av hendelsens samtale fortsatt på vei når hendelsen løses, venter den til OneUptime AI har lest den, slik at utkastet tar med det som ble sagt i samtalen: opptil seks timer mens Zoom eller Google Meet lager transkripsjonen. Se [Ta opp og transkribere hver samtale](/docs/workspace-connections/video-calls#ta-opp-og-transkribere-hver-samtale).
+- Er transkripsjonen av hendelsens samtale fortsatt på vei når hendelsen løses, venter den til OneUptime AI har lest den, slik at utkastet tar med det som ble sagt i samtalen: opptil seks timer mens leverandøren lager transkripsjonen. Se [Ta opp og transkribere hver samtale](/docs/workspace-connections/video-calls#ta-opp-og-transkribere-hver-samtale).
 
 ## Publiser den på statussiden din
 

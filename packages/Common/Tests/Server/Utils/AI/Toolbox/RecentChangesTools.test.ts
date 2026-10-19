@@ -5,6 +5,11 @@ import TelemetryException from "../../../../../Models/DatabaseModels/TelemetryEx
 import MonitorStatusTimelineService from "../../../../../Server/Services/MonitorStatusTimelineService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
+import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
+import ServiceService from "../../../../../Server/Services/ServiceService";
+import ChangeEvent from "../../../../../Models/AnalyticsModels/ChangeEvent";
+import InBetween from "../../../../../Types/BaseDatabase/InBetween";
+import { AIChatCitationTargetType } from "../../../../../Types/AI/AIChatTypes";
 import logger from "../../../../../Server/Utils/Logger";
 import AIToolbox, {
   ToolCallOutcome,
@@ -38,6 +43,8 @@ interface RawOperator {
 }
 
 interface SourceSpies {
+  changes: jest.SpyInstance;
+  serviceNames: jest.SpyInstance;
   exceptions: jest.SpyInstance;
   statusChanges: jest.SpyInstance;
   maintenance: jest.SpyInstance;
@@ -86,6 +93,8 @@ function context(
 }
 
 function mockSources(data?: {
+  changes?: Array<JSONObject> | Error;
+  serviceNames?: Array<JSONObject> | Error;
   exceptions?: Array<JSONObject> | Error;
   statusChanges?: Array<JSONObject> | Error;
   maintenance?: Array<JSONObject> | Error;
@@ -104,6 +113,11 @@ function mockSources(data?: {
   };
 
   return {
+    changes: mock(jest.spyOn(ChangeEventService, "findBy"), data?.changes),
+    serviceNames: mock(
+      jest.spyOn(ServiceService, "findBy"),
+      data?.serviceNames,
+    ),
     exceptions: mock(
       jest.spyOn(TelemetryExceptionService, "findBy"),
       data?.exceptions,
@@ -159,6 +173,7 @@ describe("recent_changes queries", () => {
 
     const start: Date = new Date(NOW.getTime() - 24 * HOUR_MS);
     for (const spy of [
+      spies.changes,
       spies.exceptions,
       spies.statusChanges,
       spies.maintenance,
@@ -223,6 +238,7 @@ describe("recent_changes queries", () => {
     );
 
     for (const spy of [
+      spies.changes,
       spies.exceptions,
       spies.statusChanges,
       spies.maintenance,
@@ -267,6 +283,7 @@ describe("recent_changes queries", () => {
         context(),
       );
 
+      expect(callArg(spies.changes)["limit"]).toBe(expected);
       expect(callArg(spies.exceptions)["limit"]).toBe(expected);
       expect(callArg(spies.statusChanges)["limit"]).toBe(expected);
       expect(callArg(spies.maintenance)["limit"]).toBe(expected);
@@ -289,6 +306,7 @@ describe("recent_changes queries", () => {
       ),
     ).rejects.toThrow("startTime must be before endTime.");
 
+    expect(spies.changes).not.toHaveBeenCalled();
     expect(spies.exceptions).not.toHaveBeenCalled();
     expect(spies.statusChanges).not.toHaveBeenCalled();
     expect(spies.maintenance).not.toHaveBeenCalled();
@@ -444,6 +462,7 @@ describe("recent_changes output", () => {
 
   test("all sources failing yields an empty feed rather than an error", async () => {
     mockSources({
+      changes: new Error("z"),
       exceptions: new Error("a"),
       statusChanges: new Error("b"),
       maintenance: new Error("c"),
@@ -456,7 +475,7 @@ describe("recent_changes output", () => {
 
     expect(result.rowCount).toBe(0);
     expect(result.dataForLlm).toBe("(no rows found)");
-    expect(logger.debug).toHaveBeenCalledTimes(3);
+    expect(logger.debug).toHaveBeenCalledTimes(4);
   });
 
   test("redacts secrets surfacing in exception messages", async () => {
@@ -567,8 +586,215 @@ describe("recent_changes permission gate", () => {
 
     expect(crossProject.success).toBe(false);
     expect(multiTenant.success).toBe(false);
+    expect(spies.changes).not.toHaveBeenCalled();
     expect(spies.exceptions).not.toHaveBeenCalled();
     expect(spies.statusChanges).not.toHaveBeenCalled();
     expect(spies.maintenance).not.toHaveBeenCalled();
+  });
+});
+
+function asChange(data: JSONObject): JSONObject {
+  return data as unknown as ChangeEvent as unknown as JSONObject;
+}
+
+const CHECKOUT_ID: ObjectID = new ObjectID(
+  "22222222-2222-2222-2222-222222222222",
+);
+const CHANGE_ID: ObjectID = new ObjectID(
+  "33333333-3333-3333-3333-333333333333",
+);
+
+describe("recent_changes change events", () => {
+  test("reads change events in the window, newest first, under the caller's props", async () => {
+    const ctx: ToolContext = context();
+    const spies: SourceSpies = mockSources();
+    const start: Date = new Date("2026-09-17T10:00:00.000Z");
+
+    await RecentChangesTool.execute({ startTime: start.toISOString() }, ctx);
+
+    const call: JSONObject = callArg(spies.changes);
+    expect(call["props"]).toBe(ctx.props);
+    expect(call["sort"]).toEqual({ time: SortOrder.Descending });
+    expect(call["select"]).toEqual({
+      _id: true,
+      time: true,
+      eventType: true,
+      title: true,
+      primaryEntityId: true,
+      attributes: true,
+    });
+
+    const query: JSONObject = call["query"] as JSONObject;
+    expect(Object.keys(query)).toEqual(["time"]);
+    const window: InBetween<Date> = query["time"] as unknown as InBetween<Date>;
+    expect(window).toBeInstanceOf(InBetween);
+    expect(window.startValue).toEqual(start);
+    expect(window.endValue).toEqual(NOW);
+  });
+
+  test("a deploy says what changed, on which service, with its id for get_change_details", async () => {
+    const spies: SourceSpies = mockSources({
+      changes: [
+        asChange({
+          _id: CHANGE_ID.toString(),
+          time: new Date("2026-09-17T11:30:00.000Z"),
+          eventType: "deployment",
+          title: "Deploy 2.3.1",
+          primaryEntityId: CHECKOUT_ID,
+          attributes: {
+            "service.version": "2.3.1",
+            "oneuptime.change.previous_version": "2.3.0",
+            "vcs.ref.head.revision": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+            "deployment.environment.name": "production",
+            "oneuptime.change.source": "api",
+          },
+        }),
+      ],
+      serviceNames: [{ _id: CHECKOUT_ID.toString(), name: "checkout" }],
+      exceptions: [
+        asException({
+          exceptionType: "TypeError",
+          message: "total is undefined",
+          firstSeenAt: new Date("2026-09-17T11:32:00.000Z"),
+          occuranceCount: 40,
+          firstSeenInRelease: "2.3.1",
+        }),
+      ],
+    });
+
+    const ctx: ToolContext = context();
+    const result: ToolExecutionResult = await RecentChangesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.dataForLlm.split("\n")).toEqual([
+      "- at=2026-09-17T11:32:00.000Z | change=new_exception | detail=TypeError: total is undefined (x40, first seen in 2.3.1)",
+      `- at=2026-09-17T11:30:00.000Z | change=deployment | detail=checkout: Deploy 2.3.1 (2.3.0 → 2.3.1, commit 1a2b3c4, production, recorded from the change-events API) | changeId=${CHANGE_ID.toString()}`,
+    ]);
+
+    // The service names are read with the caller's own permissions.
+    const namesCall: JSONObject = callArg(spies.serviceNames);
+    expect(namesCall["props"]).toBe(ctx.props);
+    expect(namesCall["select"]).toEqual({ _id: true, name: true });
+  });
+
+  test("a change event of a service the caller cannot see is listed unnamed", async () => {
+    mockSources({
+      changes: [
+        asChange({
+          _id: CHANGE_ID.toString(),
+          time: new Date("2026-09-17T11:30:00.000Z"),
+          eventType: "deployment",
+          title: "Rolled out web/api",
+          primaryEntityId: CHECKOUT_ID,
+          attributes: {},
+        }),
+      ],
+      serviceNames: new Error("no access"),
+    });
+
+    const result: ToolExecutionResult = await RecentChangesTool.execute(
+      {},
+      context(),
+    );
+
+    expect(result.dataForLlm).toBe(
+      `- at=2026-09-17T11:30:00.000Z | change=deployment | detail=Rolled out web/api | changeId=${CHANGE_ID.toString()}`,
+    );
+  });
+
+  test("project-wide changes and what OneUptime ran itself are listed too", async () => {
+    const spies: SourceSpies = mockSources({
+      changes: [
+        asChange({
+          _id: CHANGE_ID.toString(),
+          time: new Date("2026-09-17T11:00:00.000Z"),
+          eventType: "remediation",
+          title:
+            "OneUptime AI ran kubectl rollout restart deployment/api -n web",
+          attributes: {
+            "oneuptime.change.source": "oneuptime-ai",
+            "oneuptime.change.status": "succeeded",
+            "oneuptime.command":
+              "kubectl rollout restart deployment/api -n web",
+          },
+        }),
+        asChange({
+          time: new Date("2026-09-17T10:00:00.000Z"),
+          title: "Feature flags refreshed",
+        }),
+      ],
+    });
+
+    const result: ToolExecutionResult = await RecentChangesTool.execute(
+      {},
+      context(),
+    );
+
+    expect(spies.serviceNames).not.toHaveBeenCalled();
+    expect(result.dataForLlm.split("\n")).toEqual([
+      `- at=2026-09-17T11:00:00.000Z | change=remediation | detail=OneUptime AI ran kubectl rollout restart deployment/api -n web (command: kubectl rollout restart deployment/api -n web, succeeded, recorded from a fix OneUptime AI ran) | changeId=${CHANGE_ID.toString()}`,
+      "- at=2026-09-17T10:00:00.000Z | change=change | detail=Feature flags refreshed",
+    ]);
+  });
+
+  test("a posted title is capped and redacted like any field", async () => {
+    mockSources({
+      changes: [
+        asChange({
+          time: new Date("2026-09-17T11:00:00.000Z"),
+          eventType: "deployment",
+          title: `Deploy by admin@example.com ${"x".repeat(1000)}`,
+        }),
+      ],
+    });
+
+    const result: ToolExecutionResult = await RecentChangesTool.execute(
+      {},
+      context(),
+    );
+
+    expect(result.dataForLlm).not.toContain("admin@example.com");
+    expect(result.dataForLlm).toContain("[redacted-email]");
+    expect(result.dataForLlm.length).toBeLessThan(500);
+  });
+});
+
+describe("recent_changes for one service", () => {
+  test("serviceId narrows the change events and the exceptions, not monitors or maintenance", async () => {
+    const spies: SourceSpies = mockSources();
+
+    await RecentChangesTool.execute(
+      { serviceId: CHECKOUT_ID.toString() },
+      context(),
+    );
+
+    expect(
+      (callArg(spies.changes)["query"] as JSONObject)["primaryEntityId"],
+    ).toEqual(CHECKOUT_ID);
+    expect(
+      (callArg(spies.exceptions)["query"] as JSONObject)["primaryEntityId"],
+    ).toEqual(CHECKOUT_ID);
+    expect(
+      Object.keys(callArg(spies.statusChanges)["query"] as JSONObject),
+    ).toEqual(["createdAt"]);
+    expect(
+      Object.keys(callArg(spies.maintenance)["query"] as JSONObject).sort(),
+    ).toEqual(["endsAt", "startsAt"]);
+  });
+
+  test("one service's feed opens that service's page", async () => {
+    mockSources();
+
+    const result: ToolExecutionResult = await RecentChangesTool.execute(
+      { serviceId: CHECKOUT_ID.toString() },
+      context(),
+    );
+
+    expect(result.citationTarget).toEqual({
+      type: AIChatCitationTargetType.ServiceView,
+      params: { serviceId: CHECKOUT_ID.toString() },
+    });
   });
 });

@@ -6,7 +6,7 @@
 - [گزینه‌های سراسری](#گزینههای-سراسری): گزینه‌هایی که هر دستور می‌پذیرد.
 - [ورود و زمینه‌ها](#ورود-و-زمینهها): login و دستورهای context.
 - [دستورهای منابع](#دستورهای-منابع): list، get، create، update، delete و count.
-- [دستورهای دیگر](#دستورهای-دیگر): whoami، resources، version و help.
+- [دستورهای دیگر](#دستورهای-دیگر): deploy، whoami، resources، version و help.
 :::
 
 ## دستورها
@@ -18,7 +18,7 @@ flowchart LR
     C --> C1["list<br/>use<br/>current<br/>delete"]
     O --> R["incident، monitor<br/>و هر منبع دیگر"]
     R --> R1["list<br/>get<br/>create<br/>update<br/>delete<br/>count"]
-    O --> U["whoami<br/>resources<br/>version<br/>help"]
+    O --> U["deploy<br/>whoami<br/>resources<br/>version<br/>help"]
 ```
 
 ## گزینه‌های سراسری
@@ -222,6 +222,31 @@ CLI همراه با OneUptime منتشر می‌شود، پس `oneuptime resourc
 
 ## دستورهای دیگر
 
+### `oneuptime deploy`
+
+یک استقرار، یا تغییری دیگر، را از یک خط لوله ثبت می‌کند: روی نمودارهای سرویس کشیده می‌شود و OneUptime AI هنگام بررسی یک حادثه آن را می‌خواند. با یک کلید دریافت دادهٔ تله‌متری می‌نویسد، نه با کلید API. [استقرارها و تغییرها](/docs/telemetry/change-events) را ببینید.
+
+```bash
+oneuptime deploy [--service <name>] [--service-version <version>] [--previous-version <version>] [--commit <sha>] [--repository <url>] [--branch <name>] [--pull-request <number>] [--environment <name>] [--title <title>] [--description <text>] [--type <type>] [--time <time>] [--attribute <key=value...>] [--ingestion-key <key>]
+```
+
+| گزینه | الزامی | چیست | پیش‌فرض |
+| --- | --- | --- | --- |
+| `--service <name>` | خیر | سرویسی که مستقر شد | یک تغییر در سطح کل پروژه |
+| `--service-version <version>` | خیر | نسخهٔ مستقرشده | |
+| `--previous-version <version>` | خیر | نسخه‌ای که جایگزینش شد | |
+| `--commit <sha>` | خیر | کامیت مستقرشده | |
+| `--repository <url>` | خیر | مخزنی که کامیت در آن است | |
+| `--branch <name>` | خیر | شاخهٔ مستقرشده | |
+| `--pull-request <number>` | خیر | Pull Request مستقرشده | |
+| `--environment <name>` | خیر | محیطی که در آن مستقر شد | |
+| `--title <title>` | خیر | عنوان تغییر؛ هر نوعی جز استقرار به آن نیاز دارد | `Deploy <version>` |
+| `--description <text>` | خیر | جزئیات تغییر | |
+| `--type <type>` | خیر | نوع تغییر، مانند `config-change` یا `rollback` | `deployment` |
+| `--time <time>` | خیر | زمان رخ دادن آن، مانند `2026-10-19T10:00:00Z` | اکنون |
+| `--attribute <key=value...>` | خیر | ویژگی‌های بیشتر، به‌صورت `key=value`، یک یا چند تا | |
+| `--ingestion-key <key>` | خیر | یک کلید دریافت دادهٔ تله‌متری پروژه | `ONEUPTIME_TELEMETRY_INGESTION_KEY` |
+
 ### `oneuptime whoami`
 
 URL و کلید API را که دستور بعدی به کار می‌برد، با کلید پوشانده‌شده، و زمینه‌ای را که از آن آمده‌اند نشان می‌دهد. OneUptime را فرا نمی‌خواند. [ببینید CLI از چه چیزی استفاده خواهد کرد](/docs/cli/authentication#ببینید-cli-از-چه-چیزی-استفاده-خواهد-کرد) را ببینید.
@@ -265,6 +290,7 @@ oneuptime help [command]
 | --- | --- |
 | `ONEUPTIME_API_KEY` | کلید API، وقتی هیچ پرچم `--api-key` کلیدی ندهد |
 | `ONEUPTIME_URL` | نشانی OneUptime شما، وقتی هیچ پرچم `--url` نشانی‌ای ندهد |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | کلید دریافت دادهٔ تله‌متری‌ای که `oneuptime deploy` با آن می‌نویسد، وقتی هیچ پرچم `--ingestion-key` کلیدی ندهد |
 | `NO_COLOR` | با هر مقداری، رنگ‌ها را خاموش می‌کند |
 
 ## فایل‌ها

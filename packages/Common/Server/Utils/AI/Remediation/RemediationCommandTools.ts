@@ -132,6 +132,12 @@ import {
   describeClusterAccessTarget,
 } from "../ClusterAccess/ClusterAccessContext";
 import logger from "../../Logger";
+import ChangeRollback, {
+  KubernetesRollbackResolution,
+  KubernetesRollbackTarget,
+  buildKubernetesRollbackCommand,
+  describeKubernetesRollback,
+} from "./ChangeRollback";
 
 /*
  * The run-scoped command toolkit for a RemediationExecution AI run.
@@ -298,6 +304,12 @@ function describeResourceLabel(data: {
 export type RemediationCommandMode = "Suggest" | "FullAuto";
 
 /*
+ * Rolls back a Kubernetes rollout OneUptime recorded: the server builds the
+ * command from the change (ChangeRollback), never the model.
+ */
+export const ROLL_BACK_CHANGE_TOOL_NAME: string = "roll_back_change";
+
+/*
  * Verbs that never run on their own in any mode, whatever the allowlist
  * says. A patch of a Node never does either; the policy marks all three
  * requiresHuman, and describeAlwaysHumanNodeChange names each.
@@ -439,6 +451,11 @@ export default class RemediationCommandToolkit {
   private options: RemediationCommandToolkitOptions;
   private executedCommands: Array<AiRemediationCommand> = [];
   private proposedPlan: AiRemediationCommandPlan | null = null;
+  /*
+   * Suggest mode: the rollback roll_back_change recorded. It stays the
+   * plan's first step whatever propose_remediation_commands records after.
+   */
+  private pinnedRollback: AiRemediationCommand | null = null;
   private commandsNeedingApproval: Array<RemediationCommandNeedingApproval> =
     [];
   /*
@@ -469,8 +486,36 @@ export default class RemediationCommandToolkit {
     return this.executedCommands;
   }
 
+  /*
+   * The plan a Suggest round recorded: the rollback roll_back_change
+   * recorded first, when it recorded one, then the commands
+   * propose_remediation_commands recorded (without that rollback again).
+   */
   public getProposedPlan(): AiRemediationCommandPlan | null {
-    return this.proposedPlan;
+    const pinned: AiRemediationCommand | null = this.pinnedRollback;
+
+    if (!pinned) {
+      return this.proposedPlan;
+    }
+
+    const rest: Array<AiRemediationCommand> = (
+      this.proposedPlan?.commands || []
+    ).filter((command: AiRemediationCommand): boolean => {
+      return !(
+        command.stepType === pinned.stepType &&
+        command.kubernetesClusterId === pinned.kubernetesClusterId &&
+        command.command === pinned.command
+      );
+    });
+
+    return {
+      ...(this.proposedPlan || {}),
+      commands: [pinned, ...rest].map(
+        (command: AiRemediationCommand, index: number) => {
+          return { ...command, sequence: index + 1 };
+        },
+      ),
+    };
   }
 
   /*
@@ -544,7 +589,129 @@ export default class RemediationCommandToolkit {
       tools.push(this.buildProposeTool());
     }
 
+    if (this.offersChangeRollback()) {
+      tools.push(this.buildRollBackChangeTool());
+    }
+
     return tools;
+  }
+
+  /*
+   * roll_back_change needs a cluster to roll back on: it is offered on
+   * every round that may change one, and on no resource round. Fixed at
+   * construction, like the other tools.
+   */
+  public offersChangeRollback(): boolean {
+    return (
+      !this.isResourceRound() && (this.options.clusterTargets || []).length > 0
+    );
+  }
+
+  /*
+   * ------------------------------------------------------------------
+   * roll_back_change
+   * ------------------------------------------------------------------
+   */
+
+  private buildRollBackChangeTool(): ObservabilityAssistantExtraTool {
+    return {
+      definition: {
+        name: ROLL_BACK_CHANGE_TOOL_NAME,
+        description: `Roll back a Kubernetes rollout OneUptime recorded, by its changeId from the Recent changes section. OneUptime builds the exact kubectl rollout undo from the Deployment, namespace and cluster the change names - you do not write it - and refuses when the change names no Deployment on a cluster this round may change, or when the Deployment changed again after it (an undo would then undo the later change). ${
+          this.options.mode === "FullAuto"
+            ? "It then runs like a change you execute with execute_remediation_command: the same policy, mode, breaker and command budget apply."
+            : "It is recorded as the FIRST step of the plan for one-click human approval; propose_remediation_commands adds the rest of your plan after it (do not repeat the rollback there)."
+        } Use it when the evidence says that change caused the signal.`,
+        inputSchema: {
+          type: "object",
+          properties: {
+            changeId: {
+              type: "string",
+              description:
+                "The change's id (changeId in the Recent changes section).",
+            },
+            reason: {
+              type: "string",
+              description:
+                "Why rolling this change back fixes the signal, in one or two sentences — shown to humans after OneUptime's own description of the change.",
+            },
+          },
+          required: ["changeId", "reason"],
+        },
+      },
+      execute: async (args: JSONObject): Promise<ToolCallOutcome> => {
+        return this.rollBackChange(args);
+      },
+    };
+  }
+
+  private async rollBackChange(args: JSONObject): Promise<ToolCallOutcome> {
+    const resolution: KubernetesRollbackResolution =
+      await ChangeRollback.resolveKubernetesTarget({
+        projectId: this.options.projectId,
+        changeId: (ToolArgs.getString(args, "changeId") || "").trim(),
+      });
+
+    if (!resolution.target) {
+      return this.failure(`Nothing was rolled back: ${resolution.refusal}`);
+    }
+
+    const target: KubernetesRollbackTarget = resolution.target;
+    const cluster: KubernetesClusterAiAccessStatus | undefined =
+      this.getClusterTargets().find(
+        (candidate: KubernetesClusterAiAccessStatus): boolean => {
+          return candidate.clusterId === target.kubernetesClusterId;
+        },
+      );
+
+    if (!cluster) {
+      return this.failure(
+        `Nothing was rolled back: the change was rolled out on a cluster this round may not change (kubernetesClusterId ${target.kubernetesClusterId}). Leave the rollback in your recommendations for a human.`,
+      );
+    }
+
+    const described: { rationale: string; expectedEffect: string } =
+      describeKubernetesRollback(target, ToolArgs.getString(args, "reason"));
+    const commandArgs: JSONObject = {
+      stepType: RunbookStepType.Kubectl,
+      kubernetesClusterId: cluster.clusterId,
+      command: buildKubernetesRollbackCommand(target),
+      rationale: described.rationale,
+      expectedEffect: described.expectedEffect,
+    };
+
+    if (this.options.mode === "FullAuto") {
+      return this.executeCommand(commandArgs);
+    }
+
+    const parsed: CommandArgsParseResult = await this.parseAndValidateCommand(
+      commandArgs,
+      1,
+    );
+
+    if (parsed.errorText || !parsed.command) {
+      return this.failure(
+        `Nothing was recorded: ${parsed.errorText || "the rollback is not a valid command."}`,
+      );
+    }
+
+    // As every kubectl command on a proposed plan: it runs only after a click.
+    parsed.command.policyVerdict =
+      AiRemediationCommandPolicyVerdict.RequiresApproval;
+    parsed.command.rolledBackChangeId = target.change.id;
+    this.pinnedRollback = parsed.command;
+
+    return {
+      success: true,
+      textForLlm: `Recorded "${parsed.command.command}" as the first step of the plan for one-click human approval. Add any other fix with propose_remediation_commands — it goes after the rollback; do not repeat the rollback there. Then finish your analysis.`,
+      result: {
+        dataForLlm: `Proposed the rollback ${parsed.command.command}.`,
+        rowCount: 1,
+        citationLabel: `Proposed rolling back ${target.namespace}/${target.deploymentName}`,
+        redactionCount: 0,
+        isTruncated: false,
+      },
+    };
   }
 
   /*
@@ -3231,9 +3398,15 @@ export default class RemediationCommandToolkit {
       );
     }
 
-    if (commandsRaw.length > MAX_PLAN_COMMANDS) {
+    // A rollback roll_back_change recorded is one of the plan's steps.
+    const maxCommands: number =
+      MAX_PLAN_COMMANDS - (this.pinnedRollback ? 1 : 0);
+
+    if (commandsRaw.length > maxCommands) {
       return this.failure(
-        `A plan may contain at most ${MAX_PLAN_COMMANDS} commands — trim it to the essential steps.`,
+        this.pinnedRollback
+          ? `A plan may contain at most ${MAX_PLAN_COMMANDS} commands, and the rollback you recorded with ${ROLL_BACK_CHANGE_TOOL_NAME} is one of them — trim the rest to ${maxCommands}.`
+          : `A plan may contain at most ${MAX_PLAN_COMMANDS} commands — trim it to the essential steps.`,
       );
     }
 
@@ -3318,7 +3491,11 @@ export default class RemediationCommandToolkit {
 
     return {
       success: true,
-      textForLlm: `Recorded a plan of ${commands.length} command(s) for human approval. Now finish your analysis: explain the diagnosis, why these commands, the risks, and what to verify afterwards.`,
+      textForLlm: `Recorded a plan of ${commands.length} command(s)${
+        this.pinnedRollback
+          ? `, after the rollback recorded with ${ROLL_BACK_CHANGE_TOOL_NAME},`
+          : ""
+      } for human approval. Now finish your analysis: explain the diagnosis, why these commands, the risks, and what to verify afterwards.`,
       result: {
         dataForLlm: `Proposed ${commands.length} command(s) for approval.`,
         rowCount: commands.length,

@@ -269,11 +269,15 @@ const MessageQueueRoutes: LazyRoutes = lazy(() => {
 const RumApplicationRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/RumApplicationRoutes");
 });
-const CodeRepositoryRoutes: LazyRoutes = lazy(() => {
-  return import("./Routes/CodeRepositoryRoutes");
+const CodeRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/CodeRoutes");
 });
-const AIAgentTasksRoutes: LazyRoutes = lazy(() => {
-  return import("./Routes/AIAgentTasksRoutes");
+// Tasks and Code Repositories became Code: their addresses forward there.
+const MovedTaskRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MovedTaskRoutes");
+});
+const MovedRepositoryRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/MovedRepositoryRoutes");
 });
 const AIInsightsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/AIInsightsRoutes");
@@ -959,10 +963,18 @@ const App: () => JSX.Element = () => {
               element={<RumApplicationRoutes {...commonPageProps} />}
             />
 
-            {/* Code Repository */}
+            {/* Code: repositories, their tasks, and asking AI */}
             <PageRoute
-              path={RouteMap[PageMap.CODE_REPOSITORY_ROOT]?.toString() || ""}
-              element={<CodeRepositoryRoutes {...commonPageProps} />}
+              path={RouteMap[PageMap.CODE_ROOT]?.toString() || ""}
+              element={<CodeRoutes {...commonPageProps} />}
+            />
+
+            {/* Code Repositories' old addresses, forwarded to Code */}
+            <PageRoute
+              path={
+                RouteMap[PageMap.MOVED_CODE_REPOSITORY_ROOT]?.toString() || ""
+              }
+              element={<MovedRepositoryRoutes {...commonPageProps} />}
             />
 
             {/* Incidents */}
@@ -1188,11 +1200,13 @@ const App: () => JSX.Element = () => {
               element={<UserSettingsRoutes {...commonPageProps} />}
             />
 
-            {/** AI Agent Tasks */}
+            {/** Tasks' old addresses, forwarded to Code */}
 
             <PageRoute
-              path={RouteMap[PageMap.AI_AGENT_TASKS_ROOT]?.toString() || ""}
-              element={<AIAgentTasksRoutes {...commonPageProps} />}
+              path={
+                RouteMap[PageMap.MOVED_AI_AGENT_TASKS_ROOT]?.toString() || ""
+              }
+              element={<MovedTaskRoutes {...commonPageProps} />}
             />
 
             {/** AI Insights */}

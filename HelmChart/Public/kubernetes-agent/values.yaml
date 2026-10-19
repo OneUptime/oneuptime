@@ -1177,6 +1177,26 @@ ebpf:
     # unbounded cardinality, avoid), `unset` (no route; the span is named
     # after the method alone).
     unmatched: ""
+    # Languages OBI does not harvest route templates for (OBI's
+    # discovery.disabled_route_harvesters): any of dotnet, go, java, nodejs,
+    # php, python, ruby. Harvesting holds up tracing: OBI reads a new
+    # process's routes before it starts tracing it, one process at a time,
+    # and waits up to harvestTimeout for each. Node.js is skipped by default:
+    # its harvester regex-scans every source file under the app's directory
+    # and cannot stop early, so a large app (a monorepo, ts-node, a frontend
+    # in the same tree) uses up the whole wait every time. After an agent
+    # restart, a node with 19 Node.js processes was traced 6 minutes late
+    # rather than 8 seconds, long enough that connections the apps opened
+    # meanwhile could not be tied to their requests. A Node.js route then
+    # comes from the path (unmatched) or from patterns. [] harvests every
+    # language (from the command line: --set 'ebpf.routes.disabledHarvesters={}'),
+    # as does a values file without the key.
+    disabledHarvesters: ["nodejs"]
+    # How long OBI waits for one process's routes before it traces the
+    # process without them (OBI's discovery.route_harvester_timeout), a
+    # positive duration such as "2s" or "500ms". "" keeps OBI's 10s. A harvest
+    # that runs out of time goes on scanning in the background.
+    harvestTimeout: ""
 
   # Span attributes to export beyond the ones the chart always asks OBI for.
   # Those are OBI's own default span attributes plus `service.peer.name`,
@@ -1195,6 +1215,19 @@ ebpf:
   # renders for OBI v0.14 and later (ebpf.image.tag): older OBI has other
   # defaults and sends service.peer.name anyway.
   extraSpanAttributes: []
+
+  # How many bytes of each database request OBI copies out of the kernel to
+  # read it, per protocol (OBI's ebpf.buffer_sizes). 0 keeps OBI's small fixed
+  # capture, which stops db.query.text at about 250 characters and can miss a
+  # long statement sent with bound parameters, as most ORMs and drivers send
+  # them, altogether. 4096 covers most ORM statements. The same limit applies
+  # to each response, separately, so a buffer costs the agent CPU and memory
+  # in proportion to database traffic. At most 65535. A values file without
+  # the key copies nothing extra.
+  bufferSizes:
+    postgres: 0
+    mysql: 0
+    mssql: 0
 
   # Drop eBPF database spans that are not part of any trace.
   #

@@ -143,6 +143,17 @@ needs per team and chat.
 `offline_access`, `User.Read` and `OnlineMeetings.ReadWrite`, matching
 `MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES`.
 
+A sign-in for a project that records and transcribes its incident calls also
+asks for the delegated `Calendars.ReadWrite` and
+`OnlineMeetingTranscript.Read.All` (`MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES`,
+added in October 2026). Microsoft asks for them at sign-in whether or not the
+app registration lists them, but add both to **OneUptime Meetings** as
+delegated permissions all the same: a customer's administrator who grants
+consent for the organization from **Enterprise applications** grants only the
+permissions the app registration lists. `OnlineMeetingTranscript.Read.All`
+always needs an administrator's consent. Check the live app before assuming
+they are there.
+
 To add a permission: **API permissions** > **Add a permission** > **Microsoft
 Graph** > **Application** (or **Delegated**) **permissions**, tick it, **Add
 permissions**, then **Grant admin consent for HackerBay**. Granting consent only

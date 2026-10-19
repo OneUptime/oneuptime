@@ -96,7 +96,7 @@ Ga naar **Runbooks → Runbook-agenten** en maak een nieuwe agent. Klik op **Run
 | **Beschrijving** | **Runner** | Optioneel. Een zin over wat deze host bereikt. |
 | **Labels** | **Runner** (onder **Meer velden**) | Optioneel. |
 | **Voert Runbooks uit** | **Mogelijkheden** | Standaard aan. Laat deze Runner runbook-stappen oppakken. |
-| **Voert AI-codecorrecties uit** | **Mogelijkheden** | Standaard uit. Laat hem pull requests met AI-codecorrecties openen; zie [Fix Tasks](/docs/ai/ai-agent). |
+| **Voert AI-codecorrecties uit** | **Mogelijkheden** | Standaard uit. Laat hem pull requests met AI-codecorrecties openen; zie [Code](/docs/ai/ai-agent). |
 | **Voert AI-herstelopdrachten uit** | **Mogelijkheden** | Standaard uit. Laat automatisch AI-herstel er beleidsgecontroleerde opdrachten op uitvoeren. Dit aanzetten voor een Runner met SSH-inloggegevens vereist de machtiging om runbook-inloggegevens te lezen; zie [Runners die de opdrachten van OneUptime AI uitvoeren](/docs/runbooks/credentials#runners-die-de-opdrachten-van-oneuptime-ai-uitvoeren). |
 
 Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig.

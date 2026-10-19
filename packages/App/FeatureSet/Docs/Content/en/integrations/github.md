@@ -30,11 +30,11 @@ The two are separate, and you can use either or both. The GitHub App works in th
 
 ## Connect your repositories
 
-Open **Products → Code → Tasks**, then **Code Repositories**, and click **Connect with GitHub App**. GitHub asks where to install the app and which repositories it may use. Every repository in the installation is imported, and stays in step as you add repositories to the installation or take them out.
+Open **Products → Code** and click **Connect GitHub**. GitHub asks where to install the app and which repositories it may use. Every repository in the installation is imported, and stays in step as you add repositories to the installation or take them out.
 
-If the app is already installed on the account, for another project or straight from GitHub, click **Connect an existing installation**, under the **Connect with GitHub App** card, instead of installing it again. This needs a GitHub account that administers the installation: the owner of a personal account, or someone with admin on every repository the installation can access, as an owner of the organization has.
+If the app is already installed on the account, for another project or straight from GitHub, click **Connect an existing installation**, under **Connect GitHub**, instead of installing it again. This needs a GitHub account that administers the installation: the owner of a personal account, or someone with admin on every repository the installation can access, as an owner of the organization has.
 
-A self-hosted instance needs a GitHub App of its own first: [GitHub Integration](/docs/self-hosted/github-integration) shows how to create it. From then on, [Fix Tasks](/docs/ai/ai-agent) open pull requests in your repositories, and the [GitHub App](/docs/ai/github-app) page shows what it does when you mention it on an issue or a pull request.
+A self-hosted instance needs a GitHub App of its own first: [GitHub Integration](/docs/self-hosted/github-integration) shows how to create it. From then on, AI opens pull requests in your repositories from [Code](/docs/ai/ai-agent), and the [GitHub App](/docs/ai/github-app) page shows what it does when you mention it on an issue or a pull request.
 
 ## Before you begin
 

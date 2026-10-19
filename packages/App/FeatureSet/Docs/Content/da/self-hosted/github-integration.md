@@ -2,13 +2,13 @@
 
 Forbind din selvhostede OneUptime med GitHub via en GitHub App, du selv ejer. Når appen er installeret fra OneUptime, importeres installationens repositories til dit projekt og holdes synkroniseret, AI-rettelsesopgaver åbner pull requests, og dit team kan give appen opgaver fra GitHub ved at nævne den.
 
-Denne side er til den, der driver OneUptime-serveren: Du opretter appen én gang, og derefter forbinder hvert projekt den fra **Koderepositorier**.
+Denne side er til den, der driver OneUptime-serveren: Du opretter appen én gang, og derefter forbinder hvert projekt den fra **Kode**.
 
 :::cards
 - [Opret GitHub-appen](#opret-github-appen): Registrér appen med de rigtige URL'er, tilladelser og events.
 - [Konfigurér OneUptime](#konfigurér-oneuptime): Giv serveren appens seks værdier.
 - [Forbind repositories](#forbind-repositories): Installér appen fra OneUptime, eller forbind en eksisterende installation.
-- [Fejlfinding](#fejlfinding): Hvad meddelelserne under Koderepositorier betyder.
+- [Fejlfinding](#fejlfinding): Hvad meddelelserne i Kode betyder.
 :::
 
 ## Sådan fungerer det
@@ -20,7 +20,7 @@ sequenceDiagram
     participant B as Din browser
     participant O as OneUptime
     participant G as GitHub
-    B->>O: Connect with GitHub App
+    B->>O: Forbind GitHub
     O-->>B: Omdirigering til appens<br/>installationsside
     B->>G: Installér og autorisér appen
     G-->>B: Omdirigering til<br/>/api/github/auth/callback
@@ -58,7 +58,7 @@ Vælg **New GitHub App**.
 | **Callback URL** | `https://your-oneuptime-domain.com/api/github/auth/callback` |
 | **Request user authorization (OAuth) during installation** | Til. **Det er påkrævet**: Se bemærkningen nedenfor. |
 | **Setup URL** | `https://your-oneuptime-domain.com/api/github/auth/callback`, hvis GitHub lader dig angive en (se nedenfor). |
-| **Redirect on update** | Valgfri. Når nogen har ændret en installation på GitHub, sender OneUptime dem til **Koderepositorier**. |
+| **Redirect on update** | Valgfri. Når nogen har ændret en installation på GitHub, sender OneUptime dem til **Kode**. |
 | **Webhook URL** | `https://your-oneuptime-domain.com/api/github/webhook`, med webhooken sat til **Active**. |
 | **Webhook secret** | En lang tilfældig streng. Notér den: Den er `GITHUB_APP_WEBHOOK_SECRET`. **Påkrævet**: OneUptime afviser usignerede webhooks, så hvis `GITHUB_APP_WEBHOOK_SECRET` ikke er sat, stopper synkroniseringen af repositories i stedet for at acceptere uverificerede payloads. |
 
@@ -159,14 +159,14 @@ gitHubApp:
 `privateKey` tager også selve PEM'en som en blok over flere linjer (`privateKey: |`). Anvend ændringen med `helm upgrade`.
 :::
 
-Når OneUptime kører igen, viser **Koderepositorier** knappen **Connect with GitHub App** i stedet for **GitHub App is not configured on this server**.
+Når OneUptime kører igen, viser **Kode** knappen **Forbind GitHub** i stedet for **GitHub App er ikke konfigureret på denne server**.
 
 ### Oversigt over miljøvariabler
 
 | Docker Compose (`config.env`) | Helm (`values.yaml`) | Værdi |
 | --- | --- | --- |
 | `GITHUB_APP_ID` | `gitHubApp.id` | **App ID**. Bruges til at godkende som appen. |
-| `GITHUB_APP_NAME` | `gitHubApp.name` | Appens navn. Visningsnavnet er fint, med mellemrum og store bogstaver: installationslinket og appens `@mention`-handle bruger den slug, GitHub oplyser for appen, og bygges kun ud fra dette navn (med små bogstaver, bindestreger i stedet for mellemrum), når OneUptime ikke kan spørge GitHub. Uden det kan **Koderepositorier** ikke forbinde. |
+| `GITHUB_APP_NAME` | `gitHubApp.name` | Appens navn. Visningsnavnet er fint, med mellemrum og store bogstaver: installationslinket og appens `@mention`-handle bruger den slug, GitHub oplyser for appen, og bygges kun ud fra dette navn (med små bogstaver, bindestreger i stedet for mellemrum), når OneUptime ikke kan spørge GitHub. Uden det kan **Kode** ikke forbinde repositorier. |
 | `GITHUB_APP_CLIENT_ID` | `gitHubApp.clientId` | **Client ID**. Nødvendig for at kontrollere, hvem der installerede appen. |
 | `GITHUB_APP_CLIENT_SECRET` | `gitHubApp.clientSecret` | Den client secret, du genererede. Nødvendig sammen med client ID. |
 | `GITHUB_APP_PRIVATE_KEY` | `gitHubApp.privateKey` | Den private nøgle: PEM'en eller PEM'en base64-kodet. |
@@ -180,14 +180,14 @@ Start forbindelsen fra OneUptime, ikke fra appens side på GitHub: Det link, One
 
 :::steps
 1. Log ind på dit OneUptime-dashboard
-2. Gå til **Produkter** > **Opgaver** > **Koderepositorier**
-3. Klik på **Connect with GitHub App**. OneUptime sender dig til GitHub
+2. Gå til **Produkter** > **Kode**
+3. Klik på **Forbind GitHub**. OneUptime sender dig til GitHub
 4. Vælg den organisation eller konto, appen skal installeres på, og vælg, hvilke repositories den må tilgå: **All repositories** (alle nuværende og fremtidige repositories) eller **Only select repositories**
 5. Klik på **Install**
-6. GitHub sender dig tilbage til **Koderepositorier**, og hvert repository i installationen importeres. Repositories, der senere tilføjes til eller fjernes fra installationen, holdes automatisk synkroniseret.
+6. GitHub sender dig tilbage til **Kode**, og hvert repository i installationen importeres. Repositories, der senere tilføjes til eller fjernes fra installationen, holdes automatisk synkroniseret.
 :::
 
-**Når appen allerede er installeret på kontoen**, til et andet projekt eller direkte fra GitHub, bliver den ikke forbundet af at installere den igen: GitHub åbner installationens indstillinger og sender dig aldrig tilbage. Klik i stedet på **Forbind en eksisterende installation** under kortet **Connect with GitHub App**. Du logger ind på GitHub, og OneUptime forbinder den installation, din GitHub-konto administrerer. Administrerer den mere end én, viser **Koderepositorier** dem: vælg den konto, hvis repositories projektet skal bruge.
+**Når appen allerede er installeret på kontoen**, til et andet projekt eller direkte fra GitHub, bliver den ikke forbundet af at installere den igen: GitHub åbner installationens indstillinger og sender dig aldrig tilbage. Klik i stedet på **Forbind en eksisterende installation** under **Forbind GitHub**. Du logger ind på GitHub, og OneUptime forbinder den installation, din GitHub-konto administrerer. Administrerer den mere end én, viser **Kode** dem: vælg den konto, hvis repositories projektet skal bruge.
 
 **Hvem der kan forbinde.** At forbinde importerer installationens repositories til projektet og kræver derfor tilladelse til at tilføje koderepositorier: **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller et team med **Create Code Repository**. Et team, der blokerer tilladelsen, fjerner den. På OneUptime Cloud kræver koderepositorier Growth-abonnementet eller højere. For alle andre er kortet låst og siger, hvad der skal til. På GitHub skal den konto, der installerer eller forbinder appen, administrere installationen: ejeren af en personlig konto, eller en person med admin-adgang til hvert repository, installationen har adgang til, sådan som en ejer af organisationen har. Læseadgang til et af dens repositories er ikke nok.
 
@@ -218,7 +218,7 @@ Hvis du også begrænser webhooks' kilde-IP'er, så brug de aktuelle `hooks`-int
 ### Kontrollér adgangen, og forstå begrænsningerne
 
 :::steps
-1. Forbind en installation fra **Koderepositorier**.
+1. Forbind en installation fra **Kode**.
 2. Åbn **Advanced** i GitHub-appens indstillinger, og se på **Recent Deliveries**. Gensend en levering, og bekræft, at gatewayen videresender den, og at OneUptime accepterer den.
 3. Tilføj eller fjern et testrepository fra installationen, og kontrollér, at listen over repositories i OneUptime følger med.
 :::
@@ -234,23 +234,23 @@ GitHub dokumenterer [diagnosticering af leveringer](https://docs.github.com/en/w
 
 ### Forbindelsen blev ikke fuldført
 
-Når GitHub sender dig tilbage, og installationen ikke blev forbundet, viser **Koderepositorier** meddelelsen **GitHub blev ikke forbundet** med én sætning på dit sprog, der siger hvorfor. Resten af siden indlæses som normalt, så du kan forbinde igen lige dér. Den viser aldrig, hvad GitHub selv svarede: Det står i OneUptime-serverens log sammen med årsagen.
+Når GitHub sender dig tilbage, og installationen ikke blev forbundet, viser **Kode** meddelelsen **GitHub blev ikke forbundet** med én sætning på dit sprog, der siger hvorfor. Resten af siden indlæses som normalt, så du kan forbinde igen lige dér. Den viser aldrig, hvad GitHub selv svarede: Det står i OneUptime-serverens log sammen med årsagen.
 
 | Siden siger | Hvad du gør |
 | --- | --- |
-| **"Dette forbindelseslink er ugyldigt, er udløbet eller er allerede brugt. Start forfra."** | Linket virker én gang, i 15 minutter, i den browser, der startede det. Start forfra fra **Koderepositorier**, og gør det færdigt på GitHub inden for 15 minutter i samme browser. At installere appen fra dens side på GitHub forbinder den ikke med noget projekt: for at forbinde en installation, der er lavet dér, skal du klikke på **Forbind en eksisterende installation**. |
+| **"Dette forbindelseslink er ugyldigt, er udløbet eller er allerede brugt. Start forfra."** | Linket virker én gang, i 15 minutter, i den browser, der startede det. Start forfra fra **Kode**, og gør det færdigt på GitHub inden for 15 minutter i samme browser. At installere appen fra dens side på GitHub forbinder den ikke med noget projekt: for at forbinde en installation, der er lavet dér, skal du klikke på **Forbind en eksisterende installation**. |
 | **"Du har ikke tilladelse til at tilføje kode-repositories til dette projekt."** | At forbinde kræver tilladelse til at tilføje koderepositorier (se [Forbind repositories](#forbind-repositories)). Bed en projektadministrator om at give den. Den kontrolleres igen, når GitHub sender dig tilbage, så en tilladelse, der er fjernet i mellemtiden, afslutter også forbindelsen her. |
 | **"Det kræver ...-abonnementet at forbinde GitHub."** | På OneUptime Cloud kræver koderepositorier det abonnement, sætningen nævner. Opgradér projektets abonnement, og forbind igen. |
 | **"GitHub bekræftede ikke, hvem der installerede appen, så installationen kunne ikke kontrolleres."** | Slå **Request user authorization (OAuth) during installation** til i GitHub-appens indstillinger (se [Opret GitHub-appen](#opret-github-appen)), og forbind igen. |
 | **"OneUptime kunne ikke bekræfte, at din GitHub-konto kan administrere denne installation."** | Den GitHub-konto, der fuldførte installationen, administrerer den ikke (se [Forbind repositories](#forbind-repositories) for, hvem der gør). Appen forbliver installeret på GitHub, så bed en, der administrerer den, om at forbinde den med **Forbind en eksisterende installation**. |
 | **"GitHub sendte ingen installation tilbage."** | Når et medlem af organisationen anmoder om appen i stedet for at installere den, skal en ejer af organisationen først godkende anmodningen. Når det er sket, forbinder en, der administrerer installationen, den med **Forbind en eksisterende installation**. |
-| **"Din GitHub-konto administrerer endnu ingen installation af appen."** | Den GitHub-konto, du loggede ind med, administrerer ingen installation af appen (se [Forbind repositories](#forbind-repositories) for, hvem der gør). Hvis appen endnu ikke er installeret på kontoen, så installér den med **Connect with GitHub App**. Hvis den er, så forbind igen, logget ind på GitHub med en konto, der administrerer den, eller bed en, der gør. |
+| **"Din GitHub-konto administrerer endnu ingen installation af appen."** | Den GitHub-konto, du loggede ind med, administrerer ingen installation af appen (se [Forbind repositories](#forbind-repositories) for, hvem der gør). Hvis appen endnu ikke er installeret på kontoen, så installér den med **Forbind GitHub**. Hvis den er, så forbind igen, logget ind på GitHub med en konto, der administrerer den, eller bed en, der gør. |
 | **"GitHub App er ikke sat op på denne OneUptime-server."** | Angiv både `GITHUB_APP_CLIENT_ID` og `GITHUB_APP_CLIENT_SECRET` (se [Konfigurér OneUptime](#konfigurér-oneuptime)), og genstart OneUptime. |
 | **"OneUptime kunne ikke fuldføre forbindelsen. Prøv igen."** | GitHub svarede med en fejl, eller en anmodning eller en skrivning mislykkedes under afslutningen. OneUptime-serverens log siger hvilken. Prøv igen; hvis det bliver ved, så tjek loggen og GitHub-appens indstillinger. |
 
 ### Andre problemer
 
-:::details Koderepositorier siger "GitHub App is not configured on this server"
+:::details Kode siger "GitHub App er ikke konfigureret på denne server"
 `GITHUB_APP_NAME` er ikke angivet. Sæt den til appens præcise navn sammen med de fem andre værdier, og genstart OneUptime.
 :::
 
@@ -267,7 +267,7 @@ Kontrollér, at webhook-URL'en kan nås offentligt over HTTPS, og se derefter p�
 :::
 
 :::details Repositories eller rettelsesopgaver fejler med en godkendelsesfejl
-OneUptime godkender sig som appen med `GITHUB_APP_ID` og `GITHUB_APP_PRIVATE_KEY`. Kontrollér, at App ID er korrekt, og at nøglen er den komplette PEM, inklusive linjerne `BEGIN` og `END`, eller den PEM base64-kodet. Hvis appen er afinstalleret fra GitHub, så forbind den igen fra **Koderepositorier**.
+OneUptime godkender sig som appen med `GITHUB_APP_ID` og `GITHUB_APP_PRIVATE_KEY`. Kontrollér, at App ID er korrekt, og at nøglen er den komplette PEM, inklusive linjerne `BEGIN` og `END`, eller den PEM base64-kodet. Hvis appen er afinstalleret fra GitHub, så forbind den igen fra **Kode**.
 :::
 
 :::details Der mangler repositories efter installationen
@@ -290,6 +290,6 @@ Giv appen **Issues: Read and write**, og abonnér den på de interaktive events 
 
 :::cards
 - [Arbejd med OneUptime fra GitHub](/docs/ai/github-app): De kommandoer, man kan give appen, og hvem der må give dem.
-- [Rettelsesopgaver](/docs/ai/ai-agent): Hvordan AI-agenten åbner rettelsers pull requests.
+- [Kode](/docs/ai/ai-agent): Hvordan AI-agenten åbner rettelsers pull requests.
 - [Adgang til privat netværk](/docs/self-hosted/private-network-access): Lad workflows og webhooks nå interne værktøjer.
 :::

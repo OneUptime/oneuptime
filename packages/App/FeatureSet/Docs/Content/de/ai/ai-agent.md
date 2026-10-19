@@ -1,10 +1,12 @@
-# Korrekturaufgaben
+# Code
 
-Eine Korrekturaufgabe ist ein Pull Request, den OneUptime AI in Ihrem Code schreibt. Sie starten eine aus einer Ausnahme, einem Trace, einem Dienst oder einer Untersuchung, oder OneUptime startet sie selbst; ein [Runner](/docs/runbooks/agents) klont das Repository, schreibt die Änderung in einen neuen Branch, baut und testet sie und öffnet einen Pull Request. Jeden davon prüft und mergt ein Mensch: Der Runner kann Branches pushen und Pull Requests öffnen, mehr nicht.
+Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeiten, so wie Sie einen Coding-Agenten bitten würden: einen Fehler beheben, Tests schreiben, den Code erklären, eine Änderung vornehmen. Code öffnet sich mit Ihren verbundenen Repositorys; die Seite eines Repositorys enthält seine Aufgaben und das Feld, in dem Sie fragen; die Seite einer Aufgabe ist eine Unterhaltung, in der Sie antworten können. OneUptime startet auch selbst Aufgaben, aus Ausnahmen, Traces und Untersuchungen. Ein [Runner](/docs/runbooks/agents) klont das Repository, schreibt die Änderung in einen neuen Branch, baut und testet sie und öffnet einen Pull Request. Jeden davon prüft und mergt ein Mensch: Der Runner kann Branches pushen und Pull Requests öffnen, mehr nicht.
 
 :::cards
+- [KI in einem Repository bitten](#ki-in-einem-repository-bitten): Eine Anfrage in Ihren eigenen Worten, mit dem Kontext, den sie braucht.
+- [Die Unterhaltung einer Aufgabe](#die-unterhaltung-einer-aufgabe): Was die KI getan und geändert hat, und Ihre Antwort.
 - [Wie ein Korrekturlauf abläuft](#wie-ein-korrekturlauf-abläuft): Vom Klick bis zum Pull Request, Schritt für Schritt.
-- [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten): Die Schaltflächen, die eine starten, und was jeder Pull Request tut.
+- [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten): Die Aufgaben, die OneUptime startet, und was jeder Pull Request tut.
 - [Bevor Sie beginnen](#bevor-sie-beginnen): Ein Modell, ein verbundenes Repository und ein Runner.
 - [Wenn eine Korrektur fehlschlägt](#wenn-eine-korrektur-fehlschlägt): Was mit einem Lauf passiert, der fehlschlägt, hängen bleibt oder wartet.
 :::
@@ -12,11 +14,61 @@ Eine Korrekturaufgabe ist ein Pull Request, den OneUptime AI in Ihrem Code schre
 > [!TIP]
 > Sie können das auch aus GitHub heraus starten. Erwähnen Sie die OneUptime GitHub App in einem Issue oder einem Pull Request, und sie implementiert, überarbeitet oder prüft direkt dort: siehe [GitHub App](/docs/ai/github-app). Es ist derselbe Agent, derselbe Runner und dasselbe Budget; nur der Auslöser unterscheidet sich.
 
+## KI in einem Repository bitten
+
+:::steps
+### Ein Repository öffnen
+
+Öffnen Sie **Produkte → Code**. Dort stehen die Repositorys des Projekts, jedes mit den Aufgaben, an denen die KI arbeitet, denen, die auf Sie warten, und seinen offenen Pull Requests. Gibt es noch keines, bietet Code **GitHub verbinden** an (siehe [Bevor Sie beginnen](#bevor-sie-beginnen)).
+
+### Sagen, was Sie möchten
+
+Schreiben Sie auf der Seite des Repositorys die Änderung, den Fehler oder die Frage in Ihren eigenen Worten. Ein Repository ohne Aufgabe schlägt unter **Zum Beispiel** einige vor.
+
+### Kontext hinzufügen
+
+Klicken Sie auf **Kontext hinzufügen**, um der KI zu geben, was sie braucht: eine Datei oder einen Ordner des Repositorys, eine Notiz, einen Link oder einen Datensatz des Projekts. OneUptime liest jeden Datensatz beim Senden der Anfrage mit Ihren Berechtigungen und behält, was die KI bekommen hat.
+
+### Die Aufgabe starten
+
+Klicken Sie auf **Aufgabe starten** oder drücken Sie die Eingabetaste. Die Seite der Aufgabe öffnet sich, und die Arbeit der KI erscheint dort, während sie geschieht.
+:::
+
+| Kontext | Was die KI bekommt |
+| --- | --- |
+| **Datei oder Ordner** | Einen Pfad im Repository, den die KI zuerst liest. |
+| **Notiz** | Text, den Sie einfügen: einen Fehler, eine Spezifikation, eine Protokollzeile. |
+| **Link** | Eine Webadresse als Referenz. |
+| **Vorfall** oder **Warnung** | Status, Beschreibung und Grundursache, so wie sie beim Senden der Anfrage sind. |
+| **Ausnahme** | Meldung und Stacktrace. |
+| **Überwachung** | Typ, Status und Beschreibung. |
+| **Trace** | Die Spans: ihre Namen, Zeiten und Fehler. |
+| **Protokolle** | Die neuesten 20 Protokollzeilen, die Ihren Suchbegriff enthalten, aus der letzten Stunde, dem letzten Tag oder der letzten Woche. |
+
+Eine Anfrage trägt höchstens 10 Kontextelemente. Token, Schlüssel, Passwörter und E-Mail-Adressen in dem, was OneUptime liest, werden geschwärzt, bevor die KI sie sieht, wie überall, wo OneUptime AI Ihre Daten liest.
+
+## Die Unterhaltung einer Aufgabe
+
+Die Seite einer Aufgabe ist eine Unterhaltung: was gefragt wurde und welcher Kontext hinzugefügt wurde, dann der Zug der KI – die Schritte, während sie sie ausführt (die Dateien, die sie gelesen und bearbeitet hat, wonach sie gesucht hat, die Befehle, die sie ausgeführt hat), ihre Antwort, die geänderten Dateien mit ihrem Diff und der Pull Request. Oben auf der Seite steht, wie es um die Aufgabe steht:
+
+| Status | Was er bedeutet |
+| --- | --- |
+| **In der Warteschlange** | Sie wartet darauf, dass ein Runner sie übernimmt. |
+| **Wird bearbeitet…** | Die KI arbeitet daran. **Stoppen** stoppt sie; was sie gepusht hat, bleibt im Branch. |
+| **Wartet auf Sie** | Die KI hat eine Frage gestellt. Beantworten Sie sie im Feld unten. |
+| **Fertig** | Die KI ist fertig: ihre Antwort und der Pull Request, wenn sie Code geändert hat. |
+| **Fehlgeschlagen** | Der Durchgang konnte nicht abgeschlossen werden und sagt, warum. **Erneut versuchen** fragt dasselbe noch einmal. |
+| **Gestoppt** | Jemand hat sie gestoppt. **Erneut versuchen** fragt dasselbe noch einmal. |
+
+Um nachzufassen, schreiben Sie in das Feld unten: Antworten Sie der KI, fügen Sie Kontext hinzu oder bitten Sie um Änderungen. Jede Antwort ist der nächste Durchgang derselben Aufgabe: Sie arbeitet im selben Branch und pusht in denselben Pull Request, solange er offen ist. Eine Aufgabe hat immer nur einen Durchgang zur Zeit, deshalb wartet das Feld, während die KI arbeitet. Das **Protokoll** jedes Durchgangs ist die wörtliche Aufzeichnung dessen, was er getan hat.
+
+Wer ein Repository lesen darf, liest seine Aufgaben. Die KI bitten, antworten und eine Aufgabe stoppen erfordern die Berechtigung, das Repository zu bearbeiten, ebenso das Ansehen des Diffs einer Änderung: Alle anderen sehen, welche Dateien sich geändert haben. Die Aufgaben, die OneUptime selbst startet (unten), stehen ebenfalls in ihrem Repository, als Unterhaltungen, in denen Sie antworten können.
+
 ## Wie ein Korrekturlauf abläuft
 
 ```mermaid title="Vom Klick zum Pull Request"
 flowchart TB
-    S["Fix with AI oder ein<br/>automatischer Auslöser"] --> Q["Eine Korrektur-<br/>aufgabe wird<br/>eingereiht"]
+    S["Eine Anfrage, eine<br/>Schaltfläche oder<br/>ein Auslöser"] --> Q["Eine Korrektur-<br/>aufgabe wird<br/>eingereiht"]
     Q --> R["Ein Runner für KI-<br/>Codekorrekturen<br/>übernimmt sie"]
     R --> C["Er klont das Repository<br/>und legt einen<br/>Branch an"]
     C --> A["Der Code-Agent<br/>schreibt die Änderung"]
@@ -26,15 +78,15 @@ flowchart TB
     P --> H["Ein Mensch prüft<br/>und mergt ihn"]
 ```
 
-1. Sie klicken bei einer ungelösten Ausnahme auf **Fix with AI**, oder eine andere Schaltfläche oder ein Auslöser startet eine Aufgabe (siehe [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten)).
+1. Sie klicken in einem Repository auf **Aufgabe starten** oder bei einer ungelösten Ausnahme auf **Fix with AI**, oder eine andere Schaltfläche oder ein Auslöser startet eine Aufgabe (siehe [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten)).
 2. Die Aufgabe wird eingereiht, und ein verfügbarer Runner mit eingeschaltetem **Führt KI-Codekorrekturen aus** übernimmt sie.
-3. Der Runner holt den Kontext der Aufgabe. Bei einer Ausnahme sind das ihr Typ, ihre Meldung und ihr Stack-Trace.
-4. Er klont das Repository in einen eigenen Arbeitsbereich und legt einen Branch an. Eine Korrektur einer Ausnahme heißt `oneuptime-fix-exception-`, gefolgt von den ersten Zeichen der ID des Laufs.
+3. Der Runner holt den Kontext der Aufgabe. Bei einer Anfrage sind das ihre Worte, der hinzugefügte Kontext und die bisherige Unterhaltung; bei einer Ausnahme ihr Typ, ihre Meldung und ihr Stack-Trace.
+4. Er klont das Repository in einen eigenen Arbeitsbereich und legt einen Branch an. Eine Korrektur einer Ausnahme heißt `oneuptime-fix-exception-`, gefolgt von den ersten Zeichen der ID des Laufs. Eine Antwort arbeitet stattdessen im Branch des offenen Pull Requests der Aufgabe.
 5. Ein Code-Agent, angetrieben vom LLM-Anbieter Ihres Projekts, liest den Code und schreibt die Änderung. Der OneUptime-Server führt die LLM-Aufrufe aus, sodass der Runner den API-Schlüssel Ihres Anbieters nie besitzt, und jeder Aufruf wird gemessen und in den KI-Protokollen aufgeführt.
 6. Hat das Repository Prüfbefehle, baut und testet ein eigener Runner die Änderung, bevor er etwas committet, und gibt einen Fehler zur Reparatur an den Code-Agenten zurück (siehe [Prüfung vor dem Pull Request](#prüfung-vor-dem-pull-request)).
-7. Der Runner committet, pusht den Branch, öffnet den Pull Request und löscht den Arbeitsbereich.
+7. Der Runner committet, pusht den Branch, öffnet den Pull Request (bei einer Anfrage nur, wenn sie Code geändert hat) und löscht den Arbeitsbereich.
 
-Die Seite, auf der die Aufgabe gestartet wurde, zeigt ihren Live-Status. Jede Aufgabe steht unter **Produkte → Code → Aufgaben**: Öffnen Sie eine für ihre **Übersicht**, ihre **Protokolle** (eine Zeile für jede Datei, die der Runner gelesen oder geschrieben hat, und jeden Befehl, den er ausgeführt hat) und ihre **Pull-Anfragen**.
+Die Seite, auf der die Aufgabe gestartet wurde, zeigt ihren Live-Status. Jede Aufgabe steht in ihrem Repository unter **Produkte → Code**: Ihre Seite ist ihre Unterhaltung, und das **Protokoll** jedes Durchgangs hat eine Zeile für jede Datei, die der Runner gelesen oder geschrieben hat, und jeden Befehl, den er ausgeführt hat.
 
 Jeder Lauf unterliegt Budgets, die der Server durchsetzt: höchstens **40 LLM-Aufrufe** und **100.000 Ausgabe-Tokens**. Ein Lauf, der eines davon erreicht, endet mit einer Zusammenfassung der bisherigen Arbeit, statt in einer Schleife zu laufen. Korrekturläufe zählen auch zu den täglichen KI-Limits des Projekts, wenn das Projekt sie festlegt.
 
@@ -47,8 +99,8 @@ Jeder Lauf unterliegt Budgets, die der Server durchsetzt: höchstens **40 LLM-Au
 | Die Seite **KI-Unterstützung** einer Ausnahme | **Fehlerbehandlung verbessern** | Für einen erwarteten Fehler, etwa eine ungültige Eingabe: nimmt Benutzerdaten aus der Meldung, prüft die Eingabe früher und markiert den Fehler als behandelt, ohne das Verhalten zu ändern. |
 | Die Karte **KI-Untersuchung** eines Vorfalls oder einer Warnung | **Korrektur-PR aus dieser Analyse öffnen** | Behebt die Grundursache, die die Untersuchung veröffentlicht hat (siehe [Automatische Codekorrekturen aus Untersuchungen](#automatische-codekorrekturen-aus-untersuchungen)). |
 | Ein Trace | **Performance mit KI verbessern** | Behebt das langsame Muster, das im Trace gefunden wurde, etwa N+1-Abfragen oder einen einzelnen dominierenden langsamen Span. |
-| Die Seite **Protokolle** eines Dienstes | **Improve Logging** | Macht die Logs des Dienstes strukturiert, mit dem richtigen Schweregrad und mit seinen Traces verknüpft, ohne das Verhalten zu ändern. |
-| Die Seite **Traces** eines Dienstes | **Improve Tracing** | Fügt Spans und Attribute hinzu, wo das Tracing des Dienstes fehlt, ohne das Verhalten zu ändern. |
+| Die Seite **Protokolle** eines Dienstes | **Logging verbessern** | Macht die Logs des Dienstes strukturiert, mit dem richtigen Schweregrad und mit seinen Traces verknüpft, ohne das Verhalten zu ändern. |
+| Die Seite **Traces** eines Dienstes | **Tracing verbessern** | Fügt Spans und Attribute hinzu, wo das Tracing des Dienstes fehlt, ohne das Verhalten zu ändern. |
 
 Um die Seite **KI-Unterstützung** einer Ausnahme zu öffnen, öffnen Sie die Ausnahme unter **Produkte → Observability → Ausnahmen** und wählen im Seitenmenü **KI-Unterstützung**. Eine gelöste oder archivierte Ausnahme muss zuerst als ungelöst markiert werden.
 
@@ -56,7 +108,7 @@ OneUptime AI startet Korrekturaufgaben auch selbst: aus einer Untersuchung, die 
 
 ## Prüfung vor dem Pull Request
 
-Ein Code-Repository kann auf seiner Seite **Einstellungen** unter **Code-Repositories** bis zu drei Prüfbefehle haben:
+Ein Repository kann auf seiner Seite **Einstellungen** in Code bis zu drei Prüfbefehle haben:
 
 | Befehl | Beispiel | Wann er läuft |
 | --- | --- | --- |
@@ -76,12 +128,12 @@ Die Befehle sind Repository-Einstellungen, die Ihr Team schreibt und die auf Ihr
 
 ## Bevor Sie beginnen
 
-Eine Korrekturaufgabe braucht drei Dinge. Die Seite **KI-Unterstützung** der Ausnahme prüft alle drei, bevor sie den Start anbietet, und sagt, was fehlt.
+Eine Aufgabe braucht drei Dinge. Die Seite eines Repositorys in Code und die Seite **KI-Unterstützung** der Ausnahme prüfen alle drei, bevor sie den Start anbieten, und sagen, was fehlt.
 
 | Was | OneUptime Cloud | Selbst gehostet |
 | --- | --- | --- |
 | Ein LLM-Anbieter | Nichts einzurichten: Ein Projekt ohne eigenen Anbieter nutzt den globalen Anbieter, bezahlt aus dem KI-Guthaben des Projekts. Ein eigener Anbieter unter **Projekteinstellungen → KI → LLM-Anbieter** hat Vorrang. | Setzen Sie die Umgebungsvariablen `GLOBAL_LLM_PROVIDER_*` einmal auf dem Server, oder fügen Sie dem Projekt einen Anbieter hinzu. |
-| Ein über die GitHub App verbundenes Repository | **Produkte → Code → Aufgaben**, dann **Code-Repositories** und **Mit GitHub-App verbinden**. Ist die App auf dem GitHub-Konto bereits installiert, klicken Sie stattdessen auf **Vorhandene Installation verbinden**: Eine erneute Installation verbindet sie nicht. Erfordert den Growth-Tarif. | Dasselbe, sobald Ihre Instanz eine GitHub App hat (siehe [GitHub-Integration](/docs/self-hosted/github-integration)). |
+| Ein über die GitHub App verbundenes Repository | **Produkte → Code**, dann **GitHub verbinden**. Ist die App auf dem GitHub-Konto bereits installiert, klicken Sie stattdessen auf **Vorhandene Installation verbinden**: Eine erneute Installation verbindet sie nicht. Erfordert den Growth-Tarif. | Dasselbe, sobald Ihre Instanz eine GitHub App hat (siehe [GitHub-Integration](/docs/self-hosted/github-integration)). |
 | Ein Runner, der KI-Codekorrekturen ausführt | Nichts zu betreiben: Das erledigen die gemeinsamen Runner von OneUptime. | Der Dienst `runner` von Docker Compose oder der Runner des Helm-Charts (`runner.enabled`, standardmäßig eingeschaltet) registriert sich selbst und führt KI-Codekorrekturen aus. |
 
 Auf einer selbst gehosteten Instanz ist der globale Anbieter ein Block in `config.env` (Docker Compose) oder in Ihren Helm-Werten. Für ein selbst gehostetes Ollama:
@@ -151,7 +203,7 @@ Alles andere entspricht der Schaltfläche:
 ## Wenn eine Korrektur fehlschlägt
 
 :::details Der Lauf schlägt fehl
-Die Korrektur ließ sich nicht anwenden, das Repository war nicht erreichbar oder der LLM-Aufruf schlug fehl. Die Seite, auf der die Aufgabe gestartet wurde, zeigt den Grund und bietet einen neuen Versuch an. Die Seite **Protokolle** der Aufgabe enthält das vollständige Laufprotokoll.
+Die Korrektur ließ sich nicht anwenden, das Repository war nicht erreichbar oder der LLM-Aufruf schlug fehl. Die Unterhaltung der Aufgabe und die Seite, auf der sie gestartet wurde, zeigen den Grund und bieten einen neuen Versuch an. Das **Protokoll** des Durchgangs enthält das vollständige Laufprotokoll.
 :::
 
 :::details Der Runner bleibt mitten im Lauf stehen
@@ -159,7 +211,7 @@ Ein Lauf, dessen Heartbeat länger als 12 Minuten ausbleibt, wird mit einem Fehl
 :::
 
 :::details Kein Runner übernimmt die Aufgabe
-Eine Aufgabe, die länger als 30 Minuten wartet, während kein Runner mit **Führt KI-Codekorrekturen aus** verbunden ist, schlägt mit dem Hinweis fehl, den Runner zu prüfen, sodass sie nie für immer als laufend angezeigt wird. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind.
+Eine Aufgabe, die länger als 30 Minuten wartet, während kein Runner mit **Führt KI-Codekorrekturen aus** verbunden ist, schlägt mit dem Hinweis fehl, den Runner zu prüfen, sodass sie nie für immer als laufend angezeigt wird. Ist ein Runner online, aber beschäftigt, warten eingereihte Aufgaben, bis sie an der Reihe sind. Ein Runner, der älter als Code ist, bekommt nie eine Anfrage aus Code: Aktualisieren Sie einen selbst betriebenen Runner zusammen mit dem Server.
 :::
 
 ## Datenschutz

@@ -1,5 +1,7 @@
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
 import AIRunEventService from "../../../Services/AIRunEventService";
+import AIRunService from "../../../Services/AIRunService";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import logger from "../../Logger";
@@ -258,6 +260,26 @@ export default class CodeFixPullRequestRecord {
       });
     } finally {
       await CodeFixPullRequestRecord.giveBackRunLock(mutex);
+    }
+
+    /*
+     * A run that opened a pull request in a repository works in it: a recipe
+     * that found its repository as it went is linked to it, so the task is
+     * on that repository's page in Code. Only a run with no repository yet.
+     */
+    try {
+      await AIRunService.updateOneBy({
+        query: {
+          _id: data.aiRunId.toString(),
+          codeRepositoryId: QueryHelper.isNull(),
+        },
+        data: { codeRepositoryId: fields.codeRepositoryId } as never,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(
+        `Could not link run ${data.aiRunId.toString()} to repository ${fields.codeRepositoryId.toString()}: ${error}`,
+      );
     }
 
     /*
