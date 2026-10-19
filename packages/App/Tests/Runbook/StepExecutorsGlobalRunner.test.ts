@@ -36,7 +36,10 @@ import {
  *   - a project that turned global Runners off, a server with none, a Bash
  *     step with none, a deleted Runner: the step fails at once in plain
  *     words, and nothing is queued;
- *   - a decision that cannot be read fails the step rather than guessing.
+ *   - a decision that cannot be read fails the step rather than guessing;
+ *   - a step that already has a job (the Worker restarted mid-step) adopts
+ *     or waits on that job whatever the rule would say now, and is never
+ *     sent a second time.
  * ---------------------------------------------------------------------------
  */
 
@@ -268,6 +271,105 @@ describe("a JavaScript step that picked no Runner", () => {
     // The global window, from the job's own start.
     expect(polled()["executionTimeoutInMs"]).toBe(30_000);
     expect(polled()["waitStartedAt"]).toEqual(existing.createdAt);
+  });
+
+  test("re-attaching to a global job keeps the global window, never the longer one the step asks for", async () => {
+    findLatestSpy.mockResolvedValue({
+      _id: "a1000000-0000-4000-8000-0000000000d2",
+      status: RunnerJobStatus.Running,
+      runsOnGlobalRunner: true,
+      createdAt: new Date(Date.now() - 10_000),
+    } as unknown as RunnerJob);
+
+    await runJavaScriptStep(jsStep({ timeoutInMs: 60 * 60 * 1000 }), makeCtx());
+
+    expect(enqueueSpy).not.toHaveBeenCalled();
+    expect(polled()["executionTimeoutInMs"]).toBe(
+      GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS,
+    );
+  });
+
+  test("re-attaching to a job of the project's own Runner keeps the step's own window", async () => {
+    findLatestSpy.mockResolvedValue({
+      _id: "a1000000-0000-4000-8000-0000000000d3",
+      status: RunnerJobStatus.Running,
+      runsOnGlobalRunner: false,
+      createdAt: new Date(Date.now() - 10_000),
+    } as unknown as RunnerJob);
+
+    await runJavaScriptStep(
+      jsStep({ agentId: OWN_RUNNER_ID, timeoutInMs: 60 * 60 * 1000 }),
+      makeCtx(),
+    );
+
+    expect(polled()["executionTimeoutInMs"]).toBe(60 * 60 * 1000);
+  });
+
+  test("a global job that finished keeps its result after the project turned global Runners off", async () => {
+    usesGlobalRunners = false;
+    findLatestSpy.mockResolvedValue({
+      _id: "a1000000-0000-4000-8000-0000000000d4",
+      status: RunnerJobStatus.Succeeded,
+      runsOnGlobalRunner: true,
+      output: "done before the switch moved",
+    } as unknown as RunnerJob);
+
+    const result: StepRunResult = await runJavaScriptStep(jsStep(), makeCtx());
+
+    expect(result).toEqual({
+      success: true,
+      output: "done before the switch moved",
+    });
+    expect(enqueueSpy).not.toHaveBeenCalled();
+    expect(pollSpy).not.toHaveBeenCalled();
+    // The rule decides a new dispatch only: it is never asked here.
+    expect(projectReadSpy).not.toHaveBeenCalled();
+  });
+
+  test("a global job still running is waited on after the project turned global Runners off, not failed under it", async () => {
+    usesGlobalRunners = false;
+    hasGlobalRunner = false;
+    findLatestSpy.mockResolvedValue({
+      _id: "a1000000-0000-4000-8000-0000000000d5",
+      status: RunnerJobStatus.Running,
+      runsOnGlobalRunner: true,
+      createdAt: new Date(Date.now() - 5_000),
+    } as unknown as RunnerJob);
+
+    const result: StepRunResult = await runJavaScriptStep(jsStep(), makeCtx());
+
+    expect(result).toEqual({ success: true, output: "ok" });
+    expect((polled()["jobId"] as ObjectID).toString()).toBe(
+      "a1000000-0000-4000-8000-0000000000d5",
+    );
+    expect(enqueueSpy).not.toHaveBeenCalled();
+    expect(projectReadSpy).not.toHaveBeenCalled();
+  });
+
+  test("a step with nothing to run never looks for a job, and still says when it cannot run anywhere", async () => {
+    hasGlobalRunner = false;
+
+    const result: StepRunResult = await runJavaScriptStep(
+      jsStep({ script: "" }),
+      makeCtx(),
+    );
+
+    expect(findLatestSpy).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toContain("there is no global Runner to run it");
+  });
+
+  test("a job lookup that fails fails the step, queuing nothing", async () => {
+    findLatestSpy.mockRejectedValue(new Error("The job table is locked."));
+
+    const result: StepRunResult = await runJavaScriptStep(jsStep(), makeCtx());
+
+    expect(result).toEqual({
+      success: false,
+      output: "",
+      errorMessage: "The job table is locked.",
+    });
+    expect(enqueueSpy).not.toHaveBeenCalled();
   });
 });
 

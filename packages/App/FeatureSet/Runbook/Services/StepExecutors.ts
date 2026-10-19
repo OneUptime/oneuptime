@@ -25,7 +25,10 @@ import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecu
 import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
 import GlobalRunnerChoice from "Common/Server/Utils/Runner/GlobalRunnerChoice";
-import { RunnerChoiceDecision } from "Common/Types/Runner/RunnerChoice";
+import {
+  RunnerChoiceDecision,
+  getRunnerChoiceRefusalFromStep,
+} from "Common/Types/Runner/RunnerChoice";
 import { clampGlobalRunnerExecutionTimeoutInMs } from "Common/Types/Runner/GlobalRunnerWork";
 
 export interface StepRunResult {
@@ -101,6 +104,15 @@ function toStepResult(job: RunnerJob): StepRunResult {
  * the global Runners - the ones OneUptime runs for every project - when it
  * picked none and they may run it; otherwise nowhere, and the step fails
  * saying why and what to do.
+ *
+ * What the step says alone is checked first, before anything is read: a
+ * step that names its Runner by something that is not an ID, or a Bash, SSH
+ * or Kubernetes step with no Runner, can never run, and never could have
+ * been sent. After that the rule's server facts decide a NEW dispatch only. A
+ * step that already has a job - the Worker restarted mid-step and walked
+ * back to it - adopts that job's result, or waits on it, whatever the facts
+ * say now: the job was sent where the rule said when it was sent, and may be
+ * running there.
  */
 async function dispatchToAgent(args: {
   stepType: RunbookStepType;
@@ -116,6 +128,84 @@ async function dispatchToAgent(args: {
    */
   payload?: JSONObject | undefined;
 }): Promise<StepRunResult> {
+  const refusalFromStep: RunnerChoiceDecision | null =
+    getRunnerChoiceRefusalFromStep({
+      stepType: args.stepType,
+      chosenRunnerId: args.agentId,
+    });
+
+  if (refusalFromStep?.kind === "refused") {
+    return {
+      success: false,
+      output: "",
+      errorMessage: refusalFromStep.message,
+    };
+  }
+
+  /*
+   * A script step with nothing to run is a no-op, not a failure. Steps that
+   * carry a payload instead of a script are exempt: an empty script is their
+   * normal shape. Asked after the Runner is decided, as it always was: a
+   * step that cannot run anywhere says so even when its script is empty.
+   */
+  const isNoOp: boolean = !args.script && !args.payload;
+
+  try {
+    /*
+     * A runbook execution occupies one BullMQ job for its whole run, so a
+     * Worker restart mid-step gets the execution redelivered and walks us back
+     * to this same step. Enqueueing again would hand the agent a second copy
+     * of the script — a database restore run twice. The row this step already
+     * produced is the source of truth: adopt it if it finished, wait on it if
+     * it did not - before the rule below is asked anything, since what it
+     * would say now (the project turned global Runners off since, say) is not
+     * where the job went.
+     */
+    const existingJob: RunnerJob | null = isNoOp
+      ? null
+      : await RunnerJobService.findLatestJobForStep({
+          runbookExecutionId: args.ctx.runbookExecutionId,
+          stepId: args.step.id,
+        });
+
+    if (existingJob && isTerminalAgentJobStatus(existingJob.status)) {
+      logger.info(
+        `Runbook step ${args.step.id} already has a finished agent job (${existingJob.status}); adopting its result instead of re-running it.`,
+      );
+      return toStepResult(existingJob);
+    }
+
+    if (existingJob) {
+      logger.info(
+        `Runbook step ${args.step.id} already has an in-flight agent job (${existingJob.status}); re-attaching to it rather than dispatching a second one.`,
+      );
+
+      /*
+       * Re-attaching keeps the original job's clock, so a step cannot buy
+       * itself another full window on each redelivery - and the window the
+       * job was sent with: a global Runner's is held to its most.
+       */
+      const terminal: RunnerJob = await RunnerJobService.pollUntilTerminal({
+        jobId: new ObjectID(existingJob._id!),
+        claimTimeoutInMs: args.claimTimeoutInMs,
+        executionTimeoutInMs: existingJob.runsOnGlobalRunner
+          ? clampGlobalRunnerExecutionTimeoutInMs(args.timeoutInMs)
+          : args.timeoutInMs,
+        waitStartedAt: existingJob.createdAt,
+      });
+
+      return toStepResult(terminal);
+    }
+  } catch (err) {
+    logger.error(`${args.stepType} step dispatch failed`);
+    logger.error(err);
+    return {
+      success: false,
+      output: "",
+      errorMessage: err instanceof Error ? err.message : String(err),
+    };
+  }
+
   let decision: RunnerChoiceDecision;
 
   try {
@@ -142,12 +232,7 @@ async function dispatchToAgent(args: {
     };
   }
 
-  /*
-   * A script step with nothing to run is a no-op, not a failure. Steps that
-   * carry a payload instead of a script are exempt: an empty script is their
-   * normal shape.
-   */
-  if (!args.script && !args.payload) {
+  if (isNoOp) {
     return { success: true, output: "" };
   }
 
@@ -162,63 +247,25 @@ async function dispatchToAgent(args: {
     : args.timeoutInMs;
 
   try {
-    /*
-     * A runbook execution occupies one BullMQ job for its whole run, so a
-     * Worker restart mid-step gets the execution redelivered and walks us back
-     * to this same step. Enqueueing again would hand the agent a second copy
-     * of the script — a database restore run twice. The row this step already
-     * produced is the source of truth: adopt it if it finished, wait on it if
-     * it did not.
-     */
-    const existingJob: RunnerJob | null =
-      await RunnerJobService.findLatestJobForStep({
-        runbookExecutionId: args.ctx.runbookExecutionId,
-        stepId: args.step.id,
-      });
+    const job: RunnerJob = await RunnerJobService.enqueue({
+      projectId: args.ctx.projectId,
+      runbookExecutionId: args.ctx.runbookExecutionId,
+      stepId: args.step.id,
+      stepType: args.stepType,
+      ...(decision.kind === "custom"
+        ? { targetAgentId: new ObjectID(decision.runnerId) }
+        : { runsOnGlobalRunner: true }),
+      script: args.script,
+      timeoutInMs: executionTimeoutInMs,
+      claimTimeoutInMs: args.claimTimeoutInMs,
+      ...(args.payload ? { payload: args.payload } : {}),
+    });
 
-    if (existingJob && isTerminalAgentJobStatus(existingJob.status)) {
-      logger.info(
-        `Runbook step ${args.step.id} already has a finished agent job (${existingJob.status}); adopting its result instead of re-running it.`,
-      );
-      return toStepResult(existingJob);
-    }
-
-    let jobId: ObjectID;
-    /*
-     * Anchors the claim + execution window. Re-attaching keeps the original
-     * job's clock so a step cannot buy itself another full window on each
-     * redelivery; a fresh dispatch starts its window now.
-     */
-    let waitStartedAt: Date | undefined = undefined;
-
-    if (existingJob) {
-      logger.info(
-        `Runbook step ${args.step.id} already has an in-flight agent job (${existingJob.status}); re-attaching to it rather than dispatching a second one.`,
-      );
-      jobId = new ObjectID(existingJob._id!);
-      waitStartedAt = existingJob.createdAt;
-    } else {
-      const job: RunnerJob = await RunnerJobService.enqueue({
-        projectId: args.ctx.projectId,
-        runbookExecutionId: args.ctx.runbookExecutionId,
-        stepId: args.step.id,
-        stepType: args.stepType,
-        ...(decision.kind === "custom"
-          ? { targetAgentId: new ObjectID(decision.runnerId) }
-          : { runsOnGlobalRunner: true }),
-        script: args.script,
-        timeoutInMs: executionTimeoutInMs,
-        claimTimeoutInMs: args.claimTimeoutInMs,
-        ...(args.payload ? { payload: args.payload } : {}),
-      });
-      jobId = new ObjectID(job._id!);
-    }
-
+    // A fresh dispatch starts its window now.
     const terminal: RunnerJob = await RunnerJobService.pollUntilTerminal({
-      jobId,
+      jobId: new ObjectID(job._id!),
       claimTimeoutInMs: args.claimTimeoutInMs,
       executionTimeoutInMs,
-      waitStartedAt,
     });
 
     return toStepResult(terminal);

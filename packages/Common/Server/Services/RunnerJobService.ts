@@ -1889,6 +1889,8 @@ export class Service extends DatabaseService<Model> {
         exitCode: true,
         errorMessage: true,
         createdAt: true,
+        // A re-attached global job keeps the global window (StepExecutors).
+        runsOnGlobalRunner: true,
       },
       sort: { createdAt: SortOrder.Descending },
       limit: 1,

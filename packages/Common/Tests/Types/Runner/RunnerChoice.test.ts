@@ -7,6 +7,7 @@ import {
   decideRunnerChoice,
   describeRunnerChoiceRefusal,
   getChosenRunnerId,
+  getRunnerChoiceRefusalFromStep,
   isRunnerId,
 } from "../../../Types/Runner/RunnerChoice";
 import { describe, expect, test } from "@jest/globals";
@@ -327,6 +328,80 @@ describe("every refusal", () => {
           stepType: RunbookStepType.JavaScript,
         }),
       ).toContain("Runbooks → Runners");
+    }
+  });
+});
+
+describe("the refusal a step earns from what it says alone", () => {
+  /*
+   * Read before anything is looked up (StepExecutors): only what can never
+   * run, whatever the server says, is refused here.
+   */
+  test("a Runner named by something that is not an ID", () => {
+    const decision: RunnerChoiceDecision | null =
+      getRunnerChoiceRefusalFromStep({
+        stepType: RunbookStepType.JavaScript,
+        chosenRunnerId: "prod-runner",
+      });
+
+    expect(decision).toEqual({
+      kind: "refused",
+      refusal: RunnerChoiceRefusal.InvalidRunnerId,
+      message:
+        'This JavaScript step names its Runner by "prod-runner", which is not a Runner ID. Open the step and pick its Runner again.',
+    });
+  });
+
+  test.each([
+    RunbookStepType.Bash,
+    RunbookStepType.SSH,
+    RunbookStepType.Kubernetes,
+  ])("no Runner on a %s step, which global Runners never run", (stepType) => {
+    const decision: RunnerChoiceDecision | null =
+      getRunnerChoiceRefusalFromStep({ stepType, chosenRunnerId: "  " });
+
+    expect(decision?.kind).toBe("refused");
+    expect(
+      decision?.kind === "refused" ? decision.refusal : undefined,
+    ).toBe(RunnerChoiceRefusal.NeedsOwnRunner);
+  });
+
+  test("nothing for a JavaScript step with no Runner: the server's facts decide it", () => {
+    expect(
+      getRunnerChoiceRefusalFromStep({
+        stepType: RunbookStepType.JavaScript,
+        chosenRunnerId: "",
+      }),
+    ).toBeNull();
+  });
+
+  test("nothing for a step that picked a Runner by its ID, of any type: whether it still exists is the server's to say", () => {
+    for (const stepType of [
+      RunbookStepType.JavaScript,
+      RunbookStepType.Bash,
+      RunbookStepType.SSH,
+      RunbookStepType.Kubernetes,
+    ]) {
+      expect(
+        getRunnerChoiceRefusalFromStep({
+          stepType,
+          chosenRunnerId: PROJECT_RUNNER_ID,
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("agrees with the whole rule whenever the facts are on the step's side", () => {
+    for (const stepType of Object.values(RunbookStepType)) {
+      for (const chosenRunnerId of ["", "not-an-id", PROJECT_RUNNER_ID]) {
+        const fromStep: RunnerChoiceDecision | null =
+          getRunnerChoiceRefusalFromStep({ stepType, chosenRunnerId });
+        const whole: RunnerChoiceDecision = decideRunnerChoice(
+          facts({ stepType, chosenRunnerId }),
+        );
+
+        expect(fromStep).toEqual(whole.kind === "refused" ? whole : null);
+      }
     }
   });
 });
