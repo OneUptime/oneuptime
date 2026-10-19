@@ -1026,9 +1026,15 @@ ebpf:
   # into outbound requests so a call crossing pod A → pod B shows up as ONE
   # trace in the dashboard, with no SDK changes in either app.
   #
-  # **OFF by default — opt in.** This matches OBI's own default
-  # (`OTEL_EBPF_BPF_CONTEXT_PROPAGATION` is disabled upstream), and it is off
-  # here because EVERY mode mutates traffic that is already in flight:
+  # **ON by default.** Without it, a call to a pod on another node starts a
+  # trace of its own: on one node OBI matches the two ends of the TCP
+  # connection itself, but across nodes only the injected `traceparent`
+  # carries the link. OBI reads a `traceparent` only with this on
+  # (`trackRequestHeaders` below is set with it), so with it off not even
+  # one an app sends itself links OBI's spans across nodes. (Upstream OBI
+  # ships it disabled: `OTEL_EBPF_BPF_CONTEXT_PROPAGATION`.)
+  #
+  # EVERY mode mutates traffic that is already in flight:
   #
   #   - For plaintext HTTP, OBI grows the outbound request buffer in place
   #     (`bpf_probe_write_user`) to fit the extra header.
@@ -1044,11 +1050,15 @@ ebpf:
   # size-dependent, it looks like an application or proxy bug, not like an
   # agent bug — it cost one user a three-week hunt.
   #
-  # Turn it on deliberately, on a non-production cluster first, and leave it
-  # off on any node whose traffic you cannot afford to have stall. Traces,
-  # RED metrics, and the service map all still work without it; what you
-  # lose is only the automatic stitching of spans across a service boundary
-  # for apps that don't propagate `traceparent` themselves.
+  # So turn it off (`contextPropagation: false`) on any cluster where large
+  # transfers through a proxy stall after the agent is installed, and where
+  # a service mesh or an eBPF CNI starts failing pods (README,
+  # "Troubleshooting"). Traces, RED metrics, and the service map all still
+  # work without it; only the cross-node links above go.
+  #
+  # A release upgraded with --reuse-values keeps the value of the chart it
+  # came from, `false` from the charts that shipped it off; the notes after
+  # the upgrade name it. A values file with no such key counts as off.
   #
   # There is NO kernel version at which turning this on is inert, so do not
   # rule the agent out as a suspect because a node is "too old". Kernel 5.17
@@ -1059,7 +1069,7 @@ ebpf:
   # DaemonSet runs privileged, so that gate is always open. `tcp`/`all`
   # additionally load Traffic Control programs (CAP_NET_ADMIN); `headers`
   # loads none.
-  contextPropagation: false
+  contextPropagation: true
   # How OBI injects the `traceparent`. Maps directly to OBI's
   # `OTEL_EBPF_BPF_CONTEXT_PROPAGATION`. Only read when
   # `contextPropagation: true`.
@@ -1104,6 +1114,23 @@ ebpf:
   # templates — "POST /api/items/:id" — do not come from this agent: OBI reads
   # them from the app's files whether it is on or not; see `routes` below.)
   #
+  # The agent ties a call to its request through the socket the call goes
+  # out on, and OBI learns a socket only when it sees it opened (connect()
+  # or accept()) in a process it already traces. A connection the app opened
+  # before OBI attached to it is never tied to a request: typically a
+  # database pool or Redis client connected at boot, in a pod started while
+  # OBI was still working through a rollout - and every open connection when
+  # this DaemonSet restarts. A call on such a connection goes under
+  # whichever request in that process most recently began, which on a busy
+  # server is usually another one, so the request that made it shows none of
+  # its calls. Calls made outside any request (a timer, a queue worker) are
+  # handled the same way: they join the trace of the request that last
+  # began, with no parent when that request had already finished. A client
+  # that replaces its connections after a lifetime (pg-pool's
+  # `maxLifetimeSeconds`, HikariCP's `maxLifetime`) is tied again within that
+  # lifetime; one that never reconnects stays this way until the app
+  # restarts.
+  #
   # The inspector is open only while the agent is injected — about a second,
   # a few on a loaded node — and closed again; it is never reachable from
   # outside the pod. Node itself prints that it was, so each app logs
@@ -1114,8 +1141,8 @@ ebpf:
   #
   # OBI skips the injection for a process that handles SIGUSR1 itself. Turn
   # this off if your security policy forbids an inspector socket in your pods,
-  # even a brief loopback-only one; Node.js traces then keep working,
-  # unlinked.
+  # even a brief loopback-only one; Node.js traces then keep working, with
+  # every call under whichever request most recently began, as above.
   nodejs:
     enabled: true
 

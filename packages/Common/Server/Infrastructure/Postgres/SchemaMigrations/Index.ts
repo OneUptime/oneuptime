@@ -121,8 +121,10 @@ import { AddIncomingCallLogItemPolicyIndexAndKey1803650000000 } from "./18036500
 import { AddVercelMarketplace1803700000000 } from "./1803700000000-AddVercelMarketplace";
 import { AddProjectSCIMUsersAndClientSecrets1803750000000 } from "./1803750000000-AddProjectSCIMUsersAndClientSecrets";
 import { AddUserProjectSsoIdentity1803800000000 } from "./1803800000000-AddUserProjectSsoIdentity";
-import { AddCodeTasks1803850000000 } from "./1803850000000-AddCodeTasks";
-import { AddCodeTaskIndexesAndKey1803900000000 } from "./1803900000000-AddCodeTaskIndexesAndKey";
+import { AddIncidentCallTranscriptAutoFetch1803850000000 } from "./1803850000000-AddIncidentCallTranscriptAutoFetch";
+import { AddIncidentCallTranscriptAutoFetchIndexes1803900000000 } from "./1803900000000-AddIncidentCallTranscriptAutoFetchIndexes";
+import { AddCodeTasks1803950000000 } from "./1803950000000-AddCodeTasks";
+import { AddCodeTaskIndexesAndKey1804000000000 } from "./1804000000000-AddCodeTaskIndexesAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1446,6 +1448,8 @@ export default [
   AddVercelMarketplace1803700000000,
   AddProjectSCIMUsersAndClientSecrets1803750000000,
   AddUserProjectSsoIdentity1803800000000,
-  AddCodeTasks1803850000000,
-  AddCodeTaskIndexesAndKey1803900000000,
+  AddIncidentCallTranscriptAutoFetch1803850000000,
+  AddIncidentCallTranscriptAutoFetchIndexes1803900000000,
+  AddCodeTasks1803950000000,
+  AddCodeTaskIndexesAndKey1804000000000,
 ];

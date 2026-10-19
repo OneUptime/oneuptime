@@ -221,16 +221,16 @@ OBI 会发送几种信号。每一种都可以用 `--set ebpf.features.<key>=fal
 
 ### 跨服务关联跟踪
 
-OBI 还能让跟踪跨越一次调用延续下去：当 Pod A 通过 HTTP 或 gRPC 调用 Pod B 时，B 端的 Span 会加入 A 的跟踪，两个应用中都不需要 SDK。**此功能默认关闭。** 阅读下面的警告后，用 `--set ebpf.contextPropagation=true` 开启它。
+OBI 还会让跟踪跨越一次调用延续下去：当 Pod A 通过 HTTP 或 gRPC 调用 Pod B 时，B 端的 Span 会加入 A 的跟踪，两个应用中都不需要 SDK。**此功能默认开启。** 没有它时，对另一节点上 Pod 的调用会开始一条独立的跟踪；在同一节点上，OBI 会自行把两端关联起来。如果遇到下面警告中所述的问题，请用 `--set ebpf.contextPropagation=false` 关闭它。
 
 | 选项 | 默认值 | 作用 |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | 关闭 | 把 W3C `traceparent` 写入出站流量，使 Span 在服务之间关联起来。 |
+| `ebpf.contextPropagation` | 开启 | 把 W3C `traceparent` 写入出站流量，使 Span 在服务之间关联起来。 |
 | `ebpf.contextPropagationMode` | `headers` | 方式：`headers`(HTTP/1.1 请求标头，范围最窄)、`tcp`(TCP 选项，通过 Linux Traffic Control)或 `all`(两者都用)。仅在 `contextPropagation` 开启时读取。 |
 | `ebpf.trackRequestHeaders` | 开启 | 在内核中跟踪请求标头，使接收端在普通 HTTP 服务器上也能找到 `traceparent`。仅在 `contextPropagation` 开启时生效。 |
 
 > [!WARNING]
-> 每种传播模式都会修改已经在传输中的流量。对于普通 HTTP，OBI 会在内核中扩大出站请求以容纳标头；对于 TLS 和原始 TCP，它会从 Traffic Control 钩子添加一个 TCP 选项，重写数据包及其校验和。如果随后连接的字节计数没有被精确修正，数据流就会 **失去同步**：经过 nginx 这类代理的传输一旦响应超过约 64 KB 就会中途卡住，直到连接超时。小请求仍能正常工作，因此看起来像是应用或代理的缺陷。没有哪个内核版本能让这种重写消失。跟踪、请求指标和服务地图在没有它的情况下都能工作；服务中的 OpenTelemetry SDK 完全不需要内核重写就能关联跟踪。如果你要开启它，请先在非生产集群上试用，并检查经过代理的大文件传输。
+> 每种传播模式都会修改已经在传输中的流量。对于普通 HTTP，OBI 会在内核中扩大出站请求以容纳标头；对于 TLS 和原始 TCP，它会从 Traffic Control 钩子添加一个 TCP 选项，重写数据包及其校验和。如果随后连接的字节计数没有被精确修正，数据流就会 **失去同步**：经过 nginx 这类代理的传输一旦响应超过约 64 KB 就会中途卡住，直到连接超时。小请求仍能正常工作，因此看起来像是应用或代理的缺陷。没有哪个内核版本能让这种重写消失。如果在安装 Kubernetes 代理之后，经过代理服务器的大文件传输卡住，或者服务网格或 eBPF 网络插件开始导致 Pod 失败，请关闭上下文传播：跟踪、请求指标和服务地图在没有它的情况下都能工作，而服务中的 OpenTelemetry SDK 完全不需要内核重写就能关联跟踪。使用 `--reuse-values` 升级的代理会保留原来的值，而早期的 Chart 默认关闭此功能：请使用 `--reset-then-reuse-values` 升级，以采用新的默认值。
 
 ### 将日志关联到跟踪
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **OBI 在运行，但没有跟踪到达。** 设置 `--set ebpf.printTraces=true` 并再次查看 OBI 的日志。如果那里有 Span，说明导出到 OneUptime 失败：请检查 URL 和摄取密钥。如果那里没有 Span，可能是流量被 OBI 无法读取的 TLS 库(例如静态链接的库)加密了。
 :::
 
-:::details 开启跟踪关联后，大文件传输卡住
-这是 `ebpf.contextPropagation` 在重写流量：请参阅 [跨服务关联跟踪](#跨服务关联跟踪) 中的警告。用 `--set ebpf.contextPropagation=false` 关闭它。
+:::details 安装代理后，大文件传输卡住
+这是默认开启的 `ebpf.contextPropagation` 在重写流量：请参阅 [跨服务关联跟踪](#跨服务关联跟踪) 中的警告。用 `--set ebpf.contextPropagation=false` 关闭它。
 :::
 
 :::details 开启日志关联后，应用以退出码 139 崩溃

@@ -67,7 +67,24 @@ tests:
             name: OTEL_EBPF_EXCLUDE_OTEL_INSTRUMENTED_SERVICES
             value: "true"
 
-  - it: writes no trace headers by default
+  # On by default: without it, a call to a pod on another node starts a trace
+  # of its own, and OBI reads no traceparent at all.
+  - it: writes trace headers by default, in headers mode, and reads the ones it receives
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
+            value: headers
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+            value: "true"
+
+  - it: writes and reads no trace headers when turned off
+    set:
+      ebpf.contextPropagation: false
     asserts:
       - notContains:
           path: spec.template.spec.containers[0].env
@@ -78,6 +95,18 @@ tests:
           path: spec.template.spec.containers[0].env
           content:
             name: OTEL_EBPF_BPF_TRACK_REQUEST_HEADERS
+          any: true
+
+  # A release carried forward with --reuse-values from a chart before the key
+  # has no value at all: it stays off, as it was (the notes name it).
+  - it: treats a values file without contextPropagation as off
+    set:
+      ebpf.contextPropagation: null
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
           any: true
 
   - it: renders propagation, with header tracking, when propagation is on
@@ -102,6 +131,7 @@ tests:
   # clusters that never asked for it.
   - it: does not read incoming headers on its own, so old values files keep their behaviour
     set:
+      ebpf.contextPropagation: false
       ebpf.trackRequestHeaders: true
     asserts:
       - notContains:

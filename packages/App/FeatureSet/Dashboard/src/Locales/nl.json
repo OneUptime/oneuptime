@@ -31014,5 +31014,20 @@
   "See the {{docsLink}} for every tool.": "Zie de {{docsLink}} voor alle tools.",
   "Twilio account for SMS and calls": "Twilio-account voor sms en oproepen",
   "Up to {{limit}} open at once": "Tot {{limit}} tegelijk open",
-  "Gets nothing until they open the link we texted them.": "Krijgt niets tot de link die we per sms stuurden is geopend."
+  "Gets nothing until they open the link we texted them.": "Krijgt niets tot de link die we per sms stuurden is geopend.",
+  "Call transcripts": "Transcripties van gesprekken",
+  "Everyone on an incident's Zoom or Google Meet call sees that it is recorded or transcribed. Check that your organization allows recording these calls. Zoom keeps a transcript when the account records to the cloud with its audio transcript on.": "Iedereen in een Zoom- of Google Meet-gesprek over een incident ziet dat het wordt opgenomen of getranscribeerd. Controleer of uw organisatie het opnemen van deze gesprekken toestaat. Zoom bewaart een transcriptie wanneer het account in de cloud opneemt met de audiotranscriptie ingeschakeld.",
+  "Keep what was said on every incident call, without anyone remembering to.": "Bewaar wat er in elk incidentgesprek is gezegd, zonder dat iemand eraan hoeft te denken.",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams-gesprekken, Slack-huddles en vergaderlinks worden niet opgenomen: voeg hun transcripties handmatig toe.",
+  "OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds the transcript to the incident once the call is over. OneUptime AI then posts what was said to the incident's feed, and the postmortem draft reads it.": "OneUptime vraagt Zoom en Google Meet om elk incidentgesprek dat het start op te nemen en te transcriberen, en voegt de transcriptie aan het incident toe zodra het gesprek voorbij is. OneUptime AI plaatst daarna wat er is gezegd in de feed van het incident, en het postmortem-concept neemt het mee.",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime haalt het op bij {{provider}} zodra het gesprek voorbij is, en OneUptime AI leest het.",
+  "Postmortem Draft Waiting Since": "Postmortem-concept wacht sinds",
+  "Record and Transcribe Incident Calls": "Incidentgesprekken opnemen en transcriberen",
+  "Record and transcribe incident calls": "Incidentgesprekken opnemen en transcriberen",
+  "Record and transcribe incident calls?": "Incidentgesprekken opnemen en transcriberen?",
+  "Transcript Fetch Checked At": "Ophalen van transcriptie gecontroleerd op",
+  "Transcript Fetch Next Attempt At": "Volgende poging om transcriptie op te halen",
+  "Transcript Fetch Reason": "Reden bij ophalen van transcriptie",
+  "Transcript Fetch Status": "Status van ophalen van transcriptie",
+  "Video Call Summary": "Samenvatting van videogesprek"
 }

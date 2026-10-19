@@ -20,13 +20,22 @@ import EventVideoCall, {
   VideoCallFieldTarget,
   VideoCallFields,
 } from "../../../../Server/Utils/VideoCall/EventVideoCall";
+import IncidentCallRecordingSetting from "../../../../Server/Utils/VideoCall/Transcripts/IncidentCallRecordingSetting";
+import logger from "../../../../Server/Utils/Logger";
 import URL from "../../../../Types/API/URL";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import VideoCallProvider from "../../../../Types/VideoCall/VideoCallProvider";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -86,6 +95,15 @@ function stubSlackAuth(
     .mockResolvedValue(auth);
 }
 
+let recordingSetting: SpyInstance<typeof IncidentCallRecordingSetting.isOn>;
+
+beforeEach(() => {
+  // Record and transcribe incident calls is off unless a test turns it on.
+  recordingSetting = jest
+    .spyOn(IncidentCallRecordingSetting, "isOn")
+    .mockResolvedValue(false);
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -118,6 +136,7 @@ describe("EventVideoCall.prepare", () => {
       request: {
         title: "INC-42: Checkout API is down",
         description: `Video call for incident INC-42, started by OneUptime. Incident details: ${EVENT_LINK}`,
+        recordAndTranscribe: false,
       },
     });
 
@@ -129,7 +148,146 @@ describe("EventVideoCall.prepare", () => {
       title: "INC-42: Checkout API is down",
       workspaceNotificationRuleId: undefined,
     });
-    expect(prepared.carryForward).toEqual({ connectionName: "Incident Zoom" });
+    expect(prepared.carryForward).toEqual({
+      connectionName: "Incident Zoom",
+      recordsAndTranscribes: false,
+    });
+  });
+
+  describe("Record and transcribe incident calls", () => {
+    function startsA(
+      provider: VideoCallProvider,
+    ): SpyInstance<typeof VideoCallConnectionService.startMeeting> {
+      return jest
+        .spyOn(VideoCallConnectionService, "startMeeting")
+        .mockResolvedValue({
+          meeting: {
+            provider,
+            joinUrl:
+              provider === VideoCallProvider.GoogleMeet
+                ? "https://meet.google.com/abc-defg-hij"
+                : provider === VideoCallProvider.MicrosoftTeams
+                  ? "https://teams.microsoft.com/l/meetup-join/x"
+                  : provider === VideoCallProvider.CustomLink
+                    ? "https://acme.webex.com/meet/bridge"
+                    : "https://zoom.us/j/1?pwd=x",
+            externalMeetingId:
+              provider === VideoCallProvider.CustomLink ? undefined : "m-1",
+          },
+          connection: connection("Connection"),
+        });
+    }
+
+    test.each([[VideoCallProvider.Zoom], [VideoCallProvider.GoogleMeet]])(
+      "on: asks %s to record and transcribe an incident's call, and says so after",
+      async (provider: VideoCallProvider) => {
+        recordingSetting.mockResolvedValue(true);
+        const startMeeting: SpyInstance<
+          typeof VideoCallConnectionService.startMeeting
+        > = startsA(provider);
+
+        const prepared: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+          await EventVideoCall.prepare({
+            event: makeEvent(),
+            isServerWrite: true,
+            fields: { videoCallConnectionId: CONNECTION_ID },
+          });
+
+        expect(recordingSetting).toHaveBeenCalledWith(PROJECT_ID);
+        expect(startMeeting.mock.calls[0]![0].request.recordAndTranscribe).toBe(
+          true,
+        );
+        expect(prepared.carryForward.recordsAndTranscribes).toBe(true);
+      },
+    );
+
+    test.each([
+      [VideoCallProvider.MicrosoftTeams],
+      [VideoCallProvider.CustomLink],
+    ])(
+      "on: a %s call is asked the same, but is not said to be recorded - its provider cannot be asked",
+      async (provider: VideoCallProvider) => {
+        recordingSetting.mockResolvedValue(true);
+        const startMeeting: SpyInstance<
+          typeof VideoCallConnectionService.startMeeting
+        > = startsA(provider);
+
+        const prepared: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+          await EventVideoCall.prepare({
+            event: makeEvent(),
+            isServerWrite: false,
+            fields: { videoCallConnectionId: CONNECTION_ID },
+          });
+
+        expect(startMeeting.mock.calls[0]![0].request.recordAndTranscribe).toBe(
+          true,
+        );
+        expect(prepared.carryForward.recordsAndTranscribes).toBe(false);
+      },
+    );
+
+    test("never records an alert's call, and does not even read the switch", async () => {
+      recordingSetting.mockResolvedValue(true);
+      const startMeeting: SpyInstance<
+        typeof VideoCallConnectionService.startMeeting
+      > = startsA(VideoCallProvider.Zoom);
+
+      const prepared: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+        await EventVideoCall.prepare({
+          event: makeEvent({ type: VideoCallEventType.Alert }),
+          isServerWrite: true,
+          fields: { videoCallConnectionId: CONNECTION_ID },
+        });
+
+      expect(recordingSetting).not.toHaveBeenCalled();
+      expect(startMeeting.mock.calls[0]![0].request.recordAndTranscribe).toBe(
+        false,
+      );
+      expect(prepared.carryForward.recordsAndTranscribes).toBe(false);
+    });
+
+    test("a project that cannot be read still gets its call, unrecorded, and the failure is logged", async () => {
+      recordingSetting.mockRejectedValue(new Error("database unavailable"));
+      const errorLog: SpyInstance<typeof logger.error> = jest
+        .spyOn(logger, "error")
+        .mockImplementation((): void => {
+          return undefined;
+        });
+      const startMeeting: SpyInstance<
+        typeof VideoCallConnectionService.startMeeting
+      > = startsA(VideoCallProvider.Zoom);
+
+      const prepared: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+        await EventVideoCall.prepare({
+          event: makeEvent(),
+          isServerWrite: true,
+          fields: { videoCallConnectionId: CONNECTION_ID },
+        });
+
+      expect(startMeeting.mock.calls[0]![0].request.recordAndTranscribe).toBe(
+        false,
+      );
+      expect(prepared.fields.joinUrl).toBe("https://zoom.us/j/1?pwd=x");
+      expect(prepared.carryForward.recordsAndTranscribes).toBe(false);
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.stringContaining("starting the call without recording"),
+        expect.objectContaining({ projectId: PROJECT_ID.toString() }),
+      );
+    });
+
+    test("a Slack huddle and a pasted link are not recorded, and the switch is not read", async () => {
+      recordingSetting.mockResolvedValue(true);
+
+      const pasted: Awaited<ReturnType<typeof EventVideoCall.prepare>> =
+        await EventVideoCall.prepare({
+          event: makeEvent(),
+          isServerWrite: false,
+          fields: { joinUrl: "https://acme.webex.com/meet/war-room" },
+        });
+
+      expect(pasted.carryForward).toEqual({});
+      expect(recordingSetting).not.toHaveBeenCalled();
+    });
   });
 
   test("keeps a private incident's title out of the meeting", async () => {
@@ -656,6 +814,36 @@ describe("EventVideoCall.announce", () => {
       (workspaceNotification["appendMessageBlocks"] as Array<JSONObject>)
         .length,
     ).toBe(2);
+  });
+
+  test("a recorded call says so where it is posted, before anyone joins", async () => {
+    stubIncident();
+
+    const createFeedItem: SpyInstance<
+      typeof IncidentFeedService.createIncidentFeedItem
+    > = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined);
+
+    await EventVideoCall.announce({
+      eventType: VideoCallEventType.Incident,
+      eventId: INCIDENT_ID,
+      provider: VideoCallProvider.Zoom,
+      joinUrl: "https://zoom.us/j/1",
+      recordsAndTranscribes: true,
+    });
+
+    const item: JSONObject = createFeedItem.mock
+      .calls[0]![0] as unknown as JSONObject;
+
+    expect(item["feedInfoInMarkdown"]).toContain(
+      "⏺️ Zoom records and transcribes this call. OneUptime adds its transcript to the incident once the call is over.",
+    );
+    expect(
+      (item["workspaceNotification"] as JSONObject)[
+        "sendWorkspaceNotification"
+      ],
+    ).toBe(true);
   });
 
   test("credits the person who started the call, in Slack too", async () => {

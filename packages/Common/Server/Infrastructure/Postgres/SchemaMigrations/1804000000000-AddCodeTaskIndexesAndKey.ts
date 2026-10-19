@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddCodeTasks1803850000000, and moved into a migration of its own: "AIRun"
+ * AddCodeTasks1803950000000, and moved into a migration of its own: "AIRun"
  * holds every chat turn, investigation and code-fix run, so the indexes on
  * its new "codeRepositoryId" and "codeTaskId" columns are built online, and
  * the foreign key to "CodeRepository" is added NOT VALID and then validated,
@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * run only a repository that exists in its project, so the validation finds
  * nothing to refuse. Safe to run again after a stop part way.
  */
-export class AddCodeTaskIndexesAndKey1803900000000
+export class AddCodeTaskIndexesAndKey1804000000000
   implements MigrationInterface
 {
-  public name: string = "AddCodeTaskIndexesAndKey1803900000000";
+  public name: string = "AddCodeTaskIndexesAndKey1804000000000";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

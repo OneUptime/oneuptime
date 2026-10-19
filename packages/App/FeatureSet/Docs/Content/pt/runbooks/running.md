@@ -118,7 +118,7 @@ Uma execução é um registro único e imutável. Para executar o runbook de nov
 
 | Onde | O que lista |
 | --- | --- |
-| As **Execuções** de um runbook | Todas as execuções desse runbook, com filtros por status e data de início, e uma coluna **Acionado por**. |
+| As **Registros → Execuções** de um runbook | Todas as execuções desse runbook, com filtros por status e data de início, e uma coluna **Acionado por**. |
 | **Runbooks → Execuções** | Todas as execuções de todos os runbooks do projeto. |
 | A página **Runbooks** de um incidente, alerta ou evento | As execuções ligadas a ele. A visão geral do evento também as mostra, assim que houver alguma. |
 

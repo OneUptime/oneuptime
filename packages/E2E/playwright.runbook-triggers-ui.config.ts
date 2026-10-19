@@ -9,13 +9,16 @@ import path from "path";
  * whose saves, key reads and resets and webhook calls it records. What jsdom
  * cannot show is checked here: the schedule dialog's menus and day buttons
  * driven by mouse and keyboard, the URL masked and copied to the clipboard,
- * a phone-width screen, dark mode, German.
+ * a phone-width screen, dark mode, German. RunbookSideMenu.spec.ts puts the
+ * pages inside the runbook's real view layout (?menu=1) and checks its side
+ * menu: Executions folded under Logs and Triggers under Settings, opened by a
+ * click, the keyboard or a page inside them.
  */
 const port: string = process.env["RUNBOOK_TRIGGERS_FIXTURE_PORT"] || "4327";
 
 export default defineConfig({
   testDir: "./RunbookTriggers",
-  testMatch: "RunbookTriggers.spec.ts",
+  testMatch: ["RunbookTriggers.spec.ts", "RunbookSideMenu.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

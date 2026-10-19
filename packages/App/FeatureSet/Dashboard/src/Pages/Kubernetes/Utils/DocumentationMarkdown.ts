@@ -562,7 +562,7 @@ ${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set ebpf.enabled=false"
 | \`networkInterZoneMetrics\` | off | Inter-zone network metrics (doubles their cardinality) |
 | \`tcpStats\` | on | Node-level TCP RTT, failed-connection and retransmit counters |
 
-**Cross-service trace propagation** — linking a request that crosses pod A → pod B into a single trace — is **off by default**. Turn it on with \`--set ebpf.contextPropagation=true\` only after reading this: it works by rewriting traffic that is already in flight (widening plaintext HTTP requests in the kernel, and appending a TCP option to TLS and raw TCP), and a mistake in that byte accounting desynchronizes the stream — the reported symptom is transfers through an L7 proxy such as nginx hanging once a response passes ~64KB. An OpenTelemetry SDK propagates \`traceparent\` in userspace without any of that, and is the safer option.`,
+**Cross-service trace propagation** — linking a request that crosses pod A → pod B into a single trace, on another node too — is **on by default**. It works by rewriting traffic that is already in flight (widening plaintext HTTP requests in the kernel, and appending a TCP option to TLS and raw TCP), and a mistake in that byte accounting desynchronizes the stream — the reported symptom is transfers through an L7 proxy such as nginx hanging once a response passes ~64KB. If you see that, or a service mesh starts failing pods, turn it off with \`--set ebpf.contextPropagation=false\`; an OpenTelemetry SDK propagates \`traceparent\` in userspace without any of that.`,
     });
   }
 

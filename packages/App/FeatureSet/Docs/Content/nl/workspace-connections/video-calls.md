@@ -107,11 +107,11 @@ Wat responders in een gesprek zeggen, wat ze hebben gecontroleerd, wat ze vermoe
 :::steps
 ### Haal de transcriptie op na het gesprek
 
-Op de kaart **Video Call** van het incident leest **Ophalen uit Zoom** of **Ophalen uit Google Meet** de transcriptie van een vergadering die OneUptime daar heeft gestart. Voor elk ander gesprek neemt **Transcriptie toevoegen** het bestand dat de vergadertool heeft opgeslagen (`.vtt`, `.srt` of `.txt`, tot 5 MB) of de geplakte transcriptie.
+Op de kaart **Video Call** van het incident leest **Ophalen uit Zoom** of **Ophalen uit Google Meet** de transcriptie van een vergadering die OneUptime daar heeft gestart. Voor elk ander gesprek neemt **Transcriptie toevoegen** het bestand dat de vergadertool heeft opgeslagen (`.vtt`, `.srt` of `.txt`, tot 5 MB) of de geplakte transcriptie. Wordt [elk gesprek opgenomen en getranscribeerd](#elk-gesprek-opnemen-en-transcriberen), dan haalt OneUptime de transcriptie zelf op zodra het gesprek voorbij is.
 
 ### OneUptime AI leest het
 
-Binnen een à twee minuten toont de kaart **AI Investigation** van het incident de **Voorgestelde hoofdoorzaak**, gemarkeerd als **Niet bevestigd**, met de regels uit de transcriptie waarop die berust, geciteerd met tijd en spreker. Daaronder, ingeklapt, staat de rest van wat het gesprek zei: bevindingen, verdeeld over **Bevestigd in het gesprek** en **Hypothesen**, dan wat er is geprobeerd, besluiten, vervolgacties en open vragen.
+Binnen een à twee minuten toont de kaart **AI Investigation** van het incident de **Voorgestelde hoofdoorzaak**, gemarkeerd als **Niet bevestigd**, met de regels uit de transcriptie waarop die berust, geciteerd met tijd en spreker. Daaronder, ingeklapt, staat de rest van wat het gesprek zei: bevindingen, verdeeld over **Bevestigd in het gesprek** en **Hypothesen**, dan wat er is geprobeerd, besluiten, vervolgacties en open vragen. Wat OneUptime AI erin heeft gelezen, wordt ook in de feed van het incident geplaatst, en van daaruit in de Slack- en Microsoft Teams-kanalen van het incident.
 
 ### Gebruik het, of wijs het af
 
@@ -119,6 +119,17 @@ Binnen een à twee minuten toont de kaart **AI Investigation** van het incident 
 :::
 
 OneUptime AI stelt alleen een oorzaak voor als het gesprek er een noemt, met de regels die dat zeggen, en citeert die regels zoals de transcriptie ze bevat. Heeft het gesprek de oorzaak niet vastgesteld, dan zegt de kaart **Er is in het gesprek niet genoeg gezegd om een hoofdoorzaak voor te stellen** in plaats van te gokken.
+
+### Elk gesprek opnemen en transcriberen
+
+Om te zorgen dat niemand eraan hoeft te denken een gesprek op te nemen of de transcriptie ervan op te halen, zet u **Incidentgesprekken opnemen en transcriberen** aan in **Projectinstellingen** > **Werkruimte** > **Video Calls**. Zolang dat aan staat:
+
+- OneUptime vraagt Zoom om elke incidentvergadering die het start, in de cloud op te nemen, en Google Meet om die te transcriberen. Het bericht waarmee het gesprek wordt geplaatst, meldt dat voordat iemand deelneemt.
+- Zodra het gesprek voorbij is, haalt OneUptime de transcriptie zelf op, zoals **Ophalen uit Zoom** zou doen, waarna OneUptime AI die leest. Tot dan zegt de kaart **Video Call** dat ze erop wacht.
+- Wat OneUptime AI heeft gelezen, gaat naar de feed van het incident en naar de Slack- en Microsoft Teams-kanalen ervan: de voorgestelde hoofdoorzaak, gemarkeerd als niet bevestigd, dan wat er is bevestigd, geprobeerd en besloten, de vervolgacties en de open vragen.
+- Wordt het incident opgelost voordat de transcriptie binnen is, dan wacht het automatische postmortem-concept erop, zodat het leest wat er in het gesprek is gezegd: tot zes uur terwijl Zoom of Google Meet de transcriptie maakt, en één uur als er nog geen teken van een transcriptie is.
+
+De instelling staat standaard uit, omdat ze mensen opneemt: iedereen in die gesprekken ziet dat ze worden opgenomen of getranscribeerd, dus controleer of uw organisatie dat toestaat. Zoom bewaart alleen een transcriptie als het account in de cloud opneemt met de audiotranscriptie aan, en Google Meet alleen in een Google Workspace-editie die transcripties heeft. Microsoft Teams-gesprekken, Slack-huddles en vergaderlinks worden niet opgenomen, en gesprekken van waarschuwingen evenmin: voeg hun transcripties handmatig toe.
 
 ### Wat elke aanbieder bewaart
 
@@ -281,6 +292,10 @@ Wijzig **Who can join** (Google Meet) of **Who skips the lobby** (Microsoft Team
 
 :::details Ophalen uit Zoom vindt geen transcriptie
 Zoom bewaart alleen een transcriptie van een vergadering die in de cloud is opgenomen met de audiotranscriptie aan, of met de vergadersamenvatting van AI Companion aan, en maakt die na afloop van de vergadering. De kaart zegt welk geval het is: probeer het later opnieuw, of zet een van beide aan voor uw incidentvergaderingen. Intussen neemt **Transcriptie toevoegen** een transcriptie die u hebt opgeslagen.
+:::
+
+:::details De kaart Video Call wacht nog op een transcriptie
+Zodra het gesprek voorbij is, vraagt OneUptime Zoom of Google Meet er om de paar minuten om, minder vaak naarmate het gesprek ouder wordt, tot drie dagen na het begin van het gesprek. De transcriptie komt binnen enkele minuten nadat de aanbieder die heeft gemaakt, en Zoom doet er tot ongeveer twee keer de duur van het gesprek over. **Ophalen uit Zoom** vraagt er meteen om. Bewaart de aanbieder geen transcriptie, dan zegt de kaart dat: controleer of het Zoom-account in de cloud opneemt met de audiotranscriptie aan, of dat uw Google Workspace-editie transcripties heeft.
 :::
 
 :::details OneUptime AI kon een transcriptie niet lezen

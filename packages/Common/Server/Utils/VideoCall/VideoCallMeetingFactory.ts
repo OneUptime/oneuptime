@@ -146,6 +146,7 @@ export default class VideoCallMeetingFactory {
           http,
           accessToken: token.accessToken,
           accessType: read("accessType"),
+          transcribe: data.request.recordAndTranscribe,
           owner: { label, isSignIn: true },
         });
 

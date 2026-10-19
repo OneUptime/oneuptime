@@ -10,6 +10,7 @@ import FormFieldSchemaType from "./Types/FormFieldSchemaType";
 import { FormStep } from "./Types/FormStep";
 import FormValues from "./Types/FormValues";
 import FormAnalyticsName from "./Utils/FormAnalyticsName";
+import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import React, {
   MutableRefObject,
@@ -57,6 +58,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   summary?: FormSummaryConfig | undefined;
   values?: FormValues<TBaseModel> | undefined;
   allowAnyStepNavigation?: boolean | undefined;
+  // What the form's entity dropdowns search through (see BasicForm).
+  modelAPI?: typeof ModelAPI | undefined;
 }
 
 const BasicModelForm: <TBaseModel extends BaseModel>(
@@ -143,6 +146,7 @@ const BasicModelForm: <TBaseModel extends BaseModel>(
       ref={props.formRef}
       summary={props.summary}
       allowAnyStepNavigation={props.allowAnyStepNavigation}
+      modelAPI={props.modelAPI}
     ></BasicForm>
   );
 };

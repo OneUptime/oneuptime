@@ -136,6 +136,72 @@ describe("GoogleMeetClient", () => {
     });
   });
 
+  /*
+   * Record and transcribe incident calls: every conference held in the
+   * space is transcribed as soon as someone allowed to transcribe joins.
+   */
+  test("asks Google Meet to transcribe the space's calls when asked to record and transcribe them", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 200, body: TOKEN_RESPONSE },
+      { status: 200, body: SPACE_RESPONSE },
+    ]);
+
+    await newClient(fetcher).createMeeting({
+      title: "INC-42",
+      recordAndTranscribe: true,
+    });
+
+    expect(readJsonBody(fetcher.requests[1]!)).toEqual({
+      config: {
+        accessType: "TRUSTED",
+        entryPointAccess: "ALL",
+        artifactConfig: {
+          transcriptionConfig: { autoTranscriptionGeneration: "ON" },
+        },
+      },
+    });
+  });
+
+  test("asks for no transcription when not asked to record and transcribe", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 200, body: TOKEN_RESPONSE },
+      { status: 200, body: SPACE_RESPONSE },
+    ]);
+
+    await newClient(fetcher).createMeeting({
+      title: "INC-42",
+      recordAndTranscribe: false,
+    });
+
+    expect(readJsonBody(fetcher.requests[1]!)).toEqual({
+      config: { accessType: "TRUSTED", entryPointAccess: "ALL" },
+    });
+  });
+
+  test("a space made with a sign-in's token is transcribed the same way", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 200, body: SPACE_RESPONSE },
+    ]);
+
+    await GoogleMeetClient.createSpaceWithToken({
+      http: new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
+      accessToken: "signed-in-token",
+      accessType: "OPEN",
+      transcribe: true,
+      owner: { label: "maya@acme.com", isSignIn: true },
+    });
+
+    expect(readJsonBody(fetcher.requests[0]!)).toEqual({
+      config: {
+        accessType: "OPEN",
+        entryPointAccess: "ALL",
+        artifactConfig: {
+          transcriptionConfig: { autoTranscriptionGeneration: "ON" },
+        },
+      },
+    });
+  });
+
   test("falls back to TRUSTED for an access type Google does not take", async () => {
     const fetcher: ScriptedFetch = scriptedFetch([
       { status: 200, body: TOKEN_RESPONSE },
