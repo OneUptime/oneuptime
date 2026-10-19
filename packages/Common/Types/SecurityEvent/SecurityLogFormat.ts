@@ -70,7 +70,7 @@ export const SECURITY_LOG_FORMATS: ReadonlyArray<SecurityLogFormatDefinition> =
       vendorName: "AWS",
       productName: "AWS CloudTrail",
       example:
-        '{"eventSource":"iam.amazonaws.com","eventName":"CreateAccessKey","userIdentity":{"type":"IAMUser"}}',
+        '{"eventSource":"iam.amazonaws.com","eventName":"CreateAccessKey","userIdentity":{"type":"IAMUser"},"readOnly":false}',
     },
     {
       format: SecurityLogFormat.WebAttack,

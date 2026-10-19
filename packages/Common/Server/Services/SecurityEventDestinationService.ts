@@ -141,6 +141,11 @@ export class Service extends DatabaseService<Model> {
       createBy.data.sendScope = DEFAULT_SECURITY_EVENT_DESTINATION_SCOPE;
     }
 
+    // A destination saved without saying is on: that is why it was saved.
+    if (createBy.data.isEnabled === undefined) {
+      createBy.data.isEnabled = true;
+    }
+
     return { createBy, carryForward: null };
   }
 
