@@ -46,20 +46,60 @@ flowchart TB
 
 :::tabs
 @tab Linux
+در Debian و Ubuntu مخزن apt مربوط به OneUptime را اضافه کنید و عامل را از آن نصب کنید:
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://packages.oneuptime.com/gpg.key -o /etc/apt/keyrings/oneuptime.asc
+sudo chmod a+r /etc/apt/keyrings/oneuptime.asc
+echo "deb [signed-by=/etc/apt/keyrings/oneuptime.asc] https://packages.oneuptime.com/deb stable main" | sudo tee /etc/apt/sources.list.d/oneuptime.list
+sudo apt-get update
+sudo apt-get install oneuptime-infrastructure-agent
+```
+
+در RHEL، Rocky Linux، AlmaLinux، Fedora و Amazon Linux مخزن yum مربوط به OneUptime را اضافه کنید و عامل را از آن نصب کنید. جایی که `dnf` نیست از `yum` استفاده کنید و وقتی از شما پرسیده شد، کلید امضای OneUptime را بپذیرید.
+
+```bash
+sudo curl -fsSL https://packages.oneuptime.com/rpm/oneuptime.repo -o /etc/yum.repos.d/oneuptime.repo
+sudo dnf install oneuptime-infrastructure-agent
+```
+
+در هر توزیع دیگری از اسکریپت نصب استفاده کنید:
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab macOS
+عامل را با Homebrew نصب کنید:
+
+```bash
+brew install oneuptime/tap/oneuptime-infrastructure-agent
+```
+
+یا از اسکریپت نصب استفاده کنید:
+
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash
 ```
 @tab Windows
+در **خط فرمان** که به‌عنوان Administrator باز شده، عامل را با winget نصب کنید:
+
+```shell
+winget install --id OneUptime.InfrastructureAgent --exact --scope machine
+```
+
+سپس **خط فرمان** را دوباره به‌عنوان Administrator باز کنید تا `oneuptime-infrastructure-agent` روی مسیر آن باشد.
+
+بدون winget، عامل را خودتان دانلود کنید:
+
 1. عامل را از [آخرین انتشار GitHub](https://github.com/OneUptime/oneuptime/releases/latest) دانلود کنید: `oneuptime-infrastructure-agent_windows_amd64.zip` برای x64، یا `oneuptime-infrastructure-agent_windows_arm64.zip` برای ARM64.
 2. فایل zip را از حالت فشرده خارج کنید. درون آن `oneuptime-infrastructure-agent.exe` است.
 3. در پوشه‌ای که فایل را در آن باز کرده‌اید، **خط فرمان** را به‌عنوان Administrator باز کنید.
+
+برای استقرار عامل با Intune، Configuration Manager یا Group Policy، از `oneuptime-infrastructure-agent-amd64.msi` (یا `oneuptime-infrastructure-agent-arm64.msi`) همان انتشار استفاده کنید. این بسته عامل را در `C:\Program Files\OneUptimeInfrastructureAgent` نصب می‌کند و یک MSI جدیدتر آن را در جای خود به‌روز می‌کند و دوباره راه‌اندازی می‌کند. MSI یک انتشار قدیمی‌تر به‌روز نمی‌شود: ابتدا یک بار آن را حذف کنید.
 :::
 
-اسکریپت نصب آخرین انتشار را برای سیستم‌عامل و پردازنده شما (x86-64 یا ARM64) دانلود می‌کند و فایل اجرایی `oneuptime-infrastructure-agent` را در `$HOME/bin` قرار می‌دهد. در نصب خودمیزبان، اسکریپت از نشانی OneUptime خود شما ارائه می‌شود.
+هر یک از این راه‌ها آخرین انتشار را برای سیستم‌عامل و پردازنده شما (x86-64 یا ARM64) نصب می‌کند. مخزن‌های apt و yum همان بسته‌های `.deb` و `.rpm` پیوست‌شده به هر انتشار GitHub را نگه می‌دارند که با کلید `https://packages.oneuptime.com/gpg.key` امضا شده‌اند، و بسته‌ها فایل اجرایی را در `/usr/bin` قرار می‌دهند. اسکریپت نصب فایل اجرایی `oneuptime-infrastructure-agent` را در `$HOME/bin` قرار می‌دهد. در نصب خودمیزبان، اسکریپت از نشانی OneUptime خود شما ارائه می‌شود.
 
 ### آن را به مانیتور وصل کنید
 
@@ -136,6 +176,23 @@ oneuptime-infrastructure-agent start
 
 وقتی عامل نتواند در این پوشه‌ها بنویسد، به جای آن از `~/.oneuptime-infrastructure-agent/` استفاده می‌کند. متغیرهای محیطی `ONEUPTIME_AGENT_CONFIG_PATH` و `ONEUPTIME_AGENT_LOG_PATH` هر یک از این مسیرها را صریحاً تعیین می‌کنند.
 
+### به‌روزرسانی و حذف
+
+عامل را به همان روشی که نصب کرده‌اید به‌روز کنید:
+
+| نصب‌شده با | به‌روزرسانی |
+| --- | --- |
+| apt | `sudo apt-get update && sudo apt-get install --only-upgrade oneuptime-infrastructure-agent` |
+| dnf یا yum | `sudo dnf upgrade oneuptime-infrastructure-agent` |
+| Homebrew | `brew upgrade oneuptime-infrastructure-agent` |
+| winget | `winget upgrade --id OneUptime.InfrastructureAgent --exact` |
+| MSI | MSI جدیدتر را نصب کنید. |
+| اسکریپت نصب | اسکریپت نصب را دوباره اجرا کنید. |
+
+به‌روزرسانی، عاملِ در حال اجرا را دوباره راه‌اندازی نمی‌کند، پس پس از آن `restart` را اجرا کنید. در Windows پیش از `winget upgrade` فرمان `stop` و پس از آن `start` را اجرا کنید: winget نمی‌تواند برنامه را تا وقتی سرویس آن را اجرا می‌کند جایگزین کند.
+
+برای حذف عامل، ابتدا `uninstall` را اجرا کنید و سپس بسته را با همان ابزاری که با آن نصب کرده‌اید حذف کنید، برای نمونه `sudo apt-get remove oneuptime-infrastructure-agent`.
+
 ## آنچه عامل گزارش می‌دهد
 
 هر گزارش نام میزبان سرور را به همراه این موارد دارد:
@@ -211,7 +268,7 @@ oneuptime-infrastructure-agent start
 :::
 
 :::details `sudo` می‌گوید فرمان پیدا نشد
-اسکریپت نصب فایل اجرایی را در `$HOME/bin` کاربری که اسکریپت با آن اجرا شده قرار می‌دهد و پوشه‌ای را که استفاده کرده نشان می‌دهد. عامل را با مسیر کاملش اجرا کنید، برای نمونه `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. برای اینکه به جای آن در پوشه‌ای روی مسیر سیستم نصب شود، `-b` را به اسکریپت بدهید:
+بسته‌ها عامل را روی مسیر سیستم قرار می‌دهند، پس این مشکل فقط با اسکریپت نصب پیش می‌آید. اسکریپت نصب فایل اجرایی را در `$HOME/bin` کاربری که اسکریپت با آن اجرا شده قرار می‌دهد و پوشه‌ای را که استفاده کرده نشان می‌دهد. عامل را با مسیر کاملش اجرا کنید، برای نمونه `sudo /root/bin/oneuptime-infrastructure-agent configure ...`. برای اینکه به جای آن در پوشه‌ای روی مسیر سیستم نصب شود، `-b` را به اسکریپت بدهید:
 
 ```bash
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | sudo bash -s -- -b /usr/local/bin

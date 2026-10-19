@@ -63,9 +63,15 @@ git pull
 # here to keep the old drop-then-recreate behaviour. --create is intentionally NOT
 # passed: this connects straight to DATABASE_RESTORE_NAME, which per the note above
 # you are expected to have created already.
+#
+# host.docker.internal (the DATABASE_RESTORE_HOST config.example.env ships) is
+# this server's own loopback address: the container shares the server's
+# network, and docker-compose.yml publishes PostgreSQL on 127.0.0.1 only. It
+# used to be Docker's host-gateway (the docker0 address), which reaches the
+# port only while it is published on every interface.
 sudo docker run --net=host --rm \
 --env-file config.env \
---add-host=host.docker.internal:host-gateway \
+--add-host=host.docker.internal:127.0.0.1 \
 --volume=$(pwd)$DATABASE_RESTORE_DIRECTORY:/var/lib/postgresql/data \
 postgres:latest /usr/bin/pg_restore --clean --if-exists --dbname=postgresql://$DATABASE_RESTORE_USERNAME:$DATABASE_RESTORE_PASSWORD@$DATABASE_RESTORE_HOST:$DATABASE_RESTORE_PORT/$DATABASE_RESTORE_NAME /var/lib/postgresql/data/$DATABASE_RESTORE_FILENAME
 

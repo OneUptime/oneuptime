@@ -6,10 +6,14 @@ import {
   CodeAgentProgressCallback,
   CodeAgentProgressEvent,
 } from "./CodeAgentInterface";
+import { RUNS_PROJECT_AUTHORED_COMMANDS } from "../Config";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI, { LlmCompletionResult } from "../Utils/BackendAPI";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "../Utils/GitPorcelain";
 import SecretRedactor from "../Utils/SecretRedactor";
+import WorkspaceFileAccess, {
+  WorkspaceTarget,
+} from "../Utils/WorkspaceFileAccess";
 import CodeAgentWorkspaceGuard, {
   CommandGuardDecision,
   MAX_WRITE_FILE_CHARS,
@@ -344,9 +348,18 @@ export default class InHouseCodeAgent implements CodeAgent {
       "You are working inside a cloned git repository. Use the provided tools to",
       "explore and modify it:",
       "- read_file / write_file / list_directory / search_files operate on paths",
-      "  relative to the repository root and cannot leave it.",
-      "- run_command runs a shell command in the repository root (120 second",
-      "  timeout). Use it to build or run tests when helpful.",
+      "  relative to the repository root and cannot leave it (links included);",
+      "  write_file cannot change the .git directory.",
+      ...(RUNS_PROJECT_AUTHORED_COMMANDS
+        ? [
+            "- run_command runs a shell command in the repository root (120 second",
+            "  timeout). Use it to build or run tests when helpful.",
+          ]
+        : [
+            "- There is no command-running tool on this Runner: make your change",
+            "  with the file tools above. The repository's own CI and the human",
+            "  reviewer build and test it after the pull request opens.",
+          ]),
       "- Tool outputs are truncated; read specific files rather than dumping",
       "  large ones.",
       "Make focused, minimal changes. Do NOT run git commands to commit, branch",
@@ -360,6 +373,30 @@ export default class InHouseCodeAgent implements CodeAgent {
 
   // The workspace tool surface offered to the model.
   private getToolDefinitions(): Array<LLMToolDefinition> {
+    /*
+     * run_command is offered only on a Runner that may run project-authored
+     * or model-composed shell (a project-scoped Runner). The shared
+     * in-cluster Runner never executes it — the agent edits files and the
+     * fix opens for review (see RUNS_PROJECT_AUTHORED_COMMANDS). The model
+     * cannot force it either: toolRunCommand refuses it when it is not
+     * offered, so an unadvertised call never spawns a process.
+     */
+    const runCommandTool: LLMToolDefinition = {
+      name: "run_command",
+      description:
+        "Run a shell command in the repository root (120 second timeout). Returns the exit code and combined output (truncated).",
+      inputSchema: {
+        type: "object",
+        properties: {
+          command: {
+            type: "string",
+            description: "The shell command to run",
+          },
+        },
+        required: ["command"],
+      },
+    };
+
     return [
       {
         name: "read_file",
@@ -430,21 +467,7 @@ export default class InHouseCodeAgent implements CodeAgent {
           required: ["pattern"],
         },
       },
-      {
-        name: "run_command",
-        description:
-          "Run a shell command in the repository root (120 second timeout). Returns the exit code and combined output (truncated).",
-        inputSchema: {
-          type: "object",
-          properties: {
-            command: {
-              type: "string",
-              description: "The shell command to run",
-            },
-          },
-          required: ["command"],
-        },
-      },
+      ...(RUNS_PROJECT_AUTHORED_COMMANDS ? [runCommandTool] : []),
     ];
   }
 
@@ -524,17 +547,17 @@ export default class InHouseCodeAgent implements CodeAgent {
     args: JSONObject,
   ): Promise<ToolExecution> {
     const requestedPath: string = (args["path"] as string) || "";
-    const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
+    /*
+     * Resolved where the path really leads, links included: a link the
+     * repository carries never reads anything outside the workspace.
+     */
+    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForRead(
       workspaceRoot,
       requestedPath,
     );
-    const relativePath: string =
-      CodeAgentWorkspaceGuard.toWorkspaceRelativePath(
-        workspaceRoot,
-        absolutePath,
-      );
+    const relativePath: string = target.relativePath;
 
-    const content: string = await LocalFile.read(absolutePath);
+    const content: string = await LocalFile.read(target.absolutePath);
 
     return {
       narration: `read ${relativePath}`,
@@ -568,15 +591,16 @@ export default class InHouseCodeAgent implements CodeAgent {
     }
 
     const content: string = args["content"];
-    const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
+    /*
+     * Writes land in the working tree only: never outside the workspace
+     * (links included) and never in the repository's git metadata (the
+     * pipeline owns the repository's git state).
+     */
+    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForWrite(
       workspaceRoot,
       requestedPath,
     );
-    const relativePath: string =
-      CodeAgentWorkspaceGuard.toWorkspaceRelativePath(
-        workspaceRoot,
-        absolutePath,
-      );
+    const relativePath: string = target.relativePath;
 
     /*
      * A model that loops on a generation bug can otherwise fill the
@@ -594,8 +618,7 @@ export default class InHouseCodeAgent implements CodeAgent {
       };
     }
 
-    await LocalFile.makeDirectory(path.dirname(absolutePath));
-    await LocalFile.write(absolutePath, content);
+    await WorkspaceFileAccess.writeFile(target, content);
 
     /*
      * Remember what the model authored. This survives a later run_command
@@ -616,18 +639,14 @@ export default class InHouseCodeAgent implements CodeAgent {
     args: JSONObject,
   ): Promise<ToolExecution> {
     const requestedPath: string = (args["path"] as string) || ".";
-    const absolutePath: string = CodeAgentWorkspaceGuard.resolveWorkspacePath(
+    const target: WorkspaceTarget = await WorkspaceFileAccess.resolveForRead(
       workspaceRoot,
       requestedPath,
     );
-    const relativePath: string =
-      CodeAgentWorkspaceGuard.toWorkspaceRelativePath(
-        workspaceRoot,
-        absolutePath,
-      );
+    const relativePath: string = target.relativePath;
 
     const entries: Array<{ name: string; isDirectory(): boolean }> =
-      await LocalFile.readDirectory(absolutePath);
+      await LocalFile.readDirectory(target.absolutePath);
 
     if (entries.length === 0) {
       return {
@@ -713,6 +732,21 @@ export default class InHouseCodeAgent implements CodeAgent {
     args: JSONObject,
   ): Promise<ToolExecution> {
     const command: string = (args["command"] as string) || "";
+
+    /*
+     * The shared in-cluster Runner never runs a shell command: it serves
+     * every project, so nothing a model composes runs on it (see
+     * RUNS_PROJECT_AUTHORED_COMMANDS). The tool is not offered there, but a
+     * model can still emit the call, so refuse it here BEFORE anything
+     * spawns — this, not the tool list, is the control.
+     */
+    if (!RUNS_PROJECT_AUTHORED_COMMANDS) {
+      return {
+        narration: `refused run_command on a shared Runner: ${command.substring(0, 120)}`,
+        output:
+          "Error: run_command is not available on this Runner. Make the change with read_file, write_file, list_directory and search_files; the repository's own CI and the reviewer build and test it after the pull request opens.",
+      };
+    }
 
     if (!command) {
       return {

@@ -758,60 +758,8 @@ export default class Queue {
     };
   }
 
-  @CaptureSpan()
-  public static async getFailedJobs(
-    queueName: QueueName,
-    options?: {
-      start?: number;
-      end?: number;
-    },
-  ): Promise<
-    Array<{
-      id: string;
-      name: string;
-      data: JSONObject;
-      failedReason: string;
-      stackTrace?: string;
-      processedOn: Date | null;
-      finishedOn: Date | null;
-      attemptsMade: number;
-    }>
-  > {
-    const queue: BullQueue = this.getQueue(queueName);
-    const start: number = options?.start || 0;
-    const end: number = options?.end || 100;
-    const failed: Job[] = await queue.getFailed(start, end);
-
-    return failed.map((job: Job) => {
-      const result: {
-        id: string;
-        name: string;
-        data: JSONObject;
-        failedReason: string;
-        stackTrace?: string;
-        processedOn: Date | null;
-        finishedOn: Date | null;
-        attemptsMade: number;
-      } = {
-        id: job.id || "unknown",
-        name: job.name || "unknown",
-        data: job.data as JSONObject,
-        failedReason: Queue.normalizeFailedReason(job.failedReason),
-        processedOn: job.processedOn ? new Date(job.processedOn) : null,
-        finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
-        attemptsMade: job.attemptsMade || 0,
-      };
-
-      if (job.stacktrace && job.stacktrace.length > 0) {
-        result.stackTrace = job.stacktrace.join("\n");
-      }
-
-      return result;
-    });
-  }
-
   /**
-   * Like getFailedJobs, but returns the FULL job for deep debugging: the job
+   * A queue's failed jobs, the FULL job for deep debugging: the job
    * body (data), its options, return value, progress, all the timing/attempt
    * metadata, and the per-job log lines BullMQ keeps (job.log()/getJobLogs).
    * Used by the master-admin health dashboard / support bundle. The caller is

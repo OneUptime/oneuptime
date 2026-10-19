@@ -6,6 +6,9 @@ import {
 } from "../Utils/Express";
 import logger from "../Utils/Logger";
 import resolveTrustedClientIp, { ClientIpRequestLike } from "../Utils/ClientIp";
+import ClientRateLimitCounter, {
+  ClientRateLimitRefusal,
+} from "../Utils/RateLimit/ClientRateLimitCounter";
 import Response from "../Utils/Response";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
@@ -33,8 +36,11 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * steps, +/- 90 seconds) across both entries in SupportedTotpAlgorithms, so
  * fourteen distinct six digit strings are live at once and a single guess
  * lands with probability ~1.4e-5. At a few thousand requests a second that is
- * a bypassed second factor in minutes. Bounded to the budgets below it is
- * years, and the account owner sees the failures.
+ * a bypassed second factor in minutes. The budgets below bound each client;
+ * the account itself is held by its own count of wrong codes, kept by the
+ * handler once the password is right (Utils/TwoFactorWrongCodes): after five
+ * wrong codes in a row each next code waits, wherever it comes from, and the
+ * account's owner is emailed.
  *
  * /login is the same shape one step earlier, against a password rather than a
  * code.
@@ -115,10 +121,29 @@ import TooManyRequestsException from "../../Types/Exception/TooManyRequestsExcep
  * the account owner's own failed-login visibility and the network layer are
  * for.
  *
+ * The second step is the exception, because there the trade comes out the
+ * other way: its attempts are made with the password already accepted, so a
+ * count on the account alone can be moved only by somebody who holds that
+ * password. The handler keeps one (Utils/TwoFactorWrongCodes), on top of the
+ * counters here.
+ *
+ * AN IPV6 /64 IS COUNTED TOO. One IPv6 host is commonly given a whole /64 and
+ * can send every attempt from another address of it, so for an IPv6 client
+ * both counters are kept twice (ClientRateLimitCounter): per address, at the
+ * limits below, and per /64, with room for ten addresses -- a /64 is as often
+ * an office's network, where many people sign in, as one host's. The
+ * per-account /64 counter is still keyed on the /64 and the account
+ * together, never on the account alone, so attempts from one /64 never lock
+ * the account's owner out from anywhere else; and an address over its own
+ * limit is not counted against its /64, so one noisy neighbour cannot spend
+ * the allowance of everybody else in it.
+ *
  * Both counters are incremented on every request including a rejected one.
  * That is standard fixed-window behaviour and it is deliberate: a caller who
  * keeps hammering keeps their window pinned rather than being handed a fresh
- * allowance for free.
+ * allowance for free. (The /64 counters are the exception described above:
+ * they count the requests the address counters let through, and a /64
+ * already over its limit is refused before anything is counted.)
  */
 export enum IdentityRateLimitBucket {
   /* POST /login. Password guessing. */
@@ -188,6 +213,12 @@ export interface IdentityRateLimitDecision {
 
   /* Which counter rejected, for logs. Unset unless rejected. */
   scope?: IdentityRateLimitScope | undefined;
+
+  /*
+   * The client's IPv6 /64 when the addresses of that /64 together went over
+   * the counter's limit, rather than the client's own address. For logs.
+   */
+  ipv6Network64?: string | undefined;
 
   /*
    * True only on the request that first crossed the line in this window.
@@ -703,84 +734,56 @@ export default class IdentityRateLimit {
     const windowMs: number = config.windowSeconds * 1000;
     const windowIndex: number = Math.floor(Date.now() / windowMs);
 
-    const accountCounterKey: string = `${KEY_PREFIX}${data.bucket}:a:${data.accountKey}:${data.clientIp}:${windowIndex}`;
-    const ipCounterKey: string = `${KEY_PREFIX}${data.bucket}:i:${data.clientIp}:${windowIndex}`;
-
     try {
-      const pipelineResults: Array<[Error | null, unknown]> | null =
-        (await client
-          .pipeline()
-          .incr(accountCounterKey)
-          .incr(ipCounterKey)
-          .exec()) as Array<[Error | null, unknown]> | null;
-
-      if (!pipelineResults || pipelineResults.length < 2) {
-        throw new Error("Rate limit pipeline returned no result");
-      }
-
-      const accountCount: number = IdentityRateLimit.readCounterResult(
-        pipelineResults[0],
-      );
-      const ipCount: number = IdentityRateLimit.readCounterResult(
-        pipelineResults[1],
-      );
-
       /*
-       * Set the expiry only on the write that created the key. Re-issuing
-       * EXPIRE on every increment would slide the window forward for as long
-       * as the attempts continue, so the counter would never reset and a
-       * caller who tripped the limit once could never recover -- which on a
-       * login route is a permanent lockout, not a slowdown.
+       * Counted by ClientRateLimitCounter: under the client's address, and
+       * for an IPv6 client under its /64 as well, so a host cannot take a
+       * fresh allowance from each address of its /64. Each counter's key
+       * expires only from the request that created it: re-issuing EXPIRE on
+       * every increment would slide the window forward for as long as the
+       * attempts continue, and on a login route that is a permanent
+       * lockout, not a slowdown.
+       *
+       * The account counter is reported first when both are over, because
+       * it is the more specific of the two and the more useful thing to see
+       * in a log line.
        */
-      const ttlSeconds: number = config.windowSeconds * TTL_MULTIPLIER;
-      const keysToExpire: Array<string> = [];
+      const refusal: ClientRateLimitRefusal<IdentityRateLimitScope> | null =
+        await ClientRateLimitCounter.count<IdentityRateLimitScope>({
+          redis: client,
+          clientIp: data.clientIp,
+          ttlSeconds: config.windowSeconds * TTL_MULTIPLIER,
+          counters: [
+            {
+              scope: IdentityRateLimitScope.Account,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}${data.bucket}:a:${data.accountKey}:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perAccountLimit,
+            },
+            {
+              scope: IdentityRateLimitScope.Ip,
+              keyFor: (clientKey: string): string => {
+                return `${KEY_PREFIX}${data.bucket}:i:${clientKey}:${windowIndex}`;
+              },
+              limit: config.perIpLimit,
+            },
+          ],
+        });
 
-      if (accountCount === 1) {
-        keysToExpire.push(accountCounterKey);
+      if (!refusal) {
+        return { outcome: IdentityRateLimitOutcome.Allowed };
       }
 
-      if (ipCount === 1) {
-        keysToExpire.push(ipCounterKey);
-      }
-
-      if (keysToExpire.length > 0) {
-        const expirePipeline: ReturnType<ClientType["pipeline"]> =
-          client.pipeline();
-
-        for (const key of keysToExpire) {
-          expirePipeline.expire(key, ttlSeconds);
-        }
-
-        await expirePipeline.exec();
-      }
-
-      const retryAfterSeconds: number =
-        IdentityRateLimit.getSecondsUntilWindowEnd(config.windowSeconds);
-
-      /*
-       * The account counter is reported first when both are over, because it
-       * is the more specific of the two and the more useful thing to see in a
-       * log line.
-       */
-      if (accountCount > config.perAccountLimit) {
-        return {
-          outcome: IdentityRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: IdentityRateLimitScope.Account,
-          isFirstRejectionInWindow: accountCount === config.perAccountLimit + 1,
-        };
-      }
-
-      if (ipCount > config.perIpLimit) {
-        return {
-          outcome: IdentityRateLimitOutcome.RateLimited,
-          retryAfterSeconds,
-          scope: IdentityRateLimitScope.Ip,
-          isFirstRejectionInWindow: ipCount === config.perIpLimit + 1,
-        };
-      }
-
-      return { outcome: IdentityRateLimitOutcome.Allowed };
+      return {
+        outcome: IdentityRateLimitOutcome.RateLimited,
+        retryAfterSeconds: IdentityRateLimit.getSecondsUntilWindowEnd(
+          config.windowSeconds,
+        ),
+        scope: refusal.scope,
+        ipv6Network64: refusal.ipv6Network64,
+        isFirstRejectionInWindow: refusal.isFirstRefusalInWindow,
+      };
     } catch (err) {
       /*
        * Throttled: whatever broke Redis is unlikely to have broken it for one
@@ -796,26 +799,6 @@ export default class IdentityRateLimit {
 
       return { outcome: IdentityRateLimitOutcome.CounterUnavailable };
     }
-  }
-
-  private static readCounterResult(
-    result: [Error | null, unknown] | undefined,
-  ): number {
-    if (!result) {
-      throw new Error("Rate limit counter returned no result");
-    }
-
-    const [error, value] = result;
-
-    if (error) {
-      throw error;
-    }
-
-    if (typeof value !== "number") {
-      throw new Error("Rate limit counter returned a non-numeric value");
-    }
-
-    return value;
   }
 
   /*
@@ -868,7 +851,10 @@ export default class IdentityRateLimit {
 
         if (decision.isFirstRejectionInWindow) {
           logger.warn(
-            `IdentityRateLimit: rejected ${bucket} attempt for ${accountKey} from ${clientIp} (${decision.scope} limit)`,
+            `IdentityRateLimit: rejected ${bucket} attempt for ${accountKey} from ${clientIp} (${ClientRateLimitCounter.describeLimit(
+              String(decision.scope),
+              decision.ipv6Network64,
+            )})`,
           );
         }
 

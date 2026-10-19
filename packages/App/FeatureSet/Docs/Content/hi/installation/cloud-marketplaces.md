@@ -182,4 +182,5 @@ OneUptime के डेटाबेस को पर्सिस्टेंट 
 - [अपग्रेड करना](/docs/installation/upgrading): हर रिलीज़ के अपग्रेड नोट्स।
 - [साइज़िंग और क्षमता नियोजन](/docs/installation/sizing): अपनी टेलीमेट्री के लिए डेटा स्टोर का आकार तय करें।
 - [वास्तुकला](/docs/self-hosted/architecture): आपके क्लस्टर में क्या चलता है।
+- [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent#amazon-eks-ऐड-ऑन-के-रूप-में-इंस्टॉल-करें): AWS Marketplace पर भी मुफ़्त, Amazon EKS ऐड-ऑन के रूप में, उन क्लस्टर के लिए जो OneUptime को डेटा भेजते हैं।
 :::

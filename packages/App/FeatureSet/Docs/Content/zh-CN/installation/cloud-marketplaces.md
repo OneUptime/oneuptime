@@ -182,4 +182,5 @@ OneUptime 的数据库需要持久卷。请为集群设置默认 StorageClass：
 - [升级](/docs/installation/upgrading): 每个版本的升级说明。
 - [规模与容量规划](/docs/installation/sizing): 根据你的遥测数据确定数据存储的规模。
 - [架构](/docs/self-hosted/architecture): 你的集群中运行着什么。
+- [Kubernetes 代理](/docs/telemetry/kubernetes-agent#作为-amazon-eks-附加组件安装): 也可作为 Amazon EKS 附加组件在 AWS Marketplace 上免费获取，适用于向 OneUptime 发送数据的集群。
 :::

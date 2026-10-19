@@ -974,7 +974,7 @@ describe("KubernetesAlertTemplates - grouped alerts point at the right field", (
 describe("KubernetesAlertTemplates - references only catalog metrics", () => {
   /*
    * k8s.node.cpu.usage (the High Node CPU Utilization numerator) is not a
-   * metric the kubeletstats receiver the agent pins (0.96.0) emits — see
+   * metric the kubeletstats receiver emits by default at 0.96.0 — see
    * Utils/KubernetesAgentEmittedMetrics — so the catalog, which only
    * offers what the agent sends, deliberately leaves it out. The template
    * querying it is a separate defect; until it is fixed it is the one
@@ -1187,7 +1187,7 @@ describe("KubernetesAlertTemplates - deployment replica mismatch", () => {
 /*
  * BUG: k8s-high-cpu divides `k8s.node.cpu.usage` by
  * `k8s.node.allocatable_cpu`. The kubeletstats receiver in the collector the
- * agent chart ships (0.96.0) defines `k8s.node.cpu.usage` but leaves it
+ * agent chart shipped (0.96.0) defines `k8s.node.cpu.usage` but leaves it
  * `enabled: false`, and the chart only switched on the
  * *_limit/_request_utilization family, so the numerator never arrived: the
  * formula had no operand and the monitor could never fire. The chart now

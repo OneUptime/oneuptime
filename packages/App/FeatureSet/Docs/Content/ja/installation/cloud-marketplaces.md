@@ -182,4 +182,5 @@ OneUptime のデータベースには永続ボリュームが必要です。ク�
 - [アップグレード](/docs/installation/upgrading): 各リリースのアップグレードノート。
 - [サイジングとキャパシティプランニング](/docs/installation/sizing): テレメトリに合わせてデータストアのサイズを決めます。
 - [アーキテクチャ](/docs/self-hosted/architecture): クラスターで動くもの。
+- [Kubernetes エージェント](/docs/telemetry/kubernetes-agent#amazon-eks-アドオンとしてインストールする): OneUptime にデータを送信するクラスター向けに、AWS Marketplace でも Amazon EKS アドオンとして無料で提供されています。
 :::

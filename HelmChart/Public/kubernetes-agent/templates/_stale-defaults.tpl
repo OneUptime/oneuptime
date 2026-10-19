@@ -6,8 +6,8 @@ at the end of NOTES.txt.
 release's values, and those include the defaults of the chart the release
 came from: Helm replaces the new chart's values.yaml with the previous
 release's computed values (pkg/action/upgrade.go, reuseValues:
-`chart.Values = oldVals`). So a default this chart changed (the OBI image
-tag) or added (a new key) never applies. --reset-then-reuse-values (Helm
+`chart.Values = oldVals`). So a default this chart changed (the OBI and
+collector image tags) or added (a new key) never applies. --reset-then-reuse-values (Helm
 3.14+) starts from this chart's values.yaml and merges only the values
 somebody set (the release's stored config, what `helm get values` prints),
 and so does `-f` with that output.
@@ -39,11 +39,16 @@ What it cannot tell:
     stale.
 
 Returns JSON:
-  stale              bool    the values come from another chart's values.yaml
-  from               string  their chartDefaultsVersion, "" when there is none
-  ebpfImageTagStale  bool    stale, eBPF is on, and the OBI tag is not this
-                             chart's default
-  ebpfImageTag       string  the OBI tag the DaemonSet runs
+  stale                   bool    the values come from another chart's
+                                  values.yaml
+  from                    string  their chartDefaultsVersion, "" when there
+                                  is none
+  ebpfImageTagStale       bool    stale, eBPF is on, and the OBI tag is not
+                                  this chart's default
+  ebpfImageTag            string  the OBI tag the DaemonSet runs
+  collectorImageTagStale  bool    stale, and the collector tag is not this
+                                  chart's default
+  collectorImageTag       string  the collector tag the agent runs
 Usage: {{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
 */}}
 {{- define "kubernetes-agent.staleDefaults" -}}
@@ -54,7 +59,10 @@ Usage: {{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
 {{- $ebpfOn := (eq (include "kubernetes-agent.ebpfEnabled" .) "true") -}}
 {{- $tag := toString (($ebpf.image | default dict).tag | default "") -}}
 {{- $ebpfImageTagStale := and $stale $ebpfOn (ne $tag (include "kubernetes-agent.defaultEbpfImageTag" .)) -}}
-{{- dict "stale" $stale "from" $from "ebpfImageTagStale" $ebpfImageTagStale "ebpfImageTag" $tag | toJson -}}
+{{- /* The collector runs whatever else is on: the Deployment always does. */ -}}
+{{- $collectorTag := toString ((.Values.image | default dict).tag | default "") -}}
+{{- $collectorImageTagStale := and $stale (ne $collectorTag (include "kubernetes-agent.defaultCollectorImageTag" .)) -}}
+{{- dict "stale" $stale "from" $from "ebpfImageTagStale" $ebpfImageTagStale "ebpfImageTag" $tag "collectorImageTagStale" $collectorImageTagStale "collectorImageTag" $collectorTag | toJson -}}
 {{- end -}}
 
 {{/*
@@ -65,4 +73,13 @@ differ.
 */}}
 {{- define "kubernetes-agent.defaultEbpfImageTag" -}}
 v0.14.0
+{{- end -}}
+
+{{/*
+The collector image tag this chart's values.yaml pins (image.tag), here for
+the same reason, and kept equal to it by the same test. The collector configs
+read it too (kubernetes-agent.collectorAtLeast) when a tag is not a version.
+*/}}
+{{- define "kubernetes-agent.defaultCollectorImageTag" -}}
+0.161.0
 {{- end -}}

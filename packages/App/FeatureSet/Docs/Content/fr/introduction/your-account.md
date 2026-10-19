@@ -148,6 +148,10 @@ Se connecter à nouveau envoie un nouveau lien : vérifiez aussi votre dossier d
 À la deuxième étape de la connexion, choisissez **Vous avez perdu l'accès à votre application d'authentification ?** et saisissez l'un de vos codes de secours. Ouvrez ensuite **Sécurité → Two-factor authentication** et ajoutez votre nouvelle application. Sans codes de secours, demandez à un administrateur de votre installation OneUptime de réinitialiser l'authentification à deux facteurs de votre compte.
 :::
 
+:::details La connexion me demande d'attendre avant d'essayer un autre code
+Après cinq codes erronés d'affilée, chaque code suivant attend avant d'être vérifié : une minute, puis deux, puis quatre, et ainsi de suite, jusqu'à une heure. OneUptime compte les codes erronés de votre compte, d'où qu'ils soient saisis, vous envoie un e-mail quand les attentes commencent et repart de zéro quand vous saisissez un code correct. Attendez et réessayez, connectez-vous avec une clé de sécurité, ou choisissez **Vous avez perdu l'accès à votre application d'authentification ?** et saisissez un code de secours. Si vous n'avez pas saisi ces codes, quelqu'un connaît votre mot de passe : réinitialisez-le avec **Mot de passe oublié ?** sur la page de connexion, ce qui met aussi fin à l'attente.
+:::
+
 :::details Les heures du tableau de bord sont décalées d'une heure
 Le tableau de bord affiche les heures dans le **Fuseau horaire** de votre profil, pas dans celui de votre ordinateur. Vérifiez-le sous **Profil utilisateur → Vue d'ensemble**.
 :::

@@ -117,7 +117,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 | `404` | 此 URL 上没有 Runbook Webhook 应答：Runbook ID 或密钥错误，或者 URL 已被重置。 |
 | `405` | 请求是 `GET`。`GET` 永远不会启动运行，因此聊天应用中的链接预览不会意外运行它。 |
 | `413` | 正文大于 64 KB。 |
-| `429` | Webhook 在最近一分钟内启动了 30 次运行，它有 10 次运行仍在进行，或者某个地址在一分钟内调用 Runbook Webhook 超过 120 次。在可能的情况下，`Retry-After` 头会说明何时重试。 |
+| `429` | Webhook 在最近一分钟内启动了 30 次运行，它有 10 次运行仍在进行，或者某个地址在一分钟内调用 Runbook Webhook 超过 120 次，或者同一个 IPv6 /64 中的地址合计超过 1200 次。在可能的情况下，`Retry-After` 头会说明何时重试。 |
 | `503` | OneUptime 目前无法统计调用次数。请一分钟后重试。 |
 
 被拒绝的调用不会启动任何内容，其正文会用一句话说明原因，例如 "This runbook is turned off, so it was not started. Turn it on with Run this runbook, under the runbook's Settings."

@@ -472,3 +472,268 @@ describe("mobile passkey PKCE exchange redaction", () => {
     },
   );
 });
+
+/*
+ * The key OneUptime's own services present to each other travels in the
+ * clusterkey request header (x-clusterkey as KEDA sends it), and Runners of
+ * earlier releases put it in the clusterKey field of their registration. A
+ * failed internal call logs the request the client was making - its
+ * headers, its body, the raw request it had started writing - so each of
+ * those shapes is redacted, like any other credential.
+ */
+describe("the cluster key OneUptime's services present", () => {
+  const KEY: string = "Q7dVk2LmX9pR4tWz8NcB1sHf6JyG3uAe";
+  const ENCODED_KEY: string = encodeURIComponent("p@ss/w0rd?&=+%#;: spaces");
+
+  it("is a sensitive key in every spelling of its name", () => {
+    for (const key of [
+      "clusterkey",
+      "clusterKey",
+      "ClusterKey",
+      "x-clusterkey",
+      "X-ClusterKey",
+      "cluster_key",
+      "CLUSTER-KEY",
+    ]) {
+      expect({ key, sensitive: isSensitiveLogKey(key, KEY) }).toEqual({
+        key,
+        sensitive: true,
+      });
+    }
+  });
+
+  it("is redacted from a request's headers, its body and an error carrying them, structurally", () => {
+    for (const value of [KEY, ENCODED_KEY]) {
+      const output: string = serialize({
+        config: {
+          url: "http://app:3002/api/notification/email/send",
+          headers: {
+            Accept: "application/json",
+            clusterkey: value,
+            "x-clusterkey": value,
+          },
+          data: { aiAgentKey: "public-agent-name", clusterKey: value },
+        },
+      });
+
+      expect(output).not.toContain(value);
+      expect(output).toContain("/api/notification/email/send");
+      expect(JSON.parse(output).config.headers.Accept).toBe("application/json");
+    }
+  });
+
+  it("is redacted from a body that was already stringified", () => {
+    for (const value of [KEY, ENCODED_KEY]) {
+      const message: string = JSON.stringify({
+        aiAgentKey: "the-runner-key",
+        runnerName: "in-cluster",
+        clusterKey: value,
+      });
+
+      expect(redactLogString(message)).not.toContain(value);
+      expect(redactLogString(message)).toContain('"runnerName":"in-cluster"');
+    }
+  });
+
+  it("is redacted from a raw request a client had started writing, and from a URL", () => {
+    for (const value of [KEY, ENCODED_KEY]) {
+      for (const text of [
+        `POST /api/ai-agent/register HTTP/1.1\r\nAccept: application/json\r\nclusterkey: ${value}\r\nHost: oneuptime-app:3002\r\n\r\n`,
+        `POST /api/notification/sms/send HTTP/1.1\r\nX-ClusterKey: ${value}\r\n`,
+        `http://oneuptime-app:3002/api/notification/email/send?clusterKey=${value}&start=0`,
+        `cluster_key=${value}`,
+      ]) {
+        const output: string = redactLogString(text);
+
+        expect({ text, holdsTheKey: output.includes(value) }).toEqual({
+          text,
+          holdsTheKey: false,
+        });
+        expect(output).toContain(REDACTED);
+      }
+    }
+  });
+
+  it("leaves prose about the key, and words that merely contain it, alone", () => {
+    for (const text of [
+      "Cluster key not found.",
+      "Invalid cluster key provided",
+      "Cluster keys rotate with ONEUPTIME_SECRET.",
+    ]) {
+      expect(redactLogString(text)).toBe(text);
+    }
+  });
+});
+
+/*
+ * The key travels URI-encoded (ClusterKeyAuthorization.getClusterKey), and
+ * encodeURIComponent leaves ' ( ) ! * ~ as they are - characters that end a
+ * value in prose. However the key's value is written after its name, none of
+ * it stays: not the part before such a character, and not the part after.
+ */
+describe("the cluster key's value, with the characters it travels with", () => {
+  const RAW_KEYS: Array<string> = [
+    "it's-(my)-key!*~Q7dVk2LmX9pR4tWz8NcB1sHf",
+    "a)Q7dVk2LmX9pR4tWz8NcB1sHf6JyG3uAe",
+    "(Q7dVk2LmX9pR4tWz8NcB1sHf6JyG3uAe)",
+    "Q7dVk2LmX9pR4tWz8N'cB1sHf6JyG3uAe",
+    "p@ss/w0rd?&=+%#;: with (spaces)",
+  ];
+
+  // Every run of 12 characters of the value: none may survive.
+  function keptParts(output: string, value: string): Array<string> {
+    const kept: Set<string> = new Set<string>();
+
+    for (let start: number = 0; start + 12 <= value.length; start++) {
+      const part: string = value.slice(start, start + 12);
+
+      if (output.includes(part)) {
+        kept.add(part);
+      }
+    }
+
+    return Array.from(kept);
+  }
+
+  it("leaves none of it in a header line, a field, a quoted value or a raw request stringified again", () => {
+    for (const raw of RAW_KEYS) {
+      const value: string = encodeURIComponent(raw);
+
+      for (const text of [
+        `POST /api/ai-agent/register HTTP/1.1\r\nAccept: application/json\r\nclusterkey: ${value}\r\nHost: oneuptime-app:3002\r\n\r\n`,
+        `POST /api/notification/sms/send HTTP/1.1\r\nX-ClusterKey: ${value}\r\n`,
+        JSON.stringify({
+          _header: `POST /workflow/update/1 HTTP/1.1\r\nclusterkey: ${value}\r\nHost: oneuptime-app:3002\r\n`,
+        }),
+        `http://oneuptime-app:3002/workflow/update/1?clusterKey=${value}&start=0`,
+        `cluster_key=${value}`,
+        `{ clusterkey: '${value}', accept: 'application/json' }`,
+        `{ "x-clusterkey": "${value}" }`,
+        `clusterKey: ${value}`,
+      ]) {
+        const output: string = redactLogString(text);
+
+        expect({ text, kept: keptParts(output, value) }).toEqual({
+          text,
+          kept: [],
+        });
+        expect(output).toContain(REDACTED);
+      }
+    }
+  });
+
+  it("keeps what follows the value", () => {
+    const value: string = encodeURIComponent(RAW_KEYS[0]!);
+
+    expect(
+      redactLogString(
+        `POST /x HTTP/1.1\r\nclusterkey: ${value}\r\nHost: oneuptime-app:3002\r\n`,
+      ),
+    ).toBe(
+      `POST /x HTTP/1.1\r\nclusterkey: ${REDACTED}\r\nHost: oneuptime-app:3002\r\n`,
+    );
+    expect(redactLogString(`clusterKey=${value}&start=0&end=100`)).toBe(
+      `clusterKey=${REDACTED}&start=0&end=100`,
+    );
+    expect(
+      redactLogString(`{ clusterkey: '${value}', accept: 'application/json' }`),
+    ).toBe(`{ clusterkey: ${REDACTED}, accept: 'application/json' }`);
+  });
+
+  it("is left to the JSON rules inside JSON, which keep the member's shape", () => {
+    const value: string = encodeURIComponent(RAW_KEYS[0]!);
+
+    expect(
+      redactLogString(JSON.stringify({ clusterKey: value, runnerName: "a" })),
+    ).toBe(`{"clusterKey":"${REDACTED}","runnerName":"a"}`);
+  });
+});
+
+/*
+ * Log lines are text anybody can put a header or a field into, so the
+ * cluster key's spellings must keep every rule's time in line with the
+ * text's length: about 400,000 characters of each worst case, each read in
+ * well under 2 seconds.
+ */
+describe("the cluster key's spellings keep redaction linear", () => {
+  const LENGTH: number = 400000;
+
+  it.each([
+    ["the name run together", "clusterkey".repeat(LENGTH / 10)],
+    ["the name's start over and over", "cluster_".repeat(LENGTH / 8)],
+    ["names and separators with no value", "x-clusterkey=".repeat(LENGTH / 13)],
+    ["an unterminated JSON member", `"clusterKey":"${"a".repeat(LENGTH)}`],
+    ["a header line with a long value", `clusterkey: ${"k".repeat(LENGTH)}`],
+    ["a header line of spaces", `clusterkey:${" ".repeat(LENGTH)}`],
+    [
+      "a value of the characters the key travels with",
+      `clusterkey: ${"'()!*~".repeat(LENGTH / 6)}`,
+    ],
+    ["an unterminated quoted value", `clusterkey: "${"a".repeat(LENGTH)}`],
+    [
+      "an unterminated quoted value of escapes",
+      `clusterkey: "${'\\"'.repeat(LENGTH / 2)}`,
+    ],
+    ["names and quotes over and over", 'clusterkey:"'.repeat(LENGTH / 12)],
+    ["names and escaped quotes", 'clusterkey: \\"'.repeat(LENGTH / 14)],
+    ["names with no separator", "x-clusterkey ".repeat(LENGTH / 13)],
+    [
+      "names run together with what a name may start and end with",
+      `${"UCLUSTERKEY-".repeat(LENGTH / 12)}\u0000`,
+    ],
+  ])("%s", (_label: string, text: string) => {
+    const startedAt: number = Date.now();
+
+    redactLogString(text);
+
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+});
+
+/*
+ * Credentials in a URL (scheme://user:password@host) are found wherever a
+ * scheme can start, and a scheme can start at every word. Log text that
+ * names a credential (and so goes through every rule) can be one long run of
+ * words joined by - or . with no :// in it: it must still be read in time in
+ * line with its length.
+ */
+describe("credentials in a URL", () => {
+  const LENGTH: number = 400000;
+
+  it("are redacted, whatever the scheme", () => {
+    for (const [url, password] of [
+      ["postgres://oneuptime:hunter2@postgres:5432/oneuptimedb", "hunter2"],
+      ["mongodb+srv://admin:p4ss-w0rd@cluster0.example.net/db", "p4ss-w0rd"],
+      ["amqps://guest:guest-secret@rabbit/vhost", "guest-secret"],
+      ["see https://user:pa55@example.com/path and more", "pa55"],
+      [`${"s".repeat(64)}://user:long-scheme-pass@host`, "long-scheme-pass"],
+    ] as Array<[string, string]>) {
+      const output: string = redactLogString(url);
+
+      expect({ url, holdsThePassword: output.includes(password) }).toEqual({
+        url,
+        holdsThePassword: false,
+      });
+    }
+  });
+
+  it.each([
+    ["words joined by hyphens", "secret-".repeat(LENGTH / 7)],
+    ["words joined by dots", "token.".repeat(LENGTH / 6)],
+    [
+      "the cluster key's name joined by hyphens",
+      "UCLUSTERKEY-".repeat(LENGTH / 12),
+    ],
+    ["one letter and dotted capitals", `secret a${".C".repeat(LENGTH / 2)}`],
+    ["capitals joined by plus signs", `secret ${"A+".repeat(LENGTH / 2)}`],
+  ])(
+    "are looked for in time in line with the text: %s",
+    (_label: string, text: string) => {
+      const startedAt: number = Date.now();
+
+      redactLogString(text);
+
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
+});

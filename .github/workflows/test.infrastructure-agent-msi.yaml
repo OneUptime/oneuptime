@@ -1,0 +1,108 @@
+name: Infrastructure Agent MSI Test
+
+# The infrastructure agent's Windows installer
+# (agents/InfrastructureAgent/windows/oneuptime-infrastructure-agent.wxs),
+# built as the release builds it - build-msi.sh, wixl on Linux - for two
+# versions, then installed, upgraded over the running agent, downgraded and
+# uninstalled silently, as Intune or Configuration Manager does it, on Windows
+# x64 (the amd64 MSI) and Windows on Arm (the arm64 MSI). The checks are in
+# agents/InfrastructureAgent/windows/test-msi-upgrade.ps1.
+#
+# Path-filtered, so it must not be a required check: a pull request that does
+# not touch the agent never runs it.
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    paths:
+      - "agents/InfrastructureAgent/**"
+      - ".github/workflows/test.infrastructure-agent-msi.yaml"
+  push:
+    branches:
+      - master
+    paths:
+      - "agents/InfrastructureAgent/**"
+      - ".github/workflows/test.infrastructure-agent-msi.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build the MSIs of two versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: agents/InfrastructureAgent/go.mod
+      # build-msi.sh writes an SBOM of each MSI's program with syft, as it does
+      # in the release.
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0
+      # Each version's programs are built where GoReleaser puts them, and with
+      # a build id of their own, so the two versions carry different programs
+      # and the test can tell which one is installed.
+      - name: Build the agent and run build-msi.sh, for 1.0.0 and 1.0.1
+        working-directory: agents/InfrastructureAgent
+        run: |
+          set -euo pipefail
+          for version in 1.0.0 1.0.1; do
+            GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-buildid=$version" \
+              -o dist/oneuptime_windows_amd64_v1/oneuptime-infrastructure-agent.exe .
+            GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-buildid=$version" \
+              -o dist/oneuptime_windows_arm64_v8.0/oneuptime-infrastructure-agent.exe .
+            bash build-msi.sh "$version"
+            out="$RUNNER_TEMP/msi/$version"
+            mkdir -p "$out"
+            mv dist/oneuptime-infrastructure-agent-amd64.msi dist/oneuptime-infrastructure-agent-arm64.msi "$out/"
+            cp dist/oneuptime_windows_amd64_v1/oneuptime-infrastructure-agent.exe "$out/agent-amd64.exe"
+            cp dist/oneuptime_windows_arm64_v8.0/oneuptime-infrastructure-agent.exe "$out/agent-arm64.exe"
+          done
+          ls -lR "$RUNNER_TEMP/msi"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-agent-msi
+          path: ${{ runner.temp }}/msi
+          if-no-files-found: error
+          retention-days: 7
+
+  install-and-upgrade:
+    name: Install and upgrade the ${{ matrix.arch }} MSI
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: windows-latest
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: infrastructure-agent-msi
+          path: msi
+      - name: Install, upgrade, downgrade and uninstall the agent
+        shell: pwsh
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: ./agents/InfrastructureAgent/windows/test-msi-upgrade.ps1 -Arch $env:ARCH -MsiDirectory msi -LogDirectory "$env:RUNNER_TEMP/msi-logs"
+      - name: Keep the installer's and the agent's logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infrastructure-agent-msi-logs-${{ matrix.arch }}
+          path: |
+            ${{ runner.temp }}/msi-logs
+            C:/ProgramData/oneuptime-infrastructure-agent/*.log
+          if-no-files-found: ignore
+          retention-days: 7

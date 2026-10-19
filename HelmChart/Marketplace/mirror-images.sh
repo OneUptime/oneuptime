@@ -11,6 +11,8 @@
 #                 of architectures it does not run, which includes the build
 #                 attestations (unknown/unknown) Docker Hub images carry, and
 #                 the official images' other platforms (386, s390x...);
+#   aws-eks-addon the same, into the repositories of the Kubernetes agent's
+#                 add-on product: an EKS add-on must run on both;
 #   azure         linux/amd64 only (the only platform Microsoft takes), into
 #                 the publisher's Azure Container Registry;
 #   google-cloud  linux/amd64 (GKE apps run on x86 nodes), into Artifact
@@ -78,7 +80,7 @@ SERVICE_NAME="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[
 
 while IFS=$'\t' read -r marketplace source target extra_tags; do
     case "$marketplace" in
-        aws)
+        aws | aws-eks-addon)
             # A release's image is the same image every time, and AWS Marketplace's repositories
             # may refuse to overwrite a tag: one an earlier run copied is left as it is.
             if [ "$DRY_RUN" != "true" ] && crane digest "$target" >/dev/null 2>&1; then

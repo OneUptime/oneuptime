@@ -9,7 +9,7 @@ import Model, {
 } from "../../Models/DatabaseModels/AIAgent";
 import AIAgentOwnerUser from "../../Models/DatabaseModels/AIAgentOwnerUser";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import AIAgentOwnerTeam from "../../Models/DatabaseModels/AIAgentOwnerTeam";
 import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
@@ -38,6 +38,7 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -519,6 +520,43 @@ export class Service extends ProjectReferencesService<Model> {
     return URL.fromString(dashboardUrl.toString()).addRoute(
       `/${projectId.toString()}/ai/agents`,
     );
+  }
+
+  /*
+   * The global AI agent the in-cluster Runner registering under a key no
+   * global agent holds takes over (API/AIAgentAPI, /register), or null: the
+   * global agent that already holds the key, else the one whose key is a
+   * value this repository ships (ShippedKeyTakeover). That is the agent of a
+   * Runner that ran on the config.example.env ONEUPTIME_RUNNER_KEY and came
+   * back under the random key npm start gave it: it stays the one global
+   * agent, rather than a second one appearing beside an agent that can never
+   * report in again. A global agent whose key is the installation's own is
+   * never taken over.
+   */
+  @CaptureSpan()
+  public async findGlobalAIAgentToTakeOver(data: {
+    presentedKey: string;
+  }): Promise<Model | null> {
+    const globalAIAgents: Array<Model> = await this.findBy({
+      query: {
+        isGlobalAIAgent: true,
+      },
+      select: {
+        _id: true,
+        key: true,
+        lastAlive: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return ShippedKeyTakeover.pickRowToTakeOver({
+      rows: globalAIAgents,
+      presentedKey: data.presentedKey,
+    });
   }
 
   @CaptureSpan()

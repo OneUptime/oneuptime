@@ -14,7 +14,7 @@ up-to-date list see [`values.yaml`](../values.yaml).
 | `host`             | Primary hostname served by OneUptime (used for routing and certificates).                       | `localhost`     | 🚨 |
 | `httpProtocol`     | Set to `https` when people reach OneUptime over HTTPS (TLS at the chart's nginx or at a proxy in front of it), otherwise `http`. See [HTTPS](#https). | `http`          | 🚨 |
 | `ssl.provision`    | Auto-provision a Let's Encrypt certificate for the primary host (needs public ports 80 & 443).  | `false`         |    |
-| `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`. Set to a long random string in production.                    | `nil`           |    |
+| `oneuptimeSecret`  | Value used for `ONEUPTIME_SECRET`, the cluster key OneUptime's own services and the in-cluster Runner present to each other. Leave it empty for a generated one, or set a long random string. A value the repository ships (`secret`, a `please-change-this` placeholder) is refused, and the Runner does not register with it. | `nil`           |    |
 | `encryptionSecret` | Value used for `ENCRYPTION_SECRET`. Set to a long random string in production.                   | `nil`           |    |
 | `global.clusterDomain` | Kubernetes cluster domain.                                                                   | `cluster.local` |    |
 | `nodeEnvironment`  | Node environment. Leave as `production` unless doing local development.                          | `production`    |    |
@@ -165,6 +165,7 @@ runner:
 | `podDisruptionBudget.minAvailable`              | Minimum pods that must stay available. Integer or percentage (e.g. `"50%"`). Takes precedence over `maxUnavailable`. Leave empty to use `maxUnavailable`. | `""` |
 | `podDisruptionBudget.maxUnavailable`            | Maximum pods that may be unavailable during a voluntary disruption. Integer or percentage.    | `1`     |
 | `<service>.podDisruptionBudget`                 | Per-service override of the global block. Omitted keys inherit the global value. `<service>` = app/worker/nginx/home/runner/probes.&lt;key&gt;/pgbouncer. | `{}` (inherit) |
+| `deployment.spreadReplicasAcrossNodes`          | Give each stateless service a soft rule that puts its replicas on different nodes, so one node drain or node failure cannot take every replica down. Never blocks scheduling. Any `topologySpreadConstraints` you set replace it. See [Spreading replicas across nodes](#spreading-replicas-across-nodes). | `true` |
 
 ## Probes
 
@@ -257,6 +258,75 @@ Bitnami charts — you will need to set the security context for those as well.
 | `nodeSelector`             | Node selector.             | `{}`    |
 | `tolerations`              | Tolerations.               | `[]`    |
 | `affinity`                 | Affinity.                  | `{}`    |
+| `topologySpreadConstraints` | Topology spread constraints for the stateless services. A constraint without a `labelSelector` is scoped to each service's own pods. | `[]` |
+| `<service>.affinity`       | Affinity for one service. Replaces the chart-wide `affinity`. | `{}` |
+| `<service>.topologySpreadConstraints` | Topology spread constraints for one service. Replaces the chart-wide list. | `[]` |
+
+`<service>` is any of `app`, `home`, `nginx`, `worker`, `runner`,
+`telemetryWriter`, `probes.<name>` or `testServer`. `pgbouncer` takes
+`pgbouncer.topologySpreadConstraints` too, but like its `affinity`, `tolerations`
+and `nodeSelector` it never inherits the chart-wide value. A service's value
+replaces the chart-wide one; the two are not merged.
+
+### Spreading replicas across nodes
+
+Kubernetes only weakly prefers to spread a Deployment's pods across nodes, and
+"this node already has the image" usually outweighs it. Two replicas of a
+service can end up on one node, and draining that node in a node-pool upgrade,
+or losing it, then takes the service down.
+
+`deployment.spreadReplicasAcrossNodes` (on by default) gives every stateless
+service a soft rule that spreads its replicas across nodes. For `app` it
+renders:
+
+```yaml
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app: oneuptime-app
+    matchLabelKeys:
+      - pod-template-hash
+```
+
+- `whenUnsatisfiable: ScheduleAnyway` makes it a strong preference, not a
+  requirement. Pods still schedule on a single-node cluster, or when only one
+  node has room, so it never blocks a rollout.
+- `matchLabelKeys: [pod-template-hash]` counts each rollout's pods on their own.
+  Counted together with the old pods, the second new pod could join the first
+  on the node that already pulled the new image. It is added on Kubernetes 1.27
+  and later only.
+- There is no zone rule by default. A pod that declares spread constraints
+  replaces the scheduler's built-in ones, and the scheduler then ignores every
+  node that lacks one of the constraints' labels, so a zone rule would turn the
+  spreading off on clusters whose nodes have no zone label.
+
+Which rule a service gets: its own `<service>.topologySpreadConstraints`, else
+the chart-wide `topologySpreadConstraints` (except for `pgbouncer`), else the
+default above. Set `deployment.spreadReplicasAcrossNodes: false` to render no
+default. Any of these changes the pod template, so the pods roll once.
+
+A constraint you write without a `labelSelector` gets the service's own one,
+and on Kubernetes 1.27 and later also `matchLabelKeys: [pod-template-hash]`
+unless it lists `matchLabelKeys` of its own. So one chart-wide entry spreads
+every service separately. On a multi-zone cluster, spread across zones as well
+(the list replaces the default, so keep the node rule):
+
+```yaml
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+```
+
+Spreading only protects a service that runs more than one replica. Pair it with
+`podDisruptionBudget.enabled: true`, which stops a node drain from evicting
+every replica at once.
 
 ## Extra environment variables and volumes
 
@@ -460,6 +530,11 @@ they like and the allowlist stops meaning anything.
 Note that the allowlists assume the app is reachable only *through* those
 proxies. Keep the app Service internal; a caller who can open a connection to
 it directly is the peer, and no header setting compensates for that.
+
+IP rate limits count each client address, and for an IPv6 client its whole
+`/64` as well, with room for ten addresses: one host can send from every
+address of its `/64`, and an office or a hosting provider can put many people
+or servers in one. Both are read from the address `trustedProxyHops` picks.
 
 | Parameter          | Description                                                                                          | Default |
 |--------------------|------------------------------------------------------------------------------------------------------|---------|

@@ -374,6 +374,39 @@ data:
           - sources:
               - from: connection
 
+      # Pod-level telemetry stays pod-level. Since collector 0.118.0,
+      # k8sattributes gives telemetry that names no container (here
+      # k8s_cluster's k8s.pod.phase and OBI's network metrics) the container
+      # of a pod that has only one, as k8s.container.name; 0.96.0 did not.
+      # OneUptime's Kubernetes monitors read that attribute as the container
+      # an alert is about ("Container x in pod y"), and it would split a
+      # pod's rows. So the first marks what names neither a container nor a
+      # container.id before k8sattributes runs, and the second takes back
+      # the container name k8sattributes gave it, and the mark. A
+      # container.id resolved to its name is kept: 0.96.0 did that too.
+      transform/pod-level-mark:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - set(attributes["oneuptime.k8s.pod_level"], true) where attributes["k8s.container.name"] == nil and attributes["container.id"] == nil
+        trace_statements:
+          - context: resource
+            statements:
+              - set(attributes["oneuptime.k8s.pod_level"], true) where attributes["k8s.container.name"] == nil and attributes["container.id"] == nil
+      transform/pod-level-unmark:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - delete_key(attributes, "k8s.container.name") where attributes["oneuptime.k8s.pod_level"] == true
+              - delete_key(attributes, "oneuptime.k8s.pod_level")
+        trace_statements:
+          - context: resource
+            statements:
+              - delete_key(attributes, "k8s.container.name") where attributes["oneuptime.k8s.pod_level"] == true
+              - delete_key(attributes, "oneuptime.k8s.pod_level")
+
       # Stamp telemetry that doesn't already carry these attributes (e.g.
       # k8s_cluster receiver metrics, k8sobjects logs) with the cluster
       # name and a default service.name. Uses `insert` so OBI-emitted
@@ -557,7 +590,9 @@ data:
             {{- end }}
           processors:
             - memory_limiter
+            - transform/pod-level-mark
             - k8sattributes
+            - transform/pod-level-unmark
             {{- if eq (include "kubernetes-agent.metricFiltersEnabled" .) "true" }}
             - filter/telemetry
             {{- end }}
@@ -605,7 +640,9 @@ data:
             - otlp
           processors:
             - memory_limiter
+            - transform/pod-level-mark
             - k8sattributes
+            - transform/pod-level-unmark
             - resource
             {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
             # Before the user's filters and the sampler, so neither spends

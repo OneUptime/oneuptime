@@ -31,7 +31,7 @@ flowchart TB
 3. Le Runner récupère le contexte de la tâche. Pour une exception, ce sont son type, son message et sa stack trace.
 4. Il clone le dépôt dans un espace de travail qui lui est propre et crée une branche. Une correction d'exception s'appelle `oneuptime-fix-exception-` suivi des premiers caractères de l'identifiant de l'exécution.
 5. Un agent de code, propulsé par le fournisseur LLM de votre projet, lit le code et écrit la modification. Le serveur OneUptime effectue les appels au LLM, si bien que le Runner ne détient jamais la clé d'API de votre fournisseur, et chaque appel est mesuré et listé dans les journaux IA.
-6. Si le dépôt a des commandes de vérification, le Runner compile et teste la modification avant de committer quoi que ce soit, et renvoie un échec à l'agent de code pour qu'il le répare (voir [Vérification avant la pull request](#vérification-avant-la-pull-request)).
+6. Si le dépôt a des commandes de vérification, votre propre Runner compile et teste la modification avant de committer quoi que ce soit, et renvoie un échec à l'agent de code pour qu'il le répare (voir [Vérification avant la pull request](#vérification-avant-la-pull-request)).
 7. Le Runner committe, pousse la branche, ouvre la pull request et supprime l'espace de travail.
 
 La page d'où la tâche a été lancée affiche son état en direct. Chaque tâche est listée sous **Produits → Code → Tâches** : ouvrez-en une pour voir sa **Vue d'ensemble**, ses **Journaux** (une ligne pour chaque fichier que le Runner a lu ou écrit et pour chaque commande qu'il a exécutée) et ses **Demandes de tirage**.
@@ -68,11 +68,11 @@ Quand l'une d'elles est définie, chaque exécution de correction vérifie sa mo
 
 1. Quand l'agent de code a terminé, les commandes s'exécutent dans l'ordre à la racine du dépôt, sur le Runner, dans l'espace de travail cloné. Chacune dispose de 15 minutes au plus et s'exécute avec `CI=true`, pour que rien n'attende une saisie ; le premier échec arrête la passe.
 2. En cas d'échec, la fin de la sortie de la commande en échec retourne au même agent de code comme tâche de réparation, avec la consigne de corriger sa propre modification plutôt que d'affaiblir ou de sauter des tests, et les commandes s'exécutent à nouveau. Il fait au plus **2** tentatives de réparation. Elles partagent le budget LLM de l'exécution, et leurs modifications vont dans le même commit que la correction.
-3. Le résultat, réussi, en échec ou ignoré (aucune commande définie), est écrit dans une section Verification de la description de la pull request et enregistré sur la pull request de la tâche.
+3. Le résultat, réussi, en échec ou ignoré (aucune commande définie, ou un Runner partagé), est écrit dans une section Verification de la description de la pull request et enregistré sur la pull request de la tâche.
 
 Une modification qui échoue toujours à la vérification n'est pas jetée : la pull request s'ouvre quand même, avec une section "Verification failed" clairement signalée qui nomme la commande en échec et se termine par sa sortie. Le travail est conservé, et la personne qui relit décide. Un dépôt sans commande définie est signalé comme ignoré, plutôt que de laisser croire à un build au vert.
 
-Les commandes sont des paramètres du dépôt que votre équipe écrit, exécutés sur votre propre Runner : le même modèle de confiance que les étapes Bash d'un runbook. L'IA ne les écrit ni ne les modifie jamais.
+Les commandes sont des paramètres du dépôt que votre équipe écrit, exécutés sur votre propre Runner : le même modèle de confiance que les étapes Bash d'un runbook. L'IA ne les écrit ni ne les modifie jamais. Les Runners partagés de OneUptime ne les exécutent jamais : sur un Runner partagé, la correction est écrite et ouverte pour relecture, la vérification est signalée comme ignorée, et la CI de votre dépôt vérifie la modification. [Faites tourner votre propre Runner](#faire-tourner-votre-propre-runner) pour que les corrections soient compilées et testées avant l'ouverture de la pull request.
 
 ## Avant de commencer
 

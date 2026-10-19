@@ -148,6 +148,10 @@ Signing in again sends a new link: check your spam folder too. If you cannot sig
 At the second step of signing in, choose **Lost access to your authenticator?** and enter one of your backup codes. Then open **Security → Two-factor authentication** and add your new app. Without backup codes, ask an administrator of your OneUptime installation to reset two-factor authentication on your account.
 :::
 
+:::details Signing in asks me to wait before I try another code
+After five wrong codes in a row, each next code waits before it is checked: one minute, then two, then four, and so on, up to an hour. OneUptime counts wrong codes for your account wherever they are entered, emails you when the waits begin, and starts counting again when you get a code right. Wait and try again, sign in with a security key, or choose **Lost access to your authenticator?** and enter a backup code. If you did not enter those codes, someone knows your password: reset it with **Forgot password?** on the sign-in page, which also ends the wait.
+:::
+
 :::details Times in the dashboard are an hour off
 The dashboard shows times in the **Timezone** on your profile, not your computer's. Check it on **User Profile → Overview**.
 :::

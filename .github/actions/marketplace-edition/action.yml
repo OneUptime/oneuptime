@@ -1,8 +1,8 @@
 name: Marketplace edition
 description: >-
-  For the Marketplace Release workflow: installs crane (pinned), puts the chart of the release
-  into the checkout - the chart the release's images were built with, from the release's commit
-  or its tag - and, given a marketplace, builds that edition of it with
+  For the Marketplace Release workflow: installs crane (pinned), puts the charts of the release
+  into the checkout - the OneUptime and Kubernetes agent charts the release's images were built
+  with, from the release's commit or its tag - and, given a marketplace, builds that edition with
   HelmChart/Marketplace/build.py.
 
 inputs:
@@ -14,7 +14,7 @@ inputs:
     required: false
     default: ""
   marketplace:
-    description: aws, azure or google-cloud. Empty only takes the released chart.
+    description: aws, azure, google-cloud or aws-eks-addon. Empty only takes the released charts.
     required: false
     default: ""
 
@@ -44,8 +44,9 @@ runs:
           --source tgz:crane "https://github.com/google/go-containerregistry/releases/download/v${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz"
         echo "${RUNNER_TEMP}/marketplace-bin" >>"$GITHUB_PATH"
 
-    # The workflow runs from master, whose chart may already be ahead of the release. The
-    # edition is built from the chart as it was released (the automation stays master's).
+    # The workflow runs from master, whose charts may already be ahead of the release. The
+    # edition is built from the charts as they were released (the automation stays master's):
+    # OneUptime's for Enterprise, the Kubernetes agent's for the EKS add-on.
     - name: Take the released chart
       shell: bash
       env:
@@ -62,9 +63,9 @@ runs:
           exit 0
         fi
         git fetch --no-tags --depth 1 origin "$ref"
-        rm -rf HelmChart/Public/oneuptime
-        git checkout FETCH_HEAD -- HelmChart/Public/oneuptime
-        echo "The chart of ${VERSION}, from $(git rev-parse --short FETCH_HEAD)."
+        rm -rf HelmChart/Public/oneuptime HelmChart/Public/kubernetes-agent
+        git checkout FETCH_HEAD -- HelmChart/Public/oneuptime HelmChart/Public/kubernetes-agent
+        echo "The charts of ${VERSION}, from $(git rev-parse --short FETCH_HEAD)."
 
     - name: Build the edition
       id: build

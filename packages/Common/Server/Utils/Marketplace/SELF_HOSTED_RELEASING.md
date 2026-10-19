@@ -10,6 +10,9 @@ versions to those listings. Follow the repository's
 OneUptime Cloud's listings (SaaS, billed in usage units) are a different
 product with a different integration: see [RELEASING.md](RELEASING.md). The
 two share seller accounts, company facts and listing media, nothing else.
+The free Kubernetes agent's Amazon EKS add-on is a third product on AWS, built
+and shipped by the same pipeline: see
+[The Kubernetes agent as an Amazon EKS add-on](#the-kubernetes-agent-as-an-amazon-eks-add-on).
 
 Buyers read the guide at
 [`/docs/installation/cloud-marketplaces`](https://oneuptime.com/docs/installation/cloud-marketplaces)
@@ -181,16 +184,17 @@ marketplace's standard contract, or OneUptime's terms
 Everything lives in [HelmChart/Marketplace](../../../../../HelmChart/Marketplace)
 ([README](../../../../../HelmChart/Marketplace/README.md)):
 
-| File                       | What it is                                                                                                                                                                                      |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `build.py`                 | Builds one edition: `python3 HelmChart/Marketplace/build.py --marketplace aws\|azure\|google-cloud --version X.Y.Z --out DIR`                                                                   |
-| `images.json`              | The images every edition ships, with the third-party versions pinned                                                                                                                            |
-| `editions.json`            | Each marketplace's registry and its own settings                                                                                                                                                |
-| `mirror-images.sh`         | Copies an edition's images into its marketplace's registry (`crane`; `--dry-run` shows the plan)                                                                                                |
-| `azure/`                   | The CNAB manifest, the Azure portal's create experience and the ARM template                                                                                                                    |
-| `google-cloud/`            | The deployer's Dockerfile, `schema.yaml`, the `Application` resource and the tester                                                                                                             |
-| `aws/delivery-option.json` | The Helm delivery option every AWS version gets: title, description, usage instructions, override parameters                                                                                    |
-| `automation/`              | The release automation the workflow runs (`release_plan.py`, `aws_catalog.py`, `partner_center.py`, `google_cloud_release.py`) and the one-time CI setup (`ci_setup.py`), with their unit tests |
+| File                       | What it is                                                                                                                                                                                                     |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `build.py`                 | Builds one edition: `python3 HelmChart/Marketplace/build.py --marketplace aws\|azure\|google-cloud --version X.Y.Z --out DIR`                                                                                  |
+| `images.json`              | The images every edition ships, with the third-party versions pinned                                                                                                                                           |
+| `editions.json`            | Each marketplace's registry and its own settings                                                                                                                                                               |
+| `mirror-images.sh`         | Copies an edition's images into its marketplace's registry (`crane`; `--dry-run` shows the plan)                                                                                                               |
+| `azure/`                   | The CNAB manifest, the Azure portal's create experience and the ARM template                                                                                                                                   |
+| `google-cloud/`            | The deployer's Dockerfile, `schema.yaml`, the `Application` resource and the tester                                                                                                                            |
+| `aws/delivery-option.json` | The Helm delivery option every AWS version gets: title, description, usage instructions, override parameters                                                                                                   |
+| `automation/`              | The release automation the workflow runs (`release_plan.py`, `aws_catalog.py`, `partner_center.py`, `google_cloud_release.py`) and the one-time CI setup (`ci_setup.py`), with their unit tests                |
+| `aws-eks-addon/`           | The Kubernetes agent's EKS add-on: its delivery option, its images and the configuration schema buyers set (see [The Kubernetes agent as an Amazon EKS add-on](#the-kubernetes-agent-as-an-amazon-eks-add-on)) |
 
 The workflow is [`.github/workflows/marketplace-release.yml`](../../../../../.github/workflows/marketplace-release.yml):
 see [Releasing a version](#releasing-a-version).
@@ -803,6 +807,164 @@ Each OneUptime user (anyone with a login), per hour. Status page subscribers are
 - **Moving an installation between marketplaces**: the usage still owed to
   the old marketplace is logged as not billed, and the new one starts fresh.
 
+## The Kubernetes agent as an Amazon EKS add-on
+
+A second, free product on AWS Marketplace, in the same seller account: the
+Kubernetes agent ([HelmChart/Public/kubernetes-agent](../../../../../HelmChart/Public/kubernetes-agent)),
+which buyers add to an EKS cluster from the EKS console's **Get more add-ons**
+next to Datadog's, Dynatrace's and New Relic's. It sends to OneUptime Cloud or
+a self-hosted OneUptime; nothing in it is billed or licensed. Buyers read
+[Install as an Amazon EKS add-on](https://oneuptime.com/docs/telemetry/kubernetes-agent#install-as-an-amazon-eks-add-on)
+(`packages/App/FeatureSet/Docs/Content/<lang>/telemetry/kubernetes-agent.md`,
+in every docs language).
+
+|                     |                                                                                                                                                                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product             | Container product, free, with one **Amazon EKS add-on** delivery option per version (`EksAddOnDeliveryOptionDetails`)                                                                                                            |
+| Add-on              | `kubernetes-agent`, which EKS names `<seller alias>_kubernetes-agent` (editions.json `sellerAlias`, expected `oneuptime`); type `monitoring`; namespace `oneuptime-agent`. None of the three can change once a version has them  |
+| Kubernetes versions | `compatibleKubernetesVersions` in `aws-eks-addon/delivery-option.json`: EKS's standard-support versions (1.34 to 1.37 on 2026-10-18)                                                                                             |
+| What the buyer does | Creates the Secret `oneuptime-ingestion-key` (key `api-key`) in `oneuptime-agent`, then adds the add-on: no IAM role, no Helm                                                                                                    |
+| A new version       | Published as **Limited** (the seller account's EKS clusters in ap-northeast-2, Seoul) once AWS has ingested it (5 to 10 business days), tested by us there on every Kubernetes version it names, then made public on our request |
+
+### What the add-on is
+
+`build.py --marketplace aws-eks-addon` builds the agent chart for AWS's add-on
+rules (Seller Guide, "Requirements for Amazon EKS add-on products"), and the
+marketplace suite checks each rule:
+
+- **Every image from the add-on product's repositories**, linux/amd64 and
+  linux/arm64 only: the collector, eBPF instrumentation, kube-state-metrics,
+  OpenCost, Prometheus, and OneUptime's log tailer, cost poller and AI agent
+  (`aws-eks-addon/images.json`). Third-party images keep the chart's pins;
+  OneUptime's are tagged with the release, not `release`.
+- **No secret in the configuration.** EKS refuses a configuration schema that
+  takes keys, and shows configuration values in plain text: the agent reads
+  the ingestion key from the Secret `oneuptime.existingSecretName` names
+  (default `oneuptime-ingestion-key`), which the buyer creates.
+- **The cluster's name from EKS**: the delivery option's environment override
+  sets `clusterName` to `${AWS_EKS_CLUSTER_NAME}` at install. AWS's own checks
+  render the chart without it, so values.yaml carries the placeholder
+  `set-by-amazon-eks`; a cluster that shows up under that name in OneUptime
+  means the override did not reach it.
+- **What a buyer may set** is `aws_mp_configuration_schema.json`
+  (`aws-eks-addon/configuration-schema.json`, JSON Schema draft-07: EKS takes
+  no 2020-12): the URL, the Secret's name, labels, the `eks-fargate` preset,
+  and logs, eBPF, the AI agent, kube-state-metrics and costs on or off. Each
+  default there is the add-on's values.yaml's. The chart's own schema is
+  open at its root, for the `k8version` value EKS renders add-ons with.
+- **Nothing EKS cannot run**: no hook, no `lookup`, no CRD, no Release object
+  but `.Name` and `.Namespace`, no subchart; no profiler and no debug sidecar
+  (not offered, so their images are not shipped). Resources are named as the
+  Helm install names them (`fullnameOverride: kubernetes-agent`).
+- **eBPF is on**, as in the Helm install: its DaemonSet runs privileged, which
+  AWS's least-privilege rule may question (eBPF sensors such as groundcover's
+  and Upwind's are EKS add-ons). `ebpf.enabled: false` turns it off.
+
+### One-time setup (maintainer)
+
+1. **Create the product** (an agent may draft it; the maintainer submits it):
+   **Server products > Create server product > Container**. Pricing **Free**.
+   Product information from [the add-on's listing content](#the-add-ons-listing-content);
+   EULA: the maintainer's choice (the agent is Apache-2.0). Initial repository
+   `kubernetes-agent` (`helm push` names the chart's repository after the
+   chart). **Submit** moves it to **Limited**.
+2. **Its ID into the code** (agent, pull request): `aws_catalog.py find-product`
+   lists the seller's container products; put the new one's ID in
+   `editions.json`, `aws-eks-addon.productId`.
+3. **Repositories**: `python3 HelmChart/Marketplace/automation/aws_catalog.py add-repositories --edition aws-eks-addon`
+   creates `kubernetes-agent` (if the wizard did not) and one per image. They
+   share the seller prefix with the Enterprise product's (`aws-eks-addon.registry`),
+   under names that product does not use.
+4. **The release role**: run `ci_setup.py aws --apply` again, so the workflow's
+   role may add versions to the new product and list its open change sets.
+5. **The add-on delivery option**: **Request changes > Add new version** must
+   offer an **Amazon EKS add-on** delivery option. If it does not, ask AWS
+   Marketplace Seller Operations (**Contact us** in the Management Portal) to
+   enable EKS add-on delivery for the product: name the add-on
+   (`kubernetes-agent`), its type (`monitoring`), its namespace
+   (`oneuptime-agent`), the Kubernetes versions, and that it needs no IAM
+   permissions. Confirm the seller alias EKS will put before the name, and
+   correct `sellerAlias` (and the docs' `oneuptime_kubernetes-agent`) if it
+   is not `oneuptime`.
+6. **Ready**: set `"ready": true` for `aws-eks-addon` in `editions.json`.
+
+### Releasing a version
+
+The Marketplace Release workflow does it, as for the other editions:
+`aws-eks-addon-push` builds the edition from the released agent chart, copies
+its images and pushes its chart; `aws-eks-addon-publish`, once a maintainer
+approves it, adds the version (`AddDeliveryOptions`, Visibility Limited) and
+writes the testing steps to the run's summary. **The weekly run adds no new
+add-on version while AWS is still applying one, or one is Limited**: each
+version costs AWS's ingestion and our testing, so they never pile up. A run
+by hand (**marketplaces**: `aws-eks-addon`) ships whatever. By hand:
+
+```bash
+VERSION=X.Y.Z
+OUT="$(mktemp -d)/oneuptime-eks-addon"
+python3 HelmChart/Marketplace/build.py --marketplace aws-eks-addon --version "$VERSION" --out "$OUT"
+HelmChart/Marketplace/mirror-images.sh "$OUT/images.json"
+helm package "$OUT/kubernetes-agent" --destination "$OUT"
+helm push "$OUT/kubernetes-agent-$VERSION.tgz" "oci://709825985650.dkr.ecr.us-east-1.amazonaws.com/<sellerName>"
+python3 HelmChart/Marketplace/automation/aws_catalog.py plan --edition aws-eks-addon --images-json "$OUT/images.json" --version "$VERSION" --out "$OUT/change-set.json"
+python3 HelmChart/Marketplace/automation/aws_catalog.py submit --change-set "$OUT/change-set.json" --name "OneUptime Kubernetes agent $VERSION"
+```
+
+**Testing (maintainer; it costs money)**: once the request shows **Success**
+(the version is Limited), in the seller account, in ap-northeast-2:
+
+1. Create an EKS cluster on each Kubernetes version the version names, with
+   two small nodes (one amd64, one arm64 Graviton, so both images run).
+2. In each: create the namespace `oneuptime-agent` and the Secret
+   `oneuptime-ingestion-key` with a test project's ingestion key, then
+   `aws eks create-addon --cluster-name <cluster> --addon-name oneuptime_kubernetes-agent --addon-version <version>`.
+3. Check the add-on is `ACTIVE`, every pod runs, and the cluster shows in
+   OneUptime under its EKS name (not `set-by-amazon-eks`) with metrics, logs
+   and eBPF traces. Try a configuration value (`{"kubeStateMetrics": {"enabled": true}}`
+   with `update-addon`), and on one cluster a Fargate profile with
+   `{"preset": "eks-fargate"}`.
+4. Keep the clusters until AWS makes the version public; scale the nodes down
+   meanwhile.
+
+**Going public**: `python3 HelmChart/Marketplace/automation/aws_catalog.py go-public --version X.Y.Z`
+(the maintainer, signed in: the workflow's role cannot), which asks AWS to
+make that version public (`UpdateDeliveryOptionsVisibility`); AWS refuses it
+until the testing is done. The first time, the product itself must be public
+first: **Request changes > Update visibility**.
+
+**New EKS versions**: AWS gives sellers 45 days after a new EKS version is
+generally available to support it. Test the newest add-on version on it, add
+it to `compatibleKubernetesVersions` (the next version carries it), and drop
+versions that leave extended support.
+
+### The add-on's listing content
+
+**Name:** OneUptime Kubernetes Agent
+
+**Short description:**
+
+```text
+The OneUptime Kubernetes agent as an Amazon EKS add-on: your cluster's metrics, events, pod logs and eBPF traces in OneUptime, installed and upgraded by EKS.
+```
+
+**Long description** (AWS asks an add-on to another product, and one that
+needs an ongoing connection, to say so):
+
+```text
+The OneUptime Kubernetes agent sends your EKS cluster's metrics, Kubernetes events and pod logs to OneUptime over OpenTelemetry, and with eBPF the traces, request metrics and service map of every pod, with no code changes and no SDKs. It also runs the Kubernetes AI agent, which runs read-only kubectl while OneUptime AI investigates an incident or alert on the cluster.
+
+This product extends the functionality of OneUptime and without it, this product has very limited utility: it needs a OneUptime project, on OneUptime Cloud (also on AWS Marketplace) or on your own OneUptime. This product requires an ongoing internet connection to that OneUptime, over HTTPS.
+
+Before you add it, put your OneUptime ingestion key in the Kubernetes Secret oneuptime-ingestion-key, in the oneuptime-agent namespace. Guide: https://oneuptime.com/docs/telemetry/kubernetes-agent#install-as-an-amazon-eks-add-on
+```
+
+**Highlights:** metrics, events and pod logs from every node, with no
+configuration; eBPF traces and the service map, with no code changes;
+read-only AI investigations of the cluster's incidents.
+
+The delivery option's description and usage instructions are
+`aws-eks-addon/delivery-option.json` (the workflow sends them).
+
 ## Policy questions to settle before submitting
 
 Settle these with each marketplace before the first submission; each can
@@ -856,6 +1018,19 @@ cost a review round.
 - `mpdev verify` does not run in the workflow (it needs a GKE cluster, which
   costs money): Google's review runs the same checks on every version.
 - Microsoft and Google editions install on `linux/amd64` nodes only.
+- **The EKS add-on has not met AWS yet** (2026-10-18): the add-on delivery
+  option's fields are AWS's published shapes, and the chart passes AWS's own
+  `helm lint` and `helm template` with Helm 3.19.0, but nothing has been
+  submitted. Unverified until the first version: the seller alias, whether the
+  environment override fills `clusterName` in, the release name EKS renders
+  with (the chart does not depend on it), and AWS's scan of the agent's
+  images. Scanned with trivy 0.75.0 on 2026-10-18, both architectures: no
+  fixable critical finding in any of them; fixable high ones in
+  kube-state-metrics v2.20.0 (9), Prometheus v3.15.0 (8), OpenCost 1.121.3
+  (7), the collector 0.161.0 (4: Go 1.26.8 and x/net, fixed in 0.163.1),
+  OBI v0.14.0 (4) and the AI agent's kubectl (13). Scan again before each
+  submission (`trivy image --severity HIGH,CRITICAL --ignore-unfixed
+  <source>`, for each source in the edition's `images.json`).
 
 ## History
 
@@ -876,6 +1051,7 @@ rejection, go-live and price change.
 | 2026-10-18 | Google      | Artifact Registry `oneuptime` (us, keeps 3 releases), the release service account and Workload ID   | Agent      |
 | 2026-10-18 | GitHub      | Release environments (reviewers simlarsen, nawazdhandala) and variables; releases not enabled yet   | Agent      |
 | 2026-10-18 | Microsoft   | First real run: cpa 1.3.59 wants `clusterArmTemplate`, not the docs' `clusterARMTemplate`; fixed    | Agent      |
+| 2026-10-18 | AWS         | The Kubernetes agent's EKS add-on: edition, release jobs and docs added; no product created yet     | Agent      |
 
 ## Notes for agents driving the browser
 

@@ -1,0 +1,147 @@
+# The shared in-cluster Runner (templates/runner.yaml) serves AI code fixes
+# for every project that has no Runner of its own. It holds ONLY what it needs
+# to reach the OneUptime server and report telemetry: its URL, its keys and
+# its telemetry settings, never the server's own settings. It reaches the
+# server with ONEUPTIME_SECRET (its cluster key) and ONEUPTIME_RUNNER_KEY; its
+# LLM calls are mediated by the server.
+#
+# So runner.yaml renders oneuptime.env.oneuptimeSecret (the cluster key alone),
+# NOT oneuptime.env.runtime (the app's whole environment), and its pod carries
+# no ServiceAccount token. These tests fail the moment either comes back.
+suite: shared runner minimal environment
+release:
+  name: oneuptime
+  namespace: oneuptime
+templates:
+  - templates/runner.yaml
+  - templates/app.yaml
+tests:
+  - it: gives the Runner the cluster key it registers with
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+      encryptionSecret: an-encryption-secret-value
+      gitHubApp.privateKey: a-github-app-private-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_SECRET
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_URL
+
+  - it: never gives the Runner the server's encryption secret
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+      encryptionSecret: an-encryption-secret-value
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ENCRYPTION_SECRET
+
+  - it: never gives the Runner the database or ClickHouse passwords
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: DATABASE_PASSWORD
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: CLICKHOUSE_PASSWORD
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: VALKEY_PASSWORD
+
+  - it: never gives the Runner the GitHub App, billing or chat secrets
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+      gitHubApp.privateKey: a-github-app-private-key
+      billing.privateKey: a-billing-private-key
+      slackApp.clientSecret: a-slack-client-secret
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: GITHUB_APP_PRIVATE_KEY
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: BILLING_PRIVATE_KEY
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: SLACK_APP_CLIENT_SECRET
+
+  - it: gives the Runner's pod no ServiceAccount token
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+
+  - it: the app, by contrast, still holds the server secrets (the trim is the Runner's alone)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      encryptionSecret: an-encryption-secret-value
+      gitHubApp.privateKey: a-github-app-private-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ENCRYPTION_SECRET
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: GITHUB_APP_PRIVATE_KEY

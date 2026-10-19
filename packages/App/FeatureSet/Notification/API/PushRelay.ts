@@ -5,6 +5,7 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import {
+  getIpv6NetworkRateLimit,
   getRateLimitClient,
   RateLimitClient,
   resolveClientIp,
@@ -58,13 +59,14 @@ export const RELAY_RATE_LIMIT_PER_ADDRESS: number = 60;
 
 /*
  * Requests a minute from all the addresses of one IPv6 /64 together, per
- * route: room for ten servers. A host can send from any address of its
- * /64, so the addresses of a /64 are counted together too; some hosting
- * providers put many customers' servers in one /64, so it is counted with
- * room for several of them, each still held to its own address's minute.
+ * route: room for ten servers (getIpv6NetworkRateLimit, the room every
+ * rate limit gives a /64). A host can send from any address of its /64, so
+ * the addresses of a /64 are counted together too; some hosting providers
+ * put many customers' servers in one /64, so it is counted with room for
+ * several of them, each still held to its own address's minute.
  */
 export const RELAY_RATE_LIMIT_PER_IPV6_NETWORK: number =
-  10 * RELAY_RATE_LIMIT_PER_ADDRESS;
+  getIpv6NetworkRateLimit(RELAY_RATE_LIMIT_PER_ADDRESS);
 
 /*
  * A simple in-memory rate limiter: `maxRequests` a minute for each key it

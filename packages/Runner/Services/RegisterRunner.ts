@@ -21,7 +21,10 @@ import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import Sleep from "Common/Types/Sleep";
 import API from "Common/Utils/API";
-import { HasClusterKey } from "Common/Server/EnvironmentConfig";
+import {
+  HasClusterKey,
+  isShippedSecretValue,
+} from "Common/Server/EnvironmentConfig";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
@@ -70,6 +73,59 @@ export class RegistrationRefusedError extends Error {
       this.statusCode === 403 &&
       !isTransientKubernetesAgentRegistrationRefusal(this.reason)
     );
+  }
+}
+
+/*
+ * Thrown, before any request, by the in-cluster Runner whose ONEUPTIME_SECRET
+ * is a value the OneUptime repository ships (ClusterKeyAuthorization): the
+ * server refuses that value from any caller, and the key the app's own
+ * services use instead is derived from the installation's database, which a
+ * Runner never reads. Retrying cannot help until an operator sets the same
+ * random ONEUPTIME_SECRET on the app and this Runner and restarts them, so
+ * the retry loop says so once and keeps the container up.
+ */
+export const SHIPPED_CLUSTER_KEY_RUNNER_MESSAGE: string =
+  'This in-cluster Runner cannot register: its ONEUPTIME_SECRET is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value from any caller, so nothing is sent. Set ONEUPTIME_SECRET to the same long random value on the OneUptime app and this Runner, then restart both: with Docker Compose, npm start and npm run update put one in config.env; with Helm, set oneuptimeSecret to one.';
+
+/*
+ * Thrown, before any request, by the in-cluster Runner whose
+ * ONEUPTIME_RUNNER_KEY - the key it registers and authenticates with as the
+ * global agent every project shares - is a value the OneUptime repository
+ * ships: the server refuses that value as an agent key (AIAgentAPI,
+ * CodeFixAgentAuth), so it is never sent. Retrying cannot help until an
+ * operator sets a random ONEUPTIME_RUNNER_KEY and restarts the Runner, so
+ * the retry loop says so once and keeps the container up.
+ */
+export const SHIPPED_RUNNER_KEY_RUNNER_MESSAGE: string =
+  'This in-cluster Runner cannot register: its ONEUPTIME_RUNNER_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value as a Runner key, so nothing is sent. Set ONEUPTIME_RUNNER_KEY to a long random value on this Runner, then restart it: with Docker Compose, npm start and npm run update put one in config.env; the Helm chart generates one unless runner.key is set.';
+
+/*
+ * A setting of the Runner's own that holds a value the repository ships, so
+ * the Runner sends nothing: only an operator setting it and restarting the
+ * Runner helps. The retry loop treats every such error alike - its slowest
+ * interval, and what to do said once - and names the setting.
+ */
+export class ShippedSecretSettingError extends Error {
+  public readonly setting: string;
+
+  public constructor(message: string, setting: string) {
+    super(message);
+    this.setting = setting;
+  }
+}
+
+export class ShippedClusterKeyError extends ShippedSecretSettingError {
+  public constructor() {
+    super(SHIPPED_CLUSTER_KEY_RUNNER_MESSAGE, "ONEUPTIME_SECRET");
+    this.name = "ShippedClusterKeyError";
+  }
+}
+
+export class ShippedRunnerKeyError extends ShippedSecretSettingError {
+  public constructor() {
+    super(SHIPPED_RUNNER_KEY_RUNNER_MESSAGE, "ONEUPTIME_RUNNER_KEY");
+    this.name = "ShippedRunnerKeyError";
   }
 }
 
@@ -258,6 +314,15 @@ export default class Register {
       Register.baseRetryIntervalInSeconds *
       Math.pow(2, Math.max(0, data.attempt - 1));
 
+    /*
+     * Nothing changes until an operator sets ONEUPTIME_SECRET (or
+     * ONEUPTIME_RUNNER_KEY) and restarts the Runner, so the slowest
+     * interval: the attempts send nothing.
+     */
+    if (data.error instanceof ShippedSecretSettingError) {
+      return Register.maxRetryIntervalInSeconds;
+    }
+
     if (!data.isKubernetesAgent) {
       return Math.min(doubling, Register.maxRetryIntervalInSeconds);
     }
@@ -344,9 +409,10 @@ export default class Register {
           data.maxAttempts !== null && attempt >= data.maxAttempts;
 
         const needsOperator: boolean =
-          IS_KUBERNETES_AGENT_MODE &&
-          error instanceof RegistrationRefusedError &&
-          error.needsOperator();
+          error instanceof ShippedSecretSettingError ||
+          (IS_KUBERNETES_AGENT_MODE &&
+            error instanceof RegistrationRefusedError &&
+            error.needsOperator());
 
         if (
           needsOperator &&
@@ -375,11 +441,14 @@ export default class Register {
          * next log line. Only a request that got no answer at all is
          * waiting for the server to become reachable.
          */
-        const retryNote: string = needsOperator
-          ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
-          : error instanceof RegistrationRefusedError
-            ? "the Runner keeps retrying; the reason the server gave is logged below."
-            : "the Runner keeps retrying until the server is reachable.";
+        const retryNote: string =
+          error instanceof ShippedSecretSettingError
+            ? `nothing is sent until an operator sets ${error.setting}; what to do is logged below (and only once).`
+            : needsOperator
+              ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
+              : error instanceof RegistrationRefusedError
+                ? "the Runner keeps retrying; the reason the server gave is logged below."
+                : "the Runner keeps retrying until the server is reachable.";
 
         logger.error(
           isLastAttempt
@@ -699,7 +768,24 @@ export default class Register {
     }
 
     if (HasClusterKey) {
-      // Clustered mode: Auto-register and get ID from server
+      /*
+       * Clustered mode: auto-register and get the ID from the server - with
+       * a cluster key the server can accept. A value the repository ships is
+       * refused there from any caller, so it is never sent.
+       */
+      if (ClusterKeyAuthorization.isConfiguredClusterKeyShipped()) {
+        throw new ShippedClusterKeyError();
+      }
+
+      /*
+       * Nor does it register as the global agent with an agent key the
+       * repository ships: the server refuses that value as an agent key
+       * wherever one is presented, so it is never sent either.
+       */
+      if (isShippedSecretValue(RUNNER_KEY)) {
+        throw new ShippedRunnerKeyError();
+      }
+
       const aiAgentRegistrationUrl: URL = URL.fromString(
         ONEUPTIME_BASE_URL.toString(),
       ).addRoute("/api/ai-agent/register");
@@ -711,13 +797,19 @@ export default class Register {
         runnerName: RUNNER_NAME,
       } as LogAttributes);
 
+      /*
+       * The key in the clusterkey header, never in the URL or the body:
+       * every OneUptime server reads it there, a release behind included.
+       */
       const result: HTTPResponse<JSONObject> = await API.post({
         url: aiAgentRegistrationUrl,
         data: {
           aiAgentKey: RUNNER_KEY,
           runnerName: RUNNER_NAME,
           aiAgentDescription: RUNNER_DESCRIPTION,
-          clusterKey: ClusterKeyAuthorization.getClusterKey(),
+        },
+        headers: {
+          ...ClusterKeyAuthorization.getClusterKeyHeaders(),
         },
       });
 

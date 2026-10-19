@@ -4,6 +4,7 @@ OneUptime Kubernetes-agenten er et Helm-chart som samler inn klyngens metrikker,
 
 :::cards
 - [Installer agenten](#installer-agenten): Fire trinn med Helm.
+- [Installer som et Amazon EKS-tillegg](#installer-som-et-amazon-eks-tillegg): Fra EKS-konsollen, uten Helm.
 - [Konfigurasjonsvalg](#konfigurasjonsvalg): Filtre, sampling, kontrollplan, service mesh, kostnader og etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivebeskyttet `kubectl` for OneUptime AI, og rettelser når du tillater dem.
 - [Send mindre](#redusere-mengden-data-som-samles-inn): Spakene, i rekkefølge etter effekt.
@@ -137,6 +138,61 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 Åpne **Produkter → Infrastruktur → Kubernetes → Alle klynger**. Klyngen vises under sitt `clusterName` innen noen minutter, og nodene, podene og arbeidsbelastningene fylles ut. Kubernetes-AI-agenten vises som tilkoblet på klyngens side **Agent**, under **KI**.
 :::
 
+## Installer som et Amazon EKS-tillegg
+
+På Amazon EKS kan du også legge til agenten fra EKS-konsollen, der den er ett av tilleggene fra AWS Marketplace. Den er gratis, og EKS installerer, oppgraderer og fjerner den for deg. Tillegget er dette chartet, satt opp slik et tillegg krever:
+
+- Det sender data til OneUptime Cloud, `https://oneuptime.com`, med mindre du gir det URL-en til din egen OneUptime.
+- Det leser inntaksnøkkelen fra en Kubernetes-Secret du oppretter, aldri fra tilleggets konfigurasjon, som EKS viser i klartekst.
+- Det rapporterer klyngen til OneUptime under navnet den har i EKS.
+- Det kjører i navnerommet `oneuptime-agent`.
+
+:::steps
+### Legg inntaksnøkkelen din i en Secret
+
+```bash
+kubectl create namespace oneuptime-agent
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+```
+
+### Legg til tillegget
+
+Åpne klyngen din i EKS-konsollen, velg **Add-ons** og deretter **Get more add-ons**, og velg OneUptime Kubernetes-agenten blant tilleggene fra AWS Marketplace. Abonner på den, noe som er gratis, og opprett den. Eller med AWS CLI:
+
+```bash
+aws eks create-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent
+```
+
+### Sjekk at tillegget kjører
+
+```bash
+aws eks describe-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent --query addon.status
+kubectl get pods -n oneuptime-agent
+```
+
+Tillegget er `ACTIVE` så snart podene kjører, og klyngen vises i OneUptime under EKS-navnet sitt innen noen minutter. En pod som blir stående i `CreateContainerConfigError`, finner ikke Secreten: opprett den som i det første trinnet, i navnerommet `oneuptime-agent`.
+:::
+
+### Konfigurasjonsverdier for tillegget
+
+Sett dem under **Optional configuration settings** i EKS-konsollen, eller med `--configuration-values` når du oppretter eller oppdaterer tillegget. Alle er valgfrie:
+
+- `oneuptime.url`: adressen til OneUptime-en din. Standardverdien er `https://oneuptime.com`.
+- `oneuptime.existingSecretName`: Secreten som inneholder inntaksnøkkelen under `api-key`. Standardverdien er `oneuptime-ingestion-key`.
+- `oneuptime.labels`: prosjektetiketter for alt denne klyngen sender, for eksempel `{"team": "payments"}`.
+- `preset`: `eks-fargate` for en klynge som bare kjører på Fargate, ellers `standard`, som er standardverdien.
+- `logs.enabled`, `ebpf.enabled` og `aiAgent.enabled`: pod-logger, eBPF-spor og [Kubernetes-AI-agenten](#kubernetes-ai-agent), alle på som standard.
+- `kubeStateMetrics.enabled` og `cost.enabled`: kube-state-metrics og [kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost), begge av som standard.
+
+```bash
+aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes-agent \
+  --configuration-values '{"oneuptime": {"url": "https://oneuptime.example.com"}, "kubeStateMetrics": {"enabled": true}}'
+```
+
+En oppdatering erstatter hele konfigurasjonen: en verdi du utelater, går tilbake til standardverdien sin. Resten av chartets innstillinger, som profileringen, rettelser fra OneUptime AI og navneromsfiltre, krever [Helm-installasjonen](#installer-agenten). For å flytte en klynge fra Helm-installasjonen til tillegget, avinstaller Helm-utgivelsen først.
+
 ## Velg en forhåndsinnstilling
 
 `preset` velger standardverdiene som fungerer på plattformen din: om pod-logger leses fra noden gjennom `hostPath` eller gjennom Kubernetes-API-et, og hvilke arbeidsbelastninger som kan kjøre privilegert.
@@ -169,6 +225,23 @@ Hvis du er usikker, start med `standard`. Hvis installasjonen feiler med en Pod 
 ## Konfigurasjonsvalg
 
 Hvert valg nedenfor er en Helm-verdi. Sett den ved installasjon, eller på en installert agent med `helm upgrade ... --reset-then-reuse-values --set <value>`.
+
+### Oppbevar inntaksnøkkelen i en Secret
+
+`--set oneuptime.apiKey` legger nøkkelen i utgivelsens verdier, som Helm lagrer med hver revisjon. For å holde den utenfor dem, legg nøkkelen i en Secret i agentens navnerom, under `api-key`, og oppgi navnet på den Secreten i stedet:
+
+```bash
+kubectl create secret generic oneuptime-ingestion-key \
+  --namespace oneuptime-agent \
+  --from-literal=api-key="YOUR_ONEUPTIME_API_KEY"
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set oneuptime.apiKey="" \
+  --set oneuptime.existingSecretName=oneuptime-ingestion-key
+```
+
+Alle arbeidsbelastningene til agenten leser da nøkkelen fra den Secreten, og chartet oppretter ingen egen Secret. Sett `oneuptime.apiKey` eller `oneuptime.existingSecretName`, ikke begge: chartet avviser de to sammen. Secreten kan komme fra hva som helst som skriver en Secret, for eksempel External Secrets Operator.
 
 ### Filtrering etter navnerom
 
@@ -510,7 +583,7 @@ Den er av fordi å injisere headeren betyr å skrive om trafikk som allerede er 
 
 Når en hendelse eller et varsel oppstår på denne klyngen, undersøker OneUptime AI det. **Kubernetes-AI-agenten** i chartet gir den en terminal: den kjører skrivebeskyttet `kubectl` slik en vakthavende ingeniør ville gjort (beskriver poden som feiler, leser hendelsene dens, følger loggene til containeren som krasjer, sjekker nodekapasiteten) og siterer hver kommando på hendelsessiden.
 
-Agenten er **på som standard** og **skrivebeskyttet**: én liten Deployment (`kubernetes-agent-ai-agent`, pod-etiketten `component=ai-agent`, imaget `oneuptime/kubernetes-ai-agent`) der ServiceAccount-en bare kan lese. Den registrerer seg med den samme `oneuptime.apiKey` og `clusterName` som collectoren bruker, så det er ingenting å sette opp i dashbordet: klyngens side **AI-agent** (Kubernetes → klynge → KI → Agent) viser den som tilkoblet innen et minutt, og **Test tilkoblingen**, i menyen **⋯** ved siden av den statusen, kjører `kubectl version` og `kubectl auth can-i --list` gjennom den. Alt AI har gjort med den, står på klyngens side **AI-logger** (KI → Logger), og det som er verdt å vite om klyngen — problemene som stadig kommer tilbake og hvorfor, noden eller arbeidsbelastningen bak de fleste av dem, hva AI har rettet — på siden **AI Insights** (KI → Insights). Agenten leveres med en festet kubectl (v1.36.4). Den er ikke en Runner og vises aldri under Runbooks → Runners: OneUptime gir den aldri legitimasjon, kjører aldri runbooks på den, og den godtas aldri som kommando-Runner for en regel for automatisk utbedring.
+Agenten er **på som standard** og **skrivebeskyttet**: én liten Deployment (`kubernetes-agent-ai-agent`, pod-etiketten `component=ai-agent`, imaget `oneuptime/kubernetes-ai-agent`) der ServiceAccount-en bare kan lese. Den registrerer seg med den samme `oneuptime.apiKey` og `clusterName` som collectoren bruker, så det er ingenting å sette opp i dashbordet: klyngens side **AI-agent** (Kubernetes → klynge → KI → Agent) viser den som tilkoblet innen et minutt, og **Test tilkoblingen**, i menyen **⋯** ved siden av den statusen, kjører `kubectl version` og `kubectl auth can-i --list` gjennom den. Alt AI har gjort med den, står på klyngens side **AI-logger** (KI → Logger), og det som er verdt å vite om klyngen — problemene som stadig kommer tilbake og hvorfor, noden eller arbeidsbelastningen bak de fleste av dem, hva AI har rettet — på siden **AI Insights** (KI → Insights). Agenten leveres med en festet kubectl (v1.36.5). Den er ikke en Runner og vises aldri under Runbooks → Runners: OneUptime gir den aldri legitimasjon, kjører aldri runbooks på den, og den godtas aldri som kommando-Runner for en regel for automatisk utbedring.
 
 På en agent som ble installert før AI-agenten fantes, oppdater chart-indeksen først, og oppgrader deretter (på en selvhostet OneUptime, oppgrader OneUptime først — se [Oppgradere agenten](#oppgradere-agenten)):
 
