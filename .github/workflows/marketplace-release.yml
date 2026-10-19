@@ -148,7 +148,11 @@ jobs:
         with:
           version: ${{ needs.prepare.outputs.version }}
           release-sha: ${{ needs.prepare.outputs.release_sha }}
+      # The charts here are the release's: MARKETPLACE_RELEASED_CHARTS lets the EKS add-on's unit
+      # tests skip a release from before the add-on, as the suite's own add-on checks do.
       - name: Run the marketplace chart suite
+        env:
+          MARKETPLACE_RELEASED_CHARTS: ${{ needs.prepare.outputs.version }}
         run: bash ./HelmChart/Tests/run.sh marketplace
 
   # Everything a real run does, but in the open: no sign-in, nothing pushed or submitted.
