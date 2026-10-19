@@ -10,6 +10,11 @@
  * Pages (the path picks one):
  *   /dashboard/<project>/incidents              Incidents: the list of the
  *                                                maintainer's screenshot
+ *   /dashboard/<project>/alerts                 Alerts: the rows of the
+ *                                                maintainer's screenshot of
+ *                                                the alerts list, each
+ *                                                monitor named once, in
+ *                                                Affected Resources
  *   /dashboard/<project>/monitors               Monitors
  *   /dashboard/<project>/status-pages           Status Pages
  *   /dashboard/<project>/settings/teams         Settings > Teams
@@ -60,6 +65,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import IncidentsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Incidents";
+import AlertsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Alerts";
 import MonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Monitors";
 import StatusPagesPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages";
 import TeamsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Teams/Index";
@@ -75,6 +81,10 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertState from "Common/Models/DatabaseModels/AlertState";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
@@ -472,6 +482,164 @@ const INCIDENT_TIMELINE = INCIDENTS.filter((record) => {
   return row;
 });
 
+// ---------------------------------------------------------------- alerts
+
+function alertState(index, name, color, flags) {
+  const record = withProject(new AlertState());
+  record._id = uuid("45000000", index);
+  record.name = name;
+  record.color = new Color(color);
+  record.order = index;
+  record.isCreatedState = Boolean(flags && flags.created);
+  record.isAcknowledgedState = Boolean(flags && flags.acknowledged);
+  record.isResolvedState = Boolean(flags && flags.resolved);
+  return record;
+}
+
+const ALERT_CREATED = alertState(1, "Created", "#ef4444", { created: true });
+const ALERT_ACKNOWLEDGED = alertState(2, "Acknowledged", "#f59e0b", {
+  acknowledged: true,
+});
+const ALERT_RESOLVED = alertState(3, "Resolved", "#10b981", {
+  resolved: true,
+});
+
+function alertSeverity(index, name, color) {
+  const record = withProject(new AlertSeverity());
+  record._id = uuid("46000000", index);
+  record.name = name;
+  record.color = new Color(color);
+  record.order = index;
+  return record;
+}
+
+const HIGH_ALERT = alertSeverity(1, "High", "#dc2626");
+const LOW_ALERT = alertSeverity(2, "Low", "#ca8a04");
+
+/*
+ * The monitors the screenshot's alerts were raised on, each watching the
+ * oneuptime-test cluster. Listed among the project's monitors on this page
+ * only, so the Monitor chip offers them and the Monitors page keeps its
+ * rows.
+ */
+const ALERT_MONITORS = [
+  "oneuptime-test - High Node Memory Utilization",
+  "oneuptime-test - Pod CPU Saturating Containers",
+  "oneuptime-test - Pod Stuck in Pending",
+  "oneuptime-test - HPA Saturated at Max Replicas",
+].map((name, index) => {
+  return monitor(
+    11 + index,
+    name,
+    "A Kubernetes metric of the oneuptime-test cluster",
+    MonitorType.Kubernetes,
+    DEGRADED,
+  );
+});
+
+function alertRecord(index, data) {
+  const record = withProject(new Alert());
+  record._id = uuid("44000000", index);
+  record.alertNumber = index;
+  record.alertNumberWithPrefix = `ALT-${index}`;
+  record.title = data.title;
+  record.description = "";
+  record.currentAlertState = data.state;
+  record.currentAlertStateId = new ObjectID(data.state._id);
+  record.alertSeverity = data.severity;
+  record.alertSeverityId = new ObjectID(data.severity._id);
+  if (data.monitor) {
+    record.monitor = data.monitor;
+    record.monitorId = new ObjectID(data.monitor._id);
+  }
+  record.kubernetesClusters = data.kubernetesClusters || [];
+  record.databaseServers = data.databaseServers || [];
+  record.hosts = [];
+  record.dockerHosts = [];
+  record.podmanHosts = [];
+  record.proxmoxClusters = [];
+  record.vmwareVCenters = [];
+  record.cephClusters = [];
+  record.storageArrays = [];
+  record.dockerSwarmClusters = [];
+  record.iotFleets = [];
+  record.services = [];
+  record.serviceLevelObjectives = [];
+  record.labels = data.labels || [];
+  record.createdAt = new Date(data.createdAt);
+  record.isPrivate = false;
+  return record;
+}
+
+/*
+ * The rows of the maintainer's screenshot: each alert raised on a monitor
+ * of the oneuptime-test cluster, and linked to the cluster too. Then an
+ * alert created by hand about a database, with no monitor, and one linked
+ * to nothing.
+ */
+const ALERTS = isEmpty
+  ? []
+  : [
+      alertRecord(10, {
+        title: "High Node Memory Utilization",
+        state: ALERT_CREATED,
+        severity: HIGH_ALERT,
+        monitor: ALERT_MONITORS[0],
+        kubernetesClusters: [TEST_CLUSTER],
+        createdAt: "2026-10-16T05:20:00.000Z",
+      }),
+      alertRecord(9, {
+        title: "Pod CPU Saturating Containers",
+        state: ALERT_CREATED,
+        severity: HIGH_ALERT,
+        monitor: ALERT_MONITORS[1],
+        kubernetesClusters: [TEST_CLUSTER],
+        createdAt: "2026-10-16T04:55:00.000Z",
+      }),
+      alertRecord(8, {
+        title: "Pod Stuck in Pending",
+        state: ALERT_ACKNOWLEDGED,
+        severity: LOW_ALERT,
+        monitor: ALERT_MONITORS[2],
+        kubernetesClusters: [TEST_CLUSTER],
+        createdAt: "2026-10-16T03:10:00.000Z",
+      }),
+      alertRecord(7, {
+        title: "HPA Saturated at Max Replicas",
+        state: ALERT_RESOLVED,
+        severity: LOW_ALERT,
+        monitor: ALERT_MONITORS[3],
+        kubernetesClusters: [TEST_CLUSTER],
+        createdAt: "2026-10-15T22:40:00.000Z",
+      }),
+      alertRecord(6, {
+        title: "ClickHouse disk filling up",
+        state: ALERT_CREATED,
+        severity: LOW_ALERT,
+        databaseServers: [CLICKHOUSE],
+        createdAt: "2026-10-15T18:05:00.000Z",
+      }),
+      alertRecord(5, {
+        title: "Check the on-call handover notes",
+        state: ALERT_ACKNOWLEDGED,
+        severity: LOW_ALERT,
+        createdAt: "2026-10-15T09:30:00.000Z",
+      }),
+    ];
+
+// The resolved alerts' timelines, for their Duration column.
+const ALERT_TIMELINE = ALERTS.filter((record) => {
+  return idOf(record.currentAlertState) === idOf(ALERT_RESOLVED);
+}).map((record, index) => {
+  const row = withProject(new AlertStateTimeline());
+  row._id = uuid("47000000", index + 1);
+  row.alertId = new ObjectID(record._id);
+  row.alertStateId = new ObjectID(ALERT_RESOLVED._id);
+  row.alertState = ALERT_RESOLVED;
+  row.startsAt = new Date(record.createdAt.getTime() + 40 * 60 * 1000);
+  return row;
+});
+
 function ownerUser(ModelType, resourceIdField, index, resourceId, person) {
   const record = withProject(new ModelType());
   record._id = uuid("82000000", index);
@@ -601,7 +769,15 @@ const RECORDS = {
   IncidentStateTimeline: INCIDENT_TIMELINE,
   IncidentOwnerUser: INCIDENT_OWNERS,
   IncidentOwnerTeam: [],
-  Monitor: MONITORS,
+  Alert: ALERTS,
+  AlertState: [ALERT_CREATED, ALERT_ACKNOWLEDGED, ALERT_RESOLVED],
+  AlertSeverity: [HIGH_ALERT, LOW_ALERT],
+  AlertStateTimeline: ALERT_TIMELINE,
+  AlertOwnerUser: [],
+  AlertOwnerTeam: [],
+  Monitor: window.location.pathname.endsWith("/alerts")
+    ? [...MONITORS, ...ALERT_MONITORS]
+    : MONITORS,
   MonitorStatus: [OPERATIONAL, DEGRADED, OFFLINE],
   MonitorOwnerUser: MONITOR_OWNERS,
   MonitorOwnerTeam: [],
@@ -624,6 +800,8 @@ const EMPTY_TABLES = [
   "IncidentTemplate",
   "IncidentNoteTemplate",
   "IncidentCustomField",
+  "AlertNoteTemplate",
+  "AlertCustomField",
   "MonitorCustomField",
   "StatusPageCustomField",
   "TeamMember",
@@ -1219,6 +1397,14 @@ createRoot(document.getElementById("root")).render(
       <PageRoute
         path={`${BASE}/incidents/:modelId`}
         element={<Shell page={() => <p>Incident</p>} trail="Incident" />}
+      />
+      <PageRoute
+        path={`${BASE}/alerts`}
+        element={<Shell page={AlertsPage} trail="Alerts" />}
+      />
+      <PageRoute
+        path={`${BASE}/alerts/:modelId`}
+        element={<Shell page={() => <p>Alert</p>} trail="Alert" />}
       />
       <PageRoute
         path={`${BASE}/monitors`}

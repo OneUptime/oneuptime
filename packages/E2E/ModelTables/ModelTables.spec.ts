@@ -5,8 +5,10 @@ import path from "path";
 /*
  * Tables (ModelTable -> BaseModelTable -> Table) in real Chromium, against
  * the offline fixture (ModelTables/Fixture): the real Incidents list of the
- * maintainer's screenshot, Monitors, Status Pages, Teams, a list put in order
- * by dragging (Device Roles) and a gallery of every kind of column.
+ * maintainer's screenshot, the Alerts list of another (each row's monitor
+ * named once, in Affected Resources), Monitors, Status Pages, Teams, a list
+ * put in order by dragging (Device Roles) and a gallery of every kind of
+ * column.
  *
  * The maintainer's ask: "How can we improve the UI of the model table so we
  * make it easier for people to understand and use, and make it cleaner and
@@ -29,6 +31,7 @@ import path from "path";
 
 const PROJECT: string = "10000000-0000-4000-8000-000000000001";
 const INCIDENTS: string = `/dashboard/${PROJECT}/incidents`;
+const ALERTS: string = `/dashboard/${PROJECT}/alerts`;
 const MONITORS: string = `/dashboard/${PROJECT}/monitors`;
 const STATUS_PAGES: string = `/dashboard/${PROJECT}/status-pages`;
 const TEAMS: string = `/dashboard/${PROJECT}/settings/teams`;
@@ -51,7 +54,11 @@ interface Box {
 }
 
 interface FixtureRecord {
-  listRequests: Array<{ tableName: string; limit: number }>;
+  listRequests: Array<{
+    tableName: string;
+    limit: number;
+    query: Record<string, unknown>;
+  }>;
   updates: Array<{ tableName: string; id: string; data: unknown }>;
   navigations: Array<string>;
   unmodelled: Array<string>;
@@ -430,6 +437,273 @@ test.describe("the Incidents list of the screenshot", () => {
     expect(style.borderTopWidth).toBe("0px");
     expect(style.boxShadow).toBe("none");
     expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+});
+
+/*
+ * The maintainer, on the alerts list: "why do we have a monitors column when
+ * we have monitors in the affected resources anyway? You can remove them in
+ * the UI". The screenshot: a Monitor column naming "oneuptime-test - High
+ * Node Memory Utili..." beside Affected Resources naming the same monitor
+ * again, then the cluster, on every row. The Monitor column is gone.
+ */
+test.describe("the Alerts list of the screenshot", () => {
+  const ALERT_COLUMNS: Array<string> = [
+    "Alert Number",
+    "Title",
+    "State",
+    "Severity",
+    "Affected Resources",
+    "Created",
+    "Duration",
+    "Labels",
+    "Owners",
+  ];
+
+  // The fixture's alerts, newest first, and the monitors they were raised on.
+  const FIRST_MONITOR: string = "oneuptime-test - High Node Memory Utilization";
+  const PENDING_MONITOR: string = "oneuptime-test - Pod Stuck in Pending";
+  const ROW_MONITORS: Array<string> = [
+    FIRST_MONITOR,
+    "oneuptime-test - Pod CPU Saturating Containers",
+    PENDING_MONITOR,
+    "oneuptime-test - HPA Saturated at Max Replicas",
+  ];
+  const CLUSTER: string = "oneuptime-test";
+  const PENDING_MONITOR_ID: string = "60000000-0000-4000-8000-000000000013";
+  const FIRST_MONITOR_ID: string = "60000000-0000-4000-8000-000000000011";
+
+  function rows(page: Page): Locator {
+    return bodyRows(page, "alerts-table");
+  }
+
+  /*
+   * The columns' names in the header row: not the select box's or the
+   * Actions column's, which a screen reader alone hears.
+   */
+  async function columnTitles(page: Page): Promise<Array<string>> {
+    return (await header(page).allInnerTexts())
+      .map((title: string): string => {
+        return title.trim();
+      })
+      .filter((title: string): boolean => {
+        return (
+          title.length > 0 && !["Select all items", "Actions"].includes(title)
+        );
+      });
+  }
+
+  // A row's cell under the column of that name.
+  async function cell(page: Page, row: Locator, title: string): Promise<Locator> {
+    const titles: Array<string> = (await header(page).allInnerTexts()).map(
+      (text: string): string => {
+        return text.trim();
+      },
+    );
+    const index: number = titles.indexOf(title);
+
+    expect(index).toBeGreaterThan(-1);
+
+    return row.locator("> td").nth(index);
+  }
+
+  test("each row names its monitor once: no Monitor column, and Affected Resources lists the monitor first, then the cluster", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    expect(await columnTitles(page)).toEqual(ALERT_COLUMNS);
+    await expect(
+      page.getByRole("columnheader", { name: "Monitor", exact: true }),
+    ).toHaveCount(0);
+
+    await expect(rows(page)).toHaveCount(6);
+
+    for (const [index, monitorName] of ROW_MONITORS.entries()) {
+      const row: Locator = rows(page).nth(index);
+      const resources: Locator = (
+        await cell(page, row, "Affected Resources")
+      ).getByRole("link");
+
+      await expect(resources).toHaveText([monitorName, CLUSTER]);
+      // Once in the row, not twice side by side.
+      await expect(row.getByText(monitorName, { exact: true })).toHaveCount(1);
+    }
+
+    // Each name beside its own type's icon: the monitor's, the cluster's.
+    const firstRowLinks: Locator = (
+      await cell(page, rows(page).first(), "Affected Resources")
+    ).getByRole("link");
+
+    for (const link of await firstRowLinks.all()) {
+      await expect(link.locator("svg")).toHaveCount(1);
+    }
+
+    await screenshot(page, "alerts-1280");
+  });
+
+  test("a monitor named in Affected Resources opens the monitor", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    await (await cell(page, rows(page).first(), "Affected Resources"))
+      .getByRole("link", { name: FIRST_MONITOR })
+      .click();
+
+    await expect
+      .poll((): string => {
+        return pathOf(page);
+      })
+      .toBe(`/dashboard/${PROJECT}/monitors/${FIRST_MONITOR_ID}`);
+    await expect(page.getByTestId("fixture-trail")).toHaveText("Monitor");
+  });
+
+  test("an alert with no monitor names what it is about; one linked to nothing shows the quiet dash", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    // Created by hand, about a database.
+    await expect(
+      (await cell(page, rows(page).nth(4), "Affected Resources")).getByRole(
+        "link",
+      ),
+    ).toHaveText(["ClickHouse default/oneuptime-clickhouse"]);
+
+    const nothing: Locator = await cell(
+      page,
+      rows(page).nth(5),
+      "Affected Resources",
+    );
+
+    await expect(nothing.getByRole("link")).toHaveCount(0);
+    await expect(nothing.getByTestId("table-empty-value")).toHaveCount(1);
+    await expect(nothing.locator(".sr-only")).toHaveText("No resources.");
+  });
+
+  /*
+   * The column goes, the filter stays: picking a monitor is the Monitor
+   * chip's job, and it asks for that monitor's alerts by monitorId.
+   */
+  test("the Monitor chip still narrows the list to a monitor's alerts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    const bar: Locator = page.getByTestId("facet-filter-bar");
+
+    await bar.getByRole("button", { name: "Monitor", exact: true }).click();
+    await page.getByRole("option", { name: PENDING_MONITOR }).click();
+    // A click anywhere else puts the chip's list away.
+    await page.getByTestId("fixture-trail").click();
+    await expect(page.getByRole("listbox")).toHaveCount(0);
+
+    await expect(rows(page)).toHaveCount(1);
+    await expect(
+      (await cell(page, rows(page).first(), "Affected Resources")).getByRole(
+        "link",
+      ),
+    ).toHaveText([PENDING_MONITOR, CLUSTER]);
+
+    const alertReads: Array<{ query: Record<string, unknown> }> = (
+      await fixture(page)
+    ).listRequests.filter((request: { tableName: string }): boolean => {
+      return request.tableName === "Alert";
+    });
+    const lastRead: { query: Record<string, unknown> } = alertReads[
+      alertReads.length - 1
+    ] as { query: Record<string, unknown> };
+
+    expect(JSON.stringify(lastRead.query["monitorId"])).toContain(
+      PENDING_MONITOR_ID,
+    );
+    expect(
+      (lastRead.query["monitorId"] as { _type?: string } | undefined)?._type,
+    ).toBe("Includes");
+
+    await screenshot(page, "alerts-filtered-by-monitor-1280");
+  });
+
+  test("on a phone, each card names its monitor once, under Affected Resources, with no Monitor line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const cards: Locator = page.locator("#alerts-table-body > div");
+
+    await expect(cards).toHaveCount(6);
+
+    const firstCard: Locator = cards.first();
+    const fields: Array<string> = (
+      await firstCard.locator("dt").allInnerTexts()
+    ).map((name: string): string => {
+      return name.trim();
+    });
+
+    expect(fields).toContain("Affected Resources");
+    expect(fields).not.toContain("Monitor");
+    await expect(
+      firstCard.getByText(FIRST_MONITOR, { exact: true }),
+    ).toHaveCount(1);
+
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "alerts-390");
+  });
+
+  test("in the dark theme, the monitor's and the cluster's names read at WCAG AA", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${ALERTS}?theme=dark`);
+
+    const resources: Locator = await cell(
+      page,
+      rows(page).first(),
+      "Affected Resources",
+    );
+
+    for (const link of await resources.getByRole("link").all()) {
+      const colours: { color: string; background: string } =
+        await link.evaluate((element: Element) => {
+          // The first box behind the name that paints a background.
+          let behind: Element | null = element;
+          let background: string = "rgba(0, 0, 0, 0)";
+          while (behind) {
+            background = getComputedStyle(behind).backgroundColor;
+            if (background !== "rgba(0, 0, 0, 0)") {
+              break;
+            }
+            behind = behind.parentElement;
+          }
+          return { color: getComputedStyle(element).color, background };
+        });
+
+      expect(
+        contrast(colours.color, colours.background),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+
+    await screenshot(page, "alerts-1280-dark");
   });
 });
 
