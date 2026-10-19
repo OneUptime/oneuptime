@@ -110,8 +110,6 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "checks a dashboard's IP allowlist",
   "packages/Common/Server/Services/StatusPageService.ts":
     "checks a status page's IP allowlist",
-  "packages/Common/Server/Utils/RateLimit/WrongComponentKeyLimit.ts":
-    "leaves a key from a private network address uncounted; every other key is counted by WrongKeyLimit, through ClientRateLimitCounter",
   "packages/Probe/Services/SyslogReceiver.ts":
     "records the address a syslog message arrived from",
   "packages/Probe/Utils/ProbeApiDiagnostics.ts":
@@ -124,7 +122,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
  * different values a client presents under its address and /64 alike: the
  * wrong keys it sent, counted by WrongKeyLimit, on which the cluster key's
  * limit (WrongClusterKeyLimit) and the probe, Runner and AI agent keys'
- * (WrongComponentKeyLimit) are built. Each one's behaviour under a host that
+ * (WrongComponentKeyLimit) are built, and which leaves a key from a private
+ * network address uncounted for all of them. Each one's behaviour under a host that
  * rotates through its /64 is driven in RateLimitsCountIpv6Networks.test.ts
  * (and LicenseServerRateLimit.test.ts in ee/).
  */

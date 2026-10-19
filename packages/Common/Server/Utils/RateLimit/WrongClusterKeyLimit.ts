@@ -40,6 +40,17 @@ import WrongKeyLimit, { WrongKeyRefusal } from "./WrongKeyLimit";
  * person trying a key by hand sends, and holds somebody guessing to forty an
  * hour from each address.
  *
+ * NEVER ONE OF ONEUPTIME'S OWN SERVICES
+ *
+ * Every caller that holds the cluster key is one of the installation's own
+ * services - the app and its workers, which call each other over the
+ * installation's own network, and a Runner of an earlier release - and each
+ * calls from a private network address. A client over the limit is refused
+ * whichever key it carries, so a key presented from a private network address
+ * is never counted, and never refused (WrongKeyLimit, NOT ON A PRIVATE
+ * NETWORK ADDRESS): nothing sent from beside those services can get their
+ * right key refused.
+ *
  * The key is compared before the client is checked, and the check and the
  * count of a wrong key are one step in Valkey: so among requests sent at the
  * same moment, each is checked after the wrong keys that reached Valkey
