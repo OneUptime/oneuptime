@@ -532,6 +532,49 @@ describe("IncidentVideoCallService.claimTranscriptFetch", () => {
       }),
     ).toBe(0);
   });
+
+  /*
+   * The transcript the job got is stored only while the call still waits
+   * and has none: a person who got or added one meanwhile keeps theirs.
+   */
+  test("taking a call for storing its transcript ends the waiting, only while it waits and has no transcript", async () => {
+    const service: IncidentVideoCallServiceType =
+      new IncidentVideoCallServiceType();
+    const recorded: RecordedUpdate = stubRepository(service, 1);
+    const callId: ObjectID = ObjectID.generate();
+
+    expect(
+      await service.takeTranscriptFetchForSaving({ callId, checkedAt: NEXT }),
+    ).toBe(1);
+    expect(recorded.set).toEqual({
+      transcriptFetchStatus: null,
+      transcriptFetchReason: null,
+      transcriptFetchNextAttemptAt: null,
+      transcriptFetchCheckedAt: NEXT,
+    });
+    expect(recorded.where).toEqual([
+      { sql: '"_id" = :id', params: { id: callId.toString() } },
+      {
+        sql: '"transcriptFetchStatus" = :status',
+        params: { status: CallTranscriptFetchStatus.Waiting },
+      },
+      { sql: '"transcriptAddedAt" IS NULL', params: undefined },
+      { sql: '"deletedAt" IS NULL', params: undefined },
+    ]);
+  });
+
+  test("taking a call that has a transcript by now gives 0", async () => {
+    const service: IncidentVideoCallServiceType =
+      new IncidentVideoCallServiceType();
+    stubRepository(service, 0);
+
+    expect(
+      await service.takeTranscriptFetchForSaving({
+        callId: ObjectID.generate(),
+        checkedAt: NEXT,
+      }),
+    ).toBe(0);
+  });
 });
 
 describe("AlertVideoCallService create", () => {

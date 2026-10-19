@@ -103,6 +103,9 @@ function dueCall(
 
 let writes: Array<JSONObject>;
 let claim: SpyInstance<typeof IncidentVideoCallService.claimTranscriptFetch>;
+let takeForSaving: SpyInstance<
+  typeof IncidentVideoCallService.takeTranscriptFetchForSaving
+>;
 let recordingOn: SpyInstance<typeof IncidentCallRecordingSetting.isOn>;
 let read: SpyInstance<typeof VideoCallTranscriptReader.read>;
 let save: SpyInstance<typeof IncidentCallTranscriptSave.save>;
@@ -123,6 +126,9 @@ beforeEach(() => {
     });
   claim = jest
     .spyOn(IncidentVideoCallService, "claimTranscriptFetch")
+    .mockResolvedValue(1);
+  takeForSaving = jest
+    .spyOn(IncidentVideoCallService, "takeTranscriptFetchForSaving")
     .mockResolvedValue(1);
   recordingOn = jest
     .spyOn(IncidentCallRecordingSetting, "isOn")
@@ -410,7 +416,12 @@ describe("what the provider answered", () => {
 
     expect(await ask(call, now)).toBe(CallTranscriptFetchOutcome.Found);
 
-    expect(writes).toEqual([{ transcriptFetchCheckedAt: now }]);
+    // Taken for storing - the waiting ends with it - then stored.
+    expect(takeForSaving).toHaveBeenCalledWith({
+      callId: CALL,
+      checkedAt: now,
+    });
+    expect(writes).toEqual([]);
     expect(save).toHaveBeenCalledTimes(1);
 
     const saved: Parameters<typeof IncidentCallTranscriptSave.save>[0] =
@@ -424,6 +435,22 @@ describe("what the provider answered", () => {
     expect(saved.prepared.info.speakerCount).toBe(2);
     // Found: the reading lets a waiting postmortem draft go on when it ends.
     expect(draftWaiting).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A person clicked Get from Zoom, or added the transcript, while the
+   * provider answered the job: theirs stands, and nothing is stored, read
+   * and posted a second time.
+   */
+  test("a transcript a person got or added while the provider answered is theirs: nothing stored twice", async () => {
+    read.mockResolvedValue(LINES);
+    takeForSaving.mockResolvedValue(0);
+
+    expect(await ask(dueCall(), at(80 * MINUTE))).toBe(
+      CallTranscriptFetchOutcome.Skipped,
+    );
+    expect(save).not.toHaveBeenCalled();
+    expect(writes).toEqual([]);
   });
 
   test.each([
@@ -595,6 +622,21 @@ describe("a call's whole life, run by run", () => {
         return 1;
       },
     );
+    takeForSaving.mockImplementation(async (): Promise<number> => {
+      if (
+        stored.transcriptFetchStatus !== CallTranscriptFetchStatus.Waiting ||
+        stored.transcriptAddedAt
+      ) {
+        return 0;
+      }
+
+      Object.assign(stored, {
+        transcriptFetchStatus: null,
+        transcriptFetchReason: null,
+        transcriptFetchNextAttemptAt: null,
+      });
+      return 1;
+    });
     jest
       .spyOn(IncidentVideoCallService, "updateOneById")
       .mockImplementation(async (data: { data: unknown }): Promise<number> => {

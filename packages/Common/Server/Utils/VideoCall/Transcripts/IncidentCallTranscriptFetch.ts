@@ -323,9 +323,19 @@ export default class IncidentCallTranscriptFetch {
       return CallTranscriptFetchOutcome.Stopped;
     }
 
-    await IncidentVideoCallTranscriptWrite.write(call.id, {
-      transcriptFetchCheckedAt: data.now,
-    });
+    /*
+     * Stored only while OneUptime still waits for it: a person who got or
+     * added the transcript while the provider answered took it from here.
+     */
+    const taken: number =
+      await IncidentVideoCallService.takeTranscriptFetchForSaving({
+        callId: call.id,
+        checkedAt: data.now,
+      });
+
+    if (taken === 0) {
+      return CallTranscriptFetchOutcome.Skipped;
+    }
 
     await IncidentCallTranscriptSave.save({
       call,

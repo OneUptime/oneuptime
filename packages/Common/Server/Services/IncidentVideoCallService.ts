@@ -248,6 +248,39 @@ export class Service extends ProjectReferencesService<Model> {
     return result.affected || 0;
   }
 
+  /*
+   * Takes a call whose transcript the job just got from the provider, for
+   * storing it: one UPDATE that ends the waiting, only while the call still
+   * waits and has no transcript. 1 when the job may store it, 0 when a
+   * person got or added one meanwhile - theirs stands, and is not stored,
+   * read and posted twice.
+   */
+  @CaptureSpan()
+  public async takeTranscriptFetchForSaving(data: {
+    callId: ObjectID;
+    // When the job asked the provider.
+    checkedAt: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        transcriptFetchStatus: null,
+        transcriptFetchReason: null,
+        transcriptFetchNextAttemptAt: null,
+        transcriptFetchCheckedAt: data.checkedAt,
+      } as unknown as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.callId.toString() })
+      .andWhere('"transcriptFetchStatus" = :status', {
+        status: CallTranscriptFetchStatus.Waiting,
+      })
+      .andWhere('"transcriptAddedAt" IS NULL')
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
   // Every call of an incident, oldest first. Read as root.
   @CaptureSpan()
   public async getCallsForIncident(

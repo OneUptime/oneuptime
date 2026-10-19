@@ -1,9 +1,8 @@
 import IncidentVideoCall from "../../../../../Models/DatabaseModels/IncidentVideoCall";
 import { IncidentFeedEventType } from "../../../../../Models/DatabaseModels/IncidentFeed";
 import IncidentFeedService from "../../../../../Server/Services/IncidentFeedService";
-import IncidentCallSummaryFeed, {
-  CALL_SUMMARY_FEED_SECTIONS,
-} from "../../../../../Server/Utils/AI/CallSummary/IncidentCallSummaryFeed";
+import IncidentCallSummaryFeed from "../../../../../Server/Utils/AI/CallSummary/IncidentCallSummaryFeed";
+import CallSummaryFeedMarkdown from "../../../../../Utils/VideoCall/CallSummaryFeedMarkdown";
 import logger from "../../../../../Server/Utils/Logger";
 import { Indigo500 } from "../../../../../Types/BrandColors";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -26,12 +25,10 @@ import {
 import type { SpyInstance } from "jest-mock";
 
 /*
- * What OneUptime AI read in a call, in the incident's feed and from there in
- * its Slack and Microsoft Teams channels. The summary is the feed item's own
- * text (the channels get no more than that), in the AI Investigation card's
- * words for its parts, with the cause marked as a suggestion. Every sentence
- * in it is somebody else's - the model's, or a participant named as an
- * owner - so the tests feed it the hostile ones too.
+ * What OneUptime AI read in a call, posted to the incident's feed and from
+ * there to its Slack and Microsoft Teams channels: OneUptime AI's item, with
+ * the summary as its own text (CallSummaryFeedMarkdown, whose words are
+ * tested on their own), and a post that fails never fails the reading.
  */
 
 const PROJECT: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
@@ -82,199 +79,6 @@ function summary(overrides: Partial<CallSummary> = {}): CallSummary {
   };
 }
 
-describe("IncidentCallSummaryFeed.getFeedMarkdown", () => {
-  test("who read what, the suggested cause marked as one, then each part with something in it", () => {
-    const markdown: string = IncidentCallSummaryFeed.getFeedMarkdown({
-      callLabel: "Zoom meeting",
-      summary: summary(),
-      details: "42 minutes, 5 speakers, 120 remarks",
-    }).toString();
-
-    expect(markdown).toBe(
-      [
-        "✨ OneUptime AI read the transcript of the **Zoom meeting** (42 minutes, 5 speakers, 120 remarks).",
-        "",
-        "**Suggested root cause** (not confirmed): The deploy doubled the workers and exhausted `DB_POOL_MAX`.",
-        "",
-        "Stated on the call. Use it as the incident's root cause, or dismiss it, on the incident's page.",
-        "",
-        "**Confirmed on the call**",
-        "- The DB pool was at 100%.",
-        "",
-        "**Hypotheses**",
-        "- A retry storm may have made it worse.",
-        "",
-        "**What was tried**",
-        "- Restarted two API pods.",
-        "",
-        "**Decisions**",
-        "- Roll the deploy back.",
-        "",
-        "**Follow-ups**",
-        "- Raise the pool limit. (Sam Lee)",
-        "- Add a pool saturation alert.",
-        "",
-        "**Open questions**",
-        "- Why did the canary pass?",
-      ].join("\n"),
-    );
-  });
-
-  test("names its parts as the AI Investigation card does", () => {
-    expect(CALL_SUMMARY_FEED_SECTIONS).toEqual({
-      confirmed: "Confirmed on the call",
-      hypotheses: "Hypotheses",
-      stepsTried: "What was tried",
-      decisions: "Decisions",
-      actions: "Follow-ups",
-      openQuestions: "Open questions",
-    });
-  });
-
-  test("an inferred cause says it was inferred", () => {
-    const markdown: string = IncidentCallSummaryFeed.getFeedMarkdown({
-      callLabel: "Zoom meeting",
-      summary: summary({
-        rootCause: {
-          outcome: CallSummaryRootCauseOutcome.Suggested,
-          summary: "The deploy exhausted the pool.",
-          basis: CallSummaryBasis.Inferred,
-          citations: [CITATION],
-        },
-      }),
-    }).toString();
-
-    expect(markdown).toContain(
-      "Inferred from the discussion. Use it as the incident's root cause, or dismiss it, on the incident's page.",
-    );
-  });
-
-  test("a call that did not settle the cause says so, and offers nothing to use", () => {
-    const markdown: string = IncidentCallSummaryFeed.getFeedMarkdown({
-      callLabel: "Google Meet",
-      summary: summary({
-        rootCause: {
-          outcome: CallSummaryRootCauseOutcome.NotEnoughDiscussion,
-          citations: [],
-        },
-      }),
-    }).toString();
-
-    expect(markdown).toContain(
-      "**Root cause:** not enough was said on the call to suggest one.",
-    );
-    expect(markdown).not.toContain("Suggested root cause");
-    expect(markdown).not.toContain("Use it as the incident's root cause");
-  });
-
-  test("leaves out the parts the call said nothing about, and the details when there are none", () => {
-    const markdown: string = IncidentCallSummaryFeed.getFeedMarkdown({
-      callLabel: "War room",
-      summary: summary({
-        findings: [],
-        stepsTried: [],
-        decisions: [],
-        actions: [],
-        openQuestions: [],
-      }),
-    }).toString();
-
-    expect(markdown).toBe(
-      [
-        "✨ OneUptime AI read the transcript of the **War room**.",
-        "",
-        "**Suggested root cause** (not confirmed): The deploy doubled the workers and exhausted `DB_POOL_MAX`.",
-        "",
-        "Stated on the call. Use it as the incident's root cause, or dismiss it, on the incident's page.",
-      ].join("\n"),
-    );
-  });
-
-  test("only confirmed findings go under Confirmed on the call; everything else is a hypothesis", () => {
-    const markdown: string = IncidentCallSummaryFeed.getFeedMarkdown({
-      callLabel: "Zoom meeting",
-      summary: summary({
-        findings: [
-          {
-            kind: CallSummaryFindingKind.Hypothesis,
-            text: "Maybe DNS.",
-            citations: [],
-          },
-        ],
-      }),
-    }).toString();
-
-    expect(markdown).not.toContain("**Confirmed on the call**");
-    expect(markdown).toContain("**Hypotheses**\n- Maybe DNS.");
-  });
-
-  test("somebody's text stays text: no link, image, tag, mention or markup comes alive", () => {
-    const markdown: string = IncidentCallSummaryFeed.getFeedMarkdown({
-      callLabel: "[Join](https://evil.example.com) <!channel>",
-      summary: summary({
-        rootCause: {
-          outcome: CallSummaryRootCauseOutcome.Suggested,
-          summary:
-            "Click [here](https://evil.example.com) ![x](https://evil.example.com/x.png) <img src=x onerror=alert(1)> <!here> **bold** _it_",
-          basis: CallSummaryBasis.StatedOnCall,
-          citations: [CITATION],
-        },
-        findings: [
-          {
-            kind: CallSummaryFindingKind.Confirmed,
-            text: "# not a heading <script>alert(1)</script>",
-            citations: [CITATION],
-          },
-        ],
-        actions: [
-          {
-            text: "Page <@U123> now",
-            owner: "[Sam](https://evil.example.com)",
-            citations: [],
-          },
-        ],
-        stepsTried: [],
-        decisions: [],
-        openQuestions: [],
-      }),
-    }).toString();
-
-    // Each value is escaped where it sits; a mention gets an invisible break.
-    const joiner: string = "⁠";
-
-    expect(markdown).toBe(
-      [
-        `✨ OneUptime AI read the transcript of the **\\[Join\\](https://evil.example.com) \\<${joiner}!channel>**.`,
-        "",
-        `**Suggested root cause** (not confirmed): Click \\[here\\](https://evil.example.com) !\\[x\\](https://evil.example.com/x.png) \\<img src=x onerror=alert(1)> \\<${joiner}!here> \\*\\*bold\\*\\* \\_it\\_`,
-        "",
-        "Stated on the call. Use it as the incident's root cause, or dismiss it, on the incident's page.",
-        "",
-        "**Confirmed on the call**",
-        "- \\# not a heading \\<script>alert(1)\\</script>",
-        "",
-        "**Follow-ups**",
-        `- Page \\<${joiner}@U123> now (\\[Sam\\](https://evil.example.com))`,
-      ].join("\n"),
-    );
-
-    // No link or image whose bracket is not escaped, and no tag that opens.
-    expect(markdown).not.toMatch(/(?<!\\)\[[^\]\n]*(?<!\\)\]\(/);
-    expect(markdown).not.toMatch(/(?<!\\)<[A-Za-z!@/]/);
-    // Chat mentions cannot reach anyone.
-    expect(markdown).not.toMatch(/<[!@]/);
-  });
-
-  test("an identifier the model wrote in backticks stays code", () => {
-    const markdown: string = IncidentCallSummaryFeed.getFeedMarkdown({
-      callLabel: "Zoom meeting",
-      summary: summary(),
-    }).toString();
-
-    expect(markdown).toContain("`DB_POOL_MAX`");
-  });
-});
-
 describe("IncidentCallSummaryFeed.post", () => {
   let feed: SpyInstance<typeof IncidentFeedService.createIncidentFeedItem>;
 
@@ -322,7 +126,7 @@ describe("IncidentCallSummaryFeed.post", () => {
     // OneUptime AI's, not a person's.
     expect(item).not.toHaveProperty("userId");
     expect(item["feedInfoInMarkdown"]).toBe(
-      IncidentCallSummaryFeed.getFeedMarkdown({
+      CallSummaryFeedMarkdown.getFeedMarkdown({
         callLabel: "Zoom meeting",
         summary: summary(),
         details: TranscriptText.describeInfo(
