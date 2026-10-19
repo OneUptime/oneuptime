@@ -197,7 +197,8 @@ function buildTrace(traceId, root, options = {}) {
     span.startTime = new Date(startMs);
     span.endTime = new Date(startMs + node.duration);
     span.startTimeUnixNano = Math.round(startMs * 1000000);
-    span.endTimeUnixNano = Math.round(startMs * 1000000) + Math.round(node.duration * 1000000);
+    span.endTimeUnixNano =
+      Math.round(startMs * 1000000) + Math.round(node.duration * 1000000);
     span.durationUnixNano = Math.round(node.duration * 1000000);
     span.attributes = {
       "service.name": node.service,
@@ -494,7 +495,8 @@ function checkoutTrace() {
                         status: "ok",
                         attributes: {
                           "http.method": "POST",
-                          "http.url": "https://api.stripe.com/v1/payment_intents",
+                          "http.url":
+                            "https://api.stripe.com/v1/payment_intents",
                           "http.status_code": 200,
                           "peer.service": "stripe",
                         },
@@ -748,22 +750,27 @@ function makeLogs(query) {
     ? traceSpans.filter((span) => span.spanId === spanId)
     : traceSpans.slice(0, 18);
   return source.map((span, index) => {
-      const log = new Log();
-      log.projectId = new ObjectID(PROJECT_ID);
-      log.time = new Date(span.startTime.getTime() + 1);
-      log.timeUnixNano = span.startTimeUnixNano + 1000000;
-      log.severityText = span.statusCode === SpanStatus.Error ? "ERROR" : index % 3 === 0 ? "DEBUG" : "INFO";
-      log.body =
-        span.statusCode === SpanStatus.Error
-          ? `${span.name} failed: ${span.statusMessage || "error"}`
-          : `${span.name} started`;
-      log.traceId = traceId;
-      log.spanId = span.spanId;
-      log.primaryEntityId = span.primaryEntityId;
-      log.primaryEntityType = "OpenTelemetry";
-      log.attributes = {};
-      return log;
-    });
+    const log = new Log();
+    log.projectId = new ObjectID(PROJECT_ID);
+    log.time = new Date(span.startTime.getTime() + 1);
+    log.timeUnixNano = span.startTimeUnixNano + 1000000;
+    log.severityText =
+      span.statusCode === SpanStatus.Error
+        ? "ERROR"
+        : index % 3 === 0
+          ? "DEBUG"
+          : "INFO";
+    log.body =
+      span.statusCode === SpanStatus.Error
+        ? `${span.name} failed: ${span.statusMessage || "error"}`
+        : `${span.name} started`;
+    log.traceId = traceId;
+    log.spanId = span.spanId;
+    log.primaryEntityId = span.primaryEntityId;
+    log.primaryEntityType = "OpenTelemetry";
+    log.attributes = {};
+    return log;
+  });
 }
 
 function makeExceptions(query) {
@@ -967,7 +974,11 @@ async function handleApi(method, options) {
 
   if (url.includes("/telemetry/metrics/for-trace")) {
     if (failures.has("metrics")) {
-      throw new HTTPErrorResponse(500, { message: "Metrics are unavailable." }, {});
+      throw new HTTPErrorResponse(
+        500,
+        { message: "Metrics are unavailable." },
+        {},
+      );
     }
     const spans = traceSpans.slice(0, 6);
     return ok({
@@ -1002,7 +1013,10 @@ async function handleApi(method, options) {
     if (failures.has("perf-fix")) {
       throw new HTTPErrorResponse(
         400,
-        { message: "No deterministic performance pattern was found in this trace." },
+        {
+          message:
+            "No deterministic performance pattern was found in this trace.",
+        },
         {},
       );
     }
