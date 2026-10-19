@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "वैश्विक प्रोब",
+    "globalRunners": "ग्लोबल Runner",
     "dataRetention": "डेटा प्रतिधारण",
     "globalAiAgents": "वैश्विक AI एजेंट",
     "globalLlmProviders": "वैश्विक LLM प्रदाता",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "निगरानी",
     "settingsGlobalProbes": "वैश्विक प्रोब",
+    "settingsRunbooks": "रनबुक",
+    "settingsGlobalRunners": "ग्लोबल Runner",
     "settingsDataRetention": "डेटा प्रतिधारण",
     "settingsAi": "एआई",
     "settingsGlobalAiAgents": "वैश्विक AI एजेंट",
@@ -526,6 +529,18 @@
         "keyModalDescription": "यह आपकी प्रोब कुंजी है। कृपया इसे गुप्त रखें।",
         "probeIdLabel": "प्रोब आईडी:",
         "probeKeyLabel": "प्रोब कुंजी:"
+      },
+      "globalRunners": {
+        "cardTitle": "ग्लोबल Runner",
+        "cardDescription": "ऐसे Runner जिन्हें OneUptime हर प्रोजेक्ट के लिए चलाता है। ये रनबुक के JavaScript चरण चलाते हैं, हर चरण अपने अलग सैंडबॉक्स में जो सिर्फ़ इंटरनेट तक पहुँचता है। प्रोजेक्ट इन्हें तब तक इस्तेमाल करते हैं जब तक वे इन्हें बंद न करें।",
+        "noItems": "एक ग्लोबल Runner बनाएँ, फिर उसे 'आईडी और कुंजी दिखाएँ' में दिए गए कमांड से शुरू करें।",
+        "showIdKey": "आईडी और कुंजी दिखाएँ",
+        "keyModalTitle": "ग्लोबल Runner की कुंजी",
+        "keyModalDescription": "इस ग्लोबल Runner को ऐसे होस्ट पर शुरू करें जो इंटरनेट तक पहुँच सके। इसकी कुंजी गुप्त रखें: जिसके पास यह होगी, वह ग्लोबल Runner इस्तेमाल करने वाले हर प्रोजेक्ट के JavaScript चरण ले सकता है।",
+        "runnerIdLabel": "Runner आईडी:",
+        "runnerKeyLabel": "Runner कुंजी:",
+        "commandLabel": "अपने Docker होस्ट पर चलाएँ",
+        "neverConnected": "कभी कनेक्ट नहीं हुआ"
       },
       "aiAgents": {
         "bannerTitle": "वैश्विक AI एजेंट सेटअप करने में मदद चाहिए?",

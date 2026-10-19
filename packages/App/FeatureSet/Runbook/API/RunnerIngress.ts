@@ -58,6 +58,28 @@ export interface RunInputsForJob {
 export default class RunnerIngressAPI {
   public router!: ExpressRouter;
 
+  /*
+   * Why a step on a global Runner that names runbook secrets global Runners
+   * may not use was not run: their names (never their values), and the two
+   * ways out.
+   */
+  public static describeSecretsNotForGlobalRunners(
+    names: Array<string>,
+  ): string {
+    const shown: Array<string> = names.slice(0, 5).map((name: string) => {
+      return `"${name.length > 80 ? `${name.slice(0, 80)}…` : name}"`;
+    });
+
+    const more: string =
+      names.length > shown.length ? ` and ${names.length - shown.length} more` : "";
+
+    return `This step uses the runbook secret${names.length === 1 ? "" : "s"} ${shown.join(
+      ", ",
+    )}${more}, which global Runners may not use, so it was not run. Turn on "Global Runners can use this secret" for ${
+      names.length === 1 ? "it" : "them"
+    } under Runbooks → Settings → Secrets, or pick one of your own Runners for the step.`;
+  }
+
   // Why a job naming a credential is failed for a global Runner.
   public static readonly GLOBAL_RUNNER_CREDENTIAL_REFUSAL: string =
     "This step needs a credential, and global Runners are never handed one: they run JavaScript steps for every project, in a sandbox. It was not run. Pick one of your own Runners for the step, assigned to the credential.";
@@ -697,6 +719,31 @@ export default class RunnerIngressAPI {
         await RunbookSecretsUtil.loadForGlobalRunnerJob({
           projectId: job.projectId,
         });
+
+      /*
+       * A secret the step names that global Runners may not use fails the
+       * step, saying which and how to fix it - rather than running it with
+       * the placeholder where the value should be.
+       */
+      const notAvailable: Array<string> = RunbookSecretsUtil.getSecretNamesNotIn(
+        {
+          script: scriptToSend,
+          secrets,
+        },
+      );
+
+      if (notAvailable.length > 0) {
+        await RunnerJobService.submitResult({
+          jobId: job.id!,
+          agentId: agent.id,
+          success: false,
+          errorMessage: RunnerIngressAPI.describeSecretsNotForGlobalRunners(
+            notAvailable,
+          ),
+        });
+
+        return { job: null };
+      }
 
       scriptToSend = RunbookSecretsUtil.populateInScript({
         script: scriptToSend,

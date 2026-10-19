@@ -1,4 +1,11 @@
 import RunnersElement from "../../Components/Runner/Runners";
+import RunnerChoicesLoader, {
+  GlobalRunnerRow,
+} from "../../Components/Runner/RunnerChoices";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import Field from "Common/UI/Components/Forms/Types/Field";
+import Column from "Common/UI/Components/ModelTable/Column";
+import { useAsyncEffect } from "use-async-effect";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -21,6 +28,16 @@ import React, {
   useState,
 } from "react";
 
+/*
+ * What the page knows about global Runners - the Runners OneUptime runs for
+ * every project - for the Access step: whether the server has any, and
+ * whether the project uses them.
+ */
+interface GlobalRunnerAccess {
+  hasGlobalRunners: boolean;
+  projectUsesGlobalRunners: boolean;
+}
+
 const RunbookSecrets: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -28,6 +45,68 @@ const RunbookSecrets: FunctionComponent<
     useState<RunbookSecret | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [globalRunnerAccess, setGlobalRunnerAccess] =
+    useState<GlobalRunnerAccess | null>(null);
+
+  useAsyncEffect(async () => {
+    const [globalRunners, projectUsesGlobalRunners]: [
+      Array<GlobalRunnerRow>,
+      boolean,
+    ] = await Promise.all([
+      RunnerChoicesLoader.loadGlobalRunners(),
+      RunnerChoicesLoader.loadProjectUsesGlobalRunners(
+        ProjectUtil.getCurrentProjectId()!,
+      ),
+    ]);
+
+    setGlobalRunnerAccess({
+      hasGlobalRunners: globalRunners.length > 0,
+      projectUsesGlobalRunners,
+    });
+  }, []);
+
+  if (!globalRunnerAccess) {
+    return <ComponentLoader />;
+  }
+
+  const hasGlobalRunners: boolean = globalRunnerAccess.hasGlobalRunners;
+
+  /*
+   * Who may use a secret, on the Access step: the global Runners - asked
+   * only on a server that has them - and the project's own Runners. A new
+   * secret starts usable by the global Runners when the project uses them,
+   * as a JavaScript step that picks no Runner runs there; a step of another
+   * project never gets it (RunbookSecretsUtil.loadForGlobalRunnerJob).
+   */
+  const globalRunnersAccessFields: Array<Field<RunbookSecret>> =
+    hasGlobalRunners
+      ? [
+          {
+            field: {
+              isAvailableToGlobalRunners: true,
+            },
+            title: "Global Runners can use this secret",
+            stepId: "access",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Steps of this project that run on a global Runner get this secret. Steps of other projects never do.",
+          },
+        ]
+      : [];
+
+  const globalRunnersColumns: Array<Column<RunbookSecret>> = hasGlobalRunners
+    ? [
+        {
+          field: {
+            isAvailableToGlobalRunners: true,
+          },
+          title: "Global Runners",
+          type: FieldType.Boolean,
+        },
+      ]
+    : [];
 
   return (
     <Fragment>
@@ -68,7 +147,11 @@ const RunbookSecrets: FunctionComponent<
         cardProps={{
           title: "Runbook Secrets",
           description:
-            "Runbook secrets are used to store sensitive information like API keys, passwords, etc. that can be shared with runbook agents.",
+            "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.",
+        }}
+        createInitialValues={{
+          isAvailableToGlobalRunners:
+            hasGlobalRunners && globalRunnerAccess.projectUsesGlobalRunners,
         }}
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
@@ -115,11 +198,12 @@ const RunbookSecrets: FunctionComponent<
             required: true,
             placeholder: "Secret Value (eg: API Key, Password, etc.)",
           },
+          ...globalRunnersAccessFields,
           {
             field: {
               runners: true,
             },
-            title: "Runbook agents which have access to this secret",
+            title: "Your Runners that can use this secret",
             stepId: "access",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
@@ -127,10 +211,10 @@ const RunbookSecrets: FunctionComponent<
               labelField: "name",
               valueField: "_id",
             },
-            required: true,
-            description:
-              "Which runbook agents should have access to this secret?",
-            placeholder: "Select runbook agents",
+            // With global Runners, a secret may be theirs alone.
+            required: !hasGlobalRunners,
+            description: "The Runners you installed that get this secret.",
+            placeholder: "Select Runners",
           },
         ]}
         sortBy="name"
@@ -149,7 +233,7 @@ const RunbookSecrets: FunctionComponent<
             field: {
               runners: true,
             },
-            title: "Runbook agents which have access to this secret",
+            title: "Your Runners that can use this secret",
             type: FieldType.EntityArray,
 
             filterEntityType: Runner,
@@ -177,6 +261,7 @@ const RunbookSecrets: FunctionComponent<
             title: "Description",
             type: FieldType.LongText,
           },
+          ...globalRunnersColumns,
           {
             field: {
               runners: {
@@ -185,7 +270,7 @@ const RunbookSecrets: FunctionComponent<
                 projectId: true,
               },
             },
-            title: "Runbook agents which have access to this secret",
+            title: "Your Runners that can use this secret",
             type: FieldType.EntityArray,
 
             getElement: (item: RunbookSecret): ReactElement => {

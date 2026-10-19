@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Globala prober",
+    "globalRunners": "Globala Runners",
     "dataRetention": "Databevarande",
     "globalAiAgents": "Globala AI-agenter",
     "globalLlmProviders": "Globala LLM-leverantörer",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Övervakning",
     "settingsGlobalProbes": "Globala prober",
+    "settingsRunbooks": "Runbooks",
+    "settingsGlobalRunners": "Globala Runners",
     "settingsDataRetention": "Databevarande",
     "settingsAi": "AI",
     "settingsGlobalAiAgents": "Globala AI-agenter",
@@ -526,6 +529,18 @@
         "keyModalDescription": "Här är din probe-nyckel. Håll den hemlig.",
         "probeIdLabel": "Probe-ID:",
         "probeKeyLabel": "Probe-nyckel:"
+      },
+      "globalRunners": {
+        "cardTitle": "Globala Runners",
+        "cardDescription": "Runners som OneUptime kör för alla projekt. De kör JavaScript-steg i runbooks, vart och ett i en egen sandlåda som bara når internet. Projekt använder dem om de inte stänger av dem.",
+        "noItems": "Skapa en global Runner och starta den sedan med kommandot under ”Visa ID och nyckel”.",
+        "showIdKey": "Visa ID och nyckel",
+        "keyModalTitle": "Nyckel för global Runner",
+        "keyModalDescription": "Starta den här globala Runnern på en värd som når internet. Håll nyckeln hemlig: den som har den kan ta JavaScript-stegen i alla projekt som använder globala Runners.",
+        "runnerIdLabel": "Runner-ID:",
+        "runnerKeyLabel": "Runner-nyckel:",
+        "commandLabel": "Kör på din Docker-värd",
+        "neverConnected": "Aldrig ansluten"
       },
       "aiAgents": {
         "bannerTitle": "Behöver du hjälp med att konfigurera globala AI-agenter?",

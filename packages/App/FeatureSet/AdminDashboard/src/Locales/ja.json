@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "グローバルプローブ",
+    "globalRunners": "グローバル Runner",
     "dataRetention": "データ保持",
     "globalAiAgents": "グローバルAIエージェント",
     "globalLlmProviders": "グローバルLLMプロバイダー",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "監視",
     "settingsGlobalProbes": "グローバルプローブ",
+    "settingsRunbooks": "Runbook",
+    "settingsGlobalRunners": "グローバル Runner",
     "settingsDataRetention": "データ保持",
     "settingsAi": "AI",
     "settingsGlobalAiAgents": "グローバルAIエージェント",
@@ -526,6 +529,18 @@
         "keyModalDescription": "こちらがあなたのプローブキーです。秘密にしておいてください。",
         "probeIdLabel": "プローブID：",
         "probeKeyLabel": "プローブキー："
+      },
+      "globalRunners": {
+        "cardTitle": "グローバル Runner",
+        "cardDescription": "OneUptime がすべてのプロジェクトのために動かす Runner です。Runbook の JavaScript ステップを、インターネットにだけ届く専用のサンドボックスでステップごとに実行します。プロジェクトはオフにしない限りこれを使います。",
+        "noItems": "グローバル Runner を作成し、「IDとキーを表示」にあるコマンドで起動してください。",
+        "showIdKey": "IDとキーを表示",
+        "keyModalTitle": "グローバル Runner のキー",
+        "keyModalDescription": "このグローバル Runner は、インターネットに届くホストで起動してください。キーは秘密にしてください。キーを持つ人は、グローバル Runner を使うすべてのプロジェクトの JavaScript ステップを受け取れます。",
+        "runnerIdLabel": "Runner ID：",
+        "runnerKeyLabel": "Runner キー：",
+        "commandLabel": "Docker ホストで実行",
+        "neverConnected": "未接続"
       },
       "aiAgents": {
         "bannerTitle": "グローバルAIエージェントの設定にサポートが必要ですか？",

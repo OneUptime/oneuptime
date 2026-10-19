@@ -44,6 +44,7 @@
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
     "globalProbes": "Sondes globales",
+    "globalRunners": "Agents Runbook globaux",
     "dataRetention": "Rétention des données",
     "globalAiAgents": "Agents IA globaux",
     "globalLlmProviders": "Fournisseurs LLM globaux",
@@ -111,6 +112,8 @@
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Surveillance",
     "settingsGlobalProbes": "Sondes globales",
+    "settingsRunbooks": "Runbooks",
+    "settingsGlobalRunners": "Agents Runbook globaux",
     "settingsDataRetention": "Rétention des données",
     "settingsAi": "IA",
     "settingsGlobalAiAgents": "Agents IA globaux",
@@ -526,6 +529,18 @@
         "keyModalDescription": "Voici votre clé de sonde. Veuillez la garder secrète.",
         "probeIdLabel": "ID de la sonde :",
         "probeKeyLabel": "Clé de la sonde :"
+      },
+      "globalRunners": {
+        "cardTitle": "Agents Runbook globaux",
+        "cardDescription": "Des agents Runbook que OneUptime exécute pour chaque projet. Ils exécutent les étapes JavaScript des runbooks, chacune dans son propre bac à sable qui n'accède qu'à Internet. Les projets les utilisent, sauf s'ils les désactivent.",
+        "noItems": "Créez un agent Runbook global, puis démarrez-le avec la commande de « Afficher l'ID et la clé ».",
+        "showIdKey": "Afficher l'ID et la clé",
+        "keyModalTitle": "Clé de l'agent Runbook global",
+        "keyModalDescription": "Démarrez cet agent Runbook global sur un hôte qui peut accéder à Internet. Gardez sa clé secrète : quiconque la détient peut prendre les étapes JavaScript de tous les projets qui utilisent les agents Runbook globaux.",
+        "runnerIdLabel": "ID de l'agent Runbook :",
+        "runnerKeyLabel": "Clé de l'agent Runbook :",
+        "commandLabel": "À exécuter sur votre hôte Docker",
+        "neverConnected": "Jamais connecté"
       },
       "aiAgents": {
         "bannerTitle": "Besoin d'aide pour configurer les agents IA globaux ?",

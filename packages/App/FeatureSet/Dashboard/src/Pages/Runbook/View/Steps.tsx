@@ -19,20 +19,16 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
-import Runner from "Common/Models/DatabaseModels/Runner";
-import RunnerLiveStatus, {
-  getRunnerLiveStatus,
-  getRunnerLiveStatusLabel,
-} from "Common/Types/Runner/RunnerLiveStatus";
-import useTranslateValue, {
-  UseTranslateValueResult,
-} from "Common/UI/Utils/Translation";
+import RunnerPicker from "../../../Components/Runner/RunnerPicker";
+import RunnerChoicesLoader, {
+  RunnerChoices,
+} from "../../../Components/Runner/RunnerChoices";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -80,12 +76,6 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-
-interface AgentOption {
-  id: string;
-  name: string;
-  liveStatus: RunnerLiveStatus;
-}
 
 /*
  * The timeout fields shared by every step that is dispatched to a Runner.
@@ -163,8 +153,7 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     type: RunbookStepType.JavaScript,
     label: "JavaScript",
     shortLabel: "JavaScript",
-    description:
-      "Run JavaScript on one of your Runners and use what it returns.",
+    description: "Run JavaScript in a sandbox and use what it returns.",
     icon: IconProp.Code,
     bg: "bg-amber-50",
     ring: "ring-amber-100",
@@ -512,11 +501,18 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<boolean>(false);
   const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
-  const [agents, setAgents] = useState<AgentOption[]>([]);
+  /*
+   * Who can run the steps: the project's own Runners, the global Runners
+   * OneUptime runs for every project, and whether the project uses them.
+   */
+  const [runnerChoices, setRunnerChoices] = useState<RunnerChoices>({
+    projectRunners: [],
+    globalRunners: [],
+    projectUsesGlobalRunners: true,
+  });
   const [credentials, setCredentials] = useState<CredentialOption[]>([]);
   const [llmProviders, setLlmProviders] = useState<LlmProviderOption[]>([]);
 
-  const { translateString }: UseTranslateValueResult = useTranslateValue();
   const translator: Translator = useTranslator();
 
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
@@ -525,27 +521,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   useAsyncEffect(async () => {
     try {
-      const [runbook, agentList, credentialList] = await Promise.all([
+      const [runbook, loadedRunnerChoices, credentialList] = await Promise.all([
         ModelAPI.getItem<Runbook>({
           modelType: Runbook,
           id: modelId,
           select: { steps: true },
           requestOptions: {},
         }),
-        ModelAPI.getList<Runner>({
-          modelType: Runner,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            _id: true,
-            name: true,
-            lastAlive: true,
-          },
-          sort: { name: SortOrder.Ascending },
-          limit: LIMIT_MAX,
-          skip: 0,
-        }),
+        RunnerChoicesLoader.load(ProjectUtil.getCurrentProjectId()!),
         ModelAPI.getList<RunbookCredential>({
           modelType: RunbookCredential,
           query: {
@@ -591,16 +574,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       setSteps(loaded);
       setCollapsedState(initialCollapsed);
 
-      const result: ListResult<Runner> = agentList;
-      setAgents(
-        result.data.map((a: Runner): AgentOption => {
-          return {
-            id: a._id?.toString() || "",
-            name: a.name || "Unnamed Runner",
-            liveStatus: getRunnerLiveStatus(a.lastAlive),
-          };
-        }),
-      );
+      setRunnerChoices(loadedRunnerChoices);
 
       /*
        * Providers are fetched outside the Promise.all above, and their
@@ -812,103 +786,34 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <PageLoader isVisible={true} />;
   }
 
-  const agentDropdownOptions: Array<DropdownOption> = agents.map(
-    (a: AgentOption): DropdownOption => {
-      return {
-        value: a.id,
-        /*
-         * Dropdown translates an option label as one whole string, so the
-         * composed "name · status" can never match a key. The status word is
-         * therefore translated on its own and then joined — and it reuses the
-         * same three labels the status bubble uses, which every locale
-         * already carries.
-         */
-        label: `${a.name} · ${
-          translateString(getRunnerLiveStatusLabel(a.liveStatus)) ||
-          getRunnerLiveStatusLabel(a.liveStatus)
-        }`,
-      };
-    },
-  );
-
+  /*
+   * Which Runner runs a step: the one Runner picker (RunnerPicker). A
+   * JavaScript step that picked none shows "Global Runner", the Runners
+   * OneUptime runs for every project; a Bash, SSH or Kubernetes step picks
+   * one of the project's own.
+   */
   const renderAgentPicker: (args: {
+    stepIndex: number;
+    stepType: RunbookStepType;
     currentAgentId: string;
     onChange: (id: string) => void;
     helperText: ReactElement;
   }) => ReactElement = (args: {
+    stepIndex: number;
+    stepType: RunbookStepType;
     currentAgentId: string;
     onChange: (id: string) => void;
     helperText: ReactElement;
   }): ReactElement => {
-    const currentOption: DropdownOption | undefined = agentDropdownOptions.find(
-      (o: DropdownOption) => {
-        return o.value === args.currentAgentId;
-      },
-    );
-
-    const options: Array<DropdownOption> = currentOption
-      ? agentDropdownOptions
-      : args.currentAgentId
-        ? [
-            {
-              value: args.currentAgentId,
-              label: translator.translateTemplate("Unknown Runner ({{id}})", {
-                id: args.currentAgentId,
-              }),
-            },
-            ...agentDropdownOptions,
-          ]
-        : agentDropdownOptions;
-
-    const selectedOption: DropdownOption | undefined =
-      currentOption ||
-      (args.currentAgentId
-        ? {
-            value: args.currentAgentId,
-            label: translator.translateTemplate("Unknown Runner ({{id}})", {
-              id: args.currentAgentId,
-            }),
-          }
-        : undefined);
-
     return (
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1.5">
-          {translator.translateText("Runner")}
-        </label>
-        {agents.length === 0 ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <TranslatedSentence
-              template="No Runners in this project yet. Create one under {{location}}, then come back to pick it here."
-              slots={{
-                location: (
-                  <strong>
-                    {translator.translateText("Runbooks › Runners")}
-                  </strong>
-                ),
-              }}
-            />
-          </div>
-        ) : (
-          <Dropdown
-            options={options}
-            value={selectedOption}
-            placeholder="Select a Runner"
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ): void => {
-              const id: string =
-                value === null || value === undefined
-                  ? ""
-                  : Array.isArray(value)
-                    ? String(value[0] ?? "")
-                    : String(value);
-              args.onChange(id);
-            }}
-          />
-        )}
-        <p className="text-xs text-gray-500 mt-1.5">{args.helperText}</p>
-      </div>
+      <RunnerPicker
+        stepType={args.stepType}
+        value={args.currentAgentId}
+        onChange={args.onChange}
+        choices={runnerChoices}
+        ownRunnerHelperText={args.helperText}
+        dataTestId={`runbook-step-${args.stepIndex}-runner`}
+      />
     );
   };
 
@@ -1432,6 +1337,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                           RunbookStepType.JavaScript && (
                                           <div className="flex flex-col gap-3">
                                             {renderAgentPicker({
+                                              stepIndex: idx,
+                                              stepType:
+                                                RunbookStepType.JavaScript,
                                               currentAgentId:
                                                 (
                                                   step.config as JavaScriptStepConfig
@@ -1474,11 +1382,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
                                                 <TranslatedSentence
-                                                  template="Runs in an {{sandbox}} sandbox on the Runner, with no file, network or process access. Use {{returnValue}} to hand a result to the next steps."
+                                                  template="Runs in an {{sandbox}} sandbox, with no file or process access. It can call public APIs with {{axios}}. Use {{returnValue}} to hand a result to the next steps."
                                                   slots={{
                                                     sandbox: (
                                                       <code>isolated-vm</code>
                                                     ),
+                                                    axios: <code>axios</code>,
                                                     returnValue: (
                                                       <code>return value</code>
                                                     ),
@@ -1654,6 +1563,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                         {step.type === RunbookStepType.Bash && (
                                           <div className="flex flex-col gap-3">
                                             {renderAgentPicker({
+                                              stepIndex: idx,
+                                              stepType: RunbookStepType.Bash,
                                               currentAgentId:
                                                 (step.config as BashStepConfig)
                                                   .agentId || "",
@@ -1735,6 +1646,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                         {step.type === RunbookStepType.SSH && (
                                           <div className="flex flex-col gap-3">
                                             {renderAgentPicker({
+                                              stepIndex: idx,
+                                              stepType: RunbookStepType.SSH,
                                               currentAgentId:
                                                 (step.config as SSHStepConfig)
                                                   .agentId || "",
@@ -1817,6 +1730,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                           RunbookStepType.Kubernetes && (
                                           <div className="flex flex-col gap-3">
                                             {renderAgentPicker({
+                                              stepIndex: idx,
+                                              stepType:
+                                                RunbookStepType.Kubernetes,
                                               currentAgentId:
                                                 (
                                                   step.config as KubernetesStepConfig

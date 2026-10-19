@@ -1,5 +1,13 @@
 import RunnerInstallInstructions from "../../../Components/Runner/InstallInstructions";
 import RunnerStatusElement from "../../../Components/Runner/RunnerStatus";
+import GlobalRunnersTable from "../../../Components/Runner/GlobalRunnersTable";
+import UseGlobalRunnersCard from "../../../Components/Runner/UseGlobalRunnersCard";
+import RunnerChoicesLoader, {
+  GlobalRunnerRow,
+} from "../../../Components/Runner/RunnerChoices";
+import GlobalRunnersCopy, {
+  ADMIN_GLOBAL_RUNNERS_ROUTE,
+} from "../../../Components/Runner/GlobalRunnersCopy";
 import PageComponentProps from "../../PageComponentProps";
 import {
   RUNNER_FORM_STEPS,
@@ -15,6 +23,12 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import UserUtil from "Common/UI/Utils/User";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import Link from "Common/UI/Components/Link/Link";
+import URL from "Common/Types/API/URL";
+import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
+import { useAsyncEffect } from "use-async-effect";
 import useTranslateValue, {
   UseTranslateValueResult,
 } from "Common/UI/Utils/Translation";
@@ -36,14 +50,85 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+/*
+ * Runbooks -> Runners, read like Monitors -> Settings -> Probes:
+ *
+ *   - Global Runners: the Runners OneUptime runs for every project, on top
+ *     and read-only. A JavaScript step that picks no Runner of its own runs
+ *     on one.
+ *   - Custom Runners: the project's own, installed in its own
+ *     infrastructure - for Bash, SSH and Kubernetes steps, anything on its
+ *     network, and for a team that keeps every step on its own hosts. With
+ *     none yet, one plain sentence says why to add one.
+ *   - Use global Runners: the project's one switch for the global ones.
+ *
+ * On a server that has no global Runner (a self-hosted install whose admin
+ * added none), the page shows the project's own Runners only, as it always
+ * did, and tells a master admin where global Runners are added.
+ */
 const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
+
+  // Null until read: the page draws once it knows whether there are any.
+  const [globalRunners, setGlobalRunners] =
+    useState<Array<GlobalRunnerRow> | null>(null);
+
+  const [projectUsesGlobalRunners, setProjectUsesGlobalRunners] =
+    useState<boolean>(true);
 
   const { translateString }: UseTranslateValueResult = useTranslateValue();
   const translator: Translator = useTranslator();
 
+  useAsyncEffect(async () => {
+    setGlobalRunners(await RunnerChoicesLoader.loadGlobalRunners());
+  }, []);
+
+  if (globalRunners === null) {
+    return <ComponentLoader />;
+  }
+
+  const hasGlobalRunners: boolean = globalRunners.length > 0;
+
+  /*
+   * A master admin on a server with no global Runner is told where to add
+   * them, under the description everyone reads.
+   */
+  const customCardDescription: string | ReactElement = hasGlobalRunners
+    ? GlobalRunnersCopy.customCardDescription
+    : UserUtil.isMasterAdmin()
+      ? (
+          <span>
+            {translator.translateText(GlobalRunnersCopy.onlyCardDescription)}{" "}
+            <span data-testid="add-global-runners-hint">
+              {translator.translateText(
+                GlobalRunnersCopy.addGlobalRunnersHint,
+              )}{" "}
+              <Link
+                to={URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
+                  ADMIN_GLOBAL_RUNNERS_ROUTE,
+                )}
+                openInNewTab={true}
+                className="underline"
+              >
+                {translator.translateText(
+                  GlobalRunnersCopy.addGlobalRunnersLink,
+                )}
+              </Link>
+            </span>
+          </span>
+        )
+      : GlobalRunnersCopy.onlyCardDescription;
+
   return (
     <Fragment>
+      {hasGlobalRunners ? (
+        <GlobalRunnersTable
+          projectUsesGlobalRunners={projectUsesGlobalRunners}
+        />
+      ) : (
+        <></>
+      )}
+
       <ModelTable<Runner>
         modelType={Runner}
         id="runbook-agents-table"
@@ -68,9 +153,10 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showRefreshButton={true}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
-          title: "Runners",
-          description:
-            "Self-hosted Runners that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the Runner that should run it.",
+          title: hasGlobalRunners
+            ? GlobalRunnersCopy.customCardTitle
+            : GlobalRunnersCopy.onlyCardTitle,
+          description: customCardDescription,
         }}
         selectMoreFields={{
           _id: true,
@@ -87,7 +173,9 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           lastAlive: true,
         }}
         noItemsMessage={
-          "No Runners yet. Create one, then run the Docker command on a host inside your infrastructure."
+          hasGlobalRunners
+            ? GlobalRunnersCopy.customEmptyMessage
+            : GlobalRunnersCopy.onlyEmptyMessage
         }
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={RUNNER_FORM_STEPS}
@@ -266,6 +354,15 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+
+      {hasGlobalRunners ? (
+        <UseGlobalRunnersCard
+          projectId={ProjectUtil.getCurrentProjectId()!}
+          onChange={setProjectUsesGlobalRunners}
+        />
+      ) : (
+        <></>
+      )}
 
       {showSetupAgent ? (
         <Modal

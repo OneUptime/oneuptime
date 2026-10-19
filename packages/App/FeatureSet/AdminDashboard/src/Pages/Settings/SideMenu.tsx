@@ -125,6 +125,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
       </SideMenuSection>
       <SideMenuSection
+        title={t("sideMenu.settingsRunbooks")}
+        defaultCollapsed={true}
+      >
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.settingsGlobalRunners"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_GLOBAL_RUNNERS] as Route,
+            ),
+          }}
+          icon={IconProp.Terminal}
+        />
+      </SideMenuSection>
+      <SideMenuSection
         title={t("sideMenu.settingsDataRetention")}
         defaultCollapsed={true}
       >
