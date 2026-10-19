@@ -32,6 +32,13 @@
  *   - delay=<ms>           how long a save takes, so its state can be seen
  *   - lang=de|ja           the Dashboard's German or Japanese words
  *   - theme=dark           dark mode
+ *   - menu=1               the pages inside the runbook's real view layout
+ *                          (Pages/Runbook/View/Layout: its header,
+ *                          breadcrumbs and side menu), which stays mounted
+ *                          from page to page as in the Dashboard; the pages
+ *                          this fixture does not model are a stand-in there
+ *                          (data-testid fixture-page-not-modelled).
+ *                          page=overview opens the runbook's Overview
  *
  * What the page sends is recorded on window.__fixture: `updates` (each
  * updateById's data), `keyReads`, `keyResets` and `webhookCalls` (the URL,
@@ -54,6 +61,7 @@ import { initReactI18next } from "react-i18next";
 import RunbookTriggersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Triggers";
 import RunbookExecutionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Executions";
 import RunbookExecutionPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/ExecutionView";
+import RunbookViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Layout";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import User from "Common/Models/DatabaseModels/User";
@@ -99,6 +107,7 @@ const RUN_IDS = {
 
 const params = new URLSearchParams(window.location.search);
 const page = params.get("page") || "triggers";
+const withMenu = params.get("menu") === "1";
 const role = params.get("role") || "owner";
 const scheduleParam = params.get("schedule") || "none";
 const delay = Math.max(0, Number(params.get("delay") || 0));
@@ -493,8 +502,56 @@ function Shell(props) {
   );
 }
 
+/*
+ * ?menu=1: the runbook's real view layout around the page, as the
+ * Dashboard draws it: ModelPage's header and breadcrumbs, and the runbook's
+ * side menu. It is one route the pages are children of, so it stays mounted,
+ * and its menu keeps the sections someone opened, from page to page.
+ */
+function MenuShell() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  return (
+    <main className="mx-auto max-w-[1280px] px-4 py-8 sm:px-8">
+      <RunbookViewLayout
+        pageRoute={Navigation.getCurrentRoute()}
+        currentProject={null}
+        hasPaymentMethod={true}
+      />
+    </main>
+  );
+}
+
+// One of the fixture's pages, inside the layout.
+function InLayout(props) {
+  Navigation.setParams(useParams());
+  const Page = props.component;
+  return (
+    <Page
+      pageRoute={Navigation.getCurrentRoute()}
+      currentProject={null}
+      hasPaymentMethod={true}
+    />
+  );
+}
+
+// A page of the runbook this fixture does not model: the menu still leads to it.
+function NotModelled() {
+  const location = useLocation();
+  return (
+    <div
+      className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500"
+      data-testid="fixture-page-not-modelled"
+    >
+      {location.pathname}
+    </div>
+  );
+}
+
 const BASE = `/dashboard/:projectId/runbooks/:id`;
 const target = {
+  overview: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}`,
   triggers: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/triggers`,
   executions: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/executions`,
   execution: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/executions/${
@@ -508,19 +565,42 @@ if (target && window.location.pathname !== target) {
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <Routes>
-      <PageRoute
-        path={`${BASE}/triggers`}
-        element={<Shell component={RunbookTriggersPage} trail="Triggers" />}
-      />
-      <PageRoute
-        path={`${BASE}/executions`}
-        element={<Shell component={RunbookExecutionsPage} trail="Executions" />}
-      />
-      <PageRoute
-        path={`${BASE}/executions/:subModelId`}
-        element={<Shell component={RunbookExecutionPage} trail="Execution" />}
-      />
-    </Routes>
+    {withMenu ? (
+      <Routes>
+        <PageRoute path={BASE} element={<MenuShell />}>
+          <PageRoute index element={<NotModelled />} />
+          <PageRoute
+            path="triggers"
+            element={<InLayout component={RunbookTriggersPage} />}
+          />
+          <PageRoute
+            path="executions"
+            element={<InLayout component={RunbookExecutionsPage} />}
+          />
+          <PageRoute
+            path="executions/:subModelId"
+            element={<InLayout component={RunbookExecutionPage} />}
+          />
+          <PageRoute path="*" element={<NotModelled />} />
+        </PageRoute>
+      </Routes>
+    ) : (
+      <Routes>
+        <PageRoute
+          path={`${BASE}/triggers`}
+          element={<Shell component={RunbookTriggersPage} trail="Triggers" />}
+        />
+        <PageRoute
+          path={`${BASE}/executions`}
+          element={
+            <Shell component={RunbookExecutionsPage} trail="Executions" />
+          }
+        />
+        <PageRoute
+          path={`${BASE}/executions/:subModelId`}
+          element={<Shell component={RunbookExecutionPage} trail="Execution" />}
+        />
+      </Routes>
+    )}
   </BrowserRouter>,
 );

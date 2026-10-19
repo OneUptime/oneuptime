@@ -43,6 +43,21 @@ The suite drives the page the way a person does:
 - the Executions list naming Webhook and Schedule runs, and a webhook run's
   page showing its inputs as text.
 
+`RunbookSideMenu.spec.ts` opens the fixture with `?menu=1`, which puts the
+pages inside the runbook's real view layout (`Pages/Runbook/View/Layout.tsx`:
+its header, breadcrumbs and side menu, mounted once as in the Dashboard) and
+draws a stand-in for the pages the fixture does not model. It checks the
+menu the way a person meets it:
+
+- on the Overview only Basic is open; Executions (under Logs) and Triggers
+  and Settings (under Settings) are out of sight and skipped by the keyboard;
+- Logs and Settings open with a click or from the keyboard and lead to their
+  pages, which are marked, and a section stays open while you move around;
+- a bookmarked Triggers page opens Settings by itself, and a run's page opens
+  Logs with Executions marked;
+- dark mode, and a phone, where the menu button names the section and page
+  and opening a section does not close the menu.
+
 `Fixture/Fixture.js` records every save (`updates`), key read and reset and
 webhook call (`webhookCalls`, with its URL, body and headers) on
 `window.__fixture`, so the assertions check what the page sent as well as what

@@ -1,0 +1,415 @@
+import {
+  expect,
+  Locator,
+  Page,
+  Route as PlaywrightRoute,
+  test,
+} from "@playwright/test";
+import fs from "fs/promises";
+import path from "path";
+
+/*
+ * A runbook's side menu in a browser, around the real pages, against the
+ * offline fixture's ?menu=1 mode: the runbook's real view layout (header,
+ * breadcrumbs, side menu) stays mounted while its pages change, as in the
+ * Dashboard.
+ *
+ * The maintainer: "move executions to logs in the side menu, in the log
+ * section, which should be collapsed by default ... move triggers to the
+ * settings side menu, which should also be collapsed by default ... show as
+ * little stuff as possible to the user, so it reduces decision paralysis."
+ *
+ * jsdom applies no CSS, so it can only read the classes a folded section
+ * carries. Here a folded Executions or Triggers is checked to be out of
+ * sight and out of the keyboard's way, each section opens from a click and
+ * from the keyboard and leads to its pages, a section opens by itself on a
+ * page inside it - a run's page included - and the phone menu opens a
+ * section without closing. The same steps open Triggers here as in the
+ * deployed suite (Tests/Dashboard/RunbookTriggers.spec.ts).
+ */
+
+const PORT: string = process.env["RUNBOOK_TRIGGERS_FIXTURE_PORT"] || "4327";
+const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";
+const RUNBOOK_ID: string = "20000000-0000-4000-8000-0000000000b1";
+const WEBHOOK_RUN_ID: string = "40000000-0000-4000-8000-0000000000d1";
+const RUNBOOK_PATH: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}`;
+const EXECUTIONS_PATH: string = `${RUNBOOK_PATH}/executions`;
+const TRIGGERS_PATH: string = `${RUNBOOK_PATH}/triggers`;
+const SETTINGS_PATH: string = `${RUNBOOK_PATH}/settings`;
+
+const SECTIONS: ReadonlyArray<string> = [
+  "Basic",
+  "Logs",
+  "Owners",
+  "Settings",
+  "Developer",
+  "Advanced",
+];
+const FOLDED: ReadonlyArray<string> = SECTIONS.slice(1);
+
+const SCREENSHOTS: string = path.resolve(
+  __dirname,
+  "../../../output/playwright/runbook-triggers-ui",
+);
+
+const pageErrors: Map<Page, Array<string>> = new Map();
+const leftTheFixture: Map<Page, Array<string>> = new Map();
+
+test.beforeEach(async ({ page }: { page: Page }) => {
+  const errors: Array<string> = [];
+  const aborted: Array<string> = [];
+  pageErrors.set(page, errors);
+  leftTheFixture.set(page, aborted);
+  page.on("pageerror", (error: Error) => {
+    errors.push(String(error));
+  });
+
+  // Nothing may leave the fixture server.
+  await page.route("**/*", async (route: PlaywrightRoute) => {
+    const target: URL = new URL(route.request().url());
+    if (target.hostname === "127.0.0.1" && target.port === PORT) {
+      await route.continue();
+      return;
+    }
+    aborted.push(route.request().url());
+    await route.abort();
+  });
+});
+
+test.afterEach(({ page }: { page: Page }) => {
+  // A page that threw while drawing is a bug even when the test passed.
+  expect(pageErrors.get(page) || [], "uncaught page errors").toEqual([]);
+  expect(
+    leftTheFixture.get(page) || [],
+    "requests that left the fixture server",
+  ).toEqual([]);
+});
+
+async function screenshot(page: Page, name: string): Promise<void> {
+  await fs.mkdir(SCREENSHOTS, { recursive: true });
+  await page.screenshot({
+    path: path.join(SCREENSHOTS, `menu-${name}-synthetic.png`),
+    fullPage: true,
+    animations: "disabled",
+  });
+}
+
+// The fixture with the real layout, on one of its pages.
+async function openRunbook(
+  page: Page,
+  which: "overview" | "triggers" | "executions" | "execution",
+  search: string = "",
+): Promise<void> {
+  await page.goto(
+    `${RUNBOOK_PATH}?menu=1&page=${which}${search ? `&${search}` : ""}`,
+  );
+  // The first load parses a large bundle; the header names the runbook.
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "Restart the web tier",
+    { timeout: 60000 },
+  );
+}
+
+function desktopMenu(page: Page): Locator {
+  return page.locator("aside[role='navigation'][aria-label='Main navigation']");
+}
+
+function phoneMenu(page: Page): Locator {
+  return page.locator("div[role='navigation'][aria-label='Main navigation']");
+}
+
+// A section's toggle, by its heading's text (CSS draws it in capitals).
+function sectionToggle(menu: Locator, title: string): Locator {
+  return menu.locator(
+    `xpath=.//h6[normalize-space(.)='${title}']/ancestor::button[1]`,
+  );
+}
+
+function link(menu: Locator, href: string): Locator {
+  return menu.locator(`a[href='${href}']`);
+}
+
+// Whether a menu entry is drawn as the page you are on.
+async function isMarked(entry: Locator): Promise<boolean> {
+  return await entry.evaluate((element: Element): boolean => {
+    return element.classList.contains("bg-indigo-50");
+  });
+}
+
+async function expectFolded(menu: Locator, title: string): Promise<void> {
+  await expect(sectionToggle(menu, title)).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+}
+
+async function expectOpen(menu: Locator, title: string): Promise<void> {
+  await expect(sectionToggle(menu, title)).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+}
+
+// The page's address, without the fixture's query string.
+async function expectPath(page: Page, pathname: string): Promise<void> {
+  await expect
+    .poll((): string => {
+      return new URL(page.url()).pathname;
+    })
+    .toBe(pathname);
+}
+
+function crumbs(page: Page): Locator {
+  return page.getByRole("navigation", { name: "Breadcrumb" });
+}
+
+test.describe("a runbook's side menu", () => {
+  test("on the Overview only Basic is open: Executions and Triggers are out of sight", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    const menu: Locator = desktopMenu(page);
+
+    await expect(menu.locator("h6")).toHaveText(Array.from(SECTIONS));
+    await expectOpen(menu, "Basic");
+    await expect(link(menu, RUNBOOK_PATH)).toBeVisible();
+    await expect(link(menu, `${RUNBOOK_PATH}/steps`)).toBeVisible();
+
+    for (const title of FOLDED) {
+      await expectFolded(menu, title);
+    }
+
+    await expect(link(menu, EXECUTIONS_PATH)).toBeHidden();
+    await expect(link(menu, TRIGGERS_PATH)).toBeHidden();
+    await expect(link(menu, SETTINGS_PATH)).toBeHidden();
+    expect(await isMarked(link(menu, RUNBOOK_PATH))).toBe(true);
+
+    await screenshot(page, "overview");
+  });
+
+  test("the keyboard passes the folded sections' rows by", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    const menu: Locator = desktopMenu(page);
+
+    await sectionToggle(menu, "Basic").focus();
+
+    const reached: Array<string> = [];
+    // Basic's two rows and five folded toggles, and then some.
+    for (let press: number = 0; press < 12; press++) {
+      await page.keyboard.press("Tab");
+      reached.push(
+        await page.evaluate((): string => {
+          const focused: Element | null = document.activeElement;
+          return (
+            focused?.getAttribute("href") ||
+            focused?.textContent?.trim() ||
+            ""
+          );
+        }),
+      );
+    }
+
+    expect(reached).toContain(`${RUNBOOK_PATH}/steps`);
+    expect(reached).not.toContain(EXECUTIONS_PATH);
+    expect(reached).not.toContain(TRIGGERS_PATH);
+    expect(reached).not.toContain(SETTINGS_PATH);
+  });
+
+  test("Logs opens with a click, and Executions leads to the runs with Logs kept open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    const menu: Locator = desktopMenu(page);
+
+    await sectionToggle(menu, "Logs").click();
+    await expectOpen(menu, "Logs");
+    await expect(link(menu, EXECUTIONS_PATH)).toBeVisible();
+
+    await link(menu, EXECUTIONS_PATH).click();
+    await expectPath(page, EXECUTIONS_PATH);
+    // The real runs list, under the trail that names it.
+    await expect(page.locator("tbody tr")).toHaveCount(4);
+    await expect(crumbs(page)).toContainText("Executions");
+    expect(await isMarked(link(menu, EXECUTIONS_PATH))).toBe(true);
+    await expectOpen(menu, "Logs");
+    await expectFolded(menu, "Settings");
+
+    // Back to the Overview: the menu stays as it was left.
+    await link(menu, RUNBOOK_PATH).click();
+    await expect(page.getByTestId("fixture-page-not-modelled")).toHaveText(
+      RUNBOOK_PATH,
+    );
+    await expectOpen(menu, "Logs");
+    expect(await isMarked(link(menu, RUNBOOK_PATH))).toBe(true);
+  });
+
+  test("Settings opens with a click, as the deployed suite opens it, and Triggers leads to the schedule and webhook", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    const menu: Locator = desktopMenu(page);
+    const settings: Locator = sectionToggle(menu, "Settings");
+    const triggers: Locator = link(menu, TRIGGERS_PATH);
+
+    await expect(settings).toHaveAttribute("aria-expanded", "false");
+    await expect(triggers).toBeHidden();
+    await settings.click();
+    await expect(settings).toHaveAttribute("aria-expanded", "true");
+    // Triggers first, then the runbook's Settings page.
+    await expect(triggers).toBeVisible();
+    await expect(link(menu, SETTINGS_PATH)).toBeVisible();
+    const triggersBox: { y: number } | null = await triggers.boundingBox();
+    const settingsBox: { y: number } | null = await link(
+      menu,
+      SETTINGS_PATH,
+    ).boundingBox();
+    expect(triggersBox!.y).toBeLessThan(settingsBox!.y);
+
+    await triggers.click();
+    await expectPath(page, TRIGGERS_PATH);
+    await expect(page.getByTestId("runbook-schedule-card")).toBeVisible();
+    await expect(page.getByTestId("runbook-webhook-card")).toBeVisible();
+    await expect(crumbs(page)).toContainText("Triggers");
+    expect(await isMarked(triggers)).toBe(true);
+    await expectOpen(menu, "Settings");
+    await expectFolded(menu, "Logs");
+
+    await screenshot(page, "triggers");
+  });
+
+  test("a section opens from the keyboard, and its row is the next stop", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    const menu: Locator = desktopMenu(page);
+
+    await sectionToggle(menu, "Settings").focus();
+    await page.keyboard.press("Enter");
+    await expectOpen(menu, "Settings");
+
+    await page.keyboard.press("Tab");
+    await expect(link(menu, TRIGGERS_PATH)).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expectPath(page, TRIGGERS_PATH);
+    await expect(page.getByTestId("runbook-schedule-card")).toBeVisible();
+  });
+
+  test("a run's page opens Logs by itself, with Executions marked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "execution");
+    const menu: Locator = desktopMenu(page);
+
+    await expectPath(page, `${EXECUTIONS_PATH}/${WEBHOOK_RUN_ID}`);
+    await expect(page.getByTestId("runbook-run-trigger")).toContainText(
+      "From 203.0.113.24",
+    );
+    await expectOpen(menu, "Logs");
+    await expect(link(menu, EXECUTIONS_PATH)).toBeVisible();
+    expect(await isMarked(link(menu, EXECUTIONS_PATH))).toBe(true);
+    expect(await isMarked(link(menu, RUNBOOK_PATH))).toBe(false);
+    await expectFolded(menu, "Settings");
+    await expect(crumbs(page)).toContainText("Execution");
+
+    await screenshot(page, "run");
+  });
+
+  test("a bookmarked Triggers page opens Settings by itself; Logs stays folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "triggers");
+    const menu: Locator = desktopMenu(page);
+
+    await expectOpen(menu, "Settings");
+    await expect(link(menu, TRIGGERS_PATH)).toBeVisible();
+    expect(await isMarked(link(menu, TRIGGERS_PATH))).toBe(true);
+    await expectFolded(menu, "Logs");
+    await expect(link(menu, EXECUTIONS_PATH)).toBeHidden();
+  });
+
+  test("dark mode draws the folded headings and the open section on the dark surface", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "triggers", "theme=dark");
+    const menu: Locator = desktopMenu(page);
+
+    await expectOpen(menu, "Settings");
+    const surface: string = await menu
+      .locator("div.rounded-xl")
+      .first()
+      .evaluate((element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      });
+    expect(surface).not.toBe("rgb(255, 255, 255)");
+
+    await screenshot(page, "triggers-dark");
+  });
+});
+
+test.describe("a runbook's side menu on a phone", () => {
+  test.beforeEach(async ({ page }: { page: Page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+  });
+
+  test("the menu button names Settings / Triggers, and Logs opens without closing the menu", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "triggers");
+
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+    await expect(toggle).toContainText("Settings / Triggers");
+
+    await toggle.click();
+    const menu: Locator = phoneMenu(page);
+    await expect(menu).toBeVisible();
+    await expectOpen(menu, "Settings");
+    await expectFolded(menu, "Logs");
+
+    await sectionToggle(menu, "Logs").click();
+    // Opening a section is not leaving the menu.
+    await expect(menu).toBeVisible();
+    await expectOpen(menu, "Logs");
+
+    await link(menu, EXECUTIONS_PATH).click();
+    await expectPath(page, EXECUTIONS_PATH);
+    await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
+      "Logs / Executions",
+    );
+    // Following a link closes the menu.
+    await expect(phoneMenu(page)).toHaveCount(0);
+
+    await screenshot(page, "phone-executions");
+  });
+
+  test("on a run's page, the menu button says Logs / Executions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "execution");
+
+    await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
+      "Logs / Executions",
+    );
+  });
+});

@@ -116,7 +116,8 @@ const readRuns: ReadRunsFunction = async (
  * or on schedule?" - the maintainer.
  *
  * Against a real project and server: a runbook's Triggers page (in its side
- * menu after Executions) sets up a schedule through its dialog, the server
+ * menu's Settings section, folded until opened) sets up a schedule through
+ * its dialog, the server
  * stores its cron and zone, and the Worker starts a run on it within a
  * couple of minutes, recorded as started by the schedule; pausing it is the
  * switch alone. The webhook's switch gives the runbook a URL, shown masked
@@ -169,15 +170,32 @@ test.describe("Running a runbook on a schedule or from a webhook", () => {
 
       const runbookPath: string = `/dashboard/${projectId}/runbooks/${runbook._id}`;
       const scheduleCard: Locator = page.getByTestId("runbook-schedule-card");
+      const sideMenu: Locator = page.locator(
+        "aside[role='navigation'][aria-label='Main navigation']",
+      );
+      // A section's toggle, by its heading's text (drawn in capitals by CSS).
+      const settingsSection: Locator = sideMenu.locator(
+        "xpath=.//h6[normalize-space(.)='Settings']/ancestor::button[1]",
+      );
+      const triggersLink: Locator = sideMenu.locator(
+        `a[href='${runbookPath}/triggers']`,
+      );
 
-      // The runbook's menu leads to Triggers, after Executions.
+      /*
+       * The runbook's menu keeps Triggers in its Settings section, folded
+       * until it is opened: on the Overview only Basic is open.
+       */
       await gotoProjectPage({
         page,
         projectId,
         url: urlFor(runbookPath),
-        ready: page.locator(`a[href='${runbookPath}/triggers']`).first(),
+        ready: settingsSection,
       });
-      await page.locator(`a[href='${runbookPath}/triggers']`).first().click();
+      await expect(settingsSection).toHaveAttribute("aria-expanded", "false");
+      await expect(triggersLink).toBeHidden();
+      await settingsSection.click();
+      await expect(settingsSection).toHaveAttribute("aria-expanded", "true");
+      await triggersLink.click();
       await expect(page).toHaveURL(urlFor(`${runbookPath}/triggers`), SERVER);
       await expect(
         page.getByRole("navigation", { name: "Breadcrumb" }),
@@ -313,6 +331,10 @@ test.describe("Running a runbook on a schedule or from a webhook", () => {
       await expect(page.getByTestId("runbook-run-inputs")).toContainText(
         '"reason": "Disk almost full"',
       );
+      // A run's page opens the menu's folded Logs section by itself, at Executions.
+      await expect(
+        sideMenu.locator(`a[href='${runbookPath}/executions']`),
+      ).toBeVisible();
 
       // A runbook that is turned off refuses the call, saying so.
       const offResponse: APIResponse = await page.request.put(
