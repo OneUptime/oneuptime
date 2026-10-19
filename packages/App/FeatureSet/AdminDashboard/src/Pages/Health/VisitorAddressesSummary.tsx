@@ -214,7 +214,10 @@ const VisitorAddressesSummary: FunctionComponent = (): ReactElement => {
                   key={row.address}
                   className="flex items-center justify-between gap-3 px-3 py-2"
                 >
-                  <span className="min-w-0 truncate font-mono text-sm text-gray-900">
+                  <span
+                    className="min-w-0 truncate font-mono text-sm text-gray-900"
+                    title={row.address}
+                  >
                     {row.address}
                   </span>
                   <span className="shrink-0 text-sm text-gray-600">

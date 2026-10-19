@@ -1506,6 +1506,24 @@ API, SSO, or the Slack and Microsoft Teams apps.
   off, set `GLOBAL_RUNNER_REPLICAS=0` in `config.env`, or `globalRunner.enabled`
   to `false` in the chart. See
   [Global Runners](/docs/runbooks/agents#global-runners).
+- **Visitors keep their own address in more setups.** OneUptime counts a
+  visitor by the address they connect from, for its sign-in limits, its other
+  limits per address and its IP allowlists. Its ingress now listens on IPv6 as
+  well as IPv4, and `ENABLE_IPV6=true` in `config.env` turns IPv6 on for
+  Docker Compose's network (Docker Engine 27 or later), so that a visitor who
+  comes over IPv6 keeps their own address instead of one Docker passes them on
+  from. If a reverse proxy of your own on the same server is the way in,
+  publish the ingress on `127.0.0.1` only
+  (`ONEUPTIME_HTTP_PORT=127.0.0.1:8080`), so that visitors reach OneUptime
+  through the proxy alone. With Helm,
+  `nginx.service.externalTrafficPolicy: Local` keeps each visitor's address
+  through a load balancer that passes it on; while that is unset,
+  `helm install` and `helm upgrade` say so.
+  **Admin Dashboard → OneUptime Health** says when several people sign in
+  from one private network address. Networks and Services stay as they are
+  until you set one of these. `NGINX_LISTEN_OPTIONS`, which nginx refused for
+  any value, now works. See
+  [Visitor addresses](/docs/installation/docker-compose#visitor-addresses).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

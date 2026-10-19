@@ -186,7 +186,7 @@ npm start
 :::steps
 #### 將網域指向伺服器
 
-為你的網域建立一筆 DNS `A` 記錄（IPv6 用 `AAAA`），值為伺服器的公開 IP 位址。
+為你的網域建立一筆 DNS `A` 記錄（IPv6 用 `AAAA`），值為伺服器的公開 IP 位址。如果新增了 `AAAA` 記錄，也要為 OneUptime 開啟 IPv6：請參閱[訪客位址](#訪客位址)。
 
 #### 開啟憑證申請
 
@@ -213,16 +213,16 @@ npm start
 
 ### 使用你自己的反向代理
 
-以下步驟在與 OneUptime 相同的伺服器上執行代理。如果你的代理執行在另一台機器上，請略過第一個步驟，並把代理指向這台伺服器的連接埠 80。
+以下步驟在與 OneUptime 相同的伺服器上執行代理。如果你的代理執行在另一台機器上，請略過第一個步驟，把代理指向這台伺服器的連接埠 80，並用雲端供應商的防火牆只讓代理連到連接埠 80 和 443：繞過代理連到 OneUptime 的訪客，可以自己選擇 OneUptime 用來計算他的位址。
 
 :::steps
 #### 將 ingress 移出連接埠 80 和 443
 
-代理需要連接埠 80 和 443，所以要把 ingress 移到其他連接埠。探針與 Runner 使用主機的網路，透過 `http://localhost` 連到 OneUptime，因此它們也要一起調整：
+代理需要連接埠 80 和 443，所以要把 ingress 移到其他連接埠，並且只發布在這台伺服器的回送位址 `127.0.0.1` 上，讓訪客只能透過你的代理連到 OneUptime。探針與 Runner 使用主機的網路，透過 `http://localhost` 連到 OneUptime，因此它們也要一起調整：
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,43 @@ server {
 > [!NOTE]
 > 在你自己的代理之後，請透過 OTLP/HTTP（`/otlp`）傳送遙測資料。只有當 OneUptime 自己的 ingress 終止 TLS 時（`PROVISION_SSL=true`），透過 gRPC 的 OTLP 才能抵達 OneUptime。
 
+## 訪客位址
+
+OneUptime 依訪客連線時所用的位址來計算每位訪客：登入限制、其他依位址的限制，以及狀態頁和儀表板的 IP 允許清單，都會讀取這個位址。有兩種部署需要一項設定，才能讓這個位址是訪客自己的位址：
+
+| 部署 | 設定 |
+| --- | --- |
+| 有人透過 IPv6 存取 OneUptime，例如透過 `AAAA` 記錄 | `ENABLE_IPV6=true` |
+| OneUptime 前面有你自己的反向代理 | `TRUSTED_PROXY_HOPS=2`，並且 ingress 發布在 `127.0.0.1` 上（請參閱[使用你自己的反向代理](#使用你自己的反向代理)） |
+
+沒有 `ENABLE_IPV6=true` 時，Docker 會用它自己的一個位址把每位透過 IPv6 來的訪客轉交給 OneUptime，OneUptime 就會把他們全部算作同一位訪客：一個人的登入失敗可能會把其他人鎖在外面。開啟 IPv6 需要 Docker Engine 27 或更新版本。
+
+:::steps
+### 開啟 IPv6
+
+```ini title="config.env"
+ENABLE_IPV6=true
+```
+
+### 重新啟動 OneUptime
+
+```bash
+npm start
+```
+
+Docker Compose 會帶著 IPv6 重新建立 OneUptime 的網路，以及其中的容器。你的資料會保留。
+
+### 檢查網路
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+它會輸出 `"EnableIPv6": true,`。
+:::
+
+當多人從同一個私人網路位址登入時，Admin Dashboard 的 **OneUptime 健康狀態** 頁面會指出這一點，並列出可以改變它的設定。
+
 ## 正式環境檢查清單
 
 Docker Compose 在一台伺服器上為每個服務只執行一份，適合小型團隊與家庭實驗室。在依賴它之前，請逐項檢查這份清單。
@@ -325,6 +362,7 @@ Docker Compose 在一台伺服器上為每個服務只執行一份，適合小�
 | **HTTPS** | 大家透過 HTTPS 連到 OneUptime，且已設定 `HTTP_PROTOCOL=https`。請參閱 [設定 HTTPS](#設定-https)。 |
 | **註冊** | 團隊成員都有帳號後，在 Admin Dashboard 的 **設定 > 驗證** 下關閉 **允許註冊**。 |
 | **防火牆** | 只有連接埠 80 和 443（以及 SSH）對網際網路開放。OneUptime 只在 `127.0.0.1` 上發布 PostgreSQL 的連接埠 5400。你自己發布的其他連接埠，請用雲端供應商的防火牆關閉：`ufw` 規則不適用於 Docker 發布的連接埠。 |
+| **訪客位址** | Admin Dashboard 的 **OneUptime 健康狀態** 頁面沒有提示多人從同一個位址登入。請參閱[訪客位址](#訪客位址)。 |
 | **備份** | 每天備份 PostgreSQL，並把副本移出伺服器。請參閱 [備份與還原](#備份與還原)。 |
 | **電子郵件** | 已在 Admin Dashboard 的 **設定 > 通知 > 電子郵件** 下設定郵件伺服器，讓 OneUptime 能傳送邀請與通知。請參閱 [SMTP](/docs/emails/smtp)。 |
 | **磁碟** | 持續留意剩餘空間。ClickHouse 會隨保留的遙測資料成長（請參閱 [規模與容量規劃](/docs/installation/sizing)）；每個容器的日誌上限為 1000 MB。 |

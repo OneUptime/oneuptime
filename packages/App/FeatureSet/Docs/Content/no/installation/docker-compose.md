@@ -186,7 +186,7 @@ Med `HTTP_PROTOCOL=https` bygger OneUptime HTTPS-lenker, holder påloggingsinfor
 :::steps
 #### Pek domenet ditt mot serveren
 
-Opprett en DNS-post `A` (eller `AAAA` for IPv6) for domenet ditt, med serverens offentlige IP-adresse som verdi.
+Opprett en DNS-post `A` (eller `AAAA` for IPv6) for domenet ditt, med serverens offentlige IP-adresse som verdi. Med en `AAAA`-post slår du også på IPv6 for OneUptime: se [Besøkendes adresser](#besøkendes-adresser).
 
 #### Slå på henting av sertifikater
 
@@ -213,16 +213,16 @@ npm start
 
 ### Bruk din egen reverse proxy
 
-Disse stegene kjører proxyen på samme server som OneUptime. Kjører proxyen din på en annen maskin, hopper du over det første steget og peker proxyen mot port 80 på denne serveren.
+Disse stegene kjører proxyen på samme server som OneUptime. Kjører proxyen din på en annen maskin, hopper du over det første steget, peker proxyen mot port 80 på denne serveren og lar bare proxyen nå port 80 og 443 med brannmuren til skyleverandøren din: en besøkende som når OneUptime utenom proxyen, kan velge adressen OneUptime teller vedkommende etter.
 
 :::steps
 #### Flytt ingressen bort fra port 80 og 443
 
-Proxyen trenger port 80 og 443, så flytt ingressen til andre porter. Proben og Runneren bruker vertens nettverk og når OneUptime gjennom `http://localhost`, så de flytter med:
+Proxyen trenger port 80 og 443, så flytt ingressen til andre porter, publisert bare på serverens loopback-adresse `127.0.0.1`, slik at besøkende bare når OneUptime gjennom proxyen din. Proben og Runneren bruker vertens nettverk og når OneUptime gjennom `http://localhost`, så de flytter med:
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,43 @@ Begge sender `X-Forwarded-Proto`, som forteller OneUptime at en besøkende kom o
 > [!NOTE]
 > Bak din egen proxy sender du telemetri over OTLP/HTTP (`/otlp`). OTLP over gRPC når bare OneUptime når dens egen ingress avslutter TLS (`PROVISION_SSL=true`).
 
+## Besøkendes adresser
+
+OneUptime teller hver besøkende etter adressen vedkommende kobler til fra: påloggingsgrensene, de andre grensene per adresse og IP-tillatelseslistene for statussider og dashbord leser den alle. To oppsett trenger en innstilling for at den adressen skal være den besøkendes egen:
+
+| Oppsett | Innstilling |
+| --- | --- |
+| Folk når OneUptime over IPv6, for eksempel gjennom en `AAAA`-post | `ENABLE_IPV6=true` |
+| Din egen reverse proxy står foran OneUptime | `TRUSTED_PROXY_HOPS=2`, med ingressen publisert på `127.0.0.1` (se [Bruk din egen reverse proxy](#bruk-din-egen-reverse-proxy)) |
+
+Uten `ENABLE_IPV6=true` sender Docker hver besøkende som kommer over IPv6 videre til OneUptime fra én adresse av sin egen, og OneUptime teller dem alle som én besøkende: én persons mislykkede pålogginger kan låse de andre ute. Å slå på IPv6 krever Docker Engine 27 eller nyere.
+
+:::steps
+### Slå på IPv6
+
+```ini title="config.env"
+ENABLE_IPV6=true
+```
+
+### Start OneUptime på nytt
+
+```bash
+npm start
+```
+
+Docker Compose lager OneUptimes nettverk på nytt med IPv6, og containerne på det. Dataene dine beholdes.
+
+### Sjekk nettverket
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+Den skriver ut `"EnableIPv6": true,`.
+:::
+
+Når flere personer logger på fra den samme private nettverksadressen, sier siden **OneUptime-tilstand** i Admin Dashboard fra, med innstillingen som endrer det.
+
 ## Sjekkliste for produksjon
 
 Docker Compose kjører én kopi av hver tjeneste på én server, noe som passer for små team og homelab. Gå gjennom denne listen før du stoler på det.
@@ -325,6 +362,7 @@ Docker Compose kjører én kopi av hver tjeneste på én server, noe som passer 
 | **HTTPS** | Folk når OneUptime over HTTPS, og `HTTP_PROTOCOL=https` er satt. Se [Sett opp HTTPS](#sett-opp-https). |
 | **Registreringer** | Når teamet ditt har kontoer, slår du av **Tillat registrering** under **Innstillinger > Autentisering** i Admin Dashboard. |
 | **Brannmur** | Bare port 80 og 443 (og SSH) er åpne mot internett. OneUptime publiserer PostgreSQLs port 5400 bare på `127.0.0.1`. Lukk alle andre porter du publiserer, med skyleverandørens brannmur: `ufw`-regler gjelder ikke porter som Docker publiserer. |
+| **Besøkendes adresser** | Siden **OneUptime-tilstand** i Admin Dashboard sier ikke fra om at flere personer logger på fra den samme adressen. Se [Besøkendes adresser](#besøkendes-adresser). |
 | **Sikkerhetskopier** | PostgreSQL sikkerhetskopieres hver dag, og kopiene forlater serveren. Se [Sikkerhetskopiering og gjenoppretting](#sikkerhetskopiering-og-gjenoppretting). |
 | **E-post** | En e-postserver er satt opp under **Innstillinger > Varsler > E-poster** i Admin Dashboard, slik at OneUptime kan sende invitasjoner og varsler. Se [SMTP](/docs/emails/smtp). |
 | **Disk** | Ledig plass overvåkes. ClickHouse vokser med telemetrien du beholder (se [Dimensjonering og kapasitetsplanlegging](/docs/installation/sizing)); loggen til hver container er begrenset til 1000 MB. |

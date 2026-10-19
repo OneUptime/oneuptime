@@ -186,7 +186,7 @@ Con `HTTP_PROTOCOL=https`, OneUptime construye enlaces HTTPS, mantiene las cooki
 :::steps
 #### Apunta tu dominio al servidor
 
-Crea un registro DNS `A` (o `AAAA` para IPv6) para tu dominio, con la dirección IP pública del servidor como valor.
+Crea un registro DNS `A` (o `AAAA` para IPv6) para tu dominio, con la dirección IP pública del servidor como valor. Con un registro `AAAA`, activa también IPv6 para OneUptime: consulta [Direcciones de los visitantes](#direcciones-de-los-visitantes).
 
 #### Activa la obtención de certificados
 
@@ -213,16 +213,16 @@ Abre `https://oneuptime.example.com`. OneUptime pide el certificado al arrancar 
 
 ### Usar tu propio proxy inverso
 
-Estos pasos ejecutan el proxy en el mismo servidor que OneUptime. Si tu proxy se ejecuta en otra máquina, sáltate el primer paso y apunta el proxy al puerto 80 de este servidor.
+Estos pasos ejecutan el proxy en el mismo servidor que OneUptime. Si tu proxy se ejecuta en otra máquina, sáltate el primer paso, apunta el proxy al puerto 80 de este servidor y, con el firewall de tu proveedor de nube, deja que solo el proxy llegue a los puertos 80 y 443: un visitante que llega a OneUptime sin pasar por el proxy puede elegir la dirección con la que OneUptime lo cuenta.
 
 :::steps
 #### Saca el ingress de los puertos 80 y 443
 
-El proxy necesita los puertos 80 y 443, así que mueve el ingress a otros puertos. La sonda y el Runner usan la red del host y llegan a OneUptime a través de `http://localhost`, así que se mueven con él:
+El proxy necesita los puertos 80 y 443, así que mueve el ingress a otros puertos, publicados solo en la dirección de loopback `127.0.0.1` de este servidor, para que los visitantes lleguen a OneUptime únicamente a través de tu proxy. La sonda y el Runner usan la red del host y llegan a OneUptime a través de `http://localhost`, así que se mueven con él:
 
 ```ini title="config.env"
-ONEUPTIME_HTTP_PORT=8080
-STATUS_PAGE_HTTPS_PORT=8443
+ONEUPTIME_HTTP_PORT=127.0.0.1:8080
+STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
 GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
 ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
@@ -315,6 +315,43 @@ Abre `https://oneuptime.example.com`. Deberías ver la página de inicio de sesi
 > [!NOTE]
 > Detrás de tu propio proxy, envía la telemetría por OTLP/HTTP (`/otlp`). OTLP por gRPC solo llega a OneUptime cuando su propio ingress termina TLS (`PROVISION_SSL=true`).
 
+## Direcciones de los visitantes
+
+OneUptime cuenta a cada visitante por la dirección desde la que se conecta: los límites de inicio de sesión, los demás límites por dirección y las listas de IP permitidas de las páginas de estado y los paneles la leen todos. Dos configuraciones necesitan un ajuste para que esa dirección sea la del propio visitante:
+
+| Configuración | Ajuste |
+| --- | --- |
+| Las personas llegan a OneUptime por IPv6, por ejemplo a través de un registro `AAAA` | `ENABLE_IPV6=true` |
+| Tu propio proxy inverso está delante de OneUptime | `TRUSTED_PROXY_HOPS=2`, con el ingress publicado en `127.0.0.1` (consulta [Usar tu propio proxy inverso](#usar-tu-propio-proxy-inverso)) |
+
+Sin `ENABLE_IPV6=true`, Docker entrega a OneUptime cada visitante que llega por IPv6 desde una dirección propia, y OneUptime los cuenta a todos como un solo visitante: los inicios de sesión fallidos de una persona pueden bloquear a las demás. Activar IPv6 requiere Docker Engine 27 o posterior.
+
+:::steps
+### Activa IPv6
+
+```ini title="config.env"
+ENABLE_IPV6=true
+```
+
+### Reinicia OneUptime
+
+```bash
+npm start
+```
+
+Docker Compose vuelve a crear la red de OneUptime con IPv6, y los contenedores que están en ella. Tus datos se conservan.
+
+### Comprueba la red
+
+```bash
+docker network ls --quiet --filter name=_oneuptime | xargs docker network inspect | grep EnableIPv6
+```
+
+Muestra `"EnableIPv6": true,`.
+:::
+
+Cuando varias personas inician sesión desde una misma dirección de red privada, la página **Estado de OneUptime** del Admin Dashboard lo indica, con el ajuste que lo cambia.
+
 ## Lista de comprobación para producción
 
 Docker Compose ejecuta una sola copia de cada servicio en un solo servidor, lo que encaja con equipos pequeños y homelabs. Antes de confiar en él, repasa esta lista.
@@ -325,6 +362,7 @@ Docker Compose ejecuta una sola copia de cada servicio en un solo servidor, lo q
 | **HTTPS** | Se llega a OneUptime por HTTPS y `HTTP_PROTOCOL=https` está definido. Consulta [Configurar HTTPS](#configurar-https). |
 | **Registros** | Cuando tu equipo ya tenga cuentas, desactiva **Permitir el registro** en **Ajustes > Autenticación** del Admin Dashboard. |
 | **Firewall** | Solo los puertos 80 y 443 (y SSH) están abiertos a Internet. OneUptime publica el puerto 5400 de PostgreSQL solo en `127.0.0.1`. Cierra cualquier otro puerto que publiques con el firewall de tu proveedor de nube: las reglas de `ufw` no se aplican a los puertos que publica Docker. |
+| **Direcciones de los visitantes** | La página **Estado de OneUptime** del Admin Dashboard no indica que varias personas inicien sesión desde una misma dirección. Consulta [Direcciones de los visitantes](#direcciones-de-los-visitantes). |
 | **Copias de seguridad** | PostgreSQL se respalda cada día y las copias salen del servidor. Consulta [Copia de seguridad y restauración](#copia-de-seguridad-y-restauración). |
 | **Correo** | Hay un servidor de correo configurado en **Ajustes > Notificaciones > Correos** del Admin Dashboard, para que OneUptime pueda enviar invitaciones y notificaciones. Consulta [SMTP](/docs/emails/smtp). |
 | **Disco** | Se vigila el espacio libre. ClickHouse crece con la telemetría que conservas (consulta [Dimensionamiento y planificación de capacidad](/docs/installation/sizing)); el log de cada contenedor está limitado a 1000 MB. |
