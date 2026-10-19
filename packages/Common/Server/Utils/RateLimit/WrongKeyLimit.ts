@@ -84,8 +84,8 @@ export interface WrongKeyLimitSpec {
   // What a log line calls this limit: "wrong cluster key".
   scope: string;
 
-  // Who reports a client that went over it: "ClusterKeyAuthorization".
-  reporter: string;
+  // Who logs a client that went over it: "ClusterKeyAuthorization".
+  logSource: string;
 
   // What such a client sent too many of: "different wrong cluster keys".
   countedKeys: string;
@@ -196,7 +196,7 @@ export default class WrongKeyLimit {
     // Once a window: the request that went over the limit.
     if (refusal.isFirstRefusalInWindow) {
       logger.warn(
-        `${this.spec.reporter}: ${clientIp} sent more than ${this.spec.perAddress} ${this.spec.countedKeys}${
+        `${this.spec.logSource}: ${clientIp} sent more than ${this.spec.perAddress} ${this.spec.countedKeys}${
           data.subject ? ` ${data.subject}` : ""
         } in ${this.spec.windowSeconds / 60} minutes, so its requests${
           data.subject ? " for it" : ""

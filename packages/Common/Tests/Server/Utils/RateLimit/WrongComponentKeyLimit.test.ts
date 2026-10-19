@@ -1077,7 +1077,7 @@ describe("the limits are kept apart in Valkey", () => {
     expect(
       new WrongKeyLimit({
         scope: "a test",
-        reporter: "test",
+        logSource: "test",
         countedKeys: "test keys",
         keyPrefix: "test:wrong-keys:",
         perAddress: 1,
@@ -1091,7 +1091,7 @@ describe("the limits are kept apart in Valkey", () => {
     expect(
       new WrongKeyLimit({
         scope: "a test",
-        reporter: "test",
+        logSource: "test",
         countedKeys: "test keys",
         keyPrefix: "test:wrong-keys:",
         perAddress: 1,

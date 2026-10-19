@@ -103,7 +103,7 @@ function limitFor(data: {
 }): WrongKeyLimit {
   return new WrongKeyLimit({
     scope: data.scope,
-    reporter: "WrongComponentKeyLimit",
+    logSource: "WrongComponentKeyLimit",
     countedKeys: data.countedKeys,
     keyPrefix: data.keyPrefix,
     perAddress: WRONG_COMPONENT_KEYS_PER_ADDRESS,

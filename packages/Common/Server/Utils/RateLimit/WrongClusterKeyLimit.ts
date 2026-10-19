@@ -71,7 +71,7 @@ export type WrongClusterKeyRefusal = WrongKeyRefusal;
 
 const LIMIT: WrongKeyLimit = new WrongKeyLimit({
   scope: "wrong cluster key",
-  reporter: "ClusterKeyAuthorization",
+  logSource: "ClusterKeyAuthorization",
   countedKeys: "different wrong cluster keys",
   keyPrefix: "cluster-key:wrong-keys:",
   perAddress: WRONG_CLUSTER_KEYS_PER_ADDRESS,
