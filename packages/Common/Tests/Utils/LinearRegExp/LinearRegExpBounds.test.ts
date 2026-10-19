@@ -234,14 +234,19 @@ describe("how large a pattern it compiles", () => {
      * and tens of millions of visits. A compile visits a few parts per step
      * at most; these are refused before they take a second.
      */
-    for (const [source, copies] of [
-      [`(?:${"x{0}".repeat(4990)}a){9000}`, 9000],
-      [`(?:${"(?:)".repeat(4990)}a){9000}`, 9000],
-      [`(?:${"()".repeat(6000)}a){1000}`, 1000],
-    ] as Array<[string, number]>) {
+    for (const source of [
+      `(?:${"x{0}".repeat(4990)}a){9000}`,
+      `(?:${"(?:)".repeat(4990)}a){9000}`,
+      `(?:${"()".repeat(6000)}a){1000}`,
+    ]) {
       expect(source.length).toBeLessThanOrEqual(MAX_PATTERN_LENGTH);
-      // JavaScript takes each.
-      expect(new RegExp(source).test("a".repeat(copies))).toBe(true);
+      /*
+       * JavaScript takes each as a pattern. (Not asked to match: in a busy
+       * test process its own engine can run out of stack on them.)
+       */
+      expect(() => {
+        return new RegExp(source);
+      }).not.toThrow();
 
       const startedAt: number = Date.now();
       const refusal: unknown = refusalOf(source);
@@ -274,8 +279,12 @@ describe("how large a pattern it compiles", () => {
     const pattern: LinearRegExp = new LinearRegExp(source);
 
     expect(Date.now() - startedAt).toBeLessThan(300);
-    expect(pattern.test("c")).toBe(new RegExp(source).test("c"));
-    expect(pattern.exec("c")?.value).toBe(new RegExp(source).exec("c")?.[0]);
+    // Every copy can match nothing: an empty match at the start of any text.
+    expect(pattern.test("c")).toBe(true);
+    expect(pattern.exec("c")).toMatchObject({ index: 0, value: "" });
+    expect(() => {
+      return new RegExp(source);
+    }).not.toThrow();
   });
 
   test("a stack too deep for compiling is a pattern too large, not an error of the engine", () => {
