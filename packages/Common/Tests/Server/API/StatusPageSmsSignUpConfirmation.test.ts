@@ -84,11 +84,20 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 
 import StatusPageSubscriberService, {
   ALREADY_SUBSCRIBED_MESSAGE,
+  ONE_CONTACT_PER_SIGN_UP_MESSAGE,
+  SubscriptionConfirmationOutcome,
   getConfirmSubscriptionTextMessage,
   getYouHaveSubscribedTextMessage,
 } from "../../../Server/Services/StatusPageSubscriberService";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
+import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageService from "../../../Server/Services/StatusPageService";
+import Email from "../../../Types/Email";
+import { JSONObject } from "../../../Types/JSON";
+import Phone from "../../../Types/Phone";
 import StatusPageSubscriberUnsubscribe from "../../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import ObjectID from "../../../Types/ObjectID";
 import { StoredRow } from "../TestingUtils/InMemoryRepository";
@@ -138,6 +147,45 @@ function unsubscribeUrlOf(row: StoredRow): string {
     subscriberId: String(row["_id"]),
     unsubscribeToken: String(row["unsubscribeToken"]),
   }).toString();
+}
+
+type RowUpdate = (
+  where: unknown,
+  set: StoredRow,
+) => Promise<{ affected: number }>;
+
+/*
+ * The subscriber table keeping `row`'s version as Postgres does: an UPDATE
+ * that names a version writes the row only while it still holds that
+ * version, and moves it on in the same step, under the row's lock
+ * (DatabaseService's compare-and-set). The in-memory table keeps no
+ * version of its own.
+ */
+function writeVersionsAsPostgresDoes(row: StoredRow): void {
+  row["version"] = 1;
+
+  const update: RowUpdate =
+    world.subscribers.repository.update.getMockImplementation() as RowUpdate;
+
+  world.subscribers.repository.update.mockImplementation(
+    async (where: unknown, set: StoredRow): Promise<{ affected: number }> => {
+      const { version, ...rowOf } = where as StoredRow;
+      const target: StoredRow | undefined = world.subscribers.get(
+        String(rowOf["_id"]),
+      );
+
+      if (target && version !== undefined) {
+        // Decided and moved on at once, as one UPDATE statement does.
+        if (target["version"] !== version) {
+          return { affected: 0 };
+        }
+
+        target["version"] = Number(version) + 1;
+      }
+
+      return await update(rowOf, set);
+    },
+  );
 }
 
 describe("a visitor signing up by text", () => {
@@ -208,19 +256,129 @@ describe("a visitor signing up by text", () => {
 
     expect(world.texts).toHaveBeenCalledTimes(1);
   });
+});
 
-  test("signing up by email and by text at once asks both to confirm, and either link confirms it", async () => {
-    await signUp("192.0.2.1", {
-      subscriberPhone: PHONE,
-      subscriberEmail: "reader@example.com",
+/*
+ * A subscription is confirmed by the contact that signed up: the code in its
+ * link is the subscription's own, so a sign-up naming a phone number beside
+ * an inbox, a chat channel or a webhook its visitor reads would let them
+ * confirm the number from there - and the number would be texted every
+ * notification without its owner having said yes. So a visitor signs up one
+ * contact at a time, as each of the Subscribe page's forms sends it.
+ */
+describe("a sign-up names one contact", () => {
+  const CONTACTS: Record<string, JSONObject> = {
+    "an email address": { subscriberEmail: "reader@example.com" },
+    "a phone number": { subscriberPhone: PHONE },
+    "a webhook": { subscriberWebhook: "https://hooks.example.net/status" },
+    "a Slack channel": {
+      slackIncomingWebhookUrl:
+        "https://hooks.slack.com/services/T0000/B0000/AbCdEf",
+      slackWorkspaceName: "Acme",
+    },
+    "a Microsoft Teams channel": {
+      microsoftTeamsIncomingWebhookUrl:
+        "https://acme.webhook.office.com/webhookb2/abc@def/IncomingWebhook/123/456",
+      microsoftTeamsWorkspaceName: "Acme",
+    },
+  };
+
+  const PAIRS: Array<[string, string]> = [];
+  const names: Array<string> = Object.keys(CONTACTS);
+
+  for (let first: number = 0; first < names.length; first++) {
+    for (let second: number = first + 1; second < names.length; second++) {
+      PAIRS.push([names[first]!, names[second]!]);
+    }
+  }
+
+  test.each(PAIRS)(
+    "%s with %s: refused before anything is counted, written or sent",
+    async (first: string, second: string) => {
+      const answer: Answer = await signUp("192.0.2.1", {
+        ...CONTACTS[first],
+        ...CONTACTS[second],
+      });
+
+      expect(answer.error?.message).toBe(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
+      expect(rowsOf(world)).toHaveLength(0);
+      expect(world.texts).not.toHaveBeenCalled();
+      expect(world.emails).not.toHaveBeenCalled();
+      expect(world.webhookCalls).not.toHaveBeenCalled();
+      expect(world.slackPosts).not.toHaveBeenCalled();
+      expect(world.teamsPosts).not.toHaveBeenCalled();
+      // Not the visitor, not either contact: nothing was asked of the counter.
+      expect(world.redis.keys()).toEqual([]);
+    },
+  );
+
+  test("all five at once: refused", async () => {
+    const answer: Answer = await signUp(
+      "192.0.2.1",
+      Object.assign({}, ...Object.values(CONTACTS)) as JSONObject,
+    );
+
+    expect(answer.error?.message).toBe(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
+    expect(rowsOf(world)).toHaveLength(0);
+  });
+
+  test.each(names)(
+    "%s alone is signed up, as the Subscribe page sends it",
+    async (name: string) => {
+      const answer: Answer = await signUp("192.0.2.1", {
+        ...CONTACTS[name],
+      });
+
+      expect(answer.error).toBeUndefined();
+      expect(rowsOf(world)).toHaveLength(1);
+    },
+  );
+
+  test("a workspace name beside its channel is no second contact", async () => {
+    const answer: Answer = await signUp("192.0.2.1", {
+      ...CONTACTS["a Slack channel"],
     });
 
-    const row: StoredRow = onlyRow();
+    expect(answer.error).toBeUndefined();
+    expect(onlyRow()["slackWorkspaceName"]).toBe("Acme");
+  });
 
-    expect(row["isSubscriptionConfirmed"]).toBe(false);
-    expect(world.texts).toHaveBeenCalledTimes(1);
-    expect(textsSent(world)[0]!.message).toContain(confirmationUrlOf(row));
-    expect(world.emails).toHaveBeenCalledTimes(1);
+  test("a sign-up made through the service, not the route, is held to it too, and gives its counts back", async () => {
+    const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+    subscriber.statusPageId = new ObjectID(WORLD_PAGE_ID);
+    subscriber.projectId = new ObjectID(WORLD_PROJECT_ID);
+    subscriber.subscriberEmail = new Email("reader@example.com");
+    subscriber.subscriberPhone = new Phone(PHONE);
+    subscriber.sendYouHaveSubscribedMessage = true;
+
+    const onNothingSent: ReturnType<typeof jest.fn> = jest.fn(
+      async (): Promise<void> => {
+        return undefined;
+      },
+    );
+
+    await expect(
+      StatusPageSubscriberService.createFromStatusPageSignUp(subscriber, {
+        onNothingSent: onNothingSent as unknown as () => Promise<void>,
+      }),
+    ).rejects.toThrow(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
+
+    expect(onNothingSent).toHaveBeenCalledTimes(1);
+    expect(rowsOf(world)).toHaveLength(0);
+    expect(world.texts).not.toHaveBeenCalled();
+    expect(world.emails).not.toHaveBeenCalled();
+  });
+
+  test("the team may still add one subscriber with an email address and a phone number: it vouches for both", async () => {
+    const answer: Answer = await teamAdd({
+      subscriberEmail: "reader@example.com",
+      subscriberPhone: PHONE,
+      isSubscriptionConfirmed: true,
+      sendYouHaveSubscribedMessage: false,
+    });
+
+    expect(answer.error).toBeUndefined();
+    expect(onlyRow()["isSubscriptionConfirmed"]).toBe(true);
   });
 });
 
@@ -286,12 +444,141 @@ describe("opening the link", () => {
       String(row["_id"]),
       String(row["subscriptionConfirmationToken"]),
     );
+
+    const updateOneBy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      StatusPageSubscriberService,
+      "updateOneBy",
+    );
+
     await confirm(
       String(row["_id"]),
       String(row["subscriptionConfirmationToken"]),
     );
 
     expect(world.texts).toHaveBeenCalledTimes(2);
+    // Read as confirmed already, it is not written again.
+    expect(updateOneBy).not.toHaveBeenCalled();
+  });
+
+  test("eight times at the same moment: confirmed once, and the number texted its welcome once", async () => {
+    await signUp("192.0.2.1", { subscriberPhone: PHONE });
+
+    const row: StoredRow = onlyRow();
+    writeVersionsAsPostgresDoes(row);
+    jest.mocked(Response.sendEmptySuccessResponse).mockClear();
+
+    const answers: Array<Answer> = await Promise.all(
+      Array.from({ length: 8 }, (): Promise<Answer> => {
+        return confirm(
+          String(row["_id"]),
+          String(row["subscriptionConfirmationToken"]),
+        );
+      }),
+    );
+
+    for (const answer of answers) {
+      expect(answer.error).toBeUndefined();
+    }
+
+    expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(8);
+    expect(row["isSubscriptionConfirmed"]).toBe(true);
+    expect(
+      textsSent(world).filter((text: { message: string }): boolean => {
+        return text.message.startsWith("You have been subscribed");
+      }),
+    ).toHaveLength(1);
+    expect(world.texts).toHaveBeenCalledTimes(2);
+  });
+
+  test("an email subscription opened eight times at once: one welcome email", async () => {
+    await signUp("192.0.2.1", { subscriberEmail: "reader@example.com" });
+
+    const row: StoredRow = onlyRow();
+    writeVersionsAsPostgresDoes(row);
+    world.emails.mockClear();
+
+    await Promise.all(
+      Array.from({ length: 8 }, (): Promise<Answer> => {
+        return confirm(
+          String(row["_id"]),
+          String(row["subscriptionConfirmationToken"]),
+        );
+      }),
+    );
+
+    expect(row["isSubscriptionConfirmed"]).toBe(true);
+    expect(world.emails).toHaveBeenCalledTimes(1);
+  });
+
+  test("asks the update to write the subscription only as it was read: not confirmed, at the version read", async () => {
+    await signUp("192.0.2.1", { subscriberPhone: PHONE });
+
+    const row: StoredRow = onlyRow();
+    row["version"] = 7;
+
+    const updateOneBy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      StatusPageSubscriberService,
+      "updateOneBy",
+    );
+
+    await confirm(
+      String(row["_id"]),
+      String(row["subscriptionConfirmationToken"]),
+    );
+
+    expect(updateOneBy).toHaveBeenCalledTimes(1);
+    expect(
+      (updateOneBy.mock.calls[0]![0] as { query: Record<string, unknown> })
+        .query,
+    ).toEqual({
+      _id: String(row["_id"]),
+      isSubscriptionConfirmed: false,
+      version: 7,
+    });
+  });
+
+  test("a request whose update another one beat to it sends nothing", async () => {
+    await signUp("192.0.2.1", { subscriberPhone: PHONE });
+
+    const row: StoredRow = onlyRow();
+
+    jest
+      .spyOn(StatusPageSubscriberService, "updateOneBy")
+      .mockResolvedValue(0 as never);
+
+    const outcome: SubscriptionConfirmationOutcome =
+      await StatusPageSubscriberService.confirmSubscription({
+        subscriberId: String(row["_id"]),
+        code: String(row["subscriptionConfirmationToken"]),
+      });
+
+    expect(outcome).toBe(SubscriptionConfirmationOutcome.AlreadyConfirmed);
+    expect(world.texts).toHaveBeenCalledTimes(1);
+    expect(world.emails).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["no code", undefined],
+    ["a code that is not text", ["0".repeat(32)]],
+    ["an id that is not one", "not-an-id"],
+  ])("with %s names no subscription", async (label: string, value: unknown) => {
+    await signUp("192.0.2.1", { subscriberPhone: PHONE });
+
+    const row: StoredRow = onlyRow();
+
+    const outcome: SubscriptionConfirmationOutcome =
+      await StatusPageSubscriberService.confirmSubscription(
+        label === "an id that is not one"
+          ? {
+              subscriberId: value,
+              code: String(row["subscriptionConfirmationToken"]),
+            }
+          : { subscriberId: String(row["_id"]), code: value },
+      );
+
+    expect(outcome).toBe(SubscriptionConfirmationOutcome.NotFound);
+    expect(row["isSubscriptionConfirmed"]).toBe(false);
+    expect(world.texts).toHaveBeenCalledTimes(1);
   });
 
   test.each([
@@ -563,5 +850,57 @@ describe("the SMS log", () => {
     expect(logged).toContain(
       `/confirm-subscription/${String(row["_id"])}?verification-token=[redacted]`,
     );
+  });
+});
+
+describe("the server's own log", () => {
+  test("never holds the credentials of the SMS account a page texts through", async () => {
+    const AUTH_TOKEN: string = "page-own-twilio-auth-token-5f1d";
+
+    // The page reads with its own Twilio account wherever it is asked for.
+    const findPage: typeof StatusPageService.findOneBy =
+      StatusPageService.findOneBy.bind(StatusPageService);
+
+    jest
+      .spyOn(StatusPageService, "findOneBy")
+      .mockImplementation(
+        async (
+          args: Parameters<typeof StatusPageService.findOneBy>[0],
+        ): Promise<StatusPage | null> => {
+          const page: StatusPage | null = await findPage(args);
+
+          if (
+            page &&
+            (args.select as Record<string, unknown>)?.["callSmsConfig"]
+          ) {
+            const account: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+            account._id = ObjectID.generate().toString();
+            account.twilioAccountSID = "AC0000000000000000000000000000beef";
+            account.twilioAuthToken = AUTH_TOKEN;
+            account.twilioPrimaryPhoneNumber = new Phone("+14155550111");
+            page.callSmsConfig = account;
+          }
+
+          return page;
+        },
+      );
+
+    await signUp("192.0.2.1", { subscriberPhone: PHONE });
+    await teamAdd({
+      subscriberPhone: "+14155550199",
+      sendYouHaveSubscribedMessage: true,
+    });
+
+    // Both texts went out, through the page's own account.
+    expect(world.texts).toHaveBeenCalledTimes(2);
+
+    const logged: string = JSON.stringify([
+      ...jest.mocked(logger.debug).mock.calls,
+      ...jest.mocked(logger.info).mock.calls,
+      ...jest.mocked(logger.warn).mock.calls,
+      ...jest.mocked(logger.error).mock.calls,
+    ]);
+
+    expect(logged).not.toContain(AUTH_TOKEN);
   });
 });

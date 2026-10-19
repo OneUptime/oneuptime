@@ -103,7 +103,9 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import SmsService from "../../../Server/Services/SmsService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberNotificationTemplateService from "../../../Server/Services/StatusPageSubscriberNotificationTemplateService";
-import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberService, {
+  ONE_CONTACT_PER_SIGN_UP_MESSAGE,
+} from "../../../Server/Services/StatusPageSubscriberService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -885,14 +887,14 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
     );
   });
 
-  test("named beside a Slack address that is not one: refused, and the address keeps its ten", async () => {
+  test("named beside a Slack address: refused as two contacts before anything is counted, and the address keeps its ten", async () => {
     for (let index: number = 0; index < 20; index++) {
       const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
         subscriberEmail: VICTIM_EMAIL,
         slackIncomingWebhookUrl: "https://example.net/not-a-slack-webhook",
       });
 
-      expect(answer.error?.message).toBe("Invalid Slack Incoming Webhook URL.");
+      expect(answer.error?.message).toBe(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
     }
 
     expect(subscribers.rows).toHaveLength(0);
@@ -901,7 +903,25 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
     ).toBe(10);
   });
 
-  test("named beside a webhook the page may not call: refused, and the address keeps its ten", async () => {
+  test("named beside a webhook: refused as two contacts before anything is counted, and the address keeps its ten", async () => {
+    for (let index: number = 0; index < 20; index++) {
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberEmail: VICTIM_EMAIL,
+        subscriberWebhook: "https://10.0.0.5/hook",
+      });
+
+      expect(answer.error?.message).toBe(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
+    }
+
+    expect(subscribers.rows).toHaveLength(0);
+    expect(
+      (await victimSignUps({ subscriberEmail: VICTIM_EMAIL })).accepted,
+    ).toBe(10);
+  });
+
+  test("a webhook the page may not call: refused, and the webhook keeps its ten", async () => {
+    const WEBHOOK: string = "https://hooks.example.net/status";
+
     jest
       .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
       .mockRejectedValue(
@@ -910,8 +930,7 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
 
     for (let index: number = 0; index < 20; index++) {
       const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
-        subscriberEmail: VICTIM_EMAIL,
-        subscriberWebhook: "https://10.0.0.5/hook",
+        subscriberWebhook: WEBHOOK,
       });
 
       expect(answer.error?.message).toBe(
@@ -923,9 +942,10 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
       .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
       .mockResolvedValue(undefined);
 
-    expect(
-      (await victimSignUps({ subscriberEmail: VICTIM_EMAIL })).accepted,
-    ).toBe(10);
+    expect(subscribers.rows).toHaveLength(0);
+    expect((await victimSignUps({ subscriberWebhook: WEBHOOK })).accepted).toBe(
+      10,
+    );
   });
 
   test("named with a value too long to keep: refused, and the address keeps its ten", async () => {
@@ -969,7 +989,7 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
     expect(texts).toHaveBeenCalledTimes(10);
   });
 
-  test("named beside a phone that has had its ten: refused for the phone, and the address keeps its ten", async () => {
+  test("named beside a phone that has had its ten: refused as two contacts before anything is counted, and the address keeps its ten", async () => {
     await acceptedOf(10, (index: number) => {
       return signUp(
         `203.0.113.${index + 1}`,
@@ -979,13 +999,12 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
     });
 
     for (let index: number = 0; index < 20; index++) {
-      expectRefused(
-        await signUp(`192.0.2.${index + 1}`, {
-          subscriberEmail: VICTIM_EMAIL,
-          subscriberPhone: VICTIM_PHONE,
-        }),
-        "Too many sign-ups for this phone number in the last hour. Please try again later.",
-      );
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberEmail: VICTIM_EMAIL,
+        subscriberPhone: VICTIM_PHONE,
+      });
+
+      expect(answer.error?.message).toBe(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
     }
 
     expect(
@@ -1009,16 +1028,21 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
   });
 
   test("a sign-up that fails once its subscriber is written - its text already sent - keeps its count", async () => {
-    jest
-      .spyOn(DatabaseConfig, "getHost")
-      .mockRejectedValue(new Error("settings unavailable"));
+    // What a create does once its messages have gone: the live update fails.
+    const liveUpdate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(
+        StatusPageSubscriberService as unknown as {
+          onTriggerRealtime: () => Promise<void>;
+        },
+        "onTriggerRealtime",
+      )
+      .mockRejectedValue(new Error("settings unavailable") as never);
 
     for (let index: number = 0; index < 10; index++) {
       const answer: Answer = await signUp(
         `192.0.2.${index + 1}`,
         {
           subscriberPhone: VICTIM_PHONE,
-          subscriberEmail: `p${index}@x.example`,
         },
         pageIdOf(index),
       );
@@ -1026,13 +1050,11 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
       expect(answer.error?.message).toBe("settings unavailable");
     }
 
-    // Each was written and texted before its confirmation email failed.
+    // Each was written and texted before what followed failed.
     expect(subscribers.rows).toHaveLength(10);
     expect(texts).toHaveBeenCalledTimes(10);
 
-    jest
-      .spyOn(DatabaseConfig, "getHost")
-      .mockResolvedValue(new Hostname("oneuptime.example.com"));
+    liveUpdate.mockResolvedValue(undefined as never);
 
     expectRefused(
       await signUp(

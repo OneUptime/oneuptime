@@ -933,7 +933,10 @@ jobs:
       # early check, leave one subscriber - the check is made again in the
       # INSERT's transaction under the page's lock, or the
       # project's on the Free plan - and the SQL that reads a stored
-      # number's line finds what SubscriberContactKey says it should.
+      # number's line finds what SubscriberContactKey says it should. A
+      # confirmation link opened by twelve requests at once confirms once and
+      # sends one welcome, and a cancelled subscription is not turned back on
+      # where its contact is taken.
       - name: Test one subscriber per contact per status page on migrated Postgres
         working-directory: packages/Common
         env:

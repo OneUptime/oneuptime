@@ -8,6 +8,7 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService, {
   ALREADY_SUBSCRIBED_MESSAGE,
   CONTACT_ALREADY_SUBSCRIBED_MESSAGE,
+  SubscriptionConfirmationOutcome,
 } from "../../../Server/Services/StatusPageSubscriberService";
 import logger from "../../../Server/Utils/Logger";
 import SubscriberContactSql from "../../../Server/Utils/StatusPage/SubscriberContactSql";
@@ -594,6 +595,101 @@ describePostgres(
       expect(rows).toHaveLength(1);
       expect(rows[0]!._id).not.toBe(cancelledId);
       expect(rows[0]!.isUnsubscribed).toBe(false);
+    });
+
+    // The texts that told a number it is subscribed, of every text sent.
+    function welcomeTexts(): number {
+      return jest
+        .mocked(SmsService.sendSms)
+        .mock.calls.filter((call: Array<unknown>): boolean => {
+          return (call[0] as { message: string }).message.startsWith(
+            "You have been subscribed",
+          );
+        }).length;
+    }
+
+    test("twelve requests opening one confirmation link at once: confirmed once, and the number texted its welcome once", async () => {
+      await insertProjectAndPages("growth");
+
+      await signUp(
+        subscriberOf({ subscriberPhone: new Phone("+14155550100") }),
+      );
+
+      const rows: Array<{ _id: string; code: string }> = await database.query(
+        `SELECT "_id", "subscriptionConfirmationToken" AS "code" FROM "${schema}"."StatusPageSubscriber" WHERE "statusPageId" = $1 AND "deletedAt" IS NULL`,
+        [pageId.toString()],
+      );
+
+      expect(rows).toHaveLength(1);
+      expect(welcomeTexts()).toBe(0);
+
+      const outcomes: Array<SubscriptionConfirmationOutcome> =
+        await Promise.all(
+          Array.from(
+            { length: RACING_CREATES },
+            (): Promise<SubscriptionConfirmationOutcome> => {
+              return StatusPageSubscriberService.confirmSubscription({
+                subscriberId: rows[0]!._id,
+                code: rows[0]!.code,
+              });
+            },
+          ),
+        );
+
+      expect(
+        outcomes.filter((outcome: SubscriptionConfirmationOutcome): boolean => {
+          return outcome === SubscriptionConfirmationOutcome.Confirmed;
+        }),
+      ).toHaveLength(1);
+      expect(
+        outcomes.filter((outcome: SubscriptionConfirmationOutcome): boolean => {
+          return outcome === SubscriptionConfirmationOutcome.AlreadyConfirmed;
+        }),
+      ).toHaveLength(RACING_CREATES - 1);
+      expect(welcomeTexts()).toBe(1);
+
+      const confirmed: Array<{ isSubscriptionConfirmed: boolean }> =
+        await database.query(
+          `SELECT "isSubscriptionConfirmed" FROM "${schema}"."StatusPageSubscriber" WHERE "_id" = $1`,
+          [rows[0]!._id],
+        );
+
+      expect(confirmed[0]!.isSubscriptionConfirmed).toBe(true);
+    });
+
+    test("a cancelled subscription is not turned back on where another subscriber of the page has its number under another spelling", async () => {
+      await insertProjectAndPages("growth");
+
+      const cancelledId: string = ObjectID.generate().toString();
+
+      await database.query(
+        `INSERT INTO "${schema}"."StatusPageSubscriber" ("_id", "version", "projectId", "statusPageId", "subscriberPhone", "isUnsubscribed", "isSubscriptionConfirmed", "unsubscribeToken") VALUES ($1, 1, $2, $3, '+14155550100', true, true, $4)`,
+        [cancelledId, projectId.toString(), pageId.toString(), "5c".repeat(32)],
+      );
+      await database.query(
+        `INSERT INTO "${schema}"."StatusPageSubscriber" ("_id", "version", "projectId", "statusPageId", "subscriberPhone", "isUnsubscribed", "isSubscriptionConfirmed", "unsubscribeToken") VALUES ($1, 1, $2, $3, '(141) 555 50100', false, true, $4)`,
+        [
+          ObjectID.generate().toString(),
+          projectId.toString(),
+          pageId.toString(),
+          "5d".repeat(32),
+        ],
+      );
+
+      await expect(
+        StatusPageSubscriberService.updateOneById({
+          id: new ObjectID(cancelledId),
+          data: { isUnsubscribed: false },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+
+      const rows: Array<{ isUnsubscribed: boolean }> = await database.query(
+        `SELECT "isUnsubscribed" FROM "${schema}"."StatusPageSubscriber" WHERE "_id" = $1`,
+        [cancelledId],
+      );
+
+      expect(rows[0]!.isUnsubscribed).toBe(true);
     });
   },
 );

@@ -40,7 +40,9 @@ import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupM
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService, {
+  ONE_CONTACT_PER_SIGN_UP_MESSAGE,
   SMS_SIGN_UP_UNAVAILABLE_MESSAGE,
+  SubscriptionConfirmationOutcome,
 } from "../Services/StatusPageSubscriberService";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -789,7 +791,9 @@ export default class StatusPageAPI extends BaseAPI<
      * the code out of the lookup altogether - a filter on an undefined value
      * is no filter - and the id alone confirmed the sign-up. Every link that
      * confirms nothing gets the same answer. Once confirmed, the subscriber
-     * is told it is subscribed, on its email or by text.
+     * is told it is subscribed, on its email or by text - once, however many
+     * times the link is opened (StatusPageSubscriberService
+     * .confirmSubscription).
      */
     this.router.get(
       `${new this.entityType()
@@ -797,30 +801,13 @@ export default class StatusPageAPI extends BaseAPI<
         ?.toString()}/confirm-subscription/:statusPageSubscriberId`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const code: unknown = req.query["verification-token"];
-          const subscriberId: unknown = req.params["statusPageSubscriberId"];
+          const outcome: SubscriptionConfirmationOutcome =
+            await StatusPageSubscriberService.confirmSubscription({
+              subscriberId: req.params["statusPageSubscriberId"],
+              code: req.query["verification-token"],
+            });
 
-          const subscriber: StatusPageSubscriber | null =
-            typeof code === "string" &&
-            code.length > 0 &&
-            typeof subscriberId === "string" &&
-            ObjectID.isValidUUID(subscriberId)
-              ? await StatusPageSubscriberService.findOneBy({
-                  query: {
-                    _id: subscriberId,
-                    subscriptionConfirmationToken: code,
-                  },
-                  select: {
-                    _id: true,
-                    isSubscriptionConfirmed: true,
-                  },
-                  props: {
-                    isRoot: true,
-                  },
-                })
-              : null;
-
-          if (!subscriber || !subscriber.id) {
+          if (outcome === SubscriptionConfirmationOutcome.NotFound) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -829,30 +816,6 @@ export default class StatusPageAPI extends BaseAPI<
               ),
             );
           }
-
-          // check if subscription confirmed already.
-
-          if (subscriber.isSubscriptionConfirmed) {
-            return Response.sendEmptySuccessResponse(req, res);
-          }
-
-          await StatusPageSubscriberService.updateOneById({
-            id: subscriber.id,
-            data: {
-              isSubscriptionConfirmed: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-          await StatusPageSubscriberService.sendYouHaveSubscribedEmail({
-            subscriberId: subscriber.id,
-          });
-
-          await StatusPageSubscriberService.sendYouHaveSubscribedText({
-            subscriberId: subscriber.id,
-          });
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
@@ -4119,6 +4082,20 @@ export default class StatusPageAPI extends BaseAPI<
         `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
         getLogAttributesFromRequest(req as any),
       );
+
+      /*
+       * One contact at a time, as the Subscribe page's forms send it: a
+       * subscription is confirmed on the contact that signed up (the
+       * subscriber service holds every sign-up to it). Refused before
+       * anything is counted.
+       */
+      if (
+        StatusPageSubscriberService.getContactColumnsNamed(statusPageSubscriber)
+          .length > 1
+      ) {
+        throw new BadDataException(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
+      }
+
       /*
        * A sign-up sends each contact it names a message as it is created - a
        * confirmation email, a text, a chat post or a webhook call - so it is

@@ -97,13 +97,16 @@ import PublicMessageRateLimit, {
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import { StoredRow } from "../TestingUtils/InMemoryRepository";
 import {
   Answer,
   SubscriberWorld,
   WORLD_PAGE_ID,
   WORLD_PROJECT_ID,
+  callRoute,
   pageIdOf,
   registerSubscriberRoutes,
   rowsOf,
@@ -678,5 +681,241 @@ describe("decided with the INSERT, under the page's lock", () => {
     expect(
       signUpsCountedFor(PublicMessageRateLimit.forPhone("+14155550100")),
     ).toBe(0);
+  });
+});
+
+/*
+ * A cancelled subscription keeps its contact, and a page may meanwhile have
+ * taken that contact again - the team changing another subscriber to it, or
+ * a number subscribed under another spelling before the page took each
+ * contact once. Turning the cancelled one back on - the team's Status, the
+ * API, a workflow, the visitor's own manage page - would leave the page two
+ * active subscriptions of one contact, each sent every notification. So it
+ * is refused, as a create of the contact is.
+ */
+describe("turning a cancelled subscription back on", () => {
+  const MANAGE_UPDATE_ROUTE: string =
+    "/status-page/update-subscription/:statusPageId/:subscriberId/:token";
+
+  // A subscriber of the page, stored as a row of its own.
+  function stored(row: StoredRow): StoredRow {
+    const subscriber: StoredRow = {
+      _id: ObjectID.generate().toString(),
+      projectId: WORLD_PROJECT_ID,
+      statusPageId: WORLD_PAGE_ID,
+      isUnsubscribed: false,
+      isSubscriptionConfirmed: true,
+      unsubscribeToken: `${"5c".repeat(28)}${String(world.subscribers.rows.length).padStart(8, "0")}`,
+      version: 1,
+      ...row,
+    };
+
+    world.subscribers.rows.push(subscriber);
+
+    return subscriber;
+  }
+
+  // The visitor's own manage page, saving a change.
+  async function manageAndSave(
+    subscriber: StoredRow,
+    data: JSONObject,
+  ): Promise<Answer> {
+    return await callRoute("put", MANAGE_UPDATE_ROUTE, {
+      params: {
+        statusPageId: WORLD_PAGE_ID,
+        subscriberId: String(subscriber["_id"]),
+        token: String(subscriber["unsubscribeToken"]),
+      },
+      body: { data: data },
+    });
+  }
+
+  test("by the team, where another subscriber of the page has its number under another spelling: refused, saying the rule, and it stays cancelled", async () => {
+    const cancelled: StoredRow = stored({
+      subscriberPhone: "+14155550100",
+      isUnsubscribed: true,
+    });
+    stored({ subscriberPhone: "141 555 50100" });
+
+    const answer: Answer = await teamUpdate(String(cancelled["_id"]), {
+      isUnsubscribed: false,
+    });
+
+    expect(answer.error?.message).toBe(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+    expect(cancelled["isUnsubscribed"]).toBe(true);
+  });
+
+  test("by an API key, held to it as a teammate is", async () => {
+    world.teamProps = teamCaller([Permission.ProjectMember], {
+      isApiKey: true,
+    });
+
+    const cancelled: StoredRow = stored({
+      subscriberPhone: "+14155550100",
+      isUnsubscribed: true,
+    });
+    stored({ subscriberPhone: "0014155550100" });
+
+    expect(
+      (await teamUpdate(String(cancelled["_id"]), { isUnsubscribed: false }))
+        .error?.message,
+    ).toBe(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+    expect(cancelled["isUnsubscribed"]).toBe(true);
+  });
+
+  test("by the visitor from its own manage link: told they are subscribed already, and nothing changes", async () => {
+    const cancelled: StoredRow = stored({
+      subscriberPhone: "+14155550100",
+      isUnsubscribed: true,
+    });
+    stored({ subscriberPhone: "(141)555-50100" });
+
+    const answer: Answer = await manageAndSave(cancelled, {
+      isSubscribedToAllResources: true,
+    });
+
+    expect(answer.error?.message).toBe(ALREADY_SUBSCRIBED_MESSAGE);
+    expect(cancelled["isUnsubscribed"]).toBe(true);
+    expect(world.texts).not.toHaveBeenCalled();
+  });
+
+  test("a webhook the page has under another spelling: refused", async () => {
+    const cancelled: StoredRow = stored({
+      subscriberWebhook: "https://hooks.example.net/status",
+      isUnsubscribed: true,
+    });
+    stored({ subscriberWebhook: "https://HOOKS.example.net:443/status#x" });
+
+    expect(
+      (await teamUpdate(String(cancelled["_id"]), { isUnsubscribed: false }))
+        .error?.message,
+    ).toBe(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+    expect(cancelled["isUnsubscribed"]).toBe(true);
+  });
+
+  test("an email address the page has: refused", async () => {
+    const cancelled: StoredRow = stored({
+      subscriberEmail: "reader@example.com",
+      isUnsubscribed: true,
+    });
+    stored({ subscriberEmail: "reader@example.com" });
+
+    expect(
+      (await teamUpdate(String(cancelled["_id"]), { isUnsubscribed: false }))
+        .error?.message,
+    ).toBe(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+    expect(cancelled["isUnsubscribed"]).toBe(true);
+  });
+
+  test("one update turning on two cancelled subscriptions of one number: refused, and both stay cancelled", async () => {
+    const first: StoredRow = stored({
+      subscriberPhone: "+14155550100",
+      isUnsubscribed: true,
+    });
+    const second: StoredRow = stored({
+      subscriberPhone: "14155550100",
+      isUnsubscribed: true,
+    });
+
+    await expect(
+      StatusPageSubscriberService.updateBy({
+        query: { statusPageId: WORLD_PAGE_ID },
+        data: { isUnsubscribed: false } as never,
+        limit: 10,
+        skip: 0,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+
+    expect(first["isUnsubscribed"]).toBe(true);
+    expect(second["isUnsubscribed"]).toBe(true);
+  });
+
+  test("whose number nobody else on the page has: turned on, by the team and by the visitor alike", async () => {
+    const byTeam: StoredRow = stored({
+      subscriberPhone: "+14155550100",
+      isUnsubscribed: true,
+    });
+    const byVisitor: StoredRow = stored({
+      subscriberPhone: "+14155550199",
+      isUnsubscribed: true,
+    });
+    // The number on another page is that page's own.
+    stored({
+      subscriberPhone: "14155550100",
+      statusPageId: pageIdOf(1),
+    });
+
+    expect(
+      (await teamUpdate(String(byTeam["_id"]), { isUnsubscribed: false }))
+        .error,
+    ).toBeUndefined();
+    expect(byTeam["isUnsubscribed"]).toBe(false);
+
+    expect(
+      (await manageAndSave(byVisitor, { isSubscribedToAllResources: true }))
+        .error,
+    ).toBeUndefined();
+    expect(byVisitor["isUnsubscribed"]).toBe(false);
+  });
+
+  test("whose number only another cancelled subscription of the page has: turned on", async () => {
+    const cancelled: StoredRow = stored({
+      subscriberPhone: "+14155550100",
+      isUnsubscribed: true,
+    });
+    stored({ subscriberPhone: "14155550100", isUnsubscribed: true });
+
+    expect(
+      (await teamUpdate(String(cancelled["_id"]), { isUnsubscribed: false }))
+        .error,
+    ).toBeUndefined();
+    expect(cancelled["isUnsubscribed"]).toBe(false);
+  });
+
+  test("with a new number nobody has, in the same change: turned on with it", async () => {
+    const cancelled: StoredRow = stored({
+      subscriberPhone: "+14155550100",
+      isUnsubscribed: true,
+    });
+    stored({ subscriberPhone: "14155550100" });
+
+    expect(
+      (
+        await teamUpdate(String(cancelled["_id"]), {
+          isUnsubscribed: false,
+          subscriberPhone: "+14155550177",
+        })
+      ).error,
+    ).toBeUndefined();
+    expect(cancelled["isUnsubscribed"]).toBe(false);
+    expect(String(cancelled["subscriberPhone"])).toBe("+14155550177");
+  });
+
+  test("a subscription that is on already is never asked: two subscribed under two spellings from before still save their choices", async () => {
+    const first: StoredRow = stored({ subscriberPhone: "+14155550100" });
+    const second: StoredRow = stored({ subscriberPhone: "14155550100" });
+
+    // The manage page sends Unsubscribed off with every change it saves.
+    expect(
+      (await manageAndSave(first, { isSubscribedToAllResources: true })).error,
+    ).toBeUndefined();
+    expect(
+      (await teamUpdate(String(second["_id"]), { isUnsubscribed: false }))
+        .error,
+    ).toBeUndefined();
+    expect(
+      (await teamUpdate(String(second["_id"]), { internalNote: "VIP" })).error,
+    ).toBeUndefined();
+  });
+
+  test("cancelling is never asked about the contact", async () => {
+    const first: StoredRow = stored({ subscriberPhone: "+14155550100" });
+    stored({ subscriberPhone: "14155550100" });
+
+    expect(
+      (await teamUpdate(String(first["_id"]), { isUnsubscribed: true })).error,
+    ).toBeUndefined();
+    expect(first["isUnsubscribed"]).toBe(true);
   });
 });

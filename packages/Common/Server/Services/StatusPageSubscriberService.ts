@@ -339,6 +339,26 @@ export const ALREADY_SUBSCRIBED_MESSAGE: string =
 export const CONTACT_ALREADY_SUBSCRIBED_MESSAGE: string =
   "This status page already has a subscriber with this contact. A phone number, email address or webhook can be subscribed to a status page once, however it is written.";
 
+/*
+ * What a visitor's sign-up that names more than one contact is told. A
+ * sign-up is confirmed, and welcomed, on the one contact that signed up:
+ * the code in a confirmation link is the subscription's own, so a link
+ * opened from one contact would confirm every other contact named with it,
+ * and start sending to them.
+ */
+export const ONE_CONTACT_PER_SIGN_UP_MESSAGE: string =
+  "Please sign up one email address, phone number, Slack channel, Microsoft Teams channel or webhook at a time.";
+
+// What opening a subscription's confirmation link did (confirmSubscription).
+export enum SubscriptionConfirmationOutcome {
+  // The link names no subscription: no such subscriber, or not its code.
+  NotFound = "not-found",
+  // The subscription was confirmed already: nothing is sent again.
+  AlreadyConfirmed = "already-confirmed",
+  // This request confirmed it, and sent its welcome.
+  Confirmed = "confirmed",
+}
+
 // How many subscribers the backfill and the token top-up handle per statement.
 const UNSUBSCRIBE_COLUMNS_BATCH_SIZE: number = 1000;
 
@@ -659,6 +679,17 @@ export class Service extends ProjectReferencesService<Model> {
         statusPageId: data.data.statusPageId?.toString(),
       } as LogAttributes);
       throw new BadDataException("Project ID is required.");
+    }
+
+    /*
+     * A visitor signs up one contact at a time: a subscription is confirmed
+     * on the contact that signed up (ONE_CONTACT_PER_SIGN_UP_MESSAGE).
+     */
+    if (
+      statusPageSignUps.has(data.data) &&
+      this.getContactColumnsNamed(data.data).length > 1
+    ) {
+      throw new BadDataException(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
     }
 
     /*
@@ -1077,6 +1108,23 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The contacts `subscriber` names: each of its email address, phone
+   * number, Slack and Microsoft Teams channels and webhook that holds
+   * something. A workspace name alone is no contact.
+   */
+  public getContactColumnsNamed(
+    subscriber: Partial<
+      Pick<Model, (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]>
+    >,
+  ): Array<(typeof SUBSCRIBER_CONTACT_COLUMNS)[number]> {
+    return SUBSCRIBER_CONTACT_COLUMNS.filter(
+      (column: (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]): boolean => {
+        return Boolean(subscriber[column]?.toString().trim());
+      },
+    );
+  }
+
+  /*
    * Every subscription of the page under one of the contacts `subscriber`
    * names - its email address, its phone's line, each of its webhooks'
    * addresses (SubscriberContactKey) - active or cancelled, each once.
@@ -1287,6 +1335,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     // So is a contact changed to one another subscription of its page has.
     await this.checkContactsNotTakenOnPages(updateBy);
+
+    // And a cancelled subscription turned back on, where its contact is taken.
+    await this.checkContactsNotTakenWhenSubscribedAgain(updateBy);
 
     const isUnsubscribed: unknown = (
       updateBy.data as unknown as JSONObject | undefined
@@ -1610,6 +1661,108 @@ export class Service extends ProjectReferencesService<Model> {
         })
       ) {
         throw new BadDataException(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+      }
+    }
+  }
+
+  /*
+   * An update that turns cancelled subscriptions back on - the team's
+   * Status of Subscribed, the API, a workflow, or the visitor's own manage
+   * page - may not leave their page with two active subscriptions of one
+   * contact, however either is written (findSubscriptionsOfContacts): a
+   * cancelled subscription whose contact another subscription of its page
+   * has taken since, or is turned on by the same update, stays cancelled,
+   * and the update is refused. A subscription that is on already is left
+   * alone, so the manage page, which sends Unsubscribed off with every
+   * change, never locks a subscriber saved before a page took each contact
+   * once. The subscribers are the rows the update writes, and the update is
+   * held to them (findRowsAndHoldUpdateToThem).
+   */
+  private async checkContactsNotTakenWhenSubscribedAgain(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: JSONObject | undefined = updateBy.data as unknown as
+      | JSONObject
+      | undefined;
+
+    if (data?.["isUnsubscribed"] !== false) {
+      return;
+    }
+
+    const subscribers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        statusPageId: true,
+        projectId: true,
+        isUnsubscribed: true,
+        subscriberEmail: true,
+        subscriberPhone: true,
+        slackIncomingWebhookUrl: true,
+        microsoftTeamsIncomingWebhookUrl: true,
+        subscriberWebhook: true,
+      },
+    );
+
+    // Every one the update writes is on once it is written.
+    const turnedOnIds: Set<string> = new Set<string>(
+      subscribers
+        .map((subscriber: Model): string => {
+          return subscriber._id?.toString().toLowerCase() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    for (const subscriber of subscribers) {
+      if (
+        subscriber.isUnsubscribed !== true ||
+        !subscriber.statusPageId ||
+        !subscriber.projectId ||
+        !subscriber._id
+      ) {
+        continue;
+      }
+
+      // Its contacts as the update leaves them.
+      const contact: Partial<
+        Pick<Model, (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]>
+      > = {};
+
+      for (const column of SUBSCRIBER_CONTACT_COLUMNS) {
+        const written: unknown = data[column];
+        const value: unknown =
+          written !== undefined && written !== null && String(written).trim()
+            ? written
+            : subscriber[column];
+
+        if (value) {
+          (contact as Record<string, unknown>)[column] = value;
+        }
+      }
+
+      const taken: Array<Model> = await this.findSubscriptionsOfContacts({
+        statusPageId: subscriber.statusPageId,
+        projectId: subscriber.projectId,
+        subscriber: contact,
+        find: this.getServiceRowFinder(),
+        exceptIds: [subscriber._id.toString()],
+      });
+
+      if (
+        taken.some((other: Model): boolean => {
+          return (
+            !other.isUnsubscribed ||
+            turnedOnIds.has(other._id?.toString().toLowerCase() || "")
+          );
+        })
+      ) {
+        throw new BadDataException(
+          this.getAlreadySubscribedMessage(
+            manageSubscriptionPageUpdates.has(updateBy),
+          ),
+        );
       }
     }
   }
@@ -2488,8 +2641,9 @@ export class Service extends ProjectReferencesService<Model> {
         return createdItem;
       }
 
+      // Whether the page texts through its own account - never its settings, which hold its credentials.
       logger.debug(
-        `Status Page Call SMS Config: ${JSON.stringify(statusPage.callSmsConfig)}`,
+        `Status page sends with its own SMS account: ${Boolean(statusPage.callSmsConfig)}`,
         { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
 
@@ -2727,6 +2881,85 @@ Stay informed about service availability! 🚀`.toString();
         projectId: data.subscriber.projectId?.toString(),
       } as LogAttributes);
     });
+  }
+
+  /*
+   * A subscription's confirmation link opened (StatusPageAPI's
+   * confirm-subscription route): the subscriber it names and the code it
+   * carries - text only, as anything else would leave the code out of the
+   * lookup. A subscription not yet confirmed is confirmed, and told it is
+   * subscribed, on its email or by text.
+   *
+   * Once, however many requests open the link at the same moment - a double
+   * tap, a phone that loads the page twice, or a number's owner opening it
+   * over and over to be texted again. The update names the subscription as
+   * it was read - not confirmed, at the version read - so the first request
+   * to write it confirms it and the others match no row (DatabaseService's
+   * compare-and-set on the version): only that one sends the welcome.
+   */
+  @CaptureSpan()
+  public async confirmSubscription(data: {
+    subscriberId: unknown;
+    code: unknown;
+  }): Promise<SubscriptionConfirmationOutcome> {
+    const subscriber: Model | null =
+      typeof data.code === "string" &&
+      data.code.length > 0 &&
+      typeof data.subscriberId === "string" &&
+      ObjectID.isValidUUID(data.subscriberId)
+        ? await this.findOneBy({
+            query: {
+              _id: data.subscriberId,
+              subscriptionConfirmationToken: data.code,
+            },
+            select: {
+              _id: true,
+              isSubscriptionConfirmed: true,
+              version: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          })
+        : null;
+
+    if (!subscriber || !subscriber.id) {
+      return SubscriptionConfirmationOutcome.NotFound;
+    }
+
+    if (subscriber.isSubscriptionConfirmed) {
+      return SubscriptionConfirmationOutcome.AlreadyConfirmed;
+    }
+
+    const confirmed: number = await this.updateOneBy({
+      query: {
+        _id: subscriber.id.toString(),
+        isSubscriptionConfirmed: false,
+        ...(typeof subscriber.version === "number"
+          ? { version: subscriber.version }
+          : {}),
+      },
+      data: {
+        isSubscriptionConfirmed: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (confirmed === 0) {
+      return SubscriptionConfirmationOutcome.AlreadyConfirmed;
+    }
+
+    await this.sendYouHaveSubscribedEmail({
+      subscriberId: subscriber.id,
+    });
+
+    await this.sendYouHaveSubscribedText({
+      subscriberId: subscriber.id,
+    });
+
+    return SubscriptionConfirmationOutcome.Confirmed;
   }
 
   /*

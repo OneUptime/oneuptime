@@ -258,6 +258,24 @@ describe("the English page gives the limits in force", () => {
     }
   });
 
+  /*
+   * The subscriber service refuses a sign-up naming a second contact, and a
+   * canceled subscription turned back on while another subscription of its
+   * page has its contact (Common: StatusPageSmsSignUpConfirmation,
+   * StatusPageSubscriberContactOnce).
+   */
+  it("says a signup names one contact, and a second one is refused", () => {
+    expect(englishSection()).toContain(
+      "A signup names one contact, an email address, a phone number, a Slack or Microsoft Teams channel or a webhook: a list of addresses, or a second contact, is refused.",
+    );
+  });
+
+  it("says a canceled subscription is not turned back on while another subscription has its contact", () => {
+    expect(englishSection()).toContain(
+      "Your team adding it again, or changing a subscriber to it, is refused, and so is turning a canceled subscription back on while another subscription has its contact.",
+    );
+  });
+
   it("gives an invitation its limit, to private status pages and projects together", () => {
     expect(englishSection()).toContain(
       `is counted per address too: ${config.teamKinds[TeamMessageKind.Invitation].perContactLimit} to one address in an hour, both kinds together.`,

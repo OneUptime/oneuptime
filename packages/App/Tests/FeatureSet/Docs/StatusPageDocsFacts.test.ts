@@ -1266,9 +1266,15 @@ describe("Subscribers & Announcements: confirming an email address", () => {
     expect(service).toMatch(
       /const isPhoneToConfirm: boolean =\s*createdItem\.isSubscriptionConfirmed === false;/,
     );
-    // Opening the link sends the welcome, by email and by text.
-    expect(api).toMatch(
-      /sendYouHaveSubscribedEmail\(\{\s*subscriberId: subscriber\.id,\s*\}\);\s*await StatusPageSubscriberService\.sendYouHaveSubscribedText\(\{\s*subscriberId: subscriber\.id,\s*\}\);/,
+    /*
+     * Opening the link confirms it (the route asks the service), and the
+     * request that confirmed it sends the welcome, by email and by text.
+     */
+    expect(api).toContain(
+      "await StatusPageSubscriberService.confirmSubscription({",
+    );
+    expect(service).toMatch(
+      /if \(confirmed === 0\) \{\s*return SubscriptionConfirmationOutcome\.AlreadyConfirmed;\s*\}\s*await this\.sendYouHaveSubscribedEmail\(\{\s*subscriberId: subscriber\.id,\s*\}\);\s*await this\.sendYouHaveSubscribedText\(\{\s*subscriberId: subscriber\.id,\s*\}\);/,
     );
     // The SMS subscribers list shows who has not confirmed yet.
     expect(smsSubscribers).toContain('text={"Awaiting Confirmation"}');
