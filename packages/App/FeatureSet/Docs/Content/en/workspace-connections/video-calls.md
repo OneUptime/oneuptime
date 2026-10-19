@@ -66,11 +66,13 @@ Every meeting is created as the account you sign in with, which hosts it. Sign i
 | --- | --- | --- |
 | Zoom | A Zoom user. Meetings hosted by a Basic (free) user end after 40 minutes. | Create meetings for that user (`meeting:write:meeting`) and read who it is (`user:read:user`). For [call transcripts](#call-transcripts), read its meetings' cloud recording transcripts (`cloud_recording:read:list_recording_files`, `cloud_recording:read:meeting_transcript`). |
 | Google Meet | A Google account that can use Google Meet. | Create Meet spaces as that account (`meetings.space.created`) and read its email address. |
-| Microsoft Teams | A work or school account with Microsoft Teams. Personal Microsoft accounts cannot create Teams meetings. | Create online meetings as that account (the delegated `OnlineMeetings.ReadWrite` permission) and stay signed in (`offline_access`). |
+| Microsoft Teams | A work or school account with Microsoft Teams. Personal Microsoft accounts cannot create Teams meetings. | Create online meetings as that account (the delegated `OnlineMeetings.ReadWrite` permission) and stay signed in (`offline_access`). To [record and transcribe incident calls](#record-and-transcribe-every-call), put the meetings on its calendar (`Calendars.ReadWrite`) and read their transcripts (`OnlineMeetingTranscript.Read.All`, which an administrator approves). |
 
 A connection made by signing in still has the settings that decide who waits: **Who can join** for Google Meet and **Who skips the lobby** for Microsoft Teams. Change them with **Edit** on the connection's row.
 
 A Zoom connection signed in before OneUptime read call transcripts starts calls as before, but cannot read their transcripts until it is signed in again: **Reconnect** on its row asks Zoom for the transcript permissions.
+
+A Microsoft Teams connection signed in while **Record and transcribe incident calls** was off starts calls as before, unrecorded. Once the switch is on, **Reconnect** on its row asks Microsoft for the calendar and transcript permissions too.
 
 ### Staying signed in
 
@@ -86,7 +88,7 @@ Deleting a connection withdraws OneUptime's access at Zoom and Google once no ot
 
 ### If Microsoft asks for an administrator
 
-Some Microsoft 365 organizations only let administrators approve apps. If Microsoft says you need admin approval, ask a Microsoft 365 administrator to connect Microsoft Teams, or to approve OneUptime in the [Microsoft Entra admin center](https://entra.microsoft.com/) under **Enterprise applications** > **Admin consent requests**.
+Some Microsoft 365 organizations only let administrators approve apps. If Microsoft says you need admin approval, ask a Microsoft 365 administrator to connect Microsoft Teams, or to approve OneUptime in the [Microsoft Entra admin center](https://entra.microsoft.com/) under **Enterprise applications** > **Admin consent requests**. A project that records its Teams calls needs this approval in every organization, once: only an administrator can let an app read meeting transcripts.
 
 ### Use your own app instead
 
@@ -107,7 +109,7 @@ What responders say on a call, what they checked, what they suspect and what the
 :::steps
 ### Get the transcript after the call
 
-On the incident's **Video Call** card, **Get from Zoom** or **Get from Google Meet** reads the transcript of a meeting OneUptime started there. For any other call, **Add transcript** takes the file the meeting tool saved (`.vtt`, `.srt` or `.txt`, up to 5 MB) or the transcript pasted. With [every call recorded and transcribed](#record-and-transcribe-every-call), OneUptime gets it by itself once the call is over.
+On the incident's **Video Call** card, **Get from Zoom**, **Get from Google Meet** or **Get from Microsoft Teams** reads the transcript of a meeting OneUptime started there (for Microsoft Teams, one it started while every call is recorded and transcribed). For any other call, **Add transcript** takes the file the meeting tool saved (`.vtt`, `.srt` or `.txt`, up to 5 MB) or the transcript pasted. With [every call recorded and transcribed](#record-and-transcribe-every-call), OneUptime gets it by itself once the call is over.
 
 ### OneUptime AI reads it
 
@@ -124,12 +126,14 @@ OneUptime AI suggests a cause only when the call names one, with the lines that 
 
 So that nobody has to remember to record a call or to get its transcript, turn on **Record and transcribe incident calls** in **Project Settings** > **Workspace** > **Video Calls**. While it is on:
 
-- OneUptime asks Zoom to record each incident meeting it starts to the cloud, and Google Meet to transcribe it. The message that posts the call says so before anyone joins.
+- OneUptime asks Zoom to record each incident meeting it starts to the cloud, Google Meet to transcribe it, and Microsoft Teams to record and transcribe it automatically. The message that posts the call says so before anyone joins.
 - Once the call is over, OneUptime gets the transcript by itself, as **Get from Zoom** would, and OneUptime AI reads it. Until then the **Video Call** card says that it is waiting.
 - What OneUptime AI read goes to the incident's feed and its Slack and Microsoft Teams channels: the suggested root cause, marked as not confirmed, then what was confirmed, tried and decided, the follow-ups and the open questions.
-- When the incident resolves before the transcript is in, the automatic postmortem draft waits for it, so that it reads what was said on the call: up to six hours while Zoom or Google Meet prepares the transcript, and one hour when there is no sign of one yet.
+- When the incident resolves before the transcript is in, the automatic postmortem draft waits for it, so that it reads what was said on the call: up to six hours while the provider prepares the transcript, and one hour when there is no sign of one yet.
 
-It is off by default, because it records people: everyone on those calls sees that they are recorded or transcribed, so check that your organization allows it. Zoom keeps a transcript only when the account records to the cloud with its audio transcript on, and Google Meet only on a Google Workspace edition that has transcripts. Microsoft Teams calls, Slack huddles and meeting links are not recorded, and neither are alert calls: add their transcripts by hand.
+It is off by default, because it records people: everyone on those calls sees that they are recorded or transcribed, so check that your organization allows it. Zoom keeps a transcript only when the account records to the cloud with its audio transcript on, and Google Meet only on a Google Workspace edition that has transcripts. Slack huddles and meeting links are not recorded, and neither are alert calls: add their transcripts by hand.
+
+Microsoft lets apps read the transcripts only of Teams meetings on a calendar, so OneUptime puts each incident meeting on its organizer's calendar and turns on automatic recording and transcription in the meeting's options. For that, the connection needs two more Microsoft Graph permissions, `Calendars.ReadWrite` and `OnlineMeetingTranscript.Read.All`: add them to your app registration (see [Microsoft Teams](#microsoft-teams)), or **Reconnect** a connection made by signing in. The organizer's Teams meeting policy must allow cloud recording, transcription and automatic recording, and your organization must not have turned off apps' access to transcripts. A call OneUptime cannot put on the calendar starts all the same, unrecorded, and its **Video Call** card says why.
 
 ### What each provider keeps
 
@@ -137,7 +141,7 @@ It is off by default, because it records people: everyone on those calls sees th
 | --- | --- | --- |
 | Zoom | **Get from Zoom** | The meeting recorded to the cloud with its audio transcript on, or AI Companion's meeting summary on. The connection needs the transcript scopes (see [Zoom](#zoom)), and one signed in before them needs **Reconnect**. Zoom prepares a transcript after the meeting, usually within twice its length. |
 | Google Meet | **Get from Google Meet** | Transcripts turned on in the call, on a Google Workspace edition that has them. Nothing else to set up: OneUptime reads the transcripts of the meetings it created. Google keeps a transcript for apps to read for 30 days. |
-| Microsoft Teams | **Add transcript** | Microsoft lets no app read the transcript of a meeting created as OneUptime creates them. In Teams, open the meeting's recap, then its transcript, and download it as a `.vtt` file. |
+| Microsoft Teams | **Get from Microsoft Teams** | A meeting OneUptime started while [every call is recorded and transcribed](#record-and-transcribe-every-call): Microsoft lets apps read the transcripts only of meetings on a calendar, and keeps a meeting for 60 days. For any other Teams meeting, **Add transcript**: in Teams, open the meeting's recap, then its transcript, and download it as a `.vtt` file. |
 | Meeting link or Slack huddle | **Add transcript** | The transcript the meeting tool, or the huddle's notes, keep. |
 
 ### Who can do what
@@ -198,7 +202,7 @@ OneUptime creates a Microsoft Teams meeting for each incident with Microsoft Gra
 
 :::steps
 1. In the [Microsoft Entra admin center](https://entra.microsoft.com/), open **App registrations** > **New registration** and register a single-tenant app. Copy its **Directory (tenant) ID** and **Application (client) ID**.
-2. Under **API permissions**, add the Microsoft Graph **application** permission **OnlineMeetings.ReadWrite.All**, then click **Grant admin consent**.
+2. Under **API permissions**, add the Microsoft Graph **application** permission **OnlineMeetings.ReadWrite.All** (and, to [record and transcribe incident calls](#record-and-transcribe-every-call) too, **Calendars.ReadWrite** and **OnlineMeetingTranscript.Read.All**), then click **Grant admin consent**.
 3. Under **Certificates & secrets**, create a client secret and paste its **Value**, not its Secret ID, into the connection form as the **Client secret**.
 4. Pick the organizer: a licensed Teams user, ideally a service account. Copy its **Object ID** from **Users** in the Entra admin center into **Organizer object ID**.
 5. Allow the app to create meetings for the organizer with an application access policy. In Teams PowerShell, after `Connect-MicrosoftTeams`, run the two commands below.
@@ -210,6 +214,8 @@ Grant-CsApplicationAccessPolicy -PolicyName OneUptime-Meetings -Identity "<organ
 ```
 
 The policy can take up to 30 minutes to apply. Until it does, the test reports that the app is not allowed to create meetings for the organizer.
+
+The same policy lets the app read the transcripts of the organizer's meetings. `Calendars.ReadWrite` lets an app change every calendar in your organization: to keep it to the organizer's, grant it with [RBAC for Applications in Exchange Online](https://learn.microsoft.com/exchange/permissions-exo/application-rbac), scoped to the organizer, instead of under **API permissions**.
 
 **Who skips the lobby** decides who joins without waiting: with **People in your organization skip the lobby** (the default), anyone else waits in the lobby until someone in the meeting admits them. With **Everyone skips the lobby**, nobody waits.
 
@@ -268,7 +274,7 @@ Create one OAuth app per provider and register this redirect URI on it, with you
 
 - **Zoom**: in the [Zoom App Marketplace](https://marketplace.zoom.us/), choose **Develop** > **Build App** and create a **General App**, managed by users. Under **Basic Information**, add the redirect URI as the OAuth Redirect URL on both the **Development** and **Production** tabs and to the OAuth allow list, and on the **Production** tab set the **Deauthorization Notification** endpoint URL to `https://<host>/api/video-call-oauth/zoom/events`. Under **Scopes**, add `meeting:write:meeting` and `user:read:user`. To let it read [call transcripts](#call-transcripts), add `cloud_recording:read:list_recording_files` and `cloud_recording:read:meeting_transcript` too. The **Secret Token** under **Features** > **Access** is `ZOOM_APP_WEBHOOK_SECRET_TOKEN`. The **Development** credentials work only for users of your own Zoom account; the **Production** credentials work for everyone once Zoom has reviewed and published the app.
 - **Google Meet**: in the [Google Cloud console](https://console.cloud.google.com/), enable the **Google Meet REST API**, configure the OAuth consent screen (**Google Auth Platform**) with the scopes `openid`, `email` and `https://www.googleapis.com/auth/meetings.space.created`, and create an OAuth client of type **Web application** with the redirect URI. Publish the app to production: an app left in testing loses its sign-ins after seven days. Google reviews apps that ask for the Meet scope; until it has, people see a warning before they sign in.
-- **Microsoft Teams**: in the [Microsoft Entra admin center](https://entra.microsoft.com/), register an app for **Accounts in any organizational directory**, add the redirect URI as a **Web** redirect URI, add the Microsoft Graph delegated permissions `openid`, `profile`, `email`, `offline_access` and `OnlineMeetings.ReadWrite`, and create a client secret. Use a registration of its own, not the Microsoft Teams bot's (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Until the app has a verified publisher, most organizations need an administrator to consent to it.
+- **Microsoft Teams**: in the [Microsoft Entra admin center](https://entra.microsoft.com/), register an app for **Accounts in any organizational directory**, add the redirect URI as a **Web** redirect URI, add the Microsoft Graph delegated permissions `openid`, `profile`, `email`, `offline_access` and `OnlineMeetings.ReadWrite` (and `Calendars.ReadWrite` and `OnlineMeetingTranscript.Read.All`, which a project that [records and transcribes its calls](#record-and-transcribe-every-call) asks for), and create a client secret. Use a registration of its own, not the Microsoft Teams bot's (`MICROSOFT_TEAMS_APP_CLIENT_ID`). Until the app has a verified publisher, most organizations need an administrator to consent to it.
 
 The client IDs are public: they are sent to the Dashboard so it knows which providers connect in one click. Keep the secrets and the webhook secret token secret. Every day the worker refreshes the sign-ins that are due, so it needs the same values as the app.
 
@@ -295,7 +301,11 @@ Zoom keeps a transcript only of a meeting recorded to the cloud with its audio t
 :::
 
 :::details The Video Call card still waits for a transcript
-OneUptime asks Zoom or Google Meet for it every few minutes once the call is over, less often as the call gets older, for three days after the call started. The transcript comes in minutes after the provider has prepared it, and Zoom takes up to about twice the call's length. **Get from Zoom** asks at once. When the provider keeps no transcript, the card says so: check that the Zoom account records to the cloud with its audio transcript on, or that your Google Workspace edition has transcripts.
+OneUptime asks Zoom, Google Meet or Microsoft Teams for it every few minutes once the call is over, less often as the call gets older, for three days after the call started. The transcript comes in minutes after the provider has prepared it, and Zoom takes up to about twice the call's length. **Get from Zoom** asks at once. When the provider keeps no transcript, the card says so: check that the Zoom account records to the cloud with its audio transcript on, that your Google Workspace edition has transcripts, or that the Teams organizer's meeting policy allows automatic recording.
+:::
+
+:::details A Microsoft Teams call was not recorded
+OneUptime could not put the meeting on its organizer's calendar, so it started the call the usual way, unrecorded, and the **Video Call** card says why. Usually the connection lacks `Calendars.ReadWrite` or `OnlineMeetingTranscript.Read.All`: add them to the app registration and grant admin consent, or **Reconnect** a connection made by signing in. Calls started after that are recorded.
 :::
 
 :::details OneUptime AI could not read a transcript

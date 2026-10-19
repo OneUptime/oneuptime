@@ -268,39 +268,96 @@ describe("VideoCallMeetingFactory with a sign-in", () => {
   });
 
   /*
-   * A Teams meeting is created as it always was: OneUptime cannot read its
-   * transcript, and asking Graph to record it is not something it does.
+   * A Teams meeting asked to record and transcribe goes on its organizer's
+   * calendar - Graph keeps transcripts only of meetings on a calendar - and
+   * records itself (MicrosoftTeamsMeetingClient).
    */
-  test("leaves a Teams meeting as it always was, even when asked to record and transcribe", async () => {
-    const fetcher: ScriptedFetch = scriptedFetch([
-      {
-        status: 201,
-        body: {
-          id: "m",
-          joinWebUrl: "https://teams.microsoft.com/l/meetup-join/x",
+  const TEAMS_JOIN_URL: string =
+    "https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0";
+
+  const TEAMS_RECORDED_MEETING: Array<{ status: number; body: JSONObject }> = [
+    {
+      status: 201,
+      body: { id: "event-1", onlineMeeting: { joinUrl: TEAMS_JOIN_URL } },
+    },
+    { status: 200, body: { value: [{ id: "meeting-1" }] } },
+    { status: 200, body: { id: "meeting-1", recordAutomatically: true } },
+  ];
+
+  test("a signed-in Teams account asked to record: the meeting goes on its own calendar, and records itself", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch(TEAMS_RECORDED_MEETING);
+
+    const meeting: VideoCallMeeting =
+      await VideoCallMeetingFactory.createMeeting({
+        settings: {
+          provider: VideoCallProvider.MicrosoftTeams,
+          config: { lobbyBypass: "organization" },
+          secrets: {},
+          authMethod: VideoCallAuthMethod.OAuth,
         },
-      },
+        request: { title: "INC-1", recordAndTranscribe: true },
+        http: new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
+        oauth: signIn("graph-user-token"),
+      });
+
+    expect(fetcher.requests[0]!.url).toBe(
+      "https://graph.microsoft.com/v1.0/me/events",
+    );
+    expect(fetcher.requests[0]!.init.headers["Authorization"]).toBe(
+      "Bearer graph-user-token",
+    );
+    expect(fetcher.requests[2]!.url).toBe(
+      "https://graph.microsoft.com/v1.0/me/onlineMeetings/meeting-1",
+    );
+    expect(
+      JSON.parse(fetcher.requests[2]!.init.body!) as JSONObject,
+    ).toEqual(
+      expect.objectContaining({
+        recordAutomatically: true,
+        allowTranscription: true,
+        lobbyBypassSettings: {
+          scope: "organization",
+          isDialInBypassEnabled: true,
+        },
+      }),
+    );
+    expect(meeting).toEqual({
+      provider: VideoCallProvider.MicrosoftTeams,
+      joinUrl: TEAMS_JOIN_URL,
+      externalMeetingId: "meeting-1",
+      externalCalendarEventId: "event-1",
+    });
+  });
+
+  test("an app registration asked to record: its organizer's calendar, with the app's own token", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 200, body: { access_token: "app-token" } },
+      ...TEAMS_RECORDED_MEETING,
     ]);
 
-    await VideoCallMeetingFactory.createMeeting({
-      settings: {
-        provider: VideoCallProvider.MicrosoftTeams,
-        config: { lobbyBypass: "organization" },
-        secrets: {},
-        authMethod: VideoCallAuthMethod.OAuth,
-      },
-      request: { title: "INC-1", recordAndTranscribe: true },
-      http: new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
-      oauth: signIn("graph-user-token"),
-    });
+    const meeting: VideoCallMeeting =
+      await VideoCallMeetingFactory.createMeeting({
+        settings: {
+          provider: VideoCallProvider.MicrosoftTeams,
+          config: {
+            tenantId: "11111111-2222-3333-4444-555555555555",
+            clientId: "client",
+            organizerUserId: " 99999999-8888-7777-6666-555555555555 ",
+            lobbyBypass: "everyone",
+          },
+          secrets: { clientSecret: "secret" },
+        },
+        request: { title: "INC-1", recordAndTranscribe: true },
+        http: new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
+      });
 
-    const body: JSONObject = JSON.parse(
-      fetcher.requests[0]!.init.body!,
-    ) as JSONObject;
-
-    expect(body).not.toHaveProperty("recordAutomatically");
-    expect(body).not.toHaveProperty("allowTranscription");
-    expect(body).not.toHaveProperty("allowRecording");
+    expect(fetcher.requests[1]!.url).toBe(
+      "https://graph.microsoft.com/v1.0/users/99999999-8888-7777-6666-555555555555/events",
+    );
+    expect(fetcher.requests[1]!.init.headers["Authorization"]).toBe(
+      "Bearer app-token",
+    );
+    expect(meeting.externalCalendarEventId).toBe("event-1");
   });
 
   test("creates the signed-in account's own Teams meeting, with no access policy involved", async () => {
@@ -334,6 +391,11 @@ describe("VideoCallMeetingFactory with a sign-in", () => {
         "lobbyBypassSettings"
       ],
     ).toEqual({ scope: "everyone", isDialInBypassEnabled: true });
+    // Not asked to record: one meeting, nothing on a calendar, nothing recording.
+    expect(fetcher.requests).toHaveLength(1);
+    expect(
+      JSON.parse(fetcher.requests[0]!.init.body!) as JSONObject,
+    ).not.toHaveProperty("recordAutomatically");
   });
 
   test("a refusal at meeting time names the account and says to reconnect", async () => {

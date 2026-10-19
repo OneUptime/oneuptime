@@ -113,14 +113,25 @@ export class VideoCallOAuthGrantRefusal extends Error {
   }
 }
 
-// One provider's app, as the connect routes and the token store use it.
+/*
+ * One provider's app, as the connect routes and the token store use it.
+ * `recordAndTranscribe` is a sign-in for a project that records and
+ * transcribes its incident calls: Microsoft is asked for the permissions
+ * that needs too (MicrosoftTeamsMeetingsOAuthApp). Zoom and Google ask for
+ * the same either way.
+ */
 export interface VideoCallOAuthApp {
   provider: VideoCallProvider;
-  getAuthorizationUrl: (data: { state: string; redirectUri: string }) => string;
+  getAuthorizationUrl: (data: {
+    state: string;
+    redirectUri: string;
+    recordAndTranscribe?: boolean | undefined;
+  }) => string;
   // Exchanges the code a sign-in came back with, and reads who signed in.
   exchangeCode: (data: {
     code: string;
     redirectUri: string;
+    recordAndTranscribe?: boolean | undefined;
   }) => Promise<VideoCallOAuthGrant>;
   // Refreshes the access token. accountLabel names the account in a refusal.
   refresh: (data: {

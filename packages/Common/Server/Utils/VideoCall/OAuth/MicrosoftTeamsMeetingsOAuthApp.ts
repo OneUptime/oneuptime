@@ -1,7 +1,11 @@
 import APIException from "../../../../Types/Exception/ApiException";
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import VideoCallProvider from "../../../../Types/VideoCall/VideoCallProvider";
-import { MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION } from "../../../../Types/VideoCall/VideoCallProviderCatalog";
+import {
+  MICROSOFT_TEAMS_CALENDAR_PERMISSION,
+  MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
+  MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
+} from "../../../../Types/VideoCall/VideoCallProviderCatalog";
 import MicrosoftTeamsMeetingClient, {
   MICROSOFT_LOGIN_HOST,
 } from "../Providers/MicrosoftTeamsMeetingClient";
@@ -33,6 +37,14 @@ import VideoCallOAuthUtil, {
  * unused for 90 days expires, which the daily keep-alive never lets happen;
  * a tenant's sign-in frequency policy can still ask the account to sign in
  * again, and connecting again is the answer then.
+ *
+ * A project that records and transcribes its incident calls asks for two
+ * more permissions when it connects (recordAndTranscribe): putting the
+ * meetings on the account's calendar (Calendars.ReadWrite) and reading
+ * their transcripts (OnlineMeetingTranscript.Read.All, which a Microsoft
+ * 365 administrator approves). A project that does not never asks for
+ * them, so connecting stays something anyone with a Teams license can do.
+ * A refresh asks again for whichever of them the sign-in was granted.
  */
 
 export const MICROSOFT_ORGANIZATIONS_AUTHORITY: string = `${MICROSOFT_LOGIN_HOST}/organizations`;
@@ -41,7 +53,9 @@ export const MICROSOFT_ORGANIZATIONS_AUTHORITY: string = `${MICROSOFT_LOGIN_HOST
 export const MICROSOFT_CONSUMER_TENANT_ID: string =
   "9188040d-6c67-4c5b-b112-36a304b66dad";
 
-export const MICROSOFT_TEAMS_MEETINGS_SCOPE: string = `https://graph.microsoft.com/${MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION}`;
+const MICROSOFT_GRAPH_SCOPE_PREFIX: string = "https://graph.microsoft.com/";
+
+export const MICROSOFT_TEAMS_MEETINGS_SCOPE: string = `${MICROSOFT_GRAPH_SCOPE_PREFIX}${MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION}`;
 
 // Asked for when signing in; a refresh asks for what it needs to keep.
 export const MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES: Array<string> = [
@@ -56,6 +70,19 @@ export const MICROSOFT_TEAMS_MEETINGS_REFRESH_SCOPES: Array<string> = [
   "offline_access",
   MICROSOFT_TEAMS_MEETINGS_SCOPE,
 ];
+
+// Asked for too by a project that records and transcribes its incident calls.
+export const MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS: Array<string> = [
+  MICROSOFT_TEAMS_CALENDAR_PERMISSION,
+  MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
+];
+
+export const MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES: Array<string> =
+  MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS.map(
+    (permission: string): string => {
+      return `${MICROSOFT_GRAPH_SCOPE_PREFIX}${permission}`;
+    },
+  );
 
 export default class MicrosoftTeamsMeetingsOAuthApp
   implements VideoCallOAuthApp
@@ -74,16 +101,69 @@ export default class MicrosoftTeamsMeetingsOAuthApp
     this.http = http || new VideoCallHttpClient();
   }
 
+  // What a sign-in asks for: the recording permissions too, for a project that records its calls.
+  public static getSignInScopes(recordAndTranscribe?: boolean): Array<string> {
+    return recordAndTranscribe
+      ? [
+          ...MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES,
+          ...MICROSOFT_TEAMS_MEETINGS_RECORDING_SCOPES,
+        ]
+      : MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES;
+  }
+
+  /*
+   * What a refresh asks for: never more than the sign-in asked for, so the
+   * recording permissions only when it was granted them.
+   */
+  public static getRefreshScopes(grantedScope: string | undefined): Array<string> {
+    return [
+      ...MICROSOFT_TEAMS_MEETINGS_REFRESH_SCOPES,
+      ...MICROSOFT_TEAMS_MEETINGS_RECORDING_PERMISSIONS.filter(
+        (permission: string): boolean => {
+          return MicrosoftTeamsMeetingsOAuthApp.grants(
+            grantedScope,
+            permission,
+          );
+        },
+      ).map((permission: string): string => {
+        return `${MICROSOFT_GRAPH_SCOPE_PREFIX}${permission}`;
+      }),
+    ];
+  }
+
+  /*
+   * Whether a granted scope list holds a Microsoft Graph permission,
+   * written bare ("Calendars.ReadWrite") or as its Graph scope.
+   */
+  public static grants(
+    grantedScope: string | undefined,
+    permission: string,
+  ): boolean {
+    const wanted: string = permission.toLowerCase();
+
+    return VideoCallOAuthUtil.hasScope(
+      grantedScope,
+      (scope: string): boolean => {
+        const lower: string = scope.toLowerCase();
+
+        return lower === wanted || lower.endsWith(`/${wanted}`);
+      },
+    );
+  }
+
   public getAuthorizationUrl(data: {
     state: string;
     redirectUri: string;
+    recordAndTranscribe?: boolean | undefined;
   }): string {
     const params: URLSearchParams = new URLSearchParams({
       client_id: this.credentials.clientId,
       response_type: "code",
       redirect_uri: data.redirectUri,
       response_mode: "query",
-      scope: MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES.join(" "),
+      scope: MicrosoftTeamsMeetingsOAuthApp.getSignInScopes(
+        data.recordAndTranscribe,
+      ).join(" "),
       prompt: "select_account",
       state: data.state,
     });
@@ -94,6 +174,7 @@ export default class MicrosoftTeamsMeetingsOAuthApp
   public async exchangeCode(data: {
     code: string;
     redirectUri: string;
+    recordAndTranscribe?: boolean | undefined;
   }): Promise<VideoCallOAuthGrant> {
     const response: VideoCallHttpResponse = await this.http.request({
       url: `${MICROSOFT_ORGANIZATIONS_AUTHORITY}/oauth2/v2.0/token`,
@@ -108,7 +189,9 @@ export default class MicrosoftTeamsMeetingsOAuthApp
         redirect_uri: data.redirectUri,
         client_id: this.credentials.clientId,
         client_secret: this.credentials.clientSecret,
-        scope: MICROSOFT_TEAMS_MEETINGS_SIGN_IN_SCOPES.join(" "),
+        scope: MicrosoftTeamsMeetingsOAuthApp.getSignInScopes(
+          data.recordAndTranscribe,
+        ).join(" "),
       }).toString(),
       stepLabel: "Microsoft sign-in code exchange",
     });
@@ -153,13 +236,10 @@ export default class MicrosoftTeamsMeetingsOAuthApp
     }
 
     if (
-      !VideoCallOAuthUtil.hasScope(tokens.scope, (scope: string): boolean => {
-        const lower: string = scope.toLowerCase();
-        const permission: string =
-          MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION.toLowerCase();
-
-        return lower === permission || lower.endsWith(`/${permission}`);
-      })
+      !MicrosoftTeamsMeetingsOAuthApp.grants(
+        tokens.scope,
+        MICROSOFT_TEAMS_OAUTH_MEETING_PERMISSION,
+      )
     ) {
       throw new VideoCallOAuthGrantRefusal(
         VideoCallOAuthGrantProblem.PermissionNotGranted,
@@ -203,7 +283,9 @@ export default class MicrosoftTeamsMeetingsOAuthApp
         refresh_token: data.secrets.refreshToken,
         client_id: this.credentials.clientId,
         client_secret: this.credentials.clientSecret,
-        scope: MICROSOFT_TEAMS_MEETINGS_REFRESH_SCOPES.join(" "),
+        scope: MicrosoftTeamsMeetingsOAuthApp.getRefreshScopes(
+          data.secrets.scope,
+        ).join(" "),
       }).toString(),
       stepLabel: "Microsoft token refresh",
     });

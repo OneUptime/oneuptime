@@ -8,6 +8,10 @@ import { NEW_PROJECT_AI_DEFAULT_COLUMNS } from "Common/Server/Services/ProjectSe
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import Permission from "Common/Types/Permission";
+import {
+  MICROSOFT_TEAMS_CALENDAR_PERMISSION,
+  MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
+} from "Common/Types/VideoCall/VideoCallProviderCatalog";
 import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -111,6 +115,35 @@ describe("the switch", () => {
     ]);
   });
 
+  /*
+   * Microsoft Teams calls are recorded too, once the connection has the
+   * two Graph permissions that takes: the switch says so, by their names.
+   */
+  test("names Microsoft Teams among the providers it records, and the permissions Teams needs first", () => {
+    expect(CallRecordingSwitchCopy.switchDescription).toContain(
+      "Zoom, Google Meet and Microsoft Teams",
+    );
+    expect(CallRecordingSwitchCopy.turnOnConfirmDescription).toContain(
+      "Zoom, Google Meet or Microsoft Teams",
+    );
+    expect(CallRecordingSwitchCopy.switchNote).toContain(
+      MICROSOFT_TEAMS_CALENDAR_PERMISSION,
+    );
+    expect(CallRecordingSwitchCopy.switchNote).toContain(
+      MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION,
+    );
+    expect(CallRecordingSwitchCopy.switchNote).toContain(
+      "Slack huddles and meeting links are not recorded",
+    );
+    expect(CallRecordingSwitchCopy.switchNote).not.toMatch(
+      /Microsoft Teams calls[^.]*not recorded/,
+    );
+    expect(
+      new Project().getTableColumnMetadata(CALL_RECORDING_SWITCH_COLUMN)
+        ?.description,
+    ).toContain("Zoom, Google Meet and Microsoft Teams");
+  });
+
   test("sits on the Video Calls page, for the current project, under the connections", () => {
     const page: string = fs.readFileSync(
       path.join(DASHBOARD, "Pages/Settings/VideoCalls.tsx"),
@@ -160,4 +193,31 @@ describe("in every Dashboard language", () => {
       expect(placeholders(translated!)).toEqual(placeholders(sentence));
     }
   });
+
+  test.each(
+    LANGUAGES.map((code: string): [string] => {
+      return [code];
+    }),
+  )(
+    "%s keeps the names of the Graph permissions Teams needs, and names Teams among the providers",
+    (code: string) => {
+      const locale: Record<string, string> = readLocale(code);
+      const note: string = locale[CallRecordingSwitchCopy.switchNote] || "";
+
+      // A permission is entered in Entra by its name: it is never translated.
+      expect(note).toContain(MICROSOFT_TEAMS_CALENDAR_PERMISSION);
+      expect(note).toContain(MICROSOFT_TEAMS_TRANSCRIPT_PERMISSION);
+
+      // German joins it into a compound: "Microsoft-Teams-Anrufs".
+      for (const sentence of [
+        CallRecordingSwitchCopy.switchDescription,
+        CallRecordingSwitchCopy.turnOnConfirmDescription,
+      ]) {
+        expect({ sentence, translated: locale[sentence] }).toEqual({
+          sentence,
+          translated: expect.stringMatching(/Microsoft[ -]Teams/),
+        });
+      }
+    },
+  );
 });

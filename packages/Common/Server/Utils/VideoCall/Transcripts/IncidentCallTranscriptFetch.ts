@@ -31,10 +31,12 @@ import VideoCallTranscriptReader from "./VideoCallTranscriptReader";
 /*
  * GETS AN INCIDENT CALL'S TRANSCRIPT ONCE THE CALL IS OVER, by itself.
  *
- * A Zoom or Google Meet call OneUptime started while the project's Record
- * and transcribe incident calls was on is watched from the moment it is
- * created (watchNewCall): Waiting, first asked about
- * CALL_TRANSCRIPT_FIRST_FETCH_AFTER_MS later. The Workers job (every few
+ * A Zoom, Google Meet or Microsoft Teams call OneUptime started while the
+ * project's Record and transcribe incident calls was on is watched from the
+ * moment it is created (watchNewCall): Waiting, first asked about
+ * CALL_TRANSCRIPT_FIRST_FETCH_AFTER_MS later. A Teams call that could not
+ * be set up to record itself is Stopped from the start instead, with why
+ * (markNotRecorded), for its card to say. The Workers job (every few
  * minutes) asks the provider about each call that is due (fetchDue), the
  * way Get from Zoom does - with the connection that started the call - and
  * then:
@@ -72,6 +74,7 @@ const CALL_SELECT: {
   provider: true;
   videoCallConnectionId: true;
   externalMeetingId: true;
+  externalCalendarEventId: true;
   createdAt: true;
   transcriptAddedAt: true;
   transcriptFetchStatus: true;
@@ -83,6 +86,7 @@ const CALL_SELECT: {
   provider: true,
   videoCallConnectionId: true,
   externalMeetingId: true,
+  externalCalendarEventId: true,
   createdAt: true,
   transcriptAddedAt: true,
   transcriptFetchStatus: true,
@@ -112,7 +116,8 @@ export default class IncidentCallTranscriptFetch {
   /*
    * Watches a call that was just started for its transcript, when it is one
    * OneUptime can ask the provider about (a Zoom or Google Meet meeting it
-   * created). Never throws: the call exists either way.
+   * created, or a Microsoft Teams meeting it put on a calendar). Never
+   * throws: the call exists either way.
    */
   @CaptureSpan()
   public static async watchNewCall(
@@ -124,6 +129,7 @@ export default class IncidentCallTranscriptFetch {
       | "provider"
       | "videoCallConnectionId"
       | "externalMeetingId"
+      | "externalCalendarEventId"
       | "createdAt"
     >,
   ): Promise<void> {
@@ -145,6 +151,40 @@ export default class IncidentCallTranscriptFetch {
         {
           projectId: call.projectId?.toString(),
           incidentId: call.incidentId?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  /*
+   * A call the provider was asked to record and transcribe, and could not
+   * be set up to (a Microsoft Teams meeting OneUptime could not put on its
+   * organizer's calendar): OneUptime will not get its transcript, and the
+   * call's card says why. Never throws: the call exists either way.
+   */
+  @CaptureSpan()
+  public static async markNotRecorded(data: {
+    call: Pick<IncidentVideoCall, "id" | "projectId" | "incidentId">;
+    reason: VideoCallTranscriptUnavailableReason;
+    now?: Date | undefined;
+  }): Promise<void> {
+    if (!data.call.id) {
+      return;
+    }
+
+    try {
+      await IncidentVideoCallTranscriptWrite.write(data.call.id, {
+        transcriptFetchStatus: CallTranscriptFetchStatus.Stopped,
+        transcriptFetchReason: data.reason,
+        transcriptFetchCheckedAt: data.now || new Date(),
+        transcriptFetchNextAttemptAt: null,
+      });
+    } catch (error) {
+      logger.error(
+        `Could not record why an incident call is not recorded: ${error}`,
+        {
+          projectId: data.call.projectId?.toString(),
+          incidentId: data.call.incidentId?.toString(),
         } as LogAttributes,
       );
     }
@@ -261,6 +301,8 @@ export default class IncidentCallTranscriptFetch {
           provider: call.provider,
           videoCallConnectionId: call.videoCallConnectionId,
           externalMeetingId: call.externalMeetingId,
+          externalCalendarEventId: call.externalCalendarEventId,
+          startedAt: call.createdAt,
         },
         projectId: call.projectId,
         http: data.http,

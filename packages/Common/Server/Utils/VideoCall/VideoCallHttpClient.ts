@@ -76,7 +76,7 @@ export default class VideoCallHttpClient {
    */
   public async request(data: {
     url: string;
-    method: "GET" | "POST" | "DELETE";
+    method: "GET" | "POST" | "PATCH" | "DELETE";
     headers: Record<string, string>;
     body?: string | undefined;
     // What the request is for, in words: "Zoom token request".
