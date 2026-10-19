@@ -1,106 +1,170 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { inlineCode } from "./DocsTranslationChecks";
+import {
+  flattened,
+  otherChangesItemAtEnglishPlace,
+  otherChangesItems,
+} from "./UpgradingDocsNotes";
+import Team from "Common/Models/DatabaseModels/Team";
+import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import Permission, {
+  PermissionHelper,
+  PermissionProps,
+} from "Common/Types/Permission";
 import { describe, expect, test } from "@jest/globals";
-import fs from "fs";
-import path from "path";
 
 /*
  * A TEAM'S COMPLIANCE STATUS IS READ ONLY BY SOMEONE WHO MAY READ ITS
  * COMPLIANCE RULES (ee/Server/TeamCompliance/TeamComplianceAPI asks
  * CommonAPI.assertCanReadTable about TeamComplianceSetting before anything is
- * read as root): a member whose teams grant only other roles is refused the
- * status, as the rules' own CRUD endpoint refuses them.
+ * read as root).
  *
- * The upgrade notes say so, at length in English and in one line in every
- * other guide, naming the route and the roles that read it.
+ * The upgrade note on it ("Other changes in 14") is held to the models it
+ * describes: what it says reads the status is TeamComplianceSetting's read
+ * list, the roles OneUptime ships that it says lose the page are outside that
+ * list, the Settings roles it says read teams are on Team's, and anyone in the
+ * project still lists a team's members through TeamMember's. Every
+ * translation carries the note in the English note's place;
+ * UpgradingDocsTranslations holds each one to the English note's code, links
+ * and numbers, and its lead to a translation of its own.
  */
 
-const CONTENT_DIR: string = path.resolve(
-  __dirname,
-  "../../../FeatureSet/Docs/Content",
-);
+const NOTE_LEAD: string =
+  "On the Enterprise Edition, a team's compliance status is read only by someone who may read its compliance rules.";
 
-const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
+// The notes it sits between (SubscriberAndRunScopeDocs, OwnerAndCredentialSettingsDocs).
+const PREVIOUS_LEAD: string =
+  "What a subscription, a rule's Run Now, an LLM provider list and an AI plan's approval reach";
+const NEXT_LEAD: string =
+  "Who owns a resource, and a setting that holds credentials, are named";
 
-const ROUTE: string = "`GET /api/team/compliance-status/:teamId`";
+const ROUTE: string = "GET /api/team/compliance-status/:teamId";
 
-// What reads the rules on their CRUD endpoint, and so the status.
-const READERS: Array<string> = [
-  "`ProjectOwner`",
-  "`ProjectAdmin`",
-  "`ProjectMember`",
-  "`Viewer`",
-  "`ReadProjectTeam`",
+// The sentence that says what the page takes, ending before the blocks.
+const TAKES: string = "now takes what reading the rules takes:";
+const BLOCKS: string = "and no team block on them.";
+
+// The roles the note names as losing the page.
+const SETTINGS_ROLES: Array<Permission> = [
+  Permission.SettingsAdmin,
+  Permission.SettingsMember,
+  Permission.SettingsViewer,
+];
+const PRODUCT_AREA_ROLES: Array<Permission> = [
+  Permission.OnCallAdmin,
+  Permission.MonitorViewer,
 ];
 
-function upgradeNotes(language: string): string {
-  return fs.readFileSync(
-    path.join(CONTENT_DIR, language, "installation/upgrading.md"),
-    "utf8",
-  );
-}
+const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
+  (language: string): boolean => {
+    return language !== "en";
+  },
+);
 
-// The line of the notes that names the route - the whole bullet, outside English.
-function lineNamingTheRoute(markdown: string): string {
-  return (
-    markdown.split("\n").find((line: string): boolean => {
-      return line.includes(ROUTE);
-    }) || ""
-  );
-}
+// What a team can be granted in a project.
+const TENANT_PERMISSIONS: Array<PermissionProps> =
+  PermissionHelper.getTenantPermissionProps();
 
-describe("Docs: a team's compliance status takes a read of its rules", () => {
-  test("every docs language is checked", () => {
-    expect(LANGUAGES).toHaveLength(17);
+// What reads the rules on their CRUD endpoint, and so the status.
+const READERS: Array<Permission> = new TeamComplianceSetting()
+  .getReadPermissions()
+  .filter((permission: Permission): boolean => {
+    return TENANT_PERMISSIONS.some((props: PermissionProps): boolean => {
+      return props.permission === permission;
+    });
   });
 
-  test("the English upgrade notes say who reads the status, and who no longer does", () => {
-    const page: string = upgradeNotes("en");
-    for (const sentence of [
-      "- **On the Enterprise Edition, a team's compliance status is read only by",
-      "someone who may read its compliance rules.** The team's Compliance page",
-      `(${ROUTE}) now takes what reading the`,
-      "`ReadProjectTeam`, and no team block on them. A member whose teams grant",
-      "only other roles, such as `MonitorViewer`, was refused the rules but shown",
-      "refused with a `422`. Anyone in the project still lists a team's members.",
-    ]) {
-      expect([sentence, page.includes(sentence)]).toEqual([sentence, true]);
+// The roles OneUptime ships.
+const ROLES: Array<Permission> = TENANT_PERMISSIONS.filter(
+  (props: PermissionProps): boolean => {
+    return props.isRolePermission;
+  },
+).map((props: PermissionProps): Permission => {
+  return props.permission;
+});
+
+const NOTE: string = flattened(otherChangesItemAtEnglishPlace("en", NOTE_LEAD));
+
+describe("Docs: a team's compliance status takes a read of its rules", () => {
+  test("the English note is one of the 13 → 14 changes, once, between the notes on what a subscription reaches and on who owns a resource", () => {
+    const items: Array<string> = otherChangesItems("en").map(flattened);
+    const at: (lead: string) => number = (lead: string): number => {
+      return items.findIndex((item: string): boolean => {
+        return item.startsWith(`- **${lead}`);
+      });
+    };
+
+    expect(
+      items.filter((item: string): boolean => {
+        return item.includes(NOTE_LEAD);
+      }),
+    ).toHaveLength(1);
+    expect(at(PREVIOUS_LEAD)).toBeGreaterThanOrEqual(0);
+    expect(at(NOTE_LEAD)).toBeGreaterThan(at(PREVIOUS_LEAD));
+    expect(at(NEXT_LEAD)).toBeGreaterThan(at(NOTE_LEAD));
+  });
+
+  test("it names the route, and as what the page takes exactly TeamComplianceSetting's read list, blocks included", () => {
+    expect(inlineCode(NOTE)).toContain(ROUTE);
+
+    const takes: string = NOTE.slice(
+      NOTE.indexOf(TAKES),
+      NOTE.indexOf(BLOCKS) + BLOCKS.length,
+    );
+
+    expect(takes.startsWith(TAKES)).toBe(true);
+    expect(takes.endsWith(BLOCKS)).toBe(true);
+    expect(inlineCode(takes)).toEqual([...READERS].sort());
+  });
+
+  test("it says every other role OneUptime ships loses the page, and the ones it names are roles outside that list", () => {
+    expect(NOTE).toContain("and is now refused with a `422`.");
+    expect(NOTE).toContain(
+      "Every other role OneUptime ships grants none of them:",
+    );
+
+    const code: Array<string> = inlineCode(NOTE);
+
+    for (const role of [...SETTINGS_ROLES, ...PRODUCT_AREA_ROLES]) {
+      expect({
+        role,
+        named: code.includes(role),
+        shipped: ROLES.includes(role),
+        reads: READERS.includes(role),
+      }).toEqual({ role, named: true, shipped: true, reads: false });
     }
   });
 
-  test("the English note sits with the other changes in 14, beside who owns a resource", () => {
-    const page: string = upgradeNotes("en");
-    const note: number = page.indexOf(
-      "- **On the Enterprise Edition, a team's compliance status",
+  test("the Settings roles it says read teams do read them, and anyone in the project lists a team's members", () => {
+    expect(NOTE).toContain("), which read teams,");
+    expect(NOTE).toContain(
+      "Anyone in the project still lists a team's members.",
     );
-    const otherChanges: number = page.indexOf("### Other changes in 14");
-    const owners: number = page.indexOf(
-      "- **Who owns a resource, and a setting that holds credentials",
+
+    for (const role of SETTINGS_ROLES) {
+      expect({
+        role,
+        readsTeams: new Team().getReadPermissions().includes(role),
+      }).toEqual({ role, readsTeams: true });
+    }
+
+    expect(new TeamMember().getReadPermissions()).toContain(
+      Permission.ProjectUser,
     );
-    expect(otherChanges).toBeGreaterThanOrEqual(0);
-    expect(note).toBeGreaterThan(otherChanges);
-    expect(owners).toBeGreaterThan(note);
   });
 
-  test.each(
-    LANGUAGES.filter((language: string): boolean => {
-      return language !== "en";
-    }),
-  )(
-    "%s has the note in one line, translated, with the route and the role names kept",
+  test.each(TRANSLATIONS)(
+    "the %s upgrade guide carries the note in the English note's place",
     (language: string) => {
-      const line: string = lineNamingTheRoute(upgradeNotes(language));
+      const note: string = flattened(
+        otherChangesItemAtEnglishPlace(language, NOTE_LEAD),
+      );
 
-      expect([language, line.startsWith("- **")]).toEqual([language, true]);
-      for (const name of [...READERS, "`MonitorViewer`", "`422`"]) {
-        expect([language, name, line.includes(name)]).toEqual([
-          language,
-          name,
-          true,
-        ]);
-      }
-      expect([language, line.includes("is read only by")]).toEqual([
+      expect([language, note.startsWith("- **")]).toEqual([language, true]);
+      expect([language, inlineCode(note).includes(ROUTE)]).toEqual([
         language,
-        false,
+        true,
       ]);
     },
   );
