@@ -14,6 +14,8 @@ import IncidentFeedService from "../../../../Server/Services/IncidentFeedService
 import IncidentInternalNoteService from "../../../../Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import IncidentVideoCallService from "../../../../Server/Services/IncidentVideoCallService";
+import PositiveNumber from "../../../../Types/PositiveNumber";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
@@ -22,6 +24,7 @@ import ObservabilityAssistant, {
 } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import AIIncidentPostmortemRunner from "../../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
+import IncidentPostmortemCallWait from "../../../../Server/Utils/AI/SRE/IncidentPostmortemCallWait";
 import { PostIncidentStatusUpdateTool } from "../../../../Server/Utils/AI/Toolbox/AIActionTools";
 import { CreateIncidentTool } from "../../../../Server/Utils/AI/Toolbox/IncidentWriteTools";
 import {
@@ -530,6 +533,18 @@ describe("A postmortem OneUptime AI drafts", () => {
     jest
       .spyOn(IncidentService, "generatePostmortemFromAI")
       .mockResolvedValue(STEERED);
+    /*
+     * No call of the incident is waiting for its transcript, so the draft is
+     * written at once (#5046's wait is held in IncidentPostmortemCallWait's
+     * own tests).
+     */
+    jest
+      .spyOn(IncidentPostmortemCallWait, "isWaiting")
+      .mockResolvedValue(false);
+    // ...and none of its calls has a transcript the draft read.
+    jest
+      .spyOn(IncidentVideoCallService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
     jest.spyOn(logger, "debug").mockImplementation((): void => {
       return undefined;
     });
