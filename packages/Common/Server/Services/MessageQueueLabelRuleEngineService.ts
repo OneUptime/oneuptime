@@ -19,6 +19,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class MessageQueueLabelRuleEngineServiceClass
   implements RuleRunEngine<MessageQueue, MessageQueueLabelRule>
@@ -322,8 +323,7 @@ class MessageQueueLabelRuleEngineServiceClass
     rule: MessageQueueLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in queue label rule ${rule.id}: ${pattern}`);
       return false;

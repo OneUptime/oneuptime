@@ -17,6 +17,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class RunbookLabelRuleEngineServiceClass
   implements RuleRunEngine<Runbook, RunbookLabelRule>
@@ -285,8 +286,7 @@ class RunbookLabelRuleEngineServiceClass
     rule: RunbookLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in runbook label rule ${rule.id}: ${pattern}`);
       return false;

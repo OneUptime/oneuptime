@@ -110,6 +110,17 @@ Toda regra habilitada é executada quando um recurso é criado, pelo dashboard o
 
 Uma regra escrita hoje vale para os recursos criados depois dela. Para aplicá-la aos que você já tem, use **Run Now**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de rótulos também podem ser copiadas entre projetos: veja [Importar e exportar regras de rótulos](/docs/configuration/label-rule-import-export).
 
+## Padrões
+
+Um padrão nas condições de uma regra é uma expressão regular na sintaxe do JavaScript, como `^checkout-.*`, e não diferencia maiúsculas de minúsculas. O OneUptime o executa em um tempo que só cresce com o texto que ele lê, seja qual for a forma como o padrão foi escrito. Lookaheads e lookbehinds funcionam, como `^prod-(?!test)` e `(?<=db-)\d+`.
+
+Dois tipos de padrão não podem ser executados assim. Uma regra com um deles é recusada ao salvar, pelo painel, pela API, pelo Terraform ou por uma importação, com uma mensagem que diz o que mudar:
+
+- Uma referência retroativa, como `\1` ou `\k<name>`, que corresponde de novo ao que um grupo anterior encontrou.
+- Um padrão grande demais para ser executado, como um que repete uma parte milhares de vezes.
+
+Uma regra salva antes com um deles não corresponde a nada até que você mude o padrão dela. Isso vale para todo tipo de regra que tem padrões, não só para as regras de rótulos e de proprietários.
+
 ## Próximos passos
 
 :::cards

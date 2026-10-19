@@ -31024,6 +31024,8 @@
   "Video Call Summary": "Samenvatting van videogesprek",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Krijgt niets: de bevestigingslink die we stuurden is verlopen voordat hij werd geopend. Diegene kan zich opnieuw aanmelden, of u voegt diegene opnieuw toe.",
   "Link Expired": "Link verlopen",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Dit patroon verwijst terug naar wat een eerdere groep vond, zoals \\1. Patronen worden uitgevoerd in een tijd die alleen meegroeit met de tekst die ze lezen, en dat kan een terugverwijzing niet. Schrijf het patroon zonder.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Dit patroon is te groot om uit te voeren. Maak het korter of herhaal de onderdelen minder vaak.",
   "Add a Runner of your own.": "Voeg een eigen Runner toe.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Voeg een Runner toe om je runbookstappen uit te voeren. Maak er een aan en voer daarna de Docker-opdracht uit op een host in je infrastructuur.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Voeg onder {{location}} een Runner toe om deze stap uit te voeren en kies hem daarna hier.",

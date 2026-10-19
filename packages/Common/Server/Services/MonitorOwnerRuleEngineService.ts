@@ -32,6 +32,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class MonitorOwnerRuleEngineServiceClass
   implements RuleRunEngine<Monitor, MonitorOwnerRule>
@@ -446,8 +447,7 @@ class MonitorOwnerRuleEngineServiceClass
     rule: MonitorOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in monitor owner rule ${rule.id}: ${pattern}`);
       return false;

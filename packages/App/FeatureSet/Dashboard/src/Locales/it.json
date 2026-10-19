@@ -31024,6 +31024,8 @@
   "Video Call Summary": "Riepilogo della videochiamata",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Non riceve nulla: il link di conferma che gli abbiamo inviato è scaduto prima che lo aprisse. Può iscriversi di nuovo, oppure puoi aggiungerlo di nuovo.",
   "Link Expired": "Link scaduto",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Questo pattern rimanda a ciò che ha trovato un gruppo precedente, come \\1. I pattern vengono eseguiti in un tempo che cresce solo con il testo che leggono, cosa che un riferimento all'indietro non consente. Scrivi il pattern senza di esso.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Questo pattern è troppo grande per essere eseguito. Accorcialo o ripetine le parti meno volte.",
   "Add a Runner of your own.": "Aggiungi un Runner tuo.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Aggiungi un Runner per eseguire i passaggi dei tuoi runbook. Creane uno, poi esegui il comando Docker su un host della tua infrastruttura.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Aggiungi un Runner in {{location}} per eseguire questo passaggio, poi sceglilo qui.",

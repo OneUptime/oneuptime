@@ -4,6 +4,12 @@ import LogScrubPatternType from "../Log/LogScrubPatternType";
 import TraceScrubAction from "../Trace/TraceScrubAction";
 import TraceScrubField from "../Trace/TraceScrubField";
 import TraceScrubPatternType from "../Trace/TraceScrubPatternType";
+import LinearRegExp from "../../Utils/LinearRegExp/LinearRegExp";
+import { getLinearRegExp } from "../../Utils/LinearRegExp/PatternCache";
+import {
+  PatternProblemError,
+  PatternWorkLimitError,
+} from "../../Utils/LinearRegExp/PatternProblem";
 
 /*
  * WHAT A LOG OR TRACE SCRUB RULE STARTS WITH, AND WHAT MAKES ONE SCRUB
@@ -41,6 +47,109 @@ export const SCRUB_RULE_SENSITIVE_KEYS_PATTERN_TYPE: string =
  * case-sensitive.
  */
 export const SCRUB_RULE_REGEX_FLAGS: string = "g";
+
+/*
+ * WHAT INGEST SCRUBS WITH.
+ *
+ * A rule's pattern, compiled: a custom pattern - written by the project's
+ * people and run over every record the project sends, on ingest that every
+ * project shares - runs on the linear-time matcher (Utils/LinearRegExp), so
+ * no pattern can make one record take time out of proportion to its length;
+ * a built-in pattern (email, credit card, ...) is OneUptime's own and keeps
+ * JavaScript's RegExp.
+ */
+export interface ScrubRegExp {
+  readonly source: string;
+  readonly flags: string;
+  // Whether the text holds a match: a sensitive-keys rule reads keys so.
+  test(text: string): boolean;
+  // Every match replaced by what `replacer` returns for it.
+  replace(text: string, replacer: (matchedText: string) => string): string;
+}
+
+class CustomScrubRegExp implements ScrubRegExp {
+  public readonly source: string;
+  public readonly flags: string;
+  private readonly pattern: LinearRegExp;
+
+  public constructor(pattern: LinearRegExp) {
+    this.pattern = pattern;
+    this.source = pattern.source;
+    this.flags = pattern.flags;
+  }
+
+  public test(text: string): boolean {
+    try {
+      return this.pattern.test(text);
+    } catch (error: unknown) {
+      if (error instanceof PatternWorkLimitError) {
+        // Taken as holding what the rule scrubs, as replace does.
+        return true;
+      }
+
+      throw error;
+    }
+  }
+
+  public replace(
+    text: string,
+    replacer: (matchedText: string) => string,
+  ): string {
+    try {
+      return this.pattern.replace(text, replacer);
+    } catch (error: unknown) {
+      if (error instanceof PatternWorkLimitError) {
+        /*
+         * A pattern built so that finding every match would read the text
+         * over and over: rather than store what it was written to hide, the
+         * whole value is scrubbed.
+         */
+        return replacer(text);
+      }
+
+      throw error;
+    }
+  }
+}
+
+class BuiltInScrubRegExp implements ScrubRegExp {
+  public readonly source: string;
+  public readonly flags: string;
+  private readonly regex: RegExp;
+
+  public constructor(regex: RegExp) {
+    // An instance of its own, so lastIndex is never shared.
+    this.regex = new RegExp(regex.source, regex.flags);
+    this.source = regex.source;
+    this.flags = regex.flags;
+  }
+
+  public test(text: string): boolean {
+    this.regex.lastIndex = 0;
+    const matches: boolean = this.regex.test(text);
+    this.regex.lastIndex = 0;
+    return matches;
+  }
+
+  public replace(
+    text: string,
+    replacer: (matchedText: string) => string,
+  ): string {
+    this.regex.lastIndex = 0;
+    return text.replace(this.regex, (matchedText: string): string => {
+      return replacer(matchedText);
+    });
+  }
+}
+
+/*
+ * A built-in pattern, which OneUptime wrote, as ingest scrubs with it.
+ * Never pass a pattern a project wrote here: compileScrubRuleCustomRegex is
+ * for those.
+ */
+export function scrubRegExpFromBuiltIn(regex: RegExp): ScrubRegExp {
+  return new BuiltInScrubRegExp(regex);
+}
 
 export const LOG_SCRUB_PATTERN_TYPES: ReadonlyArray<string> =
   Object.values(LogScrubPatternType);
@@ -85,6 +194,12 @@ export enum ScrubRuleCustomRegexProblem {
   // Not a regular expression the engine can compile.
   Invalid = "Invalid",
   /*
+   * A regular expression, but one the linear-time matcher cannot run: it
+   * refers back to what a group matched (\1, \k<name>), or it is too
+   * large.
+   */
+  CannotRun = "CannotRun",
+  /*
    * Compiles, but matches empty text - "\d*", "(secret)?" - so a global
    * replace puts the rule's replacement between every character of every
    * record it reads.
@@ -96,6 +211,8 @@ export interface ScrubRuleCustomRegexCheck {
   problem: ScrubRuleCustomRegexProblem;
   // For an Invalid pattern: what the regular expression engine said.
   reason?: string | undefined;
+  // For a pattern that cannot run: why (PatternProblem.ts).
+  cannotRunReason?: PatternProblemError["reason"] | undefined;
 }
 
 // "Invalid regular expression: /(/g: Unterminated group" -> its last part.
@@ -115,18 +232,21 @@ export function getRegexSyntaxErrorReason(error: unknown): string {
 
 /**
  * A custom pattern compiled the way ingest compiles it - ingest calls this -
- * or null when it cannot be: empty, or not a regular expression. A rule
- * whose pattern compiles to null scrubs nothing.
+ * or null when it cannot be: empty, not a regular expression, or one the
+ * linear-time matcher cannot run (a back-reference). A rule whose pattern
+ * compiles to null scrubs nothing.
  */
 export function compileScrubRuleCustomRegex(
   customRegex: unknown,
-): RegExp | null {
+): ScrubRegExp | null {
   if (typeof customRegex !== "string" || customRegex.length === 0) {
     return null;
   }
 
   try {
-    return new RegExp(customRegex, SCRUB_RULE_REGEX_FLAGS);
+    return new CustomScrubRegExp(
+      getLinearRegExp(customRegex, SCRUB_RULE_REGEX_FLAGS),
+    );
   } catch {
     return null;
   }
@@ -145,11 +265,18 @@ export function checkScrubRuleCustomRegex(
     return { problem: ScrubRuleCustomRegexProblem.Missing };
   }
 
-  let regex: RegExp;
+  let regex: LinearRegExp;
 
   try {
-    regex = new RegExp(customRegex, SCRUB_RULE_REGEX_FLAGS);
+    regex = getLinearRegExp(customRegex, SCRUB_RULE_REGEX_FLAGS);
   } catch (error: unknown) {
+    if (error instanceof PatternProblemError) {
+      return {
+        problem: ScrubRuleCustomRegexProblem.CannotRun,
+        cannotRunReason: error.reason,
+      };
+    }
+
     return {
       problem: ScrubRuleCustomRegexProblem.Invalid,
       reason: getRegexSyntaxErrorReason(error),
@@ -179,16 +306,11 @@ const EMPTY_MATCH_PROBES: ReadonlyArray<string> = [
 ];
 
 // Whether a compiled pattern ever matches no text at all.
-function matchesEmptyText(regex: RegExp): boolean {
-  // matchAll takes a global pattern only.
-  const global: RegExp = regex.global
-    ? regex
-    : new RegExp(regex.source, `${regex.flags}g`);
-
+function matchesEmptyText(regex: LinearRegExp): boolean {
   for (const probe of EMPTY_MATCH_PROBES) {
     // matchAll steps past an empty match, so this always ends.
-    for (const match of probe.matchAll(global)) {
-      if (match[0] === "") {
+    for (const match of regex.matchAll(probe)) {
+      if (match.value === "") {
         return true;
       }
     }

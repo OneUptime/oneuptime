@@ -31024,6 +31024,8 @@
   "Video Call Summary": "Résumé de l'appel vidéo",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Ne reçoit rien : le lien de confirmation que nous avons envoyé a expiré avant d'être ouvert. La personne peut se réabonner, ou vous pouvez l'ajouter à nouveau.",
   "Link Expired": "Lien expiré",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Ce modèle renvoie à ce qu'un groupe précédent a trouvé, comme \\1. Les modèles s'exécutent en un temps qui ne croît qu'avec le texte qu'ils lisent, ce qu'une référence arrière ne permet pas. Écrivez le modèle sans elle.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Ce modèle est trop grand pour être exécuté. Raccourcissez-le ou répétez ses parties moins de fois.",
   "Add a Runner of your own.": "Ajoutez votre propre agent Runbook.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Ajoutez un agent Runbook pour exécuter les étapes de vos runbooks. Créez-en un, puis exécutez la commande Docker sur un hôte de votre infrastructure.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Ajoutez un agent Runbook dans {{location}} pour exécuter cette étape, puis choisissez-le ici.",

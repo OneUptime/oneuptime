@@ -28,6 +28,7 @@ import {
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import RuleFeedMarkdown from "../Utils/Rules/RuleFeedMarkdown";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class HostOwnerRuleEngineServiceClass
   implements RuleRunEngine<Host, HostOwnerRule>
@@ -360,8 +361,7 @@ class HostOwnerRuleEngineServiceClass
     rule: HostOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in host owner rule ${rule.id}: ${pattern}`);
       return false;

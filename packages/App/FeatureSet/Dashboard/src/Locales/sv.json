@@ -31024,6 +31024,8 @@
   "Video Call Summary": "Sammanfattning av videosamtal",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Får ingenting: bekräftelselänken vi skickade gick ut innan den öppnades. Personen kan anmäla sig igen, eller så kan du lägga till hen igen.",
   "Link Expired": "Länken har gått ut",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Det här mönstret hänvisar tillbaka till det en tidigare grupp hittade, till exempel \\1. Mönster körs på en tid som bara växer med texten de läser, och det klarar inte en bakåtreferens. Skriv mönstret utan den.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Det här mönstret är för stort för att köras. Korta det eller upprepa dess delar färre gånger.",
   "Add a Runner of your own.": "Lägg till en egen Runner.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Lägg till en Runner för att köra stegen i dina runbooks. Skapa en och kör sedan Docker-kommandot på en värd i din infrastruktur.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Lägg till en Runner under {{location}} för att köra det här steget och välj den sedan här.",

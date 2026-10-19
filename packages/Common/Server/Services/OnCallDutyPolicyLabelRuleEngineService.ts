@@ -17,6 +17,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class OnCallDutyPolicyLabelRuleEngineServiceClass
   implements RuleRunEngine<OnCallDutyPolicy, OnCallDutyPolicyLabelRule>
@@ -289,8 +290,7 @@ class OnCallDutyPolicyLabelRuleEngineServiceClass
     rule: OnCallDutyPolicyLabelRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in on-call duty policy label rule ${rule.id}: ${pattern}`,

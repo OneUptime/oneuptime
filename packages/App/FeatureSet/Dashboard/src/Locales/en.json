@@ -31024,6 +31024,8 @@
   "Video Call Summary": "Video Call Summary",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.",
   "Link Expired": "Link Expired",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "This pattern is too large to run. Shorten it, or repeat its parts fewer times.",
   "Add a Runner of your own.": "Add a Runner of your own.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Add a Runner under {{location}} to run this step, then pick it here.",

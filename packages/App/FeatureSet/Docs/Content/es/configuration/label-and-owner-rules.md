@@ -110,6 +110,17 @@ Cada regla habilitada se ejecuta cuando se crea un recurso, desde el panel o med
 
 Una regla que escribes hoy se aplica a los recursos creados después. Para aplicarla a los que ya tienes, usa **Ejecutar ahora**: consulta [Ejecutar reglas sobre recursos existentes](/docs/configuration/run-rules-now). Las reglas de etiquetas también se pueden copiar entre proyectos: consulta [Importar y exportar reglas de etiquetas](/docs/configuration/label-rule-import-export).
 
+## Patrones
+
+Un patrón en las condiciones de una regla es una expresión regular con la sintaxis de JavaScript, como `^checkout-.*`, y no distingue mayúsculas de minúsculas. OneUptime lo ejecuta en un tiempo que solo crece con el texto que lee, se escriba como se escriba el patrón. Las búsquedas anticipadas y retrospectivas funcionan, como `^prod-(?!test)` y `(?<=db-)\d+`.
+
+Dos clases de patrones no pueden ejecutarse así. Una regla que tenga uno se rechaza al guardarla, desde el panel, la API, Terraform o una importación, con un mensaje que dice qué cambiar:
+
+- Una referencia inversa, como `\1` o `\k<name>`, que vuelve a coincidir con lo que coincidió un grupo anterior.
+- Un patrón demasiado grande para ejecutarse, como uno que repite una parte miles de veces.
+
+Una regla guardada antes con uno de ellos no coincide con nada hasta que cambie su patrón. Esto vale para toda clase de regla que tenga patrones, no solo para las reglas de etiquetas y de propietarios.
+
 ## Próximos pasos
 
 :::cards

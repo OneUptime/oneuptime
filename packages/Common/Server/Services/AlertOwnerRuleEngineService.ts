@@ -67,6 +67,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 /*
  * Whether any owner that was actually added came from one inherited source.
@@ -1015,8 +1016,7 @@ class AlertOwnerRuleEngineServiceClass
     rule: AlertOwnerRule,
   ): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(`Invalid regex in alert owner rule ${rule.id}: ${pattern}`);
       return false;

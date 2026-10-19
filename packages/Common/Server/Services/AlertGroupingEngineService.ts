@@ -41,6 +41,7 @@ import {
 } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { RecordInAnotherEpisodeException } from "../Utils/Episode/EpisodeSingleMembershipCheck";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 export interface GroupingResult {
   grouped: boolean;
@@ -363,8 +364,12 @@ class AlertGroupingEngineServiceClass {
           return false;
         }
         try {
-          const regex: RegExp = new RegExp(rule.monitorNamePattern, "i");
-          if (!regex.test(monitor.name)) {
+          if (
+            !RulePatternMatchUtil.testRegex(
+              rule.monitorNamePattern,
+              monitor.name,
+            )
+          ) {
             return false;
           }
         } catch {
@@ -382,8 +387,12 @@ class AlertGroupingEngineServiceClass {
           return false;
         }
         try {
-          const regex: RegExp = new RegExp(rule.monitorDescriptionPattern, "i");
-          if (!regex.test(monitor.description)) {
+          if (
+            !RulePatternMatchUtil.testRegex(
+              rule.monitorDescriptionPattern,
+              monitor.description,
+            )
+          ) {
             return false;
           }
         } catch {
@@ -402,8 +411,9 @@ class AlertGroupingEngineServiceClass {
         return false;
       }
       try {
-        const regex: RegExp = new RegExp(rule.alertTitlePattern, "i");
-        if (!regex.test(alert.title)) {
+        if (
+          !RulePatternMatchUtil.testRegex(rule.alertTitlePattern, alert.title)
+        ) {
           return false;
         }
       } catch {
@@ -421,8 +431,12 @@ class AlertGroupingEngineServiceClass {
         return false;
       }
       try {
-        const regex: RegExp = new RegExp(rule.alertDescriptionPattern, "i");
-        if (!regex.test(alert.description)) {
+        if (
+          !RulePatternMatchUtil.testRegex(
+            rule.alertDescriptionPattern,
+            alert.description,
+          )
+        ) {
           return false;
         }
       } catch {

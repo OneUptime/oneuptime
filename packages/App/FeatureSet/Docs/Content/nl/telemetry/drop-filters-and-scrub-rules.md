@@ -127,6 +127,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 - **Uitzonderingen komen uit het opgeschoonde record.** Een uitzondering die in een logboekregel wordt gevonden, wordt na het opschonen gemaakt, en de regels die span-gebeurtenissen opschonen, schonen ook de uitzonderingen op die daarop zijn vastgelegd.
 - **Ook Session Replays worden opgeschoond.** Scrub-regels voor logboeken draaien ook over Session Replay-opnamen, bovenop het maskeren dat de recorder in de browser doet.
 - **Regels draaien in de volgorde van de lijst.** Elke regel ziet wat de regels ervoor overlieten.
+- **Een aangepast patroon kost tijd naar verhouding van het record.** Het behoudt de syntaxis en de antwoorden van JavaScript, lookaheads en lookbehinds inbegrepen, hoe het ook geschreven is. Een terugverwijzing, zoals `\1`, kan zo niet worden uitgevoerd: een regel daarmee wordt bij het opslaan geweigerd, net als een patroon dat te groot is om uit te voeren. Als het vinden van elke overeenkomst een lange waarde steeds opnieuw zou moeten lezen, schoont de regel de hele waarde op.
 
 ## Controleren wat een filter weggooide
 
@@ -143,7 +144,7 @@ Bekijk de telling **Dropped** en het tijdstip van **Last Dropped** van elk drop-
 :::
 
 :::details Een aangepaste scrub-regel zegt Schoont niets op
-Het patroon is leeg of geen geldige reguliere expressie, dus de regel schoont niets op. Bewerk de regel en geef hem een patroon dat met minstens één teken overeenkomt.
+Het patroon is leeg, geen geldige reguliere expressie of kan niet worden uitgevoerd, bijvoorbeeld omdat het een terugverwijzing zoals `\1` bevat, dus de regel schoont niets op. Bewerk de regel en geef hem een patroon dat met minstens één teken overeenkomt.
 :::
 
 :::details Oude records tonen nog de gegevens die een nieuwe regel opschoont

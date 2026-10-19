@@ -31024,6 +31024,8 @@
   "Video Call Summary": "Opsummering af videoopkald",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Får intet: linket til bekræftelse, vi sendte, udløb, før det blev åbnet. Abonnenten kan tilmelde sig igen, eller du kan tilføje vedkommende igen.",
   "Link Expired": "Link udløbet",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Dette mønster henviser tilbage til det, en tidligere gruppe fandt, f.eks. \\1. Mønstre køres på en tid, der kun vokser med den tekst, de læser, og det kan en tilbagehenvisning ikke. Skriv mønsteret uden den.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Dette mønster er for stort til at blive kørt. Gør det kortere, eller gentag dets dele færre gange.",
   "Add a Runner of your own.": "Tilføj din egen Runner.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Tilføj en Runner for at køre trinnene i dine runbooks. Opret en, og kør derefter Docker-kommandoen på en vært i din infrastruktur.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Tilføj en Runner under {{location}} for at køre dette trin, og vælg den derefter her.",

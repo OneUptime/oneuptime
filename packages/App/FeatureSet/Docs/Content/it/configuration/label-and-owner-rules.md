@@ -110,6 +110,17 @@ Ogni regola abilitata viene eseguita quando si crea una risorsa, dalla dashboard
 
 Una regola scritta oggi si applica alle risorse create dopo. Per applicarla a quelle che hai già, usa **Run Now**: vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now). Le regole per etichette si possono anche copiare tra progetti: vedi [Importare ed esportare regole per etichette](/docs/configuration/label-rule-import-export).
 
+## Pattern
+
+Un pattern nelle condizioni di una regola è un'espressione regolare nella sintassi di JavaScript, come `^checkout-.*`, e non distingue maiuscole e minuscole. OneUptime lo esegue in un tempo che cresce solo con il testo che legge, comunque il pattern sia scritto. I lookahead e i lookbehind funzionano, come `^prod-(?!test)` e `(?<=db-)\d+`.
+
+Due tipi di pattern non possono essere eseguiti così. Una regola che ne contiene uno viene rifiutata al salvataggio, dalla dashboard, dall'API, da Terraform o da un'importazione, con un messaggio che dice cosa cambiare:
+
+- Un riferimento all'indietro, come `\1` o `\k<name>`, che corrisponde di nuovo a ciò che un gruppo precedente ha trovato.
+- Un pattern troppo grande per essere eseguito, come uno che ripete una parte migliaia di volte.
+
+Una regola salvata prima con uno di questi non corrisponde a nulla finché non cambiate il suo pattern. Vale per ogni tipo di regola che ha pattern, non solo per le regole di etichette e di proprietari.
+
 ## Passaggi successivi
 
 :::cards

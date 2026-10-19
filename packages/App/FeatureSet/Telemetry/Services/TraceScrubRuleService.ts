@@ -9,11 +9,15 @@ import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import crypto from "crypto";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
-import { compileScrubRuleCustomRegex } from "Common/Types/Telemetry/ScrubRule";
+import {
+  compileScrubRuleCustomRegex,
+  ScrubRegExp,
+  scrubRegExpFromBuiltIn,
+} from "Common/Types/Telemetry/ScrubRule";
 
 interface CompiledRule {
   rule: TraceScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 }
 
 const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
@@ -114,7 +118,7 @@ export class TraceScrubRuleService {
     const compiledPatterns: Array<CompiledRule> = [];
 
     for (const rule of rules) {
-      const regex: RegExp | null = this.getRegexForPattern(
+      const regex: ScrubRegExp | null = this.getRegexForPattern(
         rule.patternType as string,
         rule.customRegex as string | undefined,
       );
@@ -132,7 +136,7 @@ export class TraceScrubRuleService {
   private static getRegexForPattern(
     patternType: string,
     customRegex?: string,
-  ): RegExp | null {
+  ): ScrubRegExp | null {
     if (patternType === TraceScrubPatternType.Custom) {
       /*
        * Null for a pattern that is empty or does not compile: the rule
@@ -150,12 +154,12 @@ export class TraceScrubRuleService {
      * entirely by scrubString.
      */
     if (patternType === TraceScrubPatternType.SensitiveKeys) {
-      return new RegExp(SENSITIVE_KEY_REGEX.source, SENSITIVE_KEY_REGEX.flags);
+      return scrubRegExpFromBuiltIn(SENSITIVE_KEY_REGEX);
     }
 
     const builtIn: RegExp | undefined = BUILT_IN_PATTERNS[patternType];
     if (builtIn) {
-      return new RegExp(builtIn.source, builtIn.flags);
+      return scrubRegExpFromBuiltIn(builtIn);
     }
 
     return null;
@@ -249,12 +253,10 @@ export class TraceScrubRuleService {
         continue;
       }
 
-      regex.lastIndex = 0;
-
       const action: string =
         (rule.scrubAction as string) || TraceScrubAction.Redact;
 
-      result = result.replace(regex, (match: string) => {
+      result = regex.replace(result, (match: string): string => {
         return this.applyScrubAction(match, action, patternType);
       });
     }

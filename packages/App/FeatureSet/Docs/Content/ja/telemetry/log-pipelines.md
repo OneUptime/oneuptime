@@ -178,6 +178,8 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 キャプチャは、型を指定しない限りテキストとして保存されます。`%{NUMBER:status:int}` は数値として保存します。型は `int`、`long`、`float`、`double`、`boolean`、`string` です。保存する前に、**パターンをテスト** でサンプル行に対してパターンを確認してください。
 
+Grok パターンは、どのように書かれていても、読む行の長さに比例して増えるだけの時間で実行され、JavaScript の構文を保ちます。先読みと後読みも使えます。`\1` のような後方参照を含むパターンなど、そのように実行できないパターンは保存時に拒否され、何を変えればよいかを示すメッセージが返ります。
+
 | ログ本文 | パターン | 追加される属性 |
 | --- | --- | --- |
 | `10.0.1.5 - GET /health 200` | `%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}` | client_ip, method, path, status |
