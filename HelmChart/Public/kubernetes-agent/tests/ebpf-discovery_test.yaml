@@ -176,6 +176,8 @@ tests:
               exclude_instrument:
                 - exe_path: "*/sh"
                 - exe_path: "*/bash"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -207,6 +209,8 @@ tests:
               instrument:
                 - exe_path: "*"
                   k8s_namespace: "*"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -241,6 +245,8 @@ tests:
                   k8s_namespace: "*"
                 - exe_path: "*/java"
                   k8s_namespace: "*"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -273,6 +279,8 @@ tests:
               instrument:
                 - exe_path: "*"
                   k8s_namespace: "*"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -314,6 +322,8 @@ tests:
                   k8s_namespace: "payments"
                 - exe_path: "*/java"
                   k8s_namespace: "payments"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -352,6 +362,8 @@ tests:
                 - exe_path: "*/sh"
                 - k8s_namespace: "kube-system"
                 - k8s_namespace: "batch-*"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -389,6 +401,8 @@ tests:
               instrument:
                 - exe_path: "*"
                   k8s_namespace: "*"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -450,6 +464,8 @@ tests:
               instrument:
                 - exe_path: "*"
                   k8s_namespace: "*"
+              disabled_route_harvesters:
+                - "nodejs"
             routes:
               unmatched: "low-cardinality"
               patterns:
@@ -487,6 +503,8 @@ tests:
               instrument:
                 - exe_path: "*"
                   k8s_namespace: "*"
+              disabled_route_harvesters:
+                - "nodejs"
             routes:
               patterns:
                 - "/otlp/v1/{signal}"
@@ -642,6 +660,8 @@ tests:
               instrument:
                 - exe_path: "*"
                   k8s_namespace: "*"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -700,6 +720,8 @@ tests:
               instrument:
                 - exe_path: "*"
                   k8s_namespace: "*"
+              disabled_route_harvesters:
+                - "nodejs"
             # Span attributes. A list here replaces OBI's default set rather than adding
             # to it, so it repeats those defaults; service.peer.name is opt-in since v0.14.
             attributes:
@@ -754,6 +776,8 @@ tests:
               instrument:
                 - exe_path: "*"
                   k8s_namespace: "payments"
+              disabled_route_harvesters:
+                - "nodejs"
             routes:
               unmatched: "low-cardinality"
               patterns:

@@ -52,6 +52,9 @@ Returns JSON:
   contextPropagationStale bool    stale, eBPF is on, and ebpf.contextPropagation
                                   is not on, which this chart defaults it to
                                   (the charts before shipped it off)
+  routeHarvestStale       bool    stale, eBPF is on, and ebpf.routes has no
+                                  disabledHarvesters, so OBI still harvests
+                                  Node.js routes, which this chart skips
 Usage: {{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
 */}}
 {{- define "kubernetes-agent.staleDefaults" -}}
@@ -67,7 +70,9 @@ Usage: {{- $defaults := include "kubernetes-agent.staleDefaults" . | fromJson }}
 {{- $collectorImageTagStale := and $stale (ne $collectorTag (include "kubernetes-agent.defaultCollectorImageTag" .)) -}}
 {{- /* Off the way the DaemonSet reads it: anything but true, a missing key too. */ -}}
 {{- $contextPropagationStale := and $stale $ebpfOn (ne (toString $ebpf.contextPropagation) "true") -}}
-{{- dict "stale" $stale "from" $from "ebpfImageTagStale" $ebpfImageTagStale "ebpfImageTag" $tag "collectorImageTagStale" $collectorImageTagStale "collectorImageTag" $collectorTag "contextPropagationStale" $contextPropagationStale | toJson -}}
+{{- /* Only a missing key is the old default: [] is a choice to harvest everything. */ -}}
+{{- $routeHarvestStale := and $stale $ebpfOn (not (hasKey ($ebpf.routes | default dict) "disabledHarvesters")) -}}
+{{- dict "stale" $stale "from" $from "ebpfImageTagStale" $ebpfImageTagStale "ebpfImageTag" $tag "collectorImageTagStale" $collectorImageTagStale "collectorImageTag" $collectorTag "contextPropagationStale" $contextPropagationStale "routeHarvestStale" $routeHarvestStale | toJson -}}
 {{- end -}}
 
 {{/*

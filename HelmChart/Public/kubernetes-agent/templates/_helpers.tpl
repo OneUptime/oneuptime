@@ -225,6 +225,12 @@ namespace rules silently did nothing.
   discovery.exclude_instrument — one selector per excludeExePaths glob and
     per excluded namespace. OBI still appends its built-in exclusions (itself,
     OTel collectors, the system namespaces) after these.
+  discovery.disabled_route_harvesters, discovery.route_harvester_timeout —
+    from ebpf.routes.disabledHarvesters and ebpf.routes.harvestTimeout: the
+    languages OBI does not harvest route templates for (Node.js by default),
+    and how long it waits for one process's. Blank languages are dropped, and
+    neither key is written when unset or empty, so OBI's defaults (every
+    language, 10s) apply.
   attributes.select.traces.include — the span attributes OBI exports; see
     kubernetes-agent.obiSpanAttributes.
 
@@ -240,6 +246,7 @@ keeps OBI's default.
 {{- $excludes := include "kubernetes-agent.globList" .Values.ebpf.excludeExePaths | fromJsonArray -}}
 {{- $nsInclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "include" "scope" "ebpfDiscovery") | fromJsonArray -}}
 {{- $nsExclude := include "kubernetes-agent.namespaceRulePatterns" (dict "root" . "action" "exclude" "scope" "ebpfDiscovery") | fromJsonArray -}}
+{{- $routes := .Values.ebpf.routes | default dict -}}
 discovery:
   instrument:
 {{- if $nsInclude }}
@@ -264,7 +271,22 @@ discovery:
     - k8s_namespace: {{ . | quote }}
 {{- end }}
 {{- end }}
-{{- $routes := .Values.ebpf.routes | default dict }}
+{{- /* Blanks dropped: `--set ebpf.routes.disabledHarvesters={}` gives [""]. */}}
+{{- $harvestersOff := list }}
+{{- range ($routes.disabledHarvesters | default list) }}
+{{- if . }}
+{{- $harvestersOff = append $harvestersOff . }}
+{{- end }}
+{{- end }}
+{{- with $harvestersOff }}
+  disabled_route_harvesters:
+{{- range . }}
+    - {{ . | quote }}
+{{- end }}
+{{- end }}
+{{- with $routes.harvestTimeout }}
+  route_harvester_timeout: {{ . | quote }}
+{{- end }}
 {{- if or $routes.patterns $routes.unmatched }}
 routes:
 {{- with $routes.unmatched }}
