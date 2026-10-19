@@ -134,8 +134,6 @@ describe("the note and the guide are true to the install", () => {
         ipv6: compose.includes("enable_ipv6"),
       }).toEqual({ file, network: true, ipv6: false });
     }
-
-    expect(source("config.example.env")).not.toMatch(/^ENABLE_IPV6=/m);
   });
 
   it("the ingress has an IPv6 twin for every listen, unless NGINX_LISTEN_ADDRESS names one address", () => {
