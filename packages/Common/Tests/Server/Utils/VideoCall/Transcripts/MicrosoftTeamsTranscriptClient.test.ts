@@ -225,10 +225,9 @@ describe("MicrosoftTeamsTranscriptClient - reading a meeting's transcript", () =
     expect(fetcher.requests[0]!.url).toBe(
       `${MICROSOFT_GRAPH_BASE_URL}/me/onlineMeetings/${ENCODED_MEETING_ID}/transcripts`,
     );
-    expect(fetcher.requests[1]!.url).toMatch(
-      new RegExp(
-        `^${MICROSOFT_GRAPH_BASE_URL.replace(/\./g, "\\.")}/me/onlineMeetings/`,
-      ),
+    const signedInMeetings: string = `${MICROSOFT_GRAPH_BASE_URL}/me/onlineMeetings/`;
+    expect(fetcher.requests[1]!.url.slice(0, signedInMeetings.length)).toBe(
+      signedInMeetings,
     );
   });
 
