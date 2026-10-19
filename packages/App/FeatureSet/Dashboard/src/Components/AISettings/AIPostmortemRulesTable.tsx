@@ -6,10 +6,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { getListSeparator } from "Common/UI/Utils/ListSeparator";
 import Navigation from "Common/UI/Utils/Navigation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPostmortemTemplate";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -39,8 +36,10 @@ import {
   canPickPostmortemTemplates,
   followTemplatesWithRuleName,
   getNewPostmortemRuleValues,
-  getPostmortemRuleTemplateNames,
 } from "./PostmortemRuleForm";
+import PostmortemRuleTemplates, {
+  POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,
+} from "./PostmortemRuleTemplates";
 import {
   RULE_ENABLED_DESCRIPTION,
   RULE_NAME_MAX_LENGTH,
@@ -77,8 +76,6 @@ const POSTMORTEM_RULE_MORE_FIELDS: FormFieldCollapsibleSection<AIPostmortemRule>
 const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
   /*
    * Postmortem templates need the Growth plan on OneUptime Cloud: a project
    * below it is not offered them, and its drafts follow the standard
@@ -129,29 +126,39 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
         },
       ]}
       columns={[
-        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { name: true },
+          title: "Name",
+          type: FieldType.Text,
+          /*
+           * A rule's name on as many lines as it needs. Beside Match
+           * Criteria, Templates and Status, the column is narrow on a
+           * 1280px screen, and cut short on one line every name read
+           * "Draft with Database..." - the part that tells rules apart was
+           * the part cut off.
+           */
+          wrapContent: true,
+        },
         ...(offersTemplates
           ? [
               {
                 field: { postmortemTemplates: { templateName: true } },
                 title: POSTMORTEM_RULE_TEMPLATES_COLUMN_TITLE,
                 type: FieldType.EntityArray,
+                /*
+                 * One template a line, cut short at a width that leaves
+                 * every column in sight beside the side menu at 1280px -
+                 * Status included (PostmortemRuleTemplates).
+                 */
+                wrapContent: true,
+                wrapMaxWidthClassName:
+                  POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,
                 getElement: (item: AIPostmortemRule): ReactElement => {
-                  const names: Array<string> = getPostmortemRuleTemplateNames(
-                    item.postmortemTemplates,
+                  return (
+                    <PostmortemRuleTemplates
+                      templates={item.postmortemTemplates}
+                    />
                   );
-
-                  if (names.length === 0) {
-                    return (
-                      <span className="text-gray-500">
-                        {translator.translateText(
-                          POSTMORTEM_RULE_STANDARD_OUTLINE,
-                        )}
-                      </span>
-                    );
-                  }
-
-                  return <span>{names.join(getListSeparator(names))}</span>;
                 },
               },
             ]
@@ -279,8 +286,13 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
         {
           field: { name: true },
           title: "Name",
-          // Named after its templates - when there are templates to pick.
+          /*
+           * Named after its templates - when there are templates to pick.
+           * Otherwise it needs no help: "Name of this postmortem rule.",
+           * the column's own description, says nothing the title does not.
+           */
           description: offersTemplates ? POSTMORTEM_RULE_NAME_DESCRIPTION : "",
+          hideColumnDescription: true,
           stepId: "postmortem-draft",
           fieldType: FormFieldSchemaType.Text,
           required: true,

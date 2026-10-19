@@ -18,6 +18,12 @@ export interface ComponentProps<TGenericObject extends GenericObject | string> {
   noItemsMessage: string | undefined;
   className?: string | undefined;
   moreText?: string | undefined;
+  /*
+   * The more button's whole text for a count, when the page words it as a
+   * sentence of its own ("2 more templates", through its locale's plural
+   * forms) rather than as the count followed by `moreText`.
+   */
+  getMoreText?: ((count: number) => string) | undefined;
 }
 
 const TableColumnListComponent: <TGenericObject extends GenericObject>(
@@ -131,7 +137,21 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
           onClick={() => {
             return setShowMoreItems(true);
           }}
-          title={`${remainingItems.length} ${props.moreText || "more"}`}
+          /*
+           * "2 more labels": the page's own sentence for the count, or the
+           * count and then the page's words looked up on their own ("2
+           * weitere Labels") - the whole title is no key, so the button's
+           * own lookup leaves it as it is.
+           */
+          title={
+            props.getMoreText
+              ? props.getMoreText(remainingItems.length)
+              : `${remainingItems.length} ${
+                  translateString(props.moreText || "more") ||
+                  props.moreText ||
+                  "more"
+                }`
+          }
           buttonStyle={ButtonStyleType.SECONDARY_LINK}
         />
       ) : (

@@ -10,9 +10,15 @@
  *
  * Steered by the query string:
  *   - rules=<n>       how many postmortem rules the project has (0 by
- *                     default, at most 3), top of the list first
- *   - templates=<n>   how many postmortem templates it has (3 by default, 0
- *                     or 1 for fewer)
+ *                     default, at most 4), top of the list first; the
+ *                     fourth is a disabled rule with a long name of its own
+ *                     and all five templates
+ *   - templates=<n>   how many postmortem templates it has (5 by default,
+ *                     fewer for fewer)
+ *   - layout=page     the page in the Dashboard's own frame, beside a side
+ *                     menu (Common's Page and SideMenu), so the cards are as
+ *                     wide as a person sees them; the default is the page
+ *                     alone
  *   - role=viewer     may read the page only (Viewer); the default is a
  *                     project owner
  *   - billing=on      OneUptime Cloud (billing on), with plan=free or
@@ -62,6 +68,10 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import Page from "Common/UI/Components/Page/Page";
+import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
+import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 
@@ -69,11 +79,12 @@ const PROJECT_ID = "10000000-0000-4000-8000-0000000000a1";
 const USER_ID = "30000000-0000-4000-8000-0000000000c1";
 
 const params = new URLSearchParams(window.location.search);
-const ruleCount = Math.min(3, Math.max(0, Number(params.get("rules") ?? 0)));
+const ruleCount = Math.min(4, Math.max(0, Number(params.get("rules") ?? 0)));
 const templateCount = Math.min(
-  3,
-  Math.max(0, Number(params.get("templates") ?? 3)),
+  5,
+  Math.max(0, Number(params.get("templates") ?? 5)),
 );
+const layout = params.get("layout") === "page" ? "page" : "alone";
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const plan = params.get("plan") === "free" ? PlanType.Free : PlanType.Growth;
 const language = params.get("lang") === "de" ? "de" : "en";
@@ -213,6 +224,18 @@ const ALL_TEMPLATES = [
     templateDescription: "Anything that touched access or data.",
     postmortemNote: "## Summary\n\n## Exposure\n\n## Remediation",
   }),
+  record(IncidentPostmortemTemplate, {
+    _id: "80000000-0000-4000-8000-000000000b04",
+    templateName: "Network partition between regions",
+    templateDescription: "When regions could not reach each other.",
+    postmortemNote: "## Summary\n\n## Regions affected\n\n## Action items",
+  }),
+  record(IncidentPostmortemTemplate, {
+    _id: "80000000-0000-4000-8000-000000000b05",
+    templateName: "Payments and checkout outage",
+    templateDescription: "When customers could not pay.",
+    postmortemNote: "## Summary\n\n## Orders lost\n\n## Action items",
+  }),
 ];
 
 const TEMPLATES = ALL_TEMPLATES.slice(0, templateCount);
@@ -274,6 +297,37 @@ const ALL_RULES = [
     order: 3,
     criteria: null,
     postmortemTemplates: [],
+  }),
+  // Turned off, named by hand, and with more templates than a row lists.
+  record(AIPostmortemRule, {
+    _id: "90000000-0000-4000-8000-000000000c04",
+    projectId: new ObjectID(PROJECT_ID),
+    name: "SEV1 and SEV2 incidents on the payments platform and the customer-facing API",
+    isEnabled: false,
+    order: 4,
+    criteria: {
+      schemaVersion: 1,
+      filterCondition: "All",
+      filters: [
+        {
+          field: "incidentSeverities",
+          operator: "HasAnyOf",
+          value: [SEVERITIES[0]._id, SEVERITIES[1]._id],
+        },
+        {
+          field: "labels",
+          operator: "HasAnyOf",
+          value: [LABELS[0]._id],
+        },
+      ],
+    },
+    postmortemTemplates: templatesNamed([
+      "Customer-facing outage",
+      "Database outage",
+      "Security incident",
+      "Network partition between regions",
+      "Payments and checkout outage",
+    ]),
   }),
 ];
 
@@ -559,16 +613,54 @@ function Shell() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
+
+  const settings = (
+    <IncidentAISettings
+      pageRoute={Navigation.getCurrentRoute()}
+      currentProject={project}
+      hasPaymentMethod={true}
+    />
+  );
+
+  /*
+   * The Dashboard's frame: the page beside its side menu, which is what
+   * leaves a card about 940px of a 1280px screen.
+   */
+  if (layout === "page") {
+    return (
+      <Page
+        title="Incidents"
+        breadcrumbLinks={[]}
+        sideMenu={
+          <SideMenu
+            sections={[
+              {
+                title: "AI",
+                items: [
+                  {
+                    link: {
+                      title: "Settings",
+                      to: new Route(window.location.pathname),
+                    },
+                    icon: IconProp.Settings,
+                  },
+                ],
+              },
+            ]}
+          />
+        }
+      >
+        {settings}
+      </Page>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-[1100px] px-4 py-8 sm:px-8">
       <div className="mb-7 text-sm text-gray-500">
         Incidents / AI / Settings
       </div>
-      <IncidentAISettings
-        pageRoute={Navigation.getCurrentRoute()}
-        currentProject={project}
-        hasPaymentMethod={true}
-      />
+      {settings}
     </main>
   );
 }

@@ -31246,5 +31246,7 @@
   "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "किन घटनाओं की जांच, सुधार या पोस्टमॉर्टम का मसौदा होता है, और जांच व दैनिक AI काम की सीमाएं।",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "कोई नियम न होने पर OneUptime AI हर हल हुई घटना के लिए पोस्टमॉर्टम का मसौदा बनाता है। केवल उन्हीं घटनाओं का मसौदा बनाने के लिए नियम जोड़ें जो किसी नियम से मेल खाती हैं, और मसौदे के टेम्पलेट चुनें। मेल खाने वाला पहला नियम लागू होता है - क्रम बदलने के लिए नियमों को खींचें।",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.": "कोई नियम न होने पर OneUptime AI हर हल हुई घटना के लिए पोस्टमॉर्टम का मसौदा बनाता है। केवल उन्हीं घटनाओं का मसौदा बनाने के लिए नियम जोड़ें जो किसी नियम से मेल खाती हैं।",
-  "e.g. Draft with Database outage": "उदा. Database outage से मसौदा बनाएं"
+  "e.g. Draft with Database outage": "उदा. Database outage से मसौदा बनाएं",
+  "{{count}} more templates": "{{count}} और टेम्पलेट",
+  "{{count}} more templates_one": "{{count}} और टेम्पलेट"
 }

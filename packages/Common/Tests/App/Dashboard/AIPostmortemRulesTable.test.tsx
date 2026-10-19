@@ -8,7 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -64,6 +64,7 @@ import {
   AiLane,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import {
+  POSTMORTEM_RULE_MORE_TEMPLATES,
   POSTMORTEM_RULE_NAME_DESCRIPTION,
   POSTMORTEM_RULE_STANDARD_OUTLINE,
   POSTMORTEM_RULE_STANDARD_OUTLINE_NAME,
@@ -72,6 +73,10 @@ import {
   POSTMORTEM_RULES_CARD_DESCRIPTION_WITHOUT_TEMPLATES,
   POSTMORTEM_RULES_NO_ITEMS_MESSAGE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/PostmortemRulesCopy";
+import {
+  POSTMORTEM_RULE_TEMPLATE_TEST_ID,
+  POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/PostmortemRuleTemplates";
 import {
   FILLED_IN_RULE_NAME_KEY,
   RULE_NAME_MAX_LENGTH,
@@ -110,6 +115,7 @@ interface CapturedField {
   fieldType?: FormFieldSchemaType;
   required?: boolean;
   placeholder?: string;
+  hideColumnDescription?: boolean;
   doNotShowWhenCreating?: boolean;
   collapsibleSection?: unknown;
   validation?: { minLength?: number; maxLength?: number };
@@ -126,7 +132,32 @@ interface CapturedColumn {
   field?: Record<string, unknown>;
   title?: string;
   type?: FieldType;
+  wrapContent?: boolean;
+  wrapMaxWidthClassName?: string;
+  contentClassName?: string;
   getElement?: (item: AIPostmortemRule) => React.ReactElement;
+}
+
+// A rule naming these templates, in the order they are given.
+function ruleNaming(...names: Array<string>): AIPostmortemRule {
+  const rule: AIPostmortemRule = new AIPostmortemRule();
+  rule.postmortemTemplates = names.map(
+    (name: string): IncidentPostmortemTemplate => {
+      return Object.assign(new IncidentPostmortemTemplate(), {
+        templateName: name,
+      });
+    },
+  );
+  return rule;
+}
+
+// The template names the Templates cell draws, top first.
+function drawnTemplateNames(): Array<string> {
+  return screen
+    .queryAllByTestId(POSTMORTEM_RULE_TEMPLATE_TEST_ID)
+    .map((element: HTMLElement): string => {
+      return element.textContent || "";
+    });
 }
 
 function captured(element: React.ReactElement): Record<string, unknown> {
@@ -289,29 +320,118 @@ describe("the postmortem rules table", () => {
     expect(columns[1]!.type).toBe(FieldType.EntityArray);
   });
 
-  test("the Templates column names a rule's templates, or the standard outline", () => {
+  test("fits beside the side menu at 1280px: a name runs onto more lines, and the templates are capped", () => {
+    const columns: Array<CapturedColumn> = columnsOf(table());
+
+    /*
+     * The name is what tells rules apart: cut short on one line, every
+     * name in the narrow column read "Draft with Database...".
+     */
+    expect(columns[0]!.wrapContent).toBe(true);
+
+    /*
+     * The templates take no more than their cap - through the wrapping
+     * option, the one way a table caps a column - so Status stays in
+     * sight instead of scrolling off the card.
+     */
+    expect(columns[1]!.wrapContent).toBe(true);
+    expect(columns[1]!.wrapMaxWidthClassName).toBe(
+      POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,
+    );
+    expect(POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME).toBe(
+      "max-w-[11rem] 2xl:max-w-[18rem]",
+    );
+    expect(columns[1]!.contentClassName).toBeUndefined();
+
+    // Status stays a one-line pill.
+    expect(columns[2]!.wrapContent).toBeUndefined();
+  });
+
+  test("the Templates column lists a rule's templates one a line, by name", () => {
     const templatesColumn: CapturedColumn = columnsOf(table())[1]!;
-    const rule: AIPostmortemRule = new AIPostmortemRule();
-    rule.postmortemTemplates = [
-      Object.assign(new IncidentPostmortemTemplate(), {
-        templateName: "Security incident",
-      }),
-      Object.assign(new IncidentPostmortemTemplate(), {
-        templateName: " Database outage ",
-      }),
-    ];
 
-    render(templatesColumn.getElement!(rule));
+    render(
+      templatesColumn.getElement!(
+        ruleNaming("Security incident", " Database outage ", ""),
+      ),
+    );
+
+    // Trimmed, blanks left out, sorted - as the server reads them.
+    expect(drawnTemplateNames()).toEqual([
+      "Database outage",
+      "Security incident",
+    ]);
+    // Each on a line of its own, not run together with commas.
+    expect(screen.queryByText(/, /)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  test("after three templates, a button says how many more and shows them", () => {
+    const templatesColumn: CapturedColumn = columnsOf(table())[1]!;
+
+    render(
+      templatesColumn.getElement!(
+        ruleNaming(
+          "Third-party provider outage",
+          "Customer-facing outage",
+          "Payments outage",
+          "Database outage",
+          "Network partition",
+        ),
+      ),
+    );
+
+    expect(drawnTemplateNames()).toEqual([
+      "Customer-facing outage",
+      "Database outage",
+      "Network partition",
+    ]);
+
+    fireEvent.click(screen.getByRole("button", { name: "2 more templates" }));
+
+    expect(drawnTemplateNames()).toEqual([
+      "Customer-facing outage",
+      "Database outage",
+      "Network partition",
+      "Payments outage",
+      "Third-party provider outage",
+    ]);
     expect(
-      screen.getByText("Database outage, Security incident"),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "2 more templates" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show less" })).toBeVisible();
+  });
 
-    cleanup();
+  test("one template more is said in the singular", () => {
+    const templatesColumn: CapturedColumn = columnsOf(table())[1]!;
+
+    render(templatesColumn.getElement!(ruleNaming("A", "B", "C", "D")));
+
+    expect(
+      screen.getByRole("button", { name: "1 more template" }),
+    ).toBeInTheDocument();
+    expect(POSTMORTEM_RULE_MORE_TEMPLATES).toEqual({
+      one: "{{count}} more template",
+      other: "{{count}} more templates",
+    });
+  });
+
+  test("a rule that names no template says the draft follows the standard outline", () => {
+    const templatesColumn: CapturedColumn = columnsOf(table())[1]!;
 
     render(templatesColumn.getElement!(new AIPostmortemRule()));
     expect(screen.getByText(POSTMORTEM_RULE_STANDARD_OUTLINE)).toHaveClass(
       "text-gray-500",
     );
+    expect(drawnTemplateNames()).toEqual([]);
+
+    cleanup();
+
+    // Templates deleted since, or blank: the same.
+    render(templatesColumn.getElement!(ruleNaming(" ", "")));
+    expect(
+      screen.getByText(POSTMORTEM_RULE_STANDARD_OUTLINE),
+    ).toBeInTheDocument();
   });
 
   test("the Status column says Enabled or Disabled", () => {
@@ -430,6 +550,7 @@ describe("the postmortem rule form", () => {
     );
     expect(name.required).toBe(true);
     expect(name.description).toBe(POSTMORTEM_RULE_NAME_DESCRIPTION);
+    expect(name.hideColumnDescription).toBe(true);
     expect(name.validation).toEqual({
       minLength: 2,
       maxLength: RULE_NAME_MAX_LENGTH,
@@ -543,6 +664,11 @@ describe("below the plan postmortem templates need", () => {
     );
     // A rule is still a name and its conditions.
     expect(fieldNamed(props, "name")?.description).toBe("");
+    /*
+     * And the name needs no help: the column's own description, "Name of
+     * this postmortem rule.", would only repeat the title under it.
+     */
+    expect(fieldNamed(props, "name")?.hideColumnDescription).toBe(true);
     expect(fieldNamed(props, "name")?.required).toBe(true);
     expect(fieldNamed(props, "monitors")?.stepId).toBe("match-criteria");
   });

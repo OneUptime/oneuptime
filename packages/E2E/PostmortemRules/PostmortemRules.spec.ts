@@ -144,6 +144,17 @@ const ruleNames: (card: Locator) => Promise<Array<string>> = async (
   return names;
 };
 
+// The template names a row lists, top first (PostmortemRuleTemplates).
+const templatesIn: (row: Locator) => Promise<Array<string>> = async (
+  row: Locator,
+): Promise<Array<string>> => {
+  return (
+    await row.getByTestId("postmortem-rule-template").allInnerTexts()
+  ).map((text: string): string => {
+    return text.trim();
+  });
+};
+
 const recorded: (page: Page) => Promise<Recorded> = async (
   page: Page,
 ): Promise<Recorded> => {
@@ -330,11 +341,14 @@ test.describe("the list", () => {
     ]);
 
     const rows: Locator = card.locator("tbody tr");
-    await expect(rows.nth(0)).toContainText("Database outage");
-    await expect(rows.nth(1)).toContainText(
-      "Customer-facing outage, Security incident",
-    );
+    // Each template on a line of its own, by name.
+    expect(await templatesIn(rows.nth(0))).toEqual(["Database outage"]);
+    expect(await templatesIn(rows.nth(1))).toEqual([
+      "Customer-facing outage",
+      "Security incident",
+    ]);
     // A rule that names no template drafts in the standard outline, and says so.
+    expect(await templatesIn(rows.nth(2))).toEqual([]);
     await expect(rows.nth(2)).toContainText(STANDARD_OUTLINE);
     await expect(rows.nth(2)).toContainText("All incidents");
 
@@ -474,9 +488,9 @@ test.describe("adding a rule", () => {
       [DATABASE_OUTAGE_ID, SECURITY_INCIDENT_ID].sort(),
     );
 
-    await expect(rulesCard(page).locator("tbody tr").first()).toContainText(
-      "Database outage, Security incident",
-    );
+    expect(
+      await templatesIn(rulesCard(page).locator("tbody tr").first()),
+    ).toEqual(["Database outage", "Security incident"]);
   });
 
   test("a name typed over is kept when the templates change", async ({
@@ -662,6 +676,111 @@ test.describe("plans", () => {
   });
 });
 
+test.describe("beside the side menu", () => {
+  /*
+   * In the Dashboard the page sits beside its side menu: on a 1280px
+   * screen the rules card is about 940px wide, for seven columns. The
+   * templates, one line of names, pushed Status out of the card - the rows
+   * scrolled sideways and a disabled rule looked like the rest - and every
+   * name was cut to "Draft with Database...".
+   */
+  test("at 1280px every column is in sight, Status included, and every name reads in full", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "rules=4&layout=page");
+    await unfold(page);
+
+    const card: Locator = rulesCard(page);
+    const rows: Locator = card.locator("tbody tr");
+    await expect(rows).toHaveCount(4);
+
+    const fit: {
+      cardWidth: number;
+      boxWidth: number;
+      tableWidth: number;
+      statusRight: number;
+      actionsLeft: number;
+    } = await card.evaluate((element: Element) => {
+      const table: HTMLElement = element.querySelector("table") as HTMLElement;
+      const box: HTMLElement = table.parentElement as HTMLElement;
+      const headers: Array<HTMLElement> = Array.from(
+        table.querySelectorAll<HTMLElement>("thead th"),
+      );
+      const status: HTMLElement = headers.find((header: HTMLElement) => {
+        return header.innerText.trim() === "Status";
+      }) as HTMLElement;
+      const actions: HTMLElement = headers[headers.length - 1] as HTMLElement;
+
+      return {
+        cardWidth: element.getBoundingClientRect().width,
+        boxWidth: box.clientWidth,
+        tableWidth: box.scrollWidth,
+        statusRight: status.getBoundingClientRect().right,
+        actionsLeft: actions.getBoundingClientRect().left,
+      };
+    });
+
+    // The card is as wide as beside the real side menu.
+    expect(fit.cardWidth).toBeGreaterThan(900);
+    expect(fit.cardWidth).toBeLessThan(960);
+    // Nothing scrolls sideways, and Status is not under the row's buttons.
+    expect(fit.tableWidth).toBeLessThanOrEqual(fit.boxWidth);
+    expect(fit.statusRight).toBeLessThanOrEqual(fit.actionsLeft + 1);
+
+    // The turned-off rule says so.
+    await expect(
+      rows.nth(3).getByText("Disabled", { exact: true }),
+    ).toBeVisible();
+
+    // Every name in full, on as many lines as it takes.
+    const cutNames: Array<string> = await card.evaluate((element: Element) => {
+      return Array.from(element.querySelectorAll("tbody tr"))
+        .map((row: Element): HTMLElement => {
+          return row.querySelectorAll("td")[2]!
+            .firstElementChild as HTMLElement;
+        })
+        .filter((name: HTMLElement): boolean => {
+          return (
+            name.scrollWidth > name.clientWidth + 1 ||
+            name.scrollHeight > name.clientHeight + 1
+          );
+        })
+        .map((name: HTMLElement): string => {
+          return name.innerText;
+        });
+    });
+    expect(cutNames).toEqual([]);
+    await expect(rows.nth(3)).toContainText(
+      "SEV1 and SEV2 incidents on the payments platform and the customer-facing API",
+    );
+
+    // Three templates, then how many more - which shows the rest.
+    expect(await templatesIn(rows.nth(3))).toEqual([
+      "Customer-facing outage",
+      "Database outage",
+      "Network partition between regions",
+    ]);
+    await rows
+      .nth(3)
+      .getByRole("button", { name: "2 more templates", exact: true })
+      .click();
+    expect(await templatesIn(rows.nth(3))).toEqual([
+      "Customer-facing outage",
+      "Database outage",
+      "Network partition between regions",
+      "Payments and checkout outage",
+      "Security incident",
+    ]);
+    await expect(
+      rows.nth(3).getByRole("button", { name: "Show less", exact: true }),
+    ).toBeVisible();
+
+    await screenshot(page, "rules-beside-menu");
+  });
+});
+
 test.describe("everywhere", () => {
   test("on a phone every rule reads in full, and the page never scrolls sideways", async ({
     page,
@@ -686,6 +805,33 @@ test.describe("everywhere", () => {
     expect(sideways).toBeLessThanOrEqual(0);
 
     await screenshot(page, "phone");
+  });
+
+  test("on a phone a turned-off rule says Disabled, as the others say Enabled", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openPage(page, "rules=4");
+    await unfold(page);
+
+    const card: Locator = rulesCard(page);
+    await expect(
+      card.getByText(
+        "SEV1 and SEV2 incidents on the payments platform and the customer-facing API",
+      ),
+    ).toBeVisible();
+
+    // Each rule is a card of its fields; the turned-off one keeps its Status.
+    await expect(card.getByText("Enabled", { exact: true })).toHaveCount(3);
+    await expect(card.getByText("Disabled", { exact: true })).toHaveCount(1);
+    await expect(card.getByText("Disabled", { exact: true })).toBeVisible();
+
+    // Its templates, the first three, then how many more.
+    await expect(
+      card.getByRole("button", { name: "2 more templates", exact: true }),
+    ).toBeVisible();
   });
 
   test("in dark mode the card is drawn on the dark surface", async ({

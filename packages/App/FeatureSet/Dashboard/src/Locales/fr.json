@@ -31246,5 +31246,7 @@
   "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "Quels incidents sont investigués, corrigés ou reçoivent un brouillon de post-mortem, et les limites des investigations et du travail IA quotidien.",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "Sans règle, OneUptime AI rédige un post-mortem pour chaque incident résolu. Ajoutez des règles pour ne rédiger que pour les incidents qui correspondent à l'une d'elles, et pour choisir les modèles que suit un brouillon. La première règle qui correspond s'applique - faites glisser les règles pour les réordonner.",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.": "Sans règle, OneUptime AI rédige un post-mortem pour chaque incident résolu. Ajoutez des règles pour ne rédiger que pour les incidents qui correspondent à l'une d'elles.",
-  "e.g. Draft with Database outage": "ex. Rédiger avec Database outage"
+  "e.g. Draft with Database outage": "ex. Rédiger avec Database outage",
+  "{{count}} more templates": "{{count}} autres modèles",
+  "{{count}} more templates_one": "{{count}} autre modèle"
 }

@@ -31246,5 +31246,7 @@
   "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "Hvilke hændelser der undersøges, rettes eller får et udkast til en postmortem, og grænser for undersøgelser og for AI-arbejde hver dag.",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "Uden regler skriver OneUptime AI et udkast til en postmortem for hver løst hændelse. Tilføj regler for kun at skrive udkast for de hændelser, der matcher en af dem, og for at vælge de skabeloner, et udkast følger. Den første regel, der matcher, gælder - træk regler for at ændre rækkefølgen.",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.": "Uden regler skriver OneUptime AI et udkast til en postmortem for hver løst hændelse. Tilføj regler for kun at skrive udkast for de hændelser, der matcher en af dem.",
-  "e.g. Draft with Database outage": "f.eks. Skriv udkast med Database outage"
+  "e.g. Draft with Database outage": "f.eks. Skriv udkast med Database outage",
+  "{{count}} more templates": "{{count}} skabeloner mere",
+  "{{count}} more templates_one": "{{count}} skabelon mere"
 }

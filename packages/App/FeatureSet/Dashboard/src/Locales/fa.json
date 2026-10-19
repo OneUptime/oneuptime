@@ -31246,5 +31246,7 @@
   "Which incidents are investigated, fixed or given a postmortem draft, and limits on investigations and on AI work each day.": "کدام حوادث بررسی یا اصلاح می‌شوند یا پیش‌نویس گزارش پس از حادثه می‌گیرند، و محدودیت‌های بررسی‌ها و کار روزانه هوش مصنوعی.",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them, and to choose the templates a draft follows. The first rule that matches decides - drag rules to reorder them.": "بدون هیچ قاعده‌ای، OneUptime AI برای هر حادثه حل‌شده پیش‌نویس گزارش پس از حادثه می‌نویسد. قواعدی اضافه کنید تا فقط برای حوادثی که با یکی از آن‌ها منطبق‌اند پیش‌نویس نوشته شود و قالب‌های پیش‌نویس را انتخاب کنید. اولین قاعده منطبق اعمال می‌شود - برای تغییر ترتیب، قواعد را بکشید.",
   "With no rule, OneUptime AI drafts a postmortem for every resolved incident. Add rules to draft only for the incidents that match one of them.": "بدون هیچ قاعده‌ای، OneUptime AI برای هر حادثه حل‌شده پیش‌نویس گزارش پس از حادثه می‌نویسد. قواعدی اضافه کنید تا فقط برای حوادثی که با یکی از آن‌ها منطبق‌اند پیش‌نویس نوشته شود.",
-  "e.g. Draft with Database outage": "برای نمونه پیش‌نویس با Database outage"
+  "e.g. Draft with Database outage": "برای نمونه پیش‌نویس با Database outage",
+  "{{count}} more templates": "{{count}} قالب دیگر",
+  "{{count}} more templates_one": "{{count}} قالب دیگر"
 }

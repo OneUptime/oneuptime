@@ -103,3 +103,12 @@ export const POSTMORTEM_RULE_STANDARD_OUTLINE_NAME: string = translationKey(
 // The table's columns that are the rule's own (the conditions draw theirs).
 export const POSTMORTEM_RULE_TEMPLATES_COLUMN_TITLE: string =
   translationKey("Templates");
+
+/*
+ * After a rule's first three templates in the table, the button that shows
+ * the rest: "2 more templates" (TableColumnListComponent's getMoreText).
+ */
+export const POSTMORTEM_RULE_MORE_TEMPLATES: PluralTemplate = {
+  one: "{{count}} more template",
+  other: "{{count}} more templates",
+};

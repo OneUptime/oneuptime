@@ -19,6 +19,7 @@ import {
   POSTMORTEM_RULE_DRAFT_STEP_ID,
   POSTMORTEM_RULE_DRAFT_STEP_TITLE,
   POSTMORTEM_RULE_MATCH_STEP_ID,
+  POSTMORTEM_RULE_MORE_TEMPLATES,
   POSTMORTEM_RULE_NAME_DESCRIPTION,
   POSTMORTEM_RULE_NAME_PLACEHOLDER,
   POSTMORTEM_RULE_NAME_WORDING,
@@ -106,6 +107,8 @@ function readLocale(locale: string): Record<string, unknown> {
 const INCIDENT_PAGE: string = "Pages/Incidents/Settings/IncidentAISettings.tsx";
 const ALERT_PAGE: string = "Pages/Alerts/Settings/AlertAISettings.tsx";
 const TABLE: string = "Components/AISettings/AIPostmortemRulesTable.tsx";
+const TEMPLATES_CELL: string =
+  "Components/AISettings/PostmortemRuleTemplates.tsx";
 const COPY: string = "Components/AISettings/PostmortemRulesCopy.ts";
 const FORM: string = "Components/AISettings/PostmortemRuleForm.ts";
 
@@ -276,6 +279,47 @@ describe("Postmortem rules under More settings", () => {
     expect(AI_POSTMORTEM_RULES_TABLE_ID).toBe("ai-postmortem-rules-table");
   });
 
+  /*
+   * Seven columns share a card about 940px wide beside the side menu at
+   * 1280px. The templates were one line of names, which pushed Status out
+   * of the card (the rows scrolled sideways), and every name was cut to
+   * "Draft with Database...". Measured in packages/E2E/PostmortemRules.
+   */
+  test("the table fits beside the side menu: names wrap, templates are a capped list, one a line", () => {
+    const table: string = readSource(TABLE);
+
+    expect(table).toContain(
+      'columns={[ { field: { name: true }, title: "Name", type: FieldType.Text, wrapContent: true, },',
+    );
+    expect(table).toContain(
+      "wrapContent: true, wrapMaxWidthClassName: POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME,",
+    );
+    expect(table).toContain(
+      "<PostmortemRuleTemplates templates={item.postmortemTemplates} />",
+    );
+    // No width cap through contentClassName (TableWrapContentInvariants).
+    expect(table).not.toContain("contentClassName");
+
+    const cell: string = readSource(TEMPLATES_CELL);
+
+    expect(cell).toContain(
+      'POSTMORTEM_RULE_TEMPLATES_COLUMN_CLASS_NAME: string = "max-w-[11rem] 2xl:max-w-[18rem]";',
+    );
+    // The list every table draws records with: three, then how many more.
+    expect(cell).toContain("<TableColumnListComponent<TemplateItem>");
+    expect(cell).toContain(
+      "translator.translatePlural(POSTMORTEM_RULE_MORE_TEMPLATES, count)",
+    );
+  });
+
+  test("below the plan, the rule's Name has no help: the column's description would only repeat it", () => {
+    const table: string = readSource(TABLE);
+
+    expect(table).toContain(
+      'description: offersTemplates ? POSTMORTEM_RULE_NAME_DESCRIPTION : "", hideColumnDescription: true,',
+    );
+  });
+
   test("the model it lists is the server's postmortem rule", () => {
     expect(new AIPostmortemRule().tableName).toBe("AIPostmortemRule");
   });
@@ -314,6 +358,7 @@ describe("Postmortem rules: translations", () => {
     POSTMORTEM_RULE_NAME_PLACEHOLDER,
     POSTMORTEM_RULE_NAME_WORDING.allPicks,
     POSTMORTEM_RULE_NAME_WORDING.somePicks.other,
+    POSTMORTEM_RULE_MORE_TEMPLATES.other,
     AI_LANE_PAGE_COPY[AiLane.Incident].advancedDescription,
     AI_LANE_PAGE_COPY[AiLane.Incident].advancedDefaultsSummary,
     new AIPostmortemRule().tableDescription || "",
@@ -339,6 +384,9 @@ describe("Postmortem rules: translations", () => {
 
     expect(english[`${POSTMORTEM_RULE_NAME_WORDING.somePicks.other}_one`]).toBe(
       POSTMORTEM_RULE_NAME_WORDING.somePicks.one,
+    );
+    expect(english[`${POSTMORTEM_RULE_MORE_TEMPLATES.other}_one`]).toBe(
+      POSTMORTEM_RULE_MORE_TEMPLATES.one,
     );
   });
 
@@ -368,6 +416,13 @@ describe("Postmortem rules: translations", () => {
 
       expect(typeof one).toBe("string");
       expect(String(one)).toContain("{{templates}}");
+
+      // "2 more templates": the count in both forms.
+      const moreOne: unknown =
+        translations[`${POSTMORTEM_RULE_MORE_TEMPLATES.other}_one`];
+
+      expect(typeof moreOne).toBe("string");
+      expect(String(moreOne)).toContain("{{count}}");
     },
   );
 });
