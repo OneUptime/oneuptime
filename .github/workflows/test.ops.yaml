@@ -80,7 +80,9 @@ jobs:
       # backup.sh and restore.sh connect reaches it, npm start's first step sees
       # whether its database exists, and the Docker Compose guide's commands
       # work as written. It pulls postgres:15, and fails rather than skips
-      # when docker is not usable.
+      # when docker is not usable. The same flag starts docker-compose.yml's
+      # ClickHouse and Valkey (ComposeDatastorePasswordRuntime.test.js) to
+      # check they take the new passwords npm start gives an existing install.
       - run: cd Tests/Ops && npm run test
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"

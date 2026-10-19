@@ -39,6 +39,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ShippedKeyTakeover from "../Utils/ShippedKeyTakeover";
+import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -149,6 +150,9 @@ export class Service extends ProjectReferencesService<Model> {
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
+
+    // Never a value this repository ships, whoever writes it (ComponentKeyWrite).
+    ComponentKeyWrite.assertCreatedKey(createBy.data.key, "an AI agent");
 
     if (!createBy.data.aiAgentVersion) {
       createBy.data.aiAgentVersion = new Version("1.0.0");
@@ -276,6 +280,9 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    // A key it writes is never a value this repository ships (ComponentKeyWrite).
+    ComponentKeyWrite.assertUpdatedKey(updateBy.data, "an AI agent");
 
     const carryForward: any = {
       aiAgentsToNotifyOwners: [],

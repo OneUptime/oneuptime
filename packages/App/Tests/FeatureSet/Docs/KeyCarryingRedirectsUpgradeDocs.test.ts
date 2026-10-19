@@ -16,7 +16,8 @@ import path from "path";
  *
  *   - the note (installation/upgrading, "Other changes in 14") sits after
  *     the note on the keys a global probe and the bundled Runner may not use
- *     and before the pointer to the endpoint changes;
+ *     and before the note on the bundled datastores' passwords
+ *     (DatastorePasswordUpgradeDocs);
  *   - what it says a request follows - the same address, or that address
  *     moved from http to https - and refuses - another server, a host name
  *     of another domain - is what SameServerRedirect decides;
@@ -34,7 +35,9 @@ const NOTE_LEAD: string =
 // The note before it (ProbeRunnerKeyUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+// The note after it (DatastorePasswordUpgradeDocs).
+const NEXT_LEAD: string =
+  "**The bundled ClickHouse and Valkey get passwords of their own.**";
 
 const ADDRESS_SETTING: string = "ONEUPTIME_URL";
 
@@ -61,7 +64,7 @@ function linksOf(markdown: string): Array<string> {
 }
 
 describe("the English upgrade note on the redirects of requests that carry a key", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on the global-probe and Runner keys and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the global-probe and Runner keys and before the note on the bundled datastores' passwords", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -73,9 +76,9 @@ describe("the English upgrade note on the redirects of requests that carry a key
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says which redirects are followed and which fail, as the code decides", () => {

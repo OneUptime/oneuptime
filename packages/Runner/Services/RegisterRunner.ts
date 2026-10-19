@@ -102,6 +102,17 @@ export const SHIPPED_RUNNER_KEY_RUNNER_MESSAGE: string =
   'This in-cluster Runner cannot register: its ONEUPTIME_RUNNER_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value as a Runner key, so nothing is sent. Set ONEUPTIME_RUNNER_KEY to a long random value on this Runner, then restart it: with Docker Compose, npm start and npm run update put one in config.env; the Helm chart generates one unless runner.key is set.';
 
 /*
+ * Thrown, before any request, by a Runner a project created (Runbooks >
+ * Runners) whose ONEUPTIME_RUNNER_KEY is a value the OneUptime repository
+ * ships: the server refuses that value as a Runner key wherever one is
+ * presented (RunnerService.findByIdAndKey), and never stores one as a
+ * Runner's key, so it is never sent. Only a new key from the dashboard and a
+ * restart help, so the retry loop says so once and keeps the container up.
+ */
+export const SHIPPED_PROJECT_RUNNER_KEY_MESSAGE: string =
+  'This Runner cannot connect: its ONEUPTIME_RUNNER_KEY is still a value shipped in the OneUptime repository ("secret", or a "please-change-this-to-random-value" placeholder), and OneUptime refuses that value as a Runner key, so nothing is sent. In Runbooks > Runners, open this Runner, reset its key, set the new key as ONEUPTIME_RUNNER_KEY on this Runner, then restart it.';
+
+/*
  * A setting of the Runner's own that holds a value the repository ships, so
  * the Runner sends nothing: only an operator setting it and restarting the
  * Runner helps. The retry loop treats every such error alike - its slowest
@@ -127,6 +138,13 @@ export class ShippedRunnerKeyError extends ShippedSecretSettingError {
   public constructor() {
     super(SHIPPED_RUNNER_KEY_RUNNER_MESSAGE, "ONEUPTIME_RUNNER_KEY");
     this.name = "ShippedRunnerKeyError";
+  }
+}
+
+export class ShippedProjectRunnerKeyError extends ShippedSecretSettingError {
+  public constructor() {
+    super(SHIPPED_PROJECT_RUNNER_KEY_MESSAGE, "ONEUPTIME_RUNNER_KEY");
+    this.name = "ShippedProjectRunnerKeyError";
   }
 }
 
@@ -866,6 +884,14 @@ export default class Register {
         throw new Error(
           "ONEUPTIME_RUNNER_ID must be set for a project-scoped Runner (create one in Runbooks > Runners), or a cluster key for the in-cluster Runner. The Runner keeps retrying until one is provided.",
         );
+      }
+
+      /*
+       * Nor does it present a key the repository ships: the server refuses
+       * that value as a Runner key, so it is never sent.
+       */
+      if (isShippedSecretValue(RUNNER_KEY)) {
+        throw new ShippedProjectRunnerKeyError();
       }
 
       const heartbeatUrl: URL = URL.fromString(

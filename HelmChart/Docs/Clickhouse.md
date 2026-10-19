@@ -130,8 +130,37 @@ echo $(kubectl get secret --namespace "default" oneuptime-clickhouse-altinity -o
 > Do **not** enable the bundled operator in more than one OneUptime release in the
 > same cluster (they would fight over the CRDs/RBAC). If you already run the
 > Altinity operator cluster-wide, do not use the bundled mode. Tune the operator
-> itself (including its `clickhouse_operator` management-user credentials) under the
-> top-level `altinity-clickhouse-operator:` values.
+> itself under the top-level `altinity-clickhouse-operator:` values.
+
+#### The operator's own password
+
+The operator manages ClickHouse with a user of its own, `clickhouse_operator`,
+which ClickHouse lets in only from the operator's pod. Its credentials are the
+Secret `<release>-altinity-clickhouse-operator`, which this chart renders (the
+operator chart's own `secret.create` is left `false`, because its Secret gives
+every installation the same password):
+
+- A new install gets a random password, kept on every upgrade.
+- An installation that already has the Secret keeps the password in it: the
+  running operator, and every ClickHouse it manages, hold that one. When it is
+  still the password the operator chart ships (`clickhouse_operator_password`),
+  `helm upgrade` prints how to change it.
+- A password set as `altinity-clickhouse-operator.secret.password` replaces it.
+  Set one when the chart is rendered with `helm template` (as Argo CD does):
+  `helm template` cannot read the stored Secret, so it would make a new password
+  on every render.
+
+To change the password, set `altinity-clickhouse-operator.secret.password` to a
+long random value (`openssl rand -hex 32` makes one), run `helm upgrade`, then
+restart the operator:
+
+```
+kubectl rollout restart deployment/<release>-altinity-clickhouse-operator --namespace <namespace>
+```
+
+The operator reads its password only when it starts. Started on a new pod, it
+reconciles every `ClickHouseInstallation` it manages, which gives ClickHouse the
+new password.
 
 #### Replication, sharding, and scaling
 
