@@ -1,7 +1,8 @@
 import RunnerAuthorization from "../Middleware/RunnerAuthorization";
 import { RunnerExpressRequest } from "../Types/Request";
-import RunbookSecretsUtil from "../Utils/Secrets";
-import { getSecretNamesNotIn } from "../Utils/SecretNames";
+import RunbookJobVariables, {
+  PreparedJobVariables,
+} from "../Utils/JobVariables";
 import RunbookCredentialsUtil from "../Utils/Credentials";
 import RunnerService, {
   Service as RunnerServiceClass,
@@ -37,7 +38,15 @@ import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
-import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
+import {
+  RUNNER_FEATURE_KUBECTL_SCRIPT,
+  readRunnerFeatures,
+} from "Common/Types/Runbook/RunnerFeatures";
+import {
+  RunbookVariableReference,
+  RunbookVariableScope,
+} from "Common/Types/Runbook/RunbookVariableReference";
+import { RunbookVariableAccess } from "Common/Server/Utils/Runbook/RunbookVariableResolver";
 import {
   GLOBAL_RUNNER_STEP_TYPES,
   canGlobalRunnersRunStepType,
@@ -60,28 +69,12 @@ export default class RunnerIngressAPI {
   public router!: ExpressRouter;
 
   /*
-   * Why a step on a global Runner that names runbook secrets global Runners
-   * may not use was not run: their names (never their values), and the two
-   * ways out.
+   * Why a kubectl step that takes a script was not run on a Runner that
+   * did not say it can run one (RunnerFeatures): a Runner older than
+   * kubectl scripts would fail it with a confusing error of its own.
    */
-  public static describeSecretsNotForGlobalRunners(
-    names: Array<string>,
-  ): string {
-    const shown: Array<string> = names.slice(0, 5).map((name: string) => {
-      return `"${name.length > 80 ? `${name.slice(0, 80)}…` : name}"`;
-    });
-
-    const more: string =
-      names.length > shown.length
-        ? ` and ${names.length - shown.length} more`
-        : "";
-
-    return `This step uses the runbook secret${names.length === 1 ? "" : "s"} ${shown.join(
-      ", ",
-    )}${more}, which global Runners may not use, so it was not run. Turn on "Global Runners can use this secret" for ${
-      names.length === 1 ? "it" : "them"
-    } under Runbooks → Settings → Secrets, or pick one of your own Runners for the step.`;
-  }
+  public static readonly KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER: string =
+    "This kubectl step runs a script, and this Runner is too old to run one, so it was not run. Update the Runner to the version of your OneUptime server (pull its image again and restart it), then run the runbook again.";
 
   // Why a job naming a credential is failed for a global Runner.
   public static readonly GLOBAL_RUNNER_CREDENTIAL_REFUSAL: string =
@@ -497,15 +490,18 @@ export default class RunnerIngressAPI {
       }
 
       /*
-       * Substitute {{runbookSecrets.NAME}} placeholders in the script with
-       * the agent's assigned secret values. Secrets are loaded per claim so
-       * a freshly-rotated value reaches the next run without redeploying
-       * the agent, and the stored script row never holds plaintext values.
+       * Fill in the runbook variables the step names - in its script, and
+       * for an SSH or kubectl step in its host, user, key, password or
+       * kubeconfig (RunbookJobVariables). Read per claim so a value changed
+       * a moment ago reaches the next run, and the stored job row never
+       * holds a value. A secret reaches only a Runner it lists; a step that
+       * names one it may not have is failed with the reason, not run with a
+       * placeholder in its script.
        *
        * NEVER for AI-composed commands: a human authored every runbook
-       * script, but an AI-composed command is model output shaped by
-       * attacker-influenceable telemetry. Substituting there would turn
-       * `{{runbookSecrets.X}}` into an exfiltration macro that reads
+       * step, but an AI-composed command is model output shaped by
+       * attacker-influenceable telemetry. Filling in there would turn
+       * `{{global.variables.X}}` into an exfiltration macro that reads
        * harmless on the approval card and expands to the plaintext secret
        * at claim time. AI commands reach credentials only through the
        * credentialId path below, which never exposes the material to the
@@ -516,30 +512,66 @@ export default class RunnerIngressAPI {
        * handed a secret (and it is served kubectl only, which has no script).
        */
       let scriptToSend: string = job.script ?? "";
+      let payloadToSend: JSONObject | undefined =
+        (job.payload as JSONObject | undefined) || undefined;
+      let credential: JSONObject | null = null;
+      let secretValues: Array<string> = [];
+
       if (
-        scriptToSend &&
         !isAgentRunnerRow &&
-        !AI_COMMAND_JOB_ORIGINS.includes(job.origin || RunnerJobOrigin.Runbook)
+        !AI_COMMAND_JOB_ORIGINS.includes(
+          job.origin || RunnerJobOrigin.Runbook,
+        ) &&
+        RunbookJobVariables.usesVariables(job)
       ) {
-        const secrets: Array<RunbookSecret> =
-          await RunbookSecretsUtil.loadForAgent({
+        if (
+          job.stepType === RunbookStepType.Kubernetes &&
+          !readRunnerFeatures(body["features"]).includes(
+            RUNNER_FEATURE_KUBECTL_SCRIPT,
+          )
+        ) {
+          await RunnerJobService.submitResult({
+            jobId: job.id!,
             agentId: agent.id,
-            projectId: agent.projectId,
+            success: false,
+            errorMessage: RunnerIngressAPI.KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER,
           });
-        scriptToSend = RunbookSecretsUtil.populateInScript({
-          script: scriptToSend,
-          secrets,
-        });
+
+          return Response.sendJsonObjectResponse(req, res, { job: null });
+        }
+
+        const prepared: PreparedJobVariables =
+          await RunnerIngressAPI.prepareJobVariables({
+            job,
+            projectId: agent.projectId,
+            access: { kind: "project-runner", runnerId: agent.id },
+          });
+
+        if (prepared.isRefused) {
+          await RunnerJobService.submitResult({
+            jobId: job.id!,
+            agentId: agent.id,
+            success: false,
+            errorMessage: prepared.refusal,
+          });
+
+          return Response.sendJsonObjectResponse(req, res, { job: null });
+        }
+
+        scriptToSend = prepared.script;
+        payloadToSend = prepared.payload || payloadToSend;
+        credential = prepared.credential || null;
+        secretValues = prepared.secretValues;
       }
 
       /*
-       * Steps that act on other systems carry structured instructions plus a
-       * credential reference. The credential is resolved HERE, scoped to this
-       * Runner and this project, so its secret material exists on the wire
-       * only in the response to the Runner that was targeted — never on the
-       * job row, and never readable through the CRUD API.
+       * Steps written before runbook variables, and OneUptime AI's SSH and
+       * kubectl commands, carry a credential reference. The credential is
+       * resolved HERE, scoped to this Runner and this project, so its secret
+       * material exists on the wire only in the response to the Runner that
+       * was targeted — never on the job row, and never readable through the
+       * CRUD API.
        */
-      let credential: JSONObject | null = null;
       const payload: JSONObject = (job.payload as JSONObject) || {};
       const credentialId: unknown = payload["credentialId"];
 
@@ -645,8 +677,9 @@ export default class RunnerIngressAPI {
           script: scriptToSend,
           timeoutInMs: job.timeoutInMs,
           leaseExpiresAt: job.leaseExpiresAt?.toISOString(),
-          ...(job.payload ? { payload: job.payload } : {}),
+          ...(payloadToSend ? { payload: payloadToSend } : {}),
           ...(credential ? { credential } : {}),
+          ...(secretValues.length > 0 ? { secretValues } : {}),
           ...(runInputs
             ? { inputs: runInputs.inputs, trigger: runInputs.trigger }
             : {}),
@@ -658,14 +691,76 @@ export default class RunnerIngressAPI {
   }
 
   /*
+   * The runbook a job's step belongs to, read from its run - only when the
+   * step names one of the runbook's own variables ({{local.variables.X}}),
+   * so a claim that names none reads nothing more. Null when the job has no
+   * run, or its run is not the project's.
+   */
+  public static async getRunbookIdForJob(data: {
+    job: RunnerJob;
+    projectId: ObjectID;
+    references: Array<RunbookVariableReference>;
+  }): Promise<ObjectID | null> {
+    const namesLocal: boolean = data.references.some(
+      (reference: RunbookVariableReference): boolean => {
+        return reference.scope === RunbookVariableScope.Local;
+      },
+    );
+
+    if (!namesLocal || !data.job.runbookExecutionId) {
+      return null;
+    }
+
+    const execution: RunbookExecution | null =
+      await RunbookExecutionService.findOneById({
+        id: data.job.runbookExecutionId,
+        select: { projectId: true, runbookId: true },
+        props: { isRoot: true },
+      });
+
+    if (
+      !execution ||
+      !execution.runbookId ||
+      execution.projectId?.toString() !== data.projectId.toString()
+    ) {
+      return null;
+    }
+
+    return execution.runbookId;
+  }
+
+  // A runbook step's variables, filled in for whoever took it.
+  public static async prepareJobVariables(data: {
+    job: RunnerJob;
+    projectId: ObjectID;
+    access: RunbookVariableAccess;
+  }): Promise<PreparedJobVariables> {
+    const runbookId: ObjectID | null = await RunnerIngressAPI.getRunbookIdForJob(
+      {
+        job: data.job,
+        projectId: data.projectId,
+        references: RunbookJobVariables.getReferences(data.job),
+      },
+    );
+
+    return RunbookJobVariables.prepare({
+      job: data.job,
+      projectId: data.projectId,
+      runbookId,
+      access: data.access,
+    });
+  }
+
+  /*
    * A claim by a global Runner: the next step that waits for any global
    * Runner (RunnerJobService.claimNextGlobalJob - only a runbook's own step,
    * only a type global Runners run, never of a project that turned them
    * off), handed over the way a project's own Runner is handed its step,
    * with everything read from the step's OWN project:
    *
-   *   - its script, with the secrets of that project its people let global
-   *     Runners use filled in (RunbookSecretsUtil.loadForGlobalRunnerJob);
+   *   - its script, with the variables it names filled in: the plain ones,
+   *     and the secrets of that project its people let global Runners use
+   *     (RunbookJobVariables, with the global-runner access);
    *   - the inputs and trigger of the run it belongs to, from that project;
    *   - never a credential: a step that names one is failed, not handed
    *     over (global Runners run no SSH or Kubernetes step, and the job
@@ -716,46 +811,35 @@ export default class RunnerIngressAPI {
     }
 
     let scriptToSend: string = job.script ?? "";
+    let secretValues: Array<string> = [];
 
     if (scriptToSend) {
-      const secrets: Array<RunbookSecret> =
-        await RunbookSecretsUtil.loadForGlobalRunnerJob({
+      /*
+       * A variable the step names that global Runners may not have - a
+       * secret not switched on for them, or one that does not exist - fails
+       * the step, saying which and how to fix it, rather than running it
+       * with the placeholder where the value should be.
+       */
+      const prepared: PreparedJobVariables =
+        await RunnerIngressAPI.prepareJobVariables({
+          job,
           projectId: job.projectId,
+          access: { kind: "global-runner" },
         });
 
-      /*
-       * A secret the step names that global Runners may not use fails the
-       * step, saying which and how to fix it - rather than running it with
-       * the placeholder where the value should be.
-       */
-      const notAvailable: Array<string> = getSecretNamesNotIn({
-        script: scriptToSend,
-        available: secrets
-          .filter((secret: RunbookSecret): boolean => {
-            // A secret with no value would leave its placeholder unfilled.
-            return Boolean(secret.name && secret.secretValue);
-          })
-          .map((secret: RunbookSecret): string => {
-            return secret.name as string;
-          }),
-      });
-
-      if (notAvailable.length > 0) {
+      if (prepared.isRefused) {
         await RunnerJobService.submitResult({
           jobId: job.id!,
           agentId: agent.id,
           success: false,
-          errorMessage:
-            RunnerIngressAPI.describeSecretsNotForGlobalRunners(notAvailable),
+          errorMessage: prepared.refusal,
         });
 
         return { job: null };
       }
 
-      scriptToSend = RunbookSecretsUtil.populateInScript({
-        script: scriptToSend,
-        secrets,
-      });
+      scriptToSend = prepared.script;
+      secretValues = prepared.secretValues;
     }
 
     const runInputs: RunInputsForJob | null =
@@ -778,6 +862,7 @@ export default class RunnerIngressAPI {
         timeoutInMs: job.timeoutInMs,
         leaseExpiresAt: job.leaseExpiresAt?.toISOString(),
         runsOnGlobalRunner: true,
+        ...(secretValues.length > 0 ? { secretValues } : {}),
         ...(runInputs
           ? { inputs: runInputs.inputs, trigger: runInputs.trigger }
           : {}),
@@ -788,14 +873,16 @@ export default class RunnerIngressAPI {
   /*
    * The values the job's run was started with - the JSON body of the webhook
    * call that started it - and what started it, for the steps that take data
-   * from outside: a Bash step's environment and a JavaScript step's args
-   * (Types/Runbook/RunbookInputs). Sent BESIDE the script, never into it:
-   * the script the Runner gets is the one the runbook's author wrote, so a
-   * value a caller sends cannot become a command.
+   * from outside: a Bash or kubectl step's environment and a JavaScript
+   * step's args (Types/Runbook/RunbookInputs). Sent BESIDE the script, never
+   * into it: the script the Runner gets is the one the runbook's author
+   * wrote, so a value a caller sends cannot become a command.
    *
-   * Only for a runbook's own Bash and JavaScript steps, read from the run
-   * the job belongs to in the Runner's own project. Never for an
-   * AI-composed command, nor for a kubernetes-agent Runner, which runs
+   * Only for a runbook's own Bash, JavaScript and kubectl steps (a kubectl
+   * step that takes a script runs it with bash on the Runner, as a Bash step
+   * does), read from the run the job belongs to in the Runner's own project.
+   * Never for an SSH step, whose script runs on another machine; never for
+   * an AI-composed command, nor for a kubernetes-agent Runner, which runs
    * kubectl only. Null when there is nothing to send.
    */
   public static async getRunInputsForJob(data: {
@@ -805,12 +892,17 @@ export default class RunnerIngressAPI {
   }): Promise<RunInputsForJob | null> {
     const origin: RunnerJobOrigin = data.job.origin || RunnerJobOrigin.Runbook;
 
+    const takesInputs: boolean =
+      data.job.stepType === RunbookStepType.Bash ||
+      data.job.stepType === RunbookStepType.JavaScript ||
+      (data.job.stepType === RunbookStepType.Kubernetes &&
+        RunbookJobVariables.usesVariables(data.job));
+
     if (
       data.isAgentRunnerRow ||
       origin !== RunnerJobOrigin.Runbook ||
       !data.job.runbookExecutionId ||
-      (data.job.stepType !== RunbookStepType.Bash &&
-        data.job.stepType !== RunbookStepType.JavaScript)
+      !takesInputs
     ) {
       return null;
     }

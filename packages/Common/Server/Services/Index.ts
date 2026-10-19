@@ -163,7 +163,7 @@ import RunbookOwnerRuleService from "./RunbookOwnerRuleService";
 import RunbookOwnerUserService from "./RunbookOwnerUserService";
 import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
 import RunbookLabelRuleService from "./RunbookLabelRuleService";
-import RunbookSecretService from "./RunbookSecretService";
+import RunbookVariableService from "./RunbookVariableService";
 import AIInsightService from "./AIInsightService";
 
 // Monitors
@@ -674,7 +674,7 @@ const services: Array<BaseService> = [
   RunbookOwnerUserService,
   RunbookOwnerTeamService,
   RunbookLabelRuleService,
-  RunbookSecretService,
+  RunbookVariableService,
   AIInsightService,
   MonitorFeedService,
   KubernetesClusterFeedService,

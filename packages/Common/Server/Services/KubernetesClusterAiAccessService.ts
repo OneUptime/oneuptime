@@ -73,7 +73,7 @@ import LlmProviderService from "./LlmProviderService";
 import MonitorService from "./MonitorService";
 import ProjectService from "./ProjectService";
 import RunbookCredentialService from "./RunbookCredentialService";
-import RunbookSecretService from "./RunbookSecretService";
+import RunbookVariableService from "./RunbookVariableService";
 import RunnerService, {
   Service as RunnerServiceClass,
   getKubernetesAgentRunnerNameForCluster,
@@ -2325,10 +2325,12 @@ class KubernetesClusterAiAccessServiceClass {
       });
     }
 
+    // Only a secret runbook variable lists the Runners it reaches.
     const assignedSecrets: number = (
-      await RunbookSecretService.countBy({
+      await RunbookVariableService.countBy({
         query: {
           projectId: data.projectId,
+          isSecret: true,
           runners: QueryHelper.inRelationArray([data.runner.id!]),
         },
         props: { isRoot: true },
@@ -2337,8 +2339,8 @@ class KubernetesClusterAiAccessServiceClass {
 
     if (assignedSecrets > 0) {
       holdings.push({
-        description: `${assignedSecrets} runbook secret(s) assigned`,
-        remedy: `unassign its ${assignedSecrets} runbook secret(s)`,
+        description: `${assignedSecrets} secret runbook variable(s) assigned`,
+        remedy: `unassign its ${assignedSecrets} secret runbook variable(s)`,
       });
     }
 

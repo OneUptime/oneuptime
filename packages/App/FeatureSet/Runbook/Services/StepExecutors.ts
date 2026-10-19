@@ -8,7 +8,24 @@ import {
   KubernetesStepConfig,
   RunbookStep,
   SSHStepConfig,
+  isLegacyKubernetesStepConfig,
+  isLegacySSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
+import {
+  RunbookVariableReference,
+  findRunbookVariableReferencesIn,
+  getRunbookVariableReferenceKey,
+  parseSingleRunbookVariableReference,
+} from "Common/Types/Runbook/RunbookVariableReference";
+import {
+  RunbookVariableProblem,
+  RunbookVariableProblemReason,
+  describeRunbookVariableProblems,
+} from "Common/Types/Runbook/RunbookVariableProblems";
+import RunbookVariableResolver, {
+  ResolvedRunbookVariable,
+  RunbookVariableResolution,
+} from "Common/Server/Utils/Runbook/RunbookVariableResolver";
 import { JSONObject } from "Common/Types/JSON";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -40,6 +57,11 @@ export interface StepRunResult {
 export interface StepExecutionContext {
   projectId: ObjectID;
   runbookExecutionId: ObjectID;
+  /*
+   * The runbook the run is of: where a step's own variables
+   * ({{local.variables.NAME}}) are read from.
+   */
+  runbookId?: ObjectID | undefined;
   /*
    * Extra execution context consumed by AI steps: what triggered the run,
    * and the state of every step that ran before the current one. Optional
@@ -127,6 +149,14 @@ async function dispatchToAgent(args: {
    * secret material — the credential is resolved at claim time.
    */
   payload?: JSONObject | undefined;
+  /*
+   * The fields of the step that name runbook variables, and of those the
+   * ones that take a secret (one reference each). Checked before a new job
+   * is sent (getVariableRefusal); the values are read only when a Runner
+   * takes it.
+   */
+  variableTexts?: Array<string> | undefined;
+  secretFields?: Array<string> | undefined;
 }): Promise<StepRunResult> {
   const refusalFromStep: RunnerChoiceDecision | null =
     getRunnerChoiceRefusalFromStep({
@@ -236,6 +266,26 @@ async function dispatchToAgent(args: {
     return { success: true, output: "" };
   }
 
+  try {
+    const variableRefusal: string | null = await getVariableRefusal({
+      ctx: args.ctx,
+      texts: args.variableTexts || [],
+      secretFields: args.secretFields || [],
+    });
+
+    if (variableRefusal) {
+      return { success: false, output: "", errorMessage: variableRefusal };
+    }
+  } catch (err) {
+    logger.error(`${args.stepType} step: could not read its variables`);
+    logger.error(err);
+    return {
+      success: false,
+      output: "",
+      errorMessage: err instanceof Error ? err.message : String(err),
+    };
+  }
+
   const runsOnGlobalRunner: boolean = decision.kind === "global";
 
   /*
@@ -280,6 +330,74 @@ async function dispatchToAgent(args: {
   }
 }
 
+/*
+ * Why a step cannot have the variables it names, checked before a new job
+ * is sent rather than after a Runner takes it: a variable no longer there
+ * (or a runbook's own one outside a runbook run), and a field that takes a
+ * secret naming one that is not. Whether its Runner may have a secret is
+ * the claim's to say: the Runner is known only then. Null when it can.
+ */
+export async function getVariableRefusal(data: {
+  ctx: StepExecutionContext;
+  texts: Array<string>;
+  secretFields: Array<string>;
+}): Promise<string | null> {
+  const references: Array<RunbookVariableReference> =
+    findRunbookVariableReferencesIn(data.texts);
+
+  if (references.length === 0) {
+    return null;
+  }
+
+  const resolution: RunbookVariableResolution =
+    await RunbookVariableResolver.resolve({
+      projectId: data.ctx.projectId,
+      runbookId: data.ctx.runbookId || null,
+      references,
+      access: { kind: "server" },
+      includeValues: false,
+    });
+
+  const problems: Array<RunbookVariableProblem> = [...resolution.problems];
+
+  for (const field of data.secretFields) {
+    const reference: RunbookVariableReference | null =
+      parseSingleRunbookVariableReference(field);
+
+    const resolved: ResolvedRunbookVariable | undefined = reference
+      ? resolution.variables.get(getRunbookVariableReferenceKey(reference))
+      : undefined;
+
+    if (reference && resolved && !resolved.isSecret) {
+      problems.push({
+        reference,
+        reason: RunbookVariableProblemReason.NotSecret,
+      });
+    }
+  }
+
+  return problems.length > 0 ? describeRunbookVariableProblems(problems) : null;
+}
+
+// Why a field that takes a secret holds something else, or null.
+function getSecretFieldRefusal(data: {
+  field: string | undefined;
+  what: string;
+  isRequired: boolean;
+}): string | null {
+  const field: string = (data.field || "").trim();
+
+  if (!field) {
+    return data.isRequired
+      ? `This step has no ${data.what}. Open the step and pick the secret variable that holds it.`
+      : null;
+  }
+
+  return parseSingleRunbookVariableReference(field)
+    ? null
+    : `This step's ${data.what} is not one secret variable. Open the step and pick a secret variable.`;
+}
+
 export async function runJavaScriptStep(
   step: RunbookStep,
   ctx: StepExecutionContext,
@@ -293,6 +411,7 @@ export async function runJavaScriptStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
+    variableTexts: [config.script || ""],
   });
 }
 
@@ -399,10 +518,105 @@ export async function runBashStep(
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
+    variableTexts: [config.script || ""],
   });
 }
 
+/*
+ * An SSH step: sign in to a machine with a secret variable and run a bash
+ * script there. Its job carries the references, never a value: the Runner
+ * that takes it is handed the host, the user, the script and the key or
+ * password, filled in for it (RunnerIngress, RunbookJobVariables).
+ */
 export async function runSshStep(
+  step: RunbookStep,
+  ctx: StepExecutionContext,
+): Promise<StepRunResult> {
+  const config: SSHStepConfig = step.config as SSHStepConfig;
+
+  if (isLegacySSHStepConfig(config)) {
+    return runLegacySshStep(step, ctx);
+  }
+
+  const host: string = (config.host || "").trim();
+  const username: string = (config.username || "").trim();
+  const script: string = config.script || "";
+
+  if (!host || !username) {
+    return {
+      success: false,
+      output: "",
+      errorMessage:
+        "This SSH step has no machine to sign in to. Open the step and fill in SSH to, as user@host.",
+    };
+  }
+
+  const secretRefusal: string | null =
+    getSecretFieldRefusal({
+      field: config.signIn,
+      what: "key or password to sign in with",
+      isRequired: true,
+    }) ||
+    getSecretFieldRefusal({
+      field: config.passphrase,
+      what: "key passphrase",
+      isRequired: false,
+    });
+
+  if (secretRefusal) {
+    return { success: false, output: "", errorMessage: secretRefusal };
+  }
+
+  if (!script.trim()) {
+    return {
+      success: false,
+      output: "",
+      errorMessage: "This SSH step has no script to run.",
+    };
+  }
+
+  const port: number =
+    typeof config.port === "number" &&
+    Number.isInteger(config.port) &&
+    config.port > 0 &&
+    config.port <= 65535
+      ? config.port
+      : 22;
+
+  return dispatchToAgent({
+    stepType: RunbookStepType.SSH,
+    step,
+    ctx,
+    script: "",
+    payload: {
+      host,
+      username,
+      port,
+      signIn: (config.signIn || "").trim(),
+      ...(config.passphrase && config.passphrase.trim()
+        ? { passphrase: config.passphrase.trim() }
+        : {}),
+      script,
+    },
+    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
+    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
+    agentId: config.agentId || "",
+    variableTexts: [
+      host,
+      username,
+      config.signIn || "",
+      config.passphrase || "",
+      script,
+    ],
+    secretFields: [config.signIn || "", config.passphrase || ""],
+  });
+}
+
+/*
+ * An SSH step written before runbook variables: a credential and a
+ * command, run as they always were.
+ */
+async function runLegacySshStep(
   step: RunbookStep,
   ctx: StepExecutionContext,
 ): Promise<StepRunResult> {
@@ -432,7 +646,7 @@ export async function runSshStep(
     script: "",
     payload: {
       credentialId: config.credentialId,
-      command: config.command,
+      command: config.command || "",
     },
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
     claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
@@ -440,7 +654,67 @@ export async function runSshStep(
   });
 }
 
+/*
+ * A kubectl step: a bash script of kubectl commands, run on the step's
+ * Runner with KUBECONFIG pointing at the kubeconfig it names - or at the
+ * Runner's own access when it names none. Its job carries the references;
+ * the Runner that takes it is handed the script and the kubeconfig, filled
+ * in for it.
+ */
 export async function runKubernetesStep(
+  step: RunbookStep,
+  ctx: StepExecutionContext,
+): Promise<StepRunResult> {
+  const config: KubernetesStepConfig = step.config as KubernetesStepConfig;
+
+  if (isLegacyKubernetesStepConfig(config)) {
+    return runLegacyKubernetesStep(step, ctx);
+  }
+
+  const script: string = config.script || "";
+
+  const kubeconfigRefusal: string | null = getSecretFieldRefusal({
+    field: config.kubeconfig,
+    what: "kubeconfig",
+    isRequired: false,
+  });
+
+  if (kubeconfigRefusal) {
+    return { success: false, output: "", errorMessage: kubeconfigRefusal };
+  }
+
+  if (!script.trim()) {
+    return {
+      success: false,
+      output: "",
+      errorMessage: "This kubectl step has no script to run.",
+    };
+  }
+
+  return dispatchToAgent({
+    stepType: RunbookStepType.Kubernetes,
+    step,
+    ctx,
+    script: "",
+    payload: {
+      ...(config.kubeconfig && config.kubeconfig.trim()
+        ? { kubeconfig: config.kubeconfig.trim() }
+        : {}),
+      script,
+    },
+    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
+    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
+    agentId: config.agentId || "",
+    variableTexts: [config.kubeconfig || "", script],
+    secretFields: [config.kubeconfig || ""],
+  });
+}
+
+/*
+ * A Kubernetes step written before kubectl scripts: one workload action
+ * with a credential, run as it always was.
+ */
+async function runLegacyKubernetesStep(
   step: RunbookStep,
   ctx: StepExecutionContext,
 ): Promise<StepRunResult> {

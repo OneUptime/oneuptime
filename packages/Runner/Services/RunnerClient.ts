@@ -4,6 +4,7 @@ import RunnerIdentity from "../Utils/RunnerIdentity";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import GlobalRunnerMode from "../Utils/GlobalRunnerMode";
 import { JSONObject } from "Common/Types/JSON";
+import { RUNNER_FEATURES } from "Common/Types/Runbook/RunnerFeatures";
 import logger from "Common/Server/Utils/Logger";
 import { getSameServerRedirectCheck } from "Common/Utils/SameServerRedirect";
 
@@ -50,6 +51,12 @@ export interface ClaimedJob {
    */
   inputs?: JSONObject | undefined;
   trigger?: string | null | undefined;
+  /*
+   * The secret runbook variables the server filled into this job, so the
+   * Runner can hide them in what the step prints (RunbookExecutor
+   * .redactJobResult). Absent when there are none, and from an older server.
+   */
+  secretValues?: Array<string> | undefined;
 }
 
 /*
@@ -214,13 +221,15 @@ export default class AgentClient {
      */
     const res: AxiosResponse = await http.post(
       "/claim-next-job",
-      authBody(
-        KubernetesAgentMode.isActive()
+      authBody({
+        ...(KubernetesAgentMode.isActive()
           ? { stepTypes: [...KubernetesAgentMode.allowedStepTypes] }
           : GlobalRunnerMode.isActive()
             ? { stepTypes: GlobalRunnerMode.getAllowedStepTypes() }
-            : {},
-      ),
+            : {}),
+        // What this Runner can run that an older one cannot (RunnerFeatures).
+        features: [...RUNNER_FEATURES],
+      }),
     );
     if (res.status >= 200 && res.status < 300) {
       const job: ClaimedJob | null | undefined = (res.data as JSONObject)?.[

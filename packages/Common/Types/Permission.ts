@@ -1018,6 +1018,13 @@ enum Permission {
   EditRunnerOwnerUser = "EditRunnerOwnerUser",
   ReadRunnerOwnerUser = "ReadRunnerOwnerUser",
 
+  /*
+   * The Runbook Variable permissions (Models/DatabaseModels/RunbookVariable).
+   * They keep the names they had when they were the runbook secret
+   * permissions - teams and custom roles store them by name - so everyone
+   * who managed runbook secrets manages runbook variables, which secrets
+   * became.
+   */
   CreateRunbookSecret = "CreateRunbookSecret",
   EditRunbookSecret = "EditRunbookSecret",
   DeleteRunbookSecret = "DeleteRunbookSecret",
@@ -2803,7 +2810,7 @@ export class PermissionHelper {
         permission: Permission.RunbookAdmin,
         title: "Runbook Admin",
         description:
-          "Creates, changes, runs and deletes runbooks with their rules and owners, and the Runners they run on, and manages their runs. Runbook credentials, secrets, label rules and owner rules take Project Admin.",
+          "Creates, changes, runs and deletes runbooks with their rules and owners, and the Runners they run on, and manages their runs. Reads runbook variables to use them in steps. Runbook credentials, variables, label rules and owner rules take Project Admin to change.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -5302,8 +5309,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateRunbookSecret,
-        title: "Create Runbook Secret",
-        description: "This permission can create runbook secret.",
+        title: "Create Runbook Variable",
+        description:
+          "This permission can create runbook variables, secret ones included.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5311,8 +5319,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteRunbookSecret,
-        title: "Delete Runbook Secret",
-        description: "This permission can delete runbook secret.",
+        title: "Delete Runbook Variable",
+        description: "This permission can delete runbook variables.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5320,8 +5328,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditRunbookSecret,
-        title: "Edit Runbook Secret",
-        description: "This permission can edit runbook secret.",
+        title: "Edit Runbook Variable",
+        description:
+          "This permission can edit runbook variables and replace a secret's value.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5329,8 +5338,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadRunbookSecret,
-        title: "Read Runbook Secret",
-        description: "This permission can read runbook secret.",
+        title: "Read Runbook Variable",
+        description:
+          "This permission can read runbook variables. A secret's value is never returned by the API.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
