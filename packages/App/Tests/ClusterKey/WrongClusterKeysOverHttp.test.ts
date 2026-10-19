@@ -631,7 +631,8 @@ describe("OneUptime's own traffic is never refused", () => {
   });
 
   test("the right key, sent hundreds of times from one address, is never refused and never counted", async () => {
-    const from: string = "10.20.30.40";
+    // A public address, so that each request is asked about, and nothing kept.
+    const from: string = "203.0.113.105";
 
     for (let round: number = 0; round < 40; round++) {
       for (const routeUnderTest of installation.routes) {
@@ -641,6 +642,7 @@ describe("OneUptime's own traffic is never refused", () => {
       }
     }
 
+    expect(redis.sent).toHaveLength(40 * installation.routes.length);
     expect(redis.keys()).toEqual([]);
   });
 
