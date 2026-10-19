@@ -107,6 +107,7 @@ export const RESERVED_CHANGE_ATTRIBUTE_PREFIX: string = "oneuptime.";
 export enum ChangeEventStatus {
   Succeeded = "succeeded",
   Failed = "failed",
+  Cancelled = "cancelled",
 }
 
 /*

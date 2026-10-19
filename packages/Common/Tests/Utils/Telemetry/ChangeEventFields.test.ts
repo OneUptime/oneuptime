@@ -42,7 +42,11 @@ describe("change event wire values", () => {
       "oneuptime-ai",
       "runbook",
     ]);
-    expect(Object.values(ChangeEventStatus)).toEqual(["succeeded", "failed"]);
+    expect(Object.values(ChangeEventStatus)).toEqual([
+      "succeeded",
+      "failed",
+      "cancelled",
+    ]);
   });
 
   test("OpenTelemetry semantic convention names are used where one exists", () => {
