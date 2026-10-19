@@ -1,4 +1,4 @@
-import { LLMMessage } from "../../LLM/LLMService";
+import LLMService, { LLMMessage } from "../../LLM/LLMService";
 
 /*
  * Keeps a long-running agent loop inside the model's context window.
@@ -180,9 +180,11 @@ export const CONTEXT_OVERFLOW_SHRINK_FACTOR: number = 0.75;
 /*
  * How providers word it: OpenAI and Azure "maximum context length" /
  * "context_length_exceeded", vLLM "the model's context length is only N
- * tokens" / "maximum input length", Anthropic "prompt is too long". Rate
+ * tokens" / "maximum input length", Anthropic "prompt is too long". Ollama's
+ * refusals arrive reworded by LLMService as its CONTEXT_WINDOW_OVERFLOW_ERROR,
+ * matched by that phrase rather than by the advice that follows it. Rate
  * limits ("token limit exceeded") must not match — waiting fixes those,
- * a smaller transcript does not. Nor may "context window": the elision
+ * a smaller transcript does not. Nor may "context window" alone: the elision
  * note above says it, and a provider error can echo the request body.
  */
 const CONTEXT_OVERFLOW_PATTERN: RegExp =
@@ -192,7 +194,10 @@ export function isContextOverflowError(error: unknown): boolean {
   const message: string =
     error instanceof Error ? error.message : String(error);
 
-  return CONTEXT_OVERFLOW_PATTERN.test(message);
+  return (
+    message.includes(LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR) ||
+    CONTEXT_OVERFLOW_PATTERN.test(message)
+  );
 }
 
 /*

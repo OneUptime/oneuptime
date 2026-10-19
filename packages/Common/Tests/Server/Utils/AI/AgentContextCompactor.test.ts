@@ -19,7 +19,9 @@ import {
   measureMessageChars,
 } from "../../../../Server/Utils/AI/Chat/AgentContextCompactor";
 import BadDataException from "../../../../Types/Exception/BadDataException";
-import { LLMMessage } from "../../../../Server/Utils/LLM/LLMService";
+import LLMService, {
+  LLMMessage,
+} from "../../../../Server/Utils/LLM/LLMService";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -487,6 +489,16 @@ describe("isContextOverflowError", () => {
     ]) {
       expect(isContextOverflowError(new BadDataException(message))).toBe(true);
     }
+  });
+
+  test("recognises the context window error LLMService words for Ollama by its phrase, whatever advice follows", () => {
+    expect(
+      isContextOverflowError(
+        new BadDataException(
+          `Ollama API error: ${LLMService.CONTEXT_WINDOW_OVERFLOW_ERROR}, so Ollama dropped the oldest messages, the question among them, and the model rejected the rest ("no user query found in messages").`,
+        ),
+      ),
+    ).toBe(true);
   });
 
   test("leaves rate limits, other failures and our own elision note alone", () => {
