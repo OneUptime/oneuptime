@@ -62,7 +62,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 HERE: Path = Path(__file__).resolve().parent
 REPOSITORY: Path = HERE.parent.parent
@@ -78,6 +78,12 @@ EKS_ADDON_DIR: Path = HERE / EKS_ADDON
 EKS_CONFIGURATION_SCHEMA: str = "aws_mp_configuration_schema.json"
 # How build.py refuses a release from before the add-on (the marketplace suite skips it).
 EKS_ADDON_PREDATES: str = "This release predates the EKS add-on"
+# AWS Marketplace takes an image only as values.yaml spells it out in a block with a repository,
+# and the registry, tag or digest beside it (MISSING_VALUES_IMAGE_REFERENCE otherwise), and
+# rewrites those when it copies the product to another Region. The chart reads image.overrides
+# in that form from the release whose image helper has this; an older one cannot go to AWS.
+AWS_PREDATES: str = "This release predates AWS Marketplace's image form"
+AWS_IMAGE_FORM: str = "$override.repository"
 VERSION_PATTERN: re.Pattern = re.compile(r"^\d+\.\d+\.\d+$")
 PLAIN_KEY: re.Pattern = re.compile(r"^[A-Za-z0-9_-]+$")
 DOUBLE_QUOTED: re.Pattern = re.compile(r'^"((?:[^"\\]|\\.)*)"')
@@ -365,6 +371,57 @@ def split_reference(reference: str) -> Tuple[str, str]:
     return reference[:colon], reference[colon + 1 :]
 
 
+def values_image_references(values: str) -> Set[str]:
+    """
+    The image references a values.yaml spells out the way AWS Marketplace checks them: each block
+    with a repository, and the registry, tag or digest beside it - registry/repository:tag, or a
+    repository that is a whole reference. A rendered image with none of these is the
+    MISSING_VALUES_IMAGE_REFERENCE AWS refuses a version for.
+    """
+    lines: List[str] = values.split("\n")
+    found: Set[str] = set()
+
+    def scalar(line: str) -> str:
+        value: str = line.split(":", 1)[1].strip()
+        if value.startswith(("'", '"')):
+            return value[1 : value.index(value[0], 1)]
+        return value.split(" #", 1)[0].strip()
+
+    for index, line in enumerate(lines):
+        match = re.match(r"^( *)repository:\s*\S", line)
+        if not match:
+            continue
+
+        indent: int = len(match.group(1))
+        fields: Dict[str, str] = {"repository": scalar(line)}
+
+        for step in (-1, 1):
+            other: int = index + step
+            while 0 <= other < len(lines):
+                sibling: str = lines[other]
+                if sibling.strip() and not sibling.lstrip().startswith("#"):
+                    sibling_indent: int = len(sibling) - len(sibling.lstrip(" "))
+                    if sibling_indent < indent:
+                        break
+                    key = re.match(r"^ *(registry|tag|digest):\s*\S", sibling)
+                    if sibling_indent == indent and key:
+                        fields[key.group(1)] = scalar(sibling)
+                other += step
+
+        name: str = fields["repository"]
+        if fields.get("registry"):
+            name = f"{fields['registry']}/{name}"
+
+        if fields.get("digest"):
+            found.add(f"{name}@{fields['digest']}")
+        elif fields.get("tag"):
+            found.add(f"{name}:{fields['tag']}")
+        else:
+            found.add(name)
+
+    return found
+
+
 def load_json(path: Path) -> Dict[str, Any]:
     with open(path, encoding="utf-8") as file:
         return json.load(file)
@@ -451,17 +508,28 @@ def common_values(editor: ValuesEditor, marketplace: str, version: str) -> None:
 
 
 def reference_values(
-    editor: ValuesEditor, plan: List[Dict[str, Any]], field_images: bool
+    editor: ValuesEditor, plan: List[Dict[str, Any]], field_images: bool, as_fields: bool = False
 ) -> None:
     """
-    Every image as a full reference in image.overrides - the form AWS checks
-    (each image written out in values.yaml) and the one Google's deployer
-    fills in. With field_images, the bundled databases' own image fields
-    point at the same references, so nothing in values.yaml names another
-    registry.
+    Every image in image.overrides: as a full reference, the form Google's
+    deployer fills in, or with as_fields as registry, repository and tag, the
+    form AWS checks and rewrites. With field_images, the bundled databases' own
+    image fields point at the same references, so nothing in values.yaml names
+    another registry.
     """
     references: Dict[str, str] = {entry["key"]: entry["target"] for entry in plan}
-    editor.set(["image", "overrides"], references)
+
+    if as_fields:
+        fields: Dict[str, Dict[str, str]] = {}
+
+        for key, reference in references.items():
+            name, tag = split_reference(reference)
+            registry, repository = name.split("/", 1)
+            fields[key] = {"registry": registry, "repository": repository, "tag": tag}
+
+        editor.set(["image", "overrides"], fields)
+    else:
+        editor.set(["image", "overrides"], references)
 
     if not field_images:
         return
@@ -481,10 +549,16 @@ def build_aws(out: Path, version: str, edition: Dict[str, Any]) -> List[Dict[str
     chart: Path = out / "oneuptime"
     copy_chart(chart, version)
 
+    if AWS_IMAGE_FORM not in (chart / "templates" / "_helpers.tpl").read_text(encoding="utf-8"):
+        raise ValueError(
+            f"{AWS_PREDATES}: its chart reads image.overrides only as full references, and AWS "
+            "takes an image only as registry, repository and tag (MISSING_VALUES_IMAGE_REFERENCE)."
+        )
+
     values_path: Path = chart / "values.yaml"
     editor: ValuesEditor = ValuesEditor(values_path.read_text(encoding="utf-8"))
     common_values(editor, "aws", version)
-    reference_values(editor, plan, field_images=True)
+    reference_values(editor, plan, field_images=True, as_fields=True)
     # Runs as the service account the buyer creates with an IAM role (eksctl, IRSA).
     editor.set(["serviceAccount", "create"], False)
     editor.set(["serviceAccount", "name"], edition["serviceAccountName"])
