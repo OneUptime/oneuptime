@@ -20662,7 +20662,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "リクエストボディ内のパスです。インシデントテンプレートで参照する {{requestBody}} と同じものです。異なる値ごとに個別のインシデントが作成されます。配列の各要素に展開するには {{wildcard}} を追加してください。",
   "A payment method is required before you can send paid telemetry.": "有料のテレメトリを送信するには、支払い方法が必要です。",
   "A project administrator can review these settings.": "プロジェクト管理者がこれらの設定を確認できます。",
-  "A project owner or someone with Manage Billing can add AI credits.": "AI クレジットを追加できるのは、プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーです。",
+  "A project owner or someone with Manage Billing can add AI credits.": "プロジェクトのオーナー、または Manage Billing を持つ人が AI クレジットを追加できます。",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "プロジェクトのオーナーまたは「請求の管理」権限を持つユーザーが、「プロジェクト設定 → AI → AI 機能」で AI をオンにできます。",
   "AI Command Plan": "AI コマンドプラン",
   "AI infrastructure fix": "AI によるインフラ修正",

@@ -11,6 +11,7 @@ import {
   CodeTaskStepKind,
 } from "../../../Types/AI/CodeTask";
 import {
+  CODE_TASK_ADD_AI_CREDITS,
   CODE_TASK_ASKED_BY,
   CODE_TASK_BLOCKER_FIXES,
   CODE_TASK_BLOCKER_SENTENCES,
@@ -114,6 +115,7 @@ const SENTENCES: Array<string> = Array.from(
         return fix!.title;
       },
     ),
+    CODE_TASK_ADD_AI_CREDITS,
     ...CODE_TASK_EXAMPLE_REQUESTS,
   ]),
 ).sort();

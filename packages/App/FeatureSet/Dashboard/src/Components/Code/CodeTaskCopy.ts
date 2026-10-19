@@ -309,12 +309,19 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
 /*
  * What fixes each thing that stops AI working in a repository: the page and
  * the words on its link. No link where there is nothing the reader can open
- * (a permission they have to ask for, a limit that resets at midnight).
+ * (a permission they have to ask for, a limit that resets at midnight). AI
+ * credits are not here: only a project owner or someone with Manage Billing
+ * may add them, so CodeBlockerNotice asks first and links AI Credits only
+ * for them (CODE_TASK_ADD_AI_CREDITS), telling everyone else who can.
  */
 export interface CodeTaskBlockerFix {
   pageMap: PageMap;
   title: string;
 }
+
+// The words on the AI Credits link, for someone who may add AI credits.
+export const CODE_TASK_ADD_AI_CREDITS: string =
+  translationKey("Add AI credits");
 
 export const CODE_TASK_BLOCKER_FIXES: Partial<
   Record<CodeTaskBlockerType, CodeTaskBlockerFix>
@@ -338,10 +345,6 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
   [CodeTaskBlockerType.NoLlmProvider]: {
     pageMap: PageMap.SETTINGS_AI_LLM_PROVIDERS,
     title: translationKey("Add an LLM provider"),
-  },
-  [CodeTaskBlockerType.NoAiCredits]: {
-    pageMap: PageMap.SETTINGS_AI_CREDITS,
-    title: translationKey("Add AI credits"),
   },
   [CodeTaskBlockerType.NoAgent]: {
     pageMap: PageMap.RUNBOOKS_RUNNERS,

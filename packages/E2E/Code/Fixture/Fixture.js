@@ -4,7 +4,7 @@
  * settings, a task's conversation (Pages/Code/Task/Conversation) and its Log
  * - the production route group (Routes/CodeRoutes) with its layouts, side
  * menus and breadcrumbs, and the old Tasks and Code Repositories addresses
- * (Routes/MovedCodeRoutes) that forward to it.
+ * (Routes/MovedTaskRoutes, Routes/MovedRepositoryRoutes) that forward to it.
  *
  * Only the data boundary is replaced: API.post / API.get (the /code-task
  * routes, a turn's log, the GitHub connection), ModelAPI (the repository's
@@ -59,10 +59,8 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import CodeRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/CodeRoutes";
-import {
-  MovedRepositoryRoutes,
-  MovedTaskRoutes,
-} from "../../../App/FeatureSet/Dashboard/src/Routes/MovedCodeRoutes";
+import MovedRepositoryRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/MovedRepositoryRoutes";
+import MovedTaskRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/MovedTaskRoutes";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Incident from "Common/Models/DatabaseModels/Incident";

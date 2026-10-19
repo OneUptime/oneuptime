@@ -274,18 +274,10 @@ const CodeRoutes: LazyRoutes = lazy(() => {
 });
 // Tasks and Code Repositories became Code: their addresses forward there.
 const MovedTaskRoutes: LazyRoutes = lazy(() => {
-  return import("./Routes/MovedCodeRoutes").then(
-    (module: typeof import("./Routes/MovedCodeRoutes")) => {
-      return { default: module.MovedTaskRoutes };
-    },
-  );
+  return import("./Routes/MovedTaskRoutes");
 });
 const MovedRepositoryRoutes: LazyRoutes = lazy(() => {
-  return import("./Routes/MovedCodeRoutes").then(
-    (module: typeof import("./Routes/MovedCodeRoutes")) => {
-      return { default: module.MovedRepositoryRoutes };
-    },
-  );
+  return import("./Routes/MovedRepositoryRoutes");
 });
 const AIInsightsRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/AIInsightsRoutes");

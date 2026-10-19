@@ -20662,7 +20662,7 @@
   "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A project administrator can review these settings.": "A project administrator can review these settings.",
-  "A project owner or someone with Manage Billing can add AI credits.": "项目所有者或拥有“Manage Billing”权限的用户可以添加 AI 积分。",
+  "A project owner or someone with Manage Billing can add AI credits.": "项目所有者或拥有 Manage Billing 权限的人可以添加 AI 积分。",
   "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.": "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
   "AI Command Plan": "AI Command Plan",
   "AI infrastructure fix": "AI infrastructure fix",

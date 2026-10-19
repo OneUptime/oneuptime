@@ -6,10 +6,10 @@ layouts, side menus and breadcrumbs - the repositories (`Pages/Code/Code.tsx`),
 a repository's page where AI is asked (`Pages/Code/Repository/Tasks.tsx`), its
 settings, a task's conversation (`Pages/Code/Task/Conversation.tsx`) and its
 Log - and the old Tasks and Code Repositories addresses
-(`Routes/MovedCodeRoutes.tsx`) that forward to it. It bundles them with
-esbuild, replaces only the `API` / `ModelAPI` data boundary and the signed-in
-person's permissions, and serves them on `127.0.0.1:4366`. No Docker, no
-database, no sign-in.
+(`Routes/MovedTaskRoutes.tsx`, `Routes/MovedRepositoryRoutes.tsx`) that forward
+to it. It bundles them with esbuild, replaces only the `API` / `ModelAPI` data
+boundary and the signed-in person's permissions, and serves them on
+`127.0.0.1:4366`. No Docker, no database, no sign-in.
 
 ```sh
 cd packages/E2E

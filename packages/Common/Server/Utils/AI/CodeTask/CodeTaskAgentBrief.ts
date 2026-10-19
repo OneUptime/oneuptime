@@ -7,6 +7,7 @@ import {
   sanitizeStackTrace,
 } from "../../Telemetry/ExceptionSanitizer";
 import ToolResultSerializer from "../Toolbox/Serializer";
+import PromptText from "../../../../Utils/AI/PromptText";
 import CodeTaskOrigin, { CodeTaskOriginSubjects } from "./CodeTaskOrigin";
 import CodeTaskThread from "./CodeTaskThread";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
@@ -385,7 +386,9 @@ export default class CodeTaskAgentBrief {
       parts.push(
         `Opened pull request #${pullRequest.pullRequestNumber || "?"}: ${pullRequest.title || ""}${
           pullRequest.description && !turn.taskOutcome?.summary
-            ? `\n${pullRequest.description}`
+            ? `\n${PromptText.field(pullRequest.description, {
+                maxLength: MAX_EARLIER_REPLY_LENGTH,
+              })}`
             : ""
         }`,
       );

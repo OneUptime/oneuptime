@@ -26,6 +26,10 @@ import {
   CodeTaskTurnJSON,
 } from "../../../Types/AI/CodeTask";
 import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
+import User from "../../../UI/Utils/User";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
@@ -1000,6 +1004,98 @@ describe("what stops AI working", () => {
       expect(hrefOf(link).endsWith(`/${pathEnd}`)).toBe(true);
     },
   );
+
+  /*
+   * AI credits are added by a project owner or someone with Manage Billing:
+   * only they are sent to AI Credits, everyone else is told who can, and
+   * nobody is told anything before their permissions have arrived.
+   */
+  describe("out of AI credits", () => {
+    function grant(permissions: Array<Permission> | null): void {
+      jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
+      jest
+        .spyOn(PermissionUtil, "getAllPermissions")
+        .mockReturnValue(permissions || []);
+      jest.spyOn(PermissionUtil, "getGlobalPermissions").mockReturnValue(null);
+      jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(
+        permissions
+          ? {
+              projectId: new ObjectID(PROJECT_ID),
+              userId: ObjectID.generate(),
+              permissions: permissions.map((permission: Permission) => {
+                return {
+                  permission: permission,
+                  labelIds: [],
+                  _type: "UserPermission",
+                };
+              }),
+              _type: "UserTenantAccessPermission",
+            }
+          : null,
+      );
+    }
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test.each([
+      [Permission.ProjectOwner, true],
+      [Permission.ManageProjectBilling, true],
+      [Permission.ProjectAdmin, false],
+      [Permission.ProjectMember, false],
+    ])(
+      "%s is linked to AI Credits only when they may add them (%s)",
+      (permission: Permission, offered: boolean) => {
+        grant([Permission.ProjectUser, permission]);
+        draw(
+          <CodeBlockerNotice
+            blocker={{
+              type: CodeTaskBlockerType.NoAiCredits,
+              message: "The server's words.",
+            }}
+          />,
+        );
+
+        const notice: HTMLElement = screen.getByTestId("code-blocker");
+        expect(notice).toHaveTextContent(
+          "This project's AI credits are used up.",
+        );
+
+        if (offered) {
+          const link: HTMLElement =
+            within(notice).getByTestId("code-blocker-fix");
+          expect(link).toHaveTextContent("Add AI credits");
+          expect(hrefOf(link).endsWith("/settings/ai-credits")).toBe(true);
+          expect(
+            within(notice).queryByTestId("code-blocker-who-can"),
+          ).toBeNull();
+        } else {
+          expect(within(notice).queryByTestId("code-blocker-fix")).toBeNull();
+          expect(
+            within(notice).getByTestId("code-blocker-who-can"),
+          ).toHaveTextContent(
+            "A project owner or someone with Manage Billing can add AI credits.",
+          );
+        }
+      },
+    );
+
+    test("before the permissions arrive, neither the link nor who can", () => {
+      grant(null);
+      draw(
+        <CodeBlockerNotice
+          blocker={{ type: CodeTaskBlockerType.NoAiCredits, message: "x" }}
+        />,
+      );
+
+      expect(screen.getByTestId("code-blocker")).toHaveTextContent(
+        "This project's AI credits are used up.",
+      );
+      expect(screen.queryByTestId("code-blocker-fix")).toBeNull();
+      expect(screen.queryByTestId("code-blocker-who-can")).toBeNull();
+    });
+  });
 
   test("a limit that resets is said in the server's own words, with no link", () => {
     draw(
