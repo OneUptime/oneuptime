@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Aggiungi un ruolo a {{role}}",
   "Custom Role Details": "Dettagli del ruolo personalizzato",
   "Members of these teams can do everything this role allows.": "I membri di questi team possono fare tutto ciò che questo ruolo consente.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Insiemi di autorizzazioni con un nome, creati nella pagina Ruoli. Modificare un ruolo modifica anche questo team.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Insiemi di autorizzazioni con un nome, creati nella pagina {{roles}}. Modificare un ruolo modifica anche questo team.",
   "Shown on every team you give the role to.": "Mostrato in ogni team a cui dai il ruolo.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "I ruoli integrati che raggruppa, per ogni risorsa del progetto. Aggiungi singole autorizzazioni nella pagina del ruolo.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "I ruoli integrati che raggruppa, per ogni risorsa del progetto. I ruoli che non hai tu stesso non sono elencati.",

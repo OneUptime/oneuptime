@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "{{role}}에 역할 추가",
   "Custom Role Details": "사용자 정의 역할 세부 정보",
   "Members of these teams can do everything this role allows.": "이 팀들의 구성원은 이 역할이 허용하는 모든 것을 할 수 있습니다.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "역할 페이지에서 만든, 이름이 있는 권한 묶음입니다. 역할을 바꾸면 이 팀도 함께 바뀝니다.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "{{roles}} 페이지에서 만든, 이름이 있는 권한 묶음입니다. 역할을 바꾸면 이 팀도 함께 바뀝니다.",
   "Shown on every team you give the role to.": "이 역할을 부여하는 모든 팀에 표시됩니다.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "이 역할이 묶는 기본 제공 역할로, 프로젝트의 모든 리소스에 적용됩니다. 개별 권한은 역할 페이지에서 추가합니다.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "이 역할이 묶는 기본 제공 역할로, 프로젝트의 모든 리소스에 적용됩니다. 본인에게 없는 역할은 목록에 없습니다.",

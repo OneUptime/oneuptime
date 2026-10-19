@@ -140,7 +140,7 @@ De volledige lijst staat in de [Machtigingsreferentie](/docs/permissions/referen
 Een aangepaste rol is een set machtigingen die u één keer een naam geeft en aan teams geeft: bijvoorbeeld een "Incidentbehandelaar" met `IncidentMember`, `AlertMember` en `OnCallViewer`, of een "Teamleider". Elk team dat u de rol geeft, krijgt dezelfde machtigingen, en u wijzigt ze voor al die teams op één plek. Op OneUptime Cloud vragen aangepaste rollen het Scale-abonnement, net als het wijzigen van de machtigingen van een team.
 
 :::steps
-1. Open **Teams** in het menu **Producten**, onder **Instellingen**, daarna **Rollen**, en klik op **Aangepaste rol aanmaken**.
+1. Open **Teams** in het menu **Producten**, onder **Instellingen**. Klap **Instellingen** open in het zijmenu, kies **Rollen** en klik op **Aangepaste rol aanmaken**.
 2. Typ de **Naam** en kies onder **Machtigingen** de ingebouwde rollen die ze bundelt, voor elke resource in het project. De beschrijving staat onder **Meer velden**.
 3. Maak de rol aan. Ze opent op haar pagina, waar **Rol toevoegen** nog een ingebouwde rol toevoegt en **Machtiging toevoegen** (in het menu **⋯** van de kaart) één machtiging, elk met een bereik en labels, zoals bij een team.
 4. Klik op **Aan een team geven** onder **Teams met deze rol**. De pagina **Machtigingen** van een team heeft ook **Aangepaste rol toevoegen**, en **Team maken** biedt onder **Toegang** de aangepaste rollen aan die u zou kunnen geven.

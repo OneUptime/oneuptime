@@ -140,7 +140,7 @@ L'elenco completo è nel [Riferimento delle autorizzazioni](/docs/permissions/re
 Un ruolo personalizzato è un insieme di autorizzazioni a cui date un nome una volta e che assegnate ai team: per esempio un «Gestore degli incidenti» fatto di `IncidentMember`, `AlertMember` e `OnCallViewer`, oppure un «Responsabile del team». Ogni team a cui lo assegnate riceve le stesse autorizzazioni, e le modificate per tutti quei team in un unico punto. Su OneUptime Cloud, i ruoli personalizzati richiedono il piano Scale, come la modifica delle autorizzazioni di un team.
 
 :::steps
-1. Aprite **Team** dal menu **Prodotti**, sotto **Impostazioni**, poi **Ruoli**, e fate clic su **Crea: Ruolo personalizzato**.
+1. Aprite **Team** dal menu **Prodotti**, sotto **Impostazioni**. Espandete **Impostazioni** nel menu laterale, scegliete **Ruoli** e fate clic su **Crea: Ruolo personalizzato**.
 2. Scrivete il suo **Nome** e scegliete sotto **Autorizzazioni** i ruoli integrati che raggruppa, per ogni risorsa del progetto. La descrizione è sotto **Altri campi**.
 3. Create il ruolo. Si apre sulla sua pagina, dove **Aggiungi ruolo** aggiunge un altro ruolo integrato e **Aggiungi autorizzazione** (nel menu **⋯** della scheda) una singola autorizzazione, ciascuna con un ambito ed etichette, come su un team.
 4. Fate clic su **Assegna a un team** sotto **Team con questo ruolo**. Anche la pagina **Autorizzazioni** di un team ha **Aggiungi ruolo personalizzato**, e **Crea team** offre sotto **Accesso** i ruoli personalizzati che potreste assegnare.

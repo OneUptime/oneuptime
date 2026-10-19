@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "向 {{role}} 添加角色",
   "Custom Role Details": "自定义角色详情",
   "Members of these teams can do everything this role allows.": "这些团队的成员可以做此角色允许的一切。",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "在“角色”页面创建的具名权限集。更改角色也会更改此团队。",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "在“{{roles}}”页面创建的具名权限集。更改角色也会更改此团队。",
   "Shown on every team you give the role to.": "显示在你授予此角色的每个团队上。",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "它包含的内置角色，适用于项目中的所有资源。单个权限请在角色页面添加。",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "它包含的内置角色，适用于项目中的所有资源。你自己没有的角色不会列出。",

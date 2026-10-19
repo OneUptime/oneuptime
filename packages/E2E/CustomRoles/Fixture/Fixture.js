@@ -1,8 +1,8 @@
 /*
- * Offline fixture for custom roles: the real Teams pages - Teams > Roles, a
- * role's own page, a team's Permissions page and the Teams list with Create
- * Team - mounted at their real addresses through the real TeamsRoutes, with
- * the real Teams layout (side menu, breadcrumbs).
+ * Offline fixture for custom roles: the real Teams pages - Teams > Settings >
+ * Roles, a role's own page, a team's Permissions page and the Teams list with
+ * Create Team - mounted at their real addresses through the real
+ * TeamsRoutes, with the real Teams layout (side menu, breadcrumbs).
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced; the pages, their tables, forms and dialogs are the
@@ -734,7 +734,15 @@ function Shell(props) {
   return props.children;
 }
 
+/*
+ * App.tsx reads the location itself, so the whole Dashboard is drawn again
+ * on every navigation, and with it the Teams layout's side menu, which marks
+ * the new page and opens its section. Read it here too: without it a click
+ * in the menu changed the page under a menu still drawn for the last one.
+ */
 function Fixture() {
+  useLocation();
+
   return (
     <Routes>
       <PageRoute

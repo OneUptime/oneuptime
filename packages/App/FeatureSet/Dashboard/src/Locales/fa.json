@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "افزودن یک نقش به {{role}}",
   "Custom Role Details": "جزئیات نقش سفارشی",
   "Members of these teams can do everything this role allows.": "اعضای این تیم‌ها می‌توانند هر کاری را که این نقش اجازه می‌دهد انجام دهند.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "مجموعه‌های نام‌دار از دسترسی‌ها که در صفحه نقش‌ها ساخته شده‌اند. تغییر یک نقش این تیم را هم تغییر می‌دهد.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "مجموعه‌های نام‌دار از دسترسی‌ها که در صفحه {{roles}} ساخته شده‌اند. تغییر یک نقش این تیم را هم تغییر می‌دهد.",
   "Shown on every team you give the role to.": "روی هر تیمی که این نقش را به آن می‌دهید نشان داده می‌شود.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "نقش‌های پیش‌ساخته‌ای که این نقش در بر می‌گیرد، برای همه منابع پروژه. دسترسی‌های تکی را در صفحه نقش اضافه کنید.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "نقش‌های پیش‌ساخته‌ای که این نقش در بر می‌گیرد، برای همه منابع پروژه. نقش‌هایی که خودتان ندارید فهرست نمی‌شوند.",
