@@ -1,13 +1,14 @@
 # The shared in-cluster Runner (templates/runner.yaml) serves AI code fixes
 # for every project that has no Runner of its own. It holds ONLY what it needs
-# to reach the OneUptime server and report telemetry: its URL, its keys and
-# its telemetry settings, never the server's own settings. It reaches the
-# server with ONEUPTIME_SECRET (its cluster key) and ONEUPTIME_RUNNER_KEY; its
+# to reach the OneUptime server and report telemetry: its URL, its key and its
+# telemetry settings, never the server's own settings. It reaches the server
+# with ONEUPTIME_RUNNER_KEY alone, which app.yaml gives the app as well; its
 # LLM calls are mediated by the server.
 #
-# So runner.yaml renders oneuptime.env.oneuptimeSecret (the cluster key alone),
-# NOT oneuptime.env.runtime (the app's whole environment), and its pod carries
-# no ServiceAccount token. These tests fail the moment either comes back.
+# So runner.yaml renders neither oneuptime.env.runtime (the app's whole
+# environment) nor oneuptime.env.oneuptimeSecret (the cluster key, which opens
+# every route OneUptime's own services call each other on), and its pod
+# carries no ServiceAccount token. These tests fail the moment any comes back.
 suite: shared runner minimal environment
 release:
   name: oneuptime
@@ -16,7 +17,7 @@ templates:
   - templates/runner.yaml
   - templates/app.yaml
 tests:
-  - it: gives the Runner the cluster key it registers with
+  - it: gives the Runner its own key, says it is the shared Runner, and gives it no cluster key
     templates:
       - templates/runner.yaml
     documentSelector:
@@ -29,9 +30,9 @@ tests:
     asserts:
       - contains:
           path: spec.template.spec.containers[0].env
-          any: true
           content:
-            name: ONEUPTIME_SECRET
+            name: ONEUPTIME_RUNNER_SHARED
+            value: "true"
       - contains:
           path: spec.template.spec.containers[0].env
           any: true
@@ -42,6 +43,144 @@ tests:
           any: true
           content:
             name: ONEUPTIME_URL
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_SECRET
+
+  - it: never gives the Runner the cluster key, wherever oneuptimeSecret comes from
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+      oneuptimeSecret: an-operator-chosen-cluster-key
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_SECRET
+
+  - it: gives the Runner an inline runner key exactly as the app gets it
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+      runner.key: inline-runner-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+            value: inline-runner-key
+
+  - it: never gives the Runner the cluster key from an external secret either
+    templates:
+      - templates/runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+      externalSecrets.oneuptimeSecret.existingSecret.name: one-uptime
+      externalSecrets.oneuptimeSecret.existingSecret.passwordKey: one-uptime-secret
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_SECRET
+
+  - it: gives the app the Runner's key from the same place as the Runner, by default the chart's own
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-secrets
+                key: runner-key
+
+  - it: gives the app an inline runner key exactly as the Runner gets it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+      runner.key: inline-runner-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+            value: inline-runner-key
+
+  - it: gives the app the Runner's key from the Runner's existing secret
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+      runner.existingSecret.name: runner-identity
+      runner.existingSecret.passwordKey: runner-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+            valueFrom:
+              secretKeyRef:
+                name: runner-identity
+                key: runner-key
+
+  - it: gives the app no runner key when the chart runs no Runner (the chart then generates none)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: false
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_RUNNER_KEY
+
+  - it: the app still holds the cluster key its own services call each other with
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      runner.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          any: true
+          content:
+            name: ONEUPTIME_SECRET
 
   - it: never gives the Runner the server's encryption secret
     templates:

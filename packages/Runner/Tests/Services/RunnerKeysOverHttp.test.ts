@@ -149,7 +149,13 @@ interface Runner {
   logger: AnyModule;
 }
 
-type RunnerMode = "project" | "cluster" | "kubernetes-agent";
+/*
+ * "shared": the shared Runner as this release's deployment starts it
+ * (ONEUPTIME_RUNNER_SHARED, its own key, no cluster key); "cluster": the
+ * shared Runner as a deployment of an earlier release starts it, with a
+ * cluster key.
+ */
+type RunnerMode = "project" | "shared" | "cluster" | "kubernetes-agent";
 
 // The environment a Runner reads, at start-up and (its key) on every request.
 const RUNNER_ENVIRONMENT: Array<string> = [
@@ -157,6 +163,7 @@ const RUNNER_ENVIRONMENT: Array<string> = [
   "ONEUPTIME_RUNNER_ID",
   "ONEUPTIME_RUNNER_KEY",
   "ONEUPTIME_SECRET",
+  "ONEUPTIME_RUNNER_SHARED",
   "ONEUPTIME_INGESTION_KEY",
   "ONEUPTIME_KUBERNETES_CLUSTER_NAME",
   "LOG_LEVEL",
@@ -198,6 +205,9 @@ function startRunner(data: {
 
   if (data.mode === "project") {
     process.env["ONEUPTIME_RUNNER_ID"] = RUNNER_ID;
+    process.env["ONEUPTIME_RUNNER_KEY"] = data.runnerKey || RUNNER_KEY;
+  } else if (data.mode === "shared") {
+    process.env["ONEUPTIME_RUNNER_SHARED"] = "true";
     process.env["ONEUPTIME_RUNNER_KEY"] = data.runnerKey || RUNNER_KEY;
   } else if (data.mode === "cluster") {
     process.env["ONEUPTIME_SECRET"] = CLUSTER_KEY;
@@ -307,6 +317,26 @@ describe("a request that carries a Runner's key, redirected to another server", 
     expect(
       (JSON.parse(redirectingAway.received[0]!.body) as JSONObject)["agentKey"],
     ).toBe(RUNNER_KEY);
+    expect(otherServer.received).toEqual([]);
+  });
+
+  test("the shared Runner's registration is not sent on, with its own key", async () => {
+    const runner: Runner = startRunner({
+      oneuptimeUrl: redirectingAway.origin,
+      mode: "shared",
+    });
+
+    await expect(
+      runner.Register.tryRegisterRunner({ maxAttempts: 1 }),
+    ).resolves.toBe(false);
+
+    expect(pathsOf(redirectingAway)).toEqual(["/api/ai-agent/register"]);
+    expect(
+      (JSON.parse(redirectingAway.received[0]!.body) as JSONObject)[
+        "aiAgentKey"
+      ],
+    ).toBe(RUNNER_KEY);
+    expect(redirectingAway.received[0]!.headers["clusterkey"]).toBeUndefined();
     expect(otherServer.received).toEqual([]);
   });
 
@@ -513,6 +543,21 @@ describe.each([
       ).resolves.toBe(false);
 
       expect(printed.join("\n")).toContain("/runner-ingest/heartbeat");
+      expectNoKeyIn(runner);
+    });
+
+    test("logs the shared Runner's failed registration without its key", async () => {
+      const runner: Runner = startRunner({
+        oneuptimeUrl: await closedPortOrigin(),
+        mode: "shared",
+        runnerKey: runnerKey,
+      });
+
+      await expect(
+        runner.Register.tryRegisterRunner({ maxAttempts: 2 }),
+      ).resolves.toBe(false);
+
+      expect(printed.join("\n")).toContain("/api/ai-agent/register");
       expectNoKeyIn(runner);
     });
 

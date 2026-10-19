@@ -11,6 +11,10 @@ import {
   restoreEncryptionSecret,
   setEncryptionSecret,
 } from "../TestingUtils/ShippedEncryptionSecrets";
+import {
+  restoreSharedRunnerKey,
+  setSharedRunnerKey,
+} from "../TestingUtils/SharedRunnerKeys";
 import type ClusterKeyAuthorizationType from "../../../Server/Middleware/ClusterKeyAuthorization";
 import type TokenSigningKeyType from "../../../Server/Utils/TokenSigningKey";
 import { JSONObject } from "../../../Types/JSON";
@@ -65,6 +69,8 @@ interface Installation {
     shipped: string;
     inUrl: string;
     olderRunner: string;
+    runnerClusterKey: string;
+    runnerKeyNotSet: string;
   };
   config: {
     IsClusterKeyShipped: boolean;
@@ -94,6 +100,8 @@ function loadInstallation(
 ): Installation {
   setClusterKey(configured);
   setEncryptionSecret(options.encryptionSecret ?? "secret");
+  // The app holds no shared Runner key here, whatever the machine running this has.
+  setSharedRunnerKey(undefined);
 
   let loaded: Installation | null = null;
 
@@ -103,6 +111,7 @@ function loadInstallation(
       const TokenSigningKey: TokenSigningKeyClass =
         require("../../../Server/Utils/TokenSigningKey").default;
       const middlewareModule: JSONObject = require("../../../Server/Middleware/ClusterKeyAuthorization");
+      const runnerKeyModule: JSONObject = require("../../../Server/Middleware/SharedRunnerKeyAuthorization");
       const config: Installation["config"] = require("../../../Server/EnvironmentConfig");
       const logger: JSONObject =
         require("../../../Server/Utils/Logger").default;
@@ -130,6 +139,12 @@ function loadInstallation(
           olderRunner: middlewareModule[
             "OLDER_RUNNER_CLUSTER_KEY_MESSAGE"
           ] as string,
+          runnerClusterKey: middlewareModule[
+            "RUNNER_CLUSTER_KEY_MESSAGE"
+          ] as string,
+          runnerKeyNotSet: runnerKeyModule[
+            "SHARED_RUNNER_KEY_NOT_SET_MESSAGE"
+          ] as string,
         },
         config: config,
       };
@@ -137,6 +152,7 @@ function loadInstallation(
   } finally {
     restoreClusterKey();
     restoreEncryptionSecret();
+    restoreSharedRunnerKey();
   }
 
   return loaded!;
@@ -145,6 +161,7 @@ function loadInstallation(
 afterAll(() => {
   restoreClusterKey();
   restoreEncryptionSecret();
+  restoreSharedRunnerKey();
 });
 
 // The places a request can carry the key.
@@ -721,25 +738,39 @@ describe("what a request can carry", () => {
   );
   const key: string = installation.ClusterKeyAuthorization.getClusterKey();
 
-  test("no key at all is answered as missing, by either check", async () => {
-    for (const check of CHECKS) {
-      for (const request of [
-        { headers: {} },
-        { params: {}, query: {}, headers: {}, body: {} },
-        { headers: { clusterkey: "" } },
-        { body: { clusterKey: "" }, headers: {} },
-        { body: "clusterKey", headers: {} },
-        { body: [key], headers: {} },
-      ] as Array<FakeRequest>) {
-        const outcome: Outcome = await present(installation, request, check);
+  test("no key at all is answered as missing by every route's check, and handed to the Runner's own key by its registration", async () => {
+    for (const request of [
+      { headers: {} },
+      { params: {}, query: {}, headers: {}, body: {} },
+      { headers: { clusterkey: "" } },
+      { body: { clusterKey: "" }, headers: {} },
+      { body: "clusterKey", headers: {} },
+      { body: [key], headers: {} },
+    ] as Array<FakeRequest>) {
+      expect(
+        await present(installation, request, "isAuthorizedServiceMiddleware"),
+      ).toStrictEqual({
+        passed: false,
+        status: 400,
+        message: installation.messages.notFound,
+      });
 
-        expect({ check, ...outcome }).toStrictEqual({
-          check,
-          passed: false,
-          status: 400,
-          message: installation.messages.notFound,
-        });
-      }
+      /*
+       * The shared Runner of this release carries no cluster key: its
+       * registration is decided by its own key, which this installation's
+       * app was not given.
+       */
+      expect(
+        await present(
+          installation,
+          request,
+          "isAuthorizedRunnerRegistrationMiddleware",
+        ),
+      ).toStrictEqual({
+        passed: false,
+        status: 400,
+        message: installation.messages.runnerKeyNotSet,
+      });
     }
   });
 
@@ -878,8 +909,15 @@ describe("what a request can carry", () => {
         )
       ).passed,
     ).toBe(true);
-    // A Runner of this release sent it in the header: nothing to update.
-    expect(installation.warnings).not.toHaveBeenCalled();
+    /*
+     * A Runner that sends the key in the header is of an earlier release,
+     * or its deployment still gives it ONEUPTIME_SECRET: let through, and
+     * told to update, once for the one request let through.
+     */
+    expect(installation.warnings).toHaveBeenCalledTimes(1);
+    expect(installation.warnings.mock.calls[0]![0]).toBe(
+      installation.messages.runnerClusterKey,
+    );
   });
 });
 

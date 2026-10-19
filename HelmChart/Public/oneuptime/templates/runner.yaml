@@ -95,20 +95,14 @@ spec:
             {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "runner")) | nindent 12 }}
             - name: ONEUPTIME_URL
               value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}
-            - name: ONEUPTIME_RUNNER_KEY
-              {{- if $.Values.runner.key }}
-              value: {{ $.Values.runner.key }}
-              {{- else if (($.Values.runner.existingSecret).name) }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ ($.Values.runner.existingSecret).name }}
-                  key: {{ ($.Values.runner.existingSecret).passwordKey }}
-              {{- else }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ printf "%s-%s" $.Release.Name "secrets" }}
-                  key: runner-key
-              {{- end }}
+            {{- /*
+            The installation's shared Runner: it registers with its own key,
+            ONEUPTIME_RUNNER_KEY, which app.yaml gives the app as well
+            (oneuptime.env.runnerKey), and needs no cluster key.
+            */}}
+            - name: ONEUPTIME_RUNNER_SHARED
+              value: "true"
+            {{- include "oneuptime.env.runnerKey" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             {{- if $.Values.runner.disableTelemetryCollection }}
             - name: DISABLE_TELEMETRY
               value: {{ $.Values.runner.disableTelemetryCollection | quote }}
@@ -120,15 +114,15 @@ spec:
             {{- /*
             The shared in-cluster Runner serves AI code fixes for every project
             that has no Runner of its own, so it holds only what it needs: its
-            OneUptime URL, its keys and its telemetry settings. It reaches the
-            server over HTTP with ONEUPTIME_SECRET (its cluster key) and
-            ONEUPTIME_RUNNER_KEY, and the server mediates its LLM calls, so none
-            of the server's own settings belong in this container. It takes
-            oneuptime.env.oneuptimeSecret (the cluster key alone), never
-            oneuptime.env.runtime (the app's whole environment). The
-            runner-minimal-env chart test holds this.
+            OneUptime URL, its key and its telemetry settings. It reaches the
+            server over HTTP with ONEUPTIME_RUNNER_KEY alone, and the server
+            mediates its LLM calls, so none of the server's own settings
+            belong in this container: not oneuptime.env.runtime (the app's
+            whole environment), and not oneuptime.env.oneuptimeSecret either
+            (the cluster key, which opens every route OneUptime's own
+            services call each other on). The runner-minimal-env chart test
+            holds this.
             */}}
-            {{- include "oneuptime.env.oneuptimeSecret" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
             {{- with (default $.Values.extraEnv $.Values.runner.extraEnv) }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
