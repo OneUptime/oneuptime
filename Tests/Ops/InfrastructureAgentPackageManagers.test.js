@@ -109,6 +109,10 @@ const ISOLATED_GIT = {
   GIT_TERMINAL_PROMPT: "0",
 };
 
+/*
+ * A program, run with a list of arguments: a script's path, a repository's
+ * path. No shell reads them, so nothing in them is a command.
+ */
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     encoding: "utf8",
@@ -119,6 +123,32 @@ function run(command, args, options = {}) {
     throw result.error;
   }
   return result;
+}
+
+/*
+ * A release.yml step's script, run the way the step runs it (bash -e). The
+ * one command line this suite hands a shell: kept apart from run(), so no
+ * path passed to a program is ever read as part of one.
+ */
+function runStepScript(script, options = {}) {
+  const result = spawnSync("bash", ["-e", "-c", script], {
+    encoding: "utf8",
+    timeout: 120000,
+    ...options,
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  return result;
+}
+
+// Whether shellcheck is installed, asked of shellcheck itself.
+function hasShellcheck() {
+  const result = spawnSync("shellcheck", ["--version"], {
+    encoding: "utf8",
+    timeout: 120000,
+  });
+  return !result.error && result.status === 0;
 }
 
 describe(`${GORELEASER}: what the package managers are given`, () => {
@@ -283,7 +313,7 @@ describe.each(PUBLISH_JOB_NAMES)(`${RELEASE}: %s`, (name) => {
           work,
           `output-${Object.values(values).join("-")}`,
         );
-        const result = run("bash", ["-e", "-c", check.run], {
+        const result = runStepScript(check.run, {
           env: { PATH: process.env.PATH, GITHUB_OUTPUT: output, ...values },
         });
         expect(result.status).toBe(0);
@@ -433,7 +463,7 @@ describe(`${SCRIPTS}: the scripts`, () => {
       const file = path.join(REPO_ROOT, SCRIPTS, script);
       expect(run("bash", ["-n", file]).status).toBe(0);
 
-      if (run("sh", ["-c", "command -v shellcheck"]).status === 0) {
+      if (hasShellcheck()) {
         const result = run(
           "shellcheck",
           ["-x", "--source-path=SCRIPTDIR", file],
@@ -887,5 +917,39 @@ if (method === "GET" && endpoint === "user") {
     expect(tokenless.status).not.toBe(0);
     expect(tokenless.stderr).toContain("WINGET_GITHUB_TOKEN is required");
     expect(tokenless.calls).toEqual([]);
+  });
+});
+
+describe("how this suite starts processes", () => {
+  test("a step's script runs as release.yml runs it, under bash -e: a failing command ends it", () => {
+    const failing = runStepScript('false\necho "after a failure"');
+
+    expect(failing.status).not.toBe(0);
+    expect(failing.stdout).toBe("");
+    expect(runStepScript('echo "a step"').stdout).toBe("a step\n");
+  });
+
+  test("a path handed to a program is an argument, never part of a command line", () => {
+    const work = fs.mkdtempSync(
+      path.join(os.tmpdir(), "package-managers-run-"),
+    );
+    try {
+      const script = path.join(work, "a step; touch ran-as-a-command.sh");
+      fs.writeFileSync(script, 'echo "read as a script"\n');
+
+      const result = run("bash", [script], { cwd: work });
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("read as a script\n");
+      expect(fs.readdirSync(work)).toEqual([path.basename(script)]);
+    } finally {
+      fs.rmSync(work, { recursive: true, force: true });
+    }
+  });
+
+  test("shellcheck is looked for without a shell, and found where it is installed", () => {
+    const installed = spawnSync("shellcheck", ["--version"]);
+
+    expect(hasShellcheck()).toBe(!installed.error && installed.status === 0);
   });
 });
