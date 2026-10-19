@@ -1114,6 +1114,19 @@ export default class MailService {
     let outcome: "success" | "failure" = "success";
 
     try {
+      /*
+       * One message goes to one mailbox. An address read back from a row
+       * stored before every address was held to one mailbox can still hold a
+       * list or a display name (Email keeps such a value readable but marks
+       * it); it is refused here rather than handed to a transport, which
+       * would deliver to every address in it.
+       */
+      if (!Email.isValid(mail.toEmail.toString())) {
+        throw new BadDataException(
+          `Email ${mail.toEmail.toString()} is not in valid format.`,
+        );
+      }
+
       await this.sendInternal(mail, options);
     } catch (err) {
       outcome = "failure";

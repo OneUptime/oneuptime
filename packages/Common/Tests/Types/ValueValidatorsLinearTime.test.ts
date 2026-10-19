@@ -40,6 +40,19 @@ const EMAIL_SHAPE_WORST_CASES: Array<[string, string]> = [
   ["letters and dots", repeat("a.", LENGTH)],
   ["an at then dotted labels", repeat("a@a.", LENGTH)],
   ["dots and a tail", "a@" + repeat(".", LENGTH) + ".aa"],
+  /*
+   * An "@" after the dotted labels is what made the unbounded shape check
+   * slow: every dot was tried as the last one, and each try read on to that
+   * "@".
+   */
+  [
+    "an address, dotted labels, then another at",
+    "a@" + repeat("a.", LENGTH) + "@",
+  ],
+  [
+    "a long first part, dotted labels, then another at",
+    repeat("a", LENGTH / 2) + "@" + repeat("a.", LENGTH / 2) + "@",
+  ],
 ];
 
 describe("UrlScrubber.scrub reads a long path segment quickly", () => {

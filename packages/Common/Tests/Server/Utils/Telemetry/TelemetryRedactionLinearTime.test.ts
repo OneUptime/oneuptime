@@ -17,10 +17,12 @@ import { describe, expect, test } from "@jest/globals";
  *    sanitizeExceptionMessage scrubs the message that reaches an LLM, a PR or
  *    a commit.
  *
- * The address and token patterns they use are bounded to the sizes a real
- * address or token has, so a long body - even one built to be awkward - is
- * read once in well under two seconds, while a real address or token is still
- * found and redacted exactly as before.
+ * The address patterns they use are bounded to the sizes a real address has,
+ * and a token is looked for once per run of the characters it is made of
+ * (JsonWebTokenRedactionLinearTime has the token's own cases), so a long body
+ * - even one built to be awkward - is read once in well under two seconds,
+ * while a real address or token is still found and redacted exactly as
+ * before.
  * ---------------------------------------------------------------------------
  */
 

@@ -1,7 +1,7 @@
 import Hostname from "./API/Hostname";
 import DatabaseProperty from "./Database/DatabaseProperty";
 import BadDataException from "./Exception/BadDataException";
-import { JSONObject, ObjectType } from "./JSON";
+import { JSONObject, JSONValue, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
@@ -97,7 +97,15 @@ export default class Email extends DatabaseProperty {
   public static isValid(value: string): boolean {
     // from https://datatracker.ietf.org/doc/html/rfc5322
 
-    if (!value || value.length > MAX_EMAIL_ADDRESS_LENGTH) {
+    /*
+     * Only text is an address: a list or an object handed in from JSON is
+     * not read as the text it would turn into.
+     */
+    if (
+      typeof value !== "string" ||
+      !value ||
+      value.length > MAX_EMAIL_ADDRESS_LENGTH
+    ) {
       return false;
     }
 
@@ -107,11 +115,18 @@ export default class Email extends DatabaseProperty {
   /*
    * A read-only path: builds an Email from a value already stored, holding it
    * as-is when it is not one valid mailbox, so a single legacy row cannot fail
-   * the whole query that reads it. Writes stay strict - see toDatabase.
+   * the whole query that reads it. Writes stay strict - see toDatabase. A
+   * stored address is always text, so anything else is refused here as it
+   * always was.
    */
-  private static fromStoredValueLenient(value: string): Email {
-    const trimmed: string =
-      typeof value === "string" ? value.trim().toLowerCase() : value;
+  private static fromStoredValueLenient(value: unknown): Email {
+    if (typeof value !== "string") {
+      throw new BadDataException(
+        `Email ${String(value)} is not in valid format.`,
+      );
+    }
+
+    const trimmed: string = value.trim().toLowerCase();
 
     if (Email.isValid(trimmed)) {
       return new Email(trimmed);
@@ -186,13 +201,25 @@ export default class Email extends DatabaseProperty {
 
   public static override fromJSON(json: JSONObject): Email {
     if (json["_type"] === ObjectType.Email) {
+      const value: JSONValue | undefined = json["value"];
+
+      /*
+       * No value, an empty one, or one that is not text was never an
+       * address, and is refused as before.
+       */
+      if (typeof value !== "string" || !value.trim()) {
+        throw new BadDataException(
+          `Email ${String(value ?? "")} is not in valid format.`,
+        );
+      }
+
       /*
        * Lenient for the same reason fromDatabase is: this is how a stored
        * value crosses the wire into the browser. A value that was accepted
        * before this check existed must still render; the write paths stay
        * strict, so nothing invalid can be newly stored through here.
        */
-      return Email.fromStoredValueLenient((json["value"] as string) || "");
+      return Email.fromStoredValueLenient(value);
     }
 
     throw new BadDataException("Invalid JSON: " + JSON.stringify(json));
@@ -247,7 +274,8 @@ export default class Email extends DatabaseProperty {
   }
 
   public static override fromDatabase(_value: string): Email | null {
-    if (_value) {
+    // Nothing but spaces is no address: it reads as no value at all.
+    if (_value && (typeof _value !== "string" || _value.trim())) {
       return Email.fromStoredValueLenient(_value);
     }
 

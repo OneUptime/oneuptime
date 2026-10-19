@@ -58,16 +58,20 @@ export function normalizeExceptionText(text: string): string {
   );
 
   /*
-   * 5. JWT tokens (three base64 segments separated by dots). The header and
-   * payload lengths are bounded (the header tightly, as a header is tiny), so
-   * reading a long exception message for a token stays in line with its
-   * length. The bounds are far above any real token, so the <JWT> placeholder
-   * still lands on exactly the tokens it did before and fingerprints are
-   * unchanged.
+   * 5. JWT tokens (three base64 segments separated by dots).
+   *
+   * A token is looked for once per run of the characters it is made of, at
+   * the first place in the run one may begin - the run's start, or just
+   * after a "-" in it, the places the word boundary allowed - and the text
+   * of the run before that place is put back ($1). Every later place in the
+   * same run would end the same way, so this lands <JWT> on exactly the
+   * tokens a search from every "eyJ" did, of any length, and fingerprints
+   * are unchanged; but each run is read a bounded number of times, so a
+   * long exception message is read in time in line with its length.
    */
   normalized = normalized.replace(
-    /\beyJ[A-Za-z0-9_-]{0,512}\.eyJ[A-Za-z0-9_-]{0,16384}\.[A-Za-z0-9_-]{1,16384}\b/g,
-    "<JWT>",
+    /(?<![A-Za-z0-9_-])(?=((?:[A-Za-z0-9_-]*?-)??)eyJ)\1eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\b/g,
+    "$1<JWT>",
   );
 
   // 6. Base64 encoded strings (long sequences, likely tokens or encoded data)

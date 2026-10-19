@@ -468,6 +468,10 @@ describe("VideoCallConnectionSettingsUtil.isEmail", () => {
     ["letters and dots", "a.".repeat(200000)],
     ["an at then dotted labels", "a@a.".repeat(100000)],
     ["dots and a tail", ".".repeat(400000) + "-.aa"],
+    [
+      "an address, dotted labels, then another at",
+      "a@" + "a.".repeat(200000) + "@",
+    ],
   ])(
     "decides %s in time in line with its length",
     (_label: string, value: string) => {

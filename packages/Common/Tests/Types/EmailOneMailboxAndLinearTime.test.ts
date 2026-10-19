@@ -88,6 +88,110 @@ describe("an email value is one mailbox", () => {
       expect(Email.isValid(value)).toBe(false);
     }
   });
+
+  /*
+   * Every other way a second address, a header or a name could ride along
+   * with one: each is refused whole, never read as the address inside it.
+   */
+  test("refuses an address with anything around or after it", () => {
+    const refused: Array<string> = [
+      "a@b@example.com",
+      "a@example.com,",
+      ",a@example.com",
+      "a@example.com;",
+      "a@example.com>",
+      "a@example.com\u0000",
+      "a@example.com\r\nBcc: b@example.com",
+      "a@example.com\nb@example.com",
+      "a@example.com\tb@example.com",
+      "a@example.com (Alice)",
+      "(Alice)a@example.com",
+      "a@example.com <b@example.com>",
+      "=?utf-8?q?Alice?= <a@example.com>",
+      "mailto:a@example.com",
+      "a@example.com:25",
+      "a@[192.168.1.1]:25",
+      "a@[192.168.1.1,10.0.0.1]",
+      "a@[192.168.1.1] b@example.com",
+      "a@example.com.",
+      "a@.example.com",
+      "a..b@example.com",
+      ".a@example.com",
+      "a.@example.com",
+      "a@-example.com",
+      "a@example-.com",
+    ];
+
+    for (const value of refused) {
+      expect({ value, valid: Email.isValid(value) }).toEqual({
+        value,
+        valid: false,
+      });
+      expect(() => {
+        return new Email(value);
+      }).toThrow(BadDataException);
+    }
+  });
+
+  /*
+   * A quoted local part may hold a comma, an "@" or brackets and is still
+   * ONE mailbox, at the domain after the last "@" - which is how a mail
+   * transport reads it too.
+   */
+  test("accepts a quoted local part as the one mailbox it is", () => {
+    for (const value of [
+      '"a,b"@example.com',
+      '"a@b.example"@example.com',
+      '"<a>"@example.com',
+    ]) {
+      expect({ value, valid: Email.isValid(value) }).toEqual({
+        value,
+        valid: true,
+      });
+    }
+  });
+});
+
+describe("an email value is text", () => {
+  const notText: Array<unknown> = [
+    ["a@example.com"],
+    ["a@example.com", "b@example.com"],
+    { address: "a@example.com" },
+    42,
+    true,
+  ];
+
+  test("isValid and the constructor refuse what is not text", () => {
+    for (const value of notText) {
+      expect(Email.isValid(value as string)).toBe(false);
+      expect(() => {
+        return new Email(value as string);
+      }).toThrow(BadDataException);
+    }
+  });
+
+  test("fromJSON refuses a value that is not text, or none at all", () => {
+    for (const value of [...notText, "", "   ", null]) {
+      expect(() => {
+        return Email.fromJSON({
+          _type: ObjectType.Email,
+          value: value as string,
+        });
+      }).toThrow(BadDataException);
+    }
+
+    expect(() => {
+      return Email.fromJSON({ _type: ObjectType.Email });
+    }).toThrow(BadDataException);
+  });
+
+  test("fromDatabase reads nothing but spaces as no value, and refuses what is not text", () => {
+    expect(Email.fromDatabase("   ")).toBeNull();
+    expect(Email.fromDatabase("")).toBeNull();
+    expect(() => {
+      return Email.fromDatabase(["a@example.com"] as unknown as string);
+    }).toThrow(BadDataException);
+  });
 });
 
 describe("an email value is bounded in length", () => {
@@ -145,6 +249,38 @@ describe("an email value is read in time in line with its length", () => {
     const value: string = "a@[1.1.1.a:" + "\\a".repeat(30);
     const startedAt: number = Date.now();
     Email.isValid(value);
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+
+  /*
+   * Anything longer than the bound is refused before the pattern runs, so
+   * the pattern only ever reads up to 254 characters: it must read even its
+   * most awkward values of that length at once - here a thousand of each.
+   */
+  test("decides the most awkward values at the length bound at once", () => {
+    const atTheBound: Array<string> = [
+      "a@" + "a.".repeat(126),
+      "a@" + "a-".repeat(126),
+      '"' + "\\\\".repeat(126),
+      "a@[" + "1.".repeat(125),
+      "a@[1.1.1.a:" + "\\a".repeat(121),
+      "a".repeat(253) + "@",
+      "a.".repeat(126) + "@",
+      "a@" + "a".repeat(250) + "!",
+    ];
+
+    for (const value of atTheBound) {
+      expect(value.length).toBeLessThanOrEqual(MAX_EMAIL_ADDRESS_LENGTH);
+    }
+
+    const startedAt: number = Date.now();
+
+    for (let round: number = 0; round < 1000; round++) {
+      for (const value of atTheBound) {
+        Email.isValid(value);
+      }
+    }
+
     expect(Date.now() - startedAt).toBeLessThan(2000);
   });
 });

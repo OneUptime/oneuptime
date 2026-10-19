@@ -50,15 +50,21 @@ type RedactionRule =
 const REDACTION_RULES: Array<RedactionRule> = [
   {
     /*
-     * A JWT: three base64url segments split by dots, the first a small header.
-     * The header length is bounded tightly (a header is tiny) and the later
-     * segments generously, so scanning a long tool result for a token stays in
-     * line with the result's length rather than growing with its square.
+     * A JWT: three base64url segments split by dots, of any length.
+     *
+     * A token is looked for once per run of the characters it is made of:
+     * the match may only begin where such a run begins, and the look-ahead
+     * settles on the run's first "eyJ" - the one with the longest first
+     * segment, so when it is no token, no later "eyJ" of the run is one
+     * either. The text of the run before it is put back ($1). That replaces
+     * exactly the tokens a search from every "eyJ" did, while each run is
+     * read a bounded number of times, so a long tool result is read in time
+     * in line with its length.
      */
     name: "jwt",
     regex:
-      /eyJ[A-Za-z0-9_-]{10,512}\.[A-Za-z0-9_-]{10,16384}\.[A-Za-z0-9_-]{5,16384}/g,
-    replacement: "[redacted-jwt]",
+      /(?<![A-Za-z0-9_-])(?=([A-Za-z0-9_-]*?)eyJ)\1eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
+    replacement: "$1[redacted-jwt]",
   },
   {
     name: "bearer",
