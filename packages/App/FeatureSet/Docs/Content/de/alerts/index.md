@@ -64,7 +64,7 @@ Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außer
 
 **Warnungen** und **Episoden** sind geöffnet; **KI**, **Arbeitsbereich**, **Regeln**, **Einstellungen** und **Entwickler** sind zunächst eingeklappt, und ein Bereich öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. Die Konfiguration von Warnungen liegt hier, nicht in den **Projekteinstellungen**.
 
-Die Liste zeigt **Warnungsnummer**, **Titel**, **Status**, **Schweregrad**, **Überwachung**, **Betroffene Ressourcen**, **Erstellt**, **Dauer**, **Beschriftungen** und **Eigentümer**. Wählen Sie Warnungen aus, um mehrere auf einmal zu bearbeiten: **Status ändern**, **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Mit Vorfall verknüpfen**, **Vorfall melden** oder löschen.
+Die Liste zeigt **Warnungsnummer**, **Titel**, **Status**, **Schweregrad**, **Betroffene Ressourcen** (zuerst der Monitor der Warnung), **Erstellt**, **Dauer**, **Beschriftungen** und **Eigentümer**. Wählen Sie Warnungen aus, um mehrere auf einmal zu bearbeiten: **Status ändern**, **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Mit Vorfall verknüpfen**, **Vorfall melden** oder löschen.
 
 ## Eine Warnung von Hand erstellen
 
