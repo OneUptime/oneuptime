@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import McpOAuthGrantService from "../../Services/McpOAuthGrantService";
 import UserProjectSsoConsentService from "../../Services/UserProjectSsoConsentService";
+import UserProjectSsoIdentityService from "../../Services/UserProjectSsoIdentityService";
 import logger, { LogAttributes } from "../Logger";
 import ProjectLeaveRows, {
   FormerMemberCleanupResult,
@@ -23,10 +24,17 @@ import ProjectLeaveRows, {
  *     On the hosted service a project's SSO signs an account in, and SCIM
  *     adds it to the project's teams as a member, only once the account's
  *     owner agreed from their mailbox. That agreement was to be in the
- *     project; once they have left it, the project asks again.
+ *     project; once they have left it, the project asks again;
+ *   - the identity provider account their sign-ins through the project's
+ *     SAML providers are bound to (UserProjectSsoIdentity). It lets nobody
+ *     in - it refuses anyone else the identity provider signs in with their
+ *     address - but it was made for their time in the project: coming back
+ *     binds afresh, so an account the identity provider made for them anew
+ *     is not locked out.
  *
- * Both are also refused at the moment they are used while the person is not
- * a member (McpOAuthGrantAccess, UserProjectSsoConsentService.hasConsent):
+ * The first two are also refused at the moment they are used while the
+ * person is not a member (McpOAuthGrantAccess,
+ * UserProjectSsoConsentService.hasConsent):
  * removing them here keeps the tables from holding standing access for
  * people who are gone, and joining again starts from nothing.
  *
@@ -51,6 +59,7 @@ export default class ProjectLeaveAccessCleanup {
     return [
       personalTable(McpOAuthGrantService),
       personalTable(UserProjectSsoConsentService),
+      personalTable(UserProjectSsoIdentityService),
     ];
   }
 

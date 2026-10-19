@@ -1,3 +1,5 @@
+import { collapseLineBreakRuns } from "../LineBreakRuns";
+
 /*
  * Escaping for user-controlled text interpolated INTO a markdown sentence -
  * an SLO, monitor, rule, team or user name inside a feed item such as
@@ -239,7 +241,6 @@ export const escapeMarkdownValue: EscapeMarkdownValueFunction = (
  * in the viewer's timezone. "" (no span at all) for an empty value.
  */
 
-const CODE_SPAN_LINE_BREAK_PATTERN: RegExp = /\s*[\r\n]+\s*/g;
 const BACKTICK_RUN_PATTERN: RegExp = /`+/g;
 
 // A "<" with something after it that is not already broken.
@@ -256,8 +257,11 @@ export const markdownCodeSpan: MarkdownCodeSpanFunction = (
     return "";
   }
 
-  const text: string = String(value)
-    .replace(CODE_SPAN_LINE_BREAK_PATTERN, " ")
+  /*
+   * A run of white space that holds a line break becomes one space, each
+   * run read once (collapseLineBreakRuns).
+   */
+  const text: string = collapseLineBreakRuns(String(value))
     .trim()
     .replace(OPEN_ANGLE_BRACKET_PATTERN, `<${WORD_JOINER}`);
 

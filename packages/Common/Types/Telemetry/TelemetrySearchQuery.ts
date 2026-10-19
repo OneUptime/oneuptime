@@ -121,7 +121,8 @@ export interface ParseSearchQueryOptions {
 
 const BOOLEAN_KEYWORDS: Set<string> = new Set(["AND", "OR", "NOT"]);
 
-const LIST_SEPARATOR_REGEX: RegExp = /\s+OR\s+|,/i;
+// One character of white space, as \s reads it.
+const LIST_WHITE_SPACE_REGEX: RegExp = /\s/;
 
 const NUMERIC_REGEX: RegExp = /^-?\d+(\.\d+)?$/;
 
@@ -344,6 +345,72 @@ const negateOperator: NegateOperatorFunction = (
   }
 };
 
+type SplitOnListSeparatorsFunction = (inner: string) => Array<string>;
+
+/*
+ * The list's text cut at each separator - a ",", or white space, "OR" in any
+ * case and white space - as inner.split(/\s+OR\s+|,/i) cut it, reading each
+ * run of white space once. (That pattern was tried again from every place in
+ * a run of white space that "OR" does not follow, each try reading on to the
+ * end of the run: a long run took time that grew with the square of its
+ * length.)
+ */
+export const splitOnListSeparators: SplitOnListSeparatorsFunction = (
+  inner: string,
+): Array<string> => {
+  const isWhiteSpace: (index: number) => boolean = (index: number): boolean => {
+    return index < inner.length && LIST_WHITE_SPACE_REGEX.test(inner[index]!);
+  };
+
+  const entries: Array<string> = [];
+  let entryStart: number = 0;
+  let index: number = 0;
+
+  while (index < inner.length) {
+    if (inner[index] === ",") {
+      entries.push(inner.slice(entryStart, index));
+      index++;
+      entryStart = index;
+      continue;
+    }
+
+    if (!isWhiteSpace(index)) {
+      index++;
+      continue;
+    }
+
+    let runEnd: number = index;
+
+    while (isWhiteSpace(runEnd)) {
+      runEnd++;
+    }
+
+    const isOr: boolean =
+      (inner[runEnd] === "O" || inner[runEnd] === "o") &&
+      (inner[runEnd + 1] === "R" || inner[runEnd + 1] === "r") &&
+      isWhiteSpace(runEnd + 2);
+
+    if (!isOr) {
+      index = runEnd;
+      continue;
+    }
+
+    let separatorEnd: number = runEnd + 2;
+
+    while (isWhiteSpace(separatorEnd)) {
+      separatorEnd++;
+    }
+
+    entries.push(inner.slice(entryStart, index));
+    index = separatorEnd;
+    entryStart = index;
+  }
+
+  entries.push(inner.slice(entryStart));
+
+  return entries;
+};
+
 type SplitListFunction = (inner: string) => Array<string>;
 
 /*
@@ -352,8 +419,7 @@ type SplitListFunction = (inner: string) => Array<string>;
  * `(a* OR bravo)` keeps the star that makes the first entry a pattern.
  */
 const splitList: SplitListFunction = (inner: string): Array<string> => {
-  return inner
-    .split(LIST_SEPARATOR_REGEX)
+  return splitOnListSeparators(inner)
     .map((entry: string) => {
       return stripQuotes(entry.trim());
     })

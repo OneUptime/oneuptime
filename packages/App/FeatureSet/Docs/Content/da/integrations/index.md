@@ -90,6 +90,12 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 > [!TIP]
 > Slack og Microsoft Teams har også workflowtrin. Brug den indbyggede forbindelse til hændelseskanaler og vagter, og et workflowtrin, når du kun har brug for en besked i en kanal.
 
+### Hostingplatforme
+
+| Værktøj | Retning | Hvad det gør |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Indgående | Tilføj OneUptime fra Vercel Marketplace: traces, logs, oppetidsmonitorer og en statusside til dine Vercel-projekter. |
+
 ## Skift fra et andet værktøj
 
 For at forlade et andet værktøj til vagter, oppetid eller statussider henter du dit team over i stedet for at forbinde de to. **Projektindstillinger → Importér fra et andet værktøj** læser din konto med en API-nøgle, viser dig, hvad det fandt, og opretter det, du sætter flueben ved. Hvert værktøj har en vejledning:

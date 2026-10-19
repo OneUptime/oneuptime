@@ -17,8 +17,8 @@ Esta página cubre ambas cosas: los cinco canales de suscripción y cómo se reg
 
 ```mermaid title="De un registro a un mensaje"
 flowchart TB
-    V["Un visitante se registra"] --> Q{"¿Por correo electrónico?"}
-    Q -->|"Sí"| C["Confirma por correo"]
+    V["Un visitante se registra"] --> Q{"¿Por correo o SMS?"}
+    Q -->|"Sí"| C["Confirma con un enlace"]
     Q -->|"No"| S["Suscriptor"]
     C --> S
     E["Incidente, mantenimiento<br/>o anuncio"] --> N["Notificación"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Mensaje con un<br/>enlace de baja"]
 ```
 
-Cada página de estado tiene sus propios suscriptores. Un visitante se registra en la página **Suscribirse** de la página de estado, donde una dirección de correo electrónico se confirma con un enlace antes de recibir nada, o tu equipo lo añade en el panel. A partir de entonces, cada incidente, evento de mantenimiento programado y anuncio que llega a la página notifica a sus suscriptores, a cada uno por el canal con el que se registró, y cada mensaje lleva el enlace que cancela la suscripción.
+Cada página de estado tiene sus propios suscriptores. Un visitante se registra en la página **Suscribirse** de la página de estado, donde una dirección de correo electrónico o un número de teléfono se confirma con un enlace antes de recibir nada, o tu equipo lo añade en el panel. A partir de entonces, cada incidente, evento de mantenimiento programado y anuncio que llega a la página notifica a sus suscriptores, a cada uno por el canal con el que se registró, y cada mensaje lleva el enlace que cancela la suscripción.
 
 ## Canales de suscripción
 
@@ -76,7 +76,7 @@ La página **Suscribirse** tiene un submenú con una pestaña por cada canal act
 | **MS Teams** | `/subscribe/microsoft-teams` | **Suscribirse vía Microsoft Teams** | **Nombre del espacio de trabajo de Microsoft Teams** y **URL del webhook entrante de Microsoft Teams**, con el ejemplo `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **Suscribirse por webhook** | **URL del webhook**, con el ejemplo `https://example.com/webhook`. Se le envía una solicitud JSON `POST` en cada evento de la página de estado. |
 
-El botón de envío dice **Suscribirse**. Un registro por SMS, Slack, Microsoft Teams o webhook muestra *Se ha suscrito correctamente.* Un registro por correo electrónico indica que se ha enviado un enlace de confirmación y que se revise la carpeta de spam si no llega (consulta [Doble confirmación por correo electrónico](#doble-confirmación-por-correo-electrónico)). Las pestañas **Correo electrónico**, **SMS**, **Slack** y **MS Teams** también tienen la división **Nueva suscripción** / **Gestionar suscripción existente**, para que alguien que ya se suscribió pueda volver a sus preferencias sin buscar un mensaje antiguo.
+El botón de envío dice **Suscribirse**. Un registro por Slack, Microsoft Teams o webhook muestra *Se ha suscrito correctamente.* Un registro por SMS muestra *Hemos enviado un SMS a este número de teléfono. Abra el enlace que contiene para confirmar su suscripción.* Un registro por correo electrónico indica que se ha enviado un enlace de confirmación y que se revise la carpeta de spam si no llega (consulta [Doble confirmación por correo electrónico](#doble-confirmación-por-correo-electrónico)). Las pestañas **Correo electrónico**, **SMS**, **Slack** y **MS Teams** también tienen la división **Nueva suscripción** / **Gestionar suscripción existente**, para que alguien que ya se suscribió pueda volver a sus preferencias sin buscar un mensaje antiguo.
 
 ## Límites de registros y enlaces
 
@@ -90,11 +90,15 @@ Cada registro envía a su contacto un mensaje en el acto, un correo de confirmac
 | Registros de una dirección de correo electrónico, un número de teléfono, un canal de Slack o de Microsoft Teams, o un webhook, en todas las páginas de estado en conjunto | 10 en una hora |
 | Enlaces de gestión para una dirección de correo electrónico o un número de teléfono en todas las páginas de estado en conjunto, o para un nombre de espacio de trabajo de Slack o de Microsoft Teams en una página de estado | 5 en una hora |
 
-Al superar un límite, la API responde `429` con un encabezado `Retry-After`, en segundos, y al visitante se le dice que hubo demasiados registros o enlaces desde su red, o para ese contacto, y que vuelva a intentarlo más tarde. No se crea ni se envía nada, y tu proyecto no nota nada: no se añade ningún suscriptor y no se envía ni se paga ningún mensaje. Los límites de enlaces de gestión cuentan cada solicitud, coincida o no una suscripción, así que no sirven para averiguar quién está suscrito. Una dirección de correo electrónico se cuenta como sea que esté escrita, en mayúsculas, con un `+tag` o, en Gmail, con puntos, y un número de teléfono como sea que se haya tecleado. Un registro admite una dirección de correo electrónico: una lista de direcciones se rechaza.
+Al superar un límite, la API responde `429` con un encabezado `Retry-After`, en segundos, y al visitante se le dice que hubo demasiados registros o enlaces desde su red, o para ese contacto, y que vuelva a intentarlo más tarde. No se crea ni se envía nada, y tu proyecto no nota nada: no se añade ningún suscriptor y no se envía ni se paga ningún mensaje. Los límites de enlaces de gestión cuentan cada solicitud, coincida o no una suscripción, así que no sirven para averiguar quién está suscrito. Una dirección de correo electrónico se cuenta como sea que esté escrita, en mayúsculas, con un `+tag` o, en Gmail, con puntos, y un número de teléfono como sea que se haya tecleado. Un registro indica un solo contacto, una dirección de correo electrónico, un número de teléfono, un canal de Slack o de Microsoft Teams o un webhook: una lista de direcciones, o un segundo contacto, se rechaza.
 
-Cada límite por red también cuenta juntas las direcciones de un mismo IPv6 /64, con diez veces su número. Las ventanas son fijas, no móviles. Si no se puede contactar con el limitador de frecuencia, los registros y enlaces de gestión por correo electrónico, Slack, Microsoft Teams y webhook siguen sin contarse, y los de SMS se rechazan con `503` hasta que vuelva, porque cada SMS se paga. Cambiar o cancelar una suscripción desde su propio enlace nunca se limita, y tampoco que tu equipo añada suscriptores en el panel o a través de la API.
+Cada límite por red también cuenta juntas las direcciones de un mismo IPv6 /64, con diez veces su número. Las ventanas son fijas, no móviles. Si no se puede contactar con el limitador de frecuencia, los registros y enlaces de gestión por correo electrónico, Slack, Microsoft Teams y webhook siguen sin contarse, y los de SMS se rechazan con `503` hasta que vuelva, porque cada SMS se paga. Cambiar o cancelar una suscripción desde su propio enlace nunca se limita.
 
-Un usuario privado que pide un enlace para restablecer la contraseña en la página de inicio de sesión de la página de estado se limita igual: 5 correos de restablecimiento a una dirección en una hora, en todas las páginas de estado en conjunto, y 30 desde una red en 15 minutos.
+**Una suscripción por contacto.** Una página de estado acepta cada dirección de correo electrónico, número de teléfono y dirección de webhook una sola vez, incluidos los webhooks de Slack y Microsoft Teams. Una dirección de correo electrónico es la misma en mayúsculas, un número de teléfono como sea que se escriba (`+14155550100`, `14155550100` y `0014155550100` son un mismo número), y una dirección de webhook tanto si su host está en mayúsculas, con su puerto predeterminado o un fragmento, como si tiene letras codificadas con porcentaje. A un visitante que vuelve a registrar un contacto se le dice que ya está suscrito, y no se envía nada. Si tu equipo lo añade de nuevo, o cambia un suscriptor a ese contacto, se rechaza, igual que reactivar una suscripción cancelada mientras otra suscripción tiene su contacto. Los suscriptores de antes se conservan: si un número se suscribió con dos escrituras, elimina la que no necesites.
+
+**Lo que envía tu equipo también cuenta.** Nada limita lo rápido que tu equipo añade suscriptores, en el panel, en masa, a través de la API o con un workflow. Pero el mensaje que recibe un suscriptor añadido, el correo que le pide confirmar o el mensaje que dice que está suscrito, cuenta para los 10 registros por hora de ese contacto, y por encima de ellos esa adición se rechaza con `429`. Un suscriptor añadido sin mensaje nunca se cuenta: **Suscribirlos ahora** para una dirección de correo electrónico, o **Enviar un mensaje de bienvenida** desactivado para los demás canales. Si no se puede contactar con el limitador de frecuencia, las adiciones de tu equipo siguen sin contarse.
+
+Un usuario privado que pide un enlace para restablecer la contraseña en la página de inicio de sesión de la página de estado se limita igual: 5 correos de restablecimiento a una dirección en una hora, en todas las páginas de estado en conjunto, y 30 desde una red en 15 minutos. Una invitación, a una página de estado privada o a un proyecto, también se cuenta por dirección: 10 a una dirección en una hora, ambos tipos en conjunto.
 
 En una instalación autoalojada, estas variables de entorno de la app de OneUptime cambian los límites:
 
@@ -109,6 +113,7 @@ En una instalación autoalojada, estas variables de entorno de la app de OneUpti
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Enlaces de gestión para un contacto por ventana. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Restablecimientos de contraseña de usuarios privados pedidos desde una dirección por ventana. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Correos de restablecimiento de contraseña de usuarios privados a una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitaciones a una dirección por ventana, a páginas de estado privadas y proyectos en conjunto. |
 
 Ni `config.env` ni los valores del chart de Helm los transmiten: añádelos tú mismo al entorno del contenedor `app`, con `app.extraEnv`, o el `extraEnv` de todo el chart, en el chart de Helm, o en un `docker-compose.override.yml` para Docker Compose. `TRUSTED_PROXY_HOPS` decide qué dirección cuentan los límites por red.
 
@@ -137,9 +142,11 @@ Las elecciones quedan en el registro del suscriptor como **Suscrito a todos los 
 
 ## Doble confirmación por correo electrónico
 
-Los suscriptores por correo electrónico siempre confirman. Cuando se crea un suscriptor con una dirección de correo electrónico y no se creó ya confirmado, **Suscripción confirmada** (`isSubscriptionConfirmed`) se fuerza a `false` y se genera un **Token de confirmación de la suscripción** de seis dígitos. OneUptime envía entonces un enlace de confirmación con la forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. El visitante llega a una página **Confirmar suscripción** y, cuando se completa, ve *Suscripción confirmada con éxito*.
+Los suscriptores por correo electrónico siempre confirman. Cuando se crea un suscriptor con una dirección de correo electrónico y no se creó ya confirmado, **Suscripción confirmada** (`isSubscriptionConfirmed`) se fuerza a `false` y se genera un **Token de confirmación de la suscripción** aleatorio de 32 caracteres. OneUptime envía entonces un enlace de confirmación con la forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. El visitante llega a una página **Confirmar suscripción** y, cuando se completa, ve *Suscripción confirmada con éxito*.
 
-Los suscriptores por SMS, Slack, Microsoft Teams y webhook se saltan esto: se crean con `isSubscriptionConfirmed` ya en `true`. Cuando tu equipo añade un suscriptor por correo electrónico en **Suscriptores por correo electrónico**, decide **Al añadirlos**: **Suscribirlos ahora** (la opción predeterminada: confirmado y sin enviarle nada), **Suscribirlos ahora y avisarles** (confirmado, y se le envía el correo que dice que está suscrito) o **Pedirles que confirmen primero** (se le envía el enlace de confirmación, como en un registro). **Añadir en masa** pregunta lo mismo.
+Los suscriptores por Slack, Microsoft Teams y webhook se saltan esto, igual que los suscriptores por SMS que añade tu equipo: se crean con `isSubscriptionConfirmed` ya en `true`. Cuando tu equipo añade un suscriptor por correo electrónico en **Suscriptores por correo electrónico**, decide **Al añadirlos**: **Suscribirlos ahora** (la opción predeterminada: confirmado y sin enviarle nada), **Suscribirlos ahora y avisarles** (confirmado, y se le envía el correo que dice que está suscrito) o **Pedirles que confirmen primero** (se le envía el enlace de confirmación, como en un registro). **Añadir en masa** pregunta lo mismo.
+
+**Los registros por SMS también se confirman.** A un visitante que se registra por SMS se le envía un solo mensaje: el enlace de confirmación. No se envía nada más al número hasta que se abre el enlace, y abrirlo envía por SMS el mensaje que dice que está suscrito, con el enlace que cancela la suscripción. Hasta entonces el suscriptor aparece como **Esperando confirmación**, y el registro de SMS muestra el enlace con su código sustituido por `[redacted]`. Los suscriptores por SMS de antes ya están confirmados.
 
 **Sin confirmar significa en silencio.** La consulta que obtiene los suscriptores para una notificación filtra por `isUnsubscribed: false` y `isSubscriptionConfirmed: true`. Una dirección de correo electrónico que nunca hizo clic en el enlace se quedará en tu lista **Suscriptores por correo electrónico** y no recibirá nada. Si alguien jura que está suscrito pero no recibe nada, comprueba primero esa columna.
 

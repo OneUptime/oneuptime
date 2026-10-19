@@ -103,7 +103,9 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import SmsService from "../../../Server/Services/SmsService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberNotificationTemplateService from "../../../Server/Services/StatusPageSubscriberNotificationTemplateService";
-import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberService, {
+  ONE_CONTACT_PER_SIGN_UP_MESSAGE,
+} from "../../../Server/Services/StatusPageSubscriberService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -131,6 +133,7 @@ import {
   useInMemoryTable,
 } from "../TestingUtils/InMemoryRepository";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { useInMemorySubscriberCreates } from "../TestingUtils/SubscriberCreatesInMemory";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -149,6 +152,18 @@ function pageIdOf(index: number): string {
 
 const PAGE_ID: string = pageIdOf(0);
 const PAGE_COUNT: number = 15;
+
+/*
+ * What a value that is not one mailbox is refused with: by Email itself,
+ * which takes one mailbox, or by the limiter's own one-address check -
+ * either way before anything is created, sent or counted.
+ */
+function oneMailboxRefusals(value: string): Array<string> {
+  return [
+    PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+    `Email ${value} is not in valid format.`,
+  ];
+}
 
 const VISITOR: string = "203.0.113.7";
 const NETWORK_PREFIX: string = "2001:db8:5:6";
@@ -231,6 +246,8 @@ beforeEach(() => {
 
   useInMemoryTable(StatusPageService, pages);
   subscribers = useInMemoryTable(StatusPageSubscriberService, []);
+  // Each new subscriber's INSERT, under its page's lock, into the table.
+  useInMemorySubscriberCreates(subscribers);
 
   /*
    * The statements a change of a subscription writes Unsubscribed At with
@@ -588,14 +605,38 @@ describe("signing up on a status page", () => {
     );
   });
 
-  test("one webhook signed up again and again: ten subscriptions in an hour, then refused", async () => {
+  test("one webhook signed up again and again on one page: one subscription; the rest are told it is subscribed already, and cost it nothing", async () => {
     const { accepted, refusals } = await acceptedOf(100, (index: number) => {
       return signUp(`192.0.2.${(index % 50) + 1}`, {
         subscriberWebhook: "https://victim.example.net/hook",
       });
     });
 
-    // Before these limits: 100 subscriptions, each called on every update.
+    // Before: 100 subscriptions, each called on every update.
+    expect(accepted).toBe(1);
+    expect(subscribers.rows).toHaveLength(1);
+    expect(webhookCalls).toHaveBeenCalledTimes(1);
+    expect(refusals).toHaveLength(99);
+    expect(refusals[0]!.error?.message).toBe(
+      "You are already subscribed to this status page.",
+    );
+    expect(refusals[98]!.error?.message).toBe(
+      "You are already subscribed to this status page.",
+    );
+  });
+
+  test("one webhook signed up on page after page: ten subscriptions in an hour, then refused", async () => {
+    const { accepted, refusals } = await acceptedOf(
+      PAGE_COUNT,
+      (index: number) => {
+        return signUp(
+          `192.0.2.${index + 1}`,
+          { subscriberWebhook: "https://victim.example.net/hook" },
+          pageIdOf(index),
+        );
+      },
+    );
+
     expect(accepted).toBe(10);
     expect(subscribers.rows).toHaveLength(10);
     expect(webhookCalls).toHaveBeenCalledTimes(10);
@@ -605,14 +646,18 @@ describe("signing up on a status page", () => {
     );
   });
 
-  test("one Slack channel and one Microsoft Teams channel: ten each in an hour", async () => {
+  test("one Slack channel and one Microsoft Teams channel, on page after page: ten each in an hour", async () => {
     const slack: { accepted: number; refusals: Array<Answer> } =
       await acceptedOf(12, (index: number) => {
-        return signUp(`192.0.2.${index + 1}`, {
-          slackIncomingWebhookUrl:
-            "https://hooks.slack.com/services/T000/B000/victim",
-          slackWorkspaceName: "Victim",
-        });
+        return signUp(
+          `192.0.2.${index + 1}`,
+          {
+            slackIncomingWebhookUrl:
+              "https://hooks.slack.com/services/T000/B000/victim",
+            slackWorkspaceName: "Victim",
+          },
+          pageIdOf(index),
+        );
       });
 
     expect(slack.accepted).toBe(10);
@@ -624,11 +669,15 @@ describe("signing up on a status page", () => {
 
     const teams: { accepted: number; refusals: Array<Answer> } =
       await acceptedOf(12, (index: number) => {
-        return signUp(`192.0.2.${index + 1}`, {
-          microsoftTeamsIncomingWebhookUrl:
-            "https://victim.webhook.office.com/webhookb2/victim",
-          microsoftTeamsWorkspaceName: "Victim",
-        });
+        return signUp(
+          `192.0.2.${index + 1}`,
+          {
+            microsoftTeamsIncomingWebhookUrl:
+              "https://victim.webhook.office.com/webhookb2/victim",
+            microsoftTeamsWorkspaceName: "Victim",
+          },
+          pageIdOf(index),
+        );
       });
 
     expect(teams.accepted).toBe(10);
@@ -648,8 +697,8 @@ describe("signing up on a status page", () => {
       const answer: Answer = await signUp(VISITOR, { subscriberEmail });
 
       expect(answer.error?.code).toBe(ExceptionCode.BadDataException);
-      expect(answer.error?.message).toBe(
-        PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+      expect(oneMailboxRefusals(subscriberEmail)).toContain(
+        answer.error?.message,
       );
     }
 
@@ -665,10 +714,12 @@ describe("signing up on a status page", () => {
     ]) {
       const answer: Answer = await signUp(VISITOR, { subscriberEmail });
 
-      expect([subscriberEmail, answer.error?.message]).toEqual([
+      expect({
         subscriberEmail,
-        PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
-      ]);
+        refused: oneMailboxRefusals(subscriberEmail).includes(
+          answer.error?.message as string,
+        ),
+      }).toEqual({ subscriberEmail, refused: true });
     }
 
     expect(subscribers.rows).toHaveLength(0);
@@ -836,14 +887,14 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
     );
   });
 
-  test("named beside a Slack address that is not one: refused, and the address keeps its ten", async () => {
+  test("named beside a Slack address: refused as two contacts before anything is counted, and the address keeps its ten", async () => {
     for (let index: number = 0; index < 20; index++) {
       const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
         subscriberEmail: VICTIM_EMAIL,
         slackIncomingWebhookUrl: "https://example.net/not-a-slack-webhook",
       });
 
-      expect(answer.error?.message).toBe("Invalid Slack Incoming Webhook URL.");
+      expect(answer.error?.message).toBe(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
     }
 
     expect(subscribers.rows).toHaveLength(0);
@@ -852,7 +903,25 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
     ).toBe(10);
   });
 
-  test("named beside a webhook the page may not call: refused, and the address keeps its ten", async () => {
+  test("named beside a webhook: refused as two contacts before anything is counted, and the address keeps its ten", async () => {
+    for (let index: number = 0; index < 20; index++) {
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberEmail: VICTIM_EMAIL,
+        subscriberWebhook: "https://10.0.0.5/hook",
+      });
+
+      expect(answer.error?.message).toBe(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
+    }
+
+    expect(subscribers.rows).toHaveLength(0);
+    expect(
+      (await victimSignUps({ subscriberEmail: VICTIM_EMAIL })).accepted,
+    ).toBe(10);
+  });
+
+  test("a webhook the page may not call: refused, and the webhook keeps its ten", async () => {
+    const WEBHOOK: string = "https://hooks.example.net/status";
+
     jest
       .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
       .mockRejectedValue(
@@ -861,8 +930,7 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
 
     for (let index: number = 0; index < 20; index++) {
       const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
-        subscriberEmail: VICTIM_EMAIL,
-        subscriberWebhook: "https://10.0.0.5/hook",
+        subscriberWebhook: WEBHOOK,
       });
 
       expect(answer.error?.message).toBe(
@@ -874,9 +942,10 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
       .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
       .mockResolvedValue(undefined);
 
-    expect(
-      (await victimSignUps({ subscriberEmail: VICTIM_EMAIL })).accepted,
-    ).toBe(10);
+    expect(subscribers.rows).toHaveLength(0);
+    expect((await victimSignUps({ subscriberWebhook: WEBHOOK })).accepted).toBe(
+      10,
+    );
   });
 
   test("named with a value too long to keep: refused, and the address keeps its ten", async () => {
@@ -920,7 +989,7 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
     expect(texts).toHaveBeenCalledTimes(10);
   });
 
-  test("named beside a phone that has had its ten: refused for the phone, and the address keeps its ten", async () => {
+  test("named beside a phone that has had its ten: refused as two contacts before anything is counted, and the address keeps its ten", async () => {
     await acceptedOf(10, (index: number) => {
       return signUp(
         `203.0.113.${index + 1}`,
@@ -930,13 +999,12 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
     });
 
     for (let index: number = 0; index < 20; index++) {
-      expectRefused(
-        await signUp(`192.0.2.${index + 1}`, {
-          subscriberEmail: VICTIM_EMAIL,
-          subscriberPhone: VICTIM_PHONE,
-        }),
-        "Too many sign-ups for this phone number in the last hour. Please try again later.",
-      );
+      const answer: Answer = await signUp(`192.0.2.${index + 1}`, {
+        subscriberEmail: VICTIM_EMAIL,
+        subscriberPhone: VICTIM_PHONE,
+      });
+
+      expect(answer.error?.message).toBe(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
     }
 
     expect(
@@ -960,16 +1028,21 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
   });
 
   test("a sign-up that fails once its subscriber is written - its text already sent - keeps its count", async () => {
-    jest
-      .spyOn(DatabaseConfig, "getHost")
-      .mockRejectedValue(new Error("settings unavailable"));
+    // What a create does once its messages have gone: the live update fails.
+    const liveUpdate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(
+        StatusPageSubscriberService as unknown as {
+          onTriggerRealtime: () => Promise<void>;
+        },
+        "onTriggerRealtime",
+      )
+      .mockRejectedValue(new Error("settings unavailable") as never);
 
     for (let index: number = 0; index < 10; index++) {
       const answer: Answer = await signUp(
         `192.0.2.${index + 1}`,
         {
           subscriberPhone: VICTIM_PHONE,
-          subscriberEmail: `p${index}@x.example`,
         },
         pageIdOf(index),
       );
@@ -977,13 +1050,11 @@ describe("a contact's sign-ups count only the sign-ups that sent it something", 
       expect(answer.error?.message).toBe("settings unavailable");
     }
 
-    // Each was written and texted before its confirmation email failed.
+    // Each was written and texted before what followed failed.
     expect(subscribers.rows).toHaveLength(10);
     expect(texts).toHaveBeenCalledTimes(10);
 
-    jest
-      .spyOn(DatabaseConfig, "getHost")
-      .mockResolvedValue(new Hostname("oneuptime.example.com"));
+    liveUpdate.mockResolvedValue(undefined as never);
 
     expectRefused(
       await signUp(
@@ -1109,8 +1180,8 @@ describe("asking for a subscription's manage link", () => {
       subscriberEmail: "a@example.com,b@example.com",
     });
 
-    expect(answer.error?.message).toBe(
-      PUBLIC_MESSAGE_ONE_EMAIL_ADDRESS_MESSAGE,
+    expect(oneMailboxRefusals("a@example.com,b@example.com")).toContain(
+      answer.error?.message,
     );
     expect(redis.keys()).toEqual([]);
   });

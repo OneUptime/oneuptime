@@ -4,8 +4,8 @@ import path from "path";
 
 /*
  * Custom roles on the real Teams pages, in a browser, against the offline
- * fixture (CustomRoles/Fixture): Teams > Roles, a role's own page, a team's
- * Permissions page and Create Team.
+ * fixture (CustomRoles/Fixture): Teams > Settings > Roles, a role's own page,
+ * a team's Permissions page and Create Team.
  *
  * The ask (a customer's, through the maintainer): "group a couple of
  * permissions I like into some role like 'Incident responder', 'Team Lead'
@@ -148,6 +148,22 @@ function sideMenu(page: Page): Locator {
   return page.getByRole("navigation", { name: "Main navigation" });
 }
 
+/*
+ * A section's header in the Teams side menu, the button that folds and
+ * opens it: Roles is in "Settings", which starts folded on All Teams.
+ */
+function menuSection(page: Page, title: string): Locator {
+  return sideMenu(page).getByRole("button", { name: title, exact: true });
+}
+
+/*
+ * The side menu's links a reader can see, in order. A folded section's
+ * links stay mounted but hidden, so they are not among them.
+ */
+function shownMenuLinks(page: Page): Locator {
+  return sideMenu(page).getByRole("link");
+}
+
 // Where the page is, without the fixture's ?scenario in the address.
 async function expectPath(
   page: Page,
@@ -250,7 +266,19 @@ async function horizontalOverflow(page: Page): Promise<number> {
   });
 }
 
-test.describe("Teams > Roles", () => {
+/*
+ * Where an element's text starts, not its box: a centred line sits inside a
+ * box as wide as its neighbour's, so only the text's own edge tells.
+ */
+async function textLeftEdge(locator: Locator): Promise<number> {
+  return await locator.evaluate((element: Element): number => {
+    const range: Range = document.createRange();
+    range.selectNodeContents(element);
+    return range.getBoundingClientRect().left;
+  });
+}
+
+test.describe("Teams > Settings > Roles", () => {
   test("lists the project's custom roles, each with how many permissions it holds", async ({
     page,
   }: {
@@ -279,13 +307,20 @@ test.describe("Teams > Roles", () => {
       page.getByRole("button", { name: "View Custom Role" }),
     ).toHaveCount(0);
 
-    // The Teams menu has Roles beside All Teams, marked as the page.
+    /*
+     * Roles is in the Teams menu's Settings section, which opened by itself
+     * on its page, and is marked as the page.
+     */
     const menuEntry: Locator = sideMenu(page).getByRole("link", {
       name: "Roles",
       exact: true,
     });
     await expect(menuEntry).toBeVisible();
     await expect(menuEntry).toHaveClass(/bg-indigo-50/);
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
 
     await screenshot(page, "roles-list");
   });
@@ -556,6 +591,153 @@ test.describe("Teams > Roles", () => {
   });
 });
 
+/*
+ * Roles moved from beside All Teams into the Teams menu's Settings section
+ * (the maintainer: "Move the roles page to the settings side menu"), first,
+ * above Custom Fields. Settings starts folded on All Teams and opens by
+ * itself on the pages inside it.
+ */
+test.describe("the Teams menu", () => {
+  test("on All Teams, Roles waits in the folded Settings section, and opens from there", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(TEAMS_ROUTE);
+    await expect(
+      page.getByRole("button", { name: "Create Team" }).first(),
+    ).toBeVisible();
+
+    // One row on arrival: All Teams, marked. Roles is not beside it.
+    await expect(shownMenuLinks(page)).toHaveText(["All Teams"]);
+    await expect(
+      sideMenu(page).getByRole("link", { name: "All Teams", exact: true }),
+    ).toHaveClass(/bg-indigo-50/);
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveCount(0);
+    await screenshot(page, "teams-menu-folded");
+
+    // One click opens Settings: Roles first, then Custom Fields.
+    await menuSection(page, "Settings").click();
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(shownMenuLinks(page)).toHaveText([
+      "All Teams",
+      "Roles",
+      "Custom Fields",
+    ]);
+    await screenshot(page, "teams-menu-settings-open");
+
+    await sideMenu(page)
+      .getByRole("link", { name: "Roles", exact: true })
+      .click();
+
+    await expectPath(page, ROLES_ROUTE);
+    await expect(
+      page.getByRole("heading", { name: "Custom Roles", exact: true }),
+    ).toBeVisible();
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveClass(/bg-indigo-50/);
+    // Settings stays open on the page it led to.
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+
+  test("Settings opens by itself on Roles, on a role's page and on Custom Fields, each marked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRoles(page);
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(shownMenuLinks(page)).toHaveText([
+      "All Teams",
+      "Roles",
+      "Custom Fields",
+    ]);
+    await screenshot(page, "teams-menu-on-roles");
+
+    await openRole(page, ROLE_IDS["lead"]!);
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveClass(/bg-indigo-50/);
+
+    await page.goto(`${TEAMS_ROUTE}/custom-fields`);
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Custom Fields", exact: true }),
+    ).toHaveClass(/bg-indigo-50/);
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
+    ).not.toHaveClass(/bg-indigo-50/);
+  });
+
+  test("on a phone the menu names Settings / Roles, and Roles is reached from All Teams", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const menuButton: Locator = page.getByTestId("mobile-sidemenu-toggle");
+
+    await openRoles(page);
+    await expect(menuButton).toContainText("Settings / Roles");
+
+    /*
+     * Its two lines start at one edge: a button centres its text, which set
+     * "Navigate to" off-centre above "Settings / Roles".
+     */
+    const labelLeft: number = await textLeftEdge(
+      menuButton.getByText("Navigate to", { exact: true }),
+    );
+    const whereLeft: number = await textLeftEdge(
+      menuButton.getByRole("heading", { name: "Settings / Roles" }),
+    );
+    expect(Math.abs(labelLeft - whereLeft)).toBeLessThanOrEqual(1);
+
+    await openRole(page, ROLE_IDS["responder"]!);
+    await expect(menuButton).toContainText("Settings / Roles");
+
+    // From All Teams: open the menu, open Settings, tap Roles.
+    await page.goto(TEAMS_ROUTE);
+    await expect(menuButton).toContainText("Teams / All Teams");
+    await menuButton.click();
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveCount(0);
+    // Opening a section keeps the phone's menu open.
+    await menuSection(page, "Settings").click();
+    await sideMenu(page)
+      .getByRole("link", { name: "Roles", exact: true })
+      .click();
+
+    await expectPath(page, ROLES_ROUTE);
+    await expect(menuButton).toContainText("Settings / Roles");
+    expect(await horizontalOverflow(page)).toBe(0);
+    await screenshot(page, "phone-teams-menu-roles");
+  });
+});
+
 test.describe("a role's page", () => {
   test("says who a change reaches, then what the role gives and who has it", async ({
     page,
@@ -564,13 +746,20 @@ test.describe("a role's page", () => {
   }) => {
     await openRole(page, ROLE_IDS["responder"]!);
 
-    // The trail ends with the role's name; Roles stays marked in the menu.
+    /*
+     * The trail ends with the role's name; Roles stays marked in the menu,
+     * its Settings section open.
+     */
     await expect(
       page.getByRole("navigation", { name: "Breadcrumb" }),
     ).toContainText("Incident Responder");
     await expect(
       sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
     ).toHaveClass(/bg-indigo-50/);
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
 
     // Its ID, under its name and description, as on every record's page.
     await expect(
@@ -919,6 +1108,44 @@ test.describe("a team's Permissions page", () => {
     await screenshot(page, "team-permissions");
   });
 
+  /*
+   * Roles waits in the Teams menu's folded Settings section, and a team's
+   * own menu has no entry for it: the card's "Roles" is a link to it.
+   */
+  test("the card's Roles is a link to the Roles page, which opens with Settings open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTeamPermissions(page, TEAM_IDS["platform"]!);
+
+    const description: Locator = page
+      .getByTestId("team-custom-roles")
+      .getByTestId("card-description");
+    await expect(description).toHaveText(
+      "Named sets of permissions, made on the Roles page. Changing a role changes this team too.",
+    );
+    const rolesLink: Locator = description.getByRole("link", {
+      name: "Roles",
+      exact: true,
+    });
+    await expect(rolesLink).toHaveAttribute("href", ROLES_ROUTE);
+
+    await rolesLink.click();
+
+    await expectPath(page, ROLES_ROUTE);
+    await expect(
+      page.getByRole("heading", { name: "Custom Roles", exact: true }),
+    ).toBeVisible();
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveClass(/bg-indigo-50/);
+  });
+
   test("Add Custom Role offers only the roles the team does not have", async ({
     page,
   }: {
@@ -1142,6 +1369,27 @@ test.describe("in another language", () => {
     );
     await expect(roleCard).toContainText("Incident Responder");
     await expect(roleCard).not.toContainText(GERMAN_WORD_FOR_IT);
+  });
+
+  test("a team's Custom Roles card links the menu's word for Roles inside its own sentence", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${TEAMS_ROUTE}/${TEAM_IDS["platform"]}/permissions?lang=de`,
+    );
+
+    const description: Locator = page
+      .getByTestId("team-custom-roles")
+      .getByTestId("card-description");
+    // The German sentence, the link where German grammar puts the page's name.
+    await expect(description).toHaveText(
+      "Benannte Sätze von Berechtigungen, erstellt auf der Seite Rollen. Eine Änderung einer Rolle ändert auch dieses Team.",
+    );
+    await expect(
+      description.getByRole("link", { name: "Rollen", exact: true }),
+    ).toHaveAttribute("href", ROLES_ROUTE);
   });
 });
 

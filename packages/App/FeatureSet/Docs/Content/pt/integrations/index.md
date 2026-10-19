@@ -90,6 +90,12 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 > [!TIP]
 > O Slack e o Microsoft Teams também têm etapas de workflow. Use a conexão integrada para os canais de incidente e o plantão, e uma etapa de workflow quando você só precisa de uma mensagem em um canal.
 
+### Plataformas de hospedagem
+
+| Ferramenta | Sentido | O que faz |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | De entrada | Adicione o OneUptime pelo Vercel Marketplace: traces, logs, monitores de disponibilidade e uma página de status para seus projetos da Vercel. |
+
 ## Migrar de outra ferramenta
 
 Para sair de outra ferramenta de plantão, de uptime ou de páginas de status, traga a sua equipe em vez de conectar as duas. **Configurações do projeto → Importar de outra ferramenta** lê a sua conta com uma chave de API, mostra o que encontrou e cria o que você marcar. Cada ferramenta tem um guia:

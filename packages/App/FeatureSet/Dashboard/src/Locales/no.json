@@ -29827,6 +29827,7 @@
   "Not shown while this episode is private": "Vises ikke så lenge denne episoden er privat",
   "Not shown while this incident is private": "Vises ikke så lenge denne hendelsen er privat",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Når du sletter dette prosjektet, stopper faktureringen av det etter en siste belastning for bruken så langt. OneUptime-kjøpet ditt på {{marketplace}} forblir aktivt til du sier det opp der.",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "Når du sletter dette prosjektet, stopper faktureringen etter en siste belastning for bruken så langt, og OneUptime-ressursen på Vercel slettes. Vercel-prosjektene som er koblet til den, mister miljøvariablene dens ved neste utrulling.",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "Hvilke ressurser den når: alle (anbefalt), de teamet eier, eller de med etikettene du velger.",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "Du er gjest i Slack, og Slack lar ikke OneUptime legge deg til i denne kanalen.",
   "You're already in this channel.": "Du er allerede i denne kanalen.",
@@ -29898,7 +29899,7 @@
   "Add a Role to {{role}}": "Legg til en rolle i {{role}}",
   "Custom Role Details": "Detaljer for egendefinert rolle",
   "Members of these teams can do everything this role allows.": "Medlemmer av disse teamene kan gjøre alt denne rollen tillater.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Navngitte sett med tillatelser, laget på siden Roller. Når en rolle endres, endres også dette teamet.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Navngitte sett med tillatelser, laget på siden {{roles}}. Når en rolle endres, endres også dette teamet.",
   "Shown on every team you give the role to.": "Vises på hvert team du gir rollen.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "De innebygde rollene den samler, for hver ressurs i prosjektet. Legg til enkelttillatelser på rollens side.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "De innebygde rollene den samler, for hver ressurs i prosjektet. Roller du ikke har selv, vises ikke.",
@@ -31012,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Sikkerhet: klienter kan kjøre skrivebeskyttede verktøy uten å spørre, og spør før alt som sletter. En klient koblet til via pålogging kan begrenses til skrivebeskyttet tilgang.",
   "See the {{docsLink}} for every tool.": "Se {{docsLink}} for alle verktøy.",
   "Twilio account for SMS and calls": "Twilio-konto for SMS og anrop",
-  "Up to {{limit}} open at once": "Opptil {{limit}} åpne samtidig"
+  "Up to {{limit}} open at once": "Opptil {{limit}} åpne samtidig",
+  "Gets nothing until they open the link we texted them.": "Får ingenting før lenken vi sendte på SMS åpnes."
 }

@@ -981,10 +981,16 @@ describe("single sign-on lives in the Apache-2.0 part of the repository", () => 
     }).toEqual({ core: true, ee: false });
   });
 
+  // SCIM's own routers, its OAuth 2.0 client credentials among them (#5029).
   test("ee/ keeps only the SCIM routers", () => {
     expect(
       fs.readdirSync(path.join(REPO_ROOT, "ee/Server/Identity/API")).sort(),
-    ).toEqual(["SCIM.ts", "StatusPageSCIM.ts"]);
+    ).toEqual([
+      "SCIM.ts",
+      "SCIMOAuthClientSecret.ts",
+      "SCIMOAuthToken.ts",
+      "StatusPageSCIM.ts",
+    ]);
   });
 
   test("the single sign-on screens are in the core frontends", () => {

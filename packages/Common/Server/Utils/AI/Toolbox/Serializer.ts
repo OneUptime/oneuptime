@@ -49,9 +49,22 @@ type RedactionRule =
  */
 const REDACTION_RULES: Array<RedactionRule> = [
   {
+    /*
+     * A JWT: three base64url segments split by dots, of any length.
+     *
+     * A token is looked for once per run of the characters it is made of:
+     * the match may only begin where such a run begins, and the look-ahead
+     * settles on the run's first "eyJ" - the one with the longest first
+     * segment, so when it is no token, no later "eyJ" of the run is one
+     * either. The text of the run before it is put back ($1). That replaces
+     * exactly the tokens a search from every "eyJ" did, while each run is
+     * read a bounded number of times, so a long tool result is read in time
+     * in line with its length.
+     */
     name: "jwt",
-    regex: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
-    replacement: "[redacted-jwt]",
+    regex:
+      /(?<![A-Za-z0-9_-])(?=([A-Za-z0-9_-]*?)eyJ)\1eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
+    replacement: "$1[redacted-jwt]",
   },
   {
     name: "bearer",
@@ -92,8 +105,13 @@ const REDACTION_RULES: Array<RedactionRule> = [
     replacement: "[redacted-google-api-key]",
   },
   {
+    /*
+     * Each part of the address is length-bounded to the sizes RFC 5321 allows
+     * (local part 64, domain 253, final label 63), so scanning a long tool
+     * result for addresses stays in line with its length.
+     */
     name: "email",
-    regex: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
+    regex: /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g,
     replacement: "[redacted-email]",
   },
   {

@@ -11,13 +11,14 @@ import { RequestHandler } from "express";
 /*
  * Ceilings for multipart bodies.
  *
- * memoryStorage means every part is buffered in the process, and both
- * routes that mount this middleware run it BEFORE their auth check -
- * Pyroscope ingest before isAuthorizedServiceMiddleware, SendGrid inbound
- * before the webhook secret is verified. So these are the limits an
+ * memoryStorage means every part is buffered in the process, and
+ * Pyroscope ingest mounts this middleware BEFORE its auth check
+ * (isAuthorizedServiceMiddleware). So these are the limits an
  * unauthenticated caller is held to, and multer's defaults leave most of
  * them at Infinity: file size, file count, field count and part count are
- * all unbounded out of the box (only fieldSize has a default, 1 MB).
+ * all unbounded out of the box (only fieldSize has a default, 1 MB). The
+ * SendGrid inbound email webhook reads a body only once its request has
+ * shown the installation's webhook secret (refuseUnlessFromMailProvider).
  *
  * The sizes match the 50 MiB body-parser limit the rest of the app uses,
  * and nginx cuts the shipped deployment lower still (50M on

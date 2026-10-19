@@ -29827,6 +29827,7 @@
   "Not shown while this episode is private": "No se muestra mientras este episodio sea privado",
   "Not shown while this incident is private": "No se muestra mientras este incidente sea privado",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Eliminar este proyecto detiene su facturación, tras un último cargo por su uso hasta ahora. Tu compra de OneUptime en {{marketplace}} sigue activa hasta que la canceles allí.",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "Al eliminar este proyecto se detiene su facturación, tras un último cargo por el uso hasta ahora, y se elimina su recurso de OneUptime en Vercel. Los proyectos de Vercel conectados a él pierden las variables de entorno del recurso en su próximo despliegue.",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "A qué recursos alcanza: todos (recomendado), los que posee el equipo o los que tienen las etiquetas que elija.",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "Eres invitado en Slack, y Slack no permite que OneUptime te añada a este canal.",
   "You're already in this channel.": "Ya estás en este canal.",
@@ -29898,7 +29899,7 @@
   "Add a Role to {{role}}": "Añadir un rol a {{role}}",
   "Custom Role Details": "Detalles del rol personalizado",
   "Members of these teams can do everything this role allows.": "Los miembros de estos equipos pueden hacer todo lo que permite este rol.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Conjuntos de permisos con nombre, creados en la página Roles. Cambiar un rol también cambia este equipo.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Conjuntos de permisos con nombre, creados en la página {{roles}}. Cambiar un rol también cambia este equipo.",
   "Shown on every team you give the role to.": "Se muestra en cada equipo al que das el rol.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "Los roles predefinidos que agrupa, para cada recurso del proyecto. Añade permisos individuales en la página del rol.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "Los roles predefinidos que agrupa, para cada recurso del proyecto. No se muestran los roles que tú mismo no tienes.",
@@ -31012,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Seguridad: los clientes pueden ejecutar herramientas de solo lectura sin preguntar, y preguntan antes de cualquier cosa que elimine. Un cliente conectado mediante inicio de sesión se puede limitar a solo lectura.",
   "See the {{docsLink}} for every tool.": "Consulta la {{docsLink}} para ver todas las herramientas.",
   "Twilio account for SMS and calls": "Cuenta de Twilio para SMS y llamadas",
-  "Up to {{limit}} open at once": "Hasta {{limit}} abiertas a la vez"
+  "Up to {{limit}} open at once": "Hasta {{limit}} abiertas a la vez",
+  "Gets nothing until they open the link we texted them.": "No recibe nada hasta que abre el enlace que le enviamos por SMS."
 }

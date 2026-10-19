@@ -45,6 +45,7 @@ const Settings: FunctionComponent<ComponentProps> = (
    * A project a cloud marketplace bills: deleting it ends OneUptime's
    * billing of it, after a last charge for what it used, but not the
    * purchase on the marketplace - only the buyer can cancel that, there.
+   * On Vercel it does end it: the resource is deleted with its project.
    */
   const billingMarketplace: CloudMarketplace | null = BILLING_ENABLED
     ? getCurrentProjectBillingMarketplace()
@@ -99,13 +100,24 @@ const Settings: FunctionComponent<ComponentProps> = (
                 CloudMarketplaceUtil.getDisplayName(billingMarketplace),
             },
           )}
-          title={translator.translateTemplate(
-            "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.",
-            {
-              marketplace:
-                CloudMarketplaceUtil.getDisplayName(billingMarketplace),
-            },
-          )}
+          title={
+            /*
+             * A Vercel resource is its project: deleting the project deletes
+             * the resource on Vercel too, and with it the connected Vercel
+             * projects' environment variables.
+             */
+            billingMarketplace === CloudMarketplace.Vercel
+              ? translator.translateText(
+                  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.",
+                ) || ""
+              : translator.translateTemplate(
+                  "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.",
+                  {
+                    marketplace:
+                      CloudMarketplaceUtil.getDisplayName(billingMarketplace),
+                  },
+                )
+          }
         />
       )}
 

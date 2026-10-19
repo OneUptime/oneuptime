@@ -1461,6 +1461,21 @@ API, SSO, or the Slack and Microsoft Teams apps.
   a new install gives the operator's own ClickHouse user a random password
   instead of the one its chart ships to every installation. An existing install
   keeps its password, and `helm upgrade` says how to change it.
+- **Incoming email needs a webhook secret of your own.** Once
+  `INBOUND_EMAIL_DOMAIN` is set, OneUptime takes an email from SendGrid only
+  when the webhook URL ends with `INBOUND_EMAIL_WEBHOOK_SECRET`. While that is
+  empty, or a placeholder from the setup guide, every email is refused with
+  `503` and none reaches an Incoming Email Monitor or a workflow; the app says
+  so at startup, and so does `helm upgrade`. If the Destination URL in
+  SendGrid's Inbound Parse settings already ends with a long random value of
+  your own, set `INBOUND_EMAIL_WEBHOOK_SECRET` to that value; otherwise first
+  make that URL end with a new one, then set the secret to the same value, as
+  [Configure OneUptime](/docs/self-hosted/sendgrid-inbound-email#configure-oneuptime)
+  shows. With Docker Compose, set it in `config.env` and run `npm start`; with
+  Helm, set `inboundEmail.webhookSecret` and run `helm upgrade`. SendGrid
+  retries a refused email for up to three days, so the emails sent meanwhile
+  arrive once it is set. An installation that set its own secret sees no
+  change.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

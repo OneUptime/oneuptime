@@ -29827,6 +29827,7 @@
   "Not shown while this episode is private": "このエピソードが非公開の間は表示されません",
   "Not shown while this incident is private": "このインシデントが非公開の間は表示されません",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "このプロジェクトを削除すると、これまでの利用分を最後に請求したうえで、請求が停止します。{{marketplace}} での OneUptime の購入は、そこでキャンセルするまで有効なままです。",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "このプロジェクトを削除すると、これまでの使用量に対する最後の請求の後に課金が停止し、Vercel 上の OneUptime リソースも削除されます。リソースに接続されている Vercel プロジェクトは、次回のデプロイ時にその環境変数を失います。",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "対象となるリソース: すべて (推奨)、チームが所有するもの、または選んだラベルが付いたもの。",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "あなたは Slack のゲストのため、Slack は OneUptime があなたをこのチャネルに追加することを許可していません。",
   "You're already in this channel.": "すでにこのチャネルに参加しています。",
@@ -29898,7 +29899,7 @@
   "Add a Role to {{role}}": "{{role}} にロールを追加",
   "Custom Role Details": "カスタムロールの詳細",
   "Members of these teams can do everything this role allows.": "これらのチームのメンバーは、このロールで許可されるすべてを行えます。",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "「ロール」ページで作成した、名前付きの権限のセットです。ロールを変更すると、このチームも変わります。",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "「{{roles}}」ページで作成した、名前付きの権限のセットです。ロールを変更すると、このチームも変わります。",
   "Shown on every team you give the role to.": "このロールを付与するすべてのチームに表示されます。",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "このロールにまとめる組み込みロールで、プロジェクト内のすべてのリソースが対象です。個別の権限はロールのページで追加します。",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "このロールにまとめる組み込みロールで、プロジェクト内のすべてのリソースが対象です。ご自身が持っていないロールは表示されません。",
@@ -31012,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "安全性: クライアントは読み取り専用のツールを確認なしで実行でき、削除を伴う操作の前には確認を求めます。サインインで接続されたクライアントは読み取り専用に制限できます。",
   "See the {{docsLink}} for every tool.": "すべてのツールについては、{{docsLink}} を参照してください。",
   "Twilio account for SMS and calls": "SMS と通話用の Twilio アカウント",
-  "Up to {{limit}} open at once": "同時に最大 {{limit}} 件まで"
+  "Up to {{limit}} open at once": "同時に最大 {{limit}} 件まで",
+  "Gets nothing until they open the link we texted them.": "SMSで送ったリンクが開かれるまで、何も届きません。"
 }

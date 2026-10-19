@@ -11,6 +11,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
+import Query from "../Types/Database/Query";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
@@ -46,7 +47,6 @@ import StatusPageSubscriberNotificationMethod from "../../Types/StatusPage/Statu
 import { IncidentSubscriberAudienceCounts } from "../../Types/StatusPage/IncidentSubscriberAudience";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
-import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
@@ -65,6 +65,7 @@ import StatusPageSubscriberUnsubscribe, {
   StatusPageSubscriberUnsubscribeDetails,
   StatusPageSubscriberUnsubscribeState,
 } from "../../Types/StatusPage/StatusPageSubscriberUnsubscribe";
+import StatusPageSubscriberConfirmationCode from "../Utils/StatusPage/StatusPageSubscriberConfirmationCode";
 import StatusPageSubscriberUnsubscribeToken from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeToken";
 import StatusPageSubscriberUnsubscribeNotice, {
   StatusPageSubscriberUnsubscribeNoticeEmail,
@@ -94,7 +95,17 @@ import {
   SubscriberRestrictionSettingsSql,
 } from "../Utils/StatusPage/SubscriberRestrictionSql";
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
-import { Raw } from "typeorm";
+import PublicMessageRateLimit, {
+  PublicMessageChannel,
+  PublicMessageContact,
+  PublicMessageSendPermit,
+  TeamMessageKind,
+} from "../Utils/RateLimit/PublicMessageRateLimit";
+import SubscriberContactKey from "../../Types/StatusPage/SubscriberContactKey";
+import SubscriberContactSql from "../Utils/StatusPage/SubscriberContactSql";
+import Exception from "../../Types/Exception/Exception";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
+import { EntityManager, FindOptionsWhere, MoreThan, Raw } from "typeorm";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -194,6 +205,33 @@ export const SMS_SIGN_UP_UNAVAILABLE_MESSAGE: string =
   "SMS subscribers not enabled for this status page.";
 
 /*
+ * The text a visitor who signed up by text message is sent: the link that
+ * confirms the subscription, last, so a phone shows it whole, and what to do
+ * when it was not them. Nothing else is sent to the number until the link
+ * is opened.
+ */
+export const getConfirmSubscriptionTextMessage: (data: {
+  statusPageName: string;
+  confirmationUrl: string;
+}) => string = (data: {
+  statusPageName: string;
+  confirmationUrl: string;
+}): string => {
+  return `Confirm your subscription to ${data.statusPageName} by text message. Not you? Ignore this message and nothing more will be sent. ${data.confirmationUrl}`;
+};
+
+// The text that tells a phone subscriber it is subscribed, with its unsubscribe link.
+export const getYouHaveSubscribedTextMessage: (data: {
+  statusPageName: string;
+  unsubscribeUrl: string;
+}) => string = (data: {
+  statusPageName: string;
+  unsubscribeUrl: string;
+}): string => {
+  return `You have been subscribed to ${data.statusPageName}. To unsubscribe, click on the link: ${data.unsubscribeUrl}`;
+};
+
+/*
  * Which subscribers a page takes (Utils/StatusPage/SubscriberRestrictionSql),
  * for countActiveSubscribersByChannel: its rows are "subscriber", each joined
  * to its page as "statusPage", and $2 holds the pages counted.
@@ -240,6 +278,83 @@ interface SubscriberCreateCarryForward {
 
   // The sign-up being created, when the create is one (createFromStatusPageSignUp).
   signUp: Model | null;
+
+  /*
+   * A subscriber the team adds: the count of the messages its create sends
+   * its contacts (onCreatePermitted), given back when the create ends
+   * before anything is sent (onCreateError).
+   */
+  teamSendPermit?: PublicMessageSendPermit | null | undefined;
+
+  // Set as onCreateSuccess starts: from then on a message may have gone out.
+  isSending?: boolean | undefined;
+}
+
+/*
+ * The columns that name a subscriber's webhook - its own, or a Slack or
+ * Microsoft Teams channel's - each a contact of its own, taken once per page
+ * by the address it is sent to (SubscriberContactKey.forUrl).
+ */
+const SUBSCRIBER_WEBHOOK_COLUMNS: Array<
+  | "subscriberWebhook"
+  | "slackIncomingWebhookUrl"
+  | "microsoftTeamsIncomingWebhookUrl"
+> = [
+  "subscriberWebhook",
+  "slackIncomingWebhookUrl",
+  "microsoftTeamsIncomingWebhookUrl",
+];
+
+/*
+ * Reads subscriber rows: those matching `where`, `select`ed, in _id order
+ * after `afterId`, at most `limit`. Through the service, or through the
+ * transaction a create's INSERT is decided in (getCreateLimit), so both
+ * look a contact up alike (findSubscriptionsOfContacts).
+ */
+type SubscriberRowFinder = (data: {
+  where: Record<string, unknown>;
+  select: Record<string, boolean>;
+  afterId: string | undefined;
+  limit: number;
+}) => Promise<Array<Model>>;
+
+// How many rows a lookup of a contact on a page reads at a time.
+const CONTACT_LOOKUP_BATCH_SIZE: number = 1000;
+
+/*
+ * The lock every create that names a contact takes on its page, so two
+ * creates of one contact on one page are decided one after the other
+ * (getCreateLimit): with the page's id after it.
+ */
+export const SUBSCRIBER_CONTACT_LIMIT_NAME: string =
+  "status-page-subscriber-contacts";
+
+/*
+ * What a create, or a change, of a subscriber is told when its page already
+ * has a subscription of the same contact, however it is written.
+ */
+export const ALREADY_SUBSCRIBED_MESSAGE: string =
+  "You are already subscribed to this status page.";
+
+export const CONTACT_ALREADY_SUBSCRIBED_MESSAGE: string =
+  "This status page already has a subscriber with this contact. A phone number, email address or webhook can be subscribed to a status page once, however it is written.";
+
+/*
+ * What a visitor's sign-up that names more than one contact is told. A
+ * subscription has one confirmation code, and is confirmed, and welcomed,
+ * by the one contact that signed up.
+ */
+export const ONE_CONTACT_PER_SIGN_UP_MESSAGE: string =
+  "Please sign up one email address, phone number, Slack channel, Microsoft Teams channel or webhook at a time.";
+
+// What opening a subscription's confirmation link did (confirmSubscription).
+export enum SubscriptionConfirmationOutcome {
+  // The link names no subscription: no such subscriber, or not its code.
+  NotFound = "not-found",
+  // The subscription was confirmed already: nothing is sent again.
+  AlreadyConfirmed = "already-confirmed",
+  // This request confirmed it, and sent its welcome.
+  Confirmed = "confirmed",
 }
 
 // How many subscribers the backfill and the token top-up handle per statement.
@@ -311,15 +426,101 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * What a subscriber's create is decided by together with its INSERT, in
+   * the INSERT's own transaction under a lock, so creates made at the same
+   * moment - visitors signing up on a public status page as much as the
+   * team - cannot all pass the checks onBeforeCreate made before any of
+   * them was written:
+   *
+   *  - that its page has no subscription of the same contact yet, however
+   *    either is written (findSubscriptionsOfContacts), under the page's
+   *    lock: two sign-ups of one number typed two ways, sent together,
+   *    leave one subscriber;
+   *  - the Free plan's limit on subscribers (getFreePlanCreateLimit), under
+   *    the project's lock, which then holds the contact's check too.
+   *
+   * Every create is asked, one that skips its hooks too. Null for a create
+   * that names no contact, on a plan with no limit.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<Model>,
+  ): Promise<CreateLimit | null> {
+    const freePlanLimit: CreateLimit | null =
+      await this.getFreePlanCreateLimit(createBy);
+
+    // The page under either of its names (onBeforeCreate wrote the ID column).
+    const statusPageId: ObjectID | null = RelationIdUtil.readConsistent(
+      createBy.data as unknown as Record<string, unknown>,
+      ["statusPageId", "statusPage"],
+      "Status Page",
+    );
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+
+    if (
+      !statusPageId ||
+      !projectId ||
+      !SUBSCRIBER_CONTACT_COLUMNS.some(
+        (column: (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]): boolean => {
+          return Boolean(createBy.data[column]?.toString().trim());
+        },
+      )
+    ) {
+      return freePlanLimit;
+    }
+
+    const subscriber: Model = createBy.data;
+
+    const checkContact: (manager: EntityManager) => Promise<void> = async (
+      manager: EntityManager,
+    ): Promise<void> => {
+      const subscriptions: Array<Model> =
+        await this.findSubscriptionsOfContacts({
+          statusPageId: statusPageId,
+          projectId: projectId,
+          subscriber: subscriber,
+          find: this.getTransactionRowFinder(manager),
+        });
+
+      if (
+        subscriptions.some((subscription: Model): boolean => {
+          return !subscription.isUnsubscribed;
+        })
+      ) {
+        throw new BadDataException(
+          this.getAlreadySubscribedMessage(statusPageSignUps.has(subscriber)),
+        );
+      }
+    };
+
+    if (freePlanLimit) {
+      return {
+        limitName: freePlanLimit.limitName,
+        projectId: freePlanLimit.projectId,
+        check: async (manager: EntityManager): Promise<void> => {
+          await checkContact(manager);
+          await freePlanLimit.check(manager);
+        },
+      };
+    }
+
+    return {
+      limitName: `${SUBSCRIBER_CONTACT_LIMIT_NAME}:${statusPageId
+        .toString()
+        .toLowerCase()}`,
+      projectId: projectId,
+      check: checkContact,
+    };
+  }
+
+  /*
    * The Free plan's limit on subscribers, decided again with the INSERT:
    * counted in the INSERT's own transaction, under the limit's lock in the
    * project, so subscribers added at the same moment - visitors signing up
    * on a public status page as much as the team - cannot all be added, each
-   * having passed the early count in onBeforeCreate. Every create is asked,
-   * one that skips its hooks too. Null on a plan with no such limit, and
-   * without billing.
+   * having passed the early count in onBeforeCreate. Null on a plan with no
+   * such limit, and without billing.
    */
-  protected override async getCreateLimit(
+  private async getFreePlanCreateLimit(
     createBy: CreateBy<Model>,
   ): Promise<CreateLimit | null> {
     const projectId: ObjectID | undefined = createBy.data.projectId;
@@ -479,6 +680,17 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
+     * A visitor signs up one contact at a time: a subscription is confirmed
+     * on the contact that signed up (ONE_CONTACT_PER_SIGN_UP_MESSAGE).
+     */
+    if (
+      statusPageSignUps.has(data.data) &&
+      this.getContactColumnsNamed(data.data).length > 1
+    ) {
+      throw new BadDataException(ONE_CONTACT_PER_SIGN_UP_MESSAGE);
+    }
+
+    /*
      * The resources it names are resources of its own status page - for a
      * sign-up on the page, ones the page shows - answered like an id that
      * matches nothing (StatusPageSubscriberResources): after the project
@@ -553,44 +765,6 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    /*
-     * Every subscription this contact already has on the page - all of them,
-     * not one: while a cancelled one is being replaced (see onCreateSuccess)
-     * the contact has both it and the new one, and the new one must count.
-     */
-    let contactSubscriptions: Array<Model> = [];
-
-    if (data.data.subscriberEmail) {
-      logger.debug(`Subscriber Email: ${data.data.subscriberEmail}`, {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes);
-      contactSubscriptions = await this.findBy({
-        query: {
-          statusPageId: data.data.statusPageId,
-          projectId: projectId,
-          subscriberEmail: data.data.subscriberEmail,
-        },
-        select: {
-          _id: true,
-          isUnsubscribed: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
-      });
-      logger.debug(
-        `Found Subscribers by Email: ${JSON.stringify(contactSubscriptions)}`,
-        {
-          projectId: data.data.projectId?.toString(),
-          statusPageId: data.data.statusPageId?.toString(),
-        } as LogAttributes,
-      );
-    }
-
     if (data.data.subscriberPhone) {
       logger.debug(`Subscriber Phone: ${data.data.subscriberPhone}`, {
         projectId: data.data.projectId?.toString(),
@@ -621,33 +795,34 @@ export class Service extends ProjectReferencesService<Model> {
               ),
         );
       }
+    }
 
-      contactSubscriptions = await this.findBy({
-        query: {
-          statusPageId: data.data.statusPageId,
-          projectId: projectId,
-          subscriberPhone: data.data.subscriberPhone,
-        },
-        select: {
-          _id: true,
-          isUnsubscribed: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-          ignoreHooks: true,
-        },
+    /*
+     * Every subscription this contact already has on the page - all of them,
+     * not one: while a cancelled one is being replaced (see onCreateSuccess)
+     * the contact has both it and the new one, and the new one must count.
+     * A contact is one however it is written (SubscriberContactKey): a phone
+     * number by its line, a webhook by the address it is sent to, an email
+     * address in lower case. So a page takes each contact once, and is
+     * never made to send one person, or one endpoint, every notification
+     * once for each way of writing it. The same is asked again with the
+     * INSERT, under the page's lock (getCreateLimit).
+     */
+    const contactSubscriptions: Array<Model> =
+      await this.findSubscriptionsOfContacts({
+        statusPageId: data.data.statusPageId,
+        projectId: projectId,
+        subscriber: data.data,
+        find: this.getServiceRowFinder(),
       });
 
-      logger.debug(
-        `Found Subscribers by Phone: ${JSON.stringify(contactSubscriptions)}`,
-        {
-          projectId: data.data.projectId?.toString(),
-          statusPageId: data.data.statusPageId?.toString(),
-        } as LogAttributes,
-      );
-    }
+    logger.debug(
+      `Found ${contactSubscriptions.length} subscription(s) of the contact on the page.`,
+      {
+        projectId: data.data.projectId?.toString(),
+        statusPageId: data.data.statusPageId?.toString(),
+      } as LogAttributes,
+    );
 
     if (
       contactSubscriptions.some((subscription: Model): boolean => {
@@ -659,7 +834,7 @@ export class Service extends ProjectReferencesService<Model> {
         statusPageId: data.data.statusPageId?.toString(),
       } as LogAttributes);
       throw new BadDataException(
-        "You are already subscribed to this status page.",
+        this.getAlreadySubscribedMessage(statusPageSignUps.has(data.data)),
       );
     }
 
@@ -753,10 +928,37 @@ export class Service extends ProjectReferencesService<Model> {
       statusPageId: data.data.statusPageId?.toString(),
     } as LogAttributes);
 
-    if (isEmailSubscriber && !isSubscriptionConfirmed) {
+    /*
+     * Who confirms first: an email subscriber, unless it was created
+     * confirmed already (by the team), and a visitor who signs up by text
+     * message: the number's owner opens the link texted to it before it is
+     * sent anything else, as an email address's owner does. The team vouches for the
+     * numbers it adds; a Slack, Microsoft Teams or webhook subscriber has
+     * nobody to ask.
+     */
+    const isSignUpByTextMessage: boolean =
+      statusPageSignUps.has(data.data) && Boolean(data.data.subscriberPhone);
+
+    if (
+      (isEmailSubscriber && !isSubscriptionConfirmed) ||
+      isSignUpByTextMessage
+    ) {
       data.data.isSubscriptionConfirmed = false;
     } else {
-      data.data.isSubscriptionConfirmed = true; // if the subscriber is not email, then set it to true for SMS subscribers / slack subscribers.
+      data.data.isSubscriptionConfirmed = true;
+    }
+
+    /*
+     * Whether the new subscriber is told it is subscribed: the column's
+     * default, on, unless whoever created it said otherwise - written as
+     * such, so what onCreatePermitted counts and what onCreateSuccess sends
+     * read one value.
+     */
+    if (
+      data.data.sendYouHaveSubscribedMessage === undefined ||
+      data.data.sendYouHaveSubscribedMessage === null
+    ) {
+      data.data.sendYouHaveSubscribedMessage = true;
     }
     logger.debug(
       `Final Subscription Confirmed: ${data.data.isSubscriptionConfirmed}`,
@@ -832,10 +1034,13 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(
-      100000,
-      999999,
-    ).toString();
+    /*
+     * The code in the link that confirms the subscription: one nobody can
+     * guess, minted here whatever the request carried
+     * (StatusPageSubscriberConfirmationCode).
+     */
+    data.data.subscriptionConfirmationToken =
+      StatusPageSubscriberConfirmationCode.generate();
 
     /*
      * The secret in this subscriber's unsubscribe link. Always minted here,
@@ -866,13 +1071,11 @@ export class Service extends ProjectReferencesService<Model> {
     } else {
       delete data.data.unsubscribedAt;
     }
-    logger.debug(
-      `Subscription Confirmation Token: ${data.data.subscriptionConfirmationToken}`,
-      {
-        projectId: data.data.projectId?.toString(),
-        statusPageId: data.data.statusPageId?.toString(),
-      } as LogAttributes,
-    );
+    // Never the code itself: the link it is in is the whole of the confirmation.
+    logger.debug("Subscription confirmation code minted.", {
+      projectId: data.data.projectId?.toString(),
+      statusPageId: data.data.statusPageId?.toString(),
+    } as LogAttributes);
 
     // Not the data itself: it now carries the unsubscribe token.
     logger.debug("onBeforeCreate processed data.", {
@@ -884,9 +1087,224 @@ export class Service extends ProjectReferencesService<Model> {
       statusPage: statuspage,
       replacedSubscriberIds: replacedSubscriberIds,
       signUp: statusPageSignUps.has(data.data) ? data.data : null,
+      teamSendPermit: null,
+      isSending: false,
     };
 
     return { createBy: data, carryForward: carryForward };
+  }
+
+  /*
+   * What a create is told when its page already has a subscription of the
+   * same contact: a visitor that they are subscribed, the team which rule
+   * the contact runs into.
+   */
+  private getAlreadySubscribedMessage(isSignUp: boolean): string {
+    return isSignUp
+      ? ALREADY_SUBSCRIBED_MESSAGE
+      : CONTACT_ALREADY_SUBSCRIBED_MESSAGE;
+  }
+
+  /*
+   * The contacts `subscriber` names: each of its email address, phone
+   * number, Slack and Microsoft Teams channels and webhook that holds
+   * something. A workspace name alone is no contact.
+   */
+  public getContactColumnsNamed(
+    subscriber: Partial<
+      Pick<Model, (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]>
+    >,
+  ): Array<(typeof SUBSCRIBER_CONTACT_COLUMNS)[number]> {
+    return SUBSCRIBER_CONTACT_COLUMNS.filter(
+      (column: (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]): boolean => {
+        return Boolean(subscriber[column]?.toString().trim());
+      },
+    );
+  }
+
+  /*
+   * Every subscription of the page under one of the contacts `subscriber`
+   * names - its email address, its phone's line, each of its webhooks'
+   * addresses (SubscriberContactKey) - active or cancelled, each once.
+   * `exceptIds` leaves subscriptions out (one being changed). Read in
+   * batches, every one of them: a webhook's address is compared here, not
+   * in the database, so a page's subscribers of that channel are all read.
+   */
+  private async findSubscriptionsOfContacts(data: {
+    statusPageId: ObjectID;
+    projectId: ObjectID;
+    subscriber: Partial<
+      Pick<Model, (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]>
+    >;
+    find: SubscriberRowFinder;
+    exceptIds?: Array<string> | undefined;
+  }): Promise<Array<Model>> {
+    const found: Map<string, Model> = new Map<string, Model>();
+    const exceptIds: Array<string> = (data.exceptIds || []).map(
+      (id: string): string => {
+        return id.toLowerCase();
+      },
+    );
+
+    const page: Record<string, unknown> = {
+      statusPageId: data.statusPageId.toString(),
+      projectId: data.projectId.toString(),
+    };
+
+    const keep: (rows: Array<Model>) => void = (rows: Array<Model>): void => {
+      for (const row of rows) {
+        const id: string | undefined = row._id?.toString().toLowerCase();
+
+        if (id && !exceptIds.includes(id)) {
+          found.set(id, row);
+        }
+      }
+    };
+
+    const email: string = data.subscriber.subscriberEmail
+      ? SubscriberContactKey.forEmail(data.subscriber.subscriberEmail)
+      : "";
+
+    if (email) {
+      keep(
+        await this.readEveryRow({
+          find: data.find,
+          where: {
+            ...page,
+            subscriberEmail: QueryHelper.findWithSameText(email),
+          },
+          select: { _id: true, isUnsubscribed: true },
+        }),
+      );
+    }
+
+    if (
+      data.subscriber.subscriberPhone &&
+      SubscriberContactKey.forPhone(data.subscriber.subscriberPhone)
+    ) {
+      keep(
+        await this.readEveryRow({
+          find: data.find,
+          where: {
+            ...page,
+            subscriberPhone: SubscriberContactSql.onPhoneLine(
+              data.subscriber.subscriberPhone,
+            ),
+          },
+          select: { _id: true, isUnsubscribed: true },
+        }),
+      );
+    }
+
+    for (const column of SUBSCRIBER_WEBHOOK_COLUMNS) {
+      const value: URL | undefined = data.subscriber[column];
+
+      if (!value || !value.toString().trim()) {
+        continue;
+      }
+
+      const rows: Array<Model> = await this.readEveryRow({
+        find: data.find,
+        where: {
+          ...page,
+          [column]: QueryHelper.notNull(),
+        },
+        select: { _id: true, isUnsubscribed: true, [column]: true },
+      });
+
+      keep(
+        rows.filter((row: Model): boolean => {
+          return SubscriberContactKey.isSameUrl(row[column], value);
+        }),
+      );
+    }
+
+    return Array.from(found.values());
+  }
+
+  // Every row `find` reads for `where`, batch after batch, in _id order.
+  private async readEveryRow(data: {
+    find: SubscriberRowFinder;
+    where: Record<string, unknown>;
+    select: Record<string, boolean>;
+  }): Promise<Array<Model>> {
+    const rows: Array<Model> = [];
+    let afterId: string | undefined = undefined;
+
+    for (;;) {
+      const batch: Array<Model> = await data.find({
+        where: data.where,
+        select: data.select,
+        afterId: afterId,
+        limit: CONTACT_LOOKUP_BATCH_SIZE,
+      });
+
+      rows.push(...batch);
+
+      const lastId: string | undefined =
+        batch[batch.length - 1]?._id?.toString();
+
+      if (batch.length < CONTACT_LOOKUP_BATCH_SIZE || !lastId) {
+        return rows;
+      }
+
+      afterId = lastId;
+    }
+  }
+
+  // Reads subscriber rows through this service, as OneUptime.
+  private getServiceRowFinder(): SubscriberRowFinder {
+    return async (query: {
+      where: Record<string, unknown>;
+      select: Record<string, boolean>;
+      afterId: string | undefined;
+      limit: number;
+    }): Promise<Array<Model>> => {
+      return await this.findBy({
+        query: {
+          ...query.where,
+          ...(query.afterId
+            ? { _id: QueryHelper.greaterThan(new ObjectID(query.afterId)) }
+            : {}),
+        } as Query<Model>,
+        select: query.select as Select<Model>,
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        limit: query.limit,
+        skip: 0,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    };
+  }
+
+  /*
+   * Reads subscriber rows with the transaction a create's INSERT is decided
+   * in (getCreateLimit), which holds the page's lock: a read through the
+   * service would run outside it, on another of the pool's connections.
+   */
+  private getTransactionRowFinder(manager: EntityManager): SubscriberRowFinder {
+    return async (query: {
+      where: Record<string, unknown>;
+      select: Record<string, boolean>;
+      afterId: string | undefined;
+      limit: number;
+    }): Promise<Array<Model>> => {
+      return await manager.getRepository<Model>(this.modelType.name).find({
+        where: {
+          ...query.where,
+          ...(query.afterId ? { _id: MoreThan(query.afterId) } : {}),
+        } as FindOptionsWhere<Model>,
+        select: query.select,
+        order: {
+          _id: "ASC",
+        },
+        take: query.limit,
+      });
+    };
   }
 
   /*
@@ -912,6 +1330,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     // A contact changed to one its page does not take is refused.
     await this.checkContactsAllowedOnPages(updateBy);
+
+    // So is a contact changed to one another subscription of its page has.
+    await this.checkContactsNotTakenOnPages(updateBy);
+
+    // And a cancelled subscription turned back on, where its contact is taken.
+    await this.checkContactsNotTakenWhenSubscribedAgain(updateBy);
 
     const isUnsubscribed: unknown = (
       updateBy.data as unknown as JSONObject | undefined
@@ -1158,6 +1582,186 @@ export class Service extends ProjectReferencesService<Model> {
         subscriber: contact,
         isSignUp: manageSubscriptionPageUpdates.has(updateBy),
       });
+    }
+  }
+
+  /*
+   * An update that changes a subscriber's contact - its email, phone, Slack,
+   * Microsoft Teams or webhook - may not give it one that another
+   * subscription of its page has, however either is written
+   * (findSubscriptionsOfContacts): a page takes each contact once, as a new
+   * subscriber is held to (onBeforeCreate). Nor may one update give one
+   * contact to two subscriptions of a page. A cancelled subscription of the
+   * contact does not count, and an update that changes no contact is left
+   * alone. The subscribers are the rows the update writes, and the update is
+   * held to them (findRowsAndHoldUpdateToThem).
+   */
+  private async checkContactsNotTakenOnPages(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: JSONObject | undefined = updateBy.data as unknown as
+      | JSONObject
+      | undefined;
+
+    const contact: Partial<
+      Pick<Model, (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]>
+    > = {};
+
+    for (const column of SUBSCRIBER_CONTACT_COLUMNS) {
+      const value: unknown = data?.[column];
+
+      if (value !== undefined && value !== null && String(value).trim()) {
+        (contact as Record<string, unknown>)[column] = value;
+      }
+    }
+
+    if (Object.keys(contact).length === 0) {
+      return;
+    }
+
+    const subscribers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        statusPageId: true,
+        projectId: true,
+      },
+    );
+
+    const pagesChanged: Set<string> = new Set<string>();
+
+    for (const subscriber of subscribers) {
+      const statusPageId: string | undefined = subscriber.statusPageId
+        ?.toString()
+        .toLowerCase();
+
+      if (!statusPageId || !subscriber.projectId || !subscriber._id) {
+        continue;
+      }
+
+      if (pagesChanged.has(statusPageId)) {
+        throw new BadDataException(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+      }
+
+      pagesChanged.add(statusPageId);
+
+      const taken: Array<Model> = await this.findSubscriptionsOfContacts({
+        statusPageId: new ObjectID(statusPageId),
+        projectId: subscriber.projectId,
+        subscriber: contact,
+        find: this.getServiceRowFinder(),
+        exceptIds: [subscriber._id.toString()],
+      });
+
+      if (
+        taken.some((other: Model): boolean => {
+          return !other.isUnsubscribed;
+        })
+      ) {
+        throw new BadDataException(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
+      }
+    }
+  }
+
+  /*
+   * An update that turns cancelled subscriptions back on - the team's
+   * Status of Subscribed, the API, a workflow, or the visitor's own manage
+   * page - may not leave their page with two active subscriptions of one
+   * contact, however either is written (findSubscriptionsOfContacts): a
+   * cancelled subscription whose contact another subscription of its page
+   * has taken since, or is turned on by the same update, stays cancelled,
+   * and the update is refused. A subscription that is on already is left
+   * alone, so the manage page, which sends Unsubscribed off with every
+   * change, never locks a subscriber saved before a page took each contact
+   * once. The subscribers are the rows the update writes, and the update is
+   * held to them (findRowsAndHoldUpdateToThem).
+   */
+  private async checkContactsNotTakenWhenSubscribedAgain(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: JSONObject | undefined = updateBy.data as unknown as
+      | JSONObject
+      | undefined;
+
+    if (data?.["isUnsubscribed"] !== false) {
+      return;
+    }
+
+    const subscribers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        statusPageId: true,
+        projectId: true,
+        isUnsubscribed: true,
+        subscriberEmail: true,
+        subscriberPhone: true,
+        slackIncomingWebhookUrl: true,
+        microsoftTeamsIncomingWebhookUrl: true,
+        subscriberWebhook: true,
+      },
+    );
+
+    // Every one the update writes is on once it is written.
+    const turnedOnIds: Set<string> = new Set<string>(
+      subscribers
+        .map((subscriber: Model): string => {
+          return subscriber._id?.toString().toLowerCase() || "";
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    for (const subscriber of subscribers) {
+      if (
+        subscriber.isUnsubscribed !== true ||
+        !subscriber.statusPageId ||
+        !subscriber.projectId ||
+        !subscriber._id
+      ) {
+        continue;
+      }
+
+      // Its contacts as the update leaves them.
+      const contact: Partial<
+        Pick<Model, (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]>
+      > = {};
+
+      for (const column of SUBSCRIBER_CONTACT_COLUMNS) {
+        const written: unknown = data[column];
+        const value: unknown =
+          written !== undefined && written !== null && String(written).trim()
+            ? written
+            : subscriber[column];
+
+        if (value) {
+          (contact as Record<string, unknown>)[column] = value;
+        }
+      }
+
+      const taken: Array<Model> = await this.findSubscriptionsOfContacts({
+        statusPageId: subscriber.statusPageId,
+        projectId: subscriber.projectId,
+        subscriber: contact,
+        find: this.getServiceRowFinder(),
+        exceptIds: [subscriber._id.toString()],
+      });
+
+      if (
+        taken.some((other: Model): boolean => {
+          return (
+            !other.isUnsubscribed ||
+            turnedOnIds.has(other._id?.toString().toLowerCase() || "")
+          );
+        })
+      ) {
+        throw new BadDataException(
+          this.getAlreadySubscribedMessage(
+            manageSubscriptionPageUpdates.has(updateBy),
+          ),
+        );
+      }
     }
   }
 
@@ -1741,6 +2345,131 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * A subscriber the team adds - from the dashboard, in bulk, with an API
+   * key or by a workflow - is sent a message as it is created on each
+   * contact getContactsMessagedOnCreate names. Each such contact is
+   * counted (PublicMessageRateLimit.assertTeamMaySend, with the sign-ups of
+   * the same contact), so one contact is sent a bounded number of
+   * subscription messages an hour, whoever adds it: past its limit the
+   * create is refused with 429, before anything is written. The team itself is never counted,
+   * so adding many subscribers at once goes on. Here, after every check of
+   * the create, so a refused one never counts. A sign-up was counted by its
+   * route, against its visitor too.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const carryForward: SubscriberCreateCarryForward | undefined =
+      onCreate.carryForward as SubscriberCreateCarryForward | undefined;
+
+    if (!carryForward || carryForward.signUp) {
+      return;
+    }
+
+    const contacts: Array<PublicMessageContact> =
+      this.getContactsMessagedOnCreate(onCreate.createBy.data);
+
+    if (contacts.length === 0) {
+      return;
+    }
+
+    carryForward.teamSendPermit =
+      await PublicMessageRateLimit.assertTeamMaySend({
+        kind: TeamMessageKind.SubscriberAdded,
+        contacts: contacts,
+      });
+  }
+
+  /*
+   * A create that failed before onCreateSuccess began sent nothing: the
+   * contacts the team's create was counted for get their count back.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
+  ): Promise<Exception> {
+    const carryForward: SubscriberCreateCarryForward | undefined =
+      onCreate?.carryForward as SubscriberCreateCarryForward | undefined;
+
+    if (carryForward?.teamSendPermit && !carryForward.isSending) {
+      await carryForward.teamSendPermit.giveBack();
+    }
+
+    return await super.onCreateError(error, onCreate, failedStatement);
+  }
+
+  /*
+   * The contacts a new subscriber is sent a message on as it is created
+   * (onCreateSuccess), as PublicMessageRateLimit counts them: an email
+   * address asked to confirm, or told it is subscribed; a phone number
+   * texted the link that confirms it, or that it is subscribed; a Slack or
+   * Microsoft Teams channel, or a webhook, told it is subscribed. Only what
+   * is sent: a subscriber created confirmed and not to be told is sent
+   * nothing, and counts for nothing.
+   */
+  public getContactsMessagedOnCreate(
+    subscriber: Partial<
+      Pick<
+        Model,
+        | (typeof SUBSCRIBER_CONTACT_COLUMNS)[number]
+        | "isSubscriptionConfirmed"
+        | "sendYouHaveSubscribedMessage"
+      >
+    >,
+  ): Array<PublicMessageContact> {
+    const isConfirmed: boolean = Boolean(subscriber.isSubscriptionConfirmed);
+    const isTold: boolean = subscriber.sendYouHaveSubscribedMessage !== false;
+
+    const contacts: Array<PublicMessageContact> = [];
+
+    if (subscriber.subscriberEmail && (!isConfirmed || isTold)) {
+      contacts.push(
+        PublicMessageRateLimit.forEmail(subscriber.subscriberEmail),
+      );
+    }
+
+    if (subscriber.subscriberPhone && (!isConfirmed || isTold)) {
+      contacts.push(
+        PublicMessageRateLimit.forPhone(subscriber.subscriberPhone),
+      );
+    }
+
+    if (isTold && subscriber.slackIncomingWebhookUrl) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.Slack,
+          subscriber.slackIncomingWebhookUrl,
+        ),
+      );
+    }
+
+    if (isTold && subscriber.microsoftTeamsIncomingWebhookUrl) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.MicrosoftTeams,
+          subscriber.microsoftTeamsIncomingWebhookUrl,
+        ),
+      );
+    }
+
+    if (isTold && subscriber.subscriberWebhook) {
+      contacts.push(
+        PublicMessageRateLimit.forWebhook(
+          PublicMessageChannel.Webhook,
+          subscriber.subscriberWebhook,
+        ),
+      );
+    }
+
+    return contacts;
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<Model>,
@@ -1749,7 +2478,8 @@ export class Service extends ProjectReferencesService<Model> {
     /*
      * From here on a sign-up's contacts may be sent its messages: if its
      * create fails after this, it is not one that sent nothing
-     * (createFromStatusPageSignUp).
+     * (createFromStatusPageSignUp) - and neither is a subscriber the team
+     * adds (onCreateError).
      */
     const signUp: Model | null | undefined = (
       onCreate.carryForward as SubscriberCreateCarryForward | undefined
@@ -1757,6 +2487,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (signUp) {
       statusPageSignUpsSending.add(signUp);
+    }
+
+    if (onCreate.carryForward) {
+      (onCreate.carryForward as SubscriberCreateCarryForward).isSending = true;
     }
 
     // Not the item itself: it carries the unsubscribe token.
@@ -1837,14 +2571,46 @@ export class Service extends ProjectReferencesService<Model> {
       createdItem,
     ).toString();
 
+    /*
+     * A phone subscriber created unconfirmed - a visitor who signed up by
+     * text message (onBeforeCreate writes the column every time) - is
+     * texted the link that confirms it, and nothing else until it is
+     * opened. A confirmed one is told it is subscribed, when it was created
+     * to be.
+     */
+    const isPhoneToConfirm: boolean =
+      createdItem.isSubscriptionConfirmed === false;
+
+    /*
+     * The code the link carries, as onBeforeCreate minted it - read back if
+     * the saved row came without it. A link without its code confirms
+     * nothing, so none is sent.
+     */
+    const confirmationCode: string = isPhoneToConfirm
+      ? createdItem.subscriptionConfirmationToken ||
+        (createdItem.id
+          ? (
+              await this.findOneById({
+                id: createdItem.id,
+                select: { subscriptionConfirmationToken: true },
+                props: { isRoot: true, ignoreHooks: true },
+              })
+            )?.subscriptionConfirmationToken || ""
+          : "")
+      : "";
+
     if (
       createdItem.statusPageId &&
       createdItem.subscriberPhone &&
       createdItem._id &&
-      createdItem.sendYouHaveSubscribedMessage
+      (isPhoneToConfirm
+        ? Boolean(confirmationCode)
+        : createdItem.sendYouHaveSubscribedMessage)
     ) {
       logger.debug(
-        "Subscriber has a phone number and sendYouHaveSubscribedMessage is true.",
+        isPhoneToConfirm
+          ? "Subscriber has a phone number to confirm."
+          : "Subscriber has a phone number and sendYouHaveSubscribedMessage is true.",
         { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
       const statusPage: StatusPage | null = await StatusPageService.findOneBy({
@@ -1873,29 +2639,31 @@ export class Service extends ProjectReferencesService<Model> {
         return createdItem;
       }
 
+      // Whether the page texts through its own account - never its settings, which hold its credentials.
       logger.debug(
-        `Status Page Call SMS Config: ${JSON.stringify(statusPage.callSmsConfig)}`,
+        `Status page sends with its own SMS account: ${Boolean(statusPage.callSmsConfig)}`,
         { projectId: createdItem.projectId?.toString() } as LogAttributes,
       );
 
-      // The unsubscribe link every message carries, on every status page.
-      SmsService.sendSms(
-        {
-          to: createdItem.subscriberPhone,
-          message: `You have been subscribed to ${statusPageName}. To unsubscribe, click on the link: ${unsubscribeLink}`,
-        },
-        {
-          projectId: createdItem.projectId,
-          isSensitive: false,
-          customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
-            statusPage.callSmsConfig,
-          ),
-          statusPageId: createdItem.statusPageId!,
-        },
-      ).catch((err: Error) => {
-        logger.error(err, {
-          projectId: createdItem.projectId?.toString(),
-        } as LogAttributes);
+      this.sendText({
+        subscriber: createdItem,
+        statusPage: {
+          id: createdItem.statusPageId,
+          callSmsConfig: statusPage.callSmsConfig,
+        } as Pick<StatusPage, "id" | "callSmsConfig">,
+        message: isPhoneToConfirm
+          ? getConfirmSubscriptionTextMessage({
+              statusPageName: statusPageName,
+              confirmationUrl: this.getConfirmSubscriptionLink({
+                statusPageUrl: statusPageURL,
+                confirmationToken: confirmationCode,
+                statusPageSubscriberId: createdItem.id!,
+              }).toString(),
+            })
+          : getYouHaveSubscribedTextMessage({
+              statusPageName: statusPageName,
+              unsubscribeUrl: unsubscribeLink,
+            }),
       });
     }
 
@@ -2074,6 +2842,191 @@ Stay informed about service availability! 🚀`.toString();
     return createdItem;
   }
 
+  /*
+   * One text to a phone subscriber about its own subscription, through the
+   * page's own Twilio when it has one and paid from the project's balance
+   * otherwise, like every text a status page sends. Not awaited: a text
+   * that cannot be sent is logged (the SMS log says why), and never fails
+   * the subscription.
+   */
+  private sendText(data: {
+    subscriber: Pick<Model, "subscriberPhone" | "projectId">;
+    statusPage: Pick<StatusPage, "id" | "callSmsConfig">;
+    message: string;
+  }): void {
+    const statusPage: Pick<StatusPage, "id" | "callSmsConfig"> =
+      data.statusPage;
+
+    if (!data.subscriber.subscriberPhone || !statusPage.id) {
+      return;
+    }
+
+    SmsService.sendSms(
+      {
+        to: data.subscriber.subscriberPhone,
+        message: data.message,
+      },
+      {
+        projectId: data.subscriber.projectId,
+        isSensitive: false,
+        customTwilioConfig: ProjectCallSMSConfigService.toTwilioConfig(
+          statusPage.callSmsConfig,
+        ),
+        statusPageId: statusPage.id,
+      },
+    ).catch((err: Error) => {
+      logger.error(err, {
+        projectId: data.subscriber.projectId?.toString(),
+      } as LogAttributes);
+    });
+  }
+
+  /*
+   * A subscription's confirmation link opened (StatusPageAPI's
+   * confirm-subscription route): the subscriber it names and the code it
+   * carries - text only, as anything else would leave the code out of the
+   * lookup. A subscription not yet confirmed is confirmed, and told it is
+   * subscribed, on its email or by text.
+   *
+   * Once, however many requests open the link at the same moment - a double
+   * tap, a page loaded twice. The update names the subscription as it was
+   * read - not confirmed, at the version read - so the first request to
+   * write it confirms it and the others match no row (DatabaseService's
+   * compare-and-set on the version): only that one sends the welcome.
+   */
+  @CaptureSpan()
+  public async confirmSubscription(data: {
+    subscriberId: unknown;
+    code: unknown;
+  }): Promise<SubscriptionConfirmationOutcome> {
+    const subscriber: Model | null =
+      typeof data.code === "string" &&
+      data.code.length > 0 &&
+      typeof data.subscriberId === "string" &&
+      ObjectID.isValidUUID(data.subscriberId)
+        ? await this.findOneBy({
+            query: {
+              _id: data.subscriberId,
+              subscriptionConfirmationToken: data.code,
+            },
+            select: {
+              _id: true,
+              isSubscriptionConfirmed: true,
+              version: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          })
+        : null;
+
+    if (!subscriber || !subscriber.id) {
+      return SubscriptionConfirmationOutcome.NotFound;
+    }
+
+    if (subscriber.isSubscriptionConfirmed) {
+      return SubscriptionConfirmationOutcome.AlreadyConfirmed;
+    }
+
+    const confirmed: number = await this.updateOneBy({
+      query: {
+        _id: subscriber.id.toString(),
+        isSubscriptionConfirmed: false,
+        ...(typeof subscriber.version === "number"
+          ? { version: subscriber.version }
+          : {}),
+      },
+      data: {
+        isSubscriptionConfirmed: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (confirmed === 0) {
+      return SubscriptionConfirmationOutcome.AlreadyConfirmed;
+    }
+
+    await this.sendYouHaveSubscribedEmail({
+      subscriberId: subscriber.id,
+    });
+
+    await this.sendYouHaveSubscribedText({
+      subscriberId: subscriber.id,
+    });
+
+    return SubscriptionConfirmationOutcome.Confirmed;
+  }
+
+  /*
+   * The text that tells a phone subscriber who signed up on the status page
+   * that it is subscribed, once it has opened the link that confirms it
+   * (StatusPageAPI's confirm-subscription route) - as an email subscriber is
+   * emailed then - when it was created to be told (Send You Have Subscribed
+   * Message). Read as every subscriber message reads its page: an archived
+   * page, or a page of a blocked project, sends nothing.
+   */
+  @CaptureSpan()
+  public async sendYouHaveSubscribedText(data: {
+    subscriberId: ObjectID;
+  }): Promise<void> {
+    const subscriber: Model | null = await this.findOneBy({
+      query: {
+        _id: data.subscriberId,
+      },
+      select: {
+        _id: true,
+        statusPageId: true,
+        subscriberPhone: true,
+        projectId: true,
+        sendYouHaveSubscribedMessage: true,
+        unsubscribeToken: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (
+      !subscriber ||
+      !subscriber.statusPageId ||
+      !subscriber.subscriberPhone ||
+      !subscriber.sendYouHaveSubscribedMessage
+    ) {
+      return;
+    }
+
+    // Its unsubscribe link needs its token (see ensureUnsubscribeTokens).
+    await this.ensureUnsubscribeTokens([subscriber]);
+
+    const statusPage: StatusPage | undefined = (
+      await this.getStatusPagesToSendNotification([subscriber.statusPageId])
+    )[0];
+
+    if (!statusPage || !statusPage.id) {
+      return;
+    }
+
+    const statusPageURL: string = await StatusPageService.getStatusPageURL(
+      statusPage.id,
+    );
+
+    this.sendText({
+      subscriber: subscriber,
+      statusPage: statusPage,
+      message: getYouHaveSubscribedTextMessage({
+        statusPageName:
+          statusPage.pageTitle || statusPage.name || "Status Page",
+        unsubscribeUrl: this.getUnsubscribeLink(
+          URL.fromString(statusPageURL),
+          subscriber,
+        ).toString(),
+      }),
+    });
+  }
+
   @CaptureSpan()
   public async sendConfirmSubscriptionEmail(data: {
     subscriberId: ObjectID;
@@ -2165,9 +3118,6 @@ Stay informed about service availability! 🚀`.toString();
       confirmationToken: subscriber.subscriptionConfirmationToken || "",
       statusPageSubscriberId: subscriber.id!,
     }).toString();
-    logger.debug(`Confirm Subscription Link: ${confirmSubscriptionLink}`, {
-      statusPageSubscriberId: data.subscriberId?.toString(),
-    } as LogAttributes);
 
     if (
       subscriber.statusPageId &&
@@ -2486,21 +3436,17 @@ Stay informed about service availability! 🚀`.toString();
     confirmationToken: string;
     statusPageSubscriberId: ObjectID;
   }): URL {
-    logger.debug("getConfirmSubscriptionLink called with data:", {
-      statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
-    } as LogAttributes);
-    logger.debug(data, {
-      statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
-    } as LogAttributes);
-
     const confirmSubscriptionLink: URL = URL.fromString(
       data.statusPageUrl,
     ).addRoute(
       `/confirm-subscription/${data.statusPageSubscriberId.toString()}?verification-token=${data.confirmationToken}`,
     );
 
+    // The link with its code redacted: the code is the whole of the confirmation.
     logger.debug(
-      `Generated Confirm Subscription Link: ${confirmSubscriptionLink.toString()}`,
+      `Generated Confirm Subscription Link: ${StatusPageSubscriberUnsubscribe.redactCredentials(
+        confirmSubscriptionLink.toString(),
+      )}`,
       {
         statusPageSubscriberId: data.statusPageSubscriberId?.toString(),
       } as LogAttributes,

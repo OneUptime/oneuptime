@@ -155,8 +155,12 @@ export const buildSearchTokenForFilter: BuildSearchTokenForFilterFunction = (
 /*
  * The list grammar splits `(a OR b)` on `,` and on ` OR ` without looking at
  * quotes, so an entry carrying either cannot be spelled inside a list at all.
+ * One character of white space on each side of the "OR" is all it takes, so
+ * that is all this looks for: a run of white space before it was read again
+ * from each of its characters, a long run in time that grew with the square
+ * of its length.
  */
-const LIST_UNSAFE_ENTRY: RegExp = /,|\s+OR\s+/i;
+const LIST_UNSAFE_ENTRY: RegExp = /,|\sOR\s/i;
 
 type RenderListFunction = (
   entries: Array<string>,

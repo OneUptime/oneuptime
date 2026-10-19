@@ -88,6 +88,7 @@ function assertion(
     issuerUrl: "https://idp.example.com",
     email: new Email("monica.reyes@example.com"),
     name: null,
+    objectId: null,
     assertionId,
     acceptableUntil: new Date(Date.now() + secondsLeft * 1000),
   };

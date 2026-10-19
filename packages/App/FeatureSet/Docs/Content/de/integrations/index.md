@@ -90,6 +90,12 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 > [!TIP]
 > Slack und Microsoft Teams haben auch Workflow-Schritte. Nutzen Sie die eingebaute Verbindung für Vorfallkanäle und Bereitschaft, und einen Workflow-Schritt, wenn Sie nur eine Nachricht in einem Kanal brauchen.
 
+### Hosting-Plattformen
+
+| Werkzeug | Richtung | Was es tut |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | Eingehend | Fügen Sie OneUptime über den Vercel Marketplace hinzu: Traces, Logs, Uptime-Monitore und eine Statusseite für Ihre Vercel-Projekte. |
+
 ## Wechsel von einem anderen Werkzeug
 
 Wenn Sie ein anderes Bereitschafts-, Uptime- oder Statusseiten-Werkzeug verlassen, holen Sie Ihr Team herüber, statt beide zu verbinden. **Projekteinstellungen → Aus einem anderen Tool importieren** liest Ihr Konto mit einem API-Schlüssel, zeigt Ihnen, was es gefunden hat, und legt an, was Sie ankreuzen. Für jedes Werkzeug gibt es eine Anleitung:

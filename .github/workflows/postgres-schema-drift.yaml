@@ -926,6 +926,28 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProjectPlanLimitsPostgres.test.ts --forceExit
 
+      # Clones every migrated table into an isolated schema and holds a status
+      # page to each contact once, however it is written, through the real
+      # subscriber service: twelve creates of one phone number written
+      # twelve ways (or of one webhook), held until every one has passed the
+      # early check, leave one subscriber - the check is made again in the
+      # INSERT's transaction under the page's lock, or the
+      # project's on the Free plan - and the SQL that reads a stored
+      # number's line finds what SubscriberContactKey says it should. A
+      # confirmation link opened by twelve requests at once confirms once and
+      # sends one welcome, and a cancelled subscription is not turned back on
+      # where its contact is taken.
+      - name: Test one subscriber per contact per status page on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SUBSCRIBER_CONTACT_TESTS: "true"
+          SUBSCRIBER_CONTACT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SUBSCRIBER_CONTACT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SUBSCRIBER_CONTACT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StatusPageSubscriberContactPostgres.test.ts --forceExit
+
       # Clones the migrated McpOAuthClient / McpOAuthGrant / McpOAuthToken
       # tables into an isolated schema and rebuilds the token -> grant foreign
       # key from the migrated definition. Of several requests racing to claim

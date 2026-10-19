@@ -128,6 +128,10 @@ Die persoon zit al in dat team, als lid of met een uitnodiging die nog niet is g
 In OneUptime Cloud heeft een project met het Free-abonnement ruimte voor één persoon. Wijzig het abonnement en nodig daarna opnieuw uit. Zie [Het abonnement wijzigen](/docs/configuration/billing#het-abonnement-wijzigen).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+Naar één adres kunnen 10 uitnodigingen per uur worden gestuurd, voor projecten en privéstatuspagina's samen, wie ze ook stuurt. Wacht een uur en nodig de persoon daarna opnieuw uit.
+:::
+
 :::details De uitnodigingsmail is niet aangekomen, of de link is verlopen
 De uitnodiging hangt niet af van de e-mail. Vraag de persoon zich te registreren met het uitgenodigde adres: OneUptime stuurt dat adres een nieuwe link om het account af te maken. Wie al een account heeft, logt in en vindt de uitnodiging klaarstaan.
 :::

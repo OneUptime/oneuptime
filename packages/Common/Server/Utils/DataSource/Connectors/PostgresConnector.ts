@@ -12,6 +12,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import DataSourceEgressGuard from "../EgressGuard";
 import SqlQueryGuard from "../SqlQueryGuard";
 import SqlResultShaper from "../SqlResultShaper";
+import { withoutTrailingStatementTerminators } from "../../../../Utils/DataSource/SqlStatementTerminators";
 import {
   DataSourceConnector,
   DataSourceConnectionSettings,
@@ -213,7 +214,8 @@ export default class PostgresConnector implements DataSourceConnector {
     SqlQueryGuard.assertReadOnlyQuery(finalSql);
 
     // Strip trailing terminators so the SQL embeds in DECLARE ... CURSOR.
-    const cursorSql: string = finalSql.replace(/;+\s*$/g, "").trim();
+    const cursorSql: string =
+      withoutTrailingStatementTerminators(finalSql).trim();
 
     const client: PgClientLike = this.clientFactory(
       this.buildClientConfig(settings),

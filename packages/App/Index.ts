@@ -40,6 +40,7 @@ import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceRe
 import {
   ClusterKeyWarning,
   DatastorePasswordWarning,
+  InboundEmailWebhookSecretWarning,
   RegisterProbeKeyWarning,
   RunDatabaseMigrationsOnBoot,
 } from "Common/Server/EnvironmentConfig";
@@ -150,6 +151,16 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
     if (DatastorePasswordWarning) {
       logger.warn(DatastorePasswordWarning);
+    }
+
+    /*
+     * Incoming email turned on (INBOUND_EMAIL_DOMAIN) with no webhook secret
+     * of the installation's own: every email the provider delivers is
+     * refused until there is one, and the provider tells no one. Said once,
+     * with what to set.
+     */
+    if (InboundEmailWebhookSecretWarning) {
+      logger.warn(InboundEmailWebhookSecretWarning);
     }
 
     // Connect to Redis

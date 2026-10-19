@@ -128,6 +128,10 @@ A pessoa já está nessa equipe, como membro ou com um convite que não aceitou.
 No OneUptime Cloud, um projeto no plano Free tem espaço para uma pessoa. Mude o plano e convide de novo. Veja [Mudar o plano](/docs/configuration/billing#mudar-o-plano).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+Um endereço pode receber 10 convites por hora, para projetos e páginas de status privadas juntos, seja quem for que os envie. Aguarde uma hora e convide a pessoa de novo.
+:::
+
 :::details O e-mail de convite não chegou, ou o link expirou
 O convite não depende do e-mail. Peça à pessoa que se cadastre com o endereço convidado: o OneUptime envia para esse endereço um novo link para terminar de criar a conta. Quem já tem conta entra e encontra o convite esperando.
 :::

@@ -26,9 +26,26 @@ import Model from "../../Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPageEmailLogo, {
   STATUS_PAGE_EMAIL_LOGO_SELECT,
 } from "../Utils/StatusPage/StatusPageEmailLogo";
+import PublicMessageRateLimit, {
+  PublicMessageSendPermit,
+  TeamMessageKind,
+} from "../Utils/RateLimit/PublicMessageRateLimit";
+import Exception from "../../Types/Exception/Exception";
+import { StatementContext } from "../Utils/Database/StatementOutcome";
 
 // The status page's two names, ID column first: a write may use either.
 const STATUS_PAGE_KEYS: Array<string> = ["statusPageId", "statusPage"];
+
+/*
+ * What a private user's create carries from its hooks to the next: the
+ * count of the invitation it emails (onCreatePermitted), given back when the
+ * create ends before the email is sent (onCreateError).
+ */
+interface PrivateUserCreateCarryForward {
+  invitationPermit: PublicMessageSendPermit | null;
+  // Set as onCreateSuccess starts: from then on the email may have gone out.
+  isSending: boolean;
+}
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -74,10 +91,94 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    const carryForward: PrivateUserCreateCarryForward = {
+      invitationPermit: null,
+      isSending: false,
+    };
+
     return {
       createBy: createBy,
-      carryForward: null,
+      carryForward: carryForward,
     };
+  }
+
+  /*
+   * A private user the team adds - on the dashboard, with an API key, by a
+   * workflow or by SCIM - is emailed an invitation to the status page, from
+   * this installation's mail server unless the page has its own. Each
+   * invited address is counted (PublicMessageRateLimit.assertTeamMaySend,
+   * with the invitations to projects), so one address is sent a bounded
+   * number of invitations an hour, whichever project sends them: past its
+   * limit the create is refused with 429, before anything is written. The team is never counted, so adding many readers
+   * at once goes on. Only an invitation that is sent counts: a user who
+   * signs in with SSO, or one of a page that takes only SSO, is sent none
+   * (onCreateSuccess).
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const carryForward: PrivateUserCreateCarryForward | null =
+      onCreate.carryForward as PrivateUserCreateCarryForward | null;
+    const user: Model = onCreate.createBy.data;
+
+    // The page under either of its names (onBeforeCreate wrote the ID column).
+    const statusPageId: ObjectID | null = RelationIdUtil.readConsistent(
+      user as unknown as Record<string, unknown>,
+      STATUS_PAGE_KEYS,
+      "Status Page",
+    );
+
+    if (!carryForward || user.isSsoUser || !user.email || !statusPageId) {
+      return;
+    }
+
+    const statusPage: StatusPage | null = await StatusPageService.findOneById({
+      id: statusPageId,
+      select: {
+        _id: true,
+        requireSsoForLogin: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (!statusPage || statusPage.requireSsoForLogin) {
+      return;
+    }
+
+    carryForward.invitationPermit =
+      await PublicMessageRateLimit.assertTeamMaySend({
+        kind: TeamMessageKind.Invitation,
+        contacts: [PublicMessageRateLimit.forEmail(user.email)],
+      });
+  }
+
+  /*
+   * A create that failed before onCreateSuccess began sent no invitation:
+   * the address gets its count back.
+   */
+  @CaptureSpan()
+  protected override async onCreateError(
+    error: Exception,
+    onCreate?: OnCreate<Model> | undefined,
+    failedStatement?: StatementContext | undefined,
+  ): Promise<Exception> {
+    const carryForward: PrivateUserCreateCarryForward | null | undefined =
+      onCreate?.carryForward as
+        | PrivateUserCreateCarryForward
+        | null
+        | undefined;
+
+    if (carryForward?.invitationPermit && !carryForward.isSending) {
+      await carryForward.invitationPermit.giveBack();
+    }
+
+    return await super.onCreateError(error, onCreate, failedStatement);
   }
 
   /**
@@ -158,9 +259,17 @@ export class Service extends ProjectReferencesService<Model> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<Model>,
+    onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
+    // From here on the invitation may have gone out (onCreateError).
+    const carryForward: PrivateUserCreateCarryForward | null =
+      onCreate.carryForward as PrivateUserCreateCarryForward | null;
+
+    if (carryForward) {
+      carryForward.isSending = true;
+    }
+
     if (createdItem.isSsoUser) {
       return createdItem;
     }

@@ -362,8 +362,18 @@ describe("status page private-user logs", () => {
         method === "post" ? USERS_ROUTE : `${USERS_ROUTE}/:userId`,
         { userName: INVALID_EMAIL },
       );
-      expect(next).toHaveBeenCalledWith(
-        expect.objectContaining({ message: "Email is not in valid format" }),
+      // Answered in the SCIM error format, not handed to Express.
+      expect(next).not.toHaveBeenCalled();
+      expect(sendJson).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        {
+          schemas: ["urn:ietf:params:scim:api:messages:2.0:Error"],
+          status: "400",
+          scimType: "invalidValue",
+          detail: "Email is not in valid format",
+        },
+        { statusCode: new StatusCode(400) },
       );
       expect(privateUserCreate).not.toHaveBeenCalled();
       expect(privateUserUpdate).not.toHaveBeenCalled();

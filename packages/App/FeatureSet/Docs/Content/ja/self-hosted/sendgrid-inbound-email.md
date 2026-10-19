@@ -49,7 +49,7 @@ Inbound Parse では、OneUptime への接続を開始するのは SendGrid で�
 
 Webhook のホスト名の DNS を公開し、公開クライアントが信頼する証明書を提供してください。プライベートな OneUptime のデプロイメントでは、内部で OneUptime に到達できる公開リバースプロキシやゲートウェイを通じて、Webhook のパスだけを公開できます。パス、シークレット、コンテンツタイプ、multipart のリクエストボディを保ったまま、対話的なログインやブラウザーのチャレンジなしで POST を通してください。OneUptime サーバーに受信用の SMTP リスナーは不要です。[SendGrid の Inbound Parse の設定](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/setting-up-the-inbound-parse-webhook) を参照してください。
 
-`INBOUND_EMAIL_WEBHOOK_SECRET` に強力なランダム値を設定し、URL の `YOUR_SECRET` をその値に置き換えます。ルートにはパスの最後のセグメントが必要です。シークレットが設定されていれば OneUptime はその値を確認し、変数を空にするとこの確認は無効になります。完全な URL とモニターのメールアドレスは、プロキシのログも含めて非公開にしてください。現在、OneUptime は SendGrid の署名付き Inbound Parse ヘッダーや OAuth トークンを検証しません。それらの仕組みが必要な場合は、[SendGrid の Webhook セキュリティのドキュメント](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) に従い、OneUptime に転送する前にそれらを検証するゲートウェイを設定してください。
+`INBOUND_EMAIL_WEBHOOK_SECRET` に強力なランダム値を設定し、URL の `YOUR_SECRET` をその値に置き換えます。ルートにはパスの最後のセグメントが必要で、OneUptime はそのセグメントがシークレットと一致するメールだけを受け取ります。シークレットが設定されるまで、すべてのメールは `503` で拒否され、SendGrid は最長三日間再試行します。完全な URL とモニターのメールアドレスは、プロキシのログも含めて非公開にしてください。現在、OneUptime は SendGrid の署名付き Inbound Parse ヘッダーや OAuth トークンを検証しません。それらの仕組みが必要な場合は、[SendGrid の Webhook セキュリティのドキュメント](https://www.twilio.com/docs/sendgrid/for-developers/parsing-email/securing-your-parse-webhooks) に従い、完全な URL に転送する前にそれらを検証するゲートウェイを設定してください。
 
 SendGrid は Inbound Parse 用の信頼できる静的な送信元 IP の一覧を提供していません。SendGrid のメール送信用 IP や `mx.sendgrid.net` の名前解決で得られるアドレスは、Webhook の許可リストにはなりません。現在の DNS の結果を固定するのではなく、[SendGrid のファイアウォールに関するガイダンス](https://support.sendgrid.com/hc/en-us/articles/44375457225371-How-to-Configure-Firewall-Settings-for-SendGrid-Webhook-and-Inbound-Parse-IPs) に従ってください。
 
@@ -114,6 +114,8 @@ inboundEmail:
 ```
 :::
 
+`INBOUND_EMAIL_WEBHOOK_SECRET` は必須です。空のままか、このページのプレースホルダーのままである間、OneUptime はすべてのメールを拒否します。`openssl rand -hex 32` で長いランダム値を作れます。
+
 次に適用します。Docker Compose では `npm run start` を実行すると新しい値でコンテナーが作り直されます。Kubernetes では Helm のリリースをアップグレードします。
 
 ### Incoming Email モニターを作成する
@@ -133,7 +135,7 @@ inboundEmail:
 | --- | --- | --- | --- | --- |
 | `INBOUND_EMAIL_PROVIDER` | `inboundEmail.provider` | 受信メールのプロバイダー。SendGrid のみです。 | いいえ | `SendGrid` |
 | `INBOUND_EMAIL_DOMAIN` | `inboundEmail.domain` | 受信メール用に設定したサブドメイン。設定するまで受信メールはオフです。 | はい | 空 |
-| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Webhook の URL の最後のセグメント `/incoming-email/sendgrid/YOUR_SECRET` と照合するシークレット。公開エンドポイントでは設定してください。空の値では検証が無効になります。 | 推奨 | 空 |
+| `INBOUND_EMAIL_WEBHOOK_SECRET` | `inboundEmail.webhookSecret` | Webhook の URL の最後のセグメント `/incoming-email/sendgrid/YOUR_SECRET` が一致する必要があるシークレット。空またはプレースホルダーの間は、すべてのメールが拒否されます。 | はい | 空 |
 
 Incoming Email モニターが照合できる項目 (件名、送信者、本文、受信者、メールが期限内に届いたかどうか) は、[利用できるフィルターの種類](/docs/monitor/incoming-email-monitor#使用できるフィルタータイプ) にあります。
 
@@ -149,6 +151,7 @@ Incoming Email モニターが照合できる項目 (件名、送信者、本文
 1. **公開 Webhook のルートを確認する:** シークレットを含む完全な URL が、インターネットから OneUptime に届く必要があります。最後のシークレットのセグメントがない URL はルートに一致しません。
 2. **ファイアウォールのルールを確認する:** ログインのリダイレクトやブラウザーのチャレンジなしで Webhook のパスへの HTTPS POST リクエストを許可し、SendGrid のメール送信用 IP を Webhook の送信元の許可リストとして使わないでください。
 3. **SSL 証明書を確認する:** Webhook のホスト名には、公的に信頼される有効な証明書を使い、証明書チェーンも含めてください。
+4. **Webhook のシークレットを確認する:** Destination URL の末尾は `INBOUND_EMAIL_WEBHOOK_SECRET` の値でなければなりません。変数が空またはプレースホルダーの間は、すべてのメールが `503` で拒否され、`app` サービスのログが起動時にそのことを示します。末尾がそれ以外の URL に送られたメールは `403` で拒否されます。
 :::
 
 :::details モニターがアラートを作成しない
@@ -164,7 +167,7 @@ Incoming Email モニターが照合できる項目 (件名、送信者、本文
 ## セキュリティのベストプラクティス
 
 1. **HTTPS を使う:** Webhook のエンドポイントには常に HTTPS を使います
-2. **Webhook のシークレット:** `INBOUND_EMAIL_WEBHOOK_SECRET` を設定し、追加の検証として Webhook の URL に含めます (例: `/incoming-email/sendgrid/your-secret`)
+2. **Webhook のシークレット:** `INBOUND_EMAIL_WEBHOOK_SECRET` には自分だけの長いランダム値を使い、Webhook の URL の末尾に置きます (例: `/incoming-email/sendgrid/your-secret`)。これが SendGrid からのメールを他のメールと見分ける手がかりです
 3. **ドメインの検証:** メールのセキュリティを高めるため、SendGrid でドメインを検証します
 4. **アクセスを制限する:** 信頼できるメールの送信元に対してだけモニターを作成します
 5. **ログを監視する:** 受信メールのログを定期的に確認し、不審なアクティビティがないか調べます

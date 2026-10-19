@@ -36,6 +36,7 @@ import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/St
 import SubscriberNotificationTemplateVariables from "../../../Types/StatusPage/SubscriberNotificationTemplateVariables";
 import { getDefaultSubscriberNotificationTemplate } from "../../../../App/FeatureSet/Dashboard/src/Utils/SubscriberNotificationTemplateDefaults";
 import { mockRouter } from "./Helpers";
+import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 import {
   afterEach,
   beforeAll,
@@ -535,7 +536,14 @@ describe("StatusPageAPI manage-subscription templates", () => {
       return Promise.resolve([subscriber]);
     }
 
-    if (query["subscriberPhone"]?.toString() === SUBSCRIBER_PHONE) {
+    // A phone is looked up by its line (SubscriberContactSql.onPhoneLine).
+    if (
+      query["subscriberPhone"] !== undefined &&
+      rowMatchesWhere(
+        { subscriberPhone: SUBSCRIBER_PHONE },
+        { subscriberPhone: query["subscriberPhone"] },
+      )
+    ) {
       subscriber.subscriberPhone = new Phone(SUBSCRIBER_PHONE);
       return Promise.resolve([subscriber]);
     }

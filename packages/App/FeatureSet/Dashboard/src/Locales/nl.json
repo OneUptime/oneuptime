@@ -29827,6 +29827,7 @@
   "Not shown while this episode is private": "Niet getoond zolang deze episode privé is",
   "Not shown while this incident is private": "Niet getoond zolang dit incident privé is",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Als u dit project verwijdert, stopt de facturering ervan, na een laatste afrekening van het gebruik tot nu toe. Uw OneUptime-aankoop op {{marketplace}} blijft actief totdat u die daar annuleert.",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "Als u dit project verwijdert, stopt de facturering ervan na een laatste afrekening voor het gebruik tot nu toe, en wordt de OneUptime-resource op Vercel verwijderd. De Vercel-projecten die eraan gekoppeld zijn, verliezen de omgevingsvariabelen ervan bij hun volgende deployment.",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "Welke resources het bereikt: alle (aanbevolen), die van het team, of die met de labels die u kiest.",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "U bent gast in Slack, en Slack laat OneUptime u niet aan dit kanaal toevoegen.",
   "You're already in this channel.": "U zit al in dit kanaal.",
@@ -29898,7 +29899,7 @@
   "Add a Role to {{role}}": "Een rol aan {{role}} toevoegen",
   "Custom Role Details": "Details van de aangepaste rol",
   "Members of these teams can do everything this role allows.": "Leden van deze teams kunnen alles wat deze rol toestaat.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Sets machtigingen met een naam, gemaakt op de pagina Rollen. Een rol wijzigen wijzigt ook dit team.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Sets machtigingen met een naam, gemaakt op de pagina {{roles}}. Een rol wijzigen wijzigt ook dit team.",
   "Shown on every team you give the role to.": "Getoond bij elk team dat u de rol geeft.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "De ingebouwde rollen die ze bundelt, voor elke resource in het project. Voeg losse machtigingen toe op de pagina van de rol.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "De ingebouwde rollen die ze bundelt, voor elke resource in het project. Rollen die u zelf niet hebt, staan er niet bij.",
@@ -31012,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Veiligheid: clients mogen alleen-lezen tools zonder te vragen uitvoeren en vragen het eerst bij alles wat iets verwijdert. Een client die via aanmelding is verbonden, kan worden beperkt tot alleen-lezen.",
   "See the {{docsLink}} for every tool.": "Zie de {{docsLink}} voor alle tools.",
   "Twilio account for SMS and calls": "Twilio-account voor sms en oproepen",
-  "Up to {{limit}} open at once": "Tot {{limit}} tegelijk open"
+  "Up to {{limit}} open at once": "Tot {{limit}} tegelijk open",
+  "Gets nothing until they open the link we texted them.": "Krijgt niets tot de link die we per sms stuurden is geopend."
 }

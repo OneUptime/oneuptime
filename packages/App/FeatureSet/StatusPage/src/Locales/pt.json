@@ -185,7 +185,8 @@
       "yourPhoneNumber": "Seu número de telefone",
       "placeholder": "+5511123456789",
       "managePrompt": "Por favor, digite o número de telefone com o qual você se inscreveu",
-      "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este número de telefone."
+      "manageDescription": "Enviaremos um link de gerenciamento de inscrição para este número de telefone.",
+      "confirmationSent": "Enviamos uma mensagem de texto para este número de telefone. Abra o link nela para confirmar sua inscrição."
     },
     "slack": {
       "title": "Inscrever-se via Slack",

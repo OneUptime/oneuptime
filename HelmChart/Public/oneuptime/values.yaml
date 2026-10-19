@@ -42,14 +42,19 @@ image:
   ## Please contact sales@oneuptime.com for a license.
   type: community-edition
 
-  ## Full image references that replace the ones this chart builds, by image:
+  ## Image references that replace the ones this chart builds, by image:
   ## app, nginx, probe, runner, home, test, postgres, clickhouse,
-  ## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. The marketplace
-  ## editions of this chart point them at the marketplace's own registry; on
-  ## Microsoft Marketplace, global.azure.images does the same. Leave empty to
-  ## use the references the chart builds from the values above.
+  ## clickhouseKeeper, valkey, pgbouncer, vllm, kubectl. Each is either a full
+  ## reference, or {registry, repository, tag | digest} (registry optional).
+  ## The marketplace editions of this chart point them at the marketplace's own
+  ## registry; on Microsoft Marketplace, global.azure.images does the same.
+  ## Leave empty to use the references the chart builds from the values above.
   # overrides:
   #   app: registry.example.com/oneuptime/app:enterprise-14.0.0
+  #   nginx:
+  #     registry: registry.example.com
+  #     repository: oneuptime/nginx
+  #     tag: enterprise-14.0.0
   overrides: {}
   
   restartPolicy: Always
@@ -2680,8 +2685,9 @@ microsoftSignInApp:
   #   clientSecretKey: clientSecret
 
 # Cloud marketplaces: sell OneUptime Cloud on AWS Marketplace, Microsoft
-# Marketplace (Azure) and Google Cloud Marketplace. Used only where billing is
-# enabled; a marketplace is offered only when all of its settings are set.
+# Marketplace (Azure), Google Cloud Marketplace and Vercel Marketplace. Used
+# only where billing is enabled; a marketplace is offered only when all of its
+# settings are set.
 # What each value is and where it comes from:
 # packages/Common/Server/Utils/Marketplace/RELEASING.md in the repository.
 cloudMarketplace:
@@ -2724,6 +2730,18 @@ cloudMarketplace:
     # existingSecret:
     #   name: "google-cloud-marketplace-secret"
     #   serviceAccountKeyKey: serviceAccountKey
+  # Vercel Marketplace native integration (Integration Console). Base URL:
+  # https://<host>/api/marketplace/vercel. Redirect Login URL:
+  # https://<host>/identity/vercel/sso. Webhook URL:
+  # https://<host>/api/marketplace/vercel/webhook. Log drain endpoint:
+  # https://<host>/telemetry/vercel/v1/logs.
+  vercel:
+    # The integration's client ID (oac_...) and client secret.
+    clientId:
+    clientSecret:
+    # existingSecret:
+    #   name: "vercel-marketplace-secret"
+    #   clientSecretKey: clientSecret
 
 # Inbound Email Configuration
 # Required for Incoming Email Monitor feature
@@ -2734,7 +2752,11 @@ inboundEmail:
   # The domain configured for inbound email (e.g., inbound.yourdomain.com)
   # Required for the Incoming Email Monitor feature to work
   domain:
-  # Optional webhook secret for validating incoming webhooks from the email provider
+  # Required once domain is set: a long random value of your own (openssl rand
+  # -hex 32 makes one), which the Destination URL in SendGrid's Inbound Parse
+  # settings ends with: https://<your OneUptime host>/incoming-email/sendgrid/<this value>.
+  # While it is empty, OneUptime refuses every email SendGrid delivers, and
+  # helm install / helm upgrade say so.
   webhookSecret:
 
 # BullMQ Queue Dashboard (Bull Board)

@@ -15,6 +15,12 @@ import {
   PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
 } from "Common/Types/Team/CustomRole";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import { drawnActionLabel } from "./DocsDashboardLabels";
+import {
+  menuSections,
+  MenuSection,
+  sectionByTitle,
+} from "./DocsDashboardMenus";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -34,7 +40,9 @@ import path from "path";
  *   - custom roles take the plan changing a team's permissions takes;
  *   - API keys take no custom role: no key model points at one;
  *   - every button and page the steps name is drawn by the Dashboard with
- *     that English label.
+ *     that English label;
+ *   - the steps find Roles where the Teams menu draws it: in its Settings
+ *     section, which starts folded, so the first step says to expand it.
  *
  * Every docs language has the section, on the line the English page has it
  * (PermissionsAndSelfHostedDocsTranslations holds the rest of each
@@ -295,4 +303,84 @@ describe("the labels the steps name", () => {
       "**Create Team** offers the custom roles you could give under **Access**",
     );
   });
+});
+
+/*
+ * Roles moved from beside All Teams into the Teams menu's Settings section
+ * (the maintainer: "Move the roles page to the settings side menu"), which
+ * starts folded on All Teams. The first step leads there: Teams from the
+ * Products menu's Settings, then the side menu's own Settings, opened,
+ * then Roles.
+ */
+describe("where the steps find Roles", () => {
+  const TEAMS_MENU: string = "Pages/Teams/SideMenu.tsx";
+
+  // The section's first step, in a language: the line the English page has it on.
+  function firstStep(language: string): string {
+    const lines: Array<string> = readPage(language).split("\n");
+    const english: Array<string> = readPage("en").split("\n");
+    const start: number = sectionLine();
+    const index: number = english.findIndex(
+      (line: string, at: number): boolean => {
+        return at > start && line.startsWith("1. ");
+      },
+    );
+
+    expect(index).toBeGreaterThan(start);
+
+    return lines[index] || "";
+  }
+
+  function boldCount(line: string, label: string): number {
+    return line.split(`**${label}**`).length - 1;
+  }
+
+  test("the Teams menu draws Roles in its Settings section, first, and All Teams alone under Teams", () => {
+    const menu: Array<MenuSection> = menuSections(readSource(TEAMS_MENU));
+
+    expect(sectionByTitle(menu, "Teams").items).toEqual(["All Teams"]);
+    expect(sectionByTitle(menu, "Settings").items).toEqual([
+      "Roles",
+      "Custom Fields",
+    ]);
+  });
+
+  test("Settings starts folded on All Teams, so the first step opens it before choosing Roles", () => {
+    expect(readSource(TEAMS_MENU)).toContain(
+      "defaultCollapsed: !isOnSettingsPage",
+    );
+    expect(englishSection()).toContain(
+      "1. Open **Teams** from the **Products** menu, under **Settings**. Expand **Settings** in its side menu, choose **Roles**, and click **Create Custom Role**.",
+    );
+    // The old way there, beside All Teams, is gone.
+    expect(englishSection()).not.toContain(
+      "under **Settings**, then **Roles**",
+    );
+  });
+
+  test.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s: the first step names Settings twice - the Products menu's, then the side menu's - before Roles",
+    (language: string) => {
+      const step: string = firstStep(language);
+      const settings: string = drawnActionLabel(language, "Settings");
+      const roles: string = drawnActionLabel(language, "Roles");
+      const createRole: string = `**${drawnActionLabel(language, "Create Custom Role")}**`;
+
+      expect({ language, settings: boldCount(step, settings) }).toEqual({
+        language,
+        settings: 2,
+      });
+      expect({ language, roles: boldCount(step, roles) }).toEqual({
+        language,
+        roles: 1,
+      });
+      // The side menu's Settings comes before Roles, and Roles before the button.
+      expect(step.lastIndexOf(`**${settings}**`)).toBeLessThan(
+        step.indexOf(`**${roles}**`),
+      );
+      expect(step.indexOf(`**${roles}**`)).toBeLessThan(
+        step.indexOf(createRole),
+      );
+    },
+  );
 });

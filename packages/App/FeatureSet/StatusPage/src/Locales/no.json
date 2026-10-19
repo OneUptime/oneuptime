@@ -185,7 +185,8 @@
       "yourPhoneNumber": "Ditt telefonnummer",
       "placeholder": "+4712345678",
       "managePrompt": "Vennligst skriv inn telefonnummeret du abonnerer med",
-      "manageDescription": "Vi sender deg en administrasjonslenke til dette telefonnummeret."
+      "manageDescription": "Vi sender deg en administrasjonslenke til dette telefonnummeret.",
+      "confirmationSent": "Vi har sendt en SMS til dette telefonnummeret. Åpne lenken i den for å bekrefte abonnementet ditt."
     },
     "slack": {
       "title": "Abonner via Slack",

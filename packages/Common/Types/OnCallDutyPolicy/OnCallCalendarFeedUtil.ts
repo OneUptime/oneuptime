@@ -201,7 +201,12 @@ const TRAILING_GAP_TOLERANCE_MILLISECONDS: number = 5 * 1000;
 
 const ENVELOPE_USER_ID: string = "00000000-0000-4000-8000-000000000000";
 
-const EMAIL_LIKE_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/*
+ * Whether a name reads as an email address, so a feed does not expose one as a
+ * calendar title. Each run is length-bounded to the sizes RFC 5321 allows and
+ * anchored, so a name of any length is read once from end to end.
+ */
+const EMAIL_LIKE_REGEX: RegExp = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{1,63}$/;
 
 export default class OnCallCalendarFeedUtil {
   public static readonly PRODUCT_ID: string =

@@ -29827,6 +29827,7 @@
   "Not shown while this episode is private": "जब तक यह एपिसोड निजी है, नहीं दिखाया जाता",
   "Not shown while this incident is private": "जब तक यह घटना निजी है, नहीं दिखाया जाता",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "इस प्रोजेक्ट को हटाने पर अब तक के उपयोग का आख़िरी बिल बनने के बाद इसकी बिलिंग बंद हो जाती है। {{marketplace}} पर आपकी OneUptime खरीद तब तक सक्रिय रहती है जब तक आप उसे वहाँ रद्द नहीं करते।",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "इस प्रोजेक्ट को हटाने से, अब तक के उपयोग के लिए एक अंतिम शुल्क के बाद, इसकी बिलिंग रुक जाती है और Vercel पर इसका OneUptime संसाधन हटा दिया जाता है। इससे जुड़े Vercel प्रोजेक्ट अपने अगले डिप्लॉयमेंट पर इसके एनवायरनमेंट वेरिएबल खो देते हैं।",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "यह किन संसाधनों तक पहुँचता है: सभी (अनुशंसित), टीम के स्वामित्व वाले, या आपके चुने लेबल वाले।",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "आप Slack में अतिथि हैं, और Slack, OneUptime को आपको इस चैनल में जोड़ने नहीं देता।",
   "You're already in this channel.": "आप पहले से इस चैनल में हैं।",
@@ -29898,7 +29899,7 @@
   "Add a Role to {{role}}": "{{role}} में एक भूमिका जोड़ें",
   "Custom Role Details": "कस्टम भूमिका का विवरण",
   "Members of these teams can do everything this role allows.": "इन टीमों के सदस्य वह सब कर सकते हैं जिसकी यह भूमिका अनुमति देती है।",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "भूमिकाएं पेज पर बनाए गए अनुमतियों के नामित सेट। भूमिका बदलने से यह टीम भी बदल जाती है।",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "{{roles}} पेज पर बनाए गए अनुमतियों के नामित सेट। भूमिका बदलने से यह टीम भी बदल जाती है।",
   "Shown on every team you give the role to.": "हर उस टीम पर दिखता है जिसे आप यह भूमिका देते हैं।",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "प्रोजेक्ट के हर संसाधन के लिए, वे अंतर्निर्मित भूमिकाएं जिन्हें यह जोड़ती है। अलग-अलग अनुमतियां भूमिका के पेज पर जोड़ें।",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "प्रोजेक्ट के हर संसाधन के लिए, वे अंतर्निर्मित भूमिकाएं जिन्हें यह जोड़ती है। जो भूमिकाएं आपके पास खुद नहीं हैं, वे सूची में नहीं हैं।",
@@ -31012,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "सुरक्षा: क्लाइंट केवल पढ़ने वाले टूल बिना पूछे चला सकते हैं, और कुछ भी हटाने से पहले पूछते हैं। साइन इन से जुड़े क्लाइंट को केवल पढ़ने तक सीमित किया जा सकता है।",
   "See the {{docsLink}} for every tool.": "सभी टूल के लिए {{docsLink}} देखें।",
   "Twilio account for SMS and calls": "SMS और कॉल के लिए Twilio खाता",
-  "Up to {{limit}} open at once": "एक साथ अधिकतम {{limit}} खुली"
+  "Up to {{limit}} open at once": "एक साथ अधिकतम {{limit}} खुली",
+  "Gets nothing until they open the link we texted them.": "जब तक वे हमारे SMS में भेजे गए लिंक को नहीं खोलते, उन्हें कुछ नहीं मिलता।"
 }

@@ -6,7 +6,11 @@
 #                               image there, and Microsoft rewrites them to
 #                               its own registry at install;
 #   image.overrides.<key>       a full reference, as the Google Cloud
-#                               Marketplace deployer passes its images.
+#                               Marketplace deployer passes its images; or
+#                               {registry, repository, tag | digest}, the form
+#                               AWS Marketplace requires of every image
+#                               (MISSING_VALUES_IMAGE_REFERENCE otherwise) and
+#                               rewrites when it copies a product to a Region.
 #
 # Microsoft's entry wins over an override; with neither, the chart builds the
 # reference from its own values exactly as before.
@@ -257,3 +261,71 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  - it: builds an override given as registry, repository and tag (AWS Marketplace's form)
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.app.registry: 709825985650.dkr.ecr.us-east-1.amazonaws.com
+      image.overrides.app.repository: oneuptime/app
+      image.overrides.app.tag: 14.0.74
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: 709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime/app:14.0.74
+
+  - it: builds an override given as a full repository and a tag, with no registry
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.app.repository: 709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime/app
+      image.overrides.app.tag: 14.0.74
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: 709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime/app:14.0.74
+
+  - it: pins an override given as a repository by its digest
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      image.overrides.app.registry: registry.example.com
+      image.overrides.app.repository: oneuptime/app
+      image.overrides.app.tag: 14.0.74
+      image.overrides.app.digest: sha256:aaaa
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: registry.example.com/oneuptime/app@sha256:aaaa
+
+  - it: takes the bundled PostgreSQL image from a repository and tag override too
+    templates:
+      - templates/postgresql-statefulset.yaml
+    documentSelector:
+      path: kind
+      value: StatefulSet
+    set:
+      image.overrides.postgres.registry: 709825985650.dkr.ecr.us-east-1.amazonaws.com
+      image.overrides.postgres.repository: oneuptime/postgres
+      image.overrides.postgres.tag: 15.19-alpine
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: 709825985650.dkr.ecr.us-east-1.amazonaws.com/oneuptime/postgres:15.19-alpine
+
+  - it: refuses an override map with no repository
+    templates:
+      - templates/app.yaml
+    set:
+      image.overrides.app.tag: 14.0.74
+    asserts:
+      - failedTemplate: {}

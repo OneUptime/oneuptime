@@ -17,8 +17,8 @@ Denne side dækker begge dele: de fem abonnementskanaler og hvordan besøgende t
 
 ```mermaid title="Fra en tilmelding til en besked"
 flowchart TB
-    V["En besøgende tilmelder sig"] --> Q{"Via e-mail?"}
-    Q -->|"Ja"| C["Bekræfter via e-mail"]
+    V["En besøgende tilmelder sig"] --> Q{"Via e-mail eller SMS?"}
+    Q -->|"Ja"| C["Bekræfter via et link"]
     Q -->|"Nej"| S["Abonnent"]
     C --> S
     E["Hændelse, vedligeholdelse<br/>eller meddelelse"] --> N["Notifikation"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Besked med<br/>et afmeldingslink"]
 ```
 
-Hver statusside har sine egne abonnenter. En besøgende tilmelder sig på statussidens side **Abonner**, hvor en e-mailadresse bekræfter med et link, før den hører noget, eller dit team tilføjer vedkommende på dashboardet. Derefter giver hver hændelse, hver planlagt vedligeholdelsesbegivenhed og hver meddelelse, der når siden, besked til dens abonnenter, hver på den kanal, de tilmeldte sig med, og hver besked har det link, der opsiger abonnementet.
+Hver statusside har sine egne abonnenter. En besøgende tilmelder sig på statussidens side **Abonner**, hvor en e-mailadresse eller et telefonnummer bekræfter med et link, før den hører noget, eller dit team tilføjer vedkommende på dashboardet. Derefter giver hver hændelse, hver planlagt vedligeholdelsesbegivenhed og hver meddelelse, der når siden, besked til dens abonnenter, hver på den kanal, de tilmeldte sig med, og hver besked har det link, der opsiger abonnementet.
 
 ## Abonnementskanaler
 
@@ -76,7 +76,7 @@ Siden **Abonner** har en undermenu med én fane pr. slået-til kanal; med kun é
 | **MS Teams** | `/subscribe/microsoft-teams` | **Abonner via Microsoft Teams** | **Microsoft Teams-arbejdsområdets navn** og **URL til indgående webhook for Microsoft Teams**, med eksemplet `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **Abonner via webhook** | **Webhook-URL**, med eksemplet `https://example.com/webhook`. Der sendes en JSON-`POST`-forespørgsel til den ved hver begivenhed på statussiden. |
 
-Indsendelsesknappen hedder **Abonner**. En tilmelding via SMS, Slack, Microsoft Teams eller webhook viser *Du er blevet tilmeldt.* En tilmelding via e-mail siger, at der er sendt et bekræftelseslink, og at man skal tjekke spam-mappen, hvis det ikke kommer (se [Dobbelt bekræftelse på e-mail](#dobbelt-bekræftelse-på-e-mail)). Fanerne **E-mail**, **SMS**, **Slack** og **MS Teams** har også opdelingen **Nyt abonnement** / **Administrer eksisterende abonnement**, så en, der allerede har tilmeldt sig, kan komme tilbage til sine præferencer uden at lede efter en gammel besked.
+Indsendelsesknappen hedder **Abonner**. En tilmelding via Slack, Microsoft Teams eller webhook viser *Du er blevet tilmeldt.* En tilmelding via SMS viser *Vi har sendt en sms til dette telefonnummer. Åbn linket i den for at bekræfte dit abonnement.* En tilmelding via e-mail siger, at der er sendt et bekræftelseslink, og at man skal tjekke spam-mappen, hvis det ikke kommer (se [Dobbelt bekræftelse på e-mail](#dobbelt-bekræftelse-på-e-mail)). Fanerne **E-mail**, **SMS**, **Slack** og **MS Teams** har også opdelingen **Nyt abonnement** / **Administrer eksisterende abonnement**, så en, der allerede har tilmeldt sig, kan komme tilbage til sine præferencer uden at lede efter en gammel besked.
 
 ## Grænser for tilmeldinger og links
 
@@ -90,11 +90,15 @@ Hver tilmelding sender straks sin kontakt en besked, en bekræftelsesmail, en SM
 | Tilmeldinger af én e-mailadresse, ét telefonnummer, én Slack- eller Microsoft Teams-kanal eller én webhook, på alle statussider tilsammen | 10 på en time |
 | Administrationslinks til én e-mailadresse eller ét telefonnummer på alle statussider tilsammen, eller til ét Slack- eller Microsoft Teams-arbejdsområdenavn på én statusside | 5 på en time |
 
-Når en grænse er nået, svarer API'et `429` med en `Retry-After`-header i sekunder, og den besøgende får at vide, at der var for mange tilmeldinger eller links fra deres netværk eller til den kontakt, og at de skal prøve igen senere. Intet oprettes eller sendes, og dit projekt mærker intet til det: ingen abonnent tilføjes, og ingen besked sendes eller betales. Grænserne for administrationslinks tæller hver anmodning, uanset om et abonnement passer eller ej, så de kan ikke bruges til at finde ud af, hvem der abonnerer. En e-mailadresse tælles, uanset hvordan den er skrevet, med store bogstaver, med et `+tag` eller, for Gmail, med punktummer, og et telefonnummer, uanset hvordan det er tastet. En tilmelding tager én e-mailadresse: en liste af adresser afvises.
+Når en grænse er nået, svarer API'et `429` med en `Retry-After`-header i sekunder, og den besøgende får at vide, at der var for mange tilmeldinger eller links fra deres netværk eller til den kontakt, og at de skal prøve igen senere. Intet oprettes eller sendes, og dit projekt mærker intet til det: ingen abonnent tilføjes, og ingen besked sendes eller betales. Grænserne for administrationslinks tæller hver anmodning, uanset om et abonnement passer eller ej, så de kan ikke bruges til at finde ud af, hvem der abonnerer. En e-mailadresse tælles, uanset hvordan den er skrevet, med store bogstaver, med et `+tag` eller, for Gmail, med punktummer, og et telefonnummer, uanset hvordan det er tastet. En tilmelding angiver én kontakt, en e-mailadresse, et telefonnummer, en Slack- eller Microsoft Teams-kanal eller en webhook: en liste af adresser, eller en kontakt mere, afvises.
 
-Hver grænse pr. netværk tæller også adresserne i ét IPv6 /64 sammen, med ti gange sit tal. Tidsvinduerne er faste, ikke glidende. Hvis hastighedsbegrænseren ikke kan nås, fortsætter tilmeldinger og administrationslinks via e-mail, Slack, Microsoft Teams og webhook uden at blive talt, og dem via SMS afvises med `503`, indtil den er tilbage, fordi hver SMS koster penge. At ændre eller opsige et abonnement fra dets eget link er aldrig begrænset, og det er det heller ikke, når dit team tilføjer abonnenter på dashboardet eller via API'et.
+Hver grænse pr. netværk tæller også adresserne i ét IPv6 /64 sammen, med ti gange sit tal. Tidsvinduerne er faste, ikke glidende. Hvis hastighedsbegrænseren ikke kan nås, fortsætter tilmeldinger og administrationslinks via e-mail, Slack, Microsoft Teams og webhook uden at blive talt, og dem via SMS afvises med `503`, indtil den er tilbage, fordi hver SMS koster penge. At ændre eller opsige et abonnement fra dets eget link er aldrig begrænset.
 
-En privat bruger, der beder om et link til nulstilling af adgangskode på statussidens loginside, er begrænset på samme måde: 5 nulstillingsmails til én adresse på en time, på alle statussider tilsammen, og 30 fra ét netværk på 15 minutter.
+**Ét abonnement pr. kontakt.** En statusside tager hver e-mailadresse, hvert telefonnummer og hver webhook-adresse én gang, også Slack- og Microsoft Teams-webhooks. En e-mailadresse er den samme med store bogstaver, et telefonnummer uanset hvordan det tastes (`+14155550100`, `14155550100` og `0014155550100` er ét nummer), og en webhook-adresse, uanset om værten står med store bogstaver, med sin standardport eller et fragment, eller med procentkodede bogstaver. En besøgende, der tilmelder en kontakt igen, får at vide, at den allerede er tilmeldt, og intet sendes. Tilføjer dit team den igen, eller ændrer en abonnent til den, afvises det, og det samme gælder for at slå et opsagt abonnement til igen, mens et andet abonnement har dets kontakt. Abonnenter fra før bevares: Hvor ét nummer blev tilmeldt med to stavemåder, sletter du det abonnement, du ikke har brug for.
+
+**Det, dit team sender, tæller også.** Intet begrænser, hvor hurtigt dit team tilføjer abonnenter, på dashboardet, i bulk, via API'et eller med en workflow. Men den besked, en tilføjet abonnent får, e-mailen, der beder om bekræftelse, eller beskeden om, at den er tilmeldt, tæller med i kontaktens 10 tilmeldinger på en time, og ud over dem afvises tilføjelsen med `429`. En abonnent, der tilføjes uden besked, tælles aldrig: **Abonner dem nu** for en e-mailadresse, eller **Send en velkomstbesked** slået fra for de andre kanaler. Hvis hastighedsbegrænseren ikke kan nås, fortsætter dit teams tilføjelser uden at blive talt.
+
+En privat bruger, der beder om et link til nulstilling af adgangskode på statussidens loginside, er begrænset på samme måde: 5 nulstillingsmails til én adresse på en time, på alle statussider tilsammen, og 30 fra ét netværk på 15 minutter. En invitation, til en privat statusside eller til et projekt, tælles også pr. adresse: 10 til én adresse på en time, begge slags tilsammen.
 
 På en selvhostet installation ændrer disse miljøvariabler i OneUptime-appen grænserne:
 
@@ -109,6 +113,7 @@ På en selvhostet installation ændrer disse miljøvariabler i OneUptime-appen g
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Administrationslinks til én kontakt pr. tidsvindue. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Nulstillinger af adgangskode for private brugere, der bedes om fra én adresse pr. tidsvindue. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Nulstillingsmails for private brugere til én adresse pr. tidsvindue. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitationer til én adresse pr. vindue, til private statussider og projekter tilsammen. |
 
 Hverken `config.env` eller Helm-chartets værdier sender dem videre: tilføj dem selv til miljøet for containeren `app`, med `app.extraEnv`, eller chartets fælles `extraEnv`, i Helm-chartet, eller i en `docker-compose.override.yml` til Docker Compose. `TRUSTED_PROXY_HOPS` bestemmer, hvilken adresse grænserne pr. netværk tæller.
 
@@ -137,9 +142,11 @@ God til: en side, der dækker flere produkter. En kunde, der kun bruger dit API,
 
 ## Dobbelt bekræftelse på e-mail
 
-E-mailabonnenter bekræfter altid. Når en abonnent oprettes med en e-mailadresse og ikke blev oprettet som allerede bekræftet, tvinges **Is Subscription Confirmed** (`isSubscriptionConfirmed`) til `false`, og der genereres et sekscifret **Subscription Confirmation Token**. OneUptime sender derefter et bekræftelseslink på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Den besøgende lander på en side **Bekræft abonnement** og ser, når det er gået igennem, *Abonnement bekræftet*.
+E-mailabonnenter bekræfter altid. Når en abonnent oprettes med en e-mailadresse og ikke blev oprettet som allerede bekræftet, tvinges **Is Subscription Confirmed** (`isSubscriptionConfirmed`) til `false`, og der genereres et tilfældigt **Subscription Confirmation Token** på 32 tegn. OneUptime sender derefter et bekræftelseslink på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Den besøgende lander på en side **Bekræft abonnement** og ser, når det er gået igennem, *Abonnement bekræftet*.
 
-Abonnenter via SMS, Slack, Microsoft Teams og webhook springer dette over — de oprettes med `isSubscriptionConfirmed` allerede sat til `true`. Når dit team tilføjer en e-mailabonnent under **E-mail-abonnenter**, afgør **Når du tilføjer dem** det: **Abonner dem nu** (standard: bekræftet, og der sendes intet), **Abonner dem nu, og giv dem besked** (bekræftet, og e-mailen om, at de er tilmeldt, sendes) eller **Bed dem om at bekræfte først** (de får bekræftelseslinket, som ved en tilmelding). **Tilføj i bulk** spørger om det samme.
+Abonnenter via Slack, Microsoft Teams og webhook springer dette over, og det gør SMS-abonnenter, som dit team tilføjer, også — de oprettes med `isSubscriptionConfirmed` allerede sat til `true`. Når dit team tilføjer en e-mailabonnent under **E-mail-abonnenter**, afgør **Når du tilføjer dem** det: **Abonner dem nu** (standard: bekræftet, og der sendes intet), **Abonner dem nu, og giv dem besked** (bekræftet, og e-mailen om, at de er tilmeldt, sendes) eller **Bed dem om at bekræfte først** (de får bekræftelseslinket, som ved en tilmelding). **Tilføj i bulk** spørger om det samme.
+
+**Tilmeldinger via SMS bekræftes også.** En besøgende, der tilmelder sig via SMS, får én besked: bekræftelseslinket. Intet andet sendes til nummeret, før linket åbnes, og når det åbnes, sendes beskeden om, at de er tilmeldt, med det link, der opsiger abonnementet. Indtil da vises abonnenten som **Afventer bekræftelse**, og SMS-loggen viser linket med koden erstattet af `[redacted]`. SMS-abonnenter fra før er allerede bekræftet.
 
 **Ubekræftet betyder stille.** Forespørgslen, der henter abonnenter til en notifikation, filtrerer på `isUnsubscribed: false` og `isSubscriptionConfirmed: true`. En e-mailadresse, der aldrig klikkede på linket, bliver stående i din liste **E-mail-abonnenter** og modtager intet. Hvis nogen sværger på, at de er tilmeldt, men intet hører, så tjek den kolonne først.
 

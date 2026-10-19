@@ -193,13 +193,22 @@ const LINE_ENDING_REGEX: RegExp = /\r\n?/g;
 const WHITESPACE_RUN_REGEX: RegExp = /\s+/g;
 const BLANK_LINE_SPLIT_REGEX: RegExp = /\n[ \t]*\n/;
 
-// Fences may sit inside list items, so any indentation opens one.
-const FENCE_OPEN_REGEX: RegExp = /^[ \t]*(`{3,}|~{3,})(.*)$/;
+/*
+ * Fences may sit inside list items, so any indentation opens one.
+ *
+ * The run of backticks or tildes is taken whole (nothing of its kind may
+ * follow it): when the rest of the line cannot be read to its end - a line
+ * that holds a line separator other than "\n" - every shorter run was tried
+ * in turn, each reading the rest of the line again. Taking it whole changes
+ * nothing that matches: the pattern took the longest run first.
+ */
+const FENCE_OPEN_REGEX: RegExp = /^[ \t]*(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
 const FENCE_CLOSE_REGEX: RegExp = /^[ \t]*(`{3,}|~{3,})[ \t]*$/;
 
 // Four spaces or a tab is an indented code block, never a section label.
 const INDENTED_CODE_REGEX: RegExp = /^(?: {4}|\t)/;
-const ATX_HEADING_REGEX: RegExp = /^ {0,3}#{1,6}(?:[ \t]+(.*))?$/;
+// The white space after the hashes is taken whole, as the fence's run is above.
+const ATX_HEADING_REGEX: RegExp = /^ {0,3}#{1,6}(?:[ \t]+(?![ \t])(.*))?$/;
 const THEMATIC_BREAK_REGEX: RegExp =
   /^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$/;
 
@@ -218,8 +227,13 @@ const CITATION_MARKER_TEST_REGEX: RegExp = /\[C\d{1,3}\]/;
 /*
  * "**Label** rest" / "__Label__ rest". The optional second group lets
  * "***Label***" (bold italic) unwrap cleanly instead of leaving a stray "*".
+ *
+ * Every part of it reads only characters other than line separators, so it
+ * matches only a line that holds none - which the look-ahead at the start
+ * checks once. Without it a line holding one ("\u2028") was tried with the
+ * label ending at every place, each try reading on to that separator.
  */
-const STRONG_LEAD_REGEX: RegExp = /^(\*\*|__)(\*|_)?(.+?)\2?\1(.*)$/;
+const STRONG_LEAD_REGEX: RegExp = /^(?=.*$)(\*\*|__)(\*|_)?(.+?)\2?\1(.*)$/;
 const SEPARATOR_PREFIX_REGEX: RegExp = /^(?:[:—–]|-{1,2})[ \t]*/;
 // The text before the first ":" of a plain "Summary: body" line.
 const PLAIN_LABEL_REGEX: RegExp = /^[A-Za-z][A-Za-z \t;,()]{0,60}$/;

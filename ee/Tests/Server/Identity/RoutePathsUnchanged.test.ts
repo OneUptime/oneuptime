@@ -82,6 +82,15 @@ const PINNED_ROUTES: Array<{ name: string; routes: Array<PinnedRoute> }> = [
       ["DELETE", "/status-page-scim/v2/:statusPageScimId/Users/:userId"],
     ],
   },
+  /*
+   * The token endpoint of SCIM's OAuth 2.0 client credentials, added after
+   * the move to ee/. Microsoft Entra ID admins type it in as the Token
+   * Endpoint, so it is pinned like the SCIM base URLs.
+   */
+  {
+    name: "SCIMOAuthToken",
+    routes: [["POST", "/scim/oauth/token"]],
+  },
 ];
 
 // Express 4 keeps these on each stack layer; its typings leave them out.
@@ -121,6 +130,12 @@ const getRoutes: (router: ExpressRouter) => Array<PinnedRoute> = (
 
 const SCIM_ROUTER_NAMES: Array<string> = ["SCIM", "StatusPageSCIM"];
 
+/*
+ * The token endpoint authenticates its client itself (client ID and
+ * secret), so it runs the license gate and no bearer-token check.
+ */
+const TOKEN_ROUTER_NAME: string = "SCIMOAuthToken";
+
 describe("ee identity routers", () => {
   test("are the routers core mounts, in the same order", () => {
     expect(
@@ -148,17 +163,34 @@ describe("ee identity routers", () => {
     },
   );
 
-  test("the Identity area hands core all 26 SCIM routes, in mount order", () => {
+  test("the Identity area hands core all 26 SCIM routes and the token endpoint, in mount order", () => {
     const routers: Array<ExpressRouter> =
       IdentityArea.getIdentityRouters!() as Array<ExpressRouter>;
 
-    expect(routers).toHaveLength(2);
+    expect(routers).toHaveLength(3);
     expect(routers.flatMap(getRoutes)).toEqual(
       PINNED_ROUTES.flatMap((pinned: { routes: Array<PinnedRoute> }) => {
         return pinned.routes;
       }),
     );
-    expect(routers.flatMap(getRoutes)).toHaveLength(26);
+    expect(routers.flatMap(getRoutes)).toHaveLength(27);
+  });
+
+  test("the token endpoint runs the SCIM license gate first, and no bearer-token check", () => {
+    const entry: IdentityRouterEntry = IDENTITY_ROUTERS.find(
+      (candidate: IdentityRouterEntry) => {
+        return candidate.name === TOKEN_ROUTER_NAME;
+      },
+    ) as IdentityRouterEntry;
+
+    for (const layer of getLayers(entry.router)) {
+      expect(layer.route!.stack[0]!.handle).toBe(LicensedFeatureGate.forScim);
+      expect(
+        layer.route!.stack.some((handler: { handle: unknown }) => {
+          return handler.handle === SCIMMiddleware.isAuthorizedSCIMRequest;
+        }),
+      ).toBe(false);
+    }
   });
 
   test("returns the same router instances on every call (core mounts them once)", () => {
@@ -257,7 +289,8 @@ describe("ee identity routers", () => {
           route: route.join(" "),
           isScim:
             route[1].startsWith("/scim/v2/") ||
-            route[1].startsWith("/status-page-scim/v2/"),
+            route[1].startsWith("/status-page-scim/v2/") ||
+            route[1] === "/scim/oauth/token",
         }).toEqual({
           router: entry.name,
           route: route.join(" "),

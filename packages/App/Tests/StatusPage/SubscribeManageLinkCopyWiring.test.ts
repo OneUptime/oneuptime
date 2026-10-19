@@ -48,7 +48,8 @@ const PAGES: ReadonlyArray<SubscribePageCase> = [
   },
   {
     page: "Pages/Subscribe/SmsSubscribe.tsx",
-    subscribeKey: "subscribe.subscribedSuccessfully",
+    // A sign-up by text is confirmed from the phone: a link is texted to it.
+    subscribeKey: "subscribe.sms.confirmationSent",
     manageKey: MANAGE_KEY,
   },
   {

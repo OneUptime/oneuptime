@@ -33,7 +33,8 @@ const SENTENCE_LETTERS: number = 20;
 // How long what was read is kept: content is fixed for a deploy.
 const CACHE_TTL_MS: number = 10 * 60 * 1000;
 
-const FENCE: RegExp = /^(`{3,}|~{3,})(.*)$/;
+// The fence's run is taken whole, so a line is read once (see FENCE_LINE_PATTERN in FeedMarkdown).
+const FENCE: RegExp = /^(`{3,}(?!`)|~{3,}(?!~))(.*)$/;
 const BLOCKQUOTE_MARKERS: RegExp = /^(?:>\s*)+/;
 const NON_ASCII_LETTER: RegExp = /\p{L}/u;
 

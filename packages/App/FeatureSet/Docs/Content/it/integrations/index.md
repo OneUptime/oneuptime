@@ -90,6 +90,12 @@ Parti dall'alto della tabella: più un modo è in alto, meno c'è da mantenere.
 > [!TIP]
 > Anche Slack e Microsoft Teams hanno passaggi di workflow. Usa la connessione integrata per i canali degli incidenti e la reperibilità, e un passaggio di workflow quando ti serve solo un messaggio in un canale.
 
+### Piattaforme di hosting
+
+| Strumento | Direzione | Cosa fa |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | In entrata | Aggiungi OneUptime dal Vercel Marketplace: trace, log, monitor di disponibilità e una pagina di stato per i tuoi progetti Vercel. |
+
 ## Migrare da un altro strumento
 
 Per lasciare un altro strumento di reperibilità, di uptime o di pagine di stato, porta qui il tuo team invece di collegare i due. **Impostazioni del progetto → Importa da un altro strumento** legge il tuo account con una chiave API, ti mostra cosa ha trovato e crea ciò che spunti. Ogni strumento ha una guida:

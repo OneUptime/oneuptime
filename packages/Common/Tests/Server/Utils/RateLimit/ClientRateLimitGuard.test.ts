@@ -92,6 +92,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a single sign-on",
   "packages/App/FeatureSet/Identity/API/MicrosoftSignIn.ts":
     "records the address of a Microsoft sign-in",
+  "packages/App/FeatureSet/Identity/API/VercelSignIn.ts":
+    "records the address of a sign-in from Vercel Marketplace",
   "packages/App/FeatureSet/Identity/API/StatusPageSSO.ts":
     "records the address of a status page single sign-on",
   "packages/App/FeatureSet/Identity/API/StatusPageOIDC.ts":
@@ -116,9 +118,11 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
 
 /*
  * The limits that count a client in Redis, each through
- * ClientRateLimitCounter.count. Each one's behaviour under a host that
- * rotates through its /64 is driven in RateLimitsCountIpv6Networks.test.ts
- * (and LicenseServerRateLimit.test.ts in ee/).
+ * ClientRateLimitCounter.count - or countDifferent, which counts the
+ * different values a client presents (the wrong cluster keys it sent) under
+ * its address and /64 alike. Each one's behaviour under a host that rotates
+ * through its /64 is driven in RateLimitsCountIpv6Networks.test.ts (and
+ * LicenseServerRateLimit.test.ts in ee/).
  */
 const REDIS_LIMITS: Array<string> = [
   "packages/Common/Server/Middleware/IdentityRateLimit.ts",
@@ -129,6 +133,7 @@ const REDIS_LIMITS: Array<string> = [
   "packages/Common/Server/Middleware/McpOAuthRateLimit.ts",
   "packages/Common/Server/Utils/Runbook/RunbookWebhookRateLimit.ts",
   "packages/Common/Server/Utils/RateLimit/PublicMessageRateLimit.ts",
+  "packages/Common/Server/Utils/RateLimit/WrongClusterKeyLimit.ts",
   "ee/Server/LicenseServer/LicenseServerRateLimit.ts",
 ];
 
@@ -156,9 +161,12 @@ const REDIS_INCREMENT: RegExp =
 const CLIENT_ADDRESS_READ: RegExp =
   /(?:from\s+["'](?:[^"']*\/)?ClientIp["']|\bgetClientIp\s*\(|\.resolveClientIp\s*\(|\.getAddressKey\s*\(|\b(?:req|request)\??\.ips?\b|\.remoteAddress\b|["'`](?:x-forwarded-for|x-real-ip|cf-connecting-ip|true-client-ip|x-client-ip|fastly-client-ip)["'`])/i;
 
-// ClientRateLimitCounter.count(...), with or without its type argument.
+/*
+ * ClientRateLimitCounter.count(...) or .countDifferent(...), with or
+ * without its type argument.
+ */
 const COUNTS_THROUGH_COUNTER: RegExp =
-  /\bClientRateLimitCounter\.count(?:<[^<>()]*>)?\(/;
+  /\bClientRateLimitCounter\.count(?:Different)?(?:<[^<>()]*>)?\(/;
 // From any folder, or from its own (a limit next to it in RateLimit/).
 const IMPORTS_COUNTER: RegExp =
   /from\s+["'](?:[^"']*\/)?(?:RateLimit\/|\.\/)ClientRateLimitCounter["']/;
@@ -446,7 +454,22 @@ describe("the guard's own patterns", () => {
       ),
     ).toBe(true);
     expect(
+      COUNTS_THROUGH_COUNTER.test(
+        "await ClientRateLimitCounter.countDifferent<string>({",
+      ),
+    ).toBe(true);
+    expect(
+      COUNTS_THROUGH_COUNTER.test(
+        "await ClientRateLimitCounter.countDifferent({",
+      ),
+    ).toBe(true);
+    expect(
       COUNTS_THROUGH_COUNTER.test("await ClientRateLimitCounter.countFixed({"),
+    ).toBe(false);
+    expect(
+      COUNTS_THROUGH_COUNTER.test(
+        "await ClientRateLimitCounter.countDifferentThings({",
+      ),
     ).toBe(false);
   });
 });

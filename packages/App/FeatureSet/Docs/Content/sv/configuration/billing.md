@@ -66,7 +66,7 @@ Klicka på **Spara ändringar**. En betald plan faktureras från det ögonblick 
 API-nycklar kräver Growth-planen eller en högre plan, och under Scale-planen tar SCIM-anslutningar bara bort personer. En plan som stoppar dem säger hur många innan du väljer den, och sidan **Fakturering** visar **Ingår inte i det här abonnemanget** så länge de är stoppade. Ingenting tas bort: de fungerar igen på en plan som innehåller dem.
 
 > [!NOTE]
-> Köpte du OneUptime via en återförsäljare eller en molnmarknadsplats (AWS Marketplace, Microsoft Marketplace eller Google Cloud Marketplace)? Sidan **Fakturering** säger det. En återförsäljare byter din plan åt dig, och en marknadsplats fakturerar projektets plan och användning på din molnfaktura.
+> Köpte du OneUptime via en återförsäljare eller en molnmarknadsplats (AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace eller Vercel Marketplace)? Sidan **Fakturering** säger det. En återförsäljare byter din plan åt dig, och en marknadsplats fakturerar projektets plan och användning på din molnfaktura.
 
 ## Betalningsmetoder
 

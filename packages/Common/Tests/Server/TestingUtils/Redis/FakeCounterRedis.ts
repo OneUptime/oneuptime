@@ -15,13 +15,31 @@
  * `answerNextExecWith` hands back a malformed answer. The real-Valkey suite
  * (Utils/RateLimit/ClientRateLimitCounterValkey.test.ts) checks the same
  * behaviour against a real server.
+ *
+ * It also runs the one script ClientRateLimitCounter.countDifferent sends
+ * (DIFFERENT_VALUES_SCRIPT), as EVAL does: a set of values per key, checked
+ * and added to in one step, each set's TTL set by the call that made it.
+ * Each evaluation is kept in `sent` as a round trip of its own, a single
+ * "eval" command naming its keys; `failCommand`, `failNextExec` and
+ * `answerNextExecWith` apply to it as to a pipeline. Any other script is
+ * refused, so a suite never passes against a script the stand-in does not
+ * know. The real-Valkey suite runs the script itself.
  */
 
-export type FakeCounterCommandName = "incr" | "decr" | "get" | "expire";
+import { DIFFERENT_VALUES_SCRIPT } from "../../../../Server/Utils/RateLimit/ClientRateLimitCounter";
+
+export type FakeCounterCommandName =
+  | "incr"
+  | "decr"
+  | "get"
+  | "expire"
+  | "eval";
 
 export interface FakeCounterCommand {
   name: FakeCounterCommandName;
   key: string;
+  // An eval's keys, in order (`key` is the first of them).
+  keys?: Array<string>;
 }
 
 type QueuedCommand = {
@@ -116,6 +134,12 @@ export class FakeCounterPipeline {
 export default class FakeCounterRedis {
   public readonly counters: Map<string, number> = new Map<string, number>();
 
+  // The sets DIFFERENT_VALUES_SCRIPT keeps, by key.
+  public readonly sets: Map<string, Set<string>> = new Map<
+    string,
+    Set<string>
+  >();
+
   // Every TTL set on a key, in order.
   public readonly expiries: Map<string, Array<number>> = new Map<
     string,
@@ -138,6 +162,109 @@ export default class FakeCounterRedis {
 
   public pipeline(): FakeCounterPipeline {
     return new FakeCounterPipeline(this);
+  }
+
+  /*
+   * EVAL, for DIFFERENT_VALUES_SCRIPT alone: rejects as a dropped
+   * connection would when failNextExec or failCommand says so, hands back
+   * answerNextExecWith when it is set, and otherwise answers as the script
+   * does.
+   */
+  public async eval(
+    script: string,
+    numberOfKeys: number,
+    ...keysAndArguments: Array<string | number>
+  ): Promise<unknown> {
+    const keys: Array<string> = keysAndArguments
+      .slice(0, numberOfKeys)
+      .map(String);
+    const args: Array<string> = keysAndArguments
+      .slice(numberOfKeys)
+      .map(String);
+    const command: FakeCounterCommand = {
+      name: "eval",
+      key: keys[0] || "",
+      keys: keys,
+    };
+
+    this.sent.push([command]);
+
+    if (this.failNextExec) {
+      const error: Error = this.failNextExec;
+      this.failNextExec = null;
+      throw error;
+    }
+
+    const failure: Error | null = this.failCommand
+      ? this.failCommand(command)
+      : null;
+
+    if (failure) {
+      throw failure;
+    }
+
+    if (this.answerNextExecWith !== undefined) {
+      const answer: unknown = this.answerNextExecWith;
+      this.answerNextExecWith = undefined;
+      return answer;
+    }
+
+    if (script !== DIFFERENT_VALUES_SCRIPT) {
+      throw new Error("FakeCounterRedis runs DIFFERENT_VALUES_SCRIPT only");
+    }
+
+    return this.runDifferentValues(keys, args);
+  }
+
+  /*
+   * DIFFERENT_VALUES_SCRIPT, step for step: a /64 (the second key) or an
+   * address (the first) already over its limit refuses before anything is
+   * added; "" adds nothing; otherwise the value is added to each set in
+   * turn, each set made now given its TTL, and the first set it takes over
+   * its limit refuses.
+   */
+  public runDifferentValues(
+    keys: Array<string>,
+    args: Array<string>,
+  ): [number, number] {
+    const value: string = args[0] || "";
+    const limits: Array<number> = [Number(args[1]), Number(args[2])];
+    const ttlSeconds: number = Number(args[3]);
+
+    if (keys.length > 1 && this.membersOf(keys[1]!).length > limits[1]!) {
+      return [2, 0];
+    }
+
+    if (this.membersOf(keys[0]!).length > limits[0]!) {
+      return [1, 0];
+    }
+
+    if (value === "") {
+      return [0, 0];
+    }
+
+    for (let index: number = 0; index < keys.length; index++) {
+      const key: string = keys[index]!;
+      const set: Set<string> = this.sets.get(key) || new Set<string>();
+
+      set.add(value);
+      this.sets.set(key, set);
+
+      if (!this.expiries.has(key)) {
+        this.expiries.set(key, [ttlSeconds]);
+      }
+
+      if (set.size > limits[index]!) {
+        return [index + 1, 1];
+      }
+    }
+
+    return [0, 0];
+  }
+
+  // The values a set holds, in the order they were added.
+  public membersOf(key: string): Array<string> {
+    return Array.from(this.sets.get(key) || []);
   }
 
   public runIncr(key: string): number {
@@ -176,8 +303,12 @@ export default class FakeCounterRedis {
     return this.counters.get(key) || 0;
   }
 
+  // Every key there is: the counters', then the sets'.
   public keys(): Array<string> {
-    return Array.from(this.counters.keys());
+    return [
+      ...Array.from(this.counters.keys()),
+      ...Array.from(this.sets.keys()),
+    ];
   }
 
   // The keys whose name holds `fragment`.
@@ -198,6 +329,7 @@ export default class FakeCounterRedis {
 
   public reset(): void {
     this.counters.clear();
+    this.sets.clear();
     this.expiries.clear();
     this.storedValues.clear();
     this.sent.length = 0;

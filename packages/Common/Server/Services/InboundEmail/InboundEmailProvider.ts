@@ -1,5 +1,6 @@
 import { JSONObject } from "../../../Types/JSON";
 import EmailAddressList from "../../../Utils/Email/EmailAddressList";
+import { getUsableInboundEmailWebhookSecret } from "../../EnvironmentConfig";
 
 export interface ParsedInboundEmail {
   from: string;
@@ -62,16 +63,74 @@ export const getInboundEmailRecipientAddresses: (
 };
 
 export interface InboundEmailProviderConfig {
+  /*
+   * The installation's INBOUND_EMAIL_WEBHOOK_SECRET. A provider keeps it only
+   * when it is one the installation may use
+   * (EnvironmentConfig.getUsableInboundEmailWebhookSecret): unset, blank, a
+   * value the repository ships or a placeholder the setup guide prints is no
+   * secret at all.
+   */
   webhookSecret?: string | undefined;
   inboundDomain: string;
+}
+
+/*
+ * What a delivery shows before its body is read: the request's headers, and
+ * the last part of the address it was posted to
+ * (/incoming-email/sendgrid/:secret).
+ */
+export interface InboundEmailDelivery {
+  headers: Record<string, string>;
+  pathSecret: string;
 }
 
 export default abstract class InboundEmailProvider {
   protected config: InboundEmailProviderConfig;
 
   public constructor(config: InboundEmailProviderConfig) {
-    this.config = config;
+    this.config = {
+      ...config,
+      webhookSecret: getUsableInboundEmailWebhookSecret(config.webhookSecret),
+    };
   }
+
+  /*
+   * Whether the installation has a secret a delivery can prove itself with.
+   * Without one, validateWebhook refuses every delivery.
+   */
+  public hasWebhookSecret(): boolean {
+    return Boolean(this.config.webhookSecret);
+  }
+
+  /**
+   * Whether a delivery comes from the mail provider, decided before its body
+   * is read, so a request that cannot prove it costs nothing to refuse.
+   *
+   * Every provider is held to one rule here: an installation with no secret
+   * of its own has nothing to tell the provider's deliveries from anybody
+   * else's, so it refuses every one of them, whatever the provider would
+   * check. Only then does the provider check the delivery against the secret.
+   */
+  public async validateWebhook(data: InboundEmailDelivery): Promise<boolean> {
+    const webhookSecret: string | undefined = this.config.webhookSecret;
+
+    if (!webhookSecret) {
+      return false;
+    }
+
+    return await this.isFromProvider({
+      ...data,
+      webhookSecret: webhookSecret,
+    });
+  }
+
+  /**
+   * The provider's own check of a delivery against the installation's
+   * secret, which validateWebhook has made sure there is.
+   */
+  protected abstract isFromProvider(
+    data: InboundEmailDelivery & { webhookSecret: string },
+  ): Promise<boolean>;
 
   /**
    * Parse raw webhook/request data into ParsedInboundEmail
@@ -79,16 +138,6 @@ export default abstract class InboundEmailProvider {
   public abstract parseInboundEmail(
     rawData: JSONObject,
   ): Promise<ParsedInboundEmail>;
-
-  /**
-   * Validate webhook signature/authentication
-   * @param data.pathSecret - Secret from the URL path (e.g., /incoming-email/sendgrid/:secret)
-   */
-  public abstract validateWebhook(data: {
-    headers: Record<string, string>;
-    body: JSONObject | string;
-    pathSecret: string;
-  }): Promise<boolean>;
 
   /**
    * Extract monitor secret key from email address

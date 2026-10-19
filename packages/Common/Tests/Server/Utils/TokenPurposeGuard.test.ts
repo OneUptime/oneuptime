@@ -91,6 +91,8 @@ const SESSION_MINTERS: Array<string> = [
  * the readers above has already taken for what it is.
  */
 const RAW_CLAIM_READERS: Record<string, string> = {
+  "ee/Server/Identity/Utils/SCIMOAuth.ts":
+    "a SCIM connection's OAuth access token, by its own purpose, connection and client secret",
   "packages/App/FeatureSet/Identity/API/GlobalOIDC.ts":
     "the state cookie of a Global OIDC sign-in in flight, matched to the provider's answer",
   "packages/App/FeatureSet/Identity/API/OIDC.ts":
@@ -152,6 +154,15 @@ const JSON_WEB_TOKEN_MODULE_SPECIFIER: RegExp =
 const JSON_WEB_TOKEN_CLASS: string = "JSONWebToken";
 
 const hasEe: boolean = fs.existsSync(path.join(REPOSITORY_DIRECTORY, "ee"));
+
+/*
+ * A listed file that should be in this checkout: ee/ only when it is there.
+ * The Common Test job removes ee/ before it runs, and the scan then cannot
+ * see a listed file under it.
+ */
+function isCheckedOut(relativePath: string): boolean {
+  return hasEe || !relativePath.startsWith("ee/");
+}
 
 const PURPOSE_NAMES: Array<string> = Object.keys(JsonWebTokenPurpose);
 const PURPOSE_VALUES: Array<string> = Object.values(JsonWebTokenPurpose);
@@ -551,7 +562,7 @@ describe("every reader of a person's token says which kind it reads", () => {
   test("the scan found the readers and signers it is about", () => {
     // A scan that read nothing would pass every test below.
     expect(SCAN.decodeCalls.length).toBeGreaterThanOrEqual(
-      Object.keys(READERS).length,
+      Object.keys(READERS).filter(isCheckedOut).length,
     );
     expect(SCAN.purposeUses.length).toBeGreaterThan(0);
   });
@@ -594,7 +605,7 @@ describe("every reader of a person's token says which kind it reads", () => {
 
     const expected: Record<string, Array<string>> = {};
 
-    for (const file of Object.keys(READERS)) {
+    for (const file of Object.keys(READERS).filter(isCheckedOut)) {
       expected[file] = [...READERS[file]!].sort();
     }
 
@@ -683,7 +694,9 @@ describe("each kind of token is signed only where it is made", () => {
      * UserSession the caller just made or renewed (UserSessionService), last
      * fifteen minutes, and be what a sign-in hands out - then list it here.
      */
-    expect(SCAN.sessionMinters).toEqual([...SESSION_MINTERS].sort());
+    expect(SCAN.sessionMinters).toEqual(
+      SESSION_MINTERS.filter(isCheckedOut).sort(),
+    );
   });
 
   test("nothing that signs or reads a token spells a purpose itself", () => {
@@ -745,7 +758,9 @@ describe("what is signed as raw claims names no session and no SSO provider", ()
      * a session's or an SSO provider's claims and list the file above.
      */
     expect([...new Set(built)].sort()).toEqual(
-      Object.keys(RAW_CLAIM_SIGNERS_OF_BUILT_CLAIMS).sort(),
+      Object.keys(RAW_CLAIM_SIGNERS_OF_BUILT_CLAIMS)
+        .filter(isCheckedOut)
+        .sort(),
     );
   });
 });
@@ -757,7 +772,9 @@ describe("every other reader of a token's raw claims is listed", () => {
      * reads it with JSONWebToken.decode and the kind it means instead. If it
      * does not, list it here with what it reads.
      */
-    expect(SCAN.rawClaimReaders).toEqual(Object.keys(RAW_CLAIM_READERS).sort());
+    expect(SCAN.rawClaimReaders).toEqual(
+      Object.keys(RAW_CLAIM_READERS).filter(isCheckedOut).sort(),
+    );
   });
 });
 
@@ -781,7 +798,7 @@ describe("JSONWebToken is only ever called, under its own name", () => {
       ...SESSION_MINTERS,
       ...Object.keys(RAW_CLAIM_SIGNERS_OF_BUILT_CLAIMS),
     ].filter((file: string): boolean => {
-      return file !== JSON_WEB_TOKEN_MODULE;
+      return file !== JSON_WEB_TOKEN_MODULE && isCheckedOut(file);
     });
 
     expect(

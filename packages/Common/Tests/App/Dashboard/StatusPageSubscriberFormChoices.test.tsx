@@ -123,6 +123,7 @@ import {
   SUBSCRIBER_ADD_CHOICE,
   SUBSCRIBER_ADD_CHOICE_COLUMNS,
   SUBSCRIBER_ADD_CHOICE_FIELD_KEY,
+  SMS_SUBSCRIBER_STATUS,
   SUBSCRIBER_STATUS,
   SUBSCRIBER_STATUS_FIELD_KEY,
   SubscriberAddChoice,
@@ -1082,5 +1083,102 @@ describe("an email subscriber's Status offers Awaiting Confirmation only while t
     expect(
       screen.queryByRole("radio", { name: "Awaiting Confirmation" }),
     ).toBeNull();
+  });
+});
+
+/*
+ * A visitor who signs up by SMS on the status page confirms from their
+ * phone, by the link texted to them, so an SMS subscriber can be awaiting
+ * confirmation too: its Status reads and writes as an email subscriber's,
+ * and says how the link reached them. An SMS subscriber the team adds is
+ * confirmed at once, as before.
+ */
+describe("an SMS subscriber's Status", () => {
+  test("can be awaiting the link texted to them, and says so", () => {
+    expect(
+      SMS_SUBSCRIBER_STATUS.options.map(
+        (option: { title: string; description?: string | undefined }) => {
+          return [option.title, option.description];
+        },
+      ),
+    ).toEqual([
+      ["Subscribed", "Gets this status page's updates."],
+      [
+        "Awaiting Confirmation",
+        "Gets nothing until they open the link we texted them.",
+      ],
+      ["Unsubscribed", "Gets nothing."],
+    ]);
+    expect(SubscriberFormCopy.awaitingTextConfirmationDescription).toBe(
+      "Gets nothing until they open the link we texted them.",
+    );
+    // The email list keeps its own words.
+    expect(EMAIL_SUBSCRIBER_STATUS.options[1]!.description).toBe(
+      "Gets nothing until they click the link we emailed them.",
+    );
+  });
+
+  test("reads and writes as an email subscriber's, Awaiting Confirmation offered only while they await it", () => {
+    expect(
+      SMS_SUBSCRIBER_STATUS.readChoice({
+        isUnsubscribed: false,
+        isSubscriptionConfirmed: false,
+      }),
+    ).toBe(SubscriberStatusChoice.AwaitingConfirmation);
+    expect(
+      SMS_SUBSCRIBER_STATUS.readChoice({
+        isUnsubscribed: false,
+        isSubscriptionConfirmed: true,
+      }),
+    ).toBe(SubscriberStatusChoice.Subscribed);
+    expect(SMS_SUBSCRIBER_STATUS.readChoice({ isUnsubscribed: true })).toBe(
+      SubscriberStatusChoice.Unsubscribed,
+    );
+
+    // Subscribed confirms one who has not opened the link: the team vouches.
+    expect(
+      SMS_SUBSCRIBER_STATUS.getColumns(SubscriberStatusChoice.Subscribed),
+    ).toEqual({ isUnsubscribed: false, isSubscriptionConfirmed: true });
+    expect(
+      SMS_SUBSCRIBER_STATUS.getColumns(SubscriberStatusChoice.Unsubscribed),
+    ).toEqual({ isUnsubscribed: true });
+
+    expect(SMS_SUBSCRIBER_STATUS.isOptionOffered).toBe(
+      isEmailSubscriberStatusOffered,
+    );
+    expect(
+      getOfferedColumnChoiceOptions(SMS_SUBSCRIBER_STATUS, {
+        isUnsubscribed: false,
+        isSubscriptionConfirmed: true,
+      }).map((option: ColumnChoiceOption<SubscriberStatusChoice>): string => {
+        return option.title;
+      }),
+    ).toEqual(["Subscribed", "Unsubscribed"]);
+  });
+
+  test("its Edit form loads and saves whether it is confirmed, as an email subscriber's does", () => {
+    const sms: Array<ModelField<StatusPageSubscriber>> =
+      getSubscriberStatusFields({ isEmail: false, isPhone: true });
+
+    expect(sms[0]!.overrideFieldKey).toBe(SUBSCRIBER_STATUS_FIELD_KEY);
+    expect(
+      sms.slice(1).map((field: ModelField<StatusPageSubscriber>) => {
+        return Object.keys(field.field || {})[0];
+      }),
+    ).toEqual(["isUnsubscribed", "isSubscriptionConfirmed"]);
+
+    for (const field of sms) {
+      expect(field.doNotShowWhenCreating).toBe(true);
+    }
+  });
+
+  test("Slack, Microsoft Teams and webhook subscribers still confirm nobody", () => {
+    expect(
+      getSubscriberStatusFields({ isEmail: false })
+        .slice(1)
+        .map((field: ModelField<StatusPageSubscriber>) => {
+          return Object.keys(field.field || {})[0];
+        }),
+    ).toEqual(["isUnsubscribed"]);
   });
 });
