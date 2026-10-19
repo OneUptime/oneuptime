@@ -111,6 +111,16 @@ const WORST_TRACES: Array<[string, string]> = [
     "a Python traceback with a run of white space",
     "Traceback (most recent call last):\n" + repeat(" ", LENGTH) + "x",
   ],
+  [
+    "a Python traceback whose last line holds a run of line separators",
+    'Traceback (most recent call last):\n  File "a.py", line 1\nx' +
+      repeat(LINE_SEPARATOR, LENGTH) +
+      "y",
+  ],
+  [
+    "a first line that is a frame's at with a run of spaces",
+    "at" + repeat(" ", LENGTH) + "x" + LINE_SEPARATOR + "y",
+  ],
 ];
 
 const WORST_FILE_NAMES: Array<[string, string]> = [
