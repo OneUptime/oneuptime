@@ -7,6 +7,10 @@ import {
   isShippedSecretValue,
 } from "Common/Server/EnvironmentConfig";
 import SecretKeyComparison from "Common/Server/Utils/SecretKeyComparison";
+import WrongComponentKeyLimit, {
+  ComponentKeyKind,
+} from "Common/Server/Utils/RateLimit/WrongComponentKeyLimit";
+import { WrongKeyRefusal } from "Common/Server/Utils/RateLimit/WrongKeyLimit";
 import ProbeService from "Common/Server/Services/ProbeService";
 import Express, {
   ExpressRequest,
@@ -69,14 +73,45 @@ router.post(
        * installation's REGISTER_PROBE_KEY, compared in constant time so a
        * caller cannot recover it a character at a time.
        */
-      if (
-        !registerProbeKey ||
-        isShippedSecretValue(registerProbeKey) ||
-        !SecretKeyComparison.timingSafeEqual(
+      if (!registerProbeKey || isShippedSecretValue(registerProbeKey)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(INVALID_REGISTER_PROBE_KEY_MESSAGE),
+        );
+      }
+
+      const isRegisterProbeKeyRight: boolean =
+        SecretKeyComparison.timingSafeEqual(
           registerProbeKey,
           RegisterProbeKey.toString(),
-        )
-      ) {
+        );
+
+      /*
+       * Nor one guess after another: a client may present only so many
+       * different wrong registration keys, and once it has, every
+       * registration it sends is refused until its window ends, the right
+       * key too (WrongComponentKeyLimit). Probes that still hold an old
+       * key all send that one key, so they are never refused for it.
+       */
+      const refusal: WrongKeyRefusal | null =
+        await WrongComponentKeyLimit.checkRegistrationKey({
+          req: req,
+          kind: ComponentKeyKind.ProbeRegistration,
+          presentedKey: registerProbeKey,
+          isKeyRight: isRegisterProbeKeyRight,
+        });
+
+      if (refusal) {
+        return WrongComponentKeyLimit.answerRefusal(
+          req,
+          res,
+          ComponentKeyKind.ProbeRegistration,
+          refusal,
+        );
+      }
+
+      if (!isRegisterProbeKeyRight) {
         return Response.sendErrorResponse(
           req,
           res,

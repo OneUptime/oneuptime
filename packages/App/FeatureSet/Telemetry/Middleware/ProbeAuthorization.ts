@@ -4,6 +4,10 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeService from "Common/Server/Services/ProbeService";
 import ProbeReportIdentity from "Common/Server/Utils/Probe/ProbeReportIdentity";
+import WrongComponentKeyLimit, {
+  ComponentKeyKind,
+} from "Common/Server/Utils/RateLimit/WrongComponentKeyLimit";
+import { WrongKeyRefusal } from "Common/Server/Utils/RateLimit/WrongKeyLimit";
 import { ExpressResponse, NextFunction } from "Common/Server/Utils/Express";
 import logger, {
   getLogAttributesFromRequest,
@@ -132,6 +136,33 @@ export default class ProbeAuthorization {
         probeId: probeId,
         probeKey: probeKey,
       });
+
+      /*
+       * Too many different wrong keys for this probe from this client:
+       * refused, whichever key this request carries
+       * (WrongComponentKeyLimit). A probe that still holds an old key sends
+       * that one key, so it is never refused for it.
+       */
+      const refusal: WrongKeyRefusal | null =
+        await WrongComponentKeyLimit.checkComponentKey({
+          req: req,
+          kind: ComponentKeyKind.Probe,
+          componentId: probeId.toString(),
+          presentedKey: probeKey,
+          isKeyRight: isValidProbe,
+          componentExists: async (): Promise<boolean> => {
+            return await ProbeService.hasProbeWithId(probeId);
+          },
+        });
+
+      if (refusal) {
+        return WrongComponentKeyLimit.answerRefusal(
+          req,
+          res,
+          ComponentKeyKind.Probe,
+          refusal,
+        );
+      }
 
       if (!isValidProbe) {
         return Response.sendErrorResponse(

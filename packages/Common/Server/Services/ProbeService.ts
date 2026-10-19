@@ -279,6 +279,28 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Whether a probe with this id exists. Asked only for a key that did not
+   * match it, so that a wrong key is counted only for a probe there is
+   * (WrongComponentKeyLimit): an id no probe has can never be let in,
+   * whatever key comes with it.
+   */
+  public async hasProbeWithId(probeId: ObjectID): Promise<boolean> {
+    const probe: Model | null = await this.findOneBy({
+      query: {
+        _id: probeId.toString(),
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(probe);
+  }
+
+  /*
    * The global probe a probe registering under a key no global probe holds
    * takes over (Telemetry/API/ProbeIngest/Register), or null: among the
    * global probes of its name, the one that already holds the key, else the

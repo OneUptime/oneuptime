@@ -21,6 +21,10 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import Version from "../../Types/Version";
 import { isShippedSecretValue } from "../EnvironmentConfig";
+import WrongComponentKeyLimit, {
+  ComponentKeyKind,
+} from "../Utils/RateLimit/WrongComponentKeyLimit";
+import { WrongKeyRefusal } from "../Utils/RateLimit/WrongKeyLimit";
 
 /*
  * The agent key a global AI agent registers and authenticates with is the
@@ -38,9 +42,11 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
     super(AIAgent, AIAgentService);
 
     /*
-     * Register Global AI Agent: the in-cluster Runner, which proves it is
-     * one of the installation's own services with the cluster key. Custom
-     * AI Agent can be registered via dashboard.
+     * Register Global AI Agent: the installation's shared Runner, which
+     * proves it is that Runner with its own key, the one the app holds too
+     * - or, a Runner of an earlier release, with the cluster key
+     * (ClusterKeyAuthorization.isAuthorizedRunnerRegistrationMiddleware).
+     * Custom AI Agent can be registered via dashboard.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/register`,
@@ -195,6 +201,32 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
               isRoot: true,
             },
           });
+
+          /*
+           * Too many different wrong keys for this agent from this client:
+           * refused, whichever key this request carries
+           * (WrongComponentKeyLimit).
+           */
+          const refusal: WrongKeyRefusal | null =
+            await WrongComponentKeyLimit.checkComponentKey({
+              req: req,
+              kind: ComponentKeyKind.Agent,
+              componentId: aiAgentId.toString(),
+              presentedKey: aiAgentKey,
+              isKeyRight: Boolean(aiAgent),
+              componentExists: async (): Promise<boolean> => {
+                return await AIAgentService.hasAIAgentWithId(aiAgentId);
+              },
+            });
+
+          if (refusal) {
+            return WrongComponentKeyLimit.answerRefusal(
+              req,
+              res,
+              ComponentKeyKind.Agent,
+              refusal,
+            );
+          }
 
           if (!aiAgent) {
             return Response.sendErrorResponse(

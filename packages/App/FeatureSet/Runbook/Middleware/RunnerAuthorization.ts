@@ -5,8 +5,21 @@ import ObjectID from "Common/Types/ObjectID";
 import RunnerService from "Common/Server/Services/RunnerService";
 import { ExpressResponse, NextFunction } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import WrongComponentKeyLimit, {
+  ComponentKeyKind,
+} from "Common/Server/Utils/RateLimit/WrongComponentKeyLimit";
+import { WrongKeyRefusal } from "Common/Server/Utils/RateLimit/WrongKeyLimit";
 import Runner from "Common/Models/DatabaseModels/Runner";
 
+/*
+ * Authenticates every runbook protocol request (/runner-ingest) by the
+ * Runner's id and key, from the body or the x-agent-id / x-agent-key
+ * headers. A client may present only so many different wrong keys for one
+ * Runner: after that, its requests for that Runner are refused until its
+ * window ends, whichever key they carry (WrongComponentKeyLimit). A Runner
+ * that still holds the key it had before a reset sends that one key, so it
+ * is never refused for it.
+ */
 export default class RunnerAuthorization {
   public static async isAuthorizedAgent(
     req: RunnerExpressRequest,
@@ -46,6 +59,27 @@ export default class RunnerAuthorization {
       agentId,
       agentKey: agentKeyRaw,
     });
+
+    const refusal: WrongKeyRefusal | null =
+      await WrongComponentKeyLimit.checkComponentKey({
+        req: req,
+        kind: ComponentKeyKind.Agent,
+        componentId: agentId.toString(),
+        presentedKey: agentKeyRaw,
+        isKeyRight: Boolean(agent),
+        componentExists: async (): Promise<boolean> => {
+          return await RunnerService.hasRunnerWithId(agentId);
+        },
+      });
+
+    if (refusal) {
+      return WrongComponentKeyLimit.answerRefusal(
+        req,
+        res,
+        ComponentKeyKind.Agent,
+        refusal,
+      );
+    }
 
     if (!agent) {
       return Response.sendErrorResponse(
