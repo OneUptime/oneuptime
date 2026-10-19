@@ -73,11 +73,46 @@ export interface MetricDriftInsightEvidence {
   priorSampleCount: number;
 }
 
+// One side of a DeployRegression: a service's telemetry over one window.
+export interface DeployRegressionWindowEvidence {
+  durationMinutes: number;
+  spanCount: number;
+  errorSpanCount: number;
+  p99Ms: number;
+  exceptionCount: number;
+}
+
+/*
+ * Evidence for DeployRegression insights: the recorded change, and the
+ * service's telemetry in the window before and after it.
+ */
+export interface DeployRegressionInsightEvidence {
+  // The change event (ChangeEvent) the regression followed.
+  changeId: string;
+  // ISO-8601.
+  changeTime: string;
+  changeTitle: string;
+  changeType: string;
+  version?: string | undefined;
+  previousVersion?: string | undefined;
+  // Short.
+  commitSha?: string | undefined;
+  environment?: string | undefined;
+  // Where the change was recorded from (oneuptime.change.source).
+  source?: string | undefined;
+  // What moved, as ChangeImpact words it.
+  reasons: Array<string>;
+  before: DeployRegressionWindowEvidence;
+  after: DeployRegressionWindowEvidence;
+  newExceptionTypes: Array<{ exceptionType: string; occurrenceCount: number }>;
+}
+
 export interface AIInsightEvidence {
   exception?: ExceptionInsightEvidence | undefined;
   logSpike?: LogSpikeInsightEvidence | undefined;
   latency?: LatencyInsightEvidence | undefined;
   metricDrift?: MetricDriftInsightEvidence | undefined;
+  deployRegression?: DeployRegressionInsightEvidence | undefined;
 }
 
 export default AIInsightEvidence;

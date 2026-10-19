@@ -31010,8 +31010,8 @@
   "Call transcripts": "通話の文字起こし",
   "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "これらの通話の参加者全員に、録画中であることが表示されます。組織で許可されていることを確認してください。Zoom では、音声文字起こしを有効にしたクラウド録画も必要です。",
   "Keep what was said on every incident call, without anyone remembering to.": "インシデントの通話で話された内容を、誰かが覚えておかなくても残せます。",
-  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams の通話、Slack ハドル、会議リンクは録画されません。文字起こしは手動で追加してください。",
-  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom と Google Meet は、OneUptime が開始する各インシデント通話を録画して文字起こしします。OneUptime は文字起こしを追加し、インシデントのフィードで要約します。",
+  "Slack huddles and meeting links are not recorded. Teams needs Calendars.ReadWrite and OnlineMeetingTranscript.Read.All: turn this on, then reconnect.": "Slack ハドルと会議リンクは録画されません。Teams には Calendars.ReadWrite と OnlineMeetingTranscript.Read.All が必要です。これをオンにしてから再接続してください。",
+  "Zoom, Google Meet and Microsoft Teams record and transcribe each incident call OneUptime starts. OneUptime AI sums it up in the incident's feed.": "Zoom、Google Meet、Microsoft Teams は、OneUptime が開始する各インシデント通話を録画して文字起こしします。OneUptime AI がインシデントのフィードで要約します。",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "通話が終わると OneUptime が {{provider}} から取得し、OneUptime AI が読み込みます。",
   "Postmortem Draft Waiting Since": "ポストモーテム下書きの待機開始日時",
   "Record and Transcribe Incident Calls": "インシデント通話を録画して文字起こしする",
@@ -31022,6 +31022,7 @@
   "Transcript Fetch Reason": "文字起こし取得の理由",
   "Transcript Fetch Status": "文字起こし取得のステータス",
   "Video Call Summary": "ビデオ通話の要約",
+  "Provider Calendar Event ID": "プロバイダーのカレンダー イベント ID",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "何も届きません。確認のために送ったリンクは、開かれる前に期限が切れました。もう一度登録してもらうか、もう一度追加してください。",
   "Link Expired": "リンク期限切れ",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "このパターンは、\\1 のように前のグループが一致した内容を参照しています。パターンは読み取るテキストの長さに比例した時間で実行されますが、後方参照ではそれができません。後方参照を使わずにパターンを書いてください。",
@@ -31349,5 +31350,6 @@
   "Read what a change shipped": "変更の内容を読み取りました",
   "Read {{count}} recent changes; no suspect": "最近の変更 {{count}} 件を読み取りました。疑わしいものはありません",
   "Read {{count}} recent changes; no suspect_one": "最近の変更 {{count}} 件を読み取りました。疑わしいものはありません",
-  "AI fix": "AI による修正"
+  "AI fix": "AI による修正",
+  "Deploy Regression": "デプロイ後の悪化"
 }

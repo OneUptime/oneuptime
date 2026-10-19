@@ -78,7 +78,7 @@ With **Draft a postmortem when an incident resolves** on, OneUptime AI drafts th
 - It never replaces a note that is already written.
 - It never writes into a postmortem that is already published, where the draft would reach the status page unreviewed.
 - It needs AI turned on for the project, and stops for the day once the project reaches its daily AI limits. See [Auto-postmortem](/docs/ai/ai-sre#auto-postmortem).
-- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while Zoom or Google Meet prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).
+- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while the provider prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).
 
 ## Publish it on your status page
 

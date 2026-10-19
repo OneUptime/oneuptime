@@ -276,3 +276,54 @@ describe("TraceAggregationService.getServiceLatencyProfile (partial-result detec
     expect(result.isPartial).toBe(true);
   });
 });
+
+/*
+ * The deploy-regression detector reads one service's p99 per window: the
+ * narrowing is a predicate on primaryEntityId, a key of the projection, so
+ * the query stays projection-served - and without serviceIds it is the
+ * same query the latency detector always ran.
+ */
+describe("TraceAggregationService.getServiceLatencyProfile narrowed to services", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("filters on primaryEntityId, before the GROUP BY, and on nothing else", async () => {
+    const serviceId: ObjectID = ObjectID.generate();
+    const spy: jest.SpyInstance = stubQuery({ rows: [] });
+
+    await TraceAggregationService.getServiceLatencyProfile({
+      projectId,
+      startTime,
+      endTime,
+      limit: 1,
+      serviceIds: [serviceId],
+    });
+
+    const query: string = capturedQuery(spy);
+    expect(query).toContain("AND primaryEntityId IN (");
+    expect(query.indexOf("primaryEntityId IN")).toBeLessThan(
+      query.indexOf("GROUP BY"),
+    );
+    expect(query).not.toContain("retentionDate");
+    expect(query).not.toContain("statusCode");
+
+    const statement: Statement = spy.mock.calls[0]![0] as Statement;
+    expect(JSON.stringify(Object.values(statement.query_params))).toContain(
+      serviceId.toString(),
+    );
+  });
+
+  test("without serviceIds, reads every service as before", async () => {
+    const spy: jest.SpyInstance = stubQuery({ rows: [] });
+
+    await TraceAggregationService.getServiceLatencyProfile({
+      projectId,
+      startTime,
+      endTime,
+      limit: 25,
+    });
+
+    expect(capturedQuery(spy)).not.toContain("primaryEntityId IN");
+  });
+});

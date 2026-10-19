@@ -109,6 +109,8 @@ OneUptime entscheidet anhand dieser Zahlen, welche Änderung verdächtig ist, ni
 
 Ist die verdächtige Änderung ein Kubernetes-Rollout auf einem Cluster, dessen [KI-Korrekturen](/docs/ai/ai-sre#so-funktionieren-korrekturen) eingeschaltet sind, nimmt OneUptime AI den Rollout zuerst zurück, mit einem `kubectl rollout undo`, das OneUptime aus der aufgezeichneten Änderung baut. Ein Deploy, der Code ausliefert, wird über seine Commits zurückgenommen: Die Untersuchung nennt den Commit oder Pull Request, der den Fehler verursacht hat, sodass ein [Korrektur-Pull-Request](/docs/ai/ai-sre#automatische-code-korrekturen) genau diesen rückgängig machen kann.
 
+OneUptime prüft außerdem jeden Deploy von sich aus, unabhängig davon, ob jemand alarmiert wird. Sobald die 30 Minuten nach einem Deploy vergangen sind, vergleicht es sie anhand derselben Schwellen mit den 30 Minuten davor, und hat sich der Dienst verschlechtert, nennt ein [KI-Einblick](/docs/ai/ai-sre#einblicke-proaktive-erkennung) den Deploy an diesem Dienst.
+
 In einer Untersuchung und in [KI fragen](/docs/ai/ask-ai) listet `recent_changes` die Änderungen in einem beliebigen Zeitfenster auf, und `get_change_details` zeigt, was ein Deploy ausgeliefert hat: die Commits seit dem vorherigen Deploy des Dienstes, ihre Autoren, die Pull Requests und die Dateien, die sie geändert haben. Dafür braucht die Änderung ihren Commit, und ein Repository muss über die [GitHub App](/docs/ai/github-app) verbunden sein.
 
 ## Referenz

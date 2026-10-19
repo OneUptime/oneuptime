@@ -31010,8 +31010,8 @@
   "Call transcripts": "Расшифровки звонков",
   "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Все участники этих звонков видят, что они записываются. Убедитесь, что ваша организация это разрешает. Для Zoom также нужна запись в облако с включённой аудиорасшифровкой.",
   "Keep what was said on every incident call, without anyone remembering to.": "Сохраняйте сказанное на каждом звонке по инциденту, не полагаясь на чью-то память.",
-  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Звонки Microsoft Teams, хаддлы Slack и ссылки на встречи не записываются: добавляйте их расшифровки вручную.",
-  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom и Google Meet записывают и расшифровывают каждый звонок по инциденту, который запускает OneUptime. OneUptime добавляет расшифровку и кратко пересказывает её в ленте инцидента.",
+  "Slack huddles and meeting links are not recorded. Teams needs Calendars.ReadWrite and OnlineMeetingTranscript.Read.All: turn this on, then reconnect.": "Хаддлы Slack и ссылки на встречи не записываются. Teams нужны Calendars.ReadWrite и OnlineMeetingTranscript.Read.All: включите это, затем переподключите.",
+  "Zoom, Google Meet and Microsoft Teams record and transcribe each incident call OneUptime starts. OneUptime AI sums it up in the incident's feed.": "Zoom, Google Meet и Microsoft Teams записывают и расшифровывают каждый звонок по инциденту, который запускает OneUptime. OneUptime AI кратко пересказывает его в ленте инцидента.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime получает её из {{provider}}, когда звонок заканчивается, и OneUptime AI читает её.",
   "Postmortem Draft Waiting Since": "Черновик постмортема ожидает с",
   "Record and Transcribe Incident Calls": "Записывать и расшифровывать звонки по инцидентам",
@@ -31022,6 +31022,7 @@
   "Transcript Fetch Reason": "Причина при получении расшифровки",
   "Transcript Fetch Status": "Статус получения расшифровки",
   "Video Call Summary": "Сводка видеозвонка",
+  "Provider Calendar Event ID": "ID события календаря у провайдера",
   "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Ничего не получает: ссылка для подтверждения, которую мы отправили, истекла до того, как её открыли. Подписчик может подписаться снова, или вы можете добавить его заново.",
   "Link Expired": "Ссылка истекла",
   "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Этот шаблон ссылается на то, что нашла предыдущая группа, например \\1. Шаблоны выполняются за время, которое растёт только вместе с читаемым текстом, а обратная ссылка так не может. Напишите шаблон без неё.",
@@ -31349,5 +31350,6 @@
   "Read what a change shipped": "Прочитано содержимое изменения",
   "Read {{count}} recent changes; no suspect": "Прочитано недавних изменений: {{count}}; подозрительных нет",
   "Read {{count}} recent changes; no suspect_one": "Прочитано {{count}} недавнее изменение; не подозрительное",
-  "AI fix": "Исправление ИИ"
+  "AI fix": "Исправление ИИ",
+  "Deploy Regression": "Deploy Regression"
 }

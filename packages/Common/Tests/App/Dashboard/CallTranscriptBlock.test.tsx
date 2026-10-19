@@ -220,12 +220,28 @@ describe("a call without a transcript", () => {
     );
   });
 
-  test("a Microsoft Teams meeting offers Add transcript only: Microsoft lets no app read it", () => {
+  test("a Microsoft Teams meeting not on a calendar offers Add transcript only: Microsoft lets no app read it", () => {
     renderCard({
       calls: [transcriptCall({ provider: VideoCallProvider.MicrosoftTeams })],
     });
 
     expect(screen.queryByTestId("call-transcript-get")).toBeNull();
+    expect(screen.getByTestId("call-transcript-add")).toBeVisible();
+  });
+
+  test("a Microsoft Teams meeting OneUptime put on a calendar is asked of Microsoft Teams", () => {
+    renderCard({
+      calls: [
+        transcriptCall({
+          provider: VideoCallProvider.MicrosoftTeams,
+          onCalendar: true,
+        }),
+      ],
+    });
+
+    expect(screen.getByTestId("call-transcript-get")).toHaveTextContent(
+      "Get from Microsoft Teams",
+    );
     expect(screen.getByTestId("call-transcript-add")).toBeVisible();
   });
 
@@ -300,6 +316,66 @@ describe("a call OneUptime gets the transcript of by itself", () => {
     expect(screen.getByTestId("call-transcript-waiting")).toHaveTextContent(
       "OneUptime gets it from Google Meet once the call is over",
     );
+  });
+
+  test("a Microsoft Teams call on a calendar waits on Microsoft Teams", () => {
+    renderCard({
+      calls: [
+        transcriptCall({
+          provider: VideoCallProvider.MicrosoftTeams,
+          onCalendar: true,
+          fetchStatus: CallTranscriptFetchStatus.Waiting,
+        }),
+      ],
+    });
+
+    expect(screen.getByTestId("call-transcript-waiting")).toHaveTextContent(
+      "OneUptime gets it from Microsoft Teams once the call is over, and OneUptime AI reads it.",
+    );
+    expect(screen.getByTestId("call-transcript-get")).toHaveTextContent(
+      "Get from Microsoft Teams",
+    );
+  });
+
+  /*
+   * A Teams call OneUptime could not put on its organizer's calendar - a
+   * permission the connection does not have - started all the same,
+   * unrecorded, and was stopped from the start with why.
+   */
+  test("a Microsoft Teams call that could not be set up to record says the connection is not allowed yet, with how to set it up, and Add transcript", () => {
+    renderCard({
+      calls: [
+        transcriptCall({
+          provider: VideoCallProvider.MicrosoftTeams,
+          fetchStatus: CallTranscriptFetchStatus.Stopped,
+          fetchReason: VideoCallTranscriptUnavailableReason.PermissionMissing,
+        }),
+      ],
+    });
+
+    const stopped: HTMLElement = screen.getByTestId(
+      "call-transcript-fetch-stopped",
+    );
+
+    expect(stopped).toHaveAttribute(
+      "data-reason",
+      VideoCallTranscriptUnavailableReason.PermissionMissing,
+    );
+    expect(stopped).toHaveTextContent(
+      "The Microsoft Teams connection is not allowed to read transcripts yet.",
+    );
+    expect(
+      within(stopped).getByTestId("call-transcript-fetch-set-up-docs"),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining(
+        "/docs/workspace-connections/video-calls#call-transcripts",
+      ),
+    );
+    expect(screen.queryByTestId("call-transcript-waiting")).toBeNull();
+    // Never on a calendar: nothing to get, so it is added by hand.
+    expect(screen.queryByTestId("call-transcript-get")).toBeNull();
+    expect(screen.getByTestId("call-transcript-add")).toBeVisible();
   });
 
   test("a reader who may not add transcripts still sees that it is on its way, with nothing to press", () => {

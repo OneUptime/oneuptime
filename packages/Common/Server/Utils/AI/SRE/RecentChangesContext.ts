@@ -931,7 +931,7 @@ export default class RecentChangesContext {
    * brought: a rollback to that version, or a restart that reports the
    * version already running, names it too.
    */
-  private static async readNewExceptionTypes(data: {
+  public static async readNewExceptionTypes(data: {
     projectId: ObjectID;
     serviceId: ObjectID;
     version?: string | undefined;

@@ -237,7 +237,8 @@ function toAlertSubject(alert: Alert): AiActivitySubjectInput {
 /*
  * Whether an open preventive finding is about the scope's own telemetry:
  * the detectors embed the entity a finding is about in its fingerprint
- * (ErrorLogSpikeDetector, MetricDriftDetector, TraceLatencyRegressionDetector),
+ * (ErrorLogSpikeDetector, MetricDriftDetector, TraceLatencyRegressionDetector,
+ * DeployRegressionDetector),
  * and an exception finding's exception belongs to it (exceptionOwners).
  */
 export function isPreventiveInsightAboutScope(data: {
@@ -261,6 +262,8 @@ export function isPreventiveInsightAboutScope(data: {
       );
     case AIInsightType.TraceLatencyRegression:
       return fingerprint.startsWith(`latency:${scopeId}:`);
+    case AIInsightType.DeployRegression:
+      return fingerprint.startsWith(`deploy-regression:${scopeId}:`);
     case AIInsightType.NewException:
     case AIInsightType.ExceptionSpike: {
       const exceptionId: string | undefined =

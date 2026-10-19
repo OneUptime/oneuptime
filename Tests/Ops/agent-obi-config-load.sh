@@ -348,6 +348,10 @@ const expected = Object.assign(
     traceAttributes: DEFAULT_SPAN_ATTRIBUTES.concat(["service.peer.name"]),
     // No database capture buffers (ebpf.bufferSizes) unless asked for.
     bufferSizes: { postgres: 0, mysql: 0, mssql: 0 },
+    // Node.js route harvesting off (ebpf.routes.disabledHarvesters), with
+    // the default timeout of OBI.
+    disabledRouteHarvesters: ["nodejs"],
+    routeHarvesterTimeout: "10s",
   },
   JSON.parse(overrides),
 );
@@ -527,6 +531,20 @@ const propagation = get(effective, "ebpf.context_propagation");
 check(`ebpf.context_propagation = ${expected.contextPropagation}`, propagation === expected.contextPropagation, propagation);
 const trackHeaders = get(effective, "ebpf.track_request_headers");
 check(`ebpf.track_request_headers = ${expected.trackRequestHeaders}`, trackHeaders === expected.trackRequestHeaders, trackHeaders);
+// A language OBI did not take would be harvested anyway, holding up tracing
+// for up to the timeout on every such process, without an error.
+const harvesters = get(effective, "discovery.disabled_route_harvesters") || [];
+check(
+  `discovery.disabled_route_harvesters = ${JSON.stringify(expected.disabledRouteHarvesters)}`,
+  same(sorted(harvesters), sorted(expected.disabledRouteHarvesters)),
+  harvesters,
+);
+const harvestTimeout = get(effective, "discovery.route_harvester_timeout");
+check(
+  `discovery.route_harvester_timeout = ${expected.routeHarvesterTimeout}`,
+  String(harvestTimeout) === expected.routeHarvesterTimeout,
+  harvestTimeout,
+);
 // Each buffer comes from its own env var; one OBI did not read would leave
 // the statements of that database cut at about 250 characters, silently.
 for (const protocol of ["postgres", "mysql", "mssql"]) {
@@ -629,6 +647,12 @@ variant span-metrics-off \
 variant sql-buffers \
   '{"bufferSizes":{"postgres":4096,"mysql":2048,"mssql":0}}' \
   --set ebpf.bufferSizes.postgres=4096 --set ebpf.bufferSizes.mysql=2048
+# Route harvesting: more languages off and a shorter wait, then every
+# language on again.
+variant route-harvest \
+  '{"disabledRouteHarvesters":["nodejs","python"],"routeHarvesterTimeout":"3s"}' \
+  --set 'ebpf.routes.disabledHarvesters={nodejs,python}' --set ebpf.routes.harvestTimeout=3s
+variant route-harvest-all '{"disabledRouteHarvesters":[]}' --set 'ebpf.routes.disabledHarvesters={}'
 # v0.13.0, what a --reuse-values upgrade from chart 14.0.12 keeps (README,
 # "Troubleshooting"), also deprecates application_span, and has to take the
 # same render, minus the v0.14-only span-attribute selection. Loaded in
