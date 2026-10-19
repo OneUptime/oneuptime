@@ -109,7 +109,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             billingMarketplace === CloudMarketplace.Vercel
               ? translator.translateText(
                   "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.",
-                )
+                ) || ""
               : translator.translateTemplate(
                   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.",
                   {
