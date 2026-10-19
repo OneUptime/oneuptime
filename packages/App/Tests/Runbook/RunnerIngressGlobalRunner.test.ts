@@ -172,9 +172,11 @@ const EXECUTION_ID: ObjectID = new ObjectID(
 const JOB_ID: string = "b1000000-0000-4000-8000-0000000000d1";
 
 function matchRoute(uri: string): MockRoute {
-  const route: MockRoute | undefined = mockRoutes.find((candidate) => {
-    return candidate.method === "POST" && candidate.uri === uri;
-  });
+  const route: MockRoute | undefined = mockRoutes.find(
+    (candidate: MockRoute): boolean => {
+      return candidate.method === "POST" && candidate.uri === uri;
+    },
+  );
 
   if (!route) {
     throw new Error(`Route POST ${uri} was never registered`);
@@ -479,9 +481,7 @@ describe("the Runner ingress, for a global Runner", () => {
       expect(job["inputs"]).toEqual({ host: "web-1" });
       expect(job["trigger"]).toBe(RunbookTriggerType.Webhook);
       expect(
-        (
-          executionSpy.mock.calls[0]![0] as { id: ObjectID }
-        ).id.toString(),
+        (executionSpy.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
       ).toBe(EXECUTION_ID.toString());
     });
 
@@ -586,9 +586,9 @@ describe("the Runner ingress, for a global Runner", () => {
         targetAgentId: PROJECT_RUNNER_ID,
       });
       claimOwnSpy.mockResolvedValue(job);
-      (RunbookSecretsUtil.loadForAgent as unknown as jest.Mock).mockResolvedValue(
-        [secret("API_TOKEN", "tok-123")],
-      );
+      (
+        RunbookSecretsUtil.loadForAgent as unknown as jest.Mock
+      ).mockResolvedValue([secret("API_TOKEN", "tok-123")]);
 
       await callRoute({ uri: CLAIM_ROUTE, agent: projectRunner() });
 

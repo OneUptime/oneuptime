@@ -73,7 +73,9 @@ const GlobalRunnersTable: FunctionComponent<ComponentProps> = (
           type: FieldType.Element,
           disableSort: true,
           getExportValue: (item: Runner): string => {
-            return getRunnerLiveStatusLabel(getRunnerLiveStatus(item.lastAlive));
+            return getRunnerLiveStatusLabel(
+              getRunnerLiveStatus(item.lastAlive),
+            );
           },
           getElement: (item: Runner): ReactElement => {
             return <RunnerStatusElement runner={item} />;

@@ -74,7 +74,9 @@ function editorProps(): DatabaseCommonInteractionProps {
   } as DatabaseCommonInteractionProps;
 }
 
-function globalRunner(overrides: Partial<Record<string, unknown>> = {}): Runner {
+function globalRunner(
+  overrides: Partial<Record<string, unknown>> = {},
+): Runner {
   const runner: Runner = new Runner();
   runner.name = "global-runner-eu";
   runner.isGlobalRunner = true;
@@ -311,10 +313,7 @@ describe("RunnerService's update hook", () => {
     } as unknown as UpdateBy<Runner>;
   }
 
-  it.each([
-    [{ canRunCodeFixTasks: true }],
-    [{ canRunAiCommands: true }],
-  ])(
+  it.each([[{ canRunCodeFixTasks: true }], [{ canRunAiCommands: true }]])(
     "refuses a master admin turning on %p for a global Runner",
     async (data: Record<string, unknown>) => {
       const message: string = await refusal(
@@ -325,15 +324,12 @@ describe("RunnerService's update hook", () => {
     },
   );
 
-  it.each([
-    [{ isGlobalRunner: false }],
-    [{ projectId: PROJECT_ID }],
-  ])(
+  it.each([[{ isGlobalRunner: false }], [{ projectId: PROJECT_ID }]])(
     "refuses writing %p, root included",
     async (data: Record<string, unknown>) => {
-      expect(await refusal(hooks.onBeforeUpdate(update(data, rootProps())))).toBe(
-        GLOBAL_RUNNER_CHANGED_MESSAGE,
-      );
+      expect(
+        await refusal(hooks.onBeforeUpdate(update(data, rootProps()))),
+      ).toBe(GLOBAL_RUNNER_CHANGED_MESSAGE);
       expect(
         await refusal(hooks.onBeforeUpdate(update(data, masterAdminProps()))),
       ).toBe(GLOBAL_RUNNER_CHANGED_MESSAGE);
@@ -526,9 +522,9 @@ describe("the bundled global Runner is turned off where it runs, never deleted",
   it("negative control: the server's own startup sync deletes it, reading nothing first", async () => {
     const findBy: jest.SpyInstance = rowsFound([BUNDLED_GLOBAL_RUNNER_ID]);
 
-    await expect(
-      hooks.onBeforeDelete(deleteBy(rootProps())),
-    ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
+    await expect(hooks.onBeforeDelete(deleteBy(rootProps()))).resolves.toEqual(
+      expect.objectContaining({ carryForward: null }),
+    );
     expect(findBy).not.toHaveBeenCalled();
   });
 
@@ -557,9 +553,9 @@ describe("the bundled global Runner is turned off where it runs, never deleted",
     const other: Runner = new Runner();
     other._id = GLOBAL_RUNNER_ID.toString();
 
-    expect(RunnerServiceClass.includesBundledGlobalRunner([other, bundled])).toBe(
-      true,
-    );
+    expect(
+      RunnerServiceClass.includesBundledGlobalRunner([other, bundled]),
+    ).toBe(true);
     expect(RunnerServiceClass.includesBundledGlobalRunner([other])).toBe(false);
     expect(RunnerServiceClass.includesBundledGlobalRunner([])).toBe(false);
   });

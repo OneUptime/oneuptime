@@ -49,9 +49,7 @@ export function getSecretNamesNotIn(data: {
 }): Array<string> {
   const available: Set<string> = new Set<string>(data.available);
 
-  return getSecretNamesInScript(data.script).filter(
-    (name: string): boolean => {
-      return !available.has(name);
-    },
-  );
+  return getSecretNamesInScript(data.script).filter((name: string): boolean => {
+    return !available.has(name);
+  });
 }

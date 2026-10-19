@@ -149,9 +149,9 @@ describe("a step that picked a Runner", () => {
     );
 
     expect(decision.kind).toBe("refused");
-    expect(
-      (decision as { refusal: RunnerChoiceRefusal }).refusal,
-    ).toBe(RunnerChoiceRefusal.RunnerNotFound);
+    expect((decision as { refusal: RunnerChoiceRefusal }).refusal).toBe(
+      RunnerChoiceRefusal.RunnerNotFound,
+    );
   });
 
   test("a deleted Runner is refused at once rather than waited on", async () => {
@@ -175,15 +175,15 @@ describe("a step that picked a Runner", () => {
       }),
     );
 
-    expect(
-      (await decide(RunbookStepType.Bash, PROJECT_RUNNER_ID)).kind,
-    ).toBe("custom");
+    expect((await decide(RunbookStepType.Bash, PROJECT_RUNNER_ID)).kind).toBe(
+      "custom",
+    );
   });
 
   test("a global Runner: the step is on the global Runners, held to the project's switch", async () => {
-    expect(await decide(RunbookStepType.JavaScript, GLOBAL_RUNNER_ID)).toEqual(
-      { kind: "global" },
-    );
+    expect(await decide(RunbookStepType.JavaScript, GLOBAL_RUNNER_ID)).toEqual({
+      kind: "global",
+    });
 
     usesGlobalRunners = false;
 

@@ -286,7 +286,10 @@ describe("the bundled global Runner turned off", () => {
     ["no replica running, said as 0.0", { key: KEY, replicas: "0.0" }],
   ])(
     "%s: the row is removed",
-    async (_label: string, environment: { key?: string; replicas?: string }) => {
+    async (
+      _label: string,
+      environment: { key?: string; replicas?: string },
+    ) => {
       setEnvironment(environment);
       findSpy.mockResolvedValue(existingRow());
 

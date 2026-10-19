@@ -40,7 +40,9 @@ import {
 const PROJECT_ID: ObjectID = new ObjectID(
   "c1000000-0000-4000-8000-0000000000a1",
 );
-const RUNNER_ID: ObjectID = new ObjectID("c1000000-0000-4000-8000-0000000000b1");
+const RUNNER_ID: ObjectID = new ObjectID(
+  "c1000000-0000-4000-8000-0000000000b1",
+);
 
 type FindByArgs = {
   query: Record<string, unknown>;
@@ -117,7 +119,9 @@ describe("getSecretNamesInScript", () => {
 
   test("reads a placeholder written with spaces inside its braces", () => {
     expect(
-      getSecretNamesInScript("{{ runbookSecrets.API_TOKEN }} {{runbookSecrets. B }}"),
+      getSecretNamesInScript(
+        "{{ runbookSecrets.API_TOKEN }} {{runbookSecrets. B }}",
+      ),
     ).toEqual(["API_TOKEN", "B"]);
   });
 
@@ -132,15 +136,13 @@ describe("getSecretNamesInScript", () => {
   test("reads nothing from nothing", () => {
     expect(getSecretNamesInScript("")).toEqual([]);
     expect(getSecretNamesInScript("return 1;")).toEqual([]);
-    expect(
-      getSecretNamesInScript(undefined as unknown as string),
-    ).toEqual([]);
+    expect(getSecretNamesInScript(undefined as unknown as string)).toEqual([]);
   });
 
   test("never reads across a line: a placeholder left open is not one", () => {
-    expect(
-      getSecretNamesInScript("{{runbookSecrets.API_TOKEN\n}}"),
-    ).toEqual([]);
+    expect(getSecretNamesInScript("{{runbookSecrets.API_TOKEN\n}}")).toEqual(
+      [],
+    );
   });
 
   test.each([
@@ -177,7 +179,8 @@ describe("getSecretNamesNotIn", () => {
   test("names the secrets a script uses that it may not have", () => {
     expect(
       getSecretNamesNotIn({
-        script: "{{runbookSecrets.A}} {{runbookSecrets.B}} {{runbookSecrets.C}}",
+        script:
+          "{{runbookSecrets.A}} {{runbookSecrets.B}} {{runbookSecrets.C}}",
         available: ["B"],
       }),
     ).toEqual(["A", "C"]);

@@ -131,9 +131,7 @@ describe("the global Runners' migrations", () => {
   });
 
   test("adds the four columns with their defaults, lets a Runner have no project, and touches nothing else", async () => {
-    expect(
-      await record(new AddGlobalRunners1803950000000(), "up"),
-    ).toEqual([
+    expect(await record(new AddGlobalRunners1803950000000(), "up")).toEqual([
       `ALTER TABLE "Project" ADD "useGlobalRunners" boolean NOT NULL DEFAULT true`,
       `ALTER TABLE "Runner" ADD "isGlobalRunner" boolean NOT NULL DEFAULT false`,
       `ALTER TABLE "RunnerJob" ADD "runsOnGlobalRunner" boolean NOT NULL DEFAULT false`,
@@ -191,9 +189,7 @@ describe("the global Runners' migrations", () => {
   test("down() undoes each, removing the global Runners before the project becomes required again", async () => {
     expect(
       await record(new AddGlobalRunnerJobIndex1804000000000(), "down"),
-    ).toEqual([
-      `online: DROP INDEX "public"."IDX_f1fb288722f84d308332c8109b"`,
-    ]);
+    ).toEqual([`online: DROP INDEX "public"."IDX_f1fb288722f84d308332c8109b"`]);
 
     expect(await record(new AddGlobalRunners1803950000000(), "down")).toEqual([
       `DELETE FROM "Runner" WHERE "projectId" IS NULL`,

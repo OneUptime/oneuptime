@@ -72,7 +72,9 @@ export default class RunnerIngressAPI {
     });
 
     const more: string =
-      names.length > shown.length ? ` and ${names.length - shown.length} more` : "";
+      names.length > shown.length
+        ? ` and ${names.length - shown.length} more`
+        : "";
 
     return `This step uses the runbook secret${names.length === 1 ? "" : "s"} ${shown.join(
       ", ",
@@ -743,9 +745,8 @@ export default class RunnerIngressAPI {
           jobId: job.id!,
           agentId: agent.id,
           success: false,
-          errorMessage: RunnerIngressAPI.describeSecretsNotForGlobalRunners(
-            notAvailable,
-          ),
+          errorMessage:
+            RunnerIngressAPI.describeSecretsNotForGlobalRunners(notAvailable),
         });
 
         return { job: null };

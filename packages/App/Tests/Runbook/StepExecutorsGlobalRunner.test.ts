@@ -230,7 +230,9 @@ describe("a JavaScript step that picked no Runner", () => {
     const result: StepRunResult = await runJavaScriptStep(jsStep(), makeCtx());
 
     expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("there is no global Runner to run it");
+    expect(result.errorMessage).toContain(
+      "there is no global Runner to run it",
+    );
     expect(enqueueSpy).not.toHaveBeenCalled();
   });
 
@@ -356,7 +358,9 @@ describe("a JavaScript step that picked no Runner", () => {
 
     expect(findLatestSpy).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain("there is no global Runner to run it");
+    expect(result.errorMessage).toContain(
+      "there is no global Runner to run it",
+    );
   });
 
   test("a job lookup that fails fails the step, queuing nothing", async () => {

@@ -117,9 +117,9 @@ describe("a step that picked no Runner", () => {
   });
 
   test("a JavaScript step with no stored Runner field at all runs on the global Runners", () => {
-    expect(
-      decideRunnerChoice(facts({ chosenRunnerId: undefined })),
-    ).toEqual({ kind: "global" });
+    expect(decideRunnerChoice(facts({ chosenRunnerId: undefined }))).toEqual({
+      kind: "global",
+    });
     expect(decideRunnerChoice(facts({ chosenRunnerId: null }))).toEqual({
       kind: "global",
     });
@@ -356,15 +356,18 @@ describe("the refusal a step earns from what it says alone", () => {
     RunbookStepType.Bash,
     RunbookStepType.SSH,
     RunbookStepType.Kubernetes,
-  ])("no Runner on a %s step, which global Runners never run", (stepType) => {
-    const decision: RunnerChoiceDecision | null =
-      getRunnerChoiceRefusalFromStep({ stepType, chosenRunnerId: "  " });
+  ])(
+    "no Runner on a %s step, which global Runners never run",
+    (stepType: RunbookStepType) => {
+      const decision: RunnerChoiceDecision | null =
+        getRunnerChoiceRefusalFromStep({ stepType, chosenRunnerId: "  " });
 
-    expect(decision?.kind).toBe("refused");
-    expect(
-      decision?.kind === "refused" ? decision.refusal : undefined,
-    ).toBe(RunnerChoiceRefusal.NeedsOwnRunner);
-  });
+      expect(decision?.kind).toBe("refused");
+      expect(decision?.kind === "refused" ? decision.refusal : undefined).toBe(
+        RunnerChoiceRefusal.NeedsOwnRunner,
+      );
+    },
+  );
 
   test("nothing for a JavaScript step with no Runner: the server's facts decide it", () => {
     expect(

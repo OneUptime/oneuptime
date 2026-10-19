@@ -93,31 +93,27 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * A master admin on a server with no global Runner is told where to add
    * them, under the description everyone reads.
    */
-  const customCardDescription: string | ReactElement = hasGlobalRunners
-    ? GlobalRunnersCopy.customCardDescription
-    : UserUtil.isMasterAdmin()
-      ? (
-          <span>
-            {translator.translateText(GlobalRunnersCopy.onlyCardDescription)}{" "}
-            <span data-testid="add-global-runners-hint">
-              {translator.translateText(
-                GlobalRunnersCopy.addGlobalRunnersHint,
-              )}{" "}
-              <Link
-                to={URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
-                  ADMIN_GLOBAL_RUNNERS_ROUTE,
-                )}
-                openInNewTab={true}
-                className="underline"
-              >
-                {translator.translateText(
-                  GlobalRunnersCopy.addGlobalRunnersLink,
-                )}
-              </Link>
-            </span>
-          </span>
-        )
-      : GlobalRunnersCopy.onlyCardDescription;
+  const customCardDescription: string | ReactElement = hasGlobalRunners ? (
+    GlobalRunnersCopy.customCardDescription
+  ) : UserUtil.isMasterAdmin() ? (
+    <span>
+      {translator.translateText(GlobalRunnersCopy.onlyCardDescription)}{" "}
+      <span data-testid="add-global-runners-hint">
+        {translator.translateText(GlobalRunnersCopy.addGlobalRunnersHint)}{" "}
+        <Link
+          to={URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
+            ADMIN_GLOBAL_RUNNERS_ROUTE,
+          )}
+          openInNewTab={true}
+          className="underline"
+        >
+          {translator.translateText(GlobalRunnersCopy.addGlobalRunnersLink)}
+        </Link>
+      </span>
+    </span>
+  ) : (
+    GlobalRunnersCopy.onlyCardDescription
+  );
 
   return (
     <Fragment>

@@ -53,7 +53,10 @@ export interface RunnerPickerFacts {
    * their ids: a step that names one is on the global Runners, as the
    * server reads it).
    */
-  globalRunners: Array<{ id?: string | undefined; liveStatus: RunnerLiveStatus }>;
+  globalRunners: Array<{
+    id?: string | undefined;
+    liveStatus: RunnerLiveStatus;
+  }>;
   // Whether the project uses global Runners (Project.useGlobalRunners).
   projectUsesGlobalRunners: boolean;
 }
@@ -171,13 +174,9 @@ export function buildRunnerPickerModel(
   // A step that names one global Runner is on the global Runners.
   const namesGlobalRunner: boolean =
     Boolean(currentRunnerId) &&
-    facts.globalRunners.some(
-      (runner: { id?: string | undefined }): boolean => {
-        return (
-          (runner.id || "").toLowerCase() === currentRunnerId.toLowerCase()
-        );
-      },
-    );
+    facts.globalRunners.some((runner: { id?: string | undefined }): boolean => {
+      return (runner.id || "").toLowerCase() === currentRunnerId.toLowerCase();
+    });
 
   const unknownOption: RunnerPickerOption | undefined =
     currentRunnerId && !currentProjectOption && !namesGlobalRunner
