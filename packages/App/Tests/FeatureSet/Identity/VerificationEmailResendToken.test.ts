@@ -4,7 +4,7 @@ import VerificationEmailResendToken, {
 } from "../../../FeatureSet/Identity/Utils/VerificationEmailResendToken";
 import TokenSigningKey from "Common/Server/Utils/TokenSigningKey";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
-import Email from "Common/Types/Email";
+import Email, { MAX_EMAIL_ADDRESS_LENGTH } from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import ObjectID from "Common/Types/ObjectID";
@@ -1017,8 +1017,28 @@ describe("generate", () => {
     return "a".repeat(length - domain.length) + domain;
   };
 
-  it("mints a token for the longest address that fits the length cap", () => {
-    const address: string = addressOfLength(LONGEST_ADDRESS_THAT_FITS);
+  /*
+   * An Email holds one mailbox of at most MAX_EMAIL_ADDRESS_LENGTH
+   * characters, so an address past the cap reaches generate only as a value
+   * that is not one: handed in here the way "an address that does not parse"
+   * is, below.
+   */
+  type UncheckedAddressFunction = (address: string) => Email;
+
+  const uncheckedAddress: UncheckedAddressFunction = (
+    address: string,
+  ): Email => {
+    return {
+      toString: (): string => {
+        return address;
+      },
+    } as unknown as Email;
+  };
+
+  it("mints a token for the longest address there is, inside the length cap", () => {
+    expect(MAX_EMAIL_ADDRESS_LENGTH).toBeLessThan(LONGEST_ADDRESS_THAT_FITS);
+
+    const address: string = addressOfLength(MAX_EMAIL_ADDRESS_LENGTH);
     const token: string | null = VerificationEmailResendToken.generate({
       userId: new ObjectID(USER_ID),
       email: new Email(address),
@@ -1026,15 +1046,15 @@ describe("generate", () => {
     });
 
     expect(token).not.toBeNull();
-    expect(segments(token!).payload).toHaveLength(900);
+    expect(segments(token!).payload.length).toBeLessThanOrEqual(900);
     expect(verifyAt(token)!.email.toString()).toBe(address);
   });
 
-  it("returns null, rather than a token the route would refuse, one character past it", () => {
+  it("returns null, rather than a token the route would refuse, one character past the cap", () => {
     expect(
       VerificationEmailResendToken.generate({
         userId: new ObjectID(USER_ID),
-        email: new Email(addressOfLength(LONGEST_ADDRESS_THAT_FITS + 1)),
+        email: uncheckedAddress(addressOfLength(LONGEST_ADDRESS_THAT_FITS + 1)),
         now: NOW,
       }),
     ).toBeNull();
@@ -1044,7 +1064,7 @@ describe("generate", () => {
     expect(
       VerificationEmailResendToken.generate({
         userId: new ObjectID(USER_ID),
-        email: new Email(addressOfLength(5000)),
+        email: uncheckedAddress(addressOfLength(5000)),
         now: NOW,
       }),
     ).toBeNull();
