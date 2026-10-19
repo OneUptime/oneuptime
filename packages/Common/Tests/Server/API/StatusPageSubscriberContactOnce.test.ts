@@ -144,17 +144,17 @@ const ONE_NUMBER_TYPED_EVERY_WAY: Array<string> = [
 
 // One webhook, written the ways its address can be written.
 const ONE_WEBHOOK_WRITTEN_EVERY_WAY: Array<string> = [
-  "https://victim.example.net/hook",
-  "https://VICTIM.example.net/hook",
-  "https://victim.EXAMPLE.net/hook",
-  "https://victim.example.NET/hook",
-  "https://victim.example.net:443/hook",
-  "https://victim.example.net/hook#a",
-  "https://victim.example.net/hook#b",
-  "HTTPS://victim.example.net/hook",
-  "https://victim.example.net/%68ook",
-  "https://victim.example.net/h%6Fok",
-  "https://victim.example.net/%68%6f%6f%6b",
+  "https://subscriber.example.net/hook",
+  "https://SUBSCRIBER.example.net/hook",
+  "https://subscriber.EXAMPLE.net/hook",
+  "https://subscriber.example.NET/hook",
+  "https://subscriber.example.net:443/hook",
+  "https://subscriber.example.net/hook#a",
+  "https://subscriber.example.net/hook#b",
+  "HTTPS://subscriber.example.net/hook",
+  "https://subscriber.example.net/%68ook",
+  "https://subscriber.example.net/h%6Fok",
+  "https://subscriber.example.net/%68%6f%6f%6b",
 ];
 
 const SLACK_CHANNEL: string =
@@ -332,12 +332,12 @@ describe("a visitor signing up a webhook, a Slack channel or a Microsoft Teams c
 
   test("webhooks at other paths or with other queries are other subscribers", async () => {
     const answers: Array<Answer> = await signUps([
-      { subscriberWebhook: "https://victim.example.net/hook" },
-      { subscriberWebhook: "https://victim.example.net/hook/" },
-      { subscriberWebhook: "https://victim.example.net/Hook" },
-      { subscriberWebhook: "https://victim.example.net/hook?team=a" },
-      { subscriberWebhook: "https://victim.example.net/hook?team=b" },
-      { subscriberWebhook: "http://victim.example.net/hook" },
+      { subscriberWebhook: "https://subscriber.example.net/hook" },
+      { subscriberWebhook: "https://subscriber.example.net/hook/" },
+      { subscriberWebhook: "https://subscriber.example.net/Hook" },
+      { subscriberWebhook: "https://subscriber.example.net/hook?team=a" },
+      { subscriberWebhook: "https://subscriber.example.net/hook?team=b" },
+      { subscriberWebhook: "http://subscriber.example.net/hook" },
     ]);
 
     expect(refusedWith(answers)).toEqual([
@@ -404,9 +404,9 @@ describe("a visitor signing up a webhook, a Slack channel or a Microsoft Teams c
 describe("an email address", () => {
   test("is one subscriber of a page, in capitals or not", async () => {
     const answers: Array<Answer> = await signUps([
-      { subscriberEmail: "Victim@Example.com" },
-      { subscriberEmail: "victim@example.com" },
-      { subscriberEmail: " VICTIM@EXAMPLE.COM " },
+      { subscriberEmail: "Subscriber@Example.com" },
+      { subscriberEmail: "subscriber@example.com" },
+      { subscriberEmail: " SUBSCRIBER@EXAMPLE.COM " },
     ]);
 
     expect(refusedWith(answers)).toEqual([

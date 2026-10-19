@@ -59,7 +59,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  * A status page takes each phone number, email address and webhook once,
  * however it is written (SubscriberContactKey): asked in the subscriber's
  * onBeforeCreate, and again in its INSERT's own transaction, under the
- * page's advisory lock - or, on the Free plan, the project's
+ * page's lock - or, on the Free plan, the project's
  * (StatusPageSubscriberService.getCreateLimit, ProjectLimitLock). Only
  * Postgres can show the two together: creates of one number written twelve
  * ways, held once every one of them has passed the early check until all
@@ -113,18 +113,18 @@ const ONE_NUMBER: Array<string> = [
 
 // One webhook, twelve ways.
 const ONE_WEBHOOK: Array<string> = [
-  "https://victim.example.net/hook",
-  "https://VICTIM.example.net/hook",
-  "https://victim.EXAMPLE.net/hook",
-  "https://victim.example.NET/hook",
-  "https://victim.example.net:443/hook",
-  "https://victim.example.net/hook#a",
-  "https://victim.example.net/hook#b",
-  "HTTPS://victim.example.net/hook",
-  "https://victim.example.net/%68ook",
-  "https://victim.example.net/h%6Fok",
-  "https://victim.example.net/%68%6f%6f%6b",
-  "https://victim.example.net/./hook",
+  "https://subscriber.example.net/hook",
+  "https://SUBSCRIBER.example.net/hook",
+  "https://subscriber.EXAMPLE.net/hook",
+  "https://subscriber.example.NET/hook",
+  "https://subscriber.example.net:443/hook",
+  "https://subscriber.example.net/hook#a",
+  "https://subscriber.example.net/hook#b",
+  "HTTPS://subscriber.example.net/hook",
+  "https://subscriber.example.net/%68ook",
+  "https://subscriber.example.net/h%6Fok",
+  "https://subscriber.example.net/%68%6f%6f%6b",
+  "https://subscriber.example.net/./hook",
 ];
 
 interface Outcome {

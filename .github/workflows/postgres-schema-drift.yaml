@@ -931,7 +931,7 @@ jobs:
       # subscriber service: twelve creates of one phone number written
       # twelve ways (or of one webhook), held until every one has passed the
       # early check, leave one subscriber - the check is made again in the
-      # INSERT's transaction under the page's advisory lock, or the
+      # INSERT's transaction under the page's lock, or the
       # project's on the Free plan - and the SQL that reads a stored
       # number's line finds what SubscriberContactKey says it should.
       - name: Test one subscriber per contact per status page on migrated Postgres

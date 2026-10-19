@@ -109,32 +109,32 @@ describe("a phone number's line", () => {
   });
 });
 
-// https://victim.example.net/hook, written every way its address can be.
+// https://subscriber.example.net/hook, written every way its address can be.
 const ONE_ADDRESS: Array<string> = [
-  "https://victim.example.net/hook",
-  "https://VICTIM.example.net/hook",
-  "https://victim.EXAMPLE.NET/hook",
-  "HTTPS://victim.example.net/hook",
-  "https://victim.example.net:443/hook",
-  "https://victim.example.net/hook#a",
-  "https://victim.example.net/hook#",
-  "https://victim.example.net/hook?",
-  "https://user:secret@victim.example.net/hook",
-  "https://victim.example.net/%68ook",
-  "https://victim.example.net/h%6Fok",
-  "https://victim.example.net/%68%6f%6f%6b",
-  "https://victim.example.net/%68%6F%6F%6B",
-  "https://victim.example.net/./hook",
-  "https://victim.example.net/a/../hook",
-  "  https://victim.example.net/hook  ",
+  "https://subscriber.example.net/hook",
+  "https://SUBSCRIBER.example.net/hook",
+  "https://subscriber.EXAMPLE.NET/hook",
+  "HTTPS://subscriber.example.net/hook",
+  "https://subscriber.example.net:443/hook",
+  "https://subscriber.example.net/hook#a",
+  "https://subscriber.example.net/hook#",
+  "https://subscriber.example.net/hook?",
+  "https://user:secret@subscriber.example.net/hook",
+  "https://subscriber.example.net/%68ook",
+  "https://subscriber.example.net/h%6Fok",
+  "https://subscriber.example.net/%68%6f%6f%6b",
+  "https://subscriber.example.net/%68%6F%6F%6B",
+  "https://subscriber.example.net/./hook",
+  "https://subscriber.example.net/a/../hook",
+  "  https://subscriber.example.net/hook  ",
 ];
 
 describe("a webhook's address", () => {
   test.each(ONE_ADDRESS)(
-    "%j is sent to https://victim.example.net/hook",
+    "%j is sent to https://subscriber.example.net/hook",
     (spelling: string) => {
       expect(SubscriberContactKey.forUrl(spelling)).toBe(
-        "https://victim.example.net/hook",
+        "https://subscriber.example.net/hook",
       );
     },
   );
@@ -142,56 +142,56 @@ describe("a webhook's address", () => {
   test("a URL reads as the text it holds", () => {
     expect(
       SubscriberContactKey.forUrl(
-        URL.fromString("https://VICTIM.example.net:443/hook"),
+        URL.fromString("https://SUBSCRIBER.example.net:443/hook"),
       ),
-    ).toBe("https://victim.example.net/hook");
+    ).toBe("https://subscriber.example.net/hook");
   });
 
   test.each([
     [
       "another path",
-      "https://victim.example.net/hook",
-      "https://victim.example.net/hooks",
+      "https://subscriber.example.net/hook",
+      "https://subscriber.example.net/hooks",
     ],
     [
       "a path in other letters: paths tell case apart",
-      "https://victim.example.net/hook",
-      "https://victim.example.net/Hook",
+      "https://subscriber.example.net/hook",
+      "https://subscriber.example.net/Hook",
     ],
     [
       "a trailing slash",
-      "https://victim.example.net/hook",
-      "https://victim.example.net/hook/",
+      "https://subscriber.example.net/hook",
+      "https://subscriber.example.net/hook/",
     ],
     [
       "another query",
-      "https://victim.example.net/hook?team=a",
-      "https://victim.example.net/hook?team=b",
+      "https://subscriber.example.net/hook?team=a",
+      "https://subscriber.example.net/hook?team=b",
     ],
     [
       "a query and none",
-      "https://victim.example.net/hook?team=a",
-      "https://victim.example.net/hook",
+      "https://subscriber.example.net/hook?team=a",
+      "https://subscriber.example.net/hook",
     ],
     [
       "another scheme",
-      "https://victim.example.net/hook",
-      "http://victim.example.net/hook",
+      "https://subscriber.example.net/hook",
+      "http://subscriber.example.net/hook",
     ],
     [
       "another port",
-      "https://victim.example.net/hook",
-      "https://victim.example.net:8443/hook",
+      "https://subscriber.example.net/hook",
+      "https://subscriber.example.net:8443/hook",
     ],
     [
       "another host",
-      "https://victim.example.net/hook",
+      "https://subscriber.example.net/hook",
       "https://other.example.net/hook",
     ],
     [
       "a reserved character and its encoding: a slash in a segment is not a slash between two",
-      "https://victim.example.net/a%2Fb",
-      "https://victim.example.net/a/b",
+      "https://subscriber.example.net/a%2Fb",
+      "https://subscriber.example.net/a/b",
     ],
   ])("%s: two addresses", (_label: string, first: string, second: string) => {
     expect(SubscriberContactKey.isSameUrl(first, second)).toBe(false);
