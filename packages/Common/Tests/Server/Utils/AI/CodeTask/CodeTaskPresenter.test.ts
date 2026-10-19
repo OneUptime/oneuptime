@@ -30,7 +30,7 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * What the Code pages are sent of a task: a list row says how it stands

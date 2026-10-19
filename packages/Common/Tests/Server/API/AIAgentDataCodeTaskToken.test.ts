@@ -24,15 +24,7 @@ import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A repository token, for a run that names itself:

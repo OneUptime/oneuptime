@@ -11,7 +11,7 @@ import PullRequestState from "../../../../../Types/CodeRepository/PullRequestSta
 import Email from "../../../../../Types/Email";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * A task is its first code-fix run; a reply is a run whose codeTaskId names

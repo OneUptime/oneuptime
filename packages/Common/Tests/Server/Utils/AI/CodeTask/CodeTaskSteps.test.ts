@@ -3,10 +3,7 @@ import CodeTaskSteps, {
 } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskSteps";
 import AIRunEvent from "../../../../../Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "../../../../../Types/AI/AIRunEventType";
-import {
-  CodeTaskStepJSON,
-  CodeTaskStepKind,
-} from "../../../../../Types/AI/CodeTask";
+import { CodeTaskStepJSON } from "../../../../../Types/AI/CodeTask";
 import { describe, expect, test } from "@jest/globals";
 
 /*

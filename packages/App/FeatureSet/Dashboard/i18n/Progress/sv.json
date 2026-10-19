@@ -18,6 +18,7 @@
     "Filter: {{expression}}",
     "Gateway",
     "ICMP (ping)",
+    "Incident",
     "Incident {{number}}: {{title}}",
     "Information",
     "Null",

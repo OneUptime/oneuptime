@@ -11,13 +11,12 @@ import CodeRepositoryService from "../Services/CodeRepositoryService";
 import CodeFixAgentAuth, {
   CodeFixAgentIdentity,
 } from "../Utils/AI/CodeFix/CodeFixAgentAuth";
-import CodeTaskAgentBrief, {
-  CodeTaskAgentDetails,
-} from "../Utils/AI/CodeTask/CodeTaskAgentBrief";
+import CodeTaskAgentBrief from "../Utils/AI/CodeTask/CodeTaskAgentBrief";
 import CodeTaskGate from "../Utils/AI/CodeTask/CodeTaskGate";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIRunType from "../../Types/AI/AIRunType";
+import { CodeTaskAgentDetails } from "../../Types/AI/CodeTask";
 import { getCodeTaskRequest } from "../../Types/AI/CodeFixTaskContext";
 import { CodeFixTaskTypeHelper } from "../../Types/AI/CodeFixTaskType";
 import BadDataException from "../../Types/Exception/BadDataException";
