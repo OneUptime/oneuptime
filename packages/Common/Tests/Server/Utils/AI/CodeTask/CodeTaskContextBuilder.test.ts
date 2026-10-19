@@ -148,7 +148,10 @@ describe("a OneUptime record is read as the person who asked, in this project", 
     incident.createdAt = new Date("2026-10-19T08:00:00.000Z");
     incident.currentIncidentState = named(IncidentState, "Investigating");
     incident.incidentSeverity = named(IncidentSeverity, "Critical");
-    incident.monitors = [named(Monitor, "Checkout API"), named(Monitor, "Cart")];
+    incident.monitors = [
+      named(Monitor, "Checkout API"),
+      named(Monitor, "Cart"),
+    ];
 
     const find: SpyInstance<typeof IncidentService.findOneBy> = jest
       .spyOn(IncidentService, "findOneBy")
@@ -237,10 +240,9 @@ describe("a OneUptime record is read as the person who asked, in this project", 
     jest
       .spyOn(TelemetryExceptionService, "findOneBy")
       .mockResolvedValue(exception);
-    const findService: SpyInstance<typeof ServiceService.findOneBy> =
-      jest
-        .spyOn(ServiceService, "findOneBy")
-        .mockResolvedValue(named(Service, "checkout-api"));
+    const findService: SpyInstance<typeof ServiceService.findOneBy> = jest
+      .spyOn(ServiceService, "findOneBy")
+      .mockResolvedValue(named(Service, "checkout-api"));
 
     const item: CodeTaskContextItem = await buildOne({
       type: CodeTaskContextType.Exception,
@@ -308,7 +310,9 @@ describe("a OneUptime record is read as the person who asked, in this project", 
     async (type: CodeTaskContextType, word: string) => {
       jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
       jest.spyOn(AlertService, "findOneBy").mockResolvedValue(null);
-      jest.spyOn(TelemetryExceptionService, "findOneBy").mockResolvedValue(null);
+      jest
+        .spyOn(TelemetryExceptionService, "findOneBy")
+        .mockResolvedValue(null);
       jest.spyOn(MonitorService, "findOneBy").mockResolvedValue(null);
 
       expect(await refusal({ type, id: RECORD_ID })).toBe(

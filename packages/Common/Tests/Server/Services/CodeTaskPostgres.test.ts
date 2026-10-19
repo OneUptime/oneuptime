@@ -50,7 +50,12 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
 
     await database.query(
       `INSERT INTO "${schema}"."CodeRepository" ("_id", "version", "projectId", "name", "slug", "repositoryHostedAt", "organizationName", "repositoryName", "deletedAt") VALUES ($1, 1, $2, $3, $3, 'GitHub', 'acme', $3, $4)`,
-      [id, data.projectId, `repo-${id.substring(0, 8)}`, data.deleted ? new Date() : null],
+      [
+        id,
+        data.projectId,
+        `repo-${id.substring(0, 8)}`,
+        data.deleted ? new Date() : null,
+      ],
     );
 
     return id;
@@ -80,7 +85,9 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
         data.repositoryId || null,
         data.codeTaskId || null,
         Boolean(data.needsUserInput),
-        data.taskContext === undefined ? null : JSON.stringify(data.taskContext),
+        data.taskContext === undefined
+          ? null
+          : JSON.stringify(data.taskContext),
         data.createdAt || "2026-10-19T08:00:00.000Z",
         data.completedAt || null,
         data.deleted ? new Date() : null,
@@ -158,7 +165,9 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
 
   describe("the backfill", () => {
     test("puts each existing code-fix run on its repository, and only its own project's", async () => {
-      const repository: string = await insertRepository({ projectId: PROJECT_A });
+      const repository: string = await insertRepository({
+        projectId: PROJECT_A,
+      });
       const olderRepository: string = await insertRepository({
         projectId: PROJECT_A,
       });
@@ -171,7 +180,9 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
       });
 
       // Its latest pull request record names its repository.
-      const withPullRequests: string = await insertRun({ projectId: PROJECT_A });
+      const withPullRequests: string = await insertRun({
+        projectId: PROJECT_A,
+      });
       await insertPullRequest({
         projectId: PROJECT_A,
         runId: withPullRequests,

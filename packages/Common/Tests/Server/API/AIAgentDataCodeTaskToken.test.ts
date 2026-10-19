@@ -24,7 +24,14 @@ import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 
 /*
  * A repository token, for a run that names itself:
@@ -95,23 +102,21 @@ async function askForToken(
 ): Promise<{ error: Error | undefined; minted: boolean }> {
   const next: jest.Mock = jest.fn();
 
-  await mockRouter
-    .match("POST", TOKEN_ROUTE)
-    .handlerFunction(
-      {
-        params: {},
-        query: {},
-        headers: {},
-        body: {
-          aiAgentId: ObjectID.generate().toString(),
-          aiAgentKey: "runner-key",
-          codeRepositoryId: repositoryId.toString(),
-          taskId: RUN_ID.toString(),
-        },
-      } as unknown as ExpressRequest,
-      {} as ExpressResponse,
-      next as unknown as NextFunction,
-    );
+  await mockRouter.match("POST", TOKEN_ROUTE).handlerFunction(
+    {
+      params: {},
+      query: {},
+      headers: {},
+      body: {
+        aiAgentId: ObjectID.generate().toString(),
+        aiAgentKey: "runner-key",
+        codeRepositoryId: repositoryId.toString(),
+        taskId: RUN_ID.toString(),
+      },
+    } as unknown as ExpressRequest,
+    {} as ExpressResponse,
+    next as unknown as NextFunction,
+  );
 
   expect(next).not.toHaveBeenCalled();
 
@@ -122,8 +127,8 @@ async function askForToken(
   return {
     error: errors.length > 0 ? (errors[0]![2] as Error) : undefined,
     minted:
-      (GitHubUtil.getInstallationAccessToken as unknown as jest.Mock).mock
-        .calls.length > 0,
+      (GitHubUtil.getInstallationAccessToken as unknown as jest.Mock).mock.calls
+        .length > 0,
   };
 }
 
@@ -162,9 +167,7 @@ beforeEach(() => {
   jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
     return storedRun;
   });
-  jest
-    .spyOn(AIRunService, "updateOneBy")
-    .mockResolvedValue(undefined as never);
+  jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(undefined as never);
   jest.spyOn(CodeTaskThread, "findTask").mockImplementation(async () => {
     const task: AIRun = requestRun({});
     task._id = TASK_ID.toString();
@@ -182,9 +185,11 @@ beforeEach(() => {
         ? { allowed: true, limit: 5, paused: false, openCount: 1 }
         : { allowed: false, limit: 5, paused: false, openCount: 5 };
     });
-  jest.spyOn(OpenPullRequestCap, "describeRejection").mockReturnValue(
-    "acme/users-api already has 5 open pull requests from OneUptime AI.",
-  );
+  jest
+    .spyOn(OpenPullRequestCap, "describeRejection")
+    .mockReturnValue(
+      "acme/users-api already has 5 open pull requests from OneUptime AI.",
+    );
   jest.spyOn(GitHubUtil, "getInstallationAccessToken").mockResolvedValue({
     token: "ghs_test",
     expiresAt: OneUptimeDate.getCurrentDate(),
@@ -227,9 +232,12 @@ describe("a run with no repository yet is linked to the one it works in", () => 
 
     await askForToken();
 
-    const update: { query: Record<string, unknown>; data: Record<string, unknown>; props: unknown } = (
-      AIRunService.updateOneBy as unknown as jest.Mock
-    ).mock.calls[0]![0] as never;
+    const update: {
+      query: Record<string, unknown>;
+      data: Record<string, unknown>;
+      props: unknown;
+    } = (AIRunService.updateOneBy as unknown as jest.Mock).mock
+      .calls[0]![0] as never;
 
     expect(update.query["_id"]).toBe(RUN_ID.toString());
     expect(update.query["codeRepositoryId"]).toBeDefined();

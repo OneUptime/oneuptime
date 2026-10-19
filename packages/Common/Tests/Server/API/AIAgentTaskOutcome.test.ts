@@ -16,7 +16,14 @@ import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import { CodeTaskFileStatus } from "../../../Types/AI/CodeTask";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 
 /*
  * A turn of a task in Code ends with what the Runner reports alongside its
@@ -87,23 +94,21 @@ const OUTCOME: JSONObject = {
 async function report(body: JSONObject): Promise<void> {
   const next: jest.Mock = jest.fn();
 
-  await mockRouter
-    .match("POST", ROUTE)
-    .handlerFunction(
-      {
-        params: {},
-        query: {},
-        headers: {},
-        body: {
-          aiAgentId: ObjectID.generate().toString(),
-          aiAgentKey: "runner-key",
-          taskId: runId.toString(),
-          ...body,
-        },
-      } as unknown as ExpressRequest,
-      {} as ExpressResponse,
-      next as unknown as NextFunction,
-    );
+  await mockRouter.match("POST", ROUTE).handlerFunction(
+    {
+      params: {},
+      query: {},
+      headers: {},
+      body: {
+        aiAgentId: ObjectID.generate().toString(),
+        aiAgentKey: "runner-key",
+        taskId: runId.toString(),
+        ...body,
+      },
+    } as unknown as ExpressRequest,
+    {} as ExpressResponse,
+    next as unknown as NextFunction,
+  );
 
   expect(next).not.toHaveBeenCalled();
 }
@@ -145,9 +150,7 @@ beforeEach(() => {
   jest
     .spyOn(AIRunService, "updateOneById")
     .mockResolvedValue(undefined as never);
-  jest
-    .spyOn(AIRunService, "updateOneBy")
-    .mockResolvedValue(undefined as never);
+  jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(undefined as never);
 });
 
 afterEach(() => {

@@ -217,7 +217,8 @@ describe("the locale files", () => {
   );
 
   test("every locale translates Code's description", () => {
-    const english: string = locales["en"]!["navbar"]["items"]["codeDescription"];
+    const english: string =
+      locales["en"]!["navbar"]["items"]["codeDescription"];
 
     expect(english).toContain("Connect GitHub here.");
 

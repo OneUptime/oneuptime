@@ -57,7 +57,15 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import UserType from "../../../Types/UserType";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 
 /*
  * The Code API, route by route, as a person reaches it: who may read a
@@ -208,18 +216,16 @@ async function call(
 
   (Response.sendJsonObjectResponse as jest.Mock).mockClear();
 
-  await mockRouter
-    .match("post", route)
-    .handlerFunction(
-      {
-        body: data.body || {},
-        params: data.params || {},
-        headers: {},
-        query: {},
-      } as unknown as ExpressRequest,
-      {} as ExpressResponse,
-      next as unknown as NextFunction,
-    );
+  await mockRouter.match("post", route).handlerFunction(
+    {
+      body: data.body || {},
+      params: data.params || {},
+      headers: {},
+      query: {},
+    } as unknown as ExpressRequest,
+    {} as ExpressResponse,
+    next as unknown as NextFunction,
+  );
 
   const calls: Array<Array<unknown>> = (
     Response.sendJsonObjectResponse as jest.Mock
@@ -287,12 +293,14 @@ beforeEach(() => {
   // The repository, read as the caller (or as root, for the edit check).
   jest
     .spyOn(CodeRepositoryService, "findOneBy")
-    .mockImplementation(async (data: { props: DatabaseCommonInteractionProps }) => {
-      if (!data.props.isRoot && !world.repositoryReadable) {
-        return null;
-      }
-      return repository();
-    });
+    .mockImplementation(
+      async (data: { props: DatabaseCommonInteractionProps }) => {
+        if (!data.props.isRoot && !world.repositoryReadable) {
+          return null;
+        }
+        return repository();
+      },
+    );
   jest
     .spyOn(CodeRepositoryService, "findOneById")
     .mockImplementation(async () => {
@@ -371,24 +379,30 @@ afterEach(() => {
 describe("every route is for a member of the project", () => {
   test.each([
     ["/code-task/repositories", {}],
-    ["/code-task/repository/:repositoryId", { repositoryId: REPOSITORY_ID.toString() }],
+    [
+      "/code-task/repository/:repositoryId",
+      { repositoryId: REPOSITORY_ID.toString() },
+    ],
     ["/code-task/get/:taskId", { taskId: TASK_ID.toString() }],
     ["/code-task/create", {}],
     ["/code-task/reply/:taskId", { taskId: TASK_ID.toString() }],
     ["/code-task/stop/:taskId", { taskId: TASK_ID.toString() }],
-  ])("%s refuses someone who is not", async (route: string, params: Record<string, string>) => {
-    world.props = OUTSIDER;
+  ])(
+    "%s refuses someone who is not",
+    async (route: string, params: Record<string, string>) => {
+      world.props = OUTSIDER;
 
-    const { next, result } = await call(route, {
-      params,
-      body: { repositoryId: REPOSITORY_ID.toString(), message: "x" },
-    });
+      const { next, result } = await call(route, {
+        params,
+        body: { repositoryId: REPOSITORY_ID.toString(), message: "x" },
+      });
 
-    expect(refusal(next)).toBeInstanceOf(NotAuthorizedException);
-    expect(result).toBeNull();
-    expect(CodeRepositoryService.findOneBy).not.toHaveBeenCalled();
-    expect(created).toHaveLength(0);
-  });
+      expect(refusal(next)).toBeInstanceOf(NotAuthorizedException);
+      expect(result).toBeNull();
+      expect(CodeRepositoryService.findOneBy).not.toHaveBeenCalled();
+      expect(created).toHaveLength(0);
+    },
+  );
 });
 
 describe("every route acts as a signed-in person", () => {
@@ -427,9 +441,11 @@ describe("every route acts as a signed-in person", () => {
         return route.uri.startsWith("/code-task/");
       }) as never;
 
-    expect(routes.map((route: { uri: string }) => {
-      return route.uri;
-    })).toEqual([
+    expect(
+      routes.map((route: { uri: string }) => {
+        return route.uri;
+      }),
+    ).toEqual([
       "/code-task/repositories",
       "/code-task/repository/:repositoryId",
       "/code-task/list",
@@ -709,10 +725,8 @@ describe("reading a task", () => {
     );
     expect(result?.["canReadLogContent"]).toBe(false);
     expect(
-      (
-        (CodeTaskPresenter.getConversation as unknown as jest.Mock).mock
-          .calls[0]![0] as { canSeeChanges: boolean; props: unknown }
-      ),
+      (CodeTaskPresenter.getConversation as unknown as jest.Mock).mock
+        .calls[0]![0] as { canSeeChanges: boolean; props: unknown },
     ).toMatchObject({ canSeeChanges: false, props: VIEWER });
   });
 
@@ -754,7 +768,8 @@ describe("listing a repository's tasks", () => {
       query: Record<string, unknown>;
       sort: unknown;
       limit: number;
-    } = (AIRunService.findBy as unknown as jest.Mock).mock.calls[0]![0] as never;
+    } = (AIRunService.findBy as unknown as jest.Mock).mock
+      .calls[0]![0] as never;
 
     expect(read.sort).toEqual({ createdAt: "DESC" });
     expect(read.limit).toBe(50);
@@ -807,7 +822,9 @@ describe("stopping a task", () => {
     jest
       .spyOn(CodeTaskThread, "getPeople")
       .mockResolvedValue(
-        new Map([[USER_ID.toString(), { id: USER_ID.toString(), name: "Jane" }]]),
+        new Map([
+          [USER_ID.toString(), { id: USER_ID.toString(), name: "Jane" }],
+        ]),
       );
     const running: AIRun = task();
     running.status = AIRunStatus.Running;
@@ -845,7 +862,9 @@ describe("the repositories, at a glance", () => {
         ],
       ]),
     );
-    jest.spyOn(CodeTaskStats, "countTasksWithoutRepository").mockResolvedValue(4);
+    jest
+      .spyOn(CodeTaskStats, "countTasksWithoutRepository")
+      .mockResolvedValue(4);
 
     const { result } = await call("/code-task/repositories");
 

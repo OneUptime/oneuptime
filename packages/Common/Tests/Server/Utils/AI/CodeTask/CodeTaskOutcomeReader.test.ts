@@ -127,9 +127,14 @@ describe("CodeTaskOutcomeReader.read", () => {
     "data:text/html,hi",
     `https://github.com/${"a".repeat(3000)}`,
     "not a url",
-  ])("a pull request address that is not a web address is dropped (%j)", (url: string) => {
-    expect(read({ pullRequestUrl: url }).outcome.pullRequestUrl).toBeUndefined();
-  });
+  ])(
+    "a pull request address that is not a web address is dropped (%j)",
+    (url: string) => {
+      expect(
+        read({ pullRequestUrl: url }).outcome.pullRequestUrl,
+      ).toBeUndefined();
+    },
+  );
 
   test("a long reply and a long list of files are capped", () => {
     const outcome: CodeTaskOutcomeRead = read({

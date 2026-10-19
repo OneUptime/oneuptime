@@ -12,9 +12,7 @@ import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import NotFoundException from "../../../../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../../Types/ObjectID";
-import Permission, {
-  UserPermission,
-} from "../../../../../Types/Permission";
+import Permission, { UserPermission } from "../../../../../Types/Permission";
 import UserType from "../../../../../Types/UserType";
 import {
   afterEach,
@@ -51,7 +49,10 @@ const FRONTEND_LABEL_ID: ObjectID = new ObjectID(
   "9c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
 );
 
-function row(permission: Permission, labelIds: Array<ObjectID> = []): UserPermission {
+function row(
+  permission: Permission,
+  labelIds: Array<ObjectID> = [],
+): UserPermission {
   return {
     _type: "UserPermission",
     permission,
@@ -60,7 +61,9 @@ function row(permission: Permission, labelIds: Array<ObjectID> = []): UserPermis
   } as UserPermission;
 }
 
-function callerWith(rows: Array<UserPermission>): DatabaseCommonInteractionProps {
+function callerWith(
+  rows: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: USER_ID,
     tenantId: PROJECT_ID,
@@ -155,18 +158,24 @@ describe("who may ask AI to work in a repository", () => {
   });
 
   test("editing without reading is no edit, as everywhere in OneUptime", async () => {
-    expect(
-      await canAsk(callerWith([row(Permission.EditCodeRepository)])),
-    ).toBe(false);
+    expect(await canAsk(callerWith([row(Permission.EditCodeRepository)]))).toBe(
+      false,
+    );
   });
 
   test.each([
     ["a viewer", Permission.Viewer],
-    ["a role that may only read code repositories", Permission.ReadCodeRepository],
+    [
+      "a role that may only read code repositories",
+      Permission.ReadCodeRepository,
+    ],
     ["a settings viewer", Permission.SettingsViewer],
-  ])("%s may not: they read its tasks", async (_who: string, permission: Permission) => {
-    expect(await canAsk(callerWith([row(permission)]))).toBe(false);
-  });
+  ])(
+    "%s may not: they read its tasks",
+    async (_who: string, permission: Permission) => {
+      expect(await canAsk(callerWith([row(permission)]))).toBe(false);
+    },
+  );
 
   test("a role limited to labels the repository does not carry may not", async () => {
     repositoryLabels = [FRONTEND_LABEL_ID];
@@ -197,17 +206,21 @@ describe("who may ask AI to work in a repository", () => {
   test("a repository of another project is never one to ask in", async () => {
     repositoryProjectId = OTHER_PROJECT_ID;
 
-    expect(await canAsk(callerWith([row(Permission.ProjectOwner)]))).toBe(false);
+    expect(await canAsk(callerWith([row(Permission.ProjectOwner)]))).toBe(
+      false,
+    );
   });
 
   test("a repository that is gone is never one to ask in", async () => {
-    (CodeRepositoryService.findOneById as unknown as jest.Mock).mockImplementation(
-      async () => {
-        return null;
-      },
-    );
+    (
+      CodeRepositoryService.findOneById as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      return null;
+    });
 
-    expect(await canAsk(callerWith([row(Permission.ProjectOwner)]))).toBe(false);
+    expect(await canAsk(callerWith([row(Permission.ProjectOwner)]))).toBe(
+      false,
+    );
   });
 
   test("the server and a master admin may", async () => {
@@ -284,11 +297,11 @@ describe("who may read a repository's tasks", () => {
   });
 
   test("a repository the caller may not read is not found - the same answer as one that does not exist", async () => {
-    (CodeRepositoryService.findOneBy as unknown as jest.Mock).mockImplementation(
-      async () => {
-        return null;
-      },
-    );
+    (
+      CodeRepositoryService.findOneBy as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      return null;
+    });
 
     await expect(
       CodeTaskAccess.getReadableRepository({
@@ -296,7 +309,9 @@ describe("who may read a repository's tasks", () => {
         projectId: PROJECT_ID,
         repositoryId: REPOSITORY_ID,
       }),
-    ).rejects.toThrow(new NotFoundException(CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE));
+    ).rejects.toThrow(
+      new NotFoundException(CODE_TASK_REPOSITORY_NOT_FOUND_MESSAGE),
+    );
   });
 
   test("tasks with no repository are read with the AI runs' own read permission", () => {

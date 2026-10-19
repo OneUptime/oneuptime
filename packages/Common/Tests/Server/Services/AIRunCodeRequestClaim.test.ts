@@ -28,7 +28,9 @@ function queuedRequest(data: {
     attemptCount: 0,
     codeFixTaskType: CodeFixTaskType.CodeRequest,
     codeRepositoryId:
-      data.repositoryId === null ? undefined : data.repositoryId || REPOSITORY_ID,
+      data.repositoryId === null
+        ? undefined
+        : data.repositoryId || REPOSITORY_ID,
     taskContext:
       data.message === undefined
         ? { request: { message: "Add retries", context: [] } }

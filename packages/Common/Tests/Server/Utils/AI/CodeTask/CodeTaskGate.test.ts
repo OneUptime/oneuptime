@@ -265,18 +265,21 @@ describe("CodeTaskGate.getBlocker", () => {
       message: CODE_TASK_SUBSCRIPTION_UNPAID_MESSAGE,
     });
 
-    expect(await blocker({ props: props({ currentPlan: PlanType.Free }) })).toEqual(
-      {
-        type: CodeTaskBlockerType.PlanRequired,
-        message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
-      },
-    );
+    expect(
+      await blocker({ props: props({ currentPlan: PlanType.Free }) }),
+    ).toEqual({
+      type: CodeTaskBlockerType.PlanRequired,
+      message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+    });
   });
 
   test("with billing off, the plan and the bill never stop anyone", async () => {
     expect(
       await blocker({
-        props: props({ currentPlan: PlanType.Free, isSubscriptionUnpaid: true }),
+        props: props({
+          currentPlan: PlanType.Free,
+          isSubscriptionUnpaid: true,
+        }),
         billingEnabled: false,
       }),
     ).toBeNull();
@@ -299,9 +302,12 @@ describe("CodeTaskGate.getBlocker", () => {
   test("the switch is read from the project as it is now, as root", async () => {
     await blocker();
 
-    const call: { id: ObjectID; select: Record<string, boolean>; props: unknown } =
-      (ProjectService.findOneById as unknown as jest.Mock).mock
-        .calls[0]![0] as never;
+    const call: {
+      id: ObjectID;
+      select: Record<string, boolean>;
+      props: unknown;
+    } = (ProjectService.findOneById as unknown as jest.Mock).mock
+      .calls[0]![0] as never;
 
     expect(call.id.toString()).toBe(PROJECT_ID.toString());
     expect(call.select["enableAi"]).toBe(true);
@@ -309,7 +315,10 @@ describe("CodeTaskGate.getBlocker", () => {
   });
 
   test.each([
-    ["the project has no GitHub installation bound", { boundInstallationId: null }],
+    [
+      "the project has no GitHub installation bound",
+      { boundInstallationId: null },
+    ],
     [
       "the repository came from another installation",
       { repositoryInstallationId: "99999999" },
@@ -365,7 +374,9 @@ describe("CodeTaskGate.getBlocker", () => {
     expect(found?.message).toContain(
       "This project has reached its daily AI token limit: 100,500 of 100,000 tokens used today.",
     );
-    expect(found?.message).toContain("OneUptime AI starts again at midnight UTC.");
+    expect(found?.message).toContain(
+      "OneUptime AI starts again at midnight UTC.",
+    );
   });
 
   test("no Runner online to do the work is the last thing asked", async () => {

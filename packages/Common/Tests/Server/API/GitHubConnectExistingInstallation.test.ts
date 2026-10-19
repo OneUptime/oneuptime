@@ -337,9 +337,7 @@ describe("Connecting a GitHub App installation that already exists", () => {
         },
       ]);
 
-      expect(answeredAt()).toContain(
-        `/${projectId.toString()}/code`,
-      );
+      expect(answeredAt()).toContain(`/${projectId.toString()}/code`);
       expect(answeredQuery().get(GITHUB_INSTALLATION_CHOICE_QUERY_PARAM)).toBe(
         "choice-state",
       );

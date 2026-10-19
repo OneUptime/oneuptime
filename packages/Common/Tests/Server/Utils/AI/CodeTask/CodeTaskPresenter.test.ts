@@ -106,7 +106,10 @@ function requestTurn(data: {
   return run;
 }
 
-function openPullRequest(runId: ObjectID, state: PullRequestState): AIAgentTaskPullRequest {
+function openPullRequest(
+  runId: ObjectID,
+  state: PullRequestState,
+): AIAgentTaskPullRequest {
   const value: AIAgentTaskPullRequest = new AIAgentTaskPullRequest();
   value.aiRunId = runId;
   value.pullRequestNumber = 17;
@@ -253,8 +256,10 @@ describe("CodeTaskPresenter.summarize", () => {
   });
 
   test("a list reads nothing for no tasks", async () => {
-    const findRuns: jest.SpiedFunction<typeof AIRunService.findBy> =
-      jest.spyOn(AIRunService, "findBy");
+    const findRuns: jest.SpiedFunction<typeof AIRunService.findBy> = jest.spyOn(
+      AIRunService,
+      "findBy",
+    );
 
     expect(
       await CodeTaskPresenter.summarize({
@@ -564,7 +569,10 @@ describe("CodeTaskOrigin", () => {
         (run: AIRun) => {
           run.codeFixTaskType = CodeFixTaskType.FixPerformance;
         },
-        { traceId: "4bf92f3577b34da6a3ce929d0e0e4736", serviceName: "checkout" },
+        {
+          traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+          serviceName: "checkout",
+        },
       ),
     ).toEqual({
       type: CodeTaskOriginType.Trace,
@@ -577,7 +585,10 @@ describe("CodeTaskOrigin", () => {
         (run: AIRun) => {
           run.codeFixTaskType = CodeFixTaskType.ImproveLogging;
         },
-        { telemetryServiceId: REPOSITORY_ID.toString(), serviceName: "checkout" },
+        {
+          telemetryServiceId: REPOSITORY_ID.toString(),
+          serviceName: "checkout",
+        },
       ).type,
     ).toBe(CodeTaskOriginType.Service);
 

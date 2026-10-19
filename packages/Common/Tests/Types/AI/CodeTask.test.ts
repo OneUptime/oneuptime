@@ -114,7 +114,10 @@ describe("CodeTaskContextInputUtil.readItem", () => {
         type: "Note",
         text: "  TypeError at checkout  ",
       }),
-    ).toEqual({ type: CodeTaskContextType.Note, text: "TypeError at checkout" });
+    ).toEqual({
+      type: CodeTaskContextType.Note,
+      text: "TypeError at checkout",
+    });
   });
 
   test("an empty or oversized note is refused with what is wrong", () => {
@@ -385,9 +388,7 @@ describe("CodeTaskTitle.fromMessage", () => {
   });
 
   test("is cut at a word near the limit, and says so", () => {
-    const title: string = CodeTaskTitle.fromMessage(
-      `${"word ".repeat(60)}end`,
-    );
+    const title: string = CodeTaskTitle.fromMessage(`${"word ".repeat(60)}end`);
 
     expect(title.length).toBeLessThanOrEqual(CODE_TASK_LIMITS.maxTitleLength);
     expect(title.endsWith("word…")).toBe(true);
@@ -447,9 +448,9 @@ describe("the CodeRequest recipe", () => {
     expect(
       CodeFixTaskTypeHelper.getContextKind(CodeFixTaskType.CodeRequest),
     ).toBe(CodeFixContextKind.TaskContext);
-    expect(CodeFixTaskTypeHelper.isCodeRequest(CodeFixTaskType.CodeRequest)).toBe(
-      true,
-    );
+    expect(
+      CodeFixTaskTypeHelper.isCodeRequest(CodeFixTaskType.CodeRequest),
+    ).toBe(true);
     expect(
       CodeFixTaskTypeHelper.isCodeRequest(CodeFixTaskType.FixException),
     ).toBe(false);
@@ -483,7 +484,12 @@ describe("the CodeRequest recipe", () => {
   });
 
   test("a Runner that sends no list did not say", () => {
-    for (const value of [undefined, null, "CodeRequest", { 0: "CodeRequest" }]) {
+    for (const value of [
+      undefined,
+      null,
+      "CodeRequest",
+      { 0: "CodeRequest" },
+    ]) {
       expect(CodeFixTaskTypeHelper.readSupportedTaskTypes(value)).toBeNull();
     }
   });
@@ -527,23 +533,35 @@ describe("reading what outside people typed takes time in line with its length",
   }
 
   test.each([
-    ["a trace id of hex and one bad letter", () => {
-      return CodeTaskContextInputUtil.readItem({
-        type: "Trace",
-        traceId: `${"a".repeat(LONG)}g`,
-      });
-    }],
-    ["a path of slashes and dots", () => {
-      return CodeTaskContextInputUtil.normalizePath(
-        `${"./".repeat(LONG / 2)}x`,
-      );
-    }],
-    ["a title of spaces", () => {
-      return CodeTaskTitle.fromMessage(`${" \t".repeat(LONG / 2)}x`);
-    }],
-    ["a title of heading marks", () => {
-      return CodeTaskTitle.fromMessage(`${"#".repeat(LONG)} x`);
-    }],
+    [
+      "a trace id of hex and one bad letter",
+      () => {
+        return CodeTaskContextInputUtil.readItem({
+          type: "Trace",
+          traceId: `${"a".repeat(LONG)}g`,
+        });
+      },
+    ],
+    [
+      "a path of slashes and dots",
+      () => {
+        return CodeTaskContextInputUtil.normalizePath(
+          `${"./".repeat(LONG / 2)}x`,
+        );
+      },
+    ],
+    [
+      "a title of spaces",
+      () => {
+        return CodeTaskTitle.fromMessage(`${" \t".repeat(LONG / 2)}x`);
+      },
+    ],
+    [
+      "a title of heading marks",
+      () => {
+        return CodeTaskTitle.fromMessage(`${"#".repeat(LONG)} x`);
+      },
+    ],
   ])("%s", (_name: string, read: () => unknown) => {
     expect(timed(read)).toBeLessThan(2000);
   });

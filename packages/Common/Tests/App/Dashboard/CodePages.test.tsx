@@ -18,7 +18,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createInstance, i18n } from "i18next";
-import type { SpiedFunction } from "jest-mock";
+import type { SpyInstance } from "jest-mock";
 import React, { ReactElement } from "react";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
@@ -133,7 +133,14 @@ const TASK_ID: string = "7d8e9f0a-1b2c-4d3e-8f4a-5b6c7d8e9f0a";
 const NEW_TASK_ID: string = "8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1b";
 
 const translation: i18n = createInstance();
-let navigateMock: SpiedFunction<typeof Navigation.navigate>;
+// Navigation.navigate spied on, as jest-mock's spyOn types it.
+type NavigateSpy = SpyInstance<
+  (
+    ...args: Parameters<typeof Navigation.navigate>
+  ) => ReturnType<typeof Navigation.navigate>
+>;
+
+let navigateMock: NavigateSpy;
 
 beforeAll(async () => {
   Element.prototype.scrollIntoView = (): void => {};

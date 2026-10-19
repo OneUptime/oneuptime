@@ -288,11 +288,7 @@ describe("the page a connection goes back to", () => {
       ConnectStartPage.UserSettings,
       "/user-settings/microsoft-teams-integration",
     ],
-    [
-      ConnectProvider.GitHub,
-      ConnectStartPage.ProjectSettings,
-      "/code",
-    ],
+    [ConnectProvider.GitHub, ConnectStartPage.ProjectSettings, "/code"],
     [ConnectProvider.GitHub, ConnectStartPage.UserSettings, "/code"],
   ])(
     "%s started on %s goes back to %s",

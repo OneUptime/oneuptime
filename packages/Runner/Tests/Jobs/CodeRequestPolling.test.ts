@@ -132,15 +132,13 @@ describe("finishing a request", () => {
       pullRequestUrls: [OUTCOME.pullRequestUrl],
     });
 
-    expect(buildTaskOutcomeReport({ taskId: task.id, outcome })).toStrictEqual(
-      {
-        ...RunnerAPIRequest.getDefaultRequestBody(),
-        taskId: task.id,
-        status: AIAgentTaskStatus.Completed,
-        pullRequestUrls: [OUTCOME.pullRequestUrl],
-        outcome: OUTCOME as unknown as JSONObject,
-      },
-    );
+    expect(buildTaskOutcomeReport({ taskId: task.id, outcome })).toStrictEqual({
+      ...RunnerAPIRequest.getDefaultRequestBody(),
+      taskId: task.id,
+      status: AIAgentTaskStatus.Completed,
+      pullRequestUrls: [OUTCOME.pullRequestUrl],
+      outcome: OUTCOME as unknown as JSONObject,
+    });
   });
 
   test("an answer that changed nothing is still Completed, never NoFixFound", async () => {
@@ -148,7 +146,11 @@ describe("finishing a request", () => {
       success: true,
       message: "Replied without changing any files.",
       pullRequestsCreated: 0,
-      outcome: { summary: "It is in src/users.ts.", needsInput: false, filesChanged: [] },
+      outcome: {
+        summary: "It is in src/users.ts.",
+        needsInput: false,
+        filesChanged: [],
+      },
     });
 
     const outcome: TaskOutcome = await executeTask(task);

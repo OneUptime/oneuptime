@@ -274,9 +274,9 @@ describe("BreadcrumbTrailResolver", () => {
         pagePattern: `${PROJECT}/code/repositories/:id`,
       });
       expect(target.kind).toBe(BreadcrumbTargetKind.Ancestor);
-      expect(
-        resolvedPattern(target, `${PROJECT}/code/repositories/:id`),
-      ).toBe(`${PROJECT}/code`);
+      expect(resolvedPattern(target, `${PROJECT}/code/repositories/:id`)).toBe(
+        `${PROJECT}/code`,
+      );
     });
 
     test('"Code" links to /code on a /code/tasks/:id page, past the /code/tasks that is no page', () => {

@@ -20,7 +20,14 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 
 /*
  * A task's run log (its Log page in Code, and the trail behind it) is the
@@ -64,13 +71,15 @@ async function read(
   const next: jest.Mock = jest.fn();
   (Response.sendJsonObjectResponse as unknown as jest.Mock).mockClear();
 
-  await mockRouter
-    .match("post", route)
-    .handlerFunction(
-      { params: { runId: RUN_ID.toString() }, body: {}, headers: {} } as unknown as ExpressRequest,
-      {} as ExpressResponse,
-      next as unknown as NextFunction,
-    );
+  await mockRouter.match("post", route).handlerFunction(
+    {
+      params: { runId: RUN_ID.toString() },
+      body: {},
+      headers: {},
+    } as unknown as ExpressRequest,
+    {} as ExpressResponse,
+    next as unknown as NextFunction,
+  );
 
   return {
     next,
@@ -120,54 +129,54 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each([
-  ["/code-fix-run/get/:runId"],
-  ["/code-fix-run/logs/:runId"],
-])("%s", (route: string) => {
-  test("a run in a repository the caller may read is shown", async () => {
-    const { next, answered } = await read(route);
+describe.each([["/code-fix-run/get/:runId"], ["/code-fix-run/logs/:runId"]])(
+  "%s",
+  (route: string) => {
+    test("a run in a repository the caller may read is shown", async () => {
+      const { next, answered } = await read(route);
 
-    expect(next).not.toHaveBeenCalled();
-    expect(answered).toBe(true);
+      expect(next).not.toHaveBeenCalled();
+      expect(answered).toBe(true);
 
-    const call: {
-      query: JSONObject;
-      props: unknown;
-    } = (CodeRepositoryService.findOneBy as unknown as jest.Mock).mock
-      .calls[0]![0] as never;
+      const call: {
+        query: JSONObject;
+        props: unknown;
+      } = (CodeRepositoryService.findOneBy as unknown as jest.Mock).mock
+        .calls[0]![0] as never;
 
-    // The repository is read as the caller, in their project.
-    expect(call.props).toBe(PROPS);
-    expect(call.query["_id"]).toBe(REPOSITORY_ID.toString());
-    expect((call.query["projectId"] as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
-    );
-  });
+      // The repository is read as the caller, in their project.
+      expect(call.props).toBe(PROPS);
+      expect(call.query["_id"]).toBe(REPOSITORY_ID.toString());
+      expect((call.query["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+    });
 
-  test("a run in a repository the caller may not read is not found, and nothing of it is read", async () => {
-    repositoryReadable = false;
+    test("a run in a repository the caller may not read is not found, and nothing of it is read", async () => {
+      repositoryReadable = false;
 
-    const { next, answered } = await read(route);
+      const { next, answered } = await read(route);
 
-    expect(answered).toBe(false);
-    expect(next).toHaveBeenCalledTimes(1);
+      expect(answered).toBe(false);
+      expect(next).toHaveBeenCalledTimes(1);
 
-    const error: Error = next.mock.calls[0]![0] as Error;
+      const error: Error = next.mock.calls[0]![0] as Error;
 
-    expect(error).toBeInstanceOf(BadDataException);
-    expect(error.message).toBe(
-      "Code fix run not found (or it does not belong to this project).",
-    );
-    expect(AIRunEventService.findBy).not.toHaveBeenCalled();
-  });
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(
+        "Code fix run not found (or it does not belong to this project).",
+      );
+      expect(AIRunEventService.findBy).not.toHaveBeenCalled();
+    });
 
-  test("a run with no repository is the project's, as before", async () => {
-    runRepositoryId = undefined;
-    repositoryReadable = false;
+    test("a run with no repository is the project's, as before", async () => {
+      runRepositoryId = undefined;
+      repositoryReadable = false;
 
-    const { answered } = await read(route);
+      const { answered } = await read(route);
 
-    expect(answered).toBe(true);
-    expect(CodeRepositoryService.findOneBy).not.toHaveBeenCalled();
-  });
-});
+      expect(answered).toBe(true);
+      expect(CodeRepositoryService.findOneBy).not.toHaveBeenCalled();
+    });
+  },
+);

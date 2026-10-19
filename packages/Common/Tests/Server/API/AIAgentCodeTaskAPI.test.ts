@@ -21,7 +21,14 @@ import { CodeTaskAgentDetails } from "../../../Types/AI/CodeTask";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 
 /*
  * What a Runner is told when it takes a request from Code. The Runner names
@@ -150,11 +157,9 @@ beforeEach(() => {
     .mockImplementation(async () => {
       return reachable;
     });
-  jest
-    .spyOn(CodeTaskAgentBrief, "build")
-    .mockResolvedValue({
-      taskId: RUN_ID.toString(),
-    } as unknown as CodeTaskAgentDetails);
+  jest.spyOn(CodeTaskAgentBrief, "build").mockResolvedValue({
+    taskId: RUN_ID.toString(),
+  } as unknown as CodeTaskAgentDetails);
 });
 
 afterEach(() => {

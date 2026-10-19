@@ -165,11 +165,13 @@ beforeEach(() => {
   jest.spyOn(CodeTaskThread, "getPullRequests").mockImplementation(async () => {
     return pullRequests;
   });
-  jest.spyOn(CodeTaskThread, "getPeople").mockResolvedValue(
-    new Map([
-      [USER_ID.toString(), { id: USER_ID.toString(), name: "Jane Doe" }],
-    ]),
-  );
+  jest
+    .spyOn(CodeTaskThread, "getPeople")
+    .mockResolvedValue(
+      new Map([
+        [USER_ID.toString(), { id: USER_ID.toString(), name: "Jane Doe" }],
+      ]),
+    );
   jest.spyOn(CodeTaskOrigin, "loadSubjects").mockResolvedValue({
     exceptions: new Map(),
     incidents: new Map(),

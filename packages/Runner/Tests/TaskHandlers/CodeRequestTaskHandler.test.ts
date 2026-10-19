@@ -98,7 +98,11 @@ function makeOrigin(): string {
 }
 
 function branchesOf(origin: string): Array<string> {
-  return git(origin, ["for-each-ref", "--format=%(refname:short)", "refs/heads"])
+  return git(origin, [
+    "for-each-ref",
+    "--format=%(refname:short)",
+    "refs/heads",
+  ])
     .split("\n")
     .filter(Boolean)
     .sort();
@@ -370,7 +374,9 @@ describe("a first request", () => {
         return file.path === "src/users.ts";
       })?.patch || "";
 
-    expect(usersDiff).toContain("+  return retry(() => fetch(`/users/${id}`));");
+    expect(usersDiff).toContain(
+      "+  return retry(() => fetch(`/users/${id}`));",
+    );
     expect(usersDiff).toContain("-  return fetch(`/users/${id}`);");
   });
 
@@ -597,7 +603,7 @@ describe("a turn that changes nothing", () => {
     expect(branchesOf(origin)).toEqual(["main"]);
   });
 
-  test("an AI that could not run is a failure, never \"nothing to change\"", async () => {
+  test('an AI that could not run is a failure, never "nothing to change"', async () => {
     const origin: string = makeOrigin();
     const harness: Harness = setUp({
       origin,

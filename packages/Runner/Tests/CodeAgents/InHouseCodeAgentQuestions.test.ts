@@ -68,7 +68,11 @@ function makeWorkspace(): string {
 }
 
 function toolCall(name: string, args: Record<string, unknown>): LLMToolCall {
-  return { id: `call-${name}`, name, arguments: args } as unknown as LLMToolCall;
+  return {
+    id: `call-${name}`,
+    name,
+    arguments: args,
+  } as unknown as LLMToolCall;
 }
 
 function completion(data: {

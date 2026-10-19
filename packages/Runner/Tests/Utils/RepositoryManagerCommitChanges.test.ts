@@ -49,7 +49,10 @@ function makeRepository(): string {
 
   fs.mkdirSync(path.join(dir, "src"), { recursive: true });
   fs.writeFileSync(path.join(dir, "src", "keep.ts"), "export const a = 1;\n");
-  fs.writeFileSync(path.join(dir, "src", "gone.ts"), "export const gone = 1;\n");
+  fs.writeFileSync(
+    path.join(dir, "src", "gone.ts"),
+    "export const gone = 1;\n",
+  );
   fs.writeFileSync(
     path.join(dir, "src", "old-name.ts"),
     Array.from({ length: 20 }, (_value: unknown, index: number) => {
@@ -256,9 +259,18 @@ describe("reading git's -z output", () => {
   test("name-status: each letter, and a move", () => {
     const statuses: Map<string, CodeTaskFileStatus> =
       RepositoryManager.parseNameStatus(
-        ["M", "a.ts", "A", "b.ts", "D", "c.ts", "R087", "old.ts", "new.ts", ""].join(
-          NUL,
-        ),
+        [
+          "M",
+          "a.ts",
+          "A",
+          "b.ts",
+          "D",
+          "c.ts",
+          "R087",
+          "old.ts",
+          "new.ts",
+          "",
+        ].join(NUL),
       );
 
     expect(Object.fromEntries(statuses)).toEqual({
@@ -283,7 +295,9 @@ describe("reading git's -z output", () => {
 
     RepositoryManager.parseNumstat(`${"\t".repeat(400_000)}x`);
     RepositoryManager.parseNumstat(NUL.repeat(400_000));
-    RepositoryManager.parseNameStatus(`${"R".repeat(200_000)}${NUL.repeat(200_000)}`);
+    RepositoryManager.parseNameStatus(
+      `${"R".repeat(200_000)}${NUL.repeat(200_000)}`,
+    );
     RepositoryManager.hunksOf(`${"\n".repeat(400_000)}@@`);
 
     expect(Date.now() - start).toBeLessThan(2000);

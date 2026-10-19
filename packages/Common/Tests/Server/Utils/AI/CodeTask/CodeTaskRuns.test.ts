@@ -48,7 +48,9 @@ const CONTEXT: Array<CodeTaskContextItem> = [
 let created: Array<AIRun>;
 let latestReply: AIRun | null;
 let released: number;
-const mutex: SemaphoreMutex = { release: jest.fn() } as unknown as SemaphoreMutex;
+const mutex: SemaphoreMutex = {
+  release: jest.fn(),
+} as unknown as SemaphoreMutex;
 
 function task(): AIRun {
   const value: AIRun = new AIRun();
@@ -175,11 +177,11 @@ describe("CodeTaskRuns.start", () => {
   });
 
   test("the project's AI run budget is asked first", async () => {
-    (FixRunBudget.assertWithinBudget as unknown as jest.Mock).mockImplementation(
-      async () => {
-        throw new BadDataException("Daily limit reached.");
-      },
-    );
+    (
+      FixRunBudget.assertWithinBudget as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      throw new BadDataException("Daily limit reached.");
+    });
 
     expect(
       await refusal(() => {
@@ -388,7 +390,9 @@ describe("CodeTaskRuns.stop", () => {
     jest.spyOn(AIRunService, "findBy").mockResolvedValue([activeReply]);
     const transition: jest.SpiedFunction<
       typeof AIRunService.attemptStatusTransition
-    > = jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    > = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
 
     const stopped: number = await CodeTaskRuns.stop({
       projectId: PROJECT_ID,
