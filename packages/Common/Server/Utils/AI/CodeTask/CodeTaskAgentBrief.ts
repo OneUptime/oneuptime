@@ -25,6 +25,9 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../../../Types/AI/CodeFixTaskType";
 import {
+  CodeTaskAgentContextItem,
+  CodeTaskAgentDetails,
+  CodeTaskAgentTurn,
   CodeTaskContextItem,
   CodeTaskContextType,
   CodeTaskOriginJSON,
@@ -55,65 +58,6 @@ export const MAX_CONVERSATION_LENGTH: number = 40000;
 export const MAX_EARLIER_REPLY_LENGTH: number = 6000;
 const MAX_ORIGIN_DETAIL_LENGTH: number = 6000;
 const STACK_TRACE_LINES: number = 40;
-
-export interface CodeTaskAgentContextItem {
-  type: CodeTaskContextType;
-  label: string;
-  path?: string | undefined;
-  url?: string | undefined;
-  // A note's text, or what was read of a record, a trace or logs.
-  content?: string | undefined;
-}
-
-export interface CodeTaskAgentTurn {
-  // Who wrote it: the person who asked, or the AI (an earlier reply).
-  role: "person" | "ai";
-  author?: string | undefined;
-  text: string;
-  // For a person's turn: what they added to it.
-  context?: Array<CodeTaskAgentContextItem> | undefined;
-}
-
-export interface CodeTaskAgentDetails {
-  taskType: CodeFixTaskType;
-  taskId: string;
-  taskNumber?: number | undefined;
-  taskTitle: string;
-  taskUrl: string;
-  requestedBy?: string | undefined;
-  repository: {
-    id: string;
-    name: string;
-    organizationName: string;
-    repositoryName: string;
-    mainBranchName: string;
-    setupCommand: string | null;
-    buildCommand: string | null;
-    testCommand: string | null;
-  };
-  /*
-   * The branch of the task's open pull request, when it has one: the turn
-   * checks it out and pushes to it, and opens nothing new.
-   */
-  workingBranch: string | null;
-  pullRequest: {
-    number: number | null;
-    url: string | null;
-    title: string | null;
-    baseRefName: string | null;
-  } | null;
-  // Otherwise: the branch to create from the default branch for a change.
-  newBranchName: string;
-  // What is asked now.
-  request: {
-    message: string;
-    context: Array<CodeTaskAgentContextItem>;
-  };
-  // The turns before this one, oldest first.
-  conversation: Array<CodeTaskAgentTurn>;
-  // Earlier turns left out to keep the conversation short.
-  omittedTurns: number;
-}
 
 export default class CodeTaskAgentBrief {
   @CaptureSpan()

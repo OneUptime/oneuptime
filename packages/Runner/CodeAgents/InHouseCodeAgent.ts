@@ -43,6 +43,14 @@ interface ToolExecution {
 }
 
 /*
+ * The tool that ends a turn with a question for the person who asked
+ * (offered only for tasks that allow it: requests from Code).
+ */
+export const ASK_QUESTION_TOOL_NAME: string = "ask_question";
+
+const MAX_QUESTION_LENGTH: number = 4000;
+
+/*
  * The in-house code agent (B4 Tier 0, Docs/Internal/Roadmap/
  * CodeFixSandboxDesign.md): a tool loop whose every LLM completion is
  * server-mediated via POST /ai-agent-data/llm-completion — metered, logged
@@ -64,6 +72,13 @@ export default class InHouseCodeAgent implements CodeAgent {
   private taskLogger: TaskLogger | null = null;
   private progressCallback: CodeAgentProgressCallback | null = null;
   private backendAPI: BackendAPI | null = null;
+
+  /*
+   * Whether this task may end by asking the person who made the request a
+   * question (CodeAgentTask.allowQuestions): the ask_question tool is offered
+   * only then.
+   */
+  private allowQuestions: boolean = false;
   private currentProcess: ChildProcess | null = null;
   private aborted: boolean = false;
 
@@ -143,6 +158,7 @@ export default class InHouseCodeAgent implements CodeAgent {
      */
     this.writtenPaths = new Set<string>();
     this.commandArtifactPaths = new Set<string>();
+    this.allowQuestions = Boolean(task.allowQuestions);
     const taskId: string = this.config.taskId;
     const workspaceRoot: string = path.resolve(task.workingDirectory);
     const timeoutMs: number =
@@ -166,6 +182,7 @@ export default class InHouseCodeAgent implements CodeAgent {
 
     let summary: string = "";
     let completionCalls: number = 0;
+    let needsInput: boolean = false;
 
     try {
       await this.log(`Starting tool loop in ${workspaceRoot}`);
@@ -223,6 +240,34 @@ export default class InHouseCodeAgent implements CodeAgent {
 
         if (forceFinalAnswer || completion.toolCalls.length === 0) {
           summary = completion.content || summary;
+          break;
+        }
+
+        /*
+         * A question for the person ends the turn: they answer in the
+         * task's conversation, and that answer starts the next turn. Any
+         * other tool the model asked for alongside it is not run.
+         */
+        const question: string | null = this.readQuestion(
+          completion.toolCalls,
+        );
+
+        if (question !== null) {
+          await this.reportToolCall(
+            ASK_QUESTION_TOOL_NAME,
+            { question: question },
+            {
+              narration: `asked: ${question.substring(0, 200)}`,
+              output: "",
+            },
+          );
+
+          summary = [completion.content.trim(), question]
+            .filter((part: string): boolean => {
+              return part.length > 0;
+            })
+            .join("\n\n");
+          needsInput = true;
           break;
         }
 
@@ -286,6 +331,7 @@ export default class InHouseCodeAgent implements CodeAgent {
         summary: summary || "No summary available",
         logs,
         exitCode: 0,
+        ...(needsInput ? { needsInput: true } : {}),
       };
     } catch (error) {
       const errorMessage: string =
@@ -362,6 +408,14 @@ export default class InHouseCodeAgent implements CodeAgent {
           ]),
       "- Tool outputs are truncated; read specific files rather than dumping",
       "  large ones.",
+      ...(task.allowQuestions
+        ? [
+            "- ask_question asks the person who made the request one question and",
+            "  ends your turn; they answer in the conversation. Use it only when",
+            "  you cannot do what they asked without their answer - never for",
+            "  something you can find out from the repository.",
+          ]
+        : []),
       "Make focused, minimal changes. Do NOT run git commands to commit, branch",
       "or push — the surrounding pipeline commits your changes and opens the",
       "pull request. When you are done, stop calling tools and reply with a",
@@ -468,7 +522,52 @@ export default class InHouseCodeAgent implements CodeAgent {
         },
       },
       ...(RUNS_PROJECT_AUTHORED_COMMANDS ? [runCommandTool] : []),
+      ...(this.allowQuestions
+        ? [
+            {
+              name: ASK_QUESTION_TOOL_NAME,
+              description:
+                "Ask the person who made the request one clear question and end your turn. They see it in the task's conversation and can reply. Only when you cannot proceed without their answer.",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  question: {
+                    type: "string",
+                    description:
+                      "The question, written for the person who asked",
+                  },
+                },
+                required: ["question"],
+              },
+            },
+          ]
+        : []),
     ];
+  }
+
+  /*
+   * The question in a reply's tool calls, when questions are allowed and the
+   * model asked one with some text - null otherwise (an empty question is
+   * not one, and the call is then handled like any unknown tool).
+   */
+  private readQuestion(toolCalls: Array<LLMToolCall>): string | null {
+    if (!this.allowQuestions) {
+      return null;
+    }
+
+    for (const toolCall of toolCalls) {
+      if (toolCall.name !== ASK_QUESTION_TOOL_NAME) {
+        continue;
+      }
+
+      const question: unknown = toolCall.arguments?.["question"];
+
+      if (typeof question === "string" && question.trim().length > 0) {
+        return question.trim().substring(0, MAX_QUESTION_LENGTH);
+      }
+    }
+
+    return null;
   }
 
   /*

@@ -6,6 +6,10 @@ import TaskLogger from "./TaskLogger";
 import GitCredentials, { GitCredentialHandle } from "./GitCredentials";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "./GitPorcelain";
 import SecretRedactor from "./SecretRedactor";
+import {
+  CodeTaskChanges,
+  CodeTaskFileStatus,
+} from "Common/Types/AI/CodeTask";
 
 export interface CloneResult {
   workingDirectory: string;
@@ -46,6 +50,26 @@ const DEFAULT_GIT_TIMEOUT_MS: number = 60 * 1000;
 
 // `git log`/`git status` on a large tree can exceed the 1 MB default.
 const GIT_MAX_BUFFER_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * How much of a commit's diff a request from Code reports: the server keeps
+ * the same caps (CodeTaskOutcomeReader).
+ */
+export const MAX_DIFF_FILES: number = 100;
+export const MAX_FILE_PATCH_LENGTH: number = 20000;
+export const MAX_DIFF_LENGTH: number = 200000;
+
+// git's -z field separator.
+const NUL: string = String.fromCharCode(0);
+
+// One file of `git show --numstat -z`.
+export interface NumstatEntry {
+  path: string;
+  previousPath?: string | undefined;
+  additions: number;
+  deletions: number;
+  isBinary: boolean;
+}
 
 export default class RepositoryManager {
   private logger: TaskLogger | null = null;
@@ -543,6 +567,264 @@ export default class RepositoryManager {
       } as LogAttributes);
       return "";
     }
+  }
+
+  /*
+   * What the last commit changed, file by file, with each file's diff: what a
+   * request from Code shows as the turn's changes. Capped (MAX_DIFF_FILES,
+   * MAX_FILE_PATCH_LENGTH, MAX_DIFF_LENGTH) and redacted like every string
+   * that leaves the Runner. Paths are passed after `--`, and git's -z output
+   * is read field by field, so no file name is ever read as a flag or split
+   * on a space. Never throws: a turn whose diff cannot be read still reports
+   * what it did.
+   */
+  public async getLastCommitChanges(
+    repoPath: string,
+  ): Promise<CodeTaskChanges> {
+    const changes: CodeTaskChanges = { files: [], isTruncated: false };
+
+    try {
+      const numstat: string = await this.runGitCommand(repoPath, [
+        "show",
+        "--numstat",
+        "-z",
+        "-M",
+        "--format=",
+        "HEAD",
+      ]);
+      const nameStatus: string = await this.runGitCommand(repoPath, [
+        "show",
+        "--name-status",
+        "-z",
+        "-M",
+        "--format=",
+        "HEAD",
+      ]);
+
+      const statuses: Map<string, CodeTaskFileStatus> =
+        RepositoryManager.parseNameStatus(nameStatus);
+      const entries: Array<NumstatEntry> =
+        RepositoryManager.parseNumstat(numstat);
+
+      if (entries.length > MAX_DIFF_FILES) {
+        changes.isTruncated = true;
+      }
+
+      let budget: number = MAX_DIFF_LENGTH;
+
+      for (const entry of entries.slice(0, MAX_DIFF_FILES)) {
+        const status: CodeTaskFileStatus =
+          statuses.get(entry.path) ||
+          (entry.previousPath
+            ? CodeTaskFileStatus.Renamed
+            : CodeTaskFileStatus.Modified);
+
+        let patch: string | null = null;
+        let isPatchTruncated: boolean = false;
+
+        if (!entry.isBinary && budget > 0) {
+          const raw: string = await this.runGitCommand(repoPath, [
+            "show",
+            "-M",
+            "--format=",
+            "HEAD",
+            "--",
+            ...(entry.previousPath ? [entry.previousPath] : []),
+            entry.path,
+          ]);
+
+          patch = SecretRedactor.redact(RepositoryManager.hunksOf(raw));
+
+          const allowed: number = Math.min(MAX_FILE_PATCH_LENGTH, budget);
+
+          if (patch.length > allowed) {
+            patch = patch.substring(0, allowed);
+            isPatchTruncated = true;
+            changes.isTruncated = true;
+          }
+
+          budget -= patch.length;
+        } else if (!entry.isBinary) {
+          changes.isTruncated = true;
+        }
+
+        changes.files.push({
+          path: entry.path,
+          ...(entry.previousPath ? { previousPath: entry.previousPath } : {}),
+          status,
+          additions: entry.additions,
+          deletions: entry.deletions,
+          patch,
+          ...(isPatchTruncated ? { isPatchTruncated: true } : {}),
+        });
+      }
+    } catch (error) {
+      logger.error("Error reading the last commit's changes:", {
+        repoPath,
+      } as LogAttributes);
+      logger.error(SecretRedactor.redactError(error), {
+        repoPath,
+      } as LogAttributes);
+    }
+
+    return changes;
+  }
+
+  /*
+   * `git show --numstat -z` output: "adds<TAB>dels<TAB>path<NUL>" per file,
+   * or "adds<TAB>dels<TAB><NUL>old<NUL>new<NUL>" for a rename, with "-" for
+   * a binary file's counts.
+   */
+  public static parseNumstat(output: string): Array<NumstatEntry> {
+    const tokens: Array<string> = output.split(NUL);
+    const entries: Array<NumstatEntry> = [];
+    let index: number = 0;
+
+    while (index < tokens.length) {
+      const token: string = RepositoryManager.trimNewlines(
+        tokens[index] || "",
+        "start",
+      );
+      index++;
+
+      const firstTab: number = token.indexOf("\t");
+      const secondTab: number =
+        firstTab < 0 ? -1 : token.indexOf("\t", firstTab + 1);
+
+      if (secondTab < 0) {
+        continue;
+      }
+
+      const added: string = token.substring(0, firstTab);
+      const deleted: string = token.substring(firstTab + 1, secondTab);
+      let path: string = token.substring(secondTab + 1);
+      let previousPath: string | undefined = undefined;
+
+      if (!path) {
+        previousPath = tokens[index] || undefined;
+        path = tokens[index + 1] || "";
+        index += 2;
+      }
+
+      if (!path) {
+        continue;
+      }
+
+      const isBinary: boolean = added === "-" || deleted === "-";
+
+      entries.push({
+        path,
+        ...(previousPath ? { previousPath } : {}),
+        additions: isBinary ? 0 : RepositoryManager.toCount(added),
+        deletions: isBinary ? 0 : RepositoryManager.toCount(deleted),
+        isBinary,
+      });
+    }
+
+    return entries;
+  }
+
+  /*
+   * `git show --name-status -z` output: "M<NUL>path<NUL>" per file, and
+   * "R100<NUL>old<NUL>new<NUL>" (or C for a copy) when it moved.
+   */
+  public static parseNameStatus(
+    output: string,
+  ): Map<string, CodeTaskFileStatus> {
+    const tokens: Array<string> = output.split(NUL);
+    const statuses: Map<string, CodeTaskFileStatus> = new Map<
+      string,
+      CodeTaskFileStatus
+    >();
+    let index: number = 0;
+
+    while (index < tokens.length) {
+      const code: string = RepositoryManager.trimNewlines(
+        tokens[index] || "",
+        "start",
+      );
+      index++;
+
+      if (!code) {
+        continue;
+      }
+
+      const letter: string = code.charAt(0);
+
+      if (letter === "R" || letter === "C") {
+        const path: string = tokens[index + 1] || "";
+        index += 2;
+
+        if (path) {
+          statuses.set(
+            path,
+            letter === "R"
+              ? CodeTaskFileStatus.Renamed
+              : CodeTaskFileStatus.Added,
+          );
+        }
+
+        continue;
+      }
+
+      const path: string = tokens[index] || "";
+      index++;
+
+      if (!path) {
+        continue;
+      }
+
+      statuses.set(
+        path,
+        letter === "A"
+          ? CodeTaskFileStatus.Added
+          : letter === "D"
+            ? CodeTaskFileStatus.Deleted
+            : CodeTaskFileStatus.Modified,
+      );
+    }
+
+    return statuses;
+  }
+
+  // A file's diff from its first hunk on: git's header lines left out.
+  public static hunksOf(patch: string): string {
+    const firstHunk: number = patch.startsWith("@@")
+      ? 0
+      : patch.indexOf("\n@@");
+
+    if (firstHunk < 0) {
+      return "";
+    }
+
+    return RepositoryManager.trimNewlines(
+      patch.substring(firstHunk === 0 ? 0 : firstHunk + 1),
+      "end",
+    );
+  }
+
+  // Newlines off one end of a text, with a loop: no pattern reads a diff.
+  private static trimNewlines(text: string, end: "start" | "end"): string {
+    let start: number = 0;
+    let stop: number = text.length;
+
+    if (end === "start") {
+      while (start < stop && text.charAt(start) === "\n") {
+        start++;
+      }
+    } else {
+      while (stop > start && text.charAt(stop - 1) === "\n") {
+        stop--;
+      }
+    }
+
+    return text.substring(start, stop);
+  }
+
+  private static toCount(value: string): number {
+    const count: number = Number(value);
+
+    return Number.isSafeInteger(count) && count > 0 ? count : 0;
   }
 
   // Get staged diff

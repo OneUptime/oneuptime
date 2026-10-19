@@ -382,6 +382,72 @@ export interface CodeRepositoryTaskStatsJSON {
   lastActivityAt?: string | undefined;
 }
 
+/*
+ * What a Runner is told when it takes a request from Code
+ * (/ai-agent-data/get-code-task-details; built by the server's
+ * CodeTaskAgentBrief). Every text in it was redacted before it left the
+ * server.
+ */
+export interface CodeTaskAgentContextItem {
+  type: CodeTaskContextType;
+  label: string;
+  path?: string | undefined;
+  url?: string | undefined;
+  // A note's text, or what was read of a record, a trace or logs.
+  content?: string | undefined;
+}
+
+export interface CodeTaskAgentTurn {
+  // Who wrote it: the person who asked, or the AI (an earlier reply).
+  role: "person" | "ai";
+  author?: string | undefined;
+  text: string;
+  // For a person's turn: what they added to it.
+  context?: Array<CodeTaskAgentContextItem> | undefined;
+}
+
+export interface CodeTaskAgentDetails {
+  // CodeFixTaskType.CodeRequest
+  taskType: string;
+  taskId: string;
+  taskNumber?: number | undefined;
+  taskTitle: string;
+  taskUrl: string;
+  requestedBy?: string | undefined;
+  repository: {
+    id: string;
+    name: string;
+    organizationName: string;
+    repositoryName: string;
+    mainBranchName: string;
+    setupCommand: string | null;
+    buildCommand: string | null;
+    testCommand: string | null;
+  };
+  /*
+   * The branch of the task's open pull request, when it has one: the turn
+   * checks it out and pushes to it, and opens nothing new.
+   */
+  workingBranch: string | null;
+  pullRequest: {
+    number: number | null;
+    url: string | null;
+    title: string | null;
+    baseRefName: string | null;
+  } | null;
+  // Otherwise: the branch to create from the default branch for a change.
+  newBranchName: string;
+  // What is asked now.
+  request: {
+    message: string;
+    context: Array<CodeTaskAgentContextItem>;
+  };
+  // The turns before this one, oldest first.
+  conversation: Array<CodeTaskAgentTurn>;
+  // Earlier turns left out to keep the conversation short.
+  omittedTurns: number;
+}
+
 const TRACE_ID_PATTERN: RegExp = /^[0-9a-f]{16}(?:[0-9a-f]{16})?$/;
 
 export class CodeTaskTitle {
