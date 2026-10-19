@@ -17,7 +17,8 @@ import Runner from "Common/Models/DatabaseModels/Runner";
  * Runner's id and key, from the body or the x-agent-id / x-agent-key
  * headers. A client may present only so many different wrong keys for one
  * Runner: after that, its requests for that Runner are refused until its
- * window ends, whichever key they carry (WrongComponentKeyLimit). A Runner
+ * window ends, whichever key they carry, before the key is looked up
+ * (WrongComponentKeyLimit). A Runner
  * that still holds the key it had before a reset sends that one key, so it
  * is never refused for it.
  *
@@ -63,6 +64,26 @@ export default class RunnerAuthorization {
       }
 
       const agentId: ObjectID = new ObjectID(agentIdRaw);
+
+      /*
+       * A client that sent too many different wrong keys for this Runner is
+       * refused before its key is looked up (WrongComponentKeyLimit).
+       */
+      const refusedBeforeLookup: WrongKeyRefusal | null =
+        await WrongComponentKeyLimit.checkBeforeLookup({
+          req: req,
+          kind: ComponentKeyKind.Agent,
+          componentId: agentId.toString(),
+        });
+
+      if (refusedBeforeLookup) {
+        return WrongComponentKeyLimit.answerRefusal(
+          req,
+          res,
+          ComponentKeyKind.Agent,
+          refusedBeforeLookup,
+        );
+      }
 
       const agent: Runner | null = await RunnerService.findByIdAndKey({
         agentId,

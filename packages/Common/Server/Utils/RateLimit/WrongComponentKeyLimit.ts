@@ -44,6 +44,17 @@ import net from "net";
  * A key the repository ships, or a key that is not text, is never counted: it
  * is refused before it is compared, and can never be right.
  *
+ * A CLIENT OVER THE LIMIT IS REFUSED BEFORE ITS KEY IS LOOKED UP
+ *
+ * A probe's, a Runner's and an AI agent's key is looked up in the database.
+ * Every check of one asks checkBeforeLookup first, and a client already over
+ * the limit for that component is refused there: its key is not looked up or
+ * compared, so its requests cost no database read, and each is answered the
+ * same whatever key it carries. Once the key is compared, checkComponentKey
+ * counts it, and refuses a client that went over the limit while its request
+ * was on the way. REGISTER_PROBE_KEY and the shared Runner's key are
+ * compared with a value the app holds, and read nothing.
+ *
  * NOT ON A PRIVATE NETWORK ADDRESS
  *
  * A client over the limit is refused whichever key it carries, the right one
@@ -198,23 +209,8 @@ export default class WrongComponentKeyLimit {
     isKeyRight: boolean;
     componentExists: () => Promise<boolean>;
   }): Promise<WrongKeyRefusal | null> {
-    const limit: WrongKeyLimit = KINDS[data.kind].limit;
+    const subject: string | null = WrongComponentKeyLimit.countedSubject(data);
 
-    // Valkey away: keys are compared as always, and nothing is read to count.
-    if (!limit.isCounting()) {
-      return null;
-    }
-
-    // A private network address: never counted (NOT ON A PRIVATE NETWORK ADDRESS).
-    if (WrongComponentKeyLimit.isFromPrivateNetwork(data.req)) {
-      return null;
-    }
-
-    const subject: string | null = WrongComponentKeyLimit.canonicalId(
-      data.componentId,
-    );
-
-    // Not an id: nothing can be let in with it, so nothing is counted for it.
     if (subject === null) {
       return null;
     }
@@ -237,9 +233,35 @@ export default class WrongComponentKeyLimit {
       );
     }
 
-    return await limit.check({
+    return await KINDS[data.kind].limit.check({
       req: data.req,
       wrongKey: wrongKey,
+      subject: subject,
+    });
+  }
+
+  /*
+   * Before a probe's, a Runner's or an AI agent's key is looked up: the
+   * refusal to answer the request with when its client is already over the
+   * limit for that component, or null (A CLIENT OVER THE LIMIT IS REFUSED
+   * BEFORE ITS KEY IS LOOKED UP, above). Nothing is counted here: whether
+   * the key is wrong is not known yet.
+   */
+  public static async checkBeforeLookup(data: {
+    req: ExpressRequest;
+    kind: ComponentKeyKind.Probe | ComponentKeyKind.Agent;
+    // The id the request named, as it named it.
+    componentId: string;
+  }): Promise<WrongKeyRefusal | null> {
+    const subject: string | null = WrongComponentKeyLimit.countedSubject(data);
+
+    if (subject === null) {
+      return null;
+    }
+
+    return await KINDS[data.kind].limit.check({
+      req: data.req,
+      wrongKey: null,
       subject: subject,
     });
   }
@@ -324,6 +346,29 @@ export default class WrongComponentKeyLimit {
     }
 
     return false;
+  }
+
+  /*
+   * The component a probe's, a Runner's or an AI agent's key is counted for -
+   * its id, as one spelling - or null when that key is not counted at all.
+   */
+  private static countedSubject(data: {
+    req: ExpressRequest;
+    kind: ComponentKeyKind.Probe | ComponentKeyKind.Agent;
+    componentId: string;
+  }): string | null {
+    // Valkey away: keys are compared as always, and nothing is read to count.
+    if (!KINDS[data.kind].limit.isCounting()) {
+      return null;
+    }
+
+    // A private network address: never counted (NOT ON A PRIVATE NETWORK ADDRESS).
+    if (WrongComponentKeyLimit.isFromPrivateNetwork(data.req)) {
+      return null;
+    }
+
+    // Not an id: nothing can be let in with it, so nothing is counted for it.
+    return WrongComponentKeyLimit.canonicalId(data.componentId);
   }
 
   // Whether a request comes from a private network address.

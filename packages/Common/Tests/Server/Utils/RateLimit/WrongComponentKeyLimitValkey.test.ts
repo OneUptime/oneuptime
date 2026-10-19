@@ -16,7 +16,8 @@ import {
  * its id in a hash tag, given their lifetime once; the different wrong keys
  * a client presents for one component counted apart from every other
  * component's; the right key never counted, and refused once the client is
- * over the limit; an IPv6 /64 counted with room for ten addresses; nothing of
+ * over the limit, and refused before its key is looked up, by a question that
+ * writes nothing; an IPv6 /64 counted with room for ten addresses; nothing of
  * a key but its digest kept. And a connection that stops answering - its
  * socket open, nothing coming back, as a stalled Valkey or a dead proxy
  * leaves it - is not waited for past WRONG_KEY_COUNT_TIMEOUT_MS: keys are
@@ -459,6 +460,73 @@ describe("a component's wrong keys, on a real Valkey", () => {
     expect(
       await client.keys(`probe-key:wrong-keys:{${componentOf(4)}}:*`),
     ).toStrictEqual([]);
+  });
+
+  test("asking before the lookup writes nothing: a client within the limit is let on, one over it is refused, and its set and lifetime stay as they were", async () => {
+    const address: string = ipv4Of(36);
+    const probe: string = componentOf(8);
+
+    const ask: (
+      from: string,
+      id: string,
+    ) => Promise<WrongKeyRefusal | null> = async (
+      from: string,
+      id: string,
+    ): Promise<WrongKeyRefusal | null> => {
+      return await WrongComponentKeyLimit.checkBeforeLookup({
+        req: requestFrom(from),
+        kind: ComponentKeyKind.Probe,
+        componentId: id,
+      });
+    };
+
+    for (let call: number = 0; call < 20; call++) {
+      expect(await ask(address, probe)).toBeNull();
+    }
+
+    expect(
+      await client.keys(`probe-key:wrong-keys:{${probe}}:*`),
+    ).toStrictEqual([]);
+
+    for (
+      let index: number = 0;
+      index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      await present({
+        from: address,
+        component: probe,
+        key: `guess-${index}`,
+        isKeyRight: false,
+      });
+    }
+
+    const sets: Array<string> = await client.keys(
+      `probe-key:wrong-keys:{${probe}}:${address}:*`,
+    );
+
+    expect(sets).toHaveLength(1);
+
+    const keptBefore: Array<string> = (await client.smembers(sets[0]!)).sort();
+    const ttlBefore: number = await client.ttl(sets[0]!);
+
+    for (let call: number = 0; call < 20; call++) {
+      const refusal: WrongKeyRefusal | null = await ask(
+        address,
+        probe.toUpperCase(),
+      );
+
+      expect(refusal).not.toBeNull();
+      expect(refusal!.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+    }
+
+    expect((await client.smembers(sets[0]!)).sort()).toEqual(keptBefore);
+    expect(await client.ttl(sets[0]!)).toBeLessThanOrEqual(ttlBefore);
+    expect(await client.ttl(sets[0]!)).toBeGreaterThan(0);
+
+    // Another client, and another probe: let on.
+    expect(await ask(ipv4Of(37), probe)).toBeNull();
+    expect(await ask(address, componentOf(9))).toBeNull();
   });
 
   test("an IPv6 host rotating through its /64 is held to ten addresses' worth, for one probe", async () => {

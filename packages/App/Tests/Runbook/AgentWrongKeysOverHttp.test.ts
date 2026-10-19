@@ -14,7 +14,8 @@
  *   - a client may present ten different wrong keys for one Runner or AI
  *     agent; then every request it sends for that one is refused (429,
  *     Retry-After) until the window ends, its right key too - from that
- *     client alone, for that one alone;
+ *     client alone, for that one alone - before the Runner or AI agent table
+ *     is read;
  *   - the wrong keys for one Runner are counted together on every protocol
  *     it speaks: guessing on two routes buys no extra tries;
  *   - a Runner that keeps its old key, and ids nothing has, are never
@@ -177,6 +178,7 @@ let redis: FakeCounterRedis;
 const FAILING_RUNNER_LOOKUPS: Set<string> = new Set<string>();
 const FAILING_RUNNER_EXISTENCE_LOOKUPS: Set<string> = new Set<string>();
 let runnerLookups: number = 0;
+let aiAgentLookups: number = 0;
 
 beforeAll(async () => {
   let runnerIngress: AnyModule;
@@ -214,7 +216,16 @@ beforeAll(async () => {
       return await runnerTable(findBy);
     });
     runnerService.heartbeat = jest.fn(async () => {});
-    aiAgentService.findOneBy = jest.fn(tableLookup(AI_AGENTS, ObjectIDClass));
+    const aiAgentTable: (findBy: unknown) => Promise<unknown> = tableLookup(
+      AI_AGENTS,
+      ObjectIDClass,
+    );
+
+    aiAgentService.findOneBy = jest.fn(async (findBy: unknown) => {
+      aiAgentLookups++;
+
+      return await aiAgentTable(findBy);
+    });
     aiAgentService.updateLastAlive = jest.fn(async () => {});
     aiRunService.countBy = jest.fn(async () => {
       return 3;
@@ -285,6 +296,7 @@ beforeEach(() => {
   FAILING_RUNNER_LOOKUPS.clear();
   FAILING_RUNNER_EXISTENCE_LOOKUPS.clear();
   runnerLookups = 0;
+  aiAgentLookups = 0;
 });
 
 interface PostResult {
@@ -462,6 +474,98 @@ describe("a Runner's key on the runbook protocol", () => {
     expect(
       (await runbookHeartbeat(CLIENT, RUNNER, RUNNERS[RUNNER]!.key)).status,
     ).toBe(200);
+  });
+});
+
+describe("a client over the limit is refused before any table is read", () => {
+  test("once refused for a Runner, its requests for that Runner on the runbook and code-fix protocols are answered without a lookup, whichever key they carry", async () => {
+    for (
+      let index: number = 0;
+      index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      await runbookHeartbeat(CLIENT, RUNNER, `guess-${index}`);
+    }
+
+    runnerLookups = 0;
+    aiAgentLookups = 0;
+
+    expectRefusedForTooMany(
+      await runbookHeartbeat(CLIENT, RUNNER, RUNNERS[RUNNER]!.key),
+    );
+    expectRefusedForTooMany(
+      await runbookHeartbeat(CLIENT, RUNNER, "a-guess-not-sent-before"),
+    );
+    expectRefusedForTooMany(
+      await post(
+        "/runner-ingest/heartbeat",
+        CLIENT,
+        {},
+        { "x-agent-id": RUNNER.toUpperCase(), "x-agent-key": "one-more-guess" },
+      ),
+    );
+    expectRefusedForTooMany(
+      await codeFixCount(CLIENT, RUNNER, RUNNERS[RUNNER]!.key),
+    );
+    expectRefusedForTooMany(
+      await codeFixCount(CLIENT, `{${RUNNER}}`, "yet-another-guess"),
+    );
+
+    expect({ runnerLookups, aiAgentLookups }).toEqual({
+      runnerLookups: 0,
+      aiAgentLookups: 0,
+    });
+
+    // Another Runner from that client, and the Runner from its own address: looked up as ever.
+    expect(
+      (await runbookHeartbeat(CLIENT, OTHER_RUNNER, RUNNERS[OTHER_RUNNER]!.key))
+        .status,
+    ).toBe(200);
+    expect(
+      (await runbookHeartbeat(OTHER_CLIENT, RUNNER, RUNNERS[RUNNER]!.key))
+        .status,
+    ).toBe(200);
+    expect(runnerLookups).toBeGreaterThan(0);
+  });
+
+  test("once refused for the global agent, its heartbeat and code-fix requests for it are answered without a lookup, whichever key they carry", async () => {
+    for (
+      let index: number = 0;
+      index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      await agentAlive(CLIENT, GLOBAL_AGENT, `guess-${index}`);
+    }
+
+    runnerLookups = 0;
+    aiAgentLookups = 0;
+
+    expectRefusedForTooMany(
+      await agentAlive(CLIENT, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key),
+    );
+    expectRefusedForTooMany(
+      await agentAlive(CLIENT, GLOBAL_AGENT, "a-guess-not-sent-before"),
+    );
+    expectRefusedForTooMany(
+      await codeFixCount(CLIENT, GLOBAL_AGENT, AI_AGENTS[GLOBAL_AGENT]!.key),
+    );
+
+    expect({ runnerLookups, aiAgentLookups }).toEqual({
+      runnerLookups: 0,
+      aiAgentLookups: 0,
+    });
+
+    // The agent from its own address: looked up, and answered.
+    expect(
+      (
+        await agentAlive(
+          OTHER_CLIENT,
+          GLOBAL_AGENT,
+          AI_AGENTS[GLOBAL_AGENT]!.key,
+        )
+      ).status,
+    ).toBe(200);
+    expect(aiAgentLookups).toBeGreaterThan(0);
   });
 });
 

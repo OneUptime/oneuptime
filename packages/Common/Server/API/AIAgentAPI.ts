@@ -189,6 +189,26 @@ export default class AIAgentAPI extends BaseAPI<AIAgent, AIAgentServiceType> {
             );
           }
 
+          /*
+           * A client that sent too many different wrong keys for this agent
+           * is refused before its key is looked up (WrongComponentKeyLimit).
+           */
+          const refusedBeforeLookup: WrongKeyRefusal | null =
+            await WrongComponentKeyLimit.checkBeforeLookup({
+              req: req,
+              kind: ComponentKeyKind.Agent,
+              componentId: aiAgentId.toString(),
+            });
+
+          if (refusedBeforeLookup) {
+            return WrongComponentKeyLimit.answerRefusal(
+              req,
+              res,
+              ComponentKeyKind.Agent,
+              refusedBeforeLookup,
+            );
+          }
+
           const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
             query: {
               _id: aiAgentId.toString(),

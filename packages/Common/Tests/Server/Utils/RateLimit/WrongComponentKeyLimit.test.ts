@@ -57,7 +57,9 @@ import type { Mock } from "jest-mock";
  *   - what Valkey keeps is an HMAC under a key of the installation's own,
  *     never the key;
  *   - a count Valkey does not answer is not waited for past
- *     WRONG_KEY_COUNT_TIMEOUT_MS: the key is compared as always.
+ *     WRONG_KEY_COUNT_TIMEOUT_MS: the key is compared as always;
+ *   - a client over the limit for a component is refused before its key is
+ *     looked up (checkBeforeLookup), and asking adds nothing to its count.
  */
 
 const mockRedisState: { client: FakeCounterRedis | null; connected: boolean } =
@@ -1226,6 +1228,238 @@ describe("Valkey away, slow or failing: keys are compared as always", () => {
 
     // The late answer is not lost, nor thrown anywhere.
     expect(redis.releaseStalledEvals()).toBe(1);
+  }, 15000);
+});
+
+describe("a client over the limit is refused before its key is looked up", () => {
+  // Asks, as every check of a component's key does before its lookup.
+  async function askBeforeLookup(data: {
+    from: string;
+    kind?: ComponentKeyKind.Probe | ComponentKeyKind.Agent;
+    componentId?: string;
+  }): Promise<WrongKeyRefusal | null> {
+    return await WrongComponentKeyLimit.checkBeforeLookup({
+      req: requestFrom(data.from),
+      kind: data.kind ?? ComponentKeyKind.Probe,
+      componentId: data.componentId ?? PROBE_A,
+    });
+  }
+
+  async function sendWrongKeys(data: {
+    from: string;
+    kind?: ComponentKeyKind.Probe | ComponentKeyKind.Agent;
+    componentId?: string;
+    count: number;
+  }): Promise<void> {
+    for (let index: number = 0; index < data.count; index++) {
+      await presentComponentKey({
+        from: data.from,
+        kind: data.kind ?? ComponentKeyKind.Probe,
+        componentId: data.componentId ?? PROBE_A,
+        key: `guess-${index}`,
+        isKeyRight: false,
+      });
+    }
+  }
+
+  test("a client within the limit is let on to the lookup, and asking adds nothing to its count", async () => {
+    expect(await askBeforeLookup({ from: CLIENT })).toBeNull();
+
+    await sendWrongKeys({
+      from: CLIENT,
+      count: WRONG_COMPONENT_KEYS_PER_ADDRESS,
+    });
+
+    for (let ask: number = 0; ask < 50; ask++) {
+      expect(await askBeforeLookup({ from: CLIENT })).toBeNull();
+    }
+
+    const sets: Array<string> = redis.keysHolding("probe-key:wrong-keys:");
+
+    expect(sets).toHaveLength(1);
+    expect(redis.membersOf(sets[0]!)).toHaveLength(
+      WRONG_COMPONENT_KEYS_PER_ADDRESS,
+    );
+
+    // Asking left its count where it was: its next different wrong key is the one that goes over.
+    expect(
+      await presentComponentKey({
+        from: CLIENT,
+        key: "one-more-guess",
+        isKeyRight: false,
+      }),
+    ).not.toBeNull();
+  });
+
+  test.each([
+    ["a probe", ComponentKeyKind.Probe as const],
+    ["a Runner or an AI agent", ComponentKeyKind.Agent as const],
+  ])(
+    "a client over the limit for %s is refused before the lookup, for that component and from that client alone, and asking keeps nothing more",
+    async (
+      _label: string,
+      kind: ComponentKeyKind.Probe | ComponentKeyKind.Agent,
+    ) => {
+      await sendWrongKeys({
+        from: CLIENT,
+        kind: kind,
+        count: WRONG_COMPONENT_KEYS_PER_ADDRESS + 1,
+      });
+
+      const warningsBefore: number = mockWarnings.length;
+      const valuesBefore: Array<string> = redis.membersOf(
+        redis.keysHolding(":wrong-keys:")[0]!,
+      );
+
+      for (let ask: number = 0; ask < 20; ask++) {
+        const refusal: WrongKeyRefusal | null = await askBeforeLookup({
+          from: CLIENT,
+          kind: kind,
+        });
+
+        expect(refusal).not.toBeNull();
+        expect(refusal!.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+        expect(refusal!.retryAfterSeconds).toBeLessThanOrEqual(
+          WRONG_COMPONENT_KEY_WINDOW_SECONDS,
+        );
+      }
+
+      // Nothing more is kept, and the one line its going over wrote is not written again.
+      expect(redis.keysHolding(":wrong-keys:")).toHaveLength(1);
+      expect(redis.membersOf(redis.keysHolding(":wrong-keys:")[0]!)).toEqual(
+        valuesBefore,
+      );
+      expect(mockWarnings.length).toBe(warningsBefore);
+
+      // Another client, another component, another kind of key: let on.
+      expect(
+        await askBeforeLookup({ from: OTHER_CLIENT, kind: kind }),
+      ).toBeNull();
+      expect(
+        await askBeforeLookup({
+          from: CLIENT,
+          kind: kind,
+          componentId: PROBE_B,
+        }),
+      ).toBeNull();
+      expect(
+        await askBeforeLookup({
+          from: CLIENT,
+          kind:
+            kind === ComponentKeyKind.Probe
+              ? ComponentKeyKind.Agent
+              : ComponentKeyKind.Probe,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("every spelling of the component's id is asked about as that component", async () => {
+    await sendWrongKeys({
+      from: CLIENT,
+      count: WRONG_COMPONENT_KEYS_PER_ADDRESS + 1,
+    });
+
+    for (const spelling of [
+      PROBE_A,
+      PROBE_A.toUpperCase(),
+      `{${PROBE_A}}`,
+      PROBE_A.split("-").join(""),
+    ]) {
+      const refusal: WrongKeyRefusal | null = await askBeforeLookup({
+        from: CLIENT,
+        componentId: spelling,
+      });
+
+      expect({ spelling, refused: refusal !== null }).toEqual({
+        spelling,
+        refused: true,
+      });
+    }
+  });
+
+  test("an IPv6 /64 over its limit is refused before the lookup, from an address of it that sent nothing yet", async () => {
+    const perNetwork: number = getIpv6NetworkRateLimit(
+      WRONG_COMPONENT_KEYS_PER_ADDRESS,
+    );
+
+    for (let index: number = 0; index <= perNetwork; index++) {
+      await presentComponentKey({
+        from: hostOf(index),
+        key: `guess-${index}`,
+        isKeyRight: false,
+      });
+    }
+
+    expect(await askBeforeLookup({ from: hostOf(200000) })).not.toBeNull();
+    expect(await askBeforeLookup({ from: "2001:db8:99:1::5" })).toBeNull();
+    expect(await askBeforeLookup({ from: CLIENT })).toBeNull();
+  });
+
+  test("a private network address, an id that is no id, and Valkey away: never refused, and nothing is read", async () => {
+    // Over the limit from a public address first, for every case below.
+    await sendWrongKeys({
+      from: CLIENT,
+      count: WRONG_COMPONENT_KEYS_PER_ADDRESS + 1,
+    });
+
+    const sentBefore: number = redis.sent.length;
+
+    for (const address of ["10.1.2.3", "172.19.0.1", "127.0.0.1", "fd00::7"]) {
+      expect([address, await askBeforeLookup({ from: address })]).toEqual([
+        address,
+        null,
+      ]);
+    }
+
+    for (const notAnId of ["", "probe-one", "x".repeat(5000)]) {
+      expect(
+        await askBeforeLookup({ from: CLIENT, componentId: notAnId }),
+      ).toBeNull();
+    }
+
+    expect(redis.sent.length).toBe(sentBefore);
+
+    mockRedisState.connected = false;
+    expect(await askBeforeLookup({ from: CLIENT })).toBeNull();
+
+    mockRedisState.connected = true;
+    mockRedisState.client = null;
+    expect(await askBeforeLookup({ from: CLIENT })).toBeNull();
+
+    expect(redis.sent.length).toBe(sentBefore);
+  });
+
+  test("a failing question lets the request go on to its lookup", async () => {
+    await sendWrongKeys({
+      from: CLIENT,
+      count: WRONG_COMPONENT_KEYS_PER_ADDRESS + 1,
+    });
+
+    redis.failNextExec = new Error("Connection is closed.");
+
+    expect(await askBeforeLookup({ from: CLIENT })).toBeNull();
+
+    // The next question, answered, refuses again.
+    expect(await askBeforeLookup({ from: CLIENT })).not.toBeNull();
+  });
+
+  test(`a question Valkey does not answer is not waited for past ${WRONG_KEY_COUNT_TIMEOUT_MS} ms: the request goes on to its lookup`, async () => {
+    redis.stallEvals = true;
+
+    const started: number = Date.now();
+    const refusal: WrongKeyRefusal | null = await askBeforeLookup({
+      from: CLIENT,
+    });
+    const waited: number = Date.now() - started;
+
+    expect(refusal).toBeNull();
+    expect(waited).toBeGreaterThanOrEqual(WRONG_KEY_COUNT_TIMEOUT_MS - 50);
+    expect(waited).toBeLessThan(WRONG_KEY_COUNT_TIMEOUT_MS + 1500);
+
+    // The late answer is not lost, nor thrown anywhere, and added nothing.
+    expect(redis.releaseStalledEvals()).toBe(1);
+    expect(redis.keysHolding(":wrong-keys:")).toHaveLength(0);
   }, 15000);
 });
 

@@ -127,6 +127,26 @@ export default class ProbeAuthorization {
       ProbeAuthorization.observeRequestDuration(req, res, probeId.toString());
 
       /*
+       * A client that sent too many different wrong keys for this probe is
+       * refused before its key is looked up (WrongComponentKeyLimit).
+       */
+      const refusedBeforeLookup: WrongKeyRefusal | null =
+        await WrongComponentKeyLimit.checkBeforeLookup({
+          req: req,
+          kind: ComponentKeyKind.Probe,
+          componentId: probeId.toString(),
+        });
+
+      if (refusedBeforeLookup) {
+        return WrongComponentKeyLimit.answerRefusal(
+          req,
+          res,
+          ComponentKeyKind.Probe,
+          refusedBeforeLookup,
+        );
+      }
+
+      /*
        * Cache-backed verification: repeat requests from a probe skip the
        * per-request Probe SELECT, so authentication stays fast even while
        * the Postgres pool is busy. Falls back to the database on any cache

@@ -20,10 +20,13 @@ import ts from "typescript";
  * asks the limit, in the right order. So, across all product code (ee/ too,
  * when it is checked out), comments removed:
  *
- *   - each check is listed, and does what the rule needs in this order: it
- *     compares the key (or finds the component by it), asks the limit with
- *     whether the key was right, answers a refused client with 429, and only
- *     then answers the key as wrong or lets the request through;
+ *   - each check is listed, and does what the rule needs in this order: a
+ *     check of a probe's, a Runner's or an agent's key first asks whether its
+ *     client is refused already, and answers a refused one with 429 before
+ *     the key is looked up; then every check compares the key (or finds the
+ *     component by it), asks the limit with whether the key was right,
+ *     answers a refused client with 429, and only then answers the key as
+ *     wrong or lets the request through;
  *   - nothing else calls the lookups a check is built on, or the limit: a
  *     new route that checks a probe's or an agent's key fails this guard
  *     until it counts too, and every code-fix route authenticates through
@@ -81,6 +84,8 @@ const KEY_CHECKS: Array<KeyCheck> = [
     to: "return next(err);",
     compared: "await ProbeService.verifyProbeKey({",
     inOrder: [
+      "const refusedBeforeLookup: WrongKeyRefusal | null = await WrongComponentKeyLimit.checkBeforeLookup({ req: req, kind: ComponentKeyKind.Probe, componentId: probeId.toString(), });",
+      "if (refusedBeforeLookup) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Probe, refusedBeforeLookup); }",
       "const isValidProbe: boolean = await ProbeService.verifyProbeKey({ probeId: probeId, probeKey: probeKey, });",
       "await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Probe, componentId: probeId.toString(), presentedKey: probeKey, isKeyRight: isValidProbe,",
       "return await ProbeService.hasProbeWithId(probeId);",
@@ -95,6 +100,8 @@ const KEY_CHECKS: Array<KeyCheck> = [
     to: "req.runner = agent;",
     compared: "await RunnerService.findByIdAndKey({",
     inOrder: [
+      "const refusedBeforeLookup: WrongKeyRefusal | null = await WrongComponentKeyLimit.checkBeforeLookup({ req: req, kind: ComponentKeyKind.Agent, componentId: agentId.toString(), });",
+      "if (refusedBeforeLookup) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Agent, refusedBeforeLookup); }",
       "const agent: Runner | null = await RunnerService.findByIdAndKey({",
       "await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Agent, componentId: agentId.toString(), presentedKey: agentKeyRaw, isKeyRight: Boolean(agent),",
       "return await RunnerService.hasRunnerWithId(agentId);",
@@ -109,6 +116,8 @@ const KEY_CHECKS: Array<KeyCheck> = [
     compared:
       "await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey,",
     inOrder: [
+      "const refusedBeforeLookup: WrongKeyRefusal | null = await WrongComponentKeyLimit.checkBeforeLookup({ req: req, kind: ComponentKeyKind.Agent, componentId: aiAgentId.toString(), });",
+      "if (refusedBeforeLookup) { return WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Agent, refusedBeforeLookup); }",
       "const aiAgent: AIAgent | null = await AIAgentService.findOneBy({ query: { _id: aiAgentId.toString(), key: aiAgentKey, },",
       "await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Agent, componentId: aiAgentId.toString(), presentedKey: aiAgentKey, isKeyRight: Boolean(aiAgent),",
       "return await AIAgentService.hasAIAgentWithId(aiAgentId);",
@@ -123,6 +132,9 @@ const KEY_CHECKS: Array<KeyCheck> = [
     to: "public static async resolveAgentIdentity(",
     compared: "await CodeFixAgentAuth.checkCredential(data);",
     inOrder: [
+      "const presentedAgentId: ObjectID | null = CodeFixAgentAuth.getPresentedAgentId(data);",
+      "if (presentedAgentId) { const refusedBeforeLookup: WrongKeyRefusal | null = await WrongComponentKeyLimit.checkBeforeLookup({ req: req, kind: ComponentKeyKind.Agent, componentId: presentedAgentId.toString(), });",
+      "if (refusedBeforeLookup) { WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.Agent, refusedBeforeLookup); return null; } }",
       "const check: CodeFixCredentialCheck = await CodeFixAgentAuth.checkCredential(data);",
       'await WrongComponentKeyLimit.checkComponentKey({ req: req, kind: ComponentKeyKind.Agent, componentId: agentId.toString(), presentedKey: data["aiAgentKey"], isKeyRight: check.isKeyRight,',
       "return await CodeFixAgentAuth.agentOrRunnerExists(agentId);",
@@ -192,6 +204,28 @@ const LOOKUP_CALLERS: Array<{ call: RegExp; callers: Array<string> }> = [
     call: /\bWrongComponentKeyLimit\.checkRegistrationKey\(/,
     callers: [PROBE_REGISTRATION, SHARED_RUNNER_KEY_AUTHORIZATION],
   },
+  {
+    call: /\bWrongComponentKeyLimit\.checkBeforeLookup\(/,
+    callers: [
+      AI_AGENT_API,
+      PROBE_AUTHORIZATION,
+      RUNNER_AUTHORIZATION,
+      CODE_FIX_AGENT_AUTH,
+    ],
+  },
+];
+
+/*
+ * The checks that look a key up in the database - a probe's, a Runner's or
+ * an AI agent's - and so ask, before the lookup, whether the client is
+ * refused already. A registration key is compared with a value the app
+ * holds, and reads nothing.
+ */
+const LOOKS_UP_THE_KEY: Array<string> = [
+  PROBE_AUTHORIZATION,
+  RUNNER_AUTHORIZATION,
+  AI_AGENT_API,
+  CODE_FIX_AGENT_AUTH,
 ];
 
 // Every code-fix route, by file: each authenticates through authenticate.
@@ -366,6 +400,67 @@ describe("every check of a component's key asks the limit, in the order the rule
         answersBetween: ANSWERS.test(segment.slice(lookup, asked)),
       }).toEqual({ file: check.file, answersBetween: false });
     }
+  });
+});
+
+describe("a client over the limit is refused before its key is looked up", () => {
+  test("each check that looks a key up asks once whether its client is refused, before the lookup, and answers a refused client there", () => {
+    for (const check of KEY_CHECKS) {
+      const segment: string = segmentOf(check);
+      const asksBefore: number =
+        segment.split("WrongComponentKeyLimit.checkBeforeLookup(").length - 1;
+
+      expect({ file: check.file, asksBefore }).toEqual({
+        file: check.file,
+        asksBefore: LOOKS_UP_THE_KEY.includes(check.file) ? 1 : 0,
+      });
+
+      if (!LOOKS_UP_THE_KEY.includes(check.file)) {
+        continue;
+      }
+
+      const asked: number = segment.indexOf(
+        "WrongComponentKeyLimit.checkBeforeLookup(",
+      );
+      const lookup: number = segment.indexOf(check.compared);
+
+      expect({
+        file: check.file,
+        askedBeforeTheLookup: asked < lookup,
+      }).toEqual({
+        file: check.file,
+        askedBeforeTheLookup: true,
+      });
+
+      // Between the question and the lookup, only the refusal answers.
+      const between: string = segment.slice(asked, lookup);
+
+      expect({
+        file: check.file,
+        answersOnlyARefusal:
+          between.includes(
+            "WrongComponentKeyLimit.answerRefusal(req, res, ComponentKeyKind.",
+          ) &&
+          !between.includes("next(") &&
+          !between.includes("Response.send"),
+      }).toEqual({ file: check.file, answersOnlyARefusal: true });
+    }
+  });
+
+  test("the question adds nothing to the count: it asks the limit with no wrong key", () => {
+    const limit: string = collapsed(codeOf(WRONG_COMPONENT_KEY_LIMIT));
+    const start: number = limit.indexOf(
+      "public static async checkBeforeLookup(",
+    );
+    const end: number = limit.indexOf("public static async", start + 1);
+    const body: string = limit.slice(start, end);
+
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(body).toContain(
+      "return await KINDS[data.kind].limit.check({ req: data.req, wrongKey: null, subject: subject, });",
+    );
+    expect(body).not.toContain("digestOf(");
+    expect(body).not.toContain("componentExists");
   });
 });
 

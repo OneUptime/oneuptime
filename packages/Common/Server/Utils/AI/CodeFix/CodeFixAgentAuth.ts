@@ -77,7 +77,8 @@ export interface CodeFixCredentialCheck {
  * Every code-fix route authenticates a request through authenticate, which
  * also counts the different wrong keys a client presents for an agent or a
  * Runner (WrongComponentKeyLimit): a client that sent too many is refused
- * for that agent, whichever key it carries, until its window ends.
+ * for that agent, whichever key it carries, until its window ends - before
+ * either registry is read.
  */
 export default class CodeFixAgentAuth {
   /*
@@ -94,6 +95,33 @@ export default class CodeFixAgentAuth {
       req.body && typeof req.body === "object" && !Array.isArray(req.body)
         ? (req.body as JSONObject)
         : {};
+
+    /*
+     * A client that sent too many different wrong keys for this agent or
+     * Runner is refused before either registry is read.
+     */
+    const presentedAgentId: ObjectID | null =
+      CodeFixAgentAuth.getPresentedAgentId(data);
+
+    if (presentedAgentId) {
+      const refusedBeforeLookup: WrongKeyRefusal | null =
+        await WrongComponentKeyLimit.checkBeforeLookup({
+          req: req,
+          kind: ComponentKeyKind.Agent,
+          componentId: presentedAgentId.toString(),
+        });
+
+      if (refusedBeforeLookup) {
+        WrongComponentKeyLimit.answerRefusal(
+          req,
+          res,
+          ComponentKeyKind.Agent,
+          refusedBeforeLookup,
+        );
+
+        return null;
+      }
+    }
 
     const check: CodeFixCredentialCheck =
       await CodeFixAgentAuth.checkCredential(data);
@@ -149,15 +177,9 @@ export default class CodeFixAgentAuth {
   public static async checkCredential(
     data: JSONObject,
   ): Promise<CodeFixCredentialCheck> {
-    if (!data["aiAgentId"] || !data["aiAgentKey"]) {
-      return { identity: null, agentId: null, isKeyRight: false };
-    }
+    const agentId: ObjectID | null = CodeFixAgentAuth.getPresentedAgentId(data);
 
-    let agentId: ObjectID;
-
-    try {
-      agentId = new ObjectID(data["aiAgentId"] as string);
-    } catch {
+    if (!agentId) {
       return { identity: null, agentId: null, isKeyRight: false };
     }
 
@@ -247,6 +269,22 @@ export default class CodeFixAgentAuth {
       agentId: agentId,
       isKeyRight: Boolean(runner),
     };
+  }
+
+  /*
+   * The id a pair names, when the pair names one and carries a key; null
+   * otherwise.
+   */
+  public static getPresentedAgentId(data: JSONObject): ObjectID | null {
+    if (!data["aiAgentId"] || !data["aiAgentKey"]) {
+      return null;
+    }
+
+    try {
+      return new ObjectID(data["aiAgentId"] as string);
+    } catch {
+      return null;
+    }
   }
 
   /*

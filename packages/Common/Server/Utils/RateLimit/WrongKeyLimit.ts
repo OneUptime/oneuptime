@@ -134,7 +134,9 @@ export default class WrongKeyLimit {
    * be answered as its key deserves.
    *
    * `wrongKey` is what to keep of a wrong key (the caller's digest of it), or
-   * null for the right key, which is never counted. `subject` is the one
+   * null to keep nothing: for the right key, which is never counted, and for
+   * a request asked about before its key is compared, so that a client over
+   * the limit is refused without it. `subject` is the one
    * component the key is that component's own key for, when it is one: its
    * id, as one spelling (the caller's), so every spelling of an id is the
    * same component.

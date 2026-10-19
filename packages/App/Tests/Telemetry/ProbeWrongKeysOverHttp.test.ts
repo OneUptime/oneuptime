@@ -14,7 +14,7 @@
  *   - a client may present ten different wrong keys for one probe; then its
  *     requests for that probe are refused (429, Retry-After) until the
  *     window ends, the probe's right key too - from that client alone, and
- *     for that probe alone;
+ *     for that probe alone - before the probe table is read;
  *   - a probe that still holds an old key, and a fleet of probes behind one
  *     address each holding an old key of its own, are never refused for it;
  *   - wrong keys for an id no probe has are never counted;
@@ -373,6 +373,54 @@ describe("a probe's key, over HTTP", () => {
     expect(
       (await heartbeat(CLIENT, PROBE_TWO, PROBES[PROBE_TWO]!)).status,
     ).toBe(200);
+  });
+
+  test("once refused for a probe, a client's requests for that probe are answered before the probe table is read, whichever key they carry", async () => {
+    for (
+      let index: number = 0;
+      index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      await heartbeat(CLIENT, PROBE_ONE, `guess-${index}`);
+    }
+
+    const findOneBy: AnyModule = running.probeService.findOneBy;
+    findOneBy.mockClear();
+
+    for (const key of [
+      PROBES[PROBE_ONE]!,
+      "guess-0",
+      "a-guess-not-sent-before",
+      "secret",
+    ]) {
+      const result: PostResult = await heartbeat(CLIENT, PROBE_ONE, key);
+
+      expect({
+        key: key,
+        status: result.status,
+        message: result.body["message"],
+      }).toEqual({
+        key: key,
+        status: 429,
+        message: WRONG_PROBE_KEYS_MESSAGE,
+      });
+    }
+
+    // Every spelling of the probe's id too.
+    expect(
+      (await heartbeat(CLIENT, PROBE_ONE.toUpperCase(), "guess-1")).status,
+    ).toBe(429);
+
+    expect(findOneBy).not.toHaveBeenCalled();
+
+    // Another probe from that client, and the probe from its own address: looked up as ever.
+    expect(
+      (await heartbeat(CLIENT, PROBE_TWO, PROBES[PROBE_TWO]!)).status,
+    ).toBe(200);
+    expect(
+      (await heartbeat(OTHER_CLIENT, PROBE_ONE, PROBES[PROBE_ONE]!)).status,
+    ).toBe(200);
+    expect(findOneBy).toHaveBeenCalled();
   });
 
   test("the probe's id in any spelling Postgres reads as that id is the same probe: no new count", async () => {

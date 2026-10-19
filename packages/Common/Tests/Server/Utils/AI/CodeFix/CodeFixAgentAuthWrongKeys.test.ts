@@ -24,7 +24,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * shared Runner's global agent among them) and the Runners. A client may
  * present only so many different wrong keys for one agent or Runner
  * (WrongComponentKeyLimit): after that, every code-fix request it sends for
- * that one is refused until the window ends, its right key too. Driven here
+ * that one is refused until the window ends, its right key too, before
+ * either registry is read. Driven here
  * with both registries stood in for (each row's id, key and switch) and a
  * Redis that runs the counter's script as Valkey does.
  */
@@ -322,6 +323,46 @@ describe.each([
     ).not.toBeNull();
   });
 
+  test("once refused, its requests for that agent are answered before either registry is read, whichever key they carry", async () => {
+    for (
+      let index: number = 0;
+      index <= WRONG_COMPONENT_KEYS_PER_ADDRESS;
+      index++
+    ) {
+      await authenticate(CLIENT, pair(agentId, `guess-${index}`));
+    }
+
+    lookups = [];
+
+    for (const key of [
+      rightKey,
+      "guess-0",
+      "a-guess-not-sent-before",
+      "secret",
+    ]) {
+      const answered: Answered = await authenticate(CLIENT, pair(agentId, key));
+
+      expect({ key: key, status: answered.status }).toEqual({
+        key: key,
+        status: 429,
+      });
+      expect(answered.identity).toBeNull();
+    }
+
+    expect(
+      (await authenticate(CLIENT, pair(`{${agentId.toUpperCase()}}`, rightKey)))
+        .status,
+    ).toBe(429);
+
+    expect(lookups).toEqual([]);
+
+    // Another client: looked up, and let through.
+    expect(
+      (await authenticate(OTHER_CLIENT, pair(agentId, rightKey))).identity,
+    ).not.toBeNull();
+    expect(lookups.length).toBeGreaterThan(0);
+  });
+
   test("one old key, sent again and again, is never refused", async () => {
     for (let call: number = 0; call < 100; call++) {
       expect(
@@ -373,7 +414,10 @@ describe("what is never counted", () => {
     }
 
     expect(redis.sets.size).toBe(0);
-    expect(redis.commandsSent("eval")).toHaveLength(0);
+    expect(redis.expiries.size).toBe(0);
+
+    // One question each, before the lookup, that keeps nothing; no count.
+    expect(redis.commandsSent("eval")).toHaveLength(120);
   });
 
   test("a key the repository ships: answered as wrong, with neither registry read", async () => {
