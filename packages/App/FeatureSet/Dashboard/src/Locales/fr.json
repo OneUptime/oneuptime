@@ -31055,5 +31055,7 @@
   "Use global Runners": "Utiliser les agents Runbook globaux",
   "Whether steps that do not pick a Runner of their own run on OneUptime's global Runners.": "Si les étapes qui ne choisissent pas leur propre agent Runbook s'exécutent sur les agents Runbook globaux de OneUptime.",
   "Your Runners that can use this secret": "Vos agents Runbook qui peuvent utiliser ce secret",
-  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "Les étapes {{stepType}} s'exécutent sur l'un de vos propres agents Runbook, dans votre réseau. Ajoutez-en un dans {{location}}, puis choisissez-le ici."
+  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "Les étapes {{stepType}} s'exécutent sur l'un de vos propres agents Runbook, dans votre réseau. Ajoutez-en un dans {{location}}, puis choisissez-le ici.",
+  "This project does not use global Runners: pick one of your Runners for this step.": "Ce projet n'utilise pas les agents Runbook globaux : choisissez l'un de vos agents Runbook pour cette étape.",
+  "Your Runners": "Vos agents Runbook"
 }

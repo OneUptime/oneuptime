@@ -31055,5 +31055,7 @@
   "Use global Runners": "Globale Runner nutzen",
   "Whether steps that do not pick a Runner of their own run on OneUptime's global Runners.": "Ob Schritte, die keinen eigenen Runner auswählen, auf den globalen Runnern von OneUptime laufen.",
   "Your Runners that can use this secret": "Ihre Runner, die dieses Geheimnis nutzen dürfen",
-  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}}-Schritte laufen auf einem eigenen Runner in Ihrem Netzwerk. Fügen Sie unter {{location}} einen hinzu und wählen Sie ihn dann hier aus."
+  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}}-Schritte laufen auf einem eigenen Runner in Ihrem Netzwerk. Fügen Sie unter {{location}} einen hinzu und wählen Sie ihn dann hier aus.",
+  "This project does not use global Runners: pick one of your Runners for this step.": "Dieses Projekt nutzt keine globalen Runner: Wählen Sie einen Ihrer Runner für diesen Schritt aus.",
+  "Your Runners": "Ihre Runner"
 }

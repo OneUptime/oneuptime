@@ -1,4 +1,5 @@
 import RunnerService, {
+  BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE,
   GLOBAL_RUNNER_CAPABILITY_MESSAGE,
   GLOBAL_RUNNER_CHANGED_MESSAGE,
   GLOBAL_RUNNER_IN_A_PROJECT_MESSAGE,
@@ -7,8 +8,14 @@ import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../../Server/Services/RunnerService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
+import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
+import { BUNDLED_GLOBAL_RUNNER_ID } from "../../../Types/Runner/BundledGlobalRunner";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -44,6 +51,7 @@ const GLOBAL_RUNNER_ID: ObjectID = new ObjectID(
 interface HookAccess {
   onBeforeCreate(createBy: CreateBy<Runner>): Promise<OnCreate<Runner>>;
   onBeforeUpdate(updateBy: UpdateBy<Runner>): Promise<OnUpdate<Runner>>;
+  onBeforeDelete(deleteBy: DeleteBy<Runner>): Promise<OnDelete<Runner>>;
 }
 
 const hooks: HookAccess = RunnerService as unknown as HookAccess;
@@ -446,5 +454,113 @@ describe("the global Runners every project reads", () => {
 
     expect(args.select["isGlobalRunner"]).toBe(true);
     expect(args.select["projectId"]).toBe(true);
+  });
+});
+
+/*
+ * The bundled global Runner - the one every install runs - is kept by the
+ * server from GLOBAL_RUNNER_KEY on every boot, so a delete through the API
+ * would only bring it back: it is refused, saying where it is turned off.
+ * The server's own startup sync deletes it as root.
+ */
+describe("the bundled global Runner is turned off where it runs, never deleted", () => {
+  function deleteBy(
+    props: DatabaseCommonInteractionProps,
+    id: string = BUNDLED_GLOBAL_RUNNER_ID,
+  ): DeleteBy<Runner> {
+    return {
+      query: { _id: id },
+      props,
+    } as unknown as DeleteBy<Runner>;
+  }
+
+  function rowsFound(ids: Array<string>): jest.SpyInstance {
+    return jest.spyOn(RunnerService, "findBy").mockResolvedValue(
+      ids.map((id: string): Runner => {
+        const runner: Runner = new Runner();
+        runner._id = id;
+        return runner;
+      }),
+    );
+  }
+
+  it("refuses a master admin's delete of it, saying how to turn it off", async () => {
+    rowsFound([BUNDLED_GLOBAL_RUNNER_ID]);
+
+    expect(
+      await refusal(hooks.onBeforeDelete(deleteBy(masterAdminProps()))),
+    ).toBe(BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE);
+    expect(BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE).toContain(
+      "globalRunner.enabled",
+    );
+    expect(BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE).toContain(
+      "GLOBAL_RUNNER_REPLICAS=0",
+    );
+  });
+
+  it("reads the rows the delete names as OneUptime, whoever asks", async () => {
+    const findBy: jest.SpyInstance = rowsFound([BUNDLED_GLOBAL_RUNNER_ID]);
+
+    await refusal(hooks.onBeforeDelete(deleteBy(masterAdminProps())));
+
+    const args: {
+      query: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    } = findBy.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    };
+
+    expect(args.query).toEqual({ _id: BUNDLED_GLOBAL_RUNNER_ID });
+    expect(args.props.isRoot).toBe(true);
+  });
+
+  it("refuses a bulk delete that takes it along with others", async () => {
+    rowsFound([GLOBAL_RUNNER_ID.toString(), BUNDLED_GLOBAL_RUNNER_ID]);
+
+    expect(
+      await refusal(hooks.onBeforeDelete(deleteBy(masterAdminProps()))),
+    ).toBe(BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE);
+  });
+
+  it("negative control: the server's own startup sync deletes it, reading nothing first", async () => {
+    const findBy: jest.SpyInstance = rowsFound([BUNDLED_GLOBAL_RUNNER_ID]);
+
+    await expect(
+      hooks.onBeforeDelete(deleteBy(rootProps())),
+    ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
+    expect(findBy).not.toHaveBeenCalled();
+  });
+
+  it("negative control: a global Runner a master admin added is deleted as before", async () => {
+    rowsFound([GLOBAL_RUNNER_ID.toString()]);
+
+    await expect(
+      hooks.onBeforeDelete(
+        deleteBy(masterAdminProps(), GLOBAL_RUNNER_ID.toString()),
+      ),
+    ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
+  });
+
+  it("negative control: a project's own Runner is deleted as before", async () => {
+    const ownRunnerId: string = "66666666-6666-4666-8666-666666666666";
+    rowsFound([ownRunnerId]);
+
+    await expect(
+      hooks.onBeforeDelete(deleteBy(editorProps(), ownRunnerId)),
+    ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
+  });
+
+  it("includesBundledGlobalRunner knows its id whatever its case", () => {
+    const bundled: Runner = new Runner();
+    bundled._id = BUNDLED_GLOBAL_RUNNER_ID.toUpperCase();
+    const other: Runner = new Runner();
+    other._id = GLOBAL_RUNNER_ID.toString();
+
+    expect(RunnerServiceClass.includesBundledGlobalRunner([other, bundled])).toBe(
+      true,
+    );
+    expect(RunnerServiceClass.includesBundledGlobalRunner([other])).toBe(false);
+    expect(RunnerServiceClass.includesBundledGlobalRunner([])).toBe(false);
   });
 });

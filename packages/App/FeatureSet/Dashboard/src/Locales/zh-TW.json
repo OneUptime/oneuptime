@@ -31055,5 +31055,7 @@
   "Use global Runners": "使用全域 Runner",
   "Whether steps that do not pick a Runner of their own run on OneUptime's global Runners.": "未選擇自己 Runner 的步驟是否在 OneUptime 的全域 Runner 上執行。",
   "Your Runners that can use this secret": "可以使用此密鑰的您的 Runner",
-  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}} 步驟在您網路中您自己的 Runner 上執行。請在 {{location}} 中新增一個，然後在這裡選擇它。"
+  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}} 步驟在您網路中您自己的 Runner 上執行。請在 {{location}} 中新增一個，然後在這裡選擇它。",
+  "This project does not use global Runners: pick one of your Runners for this step.": "此專案不使用全域 Runner：請為此步驟選擇您自己的一個 Runner。",
+  "Your Runners": "您的 Runner"
 }

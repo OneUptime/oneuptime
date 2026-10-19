@@ -13,6 +13,7 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import { RunnerChoices } from "./RunnerChoices";
 import { GLOBAL_RUNNER_MAX_MINUTES } from "./GlobalRunnersCopy";
 import {
+  GLOBAL_RUNNERS_OFF_HELPER_TEXT,
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
   GLOBAL_RUNNER_CHOICE_VALUE,
@@ -159,6 +160,15 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
         "Runs on a global Runner, in a sandbox that can reach the internet but not your network, for {{minutes}} minutes at most. Pick one of your own Runners for anything on your network.",
         { minutes: GLOBAL_RUNNER_MAX_MINUTES },
       );
+    }
+
+    /*
+     * A step global Runners could run, in a project that turned them off,
+     * picks one of the project's own: said here, since the global choice is
+     * not in the list.
+     */
+    if (model.outcome === RunnerPickerOutcome.GlobalRunnersOff) {
+      return translator.translateText(GLOBAL_RUNNERS_OFF_HELPER_TEXT);
     }
 
     if (model.outcome === RunnerPickerOutcome.UnknownRunner) {

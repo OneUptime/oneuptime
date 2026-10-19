@@ -233,7 +233,7 @@ const RunbookSecrets: FunctionComponent<
             field: {
               runners: true,
             },
-            title: "Your Runners that can use this secret",
+            title: "Your Runners",
             type: FieldType.EntityArray,
 
             filterEntityType: Runner,
@@ -270,7 +270,7 @@ const RunbookSecrets: FunctionComponent<
                 projectId: true,
               },
             },
-            title: "Your Runners that can use this secret",
+            title: "Your Runners",
             type: FieldType.EntityArray,
 
             getElement: (item: RunbookSecret): ReactElement => {

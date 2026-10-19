@@ -74,6 +74,8 @@ const ADMIN_PERMISSIONS: Array<Permission> = [
 
 const GLOBAL_TOGGLE: string = "Global Runners can use this secret";
 const OWN_RUNNERS_FIELD: string = "Your Runners that can use this secret";
+// The column that lists the Runners a secret is assigned to.
+const OWN_RUNNERS_COLUMN_PATTERN: RegExp = /^Your Runners(?! that)/;
 
 let hasGlobalRunners: boolean = true;
 let projectUsesGlobalRunners: boolean = true;
@@ -311,11 +313,15 @@ describe("Runbooks -> Secrets, on a server with global Runners", () => {
     expect(
       screen.getByRole("columnheader", { name: /^Global Runners/ }),
     ).toBeInTheDocument();
+    // The list says it short; the form asks it in full.
     expect(
-      screen.getByRole("columnheader", {
+      screen.getByRole("columnheader", { name: OWN_RUNNERS_COLUMN_PATTERN }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("columnheader", {
         name: new RegExp(`^${OWN_RUNNERS_FIELD}`),
       }),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(document.body).toHaveTextContent(
       "Passwords, tokens and API keys your runbook scripts use. A secret reaches only the Runners you let use it.",
     );

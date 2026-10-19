@@ -532,7 +532,7 @@
       },
       "globalRunners": {
         "cardTitle": "Runners globales",
-        "cardDescription": "Runners que OneUptime ejecuta para todos los proyectos. Ejecutan los pasos de JavaScript de los runbooks, cada uno en su propio sandbox que solo llega a internet. Los proyectos los usan salvo que los desactiven.",
+        "cardDescription": "Runners que OneUptime ejecuta para todos los proyectos. Ejecutan los pasos de JavaScript de los runbooks, cada uno en su propio sandbox que solo llega a internet. Uno se ejecuta con este servidor; añade más para ejecutar pasos en otros hosts. Los proyectos los usan salvo que los desactiven.",
         "noItems": "Crea un Runner global y luego inícialo con el comando de «Mostrar ID y clave».",
         "showIdKey": "Mostrar ID y clave",
         "keyModalTitle": "Clave del Runner global",

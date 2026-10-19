@@ -532,7 +532,7 @@
       },
       "globalRunners": {
         "cardTitle": "Globale Runnere",
-        "cardDescription": "Runners, som OneUptime kører for alle projekter. De kører JavaScript-trin i runbooks, hvert i sin egen sandkasse, der kun når internettet. Projekter bruger dem, medmindre de slår dem fra.",
+        "cardDescription": "Runners, som OneUptime kører for alle projekter. De kører JavaScript-trin i runbooks, hvert i sin egen sandkasse, der kun når internettet. Én kører med denne server; tilføj flere for at køre trin på andre værter. Projekter bruger dem, medmindre de slår dem fra.",
         "noItems": "Opret en global Runner, og start den derefter med kommandoen under »Vis ID og nøgle«.",
         "showIdKey": "Vis ID og nøgle",
         "keyModalTitle": "Nøgle til global Runner",

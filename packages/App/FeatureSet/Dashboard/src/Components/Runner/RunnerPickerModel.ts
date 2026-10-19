@@ -27,6 +27,14 @@ export const GLOBAL_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.",
 );
 
+/*
+ * Under the picker of a step that global Runners could run, in a project
+ * that turned them off: why there is no global choice, and what to do.
+ */
+export const GLOBAL_RUNNERS_OFF_HELPER_TEXT: string = translationKey(
+  "This project does not use global Runners: pick one of your Runners for this step.",
+);
+
 export interface RunnerPickerRunner {
   id: string;
   name: string;

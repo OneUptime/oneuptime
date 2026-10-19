@@ -31055,5 +31055,7 @@
   "Use global Runners": "Använd globala Runners",
   "Whether steps that do not pick a Runner of their own run on OneUptime's global Runners.": "Om steg som inte väljer en egen Runner körs på OneUptimes globala Runners.",
   "Your Runners that can use this secret": "Dina Runners som får använda den här hemligheten",
-  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}}-steg körs på en av dina egna Runners, i ditt nätverk. Lägg till en under {{location}} och välj den sedan här."
+  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "{{stepType}}-steg körs på en av dina egna Runners, i ditt nätverk. Lägg till en under {{location}} och välj den sedan här.",
+  "This project does not use global Runners: pick one of your Runners for this step.": "Det här projektet använder inte globala Runners: välj en av dina Runners för det här steget.",
+  "Your Runners": "Dina Runners"
 }

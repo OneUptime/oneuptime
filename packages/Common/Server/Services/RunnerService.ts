@@ -1,7 +1,9 @@
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import { BUNDLED_GLOBAL_RUNNER_ID } from "../../Types/Runner/BundledGlobalRunner";
 import Exception from "../../Types/Exception/Exception";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ProjectReferencesService from "./ProjectReferencesService";
@@ -61,6 +63,15 @@ export const RUNNER_WITHOUT_PROJECT_MESSAGE: string =
 
 export const GLOBAL_RUNNER_CHANGED_MESSAGE: string =
   "Whether a Runner is global, and which project a Runner belongs to, is set when it is created and never changed. Create a new Runner instead.";
+
+/*
+ * The bundled global Runner - the one every install runs (Helm
+ * globalRunner, Docker Compose global-runner) - is kept by the server from
+ * GLOBAL_RUNNER_KEY on every boot, so deleting it would only bring it back.
+ * It is turned off where it runs.
+ */
+export const BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE: string =
+  "This global Runner comes with this server, which sets it up again on its next start. To turn it off, set globalRunner.enabled to false in the Helm chart, or GLOBAL_RUNNER_REPLICAS=0 in Docker Compose's config.env.";
 
 export const GLOBAL_RUNNER_CAPABILITY_MESSAGE: string =
   'A global Runner runs runbook steps only. "Runs AI Code Fixes" and "Runs AI Remediation Commands" stay off for it: they act in a project\'s own repositories and systems, so they run on a Runner of that project\'s own.';
@@ -517,6 +528,44 @@ export class Service extends ProjectReferencesService<Model> {
         return column !== "canRunAiCommands" && data[column] !== undefined;
       })
     );
+  }
+
+  /*
+   * The bundled global Runner is never deleted through the API, a master
+   * admin's included (BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE): the server's own
+   * startup sync (root) is the only one that removes it.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    if (!deleteBy.props.isRoot) {
+      const rows: Array<Model> = await this.findBy({
+        query: deleteBy.query,
+        select: {
+          _id: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      if (Service.includesBundledGlobalRunner(rows)) {
+        throw new BadDataException(BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE);
+      }
+    }
+
+    return await super.onBeforeDelete(deleteBy);
+  }
+
+  // Whether these rows include the bundled global Runner.
+  public static includesBundledGlobalRunner(rows: Array<Model>): boolean {
+    return rows.some((row: Model): boolean => {
+      return (
+        (row._id?.toString() || "").toLowerCase() ===
+        BUNDLED_GLOBAL_RUNNER_ID.toLowerCase()
+      );
+    });
   }
 
   // Right before the write: the lock its check was made under is still the update's.

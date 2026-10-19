@@ -532,7 +532,7 @@
       },
       "globalRunners": {
         "cardTitle": "Globale Runners",
-        "cardDescription": "Runners die OneUptime voor elk project draait. Ze voeren de JavaScript-stappen van runbooks uit, elk in een eigen sandbox die alleen het internet bereikt. Projecten gebruiken ze, tenzij ze ze uitzetten.",
+        "cardDescription": "Runners die OneUptime voor elk project draait. Ze voeren de JavaScript-stappen van runbooks uit, elk in een eigen sandbox die alleen het internet bereikt. Eén draait met deze server mee; voeg er meer toe om stappen op andere hosts uit te voeren. Projecten gebruiken ze, tenzij ze ze uitzetten.",
         "noItems": "Maak een globale Runner en start hem daarna met de opdracht onder ‘ID en sleutel tonen’.",
         "showIdKey": "ID en sleutel tonen",
         "keyModalTitle": "Sleutel van de globale Runner",

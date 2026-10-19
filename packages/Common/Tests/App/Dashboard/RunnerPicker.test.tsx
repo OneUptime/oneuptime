@@ -253,6 +253,33 @@ describe("a JavaScript step", () => {
     expect(shown()).toBe("");
   });
 
+  test("on a project that turned global Runners off, the line under the picker says why there is no global choice", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choices({ projectUsesGlobalRunners: false }),
+    });
+
+    expect(help()).toHaveTextContent(
+      "This project does not use global Runners: pick one of your Runners for this step.",
+    );
+    expect(help()).not.toHaveTextContent(OWN_RUNNER_HELP);
+
+    // Once one of the project's own is picked, the line is the step's own.
+    openMenu();
+    fireEvent.click(screen.getByText("prod-bastion · Connected"));
+
+    expect(help()).toHaveTextContent(OWN_RUNNER_HELP);
+  });
+
+  test("negative control: a Bash step, which global Runners never run, keeps the step's own line", () => {
+    renderPicker({
+      stepType: RunbookStepType.Bash,
+      choices: choices({ projectUsesGlobalRunners: false }),
+    });
+
+    expect(help()).toHaveTextContent(OWN_RUNNER_HELP);
+  });
+
   test("on a project that turned global Runners off, with none of its own, it says how to go on", () => {
     renderPicker({
       stepType: RunbookStepType.JavaScript,

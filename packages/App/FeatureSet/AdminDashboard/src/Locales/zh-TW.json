@@ -532,7 +532,7 @@
       },
       "globalRunners": {
         "cardTitle": "全域 Runner",
-        "cardDescription": "OneUptime 為每個專案執行的 Runner。它們執行運行手冊的 JavaScript 步驟，每個步驟都在只能連到網際網路的獨立沙箱中執行。除非專案關閉它們，否則專案會使用它們。",
+        "cardDescription": "OneUptime 為每個專案執行的 Runner。它們執行運行手冊的 JavaScript 步驟，每個步驟都在只能連到網際網路的獨立沙箱中執行。其中一個隨此伺服器執行；新增更多即可在其他主機上執行步驟。除非專案關閉它們，否則專案會使用它們。",
         "noItems": "建立一個全域 Runner，然後用「顯示 ID 和金鑰」中的指令啟動它。",
         "showIdKey": "顯示 ID 和金鑰",
         "keyModalTitle": "全域 Runner 金鑰",

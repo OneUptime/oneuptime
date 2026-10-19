@@ -31055,5 +31055,7 @@
   "Use global Runners": "استفاده از Runnerهای سراسری",
   "Whether steps that do not pick a Runner of their own run on OneUptime's global Runners.": "اینکه گام‌هایی که Runner خودشان را انتخاب نمی‌کنند روی Runnerهای سراسری OneUptime اجرا شوند یا نه.",
   "Your Runners that can use this secret": "Runnerهای شما که می‌توانند از این راز استفاده کنند",
-  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "گام‌های {{stepType}} روی یکی از Runnerهای خودتان، درون شبکه‌تان، اجرا می‌شوند. در {{location}} یکی اضافه کنید و سپس آن را اینجا انتخاب کنید."
+  "{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here.": "گام‌های {{stepType}} روی یکی از Runnerهای خودتان، درون شبکه‌تان، اجرا می‌شوند. در {{location}} یکی اضافه کنید و سپس آن را اینجا انتخاب کنید.",
+  "This project does not use global Runners: pick one of your Runners for this step.": "این پروژه از Runnerهای سراسری استفاده نمی‌کند: یکی از Runnerهای خودتان را برای این گام انتخاب کنید.",
+  "Your Runners": "Runnerهای شما"
 }
