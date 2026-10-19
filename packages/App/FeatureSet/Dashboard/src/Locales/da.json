@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "Se {{docsLink}} for alle værktøjer.",
   "Twilio account for SMS and calls": "Twilio-konto til sms og opkald",
   "Up to {{limit}} open at once": "Op til {{limit}} åbne ad gangen",
-  "Gets nothing until they open the link we texted them.": "Får intet, før linket, vi sendte i en sms, åbnes."
+  "Gets nothing until they open the link we texted them.": "Får intet, før linket, vi sendte i en sms, åbnes.",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Dette mønster henviser tilbage til det, en tidligere gruppe fandt, f.eks. \\1. Mønstre køres på en tid, der kun vokser med den tekst, de læser, og det kan en tilbagehenvisning ikke. Skriv mønsteret uden den.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Dette mønster er for stort til at blive kørt. Gør det kortere, eller gentag dets dele færre gange."
 }

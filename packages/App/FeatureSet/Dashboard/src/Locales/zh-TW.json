@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "所有工具請參閱 {{docsLink}}。",
   "Twilio account for SMS and calls": "用於簡訊和電話的 Twilio 帳戶",
   "Up to {{limit}} open at once": "同時最多 {{limit}} 個",
-  "Gets nothing until they open the link we texted them.": "在開啟我們透過簡訊傳送的連結之前，不會收到任何內容。"
+  "Gets nothing until they open the link we texted them.": "在開啟我們透過簡訊傳送的連結之前，不會收到任何內容。",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "此模式參照了前面某個群組比對到的內容，例如 \\1。模式的執行時間只會隨所讀取文字的長度成比例增加，而反向參照做不到這一點。請不使用反向參照來撰寫此模式。",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "此模式過大，無法執行。請縮短它，或減少其各部分的重複次數。"
 }

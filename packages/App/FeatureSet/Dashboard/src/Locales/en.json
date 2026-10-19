@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "See the {{docsLink}} for every tool.",
   "Twilio account for SMS and calls": "Twilio account for SMS and calls",
   "Up to {{limit}} open at once": "Up to {{limit}} open at once",
-  "Gets nothing until they open the link we texted them.": "Gets nothing until they open the link we texted them."
+  "Gets nothing until they open the link we texted them.": "Gets nothing until they open the link we texted them.",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "This pattern is too large to run. Shorten it, or repeat its parts fewer times."
 }

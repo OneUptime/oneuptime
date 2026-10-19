@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "Alle Tools finden Sie in der {{docsLink}}.",
   "Twilio account for SMS and calls": "Twilio-Konto für SMS und Anrufe",
   "Up to {{limit}} open at once": "Bis zu {{limit}} gleichzeitig offen",
-  "Gets nothing until they open the link we texted them.": "Erhält nichts, bis der Link geöffnet wird, den wir per SMS gesendet haben."
+  "Gets nothing until they open the link we texted them.": "Erhält nichts, bis der Link geöffnet wird, den wir per SMS gesendet haben.",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Dieses Muster verweist auf das zurück, was eine frühere Gruppe gefunden hat, etwa \\1. Muster werden in einer Zeit ausgeführt, die nur mit dem gelesenen Text wächst, und das kann ein Rückverweis nicht. Schreiben Sie das Muster ohne ihn.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Dieses Muster ist zu groß, um ausgeführt zu werden. Kürzen Sie es oder wiederholen Sie seine Teile seltener."
 }

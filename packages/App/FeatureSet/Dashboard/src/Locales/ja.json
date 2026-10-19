@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "すべてのツールについては、{{docsLink}} を参照してください。",
   "Twilio account for SMS and calls": "SMS と通話用の Twilio アカウント",
   "Up to {{limit}} open at once": "同時に最大 {{limit}} 件まで",
-  "Gets nothing until they open the link we texted them.": "SMSで送ったリンクが開かれるまで、何も届きません。"
+  "Gets nothing until they open the link we texted them.": "SMSで送ったリンクが開かれるまで、何も届きません。",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "このパターンは、\\1 のように前のグループが一致した内容を参照しています。パターンは読み取るテキストの長さに比例した時間で実行されますが、後方参照ではそれができません。後方参照を使わずにパターンを書いてください。",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "このパターンは大きすぎて実行できません。短くするか、各部分の繰り返し回数を減らしてください。"
 }

@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "Zie de {{docsLink}} voor alle tools.",
   "Twilio account for SMS and calls": "Twilio-account voor sms en oproepen",
   "Up to {{limit}} open at once": "Tot {{limit}} tegelijk open",
-  "Gets nothing until they open the link we texted them.": "Krijgt niets tot de link die we per sms stuurden is geopend."
+  "Gets nothing until they open the link we texted them.": "Krijgt niets tot de link die we per sms stuurden is geopend.",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Dit patroon verwijst terug naar wat een eerdere groep vond, zoals \\1. Patronen worden uitgevoerd in een tijd die alleen meegroeit met de tekst die ze lezen, en dat kan een terugverwijzing niet. Schrijf het patroon zonder.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Dit patroon is te groot om uit te voeren. Maak het korter of herhaal de onderdelen minder vaak."
 }

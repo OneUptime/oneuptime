@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "모든 도구는 {{docsLink}}에서 확인하세요.",
   "Twilio account for SMS and calls": "SMS 및 전화용 Twilio 계정",
   "Up to {{limit}} open at once": "동시에 최대 {{limit}}개",
-  "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다."
+  "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다.",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "이 패턴은 \\1처럼 앞의 그룹이 일치한 내용을 다시 참조합니다. 패턴은 읽는 텍스트의 길이에 비례하는 시간 안에 실행되는데, 역참조는 그렇게 할 수 없습니다. 역참조 없이 패턴을 작성하세요.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "이 패턴은 너무 커서 실행할 수 없습니다. 패턴을 줄이거나 각 부분의 반복 횟수를 줄이세요."
 }

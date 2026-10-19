@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "Consulta la {{docsLink}} para ver todas las herramientas.",
   "Twilio account for SMS and calls": "Cuenta de Twilio para SMS y llamadas",
   "Up to {{limit}} open at once": "Hasta {{limit}} abiertas a la vez",
-  "Gets nothing until they open the link we texted them.": "No recibe nada hasta que abre el enlace que le enviamos por SMS."
+  "Gets nothing until they open the link we texted them.": "No recibe nada hasta que abre el enlace que le enviamos por SMS.",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "Este patrón remite a lo que encontró un grupo anterior, como \\1. Los patrones se ejecutan en un tiempo que solo crece con el texto que leen, y una referencia inversa no lo permite. Escribe el patrón sin ella.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "Este patrón es demasiado grande para ejecutarse. Acórtalo o repite sus partes menos veces."
 }

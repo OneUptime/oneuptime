@@ -31014,5 +31014,7 @@
   "See the {{docsLink}} for every tool.": "برای همه ابزارها {{docsLink}} را ببینید.",
   "Twilio account for SMS and calls": "حساب Twilio برای پیامک و تماس",
   "Up to {{limit}} open at once": "حداکثر {{limit}} مورد هم‌زمان باز",
-  "Gets nothing until they open the link we texted them.": "تا پیوندی را که برایش پیامک کرده‌ایم باز نکند، چیزی دریافت نمی‌کند."
+  "Gets nothing until they open the link we texted them.": "تا پیوندی را که برایش پیامک کرده‌ایم باز نکند، چیزی دریافت نمی‌کند.",
+  "This pattern refers back to what an earlier group matched, such as \\1. Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.": "این الگو به چیزی ارجاع می‌دهد که یک گروه قبلی پیدا کرده است، مانند \\1. الگوها در زمانی اجرا می‌شوند که فقط همراه با متنی که می‌خوانند افزایش می‌یابد، و ارجاع به عقب چنین کاری نمی‌کند. الگو را بدون آن بنویسید.",
+  "This pattern is too large to run. Shorten it, or repeat its parts fewer times.": "این الگو برای اجرا بیش از حد بزرگ است. آن را کوتاه‌تر کنید یا بخش‌های آن را کمتر تکرار کنید."
 }
