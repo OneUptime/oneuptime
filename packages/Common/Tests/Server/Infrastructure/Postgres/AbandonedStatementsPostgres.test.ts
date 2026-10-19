@@ -17,6 +17,7 @@ import {
   test,
 } from "@jest/globals";
 import { Client } from "pg";
+import timers from "timers";
 import {
   Column,
   DataSource,
@@ -73,6 +74,32 @@ import {
  * creates lives in a uniquely named schema that is dropped afterwards; it
  * needs no migrated tables.
  */
+/*
+ * The app's pool replaces each connection once it is
+ * PostgresConnectionMaxLifetimeMs old (#5049): pg-pool arms a timer for every
+ * connection and unref()s it. Common's jest environment is jsdom, whose
+ * setTimeout returns a bare number with no unref(), so every connection the
+ * pool made threw. The suite swaps in the real Node timers for its run, as
+ * GracefulShutdown.test.ts does (a `@jest-environment node` docblock is not
+ * an option: Common's shared jest.setup.ts touches `window`). clearTimeout
+ * goes with it, so pg-pool can clear the timers it made.
+ */
+let jsdomSetTimeout: typeof globalThis.setTimeout;
+let jsdomClearTimeout: typeof globalThis.clearTimeout;
+
+beforeAll(() => {
+  jsdomSetTimeout = globalThis.setTimeout;
+  jsdomClearTimeout = globalThis.clearTimeout;
+  globalThis.setTimeout = timers.setTimeout as typeof globalThis.setTimeout;
+  globalThis.clearTimeout =
+    timers.clearTimeout as typeof globalThis.clearTimeout;
+});
+
+afterAll(() => {
+  globalThis.setTimeout = jsdomSetTimeout;
+  globalThis.clearTimeout = jsdomClearTimeout;
+});
+
 // describe.skip's type is the one both branches share.
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ABANDONED_STATEMENT_TESTS"] === "true"
