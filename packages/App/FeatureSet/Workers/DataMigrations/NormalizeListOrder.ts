@@ -1,4 +1,5 @@
 import DataMigrationBase from "./DataMigrationBase";
+import AIPostmortemRuleService from "Common/Server/Services/AIPostmortemRuleService";
 import AlertGroupingRuleService from "Common/Server/Services/AlertGroupingRuleService";
 import AlertMeasurementService from "Common/Server/Services/AlertMeasurementService";
 import AlertReminderRuleService from "Common/Server/Services/AlertReminderRuleService";
@@ -90,6 +91,7 @@ export default class NormalizeListOrder extends DataMigrationBase {
       StatusPageFooterLinkService,
       StatusPageHistoryChartBarColorRuleService,
       IncomingCallPolicyEscalationRuleService,
+      AIPostmortemRuleService,
       /*
        * A project's states, severities and monitor statuses. Their numbers
        * were kept unique per project before they were dragged, so this only

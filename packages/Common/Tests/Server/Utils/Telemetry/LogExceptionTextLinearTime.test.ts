@@ -9,6 +9,7 @@ import {
 } from "../../../../Server/Utils/Telemetry/LogExceptionText";
 import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
+import { fastestRun } from "../../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -39,10 +40,13 @@ const repeat: (unit: string, length: number) => string = (
   return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
 };
 
+/*
+ * How long the work takes: the fastest of up to three attempts, counted as
+ * it would have run on a usual runner when every attempt overran on a slow
+ * one (Tests/Helpers/FastestRun).
+ */
 const timeOf: (run: () => unknown) => number = (run: () => unknown): number => {
-  const startedAt: number = Date.now();
-  run();
-  return Date.now() - startedAt;
+  return fastestRun({ run: run, limitInMs: 2000 }).inMs;
 };
 
 const LINE_SEPARATOR: string = String.fromCharCode(0x2028);

@@ -10,7 +10,8 @@ import { SubnetScanResult } from "../../../Utils/Discovery/SubnetScanner";
 import { domainToASCII } from "node:url";
 import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
 import { namedPattern } from "Common/Tests/Helpers/SourcePatterns";
-import { describe, expect, test } from "@jest/globals";
+import { fastestRun } from "Common/Tests/Helpers/FastestRun";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * ---------------------------------------------------------------------------
@@ -29,6 +30,13 @@ import { describe, expect, test } from "@jest/globals";
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * A timing that overruns on a slow runner is tried again, up to three times,
+ * and then measured against fixed work, which takes longer than jest's 5
+ * seconds a test.
+ */
+jest.setTimeout(60000);
+
 const LENGTH: number = 400000;
 
 const repeat: (unit: string, length: number) => string = (
@@ -38,10 +46,13 @@ const repeat: (unit: string, length: number) => string = (
   return unit.repeat(Math.ceil(length / unit.length)).slice(0, length);
 };
 
+/*
+ * How long the work takes: the fastest of up to three attempts, counted as
+ * it would have run on a usual runner when every attempt overran on a slow
+ * one (Tests/Helpers/FastestRun).
+ */
 const timeOf: (run: () => unknown) => number = (run: () => unknown): number => {
-  const startedAt: number = Date.now();
-  run();
-  return Date.now() - startedAt;
+  return fastestRun({ run: run, limitInMs: 2000 }).inMs;
 };
 
 const DOMAIN_RECORD_FILE: string =

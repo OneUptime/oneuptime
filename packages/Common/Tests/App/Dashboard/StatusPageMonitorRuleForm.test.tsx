@@ -538,11 +538,16 @@ describe("Status Pages > a page > Monitor Rules: the table", () => {
 
       cleanup();
 
-      // Why: the same column typed Boolean loses the disabled rule's status.
+      /*
+       * Typed Boolean, the same column says Disabled on a phone as well: a
+       * phone's card draws a yes/no column's own element for no too
+       * (TableCardBooleanElement.test). It used to leave a disabled rule's
+       * status out, which is why this column is an Element.
+       */
       renderOnPhone(FieldType.Boolean);
 
       expect(await screen.findByText("Enabled")).toBeInTheDocument();
-      expect(screen.queryByText("Disabled")).toBeNull();
+      expect(screen.getByText("Disabled")).toBeInTheDocument();
     } finally {
       Object.defineProperty(window, "innerWidth", {
         configurable: true,
