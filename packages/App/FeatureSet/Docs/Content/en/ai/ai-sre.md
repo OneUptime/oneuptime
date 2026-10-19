@@ -53,6 +53,7 @@ An investigation starts from the incident or alert and from the infrastructure i
 - The alerts on that infrastructure that opened in the 30 minutes before the incident, or are still open, newest first, such as the high CPU alert of the host behind a slow site. Private alerts are left out.
 - The infrastructure's own metrics, read the way people read them. Host metrics such as `system.cpu.utilization` and `system.memory.utilization` are reported once per state, and the states add up to 100%, so one average across them says nothing. OneUptime AI reads them one state at a time (busy CPU is user plus system), and any metric per container, per mount point or by any other attribute.
 - The containers of a Docker or Podman host: the busiest by CPU, memory or restarts, and the ones that stopped reporting. A stopped container sends nothing rather than zero, so numbers for the whole host hide it.
+- The changes recorded in the two hours before the incident or alert - deploys, Kubernetes rollouts, config changes and the fixes OneUptime ran - and which of them its services' telemetry makes suspects: a service that got measurably worse right after a change. See [Deploys and Changes](/docs/telemetry/change-events).
 
 The investigation's activity on the **AI Investigation** card says how many open or recent alerts it read, and on which resources.
 
