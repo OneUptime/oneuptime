@@ -9,6 +9,8 @@ import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
+import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
 
 export interface DetectionMatchGroup {
   groupValue: string;
@@ -104,9 +106,106 @@ function readDate(value: unknown): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+/*
+ * One page of the events that arrived (createdAt) in a window, for a
+ * destination to send: in arrival order, and in _id order within a second,
+ * so the same window read again gives the same pages.
+ */
+export interface FindArrivedEventsData {
+  projectId: ObjectID;
+  // Exclusive.
+  arrivedAfter: Date;
+  // Inclusive.
+  arrivedUntil: Date;
+  /*
+   * Events that happened before this are left out. The table is sorted by
+   * the time events happened, so this is what keeps the read to the recent
+   * parts of it.
+   */
+  happenedAfter: Date;
+  // Only the Findings category (SecurityEventDestinationScope.Detections).
+  findingsOnly: boolean;
+  // Products whose events are never read (a SIEM's own imported alerts).
+  excludeProductNames: Array<string>;
+  limit: number;
+  offset: number;
+}
+
 export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
     super({ modelType: SecurityEvent, database: clickhouseDatabase });
+  }
+
+  /*
+   * The events of one project that arrived in a window, a page at a time:
+   * what a Security Event Destination sends. Always one project's: the
+   * project is the first condition, so no read can return another
+   * project's events.
+   */
+  public async findArrivedEvents(
+    data: FindArrivedEventsData,
+  ): Promise<Array<JSONObject>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT `;
+    statement.append(SECURITY_EVENT_RECORD_COLUMNS.join(", "));
+    statement.append(` FROM ${databaseName}.${this.model.tableName} WHERE `);
+    statement.append(
+      SQL`projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND time >= ${{
+        type: TableColumnType.DateTime64,
+        value: data.happenedAfter,
+      }} AND createdAt > ${{
+        type: TableColumnType.Date,
+        value: data.arrivedAfter,
+      }} AND createdAt <= ${{
+        type: TableColumnType.Date,
+        value: data.arrivedUntil,
+      }}`,
+    );
+
+    if (data.findingsOnly) {
+      statement.append(
+        SQL` AND categoryUid = ${{
+          type: TableColumnType.Number,
+          value: SECURITY_FINDINGS_CATEGORY_UID,
+        }}`,
+      );
+    }
+
+    if (data.excludeProductNames.length > 0) {
+      statement.append(
+        SQL` AND NOT has(${{
+          type: TableColumnType.ArrayText,
+          value: data.excludeProductNames,
+        }}, productName)`,
+      );
+    }
+
+    statement.append(
+      SQL` ORDER BY createdAt ASC, _id ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limit)),
+      }} OFFSET ${{
+        type: TableColumnType.Number,
+        value: Math.max(0, Math.trunc(data.offset)),
+      }}`,
+    );
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 60 }));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return response.data || [];
   }
 
   /*

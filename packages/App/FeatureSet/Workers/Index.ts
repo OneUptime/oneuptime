@@ -271,6 +271,8 @@ import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import "./Jobs/DetectionRules/EvaluateDetectionRules";
 import "./Jobs/SecurityEvents/PollSecurityEventConnections";
 import "./Jobs/SecurityEvents/RunSecurityEventConnection";
+import "./Jobs/SecurityEvents/ScanLogsForSecurityEvents";
+import "./Jobs/SecurityEvents/ForwardSecurityEvents";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";

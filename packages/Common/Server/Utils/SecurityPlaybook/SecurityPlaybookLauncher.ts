@@ -11,6 +11,7 @@ import SecurityPlaybookService from "../../Services/SecurityPlaybookService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { doesPlaybookMatch } from "./SecurityPlaybookConditions";
+import { doStepsStayInsideOneUptime } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 
 /*
  * Starts the playbooks a case event calls for: every enabled playbook of the
@@ -36,6 +37,12 @@ export default class SecurityPlaybookLauncher {
           detectionRuleId?: ObjectID | undefined;
         }
       | undefined;
+    /*
+     * Only playbooks whose every step stays inside OneUptime (the case and
+     * investigate steps): for the setup test's case, so a test never
+     * notifies, pages, escalates or contains anything.
+     */
+    onlyPlaybooksThatStayInside?: boolean | undefined;
   }): Promise<number> {
     const playbooks: Array<SecurityPlaybook> =
       await SecurityPlaybookService.findBy({
@@ -52,6 +59,7 @@ export default class SecurityPlaybookLauncher {
           minimumPriority: true,
           detectionSource: true,
           detectionRuleIds: true,
+          steps: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -107,6 +115,13 @@ export default class SecurityPlaybookLauncher {
       );
 
       if (!matches || !playbook.id) {
+        continue;
+      }
+
+      if (
+        data.onlyPlaybooksThatStayInside &&
+        !doStepsStayInsideOneUptime(playbook.steps)
+      ) {
         continue;
       }
 
