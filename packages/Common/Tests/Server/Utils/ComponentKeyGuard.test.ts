@@ -444,10 +444,11 @@ describe("every lookup by a component's key refuses a shipped key first", () => 
       found[lookup.file] = (found[lookup.file] || 0) + 1;
     }
 
+    // At least these: a new lookup is held to the rule below, not pinned here.
     for (const [file, count] of Object.entries(KNOWN_LOOKUPS)) {
-      expect({ file, found: found[file] || 0 }).toEqual({
+      expect({ file, foundThemAll: (found[file] || 0) >= count }).toEqual({
         file,
-        found: count,
+        foundThemAll: true,
       });
     }
   });
