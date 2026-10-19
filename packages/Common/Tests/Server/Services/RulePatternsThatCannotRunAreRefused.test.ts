@@ -227,6 +227,15 @@ describe("a rule's conditions", () => {
     );
   });
 
+  test("refuse one whose back-reference is followed by a '*': it is no wildcard", () => {
+    expect(getRuleCriteriaValidationError(criteriaMatching("(\\w)\\1*"))).toBe(
+      `Rule criteria filter 1: A pattern rule criteria operator's pattern cannot run: ${CANNOT_RUN_REASON}`,
+    );
+    expect(() => {
+      MonitorRulePatternValidator.validate({ namePattern: "(\\w)\\1*" });
+    }).toThrow(`Monitor Name Pattern "(\\w)\\1*" cannot run: ${CANNOT_RUN_REASON}`);
+  });
+
   test("keep one with a look-ahead, and one that is a wildcard", () => {
     expect(
       getRuleCriteriaValidationError(criteriaMatching("^api-(?!internal)")),

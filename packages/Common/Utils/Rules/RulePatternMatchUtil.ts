@@ -62,9 +62,11 @@ export class RulePatternMatchUtil {
     /*
      * Glob fallback only for patterns that actually carry a wildcard. Without
      * a '*' a glob is just a case-insensitive whole-string equality test,
-     * which the (unanchored) regex attempt above already covers.
+     * which the (unanchored) regex attempt above already covers. A regular
+     * expression this matcher cannot run is not read as a glob either: it
+     * matches nothing.
      */
-    if (trimmedPattern.includes("*")) {
+    if (RulePatternMatchUtil.isGlobPattern(trimmedPattern)) {
       return CidrMatchUtil.hostnameMatchesWildcard(value, trimmedPattern);
     }
 
@@ -162,7 +164,20 @@ export class RulePatternMatchUtil {
 
     return (
       RulePatternMatchUtil.isValidRegex(trimmedPattern) ||
-      trimmedPattern.includes("*")
+      RulePatternMatchUtil.isGlobPattern(trimmedPattern)
+    );
+  }
+
+  /*
+   * Whether `pattern` is read as a '*' wildcard: it carries one, and is not
+   * a regular expression the matcher refuses - (\w)\1* refers back to a
+   * group, and is no wildcard.
+   */
+  public static isGlobPattern(pattern: string): boolean {
+    return (
+      typeof pattern === "string" &&
+      pattern.includes("*") &&
+      RulePatternMatchUtil.getRegexProblemReason(pattern) === null
     );
   }
 

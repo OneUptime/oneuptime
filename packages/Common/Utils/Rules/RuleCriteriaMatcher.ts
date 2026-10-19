@@ -866,7 +866,7 @@ export class RuleCriteriaMatcher {
       return value;
     }
 
-    if (value.includes("*")) {
+    if (RulePatternMatchUtil.isGlobPattern(value)) {
       return RuleCriteriaMatcher.toSafeLegacyGlobPattern(value);
     }
 
