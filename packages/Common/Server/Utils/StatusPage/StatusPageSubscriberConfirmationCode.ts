@@ -25,8 +25,8 @@ import crypto from "crypto";
  * Codes minted before codes were 32 characters are six digits. The route
  * still takes one inside its day, as it takes any code, but only until a
  * wrong code is tried for its subscription: then it is given up
- * (StatusPageSubscriberService.confirmSubscription), so a short code is
- * never there to be guessed at.
+ * (StatusPageSubscriberService.confirmSubscription), so a short code
+ * confirms through its own link and nothing else.
  */
 
 // A code minted now: 32 lowercase hex characters.

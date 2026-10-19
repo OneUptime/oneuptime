@@ -37,9 +37,9 @@ import {
  *  - a confirmed subscription holds its contact as before.
  *
  * And a code minted before codes were 32 characters - six digits - is given
- * up as soon as a wrong code is tried for its subscription, so it can never
- * be guessed at, while the link that carries it still confirms inside its
- * day.
+ * up as soon as a wrong code is tried for its subscription, so it confirms
+ * through its own link and nothing else, while that link still confirms
+ * inside its day.
  *
  * Driven through the real routes, as the status page and the dashboard
  * drive them (SubscriberWorld): the real subscriber service, its checks and
@@ -846,15 +846,15 @@ describe("a six-digit code from before codes were 32 characters", () => {
     expect(welcomesSent()).toBe(0);
   });
 
-  test("regression: two thousand guesses write once, are each told 'not found', and the right code after them confirms nothing", async () => {
+  test("regression: two thousand wrong codes write once, are each told 'not found', and the right code after them confirms nothing", async () => {
     const earlier: Link = subscriptionFromBefore({ sentAgo: HOUR });
 
     let notFound: number = 0;
 
-    for (let guess: number = 100000; guess < 102000; guess++) {
+    for (let wrong: number = 100000; wrong < 102000; wrong++) {
       const error: Exception | undefined = await open({
         ...earlier,
-        code: String(guess),
+        code: String(wrong),
       });
 
       if (error instanceof NotFoundException) {
@@ -880,9 +880,9 @@ describe("a six-digit code from before codes were 32 characters", () => {
 
     const [link] = linksSent() as [Link];
 
-    for (let guess: number = 0; guess < 2000; guess++) {
+    for (let wrong: number = 0; wrong < 2000; wrong++) {
       expectNotFound(
-        await open({ ...link, code: guess.toString(16).padStart(32, "0") }),
+        await open({ ...link, code: wrong.toString(16).padStart(32, "0") }),
       );
     }
 

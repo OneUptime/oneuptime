@@ -3059,8 +3059,8 @@ Stay informed about service availability! 🚀`.toString();
    *
    * A code minted before codes were 32 characters is six digits. A wrong
    * code for a subscription waiting with one gives that code up
-   * (retireShortConfirmationCode): a short code is good for its own link,
-   * never for guessing at. Its subscription can still be confirmed by the
+   * (retireShortConfirmationCode): a short code confirms through its own
+   * link and nothing else. Its subscription can still be confirmed by the
    * team, and its contact signed up again once its day is over.
    */
   @CaptureSpan()

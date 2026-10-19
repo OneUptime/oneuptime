@@ -23,8 +23,8 @@ import ts from "typescript";
  *     is tried for its subscription.
  *
  * A lookup of a subscription by its code (a query or a where naming the
- * column) would confirm by a link that has expired, or let a short code be
- * guessed at again. So these hold the product's code to that: every product
+ * column) would confirm by a link that has expired, or take a short code
+ * more than once. So these hold the product's code to that: every product
  * file whose code names the column is listed with what it does with it, no
  * product code looks a subscription up by its code, and the code is
  * compared, and minted, where it is. Read with TypeScript's parser, so a
