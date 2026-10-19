@@ -305,7 +305,10 @@ export default class FakeCounterRedis {
 
   // Every key there is: the counters', then the sets'.
   public keys(): Array<string> {
-    return [...Array.from(this.counters.keys()), ...Array.from(this.sets.keys())];
+    return [
+      ...Array.from(this.counters.keys()),
+      ...Array.from(this.sets.keys()),
+    ];
   }
 
   // The keys whose name holds `fragment`.

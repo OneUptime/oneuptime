@@ -88,9 +88,7 @@ describe("an IPv4 client's different values", () => {
   test("are checked and added in one round trip: one script, naming the address's set alone", async () => {
     expect(await present(address, "value-1")).toBeNull();
 
-    expect(redis.sent).toEqual([
-      [{ name: "eval", key: key, keys: [key] }],
-    ]);
+    expect(redis.sent).toEqual([[{ name: "eval", key: key, keys: [key] }]]);
     expect(redis.membersOf(key)).toEqual(["value-1"]);
   });
 
@@ -320,9 +318,9 @@ describe("an IPv6 client's different values", () => {
     const keysWhenFull: number = redis.keys().length;
 
     for (let host: number = 1000; host < 1500; host++) {
-      expect((await present(hostOf(host), `value-${host}`))?.ipv6Network64).toBe(
-        NETWORK,
-      );
+      expect(
+        (await present(hostOf(host), `value-${host}`))?.ipv6Network64,
+      ).toBe(NETWORK);
       expect((await present(hostOf(host), null))?.ipv6Network64).toBe(NETWORK);
     }
 
@@ -406,9 +404,12 @@ describe("an IPv6 client's different values", () => {
   test("a check sent with a burst of values is answered after the values sent before it", async () => {
     const answers: Array<ClientRateLimitRefusal<Scope> | null> =
       await Promise.all([
-        ...Array.from({ length: PER_ADDRESS + 1 }, (_value: unknown, index) => {
-          return present("203.0.113.9", `burst-${index}`);
-        }),
+        ...Array.from(
+          { length: PER_ADDRESS + 1 },
+          (_value: unknown, index: number) => {
+            return present("203.0.113.9", `burst-${index}`);
+          },
+        ),
         present("203.0.113.9", null),
       ]);
 

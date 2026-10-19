@@ -293,7 +293,11 @@ describe("a client that sends wrong cluster keys", () => {
   });
 
   test("ten different wrong keys are each answered as wrong; the next is one too many, and from then on the right key is refused too", async () => {
-    for (let guess: number = 1; guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS; guess++) {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
       expect(await present(address, `guess-${guess}`)).toEqual(WRONG);
     }
 
@@ -314,15 +318,17 @@ describe("a client that sends wrong cluster keys", () => {
   });
 
   test("Retry-After counts down to the end of the window, and the next window lets the right key through", async () => {
-    for (let guess: number = 1; guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS + 1; guess++) {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS + 1;
+      guess++
+    ) {
       await present(address, `guess-${guess}`);
     }
 
     now += 10 * 60 * 1000 + 500;
 
-    expect(await present(address, RIGHT_KEY)).toEqual(
-      refusedFor(5 * 60 - 0),
-    );
+    expect(await present(address, RIGHT_KEY)).toEqual(refusedFor(5 * 60));
 
     now = windowStart() + WRONG_CLUSTER_KEY_WINDOW_SECONDS * 1000;
 
@@ -357,13 +363,21 @@ describe("a client that sends wrong cluster keys", () => {
     expect(redis.keys()).toEqual([]);
 
     // Its allowance for wrong keys is untouched.
-    for (let guess: number = 1; guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS; guess++) {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
       expect(await present(address, `guess-${guess}`)).toEqual(WRONG);
     }
   });
 
   test("another address keeps its own allowance", async () => {
-    for (let guess: number = 1; guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS + 5; guess++) {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS + 5;
+      guess++
+    ) {
       await present(address, `guess-${guess}`);
     }
 
@@ -423,7 +437,11 @@ describe("one count for every route", () => {
   const address: string = "203.0.113.30";
 
   test("wrong keys sent to every route and the Runner's registration, header or body, are one client's wrong keys", async () => {
-    for (let guess: number = 1; guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS; guess++) {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
       const outcome: Outcome =
         guess % 3 === 0
           ? await present(address, `guess-${guess}`)
@@ -434,7 +452,9 @@ describe("one count for every route", () => {
                 "isAuthorizedRunnerRegistrationMiddleware",
               )
             : await send(
-                requestFrom(address, { body: { clusterKey: `guess-${guess}` } }),
+                requestFrom(address, {
+                  body: { clusterKey: `guess-${guess}` },
+                }),
                 "isAuthorizedRunnerRegistrationMiddleware",
               );
 
@@ -443,7 +463,9 @@ describe("one count for every route", () => {
 
     expect(
       await send(
-        requestFrom(address, { body: { clusterKey: "guess-from-an-old-runner" } }),
+        requestFrom(address, {
+          body: { clusterKey: "guess-from-an-old-runner" },
+        }),
         "isAuthorizedRunnerRegistrationMiddleware",
       ),
     ).toEqual(refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS));
@@ -551,9 +573,11 @@ describe("an IPv6 client", () => {
       refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
     );
 
-    expect(mockWarnings.filter((line: string): boolean => {
-      return line.includes(`wrong cluster key limit of ${NETWORK}`);
-    })).toHaveLength(1);
+    expect(
+      mockWarnings.filter((line: string): boolean => {
+        return line.includes(`wrong cluster key limit of ${NETWORK}`);
+      }),
+    ).toHaveLength(1);
 
     // Another /64, and IPv4, are let through.
     expect(await present(hostOf(1, "2001:db8:7:9"), RIGHT_KEY)).toEqual(
