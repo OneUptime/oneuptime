@@ -443,6 +443,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             selectMoreFields={{
               subscriberPhone: true,
               isSubscriptionConfirmed: true,
+              /*
+               * The Status reads when the link to confirm was sent, so it
+               * is read whether or not the viewer shows Subscribed At.
+               */
+              createdAt: true,
             }}
             query={{
               statusPageId: modelId,

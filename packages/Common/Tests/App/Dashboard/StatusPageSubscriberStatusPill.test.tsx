@@ -264,6 +264,23 @@ describe("the lists that show it", () => {
       );
       // Created At, which the Status reads, is one of the list's columns.
       expect(code).toContain("field: { createdAt: true, }");
+
+      /*
+       * And it is read whatever columns the viewer shows: a list selects
+       * the columns it draws and its selectMoreFields, and a viewer may
+       * switch Subscribed At off (ColumnPreference) - without Created At,
+       * every subscriber waiting for a link that still works would read
+       * as Link Expired.
+       */
+      const selectStart: number = code.indexOf("selectMoreFields={{");
+      expect(selectStart).toBeGreaterThan(-1);
+
+      const selectMoreFields: string = code.slice(
+        selectStart,
+        code.indexOf("}}", selectStart),
+      );
+      expect(selectMoreFields).toContain("isSubscriptionConfirmed: true,");
+      expect(selectMoreFields).toContain("createdAt: true,");
       // The pill decides alone: no list keeps an Awaiting Confirmation of its own.
       expect(code).not.toContain('text={"Awaiting Confirmation"}');
     },
