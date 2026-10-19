@@ -1,0 +1,101 @@
+# Route harvesting: OBI reads a new process's route templates before it starts
+# tracing it, one process at a time, waiting up to its timeout for each. The
+# Node.js harvester regex-scans every source file of the app and cannot stop
+# early, so on large apps it runs out its 10 s every time: after an agent
+# restart, a node's Node.js apps were traced minutes late, and connections they
+# opened in the meantime could not be tied to their requests. The chart skips
+# Node.js by default (ebpf.routes.disabledHarvesters) and can shorten the wait
+# (ebpf.routes.harvestTimeout); both land in OBI's discovery config.
+suite: eBPF route harvesting
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-ebpf.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: skips harvesting Node.js routes by default, and keeps OBI's timeout
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: '\n  disabled_route_harvesters:\n    - "nodejs"\n'
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "route_harvester_timeout"
+
+  - it: writes the languages it is given, each once
+    set:
+      ebpf.routes.disabledHarvesters: ["nodejs", "python"]
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: '\n  disabled_route_harvesters:\n    - "nodejs"\n    - "python"\n'
+
+  - it: harvests every language when the list is empty
+    set:
+      ebpf.routes.disabledHarvesters: []
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "disabled_route_harvesters"
+
+  # A release carried forward with --reuse-values from a chart before the key
+  # has no value at all: OBI harvests every language, as before.
+  - it: harvests every language for a values file without the key
+    set:
+      ebpf.routes.disabledHarvesters: null
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "disabled_route_harvesters"
+
+  - it: survives a values file with no ebpf.routes at all
+    set:
+      ebpf.routes: null
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "route_harvest"
+
+  - it: passes a harvest timeout through, inside the discovery block
+    set:
+      ebpf.routes.harvestTimeout: 2s
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: '\n  disabled_route_harvesters:\n    - "nodejs"\n  route_harvester_timeout: "2s"\n'
+
+  # OBI refuses to start on a zero timeout (validate:"gt=0"), so the chart
+  # refuses it first, where the error names the key.
+  - it: rejects a zero harvest timeout
+    set:
+      ebpf.routes.harvestTimeout: 0s
+    asserts:
+      - failedTemplate:
+          errorPattern: "harvestTimeout: Does not match pattern"
+
+  - it: rejects a harvest timeout without a unit
+    set:
+      ebpf.routes.harvestTimeout: "10"
+    asserts:
+      - failedTemplate:
+          errorPattern: "harvestTimeout: Does not match pattern"
+
+  # On the command line, `--set ebpf.routes.disabledHarvesters={}` is [""].
+  - it: harvests every language for the command line's empty list
+    set:
+      ebpf.routes.disabledHarvesters: [""]
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "disabled_route_harvesters"
+
+  - it: rejects a language OBI has no harvester switch for
+    set:
+      ebpf.routes.disabledHarvesters: ["deno"]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'ebpf.routes.disabledHarvesters.0 must be one of the following: "", "dotnet", "go", "java", "nodejs", "php", "python", "ruby"'
