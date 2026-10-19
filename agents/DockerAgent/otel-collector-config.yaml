@@ -256,7 +256,8 @@ processors:
   # transform/percent-units also gives container.memory.percent the unit "%":
   # the receiver sends it as a percent (0-100) of the container's memory
   # limit, or of the host's memory without one, but labels it "1", the unit
-  # of a 0-1 fraction, which reads as 100 times too much.
+  # of a 0-1 fraction, which reads as 100 times too much - and a description
+  # that says what it is a percent of.
   # Tests/Ops/ContainerAgentCpuUtilization.test.js holds the three container
   # agents to these processors, and Tests/Ops/container-agent-cpu-
   # utilization-behaviour.sh runs them in the collector this image is built
@@ -285,6 +286,7 @@ processors:
           - scale_metric(0.0000001, "%") where metric.name == "container.cpu.utilization"
           - set(metric.description, "CPU used by the container over the collection interval, as a percent of one CPU core (100% is one full core).") where metric.name == "container.cpu.utilization"
           - set(metric.unit, "%") where metric.name == "container.memory.percent"
+          - set(metric.description, "Memory in use as a percent of the container's memory limit, or of the host's memory when the container has no limit.") where metric.name == "container.memory.percent"
   resource:
     attributes:
       - key: container.runtime

@@ -48,6 +48,9 @@ const DOCKER_STATS_SCOPE =
 const CPU_DESCRIPTION =
   "CPU used by the container over the collection interval, as a percent of one CPU core (100% is one full core).";
 
+const MEMORY_DESCRIPTION =
+  "Memory in use as a percent of the container's memory limit, or of the host's memory when the container has no limit.";
+
 // The receiver's start time, and the first scrape a second later.
 const START_NANO = 1700000000000000000n;
 const SECOND_NANO = 1000000000n;
@@ -366,6 +369,11 @@ function checkSynthetic(agent, exported) {
     ) {
       problems.push(
         `${MEMORY_PERCENT_METRIC} came out as ${point.value} in "${point.unit}" (${point.type})`,
+      );
+    }
+    if (point.description !== MEMORY_DESCRIPTION) {
+      problems.push(
+        `${MEMORY_PERCENT_METRIC} is described "${point.description}"`,
       );
     }
   }

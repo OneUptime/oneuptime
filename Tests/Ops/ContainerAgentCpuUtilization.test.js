@@ -166,6 +166,7 @@ describe("container agents: container.cpu.utilization is built from container.cp
               `scale_metric(0.0000001, "%") where metric.name == "${CPU_METRIC}"`,
               `set(metric.description, "CPU used by the container over the collection interval, as a percent of one CPU core (100% is one full core).") where metric.name == "${CPU_METRIC}"`,
               `set(metric.unit, "%") where metric.name == "${MEMORY_PERCENT_METRIC}"`,
+              `set(metric.description, "Memory in use as a percent of the container's memory limit, or of the host's memory when the container has no limit.") where metric.name == "${MEMORY_PERCENT_METRIC}"`,
             ],
           },
         ],

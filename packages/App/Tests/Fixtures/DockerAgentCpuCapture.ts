@@ -14,13 +14,15 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
  *     32 MB written to /dev/shm.
  *
  * Two consecutive scrapes, 10 seconds apart (the capture ran the receiver
- * every 10 s; the agent ships 30 s). Every attribute (order included), unit,
- * description, time and value is as captured; only the metrics the ingest
- * reads for container CPU and memory are kept, in the captured order.
+ * every 10 s; the agent ships 30 s), taken after the first scrape, whose CPU
+ * percent the agent drops for want of a reading before it. Every attribute
+ * (order included), unit, description, time and value is as captured; only
+ * the metrics the ingest reads for container CPU and memory are kept, in the
+ * captured order.
  *
- * The same containers under the agent as it was (the receiver's own CPU
- * percent, a one-shot sample divided by the host's CPU since boot) read
- * 0.0140 and 0.0141 - see Tests/Ops/ContainerAgentCpuUtilization.test.js.
+ * Containers held the same way under the agent as it was (the receiver's own
+ * CPU percent, a one-shot sample divided by the host's CPU since boot) read
+ * about 0.014 - see Tests/Ops/ContainerAgentCpuUtilization.test.js.
  */
 
 export interface CapturedScrapeContainer {
@@ -44,8 +46,8 @@ export interface CapturedScrape {
 }
 
 // When the receiver started: the start time of every cumulative sum.
-export const CPU_CAPTURE_START_TIME_UNIX_NANO: string = "1792446611771357491";
-export const CPU_CAPTURE_HOST_NAME: string = "e2e-after";
+export const CPU_CAPTURE_START_TIME_UNIX_NANO: string = "1792450983296895747";
+export const CPU_CAPTURE_HOST_NAME: string = "e2e-final";
 
 export const QUARTER_CORE_CONTAINER: string =
   "docker-agent-percent-metrics-load";
@@ -53,70 +55,70 @@ export const ONE_AND_A_HALF_CORE_CONTAINER: string =
   "docker-agent-percent-metrics-load2";
 
 const QUARTER_CORE_ID: string =
-  "a6b9dae22f8e9fefa2362aa3ac0805e37e3c080b8e50fcd089a514fa364574b4";
+  "d2bb51013140961be173ac88fc5a81b43d0f398380cc40c8cfdc1353c59d2892";
 const ONE_AND_A_HALF_CORE_ID: string =
-  "c1733735124f2e78a30ee39bfb948dedbc398e520ae7865a8a71a3dec2836364";
+  "45b66e14088b60de3c662f0111140d1b025b9f28f9af7bb82c77b4f881a78826";
 
 export const CPU_CAPTURE_SCRAPES: Array<CapturedScrape> = [
   {
-    timeUnixNano: "1792446622881284451",
+    timeUnixNano: "1792450994393381328",
     containers: [
       {
         name: QUARTER_CORE_CONTAINER,
         id: QUARTER_CORE_ID,
-        hostname: "a6b9dae22f8e",
+        hostname: "d2bb51013140",
         image: "busybox:latest",
-        cpuUsageTotalNanoseconds: "373190110000",
-        cpuUtilizationStartTimeUnixNano: "1792446612881237815",
-        cpuUtilizationPercent: 24.99738342220267,
+        cpuUsageTotalNanoseconds: "3033648000",
+        cpuUtilizationStartTimeUnixNano: "1792450984393081230",
+        cpuUtilizationPercent: 24.97635046471782,
         memoryPercent: 0.69580078125,
         memoryUsageLimitBytes: "67108864",
         memoryUsageTotalBytes: "466944",
-        uptimeSeconds: 1492.760055726,
+        uptimeSeconds: 12.087009411,
       },
       {
         name: ONE_AND_A_HALF_CORE_CONTAINER,
         id: ONE_AND_A_HALF_CORE_ID,
-        hostname: "c1733735124f",
+        hostname: "45b66e14088b",
         image: "busybox:latest",
-        cpuUsageTotalNanoseconds: "237049111000",
-        cpuUtilizationStartTimeUnixNano: "1792446612881237815",
-        cpuUtilizationPercent: 149.99626047743965,
-        memoryPercent: 25.6195068359375,
+        cpuUsageTotalNanoseconds: "17565408000",
+        cpuUtilizationStartTimeUnixNano: "1792450984393081230",
+        cpuUtilizationPercent: 149.97340932798073,
+        memoryPercent: 25.628662109375,
         memoryUsageLimitBytes: "134217728",
-        memoryUsageTotalBytes: "34385920",
-        uptimeSeconds: 158.130655012,
+        memoryUsageTotalBytes: "34398208",
+        uptimeSeconds: 11.821263275,
       },
     ],
   },
   {
-    timeUnixNano: "1792446632882217275",
+    timeUnixNano: "1792451004393424333",
     containers: [
       {
         name: QUARTER_CORE_CONTAINER,
         id: QUARTER_CORE_ID,
-        hostname: "a6b9dae22f8e",
+        hostname: "d2bb51013140",
         image: "busybox:latest",
-        cpuUsageTotalNanoseconds: "375690042000",
-        cpuUtilizationStartTimeUnixNano: "1792446622881284451",
-        cpuUtilizationPercent: 24.99698822094598,
+        cpuUsageTotalNanoseconds: "5531908000",
+        cpuUtilizationStartTimeUnixNano: "1792450994393381328",
+        cpuUtilizationPercent: 24.982492562790732,
         memoryPercent: 0.69580078125,
         memoryUsageLimitBytes: "67108864",
         memoryUsageTotalBytes: "466944",
-        uptimeSeconds: 1502.76098855,
+        uptimeSeconds: 22.087052416,
       },
       {
         name: ONE_AND_A_HALF_CORE_CONTAINER,
         id: ONE_AND_A_HALF_CORE_ID,
-        hostname: "c1733735124f",
+        hostname: "45b66e14088b",
         image: "busybox:latest",
-        cpuUsageTotalNanoseconds: "252050510000",
-        cpuUtilizationStartTimeUnixNano: "1792446622881284451",
-        cpuUtilizationPercent: 149.99999764022013,
-        memoryPercent: 25.6195068359375,
+        cpuUsageTotalNanoseconds: "32561690000",
+        cpuUtilizationStartTimeUnixNano: "1792450994393381328",
+        cpuUtilizationPercent: 149.96217508766603,
+        memoryPercent: 25.628662109375,
         memoryUsageLimitBytes: "134217728",
-        memoryUsageTotalBytes: "34385920",
-        uptimeSeconds: 168.131587836,
+        memoryUsageTotalBytes: "34398208",
+        uptimeSeconds: 21.82130628,
       },
     ],
   },
@@ -124,6 +126,9 @@ export const CPU_CAPTURE_SCRAPES: Array<CapturedScrape> = [
 
 export const CPU_CAPTURE_DESCRIPTION: string =
   "CPU used by the container over the collection interval, as a percent of one CPU core (100% is one full core).";
+
+export const MEMORY_CAPTURE_DESCRIPTION: string =
+  "Memory in use as a percent of the container's memory limit, or of the host's memory when the container has no limit.";
 
 function stringAttributes(values: Array<[string, string]>): JSONArray {
   return values.map(([key, value]: [string, string]): JSONObject => {
@@ -183,7 +188,7 @@ export function capturedAgentResourceMetrics(
           },
           {
             name: "container.memory.percent",
-            description: "Percentage of memory used. Not supported on Windows.",
+            description: MEMORY_CAPTURE_DESCRIPTION,
             unit: "%",
             gauge: {
               dataPoints: [point(time, { asDouble: container.memoryPercent })],
@@ -238,6 +243,7 @@ export function capturedAgentResourceMetrics(
         ],
       },
     ],
+    schemaUrl: "https://opentelemetry.io/schemas/1.40.0",
   };
 }
 
