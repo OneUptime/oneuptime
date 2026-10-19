@@ -127,7 +127,11 @@ export function describeRecorded(event: JSONObject): string {
   return `Recorded the ${event["eventType"] as string} change "${event["title"] as string}"${service}.`;
 }
 
-// Posts the events with the ingestion key; resolves to what OneUptime stored.
+/*
+ * Posts the events with the ingestion key; resolves to what OneUptime stored.
+ * The key is in the headers, so a redirect is followed only on the server
+ * it was sent to: one pointing anywhere else would hand the key over.
+ */
 export async function sendChangeEvents(data: {
   instanceUrl: string;
   ingestionKey: string;
@@ -149,6 +153,9 @@ export async function sendChangeEvents(data: {
         "x-oneuptime-token": data.ingestionKey,
       },
       data: { events: data.events },
+      options: {
+        sameServerRedirectsOnly: true,
+      },
     },
   );
 

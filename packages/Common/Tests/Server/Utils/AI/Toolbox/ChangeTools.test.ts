@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
@@ -144,12 +145,12 @@ const RANGE: GitHubCommitRange = {
   isTruncated: false,
 };
 
-let findChanges: jest.SpiedFunction<typeof ChangeEventService.findBy>;
-let readable: jest.SpiedFunction<typeof CodeTools.findReadableRepositories>;
-let mintToken: jest.SpiedFunction<typeof GitHubUtil.getInstallationAccessToken>;
-let compare: jest.SpiedFunction<typeof GitHubCommits.compare>;
-let getCommit: jest.SpiedFunction<typeof GitHubCommits.getCommit>;
-let listPullRequests: jest.SpiedFunction<
+let findChanges: SpyInstance<typeof ChangeEventService.findBy>;
+let readable: SpyInstance<typeof CodeTools.findReadableRepositories>;
+let mintToken: SpyInstance<typeof GitHubUtil.getInstallationAccessToken>;
+let compare: SpyInstance<typeof GitHubCommits.compare>;
+let getCommit: SpyInstance<typeof GitHubCommits.getCommit>;
+let listPullRequests: SpyInstance<
   typeof GitHubCommits.listPullRequestsForCommit
 >;
 let earlier: Array<JSONObject>;
@@ -291,7 +292,7 @@ describe("get_change_details", () => {
         ? [change({ attributes: { "vcs.ref.head.revision": HEAD } })]
         : earlier;
     }) as never);
-    const resolve: jest.SpiedFunction<
+    const resolve: SpyInstance<
       typeof CodeRepositoryService.resolveRepositoryForException
     > = jest
       .spyOn(CodeRepositoryService, "resolveRepositoryForException")

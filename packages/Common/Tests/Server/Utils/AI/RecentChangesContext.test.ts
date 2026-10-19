@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ChangeEvent from "../../../../Models/AnalyticsModels/ChangeEvent";
 import AlertService from "../../../../Server/Services/AlertService";
 import ChangeEventService from "../../../../Server/Services/ChangeEventService";
@@ -660,17 +661,11 @@ describe("the starting context", () => {
 
 describe("RecentChangesContext.read", () => {
   let rows: Array<JSONObject>;
-  let findChanges: jest.SpiedFunction<typeof ChangeEventService.findBy>;
-  let findServices: jest.SpiedFunction<typeof ServiceService.findBy>;
-  let analytics: jest.SpiedFunction<
-    typeof TraceAggregationService.getAnalyticsTable
-  >;
-  let countExceptions: jest.SpiedFunction<
-    typeof ExceptionInstanceService.countBy
-  >;
-  let findNewExceptions: jest.SpiedFunction<
-    typeof TelemetryExceptionService.findBy
-  >;
+  let findChanges: SpyInstance<typeof ChangeEventService.findBy>;
+  let findServices: SpyInstance<typeof ServiceService.findBy>;
+  let analytics: SpyInstance<typeof TraceAggregationService.getAnalyticsTable>;
+  let countExceptions: SpyInstance<typeof ExceptionInstanceService.countBy>;
+  let findNewExceptions: SpyInstance<typeof TelemetryExceptionService.findBy>;
 
   function spanRow(
     overrides: Partial<TraceAnalyticsTableRow> = {},
@@ -1047,10 +1042,9 @@ describe("RecentChangesContext.read", () => {
   });
 
   test("without the linked infrastructure, the subject's own time is read", async () => {
-    const findIncident: jest.SpiedFunction<typeof IncidentService.findOneBy> =
-      jest
-        .spyOn(IncidentService, "findOneBy")
-        .mockResolvedValue({ createdAt: DECLARED_AT } as never);
+    const findIncident: SpyInstance<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue({ createdAt: DECLARED_AT } as never);
 
     const result: RecentChanges | null = await read(null);
 
@@ -1061,7 +1055,7 @@ describe("RecentChangesContext.read", () => {
   });
 
   test("an alert's own time is read from the alert", async () => {
-    const findAlert: jest.SpiedFunction<typeof AlertService.findOneBy> = jest
+    const findAlert: SpyInstance<typeof AlertService.findOneBy> = jest
       .spyOn(AlertService, "findOneBy")
       .mockResolvedValue({ createdAt: DECLARED_AT } as never);
 
