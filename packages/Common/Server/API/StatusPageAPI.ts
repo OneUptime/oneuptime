@@ -3213,9 +3213,9 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    const email: Email | undefined = req.body.data["subscriberEmail"]
-      ? new Email(req.body.data["subscriberEmail"] as string)
-      : undefined;
+    const email: Email | undefined = StatusPageAPI.readSubscriberEmail(
+      req.body.data["subscriberEmail"],
+    );
 
     const phone: Phone | undefined = req.body.data["subscriberPhone"]
       ? new Phone(req.body.data["subscriberPhone"] as string)
@@ -3626,6 +3626,23 @@ export default class StatusPageAPI extends BaseAPI<
   }
 
   /*
+   * The one address a sign-up or a manage link names. A value that is not
+   * one mailbox - a list, a group, a name with an address, a trailing dot -
+   * is refused in the words every public message route uses
+   * (PublicMessageRateLimit.forEmail), before Email's constructor would
+   * refuse it in its own.
+   */
+  private static readSubscriberEmail(value: unknown): Email | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    PublicMessageRateLimit.forEmail(value as string);
+
+    return new Email(value as string);
+  }
+
+  /*
    * A sign-up on a page that takes only its private users
    * (Types/StatusPage/SubscriberRestrictions): by email, and with the
    * address the reader is signed in to the page with - read from their
@@ -3828,9 +3845,9 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
-    const email: Email | undefined = req.body.data["subscriberEmail"]
-      ? new Email(req.body.data["subscriberEmail"] as string)
-      : undefined;
+    const email: Email | undefined = StatusPageAPI.readSubscriberEmail(
+      req.body.data["subscriberEmail"],
+    );
 
     const phone: Phone | undefined = req.body.data["subscriberPhone"]
       ? new Phone(req.body.data["subscriberPhone"] as string)
