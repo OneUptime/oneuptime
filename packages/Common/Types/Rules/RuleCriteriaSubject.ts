@@ -68,6 +68,7 @@ export const RULE_CRITERIA_SUBJECT_BY_MODEL: Readonly<
   Record<RegisteredRuleCriteriaModelName, RuleCriteriaSubject | null>
 > = {
   AIInvestigationRule: null,
+  AIPostmortemRule: RuleCriteriaSubject.Incidents,
   AlertEpisodeLabelRule: RuleCriteriaSubject.AlertEpisodes,
   AlertEpisodeOnCallRule: RuleCriteriaSubject.AlertEpisodes,
   AlertEpisodeOwnerRule: RuleCriteriaSubject.AlertEpisodes,

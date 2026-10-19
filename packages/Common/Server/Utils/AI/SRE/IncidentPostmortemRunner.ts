@@ -13,9 +13,18 @@ import AIService from "../../../Services/AIService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import IncidentPostmortemCallWait from "./IncidentPostmortemCallWait";
+import PostmortemRules, {
+  POSTMORTEM_RULE_INCIDENT_SELECT,
+  PostmortemDraftPlan,
+  PostmortemRuleTemplate,
+} from "./PostmortemRules";
+import PostmortemTemplatePick from "./PostmortemTemplatePick";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
  * AI SRE — auto-draft postmortem on resolve (Phase 3, "close the loop").
@@ -37,23 +46,36 @@ import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
  * transcript is still on its way at the resolve - the call ended with the
  * incident - the draft waits for it (IncidentPostmortemCallWait), and is
  * written once the transcript has been read or no longer can be.
+ *
+ * The project's postmortem rules, when it has any, say which incidents get a
+ * draft and which templates it may follow (PostmortemRules): with none,
+ * every resolved incident gets one in OneUptime AI's standard outline; with
+ * rules, only an incident one of them matches does, following the
+ * template(s) of the first rule that matches - OneUptime AI picks the one
+ * that fits best when there are several (PostmortemTemplatePick). The rules
+ * are read when the incident resolves, and again when a draft that waited
+ * for its calls is written.
  */
 const MAX_FEED_PREVIEW_CHARS: number = 6000;
 
 // The most drafts that wait one run of the Workers job looks at.
 const MAX_WAITING_DRAFTS_PER_RUN: number = 100;
 
-// What deciding on, and writing, a draft reads of the incident.
+/*
+ * What deciding on, and writing, a draft reads of the incident: its
+ * postmortem, and what the project's postmortem rules match on.
+ */
 const DRAFT_SELECT: {
   _id: true;
   incidentNumber: true;
   postmortemNote: true;
   showPostmortemOnStatusPage: true;
-} = {
+} & typeof POSTMORTEM_RULE_INCIDENT_SELECT = {
   _id: true,
   incidentNumber: true,
   postmortemNote: true,
   showPostmortemOnStatusPage: true,
+  ...POSTMORTEM_RULE_INCIDENT_SELECT,
 };
 
 export default class AIIncidentPostmortemRunner {
@@ -129,6 +151,18 @@ export default class AIIncidentPostmortemRunner {
       }
 
       /*
+       * The project's postmortem rules, when it has any: only an incident
+       * one of them matches gets a draft. Decided before any wait, so an
+       * incident no rule matches waits for nothing.
+       */
+      const plan: PostmortemDraftPlan | null =
+        await AIIncidentPostmortemRunner.getDraftPlan({ projectId, incident });
+
+      if (!plan) {
+        return;
+      }
+
+      /*
        * The draft reads what was said on the incident's calls, and a call
        * usually ends about when the incident does: its transcript, and
        * OneUptime AI's reading of it, come after the resolve. While one is
@@ -161,6 +195,7 @@ export default class AIIncidentPostmortemRunner {
         incidentId,
         projectId,
         incidentNumber: incident.incidentNumber,
+        plan,
       });
     } catch (error) {
       logger.error(
@@ -240,10 +275,22 @@ export default class AIIncidentPostmortemRunner {
       return;
     }
 
+    // The rules as they are now: a rule changed during the wait decides.
+    const plan: PostmortemDraftPlan | null =
+      await AIIncidentPostmortemRunner.getDraftPlan({
+        projectId: incident.projectId,
+        incident,
+      });
+
+    if (!plan) {
+      return;
+    }
+
     await AIIncidentPostmortemRunner.writeDraft({
       incidentId: data.incidentId,
       projectId: incident.projectId,
       incidentNumber: incident.incidentNumber,
+      plan,
     });
   }
 
@@ -282,6 +329,28 @@ export default class AIIncidentPostmortemRunner {
     }
   }
 
+  /*
+   * Whether the project's postmortem rules give the incident a draft, and
+   * the templates it may follow - null when they do not: no rule matches it,
+   * or the rules could not be read (PostmortemRules logs why).
+   */
+  private static async getDraftPlan(data: {
+    projectId: ObjectID;
+    incident: Incident;
+  }): Promise<PostmortemDraftPlan | null> {
+    const plan: PostmortemDraftPlan | null =
+      await PostmortemRules.getIncidentDraftPlan(data);
+
+    if (plan && !plan.isInScope) {
+      logger.debug(
+        `AI: none of the ${plan.rulesChecked} postmortem rules matched incident ${data.incident.id?.toString()}, so no postmortem is drafted.`,
+      );
+      return null;
+    }
+
+    return plan;
+  }
+
   // A postmortem the draft may be written into: none yet, and not on the status page.
   private static isDraftable(incident: Incident): boolean {
     // Never clobber an existing postmortem (human or previously drafted).
@@ -306,8 +375,21 @@ export default class AIIncidentPostmortemRunner {
     incidentId: ObjectID;
     projectId: ObjectID;
     incidentNumber?: number | undefined;
+    plan: PostmortemDraftPlan;
   }): Promise<void> {
     const { incidentId, projectId } = data;
+
+    /*
+     * The template the draft follows: none (OneUptime AI's standard
+     * outline), the matching rule's one template, or the one OneUptime AI
+     * picks from its several.
+     */
+    const template: PostmortemRuleTemplate | null =
+      await PostmortemTemplatePick.pick({
+        projectId,
+        incidentId,
+        templates: data.plan.templates,
+      });
 
     /*
      * The draft is written from the incident's timeline and telemetry,
@@ -318,9 +400,9 @@ export default class AIIncidentPostmortemRunner {
      * (FeedMarkdown.aiWritten).
      */
     const draft: string = FeedMarkdown.aiWritten(
-      await IncidentService.generatePostmortemFromAI({
-        incidentId,
-      }),
+      await IncidentService.generatePostmortemFromAI(
+        template ? { incidentId, template: template.outline } : { incidentId },
+      ),
     ).toString();
 
     if (!draft || !draft.trim()) {
@@ -348,13 +430,18 @@ export default class AIIncidentPostmortemRunner {
         ? "the incident timeline, telemetry and what was said on its calls"
         : "the incident timeline and telemetry";
 
+    // The template the draft followed, by name, when it followed one.
+    const followed: MarkdownText = template
+      ? mdText`, following the postmortem template **${template.name || "Unnamed template"}**`
+      : mdText``;
+
     await IncidentFeedService.createIncidentFeedItem({
       incidentId,
       projectId,
       incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
       displayColor: Blue500,
       feedInfoInMarkdown:
-        mdText`## 🧠 AI — Draft Postmortem\n\nOneUptime AI drafted a postmortem for incident #${data.incidentNumber} from ${sources}. It has been saved on the incident for you to review and edit.`.toString(),
+        mdText`## 🧠 AI — Draft Postmortem\n\nOneUptime AI drafted a postmortem for incident #${data.incidentNumber} from ${sources}${followed}. It has been saved on the incident for you to review and edit.`.toString(),
       moreInformationInMarkdown:
         draft.length > MAX_FEED_PREVIEW_CHARS
           ? mdText`${FeedMarkdown.asMarkdown(draft.substring(0, MAX_FEED_PREVIEW_CHARS))}\n\n…(truncated — the full draft is saved on the incident.)`.toString()

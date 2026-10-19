@@ -127,6 +127,7 @@ import { AddGlobalRunners1803950000000 } from "./1803950000000-AddGlobalRunners"
 import { AddGlobalRunnerJobIndex1804000000000 } from "./1804000000000-AddGlobalRunnerJobIndex";
 import { AddCodeTasks1804050000000 } from "./1804050000000-AddCodeTasks";
 import { AddCodeTaskIndexesAndKey1804100000000 } from "./1804100000000-AddCodeTaskIndexesAndKey";
+import { AddAIPostmortemRules1804150000000 } from "./1804150000000-AddAIPostmortemRules";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1456,4 +1457,5 @@ export default [
   AddGlobalRunnerJobIndex1804000000000,
   AddCodeTasks1804050000000,
   AddCodeTaskIndexesAndKey1804100000000,
+  AddAIPostmortemRules1804150000000,
 ];
