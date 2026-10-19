@@ -4,6 +4,14 @@ const LABEL_PATTERN: RegExp = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 const ALL_DIGITS_PATTERN: RegExp = /^[0-9]+$/;
 
 /*
+ * The root label's trailing dots, tried only where a run of dots starts: a
+ * monitor's domain name is whatever a project typed, and tried from every
+ * dot of a long run that does not end the name, each try read on to the
+ * end of the run. The run that ends the name is taken whole either way.
+ */
+const TRAILING_DOTS_PATTERN: RegExp = /(?<!\.)\.+$/;
+
+/*
  * People paste "https://example.com/pricing" into a field labelled "Domain
  * Name" often enough that it is worth accepting. Everything here is about
  * getting from what was pasted to the registrable name a WHOIS or RDAP
@@ -32,7 +40,7 @@ export default class DomainNameUtil {
     normalized = normalized.split(":")[0] || "";
 
     // Strip the root label's trailing dot.
-    normalized = normalized.replace(/\.+$/, "");
+    normalized = normalized.replace(TRAILING_DOTS_PATTERN, "");
 
     /*
      * Registries, the IANA bootstrap registry and WHOIS servers all key on

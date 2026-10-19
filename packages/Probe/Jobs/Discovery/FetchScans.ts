@@ -328,9 +328,18 @@ function excerpt(text: string, maxLength: number): string {
  * sentences ("The UDP socket did not bind in time."), and a trailing period
  * inside the parentheses doubles the punctuation of the sentence around it.
  */
+/*
+ * A reason's trailing full stops and white space, tried only where such a
+ * run starts, so a long run that does not end the reason is read once.
+ */
+const TRAILING_STOPS_PATTERN: RegExp = /(?<![.\s])[.\s]+$/;
+
 function quoteReason(reason: string, maxLength: number): string {
   const trimmed: string = reason.trim();
-  const withoutTrailingStop: string = trimmed.replace(/[.\s]+$/, "");
+  const withoutTrailingStop: string = trimmed.replace(
+    TRAILING_STOPS_PATTERN,
+    "",
+  );
 
   /*
    * Stripping must never empty the quote. A reason of "..." would otherwise

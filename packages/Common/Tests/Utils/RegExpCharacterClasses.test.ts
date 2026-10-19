@@ -89,7 +89,7 @@ describe("the classes the readers lean on", () => {
   });
 
   test("a letter outside ASCII is neither a word character nor an ASCII letter", () => {
-    for (const character of ["é", "ſ", "K", "ı"]) {
+    for (const character of ["é", "ſ", "\u212a", "ı"]) {
       const code: number = character.charCodeAt(0);
 
       expect(isWordCode(code)).toBe(false);

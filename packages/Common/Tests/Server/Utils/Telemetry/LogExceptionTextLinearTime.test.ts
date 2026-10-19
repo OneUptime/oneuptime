@@ -214,8 +214,8 @@ describe("the readers answer exactly as the patterns did", () => {
     "\n ",
     "\n\t",
     LINE_SEPARATOR,
-    " ",
-    " ",
+    "\u2029",
+    "\u00a0",
     "\u000b",
     "at",
     " at ",
@@ -251,7 +251,7 @@ describe("the readers answer exactly as the patterns did", () => {
     "A.B:",
     "-",
     "é",
-    "K",
+    "\u212a",
   ];
 
   const SEEDS: ReadonlyArray<string> = [
@@ -264,7 +264,7 @@ describe("the readers answer exactly as the patterns did", () => {
     "\n\n at :1",
     'x.y: z\n  File "a", line 1',
     'Exception in thread "a" b.c: d',
-    "panic:\t ",
+    "panic:\t\u2028",
     "a.B: c",
   ];
 
