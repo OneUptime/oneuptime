@@ -316,6 +316,13 @@ describe("Teams side menu: Roles in Settings", () => {
     test("on All Teams only Teams is open: Settings and Developer are folded away", async () => {
       await renderTeamsMenu();
 
+      for (const section of EXPECTED_SECTIONS) {
+        expect({
+          section: section.title,
+          open: isExpanded(section.title),
+        }).toEqual({ section: section.title, open: !section.foldedOnAllTeams });
+      }
+
       expect(sectionsOpen()).toEqual(["Teams"]);
       expect(sectionBody("Settings")).toHaveClass(
         "max-h-0",
