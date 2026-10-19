@@ -1,10 +1,11 @@
 # Runbook エージェント
 
-**Runbook エージェント** （ダッシュボードでの名前は **Runner** ）は、Runbook の JavaScript、Bash、SSH、Kubernetes のステップを **自社インフラで** 実行する、小さなセルフホストのプロセスです。OneUptime Worker がスクリプトを実行することはありません。Worker はスクリプトをキューに入れ、ステップの作成者が選んだ Runner が各ジョブを取得して実行し、結果を返します。このページは Runner をインストールして運用する人のためのものです。
+**Runbook エージェント** （ダッシュボードでの名前は **Runner** ）は、Runbook の JavaScript、Bash、SSH、Kubernetes のステップを **自社インフラで** 実行する、小さなセルフホストのプロセスです。OneUptime Worker がスクリプトを実行することはありません。Worker はスクリプトをキューに入れ、ステップの作成者が選んだ Runner が各ジョブを取得して実行し、結果を返します。このページは Runner をインストールして運用する人のためのものです。 Runner を選ばない JavaScript のステップは、代わりに [グローバル Runner](#グローバル-runner) で実行されます。これは OneUptime がすべてのプロジェクトのために動かす Runner です。
 
 :::cards
 - [Runner をインストールする](#runner-をインストールする): ダッシュボードから接続済みのコンテナまで 5 ステップ。
 - [ステップに Runner を指定する](#ステップに-runner-を指定する): ステップを、それを実行する Runner に結び付けます。
+- [グローバル Runner](#グローバル-runner): OneUptime がすべてのプロジェクトのために動かす Runner と、それが実行するものです。
 - [タイムアウト](#タイムアウト): 取得のタイムアウトと実行タイムアウト、その関係。
 - [環境変数](#環境変数): コンテナが起動時に読むもの。
 :::
@@ -32,7 +33,7 @@ flowchart TB
 1. OneUptime で Runner を作成します。OneUptime がその ID と秘密キーを生成します。
 2. 自社インフラのホストで、その ID、キー、OneUptime の URL を指定して Runner コンテナを実行します。
 3. Runner は 5 秒ごとに OneUptime に作業を問い合わせ、60 秒ごとに稼働中であることを報告します。
-4. JavaScript、Bash、SSH、Kubernetes のステップを書くときに、ドロップダウンから Runner を選びます。ステップはその Runner に結び付けられます。
+4. JavaScript、Bash、SSH、Kubernetes のステップを書くときに、ドロップダウンから Runner を選びます。ステップはその Runner に結び付けられます。 JavaScript のステップは、ドロップダウンが選んでおく **グローバル Runner** のままにもできます。
 5. ステップが実行されると、Worker は `targetAgentId` をその Runner にしたジョブをキューに入れます。それを取得できるのはその Runner だけです。
 6. Runner はジョブをローカルで実行し（Bash は `bash -c <script>`、JavaScript は `isolated-vm` サンドボックス、SSH と Kubernetes はステップの認証情報を使った SSH 接続またはクラスターの API サーバーの呼び出し）、結果を記録して返します。Worker はその結果で Runbook を再開します。
 
@@ -48,6 +49,35 @@ OneUptime Worker でスクリプトを実行することには 2 つの問題が
 - **到達範囲。** 役に立つステップのほとんどは、OneUptime ではなく _自社の_ インフラに対して働きます（「このサービスを再起動する」「社内データベースでレコードを調べる」）。
 
 Runner を使うと、これらのステップは自分が管理するホストで実行され、そのホストに何を許可するかを自分で決められます。HTTP リクエストと AI のステップは自社ネットワークのものを必要としないため、引き続き Worker で実行されます。
+
+## グローバル Runner
+
+グローバル Runner は、OneUptime がすべてのプロジェクトのために動かす Runner です。自社の Runner を選ばない JavaScript のステップはそのいずれかで実行されるため、何もインストールしないうちからステップを書けます。 **Runbook → Runner** では、自社の Runner の上にある **グローバル Runner** にそれらが一覧表示され、JavaScript のステップの **Runner** ドロップダウンには最初に **グローバル Runner** が表示されます。
+
+| | グローバル Runner | 自社の Runner |
+| --- | --- | --- |
+| 実行するステップ | JavaScript | JavaScript、Bash、SSH、Kubernetes |
+| ステップがアクセスできる先 | 公開インターネットのアドレス | そのホストがアクセスできる先 |
+| ステップの最長実行時間 | 5 分 | 1 時間 |
+| Runbook のシークレット | グローバル Runner に使用を許可したもの | その Runner に割り当てたもの |
+| 認証情報 | なし | その Runner に割り当てたもの |
+
+グローバル Runner は多くのプロジェクトのステップを実行するため、各ステップは他のすべてのステップから切り離されています。
+
+- 各ステップは、そのステップのために作られて終了後に破棄される専用の `isolated-vm` サンドボックスで実行されます。ファイルもプロセスも環境変数もなく、あるステップから次のステップへ何も残りません。
+- HTTP リクエストが届くのは公開インターネットのアドレスだけで、プライベート、ループバック、リンクローカルのアドレスやクラウドのメタデータエンドポイントには決して届きません。そのため、グローバル Runner が自社のネットワークに届くことはありません。
+- Runbook のシークレットが渡されるのは、そのシークレットの **グローバル Runner がこのシークレットを使用できる** スイッチがオンのときだけで、しかもシークレット自身のプロジェクトのステップに限られます。認証情報が渡されることはありません。
+- 1 つのプロジェクトがグローバル Runner で同時に実行するステップは最大 3 つなので、1 つのプロジェクトがグローバル Runner を占有することはありません。
+
+自社のネットワークにアクセスする必要があるステップや、自分で管理するホストで実行したいステップには、自社の Runner を選んでください。すべてのステップを自社の Runner で実行するには、 **Runbook → Runner** の下部にある **グローバル Runner を使用** をオフにします。すると Runner を選ばない JavaScript のステップは、自社の Runner を選ぶまで、その旨を示して失敗します。自社の Runner を選んだステップは、どちらの場合もその Runner を使い続けます。
+
+### グローバル Runner の提供元
+
+OneUptime Cloud では OneUptime がグローバル Runner を動かします。セルフホストのインストールは、自身のグローバルプローブを動かすのと同じように、既定で自身のグローバル Runner を 1 つ動かします。Docker Compose の `global-runner` サービスと、Helm チャートの `globalRunner` デプロイメントです。これは専用のキー `GLOBAL_RUNNER_KEY` を持ち、サーバーのそれ以外のものは何も持ちません。
+
+マスター管理者は、他のホストからステップを実行するためにグローバル Runner を追加できます。Admin Dashboard で **設定** 、 **グローバル Runner** の順に開いて作成し、その **ID とキーを表示** が示すコマンドを、インターネットにアクセスできるホストで実行します。
+
+同梱のグローバル Runner をオフにするには、Docker Compose の `config.env` で `GLOBAL_RUNNER_REPLICAS=0` を設定するか、Helm チャートで `globalRunner.enabled` を `false` にします。グローバル Runner がまったくない場合、 **Runbook → Runner** には自社の Runner だけが表示され、各 JavaScript のステップはそのいずれかを選びます。
 
 ## 始める前に
 
@@ -114,11 +144,11 @@ Runbook の **ステップ** に、JavaScript、Bash、SSH、Kubernetes のい�
 
 ### Runner を選ぶ
 
-ステップの **Runner** ドロップダウンには、プロジェクト内のすべての Runner と、それぞれが接続されているかどうかが表示されます。プロジェクトにまだ Runner がない場合は、ステップがその旨を表示し、 **Runbook › Runner** を案内します。
+ステップの **Runner** ドロップダウンには、プロジェクト内のすべての Runner と、それぞれが接続されているかどうかが表示されます。プロジェクトにまだ Runner がない場合は、ステップがその旨を表示し、 **Runbook › Runner** を案内します。 JavaScript のステップのドロップダウンには **グローバル Runner** も最初に表示され、自社の Runner を選ぶまではそれが選ばれています。
 
 ### ステップを保存する
 
-**ステップを保存** をクリックします。実行がそのステップに達すると、Worker はその Runner の ID 宛てにジョブをキューに入れ、それを取得できるのはその Runner だけです。
+**ステップを保存** をクリックします。実行がそのステップに達すると、Worker はその Runner の ID 宛てにジョブをキューに入れ、それを取得できるのはその Runner だけです。 **グローバル Runner** のステップは、空いているグローバル Runner を待ちます。
 :::
 
 Bash は `bash -c` で実行されます。JavaScript は Runner 上の `isolated-vm` サンドボックスで、ファイルシステムやプロセスにアクセスせずに実行されます。`axios` で公開の HTTP API を呼び出せますが、プライベートネットワーク上のアドレスは呼び出せません。SSH と Kubernetes のステップは、ステップが指定する [認証情報](/docs/runbooks/credentials) を使い、その認証情報は同じ Runner に割り当てられている必要があります。
@@ -176,7 +206,7 @@ Runbook の実行は最初から最後まで 1 つの Worker で動くため、�
 
 ### オンラインのエージェントがない
 
-ステップの実行時に選んだ Runner がオフラインだと、ジョブは取得のタイムアウトが過ぎるまで `Pending` で待ち、その後ステップは「No runbook agent picked up this step before the wait window expired.」で失敗します。本番で Runbook を実行する前に、 **Runner** ページで対応範囲を確認してください。
+ステップの実行時に選んだ Runner がオフラインだと、ジョブは取得のタイムアウトが過ぎるまで `Pending` で待ち、その後ステップは「No runbook agent picked up this step before the wait window expired.」で失敗します。本番で Runbook を実行する前に、 **Runner** ページで対応範囲を確認してください。 グローバル Runner のステップは、代わりに「No global Runner picked up this step before the wait window expired.」で失敗します。
 
 ### 出力の上限
 
@@ -235,6 +265,7 @@ docker rm -f oneuptime-runner
 
 - `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — エージェントのレコードを管理します。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（ロール） — `RunbookAdmin` は Runbook、そのルール、それを実行する Runner を構築し、Runbook を実行します。`RunbookMember` は Runbook とその実行を開いて Runbook を実行します（実行を開始し、ステップを完了またはスキップし、実行をキャンセルします）が、Runbook や Runner の作成、変更、削除はしません。`RunbookViewer` は Runbook とその実行を読むだけで、何も実行しません。`RunbookAdmin` は上記の詳細な権限をすべてまとめたものです。
+- グローバル Runner はどのプロジェクトにも属しません。追加、変更、削除できるのは、Admin Dashboard を使うマスター管理者だけです。プロジェクトの Runner を読めるユーザーなら誰でもグローバル Runner を見ることができ、 **グローバル Runner を使用** をオフにするにはプロジェクトを編集する権限が必要です。
 
 Runbook をトリガーする（つまりステップを Runner に送る）には、Runbook を実行するロール（`ProjectOwner`、`ProjectAdmin`、`ProjectMember`、`RunbookAdmin`、`RunbookMember`）か `CreateRunbookExecution` が必要です。実行の完了、スキップ、キャンセルには `EditRunbookExecution` も使えます。ロールが実行できるのは、その範囲が届く Runbook だけです。
 
@@ -247,7 +278,7 @@ Runner のキーを読めるのは、Project Owner、Project Admin、Runbook Adm
 | エンドポイント | 目的 |
 | --- | --- |
 | `POST /heartbeat` | 生存確認です。Runner の最終確認時刻、バージョン、ホスト情報を更新し、プロジェクトが与えた機能を返します。 |
-| `POST /claim-next-job` | この Runner の ID 宛ての `Pending` のジョブのうち最も古いものをアトミックに取得します。することがなければ `{ job: null }` を返します。 |
+| `POST /claim-next-job` | この Runner の ID 宛ての `Pending` のジョブのうち最も古いものをアトミックに取得します。することがなければ `{ job: null }` を返します。 グローバル Runner は代わりに、いずれかのグローバル Runner を待っている最も古いステップを取得します。 |
 | `POST /job/:jobId/heartbeat` | ジョブのリースを更新します。リースが期限切れの場合やジョブが終了している場合は 404 を返します。 |
 | `POST /job/:jobId/result` | 最終結果を送信します。リースがすでに移っている場合は無視されます。 |
 | `POST /disconnect` | 正常なシャットダウン時にサインオフします。 |
@@ -274,6 +305,10 @@ Runner はジョブを取得した後、リースの更新をやめました。�
 
 :::details Runner のログに「No capability is enabled」と出る
 この Runner ではすべての機能がオフになっています。OneUptime の Runner のページで **Runbook を実行** をオンにします。Runner は次のハートビートで変更を取り込みます。
+:::
+
+:::details グローバル Runner が Runbook のシークレットを使用できないため、グローバル Runner のステップが失敗する
+ステップが、 **グローバル Runner がこのシークレットを使用できる** スイッチがオフの Runbook のシークレットを指定しているため、グローバル Runner にはそのシークレットが渡されず、ステップは実行されませんでした。エラーにはシークレットの名前が示されます。 **Runbook → 設定 → シークレット** でそのシークレットのスイッチをオンにするか、ステップに自社の Runner を選んでください。
 :::
 
 ## 次のステップ

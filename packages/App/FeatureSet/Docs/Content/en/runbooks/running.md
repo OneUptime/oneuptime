@@ -133,11 +133,11 @@ The runbook's **Run this runbook** switch is off, on its **Settings** page, or i
 :::
 
 :::details A step failed because it is missing a Runner or a credential
-The message reads, for example, "Bash step is missing a Runner. Pick one under Runbooks → Runners." The step was saved without a **Runner**, or an SSH or Kubernetes step without a **Credential**. Open the runbook's **Steps**, pick what the step is missing, click **Save Steps** and run the runbook again.
+The message reads, for example, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." The step was saved without a **Runner**, or an SSH or Kubernetes step without a **Credential**. A JavaScript step needs a Runner of its own only when no [global Runner](/docs/runbooks/agents#global-runners) can run it. Open the runbook's **Steps**, pick what the step is missing, click **Save Steps** and run the runbook again.
 :::
 
 :::details A step failed because no runbook agent picked it up
-The message reads "No runbook agent picked up this step before the wait window expired." The step's Runner did not claim the job within its claim timeout. Check on **Runbooks → Runners** that the Runner is **Connected** and that **Runs Runbooks** is on. See [Runbook Agents](/docs/runbooks/agents#troubleshooting).
+The message reads "No runbook agent picked up this step before the wait window expired." The step's Runner did not claim the job within its claim timeout. Check on **Runbooks → Runners** that the Runner is **Connected** and that **Runs Runbooks** is on. See [Runbook Agents](/docs/runbooks/agents#troubleshooting). A step on a global Runner reads "No global Runner picked up this step before the wait window expired." instead: run the runbook again, raise the step's claim timeout, or pick one of your own Runners.
 :::
 
 :::details The run has been waiting for hours

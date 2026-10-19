@@ -133,11 +133,11 @@ Runbook 的 **运行此 Runbook** 开关在其 **设置** 页面上被关闭了�
 :::
 
 :::details 步骤因缺少 Runner 或凭据而失败
-消息类似于“Bash step is missing a Runner. Pick one under Runbooks → Runners.”该步骤在保存时没有选择 **Runner** ，或者 SSH 或 Kubernetes 步骤在保存时没有选择 **Credential** 。打开 Runbook 的 **步骤** ，选择缺少的内容，点击 **Save Steps** ，然后再次运行 Runbook。
+消息类似于“This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.”该步骤在保存时没有选择 **Runner** ，或者 SSH 或 Kubernetes 步骤在保存时没有选择 **Credential** 。只有当没有 [全局 Runner](/docs/runbooks/agents#全局-runner) 可以运行 JavaScript 步骤时，它才需要你自己的 Runner。打开 Runbook 的 **步骤** ，选择缺少的内容，点击 **Save Steps** ，然后再次运行 Runbook。
 :::
 
 :::details 步骤因没有 Runbook 代理领取而失败
-消息是“No runbook agent picked up this step before the wait window expired.”该步骤的 Runner 没有在其 claim timeout 内领取作业。在 **运行手册 → Runbook 代理** 中检查 Runner 是否为 **已连接** ，以及 **执行运行手册** 是否已开启。参见 [Runbook 代理](/docs/runbooks/agents#故障排除)。
+消息是“No runbook agent picked up this step before the wait window expired.”该步骤的 Runner 没有在其 claim timeout 内领取作业。在 **运行手册 → Runbook 代理** 中检查 Runner 是否为 **已连接** ，以及 **执行运行手册** 是否已开启。参见 [Runbook 代理](/docs/runbooks/agents#故障排除)。 全局 Runner 上的步骤则会提示“No global Runner picked up this step before the wait window expired.”：请再次运行 Runbook、调高该步骤的 claim timeout，或者选择你自己的某个 Runner。
 :::
 
 :::details 执行已经等待了好几个小时

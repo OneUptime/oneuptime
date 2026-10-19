@@ -1100,7 +1100,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       })
       .sort();
 
-    expect(shipped.length).toBe(9);
+    expect(shipped.length).toBe(10);
     expect(named).toEqual(shipped);
     expect(page).toContain(`while grep -q "${PLACEHOLDER_SECRET}" config.env`);
     expect(page).toContain('grep -c "please-change-this" config.env');

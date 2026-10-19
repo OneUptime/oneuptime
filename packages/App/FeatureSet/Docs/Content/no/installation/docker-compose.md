@@ -139,6 +139,7 @@ Den siste kommandoen skriver ut `0`: Det er ingen plassholder igjen. Løkken bru
 | `REGISTER_PROBE_KEY` | Registrering av prober hos instansen din. |
 | `GLOBAL_PROBE_1_KEY`, `GLOBAL_PROBE_2_KEY` | De globale probene Docker Compose kan kjøre (`probe-1` kjører som standard). |
 | `ONEUPTIME_RUNNER_KEY` | Den medfølgende Runneren. |
+| `GLOBAL_RUNNER_KEY` | Den medfølgende globale Runneren, som kjører JavaScript-trinnene til alle prosjekter. |
 
 > [!IMPORTANT]
 > Angi hemmelighetene før første start, og behold dem etterpå. PostgreSQL tar bare passordet sitt når den oppretter databasen, og endrer du `ENCRYPTION_SECRET` senere, blir hver verdi som er kryptert med den gamle, uleselig. Er `DATABASE_PASSWORD` fortsatt plassholderen ved første start, gir `npm start` den en tilfeldig verdi før PostgreSQL oppretter databasen sin.

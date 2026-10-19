@@ -55,6 +55,7 @@ flowchart TB
 | Telemetrie-Writer | Teil von `app` | `telemetryWriter` (standardmäßig aus) | Eine Stufe fester Größe, die jeden ClickHouse-Insert ausführt, damit die Inserts begrenzt bleiben, wie weit die Worker auch skalieren. |
 | Probe | `probe-1` | `probes` | Führt Monitorprüfungen aus und sendet die Ergebnisse zurück. Jede mitgelieferte Probe ist eine globale Probe, die alle Projekte nutzen können. |
 | Runner | `runner` | `runner` | Der eigene Runner der Instanz, der KI-Codekorrekturen für jedes Projekt ausführen kann. Runbook-Schritte laufen auf [Runnern](/docs/runbooks/agents), die Sie dort installieren, wo sie laufen sollen. |
+| Globaler Runner | `global-runner` | `globalRunner` | Ein [globaler Runner](/docs/runbooks/agents#globale-runner): Er führt die JavaScript-Schritte jedes Projekts aus, das keinen eigenen Runner wählt, jeden in einer Sandbox, die nur das Internet erreicht. Er hat seinen eigenen Schlüssel und sonst nichts vom Server. |
 | PostgreSQL | `postgres` | `postgresql` oder `postgresOperator.cnpg` | Projekte, Monitore, Incidents, Benutzer und alle anderen Einstellungen und Zustände. |
 | ClickHouse | `clickhouse` | `clickhouse` oder `clickhouseOperator.altinity` | Logs, Metriken, Traces, Ausnahmen, Profile und Monitor-Logs. |
 | Valkey | `valkey` | `valkey` | Der Cache, die Job-Warteschlangen und kurzlebiger Zustand wie ausstehende Push-Belege. |

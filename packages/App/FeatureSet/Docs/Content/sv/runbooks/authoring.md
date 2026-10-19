@@ -12,7 +12,7 @@ Du skriver ett runbook som en ordnad lista med steg på dess sida **Steg**. Den 
 ## Innan du börjar
 
 - **En roll som skriver runbooks.** Project Owner, Project Admin och Runbook Admin skapar runbooks och sparar deras steg. Med detaljerade behörigheter behöver du **Create Runbook** och **Edit Runbook**. Se [Behörigheter](/docs/runbooks/configuration#behörigheter).
-- **En Runner, för JavaScript-, Bash-, SSH- och Kubernetes-steg.** De här stegen körs på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldrig på OneUptime Worker. Installera en först.
+- **En Runner, för Bash-, SSH- och Kubernetes-steg.** De här stegen körs på en [Runner](/docs/runbooks/agents) i din egen infrastruktur, aldrig på OneUptime Worker. Installera en först. Ett JavaScript-steg körs på en [global Runner](/docs/runbooks/agents#globala-runners) om du inte väljer en av dina egna.
 - **En autentiseringsuppgift, för SSH- och Kubernetes-steg, och behörighet att läsa den.** Se [Runbook-autentiseringsuppgifter](/docs/runbooks/credentials). Ett steg kan bara peka på en autentiseringsuppgift om du får läsa runbook-autentiseringsuppgifter: Project Owner, Project Admin eller **Read Runbook Credential**. Runbook Admin omfattar inte det.
 - **En LLM-leverantör, för AI-steg.** Se [LLM-leverantörer](/docs/ai/llm-provider).
 
@@ -72,13 +72,13 @@ Använd det för det som bara en människa kan kontrollera eller göra: "Bekräf
 
 ### JavaScript
 
-Ett stycke JavaScript som körs i en `isolated-vm`-sandlåda på en [runbook-agent](/docs/runbooks/agents) i din egen infrastruktur, inte på OneUptime Worker.
+Ett stycke JavaScript som körs i en `isolated-vm`-sandlåda på en [runbook-agent](/docs/runbooks/agents), inte på OneUptime Worker: på en av dina egna, eller på en [global Runner](/docs/runbooks/agents#globala-runners) när steget inte väljer någon.
 
 | Fält | Vad det gör | Standard |
 | --- | --- | --- |
-| **Runner** | Den Runner som kör steget. Bara den Runnern får ta jobbet. | — |
+| **Runner** | Den Runner som kör steget: **Global Runner** eller en av dina egna. Bara den Runner du väljer får ta jobbet; vilken global Runner som helst får ta ett steg på **Global Runner**. | **Global Runner**, när det finns en |
 | **Script** | Den JavaScript-kod som ska köras. Returnera ett värde med `return` för att registrera det; varje rad från `console.log` registreras också. Ett kastat fel får steget att misslyckas. | — |
-| **Tidsgräns för körning** | Hur länge Runnern låter koden köra innan den river sandlådan. | 30 sekunder |
+| **Tidsgräns för körning** | Hur länge Runnern låter koden köra innan den river sandlådan. En global Runner låter den köra i högst 5 minuter. | 30 sekunder |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. | 2 minuter |
 
 ```javascript

@@ -139,6 +139,7 @@ grep -c "please-change-this" config.env
 | `REGISTER_PROBE_KEY` | ثبت پراب‌ها در نمونهٔ شما. |
 | `GLOBAL_PROBE_1_KEY`، `GLOBAL_PROBE_2_KEY` | پراب‌های سراسری‌ای که Docker Compose می‌تواند اجرا کند (`probe-1` به‌طور پیش‌فرض اجرا می‌شود). |
 | `ONEUPTIME_RUNNER_KEY` | Runner همراه. |
+| `GLOBAL_RUNNER_KEY` | Runner سراسری همراه، که گام‌های JavaScript همه پروژه‌ها را اجرا می‌کند. |
 
 > [!IMPORTANT]
 > رازها را پیش از نخستین اجرا تنظیم کنید و پس از آن تغییرشان ندهید. PostgreSQL گذرواژه‌اش را فقط هنگام ساختن پایگاه داده‌اش می‌گیرد، و تغییر `ENCRYPTION_SECRET` در آینده هر مقداری را که با مقدار قبلی رمزگذاری شده ناخوانا می‌کند. اگر `DATABASE_PASSWORD` در نخستین اجرا هنوز جای‌نگهدار باشد، `npm start` پیش از آنکه PostgreSQL پایگاه داده‌اش را بسازد، به آن یک مقدار تصادفی می‌دهد.

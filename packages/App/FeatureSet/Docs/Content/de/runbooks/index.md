@@ -35,7 +35,7 @@ flowchart TB
 
 Jeder Lauf ist eine **Ausführung**. Beim Start werden die Schritte des Runbooks auf sie kopiert, und OneUptime arbeitet sie der Reihe nach ab. Ein Manual-Schritt oder ein Schritt, der eine Freigabe braucht, hält den Lauf an, bis jemand handelt.
 
-HTTP- und KI-Schritte laufen auf dem OneUptime Worker. JavaScript-, Bash-, SSH- und Kubernetes-Schritte laufen auf einem [Runner](/docs/runbooks/agents), den Sie in Ihrer eigenen Infrastruktur installieren, sodass Ihre Skripte nie auf den Servern von OneUptime laufen. Status, Ausgabe und Fehlermeldung jedes Schritts werden auf der Ausführung aufgezeichnet, die beim Vorfall, bei der Warnung oder beim Ereignis bleibt, für das sie lief.
+HTTP- und KI-Schritte laufen auf dem OneUptime Worker. Bash-, SSH- und Kubernetes-Schritte laufen auf einem [Runner](/docs/runbooks/agents), den Sie in Ihrer eigenen Infrastruktur installieren, sodass diese Skripte nie auf den Servern von OneUptime laufen. Ein JavaScript-Schritt läuft ebenfalls auf einem Ihrer Runner oder, wenn er keinen wählt, auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), in einer Sandbox, die nur das Internet erreicht. Status, Ausgabe und Fehlermeldung jedes Schritts werden auf der Ausführung aufgezeichnet, die beim Vorfall, bei der Warnung oder beim Ereignis bleibt, für das sie lief.
 
 ## Zentrale Begriffe
 
@@ -46,9 +46,9 @@ HTTP- und KI-Schritte laufen auf dem OneUptime Worker. JavaScript-, Bash-, SSH- 
 | **Runbook-Regel** | Eine Regel, die ein oder mehrere Runbooks automatisch an Vorfälle, Warnungen oder geplante Wartungsereignisse hängt, die ihren Bedingungen entsprechen: ihren Monitoren, ihrem Schweregrad, ihren Beschriftungen, den Beschriftungen ihrer Monitore, ihrem Titel oder ihrer Beschreibung. |
 | **Ausführung** | Ein Lauf eines Runbooks. Sie entsteht, wenn eine Regel greift, wenn jemand an einem Ereignis auf **Runbook ausführen** klickt oder wenn jemand am Runbook selbst auf **Jetzt ausführen** klickt. Sie enthält eine Momentaufnahme der Schritte sowie Status und Ausgabe jedes Schritts. |
 | **Momentaufnahme** | Die eingefrorene Kopie der Runbook-Schritte, die auf jeder Ausführung liegt. Sie können das Runbook später bearbeiten, ohne die Geschichte früherer Läufe umzuschreiben. |
-| **Runner** | Ein kleiner Agent, den Sie auf einem Host in Ihrer eigenen Infrastruktur betreiben. Er führt die JavaScript-, Bash-, SSH- und Kubernetes-Schritte aus, die ihn benennen. Auch Runbook-Agent genannt. |
+| **Runner** | Ein kleiner Agent, den Sie auf einem Host in Ihrer eigenen Infrastruktur betreiben. Er führt die JavaScript-, Bash-, SSH- und Kubernetes-Schritte aus, die ihn benennen. Auch Runbook-Agent genannt. Ein globaler Runner, einer, den OneUptime für jedes Projekt betreibt, führt die JavaScript-Schritte aus, die keinen nennen. |
 | **Anmeldedaten** | Verwalteter SSH- oder Kubernetes-Zugang, den SSH- und Kubernetes-Schritte nutzen. Im Ruhezustand verschlüsselt und nur an die Runner übergeben, denen Sie sie zuweisen. |
-| **Geheimnis** | Ein einzelner Wert, etwa ein API-Token, den ein Bash- oder JavaScript-Skript als `{{runbookSecrets.NAME}}` verwendet. Im Ruhezustand verschlüsselt und nur an die Runner übergeben, denen Sie es zuweisen. |
+| **Geheimnis** | Ein einzelner Wert, etwa ein API-Token, den ein Bash- oder JavaScript-Skript als `{{runbookSecrets.NAME}}` verwendet. Im Ruhezustand verschlüsselt und nur an die Runner übergeben, denen Sie es zuweisen. Globale Runner erhalten es nur, wenn Sie es ihnen erlauben. |
 
 ## Schritttypen
 
@@ -139,7 +139,7 @@ Runbooks:    [DB primary failover]
 
 Ein Monitor öffnet den Vorfall `INC-4821 · db-primary connection timeout`. Die Regel greift, und eine Ausführung startet:
 
-- Schritt 1 (JavaScript) läuft auf dem Runner, den Sie für ihn gewählt haben. Sein Rückgabewert, etwa `{ lagMs: 412 }`, wird erfasst.
+- Schritt 1 (JavaScript) läuft auf dem Runner, den Sie für ihn gewählt haben. Sein Rückgabewert, etwa `{ lagMs: 412 }`, wird erfasst. Ein Schritt, der keinen Runner wählt, läuft auf einem globalen Runner.
 - Schritt 2 (Manual) hält den Lauf an, der dann **Wartet auf Sie** zeigt. Die Person in Bereitschaft prüft das Dashboard und klickt auf **Als abgeschlossen markieren**.
 - Schritt 3 (HTTP request) läuft, und die Antwort auf den `POST` wird erfasst.
 - Schritt 4 (Manual) hält den Lauf erneut an, bis jemand ihn abschließt.
@@ -170,7 +170,7 @@ Die Ausführung bleibt auf der Seite **Runbooks** des Vorfalls. Wenn Sie das Pos
 
 :::cards
 - [Ein Runbook verfassen](/docs/runbooks/authoring): Ihr erstes Runbook und seine Schritte erstellen.
-- [Runbook-Agents](/docs/runbooks/agents): Einen Runner installieren, bevor Sie einen JavaScript-, Bash-, SSH- oder Kubernetes-Schritt schreiben.
+- [Runbook-Agents](/docs/runbooks/agents): Einen Runner installieren, bevor Sie einen Bash-, SSH- oder Kubernetes-Schritt schreiben.
 - [Runbook-Regeln](/docs/runbooks/rules): Runbooks automatisch starten, wenn Vorfälle entstehen.
 - [Runbook-Konfiguration & Sicherheit](/docs/runbooks/configuration): Limits, Timeouts, Berechtigungen und Härtung.
 :::

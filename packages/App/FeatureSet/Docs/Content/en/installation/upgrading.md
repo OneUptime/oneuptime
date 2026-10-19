@@ -1476,6 +1476,17 @@ API, SSO, or the Slack and Microsoft Teams apps.
   retries a refused email for up to three days, so the emails sent meanwhile
   arrive once it is set. An installation that set its own secret sees no
   change.
+- **Every install runs a global Runner of its own.** A new `global-runner`
+  service in Docker Compose, and a `globalRunner` deployment in the Helm chart,
+  run the JavaScript steps of every project that picks no Runner of its own,
+  each in a sandbox that reaches the internet only. It holds its own key,
+  `GLOBAL_RUNNER_KEY`, which `npm start` and `npm run update` give a random
+  value and the chart generates, and nothing else of the server's. Steps that
+  pick a Runner keep it, and an existing runbook secret reaches it only once
+  you turn its **Global Runners can use this secret** switch on. To turn it
+  off, set `GLOBAL_RUNNER_REPLICAS=0` in `config.env`, or `globalRunner.enabled`
+  to `false` in the chart. See
+  [Global Runners](/docs/runbooks/agents#global-runners).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

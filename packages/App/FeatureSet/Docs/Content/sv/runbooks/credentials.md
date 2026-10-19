@@ -144,7 +144,7 @@ Bash- och JavaScript-steg har inget fält **Credential**. För att ge ett skript
 :::steps
 ### Skapa hemligheten
 
-Klicka på **Skapa Runbook Secret**. I steget **Hemlighet** anger du ett **Namn** (bokstäver, siffror, bindestreck och understreck), en valfri **Beskrivning** och **Värde för hemlighet**. I steget **Åtkomst** väljer du Runners under **Runbook-agenter som har åtkomst till denna hemlighet**.
+Klicka på **Skapa Runbook Secret**. I steget **Hemlighet** anger du ett **Namn** (bokstäver, siffror, bindestreck och understreck), en valfri **Beskrivning** och **Värde för hemlighet**. I steget **Åtkomst** väljer du dina Runners under **Dina Runners som får använda den här hemligheten**. På en server med [globala Runners](/docs/runbooks/agents#globala-runners) låter **Globala Runners får använda den här hemligheten** även det här projektets steg som körs på en global Runner använda den. Den är påslagen för en ny hemlighet så länge projektet använder globala Runners.
 
 ### Använd den i ett skript
 
@@ -156,7 +156,7 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 
-När en Runner som hemligheten är tilldelad tar steget får den skriptet med värdet ifyllt.
+När en Runner som hemligheten är tilldelad tar steget får den skriptet med värdet ifyllt. Det gör även en global Runner, när hemligheten låter globala Runners använda den. Ett steg på en global Runner som nämner en hemlighet som globala Runners inte får använda misslyckas och nämner hemligheten, i stället för att köra utan den.
 :::
 
 Precis som en autentiseringsuppgifts hemliga fält är en hemlighets värde krypterat i vila och returneras aldrig av API:et: **Uppdatera hemligt värde** ersätter det. På OneUptime Cloud kräver runbook-hemligheter också planen **Growth** eller högre.

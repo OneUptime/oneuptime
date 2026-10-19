@@ -133,11 +133,11 @@ stateDiagram-v2
 :::
 
 :::details گامی شکست خورد چون Runner یا اعتبارنامه ندارد
-پیام برای نمونه این است: «Bash step is missing a Runner. Pick one under Runbooks → Runners.» گام بدون **Runner** ذخیره شده، یا یک گام SSH یا Kubernetes بدون **Credential**. صفحه **گام‌ها** در رانبوک را باز کنید، آنچه گام کم دارد را انتخاب کنید، روی **Save Steps** کلیک کنید و رانبوک را دوباره اجرا کنید.
+پیام برای نمونه این است: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.» گام بدون **Runner** ذخیره شده، یا یک گام SSH یا Kubernetes بدون **Credential**. گام JavaScript فقط وقتی به Runner خودش نیاز دارد که هیچ [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری) نتواند اجرایش کند. صفحه **گام‌ها** در رانبوک را باز کنید، آنچه گام کم دارد را انتخاب کنید، روی **Save Steps** کلیک کنید و رانبوک را دوباره اجرا کنید.
 :::
 
 :::details گامی شکست خورد چون هیچ عامل رانبوکی آن را برنداشت
-پیام این است: «No runbook agent picked up this step before the wait window expired.» Runner گام کار را در مهلت claim timeout خود برنداشت. در **رانبوک‌ها → Runnerها** بررسی کنید که Runner **متصل** باشد و **رانبوک‌ها را اجرا می‌کند** روشن باشد. [عامل‌های رانبوک](/docs/runbooks/agents#عیبیابی) را ببینید.
+پیام این است: «No runbook agent picked up this step before the wait window expired.» Runner گام کار را در مهلت claim timeout خود برنداشت. در **رانبوک‌ها → Runnerها** بررسی کنید که Runner **متصل** باشد و **رانبوک‌ها را اجرا می‌کند** روشن باشد. [عامل‌های رانبوک](/docs/runbooks/agents#عیبیابی) را ببینید. گامی روی یک Runner سراسری به‌جای آن «No global Runner picked up this step before the wait window expired.» را گزارش می‌دهد: رانبوک را دوباره اجرا کنید، claim timeout گام را بالا ببرید، یا یکی از Runnerهای خودتان را انتخاب کنید.
 :::
 
 :::details اجرا ساعت‌هاست منتظر است

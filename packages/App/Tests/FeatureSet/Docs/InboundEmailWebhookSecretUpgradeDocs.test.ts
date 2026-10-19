@@ -22,7 +22,8 @@ import path from "path";
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
  * note on the bundled datastores' passwords (DatastorePasswordUpgradeDocs)
- * and before the endpoint pointer, and every translation carries it in the
+ * and before the note on the bundled global Runner (GlobalRunnerUpgradeDocs),
+ * and every translation carries it in the
  * English note's place, with the English note's code and a link that lands
  * on the setup step in the reader's language. What it claims is what the
  * code does:
@@ -47,7 +48,8 @@ const NOTE_LEAD: string =
 // The note before it (DatastorePasswordUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**The bundled ClickHouse and Valkey get passwords of their own.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it (GlobalRunnerUpgradeDocs).
+const NEXT_LEAD: string = "**Every install runs a global Runner of its own.**";
 
 const SETUP_PAGE: string = "self-hosted/sendgrid-inbound-email";
 const SETUP_STEP: string = "Configure OneUptime";
@@ -122,7 +124,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on the inbound email webhook secret", () => {
-  it("is a note of the 13 → 14 changes, once, after the note on the bundled datastores' passwords and before the endpoint pointer", () => {
+  it("is a note of the 13 → 14 changes, once, after the note on the bundled datastores' passwords and before the note on the bundled global Runner", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -134,7 +136,9 @@ describe("the English upgrade note on the inbound email webhook secret", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("names the settings it is about and the commands an operator runs", () => {

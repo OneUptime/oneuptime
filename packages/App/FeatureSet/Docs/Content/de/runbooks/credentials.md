@@ -144,7 +144,7 @@ Bash- und JavaScript-Schritte haben kein Feld **Anmeldedaten**. Um einem Skript 
 :::steps
 ### Das Geheimnis erstellen
 
-Klicken Sie auf **Runbook-Secret erstellen**. Geben Sie im Schritt **Geheimnis** einen **Name** ein (Buchstaben, Ziffern, Bindestriche und Unterstriche), eine optionale **Beschreibung** und den **Geheimniswert**. Wählen Sie im Schritt **Zugriff** die Runner unter **Runbook-Agenten, die Zugriff auf dieses Geheimnis haben**.
+Klicken Sie auf **Runbook-Secret erstellen**. Geben Sie im Schritt **Geheimnis** einen **Name** ein (Buchstaben, Ziffern, Bindestriche und Unterstriche), eine optionale **Beschreibung** und den **Geheimniswert**. Wählen Sie im Schritt **Zugriff** Ihre Runner unter **Ihre Runner, die dieses Geheimnis nutzen dürfen**. Auf einem Server mit [globalen Runnern](/docs/runbooks/agents#globale-runner) erlaubt **Globale Runner dürfen dieses Geheimnis nutzen** auch den Schritten dieses Projekts, die auf einem globalen Runner laufen, es zu nutzen. Für ein neues Geheimnis ist es an, solange das Projekt globale Runner nutzt.
 
 ### In einem Skript nutzen
 
@@ -156,7 +156,7 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 
-Wenn ein Runner, dem das Geheimnis zugewiesen ist, den Schritt übernimmt, erhält er das Skript mit eingesetztem Wert.
+Wenn ein Runner, dem das Geheimnis zugewiesen ist, den Schritt übernimmt, erhält er das Skript mit eingesetztem Wert. Ein globaler Runner ebenso, wenn das Geheimnis globalen Runnern die Nutzung erlaubt. Ein Schritt auf einem globalen Runner, der ein Geheimnis nennt, das globale Runner nicht nutzen dürfen, schlägt fehl und nennt das Geheimnis, statt ohne es zu laufen.
 :::
 
 Wie die geheimen Felder von Anmeldedaten ist der Wert eines Geheimnisses im Ruhezustand verschlüsselt und wird von der API nie zurückgegeben: **Geheimwert aktualisieren** ersetzt ihn. In OneUptime Cloud brauchen auch Runbook-Geheimnisse den Tarif **Growth** oder höher.

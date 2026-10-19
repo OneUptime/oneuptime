@@ -144,7 +144,7 @@ As etapas Bash e JavaScript não têm o campo **Credential**. Para dar a um scri
 :::steps
 ### Criar o segredo
 
-Clique em **Criar: Runbook Secret**. Na etapa **Segredo**, informe um **Nome** (letras, números, hífens e sublinhados), uma **Descrição** opcional e o **Valor do segredo**. Na etapa **Acesso**, escolha os Runners em **Agentes de Runbook que têm acesso a este segredo**.
+Clique em **Criar: Runbook Secret**. Na etapa **Segredo**, informe um **Nome** (letras, números, hífens e sublinhados), uma **Descrição** opcional e o **Valor do segredo**. Na etapa **Acesso**, escolha os seus Runners em **Seus Runners que podem usar este segredo**. Em um servidor com [Runners globais](/docs/runbooks/agents#runners-globais), **Runners globais podem usar este segredo** também permite que as etapas deste projeto que rodam em um Runner global o usem. Ele começa ligado para um segredo novo enquanto o projeto usa Runners globais.
 
 ### Usá-lo em um script
 
@@ -156,7 +156,7 @@ curl -s -X POST \
   "https://api.cdn.example.com/v1/purge"
 ```
 
-Quando um Runner ao qual o segredo está atribuído assume a etapa, ele recebe o script com o valor já preenchido.
+Quando um Runner ao qual o segredo está atribuído assume a etapa, ele recebe o script com o valor já preenchido. Um Runner global também, quando o segredo permite que Runners globais o usem. Uma etapa em um Runner global que cita um segredo que Runners globais não podem usar falha, citando o segredo, em vez de rodar sem ele.
 :::
 
 Como os campos secretos de uma credencial, o valor de um segredo é criptografado em repouso e nunca devolvido pela API: **Atualizar Valor do Segredo** o substitui. No OneUptime Cloud, os segredos de runbook também exigem o plano **Growth** ou superior.

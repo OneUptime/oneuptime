@@ -133,11 +133,11 @@ L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua p
 :::
 
 :::details Un passaggio è fallito perché gli manca un Runner o una credenziale
-Il messaggio dice, ad esempio, "Bash step is missing a Runner. Pick one under Runbooks → Runners." Il passaggio è stato salvato senza **Runner**, oppure un passaggio SSH o Kubernetes senza **Credential**. Apri i **Passaggi** del runbook, scegli ciò che manca al passaggio, fai clic su **Save Steps** ed esegui di nuovo il runbook.
+Il messaggio dice, ad esempio, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Il passaggio è stato salvato senza **Runner**, oppure un passaggio SSH o Kubernetes senza **Credential**. Un passaggio JavaScript ha bisogno di un Runner proprio solo quando nessun [Runner globale](/docs/runbooks/agents#runner-globali) può eseguirlo. Apri i **Passaggi** del runbook, scegli ciò che manca al passaggio, fai clic su **Save Steps** ed esegui di nuovo il runbook.
 :::
 
 :::details Un passaggio è fallito perché nessun agente di runbook l'ha preso in carico
-Il messaggio dice "No runbook agent picked up this step before the wait window expired." Il Runner del passaggio non ha preso in carico il lavoro entro il suo claim timeout. Verifica in **Runbook → Agenti di runbook** che il Runner sia **Connesso** e che **Esegue i runbook** sia attivo. Vedi [Agenti di runbook](/docs/runbooks/agents#risoluzione-dei-problemi).
+Il messaggio dice "No runbook agent picked up this step before the wait window expired." Il Runner del passaggio non ha preso in carico il lavoro entro il suo claim timeout. Verifica in **Runbook → Agenti di runbook** che il Runner sia **Connesso** e che **Esegue i runbook** sia attivo. Vedi [Agenti di runbook](/docs/runbooks/agents#risoluzione-dei-problemi). Un passaggio su un Runner globale dice invece "No global Runner picked up this step before the wait window expired.": esegui di nuovo il runbook, aumenta il claim timeout del passaggio oppure scegli uno dei tuoi Runner.
 :::
 
 :::details L'esecuzione aspetta da ore

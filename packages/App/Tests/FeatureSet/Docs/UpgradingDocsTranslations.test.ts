@@ -351,6 +351,7 @@ const PROSE_LEADS: Array<string> = [
   "Probes, Runners, the infrastructure agent and OneUptime's own services follow redirects only on the server they call.",
   "The bundled ClickHouse and Valkey get passwords of their own.",
   "Incoming email needs a webhook secret of your own.",
+  "Every install runs a global Runner of its own.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
