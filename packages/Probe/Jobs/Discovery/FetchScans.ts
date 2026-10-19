@@ -50,6 +50,8 @@ import SnmpPrivProtocol, {
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
 import { DiscoveredHostNetbiosStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
+import { withoutTrailingRun } from "Common/Utils/TrailingRuns";
+import { isWhiteSpaceCode } from "Common/Utils/RegExpCharacterClasses";
 
 /*
  * Assembles the SnmpV3Auth the scanner needs from one credential set's
@@ -328,17 +330,14 @@ function excerpt(text: string, maxLength: number): string {
  * sentences ("The UDP socket did not bind in time."), and a trailing period
  * inside the parentheses doubles the punctuation of the sentence around it.
  */
-/*
- * A reason's trailing full stops and white space, tried only where such a
- * run starts, so a long run that does not end the reason is read once.
- */
-const TRAILING_STOPS_PATTERN: RegExp = /(?<![.\s])[.\s]+$/;
-
 function quoteReason(reason: string, maxLength: number): string {
   const trimmed: string = reason.trim();
-  const withoutTrailingStop: string = trimmed.replace(
-    TRAILING_STOPS_PATTERN,
-    "",
+  // The full stops and white space that end it, read once from the end.
+  const withoutTrailingStop: string = withoutTrailingRun(
+    trimmed,
+    (code: number): boolean => {
+      return code === 0x2e || isWhiteSpaceCode(code);
+    },
   );
 
   /*

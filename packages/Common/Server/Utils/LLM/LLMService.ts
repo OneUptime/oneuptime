@@ -20,6 +20,7 @@ import RejectedRequestParameter from "./RejectedRequestParameter";
 import LlmProviderEndpoint, {
   AzureOpenAIRequestEndpoint,
 } from "../../../Utils/LLM/LlmProviderEndpoint";
+import { withoutTrailingSlashes } from "../../../Utils/TrailingRuns";
 
 export interface LLMToolDefinition {
   name: string;
@@ -1617,11 +1618,11 @@ export default class LLMService {
      * slashes.
      */
     const schemeRegex: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
-    base = base
-      .replace(schemeRegex, (scheme: string) => {
+    base = withoutTrailingSlashes(
+      base.replace(schemeRegex, (scheme: string) => {
         return scheme.toLowerCase();
-      })
-      .replace(/\/+$/, "");
+      }),
+    );
 
     let path: string;
     const fullEndpointRegex: RegExp = /\/chat\/completions$/i;

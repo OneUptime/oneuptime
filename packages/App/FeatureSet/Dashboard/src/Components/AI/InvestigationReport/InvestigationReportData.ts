@@ -16,6 +16,8 @@ import {
   ParsedInvestigationReport,
   getCitationMarkerRegex,
 } from "Common/Utils/AI/InvestigationReport";
+import { isWhiteSpaceCode } from "Common/Utils/RegExpCharacterClasses";
+import { codesOf, withoutTrailingRun } from "Common/Utils/TrailingRuns";
 
 // The event an investigation belongs to; same values as the panel's subject.
 export type InvestigationReportSubjectType = InvestigationReferenceKind;
@@ -443,32 +445,156 @@ export function getEventReferenceKey(
 }
 
 /*
+ * An image ("![alt](url)") or a link with a label ("[label](url)"), or - in
+ * the same match, with no ")" - one that is not closed: a "[" with no "]"
+ * after it, or a "](" with no ")" after it, takes the rest of the text with
+ * it, and a "]" that no "(" follows ends what is taken before it. The
+ * unclosed one is given back as written: no "[" after it opens anything
+ * either. Looked for alone, an image or a link was looked for again from
+ * every "[" of a run that opens nothing, each try reading on to the end of
+ * the text - time that grew with the square of a report's length.
+ */
+const IMAGE_OR_UNCLOSED: RegExp = /!\[([^\]]*)(?:\]\(([^)]*)(\))?)?/g;
+const LINK_OR_UNCLOSED: RegExp = /\[([^\]]+)(?:\]\(([^)]*)(\))?)?/g;
+
+type ClosedOrAsWrittenFunction = (
+  match: string,
+  words: string,
+  target: string | undefined,
+  closing: string | undefined,
+) => string;
+
+// A closed image or link's words; an unclosed one as written.
+const closedOrAsWritten: ClosedOrAsWrittenFunction = (
+  match: string,
+  words: string,
+  _target: string | undefined,
+  closing: string | undefined,
+): string => {
+  return closing === undefined ? match : words;
+};
+
+/*
+ * What a global /(D1|D2)(?=\S)([\s\S]*?\S)\1/ replace with "$2" gave: each
+ * delimiter ("**", "__", "~~") with words after it - at least one character,
+ * the last of them not white space - and the same delimiter right after
+ * them, written as the words alone. The first delimiter of each kind after a
+ * point that can close is found once and kept, so the text is read once,
+ * where looking for it again from every delimiter that opens nothing read on
+ * to the end of the text each time.
+ */
+type WithoutDelimiterPairsFunction = (
+  text: string,
+  delimiters: ReadonlyArray<string>,
+) => string;
+
+const withoutDelimiterPairs: WithoutDelimiterPairsFunction = (
+  text: string,
+  delimiters: ReadonlyArray<string>,
+): string => {
+  // For each delimiter: the first index from which it can close, and from where it was looked for.
+  const closings: Array<{ from: number; at: number }> = delimiters.map(() => {
+    return { from: -1, at: -1 };
+  });
+
+  const closingAtOrAfter: (which: number, from: number) => number = (
+    which: number,
+    from: number,
+  ): number => {
+    const kept: { from: number; at: number } = closings[which]!;
+
+    if (kept.from !== -1 && kept.from <= from && (kept.at === -1 || kept.at >= from)) {
+      return kept.at;
+    }
+
+    const delimiter: string = delimiters[which]!;
+    let at: number = text.indexOf(delimiter, from);
+
+    while (at !== -1 && isWhiteSpaceCode(text.charCodeAt(at - 1))) {
+      at = text.indexOf(delimiter, at + 1);
+    }
+
+    kept.from = from;
+    kept.at = at;
+
+    return at;
+  };
+
+  let result: string = "";
+  let copiedUpTo: number = 0;
+  let index: number = 0;
+
+  while (index < text.length) {
+    const which: number = delimiters.findIndex((delimiter: string): boolean => {
+      return text.startsWith(delimiter, index);
+    });
+
+    if (which === -1) {
+      index++;
+      continue;
+    }
+
+    const opening: string = delimiters[which]!;
+    const wordsStart: number = index + opening.length;
+
+    if (
+      wordsStart >= text.length ||
+      isWhiteSpaceCode(text.charCodeAt(wordsStart))
+    ) {
+      index++;
+      continue;
+    }
+
+    const closing: number = closingAtOrAfter(which, wordsStart + 1);
+
+    if (closing === -1) {
+      index++;
+      continue;
+    }
+
+    result += text.slice(copiedUpTo, index) + text.slice(wordsStart, closing);
+    index = closing + opening.length;
+    copiedUpTo = index;
+  }
+
+  return result + text.slice(copiedUpTo);
+};
+
+/*
  * Markdown → one line of plain text for the event header. Formatting marks,
  * link targets, images and citation markers are dropped; the words stay.
+ *
+ * A report is what a model wrote, so each rule reads it in time in line
+ * with its length (images, links and paired emphasis above).
  */
 export function markdownToPlainText(markdown: string): string {
   if (typeof markdown !== "string") {
     return "";
   }
 
+  // Images keep their alt text, links keep their label.
+  const withoutLinks: string = markdown
+    .replace(/\r\n?/g, "\n")
+    // Fence lines themselves (the code inside stays as text).
+    .replace(/^[ \t]*(?:```|~~~).*$/gm, " ")
+    .replace(IMAGE_OR_UNCLOSED, closedOrAsWritten)
+    .replace(LINK_OR_UNCLOSED, closedOrAsWritten)
+    .replace(getCitationMarkerRegex(), "")
+    // Heading hashes, blockquote marks and list bullets at line start.
+    .replace(/^[ \t]*#{1,6}[ \t]+/gm, "")
+    .replace(/^[ \t]*>[ \t]?/gm, "")
+    .replace(/^[ \t]*(?:[-*+]|\d{1,3}[.)])[ \t]+/gm, "");
+
+  // Emphasis and inline code markers.
+  const withoutStrongEmphasis: string = withoutDelimiterPairs(withoutLinks, [
+    "**",
+    "__",
+  ])
+    .replace(/(^|[^\w*])\*(?=\S)([^*\n]*?\S)\*(?!\w)/g, "$1$2")
+    .replace(/(^|[^\w_])_(?=\S)([^_\n]*?\S)_(?!\w)/g, "$1$2");
+
   return (
-    markdown
-      .replace(/\r\n?/g, "\n")
-      // Fence lines themselves (the code inside stays as text).
-      .replace(/^[ \t]*(?:```|~~~).*$/gm, " ")
-      // Images keep their alt text, links keep their label.
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-      .replace(getCitationMarkerRegex(), "")
-      // Heading hashes, blockquote marks and list bullets at line start.
-      .replace(/^[ \t]*#{1,6}[ \t]+/gm, "")
-      .replace(/^[ \t]*>[ \t]?/gm, "")
-      .replace(/^[ \t]*(?:[-*+]|\d{1,3}[.)])[ \t]+/gm, "")
-      // Emphasis and inline code markers.
-      .replace(/(\*\*|__)(?=\S)([\s\S]*?\S)\1/g, "$2")
-      .replace(/(^|[^\w*])\*(?=\S)([^*\n]*?\S)\*(?!\w)/g, "$1$2")
-      .replace(/(^|[^\w_])_(?=\S)([^_\n]*?\S)_(?!\w)/g, "$1$2")
-      .replace(/~~(?=\S)([\s\S]*?\S)~~/g, "$1")
+    withoutDelimiterPairs(withoutStrongEmphasis, ["~~"])
       .replace(/`+([^`]*)`+/g, "$1")
       .replace(/\s+/g, " ")
       // A dropped citation leaves "word ." behind.
@@ -476,6 +602,9 @@ export function markdownToPlainText(markdown: string): string {
       .trim()
   );
 }
+
+// What a clipped summary may not end with, besides white space.
+const CLIP_TRAILING_CODES: ReadonlySet<number> = codesOf(".,;:!?—–-");
 
 // Clips at a word boundary when one is close, always within `maxLength`.
 export function clipText(text: string, maxLength: number): string {
@@ -491,7 +620,15 @@ export function clipText(text: string, maxLength: number): string {
       ? slice.slice(0, lastSpace)
       : slice;
 
-  return `${clipped.replace(/[\s.,;:!?—–-]+$/, "")}…`;
+  // Read once from the end: the summary is what a model wrote.
+  const withoutTrailingMarks: string = withoutTrailingRun(
+    clipped,
+    (code: number): boolean => {
+      return isWhiteSpaceCode(code) || CLIP_TRAILING_CODES.has(code);
+    },
+  );
+
+  return `${withoutTrailingMarks}…`;
 }
 
 /*

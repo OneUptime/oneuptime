@@ -37,6 +37,7 @@ import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import PromptText from "../../../../Utils/AI/PromptText";
+import { findLabelledValues } from "../LabelledAnswerLines";
 
 /*
  * Auto-remediation — the AI planning run.
@@ -56,6 +57,9 @@ import PromptText from "../../../../Utils/AI/PromptText";
 
 // Cap on how many candidate runbooks are offered to the model.
 const MAX_CANDIDATE_RUNBOOKS: number = 50;
+
+// What a "SelectedRunbook:" line names: a runbook's id, or "none".
+const SELECTED_RUNBOOK_VALUE: RegExp = /([a-z0-9-]{8,64}|none)\b/iy;
 
 // Caps for attacker-influenceable signal text embedded in the prompt.
 const MAX_SIGNAL_TITLE_CHARS: number = 500;
@@ -312,19 +316,19 @@ export default class RemediationPlanRunner {
     analysisMarkdown: string,
     candidateIds: Set<string>,
   ): string | null {
-    const matches: Array<RegExpMatchArray> = Array.from(
-      (analysisMarkdown || "").matchAll(
-        /^\s*\**\s*selectedrunbook\s*\**\s*[:=]\s*\**\s*([a-z0-9-]{8,64}|none)\b/gim,
-      ),
-    );
+    const values: Array<string> = findLabelledValues({
+      text: analysisMarkdown || "",
+      label: "selectedrunbook",
+      value: SELECTED_RUNBOOK_VALUE,
+    });
 
-    const last: RegExpMatchArray | undefined = matches[matches.length - 1];
+    const last: string | undefined = values[values.length - 1];
 
-    if (!last || !last[1]) {
+    if (!last) {
       return null;
     }
 
-    const value: string = last[1].toLowerCase();
+    const value: string = last.toLowerCase();
 
     if (value === "none") {
       return null;

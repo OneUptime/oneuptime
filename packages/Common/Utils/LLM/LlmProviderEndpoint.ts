@@ -1,3 +1,5 @@
+import { withoutTrailingSlashes } from "../TrailingRuns";
+
 /*
  * Where OneUptime sends an LLM provider's requests, worked out from the Base
  * URL the provider was saved with.
@@ -45,7 +47,6 @@ export interface AzureOpenAIRequestEndpoint {
 // "https://host:port" and the rest. The authority ends at the first slash.
 const ORIGIN_AND_PATH: RegExp = /^([a-z][a-z0-9+.-]*:\/\/)([^/]*)(.*)$/i;
 
-const TRAILING_SLASHES: RegExp = /\/+$/;
 
 const USER_INFO: RegExp = /^.*@/;
 
@@ -121,7 +122,7 @@ export default class LlmProviderEndpoint {
       return {
         origin: "",
         host: "",
-        path: beforeQuery.replace(TRAILING_SLASHES, ""),
+        path: withoutTrailingSlashes(beforeQuery),
         query: query,
       };
     }
@@ -132,7 +133,7 @@ export default class LlmProviderEndpoint {
     return {
       origin: `${scheme}${authority}`,
       host: authority.replace(USER_INFO, "").replace(PORT, "").toLowerCase(),
-      path: match[3]!.replace(TRAILING_SLASHES, ""),
+      path: withoutTrailingSlashes(match[3]!),
       query: query,
     };
   }
@@ -162,9 +163,9 @@ export default class LlmProviderEndpoint {
   ): AzureOpenAIRequestEndpoint {
     const parts: SplitBaseUrl = LlmProviderEndpoint.splitBaseUrl(baseUrl);
 
-    let path: string = parts.path
-      .replace(CHAT_COMPLETIONS_SUFFIX, "")
-      .replace(TRAILING_SLASHES, "");
+    let path: string = withoutTrailingSlashes(
+      parts.path.replace(CHAT_COMPLETIONS_SUFFIX, ""),
+    );
 
     if (path === "") {
       path = "/openai/v1";

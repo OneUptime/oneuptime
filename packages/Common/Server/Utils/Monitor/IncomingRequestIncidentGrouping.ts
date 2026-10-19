@@ -28,6 +28,15 @@ export interface IncomingRequestGroupingItem {
 const DEFAULT_MAX_KEYS_PER_PAYLOAD: number = 100;
 const ARRAY_WILDCARD: string = "[*]";
 
+/*
+ * A bracketed part of a path, "[0]" or "['name']": a "[" and what follows
+ * it up to the next "]". A "[" with no "]" after it is taken with the rest
+ * of the path in the same match, and given back as written (no later "["
+ * has a "]" after it either) - so a path holding many "[" is read once,
+ * where looking for the "]" from every "[" read on to its end each time.
+ */
+const BRACKETED_PART: RegExp = /\[[^\]]*(\])?/g;
+
 /**
  * Turns an incoming-request / webhook payload into per-key incident
  * matches, so a single monitor can hold multiple concurrent incidents —
@@ -381,7 +390,12 @@ export default class IncomingRequestIncidentGrouping {
   private static labelKeyFromPath(path: string): string {
     const cleaned: string = path
       .replace(/\[\*\]/g, "")
-      .replace(/\[[^\]]*\]/g, "");
+      .replace(
+        BRACKETED_PART,
+        (part: string, closing: string | undefined): string => {
+          return closing === undefined ? part : "";
+        },
+      );
     const parts: Array<string> = cleaned.split(".").filter(Boolean);
     return parts.length > 0 ? parts[parts.length - 1]! : "key";
   }
