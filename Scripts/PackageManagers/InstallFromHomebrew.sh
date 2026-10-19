@@ -98,7 +98,11 @@ else
 	brew_logged uninstall --cask "$CASK" >/dev/null || check "brew uninstall" fail "failed: see the log"
 fi
 
-warnings="$(grep -iE 'deprecat|disabled!' "$LOG" | sort -u || true)"
+# One line per warning. In a GitHub Actions job brew writes its warnings as
+# workflow commands, "::warning::<message>%0A<more lines>": keep the message's
+# first line, without the command.
+warnings="$(grep -iE 'deprecat|disabled!' "$LOG" |
+	sed -E 's/^::(warning|error|notice)[^:]*:://; s/%0A.*$//' | sort -u || true)"
 if [[ -z "$warnings" ]]; then
 	check "Warnings" pass "brew called nothing in the cask deprecated"
 else
