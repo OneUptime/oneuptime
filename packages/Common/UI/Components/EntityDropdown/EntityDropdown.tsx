@@ -119,6 +119,17 @@ export interface EntityDropdownProps {
   valueField?: string | undefined;
   colorField?: string | undefined;
   /*
+   * The API every list the dropdown asks for goes through: the search, the
+   * label of an entry already picked, and the Labels tab's labels and their
+   * entries. A form hands it the API it reads its own options with
+   * (ModelForm's modelAPI). The shared ModelAPI names the project the browser
+   * last opened in the Dashboard, and the server lists that project's rows
+   * only - so the Admin Dashboard hands AdminModelAPI, which names none, or a
+   * master admin's project picker offers one project. Unset, the shared
+   * ModelAPI.
+   */
+  modelAPI?: typeof ModelAPI | undefined;
+  /*
    * Only the entries that match this, by columns of modelType - `{
    * isVerified: true }` offers only the domains a project has verified.
    * Every list the dropdown asks the server for to offer entries (the
@@ -308,6 +319,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   const translator: Translator = useTranslator();
   const isMulti: boolean = Boolean(props.isMultiSelect);
   const modelType: { new (): BaseModel } | undefined = props.modelType;
+  const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
   const labelField: string = props.labelField || "name";
   const valueField: string = props.valueField || "_id";
   /*
@@ -774,7 +786,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             baseSelect[colorField] = true;
           }
           const result: ListResult<BaseModel> =
-            await ModelAPI.getList<BaseModel>({
+            await modelAPI.getList<BaseModel>({
               modelType: modelType,
               query: query,
               limit: SEARCH_PAGE_SIZE,
@@ -812,6 +824,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     isOpen,
     activeTab,
     modelType,
+    modelAPI,
     labelField,
     colorField,
     modelToOption,
@@ -846,7 +859,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         if (colorField) {
           baseSelect[colorField] = true;
         }
-        const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>(
+        const result: ListResult<BaseModel> = await modelAPI.getList<BaseModel>(
           {
             modelType: modelType,
             query: {
@@ -882,6 +895,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
   }, [
     selectedKeys.join("|"),
     modelType,
+    modelAPI,
     labelField,
     colorField,
     modelToOption,
@@ -902,7 +916,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       setIsLoadingLabels(true);
       setLabelError("");
       try {
-        const result: ListResult<Label> = await ModelAPI.getList<Label>({
+        const result: ListResult<Label> = await modelAPI.getList<Label>({
           modelType: Label,
           query: {} as Query<Label>,
           limit: LIMIT_PER_PROJECT,
@@ -932,7 +946,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     return () => {
       cancelled = true;
     };
-  }, [labelsTabEnabled, activeTab, labelsLoaded]);
+  }, [labelsTabEnabled, activeTab, labelsLoaded, modelAPI]);
 
   const filteredLabels: Array<Label> = useMemo(() => {
     const q: string = searchQuery.trim().toLowerCase();
@@ -1122,7 +1136,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (colorField) {
         baseSelect[colorField] = true;
       }
-      const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
+      const result: ListResult<BaseModel> = await modelAPI.getList<BaseModel>({
         modelType: modelType,
         query: labelQuery as Query<BaseModel>,
         limit: LIMIT_PER_PROJECT,
@@ -1223,7 +1237,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
       if (colorField) {
         baseSelect[colorField] = true;
       }
-      const result: ListResult<BaseModel> = await ModelAPI.getList<BaseModel>({
+      const result: ListResult<BaseModel> = await modelAPI.getList<BaseModel>({
         modelType: modelType,
         query: labelQuery as Query<BaseModel>,
         limit: LABEL_PREVIEW_LIMIT,
