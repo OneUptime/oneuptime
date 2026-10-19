@@ -2,6 +2,10 @@ import Dictionary from "../../../Types/Dictionary";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
+import {
+  ChangeEventAttribute,
+  RESERVED_CHANGE_ATTRIBUTE_PREFIX,
+} from "../../../Utils/Telemetry/ChangeEventFields";
 /*
  * Type-only: pulling the ingest service's runtime graph into this pure
  * module would drag ClickHouse/DB deps into every test that touches it.
@@ -65,11 +69,68 @@ function parseEntryTime(value: unknown): Date | null {
   return null;
 }
 
+/*
+ * Top-level fields a pipeline may send instead of attributes, and the
+ * attribute each one is stored under (Common/Utils/Telemetry/
+ * ChangeEventFields): { "version": "2.3.1", "commit": "1a2b3c4" } is the
+ * same event as { "attributes": { "service.version": "2.3.1",
+ * "vcs.ref.head.revision": "1a2b3c4" } }. An attribute posted under the
+ * stored name wins over the top-level field.
+ */
+export const CHANGE_EVENT_TOP_LEVEL_FIELDS: ReadonlyArray<{
+  fields: ReadonlyArray<string>;
+  attribute: string;
+}> = [
+  { fields: ["version"], attribute: ChangeEventAttribute.ServiceVersion },
+  {
+    fields: ["previousVersion"],
+    attribute: ChangeEventAttribute.PreviousVersion,
+  },
+  {
+    fields: ["commit", "commitSha", "sha"],
+    attribute: ChangeEventAttribute.CommitSha,
+  },
+  {
+    fields: ["repository", "repositoryUrl"],
+    attribute: ChangeEventAttribute.RepositoryUrl,
+  },
+  { fields: ["branch"], attribute: ChangeEventAttribute.Branch },
+  { fields: ["pullRequest"], attribute: ChangeEventAttribute.PullRequest },
+  { fields: ["environment"], attribute: ChangeEventAttribute.Environment },
+];
+
+// The longest value a top-level field is stored with.
+export const MAX_CHANGE_EVENT_TOP_LEVEL_FIELD_LENGTH: number = 1000;
+
+function readTopLevelField(
+  entry: JSONObject,
+  fields: ReadonlyArray<string>,
+): string {
+  for (const field of fields) {
+    const value: unknown = entry[field];
+
+    if (typeof value === "string" && value.trim() !== "") {
+      return value.trim().slice(0, MAX_CHANGE_EVENT_TOP_LEVEL_FIELD_LENGTH);
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+  }
+
+  return "";
+}
+
 /**
  * Validate one raw ingest entry. Returns null when the entry cannot be a
  * change event at all (no usable title); every other malformation is
  * repaired (defaults, trims, caps) rather than rejected — CI pipelines
  * should not fail a deploy over a long description.
+ *
+ * Attribute keys under RESERVED_CHANGE_ATTRIBUTE_PREFIX ("oneuptime.") are
+ * dropped: they are OneUptime's own, and investigations match changes to
+ * incidents and clusters by them, so a posted event cannot claim to be a
+ * fix OneUptime AI ran or to belong to an incident.
  */
 export function parseChangeEventIngestEntry(
   entry: JSONObject,
@@ -78,21 +139,33 @@ export function parseChangeEventIngestEntry(
     return null;
   }
 
-  const rawTitle: unknown = entry["title"] ?? entry["name"];
-  const title: string =
-    typeof rawTitle === "string"
-      ? rawTitle.trim().slice(0, MAX_CHANGE_EVENT_TITLE_LENGTH)
-      : "";
-
-  if (title === "") {
-    return null;
-  }
-
   const rawEventType: unknown = entry["eventType"] ?? entry["type"];
   const eventType: string =
     typeof rawEventType === "string" && rawEventType.trim() !== ""
       ? rawEventType.trim().toLowerCase().slice(0, MAX_CHANGE_EVENT_TYPE_LENGTH)
       : DEFAULT_CHANGE_EVENT_TYPE;
+
+  const rawTitle: unknown = entry["title"] ?? entry["name"];
+  let title: string =
+    typeof rawTitle === "string"
+      ? rawTitle.trim().slice(0, MAX_CHANGE_EVENT_TITLE_LENGTH)
+      : "";
+
+  /*
+   * A deploy that names its version needs no title of its own: "Deploy
+   * 2.3.1" says what a pipeline would have written anyway.
+   */
+  if (title === "" && rawTitle === undefined) {
+    const version: string = readTopLevelField(entry, ["version"]);
+
+    if (version && eventType === DEFAULT_CHANGE_EVENT_TYPE) {
+      title = `Deploy ${version}`.slice(0, MAX_CHANGE_EVENT_TITLE_LENGTH);
+    }
+  }
+
+  if (title === "") {
+    return null;
+  }
 
   const rawDescription: unknown = entry["description"];
   const description: string =
@@ -111,6 +184,9 @@ export function parseChangeEventIngestEntry(
       if (key.trim() === "") {
         continue;
       }
+      if (key.trim().startsWith(RESERVED_CHANGE_ATTRIBUTE_PREFIX)) {
+        continue;
+      }
       if (Object.keys(attributes).length >= MAX_CHANGE_EVENT_ATTRIBUTES) {
         break;
       }
@@ -122,6 +198,22 @@ export function parseChangeEventIngestEntry(
       ) {
         attributes[key] = String(value);
       }
+    }
+  }
+
+  /*
+   * The top-level fields fill the attributes they name, after the cap: they
+   * are a fixed handful, and they are what the event is about.
+   */
+  for (const topLevel of CHANGE_EVENT_TOP_LEVEL_FIELDS) {
+    if (attributes[topLevel.attribute] !== undefined) {
+      continue;
+    }
+
+    const value: string = readTopLevelField(entry, topLevel.fields);
+
+    if (value) {
+      attributes[topLevel.attribute] = value;
     }
   }
 
@@ -208,13 +300,22 @@ export function buildChangeEventDbRow(data: {
   projectId: ObjectID;
   serviceMetadata: TelemetryServiceMetadata | null;
   retentionDays: number;
+  /*
+   * What OneUptime itself says about the event - where it came from
+   * (oneuptime.change.source) and the like. Written over the parsed
+   * attributes, so a posted value never stands in for one of these.
+   */
+  systemAttributes?: Dictionary<string> | undefined;
 }): JSONObject {
   const { parsed, projectId, serviceMetadata, retentionDays } = data;
 
   const ingestionDate: Date = OneUptimeDate.getCurrentDate();
 
   let eventTime: Date = parsed.time || ingestionDate;
-  let attributes: Dictionary<string> = { ...parsed.attributes };
+  let attributes: Dictionary<string> = {
+    ...parsed.attributes,
+    ...(data.systemAttributes || {}),
+  };
 
   const ageInDays: number = OneUptimeDate.getNumberOfDaysBetweenDates(
     eventTime,

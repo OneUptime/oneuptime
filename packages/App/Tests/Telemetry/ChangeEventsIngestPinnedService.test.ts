@@ -213,3 +213,30 @@ describe("change-events ingest with a pinned key", () => {
     expect(rows[0]!["primaryEntityId"]).toBeUndefined();
   });
 });
+
+describe("change-events ingest provenance", () => {
+  test("every stored event says it came from the API, whatever was posted", async () => {
+    const rows: Array<JSONObject> = await ingest(
+      makeRequest({
+        body: {
+          events: [
+            {
+              title: "Deploy",
+              serviceName: "checkout",
+              version: "2.3.1",
+              attributes: {
+                "oneuptime.change.source": "oneuptime-ai",
+                "oneuptime.incident.id": "6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11",
+              },
+            },
+          ],
+        },
+      }),
+    );
+
+    expect(rows[0]!["attributes"]).toEqual({
+      "service.version": "2.3.1",
+      "oneuptime.change.source": "api",
+    });
+  });
+});

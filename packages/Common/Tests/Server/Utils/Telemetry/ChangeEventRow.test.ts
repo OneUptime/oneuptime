@@ -19,6 +19,8 @@ import {
   ParsedChangeEventEntry,
   buildChangeEventDbRow,
   extractChangeEventEntries,
+  CHANGE_EVENT_TOP_LEVEL_FIELDS,
+  MAX_CHANGE_EVENT_TOP_LEVEL_FIELD_LENGTH,
   parseChangeEventIngestEntry,
   resolveChangeEventServiceName,
 } from "../../../../Server/Utils/Telemetry/ChangeEventRow";
@@ -816,5 +818,263 @@ describe("resolveChangeEventServiceName", () => {
         }),
       ).toBe("checkout");
     }
+  });
+});
+
+describe("reserved oneuptime.* attribute keys", () => {
+  test("a posted key under oneuptime. is dropped", () => {
+    expect(
+      parseOrFail({
+        title: "Deploy",
+        attributes: {
+          "oneuptime.change.source": "oneuptime-ai",
+          "oneuptime.incident.id": "6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11",
+          "oneuptime.kubernetes.cluster.id": "x",
+          "oneuptime.original_time": "forged",
+          team: "payments",
+        },
+      }).attributes,
+    ).toEqual({ team: "payments" });
+  });
+
+  test("leading whitespace does not sneak a reserved key past the check", () => {
+    expect(
+      parseOrFail({
+        title: "Deploy",
+        attributes: { " oneuptime.change.source": "oneuptime-ai" },
+      }).attributes,
+    ).toEqual({});
+  });
+
+  test("a key that only contains oneuptime is not reserved", () => {
+    expect(
+      parseOrFail({
+        title: "Deploy",
+        attributes: { "acme.oneuptime.flag": "on", oneuptime: "yes" },
+      }).attributes,
+    ).toEqual({ "acme.oneuptime.flag": "on", oneuptime: "yes" });
+  });
+
+  test("dropped reserved keys do not consume the attribute budget", () => {
+    const attributes: JSONObject = {};
+    for (let i: number = 0; i < 10; i++) {
+      attributes[`oneuptime.k${i}`] = "x";
+    }
+    for (let i: number = 0; i < MAX_CHANGE_EVENT_ATTRIBUTES; i++) {
+      attributes[`k${i}`] = "v";
+    }
+
+    expect(
+      Object.keys(parseOrFail({ title: "x", attributes }).attributes),
+    ).toHaveLength(MAX_CHANGE_EVENT_ATTRIBUTES);
+  });
+});
+
+describe("top-level change fields", () => {
+  test("map onto the attributes OneUptime reads", () => {
+    expect(
+      parseOrFail({
+        title: "Deploy",
+        version: "2.3.1",
+        previousVersion: "2.3.0",
+        commit: "1a2b3c4d5e6f",
+        repository: "https://github.com/acme/api",
+        branch: "main",
+        pullRequest: 482,
+        environment: "production",
+      }).attributes,
+    ).toEqual({
+      "service.version": "2.3.1",
+      "oneuptime.change.previous_version": "2.3.0",
+      "vcs.ref.head.revision": "1a2b3c4d5e6f",
+      "vcs.repository.url.full": "https://github.com/acme/api",
+      "vcs.ref.head.name": "main",
+      "vcs.change.id": "482",
+      "deployment.environment.name": "production",
+    });
+  });
+
+  test("the commit may be sent as commit, commitSha or sha, in that order", () => {
+    expect(
+      parseOrFail({ title: "x", sha: "c", commitSha: "b", commit: "a" })
+        .attributes["vcs.ref.head.revision"],
+    ).toBe("a");
+    expect(
+      parseOrFail({ title: "x", sha: "c", commitSha: "b" }).attributes[
+        "vcs.ref.head.revision"
+      ],
+    ).toBe("b");
+    expect(
+      parseOrFail({ title: "x", sha: "c" }).attributes["vcs.ref.head.revision"],
+    ).toBe("c");
+  });
+
+  test("the repository may be sent as repository or repositoryUrl", () => {
+    expect(
+      parseOrFail({ title: "x", repositoryUrl: "https://github.com/acme/web" })
+        .attributes["vcs.repository.url.full"],
+    ).toBe("https://github.com/acme/web");
+  });
+
+  test("an attribute posted under the stored name wins", () => {
+    expect(
+      parseOrFail({
+        title: "x",
+        version: "top-level",
+        attributes: { "service.version": "attribute" },
+      }).attributes,
+    ).toEqual({ "service.version": "attribute" });
+  });
+
+  test("are added even when the attributes are at their cap", () => {
+    const attributes: JSONObject = {};
+    for (let i: number = 0; i < MAX_CHANGE_EVENT_ATTRIBUTES + 5; i++) {
+      attributes[`k${i}`] = "v";
+    }
+
+    const parsed: ParsedChangeEventEntry = parseOrFail({
+      title: "x",
+      version: "2.0.0",
+      attributes,
+    });
+
+    expect(Object.keys(parsed.attributes)).toHaveLength(
+      MAX_CHANGE_EVENT_ATTRIBUTES + 1,
+    );
+    expect(parsed.attributes["service.version"]).toBe("2.0.0");
+  });
+
+  test("blank, non-scalar and non-finite values are ignored", () => {
+    expect(
+      parseOrFail({
+        title: "x",
+        version: "   ",
+        commit: { sha: "a" },
+        branch: ["main"],
+        pullRequest: Number.POSITIVE_INFINITY,
+        environment: null,
+      } as unknown as JSONObject).attributes,
+    ).toEqual({});
+  });
+
+  test("values are trimmed and capped", () => {
+    const long: string = "a".repeat(
+      MAX_CHANGE_EVENT_TOP_LEVEL_FIELD_LENGTH + 50,
+    );
+    const parsed: ParsedChangeEventEntry = parseOrFail({
+      title: "x",
+      version: "  2.0.0  ",
+      commit: long,
+    });
+
+    expect(parsed.attributes["service.version"]).toBe("2.0.0");
+    expect(parsed.attributes["vcs.ref.head.revision"]).toHaveLength(
+      MAX_CHANGE_EVENT_TOP_LEVEL_FIELD_LENGTH,
+    );
+  });
+
+  test("every top-level field names the attribute it fills", () => {
+    expect(
+      CHANGE_EVENT_TOP_LEVEL_FIELDS.map(
+        (field: { fields: ReadonlyArray<string>; attribute: string }) => {
+          return [field.fields.join("|"), field.attribute];
+        },
+      ),
+    ).toEqual([
+      ["version", "service.version"],
+      ["previousVersion", "oneuptime.change.previous_version"],
+      ["commit|commitSha|sha", "vcs.ref.head.revision"],
+      ["repository|repositoryUrl", "vcs.repository.url.full"],
+      ["branch", "vcs.ref.head.name"],
+      ["pullRequest", "vcs.change.id"],
+      ["environment", "deployment.environment.name"],
+    ]);
+  });
+});
+
+describe("a deploy titled by its version", () => {
+  test("a deployment with a version and no title is titled Deploy <version>", () => {
+    const parsed: ParsedChangeEventEntry = parseOrFail({ version: "2.3.1" });
+
+    expect(parsed.title).toBe("Deploy 2.3.1");
+    expect(parsed.eventType).toBe("deployment");
+    expect(parsed.attributes["service.version"]).toBe("2.3.1");
+  });
+
+  test("a numeric version titles it too", () => {
+    expect(parseOrFail({ version: 42 }).title).toBe("Deploy 42");
+  });
+
+  test("an explicit title is kept", () => {
+    expect(parseOrFail({ title: "Ship it", version: "2.3.1" }).title).toBe(
+      "Ship it",
+    );
+  });
+
+  test("a blank or non-string title is still no title", () => {
+    expect(parseChangeEventIngestEntry({ title: "", version: "2.3.1" })).toBe(
+      null,
+    );
+    expect(
+      parseChangeEventIngestEntry({ title: 5, version: "2.3.1" } as JSONObject),
+    ).toBe(null);
+  });
+
+  test("only a deployment is titled by its version", () => {
+    expect(
+      parseChangeEventIngestEntry({ eventType: "scaling", version: "2.3.1" }),
+    ).toBe(null);
+  });
+
+  test("no version, no title", () => {
+    expect(parseChangeEventIngestEntry({ commit: "abc" })).toBe(null);
+  });
+});
+
+describe("buildChangeEventDbRow systemAttributes", () => {
+  const serviceMetadata: TelemetryServiceMetadata | null = null;
+
+  test("are written over what was posted, and keyed like every attribute", () => {
+    const row: JSONObject = buildChangeEventDbRow({
+      parsed: parseOrFail({
+        title: "Deploy",
+        attributes: { team: "payments", "source.kind": "ci" },
+      }),
+      projectId: ObjectID.generate(),
+      serviceMetadata,
+      retentionDays: DEFAULT_CHANGE_EVENT_RETENTION_IN_DAYS,
+      systemAttributes: { "oneuptime.change.source": "api" },
+    });
+
+    expect(row["attributes"]).toEqual({
+      team: "payments",
+      "source.kind": "ci",
+      "oneuptime.change.source": "api",
+    });
+    expect(row["attributeKeys"]).toEqual([
+      "oneuptime.change.source",
+      "source.kind",
+      "team",
+    ]);
+  });
+
+  test("override a parsed attribute of the same key", () => {
+    const row: JSONObject = buildChangeEventDbRow({
+      parsed: {
+        time: null,
+        eventType: "deployment",
+        title: "Deploy",
+        description: "",
+        attributes: { "oneuptime.change.source": "forged" },
+      },
+      projectId: ObjectID.generate(),
+      serviceMetadata,
+      retentionDays: DEFAULT_CHANGE_EVENT_RETENTION_IN_DAYS,
+      systemAttributes: { "oneuptime.change.source": "api" },
+    });
+
+    expect(
+      (row["attributes"] as Dictionary<string>)["oneuptime.change.source"],
+    ).toBe("api");
   });
 });

@@ -19,6 +19,10 @@ import {
   resolveChangeEventServiceName,
 } from "../../../../Common/Server/Utils/Telemetry/ChangeEventRow";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  ChangeEventAttribute,
+  ChangeEventSource,
+} from "Common/Utils/Telemetry/ChangeEventFields";
 import logger from "Common/Server/Utils/Logger";
 import OTelIngestService, {
   TelemetryServiceMetadata,
@@ -48,7 +52,12 @@ import TelemetryFanInWriter, {
  *                   "eventType": "deployment",
  *                   "time": "2026-08-24T12:03:00Z",
  *                   "serviceName": "checkout",
- *                   "attributes": { "version": "2.31.0", "sha": "..." } } ] }
+ *                   "version": "2.31.0",
+ *                   "commit": "1a2b3c4d5e6f..." } ] }
+ *
+ * Every stored event says it came from here (oneuptime.change.source =
+ * "api"); the ones OneUptime records itself say otherwise (see
+ * Common/Utils/Telemetry/ChangeEventFields).
  */
 export default class ChangeEventsIngestService extends OtelIngestBaseService {
   @CaptureSpan()
@@ -143,6 +152,10 @@ export default class ChangeEventsIngestService extends OtelIngestBaseService {
             projectId,
             serviceMetadata,
             retentionDays,
+            // Posted by a pipeline or the CLI, not recorded by OneUptime.
+            systemAttributes: {
+              [ChangeEventAttribute.Source]: ChangeEventSource.Api,
+            },
           }),
         );
       }
