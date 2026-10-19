@@ -64,9 +64,11 @@ describe("a line built to be slow is read quickly", () => {
         "\nThe connection to the server d was refused",
     ],
     [
+      // An answer of the API server's, where the forbidden user is looked for.
       "the forbidden phrase over and over",
-      repeat('n is forbidden: User "', LENGTH) +
-        '\n is forbidden: User "" cannot ',
+      "Error from server (BadRequest): " +
+        repeat('n is forbidden: User "', LENGTH) +
+        '\nError from server (BadRequest): pods is forbidden: User "x" cannot list',
     ],
     ["a long line of one character", repeat("x", LENGTH)],
     [
