@@ -222,6 +222,26 @@ describe("the values found are the values the pattern found", () => {
     },
   );
 
+  test("a line start in the white space after a star is read on its own", () => {
+    const classification: Labelled = LABELLED[1]!;
+
+    for (const [answer, value] of [
+      ["  *      * classification ** : ** unknown", "unknown"],
+      ["*\n**Classification:** code-fault", "code-fault"],
+      ["**  classification = user-error", "user-error"],
+    ]) {
+      expect(valuesBefore(classification, answer!)).toEqual([value]);
+      expect({
+        answer,
+        values: findLabelledValues({
+          text: answer!,
+          label: classification.label,
+          value: classification.value,
+        }),
+      }).toEqual({ answer, values: [value] });
+    }
+  });
+
   test("the runs act on the last value, as before", () => {
     const candidates: Set<string> = new Set(["0123456789abcdef"]);
 

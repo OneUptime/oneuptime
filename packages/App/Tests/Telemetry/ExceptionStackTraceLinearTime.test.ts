@@ -319,11 +319,12 @@ describe("an exception's stack trace is ingested in time in line with its length
   });
 
   test("an ERROR log whose body's first line was built for the type and message", async () => {
+    // Long enough that the pattern it was read with before took twice the limit.
     const firstLine: string =
       "A" +
-      repeat(".A", 3000) +
+      repeat(".A", 4000) +
       ":" +
-      repeat("\t", 3000) +
+      repeat("\t", 4000) +
       "y" +
       String.fromCharCode(0x2028) +
       "x";

@@ -84,10 +84,10 @@ describe("a summary built to be slow is flattened quickly", () => {
     ["images that close none", repeat("![](", LENGTH)],
     ["links that close none", repeat("[(", LENGTH) + "][[]()"],
     ["a run of opening brackets", repeat("[", LENGTH)],
-    ["bold that closes none", repeat("**a", LENGTH)],
-    ["underlines that close none", repeat("__a", LENGTH)],
+    ["bold that closes none", repeat("**a ", LENGTH)],
+    ["underlines that close none", repeat("__a ", LENGTH)],
     ["strikethrough that closes none", repeat("~\t~~\u0000", LENGTH) + "\t"],
-    ["struck words with a space before each closing", repeat("~~a ~~", LENGTH)],
+    ["struck words with a space before each closing", repeat("~~a ", LENGTH)],
   ])("%s", (_label: string, summary: string) => {
     expect(
       timeOf(() => {
@@ -103,11 +103,16 @@ describe("a summary built to be slow is flattened quickly", () => {
   });
 
   test("a clip of a run of trailing marks", () => {
+    // The long run of tabs is inside the clip, not at its end.
+    const text: string =
+      "x " + repeat("\t", LENGTH) + "\u0000\t" + repeat("y", 16);
+
     expect(
       timeOf(() => {
-        clipText("x " + repeat("\t", LENGTH) + "\u0000\t", LENGTH);
+        clipText(text, LENGTH + 8);
       }),
     ).toBeLessThan(2000);
+    expect(clipText(text, LENGTH + 8)).toBe(text.slice(0, LENGTH + 7) + "\u2026");
   });
 });
 
