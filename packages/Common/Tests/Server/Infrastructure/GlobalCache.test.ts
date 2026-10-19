@@ -1075,3 +1075,86 @@ describe("GlobalCache.setNumberIfGreater", () => {
     expect(client.eval).not.toHaveBeenCalled();
   });
 });
+
+describe("GlobalCache.swapString", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue("previous-value"),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /*
+   * Read and write in ONE evaluation: a GET then a SET from here would let
+   * two workers both read the same old value, and both report a change
+   * from it.
+   */
+  test("reads the old value and writes the new one, with its TTL, in one evaluation", async () => {
+    const previous: string | null = await GlobalCache.swapString(
+      "ns",
+      "key",
+      "new-value",
+      { expiresInSeconds: 90 },
+    );
+
+    expect(previous).toBe("previous-value");
+    expect(client.eval).toHaveBeenCalledTimes(1);
+    expect(client.get).not.toHaveBeenCalled();
+    expect(client.set).not.toHaveBeenCalled();
+
+    const [script, keyCount, key, value, ttl] = client.eval.mock.calls[0] as [
+      string,
+      number,
+      string,
+      string,
+      string,
+    ];
+
+    expect(script).toContain("redis.call('GET', KEYS[1])");
+    expect(script).toContain(
+      "redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])",
+    );
+    expect(script.indexOf("GET")).toBeLessThan(script.indexOf("SET"));
+    expect(keyCount).toBe(1);
+    expect(key).toBe("ns-key");
+    expect(value).toBe("new-value");
+    expect(ttl).toBe("90");
+  });
+
+  test("defaults the TTL to 30 days", async () => {
+    await GlobalCache.swapString("ns", "key", "v");
+
+    expect(client.eval.mock.calls[0]![4]).toBe(
+      String(OneUptimeDate.getSecondsInDays(30)),
+    );
+  });
+
+  test("a key that held nothing answers null", async () => {
+    for (const reply of [null, undefined, "", false, 0]) {
+      client.eval.mockResolvedValueOnce(reply);
+      await expect(GlobalCache.swapString("ns", "key", "v")).resolves.toBe(
+        null,
+      );
+    }
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(GlobalCache.swapString("ns", "key", "v")).rejects.toThrow(
+      DatabaseNotConnectedException,
+    );
+    expect(client.eval).not.toHaveBeenCalled();
+  });
+});
