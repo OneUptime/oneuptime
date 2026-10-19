@@ -7,8 +7,9 @@ import path from "path";
  * Global Runners - the Runners OneUptime runs for every project - on the
  * pages that show them, in a browser, against the offline fixture
  * (GlobalRunners/Fixture): Runbooks -> Runners with its Global Runners,
- * Custom Runners and Use Global Runners cards; a runbook step's Runner
- * picker, opened and picked by mouse and by keyboard; and whether global
+ * Custom Runners and Global Runners in This Project cards; a runbook step's
+ * Runner picker, opened and picked by mouse and by keyboard, and the line
+ * under each folded step that says where it runs; and whether global
  * Runners may use a runbook secret. Then a phone, dark mode and German.
  *
  * The maintainer's ask: "Please also show global runners here as well, and
@@ -50,7 +51,16 @@ const GLOBAL_CHOICE: string = "Global Runner · Connected";
 const GLOBAL_CHOICE_DESCRIPTION: string =
   "Run by OneUptime for every project, in a sandbox that reaches the internet only.";
 const GLOBAL_HELP: string =
-  "Runs on a global Runner, in a sandbox that can reach the internet but not your network, for 5 minutes at most. Pick one of your own Runners for anything on your network.";
+  "Runs in a sandbox that reaches the internet only, for up to 5 minutes. To reach your network, pick one of your Runners.";
+
+// The card of the project's one switch.
+const SWITCH_CARD: string = "Global Runners in This Project";
+
+// A step's Execution timeout field, by its label ("Execution timeout seconds").
+const EXECUTION_TIMEOUT_LABEL: RegExp = /^Execution timeout/;
+
+// The old line under a folded step, which named no Runner.
+const OLD_FOLDED_LINE: RegExp = /on a Runner$/;
 
 interface Recorded {
   updates: Array<{ model: string; id: string; data: Record<string, unknown> }>;
@@ -178,14 +188,10 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     await expect(headings(page)).toHaveText([
       "Global Runners",
       "Custom Runners",
-      "Use Global Runners",
+      SWITCH_CARD,
     ]);
     const tops: Array<number> = [];
-    for (const title of [
-      "Global Runners",
-      "Custom Runners",
-      "Use Global Runners",
-    ]) {
+    for (const title of ["Global Runners", "Custom Runners", SWITCH_CARD]) {
       const box: { y: number } | null = await card(page, title).boundingBox();
       expect(box).not.toBeNull();
       tops.push(box!.y);
@@ -210,8 +216,18 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
       0,
     );
     await expect(globalCard).toContainText(
-      "A JavaScript step that does not pick a Runner of its own runs on one, in a sandbox that can reach the internet but not your network.",
+      "JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
     );
+    // One line across the card, as Global Probes' is.
+    const descriptionLines: number = await globalCard
+      .getByTestId("card-description")
+      .evaluate((element: Element): number => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        const lineHeight: number =
+          parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2;
+        return Math.round(element.getBoundingClientRect().height / lineHeight);
+      });
+    expect(descriptionLines).toBe(1);
 
     /*
      * The project's own Runners: none yet, so one plain sentence says why
@@ -231,9 +247,15 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
       "aria-checked",
       "true",
     );
-    await expect(card(page, "Use Global Runners")).toContainText(
-      "JavaScript steps that do not pick a Runner of their own run on the global Runners.",
+    const switchCard: Locator = card(page, SWITCH_CARD);
+    await expect(switchCard).toContainText(
+      "Steps that pick one of your Runners always run on it.",
     );
+    await expect(switchCard).toContainText(
+      "JavaScript steps that pick no Runner run on a global Runner.",
+    );
+    // Said once: the card's title is not the switch's name.
+    await expect(switchCard.getByText("Use global Runners")).toHaveCount(1);
     await screenshot(page, "runners");
   });
 
@@ -249,7 +271,7 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     await expect(modal).toBeVisible();
     await expect(modal).toContainText("Stop using global Runners?");
     await expect(modal).toContainText(
-      "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.",
+      "JavaScript steps that pick no Runner will fail until they pick one of yours. Steps waiting for a global Runner now will not run.",
     );
     await screenshot(page, "stop-using-global-runners");
     await modal.getByRole("button", { name: "Cancel" }).click();
@@ -277,10 +299,10 @@ test.describe("Runbooks → Runners on a server that runs global Runners", () =>
     ]);
     // Both cards now say what the project does instead.
     await expect(card(page, "Global Runners")).toContainText(
-      "This project does not use them: every step runs on a Runner of your own.",
+      "This project does not use them, so every step runs on one of your Runners.",
     );
-    await expect(card(page, "Use Global Runners")).toContainText(
-      "Every step runs on a Runner of your own. A step that does not pick one fails and says so.",
+    await expect(card(page, SWITCH_CARD)).toContainText(
+      "Every step runs on one of your Runners. A JavaScript step that picks none fails.",
     );
 
     // Turning it back on loses nothing, so it does not ask.
@@ -498,6 +520,161 @@ test.describe("a step's Runner picker", () => {
       "prod-eu-west-1 · Connected",
     ]);
   });
+
+  test("a JavaScript step on Global Runner offers the 5 minutes it gets, and says a longer timeout is cut short", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, "custom=2");
+
+    const step: Locator = page
+      .locator("[data-rbd-draggable-id]")
+      .filter({ has: picker(page, 0) });
+    await expect(step).toContainText("Allowed range: 1–300 seconds.");
+
+    const timeout: Locator = step.getByLabel(EXECUTION_TIMEOUT_LABEL);
+    await timeout.fill("600");
+    await expect(step).toContainText("Maximum is 300 seconds (5 minutes).");
+    await expect(step).toContainText(
+      "Values outside the range are clamped when the step runs.",
+    );
+
+    // On one of the project's own Runners, the step may run for an hour.
+    await (await openPicker(page, 0))
+      .filter({ hasText: "prod-eu-west-1" })
+      .click();
+    await expect(step).toContainText("Allowed range: 1–3600 seconds.");
+    await expect(step).not.toContainText("Maximum is 300 seconds");
+  });
+
+  test("a step with nothing to pick links to Runbooks › Runners in a new tab, and a Runner added there is offered on coming back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, "custom=0");
+
+    const box: Locator = page.getByTestId(
+      "runbook-step-1-runner-nothing-to-pick",
+    );
+    const link: Locator = box.getByRole("link", { name: "Runbooks › Runners" });
+    await expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/runbooks/runners`,
+    );
+    await expect(link).toHaveAttribute("target", "_blank");
+
+    // A Runner is added in the other tab; the person comes back to this one.
+    await page.evaluate((): void => {
+      (
+        window as unknown as { __fixture: { addCustomRunner: () => void } }
+      ).__fixture.addCustomRunner();
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await expect(box).toHaveCount(0);
+    await expect(await openPicker(page, 1)).toHaveText([
+      "new-runner · Connected",
+    ]);
+    // Nothing was saved behind the person's back.
+    expect((await recorded(page)).updates).toEqual([]);
+  });
+
+  test("while no global Runner is connected, a step on Global Runner says it fails if none picks it up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, "gstatus=disconnected");
+
+    await expect(picker(page, 0)).toContainText("Global Runner · Disconnected");
+    await expect(
+      page.getByTestId("runbook-step-0-runner-global-waiting"),
+    ).toHaveText(
+      "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.",
+    );
+
+    // Connected: no warning.
+    await openSteps(page, "");
+    await expect(picker(page, 0)).toContainText(GLOBAL_CHOICE);
+    await expect(
+      page.getByTestId("runbook-step-0-runner-global-waiting"),
+    ).toHaveCount(0);
+  });
+});
+
+test.describe("the line under each folded step says where it runs", () => {
+  async function foldedSteps(page: Page, search: string): Promise<Locator> {
+    await page.goto(`${STEPS_PAGE}?page=steps${search ? `&${search}` : ""}`);
+    const headers: Locator = page.getByTestId("runbook-step-header");
+    await expect(headers).toHaveCount(2);
+    return headers;
+  }
+
+  test("a JavaScript step on Global Runner, and a Bash step that still needs a Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const headers: Locator = await foldedSteps(page, "custom=2");
+
+    await expect(headers.nth(0)).toContainText("JavaScript on Global Runner");
+    await expect(headers.nth(1)).toContainText("Bash script, needs a Runner");
+    await expect(page.getByText(OLD_FOLDED_LINE)).toHaveCount(0);
+    await screenshot(page, "steps-folded");
+  });
+
+  test("picking one of the project's own names it when the step is folded again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSteps(page, "custom=2");
+
+    await (await openPicker(page, 0))
+      .filter({ hasText: "prod-eu-west-1" })
+      .click();
+    await page
+      .getByTestId("runbook-step-header")
+      .filter({ hasText: "Look up the status page" })
+      .getByRole("button", { expanded: true })
+      .click();
+
+    await expect(
+      page
+        .getByTestId("runbook-step-header")
+        .filter({ hasText: "Look up the status page" }),
+    ).toContainText("JavaScript on prod-eu-west-1");
+  });
+
+  test("a project that turned global Runners off: the JavaScript step needs a Runner too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const headers: Locator = await foldedSteps(page, "uses=0&custom=1");
+
+    await expect(headers.nth(0)).toContainText("JavaScript, needs a Runner");
+  });
+
+  test("in German, the line is said in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const headers: Locator = await foldedSteps(page, "lang=de&custom=1");
+
+    await expect(headers.nth(0)).toContainText(
+      GERMAN["JavaScript on {{runner}}"]!.replace(
+        "{{runner}}",
+        GERMAN["Global Runner"]!,
+      ),
+    );
+    await expect(headers.nth(1)).toContainText(
+      GERMAN["Bash script, needs a Runner"]!,
+    );
+  });
 });
 
 test.describe("which secrets global Runners may use", () => {
@@ -635,7 +812,7 @@ test.describe("on every screen", () => {
     await expect(headings(page)).toHaveText([
       GERMAN["Global Runners"]!,
       GERMAN["Custom Runners"]!,
-      GERMAN["Use Global Runners"]!,
+      GERMAN[SWITCH_CARD]!,
     ]);
     await expect(useGlobalRunnersSwitch(page)).toHaveAccessibleName(
       GERMAN["Use global Runners"]!,

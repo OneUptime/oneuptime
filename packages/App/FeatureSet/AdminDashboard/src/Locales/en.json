@@ -532,8 +532,8 @@
       },
       "globalRunners": {
         "cardTitle": "Global Runners",
-        "cardDescription": "Runners OneUptime runs for every project. They run JavaScript runbook steps, each in a sandbox of its own that reaches the internet only. One runs with this server; add more to run steps on other hosts.",
-        "noItems": "Create a global Runner, then start it with the command under Show ID and Key.",
+        "cardDescription": "Runners OneUptime runs for every project. They run JavaScript steps, each in a sandbox that reaches the internet only.",
+        "noItems": "Add a global Runner. Create one, then start it with the command under Show ID and Key.",
         "showIdKey": "Show ID and Key",
         "keyModalTitle": "Global Runner Key",
         "keyModalDescription": "Start this global Runner on a host that can reach the internet. Keep its key secret: whoever holds it can take the JavaScript steps of every project that uses global Runners.",

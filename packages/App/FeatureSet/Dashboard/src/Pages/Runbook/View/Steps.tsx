@@ -29,6 +29,14 @@ import RunnerPicker from "../../../Components/Runner/RunnerPicker";
 import RunnerChoicesLoader, {
   RunnerChoices,
 } from "../../../Components/Runner/RunnerChoices";
+import {
+  RunnerPickerModel,
+  RunnerPickerOutcome,
+  RunnerSummary,
+  buildRunnerPickerModel,
+  getRunnerSummary,
+} from "../../../Components/Runner/RunnerPickerModel";
+import useRefreshRunnerChoicesOnFocus from "../../../Components/Runner/useRefreshRunnerChoicesOnFocus";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -53,7 +61,9 @@ import StepTimeoutInput from "Common/UI/Components/Runbook/StepTimeoutInput";
 import {
   AGENT_CLAIM_TIMEOUT_BOUNDS,
   STEP_EXECUTION_TIMEOUT_BOUNDS,
+  TimeoutBounds,
 } from "Common/Types/Runbook/RunbookStepTimeout";
+import { GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS } from "Common/Types/Runner/GlobalRunnerWork";
 import UUID from "Common/Utils/UUID";
 import { useAsyncEffect } from "use-async-effect";
 import React, {
@@ -72,6 +82,8 @@ import {
 } from "react-beautiful-dnd";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  composedValue,
+  TemplateValue,
   translateTemplate,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -449,7 +461,31 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
   return base;
 }
 
-function summarizeStep(step: RunbookStep): string {
+/*
+ * The Runner a folded step names, as the line under its title says it: the
+ * global choice in the reader's words, or the project Runner's own name.
+ */
+function runnerSummaryValue(runner: RunnerSummary): TemplateValue {
+  if (!runner.isGlobal) {
+    return runner.name;
+  }
+
+  return composedValue((translator: Translator): string => {
+    return translator.translateText(runner.name) || runner.name;
+  });
+}
+
+/*
+ * The line under a folded step's title. A JavaScript or Bash step says what
+ * it runs on - "JavaScript on Global Runner", "Bash script on
+ * prod-eu-west-1" - or that it still needs a Runner, so the list reads
+ * where every step runs without opening one (`runner` is undefined while
+ * the step cannot run as it is: see getRunnerSummary).
+ */
+function summarizeStep(
+  step: RunbookStep,
+  runner: RunnerSummary | undefined,
+): string {
   if (step.type === RunbookStepType.HttpRequest) {
     const cfg: HttpRequestStepConfig = step.config as HttpRequestStepConfig;
     const method: string = cfg.method || "GET";
@@ -457,10 +493,18 @@ function summarizeStep(step: RunbookStep): string {
     return `${method} ${url}`;
   }
   if (step.type === RunbookStepType.JavaScript) {
-    return translateTemplate("JavaScript on a Runner");
+    return runner
+      ? translateTemplate("JavaScript on {{runner}}", {
+          runner: runnerSummaryValue(runner),
+        })
+      : translateTemplate("JavaScript, needs a Runner");
   }
   if (step.type === RunbookStepType.Bash) {
-    return translateTemplate("Bash script on a Runner");
+    return runner
+      ? translateTemplate("Bash script on {{runner}}", {
+          runner: runnerSummaryValue(runner),
+        })
+      : translateTemplate("Bash script, needs a Runner");
   }
   if (step.type === RunbookStepType.SSH) {
     const cfg: SSHStepConfig = step.config as SSHStepConfig;
@@ -510,6 +554,31 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     globalRunners: [],
     projectUsesGlobalRunners: true,
   });
+
+  /*
+   * A step with nothing to pick links to Runbooks -> Runners in a new tab:
+   * the choices are read again when the person comes back, so a Runner
+   * added there can be picked here at once.
+   */
+  useRefreshRunnerChoicesOnFocus(
+    ProjectUtil.getCurrentProjectId(),
+    setRunnerChoices,
+  );
+
+  // What a JavaScript or Bash step runs on, as its picker shows it.
+  const getStepRunnerModel: (step: RunbookStep) => RunnerPickerModel = (
+    step: RunbookStep,
+  ): RunnerPickerModel => {
+    return buildRunnerPickerModel({
+      stepType: step.type,
+      currentRunnerId:
+        (step.config as JavaScriptStepConfig | BashStepConfig).agentId || "",
+      projectRunners: runnerChoices.projectRunners,
+      globalRunners: runnerChoices.globalRunners,
+      projectUsesGlobalRunners: runnerChoices.projectUsesGlobalRunners,
+    });
+  };
+
   const [credentials, setCredentials] = useState<CredentialOption[]>([]);
   const [llmProviders, setLlmProviders] = useState<LlmProviderOption[]>([]);
 
@@ -1030,17 +1099,24 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
      */
     config: RunnerExecutedStepTimeouts;
     executionDescription: ReactElement;
+    /*
+     * The range the step really gets: a step on a global Runner is held to
+     * 5 minutes (GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS), so its field
+     * says so and that a longer timeout is cut short when it runs.
+     */
+    executionBounds: TimeoutBounds;
   }) => ReactElement = (args: {
     idx: number;
     config: RunnerExecutedStepTimeouts;
     executionDescription: ReactElement;
+    executionBounds: TimeoutBounds;
   }): ReactElement => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <StepTimeoutInput
           label="Execution timeout"
           value={args.config.timeoutInMs}
-          bounds={STEP_EXECUTION_TIMEOUT_BOUNDS}
+          bounds={args.executionBounds}
           description={args.executionDescription}
           onChange={(timeoutInMs: number | undefined) => {
             updateConfig(args.idx, { timeoutInMs });
@@ -1179,7 +1255,13 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         const stepId: string = step.id || `step-${idx}`;
                         const isCollapsed: boolean =
                           collapsedState[stepId] !== false;
-                        const summary: string = summarizeStep(step);
+                        const summary: string = summarizeStep(
+                          step,
+                          step.type === RunbookStepType.JavaScript ||
+                            step.type === RunbookStepType.Bash
+                            ? getRunnerSummary(getStepRunnerModel(step))
+                            : undefined,
+                        );
                         return (
                           <Draggable
                             draggableId={stepId}
@@ -1416,6 +1498,12 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                   )}
                                                 </>
                                               ),
+                                              executionBounds:
+                                                getStepRunnerModel(step)
+                                                  .outcome ===
+                                                RunnerPickerOutcome.GlobalRunner
+                                                  ? GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS
+                                                  : STEP_EXECUTION_TIMEOUT_BOUNDS,
                                             })}
                                           </div>
                                         )}
@@ -1639,6 +1727,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                   }}
                                                 />
                                               ),
+                                              executionBounds:
+                                                STEP_EXECUTION_TIMEOUT_BOUNDS,
                                             })}
                                           </div>
                                         )}
@@ -1722,6 +1812,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                   )}
                                                 </>
                                               ),
+                                              executionBounds:
+                                                STEP_EXECUTION_TIMEOUT_BOUNDS,
                                             })}
                                           </div>
                                         )}
@@ -1954,6 +2046,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                   )}
                                                 </>
                                               ),
+                                              executionBounds:
+                                                STEP_EXECUTION_TIMEOUT_BOUNDS,
                                             })}
                                           </div>
                                         )}

@@ -1,8 +1,10 @@
+import Route from "Common/Types/API/Route";
 import { getRunnerLiveStatusLabel } from "Common/Types/Runner/RunnerLiveStatus";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslateValue, {
   UseTranslateValueResult,
@@ -10,6 +12,8 @@ import useTranslateValue, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { RunnerChoices } from "./RunnerChoices";
 import { GLOBAL_RUNNER_MAX_MINUTES } from "./GlobalRunnersCopy";
 import {
@@ -17,11 +21,13 @@ import {
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
   GLOBAL_RUNNER_CHOICE_VALUE,
+  GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
   RunnerPickerModel,
   RunnerPickerOption,
   RunnerPickerOptionKind,
   RunnerPickerOutcome,
   buildRunnerPickerModel,
+  isGlobalRunnerChoiceWaiting,
 } from "./RunnerPickerModel";
 
 /*
@@ -116,8 +122,24 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     ? toDropdownOption(model.selected)
     : undefined;
 
+  /*
+   * Where a Runner is added, as a link: in a new tab, so the steps being
+   * edited here stay as they are. The page that shows the picker reads the
+   * Runners again when the person comes back to it
+   * (useRefreshRunnerChoicesOnFocus), so the one just added can be picked
+   * without a reload.
+   */
   const runnersLocation: ReactElement = (
-    <strong>{translator.translateText("Runbooks › Runners")}</strong>
+    <Link
+      to={RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUNBOOKS_RUNNERS] as Route,
+      )}
+      openInNewTab={true}
+      className="font-semibold underline underline-offset-2 hover:decoration-2"
+      dataTestId={`${dataTestId}-runners-link`}
+    >
+      {translator.translateText("Runbooks › Runners")}
+    </Link>
   );
 
   const renderNothingToPick: () => ReactElement = (): ReactElement => {
@@ -157,7 +179,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   const renderHelperText: () => ReactNode = (): ReactNode => {
     if (model.outcome === RunnerPickerOutcome.GlobalRunner) {
       return translator.translateTemplate(
-        "Runs on a global Runner, in a sandbox that can reach the internet but not your network, for {{minutes}} minutes at most. Pick one of your own Runners for anything on your network.",
+        "Runs in a sandbox that reaches the internet only, for up to {{minutes}} minutes. To reach your network, pick one of your Runners.",
         { minutes: GLOBAL_RUNNER_MAX_MINUTES },
       );
     }
@@ -223,6 +245,16 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
           >
             {renderHelperText()}
           </p>
+          {isGlobalRunnerChoiceWaiting(model) ? (
+            <p
+              className="text-xs text-amber-700 mt-1"
+              data-testid={`${dataTestId}-global-waiting`}
+            >
+              {translator.translateText(GLOBAL_RUNNER_NOT_CONNECTED_TEXT)}
+            </p>
+          ) : (
+            <></>
+          )}
         </>
       )}
     </div>

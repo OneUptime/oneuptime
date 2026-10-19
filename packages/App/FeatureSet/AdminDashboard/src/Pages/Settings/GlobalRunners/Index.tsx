@@ -15,7 +15,7 @@ import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionB
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
@@ -217,45 +217,52 @@ const Settings: FunctionComponent = (): ReactElement => {
         ]}
       />
 
+      {/*
+       * As wide as a project's Runner setup dialog (ModalWidth.Medium), so
+       * the command's lines are read and copied whole rather than cut off
+       * behind its copy button.
+       */}
       {currentRunner ? (
-        <ConfirmModal
+        <Modal
           title={t("pages.settings.globalRunners.keyModalTitle")}
-          description={
-            <div className="space-y-4">
-              <p>{t("pages.settings.globalRunners.keyModalDescription")}</p>
-              <p>
-                <b>{t("pages.settings.globalRunners.runnerIdLabel")}</b>{" "}
-                <span className="font-mono">
-                  {currentRunner._id?.toString()}
-                </span>
-              </p>
-              <p>
-                <b>{t("pages.settings.globalRunners.runnerKeyLabel")}</b>{" "}
-                <span className="font-mono">
-                  {currentRunner.key?.toString()}
-                </span>
-              </p>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t("pages.settings.globalRunners.commandLabel")}
-                </p>
-                <CodeBlock
-                  language="bash"
-                  code={getGlobalRunnerDockerCommand({
-                    runnerId: currentRunner._id?.toString() || "",
-                    runnerKey: currentRunner.key?.toString() || "",
-                    oneuptimeUrl: `${HTTP_PROTOCOL}${HOST}`,
-                  })}
-                />
-              </div>
-            </div>
-          }
-          submitButtonText={t("common.close")}
-          submitButtonType={ButtonStyleType.NORMAL}
-          onSubmit={async () => {
+          modalWidth={ModalWidth.Medium}
+          closeButtonText={t("common.close")}
+          onClose={() => {
             setCurrentRunner(null);
           }}
-        />
+        >
+          <div
+            className="space-y-4 text-sm text-gray-600"
+            data-testid="global-runner-key-details"
+          >
+            <p>{t("pages.settings.globalRunners.keyModalDescription")}</p>
+            <p>
+              <b className="text-gray-900">
+                {t("pages.settings.globalRunners.runnerIdLabel")}
+              </b>{" "}
+              <span className="font-mono">{currentRunner._id?.toString()}</span>
+            </p>
+            <p>
+              <b className="text-gray-900">
+                {t("pages.settings.globalRunners.runnerKeyLabel")}
+              </b>{" "}
+              <span className="font-mono">{currentRunner.key?.toString()}</span>
+            </p>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {t("pages.settings.globalRunners.commandLabel")}
+              </p>
+              <CodeBlock
+                language="bash"
+                code={getGlobalRunnerDockerCommand({
+                  runnerId: currentRunner._id?.toString() || "",
+                  runnerKey: currentRunner.key?.toString() || "",
+                  oneuptimeUrl: `${HTTP_PROTOCOL}${HOST}`,
+                })}
+              />
+            </div>
+          </div>
+        </Modal>
       ) : (
         <></>
       )}

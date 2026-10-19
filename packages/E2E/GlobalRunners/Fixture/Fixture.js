@@ -34,6 +34,8 @@
  * What the pages send is recorded on window.__fixture: `updates` (each
  * updateById: the model, the id and the data) and `creates` (each created
  * record), so the spec checks what was sent, not only what was drawn.
+ * window.__fixture.addCustomRunner() adds a Runner of the project's own,
+ * as if someone created one in another tab: the next read lists it.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -105,6 +107,13 @@ window.__fixture = {
   updates: [],
   creates: [],
 };
+
+/*
+ * A Runner of the project's own added "in another tab": the next read of
+ * the project's Runners lists it, as the server would once someone created
+ * one under Runbooks -> Runners. Set below, once the tables exist.
+ */
+window.__fixture.addCustomRunner = () => {};
 
 // ---- who is signed in -------------------------------------------------------
 
@@ -291,6 +300,23 @@ const TABLES = {
   RunbookSecret: SECRETS,
   RunbookCredential: [],
   Label: [PRODUCTION],
+};
+
+window.__fixture.addCustomRunner = () => {
+  TABLES.Runner.push(
+    record(Runner, {
+      _id: "40000000-0000-4000-8000-0000000000d9",
+      projectId: new ObjectID(PROJECT_ID),
+      name: "new-runner",
+      description: "Added in another tab.",
+      isGlobalRunner: false,
+      canRunRunbooks: true,
+      canRunCodeFixTasks: false,
+      canRunAiCommands: false,
+      lastAlive: lastAliveFor("connected"),
+      labels: [],
+    }),
+  );
 };
 
 // ---- the API -----------------------------------------------------------------

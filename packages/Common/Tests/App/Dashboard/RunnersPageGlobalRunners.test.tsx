@@ -273,13 +273,11 @@ function headlineOf(message: string): string {
   return message.split(". ")[0]!.replace(/\.$/, "");
 }
 
-// The switch's line: what the position means, then the note.
+// The switch's line: what the position means, and nothing else.
 function switchLine(isOn: boolean): string {
-  return `${
-    isOn
-      ? GlobalRunnersCopy.switchOnDescription
-      : GlobalRunnersCopy.switchOffDescription
-  } ${GlobalRunnersCopy.switchNote}`;
+  return isOn
+    ? GlobalRunnersCopy.switchOnDescription
+    : GlobalRunnersCopy.switchOffDescription;
 }
 
 describe("Runbooks -> Runners, on a server with global Runners", () => {
@@ -411,6 +409,58 @@ describe("Runbooks -> Runners, on a server with global Runners", () => {
     // The column's own default, which a new project starts with.
     expect(getColumnBooleanDefault(new Project(), "useGlobalRunners")).toBe(
       true,
+    );
+  });
+
+  test("the switch's card says each thing once: its title is not the switch's name, and its line is not the switch's", async () => {
+    openRunnersPage();
+
+    await screen.findByTestId(
+      USE_GLOBAL_RUNNERS_SWITCH_TEST_ID,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    const card: HTMLElement = cardTitled(GlobalRunnersCopy.switchCardTitle);
+    const text: string = card.textContent || "";
+    const timesSaid: (sentence: string) => number = (
+      sentence: string,
+    ): number => {
+      return text.split(sentence).length - 1;
+    };
+
+    // "Use Global Runners" over "Use global Runners" said one thing twice.
+    expect(GlobalRunnersCopy.switchCardTitle.toLowerCase()).not.toBe(
+      GlobalRunnersCopy.switchTitle.toLowerCase(),
+    );
+    expect(timesSaid(GlobalRunnersCopy.switchTitle)).toBe(1);
+    expect(timesSaid(GlobalRunnersCopy.switchCardDescription)).toBe(1);
+    expect(timesSaid(GlobalRunnersCopy.switchOnDescription)).toBe(1);
+
+    // The card's line is the rule the switch never changes, not the switch's.
+    expect(GlobalRunnersCopy.switchCardDescription).not.toBe(
+      GlobalRunnersCopy.switchOnDescription,
+    );
+    expect(text).not.toContain("either way");
+  });
+
+  test("the global card says what global Runners are in one short line", async () => {
+    openRunnersPage();
+
+    await screen.findByText("global-eu", {}, { timeout: WAIT_TIMEOUT });
+
+    // One line across the card at 1280px, as Global Probes' is.
+    expect(GlobalRunnersCopy.globalCardDescription.length).toBeLessThanOrEqual(
+      130,
+    );
+    expect(
+      GlobalRunnersCopy.globalCardDescriptionWhenOff.length,
+    ).toBeLessThanOrEqual(130);
+    expect(GlobalRunnersCopy.customCardDescription.length).toBeLessThanOrEqual(
+      130,
+    );
+    expect(cardTitled(GlobalRunnersCopy.globalCardTitle)).toHaveTextContent(
+      GlobalRunnersCopy.globalCardDescription,
     );
   });
 

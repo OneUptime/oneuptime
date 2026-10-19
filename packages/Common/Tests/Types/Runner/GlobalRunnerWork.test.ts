@@ -3,11 +3,18 @@ import RunbookStepType, {
 } from "../../../Types/Runbook/RunbookStepType";
 import {
   GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS,
+  GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS,
   GLOBAL_RUNNER_STEP_TYPES,
   MAX_GLOBAL_RUNNER_JOBS_PER_PROJECT,
   canGlobalRunnersRunStepType,
   clampGlobalRunnerExecutionTimeoutInMs,
 } from "../../../Types/Runner/GlobalRunnerWork";
+import {
+  STEP_EXECUTION_TIMEOUT_BOUNDS,
+  getTimeoutValidationError,
+  resolveTimeoutInMs,
+  willTimeoutBeClamped,
+} from "../../../Types/Runbook/RunbookStepTimeout";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -94,6 +101,64 @@ describe("how long a step runs on a global Runner", () => {
 
   test("a fraction is rounded", () => {
     expect(clampGlobalRunnerExecutionTimeoutInMs(1500.6)).toBe(1501);
+  });
+});
+
+/*
+ * The step editor's Execution timeout field for a step on a global Runner
+ * offers the range the step really gets, so the field says "Allowed range:
+ * 1-300 seconds" and that a longer timeout is cut short when it runs -
+ * where it used to offer an hour the server then cut to five minutes.
+ */
+describe("the timeout a step editor offers for a step on a global Runner", () => {
+  test("is the usual one, held to the global Runner's longest", () => {
+    expect(GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS).toEqual({
+      defaultInMs: STEP_EXECUTION_TIMEOUT_BOUNDS.defaultInMs,
+      minInMs: STEP_EXECUTION_TIMEOUT_BOUNDS.minInMs,
+      maxInMs: GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS,
+    });
+    expect(
+      GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS.defaultInMs,
+    ).toBeLessThan(GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS);
+  });
+
+  test("resolves a timeout as the server holds it on a global Runner", () => {
+    for (const timeoutInMs of [
+      1000,
+      30 * 1000,
+      5 * 60 * 1000,
+      10 * 60 * 1000,
+      60 * 60 * 1000,
+    ]) {
+      expect(
+        resolveTimeoutInMs(
+          timeoutInMs,
+          GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS,
+        ),
+      ).toBe(clampGlobalRunnerExecutionTimeoutInMs(timeoutInMs));
+    }
+  });
+
+  test("says that 10 minutes is past it, and is cut short when the step runs", () => {
+    expect(
+      getTimeoutValidationError(
+        "600",
+        GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS,
+      ),
+    ).toBe("Maximum is 300 seconds (5 minutes).");
+    expect(
+      willTimeoutBeClamped("600", GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS),
+    ).toBe(true);
+    // The same 10 minutes is fine on one of the project's own Runners.
+    expect(
+      getTimeoutValidationError("600", STEP_EXECUTION_TIMEOUT_BOUNDS),
+    ).toBe(null);
+    expect(
+      getTimeoutValidationError(
+        "300",
+        GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS,
+      ),
+    ).toBe(null);
   });
 });
 

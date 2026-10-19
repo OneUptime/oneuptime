@@ -35,6 +35,15 @@ export const GLOBAL_RUNNERS_OFF_HELPER_TEXT: string = translationKey(
   "This project does not use global Runners: pick one of your Runners for this step.",
 );
 
+/*
+ * Under the picker of a step on Global Runner while no global Runner is
+ * connected: the step is queued for one and fails after its claim timeout
+ * if none comes back, so the page says so before the run does.
+ */
+export const GLOBAL_RUNNER_NOT_CONNECTED_TEXT: string = translationKey(
+  "No global Runner is connected right now. The step fails if none picks it up within its claim timeout.",
+);
+
 export interface RunnerPickerRunner {
   id: string;
   name: string;
@@ -230,4 +239,40 @@ export function buildRunnerPickerModel(
         : RunnerPickerOutcome.NoGlobalRunner,
     willRun: false,
   };
+}
+
+/*
+ * What the step runs on, for the line under a folded step's title
+ * ("JavaScript on Global Runner", "Bash script on prod-eu-west-1"): the
+ * global choice - whose name is a translation key, so `isGlobal` says to
+ * translate it - or the project Runner's own name. Undefined while the
+ * step cannot run as it is: no Runner picked, or one that is gone.
+ */
+export interface RunnerSummary {
+  name: string;
+  isGlobal: boolean;
+}
+
+export function getRunnerSummary(
+  model: RunnerPickerModel,
+): RunnerSummary | undefined {
+  if (!model.willRun || !model.selected) {
+    return undefined;
+  }
+
+  return {
+    name: model.selected.name,
+    isGlobal: model.selected.kind === RunnerPickerOptionKind.Global,
+  };
+}
+
+/*
+ * The step is on Global Runner and no global Runner is connected now: it
+ * would wait in the queue and fail after its claim timeout.
+ */
+export function isGlobalRunnerChoiceWaiting(model: RunnerPickerModel): boolean {
+  return (
+    model.outcome === RunnerPickerOutcome.GlobalRunner &&
+    model.selected?.liveStatus !== RunnerLiveStatus.Connected
+  );
 }

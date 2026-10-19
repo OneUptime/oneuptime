@@ -532,8 +532,8 @@
       },
       "globalRunners": {
         "cardTitle": "グローバル Runner",
-        "cardDescription": "OneUptime がすべてのプロジェクトのために動かす Runner です。Runbook の JavaScript ステップを、インターネットにだけ届く専用のサンドボックスでステップごとに実行します。1 台はこのサーバーと一緒に動きます。ほかのホストでステップを実行するには、さらに追加してください。",
-        "noItems": "グローバル Runner を作成し、「IDとキーを表示」にあるコマンドで起動してください。",
+        "cardDescription": "OneUptime がすべてのプロジェクトのために動かす Runner です。JavaScript ステップを、インターネットにだけ届くサンドボックスでステップごとに実行します。",
+        "noItems": "グローバル Runner を追加してください。作成したら、「IDとキーを表示」にあるコマンドで起動してください。",
         "showIdKey": "IDとキーを表示",
         "keyModalTitle": "グローバル Runner のキー",
         "keyModalDescription": "このグローバル Runner は、インターネットに届くホストで起動してください。キーは秘密にしてください。キーを持つ人は、グローバル Runner を使うすべてのプロジェクトの JavaScript ステップを受け取れます。",

@@ -8,8 +8,11 @@ import {
   RunnerPickerOptionKind,
   RunnerPickerOutcome,
   RunnerPickerRunner,
+  RunnerSummary,
   buildRunnerPickerModel,
   getGlobalRunnersLiveStatus,
+  getRunnerSummary,
+  isGlobalRunnerChoiceWaiting,
   offersGlobalRunner,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
@@ -275,6 +278,104 @@ describe("how the global choice is doing", () => {
     expect(getGlobalRunnersLiveStatus([])).toBe(
       RunnerLiveStatus.NeverConnected,
     );
+  });
+});
+
+/*
+ * The line under a folded step's title says what the step runs on - "on
+ * Global Runner", "on prod-bastion" - or that it still needs a Runner.
+ */
+describe("what a folded step says it runs on", () => {
+  test("a step on the global choice names it by its label, to be translated", () => {
+    const summary: RunnerSummary | undefined = getRunnerSummary(
+      buildRunnerPickerModel(facts()),
+    );
+
+    expect(summary).toEqual({
+      name: GLOBAL_RUNNER_CHOICE_LABEL,
+      isGlobal: true,
+    });
+  });
+
+  test("a step on one of the project's own names it, as it is called", () => {
+    for (const stepType of STEP_TYPES_WITH_A_RUNNER) {
+      expect(
+        getRunnerSummary(
+          buildRunnerPickerModel(
+            facts({ stepType, currentRunnerId: STAGING.id }),
+          ),
+        ),
+      ).toEqual({ name: "staging-runner", isGlobal: false });
+    }
+  });
+
+  test("a step that cannot run as it is names nothing, so the line says it needs a Runner", () => {
+    const cannotRun: Array<Partial<RunnerPickerFacts>> = [
+      // Bash picks no Runner: global Runners never run it.
+      { stepType: RunbookStepType.Bash },
+      // A Runner that is gone.
+      { currentRunnerId: GONE_ID },
+      // The project turned global Runners off.
+      { projectUsesGlobalRunners: false },
+      // The server has none.
+      { globalRunners: [] },
+    ];
+
+    for (const overrides of cannotRun) {
+      const model: RunnerPickerModel = buildRunnerPickerModel(facts(overrides));
+
+      expect({ overrides, willRun: model.willRun }).toEqual({
+        overrides,
+        willRun: false,
+      });
+      expect(getRunnerSummary(model)).toBeUndefined();
+    }
+  });
+});
+
+describe("a step on the global choice while no global Runner is connected", () => {
+  test("is waiting: it would sit in the queue and fail after its claim timeout", () => {
+    for (const liveStatus of [
+      RunnerLiveStatus.Disconnected,
+      RunnerLiveStatus.NeverConnected,
+    ]) {
+      expect(
+        isGlobalRunnerChoiceWaiting(
+          buildRunnerPickerModel(
+            facts({ globalRunners: [{ id: GLOBAL_EU_ID, liveStatus }] }),
+          ),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("is not, with one global Runner connected", () => {
+    expect(isGlobalRunnerChoiceWaiting(buildRunnerPickerModel(facts()))).toBe(
+      false,
+    );
+  });
+
+  test("negative control: a step on one of the project's own, or one that cannot run, never is", () => {
+    const disconnected: Partial<RunnerPickerFacts> = {
+      globalRunners: [
+        { id: GLOBAL_EU_ID, liveStatus: RunnerLiveStatus.Disconnected },
+      ],
+    };
+
+    expect(
+      isGlobalRunnerChoiceWaiting(
+        buildRunnerPickerModel(
+          facts({ ...disconnected, currentRunnerId: STAGING.id }),
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      isGlobalRunnerChoiceWaiting(
+        buildRunnerPickerModel(
+          facts({ ...disconnected, stepType: RunbookStepType.Bash }),
+        ),
+      ),
+    ).toBe(false);
   });
 });
 

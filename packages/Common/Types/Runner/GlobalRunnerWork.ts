@@ -1,4 +1,8 @@
 import RunbookStepType from "../Runbook/RunbookStepType";
+import {
+  STEP_EXECUTION_TIMEOUT_BOUNDS,
+  TimeoutBounds,
+} from "../Runbook/RunbookStepTimeout";
 
 /*
  * WHAT A GLOBAL RUNNER RUNS
@@ -49,6 +53,17 @@ export function canGlobalRunnersRunStepType(stepType: unknown): boolean {
  * API for minutes belongs on a Runner of the project's own.
  */
 export const GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS: number = 5 * 60 * 1000;
+
+/*
+ * The execution timeout a step editor offers for a step on a global
+ * Runner: the usual default, held to the 5 minutes above, so the field
+ * says the range the step really gets ("Allowed range: 1-300 seconds")
+ * and that a longer one is cut short when the step runs.
+ */
+export const GLOBAL_RUNNER_STEP_EXECUTION_TIMEOUT_BOUNDS: TimeoutBounds = {
+  ...STEP_EXECUTION_TIMEOUT_BOUNDS,
+  maxInMs: GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS,
+};
 
 export function clampGlobalRunnerExecutionTimeoutInMs(
   timeoutInMs: number,

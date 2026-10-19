@@ -167,7 +167,7 @@ const RunbookSecrets: FunctionComponent<
             stepId: "secret",
             fieldType: FormFieldSchemaType.Text,
             description:
-              "Letters, numbers, hyphens and underscores. Runbook agents use this name to read the secret.",
+              "Letters, numbers, hyphens and underscores. Scripts read the secret by this name.",
             required: true,
             placeholder: "Secret Name",
             validation: {
@@ -196,6 +196,12 @@ const RunbookSecrets: FunctionComponent<
             doNotShowWhenEditing: true,
             fieldType: FormFieldSchemaType.LongText,
             required: true,
+            /*
+             * Its own line: the column's said only "the assigned runbook
+             * agent" could read it, and global Runners may too (Access).
+             */
+            description:
+              "Stored encrypted. Only the Runners you let use it can read it.",
             placeholder: "Secret Value (eg: API Key, Password, etc.)",
           },
           ...globalRunnersAccessFields,

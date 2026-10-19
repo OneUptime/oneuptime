@@ -19,9 +19,10 @@ The suite drives the pages the way a person does:
 
 - Runbooks → Runners on a server that runs global Runners: the Global Runners
   card first and read-only (no Create, no row actions), the bundled one
-  connected; Custom Runners below it, whose empty state says "Add a Runner of
-  your own" with Create Runner, and no "no Runners" box anywhere; the Use
-  Global Runners switch at the bottom, on;
+  connected, with a one-line description; Custom Runners below it, whose
+  empty state says "Add a Runner of your own" with Create Runner, and no "no
+  Runners" box anywhere; the Global Runners in This Project card at the
+  bottom, whose Use global Runners switch is on and is named once;
 - turning the switch off asks first: Cancel saves nothing, confirming saves
   `useGlobalRunners: false` and both cards say what the project does instead;
   turning it back on saves without asking; the keyboard does the same;
@@ -35,8 +36,17 @@ The suite drives the pages the way a person does:
   Runner again, and Save Steps sends the Runner the step picked (`""` for
   Global Runner);
 - a Bash step offers only the project's own Runners, and with none says what
-  to do; a project that turned global Runners off, or a server with none,
-  picks one of the project's own and is told why;
+  to do, with a link to Runbooks › Runners in a new tab; a Runner added there
+  (`window.__fixture.addCustomRunner()`) is offered as soon as the window gets
+  focus again, with nothing saved; a project that turned global Runners off,
+  or a server with none, picks one of the project's own and is told why;
+- a JavaScript step on Global Runner offers the timeout range it gets (1–300
+  seconds) and says a longer one is cut short, and one of the project's own
+  the hour it had; with no global Runner connected, the picker says the step
+  fails if none picks it up;
+- each folded step says where it runs: "JavaScript on Global Runner", "Bash
+  script, needs a Runner", "JavaScript on prod-eu-west-1" once picked, and in
+  German;
 - the Secrets list says which secrets global Runners may use; a new secret
   starts usable by them while the project uses them, and closed to them when
   it does not; a server with no global Runner never asks;

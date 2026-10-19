@@ -245,9 +245,14 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
     });
 
     const description: HTMLElement = screen.getByTestId(
-      "confirm-modal-description",
+      "global-runner-key-details",
     );
 
+    /*
+     * As wide as a project's Runner setup dialog, so the command's lines
+     * are read whole, not cut off behind its copy button.
+     */
+    expect(screen.getByRole("dialog")).toHaveClass("sm:max-w-3xl");
     expect(description).toHaveTextContent(RUNNER_ID);
     expect(description).toHaveTextContent(RUNNER_KEY);
     expect(description).toHaveTextContent(
@@ -291,16 +296,39 @@ describe("Admin Dashboard -> Settings -> Global Runners", () => {
     expect(created[0]!.projectId).toBeUndefined();
   });
 
-  test("with none yet, it says how to start one", async () => {
+  test("with none yet, a short heading says to add one, and the line under it how to start it", async () => {
     rows = [];
 
     await renderPage();
 
-    expect(
-      await screen.findByTestId("global-runners-table-no-items"),
-    ).toHaveTextContent(
-      translate("pages.settings.globalRunners.noItems").replace(/\.$/, ""),
+    const noItems: string = translate("pages.settings.globalRunners.noItems");
+    const [heading, ...rest] = noItems.split(". ");
+    const empty: HTMLElement = await screen.findByTestId(
+      "global-runners-table-no-items",
     );
+
+    expect(heading).toBe("Add a global Runner");
+    expect(
+      within(empty).getByTestId("table-empty-state-title"),
+    ).toHaveTextContent(heading!);
+    expect(empty).toHaveTextContent(rest.join(". "));
+    expect(empty).toHaveTextContent(
+      translate("pages.settings.globalRunners.showIdKey"),
+    );
+  });
+
+  test("the card never says one runs with this server: an empty list would say otherwise", async () => {
+    rows = [];
+
+    await renderPage();
+    await screen.findByTestId("global-runners-table-no-items");
+
+    const description: string = translate(
+      "pages.settings.globalRunners.cardDescription",
+    );
+
+    expect(description.toLowerCase()).not.toContain("with this server");
+    expect(document.body).toHaveTextContent(description);
   });
 });
 

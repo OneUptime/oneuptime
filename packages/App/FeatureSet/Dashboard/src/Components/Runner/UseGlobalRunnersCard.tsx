@@ -58,7 +58,6 @@ const UseGlobalRunnersCard: FunctionComponent<ComponentProps> = (
           ? GlobalRunnersCopy.switchOnDescription
           : GlobalRunnersCopy.switchOffDescription;
       }}
-      note={GlobalRunnersCopy.switchNote}
       getConfirmation={getStopUsingGlobalRunnersConfirmation}
       onChange={props.onChange}
       dataTestId={USE_GLOBAL_RUNNERS_SWITCH_TEST_ID}

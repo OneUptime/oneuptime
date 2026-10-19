@@ -41,29 +41,40 @@ export const GlobalRunnersCopy: {
    */
   addGlobalRunnersHint: string;
   addGlobalRunnersLink: string;
+  /*
+   * The card of the project's one switch. Its title and line say what the
+   * switch is about and the rule it never changes; the switch's own line
+   * says what each position does - neither repeats the other.
+   */
   switchCardTitle: string;
   switchCardDescription: string;
   switchTitle: string;
   switchOnDescription: string;
   switchOffDescription: string;
-  switchNote: string;
   turnOffTitle: string;
   turnOffDescription: string;
   turnOffButton: string;
 } = {
   globalCardTitle: translationKey("Global Runners"),
+  // One line across the card, as Global Probes' is.
   globalCardDescription: translationKey(
-    "Runners OneUptime runs for every project. A JavaScript step that does not pick a Runner of its own runs on one, in a sandbox that can reach the internet but not your network.",
+    "Runners OneUptime runs for every project. JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
   ),
   globalCardDescriptionWhenOff: translationKey(
-    "Runners OneUptime runs for every project. This project does not use them: every step runs on a Runner of your own.",
+    "Runners OneUptime runs for every project. This project does not use them, so every step runs on one of your Runners.",
   ),
   globalEmptyMessage: translationKey(
     "Global Runners appear here when OneUptime runs one.",
   ),
   customCardTitle: translationKey("Custom Runners"),
+  /*
+   * Why a team adds one: the steps a global Runner never runs, and steps
+   * that must not leave the team's own hosts - "custom runners if they want
+   * more security", in the maintainer's words. Also the line under "Add a
+   * Runner of your own" while there are none.
+   */
   customCardDescription: translationKey(
-    "Runners you install in your own infrastructure, for Bash, SSH and Kubernetes steps, for anything on your network, and to keep every step on your own hosts.",
+    "Runners you install in your own network, for Bash, SSH and Kubernetes steps and for steps that must stay on your hosts.",
   ),
   onlyCardTitle: translationKey("Runners"),
   onlyCardDescription: translationKey(
@@ -75,23 +86,20 @@ export const GlobalRunnersCopy: {
   ),
   addGlobalRunnersHint: translationKey("Add global Runners in {{location}}."),
   addGlobalRunnersLink: translationKey("Admin Dashboard → Global Runners"),
-  switchCardTitle: translationKey("Use Global Runners"),
+  switchCardTitle: translationKey("Global Runners in This Project"),
   switchCardDescription: translationKey(
-    "Whether steps that do not pick a Runner of their own run on OneUptime's global Runners.",
+    "Steps that pick one of your Runners always run on it.",
   ),
   switchTitle: translationKey("Use global Runners"),
   switchOnDescription: translationKey(
-    "JavaScript steps that do not pick a Runner of their own run on the global Runners.",
+    "JavaScript steps that pick no Runner run on a global Runner.",
   ),
   switchOffDescription: translationKey(
-    "Every step runs on a Runner of your own. A step that does not pick one fails and says so.",
-  ),
-  switchNote: translationKey(
-    "Steps that pick one of your Runners keep it either way.",
+    "Every step runs on one of your Runners. A JavaScript step that picks none fails.",
   ),
   turnOffTitle: translationKey("Stop using global Runners?"),
   turnOffDescription: translationKey(
-    "JavaScript steps that pick no Runner of their own will fail until they pick one of yours, and steps waiting for a global Runner now will not run.",
+    "JavaScript steps that pick no Runner will fail until they pick one of yours. Steps waiting for a global Runner now will not run.",
   ),
   turnOffButton: translationKey("Stop Using Global Runners"),
 };

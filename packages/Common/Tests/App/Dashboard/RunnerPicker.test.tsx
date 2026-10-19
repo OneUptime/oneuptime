@@ -38,6 +38,7 @@ import { GLOBAL_RUNNER_MAX_MINUTES } from "../../../../App/FeatureSet/Dashboard/
 import {
   GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   GLOBAL_RUNNER_CHOICE_LABEL,
+  GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import Project from "../../../Models/DatabaseModels/Project";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -47,6 +48,7 @@ import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import { GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS } from "../../../Types/Runner/GlobalRunnerWork";
 import RunnerLiveStatus from "../../../Types/Runner/RunnerLiveStatus";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "../../../UI/Utils/Project";
 
 /*
  * THE ONE RUNNER PICKER, RENDERED.
@@ -68,7 +70,7 @@ const GONE_ID: string = "cccccccc-0000-4000-8000-000000000001";
 
 const OWN_RUNNER_HELP: string = "The step runs on the Runner you picked.";
 
-const GLOBAL_HELP: string = `Runs on a global Runner, in a sandbox that can reach the internet but not your network, for ${GLOBAL_RUNNER_MAX_MINUTES} minutes at most. Pick one of your own Runners for anything on your network.`;
+const GLOBAL_HELP: string = `Runs in a sandbox that reaches the internet only, for up to ${GLOBAL_RUNNER_MAX_MINUTES} minutes. To reach your network, pick one of your Runners.`;
 
 function choices(overrides: Partial<RunnerChoices> = {}): RunnerChoices {
   return {
@@ -163,6 +165,10 @@ function shown(): string {
 
 beforeEach(() => {
   changes = [];
+  // The link to Runbooks -> Runners is the current project's.
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
 });
 
 afterEach(() => {
@@ -344,6 +350,139 @@ describe("Bash, SSH and Kubernetes steps", () => {
       expect(screen.queryByText(/No Runners/)).toBeNull();
     });
   }
+});
+
+describe("where to add a Runner, when a step has nothing to pick", () => {
+  function runnersLink(): HTMLElement {
+    return within(
+      screen.getByTestId("runbook-step-0-runner-nothing-to-pick"),
+    ).getByRole("link", { name: "Runbooks › Runners" });
+  }
+
+  const RUNNERS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/runners`;
+
+  test("a Bash step's box links to Runbooks › Runners, in a new tab, so the steps being edited stay", () => {
+    renderPicker({
+      stepType: RunbookStepType.Bash,
+      choices: choices({ projectRunners: [] }),
+    });
+
+    expect(runnersLink()).toHaveAttribute("href", RUNNERS_PAGE);
+    expect(runnersLink()).toHaveAttribute("target", "_blank");
+    expect(runnersLink()).toHaveAttribute(
+      "data-testid",
+      "runbook-step-0-runner-runners-link",
+    );
+  });
+
+  test("a project that turned global Runners off is linked to the same page, where the switch is", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choices({
+        projectUsesGlobalRunners: false,
+        projectRunners: [],
+      }),
+    });
+
+    expect(runnersLink()).toHaveAttribute("href", RUNNERS_PAGE);
+    expect(runnersLink()).toHaveAttribute("target", "_blank");
+  });
+
+  test("a server with no global Runner is linked there too", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choices({ globalRunners: [], projectRunners: [] }),
+    });
+
+    expect(runnersLink()).toHaveAttribute("href", RUNNERS_PAGE);
+  });
+
+  test("negative control: a step with something to pick has no box and no link", () => {
+    renderPicker({ stepType: RunbookStepType.JavaScript });
+
+    expect(
+      screen.queryByTestId("runbook-step-0-runner-nothing-to-pick"),
+    ).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("a step on Global Runner while no global Runner is connected", () => {
+  function waiting(): HTMLElement | null {
+    return screen.queryByTestId("runbook-step-0-runner-global-waiting");
+  }
+
+  for (const liveStatus of [
+    RunnerLiveStatus.Disconnected,
+    RunnerLiveStatus.NeverConnected,
+  ]) {
+    test(`says the step waits and fails after its claim timeout (${liveStatus})`, () => {
+      renderPicker({
+        stepType: RunbookStepType.JavaScript,
+        choices: choices({
+          globalRunners: [
+            {
+              id: "bbbbbbbb-0000-4000-8000-000000000001",
+              name: "global-eu",
+              description: "",
+              liveStatus,
+              runsRunbooks: true,
+            },
+          ],
+        }),
+      });
+
+      expect(help()).toHaveTextContent(GLOBAL_HELP);
+      expect(waiting()).toHaveTextContent(GLOBAL_RUNNER_NOT_CONNECTED_TEXT);
+      expect(waiting()).toHaveClass("text-amber-700");
+    });
+  }
+
+  test("one connected global Runner is enough: no warning", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      choices: choices({
+        globalRunners: [
+          {
+            id: "bbbbbbbb-0000-4000-8000-000000000001",
+            name: "global-eu",
+            description: "",
+            liveStatus: RunnerLiveStatus.Disconnected,
+            runsRunbooks: true,
+          },
+          {
+            id: "bbbbbbbb-0000-4000-8000-000000000002",
+            name: "global-us",
+            description: "",
+            liveStatus: RunnerLiveStatus.Connected,
+            runsRunbooks: true,
+          },
+        ],
+      }),
+    });
+
+    expect(waiting()).toBeNull();
+  });
+
+  test("negative control: a step on one of the project's own Runners never shows it", () => {
+    renderPicker({
+      stepType: RunbookStepType.JavaScript,
+      value: BASTION_ID,
+      choices: choices({
+        globalRunners: [
+          {
+            id: "bbbbbbbb-0000-4000-8000-000000000001",
+            name: "global-eu",
+            description: "",
+            liveStatus: RunnerLiveStatus.Disconnected,
+            runsRunbooks: true,
+          },
+        ],
+      }),
+    });
+
+    expect(waiting()).toBeNull();
+  });
 });
 
 describe("what the picker loads", () => {
