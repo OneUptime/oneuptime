@@ -11,9 +11,10 @@ import crypto from "crypto";
  * cannot produce secure randomness, generation throws and the subscriber is
  * not created, rather than being given a guessable link.
  *
- * It is not the six-digit subscriptionConfirmationToken. That one only has to
- * survive the few minutes until an address confirms, and a million guesses
- * cover it; this one stays valid for as long as the subscription does.
+ * It is not the subscriptionConfirmationToken
+ * (StatusPageSubscriberConfirmationCode). That one confirms a subscription,
+ * and only for a day after its link is sent; this one stays valid for as
+ * long as the subscription does.
  */
 
 /*

@@ -31016,10 +31016,10 @@
   "Up to {{limit}} open at once": "Op til {{limit}} åbne ad gangen",
   "Gets nothing until they open the link we texted them.": "Får intet, før linket, vi sendte i en sms, åbnes.",
   "Call transcripts": "Opkaldstransskriptioner",
-  "Everyone on an incident's Zoom or Google Meet call sees that it is recorded or transcribed. Check that your organization allows recording these calls. Zoom keeps a transcript when the account records to the cloud with its audio transcript on.": "Alle i et Zoom- eller Google Meet-opkald om en hændelse kan se, at det optages eller transskriberes. Kontrollér, at jeres organisation tillader optagelse af disse opkald. Zoom gemmer en transskription, når kontoen optager i skyen med lydtransskription slået til.",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "Alle i disse opkald kan se, at de optages. Kontrollér, at jeres organisation tillader det. Zoom kræver også optagelse i skyen med lydtransskription slået til.",
   "Keep what was said on every incident call, without anyone remembering to.": "Gem det, der blev sagt i hvert hændelsesopkald, uden at nogen skal huske det.",
   "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams-opkald, Slack-huddles og mødelinks optages ikke: tilføj deres transskriptioner manuelt.",
-  "OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds the transcript to the incident once the call is over. OneUptime AI then posts what was said to the incident's feed, and the postmortem draft reads it.": "OneUptime beder Zoom og Google Meet om at optage og transskribere hvert hændelsesopkald, det starter, og føjer transskriptionen til hændelsen, når opkaldet er slut. OneUptime AI slår derefter det, der blev sagt, op i hændelsens feed, og postmortem-udkastet bruger det.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom og Google Meet optager og transskriberer hvert hændelsesopkald, som OneUptime starter. OneUptime tilføjer transskriptionen og opsummerer den i hændelsens feed.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime henter den fra {{provider}}, når opkaldet er slut, og OneUptime AI læser den.",
   "Postmortem Draft Waiting Since": "Postmortem-udkast venter siden",
   "Record and Transcribe Incident Calls": "Optag og transskribér hændelsesopkald",
@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "Næste forsøg på at hente transskription",
   "Transcript Fetch Reason": "Årsag ved hentning af transskription",
   "Transcript Fetch Status": "Status for hentning af transskription",
-  "Video Call Summary": "Opsummering af videoopkald"
+  "Video Call Summary": "Opsummering af videoopkald",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "Får intet: linket til bekræftelse, vi sendte, udløb, før det blev åbnet. Abonnenten kan tilmelde sig igen, eller du kan tilføje vedkommende igen.",
+  "Link Expired": "Link udløbet"
 }

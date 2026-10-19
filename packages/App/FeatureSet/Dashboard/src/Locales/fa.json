@@ -31016,10 +31016,10 @@
   "Up to {{limit}} open at once": "حداکثر {{limit}} مورد هم‌زمان باز",
   "Gets nothing until they open the link we texted them.": "تا پیوندی را که برایش پیامک کرده‌ایم باز نکند، چیزی دریافت نمی‌کند.",
   "Call transcripts": "رونوشت‌های تماس",
-  "Everyone on an incident's Zoom or Google Meet call sees that it is recorded or transcribed. Check that your organization allows recording these calls. Zoom keeps a transcript when the account records to the cloud with its audio transcript on.": "همه حاضران در تماس Zoom یا Google Meet یک حادثه می‌بینند که تماس ضبط یا رونویسی می‌شود. بررسی کنید که سازمان شما ضبط این تماس‌ها را مجاز می‌داند. Zoom زمانی رونوشت نگه می‌دارد که حساب با رونوشت صوتی روشن در فضای ابری ضبط کند.",
+  "Everyone on these calls sees they are recorded. Check that your organization allows it. Zoom also needs cloud recording with its audio transcript on.": "همه حاضران در این تماس‌ها می‌بینند که ضبط می‌شوند. بررسی کنید که سازمان شما این کار را مجاز می‌داند. Zoom همچنین به ضبط در فضای ابری با رونوشت صوتی روشن نیاز دارد.",
   "Keep what was said on every incident call, without anyone remembering to.": "آنچه در هر تماس حادثه گفته شد را نگه دارید، بی‌آنکه کسی لازم باشد به خاطر بسپارد.",
   "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "تماس‌های Microsoft Teams، هادل‌های Slack و پیوندهای جلسه ضبط نمی‌شوند: رونوشت آن‌ها را دستی اضافه کنید.",
-  "OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds the transcript to the incident once the call is over. OneUptime AI then posts what was said to the incident's feed, and the postmortem draft reads it.": "OneUptime از Zoom و Google Meet می‌خواهد هر تماس حادثه‌ای را که آغاز می‌کند ضبط و رونویسی کنند، و پس از پایان تماس رونوشت را به حادثه اضافه می‌کند. سپس OneUptime AI آنچه گفته شد را در فید حادثه منتشر می‌کند و پیش‌نویس گزارش پس از حادثه نیز آن را می‌خواند.",
+  "Zoom and Google Meet record and transcribe each incident call OneUptime starts. OneUptime adds the transcript and sums it up in the incident's feed.": "Zoom و Google Meet هر تماس حادثه‌ای را که OneUptime آغاز می‌کند ضبط و رونویسی می‌کنند. OneUptime رونوشت را اضافه می‌کند و خلاصه‌ای از آن را در فید حادثه منتشر می‌کند.",
   "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "OneUptime پس از پایان تماس آن را از {{provider}} می‌گیرد و OneUptime AI آن را می‌خواند.",
   "Postmortem Draft Waiting Since": "پیش‌نویس گزارش پس از حادثه در انتظار از",
   "Record and Transcribe Incident Calls": "ضبط و رونویسی تماس‌های حادثه",
@@ -31029,5 +31029,7 @@
   "Transcript Fetch Next Attempt At": "تلاش بعدی برای دریافت رونوشت",
   "Transcript Fetch Reason": "دلیل دریافت رونوشت",
   "Transcript Fetch Status": "وضعیت دریافت رونوشت",
-  "Video Call Summary": "خلاصه تماس تصویری"
+  "Video Call Summary": "خلاصه تماس تصویری",
+  "Gets nothing: the link we sent them to confirm expired before they opened it. They can sign up again, or you can add them again.": "چیزی دریافت نمی‌کند: پیوند تأییدی که برایش فرستادیم پیش از باز شدن منقضی شد. می‌تواند دوباره عضو شود، یا شما می‌توانید دوباره او را اضافه کنید.",
+  "Link Expired": "پیوند منقضی‌شده"
 }
