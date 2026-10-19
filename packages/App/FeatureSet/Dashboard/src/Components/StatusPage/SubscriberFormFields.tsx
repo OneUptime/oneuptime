@@ -1,5 +1,6 @@
 import {
   EMAIL_SUBSCRIBER_STATUS,
+  SMS_SUBSCRIBER_STATUS,
   SUBSCRIBER_ADD_CHOICE,
   SUBSCRIBER_STATUS,
   SubscriberAddChoice,
@@ -88,16 +89,23 @@ export const getEmailSubscriberAddChoiceFields: () => Array<SubscriberField> =
 /*
  * Edit: the subscriber's Status, and the columns it writes, registered so
  * the form loads and saves them. An email subscriber can also be awaiting
- * confirmation.
+ * confirmation, and so can an SMS subscriber who signed up on the status
+ * page (isPhone).
  */
 export const getSubscriberStatusFields: (options: {
   isEmail: boolean;
+  isPhone?: boolean | undefined;
 }) => Array<SubscriberField> = (options: {
   isEmail: boolean;
+  isPhone?: boolean | undefined;
 }): Array<SubscriberField> => {
   const fields: Array<SubscriberField> = [
     getColumnChoiceField<StatusPageSubscriber, SubscriberStatusChoice>({
-      config: options.isEmail ? EMAIL_SUBSCRIBER_STATUS : SUBSCRIBER_STATUS,
+      config: options.isEmail
+        ? EMAIL_SUBSCRIBER_STATUS
+        : options.isPhone
+          ? SMS_SUBSCRIBER_STATUS
+          : SUBSCRIBER_STATUS,
       column: "isUnsubscribed",
       stepId: SUBSCRIBER_INFO_STEP_ID,
       doNotShowWhenCreating: true,
@@ -118,7 +126,7 @@ export const getSubscriberStatusFields: (options: {
     },
   ];
 
-  if (options.isEmail) {
+  if (options.isEmail || options.isPhone) {
     fields.push({
       field: {
         isSubscriptionConfirmed: true,

@@ -128,6 +128,10 @@ Ya está en ese equipo, como miembro o con una invitación que no aceptó. Ábra
 En OneUptime Cloud, un proyecto en el plan Free tiene espacio para una persona. Cambie el plan y vuelva a invitar. Consulte [Cambiar el plan](/docs/configuration/billing#cambiar-el-plan).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+A una dirección se le pueden enviar 10 invitaciones por hora, a proyectos y páginas de estado privadas en conjunto, las envíe quien las envíe. Espera una hora y vuelve a invitar a la persona.
+:::
+
 :::details El correo de invitación no llegó, o su enlace caducó
 La invitación no depende del correo. Pídale que se registre con la dirección invitada: OneUptime envía a esa dirección un enlace nuevo para terminar de crear la cuenta. Quien ya tiene una cuenta inicia sesión y encuentra la invitación esperándole.
 :::

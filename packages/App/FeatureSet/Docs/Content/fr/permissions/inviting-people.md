@@ -128,6 +128,10 @@ La personne est déjà dans cette équipe, comme membre ou avec une invitation q
 Sur OneUptime Cloud, un projet au forfait Free a de la place pour une personne. Changez de forfait, puis invitez de nouveau. Voir [Changer de forfait](/docs/configuration/billing#changer-de-forfait).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+Une adresse peut recevoir 10 invitations par heure, aux projets et aux pages de statut privées ensemble, quel qu'en soit l'expéditeur. Attendez une heure, puis invitez la personne de nouveau.
+:::
+
 :::details L'e-mail d'invitation n'est pas arrivé, ou son lien a expiré
 L'invitation ne dépend pas de l'e-mail. Demandez à la personne de s'inscrire avec l'adresse invitée : OneUptime envoie à cette adresse un nouveau lien pour finir de créer le compte. Une personne qui a déjà un compte se connecte et trouve l'invitation qui l'attend.
 :::

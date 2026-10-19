@@ -128,6 +128,10 @@ Owners 团队始终至少保留一名已加入的成员，因此项目永远不�
 在 OneUptime Cloud 上，使用 Free 套餐的项目只能容纳一个人。请更改套餐，然后再次邀请。参见[更改套餐](/docs/configuration/billing#更改套餐)。
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+无论由谁发送，一个地址每小时最多可收到 10 封邀请，项目和私有状态页合计。请等待一小时，然后再次邀请。
+:::
+
 :::details 邀请邮件没有送达，或链接已过期
 邀请并不依赖邮件。请对方用你邀请的地址注册：OneUptime 会向该地址发送一个新链接以完成账户创建。已有账户的人登录后即可看到等待中的邀请。
 :::

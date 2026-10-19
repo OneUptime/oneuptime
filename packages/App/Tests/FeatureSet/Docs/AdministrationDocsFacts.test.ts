@@ -29,6 +29,10 @@ import {
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import Errors from "Common/Server/Utils/Errors";
 import { PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE } from "Common/Server/Services/PayAsYouGoBillingService";
+import PublicMessageRateLimit, {
+  PublicMessageChannel,
+  TeamMessageKind,
+} from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
 import AllModelTypes from "Common/Models/DatabaseModels/Index";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
@@ -2034,6 +2038,11 @@ describe("every page", () => {
         Errors.TeamMemberService.ALREADY_INVITED,
         Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN,
         PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
+        // An invitation refused for its address (PublicMessageRateLimit).
+        PublicMessageRateLimit.getTeamRefusalMessage({
+          kind: TeamMessageKind.Invitation,
+          channel: PublicMessageChannel.Email,
+        }),
       ];
 
       for (const message of SERVER_MESSAGES[entry.page] || []) {

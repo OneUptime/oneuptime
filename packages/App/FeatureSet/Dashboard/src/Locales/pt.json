@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Segurança: os clientes podem executar ferramentas somente leitura sem perguntar, e perguntam antes de qualquer coisa que exclua. Um cliente conectado por login pode ser limitado a somente leitura.",
   "See the {{docsLink}} for every tool.": "Veja a {{docsLink}} para todas as ferramentas.",
   "Twilio account for SMS and calls": "Conta Twilio para SMS e chamadas",
-  "Up to {{limit}} open at once": "Até {{limit}} abertos ao mesmo tempo"
+  "Up to {{limit}} open at once": "Até {{limit}} abertos ao mesmo tempo",
+  "Gets nothing until they open the link we texted them.": "Não recebe nada até abrir o link que enviamos por SMS."
 }

@@ -1756,16 +1756,23 @@ describe("Unsubscribed At follows Is Unsubscribed on every other write", () => {
   });
 
   test("subscribing again clears the date", async () => {
-    const findBy: jest.SpyInstance = jest.spyOn(
-      StatusPageSubscriberService,
-      "findBy",
-    );
+    /*
+     * The rows are read, with the update's own query, to hold their page to
+     * one subscription per contact (a cancelled one turned back on is
+     * asked about its contact); none of these was cancelled.
+     */
+    const findBy: jest.SpyInstance = jest
+      .spyOn(StatusPageSubscriberService, "findBy")
+      .mockResolvedValue([subscriberRow()] as never);
 
     const onUpdate: OnUpdate<StatusPageSubscriber> = await hooks.onBeforeUpdate(
       updateBy({ isUnsubscribed: false }),
     );
 
-    expect(findBy).not.toHaveBeenCalled();
+    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(
+      (findBy.mock.calls[0]![0] as unknown as { query: JSONObject }).query,
+    ).toEqual({ statusPageId: STATUS_PAGE_ID });
 
     await hooks.onUpdateSuccess(onUpdate, [SUBSCRIBER_ID]);
 

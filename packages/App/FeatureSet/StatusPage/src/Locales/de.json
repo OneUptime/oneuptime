@@ -185,7 +185,8 @@
       "yourPhoneNumber": "Ihre Telefonnummer",
       "placeholder": "+491234567890",
       "managePrompt": "Bitte geben Sie die Telefonnummer ein, mit der Sie abonniert haben",
-      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese Telefonnummer."
+      "manageDescription": "Wir senden Ihnen einen Link zur Verwaltung des Abonnements an diese Telefonnummer.",
+      "confirmationSent": "Wir haben eine SMS an diese Telefonnummer gesendet. Öffnen Sie den Link darin, um Ihr Abonnement zu bestätigen."
     },
     "slack": {
       "title": "Über Slack abonnieren",

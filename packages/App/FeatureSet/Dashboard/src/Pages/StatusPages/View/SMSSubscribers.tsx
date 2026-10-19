@@ -5,6 +5,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
+import SubscriberContactKey from "Common/Types/StatusPage/SubscriberContactKey";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
@@ -177,15 +178,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         return t.length > 0;
       });
 
+    /*
+     * One number once, however it is written: a status page takes each line
+     * once (SubscriberContactKey), so "+1 415 555 0100" after
+     * "+14155550100" would only be refused as already subscribed.
+     */
     const seen: Set<string> = new Set<string>();
     const valid: Array<string> = [];
     const invalid: Array<string> = [];
 
     for (const token of tokens) {
-      if (seen.has(token)) {
+      const line: string = SubscriberContactKey.forPhone(token) || token;
+
+      if (seen.has(line)) {
         continue;
       }
-      seen.add(token);
+      seen.add(line);
 
       try {
         new Phone(token);
@@ -327,7 +335,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         required: true,
         placeholder: "+11234567890",
       },
-      ...getSubscriberStatusFields({ isEmail: false }),
+      ...getSubscriberStatusFields({ isEmail: false, isPhone: true }),
     ];
 
     if (allowSubscribersToChooseResources) {
@@ -434,6 +442,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             isViewable={false}
             selectMoreFields={{
               subscriberPhone: true,
+              isSubscriptionConfirmed: true,
             }}
             query={{
               statusPageId: modelId,
@@ -539,6 +548,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   if (item["isUnsubscribed"]) {
                     return <Pill color={Red} text={"Unsubscribed"} />;
                   }
+
+                  /*
+                   * Someone who signed up by SMS on the status page, and
+                   * has not opened the link texted to them yet.
+                   */
+                  if (item["isSubscriptionConfirmed"] === false) {
+                    return (
+                      <Pill
+                        color={Yellow}
+                        text={"Awaiting Confirmation"}
+                        tooltip={
+                          SubscriberFormCopy.awaitingTextConfirmationDescription
+                        }
+                      />
+                    );
+                  }
+
                   return <Pill color={Green} text={"Subscribed"} />;
                 },
               },

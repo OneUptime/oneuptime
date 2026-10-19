@@ -185,7 +185,8 @@
       "yourPhoneNumber": "Su número de teléfono",
       "placeholder": "+34612345678",
       "managePrompt": "Introduzca el número de teléfono con el que se suscribió",
-      "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este número de teléfono."
+      "manageDescription": "Le enviaremos un enlace de gestión de suscripción a este número de teléfono.",
+      "confirmationSent": "Hemos enviado un SMS a este número de teléfono. Abra el enlace que contiene para confirmar su suscripción."
     },
     "slack": {
       "title": "Suscribirse vía Slack",

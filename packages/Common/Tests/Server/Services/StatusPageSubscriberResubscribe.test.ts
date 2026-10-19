@@ -3,7 +3,9 @@ import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubsc
 import MailService from "../../../Server/Services/MailService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
-import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
+import StatusPageSubscriberService, {
+  CONTACT_ALREADY_SUBSCRIBED_MESSAGE,
+} from "../../../Server/Services/StatusPageSubscriberService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate } from "../../../Server/Types/Database/Hooks";
 import Email from "../../../Types/Email";
@@ -19,6 +21,7 @@ import {
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { rowMatchesWhere } from "../TestingUtils/InMemoryRepository";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -43,7 +46,9 @@ jest.mock("../../../Server/Utils/Logger");
  *
  * Until it does, the contact has both rows, so onBeforeCreate reads all of
  * the contact's rows on the page: any active one refuses the new
- * subscription, whichever row a database happens to return first.
+ * subscription, whichever row a database happens to return first. The team
+ * is told which rule it runs into (a visitor signing up is told they are
+ * subscribed already: StatusPageSubscriberContactOnce.test.ts).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -179,7 +184,19 @@ describe("onBeforeCreate", () => {
     );
     // Only the subscriber's own project's rows: the page id alone pins nothing.
     expect(String(request.query["projectId"])).toBe(PROJECT_ID.toString());
-    expect(String(request.query["subscriberEmail"])).toBe("ops@acme.test");
+    // The address, however it is written (case aside: Email stores lower case).
+    expect(
+      rowMatchesWhere(
+        { subscriberEmail: "OPS@Acme.test" },
+        { subscriberEmail: request.query["subscriberEmail"] },
+      ),
+    ).toBe(true);
+    expect(
+      rowMatchesWhere(
+        { subscriberEmail: "other@acme.test" },
+        { subscriberEmail: request.query["subscriberEmail"] },
+      ),
+    ).toBe(false);
     expect(request.limit).toBeGreaterThan(1);
     expect(request.skip).toBe(0);
   });
@@ -189,7 +206,7 @@ describe("onBeforeCreate", () => {
 
     await expect(
       hooks.onBeforeCreate({ data: subscriber(), props: { isRoot: true } }),
-    ).rejects.toThrow("You are already subscribed to this status page.");
+    ).rejects.toThrow(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
 
     expect(deleteBy).not.toHaveBeenCalled();
   });
@@ -207,7 +224,7 @@ describe("onBeforeCreate", () => {
 
       await expect(
         hooks.onBeforeCreate({ data: subscriber(), props: { isRoot: true } }),
-      ).rejects.toThrow("You are already subscribed to this status page.");
+      ).rejects.toThrow(CONTACT_ALREADY_SUBSCRIBED_MESSAGE);
 
       expect(deleteBy).not.toHaveBeenCalled();
     },

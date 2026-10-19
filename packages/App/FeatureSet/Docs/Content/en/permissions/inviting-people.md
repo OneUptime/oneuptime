@@ -128,6 +128,10 @@ They are on that team already, as a member or with an invitation they have not a
 On OneUptime Cloud, a project on the Free plan has room for one person. Change the plan, then invite again. See [Change the plan](/docs/configuration/billing#change-the-plan).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+One address can be sent 10 invitations an hour, to projects and private status pages together, whoever sends them. Wait an hour, then invite them again.
+:::
+
 :::details The invitation email did not arrive, or its link expired
 The invitation does not depend on the email. Ask them to sign up with the address you invited: OneUptime emails that address a new link to finish creating the account. Someone who already has an account signs in and finds the invitation waiting.
 :::

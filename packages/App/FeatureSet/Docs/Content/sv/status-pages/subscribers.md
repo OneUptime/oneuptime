@@ -17,8 +17,8 @@ Den här sidan tar upp båda: de fem prenumerationskanalerna och hur besökare r
 
 ```mermaid title="Från en registrering till ett meddelande"
 flowchart TB
-    V["En besökare registrerar sig"] --> Q{"Via e-post?"}
-    Q -->|"Ja"| C["Bekräftar via e-post"]
+    V["En besökare registrerar sig"] --> Q{"Via e-post eller SMS?"}
+    Q -->|"Ja"| C["Bekräftar via en länk"]
     Q -->|"Nej"| S["Prenumerant"]
     C --> S
     E["Incident, underhåll<br/>eller meddelande"] --> N["Avisering"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Meddelande med en<br/>avregistreringslänk"]
 ```
 
-Varje statussida har sina egna prenumeranter. En besökare registrerar sig på statussidans sida **Prenumerera**, där en e-postadress bekräftar med en länk innan den får något, eller så lägger ditt team till besökaren i instrumentpanelen. Därefter aviserar varje incident, varje schemalagd underhållshändelse och varje meddelande som når sidan dess prenumeranter, var och en via kanalen de registrerade sig med, och varje meddelande innehåller länken som avslutar prenumerationen.
+Varje statussida har sina egna prenumeranter. En besökare registrerar sig på statussidans sida **Prenumerera**, där en e-postadress eller ett telefonnummer bekräftar med en länk innan den får något, eller så lägger ditt team till besökaren i instrumentpanelen. Därefter aviserar varje incident, varje schemalagd underhållshändelse och varje meddelande som når sidan dess prenumeranter, var och en via kanalen de registrerade sig med, och varje meddelande innehåller länken som avslutar prenumerationen.
 
 ## Prenumerationskanaler
 
@@ -76,7 +76,7 @@ Sidan **Prenumerera** har en undermeny med en flik per påslagen kanal; med bara
 | **MS Teams** | `/subscribe/microsoft-teams` | **Prenumerera via Microsoft Teams** | **Microsoft Teams-arbetsytans namn** och **URL för inkommande webhook i Microsoft Teams**, med exemplet `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **Prenumerera via webhook** | **Webhook-URL**, med exemplet `https://example.com/webhook`. En JSON-`POST`-begäran skickas till den vid varje händelse på statussidan. |
 
-Knappen för att skicka heter **Prenumerera**. En registrering via SMS, Slack, Microsoft Teams eller webhook visar *Du har prenumererat.* En registrering via e-post säger att en bekräftelselänk har skickats och att man ska kontrollera skräppostmappen om den inte kommer fram (se [Dubbel opt-in för e-post](#dubbel-opt-in-för-e-post)). Flikarna **E-post**, **SMS**, **Slack** och **MS Teams** har också uppdelningen **Ny prenumeration** / **Hantera befintlig prenumeration**, så att någon som redan prenumererar kan komma tillbaka till sina inställningar utan att leta efter ett gammalt meddelande.
+Knappen för att skicka heter **Prenumerera**. En registrering via Slack, Microsoft Teams eller webhook visar *Du har prenumererat.* En registrering via SMS visar *Vi har skickat ett sms till det här telefonnumret. Öppna länken i det för att bekräfta din prenumeration.* En registrering via e-post säger att en bekräftelselänk har skickats och att man ska kontrollera skräppostmappen om den inte kommer fram (se [Dubbel opt-in för e-post](#dubbel-opt-in-för-e-post)). Flikarna **E-post**, **SMS**, **Slack** och **MS Teams** har också uppdelningen **Ny prenumeration** / **Hantera befintlig prenumeration**, så att någon som redan prenumererar kan komma tillbaka till sina inställningar utan att leta efter ett gammalt meddelande.
 
 ## Gränser för registreringar och länkar
 
@@ -90,11 +90,15 @@ Varje registrering skickar genast ett meddelande till sin kontakt, ett bekräfte
 | Registreringar av en e-postadress, ett telefonnummer, en Slack- eller Microsoft Teams-kanal eller en webhook, på alla statussidor tillsammans | 10 på en timme |
 | Hanteringslänkar för en e-postadress eller ett telefonnummer på alla statussidor tillsammans, eller för ett Slack- eller Microsoft Teams-arbetsytenamn på en statussida | 5 på en timme |
 
-Över en gräns svarar API:t `429` med en `Retry-After`-header, i sekunder, och besökaren får veta att det var för många registreringar eller länkar från deras nätverk, eller för den kontakten, och att de ska försöka igen senare. Inget skapas eller skickas, och ditt projekt märker inget av det: ingen prenumerant läggs till, och inget meddelande skickas eller betalas. Gränserna för hanteringslänkar räknar varje begäran, oavsett om en prenumeration matchar eller inte, så de kan inte användas för att ta reda på vem som prenumererar. En e-postadress räknas hur den än är skriven, med versaler, med en `+tag` eller, för Gmail, med punkter, och ett telefonnummer hur det än är inskrivet. En registrering tar en e-postadress: en lista med adresser avvisas.
+Över en gräns svarar API:t `429` med en `Retry-After`-header, i sekunder, och besökaren får veta att det var för många registreringar eller länkar från deras nätverk, eller för den kontakten, och att de ska försöka igen senare. Inget skapas eller skickas, och ditt projekt märker inget av det: ingen prenumerant läggs till, och inget meddelande skickas eller betalas. Gränserna för hanteringslänkar räknar varje begäran, oavsett om en prenumeration matchar eller inte, så de kan inte användas för att ta reda på vem som prenumererar. En e-postadress räknas hur den än är skriven, med versaler, med en `+tag` eller, för Gmail, med punkter, och ett telefonnummer hur det än är inskrivet. En registrering anger en kontakt, en e-postadress, ett telefonnummer, en Slack- eller Microsoft Teams-kanal eller en webhook: en lista med adresser, eller en andra kontakt, avvisas.
 
-Varje gräns per nätverk räknar också adresserna i ett IPv6 /64 tillsammans, med tio gånger sitt tal. Tidsfönstren är fasta, inte glidande. Om hastighetsbegränsaren inte kan nås fortsätter registreringar och hanteringslänkar via e-post, Slack, Microsoft Teams och webhook oräknade, och de via SMS avvisas med `503` tills den är tillbaka, eftersom varje SMS kostar pengar. Att ändra eller avsluta en prenumeration från dess egen länk är aldrig begränsat, och inte heller att ditt team lägger till prenumeranter på instrumentpanelen eller via API:t.
+Varje gräns per nätverk räknar också adresserna i ett IPv6 /64 tillsammans, med tio gånger sitt tal. Tidsfönstren är fasta, inte glidande. Om hastighetsbegränsaren inte kan nås fortsätter registreringar och hanteringslänkar via e-post, Slack, Microsoft Teams och webhook oräknade, och de via SMS avvisas med `503` tills den är tillbaka, eftersom varje SMS kostar pengar. Att ändra eller avsluta en prenumeration från dess egen länk är aldrig begränsat.
 
-En privat användare som ber om en länk för att återställa lösenordet på statussidans inloggningssida är begränsad på samma sätt: 5 återställningsmejl till en adress på en timme, på alla statussidor tillsammans, och 30 från ett nätverk på 15 minuter.
+**En prenumeration per kontakt.** En statussida tar emot varje e-postadress, telefonnummer och webhook-adress en gång, Slack- och Microsoft Teams-webhooks inräknade. En e-postadress är densamma med versaler, ett telefonnummer hur det än skrivs (`+14155550100`, `14155550100` och `0014155550100` är ett nummer), och en webhook-adress oavsett om värden står med versaler, med sin standardport eller ett fragment, eller med procentkodade bokstäver. En besökare som registrerar en kontakt igen får veta att den redan prenumererar, och inget skickas. Lägger ditt team till den igen, eller ändrar en prenumerant till den, avvisas det, och likaså att slå på en avslutad prenumeration igen medan en annan prenumeration har dess kontakt. Prenumeranter från tidigare behålls: där ett nummer prenumererades med två stavningar tar du bort den prenumeration du inte behöver.
+
+**Det ditt team skickar räknas också.** Inget begränsar hur snabbt ditt team lägger till prenumeranter, på instrumentpanelen, i bulk, via API:t eller med ett arbetsflöde. Men meddelandet som en tillagd prenumerant får, e-postmeddelandet som ber om bekräftelse eller meddelandet om att den prenumererar, räknas in i kontaktens 10 registreringar på en timme, och över dem avvisas tillägget med `429`. En prenumerant som läggs till utan meddelande räknas aldrig: **Lägg till dem som prenumeranter nu** för en e-postadress, eller **Skicka ett välkomstmeddelande** avstängt för de andra kanalerna. Om hastighetsbegränsaren inte kan nås fortsätter ditt teams tillägg oräknade.
+
+En privat användare som ber om en länk för att återställa lösenordet på statussidans inloggningssida är begränsad på samma sätt: 5 återställningsmejl till en adress på en timme, på alla statussidor tillsammans, och 30 från ett nätverk på 15 minuter. En inbjudan, till en privat statussida eller till ett projekt, räknas också per adress: 10 till en adress på en timme, båda slagen tillsammans.
 
 På en egenvärdad installation ändrar de här miljövariablerna i OneUptime-appen gränserna:
 
@@ -109,6 +113,7 @@ På en egenvärdad installation ändrar de här miljövariablerna i OneUptime-ap
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Hanteringslänkar för en kontakt per tidsfönster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Lösenordsåterställningar för privata användare som begärs från en adress per tidsfönster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Återställningsmejl för privata användare till en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Inbjudningar till en adress per fönster, till privata statussidor och projekt tillsammans. |
 
 Varken `config.env` eller Helm-diagrammets värden skickar dem vidare: lägg själv till dem i miljön för containern `app`, med `app.extraEnv`, eller hela diagrammets `extraEnv`, i Helm-diagrammet, eller i en `docker-compose.override.yml` för Docker Compose. `TRUSTED_PROXY_HOPS` avgör vilken adress gränserna per nätverk räknar.
 
@@ -137,9 +142,11 @@ Bra för: en sida som täcker flera produkter. En kund som bara använder ditt A
 
 ## Dubbel opt-in för e-post
 
-E-postprenumeranter bekräftar alltid. När en prenumerant skapas med en e-postadress och inte skapades som redan bekräftad tvingas **Is Subscription Confirmed** (`isSubscriptionConfirmed`) till `false`, och en sexsiffrig **Subscription Confirmation Token** genereras. OneUptime skickar sedan en bekräftelselänk på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Besökaren hamnar på en sida **Bekräfta prenumeration** och ser, när det har gått igenom, *Prenumeration bekräftad*.
+E-postprenumeranter bekräftar alltid. När en prenumerant skapas med en e-postadress och inte skapades som redan bekräftad tvingas **Is Subscription Confirmed** (`isSubscriptionConfirmed`) till `false`, och en slumpmässig **Subscription Confirmation Token** på 32 tecken genereras. OneUptime skickar sedan en bekräftelselänk på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Besökaren hamnar på en sida **Bekräfta prenumeration** och ser, när det har gått igenom, *Prenumeration bekräftad*.
 
-Prenumeranter via SMS, Slack, Microsoft Teams och webhook hoppar över det här — de skapas med `isSubscriptionConfirmed` redan satt till `true`. När ditt team lägger till en e-postprenumerant under **E-postprenumeranter** avgör **När du lägger till dem**: **Lägg till dem som prenumeranter nu** (standard: bekräftad, och inget skickas), **Lägg till dem nu och meddela dem** (bekräftad, och e-postmeddelandet om att de prenumererar skickas) eller **Be dem bekräfta först** (de får bekräftelselänken, som vid en registrering). **Lägg till i bulk** frågar samma sak.
+Prenumeranter via Slack, Microsoft Teams och webhook hoppar över det här, och det gör även SMS-prenumeranter som ditt team lägger till — de skapas med `isSubscriptionConfirmed` redan satt till `true`. När ditt team lägger till en e-postprenumerant under **E-postprenumeranter** avgör **När du lägger till dem**: **Lägg till dem som prenumeranter nu** (standard: bekräftad, och inget skickas), **Lägg till dem nu och meddela dem** (bekräftad, och e-postmeddelandet om att de prenumererar skickas) eller **Be dem bekräfta först** (de får bekräftelselänken, som vid en registrering). **Lägg till i bulk** frågar samma sak.
+
+**Registreringar via SMS bekräftas också.** En besökare som registrerar sig via SMS får ett enda meddelande: bekräftelselänken. Inget annat skickas till numret förrän länken öppnas, och när den öppnas skickas meddelandet om att de prenumererar, med länken som avslutar prenumerationen. Fram till dess visas prenumeranten som **Väntar på bekräftelse**, och SMS-loggen visar länken med koden ersatt av `[redacted]`. SMS-prenumeranter från tidigare är redan bekräftade.
 
 **Obekräftad betyder tyst.** Frågan som hämtar prenumeranter till en avisering filtrerar på `isUnsubscribed: false` och `isSubscriptionConfirmed: true`. En e-postadress som aldrig klickade på länken blir kvar i din lista **E-postprenumeranter** och får ingenting. Om någon svär på att hen prenumererar men inte hör något, kontrollera den kolumnen först.
 

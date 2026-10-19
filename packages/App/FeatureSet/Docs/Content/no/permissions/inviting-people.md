@@ -128,6 +128,10 @@ Personen er allerede med i teamet, som medlem eller med en invitasjon som ikke e
 I OneUptime Cloud har et prosjekt på Free-abonnementet plass til én person. Endre abonnement, og inviter på nytt. Se [Endre abonnementet](/docs/configuration/billing#endre-abonnementet).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+Én adresse kan få 10 invitasjoner i timen, til prosjekter og private statussider til sammen, uansett hvem som sender dem. Vent en time, og inviter så personen på nytt.
+:::
+
 :::details Invitasjonsmeldingen kom ikke frem, eller lenken er utløpt
 Invitasjonen avhenger ikke av e-posten. Be personen registrere seg med den inviterte adressen: OneUptime sender den adressen en ny lenke for å fullføre kontoen. Den som allerede har en konto, logger inn og finner invitasjonen.
 :::

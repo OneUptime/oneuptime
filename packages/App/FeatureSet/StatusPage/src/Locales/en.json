@@ -185,7 +185,8 @@
       "yourPhoneNumber": "Your Phone Number",
       "placeholder": "+11234567890",
       "managePrompt": "Please enter your phone number you have subscribed with",
-      "manageDescription": "We will send you a manage subscription link to this phone number."
+      "manageDescription": "We will send you a manage subscription link to this phone number.",
+      "confirmationSent": "We have sent a text message to this phone number. Open the link in it to confirm your subscription."
     },
     "slack": {
       "title": "Subscribe by Slack",

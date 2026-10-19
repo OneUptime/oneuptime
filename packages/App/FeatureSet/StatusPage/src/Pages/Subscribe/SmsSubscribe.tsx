@@ -265,10 +265,15 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       {!isLaoding && !error ? (
         <div className="justify-center">
           <div>
+            {/*
+             * A sign-up by text is confirmed from the phone: the server
+             * texts the number a link, and sends nothing else until it is
+             * opened.
+             */}
             {isSuccess && (
               <p className="text-center text-gray-400 mb-20 mt-20">
                 {" "}
-                {t("subscribe.subscribedSuccessfully")}
+                {t("subscribe.sms.confirmationSent")}
               </p>
             )}
 

@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "安全：用戶端可不經詢問執行唯讀工具，並在任何刪除操作前先詢問。透過登入連線的用戶端可限制為唯讀。",
   "See the {{docsLink}} for every tool.": "所有工具請參閱 {{docsLink}}。",
   "Twilio account for SMS and calls": "用於簡訊和電話的 Twilio 帳戶",
-  "Up to {{limit}} open at once": "同時最多 {{limit}} 個"
+  "Up to {{limit}} open at once": "同時最多 {{limit}} 個",
+  "Gets nothing until they open the link we texted them.": "在開啟我們透過簡訊傳送的連結之前，不會收到任何內容。"
 }

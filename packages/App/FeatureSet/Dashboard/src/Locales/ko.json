@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "안전: 클라이언트는 읽기 전용 도구를 묻지 않고 실행할 수 있으며, 삭제하는 작업 전에는 확인을 요청합니다. 로그인으로 연결된 클라이언트는 읽기 전용으로 제한할 수 있습니다.",
   "See the {{docsLink}} for every tool.": "모든 도구는 {{docsLink}}에서 확인하세요.",
   "Twilio account for SMS and calls": "SMS 및 전화용 Twilio 계정",
-  "Up to {{limit}} open at once": "동시에 최대 {{limit}}개"
+  "Up to {{limit}} open at once": "동시에 최대 {{limit}}개",
+  "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다."
 }
