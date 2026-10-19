@@ -135,6 +135,20 @@ jobs:
       # container.cpu.utilization once each, the names OneUptime reads, and
       # the node and pod *.cpu.usage beside them.
       - run: bash Tests/Ops/agent-cpu-names-behaviour.sh
+      # And for container CPU: the Docker, Podman and Docker Swarm agents
+      # build container.cpu.utilization from container.cpu.usage.total
+      # (copy, cumulative_to_delta, delta_to_rate, scale to percent of one
+      # core) because the docker_stats receiver's own figure is computed from
+      # one one-shot sample and never follows the load. Fed six scrapes of two
+      # containers, the processors must send 25 / 150 / 0 / nothing after a
+      # restart / 10 % and 1 % throughout; then each agent's whole metrics
+      # pipeline runs against this runner's Docker daemon and a container held
+      # to half a core must read about 50 %. container.memory.percent must come
+      # out in "%", its value unchanged. The load container is busybox from
+      # public.ecr.aws, warmed here.
+      - name: Warm the image the container CPU behaviour test loads a core with
+        run: bash ./Scripts/GHA/warm_base_images.sh --image public.ecr.aws/docker/library/busybox:1.37
+      - run: bash Tests/Ops/container-agent-cpu-utilization-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a
