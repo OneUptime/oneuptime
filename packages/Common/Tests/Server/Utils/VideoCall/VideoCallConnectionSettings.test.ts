@@ -468,9 +468,12 @@ describe("VideoCallConnectionSettingsUtil.isEmail", () => {
     ["letters and dots", "a.".repeat(200000)],
     ["an at then dotted labels", "a@a.".repeat(100000)],
     ["dots and a tail", ".".repeat(400000) + "-.aa"],
-  ])("decides %s in time in line with its length", (_label: string, value: string) => {
-    const startedAt: number = Date.now();
-    VideoCallConnectionSettingsUtil.isEmail(value);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
-  });
+  ])(
+    "decides %s in time in line with its length",
+    (_label: string, value: string) => {
+      const startedAt: number = Date.now();
+      VideoCallConnectionSettingsUtil.isEmail(value);
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
 });

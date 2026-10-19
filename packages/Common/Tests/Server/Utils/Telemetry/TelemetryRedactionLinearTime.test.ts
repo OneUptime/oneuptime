@@ -38,18 +38,24 @@ const WORST_CASES: Array<[string, string]> = [
   ["letters and dots", repeat("a.", LENGTH)],
   ["an address then dotted labels", repeat("a@a.", LENGTH)],
   ["dots then a tail", repeat(".", LENGTH) + "-.aa"],
-  ["dotted capitals and hyphens", repeat("A.", LENGTH / 2) + repeat("-.", LENGTH / 2)],
+  [
+    "dotted capitals and hyphens",
+    repeat("A.", LENGTH / 2) + repeat("-.", LENGTH / 2),
+  ],
   ["a token header over and over", repeat("eyJ", LENGTH)],
   ["a token header with separators", repeat("-eyJ-", LENGTH)],
   ["a token header run together", repeat("eyJeeeeeeeeee", LENGTH)],
 ];
 
 describe("ToolResultSerializer.redact reads in time in line with length", () => {
-  test.each(WORST_CASES)("decides %s quickly", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
-    ToolResultSerializer.redact(text);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
-  });
+  test.each(WORST_CASES)(
+    "decides %s quickly",
+    (_label: string, text: string) => {
+      const startedAt: number = Date.now();
+      ToolResultSerializer.redact(text);
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
 
   test("still redacts a real address and a real token", () => {
     const jwt: string =
@@ -61,16 +67,21 @@ describe("ToolResultSerializer.redact reads in time in line with length", () => 
     expect(redacted).toContain("[redacted-email]");
     expect(redacted).toContain("[redacted-jwt]");
     expect(redacted).not.toContain("bob.smith@example.com");
-    expect(redacted).not.toContain("SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c");
+    expect(redacted).not.toContain(
+      "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+    );
   });
 });
 
 describe("normalizeExceptionText reads in time in line with length", () => {
-  test.each(WORST_CASES)("decides %s quickly", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
-    normalizeExceptionText(text);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
-  });
+  test.each(WORST_CASES)(
+    "decides %s quickly",
+    (_label: string, text: string) => {
+      const startedAt: number = Date.now();
+      normalizeExceptionText(text);
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
 
   test("still fingerprints a real address and a real token the same way", () => {
     const jwt: string =
@@ -83,9 +94,12 @@ describe("normalizeExceptionText reads in time in line with length", () => {
 });
 
 describe("sanitizeExceptionMessage reads in time in line with length", () => {
-  test.each(WORST_CASES)("decides %s quickly", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
-    sanitizeExceptionMessage(text);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
-  });
+  test.each(WORST_CASES)(
+    "decides %s quickly",
+    (_label: string, text: string) => {
+      const startedAt: number = Date.now();
+      sanitizeExceptionMessage(text);
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
 });

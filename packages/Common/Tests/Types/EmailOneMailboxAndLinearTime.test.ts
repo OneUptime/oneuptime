@@ -127,7 +127,10 @@ describe("an email value is read in time in line with its length", () => {
     ["letters", repeat("a", LENGTH)],
     ["letters and dots", repeat("a.", LENGTH)],
     ["an address then dotted labels", "a@" + repeat("a.", LENGTH)],
-    ["an open bracket then dotted digits", "a@[1.1.1.a:" + repeat("\\a", LENGTH)],
+    [
+      "an open bracket then dotted digits",
+      "a@[1.1.1.a:" + repeat("\\a", LENGTH),
+    ],
     ["an open bracket then escapes", "6@[0.3.0.5:[" + repeat("\\.]", LENGTH)],
     ["a quoted local part of escapes", '"' + repeat("\\\\", LENGTH)],
     ["dots then a tail", repeat(".", LENGTH) + "-.aa"],

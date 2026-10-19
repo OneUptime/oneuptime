@@ -69,34 +69,29 @@ const ENGINES: Array<Engine> = [
   },
 ];
 
-describe.each(ENGINES)(
-  "$name built-in email scrub",
-  (engine: Engine) => {
-    test.each(WORST_CASES)(
-      "reads %s in time in line with its length",
-      (_label: string, body: string) => {
-        const regex: RegExp | null = engine.getRegexForPattern(
-          engine.emailType,
-        );
-        expect(regex).not.toBeNull();
-
-        const startedAt: number = Date.now();
-        body.replace(regex!, "[REDACTED]");
-        expect(Date.now() - startedAt).toBeLessThan(2000);
-      },
-    );
-
-    test("still finds and replaces a real address", () => {
+describe.each(ENGINES)("$name built-in email scrub", (engine: Engine) => {
+  test.each(WORST_CASES)(
+    "reads %s in time in line with its length",
+    (_label: string, body: string) => {
       const regex: RegExp | null = engine.getRegexForPattern(engine.emailType);
-      const out: string = "mail to carol.jones@example.co.uk now".replace(
-        regex!,
-        "[REDACTED]",
-      );
-      expect(out).toContain("[REDACTED]");
-      expect(out).not.toContain("carol.jones@example.co.uk");
-    });
-  },
-);
+      expect(regex).not.toBeNull();
+
+      const startedAt: number = Date.now();
+      body.replace(regex!, "[REDACTED]");
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
+
+  test("still finds and replaces a real address", () => {
+    const regex: RegExp | null = engine.getRegexForPattern(engine.emailType);
+    const out: string = "mail to carol.jones@example.co.uk now".replace(
+      regex!,
+      "[REDACTED]",
+    );
+    expect(out).toContain("[REDACTED]");
+    expect(out).not.toContain("carol.jones@example.co.uk");
+  });
+});
 
 describe("LogScrubRuleService.scrubLog with the built-in email rule", () => {
   test("redacts an address in the body in time in line with its length", () => {
