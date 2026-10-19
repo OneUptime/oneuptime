@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ChangeEventService from "../../../../Server/Services/ChangeEventService";
 import ChangeRollback, {
   KubernetesRollbackResolution,
@@ -306,7 +307,7 @@ describe("findLaterChangeOfDeployment", () => {
 
 describe("ChangeRollback.resolveKubernetesTarget", () => {
   let rows: Array<JSONObject>;
-  let findBy: jest.SpiedFunction<typeof ChangeEventService.findBy>;
+  let findBy: SpyInstance<typeof ChangeEventService.findBy>;
 
   function row(change: RecordedChange): JSONObject {
     const attributes: JSONObject = {};

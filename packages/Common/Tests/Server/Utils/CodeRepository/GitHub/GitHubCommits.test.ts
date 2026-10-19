@@ -3,11 +3,15 @@ import GitHubCommits, {
   MAX_COMMITS,
   MAX_FILES,
 } from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCommits";
-import API from "../../../../../Utils/API";
+import API, { APIRequestOptions } from "../../../../../Utils/API";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import { JSONObject } from "../../../../../Types/JSON";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+
+// API.get as jest.spyOn types it: its type argument at its constraint.
+type ApiGet = (options: APIRequestOptions) => ReturnType<typeof API.get>;
 
 /*
  * What a deploy shipped, read from GitHub: the commits between two commits,
@@ -246,7 +250,7 @@ describe("parsing", () => {
 });
 
 describe("the calls", () => {
-  function mockGet(data: unknown): jest.SpiedFunction<typeof API.get> {
+  function mockGet(data: unknown): SpyInstance<ApiGet> {
     return jest
       .spyOn(API, "get")
       .mockResolvedValue(
@@ -254,21 +258,19 @@ describe("the calls", () => {
       );
   }
 
-  function calledUrl(spy: jest.SpiedFunction<typeof API.get>): string {
+  function calledUrl(spy: SpyInstance<ApiGet>): string {
     return (
       spy.mock.calls[0]![0] as { url: { toString(): string } }
     ).url.toString();
   }
 
-  function calledHeaders(
-    spy: jest.SpiedFunction<typeof API.get>,
-  ): Record<string, string> {
+  function calledHeaders(spy: SpyInstance<ApiGet>): Record<string, string> {
     return (spy.mock.calls[0]![0] as { headers: Record<string, string> })
       .headers;
   }
 
   test("compare asks for base...head with the token", async () => {
-    const get: jest.SpiedFunction<typeof API.get> = mockGet({
+    const get: SpyInstance<ApiGet> = mockGet({
       status: "ahead",
       total_commits: 1,
       commits: [githubCommit({ sha: "b", message: "Fix (#1)" })],
@@ -295,7 +297,7 @@ describe("the calls", () => {
   });
 
   test("getCommit reads one commit and its files", async () => {
-    const get: jest.SpiedFunction<typeof API.get> = mockGet({
+    const get: SpyInstance<ApiGet> = mockGet({
       ...githubCommit({ sha: "abc1234", message: "Ship it" }),
       files: [
         { filename: "a.ts", status: "modified", additions: 1, deletions: 2 },
@@ -320,7 +322,7 @@ describe("the calls", () => {
   });
 
   test("listPullRequestsForCommit reads the commit's pull requests", async () => {
-    const get: jest.SpiedFunction<typeof API.get> = mockGet([
+    const get: SpyInstance<ApiGet> = mockGet([
       { number: 9, title: "Nine", html_url: "u" },
     ]);
 
@@ -338,7 +340,7 @@ describe("the calls", () => {
   });
 
   test("names are encoded into the path", async () => {
-    const get: jest.SpiedFunction<typeof API.get> = mockGet({});
+    const get: SpyInstance<ApiGet> = mockGet({});
 
     await GitHubCommits.getCommit({
       token: "tok",

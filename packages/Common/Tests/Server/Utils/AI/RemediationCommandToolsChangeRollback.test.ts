@@ -48,6 +48,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Rollback first, in the remediation round: roll_back_change undoes a
@@ -168,7 +169,9 @@ function fakeJob(overrides: Partial<Record<string, unknown>> = {}): RunnerJob {
 }
 
 let persistedPlans: Array<JSONObject>;
-let enqueueKubectl: jest.SpyInstance;
+let enqueueKubectl: SpyInstance<
+  typeof RunnerJobService.enqueueAiKubectlCommand
+>;
 
 function mockHappyPath(): void {
   persistedPlans = [];
@@ -252,9 +255,7 @@ function recordedRollout(
   };
 }
 
-let resolveTarget: jest.SpiedFunction<
-  typeof ChangeRollback.resolveKubernetesTarget
->;
+let resolveTarget: SpyInstance<typeof ChangeRollback.resolveKubernetesTarget>;
 
 function resolvesTo(resolution: KubernetesRollbackResolution): void {
   resolveTarget.mockResolvedValue(resolution);
