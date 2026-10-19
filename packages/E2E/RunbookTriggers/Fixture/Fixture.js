@@ -38,7 +38,8 @@
  *                          from page to page as in the Dashboard; the pages
  *                          this fixture does not model are a stand-in there
  *                          (data-testid fixture-page-not-modelled).
- *                          page=overview opens the runbook's Overview
+ *                          page=overview opens the runbook's own address,
+ *                          where the Overview is such a stand-in
  *
  * What the page sends is recorded on window.__fixture: `updates` (each
  * updateById's data), `keyReads`, `keyResets` and `webhookCalls` (the URL,
