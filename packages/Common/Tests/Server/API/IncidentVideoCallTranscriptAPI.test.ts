@@ -5,6 +5,7 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentVideoCallService from "../../../Server/Services/IncidentVideoCallService";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import IncidentCallSummary from "../../../Server/Utils/AI/CallSummary/IncidentCallSummary";
+import IncidentCallTranscriptSave from "../../../Server/Utils/VideoCall/Transcripts/IncidentCallTranscriptSave";
 import VideoCallTranscriptReader from "../../../Server/Utils/VideoCall/Transcripts/VideoCallTranscriptReader";
 import Response from "../../../Server/Utils/Response";
 import logger from "../../../Server/Utils/Logger";
@@ -878,7 +879,7 @@ describe("the feed entry an added transcript writes", () => {
       source: VideoCallTranscriptSource,
       sentence: string,
     ) => {
-      const markdown: string = IncidentVideoCallAPI.getTranscriptFeedMarkdown({
+      const markdown: string = IncidentCallTranscriptSave.getFeedMarkdown({
         call: callOf(provider),
         info: INFO,
         source,

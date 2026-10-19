@@ -139,6 +139,73 @@ describe("ZoomMeetingClient", () => {
     });
   });
 
+  /*
+   * Record and transcribe incident calls: the meeting is recorded to the
+   * cloud from the start, which Zoom does even when people join before the
+   * host - the service account never joins.
+   */
+  test("records the meeting to the cloud from the start when asked to record and transcribe it", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 200, body: TOKEN_RESPONSE },
+      { status: 201, body: MEETING_RESPONSE },
+    ]);
+
+    await newClient(fetcher).createMeeting({
+      title: "INC-42: Checkout API is down",
+      recordAndTranscribe: true,
+    });
+
+    expect(readJsonBody(fetcher.requests[1]!)["settings"]).toEqual({
+      join_before_host: true,
+      jbh_time: 0,
+      waiting_room: false,
+      auto_recording: "cloud",
+    });
+  });
+
+  test.each([
+    ["not asked", undefined],
+    ["asked not to", false],
+  ])(
+    "records nothing when %s",
+    async (_name: string, recordAndTranscribe: boolean | undefined) => {
+      const fetcher: ScriptedFetch = scriptedFetch([
+        { status: 200, body: TOKEN_RESPONSE },
+        { status: 201, body: MEETING_RESPONSE },
+      ]);
+
+      await newClient(fetcher).createMeeting({
+        title: "INC-42",
+        recordAndTranscribe,
+      });
+
+      expect(readJsonBody(fetcher.requests[1]!)["settings"]).not.toHaveProperty(
+        "auto_recording",
+      );
+    },
+  );
+
+  test("a connection made by signing in records its meeting the same way", async () => {
+    const fetcher: ScriptedFetch = scriptedFetch([
+      { status: 201, body: MEETING_RESPONSE },
+    ]);
+
+    await ZoomMeetingClient.createMeetingWithToken({
+      http: new VideoCallHttpClient({ fetchImplementation: fetcher.fetch }),
+      token: {
+        accessToken: "signed-in-token",
+        apiBaseUrl: ZOOM_API_BASE_URL,
+      },
+      host: { userId: "me", label: "maya@example.com", isSignIn: true },
+      request: { title: "INC-42", recordAndTranscribe: true },
+    });
+
+    expect(fetcher.requests[0]!.url).toBe(`${ZOOM_API_BASE_URL}/users/me/meetings`);
+    expect(readJsonBody(fetcher.requests[0]!)["settings"]).toEqual(
+      expect.objectContaining({ auto_recording: "cloud" }),
+    );
+  });
+
   test("never returns the host's start link", async () => {
     const fetcher: ScriptedFetch = scriptedFetch([
       { status: 200, body: TOKEN_RESPONSE },

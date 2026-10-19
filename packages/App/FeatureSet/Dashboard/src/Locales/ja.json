@@ -31014,5 +31014,20 @@
   "See the {{docsLink}} for every tool.": "すべてのツールについては、{{docsLink}} を参照してください。",
   "Twilio account for SMS and calls": "SMS と通話用の Twilio アカウント",
   "Up to {{limit}} open at once": "同時に最大 {{limit}} 件まで",
-  "Gets nothing until they open the link we texted them.": "SMSで送ったリンクが開かれるまで、何も届きません。"
+  "Gets nothing until they open the link we texted them.": "SMSで送ったリンクが開かれるまで、何も届きません。",
+  "Call transcripts": "通話の文字起こし",
+  "Everyone on an incident's Zoom or Google Meet call sees that it is recorded or transcribed. Check that your organization allows recording these calls. Zoom keeps a transcript when the account records to the cloud with its audio transcript on.": "インシデントの Zoom または Google Meet の通話の参加者全員に、録画または文字起こし中であることが表示されます。組織でこれらの通話の録画が許可されていることを確認してください。Zoom では、アカウントが音声文字起こしを有効にしてクラウドに録画する場合に文字起こしが保存されます。",
+  "Keep what was said on every incident call, without anyone remembering to.": "インシデントの通話で話された内容を、誰かが覚えておかなくても残せます。",
+  "Microsoft Teams calls, Slack huddles and meeting links are not recorded: add their transcripts by hand.": "Microsoft Teams の通話、Slack ハドル、会議リンクは録画されません。文字起こしは手動で追加してください。",
+  "OneUptime asks Zoom and Google Meet to record and transcribe every incident call it starts, and adds the transcript to the incident once the call is over. OneUptime AI then posts what was said to the incident's feed, and the postmortem draft reads it.": "OneUptime は、開始するすべてのインシデント通話の録画と文字起こしを Zoom と Google Meet に依頼し、通話が終わるとインシデントに文字起こしを追加します。その後、OneUptime AI が話された内容をインシデントのフィードに投稿し、ポストモーテムの下書きにも反映されます。",
+  "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.": "通話が終わると OneUptime が {{provider}} から取得し、OneUptime AI が読み込みます。",
+  "Postmortem Draft Waiting Since": "ポストモーテム下書きの待機開始日時",
+  "Record and Transcribe Incident Calls": "インシデント通話を録画して文字起こしする",
+  "Record and transcribe incident calls": "インシデント通話を録画して文字起こしする",
+  "Record and transcribe incident calls?": "インシデント通話を録画して文字起こししますか？",
+  "Transcript Fetch Checked At": "文字起こし取得の確認日時",
+  "Transcript Fetch Next Attempt At": "文字起こし取得の次回試行日時",
+  "Transcript Fetch Reason": "文字起こし取得の理由",
+  "Transcript Fetch Status": "文字起こし取得のステータス",
+  "Video Call Summary": "ビデオ通話の要約"
 }

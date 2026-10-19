@@ -25,8 +25,12 @@ import {
   CallSummaryStatus,
   RootCauseSuggestionStatus,
 } from "../../Types/VideoCall/CallSummary";
+import { CallTranscriptFetchStatus } from "../../Types/VideoCall/CallTranscriptAutoFetch";
 import VideoCallProvider from "../../Types/VideoCall/VideoCallProvider";
-import { VideoCallTranscriptSource } from "../../Types/VideoCall/VideoCallTranscript";
+import {
+  VideoCallTranscriptSource,
+  VideoCallTranscriptUnavailableReason,
+} from "../../Types/VideoCall/VideoCallTranscript";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 const createPermissions: Array<Permission> = [
@@ -71,7 +75,10 @@ const deletePermissions: Array<Permission> = [
  * OneUptime writes those, through the call's transcript routes
  * (IncidentVideoCallAPI): read from Zoom or Google Meet, or added by a
  * person, then read by OneUptime AI, whose suggested root cause stays a
- * suggestion until a person uses it or dismisses it (CallSummary).
+ * suggestion until a person uses it or dismisses it (CallSummary). With
+ * Record and transcribe incident calls on, OneUptime also asks the provider
+ * for the transcript by itself once the call is over, and keeps where that
+ * stands on the call (transcriptFetch*, CallTranscriptAutoFetch).
  */
 @EnableDocumentation()
 @CanAccessIfCanReadOn("incident")
@@ -668,6 +675,89 @@ export default class IncidentVideoCall extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public rootCauseSuggestionReviewedByUserId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Transcript Fetch Status",
+    description:
+      "Whether OneUptime gets the call's transcript from Zoom or Google Meet by itself, as it does for the calls it starts while Record and transcribe incident calls is on: Waiting while it asks the provider (again at Transcript Fetch Next Attempt At), Stopped once it no longer asks (Transcript Fetch Reason says why). Empty for a call it does not ask about, and once it has the transcript.",
+    example: "Waiting",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public transcriptFetchStatus?: CallTranscriptFetchStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Transcript Fetch Reason",
+    description:
+      "Why the provider had no transcript to give when OneUptime last asked: NotReady (still preparing it), NotTranscribed (nothing recorded or transcribed yet), NoMeeting, Expired, PermissionMissing, ConnectionProblem or NotSupported. Empty when the provider did not answer.",
+    example: "NotReady",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public transcriptFetchReason?: VideoCallTranscriptUnavailableReason =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Transcript Fetch Checked At",
+    description:
+      "When OneUptime last asked the provider for the call's transcript.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public transcriptFetchCheckedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: [],
+  })
+  // The Workers job finds the calls it is due to ask about by it.
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Transcript Fetch Next Attempt At",
+    description:
+      "When OneUptime next asks the provider for the call's transcript, while the Transcript Fetch Status is Waiting.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public transcriptFetchNextAttemptAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

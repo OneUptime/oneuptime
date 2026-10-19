@@ -98,6 +98,8 @@ import Host from "../../Models/DatabaseModels/Host";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ServiceModel from "../../Models/DatabaseModels/Service";
 import Model from "../../Models/DatabaseModels/Incident";
+import { UpdateResult } from "typeorm";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import IncidentOwnerTeam from "../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../Models/DatabaseModels/IncidentOwnerUser";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
@@ -7279,6 +7281,52 @@ ${incidentSeverity.name}
     });
 
     return response.content;
+  }
+
+  /*
+   * The automatic postmortem draft waits for what the incident's calls said
+   * (AIIncidentPostmortemRunner): from when, kept on the incident. Written
+   * past the incident's hooks - it is OneUptime's bookkeeping, not an edit
+   * anyone made.
+   */
+  @CaptureSpan()
+  public async startPostmortemDraftWait(data: {
+    incidentId: ObjectID;
+    waitingSince: Date;
+  }): Promise<void> {
+    await this.updateOneById({
+      id: data.incidentId,
+      data: { postmortemDraftWaitingSince: data.waitingSince },
+      props: { isRoot: true, ignoreHooks: true },
+    });
+  }
+
+  /*
+   * Ends the wait of a postmortem draft, so that whoever ends it - a reading
+   * that finished, the job that looks again, a resolve that drafts at once -
+   * is the one to write the draft: one UPDATE that clears the wait only while
+   * it still holds the time the caller read. 1 when the caller ended it, 0
+   * when another caller did first.
+   */
+  @CaptureSpan()
+  public async endPostmortemDraftWait(data: {
+    incidentId: ObjectID;
+    waitingSince: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        postmortemDraftWaitingSince: null,
+      } as unknown as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.incidentId.toString() })
+      .andWhere('"postmortemDraftWaitingSince" = :waitingSince', {
+        waitingSince: data.waitingSince,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
   }
 }
 

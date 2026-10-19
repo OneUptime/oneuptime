@@ -20,8 +20,12 @@ import EventVideoCall, {
 import ProjectReferenceCheck from "../Utils/Database/ProjectReferenceCheck";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import IncidentCallTranscriptFetch from "../Utils/VideoCall/Transcripts/IncidentCallTranscriptFetch";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { CallTranscriptFetchStatus } from "../../Types/VideoCall/CallTranscriptAutoFetch";
+import { UpdateResult } from "typeorm";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
 /*
  * Incident video calls. A create fills the call in before it is saved -
@@ -195,10 +199,53 @@ export class Service extends ProjectReferencesService<Model> {
           createdItem.createdByUserId ||
           createdItem.createdByUser?.id ||
           undefined,
+        recordsAndTranscribes: carryForward.recordsAndTranscribes,
       });
     }
 
+    /*
+     * A call the provider records and transcribes: OneUptime gets its
+     * transcript once it is over (IncidentCallTranscriptFetch).
+     */
+    if (carryForward.recordsAndTranscribes) {
+      await IncidentCallTranscriptFetch.watchNewCall(createdItem);
+    }
+
     return createdItem;
+  }
+
+  /*
+   * Takes a call the transcript job is due to ask about, so that two runs
+   * of the job never ask about it at once: one UPDATE that moves its next
+   * attempt on, and only while the call is still Waiting at the attempt
+   * the job read. 1 when this run took it, 0 when another run did, or the
+   * call stopped waiting meanwhile (a person added its transcript).
+   */
+  @CaptureSpan()
+  public async claimTranscriptFetch(data: {
+    callId: ObjectID;
+    // The next attempt the job read, which it is due for.
+    dueAt: Date;
+    // Where the next attempt moves to while this run asks.
+    nextAttemptAt: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        transcriptFetchNextAttemptAt: data.nextAttemptAt,
+      } as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.callId.toString() })
+      .andWhere('"transcriptFetchStatus" = :status', {
+        status: CallTranscriptFetchStatus.Waiting,
+      })
+      .andWhere('"transcriptFetchNextAttemptAt" = :dueAt', {
+        dueAt: data.dueAt,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
   }
 
   // Every call of an incident, oldest first. Read as root.

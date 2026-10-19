@@ -70,6 +70,7 @@ import IncidentPostmortemPublication, {
   PostmortemNotificationAction,
 } from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
+import { POSTMORTEM_WAITS_FOR_PREPARING_TRANSCRIPT_MS } from "Common/Types/VideoCall/CallTranscriptAutoFetch";
 import IncidentMeasurementAnchorType from "Common/Types/Incident/IncidentMeasurementAnchorType";
 import { POSTMORTEM_TEMPLATES } from "Common/UI/Components/AI/AITemplates";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
@@ -2657,11 +2658,15 @@ describe("starting a postmortem from a template or an AI draft", () => {
     );
 
     expect(draft).toContain(
-      "incident.postmortemNote &&\n        incident.postmortemNote.trim().length > 0",
+      "if (incident.postmortemNote && incident.postmortemNote.trim().length > 0) {",
     );
     expect(draft).toContain(
-      "if (incident.showPostmortemOnStatusPage === true) {",
+      "return incident.showPostmortemOnStatusPage !== true;",
     );
+    // Both the draft on resolve and the draft that waited for its calls check it.
+    expect(
+      draft.split("!AIIncidentPostmortemRunner.isDraftable(incident)"),
+    ).toHaveLength(3);
     expect(draft).toContain("postmortemNote: draft,");
     expect(draft).toContain(
       "incidentFeedEventType: IncidentFeedEventType.PostmortemNote,",
@@ -2681,6 +2686,23 @@ describe("starting a postmortem from a template or an AI draft", () => {
     );
     expect(starting).toContain(
       "- It needs AI turned on for the project, and stops for the day once the project reaches its daily AI limits.",
+    );
+  });
+
+  it("waits for the transcript of the incident's call, as long as the rule it is held to says", () => {
+    const draft: string = between(
+      POSTMORTEM_RUNNER,
+      "public static async draftPostmortemOnResolve(",
+      "\n  }\n}",
+    );
+
+    expect(draft).toContain("await IncidentPostmortemCallWait.isWaiting({");
+    expect(draft).toContain("await IncidentService.startPostmortemDraftWait({");
+    expect(
+      POSTMORTEM_WAITS_FOR_PREPARING_TRANSCRIPT_MS / (60 * 60 * 1000),
+    ).toBe(6);
+    expect(starting).toContain(
+      "- When the transcript of the incident's call is still on its way as the incident resolves, it waits for OneUptime AI to read it, so the draft reads what was said on the call: up to six hours while Zoom or Google Meet prepares the transcript. See [Record and transcribe every call](/docs/workspace-connections/video-calls#record-and-transcribe-every-call).",
     );
   });
 });
