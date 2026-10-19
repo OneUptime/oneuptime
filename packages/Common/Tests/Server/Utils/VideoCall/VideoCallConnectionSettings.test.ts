@@ -447,3 +447,37 @@ describe("VideoCallConnectionSettingsUtil.validateOAuth", () => {
     }).toThrow("cannot be connected by signing in");
   });
 });
+
+describe("VideoCallConnectionSettingsUtil.isEmail", () => {
+  test("accepts a real address and refuses a non-address", () => {
+    expect(VideoCallConnectionSettingsUtil.isEmail("host@example.com")).toBe(
+      true,
+    );
+    expect(VideoCallConnectionSettingsUtil.isEmail("not an email")).toBe(false);
+    expect(
+      VideoCallConnectionSettingsUtil.isEmail("a@example.com,b@example.com"),
+    ).toBe(false);
+  });
+
+  /*
+   * isEmail runs its own shape check before Email.isValid, so it must stay in
+   * line with the value's length on its own - a connection setting a project
+   * supplies could be made long.
+   */
+  test.each([
+    ["letters and dots", "a.".repeat(200000)],
+    ["an at then dotted labels", "a@a.".repeat(100000)],
+    ["dots and a tail", ".".repeat(400000) + "-.aa"],
+    [
+      "an address, dotted labels, then another at",
+      "a@" + "a.".repeat(200000) + "@",
+    ],
+  ])(
+    "decides %s in time in line with its length",
+    (_label: string, value: string) => {
+      const startedAt: number = Date.now();
+      VideoCallConnectionSettingsUtil.isEmail(value);
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+    },
+  );
+});

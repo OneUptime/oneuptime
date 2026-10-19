@@ -12,6 +12,15 @@ import IncomingEmailMonitorAddress, {
 // SendGrid uses the base config - add SendGrid-specific options here if needed in the future
 export type SendGridInboundConfig = InboundEmailProviderConfig;
 
+/*
+ * The address of "Name <address>". What is between the brackets holds no "<"
+ * either, so a match tried from each "<" of a header reads only up to the
+ * next one: a From or To header, which whoever sends the email writes, is
+ * read in time in line with its length. Where several "<" open before a ">",
+ * the address is what follows the last of them.
+ */
+const ANGLE_BRACKETED_ADDRESS: RegExp = /<([^<>]+)>/;
+
 /**
  * SendGrid Inbound Parse provider implementation
  *
@@ -172,7 +181,7 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
    * - "<user@domain.com>" -> "user@domain.com"
    */
   private extractEmailAddress(email: string): string {
-    const match: RegExpMatchArray | null = email.match(/<([^>]+)>/);
+    const match: RegExpMatchArray | null = email.match(ANGLE_BRACKETED_ADDRESS);
 
     if (match && match[1]) {
       return match[1].toLowerCase().trim();

@@ -57,10 +57,21 @@ export function normalizeExceptionText(text: string): string {
     "<SERVICE_ID>",
   );
 
-  // 5. JWT tokens (three base64 segments separated by dots)
+  /*
+   * 5. JWT tokens (three base64 segments separated by dots).
+   *
+   * A token is looked for once per run of the characters it is made of, at
+   * the first place in the run one may begin - the run's start, or just
+   * after a "-" in it, the places the word boundary allowed - and the text
+   * of the run before that place is put back ($1). Every later place in the
+   * same run would end the same way, so this lands <JWT> on exactly the
+   * tokens a search from every "eyJ" did, of any length, and fingerprints
+   * are unchanged; but each run is read a bounded number of times, so a
+   * long exception message is read in time in line with its length.
+   */
   normalized = normalized.replace(
-    /\beyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\b/g,
-    "<JWT>",
+    /(?<![A-Za-z0-9_-])(?=((?:[A-Za-z0-9_-]*?-)??)eyJ)\1eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\b/g,
+    "$1<JWT>",
   );
 
   // 6. Base64 encoded strings (long sequences, likely tokens or encoded data)
@@ -79,9 +90,15 @@ export function normalizeExceptionText(text: string): string {
   );
   normalized = normalized.replace(/\b::1\b/g, "<IPV6>"); // localhost IPv6
 
-  // 9. Email addresses
+  /*
+   * 9. Email addresses. Each part is length-bounded to the sizes RFC 5321
+   * allows, so reading a long exception message for an address stays in line
+   * with its length. The classes are otherwise unchanged, so the <EMAIL>
+   * placeholder lands on exactly the addresses it did before and fingerprints
+   * are unchanged.
+   */
   normalized = normalized.replace(
-    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+    /\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Z|a-z]{2,63}\b/g,
     "<EMAIL>",
   );
 
