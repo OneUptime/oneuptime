@@ -107,6 +107,8 @@ CLI 的每个选项参见 [`oneuptime deploy`](/docs/cli/command-reference#oneup
 
 OneUptime 根据这些数字判断哪个变更是可疑变更，而不是根据变更标题的内容。调查会先检查可疑变更，说明它是否导致了该事件，并说明回滚它是否是最快的安全修复。
 
+当可疑变更是某个已开启 [AI 修复](/docs/ai/ai-sre#修复如何运作) 的集群上的 Kubernetes 滚动更新时，OneUptime AI 会先回滚它，所用的 `kubectl rollout undo` 由 OneUptime 根据记录的变更构建。发布代码的部署则通过其提交来回滚：调查会指出造成问题的提交或拉取请求，这样 [修复拉取请求](/docs/ai/ai-sre#自动代码修复) 就可以恰好撤销那一处更改。
+
 在调查中以及在 [询问 AI](/docs/ai/ask-ai) 中，`recent_changes` 会列出任意时间窗口内的变更，`get_change_details` 会显示一次部署发布了什么：自该服务上一次部署以来的提交、它们的作者、拉取请求，以及它们改动的文件。这需要变更上带有提交，并且有一个通过 [GitHub App](/docs/ai/github-app) 连接的仓库。
 
 ## 参考

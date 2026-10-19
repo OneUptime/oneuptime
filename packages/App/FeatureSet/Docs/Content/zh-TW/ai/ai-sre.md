@@ -206,6 +206,8 @@ AI 代理程式頁面上的 **修正** 有四種設定（chart 的 `aiAgent.fixe
   - 另一輪無人值守的 OneUptime AI 仍在變更同一叢集，或仍在驗證該叢集上的某個修正——同一個監測器的警示和事件是常見情況——或者無法檢查這一點；
   - 這是在某個回復未完成的修正之後的後續一輪。
 
+**先回復。** 當 OneUptime 將叢集上的某次 Kubernetes 滾動更新標記為該事件的可疑變更時（請參閱 [部署與變更](/docs/telemetry/change-events)），OneUptime AI 會在任何其他修正之前先嘗試回復它。OneUptime 根據記錄下來的變更建構 `kubectl rollout undo`，絕不依據模型寫出的內容；它會像叢集所處模式下的任何安全變更一樣，直接執行或等待核准。如果該 Deployment 在那次滾動更新之後又有了變更，就不會提供這項回復，因為那樣撤銷的將是後來的那次變更。
+
 **安全的** 變更只涉及恰好一個具名物件：`rollout restart/undo/pause/resume`、`scale` （縮放到 0 以外的任何值）、刪除一個具名 Pod、`cordon`/`uncordon`，以及對一個具名的 Pod、Deployment、StatefulSet、DaemonSet、ReplicaSet、Job 或 CronJob 使用一般鍵（不是 `*.kubernetes.io/…` 或 `*.k8s.io/…` 這樣的保留鍵）執行 `label`/`annotate`。原則允許的其他一切都 **風險較高**：對不帶名稱的類型使用相同的動詞（`rollout restart deployment`）、作用於多個物件、帶選擇器或帶 `--all`；`scale` 到 0；刪除 Job；`taint`；`drain`；`patch`；`set image/env/resources`；`create`；帶 `--force` 刪除；以及對任何其他類型或使用保留鍵新增標籤或註解。
 
 有些界限在 **每種** 模式下都成立，包括略過核准，任何允許清單項目都無法改變它們：

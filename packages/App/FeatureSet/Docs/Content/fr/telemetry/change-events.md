@@ -107,6 +107,8 @@ Pour au plus 4 d'entre eux qui nomment un service, OneUptime lit la télémétri
 
 OneUptime décide quel changement est suspect à partir de ces chiffres, pas de ce que dit le titre d'un changement. L'investigation vérifie d'abord un changement suspect, dit s'il a causé l'incident, et dit si un retour arrière est le correctif sûr le plus rapide.
 
+Quand le changement suspect est un rollout Kubernetes sur un cluster dont les [correctifs IA](/docs/ai/ai-sre#fonctionnement-des-correctifs) sont activés, OneUptime AI effectue d'abord un retour arrière de ce rollout, avec un `kubectl rollout undo` que OneUptime construit à partir du changement enregistré. Pour un déploiement qui livre du code, le retour arrière passe par ses commits : l'investigation nomme le commit ou la pull request qui a causé le problème, pour qu'une [pull request de correctif](/docs/ai/ai-sre#correctifs-de-code-automatiques) puisse annuler exactement cela.
+
 Dans une investigation et dans [Demander à l'IA](/docs/ai/ask-ai), `recent_changes` liste les changements sur n'importe quelle période, et `get_change_details` montre ce qu'un déploiement a livré : les commits depuis le déploiement précédent du service, leurs auteurs, les pull requests et les fichiers qu'ils ont modifiés. Il faut pour cela le commit sur le changement et un dépôt connecté via la [GitHub App](/docs/ai/github-app).
 
 ## Référence

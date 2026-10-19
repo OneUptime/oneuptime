@@ -107,6 +107,8 @@ För upp till 4 av dem som anger en tjänst läser OneUptime tjänstens telemetr
 
 OneUptime avgör vilken ändring som är misstänkt utifrån de här siffrorna, inte utifrån vad en ändrings titel säger. Utredningen kontrollerar en misstänkt ändring först, säger om den orsakade incidenten och säger om det snabbaste säkra sättet att åtgärda den är att rulla tillbaka den.
 
+När den misstänkta ändringen är en utrullning i Kubernetes på ett kluster där [AI-åtgärder](/docs/ai/ai-sre#så-fungerar-åtgärder) är påslagna, rullar OneUptime AI först tillbaka den, med en `kubectl rollout undo` som OneUptime bygger utifrån den registrerade ändringen. En driftsättning som levererar kod rullas tillbaka genom sina commits: utredningen pekar ut den commit eller pull request som orsakade felet, så att en [pull-förfrågan med en korrigering](/docs/ai/ai-sre#automatiska-kodkorrigeringar) kan återställa precis den.
+
 I en utredning och i [Fråga AI](/docs/ai/ask-ai) listar `recent_changes` ändringarna i valfritt tidsfönster, och `get_change_details` visar vad en driftsättning levererade: commits sedan tjänstens föregående driftsättning, deras författare, pull requests och filerna de ändrade. Det kräver committen på ändringen och ett repository som är anslutet via [GitHub App](/docs/ai/github-app).
 
 ## Referens

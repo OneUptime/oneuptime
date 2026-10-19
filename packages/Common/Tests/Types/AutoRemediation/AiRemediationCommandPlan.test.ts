@@ -1341,3 +1341,44 @@ describe("isSettledCommandExecutionStatus", () => {
     );
   });
 });
+
+/*
+ * A rollback OneUptime built from a recorded change (roll_back_change)
+ * carries that change's id, for the card and the feed. Cosmetic like the
+ * snapshots: a value that is not an id is dropped, never fatal.
+ */
+describe("AiRemediationCommandPlanUtil.parse — the change a command rolls back", () => {
+  const CHANGE_ID: string = "55555555-5555-4555-8555-555555555555";
+
+  test("keeps the id of the recorded change a rollback was built from", () => {
+    expect(
+      onlyCommand(makePlan([makeCommand({ rolledBackChangeId: CHANGE_ID })]))
+        .rolledBackChangeId,
+    ).toBe(CHANGE_ID);
+  });
+
+  test("leaves it out when absent, or when it is not an id", () => {
+    expect(
+      onlyCommand(makePlan([makeCommand()])).rolledBackChangeId,
+    ).toBeUndefined();
+
+    for (const value of ["api", "", 42, true, null, { id: CHANGE_ID }]) {
+      expect(
+        onlyCommand(
+          makePlan([makeCommand({ rolledBackChangeId: value as never })]),
+        ).rolledBackChangeId,
+      ).toBeUndefined();
+    }
+  });
+
+  test("survives the round trip through the suggestion's column", () => {
+    const plan: AiRemediationCommandPlan = parseOk(
+      makePlan([makeCommand({ rolledBackChangeId: CHANGE_ID })]),
+    );
+
+    expect(
+      parseOk(AiRemediationCommandPlanUtil.toJSON(plan)).commands[0]!
+        .rolledBackChangeId,
+    ).toBe(CHANGE_ID);
+  });
+});
