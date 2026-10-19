@@ -1,6 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DETECTION_DISTINCT_COUNT_ATTRIBUTE,
+  DETECTION_EVALUATION_DELAY_IN_SECONDS,
   DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
   DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
   DETECTION_FINDING_CLASS_NAME,
@@ -36,6 +37,10 @@ import {
  * table are exported so tests can put them through the real parser and
  * compiler.
  */
+
+// How far behind "now" each run's window ends, for events still on their way.
+const DETECTION_EVALUATION_DELAY_IN_MINUTES: number =
+  DETECTION_EVALUATION_DELAY_IN_SECONDS / 60;
 
 // The product name DetectionRuleEvaluator stamps on its findings.
 const DETECTIONS_PRODUCT_NAME: string = "OneUptime Detections";
@@ -445,12 +450,12 @@ OneUptime checks every minute for enabled rules that are due. A rule is due once
 
 #### Which events each run sees
 
-Each run searches the events whose **event time** falls between the previous run and now, then moves its starting point forward:
+Each run searches the events whose **event time** falls between where the previous run stopped and **${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes ago**, then moves its starting point forward. The ${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes leave time for events still on their way - a log line read a minute after it was written, a batch a source sends late - so they are counted in the run that covers their time instead of being missed:
 
 - **Windows are back to back, not rolling.** With a 10-minute interval, events at 09:58 and 10:01 can land in different runs and are counted separately. Leave some headroom when you choose a threshold.
 - **The first run** looks back one interval.
 - **After a gap** — a worker outage, or a rule re-enabled after being disabled — the next run covers the whole gap, up to the last ${LOOKBACK_IN_HOURS} hours. For that one run, a "5 in 10 minutes" rule behaves like "5 since the last run".
-- **Late events are not re-checked.** The window uses the time each event says it happened, not when it arrived. An event that reaches OneUptime with a timestamp from before the rule's last run is stored and searchable, but that rule will not evaluate it.
+- **Late events are not re-checked.** The window uses the time each event says it happened, not when it arrived. An event that reaches OneUptime more than ${DETECTION_EVALUATION_DELAY_IN_MINUTES} minutes after that time, once a run has covered it, is stored and searchable, but that rule will not evaluate it.
 
 #### Group By Field
 

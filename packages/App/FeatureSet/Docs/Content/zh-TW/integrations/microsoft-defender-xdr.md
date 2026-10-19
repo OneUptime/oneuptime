@@ -56,7 +56,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 儲存之前先測試
 
-點選 **Test before saving** 下的 **Test these settings**。測試會用表單中的值登入並讀取警示，但不會儲存任何內容，因此錯誤的密碼或缺失的同意會在連線存在之前暴露出來。然後點選 **下一步**，為連線填寫 **名稱** 並建立它。
+點選 **儲存前測試** 下的 **Test these settings**。測試會用表單中的值登入並讀取警示，但不會儲存任何內容，因此錯誤的密碼或缺失的同意會在連線存在之前暴露出來。然後點選 **下一步**，為連線填寫 **名稱** 並建立它。
 :::
 
 | 設定 | 在哪裡找到 |
@@ -116,7 +116,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **縮小。** 下一次輪詢從同一個起點讀取長度減半的時間窗，並不斷減半，直到某個時間窗能被完整讀取，最短為一分鐘。執行的警告會說明這一點：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` 已從較長時間窗匯入的警示會作為重複項被跳過。
 2. **恢復。** 一個時間窗被完整讀取後，游標會移到它的末尾，下一個時間窗的長度會再次加倍，最長為 24 小時。
-3. **越過單獨的一分鐘。** 如果連一分鐘內都有超過 2,000 個警示，輪詢會越過這一分鐘，讓更新的警示繼續到達。這次執行仍為 **Partial**，**Last Error** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，即可找回一次執行能讀取的內容。
+3. **越過單獨的一分鐘。** 如果連一分鐘內都有超過 2,000 個警示，輪詢會越過這一分鐘，讓更新的警示繼續到達。這次執行仍為 **Partial**，**最近的錯誤** 顯示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 匯入這一分鐘，即可找回一次執行能讀取的內容。
 
 因其他原因而為 **Partial** 的執行，例如某個警示無法被讀取為安全性事件，也會以同樣的方式從同一個起點重試。更改 **Poll Interval (Minutes)** 不會改變以上任何一點：它決定輪詢多久開始一次，而不是時間窗從哪裡開始。
 
@@ -146,7 +146,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 ## 疑難排解
 
-連線的 **Last Error** 會保留完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首。連線出錯時，在它的 **操作** 欄中選擇 **檢視錯誤** 來閱讀，並在對話方塊中用 **Copy Error** 複製。請先閱讀字首。
+連線的 **最近的錯誤** 會保留完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首。連線出錯時，在它的 **操作** 欄中選擇 **檢視錯誤** 來閱讀，並在對話方塊中用 **複製錯誤** 複製。請先閱讀字首。
 
 :::details Last Error 以 `Microsoft Defender XDR token request` 開頭
 - `Microsoft Defender XDR token request failed (HTTP ...)`：Microsoft Entra ID 拒絕頒發權杖，所以根本沒有連線到 Graph。訊息末尾會有一條根據 Entra 的 `error` 代碼給出的提示：
@@ -178,7 +178,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 - 在連線存在之前建立的警示早於第一次 24 小時回溯。請用 **Import this time range** 匯入它。
 - **Partial** 執行是被 2,000 個警示的上限停下的。下一次輪詢會從同一個起點讀取更短的時間窗，所以一旦包含該警示的時間窗被完整讀取，它就會被匯入。
-- 如果 **Last Error** 指出了輪詢越過的某一分鐘，請用 **Import this time range** 匯入那一分鐘。
+- 如果 **最近的錯誤** 指出了輪詢越過的某一分鐘，請用 **Import this time range** 匯入那一分鐘。
 :::
 
 :::details 同一個警示出現了兩次

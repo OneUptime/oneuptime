@@ -655,7 +655,7 @@ curl -X POST "${ingestUrl}?format=udm" \\
               <AppLink
                 className="font-medium text-indigo-600 hover:text-indigo-700"
                 to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route,
+                  RouteMap[PageMap.MONITORS] as Route,
                 )}
               >
                 Security Events monitor

@@ -498,9 +498,9 @@ describe("SecurityEventConnectionsTable", () => {
     renderTable([]);
 
     const props: ModelTableProps<BaseModel> = tableProps();
-    expect(props.cardProps?.title).toBe("Security Event Connections");
+    expect(props.cardProps?.title).toBe("Your security tools");
     expect(props.cardProps?.description).toBe(
-      "Poll Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps as OCSF security events. Test access, run a poll, and inspect imports on demand.",
+      "Bring in alerts and events from the security tools you already use: Microsoft Sentinel, Defender XDR, CrowdStrike Falcon, Splunk, Elastic Security, AWS Security Hub, Okta and Google SecOps.",
     );
   });
 
@@ -1424,7 +1424,9 @@ describe("SecurityEventConnectionsTable", () => {
 
 /*
  * Security Events > Connections used to render this table above a second,
- * Google-only table. It is now just the reseller gate and this table.
+ * Google-only table. It is now the reseller gate in front of three cards:
+ * your logs, this table of security tools, and the SIEMs OneUptime sends
+ * to - where a Google SecOps connection is still one row like any other.
  */
 describe("Security Events > Connections page", () => {
   beforeEach((): void => {
@@ -1476,10 +1478,17 @@ describe("Security Events > Connections page", () => {
       screen.getAllByRole("table").map((table: HTMLElement): string | null => {
         return table.getAttribute("aria-label");
       }),
-    ).toEqual(["Security Event Connections"]);
+    ).toEqual(["Your security tools", "Send to your SIEM"]);
     expect(Array.from(mockTableProps.keys())).toEqual([
       "SecurityEventConnection",
+      "SecurityEventDestination",
     ]);
+    // Your logs comes first, above both tables.
+    expect(
+      screen.getByRole("switch", {
+        name: "Find security events in your logs",
+      }),
+    ).toBeInTheDocument();
     expect(row("Customer SecOps")).toHaveTextContent("Google SecOps");
     expect(row("Acme Okta")).toHaveTextContent("Okta System Log");
     expect(screen.queryByText(RESELLER_MESSAGE)).not.toBeInTheDocument();
@@ -1496,7 +1505,10 @@ describe("Security Events > Connections page", () => {
       });
 
       expect(
-        screen.getByRole("table", { name: "Security Event Connections" }),
+        screen.getByRole("table", { name: "Your security tools" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("table", { name: "Send to your SIEM" }),
       ).toBeInTheDocument();
       expect(screen.queryByText(RESELLER_MESSAGE)).not.toBeInTheDocument();
     },
@@ -1508,7 +1520,7 @@ describe("Security Events > Connections page", () => {
     });
 
     expect(
-      screen.getByRole("table", { name: "Security Event Connections" }),
+      screen.getByRole("table", { name: "Your security tools" }),
     ).toBeInTheDocument();
   });
 

@@ -56,7 +56,7 @@ Apri **Prodotti → Security Events → Connections** (`/dashboard/{projectId}/s
 
 ### Provarla prima di salvare
 
-Fai clic su **Test these settings** in **Test before saving**. Il test accede e legge gli avvisi con i valori del modulo, e non salva nulla, quindi un segreto errato o un consenso mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
+Fai clic su **Test these settings** in **Testa prima di salvare**. Il test accede e legge gli avvisi con i valori del modulo, e non salva nulla, quindi un segreto errato o un consenso mancante emergono prima che la connessione esista. Poi fai clic su **Avanti**, dai alla connessione un **Nome** e creala.
 :::
 
 | Impostazione | Dove trovarla |
@@ -116,7 +116,7 @@ Stopped after 20 alerts requests (the per-run request limit) before reading the 
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Gli avvisi già importati dalla finestra più lunga vengono saltati come duplicati.
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, il cursore passa alla sua fine, e la finestra successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di 2.000 avvisi, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Last Error** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di 2.000 avvisi, il polling lo supera, così gli avvisi più recenti continuano ad arrivare. L'esecuzione resta **Partial**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
 
 Un'esecuzione **Partial** per un altro motivo, come un avviso che non è stato possibile leggere come evento di sicurezza, viene riprovata allo stesso modo, dallo stesso punto di partenza. Cambiare il **Poll Interval (Minutes)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
@@ -146,7 +146,7 @@ Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai
 
 ## Risoluzione dei problemi
 
-Il **Last Error** della connessione conserva il messaggio di errore completo, con le credenziali oscurate, dietro un prefisso che nomina il passaggio fallito. Quando una connessione ha un errore, seleziona **Visualizza errore** nella sua colonna **Azioni** per leggerlo, e **Copy Error** nella finestra di dialogo per copiarlo. Leggi prima il prefisso.
+Il **Ultimo errore** della connessione conserva il messaggio di errore completo, con le credenziali oscurate, dietro un prefisso che nomina il passaggio fallito. Quando una connessione ha un errore, seleziona **Visualizza errore** nella sua colonna **Azioni** per leggerlo, e **Copia errore** nella finestra di dialogo per copiarlo. Leggi prima il prefisso.
 
 :::details Last Error inizia con `Microsoft Defender XDR token request`
 - `Microsoft Defender XDR token request failed (HTTP ...)`: Microsoft Entra ID si è rifiutato di rilasciare un token, quindi Graph non è mai stato contattato. Il messaggio termina con un suggerimento, in base al codice `error` di Entra:
@@ -178,7 +178,7 @@ Confronta il `createdDateTime` dell'avviso nel portale di Defender con la finest
 
 - Un avviso creato prima che la connessione esistesse è più vecchio del primo sguardo indietro di 24 ore. Importalo con **Import this time range**.
 - Un'esecuzione **Partial** è stata fermata dal limite di 2.000 avvisi. L'interrogazione successiva legge una finestra più corta dallo stesso inizio, quindi l'avviso viene importato non appena una finestra che lo contiene viene letta per intero.
-- Se **Last Error** nomina un minuto che il polling ha superato, importa quel minuto con **Import this time range**.
+- Se **Ultimo errore** nomina un minuto che il polling ha superato, importa quel minuto con **Import this time range**.
 :::
 
 :::details Lo stesso avviso compare due volte

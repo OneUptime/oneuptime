@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Threat Intel로 이동하기
 
-**제품 → Security Events → Threat Intel** 을 엽니다.
+**제품 → Security Events → Detections → Threat Intel** 을 엽니다.
 
 ### 피드 만들기
 

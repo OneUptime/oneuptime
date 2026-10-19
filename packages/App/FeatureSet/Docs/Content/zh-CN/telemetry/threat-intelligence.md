@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### 前往 Threat Intel
 
-打开 **产品 → Security Events → Threat Intel** 。
+打开 **产品 → Security Events → Detections → Threat Intel** 。
 
 ### 创建情报源
 

@@ -207,7 +207,6 @@ describe("the saved views each resource's custom fields appear in", () => {
     expect(getCustomFieldSavedViewTableIds("MonitorCustomField")).toEqual([
       "all-monitors-table",
       "archived-monitors-table",
-      "security-events-monitors-table",
       "llm-alerts-monitors-table",
     ]);
     expect(

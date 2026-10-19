@@ -48,7 +48,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### 저장하기 전에 테스트
 
-**Test before saving** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 인증하고 검색을 실행하며 아무것도 저장하지 않으므로, 잘못된 포트나 빠진 역할이 연결을 만들기 전에 드러납니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
+**저장하기 전에 테스트** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 인증하고 검색을 실행하며 아무것도 저장하지 않으므로, 잘못된 포트나 빠진 역할이 연결을 만들기 전에 드러납니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
 :::
 
 | 설정 | 입력할 값 |
@@ -119,7 +119,7 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 notable event가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **Partial**로 남고, **Last Error**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`라고 나옵니다. 한 번의 실행이 읽을 수 있는 만큼 되찾으려면 **Import this time range**로 그 1분을 가져오세요.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 notable event가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **Partial**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`라고 나옵니다. 한 번의 실행이 읽을 수 있는 만큼 되찾으려면 **Import this time range**로 그 1분을 가져오세요.
 
 Splunk의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답하기에는 너무 무거운 구간은 시도할 때마다 시간이 초과되기 때문입니다. **Poll Interval (Minutes)** 값을 바꿔도 이 중 어느 것도 달라지지 않습니다. 이 설정은 폴링이 얼마나 자주 시작하는지를 정할 뿐, 구간이 어디서 시작하는지는 정하지 않습니다.
 
@@ -149,7 +149,7 @@ Splunk의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 
 ## 문제 해결
 
-연결의 **Last Error**는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **Copy Error**로 복사합니다. 먼저 접두사를 읽으세요.
+연결의 **마지막 오류**는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **오류 복사**로 복사합니다. 먼저 접두사를 읽으세요.
 
 :::details Last Error가 `Splunk Enterprise Security authentication request`로 시작함
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk가 호출자가 누구인지 알려 주기를 거부했습니다.

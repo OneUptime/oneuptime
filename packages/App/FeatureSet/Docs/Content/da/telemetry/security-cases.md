@@ -188,7 +188,7 @@ En e-mail eller et opslag uden egen besked sender en opsummering af sagen.
 
 ### Kørsler og godkendelser
 
-Hver kørsel vises på sin sag og under **Produkter → Security Events → Playbook Runs**, trin for trin:
+Hver kørsel vises på sin sag og under **Produkter → Security Events → Playbooks → Playbook Runs**, trin for trin:
 
 | Kørselsstatus | Betyder |
 | --- | --- |
@@ -199,7 +199,7 @@ Hver kørsel vises på sin sag og under **Produkter → Security Events → Play
 | Mislykkedes | Et trin mislykkedes, og kørslen stoppede |
 | Annulleret | Nogen annullerede den eller afviste et trin |
 
-Et trin, der venter på godkendelse, viser **Approve** og **Reject** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet og på sagens tidslinje. **Playbook Runs** viser først de kørsler, der venter på godkendelse, og menupunktet tæller dem.
+Et trin, der venter på godkendelse, viser **Approve** og **Reject** på kørslen med en valgfri kommentar. En godkendelse fører kørslen videre fra det trin; en afvisning afslutter den. Beslutningen, hvem der traf den, og deres kommentar gemmes på trinnet og på sagens tidslinje. **Playbook Runs** viser først de kørsler, der venter på godkendelse, og menupunktet **Playbooks** tæller dem.
 
 En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart, bliver samlet op igen: en kørsel i kø sættes i kø igen efter 2 minutter, og en kørsel, der ikke har meldt noget i 30 minutter, markeres som mislykket.
 
@@ -208,16 +208,16 @@ En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart,
 **Produkter → Security Events → Oversigt** er der, hvor produktet åbner:
 
 - De åbne sager, der er tildelt dig, de åbne sager, som ingen har taget, og de playbook-trin, der venter på godkendelse.
-- **Mean Time to Acknowledge**, **Mean Time to Contain** og **Mean Time to Close** over de sager, der er åbnet inden for de seneste 30 dage: fra en sag åbnes, til nogen tager den (tildeler en person eller flytter den ud af Ny), til Contained og til Lukket. En sag, der stadig venter, tælles ikke med i et gennemsnit.
+- **Gennemsnitlig tid til kvittering**, **Gennemsnitlig tid til inddæmning** og **Gennemsnitlig tid til lukning** over de sager, der er åbnet inden for de seneste 30 dage: fra en sag åbnes, til nogen tager den (tildeler en person eller flytter den ud af Ny), til Contained og til Lukket. En sag, der stadig venter, tælles ikke med i et gennemsnit.
 - De sager, der er åbnet hver dag i 30 dage, efter prioritet, og de detektioner, der er rejst hver dag i 14 dage, efter kilde.
 - De åbne sager efter prioritet og efter status, konklusionerne fra de seneste 30 dage, ATT&CK-taktikkerne bag sagerne, de detektioner, der blev udløst oftest, og de entiteter, som flest fund nævner.
 
-Et projekt, der endnu ikke har sager eller detektioner, viser over disse de tre trin, der sætter det op.
+Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, sager og playbooks, hver med sine tal. Et projekt, der endnu ikke har sat det op, ser **Slå anbefalet til** og **Send et testangreb** der; se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started). Når intet kræver nogen, siger siden **Alt er roligt**, og diagrammerne vises, så snart der er noget at vise.
 
 ## Find trusler
 
 - **Entiteter** rangerer de brugere, værter, adresser og hashes, som dine fund nævner oftest, over det seneste døgn, den seneste uge eller måned, og slår enhver værdi op på tværs af 30 dages begivenheder.
-- **Rule Library** har færdige detektionsregler til trusler mod identitet, endpoints, cloud, netværk, web og Kubernetes. Hver er en Sigma-regel, skrevet til de felter, som alle forbundne kilder normaliseres til. **Tilføj regel** opretter den som din egen detektionsregel, slået til, og den åbner sager i stedet for advarsler; du ændrer den under **Detection Rules** som enhver anden.
+- **Rule Library** har færdige detektionsregler til trusler mod identitet, endpoints, cloud, netværk, web og Kubernetes. Hver er en Sigma-regel, skrevet til de felter, som alle forbundne kilder normaliseres til. **Tilføj regel** opretter den som din egen detektionsregel, slået til, og den åbner sager i stedet for advarsler; du ændrer den under **Detection Rules** som enhver anden. Reglerne markeret **Anbefalet** finder trusler i data, OneUptime allerede har, og én knap tilføjer dem, du ikke har endnu.
 - **ATT&CK Coverage** tegner MITRE ATT&CK-matricen, fremhæver de teknikker, dine aktiverede regler dækker, og sætter en ramme om dem, en regel fra biblioteket ville dække.
 
 ## Automatisér

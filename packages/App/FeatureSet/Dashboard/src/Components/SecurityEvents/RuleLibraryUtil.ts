@@ -2,6 +2,7 @@ import {
   DETECTION_RULE_LIBRARY,
   DetectionRuleLibraryCategory,
   DetectionRuleLibraryEntry,
+  isRecommendedDetectionRule,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 
 /*
@@ -16,7 +17,23 @@ import {
 export interface LibraryRuleView {
   entry: DetectionRuleLibraryEntry;
   isAdded: boolean;
+  /*
+   * One of the rules "Turn on recommended" adds: they find what most
+   * projects can see in data OneUptime already has (sign-ins, shells,
+   * cloud changes, web attacks).
+   */
+  isRecommended: boolean;
 }
+
+// The library's own filter beside its categories: the recommended rules.
+export type RecommendedFilter = "recommended";
+
+export const RECOMMENDED_FILTER: RecommendedFilter = "recommended";
+
+export type LibraryRuleFilter =
+  | DetectionRuleLibraryCategory
+  | RecommendedFilter
+  | "";
 
 function normalizeName(name: string): string {
   return (name || "").trim().toLowerCase();
@@ -66,15 +83,30 @@ export function matchesLibrarySearch(
   });
 }
 
+function matchesLibraryFilter(
+  entry: DetectionRuleLibraryEntry,
+  filter: LibraryRuleFilter,
+): boolean {
+  if (!filter) {
+    return true;
+  }
+
+  if (filter === RECOMMENDED_FILTER) {
+    return isRecommendedDetectionRule(entry);
+  }
+
+  return entry.category === filter;
+}
+
 export function getLibraryRuleViews(data: {
-  category: DetectionRuleLibraryCategory | "";
+  category: LibraryRuleFilter;
   search: string;
   existingRuleNames: Array<string>;
 }): Array<LibraryRuleView> {
   return DETECTION_RULE_LIBRARY.filter(
     (entry: DetectionRuleLibraryEntry): boolean => {
       return (
-        (!data.category || entry.category === data.category) &&
+        matchesLibraryFilter(entry, data.category) &&
         matchesLibrarySearch(entry, data.search)
       );
     },
@@ -82,6 +114,21 @@ export function getLibraryRuleViews(data: {
     return {
       entry,
       isAdded: isLibraryRuleAdded(entry, data.existingRuleNames),
+      isRecommended: isRecommendedDetectionRule(entry),
     };
   });
+}
+
+// The recommended rules the project has no rule of yet.
+export function getRecommendedRulesNotAdded(
+  existingRuleNames: Array<string>,
+): Array<DetectionRuleLibraryEntry> {
+  return DETECTION_RULE_LIBRARY.filter(
+    (entry: DetectionRuleLibraryEntry): boolean => {
+      return (
+        isRecommendedDetectionRule(entry) &&
+        !isLibraryRuleAdded(entry, existingRuleNames)
+      );
+    },
+  );
 }

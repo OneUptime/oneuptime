@@ -1,102 +1,71 @@
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
 import {
   SECURITY_EVENTS_MENU,
-  SecurityEventsMenuBadge,
   SecurityEventsMenuItem,
-  SecurityEventsMenuSection,
+  getSecurityEventsMenuItemPages,
 } from "../../Utils/SecurityEventsNavigation";
+import {
+  SecurityEventsBadgeCount,
+  getSecurityEventsBadgeCount,
+} from "../../Components/SecurityEvents/SecurityEventsBadgeCount";
 import Route from "Common/Types/API/Route";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import Query from "Common/Types/BaseDatabase/Query";
-import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import SideMenu, {
   SideMenuItemProps,
-  SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
-import ProjectUtil from "Common/UI/Utils/Project";
-import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
-import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
-import { OPEN_SECURITY_CASE_STATUSES } from "Common/Types/SecurityCase/SecurityCaseStatus";
-import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
-interface MenuBadgeCount {
-  modelType: { new (): BaseModel };
-  countQuery: Query<BaseModel>;
-  badgeType: BadgeType;
+function routeOf(page: PageMap): Route {
+  return RouteUtil.populateRouteParams(RouteMap[page] as Route);
 }
 
 /*
- * The live counts beside an entry: the open cases, and the playbook runs
- * waiting for somebody to approve a step. Both are read with the person's
- * own permissions, so a role that cannot read cases sees no number at all.
+ * The page of an entry's group the person is on, so the entry stays lit
+ * on its tabs too (Rule Library under Detections, Playbook Runs under
+ * Playbooks).
  */
-function getBadgeCount(
-  badge: SecurityEventsMenuBadge | undefined,
-): MenuBadgeCount | undefined {
-  const projectId: string | undefined =
-    ProjectUtil.getCurrentProjectId()?.toString();
+function getActiveRoute(item: SecurityEventsMenuItem): Route | undefined {
+  const activePage: PageMap | undefined = getSecurityEventsMenuItemPages(
+    item,
+  ).find((page: PageMap): boolean => {
+    return Navigation.isOnThisPage(routeOf(page));
+  });
 
-  if (!badge || !projectId) {
-    return undefined;
-  }
-
-  switch (badge) {
-    case "openCases":
-      return {
-        modelType: SecurityCase,
-        countQuery: {
-          projectId: projectId,
-          status: new Includes([...OPEN_SECURITY_CASE_STATUSES]),
-        } as Query<BaseModel>,
-        badgeType: BadgeType.DANGER,
-      };
-    case "runsWaitingForApproval":
-      return {
-        modelType: SecurityPlaybookRun,
-        countQuery: {
-          projectId: projectId,
-          status: SecurityPlaybookRunStatus.WaitingForApproval,
-        } as Query<BaseModel>,
-        badgeType: BadgeType.WARNING,
-      };
-    default:
-      return undefined;
-  }
+  return activePage ? routeOf(activePage) : undefined;
 }
 
+/*
+ * The live counts beside an entry (the open cases, the playbook runs
+ * waiting for an approval) come from SecurityEventsBadgeCount, which the
+ * page tabs read too.
+ */
 const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
-  const sections: Array<SideMenuSectionProps> = SECURITY_EVENTS_MENU.map(
-    (section: SecurityEventsMenuSection): SideMenuSectionProps => {
-      return {
-        title: section.title,
-        defaultCollapsed: section.startsCollapsed || false,
-        items: section.items.map(
-          (item: SecurityEventsMenuItem): SideMenuItemProps => {
-            const count: MenuBadgeCount | undefined = getBadgeCount(item.badge);
+  const items: Array<SideMenuItemProps> = SECURITY_EVENTS_MENU.map(
+    (item: SecurityEventsMenuItem): SideMenuItemProps => {
+      const count: SecurityEventsBadgeCount | undefined =
+        getSecurityEventsBadgeCount(item.badge);
+      const activeRoute: Route | undefined = getActiveRoute(item);
 
-            return {
-              link: {
-                title: item.title,
-                to: RouteUtil.populateRouteParams(RouteMap[item.page] as Route),
-              },
-              icon: item.icon,
-              ...(count
-                ? {
-                    modelType: count.modelType,
-                    countQuery: count.countQuery,
-                    badgeType: count.badgeType,
-                  }
-                : {}),
-            };
-          },
-        ),
+      return {
+        link: {
+          title: item.title,
+          to: routeOf(item.page),
+        },
+        icon: item.icon,
+        ...(activeRoute ? { activeRoute } : {}),
+        ...(count
+          ? {
+              modelType: count.modelType,
+              countQuery: count.countQuery,
+              badgeType: count.badgeType,
+            }
+          : {}),
       };
     },
   );
 
-  return <SideMenu sections={sections} />;
+  return <SideMenu items={items} />;
 };
 
 export default SecurityEventsSideMenu;

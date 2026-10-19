@@ -14,6 +14,7 @@ import SigmaRule, {
 } from "../../../Types/SecurityEvent/SigmaRule";
 import {
   DETECTION_DISTINCT_COUNT_ATTRIBUTE,
+  DETECTION_EVALUATION_DELAY_IN_SECONDS,
   DETECTION_FINDING_CLASS_NAME,
   DETECTION_FINDING_CLASS_UID,
   DETECTION_GROUP_VALUE_ATTRIBUTE,
@@ -37,7 +38,7 @@ import SecurityEventService, {
 import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
-import { Statement } from "../AnalyticsDatabase/Statement";
+import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import ConnectorErrorMessage from "./ConnectorErrorMessage";
 import {
   AlertableMatch,
@@ -82,9 +83,26 @@ export interface DetectionRuleEvaluationResult {
 }
 
 /*
+ * A setup test (SecuritySetup.runTest): the rule reads only the test's own
+ * events (`restrictTo`) over the test's window. Its matches open a case,
+ * whose playbooks run only if they stay inside OneUptime, and nothing
+ * else: no alert, no incident, no Detection Finding, and the rule's own
+ * schedule is left as it was.
+ */
+export interface DetectionRuleSetupTest {
+  restrictTo: Statement;
+  startTime: Date;
+  endTime: Date;
+}
+
+/*
  * The detections-as-code engine: every minute, evaluate due Sigma rules
  * against the SecurityEvent table; matches open deduped alerts and write
  * Detection Finding rows back into the events table.
+ *
+ * A rule reads up to DETECTION_EVALUATION_DELAY_IN_SECONDS behind the
+ * clock, and is due on that clock too, so its windows stay as long as its
+ * interval and every event is in the table before its moment is read.
  */
 export default class DetectionRuleEvaluator {
   @CaptureSpan()
@@ -118,7 +136,11 @@ export default class DetectionRuleEvaluator {
       },
     });
 
-    const now: Date = OneUptimeDate.getCurrentDate();
+    // The clock the rules read by: DETECTION_EVALUATION_DELAY_IN_SECONDS behind.
+    const now: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+    );
 
     for (const rule of rules) {
       const intervalInMinutes: number = Math.max(
@@ -178,16 +200,32 @@ export default class DetectionRuleEvaluator {
   @CaptureSpan()
   public static async evaluateRule(
     rule: DetectionRule,
+    options: { setupTest?: DetectionRuleSetupTest | undefined } = {},
   ): Promise<DetectionRuleEvaluationResult> {
     if (!rule.id || !rule.projectId || !rule.sigmaRuleYaml) {
       throw new Error("Detection rule is missing id, projectId, or YAML.");
     }
 
+    const setupTest: DetectionRuleSetupTest | undefined = options.setupTest;
     const parsedRule: SigmaRule = SigmaRuleParser.parse(rule.sigmaRuleYaml);
-    const whereFragment: Statement =
+    const ruleWhereFragment: Statement =
       SigmaClickhouseCompiler.compile(parsedRule);
 
-    const endTime: Date = OneUptimeDate.getCurrentDate();
+    // A setup test reads only its own events.
+    const whereFragment: Statement = setupTest
+      ? SQL`(`
+          .append(ruleWhereFragment)
+          .append(") AND (")
+          .append(setupTest.restrictTo)
+          .append(")")
+      : ruleWhereFragment;
+
+    const endTime: Date = setupTest
+      ? setupTest.endTime
+      : OneUptimeDate.addRemoveSeconds(
+          OneUptimeDate.getCurrentDate(),
+          -DETECTION_EVALUATION_DELAY_IN_SECONDS,
+        );
     const intervalInMinutes: number = Math.max(
       1,
       rule.evaluationIntervalInMinutes || 1,
@@ -204,6 +242,10 @@ export default class DetectionRuleEvaluator {
 
     if (OneUptimeDate.isBefore(startTime, earliestAllowed)) {
       startTime = earliestAllowed;
+    }
+
+    if (setupTest) {
+      startTime = setupTest.startTime;
     }
 
     const groupByExpression: Statement | null = rule.groupByField
@@ -257,7 +299,7 @@ export default class DetectionRuleEvaluator {
     }
 
     if (matchedGroups.length > 0) {
-      if (rule.shouldCreateAlert !== false) {
+      if (!setupTest && rule.shouldCreateAlert !== false) {
         alertsCreated = await this.openAlertsForMatches({
           rule,
           parsedRule,
@@ -273,7 +315,7 @@ export default class DetectionRuleEvaluator {
        * defaults to false — a rule fetched without the column selected
        * must read as off, never as "probably on".
        */
-      if (rule.shouldCreateIncident === true) {
+      if (!setupTest && rule.shouldCreateIncident === true) {
         incidentsCreated = await this.openIncidentsForMatches({
           rule,
           parsedRule,
@@ -283,7 +325,7 @@ export default class DetectionRuleEvaluator {
         });
       }
 
-      if (rule.shouldWriteDetectionFinding !== false) {
+      if (!setupTest && rule.shouldWriteDetectionFinding !== false) {
         findingEventUids = await this.writeDetectionFindings({
           rule,
           parsedRule,
@@ -298,7 +340,7 @@ export default class DetectionRuleEvaluator {
        * too. A failure here is logged, never the rule's error - the
        * detections are already recorded as alerts and findings.
        */
-      if (rule.shouldCreateCase !== false) {
+      if (setupTest || rule.shouldCreateCase !== false) {
         try {
           const ingestResult: SecurityCaseIngestResult =
             await SecurityCaseIngest.recordDetections(
@@ -309,7 +351,11 @@ export default class DetectionRuleEvaluator {
                 findingEventUids,
                 startTime,
                 endTime,
-              }),
+              }).map(
+                (signal: SecurityDetectionSignal): SecurityDetectionSignal => {
+                  return setupTest ? { ...signal, isSetupTest: true } : signal;
+                },
+              ),
             );
 
           casesOpened = ingestResult.casesOpened;
@@ -322,17 +368,20 @@ export default class DetectionRuleEvaluator {
       }
     }
 
-    await DetectionRuleService.updateOneById({
-      id: rule.id,
-      data: {
-        lastEvaluatedAt: endTime,
-        lastError: null as unknown as string,
-        ...(matchedGroups.length > 0 ? { lastMatchAt: endTime } : {}),
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    // A setup test leaves the rule's own schedule as it was.
+    if (!setupTest) {
+      await DetectionRuleService.updateOneById({
+        id: rule.id,
+        data: {
+          lastEvaluatedAt: endTime,
+          lastError: null as unknown as string,
+          ...(matchedGroups.length > 0 ? { lastMatchAt: endTime } : {}),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     return {
       ruleId: rule.id.toString(),

@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Gå til Threat Intel
 
-Åpne **Produkter → Security Events → Threat Intel**.
+Åpne **Produkter → Security Events → Detections → Threat Intel**.
 
 ### Opprett feeden
 

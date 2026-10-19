@@ -568,6 +568,8 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
     "URL",
     "Body",
     "Chronicle API Viewer",
+    // The role a key that sends events to Google SecOps needs.
+    "Chronicle API Editor",
     "Keys",
     "JSON",
     "SIEM Settings → Profile",
@@ -684,11 +686,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      * locale words: the providers' titles, the connection form's settings
      * and options from the connector catalog, the Health states, the checks
      * a test reports, the counts of a run and a preview's button, all drawn
-     * in English. A version is a version.
+     * in English. A version is a version. (Instance resource name and
+     * Service account JSON are labels now: the Send to your SIEM form draws
+     * them through the locales.)
      */
     [GOOGLE_SECOPS]: [
-      "Instance resource name",
-      "Service account JSON",
       "Data to import",
       "Last poll succeeded",
       "Polling, no events imported yet",

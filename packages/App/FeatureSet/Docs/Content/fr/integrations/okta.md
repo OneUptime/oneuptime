@@ -46,7 +46,7 @@ Ouvrez **Produits → Événements de sécurité → Connexions** (`/dashboard/{
 
 ### La tester avant d'enregistrer
 
-Cliquez sur **Test these settings** sous **Test before saving**. Le test se connecte et lit les événements avec les valeurs du formulaire, sans rien stocker : une mauvaise URL ou un filtre invalide apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
+Cliquez sur **Test these settings** sous **Tester avant d'enregistrer**. Le test se connecte et lit les événements avec les valeurs du formulaire, sans rien stocker : une mauvaise URL ou un filtre invalide apparaît donc avant que la connexion n'existe. Cliquez ensuite sur **Suivant**, donnez un **Nom** à la connexion et créez-la.
 :::
 
 | Réglage | Ce qu'il faut saisir |

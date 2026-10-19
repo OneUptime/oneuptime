@@ -46,7 +46,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 保存之前先测试
 
-点击 **Test before saving** 下的 **Test these settings**。测试会用表单中的值登录并读取事件，不保存任何内容，所以错误的 URL 或无效的过滤器会在连接创建之前就暴露出来。然后点击 **下一步**，为连接设置一个 **名称** 并创建它。
+点击 **保存前测试** 下的 **Test these settings**。测试会用表单中的值登录并读取事件，不保存任何内容，所以错误的 URL 或无效的过滤器会在连接创建之前就暴露出来。然后点击 **下一步**，为连接设置一个 **名称** 并创建它。
 :::
 
 | 设置 | 填写什么 |
@@ -135,7 +135,7 @@ Stopped after collecting 10000 events; the window holds more. The last event rea
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达，之后轮询的重叠部分也不会再回到这一分钟。这次运行仍为 **Partial**，**Last Error** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，就能找回一次运行能读取的内容，或者缩小 **Event filter** 的范围。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达，之后轮询的重叠部分也不会再回到这一分钟。这次运行仍为 **Partial**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，就能找回一次运行能读取的内容，或者缩小 **Event filter** 的范围。
 
 因 Okta 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **Poll Interval (Minutes)** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -165,7 +165,7 @@ Stopped after collecting 10000 events; the window holds more. The last event rea
 
 ## 故障排除
 
-连接的 **Last Error** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **Copy Error** 复制。每条消息都以 `Okta System Log events request` 开头，并在状态之后引用 Okta 自己的错误代码；请阅读后面的内容。
+连接的 **最近错误** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **复制错误** 复制。每条消息都以 `Okta System Log events request` 开头，并在状态之后引用 Okta 自己的错误代码；请阅读后面的内容。
 
 :::details Last Error 显示 `failed (HTTP 400)`
 Okta 拒绝了请求的参数（`E0000053`）。如果令牌有效，问题几乎总是出在 **Event filter** 上：请检查它的运算符（`eq`、`ne`、`co`、`sw`、`ew`、`pr`、`gt`、`ge`、`lt` 和 `le`）、它的 `and` 和 `or`，以及值两边的双引号，或者清空它以使用默认事件族。对于导入，这也可能表示范围的开始时间早于 180 天前。

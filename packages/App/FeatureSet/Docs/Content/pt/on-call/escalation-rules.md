@@ -120,7 +120,7 @@ Uma mensagem mais longa, com um título longo ou uma descrição longa que um mo
 
 ### Quando um acionamento não é enviado
 
-Um acionamento não enviado diz o motivo nos **Registros de plantão** da pessoa (Configurações do usuário): a linha mostra **Erro**, e a mensagem de status dá a razão. Ele não fica mais parado em **Sending**. A mensagem diz uma destas coisas:
+Um acionamento não enviado diz o motivo nos **Registros de plantão** da pessoa (Configurações do usuário): a linha mostra **Erro**, e a mensagem de status dá a razão. Ele não fica mais parado em **Enviando**. A mensagem diz uma destas coisas:
 
 - o saldo do projeto não pôde pagá-lo, e quem pode adicionar saldo;
 - o canal está desligado no projeto, e quem pode ligá-lo.

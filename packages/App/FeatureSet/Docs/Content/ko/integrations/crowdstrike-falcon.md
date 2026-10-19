@@ -53,7 +53,7 @@ Falcon이 보여 준 기본 URL로 CID가 속한 클라우드를 알 수 있습�
 
 ### 저장하기 전에 테스트
 
-**Test before saving** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 로그인해 알림을 읽지만 아무것도 저장하지 않으므로, 잘못된 클라우드나 빠진 범위를 연결이 생기기 전에 알 수 있습니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
+**저장하기 전에 테스트** 아래의 **Test these settings**를 클릭합니다. 테스트는 양식의 값으로 로그인해 알림을 읽지만 아무것도 저장하지 않으므로, 잘못된 클라우드나 빠진 범위를 연결이 생기기 전에 알 수 있습니다. 그런 다음 **다음**을 클릭하고 연결에 **이름**을 지정해 만듭니다.
 :::
 
 | 설정 | 입력할 값 |
@@ -109,7 +109,7 @@ Falcon의 알림 쿼리는 결과 10,000개(`limit` 더하기 `offset`)를 넘�
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **Partial**로 남고, **Last Error**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 알림이 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **Partial**로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`가 표시됩니다. 그 1분을 **Import this time range**로 가져오면 한 번의 실행으로 읽을 수 있는 만큼 되찾을 수 있습니다.
 
 Falcon의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답할 수 없을 만큼 무거운 구간은 매번 시간 초과될 것이기 때문입니다. **Poll Interval (Minutes)** 값을 바꿔도 이 중 어느 것도 바뀌지 않습니다. 이 값은 폴링이 얼마나 자주 시작되는지를 정할 뿐, 구간이 어디서 시작되는지는 정하지 않습니다.
 
@@ -139,7 +139,7 @@ Falcon의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 
 ## 문제 해결
 
-연결의 **Last Error**와 실패한 모든 검사는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **Copy Error**로 복사합니다. 먼저 접두사를 읽으세요.
+연결의 **마지막 오류**와 실패한 모든 검사는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **오류 복사**로 복사합니다. 먼저 접두사를 읽으세요.
 
 :::details Last Error가 `CrowdStrike Falcon token request`로 시작함
 - `CrowdStrike Falcon token request failed (HTTP 401)` 또는 `(HTTP 403)`: Alerts API에 연결하기 전에 Falcon이 API 클라이언트의 ID와 시크릿을 거부했습니다. **Falcon cloud**가 CID의 클라우드인지(다른 클라우드의 클라이언트는 여기서 거부됩니다), **클라이언트 ID**가 그 클라이언트의 것인지, **Client secret**이 그 클라이언트와 함께 발급된 시크릿인지 확인합니다. 시크릿을 잃어버렸다면 Falcon 콘솔에서 재설정하고 **Update credentials**로 저장합니다.

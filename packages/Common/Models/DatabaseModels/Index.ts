@@ -161,6 +161,8 @@ import SecurityCaseNote from "./SecurityCaseNote";
 import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
+import SecurityEventDestination from "./SecurityEventDestination";
+import SecurityLogSource from "./SecurityLogSource";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
@@ -581,6 +583,8 @@ const AllModelTypes: Array<{
   SecurityDetection,
   SecurityPlaybook,
   SecurityPlaybookRun,
+  SecurityEventDestination,
+  SecurityLogSource,
   LogScrubRule,
   MetricPipelineRule,
   LlmCostBudget,
