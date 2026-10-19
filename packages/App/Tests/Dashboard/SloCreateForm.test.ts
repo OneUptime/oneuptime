@@ -29,8 +29,11 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
   ADVANCED_FORM_SECTION_ID,
   MORE_FIELDS_SECTION_TITLE,
+  isFormSectionConfigured,
 } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { getCreateFormColumnDefault } from "Common/UI/Components/Forms/Utils/CreateFormDefaults";
+import { getFoldedFormFieldItems } from "Common/UI/Components/Forms/Utils/FoldedFormFields";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import Validation from "Common/UI/Components/Forms/Validation";
 
 /*
@@ -606,5 +609,90 @@ describe("the SLO create form's window fields", () => {
     expect(String(fieldFor("targetPercentage").description)).toContain(
       "downtime",
     );
+  });
+});
+
+/*
+ * The folded More fields line on Create SLO, as the form draws it inside
+ * ModelForm - which hands each field of a Create form its column's default
+ * (Utils/CreateFormDefaults) - so with the three seeds that are exactly
+ * those defaults. The line names them plainly, as every form names what it
+ * holds, and the sentence under it says what they do. Called set ("At-Risk
+ * Threshold (%): 20, Window Type: Rolling, Window (Days): 30") they would
+ * claim choices nobody made, and say twice what the sentence says once.
+ */
+describe("the folded More fields line on Create SLO", () => {
+  // The folded fields as ModelForm hands them to the form, on screen for these values.
+  function foldedAsDrawn(values: SloValues): Array<SloField> {
+    const model: ServiceLevelObjective = new ServiceLevelObjective();
+
+    return CREATE_FIELDS.filter((field: SloField): boolean => {
+      return (
+        Boolean(field.collapsibleSection) &&
+        (!field.showIf || field.showIf(values))
+      );
+    }).map((field: SloField): SloField => {
+      const columnDefault: string | number | boolean | undefined =
+        getCreateFormColumnDefault(model, field);
+
+      return columnDefault === undefined
+        ? field
+        : {
+            ...field,
+            defaultValue: columnDefault,
+            columnDefaultValue: columnDefault,
+          };
+    });
+  }
+
+  function lineItems(values: SloValues): Array<FoldedSectionItem> {
+    const fields: Array<SloField> = foldedAsDrawn(values);
+
+    return getFoldedFormFieldItems(fields, values, {
+      isSectionConfigured: isFormSectionConfigured({
+        section: fields[0]!.collapsibleSection!,
+        fields: fields,
+        values: values,
+      }),
+    });
+  }
+
+  test("names the seeded defaults without calling them set, and says what they do under the line", () => {
+    const values: SloValues = withValues({});
+    const items: Array<FoldedSectionItem> = lineItems(values);
+
+    expect(
+      items.map((item: FoldedSectionItem): string => {
+        return item.title;
+      }),
+    ).toEqual([
+      "Description",
+      "At-Risk Threshold (%)",
+      "Window Type",
+      "Window (Days)",
+      "Labels",
+    ]);
+    expect(
+      items.filter((item: FoldedSectionItem): boolean => {
+        return item.isSet;
+      }),
+    ).toEqual([]);
+    expect(getSloAdvancedSummary(values)).toEqual([DEFAULTS_SUMMARY]);
+  });
+
+  test("a window changed from its default is a set value, and the defaults sentence goes", () => {
+    const values: SloValues = withValues({ windowDays: 7 });
+    const items: Array<FoldedSectionItem> = lineItems(values);
+
+    expect(
+      items
+        .filter((item: FoldedSectionItem): boolean => {
+          return item.isSet;
+        })
+        .map((item: FoldedSectionItem): string => {
+          return `${item.title}: ${item.value}`;
+        }),
+    ).toEqual(["Window (Days): 7"]);
+    expect(getSloAdvancedSummary(values)).toBeUndefined();
   });
 });

@@ -67,7 +67,7 @@ Clique em **Criar regra personalizada** abaixo dos modelos, ou em **Criar regra 
 Em **Quais alertas**, **Todos os alertas**, onde uma regra nova começa, agrupa todo alerta novo. Para restringi-la, escolha **Somente os alertas que atendem às condições** e adicione condições sobre monitores, gravidades, rótulos, títulos e descrições. Depois clique em **Criar regra de agrupamento de alertas**.
 :::
 
-Todo o resto que uma regra pode fazer fica recolhido em **Mais campos**, no fim da etapa **Agrupamento**, em três grupos. Recolhido, seu cabeçalho nomeia o que contém e mostra como um chip cada configuração que a regra usa, para que editar uma regra nunca esconda o que ela faz.
+Todo o resto que uma regra pode fazer fica recolhido em **Mais campos**, no fim da etapa **Agrupamento**, em três grupos. Recolhido, seu cabeçalho nomeia o que contém e diz o valor de cada configuração que a regra usa, para que editar uma regra nunca esconda o que ela faz.
 
 | Grupo                            | Configurações                                                                                              |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- |

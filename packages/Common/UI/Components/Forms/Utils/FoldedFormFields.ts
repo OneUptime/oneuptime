@@ -16,8 +16,8 @@ import { isFormFieldValueSet, normalizeFormValue } from "./AdvancedFormSection";
 /*
  * What a folded form section lists on its header (FoldedSection): one item
  * per field it holds, by the field's title, and - for a field that is set -
- * what it is set to, in a few words. "Declared At · Initial State ·
- * Labels: 2 · Private Incident: On".
+ * what it is set to, in a few words. "More fields · Declared At, Initial
+ * State: Identified, Labels: 2, Private Incident: On".
  *
  * A value is shown only where it is short and safe to show:
  *   - a switch says On or Off;
@@ -30,7 +30,7 @@ import { isFormFieldValueSet, normalizeFormValue } from "./AdvancedFormSection";
  *     set to itself, already translated (Field.getFoldedValue: "Reopen
  *     recently resolved episodes: 30 minutes");
  *   - a secret, a paragraph, code, a colour or any other custom editor says
- *     nothing beyond being set - the chip has the field's name only.
+ *     nothing beyond being set - the header names the field only.
  */
 
 export const FOLDED_FIELD_VALUE_MAX_LENGTH: number = 32;
@@ -169,8 +169,8 @@ export type GetFoldedFieldValueFunction = <TEntity>(
 ) => FoldedFieldValue | undefined;
 
 /**
- * What a set field holds, in a few words, for its chip on a folded
- * header - or nothing, where the value is not one to show (see above).
+ * What a set field holds, in a few words, for a folded header to say after
+ * its name - or nothing, where the value is not one to show (see above).
  */
 export const getFoldedFieldValue: GetFoldedFieldValueFunction = <TEntity>(
   field: Field<TEntity>,

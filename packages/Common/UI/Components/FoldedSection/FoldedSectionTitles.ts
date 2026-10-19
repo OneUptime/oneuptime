@@ -28,7 +28,11 @@ export const MORE_FIELDS_SECTION_TITLE: string = translationKey("More fields");
 export const MORE_SETTINGS_SECTION_TITLE: string =
   translationKey("More settings");
 
-// The icon in the header's tile of both: things to adjust.
+/*
+ * The icon in the tile of More settings' card header: things to adjust.
+ * More fields has none - it is one quiet line of text in its form
+ * (FoldedSectionVariant), not a card.
+ */
 export const MORE_SECTION_ICON: IconProp = IconProp.AdjustmentHorizontal;
 
 /*
