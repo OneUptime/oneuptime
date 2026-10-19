@@ -1196,6 +1196,19 @@ ebpf:
   # defaults and sends service.peer.name anyway.
   extraSpanAttributes: []
 
+  # How many bytes of each database request OBI copies out of the kernel to
+  # read it, per protocol (OBI's ebpf.buffer_sizes). 0 keeps OBI's small fixed
+  # capture, which stops db.query.text at about 250 characters and can miss a
+  # long statement sent with bound parameters, as most ORMs and drivers send
+  # them, altogether. 4096 covers most ORM statements. The same limit applies
+  # to each response, separately, so a buffer costs the agent CPU and memory
+  # in proportion to database traffic. At most 65535. A values file without
+  # the key copies nothing extra.
+  bufferSizes:
+    postgres: 0
+    mysql: 0
+    mssql: 0
+
   # Drop eBPF database spans that are not part of any trace.
   #
   # OBI records a span for every database command it sees — on the client
