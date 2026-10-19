@@ -227,7 +227,7 @@ chartDefaultsVersion), not with those of this chart, {{ .Chart.Version }}.
 values, the old chart's defaults included. So does a values file copied from
 an older chart's values.yaml (or from `helm get values --all`). Either way, a
 default this chart added or changed never applies.
-{{- if or $defaults.ebpfImageTagStale $defaults.collectorImageTagStale }}
+{{- if or $defaults.ebpfImageTagStale $defaults.collectorImageTagStale $defaults.contextPropagationStale }}
 Stale here:
 {{- if $defaults.collectorImageTagStale }}
   - image.tag is {{ $defaults.collectorImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultCollectorImageTag" . | quote }}
@@ -237,6 +237,11 @@ Stale here:
 {{- if $defaults.ebpfImageTagStale }}
   - ebpf.image.tag is {{ $defaults.ebpfImageTag | quote }}; this chart's default is {{ include "kubernetes-agent.defaultEbpfImageTag" . | quote }}
     (OBI, the eBPF instrumentation). Kept if you set it yourself.
+{{- end }}
+{{- if $defaults.contextPropagationStale }}
+  - ebpf.contextPropagation is off; this chart turns it on by default, so a
+    call to a pod on another node joins the caller's trace. Kept if you set
+    it yourself.
 {{- end }}
 {{- end }}
 After --reuse-values, apply this chart's defaults and keep the values you set

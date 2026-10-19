@@ -221,16 +221,16 @@ OBI sends several kinds of signal. Each can be turned off with `--set ebpf.featu
 
 ### Linking traces across services
 
-OBI can also carry the trace across a call: when pod A calls pod B over HTTP or gRPC, the span on B's side joins A's trace, with no SDK in either app. **This is off by default.** Turn it on with `--set ebpf.contextPropagation=true`, after reading the warning below.
+OBI also carries the trace across a call: when pod A calls pod B over HTTP or gRPC, the span on B's side joins A's trace, with no SDK in either app. **This is on by default.** Without it, a call to a pod on another node starts a trace of its own; on the same node OBI links the two ends itself. Turn it off with `--set ebpf.contextPropagation=false` if you run into the problem in the warning below.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | off | Writes a W3C `traceparent` into outgoing traffic, so spans link across services. |
+| `ebpf.contextPropagation` | on | Writes a W3C `traceparent` into outgoing traffic, so spans link across services. |
 | `ebpf.contextPropagationMode` | `headers` | How: `headers` (HTTP/1.1 request headers, the narrowest), `tcp` (a TCP option, through Linux Traffic Control) or `all` (both). Read only when `contextPropagation` is on. |
 | `ebpf.trackRequestHeaders` | on | Tracks request headers in the kernel, so the receiving side finds the `traceparent` on plain HTTP servers too. Has an effect only when `contextPropagation` is on. |
 
 > [!WARNING]
-> Every propagation mode changes traffic that is already in flight. For plain HTTP, OBI widens the outgoing request in the kernel to fit the header; for TLS and raw TCP it adds a TCP option from a Traffic Control hook, rewriting the packet and its checksum. When the connection's byte accounting is then not corrected exactly, the stream **desynchronizes**: transfers through a proxy such as nginx hang part-way, once a response passes about 64 KB, until the connection times out. Small requests keep working, so it looks like an application or proxy bug. No kernel version makes the rewrite go away. Traces, request metrics and the service map all work without it; an OpenTelemetry SDK in your services links traces with no kernel rewriting at all. If you turn it on, try it on a cluster that is not production first, and check large transfers through your proxy.
+> Every propagation mode changes traffic that is already in flight. For plain HTTP, OBI widens the outgoing request in the kernel to fit the header; for TLS and raw TCP it adds a TCP option from a Traffic Control hook, rewriting the packet and its checksum. When the connection's byte accounting is then not corrected exactly, the stream **desynchronizes**: transfers through a proxy such as nginx hang part-way, once a response passes about 64 KB, until the connection times out. Small requests keep working, so it looks like an application or proxy bug. No kernel version makes the rewrite go away. If large transfers through your proxy stall after you install the agent, or a service mesh or an eBPF network plugin starts failing pods, turn it off: traces, request metrics and the service map all work without it, and an OpenTelemetry SDK in your services links traces with no kernel rewriting at all. An agent upgraded with `--reuse-values` keeps the value it had, and earlier charts shipped it off: upgrade with `--reset-then-reuse-values` to take the new default.
 
 ### Linking logs to traces
 
@@ -455,8 +455,8 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 - **OBI runs, but no traces arrive.** Set `--set ebpf.printTraces=true` and read OBI's log again. Spans there mean the export to OneUptime fails: check the URL and the ingestion key. No spans there can mean the traffic is encrypted by a TLS library OBI cannot read, such as one linked statically.
 :::
 
-:::details Large transfers hang after turning on trace linking
-That is `ebpf.contextPropagation` rewriting traffic: see the warning in [Linking traces across services](#linking-traces-across-services). Turn it off with `--set ebpf.contextPropagation=false`.
+:::details Large transfers hang after installing the agent
+That is `ebpf.contextPropagation`, on by default, rewriting traffic: see the warning in [Linking traces across services](#linking-traces-across-services). Turn it off with `--set ebpf.contextPropagation=false`.
 :::
 
 :::details Apps crash with exit code 139 after turning on log linking

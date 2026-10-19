@@ -1,8 +1,9 @@
 # Rendered by run.sh (DURATION / CONCURRENCY / PAUSE_MS placeholders). Runs on
-# the `client` node, away from the apps: without context propagation a client
-# on another node cannot become the parent of the app's server spans, so each
-# app request is the root of its own trace. Its namespace is excluded from OBI
-# discovery by the test's values file.
+# the `client` node, away from the apps, in a namespace the test's values file
+# excludes from OBI discovery: nothing injects a traceparent into its requests
+# (context propagation, on by default, only writes one into the traffic of
+# processes OBI traces), so it cannot become the parent of the app's server
+# spans, and each app request is the root of its own trace.
 apiVersion: v1
 kind: Namespace
 metadata:

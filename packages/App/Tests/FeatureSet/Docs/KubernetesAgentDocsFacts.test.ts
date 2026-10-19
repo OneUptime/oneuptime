@@ -158,7 +158,7 @@ const DEFAULTS: Array<{ option: string; page: string; chart: unknown }> = [
     chart: false,
   },
   { option: "ebpf.features.tcpStats", page: "on", chart: true },
-  { option: "ebpf.contextPropagation", page: "off", chart: false },
+  { option: "ebpf.contextPropagation", page: "on", chart: true },
   {
     option: "ebpf.contextPropagationMode",
     page: "`headers`",
