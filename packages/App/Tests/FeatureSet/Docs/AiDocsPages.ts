@@ -242,6 +242,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Automatic code fixes",
     "safe",
     "riskier",
+    "Rollback first.",
     "every",
     "never",
     "any",

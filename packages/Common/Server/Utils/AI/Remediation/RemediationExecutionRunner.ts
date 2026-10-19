@@ -103,9 +103,16 @@ import {
 } from "../Chat/ObservabilityAssistant";
 import RemediationCommandToolkit, {
   MAX_AUTO_EXECUTED_COMMANDS_PER_RUN,
+  ROLL_BACK_CHANGE_TOOL_NAME,
   RemediationCommandMode,
   RemediationCommandNeedingApproval,
 } from "./RemediationCommandTools";
+import RecentChangesContext, {
+  RecentChange,
+  RecentChanges,
+} from "../SRE/RecentChangesContext";
+import { ChangeImpactVerdict } from "../SRE/ChangeImpact";
+import { quotedUntrustedLine } from "../SRE/UntrustedText";
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
@@ -365,6 +372,7 @@ function buildClusterFramingRules(data: {
   )} — never propose them.
 - The cluster's Runner only writes where its writeScope (list_command_targets) says: a write in another namespace, in the Runner's own namespace, or to a node when node operations are off is refused before it runs.
 - The kubectl allowlist: ${KUBECTL_ALLOWLIST_SUMMARY}.
+- Rollback first: when the Recent changes below mark a Kubernetes rollout on this cluster SUSPECT and what you find agrees that it caused the signal, roll it back with ${ROLL_BACK_CHANGE_TOOL_NAME} (its changeId) before any other change. OneUptime builds the exact kubectl rollout undo from the recorded change; roll a recorded change back only that way, never with a rollout undo you write.
 - A pod stuck in Pending is usually a scheduling problem (insufficient CPU/memory on nodes, a node selector/affinity/taint nobody satisfies, an unbound PVC, a missing image pull secret): describe the pod and read its Events before deciding. Deleting the pod rarely fixes scheduling; fixing capacity, the selector or the claim does.`;
 }
 
@@ -383,6 +391,71 @@ function describeKubectlUndoExamples(
   return `kubectl rollout undo deployment/<name> -n <namespace> (this also undoes a set image/env/resources or a patch of the pod template), kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>${
     changes.allowNodeOperations ? ", kubectl uncordon <node>" : ""
   }`;
+}
+
+/*
+ * Rollback first: the recorded changes roll_back_change can undo in a
+ * round - Kubernetes rollouts on a cluster the round may change - suspects
+ * first, in the order the Recent changes section lists them.
+ */
+export function listRollbackCandidates(
+  recentChanges: RecentChanges,
+  clusterIds: Set<string>,
+): Array<RecentChange> {
+  return recentChanges.changes.filter((change: RecentChange): boolean => {
+    return Boolean(
+      change.fields.kubernetesDeployment &&
+        change.fields.kubernetesNamespace &&
+        change.fields.kubernetesClusterId &&
+        clusterIds.has(change.fields.kubernetesClusterId),
+    );
+  });
+}
+
+/*
+ * The lines a round's context gets after its Recent changes section: which
+ * changes roll_back_change can undo here, or that none can.
+ */
+export function describeRollbackCandidates(
+  candidates: Array<RecentChange>,
+): Array<string> {
+  if (candidates.length === 0) {
+    return [
+      `None of these changes is a Kubernetes rollout on a cluster this round may change, so ${ROLL_BACK_CHANGE_TOOL_NAME} has nothing to undo here.`,
+    ];
+  }
+
+  return [
+    `Rollouts ${ROLL_BACK_CHANGE_TOOL_NAME} can undo in this round:`,
+    ...candidates.map((change: RecentChange): string => {
+      return `- ${
+        change.impact?.verdict === ChangeImpactVerdict.Suspect
+          ? "SUSPECT: "
+          : ""
+      }Deployment ${quotedUntrustedLine(
+        `${change.fields.kubernetesNamespace}/${change.fields.kubernetesDeployment}`,
+        200,
+      )} at ${change.time.toISOString()} [changeId: ${change.id}]`;
+    }),
+  ];
+}
+
+/*
+ * The feed item a proposed plan posts on its incident or alert. A plan that
+ * starts with a rollback OneUptime built from a recorded change says so.
+ */
+export function describeProposedPlanForFeed(data: {
+  sourceLabel: string;
+  plan: AiRemediationCommandPlan;
+}): MarkdownText {
+  const count: number = data.plan.commands.length;
+  const first: AiRemediationCommand | undefined = data.plan.commands[0];
+
+  if (first?.rolledBackChangeId) {
+    return mdText`⚡ **${data.sourceLabel}: AI proposes rolling back a recorded change first, in a ${count}-command remediation plan.** Its first command is ${first.command}. Review the exact commands and reasoning, then approve with one click to run them.`;
+  }
+
+  return mdText`⚡ **${data.sourceLabel}: AI composed a ${count}-command remediation plan.** Review the exact commands and reasoning, then approve with one click to run them.`;
 }
 
 /*
@@ -932,6 +1005,7 @@ export default class RemediationExecutionRunner {
           allowlistPatterns: clusterTarget.kubectlAllowlist,
           clusterTarget,
           downgradeNote: downgradeNote || undefined,
+          rollbackScope: { projectId, clusters: toolkit.getClusterTargets() },
         });
       } else if (isResourceRemediationRound(suggestion)) {
         /*
@@ -1199,6 +1273,9 @@ export default class RemediationExecutionRunner {
           allowlistPatterns,
           breakerTrippedClusters,
           heldClusters,
+          rollbackScope: toolkit.offersChangeRollback()
+            ? { projectId, clusters: toolkit.getClusterTargets() }
+            : undefined,
         });
       }
     } catch (error) {
@@ -1511,7 +1588,10 @@ export default class RemediationExecutionRunner {
 
     await this.postFeedItem({
       suggestion,
-      markdown: mdText`⚡ **${sourceLabel}: AI composed a ${proposedPlan.commands.length}-command remediation plan.** Review the exact commands and reasoning, then approve with one click to run them.`,
+      markdown: describeProposedPlanForFeed({
+        sourceLabel,
+        plan: proposedPlan,
+      }),
       pingWorkspace: true,
     });
   }
@@ -2677,6 +2757,16 @@ export default class RemediationExecutionRunner {
     breakerTrippedClusters?: Array<BreakerTrippedCluster> | undefined;
     // Rule rounds: clusters another cluster-level round is still working on.
     heldClusters?: Array<HeldCluster> | undefined;
+    /*
+     * Rounds that may change a cluster: the project, and the clusters
+     * roll_back_change may undo a recorded rollout on.
+     */
+    rollbackScope?:
+      | {
+          projectId: ObjectID;
+          clusters: Array<KubernetesClusterAiAccessStatus>;
+        }
+      | undefined;
   }): Promise<string> {
     const lines: Array<string> = [];
 
@@ -2885,7 +2975,80 @@ export default class RemediationExecutionRunner {
       }
     }
 
+    if (data.rollbackScope && data.rollbackScope.clusters.length > 0) {
+      lines.push(
+        ...(await this.describeRecentChanges({
+          suggestion: data.suggestion,
+          projectId: data.rollbackScope.projectId,
+          clusters: data.rollbackScope.clusters,
+        })),
+      );
+    }
+
     return ToolResultSerializer.redact(lines.join("\n")).text;
+  }
+
+  /*
+   * Rollback first: the changes recorded before the signal, suspects marked
+   * (RecentChangesContext), and which of them roll_back_change can undo on
+   * the clusters this round may change. Enrichment only: a round that
+   * cannot read them goes on without them.
+   */
+  private static async describeRecentChanges(data: {
+    suggestion: AutoRemediationSuggestion;
+    projectId: ObjectID;
+    clusters: Array<KubernetesClusterAiAccessStatus>;
+  }): Promise<Array<string>> {
+    const subjectKind: "incident" | "alert" | null = data.suggestion.incidentId
+      ? "incident"
+      : data.suggestion.alertId
+        ? "alert"
+        : null;
+    const subjectId: ObjectID | undefined =
+      data.suggestion.incidentId || data.suggestion.alertId;
+
+    if (!subjectKind || !subjectId) {
+      return [];
+    }
+
+    let recentChanges: RecentChanges | null = null;
+
+    try {
+      recentChanges = await RecentChangesContext.read({
+        projectId: data.projectId,
+        subjectKind,
+        subjectId,
+        linked: null,
+      });
+    } catch (error) {
+      logger.error(
+        `AI remediation execution: could not read the recent changes for suggestion ${data.suggestion.id?.toString()}; continuing without them: ${error}`,
+      );
+      return [];
+    }
+
+    if (!recentChanges) {
+      return [];
+    }
+
+    return [
+      ...RecentChangesContext.buildContextSection(recentChanges, {
+        purpose: "remediation",
+      }).split("\n"),
+      "",
+      ...describeRollbackCandidates(
+        listRollbackCandidates(
+          recentChanges,
+          new Set<string>(
+            data.clusters.map(
+              (cluster: KubernetesClusterAiAccessStatus): string => {
+                return cluster.clusterId;
+              },
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 
   /*
