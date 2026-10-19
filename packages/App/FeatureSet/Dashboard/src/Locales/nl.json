@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "Een rol aan {{role}} toevoegen",
   "Custom Role Details": "Details van de aangepaste rol",
   "Members of these teams can do everything this role allows.": "Leden van deze teams kunnen alles wat deze rol toestaat.",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "Sets machtigingen met een naam, gemaakt op de pagina Rollen. Een rol wijzigen wijzigt ook dit team.",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "Sets machtigingen met een naam, gemaakt op de pagina {{roles}}. Een rol wijzigen wijzigt ook dit team.",
   "Shown on every team you give the role to.": "Getoond bij elk team dat u de rol geeft.",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "De ingebouwde rollen die ze bundelt, voor elke resource in het project. Voeg losse machtigingen toe op de pagina van de rol.",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "De ingebouwde rollen die ze bundelt, voor elke resource in het project. Rollen die u zelf niet hebt, staan er niet bij.",

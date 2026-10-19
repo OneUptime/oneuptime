@@ -2539,23 +2539,32 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Team,
             keywords: ["create team", "groups", "permissions", "roles"],
           },
+        ],
+      },
+      // Roles sits first in the Teams menu's Settings, as the menu draws it.
+      {
+        title: "Settings",
+        pages: [
           {
             page: PageMap.TEAM_ROLES,
             title: "Roles",
             icon: IconProp.Identification,
+            /*
+             * A role is a named set of permissions, and it now waits in a
+             * folded section: a search for permissions finds it too.
+             */
             keywords: [
               "custom roles",
               "custom role",
               "create role",
               "built-in roles",
               "rbac",
+              "permission sets",
+              "permissions",
             ],
           },
+          customFields(PageMap.TEAM_CUSTOM_FIELDS),
         ],
-      },
-      {
-        title: "Settings",
-        pages: [customFields(PageMap.TEAM_CUSTOM_FIELDS)],
       },
     ],
   },

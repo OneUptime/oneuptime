@@ -29899,7 +29899,7 @@
   "Add a Role to {{role}}": "{{role}} में एक भूमिका जोड़ें",
   "Custom Role Details": "कस्टम भूमिका का विवरण",
   "Members of these teams can do everything this role allows.": "इन टीमों के सदस्य वह सब कर सकते हैं जिसकी यह भूमिका अनुमति देती है।",
-  "Named sets of permissions, made on the Roles page. Changing a role changes this team too.": "भूमिकाएं पेज पर बनाए गए अनुमतियों के नामित सेट। भूमिका बदलने से यह टीम भी बदल जाती है।",
+  "Named sets of permissions, made on the {{roles}} page. Changing a role changes this team too.": "{{roles}} पेज पर बनाए गए अनुमतियों के नामित सेट। भूमिका बदलने से यह टीम भी बदल जाती है।",
   "Shown on every team you give the role to.": "हर उस टीम पर दिखता है जिसे आप यह भूमिका देते हैं।",
   "The built-in roles it bundles, for every resource in the project. Add single permissions on the role's page.": "प्रोजेक्ट के हर संसाधन के लिए, वे अंतर्निर्मित भूमिकाएं जिन्हें यह जोड़ती है। अलग-अलग अनुमतियां भूमिका के पेज पर जोड़ें।",
   "The built-in roles it bundles, for every resource in the project. Roles you don't hold yourself are not listed.": "प्रोजेक्ट के हर संसाधन के लिए, वे अंतर्निर्मित भूमिकाएं जिन्हें यह जोड़ती है। जो भूमिकाएं आपके पास खुद नहीं हैं, वे सूची में नहीं हैं।",
