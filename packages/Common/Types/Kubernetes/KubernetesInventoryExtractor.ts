@@ -159,9 +159,15 @@ function parseMemoryStringToBytes(value: string | undefined): number | null {
   if (!value) {
     return null;
   }
+  /*
+   * A number - digits, digits "." digits, or "." digits - then an optional
+   * unit. Written so a number reads only one way: as "[0-9]*\.?[0-9]+" the
+   * digits could be split between the two runs in as many ways as there are
+   * digits, and a long run of them that did not match was tried every way.
+   */
   const match: RegExpMatchArray | null = value
     .trim()
-    .match(/^([0-9]*\.?[0-9]+)\s*([A-Za-z]+)?$/);
+    .match(/^([0-9]+(?:\.[0-9]+)?|\.[0-9]+)\s*([A-Za-z]+)?$/);
   if (!match) {
     return null;
   }

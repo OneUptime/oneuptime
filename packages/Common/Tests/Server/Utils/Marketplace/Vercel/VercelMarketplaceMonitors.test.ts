@@ -22,6 +22,7 @@ import VercelMarketplaceAPI from "../../../../../Server/Utils/Marketplace/Vercel
 import VercelMarketplaceMonitors from "../../../../../Server/Utils/Marketplace/Vercel/VercelMarketplaceMonitors";
 import VercelMarketplaceResources from "../../../../../Server/Utils/Marketplace/Vercel/VercelMarketplaceResources";
 import logger from "../../../../../Server/Utils/Logger";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -215,6 +216,59 @@ describe("VercelMarketplaceMonitors.normalizeDomain", () => {
       expect(VercelMarketplaceMonitors.normalizeDomain(value)).toBeNull();
     }
   });
+
+  it("takes the host alone: everything from its first slash goes", () => {
+    for (const [value, host] of [
+      ["acme.com/", "acme.com"],
+      ["acme.com/a/b/c", "acme.com"],
+      ["https://acme.com//x", "acme.com"],
+      ["acme.com./x", "acme.com"],
+      ["http://shop.acme.com/x/y?z=1", "shop.acme.com"],
+    ]) {
+      expect([value, VercelMarketplaceMonitors.normalizeDomain(value)]).toEqual(
+        [value, host],
+      );
+    }
+  });
+
+  it("a value with a line break in it is no domain, wherever the break is", () => {
+    for (const value of [
+      "acme.com/x\ny",
+      "acme.com\nevil.com",
+      "acme.com/x\ry",
+      "acme.com/x\u2028y",
+    ]) {
+      expect(VercelMarketplaceMonitors.normalizeDomain(value)).toBeNull();
+    }
+
+    // Breaks and spaces around it are not part of it.
+    expect(VercelMarketplaceMonitors.normalizeDomain("\n acme.com \n")).toBe(
+      "acme.com",
+    );
+  });
+
+  it.each([
+    ["slashes then a line break", "/".repeat(400000) + "\n/", null],
+    [
+      "a host, slashes, a line break",
+      "acme.com" + "/".repeat(400000) + "\n/",
+      null,
+    ],
+    ["a host then slashes", "acme.com" + "/".repeat(400000), "acme.com"],
+  ])(
+    "reads %s, 400,000 characters, in time that grows with them",
+    (_name: string, value: string, expected: string | null) => {
+      const read: FastestRun<string | null> = fastestRun({
+        run: (): string | null => {
+          return VercelMarketplaceMonitors.normalizeDomain(value);
+        },
+        limitInMs: 2000,
+      });
+
+      expect(read.inMs).toBeLessThan(2000);
+      expect(read.result).toBe(expected);
+    },
+  );
 });
 
 describe("VercelMarketplaceMonitors.onProjectConnected", () => {

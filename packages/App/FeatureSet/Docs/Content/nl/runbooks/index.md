@@ -98,6 +98,17 @@ Runbooks staat onder **Producten**, in de groep **Dashboards & automatisering**.
 | **Incidenten / Waarschuwingen / Geplande onderhoud → Regels → Runbook-regels** | De regels maken die runbooks automatisch starten. |
 | Een incident, waarschuwing of onderhoudsevenement → **Runbooks** | De gekoppelde uitvoeringen zien, en op **Runbook uitvoeren** klikken om er een te starten. |
 
+Het zijmenu van een runbook groepeert de pagina's zo. Alleen **Basis** staat open bij het begin: klik op de titel van een sectie om die te openen. Een sectie opent vanzelf op elke pagina erin.
+
+| Sectie | Pagina's |
+| --- | --- |
+| **Basis** | **Overzicht**, **Stappen** |
+| **Logboeken** | **Uitvoeringen** |
+| **Eigenaren** | **Eigenaren** |
+| **Instellingen** | **Triggers**, **Instellingen** |
+| **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten** |
+| **Geavanceerd** | **Auditlogboeken**, **Runbook verwijderen** |
+
 ## Een uitgewerkt voorbeeld
 
 Stel dat u wilt dat elk incident met "db-primary" in de titel een database-failover-runbook van vijf stappen start.

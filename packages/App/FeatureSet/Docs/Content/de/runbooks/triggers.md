@@ -35,7 +35,7 @@ Ein Auslöser startet einen Lauf so, wie **Jetzt ausführen** es tut: Der Lauf i
 
 :::steps
 ### Die Seite Auslöser des Runbooks öffnen
-Öffnen Sie das Runbook unter **Runbooks** und klicken Sie in seinem Menü auf **Auslöser**.
+Öffnen Sie das Runbook unter **Runbooks** und klicken Sie in seinem Seitenmenü auf **Einstellungen → Auslöser**. **Einstellungen** ist anfangs eingeklappt: Klicken Sie darauf, um **Auslöser** anzuzeigen.
 
 ### Den Zeitplan einrichten
 Klicken Sie auf **Zeitplan einrichten**. Wählen Sie unter **Wann es läuft** eine Option bei **Wiederholen** und was sie braucht. Der Dialog nennt den Zeitplan in einem Satz, etwa „Läuft an jedem Wochentag um 09:00“, und listet seine nächsten Ausführungen auf, während Sie ihn ändern.

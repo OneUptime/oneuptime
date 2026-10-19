@@ -16,6 +16,7 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { clearPlaceholders } from "../Utils/Rules/GroupingRuleEpisodeTemplate";
 import SubscriberNotificationResendAccess from "../Utils/StatusPage/SubscriberNotificationResendAccess";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -1720,7 +1721,7 @@ export class Service extends ProjectReferencesService<Model> {
      * incident did not have - which came back into its title each time
      * another incident joined.
      */
-    result = result.replace(/\{\{[^}]+\}\}/g, "");
+    result = clearPlaceholders(result);
 
     return result;
   }

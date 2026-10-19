@@ -118,7 +118,7 @@ En körning är en engångspost som inte ändras. Klicka på **Kör igen** på e
 
 | Var | Vad den visar |
 | --- | --- |
-| Ett runbooks **Körningar** | Alla körningar av det runbooket, med filter för status och startdatum och en kolumn **Utlöst av**. |
+| Ett runbooks **Loggar → Körningar** | Alla körningar av det runbooket, med filter för status och startdatum och en kolumn **Utlöst av**. |
 | **Runbooks → Körningar** | Alla körningar av alla runbooks i projektet. |
 | Sidan **Runbooks** för en incident, ett larm eller en händelse | De körningar som är kopplade till den. Händelsens översikt visar dem också så snart det finns några. |
 

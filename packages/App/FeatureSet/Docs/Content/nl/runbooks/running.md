@@ -118,7 +118,7 @@ Een uitvoering is een eenmalig, onveranderlijk record. Klik om het runbook opnie
 
 | Waar | Wat het toont |
 | --- | --- |
-| De **Uitvoeringen** van een runbook | Elke uitvoering van dat runbook, met filters op status en startdatum, en een kolom **Geactiveerd door**. |
+| De **Logboeken → Uitvoeringen** van een runbook | Elke uitvoering van dat runbook, met filters op status en startdatum, en een kolom **Geactiveerd door**. |
 | **Runbooks → Uitvoeringen** | Elke uitvoering van elk runbook in het project. |
 | De pagina **Runbooks** van een incident, waarschuwing of evenement | De gekoppelde uitvoeringen. Het overzicht van het evenement toont ze ook, zodra er een is. |
 

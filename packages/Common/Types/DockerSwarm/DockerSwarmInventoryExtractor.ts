@@ -114,8 +114,13 @@ function parseReplicas(raw: string | null): {
   if (!raw) {
     return { running: null, desired: null };
   }
-  // Replicated: "3/5". Global: "5/5" too. Strip any trailing text.
-  const m: RegExpMatchArray | null = raw.match(/(\d+)\s*\/\s*(\d+)/);
+  /*
+   * Replicated: "3/5". Global: "5/5" too. Strip any trailing text. Tried
+   * only where a run of digits starts (after a character that is not one,
+   * or at the start), so a long run of digits with no "/" after it is read
+   * once rather than again from each of its digits.
+   */
+  const m: RegExpMatchArray | null = raw.match(/(?:^|\D)(\d+)\s*\/\s*(\d+)/);
   if (!m) {
     return { running: null, desired: null };
   }

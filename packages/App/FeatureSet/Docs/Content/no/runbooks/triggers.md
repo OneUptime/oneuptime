@@ -35,7 +35,7 @@ En utløser starter en kjøring slik **Run Now** gjør: kjøringen går gjennom 
 
 :::steps
 ### Åpne runbookets side Utløsere
-Åpne runbooket fra **Runbooks**, og klikk på **Utløsere** i menyen.
+Åpne runbooket fra **Runbooks**, og klikk på **Innstillinger → Utløsere** i sidemenyen. **Innstillinger** starter sammenslått: klikk på den for å vise **Utløsere**.
 
 ### Sett opp tidsplanen
 Klikk på **Sett opp tidsplan**. Under **Når den kjører** velger du et alternativ under **Gjenta** og det det trenger. Dialogen sier tidsplanen i én setning, som "Kjører hver hverdag kl. 09:00", og viser de neste kjøringene mens du endrer den.

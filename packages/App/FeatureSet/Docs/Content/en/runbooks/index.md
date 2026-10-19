@@ -98,6 +98,17 @@ Runbooks is under **Products**, in the **Dashboards & Automation** group.
 | **Incidents / Alerts / Scheduled Maintenance → Rules → Runbook Rules** | Create the rules that start runbooks automatically. |
 | An incident, alert or maintenance event → **Runbooks** | See the runs attached to it, and click **Run Runbook** to start one. |
 
+A runbook's own side menu groups its pages like this. Only **Basic** starts open: click a section's title to open it. A section opens by itself on any page inside it.
+
+| Section | Pages |
+| --- | --- |
+| **Basic** | **Overview**, **Steps** |
+| **Logs** | **Executions** |
+| **Owners** | **Owners** |
+| **Settings** | **Triggers**, **Settings** |
+| **Developer** | **Terraform**, **API**, **AI Assistants** |
+| **Advanced** | **Audit Logs**, **Delete Runbook** |
+
 ## A worked example
 
 Suppose you want every incident with "db-primary" in its title to start a five-step database failover runbook.
