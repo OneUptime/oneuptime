@@ -1,0 +1,92 @@
+# Primi passi con la sicurezza
+
+OneUptime trova le minacce nei dati che hai già - i tuoi log, gli strumenti di sicurezza che usi e tutto ciò che gli invii -, raggruppa ciò che trova in casi e risponde con i playbook. Bastano due clic per configurarlo, e non c'è niente da installare.
+
+:::cards
+- [Configurarlo](#configurarlo): Attiva ciò che serve alla maggior parte dei team, poi guarda un attacco di prova aprire un caso.
+- [Come funziona](#come-funziona): Origini, rilevamenti, casi e playbook, e cosa fa ciascuno.
+- [I tuoi log](#trovare-eventi-di-sicurezza-nei-tuoi-log): Gli eventi di sicurezza già presenti nei log che invii a OneUptime.
+- [Il tuo SIEM](#inviare-al-tuo-siem-ciò-che-oneuptime-trova): Invia a Google SecOps ciò che OneUptime trova.
+:::
+
+## Prima di iniziare
+
+Configurare la sicurezza richiede il ruolo Project Owner, Project Admin o Security Admin. I ruoli Security Member e Security Viewer leggono ciò che viene trovato; vedi [Ruoli](/docs/permissions/reference#ruoli).
+
+## Configurarlo
+
+:::steps
+### Attivare ciò che serve alla maggior parte dei team
+
+Apri **Prodotti → Security Events**. In **Panoramica**, fai clic su **Turn on recommended**. Si attivano tre cose in una volta: **Find security events in your logs**, le regole di rilevamento consigliate e **Enrich New Cases**, un playbook che confronta ogni nuovo caso con la threat intelligence e vi lascia una checklist per lo smistamento.
+
+### Inviare un attacco di prova
+
+Fai clic su **Send a test attack**. Una dozzina di accessi falliti da un indirizzo di documentazione attraversa l'elaborazione reale: vengono memorizzati, la regola di forza bruta li rileva e si apre un caso. Nessuno viene allertato e nessun SIEM li riceve.
+
+### Aprire il caso
+
+Fai clic su **Open the case**. Ecco come appare un vero risultato: gli eventi che lo motivano, l'indirizzo a cui si riferisce e ciò che **Enrich New Cases** ha trovato. Chiudilo come test quando hai finito.
+:::
+
+Da quel momento, **Panoramica** si apre su ciò che richiede qualcuno: i tuoi casi aperti, quelli che nessuno ha preso in carico e i passaggi dei playbook in attesa di approvazione, oppure **All quiet** quando non ce ne sono.
+
+## Come funziona
+
+```mermaid title="Dai tuoi dati a un caso"
+flowchart LR
+    sources["Origini: i tuoi<br/>log e i tuoi<br/>strumenti"] --> rules["Rilevamenti:<br/>regole e<br/>threat intelligence"]
+    rules --> cases["Casi di<br/>sicurezza"]
+    cases --> playbooks["Playbook"]
+    rules --> siem["Il tuo SIEM"]
+```
+
+| Parte | Dove | Cosa fa |
+| --- | --- | --- |
+| **Sources** | **Connections** | I tuoi log, i prodotti di sicurezza che OneUptime interroga e tutto ciò che invii |
+| **Detections** | **Detections** | Regole Sigma e feed di threat intelligence che cercano minacce in ogni evento |
+| **Security Cases** | **Security Cases** | Ciò che è stato trovato, raggruppato per l'utente, l'host o l'indirizzo a cui si riferisce |
+| **Playbooks** | **Playbooks** | Passaggi che vengono eseguiti sui nuovi casi: arricchirli, avvisare, aprire un incidente o contenere |
+
+La striscia in cima a **Panoramica** mostra ogni parte con i suoi numeri: le origini e i loro eventi delle ultime 24 ore, le regole attive, i casi aperti e i playbook che rispondono.
+
+## Trovare eventi di sicurezza nei tuoi log
+
+**Your logs**, in cima a **Connections**, non richiede installazioni. Con **Find security events in your logs** attivo, OneUptime legge ogni minuto i nuovi log del progetto e trasforma in eventi di sicurezza le righe che riconosce:
+
+| Log | Cosa diventa un evento di sicurezza |
+| --- | --- |
+| Accessi SSH | Accessi SSH falliti e riusciti dal log di autenticazione, dal journal o dal syslog di un server |
+| sudo | Comandi eseguiti come un altro utente, password di sudo errate e persone che non possono usare sudo |
+| Log di audit di Kubernetes | Modifiche al cluster, shell aperte nei pod, secret letti e richieste rifiutate |
+| AWS CloudTrail | Accessi alla console, modifiche nei tuoi account AWS e chiamate che AWS ha rifiutato |
+| Attacchi web | Richieste nel log di accesso di un server web che tentano SQL injection, path traversal o Log4Shell |
+
+I tuoi log restano come sono. Solo le righe che contano per la sicurezza diventano eventi: mai ogni pagina servita da un server web, né ogni lettura di un'API.
+
+## Inviare al tuo SIEM ciò che OneUptime trova
+
+Se il tuo team lavora già in un SIEM, OneUptime invia lì anche ciò che trova. In **Connections → Send to your SIEM**, fai clic su **Add destination**, inserisci la regione, l'istanza e la chiave dell'account di servizio del tuo Google SecOps e fai clic su **Send a test event** prima di salvare. Vedi [Inviare eventi di sicurezza a Google SecOps](/docs/integrations/google-secops#inviare-eventi-di-sicurezza-a-google-secops).
+
+## Risoluzione dei problemi
+
+:::details Turn on recommended è disattivato
+Il tuo ruolo non può aggiungere regole di rilevamento, playbook o l'origine dei log. Chiedi a un Project Owner, a un Project Admin o a un Security Admin, oppure fatti assegnare da loro il ruolo Security Admin.
+:::
+
+:::details L'attacco di prova non ha aperto alcun caso
+Di solito il caso si apre prima che il pulsante risponda; quando la regola è ancora in ritardo, lo dice e il caso si apre entro un minuto. Controlla di nuovo **Security Cases** e verifica in **Detections** che la regola di forza bruta sia attiva.
+:::
+
+:::details Dai miei log non arriva alcun evento di sicurezza
+Verifica che **Find security events in your logs** sia attivo e che **Your logs** indichi quando è avvenuto l'ultimo controllo. Solo i tipi di righe della tabella qui sopra diventano eventi: un server che non invia log SSH, sudo, di audit, CloudTrail o di accesso non ha niente da trovare.
+:::
+
+## Passaggi successivi
+
+:::cards
+- [Eventi di sicurezza (SIEM)](/docs/telemetry/security-events): Inviare eventi, cercarli e scrivere regole di rilevamento.
+- [Casi di sicurezza e playbook (SOAR)](/docs/telemetry/security-cases): Gestire i casi e rispondere con i playbook.
+- [Intelligence sulle minacce (STIX/TAXII)](/docs/telemetry/threat-intelligence): Confrontare i tuoi eventi con indicatori malevoli noti.
+- [Google SecOps](/docs/integrations/google-secops): Importare i rilevamenti di Google SecOps e inviargli ciò che OneUptime trova.
+:::

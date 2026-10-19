@@ -188,7 +188,7 @@ Ett mejl eller ett inlägg utan eget meddelande skickar en sammanfattning av är
 
 ### Körningar och godkännanden
 
-Varje körning listas, steg för steg, i sitt ärende och under **Produkter → Security Events → Playbook Runs**:
+Varje körning listas, steg för steg, i sitt ärende och under **Produkter → Security Events → Playbooks → Playbook Runs**:
 
 | Körningsstatus | Betyder |
 | --- | --- |
@@ -199,7 +199,7 @@ Varje körning listas, steg för steg, i sitt ärende och under **Produkter → 
 | Failed | Ett steg misslyckades och körningen stoppades |
 | Cancelled | Någon avbröt den eller avvisade ett steg |
 
-Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget och på ärendets tidslinje. **Playbook Runs** öppnas på körningarna som väntar på godkännande, och dess menypost visar hur många de är.
+Ett steg som väntar på godkännande visar **Approve** och **Reject** på körningen, med en valfri kommentar. Ett godkännande låter körningen fortsätta från det steget; ett avvisande avslutar den. Beslutet, vem som fattade det och kommentaren sparas på steget och på ärendets tidslinje. **Playbook Runs** öppnas på körningarna som väntar på godkännande, och menyposten **Playbooks** visar hur många de är.
 
 En körning vars worker slutar höra av sig, till exempel efter en omstart, tas upp igen: en köad körning läggs i kö på nytt efter 2 minuter, och en körning som inte har hörts av på 30 minuter markeras som misslyckad.
 
@@ -212,12 +212,12 @@ En körning vars worker slutar höra av sig, till exempel efter en omstart, tas 
 - Ärendena som öppnats varje dag i 30 dagar, efter prioritet, och detektionerna som skapats varje dag i 14 dagar, efter källa.
 - De öppna ärendena efter prioritet och efter status, bedömningarna från de senaste 30 dagarna, ATT&CK-taktikerna bakom ärendena, detektionerna som löste ut oftast, och entiteterna som nämns i flest fynd.
 
-Ett projekt som ännu inte har några ärenden eller detektioner visar, ovanför detta, de tre stegen som konfigurerar det.
+Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ärenden och playbooks, var och en med sina siffror. Ett projekt som ännu inte har satt upp det ser **Turn on recommended** och **Send a test attack** där; se [Kom igång med säkerhet](/docs/telemetry/security-getting-started). När inget behöver någon säger sidan **All quiet**, och diagrammen visas så snart det finns något att visa.
 
 ## Hitta hot
 
 - **Entiteter** rangordnar användarna, värdarna, adresserna och hasharna som dina fynd nämner oftast, under det senaste dygnet, den senaste veckan eller månaden, och slår upp vilket värde som helst i 30 dagars händelser.
-- **Rule Library** har färdiga detektionsregler för hot mot identiteter, slutpunkter, moln, nätverk, webb och Kubernetes. Var och en är en Sigma-regel skriven för fälten som varje ansluten källa normaliseras till. **Lägg till regel** skapar den som en egen detektionsregel, påslagen och med ärenden i stället för larm; ändra den under **Detection Rules** som vilken annan regel som helst.
+- **Rule Library** har färdiga detektionsregler för hot mot identiteter, slutpunkter, moln, nätverk, webb och Kubernetes. Var och en är en Sigma-regel skriven för fälten som varje ansluten källa normaliseras till. **Lägg till regel** skapar den som en egen detektionsregel, påslagen och med ärenden i stället för larm; ändra den under **Detection Rules** som vilken annan regel som helst. Reglerna markerade **Rekommenderade** hittar hot i data som OneUptime redan har, och en knapp lägger till dem du inte har än.
 - **ATT&CK Coverage** ritar MITRE ATT&CK-matrisen med teknikerna som dina aktiverade regler täcker upplysta, och ramar in de som en regel i biblioteket skulle täcka.
 
 ## Automatisera

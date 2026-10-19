@@ -7,6 +7,7 @@ Breng waarschuwingen en detecties van [Google SecOps](https://cloud.google.com/s
 - [De beheerde connector instellen](#de-beheerde-connector-instellen): Een sleutel voor een serviceaccount, en het formulier van de verbinding.
 - [Hoe de connector pollt](#hoe-de-connector-pollt): Drie leesrondes van elk venster, en hun budgetten.
 - [Problemen oplossen](#problemen-oplossen): Wat Last Error zegt en wat je moet doen.
+- [Beveiligingsgebeurtenissen naar Google SecOps sturen](#beveiligingsgebeurtenissen-naar-google-secops-sturen): De detecties van OneUptime, in Google SecOps.
 :::
 
 ## Kiezen hoe je verbindt
@@ -211,6 +212,32 @@ Google SecOps slaat de ernst van een detectie op verschillende plekken op, afhan
 4. **De `$risk_score`-uitkomst van de regel**, als de regel geen ernst instelt, ingedeeld met de [door Google aanbevolen bereiken](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax): 90–100 Critical, 80–89 High, 50–79 Medium, 20–49 Low, 1–19 Informational. OneUptime gebruikt alleen een score die de regel zelf instelt. Het negeert de `riskScore` die Google invult voor regels zonder score (40 voor waarschuwende regels, anders 15), omdat die standaardwaarde niets zegt over hoe ernstig de detectie is.
 
 Een detectie die door geen van deze wordt ingedeeld, wordt getoond als Unknown. Om een aangepaste regel in te delen, voeg je in Google SecOps een ernst toe aan de sectie `meta` ervan, bijvoorbeeld `severity = "High"`, of stel je `$risk_score` in de sectie `outcome` in. Detecties die de regel daarna maakt, worden met die ernst geïmporteerd.
+
+## Beveiligingsgebeurtenissen naar Google SecOps sturen
+
+OneUptime kan wat het vindt ook naar Google SecOps sturen, zodat de SIEM waarin uw team werkt de detecties van OneUptime naast die van zichzelf ziet. Elke beveiligingsgebeurtenis wordt geïmporteerd als UDM-gebeurtenis: een aanmelding als `USER_LOGIN`, het starten van een proces als `PROCESS_LAUNCH`, een netwerkverbinding als `NETWORK_CONNECTION` en al het andere als `GENERIC_EVENT`, met de ernst, de MITRE ATT&CK-tags en de regel die haar vond.
+
+:::steps
+### Een sleutel maken die gebeurtenissen mag importeren
+
+Maak in Google Cloud een serviceaccount aan in het project waaraan uw SecOps-instantie is gekoppeld, en geef het een rol met de machtiging `chronicle.events.import`, zoals **Chronicle API Editor** (`roles/chronicle.editor`). Voeg op het tabblad **Keys** een sleutel van het type **JSON** toe en download die.
+
+### De bestemming toevoegen
+
+Open **Producten → Security Events → Connections**. Klik onder **Send to your SIEM** op **Add destination**. Kies de **Regio**, vul de **Instance resource name** in zoals bij de connector hierboven en plak de sleutel in **Service account JSON**.
+
+### Een testgebeurtenis versturen
+
+Klik op **Send a test event**. Eén `GENERIC_EVENT` van het product `OneUptime Security Events` gaat met de instellingen uit het formulier naar Google SecOps, en er wordt niets opgeslagen. Het verschijnt binnen enkele minuten in Google SecOps.
+
+### Kiezen wat er wordt verstuurd
+
+Houd onder **What to send** de keuze **Detections only**, dus wat uw regels en dreigingsinformatie vonden en de waarschuwingen van uw gekoppelde producten, of kies **All security events**. Klik op **Start sending**.
+:::
+
+- Een bestemming verstuurt de gebeurtenissen die binnenkomen vanaf het moment dat ze is opgeslagen, nooit de geschiedenis van het project, en verstuurt nieuwe elke minuut.
+- Waarschuwingen die OneUptime uit Google SecOps heeft geïmporteerd, worden er nooit naar teruggestuurd.
+- Als Google SecOps niet antwoordt of een batch weigert, houdt de bestemming haar plaats vast en probeert ze het bij de volgende run opnieuw. Haar **Status** staat dan op **Failing**, en **Fout bekijken** laat zien wat Google SecOps antwoordde.
 
 ## Problemen oplossen
 

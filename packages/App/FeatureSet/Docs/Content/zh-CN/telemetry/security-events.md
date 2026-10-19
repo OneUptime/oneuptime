@@ -27,22 +27,23 @@ flowchart TB
 
 在 **可观测性** 下打开 **产品 → Security Events**。它的菜单如下：
 
-| 页面 | 分区 | 用途 |
+| 页面 | 菜单项 | 用途 |
 | --- | --- | --- |
-| **概览** | 概览 | 当下需要有人处理的事项，以及案例的处理速度 |
-| **Security Cases** | 概览 | 检测到的问题组成的队列，按所涉及的对象分组 |
-| **事件** | 调查 | 搜索和过滤每个事件，并打开某个事件查看它的所有字段 |
-| **关联分析** | 调查 | 共享同一主机、用户或 IP 地址的事件构成的图 |
-| **实体** | 调查 | 你的检测结果中最常提及的用户、主机和地址 |
-| **Detection Rules** | 检测 | 按计划运行并打开案例的 Sigma 规则 |
-| **Rule Library** | 检测 | 可直接添加的现成检测规则 |
-| **ATT&CK Coverage** | 检测 | 你的规则覆盖的 MITRE ATT&CK 技术 |
-| **Threat Intel** | 检测 | 已知恶意指标的 STIX/TAXII 源 |
-| **监视器** | 检测 | 项目的安全事件监视器 |
-| **Playbooks** | 响应 | 在案例上自动或手动运行的步骤 |
-| **Playbook Runs** | 响应 | 每个剧本做了什么，以及等待审批的步骤 |
-| **Connections** | 来源 | OneUptime 轮询新记录的安全产品 |
-| **设置指南** | 来源 | 发送事件的代码片段，已填好你的摄取密钥 |
+| **概览** | 概览 | 安全的设置情况、现在需要有人处理的内容，以及案例处理的速度 |
+| **Security Cases** | Security Cases | 检测到的问题组成的队列，按所涉及的对象分组 |
+| **事件** | 事件 | 搜索和过滤每个事件，并打开某个事件查看它的所有字段 |
+| **实体** | 事件 | 你的检测结果中最常提及的用户、主机和地址 |
+| **关联分析** | 事件 | 共享同一主机、用户或 IP 地址的事件构成的图 |
+| **Detection Rules** | Detections | 按计划运行并打开案例的 Sigma 规则 |
+| **Rule Library** | Detections | 可直接添加的现成检测规则，推荐的规则带有标记 |
+| **Threat Intel** | Detections | 已知恶意指标的 STIX/TAXII 源 |
+| **ATT&CK Coverage** | Detections | 你的规则覆盖的 MITRE ATT&CK 技术 |
+| **Playbooks** | Playbooks | 在案例上自动或手动运行的步骤 |
+| **Playbook Runs** | Playbooks | 每个剧本做了什么，以及等待审批的步骤 |
+| **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
+| **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
+
+同一菜单项下的页面会以页面顶部的标签页打开。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
 
 ## 开始之前
 
@@ -153,6 +154,10 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 **设置指南** 标签页提供这些代码片段，并已填好你自己的主机和密钥。
 
+### 在日志中查找安全事件
+
+**Connections** 顶部的 **Your logs** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **Find security events in your logs** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 登录、sudo 命令、Kubernetes 审计记录、AWS CloudTrail 更改和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
+
 ### 连接安全产品
 
 **Connections** 会替你轮询安全产品，并把它的新记录作为安全事件导入。连接保存产品的设置和加密的凭据；工作进程按你设置的间隔轮询它，并跳过已经导入过的记录。
@@ -233,7 +238,7 @@ flowchart TB
 ### 创建规则
 
 :::steps
-1. 打开 **产品 → Security Events → Detection Rules** ，点击 **创建Detection Rule** 。
+1. 打开 **产品 → Security Events → Detections** ，点击 **创建Detection Rule** 。
 2. 在 **Sigma Rule** 中，把规则的 YAML 粘贴到 **Sigma Rule (YAML)** 中。保存时会解析它，所以错误会显示在表单中。
 3. **名称** 会用规则的 `title` 填好：改写它即可给规则起别的名字。新规则会直接运行；**已启用** 在它的编辑表单中。
 4. 在 **匹配时** 中保持 **Open a Case on Match** 打开，按规则的分组值把它的匹配归入案例。
@@ -292,11 +297,11 @@ Group By 和 Distinct Count 使用与规则相同的字段名。有了它们，�
 
 ### 规则何时运行
 
-OneUptime 每分钟检查一次已启用、且自上次运行以来已过了间隔时间的规则。每次运行读取事件时间落在上次运行与现在之间的事件，然后继续往前：
+OneUptime 每分钟检查一次已启用、且自上次运行以来已过了间隔时间的规则。每次运行读取事件时间落在上次运行与两分钟前之间的事件，然后继续往前。这两分钟给仍在路上的事件留出余量，例如写入一分钟后才被读取的日志行：
 
 - 时间窗口首尾相接，不会滚动。间隔为 10 分钟时，09:58 和 10:01 的失败可能落在不同的运行中、被分开计数，所以选择阈值时请留出余量。
 - 出现空档之后，例如工作进程中断或规则被重新打开，下一次运行会覆盖整个空档，最多覆盖最近 24 小时。
-- 迟到的事件，即时间早于规则上次运行的事件，会被存储并可以搜索，但那条规则永远不会读取它。
+- 在某次运行已经覆盖其时间之后、迟到超过两分钟的事件，会被存储并可以搜索，但那条规则永远不会读取它。
 - 每次运行最多触发 100 个分组：计数最高的那些。
 
 ### 严重程度
@@ -329,7 +334,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 
 ## 安全事件监视器
 
-安全事件监视器在滚动时间窗口内统计与其过滤器匹配的事件，并对计数运行常规的监视器条件：它会改变监视器的状态、打开警报或事件，并呼叫值班人员。请在 **监控 → 创建监视器** 下创建，类型选择 **Security Events** ；**Security Events → 监视器** 会列出所有这类监视器。
+安全事件监视器在滚动时间窗口内统计与其过滤器匹配的事件，并对计数运行常规的监视器条件：它会改变监视器的状态、打开警报或事件，并呼叫值班人员。请在 **监控 → 创建监视器** 下创建，类型选择 **Security Events** ；它会和您的其他监视器一起列在那里。
 
 它的表单显示 **Monitor events that include this text**、**Monitor Security Events for (time)**、**Event Severity** 和 **事件类别** 。**按遥测服务过滤** 和 **按属性过滤** 位于 **更多字段** 下，其标题会显示监视器正在使用哪些。它的条件检查 **Security Event Count** 。
 

@@ -188,7 +188,7 @@ Un e-mail ou une publication sans message propre envoie un résumé du dossier.
 
 ### Exécutions et approbations
 
-Chaque exécution est listée, étape par étape, sur son dossier et sous **Produits → Événements de sécurité → Playbook Runs** :
+Chaque exécution est listée, étape par étape, sur son dossier et sous **Produits → Événements de sécurité → Playbooks → Playbook Runs** :
 
 | Statut de l'exécution | Signification |
 | --- | --- |
@@ -199,7 +199,7 @@ Chaque exécution est listée, étape par étape, sur son dossier et sous **Prod
 | Échec | Une étape a échoué et l'exécution s'est arrêtée |
 | Annulé | Quelqu'un l'a annulée, ou a rejeté une étape |
 
-Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape et dans la chronologie du dossier. **Playbook Runs** s'ouvre sur les exécutions en attente d'approbation, et son entrée de menu indique leur nombre.
+Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape et dans la chronologie du dossier. **Playbook Runs** s'ouvre sur les exécutions en attente d'approbation, et l'entrée de menu **Playbooks** indique leur nombre.
 
 Une exécution dont le worker ne donne plus signe de vie, après un redémarrage par exemple, est reprise : une exécution en file d'attente est remise en file au bout de 2 minutes, et une exécution restée muette pendant 30 minutes passe en échec.
 
@@ -212,12 +212,12 @@ Le produit s'ouvre sur **Produits → Événements de sécurité → Vue d'ensem
 - Les dossiers ouverts chaque jour sur 30 jours, par priorité, et les détections levées chaque jour sur 14 jours, par source.
 - Les dossiers ouverts par priorité et par statut, les verdicts des 30 derniers jours, les tactiques ATT&CK à l'origine des dossiers, les détections qui se sont le plus déclenchées, et les entités nommées par le plus de constats.
 
-Un projet qui n'a encore ni dossier ni détection affiche, au-dessus de tout cela, les trois étapes pour le configurer.
+Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sources, ses détections, ses dossiers et ses playbooks, chacun avec ses chiffres. Un projet qui ne l'a pas encore mise en place y voit **Turn on recommended** et **Send a test attack** ; voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started). Quand rien n'attend personne, la page affiche **All quiet**, et les graphiques apparaissent dès qu'il y a quelque chose à représenter.
 
 ## Trouver des menaces
 
 - **Entités** classe les utilisateurs, hôtes, adresses et hachages que vos constats nomment le plus, sur le dernier jour, la dernière semaine ou le dernier mois, et recherche n'importe quelle valeur dans 30 jours d'événements.
-- **Rule Library** propose des règles de détection prêtes à l'emploi, pour les menaces visant les identités, les terminaux, le cloud, le réseau, le web et Kubernetes. Chacune est une règle Sigma écrite pour les champs vers lesquels chaque source connectée est normalisée. **Ajouter une règle** la crée comme l'une de vos règles de détection, activée et ouvrant des dossiers plutôt que des alertes ; modifiez-la sous **Règles de détection** comme n'importe quelle autre.
+- **Rule Library** propose des règles de détection prêtes à l'emploi, pour les menaces visant les identités, les terminaux, le cloud, le réseau, le web et Kubernetes. Chacune est une règle Sigma écrite pour les champs vers lesquels chaque source connectée est normalisée. **Ajouter une règle** la crée comme l'une de vos règles de détection, activée et ouvrant des dossiers plutôt que des alertes ; modifiez-la sous **Règles de détection** comme n'importe quelle autre. Les règles marquées **Recommandés** trouvent des menaces dans des données que OneUptime a déjà, et un bouton ajoute celles que vous n'avez pas encore.
 - **ATT&CK Coverage** dessine la matrice MITRE ATT&CK en mettant en évidence les techniques que couvrent vos règles activées, et entoure celles qu'une règle de la bibliothèque couvrirait.
 
 ## Automatiser

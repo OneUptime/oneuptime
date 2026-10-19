@@ -7,6 +7,7 @@ Traga os alertas e as detecções do [Google SecOps](https://cloud.google.com/se
 - [Configurar o conector gerenciado](#configurar-o-conector-gerenciado): Uma chave de conta de serviço e o formulário da conexão.
 - [Como o conector consulta](#como-o-conector-consulta): Três leituras de cada janela, e os orçamentos delas.
 - [Solução de problemas](#solução-de-problemas): O que o Last Error diz e o que fazer.
+- [Enviar eventos de segurança ao Google SecOps](#enviar-eventos-de-segurança-ao-google-secops): As detecções do OneUptime, no Google SecOps.
 :::
 
 ## Escolher como conectar
@@ -211,6 +212,32 @@ O Google SecOps guarda a gravidade de uma detecção em lugares diferentes confo
 4. **O resultado `$risk_score` da regra**, se a regra não define nenhuma gravidade, classificado com as [faixas recomendadas pelo Google](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax): 90–100 Critical, 80–89 High, 50–79 Medium, 20–49 Low, 1–19 Informational. O OneUptime só usa uma pontuação que a própria regra define. Ele ignora o `riskScore` que o Google preenche para regras sem um (40 para regras que geram alertas, 15 nos outros casos), porque esse padrão não diz nada sobre a gravidade da detecção.
 
 Uma detecção que nenhum desses classifica aparece como Unknown. Para classificar uma regra personalizada, adicione uma gravidade à seção `meta` dela no Google SecOps, por exemplo `severity = "High"`, ou defina `$risk_score` na seção `outcome` dela. As detecções que a regra criar depois disso são importadas com essa gravidade.
+
+## Enviar eventos de segurança ao Google SecOps
+
+O OneUptime também pode enviar o que encontra ao Google SecOps, para que o SIEM em que sua equipe trabalha veja as detecções do OneUptime ao lado das próprias. Cada evento de segurança é importado como um evento UDM: um login como `USER_LOGIN`, a inicialização de um processo como `PROCESS_LAUNCH`, uma conexão de rede como `NETWORK_CONNECTION` e todo o resto como `GENERIC_EVENT`, com sua severidade, suas tags do MITRE ATT&CK e a regra que o encontrou.
+
+:::steps
+### Criar uma chave que possa importar eventos
+
+No Google Cloud, crie uma conta de serviço no projeto ao qual sua instância do SecOps está vinculada e conceda a ela um papel com a permissão `chronicle.events.import`, como **Chronicle API Editor** (`roles/chronicle.editor`). Na aba **Keys**, adicione uma chave do tipo **JSON** e faça o download.
+
+### Adicionar o destino
+
+Abra **Produtos → Security Events → Connections**. Em **Send to your SIEM**, clique em **Add destination**. Escolha a **Região**, preencha o **Instance resource name** como para o conector acima e cole a chave em **Service account JSON**.
+
+### Enviar um evento de teste
+
+Clique em **Send a test event**. Um `GENERIC_EVENT` do produto `OneUptime Security Events` vai para o Google SecOps com as configurações do formulário, e nada é salvo. Ele aparece no Google SecOps em poucos minutos.
+
+### Escolher o que enviar
+
+Em **What to send**, mantenha **Detections only**, ou seja, o que suas regras e sua inteligência de ameaças encontraram e os alertas gerados pelos seus produtos conectados, ou escolha **All security events**. Clique em **Start sending**.
+:::
+
+- Um destino envia os eventos que chegam a partir do momento em que é salvo, nunca o histórico do projeto, e envia os novos a cada minuto.
+- Os alertas que o OneUptime importou do Google SecOps nunca são enviados de volta a ele.
+- Quando o Google SecOps não responde ou recusa um lote, o destino mantém sua posição e tenta de novo na próxima execução. Seu **Status** passa a indicar **Failing**, e **Ver erro** mostra o que o Google SecOps respondeu.
 
 ## Solução de problemas
 

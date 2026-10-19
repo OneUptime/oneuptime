@@ -27,22 +27,23 @@ flowchart TB
 
 Öppna **Produkter → Security Events**, under **Observerbarhet**. Dess meny:
 
-| Sida | Avsnitt | Vad den används till |
+| Sida | Menypost | Vad den används till |
 | --- | --- | --- |
-| **Översikt** | Översikt | Vad som behöver någon just nu, och hur snabbt ärenden hanteras |
-| **Security Cases** | Översikt | Kön med det som har upptäckts, grupperat efter vad det handlar om |
-| **Händelser** | Utredning | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
-| **Korrelera** | Utredning | En graf över händelserna som delar en värd, en användare eller en IP-adress |
-| **Entiteter** | Utredning | Användarna, värdarna och adresserna som dina fynd nämner oftast |
-| **Detection Rules** | Detektion | Sigma-regler som körs enligt ett schema och öppnar ärenden |
-| **Rule Library** | Detektion | Färdiga detektionsregler att lägga till |
-| **ATT&CK Coverage** | Detektion | MITRE ATT&CK-teknikerna som dina regler täcker |
-| **Threat Intel** | Detektion | STIX/TAXII-flöden med kända skadliga indikatorer |
-| **Monitorer** | Detektion | Projektets monitorer för säkerhetshändelser |
-| **Playbooks** | Respons | Steg som körs på ärenden, av sig själva eller manuellt |
-| **Playbook Runs** | Respons | Vad varje playbook gjorde, och stegen som väntar på godkännande |
-| **Connections** | Källor | Säkerhetsprodukter som OneUptime hämtar nya poster från |
-| **Installationsguide** | Källor | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
+| **Översikt** | Översikt | Hur säkerhet är uppsatt, vad som behöver någon nu och hur snabbt ärenden hanteras |
+| **Security Cases** | Security Cases | Kön med det som har upptäckts, grupperat efter vad det handlar om |
+| **Händelser** | Händelser | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
+| **Entiteter** | Händelser | Användarna, värdarna och adresserna som dina fynd nämner oftast |
+| **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
+| **Detection Rules** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
+| **Rule Library** | Detections | Färdiga detektionsregler att lägga till, med de rekommenderade markerade |
+| **Threat Intel** | Detections | STIX/TAXII-flöden med kända skadliga indikatorer |
+| **ATT&CK Coverage** | Detections | MITRE ATT&CK-teknikerna som dina regler täcker |
+| **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |
+| **Playbook Runs** | Playbooks | Vad varje playbook gjorde, och stegen som väntar på godkännande |
+| **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
+| **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
+
+Sidorna bakom en menypost öppnas som flikar högst upp på sidan. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
 ## Innan du börjar
 
@@ -153,6 +154,10 @@ För att skicka säkerhetsloggar som du redan samlar in, till exempel auditd, sy
 
 Fliken **Installationsguide** har de här kodsnuttarna med din egen värd och nyckel ifyllda.
 
+### Hitta säkerhetshändelser i dina loggar
+
+**Your logs**, högst upp på **Connections**, gör loggarna du redan skickar till OneUptime till en källa. Med **Find security events in your logs** påslaget läses projektets nya loggar varje minut, och varje SSH-inloggning, sudo-kommando, Kubernetes-granskningspost, AWS CloudTrail-ändring och webbattack i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
+
 ### Anslut en säkerhetsprodukt
 
 **Connections** hämtar data från en säkerhetsprodukt åt dig och importerar dess nya poster som säkerhetshändelser. En anslutning innehåller produktens inställningar och en krypterad autentiseringsuppgift; en worker hämtar från den med intervallet du anger och hoppar över poster som den redan har importerat.
@@ -233,7 +238,7 @@ flowchart TB
 ### Skapa en regel
 
 :::steps
-1. Öppna **Produkter → Security Events → Detection Rules** och klicka på **Skapa Detection Rule**.
+1. Öppna **Produkter → Security Events → Detections** och klicka på **Skapa Detection Rule**.
 2. Klistra in regelns YAML i **Sigma Rule (YAML)** under **Sigma Rule**. Den tolkas när du sparar, så ett fel visas i formuläret.
 3. **Namn** fylls i från regelns `title`: skriv över det för att kalla regeln något annat. En ny regel körs; **Aktiverad** finns i dess redigeringsformulär.
 4. Låt **Open a Case on Match** vara påslaget under **Vid träff** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
@@ -292,11 +297,11 @@ Group By och Distinct Count tar samma fältnamn som regeln. Med dem säger trös
 
 ### När en regel körs
 
-OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall har gått sedan deras senaste körning. Varje körning läser händelserna vars händelsetid infaller mellan den föregående körningen och nu, och går sedan vidare:
+OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall har gått sedan deras senaste körning. Varje körning läser händelserna vars händelsetid infaller mellan den föregående körningen och för två minuter sedan, och går sedan vidare. De två minuterna ger utrymme åt händelser som fortfarande är på väg, till exempel en loggrad som läses en minut efter att den skrevs:
 
 - Fönstren ligger efter varandra och glider inte. Med ett intervall på 10 minuter kan misslyckanden kl. 09:58 och 10:01 hamna i olika körningar och räknas var för sig, så lämna marginal när du väljer en tröskel.
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
-- En händelse som kommer sent, med en tid från före regelns senaste körning, lagras och är sökbar, men den regeln läser den aldrig.
+- En händelse som kommer mer än två minuter för sent, efter att en körning redan har täckt dess tid, lagras och är sökbar, men den regeln läser den aldrig.
 - Högst 100 grupper löser ut per körning: de med högst räkning.
 
 ### Allvarlighetsgrad
@@ -329,7 +334,7 @@ Fynd är vanliga händelser: sök efter dem under **Händelser** och pivotera p�
 
 ## Monitorer för säkerhetshändelser
 
-En monitor för säkerhetshändelser räknar händelserna som träffar dess filter över ett glidande fönster och kör de vanliga monitorkriterierna på räkningen: den ändrar monitorns status, öppnar larm eller incidenter och larmar jourhavande. Skapa en under **Övervakare → Skapa monitor**, med **Security Events** som typ; **Security Events → Monitorer** listar dem alla.
+En monitor för säkerhetshändelser räknar händelserna som träffar dess filter över ett glidande fönster och kör de vanliga monitorkriterierna på räkningen: den ändrar monitorns status, öppnar larm eller incidenter och larmar jourhavande. Skapa en under **Övervakare → Skapa monitor**, med **Security Events** som typ; den listas där med dina andra monitorer.
 
 Dess formulär visar **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** och **Händelseklass**. **Filtrera efter telemetritjänst** och **Filtrera efter attribut** väntar under **Fler fält**, vars rubrik visar vilka en monitor använder. Dess kriterier kontrollerar **Security Event Count**.
 

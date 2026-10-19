@@ -27,22 +27,23 @@ flowchart TB
 
 Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son menu :
 
-| Page | Section | À quoi elle sert |
+| Page | Entrée du menu | À quoi elle sert |
 | --- | --- | --- |
-| **Vue d'ensemble** | Vue d'ensemble | Ce qui demande une intervention maintenant, et la rapidité de traitement des dossiers |
-| **Security Cases** | Vue d'ensemble | La file d'attente des détections, regroupées selon ce qu'elles concernent |
-| **Événements** | Investiguer | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
-| **Corréler** | Investiguer | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
-| **Entités** | Investiguer | Les utilisateurs, hôtes et adresses que vos constats nomment le plus |
-| **Règles de détection** | Détecter | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |
-| **Rule Library** | Détecter | Des règles de détection prêtes à l'emploi, à ajouter |
-| **ATT&CK Coverage** | Détecter | Les techniques MITRE ATT&CK que couvrent vos règles |
-| **Threat Intel** | Détecter | Des flux STIX/TAXII d'indicateurs malveillants connus |
-| **Moniteurs** | Détecter | Les moniteurs d'événements de sécurité du projet |
-| **Playbooks** | Répondre | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
-| **Playbook Runs** | Répondre | Ce que chaque playbook a fait, et les étapes en attente d'approbation |
-| **Connexions** | Sources | Les produits de sécurité que OneUptime interroge pour obtenir de nouveaux enregistrements |
-| **Guide de configuration** | Sources | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
+| **Vue d'ensemble** | Vue d'ensemble | La mise en place de la sécurité, ce qui attend quelqu'un maintenant, et la vitesse de traitement des dossiers |
+| **Security Cases** | Security Cases | La file d'attente des détections, regroupées selon ce qu'elles concernent |
+| **Événements** | Événements | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
+| **Entités** | Événements | Les utilisateurs, hôtes et adresses que vos constats nomment le plus |
+| **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
+| **Règles de détection** | Détections | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |
+| **Rule Library** | Détections | Des règles de détection prêtes à ajouter, les recommandées étant signalées |
+| **Threat Intel** | Détections | Des flux STIX/TAXII d'indicateurs malveillants connus |
+| **ATT&CK Coverage** | Détections | Les techniques MITRE ATT&CK que couvrent vos règles |
+| **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
+| **Playbook Runs** | Playbooks | Ce que chaque playbook a fait, et les étapes en attente d'approbation |
+| **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
+| **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
+
+Les pages derrière une entrée du menu s'ouvrent sous forme d'onglets en haut de la page. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.
 
 ## Avant de commencer
 
@@ -153,6 +154,10 @@ Pour envoyer des journaux de sécurité que vous collectez déjà, par exemple c
 
 L'onglet **Guide de configuration** contient ces extraits avec votre propre hôte et votre clé déjà remplis.
 
+### Trouver des événements de sécurité dans vos journaux
+
+**Your logs**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Find security events in your logs** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH, commande sudo, entrée d'audit Kubernetes, modification AWS CloudTrail et attaque web qu'ils contiennent est stockée comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+
 ### Connecter un produit de sécurité
 
 **Connexions** interroge un produit de sécurité pour vous et importe ses nouveaux enregistrements comme événements de sécurité. Une connexion conserve les paramètres du produit et un identifiant chiffré ; un worker l'interroge à l'intervalle que vous fixez et ignore les enregistrements déjà importés.
@@ -233,7 +238,7 @@ flowchart TB
 ### Créer une règle
 
 :::steps
-1. Ouvrez **Produits → Événements de sécurité → Règles de détection** et cliquez sur **Créer : Règle de détection**.
+1. Ouvrez **Produits → Événements de sécurité → Détections** et cliquez sur **Créer : Règle de détection**.
 2. Dans **Sigma Rule**, collez le YAML de la règle dans **Sigma Rule (YAML)**. Il est analysé à l'enregistrement, donc une erreur s'affiche dans le formulaire.
 3. Le **Nom** se remplit avec le `title` de la règle : remplacez-le pour l'appeler autrement. Une nouvelle règle s'exécute ; **Activé** se trouve dans son formulaire de modification.
 4. Dans **En cas de correspondance**, laissez **Open a Case on Match** activé pour regrouper ses correspondances en dossiers, selon la valeur par laquelle la règle regroupe.
@@ -292,11 +297,11 @@ Le regroupement et le comptage distinct prennent les mêmes noms de champs que l
 
 ### Quand une règle s'exécute
 
-OneUptime vérifie chaque minute quelles règles activées ont dépassé leur intervalle depuis leur dernière exécution. Chaque exécution lit les événements dont l'heure d'événement tombe entre l'exécution précédente et maintenant, puis avance :
+OneUptime vérifie chaque minute quelles règles activées ont dépassé leur intervalle depuis leur dernière exécution. Chaque exécution lit les événements dont l'heure d'événement tombe entre l'exécution précédente et il y a deux minutes, puis avance. Ces deux minutes laissent le temps aux événements encore en route, comme une ligne de journal lue une minute après avoir été écrite :
 
 - Les fenêtres se suivent bout à bout, elles ne glissent pas. Avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 peuvent tomber dans des exécutions différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
 - Après une interruption, comme une panne du worker ou une règle réactivée, l'exécution suivante couvre toute l'interruption, jusqu'aux 24 dernières heures.
-- Un événement arrivé en retard, avec une heure antérieure à la dernière exécution de la règle, est stocké et consultable, mais cette règle ne le lit jamais.
+- Un événement qui arrive avec plus de deux minutes de retard, une fois qu'une exécution a couvert son heure, est stocké et consultable, mais cette règle ne le lit jamais.
 - Au plus 100 groupes se déclenchent par exécution : ceux aux comptages les plus élevés.
 
 ### Gravité
@@ -329,7 +334,7 @@ Les constats sont des événements ordinaires : recherchez-les dans **Événemen
 
 ## Moniteurs d'événements de sécurité
 
-Un moniteur d'événements de sécurité compte les événements qui correspondent à ses filtres sur une fenêtre glissante et applique au comptage les critères habituels des moniteurs : il change le statut du moniteur, ouvre des alertes ou des incidents, et alerte l'astreinte. Créez-en un sous **Moniteurs → Créer un moniteur**, avec **Événements de sécurité** comme type ; **Événements de sécurité → Moniteurs** les liste tous.
+Un moniteur d'événements de sécurité compte les événements qui correspondent à ses filtres sur une fenêtre glissante et applique au comptage les critères habituels des moniteurs : il change le statut du moniteur, ouvre des alertes ou des incidents, et alerte l'astreinte. Créez-en un sous **Moniteurs → Créer un moniteur**, avec **Événements de sécurité** comme type ; il y est listé avec vos autres moniteurs.
 
 Son formulaire affiche **Surveiller les événements contenant ce texte**, **Surveiller les événements de sécurité pendant (durée)**, **Gravité de l'événement** et **Classe d'événements**. **Filtrer par service de télémétrie** et **Filtrer par attributs** attendent sous **Plus de champs**, dont l'en-tête montre ceux qu'un moniteur utilise. Ses critères vérifient **Security Event Count**.
 

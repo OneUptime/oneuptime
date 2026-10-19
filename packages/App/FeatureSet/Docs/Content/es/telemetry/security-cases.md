@@ -188,7 +188,7 @@ Un email o una publicación sin mensaje propio envía un resumen del caso.
 
 ### Ejecuciones y aprobaciones
 
-Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de seguridad → Playbook Runs**:
+Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de seguridad → Playbooks → Playbook Runs**:
 
 | Estado de la ejecución | Significado |
 | --- | --- |
@@ -199,7 +199,7 @@ Cada ejecución aparece, paso a paso, en su caso y en **Productos → Eventos de
 | Fallido | Un paso falló y la ejecución se detuvo |
 | Cancelado | Alguien la canceló o rechazó un paso |
 
-Un paso que espera aprobación muestra **Approve** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso y en la cronología del caso. **Playbook Runs** se abre en las ejecuciones que esperan aprobación, y su entrada del menú las cuenta.
+Un paso que espera aprobación muestra **Approve** y **Rechazar** en la ejecución, con un comentario opcional. Aprobar hace que la ejecución continúe desde ese paso; rechazar la termina. La decisión, quién la tomó y su comentario se guardan en el paso y en la cronología del caso. **Playbook Runs** se abre en las ejecuciones que esperan aprobación, y la entrada del menú **Playbooks** las cuenta.
 
 Una ejecución que deja de recibir noticias de su worker, por ejemplo tras un reinicio, se retoma: una ejecución en cola vuelve a ponerse en cola a los 2 minutos, y una ejecución que lleva 30 minutos sin dar señales se marca como fallida.
 
@@ -212,12 +212,12 @@ El producto se abre en **Productos → Eventos de seguridad → Vista general**:
 - Los casos abiertos cada día durante 30 días, por prioridad, y las detecciones generadas cada día durante 14 días, por origen.
 - Los casos abiertos por prioridad y por estado, los veredictos de los últimos 30 días, las tácticas de ATT&CK detrás de los casos, las detecciones que más se dispararon y las entidades que nombran más hallazgos.
 
-Un proyecto que aún no tiene casos ni detecciones muestra, encima de todo esto, los tres pasos para configurarlo.
+Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, detecciones, casos y playbooks, cada uno con sus cifras. Un proyecto que aún no la ha configurado ve allí **Turn on recommended** y **Send a test attack**; consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started). Cuando nada necesita a nadie, la página dice **All quiet**, y los gráficos aparecen en cuanto hay algo que representar.
 
 ## Encontrar amenazas
 
 - **Entidades** clasifica los usuarios, hosts, direcciones y hashes que más nombran tus hallazgos, en el último día, semana o mes, y busca cualquier valor en 30 días de eventos.
-- **Rule Library** tiene reglas de detección listas para usar, para amenazas de identidad, endpoints, nube, red, web y Kubernetes. Cada una es una regla Sigma escrita para los campos a los que se normaliza cada origen conectado. **Añadir regla** la crea como una regla de detección tuya, activada y que abre casos en lugar de alertas; cámbiala en **Reglas de detección** como cualquier otra.
+- **Rule Library** tiene reglas de detección listas para usar, para amenazas de identidad, endpoints, nube, red, web y Kubernetes. Cada una es una regla Sigma escrita para los campos a los que se normaliza cada origen conectado. **Añadir regla** la crea como una regla de detección tuya, activada y que abre casos en lugar de alertas; cámbiala en **Reglas de detección** como cualquier otra. Las reglas marcadas como **Recomendadas** encuentran amenazas en datos que OneUptime ya tiene, y un botón añade las que aún no tiene.
 - **ATT&CK Coverage** dibuja la matriz MITRE ATT&CK resaltando las técnicas que cubren tus reglas habilitadas, y marca con un contorno las que cubriría una regla de la biblioteca.
 
 ## Automatizar

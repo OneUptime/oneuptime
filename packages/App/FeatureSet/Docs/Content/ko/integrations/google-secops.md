@@ -7,6 +7,7 @@
 - [관리형 커넥터 설정](#관리형-커넥터-설정): 서비스 계정 키와 연결 양식.
 - [커넥터의 폴링 방식](#커넥터의-폴링-방식): 모든 구간을 세 가지로 읽는 방법과 각각의 예산.
 - [문제 해결](#문제-해결): Last Error가 말하는 내용과 할 일.
+- [Google SecOps로 보안 이벤트 보내기](#google-secops로-보안-이벤트-보내기): OneUptime의 탐지를 Google SecOps에서.
 :::
 
 ## 연결 방법 선택
@@ -211,6 +212,32 @@ Google SecOps는 누가 규칙을 작성했느냐에 따라 탐지의 심각도�
 4. **규칙의 `$risk_score` 결과**. 규칙이 심각도를 설정하지 않은 경우 [Google의 권장 범위](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax)로 등급을 매깁니다: 90–100 Critical, 80–89 High, 50–79 Medium, 20–49 Low, 1–19 Informational. OneUptime은 규칙이 직접 설정한 점수만 사용합니다. Google이 점수가 없는 규칙에 채워 넣는 `riskScore`(알림 규칙은 40, 그 밖에는 15)는 무시하는데, 그 기본값은 탐지가 얼마나 심각한지에 대해 아무것도 알려 주지 않기 때문입니다.
 
 이 중 어느 것으로도 등급이 매겨지지 않은 탐지는 Unknown으로 표시됩니다. 사용자 지정 규칙에 등급을 매기려면 Google SecOps에서 규칙의 `meta` 섹션에 `severity = "High"`처럼 심각도를 추가하거나, `outcome` 섹션에서 `$risk_score`를 설정하세요. 그 뒤로 규칙이 만드는 탐지는 그 심각도로 가져옵니다.
+
+## Google SecOps로 보안 이벤트 보내기
+
+OneUptime은 찾은 것을 Google SecOps로도 보낼 수 있으므로, 팀이 사용하는 SIEM에서 OneUptime의 탐지를 자체 탐지와 나란히 볼 수 있습니다. 각 보안 이벤트는 UDM 이벤트로 가져옵니다. 로그인은 `USER_LOGIN`, 프로세스 시작은 `PROCESS_LAUNCH`, 네트워크 연결은 `NETWORK_CONNECTION`, 나머지는 `GENERIC_EVENT`가 되며, 심각도, MITRE ATT&CK 태그, 이를 찾은 규칙이 함께 붙습니다.
+
+:::steps
+### 이벤트를 가져올 수 있는 키 만들기
+
+Google Cloud에서 SecOps 인스턴스가 연결된 프로젝트에 서비스 계정을 만들고, **Chronicle API Editor**(`roles/chronicle.editor`)처럼 `chronicle.events.import` 권한이 있는 역할을 부여합니다. 해당 계정의 **Keys** 탭에서 **JSON** 유형의 키를 추가하고 다운로드합니다.
+
+### 대상 추가하기
+
+**제품 → Security Events → Connections**를 엽니다. **Send to your SIEM**에서 **Add destination**을 클릭합니다. **지역**을 선택하고, 위의 커넥터와 같이 **Instance resource name**을 입력한 다음, 키를 **Service account JSON**에 붙여 넣습니다.
+
+### 테스트 이벤트 보내기
+
+**Send a test event**를 클릭합니다. 제품 `OneUptime Security Events`의 `GENERIC_EVENT` 하나가 양식의 설정으로 Google SecOps에 전송되며, 아무것도 저장되지 않습니다. 몇 분 안에 Google SecOps에 표시됩니다.
+
+### 보낼 내용 선택하기
+
+**What to send**에서 **Detections only**(규칙과 위협 인텔리전스가 찾은 것과 연결된 제품이 발생시킨 알림)를 그대로 두거나 **All security events**를 선택합니다. **Start sending**을 클릭합니다.
+:::
+
+- 대상은 저장된 순간부터 들어오는 이벤트를 보내며 프로젝트의 기록은 보내지 않고, 새 이벤트를 매분 보냅니다.
+- OneUptime이 Google SecOps에서 가져온 알림은 Google SecOps로 다시 보내지 않습니다.
+- Google SecOps가 응답하지 않거나 배치를 거부하면 대상은 위치를 유지한 채 다음 실행에서 다시 시도합니다. **상태**는 **Failing**으로 표시되고, **오류 보기**에서 Google SecOps의 응답을 확인할 수 있습니다.
 
 ## 문제 해결
 

@@ -188,7 +188,7 @@ Een e-mail of bericht zonder eigen tekst stuurt een samenvatting van de zaak.
 
 ### Uitvoeringen en goedkeuringen
 
-Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Security Events → Playbook Runs**:
+Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Security Events → Playbooks → Playbook Runs**:
 
 | Status van de uitvoering | Betekenis |
 | --- | --- |
@@ -199,7 +199,7 @@ Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten 
 | Mislukt | Een stap mislukte en de uitvoering stopte |
 | Geannuleerd | Iemand heeft haar geannuleerd, of een stap afgewezen |
 
-Een stap die op goedkeuring wacht, toont **Approve** en **Reject** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap en op de tijdlijn van de zaak. **Playbook Runs** opent met de uitvoeringen die op goedkeuring wachten, en het menu-item ervan telt ze.
+Een stap die op goedkeuring wacht, toont **Approve** en **Reject** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap en op de tijdlijn van de zaak. **Playbook Runs** opent met de uitvoeringen die op goedkeuring wachten, en het menu-item **Playbooks** telt ze.
 
 Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstart, wordt weer opgepakt: een uitvoering in de wachtrij wordt na 2 minuten opnieuw in de wachtrij gezet, en een uitvoering die 30 minuten niets heeft gemeld, wordt als mislukt gemarkeerd.
 
@@ -212,12 +212,12 @@ Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstar
 - De zaken die per dag zijn geopend, over 30 dagen, per prioriteit, en de detecties die per dag zijn opgeworpen, over 14 dagen, per bron.
 - De open zaken per prioriteit en per status, de oordelen van de afgelopen 30 dagen, de ATT&CK-tactieken achter de zaken, de detecties die het vaakst afgingen, en de entiteiten die in de meeste bevindingen voorkomen.
 
-Een project zonder zaken en zonder detecties toont daarboven de drie stappen om het in te richten.
+Daarboven toont een strook hoe beveiliging is ingericht: de bronnen, detecties, zaken en playbooks, elk met hun cijfers. Een project dat het nog niet heeft ingericht, ziet daar **Turn on recommended** en **Send a test attack**; zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started). Als niets iemand nodig heeft, zegt de pagina **All quiet**, en de grafieken verschijnen zodra er iets te tonen is.
 
 ## Dreigingen vinden
 
 - **Entiteiten** rangschikt de gebruikers, hosts, adressen en hashes die je bevindingen het vaakst noemen, over de afgelopen dag, week of maand, en zoekt elke waarde op in 30 dagen aan gebeurtenissen.
-- **Rule Library** bevat kant-en-klare detectieregels voor dreigingen rond identiteit, endpoints, cloud, netwerk, web en Kubernetes. Elke regel is een Sigma-regel, geschreven voor de velden waarnaar elke gekoppelde bron wordt genormaliseerd. **Regel toevoegen** maakt hem aan als een eigen detectieregel, ingeschakeld en zo ingesteld dat hij zaken opent in plaats van waarschuwingen; wijzig hem onder **Detection Rules** zoals elke andere.
+- **Rule Library** bevat kant-en-klare detectieregels voor dreigingen rond identiteit, endpoints, cloud, netwerk, web en Kubernetes. Elke regel is een Sigma-regel, geschreven voor de velden waarnaar elke gekoppelde bron wordt genormaliseerd. **Regel toevoegen** maakt hem aan als een eigen detectieregel, ingeschakeld en zo ingesteld dat hij zaken opent in plaats van waarschuwingen; wijzig hem onder **Detection Rules** zoals elke andere. De regels die als **Aanbevolen** zijn gemarkeerd, vinden bedreigingen in gegevens die OneUptime al heeft, en één knop voegt de regels toe die u nog niet hebt.
 - **ATT&CK Coverage** tekent de matrix van MITRE ATT&CK, licht de technieken op die je ingeschakelde regels dekken, en omlijnt de technieken die een regel uit de bibliotheek zou dekken.
 
 ## Automatiseren

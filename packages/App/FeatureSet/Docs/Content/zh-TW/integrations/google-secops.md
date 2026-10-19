@@ -7,6 +7,7 @@
 - [設定託管連接器](#設定託管連接器): 一個服務帳號金鑰，以及連線的表單。
 - [連接器如何輪詢](#連接器如何輪詢): 每個時間窗的三種讀取方式，以及它們的預算。
 - [疑難排解](#疑難排解): Last Error 說了什麼，以及該怎麼做。
+- [將安全性事件傳送到 Google SecOps](#將安全性事件傳送到-google-secops): 在 Google SecOps 中查看 OneUptime 的偵測結果。
 :::
 
 ## 選擇連線方式
@@ -211,6 +212,32 @@ Google SecOps 會根據規則的編寫者，把偵測的嚴重程度儲存在不
 4. **規則的 `$risk_score` 結果**，在規則沒有設定嚴重程度時使用，按 [Google 推薦的範圍](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax) 分級：90–100 Critical，80–89 High，50–79 Medium，20–49 Low，1–19 Informational。OneUptime 只使用規則自己設定的分數。它會忽略 Google 為沒有分數的規則填入的 `riskScore`（警示規則為 40，其他為 15），因為這個預設值說明不了偵測有多嚴重。
 
 以上都無法分級的偵測會顯示為 Unknown。要為自訂規則分級，請在 Google SecOps 中為它的 `meta` 部分新增嚴重程度，例如 `severity = "High"`，或在它的 `outcome` 部分設定 `$risk_score`。此後該規則建立的偵測會以該嚴重程度匯入。
+
+## 將安全性事件傳送到 Google SecOps
+
+OneUptime 也可以把找到的內容傳送到 Google SecOps，讓您的團隊所用的 SIEM 在自身偵測結果旁邊看到 OneUptime 的偵測結果。每個安全性事件都會以 UDM 事件匯入：登入為 `USER_LOGIN`，程序啟動為 `PROCESS_LAUNCH`，網路連線為 `NETWORK_CONNECTION`，其他一切為 `GENERIC_EVENT`，並附上其嚴重性、MITRE ATT&CK 標籤，以及找到它的規則。
+
+:::steps
+### 建立可以匯入事件的金鑰
+
+在 Google Cloud 中，於您的 SecOps 執行個體所繫結的專案裡建立服務帳戶，並授予它具有 `chronicle.events.import` 權限的角色，例如 **Chronicle API Editor** (`roles/chronicle.editor`)。在其 **Keys** 分頁上新增類型為 **JSON** 的金鑰並下載。
+
+### 新增目標
+
+開啟 **產品 → Security Events → Connections**。在 **Send to your SIEM** 下按一下 **Add destination**。選擇 **地區**，像上方的連接器一樣填寫 **Instance resource name**，並把金鑰貼到 **Service account JSON** 中。
+
+### 傳送測試事件
+
+按一下 **Send a test event**。一個來自產品 `OneUptime Security Events` 的 `GENERIC_EVENT` 會依表單中的設定傳送到 Google SecOps，不會儲存任何內容。它會在幾分鐘內出現在 Google SecOps 中。
+
+### 選擇要傳送的內容
+
+在 **What to send** 下保留 **Detections only**，也就是您的規則和威脅情資找到的內容，以及已連線產品發出的警示，或選擇 **All security events**。按一下 **Start sending**。
+:::
+
+- 目標只傳送儲存之後到達的事件，絕不傳送專案的歷史記錄，並且每分鐘傳送一次新事件。
+- OneUptime 從 Google SecOps 匯入的警示絕不會被傳送回去。
+- 當 Google SecOps 沒有回應或拒絕一批事件時，目標會保留其位置，並在下一次執行時重試。其 **狀態** 會顯示 **Failing**，**檢視錯誤** 會顯示 Google SecOps 的回覆。
 
 ## 疑難排解
 

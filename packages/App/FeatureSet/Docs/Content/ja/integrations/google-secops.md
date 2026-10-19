@@ -7,6 +7,7 @@
 - [マネージドコネクターを設定する](#マネージドコネクターを設定する): サービスアカウントキーと接続のフォーム。
 - [コネクターのポーリングの仕組み](#コネクターのポーリングの仕組み): 各時間枠を 3 通りに読む方法と、その予算。
 - [トラブルシューティング](#トラブルシューティング): 最終エラーの意味と対処方法。
+- [Google SecOps にセキュリティイベントを送る](#google-secops-にセキュリティイベントを送る): OneUptime の検出を Google SecOps で。
 :::
 
 ## 接続方法を選ぶ
@@ -211,6 +212,32 @@ Google SecOps は、ルールを書いたのが誰かによって検出の重大
 4. **ルールの `$risk_score` の結果**。ルールが重大度を設定していない場合に、[Google の推奨範囲](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax) で分類します: 90–100 Critical、80–89 High、50–79 Medium、20–49 Low、1–19 Informational。OneUptime が使うのはルール自身が設定したスコアだけです。スコアを持たないルールに Google が入れる `riskScore`（アラートを生成するルールは 40、それ以外は 15）は無視します。その既定値は検出の重大さについて何も語らないからです。
 
 これらのどれでも分類されない検出は Unknown として表示されます。カスタムルールを分類するには、Google SecOps でその `meta` セクションに `severity = "High"` のような重大度を追加するか、`outcome` セクションで `$risk_score` を設定します。それ以降にルールが作成する検出は、その重大度でインポートされます。
+
+## Google SecOps にセキュリティイベントを送る
+
+OneUptime は見つけたものを Google SecOps にも送れます。チームが使っている SIEM で、OneUptime の検出をその SIEM 自身の検出と並べて見られます。各セキュリティイベントは UDM イベントとしてインポートされます。サインインは `USER_LOGIN`、プロセスの起動は `PROCESS_LAUNCH`、ネットワーク接続は `NETWORK_CONNECTION`、それ以外は `GENERIC_EVENT` となり、重大度、MITRE ATT&CK のタグ、検出したルールが付きます。
+
+:::steps
+### イベントをインポートできるキーを作成する
+
+Google Cloud で、SecOps インスタンスが紐づくプロジェクトにサービスアカウントを作成し、**Chronicle API Editor** (`roles/chronicle.editor`) など `chronicle.events.import` 権限を持つロールを付与します。その **Keys** タブで種類が **JSON** のキーを追加し、ダウンロードします。
+
+### 送信先を追加する
+
+**製品 → セキュリティイベント → 接続** を開きます。**Send to your SIEM** で **Add destination** をクリックします。**リージョン** を選び、上のコネクターと同じように **Instance resource name** を入力し、キーを **Service account JSON** に貼り付けます。
+
+### テストイベントを送る
+
+**Send a test event** をクリックします。製品 `OneUptime Security Events` の `GENERIC_EVENT` が 1 件、フォームの設定で Google SecOps に送られ、何も保存されません。数分以内に Google SecOps に表示されます。
+
+### 送信する内容を選ぶ
+
+**What to send** では **Detections only** (ルールと脅威インテリジェンスが見つけたもの、および接続済み製品が発したアラート) のままにするか、**All security events** を選びます。**Start sending** をクリックします。
+:::
+
+- 送信先は保存した時点以降に届いたイベントを送り、プロジェクトの履歴は送りません。新しいイベントは毎分送られます。
+- OneUptime が Google SecOps からインポートしたアラートが Google SecOps に送り返されることはありません。
+- Google SecOps が応答しない場合やバッチを拒否した場合、送信先はその位置を保ったまま次の実行で再試行します。**ステータス** は **失敗中** になり、**エラーを表示** で Google SecOps の応答を確認できます。
 
 ## トラブルシューティング
 

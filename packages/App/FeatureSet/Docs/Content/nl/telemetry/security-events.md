@@ -27,22 +27,23 @@ flowchart TB
 
 Open **Producten → Security Events**, onder **Observability**. Het menu:
 
-| Pagina | Sectie | Waarvoor het dient |
+| Pagina | Menu-item | Waarvoor het dient |
 | --- | --- | --- |
-| **Overzicht** | Overzicht | Wat nu aandacht nodig heeft, en hoe snel zaken worden afgehandeld |
-| **Security Cases** | Overzicht | De wachtrij van wat is gedetecteerd, gegroepeerd naar waar het over gaat |
-| **Gebeurtenissen** | Investigate | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
-| **Correleren** | Investigate | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
-| **Entiteiten** | Investigate | De gebruikers, hosts en adressen die je bevindingen het vaakst noemen |
-| **Detection Rules** | Detect | Sigma-regels die volgens een schema draaien en zaken openen |
-| **Rule Library** | Detect | Kant-en-klare detectieregels om toe te voegen |
-| **ATT&CK Coverage** | Detect | De technieken van MITRE ATT&CK die je regels dekken |
-| **Threat Intel** | Detect | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
-| **Monitoren** | Detect | De monitoren voor beveiligingsgebeurtenissen van het project |
-| **Playbooks** | Respond | Stappen die op zaken draaien, vanzelf of met de hand |
-| **Playbook Runs** | Respond | Wat elk playbook deed, en de stappen die op goedkeuring wachten |
-| **Connections** | Sources | Beveiligingsproducten die OneUptime op nieuwe records bevraagt |
-| **Installatiegids** | Sources | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
+| **Overzicht** | Overzicht | Hoe beveiliging is ingericht, wat er nu iemand nodig heeft en hoe snel zaken worden afgehandeld |
+| **Security Cases** | Security Cases | De wachtrij van wat is gedetecteerd, gegroepeerd naar waar het over gaat |
+| **Gebeurtenissen** | Gebeurtenissen | Elke gebeurtenis zoeken en filteren, en er een openen om al haar velden te zien |
+| **Entiteiten** | Gebeurtenissen | De gebruikers, hosts en adressen die je bevindingen het vaakst noemen |
+| **Correleren** | Gebeurtenissen | Een grafiek van de gebeurtenissen die een host, een gebruiker of een IP-adres delen |
+| **Detection Rules** | Detections | Sigma-regels die volgens een schema draaien en zaken openen |
+| **Rule Library** | Detections | Kant-en-klare detectieregels om toe te voegen, met de aanbevolen regels gemarkeerd |
+| **Threat Intel** | Detections | STIX/TAXII-feeds van bekende kwaadaardige indicatoren |
+| **ATT&CK Coverage** | Detections | De technieken van MITRE ATT&CK die je regels dekken |
+| **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
+| **Playbook Runs** | Playbooks | Wat elk playbook deed, en de stappen die op goedkeuring wachten |
+| **Connections** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
+| **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
+
+De pagina's achter één menu-item openen als tabbladen boven aan de pagina. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
 
 ## Voordat je begint
 
@@ -153,6 +154,10 @@ Om beveiligingslogs te sturen die je al verzamelt, zoals auditd, syslog of Falco
 
 Het tabblad **Installatiegids** bevat deze snippets, met je eigen host en sleutel ingevuld.
 
+### Beveiligingsgebeurtenissen in uw logs vinden
+
+**Your logs**, boven aan **Connections**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Find security events in your logs** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH-aanmelding, sudo-opdracht, Kubernetes-auditregel, AWS CloudTrail-wijziging en webaanval daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
+
 ### Een beveiligingsproduct koppelen
 
 **Connections** bevraagt een beveiligingsproduct voor je en importeert zijn nieuwe records als beveiligingsgebeurtenissen. Een verbinding bevat de instellingen van het product en een versleutelde referentie; een worker bevraagt haar met het interval dat je instelt en slaat records over die hij al importeerde.
@@ -233,7 +238,7 @@ flowchart TB
 ### Een regel aanmaken
 
 :::steps
-1. Open **Producten → Security Events → Detection Rules** en klik op **Detection Rule aanmaken**.
+1. Open **Producten → Security Events → Detections** en klik op **Detection Rule aanmaken**.
 2. Plak in **Sigma Rule** de YAML van de regel in **Sigma Rule (YAML)**. Die wordt bij het opslaan geparst, dus een fout verschijnt in het formulier.
 3. De **Naam** vult zich met de `title` van de regel: typ eroverheen om de regel anders te noemen. Een nieuwe regel draait; **Ingeschakeld** staat in zijn bewerkformulier.
 4. Laat in **Bij overeenkomst** de optie **Open a Case on Match** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
@@ -292,11 +297,11 @@ Group By en Distinct Count nemen dezelfde veldnamen als de regel. Daarmee zegt d
 
 ### Wanneer een regel draait
 
-OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval sinds hun laatste uitvoering is verstreken. Elke uitvoering leest de gebeurtenissen waarvan de gebeurtenistijd tussen de vorige uitvoering en nu valt, en gaat dan verder:
+OneUptime controleert elke minuut op ingeschakelde regels waarvan het interval sinds hun laatste uitvoering is verstreken. Elke uitvoering leest de gebeurtenissen waarvan de gebeurtenistijd tussen de vorige uitvoering en twee minuten geleden valt, en gaat dan verder. Die twee minuten geven gebeurtenissen die nog onderweg zijn ruimte, zoals een logregel die een minuut na het schrijven wordt gelezen:
 
 - Vensters sluiten op elkaar aan en glijden niet. Met een interval van 10 minuten kunnen mislukkingen om 09:58 en 10:01 in verschillende uitvoeringen vallen en worden ze apart geteld, dus houd marge aan als je een drempel kiest.
 - Na een onderbreking, zoals een storing van een worker of een regel die weer is aangezet, dekt de volgende uitvoering de hele onderbreking, tot hoogstens de laatste 24 uur.
-- Een gebeurtenis die te laat binnenkomt, met een tijd van vóór de laatste uitvoering van de regel, wordt opgeslagen en is doorzoekbaar, maar die regel leest haar nooit.
+- Een gebeurtenis die meer dan twee minuten te laat binnenkomt, nadat een uitvoering haar tijd al heeft gedekt, wordt opgeslagen en is doorzoekbaar, maar die regel leest haar nooit.
 - Per uitvoering gaan hoogstens 100 groepen af: die met de hoogste tellingen.
 
 ### Ernst
@@ -329,7 +334,7 @@ Bevindingen zijn gewone gebeurtenissen: doorzoek ze in **Gebeurtenissen** en dra
 
 ## Monitoren voor beveiligingsgebeurtenissen
 
-Een monitor voor beveiligingsgebeurtenissen telt de gebeurtenissen die aan zijn filters voldoen over een glijdend venster en past de gebruikelijke monitorcriteria toe op de telling: hij wijzigt de status van de monitor, opent waarschuwingen of incidenten, en roept de dienstdoende op. Maak er een aan onder **Monitoren → Monitor maken**, met **Security Events** als type; **Security Events → Monitoren** toont ze allemaal.
+Een monitor voor beveiligingsgebeurtenissen telt de gebeurtenissen die aan zijn filters voldoen over een glijdend venster en past de gebruikelijke monitorcriteria toe op de telling: hij wijzigt de status van de monitor, opent waarschuwingen of incidenten, en roept de dienstdoende op. Maak er een aan onder **Monitoren → Monitor maken**, met **Security Events** als type; daar staat hij tussen uw andere monitoren.
 
 Het formulier toont **Monitor events that include this text**, **Monitor Security Events for (time)**, **Event Severity** en **Gebeurtenisklasse**. **Filteren op telemetrieservice** en **Filteren op attributen** wachten onder **Meer velden**, waarvan de kop toont welke een monitor gebruikt. De criteria controleren **Security Event Count**.
 

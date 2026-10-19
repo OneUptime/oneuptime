@@ -7,6 +7,7 @@ Bring advarsler og registreringer fra [Google SecOps](https://cloud.google.com/s
 - [Opsæt den administrerede connector](#opsæt-den-administrerede-connector): En nøgle til en tjenestekonto og forbindelsens formular.
 - [Sådan poller connectoren](#sådan-poller-connectoren): Tre læsninger af hvert vindue og deres budgetter.
 - [Fejlfinding](#fejlfinding): Hvad Last Error siger, og hvad du skal gøre.
+- [Send sikkerhedshændelser til Google SecOps](#send-sikkerhedshændelser-til-google-secops): OneUptimes detektioner, i Google SecOps.
 :::
 
 ## Vælg, hvordan du forbinder
@@ -211,6 +212,32 @@ Google SecOps gemmer en registrerings alvorlighed forskellige steder, afhængigt
 4. **Reglens `$risk_score`-udfald**, hvis reglen ikke sætter nogen alvorlighed, inddelt efter [Googles anbefalede intervaller](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax): 90–100 Critical, 80–89 High, 50–79 Medium, 20–49 Low, 1–19 Informational. OneUptime bruger kun en score, som reglen selv sætter. Den ignorerer den `riskScore`, Google udfylder for regler uden en (40 for regler, der giver advarsler, ellers 15), fordi den standard ikke siger noget om, hvor alvorlig registreringen er.
 
 En registrering, som ingen af disse inddeler, vises som Unknown. For at inddele en brugerdefineret regel tilføjer du en alvorlighed til dens afsnit `meta` i Google SecOps, for eksempel `severity = "High"`, eller sætter `$risk_score` i dens afsnit `outcome`. Registreringer, som reglen opretter derefter, importeres med den alvorlighed.
+
+## Send sikkerhedshændelser til Google SecOps
+
+OneUptime kan også sende det, det finder, til Google SecOps, så det SIEM, dit team arbejder i, ser OneUptimes detektioner ved siden af sine egne. Hver sikkerhedshændelse importeres som en UDM-hændelse: et login som `USER_LOGIN`, en processtart som `PROCESS_LAUNCH`, en netværksforbindelse som `NETWORK_CONNECTION` og alt andet som `GENERIC_EVENT`, med dens alvorlighed, dens MITRE ATT&CK-tags og den regel, der fandt den.
+
+:::steps
+### Opret en nøgle, der må importere hændelser
+
+Opret i Google Cloud en tjenestekonto i det projekt, din SecOps-instans er knyttet til, og giv den en rolle med tilladelsen `chronicle.events.import`, for eksempel **Chronicle API Editor** (`roles/chronicle.editor`). Tilføj en nøgle af typen **JSON** på dens fane **Keys**, og download den.
+
+### Tilføj destinationen
+
+Åbn **Produkter → Security Events → Connections**. Klik på **Add destination** under **Send to your SIEM**. Vælg **Region**, udfyld **Instance resource name** som for connectoren ovenfor, og indsæt nøglen i **Service account JSON**.
+
+### Send en testhændelse
+
+Klik på **Send a test event**. Én `GENERIC_EVENT` fra produktet `OneUptime Security Events` sendes til Google SecOps med indstillingerne fra formularen, og intet gemmes. Den vises i Google SecOps inden for få minutter.
+
+### Vælg, hvad der sendes
+
+Behold **Detections only** under **What to send**, altså det, dine regler og din trusselsintelligens fandt, og de alarmer, dine forbundne produkter rejste, eller vælg **All security events**. Klik på **Start sending**.
+:::
+
+- En destination sender de hændelser, der kommer ind fra det øjeblik, den gemmes, aldrig projektets historik, og sender nye hvert minut.
+- Alarmer, som OneUptime har importeret fra Google SecOps, sendes aldrig tilbage dertil.
+- Når Google SecOps ikke svarer eller afviser en batch, beholder destinationen sin plads og prøver igen ved næste kørsel. Dens **Status** viser **Failing**, og **Vis fejl** viser, hvad Google SecOps svarede.
 
 ## Fejlfinding
 

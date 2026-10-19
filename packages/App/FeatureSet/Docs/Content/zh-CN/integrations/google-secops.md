@@ -7,6 +7,7 @@
 - [设置托管连接器](#设置托管连接器): 一个服务账号密钥，以及连接的表单。
 - [连接器如何轮询](#连接器如何轮询): 每个窗口的三种读取方式，以及它们的预算。
 - [故障排除](#故障排除): Last Error 说了什么，以及该怎么做。
+- [将安全事件发送到 Google SecOps](#将安全事件发送到-google-secops): 在 Google SecOps 中查看 OneUptime 的检测结果。
 :::
 
 ## 选择连接方式
@@ -211,6 +212,32 @@ Google SecOps 会根据规则的编写者，把检测的严重程度存储在不
 4. **规则的 `$risk_score` 结果**，在规则没有设置严重程度时使用，按 [Google 推荐的范围](https://docs.cloud.google.com/chronicle/docs/yara-l/outcome-syntax) 分级：90–100 Critical，80–89 High，50–79 Medium，20–49 Low，1–19 Informational。OneUptime 只使用规则自己设置的分数。它会忽略 Google 为没有分数的规则填入的 `riskScore`（警报规则为 40，其他为 15），因为这个默认值说明不了检测有多严重。
 
 以上都无法分级的检测会显示为 Unknown。要为自定义规则分级，请在 Google SecOps 中为它的 `meta` 部分添加严重程度，例如 `severity = "High"`，或在它的 `outcome` 部分设置 `$risk_score`。此后该规则创建的检测会以该严重程度导入。
+
+## 将安全事件发送到 Google SecOps
+
+OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队所用的 SIEM 在自身检测结果旁边看到 OneUptime 的检测结果。每个安全事件都会作为 UDM 事件导入：登录为 `USER_LOGIN`，进程启动为 `PROCESS_LAUNCH`，网络连接为 `NETWORK_CONNECTION`，其他一切为 `GENERIC_EVENT`，并带有其严重级别、MITRE ATT&CK 标签以及发现它的规则。
+
+:::steps
+### 创建可以导入事件的密钥
+
+在 Google Cloud 中，在您的 SecOps 实例所绑定的项目里创建一个服务账号，并为其授予拥有 `chronicle.events.import` 权限的角色，例如 **Chronicle API Editor** (`roles/chronicle.editor`)。在其 **Keys** 标签页上添加一个类型为 **JSON** 的密钥并下载。
+
+### 添加目标
+
+打开 **产品 → Security Events → Connections**。在 **Send to your SIEM** 下点击 **Add destination**。选择 **区域**，像上面的连接器一样填写 **Instance resource name**，并把密钥粘贴到 **Service account JSON** 中。
+
+### 发送测试事件
+
+点击 **Send a test event**。一个来自产品 `OneUptime Security Events` 的 `GENERIC_EVENT` 会按表单中的设置发送到 Google SecOps，不会保存任何内容。它会在几分钟内出现在 Google SecOps 中。
+
+### 选择发送的内容
+
+在 **What to send** 下保留 **Detections only**，即您的规则和威胁情报发现的内容以及已连接产品发出的告警，或选择 **All security events**。点击 **Start sending**。
+:::
+
+- 目标只发送保存之后到达的事件，绝不发送项目的历史记录，并且每分钟发送一次新事件。
+- OneUptime 从 Google SecOps 导入的告警绝不会被发送回去。
+- 当 Google SecOps 没有响应或拒绝一批事件时，目标会保留其位置，并在下一次运行时重试。其 **状态** 显示为 **Failing**，**查看错误** 会显示 Google SecOps 的答复。
 
 ## 故障排除
 

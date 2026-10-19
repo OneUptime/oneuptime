@@ -10,6 +10,7 @@ import {
   GEMINI_COPILOT,
   SECURITY_CASES,
   SECURITY_EVENTS,
+  SECURITY_GETTING_STARTED,
   SECURITY_PAGES,
   THREAT_INTELLIGENCE,
 } from "./AiObservabilityDocsPages";
@@ -126,6 +127,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [SECURITY_EVENTS]: 29,
   [THREAT_INTELLIGENCE]: 28,
   [SECURITY_CASES]: 26,
+  [SECURITY_GETTING_STARTED]: 24,
 };
 
 // Bold words that name a product opened from the Products menu.
