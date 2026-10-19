@@ -164,6 +164,19 @@ const LINK_TOKEN_PATTERN: RegExp = new RegExp(
   "g",
 );
 
+/*
+ * The code of a link that confirms a subscription, anywhere in a text: the
+ * route segment of the Confirm Subscription page, the subscriber id, and the
+ * code in its verification-token query - 32 hex characters
+ * (StatusPageSubscriberConfirmationCode), or the six digits of a code minted
+ * before. Linear for the same reasons: the route segment and the query's
+ * name are literals, and the code is at most 64 characters of one class.
+ */
+const CONFIRMATION_CODE_PATTERN: RegExp = new RegExp(
+  `(/confirm-subscription/${UUID_PATTERN}\\?verification-token=)[0-9a-fA-F]{1,64}`,
+  "g",
+);
+
 export default class StatusPageSubscriberUnsubscribe {
   /*
    * The status page route segment the link opens, on both a custom domain
@@ -198,7 +211,9 @@ export default class StatusPageSubscriberUnsubscribe {
   /*
    * The text with the token of every unsubscribe link and every manage link
    * in it replaced by "[redacted]": ".../unsubscribe/{id}-[redacted]",
-   * ".../update-subscription/{id}-[redacted]".
+   * ".../update-subscription/{id}-[redacted]" - and the code of every link
+   * that confirms a subscription, which a visitor who signs up by text is
+   * sent: ".../confirm-subscription/{id}?verification-token=[redacted]".
    *
    * For any copy of a message that is kept where people other than its
    * recipient can read it. The token is the whole of what lets the link's
@@ -215,10 +230,15 @@ export default class StatusPageSubscriberUnsubscribe {
       return text;
     }
 
-    return text.replace(
-      LINK_TOKEN_PATTERN,
-      `$1-${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
-    );
+    return text
+      .replace(
+        LINK_TOKEN_PATTERN,
+        `$1-${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
+      )
+      .replace(
+        CONFIRMATION_CODE_PATTERN,
+        `$1${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
+      );
   }
 
   /*

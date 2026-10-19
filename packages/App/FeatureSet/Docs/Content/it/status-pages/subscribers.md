@@ -17,8 +17,8 @@ Questa pagina copre entrambi: i cinque canali di iscrizione e come si iscrivono 
 
 ```mermaid title="Da un'iscrizione a un messaggio"
 flowchart TB
-    V["Un visitatore si iscrive"] --> Q{"Via email?"}
-    Q -->|"Sì"| C["Conferma via email"]
+    V["Un visitatore si iscrive"] --> Q{"Via email o SMS?"}
+    Q -->|"Sì"| C["Conferma con un link"]
     Q -->|"No"| S["Iscritto"]
     C --> S
     E["Incidente, manutenzione<br/>o annuncio"] --> N["Notifica"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Messaggio con un link<br/>di disiscrizione"]
 ```
 
-Ogni pagina di stato ha i propri iscritti. Un visitatore si iscrive nella pagina **Iscriviti** della pagina di stato, dove un indirizzo email conferma con un link prima di ricevere qualsiasi cosa, oppure lo aggiunge il vostro team nella dashboard. Da quel momento ogni incidente, evento di manutenzione programmata e annuncio che raggiunge la pagina notifica i suoi iscritti, ciascuno sul canale con cui si è iscritto, e ogni messaggio porta il link che annulla l'iscrizione.
+Ogni pagina di stato ha i propri iscritti. Un visitatore si iscrive nella pagina **Iscriviti** della pagina di stato, dove un indirizzo email o un numero di telefono conferma con un link prima di ricevere qualsiasi cosa, oppure lo aggiunge il vostro team nella dashboard. Da quel momento ogni incidente, evento di manutenzione programmata e annuncio che raggiunge la pagina notifica i suoi iscritti, ciascuno sul canale con cui si è iscritto, e ogni messaggio porta il link che annulla l'iscrizione.
 
 ## Canali di iscrizione
 
@@ -76,7 +76,7 @@ La pagina **Iscriviti** ha un sottomenu con una scheda per ogni canale attivo; c
 | **MS Teams** | `/subscribe/microsoft-teams` | **Iscriviti via Microsoft Teams** | **Nome dell'area di lavoro Microsoft Teams** e **URL del webhook in entrata Microsoft Teams**, con l'esempio `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **Iscriviti tramite webhook** | **URL del webhook**, con l'esempio `https://example.com/webhook`. A ogni evento della pagina di stato vi viene inviata una richiesta JSON `POST`. |
 
-Il pulsante di invio dice **Iscriviti**. Un'iscrizione via SMS, Slack, Microsoft Teams o webhook mostra *Iscrizione effettuata con successo.* Un'iscrizione via email dice che è stato inviato un link di conferma e di controllare la cartella spam se non arriva (vedete [Doppia conferma per le email](#doppia-conferma-per-le-email)). Le schede **E-mail**, **SMS**, **Slack** e **MS Teams** hanno anche la divisione **Nuova iscrizione** / **Gestisci iscrizione esistente**, così chi è già iscritto può tornare alle proprie preferenze senza cercare un vecchio messaggio.
+Il pulsante di invio dice **Iscriviti**. Un'iscrizione via Slack, Microsoft Teams o webhook mostra *Iscrizione effettuata con successo.* Un'iscrizione via SMS mostra *Abbiamo inviato un SMS a questo numero di telefono. Apri il link che contiene per confermare l'iscrizione.* Un'iscrizione via email dice che è stato inviato un link di conferma e di controllare la cartella spam se non arriva (vedete [Doppia conferma per le email](#doppia-conferma-per-le-email)). Le schede **E-mail**, **SMS**, **Slack** e **MS Teams** hanno anche la divisione **Nuova iscrizione** / **Gestisci iscrizione esistente**, così chi è già iscritto può tornare alle proprie preferenze senza cercare un vecchio messaggio.
 
 ## Limiti per iscrizioni e link
 
@@ -90,11 +90,15 @@ Ogni iscrizione invia subito un messaggio al suo contatto, un'email di conferma,
 | Iscrizioni di un indirizzo email, un numero di telefono, un canale Slack o Microsoft Teams, o un webhook, su tutte le pagine di stato insieme | 10 in un'ora |
 | Link di gestione per un indirizzo email o un numero di telefono su tutte le pagine di stato insieme, o per un nome di workspace Slack o Microsoft Teams su una pagina di stato | 5 in un'ora |
 
-Oltre un limite, l'API risponde `429` con un'intestazione `Retry-After`, in secondi, e al visitatore viene detto che ci sono state troppe iscrizioni o troppi link dalla sua rete, o per quel contatto, e di riprovare più tardi. Non viene creato né inviato nulla, e il vostro progetto non ne vede nulla: nessun iscritto viene aggiunto, e nessun messaggio viene inviato o pagato. I limiti dei link di gestione contano ogni richiesta, che un'iscrizione corrisponda o no, quindi non servono a scoprire chi è iscritto. Un indirizzo email viene contato comunque sia scritto, in maiuscolo, con un `+tag` o, per Gmail, con i punti, e un numero di telefono comunque sia digitato. Un'iscrizione accetta un solo indirizzo email: un elenco di indirizzi viene rifiutato.
+Oltre un limite, l'API risponde `429` con un'intestazione `Retry-After`, in secondi, e al visitatore viene detto che ci sono state troppe iscrizioni o troppi link dalla sua rete, o per quel contatto, e di riprovare più tardi. Non viene creato né inviato nulla, e il vostro progetto non ne vede nulla: nessun iscritto viene aggiunto, e nessun messaggio viene inviato o pagato. I limiti dei link di gestione contano ogni richiesta, che un'iscrizione corrisponda o no, quindi non servono a scoprire chi è iscritto. Un indirizzo email viene contato comunque sia scritto, in maiuscolo, con un `+tag` o, per Gmail, con i punti, e un numero di telefono comunque sia digitato. Un'iscrizione indica un solo contatto, un indirizzo email, un numero di telefono, un canale Slack o Microsoft Teams o un webhook: un elenco di indirizzi, o un secondo contatto, viene rifiutato.
 
-Ogni limite per rete conta anche insieme gli indirizzi di uno stesso IPv6 /64, con dieci volte il suo numero. Le finestre sono fisse, non scorrevoli. Se il limitatore di frequenza non è raggiungibile, le iscrizioni e i link di gestione via email, Slack, Microsoft Teams e webhook proseguono senza essere contati, e quelli via SMS vengono rifiutati con `503` finché non torna, perché ogni SMS si paga. Modificare o annullare un'iscrizione dal suo stesso link non è mai limitato, e nemmeno l'aggiunta di iscritti da parte del vostro team nella dashboard o tramite l'API.
+Ogni limite per rete conta anche insieme gli indirizzi di uno stesso IPv6 /64, con dieci volte il suo numero. Le finestre sono fisse, non scorrevoli. Se il limitatore di frequenza non è raggiungibile, le iscrizioni e i link di gestione via email, Slack, Microsoft Teams e webhook proseguono senza essere contati, e quelli via SMS vengono rifiutati con `503` finché non torna, perché ogni SMS si paga. Modificare o annullare un'iscrizione dal suo stesso link non è mai limitato.
 
-Un utente privato che chiede un link per reimpostare la password nella pagina di accesso della pagina di stato è limitato allo stesso modo: 5 email di reimpostazione a un indirizzo in un'ora, su tutte le pagine di stato insieme, e 30 da una rete in 15 minuti.
+**Un'iscrizione per contatto.** Una pagina di stato accetta ogni indirizzo email, numero di telefono e indirizzo webhook una sola volta, compresi i webhook di Slack e Microsoft Teams. Un indirizzo email è lo stesso in maiuscolo, un numero di telefono comunque sia digitato (`+14155550100`, `14155550100` e `0014155550100` sono un solo numero), e un indirizzo webhook sia che il suo host sia in maiuscolo, con la sua porta predefinita o un frammento, sia che abbia lettere codificate in percentuale. Un visitatore che iscrive di nuovo un contatto si sente dire che è già iscritto, e non viene inviato nulla. Se il vostro team lo aggiunge di nuovo, o cambia un iscritto in quel contatto, viene rifiutato, come pure riattivare un'iscrizione annullata finché un'altra iscrizione ha il suo contatto. Gli iscritti di prima restano: dove un numero è stato iscritto con due grafie, eliminate quella che non vi serve.
+
+**Conta anche ciò che invia il vostro team.** Niente limita la velocità con cui il vostro team aggiunge iscritti, nella dashboard, in blocco, tramite l'API o con un workflow. Ma il messaggio che riceve un iscritto aggiunto, l'email che gli chiede di confermare o il messaggio che dice che è iscritto, conta nelle 10 iscrizioni all'ora di quel contatto, e oltre quelle l'aggiunta viene rifiutata con `429`. Un iscritto aggiunto senza messaggio non viene mai contato: **Iscrivili ora** per un indirizzo email, oppure **Invia un messaggio di benvenuto** disattivato per gli altri canali. Se il limitatore di frequenza non è raggiungibile, le aggiunte del vostro team proseguono senza essere contate.
+
+Un utente privato che chiede un link per reimpostare la password nella pagina di accesso della pagina di stato è limitato allo stesso modo: 5 email di reimpostazione a un indirizzo in un'ora, su tutte le pagine di stato insieme, e 30 da una rete in 15 minuti. Anche un invito, a una pagina di stato privata o a un progetto, viene contato per indirizzo: 10 a un indirizzo in un'ora, i due tipi insieme.
 
 In un'installazione self-hosted, queste variabili d'ambiente dell'app OneUptime cambiano i limiti:
 
@@ -109,6 +113,7 @@ In un'installazione self-hosted, queste variabili d'ambiente dell'app OneUptime 
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Link di gestione per un contatto per finestra. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Reimpostazioni della password di utenti privati chieste da un indirizzo per finestra. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Email di reimpostazione della password di utenti privati a un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Inviti a un indirizzo per finestra, a pagine di stato private e progetti insieme. |
 
 Né `config.env` né i valori del chart Helm le trasmettono: aggiungetele voi all'ambiente del container `app`, con `app.extraEnv`, o con l'`extraEnv` dell'intero chart, nel chart Helm, oppure in un `docker-compose.override.yml` per Docker Compose. `TRUSTED_PROXY_HOPS` decide quale indirizzo contano i limiti per rete.
 
@@ -137,9 +142,11 @@ Utile per: una pagina che copre diversi prodotti. Un cliente che usa solo la vos
 
 ## Doppia conferma per le email
 
-Gli iscritti via email confermano sempre. Quando un iscritto viene creato con un indirizzo email e non è stato creato già confermato, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) viene forzato a `false` e viene generato un **Subscription Confirmation Token** di sei cifre. OneUptime invia poi un link di conferma della forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Il visitatore arriva su una pagina **Conferma iscrizione** e, una volta completata, vede *Iscrizione confermata con successo*.
+Gli iscritti via email confermano sempre. Quando un iscritto viene creato con un indirizzo email e non è stato creato già confermato, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) viene forzato a `false` e viene generato un **Subscription Confirmation Token** casuale di 32 caratteri. OneUptime invia poi un link di conferma della forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Il visitatore arriva su una pagina **Conferma iscrizione** e, una volta completata, vede *Iscrizione confermata con successo*.
 
-Gli iscritti via SMS, Slack, Microsoft Teams e webhook saltano questo passaggio: vengono creati con `isSubscriptionConfirmed` già impostato a `true`. Quando il vostro team aggiunge un iscritto email in **Iscritti email**, decide **Quando li aggiungi**: **Iscrivili ora** (l'opzione predefinita: confermato, e non gli viene inviato nulla), **Iscrivili ora e avvisali** (confermato, e riceve l'email che dice che è iscritto) o **Chiedi prima la loro conferma** (riceve il link di conferma, come in un'iscrizione). **Aggiungi in blocco** chiede la stessa cosa.
+Gli iscritti via Slack, Microsoft Teams e webhook saltano questo passaggio, come gli iscritti via SMS che aggiunge il vostro team: vengono creati con `isSubscriptionConfirmed` già impostato a `true`. Quando il vostro team aggiunge un iscritto email in **Iscritti email**, decide **Quando li aggiungi**: **Iscrivili ora** (l'opzione predefinita: confermato, e non gli viene inviato nulla), **Iscrivili ora e avvisali** (confermato, e riceve l'email che dice che è iscritto) o **Chiedi prima la loro conferma** (riceve il link di conferma, come in un'iscrizione). **Aggiungi in blocco** chiede la stessa cosa.
+
+**Anche le iscrizioni via SMS si confermano.** Un visitatore che si iscrive via SMS riceve un solo messaggio: il link di conferma. Al numero non viene inviato nient'altro finché il link non viene aperto, e aprirlo invia via SMS il messaggio che dice che è iscritto, con il link che annulla l'iscrizione. Fino ad allora l'iscritto compare come **In attesa di conferma**, e il registro degli SMS mostra il link con il suo codice sostituito da `[redacted]`. Gli iscritti via SMS di prima sono già confermati.
 
 **Non confermato significa silenzioso.** La query che recupera gli iscritti per una notifica filtra su `isUnsubscribed: false` e `isSubscriptionConfirmed: true`. Un indirizzo email che non ha mai cliccato il link resterà nel vostro elenco **Iscritti email** senza ricevere nulla. Se qualcuno giura di essere iscritto ma non riceve nulla, controllate prima quella colonna.
 

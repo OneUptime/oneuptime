@@ -185,7 +185,8 @@
       "yourPhoneNumber": "Uw telefoonnummer",
       "placeholder": "+31612345678",
       "managePrompt": "Voer het telefoonnummer in waarmee u bent geabonneerd",
-      "manageDescription": "We sturen u een link om uw abonnement te beheren naar dit telefoonnummer."
+      "manageDescription": "We sturen u een link om uw abonnement te beheren naar dit telefoonnummer.",
+      "confirmationSent": "We hebben een sms naar dit telefoonnummer gestuurd. Open de link erin om uw abonnement te bevestigen."
     },
     "slack": {
       "title": "Abonneren via Slack",

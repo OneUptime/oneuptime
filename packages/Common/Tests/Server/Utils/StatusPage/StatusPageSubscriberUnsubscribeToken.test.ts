@@ -38,10 +38,11 @@ describe("StatusPageSubscriberUnsubscribeToken.generate", () => {
     expect(tokens.size).toBe(2000);
   });
 
-  test("is not the six-digit subscription confirmation code", () => {
-    expect(StatusPageSubscriberUnsubscribeToken.generate()).not.toMatch(
-      /^\d{6}$/,
-    );
+  test("is not shaped like a subscription confirmation code, of now or of before", () => {
+    const token: string = StatusPageSubscriberUnsubscribeToken.generate();
+
+    expect(token).not.toMatch(/^[0-9a-f]{32}$/);
+    expect(token).not.toMatch(/^\d{6}$/);
   });
 });
 

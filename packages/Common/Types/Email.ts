@@ -284,6 +284,15 @@ export default class Email extends DatabaseProperty {
   }
 
   public static override fromDatabase(_value: string): Email | null {
+    /*
+     * The database transformer's from can be handed a value already read as
+     * an Email (Email.test.ts pins it): it reads by its text, as stored -
+     * one that is not one mailbox stays malformed.
+     */
+    if ((_value as unknown) instanceof Email) {
+      _value = (_value as unknown as Email).toString();
+    }
+
     // Nothing but spaces is no address: it reads as no value at all.
     if (_value && (typeof _value !== "string" || _value.trim())) {
       return Email.fromStoredValueLenient(_value);

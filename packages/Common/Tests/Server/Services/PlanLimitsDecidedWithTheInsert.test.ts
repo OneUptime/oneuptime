@@ -26,10 +26,13 @@ import StatusPageService, {
   STATUS_PAGE_COUNT_STATEMENT,
 } from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService, {
+  CONTACT_ALREADY_SUBSCRIBED_MESSAGE,
   FREE_PLAN_SUBSCRIBER_LIMIT_MESSAGE,
   FREE_PLAN_SUBSCRIBER_LIMIT_NAME,
+  SUBSCRIBER_CONTACT_LIMIT_NAME,
   SUBSCRIBER_COUNT_STATEMENT,
 } from "../../../Server/Services/StatusPageSubscriberService";
+import Phone from "../../../Types/Phone";
 import TeamMemberService, {
   ALLOWED_PEOPLE_IN_FREE_PLAN,
   MEMBERSHIPS_OF_PERSON_STATEMENT,
@@ -329,6 +332,191 @@ describe("status page subscribers: the Free plan's limit", () => {
   test("counts the project's subscribers, over all of its status pages", () => {
     expect(SUBSCRIBER_COUNT_STATEMENT).toBe(
       'SELECT COUNT(*)::int AS "count" FROM "StatusPageSubscriber" WHERE "projectId" = $1 AND "deletedAt" IS NULL',
+    );
+  });
+});
+
+/*
+ * A subscriber that names a contact is decided with its INSERT too: its page
+ * may not have that contact yet, however either is written. The page's own
+ * lock on a paid plan - creates on two pages never wait for each other - and
+ * on the Free plan the project's, which the count holds already.
+ */
+describe("status page subscribers: one contact once per page", () => {
+  const PAGE_ID: ObjectID = new ObjectID(
+    "8c000000-0000-4000-8000-0000000000aa",
+  );
+
+  function createBy(props?: DatabaseCommonInteractionProps): CreateBy<never> {
+    const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+    subscriber.projectId = PROJECT_ID;
+    subscriber.statusPageId = PAGE_ID;
+    subscriber.subscriberPhone = new Phone("+14155550100");
+
+    return {
+      data: subscriber,
+      props: props || { isRoot: true },
+    } as unknown as CreateBy<never>;
+  }
+
+  interface ContactTransaction {
+    manager: EntityManager;
+    statements: Array<string>;
+    finds: Array<Record<string, unknown>>;
+  }
+
+  /*
+   * The INSERT's transaction: a find of the page's rows answers `rows`, a
+   * count answers `count`.
+   */
+  function contactTransaction(
+    rows: Array<Record<string, unknown>>,
+    count: number = 0,
+  ): ContactTransaction {
+    const transaction: ContactTransaction = {
+      manager: {} as EntityManager,
+      statements: [],
+      finds: [],
+    };
+
+    transaction.manager = {
+      query: async (sql: string): Promise<Array<{ count: number }>> => {
+        transaction.statements.push(sql);
+        return [{ count: count }];
+      },
+      getRepository: (): unknown => {
+        return {
+          find: async (options: {
+            where: Record<string, unknown>;
+          }): Promise<Array<unknown>> => {
+            transaction.statements.push("find");
+            transaction.finds.push(options.where);
+
+            return rows.map((row: Record<string, unknown>): unknown => {
+              return Object.assign(new StatusPageSubscriber(), row);
+            });
+          },
+        };
+      },
+    } as unknown as EntityManager;
+
+    return transaction;
+  }
+
+  test("on a paid plan, or without billing: the page's own lock, and a check that asks the page for the contact", async () => {
+    for (const billing of [true, false]) {
+      setTestBillingEnabled(billing);
+      readsPlan(PlanType.Growth);
+
+      const limit: CreateLimit | null = await createLimitOf(
+        StatusPageSubscriberService,
+        createBy(memberProps()),
+      );
+
+      expect(limit).not.toBeNull();
+      expect(limit!.limitName).toBe(
+        `${SUBSCRIBER_CONTACT_LIMIT_NAME}:${PAGE_ID.toString()}`,
+      );
+      expect(limit!.projectId.toString()).toBe(PROJECT_ID.toString());
+
+      const free: ContactTransaction = contactTransaction([]);
+      await expect(limit!.check(free.manager)).resolves.toBeUndefined();
+      expect(free.statements).toEqual(["find"]);
+      expect(String(free.finds[0]!["statusPageId"])).toBe(PAGE_ID.toString());
+    }
+  });
+
+  test("refused when the page has the contact subscribed; let through when it has only cancelled it", async () => {
+    readsPlan(PlanType.Growth);
+
+    const limit: CreateLimit | null = await createLimitOf(
+      StatusPageSubscriberService,
+      createBy(),
+    );
+
+    await expect(
+      limit!.check(
+        contactTransaction([
+          { _id: ObjectID.generate().toString(), isUnsubscribed: false },
+        ]).manager,
+      ),
+    ).rejects.toThrow(new BadDataException(CONTACT_ALREADY_SUBSCRIBED_MESSAGE));
+
+    await expect(
+      limit!.check(
+        contactTransaction([
+          { _id: ObjectID.generate().toString(), isUnsubscribed: true },
+        ]).manager,
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  test("on the Free plan: the project's lock holds the contact's check and the count, the contact first", async () => {
+    readsPlan(PlanType.Free);
+
+    const limit: CreateLimit | null = await createLimitOf(
+      StatusPageSubscriberService,
+      createBy(),
+    );
+
+    expect(limit!.limitName).toBe(FREE_PLAN_SUBSCRIBER_LIMIT_NAME);
+
+    const withRoom: ContactTransaction = contactTransaction([], 99);
+    await expect(limit!.check(withRoom.manager)).resolves.toBeUndefined();
+    expect(withRoom.statements).toEqual(["find", SUBSCRIBER_COUNT_STATEMENT]);
+
+    await expect(
+      limit!.check(contactTransaction([], 100).manager),
+    ).rejects.toThrow(new BadDataException(FREE_PLAN_SUBSCRIBER_LIMIT_MESSAGE));
+
+    await expect(
+      limit!.check(
+        contactTransaction(
+          [{ _id: ObjectID.generate().toString(), isUnsubscribed: false }],
+          0,
+        ).manager,
+      ),
+    ).rejects.toThrow(new BadDataException(CONTACT_ALREADY_SUBSCRIBED_MESSAGE));
+  });
+
+  test("a create that names no contact is held to the Free plan's count alone, as before", async () => {
+    readsPlan(PlanType.Free);
+
+    const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+    subscriber.projectId = PROJECT_ID;
+    subscriber.statusPageId = PAGE_ID;
+
+    await expectCountLimit({
+      limit: await createLimitOf(StatusPageSubscriberService, {
+        data: subscriber,
+        props: { isRoot: true },
+      } as unknown as CreateBy<never>),
+      limitName: FREE_PLAN_SUBSCRIBER_LIMIT_NAME,
+      statement: SUBSCRIBER_COUNT_STATEMENT,
+      parameters: [PROJECT_ID.toString()],
+      allowed: 100,
+      refusal: FREE_PLAN_SUBSCRIBER_LIMIT_MESSAGE,
+    });
+  });
+
+  test("a create that names its page by the relation is held to the same", async () => {
+    readsPlan(PlanType.Growth);
+
+    const subscriber: StatusPageSubscriber = new StatusPageSubscriber();
+    subscriber.projectId = PROJECT_ID;
+    subscriber.statusPage = new StatusPage(PAGE_ID);
+    subscriber.subscriberPhone = new Phone("+14155550100");
+
+    const limit: CreateLimit | null = await createLimitOf(
+      StatusPageSubscriberService,
+      {
+        data: subscriber,
+        props: { isRoot: true },
+      } as unknown as CreateBy<never>,
+    );
+
+    expect(limit!.limitName).toBe(
+      `${SUBSCRIBER_CONTACT_LIMIT_NAME}:${PAGE_ID.toString()}`,
     );
   });
 });
@@ -908,6 +1096,7 @@ describe("every limit takes a lock of its own", () => {
     const names: Array<string> = [
       FREE_PLAN_STATUS_PAGE_LIMIT_NAME,
       FREE_PLAN_SUBSCRIBER_LIMIT_NAME,
+      SUBSCRIBER_CONTACT_LIMIT_NAME,
       FREE_PLAN_DASHBOARD_LIMIT_NAME,
       FREE_PLAN_ESCALATION_RULE_LIMIT_NAME,
       SEAT_LIMIT_NAME,

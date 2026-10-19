@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "安全：客户端可以无需询问运行只读工具，并在执行任何删除操作前先询问。通过登录连接的客户端可以限制为只读。",
   "See the {{docsLink}} for every tool.": "所有工具请参阅 {{docsLink}}。",
   "Twilio account for SMS and calls": "用于短信和电话的 Twilio 账户",
-  "Up to {{limit}} open at once": "同时最多 {{limit}} 个"
+  "Up to {{limit}} open at once": "同时最多 {{limit}} 个",
+  "Gets nothing until they open the link we texted them.": "在打开我们通过短信发送的链接之前，不会收到任何内容。"
 }

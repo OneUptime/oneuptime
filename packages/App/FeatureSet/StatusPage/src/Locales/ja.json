@@ -185,7 +185,8 @@
       "yourPhoneNumber": "電話番号",
       "placeholder": "+81901234567",
       "managePrompt": "購読時に使用した電話番号を入力してください",
-      "manageDescription": "購読管理リンクをこの電話番号に送信します。"
+      "manageDescription": "購読管理リンクをこの電話番号に送信します。",
+      "confirmationSent": "この電話番号にSMSを送信しました。SMS内のリンクを開いて、購読を確認してください。"
     },
     "slack": {
       "title": "Slackで購読する",

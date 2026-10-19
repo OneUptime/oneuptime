@@ -330,6 +330,7 @@ const ALSO_ON_THE_DASHBOARD: Record<string, Array<string>> = {
 const STATUS_PAGE_APP_MESSAGES: Record<string, Array<string>> = {
   [SUBSCRIBERS]: [
     "subscribe.subscribedSuccessfully",
+    "subscribe.sms.confirmationSent",
     "subscribe.confirm.success",
     "subscribe.unsubscribe.confirmPrompt",
     "subscribe.update.saved",
@@ -450,6 +451,9 @@ const PROSE: Record<string, Array<string>> = {
     "Status",
     "One switch is not enough.",
     "A calendar instead.",
+    "One subscription per contact.",
+    "What your team sends counts too.",
+    "Signups by SMS confirm too.",
     "A monitor group stands for every monitor in it.",
     "A subscriber chooses among its own page's resources.",
     "Unconfirmed means silent.",

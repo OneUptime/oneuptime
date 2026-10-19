@@ -128,6 +128,10 @@ Personen är redan med i teamet, som medlem eller med en inbjudan som inte har a
 I OneUptime Cloud har ett projekt på Free-planen plats för en person. Byt plan och bjud in igen. Se [Byt plan](/docs/configuration/billing#byt-plan).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+En adress kan få 10 inbjudningar i timmen, till projekt och privata statussidor tillsammans, oavsett vem som skickar dem. Vänta en timme och bjud sedan in personen igen.
+:::
+
 :::details Inbjudningsmeddelandet kom aldrig fram, eller länken har gått ut
 Inbjudan beror inte på e-postmeddelandet. Be personen registrera sig med den inbjudna adressen: OneUptime skickar en ny länk till den adressen för att slutföra kontot. Den som redan har ett konto loggar in och hittar inbjudan.
 :::

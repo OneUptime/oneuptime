@@ -193,6 +193,28 @@ describe("an email value is text", () => {
     }).toThrow(BadDataException);
   });
 
+  test("fromDatabase reads an Email handed to it by its text, a malformed one staying malformed", () => {
+    const read: Email | null = Email.fromDatabase(
+      new Email("ada@example.com") as unknown as string,
+    );
+
+    expect(read).toBeInstanceOf(Email);
+    expect(read?.toString()).toBe("ada@example.com");
+    expect(read?.isMalformed()).toBe(false);
+
+    const stored: Email = Email.fromJSON({
+      _type: ObjectType.Email,
+      value: "Ops <ops@example.com>",
+    });
+    const readAgain: Email | null = Email.getDatabaseTransformer().from(
+      stored,
+    ) as Email | null;
+
+    expect(readAgain).toBeInstanceOf(Email);
+    expect(readAgain?.toString()).toBe("ops <ops@example.com>");
+    expect(readAgain?.isMalformed()).toBe(true);
+  });
+
   /*
    * An Email is not text, but it is an address: copied into a new one - as
    * UserUtil.getEmail does with the Email local storage gives back - it is

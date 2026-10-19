@@ -31013,5 +31013,6 @@
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Säkerhet: klienter får köra skrivskyddade verktyg utan att fråga, och frågar före allt som tar bort något. En klient som anslutits via inloggning kan begränsas till skrivskyddad åtkomst.",
   "See the {{docsLink}} for every tool.": "Se {{docsLink}} för alla verktyg.",
   "Twilio account for SMS and calls": "Twilio-konto för sms och samtal",
-  "Up to {{limit}} open at once": "Upp till {{limit}} öppna samtidigt"
+  "Up to {{limit}} open at once": "Upp till {{limit}} öppna samtidigt",
+  "Gets nothing until they open the link we texted them.": "Får ingenting förrän någon öppnar länken vi skickade via sms."
 }
