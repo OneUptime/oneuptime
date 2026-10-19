@@ -673,6 +673,158 @@ test.describe("the Alerts list of the screenshot", () => {
     await screenshot(page, "alerts-390");
   });
 
+  /*
+   * How a resource's name is laid out where it is drawn: whether its box
+   * holds all of it or ends it in "...", the lines its words take, where
+   * each line starts, and where its icon ends.
+   */
+  interface NameLayout {
+    text: string;
+    isCutShort: boolean;
+    endsInEllipsis: boolean;
+    lineLefts: Array<number>;
+    iconRight: number;
+    itemRight: number;
+  }
+
+  async function nameLayout(link: Locator): Promise<NameLayout> {
+    return await link.evaluate((element: Element): NameLayout => {
+      const item: HTMLElement = element.parentElement as HTMLElement;
+      const icon: Element | null = element.querySelector("svg");
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+      const lefts: Map<number, number> = new Map();
+      let text: string = "";
+      let node: Node | null = walker.nextNode();
+
+      while (node) {
+        if ((node.textContent || "").trim()) {
+          text += (node.textContent || "").trim();
+          const range: Range = document.createRange();
+          range.selectNodeContents(node);
+          // One line per distinct top: Chrome may split a line in parts.
+          for (const rect of Array.from(range.getClientRects())) {
+            const top: number = Math.round(rect.top);
+            lefts.set(top, Math.min(lefts.get(top) ?? rect.left, rect.left));
+          }
+        }
+        node = walker.nextNode();
+      }
+
+      return {
+        text: text,
+        isCutShort: item.scrollWidth > item.clientWidth,
+        endsInEllipsis: getComputedStyle(item).textOverflow === "ellipsis",
+        lineLefts: Array.from(lefts.keys())
+          .sort((a: number, b: number): number => {
+            return a - b;
+          })
+          .map((top: number): number => {
+            return Math.round(lefts.get(top) as number);
+          }),
+        iconRight: icon ? Math.round(icon.getBoundingClientRect().right) : 0,
+        itemRight: Math.round(item.getBoundingClientRect().right),
+      };
+    });
+  }
+
+  /*
+   * The Monitor field a card had shown the whole name, wrapping. With the
+   * column gone, the card names its monitor under Affected Resources only,
+   * and that list cut it short - "oneuptime-test - High Node Memory
+   * Utili..." - on a screen with no pointer to show the rest.
+   */
+  test("on a phone, a card names its monitor in full: the name runs onto a second line, which starts beside the icon", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 390, 900);
+
+    const firstCard: Locator = page.locator("#alerts-table-body > div").first();
+    const layout: NameLayout = await nameLayout(
+      firstCard.getByRole("link", { name: FIRST_MONITOR }),
+    );
+
+    expect(layout.text).toBe(FIRST_MONITOR);
+    expect(layout.isCutShort).toBe(false);
+    expect(layout.endsInEllipsis).toBe(false);
+    // Too long for one line on a phone: two lines, each beside the icon.
+    expect(layout.lineLefts).toHaveLength(2);
+    expect(
+      Math.abs(layout.lineLefts[0]! - layout.lineLefts[1]!),
+    ).toBeLessThanOrEqual(1);
+    expect(layout.lineLefts[1]!).toBeGreaterThanOrEqual(layout.iconRight);
+
+    // The cluster, short enough, keeps to one line.
+    const cluster: NameLayout = await nameLayout(
+      firstCard.getByRole("link", { name: CLUSTER, exact: true }),
+    );
+
+    expect(cluster.lineLefts).toHaveLength(1);
+    expect(cluster.isCutShort).toBe(false);
+  });
+
+  test("on a phone, a monitor's name with nowhere to break breaks anyway, and nothing passes the screen's edge", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const LONG_MONITOR: string =
+      "oneuptime-test - KubeNodeMemoryUtilizationHighOnGeneralPurposePoolNodesInEuWest1";
+
+    await open(page, `${ALERTS}?data=long`, 390, 900);
+
+    const layout: NameLayout = await nameLayout(
+      page
+        .locator("#alerts-table-body > div")
+        .first()
+        .getByRole("link", { name: LONG_MONITOR }),
+    );
+
+    expect(layout.text).toBe(LONG_MONITOR);
+    expect(layout.isCutShort).toBe(false);
+    expect(layout.lineLefts.length).toBeGreaterThanOrEqual(3);
+    expect(layout.itemRight).toBeLessThanOrEqual(390);
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "alerts-long-390");
+  });
+
+  test("on a laptop, a monitor's name cut short at its column's end shows in full under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    const link: Locator = (
+      await cell(page, rows(page).first(), "Affected Resources")
+    ).getByRole("link", { name: FIRST_MONITOR });
+    const layout: NameLayout = await nameLayout(link);
+
+    // A row keeps each name to its one line, ending in "...".
+    expect(layout.lineLefts).toHaveLength(1);
+    expect(layout.isCutShort).toBe(true);
+    expect(layout.endsInEllipsis).toBe(true);
+
+    await link.hover();
+
+    await expect(link.locator("xpath=..")).toHaveAttribute(
+      "title",
+      FIRST_MONITOR,
+    );
+  });
+
   test("in the dark theme, the monitor's and the cluster's names read at WCAG AA", async ({
     page,
   }: {

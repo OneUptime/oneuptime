@@ -239,6 +239,11 @@ import {
 import ModelTableColumn from "../../../UI/Components/ModelTable/Column";
 import ModelTableColumns from "../../../UI/Components/ModelTable/Columns";
 import Column from "../../../UI/Components/Table/Types/Column";
+import TableBody from "../../../UI/Components/Table/TableBody";
+import {
+  TABLE_CARD_LIST_ITEM_CLASS_NAME,
+  TABLE_LIST_ITEM_CLASS_NAME,
+} from "../../../UI/Components/Table/TableLayout";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import TableColumnsToCsv from "../../../UI/Utils/TableColumnsToCsv";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
@@ -655,6 +660,70 @@ describe("the alerts list's Affected Resources column", () => {
       _id: true,
       projectId: true,
     });
+  });
+
+  /*
+   * On a phone each row is a card, and with no Monitor column a card names
+   * its monitor only under Affected Resources. The Monitor field showed the
+   * whole name, wrapping; the list cut it short ("oneuptime-test - High Node
+   * Memory Utili..."), and a phone has no pointer to show the rest. In a
+   * card each name runs onto the next line instead (TableCardContext).
+   */
+  test("on a phone, the card names the monitor in full: its name runs onto the next line, never cut short", async () => {
+    await renderTable();
+
+    cleanup();
+    render(
+      <TableBody<Alert>
+        id="alerts-on-a-phone"
+        data={[screenshotAlert()]}
+        columns={[asTableColumn(column("Affected Resources"))]}
+        selectedItems={[]}
+        matchBulkSelectedItemByField={undefined}
+        isMobile={true}
+      />,
+    );
+
+    expect(screen.getByText("Affected Resources").tagName).toBe("DT");
+    expect(linkTexts()).toEqual([SCREENSHOT_MONITOR, SCREENSHOT_CLUSTER]);
+
+    for (const link of screen.getAllByRole("link")) {
+      expect(link.parentElement?.className).toBe(
+        TABLE_CARD_LIST_ITEM_CLASS_NAME,
+      );
+    }
+  });
+
+  test("in a row of the table, each name keeps to its line, its whole name under the pointer", async () => {
+    await renderTable();
+
+    cleanup();
+    render(
+      <table>
+        <TableBody<Alert>
+          id="alerts-on-a-laptop"
+          data={[screenshotAlert()]}
+          columns={[asTableColumn(column("Affected Resources"))]}
+          selectedItems={[]}
+          matchBulkSelectedItemByField={undefined}
+          isMobile={false}
+        />
+      </table>,
+    );
+
+    expect(linkTexts()).toEqual([SCREENSHOT_MONITOR, SCREENSHOT_CLUSTER]);
+
+    const monitorItem: HTMLElement = screen.getAllByRole("link")[0]!
+      .parentElement as HTMLElement;
+
+    expect(monitorItem.className).toBe(TABLE_LIST_ITEM_CLASS_NAME);
+
+    // Wider than its column: the whole name shows under the pointer.
+    Object.defineProperty(monitorItem, "scrollWidth", { value: 420 });
+    Object.defineProperty(monitorItem, "clientWidth", { value: 320 });
+    fireEvent.mouseEnter(monitorItem);
+
+    expect(monitorItem).toHaveAttribute("title", SCREENSHOT_MONITOR);
   });
 });
 

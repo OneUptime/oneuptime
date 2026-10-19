@@ -520,10 +520,13 @@ const LOW_ALERT = alertSeverity(2, "Low", "#ca8a04");
  * The monitors the screenshot's alerts were raised on, each watching the
  * oneuptime-test cluster. Listed among the project's monitors on this page
  * only, so the Monitor chip offers them and the Monitors page keeps its
- * rows.
+ * rows. With data=long the first is named as an imported Prometheus rule
+ * is: one word with nowhere to break.
  */
 const ALERT_MONITORS = [
-  "oneuptime-test - High Node Memory Utilization",
+  isLong
+    ? "oneuptime-test - KubeNodeMemoryUtilizationHighOnGeneralPurposePoolNodesInEuWest1"
+    : "oneuptime-test - High Node Memory Utilization",
   "oneuptime-test - Pod CPU Saturating Containers",
   "oneuptime-test - Pod Stuck in Pending",
   "oneuptime-test - HPA Saturated at Max Replicas",
