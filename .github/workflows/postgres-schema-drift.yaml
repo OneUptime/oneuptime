@@ -1636,6 +1636,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/PacketCaptureSqlPostgres.test.ts --forceExit
 
+      # Clones the migrated UserSession and StatusPagePrivateUserSession
+      # tables into an isolated schema and runs the Health page's query of
+      # where people sign in from: the private network addresses several
+      # different people signed in from in the last 30 days, each person
+      # counted once, removed and older sessions left out.
+      - name: Test where people sign in from on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SHARED_VISITOR_ADDRESSES_TESTS: "true"
+          SHARED_VISITOR_ADDRESSES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SHARED_VISITOR_ADDRESSES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SHARED_VISITOR_ADDRESSES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/SharedVisitorAddressesPostgres.test.ts --forceExit
+
       # Clones the migrated Project, Probe, VMwareVCenter and
       # VMwareVCenterConnectionTest tables into an isolated schema and runs
       # VMware probe collection's hand-written SQL: a probe claims only its

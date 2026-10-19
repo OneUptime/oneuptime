@@ -1000,5 +1000,15 @@
   "Extra JSON parameters sent to the provider with every request, such as {\"temperature\": 0.2}. Leave empty unless your model needs them.": "Parametri JSON aggiuntivi inviati al provider a ogni richiesta, come {\"temperature\": 0.2}. Lascia vuoto a meno che il modello non ne abbia bisogno.",
   "Never put keys here.": "Non inserire mai chiavi qui.",
   "Your deployment's name, exactly as Foundry shows it.": "Il nome del tuo deployment, esattamente come lo mostra Foundry.",
-  "{{name}} (default)": "{{name}} (predefinito)"
+  "{{name}} (default)": "{{name}} (predefinito)",
+  "Visitors share an address": "Più visitatori condividono un indirizzo",
+  "Several people signed in from one private network address in the last 30 days. OneUptime counts them as one visitor, so one person's failed sign-ins can lock the others out.": "Negli ultimi 30 giorni più persone hanno effettuato l'accesso da uno stesso indirizzo di rete privata. OneUptime le conta come un solo visitatore, quindi gli accessi non riusciti di una persona possono bloccare le altre.",
+  "Usually something in front of OneUptime hands it every visitor from an address of its own:": "Di solito qualcosa davanti a OneUptime gli passa ogni visitatore da un indirizzo proprio:",
+  "Docker Compose: set {{ipv6}} when people come over IPv6, and {{hops}} behind a proxy of your own on the server.": "Docker Compose: imposta {{ipv6}} quando le persone arrivano via IPv6 e {{hops}} dietro un tuo proxy sul server.",
+  "Kubernetes: set {{setting}} in the Helm chart's values.": "Kubernetes: imposta {{setting}} nei valori del chart Helm.",
+  "Nothing needs to change if these people share one computer or one VPN.": "Non serve cambiare nulla se queste persone condividono un computer o una VPN.",
+  "{{count}} people": "{{count}} persone",
+  "{{count}} people_one": "{{count}} persona",
+  "Docker Compose guide": "Guida Docker Compose",
+  "Kubernetes guide": "Guida Kubernetes"
 }
