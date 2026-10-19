@@ -31022,7 +31022,7 @@
   "Transcript Fetch Reason": "Motif de la récupération de la transcription",
   "Transcript Fetch Status": "Statut de la récupération de la transcription",
   "Video Call Summary": "Résumé de l'appel vidéo",
-  "Add a Runner of your own to run Bash, SSH and Kubernetes steps inside your network.": "Ajoutez votre propre agent Runbook pour exécuter les étapes Bash, SSH et Kubernetes dans votre réseau.",
+  "Add a Runner of your own.": "Ajoutez votre propre agent Runbook.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Ajoutez un agent Runbook pour exécuter les étapes de vos runbooks. Créez-en un, puis exécutez la commande Docker sur un hôte de votre infrastructure.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Ajoutez un agent Runbook dans {{location}} pour exécuter cette étape, puis choisissez-le ici.",
   "Admin Dashboard → Global Runners": "Tableau de bord d'administration → Agents Runbook globaux",

@@ -31022,7 +31022,7 @@
   "Transcript Fetch Reason": "Orsak vid hämtning av transkription",
   "Transcript Fetch Status": "Status för hämtning av transkription",
   "Video Call Summary": "Sammanfattning av videosamtal",
-  "Add a Runner of your own to run Bash, SSH and Kubernetes steps inside your network.": "Lägg till en egen Runner för att köra Bash-, SSH- och Kubernetes-steg i ditt nätverk.",
+  "Add a Runner of your own.": "Lägg till en egen Runner.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Lägg till en Runner för att köra stegen i dina runbooks. Skapa en och kör sedan Docker-kommandot på en värd i din infrastruktur.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Lägg till en Runner under {{location}} för att köra det här steget och välj den sedan här.",
   "Admin Dashboard → Global Runners": "Admin-dashboard → Globala Runners",

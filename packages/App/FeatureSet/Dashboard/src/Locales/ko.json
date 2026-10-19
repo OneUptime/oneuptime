@@ -31022,7 +31022,7 @@
   "Transcript Fetch Reason": "녹취록 가져오기 사유",
   "Transcript Fetch Status": "녹취록 가져오기 상태",
   "Video Call Summary": "화상 통화 요약",
-  "Add a Runner of your own to run Bash, SSH and Kubernetes steps inside your network.": "네트워크 안에서 Bash, SSH, Kubernetes 단계를 실행하려면 직접 설치한 Runner를 추가하세요.",
+  "Add a Runner of your own.": "직접 설치한 Runner를 추가하세요.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "런북 단계를 실행하려면 Runner를 추가하세요. 하나를 만든 다음 인프라 내부의 호스트에서 Docker 명령을 실행하세요.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "이 단계를 실행하려면 {{location}}에서 Runner를 추가한 다음 여기에서 선택하세요.",
   "Admin Dashboard → Global Runners": "관리자 대시보드 → 글로벌 Runner",

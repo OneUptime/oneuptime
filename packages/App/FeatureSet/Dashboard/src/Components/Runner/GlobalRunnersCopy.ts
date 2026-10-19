@@ -24,7 +24,10 @@ export const GlobalRunnersCopy: {
   // The project's own Runners, on a server that has no global Runner.
   onlyCardTitle: string;
   onlyCardDescription: string;
-  // The custom table with no rows: one sentence, never "No Runners yet".
+  /*
+   * The custom table with no rows, never "No Runners yet": a headline that
+   * says what to do, over the card's description of what one is for.
+   */
   customEmptyMessage: string;
   onlyEmptyMessage: string;
   // A master admin, on a server that has no global Runner.
@@ -55,9 +58,7 @@ export const GlobalRunnersCopy: {
   onlyCardDescription: translationKey(
     "Self-hosted Runners that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the Runner that should run it.",
   ),
-  customEmptyMessage: translationKey(
-    "Add a Runner of your own to run Bash, SSH and Kubernetes steps inside your network.",
-  ),
+  customEmptyMessage: translationKey("Add a Runner of your own."),
   onlyEmptyMessage: translationKey(
     "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.",
   ),

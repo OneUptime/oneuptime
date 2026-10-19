@@ -31022,7 +31022,7 @@
   "Transcript Fetch Reason": "转录获取原因",
   "Transcript Fetch Status": "转录获取状态",
   "Video Call Summary": "视频通话摘要",
-  "Add a Runner of your own to run Bash, SSH and Kubernetes steps inside your network.": "添加您自己的 Runner，以在您的网络中运行 Bash、SSH 和 Kubernetes 步骤。",
+  "Add a Runner of your own.": "添加您自己的 Runner。",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "添加一个 Runner 来运行您的运行手册步骤。先创建一个，然后在您基础设施内的主机上运行 Docker 命令。",
   "Add a Runner under {{location}} to run this step, then pick it here.": "在 {{location}} 中添加一个 Runner 来运行此步骤，然后在这里选择它。",
   "Admin Dashboard → Global Runners": "管理后台 → 全局 Runner",

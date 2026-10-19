@@ -31022,7 +31022,7 @@
   "Transcript Fetch Reason": "Motivo da busca da transcrição",
   "Transcript Fetch Status": "Status da busca da transcrição",
   "Video Call Summary": "Resumo da videochamada",
-  "Add a Runner of your own to run Bash, SSH and Kubernetes steps inside your network.": "Adicione um Runner próprio para executar etapas de Bash, SSH e Kubernetes dentro da sua rede.",
+  "Add a Runner of your own.": "Adicione um Runner próprio.",
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.": "Adicione um Runner para executar as etapas dos seus runbooks. Crie um e depois execute o comando Docker em um host da sua infraestrutura.",
   "Add a Runner under {{location}} to run this step, then pick it here.": "Adicione um Runner em {{location}} para executar esta etapa e depois escolha-o aqui.",
   "Admin Dashboard → Global Runners": "Painel de administração → Runners globais",

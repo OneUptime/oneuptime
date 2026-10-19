@@ -186,7 +186,7 @@ const NEW_STRINGS: Array<string> = [
    * for, in one sentence, instead of "No Runners yet".
    */
   "Add a Runner to run your runbook steps. Create one, then run the Docker command on a host inside your infrastructure.",
-  "Add a Runner of your own to run Bash, SSH and Kubernetes steps inside your network.",
+  "Add a Runner of your own.",
   "No Runners.",
   "more Runners",
   "Runner Key",
