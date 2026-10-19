@@ -18,7 +18,14 @@ import {
   test,
 } from "@jest/globals";
 import axios from "axios";
-import { createServer, IncomingMessage, Server, ServerResponse } from "http";
+import {
+  ClientRequest,
+  createServer,
+  IncomingMessage,
+  request,
+  Server,
+  ServerResponse,
+} from "http";
 import { AddressInfo } from "net";
 
 /*
@@ -194,6 +201,70 @@ describe("a request that carries a key, redirected to another server", () => {
     },
   );
 
+  /*
+   * Locations an HTTP client reads as another server, however they are
+   * written: it resolves each one first, and the check reads what it
+   * resolved.
+   */
+  test.each([
+    [
+      "an address with no scheme",
+      (): string => {
+        return `//127.0.0.1:${otherServer.port}/collect`;
+      },
+    ],
+    [
+      "a path that starts with a backslash",
+      (): string => {
+        return `/\\127.0.0.1:${otherServer.port}/collect`;
+      },
+    ],
+    [
+      "an address whose user part is this server",
+      (): string => {
+        return `http://127.0.0.1:${server.port}@127.0.0.1:${otherServer.port}/collect`;
+      },
+    ],
+    [
+      "an address with its host percent-encoded",
+      (): string => {
+        return `http://%31%32%37.0.0.1:${otherServer.port}/collect`;
+      },
+    ],
+  ])(
+    "is not sent on to %s that points at another server",
+    async (_label: string, location: () => string) => {
+      server.answers.set("/probe-ingest/register", {
+        status: 307,
+        location: location(),
+      });
+
+      await expect(
+        postWithKey("/probe-ingest/register"),
+      ).rejects.toBeInstanceOf(APIException);
+
+      expect(server.received).toHaveLength(1);
+      expect(otherServer.received).toEqual([]);
+    },
+  );
+
+  test("is not sent on to its own server at an address that names a user", async () => {
+    server.answers.set("/probe-ingest/register", {
+      status: 307,
+      location: `http://probe:secret@127.0.0.1:${server.port}/moved`,
+    });
+
+    await expect(postWithKey("/probe-ingest/register")).rejects.toBeInstanceOf(
+      APIException,
+    );
+
+    expect(
+      server.received.map((request: Received): string => {
+        return request.url;
+      }),
+    ).toEqual(["/probe-ingest/register"]);
+  });
+
   test("is not sent on to the same address under another name", async () => {
     server.answers.set("/probe-ingest/alive", {
       status: 307,
@@ -248,12 +319,15 @@ describe("a request that carries a key, redirected on its own server", () => {
   test.each([
     ["a path", "/moved"],
     ["the server's own address", "SELF/moved"],
+    ["the server's own address in capitals", "SELF_IN_CAPITALS/moved"],
   ])(
     "follows a redirect to %s, header and body with it",
     async (_label: string, location: string) => {
       server.answers.set("/old", {
         status: 307,
-        location: location.replace("SELF", server.origin),
+        location: location
+          .replace("SELF_IN_CAPITALS", server.origin.toUpperCase())
+          .replace("SELF", server.origin),
       });
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -273,6 +347,185 @@ describe("a request that carries a key, redirected on its own server", () => {
       expect(otherServer.received).toEqual([]);
     },
   );
+});
+
+/*
+ * A forward proxy, as an installation may route its requests through one
+ * (HTTP_PROXY): it is asked for an address and forwards the request there,
+ * then hands back the answer - a redirect included. It forwards only to the
+ * servers it is given, and keeps every address it is asked for.
+ */
+interface ForwardProxy {
+  http: Server;
+  origin: string;
+  askedFor: Array<string>;
+}
+
+async function startForwardProxy(
+  servers: Array<TestServer>,
+): Promise<ForwardProxy> {
+  const askedFor: Array<string> = [];
+
+  const http: Server = createServer(
+    (req: IncomingMessage, res: ServerResponse) => {
+      askedFor.push(req.url || "");
+
+      const target: TestServer | undefined = servers.find(
+        (candidate: TestServer): boolean => {
+          return (req.url || "").startsWith(`${candidate.origin}/`);
+        },
+      );
+
+      if (!target) {
+        res.writeHead(502);
+        res.end();
+        return;
+      }
+
+      const forwarded: ClientRequest = request(
+        {
+          hostname: "127.0.0.1",
+          port: target.port,
+          path: (req.url || "").slice(target.origin.length),
+          method: req.method,
+          headers: req.headers,
+        },
+        (answer: IncomingMessage) => {
+          res.writeHead(answer.statusCode || 502, answer.headers);
+          answer.pipe(res);
+        },
+      );
+
+      forwarded.on("error", () => {
+        res.writeHead(502);
+        res.end();
+      });
+
+      req.pipe(forwarded);
+    },
+  );
+
+  await new Promise<void>((resolve: () => void) => {
+    http.listen(0, "127.0.0.1", resolve);
+  });
+
+  return {
+    http: http,
+    origin: `http://127.0.0.1:${(http.address() as AddressInfo).port}`,
+    askedFor: askedFor,
+  };
+}
+
+const PROXY_SETTINGS: Array<string> = [
+  "HTTP_PROXY",
+  "http_proxy",
+  "HTTPS_PROXY",
+  "https_proxy",
+  "NO_PROXY",
+  "no_proxy",
+];
+
+// Runs a call with HTTP_PROXY set to this proxy, as an installation sets it.
+async function throughProxy<T>(
+  proxy: ForwardProxy,
+  call: () => Promise<T>,
+): Promise<T> {
+  const saved: Record<string, string | undefined> = {};
+
+  for (const name of PROXY_SETTINGS) {
+    saved[name] = process.env[name];
+    delete process.env[name];
+  }
+
+  process.env["HTTP_PROXY"] = proxy.origin;
+
+  try {
+    return await call();
+  } finally {
+    for (const name of PROXY_SETTINGS) {
+      if (saved[name] === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = saved[name];
+      }
+    }
+  }
+}
+
+describe("a request that carries a key, sent through a proxy", () => {
+  let proxy: ForwardProxy;
+
+  beforeAll(async () => {
+    proxy = await startForwardProxy([server, otherServer]);
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve: () => void) => {
+      proxy.http.close(() => {
+        resolve();
+      });
+    });
+  });
+
+  afterEach(() => {
+    proxy.askedFor.length = 0;
+  });
+
+  test("is not sent on when the redirect points at another server, and the proxy is never asked for it", async () => {
+    server.answers.set("/api/notification/email/send", {
+      status: 307,
+      location: `${otherServer.origin}/collect`,
+    });
+
+    await expect(
+      throughProxy(proxy, () => {
+        return postWithKey("/api/notification/email/send");
+      }),
+    ).rejects.toBeInstanceOf(APIException);
+
+    // It went through the proxy, to its own server, and nowhere after that.
+    expect(proxy.askedFor).toEqual([
+      `${server.origin}/api/notification/email/send`,
+    ]);
+    expect(server.received).toHaveLength(1);
+    expect(otherServer.received).toEqual([]);
+  });
+
+  test("follows a redirect on its own server, through the proxy, header and body with it", async () => {
+    server.answers.set("/old", { status: 308, location: "/moved" });
+
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await throughProxy(proxy, () => {
+        return postWithKey("/old");
+      });
+
+    expect(response).toBeInstanceOf(HTTPResponse);
+    expect(proxy.askedFor).toEqual([
+      `${server.origin}/old`,
+      `${server.origin}/moved`,
+    ]);
+    expect(server.received[1]!.headers["clusterkey"]).toBe(CLUSTER_KEY);
+    expect(server.received[1]!.body).toContain(PROBE_KEY);
+    expect(otherServer.received).toEqual([]);
+  });
+
+  // Why it matters here too: through a proxy, the client follows anywhere without the option.
+  test("without the option, is followed through the proxy to the other server", async () => {
+    server.answers.set("/api/notification/email/send", {
+      status: 307,
+      location: `${otherServer.origin}/collect`,
+    });
+
+    await throughProxy(proxy, () => {
+      return postWithKey("/api/notification/email/send", {});
+    });
+
+    expect(proxy.askedFor).toEqual([
+      `${server.origin}/api/notification/email/send`,
+      `${otherServer.origin}/collect`,
+    ]);
+    expect(otherServer.received[0]!.headers["clusterkey"]).toBe(CLUSTER_KEY);
+  });
 });
 
 describe("which redirects stay on the server", () => {
