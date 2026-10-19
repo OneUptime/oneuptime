@@ -942,9 +942,10 @@ export default class PublicMessageRateLimit {
       }
 
       throw new PublicMessageRateLimitException(
-        TEAM_CONTACT_REFUSALS[data.kind](
-          CONTACT_NAMES[decision.contact.channel],
-        ),
+        PublicMessageRateLimit.getTeamRefusalMessage({
+          kind: data.kind,
+          channel: decision.contact.channel,
+        }),
         decision.retryAfterSeconds || 1,
       );
     }
@@ -1102,6 +1103,17 @@ export default class PublicMessageRateLimit {
         logger.warn(err);
       }
     }
+  }
+
+  /*
+   * The words the team is told when a contact on `channel` has been sent
+   * enough messages of `kind`.
+   */
+  public static getTeamRefusalMessage(data: {
+    kind: TeamMessageKind;
+    channel: PublicMessageChannel;
+  }): string {
+    return TEAM_CONTACT_REFUSALS[data.kind](CONTACT_NAMES[data.channel]);
   }
 
   // The words a refusal is answered with.

@@ -17,8 +17,8 @@ Esta página cobre os dois: os cinco canais de inscrição e como os visitantes 
 
 ```mermaid title="De uma inscrição a uma mensagem"
 flowchart TB
-    V["Um visitante se inscreve"] --> Q{"Por e-mail?"}
-    Q -->|"Sim"| C["Confirma por e-mail"]
+    V["Um visitante se inscreve"] --> Q{"Por e-mail ou SMS?"}
+    Q -->|"Sim"| C["Confirma por um link"]
     Q -->|"Não"| S["Assinante"]
     C --> S
     E["Incidente, manutenção<br/>ou anúncio"] --> N["Notificação"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Mensagem com um link<br/>de cancelamento"]
 ```
 
-Cada página de status mantém seus próprios assinantes. Um visitante se inscreve na página **Inscrever-se** da página de status, onde um endereço de e-mail confirma com um link antes de receber qualquer coisa, ou sua equipe o adiciona pelo painel. A partir daí, cada incidente, evento de manutenção programada e anúncio que chega à página notifica seus assinantes, cada um pelo canal com que se inscreveu, e toda mensagem traz o link que cancela a inscrição.
+Cada página de status mantém seus próprios assinantes. Um visitante se inscreve na página **Inscrever-se** da página de status, onde um endereço de e-mail ou um número de telefone confirma com um link antes de receber qualquer coisa, ou sua equipe o adiciona pelo painel. A partir daí, cada incidente, evento de manutenção programada e anúncio que chega à página notifica seus assinantes, cada um pelo canal com que se inscreveu, e toda mensagem traz o link que cancela a inscrição.
 
 ## Canais de inscrição
 
@@ -76,7 +76,7 @@ A página **Inscrever-se** tem um submenu com uma aba para cada canal ligado; co
 | **MS Teams** | `/subscribe/microsoft-teams` | **Inscrever-se via Microsoft Teams** | **Nome do workspace do Microsoft Teams** e **URL do webhook de entrada do Microsoft Teams**, com o exemplo `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **Inscrever-se por webhook** | **URL do webhook**, com o exemplo `https://example.com/webhook`. Uma solicitação JSON `POST` é enviada a ela a cada evento da página de status. |
 
-O botão de envio diz **Inscrever-se**. Uma inscrição por SMS, Slack, Microsoft Teams ou webhook mostra *Você foi inscrito com sucesso.* Uma inscrição por e-mail diz que um link de confirmação foi enviado e para verificar a pasta de spam se ele não chegar (veja [Dupla confirmação por e-mail](#dupla-confirmação-por-e-mail)). As abas **E-mail**, **SMS**, **Slack** e **MS Teams** também têm a divisão **Nova inscrição** / **Gerenciar inscrição existente**, para que quem já se inscreveu possa voltar às suas preferências sem procurar uma mensagem antiga.
+O botão de envio diz **Inscrever-se**. Uma inscrição por Slack, Microsoft Teams ou webhook mostra *Você foi inscrito com sucesso.* Uma inscrição por SMS mostra *Enviamos uma mensagem de texto para este número de telefone. Abra o link nela para confirmar sua inscrição.* Uma inscrição por e-mail diz que um link de confirmação foi enviado e para verificar a pasta de spam se ele não chegar (veja [Dupla confirmação por e-mail](#dupla-confirmação-por-e-mail)). As abas **E-mail**, **SMS**, **Slack** e **MS Teams** também têm a divisão **Nova inscrição** / **Gerenciar inscrição existente**, para que quem já se inscreveu possa voltar às suas preferências sem procurar uma mensagem antiga.
 
 ## Limites de inscrições e links
 
@@ -92,9 +92,13 @@ Cada inscrição envia ao seu contato uma mensagem na hora, um e-mail de confirm
 
 Passado um limite, a API responde `429` com um cabeçalho `Retry-After`, em segundos, e o visitante é informado de que houve inscrições ou links demais a partir da sua rede, ou para aquele contato, e de que deve tentar de novo mais tarde. Nada é criado nem enviado, e o seu projeto não vê nada disso: nenhum inscrito é adicionado, e nenhuma mensagem é enviada ou paga. Os limites de links de gerenciamento contam cada pedido, haja ou não uma inscrição correspondente, então não servem para descobrir quem está inscrito. Um endereço de e-mail é contado não importa como seja escrito, em maiúsculas, com um `+tag` ou, no Gmail, com pontos, e um número de telefone não importa como seja digitado. Uma inscrição aceita um endereço de e-mail: uma lista de endereços é recusada.
 
-Cada limite por rede também conta juntos os endereços de um mesmo IPv6 /64, com dez vezes o seu número. As janelas são fixas, não deslizantes. Se o limitador de taxa não puder ser alcançado, as inscrições e os links de gerenciamento por e-mail, Slack, Microsoft Teams e webhook seguem sem ser contados, e os por SMS são recusados com `503` até ele voltar, porque cada SMS é pago. Alterar ou cancelar uma inscrição pelo seu próprio link nunca é limitado, e também não é a sua equipe adicionar inscritos no painel ou pela API.
+Cada limite por rede também conta juntos os endereços de um mesmo IPv6 /64, com dez vezes o seu número. As janelas são fixas, não deslizantes. Se o limitador de taxa não puder ser alcançado, as inscrições e os links de gerenciamento por e-mail, Slack, Microsoft Teams e webhook seguem sem ser contados, e os por SMS são recusados com `503` até ele voltar, porque cada SMS é pago. Alterar ou cancelar uma inscrição pelo seu próprio link nunca é limitado.
 
-Um usuário privado que pede um link para redefinir a senha na página de login da página de status é limitado da mesma forma: 5 e-mails de redefinição para um endereço em uma hora, em todas as páginas de status juntas, e 30 a partir de uma rede em 15 minutos.
+**Uma inscrição por contato.** Uma página de status aceita cada endereço de e-mail, número de telefone e endereço de webhook uma só vez, incluindo webhooks do Slack e do Microsoft Teams. Um endereço de e-mail é o mesmo em maiúsculas, um número de telefone como quer que seja digitado (`+14155550100`, `14155550100` e `0014155550100` são um número só), e um endereço de webhook quer o host esteja em maiúsculas, com a porta padrão ou um fragmento, quer tenha letras codificadas em percentual. Um visitante que inscreve um contato de novo é avisado de que já está inscrito, e nada é enviado. Se sua equipe o adiciona de novo, ou muda um assinante para esse contato, isso é recusado. Os assinantes de antes são mantidos: onde um número foi inscrito com duas grafias, exclua o que não precisa.
+
+**O que sua equipe envia também conta.** Nada limita a rapidez com que sua equipe adiciona assinantes, no painel, em massa, pela API ou por um workflow. Mas a mensagem que um assinante adicionado recebe, o e-mail que pede para confirmar ou a mensagem que diz que está inscrito, conta nas 10 inscrições por hora desse contato, e acima delas essa adição é recusada com `429`. Um assinante adicionado sem mensagem nunca é contado: **Inscrevê-los agora** para um endereço de e-mail, ou **Enviar uma mensagem de boas-vindas** desativado para os outros canais. Se o limitador de taxa não puder ser alcançado, as adições da sua equipe seguem sem ser contadas.
+
+Um usuário privado que pede um link para redefinir a senha na página de login da página de status é limitado da mesma forma: 5 e-mails de redefinição para um endereço em uma hora, em todas as páginas de status juntas, e 30 a partir de uma rede em 15 minutos. Um convite, para uma página de status privada ou para um projeto, também é contado por endereço: 10 para um endereço em uma hora, os dois tipos juntos.
 
 Em uma instalação auto-hospedada, estas variáveis de ambiente do app do OneUptime alteram os limites:
 
@@ -109,6 +113,7 @@ Em uma instalação auto-hospedada, estas variáveis de ambiente do app do OneUp
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Links de gerenciamento para um contato por janela. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Redefinições de senha de usuários privados pedidas a partir de um endereço por janela. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | E-mails de redefinição de senha de usuários privados para um endereço por janela. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Convites para um endereço por janela, para páginas de status privadas e projetos juntos. |
 
 Nem o `config.env` nem os valores do chart do Helm os repassam: adicione-os você mesmo ao ambiente do contêiner `app`, com `app.extraEnv`, ou o `extraEnv` do chart inteiro, no chart do Helm, ou em um `docker-compose.override.yml` para o Docker Compose. `TRUSTED_PROXY_HOPS` decide qual endereço os limites por rede contam.
 
@@ -137,9 +142,11 @@ Bom para: uma página que cobre vários produtos. Um cliente que só usa sua API
 
 ## Dupla confirmação por e-mail
 
-Assinantes de e-mail sempre confirmam. Quando um assinante é criado com um endereço de e-mail e não foi criado já confirmado, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) é forçado para `false` e um **Subscription Confirmation Token** de seis dígitos é gerado. A OneUptime então envia por e-mail um link de confirmação no formato `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. O visitante chega a uma página **Confirmar inscrição** e, quando ela é concluída, vê *Inscrição confirmada com sucesso*.
+Assinantes de e-mail sempre confirmam. Quando um assinante é criado com um endereço de e-mail e não foi criado já confirmado, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) é forçado para `false` e um **Subscription Confirmation Token** aleatório de 32 caracteres é gerado. A OneUptime então envia por e-mail um link de confirmação no formato `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. O visitante chega a uma página **Confirmar inscrição** e, quando ela é concluída, vê *Inscrição confirmada com sucesso*.
 
-Assinantes de SMS, Slack, Microsoft Teams e webhook pulam isso: são criados com `isSubscriptionConfirmed` já como `true`. Quando sua equipe adiciona um assinante de e-mail em **Assinantes de e-mail**, **Ao adicioná-los** decide: **Inscrevê-los agora** (o padrão: confirmado, e nada é enviado), **Inscrevê-los agora e avisá-los** (confirmado, e recebe o e-mail que diz que está inscrito) ou **Pedir que confirmem primeiro** (recebe o link de confirmação, como em uma inscrição). **Adicionar em massa** pergunta o mesmo.
+Assinantes de Slack, Microsoft Teams e webhook pulam isso, assim como assinantes de SMS que sua equipe adiciona: são criados com `isSubscriptionConfirmed` já como `true`. Quando sua equipe adiciona um assinante de e-mail em **Assinantes de e-mail**, **Ao adicioná-los** decide: **Inscrevê-los agora** (o padrão: confirmado, e nada é enviado), **Inscrevê-los agora e avisá-los** (confirmado, e recebe o e-mail que diz que está inscrito) ou **Pedir que confirmem primeiro** (recebe o link de confirmação, como em uma inscrição). **Adicionar em massa** pergunta o mesmo.
+
+**Inscrições por SMS também confirmam.** Um visitante que se inscreve por SMS recebe uma única mensagem: o link de confirmação. Nada mais é enviado ao número até que o link seja aberto, e abri-lo envia por SMS a mensagem que diz que está inscrito, com o link que cancela a inscrição. Até lá o assinante aparece como **Aguardando confirmação**, e o registro de SMS mostra o link com o código substituído por `[redacted]`. Os assinantes de SMS de antes já estão confirmados.
 
 **Não confirmado significa silêncio.** A consulta que busca os assinantes para uma notificação filtra por `isUnsubscribed: false` e `isSubscriptionConfirmed: true`. Um endereço de e-mail que nunca clicou no link fica na sua lista **Assinantes de e-mail** e não recebe nada. Se alguém jura que está inscrito mas não recebe nada, verifique essa coluna primeiro.
 

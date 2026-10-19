@@ -128,6 +128,10 @@ Owners 팀에는 참여한 구성원이 항상 최소 한 명 남아 있으므�
 OneUptime Cloud에서 Free 요금제 프로젝트에는 한 사람의 자리만 있습니다. 요금제를 변경한 다음 다시 초대하세요. [요금제 변경하기](/docs/configuration/billing#요금제-변경하기)를 참조하세요.
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+한 주소에는 프로젝트와 비공개 상태 페이지 초대를 합쳐, 누가 보내든 한 시간에 10건까지 보낼 수 있습니다. 한 시간 기다린 뒤 다시 초대하세요.
+:::
+
 :::details 초대 이메일이 오지 않았거나 링크가 만료됨
 초대는 이메일에 의존하지 않습니다. 초대한 주소로 가입해 달라고 요청하세요. OneUptime이 그 주소로 계정 생성을 마칠 새 링크를 보냅니다. 이미 계정이 있는 사람은 로그인하면 기다리고 있는 초대를 찾을 수 있습니다.
 :::

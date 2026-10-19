@@ -17,8 +17,8 @@ Diese Seite behandelt beides: die fünf Abonnementkanäle und wie Besucher sich 
 
 ```mermaid title="Von der Anmeldung zur Nachricht"
 flowchart TB
-    V["Ein Besucher trägt sich ein"] --> Q{"Per E-Mail?"}
-    Q -->|"Ja"| C["Bestätigt per E-Mail"]
+    V["Ein Besucher trägt sich ein"] --> Q{"Per E-Mail oder SMS?"}
+    Q -->|"Ja"| C["Bestätigt per Link"]
     Q -->|"Nein"| S["Abonnent"]
     C --> S
     E["Vorfall, Wartung<br/>oder Ankündigung"] --> N["Benachrichtigung"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Nachricht mit<br/>Abmeldelink"]
 ```
 
-Jede Statusseite hat ihre eigenen Abonnenten. Ein Besucher trägt sich auf der Seite **Abonnieren** der Statusseite ein, wo eine E-Mail-Adresse erst über einen Link bestätigt, bevor sie etwas erfährt, oder Ihr Team fügt ihn im Dashboard hinzu. Von da an benachrichtigt jeder Vorfall, jedes geplante Wartungsereignis und jede Ankündigung, die die Seite erreicht, ihre Abonnenten, jeden auf dem Kanal, über den er sich eingetragen hat, und jede Nachricht trägt den Link, der das Abonnement kündigt.
+Jede Statusseite hat ihre eigenen Abonnenten. Ein Besucher trägt sich auf der Seite **Abonnieren** der Statusseite ein, wo eine E-Mail-Adresse oder eine Telefonnummer erst über einen Link bestätigt, bevor sie etwas erfährt, oder Ihr Team fügt ihn im Dashboard hinzu. Von da an benachrichtigt jeder Vorfall, jedes geplante Wartungsereignis und jede Ankündigung, die die Seite erreicht, ihre Abonnenten, jeden auf dem Kanal, über den er sich eingetragen hat, und jede Nachricht trägt den Link, der das Abonnement kündigt.
 
 ## Abonnementkanäle
 
@@ -76,7 +76,7 @@ Die Seite **Abonnieren** hat ein Untermenü mit einem Reiter je aktiviertem Kana
 | **MS Teams** | `/subscribe/microsoft-teams` | **Über Microsoft Teams abonnieren** | **Name des Microsoft Teams-Arbeitsbereichs** und **Microsoft Teams Eingehende Webhook-URL**, mit dem Platzhalter `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **Per Webhook abonnieren** | **Webhook-URL**, mit dem Platzhalter `https://example.com/webhook`. Bei jedem Ereignis auf der Statusseite geht eine JSON-`POST`-Anfrage dorthin. |
 
-Der Absendeknopf heißt **Abonnieren**. Eine Anmeldung per SMS, Slack, Microsoft Teams oder Webhook zeigt *Sie wurden erfolgreich abonniert.* Eine Anmeldung per E-Mail sagt, dass ein Bestätigungslink verschickt wurde, und dass man den Spam-Ordner prüfen soll, wenn er nicht ankommt (siehe [Double Opt-in per E-Mail](#double-opt-in-per-e-mail)). Die Reiter **E-Mail**, **SMS**, **Slack** und **MS Teams** tragen außerdem die Aufteilung **Neues Abonnement** / **Bestehendes Abonnement verwalten**, sodass jemand, der bereits abonniert hat, zu seinen Einstellungen zurückfindet, ohne eine alte Nachricht suchen zu müssen.
+Der Absendeknopf heißt **Abonnieren**. Eine Anmeldung per Slack, Microsoft Teams oder Webhook zeigt *Sie wurden erfolgreich abonniert.* Eine Anmeldung per SMS zeigt *Wir haben eine SMS an diese Telefonnummer gesendet. Öffnen Sie den Link darin, um Ihr Abonnement zu bestätigen.* Eine Anmeldung per E-Mail sagt, dass ein Bestätigungslink verschickt wurde, und dass man den Spam-Ordner prüfen soll, wenn er nicht ankommt (siehe [Double Opt-in per E-Mail](#double-opt-in-per-e-mail)). Die Reiter **E-Mail**, **SMS**, **Slack** und **MS Teams** tragen außerdem die Aufteilung **Neues Abonnement** / **Bestehendes Abonnement verwalten**, sodass jemand, der bereits abonniert hat, zu seinen Einstellungen zurückfindet, ohne eine alte Nachricht suchen zu müssen.
 
 ## Grenzen für Anmeldungen und Links
 
@@ -92,9 +92,13 @@ Jede Anmeldung schickt ihrem Kontakt sofort eine Nachricht, eine Bestätigungs-E
 
 Ist eine Grenze überschritten, antwortet die API mit `429` und einem Header `Retry-After` in Sekunden, und dem Besucher wird gesagt, dass es zu viele Anmeldungen oder Links aus seinem Netzwerk oder für diesen Kontakt gab und er es später erneut versuchen soll. Nichts wird erstellt oder gesendet, und Ihr Projekt bemerkt nichts davon: Kein Abonnent wird hinzugefügt, und keine Nachricht wird gesendet oder bezahlt. Die Grenzen für Verwaltungslinks zählen jede Anfrage, ob ein Abonnement passt oder nicht, sodass sich damit nicht herausfinden lässt, wer abonniert hat. Eine E-Mail-Adresse wird gezählt, wie auch immer sie geschrieben ist, in Großbuchstaben, mit einem `+tag` oder, bei Gmail, mit Punkten, und eine Telefonnummer, wie auch immer sie eingegeben ist. Eine Anmeldung nimmt eine E-Mail-Adresse: Eine Liste von Adressen wird abgelehnt.
 
-Jede Grenze pro Netzwerk zählt außerdem die Adressen eines IPv6-/64 zusammen, mit dem Zehnfachen ihres Werts. Die Zeitfenster sind fest, nicht gleitend. Ist die Ratenbegrenzung nicht erreichbar, gehen Anmeldungen und Verwaltungslinks per E-Mail, Slack, Microsoft Teams und Webhook ungezählt weiter, und solche per SMS werden mit `503` abgelehnt, bis sie wieder da ist, weil jede SMS bezahlt wird. Ein Abonnement über seinen eigenen Link zu ändern oder zu kündigen, ist nie begrenzt, und ebenso wenig, dass Ihr Team Abonnenten im Dashboard oder über die API hinzufügt.
+Jede Grenze pro Netzwerk zählt außerdem die Adressen eines IPv6-/64 zusammen, mit dem Zehnfachen ihres Werts. Die Zeitfenster sind fest, nicht gleitend. Ist die Ratenbegrenzung nicht erreichbar, gehen Anmeldungen und Verwaltungslinks per E-Mail, Slack, Microsoft Teams und Webhook ungezählt weiter, und solche per SMS werden mit `503` abgelehnt, bis sie wieder da ist, weil jede SMS bezahlt wird. Ein Abonnement über seinen eigenen Link zu ändern oder zu kündigen, ist nie begrenzt.
 
-Ein privater Benutzer, der auf der Anmeldeseite der Statusseite einen Link zum Zurücksetzen des Passworts anfordert, ist genauso begrenzt: 5 Rücksetz-E-Mails an eine Adresse in einer Stunde, auf allen Statusseiten zusammen, und 30 aus einem Netzwerk in 15 Minuten.
+**Ein Abonnement pro Kontakt.** Eine Statusseite nimmt jede E-Mail-Adresse, Telefonnummer und Webhook-Adresse einmal an, Slack- und Microsoft-Teams-Webhooks eingeschlossen. Eine E-Mail-Adresse ist in Großbuchstaben dieselbe, eine Telefonnummer, wie auch immer sie eingegeben ist (`+14155550100`, `14155550100` und `0014155550100` sind eine Nummer), und eine Webhook-Adresse, ob ihr Host in Großbuchstaben steht, mit seinem Standardport oder einem Fragment, oder mit prozentkodierten Buchstaben. Ein Besucher, der einen Kontakt erneut einträgt, erfährt, dass er bereits abonniert hat, und nichts wird gesendet. Fügt Ihr Team ihn erneut hinzu oder ändert einen Abonnenten auf ihn, wird das abgelehnt. Abonnenten von vorher bleiben erhalten: Wurde eine Nummer in zwei Schreibweisen abonniert, löschen Sie die, die Sie nicht brauchen.
+
+**Auch was Ihr Team sendet, zählt.** Nichts begrenzt, wie schnell Ihr Team Abonnenten hinzufügt, im Dashboard, in großen Mengen, über die API oder per Workflow. Aber die Nachricht, die ein hinzugefügter Abonnent erhält, die E-Mail mit der Bitte um Bestätigung oder die Nachricht, dass er abonniert ist, zählt zu den 10 Anmeldungen dieses Kontakts in einer Stunde, und darüber hinaus wird das Hinzufügen mit `429` abgelehnt. Ein Abonnent, der ohne Nachricht hinzugefügt wird, wird nie gezählt: **Jetzt abonnieren** für eine E-Mail-Adresse, oder **Willkommensnachricht senden** ausgeschaltet für die anderen Kanäle. Ist die Ratenbegrenzung nicht erreichbar, gehen die Hinzufügungen Ihres Teams ungezählt weiter.
+
+Ein privater Benutzer, der auf der Anmeldeseite der Statusseite einen Link zum Zurücksetzen des Passworts anfordert, ist genauso begrenzt: 5 Rücksetz-E-Mails an eine Adresse in einer Stunde, auf allen Statusseiten zusammen, und 30 aus einem Netzwerk in 15 Minuten. Eine Einladung, zu einer privaten Statusseite oder zu einem Projekt, wird ebenfalls pro Adresse gezählt: 10 an eine Adresse in einer Stunde, beide Arten zusammen.
 
 Auf einer selbst gehosteten Installation ändern diese Umgebungsvariablen der OneUptime-App die Grenzen:
 
@@ -109,6 +113,7 @@ Auf einer selbst gehosteten Installation ändern diese Umgebungsvariablen der On
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Verwaltungslinks für einen Kontakt pro Zeitfenster. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Passwort-Zurücksetzungen privater Benutzer, die von einer Adresse pro Zeitfenster angefordert werden. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Rücksetz-E-Mails privater Benutzer an eine Adresse pro Zeitfenster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Einladungen an eine Adresse pro Zeitfenster, zu privaten Statusseiten und Projekten zusammen. |
 
 Weder `config.env` noch die Werte des Helm-Charts reichen sie weiter: Fügen Sie sie selbst der Umgebung des Containers `app` hinzu, im Helm-Chart mit `app.extraEnv` oder dem chartweiten `extraEnv`, oder bei Docker Compose in einer `docker-compose.override.yml`. `TRUSTED_PROXY_HOPS` entscheidet, welche Adresse die Grenzen pro Netzwerk zählen.
 
@@ -137,9 +142,11 @@ Gut für: eine Seite, die mehrere Produkte abdeckt. Ein Kunde, der nur Ihre API 
 
 ## Double Opt-in per E-Mail
 
-E-Mail-Abonnenten bestätigen immer. Wird ein Abonnent mit einer E-Mail-Adresse angelegt und nicht bereits als bestätigt angelegt, wird **Ist Abonnement bestätigt** (`isSubscriptionConfirmed`) auf `false` gesetzt und ein sechsstelliges **Token zur Abonnementbestätigung** erzeugt. OneUptime schickt dann einen Bestätigungslink der Form `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Der Besucher landet auf einer Seite **Abonnement bestätigen** und sieht, sobald es durchgeht, *Abonnement erfolgreich bestätigt*.
+E-Mail-Abonnenten bestätigen immer. Wird ein Abonnent mit einer E-Mail-Adresse angelegt und nicht bereits als bestätigt angelegt, wird **Ist Abonnement bestätigt** (`isSubscriptionConfirmed`) auf `false` gesetzt und ein zufälliges, 32 Zeichen langes **Token zur Abonnementbestätigung** erzeugt. OneUptime schickt dann einen Bestätigungslink der Form `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Der Besucher landet auf einer Seite **Abonnement bestätigen** und sieht, sobald es durchgeht, *Abonnement erfolgreich bestätigt*.
 
-SMS-, Slack-, Microsoft-Teams- und Webhook-Abonnenten überspringen das – sie werden mit `isSubscriptionConfirmed` bereits auf `true` angelegt. Fügt Ihr Team unter **E-Mail-Abonnenten** einen E-Mail-Abonnenten hinzu, entscheidet **Beim Hinzufügen**: **Jetzt abonnieren** (der Standard: bestätigt, und nichts wird gesendet), **Jetzt abonnieren und Bescheid geben** (bestätigt, und die E-Mail, dass er abonniert ist, geht hinaus) oder **Zuerst um Bestätigung bitten** (er bekommt den Bestätigungslink, wie bei einer Anmeldung). **In großen Mengen hinzufügen** fragt dasselbe.
+Slack-, Microsoft-Teams- und Webhook-Abonnenten überspringen das, ebenso SMS-Abonnenten, die Ihr Team hinzufügt – sie werden mit `isSubscriptionConfirmed` bereits auf `true` angelegt. Fügt Ihr Team unter **E-Mail-Abonnenten** einen E-Mail-Abonnenten hinzu, entscheidet **Beim Hinzufügen**: **Jetzt abonnieren** (der Standard: bestätigt, und nichts wird gesendet), **Jetzt abonnieren und Bescheid geben** (bestätigt, und die E-Mail, dass er abonniert ist, geht hinaus) oder **Zuerst um Bestätigung bitten** (er bekommt den Bestätigungslink, wie bei einer Anmeldung). **In großen Mengen hinzufügen** fragt dasselbe.
+
+**Auch Anmeldungen per SMS werden bestätigt.** Ein Besucher, der sich per SMS einträgt, bekommt eine einzige SMS: den Bestätigungslink. Nichts anderes wird an die Nummer gesendet, bevor der Link geöffnet wird, und sein Öffnen schickt per SMS die Nachricht, dass er abonniert ist, mit dem Link, der das Abonnement kündigt. Bis dahin wird der Abonnent als **Warten auf Bestätigung** angezeigt, und das SMS-Protokoll zeigt den Link mit seinem Code durch `[redacted]` ersetzt. SMS-Abonnenten von vorher sind bereits bestätigt.
 
 **Unbestätigt heißt stumm.** Die Abfrage, die Abonnenten für eine Benachrichtigung holt, filtert auf `isUnsubscribed: false` und `isSubscriptionConfirmed: true`. Eine E-Mail-Adresse, die den Link nie angeklickt hat, steht in Ihrer Liste **E-Mail-Abonnenten** und bekommt nichts. Wenn jemand schwört, abonniert zu haben, aber nichts hört, prüfen Sie zuerst diese Spalte.
 

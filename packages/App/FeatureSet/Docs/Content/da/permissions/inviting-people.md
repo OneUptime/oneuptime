@@ -128,6 +128,10 @@ Personen er allerede med i teamet, som medlem eller med en invitation, der ikke 
 I OneUptime Cloud har et projekt på Free-planen plads til én person. Skift plan, og inviter så igen. Se [Skift plan](/docs/configuration/billing#skift-plan).
 :::
 
+:::details "Too many invitations were sent to this email address in the last hour"
+Én adresse kan få 10 invitationer i timen, til projekter og private statussider tilsammen, uanset hvem der sender dem. Vent en time, og inviter så personen igen.
+:::
+
 :::details Invitationsmailen kom ikke frem, eller linket er udløbet
 Invitationen afhænger ikke af e-mailen. Bed personen om at tilmelde sig med den inviterede adresse: OneUptime sender den adresse et nyt link til at gøre kontoen færdig. Den, der allerede har en konto, logger ind og finder invitationen.
 :::

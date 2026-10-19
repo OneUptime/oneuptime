@@ -17,8 +17,8 @@ Cette page couvre les deux : les cinq canaux d'abonnement et la manière dont le
 
 ```mermaid title="De l'inscription au message"
 flowchart TB
-    V["Un visiteur s'inscrit"] --> Q{"Par e-mail ?"}
-    Q -->|"Oui"| C["Confirme par e-mail"]
+    V["Un visiteur s'inscrit"] --> Q{"Par e-mail ou SMS ?"}
+    Q -->|"Oui"| C["Confirme par un lien"]
     Q -->|"Non"| S["Abonné"]
     C --> S
     E["Incident, maintenance<br/>ou annonce"] --> N["Notification"]
@@ -26,7 +26,7 @@ flowchart TB
     N --> M["Message avec un lien<br/>de désabonnement"]
 ```
 
-Chaque page de statut a ses propres abonnés. Un visiteur s'inscrit sur la page **S'abonner** de la page de statut, où une adresse e-mail se confirme par un lien avant de recevoir quoi que ce soit, ou votre équipe l'ajoute depuis le tableau de bord. Dès lors, chaque incident, événement de maintenance planifiée et annonce qui atteint la page notifie ses abonnés, chacun sur le canal par lequel il s'est inscrit, et chaque message porte le lien qui annule l'abonnement.
+Chaque page de statut a ses propres abonnés. Un visiteur s'inscrit sur la page **S'abonner** de la page de statut, où une adresse e-mail ou un numéro de téléphone se confirme par un lien avant de recevoir quoi que ce soit, ou votre équipe l'ajoute depuis le tableau de bord. Dès lors, chaque incident, événement de maintenance planifiée et annonce qui atteint la page notifie ses abonnés, chacun sur le canal par lequel il s'est inscrit, et chaque message porte le lien qui annule l'abonnement.
 
 ## Canaux d'abonnement
 
@@ -76,7 +76,7 @@ La page **S'abonner** a un sous-menu avec un onglet par canal activé ; avec un 
 | **MS Teams** | `/subscribe/microsoft-teams` | **S'abonner via Microsoft Teams** | **Nom de l'espace de travail Microsoft Teams** et **URL du webhook entrant Microsoft Teams**, avec l'exemple `https://outlook.office.com/webhook/...`. |
 | **Webhooks** | `/subscribe/webhooks` | **S'abonner par webhook** | **URL du webhook**, avec l'exemple `https://example.com/webhook`. Une requête JSON `POST` y est envoyée à chaque événement de la page de statut. |
 
-Le bouton d'envoi s'intitule **S'abonner**. Une inscription par SMS, Slack, Microsoft Teams ou webhook affiche *Vous avez été abonné avec succès.* Une inscription par e-mail indique qu'un lien de confirmation a été envoyé et qu'il faut vérifier le dossier des indésirables s'il n'arrive pas (voir [Double confirmation par e-mail](#double-confirmation-par-e-mail)). Les onglets **E-mail**, **SMS**, **Slack** et **MS Teams** portent aussi la séparation **Nouvel abonnement** / **Gérer l'abonnement existant**, pour qu'une personne déjà abonnée retrouve ses préférences sans chercher un vieux message.
+Le bouton d'envoi s'intitule **S'abonner**. Une inscription par Slack, Microsoft Teams ou webhook affiche *Vous avez été abonné avec succès.* Une inscription par SMS affiche *Nous avons envoyé un SMS à ce numéro de téléphone. Ouvrez le lien qu'il contient pour confirmer votre abonnement.* Une inscription par e-mail indique qu'un lien de confirmation a été envoyé et qu'il faut vérifier le dossier des indésirables s'il n'arrive pas (voir [Double confirmation par e-mail](#double-confirmation-par-e-mail)). Les onglets **E-mail**, **SMS**, **Slack** et **MS Teams** portent aussi la séparation **Nouvel abonnement** / **Gérer l'abonnement existant**, pour qu'une personne déjà abonnée retrouve ses préférences sans chercher un vieux message.
 
 ## Limites des inscriptions et des liens
 
@@ -92,9 +92,13 @@ Chaque inscription envoie aussitôt un message à son contact, un e-mail de conf
 
 Au-delà d'une limite, l'API répond `429` avec un en-tête `Retry-After`, en secondes, et le visiteur apprend qu'il y a eu trop d'inscriptions ou de liens depuis son réseau, ou pour ce contact, et qu'il doit réessayer plus tard. Rien n'est créé ni envoyé, et votre projet n'en voit rien : aucun abonné n'est ajouté, et aucun message n'est envoyé ni payé. Les limites des liens de gestion comptent chaque demande, qu'un abonnement corresponde ou non, si bien qu'elles ne permettent pas de savoir qui est abonné. Une adresse e-mail est comptée quelle que soit sa graphie, en majuscules, avec un `+tag` ou, pour Gmail, avec des points, et un numéro de téléphone quelle que soit sa saisie. Une inscription prend une seule adresse e-mail : une liste d'adresses est refusée.
 
-Chaque limite par réseau compte aussi ensemble les adresses d'un même IPv6 /64, avec dix fois son nombre. Les fenêtres sont fixes, pas glissantes. Si le limiteur de débit est injoignable, les inscriptions et les liens de gestion par e-mail, Slack, Microsoft Teams et webhook continuent sans être comptés, et ceux par SMS sont refusés avec `503` jusqu'à son retour, car chaque SMS est payé. Modifier ou annuler un abonnement depuis son propre lien n'est jamais limité, pas plus que l'ajout d'abonnés par votre équipe dans le tableau de bord ou via l'API.
+Chaque limite par réseau compte aussi ensemble les adresses d'un même IPv6 /64, avec dix fois son nombre. Les fenêtres sont fixes, pas glissantes. Si le limiteur de débit est injoignable, les inscriptions et les liens de gestion par e-mail, Slack, Microsoft Teams et webhook continuent sans être comptés, et ceux par SMS sont refusés avec `503` jusqu'à son retour, car chaque SMS est payé. Modifier ou annuler un abonnement depuis son propre lien n'est jamais limité.
 
-Un utilisateur privé qui demande un lien de réinitialisation du mot de passe sur la page de connexion de la page de statut est limité de la même façon : 5 e-mails de réinitialisation vers une adresse en une heure, sur toutes les pages de statut ensemble, et 30 depuis un réseau en 15 minutes.
+**Un abonnement par contact.** Une page de statut prend chaque adresse e-mail, numéro de téléphone et adresse de webhook une seule fois, webhooks Slack et Microsoft Teams compris. Une adresse e-mail est la même en majuscules, un numéro de téléphone quelle que soit sa saisie (`+14155550100`, `14155550100` et `0014155550100` sont un seul numéro), et une adresse de webhook que son hôte soit écrit en majuscules, avec son port par défaut ou un fragment, ou avec des lettres encodées en pourcentage. Un visiteur qui inscrit de nouveau un contact apprend qu'il est déjà abonné, et rien n'est envoyé. Si votre équipe l'ajoute de nouveau, ou change un abonné pour ce contact, c'est refusé. Les abonnés d'avant sont conservés : là où un numéro a été abonné sous deux graphies, supprimez celui dont vous n'avez pas besoin.
+
+**Ce que votre équipe envoie compte aussi.** Rien ne limite la vitesse à laquelle votre équipe ajoute des abonnés, dans le tableau de bord, en masse, via l'API ou par un workflow. Mais le message qu'un abonné ajouté reçoit, l'e-mail qui lui demande de confirmer ou le message qui dit qu'il est abonné, compte dans les 10 inscriptions par heure de ce contact, et au-delà cet ajout est refusé avec `429`. Un abonné ajouté sans message n'est jamais compté : **Les abonner maintenant** pour une adresse e-mail, ou **Envoyer un message de bienvenue** désactivé pour les autres canaux. Si le limiteur de débit est injoignable, les ajouts de votre équipe continuent sans être comptés.
+
+Un utilisateur privé qui demande un lien de réinitialisation du mot de passe sur la page de connexion de la page de statut est limité de la même façon : 5 e-mails de réinitialisation vers une adresse en une heure, sur toutes les pages de statut ensemble, et 30 depuis un réseau en 15 minutes. Une invitation, à une page de statut privée ou à un projet, est elle aussi comptée par adresse : 10 vers une adresse en une heure, les deux types ensemble.
 
 Sur une installation auto-hébergée, ces variables d'environnement de l'application OneUptime changent les limites :
 
@@ -109,6 +113,7 @@ Sur une installation auto-hébergée, ces variables d'environnement de l'applica
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Liens de gestion pour un contact par fenêtre. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Réinitialisations de mot de passe d'utilisateurs privés demandées depuis une adresse par fenêtre. |
 | `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | E-mails de réinitialisation de mot de passe d'utilisateurs privés vers une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitations vers une adresse par fenêtre, aux pages de statut privées et aux projets ensemble. |
 
 Ni `config.env` ni les valeurs du chart Helm ne les transmettent : ajoutez-les vous-même à l'environnement du conteneur `app`, avec `app.extraEnv`, ou le `extraEnv` global du chart, dans le chart Helm, ou dans un `docker-compose.override.yml` pour Docker Compose. `TRUSTED_PROXY_HOPS` décide quelle adresse comptent les limites par réseau.
 
@@ -137,9 +142,11 @@ Utile pour : une page qui couvre plusieurs produits. Un client qui n'utilise que
 
 ## Double confirmation par e-mail
 
-Les abonnés par e-mail confirment toujours. Lorsqu'un abonné est créé avec une adresse e-mail et n'a pas été créé déjà confirmé, **Abonnement confirmé** (`isSubscriptionConfirmed`) est forcé à `false` et un **Subscription Confirmation Token** à six chiffres est généré. OneUptime envoie alors un lien de confirmation de la forme `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Le visiteur arrive sur une page **Confirmer l'abonnement** et, une fois la confirmation passée, voit *Abonnement confirmé avec succès*.
+Les abonnés par e-mail confirment toujours. Lorsqu'un abonné est créé avec une adresse e-mail et n'a pas été créé déjà confirmé, **Abonnement confirmé** (`isSubscriptionConfirmed`) est forcé à `false` et un **Subscription Confirmation Token** aléatoire de 32 caractères est généré. OneUptime envoie alors un lien de confirmation de la forme `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Le visiteur arrive sur une page **Confirmer l'abonnement** et, une fois la confirmation passée, voit *Abonnement confirmé avec succès*.
 
-Les abonnés SMS, Slack, Microsoft Teams et webhook sautent cette étape — ils sont créés avec `isSubscriptionConfirmed` déjà à `true`. Quand votre équipe ajoute un abonné e-mail sur **Abonnés e-mail**, **Quand vous les ajoutez** décide : **Les abonner maintenant** (par défaut : confirmé, et rien n'est envoyé), **Les abonner maintenant et les prévenir** (confirmé, et l'e-mail qui dit qu'il est abonné est envoyé) ou **Leur demander de confirmer d'abord** (le lien de confirmation est envoyé, comme lors d'une inscription). **Ajouter en masse** pose la même question.
+Les abonnés Slack, Microsoft Teams et webhook sautent cette étape, tout comme les abonnés SMS ajoutés par votre équipe — ils sont créés avec `isSubscriptionConfirmed` déjà à `true`. Quand votre équipe ajoute un abonné e-mail sur **Abonnés e-mail**, **Quand vous les ajoutez** décide : **Les abonner maintenant** (par défaut : confirmé, et rien n'est envoyé), **Les abonner maintenant et les prévenir** (confirmé, et l'e-mail qui dit qu'il est abonné est envoyé) ou **Leur demander de confirmer d'abord** (le lien de confirmation est envoyé, comme lors d'une inscription). **Ajouter en masse** pose la même question.
+
+**Les inscriptions par SMS se confirment aussi.** Un visiteur qui s'inscrit par SMS reçoit un seul SMS : le lien de confirmation. Rien d'autre n'est envoyé au numéro tant que le lien n'est pas ouvert, et son ouverture envoie par SMS le message qui dit qu'il est abonné, avec le lien qui annule l'abonnement. D'ici là, l'abonné apparaît comme **En attente de confirmation**, et le journal des SMS montre le lien avec son code remplacé par `[redacted]`. Les abonnés SMS d'avant sont déjà confirmés.
 
 **Non confirmé signifie silencieux.** La requête qui récupère les abonnés pour une notification filtre sur `isUnsubscribed: false` et `isSubscriptionConfirmed: true`. Une adresse e-mail qui n'a jamais cliqué sur le lien reste dans votre liste **Abonnés e-mail** et ne reçoit rien. Si quelqu'un jure être abonné mais ne reçoit rien, vérifiez d'abord cette colonne.
 

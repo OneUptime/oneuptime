@@ -3,7 +3,9 @@ import { inlineCode } from "./DocsTranslationChecks";
 import PublicMessageRateLimit, {
   PublicMessageKind,
   PublicMessageRateLimitConfig,
+  TeamMessageKind,
 } from "Common/Server/Utils/RateLimit/PublicMessageRateLimit";
+import SubscriberContactKey from "Common/Types/StatusPage/SubscriberContactKey";
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
 /*
@@ -74,6 +76,11 @@ const VARIABLES: Record<string, ConfigReading> = {
   ): number => {
     return config.kinds[PublicMessageKind.StatusPagePasswordReset]
       .perContactLimit;
+  },
+  PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT: (
+    config: PublicMessageRateLimitConfig,
+  ): number => {
+    return config.teamKinds[TeamMessageKind.Invitation].perContactLimit;
   },
 };
 
@@ -172,6 +179,88 @@ describe("the English page gives the limits in force", () => {
 
     expect(englishSection()).toContain(
       `limited the same way: ${reset.perContactLimit} reset emails to one address in an hour, on all status pages together, and ${reset.perClientLimit} from one network in ${minutes} minutes.`,
+    );
+  });
+
+  it("says what the team's added subscribers are held to: their contact's signups, and nothing else", () => {
+    const section: string = englishSection();
+    const signUpsPerContact: number =
+      config.kinds[PublicMessageKind.StatusPageSignUp].perContactLimit;
+
+    // One count with the signups, at the signups' number.
+    expect(
+      config.teamKinds[TeamMessageKind.SubscriberAdded].perContactLimit,
+    ).toBe(signUpsPerContact);
+    expect(section).toContain(
+      `counts toward that contact's ${signUpsPerContact} signups in an hour, and past them that add is refused with \`429\`.`,
+    );
+    expect(section).toContain(
+      "Nothing limits how fast your team adds subscribers, on the dashboard, in bulk, through the API or by a workflow.",
+    );
+    expect(section).toContain(
+      "If the rate limiter cannot be reached, your team's adds go on uncounted.",
+    );
+    expect(section).not.toContain(
+      "and neither is your team adding subscribers on the dashboard or through the API",
+    );
+  });
+
+  it("gives the spellings of one phone number that a page takes once, as one contact", () => {
+    const paragraph: string = englishSection()
+      .split("\n")
+      .find((line: string): boolean => {
+        return line.startsWith("**One subscription per contact.**");
+      }) as string;
+
+    expect(paragraph).toBeDefined();
+
+    // inlineCode gives a paragraph's code spans in sorted order.
+    const numbers: Array<string> = inlineCode(paragraph);
+
+    expect(numbers).toEqual(
+      ["+14155550100", "14155550100", "0014155550100"].sort(),
+    );
+    expect(
+      new Set(
+        numbers.map((phone: string): string => {
+          return SubscriberContactKey.forPhone(phone);
+        }),
+      ).size,
+    ).toBe(1);
+  });
+
+  it("gives the ways of writing one webhook address and one email address that are one contact", () => {
+    const section: string = englishSection();
+
+    expect(section).toContain(
+      "An email address is the same in capitals, a phone number however it is typed",
+    );
+    expect(SubscriberContactKey.forEmail("Reader@Example.COM")).toBe(
+      SubscriberContactKey.forEmail("reader@example.com"),
+    );
+
+    expect(section).toContain(
+      "and a webhook address whether its host is in capitals, with its default port or a fragment, or with letters percent-encoded.",
+    );
+
+    const address: string = "https://hooks.example.com/services/abc";
+
+    for (const spelling of [
+      "https://HOOKS.EXAMPLE.COM/services/abc",
+      "https://hooks.example.com:443/services/abc",
+      "https://hooks.example.com/services/abc#top",
+      "https://hooks.example.com/%73ervices/%61bc",
+    ]) {
+      expect({
+        spelling,
+        same: SubscriberContactKey.isSameUrl(spelling, address),
+      }).toEqual({ spelling, same: true });
+    }
+  });
+
+  it("gives an invitation its limit, to private status pages and projects together", () => {
+    expect(englishSection()).toContain(
+      `is counted per address too: ${config.teamKinds[TeamMessageKind.Invitation].perContactLimit} to one address in an hour, both kinds together.`,
     );
   });
 

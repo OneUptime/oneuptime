@@ -19,6 +19,7 @@ import { StatusPageOverviewCopy } from "../../../FeatureSet/Dashboard/src/Compon
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import CacheGenerations from "Common/Server/Infrastructure/CacheGenerations";
+import StatusPageSubscriberConfirmationCode from "Common/Server/Utils/StatusPage/StatusPageSubscriberConfirmationCode";
 import StatusPageOverviewCache from "Common/Server/Utils/StatusPage/StatusPageOverviewCache";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
@@ -26,6 +27,7 @@ import { getColumnBillingAccessControlForAllColumns } from "Common/Types/Databas
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import Dictionary from "Common/Types/Dictionary";
 import { MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS } from "Common/Types/StatusPage/MasterPassword";
+import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import { SECTION_TITLES_COLLAPSED_BY_DEFAULT } from "Common/UI/Components/SideMenu/SideMenuSectionState";
@@ -72,6 +74,7 @@ const SUBSCRIBER_SETTINGS: string = `${DASHBOARD}/Pages/StatusPages/View/Subscri
 const SUBSCRIBER_CHOICES_COPY: string = `${DASHBOARD}/Components/StatusPage/SubscriberChoicesCopy.ts`;
 const SUBSCRIBER_FORM_CHOICES: string = `${DASHBOARD}/Components/StatusPage/SubscriberFormChoices.ts`;
 const EMAIL_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/EmailSubscribers.tsx`;
+const SMS_SUBSCRIBERS: string = `${DASHBOARD}/Pages/StatusPages/View/SMSSubscribers.tsx`;
 
 const STATUS_PAGE_APP: string = "App/FeatureSet/StatusPage/src";
 const VISITOR_ROUTES: string = `${STATUS_PAGE_APP}/Utils/RouteMap.ts`;
@@ -1185,26 +1188,30 @@ describe("Subscribers & Announcements: confirming an email address", () => {
   const optIn: string = sectionOf(page, "## Email double opt-in");
   const service: string = readSource(SUBSCRIBER_SERVICE);
 
-  it("makes a six-figure confirmation token, and sends the link the page shows", () => {
+  it("makes a confirmation token of 32 random characters, and sends the link the page shows", () => {
     expect(service).toMatch(
-      /subscriptionConfirmationToken = NumberUtil\.getRandomNumber\(\s*100000,\s*999999,\s*\)\.toString\(\);/,
+      /subscriptionConfirmationToken =\s*StatusPageSubscriberConfirmationCode\.generate\(\);/,
+    );
+    expect(StatusPageSubscriberConfirmationCode.generate()).toMatch(
+      new RegExp(`^[0-9a-f]{${StatusPageSubscriberConfirmationCode.LENGTH}}$`),
     );
     expect(service).toContain(
       "`/confirm-subscription/${data.statusPageSubscriberId.toString()}?verification-token=${data.confirmationToken}`",
     );
     expect(optIn).toContain(
-      `a six-digit **${subscriberColumn("subscriptionConfirmationToken").title}** is generated.`,
+      `a random ${StatusPageSubscriberConfirmationCode.LENGTH}-character **${subscriberColumn("subscriptionConfirmationToken").title}** is generated.`,
     );
     expect(optIn).toContain(
       "`{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`",
     );
   });
 
-  it("confirms email subscribers only, and lets the team choose: subscribe now, subscribe and tell, or ask to confirm", () => {
+  it("confirms email subscribers and sign-ups by text, and lets the team choose for an email address: subscribe now, subscribe and tell, or ask to confirm", () => {
     const choices: string = readSource(SUBSCRIBER_FORM_CHOICES);
 
+    // An email address confirms unless the team made it confirmed; a sign-up by text always does.
     expect(service).toMatch(
-      /if \(isEmailSubscriber && !isSubscriptionConfirmed\) \{\s*data\.data\.isSubscriptionConfirmed = false;\s*\} else \{\s*data\.data\.isSubscriptionConfirmed = true;/,
+      /const isSignUpByTextMessage: boolean =\s*statusPageSignUps\.has\(data\.data\) && Boolean\(data\.data\.subscriberPhone\);\s*if \(\s*\(isEmailSubscriber && !isSubscriptionConfirmed\) \|\|\s*isSignUpByTextMessage\s*\) \{\s*data\.data\.isSubscriptionConfirmed = false;\s*\} else \{\s*data\.data\.isSubscriptionConfirmed = true;/,
     );
     // The Add form asks one question, Add in Bulk the same.
     expect(readSource(EMAIL_SUBSCRIBERS)).toContain(
@@ -1248,6 +1255,41 @@ describe("Subscribers & Announcements: confirming an email address", () => {
       "When your team adds an email subscriber on **Email Subscribers**, **When you add them** decides: **Subscribe them now** (the default: confirmed, and sent nothing), **Subscribe them now and tell them** (confirmed, and sent the email that says they are subscribed) or **Ask them to confirm first** (sent the confirmation link, like a sign-up). **Add in Bulk** asks the same.",
     );
     expect(optIn).not.toContain("Do not send confirmation link");
+  });
+
+  it("says a sign-up by SMS confirms from the phone: one text first, the welcome once the link is opened, Awaiting Confirmation until then, and the code kept out of the SMS log", () => {
+    const api: string = readSource(STATUS_PAGE_API);
+    const smsSubscribers: string = readSource(SMS_SUBSCRIBERS);
+
+    // The one text a sign-up by SMS is sent, and nothing else until confirmed.
+    expect(service).toContain("getConfirmSubscriptionTextMessage({");
+    expect(service).toMatch(
+      /const isPhoneToConfirm: boolean =\s*createdItem\.isSubscriptionConfirmed === false;/,
+    );
+    // Opening the link sends the welcome, by email and by text.
+    expect(api).toMatch(
+      /sendYouHaveSubscribedEmail\(\{\s*subscriberId: subscriber\.id,\s*\}\);\s*await StatusPageSubscriberService\.sendYouHaveSubscribedText\(\{\s*subscriberId: subscriber\.id,\s*\}\);/,
+    );
+    // The SMS subscribers list shows who has not confirmed yet.
+    expect(smsSubscribers).toContain('text={"Awaiting Confirmation"}');
+    // The SMS log keeps the link with its code redacted.
+    expect(
+      StatusPageSubscriberUnsubscribe.redactCredentials(
+        `https://status.example.com/confirm-subscription/7c9e6679-7425-40de-944b-e07fc1f90ae7?verification-token=${StatusPageSubscriberConfirmationCode.generate()}`,
+      ),
+    ).toBe(
+      `https://status.example.com/confirm-subscription/7c9e6679-7425-40de-944b-e07fc1f90ae7?verification-token=${StatusPageSubscriberUnsubscribe.REDACTED_TOKEN}`,
+    );
+
+    expect(optIn).toContain(
+      "**Signups by SMS confirm too.** A visitor who signs up by SMS is texted one message: the confirmation link. Nothing else is sent to the number until the link is opened, and opening it texts the message that says they are subscribed, with the link that cancels the subscription.",
+    );
+    expect(optIn).toContain(
+      "Until then the subscriber shows as **Awaiting Confirmation**, and the SMS log shows the link with its code replaced by `[redacted]`. SMS subscribers from before this are confirmed already.",
+    );
+    expect(optIn).toContain(
+      "Slack, Microsoft Teams and webhook subscribers skip this, and so do SMS subscribers your team adds",
+    );
   });
 
   it("sends only to confirmed subscribers who have not unsubscribed", () => {
