@@ -110,6 +110,17 @@ Chaque règle activée s'exécute quand une ressource est créée, depuis le tab
 
 Une règle écrite aujourd'hui s'applique aux ressources créées après elle. Pour l'appliquer à celles que vous avez déjà, utilisez **Run Now** : voir [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now). Les règles d'étiquettes peuvent aussi être copiées d'un projet à l'autre : voir [Importer et exporter des règles d'étiquettes](/docs/configuration/label-rule-import-export).
 
+## Modèles
+
+Un modèle dans les conditions d'une règle est une expression régulière dans la syntaxe de JavaScript, comme `^checkout-.*`, et ignore la casse. OneUptime l'exécute en un temps qui ne croît qu'avec le texte qu'il lit, quelle que soit la façon dont le modèle est écrit. Les assertions avant et arrière fonctionnent, comme `^prod-(?!test)` et `(?<=db-)\d+`.
+
+Deux sortes de modèles ne peuvent pas s'exécuter ainsi. Une règle qui en contient un est refusée à l'enregistrement, depuis le tableau de bord, l'API, Terraform ou une importation, avec un message qui indique quoi changer :
+
+- Une référence arrière, comme `\1` ou `\k<name>`, qui correspond de nouveau à ce qu'un groupe précédent a trouvé.
+- Un modèle trop grand pour être exécuté, comme un modèle qui répète une partie des milliers de fois.
+
+Une règle enregistrée plus tôt avec l'un d'eux ne correspond à rien tant que vous ne changez pas son modèle. Cela vaut pour toute sorte de règle qui a des modèles, pas seulement les règles d'étiquettes et de propriétaires.
+
 ## Étapes suivantes
 
 :::cards

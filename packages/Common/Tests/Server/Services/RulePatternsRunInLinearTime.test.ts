@@ -72,9 +72,10 @@ const SLOW_CASES: ReadonlyArray<SlowCase> = [
     matches: false,
   },
   {
+    // Each repetition reads ahead to the "b" again: the square of the text.
     name: "a look-ahead read again at every position",
     pattern: "^(?:(?=a+b)a)+c",
-    text: "a".repeat(LENGTH),
+    text: `${"a".repeat(LENGTH)}b`,
     matches: false,
   },
 ];

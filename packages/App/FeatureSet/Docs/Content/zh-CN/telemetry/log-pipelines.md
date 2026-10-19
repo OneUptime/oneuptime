@@ -178,6 +178,8 @@ date=2024-01-01 time=10:00:00 devname="FG100" logid="0100032001" type="event" su
 
 除非指定类型，否则捕获会存储为文本：`%{NUMBER:status:int}` 会把它存储为数字。类型有 `int`、`long`、`float`、`double`、`boolean` 和 `string`。保存之前，请在 **Test Your Pattern** 中用一行示例检查模式。
 
+无论怎么写，Grok 模式运行所用的时间都只随读取的行线性增长，并保留 JavaScript 的语法：先行断言和后行断言都可以使用。无法这样运行的模式（例如含有 `\1` 这样的反向引用的模式）在保存时会被拒绝，并返回一条说明需要改什么的消息。
+
 | 日志正文 | 模式 | 添加的属性 |
 | --- | --- | --- |
 | `10.0.1.5 - GET /health 200` | `%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}` | client_ip, method, path, status |

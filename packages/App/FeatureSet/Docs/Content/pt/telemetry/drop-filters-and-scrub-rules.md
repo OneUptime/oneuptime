@@ -127,6 +127,7 @@ Hash:   Payment failed for [HASHED:8c87b489]
 - **As exceções vêm da entrada mascarada.** Uma exceção encontrada em um registro é criada depois do mascaramento, e as regras que mascaram os eventos dos spans também mascaram as exceções registradas neles.
 - **As Session Replays também são mascaradas.** As regras de mascaramento de registros também rodam sobre as gravações de Session Replay, além do mascaramento que o gravador faz no navegador.
 - **As regras rodam na ordem da lista.** Cada regra vê o que as regras anteriores deixaram.
+- **Um padrão personalizado leva tempo na proporção da entrada.** Ele mantém a sintaxe e as respostas do JavaScript, lookaheads e lookbehinds incluídos, seja qual for a forma como foi escrito. Uma referência retroativa, como `\1`, não pode ser executada assim: uma regra com uma delas é recusada ao salvar, assim como um padrão grande demais para ser executado. Se encontrar cada correspondência exigisse ler um valor longo repetidas vezes, a regra mascara o valor inteiro.
 
 ## Verificar o que um filtro descartou
 
@@ -143,7 +144,7 @@ Veja a contagem **Dropped** e a hora do **Last Dropped** de cada filtro de desca
 :::
 
 :::details Uma regra de mascaramento personalizada mostra Não limpa nada
-O padrão dela está vazio ou não é uma expressão regular válida, então ela não mascara nada. Edite a regra e dê a ela um padrão que corresponda a pelo menos um caractere.
+O padrão dela está vazio, não é uma expressão regular válida ou não pode ser executado, por exemplo porque tem uma referência retroativa como `\1`, então ela não mascara nada. Edite a regra e dê a ela um padrão que corresponda a pelo menos um caractere.
 :::
 
 :::details Entradas antigas ainda mostram os dados que uma regra nova mascara

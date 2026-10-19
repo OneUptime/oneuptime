@@ -335,7 +335,8 @@ describe("what the matcher keeps between questions", () => {
   test("one set of the ordered machine's arrays serves every pattern", () => {
     let largestNeed: number = 0;
 
-    for (let size: number = 1; size <= 200; size++) {
+    // Largest first: the arrays it grew to serve every smaller pattern after.
+    for (let size: number = 200; size >= 1; size--) {
       const pattern: LinearRegExp = new LinearRegExp(
         `(?:x|y){0,${size}}z`,
         "g",

@@ -178,6 +178,8 @@ Trekker strukturerte felt ut av en linje med fast form. Et grok-mønster er et r
 
 En fangst lagres som tekst, med mindre du gir den en type: `%{NUMBER:status:int}` lagrer den som et tall. Typene er `int`, `long`, `float`, `double`, `boolean` og `string`. Sjekk et mønster mot en eksempellinje i **Test Your Pattern** før du lagrer det.
 
+Et grok-mønster kjører på en tid som bare vokser med linjen det leser, uansett hvordan det er skrevet, og beholder JavaScripts syntaks: lookaheads og lookbehinds virker. Et mønster som ikke kan kjøres på den måten, for eksempel ett med en tilbakereferanse som `\1`, avvises når du lagrer det, med en melding som sier hva du må endre.
+
 | Loggtekst | Mønster | Attributter som legges til |
 | --- | --- | --- |
 | `10.0.1.5 - GET /health 200` | `%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}` | client_ip, method, path, status |
