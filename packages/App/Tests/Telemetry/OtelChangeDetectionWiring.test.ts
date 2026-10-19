@@ -7,14 +7,6 @@ import ObjectID from "Common/Types/ObjectID";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import OtelIngestBaseService from "../../FeatureSet/Telemetry/Services/OtelIngestBaseService";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
 
 /*
  * Every resource block the ingest workers resolve is handed to the change

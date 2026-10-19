@@ -93,7 +93,7 @@ function makeRequest(data: {
 }
 
 async function ingest(request: JSONObject): Promise<Array<JSONObject>> {
-  const next: MockedFn = jest.fn();
+  const next: MockedFn = jest.fn() as unknown as MockedFn;
 
   await ChangeEventsIngestService.ingestChangeEvents(
     request as never,
