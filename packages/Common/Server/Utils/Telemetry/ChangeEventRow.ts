@@ -135,6 +135,39 @@ export function parseChangeEventIngestEntry(
 }
 
 /**
+ * The service an entry lands under; "" means a project-wide event.
+ *
+ * A key pinned to one service writes everything under that service. The
+ * key's Pinned Service Name field promises that for traces, logs and
+ * metrics (PinServiceName), and it holds here too: a key scoped to one
+ * service cannot put a deploy marker on another service's charts, nor a
+ * project-wide marker on every chart. Otherwise the entry's own
+ * serviceName wins, then the x-oneuptime-service-name header.
+ */
+export function resolveChangeEventServiceName(data: {
+  entry: JSONObject;
+  headerServiceName: string;
+  pinnedServiceName?: string | null | undefined;
+}): string {
+  const pinnedServiceName: string =
+    typeof data.pinnedServiceName === "string"
+      ? data.pinnedServiceName.trim()
+      : "";
+
+  if (pinnedServiceName) {
+    return pinnedServiceName;
+  }
+
+  const entryServiceName: unknown = data.entry["serviceName"];
+
+  if (typeof entryServiceName === "string" && entryServiceName.trim() !== "") {
+    return entryServiceName.trim();
+  }
+
+  return data.headerServiceName.trim();
+}
+
+/**
  * Accept the shapes CI scripts actually send: a bare object (one event),
  * a bare array, or { events: [...] }.
  */

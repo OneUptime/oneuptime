@@ -20,6 +20,7 @@ import {
   buildChangeEventDbRow,
   extractChangeEventEntries,
   parseChangeEventIngestEntry,
+  resolveChangeEventServiceName,
 } from "../../../../Server/Utils/Telemetry/ChangeEventRow";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
@@ -739,5 +740,81 @@ describe("buildChangeEventDbRow", () => {
     expect(row["time"]).toBe("2026-09-19 11:59:00.000000000");
     expect(row["attributes"]).toEqual({ "git.sha": "deadbeef", build: "101" });
     expect(row["attributeKeys"]).toEqual(["build", "git.sha"]);
+  });
+});
+
+describe("resolveChangeEventServiceName", () => {
+  test("uses the entry's serviceName, trimmed", () => {
+    expect(
+      resolveChangeEventServiceName({
+        entry: { title: "x", serviceName: "  checkout  " },
+        headerServiceName: "",
+      }),
+    ).toBe("checkout");
+  });
+
+  test("falls back to the header when the entry names no service", () => {
+    expect(
+      resolveChangeEventServiceName({
+        entry: { title: "x" },
+        headerServiceName: "billing",
+      }),
+    ).toBe("billing");
+    expect(
+      resolveChangeEventServiceName({
+        entry: { title: "x", serviceName: "   " },
+        headerServiceName: " billing ",
+      }),
+    ).toBe("billing");
+  });
+
+  test("a non-string serviceName is not a service name", () => {
+    expect(
+      resolveChangeEventServiceName({
+        entry: { title: "x", serviceName: 42 } as unknown as JSONObject,
+        headerServiceName: "billing",
+      }),
+    ).toBe("billing");
+  });
+
+  test("is empty (a project-wide event) when nothing names a service", () => {
+    expect(
+      resolveChangeEventServiceName({
+        entry: { title: "x" },
+        headerServiceName: "",
+      }),
+    ).toBe("");
+  });
+
+  test("a key pinned to a service overrides the entry and the header", () => {
+    expect(
+      resolveChangeEventServiceName({
+        entry: { title: "x", serviceName: "payments-api" },
+        headerServiceName: "billing",
+        pinnedServiceName: "web-frontend",
+      }),
+    ).toBe("web-frontend");
+  });
+
+  test("a pinned key cannot write a project-wide event", () => {
+    expect(
+      resolveChangeEventServiceName({
+        entry: { title: "x" },
+        headerServiceName: "",
+        pinnedServiceName: " web-frontend ",
+      }),
+    ).toBe("web-frontend");
+  });
+
+  test("a blank or missing pin pins nothing", () => {
+    for (const pinnedServiceName of [null, undefined, "", "   "]) {
+      expect(
+        resolveChangeEventServiceName({
+          entry: { title: "x", serviceName: "checkout" },
+          headerServiceName: "",
+          pinnedServiceName,
+        }),
+      ).toBe("checkout");
+    }
   });
 });
