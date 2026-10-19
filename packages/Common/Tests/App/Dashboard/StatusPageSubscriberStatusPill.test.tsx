@@ -57,14 +57,58 @@ function subscriber(values: {
 
 describe("getSubscriberTableStatus", () => {
   test.each([
-    ["confirmed a year ago", { isUnsubscribed: false, isSubscriptionConfirmed: true, hoursAgo: 365 * 24 }, SubscriberTableStatus.Subscribed],
-    ["unsubscribed after confirming", { isUnsubscribed: true, isSubscriptionConfirmed: true, hoursAgo: 2 }, SubscriberTableStatus.Unsubscribed],
-    ["unsubscribed before confirming", { isUnsubscribed: true, isSubscriptionConfirmed: false, hoursAgo: 2 }, SubscriberTableStatus.Unsubscribed],
-    ["waiting, the link sent an hour ago", { isUnsubscribed: false, isSubscriptionConfirmed: false, hoursAgo: 1 }, SubscriberTableStatus.AwaitingConfirmation],
-    ["waiting, the link sent a minute short of a day ago", { isUnsubscribed: false, isSubscriptionConfirmed: false, hoursAgo: 24 - 1 / 60 }, SubscriberTableStatus.AwaitingConfirmation],
-    ["waiting, the link sent a day ago", { isUnsubscribed: false, isSubscriptionConfirmed: false, hoursAgo: 24 }, SubscriberTableStatus.LinkExpired],
-    ["waiting, the link sent a month ago", { isUnsubscribed: false, isSubscriptionConfirmed: false, hoursAgo: 30 * 24 }, SubscriberTableStatus.LinkExpired],
-    ["waiting, at an age that cannot be told", { isUnsubscribed: false, isSubscriptionConfirmed: false }, SubscriberTableStatus.LinkExpired],
+    [
+      "confirmed a year ago",
+      {
+        isUnsubscribed: false,
+        isSubscriptionConfirmed: true,
+        hoursAgo: 365 * 24,
+      },
+      SubscriberTableStatus.Subscribed,
+    ],
+    [
+      "unsubscribed after confirming",
+      { isUnsubscribed: true, isSubscriptionConfirmed: true, hoursAgo: 2 },
+      SubscriberTableStatus.Unsubscribed,
+    ],
+    [
+      "unsubscribed before confirming",
+      { isUnsubscribed: true, isSubscriptionConfirmed: false, hoursAgo: 2 },
+      SubscriberTableStatus.Unsubscribed,
+    ],
+    [
+      "waiting, the link sent an hour ago",
+      { isUnsubscribed: false, isSubscriptionConfirmed: false, hoursAgo: 1 },
+      SubscriberTableStatus.AwaitingConfirmation,
+    ],
+    [
+      "waiting, the link sent a minute short of a day ago",
+      {
+        isUnsubscribed: false,
+        isSubscriptionConfirmed: false,
+        hoursAgo: 24 - 1 / 60,
+      },
+      SubscriberTableStatus.AwaitingConfirmation,
+    ],
+    [
+      "waiting, the link sent a day ago",
+      { isUnsubscribed: false, isSubscriptionConfirmed: false, hoursAgo: 24 },
+      SubscriberTableStatus.LinkExpired,
+    ],
+    [
+      "waiting, the link sent a month ago",
+      {
+        isUnsubscribed: false,
+        isSubscriptionConfirmed: false,
+        hoursAgo: 30 * 24,
+      },
+      SubscriberTableStatus.LinkExpired,
+    ],
+    [
+      "waiting, at an age that cannot be told",
+      { isUnsubscribed: false, isSubscriptionConfirmed: false },
+      SubscriberTableStatus.LinkExpired,
+    ],
   ])(
     "%s: %s",
     (
@@ -166,8 +210,14 @@ describe("SubscriberStatusPill", () => {
   });
 
   test.each([
-    ["Subscribed", { isUnsubscribed: false, isSubscriptionConfirmed: true, hoursAgo: 400 }],
-    ["Unsubscribed", { isUnsubscribed: true, isSubscriptionConfirmed: false, hoursAgo: 400 }],
+    [
+      "Subscribed",
+      { isUnsubscribed: false, isSubscriptionConfirmed: true, hoursAgo: 400 },
+    ],
+    [
+      "Unsubscribed",
+      { isUnsubscribed: true, isSubscriptionConfirmed: false, hoursAgo: 400 },
+    ],
   ])(
     "says %s as before",
     (
@@ -194,8 +244,14 @@ describe("the lists that show it", () => {
   );
 
   test.each([
-    ["EmailSubscribers.tsx", "SubscriberFormCopy.awaitingConfirmationDescription"],
-    ["SMSSubscribers.tsx", "SubscriberFormCopy.awaitingTextConfirmationDescription"],
+    [
+      "EmailSubscribers.tsx",
+      "SubscriberFormCopy.awaitingConfirmationDescription",
+    ],
+    [
+      "SMSSubscribers.tsx",
+      "SubscriberFormCopy.awaitingTextConfirmationDescription",
+    ],
   ])(
     "%s draws its Status with the pill, saying how the link reaches them",
     (file: string, description: string) => {

@@ -697,9 +697,7 @@ describe("decided with the INSERT, under the page's lock", () => {
       subscriberPhone: "+14155550100",
     });
 
-    expect(answer.error?.message).toBe(
-      CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE,
-    );
+    expect(answer.error?.message).toBe(CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE);
     expect(rowsOf(world)).toHaveLength(1);
     expect(world.texts).not.toHaveBeenCalled();
     expect(

@@ -72,8 +72,7 @@ function parse(file: string): ts.SourceFile {
 
 function propertyNameOf(node: ts.Node): string | null {
   if (
-    (ts.isPropertyAssignment(node) ||
-      ts.isShorthandPropertyAssignment(node)) &&
+    (ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) &&
     (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name))
   ) {
     return node.name.text;
@@ -162,9 +161,9 @@ describe("the code that confirms a subscription", () => {
         if (holder === "query" || holder === "where") {
           lookups.push(
             `${file}:${
-              use.node.getSourceFile().getLineAndCharacterOfPosition(
-                use.node.getStart(),
-              ).line + 1
+              use.node
+                .getSourceFile()
+                .getLineAndCharacterOfPosition(use.node.getStart()).line + 1
             }`,
           );
         }
@@ -216,8 +215,7 @@ describe("the code that confirms a subscription", () => {
     );
 
     expect(
-      service.split("StatusPageSubscriberConfirmationCode.matches(").length -
-        1,
+      service.split("StatusPageSubscriberConfirmationCode.matches(").length - 1,
     ).toBe(1);
 
     const confirm: string =

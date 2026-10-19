@@ -1338,7 +1338,9 @@ describe("Subscribers & Announcements: a confirmation link works for a day", () 
       `**A confirmation link works for ${hours} hours.** The email and the SMS say so.`,
     );
     expect(
-      readSource("App/FeatureSet/Notification/Templates/ConfirmStatusPageSubscription.hbs"),
+      readSource(
+        "App/FeatureSet/Notification/Templates/ConfirmStatusPageSubscription.hbs",
+      ),
     ).toContain(`This link expires in ${hours} hours.`);
     expect(service).toContain(
       "by text message within ${StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS} hours.",
@@ -1364,9 +1366,7 @@ describe("Subscribers & Announcements: a confirmation link works for a day", () 
   });
 
   it("says signing up again while it works sends nothing more and answers 429 with Retry-After, and replaces it once it has expired", () => {
-    expect(service).toContain(
-      "throw new PublicMessageRateLimitException(",
-    );
+    expect(service).toContain("throw new PublicMessageRateLimitException(");
     expect(service).toContain(
       "StatusPageSubscriberConfirmationCode.getSecondsLeft(",
     );

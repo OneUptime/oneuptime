@@ -61,7 +61,10 @@ export default class StatusPageSubscriberConfirmationCode {
    * compared in constant time, so a refusal says nothing about how much of a
    * guess was right. A subscription with no code is confirmed by nothing.
    */
-  public static matches(data: { stored: unknown; presented: unknown }): boolean {
+  public static matches(data: {
+    stored: unknown;
+    presented: unknown;
+  }): boolean {
     const stored: string = typeof data.stored === "string" ? data.stored : "";
     const presented: string =
       typeof data.presented === "string" ? data.presented : "";

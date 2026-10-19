@@ -425,13 +425,16 @@ describe("a link to confirm a subscription works for a day", () => {
 
     const [first, second] = linksSent() as [Link, Link];
 
-    const outcomeOf: (link: Link) => Promise<SubscriptionConfirmationOutcome> =
-      async (link: Link): Promise<SubscriptionConfirmationOutcome> => {
-        return await StatusPageSubscriberService.confirmSubscription({
-          subscriberId: link.subscriberId,
-          code: link.code,
-        });
-      };
+    const outcomeOf: (
+      link: Link,
+    ) => Promise<SubscriptionConfirmationOutcome> = async (
+      link: Link,
+    ): Promise<SubscriptionConfirmationOutcome> => {
+      return await StatusPageSubscriberService.confirmSubscription({
+        subscriberId: link.subscriberId,
+        code: link.code,
+      });
+    };
 
     expect(await outcomeOf(first)).toBe(
       SubscriptionConfirmationOutcome.Confirmed,
@@ -483,19 +486,19 @@ describe("signing a contact up again while its link works", () => {
     await signUp(SOMEONE_ELSE, { subscriberEmail: EMAIL });
 
     world.advance(DAY - HOUR);
-    expect((await signUp(THE_OWNER, { subscriberEmail: EMAIL })).retryAfter).toBe(
-      String(60 * 60),
-    );
+    expect(
+      (await signUp(THE_OWNER, { subscriberEmail: EMAIL })).retryAfter,
+    ).toBe(String(60 * 60));
 
     world.advance(HOUR - 1500);
-    expect((await signUp(THE_OWNER, { subscriberEmail: EMAIL })).retryAfter).toBe(
-      "2",
-    );
+    expect(
+      (await signUp(THE_OWNER, { subscriberEmail: EMAIL })).retryAfter,
+    ).toBe("2");
 
     world.advance(1000);
-    expect((await signUp(THE_OWNER, { subscriberEmail: EMAIL })).retryAfter).toBe(
-      "1",
-    );
+    expect(
+      (await signUp(THE_OWNER, { subscriberEmail: EMAIL })).retryAfter,
+    ).toBe("1");
   });
 
   test("the link the contact was sent still confirms afterwards", async () => {
@@ -520,9 +523,9 @@ describe("signing a contact up again while its link works", () => {
       { subscriberPhone: "141.555.50100" },
       { subscriberPhone: "+(141)55550100" },
     ].entries()) {
-      expect(
-        (await signUp(`192.0.2.${index + 10}`, body)).error?.message,
-      ).toBe(CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE);
+      expect((await signUp(`192.0.2.${index + 10}`, body)).error?.message).toBe(
+        CONFIRMATION_LINK_SENT_TO_PHONE_MESSAGE,
+      );
     }
 
     for (const body of [
@@ -789,8 +792,12 @@ describe("the team adding a contact", () => {
 
     // The team adds it again: a new link replaces the one that ran out.
     expect(
-      (await teamAdd({ subscriberEmail: EMAIL, isSubscriptionConfirmed: false }))
-        .error,
+      (
+        await teamAdd({
+          subscriberEmail: EMAIL,
+          isSubscriptionConfirmed: false,
+        })
+      ).error,
     ).toBeUndefined();
 
     const [, secondTeamLink] = linksSent() as [Link, Link];
@@ -953,8 +960,11 @@ describe("a six-digit code from before codes were 32 characters", () => {
     await open({ ...earlier, code: "100000" });
 
     expect(
-      (await teamUpdate(earlier.subscriberId, { isSubscriptionConfirmed: true }))
-        .error,
+      (
+        await teamUpdate(earlier.subscriberId, {
+          isSubscriptionConfirmed: true,
+        })
+      ).error,
     ).toBeUndefined();
     expect(isConfirmed(earlier)).toBe(true);
   });

@@ -1211,11 +1211,9 @@ export class Service extends ProjectReferencesService<Model> {
       statusPageId: data.subscriber.statusPageId?.toString(),
     } as LogAttributes);
 
-    const waiting: Array<Model> = holders.filter(
-      (holder: Model): boolean => {
-        return !holder.isSubscriptionConfirmed;
-      },
-    );
+    const waiting: Array<Model> = holders.filter((holder: Model): boolean => {
+      return !holder.isSubscriptionConfirmed;
+    });
 
     if (!data.isSignUp || waiting.length < holders.length) {
       throw new BadDataException(
@@ -3199,7 +3197,8 @@ Stay informed about service availability! 🚀`.toString();
       {
         _id: subscriber._id!.toString(),
         isSubscriptionConfirmed: false,
-        subscriptionConfirmationToken: subscriber.subscriptionConfirmationToken!,
+        subscriptionConfirmationToken:
+          subscriber.subscriptionConfirmationToken!,
         ...(typeof subscriber.version === "number"
           ? { version: subscriber.version }
           : {}),

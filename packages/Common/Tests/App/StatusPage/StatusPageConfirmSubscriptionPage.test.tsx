@@ -222,9 +222,9 @@ describe("a link to confirm a subscription, opened", () => {
     expect(requestedUrls()).toHaveLength(1);
 
     const asked: URL = new URL(requestedUrls()[0]!);
-    expect(asked.pathname.endsWith(`/confirm-subscription/${SUBSCRIBER_ID}`)).toBe(
-      true,
-    );
+    expect(
+      asked.pathname.endsWith(`/confirm-subscription/${SUBSCRIBER_ID}`),
+    ).toBe(true);
     expect(asked.searchParams.get("verification-token")).toBe(CODE);
 
     expect(linkNotValidShown()).toBe(false);
@@ -233,8 +233,16 @@ describe("a link to confirm a subscription, opened", () => {
   });
 
   test.each([
-    ["has expired (400)", 400, "This link to confirm your subscription has expired: links work for 24 hours. To get a new one, subscribe again."],
-    ["is not valid (404)", 404, "Subscriber not found or confirmation token is invalid"],
+    [
+      "has expired (400)",
+      400,
+      "This link to confirm your subscription has expired: links work for 24 hours. To get a new one, subscribe again.",
+    ],
+    [
+      "is not valid (404)",
+      404,
+      "Subscriber not found or confirmation token is invalid",
+    ],
   ])(
     "that %s says so in the reader's words, with Subscribe again",
     async (_label: string, statusCode: number, serverMessage: string) => {
@@ -363,12 +371,36 @@ describe("a link to confirm a subscription, opened", () => {
   });
 
   test.each([
-    ["the server's own error (500)", new HTTPErrorResponse(500, { message: "Something broke on our side." }, {}), "Something broke on our side."],
-    ["too many requests (429)", new HTTPErrorResponse(429, { message: "Too many requests. Please try again later." }, {}), "Too many requests. Please try again later."],
-    ["the network", new Error("Error connecting to server. Please try again in few minutes."), "Error connecting to server. Please try again in few minutes."],
+    [
+      "the server's own error (500)",
+      new HTTPErrorResponse(
+        500,
+        { message: "Something broke on our side." },
+        {},
+      ),
+      "Something broke on our side.",
+    ],
+    [
+      "too many requests (429)",
+      new HTTPErrorResponse(
+        429,
+        { message: "Too many requests. Please try again later." },
+        {},
+      ),
+      "Too many requests. Please try again later.",
+    ],
+    [
+      "the network",
+      new Error("Error connecting to server. Please try again in few minutes."),
+      "Error connecting to server. Please try again in few minutes.",
+    ],
   ])(
     "anything else - %s - is shown as it is, with no Subscribe again: it is not the link's doing",
-    async (_label: string, failure: HTTPErrorResponse | Error, shown: string) => {
+    async (
+      _label: string,
+      failure: HTTPErrorResponse | Error,
+      shown: string,
+    ) => {
       answer = failure;
 
       await renderPage();

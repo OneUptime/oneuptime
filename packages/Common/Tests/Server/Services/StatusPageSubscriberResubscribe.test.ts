@@ -290,11 +290,12 @@ describe("onBeforeCreate", () => {
     async (_when: string, hoursAgo: number) => {
       contactHas([waitingSubscription(hoursAgo)]);
 
-      const result: OnCreate<StatusPageSubscriber> =
-        await hooks.onBeforeCreate({
+      const result: OnCreate<StatusPageSubscriber> = await hooks.onBeforeCreate(
+        {
           data: subscriber(),
           props: { isRoot: true },
-        });
+        },
+      );
 
       expect(replacedIds(result)).toEqual([OLD_SUBSCRIBER_ID.toString()]);
       // Not yet: only once the new subscription exists (onCreateSuccess).
@@ -360,12 +361,30 @@ describe("holdsItsContact", () => {
 
   test.each([
     ["on and confirmed, a year ago", false, true, 365 * 24, true],
-    ["on and confirmed, at an age that cannot be told", false, true, null, true],
+    [
+      "on and confirmed, at an age that cannot be told",
+      false,
+      true,
+      null,
+      true,
+    ],
     ["on and waiting, its link sent an hour ago", false, false, 1, true],
-    ["on and waiting, its link sent a minute short of a day ago", false, false, 24 - 1 / 60, true],
+    [
+      "on and waiting, its link sent a minute short of a day ago",
+      false,
+      false,
+      24 - 1 / 60,
+      true,
+    ],
     ["on and waiting, its link sent a day ago", false, false, 24, false],
     ["on and waiting, its link sent a year ago", false, false, 365 * 24, false],
-    ["on and waiting, at an age that cannot be told", false, false, null, false],
+    [
+      "on and waiting, at an age that cannot be told",
+      false,
+      false,
+      null,
+      false,
+    ],
     ["cancelled, confirmed", true, true, 1, false],
     ["cancelled, waiting, its link sent an hour ago", true, false, 1, false],
   ])(

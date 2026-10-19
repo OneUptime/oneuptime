@@ -36,7 +36,9 @@ const STATUS_PAGE_SRC: string = path.join(
 
 const LOCALES_DIR: string = path.join(STATUS_PAGE_SRC, "Locales");
 
-const HOURS: string = String(StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS);
+const HOURS: string = String(
+  StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS,
+);
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(STATUS_PAGE_SRC, relativePath), "utf8");
@@ -44,9 +46,27 @@ function readSource(relativePath: string): string {
 
 describe("where Subscribe again leads", () => {
   test.each([
-    ["email and SMS", true, true, PageMap.SUBSCRIBE_EMAIL, PageMap.PREVIEW_SUBSCRIBE_EMAIL],
-    ["email only", true, false, PageMap.SUBSCRIBE_EMAIL, PageMap.PREVIEW_SUBSCRIBE_EMAIL],
-    ["SMS only", false, true, PageMap.SUBSCRIBE_SMS, PageMap.PREVIEW_SUBSCRIBE_SMS],
+    [
+      "email and SMS",
+      true,
+      true,
+      PageMap.SUBSCRIBE_EMAIL,
+      PageMap.PREVIEW_SUBSCRIBE_EMAIL,
+    ],
+    [
+      "email only",
+      true,
+      false,
+      PageMap.SUBSCRIBE_EMAIL,
+      PageMap.PREVIEW_SUBSCRIBE_EMAIL,
+    ],
+    [
+      "SMS only",
+      false,
+      true,
+      PageMap.SUBSCRIBE_SMS,
+      PageMap.PREVIEW_SUBSCRIBE_SMS,
+    ],
   ])(
     "a page with %s: its Subscribe page, live and in preview",
     (
@@ -97,9 +117,7 @@ describe("where Subscribe again leads", () => {
       expect(page).toContain("signUpChannels={manageLinkChannels}");
     }
 
-    expect(app).toContain(
-      "enableEmailSubscribers: enableEmailSubscribers,",
-    );
+    expect(app).toContain("enableEmailSubscribers: enableEmailSubscribers,");
     expect(app).toContain("enableSMSSubscribers: enableSMSSubscribers,");
   });
 });
@@ -206,8 +224,8 @@ describe("what a subscriber reads about how long the link works", () => {
       confirmation.indexOf("const subscribedDefaults"),
     );
 
-    expect(body.indexOf(`This link expires in ${HOURS} hours.`)).toBeGreaterThan(
-      body.indexOf("{{confirmationUrl}}"),
-    );
+    expect(
+      body.indexOf(`This link expires in ${HOURS} hours.`),
+    ).toBeGreaterThan(body.indexOf("{{confirmationUrl}}"));
   });
 });

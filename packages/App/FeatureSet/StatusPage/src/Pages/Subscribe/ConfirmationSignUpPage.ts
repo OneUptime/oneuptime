@@ -32,7 +32,9 @@ export function getConfirmationSignUpPage(data: {
   }
 
   if (data.channels.enableSMSSubscribers) {
-    return data.isPreview ? PageMap.PREVIEW_SUBSCRIBE_SMS : PageMap.SUBSCRIBE_SMS;
+    return data.isPreview
+      ? PageMap.PREVIEW_SUBSCRIBE_SMS
+      : PageMap.SUBSCRIBE_SMS;
   }
 
   return null;
