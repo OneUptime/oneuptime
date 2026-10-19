@@ -124,6 +124,8 @@ interface ProviderClass {
   name: string;
   extendsName: string | null;
   members: Map<string, ts.ClassElement>;
+  // The class itself, its constructor included (members holds named ones).
+  declaration: ts.ClassDeclaration;
 }
 
 function classesIn(file: string): Array<ProviderClass> {
@@ -153,6 +155,7 @@ function classesIn(file: string): Array<ProviderClass> {
       name: node.name.text,
       extendsName: extended && ts.isIdentifier(extended) ? extended.text : null,
       members: members,
+      declaration: node,
     });
   });
 
@@ -344,6 +347,84 @@ describe("every inbound email provider is held to the base class's rule", () => 
         }).toEqual({ provider: provider.name, member, declared: false });
       }
     }
+  });
+
+  test("no provider changes what the base class kept, or the base class's own checks", () => {
+    /*
+     * The base constructor keeps only a secret the installation may use, and
+     * the base class decides whether there is one and whether a delivery is
+     * taken. A provider that wrote this.config (or a part of it) after
+     * super() would put back whatever it was given - a placeholder, or a
+     * value of its own - and one that wrote validateWebhook or
+     * hasWebhookSecret would decide for itself.
+     */
+    const BASE_OWNED: Array<string> = [
+      "config",
+      "validateWebhook",
+      "hasWebhookSecret",
+    ];
+    const writes: Array<string> = [];
+
+    // this.<name>, this["<name>"], or a part of either.
+    const isBaseOwnedTarget: (expression: ts.Expression) => boolean = (
+      expression: ts.Expression,
+    ): boolean => {
+      let target: ts.Expression = expression;
+
+      while (
+        ts.isPropertyAccessExpression(target) ||
+        ts.isElementAccessExpression(target)
+      ) {
+        const name: string | null = ts.isPropertyAccessExpression(target)
+          ? target.name.text
+          : ts.isStringLiteralLike(target.argumentExpression)
+            ? target.argumentExpression.text
+            : null;
+
+        if (
+          target.expression.kind === ts.SyntaxKind.ThisKeyword &&
+          name !== null &&
+          BASE_OWNED.includes(name)
+        ) {
+          return true;
+        }
+
+        target = target.expression;
+      }
+
+      return false;
+    };
+
+    for (const provider of providers) {
+      // Every member, the constructor included.
+      for (const member of provider.declaration.members) {
+        walk(member, (node: ts.Node) => {
+          const isAssignment: boolean =
+            ts.isBinaryExpression(node) &&
+            node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
+            node.operatorToken.kind <= ts.SyntaxKind.LastAssignment &&
+            isBaseOwnedTarget(node.left);
+
+          const isAssignCall: boolean =
+            ts.isCallExpression(node) &&
+            ts.isPropertyAccessExpression(node.expression) &&
+            ["assign", "defineProperty"].includes(node.expression.name.text) &&
+            node.arguments.length > 0 &&
+            (isBaseOwnedTarget(node.arguments[0]!) ||
+              (node.arguments[0]!.kind === ts.SyntaxKind.ThisKeyword &&
+                node.arguments.length > 1));
+
+          const isDeletion: boolean =
+            ts.isDeleteExpression(node) && isBaseOwnedTarget(node.expression);
+
+          if (isAssignment || isAssignCall || isDeletion) {
+            writes.push(`${provider.name}: ${node.getText()}`);
+          }
+        });
+      }
+    }
+
+    expect(writes).toEqual([]);
   });
 
   test("every provider brings its own check of a delivery against the secret, which only the base class calls", () => {

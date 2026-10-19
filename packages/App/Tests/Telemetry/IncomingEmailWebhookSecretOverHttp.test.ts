@@ -68,6 +68,7 @@ const MANAGED_KEYS: Array<string> = [
   "INBOUND_EMAIL_PROVIDER",
   "INBOUND_EMAIL_DOMAIN",
   "INBOUND_EMAIL_WEBHOOK_SECRET",
+  "ONEUPTIME_SECRET",
 ];
 
 // What the stand-ins were handed: the emails queued, and every log line.
@@ -186,7 +187,9 @@ async function startInstallation(
     );
 
     const app: AnyModule = ExpressUtils.createExpressApp();
+    // The body parsers every request meets first (StartServer).
     app.use(ExpressUtils.ExpressJson());
+    app.use(ExpressUtils.ExpressUrlEncoded({ extended: true }));
     app.use(["/probe-ingest", "/"], routeModule.default);
     app.use(require_("Common/Server/Utils/StartServer").expressErrorHandler);
 
@@ -212,14 +215,26 @@ function post(data: {
   body: string;
   contentType?: string | undefined;
 }): Promise<Answer> {
+  return send({ ...data, method: "POST" });
+}
+
+function send(data: {
+  method: string;
+  origin: string;
+  path: string;
+  body: string;
+  contentType?: string | undefined;
+  headers?: Record<string, string> | undefined;
+}): Promise<Answer> {
   return new Promise<Answer>(
     (resolve: (answer: Answer) => void, reject: (error: Error) => void) => {
       const request: ClientRequest = httpRequest(
         `${data.origin}${data.path}`,
         {
-          method: "POST",
+          method: data.method,
           agent: false,
           headers: {
+            ...(data.headers || {}),
             "content-type": data.contentType || MULTIPART,
             "content-length": Buffer.byteLength(data.body),
           },
@@ -599,6 +614,392 @@ describe("an installation with incoming email off", () => {
 
         expect(answer.status).toBe(400);
         expect(messageOf(answer)).toBe(installation.messages.notConfigured);
+      }
+
+      expect(mockQueuedEmails).toEqual([]);
+    },
+  );
+});
+
+/*
+ * Every other way a request could try to reach the route, or to bring the
+ * secret, meets the same check: the route answers POST only, at every
+ * spelling of its address Express routes to it; the secret counts only as
+ * the address's last part, as Express decodes it; what OneUptime's other
+ * callers present (the cluster key, a probe's key, an API key) opens nothing
+ * here; and a body the app's own parsers read before the route changes
+ * nothing.
+ */
+describe("every other way to reach the route meets the same check", () => {
+  // ONEUPTIME_SECRET of the same installation: a long random value too.
+  const CLUSTER_KEY: string = "3e9b5c1a7d2f4e8b6a0c9d1e5f7a3b2c";
+
+  test.each(["GET", "PUT", "PATCH", "DELETE"])(
+    "%s is no route at all, whatever the address ends with",
+    async (method: string) => {
+      const installation: Installation = await startInstallation({
+        INBOUND_EMAIL_DOMAIN: DOMAIN,
+        INBOUND_EMAIL_WEBHOOK_SECRET: OPERATORS_SECRET,
+      });
+
+      for (const address of ADDRESSES) {
+        for (const ending of [OPERATORS_SECRET, "anything"]) {
+          const answer: Answer = await send({
+            method: method,
+            origin: installation.origin,
+            path: webhookPath(address, ending),
+            body: DELIVERY,
+          });
+
+          expect({ address, ending, status: answer.status }).toEqual({
+            address,
+            ending,
+            status: 404,
+          });
+        }
+      }
+
+      expect(mockQueuedEmails).toEqual([]);
+    },
+  );
+
+  test("the address in other case is the same route, held to the same rule", async () => {
+    const spellings: Array<string> = [
+      "/Incoming-Email/SendGrid",
+      "/INCOMING-EMAIL/SENDGRID",
+      "/Probe-Ingest/Incoming-Email/SendGrid",
+    ];
+
+    const withoutSecret: Installation = await startInstallation({
+      INBOUND_EMAIL_DOMAIN: DOMAIN,
+    });
+
+    for (const address of spellings) {
+      const answer: Answer = await post({
+        origin: withoutSecret.origin,
+        path: webhookPath(address, OPERATORS_SECRET),
+        body: DELIVERY,
+      });
+
+      expect({ address, status: answer.status }).toEqual({
+        address,
+        status: 503,
+      });
+    }
+
+    const withSecret: Installation = await startInstallation({
+      INBOUND_EMAIL_DOMAIN: DOMAIN,
+      INBOUND_EMAIL_WEBHOOK_SECRET: OPERATORS_SECRET,
+    });
+
+    for (const address of spellings) {
+      const answer: Answer = await post({
+        origin: withSecret.origin,
+        path: webhookPath(address, OTHER_INSTALLATIONS_SECRET),
+        body: DELIVERY,
+      });
+
+      expect({ address, status: answer.status }).toEqual({
+        address,
+        status: 403,
+      });
+    }
+
+    expect(mockQueuedEmails).toEqual([]);
+
+    // The provider's own delivery is taken at any of them, as before.
+    const delivered: Answer = await post({
+      origin: withSecret.origin,
+      path: webhookPath(spellings[0]!, OPERATORS_SECRET),
+      body: DELIVERY,
+    });
+
+    expect(delivered.status).toBe(200);
+    expect(mockQueuedEmails).toHaveLength(1);
+  });
+
+  const SECRET_ELSEWHERE: Array<
+    [string, { query?: string; headers?: Record<string, string> }]
+  > = [
+    [
+      "the query string",
+      { query: `?secret=${encodeURIComponent(OPERATORS_SECRET)}` },
+    ],
+    [
+      "an Authorization header",
+      { headers: { authorization: `Bearer ${OPERATORS_SECRET}` } },
+    ],
+    [
+      "a webhook secret header",
+      { headers: { "x-webhook-secret": OPERATORS_SECRET } },
+    ],
+    [
+      "SendGrid's signature header",
+      {
+        headers: {
+          "x-twilio-email-event-webhook-signature": OPERATORS_SECRET,
+          "x-twilio-email-event-webhook-timestamp": "1760000000",
+        },
+      },
+    ],
+    ["a cookie", { headers: { cookie: `secret=${OPERATORS_SECRET}` } }],
+  ];
+
+  test.each(SECRET_ELSEWHERE)(
+    "the secret in %s, at an address that ends with anything else: 403, and nothing is queued",
+    async (
+      _label: string,
+      carrier: { query?: string; headers?: Record<string, string> },
+    ) => {
+      const installation: Installation = await startInstallation({
+        INBOUND_EMAIL_DOMAIN: DOMAIN,
+        INBOUND_EMAIL_WEBHOOK_SECRET: OPERATORS_SECRET,
+      });
+
+      for (const address of ADDRESSES) {
+        const answer: Answer = await send({
+          method: "POST",
+          origin: installation.origin,
+          path: `${webhookPath(address, "anything")}${carrier.query || ""}`,
+          body: DELIVERY,
+          headers: carrier.headers,
+        });
+
+        expect({ address, status: answer.status }).toEqual({
+          address,
+          status: 403,
+        });
+        expect(answer.body).not.toContain(OPERATORS_SECRET);
+      }
+
+      expect(mockQueuedEmails).toEqual([]);
+    },
+  );
+
+  test("the secret as a field of the email, at an address that ends with anything else: 403, and nothing is queued", async () => {
+    const installation: Installation = await startInstallation({
+      INBOUND_EMAIL_DOMAIN: DOMAIN,
+      INBOUND_EMAIL_WEBHOOK_SECRET: OPERATORS_SECRET,
+    });
+
+    const answer: Answer = await post({
+      origin: installation.origin,
+      path: webhookPath(ADDRESSES[0]!, "anything"),
+      body: multipart([
+        ["secret", OPERATORS_SECRET],
+        ["from", "Backups <nightly-backups@acme.example>"],
+        ["to", MONITOR_ADDRESS],
+        ["subject", "Nightly backups completed"],
+        ["text", "Backup finished in 42 minutes."],
+      ]),
+    });
+
+    expect(answer.status).toBe(403);
+    expect(mockQueuedEmails).toEqual([]);
+  });
+
+  test.each([
+    ["an installation with its own secret", OPERATORS_SECRET, 403],
+    ["an installation with no secret of its own", undefined, 503],
+  ])(
+    "what OneUptime's other callers present opens nothing, at %s",
+    async (_label: string, secret: string | undefined, refusal: number) => {
+      const installation: Installation = await startInstallation({
+        INBOUND_EMAIL_DOMAIN: DOMAIN,
+        INBOUND_EMAIL_WEBHOOK_SECRET: secret,
+        ONEUPTIME_SECRET: CLUSTER_KEY,
+      });
+
+      const credentials: Array<Record<string, string>> = [
+        { clusterkey: CLUSTER_KEY },
+        { "x-clusterkey": CLUSTER_KEY },
+        {
+          probeid: "0b0e8a58-3f5c-4a8e-9d47-7f3c2b1a6e95",
+          probekey: "a-probe-key-0b0e8a58",
+        },
+        { apikey: "an-api-key-6c2f9d" },
+        { "x-oneuptime-ingestion-key": "an-ingestion-key-1d7e3b" },
+      ];
+
+      for (const headers of credentials) {
+        for (const address of ADDRESSES) {
+          // The cluster key as the address's last part is no secret here either.
+          for (const ending of ["anything", CLUSTER_KEY]) {
+            const answer: Answer = await send({
+              method: "POST",
+              origin: installation.origin,
+              path: webhookPath(address, ending),
+              body: DELIVERY,
+              headers: headers,
+            });
+
+            expect({
+              headers: Object.keys(headers),
+              address,
+              status: answer.status,
+            }).toEqual({
+              headers: Object.keys(headers),
+              address,
+              status: refusal,
+            });
+          }
+        }
+      }
+
+      expect(mockQueuedEmails).toEqual([]);
+    },
+  );
+
+  test("the address's last part is the secret as Express decodes it, and nothing else", async () => {
+    const installation: Installation = await startInstallation({
+      INBOUND_EMAIL_DOMAIN: DOMAIN,
+      INBOUND_EMAIL_WEBHOOK_SECRET: OPERATORS_SECRET,
+    });
+
+    // Every character escaped is the same value: SendGrid's own delivery.
+    const everyCharacterEscaped: string = [...OPERATORS_SECRET]
+      .map((character: string): string => {
+        return `%${character.charCodeAt(0).toString(16).padStart(2, "0")}`;
+      })
+      .join("");
+
+    const delivered: Answer = await post({
+      origin: installation.origin,
+      path: `${ADDRESSES[0]}/${everyCharacterEscaped}`,
+      body: DELIVERY,
+    });
+
+    expect(delivered.status).toBe(200);
+    expect(mockQueuedEmails).toHaveLength(1);
+
+    mockQueuedEmails.length = 0;
+
+    for (const ending of [
+      `${OPERATORS_SECRET}%00`,
+      `%20${OPERATORS_SECRET}`,
+      `${OPERATORS_SECRET}%2F`,
+      `${OPERATORS_SECRET.slice(0, 16)}%2F${OPERATORS_SECRET.slice(16)}`,
+      `${OPERATORS_SECRET}%E0%A4%A`,
+    ]) {
+      for (const address of ADDRESSES) {
+        const answer: Answer = await post({
+          origin: installation.origin,
+          path: `${address}/${ending}`,
+          body: DELIVERY,
+        });
+
+        expect({ ending, refused: answer.status >= 400 }).toEqual({
+          ending,
+          refused: true,
+        });
+      }
+    }
+
+    expect(mockQueuedEmails).toEqual([]);
+  });
+
+  test("another part before or after the secret is no route at all", async () => {
+    const installation: Installation = await startInstallation({
+      INBOUND_EMAIL_DOMAIN: DOMAIN,
+      INBOUND_EMAIL_WEBHOOK_SECRET: OPERATORS_SECRET,
+    });
+
+    for (const address of ADDRESSES) {
+      for (const path of [
+        `${address}/${OPERATORS_SECRET}/anything`,
+        `${address}/anything/${OPERATORS_SECRET}`,
+      ]) {
+        const answer: Answer = await post({
+          origin: installation.origin,
+          path: path,
+          body: DELIVERY,
+        });
+
+        expect({ path, status: answer.status }).toEqual({ path, status: 404 });
+      }
+    }
+
+    expect(mockQueuedEmails).toEqual([]);
+  });
+
+  test("a guess as long as an address can carry is refused like any other", async () => {
+    const installation: Installation = await startInstallation({
+      INBOUND_EMAIL_DOMAIN: DOMAIN,
+      INBOUND_EMAIL_WEBHOOK_SECRET: OPERATORS_SECRET,
+    });
+
+    for (const guess of [
+      OPERATORS_SECRET.repeat(160),
+      `${OPERATORS_SECRET}${"0".repeat(7000)}`,
+    ]) {
+      const answer: Answer = await post({
+        origin: installation.origin,
+        path: webhookPath(ADDRESSES[0]!, guess),
+        body: DELIVERY,
+      });
+
+      expect(answer.status).toBe(403);
+    }
+
+    expect(mockQueuedEmails).toEqual([]);
+  });
+
+  // Each carries the secret as a field of its own, too.
+  const BODIES_THE_APP_READS_FIRST: Array<[string, string, string]> = [
+    [
+      "JSON",
+      "application/json",
+      JSON.stringify({
+        secret: OPERATORS_SECRET,
+        from: "Backups <nightly-backups@acme.example>",
+        to: MONITOR_ADDRESS,
+        subject: "Nightly backups completed",
+        text: "Backup finished in 42 minutes.",
+      }),
+    ],
+    [
+      "a urlencoded form",
+      "application/x-www-form-urlencoded",
+      new URLSearchParams({
+        secret: OPERATORS_SECRET,
+        from: "Backups <nightly-backups@acme.example>",
+        to: MONITOR_ADDRESS,
+        subject: "Nightly backups completed",
+        text: "Backup finished in 42 minutes.",
+      }).toString(),
+    ],
+  ];
+
+  test.each(BODIES_THE_APP_READS_FIRST)(
+    "an email sent as %s meets the same check: 503 with no secret, 403 at another address",
+    async (_label: string, contentType: string, body: string) => {
+      const withoutSecret: Installation = await startInstallation({
+        INBOUND_EMAIL_DOMAIN: DOMAIN,
+      });
+      const withSecret: Installation = await startInstallation({
+        INBOUND_EMAIL_DOMAIN: DOMAIN,
+        INBOUND_EMAIL_WEBHOOK_SECRET: OPERATORS_SECRET,
+      });
+
+      for (const address of ADDRESSES) {
+        const noSecret: Answer = await post({
+          origin: withoutSecret.origin,
+          path: webhookPath(address, OPERATORS_SECRET),
+          body: body,
+          contentType: contentType,
+        });
+        const wrongSecret: Answer = await post({
+          origin: withSecret.origin,
+          path: webhookPath(address, OTHER_INSTALLATIONS_SECRET),
+          body: body,
+          contentType: contentType,
+        });
+
+        expect({
+          address,
+          noSecret: noSecret.status,
+          wrongSecret: wrongSecret.status,
+        }).toEqual({ address, noSecret: 503, wrongSecret: 403 });
       }
 
       expect(mockQueuedEmails).toEqual([]);
