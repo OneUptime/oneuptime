@@ -1,4 +1,4 @@
-import { generateSCIMErrorResponse } from "./SCIMUtils";
+import { generateSCIMErrorResponse, SCIM_CONTENT_TYPE } from "./SCIMUtils";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -123,6 +123,7 @@ export const sendScimBelowPlanRefusal: (data: {
   const body: JSONObject = getScimBelowPlanResponse(data.missingPlan);
 
   (data.res as OneUptimeResponse).logBody = body;
+  data.res.setHeader("Content-Type", `${SCIM_CONTENT_TYPE}; charset=utf-8`);
   data.res.status(SCIM_BELOW_PLAN_STATUS).send(body);
 
   return {
@@ -425,6 +426,11 @@ export type ScimGroupMember = JSONObject;
  *   ignored         anything else - another attribute, another op, a
  *                   filter it cannot read - which the handlers leave alone
  *                   on every plan, as they always have.
+ *
+ * An "add" or "replace" with no path names its attributes in its value
+ * (RFC 7644, section 3.5.2.1 and 3.5.2.3): Okta renames a pushed group with
+ * {"op":"replace","value":{"id":...,"displayName":...}}. Its displayName is a
+ * rename, and its members are added, or replace the group's.
  */
 export type ScimGroupPatchAction =
   | { kind: "removeMembers"; userIds: Array<string> }
@@ -493,6 +499,62 @@ export const getMemberIdsFromMemberFilter: (
   return ids.length > 0 ? ids : null;
 };
 
+// One PATCH operation with a path, as planScimGroupPatch reads it.
+const planGroupPatchOperation: (data: {
+  op: string;
+  path: string;
+  value: unknown;
+  lowerPath: string;
+}) => ScimGroupPatchAction = (data: {
+  op: string;
+  path: string;
+  value: unknown;
+  lowerPath: string;
+}): ScimGroupPatchAction => {
+  const op: string = data.op;
+  const path: string = data.path;
+  const value: unknown = data.value;
+  const lowerPath: string = data.lowerPath;
+
+  if (lowerPath === "members") {
+    if (op === "remove") {
+      return {
+        kind: "removeMembers",
+        userIds: toMemberList(value)
+          .map(getScimMemberUserId)
+          .filter((id: string | null): id is string => {
+            return Boolean(id);
+          }),
+      };
+    }
+
+    if (op === "add") {
+      return { kind: "addMembers", members: toMemberList(value) };
+    }
+
+    if (op === "replace") {
+      return { kind: "replaceMembers", members: toMemberList(value) };
+    }
+  }
+
+  if (op === "remove") {
+    const filteredIds: Array<string> | null =
+      getMemberIdsFromMemberFilter(path);
+
+    if (filteredIds) {
+      return { kind: "removeMembers", userIds: filteredIds };
+    }
+  }
+
+  if (lowerPath === "displayname" && op === "replace") {
+    if (typeof value === "string" && value) {
+      return { kind: "rename", displayName: value };
+    }
+  }
+
+  return { kind: "ignored", op, path };
+};
+
 // What a group PATCH's operations ask, in order (see ScimGroupPatchAction).
 export const planScimGroupPatch: (
   operations: unknown,
@@ -503,56 +565,58 @@ export const planScimGroupPatch: (
     return [];
   }
 
-  return operations.map((operation: unknown): ScimGroupPatchAction => {
-    const fields: JSONObject =
-      operation && typeof operation === "object"
-        ? (operation as JSONObject)
-        : {};
-    const op: string =
-      typeof fields["op"] === "string" ? fields["op"].toLowerCase() : "";
-    const path: string =
-      typeof fields["path"] === "string" ? fields["path"].trim() : "";
-    const value: unknown = fields["value"];
-    const lowerPath: string = path.toLowerCase();
+  return operations.flatMap(
+    (operation: unknown): Array<ScimGroupPatchAction> => {
+      const fields: JSONObject =
+        operation && typeof operation === "object"
+          ? (operation as JSONObject)
+          : {};
+      const op: string =
+        typeof fields["op"] === "string" ? fields["op"].toLowerCase() : "";
+      const path: string =
+        typeof fields["path"] === "string" ? fields["path"].trim() : "";
+      const value: unknown = fields["value"];
+      const lowerPath: string = path.toLowerCase();
 
-    if (lowerPath === "members") {
-      if (op === "remove") {
-        return {
-          kind: "removeMembers",
-          userIds: toMemberList(value)
-            .map(getScimMemberUserId)
-            .filter((id: string | null): id is string => {
-              return Boolean(id);
-            }),
-        };
+      if (
+        path === "" &&
+        (op === "replace" || op === "add") &&
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+      ) {
+        const actions: Array<ScimGroupPatchAction> = [];
+
+        for (const key of Object.keys(value as JSONObject)) {
+          const attributeValue: unknown = (value as JSONObject)[key];
+          const lowerKey: string = key.toLowerCase();
+
+          if (
+            lowerKey === "displayname" &&
+            typeof attributeValue === "string" &&
+            attributeValue
+          ) {
+            actions.push({ kind: "rename", displayName: attributeValue });
+          }
+
+          if (lowerKey === "members" && Array.isArray(attributeValue)) {
+            actions.push(
+              op === "replace"
+                ? {
+                    kind: "replaceMembers",
+                    members: toMemberList(attributeValue),
+                  }
+                : { kind: "addMembers", members: toMemberList(attributeValue) },
+            );
+          }
+        }
+
+        return actions.length > 0 ? actions : [{ kind: "ignored", op, path }];
       }
 
-      if (op === "add") {
-        return { kind: "addMembers", members: toMemberList(value) };
-      }
-
-      if (op === "replace") {
-        return { kind: "replaceMembers", members: toMemberList(value) };
-      }
-    }
-
-    if (op === "remove") {
-      const filteredIds: Array<string> | null =
-        getMemberIdsFromMemberFilter(path);
-
-      if (filteredIds) {
-        return { kind: "removeMembers", userIds: filteredIds };
-      }
-    }
-
-    if (lowerPath === "displayname" && op === "replace") {
-      if (typeof value === "string" && value) {
-        return { kind: "rename", displayName: value };
-      }
-    }
-
-    return { kind: "ignored", op, path };
-  });
+      return [planGroupPatchOperation({ op, path, value, lowerPath })];
+    },
+  );
 };
 
 // A user id as the group handlers compare them: an IdP may echo one back in another case.

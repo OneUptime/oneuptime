@@ -48,6 +48,7 @@ import {
   installFakeEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { fakeProjectSCIMUserService } from "./FakeProjectSCIMUserService";
 
 /*
  * SCIM works fully only while the project is on the plan that sells it:
@@ -114,6 +115,15 @@ jest.mock("App/FeatureSet/Identity/API/StatusPageAuthentication", () => {
     ) as typeof import("Common/Server/Utils/Express");
 
   return { __esModule: true, default: express.default.getRouter() };
+});
+
+jest.mock("Common/Server/Services/ProjectSCIMUserService", () => {
+  const fake: typeof import("./FakeProjectSCIMUserService") =
+    jest.requireActual(
+      "./FakeProjectSCIMUserService",
+    ) as typeof import("./FakeProjectSCIMUserService");
+
+  return { __esModule: true, default: fake.fakeProjectSCIMUserService };
 });
 
 jest.mock("../../../Server/Identity/Utils/SCIMLogger", () => {
@@ -187,24 +197,32 @@ const getRoutes: (router: ExpressRouter) => Array<[string, string]> = (
   return routes;
 };
 
-const ROUTES: Array<ScimRoute> = IDENTITY_ROUTERS.flatMap(
-  (entry: IdentityRouterEntry): Array<ScimRoute> => {
-    return getRoutes(entry.router).map(
-      ([method, pattern]: [string, string]): ScimRoute => {
-        return {
-          method,
-          pattern,
-          path: pattern
-            .replace(":projectScimId", PROJECT_SCIM_ID)
-            .replace(":statusPageScimId", STATUS_PAGE_SCIM_ID)
-            .replace(":userId", RECORD_ID)
-            .replace(":groupId", RECORD_ID),
-          kind: pattern.startsWith("/status-page-scim/") ? "status" : "project",
-        };
-      },
-    );
+/*
+ * The routes behind the SCIM middleware. The token endpoint of SCIM's OAuth
+ * 2.0 client credentials (SCIMOAuthToken) is not one: it issues tokens on
+ * every plan, as a connection below the plan still takes access away and
+ * needs one to (SCIMOAuthToken.test.ts).
+ */
+const ROUTES: Array<ScimRoute> = IDENTITY_ROUTERS.filter(
+  (entry: IdentityRouterEntry): boolean => {
+    return entry.name !== "SCIMOAuthToken";
   },
-);
+).flatMap((entry: IdentityRouterEntry): Array<ScimRoute> => {
+  return getRoutes(entry.router).map(
+    ([method, pattern]: [string, string]): ScimRoute => {
+      return {
+        method,
+        pattern,
+        path: pattern
+          .replace(":projectScimId", PROJECT_SCIM_ID)
+          .replace(":statusPageScimId", STATUS_PAGE_SCIM_ID)
+          .replace(":userId", RECORD_ID)
+          .replace(":groupId", RECORD_ID),
+        kind: pattern.startsWith("/status-page-scim/") ? "status" : "project",
+      };
+    },
+  );
+});
 
 /*
  * What each route does below the plan, said once, by hand: the door refuses
@@ -395,6 +413,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  fakeProjectSCIMUserService.reset();
   setTestBillingEnabled(true);
   currentPlan = PlanType.Free;
 

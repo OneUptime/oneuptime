@@ -66,7 +66,7 @@ flowchart TB
 API 金鑰需要 Growth 或更高的方案，而在 Scale 方案以下，SCIM 連線只能移除人員。會停止它們的方案會在你選擇前說明涉及多少個，停止期間**帳單**頁面會顯示**此方案不包含**。不會刪除任何內容：在包含它們的方案上，它們會再次生效。
 
 > [!NOTE]
-> 透過經銷商或雲端市集（AWS Marketplace、Microsoft Marketplace 或 Google Cloud Marketplace）購買了 OneUptime？**帳單**頁面會註明。經銷商會替你變更方案，而雲端市集會把專案的方案和用量計入你的雲端帳單。
+> 透過經銷商或雲端市集（AWS Marketplace、Microsoft Marketplace、Google Cloud Marketplace 或 Vercel Marketplace）購買了 OneUptime？**帳單**頁面會註明。經銷商會替你變更方案，而雲端市集會把專案的方案和用量計入你的雲端帳單。
 
 ## 付款方式
 

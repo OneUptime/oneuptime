@@ -90,6 +90,12 @@ Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay qu
 > [!TIP]
 > Slack y Microsoft Teams también tienen pasos de flujo de trabajo. Usa la conexión integrada para los canales de incidentes y las guardias, y un paso de flujo de trabajo cuando solo necesites un mensaje en un canal.
 
+### Plataformas de alojamiento
+
+| Herramienta | Sentido | Qué hace |
+| --- | --- | --- |
+| [Vercel](/docs/integrations/vercel) | De entrada | Añade OneUptime desde el Vercel Marketplace: trazas, logs, monitores de disponibilidad y una página de estado para tus proyectos de Vercel. |
+
 ## Migrar desde otra herramienta
 
 Para dejar otra herramienta de guardias, de disponibilidad o de páginas de estado, trae a tu equipo en lugar de conectar las dos. **Ajustes del proyecto → Importar desde otra herramienta** lee tu cuenta con una clave de API, te muestra lo que encontró y crea lo que marques. Cada herramienta tiene una guía:

@@ -66,7 +66,7 @@ Klikk på **Lagre endringer**. Et betalt abonnement faktureres fra det øyeblikk
 API-nøkler krever Growth-abonnementet eller et høyere abonnement, og under Scale-abonnementet fjerner SCIM-tilkoblinger bare folk. Et abonnement som stopper dem, sier hvor mange før du velger det, og siden **Fakturering** viser **Ikke inkludert i dette abonnementet** så lenge de er stoppet. Ingenting slettes: de virker igjen på et abonnement som inkluderer dem.
 
 > [!NOTE]
-> Kjøpte du OneUptime via en forhandler eller en skymarkedsplass (AWS Marketplace, Microsoft Marketplace eller Google Cloud Marketplace)? Siden **Fakturering** sier det. En forhandler endrer abonnementet ditt for deg, og en markedsplass fakturerer prosjektets abonnement og bruk på skyregningen din.
+> Kjøpte du OneUptime via en forhandler eller en skymarkedsplass (AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace eller Vercel Marketplace)? Siden **Fakturering** sier det. En forhandler endrer abonnementet ditt for deg, og en markedsplass fakturerer prosjektets abonnement og bruk på skyregningen din.
 
 ## Betalingsmetoder
 

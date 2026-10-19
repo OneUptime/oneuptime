@@ -112,7 +112,11 @@ render() {
 
 # --- build.py's own unit tests -----------------------------------------------
 
-if python3 -m unittest discover -s "$MARKETPLACE_DIR" -p 'test_*.py' >"${WORK_DIR}/unittest.log" 2>&1; then
+if [ -n "${MARKETPLACE_RELEASED_CHARTS:-}" ]; then
+    # The release workflow ran them on this repository's charts before it took the release's:
+    # they test this repository's code, which a release's older chart may predate.
+    echo "  SKIP: unit tests of build.py and the release automation: run on this repository's charts"
+elif python3 -m unittest discover -s "$MARKETPLACE_DIR" -p 'test_*.py' >"${WORK_DIR}/unittest.log" 2>&1; then
     pass "unit tests of build.py and the release automation ($(grep -oE 'Ran [0-9]+ tests' "${WORK_DIR}/unittest.log"))"
 else
     fail "unit tests of build.py and the release automation"
@@ -123,7 +127,7 @@ fi
 
 AWS_OUT="${WORK_DIR}/aws"
 
-if python3 "${MARKETPLACE_DIR}/build.py" --marketplace aws --version "$VERSION" --out "$AWS_OUT" >/dev/null; then
+if python3 "${MARKETPLACE_DIR}/build.py" --marketplace aws --version "$VERSION" --out "$AWS_OUT" >/dev/null 2>"${WORK_DIR}/aws-build.err"; then
     pass "aws: builds"
 
     AWS_CHART="${AWS_OUT}/oneuptime"
@@ -139,10 +143,16 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace aws --version "$VERSION" 
     render "$AWS_CHART" "${WORK_DIR}/aws.yaml" --set worker.enabled=true
     check_common aws "$AWS_CHART" "${WORK_DIR}/aws.yaml" "${AWS_REGISTRY}/"
 
-    AWS_VALUES="$(cat "${AWS_CHART}/values.yaml")"
+    # What AWS checks when a version is added (MISSING_VALUES_IMAGE_REFERENCE): every rendered
+    # image spelled out in values.yaml as a repository, with the registry and tag beside it.
+    AWS_VALUES_REFERENCES="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import build; print("\n".join(sorted(build.values_image_references(open(sys.argv[2]).read()))))' "$MARKETPLACE_DIR" "${AWS_CHART}/values.yaml")"
 
     while read -r image; do
-        assert_present "aws: values.yaml writes out ${image##*/}" "$AWS_VALUES" "\"${image}\""
+        if grep -qxF -- "$image" <<<"$AWS_VALUES_REFERENCES"; then
+            pass "aws: values.yaml spells out ${image##*/} as AWS checks it"
+        else
+            fail "aws: values.yaml spells out ${image##*/} as AWS checks it"
+        fi
     done < <(rendered_images "${WORK_DIR}/aws.yaml")
 
     SERVICE_ACCOUNTS="$(grep -oE 'serviceAccountName: "?[^" ]+"?' "${WORK_DIR}/aws.yaml" | sed -E 's/serviceAccountName: "?//; s/"$//' | sort | uniq -c | tr -s ' ')"
@@ -161,8 +171,13 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace aws --version "$VERSION" 
     render "$AWS_CHART" "${WORK_DIR}/aws-eu.yaml" -f "$OTHER_REGION_VALUES"
     EU_OUTSIDE="$(rendered_images "${WORK_DIR}/aws-eu.yaml" | grep -vF "709825985650.dkr.ecr.eu-west-1.amazonaws.com/" || true)"
     assert_eq "aws: changing the region in values.yaml moves every image" "" "$EU_OUTSIDE"
+elif [ -n "${MARKETPLACE_RELEASED_CHARTS:-}" ] && grep -qF "predates AWS Marketplace's image form" "${WORK_DIR}/aws-build.err"; then
+    # A release's chart from before AWS's image form cannot go to AWS (build.py refuses it, and
+    # so does the release's own AWS job): there is no AWS edition of it to check.
+    echo "  SKIP: aws: $(cat "${WORK_DIR}/aws-build.err")"
 else
     fail "aws: builds"
+    sed 's/^/        /' "${WORK_DIR}/aws-build.err" | tail -10
 fi
 
 # --- Microsoft Marketplace -------------------------------------------------------

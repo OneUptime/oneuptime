@@ -492,6 +492,21 @@ describe("Settings > Danger Zone", () => {
       );
     });
 
+    it("tells a Vercel customer the resource is deleted on Vercel with the project", () => {
+      currentProjectBilledBy("Vercel");
+
+      renderPage();
+
+      const notice: HTMLElement = screen.getByTestId(
+        "project-delete-marketplace-notice",
+      );
+      expect(notice).toHaveTextContent("Billed through Vercel Marketplace");
+      expect(notice).toHaveTextContent(
+        "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.",
+      );
+      expect(notice).not.toHaveTextContent("stays active until you cancel it");
+    });
+
     it("names the marketplace that bills the project", () => {
       currentProjectBilledBy("AWS");
 

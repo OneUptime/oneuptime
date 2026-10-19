@@ -13,7 +13,8 @@ again: it creates what is missing and leaves what is there.
     ci_setup.py azure-registry [--location eastus] [--apply]
         In the HackerBay tenant (az signed in): the container registry (Basic, about USD 5 a
         month), Microsoft's ingestion app allowed to pull from it, and a daily task that keeps
-        each repository's 3 newest releases (Microsoft serves buyers from its own copy).
+        each repository's newest release, and any from the last 7 days (Microsoft serves buyers
+        from its own copy, taken while it certifies a release).
     ci_setup.py azure [--apply]
         An Entra app the workflow signs in as through federated credentials (no secret), with
         AcrPush on the registry. It must then be added to Partner Center as a Manager by hand.
@@ -52,6 +53,11 @@ GOOGLE_REPOSITORY = "oneuptime"
 GOOGLE_POOL = "github"
 GOOGLE_SERVICE_ACCOUNT = "marketplace-release"
 KEEP_RELEASES = 3
+# The Azure registry: Microsoft copies a release's bundle and images while it certifies it, which
+# can take 2 business days, and serves buyers from its own copy. So a release only has to stay
+# until that copy is done: the newest is kept, and nothing pushed in the last 7 days goes.
+AZURE_KEEP_RELEASES = 1
+AZURE_GRACE = "7d"
 
 VARIABLES = (
     "MARKETPLACE_RELEASE_AWS_ROLE_ARN",
@@ -235,15 +241,15 @@ def azure_registry_name(edition: Dict[str, Any]) -> str:
 
 def azure_purge_command(edition: Dict[str, Any]) -> str:
     """
-    ACR's own purge, run daily by an ACR task: each repository keeps its 3 newest releases (by
-    count, whatever the release pace), and anything pushed in the last day, so a release that is
-    still being published is never taken from under it.
+    ACR's own purge, run daily by an ACR task: each repository keeps its newest release, and
+    anything pushed in the last 7 days, so a release Microsoft is still copying is never taken
+    from under it. (--keep counts among the tags older than --ago.)
     """
     filters: List[str] = [
         f"--filter '{re.escape(edition['repositoryPrefix'])}/.*:.*'",
         f"--filter '{re.escape(edition['bundleRepository'])}:.*'",
     ]
-    return f"acr purge {' '.join(filters)} --ago 1d --keep {KEEP_RELEASES} --untagged"
+    return f"acr purge {' '.join(filters)} --ago {AZURE_GRACE} --keep {AZURE_KEEP_RELEASES} --untagged"
 
 
 def azure_registry_script(edition: Dict[str, Any], location: str) -> str:
@@ -267,7 +273,7 @@ if az acr task show --registry {name} --name purge-old-releases >/dev/null 2>&1;
 fi
 az acr task create --registry {name} --name purge-old-releases --schedule "0 3 * * *" --context /dev/null \\
   --cmd {shlex.quote(azure_purge_command(edition))} >/dev/null
-echo "Registry ready: {azure_registry_name(edition)}.azurecr.io (Basic), keeping each repository's {KEEP_RELEASES} newest releases."
+echo "Registry ready: {azure_registry_name(edition)}.azurecr.io (Basic), keeping each repository's newest release, and any from the last {AZURE_GRACE}."
 """
 
 

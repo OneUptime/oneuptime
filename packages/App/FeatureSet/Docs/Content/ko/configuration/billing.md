@@ -66,7 +66,7 @@ flowchart TB
 API 키에는 Growth 이상의 요금제가 필요하며, Scale 요금제 미만에서는 SCIM 연결이 사람을 제거하는 것만 할 수 있습니다. 이들을 멈추는 요금제는 선택하기 전에 몇 개가 해당되는지 알려 주며, 멈춰 있는 동안 **결제** 페이지에 **이 요금제에 포함되지 않음**이 표시됩니다. 아무것도 삭제되지 않으며, 이들을 포함하는 요금제에서 다시 작동합니다.
 
 > [!NOTE]
-> 리셀러나 클라우드 마켓플레이스(AWS Marketplace, Microsoft Marketplace 또는 Google Cloud Marketplace)를 통해 OneUptime을 구매했나요? **결제** 페이지에 그렇게 표시됩니다. 리셀러는 요금제를 대신 변경해 주며, 마켓플레이스는 프로젝트의 요금제와 사용량을 클라우드 청구서에 청구합니다.
+> 리셀러나 클라우드 마켓플레이스(AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace 또는 Vercel Marketplace)를 통해 OneUptime을 구매했나요? **결제** 페이지에 그렇게 표시됩니다. 리셀러는 요금제를 대신 변경해 주며, 마켓플레이스는 프로젝트의 요금제와 사용량을 클라우드 청구서에 청구합니다.
 
 ## 결제 방법
 

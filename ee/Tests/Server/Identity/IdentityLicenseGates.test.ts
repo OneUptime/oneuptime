@@ -348,13 +348,18 @@ afterEach(() => {
 });
 
 describe("every SCIM route starts with the SCIM license gate, then the bearer check", () => {
-  test("the enumeration sees all 26 routes of the two SCIM routers", () => {
+  test("the enumeration sees all 26 routes of the two SCIM routers, and the token endpoint", () => {
     expect(
       IDENTITY_ROUTERS.map((entry: IdentityRouterEntry): string => {
         return entry.name;
       }),
-    ).toEqual(["SCIM", "StatusPageSCIM"]);
-    expect(ALL_ROUTES).toHaveLength(26);
+    ).toEqual(["SCIM", "StatusPageSCIM", "SCIMOAuthToken"]);
+    expect(ALL_ROUTES).toHaveLength(27);
+    expect(
+      ALL_ROUTES.filter((route: IdentityRoute): boolean => {
+        return route.router === "SCIMOAuthToken";
+      }),
+    ).toHaveLength(1);
     expect(
       ALL_ROUTES.filter((route: IdentityRoute): boolean => {
         return route.router === "SCIM";
@@ -378,15 +383,27 @@ describe("every SCIM route starts with the SCIM license gate, then the bearer ch
       },
     )!;
 
-    // The gate, the bearer check, then at least the route's own handler.
-    expect(route.handlers.length).toBeGreaterThanOrEqual(3);
     expect(LicensedFeatureGate.getGatedFeature(route.handlers[0])).toBe(
       EnterpriseFeature.SCIM,
     );
-
-    // The license gate runs before the bearer-token check, so a lapsed license answers first.
     expect(route.handlers[0]).toBe(LicensedFeatureGate.forScim);
-    expect(route.handlers[1]).toBe(SCIMMiddleware.isAuthorizedSCIMRequest);
+
+    if (route.router === "SCIMOAuthToken") {
+      /*
+       * The token endpoint authenticates its client itself, with the
+       * connection's client ID and secret: the gate, then its handler.
+       */
+      expect(route.handlers).toHaveLength(2);
+      expect(route.handlers).not.toContain(
+        SCIMMiddleware.isAuthorizedSCIMRequest,
+      );
+    } else {
+      // The gate, the bearer check, then at least the route's own handler.
+      expect(route.handlers.length).toBeGreaterThanOrEqual(3);
+
+      // The license gate runs before the bearer-token check, so a lapsed license answers first.
+      expect(route.handlers[1]).toBe(SCIMMiddleware.isAuthorizedSCIMRequest);
+    }
 
     // Only the first handler is a gate: the route's own handlers are not.
     for (const handler of route.handlers.slice(1)) {
@@ -703,7 +720,8 @@ describe("single sign-on is core and never license-gated, with the Enterprise Ed
       expect(corePaths.has(`${route.method} ${route.path}`)).toBe(false);
       expect(
         route.path.startsWith("/scim/v2/") ||
-          route.path.startsWith("/status-page-scim/v2/"),
+          route.path.startsWith("/status-page-scim/v2/") ||
+          route.path === "/scim/oauth/token",
       ).toBe(true);
     }
   });

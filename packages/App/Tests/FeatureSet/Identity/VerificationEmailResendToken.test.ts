@@ -4,7 +4,7 @@ import VerificationEmailResendToken, {
 } from "../../../FeatureSet/Identity/Utils/VerificationEmailResendToken";
 import TokenSigningKey from "Common/Server/Utils/TokenSigningKey";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
-import Email from "Common/Types/Email";
+import Email, { MAX_EMAIL_ADDRESS_LENGTH } from "Common/Types/Email";
 import { JSONObject } from "Common/Types/JSON";
 import JsonWebTokenPurpose from "Common/Types/JsonWebTokenPurpose";
 import ObjectID from "Common/Types/ObjectID";
@@ -1017,8 +1017,11 @@ describe("generate", () => {
     return "a".repeat(length - domain.length) + domain;
   };
 
-  it("mints a token for the longest address that fits the length cap", () => {
-    const address: string = addressOfLength(LONGEST_ADDRESS_THAT_FITS);
+  it("mints a token for the longest address an Email holds, inside the length cap", () => {
+    // No address an Email holds reaches the payload cap.
+    expect(LONGEST_ADDRESS_THAT_FITS).toBeGreaterThan(MAX_EMAIL_ADDRESS_LENGTH);
+
+    const address: string = addressOfLength(MAX_EMAIL_ADDRESS_LENGTH);
     const token: string | null = VerificationEmailResendToken.generate({
       userId: new ObjectID(USER_ID),
       email: new Email(address),
@@ -1026,25 +1029,37 @@ describe("generate", () => {
     });
 
     expect(token).not.toBeNull();
-    expect(segments(token!).payload).toHaveLength(900);
+    expect(segments(token!).payload.length).toBeLessThanOrEqual(900);
     expect(verifyAt(token)!.email.toString()).toBe(address);
   });
 
-  it("returns null, rather than a token the route would refuse, one character past it", () => {
+  /*
+   * A longer address is not an Email, but one stored before the length check
+   * still reads as one, kept as stored and marked malformed.
+   */
+  it("returns null, rather than a token the route would refuse, for a stored address one character longer", () => {
+    const email: Email = Email.fromDatabase(
+      addressOfLength(MAX_EMAIL_ADDRESS_LENGTH + 1),
+    )!;
+
+    expect(email.isMalformed()).toBe(true);
     expect(
       VerificationEmailResendToken.generate({
         userId: new ObjectID(USER_ID),
-        email: new Email(addressOfLength(LONGEST_ADDRESS_THAT_FITS + 1)),
+        email,
         now: NOW,
       }),
     ).toBeNull();
   });
 
-  it("returns null for an absurdly long address", () => {
+  it("returns null for an absurdly long stored address, past the length cap too", () => {
+    const email: Email = Email.fromDatabase(addressOfLength(5000))!;
+
+    expect(email.isMalformed()).toBe(true);
     expect(
       VerificationEmailResendToken.generate({
         userId: new ObjectID(USER_ID),
-        email: new Email(addressOfLength(5000)),
+        email,
         now: NOW,
       }),
     ).toBeNull();

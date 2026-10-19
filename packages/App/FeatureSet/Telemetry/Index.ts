@@ -3,6 +3,7 @@ import KubernetesCostIngestAPI from "./API/KubernetesCostIngest";
 import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
+import VercelLogDrainAPI from "./API/VercelLogDrain";
 import SecurityEventsIngestAPI from "./API/SecurityEventsIngest";
 import ChangeEventsIngestAPI from "./API/ChangeEventsIngest";
 import PyroscopeAPI from "./API/Pyroscope";
@@ -80,6 +81,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, MetricsAPI);
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);
+      app.use(TELEMETRY_PREFIXES, VercelLogDrainAPI);
       app.use(TELEMETRY_PREFIXES, SecurityEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, ChangeEventsIngestAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);

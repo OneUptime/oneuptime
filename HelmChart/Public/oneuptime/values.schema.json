@@ -1661,14 +1661,43 @@
                     "type": "string"
                 },
                 "overrides": {
-                    "type": "object",
-                    "description": "Full image references that replace the ones the chart builds, by image (app, nginx, probe, runner, home, test, postgres, clickhouse, clickhouseKeeper, valkey, pgbouncer, vllm, kubectl).",
-                    "additionalProperties": {
+                  "type": "object",
+                  "description": "Image references that replace the ones the chart builds, by image (app, nginx, probe, runner, home, test, postgres, clickhouse, clickhouseKeeper, valkey, pgbouncer, vllm, kubectl): a full reference, or {registry, repository, tag | digest}.",
+                  "additionalProperties": {
+                    "oneOf": [
+                      {
                         "type": [
-                            "string",
-                            "null"
+                          "string",
+                          "null"
                         ]
-                    }
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "registry": {
+                            "type": "string"
+                          },
+                          "repository": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "tag": {
+                            "type": [
+                              "string",
+                              "number"
+                            ]
+                          },
+                          "digest": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "repository"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
                 }
             },
             "additionalProperties": false
@@ -4602,6 +4631,40 @@
                             "required": [
                                 "name",
                                 "serviceAccountKeyKey"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "vercel": {
+                    "type": "object",
+                    "properties": {
+                        "clientId": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "clientSecret": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        },
+                        "existingSecret": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "clientSecretKey": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "clientSecretKey"
                             ],
                             "additionalProperties": false
                         }

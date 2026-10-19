@@ -29827,6 +29827,7 @@
   "Not shown while this episode is private": "Não exibida enquanto este episódio for privado",
   "Not shown while this incident is private": "Não exibida enquanto este incidente for privado",
   "Deleting this project stops its billing, after one last charge for its usage so far. Your OneUptime purchase on {{marketplace}} stays active until you cancel it there.": "Excluir este projeto encerra a cobrança dele, após uma última cobrança pelo uso até agora. Sua compra do OneUptime no {{marketplace}} continua ativa até que você a cancele lá.",
+  "Deleting this project stops its billing, after one last charge for its usage so far, and deletes its OneUptime resource on Vercel. The Vercel projects connected to it lose its environment variables at their next deployment.": "Excluir este projeto encerra a cobrança dele, após uma última cobrança pelo uso até agora, e exclui o recurso OneUptime dele na Vercel. Os projetos da Vercel conectados a ele perdem as variáveis de ambiente do recurso na próxima implantação.",
   "Which resources it reaches: all (recommended), the ones the team owns, or the ones with labels you pick.": "Quais recursos alcança: todos (recomendado), os que a equipe possui ou os que têm os rótulos escolhidos.",
   "You're a guest in Slack, and Slack doesn't let OneUptime add you to this channel.": "Você é convidado no Slack, e o Slack não permite que o OneUptime adicione você a este canal.",
   "You're already in this channel.": "Você já está neste canal.",

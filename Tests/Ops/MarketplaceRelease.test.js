@@ -343,6 +343,29 @@ describe(WORKFLOW, () => {
     }
   });
 
+  test("unit-tests the automation on this repository's charts, then checks the release's", () => {
+    const steps = jobs.test.steps;
+    const unitTests = steps.findIndex((step) => {
+      return (step.run || "").includes(
+        "python3 -m unittest discover -s HelmChart/Marketplace",
+      );
+    });
+    const takeRelease = steps.findIndex((step) => {
+      return step.uses === "./.github/actions/marketplace-edition";
+    });
+    const suite = steps.find((step) => {
+      return (step.run || "").includes("run.sh marketplace");
+    });
+
+    // The unit tests test this repository's code: a release's charts may predate it.
+    expect(unitTests).toBeGreaterThan(-1);
+    expect(unitTests).toBeLessThan(takeRelease);
+    // The suite is told its charts are a release's, so it skips what that release cannot have.
+    expect(suite.env.MARKETPLACE_RELEASED_CHARTS).toBe(
+      "${{ needs.prepare.outputs.version }}",
+    );
+  });
+
   test("builds every edition from the released chart, after the marketplace suite passed", () => {
     expect(scriptsOf(jobs.test.steps)).toContain(
       "bash ./HelmChart/Tests/run.sh marketplace",
