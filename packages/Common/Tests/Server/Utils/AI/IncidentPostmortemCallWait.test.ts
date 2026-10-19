@@ -101,7 +101,8 @@ describe("IncidentPostmortemCallWait.isWaiting", () => {
 
   test("waits for a transcript OneUptime AI is still reading", async () => {
     jest.spyOn(IncidentVideoCallService, "findBy").mockResolvedValue([
-      callWith({ transcriptAddedAt: RESOLVED, callSummaryStatus: undefined }),
+      // Never read: no reading to wait for.
+      callWith({ transcriptAddedAt: RESOLVED }),
       callWith({
         transcriptAddedAt: RESOLVED,
         callSummaryStatus: CallSummaryStatus.Pending,

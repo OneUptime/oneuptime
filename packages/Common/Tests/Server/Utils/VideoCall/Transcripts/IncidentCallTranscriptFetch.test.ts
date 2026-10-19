@@ -205,15 +205,22 @@ describe("watching a new call", () => {
       hasConnection: boolean,
       hasMeetingId: boolean,
     ) => {
-      await IncidentCallTranscriptFetch.watchNewCall({
-        id: CALL,
-        projectId: PROJECT,
-        incidentId: INCIDENT,
-        provider,
-        videoCallConnectionId: hasConnection ? CONNECTION : undefined,
-        externalMeetingId: hasMeetingId ? "m-1" : undefined,
-        createdAt: STARTED,
-      });
+      const call: IncidentVideoCall = new IncidentVideoCall();
+      call.id = CALL;
+      call.projectId = PROJECT;
+      call.incidentId = INCIDENT;
+      call.provider = provider;
+      call.createdAt = STARTED;
+
+      if (hasConnection) {
+        call.videoCallConnectionId = CONNECTION;
+      }
+
+      if (hasMeetingId) {
+        call.externalMeetingId = "m-1";
+      }
+
+      await IncidentCallTranscriptFetch.watchNewCall(call);
 
       expect(writes).toEqual([]);
     },
@@ -354,9 +361,10 @@ describe("taking a call before asking", () => {
   });
 
   test("a call with nothing to be due for is skipped without being taken", async () => {
-    expect(
-      await ask(dueCall({ transcriptFetchNextAttemptAt: undefined }), at(HOUR)),
-    ).toBe(CallTranscriptFetchOutcome.Skipped);
+    const call: IncidentVideoCall = dueCall();
+    delete call.transcriptFetchNextAttemptAt;
+
+    expect(await ask(call, at(HOUR))).toBe(CallTranscriptFetchOutcome.Skipped);
     expect(claim).not.toHaveBeenCalled();
   });
 });
