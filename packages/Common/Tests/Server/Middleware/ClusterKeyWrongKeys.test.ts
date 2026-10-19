@@ -622,6 +622,62 @@ describe("an IPv6 client", () => {
   });
 });
 
+/*
+ * A client is the address the bundled Nginx names LAST in X-Forwarded-For
+ * (resolveTrustedClientIp counts in from the right, TRUSTED_PROXY_HOPS=1),
+ * never one a caller put to the left of it. So nobody can hang their wrong
+ * keys on another address - an internal service's, say, to have its right
+ * key refused - by prepending that address to the header, and nobody buys a
+ * fresh allowance by rotating the forged left-hand entry.
+ */
+describe("a forged X-Forwarded-For entry changes nothing", () => {
+  const attacker: string = "203.0.113.120";
+  const victim: string = "203.0.113.121";
+
+  test("wrong keys the attacker hangs on the victim's address are counted against the attacker, and the victim keeps its allowance", async () => {
+    // Every wrong key arrives with the victim's address forged to the left.
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
+      expect(await present(`${victim}, ${attacker}`, `guess-${guess}`)).toEqual(
+        WRONG,
+      );
+    }
+
+    expect(await present(`${victim}, ${attacker}`, "one-too-many")).toEqual(
+      refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
+    );
+
+    // The attacker's own address is the one refused, the right key included.
+    expect(await present(attacker, RIGHT_KEY)).toEqual(
+      refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS),
+    );
+
+    // The victim, whose address only the attacker named, is untouched.
+    expect(await present(victim, RIGHT_KEY)).toEqual(LET_THROUGH);
+    expect(await present(victim, "guess-1")).toEqual(WRONG);
+  });
+
+  test("rotating the forged left-hand entry buys no extra tries: every request is the one rightmost address", async () => {
+    for (
+      let guess: number = 1;
+      guess <= WRONG_CLUSTER_KEYS_PER_ADDRESS;
+      guess++
+    ) {
+      // A different forged address each time, the real address unchanged.
+      expect(
+        await present(`198.51.100.${guess}, ${attacker}`, `guess-${guess}`),
+      ).toEqual(WRONG);
+    }
+
+    expect(
+      await present(`198.51.100.250, ${attacker}`, "one-too-many"),
+    ).toEqual(refusedFor(WRONG_CLUSTER_KEY_WINDOW_SECONDS));
+  });
+});
+
 describe("what Valkey keeps of a wrong key", () => {
   test("an HMAC of it under the installation's key: never the key, nor a plain hash of it", async () => {
     const address: string = "203.0.113.60";
