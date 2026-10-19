@@ -12,6 +12,8 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 import InMemoryTTLCache from "Common/Server/Infrastructure/InMemoryTTLCache";
+import LinearRegExp from "Common/Utils/LinearRegExp/LinearRegExp";
+import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
 
 export interface MetricRulesForProject {
   projectRules: Array<MetricPipelineRule>;
@@ -26,18 +28,28 @@ const ruleCache: InMemoryTTLCache<MetricRulesForProject> =
 
 /*
  * Compiled-regex memo for MatchesRegex / DoesNotMatchRegex filters.
- * applyRules runs per metric ROW, and RegExp construction (plus a warn log
+ * applyRules runs per metric ROW, and compiling the pattern (plus a warn log
  * for invalid patterns) per row is exactly the per-record cost the 60s rule
  * cache exists to avoid. Patterns are compiled once per process; an invalid
  * pattern is stored as null and warned about once, not per datapoint. The
  * size cap only guards against a pathological churn of distinct patterns —
  * normal deployments hold one entry per configured regex rule.
+ *
+ * The patterns are the project's own and run on ingest every project shares,
+ * against attribute values the project's senders choose, so they run on the
+ * linear-time matcher (Utils/LinearRegExp): JavaScript's syntax and answers,
+ * in time in line with the value. A back-reference (\1) cannot run that
+ * way; such a filter is invalid like any pattern that does not compile.
  */
 const REGEX_MEMO_MAX_ENTRIES: number = 1000;
-const compiledRegexByPattern: Map<string, RegExp | null> = new Map();
+const compiledRegexByPattern: Map<string, LinearRegExp | null> = new Map();
 
-function getCompiledRegex(pattern: string, ruleId: string): RegExp | null {
-  let regex: RegExp | null | undefined = compiledRegexByPattern.get(pattern);
+function getCompiledRegex(
+  pattern: string,
+  ruleId: string,
+): LinearRegExp | null {
+  let regex: LinearRegExp | null | undefined =
+    compiledRegexByPattern.get(pattern);
 
   if (regex === undefined) {
     if (compiledRegexByPattern.size >= REGEX_MEMO_MAX_ENTRIES) {
@@ -45,7 +57,7 @@ function getCompiledRegex(pattern: string, ruleId: string): RegExp | null {
     }
 
     try {
-      regex = new RegExp(pattern);
+      regex = new LinearRegExp(pattern);
     } catch (err) {
       logger.warn(
         `Invalid regex "${pattern}" (first seen on MetricPipelineRule ${ruleId}; warned once per pattern — every rule using it treats the filter as non-matching): ${
@@ -428,7 +440,7 @@ export default class MetricPipelineRuleService {
         return actual.endsWith(expectedValue);
       case MetricPipelineRuleFilterConditionType.MatchesRegex:
       case MetricPipelineRuleFilterConditionType.DoesNotMatchRegex: {
-        const re: RegExp | null = getCompiledRegex(
+        const re: LinearRegExp | null = getCompiledRegex(
           expectedValue,
           String(rule._id),
         );
@@ -436,7 +448,22 @@ export default class MetricPipelineRuleService {
           // Invalid pattern — warned once when first compiled.
           return false;
         }
-        const matched: boolean = re.test(actual);
+        let matched: boolean;
+
+        try {
+          matched = re.test(actual);
+        } catch (error: unknown) {
+          if (!(error instanceof PatternWorkLimitError)) {
+            throw error;
+          }
+
+          /*
+           * A pattern built to take more steps than the value's length
+           * allows: the filter does not match, as for an invalid pattern.
+           */
+          return false;
+        }
+
         return conditionType ===
           MetricPipelineRuleFilterConditionType.MatchesRegex
           ? matched

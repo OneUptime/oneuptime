@@ -1,5 +1,7 @@
 import { JSONObject } from "Common/Types/JSON";
 import escapeRegExp from "Common/Utils/RegExpEscape";
+import LinearRegExp from "Common/Utils/LinearRegExp/LinearRegExp";
+import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
 
 /*
  * Filter evaluator for log / span rows used by pipelines, drop
@@ -218,9 +220,12 @@ interface ComparisonExpr extends FilterExpression {
   value: string | Array<string>;
   /*
    * Populated when operator === "LIKE" and the pattern uses
-   * SQL wildcards (`%`, `_`). null otherwise.
+   * SQL wildcards (`%`, `_`). null otherwise. Run on the linear-time
+   * matcher: every `%` is a run of any text, and a filter a project
+   * writes with many of them must cost time in line with the record,
+   * not a power of its length (Utils/LinearRegExp).
    */
-  likeRegex?: RegExp | null;
+  likeRegex?: LinearRegExp | null;
   /*
    * Populated when operator === "LIKE" and the pattern contains
    * no `%`. Lowercase form for case-insensitive substring match.
@@ -390,6 +395,23 @@ class Parser {
 }
 
 /*
+ * Whether a LIKE pattern's regex matches the value. One that would take more
+ * steps than the value's length allows (PatternWorkLimitError, a pattern
+ * built to) does not match: the filter does not apply to that record.
+ */
+function likeMatches(regex: LinearRegExp, value: string): boolean {
+  try {
+    return regex.test(value);
+  } catch (error: unknown) {
+    if (error instanceof PatternWorkLimitError) {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+/*
  * Walk the parsed AST once and attach pre-compiled forms to each
  * ComparisonExpr node. This runs at filter-load time (60s cache)
  * so every record evaluation in the next window pays only the
@@ -414,7 +436,7 @@ function compileExpr(expr: FilterExpression): void {
           const pattern: string = escapeRegExp(raw)
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
-          comp.likeRegex = new RegExp(`^${pattern}$`, "i");
+          comp.likeRegex = new LinearRegExp(`^${pattern}$`, "i");
         }
       } else if (comp.operator === "IN") {
         const values: Array<string> = comp.value as Array<string>;
@@ -466,7 +488,7 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
             return fieldVal.toLowerCase().includes(comp.likeSubstring);
           }
           if (comp.likeRegex) {
-            return comp.likeRegex.test(fieldVal);
+            return likeMatches(comp.likeRegex, fieldVal);
           }
 
           /*
@@ -484,7 +506,7 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
           const pattern: string = escapeRegExp(raw)
             .replace(/%/g, ".*")
             .replace(/_/g, ".");
-          return new RegExp(`^${pattern}$`, "i").test(fieldVal);
+          return likeMatches(new LinearRegExp(`^${pattern}$`, "i"), fieldVal);
         }
         case "IN": {
           // Pre-compiled Set lookup. O(1) vs the old Array.includes.

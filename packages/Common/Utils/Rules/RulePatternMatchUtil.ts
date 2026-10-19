@@ -14,11 +14,25 @@
  * attempt. Matching is therefore a superset of the old behaviour: nothing
  * that used to match stops matching.
  *
+ * The regex runs on the linear-time matcher (Utils/LinearRegExp), not on
+ * JavaScript's own RegExp: the people of a project write these patterns, and
+ * the alert titles, descriptions and names they read come from outside, so a
+ * pattern such as (a+)+$ must not hold the server that every project shares.
+ * JavaScript's syntax and answers are kept, look-arounds included; a
+ * back-reference (\1) cannot run in linear time and makes the pattern one
+ * this matcher refuses (see getRegexProblem).
+ *
  * Pure and dependency-free (no logger, no models) so rule decisions stay
  * unit-testable.
  */
 
 import CidrMatchUtil from "../NetworkSite/CidrMatchUtil";
+import { getLinearRegExp } from "../LinearRegExp/PatternCache";
+import {
+  describePatternProblemReason,
+  PatternProblemError,
+  PatternProblemReason,
+} from "../LinearRegExp/PatternProblem";
 
 export class RulePatternMatchUtil {
   /*
@@ -57,18 +71,80 @@ export class RulePatternMatchUtil {
     return false;
   }
 
-  // True when `pattern` compiles as a JavaScript regular expression.
+  /*
+   * True when `pattern` is a JavaScript regular expression the rule engines
+   * can run: one the linear-time matcher compiles.
+   */
   public static isValidRegex(pattern: string): boolean {
     if (typeof pattern !== "string") {
       return false;
     }
 
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex instanceof RegExp;
+      getLinearRegExp(pattern, "i");
+      return true;
     } catch {
       return false;
     }
+  }
+
+  /*
+   * Why `pattern` cannot run as a rule's regular expression, in words for the
+   * person who wrote it - "it refers back to ..." - or null when it can. Only
+   * for a valid regular expression the matcher refuses (a back-reference, a
+   * pattern too large): a pattern that is not a regular expression at all is
+   * null here, and isValidRegex is false for it.
+   */
+  public static getRegexProblem(pattern: string): string | null {
+    const reason: PatternProblemReason | null =
+      RulePatternMatchUtil.getRegexProblemReason(pattern);
+
+    return reason === null
+      ? null
+      : `it ${describePatternProblemReason(reason)}`;
+  }
+
+  // The same, as the reason itself (Utils/LinearRegExp/PatternProblem).
+  public static getRegexProblemReason(
+    pattern: string,
+  ): PatternProblemReason | null {
+    if (typeof pattern !== "string") {
+      return null;
+    }
+
+    try {
+      getLinearRegExp(pattern, "i");
+      return null;
+    } catch (error: unknown) {
+      return error instanceof PatternProblemError ? error.reason : null;
+    }
+  }
+
+  /*
+   * The refusal a rule's save gives for a pattern that is a regular
+   * expression the matcher cannot run - `Monitor Name Pattern "(a)\1"
+   * cannot run: it refers back to ...` - or null for any other pattern.
+   */
+  public static getCannotRunMessage(
+    title: string,
+    pattern: string,
+  ): string | null {
+    const problem: string | null =
+      RulePatternMatchUtil.getRegexProblem(pattern);
+
+    return problem === null
+      ? null
+      : `${title} "${pattern}" cannot run: ${problem}`;
+  }
+
+  /*
+   * Whether `value` matches `pattern` as a case-insensitive regular
+   * expression, in time in line with the value's length. Throws when the
+   * pattern cannot run - not a regular expression (SyntaxError), or one the
+   * linear-time matcher refuses - so a rule engine can say which rule.
+   */
+  public static testRegex(pattern: string, value: string): boolean {
+    return getLinearRegExp(pattern, "i").test(value);
   }
 
   /*
@@ -92,8 +168,7 @@ export class RulePatternMatchUtil {
 
   private static matchesRegex(value: string, pattern: string): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       return false;
     }

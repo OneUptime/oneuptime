@@ -17,6 +17,7 @@ import {
   RuleApplicationResultUtil,
   RuleRunEngine,
 } from "../Utils/Rules/RuleRun/RuleApplication";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 
 class ServerlessFunctionLabelRuleEngineServiceClass
   implements RuleRunEngine<ServerlessFunction, ServerlessFunctionLabelRule>
@@ -288,8 +289,7 @@ class ServerlessFunctionLabelRuleEngineServiceClass
 
   private testRegex(pattern: string, value: string): boolean {
     try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
+      return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
         `Invalid regex in serverless function label rule: ${pattern}`,

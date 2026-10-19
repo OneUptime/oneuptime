@@ -1,4 +1,10 @@
 import BadDataException from "../../Types/Exception/BadDataException";
+import LinearRegExp, { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
+import {
+  describePatternProblemReason,
+  PatternProblemError,
+  PatternWorkLimitError,
+} from "../LinearRegExp/PatternProblem";
 import GrokPatterns from "./GrokPatterns";
 
 /*
@@ -16,7 +22,7 @@ import GrokPatterns from "./GrokPatterns";
  *   %{NAME:field}        capture into `field` as a string
  *   %{NAME:field:type}   capture into `field`, coerced (int/float/boolean)
  *
- * Compilation expands references recursively into one JavaScript RegExp
+ * Compilation expands references recursively into one regular expression
  * and records, for each captured field, the internal group name that
  * holds it. Only the groups this engine injects capture — every library
  * definition uses `(?:...)` — so extraction is a `match.groups` lookup
@@ -26,11 +32,14 @@ import GrokPatterns from "./GrokPatterns";
  * describes a fragment of the line unless the author anchors it with
  * `^`/`$` themselves.
  *
- * This runs once per ingested log record on the telemetry hot path
- * against text the customer's users control, so the compiler enforces
- * hard ceilings on expansion (depth, count, final source length) and
- * the matcher refuses inputs above MAX_GROK_INPUT_LENGTH rather than
- * handing an unbounded string to a backtracking engine.
+ * This runs once per ingested log record on the telemetry hot path,
+ * against text the customer's users control, with a pattern the project's
+ * people wrote. The expanded pattern runs on the linear-time matcher
+ * (Utils/LinearRegExp) - JavaScript's syntax and answers, in time in line
+ * with the line whatever the pattern - so no pattern can make one line hold
+ * the ingest every project shares. The compiler also enforces hard
+ * ceilings on expansion (depth, count, final source length and steps) and
+ * the matcher refuses inputs above MAX_GROK_INPUT_LENGTH.
  */
 
 export enum GrokFieldType {
@@ -51,7 +60,7 @@ export interface GrokCapture {
 }
 
 export interface CompiledGrokPattern {
-  regex: RegExp;
+  regex: LinearRegExp;
   captures: Array<GrokCapture>;
   /** Expanded regex source. Useful for debugging and for the UI tester. */
   source: string;
@@ -73,11 +82,21 @@ export const MAX_GROK_EXPANSIONS: number = 500;
 export const MAX_GROK_CAPTURES: number = 100;
 
 /*
- * Inputs longer than this are not parsed. A backtracking regex cannot be
- * interrupted once started, so the only bound available on the ingest
- * hot path is the length of what we feed it.
+ * Inputs longer than this are not parsed: what one line may cost the
+ * ingest hot path, on top of the matcher's own bound (time in line with
+ * the input).
  */
 export const MAX_GROK_INPUT_LENGTH: number = 32768;
+
+/*
+ * How many matcher steps one pattern may compile to: what a compiled pattern
+ * may cost to build and to keep. %{EMAILADDRESS}, whose parts are counted
+ * repeats ({1,64}, {0,63}), compiles to about 8,300 steps and
+ * %{COMBINEDAPACHELOG} to about 1,400; this lets a pattern hold two email
+ * addresses and more. (The time a line takes is bounded by the matcher
+ * whatever the steps: Utils/LinearRegExp/Matcher.ts, WorkMeter.)
+ */
+export const MAX_GROK_STEPS: number = 20_000;
 
 /*
  * `%{NAME}`, `%{NAME:field}` or `%{NAME:field:type}`. The field and type
@@ -265,15 +284,24 @@ export function compileGrokPattern(
     );
   }
 
-  let regex: RegExp;
+  let regex: LinearRegExp;
 
   try {
     /*
-     * No `g`/`y` flag on purpose: those carry `lastIndex` between calls
-     * and a compiled pattern is reused for every record.
+     * No flags: a compiled pattern is reused for every record, and holds
+     * no state between calls.
      */
-    regex = new RegExp(source);
+    regex = new LinearRegExp(source, "", {
+      captures: true,
+      maxSteps: MAX_GROK_STEPS,
+    });
   } catch (err) {
+    if (err instanceof PatternProblemError) {
+      throw new BadDataException(
+        `This grok pattern ${describePatternProblemReason(err.reason)}`,
+      );
+    }
+
     throw new BadDataException(
       `This grok pattern is not valid: ${err instanceof Error ? err.message : String(err)}`,
     );
@@ -349,13 +377,24 @@ export function matchGrokPattern(
     return null;
   }
 
-  const match: RegExpExecArray | null = compiled.regex.exec(input);
+  let match: LinearRegExpMatch | null;
+
+  try {
+    match = compiled.regex.exec(input);
+  } catch (error: unknown) {
+    if (error instanceof PatternWorkLimitError) {
+      // A pattern built to take more steps than the line allows: unparsed.
+      return null;
+    }
+
+    throw error;
+  }
 
   if (!match) {
     return null;
   }
 
-  const groups: Record<string, string | undefined> = match.groups || {};
+  const groups: Record<string, string | undefined> = match.groups;
   const extracted: Record<string, GrokValue> = {};
 
   for (const capture of compiled.captures) {
@@ -384,11 +423,10 @@ export function matchGrokPattern(
 /*
  * Process-wide compile cache for the ingest path.
  *
- * Compiling walks the pattern library and builds a RegExp; doing that
+ * Compiling walks the pattern library and builds the matcher; doing that
  * per log record would dominate the cost of the processor. Compiled
- * patterns are immutable and carry no `lastIndex` state (no `g` flag),
- * so one instance is safely shared by every project using the same
- * pattern text.
+ * patterns carry no match state between calls, so one instance is safely
+ * shared by every project using the same pattern text.
  *
  * Failures are cached too. An invalid pattern that reaches ingest would
  * otherwise be recompiled — and rejected — once per record.

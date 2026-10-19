@@ -1,3 +1,4 @@
+import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
 import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
 import { JSONObject } from "Common/Types/JSON";
@@ -35,7 +36,7 @@ import { describe, expect, test } from "@jest/globals";
 
 type CompiledRule = {
   rule: TraceScrubRule;
-  regex: RegExp;
+  regex: ScrubRegExp;
 };
 
 function compile(data: {
@@ -59,18 +60,18 @@ function compile(data: {
    * keeps the test on the REAL compiled pattern instead of a copy that could
    * drift from the built-in list.
    */
-  const regex: RegExp | null = (
+  const regex: ScrubRegExp | null = (
     TraceScrubRuleService as unknown as {
       getRegexForPattern: (
         patternType: string,
         customRegex?: string,
-      ) => RegExp | null;
+      ) => ScrubRegExp | null;
     }
   ).getRegexForPattern(data.patternType as string, data.customRegex);
 
   expect(regex).not.toBeNull();
 
-  return [{ rule: rule, regex: regex as RegExp }];
+  return [{ rule: rule, regex: regex as ScrubRegExp }];
 }
 
 function spanRow(overrides?: JSONObject): JSONObject {

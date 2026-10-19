@@ -217,6 +217,15 @@ export function getRuleCriteriaFilterValidationError(
     (typeof value["value"] !== "string" ||
       !RulePatternMatchUtil.isSupportedPattern(value["value"]))
   ) {
+    const cannotRun: string | null =
+      typeof value["value"] === "string"
+        ? RulePatternMatchUtil.getRegexProblem(value["value"])
+        : null;
+
+    if (cannotRun) {
+      return `A pattern rule criteria operator's pattern cannot run: ${cannotRun}`;
+    }
+
     return "A pattern rule criteria operator requires a valid regular expression or wildcard pattern.";
   }
 
@@ -866,12 +875,13 @@ export class RuleCriteriaMatcher {
 
   /**
    * Converts a wildcard into a regex for legacy engines that compile patterns
-   * directly. Each wildcard-delimited literal is consumed atomically via a
-   * lookahead/backreference pair. This preserves full-string glob semantics
-   * without constructing chains of ambiguous `.*` expressions that can cause
-   * catastrophic regex backtracking. Unbounded runs use `{0,}` instead of `*`
-   * so legacy matchers that add a glob fallback do not reinterpret this safe
-   * generated regex as another wildcard supplied by the user.
+   * directly: the whole value, each wildcard a run of any text. The engines
+   * run patterns with the linear-time matcher (Utils/LinearRegExp), where a
+   * chain of runs costs time in line with the value however many there are -
+   * so a run is plain, and the regex matches exactly the values the wildcard
+   * does. Runs use `{0,}` instead of `*` so legacy matchers that add a glob
+   * fallback do not reinterpret this generated regex as another wildcard
+   * supplied by the user.
    */
   private static toSafeLegacyGlobPattern(value: string): string {
     const hasLeadingWildcard: boolean = value.startsWith("*");
@@ -899,17 +909,13 @@ export class RuleCriteriaMatcher {
       : literals.length - 1;
 
     for (; literalIndex < suffixIndex; literalIndex++) {
-      const groupName: string = `ruleGlob${literalIndex}`;
-      pattern += `(?=(?<${groupName}>[\\s\\S]{0,}?${escapeRegExp(
-        literals[literalIndex] || "",
-      )}))\\k<${groupName}>`;
+      pattern += `[\\s\\S]{0,}?${escapeRegExp(literals[literalIndex] || "")}`;
     }
 
     if (!hasTrailingWildcard) {
-      const groupName: string = `ruleGlobSuffix${literalIndex}`;
-      pattern += `(?=(?<${groupName}>[\\s\\S]{0,}${escapeRegExp(
+      pattern += `[\\s\\S]{0,}${escapeRegExp(
         literals[literals.length - 1] || "",
-      )}$))\\k<${groupName}>`;
+      )}$`;
     } else {
       pattern += "[\\s\\S]{0,}$";
     }

@@ -66,6 +66,7 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
 import Label from "../../Models/DatabaseModels/Label";
 import RelationOnlyRuleBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/RelationOnlyRuleBaseModel";
 import RuleBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { WorkflowRoute } from "../../ServiceRoute";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
@@ -176,6 +177,18 @@ import {
   BoundRowsKept,
   RowsKeptOnDeleteRule,
 } from "../Utils/Database/StateTimelineRowsKept";
+
+// A rule criteria field that holds a pattern: monitorNamePattern, nameRegexPattern.
+const RULE_PATTERN_FIELD_NAME: RegExp = /pattern|regex/i;
+
+/*
+ * Pattern fields matched only as '*' wildcards (or OID prefixes), never as
+ * regular expressions: no pattern there is one the matcher refuses.
+ */
+const WILDCARD_ONLY_PATTERN_FIELDS: ReadonlySet<string> = new Set<string>([
+  "hostnamePattern",
+  "sysObjectIdPattern",
+]);
 
 const RULE_CRITERIA_RELATION_OPERATORS: ReadonlySet<RuleCriteriaOperator> =
   new Set<RuleCriteriaOperator>([
@@ -2245,6 +2258,58 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         throw new BadDataException(
           `Rule criteria field "${filter.field}" requires valid resource IDs.`,
         );
+      }
+    }
+  }
+
+  /*
+   * A rule's name and description patterns are matched as case-insensitive
+   * regular expressions on the linear-time matcher (Utils/LinearRegExp),
+   * which cannot run a back-reference (\1, \k<name>) or a pattern too
+   * large. Such a pattern is refused when it is written - API, Terraform,
+   * an import or the form alike - with what to change, rather than saved
+   * into a rule that would match nothing. A pattern that is not a regular
+   * expression at all is left to the rule engines, as before: some read it
+   * as a '*' wildcard.
+   */
+  private refuseRulePatternsThatCannotRun(
+    data: TBaseModel | PartialEntity<TBaseModel>,
+  ): void {
+    const fields: ReadonlyArray<string> | undefined =
+      getRuleCriteriaFieldsForModel(this.modelName);
+
+    if (!fields) {
+      return;
+    }
+
+    for (const field of fields) {
+      if (
+        !RULE_PATTERN_FIELD_NAME.test(field) ||
+        WILDCARD_ONLY_PATTERN_FIELDS.has(field)
+      ) {
+        continue;
+      }
+
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(field);
+
+      if (!metadata || metadata.type === TableColumnType.EntityArray) {
+        continue;
+      }
+
+      const value: unknown = (data as Record<string, unknown>)[field];
+
+      if (typeof value !== "string" || value.trim().length === 0) {
+        continue;
+      }
+
+      const refusal: string | null = RulePatternMatchUtil.getCannotRunMessage(
+        metadata.title || field,
+        value,
+      );
+
+      if (refusal) {
+        throw new BadDataException(refusal);
       }
     }
   }
@@ -4415,6 +4480,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       }
 
       this.validateRuleCriteriaForModel(criteriaValue as RuleCriteria);
+    }
+
+    if (this.model instanceof RuleBaseModel) {
+      this.refuseRulePatternsThatCannotRun(data);
     }
 
     this.applyRelationOnlyRuleRolloutState(data, {
