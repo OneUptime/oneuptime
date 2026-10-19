@@ -436,9 +436,20 @@ const STRING_REDACTION_RULES: Array<StringRedactionRule> = [
     replacement: `"$1"$2"${REDACTED}"`,
   },
   {
+    /*
+     * A JWT, looked for once per run of the characters it is made of: at the
+     * first place in the run one may begin (the run's start, or just after a
+     * "-" in it - where the word boundary allowed one), with the text of the
+     * run before that place put back ($1). A later place in the same run has
+     * a shorter first segment and ends no better, so this redacts exactly
+     * the tokens a search from every word boundary did, while each run is
+     * read a bounded number of times - in time in line with the text's
+     * length.
+     */
     name: "jwt",
-    regex: /\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g,
-    replacement: REDACTED,
+    regex:
+      /(?<![A-Za-z0-9_-])(?=((?:[A-Za-z0-9_-]*?-)??)eyJ)\1eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g,
+    replacement: `$1${REDACTED}`,
   },
   {
     name: "slack-token",

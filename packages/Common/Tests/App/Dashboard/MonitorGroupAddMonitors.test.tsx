@@ -12,6 +12,7 @@ import {
   cleanup,
   fireEvent,
   render,
+  RenderResult,
   screen,
   waitFor,
   within,
@@ -413,13 +414,27 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-async function renderMonitorsPage(): Promise<void> {
-  render(
+function monitorsPage(): ReactElement {
+  return (
     <MemoryRouter>
       <MonitorGroupMonitors {...PAGE_PROPS} />
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+}
+
+async function renderMonitorsPage(): Promise<void> {
+  const view: RenderResult = render(monitorsPage());
   await screen.findByTestId("monitors-table");
+
+  /*
+   * Run the page's pending effects - the table's mount among them - before
+   * a test looks. findByTestId returns once the table is drawn, and a busy
+   * runner can run its effects a frame later: the table had then counted no
+   * mount (Common Test on master, run 39183698213).
+   */
+  await act(async () => {
+    view.rerender(monitorsPage());
+  });
 }
 
 function dialog(): HTMLElement {

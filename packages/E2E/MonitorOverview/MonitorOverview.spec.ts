@@ -2195,38 +2195,49 @@ test.describe("the hero's actions", () => {
     for (const width of [1440, 1280, 1024, 768, 640, 390]) {
       await page.setViewportSize({ width, height: 900 });
 
-      const heroBox: Box = await documentBox(hero(page));
-      const badge: Box = await documentBox(
-        page.getByTestId("monitor-overview-badge"),
-      );
-      const refresh: Box = await documentBox(
-        heroActions(page).getByRole("button", { name: "Refresh" }),
-      );
-      const more: Box = await documentBox(moreActionsButton(page));
-      const title: Box = await documentBox(headline(page));
+      /*
+       * Measured once the page has settled at the new width: below md the
+       * side menu becomes the "Navigate to" menu, and a measure taken while
+       * that was under way once found Refresh 82px below the badges at
+       * 640px, with the screenshot a moment later showing it on their line.
+       * A layout that is wrong at a width still fails, after the timeout.
+       */
+      await expect(async () => {
+        const heroBox: Box = await documentBox(hero(page));
+        const badge: Box = await documentBox(
+          page.getByTestId("monitor-overview-badge"),
+        );
+        const refresh: Box = await documentBox(
+          heroActions(page).getByRole("button", { name: "Refresh" }),
+        );
+        const more: Box = await documentBox(moreActionsButton(page));
+        const title: Box = await documentBox(headline(page));
 
-      // At the right edge of the hero, the ⋯ last, Refresh before it.
-      expect(
-        heroBox.x + heroBox.width - (more.x + more.width),
-        `${width}px: the ⋯ at the hero's right edge`,
-      ).toBeLessThanOrEqual(26);
-      expect(
-        refresh.x + refresh.width,
-        `${width}px: Refresh before the ⋯`,
-      ).toBeLessThanOrEqual(more.x);
-      // On the badges' line, above the headline.
-      expect(
-        Math.abs(refresh.y + refresh.height / 2 - (badge.y + badge.height / 2)),
-        `${width}px: Refresh on the badges' line`,
-      ).toBeLessThanOrEqual(6);
-      expect(
-        Math.abs(more.y - refresh.y),
-        `${width}px: Refresh and the ⋯ side by side`,
-      ).toBeLessThanOrEqual(1);
-      expect(
-        refresh.y + refresh.height,
-        `${width}px: the actions above the headline`,
-      ).toBeLessThanOrEqual(title.y + 4);
+        // At the right edge of the hero, the ⋯ last, Refresh before it.
+        expect(
+          heroBox.x + heroBox.width - (more.x + more.width),
+          `${width}px: the ⋯ at the hero's right edge`,
+        ).toBeLessThanOrEqual(26);
+        expect(
+          refresh.x + refresh.width,
+          `${width}px: Refresh before the ⋯`,
+        ).toBeLessThanOrEqual(more.x);
+        // On the badges' line, above the headline.
+        expect(
+          Math.abs(
+            refresh.y + refresh.height / 2 - (badge.y + badge.height / 2),
+          ),
+          `${width}px: Refresh on the badges' line`,
+        ).toBeLessThanOrEqual(6);
+        expect(
+          Math.abs(more.y - refresh.y),
+          `${width}px: Refresh and the ⋯ side by side`,
+        ).toBeLessThanOrEqual(1);
+        expect(
+          refresh.y + refresh.height,
+          `${width}px: the actions above the headline`,
+        ).toBeLessThanOrEqual(title.y + 4);
+      }).toPass({ timeout: 10000 });
 
       /*
        * When the data was read: beside them from xl up, left out below,
