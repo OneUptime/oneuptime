@@ -314,7 +314,7 @@ describe("getJavaScriptSandboxPolicy", () => {
       allowPrivateNetworkRequests: false,
       privateNetworkAccessIsAllowed: false,
       privateNetworkHint:
-        "Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.",
+        " Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.",
       includeResolutionDetailInError: false,
     });
   });

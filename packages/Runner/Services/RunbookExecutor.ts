@@ -157,8 +157,9 @@ export function getJavaScriptSandboxPolicy(): {
   return {
     allowPrivateNetworkRequests: false,
     privateNetworkAccessIsAllowed: false,
+    // Appended to the refusal's own sentence, so it starts with a space.
     privateNetworkHint:
-      "Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.",
+      " Global Runners reach the internet only. Pick one of your own Runners for a step that calls an address on your network.",
     includeResolutionDetailInError: false,
   };
 }
