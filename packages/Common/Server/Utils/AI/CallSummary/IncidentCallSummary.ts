@@ -27,6 +27,8 @@ import logger, { LogAttributes } from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import IncidentVideoCallTranscriptWrite from "../../VideoCall/Transcripts/IncidentVideoCallTranscriptWrite";
+import AIIncidentPostmortemRunner from "../SRE/IncidentPostmortemRunner";
+import IncidentCallSummaryFeed from "./IncidentCallSummaryFeed";
 import { CallSummaryIncident } from "./CallSummaryPrompt";
 import CallSummaryReader, {
   CallSummaryCompletion,
@@ -37,10 +39,12 @@ import CallSummaryReader, {
  * ONEUPTIME AI READS AN INCIDENT CALL'S TRANSCRIPT (issue #4875).
  *
  * When a call's transcript is added - read from Zoom or Google Meet, or
- * added by a person - OneUptime AI reads it and stores what it found on the
- * call (CallSummary). The suggested root cause waits there for a person;
- * nothing is written to the incident until someone uses it
- * (IncidentVideoCallAPI).
+ * added by a person - OneUptime AI reads it, stores what it found on the
+ * call (CallSummary) and posts it to the incident's feed and channels
+ * (IncidentCallSummaryFeed). The suggested root cause waits on the call for
+ * a person; nothing is written to the incident's root cause until someone
+ * uses it (IncidentVideoCallAPI). A reading that ends lets a postmortem
+ * draft that waited for it go on (AIIncidentPostmortemRunner).
  *
  * `start` decides, at once, whether the transcript is read: not when AI is
  * off for the project (Skipped, with the sentence that says where to turn
@@ -157,6 +161,7 @@ export default class IncidentCallSummary {
           provider: true,
           title: true,
           transcript: true,
+          transcriptInfo: true,
           callSummary: true,
           videoCallConnection: { name: true },
         },
@@ -233,6 +238,15 @@ export default class IncidentCallSummary {
         rootCauseSuggestionReviewedAt: null,
         rootCauseSuggestionReviewedByUserId: null,
       });
+
+      // What was read, where the incident's updates go.
+      await IncidentCallSummaryFeed.post({
+        call,
+        callLabel: IncidentCallSummary.getCallLabel(call),
+        summary,
+      });
+
+      await IncidentCallSummary.letPostmortemDraftGoOn(incidentId);
     } catch (error) {
       logger.warn(
         `OneUptime AI could not read an incident call's transcript: ${IncidentCallSummary.getErrorMessage(error)}`,
@@ -253,6 +267,27 @@ export default class IncidentCallSummary {
         callSummaryUpdatedAt: new Date(),
         ...IncidentVideoCallTranscriptWrite.noSuggestion(),
       });
+
+      // The draft reads the transcript itself instead.
+      await IncidentCallSummary.letPostmortemDraftGoOn(incidentId);
+    }
+  }
+
+  /*
+   * A reading that ended - read, or failed - no longer holds back a
+   * postmortem draft that waited for it (AIIncidentPostmortemRunner).
+   * Never throws.
+   */
+  private static async letPostmortemDraftGoOn(
+    incidentId: ObjectID,
+  ): Promise<void> {
+    try {
+      await AIIncidentPostmortemRunner.draftWaitingPostmortem({ incidentId });
+    } catch (error) {
+      logger.error(
+        `Could not draft a postmortem that waited for its calls: ${error}`,
+        { incidentId: incidentId.toString() } as LogAttributes,
+      );
     }
   }
 

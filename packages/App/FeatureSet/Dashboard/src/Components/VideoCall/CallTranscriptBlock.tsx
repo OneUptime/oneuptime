@@ -6,6 +6,7 @@ import {
   CallSummaryRootCauseOutcome,
   RootCauseSuggestionStatus,
 } from "Common/Types/VideoCall/CallSummary";
+import { CallTranscriptFetchStatus } from "Common/Types/VideoCall/CallTranscriptAutoFetch";
 import { getVideoCallProviderDisplayName } from "Common/Types/VideoCall/VideoCallProvider";
 import {
   VideoCallTranscriptInfo,
@@ -64,6 +65,12 @@ import { videoCallDocsUrl } from "./VideoCallApi";
  * menu to replace, read again or remove it is a mark beside the heading.
  * What OneUptime AI found is on the AI Investigation card, which Review it
  * opens.
+ *
+ * A call OneUptime records and transcribes (Record and transcribe incident
+ * calls) says, until its transcript is in, that OneUptime gets it once the
+ * call is over - to everyone who reads the incident - and, should
+ * OneUptime stop waiting, the provider's last answer instead. Get and Add
+ * stay there all the while.
  *
  * When the provider has no transcript to give - not ready yet, never
  * turned on, a permission the connection lacks - the card says so in one
@@ -692,6 +699,76 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
     <></>
   );
 
+  /*
+   * The line under the heading of a call with no transcript yet. While
+   * OneUptime gets it by itself (Record and transcribe incident calls), it
+   * says so; once it stopped, the provider's last answer says why, as Get
+   * from Zoom's own answer would; otherwise, what a transcript is for.
+   */
+  const getNoTranscriptLine: () => ReactElement = (): ReactElement => {
+    if (view.fetchStatus === CallTranscriptFetchStatus.Waiting) {
+      return (
+        <p
+          data-testid="call-transcript-waiting"
+          className="flex items-start gap-1.5 text-xs text-gray-500"
+        >
+          <Icon
+            icon={IconProp.Clock}
+            className="mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          />
+          <span className="min-w-0 flex-1 break-words">
+            {translator.translateTemplate(
+              "OneUptime gets it from {{provider}} once the call is over, and OneUptime AI reads it.",
+              { provider: providerName },
+            )}
+          </span>
+        </p>
+      );
+    }
+
+    if (
+      view.fetchStatus === CallTranscriptFetchStatus.Stopped &&
+      view.fetchReason
+    ) {
+      return (
+        <p
+          data-testid="call-transcript-fetch-stopped"
+          data-reason={view.fetchReason}
+          className="break-words text-xs text-gray-500"
+        >
+          {translator.translateTemplate(
+            getTranscriptUnavailableHeadline(view.fetchReason),
+            { provider: providerName },
+          )}
+          {SET_UP_REASONS.includes(view.fetchReason) ? (
+            <>
+              {" "}
+              <a
+                href={videoCallDocsUrl(CALL_TRANSCRIPTS_DOCS_PATH).toString()}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="call-transcript-fetch-set-up-docs"
+                className={LINK_BUTTON_CLASS_NAME}
+              >
+                {translator.translateText("How to set it up")}
+              </a>
+            </>
+          ) : (
+            <></>
+          )}
+        </p>
+      );
+    }
+
+    return (
+      <p className="text-xs text-gray-500">
+        {translator.translateText(
+          "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+        )}
+      </p>
+    );
+  };
+
   // The heading both states start with.
   const heading: ReactElement = (
     <p
@@ -829,11 +906,7 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
       <div className="space-y-3">
         <div className="space-y-0.5">
           {heading}
-          <p className="text-xs text-gray-500">
-            {translator.translateText(
-              "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
-            )}
-          </p>
+          {getNoTranscriptLine()}
         </div>
         {getAndAddButtons}
       </div>
@@ -843,9 +916,15 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
   /*
    * Without a transcript, and without permission to add one, there is
    * nothing to read and nothing to do: no "Add it after the call" for a
-   * reader who cannot, and no hairline over an empty block.
+   * reader who cannot, and no hairline over an empty block - unless
+   * OneUptime is getting the transcript by itself, which everyone on the
+   * incident may know.
    */
-  if (!view.hasTranscript && !props.canManage) {
+  if (
+    !view.hasTranscript &&
+    !props.canManage &&
+    view.fetchStatus !== CallTranscriptFetchStatus.Waiting
+  ) {
     return <></>;
   }
 

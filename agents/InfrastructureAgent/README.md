@@ -42,7 +42,7 @@ Anywhere else, the install script:
 curl -sSL https://oneuptime.com/docs/static/scripts/infrastructure-agent/install.sh | bash
 ```
 
-The [Server / VM Monitor docs](https://oneuptime.com/docs/monitor/server-monitor) cover every way, and upgrades. Each release publishes the packages, the Homebrew cask and the winget manifests: see [Scripts/PackageManagers](../../Scripts/PackageManagers/README.md).
+The [Server / VM Monitor docs](https://oneuptime.com/docs/monitor/server-monitor) cover every way, and upgrades. Each release publishes the packages, the Homebrew cask and the winget manifests: see [Scripts/PackageManagers](../../Scripts/PackageManagers/README.md). [RELEASING.md](RELEASING.md) says how to tell whether a release has reached each of them, and what to do when it has not.
 
 ### Configure the agent
 

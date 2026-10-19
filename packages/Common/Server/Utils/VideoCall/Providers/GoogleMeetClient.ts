@@ -112,7 +112,7 @@ export default class GoogleMeetClient {
   }
 
   public async createMeeting(
-    _request: VideoCallMeetingRequest,
+    request: VideoCallMeetingRequest,
   ): Promise<VideoCallMeeting> {
     const accessToken: string = await this.getAccessToken();
 
@@ -120,6 +120,7 @@ export default class GoogleMeetClient {
       http: this.http,
       accessToken,
       accessType: this.settings.accessType,
+      transcribe: request.recordAndTranscribe,
       owner: {
         label: this.settings.impersonatedUserEmail.trim(),
         isSignIn: false,
@@ -134,11 +135,28 @@ export default class GoogleMeetClient {
     // "TRUSTED" or "OPEN"; anything else is TRUSTED.
     accessType: string;
     owner: GoogleMeetOwner;
+    /*
+     * Transcribe every conference in the space as soon as someone allowed
+     * to transcribe joins (SpaceConfig.artifactConfig), on Workspace
+     * editions that have transcripts.
+     */
+    transcribe?: boolean | undefined;
   }): Promise<VideoCallMeeting> {
     const accessToken: string = data.accessToken;
     const accessType: string = ALLOWED_ACCESS_TYPES.includes(data.accessType)
       ? data.accessType
       : "TRUSTED";
+
+    const config: JSONObject = {
+      accessType: accessType,
+      entryPointAccess: "ALL",
+    };
+
+    if (data.transcribe) {
+      config["artifactConfig"] = {
+        transcriptionConfig: { autoTranscriptionGeneration: "ON" },
+      };
+    }
 
     const response: VideoCallHttpResponse = await data.http.request({
       url: GOOGLE_MEET_SPACES_URL,
@@ -148,12 +166,7 @@ export default class GoogleMeetClient {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({
-        config: {
-          accessType: accessType,
-          entryPointAccess: "ALL",
-        },
-      }),
+      body: JSON.stringify({ config: config }),
       stepLabel: "Google Meet request",
     });
 

@@ -274,7 +274,7 @@ flowchart TB
 - **关联的告警** —— `AlertLinked` 和 `AlertUnlinked`，显示为 **警报已关联** 和 **警报已取消关联**。
 - **通知** —— `OwnerNotificationSent`、`SubscriberNotificationSent`、`OnCallPolicy`、`OnCallNotification`。
 - **自动化** —— `LabelRuleExecuted`、`OwnerRuleExecuted`、`PrivacyRuleExecuted`、`OnCallRuleExecuted`、`AutoRemediation`。
-- **视频通话** —— `VideoCallStarted`、 `VideoCallFailed` 和 `VideoCallTranscriptAdded`：为事件发起的通话及其加入链接、提供方无法发起通话的原因，或由某人添加、或从提供方读取的通话转录。参见 [视频通话](/docs/workspace-connections/video-calls)。
+- **视频通话** —— `VideoCallStarted`、 `VideoCallFailed`、 `VideoCallTranscriptAdded` 和 `VideoCallSummary`：为事件发起的通话及其加入链接、提供方无法发起通话的原因、由某人添加或从提供方读取的通话转录，或 OneUptime AI 从转录中读到的内容，后者也会发布到事件的频道。参见 [视频通话](/docs/workspace-connections/video-calls)。
 
 每种类型都有自己的图标，所以你可以快速浏览一条很长的信息流，从闲聊中挑出状态变化。AI 生成的根本原因分析会被单独标记，并以受限的 Markdown 模式渲染。**事件已创建** 条目、记录新标题的条目，以及加入或离开片段的条目，会完全按输入的样子显示标题：它们会转义其中的 `\`、`[`、`]`、`*`、`_`、`~`、反引号和 \<，因此标题不会变成图片、原始 HTML、像 \<!here\> 这样的 Slack 提及、隐藏了目标的链接，或粗体、斜体或代码。标题中的地址仍会显示为指向该地址的链接。
 

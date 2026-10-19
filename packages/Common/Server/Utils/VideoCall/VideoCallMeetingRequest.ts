@@ -10,4 +10,13 @@ export interface VideoCallMeetingRequest {
   description?: string | undefined;
   // Defaults to now.
   startTime?: Date | undefined;
+  /*
+   * Record and transcribe the meeting from its start, where the provider
+   * lets an app ask for it: Zoom records it to the cloud (whose audio
+   * transcript the Zoom account's own recording settings decide), Google
+   * Meet transcribes it. Microsoft Teams and meeting links are created as
+   * they always are. Asked for an incident's call while the project's
+   * Record and transcribe incident calls is on.
+   */
+  recordAndTranscribe?: boolean | undefined;
 }

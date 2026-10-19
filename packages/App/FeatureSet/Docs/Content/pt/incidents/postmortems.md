@@ -78,6 +78,7 @@ Com **Redigir um post-mortem quando um incidente é resolvido** ligado, o OneUpt
 - Ele nunca substitui uma nota que já foi escrita.
 - Ele nunca escreve em um post-mortem já publicado, onde o rascunho chegaria à página de status sem revisão.
 - Ele exige que a IA esteja ligada para o projeto, e para pelo resto do dia assim que o projeto atinge os seus limites diários de IA. Veja [Post-mortem automático](/docs/ai/ai-sre#post-mortem-automático).
+- Quando a transcrição da chamada do incidente ainda está a caminho no momento em que o incidente é resolvido, ele espera até que o OneUptime AI a leia, para que o rascunho inclua o que foi dito na chamada: até seis horas enquanto o Zoom ou o Google Meet prepara a transcrição. Veja [Gravar e transcrever todas as chamadas](/docs/workspace-connections/video-calls#gravar-e-transcrever-todas-as-chamadas).
 
 ## Publicá-lo na sua página de status
 
@@ -152,7 +153,7 @@ Verifique três coisas: **Publicar na Página de status** está ligado, a nota n
 :::
 
 :::details Nenhum rascunho da IA apareceu quando o incidente foi resolvido
-O incidente já tinha uma nota, o post-mortem já estava publicado, ou **Redigir um post-mortem quando um incidente é resolvido** está desligado. A IA precisa estar ligada para o projeto, e o projeto não pode ter atingido os seus limites diários de IA.
+O incidente já tinha uma nota, o post-mortem já estava publicado, ou **Redigir um post-mortem quando um incidente é resolvido** está desligado. A IA precisa estar ligada para o projeto, e o projeto não pode ter atingido os seus limites diários de IA. Quando a transcrição da chamada do incidente está a caminho, o rascunho chega assim que o OneUptime AI a lê.
 :::
 
 ## Próximos passos

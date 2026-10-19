@@ -1,7 +1,5 @@
 import IncidentVideoCall from "../../Models/DatabaseModels/IncidentVideoCall";
-import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { Blue500 } from "../../Types/BrandColors";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
@@ -13,20 +11,11 @@ import {
   RootCauseSuggestionStatus,
   readCallSummary,
 } from "../../Types/VideoCall/CallSummary";
-import {
-  getVideoCallNoun,
-  getVideoCallProviderDisplayName,
-} from "../../Types/VideoCall/VideoCallProvider";
-import {
-  VideoCallTranscriptInfo,
-  VideoCallTranscriptSource,
-} from "../../Types/VideoCall/VideoCallTranscript";
-import { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import { VideoCallTranscriptSource } from "../../Types/VideoCall/VideoCallTranscript";
 import TranscriptText, {
   PreparedTranscript,
 } from "../../Utils/VideoCall/TranscriptText";
 import UserMiddleware from "../Middleware/UserAuthorization";
-import IncidentFeedService from "../Services/IncidentFeedService";
 import IncidentService from "../Services/IncidentService";
 import IncidentVideoCallService, {
   Service as IncidentVideoCallServiceType,
@@ -39,9 +28,9 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
-import logger, { LogAttributes } from "../Utils/Logger";
 import ProductBrandingText from "../Utils/ProductBrandingText";
 import Response from "../Utils/Response";
+import IncidentCallTranscriptSave from "../Utils/VideoCall/Transcripts/IncidentCallTranscriptSave";
 import IncidentVideoCallTranscriptWrite, {
   IncidentVideoCallTranscriptColumns,
 } from "../Utils/VideoCall/Transcripts/IncidentVideoCallTranscriptWrite";
@@ -383,8 +372,8 @@ export default class IncidentVideoCallAPI extends BaseAPI<
 
   /*
    * Stores a transcript on the call - replacing any it had, and what was
-   * read in that - has OneUptime AI read it, and says so in the incident's
-   * feed.
+   * read in that, and ending any wait for one - has OneUptime AI read it,
+   * and says so in the incident's feed (IncidentCallTranscriptSave).
    */
   private async saveTranscript(data: {
     call: IncidentVideoCall;
@@ -392,82 +381,18 @@ export default class IncidentVideoCallAPI extends BaseAPI<
     prepared: PreparedTranscript;
     source: VideoCallTranscriptSource;
   }): Promise<JSONObject> {
-    const call: IncidentVideoCall = data.call;
-    const info: VideoCallTranscriptInfo = data.prepared.info;
-
-    await this.writeCall(call.id!, {
-      transcript: data.prepared.stored,
-      transcriptSource: data.source,
-      transcriptInfo: info as unknown as JSONObject,
-      transcriptAddedAt: new Date(),
-      transcriptAddedByUserId: data.props.userId || null,
-      ...IncidentVideoCallTranscriptWrite.noReading(),
-    });
-
-    const started: CallSummaryStart = await IncidentCallSummary.start({
-      callId: call.id!,
-      userId: data.props.userId,
-    });
-
-    await this.announceTranscript({
-      call,
-      props: data.props,
-      info,
+    const started: CallSummaryStart = await IncidentCallTranscriptSave.save({
+      call: data.call,
+      prepared: data.prepared,
       source: data.source,
+      userId: data.props.userId,
     });
 
     return {
       transcriptSource: data.source,
-      transcriptInfo: info as unknown as JSONObject,
+      transcriptInfo: data.prepared.info as unknown as JSONObject,
       ...IncidentVideoCallAPI.describeStart(started),
     };
-  }
-
-  /*
-   * A line in the incident's feed, kept to the dashboard: never posted to
-   * its channels. It opens with "added", as the entries written for
-   * someone's action do, so the feed puts the person first ("Maya Chen
-   * added the call's transcript from Zoom: ..."), and an API key's reads
-   * "Added ..." (FeedEntryText).
-   */
-  public static getTranscriptFeedMarkdown(data: {
-    call: IncidentVideoCall;
-    info: VideoCallTranscriptInfo;
-    source: VideoCallTranscriptSource;
-  }): string {
-    const details: string = TranscriptText.describeInfo(data.info);
-
-    if (data.source === VideoCallTranscriptSource.Provider) {
-      return mdText`📝 added the call's transcript from **${getVideoCallProviderDisplayName(data.call.provider)}**: ${details}.`.toString();
-    }
-
-    return mdText`📝 added a transcript of the **${getVideoCallNoun(data.call.provider)}**: ${details}.`.toString();
-  }
-
-  private async announceTranscript(data: {
-    call: IncidentVideoCall;
-    props: DatabaseCommonInteractionProps;
-    info: VideoCallTranscriptInfo;
-    source: VideoCallTranscriptSource;
-  }): Promise<void> {
-    try {
-      const feedInfoInMarkdown: string =
-        IncidentVideoCallAPI.getTranscriptFeedMarkdown(data);
-
-      await IncidentFeedService.createIncidentFeedItem({
-        incidentId: data.call.incidentId!,
-        projectId: data.call.projectId!,
-        incidentFeedEventType: IncidentFeedEventType.VideoCallTranscriptAdded,
-        displayColor: Blue500,
-        feedInfoInMarkdown,
-        userId: data.props.userId,
-      });
-    } catch (error) {
-      logger.error(`Could not record an added call transcript: ${error}`, {
-        projectId: data.call.projectId?.toString(),
-        incidentId: data.call.incidentId?.toString(),
-      } as LogAttributes);
-    }
   }
 
   // Who may add, read again, remove and dismiss: whoever may start the incident's calls.

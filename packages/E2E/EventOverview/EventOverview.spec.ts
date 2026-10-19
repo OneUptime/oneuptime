@@ -12430,6 +12430,117 @@ test.describe("an incident call's transcript (?calls=)", () => {
     await expect(page.getByTestId("call-summaries")).toHaveCount(0);
   });
 
+  /*
+   * Record and transcribe incident calls (Project Settings > Workspace >
+   * Video Calls): OneUptime gets the call's transcript by itself once the
+   * call is over, and what OneUptime AI read in it is the incident's next
+   * feed item.
+   */
+  test("while OneUptime waits to get Zoom's transcript by itself, the card says so, and Get and Add stay", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=waiting");
+
+    const card: Locator = callsCard(page);
+
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveText(
+      "OneUptime gets it from Zoom once the call is over, and OneUptime AI reads it.",
+    );
+    // Not the line for a call nobody waits on.
+    await expect(
+      card.getByText(
+        "Add it after the call: OneUptime AI reads it and suggests the root cause, for you to review.",
+      ),
+    ).toHaveCount(0);
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: "Add transcript" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("call-summaries")).toHaveCount(0);
+    await expectNoErrorStates(page);
+  });
+
+  test("once OneUptime stopped waiting, the card says what Zoom answered, with how to set it up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=fetch-stopped");
+
+    const card: Locator = callsCard(page);
+    const stopped: Locator = card.getByTestId("call-transcript-fetch-stopped");
+
+    await expect(stopped).toHaveAttribute("data-reason", "NotTranscribed");
+    await expect(stopped).toContainText(
+      "Zoom kept no transcript of this meeting. Add it yourself, or turn transcripts on for the next call.",
+    );
+    await expect(
+      stopped.getByRole("link", { name: "How to set it up" }),
+    ).toHaveAttribute("target", "_blank");
+    await expect(card.getByTestId("call-transcript-waiting")).toHaveCount(0);
+    // Get and Add are still there, to try again or add it by hand.
+    await expect(
+      card.getByRole("button", { name: "Get from Zoom" }),
+    ).toBeVisible();
+    await expectNoErrorStates(page);
+  });
+
+  test("what OneUptime AI read in the call is OneUptime AI's note in the incident's feed, the cause marked as a suggestion", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "calls=summary");
+
+    const entry: Locator = feedEntry(
+      incidentFeed(page),
+      "OneUptime AI read the transcript of the Zoom meeting",
+    );
+
+    await expect(entry).toHaveCount(1);
+    await expect(entry).toHaveAttribute("data-event-type", "VideoCallSummary");
+    // Nobody's name on it: it is OneUptime AI's.
+    await expect(entry.getByTestId("feed-entry-author")).toHaveCount(0);
+
+    const body: Locator = entry.getByTestId("feed-entry-body");
+
+    await expect(body).toHaveAttribute("data-note", "true");
+    await expect(body).toContainText("Suggested root cause (not confirmed):");
+    await expect(body).toContainText(
+      "Stated on the call. Use it as the incident's root cause, or dismiss it, on the incident's page.",
+    );
+
+    for (const part of [
+      "Confirmed on the call",
+      "Hypotheses",
+      "What was tried",
+      "Decisions",
+      "Follow-ups",
+      "Open questions",
+    ]) {
+      await expect(body.getByText(part, { exact: true })).toBeVisible();
+    }
+
+    await expect(body).toContainText(
+      "Add an alert on database pool usage. (Jordan Patel)",
+    );
+    // A name with underscores reads as written, never as emphasis.
+    await expect(body).toContainText("Why the release changed DB_POOL_MAX.");
+    await expect(
+      body.locator("em, strong").filter({ hasText: "POOL" }),
+    ).toHaveCount(0);
+    await screenshotElement(entry, "feed-call-summary");
+    // And the AI card shows the same reading, for Use as root cause.
+    await expect(
+      callSummary(page).getByTestId("call-summary-status"),
+    ).toHaveText("Not confirmed");
+    await expectNoErrorStates(page);
+  });
+
   test("removing the transcript asks first and keeps the incident's root cause", async ({
     page,
   }: {

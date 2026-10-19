@@ -27,6 +27,7 @@ import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAut
 import { WorkspaceChannel } from "../Workspace/WorkspaceBase";
 import logger, { LogAttributes } from "../Logger";
 import SlackHuddleLink from "./Providers/SlackHuddleLink";
+import IncidentCallRecordingSetting from "./Transcripts/IncidentCallRecordingSetting";
 import VideoCallConnectionSettingsUtil from "./VideoCallConnectionSettings";
 import VideoCallMessages, { VideoCallAnnouncement } from "./VideoCallMessages";
 
@@ -89,7 +90,18 @@ export interface VideoCallFieldTarget {
 // Carried from a create's before-hook to its success hook.
 export interface VideoCallCarryForward {
   connectionName?: string | undefined;
+  /*
+   * The provider was asked to record and transcribe the meeting (a Zoom or
+   * Google Meet incident call while Record and transcribe incident calls is
+   * on): the call says so where it is announced, and OneUptime gets its
+   * transcript once it is over.
+   */
+  recordsAndTranscribes?: boolean | undefined;
 }
+
+// The providers OneUptime can ask to record and transcribe a meeting.
+export const RECORDABLE_VIDEO_CALL_PROVIDERS: ReadonlyArray<VideoCallProvider> =
+  [VideoCallProvider.Zoom, VideoCallProvider.GoogleMeet];
 
 // The column's width; a longer title is cut, not refused.
 const MAX_TITLE_LENGTH: number = 500;
@@ -256,6 +268,34 @@ export default class EventVideoCall {
     }
   }
 
+  /*
+   * Whether the provider is asked to record and transcribe the event's
+   * call: an incident's, while the project's Record and transcribe incident
+   * calls is on. Never an alert's - nothing reads an alert call's
+   * transcript. A project that cannot be read records nothing: the call
+   * itself still starts.
+   */
+  public static async isRecordingCallsOf(
+    event: VideoCallEvent,
+  ): Promise<boolean> {
+    if (event.type !== VideoCallEventType.Incident) {
+      return false;
+    }
+
+    try {
+      return await IncidentCallRecordingSetting.isOn(event.projectId);
+    } catch (error) {
+      logger.error(
+        `Could not read whether incident calls are recorded; starting the call without recording: ${error}`,
+        {
+          projectId: event.projectId.toString(),
+          incidentId: event.id.toString(),
+        } as LogAttributes,
+      );
+      return false;
+    }
+  }
+
   public static truncateTitle(title: string | undefined): string | undefined {
     const trimmed: string = (title || "").replace(/\s+/g, " ").trim();
 
@@ -310,6 +350,9 @@ export default class EventVideoCall {
           eventLink: data.event.link,
         });
 
+      const recordAndTranscribe: boolean =
+        await EventVideoCall.isRecordingCallsOf(data.event);
+
       const started: {
         meeting: VideoCallMeeting;
         connection: { name?: string | undefined };
@@ -319,6 +362,7 @@ export default class EventVideoCall {
         request: {
           title: requestText.title,
           description: requestText.description,
+          recordAndTranscribe: recordAndTranscribe,
         },
       });
 
@@ -336,7 +380,12 @@ export default class EventVideoCall {
                 : requestText.title,
             ),
         },
-        carryForward: { connectionName: started.connection.name },
+        carryForward: {
+          connectionName: started.connection.name,
+          recordsAndTranscribes:
+            recordAndTranscribe &&
+            RECORDABLE_VIDEO_CALL_PROVIDERS.includes(started.meeting.provider),
+        },
       };
     }
 
@@ -489,6 +538,8 @@ export default class EventVideoCall {
     workspaceNotificationRuleId?: ObjectID | undefined;
     // The person who started the call, when a person did.
     userId?: ObjectID | undefined;
+    // The provider was asked to record and transcribe it (VideoCallCarryForward).
+    recordsAndTranscribes?: boolean | undefined;
   }): Promise<void> {
     try {
       const event: VideoCallEvent = await EventVideoCall.getEvent({
@@ -523,6 +574,7 @@ export default class EventVideoCall {
         connectionName: data.connectionName,
         ruleName: ruleName,
         startedByPerson: Boolean(data.userId),
+        recordsAndTranscribes: data.recordsAndTranscribes === true,
       };
 
       const feedInfoInMarkdown: string =

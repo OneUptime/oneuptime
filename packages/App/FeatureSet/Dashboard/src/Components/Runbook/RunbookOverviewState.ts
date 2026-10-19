@@ -111,3 +111,14 @@ export const RUNBOOK_ADD_STEPS_BUTTON_TEST_ID: string = "runbook-add-steps";
 export const RUNBOOK_TURNED_OFF_BANNER_TEST_ID: string = "runbook-turned-off";
 export const RUNBOOK_TURN_ON_BUTTON_TEST_ID: string = "runbook-turn-on";
 export const RUNBOOK_TURN_ON_ERROR_TEST_ID: string = "runbook-turn-on-error";
+
+/*
+ * The Activity card's Last Run and Total Runs tiles, and the link each is:
+ * the Overview's way to the runs, which the side menu keeps in its folded
+ * Logs section.
+ */
+export const RUNBOOK_LAST_RUN_TILE_TEST_ID: string = "runbook-last-run";
+export const RUNBOOK_LAST_RUN_LINK_TEST_ID: string = "runbook-last-run-link";
+export const RUNBOOK_TOTAL_RUNS_TILE_TEST_ID: string = "runbook-total-runs";
+export const RUNBOOK_TOTAL_RUNS_LINK_TEST_ID: string =
+  "runbook-total-runs-link";

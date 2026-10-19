@@ -78,6 +78,7 @@ Met **Een postmortem opstellen wanneer een incident is opgelost** aan stelt OneU
 - Het vervangt nooit een notitie die al is geschreven.
 - Het schrijft nooit in een postmortem dat al is gepubliceerd, waar het concept ongecontroleerd op de statuspagina zou komen.
 - Het vereist dat AI voor het project is ingeschakeld, en stopt voor die dag zodra het project zijn dagelijkse AI-limieten bereikt. Zie [Automatisch postmortem](/docs/ai/ai-sre#automatisch-postmortem).
+- Is de transcriptie van het gesprek van het incident nog onderweg wanneer het incident wordt opgelost, dan wacht het tot OneUptime AI die heeft gelezen, zodat het concept meeneemt wat er in het gesprek is gezegd: tot zes uur terwijl Zoom of Google Meet de transcriptie maakt. Zie [Elk gesprek opnemen en transcriberen](/docs/workspace-connections/video-calls#elk-gesprek-opnemen-en-transcriberen).
 
 ## Het op uw statuspagina publiceren
 
@@ -152,7 +153,7 @@ Controleer drie dingen: **Publiceren op statuspagina** staat aan, de notitie is 
 :::
 
 :::details Er verscheen geen AI-concept toen het incident werd opgelost
-Het incident had al een notitie, het postmortem was al gepubliceerd, of **Een postmortem opstellen wanneer een incident is opgelost** staat uit. AI moet voor het project zijn ingeschakeld, en het project mag zijn dagelijkse AI-limieten niet hebben bereikt.
+Het incident had al een notitie, het postmortem was al gepubliceerd, of **Een postmortem opstellen wanneer een incident is opgelost** staat uit. AI moet voor het project zijn ingeschakeld, en het project mag zijn dagelijkse AI-limieten niet hebben bereikt. Is de transcriptie van het gesprek van het incident onderweg, dan komt het concept zodra OneUptime AI die heeft gelezen.
 :::
 
 ## Volgende stappen

@@ -1676,6 +1676,12 @@ const ModelForm: <TBaseModel extends BaseModel>(
         }
         summary={props.summary}
         allowAnyStepNavigation={props.allowAnyStepNavigation}
+        /*
+         * The dropdowns search through the API their first list of options
+         * was read with (fetchDropdownOptions), so an Admin Dashboard form's
+         * search names no project either.
+         */
+        modelAPI={modelAPI}
       ></BasicModelForm>
     </div>
   );

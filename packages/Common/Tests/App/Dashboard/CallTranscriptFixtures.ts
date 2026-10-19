@@ -12,9 +12,11 @@ import {
   CallSummaryStatus,
   RootCauseSuggestionStatus,
 } from "../../../Types/VideoCall/CallSummary";
+import { CallTranscriptFetchStatus } from "../../../Types/VideoCall/CallTranscriptAutoFetch";
 import {
   VideoCallTranscriptInfo,
   VideoCallTranscriptSource,
+  VideoCallTranscriptUnavailableReason,
 } from "../../../Types/VideoCall/VideoCallTranscript";
 import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import TranscriptText, {
@@ -227,6 +229,9 @@ export interface TranscriptCallData {
   reviewedBy?: string | undefined;
   reviewedMinutesAgo?: number | undefined;
   createdMinutesAgo?: number | undefined;
+  // Where OneUptime stands in getting the transcript by itself.
+  fetchStatus?: CallTranscriptFetchStatus | undefined;
+  fetchReason?: VideoCallTranscriptUnavailableReason | undefined;
 }
 
 /*
@@ -287,6 +292,14 @@ export function transcriptCall(
     call.rootCauseSuggestionReviewedAt = minutesAgo(
       data.reviewedMinutesAgo ?? 2,
     );
+  }
+
+  if (data.fetchStatus) {
+    call.transcriptFetchStatus = data.fetchStatus;
+  }
+
+  if (data.fetchReason) {
+    call.transcriptFetchReason = data.fetchReason;
   }
 
   return call;

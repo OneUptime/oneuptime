@@ -78,6 +78,7 @@ Con **Scrivi una bozza di post-mortem quando un incidente viene risolto** attivo
 - Non sostituisce mai una nota già scritta.
 - Non scrive mai in un post-mortem già pubblicato, dove la bozza arriverebbe sulla pagina di stato senza revisione.
 - Richiede che l'IA sia attiva per il progetto, e si ferma per la giornata non appena il progetto raggiunge i suoi limiti giornalieri di IA. Vedere [Post-mortem automatico](/docs/ai/ai-sre#post-mortem-automatico).
+- Se la trascrizione della chiamata dell'incidente è ancora in arrivo quando l'incidente viene risolto, attende che OneUptime AI la legga, così che la bozza tenga conto di ciò che si è detto nella chiamata: fino a sei ore mentre Zoom o Google Meet prepara la trascrizione. Vedere [Registrare e trascrivere ogni chiamata](/docs/workspace-connections/video-calls#registrare-e-trascrivere-ogni-chiamata).
 
 ## Pubblicarlo sulla vostra pagina di stato
 
@@ -152,7 +153,7 @@ Controllate tre cose: **Pubblica nella pagina di stato** è attivo, la nota non 
 :::
 
 :::details Non è comparsa alcuna bozza dell'IA quando l'incidente è stato risolto
-L'incidente aveva già una nota, il post-mortem era già pubblicato, oppure **Scrivi una bozza di post-mortem quando un incidente viene risolto** è disattivato. L'IA deve essere attiva per il progetto, e il progetto non deve aver raggiunto i suoi limiti giornalieri di IA.
+L'incidente aveva già una nota, il post-mortem era già pubblicato, oppure **Scrivi una bozza di post-mortem quando un incidente viene risolto** è disattivato. L'IA deve essere attiva per il progetto, e il progetto non deve aver raggiunto i suoi limiti giornalieri di IA. Se la trascrizione della chiamata dell'incidente è in arrivo, la bozza arriva una volta che OneUptime AI l'ha letta.
 :::
 
 ## Passaggi successivi

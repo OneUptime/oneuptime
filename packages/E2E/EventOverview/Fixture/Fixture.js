@@ -276,6 +276,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MeasurementEvaluator from "Common/Utils/Measurement/MeasurementEvaluator";
 import TranscriptText from "Common/Utils/VideoCall/TranscriptText";
+import CallSummaryFeedMarkdown from "Common/Utils/VideoCall/CallSummaryFeedMarkdown";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 
@@ -414,6 +415,10 @@ const CALL_MODES = [
   "failed",
   "skipped",
   "two",
+  // Record and transcribe incident calls: OneUptime gets the transcript by itself.
+  "waiting",
+  "fetch-stopped",
+  "summary",
 ];
 const callsMode = CALL_MODES.includes(params.get("calls"))
   ? params.get("calls")
@@ -5468,6 +5473,57 @@ if (callsMode === "skipped") {
   });
 }
 
+/*
+ * Record and transcribe incident calls: a Zoom meeting OneUptime is waiting
+ * to get the transcript of once the call is over, one it stopped waiting on
+ * (Zoom kept no transcript), and one whose transcript it got and OneUptime
+ * AI read - with what was read posted to the incident's feed, in the words
+ * the server writes it (CallSummaryFeedMarkdown).
+ */
+if (callsMode === "waiting") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    transcriptFetchStatus: "Waiting",
+    transcriptFetchNextAttemptAt: at("18:25"),
+  });
+}
+
+if (callsMode === "fetch-stopped") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    transcriptFetchStatus: "Stopped",
+    transcriptFetchReason: "NotTranscribed",
+    transcriptFetchCheckedAt: at("18:15"),
+  });
+}
+
+if (callsMode === "summary") {
+  incidentCall(1, {
+    ...ZOOM_CALL,
+    ...withTranscript({
+      transcriptAddedByUserId: undefined,
+      transcriptAddedByUser: undefined,
+      callSummary: CALL_SUMMARY,
+      callSummaryStatus: "Ready",
+      callSummaryUpdatedAt: at("18:16"),
+      rootCauseSuggestionStatus: "Suggested",
+    }),
+  });
+
+  insert(IncidentFeed, {
+    incidentId: mainIncident.id,
+    incidentFeedEventType: IncidentFeedEventType.VideoCallSummary,
+    feedInfoInMarkdown: CallSummaryFeedMarkdown.getFeedMarkdown({
+      callLabel: "Zoom meeting",
+      summary: CALL_SUMMARY,
+      details: TranscriptText.describeInfo(CALL_TRANSCRIPT_INFO),
+    }).toString(),
+    displayColor: new Color("#6366f1"),
+    postedAt: at("18:16"),
+    createdAt: at("18:16"),
+  });
+}
+
 function callRecord(callId) {
   return table(IncidentVideoCall).find((record) => {
     return String(record._id) === String(callId);
@@ -5497,7 +5553,7 @@ function advanceCallReadings() {
 
 /*
  * The feed entry the server writes when a transcript is added
- * (IncidentVideoCallAPI.getTranscriptFeedMarkdown): opening with "added",
+ * (IncidentCallTranscriptSave.getFeedMarkdown): opening with "added",
  * so the feed puts the person who added it first.
  */
 function announceCallTranscript(record, source, info) {

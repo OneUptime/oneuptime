@@ -118,7 +118,7 @@ Una ejecución es un registro único e inmutable. Para volver a ejecutar el runb
 
 | Dónde | Qué muestra |
 | --- | --- |
-| Las **Ejecuciones** de un runbook | Todas las ejecuciones de ese runbook, con filtros por estado y fecha de inicio, y una columna **Activado por**. |
+| Las **Registros → Ejecuciones** de un runbook | Todas las ejecuciones de ese runbook, con filtros por estado y fecha de inicio, y una columna **Activado por**. |
 | **Runbooks → Ejecuciones** | Todas las ejecuciones de todos los runbooks del proyecto. |
 | La página **Runbooks** de un incidente, una alerta o un evento | Las ejecuciones unidas a él. La vista general del evento también las muestra, en cuanto hay alguna. |
 
