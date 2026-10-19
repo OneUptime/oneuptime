@@ -6,6 +6,7 @@ import {
 } from "../../Settings/ProjectColumnEditGate";
 import ProjectAiNotice from "../../../Components/AISettings/ProjectAiNotice";
 import AIInvestigationRulesTable from "../../../Components/AISettings/AIInvestigationRulesTable";
+import AIPostmortemRulesTable from "../../../Components/AISettings/AIPostmortemRulesTable";
 import AutoRemediationRulesTable from "../../../Components/AutoRemediation/AutoRemediationRulesTable";
 import ProjectAiSwitchesCard from "../../../Components/AISettings/ProjectAiSwitchesCard";
 import {
@@ -37,7 +38,8 @@ export type ComponentProps = PageComponentProps;
  * happen, as switches that save the moment they are flipped, then - folded
  * under Advanced - which incidents it investigates or fixes and the limits
  * on its work, each card one question with its own Edit, and the rules that
- * narrow which incidents are investigated and which are fixed (and how).
+ * narrow which incidents are investigated, which are fixed (and how), and
+ * which get a postmortem draft when they resolve (and in which template).
  *
  * It used to be one card of nine read-only rows whose Update opened a
  * three-step wizard (Investigation / Limits / Fix Tasks), and a second card
@@ -244,6 +246,12 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
           lane={AiLane.Incident}
           onRulesLoaded={advanced.onRulesLoaded(
             AiLaneAdvancedCard.RemediationRules,
+          )}
+        />
+
+        <AIPostmortemRulesTable
+          onRulesLoaded={advanced.onRulesLoaded(
+            AiLaneAdvancedCard.PostmortemRules,
           )}
         />
 

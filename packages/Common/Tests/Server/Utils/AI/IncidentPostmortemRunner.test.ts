@@ -1,5 +1,12 @@
 import AIIncidentPostmortemRunner from "../../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
 import IncidentPostmortemCallWait from "../../../../Server/Utils/AI/SRE/IncidentPostmortemCallWait";
+import { PostmortemRuleTemplate } from "../../../../Server/Utils/AI/SRE/PostmortemRules";
+import PostmortemTemplatePick from "../../../../Server/Utils/AI/SRE/PostmortemTemplatePick";
+import AIPostmortemRuleService from "../../../../Server/Services/AIPostmortemRuleService";
+import IncidentPostmortemTemplateService from "../../../../Server/Services/IncidentPostmortemTemplateService";
+import AIPostmortemRule from "../../../../Models/DatabaseModels/AIPostmortemRule";
+import IncidentPostmortemTemplate from "../../../../Models/DatabaseModels/IncidentPostmortemTemplate";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import IncidentVideoCallService from "../../../../Server/Services/IncidentVideoCallService";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -44,6 +51,26 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 );
 
 const BALANCE_BLOCKER: string = AI_BALANCE_INSUFFICIENT_MESSAGE;
+
+/*
+ * The project's postmortem rules, as the rules service answers them: none,
+ * unless a test says otherwise - so a draft is written for every resolved
+ * incident, in the standard outline, as before rules existed.
+ */
+let storedRules: Array<AIPostmortemRule> = [];
+
+beforeEach(() => {
+  storedRules = [];
+  jest
+    .spyOn(AIPostmortemRuleService, "findBy")
+    .mockImplementation(async (): Promise<Array<AIPostmortemRule>> => {
+      return storedRules;
+    });
+  // No plan: billing is off, so the templates a rule names are followed.
+  jest
+    .spyOn(ProjectService, "getCurrentPlan")
+    .mockResolvedValue({ plan: null, isSubscriptionUnpaid: false });
+});
 
 function mockProject(
   project: Record<string, unknown> | null,
@@ -616,7 +643,7 @@ describe("AIIncidentPostmortemRunner.draftWaitingPostmortem", () => {
     });
   }
 
-  it("reads the incident as root, with its wait, its state and the draft's gates", async () => {
+  it("reads the incident as root, with its wait, its state, the draft's gates and what the rules match on", async () => {
     await due();
 
     expect(incidentRead).toHaveBeenCalledWith({
@@ -626,6 +653,11 @@ describe("AIIncidentPostmortemRunner.draftWaitingPostmortem", () => {
         incidentNumber: true,
         postmortemNote: true,
         showPostmortemOnStatusPage: true,
+        title: true,
+        description: true,
+        incidentSeverityId: true,
+        labels: { _id: true },
+        monitors: { _id: true },
         projectId: true,
         currentIncidentStateId: true,
         postmortemDraftWaitingSince: true,
@@ -737,6 +769,409 @@ describe("AIIncidentPostmortemRunner.draftWaitingPostmortem", () => {
     await due();
 
     expect(endWait).toHaveBeenCalledTimes(1);
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("the rules as they are when the draft is written decide: one that stopped matching meanwhile means no draft", async () => {
+    storedRules = [
+      Object.assign(new AIPostmortemRule(), {
+        _id: ObjectID.generate().toString(),
+        name: "Only database incidents",
+        titlePattern: "database",
+      }),
+    ];
+    incidentRead.mockResolvedValue(
+      waitingIncident({ title: "Checkout is slow" }),
+    );
+
+    await due();
+
+    // The wait is over either way; the draft is not written.
+    expect(endWait).toHaveBeenCalledTimes(1);
+    expect(generate).not.toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
+  });
+
+  it("a draft that waited follows the template of the rule that matches it now", async () => {
+    const templateId: string = "66666666-6666-4666-8666-666666666661";
+    const template: IncidentPostmortemTemplate =
+      new IncidentPostmortemTemplate();
+    template._id = templateId;
+    storedRules = [
+      Object.assign(new AIPostmortemRule(), {
+        _id: ObjectID.generate().toString(),
+        name: "Database incidents",
+        titlePattern: "database",
+        postmortemTemplates: [template],
+      }),
+    ];
+    jest.spyOn(IncidentPostmortemTemplateService, "findBy").mockResolvedValue([
+      Object.assign(new IncidentPostmortemTemplate(), {
+        _id: templateId,
+        templateName: "Database outage",
+        templateDescription: "",
+        postmortemNote: "## Replication and failover",
+      }),
+    ]);
+    incidentRead.mockResolvedValue(
+      waitingIncident({ title: "Database primary is down" }),
+    );
+
+    await due();
+
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      template: "## Replication and failover",
+    });
+    expect(
+      (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+        .feedInfoInMarkdown,
+    ).toContain(
+      "what was said on its calls, following the postmortem template **Database outage**.",
+    );
+  });
+});
+
+describe("AIIncidentPostmortemRunner and the project's postmortem rules", () => {
+  const CRITICAL_ID: string = "44444444-4444-4444-8444-444444444441";
+  const MINOR_ID: string = "44444444-4444-4444-8444-444444444442";
+  const DATABASE_OUTAGE_ID: string = "66666666-6666-4666-8666-666666666661";
+  const SECURITY_INCIDENT_ID: string = "66666666-6666-4666-8666-666666666662";
+
+  const DATABASE_OUTAGE: IncidentPostmortemTemplate = Object.assign(
+    new IncidentPostmortemTemplate(),
+    {
+      _id: DATABASE_OUTAGE_ID,
+      templateName: "Database outage",
+      templateDescription: "Database failures.",
+      postmortemNote: "## Summary\n\n## Replication and failover",
+    },
+  );
+  const SECURITY_INCIDENT: IncidentPostmortemTemplate = Object.assign(
+    new IncidentPostmortemTemplate(),
+    {
+      _id: SECURITY_INCIDENT_ID,
+      templateName: "Security incident",
+      templateDescription: "Access and data.",
+      postmortemNote: "## Exposure",
+    },
+  );
+
+  let incidentRead: jest.SpyInstance;
+  let generate: jest.SpyInstance;
+  let incidentUpdate: jest.SpyInstance;
+  let feed: jest.SpyInstance;
+  let callWait: jest.SpyInstance;
+  let startWait: jest.SpyInstance;
+  let templatesRead: jest.SpyInstance;
+  let errorLog: jest.SpyInstance;
+  let debugLog: jest.SpyInstance;
+
+  function severity(id: string): IncidentSeverity {
+    const model: IncidentSeverity = new IncidentSeverity();
+    model._id = id;
+    return model;
+  }
+
+  function templateRef(id: string): IncidentPostmortemTemplate {
+    const model: IncidentPostmortemTemplate = new IncidentPostmortemTemplate();
+    model._id = id;
+    return model;
+  }
+
+  function rule(
+    name: string,
+    values: Partial<AIPostmortemRule> = {},
+  ): AIPostmortemRule {
+    return Object.assign(new AIPostmortemRule(), {
+      _id: ObjectID.generate().toString(),
+      name,
+      isEnabled: true,
+      ...values,
+    });
+  }
+
+  beforeEach(() => {
+    mockProject(draftOn());
+    mockProvider(new LlmProvider());
+    mockBalanceBlocker(null);
+    incidentRead = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue({
+        id: INCIDENT_ID,
+        incidentNumber: 42,
+        postmortemNote: undefined,
+        title: "Postgres primary is down",
+        description: "Connections refused.",
+        incidentSeverityId: new ObjectID(CRITICAL_ID),
+        labels: [],
+        monitors: [],
+      } as unknown as Incident);
+    generate = jest
+      .spyOn(IncidentService, "generatePostmortemFromAI")
+      .mockResolvedValue("## Summary\nThe primary ran out of disk.");
+    incidentUpdate = jest
+      .spyOn(IncidentService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    feed = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    callWait = jest
+      .spyOn(IncidentPostmortemCallWait, "isWaiting")
+      .mockResolvedValue(false);
+    startWait = jest
+      .spyOn(IncidentService, "startPostmortemDraftWait")
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentVideoCallService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    templatesRead = jest
+      .spyOn(IncidentPostmortemTemplateService, "findBy")
+      .mockResolvedValue([DATABASE_OUTAGE, SECURITY_INCIDENT]);
+    errorLog = jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    debugLog = jest.spyOn(logger, "debug").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function resolve(): Promise<void> {
+    await AIIncidentPostmortemRunner.draftPostmortemOnResolve({
+      incidentId: INCIDENT_ID,
+      projectId: PROJECT_ID,
+    });
+  }
+
+  function feedLine(): string {
+    return (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+      .feedInfoInMarkdown;
+  }
+
+  it("with no rule, drafts every resolved incident in the standard outline - no template sent", async () => {
+    await resolve();
+
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(generate.mock.calls[0]![0]).toEqual({ incidentId: INCIDENT_ID });
+    expect(feedLine()).not.toContain("template");
+    expect(templatesRead).not.toHaveBeenCalled();
+  });
+
+  it("reads what the rules match on with the incident it drafts for", async () => {
+    await resolve();
+
+    expect(
+      (incidentRead.mock.calls[0]![0] as { select: Record<string, unknown> })
+        .select,
+    ).toEqual(
+      expect.objectContaining({
+        title: true,
+        description: true,
+        incidentSeverityId: true,
+        labels: { _id: true },
+        monitors: { _id: true },
+      }),
+    );
+  });
+
+  it("an incident no rule matches gets no draft, waits for no call, and says why in the debug log", async () => {
+    storedRules = [
+      rule("Minor incidents", { incidentSeverities: [severity(MINOR_ID)] }),
+    ];
+
+    await resolve();
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(incidentUpdate).not.toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
+    expect(callWait).not.toHaveBeenCalled();
+    expect(startWait).not.toHaveBeenCalled();
+    expect(debugLog).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "none of the 1 postmortem rules matched incident",
+      ),
+    );
+  });
+
+  it("a matching rule with no template drafts in the standard outline", async () => {
+    storedRules = [
+      rule("Critical incidents", {
+        incidentSeverities: [severity(CRITICAL_ID)],
+      }),
+    ];
+
+    await resolve();
+
+    expect(generate.mock.calls[0]![0]).toEqual({ incidentId: INCIDENT_ID });
+  });
+
+  it("a matching rule's one template is filled in, and the feed names it", async () => {
+    storedRules = [
+      rule("Critical incidents", {
+        incidentSeverities: [severity(CRITICAL_ID)],
+        postmortemTemplates: [templateRef(DATABASE_OUTAGE_ID)],
+      }),
+    ];
+    templatesRead.mockResolvedValue([DATABASE_OUTAGE]);
+    const pick: jest.SpyInstance = jest.spyOn(PostmortemTemplatePick, "pick");
+
+    await resolve();
+
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      template: "## Summary\n\n## Replication and failover",
+    });
+    expect(pick).toHaveBeenCalledTimes(1);
+    expect(feedLine()).toContain(
+      "OneUptime AI drafted a postmortem for incident #42 from the incident timeline and telemetry, following the postmortem template **Database outage**. It has been saved on the incident for you to review and edit.",
+    );
+    expect(incidentUpdate).toHaveBeenCalledWith({
+      id: INCIDENT_ID,
+      data: { postmortemNote: "## Summary\nThe primary ran out of disk." },
+      props: { isRoot: true },
+    });
+  });
+
+  it("with several templates, the one OneUptime AI picks is filled in", async () => {
+    storedRules = [
+      rule("Critical incidents", {
+        incidentSeverities: [severity(CRITICAL_ID)],
+        postmortemTemplates: [
+          templateRef(DATABASE_OUTAGE_ID),
+          templateRef(SECURITY_INCIDENT_ID),
+        ],
+      }),
+    ];
+    const pick: jest.SpyInstance = jest
+      .spyOn(PostmortemTemplatePick, "pick")
+      .mockImplementation(
+        async (data: {
+          templates: Array<PostmortemRuleTemplate>;
+        }): Promise<PostmortemRuleTemplate | null> => {
+          return data.templates[1] || null;
+        },
+      );
+
+    await resolve();
+
+    expect(
+      (
+        pick.mock.calls[0]![0] as { templates: Array<PostmortemRuleTemplate> }
+      ).templates.map((template: PostmortemRuleTemplate): string => {
+        return template.name;
+      }),
+    ).toEqual(["Database outage", "Security incident"]);
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      template: "## Exposure",
+    });
+    expect(feedLine()).toContain(
+      "following the postmortem template **Security incident**.",
+    );
+  });
+
+  it("the first matching rule decides, not a later one", async () => {
+    storedRules = [
+      rule("Critical incidents", {
+        incidentSeverities: [severity(CRITICAL_ID)],
+        postmortemTemplates: [templateRef(SECURITY_INCIDENT_ID)],
+      }),
+      rule("Everything else", {
+        postmortemTemplates: [templateRef(DATABASE_OUTAGE_ID)],
+      }),
+    ];
+    templatesRead.mockResolvedValue([SECURITY_INCIDENT]);
+
+    await resolve();
+
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      template: "## Exposure",
+    });
+  });
+
+  it("a template's name reaches the feed as text: no link, no bold of its own", async () => {
+    storedRules = [
+      rule("All", { postmortemTemplates: [templateRef(DATABASE_OUTAGE_ID)] }),
+    ];
+    templatesRead.mockResolvedValue([
+      Object.assign(new IncidentPostmortemTemplate(), {
+        _id: DATABASE_OUTAGE_ID,
+        templateName: "**Pwn** [click](https://evil.example)",
+        templateDescription: "",
+        postmortemNote: "## Summary",
+      }),
+    ]);
+
+    await resolve();
+
+    expect(feedLine()).not.toContain("[click](https://evil.example)");
+    expect(feedLine()).not.toContain("**Pwn**");
+    expect(feedLine()).toContain("Pwn");
+  });
+
+  it("no draft when the rules cannot be read: the project's rules are kept to, and the error logged", async () => {
+    jest
+      .spyOn(AIPostmortemRuleService, "findBy")
+      .mockRejectedValue(new Error("connection reset"));
+
+    await resolve();
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
+    expect(errorLog).toHaveBeenCalledWith(
+      expect.stringContaining("could not read the postmortem rules"),
+      expect.anything(),
+    );
+  });
+
+  it("the rules decide before any wait: an incident a rule matches still waits for its call", async () => {
+    storedRules = [
+      rule("Critical incidents", {
+        incidentSeverities: [severity(CRITICAL_ID)],
+      }),
+    ];
+    callWait.mockResolvedValue(true);
+
+    await resolve();
+
+    expect(startWait).toHaveBeenCalledTimes(1);
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("the switch stays the one way to turn drafting off: with it off, no rule is even read", async () => {
+    mockProject(draftOn({ enableAutomaticPostmortemDraft: false }));
+    const rulesRead: jest.SpyInstance = jest.spyOn(
+      AIPostmortemRuleService,
+      "findBy",
+    );
+    storedRules = [rule("Everything")];
+
+    await resolve();
+
+    expect(rulesRead).not.toHaveBeenCalled();
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it("a written postmortem is never replaced, whatever the rules say", async () => {
+    storedRules = [rule("Everything")];
+    incidentRead.mockResolvedValue({
+      id: INCIDENT_ID,
+      incidentNumber: 42,
+      postmortemNote: "Written by a human.",
+    } as unknown as Incident);
+    const rulesRead: jest.SpyInstance = jest.spyOn(
+      AIPostmortemRuleService,
+      "findBy",
+    );
+
+    await resolve();
+
+    expect(rulesRead).not.toHaveBeenCalled();
     expect(generate).not.toHaveBeenCalled();
   });
 });

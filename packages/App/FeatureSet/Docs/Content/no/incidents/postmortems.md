@@ -80,6 +80,16 @@ Med **Skriv utkast til etteranalyse når en hendelse er løst** slått på skriv
 - Den krever at KI er slått på for prosjektet, og stopper for dagen så snart prosjektet når de daglige KI-grensene sine. Se [Automatisk etteranalyse](/docs/ai/ai-sre#automatisk-etteranalyse).
 - Er transkripsjonen av hendelsens samtale fortsatt på vei når hendelsen løses, venter den til OneUptime AI har lest den, slik at utkastet tar med det som ble sagt i samtalen: opptil seks timer mens leverandøren lager transkripsjonen. Se [Ta opp og transkribere hver samtale](/docs/workspace-connections/video-calls#ta-opp-og-transkribere-hver-samtale).
 
+#### Velg hvilke hendelser som får et utkast, og malen det følger
+
+Uten regler får hver løste hendelse et utkast i standardoppsettet til OneUptime AI. **Postmortem-regler**, under **Flere innstillinger** på samme side, endrer det:
+
+- En regel samsvarer med **Alle hendelser**, eller med **Bare hendelser som oppfyller betingelsene** på monitorer, alvorlighetsgrader, labels, monitorlabels, tittel og beskrivelse, slik en undersøkelsesregel gjør.
+- Dens **Maler** er malene for etteranalyse som utkastet kan følge. Uten noen følger utkastet standardoppsettet; med én, den malen; med flere, den OneUptime AI mener passer best til hendelsen. Utkastets innlegg i feeden nevner malen det fulgte.
+- Den første aktiverte regelen som samsvarer med hendelsen, avgjør, regnet fra toppen av listen: dra en regel for å flytte den. En hendelse som ingen regel samsvarer med, får ikke noe utkast, og det får ingen hendelse så lenge reglene ikke kan leses.
+- **Skriv utkast til etteranalyse når en hendelse er løst** er fortsatt den eneste bryteren som slår av utkast. Regler avgjør bare utkastene OneUptime AI skriver på egen hånd: **Generate with AI** tilbyr alle oppsett, uansett hva reglene sier.
+- Å opprette, redigere og omordne regler krever rollen Project Owner eller Project Admin. På OneUptime Cloud krever maler Growth-planen: under den avgjør reglene fortsatt hvilke hendelser som får et utkast, og hvert utkast følger standardoppsettet.
+
 ## Publiser den på statussiden din
 
 En publisert etteranalyse er hendelsens avsluttende oppdatering til kundene dine: statussiden viser notatet, uthevet i hendelsens tidslinje, med vedleggene til nedlasting.
@@ -153,7 +163,7 @@ Sjekk tre ting: **Publiser på statussiden** er slått på, notatet er ikke tomt
 :::
 
 :::details Det kom ikke noe KI-utkast da hendelsen ble løst
-Hendelsen hadde allerede et notat, etteranalysen var allerede publisert, eller **Skriv utkast til etteranalyse når en hendelse er løst** er slått av. KI må være slått på for prosjektet, og prosjektet kan ikke ha nådd de daglige KI-grensene sine. Er transkripsjonen av hendelsens samtale på vei, kommer utkastet når OneUptime AI har lest den.
+Hendelsen hadde allerede et notat, etteranalysen var allerede publisert, ingen postmortem-regel samsvarte med den, eller **Skriv utkast til etteranalyse når en hendelse er løst** er slått av. KI må være slått på for prosjektet, og prosjektet kan ikke ha nådd de daglige KI-grensene sine. Er transkripsjonen av hendelsens samtale på vei, kommer utkastet når OneUptime AI har lest den.
 :::
 
 ## Neste trinn
