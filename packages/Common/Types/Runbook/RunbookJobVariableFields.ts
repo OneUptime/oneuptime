@@ -35,7 +35,9 @@ function asText(value: unknown): string {
 }
 
 // Whether a job's step takes variables at all.
-export function jobUsesRunbookVariables(job: RunbookJobVariableSource): boolean {
+export function jobUsesRunbookVariables(
+  job: RunbookJobVariableSource,
+): boolean {
   if (
     job.stepType === RunbookStepType.Bash ||
     job.stepType === RunbookStepType.JavaScript

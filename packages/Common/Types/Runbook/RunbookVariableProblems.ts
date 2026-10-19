@@ -95,13 +95,13 @@ function sentence(
     case RunbookVariableProblemReason.NoRunbook:
       return `${names} ${one ? "is a runbook's own variable" : "are a runbook's own variables"}, and this step is not part of a runbook run`;
     case RunbookVariableProblemReason.NotForThisRunner:
-      return `the secret${one ? "" : "s"} ${names} may not be used on this Runner: add it to the Runners of ${one ? "that variable" : "those variables"}, or pick one of ${one ? "its" : "their"} Runners for the step`;
+      return `this Runner may not use the secret${one ? "" : "s"} ${names} (add it to the Runners of ${one ? "that variable" : "those variables"}, or pick one of ${one ? "its" : "their"} Runners for the step)`;
     case RunbookVariableProblemReason.NotForGlobalRunners:
-      return `global Runners may not use the secret${one ? "" : "s"} ${names}: turn on "Global Runners can use it" for ${one ? "it" : "them"}, or pick one of your own Runners for the step`;
+      return `global Runners may not use the secret${one ? "" : "s"} ${names} (turn on "Global Runners can use it" for ${one ? "it" : "them"}, or pick one of your own Runners for the step)`;
     case RunbookVariableProblemReason.NoValue:
-      return `the secret${one ? "" : "s"} ${names} ${one ? "has" : "have"} no value: set one`;
+      return `the secret${one ? "" : "s"} ${names} ${one ? "has" : "have"} no value (replace ${one ? "its value" : "their values"})`;
     case RunbookVariableProblemReason.NotSecret:
-      return `${names} ${one ? "is not a secret variable" : "are not secret variables"}: a key, a password or a kubeconfig must be kept in a secret variable`;
+      return `${names} ${one ? "is not a secret variable" : "are not secret variables"} (keep a key, a password or a kubeconfig in a secret variable)`;
     default: {
       const unhandled: never = reason;
       return unhandled;

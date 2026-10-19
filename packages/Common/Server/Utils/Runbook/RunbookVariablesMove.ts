@@ -407,7 +407,10 @@ export default class RunbookVariablesMove {
         const secretId: string = String(row["runbookSecretId"] || "");
         const runnerId: string = String(row["runnerId"] || "");
 
-        if (!ObjectID.isValidUUID(secretId) || !ObjectID.isValidUUID(runnerId)) {
+        if (
+          !ObjectID.isValidUUID(secretId) ||
+          !ObjectID.isValidUUID(runnerId)
+        ) {
           continue;
         }
 
@@ -687,14 +690,13 @@ export default class RunbookVariablesMove {
           continue;
         }
 
-        const signInVariable: string = await RunbookVariablesMove.ensureVariable(
-          {
+        const signInVariable: string =
+          await RunbookVariablesMove.ensureVariable({
             names: data.names,
             name: `${base}-ssh-${key ? "key" : "password"}`,
             secretValue: key || password,
             ...common,
-          },
-        );
+          });
 
         let passphraseVariable: string | undefined = undefined;
 

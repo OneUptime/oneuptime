@@ -18,7 +18,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * React-free on purpose: App's tests read these without the page.
  */
 
-export const GLOBAL_VARIABLES_TITLE: string = translationKey("Global Variables");
+export const GLOBAL_VARIABLES_TITLE: string =
+  translationKey("Global Variables");
 
 export const GLOBAL_VARIABLES_DESCRIPTION: string = translationKey(
   "Values every runbook in this project can use: hosts and URLs, or secrets such as SSH keys, passwords, tokens and kubeconfigs.",
@@ -55,7 +56,7 @@ export const SECRET_DESCRIPTION: string = translationKey(
 export const VALUE_TITLE: string = translationKey("Value");
 
 export const VALUE_DESCRIPTION: string = translationKey(
-  "What steps get where they name the variable.",
+  "What a step gets where it names this variable.",
 );
 
 export const SECRET_VALUE_TITLE: string = translationKey("Secret Value");

@@ -127,20 +127,6 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
-/*
- * Secrets pulls in VMUtil -> isolated-vm, a native binding this suite does not
- * install. The heartbeat path never reaches it.
- */
-jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
-  return {
-    __esModule: true,
-    default: {
-      loadForAgent: jest.fn(),
-      populateInScript: jest.fn(),
-    },
-  };
-});
-
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";

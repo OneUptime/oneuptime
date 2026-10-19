@@ -1,4 +1,5 @@
 import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
 import { RunbookVariableScope } from "Common/Types/Runbook/RunbookVariableReference";
 import Dropdown, {
   DropdownOption,
@@ -43,6 +44,11 @@ export interface ComponentProps {
   choices: RunbookVariableChoices;
   // The step's Runner, to say when it may not use the secret picked.
   runnerId: string;
+  /*
+   * The runbook the step is of: where one of its own variables is given
+   * Runners (its Variables page).
+   */
+  runbookId?: ObjectID | undefined;
   /*
    * A first choice that names no variable, with its label (English): a
    * kubectl step's "The Runner's own access". Left out, the picker has
@@ -129,6 +135,27 @@ const RunbookVariablePicker: FunctionComponent<ComponentProps> = (
     </Link>
   );
 
+  /*
+   * Where the picked variable is given Runners: one of the runbook's own is
+   * on the runbook's Variables page, a global one on Global Variables.
+   */
+  const pickedVariableLocation: ReactElement =
+    picked?.scope === RunbookVariableScope.Local && props.runbookId ? (
+      <Link
+        to={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.RUNBOOK_VIEW_VARIABLES] as Route,
+          { modelId: props.runbookId },
+        )}
+        openInNewTab={true}
+        className="font-semibold underline underline-offset-2 hover:decoration-2"
+        dataTestId={`${props.dataTestId}-runbook-variables-link`}
+      >
+        {translator.translateText("this runbook's Variables")}
+      </Link>
+    ) : (
+      variablesLocation
+    );
+
   const renderProblem: () => ReactNode = (): ReactNode => {
     if (problem === VariableUseProblem.Unknown) {
       return translator.translateTemplate(
@@ -149,7 +176,7 @@ const RunbookVariablePicker: FunctionComponent<ComponentProps> = (
         <TranslatedSentence
           template="The Runner picked above may not use {{name}}, so the step will fail when it runs. Add the Runner to the variable's Runners under {{location}}."
           values={{ name: picked?.name || props.value }}
-          slots={{ location: variablesLocation }}
+          slots={{ location: pickedVariableLocation }}
         />
       );
     }
@@ -201,7 +228,9 @@ const RunbookVariablePicker: FunctionComponent<ComponentProps> = (
         isClearable={false}
         ariaLabel={props.label}
         dataTestId={`${props.dataTestId}-dropdown`}
-        onChange={(value: DropdownValue | Array<DropdownValue> | null): void => {
+        onChange={(
+          value: DropdownValue | Array<DropdownValue> | null,
+        ): void => {
           const reference: string =
             value === null || value === undefined
               ? ""

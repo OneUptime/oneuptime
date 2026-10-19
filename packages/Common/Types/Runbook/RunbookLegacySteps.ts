@@ -32,12 +32,9 @@ const KIND_RESOURCES: Record<string, string> = {
 
 // A script that fails the step with `message`, as the old step would have.
 function failingScript(message: string): string {
-  return [
-    `# ${message}`,
-    `echo ${shellQuote(message)} >&2`,
-    "exit 1",
-    "",
-  ].join("\n");
+  return [`# ${message}`, `echo ${shellQuote(message)} >&2`, "exit 1", ""].join(
+    "\n",
+  );
 }
 
 /*

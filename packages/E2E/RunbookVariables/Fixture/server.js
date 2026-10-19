@@ -80,9 +80,7 @@ async function main() {
     response.end(html);
   });
   server.listen(port, "127.0.0.1", () => {
-    console.log(
-      `Runbook Variables fixture ready at http://127.0.0.1:${port}/`,
-    );
+    console.log(`Runbook Variables fixture ready at http://127.0.0.1:${port}/`);
   });
   process.on("SIGTERM", () => server.close());
   process.on("SIGINT", () => server.close());

@@ -120,21 +120,6 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
-/*
- * The secrets util imports VMUtil -> isolated-vm, a native binding that is
- * not installed for this suite (and not under test). The claim path only
- * reaches it once a job with a script is leased, which these tests never do.
- */
-jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
-  return {
-    __esModule: true,
-    default: {
-      loadForAgent: jest.fn(),
-      populateInScript: jest.fn(),
-    },
-  };
-});
-
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";

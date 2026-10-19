@@ -15,20 +15,6 @@ import { describe, expect, test } from "@jest/globals";
  * gets a 400 naming the problem, never the job.
  */
 
-/*
- * The secrets util imports VMUtil -> isolated-vm, a native binding that is
- * not installed for this suite (and not under test).
- */
-jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
-  return {
-    __esModule: true,
-    default: {
-      loadForAgent: jest.fn(),
-      populateInScript: jest.fn(),
-    },
-  };
-});
-
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
 

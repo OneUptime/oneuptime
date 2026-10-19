@@ -2319,6 +2319,15 @@ export class Service extends DatabaseService<Model> {
     resourceCommand?:
       | { resourceType: AiResourceType; program: string }
       | undefined;
+    /*
+     * The secret runbook variables the step was handed
+     * (getSecretValuesGivenToJob), hidden in its output and error message
+     * before anything stores them - whatever the Runner sent: a Runner hides
+     * them too, but one older than runbook variables does not know to. Set
+     * by the Runner's result route only; every other caller writes text the
+     * server composed, which holds no secret.
+     */
+    secretValues?: Array<string> | undefined;
   }): Promise<boolean> {
     const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
       PostgresAppInstance.getDataSource();
@@ -2330,15 +2339,7 @@ export class Service extends DatabaseService<Model> {
       ? RunnerJobStatus.Succeeded
       : RunnerJobStatus.Failed;
 
-    /*
-     * The secret runbook variables the step was given, hidden in what it
-     * printed before anything stores it - whatever the Runner sent: the
-     * Runner hides them too, but one older than variables does not know to.
-     */
-    const secretValues: Array<string> =
-      typeof data.output === "string" || typeof data.errorMessage === "string"
-        ? await this.getSecretValuesGivenToJob(data.jobId)
-        : [];
+    const secretValues: Array<string> = data.secretValues || [];
 
     /*
      * Made storable first: every text parameter below is bound whichever
@@ -2426,15 +2427,21 @@ export class Service extends DatabaseService<Model> {
   /*
    * The secret runbook variables a runbook step's job names - and so was
    * handed when a Runner took it - read again for hiding them in what the
-   * step printed (Types/Runbook/SecretOutputRedaction). None for a job that
-   * names none, nor for a command OneUptime AI composed, which is never
-   * filled in. A runbook's own variables are read from the run's runbook.
+   * step printed (Types/Runbook/SecretOutputRedaction). Only for the Runner
+   * that holds the job: a result for a job that is not its own is never
+   * stored, so nothing is read for it. None for a job that names none, nor
+   * for a command OneUptime AI composed, which is never filled in. A
+   * runbook's own variables are read from the run's runbook.
    */
-  public async getSecretValuesGivenToJob(
-    jobId: ObjectID,
-  ): Promise<Array<string>> {
-    const job: Model | null = await this.findOneById({
-      id: jobId,
+  public async getSecretValuesGivenToJob(data: {
+    jobId: ObjectID;
+    agentId: ObjectID;
+  }): Promise<Array<string>> {
+    const job: Model | null = await this.findOneBy({
+      query: {
+        _id: data.jobId,
+        assignedAgentId: data.agentId,
+      },
       select: {
         projectId: true,
         runbookExecutionId: true,

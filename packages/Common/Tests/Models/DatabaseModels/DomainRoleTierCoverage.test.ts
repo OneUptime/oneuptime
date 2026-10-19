@@ -108,7 +108,12 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
    */
   "MonitorSecret",
   "RunbookCredential",
-  "RunbookSecret",
+  /*
+   * Runbook variables hold the secrets runbook steps sign in with (runbook
+   * secrets became variables). A Runbook Admin reads them, to name them in
+   * the steps it writes; Runbook Members and Viewers do not.
+   */
+  "RunbookVariable",
 
   /*
    * Identity configuration for a status page, and the audit trail of the

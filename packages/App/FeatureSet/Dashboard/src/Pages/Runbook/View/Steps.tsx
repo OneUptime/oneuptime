@@ -38,6 +38,7 @@ import RunbookVariableChoicesLoader, {
 import {
   KUBECONFIG_TITLE,
   KUBECTL_EXAMPLES,
+  NO_PASSPHRASE_LABEL,
   RUNNER_OWN_KUBECONFIG_LABEL,
   SSH_EXAMPLES,
   SSH_PASSPHRASE_TITLE,
@@ -1256,55 +1257,55 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   ) => ReactElement = (step: RunbookStep, idx: number): ReactElement => {
     return (
       <>
-      <div
-        className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-        data-testid={`runbook-step-${idx}-legacy`}
-      >
-        <p>
-          {translator.translateText(
-            step.type === RunbookStepType.SSH
-              ? "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead."
-              : "This step restarts or scales one workload with a runbook credential. It still runs as it is. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
-          )}
-        </p>
-        <div className="mt-3">
-          <Button
-            title="Turn into a script step"
-            icon={IconProp.Code}
-            buttonStyle={ButtonStyleType.NORMAL}
-            buttonSize={ButtonSize.Small}
-            dataTestId={`runbook-step-${idx}-legacy-convert`}
-            onClick={() => {
-              setSteps((prev: RunbookStep[]) => {
-                const copy: RunbookStep[] = [...prev];
-                copy[idx] = convertLegacyCredentialStep(copy[idx]!);
-                return copy;
-              });
-              markDirty();
-            }}
-          />
+        <div
+          className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          data-testid={`runbook-step-${idx}-legacy`}
+        >
+          <p>
+            {translator.translateText(
+              step.type === RunbookStepType.SSH
+                ? "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead."
+                : "This step restarts or scales one workload with a runbook credential. It still runs as it is. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
+            )}
+          </p>
+          <div className="mt-3">
+            <Button
+              title="Turn into a script step"
+              icon={IconProp.Code}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              dataTestId={`runbook-step-${idx}-legacy-convert`}
+              onClick={() => {
+                setSteps((prev: RunbookStep[]) => {
+                  const copy: RunbookStep[] = [...prev];
+                  copy[idx] = convertLegacyCredentialStep(copy[idx]!);
+                  return copy;
+                });
+                markDirty();
+              }}
+            />
+          </div>
         </div>
-      </div>
-      {renderMoreFields(
-        step,
-        idx,
-        <>
-          {renderDescriptionField(step, idx)}
-          {renderAgentTimeouts({
-            idx,
-            config: step.config as SSHStepConfig,
-            executionDescription: (
-              <>
-                {translator.translateText(
-                  "How long the Runner lets the step run before stopping it.",
-                )}
-              </>
-            ),
-            executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
-          })}
-          {renderFailureToggles(step, idx)}
-        </>,
-      )}
+        {renderMoreFields(
+          step,
+          idx,
+          <>
+            {renderDescriptionField(step, idx)}
+            {renderAgentTimeouts({
+              idx,
+              config: step.config as SSHStepConfig,
+              executionDescription: (
+                <>
+                  {translator.translateText(
+                    "How long the Runner lets the step run before stopping it.",
+                  )}
+                </>
+              ),
+              executionBounds: STEP_EXECUTION_TIMEOUT_BOUNDS,
+            })}
+            {renderFailureToggles(step, idx)}
+          </>,
+        )}
       </>
     );
   };
@@ -1621,6 +1622,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           value={config.signIn || ""}
           choices={variableChoices}
           runnerId={config.agentId || ""}
+          runbookId={modelId}
           dataTestId={`runbook-step-${idx}-ssh-sign-in`}
           helperText={translator.translateText(
             "The secret variable that holds the private key or the password. The step never holds it itself.",
@@ -1677,7 +1679,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
               value={config.passphrase || ""}
               choices={variableChoices}
               runnerId={config.agentId || ""}
-              noneLabel="No passphrase"
+              runbookId={modelId}
+              noneLabel={NO_PASSPHRASE_LABEL}
               dataTestId={`runbook-step-${idx}-ssh-passphrase`}
               helperText={translator.translateText(
                 "Only for a private key that has a passphrase.",
@@ -1744,6 +1747,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           value={config.kubeconfig || ""}
           choices={variableChoices}
           runnerId={config.agentId || ""}
+          runbookId={modelId}
           noneLabel={RUNNER_OWN_KUBECONFIG_LABEL}
           dataTestId={`runbook-step-${idx}-kubeconfig`}
           helperText={

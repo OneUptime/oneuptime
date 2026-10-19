@@ -263,8 +263,11 @@ export function replaceRunbookVariableReferences(
 /*
  * The text with every {{runbookSecrets.NAME}} written the way variables are,
  * {{global.variables.NEW_NAME}} - NEW_NAME being what `getName` says the
- * secret's variable is called (its own name, unless that was taken). Other
- * placeholders stay as written.
+ * secret's variable is called (its own name, unless that was taken or is
+ * one a variable cannot have). `getName` is asked with the name as the step
+ * wrote it, whatever characters it holds: a secret made through the API
+ * could have any name, and its steps still have to find its variable. Other
+ * placeholders, and secrets `getName` does not know, stay as written.
  */
 export function rewriteLegacyRunbookSecretReferences(
   text: string,
@@ -286,11 +289,11 @@ export function rewriteLegacyRunbookSecretReferences(
         return placeholder.text;
       }
 
-      const secretName: string = inner.slice(
-        LEGACY_RUNBOOK_SECRET_PREFIX.length,
-      );
+      const secretName: string = inner
+        .slice(LEGACY_RUNBOOK_SECRET_PREFIX.length)
+        .trim();
 
-      if (!isValidRunbookVariableName(secretName)) {
+      if (!secretName) {
         return placeholder.text;
       }
 

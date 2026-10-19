@@ -191,8 +191,7 @@ function stub(): void {
   jest
     .spyOn(ModelAPI, "createOrUpdate")
     .mockImplementation(async (args: unknown): Promise<never> => {
-      const model: RunbookVariable = (args as { model: RunbookVariable })
-        .model;
+      const model: RunbookVariable = (args as { model: RunbookVariable }).model;
       savedModels.push(model);
       return { data: model } as never;
     });
@@ -500,7 +499,11 @@ describe("Create Variable", () => {
       within(dialog).getByRole("button", { name: "Create Variable" }),
     );
 
-    await within(dialog).findByText(`${OWN_RUNNERS_FIELD} is required.`, {}, WAIT);
+    await within(dialog).findByText(
+      `${OWN_RUNNERS_FIELD} is required.`,
+      {},
+      WAIT,
+    );
     expect(savedModels).toEqual([]);
   });
 
@@ -517,7 +520,11 @@ describe("Create Variable", () => {
       within(dialog).getByRole("button", { name: "Create Variable" }),
     );
 
-    await within(dialog).findByText(`${OWN_RUNNERS_FIELD} is required.`, {}, WAIT);
+    await within(dialog).findByText(
+      `${OWN_RUNNERS_FIELD} is required.`,
+      {},
+      WAIT,
+    );
     expect(savedModels).toEqual([]);
   });
 

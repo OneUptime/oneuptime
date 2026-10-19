@@ -103,6 +103,9 @@ export const RUNNER_OWN_KUBECONFIG_LABEL: string = translationKey(
   "The Runner's own access",
 );
 
+// The key passphrase picker's first choice: a key with no passphrase.
+export const NO_PASSPHRASE_LABEL: string = translationKey("No passphrase");
+
 // ------------------------------------------------------------- examples
 
 export interface ScriptExample {
@@ -127,7 +130,9 @@ uptime`,
   },
   {
     label: translationKey("Restart a service"),
-    description: translationKey("Restart a systemd service and show it."),
+    description: translationKey(
+      "Restart a systemd service, then show its status.",
+    ),
     code: `sudo systemctl restart nginx
 systemctl status nginx --no-pager`,
   },
@@ -151,7 +156,7 @@ systemctl status nginx --no-pager`,
 export const KUBECTL_EXAMPLES: Array<ScriptExample> = [
   {
     label: translationKey("List pods"),
-    description: translationKey("Every pod in the cluster and how it is."),
+    description: translationKey("Every pod in the cluster, with its status."),
     code: `kubectl get pods --all-namespaces`,
   },
   {
@@ -178,7 +183,9 @@ test -z "$pods"`,
   },
   {
     label: translationKey("Roll back"),
-    description: translationKey("Go back to the deployment's previous version."),
+    description: translationKey(
+      "Go back to the deployment's previous version.",
+    ),
     code: `kubectl rollout undo deployment/checkout-api --namespace checkout`,
   },
 ];
@@ -188,8 +195,9 @@ test -z "$pods"`,
 export const MORE_FIELDS_DESCRIPTION_TITLE: string =
   translationKey("Description");
 export const MORE_FIELDS_TIMEOUTS_TITLE: string = translationKey("Timeouts");
-export const CONTINUE_ON_FAILURE_TITLE: string =
-  translationKey("Continue on failure");
+export const CONTINUE_ON_FAILURE_TITLE: string = translationKey(
+  "Continue on failure",
+);
 export const REQUIRE_APPROVAL_TITLE: string = translationKey(
   "Require approval before running the next step",
 );
@@ -285,7 +293,10 @@ export function getStepMoreFieldsItems(
       key: "timeouts",
       title: MORE_FIELDS_TIMEOUTS_TITLE,
       isSet:
-        isSetTimeout(config["timeoutInMs"], DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS) ||
+        isSetTimeout(
+          config["timeoutInMs"],
+          DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
+        ) ||
         isSetTimeout(
           config["claimTimeoutInMs"],
           DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,

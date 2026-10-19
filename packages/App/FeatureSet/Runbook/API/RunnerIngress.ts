@@ -735,13 +735,12 @@ export default class RunnerIngressAPI {
     projectId: ObjectID;
     access: RunbookVariableAccess;
   }): Promise<PreparedJobVariables> {
-    const runbookId: ObjectID | null = await RunnerIngressAPI.getRunbookIdForJob(
-      {
+    const runbookId: ObjectID | null =
+      await RunnerIngressAPI.getRunbookIdForJob({
         job: data.job,
         projectId: data.projectId,
         references: RunbookJobVariables.getReferences(data.job),
-      },
-    );
+      });
 
     return RunbookJobVariables.prepare({
       job: data.job,
@@ -985,9 +984,23 @@ export default class RunnerIngressAPI {
       const outputRaw: unknown = body["output"];
       const exitCodeRaw: unknown = body["exitCode"];
       const errorMessageRaw: unknown = body["errorMessage"];
+      const jobId: ObjectID = new ObjectID(jobIdRaw);
+
+      /*
+       * The secrets the step was handed, hidden in what it printed before it
+       * is stored (RunnerJobService.submitResult): this Runner hid them
+       * already when it is new enough to, and an older one did not know to.
+       */
+      const secretValues: Array<string> =
+        typeof outputRaw === "string" || typeof errorMessageRaw === "string"
+          ? await RunnerJobService.getSecretValuesGivenToJob({
+              jobId,
+              agentId: agent.id,
+            })
+          : [];
 
       const accepted: boolean = await RunnerJobService.submitResult({
-        jobId: new ObjectID(jobIdRaw),
+        jobId,
         agentId: agent.id,
         success,
         ...(typeof outputRaw === "string" ? { output: outputRaw } : {}),
@@ -995,6 +1008,7 @@ export default class RunnerIngressAPI {
         ...(typeof errorMessageRaw === "string"
           ? { errorMessage: errorMessageRaw }
           : {}),
+        ...(secretValues.length > 0 ? { secretValues } : {}),
       });
 
       return Response.sendJsonObjectResponse(req, res, {

@@ -612,8 +612,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     ): ReactElement => {
       const optionLabel: string = removeProps.data.isUserContent
         ? removeProps.data.label
-        : (translateStringRef.current(removeProps.data.label) ??
-          removeProps.data.label);
+        : translateStringRef.current(removeProps.data.label) ??
+          removeProps.data.label;
 
       return (
         <ReactSelectComponents.MultiValueRemove

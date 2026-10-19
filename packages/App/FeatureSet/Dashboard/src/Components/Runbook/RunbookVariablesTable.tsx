@@ -188,14 +188,20 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
     <Fragment>
       <ModelTable<RunbookVariable>
         userPreferencesKey={
-          isGlobal ? "runbook-global-variables-table" : "runbook-variables-table"
+          isGlobal
+            ? "runbook-global-variables-table"
+            : "runbook-variables-table"
         }
         modelType={RunbookVariable}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           runbookId: props.runbookId ? props.runbookId : new IsNull(),
         }}
-        id={isGlobal ? "runbook-global-variables-table" : "runbook-variables-table"}
+        id={
+          isGlobal
+            ? "runbook-global-variables-table"
+            : "runbook-variables-table"
+        }
         name={isGlobal ? "Runbooks > Global Variables" : "Runbook > Variables"}
         singularName="Variable"
         pluralName="Variables"

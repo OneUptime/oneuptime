@@ -101,10 +101,7 @@ export function getKubeconfigFromCredential(credential: unknown): string {
     return "";
   }
 
-  const values: Record<string, unknown> = credential as Record<
-    string,
-    unknown
-  >;
+  const values: Record<string, unknown> = credential as Record<string, unknown>;
 
   if (values["credentialType"] !== KUBECONFIG_CREDENTIAL_TYPE) {
     return "";

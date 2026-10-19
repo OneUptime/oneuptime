@@ -614,22 +614,14 @@ export async function runSshStep(
 
 /*
  * An SSH step written before runbook variables: a credential and a
- * command, run as they always were.
+ * command, run as they always were. (It names a credential: that is what
+ * makes it one, isLegacySSHStepConfig.)
  */
 async function runLegacySshStep(
   step: RunbookStep,
   ctx: StepExecutionContext,
 ): Promise<StepRunResult> {
   const config: SSHStepConfig = step.config as SSHStepConfig;
-
-  if (!config.credentialId) {
-    return {
-      success: false,
-      output: "",
-      errorMessage:
-        "SSH step is missing a credential. Open the step and turn it into a script step that signs in with a variable.",
-    };
-  }
 
   if (!config.command) {
     return {
@@ -712,22 +704,14 @@ export async function runKubernetesStep(
 
 /*
  * A Kubernetes step written before kubectl scripts: one workload action
- * with a credential, run as it always was.
+ * with a credential, run as it always was. (It names a credential: that is
+ * what makes it one, isLegacyKubernetesStepConfig.)
  */
 async function runLegacyKubernetesStep(
   step: RunbookStep,
   ctx: StepExecutionContext,
 ): Promise<StepRunResult> {
   const config: KubernetesStepConfig = step.config as KubernetesStepConfig;
-
-  if (!config.credentialId) {
-    return {
-      success: false,
-      output: "",
-      errorMessage:
-        "Kubernetes step is missing a credential. Open the step and turn it into a kubectl script step.",
-    };
-  }
 
   if (!config.namespace || !config.workloadName) {
     return {
