@@ -51,6 +51,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -103,6 +107,16 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
 
   const [globalRunnerAccess, setGlobalRunnerAccess] =
     useState<GlobalRunnerAccess | null>(null);
+
+  /*
+   * Replace Value writes through ModelAPI directly, which the table's own
+   * edit gating never sees: it is offered as Edit would be - locked, saying
+   * why, to someone who may read variables but not change them.
+   */
+  const updateGate: PermissionGateResult = PermissionGate.check(
+    new RunbookVariable(),
+    ModelAction.Update,
+  );
 
   useAsyncEffect(async () => {
     const [globalRunners, projectUsesGlobalRunners]: [
@@ -219,8 +233,15 @@ const RunbookVariablesTable: FunctionComponent<ComponentProps> = (
             icon: IconProp.Key,
             buttonStyleType: ButtonStyleType.OUTLINE,
             isVisible: (item: RunbookVariable): boolean => {
-              return Boolean(item.isSecret);
+              return (
+                Boolean(item.isSecret) &&
+                (updateGate.isAllowed || Boolean(updateGate.disabledReason))
+              );
             },
+            disabled: !updateGate.isAllowed,
+            ...(updateGate.isAllowed
+              ? {}
+              : { tooltip: updateGate.disabledReason }),
             onClick: async (
               item: RunbookVariable,
               onCompleteAction: VoidFunction,

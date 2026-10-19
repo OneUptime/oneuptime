@@ -210,7 +210,8 @@ test.describe("Runners live under Runbooks", () => {
 
       await page.goto(urlFor(`${settingsPath}/runner-credentials`));
       await expect(page).toHaveURL(urlFor(credentialsPath), SERVER);
-      await expect(breadcrumb).toContainText("Runner Credentials", SERVER);
+      // Runner Credentials is AI Access now: what OneUptime AI reaches through a Runner.
+      await expect(breadcrumb).toContainText("AI Access", SERVER);
 
       await page.goto(urlFor(`${settingsPath}/runners`));
       await expect(page).toHaveURL(urlFor(runnersPath), SERVER);

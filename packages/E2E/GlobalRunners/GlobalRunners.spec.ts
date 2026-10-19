@@ -10,7 +10,8 @@ import path from "path";
  * Custom Runners and Global Runners in This Project cards; a runbook step's
  * Runner picker, opened and picked by mouse and by keyboard, and the line
  * under each folded step that says where it runs; and whether global
- * Runners may use a runbook secret. Then a phone, dark mode and German.
+ * Runners may use a secret runbook variable. Then a phone, dark mode and
+ * German.
  *
  * The maintainer's ask: "Please also show global runners here as well, and
  * people can create custom runners if they want more security. Global
@@ -29,7 +30,7 @@ const PROD_RUNNER_ID: string = "40000000-0000-4000-8000-0000000000d1";
 
 const RUNNERS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/runners`;
 const STEPS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`;
-const SECRETS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/settings/secrets`;
+const VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/settings/variables`;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -533,6 +534,13 @@ test.describe("a step's Runner picker", () => {
       .filter({ has: picker(page, 0) });
     await expect(step).toContainText("Allowed range: 1–300 seconds.");
 
+    // The timeouts are folded under the step's More fields.
+    await step
+      .getByTestId("runbook-step-0-more-fields")
+      .getByRole("button", { expanded: false })
+      .first()
+      .click();
+
     const timeout: Locator = step.getByLabel(EXECUTION_TIMEOUT_LABEL);
     await timeout.fill("600");
     await expect(step).toContainText("Maximum is 300 seconds (5 minutes).");
@@ -677,17 +685,16 @@ test.describe("the line under each folded step says where it runs", () => {
   });
 });
 
-test.describe("which secrets global Runners may use", () => {
+test.describe("which secret variables global Runners may use", () => {
   async function createSecret(page: Page, search: string): Promise<Locator> {
-    await page.goto(`${SECRETS_PAGE}?page=secrets&${search}`);
-    await page
-      .getByRole("button", { name: "Create Runbook Secret" })
-      .first()
-      .click();
+    await page.goto(`${VARIABLES_PAGE}?page=variables&${search}`);
+    await page.getByRole("button", { name: "Create Variable" }).first().click();
     const modal: Locator = page.getByTestId("modal");
     await expect(modal).toBeVisible();
-    await modal.getByRole("textbox").first().fill("WEBHOOK_TOKEN");
-    await modal.locator("textarea").last().fill("a-token-for-the-webhook");
+    await modal.getByPlaceholder("PROD_DB_SSH_KEY").fill("WEBHOOK_TOKEN");
+    await modal
+      .getByPlaceholder("A password, a token, a private key or a kubeconfig")
+      .fill("a-token-for-the-webhook");
     await modal.getByTestId("modal-footer-next-button").click();
     return modal;
   }
@@ -697,27 +704,24 @@ test.describe("which secrets global Runners may use", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SECRETS_PAGE}?page=secrets&custom=1`);
+    await page.goto(`${VARIABLES_PAGE}?page=variables&custom=1`);
     const table: Locator = page.getByTestId("card");
     await expect(
-      table.getByRole("columnheader", { name: "Global Runners" }),
-    ).toBeVisible();
-    await expect(
       table.getByRole("row").filter({ hasText: "STATUSPAGE_TOKEN" }),
-    ).toContainText("Yes");
+    ).toContainText("Global Runners");
     await expect(
       table.getByRole("row").filter({ hasText: "DB_PASSWORD" }),
-    ).toContainText("No");
+    ).not.toContainText("Global Runners");
 
     const modal: Locator = await createSecret(page, "custom=1");
     const globalSwitch: Locator = modal.getByRole("switch", {
-      name: /Global Runners can use this secret/,
+      name: /Global Runners can use it/,
     });
     await expect(globalSwitch).toHaveAttribute("aria-checked", "true");
     await expect(modal).toContainText(
       "Steps of this project that run on a global Runner get this secret. Steps of other projects never do.",
     );
-    await expect(modal).toContainText("Your Runners that can use this secret");
+    await expect(modal).toContainText("Your Runners that can use it");
     await screenshot(page, "secret-access-step");
 
     await modal.getByTestId("modal-footer-submit-button").click();
@@ -728,7 +732,8 @@ test.describe("which secrets global Runners may use", () => {
       .toBe(1);
     const created: Recorded["creates"][number] = (await recorded(page))
       .creates[0]!;
-    expect(created.model).toBe("RunbookSecret");
+    expect(created.model).toBe("RunbookVariable");
+    expect(created.data["isSecret"]).toBe(true);
     expect(created.data["isAvailableToGlobalRunners"]).toBe(true);
   });
 
@@ -740,7 +745,7 @@ test.describe("which secrets global Runners may use", () => {
     const modal: Locator = await createSecret(page, "uses=0&custom=1");
 
     await expect(
-      modal.getByRole("switch", { name: /Global Runners can use this secret/ }),
+      modal.getByRole("switch", { name: /Global Runners can use it/ }),
     ).toHaveAttribute("aria-checked", "false");
   });
 
@@ -749,18 +754,15 @@ test.describe("which secrets global Runners may use", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SECRETS_PAGE}?page=secrets&global=0&custom=1`);
+    await page.goto(`${VARIABLES_PAGE}?page=variables&global=0&custom=1`);
     await expect(
-      page.getByRole("columnheader", { name: "Your Runners" }),
+      page.getByRole("columnheader", { name: "Runners" }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("columnheader", { name: "Global Runners" }),
-    ).toHaveCount(0);
 
     const modal: Locator = await createSecret(page, "global=0&custom=1");
-    await expect(modal).toContainText("Your Runners that can use this secret");
+    await expect(modal).toContainText("Your Runners that can use it");
     await expect(
-      modal.getByRole("switch", { name: /Global Runners can use this secret/ }),
+      modal.getByRole("switch", { name: /Global Runners can use it/ }),
     ).toHaveCount(0);
   });
 });
