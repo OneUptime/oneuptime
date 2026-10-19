@@ -19,12 +19,12 @@ import {
  * blank lines was split every way at every line start: time that grew with
  * the cube of the run's length.
  *
- * Here each line start is read once: the white space, the "**" and the
- * white space are taken whole (each can be followed by nothing they could
- * also take), so every line start inside one stretch of them reaches the
- * same label, and when that label does not lead to a value no line start in
- * the stretch does. The values are found where the pattern found them, in
- * the same order.
+ * Here the white space, the "**" and the white space are taken whole (each
+ * can be followed by nothing they could also take), so every line start in
+ * one run of white space reaches the same label: when it leads to no value
+ * from one of them, it leads to none from the others, and they are not read
+ * again. The values are found where the pattern found them, in the same
+ * order.
  * ---------------------------------------------------------------------------
  */
 
@@ -34,26 +34,29 @@ const EQUALS: number = 0x3d;
 
 type FromFunction = (text: string, from: number) => number;
 
-// \s*\**\s* taken whole from `from`: where it ends.
-const afterWhiteSpaceAndStars: FromFunction = (
-  text: string,
-  from: number,
-): number => {
+// The end of the run of white space (\s) from `from`.
+const whiteSpaceEnd: FromFunction = (text: string, from: number): number => {
   let index: number = from;
 
   while (index < text.length && isWhiteSpaceCode(text.charCodeAt(index))) {
     index++;
   }
 
+  return index;
+};
+
+// \s*\**\s* taken whole from `from`: where it ends.
+const afterWhiteSpaceAndStars: FromFunction = (
+  text: string,
+  from: number,
+): number => {
+  let index: number = whiteSpaceEnd(text, from);
+
   while (index < text.length && text.charCodeAt(index) === STAR) {
     index++;
   }
 
-  while (index < text.length && isWhiteSpaceCode(text.charCodeAt(index))) {
-    index++;
-  }
-
-  return index;
+  return whiteSpaceEnd(text, index);
 };
 
 // The first line start (^ with the m flag) at or after `from`, or -1.
@@ -166,7 +169,12 @@ export const findLabelledValues: FindLabelledValuesFunction = (data: {
       }
     }
 
-    // No line start up to the label reaches a value: go on after it.
-    searchFrom = labelStart + 1;
+    /*
+     * No value from this line start - nor from any other in the run of white
+     * space it is in, as each takes the rest of that run and goes on the
+     * same way. Line starts after the run are read anew: one in the white
+     * space after the "**" can take the next "**".
+     */
+    searchFrom = Math.max(lineStart + 1, whiteSpaceEnd(text, lineStart));
   }
 };

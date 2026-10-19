@@ -7,6 +7,7 @@ import DomainNameUtil from "../../../Utils/Domain/DomainName";
 import { DomainRecordUtil } from "../../../Utils/Domain/DomainRecord";
 import { buildHostNamingNote } from "../../../Jobs/Discovery/FetchScans";
 import { SubnetScanResult } from "../../../Utils/Discovery/SubnetScanner";
+import { domainToASCII } from "node:url";
 import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
 import { namedPattern } from "Common/Tests/Helpers/SourcePatterns";
 import { describe, expect, test } from "@jest/globals";
@@ -43,9 +44,24 @@ const timeOf: (run: () => unknown) => number = (run: () => unknown): number => {
   return Date.now() - startedAt;
 };
 
-const DOMAIN_NAME_FILE: string = "packages/Probe/Utils/Domain/DomainName.ts";
 const DOMAIN_RECORD_FILE: string = "packages/Probe/Utils/Domain/DomainRecord.ts";
-const FETCH_SCANS_FILE: string = "packages/Probe/Jobs/Discovery/FetchScans.ts";
+
+// A failure reason in the naming note, as the note quotes it.
+const quotedReason: (reason: string) => string = (reason: string): string => {
+  const note: string = buildHostNamingNote({
+    reverseDnsOutcome: {
+      resolvedCount: 0,
+      addressCount: 10,
+      namedAddressCount: 0,
+      isTimeBudgetExhausted: false,
+      isReverseDnsAvailable: true,
+      error: reason,
+    },
+  } as unknown as SubnetScanResult);
+  const opening: number = note.indexOf("(");
+
+  return note.slice(opening + 1, note.lastIndexOf(")"));
+};
 
 describe("text built to be slow is trimmed quickly", () => {
   test.each([
@@ -95,40 +111,77 @@ describe("text built to be slow is trimmed quickly", () => {
 });
 
 describe("what is trimmed is what the patterns trimmed", () => {
-  test.each([
-    [DOMAIN_NAME_FILE, "TRAILING_DOTS_PATTERN", /\.+$/, [".", "a", "\u0000", "..", "-"]],
-    [
+  test("a registration date's record id, on forty thousand drawn texts", () => {
+    const pattern: RegExp = namedPattern(
       DOMAIN_RECORD_FILE,
       "TRAILING_RECORD_ID_PATTERN",
-      /\s+#\S+$/,
-      [" ", "\t", "\n", "\u00a0", "#", "#1", "x", "1", "\u0000"],
-    ],
-    [
-      FETCH_SCANS_FILE,
-      "TRAILING_STOPS_PATTERN",
-      /[.\s]+$/,
-      [".", " ", "\t", "\n", "\u2028", "x", "..", ". "],
-    ],
-  ])(
-    "%s: %s, on forty thousand drawn texts",
-    (
-      file: string,
-      name: string,
-      before: RegExp,
-      alphabet: ReadonlyArray<string>,
-    ) => {
-      const pattern: RegExp = namedPattern(file, name);
-      const differences: Array<string> = [];
+    );
+    const differences: Array<string> = [];
 
-      for (const text of generatedTexts(40000, 2357, alphabet, 14)) {
-        if (text.replace(pattern, "") !== text.replace(before, "")) {
-          differences.push(JSON.stringify(text));
-        }
+    for (const text of generatedTexts(
+      40000,
+      2357,
+      [" ", "\t", "\n", "\u00a0", "#", "#1", "x", "1", "\u0000"],
+      14,
+    )) {
+      if (text.replace(pattern, "") !== text.replace(/\s+#\S+$/, "")) {
+        differences.push(JSON.stringify(text));
+      }
+    }
+
+    expect(differences).toEqual([]);
+  });
+
+  test("a domain name, as the pattern took its trailing dots off, on forty thousand drawn names", () => {
+    const differences: Array<string> = [];
+
+    for (const text of generatedTexts(
+      40000,
+      1113,
+      [".", "..", "a", "B", "-", "x.", "1", "\u0000"],
+      12,
+    )) {
+      /*
+       * What normalize did before, for a name with no scheme, path, port or
+       * login: lower case, then the trailing dots off with /\.+$/.
+       */
+      const trimmed: string = text.trim().toLowerCase().replace(/\.+$/, "");
+      const expected: string = domainToASCII(trimmed) || trimmed;
+
+      if (DomainNameUtil.normalize(text) !== expected) {
+        differences.push(JSON.stringify(text));
+      }
+    }
+
+    expect(differences).toEqual([]);
+  });
+
+  test("a reason's trailing full stops and white space, on forty thousand drawn reasons", () => {
+    const differences: Array<string> = [];
+
+    for (const reason of generatedTexts(
+      40000,
+      4471,
+      [".", " ", "\t", "\u2028", "x", "..", ". ", "ab"],
+      10,
+    )) {
+      // An empty reason is no reason: the note says nothing in brackets.
+      if (!reason) {
+        continue;
       }
 
-      expect(differences).toEqual([]);
-    },
-  );
+      const trimmed: string = reason.trim();
+      // What the quote held before: the trailing run off with /[.\s]+$/.
+      const expected: string =
+        trimmed.replace(/[.\s]+$/, "") || trimmed || "unknown error";
+
+      if (quotedReason(reason) !== expected) {
+        differences.push(JSON.stringify(reason));
+      }
+    }
+
+    expect(differences).toEqual([]);
+  });
 
   test("the names, dates and reasons they are written for", () => {
     expect(DomainNameUtil.normalize("Example.COM.")).toBe("example.com");
