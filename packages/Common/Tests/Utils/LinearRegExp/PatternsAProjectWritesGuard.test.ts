@@ -24,6 +24,12 @@ import ts from "typescript";
  * Each file that builds one is listed below with how many it builds and
  * what they are built from. A new one fails here until it is moved onto the
  * linear-time matcher or listed with what it is built from.
+ *
+ * A string's match, matchAll and search build a RegExp too, from a text
+ * they are handed: "title.match(rule.pattern)" runs the rule's pattern on
+ * JavaScript's own engine as surely as new RegExp would. So each such call
+ * whose argument is not a pattern written in its file is found as well, and
+ * listed with what it reads as a pattern.
  * ---------------------------------------------------------------------------
  */
 
@@ -177,6 +183,72 @@ const LISTED: ReadonlyArray<ListedFile> = [
 ];
 
 /*
+ * Calls of match, matchAll or search, with one argument, that is not a
+ * pattern written in the file: what each file's calls read as a pattern.
+ */
+const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
+  {
+    file: "packages/Common/Types/StatusPage/SubscriberNotificationTemplateCompiler.ts",
+    count: 1,
+    builtFrom:
+      "the placeholder pattern the class writes (getPlaceholderPattern)",
+  },
+  {
+    file: "packages/Common/Types/Telemetry/ScrubRule.ts",
+    count: 1,
+    builtFrom:
+      "nothing: the linear-time matcher's own matchAll, over the file's probe texts",
+  },
+  {
+    file: "packages/Common/UI/Components/CommandPalette/UseProviderSearch.ts",
+    count: 1,
+    builtFrom:
+      "nothing: a command palette provider's own search, handed what was typed",
+  },
+  {
+    file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",
+    count: 1,
+    builtFrom: "nothing: a scanner's own match method, handed a position",
+  },
+  {
+    file: "packages/Common/Utils/Markdown/UntrustedMarkdown.ts",
+    count: 1,
+    builtFrom: "the global patterns the file passes, each written in it",
+  },
+  {
+    file: "packages/Common/Utils/Monitor/MetricValueFormatter.ts",
+    count: 1,
+    builtFrom: "the braced-unit pattern the class writes",
+  },
+  {
+    file: "packages/Common/Utils/Syslog/SyslogVendorParser.ts",
+    count: 1,
+    builtFrom: "the vendor parsers' own rule patterns, each a pattern literal",
+  },
+  {
+    file: "packages/Common/Utils/VersionUtil.ts",
+    count: 1,
+    builtFrom: "the version pattern the class writes",
+  },
+  {
+    file: "packages/Home/Static/js/animate.js",
+    count: 1,
+    builtFrom:
+      "the number pattern the site's animation script writes, in a visitor's browser",
+  },
+  {
+    file: "packages/Probe/Utils/Monitors/MonitorTypes/SqlMonitor.ts",
+    count: 1,
+    builtFrom: "the patterns FORBIDDEN_CONSTRUCTS lists",
+  },
+  {
+    file: "packages/Probe/Utils/Monitors/SyntheticRuntime/ProcessTreeMemory.ts",
+    count: 1,
+    builtFrom: "the kilobyte-line patterns the file passes, each a literal",
+  },
+];
+
+/*
  * The code that runs the patterns a project's people write: each imports
  * the linear-time matcher, or RulePatternMatchUtil, which runs them on it.
  */
@@ -188,6 +260,18 @@ const RUNS_PATTERNS_A_PROJECT_WRITES: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Telemetry/Services/MetricPipelineRuleService.ts",
   "packages/App/FeatureSet/Telemetry/Utils/LogFilterEvaluator.ts",
 ];
+
+// The string methods that read their argument as a pattern.
+const PATTERN_READING_METHODS: ReadonlySet<string> = new Set<string>([
+  "match",
+  "matchAll",
+  "search",
+]);
+
+const PATTERN_READING_CALL: RegExp = /\.(?:match|matchAll|search)\(/;
+
+// A class's name, by this code's naming: QueryHelper.
+const CLASS_NAME: RegExp = /^[A-Z]/;
 
 const LINEAR_REGEXP_IMPORT: RegExp =
   /from "[^"]*(?:\/LinearRegExp\/(?:LinearRegExp|PatternCache)|\/RulePatternMatchUtil)"/;
@@ -358,6 +442,122 @@ function builtPatternsIn(file: string, text: string): Array<BuiltPattern> {
   return found;
 }
 
+// Whether an argument is a pattern written in the file: a RegExp, never a text.
+function isPatternWrittenHere(
+  source: ts.SourceFile,
+  expression: ts.Expression,
+  depth: number = 0,
+): boolean {
+  if (depth > 6) {
+    return false;
+  }
+
+  if (expression.kind === ts.SyntaxKind.RegularExpressionLiteral) {
+    return true;
+  }
+
+  if (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isAsExpression(expression) ||
+    ts.isNonNullExpression(expression)
+  ) {
+    return isPatternWrittenHere(source, expression.expression, depth + 1);
+  }
+
+  if (ts.isConditionalExpression(expression)) {
+    return (
+      isPatternWrittenHere(source, expression.whenTrue, depth + 1) &&
+      isPatternWrittenHere(source, expression.whenFalse, depth + 1)
+    );
+  }
+
+  // Built where it is passed: the RegExp finder above judges what from.
+  if (
+    (ts.isNewExpression(expression) || ts.isCallExpression(expression)) &&
+    ts.isIdentifier(expression.expression) &&
+    expression.expression.text === "RegExp"
+  ) {
+    return true;
+  }
+
+  if (ts.isIdentifier(expression)) {
+    if (CONSTANT_NAME.test(expression.text)) {
+      return true;
+    }
+
+    const initializer: ts.Expression | null = constInitializer(
+      source,
+      expression.text,
+    );
+
+    return (
+      initializer !== null &&
+      isPatternWrittenHere(source, initializer, depth + 1)
+    );
+  }
+
+  return (
+    ts.isPropertyAccessExpression(expression) &&
+    CONSTANT_NAME.test(expression.name.text)
+  );
+}
+
+/*
+ * Every call of a string's match, matchAll or search - one argument, on a
+ * value rather than a class - whose argument is not a pattern written in the
+ * file: a text handed to one is read as a pattern.
+ */
+function patternArgumentsIn(file: string, text: string): Array<BuiltPattern> {
+  const found: Array<BuiltPattern> = [];
+
+  if (!PATTERN_READING_CALL.test(text)) {
+    return found;
+  }
+
+  const source: ts.SourceFile = ts.createSourceFile(
+    file,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      PATTERN_READING_METHODS.has(node.expression.name.text) &&
+      node.arguments.length === 1
+    ) {
+      const argument: ts.Expression = node.arguments[0]!;
+      const receiver: ts.Expression = node.expression.expression;
+      // QueryHelper.search(...): a class's own method, not a string's.
+      const isClass: boolean =
+        ts.isIdentifier(receiver) && CLASS_NAME.test(receiver.text);
+
+      if (
+        !isClass &&
+        !ts.isObjectLiteralExpression(argument) &&
+        !isPatternWrittenHere(source, argument)
+      ) {
+        found.push({
+          file: file,
+          line:
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+            1,
+          argument: node.getText(source).replace(/\s+/g, " ").slice(0, 80),
+        });
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return found;
+}
+
 // Whether a file is bundled for a browser or a phone, so runs on the device.
 function isBundledForADevice(file: string): boolean {
   const featureSet: string | undefined = FEATURE_SET_SOURCE.exec(file)?.[1];
@@ -375,7 +575,9 @@ function isBundledForADevice(file: string): boolean {
   );
 }
 
-function builtPatternsInServerCode(): Map<string, Array<BuiltPattern>> {
+function builtPatternsInServerCode(
+  finder: (file: string, text: string) => Array<BuiltPattern> = builtPatternsIn,
+): Map<string, Array<BuiltPattern>> {
   const byFile: Map<string, Array<BuiltPattern>> = new Map();
 
   for (const file of listProductFiles(REPOSITORY_DIRECTORY, [
@@ -386,7 +588,7 @@ function builtPatternsInServerCode(): Map<string, Array<BuiltPattern>> {
       continue;
     }
 
-    const built: Array<BuiltPattern> = builtPatternsIn(
+    const built: Array<BuiltPattern> = finder(
       file,
       fs.readFileSync(path.join(REPOSITORY_DIRECTORY, file), "utf8"),
     );
@@ -397,6 +599,44 @@ function builtPatternsInServerCode(): Map<string, Array<BuiltPattern>> {
   }
 
   return byFile;
+}
+
+// What each file builds that is not listed as it is: empty when all are.
+function unlistedIn(
+  byFile: Map<string, Array<BuiltPattern>>,
+  listedFiles: ReadonlyArray<ListedFile>,
+): Array<string> {
+  const problems: Array<string> = [];
+
+  for (const [file, built] of byFile) {
+    const listed: ListedFile | undefined = listedFiles.find(
+      (entry: ListedFile): boolean => {
+        return entry.file === file;
+      },
+    );
+
+    if (!listed || listed.count !== built.length) {
+      problems.push(
+        [
+          `${file} builds ${built.length} (listed: ${listed ? listed.count : 0}). Run a pattern a project's people write with getLinearRegExp (Common/Utils/LinearRegExp/PatternCache), or list what these are built from:`,
+          ...built.map((entry: BuiltPattern): string => {
+            return `    ${entry.line}: ${entry.argument}`;
+          }),
+        ].join("\n"),
+      );
+    }
+  }
+
+  for (const listed of listedFiles) {
+    if (
+      !byFile.has(listed.file) &&
+      (EE_IS_CHECKED_OUT || !listed.file.startsWith("ee/"))
+    ) {
+      problems.push(`${listed.file} is listed, but builds none now.`);
+    }
+  }
+
+  return problems;
 }
 
 describe("the finder", () => {
@@ -455,6 +695,48 @@ describe("the finder", () => {
     ).toBe(true);
   });
 
+  test("finds a string's match, matchAll or search handed a text, as a pattern", () => {
+    expect(
+      patternArgumentsIn(
+        "Example.ts",
+        [
+          "const a: boolean = title.match(rule.alertTitlePattern) !== null;",
+          "const b: number = value.search(pattern);",
+          "for (const m of text.matchAll(source)) { use(m); }",
+          "const c: unknown = name.match(`^${prefix}`);",
+          'const d: unknown = name.match(enabled ? "a+" : PATTERN);',
+        ].join("\n"),
+      ).map((found: BuiltPattern): string => {
+        return found.argument;
+      }),
+    ).toEqual([
+      "title.match(rule.alertTitlePattern)",
+      "value.search(pattern)",
+      "text.matchAll(source)",
+      "name.match(`^${prefix}`)",
+      'name.match(enabled ? "a+" : PATTERN)',
+    ]);
+  });
+
+  test("passes over a pattern written in the file, and calls that are not a string's", () => {
+    expect(
+      patternArgumentsIn(
+        "Example.ts",
+        [
+          "const A: unknown = line.match(/^(\\d+)/);",
+          "const B: unknown = line.match(WORD_PATTERN);",
+          "const C: unknown = line.match(Parser.DIGITS);",
+          "const local: RegExp = /x+/g; const D: unknown = line.matchAll(local);",
+          "const E: unknown = line.match(first ? HEAD : TAIL);",
+          'const F: unknown = line.match(new RegExp("^a"));',
+          "const G: unknown = QueryHelper.search(text);",
+          "const H: unknown = service.search({ text: text });",
+          "const I: unknown = this.match(item, id, note);",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+
   test("leaves out what is bundled for a browser or a phone", () => {
     expect(
       isBundledForADevice(
@@ -474,48 +756,25 @@ describe("the finder", () => {
 
 describe("RegExps the servers, workers and probes build from text not written in their code", () => {
   test("each is in a file listed with what it builds them from", () => {
-    const byFile: Map<
-      string,
-      Array<BuiltPattern>
-    > = builtPatternsInServerCode();
-    const problems: Array<string> = [];
-
-    for (const [file, built] of byFile) {
-      const listed: ListedFile | undefined = LISTED.find(
-        (entry: ListedFile): boolean => {
-          return entry.file === file;
-        },
-      );
-
-      if (!listed || listed.count !== built.length) {
-        problems.push(
-          [
-            `${file} builds ${built.length} (listed: ${listed ? listed.count : 0}). Run a pattern a project's people write with getLinearRegExp (Common/Utils/LinearRegExp/PatternCache), or list what these are built from:`,
-            ...built.map((entry: BuiltPattern): string => {
-              return `    ${entry.line}: ${entry.argument}`;
-            }),
-          ].join("\n"),
-        );
-      }
-    }
-
-    for (const listed of LISTED) {
-      if (
-        !byFile.has(listed.file) &&
-        (EE_IS_CHECKED_OUT || !listed.file.startsWith("ee/"))
-      ) {
-        problems.push(`${listed.file} is listed, but builds none now.`);
-      }
-    }
-
-    expect(problems).toEqual([]);
+    expect(unlistedIn(builtPatternsInServerCode(), LISTED)).toEqual([]);
   });
 
   test("each listed file says what it builds them from", () => {
-    for (const listed of LISTED) {
+    for (const listed of [...LISTED, ...LISTED_PATTERN_ARGUMENTS]) {
       expect(listed.builtFrom.length).toBeGreaterThan(10);
       expect(listed.count).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("texts the servers, workers and probes hand a string's match, matchAll or search", () => {
+  test("each is in a file listed with what it reads as a pattern", () => {
+    expect(
+      unlistedIn(
+        builtPatternsInServerCode(patternArgumentsIn),
+        LISTED_PATTERN_ARGUMENTS,
+      ),
+    ).toEqual([]);
   });
 });
 
