@@ -190,21 +190,19 @@ describe("SecuritySetup.getStatus", () => {
       ] as never);
     const recommended: Array<DetectionRuleLibraryEntry> =
       getRecommendedDetectionRules();
-    jest
-      .spyOn(DetectionRuleService, "findBy")
-      .mockResolvedValue([
-        rule({
-          name: recommended[0]!.title,
-          isEnabled: true,
-          idSuffix: "0001",
-        }),
-        rule({
-          name: recommended[1]!.title,
-          isEnabled: false,
-          idSuffix: "0002",
-        }),
-        rule({ name: "My own rule", isEnabled: true, idSuffix: "0003" }),
-      ] as never);
+    jest.spyOn(DetectionRuleService, "findBy").mockResolvedValue([
+      rule({
+        name: recommended[0]!.title,
+        isEnabled: true,
+        idSuffix: "0001",
+      }),
+      rule({
+        name: recommended[1]!.title,
+        isEnabled: false,
+        idSuffix: "0002",
+      }),
+      rule({ name: "My own rule", isEnabled: true, idSuffix: "0003" }),
+    ] as never);
     jest.spyOn(ThreatIntelFeedService, "countBy").mockResolvedValue(count(1));
     jest.spyOn(SecurityCaseService, "countBy").mockResolvedValue(count(3));
     jest.spyOn(SecurityPlaybookService, "countBy").mockResolvedValue(count(4));
@@ -296,6 +294,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
     logSourcesCreated: Array<SecurityLogSource>;
     logSourcesUpdated: Array<JSONObject>;
     playbooksCreated: Array<SecurityPlaybook>;
+    playbooksUpdated: Array<{ id: string; data: JSONObject }>;
     propsSeen: Array<unknown>;
   }
 
@@ -310,6 +309,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
       logSourcesCreated: [],
       logSourcesUpdated: [],
       playbooksCreated: [],
+      playbooksUpdated: [],
       propsSeen: [],
     };
 
@@ -358,6 +358,15 @@ describe("SecuritySetup.turnOnRecommended", () => {
         writes.playbooksCreated.push(data.data);
         return data.data as never;
       });
+    jest
+      .spyOn(SecurityPlaybookService, "updateOneById")
+      .mockImplementation(async (data: { id: ObjectID; data: unknown }) => {
+        writes.playbooksUpdated.push({
+          id: data.id.toString(),
+          data: data.data as JSONObject,
+        });
+        return 1;
+      });
 
     return writes;
   }
@@ -380,6 +389,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
       rulesTurnedOn: 0,
       logsTurnedOn: true,
       playbookAdded: true,
+      playbookTurnedOn: false,
     });
     expect(
       writes.rulesCreated.map((created: DetectionRule): string => {
@@ -429,7 +439,9 @@ describe("SecuritySetup.turnOnRecommended", () => {
         isEnabled: true,
         id: ObjectID.generate(),
       } as SecurityLogSource,
-      playbooks: [{ name: "Enrich New Cases" } as SecurityPlaybook],
+      playbooks: [
+        { name: "Enrich New Cases", isEnabled: true } as SecurityPlaybook,
+      ],
     });
 
     const result: TurnOnRecommendedResult =
@@ -444,10 +456,36 @@ describe("SecuritySetup.turnOnRecommended", () => {
       rulesTurnedOn: 0,
       logsTurnedOn: false,
       playbookAdded: false,
+      playbookTurnedOn: false,
     });
     expect(writes.rulesCreated).toHaveLength(0);
     expect(writes.logSourcesCreated).toHaveLength(0);
     expect(writes.playbooksCreated).toHaveLength(0);
+    expect(writes.playbooksUpdated).toHaveLength(0);
+  });
+
+  test("Enrich New Cases, switched off, is switched back on rather than added again", async () => {
+    const playbookId: ObjectID = ObjectID.generate();
+    const off: SecurityPlaybook = {
+      name: "  enrich new cases ",
+      isEnabled: false,
+      id: playbookId,
+    } as SecurityPlaybook;
+    const writes: Writes = install({ playbooks: [off] });
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: false, playbook: true },
+      });
+
+    expect(result.playbookAdded).toBe(false);
+    expect(result.playbookTurnedOn).toBe(true);
+    expect(writes.playbooksCreated).toHaveLength(0);
+    expect(writes.playbooksUpdated).toEqual([
+      { id: playbookId.toString(), data: { isEnabled: true } },
+    ]);
   });
 
   test("a recommended rule that was turned off is turned back on, not added twice", async () => {

@@ -24,7 +24,8 @@ import path from "path";
  * fails the test on anything else.
  */
 
-const PORT: string = "4232";
+const PORT: string =
+  process.env["SECURITY_EVENTS_EMPTY_STATES_FIXTURE_PORT"] || "4232";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 // The fixture's ?latest=old event is dated before this.
 const NOW: Date = new Date("2026-09-22T12:00:00.000Z");
@@ -800,7 +801,7 @@ function connectionsCard(page: Page): Locator {
   return page.getByTestId("card").filter({
     has: page.getByRole("heading", {
       level: 2,
-      name: "Security Event Connections",
+      name: "Your security tools",
       exact: true,
     }),
   });
@@ -1497,6 +1498,136 @@ test.describe("connections empty state", () => {
  * never nested, so a screen reader and the keyboard get two plain controls
  * with names of their own.
  */
+/*
+ * The page around the security tools: Your logs above them - one switch
+ * that makes the logs the project already sends a source - and Send to
+ * your SIEM below, for a team that already has one.
+ */
+test.describe("connections: your logs and your SIEM", () => {
+  function logsSwitch(page: Page): Locator {
+    return page.getByRole("switch", {
+      name: "Find security events in your logs",
+    });
+  }
+
+  function siemCard(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByRole("heading", {
+        level: 2,
+        name: "Send to your SIEM",
+        exact: true,
+      }),
+    });
+  }
+
+  test("reads top to bottom: your logs, your security tools, your SIEM", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page);
+
+    const headings: Array<string> = await page
+      .getByTestId("card")
+      .getByRole("heading", { level: 2 })
+      .allInnerTexts();
+    expect(headings).toEqual([
+      "Your logs",
+      "Your security tools",
+      "Send to your SIEM",
+    ]);
+    await expect(logsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(
+      page.getByTestId("security-log-format-ssh-sign-in"),
+    ).toContainText("SSH sign-ins");
+    await expect(
+      page.getByTestId("security-event-destinations-empty"),
+    ).toContainText("Already use a SIEM?");
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "connections-cards-desktop");
+  });
+
+  test("the switch turns your logs on in one press, and says when the first check runs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page);
+
+    await logsSwitch(page).click();
+    await expect(logsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByTestId("security-logs-source-saving")).toHaveText(
+      "Saved",
+    );
+    await expect(page.getByTestId("security-logs-source-status")).toHaveText(
+      "The first check runs within a minute. No security event found yet.",
+    );
+
+    const creates: Array<RecordedWrite> = (await fixture(page)).creates;
+    expect(
+      creates.map((write: RecordedWrite): string => {
+        return write.modelName;
+      }),
+    ).toEqual(["SecurityLogSource"]);
+  });
+
+  test("a viewer reads the switch but cannot flip it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page, { role: "viewer" });
+
+    await expect(logsSwitch(page)).toHaveAttribute("aria-disabled", "true");
+    await logsSwitch(page).click({ force: true });
+    await expect(logsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("Send to Google SecOps opens the form on the SIEM's own settings, then what to send", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConnections(page);
+
+    await siemCard(page)
+      .getByRole("button", { name: "Send to Google SecOps" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Send to Google SecOps",
+    });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("[aria-current='step']")).toHaveText(
+      "Google SecOps",
+    );
+    await expect(
+      dialog.getByText("Instance resource name").first(),
+    ).toBeVisible();
+    await expect(
+      dialog.getByTestId("security-event-destination-send-test"),
+    ).toBeDisabled();
+    await screenshot(page, "connections-siem-form-desktop", {
+      fullPage: false,
+    });
+
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("dark theme and a phone", async ({ page }: { page: Page }) => {
+    await openConnections(page, { theme: "dark" });
+    await expect(logsSwitch(page)).toBeVisible();
+    await screenshot(page, "connections-cards-dark");
+
+    await openConnections(page, { width: 390 });
+    await expect(logsSwitch(page)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await screenshot(page, "connections-cards-phone");
+  });
+});
+
 test.describe("connections empty state accessibility", () => {
   test("sections, lists, headings and tile controls have names", async ({
     page,
@@ -1667,6 +1798,11 @@ test.describe("connections empty state actions", () => {
 
     for (const [index, item] of PROVIDERS.entries()) {
       const spot: TileSpot = TILE_SPOTS[index % TILE_SPOTS.length] as TileSpot;
+      /*
+       * Your logs sits above the table now, so a tile can start below the
+       * fold; a hit test only sees what is on screen.
+       */
+      await tile(page, item).scrollIntoViewIfNeeded();
       const point: Point = await tileSpot(page, item, spot);
       // The overlay really is what sits under that spot.
       expect(await hitAt(page, item, point), `${item.title} ${spot}`).toBe(
@@ -1801,6 +1937,7 @@ test.describe("connections empty state actions", () => {
     for (const item of PROVIDERS) {
       // The link is raised above the tile's overlay.
       const link: Locator = guideLink(page, item);
+      await tile(page, item).scrollIntoViewIfNeeded();
       const linkBox: Box = await viewportBox(link);
       const tileBox: Box = await viewportBox(tile(page, item));
       expect(
@@ -2670,7 +2807,7 @@ test.describe("security events empty state", () => {
     await expect(
       page.getByRole("heading", {
         level: 2,
-        name: "Security Event Connections",
+        name: "Your security tools",
         exact: true,
       }),
     ).toBeVisible();

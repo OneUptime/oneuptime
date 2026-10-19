@@ -1,0 +1,502 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
+import SecurityCaseApi, {
+  SecurityOverview,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
+import { SECURITY_ALL_QUIET_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityAllQuiet";
+import { SECURITY_GETTING_STARTED_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityGettingStarted";
+import { SECURITY_PIPELINE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityPipeline";
+import {
+  SecuritySetupStatus,
+  SecuritySetupTestResult,
+  TurnOnRecommendedResult,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecuritySetupModel";
+import SecurityOverviewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import Project from "../../../Models/DatabaseModels/Project";
+import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
+import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
+import PermissionGate, {
+  ModelAction,
+  PermissionCheckableModel,
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
+import ProjectUtil from "../../../UI/Utils/Project";
+import type { SpyInstance } from "jest-mock";
+
+/*
+ * The Security Overview as a new project meets it and as a working one
+ * does: the pipeline across the top, "Get started" until Security is set
+ * up (its one click and its test attack), "All quiet" when nothing needs
+ * anybody, the queue tiles when something does, and the charts only once
+ * there is something to chart. SecurityCaseApi is the page's only door to
+ * the server, so it is what is stubbed.
+ */
+
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const CASE_ID: string = "44444444-4444-4444-8444-444444444444";
+
+function status(
+  overrides: Partial<SecuritySetupStatus> = {},
+): SecuritySetupStatus {
+  return {
+    connections: 0,
+    logsSourceEnabled: false,
+    eventsLast24Hours: 0,
+    lastEventAt: null,
+    enabledRules: 0,
+    recommendedRules: 19,
+    recommendedRulesOn: 0,
+    threatIntelFeeds: 0,
+    openCases: 0,
+    enabledPlaybooks: 0,
+    destinations: 0,
+    ...overrides,
+  };
+}
+
+const SET_UP: Partial<SecuritySetupStatus> = {
+  logsSourceEnabled: true,
+  eventsLast24Hours: 1234,
+  enabledRules: 19,
+  recommendedRulesOn: 19,
+  enabledPlaybooks: 1,
+};
+
+function overview(
+  overrides: Partial<SecurityOverview["metrics"]> = {},
+  top: Partial<SecurityOverview> = {},
+): SecurityOverview {
+  return {
+    generatedAt: new Date("2026-10-19T12:00:00Z"),
+    caseWindowInDays: 30,
+    detectionWindowInDays: 14,
+    myOpenCases: 0,
+    runsWaitingForApproval: 0,
+    isTruncated: false,
+    metrics: {
+      openCases: 0,
+      unassignedOpenCases: 0,
+      openByPriority: {},
+      openByStatus: {},
+      casesOpenedInWindow: 0,
+      casesClosedInWindow: 0,
+      verdictsInWindow: {},
+      meanTimeToAcknowledgeInMinutes: null,
+      meanTimeToContainInMinutes: null,
+      meanTimeToCloseInMinutes: null,
+      casesOpenedPerDay: [],
+      detectionsPerDay: [],
+      detectionsInWindow: 0,
+      topRules: [],
+      topTactics: [],
+      ...overrides,
+    },
+    ...top,
+  };
+}
+
+let statusAnswers: Array<SecuritySetupStatus | Error> = [];
+let overviewAnswers: Array<SecurityOverview> = [];
+let allowed: (
+  model: PermissionCheckableModel,
+  action: ModelAction,
+) => PermissionGateResult = (): PermissionGateResult => {
+  return { isAllowed: true };
+};
+
+function answerStatus(...answers: Array<SecuritySetupStatus | Error>): void {
+  statusAnswers = answers;
+}
+
+function answerOverview(...answers: Array<SecurityOverview>): void {
+  overviewAnswers = answers;
+}
+
+beforeEach(() => {
+  statusAnswers = [status()];
+  overviewAnswers = [overview()];
+  allowed = (): PermissionGateResult => {
+    return { isAllowed: true };
+  };
+
+  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  jest
+    .spyOn(PermissionGate, "check")
+    .mockImplementation(
+      (model: PermissionCheckableModel, action: ModelAction) => {
+        return allowed(model, action);
+      },
+    );
+  jest
+    .spyOn(SecurityCaseApi, "getSetupStatus")
+    .mockImplementation(async (): Promise<SecuritySetupStatus> => {
+      // The last answer repeats for every later read.
+      const answer: SecuritySetupStatus | Error =
+        statusAnswers.length > 1 ? statusAnswers.shift()! : statusAnswers[0]!;
+
+      if (answer instanceof Error) {
+        throw answer;
+      }
+
+      return answer;
+    });
+  jest
+    .spyOn(SecurityCaseApi, "getOverview")
+    .mockImplementation(async (): Promise<SecurityOverview> => {
+      return overviewAnswers.length > 1
+        ? overviewAnswers.shift()!
+        : overviewAnswers[0]!;
+    });
+  jest.spyOn(SecurityCaseApi, "getTopEntities").mockResolvedValue([]);
+});
+
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+});
+
+async function renderPage(): Promise<void> {
+  const project: Project = new Project();
+  project.id = PROJECT_ID;
+
+  await act(async () => {
+    render(
+      <MemoryRouter>
+        <SecurityOverviewPage
+          pageRoute={new Route("/dashboard/security-events/overview")}
+          currentProject={project}
+          hasPaymentMethod={true}
+        />
+      </MemoryRouter>,
+    );
+  });
+
+  // The skeleton goes once both reads have answered.
+  await waitFor(() => {
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+}
+
+function stage(key: string): HTMLElement {
+  return screen.getByTestId(`security-pipeline-${key}`);
+}
+
+function step(key: string): HTMLElement {
+  return screen.getByTestId(`security-setup-step-${key}`);
+}
+
+function routeFor(page: PageMap, modelId?: string): string {
+  return RouteUtil.populateRouteParams(
+    RouteMap[page] as Route,
+    modelId ? { modelId } : undefined,
+  ).toString();
+}
+
+describe("a project that has not set Security up", () => {
+  test("draws the pipeline, every stage but the cases not set up yet, each a link to its page", async () => {
+    await renderPage();
+
+    const pipeline: HTMLElement = screen.getByTestId(SECURITY_PIPELINE_ID);
+
+    expect(pipeline).toHaveAttribute("aria-label", "How Security works here");
+    expect(
+      ["sources", "detections", "cases", "playbooks"].map((key: string) => {
+        return [key, stage(key).getAttribute("data-ready")];
+      }),
+    ).toEqual([
+      ["sources", "false"],
+      ["detections", "false"],
+      ["cases", "true"],
+      ["playbooks", "false"],
+    ]);
+    expect(stage("sources")).toHaveTextContent("Not set up");
+    expect(stage("sources")).toHaveTextContent(
+      "No events in the last 24 hours",
+    );
+    expect(stage("detections")).toHaveTextContent(
+      "0 of 19 recommended rules on",
+    );
+    expect(stage("cases")).toHaveTextContent("None open");
+    expect(within(stage("sources")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_CONNECTIONS),
+    );
+    expect(within(stage("detections")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_DETECTION_RULES),
+    );
+    expect(within(stage("playbooks")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_PLAYBOOKS),
+    );
+  });
+
+  test("offers Get started with four steps, none done, and no charts of nothing", async () => {
+    await renderPage();
+
+    const card: HTMLElement = screen.getByTestId(SECURITY_GETTING_STARTED_ID);
+
+    expect(
+      within(card).getByRole("heading", {
+        name: "Set up Security in a minute",
+      }),
+    ).toBeInTheDocument();
+    expect(card).toHaveTextContent("0 of 4 done");
+    expect(
+      ["sources", "detections", "responses", "test"].map((key: string) => {
+        return step(key).getAttribute("data-done");
+      }),
+    ).toEqual(["false", "false", "false", "false"]);
+    expect(within(step("sources")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_CONNECTIONS),
+    );
+    expect(within(step("detections")).getByRole("link")).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_RULE_LIBRARY),
+    );
+
+    // Nothing to chart, and "All quiet" would say nothing before set-up.
+    expect(screen.queryByTestId(SECURITY_ALL_QUIET_ID)).toBeNull();
+    expect(
+      screen.queryByRole("group", { name: "Security operations figures" }),
+    ).toBeNull();
+    expect(screen.queryByText("Cases Opened")).toBeNull();
+  });
+
+  test("Turn on recommended turns it all on in one call, says what it did and reads the figures again", async () => {
+    const turnOn: SpyInstance<typeof SecurityCaseApi.turnOnRecommended> = jest
+      .spyOn(SecurityCaseApi, "turnOnRecommended")
+      .mockResolvedValue({
+        rulesAdded: 19,
+        rulesTurnedOn: 0,
+        logsTurnedOn: true,
+        playbookAdded: true,
+        playbookTurnedOn: false,
+      } as TurnOnRecommendedResult);
+    answerStatus(status(), status(SET_UP));
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-turn-on-recommended"));
+    });
+
+    expect(turnOn).toHaveBeenCalledTimes(1);
+    expect(turnOn).toHaveBeenCalledWith();
+    expect(await screen.findByTestId("security-turned-on")).toHaveTextContent(
+      "Done. 19 detection rules are on, your logs are checked for security events and every new case is enriched.",
+    );
+
+    await waitFor(() => {
+      expect(step("sources")).toHaveAttribute("data-done", "true");
+    });
+    expect(SecurityCaseApi.getSetupStatus).toHaveBeenCalledTimes(2);
+    expect(step("detections")).toHaveAttribute("data-done", "true");
+    expect(step("responses")).toHaveAttribute("data-done", "true");
+    expect(step("test")).toHaveAttribute("data-done", "false");
+    // Set up now, yet the card stays for the visit, so the test is one click away.
+    expect(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).toHaveTextContent(
+      "3 of 4 done",
+    );
+    expect(stage("detections")).toHaveTextContent("19 rules on");
+  });
+
+  test("the test attack names the case it opened and links to it; with every step done the card can be put away", async () => {
+    const test: SpyInstance<typeof SecurityCaseApi.runSetupTest> = jest
+      .spyOn(SecurityCaseApi, "runSetupTest")
+      .mockResolvedValue({
+        eventsSent: 12,
+        caseId: CASE_ID,
+        caseNumber: "#7",
+        ruleAdded: false,
+      } as SecuritySetupTestResult);
+    answerOverview(
+      overview(),
+      overview({ openCases: 1, unassignedOpenCases: 1 }),
+    );
+    // Not set up at first, so Get started shows; set up after the test.
+    answerStatus(status(), status({ ...SET_UP, openCases: 1 }));
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).getByTestId(
+          "security-run-setup-test",
+        ),
+      );
+    });
+
+    expect(test).toHaveBeenCalledTimes(1);
+
+    const result: HTMLElement = await screen.findByTestId(
+      "security-setup-test-result",
+    );
+
+    expect(result).toHaveTextContent(
+      "The test opened case #7: a brute force attempt from one address.",
+    );
+    expect(
+      within(result).getByRole("link", { name: /Open the case/ }),
+    ).toHaveAttribute("href", routeFor(PageMap.SECURITY_CASE_VIEW, CASE_ID));
+
+    const card: HTMLElement = screen.getByTestId(SECURITY_GETTING_STARTED_ID);
+
+    await waitFor(() => {
+      expect(card).toHaveTextContent("Security is set up");
+    });
+    expect(card).toHaveTextContent("4 of 4 done");
+    // The case is open now: the queue shows it, nobody has picked it up.
+    expect(
+      screen.getByText("open case nobody has picked up"),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-getting-started-done"));
+    });
+
+    expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
+  });
+
+  test("a failed click says why, in the card", async () => {
+    jest
+      .spyOn(SecurityCaseApi, "turnOnRecommended")
+      .mockRejectedValue(new Error("You may not add detection rules."));
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-turn-on-recommended"));
+    });
+
+    expect(
+      await within(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).findByText(
+        "You may not add detection rules.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("whoever may not add rules sees both buttons locked", async () => {
+    allowed = (model: PermissionCheckableModel): PermissionGateResult => {
+      return model.singularName === new DetectionRule().singularName
+        ? {
+            isAllowed: false,
+            disabledReason: "You need Security Admin to add detection rules.",
+          }
+        : { isAllowed: true };
+    };
+    const turnOn: SpyInstance<typeof SecurityCaseApi.turnOnRecommended> =
+      jest.spyOn(SecurityCaseApi, "turnOnRecommended");
+    await renderPage();
+
+    const turnOnButton: HTMLElement = screen.getByTestId(
+      "security-turn-on-recommended",
+    );
+    const testButton: HTMLElement = screen.getByTestId(
+      "security-run-setup-test",
+    );
+
+    expect(turnOnButton).toBeDisabled();
+    expect(testButton).toBeDisabled();
+
+    fireEvent.click(turnOnButton);
+    expect(turnOn).not.toHaveBeenCalled();
+  });
+});
+
+describe("a project with Security set up", () => {
+  test("nothing waiting: All quiet, with the test attack, and no Get started or charts", async () => {
+    answerStatus(status(SET_UP));
+    await renderPage();
+
+    const quiet: HTMLElement = await screen.findByTestId(SECURITY_ALL_QUIET_ID);
+
+    expect(
+      within(quiet).getByRole("heading", { name: "All quiet" }),
+    ).toBeInTheDocument();
+    expect(
+      within(quiet).getByTestId("security-run-setup-test"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
+    expect(screen.queryByText("open case nobody has picked up")).toBeNull();
+    expect(stage("sources")).toHaveTextContent("1 source");
+    expect(stage("sources")).toHaveTextContent(
+      "1,234 events in the last 24 hours",
+    );
+    expect(stage("playbooks")).toHaveTextContent("1 playbook on");
+  });
+
+  test("something waiting: the queue tiles and the charts, and the cases stage asks for a person", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview(
+        {
+          openCases: 3,
+          unassignedOpenCases: 2,
+          casesOpenedInWindow: 5,
+          detectionsInWindow: 9,
+        },
+        { myOpenCases: 1, runsWaitingForApproval: 1 },
+      ),
+    );
+    await renderPage();
+
+    expect(
+      await screen.findByText("open case assigned to you"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("open cases nobody has picked up"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("playbook step waiting for approval"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Security operations figures" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Cases Opened")).toBeInTheDocument();
+    expect(screen.queryByTestId(SECURITY_ALL_QUIET_ID)).toBeNull();
+    expect(stage("cases")).toHaveTextContent("3 open cases");
+    expect(stage("cases")).toHaveTextContent("Waiting for a person");
+  });
+
+  test("a SIEM the events are sent to is named under the pipeline", async () => {
+    answerStatus(status({ ...SET_UP, destinations: 1 }));
+    await renderPage();
+
+    expect(
+      screen.getByTestId("security-pipeline-destinations"),
+    ).toHaveTextContent("Security events are also sent to 1 SIEM.");
+  });
+});
+
+test("a server that cannot answer the set-up figures leaves the pipeline and Get started out, never the page", async () => {
+  answerStatus(new Error("Not found"));
+  await renderPage();
+
+  expect(await screen.findByTestId(SECURITY_ALL_QUIET_ID)).toBeInTheDocument();
+  expect(screen.queryByTestId(SECURITY_PIPELINE_ID)).toBeNull();
+  expect(screen.queryByTestId(SECURITY_GETTING_STARTED_ID)).toBeNull();
+});

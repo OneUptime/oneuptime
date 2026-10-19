@@ -201,6 +201,7 @@ describe("POST /security-case/setup/turn-on-recommended", () => {
         rulesTurnedOn: 0,
         logsTurnedOn: true,
         playbookAdded: true,
+        playbookTurnedOn: false,
       } as never);
 
     await route("/security-case/setup/turn-on-recommended")(

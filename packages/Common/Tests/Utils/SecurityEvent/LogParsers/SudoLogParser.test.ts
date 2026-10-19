@@ -53,12 +53,13 @@ describe("readSudoCommand", () => {
     expect(sudo?.command).toBe("/usr/bin/psql -l");
   });
 
-  test.each(NOT_SUDO_LINES.map((line: string): [string] => [line]))(
-    "not a sudo line: %j",
-    (line: string) => {
-      expect(readSudoCommand(line)).toBeNull();
-    },
-  );
+  test.each(
+    NOT_SUDO_LINES.map((line: string): [string] => {
+      return [line];
+    }),
+  )("not a sudo line: %j", (line: string) => {
+    expect(readSudoCommand(line)).toBeNull();
+  });
 
   test("a very long command is cut, not dropped", () => {
     const sudo: SudoCommand | null = readSudoCommand(

@@ -228,10 +228,12 @@ describe("Security events setup guide wiring", () => {
     expect(routesSource).toContain("<SecurityEventsDocumentationPage");
   });
 
-  test("the setup guide is is in the Security Events side menu", () => {
-    expect(navigationSource).toContain('title: "Setup Guide",');
+  test("the setup guide is a tab beside Connections, under the Connections menu entry", () => {
     expect(navigationSource).toContain(
-      "page: PageMap.SECURITY_EVENTS_DOCUMENTATION,",
+      '{ page: PageMap.SECURITY_EVENTS_DOCUMENTATION, title: "Setup Guide" }',
+    );
+    expect(navigationSource).toContain(
+      "menuPage: PageMap.SECURITY_EVENTS_CONNECTIONS,",
     );
   });
 

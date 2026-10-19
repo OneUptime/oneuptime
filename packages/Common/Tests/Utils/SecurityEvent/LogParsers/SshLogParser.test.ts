@@ -108,12 +108,13 @@ describe("readSshSignIn", () => {
     expect(signIn?.user).toBe("x from 192.0.2.66 port 1");
   });
 
-  test.each(NOT_SSH_SIGN_INS.map((line: string): [string] => [line]))(
-    "not a sign-in: %j",
-    (line: string) => {
-      expect(readSshSignIn(line)).toBeNull();
-    },
-  );
+  test.each(
+    NOT_SSH_SIGN_INS.map((line: string): [string] => {
+      return [line];
+    }),
+  )("not a sign-in: %j", (line: string) => {
+    expect(readSshSignIn(line)).toBeNull();
+  });
 
   test("a line without a port still names the address", () => {
     expect(readSshSignIn("Invalid user guest from 203.0.113.12")?.ip).toBe(

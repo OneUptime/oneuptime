@@ -58,6 +58,8 @@ import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
+import SecurityEventDestination from "Common/Models/DatabaseModels/SecurityEventDestination";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Service from "Common/Models/DatabaseModels/Service";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -118,8 +120,16 @@ const project = Object.assign(new Project(), {
   name: "Acme Commerce",
 });
 
-// The tables the two pages read. Every one of them is empty.
-const MODEL_TABLES = [tableName(SecurityEventConnection), tableName(Service)];
+/*
+ * The tables the two pages read. Every one of them is empty: Connections
+ * reads your logs' switch, the security tools and the SIEMs sent to.
+ */
+const MODEL_TABLES = [
+  tableName(SecurityEventConnection),
+  tableName(SecurityLogSource),
+  tableName(SecurityEventDestination),
+  tableName(Service),
+];
 const ANALYTICS_TABLES = [tableName(SecurityEvent)];
 // The side menu's badges: open cases, and runs waiting for approval.
 const BADGE_TABLES = [tableName(SecurityCase), tableName(SecurityPlaybookRun)];
@@ -165,6 +175,12 @@ ModelAPI.getItem = async (options) => {
   return null;
 };
 
+/*
+ * Your logs' record: none until the switch is first turned on, which
+ * creates it (ModelAPI.create below); after that the card reads it back.
+ */
+const logSources = [];
+
 ModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);
   const skip = Number(options.skip || 0);
@@ -177,6 +193,16 @@ ModelAPI.getList = async (options) => {
   });
   if (!MODEL_TABLES.includes(modelName)) {
     fixture.unhandled.push({ kind: "getList", modelName });
+  }
+  if (modelName === tableName(SecurityLogSource)) {
+    return {
+      data: logSources.map((record) => {
+        return Object.assign(new SecurityLogSource(), record);
+      }),
+      count: logSources.length,
+      skip,
+      limit,
+    };
   }
   return { data: [], count: 0, skip, limit };
 };
@@ -207,6 +233,14 @@ ModelAPI.count = async (options) => {
 ModelAPI.create = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.creates.push({ modelName, data: serialize(options.model) });
+  if (modelName === tableName(SecurityLogSource)) {
+    logSources.push({
+      _id: "90000000-0000-4000-8000-000000000001",
+      projectId: options.model.projectId,
+      isEnabled: options.model.isEnabled === true,
+    });
+    return new HTTPResponse(200, {}, {});
+  }
   fixture.unhandled.push({ kind: "create", modelName });
   return { data: options.model, miscData: {} };
 };
@@ -234,7 +268,12 @@ AnalyticsModelAPI.getList = async (options) => {
     await latestEventReleased;
   }
   if (isLatestEventLookup && latest === "old") {
-    return { data: [{ time: new Date(OLD_EVENT_TIME) }], count: 1, skip, limit };
+    return {
+      data: [{ time: new Date(OLD_EVENT_TIME) }],
+      count: 1,
+      skip,
+      limit,
+    };
   }
   return { data: [], count: 0, skip, limit };
 };
@@ -392,7 +431,9 @@ function FixtureApp() {
               }
             />
             <Route
-              path={SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CONNECTIONS]}
+              path={
+                SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CONNECTIONS]
+              }
               element={
                 <SecurityEventsConnectionsPage
                   {...pageProps(PageMap.SECURITY_EVENTS_CONNECTIONS)}

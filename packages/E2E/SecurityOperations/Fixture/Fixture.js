@@ -70,6 +70,7 @@ import SecurityCaseFeed, {
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
+import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -87,7 +88,10 @@ import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
-import { DETECTION_RULE_LIBRARY } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  DETECTION_RULE_LIBRARY,
+  getRecommendedDetectionRules,
+} from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityCaseStatus, {
@@ -119,6 +123,13 @@ import UserUtil from "Common/UI/Utils/User";
  */
 const params = new URLSearchParams(window.location.search);
 const isEmpty = params.get("empty") === "1";
+/*
+ * ?quiet=1: a project that has set Security up - a connection, its logs,
+ * rules and playbooks - and that nothing has happened to yet: no cases, no
+ * detections, no runs. What "All quiet" is for.
+ */
+const isQuiet = !isEmpty && params.get("quiet") === "1";
+const hasHistory = !isEmpty && !isQuiet;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const rolePermissions =
   role === "viewer" ? [Permission.SecurityViewer] : [Permission.ProjectOwner];
@@ -161,7 +172,7 @@ const projectObjectId = new ObjectID(PROJECT_ID);
 
 const fixture = {
   now: NOW.toISOString(),
-  scenario: { empty: isEmpty, role },
+  scenario: { empty: isEmpty, quiet: isQuiet, role },
   ids: {
     project: PROJECT_ID,
     sprayCase: ID.case(142),
@@ -378,7 +389,7 @@ function addCase(number, record) {
   });
 }
 
-if (!isEmpty) {
+if (hasHistory) {
   addCase(142, {
     title: `Password spray against Okta from ${SPRAY_IP}`,
     description:
@@ -571,9 +582,7 @@ if (!isEmpty) {
 
   for (let number = 135; number >= 100; number--) {
     const index = 135 - number;
-    const openedAt = ago(
-      (2.2 + index * 0.78) * DAY + random(10) * HOUR,
-    );
+    const openedAt = ago((2.2 + index * 0.78) * DAY + random(10) * HOUR);
     const toAcknowledge = (8 + random(80)) * MINUTE;
     const toContain = toAcknowledge + (1 + random(6)) * HOUR;
     const toClose = toContain + (2 + random(30)) * HOUR;
@@ -586,10 +595,7 @@ if (!isEmpty) {
       source: pick(SOURCES),
       entities: [
         entity(SecurityEntityType.Host, `ws-${200 + index}`),
-        entity(
-          SecurityEntityType.User,
-          `user${index}@acme-commerce.example`,
-        ),
+        entity(SecurityEntityType.User, `user${index}@acme-commerce.example`),
       ],
       mitreTactics: [HISTORY_TACTICS[index % HISTORY_TACTICS.length]],
       mitreTechniques: [],
@@ -906,6 +912,16 @@ if (!isEmpty) {
     createdAt: ago(3 * DAY),
   });
 
+  // Your logs, read for security events.
+  insert(SecurityLogSource, {
+    isEnabled: true,
+    lastScannedAt: ago(1 * MINUTE),
+    lastEventFoundAt: hasHistory ? ago(4 * MINUTE) : undefined,
+    createdAt: ago(40 * DAY),
+  });
+}
+
+if (hasHistory) {
   const result = (step, status, minutesAgo, extra) => {
     return {
       stepId: step.id,
@@ -1147,6 +1163,7 @@ for (const modelType of [
   SecurityPlaybook,
   SecurityPlaybookRun,
   SecurityEventConnection,
+  SecurityLogSource,
   DetectionRule,
   Team,
 ]) {
@@ -1222,6 +1239,186 @@ function overview() {
   };
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Setting Security up: the figures the Overview's pipeline and Get started
+ * read, the one click, and the test attack - as SecuritySetup does them on
+ * the server, on the fixture's own tables.
+ * ---------------------------------------------------------------------------
+ */
+function normalizeName(name) {
+  return (name || "").trim().toLowerCase();
+}
+
+function isOn(record) {
+  return record.isEnabled === true;
+}
+
+function setupStatus() {
+  const rules = table(DetectionRule);
+  const recommended = getRecommendedDetectionRules();
+
+  return {
+    connections: table(SecurityEventConnection).length,
+    logsSourceEnabled: table(SecurityLogSource).some(isOn),
+    eventsLast24Hours: isEmpty ? 0 : hasHistory ? 18432 : 2310,
+    lastEventAt: isEmpty ? null : ago(1 * MINUTE).toISOString(),
+    enabledRules: rules.filter(isOn).length,
+    recommendedRules: recommended.length,
+    recommendedRulesOn: recommended.filter((entry) => {
+      return rules.some((rule) => {
+        return (
+          isOn(rule) && normalizeName(rule.name) === normalizeName(entry.title)
+        );
+      });
+    }).length,
+    threatIntelFeeds: hasHistory ? 1 : 0,
+    openCases: openCases().length,
+    enabledPlaybooks: table(SecurityPlaybook).filter(isOn).length,
+    destinations: 0,
+  };
+}
+
+function turnOnRecommended(body) {
+  const result = {
+    rulesAdded: 0,
+    rulesTurnedOn: 0,
+    logsTurnedOn: false,
+    playbookAdded: false,
+    playbookTurnedOn: false,
+  };
+
+  if (body?.logs !== false) {
+    const source = table(SecurityLogSource)[0];
+    if (!source) {
+      insert(SecurityLogSource, { isEnabled: true });
+      result.logsTurnedOn = true;
+    } else if (!isOn(source)) {
+      source.isEnabled = true;
+      result.logsTurnedOn = true;
+    }
+  }
+
+  if (body?.detections !== false) {
+    for (const entry of getRecommendedDetectionRules()) {
+      const existing = table(DetectionRule).find((rule) => {
+        return normalizeName(rule.name) === normalizeName(entry.title);
+      });
+      if (!existing) {
+        insert(DetectionRule, {
+          name: entry.title,
+          description: entry.description,
+          sigmaRuleYaml: entry.sigmaRuleYaml,
+          isEnabled: true,
+          evaluationIntervalInMinutes: entry.evaluationIntervalInMinutes,
+          shouldCreateCase: true,
+        });
+        result.rulesAdded++;
+      } else if (!isOn(existing)) {
+        existing.isEnabled = true;
+        result.rulesTurnedOn++;
+      }
+    }
+  }
+
+  if (body?.playbook !== false) {
+    const existing = table(SecurityPlaybook).find((playbook) => {
+      return normalizeName(playbook.name) === "enrich new cases";
+    });
+    if (!existing) {
+      insert(SecurityPlaybook, {
+        name: "Enrich New Cases",
+        description:
+          "Checks every new case's entities against threat intel and pulls their recent activity onto the case.",
+        isEnabled: true,
+        trigger: SecurityPlaybookTrigger.CaseOpened,
+        steps: templateSteps("enrich"),
+        runCount: 0,
+      });
+      result.playbookAdded = true;
+    } else if (!isOn(existing)) {
+      existing.isEnabled = true;
+      result.playbookTurnedOn = true;
+    }
+  }
+
+  return result;
+}
+
+// The simulated attack: a dozen failed sign-ins from one address open a case.
+const SETUP_TEST_CASE_NUMBER = 150;
+
+function runSetupTest() {
+  const bruteForce = getRecommendedDetectionRules()[0];
+  const hadRule = table(DetectionRule).some((rule) => {
+    return normalizeName(rule.name) === normalizeName(bruteForce.title);
+  });
+  if (!hadRule) {
+    insert(DetectionRule, {
+      name: bruteForce.title,
+      description: bruteForce.description,
+      sigmaRuleYaml: bruteForce.sigmaRuleYaml,
+      isEnabled: true,
+      evaluationIntervalInMinutes: bruteForce.evaluationIntervalInMinutes,
+      shouldCreateCase: true,
+    });
+  }
+
+  const existing = table(SecurityCase).find((item) => {
+    return item.caseNumber === SETUP_TEST_CASE_NUMBER;
+  });
+  const opened =
+    existing ||
+    addCase(SETUP_TEST_CASE_NUMBER, {
+      title: `${bruteForce.title} from 203.0.113.77`,
+      description:
+        "The setup test: twelve failed sign-ins for setup-test-user from one documentation address.",
+      status: SecurityCaseStatus.New,
+      priority: SecurityCasePriority.Medium,
+      ...assignee(undefined),
+      source: SecurityDetectionSource.DetectionRule,
+      entities: [
+        entity(SecurityEntityType.IpAddress, "203.0.113.77"),
+        entity(SecurityEntityType.User, "setup-test-user"),
+      ],
+      mitreTactics: ["TA0006"],
+      mitreTechniques: ["T1110"],
+      detectionCount: 1,
+      firstDetectedAt: ago(1 * MINUTE),
+      lastDetectedAt: ago(1 * MINUTE),
+      groupingKey: "entity:203.0.113.77",
+      createdAt: NOW,
+    });
+
+  if (!existing) {
+    insert(SecurityDetection, {
+      securityCaseId: new ObjectID(opened._id),
+      title: bruteForce.title,
+      severity: "Medium",
+      source: SecurityDetectionSource.DetectionRule,
+      ruleName: bruteForce.title,
+      groupValue: "203.0.113.77",
+      entities: [entity(SecurityEntityType.IpAddress, "203.0.113.77")],
+      mitreTactics: ["TA0006"],
+      mitreTechniques: ["T1110"],
+      eventCount: 12,
+      fireCount: 1,
+      firstSeenAt: ago(1 * MINUTE),
+      lastSeenAt: ago(1 * MINUTE),
+      sampleMessage:
+        "sshd[4242]: Failed password for setup-test-user from 203.0.113.77 port 52314 ssh2",
+      createdAt: NOW,
+    });
+  }
+
+  return {
+    eventsSent: 12,
+    caseId: opened._id,
+    caseNumber: opened.caseNumberWithPrefix,
+    ruleAdded: !hadRule,
+  };
+}
+
 const TOP_ENTITIES = [
   [SPRAY_IP, 36, 2, 4, 9],
   ["k.morgan@acme-commerce.example", 33, 3, 5, 41],
@@ -1236,7 +1433,7 @@ const TOP_ENTITIES = [
 ];
 
 function topEntities(body) {
-  if (isEmpty) {
+  if (!hasHistory) {
     return { entities: [] };
   }
   const limit = Number(body?.limit || 10);
@@ -1491,6 +1688,18 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/security-case/overview")) {
     return new HTTPResponse(200, overview(), {});
   }
+  if (method === "POST" && path.endsWith("/security-case/setup/status")) {
+    return new HTTPResponse(200, setupStatus(), {});
+  }
+  if (
+    method === "POST" &&
+    path.endsWith("/security-case/setup/turn-on-recommended")
+  ) {
+    return new HTTPResponse(200, turnOnRecommended(options.data), {});
+  }
+  if (method === "POST" && path.endsWith("/security-case/setup/test")) {
+    return new HTTPResponse(200, runSetupTest(), {});
+  }
   if (method === "POST" && path.endsWith("/security-case/top-entities")) {
     return new HTTPResponse(200, topEntities(options.data), {});
   }
@@ -1585,10 +1794,10 @@ const PAGES = [
   [PageMap.SECURITY_PLAYBOOK_RUNS, SecurityPlaybookRunsPage],
 ];
 const STUB_PAGES = [
+  [PageMap.SECURITY_EVENTS, "Events"],
   [PageMap.SECURITY_EVENTS_CORRELATE, "Correlate"],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, "Detection Rules"],
   [PageMap.SECURITY_EVENTS_THREAT_INTEL, "Threat Intel"],
-  [PageMap.SECURITY_EVENTS_MONITORS, "Monitors"],
   [PageMap.SECURITY_EVENTS_CONNECTIONS, "Connections"],
   [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Setup Guide"],
 ];

@@ -94,12 +94,13 @@ describe("WebAttackLogParser", () => {
     expect(event.statusName).toBe("");
   });
 
-  test.each(NOT_WEB_ATTACKS.map((line: string): [string] => [line]))(
-    "an ordinary request is no event: %j",
-    (line: string) => {
-      expect(WebAttackLogParser.parse(logLine(line))).toEqual([]);
-    },
-  );
+  test.each(
+    NOT_WEB_ATTACKS.map((line: string): [string] => {
+      return [line];
+    }),
+  )("an ordinary request is no event: %j", (line: string) => {
+    expect(WebAttackLogParser.parse(logLine(line))).toEqual([]);
+  });
 
   test("every marker is found whatever its case", () => {
     for (const group of WEB_ATTACK_MARKERS) {
