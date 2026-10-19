@@ -2,6 +2,7 @@ import AIAgentService from "../../../Services/AIAgentService";
 import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../../Services/RunnerService";
+import { isShippedSecretValue } from "../../../EnvironmentConfig";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
@@ -67,6 +68,19 @@ export default class CodeFixAgentAuth {
     }
 
     const agentKey: string = data["aiAgentKey"] as string;
+
+    /*
+     * A key this repository ships never authenticates an agent. The
+     * in-cluster fleet's global agent registers with ONEUPTIME_RUNNER_KEY,
+     * which config.example.env ships as a placeholder, and every code-fix
+     * route authenticates here. A real agent or Runner key is a long random
+     * value, never a shipped one, so refusing it here (before either registry
+     * is read) never turns away a legitimate agent, and the rule holds on
+     * every code-fix route at once.
+     */
+    if (isShippedSecretValue(agentKey)) {
+      return null;
+    }
 
     const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
       query: {

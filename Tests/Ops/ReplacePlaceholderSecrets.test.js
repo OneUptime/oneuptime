@@ -12,15 +12,19 @@
  * bundled Runner cannot, so with Docker Compose the shared key has to come
  * from config.env, which every container reads. The README's install copies
  * config.example.env as it is and runs `npm start`, and `npm run update`
- * merges new settings in with their placeholder values, so both give
- * ONEUPTIME_SECRET a random value when it still holds a placeholder:
+ * merges new settings in with their placeholder values, so both give each
+ * shared key a random value when it still holds a placeholder:
  *
- *   - `npm start` runs the script as its prestart;
+ *   - `npm start` runs the script as a step of the start script (not a
+ *     prestart hook, which npm skips under ignore-scripts);
  *   - `npm run update` runs it through prerun -> Scripts/Install/configure.sh,
  *     right after the template merge.
  *
- * Only ONEUPTIME_SECRET: nothing stored depends on it, and every container
- * that needs it reads the same file. The other placeholders are the
+ * The shared keys are ONEUPTIME_SECRET (the cluster key), REGISTER_PROBE_KEY,
+ * GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY and ONEUPTIME_RUNNER_KEY: nothing
+ * stored depends on them in a way a fresh value breaks (a probe or the Runner
+ * re-registers under its new key), and every container that needs one reads
+ * the same file. The datastore passwords and ENCRYPTION_SECRET are the
  * operator's to set (PostgreSQL takes its password once, and a new
  * ENCRYPTION_SECRET makes what is encrypted unreadable).
  */
@@ -84,7 +88,7 @@ function valueOf(contents, key) {
 
 /**
  * Runs the real script against a throwaway config.env, from a directory shaped
- * like the repository root, the way prestart and configure.sh run it.
+ * like the repository root, the way the start script and configure.sh run it.
  */
 function runScript(dir, configEnvContents) {
   fs.mkdirSync(path.join(dir, "Scripts", "Install"), { recursive: true });
@@ -121,8 +125,14 @@ function fakeSecret() {
 }
 
 describe("the secrets it may set", () => {
-  test("is ONEUPTIME_SECRET alone", () => {
-    expect(GENERATED_SECRETS).toEqual(["ONEUPTIME_SECRET"]);
+  test("is the cluster key, the probe keys and the Runner key", () => {
+    expect(GENERATED_SECRETS).toEqual([
+      "ONEUPTIME_SECRET",
+      "REGISTER_PROBE_KEY",
+      "GLOBAL_PROBE_1_KEY",
+      "GLOBAL_PROBE_2_KEY",
+      "ONEUPTIME_RUNNER_KEY",
+    ]);
   });
 
   test("uses the same rule as the server for what counts as shipped", () => {
@@ -178,38 +188,84 @@ describe("the secrets it may set", () => {
 });
 
 describe("replacePlaceholderSecrets", () => {
-  test("gives a placeholder ONEUPTIME_SECRET a new value, and leaves every other line as it was", () => {
+  test("gives each placeholder shared key a new value, and leaves every other line as it was", () => {
+    let counter = 0;
     const result = replacePlaceholderSecrets(TEMPLATE, () => {
-      return "the-new-cluster-key";
+      counter++;
+      return `the-new-value-${counter}`;
     });
 
-    expect(result.replaced).toEqual(["ONEUPTIME_SECRET"]);
-    expect(valueOf(result.contents, "ONEUPTIME_SECRET")).toBe(
-      "the-new-cluster-key",
-    );
+    expect(result.replaced).toEqual([
+      "ONEUPTIME_SECRET",
+      "REGISTER_PROBE_KEY",
+      "GLOBAL_PROBE_1_KEY",
+      "GLOBAL_PROBE_2_KEY",
+      "ONEUPTIME_RUNNER_KEY",
+    ]);
+
+    // Each got a value of its own; no two share one.
+    const values = result.replaced.map((key) => {
+      return valueOf(result.contents, key);
+    });
+    expect(new Set(values).size).toBe(values.length);
 
     const before = TEMPLATE.split("\n");
     const after = result.contents.split("\n");
 
     expect(after.length).toBe(before.length);
 
-    const changed = before
+    const changedKeys = before
       .map((line, index) => {
         return [line, after[index]];
       })
       .filter(([was, now]) => {
         return was !== now;
+      })
+      .map(([was]) => {
+        return was.slice(0, was.indexOf("="));
       });
 
-    expect(changed).toEqual([
-      [
-        `ONEUPTIME_SECRET=${PLACEHOLDER}`,
-        "ONEUPTIME_SECRET=the-new-cluster-key",
-      ],
+    // Only the five shared keys changed, each once.
+    expect(changedKeys).toEqual([
+      "ONEUPTIME_SECRET",
+      "REGISTER_PROBE_KEY",
+      "GLOBAL_PROBE_1_KEY",
+      "GLOBAL_PROBE_2_KEY",
+      "ONEUPTIME_RUNNER_KEY",
     ]);
   });
 
-  test("leaves the placeholders it must not change: the datastore passwords, ENCRYPTION_SECRET, the probe and Runner keys", () => {
+  test("gives a placeholder ONEUPTIME_SECRET a new value", () => {
+    const result = replacePlaceholderSecrets(TEMPLATE, () => {
+      return "the-new-cluster-key";
+    });
+
+    expect(result.replaced).toContain("ONEUPTIME_SECRET");
+    expect(valueOf(result.contents, "ONEUPTIME_SECRET")).toBe(
+      "the-new-cluster-key",
+    );
+  });
+
+  test("gives the probe and Runner keys a new value", () => {
+    let counter = 0;
+    const result = replacePlaceholderSecrets(TEMPLATE, () => {
+      counter++;
+      return `fresh-${counter}`;
+    });
+
+    for (const key of [
+      "REGISTER_PROBE_KEY",
+      "GLOBAL_PROBE_1_KEY",
+      "GLOBAL_PROBE_2_KEY",
+      "ONEUPTIME_RUNNER_KEY",
+    ]) {
+      expect(result.replaced).toContain(key);
+      expect(valueOf(result.contents, key)).not.toBe(valueOf(TEMPLATE, key));
+      expect(isPlaceholderValue(valueOf(result.contents, key))).toBe(false);
+    }
+  });
+
+  test("leaves the datastore passwords and ENCRYPTION_SECRET for the operator to set", () => {
     const result = replacePlaceholderSecrets(TEMPLATE, fakeSecret);
 
     for (const key of [
@@ -217,8 +273,6 @@ describe("replacePlaceholderSecrets", () => {
       "DATABASE_PASSWORD",
       "CLICKHOUSE_PASSWORD",
       "VALKEY_PASSWORD",
-      "REGISTER_PROBE_KEY",
-      "ONEUPTIME_RUNNER_KEY",
     ]) {
       expect(valueOf(result.contents, key)).toBe(valueOf(TEMPLATE, key));
     }
@@ -311,23 +365,32 @@ describe("replacePlaceholderSecrets", () => {
     expect(values.size).toBe(20);
   });
 
-  test("says what it did, and that nothing else needs the value", () => {
-    expect(describeReplacedSecrets(["ONEUPTIME_SECRET"])).toBe(
-      "config.env: ONEUPTIME_SECRET still held the placeholder from config.example.env, so it was set to a new random value. OneUptime's own services, the bundled Runner among them, use it to call each other; nothing else needs it.",
+  test("says what it did, listing the keys it set", () => {
+    expect(
+      describeReplacedSecrets(["ONEUPTIME_SECRET", "REGISTER_PROBE_KEY"]),
+    ).toBe(
+      "config.env: ONEUPTIME_SECRET, REGISTER_PROBE_KEY still held the placeholder from config.example.env, so each was set to a new random value. These are the keys OneUptime's own services, probes and the bundled Runner present to each other; OneUptime refuses the public placeholder for every one of them, and each container reads its value from config.env.",
     );
   });
 });
 
+const GENERATED_KEY_LINE =
+  /^(ONEUPTIME_SECRET|REGISTER_PROBE_KEY|GLOBAL_PROBE_1_KEY|GLOBAL_PROBE_2_KEY|ONEUPTIME_RUNNER_KEY)=.*$/gm;
+
 describe("the script, run the way npm start and configure.sh run it", () => {
-  test("a config.env copied from config.example.env gets a random ONEUPTIME_SECRET and nothing else changes", () => {
+  test("a config.env copied from config.example.env gets random shared keys and nothing else changes", () => {
     const run = runScript(workspace(), TEMPLATE);
 
-    expect(valueOf(run.contents, "ONEUPTIME_SECRET")).toMatch(HEX_256_BITS);
-    expect(run.contents.replace(/^ONEUPTIME_SECRET=.*$/m, "")).toBe(
-      TEMPLATE.replace(/^ONEUPTIME_SECRET=.*$/m, ""),
+    for (const key of GENERATED_SECRETS) {
+      expect(valueOf(run.contents, key)).toMatch(HEX_256_BITS);
+    }
+
+    // Everything but the generated keys' lines is byte-for-byte unchanged.
+    expect(run.contents.replace(GENERATED_KEY_LINE, "")).toBe(
+      TEMPLATE.replace(GENERATED_KEY_LINE, ""),
     );
     expect(run.stdout).toContain(
-      "ONEUPTIME_SECRET still held the placeholder from config.example.env",
+      "still held the placeholder from config.example.env",
     );
   });
 
@@ -507,14 +570,14 @@ describe("a config.env it cannot read or write", () => {
     expect(out.lines.warned).toEqual([]);
   });
 
-  test("the message names the file, the reason, and what the Runner needs", () => {
+  test("the message names the file, the reason, and what the probes and Runner need", () => {
     expect(
       describeUnchangedConfig(
         "written",
         new Error("EROFS: read-only file system"),
       ),
     ).toBe(
-      "config.env could not be written (EROFS: read-only file system), so ONEUPTIME_SECRET was not given a random value. OneUptime starts anyway. If ONEUPTIME_SECRET still holds the placeholder from config.example.env, the bundled Runner does not register until it is a long random value (openssl rand -hex 32 makes one).",
+      "config.env could not be written (EROFS: read-only file system), so its placeholder secrets were not given random values. OneUptime starts anyway, but the bundled probes and Runner do not register while REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_SECRET or ONEUPTIME_RUNNER_KEY still holds the placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one).",
     );
   });
 
@@ -538,23 +601,25 @@ describe("a config.env it cannot read or write", () => {
     expect(run.stdout).toBe("");
     expect(run.stderr).toContain("config.env could not be read (");
     expect(run.stderr).toContain(
-      "so ONEUPTIME_SECRET was not given a random value. OneUptime starts anyway.",
+      "so its placeholder secrets were not given random values. OneUptime starts anyway",
     );
     expect(fs.statSync(path.join(dir, "config.env")).isDirectory()).toBe(true);
   });
 });
 
 describe("where it runs", () => {
-  test("npm start runs it first, as its prestart", () => {
+  test("npm start runs it as a step of the start script, not a prestart hook ignore-scripts would skip", () => {
     const packageJson = JSON.parse(
       fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8"),
     );
 
-    expect(packageJson.scripts.prestart).toBe(
+    // Not a prestart hook: npm skips pre/post scripts under ignore-scripts.
+    expect(packageJson.scripts.prestart).toBeUndefined();
+    expect(packageJson.scripts.start).toContain(
       "node ./Scripts/Install/ReplacePlaceholderSecrets.js",
     );
     expect(packageJson.scripts.start).toContain("docker compose up");
-    // npm run update ends in npm run start, so the prestart runs there too.
+    // npm run update ends in npm run start, so it runs there too.
     expect(packageJson.scripts.update).toContain("npm run start");
   });
 

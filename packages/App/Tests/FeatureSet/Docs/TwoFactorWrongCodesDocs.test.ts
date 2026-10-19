@@ -54,7 +54,12 @@ const NOTE_LEAD: string =
 // The note before it (SharedRunnerUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**The bundled Runner no longer runs a repository's commands, and holds only what it needs.**";
-const LAST_ITEM_START: string = "- See [API and endpoint changes]";
+/*
+ * The note after it (ProbeRunnerKeyUpgradeDocs), which the endpoint pointer
+ * still follows.
+ */
+const NEXT_LEAD: string =
+  "**A global probe and the bundled Runner no longer authenticate with a key the repository ships.**";
 
 const DETAILS_OPEN: string = ":::details ";
 const CONTAINER_CLOSE: string = ":::";
@@ -222,9 +227,9 @@ describe("the English upgrade note on wrong two-factor codes", () => {
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(LAST_ITEM_START)).toBe(
-      true,
-    );
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says the code's rule: counted once the password is right, from any address or network, five free, then a minute doubling up to an hour", () => {

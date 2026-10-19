@@ -1687,8 +1687,26 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorTestProbeResponsePostgres.test.ts --forceExit
 
-      # App installs serve two suites below: the probe ingest one (App) and
-      # the Enterprise one, whose jest resolves Common and App from their own
+      # An installation that ran its bundled probes and in-cluster Runner on
+      # the keys the repository ships, upgraded: a row holding a shipped key
+      # is refused though the database matches it, and a probe or the Runner
+      # coming back under its new key takes over the row it ran as (the
+      # global probe of its name, the global agent) - never one whose key is
+      # the installation's own. Clones the migrated Probe, AIAgent and Runner
+      # tables into an isolated schema.
+      - name: Test the upgrade from shipped probe and Runner keys on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SHIPPED_KEY_UPGRADE_TESTS: "true"
+          SHIPPED_KEY_UPGRADE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SHIPPED_KEY_UPGRADE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SHIPPED_KEY_UPGRADE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # App installs serve the suites below: the probe ones (App) and the
+      # Enterprise one, whose jest resolves Common and App from their own
       # installs.
       - name: Install App for the Enterprise Postgres suite
         uses: ./.github/actions/npm-install
@@ -1713,6 +1731,23 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeIngestReportsAsItselfPostgres.test.ts --forceExit
+
+      # A bundled global probe upgraded from the key the repository ships, end
+      # to end: HTTP requests to the probe registration, heartbeat and
+      # monitor list routes on a real Express app. The probe comes back under
+      # its new key with its own id and is handed its monitors; the shipped
+      # key is refused; a same-named probe with a key of its own keeps its
+      # row. Clones the migrated tables it touches into an isolated schema.
+      - name: Test a bundled probe upgraded from a shipped key on migrated Postgres
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROBE_SHIPPED_KEY_UPGRADE_TESTS: "true"
+          PROBE_SHIPPED_KEY_UPGRADE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_SHIPPED_KEY_UPGRADE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_SHIPPED_KEY_UPGRADE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ProbeShippedKeyUpgradePostgres.test.ts --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
